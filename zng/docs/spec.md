@@ -542,7 +542,7 @@ representing machine words are serialized in little-endian format.
 | `bstring`  | 17 | variable | UTF-8 byte sequence defined by ZSON           |
 | `ip`       | 18 | 4 or 16  | 4 or 16 bytes of IP address                    |
 | `net`      | 19 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     |
-| `type`     | 20 | variable | UTF-8 byte sequence ZSON type value [zson type value](#42-xxx)  |
+| `type`     | 20 | variable | UTF-8 byte sequence ZSON type value [zson type value](zson.md#35-type-value)  |
 | `error`    | 21 | variable | UTF-8 byte sequence of string of error message |
 | `null`     | 22 |    0     | No value, always represents an undefined value |
 

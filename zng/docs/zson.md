@@ -12,7 +12,31 @@
 > * An input reader is not yet implemented,
 > * End-of-sequence markers are not yet conveyed in the writer.
 
-> TBD: add a ToC and section numbering
+* [1. Introduction](#1-introduction)
+  + [1.1 Som Examples](#11-some-examples)
+* [2. The ZSON Data Model](#2-the-zson-data-model)
+  + [2.1 Primitive Types](#21-primitive-types)
+  + [2.2 Complex Types](#22-complex-types)
+  + [2.3 The Type Type](#23-the-type-type)
+  + [2.4 The Null Type](#24-the-null-type)
+  + [2.5 Type Definitions](#25-type-definitions)
+* [3. The ZSON Format](#3-the-zson-format)
+  + [3.1 Identifiers](#31-identifiers)
+  + [3.2 Type Decorators](#31-type-decorators)
+    - [3.2.1 Type Definitions](#321-typedefs)
+  + [3.3 Primitive Values](#33-primitive-values)
+    - [3.3.1 String Escape Rules](#331-string-escape-rules)
+  + [3.4 Complex Values](#34-complex-values)
+    - [3.4.1 Record Value](#341-record-value)
+    - [3.4.2 Array Value](#342-array-value)
+    - [3.4.3 Set Value](#343-set-value)
+    - [3.4.4 Union Value](#344-union-value)
+    - [3.4.5 Enum Value](#345-enum-value)
+    - [3.4.6 Map Value](#346-map-value)
+  + [3.5 Type Value](#35-type-value)
+* [4. Examples](#4-examples)
+
+## 1. Introduction
 
 ZSON is a data model and serialization format that embodies both
 "structured" as well as "semi-structured" data.  It is
@@ -48,7 +72,7 @@ embedding the schemas of log lines as metadata within the log files themselves
 and ZSON modernizes this original approach with a JSON-like syntax and
 binary format.
 
-## Some Examples
+### 1.1 Some Examples
 
 The simplest ZSON text is a single value, perhaps a string like this:
 ```
@@ -120,7 +144,7 @@ note that the `value` field takes on different types and even a complex record
 type on the last line.  In this case, there is a different type top-level
 record type implied by each of the three variations of type of the `value` field.
 
-## The ZSON Data Model
+## 2. The ZSON Data Model
 
 ZSON data is defined as an ordered sequence of one or more typed data values
 separated at any point or not at all by an end-of-sequence marker `.`.
@@ -130,7 +154,7 @@ a new type context to be established for subsequent elements of the sequence.
 Each value's type is either a "primitive type", a "complex type", the "type type",
 or the "null type".
 
-### Primitive Types
+### 2.1 Primitive Types
 
 Primitive types include signed and unsigned integers, IEEE floating point of
 several widths, IEEE decimal,
@@ -145,7 +169,7 @@ string, bstring, byte sequence, boolean, IP address, and IP network.
 > between a `bstring` value that happens to look like a valid UTF-8 string and
 > an actual UTF-8 string encoded as a `bstring`.
 
-### Complex Types
+### 2.2 Complex Types
 
 Complex types are composed of primitive types and/or other complex types
 and include
@@ -159,12 +183,12 @@ typed values, which can be either primitive or complex, and
 uniform type called the key type and the values are of a uniform type called
 the value type.
 
-### The Type Type
+### 2.3 The Type Type
 
 ZSON also includes first-class types, where a value can be of type `type`.
 The syntax for type values is given below.
 
-### The Null Type
+### 2.4 The Null Type
 
 The _null_ type is a primitive type representing only a `null` value.  A `null`
 value can have any type.
@@ -176,7 +200,7 @@ zero value or, in the case of record fields, an optional field whose
 value is not present, though these semantics are not explicitly
 defined by ZSON.
 
-### Type Definitions and Contexts
+### 2.5 Type Definitions
 
 Type definitions embedded in the data sequence bind a name to a type
 so that later values can refer to their type by name instead of explicitly
@@ -203,7 +227,7 @@ to different types but external names must have the same type value across
 subsequences.  It is a "type mismatch" error if an external name has different
 type values across subsequences.
 
-## The ZSON Format
+## 3. The ZSON Format
 
 A ZSON text is a sequence of UTF-8 characters organized either as a bounded input
 or as or an unbounded stream.  Like NDJSON, ZSON input represents a sequence of
@@ -221,7 +245,7 @@ All subsequent references to characters and strings in this section refer to
 the Unicode code points that result when the stream is decoded.
 If a ZSON input includes data that is not valid UTF-8, the input is invalid.
 
-### Identifiers
+### 3.1 Identifiers
 
 ZSON identifiers are used in several contexts:
 * unquoted field names,
@@ -231,7 +255,7 @@ ZSON identifiers are used in several contexts:
 Identifiers are case-sensitive and can contain Unicode letters, `$`, `_`,
 and digits (0-9), but may not start with a digit.
 
-### Type Decorators
+### 3.2 Type Decorators
 
 Any value may be explicitly typed by tagging it with a type decorator.
 The syntax for a decorator is a parenthesized type, as in
@@ -245,7 +269,7 @@ It is an error for the decorator to be type incompatible with its referenced val
 
 > TBD: define precisely the notion of type compatibility
 
-#### Type Definitions
+#### 3.2.1 Type Definitions
 
 Type names are defined by binding a name to a type with an assignment decorator
 of the form
@@ -274,7 +298,7 @@ than its previous definition though multiple definitions of the same
 type are legal (thereby allowing for concatenation of otherwise
 indepdent sequences).
 
-### Primitive Values
+### 3.3 Primitive Values
 
 There are 23 types of primitive values with syntax defined as follows:
 
@@ -338,7 +362,7 @@ value in a record, as an element in an array, etc).
 > a typedef to a `bytes` type and do its own conversions to and from the
 > corresponding bytes values.
 
-#### String Escape Rules
+#### 3.3.1 String Escape Rules
 
 Double-quoted `string` syntax is the same as that of JSON as described
 [RFC 8529](https://tools.ietf.org/html/rfc8529), specifically:
@@ -370,13 +394,13 @@ by a sequence of two consecutive backslash characters.  In other words,
 the `bstring` values `\\` and `\x3b` are equivalent and both represent
 a single backslash character.
 
-### Complex Values
+### 3.4 Complex Values
 
 Complex values are built from primitive values and/or other complex values
 and each conform to one of six complex types:  _record_, _array_, _set_,
 _union_, _enum_, and _map_.
 
-#### Record Value
+#### 3.4.1 Record Value
 
 A record value has the following syntax:
 ```
@@ -392,7 +416,7 @@ the record value must include a decorator, e.g., of the form
 { <name> : <value>, <name> : <value>, ... } ( <decorator> )
 ```
 
-#### Array Value
+#### 3.4.2 Array Value
 
 An array value has the following syntax:
 ```
@@ -405,7 +429,7 @@ the array elements is a union of the types ordered in the sequence they are enco
 An array value may be empty.  An empty array value without a type decorator is
 presumed to be an empty array of type `null`.
 
-#### Set Value
+#### 3.4.3 Set Value
 
 A set value has the following syntax:
 ```
@@ -419,7 +443,7 @@ the set elements is a union of the types ordered in the sequence they are encoun
 A set value may be empty.  An empty set value without a type decorator is
 presumed to be an empty set of type `null`.
 
-#### Union Value
+#### 3.4.4 Union Value
 
 A union value is simply a value that conforms with a union type.
 If the value appears in a context in which the type has not been established,
@@ -450,7 +474,7 @@ Where there is ambiguity, a decorator may resolve the ambiguity as in
 > float16, float32, (u)int8, (u)int16, (u)int32, and uint64 as well as union
 > values inside of union values.
 
-#### Enum Value
+#### 3.4.5 Enum Value
 
 An enum type represents a named set of values where enum values are
 referenced by name.  The simple form of an
@@ -475,7 +499,7 @@ true (<true,false,unknown>)
 ```
 is an enum value of the indicated enum and is not the boolean value `true`.
 
-#### Map Value
+#### 3.4.6 Map Value
 
 A map value has the following syntax:
 ```
@@ -487,7 +511,7 @@ map type, or two elements referring to the type of the keys and type of the valu
 A map value may be empty.  An empty map value without a type decorator is
 presumed to be an empty map of type (`null`, `null`).
 
-### Type Values
+### 3.5 Type Value
 
 The syntax of a type value or of a decorator expressed as a type value mirrors
 the value syntax.
@@ -543,7 +567,7 @@ and the complex form is:
 In the same form, the underlying enum value is equal to its positional
 index in the list of identifiers as an uint64 type.
 
-## Discussion and Examples
+## 4. Examples
 
 > TBD: Add a range of helpful examples and also some that cover the more obscure corner cases.
 > Example of pico-second timestamp.
