@@ -25,7 +25,7 @@ func EncodeNet(subnet *net.IPNet) zcode.Bytes {
 		}
 		return b[:8]
 	}
-	copy(b[:], ip)
+	copy(b[:], subnet.IP)
 	copy(b[16:], subnet.Mask)
 	return b[:]
 }
