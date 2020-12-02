@@ -40,8 +40,9 @@ ZSON is appropriate for human-level inspection of raw data
 and for test and debug and for low-performance APIs where ergonomics matters
 more than performance.
 
-The ZSON design was motivated by and [is compatible with](./zeek-compat.md) the
-[Zeek log format](https://docs.zeek.org/en/stable/examples/logs/).
+The ZSON design was inspired by the
+[Zeek TSV log format](https://docs.zeek.org/en/stable/examples/logs/)
+and [is semantically consistent with it](./zeek-compat.md).
 As far as we know, the Zeek log format pioneered the concept of
 embedding the schemas of log lines as metadata within the log files themselves
 and ZSON modernizes this original approach with a JSON-like syntax and

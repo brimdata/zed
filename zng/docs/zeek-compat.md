@@ -1,4 +1,4 @@
-# ZNG Compatibility with Zeek Logs
+# ZSON Adaptation of Zeek Logs
 
 - [Introduction](#introduction)
 - [Equivalent Types](#equivalent-types)
@@ -12,9 +12,12 @@
 
 ## Introduction
 
-As the ZNG design was motivated by the [Zeek log format](https://docs.zeek.org/en/stable/examples/logs/),
-care has been taken to maintain compatibility with it. This document describes
-how the type system described in the [ZNG specification](spec.md)
+The ZSON data model was inspired by the [Zeek TSV log format](https://docs.zeek.org/en/stable/examples/logs/),
+and consequently, the ZSON/ZNG formats maintain comprehensive interoperability with Zeek.
+In comparison, when Zeek is configured to output its logs in JSON format, much of the
+rich type information is lost in translation.  On the other hand, Zeek TSV
+can be converted to ZSON/ZNG and back to Zeek TSV without loss of information.
+This document describes how the ZSON type system
 is able to represent each of the types that may appear in Zeek logs.
 
 Tools like [`zq`](https://github.com/brimsec/zq) and [Brim](https://github.com/brimsec/brim)
@@ -33,7 +36,7 @@ from Zeek to ZNG and back to Zeek again, the sections linked from the
 **Additional Detail** column describe cosmetic differences and other subtleties
 applicable to handling certain types.
 
-| Zeek Type  | ZNG Type   | Additional Detail |
+| Zeek Type  | ZSON Type   | Additional Detail |
 |------------|------------|-------------------|
 | [`bool`](https://docs.zeek.org/en/current/script-reference/types.html#type-bool)         | [`bool`](spec.md#5-primitive-types)     | |
 | [`count`](https://docs.zeek.org/en/current/script-reference/types.html#type-count)       | [`uint64`](spec.md#5-primitive-types)   | |
@@ -121,14 +124,14 @@ T	123	456	123.456	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\
 
 ## Type-Specific Details
 
-As `zq` acts as a reference implementation for ZNG, it's helpful to understand
-how it reads the following Zeek data types into ZNG equivalents and writes
-them back out again in Zeek log format. Other ZNG implementations (should they
+As `zq` acts as a reference implementation for ZSON/ZNG, it's helpful to understand
+how it reads the following Zeek data types into ZSON equivalents and writes
+them back out again in Zeek log format. Other ZSON implementations (should they
 exist) may handle these differently.
 
 Multiple Zeek types discussed below are represented via a
-[type alias](spec.md#2117-alias-typedef) to one of ZNG's
-[primitive types](spec.md#5-primitive-types). The use of the alias maintains
+[type alias](spec.md#2117-alias-typedef) to one of ZSON's
+[primitive types](spec.md#5-primitive-types). The use of the ZSON type names maintains
 the history of the field's original Zeek type such that `zq` may restore it
 if/when the field may be later output again in Zeek format. Knowledge of its
 original Zeek type may also enable special operations in ZQL that are unique to
@@ -158,11 +161,11 @@ _not_ intended to be read or presented as such. Meanwhile, another Zeek
 UTF-8. These details are currently only captured within the Zeek source code
 itself that defines how these values are generated.
 
-ZNG includes a [primitive type](spec.md#5-primitive-types) called `bytes` that's
+ZSON includes a [primitive type](spec.md#5-primitive-types) called `bytes` that's
 suited to storing the former "always binary" case and a `string` type for the
 latter "always printable" case. However, Zeek logs do not currently communicate
 detail that would allow a ZNG implementation to know which Zeek `string` fields
-to store as which of these two ZNG data types. Therefore the single ZNG
+to store as which of these two ZNG data types. Therefore the ZSON
 `bstring` type is typically used to hold values that are read from Zeek
 `string`-type fields.
 
@@ -171,16 +174,16 @@ known to be populated by Zeek's logging system (or populated by `zq` when readin
 [Zeek JSON data](https://github.com/brimsec/zq/tree/master/zeek#type-definition-structure--importance-of-_path))
 `zq` currently handles `_path` using ZNG's `string` type.
 
-If Zeek were to provide an option to generate logs directly in ZNG format, this
-would create an opportunity to assign the appropriate ZNG `bytes` or `string`
+If Zeek were to provide an option to generate logs directly in ZSON/ZNG format, this
+would create an opportunity to assign the appropriate ZSON `bytes` or `string`
 type at the point of origin, depending on what's known about how the field's
 value is intended to be populated and used.
 
 ### `port`
 
 The numeric values that appear in Zeek logs under this type are represented
-with an alias to ZNG's `uint16` type. See the text above regarding
-[aliases](#type-specific-details) for more details.
+with a ZSON type name bound to the `uint16` type. See the text above regarding
+[type names](#type-specific-details) for more details.
 
 ### `enum`
 
