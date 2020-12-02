@@ -18,22 +18,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-// Key represents the name of the column (target) and an expression for
-// pulling values out of the underlying record stream.  Because the logic
-// here stashes the result of the expression in some case, and because
-// subsequent calls to Eval on the Evaluator can clobber previus results,
-// we are careful to make copys of the zng.Value whenever we hold onto to it.
-type Key struct {
-	tmp  string
-	name field.Static
-	expr expr.Evaluator
-}
-
-type reducerMaker struct {
-	name   field.Static
-	create reducer.Maker
-}
-
 type errTooBig int
 
 func (e errTooBig) Error() string {
@@ -59,8 +43,8 @@ type Proc struct {
 // A keyRow holds information about the key column types that result
 // from a given incoming type ID.
 type keyRow struct {
-	id      int
-	columns []zng.Column
+	id    int
+	types []zng.Type
 }
 
 // Aggregator performs the core aggregation computation for a
@@ -84,10 +68,12 @@ type Aggregator struct {
 	// different types do not collide.  No types from this context
 	// are ever referenced.
 	kctx         *resolver.Context
-	keys         []Key
-	keyResolvers []expr.Evaluator
+	keyExprs     []expr.Assignment
+	keyEvals     []expr.Evaluator
 	decomposable bool
-	makers       []reducerMaker
+	makers       []reducer.Maker
+	aggNames     []field.Static
+	valEvals     []expr.Evaluator
 	builder      *builder.ColumnBuilder
 	table        map[string]*Row
 	limit        int
@@ -103,13 +89,13 @@ type Aggregator struct {
 }
 
 type Row struct {
-	keycols  []zng.Column
+	keyTypes []zng.Type
 	keyvals  zcode.Bytes
 	groupval *zng.Value // for sorting when input sorted
 	reducers valRow
 }
 
-func NewAggregator(zctx *resolver.Context, keyExprs []expr.Assignment, makers []reducerMaker, limit, inputSortDir int, partialsIn, partialsOut bool) (*Aggregator, error) {
+func NewAggregator(zctx *resolver.Context, keyExprs []expr.Assignment, makers []reducer.Maker, aggNames []field.Static, limit, inputSortDir int, partialsIn, partialsOut bool) (*Aggregator, error) {
 	if limit == 0 {
 		limit = DefaultLimit
 	}
@@ -133,19 +119,17 @@ func NewAggregator(zctx *resolver.Context, keyExprs []expr.Assignment, makers []
 			keyCompare = rs
 		}
 	}
-	resolvers := make([]expr.Evaluator, 0, nkeys)
+	keyEvals := make([]expr.Evaluator, 0, nkeys)
 	keyNames := make([]field.Static, 0, nkeys)
-	keys := make([]Key, 0, nkeys)
-	for k, e := range keyExprs {
-		resolvers = append(resolvers, expr.NewDotExpr(e.LHS))
+	for _, e := range keyExprs {
+		keyEvals = append(keyEvals, expr.NewDotExpr(e.LHS))
 		keyNames = append(keyNames, e.LHS)
-		keys = append(keys, Key{
-			tmp:  fmt.Sprintf("c%d", k),
-			name: e.LHS,
-			expr: e.RHS,
-		})
 	}
-	rs := expr.NewCompareFn(true, resolvers...)
+	valEvals := make([]expr.Evaluator, 0, len(aggNames))
+	for _, fieldName := range aggNames {
+		valEvals = append(valEvals, expr.NewDotExpr(fieldName))
+	}
+	rs := expr.NewCompareFn(true, keyEvals...)
 	if inputSortDir < 0 {
 		keysCompare = func(a, b *zng.Record) int { return rs(b, a) }
 	} else {
@@ -158,12 +142,14 @@ func NewAggregator(zctx *resolver.Context, keyExprs []expr.Assignment, makers []
 	return &Aggregator{
 		inputSortDir: inputSortDir,
 		limit:        limit,
-		keys:         keys,
-		keyResolvers: resolvers,
+		keyExprs:     keyExprs,
+		keyEvals:     keyEvals,
 		zctx:         zctx,
 		kctx:         resolver.NewContext(),
 		decomposable: decomposable(makers),
 		makers:       makers,
+		aggNames:     aggNames,
+		valEvals:     valEvals,
 		builder:      builder,
 		keyRows:      make(map[int]keyRow),
 		table:        make(map[string]*Row),
@@ -175,24 +161,20 @@ func NewAggregator(zctx *resolver.Context, keyExprs []expr.Assignment, makers []
 	}, nil
 }
 
-func decomposable(rs []reducerMaker) bool {
+func decomposable(rs []reducer.Maker) bool {
 	for _, r := range rs {
-		if _, ok := r.create(nil).(reducer.Decomposable); !ok {
+		if _, ok := r(nil).(reducer.Decomposable); !ok {
 			return false
 		}
 	}
 	return true
 }
 
-func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, names []field.Static, reducers []reducer.Maker, limit, inputSortDir int, partialsIn, partialsOut bool) (*Proc, error) {
-	makers := make([]reducerMaker, 0, len(reducers))
-	for k, r := range reducers {
-		makers = append(makers, reducerMaker{names[k], r})
-	}
+func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, names []field.Static, makers []reducer.Maker, limit, inputSortDir int, partialsIn, partialsOut bool) (*Proc, error) {
 	if (partialsIn || partialsOut) && !decomposable(makers) {
 		return nil, errors.New("partial input or output requested with non-decomposable reducers")
 	}
-	agg, err := NewAggregator(pctx.TypeContext, keys, makers, limit, inputSortDir, partialsIn, partialsOut)
+	agg, err := NewAggregator(pctx.TypeContext, keys, makers, names, limit, inputSortDir, partialsIn, partialsOut)
 	if err != nil {
 		return nil, err
 	}
@@ -277,22 +259,22 @@ func (p *Proc) shutdown(err error) {
 	close(p.resultCh)
 }
 
-func (a *Aggregator) createRow(keyCols []zng.Column, vals zcode.Bytes, groupval *zng.Value) *Row {
+func (a *Aggregator) createRow(keyTypes []zng.Type, vals zcode.Bytes, groupval *zng.Value) *Row {
 	// Make a deep copy so the caller can reuse the underlying arrays.
 	v := make(zcode.Bytes, len(vals))
 	copy(v, vals)
 	return &Row{
-		keycols:  keyCols,
+		keyTypes: keyTypes,
 		keyvals:  v,
 		groupval: groupval,
 		reducers: newValRow(a.zctx, a.makers),
 	}
 }
 
-func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []Key) (keyRow, error) {
+func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []expr.Assignment) (keyRow, error) {
 	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
-		keyVal, err := key.expr.Eval(r)
+		keyVal, err := key.RHS.Eval(r)
 		// Don't err on ErrNoSuchField; just return an empty
 		// keyRow and the descriptor will be blocked.
 		if err != nil && !errors.Is(err, expr.ErrNoSuchField) {
@@ -301,7 +283,8 @@ func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []Key) (keyRow, error
 		if keyVal.Type == nil {
 			return keyRow{}, nil
 		}
-		cols[k] = zng.NewColumn(key.tmp, keyVal.Type)
+		//XXX this will go away when we get rid of the TypeRecord here as we fix #1701
+		cols[k] = zng.NewColumn(fmt.Sprintf("_%d", k), keyVal.Type)
 	}
 	// Lookup a unique ID by converting the columns too a record string
 	// and looking up the record by name in the scratch type context.
@@ -316,7 +299,12 @@ func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []Key) (keyRow, error
 		}
 		id = typ.ID()
 	}
-	return keyRow{id, cols}, nil
+	//XXX this will go away when we get rid of the TypeRecord as we fix #1701
+	types := make([]zng.Type, 0, len(cols))
+	for _, c := range cols {
+		types = append(types, c.Type)
+	}
+	return keyRow{id, types}, nil
 }
 
 // Consume adds a record to the aggregation.
@@ -327,14 +315,14 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 	keyRow, ok := a.keyRows[id]
 	if !ok {
 		var err error
-		keyRow, err = newKeyRow(a.kctx, r, a.keys)
+		keyRow, err = newKeyRow(a.kctx, r, a.keyExprs)
 		if err != nil {
 			return err
 		}
 		a.keyRows[id] = keyRow
 	}
 
-	if keyRow.columns == nil {
+	if keyRow.types == nil {
 		// block this descriptor since it doesn't have all the group-by keys
 		return nil
 	}
@@ -360,8 +348,8 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 	binary.BigEndian.PutUint32(keyBytes, uint32(keyRow.id))
 	a.builder.Reset()
 	var prim *zng.Value
-	for i, key := range a.keys {
-		zv, err := key.expr.Eval(r)
+	for i, key := range a.keyExprs {
+		zv, err := key.RHS.Eval(r)
 		if err != nil && !errors.Is(err, zng.ErrUnset) {
 			return err
 		}
@@ -389,14 +377,14 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 				return err
 			}
 		}
-		row = a.createRow(keyRow.columns, keyBytes[4:], prim)
+		row = a.createRow(keyRow.types, keyBytes[4:], prim)
 		a.table[string(keyBytes)] = row
 	}
 
 	if a.partialsIn {
-		return row.reducers.ConsumePart(r)
+		return row.reducers.consumePartial(r, a.valEvals)
 	}
-	row.reducers.Consume(r)
+	row.reducers.consume(r)
 	return nil
 }
 
@@ -417,7 +405,7 @@ func (a *Aggregator) spillTable(eof bool) error {
 		return err
 	}
 	if !eof && a.inputSortDir != 0 {
-		v, err := a.keys[0].expr.Eval(recs[len(recs)-1])
+		v, err := a.keyExprs[0].RHS.Eval(recs[len(recs)-1])
 		if err != nil && !errors.Is(err, zng.ErrUnset) {
 			return err
 		}
@@ -481,7 +469,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 			if rec == nil {
 				break
 			}
-			keyVal, err := a.keys[0].expr.Eval(rec)
+			keyVal, err := a.keyExprs[0].RHS.Eval(rec)
 			if err != nil && !errors.Is(err, zng.ErrUnset) {
 				return nil, err
 			}
@@ -521,7 +509,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 		} else if a.keysCompare(firstRec, rec) != 0 {
 			break
 		}
-		if err := row.ConsumePart(rec); err != nil {
+		if err := row.consumePartial(rec, a.valEvals); err != nil {
 			return nil, err
 		}
 		if _, err := a.spiller.Read(); err != nil {
@@ -534,8 +522,8 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	// Build the result record.
 	a.builder.Reset()
 	var types []zng.Type
-	for _, res := range a.keyResolvers {
-		keyVal, _ := res.Eval(firstRec)
+	for _, e := range a.keyEvals {
+		keyVal, _ := e.Eval(firstRec)
 		keyVal = keyVal.Copy()
 		types = append(types, keyVal.Type)
 		a.builder.Append(keyVal.Bytes, keyVal.IsContainer())
@@ -545,21 +533,21 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 		return nil, err
 	}
 	cols := a.builder.TypedColumns(types)
-	for _, col := range row {
+	for k, col := range row {
 		var v zng.Value
 		if a.partialsOut {
-			vv, err := col.reducer.(reducer.Decomposable).ResultPart(a.zctx)
+			vv, err := col.(reducer.Decomposable).ResultPart(a.zctx)
 			if err != nil {
 				return nil, err
 			}
 			v = vv
 		} else {
-			v = col.reducer.Result()
+			v = col.Result()
 		}
 		// XXX Currently you can't set dotted field names.  We should
 		// fix this.  For now, "a.b=count() by _path" turns into
-		// "b=count() by _path" here, but it doesn't seem to work at all.
-		fieldName := col.name.Leaf()
+		// "b=count() by _path".
+		fieldName := a.aggNames[k].Leaf()
 		cols = append(cols, zng.NewColumn(fieldName, v.Type))
 		zbytes = v.Encode(zbytes)
 	}
@@ -576,7 +564,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 // If decompose is true, it returns partial reducer results as
 // returned by reducer.Decomposable.ResultPart(). It is an error to
 // pass decompose=true if any reducer is non-decomposable.
-func (a *Aggregator) readTable(flush, decompose bool) (zbuf.Batch, error) {
+func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 	var recs []*zng.Record
 	for k, row := range a.table {
 		if !flush && a.valueCompare == nil {
@@ -589,19 +577,19 @@ func (a *Aggregator) readTable(flush, decompose bool) (zbuf.Batch, error) {
 		zv = append(zv, row.keyvals...)
 		for _, col := range row.reducers {
 			var v zng.Value
-			if decompose {
+			if partialsOut {
 				var err error
-				dec := col.reducer.(reducer.Decomposable)
+				dec := col.(reducer.Decomposable)
 				v, err = dec.ResultPart(a.zctx)
 				if err != nil {
 					return nil, err
 				}
 			} else {
-				v = col.reducer.Result()
+				v = col.Result()
 			}
 			zv = v.Encode(zv)
 		}
-		typ, err := a.lookupRowType(row, decompose)
+		typ, err := a.lookupRowType(row, partialsOut)
 		if err != nil {
 			return nil, err
 		}
@@ -614,31 +602,26 @@ func (a *Aggregator) readTable(flush, decompose bool) (zbuf.Batch, error) {
 	return zbuf.Array(recs), nil
 }
 
-func (a *Aggregator) lookupRowType(row *Row, decompose bool) (*zng.TypeRecord, error) {
+func (a *Aggregator) lookupRowType(row *Row, partialsOut bool) (*zng.TypeRecord, error) {
 	// This is only done once per row at output time so generally not a
 	// bottleneck, but this could be optimized by keeping a cache of the
 	// record types since it is rare for there to be multiple such types
 	// or for it change from row to row.
-	n := len(a.keys) + len(a.makers)
+	n := len(a.keyExprs) + len(a.makers)
 	cols := make([]zng.Column, 0, n)
-	types := make([]zng.Type, len(row.keycols))
-
-	for k, col := range row.keycols {
-		types[k] = col.Type
-	}
-	cols = append(cols, a.builder.TypedColumns(types)...)
-	for _, col := range row.reducers {
+	cols = append(cols, a.builder.TypedColumns(row.keyTypes)...)
+	for k, col := range row.reducers {
 		var z zng.Value
-		if decompose {
+		if partialsOut {
 			var err error
-			z, err = col.reducer.(reducer.Decomposable).ResultPart(a.zctx)
+			z, err = col.(reducer.Decomposable).ResultPart(a.zctx)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			z = col.reducer.Result()
+			z = col.Result()
 		}
-		fieldName := col.name.Leaf()
+		fieldName := a.aggNames[k].Leaf()
 		cols = append(cols, zng.NewColumn(fieldName, z.Type))
 	}
 	// This could be more efficient but it's only done during group-by output...
