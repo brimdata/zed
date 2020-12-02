@@ -135,14 +135,14 @@ Primitive types include signed and unsigned integers, IEEE floating point of
 several widths, IEEE decimal,
 string, bstring, byte sequence, boolean, IP address, and IP network.
 
-> Note: The `bstring` type is an unusual type representing a hybrid type
-> mixing a UTF-8 string with embedded binary data as in
+> Note: The `bstring` type is an unusual mixture of a UTF-8 string
+> with embedded binary data as in
 > [Rust's experimental `bstr` library](https://docs.rs/bstr/0.2.14/bstr/).
 > This type is useful in systems that, for instance, pull data off the network
 > while expecting a string, but sometimes encounter embedded binary data due to
 > bugs, malicious attacks, etc.  It is up to the application to differentiate
-> between random binary data that happens to look like a valid UTF-8 string and
-> an actual UTF-8 string.
+> between a bstring value that happens to look like a valid UTF-8 string and
+> an actual UTF-8 string encoded as a bstring.
 
 ### Complex Types
 
