@@ -1,4 +1,4 @@
-# ZSON Adaptation of Zeek Logs
+# ZSON Interoperability with Zeek Logs
 
 - [Introduction](#introduction)
 - [Equivalent Types](#equivalent-types)
