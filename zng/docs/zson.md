@@ -34,6 +34,7 @@
     - [3.4.5 Enum Value](#345-enum-value)
     - [3.4.6 Map Value](#346-map-value)
   + [3.5 Type Value](#35-type-value)
+  + [3.6 Null Value](#36-null-value)
 * [4. Examples](#4-examples)
 
 ## 1. Introduction
@@ -82,19 +83,20 @@ There's no need for a type decorator here.  It's explicitly a string.
 
 A structured SQL table might look like this:
 ```
-{ city: "Berkeley", state: "CA", population: 121643 (uint32) } (=schema)
-{ city: "Broad Cove", state: "ME", population: 806 } (schema)
-{ city: "Baton Rouge", state: "LA", population: 221599 } (schema)
+{ city: "Berkeley", state: "CA", population: 121643 (uint32) } (=city_schema)
+{ city: "Broad Cove", state: "ME", population: 806 } (city_schema)
+{ city: "Baton Rouge", state: "LA", population: 221599 } (city_schema)
 ```
-This ZSON text depicts three record values.  It defines a type called `schema`
+This ZSON text depicts three record values.  It defines a type called `city_schema`
 based on the first value and decorates the two subsequent values with that type.
-The implied value of the `schema` record type is:
+The implied value of the `city_schema` record type is:
 ```
 { city:string, state:string, population:uint32 }
 ```
 When all the values have the same record type, the values can be interpreted
 as a _table_, where the ZSON record values are _rows_ and the fields of
-the records form _columns_.
+the records form _columns_.  In this way, these three records form a relational
+table conforming to the schema `city_schema`.
 
 In contrast, a ZSON text representing a semi-structured sequence of log lines
 might look like this:
@@ -192,13 +194,6 @@ The syntax for type values is given below.
 
 The _null_ type is a primitive type representing only a `null` value.  A `null`
 value can have any type.
-
-Any value in ZSON can take on a null representation.  It is up to an
-implementation to decide how external data structures map into and
-out of values with nulls.  Typically, a null value means either the
-zero value or, in the case of record fields, an optional field whose
-value is not present, though these semantics are not explicitly
-defined by ZSON.
 
 ### 2.5 Type Definitions
 
@@ -586,6 +581,17 @@ where `<name>` is the external name of the type, e.g.,
 ```
 Types in canonical form can be decoded and interpreted independently
 of a type context.
+
+### 3.6 Null Value
+
+The null value is represented by the string `null`.
+
+Any value in ZSON can take on a null representation.  It is up to an
+implementation to decide how external data structures map into and
+out of values with nulls.  Typically, a null value means either the
+zero value or, in the case of record fields, an optional field whose
+value is not present, though these semantics are not explicitly
+defined by ZSON.
 
 ## 4. Examples
 
