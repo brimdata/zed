@@ -86,7 +86,7 @@ func (w *Writer) writeValue(indent int, typ zng.Type, bytes zcode.Bytes, known b
 		if !childKnown {
 			childKnown = w.tags.exists(typ)
 		}
-		if err = w.writeValue(indent, t.Type, bytes, childKnown); err != nil {
+		if err := w.writeValue(indent, t.Type, bytes, childKnown); err != nil {
 			return err
 		}
 		if known {

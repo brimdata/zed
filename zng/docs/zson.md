@@ -112,7 +112,7 @@ the type of the array, as it is inferred from the type of the elements.
 Finally, there are four more values that show ZSON's efficacy for
 representing metrics.  Here, there are no type decorators as all of the field
 types are implied by their syntax, and hence, the top-level record type is implied.
-For instance, the `ts` field is an RFC-3339 date/time string,
+For instance, the `ts` field is an RFC 3339 date/time string,
 unambiguously the primitive type `time`.  Further,
 note that the `value` field takes on different types and even a complex record
 type on the last line.  In this case, there is a different type top-level
@@ -169,15 +169,15 @@ value can have any type.
 Any value in ZSON can take on a null representation.  It is up to an
 implementation to decide how external data structures map into and
 out of values with nulls.  Typically, a null value means either the
-zero value or in the case of record fields, it means the field is optional
-and the value is not present, though these semantics are not explicitly
+zero value or, in the case of record fields, an optional field whose
+value is not present, though these semantics are not explicitly
 defined by ZSON.
 
 ### Type Definitions and Contexts
 
-Type definitions embedded in the data sequence associate a name with a type
+Type definitions embedded in the data sequence bind a name to a type
 so that later values can refer to their type by name instead of explicitly
-enumerating the type of every element.  A collection of mappings from name to
+enumerating the type of every element.  A collection of bindings from name to
 type is called a "type context."  As bindings are read from a sequence, they
 create the sequence's type context.  The context may be reset at any point in
 the sequence, implying that a new binding must be defined from that point on
@@ -186,20 +186,19 @@ for each unique use of a type.
 A type name is either internal or external.  Internal names are used exclusively
 to organize the types in the type context within the data sequence itself and have
 no meaning outside of that data.  External names are visible outside of
-data sequence as named types providing external systems a way to
+a data sequence as named types, providing external systems a way to
 discover and refer to types by name where the type is defined within the data
 sequence.  The binding between an external name and its type must be reestablished
 in each type context in which it used.  External names are analogous to the notion
 of "logical types" in Parquet and Avro.
 
-Internal type names are represented by integer names while external names are
+Internal type names are represented by integers while external names are
 represented by identifiers.  When ZSON data is organized into a sequence
 comprised of two or more subsequences where each subsequence has its own
 type context, the internal names may be "reused" across type contexts to refer
 to different types but external names must have the same type value across
 subsequences.  It is a "type mismatch" error if an external name has different
-type values across subsequences.  It is also a "type mismatch" error if any
-any type binding
+type values across subsequences.
 
 ## The ZSON Format
 
@@ -279,7 +278,7 @@ There are 23 types of primitive values with syntax defined as follows:
 | `int32`    | decimal string representation of any signed, 32-bit integer   |
 | `int64`    | decimal string representation of any signed, 64-bit integer   |
 | `duration` | a _duration string_ representing signed 64-bit nanoseconds |
-| `time`     | an RFC-3339 UTC data/time string representing signed 64-bit nanoseconds from epoch |
+| `time`     | an RFC 3339 UTC data/time string representing signed 64-bit nanoseconds from epoch |
 | `float16`  | a _point string_ representing an IEEE-754 binary16 value |
 | `float32`  | a _point string_ representing an IEEE-754 binary32 value |
 | `float64`  | a _point string_ representing an IEEE-754 binary64 value |
@@ -319,7 +318,7 @@ its type or appear in a context for which its type is defined (i.e., as a field
 value in a record, as an element in an array, etc).
 
 > Note that `time` values correspond to 64-bit epoch nanoseconds and thus
-> not all possible RFC-3339 date/time strings are valid.  In addition,
+> not all possible RFC 3339 date/time strings are valid.  In addition,
 > nanosecond epoch times overflow on April 11, 2262.
 > For the world of 2262, a new epoch can be created well in advance
 > and the old time epoch and new time epoch can live side by side with
@@ -331,7 +330,7 @@ value in a record, as an element in an array, etc).
 #### String Escape Rules
 
 Double-quoted `string` syntax is the same as that of JSON as described
-[RFC-7159](https://tools.ietf.org/html/rfc7159), specifically:
+[RFC 8529](https://tools.ietf.org/html/rfc8529), specifically:
 
 * The sequence `\uhhhh` where each `h` is a hexadecimal digit represents
   the Unicode code point corresponding to the given

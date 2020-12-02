@@ -45,7 +45,7 @@ func (t typemap) define(typ zng.Type) string {
 	case *zng.TypeAlias:
 		panic("alias shouldn't happen in typemap.define()")
 	case *zng.TypeRecord:
-		def := ""
+		var def string
 		for _, col := range typ.Columns {
 			if !t.known(col.Type) {
 				def = t.formatRecord(typ)
@@ -63,7 +63,7 @@ func (t typemap) define(typ zng.Type) string {
 		def := fmt.Sprintf("|{%s,%s}|", t.lookup(typ.KeyType), t.lookup(typ.ValType))
 		return t.bind(typ, def)
 	case *zng.TypeUnion:
-		def := ""
+		var def string
 		union := typ
 		for _, typ := range union.Types {
 			if !t.known(typ) {
@@ -85,7 +85,7 @@ func (t typemap) known(typ zng.Type) bool {
 
 func (t typemap) bind(typ zng.Type, def string) string {
 	id := typ.ID()
-	t[typ] = fmt.Sprintf(strconv.Itoa(id))
+	t[typ] = strconv.Itoa(id)
 	if def == "" {
 		return fmt.Sprintf("=%d", id)
 	}
@@ -102,7 +102,7 @@ func (t typemap) lookupAlias(typ zng.Type, name string) string {
 
 func (t typemap) formatRecord(typ *zng.TypeRecord) string {
 	var s strings.Builder
-	sep := ""
+	var sep string
 	s.WriteString("{")
 	for _, col := range typ.Columns {
 		s.WriteString(sep)
