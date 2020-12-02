@@ -61,6 +61,7 @@ func NewConnectionTo(hostURL string) *Connection {
 	return newConnection(client)
 }
 
+// ClientHostURL allows us to print the host in log messages and internal error messages
 func (c *Connection) ClientHostURL() string {
 	return c.client.HostURL
 }
@@ -240,6 +241,8 @@ func (c *Connection) WorkerRaw(ctx context.Context, search api.WorkerRequest, pa
 	return c.stream(req)
 }
 
+// WorkerRelease is a message sent from the zqd root to workers in the parallel group
+// when the root process is done and will not be sending additional /worker/search requests.
 func (c *Connection) WorkerRelease(ctx context.Context) error {
 	_, err := c.Request(ctx).Get("/worker/release")
 	return err

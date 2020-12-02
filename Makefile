@@ -147,12 +147,6 @@ helm-install-workers:
 	--set image.tag="zqd:$(ECR_VERSION)" \
 	--set useCredSecret=false
 
-port-forward:
-	kill `ps aux | grep '[p]ort-forward' | awk '{print $2}'`
-	sleep 1 # wait a second for the processes to get the signal
-	kubectl port-forward svc/recruiter-zqd 8020:9867 &
-	kubectl port-forward svc/zqd-root 9867:9867 &
-
 create-release-assets:
 	for os in darwin linux windows; do \
 		zqdir=zq-$(VERSION).$${os}-amd64 ; \
