@@ -2,14 +2,30 @@
     "descriptors": {
         "alert_log": [
             {
+                "name": "event_type",
+                "type": "bstring"
+            },
+            {
                 "name": "alert",
                 "type": [
                     {
-                        "name": "action",
-                        "type": "bstring"
+                        "name": "severity",
+                        "type": "uint16"
                     },
                     {
                         "name": "category",
+                        "type": "bstring"
+                    },
+                    {
+                        "name": "signature",
+                        "type": "bstring"
+                    },
+                    {
+                        "name": "signature_id",
+                        "type": "uint64"
+                    },
+                    {
+                        "name": "action",
                         "type": "bstring"
                     },
                     {
@@ -18,18 +34,6 @@
                     },
                     {
                         "name": "rev",
-                        "type": "uint64"
-                    },
-                    {
-                        "name": "severity",
-                        "type": "uint16"
-                    },
-                    {
-                        "name": "signature",
-                        "type": "bstring"
-                    },
-                    {
-                        "name": "signature_id",
                         "type": "uint64"
                     },
                     {
@@ -98,10 +102,6 @@
             {
                 "name": "src_port",
                 "type": "port"
-            },
-            {
-                "name": "event_type",
-                "type": "bstring"
             },
             {
                 "name": "flow_id",
