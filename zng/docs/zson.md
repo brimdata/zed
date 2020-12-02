@@ -1,6 +1,6 @@
 # ZSON - ZNG Structured Object-record Notation
 
-> ### DRAFT 11/30/20
+> ### DRAFT 12/2/20
 > ### Note: This specification is in BETA development.
 > We plan to have a final form established by Spring 2021.
 >
