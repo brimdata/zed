@@ -13,7 +13,7 @@
 > * End-of-sequence markers are not yet conveyed in the writer.
 
 * [1. Introduction](#1-introduction)
-  + [1.1 Som Examples](#11-some-examples)
+  + [1.1 Some Examples](#11-some-examples)
 * [2. The ZSON Data Model](#2-the-zson-data-model)
   + [2.1 Primitive Types](#21-primitive-types)
   + [2.2 Complex Types](#22-complex-types)
@@ -22,8 +22,8 @@
   + [2.5 Type Definitions](#25-type-definitions)
 * [3. The ZSON Format](#3-the-zson-format)
   + [3.1 Identifiers](#31-identifiers)
-  + [3.2 Type Decorators](#31-type-decorators)
-    - [3.2.1 Type Definitions](#321-typedefs)
+  + [3.2 Type Decorators](#32-type-decorators)
+    - [3.2.1 Type Definitions](#321-type-definitions)
   + [3.3 Primitive Values](#33-primitive-values)
     - [3.3.1 String Escape Rules](#331-string-escape-rules)
   + [3.4 Complex Values](#34-complex-values)
@@ -566,6 +566,26 @@ and the complex form is:
 ```
 In the same form, the underlying enum value is equal to its positional
 index in the list of identifiers as an uint64 type.
+
+Type values may refer to external type tames and may elide the definition
+fo the external type when the type definition for that name is known,
+e.g., if `conn` is a type name, then
+```
+[conn]
+```
+is an array of elements of type `conn`.
+
+The canonical form a type value includes the definition of any referenced
+type using the decorator syntax:
+```
+<type> ( <name> )
+```
+where `<name>` is the external name of the type, e.g.,
+```
+{ info:string, src:{ addr:ip, port:uint16 } (socket), dst:socket } (conn)
+```
+Types in canonical form can be decoded and interpreted independently
+of a type context.
 
 ## 4. Examples
 
