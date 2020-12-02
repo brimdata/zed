@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
@@ -249,7 +250,8 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 
 func (pg *parallelGroup) releaseWorkersOnDone(conns []*client.Connection) {
 	<-pg.pctx.Done()
-	ctx := context.Background()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
 	// The original context, pg.pctx, is cancelled, so send the release requests
 	// in a new Background context.
 	for _, conn := range conns {
