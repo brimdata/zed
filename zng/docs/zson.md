@@ -44,7 +44,8 @@ The ZSON design was motivated by and [is compatible with](./zeek-compat.md) the
 [Zeek log format](https://docs.zeek.org/en/stable/examples/logs/).
 As far as we know, the Zeek log format pioneered the concept of
 embedding the schemas of log lines as metadata within the log files themselves
-and ZSON modernizes this original approach with a JSON-like syntax.
+and ZSON modernizes this original approach with a JSON-like syntax and
+binary format.
 
 ## Some Examples
 
@@ -135,12 +136,13 @@ several widths, IEEE decimal,
 string, bstring, byte sequence, boolean, IP address, and IP network.
 
 > Note: The `bstring` type is an unusual type representing a hybrid type
-> mixing a UTF-8 string with embedded binary data.  This type is
-> useful in systems that, for instance, pull data off the network
-> while expecting a string, but there can be embedded binary data due to
-> bugs, malicious attacks, etc.  It is up to the receiver to determine
-> with out-of-band information or inference whether the data is ultimately
-> arbitrary binary data or a valid UTF-8 string.
+> mixing a UTF-8 string with embedded binary data as in
+> [Rust's experimental `bstr` library](https://docs.rs/bstr/0.2.14/bstr/).
+> This type is useful in systems that, for instance, pull data off the network
+> while expecting a string, but sometimes encounter embedded binary data due to
+> bugs, malicious attacks, etc.  It is up to the application to differentiate
+> between random binary data that happens to look like a valid UTF-8 string and
+> an actual UTF-8 string.
 
 ### Complex Types
 
