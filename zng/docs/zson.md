@@ -319,7 +319,7 @@ There are 23 types of primitive values with syntax defined as follows:
 | `bstring`  | a doubled-quoted UTF-8 string with `\x` escapes of non-UTF binary data |
 | `ip`       | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
 | `net`      | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
-| `type`     | a type value encoded according to Section [TBD] |
+| `type`     | a string in canonical form as described in [Section 3.5](#35-type-value) |
 | `error`    | a UTF-8 byte sequence of string of error message|
 | `null`     | the string `null` |
 
