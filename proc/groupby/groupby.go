@@ -1,6 +1,7 @@
 package groupby
 
 import (
+	"encoding/binary"
 	"errors"
 	"fmt"
 	"sync"
@@ -89,7 +90,6 @@ type Aggregator struct {
 
 type Row struct {
 	keyTypes []zng.Type
-	keyvals  zcode.Bytes
 	groupval *zng.Value // for sorting when input sorted
 	reducers valRow
 }
@@ -259,13 +259,9 @@ func (p *Proc) shutdown(err error) {
 	close(p.resultCh)
 }
 
-func (a *Aggregator) createRow(keyTypes []zng.Type, vals zcode.Bytes, groupval *zng.Value) *Row {
-	// Make a deep copy so the caller can reuse the underlying arrays.
-	v := make(zcode.Bytes, len(vals))
-	copy(v, vals)
+func (a *Aggregator) createRow(keyTypes []zng.Type, groupval *zng.Value) *Row {
 	return &Row{
 		keyTypes: keyTypes,
-		keyvals:  v,
 		groupval: groupval,
 		reducers: newValRow(a.zctx, a.makers),
 	}
@@ -350,7 +346,6 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 	// taken by the fix to #1701.
 
 	keyBytes := zcode.AppendUvarint(a.keyCache[:0], uint64(keyRow.id))
-	off := len(keyBytes)
 	var prim *zng.Value
 	for i, key := range a.keyExprs {
 		zv, err := key.RHS.Eval(r)
@@ -376,7 +371,7 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 				return err
 			}
 		}
-		row = a.createRow(keyRow.types, keyBytes[off:], prim)
+		row = a.createRow(keyRow.types, prim)
 		a.table[string(keyBytes)] = row
 	}
 
@@ -565,7 +560,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 // pass decompose=true if any reducer is non-decomposable.
 func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 	var recs []*zng.Record
-	for k, row := range a.table {
+	for key, row := range a.table {
 		if !flush && a.valueCompare == nil {
 			panic("internal bug: tried to fetch completed tuples on non-sorted input")
 		}
@@ -577,8 +572,14 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 		// where we will properly build the entire output record in one
 		// pass over both the key columns and the value columns,
 		// which will also fix the "a.b=count()" bug.
+		b := zcode.Bytes(key)
+		// skip over type code
+		_, n := binary.Uvarint(b)
+		if n <= 0 {
+			return nil, errors.New("corrupt key encountered in groupby hash table")
+		}
+		it := b[n:].Iter()
 		a.builder.Reset()
-		it := row.keyvals.Iter()
 		for _, typ := range row.keyTypes {
 			flatVal, _, err := it.Next()
 			if err != nil {
@@ -617,7 +618,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 		// operating near capacity, we would double the memory footprint
 		// unnecessarily by holding back the table entries from GC
 		// until this loop finished.
-		delete(a.table, k)
+		delete(a.table, key)
 	}
 	if len(recs) == 0 {
 		return nil, nil
