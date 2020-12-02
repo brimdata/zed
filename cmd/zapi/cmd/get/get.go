@@ -28,7 +28,7 @@ var Get = &charm.Spec{
 	Name:        "get",
 	Usage:       "get [options] <search>",
 	Short:       "perform zql searches",
-	HiddenFlags: "chunk,parallel",
+	HiddenFlags: "chunk,workers",
 	Long: `
 zapi get issues search requests to the zqd search service.
 
