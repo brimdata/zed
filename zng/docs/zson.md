@@ -4,9 +4,9 @@
 > ### Note: This specification is in BETA development.
 > We plan to have a final form established by Spring 2021.
 >
-> ZSON is intended as a literal superset of JSON syntax (not semantics).
-> If there is anything in this document that leads to this not being the
-> case, please let us know and we will address it.
+> ZSON is intended as a literal superset of JSON and NDJSON syntax.
+> If there is anything in this document that conflicts with this goal,
+> please let us know and we will address it.
 >
 > Regarding the state of the implementation of the ZSON format in zq:
 > * An input reader is not yet implemented,
@@ -252,14 +252,22 @@ of the form
 ```
 <value> (= <identifier> )
 ```
-This creates a new type whose name is given as the identifier whose value
-is the type value of `<value>`.  This new
+This creates a new type whose name is given by the identifier.
+The type bound to that name is the type value of `<value>`.  This new
 type may then be used as or within a type value or decorator.  The name
 of the type definition
 must not be equal to any of the primitive type names.
 
-The value of a type definition is the given value whose type value is
-given by `<identifier>` as the newly defined type.
+The result of a type definition is a value with the new type.
+Thus, type definitions can be chained as in
+```
+ <value> (= <identifier> ) (= <identifer> )
+```
+
+A type definition may also appear inside of decorator as in
+```
+( <type> (= <identifier> ))
+```
 
 It is an error for an external type to be defined to a different type
 than its previous definition though multiple definitions of the same
@@ -609,7 +617,7 @@ is the same as
 ### union
 
 ```
-{ u: 12 (int32, string, {a:int8,b:ip} (=27)), |[27]| } (=28) (=ex_union)
+{ u: 12 (int32, string, {a:int8,b:ip} (=27), |[27]| ) } (=28) (=ex_union)
 { u: "foo" } (=ex_union)
 ```
 is the same as
