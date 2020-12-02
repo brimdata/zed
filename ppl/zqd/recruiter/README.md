@@ -47,7 +47,7 @@ When a worker is recruited, the worker is added to the “reserved pool” so it
 
 ### /unreserve
 
-{"addr":"*host:port for worker*"}
+{"addrs":["*host:port for worker*",...]}
 
 /unreserve is called by a zqd worker process that becomes idle after having completed a /worker request. It is removed from the reserved pool. This is a noop if it was not in the reserved pool.
 

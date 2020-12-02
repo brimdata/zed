@@ -61,6 +61,10 @@ func NewConnectionTo(hostURL string) *Connection {
 	return newConnection(client)
 }
 
+func (c *Connection) ClientHostURL() string {
+	return c.client.HostURL
+}
+
 func (c *Connection) SetUserAgent(useragent string) {
 	c.client.SetHeader("User-Agent", useragent)
 }

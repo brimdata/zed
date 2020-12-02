@@ -1,6 +1,7 @@
 package driver
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"sync"
@@ -146,7 +147,6 @@ func (pg *parallelGroup) nextSourceForConn(conn *client.Connection, label string
 			return nil, err
 		}
 
-		//println(time.Now().Unix()%10000, "request to", label, "chunks", req.ChunkPaths[0])
 		rc, err := conn.WorkerRaw(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
 		if err != nil {
 			return nil, err
@@ -249,7 +249,10 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 
 func (pg *parallelGroup) releaseWorkersOnDone(conns []*client.Connection) {
 	<-pg.pctx.Done()
+	ctx := context.Background()
+	// The original context, pg.pctx, is cancelled, so send the release requests
+	// in a new Background context.
 	for _, conn := range conns {
-		recruiter.ReleaseWorker(pg.pctx, conn)
+		recruiter.ReleaseWorker(ctx, conn)
 	}
 }

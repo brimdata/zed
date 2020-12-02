@@ -1,6 +1,7 @@
 package recruiter
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"os"
@@ -56,6 +57,6 @@ func RecruitWorkers(pctx *proc.Context, workerCount int) ([]string, error) {
 	return workers, nil
 }
 
-func ReleaseWorker(pctx *proc.Context, conn *client.Connection) error {
-	return conn.WorkerRelease(pctx)
+func ReleaseWorker(ctx context.Context, conn *client.Connection) error {
+	return conn.WorkerRelease(ctx)
 }

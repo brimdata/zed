@@ -32,13 +32,10 @@ func handleRecruit(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return
 	}
-	//println(time.Now().Unix()%10000, "/recruiter/recruit", req.NumberRequested)
 	workers := make([]api.Worker, len(ws))
 	for i, e := range ws {
 		workers[i] = api.Worker{WorkerAddr: api.WorkerAddr{Addr: e.Addr}, NodeName: e.NodeName}
-		//println(e.Addr, e.NodeName)
 	}
-	//println("done")
 	respond(c, w, r, http.StatusOK, api.RecruitResponse{
 		Workers: workers,
 	})
@@ -54,7 +51,6 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return
 	}
-	//println(time.Now().Unix()%10000, "/workers/register", req.Addr, req.NodeName)
 	respond(c, w, r, http.StatusOK, api.RegisterResponse{
 		Registered: registered,
 	})
