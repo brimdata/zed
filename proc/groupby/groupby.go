@@ -579,14 +579,12 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 		// which will also fix the "a.b=count()" bug.
 		a.builder.Reset()
 		it := row.keyvals.Iter()
-		i := 0
-		for !it.Done() {
+		for _, typ := range row.keyTypes {
 			flatVal, _, err := it.Next()
 			if err != nil {
 				return nil, err
 			}
-			a.builder.Append(flatVal, zng.IsContainerType(row.keyTypes[i]))
-			i++
+			a.builder.Append(flatVal, zng.IsContainerType(typ))
 		}
 		zbytes, err := a.builder.Encode()
 		if err != nil {
