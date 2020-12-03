@@ -26,10 +26,12 @@ var (
 	// before they are flushed to disk.
 	ImportBufSize          = int64(sort.MemMaxBytes)
 	ImportStreamRecordsMax = zngio.DefaultStreamRecordsMax
+
+	// For unit testing.
+	importLZ4BlockSize = zngio.DefaultLZ4BlockSize
 )
 
-// For unit testing.
-var importLZ4BlockSize = zngio.DefaultLZ4BlockSize
+const importDefaultStaleDuration = time.Second * 5
 
 func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Reader) error {
 	w := NewWriter(ctx, ark)
@@ -68,11 +70,12 @@ func NewWriter(ctx context.Context, ark *Archive) *Writer {
 	ctx, cancel := context.WithCancel(ctx)
 	g, ctx := errgroup.WithContext(ctx)
 	return &Writer{
-		ark:      ark,
-		cancel:   cancel,
-		ctx:      ctx,
-		errgroup: g,
-		writers:  make(map[tsDir]*tsDirWriter),
+		ark:           ark,
+		cancel:        cancel,
+		ctx:           ctx,
+		errgroup:      g,
+		staleDuration: importDefaultStaleDuration,
+		writers:       make(map[tsDir]*tsDirWriter),
 	}
 }
 
