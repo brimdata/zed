@@ -23,7 +23,7 @@ func EncodeString(s string) zcode.Bytes {
 
 func DecodeString(zv zcode.Bytes) (string, error) {
 	if zv == nil {
-		return "", ErrUnset
+		return "", nil
 	}
 	return string(zv), nil
 }

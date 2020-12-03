@@ -19,6 +19,9 @@ func (s *stringFormatFloat) Call(args []zng.Value) (zng.Value, error) {
 	if zv.Type.ID() != zng.IdFloat64 {
 		return badarg("string.floatToString")
 	}
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeString, nil}, nil
+	}
 	f, _ := zng.DecodeFloat64(zv.Bytes)
 	// XXX GC
 	v := strconv.FormatFloat(f, 'g', -1, 64)
@@ -33,6 +36,9 @@ func (s *stringFormatInt) Call(args []zng.Value) (zng.Value, error) {
 	var out string
 	if !zng.IsInteger(id) {
 		return badarg("string.intToString")
+	}
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeString, nil}, nil
 	}
 	if zng.IsSigned(id) {
 		v, _ := zng.DecodeInt(zv.Bytes)
@@ -53,6 +59,9 @@ func (s *stringFormatIp) Call(args []zng.Value) (zng.Value, error) {
 	if zv.Type.ID() != zng.IdIP {
 		return badarg("string.ipToString")
 	}
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeString, nil}, nil
+	}
 	// XXX GC
 	ip, _ := zng.DecodeIP(zv.Bytes)
 	return zng.Value{zng.TypeString, zng.EncodeString(ip.String())}, nil
@@ -66,6 +75,9 @@ func (s *stringParseInt) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("String.parseInt")
+	}
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeInt64, nil}, nil
 	}
 	v, e := zng.DecodeString(zv.Bytes)
 	if e != nil {
@@ -90,6 +102,9 @@ func (s *stringParseFloat) Call(args []zng.Value) (zng.Value, error) {
 	if !zv.IsStringy() {
 		return badarg("String.parseFloat")
 	}
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeFloat64, nil}, nil
+	}
 	v, perr := zng.DecodeString(zv.Bytes)
 	if perr != nil {
 		return zng.Value{}, perr
@@ -111,6 +126,9 @@ func (s *stringParseIp) Call(args []zng.Value) (zng.Value, error) {
 	if !zv.IsStringy() {
 		return badarg("String.parseIp")
 	}
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeIP, nil}, nil
+	}
 	v, err := zng.DecodeString(zv.Bytes)
 	if err != nil {
 		return zng.Value{}, err
@@ -131,6 +149,12 @@ func (*replace) Call(args []zng.Value) (zng.Value, error) {
 	zvold := args[1]
 	zvnew := args[2]
 	if !zvs.IsStringy() || !zvold.IsStringy() || !zvnew.IsStringy() {
+		return badarg("replace")
+	}
+	if zvs.Bytes == nil {
+		return zvs, nil
+	}
+	if zvold.Bytes == nil || zvnew.Bytes == nil {
 		return badarg("replace")
 	}
 	s, err := zng.DecodeString(zvs.Bytes)
@@ -158,6 +182,9 @@ func (s *runeLen) Call(args []zng.Value) (zng.Value, error) {
 	if !zv.IsStringy() {
 		return badarg("rune_len")
 	}
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeInt64, s.Int(0)}, nil
+	}
 	in, err := zng.DecodeString(zv.Bytes)
 	if err != nil {
 		return zng.Value{}, err
@@ -172,6 +199,9 @@ func (*toLower) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("to_lower")
+	}
+	if zv.Bytes == nil {
+		return zv, nil
 	}
 	s, err := zng.DecodeString(zv.Bytes)
 	if err != nil {
@@ -189,6 +219,9 @@ func (*toUpper) Call(args []zng.Value) (zng.Value, error) {
 	if !zv.IsStringy() {
 		return badarg("to_upper")
 	}
+	if zv.Bytes == nil {
+		return zv, nil
+	}
 	s, err := zng.DecodeString(zv.Bytes)
 	if err != nil {
 		return zng.Value{}, err
@@ -204,6 +237,9 @@ func (*trim) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("trim")
+	}
+	if zv.Bytes == nil {
+		return zv, nil
 	}
 	// XXX GC
 	s := strings.TrimSpace(string(zv.Bytes))

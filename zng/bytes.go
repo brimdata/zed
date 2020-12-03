@@ -18,7 +18,7 @@ func EncodeBytes(b []byte) zcode.Bytes {
 
 func DecodeBytes(zv zcode.Bytes) ([]byte, error) {
 	if zv == nil {
-		return nil, ErrUnset
+		return nil, nil
 	}
 	return []byte(zv), nil
 }

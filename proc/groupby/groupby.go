@@ -349,7 +349,7 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 	var prim *zng.Value
 	for i, key := range a.keyExprs {
 		zv, err := key.RHS.Eval(r)
-		if err != nil && !errors.Is(err, zng.ErrUnset) {
+		if err != nil {
 			return err
 		}
 		if i == 0 && a.inputSortDir != 0 {
@@ -400,7 +400,7 @@ func (a *Aggregator) spillTable(eof bool) error {
 	}
 	if !eof && a.inputSortDir != 0 {
 		v, err := a.keyExprs[0].RHS.Eval(recs[len(recs)-1])
-		if err != nil && !errors.Is(err, zng.ErrUnset) {
+		if err != nil {
 			return err
 		}
 		// pass volatile zng.Value since updateMaxSpillKey will make
@@ -459,7 +459,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 				break
 			}
 			keyVal, err := a.keyExprs[0].RHS.Eval(rec)
-			if err != nil && !errors.Is(err, zng.ErrUnset) {
+			if err != nil {
 				return nil, err
 			}
 			if a.valueCompare(keyVal, *a.maxSpillKey) >= 0 {

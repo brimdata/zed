@@ -32,7 +32,7 @@ func EncodeNet(subnet *net.IPNet) zcode.Bytes {
 
 func DecodeNet(zv zcode.Bytes) (*net.IPNet, error) {
 	if zv == nil {
-		return nil, ErrUnset
+		return nil, nil
 	}
 	switch len(zv) {
 	case 8:
