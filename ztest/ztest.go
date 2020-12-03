@@ -174,6 +174,9 @@ func Run(t *testing.T, dirname string) {
 			if err != nil {
 				t.Fatalf("%s: %s", filename, err)
 			}
+			if zt.Skip {
+				t.Skip("test is disabled")
+			}
 			zt.Run(t, testname, path, dirname, filename)
 		})
 	}
@@ -244,6 +247,7 @@ func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 // ZTest defines a ztest.
 type ZTest struct {
 	ZQL         string `yaml:"zql,omitempty"`
+	Skip        bool   `yaml:"skip,omitempty"`
 	Input       Inputs `yaml:"input,omitempty"`
 	Output      string `yaml:"output,omitempty"`
 	OutputHex   string `yaml:"outputHex,omitempty"`
