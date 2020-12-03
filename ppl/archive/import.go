@@ -26,13 +26,12 @@ var (
 	// before they are flushed to disk.
 	ImportBufSize          = int64(sort.MemMaxBytes)
 	ImportStreamRecordsMax = zngio.DefaultStreamRecordsMax
+
+	// For unit testing.
+	importLZ4BlockSize = zngio.DefaultLZ4BlockSize
 )
 
-// For unit testing.
-var (
-	importLZ4BlockSize         = zngio.DefaultLZ4BlockSize
-	importDefaultStaleDuration = time.Second * 5
-)
+const importDefaultStaleDuration = time.Second * 5
 
 func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Reader) error {
 	w := NewWriter(ctx, ark)
