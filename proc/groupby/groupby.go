@@ -46,14 +46,11 @@ type Proc struct {
 // deterministic but undefined total order.
 type Aggregator struct {
 	zctx *resolver.Context
-	// typeTable maps a set of key types resulting from evaluating
-	// the key expressions to a small int such that the same vector
-	// of types maps to the same small int.  Then int can then be
-	// used as a unique id for the vector of key types.
-	// XXX likewise it is used to map the entire output vector of types
-	// to a small int in the same space.  XXX We could separate the
-	// key table and the output table and exploit locality to presume
-	// that the types are usually uniform.
+	// The keyTypes and outTypes tables maps a vector of types resulting
+	// from evaluating the key and reducer expressions to a small int,
+	// such that the same vector of types maps to the same small int.
+	// The int is used in each row to track the type of the keys and used
+	// at the output to track the combined type of the keys and aggregations.
 	keyTypes     *typevector.Table
 	outTypes     *typevector.Table
 	block        map[int]struct{}
