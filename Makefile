@@ -60,11 +60,11 @@ bin/minio:
 	@echo 'module deps' > bin/go.mod
 	@echo 'require github.com/minio/minio latest' >> bin/go.mod
 	@echo 'replace github.com/minio/minio => github.com/brimsec/minio v0.0.0-20201019191454-3c6f24527f6d' >> bin/go.mod
-	@cd bin && GOBIN="$(CURDIR)"/bin go install github.com/minio/minio
+	@cd bin && GOBIN="$(CURDIR)/bin" go install github.com/minio/minio
 
 generate:
-	@GOBIN="$(CURDIR)"/bin go install github.com/golang/mock/mockgen
-	@PATH="$(CURDIR)"/bin:"$(PATH)" go generate ./...
+	@GOBIN="$(CURDIR)/bin" go install github.com/golang/mock/mockgen
+	@PATH="$(CURDIR)/bin:$(PATH)" go generate ./...
 
 test-generate: generate
 	git diff --exit-code
@@ -73,16 +73,16 @@ test-unit:
 	@go test -short ./...
 
 test-system: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
-	@ZTEST_PATH="$(CURDIR)"/dist:"$(CURDIR)"/bin:"$(CURDIR)"/bin/$(ZEEKPATH):"$(CURDIR)"/bin/$(SURICATAPATH) go test -v .
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH)" go test -v .
 
 test-run: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
-	@ZTEST_PATH="$(CURDIR)"/dist:"$(CURDIR)"/bin:"$(CURDIR)"/bin/$(ZEEKPATH):"$(CURDIR)"/bin/$(SURICATAPATH) go test -v . -run $(TEST)
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH)" go test -v . -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -v -tags=heavy ./tests
 
 test-pcapingest: bin/$(ZEEKPATH)
-	@ZEEK="$(CURDIR)"/bin/$(ZEEKPATH)/zeekrunner go test -v -run=PcapPost -tags=pcapingest ./ppl/zqd
+	@ZEEK="$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner" go test -v -run=PcapPost -tags=pcapingest ./ppl/zqd
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
