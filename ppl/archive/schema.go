@@ -9,12 +9,16 @@ import (
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
 )
 
-const metadataFilename = "zar.json"
+const (
+	metadataFilename = "zar.json"
+	indexdefsDir     = "indexdefs"
+)
 
 type Metadata struct {
 	Version int `json:"version"`
@@ -120,6 +124,18 @@ func (ark *Archive) filterAllowed(id ksuid.KSUID) bool {
 	return false
 }
 
+func (ark *Archive) DefinitionsDir() iosrc.URI {
+	return ark.Root.AppendPath(indexdefsDir)
+}
+
+func (ark *Archive) ReadDefinitions(ctx context.Context) (index.Definitions, error) {
+	defs, err := index.ReadDefinitions(ctx, ark.DefinitionsDir())
+	if zqe.IsNotFound(err) {
+		err = iosrc.MkdirAll(ark.DefinitionsDir(), 0700)
+	}
+	return defs, nil
+}
+
 type OpenOptions struct {
 	LogFilter  []string
 	DataSource iosrc.Source
@@ -151,10 +167,10 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 	}
 
 	ark := &Archive{
-		Root:             root,
 		DataOrder:        m.DataOrder,
-		LogSizeThreshold: m.LogSizeThreshold,
 		DataPath:         dpuri,
+		LogSizeThreshold: m.LogSizeThreshold,
+		Root:             root,
 	}
 
 	if oo != nil && oo.DataSource != nil {

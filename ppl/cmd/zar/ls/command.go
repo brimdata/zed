@@ -6,13 +6,12 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"path"
 	"strings"
 
-	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/mccanne/charm"
 )
@@ -34,10 +33,14 @@ func init() {
 
 type Command struct {
 	*root.Command
+	ark           *archive.Archive
 	root          string
 	lflag         bool
+	indexDesc     bool
+	defs          index.DefinitionMap
 	relativePaths bool
 	showRanges    bool
+	spanInfos     bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -45,7 +48,9 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.lflag, "l", false, "long form")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
+	f.BoolVar(&c.indexDesc, "desc", false, "display index description in lieu of index file name")
 	f.BoolVar(&c.showRanges, "ranges", false, "display time ranges instead of paths")
+	f.BoolVar(&c.spanInfos, "spaninfos", false, "group chunks by span infos")
 	return c, nil
 }
 
@@ -54,69 +59,95 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zar ls: too many arguments")
 	}
 
-	ark, err := archive.OpenArchive(c.root, nil)
+	var err error
+	c.ark, err = archive.OpenArchive(c.root, nil)
 	if err != nil {
 		return err
 	}
+
+	defs, err := c.ark.ReadDefinitions(context.TODO())
+	if err != nil {
+		return err
+	}
+
+	c.defs = defs.Map()
 
 	var pattern string
 	if len(args) == 1 {
 		pattern = args[0]
 	}
-	if c.showRanges {
-		return archive.SpanWalk(context.TODO(), ark, nano.MaxSpan, func(si archive.SpanInfo) error {
-			for i, chunk := range si.Chunks {
-				rangeStr := si.ChunkRange(ark.DataOrder, i)
-				c.printDir(ark, rangeStr, chunk.ZarDir(), pattern)
-			}
+	if c.spanInfos {
+		return archive.SpanWalk(context.TODO(), c.ark, nano.MaxSpan, func(si archive.SpanInfo) error {
+			c.printSpanInfo(si, pattern)
 			return nil
 		})
 	}
-	return archive.Walk(context.TODO(), ark, func(chunk chunk.Chunk) error {
-		c.printDir(ark, "", chunk.ZarDir(), pattern)
+	return archive.Walk(context.TODO(), c.ark, func(chunk chunk.Chunk) error {
+		c.printChunk(0, chunk, pattern)
 		return nil
 	})
 }
 
-func fileExists(path iosrc.URI) bool {
-	info, err := iosrc.Stat(context.TODO(), path)
-	if err != nil {
-		return false
+func (c *Command) printSpanInfo(si archive.SpanInfo, pattern string) {
+	fmt.Println(si.Range(c.ark.DataOrder) + ":")
+	for _, chunk := range si.Chunks {
+		c.printChunk(1, chunk, pattern)
 	}
-	if fsinfo, ok := info.(os.FileInfo); ok {
-		return !fsinfo.IsDir()
-	}
-	return true
 }
 
-func (c *Command) printDir(ark *archive.Archive, rangeStr string, dir iosrc.URI, pattern string) {
-	if pattern != "" {
-		path := dir.AppendPath(pattern)
-		if fileExists(path) {
-			fmt.Println(c.printable(ark, rangeStr, dir, pattern))
-		}
+func (c *Command) printChunk(indent int, chunk chunk.Chunk, pattern string) {
+	str := c.chunkString(chunk)
+	var children string
+	if !c.lflag {
+		fmt.Println(strings.Repeat("    ", indent) + str)
 		return
 	}
-	if !c.lflag {
-		fmt.Println(c.printable(ark, rangeStr, dir, ""))
-	} else {
-		entries, err := iosrc.ReadDir(context.TODO(), dir)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error listing directory: %v", err)
-			return
-		}
-		for _, e := range entries {
-			fmt.Println(c.printable(ark, rangeStr, dir, e.Name()))
-		}
-	}
+	str += "/"
+	children = c.indicesString(str, chunk)
+	children += c.mapsString(str, chunk, pattern)
+	fmt.Print(children)
 }
 
-func (c *Command) printable(ark *archive.Archive, rangeStr string, zardir iosrc.URI, objPath string) string {
+func (c *Command) indicesString(prefix string, chunk chunk.Chunk) string {
+	indices, err := index.Indices(context.TODO(), chunk.ZarDir(), c.defs)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error listing directory: %v", err)
+		return ""
+	}
+	var b strings.Builder
+	for _, i := range indices {
+		var str string
+		if c.indexDesc {
+			str = i.Definition.String()
+		} else {
+			str = i.Filename()
+		}
+		fmt.Fprintln(&b, prefix+str)
+	}
+	return b.String()
+}
+
+func (c *Command) mapsString(prefix string, chunk chunk.Chunk, pattern string) string {
+	files, err := index.ListFilenames(context.TODO(), chunk.ZarDir())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error listing directory: %v", err)
+		return ""
+	}
+	var b strings.Builder
+	for _, file := range files {
+		if pattern == "" || pattern == file {
+			fmt.Fprintln(&b, prefix+file)
+		}
+	}
+	return b.String()
+}
+
+func (c *Command) chunkString(chunk chunk.Chunk) string {
 	if c.showRanges {
-		return path.Join(rangeStr, objPath)
+		return chunk.Range()
 	}
 	if c.relativePaths {
-		return strings.TrimSuffix(ark.DataPath.RelPath(zardir.AppendPath(objPath)), "/")
+		return strings.TrimSuffix(c.ark.DataPath.RelPath(chunk.ZarDir()), "/")
 	}
-	return zardir.AppendPath(objPath).String()
+	return chunk.ZarDir().String()
 }

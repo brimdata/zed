@@ -63,7 +63,7 @@ func TestApplyDefinitions(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Find-%s-%t", test.def.Kind, test.has), func(t *testing.T) {
-			rec, err := Find(ctx, dir, test.def.ID, test.pattern)
+			rec, err := Find(ctx, resolver.NewContext(), dir, test.def.ID, test.pattern)
 			require.NoError(t, err)
 
 			if test.has {
@@ -81,7 +81,7 @@ func TestFindTypeRule(t *testing.T) {
 	err := zbuf.Copy(w, babbleReader(t))
 	require.NoError(t, err)
 	require.NoError(t, w.Close())
-	rec, err := FindFromPath(context.Background(), w.URI, "456")
+	rec, err := FindFromPath(context.Background(), resolver.NewContext(), w.URI, "456")
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	count, err := rec.AccessInt("count")
@@ -99,7 +99,7 @@ func TestZQLRule(t *testing.T) {
 	err = zbuf.Copy(w, babbleReader(t))
 	require.NoError(t, err)
 	require.NoError(t, w.Close())
-	rec, err := FindFromPath(context.Background(), w.URI, "kartometer-trifocal")
+	rec, err := FindFromPath(context.Background(), resolver.NewContext(), w.URI, "kartometer-trifocal")
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	count, err := rec.AccessInt("sum")

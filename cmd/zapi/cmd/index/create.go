@@ -1,7 +1,6 @@
 package idx
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"strings"
@@ -71,11 +70,11 @@ func (c *CreateCmd) Run(args []string) error {
 		OutputFile: c.outputFile,
 	}
 	if c.zql != "" {
-		proc, err := zql.ParseProc(c.zql)
+		_, err := zql.ParseProc(c.zql)
 		if err != nil {
 			return err
 		}
-		req.AST, err = json.Marshal(proc)
+		req.ZQL = c.zql
 		if err != nil {
 			return err
 		}
