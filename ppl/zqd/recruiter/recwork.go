@@ -43,8 +43,9 @@ func RecruitWorkers(pctx *proc.Context, workerCount int) ([]string, error) {
 	}
 	if workerCount > len(resp.Workers) {
 		// TODO: we should fail back to running the query with fewer workers if possible.
-		// Determining when that is possible is non-trivial.
-		// Alternative is to wait and try to recruit more workers,
+		// Determining when that is possible is non-trivial. One issue is that the
+		// parallel procs have already been compiled into the flowgraph by the time we get here.
+		// An alternative is to wait and try to recruit more workers,
 		// which would reserve the idle zqd root process while waiting. -MTW
 		return nil, fmt.Errorf("distributed exec failure: requested workers %d greater than available workers %d",
 			workerCount, len(resp.Workers))
