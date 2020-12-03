@@ -22,9 +22,6 @@ func EncodeString(s string) zcode.Bytes {
 }
 
 func DecodeString(zv zcode.Bytes) (string, error) {
-	if zv == nil {
-		return "", ErrUnset
-	}
 	return string(zv), nil
 }
 

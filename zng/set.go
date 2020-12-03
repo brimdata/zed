@@ -33,7 +33,7 @@ func (t *TypeSet) String() string {
 
 func (t *TypeSet) Decode(zv zcode.Bytes) ([]Value, error) {
 	if zv == nil {
-		return nil, ErrUnset
+		return nil, nil
 	}
 	return parseContainer(t, t.Type, zv)
 }

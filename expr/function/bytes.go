@@ -13,6 +13,9 @@ func (*fromBase64) Call(args []zng.Value) (zng.Value, error) {
 	if !zv.IsStringy() {
 		return badarg("from_base64")
 	}
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeBytes, nil}, nil
+	}
 	s, _ := zng.DecodeString(zv.Bytes)
 	b, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
@@ -27,6 +30,9 @@ func (*toBase64) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("from_base64")
+	}
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeString, nil}, nil
 	}
 	s := base64.StdEncoding.EncodeToString(zv.Bytes)
 	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil

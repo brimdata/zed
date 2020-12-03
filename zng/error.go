@@ -24,7 +24,7 @@ func EncodeError(err error) zcode.Bytes {
 
 func DecodeError(zv zcode.Bytes) (error, error) {
 	if zv == nil {
-		return nil, ErrUnset
+		return nil, nil
 	}
 	return errors.New(string(zv)), nil
 }

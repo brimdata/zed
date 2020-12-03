@@ -18,6 +18,9 @@ func (i *iso) Call(args []zng.Value) (zng.Value, error) {
 	if !zv.IsStringy() {
 		return badarg("iso")
 	}
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeTime, nil}, nil
+	}
 	ts, e := time.Parse(time.RFC3339Nano, string(zv.Bytes))
 	if e != nil {
 		return badarg("iso")
@@ -31,6 +34,9 @@ type sec struct {
 
 func (s *sec) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeInt64, nil}, nil
+	}
 	ns, ok := coerce.ToInt(zv)
 	if !ok {
 		sec, ok := coerce.ToFloat(zv)
@@ -50,6 +56,9 @@ type msec struct {
 
 func (m *msec) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeInt64, nil}, nil
+	}
 	ns, ok := coerce.ToInt(zv)
 	if !ok {
 		ms, ok := coerce.ToFloat(zv)
@@ -69,6 +78,9 @@ type usec struct {
 
 func (u *usec) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeInt64, nil}, nil
+	}
 	ns, ok := coerce.ToInt(zv)
 	if !ok {
 		us, ok := coerce.ToFloat(zv)
@@ -88,6 +100,9 @@ type trunc struct {
 
 func (t *trunc) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeTime, nil}, nil
+	}
 	ts, ok := coerce.ToTime(zv)
 	if !ok {
 		return badarg("trunc")

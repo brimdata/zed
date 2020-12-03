@@ -194,7 +194,7 @@ func (s suite) runSystem(t *testing.T) {
 		t.Run(d.Name, func(t *testing.T) {
 			results, err := d.Run()
 			require.NoError(t, err)
-			assert.Exactly(t, d.Expected, results, "Wrong query results")
+			assert.Exactly(t, d.Expected, results, "Wrong query results...\nQuery: %s\nInput: %s\n", d.Query, d.Input)
 		})
 	}
 }

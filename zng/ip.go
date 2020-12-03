@@ -24,7 +24,7 @@ func EncodeIP(a net.IP) zcode.Bytes {
 
 func DecodeIP(zv zcode.Bytes) (net.IP, error) {
 	if zv == nil {
-		return nil, ErrUnset
+		return nil, nil
 	}
 	switch len(zv) {
 	case 4, 16:

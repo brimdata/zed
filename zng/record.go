@@ -44,7 +44,7 @@ func (t *TypeRecord) String() string {
 //XXX we shouldn't need this... tests are using it
 func (t *TypeRecord) Decode(zv zcode.Bytes) ([]Value, error) {
 	if zv == nil {
-		return nil, ErrUnset
+		return nil, nil
 	}
 	var vals []Value
 	for i, it := 0, zv.Iter(); !it.Done(); i++ {

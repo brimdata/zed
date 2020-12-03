@@ -16,7 +16,7 @@ func EncodeType(s string) zcode.Bytes {
 
 func DecodeType(zv zcode.Bytes) (string, error) {
 	if zv == nil {
-		return "", ErrUnset
+		return "null", nil
 	}
 	return string(zv), nil
 }
