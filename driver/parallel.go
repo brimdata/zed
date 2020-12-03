@@ -28,7 +28,6 @@ type parallelHead struct {
 	// that is only used for distributed zqd.
 	// Thread (goroutine) parallelism is used when workerConn is nil.
 	workerConn *client.Connection
-	label      string
 }
 
 func (ph *parallelHead) closeOnDone() {
@@ -64,7 +63,7 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 
 			} else {
 				// Worker process parallelism uses nextSourceForConn
-				sc, err = ph.pg.nextSourceForConn(ph.workerConn, ph.label)
+				sc, err = ph.pg.nextSourceForConn(ph.workerConn)
 			}
 			if sc == nil || err != nil {
 				return nil, err
@@ -136,7 +135,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 // for an open file (i.e. the stream for the open file),
 // nextSourceForConn sends a request to a remote zqd worker process, and returns
 // the ScannerCloser (i.e.output stream) for the remote zqd worker.
-func (pg *parallelGroup) nextSourceForConn(conn *client.Connection, label string) (ScannerCloser, error) {
+func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerCloser, error) {
 	select {
 	case src, ok := <-pg.sourceChan:
 		if !ok {
@@ -236,7 +235,7 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 			conn := client.NewConnectionTo("http://" + w)
 			connectionsToRelease = append(connectionsToRelease, conn)
 			sources = append(sources, &parallelHead{
-				pctx: pctx, pg: pg, workerConn: conn, label: w})
+				pctx: pctx, pg: pg, workerConn: conn})
 		}
 		go pg.releaseWorkersOnDone(connectionsToRelease)
 	} else {

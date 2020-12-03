@@ -13,8 +13,8 @@ import (
 )
 
 func RecruitWorkers(pctx *proc.Context, workerCount int) ([]string, error) {
-	// ZQD_TEST_WORKERS is used for Ztests
 	if workerstr := os.Getenv("ZQD_TEST_WORKERS"); workerstr != "" {
+		// Special case: ZQD_TEST_WORKERS is used for ZTests
 		workers := strings.Split(workerstr, ",")
 		if workerCount > len(workers) {
 			return nil, fmt.Errorf("requested parallelism %d is greater than the number of workers %d",
