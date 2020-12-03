@@ -87,7 +87,7 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, int, error) {
 		return nil, 0, err
 	}
 	buf := make([]byte, n)
-	cc, err := r.Read(buf)
+	cc, err := io.ReadFull(r, buf)
 	if err != nil {
 		return nil, 0, err
 	}
