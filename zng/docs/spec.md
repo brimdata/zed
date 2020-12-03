@@ -37,7 +37,7 @@
 
 ## 1. Introduction
 
-ZNG implements the ZSON data model and is an efficient, binary serialization
+ZNG implements the [ZSON](zson.md) data model and is an efficient, binary serialization
 format for ZSON value sequences.  ZNG is ideally suited for streams
 of heterogeneously typed records, e.g., structured logs, where filtering and
 analytics may be applied to a stream in parts without having to fully deserialize
