@@ -28,7 +28,7 @@ type Manager struct {
 	logger            *zap.Logger
 	rootPath          iosrc.URI
 
-	// We keep instances to any loaded filestore because the seek indexes
+	// We keep instances of any loaded filestore because the seek indexes
 	// we create for them are not persisted to disk. We are unlikely to
 	// implement persistence, since we intend to use archive based
 	// storage by default at some point in the future.
