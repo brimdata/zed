@@ -12,7 +12,6 @@ import (
 	"github.com/brimsec/zq/proc/cut"
 	filterproc "github.com/brimsec/zq/proc/filter"
 	"github.com/brimsec/zq/proc/fuse"
-	"github.com/brimsec/zq/proc/groupby"
 	"github.com/brimsec/zq/proc/head"
 	"github.com/brimsec/zq/proc/join"
 	"github.com/brimsec/zq/proc/merge"
@@ -53,7 +52,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 	}
 	switch v := node.(type) {
 	case *ast.GroupByProc:
-		return groupby.New(pctx, parent, v)
+		return compileGroupBy(pctx, parent, v)
 
 	case *ast.CutProc:
 		cut, err := cut.New(pctx, parent, v)

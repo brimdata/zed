@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
@@ -18,32 +17,6 @@ import (
 	"github.com/brimsec/zq/zng/builder"
 	"github.com/brimsec/zq/zng/resolver"
 )
-
-// Key represents the name of the column (target) and an expression for
-// pulling values out of the underlying record stream.  Because the logic
-// here stashes the result of the expression in some case, and because
-// subsequent calls to Eval on the Evaluator can clobber previus results,
-// we are careful to make copys of the zng.Value whenever we hold onto to it.
-type Key struct {
-	tmp  string
-	name field.Static
-	expr expr.Evaluator
-}
-
-type Params struct {
-	inputSortDir int
-	limit        int
-	keys         []Key
-	makers       []reducerMaker
-	builder      *builder.ColumnBuilder
-	consumePart  bool
-	emitPart     bool
-}
-
-type reducerMaker struct {
-	name   field.Static
-	create reducer.Maker
-}
 
 type errTooBig int
 
@@ -70,8 +43,8 @@ type Proc struct {
 // A keyRow holds information about the key column types that result
 // from a given incoming type ID.
 type keyRow struct {
-	id      int
-	columns []zng.Column
+	id    int
+	types []zng.Type
 }
 
 // Aggregator performs the core aggregation computation for a
@@ -86,7 +59,7 @@ type Aggregator struct {
 	// there are no group-by keys, then the map is set to an empty
 	// slice.
 	keyRows  map[int]keyRow
-	cacheKey []byte // Reduces memory allocations in Consume.
+	keyCache []byte // Reduces memory allocations in Consume.
 	// zctx is the type context of the running search.
 	zctx *resolver.Context
 	// kctx is a scratch type context used to generate unique
@@ -95,10 +68,12 @@ type Aggregator struct {
 	// different types do not collide.  No types from this context
 	// are ever referenced.
 	kctx         *resolver.Context
-	keys         []Key
-	keyResolvers []expr.Evaluator
+	keyExprs     []expr.Assignment
+	keyRefs      []expr.Evaluator
 	decomposable bool
-	makers       []reducerMaker
+	makers       []reducer.Maker
+	aggNames     []field.Static
+	valRefs      []expr.Evaluator
 	builder      *builder.ColumnBuilder
 	table        map[string]*Row
 	limit        int
@@ -109,104 +84,104 @@ type Aggregator struct {
 	maxSpillKey  *zng.Value
 	inputSortDir int
 	spiller      *spill.MergeSort
-	consumePart  bool
-	emitPart     bool
+	partialsIn   bool
+	partialsOut  bool
 }
 
 type Row struct {
-	keycols  []zng.Column
-	keyvals  zcode.Bytes
+	keyTypes []zng.Type
 	groupval *zng.Value // for sorting when input sorted
 	reducers valRow
 }
 
-func NewAggregator(c *proc.Context, params Params) *Aggregator {
-	limit := params.limit
+func NewAggregator(zctx *resolver.Context, keyExprs []expr.Assignment, makers []reducer.Maker, aggNames []field.Static, limit, inputSortDir int, partialsIn, partialsOut bool) (*Aggregator, error) {
 	if limit == 0 {
 		limit = DefaultLimit
 	}
 	var valueCompare expr.ValueCompareFn
 	var keyCompare, keysCompare expr.CompareFn
 
-	if len(params.keys) > 0 && params.inputSortDir != 0 {
+	nkeys := len(keyExprs)
+	if nkeys > 0 && inputSortDir != 0 {
 		// As the default sort behavior, nullsMax=true is also expected for streaming groupby.
 		vs := expr.NewValueCompareFn(true)
-		if params.inputSortDir < 0 {
+		if inputSortDir < 0 {
 			valueCompare = func(a, b zng.Value) int { return vs(b, a) }
 		} else {
 			valueCompare = vs
 		}
-		rs := expr.NewCompareFn(true, expr.NewDotExpr(params.keys[0].name))
-		if params.inputSortDir < 0 {
+
+		rs := expr.NewCompareFn(true, expr.NewDotExpr(keyExprs[0].LHS))
+		if inputSortDir < 0 {
 			keyCompare = func(a, b *zng.Record) int { return rs(b, a) }
 		} else {
 			keyCompare = rs
 		}
 	}
-	var resolvers []expr.Evaluator
-	for _, k := range params.keys {
-		resolvers = append(resolvers, expr.NewDotExpr(k.name))
+	keyRefs := make([]expr.Evaluator, 0, nkeys)
+	keyNames := make([]field.Static, 0, nkeys)
+	for _, e := range keyExprs {
+		keyRefs = append(keyRefs, expr.NewDotExpr(e.LHS))
+		keyNames = append(keyNames, e.LHS)
 	}
-	rs := expr.NewCompareFn(true, resolvers...)
-	if params.inputSortDir < 0 {
+	valRefs := make([]expr.Evaluator, 0, len(aggNames))
+	for _, fieldName := range aggNames {
+		valRefs = append(valRefs, expr.NewDotExpr(fieldName))
+	}
+	rs := expr.NewCompareFn(true, keyRefs...)
+	if inputSortDir < 0 {
 		keysCompare = func(a, b *zng.Record) int { return rs(b, a) }
 	} else {
 		keysCompare = rs
 	}
+	builder, err := builder.NewColumnBuilder(zctx, keyNames)
+	if err != nil {
+		return nil, err
+	}
 	return &Aggregator{
-		inputSortDir: params.inputSortDir,
+		inputSortDir: inputSortDir,
 		limit:        limit,
-		keys:         params.keys,
-		keyResolvers: resolvers,
-		zctx:         c.TypeContext,
+		keyExprs:     keyExprs,
+		keyRefs:      keyRefs,
+		zctx:         zctx,
 		kctx:         resolver.NewContext(),
-		decomposable: decomposable(params.makers),
-		makers:       params.makers,
-		builder:      params.builder,
+		decomposable: decomposable(makers),
+		makers:       makers,
+		aggNames:     aggNames,
+		valRefs:      valRefs,
+		builder:      builder,
 		keyRows:      make(map[int]keyRow),
+		keyCache:     make(zcode.Bytes, 0, 128),
 		table:        make(map[string]*Row),
 		keyCompare:   keyCompare,
 		keysCompare:  keysCompare,
 		valueCompare: valueCompare,
-		consumePart:  params.consumePart,
-		emitPart:     params.emitPart,
-	}
+		partialsIn:   partialsIn,
+		partialsOut:  partialsOut,
+	}, nil
 }
 
-func decomposable(rs []reducerMaker) bool {
+func decomposable(rs []reducer.Maker) bool {
 	for _, r := range rs {
-		if _, ok := r.create(nil).(reducer.Decomposable); !ok {
+		if _, ok := r(nil).(reducer.Decomposable); !ok {
 			return false
 		}
 	}
 	return true
 }
 
-func IsDecomposable(assignments []ast.Assignment) bool {
-	zctx := resolver.NewContext()
-	for _, assignment := range assignments {
-		_, create, err := CompileReducer(zctx, assignment)
-		if err != nil {
-			return false
-		}
-		if _, ok := create(nil).(reducer.Decomposable); !ok {
-			return false
-		}
+func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, names []field.Static, makers []reducer.Maker, limit, inputSortDir int, partialsIn, partialsOut bool) (*Proc, error) {
+	if (partialsIn || partialsOut) && !decomposable(makers) {
+		return nil, errors.New("partial input or output requested with non-decomposable reducers")
 	}
-	return true
-}
-
-func New(pctx *proc.Context, parent proc.Interface, node *ast.GroupByProc) (*Proc, error) {
-	params, err := compileParams(node, pctx.TypeContext)
+	agg, err := NewAggregator(pctx.TypeContext, keys, makers, names, limit, inputSortDir, partialsIn, partialsOut)
 	if err != nil {
 		return nil, err
 	}
-	// XXX in a subsequent PR we will isolate ast params and pass in
-	// ast.GroupByParams
 	return &Proc{
 		pctx:     pctx,
 		parent:   parent,
-		agg:      NewAggregator(pctx, *params),
+		agg:      agg,
 		resultCh: make(chan proc.Result),
 	}, nil
 }
@@ -284,22 +259,18 @@ func (p *Proc) shutdown(err error) {
 	close(p.resultCh)
 }
 
-func (a *Aggregator) createRow(keyCols []zng.Column, vals zcode.Bytes, groupval *zng.Value) *Row {
-	// Make a deep copy so the caller can reuse the underlying arrays.
-	v := make(zcode.Bytes, len(vals))
-	copy(v, vals)
+func (a *Aggregator) createRow(keyTypes []zng.Type, groupval *zng.Value) *Row {
 	return &Row{
-		keycols:  keyCols,
-		keyvals:  v,
+		keyTypes: keyTypes,
 		groupval: groupval,
 		reducers: newValRow(a.zctx, a.makers),
 	}
 }
 
-func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []Key) (keyRow, error) {
+func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []expr.Assignment) (keyRow, error) {
 	cols := make([]zng.Column, len(keys))
 	for k, key := range keys {
-		keyVal, err := key.expr.Eval(r)
+		keyVal, err := key.RHS.Eval(r)
 		// Don't err on ErrNoSuchField; just return an empty
 		// keyRow and the descriptor will be blocked.
 		if err != nil && !errors.Is(err, expr.ErrNoSuchField) {
@@ -308,7 +279,8 @@ func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []Key) (keyRow, error
 		if keyVal.Type == nil {
 			return keyRow{}, nil
 		}
-		cols[k] = zng.NewColumn(key.tmp, keyVal.Type)
+		//XXX this will go away when we get rid of the TypeRecord here as we fix #1701
+		cols[k] = zng.NewColumn(fmt.Sprintf("_%d", k), keyVal.Type)
 	}
 	// Lookup a unique ID by converting the columns too a record string
 	// and looking up the record by name in the scratch type context.
@@ -323,7 +295,12 @@ func newKeyRow(kctx *resolver.Context, r *zng.Record, keys []Key) (keyRow, error
 		}
 		id = typ.ID()
 	}
-	return keyRow{id, cols}, nil
+	//XXX this will go away when we get rid of the TypeRecord as we fix #1701
+	types := make([]zng.Type, 0, len(cols))
+	for _, c := range cols {
+		types = append(types, c.Type)
+	}
+	return keyRow{id, types}, nil
 }
 
 // Consume adds a record to the aggregation.
@@ -334,14 +311,14 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 	keyRow, ok := a.keyRows[id]
 	if !ok {
 		var err error
-		keyRow, err = newKeyRow(a.kctx, r, a.keys)
+		keyRow, err = newKeyRow(a.kctx, r, a.keyExprs)
 		if err != nil {
 			return err
 		}
 		a.keyRows[id] = keyRow
 	}
 
-	if keyRow.columns == nil {
+	if keyRow.types == nil {
 		// block this descriptor since it doesn't have all the group-by keys
 		return nil
 	}
@@ -358,33 +335,31 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 	// we can rely on just the key types (and input desciptor uniquely
 	// implying those types)
 
-	var keyBytes zcode.Bytes
-	if a.cacheKey != nil {
-		keyBytes = a.cacheKey[:4]
-	} else {
-		keyBytes = make(zcode.Bytes, 4, 128)
-	}
-	binary.BigEndian.PutUint32(keyBytes, uint32(keyRow.id))
-	a.builder.Reset()
+	// XXX The comment above is incorrect and the cause of bug #1701.  Neither
+	// the output type of the keys nor of the values is determinined by the
+	// input record type.  This used to be the case but now that we have
+	// type-varying functions and expressions for the keys, this assumption
+	// no longer holds.
+
+	// XXX Store key flattened then let the builder construct the
+	// structure at output time, which is the new approach that will be
+	// taken by the fix to #1701.
+
+	keyBytes := zcode.AppendUvarint(a.keyCache[:0], uint64(keyRow.id))
 	var prim *zng.Value
-	for i, key := range a.keys {
-		zv, err := key.expr.Eval(r)
-		if err != nil && !errors.Is(err, zng.ErrUnset) {
+	for i, key := range a.keyExprs {
+		zv, err := key.RHS.Eval(r)
+		if err != nil {
 			return err
 		}
-		keyVal := zv.Copy()
 		if i == 0 && a.inputSortDir != 0 {
-			a.updateMaxTableKey(keyVal)
-			prim = &keyVal
+			prim = a.updateMaxTableKey(zv)
 		}
-		a.builder.Append(keyVal.Bytes, keyVal.IsContainer())
+		// Append each value to the key as a flat value, independent
+		// of whether this is a primitive or container.
+		keyBytes = zcode.AppendPrimitive(keyBytes, zv.Bytes)
 	}
-	zv, err := a.builder.Encode()
-	if err != nil {
-		// XXX internal error
-	}
-	keyBytes = append(keyBytes, zv...)
-	a.cacheKey = keyBytes
+	a.keyCache = keyBytes
 
 	row, ok := a.table[string(keyBytes)]
 	if !ok {
@@ -396,14 +371,14 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 				return err
 			}
 		}
-		row = a.createRow(keyRow.columns, keyBytes[4:], prim)
+		row = a.createRow(keyRow.types, prim)
 		a.table[string(keyBytes)] = row
 	}
 
-	if a.consumePart {
-		return row.reducers.ConsumePart(r)
+	if a.partialsIn {
+		return row.reducers.consumePartial(r, a.valRefs)
 	}
-	row.reducers.Consume(r)
+	row.reducers.consume(r)
 	return nil
 }
 
@@ -424,8 +399,8 @@ func (a *Aggregator) spillTable(eof bool) error {
 		return err
 	}
 	if !eof && a.inputSortDir != 0 {
-		v, err := a.keys[0].expr.Eval(recs[len(recs)-1])
-		if err != nil && !errors.Is(err, zng.ErrUnset) {
+		v, err := a.keyExprs[0].RHS.Eval(recs[len(recs)-1])
+		if err != nil {
 			return err
 		}
 		// pass volatile zng.Value since updateMaxSpillKey will make
@@ -435,23 +410,18 @@ func (a *Aggregator) spillTable(eof bool) error {
 	return nil
 }
 
-func (a *Aggregator) updateMaxTableKey(v zng.Value) {
-	if a.maxTableKey == nil {
+// updateMaxTableKey is called with a volatile zng.Value to update the
+// max value seen in the table for the streaming logic when the input is sorted.
+func (a *Aggregator) updateMaxTableKey(zv zng.Value) *zng.Value {
+	if a.maxTableKey == nil || a.valueCompare(zv, *a.maxTableKey) > 0 {
+		v := zv.Copy()
 		a.maxTableKey = &v
-		return
 	}
-	if a.valueCompare(v, *a.maxTableKey) > 0 {
-		a.maxTableKey = &v
-	}
+	return a.maxTableKey
 }
 
 func (a *Aggregator) updateMaxSpillKey(v zng.Value) {
-	if a.maxSpillKey == nil {
-		v = v.Copy()
-		a.maxSpillKey = &v
-		return
-	}
-	if a.valueCompare(v, *a.maxSpillKey) > 0 {
+	if a.maxSpillKey == nil || a.valueCompare(v, *a.maxSpillKey) > 0 {
 		v = v.Copy()
 		a.maxSpillKey = &v
 	}
@@ -463,7 +433,7 @@ func (a *Aggregator) updateMaxSpillKey(v zng.Value) {
 // before eof, and keys that are completed will returned.
 func (a *Aggregator) Results(eof bool) (zbuf.Batch, error) {
 	if a.spiller == nil {
-		return a.readTable(eof, a.emitPart)
+		return a.readTable(eof, a.partialsOut)
 	}
 	if eof {
 		// EOF: spill in-memory table before merging all files for output.
@@ -488,8 +458,8 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 			if rec == nil {
 				break
 			}
-			keyVal, err := a.keys[0].expr.Eval(rec)
-			if err != nil && !errors.Is(err, zng.ErrUnset) {
+			keyVal, err := a.keyExprs[0].RHS.Eval(rec)
+			if err != nil {
 				return nil, err
 			}
 			if a.valueCompare(keyVal, *a.maxSpillKey) >= 0 {
@@ -512,7 +482,13 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 }
 
 func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
-	// Consume all partial result records that have the same grouping keys.
+	// This loop pulls records from the spiller in key order.
+	// The spiller is doing a merge across all of the spills and
+	// here we merge the decomposed aggregations across the batch
+	// of rows from the different spill files that share the same key.
+	// XXX This could be optimized by reusing the reducers and resetting
+	// their state instead of allocating a new one per row and sending
+	// each one to GC, but this would require a change to reducer API.
 	row := newValRow(a.zctx, a.makers)
 	var firstRec *zng.Record
 	for {
@@ -528,7 +504,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 		} else if a.keysCompare(firstRec, rec) != 0 {
 			break
 		}
-		if err := row.ConsumePart(rec); err != nil {
+		if err := row.consumePartial(rec, a.valRefs); err != nil {
 			return nil, err
 		}
 		if _, err := a.spiller.Read(); err != nil {
@@ -541,9 +517,8 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	// Build the result record.
 	a.builder.Reset()
 	var types []zng.Type
-	for _, res := range a.keyResolvers {
-		keyVal, _ := res.Eval(firstRec)
-		keyVal = keyVal.Copy()
+	for _, e := range a.keyRefs {
+		keyVal, _ := e.Eval(firstRec)
 		types = append(types, keyVal.Type)
 		a.builder.Append(keyVal.Bytes, keyVal.IsContainer())
 	}
@@ -552,21 +527,21 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 		return nil, err
 	}
 	cols := a.builder.TypedColumns(types)
-	for _, col := range row {
+	for k, col := range row {
 		var v zng.Value
-		if a.emitPart {
-			vv, err := col.reducer.(reducer.Decomposable).ResultPart(a.zctx)
+		if a.partialsOut {
+			vv, err := col.(reducer.Decomposable).ResultPart(a.zctx)
 			if err != nil {
 				return nil, err
 			}
 			v = vv
 		} else {
-			v = col.reducer.Result()
+			v = col.Result()
 		}
 		// XXX Currently you can't set dotted field names.  We should
 		// fix this.  For now, "a.b=count() by _path" turns into
-		// "b=count() by _path" here, but it doesn't seem to work at all.
-		fieldName := col.name.Leaf()
+		// "b=count() by _path".
+		fieldName := a.aggNames[k].Leaf()
 		cols = append(cols, zng.NewColumn(fieldName, v.Type))
 		zbytes = v.Encode(zbytes)
 	}
@@ -583,37 +558,67 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 // If decompose is true, it returns partial reducer results as
 // returned by reducer.Decomposable.ResultPart(). It is an error to
 // pass decompose=true if any reducer is non-decomposable.
-func (a *Aggregator) readTable(flush, decompose bool) (zbuf.Batch, error) {
+func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 	var recs []*zng.Record
-	for k, row := range a.table {
+	for key, row := range a.table {
 		if !flush && a.valueCompare == nil {
 			panic("internal bug: tried to fetch completed tuples on non-sorted input")
 		}
 		if !flush && a.valueCompare(*row.groupval, *a.maxTableKey) >= 0 {
 			continue
 		}
+		// Unflatten the key in the hash table using the builder.
+		// XXX This will be replaced soon when we fix issue #1701,
+		// where we will properly build the entire output record in one
+		// pass over both the key columns and the value columns,
+		// which will also fix the "a.b=count()" bug.
+		b := zcode.Bytes(key)
+		// skip over type code
+		_, n := binary.Uvarint(b)
+		if n <= 0 {
+			return nil, errors.New("corrupt key encountered in groupby hash table")
+		}
+		it := b[n:].Iter()
+		a.builder.Reset()
+		for _, typ := range row.keyTypes {
+			flatVal, _, err := it.Next()
+			if err != nil {
+				return nil, err
+			}
+			a.builder.Append(flatVal, zng.IsContainerType(typ))
+		}
+		zbytes, err := a.builder.Encode()
+		if err != nil {
+			return nil, err
+		}
 		var zv zcode.Bytes
-		zv = append(zv, row.keyvals...)
+		zv = append(zv, zbytes...)
 		for _, col := range row.reducers {
 			var v zng.Value
-			if decompose {
+			if partialsOut {
 				var err error
-				dec := col.reducer.(reducer.Decomposable)
+				dec := col.(reducer.Decomposable)
 				v, err = dec.ResultPart(a.zctx)
 				if err != nil {
 					return nil, err
 				}
 			} else {
-				v = col.reducer.Result()
+				v = col.Result()
 			}
 			zv = v.Encode(zv)
 		}
-		typ, err := a.lookupRowType(row, decompose)
+		typ, err := a.lookupRowType(row, partialsOut)
 		if err != nil {
 			return nil, err
 		}
 		recs = append(recs, zng.NewRecord(typ, zv))
-		delete(a.table, k)
+		// Delete entries from the table as we create records, so
+		// the freed enries can be GC'd incrementally as we shift
+		// state from the table to the records.  Otherwise, when
+		// operating near capacity, we would double the memory footprint
+		// unnecessarily by holding back the table entries from GC
+		// until this loop finished.
+		delete(a.table, key)
 	}
 	if len(recs) == 0 {
 		return nil, nil
@@ -621,31 +626,26 @@ func (a *Aggregator) readTable(flush, decompose bool) (zbuf.Batch, error) {
 	return zbuf.Array(recs), nil
 }
 
-func (a *Aggregator) lookupRowType(row *Row, decompose bool) (*zng.TypeRecord, error) {
+func (a *Aggregator) lookupRowType(row *Row, partialsOut bool) (*zng.TypeRecord, error) {
 	// This is only done once per row at output time so generally not a
 	// bottleneck, but this could be optimized by keeping a cache of the
 	// record types since it is rare for there to be multiple such types
 	// or for it change from row to row.
-	n := len(a.keys) + len(a.makers)
+	n := len(a.keyExprs) + len(a.makers)
 	cols := make([]zng.Column, 0, n)
-	types := make([]zng.Type, len(row.keycols))
-
-	for k, col := range row.keycols {
-		types[k] = col.Type
-	}
-	cols = append(cols, a.builder.TypedColumns(types)...)
-	for _, col := range row.reducers {
+	cols = append(cols, a.builder.TypedColumns(row.keyTypes)...)
+	for k, col := range row.reducers {
 		var z zng.Value
-		if decompose {
+		if partialsOut {
 			var err error
-			z, err = col.reducer.(reducer.Decomposable).ResultPart(a.zctx)
+			z, err = col.(reducer.Decomposable).ResultPart(a.zctx)
 			if err != nil {
 				return nil, err
 			}
 		} else {
-			z = col.reducer.Result()
+			z = col.Result()
 		}
-		fieldName := col.name.Leaf()
+		fieldName := a.aggNames[k].Leaf()
 		cols = append(cols, zng.NewColumn(fieldName, z.Type))
 	}
 	// This could be more efficient but it's only done during group-by output...

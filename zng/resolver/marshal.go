@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strings"
 
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
@@ -62,10 +63,17 @@ func encodeAny(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, erro
 	if v.Type().Implements(marshalerType) {
 		return v.Interface().(Marshaler).MarshalZNG(zctx, b)
 	}
+	if v, ok := v.Interface().(nano.Ts); ok {
+		b.AppendPrimitive(zng.EncodeTime(v))
+		return zng.TypeTime, nil
+	}
 	switch v.Kind() {
 	case reflect.Array:
 		return encodeArray(zctx, b, v)
 	case reflect.Slice:
+		if v.IsNil() {
+			return encodeNil(zctx, b, v.Type())
+		}
 		return encodeArray(zctx, b, v)
 	case reflect.Struct:
 		return encodeRecord(zctx, b, v)
@@ -241,6 +249,18 @@ func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) err
 		}
 		return v.Interface().(Unmarshaler).UnmarshalZNG(zctx, typ, zv)
 	}
+	if _, ok := v.Interface().(nano.Ts); ok {
+		if typ != zng.TypeTime {
+			return incompatTypeError(typ, v)
+		}
+		if zv == nil {
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		x, err := zng.DecodeTime(zv)
+		v.Set(reflect.ValueOf(x))
+		return err
+	}
 	switch v.Kind() {
 	case reflect.Array:
 		return decodeArray(zctx, typ, zv, v)
@@ -380,6 +400,9 @@ func decodeArray(zctx *Context, typ zng.Type, zv zcode.Bytes, arrVal reflect.Val
 	arrType, ok := typ.(*zng.TypeArray)
 	if !ok {
 		return errors.New("not an array")
+	}
+	if zv == nil {
+		return nil
 	}
 	i := 0
 	for it := zv.Iter(); !it.Done(); i++ {

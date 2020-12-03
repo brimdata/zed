@@ -13,7 +13,6 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/compiler"
-	"github.com/brimsec/zq/proc/groupby"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"go.uber.org/zap"
@@ -625,7 +624,7 @@ func parallelizeFlowgraph(seq *ast.SequentialProc, N int, inputSortField field.S
 				}
 			}
 		case *ast.GroupByProc:
-			if !groupby.IsDecomposable(p.Reducers) {
+			if !compiler.IsDecomposable(p.Reducers) {
 				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
 			}
 			// We have a decomposable groupby and can split the flowgraph into branches that run up to and including a groupby,

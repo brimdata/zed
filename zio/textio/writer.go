@@ -17,7 +17,6 @@ type Writer struct {
 	EpochDates bool
 	writer     io.WriteCloser
 	flattener  *flattener.Flattener
-	precision  int
 	format     zng.OutFmt
 }
 
@@ -36,7 +35,6 @@ func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts, dates bool) *Writer
 		EpochDates: dates,
 		writer:     w,
 		flattener:  flattener.New(resolver.NewContext()),
-		precision:  6,
 		format:     format,
 	}
 }
@@ -78,13 +76,9 @@ func (w *Writer) Write(rec *zng.Record) error {
 		}
 	} else {
 		var err error
-		var changePrecision bool
-		out, changePrecision, err = zeekio.ZeekStrings(rec, w.precision, w.format)
+		out, err = zeekio.ZeekStrings(rec, w.format)
 		if err != nil {
 			return err
-		}
-		if changePrecision {
-			w.precision = 9
 		}
 	}
 	s := strings.Join(out, "\t")

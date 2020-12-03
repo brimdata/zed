@@ -16,6 +16,10 @@ ifneq "$(TEST)" ""
 test-one: test-run
 endif
 
+# Uncomment this to trigger re-builds of the peg files when the grammar
+# is out of date.  We are commenting this out to work around issue #1717.
+#PEG_DEP=peg
+
 vet:
 	@go vet -composites=false -stdmethods=false ./...
 
@@ -46,9 +50,9 @@ bin/$(ZEEKPATH):
 
 bin/$(SURICATAPATH):
 	@mkdir -p bin
-	@curl -L -o bin/$(SURICATAPATH).zip \
-		https://storage.googleapis.com/brimsec/suricata/suricata-$(SURICATATAG).$$(go env GOOS)-$$(go env GOARCH).zip
-	@unzip -q bin/$(SURICATAPATH).zip -d bin \
+	curl -L -o bin/$(SURICATAPATH).zip \
+		https://github.com/brimsec/build-suricata/releases/download/$(SURICATATAG)/suricata-$(SURICATATAG).$$(go env GOOS)-$$(go env GOARCH).zip
+	unzip -q bin/$(SURICATAPATH).zip -d bin \
 		&& mv bin/suricata bin/$(SURICATAPATH)
 
 bin/minio:
@@ -87,7 +91,7 @@ zng-output-check: build $(SAMPLEDATA)
 	scripts/zng-output-check.sh
 
 # If the build recipe changes, please also change npm/build.
-build: peg
+build: $(PEG_DEP)
 	@mkdir -p dist
 	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/... ./ppl/cmd/...
 

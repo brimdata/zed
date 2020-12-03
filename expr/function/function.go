@@ -130,6 +130,9 @@ func New(name string, narg int) (Interface, error) {
 		f = &toBase64{}
 	case "from_base64":
 		f = &fromBase64{}
+	case "network_of":
+		argmax = 2
+		f = &networkOf{}
 	}
 	if argmin != -1 && narg < argmin {
 		return nil, ErrTooFewArgs
@@ -153,16 +156,19 @@ type lenFn struct {
 }
 
 func (l *lenFn) Call(args []zng.Value) (zng.Value, error) {
+	zv := args[0]
+	if zv.Bytes == nil {
+		return zng.Value{zng.TypeInt64, nil}, nil
+	}
 	switch zng.AliasedType(args[0].Type).(type) {
 	case *zng.TypeArray, *zng.TypeSet:
-		v := args[0]
-		len, err := v.ContainerLength()
+		len, err := zv.ContainerLength()
 		if err != nil {
 			return zng.Value{}, err
 		}
 		return zng.Value{zng.TypeInt64, l.Int(int64(len))}, nil
-	case *zng.TypeOfString, *zng.TypeOfBstring:
-		v := len(args[0].Bytes)
+	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfIP, *zng.TypeOfNet:
+		v := len(zv.Bytes)
 		return zng.Value{zng.TypeInt64, l.Int(int64(v))}, nil
 	default:
 		return badarg("len")
@@ -172,6 +178,7 @@ func (l *lenFn) Call(args []zng.Value) (zng.Value, error) {
 type typeOf struct{}
 
 func (t *typeOf) Call(args []zng.Value) (zng.Value, error) {
+	// XXX This needs to change to a ZSON type value format. See issue #1675.
 	return zng.Value{zng.TypeType, zng.EncodeType(args[0].Type.String())}, nil
 }
 

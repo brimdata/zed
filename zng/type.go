@@ -17,7 +17,6 @@ import (
 )
 
 var (
-	ErrUnset      = errors.New("value is unset")
 	ErrLenUnset   = errors.New("len(unset) is undefined")
 	ErrNotArray   = errors.New("cannot index a non-array")
 	ErrIndex      = errors.New("array index out of bounds")
@@ -187,8 +186,9 @@ const (
 	CtrlEOS           = 0xff
 	AppEncodingZNG    = 0
 	AppEncodingJSON   = 1
-	AppEncodingString = 2
-	AppEncodingBinary = 3
+	AppEncodingZSON   = 2
+	AppEncodingString = 3
+	AppEncodingBinary = 4
 )
 
 type CompressionFormat int

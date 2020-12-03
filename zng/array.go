@@ -31,7 +31,7 @@ func (t *TypeArray) String() string {
 
 func (t *TypeArray) Decode(zv zcode.Bytes) ([]Value, error) {
 	if zv == nil {
-		return nil, ErrUnset
+		return nil, nil
 	}
 	return parseContainer(t, t.Type, zv)
 }

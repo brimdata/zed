@@ -2,23 +2,23 @@ package archive
 
 import (
 	"context"
-	"io"
+	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/archive/seekindex"
+	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/segmentio/ksuid"
 	"go.uber.org/multierr"
+	"golang.org/x/sync/errgroup"
 )
 
 var (
@@ -48,44 +48,112 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 // TODO zq#1432 Writer does not currently keep track of size of records
 // written to temporary files. At some point this should have a maxTempFileSize
 // to ensure the Writer does not exceed the size of a provisioned tmpfs.
-//
-// TODO zq#1433 If a tsDir never gets enough data to reach ark.LogSizeThreshold,
-// the data will sit in the tsDirWriter and remain unsearchable until the
-// provided read stream is closed. Add some kind of timeout functionality that
-// periodically flushes stale tsDirWriters.
 type Writer struct {
-	ark     *Archive
-	ctx     context.Context
-	writers map[tsDir]*tsDirWriter
+	ark           *Archive
+	cancel        context.CancelFunc
+	ctx           context.Context
+	errgroup      *errgroup.Group
+	once          sync.Once
+	staleDuration time.Duration
+	writers       map[tsDir]*tsDirWriter
+	writersMu     sync.RWMutex
 
 	memBuffered int64
 	stats       ImportStats
 }
 
+// NewWriter creates a zbuf.Writer compliant writer for writing data to an
+// archive.
 func NewWriter(ctx context.Context, ark *Archive) *Writer {
+	ctx, cancel := context.WithCancel(ctx)
+	g, ctx := errgroup.WithContext(ctx)
 	return &Writer{
-		ark:     ark,
-		ctx:     ctx,
-		writers: make(map[tsDir]*tsDirWriter),
+		ark:      ark,
+		cancel:   cancel,
+		ctx:      ctx,
+		errgroup: g,
+		writers:  make(map[tsDir]*tsDirWriter),
 	}
 }
 
+// SetStaleDuration sets the stale threshold for the writer which is the delay
+// after the last write to a tsdir until it is flushed and removed.
+func (w *Writer) SetStaleDuration(dur time.Duration) {
+	w.staleDuration = dur
+}
+
 func (w *Writer) Write(rec *zng.Record) error {
+	w.once.Do(func() {
+		w.errgroup.Go(w.flusher)
+	})
+	if w.ctx.Err() != nil {
+		if err := w.errgroup.Wait(); err != nil {
+			return err
+		}
+		return w.ctx.Err()
+	}
+
 	tsDir := newTsDir(rec.Ts())
+	w.writersMu.RLock()
 	dw, ok := w.writers[tsDir]
+	w.writersMu.RUnlock()
 	if !ok {
 		var err error
 		dw, err = newTsDirWriter(w, tsDir)
 		if err != nil {
 			return err
 		}
-		w.writers[tsDir] = dw
+		w.writersMu.Lock()
+		if _, ok := w.writers[tsDir]; !ok {
+			w.writers[tsDir] = dw
+		}
+		dw = w.writers[tsDir]
+		w.writersMu.Unlock()
 	}
-	if err := dw.writeOne(rec); err != nil {
+	if err := dw.Write(rec); err != nil {
 		return err
 	}
-	for w.memBuffered > ImportBufSize {
+	for atomic.LoadInt64(&w.memBuffered) > ImportBufSize {
 		if err := w.spillLargestBuffer(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// flusher is a background goroutine for an active Writer that periodically
+// checks and closes stale tsdirs.
+func (w *Writer) flusher() error {
+	ticker := time.NewTicker(time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ticker.C:
+			if err := w.flushStaleWriters(); err != nil {
+				return err
+			}
+		case <-w.ctx.Done():
+			return nil
+		}
+	}
+}
+
+// flushStateWriters loops through the open tsdir writers and flushes and
+// removes any writers that haven't recieved any updates since
+// Writer.staleDuration.
+func (w *Writer) flushStaleWriters() error {
+	now := time.Now()
+	w.writersMu.Lock()
+	var stale []*tsDirWriter
+	for tsd, writer := range w.writers {
+		if now.Sub(writer.modified()) >= w.staleDuration {
+			stale = append(stale, writer)
+			delete(w.writers, tsd)
+		}
+	}
+	w.writersMu.Unlock()
+	for _, writer := range stale {
+		if err := writer.flush(); err != nil {
 			return err
 		}
 	}
@@ -97,6 +165,8 @@ func (w *Writer) Write(rec *zng.Record) error {
 // spilling to disk the records of the tsDirWriter with the largest memory
 // footprint.
 func (w *Writer) spillLargestBuffer() error {
+	w.writersMu.RLock()
+	defer w.writersMu.RUnlock()
 	var largest *tsDirWriter
 	for _, dw := range w.writers {
 		if largest == nil || dw.bufSize > largest.bufSize {
@@ -107,12 +177,18 @@ func (w *Writer) spillLargestBuffer() error {
 }
 
 func (w *Writer) Close() error {
+	w.writersMu.Lock()
 	var merr error
 	for ts, dw := range w.writers {
 		if err := dw.flush(); err != nil {
 			merr = multierr.Append(merr, err)
 		}
 		delete(w.writers, ts)
+	}
+	w.writersMu.Unlock()
+	w.cancel()
+	if err := w.errgroup.Wait(); merr == nil {
+		merr = err
 	}
 	return merr
 }
@@ -149,6 +225,7 @@ type tsDirWriter struct {
 	ark     *Archive
 	bufSize int64
 	ctx     context.Context
+	modts   int64
 	records []*zng.Record
 	spiller *spill.MergeSort
 	tsDir   tsDir
@@ -162,17 +239,15 @@ func newTsDirWriter(w *Writer, tsDir tsDir) (*tsDirWriter, error) {
 		tsDir:  tsDir,
 		writer: w,
 	}
-	if dirmkr, ok := d.ark.dataSrc.(iosrc.DirMaker); ok {
-		if err := dirmkr.MkdirAll(tsDir.path(w.ark), 0755); err != nil {
-			return nil, err
-		}
+	if err := iosrc.MkdirAll(tsDir.path(w.ark), 0755); err != nil {
+		return nil, err
 	}
 	return d, nil
 }
 
 func (dw *tsDirWriter) addBufSize(delta int64) {
 	dw.bufSize += delta
-	dw.writer.memBuffered += delta
+	atomic.AddInt64(&dw.writer.memBuffered, delta)
 }
 
 // chunkSizeEstimate returns a crude approximation of all records when written
@@ -185,7 +260,7 @@ func (dw *tsDirWriter) chunkSizeEstimate() int64 {
 	return b / 2
 }
 
-func (dw *tsDirWriter) writeOne(rec *zng.Record) error {
+func (dw *tsDirWriter) Write(rec *zng.Record) error {
 	// XXX This call leads to a ton of one-off allocations that burden the GC
 	// and slow down import. We should instead copy the raw record bytes into a
 	// recycled buffer and keep around an array of ts + byte-slice structs for
@@ -193,12 +268,21 @@ func (dw *tsDirWriter) writeOne(rec *zng.Record) error {
 	rec.CopyBody()
 	dw.records = append(dw.records, rec)
 	dw.addBufSize(int64(len(rec.Raw)))
+	dw.touch()
 	if dw.chunkSizeEstimate() > dw.ark.LogSizeThreshold {
 		if err := dw.flush(); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (dw *tsDirWriter) touch() {
+	atomic.StoreInt64(&dw.modts, int64(nano.Now()))
+}
+
+func (dw *tsDirWriter) modified() time.Time {
+	return nano.Ts(atomic.LoadInt64(&dw.modts)).Time()
 }
 
 func (dw *tsDirWriter) spill() error {
@@ -238,148 +322,28 @@ func (dw *tsDirWriter) flush() error {
 		expr.SortStable(dw.records, importCompareFn(dw.ark))
 		r = zbuf.Array(dw.records).NewReader()
 	}
-	w, err := newChunkWriter(dw.ctx, dw.ark, dw.tsDir, nil)
+	w, err := chunk.NewWriter(dw.ctx, dw.tsDir.path(dw.ark), dw.ark.DataOrder, nil, zngio.WriterOpts{
+		StreamRecordsMax: ImportStreamRecordsMax,
+		LZ4BlockSize:     importLZ4BlockSize,
+	})
 	if err != nil {
 		return err
 	}
 	if err := zbuf.CopyWithContext(dw.ctx, w, r); err != nil {
-		w.abort()
+		w.Abort()
 		return err
 	}
-	if _, err := w.close(dw.ctx); err != nil {
+	if _, err := w.Close(dw.ctx); err != nil {
 		return err
 	}
 	dw.writer.stats.Accumulate(ImportStats{
 		DataChunksWritten:  1,
-		RecordBytesWritten: w.byteCounter.size,
-		RecordsWritten:     int64(w.count),
+		RecordBytesWritten: w.BytesWritten(),
+		RecordsWritten:     int64(w.RecordsWritten()),
 	})
 	dw.records = dw.records[:0]
 	dw.addBufSize(dw.bufSize * -1)
 	return nil
-}
-
-// chunkWriter is a zbuf.Writer that writes a stream of sorted records into an
-// archive chunk file.
-type chunkWriter struct {
-	ark            *Archive
-	byteCounter    *writeCounter
-	count          uint64
-	dataFileWriter *zngio.Writer
-	firstTs        nano.Ts
-	id             ksuid.KSUID
-	lastTs         nano.Ts
-	masks          []ksuid.KSUID
-	needIndexWrite bool
-	seekIndex      *seekindex.Builder
-	tsd            tsDir
-	wroteFirst     bool
-}
-
-func newChunkWriter(ctx context.Context, ark *Archive, tsd tsDir, masks []ksuid.KSUID) (*chunkWriter, error) {
-	id := ksuid.New()
-	out, err := ark.dataSrc.NewWriter(ctx, chunkPath(ark, tsd, id))
-	if err != nil {
-		return nil, err
-	}
-	counter := &writeCounter{bufwriter.New(out), 0}
-	dataFileWriter := zngio.NewWriter(counter, zngio.WriterOpts{
-		LZ4BlockSize:     importLZ4BlockSize,
-		StreamRecordsMax: ImportStreamRecordsMax,
-	})
-	seekIndexPath := chunkSeekIndexPath(ark, tsd, id)
-	seekIndex, err := seekindex.NewBuilder(ctx, seekIndexPath.String(), ark.DataOrder)
-	if err != nil {
-		return nil, err
-	}
-	return &chunkWriter{
-		ark:            ark,
-		byteCounter:    counter,
-		dataFileWriter: dataFileWriter,
-		id:             id,
-		seekIndex:      seekIndex,
-		masks:          masks,
-		tsd:            tsd,
-	}, nil
-}
-
-func (cw *chunkWriter) position() (int64, nano.Ts, nano.Ts) {
-	return cw.dataFileWriter.Position(), cw.firstTs, cw.lastTs
-}
-
-func (cw *chunkWriter) Write(rec *zng.Record) error {
-	// We want to index the start of stream (SOS) position of the data file by
-	// record timestamps; we don't know when we've started a new stream until
-	// after we written the first record in the stream.
-	sos := cw.dataFileWriter.LastSOS()
-	if err := cw.dataFileWriter.Write(rec); err != nil {
-		return err
-	}
-	ts := rec.Ts()
-	if !cw.wroteFirst || (cw.needIndexWrite && ts != cw.lastTs) {
-		if err := cw.seekIndex.Enter(ts, sos); err != nil {
-			return err
-		}
-		cw.needIndexWrite = false
-	}
-	if cw.dataFileWriter.LastSOS() != sos {
-		cw.needIndexWrite = true
-	}
-	if !cw.wroteFirst {
-		cw.firstTs = ts
-		cw.wroteFirst = true
-	}
-	cw.lastTs = ts
-	cw.count++
-	return nil
-}
-
-// abort should be called when an error occurs during write. Errors are ignored
-// because the write error will be more informative and should be returned.
-func (cw *chunkWriter) abort() {
-	cw.dataFileWriter.Close()
-	cw.seekIndex.Abort()
-}
-
-func (cw *chunkWriter) close(ctx context.Context) (Chunk, error) {
-	return cw.closeWithTs(ctx, cw.firstTs, cw.lastTs)
-}
-
-func (cw *chunkWriter) closeWithTs(ctx context.Context, firstTs, lastTs nano.Ts) (Chunk, error) {
-	err := cw.dataFileWriter.Close()
-	if err != nil {
-		cw.seekIndex.Abort()
-		return Chunk{}, err
-	}
-	metadata := chunkMetadata{
-		First:       firstTs,
-		Last:        lastTs,
-		RecordCount: cw.count,
-		Masks:       cw.masks,
-		Size:        cw.dataFileWriter.Position(),
-	}
-	if err := writeChunkMetadata(ctx, chunkMetadataPath(cw.ark, cw.tsd, cw.id), metadata); err != nil {
-		cw.seekIndex.Abort()
-		return Chunk{}, err
-	}
-	if err := cw.seekIndex.Close(); err != nil {
-		return Chunk{}, err
-	}
-	// TODO: zq#1264
-	// Add an entry to the update log for S3 backed stores containing the
-	// location of the just added data & index file.
-	return metadata.Chunk(cw.id), nil
-}
-
-type writeCounter struct {
-	io.WriteCloser
-	size int64
-}
-
-func (w *writeCounter) Write(b []byte) (int, error) {
-	n, err := w.WriteCloser.Write(b)
-	w.size += int64(n)
-	return n, err
 }
 
 func importCompareFn(ark *Archive) expr.CompareFn {

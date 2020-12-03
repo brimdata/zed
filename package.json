@@ -1,6 +1,6 @@
 {
   "name": "zq",
-  "version": "0.23.0-dev",
+  "version": "0.24.0-dev",
   "scripts": {
       "prepack": "node npm/build"
   },
@@ -12,7 +12,7 @@
       "bin": "dist"
   },
   "brimDependencies": {
-      "suricataTag": "v5.0.3-brim14",
-      "zeekTag": "v3.2.1-brim4"
+      "suricataTag": "v5.0.3-brimpre2",
+      "zeekTag": "v3.2.1-brim5"
   }
 }

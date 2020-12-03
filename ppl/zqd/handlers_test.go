@@ -700,7 +700,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		},
 	})
 	require.NoError(t, err)
-	_, err = conn.LogPost(context.Background(), sp.ID, nil, babble)
+	_, err = conn.LogPost(context.Background(), sp.ID, nil, babbleSorted)
 	require.NoError(t, err)
 
 	span := nano.Span{Ts: 1587508830068523240, Dur: 9789993714061}
@@ -710,7 +710,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		DataPath:    sp.DataPath,
 		StorageKind: api.ArchiveStore,
 		Span:        &span,
-		Size:        35123,
+		Size:        35118,
 	}
 	si, err := conn.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)

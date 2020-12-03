@@ -7,6 +7,7 @@ import (
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/textio"
 	"github.com/brimsec/zq/zio/zngio"
+	"github.com/brimsec/zq/zio/zsonio"
 	"github.com/brimsec/zq/zio/zstio"
 )
 
@@ -23,6 +24,7 @@ type WriterOpts struct {
 	EpochDates bool
 	Text       textio.WriterOpts
 	Zng        zngio.WriterOpts
+	ZSON       zsonio.WriterOpts
 	Zst        zstio.WriterOpts
 }
 
@@ -42,6 +44,8 @@ func Extension(format string) string {
 		return ".tbl"
 	case "zng", "azng":
 		return ".zng"
+	case "zson":
+		return ".zson"
 	case "csv":
 		return ".csv"
 	case "zst":

@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -43,8 +44,8 @@ func (s *statReadCloser) Close() error {
 	return nil
 }
 
-func (s *statReadCloser) chunkRecord(chunk Chunk) error {
-	fi, err := iosrc.Stat(s.ctx, chunk.Path(s.ark))
+func (s *statReadCloser) chunkRecord(chunk chunk.Chunk) error {
+	fi, err := iosrc.Stat(s.ctx, chunk.Path())
 	if err != nil {
 		return err
 	}
@@ -62,7 +63,7 @@ func (s *statReadCloser) chunkRecord(chunk Chunk) error {
 
 	rec := s.chunkBuilder.Build(
 		zng.EncodeString("chunk"),
-		zng.EncodeString(string(chunk.RelativePath())),
+		zng.EncodeString(s.ark.Root.RelPath(chunk.Path())),
 		zng.EncodeTime(chunk.First),
 		zng.EncodeTime(chunk.Last),
 		zng.EncodeUint(uint64(fi.Size())),
@@ -76,8 +77,8 @@ func (s *statReadCloser) chunkRecord(chunk Chunk) error {
 	}
 }
 
-func (s *statReadCloser) indexRecord(chunk Chunk, indexPath string) error {
-	zardir := chunk.ZarDir(s.ark)
+func (s *statReadCloser) indexRecord(chunk chunk.Chunk, indexPath string) error {
+	zardir := chunk.ZarDir()
 	info, err := microindex.Stat(s.ctx, zardir.AppendPath(indexPath))
 	if err != nil {
 		if errors.Is(err, zqe.E(zqe.NotFound)) {
@@ -121,7 +122,7 @@ func (s *statReadCloser) indexRecord(chunk Chunk, indexPath string) error {
 
 	rec := s.indexBuilders[indexPath].Build(
 		zng.EncodeString("index"),
-		zng.EncodeString(string(chunk.RelativePath())),
+		zng.EncodeString(s.ark.Root.RelPath(chunk.Path())),
 		zng.EncodeTime(chunk.First),
 		zng.EncodeTime(chunk.Last),
 		zng.EncodeString(indexPath),
@@ -140,11 +141,11 @@ func (s *statReadCloser) indexRecord(chunk Chunk, indexPath string) error {
 func (s *statReadCloser) run() {
 	defer close(s.recs)
 
-	s.err = Walk(s.ctx, s.ark, func(chunk Chunk) error {
+	s.err = Walk(s.ctx, s.ark, func(chunk chunk.Chunk) error {
 		if err := s.chunkRecord(chunk); err != nil {
 			return err
 		}
-		if dirents, err := s.ark.dataSrc.ReadDir(s.ctx, chunk.ZarDir(s.ark)); err == nil {
+		if dirents, err := s.ark.dataSrc.ReadDir(s.ctx, chunk.ZarDir()); err == nil {
 			for _, e := range dirents {
 				if e.IsDir() {
 					continue
@@ -156,6 +157,15 @@ func (s *statReadCloser) run() {
 		}
 		return nil
 	})
+}
+
+func RecordCount(ctx context.Context, ark *Archive) (uint64, error) {
+	var count uint64
+	err := Walk(ctx, ark, func(chunk chunk.Chunk) error {
+		count += chunk.RecordCount
+		return nil
+	})
+	return count, err
 }
 
 func Stat(ctx context.Context, zctx *resolver.Context, ark *Archive) (zbuf.ReadCloser, error) {

@@ -45,10 +45,8 @@ func NewDir(dir, prefix string, stderr io.Writer, opts zio.WriterOpts) (*Dir, er
 }
 
 func NewDirWithSource(dir iosrc.URI, prefix string, stderr io.Writer, opts zio.WriterOpts, source iosrc.Source) (*Dir, error) {
-	if dirmkr, ok := source.(iosrc.DirMaker); ok {
-		if err := dirmkr.MkdirAll(dir, 0755); err != nil {
-			return nil, err
-		}
+	if err := iosrc.MkdirAll(dir, 0755); err != nil {
+		return nil, err
 	}
 	e := zio.Extension(opts.Format)
 	if e == "" {

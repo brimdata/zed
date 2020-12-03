@@ -25,7 +25,7 @@ func AppendTime(bytes zcode.Bytes, t nano.Ts) zcode.Bytes {
 
 func DecodeTime(zv zcode.Bytes) (nano.Ts, error) {
 	if zv == nil {
-		return 0, ErrUnset
+		return 0, nil
 	}
 	return nano.Ts(zcode.DecodeCountedVarint(zv)), nil
 }

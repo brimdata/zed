@@ -41,14 +41,14 @@ func AppendUint(bytes zcode.Bytes, i uint64) zcode.Bytes {
 
 func DecodeInt(zv zcode.Bytes) (int64, error) {
 	if zv == nil {
-		return 0, ErrUnset
+		return 0, nil
 	}
 	return zcode.DecodeCountedVarint(zv), nil
 }
 
 func DecodeUint(zv zcode.Bytes) (uint64, error) {
 	if zv == nil {
-		return 0, ErrUnset
+		return 0, nil
 	}
 	return zcode.DecodeCountedUvarint(zv), nil
 }

@@ -28,7 +28,7 @@ func EncodeBool(b bool) zcode.Bytes {
 
 func DecodeBool(zv zcode.Bytes) (bool, error) {
 	if zv == nil {
-		return false, ErrUnset
+		return false, nil
 	}
 	if zv[0] != 0 {
 		return true, nil

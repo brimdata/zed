@@ -22,9 +22,6 @@ func EncodeString(s string) zcode.Bytes {
 }
 
 func DecodeString(zv zcode.Bytes) (string, error) {
-	if zv == nil {
-		return "", ErrUnset
-	}
 	return string(zv), nil
 }
 
@@ -53,7 +50,7 @@ func uescape(r rune) []byte {
 }
 
 func (t *TypeOfString) StringOf(zv zcode.Bytes, fmt OutFmt, inContainer bool) string {
-	if bytes.Equal(zv, []byte{'-'}) {
+	if fmt != OutFormatUnescaped && bytes.Equal(zv, []byte{'-'}) {
 		return "\\u002d"
 	}
 
