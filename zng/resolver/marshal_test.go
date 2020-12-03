@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -134,6 +135,16 @@ func TestMarshalEmptySlice(t *testing.T) {
 	}
 	t1 := TestNilSlice{Name: "test", Slice: []string{}}
 	var t2 TestNilSlice
+	boomerang(t, t1, &t2)
+	assert.Equal(t, t1, t2)
+}
+
+func TestMarshalTime(t *testing.T) {
+	type TestTime struct {
+		Ts nano.Ts
+	}
+	t1 := TestTime{Ts: nano.Now()}
+	var t2 TestTime
 	boomerang(t, t1, &t2)
 	assert.Equal(t, t1, t2)
 }
