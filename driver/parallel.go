@@ -224,7 +224,6 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 	}
 
 	var sources []proc.Interface
-	var err error
 	if mcfg.DistributedExec {
 		workers, err := recruiter.RecruitWorkers(pctx, mcfg.Parallelism)
 		if err != nil {
@@ -244,7 +243,7 @@ func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc Mu
 			sources = append(sources, &parallelHead{pctx: pctx, pg: pg})
 		}
 	}
-	return sources, pg, err
+	return sources, pg, nil
 }
 
 func (pg *parallelGroup) releaseWorkersOnDone(conns []*client.Connection) {
