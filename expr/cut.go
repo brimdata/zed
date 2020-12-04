@@ -1,19 +1,25 @@
 package expr
 
 import (
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
-type cutFunc struct {
+type CutFunc struct {
 	*Cutter
 }
 
-func NewCutFunc(c *Cutter) *cutFunc {
-	return &cutFunc{c}
+func NewCutFunc(zctx *resolver.Context, fieldRefs []field.Static, fieldExprs []Evaluator) (*CutFunc, error) {
+	c, err := NewCutter(zctx, fieldRefs, fieldExprs)
+	if err != nil {
+		return nil, err
+	}
+	return &CutFunc{c}, nil
 }
 
-func (c *cutFunc) Eval(rec *zng.Record) (zng.Value, error) {
-	out, err := c.Cut(rec)
+func (c *CutFunc) Eval(rec *zng.Record) (zng.Value, error) {
+	out, err := c.Apply(rec)
 	if err != nil {
 		return zng.Value{}, err
 	}

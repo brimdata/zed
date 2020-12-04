@@ -116,6 +116,22 @@ func eq(e ast.Expression, b field.Static) bool {
 // inputSortDir; otherwise, it returns false.
 func setGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSortDir int) bool {
 	switch p := p.(type) {
+	case *ast.PickProc:
+		// Return true if the output record contains inputSortField.
+		for _, f := range p.Fields {
+			if eq(f.RHS, inputSortField) {
+				return true
+			}
+		}
+		return false
+	case *ast.DropProc:
+		// Return true if the output record contains inputSortField.
+		for _, e := range p.Fields {
+			if eq(e, inputSortField) {
+				return false
+			}
+		}
+		return true
 	case *ast.CutProc:
 		// Return true if the output record contains inputSortField.
 		for _, f := range p.Fields {
@@ -277,10 +293,16 @@ func computeColumns(p ast.Proc) *Colset {
 // y}, which is minimal).
 func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 	switch p := p.(type) {
+	case *ast.DropProc:
+		return colset, false
 	case *ast.CutProc:
-		if p.Complement {
-			return colset, false
+		for _, f := range p.Fields {
+			if ok := colset.Add(&f); !ok {
+				return colset, false
+			}
 		}
+		return colset, true
+	case *ast.PickProc:
 		for _, f := range p.Fields {
 			if ok := colset.Add(&f); !ok {
 				return colset, false
@@ -445,20 +467,28 @@ func Parallelize(p ast.Proc, N int, inputSortField field.Static, inputSortRevers
 			// Stateless procs: continue until we reach one of the procs below at
 			// which point we'll either split the flowgraph or see we can't and return it as-is.
 			continue
-		case *ast.CutProc:
+		case *ast.DropProc:
 			if inputSortField == nil || !orderSensitiveTail {
 				continue
 			}
-			if p.Complement {
-				for _, f := range p.Fields {
-					if eq(f.RHS, inputSortField) {
-						return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
-					}
+			for _, e := range p.Fields {
+				if eq(e, inputSortField) {
+					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
 				}
+			}
+			continue
+		case *ast.CutProc, *ast.PickProc:
+			if inputSortField == nil || !orderSensitiveTail {
 				continue
 			}
+			var fields []ast.Assignment
+			if cut, ok := p.(*ast.CutProc); ok {
+				fields = cut.Fields
+			} else {
+				fields = p.(*ast.PickProc).Fields
+			}
 			var found bool
-			for _, f := range p.Fields {
+			for _, f := range fields {
 				fieldName, okField := ast.DotExprToField(f.RHS)
 				lhs, okLHS := ast.DotExprToField(f.LHS)
 				if okField && !fieldName.Equal(inputSortField) && okLHS && lhs.Equal(inputSortField) {

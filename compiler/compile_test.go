@@ -20,7 +20,7 @@ func TestComputeColumns(t *testing.T) {
 			[]string{"x", "y", "z"},
 		},
 		{
-			"cut -c foo | cut x, y, z",
+			"drop foo | cut x, y, z",
 			[]string{"x", "y", "z"},
 		},
 		{
@@ -221,9 +221,9 @@ func TestParallelizeFlowgraph(t *testing.T) {
 			"ts",
 		},
 		{
-			"* | cut -c x | uniq",
+			"* | drop x | uniq",
 			"ts",
-			"(filter * | cut -c x; filter * | cut -c x) | uniq",
+			"(filter * | drop x; filter * | drop x) | uniq",
 			"ts",
 		},
 		{
