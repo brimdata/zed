@@ -12,6 +12,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc/groupby"
@@ -393,7 +394,7 @@ func TestGroupbyUnit(t *testing.T) {
 
 			astProc, err := compileGroupBy(zql)
 			assert.NoError(t, err)
-			driver.ReplaceGroupByProcDurationWithKey(astProc)
+			compiler.ReplaceGroupByProcDurationWithKey(astProc)
 			astProc.InputSortDir = dir
 			tctx := proctest.NewTestContext(resolver)
 			src := proctest.NewTestSource(inBatches)
