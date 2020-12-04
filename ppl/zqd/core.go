@@ -10,8 +10,8 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/ppl/zqd/apiserver"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
-	"github.com/brimsec/zq/ppl/zqd/space"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -42,10 +42,10 @@ type Config struct {
 
 type Core struct {
 	logger    *zap.Logger
+	mgr       *apiserver.Manager
 	registry  *prometheus.Registry
 	root      iosrc.URI
 	router    *mux.Router
-	spaces    *space.Manager
 	taskCount int64
 
 	suricata pcapanalyzer.Launcher
@@ -68,7 +68,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		return nil, err
 	}
 
-	spaces, err := space.NewManager(ctx, conf.Logger, registry, root)
+	mgr, err := apiserver.NewManager(ctx, conf.Logger, registry, root)
 	if err != nil {
 		return nil, err
 	}
@@ -91,10 +91,10 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	c := &Core{
 		logger:   conf.Logger,
+		mgr:      mgr,
 		registry: registry,
 		root:     root,
 		router:   router,
-		spaces:   spaces,
 		suricata: conf.Suricata,
 		zeek:     conf.Zeek,
 	}
@@ -163,7 +163,7 @@ func (c *Core) Root() iosrc.URI {
 }
 
 func (c *Core) Shutdown() {
-	c.spaces.Shutdown()
+	c.mgr.Shutdown()
 }
 
 func (c *Core) nextTaskID() int64 {

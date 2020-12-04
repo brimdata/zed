@@ -14,8 +14,6 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
-	"sync"
-	"sync/atomic"
 	"testing"
 	"time"
 
@@ -213,30 +211,16 @@ func TestSpaceList(t *testing.T) {
 
 	ctx := context.Background()
 	c, conn := newCore(t)
-	{
-		for _, n := range names {
-			sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: n})
-			require.NoError(t, err)
-			expected = append(expected, api.SpaceInfo{
-				ID:          sp.ID,
-				Name:        n,
-				DataPath:    c.Root().AppendPath(string(sp.ID)),
-				StorageKind: api.FileStore,
-			})
-		}
-
-		list, err := conn.SpaceList(ctx)
+	for _, n := range names {
+		sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: n})
 		require.NoError(t, err)
-		sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
-		require.Equal(t, expected, list)
+		expected = append(expected, api.SpaceInfo{
+			ID:          sp.ID,
+			Name:        n,
+			DataPath:    c.Root().AppendPath(string(sp.ID)),
+			StorageKind: api.FileStore,
+		})
 	}
-
-	// Delete dir from one space, then simulate a restart by
-	// creating a new Core pointing to the same root.
-	require.NoError(t, os.RemoveAll(filepath.Join(c.Root().Filepath(), string(expected[2].ID))))
-	expected = append(expected[:2], expected[3:]...)
-
-	_, conn = newCoreAtDir(t, c.Root().Filepath())
 
 	list, err := conn.SpaceList(ctx)
 	require.NoError(t, err)
@@ -368,7 +352,7 @@ func TestSpaceDelete(t *testing.T) {
 	require.NoError(t, err)
 	list, err := conn.SpaceList(ctx)
 	require.NoError(t, err)
-	require.Equal(t, []api.SpaceInfo{}, list)
+	require.Len(t, list, 0)
 
 	require.Equal(t, 1.0, promCounterValue(c.Registry(), "spaces_created_total"))
 	require.Equal(t, 1.0, promCounterValue(c.Registry(), "spaces_deleted_total"))
@@ -385,7 +369,7 @@ func TestSpaceDeleteDataDir(t *testing.T) {
 	require.NoError(t, err)
 	list, err := conn.SpaceList(ctx)
 	require.NoError(t, err)
-	require.Equal(t, []api.SpaceInfo{}, list)
+	require.Len(t, list, 0)
 	// ensure data dir has also been deleted
 	_, err = os.Stat(datadir)
 	require.Error(t, err)
@@ -594,61 +578,6 @@ func TestPostLogStopErr(t *testing.T) {
 	_, err = conn.LogPostReaders(context.Background(), sp.ID, opts, strings.NewReader(src))
 	require.Error(t, err)
 	assert.Regexp(t, ": format detection error.*", err.Error())
-}
-
-func TestDeleteDuringPcapPost(t *testing.T) {
-	var zeekClosed int32
-	waitFn := func(tzp *testPcapProcess) error {
-		<-tzp.ctx.Done()
-		atomic.StoreInt32(&zeekClosed, 1)
-		return errors.New("zeek exited with error code: -1")
-	}
-
-	_, conn := newCoreWithConfig(t, zqd.Config{Zeek: testLauncher(nil, waitFn)})
-
-	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "deleteDuringPacketPost"})
-	require.NoError(t, err)
-
-	var wg sync.WaitGroup
-	pcapPostErr := make(chan error)
-
-	wg.Add(1)
-	doPost := func() error {
-		const pcapfile = "testdata/valid.pcap"
-		stream, err := conn.PcapPostStream(context.Background(), sp.ID, api.PcapPostRequest{pcapfile})
-		wg.Done()
-		if err != nil {
-			return err
-		}
-
-		var taskEnd *api.TaskEnd
-		for {
-			i, err := stream.Next()
-			if err != nil {
-				return err
-			}
-			if i == nil {
-				break
-			}
-			if te, ok := i.(*api.TaskEnd); ok {
-				taskEnd = te
-			}
-		}
-		if taskEnd == nil {
-			return errors.New("no TaskEnd payload")
-		}
-		return *taskEnd.Error
-	}
-	go func() {
-		pcapPostErr <- doPost()
-	}()
-
-	wg.Wait()
-	err = conn.SpaceDelete(context.Background(), sp.ID)
-	require.NoError(t, err)
-
-	assert.EqualError(t, <-pcapPostErr, "pcap post operation canceled")
-	assert.Equal(t, int32(1), atomic.LoadInt32(&zeekClosed), "expected zeek to receive cancellation signal but did not")
 }
 
 func TestSpaceDataDir(t *testing.T) {

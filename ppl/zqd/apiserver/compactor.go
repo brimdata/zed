@@ -1,4 +1,4 @@
-package space
+package apiserver
 
 import (
 	"context"
@@ -84,22 +84,15 @@ func (c *compactor) run(ctx context.Context) {
 
 func (c *compactor) compact(ctx context.Context, id api.SpaceID) {
 	logger := c.logger.With(zap.String("space_id", string(id)))
-	sp, err := c.manager.Get(id)
+	s, err := c.manager.GetStorage(ctx, id)
 	if err != nil {
-		logger.Warn("Space does not exist")
+		logger.Warn("Failed to compact", zap.Error(err))
 		return
 	}
-	store, ok := sp.Storage().(*archivestore.Storage)
+	store, ok := s.(*archivestore.Storage)
 	if !ok {
 		return
 	}
-	ctx, cancel, err := sp.StartOp(ctx)
-	if err != nil {
-		logger.Info("Could not aquire space op", zap.Error(err))
-		return
-	}
-	defer cancel()
-
 	logger.Info("Compaction started")
 	start := time.Now()
 	if err := store.Compact(ctx); err != nil {

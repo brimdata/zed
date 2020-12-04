@@ -1,4 +1,4 @@
-package space
+package oldconfig_test
 
 import (
 	"context"
@@ -13,37 +13,18 @@ import (
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/ppl/zqd/apiserver"
+	"github.com/brimsec/zq/ppl/zqd/apiserver/oldconfig"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
 
-func TestConfigCurrentVersion(t *testing.T) {
-	root, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(root)
-	u, err := iosrc.ParseURI(root)
-	require.NoError(t, err)
-	ctx := context.Background()
-	m, err := NewManager(ctx, zap.NewNop(), prometheus.NewRegistry(), u)
-	require.NoError(t, err)
-	s, err := m.Create(ctx, api.SpacePostRequest{Name: "test"})
-	require.NoError(t, err)
-	id := s.ID()
-	versionConfig := struct {
-		Version int `json:"version"`
-	}{}
-	err = fs.UnmarshalJSONFile(filepath.Join(root, string(id), configFile), &versionConfig)
-	require.NoError(t, err)
-
-	require.Equal(t, configVersion, versionConfig.Version)
-}
-
 func TestV3MigrationNoPcap(t *testing.T) {
 	tm := newTestMigration(t)
 
-	id := tm.initSpace(configV2{
+	id := tm.initSpace(oldconfig.ConfigV2{
 		Version:  2,
 		Name:     "test",
 		DataURI:  iosrc.URI{},
@@ -52,20 +33,18 @@ func TestV3MigrationNoPcap(t *testing.T) {
 			Kind: api.FileStore,
 		},
 	})
-	info := tm.spaceInfo(id)
-	conf := tm.spaceConfig(id)
+	conf := tm.spaceInfo(id)
 
-	assert.Equal(t, "test", info.Name)
-	assert.Equal(t, "", conf.DataURI.String())
-	assert.Equal(t, "", info.PcapPath.String())
-	assert.Equal(t, false, info.PcapSupport)
+	assert.Equal(t, "test", conf.Name)
+	assert.Equal(t, "", conf.PcapPath.String())
+	assert.Equal(t, false, conf.PcapSupport)
 }
 
 func TestV3MigrationPcap(t *testing.T) {
 	tm := newTestMigration(t)
 	pcapuri := tm.root.AppendPath("test.pcap")
 
-	id := tm.initSpace(configV2{
+	id := tm.initSpace(oldconfig.ConfigV2{
 		Version:  2,
 		Name:     "test",
 		DataURI:  iosrc.URI{},
@@ -79,10 +58,8 @@ func TestV3MigrationPcap(t *testing.T) {
 	tm.writeSpaceJSONFile(id, "packets.idx.json", pcap.Index{})
 
 	info := tm.spaceInfo(id)
-	conf := tm.spaceConfig(id)
 
 	assert.Equal(t, "test", info.Name)
-	assert.Equal(t, "", conf.DataURI.String())
 	assert.Equal(t, pcapuri, info.PcapPath)
 	assert.Equal(t, true, info.PcapSupport)
 }
@@ -91,7 +68,7 @@ func TestV2Migration(t *testing.T) {
 	tm := newTestMigration(t)
 	pcapuri := tm.root.AppendPath("test.pcap")
 
-	id := tm.initSpace(configV1{
+	id := tm.initSpace(oldconfig.ConfigV1{
 		Version:  1,
 		Name:     "test",
 		DataPath: ".",
@@ -113,10 +90,10 @@ func TestV1Migration(t *testing.T) {
 	t.Run("InvalidCharacters", func(t *testing.T) {
 		tm := newTestMigration(t)
 
-		tm.initSpace(configV1{Name: "name/𝚭𝚴𝚪/stuff"})
+		tm.initSpace(oldconfig.ConfigV1{Name: "name/𝚭𝚴𝚪/stuff"})
 
 		mgr := tm.manager()
-		list, err := mgr.List(context.Background())
+		list, err := mgr.ListSpaces(context.Background())
 		require.NoError(t, err)
 		require.Len(t, list, 1)
 		require.Equal(t, "name_𝚭𝚴𝚪_stuff", list[0].Name)
@@ -124,11 +101,11 @@ func TestV1Migration(t *testing.T) {
 	t.Run("DuplicateNames", func(t *testing.T) {
 		tm := newTestMigration(t)
 
-		tm.initSpace(configV1{Name: "testname"})
-		tm.initSpace(configV1{Name: "testname"})
+		tm.initSpace(oldconfig.ConfigV1{Name: "testname"})
+		tm.initSpace(oldconfig.ConfigV1{Name: "testname"})
 
 		mgr := tm.manager()
-		list, err := mgr.List(context.Background())
+		list, err := mgr.ListSpaces(context.Background())
 		require.NoError(t, err)
 		require.Len(t, list, 2)
 		sort.Slice(list, func(i, j int) bool { return list[i].Name < list[j].Name })
@@ -141,7 +118,7 @@ func TestV1Migration(t *testing.T) {
 type testMigration struct {
 	*testing.T
 	root    iosrc.URI
-	mgr     *Manager
+	mgr     *apiserver.Manager
 	counter int
 }
 
@@ -162,9 +139,9 @@ func (tm *testMigration) initRoot() {
 	tm.root = u
 }
 
-func (tm *testMigration) manager() *Manager {
+func (tm *testMigration) manager() *apiserver.Manager {
 	if tm.mgr == nil {
-		mgr, err := NewManager(context.Background(), zap.NewNop(), prometheus.NewRegistry(), tm.root)
+		mgr, err := apiserver.NewManager(context.Background(), zap.NewNop(), prometheus.NewRegistry(), tm.root)
 		require.NoError(tm.T, err)
 		tm.mgr = mgr
 	}
@@ -173,19 +150,9 @@ func (tm *testMigration) manager() *Manager {
 
 func (tm *testMigration) spaceInfo(id api.SpaceID) api.SpaceInfo {
 	mgr := tm.manager()
-	sp, err := mgr.Get(id)
-	require.NoError(tm, err)
-	info, err := sp.Info(context.Background())
+	info, err := mgr.GetSpace(context.Background(), id)
 	require.NoError(tm, err)
 	return info
-}
-
-func (tm *testMigration) spaceConfig(id api.SpaceID) config {
-	var c config
-	err := fs.UnmarshalJSONFile(filepath.Join(tm.root.Filepath(), id.String(), configFile), &c)
-	require.NoError(tm, err)
-	assert.Equal(tm, configVersion, c.Version)
-	return c
 }
 
 func (tm *testMigration) initSpace(c interface{}) api.SpaceID {
@@ -193,7 +160,7 @@ func (tm *testMigration) initSpace(c interface{}) api.SpaceID {
 	id := api.SpaceID(fmt.Sprintf("sp_%d", tm.counter))
 	spdir := filepath.Join(tm.root.Filepath(), string(id))
 	require.NoError(tm, os.Mkdir(spdir, 0700))
-	tm.writeSpaceJSONFile(id, configFile, c)
+	tm.writeSpaceJSONFile(id, oldconfig.ConfigFile, c)
 	return id
 }
 
