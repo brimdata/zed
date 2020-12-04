@@ -87,14 +87,8 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, int, error) {
 		return nil, 0, err
 	}
 	buf := make([]byte, n)
-	cc, err := r.Read(buf)
-	if err != nil {
+	if _, err := io.ReadFull(r, buf); err != nil {
 		return nil, 0, err
-	}
-	if int64(cc) != n {
-		// this shouldn't happen but maybe could occur under a corner case
-		// or I/O problems XXX
-		return nil, 0, fmt.Errorf("couldn't read trailer: expected %d bytes but read %d", n, cc)
 	}
 	for off := int(n) - 3; off >= 0; off-- {
 		// look for end of stream followed by an array[int64] typedef then

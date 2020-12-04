@@ -19,7 +19,6 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
-	"github.com/brimsec/zq/ppl/zqd/space"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zbuf"
@@ -51,7 +50,7 @@ type ClearableStore interface {
 }
 
 // NewPcapOp kicks of the process for ingesting a pcap file into a space.
-func NewPcapOp(ctx context.Context, space space.Space, pcap string, suricata, zeek pcapanalyzer.Launcher) (PcapOp, []string, error) {
+func NewPcapOp(ctx context.Context, store storage.Storage, pcapstore *pcapstorage.Store, pcap string, suricata, zeek pcapanalyzer.Launcher) (PcapOp, []string, error) {
 	pcapuri, err := iosrc.ParseURI(pcap)
 	if err != nil {
 		return nil, nil, err
@@ -59,11 +58,11 @@ func NewPcapOp(ctx context.Context, space space.Space, pcap string, suricata, ze
 	if suricata == nil && zeek == nil {
 		return nil, nil, fmt.Errorf("must provide at least one launcher")
 	}
-	logstore, ok := space.Storage().(ClearableStore)
+	logstore, ok := store.(ClearableStore)
 	if ok {
-		return newFilePcapOp(ctx, space.PcapStore(), logstore, pcapuri, suricata, zeek)
+		return newFilePcapOp(ctx, pcapstore, logstore, pcapuri, suricata, zeek)
 	}
-	return newArchivePcapOp(ctx, space.Storage().(*archivestore.Storage), space.PcapStore(), pcapuri, suricata, zeek)
+	return newArchivePcapOp(ctx, store.(*archivestore.Storage), pcapstore, pcapuri, suricata, zeek)
 }
 
 type legacyPcapOp struct {
