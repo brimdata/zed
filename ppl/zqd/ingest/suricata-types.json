@@ -6,7 +6,27 @@
                 "type": "bstring"
             },
             {
-                "name": "community_id",
+                "name": "src_ip",
+                "type": "ip"
+            },
+            {
+                "name": "src_port",
+                "type": "port"
+            },
+            {
+                "name": "dest_ip",
+                "type": "ip"
+            },
+            {
+                "name": "dest_port",
+                "type": "port"
+            },
+            {
+                "name": "proto",
+                "type": "bstring"
+            },
+            {
+                "name": "app_proto",
                 "type": "bstring"
             },
             {
@@ -17,20 +37,20 @@
                         "type": "uint16"
                     },
                     {
+                        "name": "signature",
+                        "type": "bstring"
+                    },
+                    {
                         "name": "category",
                         "type": "bstring"
                     },
                     {
-                        "name": "signature",
+                        "name": "action",
                         "type": "bstring"
                     },
                     {
                         "name": "signature_id",
                         "type": "uint64"
-                    },
-                    {
-                        "name": "action",
-                        "type": "bstring"
                     },
                     {
                         "name": "gid",
@@ -88,36 +108,12 @@
                 ]
             },
             {
-                "name": "app_proto",
-                "type": "bstring"
-            },
-            {
-                "name": "dest_ip",
-                "type": "ip"
-            },
-            {
-                "name": "dest_port",
-                "type": "port"
-            },
-            {
-                "name": "src_ip",
-                "type": "ip"
-            },
-            {
-                "name": "src_port",
-                "type": "port"
-            },
-            {
                 "name": "flow_id",
                 "type": "uint64"
             },
             {
                 "name": "pcap_cnt",
                 "type": "uint64"
-            },
-            {
-                "name": "proto",
-                "type": "bstring"
             },
             {
                 "name": "timestamp",
@@ -134,6 +130,10 @@
             {
                 "name": "icmp_type",
                 "type": "uint64"
+            },
+            {
+                "name": "community_id",
+                "type": "bstring"
             }
         ]
     },
