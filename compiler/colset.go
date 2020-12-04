@@ -1,4 +1,4 @@
-package driver
+package compiler
 
 import (
 	"github.com/brimsec/zq/ast"

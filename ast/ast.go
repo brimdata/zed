@@ -451,3 +451,10 @@ func FanIn(p Proc) int {
 	}
 	return 1
 }
+
+func FilterToProc(be BooleanExpr) *FilterProc {
+	return &FilterProc{
+		Node:   Node{Op: "FilterProc"},
+		Filter: be,
+	}
+}

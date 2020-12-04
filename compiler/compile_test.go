@@ -1,4 +1,4 @@
-package driver
+package compiler
 
 import (
 	"testing"
@@ -291,7 +291,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 		t.Run(tc.zql, func(t *testing.T) {
 			query, err := zql.ParseProc(tc.zql)
 			require.NoError(t, err)
-			parallelized, ok := parallelizeFlowgraph(query.(*ast.SequentialProc), 2, sf(tc.orderField), false)
+			parallelized, ok := Parallelize(query.(*ast.SequentialProc), 2, sf(tc.orderField), false)
 			require.Equal(t, ok, tc.zql != tc.expected)
 
 			expected, err := zql.ParseProc(tc.expected)
@@ -322,7 +322,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 		dquery := "(filter * | cut ts, y, z | put x=y | rename y=z; filter * | cut ts, y, z | put x=y | rename y=z)"
 		program, err := zql.ParseProc(query)
 		require.NoError(t, err)
-		parallelized, ok := parallelizeFlowgraph(program.(*ast.SequentialProc), 2, sf(orderField), false)
+		parallelized, ok := Parallelize(program.(*ast.SequentialProc), 2, sf(orderField), false)
 		require.True(t, ok)
 
 		expected, err := zql.ParseProc(dquery)

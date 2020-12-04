@@ -7,10 +7,10 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/proc/compiler"
 	"github.com/brimsec/zq/proc/proctest"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
