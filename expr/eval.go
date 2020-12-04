@@ -8,7 +8,6 @@ import (
 	"net"
 	"regexp"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/expr/function"
 	"github.com/brimsec/zq/field"
@@ -19,127 +18,22 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type Evaluator interface {
-	Eval(*zng.Record) (zng.Value, error)
-}
-
 var ErrNoSuchField = errors.New("field is not present")
 var ErrIncompatibleTypes = coerce.ErrIncompatibleTypes
 var ErrIndexOutOfBounds = errors.New("array index out of bounds")
 var ErrNotContainer = errors.New("cannot apply in to a non-container")
 var ErrBadCast = errors.New("bad cast")
 
-// CompileExpr compiles the given Expression into an object
-// that evaluates the expression against a provided Record.  It returns an
-// error if compilation fails for any reason.
-//
-// This is the "intepreted slow path" of the analytics engine.  Because it
-// handles dynamic typinig at runtime, overheads are incurrend due to
-// various type checks and coercions that determine different computational
-// outcomes based on type.  There is nothing here that optimizes analytics
-// for native machine types; these optimizations (will) happen in the pushdown
-// predicate processing engine in the zst columnar scanner.
-//
-// Eventually, we will optimize this zst "fast path" by dynamically
-// generating byte codes (which an in turn be JIT assembled into machine code)
-// for each zng TypeRecord encountered.  Once you know the type record,
-// you can generate code using strong typing just as an OLAP system does
-// due to its schemas defined up-front in its relational tables.  Here,
-// each record type is like a schema and as we encounter them, we can compile
-// optimized code for the now-static types within that record type.
-//
-// The Evaluator return by CompilExpr produces zng.Values that are stored
-// in temporary buffers and may be modified on subsequent calls to Eval.
-// This is intended to minimize the garbage collection needs of the inner loop
-// by not allocating memory on a per-Eval basis.  For uses like filtering and
-// aggregations, where the results are immediately use, this is desirable and
-// efficient but for use cases like storing the results as groupby keys, the
-// resulting zng.Value should be copied (e.g., via zng.Value.Copy()).
-//
-// TBD: string values and net.IP address do not need to be copied because they
-// are allocated by go libraries and temporary buffers are not used.  This will
-// change down the road when we implement no-allocation string and IP conversion.
-func CompileExpr(zctx *resolver.Context, node ast.Expression) (Evaluator, error) {
-	switch n := node.(type) {
-	case *ast.Literal:
-		return NewLiteral(*n)
-	case *ast.Identifier:
-		return nil, fmt.Errorf("stray identifier in AST: %s", n.Name)
-	case *ast.RootRecord:
-		return &RootRecord{}, nil
-	case *ast.UnaryExpression:
-		return compileUnary(zctx, *n)
-
-	case *ast.BinaryExpression:
-		if n.Operator == "." {
-			return compileDotExpr(zctx, n.LHS, n.RHS)
-		}
-		lhs, err := CompileExpr(zctx, n.LHS)
-		if err != nil {
-			return nil, err
-		}
-		rhs, err := CompileExpr(zctx, n.RHS)
-		if err != nil {
-			return nil, err
-		}
-		switch n.Operator {
-		case "AND", "OR":
-			return compileLogical(lhs, rhs, n.Operator)
-		case "in":
-			return compileIn(lhs, rhs)
-		case "=", "!=":
-			return compileCompareEquality(zctx, lhs, rhs, n.Operator)
-		case "=~", "!~":
-			return compilePatternMatch(lhs, rhs, n.Operator)
-		case "<", "<=", ">", ">=":
-			return compileCompareRelative(lhs, rhs, n.Operator)
-		case "+", "-", "*", "/":
-			return compileArithmetic(lhs, rhs, n.Operator)
-		case "[":
-			return compileIndexExpr(zctx, lhs, rhs)
-		default:
-			return nil, fmt.Errorf("invalid binary operator %s", n.Operator)
-		}
-
-	case *ast.ConditionalExpression:
-		return compileConditional(zctx, *n)
-
-	case *ast.FunctionCall:
-		return compileCall(zctx, *n)
-
-	case *ast.CastExpression:
-		return compileCast(zctx, *n)
-
-	default:
-		return nil, fmt.Errorf("invalid expression type %T", node)
-	}
-}
-
-func CompileExprs(zctx *resolver.Context, nodes []ast.Expression) ([]Evaluator, error) {
-	var exprs []Evaluator
-	for k := range nodes {
-		e, err := CompileExpr(zctx, nodes[k])
-		if err != nil {
-			return nil, err
-		}
-		exprs = append(exprs, e)
-	}
-	return exprs, nil
+type Evaluator interface {
+	Eval(*zng.Record) (zng.Value, error)
 }
 
 type Not struct {
 	expr Evaluator
 }
 
-func compileUnary(zctx *resolver.Context, node ast.UnaryExpression) (Evaluator, error) {
-	if node.Operator != "!" {
-		return nil, fmt.Errorf("unknown unary operator %s\n", node.Operator)
-	}
-	e, err := CompileExpr(zctx, node.Operand)
-	if err != nil {
-		return nil, err
-	}
-	return &Not{e}, nil
+func NewLogicalNot(e Evaluator) *Not {
+	return &Not{e}
 }
 
 func (n *Not) Eval(rec *zng.Record) (zng.Value, error) {
@@ -158,20 +52,17 @@ type And struct {
 	rhs Evaluator
 }
 
+func NewLogicalAnd(lhs, rhs Evaluator) *And {
+	return &And{lhs, rhs}
+}
+
 type Or struct {
 	lhs Evaluator
 	rhs Evaluator
 }
 
-func compileLogical(lhs, rhs Evaluator, operator string) (Evaluator, error) {
-	switch operator {
-	case "AND":
-		return &And{lhs, rhs}, nil
-	case "OR":
-		return &Or{lhs, rhs}, nil
-	default:
-		return nil, fmt.Errorf("unknown logical operator: %s", operator)
-	}
+func NewLogicalOr(lhs, rhs Evaluator) *Or {
+	return &Or{lhs, rhs}
 }
 
 func evalBool(e Evaluator, rec *zng.Record) (zng.Value, error) {
@@ -227,11 +118,11 @@ type In struct {
 	vals      coerce.Pair
 }
 
-func compileIn(elem, container Evaluator) (Evaluator, error) {
+func NewIn(elem, container Evaluator) *In {
 	return &In{
 		elem:      elem,
 		container: container,
-	}, nil
+	}
 }
 
 func (i *In) Eval(rec *zng.Record) (zng.Value, error) {
@@ -271,8 +162,8 @@ type Equal struct {
 	equality bool
 }
 
-func compileCompareEquality(zctx *resolver.Context, lhs, rhs Evaluator, operator string) (Evaluator, error) {
-	e := &Equal{numeric: newNumeric(lhs, rhs)}
+func NewCompareEquality(lhs, rhs Evaluator, operator string) (*Equal, error) {
+	e := &Equal{numeric: newNumeric(lhs, rhs)} //XXX
 	switch operator {
 	case "=":
 		e.equality = true
@@ -312,7 +203,7 @@ type Match struct {
 	rhs      Evaluator
 }
 
-func compilePatternMatch(lhs, rhs Evaluator, op string) (Evaluator, error) {
+func NewPatternMatch(lhs, rhs Evaluator, op string) (*Match, error) {
 	equality := true
 	if op == "!~" {
 		equality = false
@@ -416,7 +307,7 @@ type Compare struct {
 	convert func(int) bool
 }
 
-func compileCompareRelative(lhs, rhs Evaluator, operator string) (Evaluator, error) {
+func NewCompareRelative(lhs, rhs Evaluator, operator string) (*Compare, error) {
 	c := &Compare{numeric: newNumeric(lhs, rhs)}
 	switch operator {
 	case "<":
@@ -527,9 +418,9 @@ type Divide struct {
 	numeric
 }
 
-// compileArithmetic compiles an expression of the form "expr1 op expr2"
+// NewArithmetic compiles an expression of the form "expr1 op expr2"
 // for the arithmetic operators +, -, *, /
-func compileArithmetic(lhs, rhs Evaluator, op string) (Evaluator, error) {
+func NewArithmetic(lhs, rhs Evaluator, op string) (Evaluator, error) {
 	n := newNumeric(lhs, rhs)
 	switch op {
 	case "+":
@@ -691,7 +582,7 @@ type Index struct {
 	index     Evaluator
 }
 
-func compileIndexExpr(zctx *resolver.Context, container, index Evaluator) (Evaluator, error) {
+func NewIndexExpr(zctx *resolver.Context, container, index Evaluator) (Evaluator, error) {
 	return &Index{zctx, container, index}, nil
 }
 
@@ -769,25 +660,12 @@ type Conditional struct {
 	elseExpr  Evaluator
 }
 
-func compileConditional(zctx *resolver.Context, node ast.ConditionalExpression) (Evaluator, error) {
-	var err error
-	predicate, err := CompileExpr(zctx, node.Condition)
-	if err != nil {
-		return nil, err
-	}
-	thenExpr, err := CompileExpr(zctx, node.Then)
-	if err != nil {
-		return nil, err
-	}
-	elseExpr, err := CompileExpr(zctx, node.Else)
-	if err != nil {
-		return nil, err
-	}
+func NewConditional(predicate, thenExpr, elseExpr Evaluator) *Conditional {
 	return &Conditional{
 		predicate: predicate,
 		thenExpr:  thenExpr,
 		elseExpr:  elseExpr,
-	}, nil
+	}
 }
 
 func (c *Conditional) Eval(rec *zng.Record) (zng.Value, error) {
@@ -804,18 +682,6 @@ func (c *Conditional) Eval(rec *zng.Record) (zng.Value, error) {
 	return c.elseExpr.Eval(rec)
 }
 
-func compileDotExpr(zctx *resolver.Context, lhs, rhs ast.Expression) (*DotExpr, error) {
-	id, ok := rhs.(*ast.Identifier)
-	if !ok {
-		return nil, errors.New("rhs of dot expression is not an identifier")
-	}
-	record, err := CompileExpr(zctx, lhs)
-	if err != nil {
-		return nil, err
-	}
-	return &DotExpr{record, id.Name}, nil
-}
-
 type Call struct {
 	zctx  *resolver.Context
 	name  string
@@ -824,35 +690,14 @@ type Call struct {
 	args  []zng.Value
 }
 
-func compileCall(zctx *resolver.Context, node ast.FunctionCall) (Evaluator, error) {
-	// For now, we special case cut here.  As we add more stateful functions
-	// this will make more sense.  We could also compile any reducer as a
-	// stateful function here, e.g., count(), would produce a new count() for
-	// each record encountered analogous to juttle stream functions.
-	if node.Function == "cut" {
-		return compileCut(zctx, node)
-	}
-	nargs := len(node.Args)
-	fn, err := function.New(node.Function, nargs)
-	if err != nil {
-		return nil, fmt.Errorf("%s: %w", node.Function, err)
-	}
-	exprs := make([]Evaluator, 0, nargs)
-	for _, expr := range node.Args {
-		e, err := CompileExpr(zctx, expr)
-		if err != nil {
-			return nil, err
-		}
-		exprs = append(exprs, e)
-	}
-
+func NewCall(zctx *resolver.Context, name string, fn function.Interface, exprs []Evaluator) *Call {
 	return &Call{
 		zctx:  zctx,
-		name:  node.Function,
+		name:  name,
 		fn:    fn,
 		exprs: exprs,
-		args:  make([]zng.Value, nargs),
-	}, nil
+		args:  make([]zng.Value, len(exprs)),
+	}
 }
 
 func (c *Call) Eval(rec *zng.Record) (zng.Value, error) {
@@ -866,15 +711,11 @@ func (c *Call) Eval(rec *zng.Record) (zng.Value, error) {
 	return c.fn.Call(c.args)
 }
 
-func compileCast(zctx *resolver.Context, node ast.CastExpression) (Evaluator, error) {
-	expr, err := CompileExpr(zctx, node.Expr)
-	if err != nil {
-		return nil, err
-	}
+func NewCast(expr Evaluator, typ string) (Evaluator, error) {
 	// XXX should handle alias casts... need type context.
 	// compile is going to need a local type context to create literals
 	// of complex types?
-	switch node.Type {
+	switch typ {
 	case "int8":
 		return &IntCast{expr, zng.TypeInt8, math.MinInt8, math.MaxInt8}, nil
 	case "int16":
@@ -905,7 +746,7 @@ func compileCast(zctx *resolver.Context, node ast.CastExpression) (Evaluator, er
 		return &BytesCast{expr}, nil
 	default:
 		// XXX See issue #1572.   To implement aliascast here.
-		return nil, fmt.Errorf("cast to %s not implemeneted", node.Type)
+		return nil, fmt.Errorf("cast to %s not implemeneted", typ)
 	}
 }
 
@@ -1049,29 +890,6 @@ func (s *BytesCast) Eval(rec *zng.Record) (zng.Value, error) {
 	return zng.Value{zng.TypeBytes, zng.EncodeBytes(zv.Bytes)}, nil
 }
 
-func CompileLval(node ast.Expression) (field.Static, error) {
-	switch node := node.(type) {
-	case *ast.RootRecord:
-		return field.NewRoot(), nil
-	// XXX We need to allow index operators at some point, but for now
-	// we have been assuming only dotted field lvalues.  See Issue #1462.
-	case *ast.BinaryExpression:
-		if node.Operator != "." {
-			break
-		}
-		id, ok := node.RHS.(*ast.Identifier)
-		if !ok {
-			return nil, errors.New("rhs of dot operator is not an identifier")
-		}
-		lhs, err := CompileLval(node.LHS)
-		if err != nil {
-			return nil, err
-		}
-		return append(lhs, id.Name), nil
-	}
-	return nil, errors.New("invalid expression on lhs of assignment")
-}
-
 func NewRootField(name string) Evaluator {
 	return NewDotExpr(field.New(name))
 }
@@ -1081,51 +899,4 @@ var ErrInference = errors.New("assigment name could not be inferred from rhs exp
 type Assignment struct {
 	LHS field.Static
 	RHS Evaluator
-}
-
-func CompileAssignment(zctx *resolver.Context, node *ast.Assignment) (Assignment, error) {
-	rhs, err := CompileExpr(zctx, node.RHS)
-	if err != nil {
-		return Assignment{}, fmt.Errorf("rhs of assigment expression: %w", err)
-	}
-	var lhs field.Static
-	if node.LHS != nil {
-		lhs, err = CompileLval(node.LHS)
-		if err != nil {
-			return Assignment{}, fmt.Errorf("lhs of assigment expression: %w", err)
-		}
-	} else {
-		switch rhs := node.RHS.(type) {
-		case *ast.RootRecord:
-			lhs = field.New(".")
-		case *ast.FunctionCall:
-			lhs = field.New(rhs.Function)
-		case *ast.BinaryExpression:
-			// This can be a dotted record or some other expression.
-			// In the latter case, it might be nice to infer a name,
-			// e.g., forr "count() by a+b" we could infer "sum" for
-			// the name, i,e., "count() by sum=a+b".  But for now,
-			// we'll just catch this as an error.
-			lhs, err = CompileLval(rhs)
-			if err != nil {
-				err = ErrInference
-			}
-		default:
-			err = ErrInference
-		}
-	}
-	return Assignment{lhs, rhs}, err
-}
-
-func CompileAssignments(dsts []field.Static, srcs []field.Static) ([]field.Static, []Evaluator) {
-	if len(srcs) != len(dsts) {
-		panic("CompileAssignmentFromStrings argument mismatch")
-	}
-	var resolvers []Evaluator
-	var fields []field.Static
-	for k, dst := range dsts {
-		fields = append(fields, dst)
-		resolvers = append(resolvers, NewDotExpr(srcs[k]))
-	}
-	return fields, resolvers
 }

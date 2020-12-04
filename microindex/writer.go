@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/bufwriter"
@@ -108,7 +109,7 @@ func NewWriterWithContext(ctx context.Context, zctx *resolver.Context, path stri
 	if err != nil {
 		return nil, err
 	}
-	fields, resolvers := expr.CompileAssignments(w.keyFields, w.keyFields)
+	fields, resolvers := compiler.CompileAssignments(w.keyFields, w.keyFields)
 	w.cutter = expr.NewStrictCutter(zctx, false, fields, resolvers)
 	return w, nil
 }

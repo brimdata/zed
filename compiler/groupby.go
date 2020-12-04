@@ -48,7 +48,7 @@ func compileReducer(zctx *resolver.Context, assignment ast.Assignment) (field.St
 	var err error
 	var arg expr.Evaluator
 	if reducerAST.Expr != nil {
-		arg, err = expr.CompileExpr(zctx, reducerAST.Expr)
+		arg, err = CompileExpr(zctx, reducerAST.Expr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -60,14 +60,14 @@ func compileReducer(zctx *resolver.Context, assignment ast.Assignment) (field.St
 	if assignment.LHS == nil {
 		lhs = field.New(reducerOp)
 	} else {
-		lhs, err = expr.CompileLval(assignment.LHS)
+		lhs, err = CompileLval(assignment.LHS)
 		if err != nil {
 			return nil, nil, fmt.Errorf("lhs of reducer expression: %w", err)
 		}
 	}
 	var where expr.Evaluator
 	if reducerAST.Where != nil {
-		where, err = expr.CompileExpr(zctx, reducerAST.Where)
+		where, err = CompileExpr(zctx, reducerAST.Where)
 		if err != nil {
 			return nil, nil, err
 		}

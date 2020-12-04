@@ -18,6 +18,10 @@ type DotExpr struct {
 	field  string
 }
 
+func NewDotAccess(record Evaluator, field string) *DotExpr {
+	return &DotExpr{record, field}
+}
+
 func NewDotExpr(f field.Static) Evaluator {
 	ret := Evaluator(&RootRecord{})
 	for _, name := range f {
