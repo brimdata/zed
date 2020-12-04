@@ -14,7 +14,7 @@ import (
 )
 
 func compileGroupBy(pctx *proc.Context, parent proc.Interface, node *ast.GroupByProc) (*groupby.Proc, error) {
-	keys, err := compileKeys(node.Keys, pctx.TypeContext)
+	keys, err := compileAssignments(node.Keys, pctx.TypeContext)
 	if err != nil {
 		return nil, err
 	}
@@ -23,18 +23,6 @@ func compileGroupBy(pctx *proc.Context, parent proc.Interface, node *ast.GroupBy
 		return nil, err
 	}
 	return groupby.New(pctx, parent, keys, names, reducers, node.Limit, node.InputSortDir, node.ConsumePart, node.EmitPart)
-}
-
-func compileKeys(assignments []ast.Assignment, zctx *resolver.Context) ([]expr.Assignment, error) {
-	keys := make([]expr.Assignment, 0, len(assignments))
-	for _, assignment := range assignments {
-		a, err := expr.CompileAssignment(zctx, &assignment)
-		if err != nil {
-			return nil, err
-		}
-		keys = append(keys, a)
-	}
-	return keys, nil
 }
 
 func compileReducers(assignments []ast.Assignment, zctx *resolver.Context) ([]field.Static, []reducer.Maker, error) {

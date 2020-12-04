@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
@@ -22,7 +21,6 @@ type Proc struct {
 	parent     proc.Interface
 	dir        int
 	nullsFirst bool
-	fields     []ast.Expression
 
 	fieldResolvers     []expr.Evaluator
 	once               sync.Once
@@ -31,17 +29,12 @@ type Proc struct {
 	unseenFieldTracker *unseenFieldTracker
 }
 
-func New(pctx *proc.Context, parent proc.Interface, node *ast.SortProc) (*Proc, error) {
-	fields, err := expr.CompileExprs(pctx.TypeContext, node.Fields)
-	if err != nil {
-		return nil, err
-	}
+func New(pctx *proc.Context, parent proc.Interface, fields []expr.Evaluator, sortDir int, nullsFirst bool) (*Proc, error) {
 	return &Proc{
 		pctx:               pctx,
 		parent:             parent,
-		dir:                node.SortDir,
-		nullsFirst:         node.NullsFirst,
-		fields:             node.Fields,
+		dir:                sortDir,
+		nullsFirst:         nullsFirst,
 		fieldResolvers:     fields,
 		resultCh:           make(chan proc.Result),
 		unseenFieldTracker: newUnseenFieldTracker(fields),

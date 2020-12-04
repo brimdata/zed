@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
@@ -21,19 +20,9 @@ type Proc struct {
 	cutter     *expr.Cutter
 }
 
-func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, error) {
-	lhs := make([]field.Static, 0, len(node.Fields))
-	rhs := make([]expr.Evaluator, 0, len(node.Fields))
-	for _, f := range node.Fields {
-		c, err := expr.CompileAssignment(pctx.TypeContext, &f)
-		if err != nil {
-			return nil, err
-		}
-		lhs = append(lhs, c.LHS)
-		rhs = append(rhs, c.RHS)
-	}
+func New(pctx *proc.Context, parent proc.Interface, lhs []field.Static, rhs []expr.Evaluator, complement bool) (*Proc, error) {
 	// build this once at compile time for error checking.
-	if !node.Complement {
+	if !complement {
 		_, err := builder.NewColumnBuilder(pctx.TypeContext, lhs)
 		if err != nil {
 			return nil, fmt.Errorf("compiling cut: %w", err)
@@ -43,9 +32,9 @@ func New(pctx *proc.Context, parent proc.Interface, node *ast.CutProc) (*Proc, e
 	return &Proc{
 		pctx:       pctx,
 		parent:     parent,
-		complement: node.Complement,
+		complement: complement,
 		resolvers:  rhs,
-		cutter:     expr.NewCutter(pctx.TypeContext, node.Complement, lhs, rhs),
+		cutter:     expr.NewCutter(pctx.TypeContext, complement, lhs, rhs),
 	}, nil
 }
 
