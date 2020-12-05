@@ -1,0 +1,15 @@
+zql: "result.count=count() by result.animal=animal | sort ."
+
+input: |
+  #0:record[animal:string,s:string,x:int32]
+  0:[cat;a;1;]
+  0:[dog;b;1;]
+  0:[cat;a;1;]
+  0:[elephant;a;1;]
+  0:[cat;b;1;]
+
+output: |
+  #0:record[result:record[animal:string,count:uint64]]
+  0:[[cat;3;]]
+  0:[[dog;1;]]
+  0:[[elephant;1;]]
