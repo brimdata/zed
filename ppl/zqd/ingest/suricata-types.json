@@ -2,24 +2,36 @@
     "descriptors": {
         "alert_log": [
             {
+                "name": "event_type",
+                "type": "bstring"
+            },
+            {
+                "name": "src_ip",
+                "type": "ip"
+            },
+            {
+                "name": "src_port",
+                "type": "port"
+            },
+            {
+                "name": "dest_ip",
+                "type": "ip"
+            },
+            {
+                "name": "dest_port",
+                "type": "port"
+            },
+            {
+                "name": "proto",
+                "type": "bstring"
+            },
+            {
+                "name": "app_proto",
+                "type": "bstring"
+            },
+            {
                 "name": "alert",
                 "type": [
-                    {
-                        "name": "action",
-                        "type": "bstring"
-                    },
-                    {
-                        "name": "category",
-                        "type": "bstring"
-                    },
-                    {
-                        "name": "gid",
-                        "type": "uint64"
-                    },
-                    {
-                        "name": "rev",
-                        "type": "uint64"
-                    },
                     {
                         "name": "severity",
                         "type": "uint16"
@@ -29,7 +41,23 @@
                         "type": "bstring"
                     },
                     {
+                        "name": "category",
+                        "type": "bstring"
+                    },
+                    {
+                        "name": "action",
+                        "type": "bstring"
+                    },
+                    {
                         "name": "signature_id",
+                        "type": "uint64"
+                    },
+                    {
+                        "name": "gid",
+                        "type": "uint64"
+                    },
+                    {
+                        "name": "rev",
                         "type": "uint64"
                     },
                     {
@@ -80,40 +108,12 @@
                 ]
             },
             {
-                "name": "app_proto",
-                "type": "bstring"
-            },
-            {
-                "name": "dest_ip",
-                "type": "ip"
-            },
-            {
-                "name": "dest_port",
-                "type": "port"
-            },
-            {
-                "name": "src_ip",
-                "type": "ip"
-            },
-            {
-                "name": "src_port",
-                "type": "port"
-            },
-            {
-                "name": "event_type",
-                "type": "bstring"
-            },
-            {
                 "name": "flow_id",
                 "type": "uint64"
             },
             {
                 "name": "pcap_cnt",
                 "type": "uint64"
-            },
-            {
-                "name": "proto",
-                "type": "bstring"
             },
             {
                 "name": "timestamp",
