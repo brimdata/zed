@@ -1,9 +1,9 @@
 #!/bin/bash
 #
-# For test scenario with:
-# (1) a zqd recruiter process, 
-# (2) multiple zqd worker processed that register with the recruiter
-# (3) a zqd root process that recruits workers and performs a distributed query.
+# This script creates:
+# (1) a zqd recruiter process
+# (2) multiple zqd worker processes that register with the recruiter
+# (3) a zqd root process that recruits from the workers and performs a distributed query
 #
 function awaitfile {
   file=$1
@@ -34,12 +34,12 @@ zqdrpid=$!
 awaitfile $portdir/zqd-rec
 
 # (2) start two zqd workers that register with the recruiter
-ZQD_REGISTER=localhost:$(cat $portdir/zqd-rec) ZQD_NODE_NAME=test1 \
+ZQD_REGISTER_ADDR=localhost:$(cat $portdir/zqd-rec) ZQD_NODE_NAME=test1 \
   zqd listen -personality=worker -l=localhost:0 -portfile="$portdir/zqd-w1" &> zqd-w1.log &
 zqdw1pid=$!
 awaitfile $portdir/zqd-w1
 
-ZQD_REGISTER=localhost:$(cat $portdir/zqd-rec) ZQD_NODE_NAME=test1 \
+ZQD_REGISTER_ADDR=localhost:$(cat $portdir/zqd-rec) ZQD_NODE_NAME=test1 \
   zqd listen -personality=worker -l=localhost:0 -portfile="$portdir/zqd-w2" &> zqd-w2.log &
 zqdw1pid=$!
 awaitfile $portdir/zqd-w2

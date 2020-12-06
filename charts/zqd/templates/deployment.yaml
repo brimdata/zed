@@ -63,7 +63,7 @@ spec:
               port: http
           env:
           {{- if eq .Values.personality "worker"}}
-          - name: ZQD_REGISTER
+          - name: ZQD_REGISTER_ADDR
             value: "{{ .Values.RecruiterAddr }}"
           - name: ZQD_POD_IP
             valueFrom:
@@ -73,8 +73,6 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-          - name: ZQD_WORKER_ONCE
-            value: "true"
           {{- else if eq .Values.personality "root" }}
           - name: ZQD_RECRUIT
             value: "{{ .Values.RecruiterAddr }}"

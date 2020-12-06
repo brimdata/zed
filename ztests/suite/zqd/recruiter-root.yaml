@@ -1,9 +1,5 @@
 script: |
-  # This test is derived from worker-dist.
-  # recroot.sh starts a zqd recruiter process
-  # (instead of passing a list of workers with ZQD_TEST_WORKERS) 
-  #
-  source recroot.sh  
+  source recruiter-root.sh
   mkdir spacedir
   #
   # This creates a space with a small threshold in order to produce
@@ -24,8 +20,8 @@ script: |
   diff -s zqcount.tzng zapicount.tzng
 
 inputs:
-  - name: recroot.sh
-    source: recroot.sh
+  - name: recruiter-root.sh
+    source: recruiter-root.sh
   - name: smtp.log.gz
     source: ../data/smtp.log.gz
 

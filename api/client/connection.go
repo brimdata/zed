@@ -414,49 +414,58 @@ func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts 
 	return *v, nil
 }
 
-// Recruit wraps the rechandlers.go handleRecruit API
 func (c *Connection) Recruit(ctx context.Context, req api.RecruitRequest) (*api.RecruitResponse, error) {
-	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.RecruitResponse{}).Post("/recruiter/recruit")
+	resp, err := c.Request(ctx).
+		SetBody(req).
+		SetResult(&api.RecruitResponse{}).
+		Post("/recruiter/recruit")
 	if err != nil {
 		return nil, err
 	}
 	return resp.Result().(*api.RecruitResponse), nil
 }
 
-// Register wraps the rechandlers.go handleRegister API
 func (c *Connection) Register(ctx context.Context, req api.RegisterRequest) (*api.RegisterResponse, error) {
-	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.RegisterResponse{}).Post("/recruiter/register")
+	resp, err := c.Request(ctx).
+		SetBody(req).
+		SetResult(&api.RegisterResponse{}).
+		Post("/recruiter/register")
 	if err != nil {
 		return nil, err
 	}
 	return resp.Result().(*api.RegisterResponse), nil
 }
 
-// Deregister wraps the rechandlers.go handleDeregister API
 func (c *Connection) Deregister(ctx context.Context, req api.DeregisterRequest) (*api.RegisterResponse, error) {
-	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.RegisterResponse{}).Post("/recruiter/deregister")
+	resp, err := c.Request(ctx).
+		SetBody(req).
+		SetResult(&api.RegisterResponse{}).
+		Post("/recruiter/deregister")
 	if err != nil {
 		return nil, err
 	}
 	return resp.Result().(*api.RegisterResponse), nil
 }
 
-// Unreserve wraps the rechandlers.go handleUnreserve API
 func (c *Connection) Unreserve(ctx context.Context, req api.UnreserveRequest) (*api.UnreserveResponse, error) {
-	resp, err := c.Request(ctx).SetBody(req).SetResult(&api.UnreserveResponse{}).Post("/recruiter/unreserve")
+	resp, err := c.Request(ctx).
+		SetBody(req).
+		SetResult(&api.UnreserveResponse{}).
+		Post("/recruiter/unreserve")
 	if err != nil {
 		return nil, err
 	}
 	return resp.Result().(*api.UnreserveResponse), nil
 }
 
-// WorkersStats wraps the rechandlers.go handleWorkersStats API
-func (c *Connection) WorkersStats(ctx context.Context) (*api.WorkersStatsResponse, error) {
-	resp, err := c.Request(ctx).SetResult(&api.WorkersStatsResponse{}).Get("/recruiter/stats")
+func (c *Connection) RecruiterStats(ctx context.Context) (*api.RecruiterStatsResponse, error) {
+	resp, err := c.Request(ctx).
+		SetResult(&api.RecruiterStatsResponse{}).
+		Get("/recruiter/stats")
 	if err != nil {
 		return nil, err
 	}
-	return resp.Result().(*api.WorkersStatsResponse), nil
+	return resp.Result().(*api.RecruiterStatsResponse), nil
 }
 
 type ErrorResponse struct {

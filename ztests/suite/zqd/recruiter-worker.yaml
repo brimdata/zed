@@ -1,13 +1,13 @@
 script: |
-  source recworker.sh
+  source recruiter-worker.sh
   echo ===
   curl --header "Content-Type: application/json" -request POST \
     --data '{"N":1}' \
     http://$ZQD_HOST/recruiter/recruit 2> err
 
 inputs:
-  - name: recworker.sh
-    source: recworker.sh
+  - name: recruiter-worker.sh
+    source: recruiter-worker.sh
 
 outputs:
   - name: stdout

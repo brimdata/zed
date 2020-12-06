@@ -20,9 +20,9 @@ type WorkerReg struct {
 
 func NewWorkerReg(ctx context.Context, srvAddr string) (*WorkerReg, error) {
 	w := &WorkerReg{}
-	w.recruiteraddr = os.Getenv("ZQD_REGISTER")
+	w.recruiteraddr = os.Getenv("ZQD_REGISTER_ADDR")
 	if _, _, err := net.SplitHostPort(w.recruiteraddr); err != nil {
-		return nil, fmt.Errorf("worker ZQD_REGISTER does not have host:port %v", err)
+		return nil, fmt.Errorf("worker ZQD_REGISTER_ADDR does not have host:port %v", err)
 	}
 	w.conn = client.NewConnectionTo("http://" + w.recruiteraddr)
 	// For server host and port, the environment variables will override the discovered address.
