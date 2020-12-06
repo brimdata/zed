@@ -2,18 +2,14 @@
 # This is designed to be run from the zq root directory
 
 make install
-
-helm uninstall worker
-helm uninstall zqd-root
-helm uninstall recruiter
-
+make helm-uninstall
 make docker-push-ecr
 
 sleep 5 # wait for ECR to catch up a little
 
 make helm-install-recruiter
 make helm-install-root
-make helm-install-workers
+make helm-install-worker
 
 sleep 15 # usually is enough on my laptop
 

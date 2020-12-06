@@ -133,7 +133,7 @@ helm-install-recruiter:
 	--set useCredSecret=false
 
 helm-install-root:
-	helm install zqd-root charts/zqd \
+	helm install root charts/zqd \
 	--set personality=root \
 	--set RecruiterAddr=recruiter-zqd:9867 \
 	--set AWSRegion="us-east-2" \
@@ -142,7 +142,7 @@ helm-install-root:
 	--set useCredSecret=false \
 	--set datauri=$(ZQD_DATA_URI)
 
-helm-install-workers:
+helm-install-worker:
 	helm install worker charts/zqd \
 	--set personality=worker \
 	--set RecruiterAddr=recruiter-zqd:9867 \
@@ -150,6 +150,11 @@ helm-install-workers:
 	--set image.repository="$(ZQD_ECR_HOST)/" \
 	--set image.tag="zqd:$(ECR_VERSION)" \
 	--set useCredSecret=false
+
+make helm-uninstall:
+	helm uninstall worker
+	helm uninstall root
+	helm uninstall recruiter
 
 create-release-assets:
 	for os in darwin linux windows; do \
