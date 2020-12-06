@@ -56,8 +56,8 @@ func (w *WorkerReg) RegisterWithRecruiter(ctx context.Context, logger *zap.Logge
 
 	registerreq := api.RegisterRequest{
 		Worker: api.Worker{
-			WorkerAddr: api.WorkerAddr{Addr: w.selfaddr},
-			NodeName:   w.nodename,
+			Addr:     w.selfaddr,
+			NodeName: w.nodename,
 		},
 	}
 	resp2, err := w.conn.Register(ctx, registerreq)

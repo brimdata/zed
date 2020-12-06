@@ -1,9 +1,5 @@
 package api
 
-type WorkerAddr struct {
-	Addr string `json:"addr"`
-}
-
 type UnreserveRequest struct {
 	Addrs []string `json:"addrs"`
 }
@@ -13,12 +9,12 @@ type UnreserveResponse struct {
 }
 
 type DeregisterRequest struct {
-	WorkerAddr
+	Addr string `json:"addr"`
 }
 
 type Worker struct {
-	WorkerAddr
-	NodeName string `json:"node"`
+	Addr     string `json:"addr"`
+	NodeName string `json:"node_name"`
 }
 
 type RegisterRequest struct {
@@ -30,7 +26,7 @@ type RegisterResponse struct {
 }
 
 type RecruitRequest struct {
-	NumberRequested int `json:"N"`
+	NumberRequested int `json:"number_requested"`
 }
 
 type RecruitResponse struct {
@@ -38,7 +34,7 @@ type RecruitResponse struct {
 }
 
 type RecruiterStatsResponse struct {
-	LenFreePool     int `json:"LenFreePool"`
-	LenReservedPool int `json:"LenReservedPool"`
-	LenNodePool     int `json:"LenNodePool"`
+	LenFreePool     int `json:"len_free_pool"`
+	LenReservedPool int `json:"len_reserved_pool"`
+	LenNodePool     int `json:"len_node_pool"`
 }

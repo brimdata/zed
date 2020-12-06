@@ -231,7 +231,7 @@ func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, pa
 	return c.stream(req)
 }
 
-func (c *Connection) WorkerRaw(ctx context.Context, search api.WorkerRequest, params map[string]string) (io.ReadCloser, error) {
+func (c *Connection) WorkerSearch(ctx context.Context, search api.WorkerRequest, params map[string]string) (io.ReadCloser, error) {
 	req := c.Request(ctx).
 		SetBody(search).
 		SetQueryParam("format", "zng")

@@ -147,7 +147,7 @@ func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerClos
 			return nil, err
 		}
 
-		rc, err := conn.WorkerRaw(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
+		rc, err := conn.WorkerSearch(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
 		if err != nil {
 			return nil, err
 		}

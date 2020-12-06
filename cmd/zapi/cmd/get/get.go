@@ -129,7 +129,7 @@ func (c *Command) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("parse plus chunk error: %s", err)
 		}
-		r, err = conn.WorkerRaw(c.Context(), *req, params)
+		r, err = conn.WorkerSearch(c.Context(), *req, params)
 		if err != nil {
 			return fmt.Errorf("worker error: %w", err)
 		}

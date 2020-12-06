@@ -36,8 +36,10 @@ func NewWorkerPool() *WorkerPool {
 }
 
 // Register adds workers to both the freePool and to the nodePool.
-// In the nodePool, they are added to the end of the slice,
-// and when they are recruited they are removed from the start of the slice.
+// Returns true when the worker has been added to the freePool.
+// Returns false when the worker was reserved and was not added to the freePool.
+// In the nodePool, workers are added to the end of the slice,
+// and when they are recruited workers are removed from the start of the slice.
 // So the []WorkerDetail slice for each node functions as a FIFO queue.
 func (pool *WorkerPool) Register(addr string, nodename string) (bool, error) {
 	if _, _, err := net.SplitHostPort(addr); err != nil {

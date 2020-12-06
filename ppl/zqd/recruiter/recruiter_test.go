@@ -10,9 +10,9 @@ import (
 
 func register1(t *testing.T, addr string, nodename string, fp int, np int, rp int) *WorkerPool {
 	wp := NewWorkerPool()
-	b, err := wp.Register(addr, nodename)
+	registered, err := wp.Register(addr, nodename)
 	require.NoError(t, err)
-	assert.True(t, b)
+	assert.True(t, registered)
 	assertPoolLen(t, wp, fp, np, rp)
 	return wp
 }

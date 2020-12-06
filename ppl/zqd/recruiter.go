@@ -34,7 +34,7 @@ func handleRecruit(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	workers := make([]api.Worker, len(ws))
 	for i, e := range ws {
-		workers[i] = api.Worker{WorkerAddr: api.WorkerAddr{Addr: e.Addr}, NodeName: e.NodeName}
+		workers[i] = api.Worker{Addr: e.Addr, NodeName: e.NodeName}
 	}
 	respond(c, w, r, http.StatusOK, api.RecruitResponse{
 		Workers: workers,
@@ -80,7 +80,7 @@ func handleListFree(c *Core, w http.ResponseWriter, r *http.Request) {
 	ws := c.workerPool.ListFreePool()
 	workers := make([]api.Worker, len(ws))
 	for i, e := range ws {
-		workers[i] = api.Worker{WorkerAddr: api.WorkerAddr{Addr: e.Addr}, NodeName: e.NodeName}
+		workers[i] = api.Worker{Addr: e.Addr, NodeName: e.NodeName}
 	}
 	body := api.RecruitResponse{
 		Workers: workers,

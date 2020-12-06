@@ -12,7 +12,7 @@ import (
 	"github.com/brimsec/zq/proc"
 )
 
-func RecruitWorkers(pctx *proc.Context, workerCount int) ([]string, error) {
+func RecruitWorkers(ctx *proc.Context, workerCount int) ([]string, error) {
 	if workerstr := os.Getenv("ZQD_TEST_WORKERS"); workerstr != "" {
 		// Special case: ZQD_TEST_WORKERS is used for ZTests
 		workers := strings.Split(workerstr, ",")
@@ -37,7 +37,7 @@ func RecruitWorkers(pctx *proc.Context, workerCount int) ([]string, error) {
 	}
 	conn := client.NewConnectionTo("http://" + raddr)
 	recreq := api.RecruitRequest{NumberRequested: workerCount}
-	resp, err := conn.Recruit(pctx, recreq)
+	resp, err := conn.Recruit(ctx, recreq)
 	if err != nil {
 		return nil, fmt.Errorf("distributed exec failure: error on recruit for recruiter at %s : %v", raddr, err)
 	}
