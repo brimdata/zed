@@ -122,14 +122,8 @@ func handleWorkerRelease(c *Core, w http.ResponseWriter, httpReq *http.Request) 
 	if err := c.workerReg.RegisterWithRecruiter(httpReq.Context(), c.logger); err != nil {
 		// No point in responding with the error back to zqd root process,
 		// since this is happening on the cleanup after the search is finished.
-		c.logger.Warn(
-			"WorkerReleaseError",
-			zap.String("error", err.Error()),
-		)
+		c.logger.Warn("WorkerReleaseError", zap.Error(err))
 	}
-	c.logger.Info(
-		"WorkerReleaseWithRegister",
-	)
 }
 
 func handleWorkerSearch(c *Core, w http.ResponseWriter, httpReq *http.Request) {

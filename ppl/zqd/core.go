@@ -140,16 +140,16 @@ func (c *Core) addAPIServerRoutes() {
 
 func (c *Core) addRecruiterRoutes() {
 	c.handle("/recruiter/deregister", handleDeregister).Methods("POST")
+	c.handle("/recruiter/listfree", handleListFree).Methods("GET")
 	c.handle("/recruiter/recruit", handleRecruit).Methods("POST")
 	c.handle("/recruiter/register", handleRegister).Methods("POST")
-	c.handle("/recruiter/unreserve", handleUnreserve).Methods("POST")
 	c.handle("/recruiter/stats", handleWorkersStats).Methods("GET")
-	c.handle("/recruiter/listfree", handleListFree).Methods("GET")
+	c.handle("/recruiter/unreserve", handleUnreserve).Methods("POST")
 }
 
 func (c *Core) addWorkerRoutes() {
-	c.handle("/worker/search", handleWorkerSearch).Methods("POST")
 	c.handle("/worker/release", handleWorkerRelease).Methods("GET")
+	c.handle("/worker/search", handleWorkerSearch).Methods("POST")
 }
 
 func (c *Core) handle(path string, f func(*Core, http.ResponseWriter, *http.Request)) *mux.Route {

@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/proc"
+	"go.uber.org/zap"
 )
 
 func RecruitWorkers(ctx *proc.Context, workerCount int) ([]string, error) {
@@ -58,6 +59,7 @@ func RecruitWorkers(ctx *proc.Context, workerCount int) ([]string, error) {
 	return workers, nil
 }
 
-func ReleaseWorker(ctx context.Context, conn *client.Connection) error {
+func ReleaseWorker(ctx context.Context, conn *client.Connection, logger *zap.Logger) error {
+	logger.Info("ReleaseWorker", zap.String("addr", conn.ClientHostURL()))
 	return conn.WorkerRelease(ctx)
 }

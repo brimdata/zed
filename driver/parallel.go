@@ -253,6 +253,6 @@ func (pg *parallelGroup) releaseWorkersOnDone(conns []*client.Connection) {
 	// The original context, pg.pctx, is cancelled, so send the release requests
 	// in a new Background context.
 	for _, conn := range conns {
-		recruiter.ReleaseWorker(ctx, conn)
+		recruiter.ReleaseWorker(ctx, conn, pg.mcfg.Logger)
 	}
 }
