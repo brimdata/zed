@@ -45,7 +45,7 @@ func (s *testSource) Open(ctx context.Context, zctx *resolver.Context, sf Source
 	return s.opener(zctx, sf)
 }
 
-func (s *testSource) ToRequest(*api.WorkerRequest) error {
+func (s *testSource) ToRequest(*api.WorkerChunkRequest) error {
 	return errors.New("ToRequest called on testSource")
 }
 
@@ -104,7 +104,7 @@ func (m *orderedmsrc) SendSources(ctx context.Context, span nano.Span, srcChan c
 	return nil
 }
 
-func (m *orderedmsrc) SourceFromRequest(context.Context, *api.WorkerRequest) (Source, error) {
+func (m *orderedmsrc) SourceFromRequest(context.Context, *api.WorkerChunkRequest) (Source, error) {
 	return nil, errors.New("SourceFromRequest called on orderedmsrc")
 }
 
@@ -178,7 +178,7 @@ func (m *scannerCloseMS) SendSources(ctx context.Context, span nano.Span, srcCha
 	return nil
 }
 
-func (m *scannerCloseMS) SourceFromRequest(context.Context, *api.WorkerRequest) (Source, error) {
+func (m *scannerCloseMS) SourceFromRequest(context.Context, *api.WorkerChunkRequest) (Source, error) {
 	return nil, errors.New("SourceFromRequest called on scannerCloseMS")
 }
 

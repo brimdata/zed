@@ -114,22 +114,34 @@ func (c *Command) Run(args []string) error {
 			return fmt.Errorf("parse error: %s", err)
 		}
 		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
-		if c.workers > 1 {
-			req.Workers = c.workers
-		}
 		params := map[string]string{"format": c.encoding}
-		r, err = conn.SearchRaw(c.Context(), *req, params)
-		if err != nil {
-			return fmt.Errorf("search error: %w", err)
+		if c.workers > 1 {
+			// If the -workers flag in included, a WorkerRootRequest will be sent
+			rootWorkerReq := &api.WorkerRootRequest{
+				SearchRequest:   *req,
+				NumberOfWorkers: c.workers,
+			}
+			r, err = conn.WorkerRootSearch(c.Context(), *rootWorkerReq, params)
+			if err != nil {
+				return fmt.Errorf("distributed search error: %w", err)
+			}
+		} else {
+			r, err = conn.SearchRaw(c.Context(), *req, params)
+			if err != nil {
+				return fmt.Errorf("search error: %w", err)
+			}
 		}
 	} else {
+		// This branch is used only with the -chunk flag.
+		// It allows Ztest of conn.WorkerChunkSearch which is used internally
+		// for distributed queries.
 		req, err := parseExprWithChunk(expr, c.chunkInfo)
 		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
 		params := map[string]string{"format": c.encoding}
 		if err != nil {
 			return fmt.Errorf("parse plus chunk error: %s", err)
 		}
-		r, err = conn.WorkerSearch(c.Context(), *req, params)
+		r, err = conn.WorkerChunkSearch(c.Context(), *req, params)
 		if err != nil {
 			return fmt.Errorf("worker error: %w", err)
 		}
@@ -179,8 +191,8 @@ func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
 	}, nil
 }
 
-// parseExprWithChunk creates an api.WorkerRequest to be used with the client.
-func parseExprWithChunk(expr string, chunkPath string) (*api.WorkerRequest, error) {
+// parseExprWithChunk creates an api.WorkerChunkRequest to be used with the client.
+func parseExprWithChunk(expr string, chunkPath string) (*api.WorkerChunkRequest, error) {
 	// This is only for testing using the -chunk flag
 	search, err := zql.ParseProc(expr)
 	if err != nil {
@@ -190,7 +202,7 @@ func parseExprWithChunk(expr string, chunkPath string) (*api.WorkerRequest, erro
 	if err != nil {
 		return nil, err
 	}
-	return &api.WorkerRequest{
+	return &api.WorkerChunkRequest{
 		SearchRequest: api.SearchRequest{
 			Proc: proc,
 			Dir:  -1,

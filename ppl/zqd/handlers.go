@@ -11,7 +11,6 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/ctxio"
-	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/zqd/ingest"
 	"github.com/brimsec/zq/ppl/zqd/jsonpipe"
 	"github.com/brimsec/zq/ppl/zqd/search"
@@ -114,48 +113,6 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", out.ContentType())
 	if err := srch.Run(r.Context(), store, out); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
-	}
-}
-
-func handleWorkerRelease(c *Core, w http.ResponseWriter, httpReq *http.Request) {
-	w.WriteHeader(http.StatusNoContent)
-	if err := c.workerReg.RegisterWithRecruiter(httpReq.Context(), c.logger); err != nil {
-		// No point in responding with the error back to zqd root process,
-		// since this is happening on the cleanup after the search is finished.
-		c.logger.Warn("WorkerReleaseError", zap.Error(err))
-	}
-}
-
-func handleWorkerSearch(c *Core, w http.ResponseWriter, httpReq *http.Request) {
-	var req api.WorkerRequest
-	if !request(c, w, httpReq, &req) {
-		return
-	}
-
-	ctx := httpReq.Context()
-
-	ark, err := archive.OpenArchiveWithContext(ctx, req.DataPath, &archive.OpenOptions{})
-	if err != nil {
-		respondError(c, w, httpReq, err)
-		return
-	}
-
-	work, err := search.NewWorkerOp(ctx, req, archivestore.NewStorage(ark))
-	if err != nil {
-		respondError(c, w, httpReq, err)
-		return
-	}
-
-	out, err := getSearchOutput(w, httpReq)
-	if err != nil {
-		respondError(c, w, httpReq, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", out.ContentType())
-
-	if err := work.Run(ctx, out); err != nil {
-		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
 }
 

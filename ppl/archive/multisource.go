@@ -115,7 +115,7 @@ func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcCh
 	})
 }
 
-func (m *spanMultiSource) SourceFromRequest(ctx context.Context, req *api.WorkerRequest) (driver.Source, error) {
+func (m *spanMultiSource) SourceFromRequest(ctx context.Context, req *api.WorkerChunkRequest) (driver.Source, error) {
 	si := SpanInfo{Span: req.Span}
 	for _, p := range req.ChunkPaths {
 		dir, file := path.Split(filepath.ToSlash(p))
@@ -157,7 +157,7 @@ func (s *spanSource) Open(ctx context.Context, zctx *resolver.Context, sf driver
 	return scn, err
 }
 
-func (s *spanSource) ToRequest(req *api.WorkerRequest) error {
+func (s *spanSource) ToRequest(req *api.WorkerChunkRequest) error {
 	req.Span = s.spanInfo.Span
 	req.DataPath = s.ark.DataPath.String()
 	for _, c := range s.spanInfo.Chunks {
@@ -192,7 +192,7 @@ func (cms *chunkMultiSource) SendSources(ctx context.Context, span nano.Span, sr
 
 var errReqForChunk = errors.New("no request support for chunk sources")
 
-func (cms *chunkMultiSource) SourceFromRequest(context.Context, *api.WorkerRequest) (driver.Source, error) {
+func (cms *chunkMultiSource) SourceFromRequest(context.Context, *api.WorkerChunkRequest) (driver.Source, error) {
 	return nil, errReqForChunk
 }
 
@@ -233,7 +233,7 @@ func (s *chunkSource) Open(ctx context.Context, zctx *resolver.Context, sf drive
 	return &scannerCloser{Scanner: sn, Closer: rc}, nil
 }
 
-func (s *chunkSource) ToRequest(*api.WorkerRequest) error {
+func (s *chunkSource) ToRequest(*api.WorkerChunkRequest) error {
 	return errReqForChunk
 }
 

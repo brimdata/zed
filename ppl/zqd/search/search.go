@@ -57,7 +57,7 @@ func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SearchOp{query: query, workers: req.Workers}, nil
+	return &SearchOp{query: query}, nil
 }
 
 func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output) (err error) {
@@ -81,11 +81,9 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 	switch st := store.(type) {
 	case *archivestore.Storage:
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
-			Span:            s.query.Span,
-			StatsTick:       statsTicker.C,
-			Order:           zbuf.OrderDesc,
-			Parallelism:     s.workers,
-			DistributedExec: (s.workers > 0),
+			Span:      s.query.Span,
+			StatsTick: statsTicker.C,
+			Order:     zbuf.OrderDesc,
 		})
 	case *filestore.Storage:
 		rc, err := st.Open(ctx, zctx, s.query.Span)
@@ -102,6 +100,38 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 		})
 	default:
 		return fmt.Errorf("unknown storage type %T", st)
+	}
+}
+
+func (s *SearchOp) RunDistributed(ctx context.Context, store storage.Storage, output Output, numberOfWorkers int) (err error) {
+	d := &searchdriver{
+		output:    output,
+		startTime: nano.Now(),
+	}
+	d.start(0)
+	defer func() {
+		if err != nil {
+			d.abort(0, err)
+			return
+		}
+		d.end(0)
+	}()
+
+	statsTicker := time.NewTicker(StatsInterval)
+	defer statsTicker.Stop()
+	zctx := resolver.NewContext()
+
+	switch st := store.(type) {
+	case *archivestore.Storage:
+		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
+			Span:            s.query.Span,
+			StatsTick:       statsTicker.C,
+			Order:           zbuf.OrderDesc,
+			Parallelism:     numberOfWorkers,
+			DistributedExec: true,
+		})
+	default:
+		return fmt.Errorf("storage type %T unsupported for distributed query", st)
 	}
 }
 

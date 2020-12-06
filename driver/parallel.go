@@ -147,7 +147,7 @@ func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerClos
 			return nil, err
 		}
 
-		rc, err := conn.WorkerSearch(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
+		rc, err := conn.WorkerChunkSearch(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
 		if err != nil {
 			return nil, err
 		}
@@ -178,9 +178,9 @@ func (pg *parallelGroup) doneSource(sc ScannerCloser) {
 	delete(pg.scanners, sc)
 }
 
-// sourceToRequest takes a Source and converts it into a WorkerRequest
-func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerRequest, error) {
-	var req api.WorkerRequest
+// sourceToRequest takes a Source and converts it into a WorkerChunkRequest
+func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerChunkRequest, error) {
+	var req api.WorkerChunkRequest
 	if err := src.ToRequest(&req); err != nil {
 		return nil, err
 	}

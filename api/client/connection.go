@@ -231,18 +231,28 @@ func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, pa
 	return c.stream(req)
 }
 
-func (c *Connection) WorkerSearch(ctx context.Context, search api.WorkerRequest, params map[string]string) (io.ReadCloser, error) {
+func (c *Connection) WorkerRootSearch(ctx context.Context, search api.WorkerRootRequest, params map[string]string) (io.ReadCloser, error) {
 	req := c.Request(ctx).
 		SetBody(search).
 		SetQueryParam("format", "zng")
 	req.SetQueryParams(params)
 	req.Method = http.MethodPost
-	req.URL = "/worker/search"
+	req.URL = "/worker/rootsearch"
+	return c.stream(req)
+}
+
+func (c *Connection) WorkerChunkSearch(ctx context.Context, search api.WorkerChunkRequest, params map[string]string) (io.ReadCloser, error) {
+	req := c.Request(ctx).
+		SetBody(search).
+		SetQueryParam("format", "zng")
+	req.SetQueryParams(params)
+	req.Method = http.MethodPost
+	req.URL = "/worker/chunksearch"
 	return c.stream(req)
 }
 
 // WorkerRelease is a message sent from the zqd root to workers in the parallel group
-// when the root process is done and will not be sending additional /worker/search requests.
+// when the root process is done and will not be sending additional /worker/chunksearch requests.
 func (c *Connection) WorkerRelease(ctx context.Context) error {
 	_, err := c.Request(ctx).Get("/worker/release")
 	return err

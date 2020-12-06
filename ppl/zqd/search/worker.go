@@ -21,7 +21,7 @@ type WorkerOp struct {
 	store *archivestore.Storage
 }
 
-func NewWorkerOp(ctx context.Context, req api.WorkerRequest, st storage.Storage) (*WorkerOp, error) {
+func NewWorkerOp(ctx context.Context, req api.WorkerChunkRequest, st storage.Storage) (*WorkerOp, error) {
 	// XXX zqd only supports backwards searches, remove once this has been
 	// fixed.
 	if req.Dir == 1 {
