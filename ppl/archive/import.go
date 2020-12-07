@@ -55,10 +55,10 @@ type Writer struct {
 	cancel        context.CancelFunc
 	ctx           context.Context
 	errgroup      *errgroup.Group
+	mu            sync.Mutex
 	once          sync.Once
 	staleDuration time.Duration
 	writers       map[tsDir]*tsDirWriter
-	writersMu     sync.RWMutex
 
 	memBuffered int64
 	stats       ImportStats
@@ -96,27 +96,26 @@ func (w *Writer) Write(rec *zng.Record) error {
 		return w.ctx.Err()
 	}
 
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	tsDir := newTsDir(rec.Ts())
-	w.writersMu.RLock()
 	dw, ok := w.writers[tsDir]
-	w.writersMu.RUnlock()
 	if !ok {
 		var err error
 		dw, err = newTsDirWriter(w, tsDir)
 		if err != nil {
 			return err
 		}
-		w.writersMu.Lock()
 		if _, ok := w.writers[tsDir]; !ok {
 			w.writers[tsDir] = dw
 		}
 		dw = w.writers[tsDir]
-		w.writersMu.Unlock()
 	}
 	if err := dw.Write(rec); err != nil {
 		return err
 	}
-	for atomic.LoadInt64(&w.memBuffered) > ImportBufSize {
+	for w.memBuffered > ImportBufSize {
 		if err := w.spillLargestBuffer(); err != nil {
 			return err
 		}
@@ -145,16 +144,18 @@ func (w *Writer) flusher() error {
 // removes any writers that haven't recieved any updates since
 // Writer.staleDuration.
 func (w *Writer) flushStaleWriters() error {
+	w.mu.Lock()
+	defer w.mu.Unlock()
+
 	now := time.Now()
-	w.writersMu.Lock()
 	var stale []*tsDirWriter
 	for tsd, writer := range w.writers {
-		if now.Sub(writer.modified()) >= w.staleDuration {
+		if now.Sub(writer.modts.Time()) >= w.staleDuration {
 			stale = append(stale, writer)
 			delete(w.writers, tsd)
 		}
 	}
-	w.writersMu.Unlock()
+
 	for _, writer := range stale {
 		if err := writer.flush(); err != nil {
 			return err
@@ -168,8 +169,6 @@ func (w *Writer) flushStaleWriters() error {
 // spilling to disk the records of the tsDirWriter with the largest memory
 // footprint.
 func (w *Writer) spillLargestBuffer() error {
-	w.writersMu.RLock()
-	defer w.writersMu.RUnlock()
 	var largest *tsDirWriter
 	for _, dw := range w.writers {
 		if largest == nil || dw.bufSize > largest.bufSize {
@@ -180,7 +179,7 @@ func (w *Writer) spillLargestBuffer() error {
 }
 
 func (w *Writer) Close() error {
-	w.writersMu.Lock()
+	w.mu.Lock()
 	var merr error
 	for ts, dw := range w.writers {
 		if err := dw.flush(); err != nil {
@@ -188,7 +187,7 @@ func (w *Writer) Close() error {
 		}
 		delete(w.writers, ts)
 	}
-	w.writersMu.Unlock()
+	w.mu.Unlock()
 	w.cancel()
 	if err := w.errgroup.Wait(); merr == nil {
 		merr = err
@@ -228,7 +227,7 @@ type tsDirWriter struct {
 	ark     *Archive
 	bufSize int64
 	ctx     context.Context
-	modts   int64
+	modts   nano.Ts
 	records []*zng.Record
 	spiller *spill.MergeSort
 	tsDir   tsDir
@@ -250,7 +249,7 @@ func newTsDirWriter(w *Writer, tsDir tsDir) (*tsDirWriter, error) {
 
 func (dw *tsDirWriter) addBufSize(delta int64) {
 	dw.bufSize += delta
-	atomic.AddInt64(&dw.writer.memBuffered, delta)
+	dw.writer.memBuffered += delta
 }
 
 // chunkSizeEstimate returns a crude approximation of all records when written
@@ -281,11 +280,7 @@ func (dw *tsDirWriter) Write(rec *zng.Record) error {
 }
 
 func (dw *tsDirWriter) touch() {
-	atomic.StoreInt64(&dw.modts, int64(nano.Now()))
-}
-
-func (dw *tsDirWriter) modified() time.Time {
-	return nano.Ts(atomic.LoadInt64(&dw.modts)).Time()
+	dw.modts = nano.Now()
 }
 
 func (dw *tsDirWriter) spill() error {
