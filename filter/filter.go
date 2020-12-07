@@ -2,7 +2,6 @@ package filter
 
 import (
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/brimsec/zq/ast"
@@ -10,7 +9,6 @@ import (
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Filter func(*zng.Record) bool
@@ -27,7 +25,7 @@ func LogicalNot(expr Filter) Filter {
 	return func(p *zng.Record) bool { return !expr(p) }
 }
 
-func combine(res expr.Evaluator, pred Predicate) Filter {
+func Combine(res expr.Evaluator, pred Predicate) Filter {
 	return func(r *zng.Record) bool {
 		v, err := res.Eval(r)
 		if err != nil || v.Type == nil {
@@ -36,27 +34,6 @@ func combine(res expr.Evaluator, pred Predicate) Filter {
 		}
 		return pred(v)
 	}
-}
-
-func CompileFieldCompare(zctx *resolver.Context, node *ast.CompareField) (Filter, error) {
-	literal := node.Value
-	// Treat len(field) specially since we're looking at a computed
-	// value rather than a field from a record.
-
-	// XXX we need to implement proper expressions
-	// XXX we took out field call and need to put expressions back into
-	// the search sytnax, which is tricky syntactically to mix this stuff
-	// with keyword search
-
-	comparison, err := Comparison(node.Comparator, literal)
-	if err != nil {
-		return nil, err
-	}
-	resolver, err := expr.CompileExpr(zctx, node.Field)
-	if err != nil {
-		return nil, err
-	}
-	return combine(resolver, comparison), nil
 }
 
 func EvalAny(eval Predicate, recursive bool) Filter {
@@ -98,31 +75,6 @@ func EvalAny(eval Predicate, recursive bool) Filter {
 	}
 }
 
-func compileSearch(node *ast.Search) (Filter, error) {
-	if node.Value.Type == "regexp" || node.Value.Type == "net" {
-		match, err := Comparison("=~", node.Value)
-		if err != nil {
-			return nil, err
-		}
-		contains := Contains(match)
-		pred := func(zv zng.Value) bool {
-			return match(zv) || contains(zv)
-		}
-
-		return EvalAny(pred, true), nil
-	}
-
-	if node.Value.Type == "string" {
-		term, err := zng.TypeBstring.Parse([]byte(node.Value.Value))
-		if err != nil {
-			return nil, err
-		}
-		return searchRecordString(string(term)), nil
-	}
-
-	return searchRecordOther(node.Text, node.Value)
-}
-
 // stringSearch is like strings.Contains() but with case-insensitive
 // comparison.
 func stringSearch(a, b string) bool {
@@ -146,13 +98,13 @@ func stringSearch(a, b string) bool {
 
 var errMatch = errors.New("match")
 
-// searchRecordOther creates a filter that searches zng records for the
+// SearchRecordOther creates a filter that searches zng records for the
 // given value, which must be of a type other than (b)string.  The filter
 // matches a record that contains this value either as the value of any
 // field or inside any set or array.  It also matches a record if the string
 // representaton of the search value appears inside inside any string-valued
 // field (or inside any element of a set or array of strings).
-func searchRecordOther(searchtext string, searchval ast.Literal) (Filter, error) {
+func SearchRecordOther(searchtext string, searchval ast.Literal) (Filter, error) {
 	typedCompare, err := Comparison("=", searchval)
 	if err != nil {
 		return nil, err
@@ -172,9 +124,9 @@ func searchRecordOther(searchtext string, searchval ast.Literal) (Filter, error)
 
 }
 
-// searchRecordString handles the special case of string searching -- it
+// SearchRecordString handles the special case of string searching -- it
 // matches both field names and values.
-func searchRecordString(term string) Filter {
+func SearchRecordString(term string) Filter {
 	fieldNameCheck := make(map[zng.Type]bool)
 	var nameIter fieldNameIter
 	return func(r *zng.Record) bool {
@@ -201,91 +153,5 @@ func searchRecordString(term string) Filter {
 			}
 			return nil
 		})
-	}
-}
-
-func Compile(zctx *resolver.Context, node ast.BooleanExpr) (Filter, error) {
-	switch v := node.(type) {
-	case *ast.LogicalNot:
-		expr, err := Compile(zctx, v.Expr)
-		if err != nil {
-			return nil, err
-		}
-		return LogicalNot(expr), nil
-
-	case *ast.LogicalAnd:
-		left, err := Compile(zctx, v.Left)
-		if err != nil {
-			return nil, err
-		}
-		right, err := Compile(zctx, v.Right)
-		if err != nil {
-			return nil, err
-		}
-		return LogicalAnd(left, right), nil
-
-	case *ast.LogicalOr:
-		left, err := Compile(zctx, v.Left)
-		if err != nil {
-			return nil, err
-		}
-		right, err := Compile(zctx, v.Right)
-		if err != nil {
-			return nil, err
-		}
-		return LogicalOr(left, right), nil
-
-	case *ast.MatchAll:
-		return func(*zng.Record) bool { return true }, nil
-
-	case *ast.Search:
-		return compileSearch(v)
-
-	case *ast.CompareField:
-		if v.Comparator == "in" {
-			resolver, err := expr.CompileExpr(zctx, v.Field)
-			if err != nil {
-				return nil, err
-			}
-			eql, _ := Comparison("=", v.Value)
-			comparison := Contains(eql)
-			return combine(resolver, comparison), nil
-		}
-
-		return CompileFieldCompare(zctx, v)
-
-	case *ast.BinaryExpression:
-		predicate, err := expr.CompileExpr(zctx, v)
-		if err != nil {
-			return nil, err
-		}
-		return func(rec *zng.Record) bool {
-			zv, err := predicate.Eval(rec)
-			if err != nil {
-				return false
-			}
-			if zv.Type == zng.TypeBool && zng.IsTrue(zv.Bytes) {
-				return true
-			}
-			return false
-		}, nil
-
-	case *ast.CompareAny:
-		if v.Comparator == "in" {
-			compare, err := Comparison("=", v.Value)
-			if err != nil {
-				return nil, err
-			}
-			contains := Contains(compare)
-			return EvalAny(contains, v.Recursive), nil
-		}
-		comparison, err := Comparison(v.Comparator, v.Value)
-		if err != nil {
-			return nil, err
-		}
-		return EvalAny(comparison, v.Recursive), nil
-
-	default:
-		return nil, fmt.Errorf("Filter AST unknown type: %v", v)
 	}
 }

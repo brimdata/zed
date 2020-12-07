@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -48,14 +48,15 @@ func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFil
 			require.NoError(t, err, "filter: %q", c.filter)
 			filterExpr := proc.(*ast.FilterProc).Filter
 
-			f, err := filter.Compile(zctx, filterExpr)
+			filterAST := compiler.NewFilter(zctx, filterExpr)
+			f, err := filterAST.AsFilter()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
 				assert.Equal(t, c.expected, f(rec),
 					"filter: %q\nrecord:\n%s", c.filter, hex.Dump(rec.Raw))
 			}
 
-			bf, err := filter.NewBufferFilter(filterExpr)
+			bf, err := filterAST.AsBufferFilter()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if bf != nil {
 				expected := c.expected
@@ -504,7 +505,8 @@ func TestBadFilter(t *testing.T) {
 	t.Parallel()
 	proc, err := zql.ParseProc(`s =~ \xa8*`)
 	require.NoError(t, err)
-	_, err = filter.Compile(resolver.NewContext(), proc.(*ast.FilterProc).Filter)
+	f := compiler.NewFilter(resolver.NewContext(), proc.(*ast.FilterProc).Filter)
+	_, err = f.AsFilter()
 	assert.Error(t, err, "Received error for bad glob")
 	assert.Contains(t, err.Error(), "invalid UTF-8", "Received good error message for invalid UTF-8 in a regexp")
 }

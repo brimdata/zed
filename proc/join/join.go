@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
@@ -29,32 +28,14 @@ type Proc struct {
 	types       map[int]map[int]*zng.TypeRecord
 }
 
-func New(pctx *proc.Context, left, right proc.Interface, v *ast.JoinProc) (*Proc, error) {
-	lhs := make([]field.Static, 0, len(v.Clauses))
-	rhs := make([]expr.Evaluator, 0, len(v.Clauses))
-	for _, clause := range v.Clauses {
-		c, err := expr.CompileAssignment(pctx.TypeContext, &clause)
-		if err != nil {
-			return nil, err
-		}
-		lhs = append(lhs, c.LHS)
-		rhs = append(rhs, c.RHS)
-	}
-	getLeftKey, err := expr.CompileExpr(pctx.TypeContext, v.LeftKey)
-	if err != nil {
-		return nil, err
-	}
-	getRightKey, err := expr.CompileExpr(pctx.TypeContext, v.RightKey)
-	if err != nil {
-		return nil, err
-	}
+func New(pctx *proc.Context, left, right proc.Interface, leftKey, rightKey expr.Evaluator, lhs []field.Static, rhs []expr.Evaluator) (*Proc, error) {
 	ctx, cancel := context.WithCancel(pctx.Context)
 	return &Proc{
 		pctx:        pctx,
 		ctx:         ctx,
 		cancel:      cancel,
-		getLeftKey:  getLeftKey,
-		getRightKey: getRightKey,
+		getLeftKey:  leftKey,
+		getRightKey: rightKey,
 		left:        newPuller(left, ctx),
 		right:       zbuf.NewPeeker(newPuller(right, ctx)),
 		// XXX need to make sure nullsmax agrees with inbound merge

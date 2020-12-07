@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -53,7 +54,7 @@ func compileExpr(s string) (expr.Evaluator, error) {
 		return nil, errors.New("expected Expression")
 	}
 
-	return expr.CompileExpr(resolver.NewContext(), node)
+	return compiler.CompileExpr(resolver.NewContext(), node)
 }
 
 // Compile and evaluate a zql expression against a provided Record.

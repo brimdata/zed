@@ -9,7 +9,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
-	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
@@ -184,8 +184,8 @@ func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerChunkRequest, e
 	if err := src.ToRequest(&req); err != nil {
 		return nil, err
 	}
-	if filterExpr := pg.filter.FilterExpr; filterExpr != nil {
-		b, err := json.Marshal(ast.FilterToProc(filterExpr))
+	if filterExpr := pg.filter.Filter; filterExpr != nil {
+		b, err := json.Marshal(filterExpr.AsProc())
 		if err != nil {
 			return nil, err
 		}
@@ -210,12 +210,12 @@ func (pg *parallelGroup) run() {
 	close(pg.sourceChan)
 }
 
-func createParallelGroup(pctx *proc.Context, filterExpr ast.BooleanExpr, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, filter *compiler.Filter, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		pctx: pctx,
 		filter: SourceFilter{
-			FilterExpr: filterExpr,
-			Span:       mcfg.Span,
+			Filter: filter,
+			Span:   mcfg.Span,
 		},
 		msrc:       msrc,
 		mcfg:       mcfg,

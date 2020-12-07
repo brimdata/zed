@@ -4,17 +4,20 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
 )
+
+type Filter interface {
+	AsFilter() (filter.Filter, error)
+	AsBufferFilter() (*filter.BufferFilter, error)
+}
 
 // ScannerAble is implemented by Readers that provide an optimized
 // implementation of the Scanner interface.
 type ScannerAble interface {
-	NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error)
+	NewScanner(ctx context.Context, filterExpr Filter, s nano.Span) (Scanner, error)
 }
 
 // A Statser produces scanner statistics.
@@ -75,7 +78,7 @@ func ReadersToPullers(ctx context.Context, readers []Reader) ([]Puller, error) {
 }
 
 // NewScanner returns a Scanner for r that filters records by filterExpr and s.
-func NewScanner(ctx context.Context, r Reader, filterExpr ast.BooleanExpr, s nano.Span) (Scanner, error) {
+func NewScanner(ctx context.Context, r Reader, filterExpr Filter, s nano.Span) (Scanner, error) {
 	var sa ScannerAble
 	if zf, ok := r.(*File); ok {
 		sa, _ = zf.Reader.(ScannerAble)
@@ -88,7 +91,7 @@ func NewScanner(ctx context.Context, r Reader, filterExpr ast.BooleanExpr, s nan
 	var f filter.Filter
 	if filterExpr != nil {
 		var err error
-		if f, err = filter.Compile(resolver.NewContext(), filterExpr); err != nil {
+		if f, err = filterExpr.AsFilter(); err != nil {
 			return nil, err
 		}
 	}
