@@ -11,7 +11,7 @@ import (
 // compileBufferFilter tries to return a BufferFilter for e such that the
 // BufferFilter's Eval method returns true for any byte slice containing the ZNG
 // encoding of a record matching e. (It may also return true for some byte
-// slices that do not match.) NewBufferFilter returns a nil pointer and nil
+// slices that do not match.) compileBufferFilter returns a nil pointer and nil
 // error if it cannot construct a useful filter.
 func compileBufferFilter(e ast.BooleanExpr) (*filter.BufferFilter, error) {
 	switch e := e.(type) {
