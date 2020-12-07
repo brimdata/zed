@@ -5,9 +5,12 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
+
+var _ zbuf.Filter = (*Filter)(nil)
 
 // Filter wraps an ast.BooleanExpr and implements the filter.Program interface
 // so that scanners can generate filters and buffer filters from an AST without
@@ -21,20 +24,18 @@ func NewFilter(zctx *resolver.Context, ast ast.BooleanExpr) *Filter {
 	return &Filter{zctx, ast}
 }
 
-// AsFilter implements filter.Program
 func (f *Filter) AsFilter() (filter.Filter, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return CompileFilter(f.zctx, f.ast)
+	return compileFilter(f.zctx, f.ast)
 }
 
-// AsBufferFilter implements filter.Program
 func (f *Filter) AsBufferFilter() (*filter.BufferFilter, error) {
 	if f == nil {
 		return nil, nil
 	}
-	return CompileBufferFilter(f.ast)
+	return compileBufferFilter(f.ast)
 }
 
 func (f *Filter) AST() ast.BooleanExpr {
@@ -45,7 +46,7 @@ func (f *Filter) AsProc() ast.Proc {
 	return ast.FilterToProc(f.ast)
 }
 
-func CompileFieldCompare(zctx *resolver.Context, node *ast.CompareField) (filter.Filter, error) {
+func compileFieldCompare(zctx *resolver.Context, node *ast.CompareField) (filter.Filter, error) {
 	literal := node.Value
 	// Treat len(field) specially since we're looking at a computed
 	// value rather than a field from a record.
@@ -91,32 +92,32 @@ func compileSearch(node *ast.Search) (filter.Filter, error) {
 	return filter.SearchRecordOther(node.Text, node.Value)
 }
 
-func CompileFilter(zctx *resolver.Context, node ast.BooleanExpr) (filter.Filter, error) {
+func compileFilter(zctx *resolver.Context, node ast.BooleanExpr) (filter.Filter, error) {
 	switch v := node.(type) {
 	case *ast.LogicalNot:
-		expr, err := CompileFilter(zctx, v.Expr)
+		expr, err := compileFilter(zctx, v.Expr)
 		if err != nil {
 			return nil, err
 		}
 		return filter.LogicalNot(expr), nil
 
 	case *ast.LogicalAnd:
-		left, err := CompileFilter(zctx, v.Left)
+		left, err := compileFilter(zctx, v.Left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := CompileFilter(zctx, v.Right)
+		right, err := compileFilter(zctx, v.Right)
 		if err != nil {
 			return nil, err
 		}
 		return filter.LogicalAnd(left, right), nil
 
 	case *ast.LogicalOr:
-		left, err := CompileFilter(zctx, v.Left)
+		left, err := compileFilter(zctx, v.Left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := CompileFilter(zctx, v.Right)
+		right, err := compileFilter(zctx, v.Right)
 		if err != nil {
 			return nil, err
 		}
@@ -139,7 +140,7 @@ func CompileFilter(zctx *resolver.Context, node ast.BooleanExpr) (filter.Filter,
 			return filter.Combine(resolver, comparison), nil
 		}
 
-		return CompileFieldCompare(zctx, v)
+		return compileFieldCompare(zctx, v)
 
 	case *ast.BinaryExpression:
 		predicate, err := CompileExpr(zctx, v)

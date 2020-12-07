@@ -13,11 +13,6 @@ import (
 
 type Filter func(*zng.Record) bool
 
-type Program interface {
-	AsFilter() (Filter, error)
-	AsBufferFilter() (*BufferFilter, error)
-}
-
 func LogicalAnd(left, right Filter) Filter {
 	return func(p *zng.Record) bool { return left(p) && right(p) }
 }

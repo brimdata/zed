@@ -494,7 +494,7 @@ func (r *Reader) parseValue(rec *zng.Record, id int, b []byte) (*zng.Record, err
 
 var _ zbuf.ScannerAble = (*Reader)(nil)
 
-func (r *Reader) NewScanner(ctx context.Context, pruner filter.Program, s nano.Span) (zbuf.Scanner, error) {
+func (r *Reader) NewScanner(ctx context.Context, pruner zbuf.Filter, s nano.Span) (zbuf.Scanner, error) {
 	var bf *filter.BufferFilter
 	var f filter.Filter
 	if pruner != nil {

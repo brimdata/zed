@@ -8,12 +8,12 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-// NewBufferFilter tries to return a BufferFilter for e such that the
+// compileBufferFilter tries to return a BufferFilter for e such that the
 // BufferFilter's Eval method returns true for any byte slice containing the ZNG
 // encoding of a record matching e. (It may also return true for some byte
 // slices that do not match.) NewBufferFilter returns a nil pointer and nil
 // error if it cannot construct a useful filter.
-func CompileBufferFilter(e ast.BooleanExpr) (*filter.BufferFilter, error) {
+func compileBufferFilter(e ast.BooleanExpr) (*filter.BufferFilter, error) {
 	switch e := e.(type) {
 	case *ast.CompareAny:
 		if e.Comparator != "=" && e.Comparator != "in" {
@@ -28,11 +28,11 @@ func CompileBufferFilter(e ast.BooleanExpr) (*filter.BufferFilter, error) {
 	case *ast.BinaryExpression:
 		return nil, nil
 	case *ast.LogicalAnd:
-		left, err := CompileBufferFilter(e.Left)
+		left, err := compileBufferFilter(e.Left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := CompileBufferFilter(e.Right)
+		right, err := compileBufferFilter(e.Right)
 		if err != nil {
 			return nil, err
 		}
@@ -44,11 +44,11 @@ func CompileBufferFilter(e ast.BooleanExpr) (*filter.BufferFilter, error) {
 		}
 		return filter.NewAndBufferFilter(left, right), nil
 	case *ast.LogicalOr:
-		left, err := CompileBufferFilter(e.Left)
+		left, err := compileBufferFilter(e.Left)
 		if err != nil {
 			return nil, err
 		}
-		right, err := CompileBufferFilter(e.Right)
+		right, err := compileBufferFilter(e.Right)
 		if left == nil || right == nil || err != nil {
 			return nil, err
 		}

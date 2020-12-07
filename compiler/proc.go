@@ -99,7 +99,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		return pass.New(parent), nil
 
 	case *ast.FilterProc:
-		f, err := CompileFilter(pctx.TypeContext, v.Filter)
+		f, err := compileFilter(pctx.TypeContext, v.Filter)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}

@@ -9,7 +9,6 @@ import (
 	"github.com/brimsec/zq/expr/function"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 )
 
 // CompileExpr compiles the given Expression into an object
@@ -17,25 +16,25 @@ import (
 // error if compilation fails for any reason.
 //
 // This is the "intepreted slow path" of the analytics engine.  Because it
-// handles dynamic typinig at runtime, overheads are incurrend due to
+// handles dynamic typing at runtime, overheads are incurred due to
 // various type checks and coercions that determine different computational
 // outcomes based on type.  There is nothing here that optimizes analytics
 // for native machine types; these optimizations (will) happen in the pushdown
 // predicate processing engine in the zst columnar scanner.
 //
 // Eventually, we will optimize this zst "fast path" by dynamically
-// generating byte codes (which an in turn be JIT assembled into machine code)
-// for each zng TypeRecord encountered.  Once you know the type record,
+// generating byte codes (which can in turn be JIT assembled into machine code)
+// for each zng TypeRecord encountered.  Once you know the TypeRecord,
 // you can generate code using strong typing just as an OLAP system does
 // due to its schemas defined up-front in its relational tables.  Here,
 // each record type is like a schema and as we encounter them, we can compile
 // optimized code for the now-static types within that record type.
 //
-// The Evaluator return by CompilExpr produces zng.Values that are stored
+// The Evaluator return by CompileExpr produces zng.Values that are stored
 // in temporary buffers and may be modified on subsequent calls to Eval.
 // This is intended to minimize the garbage collection needs of the inner loop
 // by not allocating memory on a per-Eval basis.  For uses like filtering and
-// aggregations, where the results are immediately use, this is desirable and
+// aggregations, where the results are immediately used, this is desirable and
 // efficient but for use cases like storing the results as groupby keys, the
 // resulting zng.Value should be copied (e.g., via zng.Value.Copy()).
 //
@@ -52,47 +51,14 @@ func CompileExpr(zctx *resolver.Context, node ast.Expression) (expr.Evaluator, e
 		return &expr.RootRecord{}, nil
 	case *ast.UnaryExpression:
 		return compileUnary(zctx, *n)
-
 	case *ast.BinaryExpression:
-		if n.Operator == "." {
-			return compileDotExpr(zctx, n.LHS, n.RHS)
-		}
-		lhs, err := CompileExpr(zctx, n.LHS)
-		if err != nil {
-			return nil, err
-		}
-		rhs, err := CompileExpr(zctx, n.RHS)
-		if err != nil {
-			return nil, err
-		}
-		switch n.Operator {
-		case "AND", "OR":
-			return compileLogical(lhs, rhs, n.Operator)
-		case "in":
-			return expr.NewIn(lhs, rhs), nil
-		case "=", "!=":
-			return expr.NewCompareEquality(lhs, rhs, n.Operator)
-		case "=~", "!~":
-			return expr.NewPatternMatch(lhs, rhs, n.Operator)
-		case "<", "<=", ">", ">=":
-			return expr.NewCompareRelative(lhs, rhs, n.Operator)
-		case "+", "-", "*", "/":
-			return expr.NewArithmetic(lhs, rhs, n.Operator)
-		case "[":
-			return expr.NewIndexExpr(zctx, lhs, rhs)
-		default:
-			return nil, fmt.Errorf("invalid binary operator %s", n.Operator)
-		}
-
+		return compileBinary(zctx, n.Operator, n.LHS, n.RHS)
 	case *ast.ConditionalExpression:
 		return compileConditional(zctx, *n)
-
 	case *ast.FunctionCall:
 		return compileCall(zctx, *n)
-
 	case *ast.CastExpression:
 		return compileCast(zctx, *n)
-
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", node)
 	}
@@ -110,18 +76,36 @@ func CompileExprs(zctx *resolver.Context, nodes []ast.Expression) ([]expr.Evalua
 	return exprs, nil
 }
 
-func compileExpr(s string) (expr.Evaluator, error) {
-	parsed, err := zql.ParseExpression(s)
+func compileBinary(zctx *resolver.Context, op string, LHS, RHS ast.Expression) (expr.Evaluator, error) {
+	if op == "." {
+		return compileDotExpr(zctx, LHS, RHS)
+	}
+	lhs, err := CompileExpr(zctx, LHS)
 	if err != nil {
 		return nil, err
 	}
-
-	node, ok := parsed.(ast.Expression)
-	if !ok {
-		return nil, errors.New("expected Expression")
+	rhs, err := CompileExpr(zctx, RHS)
+	if err != nil {
+		return nil, err
 	}
-
-	return CompileExpr(resolver.NewContext(), node)
+	switch op {
+	case "AND", "OR":
+		return compileLogical(lhs, rhs, op)
+	case "in":
+		return expr.NewIn(lhs, rhs), nil
+	case "=", "!=":
+		return expr.NewCompareEquality(lhs, rhs, op)
+	case "=~", "!~":
+		return expr.NewPatternMatch(lhs, rhs, op)
+	case "<", "<=", ">", ">=":
+		return expr.NewCompareRelative(lhs, rhs, op)
+	case "+", "-", "*", "/":
+		return expr.NewArithmetic(lhs, rhs, op)
+	case "[":
+		return expr.NewIndexExpr(zctx, lhs, rhs)
+	default:
+		return nil, fmt.Errorf("invalid binary operator %s", op)
+	}
 }
 
 func compileUnary(zctx *resolver.Context, node ast.UnaryExpression) (expr.Evaluator, error) {
@@ -147,7 +131,6 @@ func compileLogical(lhs, rhs expr.Evaluator, operator string) (expr.Evaluator, e
 }
 
 func compileConditional(zctx *resolver.Context, node ast.ConditionalExpression) (expr.Evaluator, error) {
-	var err error
 	predicate, err := CompileExpr(zctx, node.Condition)
 	if err != nil {
 		return nil, err
@@ -242,7 +225,7 @@ func CompileAssignment(zctx *resolver.Context, node *ast.Assignment) (expr.Assig
 
 func CompileAssignments(dsts []field.Static, srcs []field.Static) ([]field.Static, []expr.Evaluator) {
 	if len(srcs) != len(dsts) {
-		panic("CompileAssignmentFromStrings argument mismatch")
+		panic("CompileAssignments: argument mismatch")
 	}
 	var resolvers []expr.Evaluator
 	var fields []field.Static

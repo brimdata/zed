@@ -505,7 +505,8 @@ func TestBadFilter(t *testing.T) {
 	t.Parallel()
 	proc, err := zql.ParseProc(`s =~ \xa8*`)
 	require.NoError(t, err)
-	_, err = compiler.CompileFilter(resolver.NewContext(), proc.(*ast.FilterProc).Filter)
+	f := compiler.NewFilter(resolver.NewContext(), proc.(*ast.FilterProc).Filter)
+	_, err = f.AsFilter()
 	assert.Error(t, err, "Received error for bad glob")
 	assert.Contains(t, err.Error(), "invalid UTF-8", "Received good error message for invalid UTF-8 in a regexp")
 }
