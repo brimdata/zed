@@ -1,9 +1,6 @@
 package put
 
 import (
-	"fmt"
-
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
@@ -52,24 +49,12 @@ type clauseType struct {
 	container bool
 }
 
-func New(pctx *proc.Context, parent proc.Interface, node *ast.PutProc) (proc.Interface, error) {
-	clauses := make([]expr.Assignment, 0, len(node.Clauses))
-	for _, cl := range node.Clauses {
-		c, err := expr.CompileAssignment(pctx.TypeContext, &cl)
-		if err != nil {
-			return nil, err
-		}
-		if len(c.LHS) > 1 {
-			name := c.LHS.String()
-			return nil, fmt.Errorf("%s: put currently supports only top-level field assignemnts", name)
-		}
-		clauses = append(clauses, c)
-	}
+func New(pctx *proc.Context, parent proc.Interface, clauses []expr.Assignment) (proc.Interface, error) {
 	return &Proc{
 		pctx:    pctx,
 		parent:  parent,
 		clauses: clauses,
-		vals:    make([]zng.Value, len(node.Clauses)),
+		vals:    make([]zng.Value, len(clauses)),
 		rules:   make(map[int]*putRule),
 		warned:  make(map[string]struct{}),
 	}, nil

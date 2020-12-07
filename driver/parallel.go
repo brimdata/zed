@@ -185,7 +185,7 @@ func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerChunkRequest, e
 		return nil, err
 	}
 	if filterExpr := pg.filter.FilterExpr; filterExpr != nil {
-		b, err := json.Marshal(filterToProc(filterExpr))
+		b, err := json.Marshal(ast.FilterToProc(filterExpr))
 		if err != nil {
 			return nil, err
 		}

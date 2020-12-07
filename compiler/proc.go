@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/combine"
@@ -24,6 +25,7 @@ import (
 	"github.com/brimsec/zq/proc/top"
 	"github.com/brimsec/zq/proc/uniq"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
@@ -55,14 +57,23 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		return compileGroupBy(pctx, parent, v)
 
 	case *ast.CutProc:
-		cut, err := cut.New(pctx, parent, v)
+		assignments, err := compileAssignments(v.Fields, pctx.TypeContext)
+		if err != nil {
+			return nil, err
+		}
+		lhs, rhs := splitAssignments(assignments)
+		cut, err := cut.New(pctx, parent, lhs, rhs, v.Complement)
 		if err != nil {
 			return nil, err
 		}
 		return cut, nil
 
 	case *ast.SortProc:
-		sort, err := sort.New(pctx, parent, v)
+		fields, err := expr.CompileExprs(pctx.TypeContext, v.Fields)
+		if err != nil {
+			return nil, err
+		}
+		sort, err := sort.New(pctx, parent, fields, v.SortDir, v.NullsFirst)
 		if err != nil {
 			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
@@ -103,7 +114,18 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		return top.New(parent, v.Limit, fields, v.Flush), nil
 
 	case *ast.PutProc:
-		put, err := put.New(pctx, parent, v)
+		clauses, err := compileAssignments(v.Clauses, pctx.TypeContext)
+		if err != nil {
+			return nil, err
+		}
+		// XXX fix this limitation (see issue #1753)
+		for _, c := range clauses {
+			if len(c.LHS) > 1 {
+				name := c.LHS.String()
+				return nil, fmt.Errorf("%s: put currently supports only top-level field assignemnts", name)
+			}
+		}
+		put, err := put.New(pctx, parent, clauses)
 		if err != nil {
 			return nil, err
 		}
@@ -126,6 +148,29 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		return nil, fmt.Errorf("unknown AST type: %v", v)
 
 	}
+}
+
+func compileAssignments(assignments []ast.Assignment, zctx *resolver.Context) ([]expr.Assignment, error) {
+	keys := make([]expr.Assignment, 0, len(assignments))
+	for _, assignment := range assignments {
+		a, err := expr.CompileAssignment(zctx, &assignment)
+		if err != nil {
+			return nil, err
+		}
+		keys = append(keys, a)
+	}
+	return keys, nil
+}
+
+func splitAssignments(assignments []expr.Assignment) ([]field.Static, []expr.Evaluator) {
+	n := len(assignments)
+	lhs := make([]field.Static, 0, n)
+	rhs := make([]expr.Evaluator, 0, n)
+	for _, a := range assignments {
+		lhs = append(lhs, a.LHS)
+		rhs = append(rhs, a.RHS)
+	}
+	return lhs, rhs
 }
 
 func enteringJoin(nodes []ast.Proc) bool {
