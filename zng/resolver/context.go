@@ -673,7 +673,7 @@ func (c *Context) parseName(in string) (string, string, error) {
 		return "", "", zng.ErrTypeSyntax
 	}
 	name := strings.TrimSpace(in[:colon])
-	if !zng.NameIsId(name) {
+	if !zng.IsIdentifier(name) {
 		return "", "", zng.ErrTypeSyntax
 	}
 	return in[colon+1:], name, nil

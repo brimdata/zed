@@ -55,6 +55,26 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	}
 	track.Reset()
 
+	// ZSON comes after NDJSON since ZSON is a superset of JSON.  This could
+	// conceivably create auto-detection problems where ZSON initially looks like
+	// JSON but later "turns into" ZSON.  In practice, this is not a problem
+	// as the canonical form of ZSON does not quote the record field names
+	// so this will be rejected by the JSON autodetector.  Down the road, the
+	// ZSON reader may deprecate the NDJSON reader but for now, ZSON is new
+	// and likely less stable (and it is more complicated to parse and hence
+	// less performant than JSON parsing) so we will leave this as is.
+	//
+	// XXX We're commenting this out for now because the ZSON parser reads
+	// the entire input before starting which obviously creates problems
+	// for large inputs.  We will uncomment this after we change ZSON to
+	// stream its input.  See issue #1802.
+
+	//zsonErr := match(zson.NewReader(track, resolver.NewContext()), "zson")
+	//if zsonErr == nil && false {
+	//	return zson.NewReader(recorder, zctx), nil
+	//}
+	//track.Reset()
+
 	zngOpts := opts.Zng
 	zngOpts.Validate = true
 	zngErr := match(zngio.NewReaderWithOpts(track, resolver.NewContext(), zngOpts), "zng")

@@ -8,7 +8,7 @@ import (
 )
 
 func QuotedName(name string) string {
-	if !NameIsId(name) {
+	if !IsIdentifier(name) {
 		name = QuotedString([]byte(name), false)
 	}
 	return name
@@ -113,8 +113,8 @@ func UnescapeBstring(data []byte) []byte {
 
 func parseBstringEscape(data []byte) (byte, int) {
 	if len(data) >= 4 && data[1] == 'x' {
-		v1 := unhex(data[2])
-		v2 := unhex(data[3])
+		v1 := Unhex(data[2])
+		v2 := Unhex(data[3])
 		if v1 <= 0xf || v2 <= 0xf {
 			return v1<<4 | v2, 4
 		}
@@ -126,7 +126,7 @@ func parseBstringEscape(data []byte) (byte, int) {
 	return data[0], 1
 }
 
-func unhex(b byte) byte {
+func Unhex(b byte) byte {
 	switch {
 	case '0' <= b && b <= '9':
 		return b - '0'
@@ -146,7 +146,7 @@ func replaceStringEscape(in []byte) []byte {
 	}
 	for ; i < len(in) && in[i] != '}'; i++ {
 		r <<= 4
-		r |= rune(unhex(in[i]))
+		r |= rune(Unhex(in[i]))
 	}
 	return []byte(string(r))
 }

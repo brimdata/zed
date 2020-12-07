@@ -324,6 +324,13 @@ than its previous definition though multiple definitions of the same
 type are legal (thereby allowing for concatenation of otherwise
 independent sequences).
 
+One decorator is allowed per value except for nested type-union values, which
+may additional decorators to successively refine the union type for unions vals
+that live inside other union types. This allows an already-decorated value to be
+further decorated with its union type and provides as a means to distinguish
+a union value's precise member type when it is other ambiguous as described in
+[Section 3.4.4](#344-union-value).
+
 ### 3.3 Primitive Values
 
 There are 23 types of primitive values with syntax defined as follows:
@@ -340,13 +347,13 @@ There are 23 types of primitive values with syntax defined as follows:
 | `int64`    | decimal string representation of any signed, 64-bit integer   |
 | `duration` | a _duration string_ representing signed 64-bit nanoseconds |
 | `time`     | an RFC 3339 UTC data/time string representing signed 64-bit nanoseconds from epoch |
-| `float16`  | a _point string_ representing an IEEE-754 binary16 value |
-| `float32`  | a _point string_ representing an IEEE-754 binary32 value |
-| `float64`  | a _point string_ representing an IEEE-754 binary64 value |
-| `decimal`  | a _point string_ representing an IEEE-754 decimal128 value |
+| `float16`  | a _non-integer string_ representing an IEEE-754 binary16 value |
+| `float32`  | a _non-integer string_ representing an IEEE-754 binary32 value |
+| `float64`  | a _non-integer string_ representing an IEEE-754 binary64 value |
+| `decimal`  | a _non-integer string_ representing an IEEE-754 decimal128 value |
 | `bool`     | the string `true` or `false` |
 | `bytes`    | a sequence of bytes encoded as a hexadecimal string prefixed with `0x` |
-| `string`   | a double-quoted UTF-8 string |
+| `string`   | a double-quoted or backtick-quoted UTF-8 string |
 | `bstring`  | a doubled-quoted UTF-8 string with `\x` escapes of non-UTF binary data |
 | `ip`       | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
 | `net`      | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
@@ -360,10 +367,18 @@ each with optional fraction and a unit suffix,
 such as "300ms", "-1.5h" or "2h45m".
 Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
 
-The format of a _point string_ is the subset of strings defined by the
-JSON specification for a number that include the character `.` (thereby
-explicitly differentiating from integers) or one of the strings:
-`+Inf`, `-Inf`, or `Nan`.
+The format of floating point values is a _non-integer string_
+conforming to any floating point representation that cannot be
+interpreted as an integer, e.g., `1.` or `1.0` instead of
+`1` or `1e3` instead of `1000`.  Unlike JSON, a floating point number can
+also be one of:
+`Inf`, `+Inf`, `-Inf`, or `Nan`.
+
+A string may be backtick-quoted with the backtick character `` ` ``.
+None of the text between backticks is escaped, but by default, any newlines
+followed by whitespace are converted to a single newline and the first
+newline of the string is deleted.  To avoid this automatic deletion and
+preserve indentation, the backtick-quoted string can be preceded with `=>`.
 
 Of the 23 primitive types, ten of them represent _implied-type_ values:
 `int64`, `time`, `float64`, `bool`, `bytes`, `string`, `ip`, `net`, `type`, and `null`.
@@ -499,6 +514,11 @@ Likewise, this is an integer value of the same union:
 Where there is ambiguity, a decorator may resolve the ambiguity as in
 ```
 123 (int8) (int32, int8)
+```
+Where a union value is inside of nested union types, multiple decorators are
+needed to resolve the ambiguity, e.g.,
+```
+"hello, world" (int32, string) ((int32,string),[int32])
 ```
 
 > TBD: list the ambiguous possibilities so this is clear.  I think they are
@@ -777,9 +797,15 @@ the defines their type.
 
 <eos> = .
 
-<value> = <primary> | <primary> <decorator>
+<value> = <any> | <any> <val-typedef> | <any> <decorators>
 
-<primary> = <primitive> | <record> | <array> | <set> |
+<val-typedef> = "(" "=" <type-name> ")"
+
+<decorators> = "(" <type> ")" | <decorators> "(" <type ")"
+
+<union-decorator> = <decorator> "(" <type> ")"
+
+<any> = <primitive> | <record> | <array> | <set> |
             <union> | <enum> | <map> | <type-val>
 
 <primitive> = primitive value as defined above
@@ -808,19 +834,17 @@ the defines their type.
 
 <map> = "|{" <mlist> "}|"  |  "|{"  "}|"
 
-mlist = <mvalue> | <mlist>
+<mlist> = <mvalue> | <mlist> "," <mvalue>
 
-mvalue = "{" <value> "," <value> "}"
+<mvalue> = "{" <value> "," <value> "}"
 
-<type-value> = <type-type>
-
-<decorator> = "(" <type> ")" | "(" "=" <type-name> ")"
+<type-value> = "(" <type> ")"
 
 <type> = <primitive-type> | <record-type> | <array-type> | <set-type> |
             <union-type> | <enum-type> | <map-type> | <type-type> |
             <type-def> | <type-name>
 
-<primitive-type> = uint8 | uint16 | etc as defined above excepting "type"
+<primitive-type> = uint8 | uint16 | etc as defined above including "type"
 
 <record-type> = "{" <tflist> "}"  |  "{" "}"
 
@@ -839,8 +863,6 @@ mvalue = "{" <value> "," <value> "}"
 <enum-type> = "<" <flist> ">"
 
 <map-type> = "{" <type> "," <type> "}"
-
-<type-type> = "(" <type> ")"
 
 <type-def> = <identifier> = <type-type>
 

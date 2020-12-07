@@ -5,14 +5,14 @@ import (
 	"unicode"
 )
 
-func idChar(c rune) bool {
+func IdChar(c rune) bool {
 	return unicode.IsLetter(c) || c == '_' || c == '$'
 }
 
-func NameIsId(s string) bool {
+func IsIdentifier(s string) bool {
 	first := true
 	for _, c := range s {
-		if !idChar(c) && (first || !unicode.IsDigit(c)) {
+		if !IdChar(c) && (first || !unicode.IsDigit(c)) {
 			return false
 		}
 		first = false
@@ -21,7 +21,7 @@ func NameIsId(s string) bool {
 }
 
 func FormatName(name string) string {
-	if NameIsId(name) {
+	if IsIdentifier(name) {
 		return name
 	}
 	var b strings.Builder

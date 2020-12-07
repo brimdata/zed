@@ -1,3 +1,9 @@
+// Package zson provides fundamental interfaces to the ZSON data format comprising
+// Reader, Writer, Parser, and so forth.  The ZSON format includes a type system
+// that requries a semantic analysis to parse an input to its structured data
+// representation.  To do so, Parser translats a ZSON input to an AST, Analyzer
+// performs semantic type analysis to turn the AST into a Value, and Builder
+// constructs a zng.Value from a Value.
 package zson
 
 import (
