@@ -36,11 +36,17 @@ type Config struct {
 	Root        string
 	Version     string
 
+	Auth     AuthConfig
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher
 }
 
+type middleware interface {
+	Middleware(next http.Handler) http.Handler
+}
+
 type Core struct {
+	auth      middleware
 	logger    *zap.Logger
 	mgr       *apiserver.Manager
 	registry  *prometheus.Registry
@@ -73,6 +79,11 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		return nil, err
 	}
 
+	auth, err := newAuthenticator(ctx, conf.Logger, registry, conf.Auth)
+	if err != nil {
+		return nil, err
+	}
+
 	router := mux.NewRouter()
 	router.Use(requestIDMiddleware())
 	router.Use(accessLogMiddleware(conf.Logger))
@@ -90,6 +101,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	})
 
 	c := &Core{
+		auth:     auth,
 		logger:   conf.Logger,
 		mgr:      mgr,
 		registry: registry,
@@ -115,31 +127,40 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 }
 
 func (c *Core) addAPIServerRoutes() {
-	c.handle("/ast", handleASTPost).Methods("POST")
-	c.handle("/search", handleSearch).Methods("POST")
-	c.handle("/space", handleSpaceList).Methods("GET")
-	c.handle("/space", handleSpacePost).Methods("POST")
-	c.handle("/space/{space}", handleSpaceDelete).Methods("DELETE")
-	c.handle("/space/{space}", handleSpaceGet).Methods("GET")
-	c.handle("/space/{space}", handleSpacePut).Methods("PUT")
-	c.handle("/space/{space}/archivestat", handleArchiveStat).Methods("GET")
-	c.handle("/space/{space}/index", handleIndexPost).Methods("POST")
-	c.handle("/space/{space}/indexsearch", handleIndexSearch).Methods("POST")
-	c.handle("/space/{space}/log", handleLogStream).Methods("POST")
-	c.handle("/space/{space}/log/paths", handleLogPost).Methods("POST")
-	c.handle("/space/{space}/pcap", handlePcapPost).Methods("POST")
-	c.handle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
-	c.handle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
+	c.authhandle("/ast", handleASTPost).Methods("POST")
+	c.authhandle("/auth/identity", handleIdentityGet).Methods("GET")
+	c.authhandle("/search", handleSearch).Methods("POST")
+	c.authhandle("/space", handleSpaceList).Methods("GET")
+	c.authhandle("/space", handleSpacePost).Methods("POST")
+	c.authhandle("/space/{space}", handleSpaceDelete).Methods("DELETE")
+	c.authhandle("/space/{space}", handleSpaceGet).Methods("GET")
+	c.authhandle("/space/{space}", handleSpacePut).Methods("PUT")
+	c.authhandle("/space/{space}/archivestat", handleArchiveStat).Methods("GET")
+	c.authhandle("/space/{space}/index", handleIndexPost).Methods("POST")
+	c.authhandle("/space/{space}/indexsearch", handleIndexSearch).Methods("POST")
+	c.authhandle("/space/{space}/log", handleLogStream).Methods("POST")
+	c.authhandle("/space/{space}/log/paths", handleLogPost).Methods("POST")
+	c.authhandle("/space/{space}/pcap", handlePcapPost).Methods("POST")
+	c.authhandle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
+	c.authhandle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
 }
 
 func (c *Core) addWorkerRoutes() {
 	c.handle("/worker", handleWorker).Methods("POST")
 }
 
-func (c *Core) handle(path string, f func(*Core, http.ResponseWriter, *http.Request)) *mux.Route {
-	return c.router.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
+func coreHandler(c *Core, f func(*Core, http.ResponseWriter, *http.Request)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f(c, w, r)
 	})
+}
+
+func (c *Core) handle(path string, f func(*Core, http.ResponseWriter, *http.Request)) *mux.Route {
+	return c.router.Handle(path, coreHandler(c, f))
+}
+
+func (c *Core) authhandle(path string, f func(*Core, http.ResponseWriter, *http.Request)) *mux.Route {
+	return c.router.Handle(path, c.auth.Middleware(coreHandler(c, f)))
 }
 
 func (c *Core) HTTPHandler() http.Handler {

@@ -21,6 +21,7 @@ const (
 	Exists
 	Invalid
 	NotFound
+	NoCredentials
 )
 
 func (k Kind) String() string {
@@ -35,6 +36,8 @@ func (k Kind) String() string {
 		return "item already exists"
 	case NotFound:
 		return "item does not exist"
+	case NoCredentials:
+		return "misssing authentication credentials"
 	}
 	return "unknown error kind"
 }
@@ -138,11 +141,12 @@ func IsExists(err error) bool   { return IsKind(err, Exists) }
 func IsInvalid(err error) bool  { return IsKind(err, Invalid) }
 func IsNotFound(err error) bool { return IsKind(err, NotFound) }
 
-func ErrOther(args ...interface{}) error    { return errKind(Other, args) }
-func ErrConflict(args ...interface{}) error { return errKind(Conflict, args) }
-func ErrExists(args ...interface{}) error   { return errKind(Exists, args) }
-func ErrInvalid(args ...interface{}) error  { return errKind(Invalid, args) }
-func ErrNotFound(args ...interface{}) error { return errKind(NotFound, args) }
+func ErrOther(args ...interface{}) error         { return errKind(Other, args) }
+func ErrConflict(args ...interface{}) error      { return errKind(Conflict, args) }
+func ErrExists(args ...interface{}) error        { return errKind(Exists, args) }
+func ErrInvalid(args ...interface{}) error       { return errKind(Invalid, args) }
+func ErrNotFound(args ...interface{}) error      { return errKind(NotFound, args) }
+func ErrNoCredentials(args ...interface{}) error { return errKind(NoCredentials, args) }
 
 func errKind(k Kind, args []interface{}) error {
 	args = append([]interface{}{k}, args...)

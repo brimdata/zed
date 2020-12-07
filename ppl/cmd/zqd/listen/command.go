@@ -16,6 +16,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/alfred-landrum/fromenv"
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
@@ -151,6 +152,9 @@ func (c *Command) Run(args []string) error {
 }
 
 func (c *Command) init() error {
+	if err := fromenv.Unmarshal(&c.conf); err != nil {
+		return fmt.Errorf("failed to load environment variable config: %w", err)
+	}
 	if err := c.loadConfigFile(); err != nil {
 		return err
 	}
