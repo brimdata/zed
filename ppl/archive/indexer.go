@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
@@ -85,7 +86,7 @@ func NewFlowgraphIndexer(ctx context.Context, zctx *resolver.Context, uri iosrc.
 	if err != nil {
 		return nil, err
 	}
-	fields, resolvers := expr.CompileAssignments(keys, keys)
+	fields, resolvers := compiler.CompileAssignments(keys, keys)
 	return &FlowgraphIndexer{
 		zctx:   zctx,
 		w:      writer,

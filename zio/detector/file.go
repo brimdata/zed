@@ -5,7 +5,6 @@ import (
 	"io"
 	"sync"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
@@ -166,20 +165,20 @@ func (r *multiFileReader) Close() (err error) {
 	return
 }
 
-func (r *multiFileReader) NewScanner(ctx context.Context, filterExpr ast.BooleanExpr, s nano.Span) (zbuf.Scanner, error) {
+func (r *multiFileReader) NewScanner(ctx context.Context, filter zbuf.Filter, s nano.Span) (zbuf.Scanner, error) {
 	return &multiFileScanner{
 		multiFileReader: r,
 		ctx:             ctx,
-		filterExpr:      filterExpr,
+		filter:          filter,
 		span:            s,
 	}, nil
 }
 
 type multiFileScanner struct {
 	*multiFileReader
-	ctx        context.Context
-	filterExpr ast.BooleanExpr
-	span       nano.Span
+	ctx    context.Context
+	filter zbuf.Filter
+	span   nano.Span
 
 	mu      sync.Mutex // protects below
 	scanner zbuf.Scanner
@@ -194,7 +193,7 @@ func (s *multiFileScanner) Pull() (zbuf.Batch, error) {
 			return nil, err
 		}
 		if s.scanner == nil {
-			sn, err := zbuf.NewScanner(s.ctx, s.reader, s.filterExpr, s.span)
+			sn, err := zbuf.NewScanner(s.ctx, s.reader, s.filter, s.span)
 			if err != nil {
 				return nil, err
 			}

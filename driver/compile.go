@@ -62,7 +62,7 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 		cfg.Warnings = make(chan string, 5)
 	}
 
-	filterExpr, program := compiler.Optimize(program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
+	filterExpr, program := compiler.Optimize(zctx, program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
 	procs := make([]proc.Interface, 0, len(readers))
 	scanners := make([]zbuf.Scanner, 0, len(readers))
 	for _, r := range readers {
@@ -128,7 +128,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	}
 
 	sortKey, sortReversed := msrc.OrderInfo()
-	filterExpr, program := compiler.Optimize(program, sortKey, sortReversed)
+	filterExpr, program := compiler.Optimize(zctx, program, sortKey, sortReversed)
 
 	var isParallel bool
 	if mcfg.Parallelism > 1 {

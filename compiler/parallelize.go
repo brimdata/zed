@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 var passProc = &ast.PassProc{Node: ast.Node{"PassProc"}}
@@ -18,7 +19,7 @@ func zbufDirInt(reversed bool) int {
 	return 1
 }
 
-func Optimize(program ast.Proc, sortKey field.Static, sortReversed bool) (ast.BooleanExpr, ast.Proc) {
+func Optimize(zctx *resolver.Context, program ast.Proc, sortKey field.Static, sortReversed bool) (*Filter, ast.Proc) {
 	if program == nil {
 		return nil, passProc
 	}
@@ -26,7 +27,11 @@ func Optimize(program ast.Proc, sortKey field.Static, sortReversed bool) (ast.Bo
 	if sortKey != nil {
 		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
 	}
-	return liftFilter(program)
+	fe, p := liftFilter(program)
+	if fe == nil {
+		return nil, p
+	}
+	return NewFilter(zctx, fe), p
 }
 
 func ensureSequentialProc(p ast.Proc) *ast.SequentialProc {

@@ -7,7 +7,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/filter"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/combine"
 	"github.com/brimsec/zq/proc/cut"
@@ -69,7 +68,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		return cut, nil
 
 	case *ast.SortProc:
-		fields, err := expr.CompileExprs(pctx.TypeContext, v.Fields)
+		fields, err := CompileExprs(pctx.TypeContext, v.Fields)
 		if err != nil {
 			return nil, err
 		}
@@ -100,14 +99,14 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		return pass.New(parent), nil
 
 	case *ast.FilterProc:
-		f, err := filter.Compile(pctx.TypeContext, v.Filter)
+		f, err := compileFilter(pctx.TypeContext, v.Filter)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
 		return filterproc.New(parent, f), nil
 
 	case *ast.TopProc:
-		fields, err := expr.CompileExprs(pctx.TypeContext, v.Fields)
+		fields, err := CompileExprs(pctx.TypeContext, v.Fields)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
@@ -132,7 +131,32 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		return put, nil
 
 	case *ast.RenameProc:
-		rename, err := rename.New(pctx, parent, v)
+		var srcs, dsts []field.Static
+		for _, fa := range v.Fields {
+			dst, err := CompileLval(fa.LHS)
+			if err != nil {
+				return nil, err
+			}
+			// We call CompileLval on the RHS because renames are
+			// restricted to dotted field name expressions.
+			src, err := CompileLval(fa.RHS)
+			if err != nil {
+				return nil, err
+			}
+			if len(dst) != len(src) {
+				return nil, fmt.Errorf("cannot rename %s to %s", src, dst)
+			}
+			// Check that the prefixes match and, if not, report first place
+			// that they don't.
+			for i := 0; i <= len(src)-2; i++ {
+				if src[i] != dst[i] {
+					return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", src, dst, src[i], dst[i])
+				}
+			}
+			dsts = append(dsts, dst)
+			srcs = append(srcs, src)
+		}
+		rename, err := rename.New(pctx, parent, srcs, dsts)
 		if err != nil {
 			return nil, err
 		}
@@ -153,7 +177,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 func compileAssignments(assignments []ast.Assignment, zctx *resolver.Context) ([]expr.Assignment, error) {
 	keys := make([]expr.Assignment, 0, len(assignments))
 	for _, assignment := range assignments {
-		a, err := expr.CompileAssignment(zctx, &assignment)
+		a, err := CompileAssignment(zctx, &assignment)
 		if err != nil {
 			return nil, err
 		}
@@ -253,7 +277,20 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, parents []proc.Inte
 		if len(parents) != 2 {
 			return nil, ErrJoinParents
 		}
-		join, err := join.New(pctx, parents[0], parents[1], node)
+		assignments, err := compileAssignments(node.Clauses, pctx.TypeContext)
+		if err != nil {
+			return nil, err
+		}
+		lhs, rhs := splitAssignments(assignments)
+		leftKey, err := CompileExpr(pctx.TypeContext, node.LeftKey)
+		if err != nil {
+			return nil, err
+		}
+		rightKey, err := CompileExpr(pctx.TypeContext, node.RightKey)
+		if err != nil {
+			return nil, err
+		}
+		join, err := join.New(pctx, parents[0], parents[1], leftKey, rightKey, lhs, rhs)
 		if err != nil {
 			return nil, err
 		}

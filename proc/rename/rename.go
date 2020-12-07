@@ -3,8 +3,6 @@ package rename
 import (
 	"fmt"
 
-	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
@@ -26,32 +24,7 @@ type Proc struct {
 	typeMap map[int]*zng.TypeRecord
 }
 
-func New(pctx *proc.Context, parent proc.Interface, node *ast.RenameProc) (*Proc, error) {
-	var srcs, dsts []field.Static
-	for _, fa := range node.Fields {
-		dst, err := expr.CompileLval(fa.LHS)
-		if err != nil {
-			return nil, err
-		}
-		// We call CompileLval on the RHS because renames are
-		// restricted to dotted field name expressions.
-		src, err := expr.CompileLval(fa.RHS)
-		if err != nil {
-			return nil, err
-		}
-		if len(dst) != len(src) {
-			return nil, fmt.Errorf("cannot rename %s to %s", src, dst)
-		}
-		// Check that the prefixes match and, if not, report first place
-		// that they don't.
-		for i := 0; i <= len(src)-2; i++ {
-			if src[i] != dst[i] {
-				return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", src, dst, src[i], dst[i])
-			}
-		}
-		dsts = append(dsts, dst)
-		srcs = append(srcs, src)
-	}
+func New(pctx *proc.Context, parent proc.Interface, srcs, dsts []field.Static) (*Proc, error) {
 	return &Proc{
 		pctx:    pctx,
 		parent:  parent,
