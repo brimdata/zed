@@ -142,5 +142,5 @@ func (c *Cutter) Warning() string {
 	if c.droppers != nil {
 		cmd = "cut"
 	}
-	return fmt.Sprintf("%s: nothing nothing found for: %s", cmd, list)
+	return fmt.Sprintf("%s: nothing found for: %s", cmd, list)
 }

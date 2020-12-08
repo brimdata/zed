@@ -48,7 +48,7 @@ func TestCut(t *testing.T) {
 	proctest.TestOneProc(t, fooAndBar, fooOnly, "cut foo")
 
 	// test "cut foo" on records that don't have field foo
-	warning := "cut: nothing nothing found for: foo"
+	warning := "cut: nothing found for: foo"
 	proctest.TestOneProcWithWarnings(t, barOnly, "", []string{warning}, "cut foo")
 
 	// test "cut foo" on some fields with foo, some without
