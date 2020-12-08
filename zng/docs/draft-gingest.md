@@ -99,8 +99,8 @@ Zeek as driving example
 
 ```
 const zeek_id_t = {orig_h:ip, orig_p:port, resp_h:ip, resp_p:port}
-const zeek_conn_t = {_path: string, id: zeek_conn_t, uid: string, proto: zenum, ...}
-const zeek_http_t = {_path: string, id: zeek_conn_t, uid: string, method: bstring, ...}
+const zeek_conn_t = {_path: string, id: zeek_id_t, uid: string, proto: zenum, ...}
+const zeek_http_t = {_path: string, id: zeek_id_t, uid: string, method: bstring, ...}
 ```
 
 
