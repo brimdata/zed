@@ -311,6 +311,14 @@ e.g.,
 ````
 is the value 80 of type "port", where "port" is a type name bound to `uint16`.
 
+The abbreviated form `(=<identifier>)` may be used whenever a type value is
+_self describing_ in the sense that its type name can be entirely derived
+from its value, e.g., a record type can be derived from a record value
+because all of the field names and type names are present in the value, but
+an enum type cannot be derived from an enum value because not all the enumerated
+names are present in the value.  In the the latter case, the long form
+`(<identifier>=(<type>))` must be used.
+
 It is an error for an external type to be defined to a different type
 than its previous definition though multiple definitions of the same
 type are legal (thereby allowing for concatenation of otherwise
