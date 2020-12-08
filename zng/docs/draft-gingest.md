@@ -85,7 +85,7 @@ to be our general purpose ingest system.
 Proposal
 --------
 
-The proposal is to use ZQL to write ingest classification, transforms, and validation.  This idea was previously floated in sync (by Noah?), but at that time ZQL was far from being able to support ingest-related transforms.
+The proposal is to use ZQL to write ingest classification, transforms, and validation. This idea was previously floated in sync (by Noah?), but at that time ZQL was far from being able to support ingest-related transforms.
 
 Now, with the recent addition of type values to ZQL ("first class types"), and the forthcoming addition of complex literals (à la ZSON), we're a lot closer. We dont have all the bits yet, but now it's mostly just a matter of filling in a proc or two, and adding one or two flowgraph constructs to zql.
 
@@ -127,7 +127,7 @@ In order to support input records that may have originated from data languages w
 
 For example, `reshape({host:ip, port:port})` should handle both `{host: 1.2.3.4, port: 90}` and `{host: 90, port: 1.2.3.4}`, in the latter case "reordering" the record columns  so that the result matches the type `{host:ip, port:port}`.
 
-### A new syntax for switched parallel flowgraphs
+### Switched (pseudo-)parallel flowgraphs
 
 
 ``` 
@@ -140,14 +140,6 @@ For example, `reshape({host:ip, port:port})` should handle both `{host: 1.2.3.4,
 
 An incoming record is evaluated against the boolean expressions until one matches, and is then "pushed" into the match's RHS flowgraph. 
 
-(or maybe)
-```
-... | switch (
-    <boolean expression> | ... | ...;
-    <boolean expression> | ... | ...;
-    ...
-    ) | ...
-```
 
 ### Putting both together:
 
@@ -187,17 +179,39 @@ Renames, annotation, validation, can all be done in ZQL.
 - **annotation**: `put source_type=zeek`
 
 
+
+### Side note: building a ZNG schema registry (one day)
+
+```
+// map of string->type
+const schemas = |{
+   { "zeek_conn_log", {_path: string, id: zeek_conn_t, uid: string, proto: zenum, ...}},
+     "zeek_http_t", {_path: string, id: zeek_conn_t, uid: string, method: bstring, ...}}
+}|
+```
+
+A simple schema registry could be obtained by putting a simple HTTP API over this data structure. 
+
+With a bit more structure, you could imagine this being tied into the ingest, and having the ingest ZQL flowgraph derived from the info in the registry. Documentation for fields could also be added here.
+
+
 Other tooling that would be useful
 ==================================
 
-- Shape finder: Tool that takes a number of different record types as input, and provide output describing the common fields (easy), how field sets are associated with field values (hard). 
+- Shape finder: Tool that takes ZSON type values as input, and provides and output report describing the common fields (easy), how field sets are associated with field values (hard). The input to this tool can be obtained by running `* | by typeof(.)` over a sample dataset.
+
+- Leaf finder: Tool that takes 
 
 - Fuse: `fuse (typeof(.)) by alert.signature, alert.category` to get a per-alert type uberschema.
 
 - Comparison operators for record types: `contains(zeek_id_t)` true iff record has zeek `id` fields.
 
 
+Plumbing notes
+==============
 
+- Need to immediately transform incoming json into zng via good old inference (or read it as zson, which could be the same thing...)
+- How do we associate an ingest POST with a ZQL to run on it?
 
 
 
