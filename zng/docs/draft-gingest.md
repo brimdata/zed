@@ -1,16 +1,6 @@
 Generic ingest outline
 ======================
 
-We want a way to normalize, and "restore" json objects that are ingested into a zng lake.
-
-
-- validate
-  // xxx do we need to talk about validate? since we're probably not doing it here. 
-  is field A present and is it numeric
-  if field B is present, are fields C and D present?
-- normalize
-- restore 
-
 
 ### Background: The existing "json types" system
 
@@ -127,7 +117,7 @@ In order to support input records that may have originated from data languages w
 
 For example, `reshape({host:ip, port:port})` should handle both `{host: 1.2.3.4, port: 90}` and `{host: 90, port: 1.2.3.4}`, in the latter case "reordering" the record columns  so that the result matches the type `{host:ip, port:port}`.
 
-### Switched (pseudo-)parallel flowgraphs
+### Switched parallel flowgraphs
 
 
 ``` 
