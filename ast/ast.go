@@ -211,13 +211,13 @@ type (
 	// A PickProc is like a CutProc but skips records that do not
 	// match all of the field expressions.
 	PickProc struct {
-		Node
+		Op     string       `json:"op"`
 		Fields []Assignment `json:"fields"`
 	}
 	// A DropProc node represents a proc that removes fields from each
 	// input record.
 	DropProc struct {
-		Node
+		Op     string       `json:"op"`
 		Fields []Expression `json:"fields"`
 	}
 	// A HeadProc node represents a proc that forwards the indicated number
