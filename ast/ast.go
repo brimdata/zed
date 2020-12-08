@@ -215,6 +215,18 @@ type (
 		Complement bool         `json:"complement"`
 		Fields     []Assignment `json:"fields"`
 	}
+	// A PickProc is like a CutProc but skips records that do not
+	// match all of the field expressions.
+	PickProc struct {
+		Node
+		Fields []Assignment `json:"fields"`
+	}
+	// A DropProc node represents a proc that removes fields from each
+	// input record.
+	DropProc struct {
+		Node
+		Fields []Expression `json:"fields"`
+	}
 	// A HeadProc node represents a proc that forwards the indicated number
 	// of records then terminates.
 	HeadProc struct {
@@ -350,6 +362,8 @@ func (*SequentialProc) ProcNode() {}
 func (*ParallelProc) ProcNode()   {}
 func (*SortProc) ProcNode()       {}
 func (*CutProc) ProcNode()        {}
+func (*PickProc) ProcNode()       {}
+func (*DropProc) ProcNode()       {}
 func (*HeadProc) ProcNode()       {}
 func (*TailProc) ProcNode()       {}
 func (*PassProc) ProcNode()       {}
