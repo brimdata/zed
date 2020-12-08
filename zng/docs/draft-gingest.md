@@ -197,7 +197,7 @@ Other tooling that would be useful
 
 - Shape finder: Tool that takes ZSON type values as input, and provides and output report describing the common fields (easy), how field sets are associated with field values (hard). The input to this tool can be obtained by running `* | by typeof(.)` over a sample dataset.
 
-- Leaf finder: Tool that takes 
+- Leaf finder: Tool that tries to infer the type of leaf values by parsing leaves according to different ZNG types (e.g. figure out a string is an IP)
 
 - Fuse reducer: `fuse (typeof(.)) by alert.signature, alert.category` to get a per-alert type uberschema. 
 
