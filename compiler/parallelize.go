@@ -124,6 +124,22 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSo
 			}
 		}
 		return p.Complement
+	case *ast.PickProc:
+		// Return true if the output record contains inputSortField.
+		for _, f := range p.Fields {
+			if eq(f.RHS, inputSortField) {
+				return true
+			}
+		}
+		return false
+	case *ast.DropProc:
+		// Return true if the output record contains inputSortField.
+		for _, e := range p.Fields {
+			if eq(e, inputSortField) {
+				return false
+			}
+		}
+		return true
 	case *ast.GroupByProc:
 		// Set p.InputSortDir and return true if the first grouping key
 		// is inputSortField or an order-preserving function of it.
@@ -278,15 +294,21 @@ func computeColumns(p ast.Proc) *Colset {
 func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 	switch p := p.(type) {
 	case *ast.CutProc:
-		if p.Complement {
-			return colset, false
-		}
 		for _, f := range p.Fields {
 			if ok := colset.Add(&f); !ok {
 				return colset, false
 			}
 		}
 		return colset, true
+	case *ast.PickProc:
+		for _, f := range p.Fields {
+			if ok := colset.Add(&f); !ok {
+				return colset, false
+			}
+		}
+		return colset, true
+	case *ast.DropProc:
+		return colset, false
 	case *ast.GroupByProc:
 		for _, r := range p.Reducers {
 			reducer, ok := r.RHS.(*ast.Reducer)
@@ -445,20 +467,18 @@ func Parallelize(p ast.Proc, N int, inputSortField field.Static, inputSortRevers
 			// Stateless procs: continue until we reach one of the procs below at
 			// which point we'll either split the flowgraph or see we can't and return it as-is.
 			continue
-		case *ast.CutProc:
+		case *ast.CutProc, *ast.PickProc:
 			if inputSortField == nil || !orderSensitiveTail {
 				continue
 			}
-			if p.Complement {
-				for _, f := range p.Fields {
-					if eq(f.RHS, inputSortField) {
-						return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
-					}
-				}
-				continue
+			var fields []ast.Assignment
+			if cut, ok := p.(*ast.CutProc); ok {
+				fields = cut.Fields
+			} else {
+				fields = p.(*ast.PickProc).Fields
 			}
 			var found bool
-			for _, f := range p.Fields {
+			for _, f := range fields {
 				fieldName, okField := ast.DotExprToField(f.RHS)
 				lhs, okLHS := ast.DotExprToField(f.LHS)
 				if okField && !fieldName.Equal(inputSortField) && okLHS && lhs.Equal(inputSortField) {
@@ -471,6 +491,16 @@ func Parallelize(p ast.Proc, N int, inputSortField field.Static, inputSortRevers
 			if !found {
 				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
 			}
+		case *ast.DropProc:
+			if inputSortField == nil || !orderSensitiveTail {
+				continue
+			}
+			for _, e := range p.Fields {
+				if eq(e, inputSortField) {
+					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
+				}
+			}
+			continue
 		case *ast.PutProc:
 			if inputSortField == nil || !orderSensitiveTail {
 				continue
