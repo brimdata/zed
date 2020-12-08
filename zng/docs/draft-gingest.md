@@ -1,5 +1,7 @@
-Generic ingest outline
-======================
+Generic ingest 
+===============
+
+This page contains notes on a new generic ingest approach.
 
 
 ### Background: The existing "json types" system
@@ -197,7 +199,7 @@ Other tooling that would be useful
 
 - Leaf finder: Tool that takes 
 
-- Fuse: `fuse (typeof(.)) by alert.signature, alert.category` to get a per-alert type uberschema.
+- Fuse reducer: `fuse (typeof(.)) by alert.signature, alert.category` to get a per-alert type uberschema. 
 
 - Comparison operators for record types: `contains(zeek_id_t)` true iff record has zeek `id` fields.
 
