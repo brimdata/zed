@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-var passProc = &ast.PassProc{Node: ast.Node{"PassProc"}}
+var passProc = &ast.PassProc{Op: "PassProc"}
 
 //XXX
 func zbufDirInt(reversed bool) int {
@@ -57,7 +57,7 @@ func liftFilter(p ast.Proc) (ast.BooleanExpr, ast.Proc) {
 			rest := ast.Proc(passProc)
 			if len(seq.Procs) > 1 {
 				rest = &ast.SequentialProc{
-					Node:  ast.Node{"SequentialProc"},
+					Op:    "SequentialProc",
 					Procs: seq.Procs[1:],
 				}
 			}
@@ -74,12 +74,12 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 			durationKey := ast.Assignment{
 				LHS: ast.NewDotExpr(field.New("ts")),
 				RHS: &ast.FunctionCall{
-					Node:     ast.Node{"FunctionCall"},
+					Op:       "FunctionCall",
 					Function: "trunc",
 					Args: []ast.Expression{
 						ast.NewDotExpr(field.New("ts")),
 						&ast.Literal{
-							Node:  ast.Node{"Literal"},
+							Op:    "Literal",
 							Type:  "int64",
 							Value: strconv.Itoa(duration),
 						}},
@@ -417,7 +417,7 @@ func copyProcs(ps []ast.Proc) []ast.Proc {
 func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, reverse bool, N int) (*ast.SequentialProc, bool) {
 	if len(branch) == 0 {
 		return &ast.SequentialProc{
-			Node:  ast.Node{"SequentialProc"},
+			Op:    "SequentialProc",
 			Procs: tail,
 		}, false
 	}
@@ -425,22 +425,22 @@ func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, rever
 		// Insert a pass tail in order to force a merge of the
 		// parallel branches when compiling. (Trailing parallel branches are wired to
 		// a mux output).
-		tail = []ast.Proc{&ast.PassProc{Node: ast.Node{"PassProc"}}}
+		tail = []ast.Proc{&ast.PassProc{Op: "PassProc"}}
 	}
 	pp := &ast.ParallelProc{
-		Node:              ast.Node{"ParallelProc"},
+		Op:                "ParallelProc",
 		Procs:             []ast.Proc{},
 		MergeOrderField:   mergeField,
 		MergeOrderReverse: reverse,
 	}
 	for i := 0; i < N; i++ {
 		pp.Procs = append(pp.Procs, &ast.SequentialProc{
-			Node:  ast.Node{"SequentialProc"},
+			Op:    "SequentialProc",
 			Procs: copyProcs(branch),
 		})
 	}
 	return &ast.SequentialProc{
-		Node:  ast.Node{"SequentialProc"},
+		Op:    "SequentialProc",
 		Procs: append([]ast.Proc{pp}, tail...),
 	}, true
 }
