@@ -65,7 +65,7 @@ func TestCut(t *testing.T) {
 	proctest.TestOneProc(t, fooAndBar, fooAndBar, "cut foo,bar")
 }
 
-func TestCutComplement(t *testing.T) {
+func TestDrop(t *testing.T) {
 	// test "cut foo" on records that only have field foo
 	proctest.TestOneProc(t, fooOnly, fooOnly, "drop boo")
 

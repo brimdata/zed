@@ -137,10 +137,16 @@ func (c *Cutter) Warning() string {
 	if c.FoundCut() {
 		return ""
 	}
-	list := fieldList(c.fieldExprs)
-	cmd := "pick"
-	if c.droppers != nil {
-		cmd = "cut"
+	return fmt.Sprintf("nothing found for: %s", fieldList(c.fieldExprs))
+}
+
+func (c *Cutter) Eval(rec *zng.Record) (zng.Value, error) {
+	out, err := c.Apply(rec)
+	if err != nil {
+		return zng.Value{}, err
 	}
-	return fmt.Sprintf("%s: nothing found for: %s", cmd, list)
+	if out == nil {
+		return zng.Value{}, ErrNoSuchField
+	}
+	return zng.Value{out.Type, out.Raw}, nil
 }

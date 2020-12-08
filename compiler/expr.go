@@ -236,7 +236,7 @@ func CompileAssignments(dsts []field.Static, srcs []field.Static) ([]field.Stati
 	return fields, resolvers
 }
 
-func compileCutter(zctx *resolver.Context, node ast.FunctionCall) (*expr.CutFunc, error) {
+func compileCutter(zctx *resolver.Context, node ast.FunctionCall) (*expr.Cutter, error) {
 	var lhs []field.Static
 	var rhs []expr.Evaluator
 	for _, expr := range node.Args {
@@ -255,7 +255,7 @@ func compileCutter(zctx *resolver.Context, node ast.FunctionCall) (*expr.CutFunc
 		lhs = append(lhs, compiled.LHS)
 		rhs = append(rhs, compiled.RHS)
 	}
-	return expr.NewCutFunc(zctx, lhs, rhs)
+	return expr.NewCutter(zctx, lhs, rhs)
 }
 
 func compileCall(zctx *resolver.Context, node ast.FunctionCall) (expr.Evaluator, error) {
@@ -272,11 +272,7 @@ func compileCall(zctx *resolver.Context, node ast.FunctionCall) (expr.Evaluator,
 		return cut, nil
 	}
 	if node.Function == "pick" {
-		pick, err := compileCutter(zctx, node)
-		if err != nil {
-			return nil, err
-		}
-		return pick, nil
+		return compileCutter(zctx, node)
 	}
 	nargs := len(node.Args)
 	fn, err := function.New(node.Function, nargs)

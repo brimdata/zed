@@ -68,7 +68,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 			return nil, err
 		}
 		cutter.AllowPartialCuts()
-		return proc.NewApplier(pctx, parent, cutter), nil
+		return proc.FromFunction(pctx, parent, cutter, "cut"), nil
 
 	case *ast.PickProc:
 		assignments, err := compileAssignments(v.Fields, pctx.TypeContext)
@@ -80,7 +80,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		if err != nil {
 			return nil, err
 		}
-		return proc.NewApplier(pctx, parent, cutter), nil
+		return proc.FromFunction(pctx, parent, cutter, "pick"), nil
 
 	case *ast.DropProc:
 		if len(v.Fields) == 0 {
@@ -95,7 +95,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 			fields = append(fields, field)
 		}
 		dropper := expr.NewDropper(pctx.TypeContext, fields)
-		return proc.NewApplier(pctx, parent, dropper), nil
+		return proc.FromFunction(pctx, parent, dropper, "drop"), nil
 
 	case *ast.SortProc:
 		fields, err := CompileExprs(pctx.TypeContext, v.Fields)

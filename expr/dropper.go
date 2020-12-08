@@ -32,10 +32,9 @@ func (d *dropper) drop(in *zng.Record) (*zng.Record, error) {
 
 type Dropper struct {
 	zctx      *resolver.Context
-	droppers  map[int]*dropper
 	fields    []field.Static
 	resolvers []Evaluator
-	strict    bool
+	droppers  map[int]*dropper
 }
 
 func NewDropper(zctx *resolver.Context, fields []field.Static) *Dropper {

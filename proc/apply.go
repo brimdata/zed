@@ -1,6 +1,8 @@
 package proc
 
 import (
+	"fmt"
+
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
@@ -10,36 +12,39 @@ type Function interface {
 	Warning() string
 }
 
-type Applier struct {
-	pctx     *Context
-	parent   Interface
-	function Function
+type applier struct {
+	pctx          *Context
+	parent        Interface
+	function      Function
+	warningPrefix string
 }
 
-func NewApplier(pctx *Context, parent Interface, f Function) *Applier {
-	return &Applier{
-		pctx:     pctx,
-		parent:   parent,
-		function: f,
+// XXX proc.FromFunction takes a warningPrefix, which is just the name of the function.
+// Instead, Function should implement fmt.Stringer and have its String() method
+// return its name.  See issue #1776.
+
+func FromFunction(pctx *Context, parent Interface, f Function, warningPrefix string) *applier {
+	return &applier{
+		pctx:          pctx,
+		parent:        parent,
+		function:      f,
+		warningPrefix: warningPrefix,
 	}
 }
 
-func (a *Applier) warn() {
+func (a *applier) warn() {
 	if s := a.function.Warning(); s != "" {
-		a.pctx.Warnings <- s
+		a.pctx.Warnings <- fmt.Sprintf("%s: %s", a.warningPrefix, s)
 	}
 }
 
-func (a *Applier) Pull() (zbuf.Batch, error) {
+func (a *applier) Pull() (zbuf.Batch, error) {
 	for {
 		batch, err := a.parent.Pull()
 		if EOS(batch, err) {
 			a.warn()
 			return nil, err
 		}
-		// Make new records with only the fields specified.
-		// If a field specified doesn't exist, we don't include that record.
-		// If the types change for the fields specified, we drop those records.
 		recs := make([]*zng.Record, 0, batch.Length())
 		for k := 0; k < batch.Length(); k++ {
 			in := batch.Index(k)
@@ -60,6 +65,6 @@ func (a *Applier) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (a *Applier) Done() {
+func (a *applier) Done() {
 	a.parent.Done()
 }

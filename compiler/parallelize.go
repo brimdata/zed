@@ -116,6 +116,14 @@ func eq(e ast.Expression, b field.Static) bool {
 // inputSortDir; otherwise, it returns false.
 func setGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSortDir int) bool {
 	switch p := p.(type) {
+	case *ast.CutProc:
+		// Return true if the output record contains inputSortField.
+		for _, f := range p.Fields {
+			if eq(f.RHS, inputSortField) {
+				return !p.Complement
+			}
+		}
+		return p.Complement
 	case *ast.PickProc:
 		// Return true if the output record contains inputSortField.
 		for _, f := range p.Fields {
@@ -132,14 +140,6 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSo
 			}
 		}
 		return true
-	case *ast.CutProc:
-		// Return true if the output record contains inputSortField.
-		for _, f := range p.Fields {
-			if eq(f.RHS, inputSortField) {
-				return !p.Complement
-			}
-		}
-		return p.Complement
 	case *ast.GroupByProc:
 		// Set p.InputSortDir and return true if the first grouping key
 		// is inputSortField or an order-preserving function of it.
@@ -293,8 +293,6 @@ func computeColumns(p ast.Proc) *Colset {
 // y}, which is minimal).
 func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 	switch p := p.(type) {
-	case *ast.DropProc:
-		return colset, false
 	case *ast.CutProc:
 		for _, f := range p.Fields {
 			if ok := colset.Add(&f); !ok {
@@ -309,6 +307,8 @@ func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 			}
 		}
 		return colset, true
+	case *ast.DropProc:
+		return colset, false
 	case *ast.GroupByProc:
 		for _, r := range p.Reducers {
 			reducer, ok := r.RHS.(*ast.Reducer)
