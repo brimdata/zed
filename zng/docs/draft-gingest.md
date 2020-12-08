@@ -142,7 +142,7 @@ const zeek_http_t = {_path: string, id: zeek_conn_t, uid: string, method: bstrin
 
 * | switch {
   _path=conn | reshape(zeek_conn_type) 
-  _path=http | put . = reshape(http_conn_type)
+  _path=http | reshape(http_conn_type)
   ..
 } | ...
 ```
