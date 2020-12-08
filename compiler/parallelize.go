@@ -467,16 +467,6 @@ func Parallelize(p ast.Proc, N int, inputSortField field.Static, inputSortRevers
 			// Stateless procs: continue until we reach one of the procs below at
 			// which point we'll either split the flowgraph or see we can't and return it as-is.
 			continue
-		case *ast.DropProc:
-			if inputSortField == nil || !orderSensitiveTail {
-				continue
-			}
-			for _, e := range p.Fields {
-				if eq(e, inputSortField) {
-					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
-				}
-			}
-			continue
 		case *ast.CutProc, *ast.PickProc:
 			if inputSortField == nil || !orderSensitiveTail {
 				continue
@@ -501,6 +491,16 @@ func Parallelize(p ast.Proc, N int, inputSortField field.Static, inputSortRevers
 			if !found {
 				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
 			}
+		case *ast.DropProc:
+			if inputSortField == nil || !orderSensitiveTail {
+				continue
+			}
+			for _, e := range p.Fields {
+				if eq(e, inputSortField) {
+					return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
+				}
+			}
+			continue
 		case *ast.PutProc:
 			if inputSortField == nil || !orderSensitiveTail {
 				continue

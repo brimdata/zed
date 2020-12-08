@@ -16,9 +16,9 @@ type Cutter struct {
 	builder     *builder.ColumnBuilder
 	fieldRefs   []field.Static
 	fieldExprs  []Evaluator
+	typeCache   []zng.Type
 	outTypes    *typevector.Table
 	recordTypes map[int]*zng.TypeRecord
-	typeCache   []zng.Type
 
 	droppers     []*Dropper
 	dropperCache []*Dropper
@@ -55,8 +55,8 @@ func (c *Cutter) FoundCut() bool {
 	return c.dirty
 }
 
-// Cut returns a new record comprising fields copied from in according to the
-// receiver's configuration.  If the resulting record would be empty, Cut
+// Apply returns a new record comprising fields copied from in according to the
+// receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
 func (c *Cutter) Apply(in *zng.Record) (*zng.Record, error) {
 	types := c.typeCache
@@ -137,7 +137,7 @@ func (c *Cutter) Warning() string {
 	if c.FoundCut() {
 		return ""
 	}
-	return fmt.Sprintf("nothing found for: %s", fieldList(c.fieldExprs))
+	return fmt.Sprintf("nothing found for %s", fieldList(c.fieldExprs))
 }
 
 func (c *Cutter) Eval(rec *zng.Record) (zng.Value, error) {

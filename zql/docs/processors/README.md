@@ -58,7 +58,7 @@ zq -f table 'cut nothere,alsoabsent' weird.log.gz
 
 #### Output:
 ```zq-output
-cut: nothing found for: nothere,alsoabsent
+cut: nothing found for nothere,alsoabsent
 ```
 
 #### Example #3:

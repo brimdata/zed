@@ -48,7 +48,7 @@ func TestCut(t *testing.T) {
 	proctest.TestOneProc(t, fooAndBar, fooOnly, "cut foo")
 
 	// test "cut foo" on records that don't have field foo
-	warning := "cut: nothing found for: foo"
+	warning := "cut: nothing found for foo"
 	proctest.TestOneProcWithWarnings(t, barOnly, "", []string{warning}, "cut foo")
 
 	// test "cut foo" on some fields with foo, some without
@@ -152,8 +152,12 @@ const nestedOut2Complement = `
 // Test cutting fields inside nested records.
 func TestCutNested(t *testing.T) {
 	proctest.TestOneProc(t, nestedIn1, nestedOut1, "cut rec.foo")
-	proctest.TestOneProc(t, nestedIn1, nestedOut1, "drop rec.bar")
 	proctest.TestOneProc(t, nestedIn1, nestedIn1, "cut rec.foo,rec.bar")
 	proctest.TestOneProc(t, nestedIn2, nestedOut2, "cut rec1.sub1.foo,rec1.sub2.bar,rec2.foo,foo")
+}
+
+// Test dropping fields inside nested records.
+func TestDropNested(t *testing.T) {
+	proctest.TestOneProc(t, nestedIn1, nestedOut1, "drop rec.bar")
 	proctest.TestOneProc(t, nestedIn2, nestedOut2Complement, "drop rec1")
 }
