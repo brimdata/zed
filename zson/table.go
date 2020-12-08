@@ -7,12 +7,6 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-// XXX putting this hash table here for now.  It probably belongs in package zson
-// since zson will need to include resolver and expr can include both zson
-// and resolver to handle access to type values etc.  This currently maps
-// one way only (zng.Tyep to ZSON string), but will go the other way too.
-// eventually.
-
 type TypeTable struct {
 	mu      sync.Mutex
 	toBytes map[zng.Type]zcode.Bytes
