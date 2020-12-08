@@ -265,7 +265,7 @@ func compileCall(zctx *resolver.Context, node ast.FunctionCall) (expr.Evaluator,
 		return compileCut(zctx, node)
 	}
 	nargs := len(node.Args)
-	fn, err := function.New(node.Function, nargs)
+	fn, err := function.New(zctx, node.Function, nargs)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", node.Function, err)
 	}
