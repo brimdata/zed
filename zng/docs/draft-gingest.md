@@ -81,15 +81,13 @@ The proposal is to use ZQL to write ingest classification, transforms, and valid
 
 Now, with the recent addition of type values to ZQL ("first class types"), and the forthcoming addition of complex literals (à la ZSON), we're a lot closer. We dont have all the bits yet, but now it's mostly just a matter of filling in a proc or two, and adding one or two flowgraph constructs to zql.
 
-If we can express generic ingest stuff in ZQL, we get a unified language to express and reason both about ingest/ETL and analytics. Some advantages:
+If we can express generic ingest stuff in ZQL, we get a unified language to express and reason both about ingest/ETL and analytics. Similar to ZQL for analytics, ZQL for ingest should strike a nice UX balance between a general-purpose programming language and a hard-coded (JSON) DSL. 
 
-- Flexible: it should cover all the needs described above
-- Extensible: we add the requisite proc/functions to ZQL (such as `reshape` below). Of course you can do that with a JSON DSL too, but it gets ugly quickly.
-- Users only need to learn one thing, as opposed to having to learn and understand a different (typically ad hoc) DSL for ingest, such as logstash for Elastic or relabelling rules for Prometheus.
-- Provides a reasonable starting point for query-time transformations. For example, if you've ingested 1PB and now realize you want to change a field name, you change your ZQL ingest config so that newly ingested data will have the new name, and for old data, we can run that same ZQL at query time to convert it. Some of it can also be optimized to avoid reading everything. For example, if you've renamed `_path` to `_zeek_path` and search for `_zeek_path=conn`, we can transform that search to `_path=conn` when looking at old logs. This is all of course not something we need to tackle anytime soon, and there is lots to design here, but doing everything in ZQL is a good basis.
+With the changes outlined below, we have the flexibility to cover all the need described above, and if there are missing pieces in the future the extensibility route is to add any requisite proc/functions to ZQL (as we're doing with `reshape` below), where they will also be useful for CLI exploration and post-ingest Brim uses.
 
-- Of course, 
+Probably the biggest advantage is that users only need to learn one thing, as opposed to having to learn and understand a different (typically ad hoc) DSL for ingest, such as logstash for Elastic or relabelling rules for Prometheus.
 
+Finally, ZQL-based ingest provides a reasonable starting point for query-time transformations. For example, if you've ingested 1PB and now realize you want to change a field name, you change your ZQL ingest config so that newly ingested data will have the new name, and for old data, we can run that same ZQL at query time to convert it. Some of it can also be optimized to avoid reading everything. For example, if you've renamed `_path` to `_zeek_path` and search for `_zeek_path=conn`, we can transform that search to `_path=conn` when looking at old logs. This is all of course not something we need to tackle anytime soon, and there is lots to design here, but doing everything in ZQL is a good basis.
 
 
 Zeek as driving example
