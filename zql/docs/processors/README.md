@@ -104,7 +104,7 @@ TIME                        UID
 | **Description**           | Return the data only from all but the specified named fields.       |
 | **Syntax**                | `drop <field-list>`                   |
 | **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names or assignments.  |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/proc/drop            |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/proc            |
 
 #### Example #1:
 
