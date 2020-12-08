@@ -12,8 +12,8 @@ We want a way to normalize, and "restore" json objects that are ingested into a 
 - restore 
 
 
-Background: The existing "json types" system
---------------------------------------------
+### Background: The existing "json types" system
+
 
 Currently we have "json types", which works in two steps:
 1. Classify an incoming json object (in the current implementation, based on a single field value, such a `_path`)
@@ -103,7 +103,7 @@ If we can express generic ingest stuff in ZQL, we get a unified language to expr
 Zeek example
 ============
 
-Define types
+### Define types
 
 ```
 const zeek_id_t = {orig_h:ip, orig_p:port, resp_h:ip, resp_p:port}
@@ -112,19 +112,36 @@ const zeek_http_t = {_path: string, id: zeek_conn_t, uid: string, method: bstrin
 ```
 
 
-Apply types
+### A new `reshape` proc 
+
+The `reshape` proc (placeholder name) takes a record type value as parameter, and "reshapes" input records to that type.
 
 ```
-* | case {
-  _path=conn | put . = reshape(zeek_conn_type) 
+... | reshape(zeek_conn_type) | ...
+
+// (or maybe it should be) 
+... | put . = reshape(zeek_conn_type) | ...
+```
+
+In order to support input records that may have originated from data languages with unordered fields, `reshape` must be order agnostic. 
+
+For example, `reshape({host:ip, port:port})` should handle both `{host: 1.2.3.4, port: 90}` and `{host: 90, port: 1.2.3.4}`, in the latter case "reordering" the record columns  so that the result matches the type `{host:ip, port:port}`.
+
+Putting both together:
+
+```
+const zeek_id_t = {orig_h:ip, orig_p:port, resp_h:ip, resp_p:port}
+const zeek_conn_t = {_path: string, id: zeek_conn_t, uid: string, proto: zenum, ...}
+const zeek_http_t = {_path: string, id: zeek_conn_t, uid: string, method: bstring, ...}
+
+* | switch {
+  _path=conn | reshape(zeek_conn_type) 
   _path=http | put . = reshape(http_conn_type)
   ..
-}
+} | ...
 ```
 
 
 
-More on apply
-=============
 
 
