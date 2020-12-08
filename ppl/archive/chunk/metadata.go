@@ -88,5 +88,5 @@ func mdTsOrderCheck(u iosrc.URI, op string, order zbuf.Order, first, last nano.T
 	if x <= y {
 		return nil
 	}
-	return fmt.Errorf("metadata failed order check %s op %s order %s first %v last %v", u, op, order, int64(first), int64(last))
+	return fmt.Errorf("metadata failed order check %s op %s order %s first %d last %d", u, op, order, first, last)
 }
