@@ -100,8 +100,8 @@ If we can express generic ingest stuff in ZQL, we get a unified language to expr
 
 
 
-Zeek example
-============
+Zeek as driving example
+-----------------------
 
 ### Define types
 
@@ -127,7 +127,29 @@ In order to support input records that may have originated from data languages w
 
 For example, `reshape({host:ip, port:port})` should handle both `{host: 1.2.3.4, port: 90}` and `{host: 90, port: 1.2.3.4}`, in the latter case "reordering" the record columns  so that the result matches the type `{host:ip, port:port}`.
 
-Putting both together:
+### A new syntax for switched parallel flowgraphs
+
+
+``` 
+... | switch (
+    <boolean expression> => ... | ...;
+    <boolean expression> => ... | ...;
+    ...
+    ) | ...
+```    
+
+An incoming record is evaluated against the boolean expressions until one matches, and is then "pushed" into the match's RHS flowgraph. 
+
+(or maybe)
+```
+... | switch (
+    <boolean expression> | ... | ...;
+    <boolean expression> | ... | ...;
+    ...
+    ) | ...
+```
+
+### Putting both together:
 
 ```
 const zeek_id_t = {orig_h:ip, orig_p:port, resp_h:ip, resp_p:port}
@@ -140,6 +162,42 @@ const zeek_http_t = {_path: string, id: zeek_conn_t, uid: string, method: bstrin
   ..
 } | ...
 ```
+
+We've reached parity with "json types" ingest. 
+
+### Variations on reshape:
+
+1. What to do with extra fields: (ja3 example)
+  - Include fields & infer their types 
+  - Discard records.
+
+2. What to do about missing fields
+  - create "tight" descriptor that is subset of reshape descriptor
+  - fill in with nulls
+  - discard record
+
+We'll probably want to support most/all of these behaviors, e.g. `reshape(t, "inferextra", "dropmissing")` or some better syntax.
+
+
+### Doing other ingest-related processing in ZQL
+Renames, annotation, validation, can all be done in ZQL.
+
+- **rename**:  `rename ts=timestamp, src_ip=id.orig_h, dst_ip=id.dest_h, src_port=id.orig_p, dst_port=id.dest_p`
+- **validation**: ZQL expressions
+- **annotation**: `put source_type=zeek`
+
+
+Other tooling that would be useful
+==================================
+
+- Shape finder: Tool that takes a number of different record types as input, and provide output describing the common fields (easy), how field sets are associated with field values (hard). 
+
+- Fuse: `fuse (typeof(.)) by alert.signature, alert.category` to get a per-alert type uberschema.
+
+- Comparison operators for record types: `contains(zeek_id_t)` true iff record has zeek `id` fields.
+
+
+
 
 
 
