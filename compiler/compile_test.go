@@ -330,7 +330,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 
 		// We can't express a pass proc in zql, so add it to the AST this way.
 		// (It's added by the parallelized flowgraph in order to force a merge rather than having trailing leaves connected to a mux output).
-		expected.(*ast.SequentialProc).Procs = append(expected.(*ast.SequentialProc).Procs, &ast.PassProc{Node: ast.Node{"PassProc"}})
+		expected.(*ast.SequentialProc).Procs = append(expected.(*ast.SequentialProc).Procs, &ast.PassProc{Op: "PassProc"})
 		expected.(*ast.SequentialProc).Procs[0].(*ast.ParallelProc).MergeOrderField = sf(orderField)
 
 		assert.Equal(t, expected.(*ast.SequentialProc), parallelized)
