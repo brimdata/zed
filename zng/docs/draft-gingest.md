@@ -158,7 +158,12 @@ We've reached parity with "json types" ingest.
   - fill in with nulls
   - discard record
 
+3. What to do about leaf type mismatches
+   - an int field is "" (Phil's example with netflow)
+   - a field can't parse according to it's type
+
 We'll probably want to support most/all of these behaviors, e.g. `reshape(t, "inferextra", "dropmissing")` or some better syntax.
+Maybe all of leaf handling should be moved into a different proc? (`reshape` `releaf`?)
 
 
 ### Doing other ingest-related processing in ZQL
