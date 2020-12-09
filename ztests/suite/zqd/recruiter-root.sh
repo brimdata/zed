@@ -34,12 +34,12 @@ zqdrpid=$!
 awaitfile $portdir/zqd-rec
 
 # (2) start two zqd workers that register with the recruiter
-ZQD_REGISTER_ADDR=localhost:$(cat $portdir/zqd-rec) ZQD_NODE_NAME=test1 \
+ZQD_RECRUITER_ADDR=localhost:$(cat $portdir/zqd-rec) ZQD_NODE_NAME=test1 \
   zqd listen -personality=worker -l=localhost:0 -portfile="$portdir/zqd-w1" &> zqd-w1.log &
 zqdw1pid=$!
 awaitfile $portdir/zqd-w1
 
-ZQD_REGISTER_ADDR=localhost:$(cat $portdir/zqd-rec) ZQD_NODE_NAME=test1 \
+ZQD_RECRUITER_ADDR=localhost:$(cat $portdir/zqd-rec) ZQD_NODE_NAME=test1 \
   zqd listen -personality=worker -l=localhost:0 -portfile="$portdir/zqd-w2" &> zqd-w2.log &
 zqdw1pid=$!
 awaitfile $portdir/zqd-w2
