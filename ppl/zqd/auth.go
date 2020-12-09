@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rsa"
 	"errors"
+	"flag"
 	"fmt"
 	"net/http"
 
@@ -25,10 +26,17 @@ const (
 )
 
 type AuthConfig struct {
-	Enabled  bool   `env:"ZQD_AUTH_ENABLED"`
-	JWKSPath string `env:"ZQD_AUTH_JWKS_PATH"`
-	Audience string `env:"ZQD_AUTH_AUDIENCE"`
-	Issuer   string `env:"ZQD_AUTH_ISSUER"`
+	Enabled  bool
+	Audience string
+	Issuer   string
+	JWKSPath string
+}
+
+func (c *AuthConfig) SetFlags(fs *flag.FlagSet) {
+	fs.BoolVar(&c.Enabled, "auth.enabled", false, "enable authentication checks")
+	fs.StringVar(&c.Audience, "auth.audience", "", "expected JWT audience claim")
+	fs.StringVar(&c.Issuer, "auth.issuer", "", "expected JWT issuer claim")
+	fs.StringVar(&c.JWKSPath, "auth.jwkspath", "", "path to JSON Web Key Set file")
 }
 
 func newAuthenticator(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, config AuthConfig) (middleware, error) {
@@ -71,20 +79,12 @@ func newJWTAuthenticator(ctx context.Context, logger *zap.Logger, registerer pro
 		}),
 	}
 	a.checker = jwtmiddleware.New(jwtmiddleware.Options{
-		ErrorHandler: func(w http.ResponseWriter, r *http.Request, errstr string) {
-			a.unauthorized.Inc()
-			logger.Error("unauthorized request",
-				zap.String("request_id", getRequestID(r.Context())),
-				zap.Error(errors.New(errstr)))
-			http.Error(w, errstr, http.StatusUnauthorized)
-		},
-		UserProperty: authTokenContextValue,
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
 			claims := token.Claims.(jwt.MapClaims)
-			if ok := claims.VerifyAudience(config.Audience, true); !ok {
+			if !claims.VerifyAudience(config.Audience, true) {
 				return token, errors.New("invalid audience")
 			}
-			if ok := claims.VerifyIssuer(config.Issuer, true); !ok {
+			if !claims.VerifyIssuer(config.Issuer, true) {
 				return token, errors.New("invalid issuer")
 			}
 			if tid, _ := claims[tenantIDClaim].(string); tid == "" {
@@ -99,6 +99,14 @@ func newJWTAuthenticator(ctx context.Context, logger *zap.Logger, registerer pro
 				return token, errors.New("unknown token key id")
 			}
 			return key, nil
+		},
+		UserProperty: authTokenContextValue,
+		ErrorHandler: func(w http.ResponseWriter, r *http.Request, errstr string) {
+			a.unauthorized.Inc()
+			logger.Info("unauthorized request",
+				zap.String("request_id", getRequestID(r.Context())),
+				zap.String("error", errstr))
+			http.Error(w, errstr, http.StatusUnauthorized)
 		},
 		SigningMethod: jwt.SigningMethodRS256,
 	})

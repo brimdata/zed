@@ -5,7 +5,6 @@ go 1.15
 require (
 	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
 	github.com/alexbrainman/ps v0.0.0-20171229230509-b3e1b4a15894
-	github.com/alfred-landrum/fromenv v1.1.1-0.20200718030121-833fe60f1c95
 	github.com/apache/thrift v0.0.0-20181112125854-24918abba929
 	github.com/auth0/go-jwt-middleware v0.0.0-20201030150249-d783b5c46b39
 	github.com/aws/aws-sdk-go v1.30.19

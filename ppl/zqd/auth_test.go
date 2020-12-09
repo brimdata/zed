@@ -32,9 +32,9 @@ func makeToken(t *testing.T, kid string, c jwt.MapClaims) string {
 func TestAuthentication(t *testing.T) {
 	authConfig := zqd.AuthConfig{
 		Enabled:  true,
-		JWKSPath: "testdata/auth-public-jwks.json",
 		Audience: "https://test.brimsecurity.com/",
 		Issuer:   "https://testauth.brimsecurity.com",
+		JWKSPath: "testdata/auth-public-jwks.json",
 	}
 	core, conn := newCoreWithConfig(t, zqd.Config{
 		Logger: zap.NewNop(),

@@ -612,7 +612,7 @@ func extractSpaceID(c *Core, w http.ResponseWriter, r *http.Request) (api.SpaceI
 func handleIdentityGet(c *Core, w http.ResponseWriter, r *http.Request) {
 	ident, ok := IdentifyFromContext(r.Context())
 	if !ok {
-		respondError(c, w, r, zqe.ErrNoCredentials())
+		respondError(c, w, r, zqe.ErrInvalid("no valid credentials"))
 		return
 	}
 	respond(c, w, r, http.StatusOK, ident)

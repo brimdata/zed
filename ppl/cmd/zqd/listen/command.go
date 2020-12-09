@@ -16,7 +16,6 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/alfred-landrum/fromenv"
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
@@ -89,6 +88,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
 	f.StringVar(&c.workers, "workers", "", "workers as comma-separated [addr]:port list")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
+
+	c.conf.Auth.SetFlags(f)
 	return c, nil
 }
 
@@ -152,9 +153,6 @@ func (c *Command) Run(args []string) error {
 }
 
 func (c *Command) init() error {
-	if err := fromenv.Unmarshal(&c.conf); err != nil {
-		return fmt.Errorf("failed to load environment variable config: %w", err)
-	}
 	if err := c.loadConfigFile(); err != nil {
 		return err
 	}

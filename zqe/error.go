@@ -37,7 +37,7 @@ func (k Kind) String() string {
 	case NotFound:
 		return "item does not exist"
 	case NoCredentials:
-		return "misssing authentication credentials"
+		return "missing authentication credentials"
 	}
 	return "unknown error kind"
 }
