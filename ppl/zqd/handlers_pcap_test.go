@@ -44,7 +44,7 @@ func TestPcapPostSuccess(t *testing.T) {
 0:[1501770877.501001;]
 0:[1501770877.471635;]
 0:[1501770877.471635;]`
-		res := searchTzng(t, p.client, p.space.ID, "cut ts")
+		res := searchTzng(t, p.client, p.space.ID, "pick ts")
 		assert.Equal(t, test.Trim(expected), res)
 	})
 	t.Run("SpaceInfo", func(t *testing.T) {
@@ -149,10 +149,12 @@ func TestPcapPostInvalidPcap(t *testing.T) {
 		info, err := p.client.SpaceInfo(context.Background(), p.space.ID)
 		assert.NoError(t, err)
 		expected := api.SpaceInfo{
-			ID:          p.space.ID,
-			Name:        p.space.Name,
-			DataPath:    p.space.DataPath,
-			StorageKind: api.FileStore,
+			Space: api.Space{
+				ID:          p.space.ID,
+				Name:        p.space.Name,
+				DataPath:    p.space.DataPath,
+				StorageKind: api.FileStore,
+			},
 		}
 		require.Equal(t, &expected, info)
 	})
@@ -208,7 +210,7 @@ func launcherFromEnv(t *testing.T, key string) pcapanalyzer.Launcher {
 type pcapPostTestResult struct {
 	client   *client.Connection
 	core     *zqd.Core
-	space    api.SpaceInfo
+	space    api.Space
 	err      error
 	payloads client.Payloads
 }

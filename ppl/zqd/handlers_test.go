@@ -207,14 +207,14 @@ func TestSearchError(t *testing.T) {
 
 func TestSpaceList(t *testing.T) {
 	names := []string{"sp1", "sp2", "sp3", "sp4"}
-	var expected []api.SpaceInfo
+	var expected []api.Space
 
 	ctx := context.Background()
 	c, conn := newCore(t)
 	for _, n := range names {
 		sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: n})
 		require.NoError(t, err)
-		expected = append(expected, api.SpaceInfo{
+		expected = append(expected, api.Space{
 			ID:          sp.ID,
 			Name:        n,
 			DataPath:    c.Root().AppendPath(string(sp.ID)),
@@ -242,10 +242,12 @@ func TestSpaceInfo(t *testing.T) {
 
 	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	expected := &api.SpaceInfo{
-		ID:          sp.ID,
-		Name:        sp.Name,
-		DataPath:    sp.DataPath,
-		StorageKind: api.FileStore,
+		Space: api.Space{
+			ID:          sp.ID,
+			Name:        sp.Name,
+			DataPath:    sp.DataPath,
+			StorageKind: api.FileStore,
+		},
 		Span:        &span,
 		Size:        81,
 		PcapSupport: false,
@@ -263,10 +265,12 @@ func TestSpaceInfoNoData(t *testing.T) {
 	info, err := conn.SpaceInfo(ctx, sp.ID)
 	require.NoError(t, err)
 	expected := &api.SpaceInfo{
-		ID:          sp.ID,
-		Name:        sp.Name,
-		DataPath:    sp.DataPath,
-		StorageKind: api.FileStore,
+		Space: api.Space{
+			ID:          sp.ID,
+			Name:        sp.Name,
+			DataPath:    sp.DataPath,
+			StorageKind: api.FileStore,
+		},
 		Size:        0,
 		PcapSupport: false,
 	}
@@ -434,10 +438,12 @@ func TestPostZngLogs(t *testing.T) {
 	info, err := conn.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
 	assert.Equal(t, &api.SpaceInfo{
-		ID:          sp.ID,
-		Name:        sp.Name,
-		DataPath:    sp.DataPath,
-		StorageKind: api.FileStore,
+		Space: api.Space{
+			ID:          sp.ID,
+			Name:        sp.Name,
+			DataPath:    sp.DataPath,
+			StorageKind: api.FileStore,
+		},
 		Span:        &nano.Span{Ts: nano.Ts(time.Second), Dur: int64(time.Second) + 1},
 		Size:        79,
 		PcapSupport: false,
@@ -508,10 +514,12 @@ func TestPostNDJSONLogs(t *testing.T) {
 		info, err := conn.SpaceInfo(context.Background(), sp.ID)
 		require.NoError(t, err)
 		require.Equal(t, &api.SpaceInfo{
-			ID:          sp.ID,
-			Name:        sp.Name,
-			DataPath:    sp.DataPath,
-			StorageKind: api.FileStore,
+			Space: api.Space{
+				ID:          sp.ID,
+				Name:        sp.Name,
+				DataPath:    sp.DataPath,
+				StorageKind: api.FileStore,
+			},
 			Span:        &span,
 			Size:        79,
 			PcapSupport: false,
@@ -634,12 +642,14 @@ func TestCreateArchiveSpace(t *testing.T) {
 
 	span := nano.Span{Ts: 1587508830068523240, Dur: 9789993714061}
 	expsi := &api.SpaceInfo{
-		ID:          sp.ID,
-		Name:        sp.Name,
-		DataPath:    sp.DataPath,
-		StorageKind: api.ArchiveStore,
-		Span:        &span,
-		Size:        35118,
+		Space: api.Space{
+			ID:          sp.ID,
+			Name:        sp.Name,
+			DataPath:    sp.DataPath,
+			StorageKind: api.ArchiveStore,
+		},
+		Span: &span,
+		Size: 35118,
 	}
 	si, err := conn.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
@@ -711,7 +721,7 @@ func TestIndexSearch(t *testing.T) {
 0:[257;1;1587509477.06450528;1587508830.06852324;]
 `
 	res, _ := indexSearch(t, conn, sp.ID, "", []string{"v=257"})
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop _log", res, "tzng"))
 }
 
 func TestSubspaceCreate(t *testing.T) {
@@ -747,9 +757,9 @@ func TestSubspaceCreate(t *testing.T) {
 0:[336;1;1587509477.06450528;1587508830.06852324;]
 `
 	res, _ := indexSearch(t, conn, sp1.ID, "", []string{":int64=336"})
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop _log", res, "tzng"))
 
-	logId := strings.TrimSpace(tzngCopy(t, "first=1587509477.06450528 | cut _log", res, "text"))
+	logId := strings.TrimSpace(tzngCopy(t, "first=1587509477.06450528 | pick _log", res, "text"))
 	// Create subspace
 	sp2, err := conn.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
 		Name: "subspace",
@@ -766,7 +776,7 @@ func TestSubspaceCreate(t *testing.T) {
 0:[336;1;1587509477.06450528;1587508830.06852324;]
 `
 	res, _ = indexSearch(t, conn, sp2.ID, "", []string{":int64=336"})
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop _log", res, "tzng"))
 
 	// Verify full search only returns filtered results
 	exp = `
@@ -817,7 +827,7 @@ func TestSubspacePersist(t *testing.T) {
 	require.NoError(t, err)
 
 	res, _ := indexSearch(t, conn1, sp1.ID, "", []string{":int64=336"})
-	logId := strings.TrimSpace(tzngCopy(t, "first=1587509477.06450528 | cut _log", res, "text"))
+	logId := strings.TrimSpace(tzngCopy(t, "first=1587509477.06450528 | pick _log", res, "text"))
 
 	// Create subspace
 	sp2, err := conn1.SubspacePost(context.Background(), sp1.ID, api.SubspacePostRequest{
@@ -835,7 +845,7 @@ func TestSubspacePersist(t *testing.T) {
 0:[336;1;1587509477.06450528;1587508830.06852324;]
 `
 	res, _ = indexSearch(t, conn1, sp2.ID, "", []string{":int64=336"})
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c _log", res, "tzng"))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop _log", res, "tzng"))
 
 	// Verify name change works
 	err = conn1.SpacePut(context.Background(), sp2.ID, api.SpacePutRequest{Name: "newname"})
@@ -905,7 +915,7 @@ func TestArchiveStat(t *testing.T) {
 1:[index;1587513592.0625444;1587508830.06852324;microindex-field-v.zng;2267;504;[int64;]]
 `
 	res := archiveStat(t, conn, sp.ID)
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "cut -c log_id", res, "tzng"))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop log_id", res, "tzng"))
 }
 
 func archiveStat(t *testing.T, conn *client.Connection, space api.SpaceID) string {
