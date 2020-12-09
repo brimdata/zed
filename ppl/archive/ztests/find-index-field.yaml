@@ -2,7 +2,7 @@
 script: |
   mkdir logs
   zar import -R logs log.tzng
-  zar index -R logs -q referenced_file.id.orig_h
+  zar index create -R logs -q referenced_file.id.orig_h
   echo ===
   zar find -R logs referenced_file.id.orig_h=1.1.1.1
   zar find -R logs -z referenced_file.id.orig_h=192.168.1.102 | zq -t "drop _log" -

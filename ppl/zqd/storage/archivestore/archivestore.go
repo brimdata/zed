@@ -102,8 +102,12 @@ func (w *Writer) Close() error {
 }
 
 // NewWriter returns a writer that will start a compaction when it is closed.
-func (s *Storage) NewWriter(ctx context.Context) *Writer {
-	return &Writer{archive.NewWriter(ctx, s.ark), s.notifier}
+func (s *Storage) NewWriter(ctx context.Context) (*Writer, error) {
+	w, err := archive.NewWriter(ctx, s.ark)
+	if err != nil {
+		return nil, err
+	}
+	return &Writer{w, s.notifier}, nil
 }
 
 func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) error {

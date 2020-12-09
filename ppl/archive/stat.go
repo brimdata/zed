@@ -154,6 +154,43 @@ func RecordCount(ctx context.Context, ark *Archive) (uint64, error) {
 	return count, err
 }
 
+type IndexInfo struct {
+	DefinitionID ksuid.KSUID
+	IndexCount   uint64
+	ChunkCount   uint64
+}
+
+func IndexStat(ctx context.Context, ark *Archive, defs []*index.Definition) ([]IndexInfo, error) {
+	m := make(map[ksuid.KSUID]IndexInfo)
+	for _, def := range defs {
+		m[def.ID] = IndexInfo{DefinitionID: def.ID}
+	}
+	var chunkCount uint64
+	err := Walk(ctx, ark, func(chunk chunk.Chunk) error {
+		chunkCount++
+		ids, err := index.ListDefinitionIDs(ctx, chunk.ZarDir())
+		if err != nil {
+			return err
+		}
+		for _, id := range ids {
+			if stat, ok := m[id]; ok {
+				stat.IndexCount++
+				m[id] = stat
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	stats := make([]IndexInfo, 0, len(m))
+	for _, stat := range m {
+		stat.ChunkCount = chunkCount
+		stats = append(stats, stat)
+	}
+	return stats, nil
+}
+
 func Stat(ctx context.Context, zctx *resolver.Context, ark *Archive) (zbuf.ReadCloser, error) {
 	defs, err := ark.ReadDefinitions(ctx)
 	if err != nil {

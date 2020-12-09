@@ -2,6 +2,7 @@ package archive
 
 import (
 	"context"
+	"fmt"
 	"runtime"
 
 	"github.com/brimsec/zq/pkg/iosrc"
@@ -21,7 +22,7 @@ func EnsureIndices(ctx context.Context, ark *Archive, progress chan<- string) er
 	if err != nil {
 		return err
 	}
-	return ApplyDefinitions(ctx, ark, progress, defs...)
+	return WriteIndices(ctx, ark, progress, defs...)
 }
 
 func AddRules(ctx context.Context, ark *Archive, rules []index.Rule) ([]*index.Definition, error) {
@@ -36,10 +37,21 @@ func ApplyRules(ctx context.Context, ark *Archive, progress chan<- string, rules
 	if err != nil {
 		return err
 	}
-	return ApplyDefinitions(ctx, ark, progress, defs...)
+	return WriteIndices(ctx, ark, progress, defs...)
 }
 
-func ApplyDefinitions(ctx context.Context, ark *Archive, prog progress, defs ...*index.Definition) error {
+func RemoveDefinitions(ctx context.Context, ark *Archive, defs ...*index.Definition) error {
+	dir := ark.DefinitionsDir()
+	for _, def := range defs {
+		if err := index.RemoveDefinition(ctx, dir, def.ID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func WriteIndices(ctx context.Context, ark *Archive, updates chan<- string, defs ...*index.Definition) error {
+	prog := progress(updates)
 	sem := semaphore.NewWeighted(int64(runtime.GOMAXPROCS(0)))
 	g, ctx := errgroup.WithContext(ctx)
 	err := Walk(ctx, ark, func(chunk chunk.Chunk) error {
@@ -48,12 +60,12 @@ func ApplyDefinitions(ctx context.Context, ark *Archive, prog progress, defs ...
 		}
 		g.Go(func() error {
 			defer sem.Release(1)
-			indices, err := ensureChunkIndices(ctx, chunk, defs)
+			indices, err := writeChunkIndices(ctx, chunk, defs)
 			if err != nil {
 				return err
 			}
 
-			return prog.update(ctx, indices)
+			return prog.update(ctx, "added", indices)
 		})
 		return nil
 	})
@@ -63,7 +75,19 @@ func ApplyDefinitions(ctx context.Context, ark *Archive, prog progress, defs ...
 	return err
 }
 
-func ensureChunkIndices(ctx context.Context, chunk chunk.Chunk, list index.Definitions) ([]index.Index, error) {
+func RemoveIndices(ctx context.Context, ark *Archive, updates chan<- string, defs ...*index.Definition) error {
+	prog := progress(updates)
+	return Walk(ctx, ark, func(chunk chunk.Chunk) error {
+		indices, err := index.RemoveIndices(ctx, chunk.ZarDir(), defs)
+		if err != nil {
+			return err
+		}
+
+		return prog.update(ctx, "removed", indices)
+	})
+}
+
+func writeChunkIndices(ctx context.Context, chunk chunk.Chunk, list index.Definitions) ([]index.Index, error) {
 	indices := make([]index.Index, 0, len(list))
 	for path, defs := range list.MapByInputPath() {
 		var u iosrc.URI
@@ -79,7 +103,7 @@ func ensureChunkIndices(ctx context.Context, chunk chunk.Chunk, list index.Defin
 		}
 
 		zr := zngio.NewReader(r, resolver.NewContext())
-		added, err := index.ApplyDefinitions(ctx, chunk.ZarDir(), zr, defs...)
+		added, err := index.WriteIndices(ctx, chunk.ZarDir(), zr, defs...)
 		if err != nil {
 			r.Close()
 			return nil, err
@@ -92,13 +116,13 @@ func ensureChunkIndices(ctx context.Context, chunk chunk.Chunk, list index.Defin
 
 type progress chan<- string
 
-func (p progress) update(ctx context.Context, indices []index.Index) error {
+func (p progress) update(ctx context.Context, status string, indices []index.Index) error {
 	if p == nil {
 		return nil
 	}
 	for _, i := range indices {
 		select {
-		case p <- i.Path().String():
+		case p <- fmt.Sprintf("%s: %s", status, i.Path().String()):
 		case <-ctx.Done():
 			return ctx.Err()
 		}

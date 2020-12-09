@@ -1,7 +1,7 @@
 script: |
   source minio.sh
   zar import -R logs -data s3://bucket/zartest log.tzng
-  zar index -R logs -q :ip
+  zar index create -R logs -q :ip
   zar find -R logs -z :ip=1.1.1.1 | zq -t "drop _log" -
   echo ===
   zar find -R logs -z :ip=192.168.1.102 | zq -t "drop _log" -

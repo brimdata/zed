@@ -55,6 +55,10 @@ func ReadDefinition(ctx context.Context, u iosrc.URI) (*Definition, error) {
 	return def, err
 }
 
+func RemoveDefinition(ctx context.Context, dir iosrc.URI, id ksuid.KSUID) error {
+	return iosrc.Remove(ctx, dir.AppendPath(defFilename(id)))
+}
+
 func WriteRules(ctx context.Context, dir iosrc.URI, rules []Rule) ([]*Definition, error) {
 	existing, err := ReadDefinitions(ctx, dir)
 	if err != nil {
@@ -100,6 +104,10 @@ func MustNewDefinition(r Rule) *Definition {
 	return d
 }
 
+func defFilename(id ksuid.KSUID) string {
+	return fmt.Sprintf("idxdef-%s.zng", id)
+}
+
 var defFileRegex = regexp.MustCompile(`idxdef-([0-9A-Za-z]{27}).zng$`)
 
 func parseDefFile(name string) (ksuid.KSUID, error) {
@@ -111,7 +119,7 @@ func parseDefFile(name string) (ksuid.KSUID, error) {
 }
 
 func (d *Definition) Filename() string {
-	return fmt.Sprintf("idxdef-%s.zng", d.ID)
+	return defFilename(d.ID)
 }
 
 func (d *Definition) Write(ctx context.Context, dir iosrc.URI) error {

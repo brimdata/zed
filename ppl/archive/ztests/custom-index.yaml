@@ -1,7 +1,7 @@
 script: |
   mkdir logs
   zar import -R logs babble.tzng
-  zar index -R logs -q -f 500 -o customindex -z "sum(v) by s | put key=s | sort key"
+  zar index create -R logs -q -f 500 -o customindex -z "sum(v) by s | put key=s | sort key"
   echo ===
   zar find -R logs -x customindex -z -f tzng "inelegancy-Atoxyl" | zq -f tzng "cut s, sum" -
 

@@ -2,7 +2,7 @@
 script: |
   mkdir logs
   zar import -R logs log.tzng
-  zar index -R logs -q :ip
+  zar index create -R logs -q :ip
   echo ===
   zar find -R logs :ip=1.1.1.1
   echo ===

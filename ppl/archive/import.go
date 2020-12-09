@@ -11,6 +11,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/zbuf"
@@ -34,8 +35,11 @@ var (
 const importDefaultStaleDuration = time.Second * 5
 
 func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Reader) error {
-	w := NewWriter(ctx, ark)
-	err := zbuf.CopyWithContext(ctx, w, r)
+	w, err := NewWriter(ctx, ark)
+	if err != nil {
+		return err
+	}
+	err = zbuf.CopyWithContext(ctx, w, r)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}
@@ -54,6 +58,7 @@ type Writer struct {
 	ark           *Archive
 	cancel        context.CancelFunc
 	ctx           context.Context
+	defs          index.Definitions
 	errgroup      *errgroup.Group
 	mu            sync.Mutex
 	once          sync.Once
@@ -66,7 +71,11 @@ type Writer struct {
 
 // NewWriter creates a zbuf.Writer compliant writer for writing data to an
 // archive.
-func NewWriter(ctx context.Context, ark *Archive) *Writer {
+func NewWriter(ctx context.Context, ark *Archive) (*Writer, error) {
+	defs, err := ark.ReadDefinitions(ctx)
+	if err != nil {
+		return nil, err
+	}
 	ctx, cancel := context.WithCancel(ctx)
 	g, ctx := errgroup.WithContext(ctx)
 	return &Writer{
@@ -74,9 +83,10 @@ func NewWriter(ctx context.Context, ark *Archive) *Writer {
 		cancel:        cancel,
 		ctx:           ctx,
 		errgroup:      g,
+		defs:          defs,
 		staleDuration: importDefaultStaleDuration,
 		writers:       make(map[tsDir]*tsDirWriter),
-	}
+	}, nil
 }
 
 // SetStaleDuration sets the stale threshold for the writer which is the delay
@@ -320,9 +330,13 @@ func (dw *tsDirWriter) flush() error {
 		expr.SortStable(dw.records, importCompareFn(dw.ark))
 		r = zbuf.Array(dw.records).NewReader()
 	}
-	w, err := chunk.NewWriter(dw.ctx, dw.tsDir.path(dw.ark), dw.ark.DataOrder, nil, zngio.WriterOpts{
-		StreamRecordsMax: ImportStreamRecordsMax,
-		LZ4BlockSize:     importLZ4BlockSize,
+	w, err := chunk.NewWriter(dw.ctx, dw.tsDir.path(dw.ark), chunk.WriterOpts{
+		Order:       dw.ark.DataOrder,
+		Definitions: dw.writer.defs,
+		Zng: zngio.WriterOpts{
+			StreamRecordsMax: ImportStreamRecordsMax,
+			LZ4BlockSize:     importLZ4BlockSize,
+		},
 	})
 	if err != nil {
 		return err
@@ -331,7 +345,7 @@ func (dw *tsDirWriter) flush() error {
 		w.Abort()
 		return err
 	}
-	if _, err := w.Close(dw.ctx); err != nil {
+	if err := w.Close(dw.ctx); err != nil {
 		return err
 	}
 	dw.writer.stats.Accumulate(ImportStats{
