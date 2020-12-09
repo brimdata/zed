@@ -106,6 +106,10 @@ func NewMaker(op string, arg, where expr.Evaluator) (Maker, error) {
 		return func(zctx *resolver.Context) Interface {
 			return &Collect{Reducer: r, zctx: zctx, arg: arg}
 		}, nil
+	case "shape":
+		return func(zctx *resolver.Context) Interface {
+			return newShape(zctx, arg, where)
+		}, nil
 	case "and":
 		return func(*resolver.Context) Interface {
 			return &Logical{Reducer: r, arg: arg, and: true, val: true}

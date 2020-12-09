@@ -165,7 +165,7 @@ type slot struct {
 }
 
 func (p *Proc) finish() error {
-	uber := newSchema()
+	uber := NewSchema()
 	// slotByID provides a map from a type ID to a slice of integers
 	// that represent the column position in the uber schema for each column
 	// of the input record type.
@@ -173,7 +173,7 @@ func (p *Proc) finish() error {
 	for _, typ := range p.types {
 		if typ != nil {
 			id := typ.ID()
-			p.slotByID[id] = uber.mixin(typ)
+			p.slotByID[id] = uber.Mixin(typ)
 		}
 	}
 	var err error
