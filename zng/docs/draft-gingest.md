@@ -107,7 +107,7 @@ const zeek_http_t = {_path: string, id: zeek_id_t, uid: string, method: bstring,
 The `reshape` proc (placeholder name) takes a record type value as parameter, and "reshapes" input records to that type.
 
 ```
-... | reshape(zeek_conn_type) | ...
+... | reshape(zeek_conn_t) | ...
 
 // (or maybe it should be) 
 ... | put . = reshape(zeek_conn_type) | ...
@@ -139,8 +139,8 @@ const zeek_conn_t = {_path: string, id: zeek_conn_t, uid: string, proto: zenum, 
 const zeek_http_t = {_path: string, id: zeek_conn_t, uid: string, method: bstring, ...}
 
 * | switch (
-  _path=conn | reshape(zeek_conn_type) 
-  _path=http | reshape(http_conn_type)
+  _path=conn | reshape(zeek_conn_t) 
+  _path=http | reshape(http_conn_t)
   ..
 ) | ...
 ```
@@ -180,7 +180,7 @@ Renames, annotation, validation, can all be done in ZQL.
 ```
 // map of string->type
 const schemas = |{
-   { "zeek_conn_log", {_path: string, id: zeek_conn_t, uid: string, proto: zenum, ...}},
+   { "zeek_conn_t", {_path: string, id: zeek_conn_t, uid: string, proto: zenum, ...}},
      "zeek_http_t", {_path: string, id: zeek_conn_t, uid: string, method: bstring, ...}}
 }|
 ```
