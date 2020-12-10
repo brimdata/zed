@@ -46,7 +46,7 @@ spec:
           args: ["listen", "-personality=recruiter", "-l=:9867"] 
           {{- else if eq .Values.personality "worker" }}
           args: ["listen", "-personality=worker", "-l=:9867", "-recruiter={{ .Values.RecruiterAddr }}",
-            "-podip=$SPEC_POD_IP", "-nodename=$SPEC_NODE_NAME",] 
+            "-podip=$(SPEC_POD_IP)", "-nodename=$(SPEC_NODE_NAME)",] 
           {{- else }}
           args: ["listen", "-l=:9867", "-data={{ .Values.datauri }}", "-recruiter={{ .Values.RecruiterAddr }}"] 
           {{- end }}
