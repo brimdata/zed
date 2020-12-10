@@ -138,11 +138,11 @@ const zeek_id_t = {orig_h:ip, orig_p:port, resp_h:ip, resp_p:port}
 const zeek_conn_t = {_path: string, id: zeek_conn_t, uid: string, proto: zenum, ...}
 const zeek_http_t = {_path: string, id: zeek_conn_t, uid: string, method: bstring, ...}
 
-* | switch {
+* | switch (
   _path=conn | reshape(zeek_conn_type) 
   _path=http | reshape(http_conn_type)
   ..
-} | ...
+) | ...
 ```
 
 We've reached parity with "json types" ingest. 
