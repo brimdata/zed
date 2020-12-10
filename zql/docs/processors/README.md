@@ -52,18 +52,18 @@ TS                          UID
 
 #### Example #2:
 
-As long as some of the named fields are present, these will be returned. No warning is generated regarding absent fields.
+As long as some of the named fields are present, these will be returned. No warning is generated regarding absent fields. For instance, even though only the Zeek `smb_mapping` logs in our sample data contain the field named `share_type`, the following query returns records for many other log types that contain the `_path` and/or `ts` that we included in our field list.
 
 ```zq-command
-zq -f table 'cut nothere,name' weird.log.gz
+zq -f table 'cut _path,ts,share_type' *
 ```
 
 #### Output:
 ```zq-output head:4
-NAME
-TCP_ack_underflow_or_misorder
-truncated_header
-above_hole_data_without_any_acks
+_PATH  TS
+stats  2018-03-24T17:15:20.600725Z
+weird  2018-03-24T17:15:20.600843Z
+weird  2018-03-24T17:15:20.608108Z
 ...
 ```
 
@@ -81,7 +81,6 @@ zq -f table 'cut nothere,alsoabsent' weird.log.gz
 ```zq-output
 cut: nothing found for nothere,alsoabsent
 ```
-
 
 #### Example #4:
 
@@ -305,20 +304,37 @@ TS                          UID
 
 #### Example #2:
 
-All of the named fields must be present in a record for `pick` to return a result for it. If we extend the field list from our previous example to include a field that's not present anywhere in our data, now a warning is shown and no data is returned for `ts` and `uid` fields.
+All of the named fields must be present in a record for `pick` to return a result for it. For instance, since only the Zeek `smb_mapping` in our sample data contains the field named `share_type`, the following query returns columns for only that log type. Records from the many other Zeek log types that also include `_path` and/or `ts` fields are not returned.
 
 ```zq-command
-zq -f table 'pick ts,uid,nothere' conn.log.gz
+zq -f table 'pick _path,ts,share_type' *
 ```
 
 #### Output:
-```zq-output
-pick: nothing found for ts,uid,nothere
+```zq-output head:4
+_PATH       TS                          SHARE_TYPE
+smb_mapping 2018-03-24T17:15:21.382822Z DISK
+smb_mapping 2018-03-24T17:15:21.625534Z PIPE
+smb_mapping 2018-03-24T17:15:22.021668Z PIPE
+...
 ```
 
 Contrast this with a [similar example](#example-2) that shows how [`cut`](#cut)'s relaxed behavior would produce a partial result here.
 
 #### Example #3:
+
+If no records are found that contain any of the named fields, `pick` returns a warning.
+
+```zq-command
+zq -f table 'pick nothere,alsoabsent' weird.log.gz
+```
+
+#### Output:
+```zq-output
+pick: nothing found for nothere,alsoabsent
+```
+
+#### Example #4:
 
 To return only the `ts` and `uid` columns of `conn` events, with `ts` renamed to `time`:
 
