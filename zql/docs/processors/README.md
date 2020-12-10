@@ -5,9 +5,11 @@ A pipeline may contain one or more _processors_ to filter or transform event dat
 The following available processors are documented in detail below:
 
 * [`cut`](#cut)
+* [`drop`](#drop)
 * [`filter`](#filter)
 * [`fuse`](#fuse)
 * [`head`](#head)
+* [`pick`](#pick)
 * [`put`](#put)
 * [`rename`](#rename)
 * [`sort`](#sort)
@@ -24,12 +26,12 @@ The following available processors are documented in detail below:
 
 ## `cut`
 
-|                           |                                                             |
-| ------------------------- | ----------------------------------------------------------- |
-| **Description**           | Return the data only from the specified named fields.       |
-| **Syntax**                | `cut <field-list>`                   |
+|                           |                                                   |
+| ------------------------- | ------------------------------------------------- |
+| **Description**           | Return the data only from the specified named fields, where available. Contrast with [`pick`](#pick), which is stricter. |
+| **Syntax**                | `cut <field-list>`                                |
 | **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names or assignments.  |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/proc/cut            |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/proc/cut |
 
 #### Example #1:
 
@@ -50,20 +52,7 @@ TS                          UID
 
 #### Example #2:
 
-If the requested list of named fields returns no results, `cut` returns a warning.
-
-```zq-command
-zq -f table 'cut nothere,alsoabsent' weird.log.gz
-```
-
-#### Output:
-```zq-output
-cut: nothing found for nothere,alsoabsent
-```
-
-#### Example #3:
-
-As long as some of the named fields are present, these will be returned. No warning is generated for absent fields in this case.
+As long as some of the named fields are present, these will be returned. No warning is generated regarding absent fields.
 
 ```zq-command
 zq -f table 'cut nothere,name' weird.log.gz
@@ -77,6 +66,22 @@ truncated_header
 above_hole_data_without_any_acks
 ...
 ```
+
+Contrast this with a [similar example](#example-2-3) that shows how [`pick`](#pick)'s stricter behavior would have returned no results here.
+
+#### Example #3:
+
+If no records are found that contain any of the named fields, `cut` returns a warning.
+
+```zq-command
+zq -f table 'cut nothere,alsoabsent' weird.log.gz
+```
+
+#### Output:
+```zq-output
+cut: nothing found for nothere,alsoabsent
+```
+
 
 #### Example #4:
 
@@ -101,7 +106,7 @@ TIME                        UID
 
 |                           |                                                             |
 | ------------------------- | ----------------------------------------------------------- |
-| **Description**           | Return the data only from all but the specified named fields.       |
+| **Description**           | Return the data from all but the specified named fields.    |
 | **Syntax**                | `drop <field-list>`                   |
 | **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names or assignments.  |
 | **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/proc            |
@@ -268,6 +273,66 @@ conn  2018-03-24T17:15:20.606178Z CnKmhv4RfyAZ3fVc8b 10.164.94.120 36125     10.
 conn  2018-03-24T17:15:20.604325Z C65IMkEAWNlE1f6L8  10.164.94.120 45941     10.47.3.200 80        tcp   -       0.002708 0          242        RSTO       -          -          0            ^dtfAR    4         208           4         692           -
 conn  2018-03-24T17:15:20.607031Z CpQfkTi8xytq87HW2  10.164.94.120 36729     10.47.3.200 80        tcp   http    0.006238 325        263        RSTO       -          -          0            ShADTdftR 10        1186          6         854           -
 conn  2018-03-24T17:15:20.607695Z CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 80        tcp   http    0.007139 315        241        RSTO       -          -          0            ShADTdtfR 10        1166          6         810           -
+```
+
+---
+
+## `pick`
+
+|                           |                                               |
+| ------------------------- | --------------------------------------------- |
+| **Description**           | Return the data from the named fields in records that contain _all_ of the specified fields. Contrast with [`cut`](#cut), which is more relaxed. |
+| **Syntax**                | `pick <field-list>`                           |
+| **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names or assignments.  |
+| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/proc |
+
+#### Example #1:
+
+To return only the `ts` and `uid` columns of `conn` events:
+
+```zq-command
+zq -f table 'pick ts,uid' conn.log.gz
+```
+
+#### Output:
+```zq-output head:4
+TS                          UID
+2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
+2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
+2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i
+...
+```
+
+#### Example #2:
+
+All of the named fields must be present in a record for `pick` to return a result for it. If we extend the field list from our previous example to include a field that's not present anywhere in our data, now a warning is shown and no data is returned for `ts` and `uid` fields.
+
+```zq-command
+zq -f table 'pick ts,uid,nothere' conn.log.gz
+```
+
+#### Output:
+```zq-output
+pick: nothing found for ts,uid,nothere
+```
+
+Contrast this with a [similar example](#example-2) that shows how [`cut`](#cut)'s relaxed behavior would produce a partial result here.
+
+#### Example #3:
+
+To return only the `ts` and `uid` columns of `conn` events, with `ts` renamed to `time`:
+
+```zq-command
+zq -f table 'pick time=ts,uid' conn.log.gz
+```
+
+#### Output:
+```zq-output head:4
+TIME                        UID
+2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
+2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
+2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i
+...
 ```
 
 ---
