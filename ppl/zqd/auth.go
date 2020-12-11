@@ -11,6 +11,7 @@ import (
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
@@ -34,51 +35,24 @@ type AuthConfig struct {
 
 func (c *AuthConfig) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&c.Enabled, "auth.enabled", false, "enable authentication checks")
-	fs.StringVar(&c.Audience, "auth.audience", "", "expected JWT audience claim")
-	fs.StringVar(&c.Issuer, "auth.issuer", "", "expected JWT issuer claim")
+	fs.StringVar(&c.Audience, "auth.audience", "", "required JWT audience claim")
+	fs.StringVar(&c.Issuer, "auth.issuer", "", "required JWT issuer claim")
 	fs.StringVar(&c.JWKSPath, "auth.jwkspath", "", "path to JSON Web Key Set file")
 }
 
-func newAuthenticator(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, config AuthConfig) (middleware, error) {
-	if !config.Enabled {
-		return &noopAuthenticator{}, nil
-	}
-	return newJWTAuthenticator(ctx, logger, registerer, config)
-}
-
-type noopAuthenticator struct{}
-
-func (a *noopAuthenticator) Middleware(next http.Handler) http.Handler {
-	return next
-}
-
-// jwtAuthenticator is a middleware that checks for a JWT signed by a key
-// referenced in the JWKS file, has expected audience and issuer claims, and
-// contains values for a brim tenant and user id.
-type jwtAuthenticator struct {
-	checker *jwtmiddleware.JWTMiddleware
-	config  AuthConfig
-	// keys is a map of jsonWebKeys.Kid to parsed public key.
-	keys map[string]*rsa.PublicKey
-
-	unauthorized prometheus.Counter
-}
-
-func newJWTAuthenticator(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, config AuthConfig) (*jwtAuthenticator, error) {
+// newAuthenticator returns a mux.MiddlewareFunc that checks for a JWT signed
+// by a key referenced in the JWKS file, has the required audience and issuer
+// claims, and contains values for a brim tenant and user id.
+func newAuthenticator(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, config AuthConfig) (mux.MiddlewareFunc, error) {
 	keys, err := loadPublicKeys(config.JWKSPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load JWKS file: %w", err)
 	}
-	factory := promauto.With(registerer)
-	a := &jwtAuthenticator{
-		config: config,
-		keys:   keys,
-		unauthorized: factory.NewCounter(prometheus.CounterOpts{
-			Name: "request_errors_unauthorized_total",
-			Help: "Number of request errors due to bad or missing authorization.",
-		}),
-	}
-	a.checker = jwtmiddleware.New(jwtmiddleware.Options{
+	unauthorized := promauto.With(registerer).NewCounter(prometheus.CounterOpts{
+		Name: "request_errors_unauthorized_total",
+		Help: "Number of request errors due to bad or missing authorization.",
+	})
+	checker := jwtmiddleware.New(jwtmiddleware.Options{
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
 			claims := token.Claims.(jwt.MapClaims)
 			if !claims.VerifyAudience(config.Audience, true) {
@@ -102,7 +76,7 @@ func newJWTAuthenticator(ctx context.Context, logger *zap.Logger, registerer pro
 		},
 		UserProperty: authTokenContextValue,
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, errstr string) {
-			a.unauthorized.Inc()
+			unauthorized.Inc()
 			logger.Info("unauthorized request",
 				zap.String("request_id", getRequestID(r.Context())),
 				zap.String("error", errstr))
@@ -110,17 +84,15 @@ func newJWTAuthenticator(ctx context.Context, logger *zap.Logger, registerer pro
 		},
 		SigningMethod: jwt.SigningMethodRS256,
 	})
-	return a, nil
-}
-
-func (a *jwtAuthenticator) Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := a.checker.CheckJWT(w, r); err != nil {
-			// response sent by jwtmiddleware.Options.ErrorHandler
-			return
-		}
-		next.ServeHTTP(w, r)
-	})
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if err := checker.CheckJWT(w, r); err != nil {
+				// response sent by jwtmiddleware.Options.ErrorHandler
+				return
+			}
+			next.ServeHTTP(w, r)
+		})
+	}, nil
 }
 
 type Identity struct {

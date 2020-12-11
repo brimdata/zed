@@ -37,8 +37,8 @@ func TestAuthentication(t *testing.T) {
 		JWKSPath: "testdata/auth-public-jwks.json",
 	}
 	core, conn := newCoreWithConfig(t, zqd.Config{
-		Logger: zap.NewNop(),
 		Auth:   authConfig,
+		Logger: zap.NewNop(),
 	})
 	_, err := conn.SpaceList(context.Background())
 	require.Error(t, err)

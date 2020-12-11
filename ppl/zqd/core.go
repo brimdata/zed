@@ -31,12 +31,12 @@ const indexPage = `
 </html>`
 
 type Config struct {
+	Auth        AuthConfig
 	Logger      *zap.Logger
 	Personality string
 	Root        string
 	Version     string
 
-	Auth     AuthConfig
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher
 }
@@ -46,7 +46,7 @@ type middleware interface {
 }
 
 type Core struct {
-	auth      middleware
+	auth      mux.MiddlewareFunc
 	logger    *zap.Logger
 	mgr       *apiserver.Manager
 	registry  *prometheus.Registry
@@ -79,9 +79,11 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		return nil, err
 	}
 
-	auth, err := newAuthenticator(ctx, conf.Logger, registry, conf.Auth)
-	if err != nil {
-		return nil, err
+	var auth mux.MiddlewareFunc
+	if conf.Auth.Enabled {
+		if auth, err = newAuthenticator(ctx, conf.Logger, registry, conf.Auth); err != nil {
+			return nil, err
+		}
 	}
 
 	router := mux.NewRouter()
@@ -146,21 +148,23 @@ func (c *Core) addAPIServerRoutes() {
 }
 
 func (c *Core) addWorkerRoutes() {
-	c.handle("/worker", handleWorker).Methods("POST")
+	c.router.Handle("/worker", c.handler(handleWorker)).Methods("POST")
 }
 
-func coreHandler(c *Core, f func(*Core, http.ResponseWriter, *http.Request)) http.Handler {
+func (c *Core) handler(f func(*Core, http.ResponseWriter, *http.Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		f(c, w, r)
 	})
 }
 
-func (c *Core) handle(path string, f func(*Core, http.ResponseWriter, *http.Request)) *mux.Route {
-	return c.router.Handle(path, coreHandler(c, f))
-}
-
 func (c *Core) authhandle(path string, f func(*Core, http.ResponseWriter, *http.Request)) *mux.Route {
-	return c.router.Handle(path, c.auth.Middleware(coreHandler(c, f)))
+	var h http.Handler
+	if c.auth != nil {
+		h = c.auth(c.handler(f))
+	} else {
+		h = c.handler(f)
+	}
+	return c.router.Handle(path, h)
 }
 
 func (c *Core) HTTPHandler() http.Handler {
