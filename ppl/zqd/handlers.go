@@ -43,6 +43,8 @@ func errorResponse(e error) (status int, ae *api.Error) {
 		status = http.StatusBadRequest
 	case zqe.Conflict:
 		status = http.StatusConflict
+	case zqe.NoCredentials:
+		status = http.StatusUnauthorized
 	}
 
 	ae.Kind = ze.Kind.String()
@@ -605,4 +607,13 @@ func extractSpaceID(c *Core, w http.ResponseWriter, r *http.Request) (api.SpaceI
 		return "", false
 	}
 	return api.SpaceID(id), true
+}
+
+func handleIdentityGet(c *Core, w http.ResponseWriter, r *http.Request) {
+	ident, ok := IdentifyFromContext(r.Context())
+	if !ok {
+		respondError(c, w, r, zqe.ErrInvalid("no valid credentials"))
+		return
+	}
+	respond(c, w, r, http.StatusOK, ident)
 }
