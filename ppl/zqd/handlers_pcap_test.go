@@ -201,6 +201,19 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 	})
 }
 
+// TestPcapTimeRange verifies that the time range for a space with an imported
+// pcap includes the pcap's time range, regardless of whether any records are
+// present or not. See zq#1797.
+func TestPcapTimeRange(t *testing.T) {
+	noopWrite := func(p *testPcapProcess) error { return nil }
+	p := pcapPostTest(t, "testdata/valid.pcap", testLauncher(nil, noopWrite))
+	info, err := p.client.SpaceInfo(context.Background(), p.space.ID)
+	require.NoError(t, err)
+	require.NotNil(t, info.Span)
+	exp := nano.NewSpanTs(nano.Unix(1501770877, 471635000), nano.Unix(1501770880, 988247000))
+	require.Equal(t, exp, *info.Span)
+}
+
 func launcherFromEnv(t *testing.T, key string) pcapanalyzer.Launcher {
 	ln, err := pcapanalyzer.LauncherFromPath(os.Getenv(key), false)
 	require.NoError(t, err)

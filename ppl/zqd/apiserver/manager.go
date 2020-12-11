@@ -349,6 +349,7 @@ func (m *Manager) rowToSpaceInfo(ctx context.Context, sr SpaceRow) (api.SpaceInf
 				union := span.Union(pcapinfo.Span)
 				span = &union
 			}
+			spaceInfo.Span = span
 		}
 	}
 
