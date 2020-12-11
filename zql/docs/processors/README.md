@@ -79,7 +79,7 @@ zq -f table 'cut nothere,alsoabsent' weird.log.gz
 
 #### Output:
 ```zq-output
-cut: nothing found for nothere,alsoabsent
+cut: no record found with columns nothere,alsoabsent
 ```
 
 #### Example #4:
@@ -331,7 +331,7 @@ zq -f table 'pick nothere,alsoabsent' weird.log.gz
 
 #### Output:
 ```zq-output
-pick: nothing found for nothere,alsoabsent
+pick: no record found with columns nothere,alsoabsent
 ```
 
 #### Example #4:

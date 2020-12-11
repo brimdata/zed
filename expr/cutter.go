@@ -137,7 +137,7 @@ func (c *Cutter) Warning() string {
 	if c.FoundCut() {
 		return ""
 	}
-	return fmt.Sprintf("nothing found for %s", fieldList(c.fieldExprs))
+	return fmt.Sprintf("no record found with columns %s", fieldList(c.fieldExprs))
 }
 
 func (c *Cutter) Eval(rec *zng.Record) (zng.Value, error) {
