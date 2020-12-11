@@ -70,6 +70,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
+	c.conf.Auth.SetFlags(f)
 	c.conf.Version = cli.Version
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.configfile, "config", "", "path to zqd config file")
@@ -87,6 +88,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.conf.Worker.Node, "workernode", "", "logical node name within the compute cluster")
 	f.StringVar(&c.conf.Workers, "workers", "", "workers as comma-separated [addr]:port list")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
+
 	return c, nil
 }
 
