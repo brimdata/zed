@@ -51,7 +51,7 @@ if [[ "$2" == workers ]]; then
 
   test_workers=127.0.0.1:$portw1,127.0.0.1:$portw2
   zqd listen -l=localhost:0 -portfile=$portdir/zqd -data=$zqdroot \
-    -loglevel=warn -suricataupdater=true -workers=$test_workers &> zqd-root.log &
+    -loglevel=warn -suricataupdater=true -worker.bound=$test_workers &> zqd-root.log &
   zqdpid=$!
   awaitfile $portdir/zqd
 else

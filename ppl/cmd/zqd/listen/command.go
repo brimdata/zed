@@ -71,6 +71,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.conf.Auth.SetFlags(f)
+	c.conf.Worker.SetFlags(f)
 	c.conf.Version = cli.Version
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.configfile, "config", "", "path to zqd config file")
@@ -81,12 +82,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, recruiter, or worker)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to API")
-	f.StringVar(&c.conf.Recruiter, "recruiter", "", "recruiter address for worker registration")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
 	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
-	f.StringVar(&c.conf.Worker.Host, "workerhost", "", "host ip of container")
-	f.StringVar(&c.conf.Worker.Node, "workernode", "", "logical node name within the compute cluster")
-	f.StringVar(&c.conf.Workers, "workers", "", "workers as comma-separated [addr]:port list")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
 
 	return c, nil
@@ -146,7 +143,7 @@ func (c *Command) Run(args []string) error {
 	// Workers should registerWithRecruiter as late as possible,
 	// just before writing Port file for tests.
 	if c.conf.Personality == "worker" {
-		if err := core.WorkerRegistration(ctx, srv.Addr(), c.conf); err != nil {
+		if err := core.WorkerRegistration(ctx, srv.Addr(), c.conf.Worker); err != nil {
 			return err
 		}
 	}

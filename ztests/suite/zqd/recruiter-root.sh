@@ -38,19 +38,19 @@ node_name=test1
 
 # (2) start two zqd workers that register with the recruiter
 zqd listen -personality=worker -l=localhost:0 -portfile=$portdir/zqd-w1 \
-  -recruiter=$recruiter -workernode=$node_name &> zqd-w1.log &
+  -worker.recruiter=$recruiter -worker.node=$node_name &> zqd-w1.log &
 zqdw1pid=$!
 awaitfile $portdir/zqd-w1
 
 zqd listen -personality=worker -l=localhost:0 -portfile=$portdir/zqd-w2 \
-  -recruiter=$recruiter -workernode=$node_name &> zqd-w2.log &
+  -worker.recruiter=$recruiter -worker.node=$node_name &> zqd-w2.log &
 zqdw1pid=$!
 awaitfile $portdir/zqd-w2
 
 # (3) start a zqd "root" process (default personality for now) that may recruit workers
 
 zqd listen -l=localhost:0 -portfile=$portdir/zqd-root -data=$zqdroot \
-  -recruiter=$recruiter &> zqd-root.log &
+  -worker.recruiter=$recruiter &> zqd-root.log &
 zqdrootpid=$!
 awaitfile $portdir/zqd-root
 export ZQD_HOST=localhost:$(cat $portdir/zqd-root)

@@ -29,10 +29,10 @@ func RecruitWorkers(ctx *proc.Context, workerCount int, recruiter string, worker
 	}
 
 	if recruiter == "" {
-		return nil, fmt.Errorf("distributed exec failure: -recruiter flag is not present")
+		return nil, fmt.Errorf("distributed exec failure: -worker.recruiter flag is not present")
 	}
 	if _, _, err := net.SplitHostPort(recruiter); err != nil {
-		return nil, fmt.Errorf("distributed exec failure: -recruiter flag does not have host:port")
+		return nil, fmt.Errorf("distributed exec failure: -worker.recruiter flag does not have host:port")
 	}
 	conn := client.NewConnectionTo("http://" + recruiter)
 	recreq := api.RecruitRequest{NumberRequested: workerCount}

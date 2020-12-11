@@ -37,19 +37,12 @@ type Config struct {
 	Auth        AuthConfig
 	Logger      *zap.Logger
 	Personality string
-	Recruiter   string
 	Root        string
 	Version     string
 	Worker      WorkerConfig
-	Workers     string
 
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher
-}
-
-type WorkerConfig struct {
-	Host string
-	Node string
 }
 
 type middleware interface {
@@ -60,14 +53,13 @@ type Core struct {
 	auth       mux.MiddlewareFunc
 	logger     *zap.Logger
 	mgr        *apiserver.Manager
-	recruiter  string // used in K8s cluster with recruiter
 	registry   *prometheus.Registry
 	root       iosrc.URI
 	router     *mux.Router
 	taskCount  int64
 	workerPool *recruiter.WorkerPool // state for personality=recruiter
 	workerReg  *recruiter.WorkerReg  // state for personality=worker
-	workers    string                // used for ZTests
+	worker     WorkerConfig
 
 	suricata pcapanalyzer.Launcher
 	zeek     pcapanalyzer.Launcher
@@ -118,16 +110,15 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	})
 
 	c := &Core{
-		auth:      auth,
-		logger:    conf.Logger,
-		mgr:       mgr,
-		recruiter: conf.Recruiter,
-		registry:  registry,
-		root:      root,
-		router:    router,
-		suricata:  conf.Suricata,
-		workers:   conf.Workers,
-		zeek:      conf.Zeek,
+		auth:     auth,
+		logger:   conf.Logger,
+		mgr:      mgr,
+		registry: registry,
+		root:     root,
+		router:   router,
+		suricata: conf.Suricata,
+		worker:   conf.Worker,
+		zeek:     conf.Zeek,
 	}
 
 	switch conf.Personality {
@@ -230,15 +221,15 @@ func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 	return c.logger.With(zap.String("request_id", getRequestID(r.Context())))
 }
 
-func (c *Core) WorkerRegistration(ctx context.Context, srvAddr string, conf Config) error {
+func (c *Core) WorkerRegistration(ctx context.Context, srvAddr string, conf WorkerConfig) error {
 	if _, _, err := net.SplitHostPort(conf.Recruiter); err != nil {
-		return errors.New("flag -recruiter=host:port must be provided for -personality=worker")
+		return errors.New("flag -worker.recruiter=host:port must be provided for -personality=worker")
 	}
-	if conf.Worker.Node == "" {
-		return errors.New("flag -workernode must be provided for -personality=worker")
+	if conf.Node == "" {
+		return errors.New("flag -worker.node must be provided for -personality=worker")
 	}
 	var err error
-	c.workerReg, err = recruiter.NewWorkerReg(ctx, srvAddr, conf.Recruiter, conf.Worker.Host, conf.Worker.Node)
+	c.workerReg, err = recruiter.NewWorkerReg(ctx, srvAddr, conf.Recruiter, conf.Host, conf.Node)
 	if err != nil {
 		return err
 	}
