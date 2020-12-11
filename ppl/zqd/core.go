@@ -118,7 +118,6 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	switch conf.Personality {
 	case "", "all":
-		println("I am root with data=", conf.Root, c.root.String())
 		c.addAPIServerRoutes()
 		c.addWorkerRoutes()
 	case "apiserver":
