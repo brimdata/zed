@@ -124,13 +124,37 @@ kubectl-config:
 	--user=$(ZQD_K8S_USER)@$(ZQD_TEST_CLUSTER)
 	kubectl config use-context zqtest
 
-helm-install:
-	helm install zqd charts/zqd \
-	--set AWSRegion="us-east-2" \
-	--set image.repository="$(ZQD_ECR_HOST)/" \
-	--set image.tag="zqd:$(ECR_VERSION)" \
-	--set useCredSecret=false \
-	--set datauri=$(ZQD_DATA_URI)
+helm-install-recruiter:
+	helm install recruiter charts/zqd \
+	--set AWSRegion=us-east-2 \
+	--set image.repository=$(ZQD_ECR_HOST)/ \
+	--set image.tag=zqd:$(ECR_VERSION) \
+	--set personality=recruiter \
+	--set useCredSecret=false
+
+helm-install-root:
+	helm install root charts/zqd \
+	--set AWSRegion=us-east-2 \
+	--set datauri=$(ZQD_DATA_URI) \
+	--set image.repository=$(ZQD_ECR_HOST)/ \
+	--set image.tag=zqd:$(ECR_VERSION) \
+	--set personality=root \
+	--set RecruiterAddr=recruiter-zqd:9867 \
+	--set useCredSecret=false
+
+helm-install-worker:
+	helm install worker charts/zqd \
+	--set AWSRegion=us-east-2 \
+	--set image.repository=$(ZQD_ECR_HOST)/ \
+	--set image.tag=zqd:$(ECR_VERSION) \
+	--set personality=worker \
+	--set RecruiterAddr=recruiter-zqd:9867 \
+	--set useCredSecret=false
+
+make helm-uninstall:
+	helm uninstall worker
+	helm uninstall root
+	helm uninstall recruiter
 
 create-release-assets:
 	for os in darwin linux windows; do \

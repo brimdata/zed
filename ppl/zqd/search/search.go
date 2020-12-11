@@ -34,7 +34,8 @@ const (
 )
 
 type SearchOp struct {
-	query *Query
+	query   *Query
+	workers int // for distributed queries only
 }
 
 func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
@@ -99,6 +100,40 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 		})
 	default:
 		return fmt.Errorf("unknown storage type %T", st)
+	}
+}
+
+func (s *SearchOp) RunDistributed(ctx context.Context, store storage.Storage, output Output, numberOfWorkers int, recruiter string, workers string) (err error) {
+	d := &searchdriver{
+		output:    output,
+		startTime: nano.Now(),
+	}
+	d.start(0)
+	defer func() {
+		if err != nil {
+			d.abort(0, err)
+			return
+		}
+		d.end(0)
+	}()
+
+	statsTicker := time.NewTicker(StatsInterval)
+	defer statsTicker.Stop()
+	zctx := resolver.NewContext()
+
+	switch st := store.(type) {
+	case *archivestore.Storage:
+		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
+			Distributed: true,
+			Order:       zbuf.OrderDesc,
+			Parallelism: numberOfWorkers,
+			Recruiter:   recruiter,
+			Span:        s.query.Span,
+			StatsTick:   statsTicker.C,
+			Workers:     workers,
+		})
+	default:
+		return fmt.Errorf("storage type %T unsupported for distributed query", st)
 	}
 }
 

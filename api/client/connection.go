@@ -61,6 +61,11 @@ func NewConnectionTo(hostURL string) *Connection {
 	return newConnection(client)
 }
 
+// ClientHostURL allows us to print the host in log messages and internal error messages
+func (c *Connection) ClientHostURL() string {
+	return c.client.HostURL
+}
+
 func (c *Connection) SetUserAgent(useragent string) {
 	c.client.SetHeader("User-Agent", useragent)
 }
@@ -226,14 +231,31 @@ func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, pa
 	return c.stream(req)
 }
 
-func (c *Connection) WorkerRaw(ctx context.Context, search api.WorkerRequest, params map[string]string) (io.ReadCloser, error) {
+func (c *Connection) WorkerRootSearch(ctx context.Context, search api.WorkerRootRequest, params map[string]string) (io.ReadCloser, error) {
 	req := c.Request(ctx).
 		SetBody(search).
 		SetQueryParam("format", "zng")
 	req.SetQueryParams(params)
 	req.Method = http.MethodPost
-	req.URL = "/worker"
+	req.URL = "/worker/rootsearch"
 	return c.stream(req)
+}
+
+func (c *Connection) WorkerChunkSearch(ctx context.Context, search api.WorkerChunkRequest, params map[string]string) (io.ReadCloser, error) {
+	req := c.Request(ctx).
+		SetBody(search).
+		SetQueryParam("format", "zng")
+	req.SetQueryParams(params)
+	req.Method = http.MethodPost
+	req.URL = "/worker/chunksearch"
+	return c.stream(req)
+}
+
+// WorkerRelease is a message sent from the zqd root to workers in the parallel group
+// when the root process is done and will not be sending additional /worker/chunksearch requests.
+func (c *Connection) WorkerRelease(ctx context.Context) error {
+	_, err := c.Request(ctx).Get("/worker/release")
+	return err
 }
 
 // Search sends a search task to the server and returns a Search interface
@@ -400,6 +422,60 @@ func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts 
 	}
 	v := resp.Result().(*api.LogPostResponse)
 	return *v, nil
+}
+
+func (c *Connection) Recruit(ctx context.Context, req api.RecruitRequest) (*api.RecruitResponse, error) {
+	resp, err := c.Request(ctx).
+		SetBody(req).
+		SetResult(&api.RecruitResponse{}).
+		Post("/recruiter/recruit")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.RecruitResponse), nil
+}
+
+func (c *Connection) Register(ctx context.Context, req api.RegisterRequest) (*api.RegisterResponse, error) {
+	resp, err := c.Request(ctx).
+		SetBody(req).
+		SetResult(&api.RegisterResponse{}).
+		Post("/recruiter/register")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.RegisterResponse), nil
+}
+
+func (c *Connection) Deregister(ctx context.Context, req api.DeregisterRequest) (*api.RegisterResponse, error) {
+	resp, err := c.Request(ctx).
+		SetBody(req).
+		SetResult(&api.RegisterResponse{}).
+		Post("/recruiter/deregister")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.RegisterResponse), nil
+}
+
+func (c *Connection) Unreserve(ctx context.Context, req api.UnreserveRequest) (*api.UnreserveResponse, error) {
+	resp, err := c.Request(ctx).
+		SetBody(req).
+		SetResult(&api.UnreserveResponse{}).
+		Post("/recruiter/unreserve")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.UnreserveResponse), nil
+}
+
+func (c *Connection) RecruiterStats(ctx context.Context) (*api.RecruiterStatsResponse, error) {
+	resp, err := c.Request(ctx).
+		SetResult(&api.RecruiterStatsResponse{}).
+		Get("/recruiter/stats")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.RecruiterStatsResponse), nil
 }
 
 type ErrorResponse struct {

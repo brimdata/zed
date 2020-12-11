@@ -3,12 +3,15 @@
 # Declare variables to be passed into your templates.
 
 AWSRegion: ""
+
+personality: "all"
 datauri: "file:///spaces"
 useCredSecret: true
 
 configyaml: false
 
-replicaCount: 1
+rootReplicaCount: 1
+workerReplicaCount: 2
 
 image:
   repository: "localhost:5000/"

@@ -1,13 +1,16 @@
 package driver
 
 import (
+	"context"
 	"encoding/json"
 	"io"
 	"sync"
+	"time"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/compiler"
+	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 )
@@ -144,7 +147,7 @@ func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerClos
 			return nil, err
 		}
 
-		rc, err := conn.WorkerRaw(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
+		rc, err := conn.WorkerChunkSearch(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
 		if err != nil {
 			return nil, err
 		}
@@ -175,9 +178,9 @@ func (pg *parallelGroup) doneSource(sc ScannerCloser) {
 	delete(pg.scanners, sc)
 }
 
-// sourceToRequest takes a Source and converts it into a WorkerRequest
-func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerRequest, error) {
-	var req api.WorkerRequest
+// sourceToRequest takes a Source and converts it into a WorkerChunkRequest.
+func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerChunkRequest, error) {
+	var req api.WorkerChunkRequest
 	if err := src.ToRequest(&req); err != nil {
 		return nil, err
 	}
@@ -207,7 +210,7 @@ func (pg *parallelGroup) run() {
 	close(pg.sourceChan)
 }
 
-func createParallelGroup(pctx *proc.Context, filter *compiler.Filter, msrc MultiSource, mcfg MultiConfig, workerURLs []string) ([]proc.Interface, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, filter *compiler.Filter, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		pctx: pctx,
 		filter: SourceFilter{
@@ -221,19 +224,34 @@ func createParallelGroup(pctx *proc.Context, filter *compiler.Filter, msrc Multi
 	}
 
 	var sources []proc.Interface
-	// Two type of parallelGroups:
-	if len(workerURLs) > 0 {
-		// If workerURLs are present, then base the sources on the number of workers
-		for _, w := range workerURLs {
-			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: client.NewConnectionTo(w)})
+	if mcfg.Distributed {
+		workers, err := recruiter.RecruitWorkers(pctx, mcfg.Parallelism, mcfg.Recruiter, mcfg.Workers)
+		if err != nil {
+			return nil, nil, err
 		}
+		var conns []*client.Connection
+		for _, w := range workers {
+			conn := client.NewConnectionTo("http://" + w)
+			conns = append(conns, conn)
+			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: conn})
+		}
+		go pg.releaseWorkersOnDone(conns)
 	} else {
-		// Normal: the sources are regular parallelHead procs
-		// and Parallelism is determined by mcfg
-		sources = make([]proc.Interface, mcfg.Parallelism)
-		for i := range sources {
-			sources[i] = &parallelHead{pctx: pctx, pg: pg}
+		// This is the code path used by the zqd daemon for Brim.
+		for i := 0; i < mcfg.Parallelism; i++ {
+			sources = append(sources, &parallelHead{pctx: pctx, pg: pg})
 		}
 	}
 	return sources, pg, nil
+}
+
+func (pg *parallelGroup) releaseWorkersOnDone(conns []*client.Connection) {
+	<-pg.pctx.Done()
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	// The original context, pg.pctx, is cancelled, so send the release requests
+	// in a new Background context.
+	for _, conn := range conns {
+		recruiter.ReleaseWorker(ctx, conn, pg.mcfg.Logger)
+	}
 }

@@ -48,12 +48,6 @@ type SearchRequest struct {
 	Dir   int             `json:"dir" validate:"required"`
 }
 
-type WorkerRequest struct {
-	SearchRequest
-	ChunkPaths []string `json:"chunk_paths"`
-	DataPath   string   `json:"data_path"`
-}
-
 type SearchRecords struct {
 	Type      string           `json:"type"`
 	ChannelID int              `json:"channel_id"`

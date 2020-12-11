@@ -14,10 +14,8 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
-	"strings"
 
 	"github.com/brimsec/zq/cli"
-	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
 	"github.com/brimsec/zq/pkg/rlimit"
@@ -39,7 +37,7 @@ var Listen = &charm.Spec{
 	Long: `
 The listen command launches a process to listen on the provided interface and
 `,
-	HiddenFlags: "brimfd,workers",
+	HiddenFlags: "brimfd,nodename,podip,recruiter,workers",
 	New:         New,
 }
 
@@ -63,18 +61,17 @@ type Command struct {
 	devMode             bool
 	listenAddr          string
 	logLevel            zapcore.Level
-	personality         string
 	portFile            string
 	pprof               bool
 	suricataRunnerPath  string
 	suricataUpdaterPath string
-	workers             string
 	zeekRunnerPath      string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.conf.Auth.SetFlags(f)
+	c.conf.Worker.SetFlags(f)
 	c.conf.Version = cli.Version
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.configfile, "config", "", "path to zqd config file")
@@ -82,12 +79,11 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.devMode, "dev", false, "run in development mode")
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.Var(&c.logLevel, "loglevel", "logging level")
-	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, or worker)")
+	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, recruiter, or worker)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to API")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
 	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
-	f.StringVar(&c.workers, "workers", "", "workers as comma-separated [addr]:port list")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
 
 	return c, nil
@@ -144,6 +140,13 @@ func (c *Command) Run(args []string) error {
 	if err := srv.Start(ctx); err != nil {
 		return err
 	}
+	// Workers should registerWithRecruiter as late as possible,
+	// just before writing Port file for tests.
+	if c.conf.Personality == "worker" {
+		if err := core.WorkerRegistration(ctx, srv.Addr(), c.conf.Worker); err != nil {
+			return err
+		}
+	}
 	if c.portFile != "" {
 		if err := c.writePortFile(srv.Addr()); err != nil {
 			return err
@@ -157,9 +160,6 @@ func (c *Command) init() error {
 		return err
 	}
 	if err := c.initLogger(); err != nil {
-		return err
-	}
-	if err := c.initWorkers(); err != nil {
 		return err
 	}
 	var err error
@@ -262,20 +262,6 @@ func (c *Command) launchSuricataUpdate(ctx context.Context) {
 		stdout := sproc.Stdout()
 		c.logger.Info("Suricata updater stdout", zap.String("stdout", stdout))
 	}()
-}
-
-func (c *Command) initWorkers() error {
-	// This is for local testing only, at this point.
-	// Workers will be available through a K8s service in a prod deployment.
-	if c.workers != "" {
-		for _, w := range strings.Split(c.workers, ",") {
-			if _, _, err := net.SplitHostPort(w); err != nil {
-				return err
-			}
-			driver.WorkerURLs = append(driver.WorkerURLs, "http://"+w)
-		}
-	}
-	return nil
 }
 
 // defaultLogger ignores output from the access logger.
