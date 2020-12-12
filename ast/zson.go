@@ -71,7 +71,7 @@ type (
 	}
 	Union struct {
 		Op       string `json:"op"`
-		Selector Type   `json"selector`
+		Selector Type   `json:"selector"`
 		Value    Value  `json:"value"`
 	}
 	Enum struct {
