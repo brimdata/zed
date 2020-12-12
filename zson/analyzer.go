@@ -332,44 +332,83 @@ func lookupRecordType(zctx *resolver.Context, fields []ast.Field, vals []Value) 
 	return zctx.LookupTypeRecord(columns)
 }
 
-func (a Analyzer) convertArray(zctx *resolver.Context, array *ast.Array, cast zng.Type) (Value, error) {
-	var elemType zng.Type
-	if cast != nil {
-		arrayType, ok := zng.AliasedType(cast).(*zng.TypeArray)
-		if !ok {
-			return nil, errors.New("array decorator not of type array")
-		}
-		elemType = arrayType.Type
+// Figure out what the cast should be for the elements and for the union conversion if any.
+func arrayElemCast(cast zng.Type) (zng.Type, error) {
+	if cast == nil {
+		return nil, nil
 	}
+	if arrayType, ok := zng.AliasedType(cast).(*zng.TypeArray); ok {
+		return arrayType.Type, nil
+	}
+	return nil, errors.New("array decorator not of type array")
+}
+
+func (a Analyzer) convertArray(zctx *resolver.Context, array *ast.Array, cast zng.Type) (Value, error) {
 	vals := make([]Value, 0, len(array.Elements))
-	var check zng.Type
+	typ, err := arrayElemCast(cast)
+	if err != nil {
+		return nil, err
+	}
 	for _, elem := range array.Elements {
-		v, err := a.convertValue(zctx, elem, elemType)
+		v, err := a.convertValue(zctx, elem, typ)
 		if err != nil {
 			return nil, err
 		}
 		vals = append(vals, v)
-		// XXX this is where we need to see if there are mixed types,
-		// in which case we need to turn this into array[union...].
-		// See issue #1789.
-		if check == nil {
-			check = v.TypeOf()
-		} else if check != v.TypeOf() {
-			return nil, fmt.Errorf("type of array must be uniform: %s vs %s", check.ZSON(), v.TypeOf())
+	}
+	if cast != nil || len(vals) == 0 {
+		// We had a cast so we know any type mistmatches we have been
+		// caught below...
+		return &Array{cast, vals}, nil
+	}
+	// No cast, we need to look up the TypeArray.
+	elemType := sameType(vals)
+	if elemType != nil {
+		// The elements were of uniform type.
+		arrayType := zctx.LookupTypeArray(elemType)
+		return &Array{arrayType, vals}, nil
+	}
+	// The elements are of mixed type so create wrap each value in a union
+	// and create the TypeUnion.
+	types := differentTypes(vals)
+	unionType := zctx.LookupTypeUnion(types)
+	var unions []Value
+	for _, v := range vals {
+		union, err := a.convertUnion(zctx, v, unionType)
+		if err != nil {
+			return nil, err
+		}
+		unions = append(unions, union)
+	}
+	arrayType := zctx.LookupTypeArray(unionType)
+	return &Array{arrayType, unions}, nil
+}
+
+func sameType(vals []Value) zng.Type {
+	typ := vals[0].TypeOf()
+	for _, v := range vals[1:] {
+		if typ != v.TypeOf() {
+			return nil
 		}
 	}
-	if cast == nil {
-		if elemType == nil {
-			if len(vals) == 0 {
-				// empty array with no decorator
-				elemType = zng.TypeNull
-			} else {
-				elemType = vals[0].TypeOf()
-			}
+	return typ
+}
+
+func addUniq(types []zng.Type, typ zng.Type) []zng.Type {
+	for _, t := range types {
+		if t == typ {
+			return types
 		}
-		cast = zctx.LookupTypeArray(elemType)
 	}
-	return &Array{cast, vals}, nil
+	return append(types, typ)
+}
+
+func differentTypes(vals []Value) []zng.Type {
+	out := make([]zng.Type, 0, len(vals))
+	for _, v := range vals {
+		out = addUniq(out, v.TypeOf())
+	}
+	return out
 }
 
 func (a Analyzer) convertSet(zctx *resolver.Context, set *ast.Set, cast zng.Type) (Value, error) {
