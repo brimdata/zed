@@ -3,22 +3,13 @@ package zqd
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
-
-func handleDeregister(c *Core, w http.ResponseWriter, r *http.Request) {
-	var req api.DeregisterRequest
-	if !request(c, w, r, &req) {
-		return
-	}
-	c.workerPool.Deregister(req.Addr)
-	respond(c, w, r, http.StatusOK, api.RegisterResponse{
-		Registered: false,
-	})
-}
 
 func handleRecruit(c *Core, w http.ResponseWriter, r *http.Request) {
 	var req api.RecruitRequest
@@ -32,6 +23,7 @@ func handleRecruit(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	workers := make([]api.Worker, len(ws))
 	for i, e := range ws {
+		e.Recruited <- recruiter.RecruitmentDetail{Label: req.Label, NumberRequested: req.NumberRequested}
 		workers[i] = api.Worker{Addr: e.Addr, NodeName: e.NodeName}
 	}
 	respond(c, w, r, http.StatusOK, api.RecruitResponse{
@@ -44,25 +36,59 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !request(c, w, r, &req) {
 		return
 	}
-	registered, err := c.workerPool.Register(req.Addr, req.NodeName)
-	if err != nil {
+	if req.Timeout <= 0 {
+		respondError(c, w, r, zqe.E(zqe.Invalid, "required parameter timeout"))
+		return
+	}
+
+	recruited := make(chan recruiter.RecruitmentDetail)
+
+	if err := c.workerPool.Register(req.Addr, req.NodeName, recruited); err != nil {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return
 	}
-	respond(c, w, r, http.StatusOK, api.RegisterResponse{
-		Registered: registered,
-	})
-}
 
-func handleUnreserve(c *Core, w http.ResponseWriter, r *http.Request) {
-	var req api.UnreserveRequest
-	if !request(c, w, r, &req) {
-		return
+	// directive is one of:
+	//  "reserved"   indicates to the worker that is has been reserved by a root process.
+	//  "reregister" indicates the request timed out without the worker being reserved,
+	//               and the worker should send another register request if possible.
+	//               Note that if the worker is running on a K8s node marked as
+	//               "Unschedulable" it should not reregister.
+	var directive string
+	var isCanceled bool
+
+	ctx := r.Context()
+	timer := time.NewTimer(time.Duration(req.Timeout) * time.Millisecond)
+	defer timer.Stop()
+	select {
+	case rd := <-recruited:
+		c.requestLogger(r).Info("Worker recruited",
+			zap.String("addr", req.Addr),
+			zap.String("label", rd.Label),
+			zap.Int("count", rd.NumberRequested),
+		)
+		directive = "reserved"
+	case <-timer.C:
+		c.requestLogger(r).Info("Worker should reregister", zap.String("addr", req.Addr))
+		directive = "reregister"
+	case <-ctx.Done():
+		c.requestLogger(r).Info("handleRegister context cancel")
+		isCanceled = true
 	}
-	c.workerPool.Unreserve(req.Addrs)
-	respond(c, w, r, http.StatusOK, api.UnreserveResponse{
-		Reserved: false,
-	})
+
+	// Deregister in any event
+	c.workerPool.Deregister(req.Addr)
+
+	// Future: add logic to scale down by responding with "shutdown"
+	// We would check to see if the worker is on an unscedulable node,
+	// and direct it to shutdown if needed.
+	// Note that I expect to need rd.NumberRequested for a scaling heuristic. -MTW
+
+	if !isCanceled {
+		respond(c, w, r, http.StatusOK, api.RegisterResponse{
+			Directive: directive,
+		})
+	}
 }
 
 func handleRecruiterStats(c *Core, w http.ResponseWriter, r *http.Request) {

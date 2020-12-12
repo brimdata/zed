@@ -159,12 +159,10 @@ func (c *Core) addAPIServerRoutes() {
 }
 
 func (c *Core) addRecruiterRoutes() {
-	c.router.Handle("/recruiter/deregister", c.handler(handleDeregister)).Methods("POST")
 	c.router.Handle("/recruiter/listfree", c.handler(handleListFree)).Methods("GET")
 	c.router.Handle("/recruiter/recruit", c.handler(handleRecruit)).Methods("POST")
 	c.router.Handle("/recruiter/register", c.handler(handleRegister)).Methods("POST")
 	c.router.Handle("/recruiter/stats", c.handler(handleRecruiterStats)).Methods("GET")
-	c.router.Handle("/recruiter/unreserve", c.handler(handleUnreserve)).Methods("POST")
 }
 
 func (c *Core) addWorkerRoutes() {
