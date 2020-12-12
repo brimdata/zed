@@ -15,18 +15,20 @@ type WorkerReg struct {
 	recruiteraddr string
 	selfaddr      string
 	nodename      string
+	timeout       int
 }
 
-func NewWorkerReg(ctx context.Context, srvAddr string, recruiteraddr string, specPodIP string, specNodeName string) (*WorkerReg, error) {
+func NewWorkerReg(ctx context.Context, srvAddr string, recruiteraddr string, workerHost string, workerNode string, workerTimeout int) (*WorkerReg, error) {
 	host, port, _ := net.SplitHostPort(srvAddr)
-	if specPodIP != "" {
-		host = specPodIP
+	if workerHost != "" {
+		host = workerHost
 	}
 	return &WorkerReg{
 		conn:          client.NewConnectionTo("http://" + recruiteraddr),
-		nodename:      specNodeName,
+		nodename:      workerNode,
 		recruiteraddr: recruiteraddr,
 		selfaddr:      net.JoinHostPort(host, port),
+		timeout:       workerTimeout,
 	}, nil
 }
 
@@ -38,6 +40,7 @@ func (w *WorkerReg) RegisterWithRecruiter(ctx context.Context, logger *zap.Logge
 	// Failure case is when /worker/release is not called. Maybe we need some locks and timers
 	// to take care of that.
 	registerreq := api.RegisterRequest{
+		Timeout: w.timeout,
 		Worker: api.Worker{
 			Addr:     w.selfaddr,
 			NodeName: w.nodename,

@@ -19,13 +19,15 @@ type WorkerConfig struct {
 	Host         string
 	Node         string
 	Recruiter    string
+	Timeout      int
 }
 
 func (c *WorkerConfig) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&c.Recruiter, "worker.recruiter", "", "recruiter address for worker registration")
+	fs.StringVar(&c.BoundWorkers, "worker.bound", "", "bound workers as comma-separated [addr]:port list")
 	fs.StringVar(&c.Host, "worker.host", "", "host ip of container")
 	fs.StringVar(&c.Node, "worker.node", "", "logical node name within the compute cluster")
-	fs.StringVar(&c.BoundWorkers, "worker.bound", "", "bound workers as comma-separated [addr]:port list")
+	fs.StringVar(&c.Recruiter, "worker.recruiter", "", "recruiter address for worker registration")
+	fs.IntVar(&c.Timeout, "worker.timeout", 30000, "timeout in milliseconds for long poll of /recruiter/register request")
 }
 
 func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
@@ -104,6 +106,8 @@ func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Reque
 
 func handleWorkerRelease(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
+	// TODO: not sure how this will work yet -- probably write to a channel here
+	// for the original register goroutine to pick up
 	if err := c.workerReg.RegisterWithRecruiter(httpReq.Context(), c.logger); err != nil {
 		// No point in responding with the error back to zqd root process,
 		// since this is happening on the cleanup after the search is finished.

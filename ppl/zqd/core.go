@@ -227,9 +227,10 @@ func (c *Core) WorkerRegistration(ctx context.Context, srvAddr string, conf Work
 		return errors.New("flag -worker.node must be provided for -personality=worker")
 	}
 	var err error
-	c.workerReg, err = recruiter.NewWorkerReg(ctx, srvAddr, conf.Recruiter, conf.Host, conf.Node)
+	c.workerReg, err = recruiter.NewWorkerReg(ctx, srvAddr, conf.Recruiter, conf.Host, conf.Node, conf.Timeout)
 	if err != nil {
 		return err
 	}
-	return c.workerReg.RegisterWithRecruiter(ctx, c.logger)
+	go c.workerReg.RegisterWithRecruiter(ctx, c.logger)
+	return nil
 }
