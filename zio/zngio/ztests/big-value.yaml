@@ -1,0 +1,30 @@
+script: |
+  zq -znglz4blocksize=0 -o out.zng in.tzng
+  cat out.zng out.zng out.zng out.zng > out2.zng
+  mv out2.zng out.zng
+  cat out.zng out.zng out.zng out.zng > out2.zng
+  mv out2.zng out.zng
+  cat out.zng out.zng out.zng out.zng > out2.zng
+  mv out2.zng out.zng
+  cat out.zng out.zng out.zng out.zng > out2.zng
+  mv out2.zng out.zng
+  cat out.zng out.zng out.zng out.zng > out2.zng
+  mv out2.zng out.zng
+  cat out.zng out.zng out.zng out.zng > out2.zng
+  mv out2.zng out.zng
+  cat out.zng out.zng out.zng out.zng > out2.zng
+  mv out2.zng out.zng
+  zq -znglz4blocksize=0 -o bigrow.zng "collect(s)" out.zng
+  zq  -i zng -o /dev/null -readmax 10KB "count()" bigrow.zng
+
+inputs:
+  - name: in.tzng
+    data: |
+      #0:record[s:string]
+      0:[big data;]
+      0:[too big;]
+
+outputs:
+  - name: stderr
+    data: |
+      bigrow.zng: large value of 278531 bytes exceeds maximum read buffer (10000 bytes)

@@ -2,17 +2,20 @@ package inputflags
 
 import (
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"regexp"
 
+	"github.com/brimsec/zq/cli/auto"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/azngio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
@@ -20,6 +23,8 @@ type Flags struct {
 	zio.ReaderOpts
 	// The JSON type config is loaded from the types filie when Init is called.
 	jsonTypesFile string
+	ReadSize      auto.Bytes
+	ReadMax       auto.Bytes
 }
 
 func (f *Flags) Options() zio.ReaderOpts {
@@ -32,6 +37,10 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&f.jsonTypesFile, "j", "", "path to json types file")
 	fs.StringVar(&f.JSON.PathRegexp, "pathregexp", ndjsonio.DefaultPathRegexp,
 		"regexp for extracting _path from json log name (when -inferpath=true)")
+	f.ReadMax = auto.NewBytes(zngio.MaxSize)
+	fs.Var(&f.ReadMax, "readmax", "maximum memory used read buffers in MiB, MB, etc")
+	f.ReadSize = auto.NewBytes(zngio.ReadSize)
+	fs.Var(&f.ReadSize, "readsize", "target memory used read buffers in MiB, MB, etc")
 }
 
 // Init is called after flags have been parsed.
@@ -46,6 +55,14 @@ func (f *Flags) Init() error {
 			return err
 		}
 		f.JSON.TypeConfig = c
+	}
+	f.Zng.Max = int(f.ReadMax.Bytes)
+	if f.Zng.Max < 0 {
+		return errors.New("max read buffer size must be greater than zero")
+	}
+	f.Zng.Size = int(f.ReadSize.Bytes)
+	if f.Zng.Size < 0 {
+		return errors.New("max read buffer size must be greater than zero")
 	}
 	return nil
 }

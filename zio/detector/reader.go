@@ -55,7 +55,9 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	}
 	track.Reset()
 
-	zngErr := match(zngio.NewReaderWithOpts(track, resolver.NewContext(), zngio.ReaderOpts{Validate: true}), "zng")
+	zngOpts := opts.Zng
+	zngOpts.Validate = true
+	zngErr := match(zngio.NewReaderWithOpts(track, resolver.NewContext(), zngOpts), "zng")
 	if zngErr == nil {
 		return zngio.NewReaderWithOpts(recorder, zctx, opts.Zng), nil
 	}
