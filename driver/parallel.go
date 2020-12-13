@@ -146,7 +146,7 @@ func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerClos
 		if err != nil {
 			return nil, err
 		}
-
+		println("ROOT sending a request...")
 		rc, err := conn.WorkerChunkSearch(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
 		if err != nil {
 			return nil, err

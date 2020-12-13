@@ -1,7 +1,6 @@
 package zqd
 
 import (
-	"flag"
 	"net/http"
 
 	"github.com/brimsec/zq/api"
@@ -12,25 +11,8 @@ import (
 	"go.uber.org/zap"
 )
 
-type WorkerConfig struct {
-	// BoundWorkers is a fixed list of workers bound to a root process.
-	// It is used for ZTests and simple clusters without a recruiter.
-	BoundWorkers string
-	Host         string
-	Node         string
-	Recruiter    string
-	Timeout      int
-}
-
-func (c *WorkerConfig) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&c.BoundWorkers, "worker.bound", "", "bound workers as comma-separated [addr]:port list")
-	fs.StringVar(&c.Host, "worker.host", "", "host ip of container")
-	fs.StringVar(&c.Node, "worker.node", "", "logical node name within the compute cluster")
-	fs.StringVar(&c.Recruiter, "worker.recruiter", "", "recruiter address for worker registration")
-	fs.IntVar(&c.Timeout, "worker.timeout", 30000, "timeout in milliseconds for long poll of /recruiter/register request")
-}
-
 func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
+	println("ROOT SEARCH")
 	var req api.WorkerRootRequest
 	if !request(c, w, r, &req) {
 		return
@@ -71,7 +53,27 @@ func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// handleWorkerChunkSearch implements the API used for
+// distributed queries from a root worker process.
+// Distributed query worker processes, after being
+// recruited by a root worker, expect to recieve
+// a series of chunk search requests, followed by a
+// worker release request. If this series is interupted,
+// the worker could become a "zombie" process that will not be
+// recruited and is not recieving requests.
+// The "zombie timer" system provides a way for workers
+// in this state to exit.
 func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Request) {
+	println("CHUNK SEARCH")
+	// Insure workers perform one search at a time
+	c.workerReg.SearchLock.Lock()
+	defer c.workerReg.SearchLock.Unlock()
+	println("CHUNK SEARCH inside lock")
+	// Workers performing a search cannot be zombies.
+	c.workerReg.StopZombieTimer()
+	defer c.workerReg.StartZombieTimer()
+	println("CHUNK SEARCH inside timers")
+
 	var req api.WorkerChunkRequest
 	if !request(c, w, httpReq, &req) {
 		return
@@ -102,15 +104,15 @@ func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Reque
 	if err := work.Run(ctx, out); err != nil {
 		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
+
+	c.workerReg.StartZombieTimer()
 }
 
+// handleWorkerRelease handles the /worker/release request that the
+// zqd root process calls when it has completed a search query and
+// intends to release the workers for use by another root process.
 func handleWorkerRelease(c *Core, w http.ResponseWriter, httpReq *http.Request) {
+	c.workerReg.StopZombieTimer()
 	w.WriteHeader(http.StatusNoContent)
-	// TODO: not sure how this will work yet -- probably write to a channel here
-	// for the original register goroutine to pick up
-	if err := c.workerReg.RegisterWithRecruiter(httpReq.Context(), c.logger); err != nil {
-		// No point in responding with the error back to zqd root process,
-		// since this is happening on the cleanup after the search is finished.
-		c.logger.Warn("WorkerReleaseError", zap.Error(err))
-	}
+	go c.workerReg.RegisterWithRecruiter()
 }

@@ -71,7 +71,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.conf.Auth.SetFlags(f)
-	c.conf.Worker.SetFlags(f)
+	c.conf.Worker.SetWorkerFlags(f)
 	c.conf.Version = cli.Version
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.configfile, "config", "", "path to zqd config file")
@@ -143,7 +143,7 @@ func (c *Command) Run(args []string) error {
 	// Workers should registerWithRecruiter as late as possible,
 	// just before writing Port file for tests.
 	if c.conf.Personality == "worker" {
-		if err := core.WorkerRegistration(ctx, srv.Addr(), c.conf.Worker); err != nil {
+		if err := core.WorkerRegistration(ctx, srv.Addr(), &c.conf.Worker); err != nil {
 			return err
 		}
 	}
