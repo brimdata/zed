@@ -18,30 +18,29 @@ type WorkerConfig struct {
 	// It is used for ZTests and simple clusters without a recruiter.
 	BoundWorkers string
 	Host         string
+	LongPoll     int
 	MaxRetry     int
 	MinRetry     int
 	Node         string
 	Recruiter    string
 	Retry        int
-	Timeout      int
-	ZTimeout     int
+	IdleTime     int
 }
 
 func (c *WorkerConfig) SetWorkerFlags(fs *flag.FlagSet) {
 	fs.StringVar(&c.BoundWorkers, "worker.bound", "", "bound workers as comma-separated [addr]:port list")
 	fs.StringVar(&c.Host, "worker.host", "", "host ip of container")
-	fs.IntVar(&c.Timeout, "worker.maxretry", 10000, "maximum retry wait in milliseconds for registration request")
-	fs.IntVar(&c.Timeout, "worker.minretry", 200, "minimum retry wait in milliseconds for registration request")
+	fs.IntVar(&c.LongPoll, "worker.longpoll", 30000, "timeout in milliseconds for long poll of /recruiter/register request")
+	fs.IntVar(&c.MaxRetry, "worker.maxretry", 10000, "maximum retry wait in milliseconds for registration request")
+	fs.IntVar(&c.MinRetry, "worker.minretry", 200, "minimum retry wait in milliseconds for registration request")
 	fs.StringVar(&c.Node, "worker.node", "", "logical node name within the compute cluster")
 	fs.StringVar(&c.Recruiter, "worker.recruiter", "", "recruiter address for worker registration")
-	fs.IntVar(&c.Timeout, "worker.timeout", 30000, "timeout in milliseconds for long poll of /recruiter/register request")
-	fs.IntVar(&c.ZTimeout, "worker.ztimeout", 2000, "timeout in milliseconds for zombie worker processes to exit")
+	fs.IntVar(&c.IdleTime, "worker.idletime", 2000, "timeout in milliseconds for zombie worker processes to exit")
 }
 
 type WorkerReg struct {
 	conf           *WorkerConfig
 	conn           *client.Connection
-	ctx            context.Context // context from Run() function
 	logger         *zap.Logger
 	selfaddr       string
 	SearchLock     sync.Mutex
@@ -49,7 +48,7 @@ type WorkerReg struct {
 	zombieTimer    *time.Timer
 }
 
-func NewWorkerReg(ctx context.Context, srvAddr string, logger *zap.Logger, conf *WorkerConfig) (*WorkerReg, error) {
+func NewWorkerReg(srvAddr string, conf *WorkerConfig, logger *zap.Logger) (*WorkerReg, error) {
 
 	host, port, _ := net.SplitHostPort(srvAddr)
 	if conf.Host != "" {
@@ -58,10 +57,9 @@ func NewWorkerReg(ctx context.Context, srvAddr string, logger *zap.Logger, conf 
 	w := &WorkerReg{
 		conf:           conf,
 		conn:           client.NewConnectionTo("http://" + conf.Recruiter),
-		ctx:            ctx,
 		logger:         logger,
 		selfaddr:       net.JoinHostPort(host, port),
-		zombieDuration: time.Duration(conf.ZTimeout) * time.Millisecond,
+		zombieDuration: time.Duration(conf.IdleTime) * time.Millisecond,
 	}
 
 	// Create a timer to exit this process if it is not receiving work,
@@ -84,6 +82,11 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 	defer w.StartZombieTimer()
 	println("here I am again...")
 
+	ctx, cancel := context.WithTimeout(
+		context.Background(),
+		time.Duration(w.conf.LongPoll+5000)*time.Millisecond)
+	defer cancel()
+
 	// This should be a loop that tries to reregister, called as a goroutine.
 	// Loop should be suspended when a /worker/search is in progress, and
 	// resume afterwards.
@@ -91,7 +94,7 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 	// Failure case is when /worker/release is not called. Maybe we need some locks and timers
 	// to take care of that.
 	registerreq := api.RegisterRequest{
-		Timeout: w.conf.Timeout,
+		Timeout: w.conf.LongPoll,
 		Worker: api.Worker{
 			Addr:     w.selfaddr,
 			NodeName: w.conf.Node,
@@ -103,7 +106,7 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 	retryWait := w.conf.MinRetry
 	for {
 		println("registering...")
-		resp, err := w.conn.Register(w.ctx, registerreq)
+		resp, err := w.conn.Register(ctx, registerreq)
 		if err != nil {
 			w.logger.Error(
 				"Error on recruiter registration, waiting to retry",
