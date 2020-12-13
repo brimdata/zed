@@ -54,13 +54,14 @@ func TestBuildZsonTests(t *testing.T) {
 	t.Skip("comment out this skip directive to rebuild zson/ztests")
 	m := make(map[string]int)
 	inputs, _ := searchForTnzgs()
-	os.Mkdir("ztests", 0755)
+	dirpath := filepath.Join("ztests", "auto")
+	os.Mkdir(dirpath, 0755)
 	for _, input := range inputs {
 		name := filepath.Base(input.Path)
 		cnt := m[name]
 		m[name] += 1
 		name = countedName(name, cnt)
-		path := filepath.Join("ztests", name)
+		path := filepath.Join(dirpath, name)
 		if err := writeTestFile(path, input.Src); err != nil {
 			require.NoError(t, err)
 			return
