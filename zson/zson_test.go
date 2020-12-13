@@ -142,8 +142,10 @@ func parse(path string) (ast.Value, error) {
 	return parser.ParseValue()
 }
 
+const testFile = "test.zson"
+
 func TestZsonParser(t *testing.T) {
-	val, err := parse("test.zson")
+	val, err := parse(testFile)
 	require.NoError(t, err)
 	s, err := json.MarshalIndent(val, "", "    ")
 	require.NoError(t, err)
@@ -162,7 +164,7 @@ func analyze(zctx *resolver.Context, path string) (zson.Value, error) {
 
 func TestZsonAnalyzer(t *testing.T) {
 	zctx := resolver.NewContext()
-	val, err := analyze(zctx, "test.zson")
+	val, err := analyze(zctx, testFile)
 	require.NoError(t, err)
 	assert.NotNil(t, val)
 	//pretty.Println(val)
@@ -170,12 +172,13 @@ func TestZsonAnalyzer(t *testing.T) {
 
 func TestZsonBuilder(t *testing.T) {
 	zctx := resolver.NewContext()
-	val, err := analyze(zctx, "test.zson")
+	val, err := analyze(zctx, testFile)
 	require.NoError(t, err)
 	b := zson.NewBuilder()
 	zv, err := b.Build(val)
 	require.NoError(t, err)
 	rec := zng.NewRecord(zv.Type.(*zng.TypeRecord), zv.Bytes)
 	zv, err = rec.Access("a")
+	require.NoError(t, err)
 	assert.Equal(t, "array[string]: [(31)(32)(33)]", zv.String())
 }

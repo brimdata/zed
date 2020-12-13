@@ -192,7 +192,7 @@ func (a Analyzer) convertAny(zctx *resolver.Context, val ast.Any, cast zng.Type)
 	case *ast.TypeValue:
 		return a.convertTypeValue(zctx, val, cast)
 	}
-	return nil, nil
+	return nil, fmt.Errorf("internal error: unknown ast type in Analyzer.convertAny(): %T", val)
 }
 
 func (a Analyzer) convertPrimitive(zctx *resolver.Context, val *ast.Primitive, cast zng.Type) (Value, error) {
@@ -305,7 +305,10 @@ func (a Analyzer) convertRecord(zctx *resolver.Context, val *ast.Record, cast zn
 	if err != nil {
 		return nil, err
 	}
-	return &Record{cast, fields}, nil
+	return &Record{
+		Type:   cast,
+		Fields: fields,
+	}, nil
 }
 
 func (a Analyzer) convertFields(zctx *resolver.Context, in []ast.Field, cols []zng.Column) ([]Value, error) {
@@ -359,7 +362,13 @@ func (a Analyzer) convertArray(zctx *resolver.Context, array *ast.Array, cast zn
 	if cast != nil || len(vals) == 0 {
 		// We had a cast so we know any type mistmatches we have been
 		// caught below...
-		return &Array{cast, vals}, nil
+		if cast == nil {
+			cast = zctx.LookupTypeArray(zng.TypeNull)
+		}
+		return &Array{
+			Type:     cast,
+			Elements: vals,
+		}, nil
 	}
 	// No cast, we need to look up the TypeArray.
 	elemType := sameType(vals)
@@ -380,8 +389,10 @@ func (a Analyzer) convertArray(zctx *resolver.Context, array *ast.Array, cast zn
 		}
 		unions = append(unions, union)
 	}
-	arrayType := zctx.LookupTypeArray(unionType)
-	return &Array{arrayType, unions}, nil
+	return &Array{
+		Type:     zctx.LookupTypeArray(unionType),
+		Elements: unions,
+	}, nil
 }
 
 func sameType(vals []Value) zng.Type {
@@ -439,7 +450,10 @@ func (a Analyzer) convertSet(zctx *resolver.Context, set *ast.Set, cast zng.Type
 		}
 		cast = zctx.LookupTypeSet(elemType)
 	}
-	return &Set{cast, vals}, nil
+	return &Set{
+		Type:     cast,
+		Elements: vals,
+	}, nil
 }
 
 func (a Analyzer) convertUnion(zctx *resolver.Context, v Value, union *zng.TypeUnion) (Value, error) {
@@ -519,7 +533,10 @@ func (a Analyzer) convertMap(zctx *resolver.Context, m *ast.Map, cast zng.Type) 
 		}
 		cast = zctx.LookupTypeMap(keyType, valType)
 	}
-	return &Map{cast, entries}, nil
+	return &Map{
+		Type:    cast,
+		Entries: entries,
+	}, nil
 }
 
 func (a Analyzer) convertTypeValue(zctx *resolver.Context, tv *ast.TypeValue, cast zng.Type) (Value, error) {
