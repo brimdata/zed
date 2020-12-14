@@ -21,10 +21,10 @@ import (
 
 type Flags struct {
 	zio.ReaderOpts
+	ReadMax  auto.Bytes
+	ReadSize auto.Bytes
 	// The JSON type config is loaded from the types filie when Init is called.
 	jsonTypesFile string
-	ReadSize      auto.Bytes
-	ReadMax       auto.Bytes
 }
 
 func (f *Flags) Options() zio.ReaderOpts {
@@ -62,7 +62,7 @@ func (f *Flags) Init() error {
 	}
 	f.Zng.Size = int(f.ReadSize.Bytes)
 	if f.Zng.Size < 0 {
-		return errors.New("max read buffer size must be greater than zero")
+		return errors.New("target read buffer size must be greater than zero")
 	}
 	return nil
 }

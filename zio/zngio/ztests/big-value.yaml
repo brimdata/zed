@@ -1,19 +1,9 @@
 script: |
   zq -znglz4blocksize=0 -o out.zng in.tzng
-  cat out.zng out.zng out.zng out.zng > out2.zng
-  mv out2.zng out.zng
-  cat out.zng out.zng out.zng out.zng > out2.zng
-  mv out2.zng out.zng
-  cat out.zng out.zng out.zng out.zng > out2.zng
-  mv out2.zng out.zng
-  cat out.zng out.zng out.zng out.zng > out2.zng
-  mv out2.zng out.zng
-  cat out.zng out.zng out.zng out.zng > out2.zng
-  mv out2.zng out.zng
-  cat out.zng out.zng out.zng out.zng > out2.zng
-  mv out2.zng out.zng
-  cat out.zng out.zng out.zng out.zng > out2.zng
-  mv out2.zng out.zng
+  for i in {1..7}; do
+    cat out.zng out.zng out.zng out.zng > out2.zng
+    mv out2.zng out.zng
+  done
   zq -znglz4blocksize=0 -o bigrow.zng "collect(s)" out.zng
   zq  -i zng -o /dev/null -readmax 10KB "count()" bigrow.zng
 
