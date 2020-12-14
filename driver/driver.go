@@ -204,8 +204,12 @@ func (mr *muxReader) Close() error {
 }
 
 func NewReader(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
+	return NewReaderWithConfig(ctx, Config{}, program, zctx, reader)
+}
+
+func NewReaderWithConfig(ctx context.Context, conf Config, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
 	ctx, cancel := context.WithCancel(ctx)
-	mux, err := compile(ctx, program, zctx, []zbuf.Reader{reader}, Config{})
+	mux, err := compile(ctx, program, zctx, []zbuf.Reader{reader}, conf)
 	if err != nil {
 		cancel()
 		return nil, err
