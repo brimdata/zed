@@ -17,10 +17,6 @@ zq repo, check the git log.
 * zql: Add a new [`pick`](https://github.com/brimsec/zq/tree/master/zql/docs/processors#pick) processor, which acts like a stricter [`cut`](https://github.com/brimsec/zq/tree/master/zql/docs/processors#cut) (#1773, #1788)
 * zqd: Improve performance when listing Spaces via the API (#1779, #1786)
 
-
-
-
-
 ## v0.24.0
 * zq: Update Zeek pointer to [v3.2.1-brim5](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim5) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1713)
 * zql: For functions, introduce "snake case" names and deprecate package syntax (#1575, #1609)
