@@ -325,10 +325,10 @@ type are legal (thereby allowing for concatenation of otherwise
 independent sequences).
 
 One decorator is allowed per value except for nested type-union values, which
-may additional decorators to successively refine the union type for unions vals
+may include additional decorators to successively refine the union type for union values
 that live inside other union types. This allows an already-decorated value to be
 further decorated with its union type and provides as a means to distinguish
-a union value's precise member type when it is other ambiguous as described in
+a union value's precise member type when it is otherwise ambiguous as described in
 [Section 3.4.4](#344-union-value).
 
 ### 3.3 Primitive Values
@@ -788,7 +788,7 @@ is the same as
 ## 5. Grammar
 
 Here is a left-recursive pseudo-grammar of ZSON.  Note that not all
-grammars are semantically valid as type mismatches may arise.
+acceptable inputs are semantically valid as type mismatches may arise.
 For example, union and enum values must both appear in a context
 the defines their type.
 
@@ -802,8 +802,6 @@ the defines their type.
 <val-typedef> = "(" "=" <type-name> ")"
 
 <decorators> = "(" <type> ")" | <decorators> "(" <type ")"
-
-<union-decorator> = <decorator> "(" <type> ")"
 
 <any> = <primitive> | <record> | <array> | <set> |
             <union> | <enum> | <map> | <type-val>

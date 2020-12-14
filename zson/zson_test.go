@@ -150,7 +150,6 @@ func TestZsonParser(t *testing.T) {
 	s, err := json.MarshalIndent(val, "", "    ")
 	require.NoError(t, err)
 	assert.NotEqual(t, s, "")
-	//fmt.Println(string(s))
 }
 
 func analyze(zctx *resolver.Context, path string) (zson.Value, error) {
@@ -167,7 +166,6 @@ func TestZsonAnalyzer(t *testing.T) {
 	val, err := analyze(zctx, testFile)
 	require.NoError(t, err)
 	assert.NotNil(t, val)
-	//pretty.Println(val)
 }
 
 func TestZsonBuilder(t *testing.T) {

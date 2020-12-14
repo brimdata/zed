@@ -69,11 +69,6 @@ type (
 		Op       string  `json:"op"`
 		Elements []Value `json:"elements"`
 	}
-	Union struct {
-		Op       string `json:"op"`
-		Selector Type   `json:"selector"`
-		Value    Value  `json:"value"`
-	}
 	Enum struct {
 		Op   string `json:"op"`
 		Name string `json:"name"`
@@ -96,7 +91,6 @@ func (*Primitive) anyNode() {}
 func (*Record) anyNode()    {}
 func (*Array) anyNode()     {}
 func (*Set) anyNode()       {}
-func (*Union) anyNode()     {}
 func (*Enum) anyNode()      {}
 func (*Map) anyNode()       {}
 func (*TypeValue) anyNode() {}

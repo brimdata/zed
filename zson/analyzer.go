@@ -81,7 +81,7 @@ func (m *Map) SetType(t zng.Type)       { m.Type = t }
 func (n *Null) SetType(t zng.Type)      { n.Type = t }
 func (t *TypeValue) SetType(T zng.Type) { t.Type = T }
 
-// An Analyzer transforms an ast.Value (which has dentralized type decorators)
+// An Analyzer transforms an ast.Value (which has decentralized type decorators)
 // to a typed Value, where every component of a nested Value is explicitly typed.
 // This is done via a semantic analysis where type state flows both down a the
 // nested value hierarchy (via type decorators) and back up via fully typed value
@@ -183,8 +183,6 @@ func (a Analyzer) convertAny(zctx *resolver.Context, val ast.Any, cast zng.Type)
 		return a.convertArray(zctx, val, cast)
 	case *ast.Set:
 		return a.convertSet(zctx, val, cast)
-	case *ast.Union:
-		return nil, errors.New("internal error: parser should not generate ast union values")
 	case *ast.Enum:
 		return a.convertEnum(zctx, val, cast)
 	case *ast.Map:

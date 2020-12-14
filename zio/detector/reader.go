@@ -59,10 +59,9 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	// conceivably create auto-detection problems where ZSON initially looks like
 	// JSON but later "turns into" ZSON.  In practice, this is not a problem
 	// as the canonical form of ZSON does not quote the record field names
-	// so this will be rejected by the JSON autodetector.  Down the road, the
+	// so this will be rejected by the JSON autodetector.  Soon, the
 	// ZSON reader may deprecate the NDJSON reader but for now, ZSON is new
-	// and likely less stable (and it is more complicated to parse and hence
-	// less performant than JSON parsing) so we will leave this as is.
+	// and likely less stable so we will leave this as is.
 	//
 	// XXX We're commenting this out for now because the ZSON parser reads
 	// the entire input before starting which obviously creates problems
