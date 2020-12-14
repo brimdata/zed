@@ -61,3 +61,12 @@ func TestTranslateAlias(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, alias2, alias3)
 }
+
+func TestCopyMutateColumns(t *testing.T) {
+	c := resolver.NewContext()
+	cols := []zng.Column{{"foo", zng.TypeString}, {"bar", zng.TypeInt64}}
+	typ, err := c.LookupTypeRecord(cols)
+	require.NoError(t, err)
+	cols[0].Type = nil
+	require.NotNil(t, typ.Columns[0].Type)
+}
