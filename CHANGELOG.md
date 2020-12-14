@@ -48,7 +48,6 @@ zq repo, check the git log.
 * zql: Add a `network_of()` function for mapping IP addresses to CIDR nets (#1700)
 * zql: Add a [docs example](https://github.com/brimsec/zq/tree/master/zql/docs/grouping#example-4) showing `by` grouping with non-present fields (#1703)
 
-
 ## v0.23.0
 * zql: Add `week` as a unit for [time grouping with `every`](https://github.com/brimsec/zq/tree/master/zql/docs/grouping#time-grouping---every) (#1374)
 * zq: Fix an issue where a `null` value in a [JSON type definition](https://github.com/brimsec/zq/blob/master/zeek/README.md) caused a failure without an error message (#1377)
