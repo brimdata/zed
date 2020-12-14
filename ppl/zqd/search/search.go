@@ -17,6 +17,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
+	"go.uber.org/zap"
 )
 
 // This mtu is pretty small but it keeps the JSON object size below 64kb or so
@@ -103,7 +104,7 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 	}
 }
 
-func (s *SearchOp) RunDistributed(ctx context.Context, store storage.Storage, output Output, numberOfWorkers int, recruiter string, workers string) (err error) {
+func (s *SearchOp) RunDistributed(ctx context.Context, store storage.Storage, output Output, numberOfWorkers int, recruiter string, workers string, logger *zap.Logger) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -125,6 +126,7 @@ func (s *SearchOp) RunDistributed(ctx context.Context, store storage.Storage, ou
 	case *archivestore.Storage:
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
 			Distributed: true,
+			Logger:      logger,
 			Order:       zbuf.OrderDesc,
 			Parallelism: numberOfWorkers,
 			Recruiter:   recruiter,

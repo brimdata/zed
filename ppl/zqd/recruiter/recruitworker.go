@@ -12,7 +12,8 @@ import (
 	"go.uber.org/zap"
 )
 
-func RecruitWorkers(ctx *proc.Context, workerCount int, recruiter string, workerstr string) ([]string, error) {
+func RecruitWorkers(ctx *proc.Context, workerCount int, recruiter string, workerstr string, logger *zap.Logger) ([]string, error) {
+	logger.Info("RecruitWorkers", zap.Int("workerCount", workerCount))
 	if workerstr != "" {
 		// Special case: workerstr is used for ZTests
 		workers := strings.Split(workerstr, ",")

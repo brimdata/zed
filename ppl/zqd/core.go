@@ -39,7 +39,7 @@ type Config struct {
 	Personality string
 	Root        string
 	Version     string
-	Worker      WorkerConfig
+	Worker      recruiter.WorkerConfig
 
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher
@@ -57,9 +57,9 @@ type Core struct {
 	root       iosrc.URI
 	router     *mux.Router
 	taskCount  int64
-	workerPool *recruiter.WorkerPool // state for personality=recruiter
-	workerReg  *recruiter.WorkerReg  // state for personality=worker
-	worker     WorkerConfig
+	workerPool *recruiter.WorkerPool  // state for personality=recruiter
+	workerReg  *recruiter.WorkerReg   // state for personality=worker
+	worker     recruiter.WorkerConfig // config for personality=worker
 
 	suricata pcapanalyzer.Launcher
 	zeek     pcapanalyzer.Launcher
@@ -219,7 +219,7 @@ func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 	return c.logger.With(zap.String("request_id", getRequestID(r.Context())))
 }
 
-func (c *Core) WorkerRegistration(ctx context.Context, srvAddr string, conf WorkerConfig) error {
+func (c *Core) WorkerRegistration(ctx context.Context, srvAddr string, conf recruiter.WorkerConfig) error {
 	if _, _, err := net.SplitHostPort(conf.Recruiter); err != nil {
 		return errors.New("flag -worker.recruiter=host:port must be provided for -personality=worker")
 	}
@@ -227,10 +227,10 @@ func (c *Core) WorkerRegistration(ctx context.Context, srvAddr string, conf Work
 		return errors.New("flag -worker.node must be provided for -personality=worker")
 	}
 	var err error
-	c.workerReg, err = recruiter.NewWorkerReg(ctx, srvAddr, conf.Recruiter, conf.Host, conf.Node, conf.Timeout)
+	c.workerReg, err = recruiter.NewWorkerReg(srvAddr, conf, c.logger)
 	if err != nil {
 		return err
 	}
-	go c.workerReg.RegisterWithRecruiter(ctx, c.logger)
+	go c.workerReg.RegisterWithRecruiter()
 	return nil
 }

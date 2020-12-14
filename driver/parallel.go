@@ -225,7 +225,7 @@ func createParallelGroup(pctx *proc.Context, filter *compiler.Filter, msrc Multi
 
 	var sources []proc.Interface
 	if mcfg.Distributed {
-		workers, err := recruiter.RecruitWorkers(pctx, mcfg.Parallelism, mcfg.Recruiter, mcfg.Workers)
+		workers, err := recruiter.RecruitWorkers(pctx, mcfg.Parallelism, mcfg.Recruiter, mcfg.Workers, mcfg.Logger)
 		if err != nil {
 			return nil, nil, err
 		}

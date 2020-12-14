@@ -10,14 +10,29 @@ script: |
   # This is the same smtp.log from zq-sample-data
   #
   zapi -h $ZQD_HOST -s testsp post smtp.log.gz > /dev/null
-  #
-  # The count() from zq should be identical to 
-  # the count() from zapi get -chunk
-  #
+
   zq -t "count()" smtp.log.gz > zqcount.tzng
   zapi -h $ZQD_HOST -s testsp get -workers 2 -t "count()" > zapicount.tzng
   echo ===
   diff -s zqcount.tzng zapicount.tzng
+
+  zq -t "39161" smtp.log.gz > zqfilter.tzng
+  zapi -h $ZQD_HOST -s testsp get -workers 2 -t "39161" > zapifilter.tzng
+  echo ===
+  diff -s zqfilter.tzng zapifilter.tzng
+  echo "zqfilter.tzng is:"
+  cat zqfilter.tzng
+  echo "zapifilter.tzng is:"
+  cat zapifilter.tzng
+  echo "zqd-root.log"
+  cat zqd-root.log
+  echo "zqd-w1.log"
+  cat zqd-w1.log
+
+  # zq -t "sort -r ts | tail 5" smtp.log.gz > zqtail.tzng
+  # zapi -h $ZQD_HOST -s testsp get -workers 2 -t "tail 5" > zapitail.tzng
+  # echo ===
+  # diff -s zqtail.tzng zapitail.tzng
 
 inputs:
   - name: recruiter-root.sh
@@ -30,3 +45,7 @@ outputs:
     data: |
       ===
       Files zqcount.tzng and zapicount.tzng are identical
+      ===
+      Files zqfilter.tzng and zapifilter.tzng are identical
+      ===
+      Files zqtail.tzng and zapitail.tzng are identical

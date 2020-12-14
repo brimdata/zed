@@ -1,7 +1,6 @@
 package zqd
 
 import (
-	"flag"
 	"net/http"
 
 	"github.com/brimsec/zq/api"
@@ -11,24 +10,6 @@ import (
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
-
-type WorkerConfig struct {
-	// BoundWorkers is a fixed list of workers bound to a root process.
-	// It is used for ZTests and simple clusters without a recruiter.
-	BoundWorkers string
-	Host         string
-	Node         string
-	Recruiter    string
-	Timeout      int
-}
-
-func (c *WorkerConfig) SetFlags(fs *flag.FlagSet) {
-	fs.StringVar(&c.BoundWorkers, "worker.bound", "", "bound workers as comma-separated [addr]:port list")
-	fs.StringVar(&c.Host, "worker.host", "", "host ip of container")
-	fs.StringVar(&c.Node, "worker.node", "", "logical node name within the compute cluster")
-	fs.StringVar(&c.Recruiter, "worker.recruiter", "", "recruiter address for worker registration")
-	fs.IntVar(&c.Timeout, "worker.timeout", 30000, "timeout in milliseconds for long poll of /recruiter/register request")
-}
 
 func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	var req api.WorkerRootRequest
@@ -66,7 +47,7 @@ func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.RunDistributed(r.Context(), store, out, req.MaxWorkers, c.worker.Recruiter, c.worker.BoundWorkers); err != nil {
+	if err := srch.RunDistributed(r.Context(), store, out, req.MaxWorkers, c.worker.Recruiter, c.worker.BoundWorkers, c.logger); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
@@ -105,12 +86,7 @@ func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Reque
 }
 
 func handleWorkerRelease(c *Core, w http.ResponseWriter, httpReq *http.Request) {
+	println("got release!")
+	c.workerReg.Release()
 	w.WriteHeader(http.StatusNoContent)
-	// TODO: not sure how this will work yet -- probably write to a channel here
-	// for the original register goroutine to pick up
-	if err := c.workerReg.RegisterWithRecruiter(httpReq.Context(), c.logger); err != nil {
-		// No point in responding with the error back to zqd root process,
-		// since this is happening on the cleanup after the search is finished.
-		c.logger.Warn("WorkerReleaseError", zap.Error(err))
-	}
 }
