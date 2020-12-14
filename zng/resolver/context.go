@@ -232,7 +232,8 @@ func (c *Context) LookupTypeRecord(columns []zng.Column) (*zng.TypeRecord, error
 	if ok {
 		return c.table[id].(*zng.TypeRecord), nil
 	}
-	typ := zng.NewTypeRecord(-1, columns)
+	dup := make([]zng.Column, 0, len(columns))
+	typ := zng.NewTypeRecord(-1, append(dup, columns...))
 	c.addTypeWithLock(key, typ)
 	return typ, nil
 }
