@@ -377,9 +377,14 @@ func (a Analyzer) convertArray(zctx *resolver.Context, array *ast.Array, cast zn
 		arrayType := zctx.LookupTypeArray(elemType)
 		return &Array{arrayType, vals}, nil
 	}
+	types := differentTypes(vals)
+	// See if this array has a mix of a single type and null type and
+	// if so return a regular array.
+	if array := a.mixedNullArray(zctx, types, vals); array != nil {
+		return array, nil
+	}
 	// The elements are of mixed type so create wrap each value in a union
 	// and create the TypeUnion.
-	types := differentTypes(vals)
 	unionType := zctx.LookupTypeUnion(types)
 	var unions []Value
 	for _, v := range vals {
@@ -393,6 +398,30 @@ func (a Analyzer) convertArray(zctx *resolver.Context, array *ast.Array, cast zn
 		Type:     zctx.LookupTypeArray(unionType),
 		Elements: unions,
 	}, nil
+}
+
+func (a Analyzer) mixedNullArray(zctx *resolver.Context, types []zng.Type, vals []Value) *Array {
+	if len(types) != 2 {
+		return nil
+	}
+	var typ zng.Type
+	if types[0] == zng.TypeNull {
+		typ = types[1]
+	} else if types[1] == zng.TypeNull {
+		typ = types[0]
+	} else {
+		return nil
+	}
+	// There are two types but one of them is null.  We can use the
+	// non-nil type for the array and go back and change the null
+	// types to use this same type...
+	vals[0].SetType(typ)
+	vals[1].SetType(typ)
+	arrayType := zctx.LookupTypeArray(typ)
+	return &Array{
+		Type:     arrayType,
+		Elements: vals,
+	}
 }
 
 func sameType(vals []Value) zng.Type {
