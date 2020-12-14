@@ -86,7 +86,6 @@ func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Reque
 }
 
 func handleWorkerRelease(c *Core, w http.ResponseWriter, httpReq *http.Request) {
-	println("got release!")
 	c.workerReg.Release()
 	w.WriteHeader(http.StatusNoContent)
 }

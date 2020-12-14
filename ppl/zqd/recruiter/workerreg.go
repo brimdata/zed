@@ -57,6 +57,7 @@ func NewWorkerReg(srvAddr string, conf WorkerConfig, logger *zap.Logger) (*Worke
 		conf:           conf,
 		conn:           client.NewConnectionTo("http://" + conf.Recruiter),
 		logger:         logger,
+		releaseChan:    make(chan bool),
 		selfaddr:       net.JoinHostPort(host, port),
 		zombieDuration: time.Duration(conf.IdleTime) * time.Millisecond,
 	}
@@ -102,10 +103,10 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 		retryWait = w.conf.MinRetry
 
 		if resp.Directive == "reserved" {
-			w.logger.Info("Worker is reserved...", zap.String("selfaddr", w.selfaddr))
+			w.logger.Info("worker is reserved", zap.String("selfaddr", w.selfaddr))
 			select {
 			case <-w.releaseChan:
-				w.logger.Info("worker is Released", zap.String("selfaddr", w.selfaddr))
+				w.logger.Info("worker is released", zap.String("selfaddr", w.selfaddr))
 			}
 		}
 	}
