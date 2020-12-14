@@ -16,6 +16,7 @@ type WorkerConfig struct {
 	// BoundWorkers is a fixed list of workers bound to a root process.
 	// It is used for ZTests and simple clusters without a recruiter.
 	BoundWorkers string
+	Fallback     bool
 	Host         string
 	LongPoll     int
 	MaxRetry     int
@@ -28,6 +29,7 @@ type WorkerConfig struct {
 
 func (c *WorkerConfig) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&c.BoundWorkers, "worker.bound", "", "bound workers as comma-separated [addr]:port list")
+	fs.BoolVar(&c.Fallback, "worker.fallback", false, "fallback to using fewer workers than requested")
 	fs.StringVar(&c.Host, "worker.host", "", "host ip of container")
 	fs.IntVar(&c.LongPoll, "worker.longpoll", 30000, "timeout in milliseconds for long poll of /recruiter/register request")
 	fs.IntVar(&c.MaxRetry, "worker.maxretry", 10000, "maximum retry wait in milliseconds for registration request")

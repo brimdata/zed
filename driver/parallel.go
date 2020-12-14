@@ -223,25 +223,37 @@ func createParallelGroup(pctx *proc.Context, filter *compiler.Filter, msrc Multi
 		scanners:   make(map[zbuf.Scanner]struct{}),
 	}
 
-	var sources []proc.Interface
+	parallelism := mcfg.Parallelism
+
 	if mcfg.Distributed {
-		workers, err := recruiter.RecruitWorkers(pctx, mcfg.Parallelism, mcfg.Recruiter, mcfg.Workers, mcfg.Logger)
+		workers, err := recruiter.RecruitWorkers(pctx, parallelism, mcfg.Worker, mcfg.Logger)
 		if err != nil {
 			return nil, nil, err
 		}
-		var conns []*client.Connection
-		for _, w := range workers {
-			conn := client.NewConnectionTo("http://" + w)
-			conns = append(conns, conn)
-			sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: conn})
+		if len(workers) > 0 {
+			var conns []*client.Connection
+			var sources []proc.Interface
+			for _, w := range workers {
+				conn := client.NewConnectionTo("http://" + w)
+				conns = append(conns, conn)
+				sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: conn})
+			}
+
+			go pg.releaseWorkersOnDone(conns)
+
+			return sources, pg, nil
 		}
-		go pg.releaseWorkersOnDone(conns)
-	} else {
-		// This is the code path used by the zqd daemon for Brim.
-		for i := 0; i < mcfg.Parallelism; i++ {
-			sources = append(sources, &parallelHead{pctx: pctx, pg: pg})
-		}
+		// If no workers are available for distributed exec,
+		// fall back to using the root process at parallelism=1
+		parallelism = 1
 	}
+
+	// This is the code path used by the zqd daemon for Brim.
+	var sources []proc.Interface
+	for i := 0; i < parallelism; i++ {
+		sources = append(sources, &parallelHead{pctx: pctx, pg: pg})
+	}
+
 	return sources, pg, nil
 }
 

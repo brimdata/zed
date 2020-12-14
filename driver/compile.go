@@ -6,6 +6,8 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/brimsec/zq/ppl/zqd/recruiter"
+
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/field"
@@ -91,11 +93,10 @@ type MultiConfig struct {
 	Order       zbuf.Order
 	Logger      *zap.Logger
 	Parallelism int
-	Recruiter   string // used in K8s cluster with recruiter
 	Span        nano.Span
 	StatsTick   <-chan time.Time
 	Warnings    chan string
-	Workers     string // used for ZTests
+	Worker      recruiter.WorkerConfig
 }
 
 func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {

@@ -25,7 +25,7 @@ script: |
   zapi -h $ZQD_HOST -s testsp get -workers 2 -t "tail 5" > zapitail.tzng
   echo ===
   diff -s zqtail.tzng zapitail.tzng
-
+ 
 inputs:
   - name: recruiter-root.sh
     source: recruiter-root.sh

@@ -11,6 +11,7 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/ppl/zqd/storage/filestore"
@@ -104,7 +105,7 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 	}
 }
 
-func (s *SearchOp) RunDistributed(ctx context.Context, store storage.Storage, output Output, numberOfWorkers int, recruiter string, workers string, logger *zap.Logger) (err error) {
+func (s *SearchOp) RunDistributed(ctx context.Context, store storage.Storage, output Output, numberOfWorkers int, workerConf recruiter.WorkerConfig, logger *zap.Logger) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -129,10 +130,9 @@ func (s *SearchOp) RunDistributed(ctx context.Context, store storage.Storage, ou
 			Logger:      logger,
 			Order:       zbuf.OrderDesc,
 			Parallelism: numberOfWorkers,
-			Recruiter:   recruiter,
 			Span:        s.query.Span,
 			StatsTick:   statsTicker.C,
-			Workers:     workers,
+			Worker:      workerConf,
 		})
 	default:
 		return fmt.Errorf("storage type %T unsupported for distributed query", st)

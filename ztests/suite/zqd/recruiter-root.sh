@@ -50,7 +50,7 @@ awaitfile $portdir/zqd-w2
 # (3) start a zqd "root" process (default personality for now) that may recruit workers
 
 zqd listen -l=localhost:0 -portfile=$portdir/zqd-root -data=$zqdroot \
-  -worker.recruiter=$recruiter &> zqd-root.log &
+  -worker.recruiter=$recruiter -worker.fallback=false &> zqd-root.log &
 zqdrootpid=$!
 awaitfile $portdir/zqd-root
 export ZQD_HOST=localhost:$(cat $portdir/zqd-root)
