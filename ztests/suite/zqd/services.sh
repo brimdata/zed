@@ -36,30 +36,10 @@ export AWS_ACCESS_KEY_ID=minioadmin
 export AWS_SECRET_ACCESS_KEY=minioadmin
 export AWS_S3_ENDPOINT=http://localhost:$(cat $portdir/minio)
 
-if [[ "$2" == workers ]]; then
-  # start two zqd workers and a zqd root process
-  zqd listen -l=localhost:0 -portfile=$portdir/zqd-w1 -data=$zqdroot -loglevel=warn -suricataupdater=true &> zqd-w1.log &
-  zqdw1pid=$!
-  zqd listen -l=localhost:0 -portfile=$portdir/zqd-w2 -data=$zqdroot -loglevel=warn -suricataupdater=true &> zqd-w2.log &
-  zqdw2pid=$!
+zqd listen -l=localhost:0 -portfile=$portdir/zqd -data=$zqdroot -loglevel=warn -suricataupdater=true &> zqd.log &
+zqdpid=$!
+awaitfile $portdir/zqd
 
-  awaitfile $portdir/zqd-w1
-  portw1=$(cat $portdir/zqd-w1)
-
-  awaitfile $portdir/zqd-w2
-  portw2=$(cat $portdir/zqd-w2)
-
-  test_workers=127.0.0.1:$portw1,127.0.0.1:$portw2
-  zqd listen -l=localhost:0 -portfile=$portdir/zqd -data=$zqdroot \
-    -loglevel=warn -suricataupdater=true \
-    -worker.bound=$test_workers -worker.fallback=false &> zqd-root.log &
-  zqdpid=$!
-  awaitfile $portdir/zqd
-else
-  zqd listen -l=localhost:0 -portfile=$portdir/zqd -data=$zqdroot -loglevel=warn -suricataupdater=true &> zqd.log &
-  zqdpid=$!
-  awaitfile $portdir/zqd
-fi
-trap "rm -rf $portdir; kill -9 $miniopid $zqdpid $zqdw1pid $zqdw2pid" EXIT
+trap "rm -rf $portdir; kill -9 $miniopid $zqdpid" EXIT
 
 export ZQD_HOST=localhost:$(cat $portdir/zqd)

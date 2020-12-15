@@ -4,7 +4,7 @@ import (
 	"context"
 	"flag"
 	"net"
-	"sync"
+	"os"
 	"time"
 
 	"github.com/brimsec/zq/api"
@@ -40,14 +40,11 @@ func (c *WorkerConfig) SetFlags(fs *flag.FlagSet) {
 }
 
 type WorkerReg struct {
-	conf           WorkerConfig
-	conn           *client.Connection
-	logger         *zap.Logger
-	releaseChan    chan bool
-	selfaddr       string
-	SearchLock     sync.Mutex
-	zombieDuration time.Duration
-	zombieTimer    *time.Timer
+	conf        WorkerConfig
+	conn        *client.Connection
+	logger      *zap.Logger
+	releaseChan chan string
+	selfaddr    string
 }
 
 func NewWorkerReg(srvAddr string, conf WorkerConfig, logger *zap.Logger) (*WorkerReg, error) {
@@ -56,12 +53,11 @@ func NewWorkerReg(srvAddr string, conf WorkerConfig, logger *zap.Logger) (*Worke
 		host = conf.Host
 	}
 	w := &WorkerReg{
-		conf:           conf,
-		conn:           client.NewConnectionTo("http://" + conf.Recruiter),
-		logger:         logger,
-		releaseChan:    make(chan bool),
-		selfaddr:       net.JoinHostPort(host, port),
-		zombieDuration: time.Duration(conf.IdleTime) * time.Millisecond,
+		conf:        conf,
+		conn:        client.NewConnectionTo("http://" + conf.Recruiter),
+		logger:      logger,
+		releaseChan: make(chan string),
+		selfaddr:    net.JoinHostPort(host, port),
 	}
 
 	return w, nil
@@ -96,7 +92,7 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 			time.Sleep(time.Duration(retryWait) * time.Millisecond)
 			if retryWait < w.conf.MaxRetry {
 				retryWait = (retryWait * 3) / 2
-				// Note: doubling seems too fast a backoff for this, so using 1.5 x
+				// Note: doubling seems too fast a backoff for this, so using 1.5 x.
 			} else {
 				retryWait = w.conf.MaxRetry
 			}
@@ -106,14 +102,67 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 
 		if resp.Directive == "reserved" {
 			w.logger.Info("worker is reserved", zap.String("selfaddr", w.selfaddr))
-			select {
-			case <-w.releaseChan:
-				w.logger.Info("worker is released", zap.String("selfaddr", w.selfaddr))
+			// Start listening to the releaseChannel.
+			// Exit the nested loop on a release.
+			// An idle timeout will cause the process to terminate.
+			// GoDoc mentions fewer special cases with Ticker than with Timer.
+			ticker := time.NewTicker(time.Duration(w.conf.IdleTime) * time.Millisecond)
+			workerIsIdle := true
+
+		ReservedLoop:
+			for {
+				select {
+				case <-ticker.C:
+					if workerIsIdle {
+						w.logger.Warn("worker timed out before receiving a request from the root",
+							zap.String("selfaddr", w.selfaddr))
+						os.Exit(0)
+					}
+
+				case msg := <-w.releaseChan:
+					if msg == "release" {
+						w.logger.Info("worker is released", zap.String("selfaddr", w.selfaddr))
+						// Breaking out of this nested loop will continue on to re-register.
+						break ReservedLoop
+					} else if msg == "idle" {
+						ticker = time.NewTicker(time.Duration(w.conf.IdleTime) * time.Millisecond)
+						// Recreating the ticker is a safe way to reset it.
+					} else { // Assume "busy".
+						workerIsIdle = false
+					}
+
+				}
 			}
 		}
 	}
 }
 
-func (w *WorkerReg) Release() {
-	w.releaseChan <- true
+func (w *WorkerReg) SendRelease() {
+	if w != nil {
+		select {
+		case w.releaseChan <- "release":
+		default:
+			w.logger.Warn("receiver not ready for release")
+		}
+	}
+}
+
+func (w *WorkerReg) SendBusy() {
+	if w != nil {
+		select {
+		case w.releaseChan <- "busy":
+		default:
+			w.logger.Warn("receiver not ready for busy")
+		}
+	}
+}
+
+func (w *WorkerReg) SendIdle() {
+	if w != nil {
+		select {
+		case w.releaseChan <- "idle":
+		default:
+			w.logger.Warn("receiver not ready for idle")
+		}
+	}
 }

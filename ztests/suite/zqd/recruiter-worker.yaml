@@ -1,10 +1,13 @@
 script: |
+  source awaitfile.sh
   source recruiter-worker.sh
   curl --header "Content-Type: application/json" -request POST \
     --data '{"number_requested":1}' \
     http://$ZQD_HOST/recruiter/recruit 2> err
 
 inputs:
+  - name: awaitfile.sh
+    source: awaitfile.sh
   - name: recruiter-worker.sh
     source: recruiter-worker.sh
 

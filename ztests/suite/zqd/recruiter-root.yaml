@@ -1,4 +1,5 @@
 script: |
+  source awaitfile.sh
   source recruiter-root.sh
   mkdir spacedir
   #
@@ -25,8 +26,13 @@ script: |
   zapi -h $ZQD_HOST -s testsp get -workers 2 -t "tail 5" > zapitail.tzng
   echo ===
   diff -s zqtail.tzng zapitail.tzng
+  # cat zqd-root.log
+  # echo === zqd-w1
+  # cat zqd-w1.log
  
 inputs:
+  - name: awaitfile.sh
+    source: awaitfile.sh
   - name: recruiter-root.sh
     source: recruiter-root.sh
   - name: smtp.log.gz

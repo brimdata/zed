@@ -1,34 +1,6 @@
 #!/bin/bash
-#
-# This script creates:
-# (1) a zqd recruiter process
-# (2) multiple zqd worker processes that register with the recruiter
-# (3) a zqd root process that recruits from the workers and performs a distributed query
-#
-function awaitfile {
-  file=$1
-  i=0
-  until [ -f $file ]; do
-    let i+=1
-    if [ $i -gt 5 ]; then
-      echo "timed out waiting for file \"$file\" to appear"
-      echo "zqd log:"
-      cat zqd.log
-      exit 1
-    fi
-    sleep 1
-  done
-}
 
-zqdroot=$1
-if [ -z "$zqdroot" ]; then
-  zqdroot=zqdroot
-fi
-mkdir -p $zqdroot
-
-mkdir -p s3/bucket
-portdir=$(mktemp -d)
-# (1) start a zqd recruiter process
+# (1) Start a zqd recruiter process.
 zqd listen -personality=recruiter -l=localhost:0 -portfile=$portdir/zqd-rec &> zqd-rec.log &
 zqdrpid=$!
 awaitfile $portdir/zqd-rec
@@ -36,7 +8,7 @@ awaitfile $portdir/zqd-rec
 recruiter=localhost:$(cat $portdir/zqd-rec)
 node_name=test1
 
-# (2) start two zqd workers that register with the recruiter
+# (2) Start two zqd workers that register with the recruiter.
 zqd listen -personality=worker -l=localhost:0 -portfile=$portdir/zqd-w1 \
   -worker.recruiter=$recruiter -worker.node=$node_name &> zqd-w1.log &
 zqdw1pid=$!
@@ -47,7 +19,7 @@ zqd listen -personality=worker -l=localhost:0 -portfile=$portdir/zqd-w2 \
 zqdw1pid=$!
 awaitfile $portdir/zqd-w2
 
-# (3) start a zqd "root" process (default personality for now) that may recruit workers
+# (3) Start a zqd "root" process (default personality for now) that may recruit workers.
 
 zqd listen -l=localhost:0 -portfile=$portdir/zqd-root -data=$zqdroot \
   -worker.recruiter=$recruiter -worker.fallback=false &> zqd-root.log &

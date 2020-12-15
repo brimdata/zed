@@ -53,6 +53,9 @@ func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Request) {
+	c.workerReg.SendBusy()
+	defer c.workerReg.SendIdle()
+
 	var req api.WorkerChunkRequest
 	if !request(c, w, httpReq, &req) {
 		return
@@ -86,6 +89,6 @@ func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Reque
 }
 
 func handleWorkerRelease(c *Core, w http.ResponseWriter, httpReq *http.Request) {
-	c.workerReg.Release()
+	c.workerReg.SendRelease()
 	w.WriteHeader(http.StatusNoContent)
 }
