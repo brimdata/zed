@@ -43,6 +43,26 @@ func MarshalRecord(zctx *Context, v interface{}) (*zng.Record, error) {
 	return zng.NewRecord(recType, body), nil
 }
 
+func MarshalCustomRecord(zctx *Context, names []string, fields []interface{}) (*zng.Record, error) {
+	if len(names) != len(fields) {
+		return nil, errors.New("fields and columns don't match")
+	}
+	var cols []zng.Column
+	var b zcode.Builder
+	for k, field := range fields {
+		typ, err := Marshal(zctx, &b, field)
+		if err != nil {
+			return nil, err
+		}
+		cols = append(cols, zng.Column{names[k], typ})
+	}
+	recType, err := zctx.LookupTypeRecord(cols)
+	if err != nil {
+		return nil, err
+	}
+	return zng.NewRecord(recType, b.Bytes()), nil
+}
+
 const (
 	tagName = "zng"
 	tagSep  = ","
