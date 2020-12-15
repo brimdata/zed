@@ -59,8 +59,8 @@ bin/$(SURICATAPATH):
 bin/minio:
 	@mkdir -p bin
 	@echo 'module deps' > bin/go.mod
-	@echo 'require github.com/minio/minio latest' >> bin/go.mod
 	@echo 'replace github.com/minio/minio => github.com/brimsec/minio v0.0.0-20201019191454-3c6f24527f6d' >> bin/go.mod
+	@cd bin && go get -d github.com/minio/minio
 	@cd bin && GOBIN="$(CURDIR)/bin" go install github.com/minio/minio
 
 generate:
