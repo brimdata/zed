@@ -41,6 +41,7 @@ type Reader struct {
 type ReaderOpts struct {
 	Validate bool
 	Size     int
+	Max      int
 }
 
 type AppMessage struct {
@@ -57,8 +58,14 @@ func NewReaderWithOpts(reader io.Reader, sctx *resolver.Context, opts ReaderOpts
 	if opts.Size == 0 {
 		opts.Size = ReadSize
 	}
+	if opts.Max == 0 {
+		opts.Max = MaxSize
+	}
+	if opts.Size > opts.Max {
+		opts.Size = opts.Max
+	}
 	return &Reader{
-		peeker:   peeker.NewReader(reader, opts.Size, MaxSize),
+		peeker:   peeker.NewReader(reader, opts.Size, opts.Max),
 		sctx:     sctx,
 		zctx:     resolver.NewContext(),
 		mapper:   resolver.NewMapper(sctx),
@@ -187,6 +194,9 @@ func (r *Reader) readValue(rec *zng.Record, id int) (*zng.Record, error) {
 	}
 	b, err := r.read(len)
 	if err != nil && err != io.EOF {
+		if err == peeker.ErrBufferOverflow {
+			return nil, fmt.Errorf("large value of %d bytes exceeds maximum read buffer (%d bytes)", len, r.peeker.Limit())
+		}
 		return nil, zng.ErrBadFormat
 	}
 	rec, err = r.parseValue(rec, id, b)
