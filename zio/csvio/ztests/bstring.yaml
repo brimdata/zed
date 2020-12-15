@@ -1,0 +1,23 @@
+zql: '*'
+
+input: |
+  #0:record[bstring:bstring]
+  0:[-;]
+  0:[;]
+  0:[";]
+  0:[,;]
+  0:[\x2d;]
+  0:[\\;]
+  0:[\x00\xff;]
+
+output-flags: -f csv
+
+output: |
+  bstring
+  -
+  
+  """"
+  ","
+  \x2d
+  \\
+  \x00\xff
