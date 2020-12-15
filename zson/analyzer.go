@@ -537,7 +537,7 @@ func (a Analyzer) convertMap(zctx *resolver.Context, m *ast.Map, cast zng.Type) 
 
 func (a Analyzer) convertTypeValue(zctx *resolver.Context, tv *ast.TypeValue, cast zng.Type) (Value, error) {
 	if cast != nil {
-		if _, ok := zng.AliasedType(cast).(*zng.TypeOfType); !ok {
+		if _, ok := zng.AliasedType(cast).(*zng.TypeType); !ok {
 			return nil, fmt.Errorf("cannot apply decorator (%q) to a type value", cast.ZSON())
 		}
 	}
@@ -549,7 +549,7 @@ func (a Analyzer) convertTypeValue(zctx *resolver.Context, tv *ast.TypeValue, ca
 		cast = typ
 	}
 	return &TypeValue{
-		Type:  zng.TypeType,
+		Type:  &zng.TypeType{},
 		Value: cast,
 	}, nil
 }

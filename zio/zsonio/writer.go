@@ -101,7 +101,7 @@ func (w *Writer) writeValue(indent int, typ zng.Type, bytes zcode.Bytes, parentK
 		null, err = w.writeMap(indent, t, bytes, known)
 	case *zng.TypeEnum:
 		err = w.write(t.ZSONOf(bytes))
-	case *zng.TypeOfType:
+	case *zng.TypeType:
 		err = w.writef("(%s)", string(bytes))
 	}
 	if err == nil && decorate {
@@ -344,7 +344,7 @@ func (w *Writer) formatType(typ zng.Type) string {
 		return w.formatUnion(typ)
 	case *zng.TypeEnum:
 		return w.formatEnum(typ)
-	case *zng.TypeOfType:
+	case *zng.TypeType:
 		return typ.ZSON()
 	}
 	panic("unknown case in formatType(): " + typ.String())

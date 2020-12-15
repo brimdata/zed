@@ -90,7 +90,6 @@ var (
 	TypeBstring = &TypeOfBstring{}
 	TypeIP      = &TypeOfIP{}
 	TypeNet     = &TypeOfNet{}
-	TypeType    = &TypeOfType{}
 	TypeError   = &TypeOfError{}
 	TypeNull    = &TypeOfNull{}
 )
@@ -237,7 +236,7 @@ func LookupPrimitive(name string) Type {
 	case "net":
 		return TypeNet
 	case "type":
-		return TypeType
+		return &TypeType{}
 	case "error":
 		return TypeError
 	case "null":
@@ -281,7 +280,7 @@ func LookupPrimitiveById(id int) Type {
 	case IdDuration:
 		return TypeDuration
 	case IdType:
-		return TypeType
+		return &TypeType{}
 	case IdError:
 		return TypeError
 	case IdNull:

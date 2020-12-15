@@ -6,6 +6,11 @@ import (
 
 type Type []zng.Type
 
+// This is a draft, and this func should go somewhere else.
+func eq(s, t zng.Type) bool {
+	return s == t || s.ID() == zng.IdType && t.ID() == zng.IdType
+}
+
 func New(in []zng.Type) Type {
 	out := make(Type, 0, len(in))
 	for _, t := range in {
@@ -27,7 +32,7 @@ func (t Type) Equal(to []zng.Type) bool {
 		return false
 	}
 	for k, typ := range t {
-		if typ != to[k] {
+		if !eq(typ, to[k]) {
 			return false
 		}
 	}
@@ -39,7 +44,7 @@ func (t Type) EqualToValues(vals []zng.Value) bool {
 		return false
 	}
 	for k, typ := range t {
-		if typ != vals[k].Type {
+		if !eq(typ, vals[k].Type) {
 			return false
 		}
 	}

@@ -15,7 +15,7 @@ func (t typemap) known(typ zng.Type) bool {
 	if _, ok := t[typ]; ok {
 		return true
 	}
-	if _, ok := typ.(*zng.TypeOfType); ok {
+	if _, ok := typ.(*zng.TypeType); ok {
 		return true
 	}
 	if _, ok := typ.(*zng.TypeAlias); ok {

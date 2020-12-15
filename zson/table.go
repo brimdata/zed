@@ -33,7 +33,7 @@ func (t *TypeTable) LookupValue(typ zng.Type) zng.Value {
 		bytes = zcode.Bytes(typ.ZSON())
 		t.enter(typ, bytes)
 	}
-	return zng.Value{zng.TypeType, bytes}
+	return zng.Value{&zng.TypeType{}, bytes}
 }
 
 func (t *TypeTable) LookupType(zson string) (zng.Type, error) {
