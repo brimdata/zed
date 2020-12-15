@@ -96,26 +96,24 @@ Zeek as driving example
 ### Define types
 
 ```
-const zeek_id_t = {orig_h:ip, orig_p:port, resp_h:ip, resp_p:port}
-const zeek_conn_t = {_path: string, id: zeek_id_t, uid: string, proto: zenum, ...}
-const zeek_http_t = {_path: string, id: zeek_id_t, uid: string, method: bstring, ...}
+const zeek_id_t = ({orig_h:ip, orig_p:port, resp_h:ip, resp_p:port})
+const zeek_conn_t = ({_path: string, id: zeek_id_t, uid: string, proto: zenum, ...})
+const zeek_http_t = ({_path: string, id: zeek_id_t, uid: string, method: bstring, ...})
 ```
 
 
-### A new `reshape` proc 
+### A new `reshape` function 
 
-The `reshape` proc (placeholder name) takes a record type value as parameter, and "reshapes" input records to that type.
+The `reshape` function takes a record and a type, and "reshapes" the record to match the provided type. 
 
 ```
-... | reshape(zeek_conn_t) | ...
-
-// (or maybe it should be) 
-... | put . = reshape(zeek_conn_type) | ...
+... | put . = reshape(., zeek_conn_t) | ...
 ```
 
-In order to support input records that may have originated from data languages with unordered fields, `reshape` must be order agnostic. 
+Reshaping a record to a target type means doing two things:
+1. Cast/convert leaf values to the leaf types in the target type. For example, if the input record has a leaf "1.1.1.1" where the target type should be `ip`, convert it to an ip. To start off let's say the reshape fails if any leaf case fails (maybe we'll relax this later and say that the input leave type stays as is upon cast failure... tbd). Here "leaf" should probably also include container types like maps, sets, and arrays, for example an `array[string]` could be converted to an `array[ip]`.
 
-For example, `reshape({host:ip, port:port})` should handle both `{host: 1.2.3.4, port: 90}` and `{host: 90, port: 1.2.3.4}`, in the latter case "reordering" the record columns  so that the result matches the type `{host:ip, port:port}`.
+2. Reorder record fields to match the target type's field order. This is needed to support input records that may have originated from data languages with unordered fields.  For example, `reshape({host:ip, port:port})` should handle both `{host: 1.2.3.4, port: 90}` and `{host: 90, port: 1.2.3.4}`, in the latter case "reordering" the record columns  so that the result matches the type `{host:ip, port:port}`.
 
 ### Switched parallel flowgraphs
 
@@ -139,13 +137,13 @@ const zeek_conn_t = {_path: string, id: zeek_conn_t, uid: string, proto: zenum, 
 const zeek_http_t = {_path: string, id: zeek_conn_t, uid: string, method: bstring, ...}
 
 * | switch (
-  _path=conn | reshape(zeek_conn_t) 
-  _path=http | reshape(zeek_http_t)
+  _path=conn => reshape(zeek_conn_t) 
+  _path=http => reshape(zeek_http_t)
   ..
 ) | ...
 ```
 
-We've reached parity with "json types" ingest. 
+And we've reached parity (and more) with "json types" ingest! 
 
 ### Variations on reshape:
 
