@@ -1,0 +1,13 @@
+zql: '*'
+
+input: |
+  #0:record[null:null]
+  0:[-;]
+  0:[;]
+
+output-flags: -f csv
+
+output: |+
+  null
+  -
+  -

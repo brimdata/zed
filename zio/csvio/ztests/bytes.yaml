@@ -1,0 +1,16 @@
+zql: '*'
+
+input: |
+  #0:record[bytes:bytes]
+  0:[-;]
+  0:[;]
+  0:[aGVsbG8K;]
+
+output-flags: -f csv
+
+output: |
+  bytes
+  -
+  
+  aGVsbG8K
+
