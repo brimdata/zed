@@ -2,6 +2,21 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.25.0
+* zqd: Update Zeek pointer to [v3.2.1-brim6](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim6) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1795)
+* zqd: Update Suricata pointer to [v5.0.3-brimpre2](https://github.com/brimsec/build-suricata/releases/tag/v5.0.3-brimpre2) to generate alerts for imported pcaps (#1729)
+* zqd: Make some columns more prominent (moved leftward) in Suricata alert records (#1749)
+* zq: Fix an issue where returned errors could cause a panic due to type mismatches (#1720, #1727, #1728, #1740, #1773)
+* python: Fix an issue where the [Python client](https://medium.com/brim-securitys-knowledge-funnel/visualizing-ip-traffic-with-brim-zeek-and-networkx-3844a4c25a2f) did not generate an error when `zqd` was absent (#1711)
+* zql: Allow the `len()` function to work on `ip` and `net` types (#1725)
+* zson: Add a [draft specification](https://github.com/brimsec/zq/blob/master/zng/docs/zson.md) of the new ZSON format (#1715, #1735, #1741, #1765)
+* zng: Add support for marshaling of `time` values (#1743)
+* zar: Fix an issue where a `couldn't read trailer` failure was observed during a `zar zq` query (#1748)
+* zar: Fix an issue where `zar import` of a 14 GB data set triggered a SEGV (#1766)
+* zql: Add a new [`drop`](https://github.com/brimsec/zq/tree/master/zql/docs/processors#drop) processor, which replaces `cut -c` (#1773)
+* zql: Add a new [`pick`](https://github.com/brimsec/zq/tree/master/zql/docs/processors#pick) processor, which acts like a stricter [`cut`](https://github.com/brimsec/zq/tree/master/zql/docs/processors#cut) (#1773, #1788)
+* zqd: Improve performance when listing Spaces via the API (#1779, #1786)
+
 ## v0.24.0
 * zq: Update Zeek pointer to [v3.2.1-brim5](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim5) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1713)
 * zql: For functions, introduce "snake case" names and deprecate package syntax (#1575, #1609)
@@ -32,7 +47,6 @@ zq repo, check the git log.
 * zar: Fix an issue during import that could buffer too much data (#1652, #1696)
 * zql: Add a `network_of()` function for mapping IP addresses to CIDR nets (#1700)
 * zql: Add a [docs example](https://github.com/brimsec/zq/tree/master/zql/docs/grouping#example-4) showing `by` grouping with non-present fields (#1703)
-
 
 ## v0.23.0
 * zql: Add `week` as a unit for [time grouping with `every`](https://github.com/brimsec/zq/tree/master/zql/docs/grouping#time-grouping---every) (#1374)

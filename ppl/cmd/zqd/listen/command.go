@@ -8,8 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"net/http"
-	"net/http/pprof"
 	"os"
 	"os/exec"
 	"os/signal"
@@ -62,7 +60,6 @@ type Command struct {
 	listenAddr          string
 	logLevel            zapcore.Level
 	portFile            string
-	pprof               bool
 	suricataRunnerPath  string
 	suricataUpdaterPath string
 	zeekRunnerPath      string
@@ -81,7 +78,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.logLevel, "loglevel", "logging level")
 	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, recruiter, or worker)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
-	f.BoolVar(&c.pprof, "pprof", false, "add pprof routes to API")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
 	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
@@ -117,14 +113,9 @@ func (c *Command) Run(args []string) error {
 		zap.String("datadir", c.conf.Root),
 		zap.Uint64("open_files_limit", openFilesLimit),
 		zap.String("personality", c.conf.Personality),
-		zap.Bool("pprof_routes", c.pprof),
 		zap.Bool("suricata_supported", core.HasSuricata()),
 		zap.Bool("zeek_supported", core.HasZeek()),
 	)
-	h := core.HTTPHandler()
-	if c.pprof {
-		h = pprofHandlers(h)
-	}
 	if c.suricataUpdater != nil {
 		c.launchSuricataUpdate(ctx)
 	}
@@ -135,7 +126,7 @@ func (c *Command) Run(args []string) error {
 		c.logger.Info("Signal received", zap.Stringer("signal", sig))
 		cancel()
 	}()
-	srv := httpd.New(c.listenAddr, h)
+	srv := httpd.New(c.listenAddr, core.HTTPHandler())
 	srv.SetLogger(c.logger.Named("httpd"))
 	if err := srv.Start(ctx); err != nil {
 		return err
@@ -198,17 +189,6 @@ func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
 		cancel()
 	}()
 	return ctx, nil
-}
-
-func pprofHandlers(h http.Handler) http.Handler {
-	mux := http.NewServeMux()
-	mux.Handle("/", h)
-	mux.HandleFunc("/debug/pprof/", pprof.Index)
-	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	return mux
 }
 
 // Example configfile

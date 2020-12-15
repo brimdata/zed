@@ -33,6 +33,10 @@ func (r *Reader) Reset() {
 	r.eof = false
 }
 
+func (r *Reader) Limit() int {
+	return r.limit
+}
+
 func (r *Reader) fill(min int) error {
 	if min > r.limit {
 		return ErrBufferOverflow

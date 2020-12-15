@@ -363,3 +363,17 @@ func TestIntsAndUints(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, r1, r2)
 }
+
+func TestCustomRecord(t *testing.T) {
+	vals := []interface{}{
+		Thing{"hello", 123},
+		99,
+	}
+	zctx := resolver.NewContext()
+	rec, err := resolver.MarshalCustomRecord(zctx, []string{"foo", "bar"}, vals)
+	require.NoError(t, err)
+	exp := `
+#0:record[foo:record[a:string,B:int64],bar:int64]
+0:[[hello;123;]99;]`
+	assert.Equal(t, trim(exp), rectzng(t, rec))
+}

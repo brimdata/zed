@@ -2,6 +2,7 @@ export GO111MODULE=on
 
 # If VERSION or LDFLAGS change, please also change
 # npm/build.
+ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
 ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
@@ -44,22 +45,22 @@ sampledata: $(SAMPLEDATA)
 bin/$(ZEEKPATH):
 	@mkdir -p bin
 	@curl -L -o bin/$(ZEEKPATH).zip \
-		https://github.com/brimsec/zeek/releases/download/$(ZEEKTAG)/zeek-$(ZEEKTAG).$$(go env GOOS)-$$(go env GOARCH).zip
+		https://github.com/brimsec/zeek/releases/download/$(ZEEKTAG)/zeek-$(ZEEKTAG).$$(go env GOOS)-$(ARCH).zip
 	@unzip -q bin/$(ZEEKPATH).zip -d bin \
 		&& mv bin/zeek bin/$(ZEEKPATH)
 
 bin/$(SURICATAPATH):
 	@mkdir -p bin
 	curl -L -o bin/$(SURICATAPATH).zip \
-		https://github.com/brimsec/build-suricata/releases/download/$(SURICATATAG)/suricata-$(SURICATATAG).$$(go env GOOS)-$$(go env GOARCH).zip
+		https://github.com/brimsec/build-suricata/releases/download/$(SURICATATAG)/suricata-$(SURICATATAG).$$(go env GOOS)-$(ARCH).zip
 	unzip -q bin/$(SURICATAPATH).zip -d bin \
 		&& mv bin/suricata bin/$(SURICATAPATH)
 
 bin/minio:
 	@mkdir -p bin
 	@echo 'module deps' > bin/go.mod
-	@echo 'require github.com/minio/minio latest' >> bin/go.mod
 	@echo 'replace github.com/minio/minio => github.com/brimsec/minio v0.0.0-20201019191454-3c6f24527f6d' >> bin/go.mod
+	@cd bin && go get -d github.com/minio/minio
 	@cd bin && GOBIN="$(CURDIR)/bin" go install github.com/minio/minio
 
 generate:
@@ -162,7 +163,7 @@ create-release-assets:
 		rm -rf dist/$${zqdir} ; \
 		mkdir -p dist/$${zqdir} ; \
 		cp LICENSE.txt acknowledgments.txt dist/$${zqdir} ; \
-		GOOS=$${os} GOARCH=amd64 go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ./ppl/cmd/... ; \
+		GOOS=$${os} GOARCH=$(ARCH) go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ./ppl/cmd/... ; \
 	done
 	rm -rf dist/release && mkdir -p dist/release
 	cd dist && for d in zq-$(VERSION)* ; do \

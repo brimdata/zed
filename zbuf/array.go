@@ -36,6 +36,11 @@ func (a *Array) Append(r *zng.Record) {
 	*a = append(*a, r)
 }
 
+func (a *Array) Write(r *zng.Record) error {
+	a.Append(r)
+	return nil
+}
+
 // Read returns removes the first element of the Array and returns it,
 // or it returns nil if the Array is empty.
 func (a *Array) Read() (*zng.Record, error) {

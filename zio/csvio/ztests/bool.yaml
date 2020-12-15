@@ -1,0 +1,15 @@
+zql: '*'
+
+input: |
+  #0:record[bool:bool]
+  0:[-;]
+  0:[F;]
+  0:[T;]
+
+output-flags: -f csv
+
+output: |
+  bool
+  -
+  F
+  T
