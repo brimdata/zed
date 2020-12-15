@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - fix-eks-test-deploy
 
 jobs:
   ecr-image-push:
