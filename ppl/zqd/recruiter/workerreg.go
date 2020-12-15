@@ -47,6 +47,8 @@ type WorkerReg struct {
 	selfaddr    string
 }
 
+// NewWorkerReg is used by personality=worker. WorkerReg keeps state for
+// the workers's interactions with the recruiter and the zqd root process.
 func NewWorkerReg(srvAddr string, conf WorkerConfig, logger *zap.Logger) (*WorkerReg, error) {
 	host, port, _ := net.SplitHostPort(srvAddr)
 	if conf.Host != "" {

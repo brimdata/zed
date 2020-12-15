@@ -9,7 +9,8 @@ import (
 	"time"
 )
 
-// WorkerPool holds the internal state of the recruiter system.
+// WorkerPool holds the internal state of the recruiter system
+// for personality=recruiter.
 // The methods for WorkerPool provide the core algorithms for a
 // load-balancing API. Exported methods are thread safe.
 type WorkerPool struct {
