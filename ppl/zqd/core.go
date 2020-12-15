@@ -37,6 +37,7 @@ const indexPage = `
 
 type Config struct {
 	Auth        AuthConfig
+	DB          apiserver.DBConfig
 	Logger      *zap.Logger
 	Personality string
 	Root        string
@@ -83,7 +84,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		return nil, err
 	}
 
-	mgr, err := apiserver.NewManager(ctx, conf.Logger, registry, root)
+	mgr, err := apiserver.NewManager(ctx, conf.Logger, registry, root, conf.DB)
 	if err != nil {
 		return nil, err
 	}

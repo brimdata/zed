@@ -141,7 +141,7 @@ func (tm *testMigration) initRoot() {
 
 func (tm *testMigration) manager() *apiserver.Manager {
 	if tm.mgr == nil {
-		mgr, err := apiserver.NewManager(context.Background(), zap.NewNop(), prometheus.NewRegistry(), tm.root)
+		mgr, err := apiserver.NewManager(context.Background(), zap.NewNop(), prometheus.NewRegistry(), tm.root, apiserver.DBConfig{Kind: "file"})
 		require.NoError(tm.T, err)
 		tm.mgr = mgr
 	}

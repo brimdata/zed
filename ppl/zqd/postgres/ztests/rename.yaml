@@ -1,0 +1,31 @@
+tag: postgres
+
+env:
+  - PG_TEST
+
+script: |
+  source startup.sh
+  zapi -h $ZQD_HOST new testsp
+  echo ===
+  zapi -h $ZQD_HOST rename testsp newname
+  echo ===
+  zapi -h $ZQD_HOST new newname 
+  zapi -h $ZQD_HOST ls
+
+inputs:
+  - name: startup.sh
+    source: startup.sh
+  - name: migrations
+    symlink: ../migrations
+
+outputs:
+  - name: stdout
+    data: |
+      testsp: space created
+      ===
+      testsp: space renamed to newname
+      ===
+      newname
+  - name: stderr
+    regexp: |
+      couldn't create new space newname: space exists

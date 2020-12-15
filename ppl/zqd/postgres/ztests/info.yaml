@@ -1,0 +1,27 @@
+tag: postgres
+
+env:
+  - PG_TEST
+
+script: |
+  source startup.sh
+  zapi -h $ZQD_HOST new -k archivestore testsp >/dev/null
+  zapi -h $ZQD_HOST info testsp | egrep -v 'data_path|id'
+
+inputs:
+  - name: startup.sh
+    source: startup.sh
+  - name: migrations
+    symlink: ../migrations
+
+outputs:
+  - name: stdout
+    data: |
+      testsp
+        name:         testsp
+        storage_kind: archivestore
+        span:         <nil>
+        size:         0B
+        pcap_support: false
+        pcap_size:    0B
+        pcap_path:    

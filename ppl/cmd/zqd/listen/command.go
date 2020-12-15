@@ -20,7 +20,9 @@ import (
 	"github.com/brimsec/zq/ppl/cmd/zqd/logger"
 	"github.com/brimsec/zq/ppl/cmd/zqd/root"
 	"github.com/brimsec/zq/ppl/zqd"
+	"github.com/brimsec/zq/ppl/zqd/apiserver"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
+	"github.com/brimsec/zq/ppl/zqd/postgres"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/mccanne/charm"
 	"go.uber.org/zap"
@@ -60,6 +62,8 @@ type Command struct {
 	listenAddr          string
 	logLevel            zapcore.Level
 	portFile            string
+	postgresConf        postgres.Config
+	postgresDB          string
 	suricataRunnerPath  string
 	suricataUpdaterPath string
 	zeekRunnerPath      string
@@ -78,6 +82,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.logLevel, "loglevel", "logging level")
 	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, recruiter, or worker)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
+	f.Var(&c.postgresConf, "postgres", "postgres connection url")
+	f.StringVar(&c.postgresDB, "postgres.db", "", "postgres database to connect to")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
 	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
@@ -162,8 +168,17 @@ func (c *Command) init() error {
 	if err != nil {
 		return err
 	}
-	c.conf.Zeek, err = getLauncher(c.zeekRunnerPath, "zeekrunner", false)
-	return err
+	if c.conf.Zeek, err = getLauncher(c.zeekRunnerPath, "zeekrunner", false); err != nil {
+		return err
+	}
+	if !c.postgresConf.IsEmpty() {
+		if c.postgresDB != "" {
+			c.postgresConf.Database = c.postgresDB
+		}
+		c.conf.DB.Kind = apiserver.DBPostgres
+		c.conf.DB.Postgres = c.postgresConf
+	}
+	return nil
 }
 
 func getLauncher(path, defaultFile string, stdout bool) (pcapanalyzer.Launcher, error) {

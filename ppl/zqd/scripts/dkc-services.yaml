@@ -1,0 +1,10 @@
+# docker-compose.yaml
+version: '3'
+services:
+  database:
+    image: "postgres:11"
+    environment:
+      - POSTGRES_USER=test
+      - POSTGRES_PASSWORD=test
+    ports:
+      - "5432:5432"

@@ -24,7 +24,7 @@ import (
 type Manager struct {
 	alphaFileMigrator *filestore.Migrator
 	compactor         *compactor
-	db                *FileDB
+	db                DB
 	logger            *zap.Logger
 	rootPath          iosrc.URI
 
@@ -39,8 +39,17 @@ type Manager struct {
 	deleted prometheus.Counter
 }
 
-func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI) (*Manager, error) {
-	db, err := prepareFileDB(ctx, logger, root)
+func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI, dbconf DBConfig) (*Manager, error) {
+	var db DB
+	var err error
+	switch dbconf.Kind {
+	case DBFile, DBUnspecified:
+		db, err = prepareFileDB(ctx, logger, root)
+	case DBPostgres:
+		db, err = OpenPostgresDB(ctx, dbconf.Postgres)
+	default:
+		return nil, fmt.Errorf("apiserver.Manager: unknown DBKind %q", dbconf.Kind)
+	}
 	if err != nil {
 		return nil, err
 	}
