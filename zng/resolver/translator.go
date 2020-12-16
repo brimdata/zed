@@ -21,7 +21,7 @@ func NewTranslator(in, out *Context) *Translator {
 }
 
 // Lookup implements zng.Resolver
-func (t *Translator) Lookup(id int) (*zng.TypeRecord, error) {
+func (t *Translator) Lookup(id int) (zng.Type, error) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	outputType := t.Slice.Lookup(id)

@@ -108,7 +108,7 @@ func (w *Writer) Write(r *zng.Record) error {
 	if typ == nil {
 		var b []byte
 		var err error
-		b, typ, err = w.encoder.Encode(w.buffer[:0], r.Type)
+		b, typ, err = w.encoder.Encode(w.buffer[:0], r.Alias)
 		if err != nil {
 			return err
 		}

@@ -10,7 +10,7 @@ import (
 type RootRecord struct{}
 
 func (r *RootRecord) Eval(rec *zng.Record) (zng.Value, error) {
-	return zng.Value{rec.Type, rec.Raw}, nil
+	return zng.Value{rec.Alias, rec.Raw}, nil
 }
 
 type DotExpr struct {

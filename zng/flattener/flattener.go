@@ -69,7 +69,7 @@ func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 		if err != nil {
 			return nil, err
 		}
-		f.mapper.EnterTypeRecord(id, flatType)
+		f.mapper.EnterType(id, flatType)
 	}
 	// Since we are mapping the input context to itself we can do a
 	// pointer comparison to see if the types are the same and there
@@ -81,7 +81,7 @@ func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(flatType, zv), nil
+	return zng.NewRecord(flatType.(*zng.TypeRecord), zv), nil
 }
 
 // FlattenColumns turns nested records into a series of columns of
