@@ -1,0 +1,16 @@
+script: |
+  zq -t -i zson -pretty=0 in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      { version: [] } (=0)
+      { version: [ 1 ] } (=1)
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[version:array[null]]
+      0:[[]]
+      #1:record[version:array[int64]]
+      1:[[1;]]

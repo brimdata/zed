@@ -69,7 +69,7 @@ func (w *Writer) writeValueAndDecorate(typ zng.Type, bytes zcode.Bytes) error {
 	if err := w.writeValue(0, typ, bytes, known, false); err != nil {
 		return err
 	}
-	return w.decorate(typ, false)
+	return w.decorate(typ, false, bytes == nil)
 }
 
 func (w *Writer) writeValue(indent int, typ zng.Type, bytes zcode.Bytes, parentKnown, decorate bool) error {
@@ -78,9 +78,10 @@ func (w *Writer) writeValue(indent int, typ zng.Type, bytes zcode.Bytes, parentK
 		if err := w.write("null"); err != nil {
 			return err
 		}
-		return w.decorate(typ, parentKnown)
+		return w.decorate(typ, parentKnown, true)
 	}
 	var err error
+	var null bool
 	switch t := typ.(type) {
 	default:
 		err = w.write(typ.ZSONOf(bytes))
@@ -91,20 +92,20 @@ func (w *Writer) writeValue(indent int, typ zng.Type, bytes zcode.Bytes, parentK
 	case *zng.TypeRecord:
 		err = w.writeRecord(indent, t, bytes, known)
 	case *zng.TypeArray:
-		err = w.writeVector(indent, "[", "]", t.Type, zng.Value{t, bytes}, known)
+		null, err = w.writeVector(indent, "[", "]", t.Type, zng.Value{t, bytes}, known)
 	case *zng.TypeSet:
-		err = w.writeVector(indent, "|[", "]|", t.Type, zng.Value{t, bytes}, known)
+		null, err = w.writeVector(indent, "|[", "]|", t.Type, zng.Value{t, bytes}, known)
 	case *zng.TypeUnion:
 		err = w.writeUnion(indent, t, bytes)
 	case *zng.TypeMap:
-		err = w.writeMap(indent, t, bytes, known)
+		null, err = w.writeMap(indent, t, bytes, known)
 	case *zng.TypeEnum:
 		err = w.write(t.ZSONOf(bytes))
 	case *zng.TypeOfType:
 		err = w.writef("(%s)", string(bytes))
 	}
 	if err == nil && decorate {
-		err = w.decorate(typ, parentKnown)
+		err = w.decorate(typ, parentKnown, null)
 	}
 	return err
 }
@@ -115,14 +116,14 @@ func (w *Writer) nextInternalType() string {
 	return name
 }
 
-func (w *Writer) decorate(typ zng.Type, known bool) error {
-	if known || zson.Implied(typ) {
+func (w *Writer) decorate(typ zng.Type, known, null bool) error {
+	if known || (!null && zson.Implied(typ)) {
 		return nil
 	}
 	if name, ok := w.typedefs[typ]; ok {
 		return w.writef(" (%s)", name)
 	}
-	if zson.SelfDescribing(typ) {
+	if zson.SelfDescribing(typ) && !null {
 		var name string
 		if typ, ok := typ.(*zng.TypeAlias); ok {
 			name = typ.Name
@@ -173,16 +174,16 @@ func (w *Writer) writeRecord(indent int, typ *zng.TypeRecord, bytes zcode.Bytes,
 	return w.indent(indent-w.tab, "}")
 }
 
-func (w *Writer) writeVector(indent int, open, close string, inner zng.Type, zv zng.Value, known bool) error {
+func (w *Writer) writeVector(indent int, open, close string, inner zng.Type, zv zng.Value, known bool) (bool, error) {
 	if err := w.write(open); err != nil {
-		return err
+		return true, err
 	}
 	len, err := zv.ContainerLength()
 	if err != nil {
-		return err
+		return true, err
 	}
 	if len == 0 {
-		return w.write(close)
+		return true, w.write(close)
 	}
 	indent += w.tab
 	sep := w.newline
@@ -190,23 +191,23 @@ func (w *Writer) writeVector(indent int, open, close string, inner zng.Type, zv 
 	for !it.Done() {
 		bytes, _, err := it.Next()
 		if err != nil {
-			return err
+			return true, err
 		}
 		if err := w.write(sep); err != nil {
-			return err
+			return true, err
 		}
 		if err := w.indent(indent, ""); err != nil {
-			return err
+			return true, err
 		}
 		if err := w.writeValue(indent, inner, bytes, known, true); err != nil {
-			return err
+			return true, err
 		}
 		sep = "," + w.newline
 	}
 	if err := w.write(w.newline); err != nil {
-		return err
+		return true, err
 	}
-	return w.indent(indent-w.tab, close)
+	return false, w.indent(indent-w.tab, close)
 }
 
 func (w *Writer) writeUnion(indent int, union *zng.TypeUnion, bytes zcode.Bytes) error {
@@ -226,51 +227,50 @@ func (w *Writer) writeUnion(indent int, union *zng.TypeUnion, bytes zcode.Bytes)
 	return w.writeValue(indent, typ, bytes, known, true)
 }
 
-func (w *Writer) writeMap(indent int, typ *zng.TypeMap, bytes zcode.Bytes, known bool) error {
+func (w *Writer) writeMap(indent int, typ *zng.TypeMap, bytes zcode.Bytes, known bool) (bool, error) {
+	empty := true
 	if err := w.write("|{"); err != nil {
-		return err
-	}
-	if bytes == nil {
-		return w.write("|}")
+		return empty, err
 	}
 	indent += w.tab
 	sep := w.newline
 	for it := bytes.Iter(); !it.Done(); {
 		keyBytes, _, err := it.Next()
 		if err != nil {
-			return err
+			return empty, err
 		}
 		if it.Done() {
-			return errors.New("truncated map value")
+			return empty, errors.New("truncated map value")
 		}
+		empty = false
 		valBytes, _, err := it.Next()
 		if err != nil {
-			return err
+			return empty, err
 		}
 		if err := w.write(sep); err != nil {
-			return err
+			return empty, err
 		}
 		if err := w.indent(indent, "{"); err != nil {
-			return err
+			return empty, err
 		}
 		if err := w.writeValue(indent+w.tab, typ.KeyType, keyBytes, known, true); err != nil {
-			return err
+			return empty, err
 		}
 		if err := w.write(","); err != nil {
-			return err
+			return empty, err
 		}
 		if err := w.writeValue(indent+w.tab, typ.ValType, valBytes, known, true); err != nil {
-			return err
+			return empty, err
 		}
 		if err := w.write("}"); err != nil {
-			return err
+			return empty, err
 		}
 		sep = "," + w.newline
 	}
 	if err := w.write(w.newline); err != nil {
-		return err
+		return empty, err
 	}
-	return w.indent(indent-w.tab, "}|")
+	return empty, w.indent(indent-w.tab, "}|")
 }
 
 func (w *Writer) indent(tab int, s string) error {

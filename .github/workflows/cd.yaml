@@ -46,5 +46,7 @@ jobs:
         run: |
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl config set-context --current --namespace=ci-master
-          helm uninstall zqd || :
-          make helm-install
+          make helm-uninstall
+          make helm-install-recruiter
+          make helm-install-root
+          make helm-install-worker

@@ -19,6 +19,7 @@ import (
 	"github.com/brimsec/zq/zio/zstio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zson"
 )
 
 type nullWriter struct{}
@@ -75,6 +76,8 @@ func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts zio.Rea
 		return zjsonio.NewReader(r, zctx), nil
 	case "zng":
 		return zngio.NewReaderWithOpts(r, zctx, opts.Zng), nil
+	case "zson":
+		return zson.NewReader(r, zctx), nil
 	case "zst":
 		return zstio.NewReader(r, zctx)
 	case "azng":
