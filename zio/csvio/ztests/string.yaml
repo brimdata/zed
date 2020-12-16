@@ -13,9 +13,9 @@ output-flags: -f csv
 
 output: |
   string
-  -
+  
   
   """"
   ","
-  \u002d
-  \\
+  -
+  \

@@ -13,7 +13,7 @@ output-flags: -f csv
 
 output: |
   error
-  -
+  
   
   """"
   ","

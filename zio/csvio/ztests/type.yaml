@@ -13,9 +13,9 @@ output-flags: -f csv
 
 output: |
   type
-  -
+  
   
   """"
   ","
-  -
+  
   \x5c

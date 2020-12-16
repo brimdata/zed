@@ -9,5 +9,5 @@ output-flags: -f csv
 
 output: |+
   null
-  -
-  -
+  
+  
