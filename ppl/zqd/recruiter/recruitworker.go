@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// RecruitWorkers is used by the zqd root process to recruit worker for a distributed query.
+// RecruitWorkers is used by the zqd root process to recruit workers for a distributed query.
 func RecruitWorkers(ctx *proc.Context, workerCount int, conf WorkerConfig, logger *zap.Logger) ([]string, error) {
 	logger.Info("recruit workers", zap.Int("count", workerCount))
 	if conf.BoundWorkers != "" {

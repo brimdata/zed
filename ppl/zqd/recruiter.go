@@ -23,6 +23,7 @@ func handleRecruit(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	workers := make([]api.Worker, len(ws))
 	for i, e := range ws {
+		// Note the receiver for this channel is the select in handleRegister below.
 		e.Recruited <- recruiter.RecruitmentDetail{Label: req.Label, NumberRequested: req.NumberRequested}
 		workers[i] = api.Worker{Addr: e.Addr, NodeName: e.NodeName}
 	}
@@ -48,9 +49,7 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 	// directive is one of:
 	//  "reserved"   indicates to the worker that is has been reserved by a root process.
 	//  "reregister" indicates the request timed out without the worker being reserved,
-	//               and the worker should send another register request if possible.
-	//               Note that if the worker is running on a K8s node marked as
-	//               "Unschedulable" it should not reregister.
+	//               and the worker should send another register request.
 	var directive string
 	var isCanceled bool
 	ctx := r.Context()
@@ -61,8 +60,7 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 		c.requestLogger(r).Info("Worker recruited",
 			zap.String("addr", req.Addr),
 			zap.String("label", rd.Label),
-			zap.Int("count", rd.NumberRequested),
-		)
+			zap.Int("count", rd.NumberRequested))
 		directive = "reserved"
 	case <-timer.C:
 		c.requestLogger(r).Info("Worker should reregister", zap.String("addr", req.Addr))
@@ -74,9 +72,7 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 	// Deregister in any event
 	c.workerPool.Deregister(req.Addr)
 	if !isCanceled {
-		respond(c, w, r, http.StatusOK, api.RegisterResponse{
-			Directive: directive,
-		})
+		respond(c, w, r, http.StatusOK, api.RegisterResponse{Directive: directive})
 	}
 }
 

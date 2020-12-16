@@ -97,7 +97,6 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 			continue
 		}
 		retryWait = w.conf.MinRetry // Retry goes back to min after a success.
-
 		if resp.Directive == "reserved" {
 			w.logger.Info("worker is reserved", zap.String("selfaddr", w.selfaddr))
 			// Start listening to the releaseChannel.
@@ -136,8 +135,8 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 }
 
 // These three methods are called from the worker handlers.
-// They do a nil check on the pointer receiver because there
-// the worker.bound list is specified there may be no WorkerReg.
+// They do a nil check on the pointer receiver because if the
+// -worker.bound flag is present then there may be no WorkerReg.
 // The warnings on the default selector should not normally occur,
 // and would indicate that something was broken.
 
