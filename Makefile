@@ -153,9 +153,9 @@ helm-install-worker:
 	--set useCredSecret=false
 
 make helm-uninstall:
-	helm uninstall worker || :
-	helm uninstall root || :
-	helm uninstall recruiter || :
+	-helm uninstall worker
+	-helm uninstall root
+	-helm uninstall recruiter
 
 create-release-assets:
 	for os in darwin linux windows; do \
