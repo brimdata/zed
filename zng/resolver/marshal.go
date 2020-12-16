@@ -80,6 +80,10 @@ func fieldName(f reflect.StructField) string {
 }
 
 func encodeAny(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, error) {
+	if !v.IsValid() {
+		b.AppendPrimitive(nil)
+		return zng.TypeNull, nil
+	}
 	if v.Type().Implements(marshalerType) {
 		return v.Interface().(Marshaler).MarshalZNG(zctx, b)
 	}

@@ -376,4 +376,15 @@ func TestCustomRecord(t *testing.T) {
 #0:record[foo:record[a:string,B:int64],bar:int64]
 0:[[hello;123;]99;]`
 	assert.Equal(t, trim(exp), rectzng(t, rec))
+
+	vals = []interface{}{
+		Thing{"hello", 123},
+		nil,
+	}
+	exp = `
+#0:record[foo:record[a:string,B:int64],bar:null]
+0:[[hello;123;]-;]`
+	rec, err = resolver.MarshalCustomRecord(zctx, []string{"foo", "bar"}, vals)
+	require.NoError(t, err)
+	assert.Equal(t, trim(exp), rectzng(t, rec))
 }
