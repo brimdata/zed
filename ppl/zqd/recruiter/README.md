@@ -43,7 +43,7 @@ When a worker is recruited it is removed from the available pool, the worker ent
 
 ## Recovery on worker restart
 
-When a worker halts for any reason, while it is registered with the recruiter, the recruiter will lose it's connection with the worker and the worker will be removed the the available list.
+When a worker halts for any reason, while it is registered with the recruiter, the recruiter will lose the connection and the worker will be removed from the available list.
 
 When a worker restarts, it will attempt to register with a recruiter.
 
@@ -55,7 +55,7 @@ If a worker halts while working on a distributed query, that worker is lost to t
 
 In a cluster environment, it should not be surprising that any one pod will restart occasionally to be reschduled on another node. So, any clustered application should not depend on continious memory state of one pod. Of course there are many other potential reasons for an unexpected shutdown of a pod.
 
-The current design calls for one recruiter per cluster. When that recruiter unexpectly restarts, all registered worker pods will be in a loop that will cause them to reregister after a short delay specified in their config (e.g. 200 ms with an exponential backoff). In a healthy cluster, restarting a recruiter will be sub-second, and all available workers will reregister shortly thereafter. No information is lost, and the the recruiter is available for `/recruit` requests without a significant interuption.
+The current design calls for one recruiter per cluster. When that recruiter unexpectly restarts, all registered worker pods will be in a loop that will cause them to reregister after a short delay specified in their config (e.g. 200 ms with an exponential backoff). In a healthy cluster, restarting a recruiter will be sub-second, and all available workers will reregister shortly thereafter. No information is lost, and the recruiter is available for `/recruit` requests without a significant interuption.
 
 The recruiter is "more or less" a stateless service, given that it only persists state about its current open connections. So, if we want to, we could safely run more than one instance of a recruiter in the same cluster. Statistically, we would expect the two instances to split the worker pool into two similarly sized partitions with no overlap. This would only be favorable for large clusters where a smaller pool would not lead to suboptimal scheduling. It might be a good idea for clusters that have more than a few hundred available workers. In any case, the ablity to run two recruiters without conflict could be helpful for a zero-downtime rolling upgrade.
 
@@ -63,7 +63,7 @@ The recruiter is "more or less" a stateless service, given that it only persists
 
 On a `/recruit` request, the recruiter process responds to each worker, informing the worker that it is in a "reserved" state. The recruiter then responds to the zqd root process with a list of the URLs of the recruited workers. (At that point the recruiter forgets about the workers.) In the "reserved" state, each worker knows it should be receiving work, and waits for requests from a query root process.
 
-If the root process halts (restarts) before sending request to the workers, they will have a specified "idle" timeout, after which they will exit. The exit will cause the worker pods to be restarted (and possibly scheduled to different nodes) and they will register with the recuiter as they come up.
+If the root process halts (restarts) before sending requests, the workers have a specified "idle" timeout, after which they will exit. The exit will cause the worker pods to be restarted (and possibly scheduled to different nodes) and they will register with the recuiter as they come up.
 
 If the root process halts (crashes for any reason) during query execution, the connection from the root to the worker will be broken. This will cause the idle timer in that worker to be restarted, and the worker will exit unless the root sends it another reuqest before the timeout.
 
