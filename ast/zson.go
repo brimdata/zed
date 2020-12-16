@@ -82,8 +82,8 @@ type (
 		Value Value `json:"value"`
 	}
 	TypeValue struct {
-		Op   string `json:"op"`
-		Type Type   `json:"type"`
+		Op    string `json:"op"`
+		Value Type   `json:"value"`
 	}
 )
 

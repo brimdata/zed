@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"time"
+	"unicode/utf8"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
@@ -16,13 +17,11 @@ import (
 // A Builder transforms a fully-typed Value produced by an Analyzer
 // into a zng.Value.
 type Builder struct {
-	*zcode.Builder
+	zcode.Builder
 }
 
 func NewBuilder() *Builder {
-	return &Builder{
-		Builder: zcode.NewBuilder(),
-	}
+	return &Builder{}
 }
 
 func (b *Builder) Build(val Value) (zng.Value, error) {
@@ -121,7 +120,11 @@ func (b *Builder) buildPrimitive(val *Primitive) error {
 		b.AppendPrimitive(zcode.Bytes(bytes))
 		return nil
 	case *zng.TypeOfString, *zng.TypeOfError:
-		b.AppendPrimitive(zng.EncodeString(val.Text))
+		body := zng.EncodeString(val.Text)
+		if !utf8.Valid(body) {
+			return fmt.Errorf("invalid utf8 string: %q", val.Text)
+		}
+		b.AppendPrimitive(body)
 		return nil
 	case *zng.TypeOfBstring:
 		b.AppendPrimitive(unescapeHex([]byte(val.Text)))
@@ -141,6 +144,9 @@ func (b *Builder) buildPrimitive(val *Primitive) error {
 		b.AppendPrimitive(zng.EncodeNet(net))
 		return nil
 	case *zng.TypeOfNull:
+		if val.Text != "" {
+			return fmt.Errorf("invalid text body of null value: %q", val.Text)
+		}
 		b.AppendPrimitive(nil)
 		return nil
 	}

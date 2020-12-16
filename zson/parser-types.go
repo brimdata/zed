@@ -84,7 +84,7 @@ func (p *Parser) matchTypeName() (ast.Type, error) {
 	return &ast.TypeDef{
 		Op:   ast.TypeDefOp,
 		Name: name,
-		Type: tv.Type,
+		Type: tv.Value,
 	}, nil
 }
 
@@ -138,7 +138,7 @@ func (p *Parser) matchTypeField() (*ast.TypeField, error) {
 		return nil, err
 	}
 	if !ok {
-		return nil, p.errorf("no type name found for field '%s'", symbol)
+		return nil, p.errorf("no type name found for field %q", symbol)
 	}
 	typ, err := p.parseType()
 	if err != nil {
@@ -218,7 +218,7 @@ func (p *Parser) matchTypeSetOrMap() (ast.Type, error) {
 			return nil, err
 		}
 		if !ok {
-			return nil, p.error("mismatched set-brackets while parsing set type")
+			return nil, p.error("mismatched set-brackets while parsing map type")
 		}
 	}
 	ok, err := l.matchTight('|')
@@ -226,7 +226,7 @@ func (p *Parser) matchTypeSetOrMap() (ast.Type, error) {
 		return nil, err
 	}
 	if !ok {
-		return nil, p.errorf("mismatched closing bracket while parsing %s type", which)
+		return nil, p.errorf("mismatched closing bracket while parsing type %q", which)
 	}
 	return typ, nil
 

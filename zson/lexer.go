@@ -166,7 +166,7 @@ func (l *Lexer) skipSpace() error {
 }
 
 func isNewline(r rune) bool {
-	// from stackoverflow
+	// See http://www.unicode.org/versions/Unicode13.0.0/ch05.pdf#G10213
 	switch r {
 	case 0x000A, 0x000B, 0x000C, 0x000D, 0x0085, 0x2028, 0x2029:
 		return true

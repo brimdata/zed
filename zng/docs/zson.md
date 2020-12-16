@@ -327,7 +327,7 @@ independent sequences).
 One decorator is allowed per value except for nested type-union values, which
 may include additional decorators to successively refine the union type for union values
 that live inside other union types. This allows an already-decorated value to be
-further decorated with its union type and provides as a means to distinguish
+further decorated with its union type and provides a means to distinguish
 a union value's precise member type when it is otherwise ambiguous as described in
 [Section 3.4.4](#344-union-value).
 
@@ -801,7 +801,7 @@ the defines their type.
 
 <val-typedef> = "(" "=" <type-name> ")"
 
-<decorators> = "(" <type> ")" | <decorators> "(" <type ")"
+<decorators> = "(" <type> ")" | <decorators> "(" <type> ")"
 
 <any> = <primitive> | <record> | <array> | <set> |
             <union> | <enum> | <map> | <type-val>
@@ -842,7 +842,7 @@ the defines their type.
             <union-type> | <enum-type> | <map-type> | <type-type> |
             <type-def> | <type-name>
 
-<primitive-type> = uint8 | uint16 | etc as defined above including "type"
+<primitive-type> = uint8 | uint16 | etc. as defined above including "type"
 
 <record-type> = "{" <tflist> "}"  |  "{" "}"
 

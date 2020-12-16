@@ -144,7 +144,7 @@ func (a Analyzer) typeCheck(cast, parent zng.Type) error {
 		// as any union incompability will be caught in convertAnyValue().
 		return nil
 	}
-	return fmt.Errorf("decorator conflict enclosing context '%s' and decorator cast '%s'", parent.ZSON(), cast.ZSON())
+	return fmt.Errorf("decorator conflict enclosing context %q and decorator cast %q", parent.ZSON(), cast.ZSON())
 }
 
 func (a Analyzer) enterTypeDef(zctx *resolver.Context, name string, typ zng.Type) (*zng.TypeAlias, error) {
@@ -155,7 +155,7 @@ func (a Analyzer) enterTypeDef(zctx *resolver.Context, name string, typ zng.Type
 			return nil, err
 		}
 		if existing, ok := a[name]; ok && existing != alias {
-			return nil, fmt.Errorf("type '%s' redefined from '%s' to '%s'", name, existing.ZSON(), typ.ZSON())
+			return nil, fmt.Errorf("type %q redefined from %q to %q", name, existing.ZSON(), typ.ZSON())
 		}
 		typ = alias
 	}
@@ -196,7 +196,7 @@ func (a Analyzer) convertAny(zctx *resolver.Context, val ast.Any, cast zng.Type)
 func (a Analyzer) convertPrimitive(zctx *resolver.Context, val *ast.Primitive, cast zng.Type) (Value, error) {
 	typ := zng.LookupPrimitive(val.Type)
 	if typ == nil {
-		return nil, fmt.Errorf("no such primitive type: %s", val.Type)
+		return nil, fmt.Errorf("no such primitive type: %q", val.Type)
 	}
 	isNull := typ == zng.TypeNull
 	if cast != nil {
@@ -234,51 +234,20 @@ func castType(typ, cast zng.Type) (zng.Type, error) {
 	if typ == cast || typ == zng.TypeNull {
 		return cast, nil
 	}
-	if isStringy(typ) {
-		if isStringy(cast) {
+	if zng.IsStringy(typ.ID()) {
+		if zng.IsStringy(cast.ID()) {
 			return cast, nil
 		}
-	} else if isInty(typ) {
-		if isInty(cast) {
+	} else if zng.IsInteger(typ.ID()) {
+		if zng.IsInteger(cast.ID()) {
 			return cast, nil
 		}
-	} else if isFloaty(typ) {
-		if isFloaty(cast) {
+	} else if zng.IsFloat(typ.ID()) {
+		if zng.IsFloat(cast.ID()) {
 			return cast, nil
 		}
 	}
-	return nil, fmt.Errorf("type mismatch: '%s' cannot be used as '%s'", typ.ZSON(), cast.ZSON())
-}
-
-func isStringy(typ zng.Type) bool {
-	switch typ := typ.(type) {
-	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfError:
-		return true
-	case *zng.TypeAlias:
-		return isStringy(typ.Type)
-	}
-	return false
-}
-
-func isInty(typ zng.Type) bool {
-	switch typ := typ.(type) {
-	case *zng.TypeOfInt8, *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64, *zng.TypeOfUint8, *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
-		return true
-	case *zng.TypeAlias:
-		return isInty(typ.Type)
-	}
-	return false
-}
-
-func isFloaty(typ zng.Type) bool {
-	//case *zng.TypeOfFloat16, *zng.typeOfFloat32, *zng.TypeOfFloat64, *zng.TypeOfDecimal:
-	switch typ := typ.(type) {
-	case *zng.TypeOfFloat64:
-		return true
-	case *zng.TypeAlias:
-		return isFloaty(typ.Type)
-	}
-	return false
+	return nil, fmt.Errorf("type mismatch: %q cannot be used as %q", typ.ZSON(), cast.ZSON())
 }
 
 func (a Analyzer) convertRecord(zctx *resolver.Context, val *ast.Record, cast zng.Type) (Value, error) {
@@ -502,16 +471,16 @@ func (a Analyzer) convertUnion(zctx *resolver.Context, v Value, union *zng.TypeU
 			}, nil
 		}
 	}
-	return nil, fmt.Errorf("type '%s' is not in union type '%s'", valType.ZSON(), union.ZSON())
+	return nil, fmt.Errorf("type %q is not in union type %q", valType.ZSON(), union.ZSON())
 }
 
 func (a Analyzer) convertEnum(zctx *resolver.Context, val *ast.Enum, cast zng.Type) (Value, error) {
 	if cast == nil {
-		return nil, fmt.Errorf("identifier '%s' must be enum and requires decorator", val.Name)
+		return nil, fmt.Errorf("identifier %q must be enum and requires decorator", val.Name)
 	}
 	enum, ok := zng.AliasedType(cast).(*zng.TypeEnum)
 	if !ok {
-		return nil, fmt.Errorf("identifier '%s' is enum an incompatible with type '%s'", val.Name, cast.ZSON())
+		return nil, fmt.Errorf("identifier %q is enum and incompatible with type %q", val.Name, cast.ZSON())
 	}
 	for k, elem := range enum.Elements {
 		if elem.Name == val.Name {
@@ -522,7 +491,7 @@ func (a Analyzer) convertEnum(zctx *resolver.Context, val *ast.Enum, cast zng.Ty
 			}, nil
 		}
 	}
-	return nil, fmt.Errorf("identifier '%s' not a member of enum type '%s'", val.Name, enum.ZSON())
+	return nil, fmt.Errorf("identifier %q not a member of enum type %q", val.Name, enum.ZSON())
 }
 
 func (a Analyzer) convertMap(zctx *resolver.Context, m *ast.Map, cast zng.Type) (Value, error) {
@@ -569,10 +538,10 @@ func (a Analyzer) convertMap(zctx *resolver.Context, m *ast.Map, cast zng.Type) 
 func (a Analyzer) convertTypeValue(zctx *resolver.Context, tv *ast.TypeValue, cast zng.Type) (Value, error) {
 	if cast != nil {
 		if _, ok := zng.AliasedType(cast).(*zng.TypeOfType); !ok {
-			return nil, fmt.Errorf("cannot apply decorator ('%s') to a type value", cast.ZSON())
+			return nil, fmt.Errorf("cannot apply decorator (%q) to a type value", cast.ZSON())
 		}
 	}
-	typ, err := a.convertType(zctx, tv.Type)
+	typ, err := a.convertType(zctx, tv.Value)
 	if err != nil {
 		return nil, err
 	}
@@ -591,7 +560,7 @@ func (a Analyzer) convertType(zctx *resolver.Context, typ ast.Type) (zng.Type, e
 		name := t.Name
 		typ := zng.LookupPrimitive(name)
 		if typ == nil {
-			return nil, fmt.Errorf("no such primitive type: %s", name)
+			return nil, fmt.Errorf("no such primitive type: %q", name)
 		}
 		return typ, nil
 	case *ast.TypeDef:
@@ -628,7 +597,7 @@ func (a Analyzer) convertType(zctx *resolver.Context, typ ast.Type) (zng.Type, e
 	case *ast.TypeName:
 		typ, ok := a[t.Name]
 		if !ok {
-			return nil, fmt.Errorf("no such type name: %s", t.Name)
+			return nil, fmt.Errorf("no such type name: %q", t.Name)
 		}
 		return typ, nil
 	}
@@ -678,7 +647,7 @@ func (a Analyzer) convertTypeEnum(zctx *resolver.Context, enum *ast.TypeEnum) (*
 		if typ == nil {
 			typ = other
 		} else if typ != other {
-			return nil, fmt.Errorf("mixed type enum values: '%s' and '%s'", typ.ZSON(), other.ZSON())
+			return nil, fmt.Errorf("mixed type enum values: %q and %q", typ.ZSON(), other.ZSON())
 		} else {
 			v.SetType(typ)
 		}
@@ -687,7 +656,7 @@ func (a Analyzer) convertTypeEnum(zctx *resolver.Context, enum *ast.TypeEnum) (*
 			return nil, err
 		}
 		if zv.Type != typ {
-			return nil, fmt.Errorf("internal error built type (%s) does not match semantic type (%s)", zv.Type.ZSON(), typ.ZSON())
+			return nil, fmt.Errorf("internal error built type (%q) does not match semantic type (%q)", zv.Type.ZSON(), typ.ZSON())
 		}
 		e := zng.Element{
 			Name:  f.Name,

@@ -19,7 +19,7 @@ func (p *Parser) ParseValue() (ast.Value, error) {
 	return v, err
 }
 
-func clean(err error) error {
+func noEOF(err error) error {
 	if err == io.EOF {
 		err = nil
 	}
@@ -95,7 +95,7 @@ func (p *Parser) matchDecorator(any ast.Any, val ast.Value) (ast.Value, bool, er
 	l := p.lexer
 	ok, err := l.match('(')
 	if err != nil || !ok {
-		return nil, false, clean(err)
+		return nil, false, noEOF(err)
 	}
 	val, err = p.parseDecorator(any, val)
 	if err != nil {
@@ -153,18 +153,18 @@ func (p *Parser) parseDecorator(any ast.Any, val ast.Value) (ast.Value, error) {
 
 func (p *Parser) matchPrimitive() (*ast.Primitive, error) {
 	if val, err := p.matchStringPrimitive(); val != nil || err != nil {
-		return val, clean(err)
+		return val, noEOF(err)
 	}
 	if val, err := p.matchBacktickString(); val != nil || err != nil {
-		return val, clean(err)
+		return val, noEOF(err)
 	}
 	l := p.lexer
 	if err := l.skipSpace(); err != nil {
-		return nil, clean(err)
+		return nil, noEOF(err)
 	}
 	s, err := l.peekPrimitive()
 	if err != nil {
-		return nil, clean(err)
+		return nil, noEOF(err)
 	}
 	if s == "" {
 		return nil, nil
@@ -209,7 +209,7 @@ func (p *Parser) matchPrimitive() (*ast.Primitive, error) {
 func (p *Parser) matchStringPrimitive() (*ast.Primitive, error) {
 	s, ok, err := p.matchString()
 	if err != nil || !ok {
-		return nil, clean(err)
+		return nil, noEOF(err)
 	}
 	return &ast.Primitive{
 		Op:   ast.PrimitiveOp,
@@ -222,7 +222,7 @@ func (p *Parser) matchString() (string, bool, error) {
 	l := p.lexer
 	ok, err := l.match('"')
 	if err != nil || !ok {
-		return "", false, clean(err)
+		return "", false, noEOF(err)
 	}
 	s, err := l.scanString()
 	if err != nil {
@@ -245,7 +245,7 @@ func (p *Parser) matchBacktickString() (*ast.Primitive, error) {
 	keepIndentation := false
 	ok, err := l.matchBytes(arrow)
 	if err != nil {
-		return nil, clean(err)
+		return nil, noEOF(err)
 	}
 	if ok {
 		keepIndentation = true
@@ -278,7 +278,7 @@ func (p *Parser) matchBacktickString() (*ast.Primitive, error) {
 func (p *Parser) matchRecord() (*ast.Record, error) {
 	l := p.lexer
 	if ok, err := l.match('{'); !ok || err != nil {
-		return nil, clean(err)
+		return nil, noEOF(err)
 	}
 	fields, err := p.matchFields()
 	if err != nil {
@@ -334,7 +334,7 @@ func (p *Parser) matchField() (*ast.Field, error) {
 		return nil, err
 	}
 	if !ok {
-		return nil, p.errorf("no type name found for field '%s'", name)
+		return nil, p.errorf("no type name found for field %q", name)
 	}
 	val, err := p.ParseValue()
 	if err != nil {
@@ -349,7 +349,7 @@ func (p *Parser) matchField() (*ast.Field, error) {
 func (p *Parser) matchSymbol() (string, bool, error) {
 	s, ok, err := p.matchString()
 	if err != nil {
-		return "", false, clean(err)
+		return "", false, noEOF(err)
 	}
 	if ok {
 		return s, true, nil
@@ -364,7 +364,7 @@ func (p *Parser) matchSymbol() (string, bool, error) {
 func (p *Parser) matchArray() (*ast.Array, error) {
 	l := p.lexer
 	if ok, err := l.match('['); !ok || err != nil {
-		return nil, clean(err)
+		return nil, noEOF(err)
 	}
 	vals, err := p.matchValueList()
 	if err != nil {
@@ -409,7 +409,7 @@ func (p *Parser) matchValueList() ([]ast.Value, error) {
 func (p *Parser) matchSetOrMap() (ast.Any, error) {
 	l := p.lexer
 	if ok, err := l.match('|'); !ok || err != nil {
-		return nil, clean(err)
+		return nil, noEOF(err)
 	}
 	isSet, err := l.matchTight('[')
 	if err != nil {
@@ -535,7 +535,7 @@ func (p *Parser) matchEnum() (*ast.Enum, error) {
 	// also be strings but we don't know that until the semantic check.
 	name, err := p.matchIdentifier()
 	if err != nil || name == "" {
-		return nil, clean(err)
+		return nil, noEOF(err)
 	}
 	return &ast.Enum{
 		Op:   ast.EnumOp,
@@ -546,7 +546,7 @@ func (p *Parser) matchEnum() (*ast.Enum, error) {
 func (p *Parser) matchTypeValue() (*ast.TypeValue, error) {
 	l := p.lexer
 	if ok, err := l.match('('); !ok || err != nil {
-		return nil, clean(err)
+		return nil, noEOF(err)
 	}
 	typ, err := p.parseType()
 	if err != nil {
@@ -560,7 +560,7 @@ func (p *Parser) matchTypeValue() (*ast.TypeValue, error) {
 		return nil, p.error("mismatched parentheses while parsing type value")
 	}
 	return &ast.TypeValue{
-		Op:   ast.TypeValueOp,
-		Type: typ,
+		Op:    ast.TypeValueOp,
+		Value: typ,
 	}, nil
 }
