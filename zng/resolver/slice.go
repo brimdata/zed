@@ -5,7 +5,7 @@ import (
 )
 
 // Slice is a table of descriptors respresented as a slice and grown
-// on demand as small-in type descriptors are entered into the table.
+// on demand as small-int type descriptors are entered into the table.
 type Slice []zng.Type
 
 func (s Slice) Lookup(td int) zng.Type {

@@ -109,19 +109,19 @@ again:
 }
 
 func parseIntType(line []byte) (string, []byte, bool) {
-	i := bytes.IndexByte(line, byte(':'))
+	i := bytes.IndexByte(line, ':')
 	if i <= 0 {
 		return "", line, false
 	}
 	name := string(line[:i])
-	if _, err := strconv.ParseInt(name, 10, 64); err == nil {
-		return name, line[i+1:], true
+	if _, err := strconv.ParseUint(name, 10, 64); err != nil {
+		return "", line, false
 	}
-	return "", line, false
+	return name, line[i+1:], true
 }
 
 func parseAliasType(line []byte) (string, []byte, bool) {
-	i := bytes.IndexByte(line, byte('='))
+	i := bytes.IndexByte(line, '=')
 	if i <= 0 {
 		return "", line, false
 	}
@@ -134,21 +134,21 @@ func parseAliasType(line []byte) (string, []byte, bool) {
 
 func (r *Reader) parseTypeDef(line []byte) (bool, error) {
 	// #int:type (skipped past #)
-	isInt := true
+	var isAlias bool
 	name, rest, ok := parseIntType(line)
 	if !ok {
 		name, rest, ok = parseAliasType(line)
 		if !ok {
 			return false, ErrBadFormat
 		}
-		isInt = false
+		isAlias = true
 	}
 	typ, err := r.zctx.LookupByName(string(rest))
 	if err != nil {
 		return false, err
 	}
-	if !isInt {
-		if _, ok := r.mapper[name]; ok && !isInt {
+	if isAlias {
+		if _, ok := r.mapper[name]; ok {
 			return false, errors.New("alias exists with different type")
 		}
 		typ, err = r.zctx.LookupTypeAlias(name, typ)
@@ -182,11 +182,11 @@ func (r *Reader) parseDirective(line []byte) ([]byte, error) {
 }
 
 func (r *Reader) parseType(line []byte) (zng.Type, []byte, error) {
-	i := bytes.IndexByte(line, byte(':'))
+	i := bytes.IndexByte(line, ':')
 	if i <= 0 {
 		return nil, nil, ErrBadFormat
 	}
-	id := string(line[0:i])
+	id := string(line[:i])
 	typ, ok := r.mapper[id]
 	if !ok {
 		return nil, nil, ErrInvalidDesc
