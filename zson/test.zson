@@ -1,0 +1,13 @@
+/* this is...
+      a test */
+{
+    s:"foo" (bstring),
+    // implied type arrays!
+    a:["1","2","3"],
+    host:128.32.1.1/22,
+    // ISO times, yay
+    ts:2020-11-24T08:44:09.586441-08:00,
+    dur:1m20s,
+//  skip: "this field",
+    tv:({a:int8})
+}

@@ -1,0 +1,16 @@
+script: |
+  zq -f zson -i zson -pretty=0 in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      { version: [ 1, "b", 2 ] } (=0)
+      { version: [ 8, 3 ] } (0)
+      { version: [ "hello", "goodbye"] } (0)
+
+outputs:
+  - name: stdout
+    data: |
+      {version: [1 (0=((int64,string))),"b" (0),2 (0)] (=1)} (=2)
+      {version: [8,3]} (2)
+      {version: ["hello","goodbye"]} (2)
