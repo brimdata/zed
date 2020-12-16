@@ -73,7 +73,6 @@ Under normal circumstances the zqd root process will send a `/worker/release` re
 
 ## Some thoughts for future K8s integration
 
-The recruiter may be able to contribute to autoscaling heuristics. It could publish metrics that are used by the Horizontal Pd Autoscaler (HPA) to scale the number of workers in a cluster up and down.
+The recruiter may be able to contribute to autoscaling heuristics. It could publish metrics that are used by the Horizontal Pod Autoscaler (HPA) to scale the number of workers in a cluster up and down.
 
-In addition, the workers could read details of their pod, prior to sending a regiater request. If the pod's node is 
-marked as unschedulable by K8s, then the worker could decline to register.
+In addition, the workers could read details of their K8s pod prior to sending a register request. If the pod's node is marked as unschedulable by K8s, then the worker could decline to register.

@@ -36,7 +36,6 @@ type RecruitResponse struct {
 }
 
 type RecruiterStatsResponse struct {
-	LenFreePool     int `json:"len_free_pool"`
-	LenReservedPool int `json:"len_reserved_pool"`
-	LenNodePool     int `json:"len_node_pool"`
+	LenFreePool int `json:"len_free_pool"`
+	LenNodePool int `json:"len_node_pool"`
 }

@@ -94,13 +94,13 @@ func (ph *parallelHead) Done() {
 }
 
 type parallelGroup struct {
-	pctx       *proc.Context
 	filter     SourceFilter
-	msrc       MultiSource
 	mcfg       MultiConfig
+	msrc       MultiSource
 	once       sync.Once
-	sourceChan chan Source
+	pctx       *proc.Context
 	sourceErr  error
+	sourceChan chan Source
 
 	mu       sync.Mutex // protects below
 	stats    zbuf.ScannerStats
@@ -141,12 +141,10 @@ func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerClos
 		if !ok {
 			return nil, pg.sourceErr
 		}
-
 		req, err := pg.sourceToRequest(src)
 		if err != nil {
 			return nil, err
 		}
-
 		rc, err := conn.WorkerChunkSearch(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
 		if err != nil {
 			return nil, err
@@ -160,12 +158,10 @@ func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerClos
 			zbuf.Scanner
 			io.Closer
 		}{s, rc}
-
 		pg.mu.Lock()
 		pg.scanners[sc] = struct{}{}
 		pg.mu.Unlock()
 		return sc, nil
-
 	case <-pg.pctx.Done():
 		return nil, pg.pctx.Err()
 	}
@@ -212,19 +208,17 @@ func (pg *parallelGroup) run() {
 
 func createParallelGroup(pctx *proc.Context, filter *compiler.Filter, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
-		pctx: pctx,
 		filter: SourceFilter{
 			Filter: filter,
 			Span:   mcfg.Span,
 		},
-		msrc:       msrc,
 		mcfg:       mcfg,
-		sourceChan: make(chan Source),
+		msrc:       msrc,
+		pctx:       pctx,
 		scanners:   make(map[zbuf.Scanner]struct{}),
+		sourceChan: make(chan Source),
 	}
-
 	parallelism := mcfg.Parallelism
-
 	if mcfg.Distributed {
 		workers, err := recruiter.RecruitWorkers(pctx, parallelism, mcfg.Worker, mcfg.Logger)
 		if err != nil {
@@ -238,22 +232,18 @@ func createParallelGroup(pctx *proc.Context, filter *compiler.Filter, msrc Multi
 				conns = append(conns, conn)
 				sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: conn})
 			}
-
 			go pg.releaseWorkersOnDone(conns)
-
 			return sources, pg, nil
 		}
 		// If no workers are available for distributed exec,
-		// fall back to using the root process at parallelism=1
+		// fall back to using the root process at parallelism=1.
 		parallelism = 1
 	}
-
 	// This is the code path used by the zqd daemon for Brim.
 	var sources []proc.Interface
 	for i := 0; i < parallelism; i++ {
 		sources = append(sources, &parallelHead{pctx: pctx, pg: pg})
 	}
-
 	return sources, pg, nil
 }
 

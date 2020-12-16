@@ -135,6 +135,12 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 	}
 }
 
+// These three methods are called from the worker handlers.
+// They do a nil check on the pointer receiver because there
+// the worker.bound list is specified there may be no WorkerReg.
+// The warnings on the default selector should not normally occur,
+// and would indicate that something was broken.
+
 func (w *WorkerReg) SendRelease() {
 	if w != nil {
 		select {

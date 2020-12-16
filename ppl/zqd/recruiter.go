@@ -82,9 +82,8 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 
 func handleRecruiterStats(c *Core, w http.ResponseWriter, r *http.Request) {
 	respond(c, w, r, http.StatusOK, api.RecruiterStatsResponse{
-		LenFreePool:     c.workerPool.LenFreePool(),
-		LenReservedPool: c.workerPool.LenReservedPool(),
-		LenNodePool:     c.workerPool.LenNodePool(),
+		LenFreePool: c.workerPool.LenFreePool(),
+		LenNodePool: c.workerPool.LenNodePool(),
 	})
 }
 

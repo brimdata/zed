@@ -23,7 +23,7 @@ outputs:
   - name: stdout
     data: |
       {"directive":"reregister"}
-      {"len_free_pool":1,"len_reserved_pool":0,"len_node_pool":1}
+      {"len_free_pool":1,"len_node_pool":1}
       {
         "workers": [
           {

@@ -14,12 +14,11 @@ import (
 // The methods for WorkerPool provide the core algorithms for a
 // load-balancing API. Exported methods are thread safe.
 type WorkerPool struct {
-	mu           sync.Mutex                 // one lock for all three maps
-	freePool     map[string]*WorkerDetail   // Map of all free workers
-	nodePool     map[string][]*WorkerDetail // Map of nodes of slices of free workers
-	reservedPool map[string]*WorkerDetail   // Map of busy workers
-	SkipSpread   bool                       // option to test algorithm performance
-	r            *rand.Rand
+	mu         sync.Mutex                 // one lock for all three maps
+	freePool   map[string]*WorkerDetail   // Map of all free workers
+	nodePool   map[string][]*WorkerDetail // Map of nodes of slices of free workers
+	SkipSpread bool                       // option to test algorithm performance
+	r          *rand.Rand
 }
 
 type RecruitmentDetail struct {
@@ -35,10 +34,9 @@ type WorkerDetail struct {
 
 func NewWorkerPool() *WorkerPool {
 	return &WorkerPool{
-		freePool:     make(map[string]*WorkerDetail),
-		nodePool:     make(map[string][]*WorkerDetail),
-		reservedPool: make(map[string]*WorkerDetail),
-		r:            rand.New(rand.NewSource(time.Now().UnixNano())),
+		freePool: make(map[string]*WorkerDetail),
+		nodePool: make(map[string][]*WorkerDetail),
+		r:        rand.New(rand.NewSource(time.Now().UnixNano())),
 	}
 }
 
@@ -57,7 +55,6 @@ func (pool *WorkerPool) Register(addr string, nodename string, recruited chan Re
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
-	delete(pool.reservedPool, addr) // delete if present
 	pool.freePool[addr] = wd
 	pool.nodePool[nodename] = append(pool.nodePool[nodename], wd)
 	return nil
@@ -95,16 +92,6 @@ func (pool *WorkerPool) Deregister(addr string) {
 	if wd, ok := pool.freePool[addr]; ok {
 		pool.removeFromNodePool(wd)
 		delete(pool.freePool, addr)
-	}
-}
-
-// Unreserve removes from the reserved pool, but does not reregister.
-// The worker process should initiate register.
-func (pool *WorkerPool) Unreserve(addrs []string) {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-	for _, addr := range addrs {
-		delete(pool.reservedPool, addr)
 	}
 }
 
@@ -166,10 +153,6 @@ func (pool *WorkerPool) Recruit(n int) ([]*WorkerDetail, error) {
 			}
 		}
 	}
-	// Add the recruits to the Reserved Pool
-	for _, r := range recruits {
-		pool.reservedPool[r.Addr] = r
-	}
 	return recruits, nil
 }
 
@@ -177,12 +160,6 @@ func (pool *WorkerPool) LenFreePool() int {
 	pool.mu.Lock()
 	defer pool.mu.Unlock()
 	return len(pool.freePool)
-}
-
-func (pool *WorkerPool) LenReservedPool() int {
-	pool.mu.Lock()
-	defer pool.mu.Unlock()
-	return len(pool.reservedPool)
 }
 
 func (pool *WorkerPool) LenNodePool() int {
