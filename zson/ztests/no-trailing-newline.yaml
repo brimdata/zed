@@ -1,0 +1,18 @@
+script: |
+  zq -t -i zson "count()" in.zson
+
+inputs:
+  - name: in.zson
+    data: |- # |- means no newline at end
+      {
+          c: 23 (int32)
+      } (=0)
+      {
+          c: 42
+      } (0)
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[count:uint64]
+      0:[2;]
