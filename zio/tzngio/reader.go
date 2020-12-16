@@ -14,10 +14,9 @@ import (
 )
 
 var (
-	ErrBadFormat        = errors.New("bad format") //XXX
-	ErrDescriptorExists = errors.New("descriptor already exists")
-	ErrBadValue         = errors.New("bad value") //XXX
-	ErrInvalidDesc      = errors.New("invalid descriptor")
+	ErrBadFormat   = errors.New("bad format") //XXX
+	ErrBadValue    = errors.New("bad value")  //XXX
+	ErrInvalidDesc = errors.New("invalid descriptor")
 )
 
 const (
@@ -45,7 +44,7 @@ type Reader struct {
 	scanner *skim.Scanner
 	stats   ReadStats
 	zctx    *resolver.Context
-	mapper  map[int]*zng.TypeRecord
+	mapper  map[string]zng.Type
 	parser  *zng.Parser
 }
 
@@ -56,7 +55,7 @@ func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 		scanner: scanner,
 		stats:   ReadStats{Stats: &scanner.Stats},
 		zctx:    zctx,
-		mapper:  make(map[int]*zng.TypeRecord),
+		mapper:  make(map[string]zng.Type),
 		parser:  zng.NewParser(),
 	}
 }
@@ -109,56 +108,56 @@ again:
 	return rec, nil, nil
 }
 
-func parseLeadingInt(line []byte) (int, []byte, error) {
+func parseIntType(line []byte) (string, []byte, bool) {
 	i := bytes.IndexByte(line, byte(':'))
-	if i < 0 {
-		return -1, nil, ErrBadFormat
+	if i <= 0 {
+		return "", line, false
 	}
-	s := string(line[:i])
-	v, err := strconv.ParseUint(s, 10, 32)
-	if err != nil {
-		return -1, nil, err
+	name := string(line[:i])
+	if _, err := strconv.ParseInt(name, 10, 64); err == nil {
+		return name, line[i+1:], true
 	}
-	return int(v), line[i+1:], nil
+	return "", line, false
 }
 
-func (r *Reader) parseDescriptor(line []byte) error {
-	// #int:type
-	id, rest, err := parseLeadingInt(line)
-	if err != nil {
-		return err
+func parseAliasType(line []byte) (string, []byte, bool) {
+	i := bytes.IndexByte(line, byte('='))
+	if i <= 0 {
+		return "", line, false
 	}
-	if _, ok := r.mapper[id]; ok {
-		//XXX this should be ok... decide on this and update spec
-		return ErrDescriptorExists
+	name := string(line[:i])
+	if !zng.IsIdentifier(name) {
+		return "", line, false
 	}
-	typ, err := r.zctx.LookupByName(string(rest))
-	if err != nil {
-		return err
-	}
-	recType, ok := typ.(*zng.TypeRecord)
+	return name, line[i+1:], true
+}
+
+func (r *Reader) parseTypeDef(line []byte) (bool, error) {
+	// #int:type (skipped past #)
+	isInt := true
+	name, rest, ok := parseIntType(line)
 	if !ok {
-		return fmt.Errorf("zng typedef not a record while parsing: \"%s\"", string(rest))
+		name, rest, ok = parseAliasType(line)
+		if !ok {
+			return false, ErrBadFormat
+		}
+		isInt = false
 	}
-	r.mapper[id] = recType
-	return nil
-}
-
-func (r *Reader) parseAlias(line []byte) error {
-	i := bytes.Index(line, []byte("="))
-	if i == -1 {
-		return ErrBadFormat
-	}
-	alias, rest := line[:i], line[i+1:]
 	typ, err := r.zctx.LookupByName(string(rest))
 	if err != nil {
-		return err
+		return false, err
 	}
-	_, err = r.zctx.LookupTypeAlias(string(alias), typ)
-	if err != nil {
-		return err
+	if !isInt {
+		if _, ok := r.mapper[name]; ok && !isInt {
+			return false, errors.New("alias exists with different type")
+		}
+		typ, err = r.zctx.LookupTypeAlias(name, typ)
+		if err != nil {
+			return false, err
+		}
 	}
-	return nil
+	r.mapper[name] = typ
+	return true, nil
 }
 
 func (r *Reader) parseDirective(line []byte) ([]byte, error) {
@@ -174,39 +173,42 @@ func (r *Reader) parseDirective(line []byte) ([]byte, error) {
 		// comment
 		return line[1:], nil
 	}
-	if line[0] >= '0' && line[0] <= '9' {
-		return nil, r.parseDescriptor(line)
-	}
-	if bytes.HasPrefix(line, []byte("sort")) {
-		// #sort [+-]<field>,[+-]<field>,...
-		// XXX handle me
-		return nil, nil
-	}
-	if (line[0] >= 'A' && line[0] <= 'Z') || (line[0] >= 'a' && line[0] <= 'z') {
-		return nil, r.parseAlias(line)
+	if ok, err := r.parseTypeDef(line); ok || err != nil {
+		return nil, err
 	}
 	// XXX return an error?
 	r.stats.Unknown++
 	return nil, nil
 }
 
+func (r *Reader) parseType(line []byte) (zng.Type, []byte, error) {
+	i := bytes.IndexByte(line, byte(':'))
+	if i <= 0 {
+		return nil, nil, ErrBadFormat
+	}
+	id := string(line[0:i])
+	typ, ok := r.mapper[id]
+	if !ok {
+		return nil, nil, ErrInvalidDesc
+	}
+	return typ, line[i+1:], nil
+}
+
 func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 	// From the zng spec:
 	// A regular value is encoded on a line as type descriptor
 	// followed by ":" followed by a value encoding.
-	id, rest, err := parseLeadingInt(line)
+	typ, rest, err := r.parseType(line)
 	if err != nil {
 		return nil, err
 	}
-
-	typ, ok := r.mapper[id]
+	recType, ok := zng.AliasedType(typ).(*zng.TypeRecord)
 	if !ok {
-		return nil, ErrInvalidDesc
+		return nil, errors.New("outer type is not a record type")
 	}
-	raw, err := r.parser.Parse(typ, rest)
+	raw, err := r.parser.Parse(recType, rest)
 	if err != nil {
 		return nil, err
 	}
-
-	return zng.NewRecordCheck(typ, raw)
+	return zng.NewRecordCheckFromType(typ, raw)
 }

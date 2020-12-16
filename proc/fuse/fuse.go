@@ -173,7 +173,7 @@ func (p *Proc) finish() error {
 	for _, typ := range p.types {
 		if typ != nil {
 			id := typ.ID()
-			p.slotByID[id] = uber.mixin(typ)
+			p.slotByID[id] = uber.mixin(zng.AliasedType(typ).(*zng.TypeRecord))
 		}
 	}
 	var err error
