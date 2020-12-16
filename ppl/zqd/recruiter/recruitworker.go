@@ -14,9 +14,10 @@ import (
 
 // RecruitWorkers is used by the zqd root process to recruit worker for a distributed query.
 func RecruitWorkers(ctx *proc.Context, workerCount int, conf WorkerConfig, logger *zap.Logger) ([]string, error) {
-	logger.Info("RecruitWorkers", zap.Int("workerCount", workerCount))
+	logger.Info("recruit workers", zap.Int("count", workerCount))
 	if conf.BoundWorkers != "" {
-		// Special case: workerstr is used for ZTests
+		// BoundWorkers is a fixed list of workers bound to a root process.
+		// It is used for ZTests and simple clusters without a recruiter.
 		workers := strings.Split(conf.BoundWorkers, ",")
 		if workerCount > len(workers) {
 			return nil, fmt.Errorf("requested parallelism %d is greater than the number of workers %d",
@@ -29,7 +30,6 @@ func RecruitWorkers(ctx *proc.Context, workerCount int, conf WorkerConfig, logge
 		}
 		return workers, nil
 	}
-
 	if conf.Recruiter == "" {
 		return nil, fmt.Errorf("flag -worker.recruiter is not present")
 	}
@@ -50,7 +50,6 @@ func RecruitWorkers(ctx *proc.Context, workerCount int, conf WorkerConfig, logge
 		}
 		logger.Warn("Worker fallback", zap.Error(err))
 	}
-
 	var workers []string
 	for _, w := range resp.Workers {
 		workers = append(workers, w.Addr)

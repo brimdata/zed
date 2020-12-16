@@ -57,7 +57,7 @@ In a cluster environment, it should not be surprising that any one pod will rest
 
 The current design calls for one recruiter per cluster. When that recruiter unexpectly restarts, all registered worker pods will be in a loop that will cause them to reregister after a short delay specified in their config (e.g. 200 ms with an exponential backoff). In a healthy cluster, restarting a recruiter will be sub-second, and all available workers will reregister shortly thereafter. No information is lost, and the the recruiter is available for `/recruit` requests without a significant interuption.
 
-The recruiter is "more or less" a stateless service, given that it only persists state about its current open connections. So, if we want to, we could safely run more than one instance of a recruiter in the same cluster. Statistically, we would expect the two instances to split the worker pool into two similarly sized partitions with no overlap. This would only be favorable for large clusters where a smaller pool would not lead to suboptimal scheduling. It might be a good idea for clusters that have more than a few hundred available workers. In any case, the ablity two run two recruiters without conflict could be helpful for a zero-downtime rolling upgrade.
+The recruiter is "more or less" a stateless service, given that it only persists state about its current open connections. So, if we want to, we could safely run more than one instance of a recruiter in the same cluster. Statistically, we would expect the two instances to split the worker pool into two similarly sized partitions with no overlap. This would only be favorable for large clusters where a smaller pool would not lead to suboptimal scheduling. It might be a good idea for clusters that have more than a few hundred available workers. In any case, the ablity to run two recruiters without conflict could be helpful for a zero-downtime rolling upgrade.
 
 ## Recovery on query root process restart
 
@@ -70,3 +70,10 @@ If the root process halts (crashes for any reason) during query execution, the c
 Suppose the root process gets into "wedged" state where it keeps the connection with the workers open, but is not making progress toward completing a query. In that case, the "wedged" root process will also cause the workers to be unavailable for recruitment. It may be worth adding code to the zqd query path to detect this type of failure.
 
 Under normal circumstances the zqd root process will send a `/worker/release` request that allows the worker to gracefully exit the "reserved" state. If that does not happen, and the zqd root is not holding open a connection with a `/worker/chunksearch` request, then the workers will timeout and exit.
+
+## Some thoughts for future K8s integration
+
+The recruiter may be able to contribute to autoscaling heuristics. It could publish metrics that are used by the Horizontal Pd Autoscaler (HPA) to scale the number of workers in a cluster up and down.
+
+In addition, the workers could read details of their pod, prior to sending a regiater request. If the pod's node is 
+marked as unschedulable by K8s, then the worker could decline to register.

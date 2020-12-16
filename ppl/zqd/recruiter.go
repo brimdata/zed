@@ -40,14 +40,11 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "required parameter timeout"))
 		return
 	}
-
 	recruited := make(chan recruiter.RecruitmentDetail)
-
 	if err := c.workerPool.Register(req.Addr, req.NodeName, recruited); err != nil {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return
 	}
-
 	// directive is one of:
 	//  "reserved"   indicates to the worker that is has been reserved by a root process.
 	//  "reregister" indicates the request timed out without the worker being reserved,
@@ -56,7 +53,6 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 	//               "Unschedulable" it should not reregister.
 	var directive string
 	var isCanceled bool
-
 	ctx := r.Context()
 	timer := time.NewTimer(time.Duration(req.Timeout) * time.Millisecond)
 	defer timer.Stop()
@@ -75,15 +71,8 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 		c.requestLogger(r).Info("handleRegister context cancel")
 		isCanceled = true
 	}
-
 	// Deregister in any event
 	c.workerPool.Deregister(req.Addr)
-
-	// Future: add logic to scale down by responding with "shutdown"
-	// We would check to see if the worker is on an unscedulable node,
-	// and direct it to shutdown if needed.
-	// Note that I expect to need rd.NumberRequested for a scaling heuristic. -MTW
-
 	if !isCanceled {
 		respond(c, w, r, http.StatusOK, api.RegisterResponse{
 			Directive: directive,

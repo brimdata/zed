@@ -16,36 +16,27 @@ func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !request(c, w, r, &req) {
 		return
 	}
-
 	if req.MaxWorkers < 1 || req.MaxWorkers > 100 {
-		// Note: the upper limit of distributed workers for any given query
-		// will be determined based on future testing.
-		// Hard coded for now to 100 for intial testing and research.
-		// It will be based the size of the worker cluster, and will be
-		// included in the environment.
+		// Limit is hard coded for now to 100 for initial testing and research.
 		err := zqe.ErrInvalid("number of workers requested must be between 1 and 100")
 		respondError(c, w, r, err)
 		return
 	}
-
 	srch, err := search.NewSearchOp(req.SearchRequest)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
-
 	out, err := getSearchOutput(w, r)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
-
 	store, err := c.mgr.GetStorage(r.Context(), req.SearchRequest.Space)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
-
 	w.Header().Set("Content-Type", out.ContentType())
 	if err := srch.RunDistributed(r.Context(), store, out, req.MaxWorkers, c.worker, c.logger); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
@@ -55,34 +46,27 @@ func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Request) {
 	c.workerReg.SendBusy()
 	defer c.workerReg.SendIdle()
-
 	var req api.WorkerChunkRequest
 	if !request(c, w, httpReq, &req) {
 		return
 	}
-
 	ctx := httpReq.Context()
-
 	ark, err := archive.OpenArchiveWithContext(ctx, req.DataPath, &archive.OpenOptions{})
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return
 	}
-
 	work, err := search.NewWorkerOp(ctx, req, archivestore.NewStorage(ark))
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return
 	}
-
 	out, err := getSearchOutput(w, httpReq)
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return
 	}
-
 	w.Header().Set("Content-Type", out.ContentType())
-
 	if err := work.Run(ctx, out); err != nil {
 		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
