@@ -19,16 +19,35 @@ var (
 )
 
 type Marshaler interface {
-	MarshalZNG(*Context, *zcode.Builder) (zng.Type, error)
+	MarshalZNG(*MarshalContext) (zng.Type, error)
 }
 
-func Marshal(zctx *Context, b *zcode.Builder, v interface{}) (zng.Type, error) {
-	return encodeAny(zctx, b, reflect.ValueOf(v))
+func Marshal(v interface{}) (zng.Type, error) {
+	return NewMarshaler().encodeAny(reflect.ValueOf(v))
 }
 
-func MarshalRecord(zctx *Context, v interface{}) (*zng.Record, error) {
-	var b zcode.Builder
-	typ, err := Marshal(zctx, &b, v)
+type MarshalContext struct {
+	*Context
+	zcode.Builder
+}
+
+func NewMarshaler() *MarshalContext {
+	return NewMarshalerWithContext(NewContext())
+}
+
+func NewMarshalerWithContext(zctx *Context) *MarshalContext {
+	return &MarshalContext{
+		Context: zctx,
+	}
+}
+
+func (m *MarshalContext) Marshal(v interface{}) (zng.Type, error) {
+	return m.encodeAny(reflect.ValueOf(v))
+}
+
+func (m *MarshalContext) MarshalRecord(v interface{}) (*zng.Record, error) {
+	m.Builder.Reset()
+	typ, err := m.encodeAny(reflect.ValueOf(v))
 	if err != nil {
 		return nil, err
 	}
@@ -36,31 +55,37 @@ func MarshalRecord(zctx *Context, v interface{}) (*zng.Record, error) {
 	if !ok {
 		return nil, errors.New("not a record")
 	}
-	body, err := b.Bytes().ContainerBody()
+	body, err := m.Builder.Bytes().ContainerBody()
 	if err != nil {
 		return nil, err
 	}
 	return zng.NewRecord(recType, body), nil
 }
 
-func MarshalCustomRecord(zctx *Context, names []string, fields []interface{}) (*zng.Record, error) {
+func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (*zng.Record, error) {
 	if len(names) != len(fields) {
 		return nil, errors.New("fields and columns don't match")
 	}
+	m.Builder.Reset()
 	var cols []zng.Column
-	var b zcode.Builder
 	for k, field := range fields {
-		typ, err := Marshal(zctx, &b, field)
+		typ, err := m.encodeAny(reflect.ValueOf(field))
 		if err != nil {
 			return nil, err
 		}
 		cols = append(cols, zng.Column{names[k], typ})
 	}
-	recType, err := zctx.LookupTypeRecord(cols)
+	// XXX make issue
+	// Since this can be the inner loop here and nowhere else do we call
+	// LookupTypeRecord on the inner loop, now may be the time to put an
+	// efficient cache ahead of formatting the columns into a string,
+	// e.g., compute a has in place across the field names then do a
+	// closed-address exact match for the values in the slot.
+	recType, err := m.Context.LookupTypeRecord(cols)
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(recType, b.Bytes()), nil
+	return zng.NewRecord(recType, m.Builder.Bytes()), nil
 }
 
 const (
@@ -79,136 +104,136 @@ func fieldName(f reflect.StructField) string {
 	return f.Name
 }
 
-func encodeAny(zctx *Context, b *zcode.Builder, v reflect.Value) (zng.Type, error) {
+func (m *MarshalContext) encodeAny(v reflect.Value) (zng.Type, error) {
 	if !v.IsValid() {
-		b.AppendPrimitive(nil)
+		m.Builder.AppendPrimitive(nil)
 		return zng.TypeNull, nil
 	}
 	if v.Type().Implements(marshalerType) {
-		return v.Interface().(Marshaler).MarshalZNG(zctx, b)
+		return v.Interface().(Marshaler).MarshalZNG(m)
 	}
 	if v, ok := v.Interface().(nano.Ts); ok {
-		b.AppendPrimitive(zng.EncodeTime(v))
+		m.Builder.AppendPrimitive(zng.EncodeTime(v))
 		return zng.TypeTime, nil
 	}
 	switch v.Kind() {
 	case reflect.Array:
-		return encodeArray(zctx, b, v)
+		return m.encodeArray(v)
 	case reflect.Slice:
 		if v.IsNil() {
-			return encodeNil(zctx, b, v.Type())
+			return m.encodeNil(v.Type())
 		}
-		return encodeArray(zctx, b, v)
+		return m.encodeArray(v)
 	case reflect.Struct:
-		return encodeRecord(zctx, b, v)
+		return m.encodeRecord(v)
 	case reflect.Ptr:
 		if v.IsNil() {
-			return encodeNil(zctx, b, v.Type())
+			return m.encodeNil(v.Type())
 		}
-		return encodeAny(zctx, b, v.Elem())
+		return m.encodeAny(v.Elem())
 	case reflect.String:
-		b.AppendPrimitive(zng.EncodeString(v.String()))
+		m.Builder.AppendPrimitive(zng.EncodeString(v.String()))
 		return zng.TypeString, nil
 	case reflect.Bool:
-		b.AppendPrimitive(zng.EncodeBool(v.Bool()))
+		m.Builder.AppendPrimitive(zng.EncodeBool(v.Bool()))
 		return zng.TypeBool, nil
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		zt, err := lookupType(zctx, v.Type())
+		zt, err := m.lookupType(v.Type())
 		if err != nil {
 			return nil, err
 		}
-		b.AppendPrimitive(zng.EncodeInt(v.Int()))
+		m.Builder.AppendPrimitive(zng.EncodeInt(v.Int()))
 		return zt, nil
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		zt, err := lookupType(zctx, v.Type())
+		zt, err := m.lookupType(v.Type())
 		if err != nil {
 			return nil, err
 		}
-		b.AppendPrimitive(zng.EncodeUint(v.Uint()))
+		m.Builder.AppendPrimitive(zng.EncodeUint(v.Uint()))
 		return zt, nil
 	// XXX add float32 to zng?
 	case reflect.Float64, reflect.Float32:
-		b.AppendPrimitive(zng.EncodeFloat64(v.Float()))
+		m.Builder.AppendPrimitive(zng.EncodeFloat64(v.Float()))
 		return zng.TypeFloat64, nil
 	default:
 		return nil, fmt.Errorf("unsupported type: %v", v.Kind())
 	}
 }
 
-func encodeNil(zctx *Context, b *zcode.Builder, t reflect.Type) (zng.Type, error) {
-	typ, err := lookupType(zctx, t)
+func (m *MarshalContext) encodeNil(t reflect.Type) (zng.Type, error) {
+	typ, err := m.lookupType(t)
 	if err != nil {
 		return nil, err
 	}
 	if zng.IsContainerType(typ) {
-		b.AppendContainer(nil)
+		m.Builder.AppendContainer(nil)
 	} else {
-		b.AppendPrimitive(nil)
+		m.Builder.AppendPrimitive(nil)
 	}
 	return typ, nil
 }
 
-func encodeRecord(zctx *Context, b *zcode.Builder, sval reflect.Value) (zng.Type, error) {
-	b.BeginContainer()
+func (m *MarshalContext) encodeRecord(sval reflect.Value) (zng.Type, error) {
+	m.Builder.BeginContainer()
 	var columns []zng.Column
 	stype := sval.Type()
 	for i := 0; i < stype.NumField(); i++ {
 		field := stype.Field(i)
 		name := fieldName(field)
-		typ, err := encodeAny(zctx, b, sval.Field(i))
+		typ, err := m.encodeAny(sval.Field(i))
 		if err != nil {
 			return nil, err
 		}
 		columns = append(columns, zng.Column{name, typ})
 	}
-	b.EndContainer()
-	return zctx.LookupTypeRecord(columns)
+	m.Builder.EndContainer()
+	return m.Context.LookupTypeRecord(columns)
 }
 
 func isIP(typ reflect.Type) bool {
 	return typ.Name() == "IP" && typ.PkgPath() == "net"
 }
 
-func encodeArray(zctx *Context, b *zcode.Builder, arrayVal reflect.Value) (zng.Type, error) {
+func (m *MarshalContext) encodeArray(arrayVal reflect.Value) (zng.Type, error) {
 	if isIP(arrayVal.Type()) {
-		b.AppendPrimitive(zng.EncodeIP(arrayVal.Bytes()))
+		m.Builder.AppendPrimitive(zng.EncodeIP(arrayVal.Bytes()))
 		return zng.TypeIP, nil
 	}
 	len := arrayVal.Len()
-	b.BeginContainer()
+	m.Builder.BeginContainer()
 	var innerType zng.Type
 	for i := 0; i < len; i++ {
 		item := arrayVal.Index(i)
-		typ, err := encodeAny(zctx, b, item)
+		typ, err := m.encodeAny(item)
 		if err != nil {
 			return nil, err
 		}
 		innerType = typ
 	}
-	b.EndContainer()
+	m.Builder.EndContainer()
 	if innerType == nil {
 		// if slice was empty, look up the type without a value
 		var err error
-		innerType, err = lookupType(zctx, arrayVal.Type().Elem())
+		innerType, err = m.lookupType(arrayVal.Type().Elem())
 		if err != nil {
 			return nil, err
 		}
 	}
-	return zctx.LookupTypeArray(innerType), nil
+	return m.Context.LookupTypeArray(innerType), nil
 }
 
-func lookupType(zctx *Context, typ reflect.Type) (zng.Type, error) {
+func (m *MarshalContext) lookupType(typ reflect.Type) (zng.Type, error) {
 	switch typ.Kind() {
 	case reflect.Array, reflect.Slice:
-		typ, err := lookupType(zctx, typ.Elem())
+		typ, err := m.lookupType(typ.Elem())
 		if err != nil {
 			return nil, err
 		}
-		return zctx.LookupTypeArray(typ), nil
+		return m.Context.LookupTypeArray(typ), nil
 	case reflect.Struct:
-		return lookupTypeRecord(zctx, typ)
+		return m.lookupTypeRecord(typ)
 	case reflect.Ptr:
-		return lookupType(zctx, typ.Elem())
+		return m.lookupType(typ.Elem())
 	case reflect.String:
 		return zng.TypeString, nil
 	case reflect.Bool:
@@ -236,67 +261,80 @@ func lookupType(zctx *Context, typ reflect.Type) (zng.Type, error) {
 	}
 }
 
-func lookupTypeRecord(zctx *Context, structType reflect.Type) (zng.Type, error) {
+func (m *MarshalContext) lookupTypeRecord(structType reflect.Type) (zng.Type, error) {
 	var columns []zng.Column
 	for i := 0; i < structType.NumField(); i++ {
 		field := structType.Field(i)
 		name := fieldName(field)
-		fieldType, err := lookupType(zctx, field.Type)
+		fieldType, err := m.lookupType(field.Type)
 		if err != nil {
 			return nil, err
 		}
 		columns = append(columns, zng.Column{name, fieldType})
 	}
-	return zctx.LookupTypeRecord(columns)
+	return m.Context.LookupTypeRecord(columns)
 }
 
 type Unmarshaler interface {
-	UnmarshalZNG(*Context, zng.Type, zcode.Bytes) error
+	UnmarshalZNG(*UnmarshalContext, zng.Value) error
 }
 
-func Unmarshal(zctx *Context, typ zng.Type, zv zcode.Bytes, v interface{}) error {
-	return decodeAny(zctx, typ, zv, reflect.ValueOf(v))
+type UnmarshalContext struct {
+	// XXX nothing yet... optional config state for unmarshaling into
+	// type interfaces  will go here and appear in a subsequent PR
+}
+
+func NewUnmarshaler() *UnmarshalContext {
+	return &UnmarshalContext{}
+}
+
+func Unmarshal(zv zng.Value, v interface{}) error {
+	return NewUnmarshaler().decodeAny(zv, reflect.ValueOf(v))
 }
 
 func UnmarshalRecord(zctx *Context, rec *zng.Record, v interface{}) error {
-	return decodeAny(zctx, rec.Type, rec.Raw, reflect.ValueOf(v))
+	return NewUnmarshaler().decodeAny(zng.Value{rec.Alias, rec.Raw}, reflect.ValueOf(v))
 }
 
 func incompatTypeError(zt zng.Type, v reflect.Value) error {
 	return fmt.Errorf("incompatible type translation: zng type %v go type %v go kind %v", zt, v.Type(), v.Kind())
 }
 
-func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) error {
+func (u *UnmarshalContext) Unmarshal(zv zng.Value, v interface{}) error {
+	return u.decodeAny(zv, reflect.ValueOf(v))
+}
+
+func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
 	if v.Type().Implements(unmarshalerType) {
 		if v.IsNil() {
 			v.Set(reflect.New(v.Type().Elem()))
 		}
-		return v.Interface().(Unmarshaler).UnmarshalZNG(zctx, typ, zv)
+		return v.Interface().(Unmarshaler).UnmarshalZNG(u, zv)
 	}
 	if _, ok := v.Interface().(nano.Ts); ok {
-		if typ != zng.TypeTime {
-			return incompatTypeError(typ, v)
+		if zv.Type != zng.TypeTime {
+			return incompatTypeError(zv.Type, v)
 		}
-		if zv == nil {
+		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zng.DecodeTime(zv)
+		x, err := zng.DecodeTime(zv.Bytes)
 		v.Set(reflect.ValueOf(x))
 		return err
 	}
 	switch v.Kind() {
 	case reflect.Array:
-		return decodeArray(zctx, typ, zv, v)
+		return u.decodeArray(zv, v)
 	case reflect.Slice:
 		if isIP(v.Type()) {
-			return decodeIP(typ, zv, v)
+			return u.decodeIP(zv, v)
 		}
-		return decodeArray(zctx, typ, zv, v)
+		return u.decodeArray(zv, v)
 	case reflect.Struct:
-		return decodeRecord(zctx, typ, zv, v)
+		return u.decodeRecord(zv, v)
 	case reflect.Ptr:
-		if zv == nil {
+		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
@@ -304,68 +342,68 @@ func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) err
 			v.Set(reflect.New(v.Type().Elem()))
 		}
 		v = v.Elem()
-		err := decodeAny(zctx, typ, zv, v)
+		err := u.decodeAny(zv, v)
 		return err
 	case reflect.String:
-		if typ != zng.TypeString {
-			return incompatTypeError(typ, v)
+		if zv.Type != zng.TypeString {
+			return incompatTypeError(zv.Type, v)
 		}
-		if zv == nil {
+		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zng.DecodeString(zv)
+		x, err := zng.DecodeString(zv.Bytes)
 		v.SetString(x)
 		return err
 	case reflect.Bool:
-		if typ != zng.TypeBool {
-			return incompatTypeError(typ, v)
+		if zv.Type != zng.TypeBool {
+			return incompatTypeError(zv.Type, v)
 		}
-		if zv == nil {
+		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zng.DecodeBool(zv)
+		x, err := zng.DecodeBool(zv.Bytes)
 		v.SetBool(x)
 		return err
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		switch typ {
+		switch zv.Type {
 		case zng.TypeInt8, zng.TypeInt16, zng.TypeInt32, zng.TypeInt64:
 		default:
-			return incompatTypeError(typ, v)
+			return incompatTypeError(zv.Type, v)
 		}
-		if zv == nil {
+		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zng.DecodeInt(zv)
+		x, err := zng.DecodeInt(zv.Bytes)
 		v.SetInt(x)
 		return err
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		switch typ {
+		switch zv.Type {
 		case zng.TypeUint8, zng.TypeUint16, zng.TypeUint32, zng.TypeUint64:
 		default:
-			return incompatTypeError(typ, v)
+			return incompatTypeError(zv.Type, v)
 		}
-		if zv == nil {
+		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zng.DecodeUint(zv)
+		x, err := zng.DecodeUint(zv.Bytes)
 		v.SetUint(x)
 		return err
 	case reflect.Float32, reflect.Float64:
 		// TODO: zng.TypeFloat32 when it lands
-		switch typ {
+		switch zv.Type {
 		case zng.TypeFloat64:
 		default:
-			return incompatTypeError(typ, v)
+			return incompatTypeError(zv.Type, v)
 		}
-		if zv == nil {
+		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
-		x, err := zng.DecodeFloat64(zv)
+		x, err := zng.DecodeFloat64(zv.Bytes)
 		v.SetFloat(x)
 		return err
 	default:
@@ -373,21 +411,21 @@ func decodeAny(zctx *Context, typ zng.Type, zv zcode.Bytes, v reflect.Value) err
 	}
 }
 
-func decodeIP(typ zng.Type, zv zcode.Bytes, v reflect.Value) error {
-	if typ != zng.TypeIP {
-		return incompatTypeError(typ, v)
+func (u *UnmarshalContext) decodeIP(zv zng.Value, v reflect.Value) error {
+	if zv.Type != zng.TypeIP {
+		return incompatTypeError(zv.Type, v)
 	}
-	if zv == nil {
+	if zv.Bytes == nil {
 		v.Set(reflect.Zero(v.Type()))
 		return nil
 	}
-	x, err := zng.DecodeIP(zv)
+	x, err := zng.DecodeIP(zv.Bytes)
 	v.Set(reflect.ValueOf(x))
 	return err
 }
 
-func decodeRecord(zctx *Context, typ zng.Type, zv zcode.Bytes, sval reflect.Value) error {
-	recType, ok := typ.(*zng.TypeRecord)
+func (u *UnmarshalContext) decodeRecord(zv zng.Value, sval reflect.Value) error {
+	recType, ok := zv.Type.(*zng.TypeRecord)
 	if !ok {
 		return errors.New("not a record")
 	}
@@ -412,7 +450,7 @@ func decodeRecord(zctx *Context, typ zng.Type, zv zcode.Bytes, sval reflect.Valu
 		name := recType.Columns[i].Name
 		if fieldIdx, ok := nameToField[name]; ok {
 			typ := recType.Columns[i].Type
-			if err := decodeAny(zctx, typ, itzv, sval.Field(fieldIdx)); err != nil {
+			if err := u.decodeAny(zng.Value{typ, itzv}, sval.Field(fieldIdx)); err != nil {
 				return err
 			}
 		}
@@ -420,12 +458,12 @@ func decodeRecord(zctx *Context, typ zng.Type, zv zcode.Bytes, sval reflect.Valu
 	return nil
 }
 
-func decodeArray(zctx *Context, typ zng.Type, zv zcode.Bytes, arrVal reflect.Value) error {
-	arrType, ok := typ.(*zng.TypeArray)
+func (u *UnmarshalContext) decodeArray(zv zng.Value, arrVal reflect.Value) error {
+	arrType, ok := zv.Type.(*zng.TypeArray)
 	if !ok {
 		return errors.New("not an array")
 	}
-	if zv == nil {
+	if zv.Bytes == nil {
 		return nil
 	}
 	i := 0
@@ -446,7 +484,7 @@ func decodeArray(zctx *Context, typ zng.Type, zv zcode.Bytes, arrVal reflect.Val
 		if i >= arrVal.Len() {
 			arrVal.SetLen(i + 1)
 		}
-		if err := decodeAny(zctx, arrType.Type, itzv, arrVal.Index(i)); err != nil {
+		if err := u.decodeAny(zng.Value{arrType.Type, itzv}, arrVal.Index(i)); err != nil {
 			return err
 		}
 	}
