@@ -23,12 +23,14 @@ type Marshaler interface {
 }
 
 func Marshal(v interface{}) (zng.Type, error) {
-	return NewMarshaler().encodeAny(reflect.ValueOf(v))
+	return NewMarshaler().encodeValue(reflect.ValueOf(v))
 }
 
 type MarshalContext struct {
 	*Context
 	zcode.Builder
+	decorator func(string, string) string
+	bindings  map[string]string
 }
 
 func NewMarshaler() *MarshalContext {
@@ -42,12 +44,28 @@ func NewMarshalerWithContext(zctx *Context) *MarshalContext {
 }
 
 func (m *MarshalContext) Marshal(v interface{}) (zng.Type, error) {
-	return m.encodeAny(reflect.ValueOf(v))
+	return m.encodeValue(reflect.ValueOf(v))
+}
+
+func (m *MarshalContext) MarshalValue(v interface{}) (zng.Value, error) {
+	m.Builder.Reset()
+	typ, err := m.encodeValue(reflect.ValueOf(v))
+	if err != nil {
+		return zng.Value{}, err
+	}
+	bytes := m.Builder.Bytes()
+	if _, ok := zng.AliasedType(typ).(*zng.TypeRecord); ok {
+		bytes, err = bytes.ContainerBody()
+		if err != nil {
+			return zng.Value{}, err
+		}
+	}
+	return zng.Value{typ, bytes}, nil
 }
 
 func (m *MarshalContext) MarshalRecord(v interface{}) (*zng.Record, error) {
 	m.Builder.Reset()
-	typ, err := m.encodeAny(reflect.ValueOf(v))
+	typ, err := m.encodeValue(reflect.ValueOf(v))
 	if err != nil {
 		return nil, err
 	}
@@ -69,13 +87,13 @@ func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (*z
 	m.Builder.Reset()
 	var cols []zng.Column
 	for k, field := range fields {
-		typ, err := m.encodeAny(reflect.ValueOf(field))
+		typ, err := m.encodeValue(reflect.ValueOf(field))
 		if err != nil {
 			return nil, err
 		}
 		cols = append(cols, zng.Column{names[k], typ})
 	}
-	// XXX make issue
+	// XXX issue #1836
 	// Since this can be the inner loop here and nowhere else do we call
 	// LookupTypeRecord on the inner loop, now may be the time to put an
 	// efficient cache ahead of formatting the columns into a string,
@@ -104,6 +122,97 @@ func fieldName(f reflect.StructField) string {
 	return f.Name
 }
 
+func typeSimple(name, path string) string {
+	return name
+}
+
+func typePackage(name, path string) string {
+	a := strings.Split(path, "/")
+	return fmt.Sprintf("%s.%s", a[len(a)-1], name)
+}
+
+func typeFull(name, path string) string {
+	return fmt.Sprintf("%s.%s", path, name)
+}
+
+const (
+	TypeNone = iota
+	TypeSimple
+	TypePackage
+	TypeFull
+)
+
+// Decorate informs the marshaler to add type decorations the resulting ZNG
+// in the form of type aliases that are named int the sytle indicated, e.g.,
+// for a `struct Foo` in `package bar` at import path `github.com/acme/bar`
+// the correspond name would be `Foo` for TypeSimple, `bar.Foo` for TypePackage,
+// and `github.com/acme/bar.Foo` for TypeFull.  This mechanism works in conjunction
+// with Bindings.  Typically you would want one or the other, but if a binding
+// doesn't exist for a Go type, then a ZSON type name will be created according
+// to the Decorate setting (which may be TypeNone).
+func (m *MarshalContext) Decorate(style int) {
+	switch style {
+	default:
+		m.decorator = nil
+	case TypeSimple:
+		m.decorator = typeSimple
+	case TypePackage:
+		m.decorator = typePackage
+	case TypeFull:
+		m.decorator = typeFull
+	}
+}
+
+// NamedBindings forms the Marshaler to encode the given types with the
+// given ZSON type name.  For example, to serialize a `bar.Foo` value decoroated
+// with the ZSON type name "SpecialFoo", simply call NamedBindings with
+// the value []Binding{{"SpecialFoo", &bar.Foo{}}.  Subsequent calls to NamedBindings
+// add additional such bindings leaving the existing bindings in place.
+// If no binding is found for a particular go-named type being serialized, the
+// marhaler's ZSON decorating then rule applies.
+func (m *MarshalContext) NamedBindings(bindings []Binding) error {
+	if m.bindings == nil {
+		m.bindings = make(map[string]string)
+	}
+	for _, b := range bindings {
+		name, err := typeNameOfValue(b.Template)
+		if err != nil {
+			return err
+		}
+		m.bindings[name] = b.Name
+	}
+	return nil
+}
+
+func (m *MarshalContext) encodeValue(v reflect.Value) (zng.Type, error) {
+	typ, err := m.encodeAny(v)
+	if err != nil {
+		return nil, err
+	}
+
+	if m.decorator != nil || m.bindings != nil {
+		if !v.IsValid() {
+			return typ, nil
+		}
+		name := v.Type().Name()
+		kind := v.Kind().String()
+		if name != "" && name != kind {
+			path := v.Type().PkgPath()
+			var alias string
+			if m.bindings != nil {
+				alias = m.bindings[typeFull(name, path)]
+			}
+			if alias == "" && m.decorator != nil {
+				alias = m.decorator(name, path)
+			}
+			if alias != "" {
+				return m.Context.LookupTypeAlias(alias, typ)
+			}
+		}
+	}
+	return typ, nil
+}
+
 func (m *MarshalContext) encodeAny(v reflect.Value) (zng.Type, error) {
 	if !v.IsValid() {
 		m.Builder.AppendPrimitive(nil)
@@ -130,7 +239,7 @@ func (m *MarshalContext) encodeAny(v reflect.Value) (zng.Type, error) {
 		if v.IsNil() {
 			return m.encodeNil(v.Type())
 		}
-		return m.encodeAny(v.Elem())
+		return m.encodeValue(v.Elem())
 	case reflect.String:
 		m.Builder.AppendPrimitive(zng.EncodeString(v.String()))
 		return zng.TypeString, nil
@@ -180,7 +289,7 @@ func (m *MarshalContext) encodeRecord(sval reflect.Value) (zng.Type, error) {
 	for i := 0; i < stype.NumField(); i++ {
 		field := stype.Field(i)
 		name := fieldName(field)
-		typ, err := m.encodeAny(sval.Field(i))
+		typ, err := m.encodeValue(sval.Field(i))
 		if err != nil {
 			return nil, err
 		}
@@ -204,7 +313,7 @@ func (m *MarshalContext) encodeArray(arrayVal reflect.Value) (zng.Type, error) {
 	var innerType zng.Type
 	for i := 0; i < len; i++ {
 		item := arrayVal.Index(i)
-		typ, err := m.encodeAny(item)
+		typ, err := m.encodeValue(item)
 		if err != nil {
 			return nil, err
 		}
@@ -280,8 +389,7 @@ type Unmarshaler interface {
 }
 
 type UnmarshalContext struct {
-	// XXX nothing yet... optional config state for unmarshaling into
-	// type interfaces  will go here and appear in a subsequent PR
+	binder binder
 }
 
 func NewUnmarshaler() *UnmarshalContext {
@@ -302,6 +410,32 @@ func incompatTypeError(zt zng.Type, v reflect.Value) error {
 
 func (u *UnmarshalContext) Unmarshal(zv zng.Value, v interface{}) error {
 	return u.decodeAny(zv, reflect.ValueOf(v))
+}
+
+// Bindings informs the unmarshaler that ZSON values with a type name equal
+// to any of the three variations of Go type mame (full path, package.Type,
+// or just Type), may be used to inform the deserialization of a ZSON value
+// into a Go interface value.  If full path names are not used, it is up to
+// the entitity that marshaled the original ZSON to ensure that no type-name
+// conflicts arise, e.g., when using the TypeSimple decorator style, you cannot
+// have a type called bar.Foo and another type baz.Foo as the simple type
+// decorator will be "Foo" in both cases and thus create a naming conflict.
+func (u *UnmarshalContext) Bindings(templates ...interface{}) error {
+	for _, t := range templates {
+		if err := u.binder.enterTemplate(t); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (u *UnmarshalContext) NamedBindings(bindings []Binding) error {
+	for _, b := range bindings {
+		if err := u.binder.enterBinding(b); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
@@ -333,6 +467,25 @@ func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		return u.decodeArray(zv, v)
 	case reflect.Struct:
 		return u.decodeRecord(zv, v)
+	case reflect.Interface:
+		// This is an interface value.  If the underlying zng data
+		// has a type name (via alias), then we'll see if there's a
+		// binding fot it and unmarshal into an instance of Template
+		// in the binding.
+		if !v.IsValid() {
+			return fmt.Errorf("no zng decoration for interface: %v", v.Type().Name())
+		}
+		alias, ok := zv.Type.(*zng.TypeAlias)
+		if !ok {
+			return fmt.Errorf("no zng decoration for interface %q", v.Type().Name())
+		}
+		template := u.binder.lookup(alias.Name)
+		if template == nil {
+			return fmt.Errorf("no binding for ZSON type %q", alias)
+		}
+		concrete := reflect.New(template)
+		v.Set(concrete)
+		return u.decodeAny(zng.Value{alias.Type, zv.Bytes}, concrete)
 	case reflect.Ptr:
 		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
@@ -425,7 +578,7 @@ func (u *UnmarshalContext) decodeIP(zv zng.Value, v reflect.Value) error {
 }
 
 func (u *UnmarshalContext) decodeRecord(zv zng.Value, sval reflect.Value) error {
-	recType, ok := zv.Type.(*zng.TypeRecord)
+	recType, ok := zng.AliasedType(zv.Type).(*zng.TypeRecord)
 	if !ok {
 		return errors.New("not a record")
 	}
@@ -495,4 +648,93 @@ func (u *UnmarshalContext) decodeArray(zv zng.Value, arrVal reflect.Value) error
 		arrVal.SetLen(i)
 	}
 	return nil
+}
+
+type Binding struct {
+	Name     string      // user-defined name
+	Template interface{} // zero-valued entity used as template for new such objects
+}
+
+type binding struct {
+	key      string
+	template reflect.Type
+}
+
+type binder map[string][]binding
+
+func (b binder) lookup(name string) reflect.Type {
+	if b == nil {
+		return nil
+	}
+	for _, binding := range b[name] {
+		if binding.key == name {
+			return binding.template
+		}
+	}
+	return nil
+}
+
+func (b *binder) enter(key string, typ reflect.Type) error {
+	if *b == nil {
+		*b = make(map[string][]binding)
+	}
+	slot := (*b)[key]
+	entry := binding{
+		key:      key,
+		template: typ,
+	}
+	(*b)[key] = append(slot, entry)
+	return nil
+}
+
+func (b *binder) enterTemplate(template interface{}) error {
+	typ, err := typeOfTemplate(template)
+	if err != nil {
+		return err
+	}
+	pkgPath := typ.PkgPath()
+	path := strings.Split(pkgPath, "/")
+	pkgName := path[len(path)-1]
+
+	// e.g., Foo
+	typeName := typ.Name()
+	// e.g., bar.Foo
+	dottedName := fmt.Sprintf("%s.%s", pkgName, typeName)
+	// e.g., github.com/acme/pkg/bar.Foo
+	fullName := fmt.Sprintf("%s.%s", pkgPath, typeName)
+
+	if err := b.enter(typeName, typ); err != nil {
+		return err
+	}
+	if err := b.enter(dottedName, typ); err != nil {
+		return err
+	}
+	return b.enter(fullName, typ)
+}
+
+func (b *binder) enterBinding(binding Binding) error {
+	typ, err := typeOfTemplate(binding.Template)
+	if err != nil {
+		return err
+	}
+	return b.enter(binding.Name, typ)
+}
+
+func typeOfTemplate(template interface{}) (reflect.Type, error) {
+	v := reflect.ValueOf(template)
+	if !v.IsValid() {
+		return nil, errors.New("invalid template")
+	}
+	for v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+	return v.Type(), nil
+}
+
+func typeNameOfValue(value interface{}) (string, error) {
+	typ, err := typeOfTemplate(value)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("%s.%s", typ.PkgPath(), typ.Name()), nil
 }

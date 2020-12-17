@@ -386,3 +386,91 @@ func TestCustomRecord(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, trim(exp), rectzng(t, rec))
 }
+
+type ThingTwo struct {
+	C string `zng:"c"`
+}
+
+type ThingaMaBob interface {
+	Who() string
+}
+
+func (t *Thing) Who() string    { return t.A }
+func (t *ThingTwo) Who() string { return t.C }
+
+func Make(which int) ThingaMaBob {
+	if which == 1 {
+		return &Thing{A: "It's a thing one"}
+	}
+	if which == 2 {
+		return &ThingTwo{"It's a thing two"}
+	}
+	return nil
+}
+
+type Rolls []int
+
+func TestInterfaceMarshal(t *testing.T) {
+	t1 := Make(2)
+	m := resolver.NewMarshaler()
+	m.Decorate(resolver.TypePackage)
+	zv, err := m.MarshalValue(t1)
+	require.NoError(t, err)
+	assert.Equal(t, "resolver_test.ThingTwo=({c:string})", zv.Type.ZSON())
+
+	m.Decorate(resolver.TypeSimple)
+	rolls := Rolls{1, 2, 3}
+	zv, err = m.MarshalValue(rolls)
+	require.NoError(t, err)
+	assert.Equal(t, "Rolls=([int64])", zv.Type.ZSON())
+
+	m.Decorate(resolver.TypeFull)
+	zv, err = m.MarshalValue(rolls)
+	require.NoError(t, err)
+	assert.Equal(t, "github.com/brimsec/zq/zng/resolver_test.Rolls=([int64])", zv.Type.ZSON())
+
+	plain := []int32{1, 2, 3}
+	zv, err = m.MarshalValue(plain)
+	require.NoError(t, err)
+	assert.Equal(t, "[int32]", zv.Type.ZSON())
+}
+
+func TestInterfaceUnmarshal(t *testing.T) {
+	t1 := Make(1)
+	m := resolver.NewMarshaler()
+	m.Decorate(resolver.TypePackage)
+	zv, err := m.MarshalValue(t1)
+	require.NoError(t, err)
+	assert.Equal(t, "resolver_test.Thing=({a:string,B:int64})", zv.Type.ZSON())
+
+	u := resolver.NewUnmarshaler()
+	u.Bindings(Thing{}, ThingTwo{})
+	var thing ThingaMaBob
+	require.NoError(t, err)
+	err = u.Unmarshal(zv, &thing)
+	require.NoError(t, err)
+	assert.Equal(t, "It's a thing one", thing.Who())
+}
+
+func TestBindings(t *testing.T) {
+	t1 := Make(1)
+	m := resolver.NewMarshaler()
+	m.NamedBindings([]resolver.Binding{
+		{"SpecialThingOne", &Thing{}},
+		{"SpecialThingTwo", &ThingTwo{}},
+	})
+	zv, err := m.MarshalValue(t1)
+	require.NoError(t, err)
+	assert.Equal(t, "SpecialThingOne=({a:string,B:int64})", zv.Type.ZSON())
+
+	u := resolver.NewUnmarshaler()
+	u.NamedBindings([]resolver.Binding{
+		{"SpecialThingOne", &Thing{}},
+		{"SpecialThingTwo", &ThingTwo{}},
+	})
+	var thing ThingaMaBob
+	require.NoError(t, err)
+	err = u.Unmarshal(zv, &thing)
+	require.NoError(t, err)
+	assert.Equal(t, "It's a thing one", thing.Who())
+}
