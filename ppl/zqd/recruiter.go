@@ -58,7 +58,7 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 			return false
 			// Note that this warning could be logged if the recruiter timer fires
 			// very close to the same time as a /recruiter/recruit request is processed.
-			// Returning false insures that the worker address is not be returned
+			// Returning false insures that the worker address is not returned
 			// to a root process that recruited.
 		}
 		return true
