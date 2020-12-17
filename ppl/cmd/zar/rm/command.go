@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
@@ -61,41 +60,31 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	if c.showRanges {
-		return archive.SpanWalk(context.TODO(), ark, nano.MaxSpan, func(si archive.SpanInfo) error {
-			for i, chunk := range si.Chunks {
-				rangeStr := si.ChunkRange(ark.DataOrder, i)
-				c.remove(ark, rangeStr, chunk.ZarDir(), args)
-			}
-			return nil
-		})
-	}
 	return archive.Walk(context.TODO(), ark, func(chunk chunk.Chunk) error {
-		c.remove(ark, "", chunk.ZarDir(), args)
-		return nil
+		return c.remove(ark, chunk, args)
 	})
 }
 
-func (c *Command) remove(ark *archive.Archive, rangeStr string, dir iosrc.URI, names []string) error {
+func (c *Command) remove(ark *archive.Archive, chunk chunk.Chunk, names []string) error {
 	for _, name := range names {
-		path := dir.AppendPath(name)
+		path := chunk.ZarDir().AppendPath(name)
 		if err := iosrc.Remove(context.TODO(), path); err != nil {
 			if zqe.IsNotFound(err) {
-				fmt.Printf("%s: not found\n", c.printable(ark, rangeStr, dir, name))
+				fmt.Printf("%s: not found\n", c.printable(ark, chunk, name))
 				continue
 			}
 			return err
 		}
-		fmt.Printf("%s: removed\n", c.printable(ark, rangeStr, dir, name))
+		fmt.Printf("%s: removed\n", c.printable(ark, chunk, name))
 	}
 	return nil
 }
-func (c *Command) printable(ark *archive.Archive, rangeStr string, zardir iosrc.URI, objPath string) string {
+func (c *Command) printable(ark *archive.Archive, chunk chunk.Chunk, objPath string) string {
 	if c.showRanges {
-		return path.Join(rangeStr, objPath)
+		return path.Join(chunk.Range(), objPath)
 	}
 	if c.relativePaths {
-		return strings.TrimSuffix(ark.DataPath.RelPath(zardir.AppendPath(objPath)), "/")
+		return strings.TrimSuffix(ark.DataPath.RelPath(chunk.ZarDir().AppendPath(objPath)), "/")
 	}
-	return zardir.AppendPath(objPath).String()
+	return chunk.ZarDir().AppendPath(objPath).String()
 }

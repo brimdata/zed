@@ -177,6 +177,11 @@ func (s SpanInfo) ChunkRange(order zbuf.Order, chunkIdx int) string {
 	return fmt.Sprintf("[%d-%d,%d-%d]", first, last, c.First, c.Last)
 }
 
+func (s SpanInfo) Range(order zbuf.Order) string {
+	first, last := spanToFirstLast(order, s.Span)
+	return fmt.Sprintf("[%d-%d]", first, last)
+}
+
 func (si *SpanInfo) RemoveMasked() []chunk.Chunk {
 	if len(si.Chunks) == 1 {
 		return nil

@@ -5,13 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"sync"
 
 	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/ppl/archive"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/mccanne/charm"
 )
@@ -46,14 +46,15 @@ func init() {
 
 type Command struct {
 	*root.Command
-	root       string
-	quiet      bool
-	inputFile  string
-	outputFile string
 	framesize  int
+	inputFile  string
 	keys       string
-	zql        string
+	outputFile string
 	procFlags  procflags.Flags
+	progress   chan string
+	quiet      bool
+	root       string
+	zql        string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -89,39 +90,55 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	var rules []archive.Rule
-	if c.zql != "" {
-		rule, err := archive.NewZqlRule(c.zql, c.outputFile, field.DottedList(c.keys), c.framesize)
-		if err != nil {
-			return errors.New("zar index: " + err.Error())
-		}
-		rules = append(rules, *rule)
+	rules, err := c.rules(args)
+	if err != nil {
+		return err
 	}
-	for _, pattern := range args {
-		rule, err := archive.NewRule(pattern)
-		if err != nil {
-			return errors.New("zar index: " + err.Error())
-		}
-		rules = append(rules, *rule)
-	}
-	var wg sync.WaitGroup
-	var progress chan string
-	if !c.quiet {
-		wg.Add(1)
-		progress = make(chan string)
-		go func() {
-			for line := range progress {
-				fmt.Println(line)
-			}
-			wg.Done()
-		}()
-	}
+
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
-	err = archive.IndexDirTree(ctx, ark, rules, c.inputFile, progress)
-	if progress != nil {
-		close(progress)
-		wg.Wait()
+
+	defs, err := archive.AddRules(ctx, ark, rules)
+	if err != nil {
+		return err
 	}
-	return err
+	if !c.quiet {
+		c.progress = make(chan string)
+		go c.displayProgress()
+	}
+
+	return archive.ApplyDefinitions(ctx, ark, c.progress, defs...)
+}
+
+func (c *Command) displayProgress() {
+	for line := range c.progress {
+		fmt.Println(line)
+	}
+}
+
+func (c *Command) rules(args []string) ([]index.Rule, error) {
+	var input string
+	if c.inputFile != "_" {
+		input = c.inputFile
+	}
+
+	var rules []index.Rule
+	if c.zql != "" {
+		rule, err := index.NewZqlRule(c.zql, c.outputFile, field.DottedList(c.keys))
+		if err != nil {
+			return nil, fmt.Errorf("zar index add: %w", err)
+		}
+		rule.Framesize = c.framesize
+		rule.Input = input
+		rules = append(rules, rule)
+	}
+	for _, pattern := range args {
+		rule, err := index.NewRule(pattern)
+		if err != nil {
+			return nil, fmt.Errorf("zar index add: %w", err)
+		}
+		rule.Input = input
+		rules = append(rules, rule)
+	}
+	return rules, nil
 }

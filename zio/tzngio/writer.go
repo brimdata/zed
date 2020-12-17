@@ -4,8 +4,11 @@ import (
 	"fmt"
 	"io"
 	"strconv"
+	"strings"
 
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Writer struct {
@@ -176,4 +179,9 @@ func (w *Writer) writeValue(v zng.Value) error {
 		return err
 	}
 	return w.write(";")
+}
+
+func WriteString(w zbuf.Writer, s string) error {
+	r := NewReader(strings.NewReader(s), resolver.NewContext())
+	return zbuf.Copy(w, r)
 }

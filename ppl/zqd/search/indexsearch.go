@@ -4,13 +4,13 @@ import (
 	"context"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/ppl/archive"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 type IndexSearcher interface {
-	IndexSearch(context.Context, *resolver.Context, archive.IndexQuery) (zbuf.ReadCloser, error)
+	IndexSearch(context.Context, *resolver.Context, index.Query) (zbuf.ReadCloser, error)
 }
 
 type IndexSearchOp struct {
@@ -18,7 +18,7 @@ type IndexSearchOp struct {
 }
 
 func NewIndexSearchOp(ctx context.Context, s IndexSearcher, req api.IndexSearchRequest) (*IndexSearchOp, error) {
-	query, err := archive.ParseIndexQuery(req.IndexName, req.Patterns)
+	query, err := index.ParseQuery(req.IndexName, req.Patterns)
 	if err != nil {
 		return nil, err
 	}
