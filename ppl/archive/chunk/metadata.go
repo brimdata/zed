@@ -34,7 +34,7 @@ func ReadMetadata(ctx context.Context, uri iosrc.URI, order zbuf.Order) (Metadat
 		return Metadata{}, err
 	}
 	var md Metadata
-	if err := resolver.UnmarshalRecord(zctx, rec, &md); err != nil {
+	if err := resolver.UnmarshalRecord(rec, &md); err != nil {
 		return Metadata{}, err
 	}
 	if err := mdTsOrderCheck(uri, "read", order, md.First, md.Last); err != nil {
@@ -59,8 +59,7 @@ func (m Metadata) Write(ctx context.Context, uri iosrc.URI, order zbuf.Order) er
 	if err := mdTsOrderCheck(uri, "write", order, m.First, m.Last); err != nil {
 		return err
 	}
-	zctx := resolver.NewContext()
-	rec, err := resolver.MarshalRecord(zctx, m)
+	rec, err := resolver.NewMarshaler().MarshalRecord(m)
 	if err != nil {
 		return err
 	}
