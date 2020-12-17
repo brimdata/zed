@@ -61,7 +61,7 @@ func (t *TypeTable) LookupType(zson string) (zng.Type, error) {
 		}
 		tv, ok := val.(*TypeValue)
 		if !ok {
-			return nil, fmt.Errorf("(*TypeTable).LookupType() internal error: value of type %T", val)
+			return nil, fmt.Errorf("internal error: value of type %T in TypeTable.LookupType()", val)
 		}
 		typ = tv.Value
 	}
