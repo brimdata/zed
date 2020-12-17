@@ -65,11 +65,11 @@ func (l *Lexer) matchTight(b byte) (bool, error) {
 	if len(l.cursor) == 0 {
 		return false, io.EOF
 	}
-	ok := b == l.cursor[0]
-	if ok {
+	if b == l.cursor[0] {
 		l.skip(1)
+		return true, nil
 	}
-	return ok, nil
+	return false, nil
 }
 
 func (l *Lexer) matchBytes(b []byte) (bool, error) {
