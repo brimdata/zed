@@ -1,5 +1,5 @@
 script: |
-  source awaitfile.sh
+  source common.sh
   source recruiter-root.sh
   mkdir spacedir
   #
@@ -31,8 +31,8 @@ script: |
   # cat zqd-w1.log
  
 inputs:
-  - name: awaitfile.sh
-    source: awaitfile.sh
+  - name: common.sh
+    source: common.sh
   - name: recruiter-root.sh
     source: recruiter-root.sh
   - name: smtp.log.gz

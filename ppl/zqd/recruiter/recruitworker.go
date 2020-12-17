@@ -14,7 +14,7 @@ import (
 
 // RecruitWorkers is used by the zqd root process to recruit workers for a distributed query.
 func RecruitWorkers(ctx *proc.Context, workerCount int, conf WorkerConfig, logger *zap.Logger) ([]string, error) {
-	logger.Info("recruit workers", zap.Int("count", workerCount))
+	logger.Info("Recruit workers", zap.Int("count", workerCount))
 	if conf.BoundWorkers != "" {
 		// BoundWorkers is a fixed list of workers bound to a root process.
 		// It is used for ZTests and simple clusters without a recruiter.
@@ -57,7 +57,6 @@ func RecruitWorkers(ctx *proc.Context, workerCount int, conf WorkerConfig, logge
 	return workers, nil
 }
 
-// RecruitWorkers is used by the zqd root process to release workers after a distributed query.
 func ReleaseWorker(ctx context.Context, conn *client.Connection, logger *zap.Logger) error {
 	logger.Info("ReleaseWorker", zap.String("addr", conn.ClientHostURL()))
 	return conn.WorkerRelease(ctx)

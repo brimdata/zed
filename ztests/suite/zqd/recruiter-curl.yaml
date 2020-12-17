@@ -1,5 +1,5 @@
 script: |
-  source awaitfile.sh
+  source common.sh
   source recruiter-curl.sh
   curl -X POST -d '{"addr":"a.b.c:5000","node_name":"a.b","timeout":1}' \
      http://$ZQD_HOST/recruiter/register 2> err
@@ -14,8 +14,8 @@ script: |
   curl -X POST -d '{"number_requested":1}' http://$ZQD_HOST/recruiter/recruit 2> err > /dev/null
 
 inputs:
-  - name: awaitfile.sh
-    source: awaitfile.sh
+  - name: common.sh
+    source: common.sh
   - name: recruiter-curl.sh
     source: recruiter-curl.sh
 

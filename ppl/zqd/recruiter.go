@@ -54,7 +54,7 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 		select {
 		case recruited <- rd:
 		default:
-			c.logger.Warn("receiver not ready for recruited", zap.String("label", rd.Label))
+			c.logger.Warn("Receiver not ready for recruited", zap.String("label", rd.Label))
 			return false
 			// Note that this warning could be logged if the recruiter timer fires
 			// very close to the same time as a /recruiter/recruit request is processed.
@@ -85,7 +85,7 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 		c.requestLogger(r).Info("Worker should reregister", zap.String("addr", req.Addr))
 		directive = "reregister"
 	case <-ctx.Done():
-		c.requestLogger(r).Info("handleRegister context cancel")
+		c.requestLogger(r).Info("HandleRegister context cancel")
 		isCanceled = true
 	}
 	// Deregister in any event

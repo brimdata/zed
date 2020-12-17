@@ -1,3 +1,5 @@
+#!/bin/bash
+
 function awaitfile {
   file=$1
   i=0

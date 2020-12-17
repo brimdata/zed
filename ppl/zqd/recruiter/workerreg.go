@@ -75,13 +75,13 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 	retryWait := w.conf.MinRetry
 	// Loop for registration long polling.
 	for {
-		w.logger.Info("register",
+		w.logger.Info("Register",
 			zap.Int("longpoll", w.conf.LongPoll),
 			zap.String("recruiter", w.conf.Recruiter))
 		resp, err := w.conn.Register(ctx, req)
 		if err != nil {
 			w.logger.Error(
-				"error on recruiter registration, waiting to retry",
+				"Error on recruiter registration, waiting to retry",
 				zap.Int("retry", retryWait),
 				zap.String("recruiter", w.conf.Recruiter),
 				zap.Error(err))
@@ -98,7 +98,7 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 		}
 		retryWait = w.conf.MinRetry // Retry goes back to min after a success.
 		if resp.Directive == "reserved" {
-			w.logger.Info("worker is reserved", zap.String("selfaddr", w.selfaddr))
+			w.logger.Info("Worker is reserved", zap.String("selfaddr", w.selfaddr))
 			// Start listening to the releaseChannel.
 			// Exit the nested loop on a release.
 			// An idle timeout will cause the process to terminate.
@@ -112,13 +112,13 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 				select {
 				case <-ticker.C:
 					if workerIsIdle {
-						w.logger.Warn("worker timed out before receiving a request from the root",
+						w.logger.Warn("Worker timed out before receiving a request from the root",
 							zap.String("selfaddr", w.selfaddr))
 						os.Exit(0)
 					}
 				case msg := <-w.releaseChan:
 					if msg == "release" {
-						w.logger.Info("worker is released", zap.String("selfaddr", w.selfaddr))
+						w.logger.Info("Worker is released", zap.String("selfaddr", w.selfaddr))
 						// Breaking out of this nested loop will continue on to re-register.
 						break ReservedLoop
 					} else if msg == "idle" {
@@ -145,7 +145,7 @@ func (w *WorkerReg) SendRelease() {
 		select {
 		case w.releaseChan <- "release":
 		default:
-			w.logger.Warn("receiver not ready for release")
+			w.logger.Warn("Receiver not ready for release")
 		}
 	}
 }
@@ -155,7 +155,7 @@ func (w *WorkerReg) SendBusy() {
 		select {
 		case w.releaseChan <- "busy":
 		default:
-			w.logger.Warn("receiver not ready for busy")
+			w.logger.Warn("Receiver not ready for busy")
 		}
 	}
 }
@@ -165,7 +165,7 @@ func (w *WorkerReg) SendIdle() {
 		select {
 		case w.releaseChan <- "idle":
 		default:
-			w.logger.Warn("receiver not ready for idle")
+			w.logger.Warn("Receiver not ready for idle")
 		}
 	}
 }

@@ -5,7 +5,7 @@ script: |
   # the -chunk flag.
   # The "workers" parameter to service.sh tells it to start workers.
   #
-  source awaitfile.sh
+  source common.sh
   source worker-dist.sh
   mkdir spacedir
   #
@@ -44,8 +44,8 @@ script: |
   diff -s zqtail.tzng zapitail.tzng
   
 inputs:
-  - name: awaitfile.sh
-    source: awaitfile.sh
+  - name: common.sh
+    source: common.sh
   - name: worker-dist.sh
     source: worker-dist.sh
   - name: smtp.log.gz

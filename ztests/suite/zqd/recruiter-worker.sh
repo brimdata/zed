@@ -15,6 +15,5 @@ zqd listen  -personality=worker -l=localhost:0 -portfile="$portdir/zqd-w1" \
 zqdw1pid=$!
 awaitfile $portdir/zqd-w1
 
-trap "rm -rf $portdir; kill -9 $zqdpid $zqdw1pid" EXIT
-
 export ZQD_HOST=localhost:$(cat $portdir/zqd)
+trap "rm -rf $portdir; kill -9 $zqdpid $zqdw1pid" EXIT

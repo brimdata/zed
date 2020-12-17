@@ -19,6 +19,5 @@ zqd listen -l=localhost:0 -portfile=$portdir/zqd -data=$zqdroot \
 zqdpid=$!
 awaitfile $portdir/zqd
 
-trap "rm -rf $portdir; kill -9 $zqdpid $zqdw1pid $zqdw2pid" EXIT
-
 export ZQD_HOST=localhost:$(cat $portdir/zqd)
+trap "rm -rf $portdir; kill -9 $zqdpid $zqdw1pid $zqdw2pid" EXIT

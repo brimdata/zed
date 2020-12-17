@@ -6,12 +6,11 @@ import (
 	"runtime"
 	"time"
 
-	"github.com/brimsec/zq/ppl/zqd/recruiter"
-
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"

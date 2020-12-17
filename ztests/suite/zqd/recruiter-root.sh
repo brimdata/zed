@@ -25,6 +25,6 @@ zqd listen -l=localhost:0 -portfile=$portdir/zqd-root -data=$zqdroot \
   -worker.recruiter=$recruiter -worker.fallback=false &> zqd-root.log &
 zqdrootpid=$!
 awaitfile $portdir/zqd-root
-export ZQD_HOST=localhost:$(cat $portdir/zqd-root)
 
+export ZQD_HOST=localhost:$(cat $portdir/zqd-root)
 trap "rm -rf $portdir; kill -9 $zqdrpid $zqdw1pid $zqdw2pid $zqdrootpid" EXIT
