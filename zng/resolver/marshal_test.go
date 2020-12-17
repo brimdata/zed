@@ -48,7 +48,7 @@ func boomerang(t *testing.T, in interface{}, out interface{}) {
 	zr := zngio.NewReader(&buf, zctx)
 	rec, err = zr.Read()
 	require.NoError(t, err)
-	err = resolver.UnmarshalRecord(zctx, rec, out)
+	err = resolver.UnmarshalRecord(rec, out)
 	require.NoError(t, err)
 }
 
@@ -168,7 +168,7 @@ func TestIPType(t *testing.T) {
 	assert.Equal(t, trim(exp), rectzng(t, rec))
 
 	var tip TestIP
-	err = resolver.UnmarshalRecord(zctx, rec, &tip)
+	err = resolver.UnmarshalRecord(rec, &tip)
 	require.NoError(t, err)
 	require.Equal(t, s, tip)
 }
@@ -202,7 +202,7 @@ func TestUnmarshalRecord(t *testing.T) {
 	rec = tzngToRec(t, zctx, exp)
 
 	var v2 T1
-	err = resolver.UnmarshalRecord(zctx, rec, &v2)
+	err = resolver.UnmarshalRecord(rec, &v2)
 	require.NoError(t, err)
 	require.Equal(t, v1, v2)
 
@@ -210,7 +210,7 @@ func TestUnmarshalRecord(t *testing.T) {
 		T4f1 *T2 `zng:"top"`
 	}
 	var v3 *T4
-	err = resolver.UnmarshalRecord(zctx, rec, &v3)
+	err = resolver.UnmarshalRecord(rec, &v3)
 	require.NoError(t, err)
 	require.NotNil(t, v3)
 	require.NotNil(t, v3.T4f1)
@@ -230,7 +230,7 @@ func TestUnmarshalSlice(t *testing.T) {
 	require.NotNil(t, rec)
 
 	var v2 T1
-	err = resolver.UnmarshalRecord(zctx, rec, &v2)
+	err = resolver.UnmarshalRecord(rec, &v2)
 	require.NoError(t, err)
 	require.Equal(t, v1, v2)
 
@@ -247,7 +247,7 @@ func TestUnmarshalSlice(t *testing.T) {
 	require.NotNil(t, rec)
 
 	var v4 T2
-	err = resolver.UnmarshalRecord(zctx, rec, &v4)
+	err = resolver.UnmarshalRecord(rec, &v4)
 	require.NoError(t, err)
 	require.Equal(t, v1, v2)
 }
@@ -289,7 +289,7 @@ func TestMarshalInterface(t *testing.T) {
 	assert.Equal(t, trim(exp), rectzng(t, rec))
 
 	var r2 rectype
-	err = resolver.UnmarshalRecord(resolver.NewContext(), rec, &r2)
+	err = resolver.UnmarshalRecord(rec, &r2)
 	require.NoError(t, err)
 	assert.Equal(t, "m1", string(*r1.M1))
 	assert.Equal(t, "m2", string(r1.M2))
@@ -314,7 +314,7 @@ func TestMarshalArray(t *testing.T) {
 	assert.Equal(t, trim(exp), rectzng(t, rec))
 
 	var r2 rectype
-	err = resolver.UnmarshalRecord(resolver.NewContext(), rec, &r2)
+	err = resolver.UnmarshalRecord(rec, &r2)
 	require.NoError(t, err)
 	assert.Equal(t, r1.A1, r2.A1)
 	assert.Equal(t, *r2.A2, *r2.A2)
@@ -357,7 +357,7 @@ func TestIntsAndUints(t *testing.T) {
 	assert.Equal(t, trim(exp), rectzng(t, rec))
 
 	var r2 rectype
-	err = resolver.UnmarshalRecord(resolver.NewContext(), rec, &r2)
+	err = resolver.UnmarshalRecord(rec, &r2)
 	require.NoError(t, err)
 	assert.Equal(t, r1, r2)
 }

@@ -292,7 +292,7 @@ func Unmarshal(zv zng.Value, v interface{}) error {
 	return NewUnmarshaler().decodeAny(zv, reflect.ValueOf(v))
 }
 
-func UnmarshalRecord(zctx *Context, rec *zng.Record, v interface{}) error {
+func UnmarshalRecord(rec *zng.Record, v interface{}) error {
 	return NewUnmarshaler().decodeAny(zng.Value{rec.Alias, rec.Raw}, reflect.ValueOf(v))
 }
 
