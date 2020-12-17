@@ -27,9 +27,9 @@ type RecruitmentDetail struct {
 }
 
 type WorkerDetail struct {
-	Addr      string
-	NodeName  string
-	Recruited chan RecruitmentDetail
+	Addr     string
+	NodeName string
+	Callback func(RecruitmentDetail) bool
 }
 
 func NewWorkerPool() *WorkerPool {
@@ -44,14 +44,14 @@ func NewWorkerPool() *WorkerPool {
 // In the nodePool, workers are added to the end of the slice,
 // and when they are recruited workers are removed from the start of the slice.
 // So the []WorkerDetail slice for each node functions as a FIFO queue.
-func (pool *WorkerPool) Register(addr string, nodename string, recruited chan RecruitmentDetail) error {
+func (pool *WorkerPool) Register(addr string, nodename string, cb func(RecruitmentDetail) bool) error {
 	if _, _, err := net.SplitHostPort(addr); err != nil {
 		return fmt.Errorf("invalid address for Register: %w", err)
 	}
 	if nodename == "" {
 		return fmt.Errorf("node name required for Register")
 	}
-	wd := &WorkerDetail{Addr: addr, NodeName: nodename, Recruited: recruited}
+	wd := &WorkerDetail{Addr: addr, NodeName: nodename, Callback: cb}
 
 	pool.mu.Lock()
 	defer pool.mu.Unlock()

@@ -21,11 +21,11 @@ func handleRecruit(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return
 	}
-	workers := make([]api.Worker, len(ws))
-	for i, e := range ws {
-		// Note the receiver for this channel is the select in handleRegister below.
-		e.Recruited <- recruiter.RecruitmentDetail{Label: req.Label, NumberRequested: req.NumberRequested}
-		workers[i] = api.Worker{Addr: e.Addr, NodeName: e.NodeName}
+	var workers []api.Worker
+	for _, e := range ws {
+		if e.Callback(recruiter.RecruitmentDetail{Label: req.Label, NumberRequested: req.NumberRequested}) {
+			workers = append(workers, api.Worker{Addr: e.Addr, NodeName: e.NodeName})
+		}
 	}
 	respond(c, w, r, http.StatusOK, api.RecruitResponse{
 		Workers: workers,
@@ -41,8 +41,29 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, zqe.E(zqe.Invalid, "required parameter timeout"))
 		return
 	}
+	timer := time.NewTimer(time.Duration(req.Timeout) * time.Millisecond)
 	recruited := make(chan recruiter.RecruitmentDetail)
-	if err := c.workerPool.Register(req.Addr, req.NodeName, recruited); err != nil {
+	defer timer.Stop()
+	cb := func(rd recruiter.RecruitmentDetail) bool {
+		// Stopping the timer narrows the window for a timeout before
+		// writing RecruitmentDetail to the channel that is read in the
+		// select below.
+		timer.Stop()
+		// Use a non-blocking write because this will be called
+		// while workerPool.Recruit is holding the workerPool lock.
+		select {
+		case recruited <- rd:
+		default:
+			c.logger.Warn("receiver not ready for recruited", zap.String("label", rd.Label))
+			return false
+			// Note that this warning could be logged if the recruiter timer fires
+			// very close to the same time as a /recruiter/recruit request is processed.
+			// Returning false insures that the worker address is not be returned
+			// to a root process that recruited.
+		}
+		return true
+	}
+	if err := c.workerPool.Register(req.Addr, req.NodeName, cb); err != nil {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return
 	}
@@ -53,8 +74,6 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 	var directive string
 	var isCanceled bool
 	ctx := r.Context()
-	timer := time.NewTimer(time.Duration(req.Timeout) * time.Millisecond)
-	defer timer.Stop()
 	select {
 	case rd := <-recruited:
 		c.requestLogger(r).Info("Worker recruited",
