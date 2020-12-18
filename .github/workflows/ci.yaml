@@ -14,7 +14,12 @@ jobs:
         with:
           go-version: '1.15'
       - uses: actions/checkout@v1
-      - run: go mod download
+      - uses: actions/cache@v2
+        with:
+          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
       - run: make fmt
       - run: make tidy
       - run: make vet
@@ -30,6 +35,12 @@ jobs:
         with:
           go-version: '1.15'
       - uses: actions/checkout@v1
+      - uses: actions/cache@v2
+        with:
+          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          path: |
+            ~/go/pkg/mod
+            %LocalAppData%\go-build
       - run: go test -short ./...
       - run: mkdir dist -ea 0
       - run: go build -o dist ./cmd/...
