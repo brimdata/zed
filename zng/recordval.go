@@ -44,6 +44,7 @@ func (r *RecordTypeError) Unwrap() error { return r.Err }
 // zng.Records by accessing data via the Record methods.
 type Record struct {
 	Type        *TypeRecord
+	Alias       Type
 	nonvolatile bool
 	// Raw is the serialization format for records.  A raw value comprises a
 	// sequence of zvals, one per descriptor column.  The descriptor is stored
@@ -56,6 +57,16 @@ type Record struct {
 func NewRecord(typ *TypeRecord, raw zcode.Bytes) *Record {
 	return &Record{
 		Type:        typ,
+		Alias:       typ,
+		nonvolatile: true,
+		Raw:         raw,
+	}
+}
+
+func NewRecordFromType(typ Type, raw zcode.Bytes) *Record {
+	return &Record{
+		Type:        AliasedType(typ).(*TypeRecord),
+		Alias:       typ,
 		nonvolatile: true,
 		Raw:         raw,
 	}
@@ -63,6 +74,19 @@ func NewRecord(typ *TypeRecord, raw zcode.Bytes) *Record {
 
 func NewRecordCheck(typ *TypeRecord, raw zcode.Bytes) (*Record, error) {
 	r := NewRecord(typ, raw)
+	if err := r.TypeCheck(); err != nil {
+		return nil, err
+	}
+	return r, nil
+}
+
+func NewRecordCheckFromType(typ Type, raw zcode.Bytes) (*Record, error) {
+	r := &Record{
+		Type:        AliasedType(typ).(*TypeRecord),
+		Alias:       typ,
+		nonvolatile: true,
+		Raw:         raw,
+	}
 	if err := r.TypeCheck(); err != nil {
 		return nil, err
 	}
@@ -77,8 +101,17 @@ func NewRecordCheck(typ *TypeRecord, raw zcode.Bytes) (*Record, error) {
 // matches a record, it will call Keep() to make a safe copy.
 func NewVolatileRecord(typ *TypeRecord, raw zcode.Bytes) *Record {
 	return &Record{
-		Type: typ,
-		Raw:  raw,
+		Type:  typ,
+		Alias: typ,
+		Raw:   raw,
+	}
+}
+
+func NewVolatileRecordFromType(typ Type, raw zcode.Bytes) *Record {
+	return &Record{
+		Type:  AliasedType(typ).(*TypeRecord),
+		Alias: typ,
+		Raw:   raw,
 	}
 }
 
@@ -105,6 +138,7 @@ func (r *Record) Keep() *Record {
 	copy(raw, r.Raw)
 	return &Record{
 		Type:        r.Type,
+		Alias:       r.Alias,
 		nonvolatile: true,
 		Raw:         raw,
 		ts:          r.ts,
@@ -346,5 +380,5 @@ func (r *Record) String() string {
 
 // MarshalJSON implements json.Marshaler.
 func (r *Record) MarshalJSON() ([]byte, error) {
-	return Value{r.Type, r.Raw}.MarshalJSON()
+	return Value{r.Alias, r.Raw}.MarshalJSON()
 }

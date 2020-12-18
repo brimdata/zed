@@ -91,12 +91,12 @@ func ApplyDefinitions(ctx context.Context, d iosrc.URI, r zbuf.Reader, defs ...*
 	return writers.Indices(), nil
 }
 
-func Find(ctx context.Context, d iosrc.URI, id ksuid.KSUID, patterns ...string) (*zng.Record, error) {
-	return FindFromPath(ctx, IndexPath(d, id), patterns...)
+func Find(ctx context.Context, zctx *resolver.Context, d iosrc.URI, id ksuid.KSUID, patterns ...string) (*zng.Record, error) {
+	return FindFromPath(ctx, zctx, IndexPath(d, id), patterns...)
 }
 
-func FindFromPath(ctx context.Context, idxfile iosrc.URI, patterns ...string) (*zng.Record, error) {
-	finder, err := microindex.NewFinder(ctx, resolver.NewContext(), idxfile)
+func FindFromPath(ctx context.Context, zctx *resolver.Context, idxfile iosrc.URI, patterns ...string) (*zng.Record, error) {
+	finder, err := microindex.NewFinder(ctx, zctx, idxfile)
 	if err != nil {
 		return nil, fmt.Errorf("index find %s: %w", idxfile, err)
 	}

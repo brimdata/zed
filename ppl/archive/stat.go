@@ -2,29 +2,26 @@ package archive
 
 import (
 	"context"
-	"errors"
 
 	"github.com/brimsec/zq/microindex"
-	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqe"
+	"github.com/segmentio/ksuid"
 )
 
 // statReadCloser implements zbuf.ReadCloser.
 type statReadCloser struct {
-	ctx    context.Context
-	cancel context.CancelFunc
-	ark    *Archive
-	zctx   *resolver.Context
-	recs   chan *zng.Record
-	err    error
-
-	chunkBuilder  *zng.Builder
-	indexBuilders map[string]*zng.Builder
+	ark      *Archive
+	ctx      context.Context
+	cancel   context.CancelFunc
+	defnames map[ksuid.KSUID]string
+	err      error
+	recs     chan *zng.Record
+	zctx     *resolver.MarshalContext
 }
 
 func (s *statReadCloser) Read() (*zng.Record, error) {
@@ -44,31 +41,28 @@ func (s *statReadCloser) Close() error {
 	return nil
 }
 
+type chunkStat struct {
+	Type        string  `zng:"type"`
+	LogID       string  `zng:"log_id"`
+	First       nano.Ts `zng:"first"`
+	Last        nano.Ts `zng:"last"`
+	Size        uint64  `zng:"size"`
+	RecordCount uint64  `zng:"record_count"`
+}
+
 func (s *statReadCloser) chunkRecord(chunk chunk.Chunk) error {
-	fi, err := iosrc.Stat(s.ctx, chunk.Path())
+	stat := chunkStat{
+		Type:        "chunk",
+		LogID:       s.ark.Root.RelPath(chunk.Path()),
+		First:       chunk.First,
+		Last:        chunk.Last,
+		Size:        uint64(chunk.Size),
+		RecordCount: chunk.RecordCount,
+	}
+	rec, err := s.zctx.MarshalRecord(stat)
 	if err != nil {
 		return err
 	}
-
-	if s.chunkBuilder == nil {
-		s.chunkBuilder = zng.NewBuilder(s.zctx.MustLookupTypeRecord([]zng.Column{
-			zng.NewColumn("type", zng.TypeString),
-			zng.NewColumn("log_id", zng.TypeString),
-			zng.NewColumn("first", zng.TypeTime),
-			zng.NewColumn("last", zng.TypeTime),
-			zng.NewColumn("size", zng.TypeUint64),
-			zng.NewColumn("record_count", zng.TypeUint64),
-		}))
-	}
-
-	rec := s.chunkBuilder.Build(
-		zng.EncodeString("chunk"),
-		zng.EncodeString(s.ark.Root.RelPath(chunk.Path())),
-		zng.EncodeTime(chunk.First),
-		zng.EncodeTime(chunk.Last),
-		zng.EncodeUint(uint64(fi.Size())),
-		zng.EncodeUint(uint64(chunk.RecordCount)),
-	).Keep()
 	select {
 	case s.recs <- rec:
 		return nil
@@ -77,59 +71,58 @@ func (s *statReadCloser) chunkRecord(chunk chunk.Chunk) error {
 	}
 }
 
-func (s *statReadCloser) indexRecord(chunk chunk.Chunk, indexPath string) error {
-	zardir := chunk.ZarDir()
-	info, err := microindex.Stat(s.ctx, zardir.AppendPath(indexPath))
+type defDesc struct {
+	ID          string `zng:"id"`
+	Description string `zng:"description"`
+}
+
+type indexStat struct {
+	Type        string               `zng:"type"`
+	LogID       string               `zng:"log_id"`
+	First       nano.Ts              `zng:"first"`
+	Last        nano.Ts              `zng:"last"`
+	Definition  defDesc              `zng:"definition"`
+	Size        uint64               `zng:"size"`
+	RecordCount uint64               `zng:"record_count"`
+	Keys        []microindex.InfoKey `zng:"keys"`
+}
+
+func (s *statReadCloser) indexRecords(chunk chunk.Chunk) error {
+	dir := chunk.ZarDir()
+	ids, err := index.ListDefinitionIDs(s.ctx, dir)
 	if err != nil {
-		if errors.Is(err, zqe.E(zqe.NotFound)) {
-			return nil
-		}
 		return err
 	}
-
-	if s.indexBuilders == nil {
-		s.indexBuilders = make(map[string]*zng.Builder)
-	}
-	if s.indexBuilders[indexPath] == nil {
-		keycols := make([]zng.Column, len(info.Keys))
-		for i, k := range info.Keys {
-			keycols[i] = zng.Column{
-				Name: k.Name,
-				Type: zng.TypeString,
-			}
+	for _, id := range ids {
+		info, err := microindex.Stat(s.ctx, index.IndexPath(dir, id))
+		if err != nil {
+			return err
 		}
-		keyrec := s.zctx.MustLookupTypeRecord(keycols)
-
-		s.indexBuilders[indexPath] = zng.NewBuilder(s.zctx.MustLookupTypeRecord([]zng.Column{
-			zng.NewColumn("type", zng.TypeString),
-			zng.NewColumn("log_id", zng.TypeString),
-			zng.NewColumn("first", zng.TypeTime),
-			zng.NewColumn("last", zng.TypeTime),
-			zng.NewColumn("index_id", zng.TypeString),
-			zng.NewColumn("size", zng.TypeUint64),
-			zng.NewColumn("record_count", zng.TypeUint64),
-			zng.NewColumn("keys", keyrec),
-		}))
+		defname, ok := s.defnames[id]
+		if !ok {
+			defname = "[deleted]"
+		}
+		stat := indexStat{
+			Type:       "index",
+			LogID:      s.ark.Root.RelPath(chunk.Path()),
+			First:      chunk.First,
+			Last:       chunk.Last,
+			Definition: defDesc{ID: id.String(), Description: defname},
+			Size:       uint64(info.Size),
+			Keys:       info.Keys,
+		}
+		rec, err := s.zctx.MarshalRecord(stat)
+		if err == nil {
+			err = s.send(rec)
+		}
+		if err != nil {
+			return err
+		}
 	}
+	return nil
+}
 
-	if len(s.indexBuilders[indexPath].Type.Columns) != 7+len(info.Keys) {
-		return zqe.E("key record differs in index files %s %s", indexPath, chunk)
-	}
-	var keybytes zcode.Bytes
-	for _, k := range info.Keys {
-		keybytes = zcode.AppendPrimitive(keybytes, zng.EncodeString(k.TypeName))
-	}
-
-	rec := s.indexBuilders[indexPath].Build(
-		zng.EncodeString("index"),
-		zng.EncodeString(s.ark.Root.RelPath(chunk.Path())),
-		zng.EncodeTime(chunk.First),
-		zng.EncodeTime(chunk.Last),
-		zng.EncodeString(indexPath),
-		zng.EncodeUint(uint64(info.Size)),
-		zng.EncodeUint(uint64(chunk.RecordCount)),
-		keybytes,
-	).Keep()
+func (s *statReadCloser) send(rec *zng.Record) error {
 	select {
 	case s.recs <- rec:
 		return nil
@@ -145,15 +138,8 @@ func (s *statReadCloser) run() {
 		if err := s.chunkRecord(chunk); err != nil {
 			return err
 		}
-		if dirents, err := s.ark.dataSrc.ReadDir(s.ctx, chunk.ZarDir()); err == nil {
-			for _, e := range dirents {
-				if e.IsDir() {
-					continue
-				}
-				if err := s.indexRecord(chunk, e.Name()); err != nil {
-					return err
-				}
-			}
+		if err := s.indexRecords(chunk); err != nil {
+			return err
 		}
 		return nil
 	})
@@ -169,13 +155,25 @@ func RecordCount(ctx context.Context, ark *Archive) (uint64, error) {
 }
 
 func Stat(ctx context.Context, zctx *resolver.Context, ark *Archive) (zbuf.ReadCloser, error) {
+	defs, err := ark.ReadDefinitions(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Make a map of human readable names for the definitions.
+	defnames := make(map[ksuid.KSUID]string)
+	for _, def := range defs {
+		defnames[def.ID] = def.String()
+	}
 	ctx, cancel := context.WithCancel(ctx)
+	mzctx := resolver.NewMarshaler()
+	mzctx.Context = zctx
 	s := &statReadCloser{
-		ctx:    ctx,
-		cancel: cancel,
-		ark:    ark,
-		zctx:   zctx,
-		recs:   make(chan *zng.Record),
+		ark:      ark,
+		ctx:      ctx,
+		cancel:   cancel,
+		defnames: defnames,
+		recs:     make(chan *zng.Record),
+		zctx:     mzctx,
 	}
 	go s.run()
 	return s, nil

@@ -45,13 +45,10 @@ func (r *Reader) Read() (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	//XXX Ideally, we'd like to set the type of the record to val.TypeOf(),
-	// e.g., in case the record type's is a typedef name (i.e., alias), but
-	// record types currently must be zng.TypeRecord. See issue #1801.
-	if recType, ok := zng.AliasedType(zv.Type).(*zng.TypeRecord); ok {
-		return zng.NewRecord(recType, zv.Bytes), nil
-	}
 	// ZSON can represent value streams that aren't records,
 	// but we handle only top-level records here.
-	return nil, fmt.Errorf("top-level ZSON value not a record: %s", zv.Type.ZSON())
+	if _, ok := zng.AliasedType(zv.Type).(*zng.TypeRecord); !ok {
+		return nil, fmt.Errorf("top-level ZSON value not a record: %s", zv.Type.ZSON())
+	}
+	return zng.NewRecordFromType(zv.Type, zv.Bytes), nil
 }

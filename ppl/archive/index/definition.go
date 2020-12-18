@@ -17,6 +17,26 @@ type Definition struct {
 	Proc ast.Proc
 }
 
+// ReadDefinitions opens and reads all the index defs in the specified
+// directory.
+func ReadDefinitions(ctx context.Context, dir iosrc.URI) (Definitions, error) {
+	infos, err := iosrc.ReadDir(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	defs := make(Definitions, len(infos))
+	for i, info := range infos {
+		def, err := ReadDefinition(ctx, dir.AppendPath(info.Name()))
+		if err != nil {
+			return nil, err
+		}
+		defs[i] = def
+	}
+
+	return defs, nil
+}
+
 func ReadDefinition(ctx context.Context, u iosrc.URI) (*Definition, error) {
 	id, err := parseDefFile(path.Base(u.Path))
 	if err != nil {
@@ -33,6 +53,35 @@ func ReadDefinition(ctx context.Context, u iosrc.URI) (*Definition, error) {
 	}
 	def.Proc, err = def.Rule.Proc()
 	return def, err
+}
+
+func WriteRules(ctx context.Context, dir iosrc.URI, rules []Rule) ([]*Definition, error) {
+	existing, err := ReadDefinitions(ctx, dir)
+	if err != nil {
+		return nil, err
+	}
+
+	newdefs := make(Definitions, 0, len(rules))
+	for _, r := range rules {
+		if newdefs.LookupByRule(r) != nil || existing.LookupByRule(r) != nil {
+			// skip rules that already exist
+			continue
+		}
+
+		def, err := NewDefinition(r)
+		if err != nil {
+			return nil, err
+		}
+		newdefs = append(newdefs, def)
+	}
+
+	for _, d := range newdefs {
+		if d.Write(ctx, dir); err != nil {
+			return nil, err
+		}
+	}
+
+	return newdefs, nil
 }
 
 func NewDefinition(r Rule) (*Definition, error) {
@@ -77,6 +126,14 @@ type DefinitionMap map[ksuid.KSUID]*Definition
 
 type Definitions []*Definition
 
+func (l Definitions) Map() DefinitionMap {
+	m := make(DefinitionMap)
+	for _, def := range l {
+		m[def.ID] = def
+	}
+	return m
+}
+
 func (l Definitions) MapByInputPath() map[string][]*Definition {
 	m := make(map[string][]*Definition)
 	for _, d := range l {
@@ -94,4 +151,31 @@ func (l Definitions) StandardInputs() []*Definition {
 		}
 	}
 	return defs
+}
+
+func (l Definitions) LookupByRule(r Rule) *Definition {
+	for _, def := range l {
+		if def.Rule.Equivalent(r) {
+			return def
+		}
+	}
+	return nil
+}
+
+func (l Definitions) LookupQuery(query Query) (DefLookup, bool) {
+	for _, def := range l {
+		if query.Matches(def.Rule) {
+			return DefLookup{def.ID, query.Values}, true
+		}
+	}
+	return DefLookup{}, false
+}
+
+func (l Definitions) Lookup(id ksuid.KSUID) *Definition {
+	for _, def := range l {
+		if def.ID == id {
+			return def
+		}
+	}
+	return nil
 }

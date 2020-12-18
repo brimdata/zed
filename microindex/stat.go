@@ -8,13 +8,13 @@ import (
 )
 
 type InfoKey struct {
-	Name     string
-	TypeName string
+	Name     string `zng:"name"`
+	TypeName string `zng:"type"`
 }
 
 type Info struct {
-	Size int64
-	Keys []InfoKey
+	Size int64     `zng:"size"`
+	Keys []InfoKey `zng:"keys"`
 }
 
 // Stat returns summary information about the microindex at uri.

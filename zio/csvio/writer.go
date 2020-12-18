@@ -67,16 +67,23 @@ func (w *Writer) Write(rec *zng.Record) error {
 	for k, col := range rec.Type.Columns {
 		var v string
 		value := rec.Value(k)
-		if !w.epochDates && col.Type == zng.TypeTime {
-			if !value.IsUnsetOrNil() {
+		if !value.IsUnsetOrNil() {
+			switch col.Type.ID() {
+			case zng.IdTime:
 				ts, err := zng.DecodeTime(value.Bytes)
 				if err != nil {
 					return err
 				}
-				v = ts.Time().UTC().Format(time.RFC3339Nano)
+				if w.epochDates {
+					v = ts.StringFloat()
+				} else {
+					v = ts.Time().UTC().Format(time.RFC3339Nano)
+				}
+			case zng.IdString, zng.IdBstring, zng.IdType, zng.IdError:
+				v = string(value.Bytes)
+			default:
+				v = value.Format(w.format)
 			}
-		} else {
-			v = value.Format(w.format)
 		}
 		out = append(out, v)
 	}

@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/ppl/archive"
+	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
@@ -95,7 +96,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	query, err := archive.ParseIndexQuery(c.indexFile, args)
+	query, err := index.ParseQuery(c.indexFile, args)
 	if err != nil {
 		return err
 	}
@@ -124,10 +125,9 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	hits := make(chan *zng.Record)
-	zctx := resolver.NewContext()
 	var searchErr error
 	go func() {
-		searchErr = archive.Find(ctx, zctx, ark, query, hits, findOptions...)
+		searchErr = archive.Find(ctx, resolver.NewContext(), ark, query, hits, findOptions...)
 		close(hits)
 	}()
 	for hit := range hits {

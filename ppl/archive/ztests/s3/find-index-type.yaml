@@ -1,5 +1,4 @@
 script: |
-  mkdir logs
   source minio.sh
   zar import -R logs -data s3://bucket/zartest log.tzng
   zar index -R logs -q :ip
@@ -11,8 +10,9 @@ script: |
   echo ===
   zar find -R logs -z :ip=192.168.1.1 | zq -t "drop _log" -
   echo ===
-  zar ls -R logs -ranges -l
-  zq -t "count(key)" $(find data/bucket/zartest -name microindex-type-ip.zng) # check unset not indexed
+  zar ls -R logs -l -ranges -desc
+  echo === 
+  zq -t "count(key)" $(find data/bucket/zartest -name "idx-*") # check unset not indexed
 
 inputs:
   - name: log.tzng
@@ -37,6 +37,7 @@ outputs:
       #0:record[key:ip,count:uint64,first:time,last:time]
       0:[192.168.1.1;1;1258594907.85978;1258594907.85978;]
       ===
-      [1258594907859780000-1258594907859780000,1258594907859780000-1258594907859780000]/microindex-type-ip.zng
+      [1258594907859780000-1258594907859780000]/type-ip
+      ===
       #0:record[count:uint64]
       0:[3;]

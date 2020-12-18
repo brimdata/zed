@@ -13,7 +13,9 @@ import (
 
 func assertError(t *testing.T, err error, pattern, what string) {
 	assert.Error(t, err, "Received error for %s", what)
-	assert.Containsf(t, err.Error(), pattern, "error message for %s is as expected", what)
+	if err != nil {
+		assert.Containsf(t, err.Error(), pattern, "error message for %s is as expected", what)
+	}
 }
 
 // Test things related to parsing tzng
@@ -81,21 +83,11 @@ func TestTzngDescriptors(t *testing.T) {
 		_, err = r.Read()
 		assert.Error(t, err, "tzng parse error", "invalid tzng")
 	}
-	// Can't use a descriptor of non-record type
-	r = tzngio.NewReader(strings.NewReader("#3:string\n"), resolver.NewContext())
-	_, err = r.Read()
-	assertError(t, err, "not a record", "descriptor with non-record type")
 
 	// Descriptor with an invalid type is rejected
 	r = tzngio.NewReader(strings.NewReader("#4:notatype\n"), resolver.NewContext())
 	_, err = r.Read()
 	assertError(t, err, "unknown type", "descriptor with invalid type")
-
-	// Trying to redefine a descriptor is an error XXX this should be ok
-	d := "#1:record[n:int32]\n"
-	r = tzngio.NewReader(strings.NewReader(d+d), resolver.NewContext())
-	_, err = r.Read()
-	assertError(t, err, "descriptor already exists", "redefining //descriptor")
 }
 
 // XXX add test for mixing legacy and non-legacy

@@ -68,7 +68,7 @@ func UnmarshalRule(b []byte) (Rule, error) {
 		return Rule{}, err
 	}
 	r := Rule{}
-	return r, resolver.UnmarshalRecord(zctx, rec, &r)
+	return r, resolver.UnmarshalRecord(rec, &r)
 }
 
 func NewZqlRule(prog, name string, keys []field.Static) (Rule, error) {
@@ -177,7 +177,7 @@ func (r Rule) String() string {
 }
 
 func (r Rule) Marshal() ([]byte, error) {
-	rec, err := resolver.MarshalRecord(resolver.NewContext(), r)
+	rec, err := resolver.NewMarshaler().MarshalRecord(r)
 	if err != nil {
 		return nil, err
 	}

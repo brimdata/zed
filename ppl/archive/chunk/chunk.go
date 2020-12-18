@@ -102,7 +102,7 @@ func ChunkFileName(id ksuid.KSUID) string {
 // ZarDir returns a URI for a directory specific to this data file, expected
 // to hold microindexes or other files associated with this chunk's data.
 func (c Chunk) ZarDir() iosrc.URI {
-	return c.Dir.AppendPath(c.FileName() + ".zar")
+	return chunkZarDir(c.Dir, c.Id)
 }
 
 // Localize returns a URI that joins the provided relative path name to the
@@ -121,6 +121,10 @@ func ChunkPath(dir iosrc.URI, id ksuid.KSUID) iosrc.URI {
 
 func chunkSeekIndexPath(tsd iosrc.URI, id ksuid.KSUID) iosrc.URI {
 	return tsd.AppendPath(fmt.Sprintf("%s-%s.zng", FileKindSeek, id))
+}
+
+func chunkZarDir(dir iosrc.URI, id ksuid.KSUID) iosrc.URI {
+	return dir.AppendPath(ChunkFileName(id) + ".zar")
 }
 
 func (c Chunk) Range() string {

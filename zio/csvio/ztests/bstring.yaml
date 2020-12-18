@@ -12,12 +12,5 @@ input: |
 
 output-flags: -f csv
 
-output: |
-  bstring
-  -
-  
-  """"
-  ","
-  \x2d
-  \\
-  \x00\xff
+output: !!binary |
+  YnN0cmluZwoKCiIiIiIKIiwiCi0KXAoA/wo=

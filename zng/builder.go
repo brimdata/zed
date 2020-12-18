@@ -47,6 +47,7 @@ func (b *Builder) Build(zvs ...zcode.Bytes) *Record {
 	// will have to copy the record and we can re-use the record value
 	// between subsequent calls.
 	b.rec.Type = b.Type
+	b.rec.Alias = b.Type
 	b.rec.Raw = b.Bytes()
 	return &b.rec
 }

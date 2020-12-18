@@ -125,7 +125,7 @@ func New(zctx *resolver.Context, name string, narg int) (Interface, error) {
 		argmax = 2
 		f = &trunc{}
 	case "typeof":
-		f = &typeOf{zson.NewTypeTable()}
+		f = &typeOf{zson.NewTypeTable(zctx)}
 	case "iserr":
 		f = &isErr{}
 	case "to_base64":

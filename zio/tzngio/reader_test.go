@@ -28,11 +28,11 @@ func TestCtrl(t *testing.T) {
 
 	_, body, err := r.ReadPayload()
 	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message1"))
+	assert.Equal(t, "message1", string(body))
 
 	_, body, err = r.ReadPayload()
 	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message2"))
+	assert.Equal(t, "message2", string(body))
 
 	_, body, err = r.ReadPayload()
 	assert.NoError(t, err)
@@ -40,11 +40,11 @@ func TestCtrl(t *testing.T) {
 
 	_, body, err = r.ReadPayload()
 	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message3"))
+	assert.Equal(t, "message3", string(body))
 
 	_, body, err = r.ReadPayload()
 	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message4"))
+	assert.Equal(t, "message4", string(body))
 }
 
 func TestAlias(t *testing.T) {
