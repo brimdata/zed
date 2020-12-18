@@ -10,6 +10,8 @@ import (
 
 type builder struct {
 	zcode.Builder
+	fields          [][]byte
+	reorderedFields [][]byte
 }
 
 func (b *builder) build(typ *zng.TypeRecord, sourceFields []int, path []byte, data []byte) (*zng.Record, error) {
@@ -22,30 +24,30 @@ func (b *builder) build(typ *zng.TypeRecord, sourceFields []int, path []byte, da
 		columns = columns[1:]
 		b.AppendPrimitive(path)
 	}
-	var fields [][]byte
+	b.fields = b.fields[:0]
 	var start int
 
 	const separator = '\t'
 
 	for i, c := range data {
 		if c == separator {
-			fields = append(fields, data[start:i])
+			b.fields = append(b.fields, data[start:i])
 			start = i + 1
 		}
 	}
-	fields = append(fields, data[start:])
-	if len(fields) > len(sourceFields) {
+	b.fields = append(b.fields, data[start:])
+	if len(b.fields) > len(sourceFields) {
 		return nil, errors.New("too many values")
 	}
-	var fields2 [][]byte
+	b.reorderedFields = b.reorderedFields[:0]
 	for _, s := range sourceFields {
-		fields2 = append(fields2, fields[s])
+		b.reorderedFields = append(b.reorderedFields, b.fields[s])
 	}
-	fields, err := b.appendColumns(columns, fields2)
+	leftoverFields, err := b.appendColumns(columns, b.reorderedFields)
 	if err != nil {
 		return nil, err
 	}
-	if len(fields) != 0 {
+	if len(leftoverFields) != 0 {
 		return nil, errors.New("too many values")
 	}
 	return zng.NewRecord(typ, b.Bytes()), nil
