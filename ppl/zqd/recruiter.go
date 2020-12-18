@@ -11,6 +11,13 @@ import (
 	"go.uber.org/zap"
 )
 
+// handleRecruit and handleRegister interact with each other:
+// completing a request to handleRecruit will unblock multiple
+// open requests (long polls) to handleRegister.
+// The mechanism for this is the "Callback" function in WorkerDetail.
+// The callback is a closure in handleRecruit which will write
+// to a channel which unblocks the request. This "recruited"
+// channel is only used within the body of the handleRegister function.
 func handleRecruit(c *Core, w http.ResponseWriter, r *http.Request) {
 	var req api.RecruitRequest
 	if !request(c, w, r, &req) {
