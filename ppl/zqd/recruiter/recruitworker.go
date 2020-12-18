@@ -8,12 +8,13 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
+	"github.com/brimsec/zq/ppl/zqd/worker"
 	"github.com/brimsec/zq/proc"
 	"go.uber.org/zap"
 )
 
 // RecruitWorkers is used by the zqd root process to recruit workers for a distributed query.
-func RecruitWorkers(ctx *proc.Context, workerCount int, conf WorkerConfig, logger *zap.Logger) ([]string, error) {
+func RecruitWorkers(ctx *proc.Context, workerCount int, conf worker.WorkerConfig, logger *zap.Logger) ([]string, error) {
 	logger.Info("Recruit workers", zap.Int("count", workerCount))
 	if conf.BoundWorkers != "" {
 		// BoundWorkers is a fixed list of workers bound to a root process.

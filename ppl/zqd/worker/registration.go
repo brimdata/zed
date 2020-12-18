@@ -1,4 +1,4 @@
-package recruiter
+package worker
 
 import (
 	"context"
@@ -37,9 +37,9 @@ func (c *WorkerConfig) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&c.Recruiter, "worker.recruiter", "", "recruiter address for worker registration")
 }
 
-// WorkerReg maintains state for a workers's interactions
+// RegistrationState maintains state for a workers's interactions
 // with the recruiter and the zqd root process.
-type WorkerReg struct {
+type RegistrationState struct {
 	conf        WorkerConfig
 	conn        *client.Connection
 	logger      *zap.Logger
@@ -47,64 +47,64 @@ type WorkerReg struct {
 	selfaddr    string
 }
 
-func NewWorkerReg(srvAddr string, conf WorkerConfig, logger *zap.Logger) (*WorkerReg, error) {
+func NewRegistrationState(srvAddr string, conf WorkerConfig, logger *zap.Logger) (*RegistrationState, error) {
 	host, port, _ := net.SplitHostPort(srvAddr)
 	if conf.Host != "" {
 		host = conf.Host
 	}
-	w := &WorkerReg{
+	rs := &RegistrationState{
 		conf:        conf,
 		conn:        client.NewConnectionTo("http://" + conf.Recruiter),
 		logger:      logger,
 		releaseChan: make(chan string),
 		selfaddr:    net.JoinHostPort(host, port),
 	}
-	return w, nil
+	return rs, nil
 }
 
 // RegisterWithRecruiter is used by personality=worker.
-func (w *WorkerReg) RegisterWithRecruiter() {
+func (rs *RegistrationState) RegisterWithRecruiter() {
 	ctx := context.Background()
 	req := api.RegisterRequest{
-		Timeout: w.conf.LongPoll,
+		Timeout: rs.conf.LongPoll,
 		Worker: api.Worker{
-			Addr:     w.selfaddr,
-			NodeName: w.conf.Node,
+			Addr:     rs.selfaddr,
+			NodeName: rs.conf.Node,
 		},
 	}
-	retryWait := w.conf.MinRetry
+	retryWait := rs.conf.MinRetry
 	// Loop for registration long polling.
 	for {
-		w.logger.Info("Register",
-			zap.Int("longpoll", w.conf.LongPoll),
-			zap.String("recruiter", w.conf.Recruiter))
-		resp, err := w.conn.Register(ctx, req)
+		rs.logger.Info("Register",
+			zap.Int("longpoll", rs.conf.LongPoll),
+			zap.String("recruiter", rs.conf.Recruiter))
+		resp, err := rs.conn.Register(ctx, req)
 		if err != nil {
-			w.logger.Error(
+			rs.logger.Error(
 				"Error on recruiter registration, waiting to retry",
 				zap.Int("retry", retryWait),
-				zap.String("recruiter", w.conf.Recruiter),
+				zap.String("recruiter", rs.conf.Recruiter),
 				zap.Error(err))
 			// Delay next request. There is an
 			// exponential backoff on registration errors.
 			time.Sleep(time.Duration(retryWait) * time.Millisecond)
-			if retryWait < w.conf.MaxRetry {
+			if retryWait < rs.conf.MaxRetry {
 				retryWait = (retryWait * 3) / 2
 				// Note: doubling is too fast a backoff for this, so using 1.5 x.
 			} else {
-				retryWait = w.conf.MaxRetry
+				retryWait = rs.conf.MaxRetry
 			}
 			continue
 		}
-		retryWait = w.conf.MinRetry // Retry goes back to min after a success.
+		retryWait = rs.conf.MinRetry // Retry goes back to min after a success.
 		if resp.Directive != "reserved" {
 			continue
 		}
-		w.logger.Info("Worker is reserved", zap.String("selfaddr", w.selfaddr))
+		rs.logger.Info("Worker is reserved", zap.String("selfaddr", rs.selfaddr))
 		// Start listening to the releaseChannel.
 		// Exit the nested loop on a release.
 		// An idle timeout will cause the process to terminate.
-		ticker := time.NewTicker(time.Duration(w.conf.IdleTime) * time.Millisecond)
+		ticker := time.NewTicker(time.Duration(rs.conf.IdleTime) * time.Millisecond)
 		// GoDoc mentions fewer special cases with Ticker than with Timer.
 		workerIsIdle := true
 		// The worker "stays" in the ReservedLoop until it is finshed working for a given root process.
@@ -114,18 +114,18 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 			select {
 			case <-ticker.C:
 				if workerIsIdle {
-					w.logger.Warn("Worker timed out before receiving a request from the root",
-						zap.String("selfaddr", w.selfaddr))
+					rs.logger.Warn("Worker timed out before receiving a request from the root",
+						zap.String("selfaddr", rs.selfaddr))
 					os.Exit(0)
 				}
-			case msg := <-w.releaseChan:
+			case msg := <-rs.releaseChan:
 				if msg == "release" {
-					w.logger.Info("Worker is released", zap.String("selfaddr", w.selfaddr))
+					rs.logger.Info("Worker is released", zap.String("selfaddr", rs.selfaddr))
 					// Breaking out of this nested loop will continue on to re-register.
 					break ReservedLoop
 				} else if msg == "idle" {
 					workerIsIdle = true
-					ticker = time.NewTicker(time.Duration(w.conf.IdleTime) * time.Millisecond)
+					ticker = time.NewTicker(time.Duration(rs.conf.IdleTime) * time.Millisecond)
 					// Recreating the ticker is a safe way to reset it.
 				} else { // Assume "busy".
 					workerIsIdle = false
@@ -137,36 +137,36 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 
 // These three methods are called from the worker handlers.
 // They do a nil check on the pointer receiver because if the
-// -worker.bound flag is present then there may be no WorkerReg.
+// -worker.bound flag is present then there may be no RegistrationState.
 // The warnings on the default selector should not normally occur,
 // and would indicate that something was broken.
 
-func (w *WorkerReg) SendRelease() {
-	if w != nil {
+func (rs *RegistrationState) SendRelease() {
+	if rs != nil {
 		select {
-		case w.releaseChan <- "release":
+		case rs.releaseChan <- "release":
 		default:
-			w.logger.Warn("Receiver not ready for release")
+			rs.logger.Warn("Receiver not ready for release")
 		}
 	}
 }
 
-func (w *WorkerReg) SendBusy() {
-	if w != nil {
+func (rs *RegistrationState) SendBusy() {
+	if rs != nil {
 		select {
-		case w.releaseChan <- "busy":
+		case rs.releaseChan <- "busy":
 		default:
-			w.logger.Warn("Receiver not ready for busy")
+			rs.logger.Warn("Receiver not ready for busy")
 		}
 	}
 }
 
-func (w *WorkerReg) SendIdle() {
-	if w != nil {
+func (rs *RegistrationState) SendIdle() {
+	if rs != nil {
 		select {
-		case w.releaseChan <- "idle":
+		case rs.releaseChan <- "idle":
 		default:
-			w.logger.Warn("Receiver not ready for idle")
+			rs.logger.Warn("Receiver not ready for idle")
 		}
 	}
 }

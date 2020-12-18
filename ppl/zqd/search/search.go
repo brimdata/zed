@@ -11,10 +11,10 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/ppl/zqd/storage/filestore"
+	"github.com/brimsec/zq/ppl/zqd/worker"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
@@ -105,7 +105,7 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 	}
 }
 
-func (s *SearchOp) RunDistributed(ctx context.Context, store storage.Storage, output Output, numberOfWorkers int, workerConf recruiter.WorkerConfig, logger *zap.Logger) (err error) {
+func (s *SearchOp) RunDistributed(ctx context.Context, store storage.Storage, output Output, numberOfWorkers int, workerConf worker.WorkerConfig, logger *zap.Logger) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
