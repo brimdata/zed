@@ -45,21 +45,14 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 	recruited := make(chan recruiter.RecruitmentDetail)
 	defer timer.Stop()
 	cb := func(rd recruiter.RecruitmentDetail) bool {
-		// Stopping the timer narrows the window for a timeout before
-		// writing RecruitmentDetail to the channel that is read in the
-		// select below.
 		timer.Stop()
-		// Use a non-blocking write because this will be called
-		// while workerPool.Recruit is holding the workerPool lock.
 		select {
 		case recruited <- rd:
 		default:
 			c.logger.Warn("Receiver not ready for recruited", zap.String("label", rd.LoggingLabel))
 			return false
-			// Note that this warning could be logged if the recruiter timer fires
-			// very close to the same time as a /recruiter/recruit request is processed.
-			// Returning false insures that the worker address is not returned
-			// to a root process that recruited.
+			// Logs on a race between /recruiter/recruit and req.Timeout.
+			// Return false so worker is omitted from response.
 		}
 		return true
 	}
@@ -83,13 +76,13 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 		directive = "reserved"
 	case <-timer.C:
 		c.requestLogger(r).Info("Worker should reregister", zap.String("addr", req.Addr))
+		c.workerPool.Deregister(req.Addr)
 		directive = "reregister"
 	case <-ctx.Done():
 		c.requestLogger(r).Info("HandleRegister context cancel")
+		c.workerPool.Deregister(req.Addr)
 		isCanceled = true
 	}
-	// Deregister in any event
-	c.workerPool.Deregister(req.Addr)
 	if !isCanceled {
 		respond(c, w, r, http.StatusOK, api.RegisterResponse{Directive: directive})
 	}
