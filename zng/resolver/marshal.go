@@ -142,14 +142,14 @@ const (
 	TypeFull
 )
 
-// Decorate informs the marshaler to add type decorations the resulting ZNG
-// in the form of type aliases that are named int the sytle indicated, e.g.,
-// for a `struct Foo` in `package bar` at import path `github.com/acme/bar`
-// the correspond name would be `Foo` for TypeSimple, `bar.Foo` for TypePackage,
-// and `github.com/acme/bar.Foo` for TypeFull.  This mechanism works in conjunction
-// with Bindings.  Typically you would want one or the other, but if a binding
-// doesn't exist for a Go type, then a ZSON type name will be created according
-// to the Decorate setting (which may be TypeNone).
+// Decorate informs the marshaler to add type decorations to the resulting ZNG
+// in the form of type aliases that are named in the sytle indicated, e.g.,
+// for a `struct Foo` in `package bar` at import path `github.com/acme/bar:
+// the corresponding name would be `Foo` for TypeSimple, `bar.Foo` for TypePackage,
+// and `github.com/acme/bar.Foo`for TypeFull.  This mechanism works in conjunction
+// with Bindings.  Typically you would want just one or the other, but if a binding
+// doesn't exist for a given Go type, then a ZSON type name will be created according
+// to the decorator setting (which may be TypeNone).
 func (m *MarshalContext) Decorate(style int) {
 	switch style {
 	default:
@@ -163,13 +163,14 @@ func (m *MarshalContext) Decorate(style int) {
 	}
 }
 
-// NamedBindings forms the Marshaler to encode the given types with the
-// given ZSON type name.  For example, to serialize a `bar.Foo` value decoroated
-// with the ZSON type name "SpecialFoo", simply call NamedBindings with
-// the value []Binding{{"SpecialFoo", &bar.Foo{}}.  Subsequent calls to NamedBindings
+// NamedBindings informs the Marshaler to encode the given types with the
+// corresponding ZSON type names.  For example, to serialize a `bar.Foo`
+// value decoroated with the ZSON type name "SpecialFoo", simply call
+// NamedBindings with the value []Binding{{"SpecialFoo", &bar.Foo{}}.
+// Subsequent calls to NamedBindings
 // add additional such bindings leaving the existing bindings in place.
-// If no binding is found for a particular go-named type being serialized, the
-// marhaler's ZSON decorating then rule applies.
+// During marshaling, if no binding is found for a particular Go value,
+// then the marshaler's decorator setting applies.
 func (m *MarshalContext) NamedBindings(bindings []Binding) error {
 	if m.bindings == nil {
 		m.bindings = make(map[string]string)
@@ -414,12 +415,12 @@ func (u *UnmarshalContext) Unmarshal(zv zng.Value, v interface{}) error {
 
 // Bindings informs the unmarshaler that ZSON values with a type name equal
 // to any of the three variations of Go type mame (full path, package.Type,
-// or just Type), may be used to inform the deserialization of a ZSON value
+// or just Type) may be used to inform the deserialization of a ZSON value
 // into a Go interface value.  If full path names are not used, it is up to
 // the entitity that marshaled the original ZSON to ensure that no type-name
 // conflicts arise, e.g., when using the TypeSimple decorator style, you cannot
 // have a type called bar.Foo and another type baz.Foo as the simple type
-// decorator will be "Foo" in both cases and thus create a naming conflict.
+// decorator will be "Foo" in both cases and thus create a name conflict.
 func (u *UnmarshalContext) Bindings(templates ...interface{}) error {
 	for _, t := range templates {
 		if err := u.binder.enterTemplate(t); err != nil {
