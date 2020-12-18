@@ -250,7 +250,7 @@ func TestNewRawFromJSON(t *testing.T) {
 			ti := &typeInfo{
 				flatDesc:   typ,
 				descriptor: typ,
-				jsonVals:   make([]jsonVal, len(typ.Columns)),
+				typedVals:  make([]typedVal, len(typ.Columns)),
 				path:       []byte(c.defaultPath),
 			}
 			raw, _, err := ti.newRawFromJSON([]byte(c.json))

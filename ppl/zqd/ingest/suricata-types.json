@@ -1,4 +1,5 @@
 {
+    "inferextra": true,
     "descriptors": {
         "alert_log": [
             {

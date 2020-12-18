@@ -16,6 +16,11 @@ type Rule struct {
 // list of rules defining which records should be mapped into which
 // descriptor.
 type TypeConfig struct {
+	// If InferExtra is true, additional fields not found in the
+	// descriptor are included after running regular 5-type json
+	// inference on them. Otherwise, additional fields result in
+	// an error.
+	InferExtra  bool                     `json:"inferextra"`
 	Descriptors map[string][]interface{} `json:"descriptors"`
 	Rules       []Rule                   `json:"rules"`
 }

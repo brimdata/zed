@@ -125,6 +125,7 @@ func (r *Reader) configureTypes(tc TypeConfig, defaultPath string) error {
 		stats:         r.stats.typeStats,
 		typeInfoCache: make(map[int]*typeInfo),
 		defaultPath:   defaultPath,
+		inferExtra:    tc.InferExtra,
 	}
 	return nil
 }
@@ -141,7 +142,7 @@ func (r *Reader) Parse(b []byte) (zng.Value, error) {
 		return zng.Value{}, fmt.Errorf("expected JSON type to be Object but got %s", typ)
 	}
 	if r.typ != nil {
-		return r.typ.parseObject(val)
+		return r.typ.parseObject(val, r.inf)
 	}
 	return r.inf.parseObject(val)
 }
