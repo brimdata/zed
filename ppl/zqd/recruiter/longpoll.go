@@ -27,15 +27,13 @@ func WaitForRecruitment(ctx context.Context, wp *WorkerPool, addr string, nodena
 	defer timer.Stop()
 	recruited := make(chan RecruitmentDetail)
 	if err := wp.Register(addr, nodename, func(rd RecruitmentDetail) bool {
-		timer.Stop()
 		select {
 		case recruited <- rd:
 		default:
+			// If the receiver is not ready it means the worker has already
+			// Deregistered and is unavailable.
 			logger.Warn("Receiver not ready for recruited", zap.String("label", rd.LoggingLabel))
 			return false
-			// Logs on a race between /recruiter/recruit and req.Timeout.
-			// If the receiver is not ready it means the worker has Deregistered.
-			// Return false so worker is omitted from response.
 		}
 		return true
 	}); err != nil {
