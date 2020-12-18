@@ -1,4 +1,5 @@
 {
+    "pass_unknowns": true,
     "descriptors": {
         "alert_log": [
             {
