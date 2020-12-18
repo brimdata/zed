@@ -1,3 +1,5 @@
+// This is the client-side layer that is used by the zqd root process during execution of a query.
+// It is called within the driver package.
 package recruiter
 
 import (
