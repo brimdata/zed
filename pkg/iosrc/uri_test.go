@@ -2,7 +2,6 @@ package iosrc
 
 import (
 	"encoding/json"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -65,10 +64,7 @@ func TestURISerializeEmpty(t *testing.T) {
 func TestPathWithEncodedChars(t *testing.T) {
 	// Create a real directory since ParseURI will always return an absolute
 	// path, and this will verify Windows path handling as well.
-	tdir, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(tdir)
-	p := filepath.Join(tdir, "file%20with%20spaces")
+	p := filepath.Join(t.TempDir(), "file%20with%20spaces")
 
 	u, err := ParseURI(p)
 	require.NoError(t, err)

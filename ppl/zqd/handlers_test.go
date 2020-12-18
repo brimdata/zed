@@ -326,7 +326,7 @@ func TestSpacePutDuplicateName(t *testing.T) {
 
 func TestSpacePostDataPath(t *testing.T) {
 	ctx := context.Background()
-	tmp := createTempDir(t)
+	tmp := t.TempDir()
 	datapath := filepath.Join(tmp, "mypcap.brim")
 	_, conn := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{DataPath: datapath})
@@ -364,7 +364,7 @@ func TestSpaceDelete(t *testing.T) {
 
 func TestSpaceDeleteDataDir(t *testing.T) {
 	ctx := context.Background()
-	tmp := createTempDir(t)
+	tmp := t.TempDir()
 	_, conn := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 	datadir := filepath.Join(tmp, "mypcap.brim")
 	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
@@ -595,8 +595,8 @@ func TestSpaceDataDir(t *testing.T) {
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
 `
 
-	root := createTempDir(t)
-	datapath := createTempDir(t)
+	root := t.TempDir()
+	datapath := t.TempDir()
 
 	_, conn1 := newCoreAtDir(t, root)
 
@@ -668,7 +668,7 @@ func TestBlankNameSpace(t *testing.T) {
 
 	oldconfig := `{"data_path":"."}`
 	testdirname := "testdirname"
-	root := createTempDir(t)
+	root := t.TempDir()
 
 	err := os.MkdirAll(filepath.Join(root, testdirname), 0700)
 	require.NoError(t, err)
@@ -684,9 +684,8 @@ func TestBlankNameSpace(t *testing.T) {
 
 func TestIndexSearch(t *testing.T) {
 	thresh := int64(1000)
-	root := createTempDir(t)
 
-	_, conn := newCoreAtDir(t, root)
+	_, conn := newCore(t)
 
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestIndexSearch",
@@ -728,8 +727,7 @@ func TestSubspaceCreate(t *testing.T) {
 	thresh := int64(1000)
 
 	// Create server & the parent space
-	root := createTempDir(t)
-	_, conn := newCoreAtDir(t, root)
+	_, conn := newCore(t)
 
 	sp1, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestSubspaceCreate",
@@ -804,7 +802,7 @@ func TestSubspacePersist(t *testing.T) {
 	thresh := int64(1000)
 
 	// Create server & the parent space
-	root := createTempDir(t)
+	root := t.TempDir()
 	_, conn1 := newCoreAtDir(t, root)
 
 	sp1, err := conn1.SpacePost(context.Background(), api.SpacePostRequest{
@@ -884,8 +882,7 @@ func TestSubspacePersist(t *testing.T) {
 
 func TestArchiveStat(t *testing.T) {
 	thresh := int64(20 * 1024)
-	root := createTempDir(t)
-	_, conn := newCoreAtDir(t, root)
+	_, conn := newCore(t)
 
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
 		Name: "TestArchiveStat",
@@ -987,31 +984,8 @@ func tzngCopy(t *testing.T, prog string, in string, outFormat string) string {
 	return buf.String()
 }
 
-func createTempDir(t *testing.T) string {
-	// Replace '/' with '-' so it doesn't try to access dirs that don't exist.
-	// Apparently "/" in a filepath for windows still tries to create a
-	// directory; this solution works for windows as well.
-	name := strings.ReplaceAll(t.Name(), "/", "-")
-	dir, err := ioutil.TempDir("", name)
-	require.NoError(t, err)
-	t.Cleanup(func() { os.RemoveAll(dir) })
-	return dir
-}
-
-func writeTempFile(t *testing.T, data string) string {
-	f, err := ioutil.TempFile("", t.Name())
-	require.NoError(t, err)
-	name := f.Name()
-	t.Cleanup(func() { os.Remove(name) })
-	_, err = f.WriteString(data)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-	return name
-}
-
 func newCore(t *testing.T) (*zqd.Core, *client.Connection) {
-	root := createTempDir(t)
-	return newCoreAtDir(t, root)
+	return newCoreWithConfig(t, zqd.Config{})
 }
 
 func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *client.Connection) {
@@ -1022,7 +996,7 @@ func newCoreAtDir(t *testing.T, dir string) (*zqd.Core, *client.Connection) {
 
 func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *client.Connection) {
 	if conf.Root == "" {
-		conf.Root = createTempDir(t)
+		conf.Root = t.TempDir()
 	}
 	if conf.Logger == nil {
 		conf.Logger = zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel))

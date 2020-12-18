@@ -2,8 +2,6 @@ package archive
 
 import (
 	"context"
-	"io/ioutil"
-	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -190,11 +188,7 @@ func TestAlignChunksToSpans(t *testing.T) {
 }
 
 func TestOverlapWalking(t *testing.T) {
-	datapath, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(datapath)
-
-	ark, err := CreateOrOpenArchive(datapath, &CreateOptions{}, nil)
+	ark, err := CreateOrOpenArchive(t.TempDir(), &CreateOptions{}, nil)
 	require.NoError(t, err)
 
 	data1 := `

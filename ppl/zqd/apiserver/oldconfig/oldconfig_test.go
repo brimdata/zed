@@ -3,7 +3,6 @@ package oldconfig_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
@@ -129,11 +128,7 @@ func newTestMigration(t *testing.T) *testMigration {
 }
 
 func (tm *testMigration) initRoot() {
-	root, err := ioutil.TempDir("", "")
-	require.NoError(tm.T, err)
-	tm.Cleanup(func() {
-		os.RemoveAll(root)
-	})
+	root := tm.TempDir()
 	u, err := iosrc.ParseURI(root)
 	require.NoError(tm, err)
 	tm.root = u

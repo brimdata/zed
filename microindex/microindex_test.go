@@ -3,8 +3,6 @@ package microindex_test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -44,7 +42,7 @@ func TestSearch(t *testing.T) {
 
 func TestMicroIndex(t *testing.T) {
 	const N = 5
-	dir := tempDir(t)
+	dir := t.TempDir()
 	path := filepath.Join(dir, "test2.zng")
 	stream, err := newReader(N)
 	require.NoError(t, err)
@@ -158,7 +156,7 @@ func openFinder(t *testing.T, path string) *microindex.Finder {
 }
 
 func build(t *testing.T, r zbuf.Reader, opts ...microindex.Option) string {
-	path := filepath.Join(tempDir(t), "test.zng")
+	path := filepath.Join(t.TempDir(), "test.zng")
 	writer, err := microindex.NewWriter(resolver.NewContext(), path, opts...)
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(writer, r))
@@ -180,24 +178,12 @@ func newReader(size int) (*tzngio.Reader, error) {
 	return reader(strings.Join(lines, "\n")), nil
 }
 
-func tempDir(t *testing.T) string {
-	dir, err := ioutil.TempDir("", t.Name())
-	require.NoError(t, err)
-	t.Cleanup(func() { os.RemoveAll(dir) })
-	return dir
-}
-
 /* not yet
 func BenchmarkWrite(b *testing.B) {
 	stream := newEntryStream(5 << 20)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		dir, err := ioutil.TempDir("", "table_test")
-		if err != nil {
-			b.Error(err)
-		}
-		defer os.RemoveAll(dir)
-		path := filepath.Join(dir, "table.zng")
+		path := filepath.Join(b.TempDir(), "table.zng")
 		if err := table.BuildTable(path, stream); err != nil {
 			b.Error(err)
 		}
@@ -210,12 +196,7 @@ func BenchmarkWrite(b *testing.B) {
 }
 
 func BenchmarkRead(b *testing.B) {
-	dir, err := ioutil.TempDir("", "table_test")
-	if err != nil {
-		b.Error(err)
-	}
-	defer os.RemoveAll(dir)
-	path := filepath.Join(dir, "table.zng")
+	path := filepath.Join(b.TempDir(), "table.zng")
 	stream := newEntryStream(5 << 20)
 	if err := table.BuildTable(path, stream); err != nil {
 		b.Error(err)

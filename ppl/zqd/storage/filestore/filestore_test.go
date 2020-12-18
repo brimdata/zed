@@ -3,11 +3,8 @@ package filestore
 import (
 	"context"
 	"errors"
-	"io/ioutil"
-	"os"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
@@ -19,36 +16,37 @@ import (
 
 type waitReader struct {
 	sync.WaitGroup
-	dur time.Duration
+	ch chan struct{}
 }
 
 func (w *waitReader) Read() (*zng.Record, error) {
 	w.Done()
-	time.Sleep(w.dur)
-	return nil, errors.New("time out")
+	<-w.ch
+	return nil, errors.New("waitReader")
 }
 
 func TestFailOnConcurrentWrites(t *testing.T) {
-	dir, err := ioutil.TempDir("", t.Name())
-	require.NoError(t, err)
-	defer func() {
-		os.RemoveAll(dir)
-	}()
-	u, err := iosrc.ParseURI(dir)
+	u, err := iosrc.ParseURI(t.TempDir())
 	require.NoError(t, err)
 	store, err := Load(u, zap.NewNop())
 	require.NoError(t, err)
 	zctx := resolver.NewContext()
-	wr := &waitReader{dur: time.Second * 5}
+	writeReturnedCh := make(chan struct{})
+	wr := &waitReader{ch: make(chan struct{})}
 	wr.Add(1)
 	go func() {
 		store.Write(context.Background(), zctx, wr)
+		close(writeReturnedCh)
 	}()
 	wr.Wait()
 
 	err = store.Write(context.Background(), zctx, nil)
 	require.Error(t, err)
 	require.True(t, errors.Is(err, ErrWriteInProgress))
+
+	// Need to wait for goroutine's store.Write on Windows.
+	close(wr.ch)
+	<-writeReturnedCh
 }
 
 type emptyReader struct{}
@@ -58,12 +56,7 @@ func (r *emptyReader) Read() (*zng.Record, error) {
 }
 
 func TestWriteNoRecords(t *testing.T) {
-	dir, err := ioutil.TempDir("", t.Name())
-	require.NoError(t, err)
-	defer func() {
-		os.RemoveAll(dir)
-	}()
-	u, err := iosrc.ParseURI(dir)
+	u, err := iosrc.ParseURI(t.TempDir())
 	require.NoError(t, err)
 	store, err := Load(u, zap.NewNop())
 	require.NoError(t, err)

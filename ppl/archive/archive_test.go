@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -69,16 +68,13 @@ func indexQuery(t *testing.T, ark *Archive, patterns []string, opts ...FindOptio
 }
 
 func TestOpenOptions(t *testing.T) {
-	datapath, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(datapath)
-
+	datapath := t.TempDir()
 	thresh := int64(1000)
 	createArchiveSpace(t, datapath, babble, &CreateOptions{
 		LogSizeThreshold: &thresh,
 	})
 
-	_, err = OpenArchive(datapath, &OpenOptions{
+	_, err := OpenArchive(datapath, &OpenOptions{
 		LogFilter: []string{"foo"},
 	})
 	require.Error(t, err)
@@ -151,20 +147,18 @@ func TestOpenOptions(t *testing.T) {
 }
 
 func TestSeekIndex(t *testing.T) {
-	datapath, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(datapath)
-
 	orig := ImportStreamRecordsMax
 	ImportStreamRecordsMax = 1
 	defer func() {
 		ImportStreamRecordsMax = orig
 	}()
+
+	datapath := t.TempDir()
 	createArchiveSpace(t, datapath, babble, &CreateOptions{
 		// Must use SortAscending: true until zq#1329 is addressed.
 		SortAscending: true,
 	})
-	_, err = OpenArchive(datapath, &OpenOptions{})
+	_, err := OpenArchive(datapath, &OpenOptions{})
 	require.NoError(t, err)
 
 	first1 := nano.Ts(1587508830068523240)
@@ -192,6 +186,7 @@ func TestSeekIndex(t *testing.T) {
 	require.NoError(t, err)
 	finder, err := microindex.NewFinder(context.Background(), resolver.NewContext(), idxUri)
 	require.NoError(t, err)
+	defer finder.Close()
 	keys, err := finder.ParseKeys("1587508851")
 	require.NoError(t, err)
 	rec, err := finder.ClosestLTE(keys)

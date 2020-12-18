@@ -4,7 +4,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"os"
 	"path"
 	"testing"
 
@@ -12,15 +11,9 @@ import (
 )
 
 func TestReplaceFileAbort(t *testing.T) {
-	dir, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	t.Cleanup(func() {
-		os.RemoveAll(dir)
-	})
-
-	fname := path.Join(dir, "file1")
+	fname := path.Join(t.TempDir(), "file1")
 	data1 := "data1"
-	err = ioutil.WriteFile(fname, []byte(data1), 0666)
+	err := ioutil.WriteFile(fname, []byte(data1), 0666)
 	require.NoError(t, err)
 
 	fakeErr := errors.New("fake error")

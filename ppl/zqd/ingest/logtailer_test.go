@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
@@ -54,19 +53,23 @@ func TestLogTailer(t *testing.T) {
 }
 
 func (s *logTailerTSuite) SetupTest() {
-	dir, err := ioutil.TempDir("", "TestLogTailer")
-	s.Require().NoError(err)
-	s.dir = dir
-	s.T().Cleanup(func() { os.RemoveAll(s.dir) })
+	s.dir = s.T().TempDir()
 	s.zctx = resolver.NewContext()
+	var err error
 	s.dr, err = newLogTailer(s.zctx, s.dir, zio.ReaderOpts{Format: "tzng"})
 	s.Require().NoError(err)
+}
+
+func (s *logTailerTSuite) TearDownTest() {
+	s.Require().NoError(s.dr.Stop())
 }
 
 func (s *logTailerTSuite) TestCreatedFiles() {
 	result, errCh := s.read()
 	f1 := s.createFile("test1.tzng")
+	defer f1.Close()
 	f2 := s.createFile("test2.tzng")
+	defer f2.Close()
 	s.write(f1, f2)
 	s.Require().NoError(<-errCh)
 	s.Equal(expected, <-result)
@@ -75,7 +78,9 @@ func (s *logTailerTSuite) TestCreatedFiles() {
 func (s *logTailerTSuite) TestIgnoreDir() {
 	result, errCh := s.read()
 	f1 := s.createFile("test1.tzng")
+	defer f1.Close()
 	f2 := s.createFile("test2.tzng")
+	defer f2.Close()
 	err := os.Mkdir(filepath.Join(s.dir, "testdir"), 0755)
 	s.Require().NoError(err)
 	s.write(f1, f2)
@@ -85,7 +90,9 @@ func (s *logTailerTSuite) TestIgnoreDir() {
 
 func (s *logTailerTSuite) TestExistingFiles() {
 	f1 := s.createFile("test1.tzng")
+	defer f1.Close()
 	f2 := s.createFile("test2.tzng")
+	defer f2.Close()
 	result, errCh := s.read()
 	s.write(f1, f2)
 	s.Require().NoError(<-errCh)
@@ -95,18 +102,21 @@ func (s *logTailerTSuite) TestExistingFiles() {
 func (s *logTailerTSuite) TestInvalidFile() {
 	_, errCh := s.read()
 	f1 := s.createFile("test1.tzng")
+	defer f1.Close()
 	_, err := f1.WriteString("#0:record[ts:time]\n")
 	s.Require().NoError(err)
 	_, err = f1.WriteString("this is an invalid line\n")
 	s.Require().NoError(err)
+	s.Require().NoError(f1.Sync())
 	s.EqualError(<-errCh, "line 2: bad format")
-	s.NoError(s.dr.Stop())
 }
 
 func (s *logTailerTSuite) TestEmptyFile() {
 	result, errCh := s.read()
 	f1 := s.createFile("test1.tzng")
-	_ = s.createFile("test2.tzng")
+	defer f1.Close()
+	f2 := s.createFile("test2.tzng")
+	defer f2.Close()
 	s.write(f1)
 	s.Require().NoError(<-errCh)
 	s.Equal(expected, <-result)

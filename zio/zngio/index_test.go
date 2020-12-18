@@ -1,7 +1,6 @@
 package zngio
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -83,10 +82,6 @@ func TestZngIndex(t *testing.T) {
 		reader := tzngio.NewReader(strings.NewReader(zngData), resolver.NewContext())
 		fp, err := os.Create(fname)
 		require.NoError(t, err)
-		defer func() {
-			_ = fp.Close()
-			_ = os.Remove(fname)
-		}()
 
 		writer := NewWriter(fp, WriterOpts{StreamRecordsMax: 2})
 
@@ -100,6 +95,7 @@ func TestZngIndex(t *testing.T) {
 			err = writer.Write(rec)
 			require.NoError(t, err)
 		}
+		require.NoError(t, writer.Close()) // Also closes fp.
 
 		index := NewTimeIndex()
 
@@ -127,10 +123,7 @@ func TestZngIndex(t *testing.T) {
 		require.NoError(t, err)
 	}
 
-	// get a scratch directory
-	dir, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(dir)
+	dir := t.TempDir()
 
 	// Test once with ascending timestamps
 	t.Run("IndexAscending", func(t *testing.T) {
