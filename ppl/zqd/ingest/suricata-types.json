@@ -1,5 +1,5 @@
 {
-    "inferextra": true,
+    "pass_unknowns": true,
     "descriptors": {
         "alert_log": [
             {

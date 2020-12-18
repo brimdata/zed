@@ -30,7 +30,7 @@ type typeParser struct {
 	defaultPath   string
 	stats         *typeStats
 	typeInfoCache map[int]*typeInfo
-	inferExtra    bool
+	passUnknowns  bool
 }
 
 var (
@@ -293,7 +293,7 @@ func (p *typeParser) parseObject(b []byte, inferrer inferParser) (zng.Value, err
 		return zng.Value{}, err
 	}
 	if len(toInfer) > 0 {
-		if !p.inferExtra {
+		if !p.passUnknowns {
 			incr(&p.stats.IncompleteDescriptor)
 			return zng.Value{}, ErrIncompleteDescriptor
 		}

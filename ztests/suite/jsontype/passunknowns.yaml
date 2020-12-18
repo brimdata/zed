@@ -7,7 +7,7 @@ inputs:
   - name: types.json
     data: |
         {
-          "inferextra": true,
+          "pass_unknowns": true,
           "descriptors": {
             "http_log": [
               {

@@ -125,7 +125,7 @@ func (r *Reader) configureTypes(tc TypeConfig, defaultPath string) error {
 		stats:         r.stats.typeStats,
 		typeInfoCache: make(map[int]*typeInfo),
 		defaultPath:   defaultPath,
-		inferExtra:    tc.InferExtra,
+		passUnknowns:  tc.PassUnknowns,
 	}
 	return nil
 }
