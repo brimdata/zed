@@ -14,15 +14,15 @@ import (
 // The methods for WorkerPool provide the core algorithms for a
 // load-balancing API. Exported methods are thread safe.
 type WorkerPool struct {
-	mu         sync.Mutex                 // one lock for all three maps
+	mu         sync.Mutex                 // one lock for both maps
 	freePool   map[string]*WorkerDetail   // Map of all free workers
 	nodePool   map[string][]*WorkerDetail // Map of nodes of slices of free workers
-	SkipSpread bool                       // option to test algorithm performance
 	r          *rand.Rand
+	SkipSpread bool // option to test algorithm performance
 }
 
 type RecruitmentDetail struct {
-	Label           string // for tracing
+	LoggingLabel    string
 	NumberRequested int
 }
 

@@ -97,37 +97,38 @@ func (w *WorkerReg) RegisterWithRecruiter() {
 			continue
 		}
 		retryWait = w.conf.MinRetry // Retry goes back to min after a success.
-		if resp.Directive == "reserved" {
-			w.logger.Info("Worker is reserved", zap.String("selfaddr", w.selfaddr))
-			// Start listening to the releaseChannel.
-			// Exit the nested loop on a release.
-			// An idle timeout will cause the process to terminate.
-			ticker := time.NewTicker(time.Duration(w.conf.IdleTime) * time.Millisecond)
-			// GoDoc mentions fewer special cases with Ticker than with Timer.
-			workerIsIdle := true
-			// The worker "stays" in the ReservedLoop until it is finshed working for a given root process.
-			// The worker starts in the idle state, and is only "busy" while responding to a /worker/chunksearch.
-		ReservedLoop:
-			for {
-				select {
-				case <-ticker.C:
-					if workerIsIdle {
-						w.logger.Warn("Worker timed out before receiving a request from the root",
-							zap.String("selfaddr", w.selfaddr))
-						os.Exit(0)
-					}
-				case msg := <-w.releaseChan:
-					if msg == "release" {
-						w.logger.Info("Worker is released", zap.String("selfaddr", w.selfaddr))
-						// Breaking out of this nested loop will continue on to re-register.
-						break ReservedLoop
-					} else if msg == "idle" {
-						workerIsIdle = true
-						ticker = time.NewTicker(time.Duration(w.conf.IdleTime) * time.Millisecond)
-						// Recreating the ticker is a safe way to reset it.
-					} else { // Assume "busy".
-						workerIsIdle = false
-					}
+		if resp.Directive != "reserved" {
+			continue
+		}
+		w.logger.Info("Worker is reserved", zap.String("selfaddr", w.selfaddr))
+		// Start listening to the releaseChannel.
+		// Exit the nested loop on a release.
+		// An idle timeout will cause the process to terminate.
+		ticker := time.NewTicker(time.Duration(w.conf.IdleTime) * time.Millisecond)
+		// GoDoc mentions fewer special cases with Ticker than with Timer.
+		workerIsIdle := true
+		// The worker "stays" in the ReservedLoop until it is finshed working for a given root process.
+		// The worker starts in the idle state, and is only "busy" while responding to a /worker/chunksearch.
+	ReservedLoop:
+		for {
+			select {
+			case <-ticker.C:
+				if workerIsIdle {
+					w.logger.Warn("Worker timed out before receiving a request from the root",
+						zap.String("selfaddr", w.selfaddr))
+					os.Exit(0)
+				}
+			case msg := <-w.releaseChan:
+				if msg == "release" {
+					w.logger.Info("Worker is released", zap.String("selfaddr", w.selfaddr))
+					// Breaking out of this nested loop will continue on to re-register.
+					break ReservedLoop
+				} else if msg == "idle" {
+					workerIsIdle = true
+					ticker = time.NewTicker(time.Duration(w.conf.IdleTime) * time.Millisecond)
+					// Recreating the ticker is a safe way to reset it.
+				} else { // Assume "busy".
+					workerIsIdle = false
 				}
 			}
 		}

@@ -23,7 +23,7 @@ func handleRecruit(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	var workers []api.Worker
 	for _, e := range ws {
-		if e.Callback(recruiter.RecruitmentDetail{Label: req.Label, NumberRequested: req.NumberRequested}) {
+		if e.Callback(recruiter.RecruitmentDetail{LoggingLabel: req.Label, NumberRequested: req.NumberRequested}) {
 			workers = append(workers, api.Worker{Addr: e.Addr, NodeName: e.NodeName})
 		}
 	}
@@ -54,7 +54,7 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 		select {
 		case recruited <- rd:
 		default:
-			c.logger.Warn("Receiver not ready for recruited", zap.String("label", rd.Label))
+			c.logger.Warn("Receiver not ready for recruited", zap.String("label", rd.LoggingLabel))
 			return false
 			// Note that this warning could be logged if the recruiter timer fires
 			// very close to the same time as a /recruiter/recruit request is processed.
@@ -78,7 +78,7 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 	case rd := <-recruited:
 		c.requestLogger(r).Info("Worker recruited",
 			zap.String("addr", req.Addr),
-			zap.String("label", rd.Label),
+			zap.String("label", rd.LoggingLabel),
 			zap.Int("count", rd.NumberRequested))
 		directive = "reserved"
 	case <-timer.C:
