@@ -32,7 +32,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 	if err != nil {
 		return err
 	}
-	if _, err := w.writer.Write([]byte(s)); err != nil {
+	if _, err := io.WriteString(w.writer, s); err != nil {
 		return err
 	}
 	_, err = w.writer.Write([]byte("\n"))

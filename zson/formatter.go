@@ -24,7 +24,7 @@ type Formatter struct {
 }
 
 func NewFormatter(pretty int) *Formatter {
-	newline := ""
+	var newline string
 	if pretty > 0 {
 		newline = "\n"
 	}
@@ -77,9 +77,7 @@ func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, par
 	default:
 		f.build(typ.ZSONOf(bytes))
 	case *zng.TypeAlias:
-		if err := f.formatValue(indent, t.Type, bytes, known, false); err != nil {
-			return err
-		}
+		err = f.formatValue(indent, t.Type, bytes, known, false)
 	case *zng.TypeRecord:
 		err = f.formatRecord(indent, t, bytes, known)
 	case *zng.TypeArray:
@@ -244,12 +242,9 @@ func (f *Formatter) formatMap(indent int, typ *zng.TypeMap, bytes zcode.Bytes, k
 }
 
 func (f *Formatter) indent(tab int, s string) {
-	n := len(f.whitespace)
-	if n < tab {
-		n = 2 * tab
-		f.whitespace = strings.Repeat(" ", n)
+	for k := 0; k < tab; k++ {
+		f.builder.WriteByte(' ')
 	}
-	f.build(f.whitespace[0:tab])
 	f.build(s)
 }
 
@@ -353,7 +348,7 @@ func (f *Formatter) formatTypeRecord(typ *zng.TypeRecord) {
 }
 
 func (f *Formatter) formatTypeUnion(typ *zng.TypeUnion) {
-	sep := ""
+	var sep string
 	f.build("(")
 	for _, typ := range typ.Types {
 		f.build(sep)
@@ -364,7 +359,7 @@ func (f *Formatter) formatTypeUnion(typ *zng.TypeUnion) {
 }
 
 func (f *Formatter) formatTypeEnum(typ *zng.TypeEnum) error {
-	sep := ""
+	var sep string
 	f.build("<")
 	inner := typ.Type
 	for k, elem := range typ.Elements {
