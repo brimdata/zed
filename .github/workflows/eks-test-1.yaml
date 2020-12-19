@@ -1,0 +1,40 @@
+name: EKS Test 1
+
+on: 
+  workflow_dispatch:
+    inputs:
+      numWorkers:
+        description: 'Number of Workers'     
+        required: true
+        default: '4'
+
+jobs:
+  eks-test-zapi-1:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - uses: actions/checkout@v1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - env:
+          ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
+          ZQD_DATA_URI: s3://zqd-demo-1/mark/zqd-meta
+          ZQD_K8S_USER: ci-master
+          ZQD_TEST_CLUSTER: zq-test.us-east-2.eksctl.io
+        run: |
+          make install
+          aws eks --region us-east-2 update-kubeconfig --name zq-test
+          kubectl config set-context --current --namespace=ci-master
+          kubectl port-forward svc/recruiter-zqd 8020:9867 &
+          kubectl port-forward svc/root-zqd 9867:9867 &
+          sleep 2 # wait for port-forwards to complete
+          curl http://localhost:8020/recruiter/listfree        
+          zapi ls 
+          echo "Number of Workers: ${{ github.event.inputs.numWorkers }}"
