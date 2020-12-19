@@ -286,7 +286,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	pcapstore, err := c.mgr.GetPcapStorage(ctx, id)
 
-	op, warnings, err := ingest.NewPcapOp(ctx, store, pcapstore, req.Path, c.suricata, c.zeek)
+	op, err := ingest.NewPcapOp(ctx, store, pcapstore, req.Path, c.suricata, c.zeek)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -300,16 +300,6 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		logger.Warn("Error sending payload", zap.Error(err))
 		return
 	}
-	for _, warning := range warnings {
-		err := pipe.Send(api.PcapPostWarning{
-			Type:    "PcapPostWarning",
-			Warning: warning,
-		})
-		if err != nil {
-			logger.Warn("error sending payload", zap.Error(err))
-			return
-		}
-	}
 	ticker := time.NewTicker(time.Second * 2)
 	defer ticker.Stop()
 	for {
@@ -318,6 +308,15 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		case <-op.Done():
 			done = true
 		case <-op.Snap():
+		case warning := <-op.Warn():
+			err := pipe.Send(api.PcapPostWarning{
+				Type:    "PcapPostWarning",
+				Warning: warning,
+			})
+			if err != nil {
+				logger.Warn("error sending payload", zap.Error(err))
+				return
+			}
 		case <-ticker.C:
 		}
 
