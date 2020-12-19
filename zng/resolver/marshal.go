@@ -135,11 +135,13 @@ func typeFull(name, path string) string {
 	return fmt.Sprintf("%s.%s", path, name)
 }
 
+type TypeStyle int
+
 const (
-	TypeNone = iota
-	TypeSimple
-	TypePackage
-	TypeFull
+	TypeStyleNone = iota
+	TypeStyleSimple
+	TypeStylePackage
+	TypeStyleFull
 )
 
 // Decorate informs the marshaler to add type decorations to the resulting ZNG
@@ -150,15 +152,15 @@ const (
 // with Bindings.  Typically you would want just one or the other, but if a binding
 // doesn't exist for a given Go type, then a ZSON type name will be created according
 // to the decorator setting (which may be TypeNone).
-func (m *MarshalContext) Decorate(style int) {
+func (m *MarshalContext) Decorate(style TypeStyle) {
 	switch style {
 	default:
 		m.decorator = nil
-	case TypeSimple:
+	case TypeStyleSimple:
 		m.decorator = typeSimple
-	case TypePackage:
+	case TypeStylePackage:
 		m.decorator = typePackage
-	case TypeFull:
+	case TypeStyleFull:
 		m.decorator = typeFull
 	}
 }
@@ -421,7 +423,7 @@ func (u *UnmarshalContext) Unmarshal(zv zng.Value, v interface{}) error {
 // conflicts arise, e.g., when using the TypeSimple decorator style, you cannot
 // have a type called bar.Foo and another type baz.Foo as the simple type
 // decorator will be "Foo" in both cases and thus create a name conflict.
-func (u *UnmarshalContext) Bindings(templates ...interface{}) error {
+func (u *UnmarshalContext) Bind(templates ...interface{}) error {
 	for _, t := range templates {
 		if err := u.binder.enterTemplate(t); err != nil {
 			return err

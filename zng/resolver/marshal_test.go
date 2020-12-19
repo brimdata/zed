@@ -413,18 +413,18 @@ type Rolls []int
 func TestInterfaceMarshal(t *testing.T) {
 	t1 := Make(2)
 	m := resolver.NewMarshaler()
-	m.Decorate(resolver.TypePackage)
+	m.Decorate(resolver.TypeStylePackage)
 	zv, err := m.MarshalValue(t1)
 	require.NoError(t, err)
 	assert.Equal(t, "resolver_test.ThingTwo=({c:string})", zv.Type.ZSON())
 
-	m.Decorate(resolver.TypeSimple)
+	m.Decorate(resolver.TypeStyleSimple)
 	rolls := Rolls{1, 2, 3}
 	zv, err = m.MarshalValue(rolls)
 	require.NoError(t, err)
 	assert.Equal(t, "Rolls=([int64])", zv.Type.ZSON())
 
-	m.Decorate(resolver.TypeFull)
+	m.Decorate(resolver.TypeStyleFull)
 	zv, err = m.MarshalValue(rolls)
 	require.NoError(t, err)
 	assert.Equal(t, "github.com/brimsec/zq/zng/resolver_test.Rolls=([int64])", zv.Type.ZSON())
@@ -438,13 +438,13 @@ func TestInterfaceMarshal(t *testing.T) {
 func TestInterfaceUnmarshal(t *testing.T) {
 	t1 := Make(1)
 	m := resolver.NewMarshaler()
-	m.Decorate(resolver.TypePackage)
+	m.Decorate(resolver.TypeStylePackage)
 	zv, err := m.MarshalValue(t1)
 	require.NoError(t, err)
 	assert.Equal(t, "resolver_test.Thing=({a:string,B:int64})", zv.Type.ZSON())
 
 	u := resolver.NewUnmarshaler()
-	u.Bindings(Thing{}, ThingTwo{})
+	u.Bind(Thing{}, ThingTwo{})
 	var thing ThingaMaBob
 	require.NoError(t, err)
 	err = u.Unmarshal(zv, &thing)
