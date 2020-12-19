@@ -16,10 +16,8 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions/cache@v2
         with:
-          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
+          key: 2-${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          path: ~/go/pkg/mod
       - run: make fmt
       - run: make tidy
       - run: make vet
@@ -37,10 +35,8 @@ jobs:
       - uses: actions/checkout@v1
       - uses: actions/cache@v2
         with:
-          key: ${{ runner.os }}-go-${{ hashFiles('go.sum') }}
-          path: |
-            ~/go/pkg/mod
-            %LocalAppData%\go-build
+          key: 2-${{ runner.os }}-go-${{ hashFiles('go.sum') }}
+          path: ~/go/pkg/mod
       - run: go test -short ./...
       - run: mkdir dist -ea 0
       - run: go build -o dist ./cmd/...
