@@ -28,7 +28,7 @@ When the recruiter process receives a /register request, it adds that worker to 
 When a worker receives a "reregister" response from the recruiter, it sends another /register request without delay.
 If the worker get an error on registration, it retrys the request with an exponential back-off (delay).
 
-When a worker recieves a "reserved" reposnse, it enters a reserved state in which it will expect to receive a series of `/worker/chunksearch` requests followed by a `/worker/release` request. In this state it has a timer: if it exceeds the timeout without recieving the requests, the process will exit.
+When a worker receives a "reserved" response, it enters a reserved state in which it will expect to receive a series of `/worker/chunksearch` requests followed by a `/worker/release` request. In this state it has a timer: if it exceeds the timeout without receiving the requests, the process will exit.
 
 ### /recruiter/recruit
 
