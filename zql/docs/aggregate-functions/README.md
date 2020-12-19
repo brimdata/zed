@@ -109,7 +109,6 @@ TS                   SHORT_RTT            SHORT_COUNT LONG_RTT             LONG_
 | **Syntax**                | `and(<expression>)`                                            |
 | **Required<br>arguments** | `<expression>`<br>A valid ZQL [expression](../expressions/README.md). |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Logical       |
 
 #### Example:
 
@@ -152,7 +151,6 @@ COUNT
 | **Syntax**                | `avg(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Avg           |
 
 #### Example:
 
@@ -179,7 +177,6 @@ AVG
 | **Syntax**                | `collect(<field-name>)`                                        |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Collect       |
 
 #### Example #1:
 
@@ -210,7 +207,6 @@ CI0SCN14gWpY087KA3 GET,POST,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET
 | **Syntax**                | `count([field-name])`                                          |
 | **Required<br>arguments** | None                                                           |
 | **Optional<br>arguments** | `[field-name]`<br>The name a field. If specified, only events that contain this field will be counted. |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Count         |
 
 #### Example #1:
 
@@ -253,7 +249,6 @@ ftp   93
 | **Required<br>arguments** | `<field-name>`<br>The name of a field containing values to be counted. |
 | **Optional<br>arguments** | None                                                           |
 | **Limitations**           | The potential inaccuracy of the calculated result is described in detail in the code and research linked from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog). |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#CountDistinct |
 
 #### Example:
 
@@ -294,7 +289,6 @@ to perform this test, the ZQL using `countdistinct()` executed almost 3x faster.
 | **Syntax**                | `first(<field-name>)`                                          |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#First         |
 
 #### Example:
 
@@ -320,7 +314,6 @@ TCP_ack_underflow_or_misorder
 | **Syntax**                | `last(<field-name>)`                                           |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Last          |
 
 #### Example:
 
@@ -346,7 +339,6 @@ talk.google.com
 | **Syntax**                | `max(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer/field#FieldReducer |
 
 #### Example:
 
@@ -373,7 +365,6 @@ MAX
 | **Syntax**                | `min(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer/field#FieldReducer |
 
 #### Example:
 
@@ -400,7 +391,6 @@ MIN
 | **Syntax**                | `or(<expression>)`                                             |
 | **Required<br>arguments** | `<expression>`<br>A valid ZQL [expression](../expressions/README.md). |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Logical       |
 
 #### Example:
 
@@ -444,7 +434,6 @@ T              F
 | **Syntax**                | `sum(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer/field#FieldReducer |
 
 #### Example:
 
@@ -472,7 +461,6 @@ SUM
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
 | **Limitations**           | The data type of the input values must be uniform.             |
-| **Developer Docs**        | https://pkg.go.dev/github.com/brimsec/zq/reducer#Union         |
 
 #### Example #1:
 

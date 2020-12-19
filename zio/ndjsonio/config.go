@@ -16,8 +16,13 @@ type Rule struct {
 // list of rules defining which records should be mapped into which
 // descriptor.
 type TypeConfig struct {
-	Descriptors map[string][]interface{} `json:"descriptors"`
-	Rules       []Rule                   `json:"rules"`
+	// If PassUnknowns is true, additional fields not found in the
+	// descriptor are included after running regular 5-type json
+	// inference on them. Otherwise, additional fields result in
+	// an error.
+	PassUnknowns bool                     `json:"pass_unknowns"`
+	Descriptors  map[string][]interface{} `json:"descriptors"`
+	Rules        []Rule                   `json:"rules"`
 }
 
 func hasField(name string, columns []interface{}) bool {
