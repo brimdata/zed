@@ -46,6 +46,9 @@ func RecruitWorkers(ctx *proc.Context, workerCount int, conf worker.WorkerConfig
 		return nil, fmt.Errorf("error on recruit for recruiter at %s : %v", conf.Recruiter, err)
 	}
 	if workerCount > len(resp.Workers) {
+		// This error currently causes an abort, but it will be fixed
+		// with issue #1839 which will allow the flowgraph (AST) to be used with
+		// less than the requested number of workers. -MTW
 		err := fmt.Errorf("requested workers %d greater than available workers %d",
 			workerCount, len(resp.Workers))
 		if !conf.Fallback {

@@ -10,7 +10,7 @@ The overall goal of the recruiter system is to provide workers for zqd root proc
 
 From the workers point of view, after it has been recruited by a zqd root process, it expects to receive search requests followed by a release request.
 
-The recruiter has a /recruiter/register API by which the worker can register it's availablity to be recruited. The recruiter also has a /recruiter/recruit API for the zqd root process to recruit workers for distributed queries. The pool of workers is maintained in a Kubernetes cluster using a deployment that specifies the number of replicated workers. This replication count can be adjusted up or down based on autoscaling algorithms outside of the recruiter. Each worker in the cluster registers with the single recruiter in the cluster. An important design goal is that recruiter pod and worker pods can be restarted at any time with no noticable interuption of service.
+The recruiter has a `/recruiter/register` API by which the worker can register it's availablity to be recruited. The recruiter also has a `/recruiter/recruit` API for the zqd root process to recruit workers for distributed queries. The pool of workers is maintained in a Kubernetes cluster using a deployment that specifies the number of replicated workers. This replication count can be adjusted up or down based on autoscaling algorithms outside of the recruiter. Each worker in the cluster registers with the single recruiter in the cluster. An important design goal is that recruiter pod and worker pods can be restarted at any time with no noticable interuption of service.
 
 ## API
 
@@ -21,9 +21,9 @@ zqd personality=recruiter provides the following REST API:
 Request: {"addr" : "*host:port for worker*", "node" : "*ID of node in cluster*"}
 Response: {"directive" : "reserved" OR "reregister"}
 
-/register is called by zqd worker processes. It is a long-poll call: the connection will be held open by the recruiter until the worker is recruited or the call times out. /register is called in a goroutine loop.
+/register is called by zqd worker processes. It is a long-poll call: the connection will be held open by the recruiter until the worker is recruited or the call times out. `/register` is called in a goroutine loop.
 
-When the recruiter process receives a /register request, it adds that worker to a pool of available workers. It maintains a list of available workers for each node in the cluster. Before responding the long-poll with "reserved" or "reregister", the recruiter removes the worker from the available pool. Thus, a worker can only be recruited when it has an active connection to the recruiter, i.e. we know it has not crashed.
+When the recruiter process receives a `/register` request, it adds that worker to a pool of available workers. It maintains a list of available workers for each node in the cluster. Before responding the long-poll with "reserved" or "reregister", the recruiter removes the worker from the available pool. Thus, a worker can only be recruited when it has an active connection to the recruiter, i.e. we know it has not crashed.
 
 When a worker receives a "reregister" response from the recruiter, it sends another /register request without delay.
 If the worker get an error on registration, it retrys the request with an exponential back-off (delay).
@@ -65,7 +65,7 @@ On a `/recruit` request, the recruiter process responds to each worker, informin
 
 If the root process halts (restarts) before sending requests, the workers have a specified "idle" timeout, after which they will exit. The exit will cause the worker pods to be restarted (and possibly scheduled to different nodes) and they will register with the recuiter as they come up.
 
-If the root process halts (crashes for any reason) during query execution, the connection from the root to the worker will be broken. This will cause the idle timer in that worker to be restarted, and the worker will exit unless the root sends it another reuqest before the timeout.
+If the root process halts (crashes for any reason) during query execution, the worker will be stranded. If a `/worker/chucksearch` request is aborted it will cause the idle timer in that worker to be restarted, and the worker will exit unless the root sends it another request before the idle timeout. If the root crashes in between requests to the worker, the idle timer will have already started, and the worker will eventually restart.
 
 Suppose the root process gets into "wedged" state where it keeps the connection with the workers open, but is not making progress toward completing a query. In that case, the "wedged" root process will also cause the workers to be unavailable for recruitment. It may be worth adding code to the zqd query path to detect this type of failure.
 

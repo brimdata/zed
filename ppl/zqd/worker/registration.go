@@ -16,23 +16,22 @@ type WorkerConfig struct {
 	BoundWorkers string
 	Fallback     bool
 	Host         string
-	LongPoll     int
-	MaxRetry     int
-	MinRetry     int
+	LongPoll     time.Duration
+	MaxRetry     time.Duration
+	MinRetry     time.Duration
 	Node         string
 	Recruiter    string
-	Retry        int
-	IdleTime     int
+	IdleTime     time.Duration
 }
 
 func (c *WorkerConfig) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&c.BoundWorkers, "worker.bound", "", "bound workers as comma-separated [addr]:port list")
 	fs.BoolVar(&c.Fallback, "worker.fallback", false, "fallback to using fewer workers than requested")
 	fs.StringVar(&c.Host, "worker.host", "", "host ip of container")
-	fs.IntVar(&c.IdleTime, "worker.idletime", 2000, "timeout in milliseconds for zombie worker processes to exit")
-	fs.IntVar(&c.LongPoll, "worker.longpoll", 30000, "timeout in milliseconds for long poll of /recruiter/register request")
-	fs.IntVar(&c.MaxRetry, "worker.maxretry", 10000, "maximum retry wait in milliseconds for registration request")
-	fs.IntVar(&c.MinRetry, "worker.minretry", 200, "minimum retry wait in milliseconds for registration request")
+	fs.DurationVar(&c.IdleTime, "worker.idletime", 2*time.Second, "timeout duration for zombie worker processes to exit")
+	fs.DurationVar(&c.LongPoll, "worker.longpoll", 30*time.Second, "timeout duration for long poll of /recruiter/register request")
+	fs.DurationVar(&c.MaxRetry, "worker.maxretry", 10*time.Second, "maximum retry wait duration for registration request")
+	fs.DurationVar(&c.MinRetry, "worker.minretry", 200*time.Millisecond, "minimum retry wait duration for registration request")
 	fs.StringVar(&c.Node, "worker.node", "", "logical node name within the compute cluster")
 	fs.StringVar(&c.Recruiter, "worker.recruiter", "", "recruiter address for worker registration")
 }
@@ -42,12 +41,13 @@ func (c *WorkerConfig) SetFlags(fs *flag.FlagSet) {
 type RegistrationState struct {
 	conf        WorkerConfig
 	conn        *client.Connection
+	ctx         context.Context
 	logger      *zap.Logger
 	releaseChan chan string
 	selfaddr    string
 }
 
-func NewRegistrationState(srvAddr string, conf WorkerConfig, logger *zap.Logger) (*RegistrationState, error) {
+func NewRegistrationState(ctx context.Context, srvAddr string, conf WorkerConfig, logger *zap.Logger) (*RegistrationState, error) {
 	host, port, _ := net.SplitHostPort(srvAddr)
 	if conf.Host != "" {
 		host = conf.Host
@@ -55,6 +55,7 @@ func NewRegistrationState(srvAddr string, conf WorkerConfig, logger *zap.Logger)
 	rs := &RegistrationState{
 		conf:        conf,
 		conn:        client.NewConnectionTo("http://" + conf.Recruiter),
+		ctx:         ctx,
 		logger:      logger,
 		releaseChan: make(chan string),
 		selfaddr:    net.JoinHostPort(host, port),
@@ -64,9 +65,8 @@ func NewRegistrationState(srvAddr string, conf WorkerConfig, logger *zap.Logger)
 
 // RegisterWithRecruiter is used by personality=worker.
 func (rs *RegistrationState) RegisterWithRecruiter() {
-	ctx := context.Background()
 	req := api.RegisterRequest{
-		Timeout: rs.conf.LongPoll,
+		Timeout: int(rs.conf.LongPoll / time.Millisecond),
 		Worker: api.Worker{
 			Addr:     rs.selfaddr,
 			NodeName: rs.conf.Node,
@@ -76,13 +76,13 @@ func (rs *RegistrationState) RegisterWithRecruiter() {
 	// Loop for registration long polling.
 	for {
 		rs.logger.Info("Register",
-			zap.Int("longpoll", rs.conf.LongPoll),
+			zap.Duration("longpoll", rs.conf.LongPoll),
 			zap.String("recruiter", rs.conf.Recruiter))
-		resp, err := rs.conn.Register(ctx, req)
+		resp, err := rs.conn.Register(rs.ctx, req)
 		if err != nil {
 			rs.logger.Error(
 				"Error on recruiter registration, waiting to retry",
-				zap.Int("retry", retryWait),
+				zap.Duration("retry", retryWait),
 				zap.String("recruiter", rs.conf.Recruiter),
 				zap.Error(err))
 			// Delay next request. There is an
