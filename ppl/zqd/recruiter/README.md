@@ -53,7 +53,7 @@ If a worker halts while working on a distributed query, that worker is lost to t
 
 ## Recovery on recruiter restart
 
-In a cluster environment, it should not be surprising that any one pod will restart occasionally to be reschduled on another node. So, any clustered application should not depend on continious memory state of one pod. Of course there are many other potential reasons for an unexpected shutdown of a pod.
+In a cluster environment, it should not be surprising that any one pod will restart occasionally to be reschduled on another node. So, any clustered application should not depend on continuous memory state of one pod. Of course there are many other potential reasons for an unexpected shutdown of a pod.
 
 The current design calls for one recruiter per cluster. When that recruiter unexpectly restarts, all registered worker pods will be in a loop that will cause them to reregister after a short delay specified in their config (e.g. 200 ms with an exponential backoff). In a healthy cluster, restarting a recruiter will be sub-second, and all available workers will reregister shortly thereafter. No information is lost, and the recruiter is available for `/recruit` requests without a significant interuption.
 
