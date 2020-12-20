@@ -25,6 +25,7 @@ import (
 type archivePcapOp struct {
 	cleanupfns     []func()
 	err            error
+	warn           chan string
 	done           chan struct{}
 	pcapuri        iosrc.URI
 	pcapstore      *pcapstorage.Store
@@ -43,10 +44,10 @@ type archivePcapOp struct {
 	pcapCounter    *writeCounter
 }
 
-func newArchivePcapOp(ctx context.Context, logstore *archivestore.Storage, pcapstore *pcapstorage.Store, pcapuri iosrc.URI, suricata, zeek pcapanalyzer.Launcher) (PcapOp, []string, error) {
+func newArchivePcapOp(ctx context.Context, logstore *archivestore.Storage, pcapstore *pcapstorage.Store, pcapuri iosrc.URI, suricata, zeek pcapanalyzer.Launcher) (PcapOp, error) {
 	info, err := iosrc.Stat(ctx, pcapuri)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	warn := make(chan string)
 	go func() {
@@ -58,7 +59,7 @@ func newArchivePcapOp(ctx context.Context, logstore *archivestore.Storage, pcaps
 		warnings = append(warnings, w)
 	}
 	if err != nil {
-		return nil, warnings, err
+		return nil, err
 	}
 	p := &archivePcapOp{
 		done:      make(chan struct{}),
@@ -76,13 +77,16 @@ func newArchivePcapOp(ctx context.Context, logstore *archivestore.Storage, pcaps
 		pcapCounter:    &writeCounter{},
 	}
 	go func() {
+		for _, w := range warnings {
+			p.warn <- w
+		}
 		p.err = p.run(ctx)
 		for _, fn := range p.cleanupfns {
 			fn()
 		}
 		close(p.done)
 	}()
-	return p, warnings, nil
+	return p, nil
 }
 
 func (p *archivePcapOp) run(ctx context.Context) error {
@@ -168,7 +172,7 @@ func (p *archivePcapOp) runAnalyzer(ctx context.Context, group *errgroup.Group, 
 		return nil, nil, err
 	}
 	dr, err := newLogTailer(p.zctx, logdir, zio.ReaderOpts{
-		JSON: ndjsonio.ReaderOpts{TypeConfig: suricataTC},
+		JSON: ndjsonio.ReaderOpts{TypeConfig: suricataTC, Warnings: p.warn},
 	})
 	if err != nil {
 		return nil, nil, err
@@ -235,4 +239,9 @@ func (p *archivePcapOp) cleanup(fn func()) {
 // Done returns a chan that emits when the ingest process is complete.
 func (p *archivePcapOp) Done() <-chan struct{} {
 	return p.done
+}
+
+// Warn returns a chan that emits warnings.
+func (p *archivePcapOp) Warn() <-chan string {
+	return p.warn
 }

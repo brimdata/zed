@@ -31,6 +31,8 @@ type typeParser struct {
 	stats         *typeStats
 	typeInfoCache map[int]*typeInfo
 	passUnknowns  bool
+	warn          chan<- string
+	warnSent      map[string]struct{}
 }
 
 var (
@@ -296,6 +298,17 @@ func (p *typeParser) parseObject(b []byte, inferrer inferParser) (zng.Value, err
 		if !p.passUnknowns {
 			incr(&p.stats.IncompleteDescriptor)
 			return zng.Value{}, ErrIncompleteDescriptor
+		}
+		if p.warn != nil {
+			msg := "Unexpected additional field(s)"
+			for _, v := range toInfer {
+				msg = msg + " '" + string(v.key) + "'"
+			}
+			msg = msg + ". Please email this error message to support@brimsecurity.com."
+			if _, ok := p.warnSent[msg]; !ok {
+				p.warn <- msg
+				p.warnSent[msg] = struct{}{}
+			}
 		}
 		cols := ti.descriptor.Columns
 		for _, v := range toInfer {

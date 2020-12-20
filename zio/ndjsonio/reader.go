@@ -29,6 +29,7 @@ const DefaultPathRegexp = `([a-zA-Z0-9_]+)(?:\.|_\d{8}_)\d\d:\d\d:\d\d\-\d\d:\d\
 type ReaderOpts struct {
 	TypeConfig *TypeConfig
 	PathRegexp string
+	Warnings   chan<- string
 }
 
 type ReadStats struct {
@@ -77,7 +78,7 @@ func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepa
 		if len(match) == 2 {
 			path = match[1]
 		}
-		if err = r.configureTypes(*opts.TypeConfig, path); err != nil {
+		if err = r.configureTypes(*opts.TypeConfig, path, opts.Warnings); err != nil {
 			return nil, err
 		}
 	}
@@ -98,7 +99,7 @@ type typeRules struct {
 // In the absence of a TypeConfig, records are all parsed with the
 // inferParser. If a TypeConfig is present, records are parsed
 // with the typeParser.
-func (r *Reader) configureTypes(tc TypeConfig, defaultPath string) error {
+func (r *Reader) configureTypes(tc TypeConfig, defaultPath string, warn chan<- string) error {
 	tr := typeRules{
 		descriptors: make(map[string]*zng.TypeRecord),
 		rules:       tc.Rules,
@@ -126,6 +127,8 @@ func (r *Reader) configureTypes(tc TypeConfig, defaultPath string) error {
 		typeInfoCache: make(map[int]*typeInfo),
 		defaultPath:   defaultPath,
 		passUnknowns:  tc.PassUnknowns,
+		warn:          warn,
+		warnSent:      make(map[string]struct{}),
 	}
 	return nil
 }

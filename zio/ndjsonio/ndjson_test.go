@@ -373,7 +373,7 @@ func TestNDJSONTypeErrors(t *testing.T) {
 			w := NewWriter(NopCloser(&out))
 			r, err := NewReader(strings.NewReader(c.input), resolver.NewContext(), ReaderOpts{}, "")
 			require.NoError(t, err)
-			err = r.configureTypes(typeConfig, c.defaultPath)
+			err = r.configureTypes(typeConfig, c.defaultPath, nil)
 			require.NoError(t, err)
 
 			err = zbuf.Copy(w, r)

@@ -38,6 +38,7 @@ type PcapOp interface {
 	// running. If the process is still running Err will wait for the process to
 	// complete before returning.
 	Err() error
+	Warn() <-chan string
 	Done() <-chan struct{}
 	Snap() <-chan struct{}
 }
@@ -50,13 +51,13 @@ type ClearableStore interface {
 }
 
 // NewPcapOp kicks of the process for ingesting a pcap file into a space.
-func NewPcapOp(ctx context.Context, store storage.Storage, pcapstore *pcapstorage.Store, pcap string, suricata, zeek pcapanalyzer.Launcher) (PcapOp, []string, error) {
+func NewPcapOp(ctx context.Context, store storage.Storage, pcapstore *pcapstorage.Store, pcap string, suricata, zeek pcapanalyzer.Launcher) (PcapOp, error) {
 	pcapuri, err := iosrc.ParseURI(pcap)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	if suricata == nil && zeek == nil {
-		return nil, nil, fmt.Errorf("must provide at least one launcher")
+		return nil, fmt.Errorf("must provide at least one launcher")
 	}
 	logstore, ok := store.(ClearableStore)
 	if ok {
@@ -73,6 +74,7 @@ type legacyPcapOp struct {
 	logdir     string
 	done, snap chan struct{}
 	err        error
+	warn       chan string
 
 	slauncher, zlauncher pcapanalyzer.Launcher
 
@@ -82,13 +84,13 @@ type legacyPcapOp struct {
 	pcapReadSize int64
 }
 
-func newFilePcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store ClearableStore, pcapuri iosrc.URI, slauncher, zlauncher pcapanalyzer.Launcher) (*legacyPcapOp, []string, error) {
+func newFilePcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store ClearableStore, pcapuri iosrc.URI, slauncher, zlauncher pcapanalyzer.Launcher) (*legacyPcapOp, error) {
 	if slauncher == nil && zlauncher == nil {
-		return nil, nil, fmt.Errorf("must provide at least one launcher")
+		return nil, fmt.Errorf("must provide at least one launcher")
 	}
 	info, err := iosrc.Stat(ctx, pcapuri)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	warn := make(chan string)
 	go func() {
@@ -100,11 +102,11 @@ func newFilePcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store Clea
 		warnings = append(warnings, w)
 	}
 	if err != nil {
-		return nil, warnings, err
+		return nil, err
 	}
 	logdir, err := ioutil.TempDir("", "zqd-pcap-ingest-")
 	if err != nil {
-		return nil, warnings, err
+		return nil, err
 	}
 	p := &legacyPcapOp{
 		startTime: nano.Now(),
@@ -115,15 +117,19 @@ func newFilePcapOp(ctx context.Context, pcapstore *pcapstorage.Store, store Clea
 		logdir:    logdir,
 		done:      make(chan struct{}),
 		snap:      make(chan struct{}),
+		warn:      make(chan string),
 		slauncher: slauncher,
 		zlauncher: zlauncher,
 	}
 	go func() {
+		for _, w := range warnings {
+			p.warn <- w
+		}
 		p.err = p.run(ctx)
 		close(p.done)
 		close(p.snap)
 	}()
-	return p, warnings, nil
+	return p, nil
 }
 
 func (p *legacyPcapOp) run(ctx context.Context) error {
@@ -254,6 +260,11 @@ func (p *legacyPcapOp) Done() <-chan struct{} {
 	return p.done
 }
 
+// Warn returns a chan that emits warnings.
+func (p *legacyPcapOp) Warn() <-chan string {
+	return p.warn
+}
+
 func (p *legacyPcapOp) SnapshotCount() int {
 	return int(atomic.LoadInt32(&p.snapshots))
 }
@@ -308,7 +319,7 @@ func (p *legacyPcapOp) createSnapshot(ctx context.Context) error {
 func (p *legacyPcapOp) convertSuricataLog(ctx context.Context) error {
 	zctx := resolver.NewContext()
 	path := filepath.Join(p.logdir, "eve.json")
-	zr, err := detector.OpenFile(zctx, path, zio.ReaderOpts{JSON: ndjsonio.ReaderOpts{TypeConfig: suricataTC}})
+	zr, err := detector.OpenFile(zctx, path, zio.ReaderOpts{JSON: ndjsonio.ReaderOpts{TypeConfig: suricataTC, Warnings: p.warn}})
 	if err != nil {
 		return err
 	}
