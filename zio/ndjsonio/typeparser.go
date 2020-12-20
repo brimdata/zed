@@ -300,10 +300,11 @@ func (p *typeParser) parseObject(b []byte, inferrer inferParser) (zng.Value, err
 			return zng.Value{}, ErrIncompleteDescriptor
 		}
 		if p.warn != nil {
-			msg := "Found unexpected ndjson fields (not in schema): "
+			msg := "Unexpected additional field(s)"
 			for _, v := range toInfer {
-				msg = msg + " " + string(v.key)
+				msg = msg + " '" + string(v.key) + "'"
 			}
+			msg = msg + ". Please email this error message to support@brimsecurity.com."
 			if _, ok := p.warnSent[msg]; !ok {
 				p.warn <- msg
 				p.warnSent[msg] = struct{}{}
