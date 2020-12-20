@@ -3,8 +3,10 @@ package resolver
 import (
 	"errors"
 	"fmt"
+	"net"
 	"reflect"
 	"strings"
+	"time"
 
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
@@ -22,8 +24,8 @@ type Marshaler interface {
 	MarshalZNG(*MarshalContext) (zng.Type, error)
 }
 
-func Marshal(v interface{}) (zng.Type, error) {
-	return NewMarshaler().encodeValue(reflect.ValueOf(v))
+func Marshal(v interface{}) (zng.Value, error) {
+	return NewMarshaler().Marshal(v)
 }
 
 type MarshalContext struct {
@@ -43,22 +45,26 @@ func NewMarshalerWithContext(zctx *Context) *MarshalContext {
 	}
 }
 
-func (m *MarshalContext) Marshal(v interface{}) (zng.Type, error) {
+// MarshalValue marshals v into the value that is being built and is
+// typically called by a custom marshaler.
+func (m *MarshalContext) MarshalValue(v interface{}) (zng.Type, error) {
 	return m.encodeValue(reflect.ValueOf(v))
 }
 
-func (m *MarshalContext) MarshalValue(v interface{}) (zng.Value, error) {
+func (m *MarshalContext) Marshal(v interface{}) (zng.Value, error) {
 	m.Builder.Reset()
 	typ, err := m.encodeValue(reflect.ValueOf(v))
 	if err != nil {
 		return zng.Value{}, err
 	}
 	bytes := m.Builder.Bytes()
-	if _, ok := zng.AliasedType(typ).(*zng.TypeRecord); ok {
-		bytes, err = bytes.ContainerBody()
-		if err != nil {
-			return zng.Value{}, err
-		}
+	it := bytes.Iter()
+	if it.Done() {
+		return zng.Value{}, errors.New("no value found")
+	}
+	bytes, _, err = it.Next()
+	if err != nil {
+		return zng.Value{}, err
 	}
 	return zng.Value{typ, bytes}, nil
 }
@@ -138,10 +144,10 @@ func typeFull(name, path string) string {
 type TypeStyle int
 
 const (
-	TypeStyleNone = iota
-	TypeStyleSimple
-	TypeStylePackage
-	TypeStyleFull
+	StyleNone = iota
+	StyleSimple
+	StylePackage
+	StyleFull
 )
 
 // Decorate informs the marshaler to add type decorations to the resulting ZNG
@@ -156,11 +162,11 @@ func (m *MarshalContext) Decorate(style TypeStyle) {
 	switch style {
 	default:
 		m.decorator = nil
-	case TypeStyleSimple:
+	case StyleSimple:
 		m.decorator = typeSimple
-	case TypeStylePackage:
+	case StylePackage:
 		m.decorator = typePackage
-	case TypeStyleFull:
+	case StyleFull:
 		m.decorator = typeFull
 	}
 }
@@ -192,9 +198,11 @@ func (m *MarshalContext) encodeValue(v reflect.Value) (zng.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	if m.decorator != nil || m.bindings != nil {
-		if !v.IsValid() {
+		// Don't create aliases for interface types as this is just
+		// one value for that interface and its the underlying concrete
+		// types that implement the interface that we want to alias.
+		if !v.IsValid() || v.Kind() == reflect.Interface {
 			return typ, nil
 		}
 		name := v.Type().Name()
@@ -239,6 +247,11 @@ func (m *MarshalContext) encodeAny(v reflect.Value) (zng.Type, error) {
 	case reflect.Struct:
 		return m.encodeRecord(v)
 	case reflect.Ptr:
+		if v.IsNil() {
+			return m.encodeNil(v.Type())
+		}
+		return m.encodeValue(v.Elem())
+	case reflect.Interface:
 		if v.IsNil() {
 			return m.encodeNil(v.Type())
 		}
@@ -442,6 +455,9 @@ func (u *UnmarshalContext) NamedBindings(bindings []Binding) error {
 }
 
 func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
+	if !v.IsValid() {
+		return errors.New("cannot unmarshal into value provided")
+	}
 	if v.Type().Implements(unmarshalerType) {
 		if v.IsNil() {
 			v.Set(reflect.New(v.Type().Elem()))
@@ -475,20 +491,29 @@ func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		// has a type name (via alias), then we'll see if there's a
 		// binding fot it and unmarshal into an instance of Template
 		// in the binding.
-		if !v.IsValid() {
-			return fmt.Errorf("no zng decoration for interface: %v", v.Type().Name())
+		typ, err := u.lookupType(zv.Type)
+		if err != nil {
+			return err
 		}
-		alias, ok := zv.Type.(*zng.TypeAlias)
-		if !ok {
-			return fmt.Errorf("no zng decoration for interface %q", v.Type().Name())
+		if typ == nil {
+			// ZNG type null values can only by value null.
+			v.Set(reflect.Zero(v.Type()))
+			return nil
 		}
-		template := u.binder.lookup(alias.Name)
-		if template == nil {
-			return fmt.Errorf("no binding for ZSON type %q", alias)
+		concrete := reflect.New(typ)
+		if err := u.decodeAny(zv, concrete.Elem()); err != nil {
+			return err
 		}
-		concrete := reflect.New(template)
-		v.Set(concrete)
-		return u.decodeAny(zng.Value{alias.Type, zv.Bytes}, concrete)
+		// For empty interface, we pull the value pointed-at into the
+		// empty-interface value if it's not a struct (i.e., a scalar or
+		// a slice)  For normal interfaces, we set the pointer to be
+		// the pointer to the new object as it must be type-compatible.
+		if v.NumMethod() == 0 && concrete.Elem().Kind() != reflect.Struct {
+			v.Set(concrete.Elem())
+		} else {
+			v.Set(concrete)
+		}
+		return nil
 	case reflect.Ptr:
 		if zv.Bytes == nil {
 			v.Set(reflect.Zero(v.Type()))
@@ -497,11 +522,13 @@ func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		if v.IsNil() {
 			v.Set(reflect.New(v.Type().Elem()))
 		}
-		v = v.Elem()
-		err := u.decodeAny(zv, v)
-		return err
+		return u.decodeAny(zv, v.Elem())
 	case reflect.String:
-		if zv.Type != zng.TypeString {
+		// XXX We bundle string, bstring, type, error all into string.
+		// See issue #1853.
+		switch zng.AliasedType(zv.Type) {
+		case zng.TypeString, zng.TypeBstring, zng.TypeType, zng.TypeError:
+		default:
 			return incompatTypeError(zv.Type, v)
 		}
 		if zv.Bytes == nil {
@@ -512,7 +539,7 @@ func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		v.SetString(x)
 		return err
 	case reflect.Bool:
-		if zv.Type != zng.TypeBool {
+		if zng.AliasedType(zv.Type) != zng.TypeBool {
 			return incompatTypeError(zv.Type, v)
 		}
 		if zv.Bytes == nil {
@@ -523,7 +550,7 @@ func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		v.SetBool(x)
 		return err
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		switch zv.Type {
+		switch zng.AliasedType(zv.Type) {
 		case zng.TypeInt8, zng.TypeInt16, zng.TypeInt32, zng.TypeInt64:
 		default:
 			return incompatTypeError(zv.Type, v)
@@ -536,7 +563,7 @@ func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		v.SetInt(x)
 		return err
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		switch zv.Type {
+		switch zng.AliasedType(zv.Type) {
 		case zng.TypeUint8, zng.TypeUint16, zng.TypeUint32, zng.TypeUint64:
 		default:
 			return incompatTypeError(zv.Type, v)
@@ -550,7 +577,7 @@ func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		return err
 	case reflect.Float32, reflect.Float64:
 		// TODO: zng.TypeFloat32 when it lands
-		switch zv.Type {
+		switch zng.AliasedType(zv.Type) {
 		case zng.TypeFloat64:
 		default:
 			return incompatTypeError(zv.Type, v)
@@ -568,7 +595,7 @@ func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
 }
 
 func (u *UnmarshalContext) decodeIP(zv zng.Value, v reflect.Value) error {
-	if zv.Type != zng.TypeIP {
+	if zng.AliasedType(zv.Type) != zng.TypeIP {
 		return incompatTypeError(zv.Type, v)
 	}
 	if zv.Bytes == nil {
@@ -588,9 +615,6 @@ func (u *UnmarshalContext) decodeRecord(zv zng.Value, sval reflect.Value) error 
 	nameToField := make(map[string]int)
 	stype := sval.Type()
 	for i := 0; i < stype.NumField(); i++ {
-		if !sval.Field(i).CanSet() {
-			continue
-		}
 		field := stype.Field(i)
 		name := fieldName(field)
 		nameToField[name] = i
@@ -615,7 +639,7 @@ func (u *UnmarshalContext) decodeRecord(zv zng.Value, sval reflect.Value) error 
 }
 
 func (u *UnmarshalContext) decodeArray(zv zng.Value, arrVal reflect.Value) error {
-	arrType, ok := zv.Type.(*zng.TypeArray)
+	arrType, ok := zng.AliasedType(zv.Type).(*zng.TypeArray)
 	if !ok {
 		return errors.New("not an array")
 	}
@@ -740,4 +764,101 @@ func typeNameOfValue(value interface{}) (string, error) {
 		return "", err
 	}
 	return fmt.Sprintf("%s.%s", typ.PkgPath(), typ.Name()), nil
+}
+
+func (u *UnmarshalContext) lookupType(typ zng.Type) (reflect.Type, error) {
+	switch typ := typ.(type) {
+	case *zng.TypeAlias:
+		template := u.binder.lookup(typ.Name)
+		if template == nil {
+			// Ignore aliases for which there are no bindings.
+			// If an interface type being marshaled into doesn't
+			// have a binding, then a type mismatch will be caught
+			// by reflect when the Set() method is called on the
+			// value and the concrete value doesn't implement the
+			// interface.
+			return u.lookupType(typ.Type)
+		}
+		return template, nil
+	case *zng.TypeRecord:
+		return u.lookupTypeRecord(typ)
+	case *zng.TypeArray:
+		elemType, err := u.lookupType(typ.Type)
+		if err != nil {
+			return nil, err
+		}
+		return reflect.SliceOf(elemType), nil
+	case *zng.TypeSet:
+		elemType, err := u.lookupType(typ.Type)
+		if err != nil {
+			return nil, err
+		}
+		return reflect.SliceOf(elemType), nil
+	case *zng.TypeUnion, *zng.TypeEnum:
+		// For now just return nil here. The layer above will flag
+		// a type error.  At some point, we can create Go-native data structures
+		// in package zng for representing a union or enum as a standalone
+		// entity.  See issue #1853.
+		return nil, nil
+	case *zng.TypeMap:
+		KeyType, err := u.lookupType(typ.KeyType)
+		if err != nil {
+			return nil, err
+		}
+		valType, err := u.lookupType(typ.ValType)
+		if err != nil {
+			return nil, err
+		}
+		return reflect.MapOf(KeyType, valType), nil
+	default:
+		return u.lookupPrimitiveType(typ)
+	}
+}
+
+func (u *UnmarshalContext) lookupTypeRecord(typ *zng.TypeRecord) (reflect.Type, error) {
+	return nil, errors.New("unmarshaling records into interface value requires type binding")
+}
+
+func (u *UnmarshalContext) lookupPrimitiveType(typ zng.Type) (reflect.Type, error) {
+	var v interface{}
+	switch typ := typ.(type) {
+	// XXX We should have counterparts for bstring, error, and type type.
+	// See issue #1853.
+	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfError, *zng.TypeOfType:
+		v = ""
+	case *zng.TypeOfBool:
+		v = true
+	case *zng.TypeOfUint8:
+		v = uint8(0)
+	case *zng.TypeOfUint16:
+		v = uint16(0)
+	case *zng.TypeOfUint32:
+		v = uint32(0)
+	case *zng.TypeOfUint64:
+		v = uint64(0)
+	case *zng.TypeOfInt8:
+		v = int8(0)
+	case *zng.TypeOfInt16:
+		v = int16(0)
+	case *zng.TypeOfInt32:
+		v = int32(0)
+	case *zng.TypeOfInt64:
+		v = int64(0)
+	// TODO: zng.TypeFloat32 when it lands
+	case *zng.TypeOfFloat64:
+		v = float64(0)
+	case *zng.TypeOfIP:
+		v = net.IP{}
+	case *zng.TypeOfNet:
+		v = net.IPNet{}
+	case *zng.TypeOfTime:
+		v = time.Time{}
+	case *zng.TypeOfDuration:
+		v = time.Duration(0)
+	case *zng.TypeOfNull:
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("unknown zng type: %v", typ)
+	}
+	return reflect.TypeOf(v), nil
 }

@@ -255,7 +255,7 @@ func TestUnmarshalSlice(t *testing.T) {
 type testMarshaler string
 
 func (m testMarshaler) MarshalZNG(mc *resolver.MarshalContext) (zng.Type, error) {
-	return mc.Marshal("marshal-" + string(m))
+	return mc.MarshalValue("marshal-" + string(m))
 }
 
 func (m *testMarshaler) UnmarshalZNG(zv zng.Value) error {
@@ -414,23 +414,23 @@ func TestInterfaceMarshal(t *testing.T) {
 	t1 := Make(2)
 	m := resolver.NewMarshaler()
 	m.Decorate(resolver.TypeStylePackage)
-	zv, err := m.MarshalValue(t1)
+	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
 	assert.Equal(t, "resolver_test.ThingTwo=({c:string})", zv.Type.ZSON())
 
 	m.Decorate(resolver.TypeStyleSimple)
 	rolls := Rolls{1, 2, 3}
-	zv, err = m.MarshalValue(rolls)
+	zv, err = m.Marshal(rolls)
 	require.NoError(t, err)
 	assert.Equal(t, "Rolls=([int64])", zv.Type.ZSON())
 
 	m.Decorate(resolver.TypeStyleFull)
-	zv, err = m.MarshalValue(rolls)
+	zv, err = m.Marshal(rolls)
 	require.NoError(t, err)
 	assert.Equal(t, "github.com/brimsec/zq/zng/resolver_test.Rolls=([int64])", zv.Type.ZSON())
 
 	plain := []int32{1, 2, 3}
-	zv, err = m.MarshalValue(plain)
+	zv, err = m.Marshal(plain)
 	require.NoError(t, err)
 	assert.Equal(t, "[int32]", zv.Type.ZSON())
 }
@@ -439,7 +439,7 @@ func TestInterfaceUnmarshal(t *testing.T) {
 	t1 := Make(1)
 	m := resolver.NewMarshaler()
 	m.Decorate(resolver.TypeStylePackage)
-	zv, err := m.MarshalValue(t1)
+	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
 	assert.Equal(t, "resolver_test.Thing=({a:string,B:int64})", zv.Type.ZSON())
 
@@ -450,6 +450,19 @@ func TestInterfaceUnmarshal(t *testing.T) {
 	err = u.Unmarshal(zv, &thing)
 	require.NoError(t, err)
 	assert.Equal(t, "It's a thing one", thing.Who())
+
+	var thingI interface{}
+	err = u.Unmarshal(zv, &thingI)
+	require.NoError(t, err)
+	actualThing, ok := thingI.(*Thing)
+	assert.Equal(t, true, ok)
+	assert.Equal(t, t1, actualThing)
+
+	u2 := resolver.NewUnmarshaler()
+	var genericThing interface{}
+	err = u2.Unmarshal(zv, &genericThing)
+	require.Error(t, err)
+	assert.Equal(t, "unmarshaling records into interface value requires type binding", err.Error())
 }
 
 func TestBindings(t *testing.T) {
@@ -459,7 +472,7 @@ func TestBindings(t *testing.T) {
 		{"SpecialThingOne", &Thing{}},
 		{"SpecialThingTwo", &ThingTwo{}},
 	})
-	zv, err := m.MarshalValue(t1)
+	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
 	assert.Equal(t, "SpecialThingOne=({a:string,B:int64})", zv.Type.ZSON())
 
@@ -473,4 +486,83 @@ func TestBindings(t *testing.T) {
 	err = u.Unmarshal(zv, &thing)
 	require.NoError(t, err)
 	assert.Equal(t, "It's a thing one", thing.Who())
+}
+
+func TestEmptyInterface(t *testing.T) {
+	zv, err := resolver.Marshal(int8(123))
+	require.NoError(t, err)
+	assert.Equal(t, "int8", zv.Type.ZSON())
+
+	var v interface{}
+	err = resolver.Unmarshal(zv, &v)
+	require.NoError(t, err)
+	i, ok := v.(int8)
+	assert.Equal(t, true, ok)
+	assert.Equal(t, int8(123), i)
+
+	var actual int8
+	err = resolver.Unmarshal(zv, &actual)
+	require.NoError(t, err)
+	assert.Equal(t, int8(123), actual)
+}
+
+type CustomInt8 int8
+
+func TestNamedNormal(t *testing.T) {
+	t1 := CustomInt8(88)
+	m := resolver.NewMarshaler()
+	m.Decorate(resolver.TypeStyleSimple)
+
+	zv, err := m.Marshal(t1)
+	require.NoError(t, err)
+	assert.Equal(t, "CustomInt8=(int8)", zv.Type.ZSON())
+
+	var actual CustomInt8
+	u := resolver.NewUnmarshaler()
+	u.Bind(CustomInt8(0))
+	err = u.Unmarshal(zv, &actual)
+	require.NoError(t, err)
+	assert.Equal(t, t1, actual)
+
+	var actualI interface{}
+	err = u.Unmarshal(zv, &actualI)
+	require.NoError(t, err)
+	cast, ok := actualI.(CustomInt8)
+	assert.Equal(t, true, ok)
+	assert.Equal(t, t1, cast)
+}
+
+type EmbeddedA struct {
+	A ThingaMaBob
+}
+
+type EmbeddedB struct {
+	A interface{}
+}
+
+func TestEmbeddedInterface(t *testing.T) {
+	t1 := &EmbeddedA{
+		A: Make(1),
+	}
+	m := resolver.NewMarshaler()
+	m.Decorate(resolver.TypeStyleSimple)
+	zv, err := m.Marshal(t1)
+	require.NoError(t, err)
+	assert.Equal(t, "EmbeddedA=({A:Thing=({a:string,B:int64})})", zv.Type.ZSON())
+
+	u := resolver.NewUnmarshaler()
+	u.Bind(Thing{}, ThingTwo{})
+	var actual EmbeddedA
+	require.NoError(t, err)
+	err = u.Unmarshal(zv, &actual)
+	require.NoError(t, err)
+	assert.Equal(t, "It's a thing one", actual.A.Who())
+
+	var actualB EmbeddedB
+	require.NoError(t, err)
+	err = u.Unmarshal(zv, &actualB)
+	require.NoError(t, err)
+	thingB, ok := actualB.A.(*Thing)
+	assert.Equal(t, true, ok)
+	assert.Equal(t, "It's a thing one", thingB.Who())
 }
