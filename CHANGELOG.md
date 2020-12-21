@@ -2,6 +2,17 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.26.0
+* zqd: Update Zeek pointer to [v3.2.1-brim7](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim7) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1855)
+* zq: Improve the error message shown when row size exceeds max read buffer (#1808)
+* zqd: Remove `listen -pprof` flag (profiling data is now always made available) (#1800)
+* zson: Add initial ZSON parser and reader (#1806, #1829, #1830, #1832)
+* zar: Use a newly-created index package to create archive indices (#1745)
+* zq: Fix issues with incorrectly-formatted CSV output (#1828, #1818, #1827)
+* zq: Add support for inferring data types of "extra" fields in imported NDJSON (#1842)
+* zqd: Send a warning when unknown fields are encountered in NDJSON logs generated from pcap ingest (i.e. Suricata) (#1847)
+* zq: Add NDJSON typing configuration for the Suricata "vlan" field (#1851)
+
 ## v0.25.0
 * zqd: Update Zeek pointer to [v3.2.1-brim6](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim6) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1795)
 * zqd: Update Suricata pointer to [v5.0.3-brimpre2](https://github.com/brimsec/build-suricata/releases/tag/v5.0.3-brimpre2) to generate alerts for imported pcaps (#1729)
