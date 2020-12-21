@@ -291,6 +291,10 @@ func TestParallelizeFlowgraph(t *testing.T) {
 		t.Run(tc.zql, func(t *testing.T) {
 			query, err := zql.ParseProc(tc.zql)
 			require.NoError(t, err)
+
+			ok := IsParallelizable(query.(*ast.SequentialProc), sf(tc.orderField), false)
+			require.Equal(t, ok, tc.zql != tc.expected)
+
 			parallelized, ok := Parallelize(query.(*ast.SequentialProc), 2, sf(tc.orderField), false)
 			require.Equal(t, ok, tc.zql != tc.expected)
 
