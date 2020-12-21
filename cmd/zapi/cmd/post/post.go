@@ -28,15 +28,15 @@ func init() {
 
 type PostCommand struct {
 	*cmd.Command
-	spaceFlags spaceFlags
-	logwriter  *client.MultipartWriter
-	start      time.Time
+	postFlags postFlags
+	logwriter *client.MultipartWriter
+	start     time.Time
 }
 
 func NewPost(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
 	c := &PostCommand{Command: parent.(*cmd.Command)}
-	c.spaceFlags.SetFlags(fs)
-	c.spaceFlags.cmd = c.Command
+	c.postFlags.SetFlags(fs)
+	c.postFlags.cmd = c.Command
 	return c, nil
 }
 
@@ -44,7 +44,7 @@ func (c *PostCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
 		return errors.New("path arg(s) required")
 	}
-	if err := c.Init(&c.spaceFlags); err != nil {
+	if err := c.Init(&c.postFlags); err != nil {
 		return err
 	}
 	paths, err := abspaths(args)
