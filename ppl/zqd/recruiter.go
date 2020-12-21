@@ -5,34 +5,23 @@ import (
 	"net/http"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/zap"
 )
 
-func handleDeregister(c *Core, w http.ResponseWriter, r *http.Request) {
-	var req api.DeregisterRequest
-	if !request(c, w, r, &req) {
-		return
-	}
-	c.workerPool.Deregister(req.Addr)
-	respond(c, w, r, http.StatusOK, api.RegisterResponse{
-		Registered: false,
-	})
-}
-
+// handleRecruit and handleRegister interact with each other:
+// completing a request to handleRecruit will unblock multiple
+// open requests (long polls) to handleRegister.
 func handleRecruit(c *Core, w http.ResponseWriter, r *http.Request) {
 	var req api.RecruitRequest
 	if !request(c, w, r, &req) {
 		return
 	}
-	ws, err := c.workerPool.Recruit(req.NumberRequested)
+	workers, err := recruiter.RecruitWithEndWait(c.workerPool, req.NumberRequested, req.Label)
 	if err != nil {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return
-	}
-	workers := make([]api.Worker, len(ws))
-	for i, e := range ws {
-		workers[i] = api.Worker{Addr: e.Addr, NodeName: e.NodeName}
 	}
 	respond(c, w, r, http.StatusOK, api.RecruitResponse{
 		Workers: workers,
@@ -44,32 +33,25 @@ func handleRegister(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !request(c, w, r, &req) {
 		return
 	}
-	registered, err := c.workerPool.Register(req.Addr, req.NodeName)
+	if req.Timeout <= 0 {
+		respondError(c, w, r, zqe.E(zqe.Invalid, "required parameter timeout"))
+		return
+	}
+	directive, cancelled, err := recruiter.WaitForRecruitment(r.Context(), c.workerPool,
+		req.Addr, req.NodeName, req.Timeout, c.logger)
 	if err != nil {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return
 	}
-	respond(c, w, r, http.StatusOK, api.RegisterResponse{
-		Registered: registered,
-	})
-}
-
-func handleUnreserve(c *Core, w http.ResponseWriter, r *http.Request) {
-	var req api.UnreserveRequest
-	if !request(c, w, r, &req) {
-		return
+	if !cancelled {
+		respond(c, w, r, http.StatusOK, api.RegisterResponse{Directive: directive})
 	}
-	c.workerPool.Unreserve(req.Addrs)
-	respond(c, w, r, http.StatusOK, api.UnreserveResponse{
-		Reserved: false,
-	})
 }
 
 func handleRecruiterStats(c *Core, w http.ResponseWriter, r *http.Request) {
 	respond(c, w, r, http.StatusOK, api.RecruiterStatsResponse{
-		LenFreePool:     c.workerPool.LenFreePool(),
-		LenReservedPool: c.workerPool.LenReservedPool(),
-		LenNodePool:     c.workerPool.LenNodePool(),
+		LenFreePool: c.workerPool.LenFreePool(),
+		LenNodePool: c.workerPool.LenNodePool(),
 	})
 }
 

@@ -1,3 +1,5 @@
+// This is the client-side layer that is used by the zqd root process during execution of a query.
+// It is called within the driver package.
 package recruiter
 
 import (
@@ -8,14 +10,18 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
+	"github.com/brimsec/zq/ppl/zqd/worker"
 	"github.com/brimsec/zq/proc"
 	"go.uber.org/zap"
 )
 
-func RecruitWorkers(ctx *proc.Context, workerCount int, recruiter string, workerstr string) ([]string, error) {
-	if workerstr != "" {
-		// Special case: workerstr is used for ZTests
-		workers := strings.Split(workerstr, ",")
+// RecruitWorkers is used by the zqd root process to recruit workers for a distributed query.
+func RecruitWorkers(ctx *proc.Context, workerCount int, conf worker.WorkerConfig, logger *zap.Logger) ([]string, error) {
+	logger.Info("Recruit workers", zap.Int("count", workerCount))
+	if conf.BoundWorkers != "" {
+		// BoundWorkers is a fixed list of workers bound to a root process.
+		// It is used for ZTests and simple clusters without a recruiter.
+		workers := strings.Split(conf.BoundWorkers, ",")
 		if workerCount > len(workers) {
 			return nil, fmt.Errorf("requested parallelism %d is greater than the number of workers %d",
 				workerCount, len(workers))
@@ -27,29 +33,29 @@ func RecruitWorkers(ctx *proc.Context, workerCount int, recruiter string, worker
 		}
 		return workers, nil
 	}
-
-	if recruiter == "" {
-		return nil, fmt.Errorf("distributed exec failure: -worker.recruiter flag is not present")
+	if conf.Recruiter == "" {
+		return nil, fmt.Errorf("flag -worker.recruiter is not present")
 	}
-	if _, _, err := net.SplitHostPort(recruiter); err != nil {
-		return nil, fmt.Errorf("distributed exec failure: -worker.recruiter flag does not have host:port")
+	if _, _, err := net.SplitHostPort(conf.Recruiter); err != nil {
+		return nil, fmt.Errorf("flag -worker.recruiter does not have host:port")
 	}
-	conn := client.NewConnectionTo("http://" + recruiter)
+	conn := client.NewConnectionTo("http://" + conf.Recruiter)
 	recreq := api.RecruitRequest{NumberRequested: workerCount}
 	resp, err := conn.Recruit(ctx, recreq)
 	if err != nil {
-		return nil, fmt.Errorf("distributed exec failure: error on recruit for recruiter at %s : %v", recruiter, err)
+		return nil, fmt.Errorf("error on recruit for recruiter at %s : %v", conf.Recruiter, err)
 	}
 	if workerCount > len(resp.Workers) {
-		// TODO: we should fail back to running the query with fewer workers if possible.
-		// Determining when that is possible is non-trivial. One issue is that the
-		// parallel procs have already been compiled into the flowgraph by the time we get here.
-		// An alternative is to wait and try to recruit more workers,
-		// which would reserve the idle zqd root process while waiting. -MTW
-		return nil, fmt.Errorf("distributed exec failure: requested workers %d greater than available workers %d",
+		// This error currently causes an abort, but it will be fixed
+		// with issue #1839 which will allow the flowgraph (AST) to be used with
+		// less than the requested number of workers. -MTW
+		err := fmt.Errorf("requested workers %d greater than available workers %d",
 			workerCount, len(resp.Workers))
+		if !conf.Fallback {
+			return nil, err
+		}
+		logger.Warn("Worker fallback", zap.Error(err))
 	}
-
 	var workers []string
 	for _, w := range resp.Workers {
 		workers = append(workers, w.Addr)

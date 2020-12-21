@@ -18,15 +18,17 @@ type Worker struct {
 }
 
 type RegisterRequest struct {
+	Timeout int `json:"timeout"`
 	Worker
 }
 
 type RegisterResponse struct {
-	Registered bool `json:"registered"`
+	Directive string `json:"directive"`
 }
 
 type RecruitRequest struct {
-	NumberRequested int `json:"number_requested"`
+	Label           string `json:"label"`
+	NumberRequested int    `json:"number_requested"`
 }
 
 type RecruitResponse struct {
@@ -34,7 +36,6 @@ type RecruitResponse struct {
 }
 
 type RecruiterStatsResponse struct {
-	LenFreePool     int `json:"len_free_pool"`
-	LenReservedPool int `json:"len_reserved_pool"`
-	LenNodePool     int `json:"len_node_pool"`
+	LenFreePool int `json:"len_free_pool"`
+	LenNodePool int `json:"len_node_pool"`
 }

@@ -1,12 +1,12 @@
 script: |
-  # This test is a variation on worker-count.
   # This starts both a zqd root process and worker processes
   # then runs the same queries.
   # The zapi queries are different because they do not use
   # the -chunk flag.
   # The "workers" parameter to service.sh tells it to start workers.
   #
-  source services.sh zqdroot workers
+  source common.sh
+  source worker-dist.sh
   mkdir spacedir
   #
   # This creates a space with a small threshold in order to produce
@@ -44,8 +44,10 @@ script: |
   diff -s zqtail.tzng zapitail.tzng
   
 inputs:
-  - name: services.sh
-    source: services.sh
+  - name: common.sh
+    source: common.sh
+  - name: worker-dist.sh
+    source: worker-dist.sh
   - name: smtp.log.gz
     source: ../data/smtp.log.gz
 
