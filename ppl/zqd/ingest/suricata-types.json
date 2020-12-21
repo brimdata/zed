@@ -23,6 +23,10 @@
                 "type": "port"
             },
             {
+                "name": "vlan",
+                "type": "array[uint16]"
+            },
+            {
                 "name": "proto",
                 "type": "bstring"
             },
@@ -60,10 +64,6 @@
                     {
                         "name": "rev",
                         "type": "uint64"
-                    },
-                    {
-                        "name": "vlan",
-                        "type": "array[uint16]"
                     },
                     {
                         "name": "metadata",
