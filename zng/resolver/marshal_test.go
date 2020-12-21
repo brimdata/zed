@@ -413,18 +413,18 @@ type Rolls []int
 func TestInterfaceMarshal(t *testing.T) {
 	t1 := Make(2)
 	m := resolver.NewMarshaler()
-	m.Decorate(resolver.TypeStylePackage)
+	m.Decorate(resolver.StylePackage)
 	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
 	assert.Equal(t, "resolver_test.ThingTwo=({c:string})", zv.Type.ZSON())
 
-	m.Decorate(resolver.TypeStyleSimple)
+	m.Decorate(resolver.StyleSimple)
 	rolls := Rolls{1, 2, 3}
 	zv, err = m.Marshal(rolls)
 	require.NoError(t, err)
 	assert.Equal(t, "Rolls=([int64])", zv.Type.ZSON())
 
-	m.Decorate(resolver.TypeStyleFull)
+	m.Decorate(resolver.StyleFull)
 	zv, err = m.Marshal(rolls)
 	require.NoError(t, err)
 	assert.Equal(t, "github.com/brimsec/zq/zng/resolver_test.Rolls=([int64])", zv.Type.ZSON())
@@ -438,7 +438,7 @@ func TestInterfaceMarshal(t *testing.T) {
 func TestInterfaceUnmarshal(t *testing.T) {
 	t1 := Make(1)
 	m := resolver.NewMarshaler()
-	m.Decorate(resolver.TypeStylePackage)
+	m.Decorate(resolver.StylePackage)
 	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
 	assert.Equal(t, "resolver_test.Thing=({a:string,B:int64})", zv.Type.ZSON())
@@ -511,7 +511,7 @@ type CustomInt8 int8
 func TestNamedNormal(t *testing.T) {
 	t1 := CustomInt8(88)
 	m := resolver.NewMarshaler()
-	m.Decorate(resolver.TypeStyleSimple)
+	m.Decorate(resolver.StyleSimple)
 
 	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
@@ -545,7 +545,7 @@ func TestEmbeddedInterface(t *testing.T) {
 		A: Make(1),
 	}
 	m := resolver.NewMarshaler()
-	m.Decorate(resolver.TypeStyleSimple)
+	m.Decorate(resolver.StyleSimple)
 	zv, err := m.Marshal(t1)
 	require.NoError(t, err)
 	assert.Equal(t, "EmbeddedA=({A:Thing=({a:string,B:int64})})", zv.Type.ZSON())
