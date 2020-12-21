@@ -62,6 +62,10 @@
                         "type": "uint64"
                     },
                     {
+                        "name": "vlan",
+                        "type": "array[uint16]"
+                    },
+                    {
                         "name": "metadata",
                         "type": [
                             {
