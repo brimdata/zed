@@ -17,7 +17,7 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-type MulitpartLogReader struct {
+type MultipartLogReader struct {
 	mr       *multipart.Reader
 	opts     zio.ReaderOpts
 	stopErr  bool
@@ -27,19 +27,19 @@ type MulitpartLogReader struct {
 	nread    int64
 }
 
-func NewMultipartLogReader(mr *multipart.Reader, zctx *resolver.Context) *MulitpartLogReader {
-	return &MulitpartLogReader{
+func NewMultipartLogReader(mr *multipart.Reader, zctx *resolver.Context) *MultipartLogReader {
+	return &MultipartLogReader{
 		mr:   mr,
 		opts: zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}},
 		zctx: zctx,
 	}
 }
 
-func (m *MulitpartLogReader) SetStopOnError() {
+func (m *MultipartLogReader) SetStopOnError() {
 	m.stopErr = true
 }
 
-func (m *MulitpartLogReader) Read() (*zng.Record, error) {
+func (m *MultipartLogReader) Read() (*zng.Record, error) {
 read:
 	if m.zreader == nil {
 		zr, err := m.next()
@@ -64,7 +64,7 @@ read:
 	return rec, err
 }
 
-func (m *MulitpartLogReader) next() (*zbuf.File, error) {
+func (m *MultipartLogReader) next() (*zbuf.File, error) {
 next:
 	if m.mr == nil {
 		return nil, nil
@@ -98,15 +98,15 @@ next:
 	return zr, err
 }
 
-func (m *MulitpartLogReader) appendWarning(zr *zbuf.File, err error) {
+func (m *MultipartLogReader) appendWarning(zr *zbuf.File, err error) {
 	m.warnings = append(m.warnings, fmt.Sprintf("%s: %s", zr, err))
 }
 
-func (m *MulitpartLogReader) Warnings() []string {
+func (m *MultipartLogReader) Warnings() []string {
 	return m.warnings
 }
 
-func (m *MulitpartLogReader) BytesRead() int64 {
+func (m *MultipartLogReader) BytesRead() int64 {
 	return atomic.LoadInt64(&m.nread)
 }
 
