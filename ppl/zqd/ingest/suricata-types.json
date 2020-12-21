@@ -23,6 +23,10 @@
                 "type": "port"
             },
             {
+                "name": "vlan",
+                "type": "array[uint16]"
+            },
+            {
                 "name": "proto",
                 "type": "bstring"
             },
