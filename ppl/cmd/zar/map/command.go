@@ -46,7 +46,7 @@ type Command struct {
 	*root.Command
 	quiet       bool
 	root        string
-	stopErr     bool
+	stopOnErr   bool
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
 }
@@ -55,7 +55,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
-	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
+	f.BoolVar(&c.stopOnErr, "e", true, "stop upon input errors")
 	c.outputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
 	return c, nil
@@ -111,7 +111,7 @@ func (c *Command) Run(args []string) error {
 		defer rc.Close()
 		reader := zbuf.Reader(rc)
 		wch := make(chan string, 5)
-		if !c.stopErr {
+		if !c.stopOnErr {
 			reader = zbuf.NewWarningReader(reader, wch)
 		}
 		writer, err := c.openOutput(zardir)

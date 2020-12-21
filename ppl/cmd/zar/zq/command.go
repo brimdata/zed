@@ -42,7 +42,7 @@ type Command struct {
 	quiet       bool
 	root        string
 	stats       bool
-	stopErr     bool
+	stopOnErr   bool
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
 	searchFlags searchflags.Flags
@@ -53,7 +53,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
 	f.BoolVar(&c.stats, "s", false, "print search stats to stderr on successful completion")
-	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
+	f.BoolVar(&c.stopOnErr, "e", true, "stop upon input errors")
 	c.outputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
 	c.searchFlags.SetFlags(f)

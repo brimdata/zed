@@ -18,13 +18,13 @@ import (
 )
 
 type MultipartLogReader struct {
-	mr       *multipart.Reader
-	opts     zio.ReaderOpts
-	stopErr  bool
-	warnings []string
-	zreader  *zbuf.File
-	zctx     *resolver.Context
-	nread    int64
+	mr        *multipart.Reader
+	opts      zio.ReaderOpts
+	stopOnErr bool
+	warnings  []string
+	zreader   *zbuf.File
+	zctx      *resolver.Context
+	nread     int64
 }
 
 func NewMultipartLogReader(mr *multipart.Reader, zctx *resolver.Context) *MultipartLogReader {
@@ -36,7 +36,7 @@ func NewMultipartLogReader(mr *multipart.Reader, zctx *resolver.Context) *Multip
 }
 
 func (m *MultipartLogReader) SetStopOnError() {
-	m.stopErr = true
+	m.stopOnErr = true
 }
 
 func (m *MultipartLogReader) Read() (*zng.Record, error) {
@@ -54,7 +54,7 @@ read:
 		m.zreader.Close()
 		m.zreader = nil
 		if err != nil {
-			if m.stopErr {
+			if m.stopOnErr {
 				return nil, err
 			}
 			m.appendWarning(zr, err)
@@ -89,7 +89,7 @@ next:
 	zr, err := detector.OpenFromNamedReadCloser(m.zctx, counter, name, m.opts)
 	if err != nil {
 		part.Close()
-		if m.stopErr {
+		if m.stopOnErr {
 			return nil, err
 		}
 		m.appendWarning(zr, err)

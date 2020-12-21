@@ -78,7 +78,7 @@ type Command struct {
 	verbose     bool
 	stats       bool
 	quiet       bool
-	stopErr     bool
+	stopOnErr   bool
 	parallel    bool
 	zqlPath     string
 	inputFlags  inputflags.Flags
@@ -103,7 +103,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
-	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
+	f.BoolVar(&c.stopOnErr, "e", true, "stop upon input errors")
 	f.BoolVar(&c.parallel, "P", false, "read two or more files into parallel-input zql query")
 	f.StringVar(&c.zqlPath, "z", "", "source file containing zql query text")
 	return c, nil
@@ -143,13 +143,13 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	zctx := resolver.NewContext()
-	readers, err := c.inputFlags.Open(zctx, paths, c.stopErr)
+	readers, err := c.inputFlags.Open(zctx, paths, c.stopOnErr)
 	if err != nil {
 		return err
 	}
 
 	wch := make(chan string, 5)
-	if !c.stopErr {
+	if !c.stopOnErr {
 		for i, r := range readers {
 			readers[i] = zbuf.NewWarningReader(r, wch)
 		}
