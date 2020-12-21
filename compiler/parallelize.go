@@ -401,17 +401,21 @@ func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
 func copyProcs(ps []ast.Proc) []ast.Proc {
 	var copies []ast.Proc
 	for _, p := range ps {
-		b, err := json.Marshal(p)
-		if err != nil {
-			panic(err)
-		}
-		proc, err := ast.UnpackJSON(nil, b)
-		if err != nil {
-			panic(err)
-		}
-		copies = append(copies, proc)
+		copies = append(copies, copyProc(p))
 	}
 	return copies
+}
+
+func copyProc(p ast.Proc) ast.Proc {
+	b, err := json.Marshal(p)
+	if err != nil {
+		panic(err)
+	}
+	copy, err := ast.UnpackJSON(nil, b)
+	if err != nil {
+		panic(err)
+	}
+	return copy
 }
 
 func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, reverse bool, N int) (*ast.SequentialProc, bool) {
@@ -443,6 +447,13 @@ func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, rever
 		Op:    "SequentialProc",
 		Procs: append([]ast.Proc{pp}, tail...),
 	}, true
+}
+
+// IsParallelizable reports whether Parallelize can parallelize p when called
+// with the same arguments.
+func IsParallelizable(p ast.Proc, inputSortField field.Static, inputSortReversed bool) bool {
+	_, ok := Parallelize(copyProc(p), 0, inputSortField, inputSortReversed)
+	return ok
 }
 
 // Parallelize takes a sequential proc AST and tries to
