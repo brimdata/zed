@@ -33,8 +33,8 @@ func init() {
 
 type PostPcapCommand struct {
 	*cmd.Command
-	spaceFlags spaceFlags
-	stats      bool
+	postFlags postFlags
+	stats     bool
 
 	// stats
 	lastStatus     *api.PcapPostStatus
@@ -45,8 +45,8 @@ type PostPcapCommand struct {
 func NewPostPcap(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
 	c := &PostPcapCommand{Command: parent.(*cmd.Command)}
 	fs.BoolVar(&c.stats, "stats", false, "write stats to stderr on successful completion")
-	c.spaceFlags.SetFlags(fs)
-	c.spaceFlags.cmd = c.Command
+	c.postFlags.SetFlags(fs)
+	c.postFlags.cmd = c.Command
 	return c, nil
 }
 
@@ -54,7 +54,7 @@ func (c *PostPcapCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
 		return errors.New("path arg required")
 	}
-	if err := c.Init(&c.spaceFlags); err != nil {
+	if err := c.Init(&c.postFlags); err != nil {
 		return err
 	}
 	var dp *display.Display

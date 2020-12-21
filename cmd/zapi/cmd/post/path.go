@@ -33,7 +33,7 @@ func init() {
 
 type PostPathCommand struct {
 	*cmd.Command
-	spaceFlags spaceFlags
+	postFlags  postFlags
 	bytesRead  int64
 	bytesTotal int64
 	start      time.Time
@@ -41,8 +41,8 @@ type PostPathCommand struct {
 
 func NewPostPath(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
 	c := &PostPathCommand{Command: parent.(*cmd.Command)}
-	c.spaceFlags.SetFlags(fs)
-	c.spaceFlags.cmd = c.Command
+	c.postFlags.SetFlags(fs)
+	c.postFlags.cmd = c.Command
 	return c, nil
 }
 
@@ -50,7 +50,7 @@ func (c *PostPathCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
 		return errors.New("path arg(s) required")
 	}
-	if err := c.Init(&c.spaceFlags); err != nil {
+	if err := c.Init(&c.postFlags); err != nil {
 		return err
 	}
 	paths, err := abspaths(args)

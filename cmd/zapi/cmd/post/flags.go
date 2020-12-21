@@ -8,18 +8,18 @@ import (
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 )
 
-type spaceFlags struct {
+type postFlags struct {
 	cmd.SpaceCreateFlags
 	force bool
 	cmd   *cmd.Command
 }
 
-func (f *spaceFlags) SetFlags(fs *flag.FlagSet) {
+func (f *postFlags) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&f.force, "f", false, "create space if specified space does not exist")
 	f.SpaceCreateFlags.SetFlags(fs)
 }
 
-func (f *spaceFlags) Init() error {
+func (f *postFlags) Init() error {
 	c := f.cmd
 	if err := c.Init(&f.SpaceCreateFlags); err != nil {
 		return err
