@@ -1,0 +1,23 @@
+script: |
+  zq -t -i zson "by typeof(.) | sort ." in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      {
+          r: {
+              u: "\"hello\"" (sint=(0=((int32,string))))
+          } (=1)
+      } (=2)
+      {
+          r: {
+              v: 123 (int32) (sint)
+          } (=3)
+      } (=4)
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[typeof:type]
+      0:[{r:{u:sint=((int32,string))}};]
+      0:[{r:{v:sint=((int32,string))}};]
