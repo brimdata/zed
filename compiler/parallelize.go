@@ -270,7 +270,7 @@ func booleanExpressionFields(e ast.BooleanExpr) []ast.Expression {
 // The return value is a map where the keys are string representations
 // of the columns to be read at the source. If the return value is a
 // nil map, all columns must be read.
-func computeColumns(p ast.Proc) *Colset {
+func computeColumns(p ast.Proc) Colset {
 	cols, _ := computeColumnsR(p, newColset())
 	return cols
 }
@@ -291,7 +291,7 @@ func computeColumns(p ast.Proc) *Colset {
 // by x' gets the column set {x, y} which is greater than the minimal
 // column set {x}. (However 'rename x=y | count() by x' also gets {x,
 // y}, which is minimal).
-func computeColumnsR(p ast.Proc, colset *Colset) (*Colset, bool) {
+func computeColumnsR(p ast.Proc, colset Colset) (Colset, bool) {
 	switch p := p.(type) {
 	case *ast.CutProc:
 		for _, f := range p.Fields {
