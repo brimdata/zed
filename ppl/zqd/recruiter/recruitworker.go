@@ -36,7 +36,7 @@ func RecruitWorkers(ctx *proc.Context, workerCount int, conf worker.WorkerConfig
 		return nil, fmt.Errorf("flag -worker.recruiter does not have host:port")
 	}
 	conn := client.NewConnectionTo("http://" + conf.Recruiter)
-	recreq := api.RecruitRequest{NumberRequested: workerCount}
+	recreq := api.RecruitRequest{NumberRequested: workerCount, Label: conf.Host}
 	resp, err := conn.Recruit(ctx, recreq)
 	if err != nil {
 		return nil, fmt.Errorf("error on recruit for recruiter at %s : %v", conf.Recruiter, err)

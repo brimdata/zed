@@ -75,7 +75,7 @@ func (rs *RegistrationState) RegisterWithRecruiter() {
 	retryWait := rs.conf.MinRetry
 	// Loop for registration long polling.
 	for {
-		rs.logger.Info("Register",
+		rs.logger.Debug("Register",
 			zap.Duration("longpoll", rs.conf.LongPoll),
 			zap.String("recruiter", rs.conf.Recruiter))
 		resp, err := rs.conn.Register(rs.ctx, req)
