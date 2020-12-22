@@ -115,8 +115,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	sortKey, sortReversed := msrc.OrderInfo()
 	filterExpr, program := compiler.Optimize(zctx, program, sortKey, sortReversed)
 
-	isParallel := compiler.IsParallelizable(program, sortKey, sortReversed)
-	if !isParallel {
+	if !compiler.IsParallelizable(program, sortKey, sortReversed) {
 		mcfg.Parallelism = 1
 	}
 	pctx := &proc.Context{
