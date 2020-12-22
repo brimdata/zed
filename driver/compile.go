@@ -108,7 +108,6 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	if mcfg.Warnings == nil {
 		mcfg.Warnings = make(chan string, 5)
 	}
-
 	if mcfg.Parallelism == 0 {
 		mcfg.Parallelism = runtime.GOMAXPROCS(0)
 	}
@@ -116,14 +115,10 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	sortKey, sortReversed := msrc.OrderInfo()
 	filterExpr, program := compiler.Optimize(zctx, program, sortKey, sortReversed)
 
-	var isParallel bool
-	if mcfg.Parallelism > 1 {
-		program, isParallel = compiler.Parallelize(program, mcfg.Parallelism, sortKey, sortReversed)
-	}
+	isParallel := compiler.IsParallelizable(program, sortKey, sortReversed)
 	if !isParallel {
 		mcfg.Parallelism = 1
 	}
-
 	pctx := &proc.Context{
 		Context:     ctx,
 		TypeContext: zctx,
@@ -134,6 +129,11 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	if err != nil {
 		return nil, err
 	}
+	mcfg.Parallelism = len(sources)
+	if mcfg.Parallelism > 1 {
+		program, isParallel = compiler.Parallelize(program, mcfg.Parallelism, sortKey, sortReversed)
+	}
+
 	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, sources)
 	if err != nil {
 		return nil, err
