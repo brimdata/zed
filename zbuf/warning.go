@@ -18,7 +18,7 @@ type WarningReader struct {
 // NewWarningReader returns a Reader that reads from zr.  Any error
 // encountered results in a call to w with the warning as prameter, and
 // then a nil *zng.Record and nil error are returned.
-func NewWarningReader(zr Reader, w Warner) *WarningReader {
+func NewWarningReader(zr Reader, w Warner) Reader {
 	return &WarningReader{zr: zr, wn: w}
 }
 

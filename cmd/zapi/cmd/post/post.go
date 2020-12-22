@@ -55,6 +55,9 @@ func (c *PostCommand) Run(args []string) (err error) {
 	if err != nil {
 		return err
 	}
+	if c.postFlags.shaperAST != nil {
+		c.logwriter.SetShaper(c.postFlags.shaperAST)
+	}
 	var out io.Writer
 	var dp *display.Display
 	if !c.NoFancy {
