@@ -110,22 +110,20 @@ func (c *Command) Run(args []string) error {
 		rc := detector.MultiFileReader(zctx, paths, opts)
 		defer rc.Close()
 		reader := zbuf.Reader(rc)
-		wch := make(chan string, 5)
-		if !c.stopErr {
-			reader = zbuf.NewWarningReader(reader, wch)
-		}
 		writer, err := c.openOutput(zardir)
 		if err != nil {
 			return err
 		}
 		d := driver.NewCLI(writer)
+		if !c.stopErr {
+			reader = zbuf.NewWarningReader(reader, d)
+		}
 		if !c.quiet {
 			d.SetWarningsWriter(os.Stderr)
 		}
 		err = driver.Run(ctx, d, query, zctx, reader, driver.Config{
 			ReaderSortKey:     "ts",
 			ReaderSortReverse: ark.DataOrder == zbuf.OrderDesc,
-			Warnings:          wch,
 		})
 		if closeErr := writer.Close(); closeErr != nil && err == nil {
 			err = closeErr
