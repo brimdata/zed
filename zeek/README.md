@@ -236,7 +236,7 @@ installed:
 
 * https://github.com/soelkongen/json-streaming-logs
 * https://github.com/salesforce/hassh
-* https://github.com/philrz/unknown-mime-type-discovery
+* https://github.com/sethhall/unknown-mime-type-discovery
 
 In addition to installing these via [Zeek Package Manager](https://docs.zeek.org/projects/package-manager/en/stable/),
 the necessary configuration is present in our `local.zeek` to invoke them:
