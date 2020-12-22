@@ -6,21 +6,26 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-type WarningReader struct {
-	zr Reader
-	ch chan string
+type Warner interface {
+	Warn(msg string) error
 }
 
-// WarningReader returns a Reader that reads from zr.  Any error encountered is
-// sent to ch, and then a nil *zng.Record and nil error are returned.
-func NewWarningReader(zr Reader, ch chan string) *WarningReader {
-	return &WarningReader{zr: zr, ch: ch}
+type WarningReader struct {
+	zr Reader
+	wn Warner
+}
+
+// NewWarningReader returns a Reader that reads from zr.  Any error
+// encountered results in a call to w with the warning as prameter, and
+// then a nil *zng.Record and nil error are returned.
+func NewWarningReader(zr Reader, w Warner) *WarningReader {
+	return &WarningReader{zr: zr, wn: w}
 }
 
 func (w *WarningReader) Read() (*zng.Record, error) {
 	rec, err := w.zr.Read()
 	if err != nil {
-		w.ch <- fmt.Sprintf("%s: %s", w.zr, err)
+		w.wn.Warn(fmt.Sprintf("%s: %s", w.zr, err))
 		return nil, nil
 	}
 	return rec, nil

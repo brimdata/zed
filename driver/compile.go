@@ -25,7 +25,6 @@ type Config struct {
 	ReaderSortReverse bool
 	Span              nano.Span
 	StatsTick         <-chan time.Time
-	Warnings          chan string
 }
 
 type scannerProc struct {
@@ -54,10 +53,6 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 	if cfg.Span.Dur == 0 {
 		cfg.Span = nano.MaxSpan
 	}
-	if cfg.Warnings == nil {
-		cfg.Warnings = make(chan string, 5)
-	}
-
 	filterExpr, program := compiler.Optimize(zctx, program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
 	procs := make([]proc.Interface, 0, len(readers))
 	scanners := make([]zbuf.Scanner, 0, len(readers))
@@ -77,7 +72,7 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 		Context:     ctx,
 		TypeContext: zctx,
 		Logger:      cfg.Logger,
-		Warnings:    cfg.Warnings,
+		Warnings:    make(chan string, 5),
 	}
 	leaves, err := compiler.Compile(cfg.Custom, program, pctx, procs)
 	if err != nil {
@@ -94,7 +89,6 @@ type MultiConfig struct {
 	Parallelism int
 	Span        nano.Span
 	StatsTick   <-chan time.Time
-	Warnings    chan string
 	Worker      worker.WorkerConfig
 }
 
@@ -104,9 +98,6 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	}
 	if mcfg.Span.Dur == 0 {
 		mcfg.Span = nano.MaxSpan
-	}
-	if mcfg.Warnings == nil {
-		mcfg.Warnings = make(chan string, 5)
 	}
 
 	if mcfg.Parallelism == 0 {
@@ -128,7 +119,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 		Context:     ctx,
 		TypeContext: zctx,
 		Logger:      mcfg.Logger,
-		Warnings:    mcfg.Warnings,
+		Warnings:    make(chan string, 5),
 	}
 	sources, pgroup, err := createParallelGroup(pctx, filterExpr, msrc, mcfg)
 	if err != nil {
