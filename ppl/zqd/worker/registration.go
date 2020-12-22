@@ -87,7 +87,7 @@ func (rs *RegistrationState) RegisterWithRecruiter() {
 				zap.Error(err))
 			// Delay next request. There is an
 			// exponential backoff on registration errors.
-			time.Sleep(time.Duration(retryWait) * time.Millisecond)
+			time.Sleep(retryWait)
 			if retryWait < rs.conf.MaxRetry {
 				retryWait = (retryWait * 3) / 2
 				// Note: doubling is too fast a backoff for this, so using 1.5 x.
@@ -104,7 +104,7 @@ func (rs *RegistrationState) RegisterWithRecruiter() {
 		// Start listening to the releaseChannel.
 		// Exit the nested loop on a release.
 		// An idle timeout will cause the process to terminate.
-		ticker := time.NewTicker(time.Duration(rs.conf.IdleTime) * time.Millisecond)
+		ticker := time.NewTicker(rs.conf.IdleTime)
 		// GoDoc mentions fewer special cases with Ticker than with Timer.
 		workerIsIdle := true
 		// The worker "stays" in the ReservedLoop until it is finshed working for a given root process.
@@ -125,7 +125,7 @@ func (rs *RegistrationState) RegisterWithRecruiter() {
 					break ReservedLoop
 				} else if msg == "idle" {
 					workerIsIdle = true
-					ticker = time.NewTicker(time.Duration(rs.conf.IdleTime) * time.Millisecond)
+					ticker = time.NewTicker(rs.conf.IdleTime)
 					// Recreating the ticker is a safe way to reset it.
 				} else { // Assume "busy".
 					workerIsIdle = false
