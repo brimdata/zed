@@ -144,7 +144,7 @@ func typeFull(name, path string) string {
 type TypeStyle int
 
 const (
-	StyleNone = iota
+	StyleNone TypeStyle = iota
 	StyleSimple
 	StylePackage
 	StyleFull
@@ -200,7 +200,7 @@ func (m *MarshalContext) encodeValue(v reflect.Value) (zng.Type, error) {
 	}
 	if m.decorator != nil || m.bindings != nil {
 		// Don't create aliases for interface types as this is just
-		// one value for that interface and its the underlying concrete
+		// one value for that interface and it's the underlying concrete
 		// types that implement the interface that we want to alias.
 		if !v.IsValid() || v.Kind() == reflect.Interface {
 			return typ, nil
@@ -496,7 +496,10 @@ func (u *UnmarshalContext) decodeAny(zv zng.Value, v reflect.Value) error {
 			return err
 		}
 		if typ == nil {
-			// ZNG type null values can only by value null.
+			// If typ is nil, then the value must be of ZNG type null
+			// and ZNG type values can only have value null.  So, we
+			// set it to null of the type given for the marshaled-into
+			// value and return.
 			v.Set(reflect.Zero(v.Type()))
 			return nil
 		}
@@ -769,17 +772,16 @@ func typeNameOfValue(value interface{}) (string, error) {
 func (u *UnmarshalContext) lookupType(typ zng.Type) (reflect.Type, error) {
 	switch typ := typ.(type) {
 	case *zng.TypeAlias:
-		template := u.binder.lookup(typ.Name)
-		if template == nil {
-			// Ignore aliases for which there are no bindings.
-			// If an interface type being marshaled into doesn't
-			// have a binding, then a type mismatch will be caught
-			// by reflect when the Set() method is called on the
-			// value and the concrete value doesn't implement the
-			// interface.
-			return u.lookupType(typ.Type)
+		if template := u.binder.lookup(typ.Name); template != nil {
+			return template, nil
 		}
-		return template, nil
+		// Ignore aliases for which there are no bindings.
+		// If an interface type being marshaled into doesn't
+		// have a binding, then a type mismatch will be caught
+		// by reflect when the Set() method is called on the
+		// value and the concrete value doesn't implement the
+		// interface.
+		return u.lookupType(typ.Type)
 	case *zng.TypeRecord:
 		return u.lookupTypeRecord(typ)
 	case *zng.TypeArray:
@@ -801,7 +803,7 @@ func (u *UnmarshalContext) lookupType(typ zng.Type) (reflect.Type, error) {
 		// entity.  See issue #1853.
 		return nil, nil
 	case *zng.TypeMap:
-		KeyType, err := u.lookupType(typ.KeyType)
+		keyType, err := u.lookupType(typ.KeyType)
 		if err != nil {
 			return nil, err
 		}
@@ -809,7 +811,7 @@ func (u *UnmarshalContext) lookupType(typ zng.Type) (reflect.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		return reflect.MapOf(KeyType, valType), nil
+		return reflect.MapOf(keyType, valType), nil
 	default:
 		return u.lookupPrimitiveType(typ)
 	}
@@ -827,7 +829,7 @@ func (u *UnmarshalContext) lookupPrimitiveType(typ zng.Type) (reflect.Type, erro
 	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfError, *zng.TypeOfType:
 		v = ""
 	case *zng.TypeOfBool:
-		v = true
+		v = false
 	case *zng.TypeOfUint8:
 		v = uint8(0)
 	case *zng.TypeOfUint16:

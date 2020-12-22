@@ -29,21 +29,10 @@ type Animal struct {
 
 func (a *Animal) Color() string { return a.MyColor }
 
-func Make(which, color string) Thing {
-	switch which {
-	case "plant":
-		return &Plant{color}
-	case "animal":
-		return &Animal{color}
-	default:
-		return nil
-	}
-}
-
 func TestInterfaceMarshal(t *testing.T) {
-	rose := Make("plant", "red")
+	rose := Thing(&Plant{"red"})
 	expectedRose := `{MyColor: "red"} (=Plant)`
-	flamingo := Make("animal", "pink")
+	flamingo := Thing(&Animal{"pink"})
 	expectedFlamingo := `{MyColor: "pink"} (=Animal)`
 
 	m := zson.NewMarshaler()
