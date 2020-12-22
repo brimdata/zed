@@ -128,11 +128,9 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	if err != nil {
 		return nil, err
 	}
-	mcfg.Parallelism = len(sources)
-	if mcfg.Parallelism > 1 {
-		program, isParallel = compiler.Parallelize(program, mcfg.Parallelism, sortKey, sortReversed)
+	if len(sources) > 1 {
+		program, _ = compiler.Parallelize(program, len(sources), sortKey, sortReversed)
 	}
-
 	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, sources)
 	if err != nil {
 		return nil, err
