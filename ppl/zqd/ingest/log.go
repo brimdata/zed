@@ -67,7 +67,7 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 			p.openWarning(path, err)
 			continue
 		}
-		zr := zbuf.NewWarningReader(sf, p.warningCh)
+		zr := zbuf.NewWarningReader(sf, p)
 		p.bytesTotal += size
 		p.readCounters = append(p.readCounters, rc)
 		p.readers = append(p.readers, zr)
@@ -76,8 +76,13 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 	return p, nil
 }
 
+func (p *LogOp) Warn(msg string) error {
+	p.warnings = append(p.warnings, msg)
+	return nil
+}
+
 func (p *LogOp) openWarning(path string, err error) {
-	p.warnings = append(p.warnings, fmt.Sprintf("%s: %s", path, err))
+	p.Warn(fmt.Sprintf("%s: %s", path, err))
 }
 
 type readCounter struct {

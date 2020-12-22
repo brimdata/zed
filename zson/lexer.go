@@ -275,7 +275,7 @@ func (l *Lexer) scanTypeName() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		if !zng.IdChar(r) && !unicode.IsDigit(r) {
+		if !zng.TypeChar(r) {
 			return s.String(), nil
 		}
 		s.WriteRune(r)
