@@ -13,19 +13,20 @@ var MemMaxBytes = 128 * 1024 * 1024
 var BatchSize = 100
 
 type Proc struct {
-	pctx     *proc.Context
-	parent   proc.Interface
+	pctx   *proc.Context
+	parent proc.Interface
+
+	fuser    *fuser.Fuser
 	once     sync.Once
 	resultCh chan proc.Result
-	fuser    *fuser.Fuser
 }
 
 func New(pctx *proc.Context, parent proc.Interface) (*Proc, error) {
 	return &Proc{
 		pctx:     pctx,
 		parent:   parent,
-		resultCh: make(chan proc.Result),
 		fuser:    fuser.New(pctx.TypeContext, MemMaxBytes),
+		resultCh: make(chan proc.Result),
 	}, nil
 }
 
