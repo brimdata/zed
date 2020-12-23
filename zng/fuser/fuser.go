@@ -17,11 +17,11 @@ type Fuser struct {
 	zctx        *resolver.Context
 	memMaxBytes int
 
-	spiller  *spill.File
-	slotByID [][]int
-	slots    []slot
 	nbytes   int
 	recs     []*zng.Record
+	slotByID [][]int
+	slots    []slot
+	spiller  *spill.File
 	types    resolver.Slice
 	uberType *zng.TypeRecord
 }
