@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"context"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -13,11 +14,16 @@ import (
 var ErrIsDir = errors.New("path is a directory")
 
 type TFile struct {
+	ctx     context.Context
 	f       *os.File
 	watcher *fsnotify.Watcher
 }
 
 func TailFile(name string) (*TFile, error) {
+	return TailFileWithContext(context.Background(), name)
+}
+
+func TailFileWithContext(ctx context.Context, name string) (*TFile, error) {
 	info, err := os.Stat(name)
 	if err != nil {
 		return nil, err
@@ -39,7 +45,7 @@ func TailFile(name string) (*TFile, error) {
 		watcher.Close()
 		return nil, err
 	}
-	return &TFile{f, watcher}, nil
+	return &TFile{ctx: ctx, f: f, watcher: watcher}, nil
 }
 
 func (t *TFile) Read(b []byte) (int, error) {
@@ -72,6 +78,8 @@ func (t *TFile) waitWrite() error {
 			}
 		case err := <-t.watcher.Errors:
 			return err
+		case <-t.ctx.Done():
+			return t.ctx.Err()
 		}
 	}
 }
