@@ -34,7 +34,7 @@ func TestTailFileWrite(t *testing.T) {
 			if err == nil {
 				// This sync call must be done because otherwise for windows
 				// the fsnotify.Write event will not trigger. I am guessing
-				// because so little data is written for each call.
+				// that's because so little data is written for each call.
 				err = f.Sync()
 			}
 			errCh <- err
