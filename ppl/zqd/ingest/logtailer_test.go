@@ -99,6 +99,7 @@ func (s *logTailerTSuite) TestInvalidFile() {
 	s.Require().NoError(err)
 	_, err = f1.WriteString("this is an invalid line\n")
 	s.Require().NoError(err)
+	s.Require().NoError(f1.Sync())
 	s.EqualError(<-errCh, "line 2: bad format")
 	s.NoError(s.dr.Stop())
 }
@@ -116,8 +117,7 @@ func (s *logTailerTSuite) createFile(name string) *os.File {
 	f, err := os.Create(filepath.Join(s.dir, name))
 	s.Require().NoError(err)
 	// Call sync to ensure fs events are sent in a timely matter.
-	err = f.Sync()
-	s.Require().NoError(err)
+	s.Require().NoError(f.Sync())
 	return f
 }
 
@@ -150,6 +150,12 @@ func (s *logTailerTSuite) write(files ...*os.File) {
 			s.Require().NoError(err)
 			i++
 		}
+	}
+	// Need to sync here as on windows the fsnotify event is not triggered
+	// unless this is done. Presumably this happens in cases when not enough
+	// data has been written so the system has not flushed the file buffer to disk.
+	for _, f := range files {
+		s.Require().NoError(f.Sync())
 	}
 	s.Require().NoError(s.dr.Stop())
 }
