@@ -152,7 +152,7 @@ func (s *logTailerTSuite) write(files ...*os.File) {
 	}
 	// Need to sync here as on windows the fsnotify event is not triggered
 	// unless this is done. Presumably this happens in cases when not enough
-	// data has been written the system has not flushed the file buffer to disk.
+	// data has been written so the system has not flushed the file buffer to disk.
 	for _, f := range files {
 		s.Require().NoError(f.Sync())
 	}
