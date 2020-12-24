@@ -39,9 +39,9 @@ func TestTailFileWrite(t *testing.T) {
 			}
 			errCh <- err
 		}()
-		n, errr := tf.Read(buf)
+		n, err := tf.Read(buf)
+		require.NoError(t, err)
 		require.NoError(t, <-errCh)
-		require.NoError(t, errr)
 		assert.Equal(t, str, string(buf[:n]))
 	}
 	go require.NoError(t, tf.Stop())
