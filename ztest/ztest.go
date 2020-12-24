@@ -198,7 +198,9 @@ type File struct {
 	Source string  `yaml:"source,omitempty"`
 	// Re is a regular expression describing the contents of the file,
 	// which is only applicable to output files.
-	Re      string `yaml:"regexp,omitempty"`
+	Re string `yaml:"regexp,omitempty"`
+	// Symlink creates a symlink on the specified directory into a test's local
+	// directory. Only applicable to input files.
 	Symlink string `yaml:"symlink,omitempty"`
 }
 

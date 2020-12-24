@@ -94,7 +94,7 @@ test-postgres: build
 .PHONY: test-postgres-docker
 test-postgres-docker:
 	@docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
-	 $(MAKE) test-postgres; \
+	$(MAKE) test-postgres; \
 		status=$?; \
 		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
 		exit $status
