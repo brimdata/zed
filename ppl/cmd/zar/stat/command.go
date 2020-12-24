@@ -53,7 +53,7 @@ func (c *Command) Run(args []string) (err error) {
 		return err
 	}
 
-	wc, err := emitter.NewFile("", zio.WriterOpts{Format: c.format})
+	wc, err := emitter.NewFile(context.TODO(), "", zio.WriterOpts{Format: c.format})
 	if err != nil {
 		return err
 	}

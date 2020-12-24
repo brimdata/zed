@@ -37,7 +37,7 @@ func TestDirS3Source(t *testing.T) {
 
 	r := tzngio.NewReader(strings.NewReader(tzng), resolver.NewContext())
 	require.NoError(t, err)
-	w, err := NewDirWithSource(uri, "", os.Stderr, zio.WriterOpts{Format: "tzng"}, src)
+	w, err := NewDirWithSource(context.Background(), uri, "", os.Stderr, zio.WriterOpts{Format: "tzng"}, src)
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(w, r))
 }

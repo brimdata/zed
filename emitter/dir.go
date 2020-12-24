@@ -1,6 +1,7 @@
 package emitter
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -22,6 +23,7 @@ var (
 // _path field in the boom descriptor.  Note that more than one descriptor
 // can map to the same output file.
 type Dir struct {
+	ctx     context.Context
 	dir     iosrc.URI
 	prefix  string
 	ext     string
@@ -32,7 +34,7 @@ type Dir struct {
 	source  iosrc.Source
 }
 
-func NewDir(dir, prefix string, stderr io.Writer, opts zio.WriterOpts) (*Dir, error) {
+func NewDir(ctx context.Context, dir, prefix string, stderr io.Writer, opts zio.WriterOpts) (*Dir, error) {
 	uri, err := iosrc.ParseURI(dir)
 	if err != nil {
 		return nil, err
@@ -41,10 +43,10 @@ func NewDir(dir, prefix string, stderr io.Writer, opts zio.WriterOpts) (*Dir, er
 	if err != nil {
 		return nil, err
 	}
-	return NewDirWithSource(uri, prefix, stderr, opts, src)
+	return NewDirWithSource(ctx, uri, prefix, stderr, opts, src)
 }
 
-func NewDirWithSource(dir iosrc.URI, prefix string, stderr io.Writer, opts zio.WriterOpts, source iosrc.Source) (*Dir, error) {
+func NewDirWithSource(ctx context.Context, dir iosrc.URI, prefix string, stderr io.Writer, opts zio.WriterOpts, source iosrc.Source) (*Dir, error) {
 	if err := iosrc.MkdirAll(dir, 0755); err != nil {
 		return nil, err
 	}
@@ -53,6 +55,7 @@ func NewDirWithSource(dir iosrc.URI, prefix string, stderr io.Writer, opts zio.W
 		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	}
 	return &Dir{
+		ctx:     ctx,
 		dir:     dir,
 		prefix:  prefix,
 		ext:     e,
@@ -106,7 +109,7 @@ func (d *Dir) newFile(rec *zng.Record) (zbuf.WriteCloser, error) {
 	if w, ok := d.paths[path]; ok {
 		return w, nil
 	}
-	w, err := NewFileWithSource(filename, d.opts, d.source)
+	w, err := NewFileWithSource(d.ctx, filename, d.opts, d.source)
 	if err != nil {
 		return nil, err
 	}

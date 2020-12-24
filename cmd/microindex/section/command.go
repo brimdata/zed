@@ -1,6 +1,7 @@
 package section
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"os"
@@ -65,7 +66,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer reader.Close()
-	writer, err := c.outputFlags.Open()
+	writer, err := c.outputFlags.Open(context.TODO())
 	if err != nil {
 		return err
 	}

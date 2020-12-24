@@ -71,7 +71,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cutter.Close()
-	writer, err := c.outputFlags.Open()
+	writer, err := c.outputFlags.Open(ctx)
 	if err != nil {
 		return err
 	}

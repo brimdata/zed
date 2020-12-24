@@ -1,6 +1,7 @@
 package outputflags
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"os"
@@ -89,15 +90,15 @@ func (f *Flags) FileName() string {
 	return f.outputFile
 }
 
-func (f *Flags) Open() (zbuf.WriteCloser, error) {
+func (f *Flags) Open(ctx context.Context) (zbuf.WriteCloser, error) {
 	if f.dir != "" {
-		d, err := emitter.NewDir(f.dir, f.outputFile, os.Stderr, f.WriterOpts)
+		d, err := emitter.NewDir(ctx, f.dir, f.outputFile, os.Stderr, f.WriterOpts)
 		if err != nil {
 			return nil, err
 		}
 		return d, nil
 	}
-	w, err := emitter.NewFile(f.outputFile, f.WriterOpts)
+	w, err := emitter.NewFile(ctx, f.outputFile, f.WriterOpts)
 	if err != nil {
 		return nil, err
 	}
