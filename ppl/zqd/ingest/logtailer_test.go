@@ -99,6 +99,7 @@ func (s *logTailerTSuite) TestInvalidFile() {
 	s.Require().NoError(err)
 	_, err = f1.WriteString("this is an invalid line\n")
 	s.Require().NoError(err)
+	s.Require().NoError(f1.Sync())
 	s.EqualError(<-errCh, "line 2: bad format")
 	s.NoError(s.dr.Stop())
 }
