@@ -532,10 +532,7 @@ func Parallelize(p ast.Proc, N int, inputSortField field.Static, inputSortRevers
 				}
 			}
 		case *ast.GroupByProc:
-			if !IsDecomposable(p.Reducers) {
-				return buildSplitFlowgraph(seq.Procs[0:i], seq.Procs[i:], inputSortField, inputSortReversed, N)
-			}
-			// We have a decomposable groupby and can split the flowgraph into branches that run up to and including a groupby,
+			// To decompose the groupby, we split the flowgraph into branches that run up to and including a groupby,
 			// followed by a post-merge groupby that composes the results.
 			var mergeField field.Static
 			if p.Duration.Seconds != 0 {

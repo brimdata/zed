@@ -265,8 +265,9 @@ func TestParallelizeFlowgraph(t *testing.T) {
 		{
 			"* | put x=y | countdistinct(x) by y | uniq",
 			"ts",
-			"(filter * | put x=y; filter * | put x=y) | countdistinct(x) by y | uniq",
-			"ts",
+			" (filter * | put x=y | countdistinct(x) by y  ; filter * | put x=y | countdistinct(x) by y) | countdistinct(x) by y | uniq",
+			// shouldn't the merge-field be y?
+			"",
 		},
 		{
 			"* | count() by y",

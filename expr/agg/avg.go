@@ -1,7 +1,6 @@
-package reducer
+package agg
 
 import (
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -9,38 +8,26 @@ import (
 )
 
 type Avg struct {
-	Reducer
-	arg   expr.Evaluator
 	sum   float64
 	count uint64
 }
 
-func (a *Avg) Consume(r *zng.Record) {
-	if a.filter(r) {
-		return
-	}
-	v, err := a.arg.Eval(r)
-	if err != nil || v.Type == nil {
-		a.FieldNotFound++
-		return
-	}
+func (a *Avg) Consume(v zng.Value) error {
 	if v.Bytes == nil {
-		return
+		return nil
 	}
-	d, ok := coerce.ToFloat(v)
-	if !ok {
-		a.TypeMismatch++
-		return
+	if d, ok := coerce.ToFloat(v); ok {
+		a.sum += float64(d)
+		a.count++
 	}
-	a.sum += float64(d)
-	a.count++
+	return nil
 }
 
-func (a *Avg) Result() zng.Value {
+func (a *Avg) Result(*resolver.Context) (zng.Value, error) {
 	if a.count > 0 {
-		return zng.NewFloat64(a.sum / float64(a.count))
+		return zng.NewFloat64(a.sum / float64(a.count)), nil
 	}
-	return zng.Value{Type: zng.TypeFloat64}
+	return zng.Value{Type: zng.TypeFloat64}, nil
 }
 
 const (
@@ -48,7 +35,7 @@ const (
 	countName = "count"
 )
 
-func (a *Avg) ConsumePart(p zng.Value) error {
+func (a *Avg) ConsumeAsPartial(p zng.Value) error {
 	rType, ok := p.Type.(*zng.TypeRecord)
 	if !ok {
 		return ErrBadValue
@@ -75,7 +62,7 @@ func (a *Avg) ConsumePart(p zng.Value) error {
 	return nil
 }
 
-func (a *Avg) ResultPart(zctx *resolver.Context) (zng.Value, error) {
+func (a *Avg) ResultAsPartial(zctx *resolver.Context) (zng.Value, error) {
 	var zv zcode.Bytes
 	zv = zng.NewFloat64(a.sum).Encode(zv)
 	zv = zng.NewUint64(a.count).Encode(zv)

@@ -1,8 +1,7 @@
-package reducer
+package agg
 
 import (
 	"github.com/brimsec/zq/anymath"
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
@@ -15,41 +14,32 @@ type consumer interface {
 }
 
 type mathReducer struct {
-	Reducer
-	arg      expr.Evaluator
 	function *anymath.Function
 	typ      zng.Type
 	math     consumer
 }
 
-func newMathReducer(f *anymath.Function, arg, where expr.Evaluator) *mathReducer {
-	return &mathReducer{
-		Reducer:  Reducer{where: where},
-		arg:      arg,
-		function: f,
-	}
+func newMathReducer(f *anymath.Function) *mathReducer {
+	return &mathReducer{function: f}
 }
 
-func (m *mathReducer) Result() zng.Value {
+func (m *mathReducer) Result(*resolver.Context) (zng.Value, error) {
 	if m.math == nil {
 		if m.typ == nil {
-			return zng.Value{Type: zng.TypeNull, Bytes: nil}
+			return zng.Value{Type: zng.TypeNull, Bytes: nil}, nil
 		}
-		return zng.Value{Type: m.typ, Bytes: nil}
+		return zng.Value{Type: m.typ, Bytes: nil}, nil
 	}
-	return m.math.result()
+	return m.math.result(), nil
 }
 
-func (m *mathReducer) Consume(r *zng.Record) {
-	if m.filter(r) {
-		return
+func (m *mathReducer) Consume(v zng.Value) error {
+	if v.Type == nil {
+		//m.FieldNotFound++
+		return nil
 	}
-	val, err := m.arg.Eval(r)
-	if err != nil || val.Type == nil {
-		m.FieldNotFound++
-		return
-	}
-	m.consumeVal(val)
+	m.consumeVal(v)
+	return nil
 }
 
 func (m *mathReducer) consumeVal(val zng.Value) {
@@ -75,20 +65,20 @@ func (m *mathReducer) consumeVal(val zng.Value) {
 		case zng.IdTime:
 			m.math = NewTime(m.function)
 		default:
-			m.TypeMismatch++
+			//m.TypeMismatch++
 			return
 		}
 	}
 	if m.math.consume(val) == zng.ErrTypeMismatch {
-		m.TypeMismatch++
+		//m.TypeMismatch++
 	}
 }
 
-func (m *mathReducer) ResultPart(*resolver.Context) (zng.Value, error) {
-	return m.Result(), nil
+func (m *mathReducer) ResultAsPartial(*resolver.Context) (zng.Value, error) {
+	return m.Result(nil)
 }
 
-func (m *mathReducer) ConsumePart(v zng.Value) error {
+func (m *mathReducer) ConsumeAsPartial(v zng.Value) error {
 	m.consumeVal(v)
 	return nil
 }

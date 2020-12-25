@@ -1,4 +1,4 @@
-zql: avg(x), count(x), countdistinct(x), first(x), last(x), max(x), min(x), sum(x)
+zql: avg(x), count(x), countdistinct(x), any(x), max(x), min(x), sum(x)
 
 input: |
   #0:record[x:uint64]
@@ -13,5 +13,5 @@ input: |
   4:[-;]
 
 output: |
-  #0:record[avg:float64,count:uint64,countdistinct:uint64,first:uint64,last:time,max:uint64,min:uint64,sum:uint64]
-  0:[-;5;1;-;-;-;-;-;]
+  #0:record[avg:float64,count:uint64,countdistinct:uint64,any:uint64,max:uint64,min:uint64,sum:uint64]
+  0:[-;5;1;-;-;-;-;]

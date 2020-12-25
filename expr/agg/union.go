@@ -1,58 +1,50 @@
-package reducer
+package agg
 
 import (
 	"errors"
 
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Union struct {
-	Reducer
-	zctx *resolver.Context
-	arg  expr.Evaluator
 	typ  zng.Type
 	val  map[string]struct{}
 	size int
 }
 
-func newUnion(zctx *resolver.Context, arg, where expr.Evaluator) *Union {
+func newUnion() *Union {
 	return &Union{
-		Reducer: Reducer{where: where},
-		zctx:    zctx,
-		arg:     arg,
-		val:     make(map[string]struct{}),
+		val: make(map[string]struct{}),
 	}
 }
 
-func (u *Union) Consume(r *zng.Record) {
-	if u.filter(r) {
-		return
-	}
-	v, err := u.arg.Eval(r)
-	if err != nil || v.IsNil() {
-		return
+func (u *Union) Consume(v zng.Value) error {
+	if v.IsNil() {
+		return nil
 	}
 	if u.typ == nil {
 		u.typ = v.Type
 	} else if u.typ != v.Type {
-		u.TypeMismatch++
-		return
+		//u.TypeMismatch++
+		return nil
 	}
-	u.update(v.Bytes)
+	return u.update(v.Bytes)
 }
 
-func (u *Union) update(b zcode.Bytes) {
+func (u *Union) update(b zcode.Bytes) error {
 	if _, ok := u.val[string(b)]; !ok {
 		u.val[string(b)] = struct{}{}
 		u.size += len(b)
 		for u.size > MaxValueSize {
 			u.deleteOne()
-			u.MemExceeded++
+			// XXX See issue #1813.  For now, we silently discard
+			// entries to maintain the size limit.
+			//return ErrRowTooBig
 		}
 	}
+	return nil
 }
 
 func (u *Union) deleteOne() {
@@ -63,10 +55,9 @@ func (u *Union) deleteOne() {
 	}
 }
 
-func (u *Union) Result() zng.Value {
+func (u *Union) Result(zctx *resolver.Context) (zng.Value, error) {
 	if u.typ == nil {
-		// empty input
-		return zng.Value{zng.TypeNull, nil}
+		return zng.Value{Type: zng.TypeNull}, nil
 	}
 	var b zcode.Builder
 	container := zng.IsContainerType(u.typ)
@@ -77,15 +68,11 @@ func (u *Union) Result() zng.Value {
 			b.AppendPrimitive([]byte(s))
 		}
 	}
-	setType := u.zctx.LookupTypeSet(u.typ)
-	return zng.Value{setType, zng.NormalizeSet(b.Bytes())}
+	setType := zctx.LookupTypeSet(u.typ)
+	return zng.Value{setType, zng.NormalizeSet(b.Bytes())}, nil
 }
 
-func (u *Union) ConsumePart(zv zng.Value) error {
-	if zv.Bytes == nil {
-		// ignore empty results
-		return nil
-	}
+func (u *Union) ConsumeAsPartial(zv zng.Value) error {
 	if u.typ == nil {
 		typ, ok := zv.Type.(*zng.TypeSet)
 		if !ok {
@@ -98,11 +85,13 @@ func (u *Union) ConsumePart(zv zng.Value) error {
 		if err != nil {
 			return err
 		}
-		u.update(elem)
+		if err := u.update(elem); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func (u *Union) ResultPart(*resolver.Context) (zng.Value, error) {
-	return u.Result(), nil
+func (u *Union) ResultAsPartial(zctx *resolver.Context) (zng.Value, error) {
+	return u.Result(zctx)
 }

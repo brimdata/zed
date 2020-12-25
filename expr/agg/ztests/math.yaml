@@ -1,8 +1,7 @@
 script: |
   zq -t "avg(n)" in.tzng > avg.tzng
   zq -t "count()" in.tzng > count.tzng
-  zq -t "first(n)" in.tzng > first.tzng
-  zq -t "last(n)" in.tzng > last.tzng
+  zq -t "any(n)" in.tzng > any.tzng
   zq -t "min(n)" in.tzng > min.tzng
   zq -t "max(n)" in.tzng > max.tzng
 
@@ -23,14 +22,10 @@ outputs:
     data: |
       #0:record[count:uint64]
       0:[3;]
-  - name: first.tzng
+  - name: any.tzng
     data: |
-      #0:record[first:int32]
+      #0:record[any:int32]
       0:[0;]
-  - name: last.tzng
-    data: |
-      #0:record[last:int32]
-      0:[10;]
   # Note: min/max shouldn't be int64 (especially for uint)  Issue #1506.
   - name: min.tzng
     data: |

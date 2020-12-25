@@ -1,38 +1,31 @@
-package reducer
+package agg
 
 import (
 	"errors"
 
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Collect struct {
-	Reducer
-	zctx *resolver.Context
-	arg  expr.Evaluator
 	typ  zng.Type
 	val  []zcode.Bytes
 	size int
 }
 
-func (c *Collect) Consume(r *zng.Record) {
-	if c.filter(r) {
-		return
-	}
-	v, err := c.arg.Eval(r)
-	if err != nil || v.IsNil() {
-		return
+func (c *Collect) Consume(v zng.Value) error {
+	if v.IsNil() {
+		return nil
 	}
 	if c.typ == nil {
 		c.typ = v.Type
 	} else if c.typ != v.Type {
-		c.TypeMismatch++
-		return
+		//c.TypeMismatch++
+		return nil
 	}
 	c.update(v.Bytes)
+	return nil
 }
 
 func (c *Collect) update(b zcode.Bytes) {
@@ -41,16 +34,18 @@ func (c *Collect) update(b zcode.Bytes) {
 	c.val = append(c.val, stash)
 	c.size += len(b)
 	for c.size > MaxValueSize {
-		c.MemExceeded++
+		// XXX See issue #1813.  For now we silently discard entries
+		// to maintain the size limit.
+		//c.MemExceeded++
 		c.size -= len(c.val[0])
 		c.val = c.val[1:]
 	}
 }
 
-func (c *Collect) Result() zng.Value {
+func (c *Collect) Result(zctx *resolver.Context) (zng.Value, error) {
 	if c.typ == nil {
 		// no values found
-		return zng.Value{zng.TypeNull, nil}
+		return zng.Value{Type: zng.TypeNull}, nil
 	}
 	var b zcode.Builder
 	container := zng.IsContainerType(c.typ)
@@ -61,15 +56,11 @@ func (c *Collect) Result() zng.Value {
 			b.AppendPrimitive(item)
 		}
 	}
-	typ := c.zctx.LookupTypeArray(c.typ)
-	return zng.Value{typ, b.Bytes()}
+	typ := zctx.LookupTypeArray(c.typ)
+	return zng.Value{typ, b.Bytes()}, nil
 }
 
-func (c *Collect) ConsumePart(zv zng.Value) error {
-	if zv.Bytes == nil {
-		// ignore empty results
-		return nil
-	}
+func (c *Collect) ConsumeAsPartial(zv zng.Value) error {
 	if c.typ == nil {
 		typ, ok := zv.Type.(*zng.TypeArray)
 		if !ok {
@@ -87,6 +78,6 @@ func (c *Collect) ConsumePart(zv zng.Value) error {
 	return nil
 }
 
-func (c *Collect) ResultPart(*resolver.Context) (zng.Value, error) {
-	return c.Result(), nil
+func (c *Collect) ResultAsPartial(tc *resolver.Context) (zng.Value, error) {
+	return c.Result(tc)
 }
