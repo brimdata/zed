@@ -358,7 +358,7 @@ type LogPostOpts struct {
 	Shaper    ast.Proc
 }
 
-func (c *Connection) LogPostPath(ctx context.Context, space api.SpaceID, opts LogPostOpts, paths ...string) error {
+func (c *Connection) LogPostPath(ctx context.Context, space api.SpaceID, opts *LogPostOpts, paths ...string) error {
 	stream, err := c.LogPostPathStream(ctx, space, opts, paths...)
 	if err != nil {
 		return err
@@ -370,13 +370,13 @@ func (c *Connection) LogPostPath(ctx context.Context, space api.SpaceID, opts Lo
 	return payloads.Error()
 }
 
-func (c *Connection) LogPostPathStream(ctx context.Context, space api.SpaceID, opts LogPostOpts, paths ...string) (*Stream, error) {
+func (c *Connection) LogPostPathStream(ctx context.Context, space api.SpaceID, opts *LogPostOpts, paths ...string) (*Stream, error) {
 	body := api.LogPostRequest{
 		Paths:          paths,
 		JSONTypeConfig: opts.JSON,
 		StopErr:        opts.StopError,
 	}
-	if opts.Shaper != nil {
+	if opts != nil && opts.Shaper != nil {
 		raw, err := json.Marshal(opts.Shaper)
 		if err != nil {
 			return nil, err

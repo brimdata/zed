@@ -72,7 +72,7 @@ func (c *PostPathCommand) Run(args []string) (err error) {
 		return err
 	}
 	c.start = time.Now()
-	opts := client.LogPostOpts{Shaper: c.postFlags.shaperAST}
+	opts := &client.LogPostOpts{Shaper: c.postFlags.shaperAST}
 	stream, err := c.Connection().LogPostPathStream(c.Context(), id, opts, paths...)
 	if err != nil {
 		return err
