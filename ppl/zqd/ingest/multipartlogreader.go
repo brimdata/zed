@@ -53,12 +53,6 @@ read:
 		if zr == nil || err != nil {
 			return nil, err
 		}
-		if m.shaperAST != nil {
-			zr, err = driver.NewReader(context.Background(), m.shaperAST, m.zctx, zr)
-			if err != nil {
-				return nil, err
-			}
-		}
 		m.zreader = zr
 	}
 	rec, err := m.zreader.Read()
@@ -70,7 +64,7 @@ read:
 			if m.stopErr {
 				return nil, err
 			}
-			m.appendWarning(zr.(*zbuf.File), err)
+			m.appendWarning(zr, err)
 		}
 		goto read
 	}
@@ -110,7 +104,8 @@ next:
 	}
 	name := part.FileName()
 	counter := &mpcounter{part, &m.nread}
-	zr, err := detector.OpenFromNamedReadCloser(m.zctx, counter, name, m.opts)
+	var zr zbuf.ReadCloser
+	zr, err = detector.OpenFromNamedReadCloser(m.zctx, counter, name, m.opts)
 	if err != nil {
 		part.Close()
 		if m.stopErr {
@@ -119,10 +114,16 @@ next:
 		m.appendWarning(zr, err)
 		goto next
 	}
+	if m.shaperAST != nil {
+		zr, err = driver.NewReader(context.Background(), m.shaperAST, m.zctx, zr)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return zr, err
 }
 
-func (m *MultipartLogReader) appendWarning(zr *zbuf.File, err error) {
+func (m *MultipartLogReader) appendWarning(zr zbuf.Reader, err error) {
 	m.warnings = append(m.warnings, fmt.Sprintf("%s: %s", zr, err))
 }
 
