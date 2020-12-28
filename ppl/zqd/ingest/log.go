@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/zbuf"
@@ -51,6 +53,10 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 		opts.JSON.TypeConfig = req.JSONTypeConfig
 		opts.JSON.PathRegexp = ndjsonio.DefaultPathRegexp
 	}
+	proc, err := ast.UnpackJSON(nil, req.Shaper)
+	if err != nil {
+		return nil, err
+	}
 	for _, path := range req.Paths {
 		rc, size, err := openIncomingLog(ctx, path)
 		if err != nil {
@@ -68,8 +74,16 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 			continue
 		}
 		zr := zbuf.NewWarningReader(sf, p)
+
 		p.bytesTotal += size
 		p.readCounters = append(p.readCounters, rc)
+
+		if proc != nil {
+			zr, err = driver.NewReader(ctx, proc, p.zctx, zr)
+			if err != nil {
+				return nil, err
+			}
+		}
 		p.readers = append(p.readers, zr)
 	}
 	go p.start(ctx, store)

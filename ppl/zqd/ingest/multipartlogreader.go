@@ -1,12 +1,16 @@
 package ingest
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"mime/multipart"
 	"sync/atomic"
 
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -17,14 +21,17 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
+const maxShaperAstBytes = 1000 * 1000
+
 type MultipartLogReader struct {
-	mr       *multipart.Reader
-	opts     zio.ReaderOpts
-	stopErr  bool
-	warnings []string
-	zreader  *zbuf.File
-	zctx     *resolver.Context
-	nread    int64
+	mr        *multipart.Reader
+	opts      zio.ReaderOpts
+	stopErr   bool
+	shaperAST ast.Proc
+	warnings  []string
+	zreader   zbuf.ReadCloser
+	zctx      *resolver.Context
+	nread     int64
 }
 
 func NewMultipartLogReader(mr *multipart.Reader, zctx *resolver.Context) *MultipartLogReader {
@@ -64,7 +71,7 @@ read:
 	return rec, err
 }
 
-func (m *MultipartLogReader) next() (*zbuf.File, error) {
+func (m *MultipartLogReader) next() (zbuf.ReadCloser, error) {
 next:
 	if m.mr == nil {
 		return nil, nil
@@ -83,10 +90,22 @@ next:
 		m.opts.JSON.PathRegexp = ndjsonio.DefaultPathRegexp
 		goto next
 	}
-
+	if part.FormName() == "shaper_ast" {
+		raw, err := ioutil.ReadAll(io.LimitReader(part, maxShaperAstBytes))
+		if err != nil {
+			return nil, zqe.ErrInvalid("shaper_ast too big")
+		}
+		proc, err := ast.UnpackJSON(nil, raw)
+		if err != nil {
+			return nil, err
+		}
+		m.shaperAST = proc
+		goto next
+	}
 	name := part.FileName()
 	counter := &mpcounter{part, &m.nread}
-	zr, err := detector.OpenFromNamedReadCloser(m.zctx, counter, name, m.opts)
+	var zr zbuf.ReadCloser
+	zr, err = detector.OpenFromNamedReadCloser(m.zctx, counter, name, m.opts)
 	if err != nil {
 		part.Close()
 		if m.stopErr {
@@ -95,10 +114,16 @@ next:
 		m.appendWarning(zr, err)
 		goto next
 	}
+	if m.shaperAST != nil {
+		zr, err = driver.NewReader(context.Background(), m.shaperAST, m.zctx, zr)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return zr, err
 }
 
-func (m *MultipartLogReader) appendWarning(zr *zbuf.File, err error) {
+func (m *MultipartLogReader) appendWarning(zr zbuf.Reader, err error) {
 	m.warnings = append(m.warnings, fmt.Sprintf("%s: %s", zr, err))
 }
 

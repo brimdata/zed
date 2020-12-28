@@ -1,0 +1,23 @@
+script: |
+  source services.sh
+  zapi -h $ZQD_HOST new test
+  zapi -h $ZQD_HOST -s test post -z "put ip=ip:ip" in.tzng in.tzng
+  zapi -h $ZQD_HOST -s test get -f zson > out.zson
+
+inputs:
+  - name: services.sh
+    source: services.sh
+  - name: in.tzng
+    data: |
+      #0:record[ip:string]
+      0:[1.1.1.1;]
+
+outputs:
+  - name: out.zson
+    data: |
+      {
+          ip: 1.1.1.1
+      } (=0)
+      {
+          ip: 1.1.1.1
+      } (0)
