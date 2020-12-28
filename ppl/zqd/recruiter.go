@@ -18,7 +18,7 @@ func handleRecruit(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !request(c, w, r, &req) {
 		return
 	}
-	workers, err := recruiter.RecruitWithEndWait(c.workerPool, req.NumberRequested, req.Label)
+	workers, err := recruiter.RecruitWithEndWait(c.workerPool, req.NumberRequested, req.Label, c.logger)
 	if err != nil {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return

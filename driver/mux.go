@@ -90,10 +90,6 @@ func (m *muxOutput) Complete() bool {
 	return len(m.pctx.Warnings) == 0 && m.runners == 0
 }
 
-func (m *muxOutput) N() int {
-	return len(m.muxProcs)
-}
-
 var errTimeout = errors.New("timeout")
 
 func (m *muxOutput) Pull(timeout <-chan time.Time) muxResult {
