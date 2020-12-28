@@ -29,6 +29,7 @@ jobs:
       - env:
           NAMESPACE: ci-${{ github.ref }}
         run: |
+          echo GITHUB_RUN_ID is $GITHUB_RUN_ID
           make install
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl config set-context --current --namespace=$NAMESPACE
