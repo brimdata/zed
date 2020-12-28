@@ -3,7 +3,6 @@ package post
 import (
 	"errors"
 	"flag"
-	"fmt"
 
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/ast"
@@ -27,12 +26,10 @@ func (f *postFlags) SetFlags(fs *flag.FlagSet) {
 
 func (f *postFlags) Init() error {
 	c := f.cmd
-	fmt.Printf("postflags init, shaper is %s\n", f.shaper)
 	if err := c.Init(&f.SpaceCreateFlags); err != nil {
 		return err
 	}
 	if f.shaper != "" {
-		fmt.Printf("shaper is %s\n", f.shaper)
 		ast, err := zql.ParseProc(f.shaper)
 		if err != nil {
 			return err
