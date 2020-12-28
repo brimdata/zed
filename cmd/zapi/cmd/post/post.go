@@ -55,9 +55,6 @@ func (c *PostCommand) Run(args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	if c.postFlags.shaperAST != nil {
-		c.logwriter.SetShaper(c.postFlags.shaperAST)
-	}
 	var out io.Writer
 	var dp *display.Display
 	if !c.NoFancy {
@@ -73,7 +70,7 @@ func (c *PostCommand) Run(args []string) (err error) {
 	}
 	c.start = time.Now()
 	conn := c.Connection()
-	res, err := conn.LogPostWriter(c.Context(), id, nil, c.logwriter)
+	res, err := conn.LogPostWriter(c.Context(), id, &client.LogPostOpts{Shaper: c.postFlags.shaperAST}, c.logwriter)
 	if err != nil {
 		if c.Context().Err() != nil {
 			fmt.Println("post aborted")

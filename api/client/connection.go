@@ -417,6 +417,9 @@ func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts 
 		SetResult(&api.LogPostResponse{}).
 		SetHeader("Content-Type", writer.ContentType())
 	if opts != nil {
+		if opts.Shaper != nil {
+			writer.SetShaper(opts.Shaper)
+		}
 		if opts.StopError {
 			req.SetQueryParam("stop_err", "true")
 		}
