@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func RecruitWithEndWait(wp *WorkerPool, numberRequested int, loggingLabel string) ([]api.Worker, error) {
+func RecruitWithEndWait(wp *WorkerPool, numberRequested int, loggingLabel string, logger *zap.Logger) ([]api.Worker, error) {
 	ws, err := wp.Recruit(numberRequested)
 	if err != nil {
 		return nil, err
@@ -19,6 +19,10 @@ func RecruitWithEndWait(wp *WorkerPool, numberRequested int, loggingLabel string
 			workers = append(workers, api.Worker{Addr: w.Addr, NodeName: w.NodeName})
 		}
 	}
+	logger.Info("Recruit request",
+		zap.String("label", loggingLabel),
+		zap.Int("requested", numberRequested),
+		zap.Int("recruited", len(workers)))
 	return workers, nil
 }
 
@@ -48,7 +52,7 @@ func WaitForRecruitment(ctx context.Context, wp *WorkerPool, addr string, nodena
 			zap.Int("count", rd.NumberRequested))
 		directive = "reserved"
 	case <-timer.C:
-		logger.Info("Worker should reregister", zap.String("addr", addr))
+		logger.Debug("Worker should reregister", zap.String("addr", addr))
 		wp.Deregister(addr)
 		directive = "reregister"
 	case <-ctx.Done():

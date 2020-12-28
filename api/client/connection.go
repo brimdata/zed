@@ -260,7 +260,7 @@ func (c *Connection) WorkerRelease(ctx context.Context) error {
 
 // Search sends a search task to the server and returns a Search interface
 // that the caller uses to stream back results via the Read method.
-func (c *Connection) Search(ctx context.Context, search api.SearchRequest, params map[string]string) (Search, error) {
+func (c *Connection) Search(ctx context.Context, search api.SearchRequest, params map[string]string) (*ZngSearch, error) {
 	r, err := c.SearchRaw(ctx, search, params)
 	if err != nil {
 		return nil, err
@@ -268,7 +268,7 @@ func (c *Connection) Search(ctx context.Context, search api.SearchRequest, param
 	return NewZngSearch(r), nil
 }
 
-func (c *Connection) IndexSearch(ctx context.Context, space api.SpaceID, search api.IndexSearchRequest, params map[string]string) (Search, error) {
+func (c *Connection) IndexSearch(ctx context.Context, space api.SpaceID, search api.IndexSearchRequest, params map[string]string) (*ZngSearch, error) {
 	req := c.Request(ctx).
 		SetBody(search).
 		SetQueryParam("format", "zng")
@@ -289,7 +289,7 @@ func (c *Connection) IndexPost(ctx context.Context, space api.SpaceID, post api.
 	return err
 }
 
-func (c *Connection) ArchiveStat(ctx context.Context, space api.SpaceID, params map[string]string) (Search, error) {
+func (c *Connection) ArchiveStat(ctx context.Context, space api.SpaceID, params map[string]string) (*ZngSearch, error) {
 	req := c.Request(ctx).
 		SetQueryParam("format", "zng")
 	req.SetQueryParams(params)

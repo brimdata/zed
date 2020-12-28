@@ -148,14 +148,6 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	wch := make(chan string, 5)
-	if !c.stopErr {
-		for i, r := range readers {
-			readers[i] = zbuf.NewWarningReader(r, wch)
-		}
-	}
-	defer zbuf.CloseReaders(readers)
-
 	writer, err := c.outputFlags.Open()
 	if err != nil {
 		return err
@@ -164,13 +156,18 @@ func (c *Command) Run(args []string) error {
 	if !c.quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	driverConf := driver.Config{Warnings: wch}
+	if !c.stopErr {
+		for i, r := range readers {
+			readers[i] = zbuf.NewWarningReader(r, d)
+		}
+	}
+	defer zbuf.CloseReaders(readers)
 
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
 
 	if c.parallel {
-		if err := driver.RunParallel(ctx, d, query, zctx, readers, driverConf); err != nil {
+		if err := driver.RunParallel(ctx, d, query, zctx, readers, driver.Config{}); err != nil {
 			writer.Close()
 			return err
 		}
@@ -180,7 +177,7 @@ func (c *Command) Run(args []string) error {
 			writer.Close()
 			return err
 		}
-		if err := driver.Run(ctx, d, query, zctx, reader, driverConf); err != nil {
+		if err := driver.Run(ctx, d, query, zctx, reader, driver.Config{}); err != nil {
 			writer.Close()
 			return err
 		}

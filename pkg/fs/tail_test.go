@@ -2,30 +2,46 @@ package fs
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestTailFile(t *testing.T) {
+func TestTailFileWrite(t *testing.T) {
 	f, err := ioutil.TempFile("", "tailfile.log")
 	require.NoError(t, err)
 	t.Cleanup(func() { os.Remove(f.Name()) })
-	tf, err := TailFile(f.Name())
+	// Add timeout context lest TFail fails to get a write event. Don't wait
+	// around forever.
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+	defer cancel()
+	tf, err := TailFileWithContext(ctx, f.Name())
 	require.NoError(t, err)
 	buf := make([]byte, 100)
+	errCh := make(chan error)
 
 	for i := 0; i < 10; i++ {
 		str := fmt.Sprintf("line #%d\n", i)
-		_, err := f.WriteString(str)
-		require.NoError(t, err)
+		go func() {
+			_, err := f.WriteString(str)
+			if err == nil {
+				// This sync call must be done because otherwise for windows
+				// the fsnotify.Write event will not trigger. I am guessing
+				// that's because so little data is written for each call.
+				err = f.Sync()
+			}
+			errCh <- err
+		}()
 		n, err := tf.Read(buf)
 		require.NoError(t, err)
+		require.NoError(t, <-errCh)
 		assert.Equal(t, str, string(buf[:n]))
 	}
 	go require.NoError(t, tf.Stop())

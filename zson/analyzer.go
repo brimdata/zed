@@ -127,8 +127,8 @@ func (a Analyzer) convertValue(zctx *resolver.Context, val ast.Value, parent zng
 		if err != nil {
 			return nil, err
 		}
-		if union, ok := parent.(*zng.TypeUnion); ok {
-			v, err = a.convertUnion(zctx, v, union)
+		if union, ok := zng.AliasedType(parent).(*zng.TypeUnion); ok {
+			v, err = a.convertUnion(zctx, v, union, parent)
 		}
 		return v, err
 	}
@@ -139,7 +139,7 @@ func (a Analyzer) typeCheck(cast, parent zng.Type) error {
 	if parent == nil || cast == parent {
 		return nil
 	}
-	if _, ok := parent.(*zng.TypeUnion); ok {
+	if _, ok := zng.AliasedType(parent).(*zng.TypeUnion); ok {
 		// We let unions through this type check with no further checking
 		// as any union incompability will be caught in convertAnyValue().
 		return nil
@@ -149,7 +149,7 @@ func (a Analyzer) typeCheck(cast, parent zng.Type) error {
 
 func (a Analyzer) enterTypeDef(zctx *resolver.Context, name string, typ zng.Type) (*zng.TypeAlias, error) {
 	var alias *zng.TypeAlias
-	if zng.IsIdentifier(name) {
+	if zng.IsTypeName(name) {
 		var err error
 		if alias, err = zctx.LookupTypeAlias(name, typ); err != nil {
 			return nil, err
@@ -167,12 +167,12 @@ func (a Analyzer) convertAny(zctx *resolver.Context, val ast.Any, cast zng.Type)
 	// If we're casting something to a union, then the thing inside needs to
 	// describe itself and we can convert the inner value to a union value when
 	// we know its type (so we can code the selector).
-	if union, ok := cast.(*zng.TypeUnion); ok {
+	if union, ok := zng.AliasedType(cast).(*zng.TypeUnion); ok {
 		v, err := a.convertAny(zctx, val, nil)
 		if err != nil {
 			return nil, err
 		}
-		return a.convertUnion(zctx, v, union)
+		return a.convertUnion(zctx, v, union, cast)
 	}
 	switch val := val.(type) {
 	case *ast.Primitive:
@@ -355,7 +355,7 @@ func (a Analyzer) convertArray(zctx *resolver.Context, array *ast.Array, cast zn
 	unionType := zctx.LookupTypeUnion(types)
 	var unions []Value
 	for _, v := range vals {
-		union, err := a.convertUnion(zctx, v, unionType)
+		union, err := a.convertUnion(zctx, v, unionType, unionType)
 		if err != nil {
 			return nil, err
 		}
@@ -452,12 +452,12 @@ func (a Analyzer) convertSet(zctx *resolver.Context, set *ast.Set, cast zng.Type
 	}, nil
 }
 
-func (a Analyzer) convertUnion(zctx *resolver.Context, v Value, union *zng.TypeUnion) (Value, error) {
+func (a Analyzer) convertUnion(zctx *resolver.Context, v Value, union *zng.TypeUnion, cast zng.Type) (Value, error) {
 	valType := v.TypeOf()
 	if valType == zng.TypeNull {
 		// Set selector to -1 to signal to the builder to encode a null.
 		return &Union{
-			Type:     union,
+			Type:     cast,
 			Selector: -1,
 			Value:    v,
 		}, nil
@@ -465,7 +465,7 @@ func (a Analyzer) convertUnion(zctx *resolver.Context, v Value, union *zng.TypeU
 	for k, typ := range union.Types {
 		if valType == typ {
 			return &Union{
-				Type:     union,
+				Type:     cast,
 				Selector: k,
 				Value:    v,
 			}, nil

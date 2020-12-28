@@ -81,7 +81,7 @@ func TestComputeColumns(t *testing.T) {
 			// will be applied after it when it is plugged into compilation.
 			ReplaceGroupByProcDurationWithKey(query)
 			cols := computeColumns(query)
-			var expected *Colset
+			var expected Colset
 			if tc.cols != nil {
 				expected = newColset()
 				for _, s := range tc.cols {

@@ -287,9 +287,9 @@ It is an error for the decorator to be type incompatible with its referenced val
 New type names are created by binding a name to a type with an assignment decorator
 of the form
 ```
-<value> (= <identifier> )
+<value> (= <type-name> )
 ```
-This creates a new type whose name is given by the identifier and whose
+This creates a new type whose name is given by the type name and whose
 type is equivalent to the type of `<value>`.  This new
 type may then be used anywhere a type may appear.  The name
 of the type definition
@@ -297,13 +297,13 @@ must not be equal to any of the primitive type names.
 
 A type definition may also appear inside a decorator as in
 ```
-<identifier> = ( <type> )
+<type-name> = ( <type> )
 ```
 where the result of this expression is the newly named type.
 With this syntax, you can create a new type and decorate a value
 as follows
 ```
-<value> ( <identifier> = ( )<type> ) )
+<value> ( <type-name> = ( <type> ) )
 ```
 e.g.,
 ```
@@ -311,13 +311,13 @@ e.g.,
 ````
 is the value 80 of type "port", where "port" is a type name bound to `uint16`.
 
-The abbreviated form `(=<identifier>)` may be used whenever a type value is
+The abbreviated form `(=<type-name>)` may be used whenever a type value is
 _self describing_ in the sense that its type name can be entirely derived
 from its value, e.g., a record type can be derived from a record value
 because all of the field names and type names are present in the value, but
 an enum type cannot be derived from an enum value because not all the enumerated
 names are present in the value.  In the the latter case, the long form
-`(<identifier>=(<type>))` must be used.
+`(<type-name>=(<type>))` must be used.
 
 It is an error for an external type to be defined to a different type
 than its previous definition though multiple definitions of the same
@@ -675,12 +675,15 @@ types in the value using the embedded type definition syntax:
 ```
 <name> = ( <type> )
 ```
-where `<name>` is a string or integer, e.g.,
+where `<name>` is a type name or integer, e.g.,
 ```
 conn=({ info:string, src:(socket=({ addr:ip, port:uint16 }), dst:socket })
 ```
 Types in canonical form can be decoded and interpreted independently
 of a type context.
+
+A type name has the same form as an identifier except the characters
+`/` and `.` are also permitted.
 
 ### 3.6 Null Value
 
@@ -864,5 +867,5 @@ the defines their type.
 
 <type-def> = <identifier> = <type-type>
 
-<type-name> = <identifier> | <integer>
+<type-name> = as defined above
 ```
