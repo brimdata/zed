@@ -25,9 +25,11 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - env:
-          NAMESPACE: ci-${{ github.ref }}
+          NAMESPACE: ci-${{ github.base_ref }}
+          S3_DIR: $(date +"%y-%m-%d").${{ github.run_number }}
         run: |
-          echo GITHUB_RUN_ID is $GITHUB_RUN_ID
+          echo S3_DIR is $S3_DIR
+          echo NAMESPACE is $NAMESPACE
           make install
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl config set-context --current --namespace=$NAMESPACE
