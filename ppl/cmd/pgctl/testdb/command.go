@@ -46,7 +46,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("argument '-p' (postgres url) is required")
 	}
 	if c.migrations == "" {
-		return errors.New("argument '-' (migrations directory is required")
+		return errors.New("argument '-m' (migrations directory) is required")
 	}
 
 	u, err := iosrc.ParseURI(c.migrations)
