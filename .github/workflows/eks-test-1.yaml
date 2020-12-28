@@ -2,8 +2,6 @@ name: EKS Test 1
 
 on: 
   push:
-    branches:
-      - eks-test-1
   workflow_dispatch:
     inputs:
       numWorkers:
