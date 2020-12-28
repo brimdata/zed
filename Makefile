@@ -97,7 +97,7 @@ test-postgres-docker:
 	$(MAKE) test-postgres; \
 		status=$?; \
 		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
-		exit $status
+		exit $$status
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
