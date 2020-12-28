@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - eks-test-2
-      - master
+      #- master
 
 jobs:
   ecr-image-push:
@@ -39,10 +39,10 @@ jobs:
       - env:
           ZQD_DATA_URI: s3://zq-github-test/${{ github.ref }}/zqd-data
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
-          NAMESPACE: ci-${{ github.ref }}
+          NAMESPACE: ci-master
         run: |
           aws eks --region us-east-2 update-kubeconfig --name zq-test
-          kubectl create ns $NAMESPACE
+          kubectl create ns $NAMESPACE || :
           kubectl config set-context --current --namespace=$NAMESPACE
           make helm-uninstall
           make helm-install-recruiter
