@@ -44,6 +44,7 @@ jobs:
           URI_BASE: s3://zq-ci-master
           URI_LEAF: ${{ env.TODAY }}.${{ github.run_number }}
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
+          ZQD_DATA_URI: ${{ env.URI_BASE }}/${{ env.URI_LEAF }}
         run: |
           env
           aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
@@ -51,7 +52,6 @@ jobs:
           kubectl config set-context --current --namespace=$NAMESPACE
           make helm-uninstall
           make helm-install-recruiter
-          export ZQD_DATA_URI=$URI_BASE/$URI_LEAF
           make helm-install-root
           make helm-install-worker
   eks-test-zapi-1:
