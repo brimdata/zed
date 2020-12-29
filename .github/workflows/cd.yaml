@@ -74,7 +74,7 @@ jobs:
       - env:
           CLUSTER: zq-test
           NAMESPACE: ci-master
-          SOURCE_LOG_1: s3://brim-scratch/mark/sp-m1
+          SOURCE_LOG_1: s3://brim-scratch/mark/conn.log.gz
           SPACE: testsp1
           URI_BASE: s3://zq-github-test
           URI_LEAF: ${{ env.TODAY }}.${{ github.run_number }}
