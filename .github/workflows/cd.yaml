@@ -44,7 +44,7 @@ jobs:
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
           ZQD_DATA_URI: s3://zq-ci-master/${{ env.TODAY }}.${{ github.run_number }}
         run: |
-          env
+          set -x
           aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
           kubectl create ns $NAMESPACE || :
           kubectl config set-context --current --namespace=$NAMESPACE
@@ -92,4 +92,5 @@ jobs:
           time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
           time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
           time zapi -s $SPACE get -workers 4 -t 'count()'
+          time zapi -s $SPACE get -workers 4 -t '* | count() by tx_hosts | sort -r count | head 5'
           kubectl scale --replicas=1 deployment/worker-zqd
