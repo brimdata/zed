@@ -41,10 +41,8 @@ jobs:
       - env:
           CLUSTER: zq-test
           NAMESPACE: ci-master
-          URI_BASE: s3://zq-ci-master
-          URI_LEAF: ${{ env.TODAY }}.${{ github.run_number }}
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
-          ZQD_DATA_URI: ${{ env.URI_BASE }}/${{ env.URI_LEAF }}
+          ZQD_DATA_URI: s3://zq-ci-master/${{ env.TODAY }}.${{ github.run_number }}
         run: |
           env
           aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
@@ -76,8 +74,7 @@ jobs:
           NAMESPACE: ci-master
           SOURCE_LOG_1: s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
           SPACE: files
-          URI_BASE: s3://zq-ci-master
-          URI_LEAF: ${{ env.TODAY }}.${{ github.run_number }}
+          ZQD_DATA_URI: s3://zq-ci-master/${{ env.TODAY }}.${{ github.run_number }}
         run: |
           set -x
           make install
@@ -88,7 +85,7 @@ jobs:
           kubectl port-forward svc/root-zqd 9867:9867 &
           sleep 2 # wait for port-forwards to complete
           zapi ls
-          zapi new -k archivestore -d $URI_BASE/$URI_LEAF $SPACE 
+          zapi new -k archivestore -d $ZQD_DATA_URI $SPACE 
           zapi -s $SPACE post $SOURCE_LOG_1
           curl http://localhost:8020/recruiter/listfree        
           time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
