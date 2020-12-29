@@ -42,7 +42,7 @@ jobs:
           CLUSTER: zq-test
           NAMESPACE: ci-master
           URI_BASE: s3://zq-github-test
-          URI_LEAF: ${{env.TODAY}.${{ github.run_number }}
+          URI_LEAF: ${{ env.TODAY }}.${{ github.run_number }}
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
         run: |
           env
