@@ -91,6 +91,9 @@ jobs:
           time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
           time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
           time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
-          time zapi -s $SPACE get -workers 4 -t 'count()'
-          time zapi -s $SPACE get -workers 4 -t '* | count() by tx_hosts | sort -r count | head 5'
+          time zapi -s $SPACE get -workers 4 -t 'count()' > count.tzng
+          time zapi -s $SPACE get -workers 4 -t \
+            '* | count() by tx_hosts | sort -r count | head 5' > countbytxhost.tzng
           kubectl scale --replicas=1 deployment/worker-zqd
+          diff count.tzng k8s/testdiff/count.tzng
+          diff countbytxhost.tzng k8s/testdiff/countbytxhost.tzng
