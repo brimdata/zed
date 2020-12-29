@@ -37,7 +37,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Set current date as env variable $TODAY
-        run: echo "TODAY::$(date +'%y-%m-%d')" >> $GITHUB_ENV
+        run: echo "TODAY=$(date +'%y-%m-%d')" >> $GITHUB_ENV
       - env:
           CLUSTER: zq-test
           NAMESPACE: ci-master
@@ -70,7 +70,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.sha }}
       - name: Set current date as env variable
-        run: echo "TODAY::$(date +'%y-%m-%d')" >> $GITHUB_ENV
+        run: echo "TODAY=$(date +'%y-%m-%d')" >> $GITHUB_ENV
       - env:
           CLUSTER: zq-test
           NAMESPACE: ci-master
