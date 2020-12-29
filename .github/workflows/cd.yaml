@@ -1,0 +1,96 @@
+name: "Deploy"
+
+on:
+  push:
+    branches:
+      - eks-test-2
+      #- master
+
+jobs:
+  ecr-image-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      - uses: actions/checkout@v1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - env:
+          ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
+        run: |
+          make docker-push-ecr
+  eks-test-deploy:
+    needs: ecr-image-push
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - uses: actions/checkout@v1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set current date as env variable $TODAY
+        run: echo "TODAY::$(date +'%y-%m-%d')" >> $GITHUB_ENV
+      - env:
+          CLUSTER: zq-test
+          NAMESPACE: ci-master
+          URI_BASE: s3://zq-github-test
+          URI_LEAF: ${{env.TODAY}.${{ github.run_number }}
+          ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
+        run: |
+          env
+          aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
+          kubectl create ns $NAMESPACE || :
+          kubectl config set-context --current --namespace=$NAMESPACE
+          make helm-uninstall
+          make helm-install-recruiter
+          export ZQD_DATA_URI=$URI_BASE/$URI_LEAF
+          make helm-install-root
+          make helm-install-worker
+  eks-test-zapi-1:
+    needs: eks-test-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - uses: actions/checkout@v1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Set current date as env variable
+        run: echo "TODAY::$(date +'%y-%m-%d')" >> $GITHUB_ENV
+      - env:
+          CLUSTER: zq-test
+          NAMESPACE: ci-master
+          SOURCE_LOG_1: s3://brim-scratch/mark/sp-m1
+          SPACE: testsp1
+          URI_BASE: s3://zq-github-test
+          URI_LEAF: ${{env.TODAY}.${{ github.run_number }}
+        run: |
+          make install
+          aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
+          kubectl config set-context --current --namespace=$NAMESPACE
+          kubectl port-forward svc/recruiter-zqd 8020:9867 &
+          kubectl port-forward svc/root-zqd 9867:9867 &
+          sleep 2 # wait for port-forwards to complete
+          curl http://localhost:8020/recruiter/listfree        
+          zapi ls
+          zapi new -k archivestore -d $URI_BASE/URI_LEAF $SPACE 
+          zapi -s $SPACE post $SOURCE_LOG_1
+          # echo "Number of Workers: ${{ github.event.inputs.numWorkers }}"
+      - run: |
+          time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
+          time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
+          time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
