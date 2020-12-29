@@ -40,7 +40,7 @@ jobs:
         run: echo "TODAY=$(date +'%y-%m-%d')" >> $GITHUB_ENV
       - env:
           CLUSTER: zq-test
-          NAMESPACE: ci-master
+          NAMESPACE: ci-${{ github.run_number }}
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
           ZQD_DATA_URI: s3://zq-ci-master/${{ env.TODAY }}.${{ github.run_number }}
         run: |
@@ -71,7 +71,7 @@ jobs:
         run: echo "TODAY=$(date +'%y-%m-%d')" >> $GITHUB_ENV
       - env:
           CLUSTER: zq-test
-          NAMESPACE: ci-master
+          NAMESPACE: ci-${{ github.run_number }}
           SOURCE_LOG_1: s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
           SPACE: files
           ZQD_DATA_URI: s3://zq-ci-master/${{ env.TODAY }}.${{ github.run_number }}
@@ -94,6 +94,10 @@ jobs:
           time zapi -s $SPACE get -workers 4 -t 'count()' > count.tzng
           time zapi -s $SPACE get -workers 4 -t \
             '* | count() by tx_hosts | sort -r count | head 5' > countbytxhost.tzng
-          kubectl scale --replicas=1 deployment/worker-zqd
           diff count.tzng k8s/testdiff/count.tzng
           diff countbytxhost.tzng k8s/testdiff/countbytxhost.tzng
+      - name: Cleanup on success or failure
+        if: ${{ always() }}
+        env:
+          NAMESPACE: ci-${{ github.run_number }}
+        run: kubectl delete ns $NAMESPACE
