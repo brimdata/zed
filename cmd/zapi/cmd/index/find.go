@@ -82,7 +82,7 @@ func (c *FindCmd) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	writer, err := emitter.NewFile(c.outputFlags.FileName(), c.outputFlags.Options())
+	writer, err := emitter.NewFile(c.Context(), c.outputFlags.FileName(), c.outputFlags.Options())
 	if err != nil {
 		return err
 	}

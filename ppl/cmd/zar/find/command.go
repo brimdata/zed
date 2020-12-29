@@ -109,6 +109,8 @@ func (c *Command) Run(args []string) error {
 		findOptions = append(findOptions, archive.SkipMissing())
 	}
 
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
 	outputFile := c.outputFlags.FileName()
 	if outputFile == "-" {
 		outputFile = ""
@@ -116,14 +118,12 @@ func (c *Command) Run(args []string) error {
 	var writer zbuf.WriteCloser
 	if c.zng {
 		var err error
-		writer, err = emitter.NewFile(outputFile, c.outputFlags.Options())
+		writer, err = emitter.NewFile(ctx, outputFile, c.outputFlags.Options())
 		if err != nil {
 			return err
 		}
 		defer writer.Close()
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	hits := make(chan *zng.Record)
 	var searchErr error
 	go func() {

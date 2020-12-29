@@ -61,7 +61,7 @@ func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err er
 	}
 	defer rc.Close()
 
-	w, err := emitter.NewFile(outpath, zio.WriterOpts{
+	w, err := emitter.NewFile(context.Background(), outpath, zio.WriterOpts{
 		Format: outformat,
 	})
 	if err != nil {

@@ -84,7 +84,7 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
 
-	writer, err := c.outputFlags.Open()
+	writer, err := c.outputFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
