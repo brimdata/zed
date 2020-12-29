@@ -11,8 +11,9 @@ type Warner interface {
 }
 
 type WarningReader struct {
-	zr Reader
-	wn Warner
+	zr    Reader
+	wn    Warner
+	erred bool
 }
 
 // NewWarningReader returns a Reader that reads from zr.  Any error
@@ -23,9 +24,13 @@ func NewWarningReader(zr Reader, w Warner) Reader {
 }
 
 func (w *WarningReader) Read() (*zng.Record, error) {
+	if w.erred {
+		return nil, nil
+	}
 	rec, err := w.zr.Read()
 	if err != nil {
 		w.wn.Warn(fmt.Sprintf("%s: %s", w.zr, err))
+		w.erred = true
 		return nil, nil
 	}
 	return rec, nil
