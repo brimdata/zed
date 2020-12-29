@@ -249,6 +249,9 @@ ftp   93
 | **Optional<br>arguments** | None                                                           |
 | **Limitations**           | The potential inaccuracy of the calculated result is described in detail in the code and research linked from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog). |
 
+> Note: partial aggregations are not yet implemented for countdistinct so
+> this might not work yet from Brim or zq.
+
 #### Example:
 
 To see an approximate count of unique `uid` values in our sample data set:
@@ -284,14 +287,14 @@ to perform this test, the ZQL using `countdistinct()` executed almost 3x faster.
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return any value observed for a specified field |
+| **Description**           | Return any value observed for a specified field.               |
 | **Syntax**                | `any(<field-name>)`                                          |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
 
-To see the `name` of the a Zeek `weird` event in our sample data:
+To see the `name` of a Zeek `weird` event in our sample data:
 
 ```zq-command
 zq -f table 'any(name)' weird.log.gz

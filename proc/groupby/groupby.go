@@ -302,8 +302,7 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 	if a.partialsIn {
 		return row.reducers.consumeAsPartial(r, a.aggRefs)
 	}
-	row.reducers.apply(a.aggs, r)
-	return nil
+	return row.reducers.apply(a.aggs, r)
 }
 
 func (a *Aggregator) spillTable(eof bool) error {

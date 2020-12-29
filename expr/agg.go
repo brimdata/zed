@@ -39,16 +39,18 @@ func (a *Aggregator) NewFunction() agg.Function {
 	return a.pattern()
 }
 
-func (a *Aggregator) Apply(f agg.Function, rec *zng.Record) {
+func (a *Aggregator) Apply(f agg.Function, rec *zng.Record) error {
 	if a.filter(rec) {
-		return
+		return nil
 	}
 	zv, err := a.expr.Eval(rec)
 	if err != nil {
-		//XXX
-		return
+		if err == ErrNoSuchField {
+			err = nil
+		}
+		return err
 	}
-	f.Consume(zv)
+	return f.Consume(zv)
 }
 
 func (a *Aggregator) filter(rec *zng.Record) bool {

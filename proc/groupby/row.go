@@ -16,10 +16,13 @@ func newValRow(aggs []*expr.Aggregator) valRow {
 	return cols
 }
 
-func (v valRow) apply(aggs []*expr.Aggregator, rec *zng.Record) {
+func (v valRow) apply(aggs []*expr.Aggregator, rec *zng.Record) error {
 	for k, a := range aggs {
-		a.Apply(v[k], rec)
+		if err := a.Apply(v[k], rec); err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (v valRow) consumeAsPartial(rec *zng.Record, vals []expr.Evaluator) error {
