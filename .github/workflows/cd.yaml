@@ -87,6 +87,7 @@ jobs:
           zapi ls
           zapi new -k archivestore -d $ZQD_DATA_URI $SPACE 
           zapi -s $SPACE post $SOURCE_LOG_1
+          sleep 20 # wait a while for S3 writes to settle in
           curl http://localhost:8020/recruiter/listfree        
           time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
           time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
