@@ -65,14 +65,6 @@ func (db *FileDB) save(ctx context.Context, lcs []SpaceRow) error {
 	})
 }
 
-type SpaceRow struct {
-	ID       api.SpaceID       `json:"id"`
-	DataURI  iosrc.URI         `json:"data_uri"`
-	Name     string            `json:"name"`
-	ParentID api.SpaceID       `json:"parent_id"`
-	Storage  api.StorageConfig `json:"storage"`
-}
-
 func (db *FileDB) CreateSpace(ctx context.Context, row SpaceRow) error {
 	if row.ID == "" {
 		return zqe.ErrInvalid("row must have an id")

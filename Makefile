@@ -85,6 +85,20 @@ test-heavy: build $(SAMPLEDATA)
 test-pcapingest: bin/$(ZEEKPATH)
 	@ZEEK="$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner" go test -v -run=PcapPost -tags=pcapingest ./ppl/zqd
 
+.PHONY: test-postgres
+test-postgres: build 
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
+		ZTEST_TAG=postgres \
+		go test -v -run TestZq/ppl/zqd/postgres/ztests .
+
+.PHONY: test-postgres-docker
+test-postgres-docker:
+	@docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
+	$(MAKE) test-postgres; \
+		status=$?; \
+		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
+		exit $$status
+
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
 
