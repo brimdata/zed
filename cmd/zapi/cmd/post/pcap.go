@@ -124,11 +124,8 @@ func (c *PostPcapCommand) Display(w io.Writer) bool {
 func (c *PostPcapCommand) printStats() {
 	if c.stats {
 		w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
-		// truncate bytes written for tests
-		rbw := c.lastStatus.RecordBytesWritten
-		rbw = (rbw / 100) * 100
 		fmt.Fprintf(w, "data chunks written:\t%d\n", c.lastStatus.DataChunksWritten)
-		fmt.Fprintf(w, "record bytes written:\t%s\n", format.Bytes(rbw))
+		fmt.Fprintf(w, "record bytes written:\t%s\n", format.Bytes(c.lastStatus.RecordBytesWritten))
 		fmt.Fprintf(w, "records written:\t%d\n", c.lastStatus.RecordsWritten)
 		w.Flush()
 	}

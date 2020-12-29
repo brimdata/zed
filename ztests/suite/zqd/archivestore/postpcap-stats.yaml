@@ -10,7 +10,7 @@ inputs:
 
 outputs:
   - name: stderr
-    data: |
+    regexp: |
       data chunks written:  1
-      record bytes written: 1.40KB
+      record bytes written: 1.[0-9]{2}KB
       records written:      10
