@@ -41,7 +41,7 @@ jobs:
       - env:
           CLUSTER: zq-test
           NAMESPACE: ci-master
-          URI_BASE: s3://zq-github-test
+          URI_BASE: s3://zq-ci-master
           URI_LEAF: ${{ env.TODAY }}.${{ github.run_number }}
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
         run: |
@@ -74,9 +74,9 @@ jobs:
       - env:
           CLUSTER: zq-test
           NAMESPACE: ci-master
-          SOURCE_LOG_1: s3://brim-scratch/mark/conn.log.gz
-          SPACE: testsp1
-          URI_BASE: s3://zq-github-test
+          SOURCE_LOG_1: s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
+          SPACE: files
+          URI_BASE: s3://zq-ci-master
           URI_LEAF: ${{ env.TODAY }}.${{ github.run_number }}
         run: |
           set -x
@@ -88,10 +88,8 @@ jobs:
           sleep 2 # wait for port-forwards to complete
           curl http://localhost:8020/recruiter/listfree        
           zapi ls
-          zapi new -k archivestore -d $URI_BASE/URI_LEAF $SPACE 
+          zapi new -k archivestore -d $URI_BASE/$URI_LEAF $SPACE 
           zapi -s $SPACE post $SOURCE_LOG_1
-          # echo "Number of Workers: ${{ github.event.inputs.numWorkers }}"
-      - run: |
           time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
           time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
           time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
