@@ -58,7 +58,11 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, erro
 	case "table":
 		return tableio.NewWriter(w, opts.UTF8, opts.EpochDates), nil
 	case "csv":
-		return csvio.NewWriter(w, opts.UTF8, opts.EpochDates), nil
+		return csvio.NewWriter(w, csvio.WriterOpts{
+			EpochDates: opts.EpochDates,
+			Fuse:       opts.CSVFuse,
+			UTF8:       opts.UTF8,
+		}), nil
 	default:
 		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	}

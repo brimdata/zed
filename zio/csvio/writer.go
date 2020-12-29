@@ -6,6 +6,8 @@ import (
 	"io"
 	"time"
 
+	"github.com/brimsec/zq/proc/fuse"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
@@ -22,18 +24,28 @@ type Writer struct {
 	first      *zng.TypeRecord
 }
 
-func NewWriter(w io.WriteCloser, utf8, epochDates bool) *Writer {
+type WriterOpts struct {
+	EpochDates bool
+	Fuse       bool
+	UTF8       bool
+}
+
+func NewWriter(w io.WriteCloser, opts WriterOpts) zbuf.WriteCloser {
 	format := zng.OutFormatZeekAscii
-	if utf8 {
+	if opts.UTF8 {
 		format = zng.OutFormatZeek
 	}
-	return &Writer{
+	zw := &Writer{
 		writer:     w,
-		epochDates: epochDates,
+		epochDates: opts.EpochDates,
 		encoder:    csv.NewWriter(w),
 		flattener:  flattener.New(resolver.NewContext()),
 		format:     format,
 	}
+	if opts.Fuse {
+		return fuse.WriteCloser(zw)
+	}
+	return zw
 }
 
 func (w *Writer) Close() error {

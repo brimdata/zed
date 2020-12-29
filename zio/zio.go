@@ -19,6 +19,7 @@ type ReaderOpts struct {
 }
 
 type WriterOpts struct {
+	CSVFuse    bool
 	Format     string
 	UTF8       bool
 	EpochDates bool
