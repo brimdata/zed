@@ -10,5 +10,5 @@ input: |
   0:[b;1;]
 output: |
   #0:record[key:string,t1:bool,t2:bool,t3:bool,t4:bool,t5:bool]
-  0:[a;F;F;F;F;T;]
-  0:[b;F;F;T;F;T;]
+  0:[a;F;F;F;F;-;]
+  0:[b;F;F;T;F;-;]

@@ -9,7 +9,6 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/groupby"
-	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
@@ -18,37 +17,37 @@ func compileGroupBy(pctx *proc.Context, parent proc.Interface, node *ast.GroupBy
 	if err != nil {
 		return nil, err
 	}
-	names, reducers, err := compileReducers(node.Reducers, pctx.TypeContext)
+	names, reducers, err := compileAggs(node.Reducers, pctx.TypeContext)
 	if err != nil {
 		return nil, err
 	}
 	return groupby.New(pctx, parent, keys, names, reducers, node.Limit, node.InputSortDir, node.ConsumePart, node.EmitPart)
 }
 
-func compileReducers(assignments []ast.Assignment, zctx *resolver.Context) ([]field.Static, []reducer.Maker, error) {
+func compileAggs(assignments []ast.Assignment, zctx *resolver.Context) ([]field.Static, []*expr.Aggregator, error) {
 	names := make([]field.Static, 0, len(assignments))
-	reducers := make([]reducer.Maker, 0, len(assignments))
+	aggs := make([]*expr.Aggregator, 0, len(assignments))
 	for _, assignment := range assignments {
-		name, maker, err := compileReducer(zctx, assignment)
+		name, agg, err := compileAgg(zctx, assignment)
 		if err != nil {
 			return nil, nil, err
 		}
-		reducers = append(reducers, maker)
+		aggs = append(aggs, agg)
 		names = append(names, name)
 	}
-	return names, reducers, nil
+	return names, aggs, nil
 }
 
-func compileReducer(zctx *resolver.Context, assignment ast.Assignment) (field.Static, reducer.Maker, error) {
-	reducerAST, ok := assignment.RHS.(*ast.Reducer)
+func compileAgg(zctx *resolver.Context, assignment ast.Assignment) (field.Static, *expr.Aggregator, error) {
+	aggAST, ok := assignment.RHS.(*ast.Reducer)
 	if !ok {
-		return nil, nil, errors.New("reducer is not a reducer expression")
+		return nil, nil, errors.New("aggregator is not an aggregation expression")
 	}
-	reducerOp := reducerAST.Operator
+	aggOp := aggAST.Operator
 	var err error
 	var arg expr.Evaluator
-	if reducerAST.Expr != nil {
-		arg, err = CompileExpr(zctx, reducerAST.Expr)
+	if aggAST.Expr != nil {
+		arg, err = CompileExpr(zctx, aggAST.Expr)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -58,34 +57,20 @@ func compileReducer(zctx *resolver.Context, assignment ast.Assignment) (field.St
 	// the name of reducer function.
 	var lhs field.Static
 	if assignment.LHS == nil {
-		lhs = field.New(reducerOp)
+		lhs = field.New(aggOp)
 	} else {
 		lhs, err = CompileLval(assignment.LHS)
 		if err != nil {
-			return nil, nil, fmt.Errorf("lhs of reducer expression: %w", err)
+			return nil, nil, fmt.Errorf("lhs of aggregation: %w", err)
 		}
 	}
 	var where expr.Evaluator
-	if reducerAST.Where != nil {
-		where, err = CompileExpr(zctx, reducerAST.Where)
+	if aggAST.Where != nil {
+		where, err = CompileExpr(zctx, aggAST.Where)
 		if err != nil {
 			return nil, nil, err
 		}
 	}
-	m, err := reducer.NewMaker(reducerOp, arg, where)
+	m, err := expr.NewAggregator(aggOp, arg, where)
 	return lhs, m, err
-}
-
-func IsDecomposable(assignments []ast.Assignment) bool {
-	zctx := resolver.NewContext()
-	for _, assignment := range assignments {
-		_, maker, err := compileReducer(zctx, assignment)
-		if err != nil {
-			return false
-		}
-		if _, ok := maker(nil).(reducer.Decomposable); !ok {
-			return false
-		}
-	}
-	return true
 }
