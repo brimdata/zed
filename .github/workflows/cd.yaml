@@ -79,6 +79,7 @@ jobs:
           URI_BASE: s3://zq-github-test
           URI_LEAF: ${{ env.TODAY }}.${{ github.run_number }}
         run: |
+          set -x
           make install
           aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
           kubectl config set-context --current --namespace=$NAMESPACE
