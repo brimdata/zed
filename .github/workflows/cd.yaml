@@ -77,7 +77,7 @@ jobs:
           SOURCE_LOG_1: s3://brim-scratch/mark/sp-m1
           SPACE: testsp1
           URI_BASE: s3://zq-github-test
-          URI_LEAF: ${{env.TODAY}.${{ github.run_number }}
+          URI_LEAF: ${{ env.TODAY }}.${{ github.run_number }}
         run: |
           make install
           aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
