@@ -83,13 +83,15 @@ jobs:
           make install
           aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
           kubectl config set-context --current --namespace=$NAMESPACE
+          kubectl scale --replicas=4 deployment/worker-zqd
           kubectl port-forward svc/recruiter-zqd 8020:9867 &
           kubectl port-forward svc/root-zqd 9867:9867 &
           sleep 2 # wait for port-forwards to complete
-          curl http://localhost:8020/recruiter/listfree        
           zapi ls
           zapi new -k archivestore -d $URI_BASE/$URI_LEAF $SPACE 
           zapi -s $SPACE post $SOURCE_LOG_1
+          curl http://localhost:8020/recruiter/listfree        
           time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
           time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
           time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
+          kubectl scale --replicas=1 deployment/worker-zqd
