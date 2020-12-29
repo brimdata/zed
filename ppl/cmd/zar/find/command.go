@@ -109,7 +109,7 @@ func (c *Command) Run(args []string) error {
 		findOptions = append(findOptions, archive.SkipMissing())
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(context.TODO())
 	defer cancel()
 	outputFile := c.outputFlags.FileName()
 	if outputFile == "-" {
