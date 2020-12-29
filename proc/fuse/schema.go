@@ -1,4 +1,4 @@
-package fuser
+package fuse
 
 import (
 	"fmt"

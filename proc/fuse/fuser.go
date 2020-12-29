@@ -1,5 +1,4 @@
-// Packaage fuser transforms records to a unified schema.
-package fuser
+package fuse
 
 import (
 	"errors"
@@ -31,10 +30,10 @@ type slot struct {
 	container bool
 }
 
-// New returns a new Fuser.  The Fuser buffers records in memory until their
-// cumulative size (measured in zcode.Bytes length) exceeds memMaxBytes, at
-// which point it buffers them in a temporary file.
-func New(zctx *resolver.Context, memMaxBytes int) *Fuser {
+// NewFuser returns a new Fuser.  The Fuser buffers records in memory until
+// their cumulative size (measured in zcode.Bytes length) exceeds memMaxBytes,
+// at which point it buffers them in a temporary file.
+func NewFuser(zctx *resolver.Context, memMaxBytes int) *Fuser {
 	return &Fuser{zctx: zctx, memMaxBytes: memMaxBytes}
 }
 

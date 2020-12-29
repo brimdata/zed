@@ -6,7 +6,6 @@ import (
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/fuser"
 )
 
 var MemMaxBytes = 128 * 1024 * 1024
@@ -16,7 +15,7 @@ type Proc struct {
 	pctx   *proc.Context
 	parent proc.Interface
 
-	fuser    *fuser.Fuser
+	fuser    *Fuser
 	once     sync.Once
 	resultCh chan proc.Result
 }
@@ -25,7 +24,7 @@ func New(pctx *proc.Context, parent proc.Interface) (*Proc, error) {
 	return &Proc{
 		pctx:     pctx,
 		parent:   parent,
-		fuser:    fuser.New(pctx.TypeContext, MemMaxBytes),
+		fuser:    NewFuser(pctx.TypeContext, MemMaxBytes),
 		resultCh: make(chan proc.Result),
 	}, nil
 }
