@@ -43,7 +43,7 @@ jobs:
           CLUSTER: zq-test
           NAMESPACE: ci-${{ github.run_number }}
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
-          ZQD_DATA_URI: s3://zq-ci-master/${{ env.TODAY }}.${{ github.run_number }}
+          ZQD_DATA_URI: s3://zq-ci-test/${{ env.TODAY }}.${{ github.run_number }}
         run: |
           set -x
           aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
@@ -76,7 +76,7 @@ jobs:
           NAMESPACE: ci-${{ github.run_number }}
           SOURCE_LOG_1: s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
           SPACE: files
-          ZQD_DATA_URI: s3://zq-ci-master/${{ env.TODAY }}.${{ github.run_number }}
+          ZQD_DATA_URI: s3://zq-ci-test/${{ env.TODAY }}.${{ github.run_number }}
         run: |
           set -x
           make install
