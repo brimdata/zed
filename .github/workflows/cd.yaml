@@ -8,6 +8,7 @@ on:
 
 jobs:
   ecr-image-push:
+    # Build and push a Docker image for zqd.
     runs-on: ubuntu-latest
     steps:
       - uses: aws-actions/configure-aws-credentials@v1
@@ -25,6 +26,7 @@ jobs:
         run: |
           make docker-push-ecr
   eks-test-deploy:
+    # Deploys this build to a temporary namespace in order to run smoke tests.
     needs: ecr-image-push
     runs-on: ubuntu-latest
     steps:
@@ -53,6 +55,7 @@ jobs:
           make helm-install-root
           make helm-install-worker
   eks-test-zapi-1:
+    # Run smoke tests for zqd image prior to deploying to ci-master.
     needs: eks-test-deploy
     runs-on: ubuntu-latest
     steps:
@@ -85,10 +88,11 @@ jobs:
           kubectl port-forward svc/root-zqd 9867:9867 &
           sleep 2 # wait for port-forwards to complete
           zapi ls
-          zapi new -k archivestore -d $ZQD_DATA_URI $SPACE 
+          zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
+          # Post an archive of about 1.6 GB to run test queries.
           zapi -s $SPACE post $SOURCE_LOG_1
-          sleep 20 # wait a while for S3 writes to settle in
-          curl http://localhost:8020/recruiter/listfree        
+          # There should be 4 workers running now.
+          [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers" | jq length) ]]     
           time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
           time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
           time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
@@ -102,3 +106,31 @@ jobs:
         env:
           NAMESPACE: ci-${{ github.run_number }}
         run: kubectl delete ns $NAMESPACE
+  eks-master-deploy:
+    # Deploys this build to ci-master namespace so it will be available
+    # for manual testing. Only deploy if previous jobs succeed.
+    needs: eks-test-zapi-1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - uses: actions/checkout@v1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - env:
+          CLUSTER: zq-test
+          NAMESPACE: ci-master
+          ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
+          ZQD_DATA_URI: s3://zq-ci-master/manual-test
+        run: |
+          set -x
+          aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
+          kubectl create ns $NAMESPACE || :
+          kubectl config set-context --current --namespace=$NAMESPACE
+          make helm-uninstall
+          make helm-install-recruiter
+          make helm-install-root
+          make helm-install-worker
