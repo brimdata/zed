@@ -26,15 +26,7 @@ func (f *Flags) Options() zio.WriterOpts {
 	return f.WriterOpts
 }
 
-func (f *Flags) formatFlags(fs *flag.FlagSet) {
-	fs.StringVar(&f.Format, "f", "zng", "format for output data [zng,zst,ndjson,table,text,csv,zeek,zjson,zson,tzng]")
-	fs.BoolVar(&f.textShortcut, "t", false, "use format tzng independent of -f option")
-	fs.BoolVar(&f.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
-}
-
 func (f *Flags) setFlags(fs *flag.FlagSet) {
-	f.formatFlags(fs)
-
 	// zio stuff
 	fs.BoolVar(&f.UTF8, "U", false, "display zeek strings as UTF-8")
 	fs.BoolVar(&f.Text.ShowTypes, "T", false, "display field types in text output")
@@ -57,6 +49,7 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
+	f.SetFormatFlags(fs)
 	f.setFlags(fs)
 }
 
@@ -66,7 +59,9 @@ func (f *Flags) SetFlagsWithFormat(fs *flag.FlagSet, format string) {
 }
 
 func (f *Flags) SetFormatFlags(fs *flag.FlagSet) {
-	f.formatFlags(fs)
+	fs.StringVar(&f.Format, "f", "zng", "format for output data [zng,zst,ndjson,table,text,csv,zeek,zjson,zson,tzng]")
+	fs.BoolVar(&f.textShortcut, "t", false, "use format tzng independent of -f option")
+	fs.BoolVar(&f.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
 }
 
 func (f *Flags) Init() error {
