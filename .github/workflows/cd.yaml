@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - eks-test-2
 
 jobs:
   ecr-image-push:
