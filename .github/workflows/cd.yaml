@@ -3,8 +3,7 @@ name: "Deploy"
 on:
   push:
     branches:
-      - eks-test-2
-      #- master
+      - master
 
 jobs:
   ecr-image-push:
