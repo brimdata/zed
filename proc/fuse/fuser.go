@@ -69,16 +69,13 @@ func (f *Fuser) stash(rec *zng.Record) error {
 		if err != nil {
 			return err
 		}
-		if err := f.spiller.Write(rec); err != nil {
-			return err
-		}
 		for _, rec := range f.recs {
 			if err := f.spiller.Write(rec); err != nil {
 				return err
 			}
 		}
 		f.recs = nil
-		return nil
+		return f.spiller.Write(rec)
 	}
 	rec = rec.Keep()
 	f.recs = append(f.recs, rec)
