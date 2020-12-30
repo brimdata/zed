@@ -5,7 +5,17 @@ on:
     branches:
       - master
       - eks-test-2
-
+  workflow_dispatch:
+     inputs:
+       namespace:
+         description: 'K8s namespace'
+         default: 'ci-master'     
+       s3data:
+         description: 'S3 data directory'
+         default: 's3://zq-ci-master/manual-test'
+       skiptests:
+         description: 'Skip tests before deploy'
+         default: 'false'
 jobs:
   ecr-image-push:
     # Build and push a Docker image for zqd.
@@ -27,6 +37,7 @@ jobs:
           make docker-push-ecr
   eks-test-deploy:
     # Deploys this build to a temporary namespace in order to run smoke tests.
+    if: !github.event.inputs.skiptests
     needs: ecr-image-push
     runs-on: ubuntu-latest
     steps:
@@ -56,6 +67,7 @@ jobs:
           make helm-install-worker
   eks-test-zapi-1:
     # Run smoke tests for zqd image prior to deploying to ci-master.
+    if: !github.event.inputs.skiptests
     needs: eks-test-deploy
     runs-on: ubuntu-latest
     steps:
@@ -122,9 +134,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - env:
           CLUSTER: zq-test
-          NAMESPACE: ci-master
+          NAMESPACE: ${{ github.event.inputs.namespace }}
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
-          ZQD_DATA_URI: s3://zq-ci-master/manual-test
+          ZQD_DATA_URI: ${{ github.event.inputs.s3data }}
         run: |
           set -x
           aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
