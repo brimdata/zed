@@ -61,6 +61,12 @@ func newArchivePcapOp(ctx context.Context, logstore *archivestore.Storage, pcaps
 	if err != nil {
 		return nil, err
 	}
+
+	writer, err := logstore.NewWriter(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	p := &archivePcapOp{
 		done:      make(chan struct{}),
 		pcapstore: pcapstore,
@@ -68,7 +74,7 @@ func newArchivePcapOp(ctx context.Context, logstore *archivestore.Storage, pcaps
 		pcapuri:   pcapuri,
 		snap:      make(chan struct{}),
 		suricata:  suricata,
-		writer:    logstore.NewWriter(ctx),
+		writer:    writer,
 		zeek:      zeek,
 		zctx:      resolver.NewContext(),
 

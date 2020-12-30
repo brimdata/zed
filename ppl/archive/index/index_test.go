@@ -16,7 +16,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestApplyDefinitions(t *testing.T) {
+func TestWriteIndices(t *testing.T) {
 	const data = `
 #0:record[ts:time,orig_h:ip,proto:string]
 0:[1;127.0.0.1;conn;]
@@ -30,7 +30,7 @@ func TestApplyDefinitions(t *testing.T) {
 	ip := MustNewDefinition(NewTypeRule(zng.TypeIP))
 	proto := MustNewDefinition(NewFieldRule("proto"))
 
-	indices, err := ApplyDefinitions(ctx, dir, r, ip, proto)
+	indices, err := WriteIndices(ctx, dir, r, ip, proto)
 	require.NoError(t, err)
 	assert.Len(t, indices, 2)
 

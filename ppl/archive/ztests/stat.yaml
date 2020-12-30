@@ -1,7 +1,7 @@
 script: |
   mkdir logs
   zar import -R logs babble.tzng
-  zar index -R logs -q :string v
+  zar index create -R logs -q :string v
   echo ===
   # Verify the log_id's in the default table format.
   zq -t "count()" $(zar stat -R logs | grep -v ^TYPE | awk '{print "logs/"$2}' | sort | uniq)

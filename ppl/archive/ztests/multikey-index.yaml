@@ -1,7 +1,7 @@
 script: |
   mkdir logs
   zar import -R logs babble.tzng
-  zar index -R logs -q -o index -k sum,s -z "sum(v) by s | sort sum,s"
+  zar index create -R logs -q -o index -k sum,s -z "sum(v) by s | sort sum,s"
   zar find -R logs -z -x index 149 wailer-strick | zq -t "drop _log" -
 
 inputs:

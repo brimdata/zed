@@ -1,0 +1,28 @@
+script: |
+  zar import -R logs -empty
+  zar import -R logs data.tzng
+  zar index create -R logs -q _path :ip
+  zar index ls -R logs -stats -f zng > stats.zng
+  zq -f table "drop id" stats.zng
+  echo ===
+  zar index drop -R logs $(zq -f text "desc=field-_path | cut id" stats.zng) >/dev/null
+  zar index ls -R logs -stats -f zng | zq -f table "drop id" -
+
+inputs:
+  - name: data.tzng
+    data: |
+      #0:record[_path:string,ts:time,orig_h:ip]
+      0:[conn;1;127.0.0.1;]
+      0:[http;1;127.0.0.1;]
+      0:[conn;2;127.0.0.2;]
+      0:[http;2;127.0.0.2;]
+
+outputs:
+  - name: stdout
+    data: |
+      DESC        ZQL INPUT INDEX_COUNT CHUNK_COUNT
+      field-_path _   _     1           1
+      type-ip     _   _     1           1
+      ===
+      DESC    ZQL INPUT INDEX_COUNT CHUNK_COUNT
+      type-ip _   _     1           1

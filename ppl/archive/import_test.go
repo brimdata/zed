@@ -33,7 +33,8 @@ func testImportStaleDuration(t *testing.T, stale time.Duration, expected uint64)
 	require.NoError(t, err)
 
 	// write one record to an open archive.Writer and do NOT close it.
-	w := NewWriter(context.Background(), ark)
+	w, err := NewWriter(context.Background(), ark)
+	require.NoError(t, err)
 	defer w.Close()
 	w.SetStaleDuration(stale)
 	r := tzngio.NewReader(strings.NewReader(data), resolver.NewContext())
