@@ -87,10 +87,10 @@ jobs:
           kubectl port-forward svc/recruiter-zqd 8020:9867 &
           kubectl port-forward svc/root-zqd 9867:9867 &
           sleep 2 # wait for port-forwards to complete
-          zapi ls
-          zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
+          time zapi ls
+          time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
           # Post an archive of about 1.6 GB to run test queries.
-          zapi -s $SPACE post $SOURCE_LOG_1
+          time zapi -s $SPACE post $SOURCE_LOG_1
           # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers" | jq length) ]]     
           time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
