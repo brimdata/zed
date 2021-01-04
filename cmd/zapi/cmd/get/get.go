@@ -15,11 +15,9 @@ import (
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
 )
@@ -154,7 +152,7 @@ func (c *Command) Run(args []string) error {
 		}
 		return c.runRawSearch(r)
 	}
-	writer, err := c.outputFlags.Open()
+	writer, err := c.outputFlags.Open(c.Context())
 	if err != nil {
 		return err
 	}
@@ -267,11 +265,4 @@ func (t *tsflag) Set(val string) error {
 	}
 	*t = tsflag(nano.TimeToTs(in))
 	return nil
-}
-
-func openOutput(dir, file string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
-	if dir != "" {
-		return emitter.NewDir(dir, file, os.Stderr, opts)
-	}
-	return emitter.NewFile(file, opts)
 }

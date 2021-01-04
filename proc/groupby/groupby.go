@@ -2,14 +2,12 @@ package groupby
 
 import (
 	"errors"
-	"fmt"
 	"sync"
 
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/spill"
-	"github.com/brimsec/zq/reducer"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -17,17 +15,6 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zng/typevector"
 )
-
-type errTooBig int
-
-func (e errTooBig) Error() string {
-	return fmt.Sprintf("non-decomposable groupby aggregation exceeded configured cardinality limit (%d)", e)
-}
-
-func IsErrTooBig(err error) bool {
-	_, ok := err.(errTooBig)
-	return ok
-}
 
 var DefaultLimit = 1000000
 
@@ -59,8 +46,7 @@ type Aggregator struct {
 	keyRefs      []expr.Evaluator
 	keyExprs     []expr.Evaluator
 	aggRefs      []expr.Evaluator
-	aggMakers    []reducer.Maker
-	decomposable bool
+	aggs         []*expr.Aggregator
 	builder      *builder.ColumnBuilder
 	recordTypes  map[int]*zng.TypeRecord
 	table        map[string]*Row
@@ -82,7 +68,7 @@ type Row struct {
 	reducers valRow
 }
 
-func NewAggregator(zctx *resolver.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggMakers []reducer.Maker, builder *builder.ColumnBuilder, limit, inputSortDir int, partialsIn, partialsOut bool) (*Aggregator, error) {
+func NewAggregator(zctx *resolver.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *builder.ColumnBuilder, limit, inputSortDir int, partialsIn, partialsOut bool) (*Aggregator, error) {
 	if limit == 0 {
 		limit = DefaultLimit
 	}
@@ -121,11 +107,10 @@ func NewAggregator(zctx *resolver.Context, keyRefs, keyExprs, aggRefs []expr.Eva
 		keyRefs:      keyRefs,
 		keyExprs:     keyExprs,
 		aggRefs:      aggRefs,
-		aggMakers:    aggMakers,
-		decomposable: decomposable(aggMakers),
+		aggs:         aggs,
 		builder:      builder,
 		block:        make(map[int]struct{}),
-		typeCache:    make([]zng.Type, nkeys+len(aggMakers)),
+		typeCache:    make([]zng.Type, nkeys+len(aggs)),
 		keyCache:     make(zcode.Bytes, 0, 128),
 		table:        make(map[string]*Row),
 		recordTypes:  make(map[int]*zng.TypeRecord),
@@ -137,19 +122,7 @@ func NewAggregator(zctx *resolver.Context, keyRefs, keyExprs, aggRefs []expr.Eva
 	}, nil
 }
 
-func decomposable(rs []reducer.Maker) bool {
-	for _, r := range rs {
-		if _, ok := r(nil).(reducer.Decomposable); !ok {
-			return false
-		}
-	}
-	return true
-}
-
-func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggNames []field.Static, aggMakers []reducer.Maker, limit, inputSortDir int, partialsIn, partialsOut bool) (*Proc, error) {
-	if (partialsIn || partialsOut) && !decomposable(aggMakers) {
-		return nil, errors.New("partial input or output requested with non-decomposable reducers")
-	}
+func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggNames []field.Static, aggs []*expr.Aggregator, limit, inputSortDir int, partialsIn, partialsOut bool) (*Proc, error) {
 	names := make([]field.Static, 0, len(keys)+len(aggNames))
 	for _, e := range keys {
 		names = append(names, e.LHS)
@@ -169,7 +142,7 @@ func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggN
 		keyRefs = append(keyRefs, expr.NewDotExpr(e.LHS))
 		keyExprs = append(keyExprs, e.RHS)
 	}
-	agg, err := NewAggregator(pctx.TypeContext, keyRefs, keyExprs, valRefs, aggMakers, builder, limit, inputSortDir, partialsIn, partialsOut)
+	agg, err := NewAggregator(pctx.TypeContext, keyRefs, keyExprs, valRefs, aggs, builder, limit, inputSortDir, partialsIn, partialsOut)
 	if err != nil {
 		return nil, err
 	}
@@ -314,9 +287,6 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 	row, ok := a.table[string(keyBytes)]
 	if !ok {
 		if len(a.table) >= a.limit {
-			if !a.decomposable {
-				return errTooBig(a.limit)
-			}
 			if err := a.spillTable(false); err != nil {
 				return err
 			}
@@ -324,16 +294,15 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 		row = &Row{
 			keyType:  keyType,
 			groupval: prim,
-			reducers: newValRow(a.zctx, a.aggMakers),
+			reducers: newValRow(a.aggs),
 		}
 		a.table[string(keyBytes)] = row
 	}
 
 	if a.partialsIn {
-		return row.reducers.consumePartial(r, a.aggRefs)
+		return row.reducers.consumeAsPartial(r, a.aggRefs)
 	}
-	row.reducers.consume(r)
-	return nil
+	return row.reducers.apply(a.aggs, r)
 }
 
 func (a *Aggregator) spillTable(eof bool) error {
@@ -443,7 +412,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	// XXX This could be optimized by reusing the reducers and resetting
 	// their state instead of allocating a new one per row and sending
 	// each one to GC, but this would require a change to reducer API.
-	row := newValRow(a.zctx, a.aggMakers)
+	row := newValRow(a.aggs)
 	var firstRec *zng.Record
 	for {
 		rec, err := a.spiller.Peek()
@@ -458,7 +427,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 		} else if a.keysCompare(firstRec, rec) != 0 {
 			break
 		}
-		if err := row.consumePartial(rec, a.aggRefs); err != nil {
+		if err := row.consumeAsPartial(rec, a.aggRefs); err != nil {
 			return nil, err
 		}
 		if _, err := a.spiller.Read(); err != nil {
@@ -479,13 +448,17 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	for _, col := range row {
 		var v zng.Value
 		if a.partialsOut {
-			vv, err := col.(reducer.Decomposable).ResultPart(a.zctx)
+			vv, err := col.ResultAsPartial(a.zctx)
 			if err != nil {
 				return nil, err
 			}
 			v = vv
 		} else {
-			v = col.Result()
+			var err error
+			v, err = col.Result(a.zctx)
+			if err != nil {
+				return nil, err
+			}
 		}
 		types = append(types, v.Type)
 		a.builder.Append(v.Bytes, v.IsContainer())
@@ -504,9 +477,8 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 // readTable returns a slice of records from the in-memory groupby
 // table. If flush is true, the entire table is returned. If flush is
 // false and input is sorted only completed keys are returned.
-// If decompose is true, it returns partial reducer results as
-// returned by reducer.Decomposable.ResultPart(). It is an error to
-// pass decompose=true if any reducer is non-decomposable.
+// If partialsOut is true, it returns partial aggregation results as
+// defined by each agg.Function.ResultAsPartial() method.
 func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 	var recs []*zng.Record
 	for key, row := range a.table {
@@ -538,15 +510,14 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 		}
 		for _, col := range row.reducers {
 			var v zng.Value
+			var err error
 			if partialsOut {
-				var err error
-				dec := col.(reducer.Decomposable)
-				v, err = dec.ResultPart(a.zctx)
-				if err != nil {
-					return nil, err
-				}
+				v, err = col.ResultAsPartial(a.zctx)
 			} else {
-				v = col.Result()
+				v, err = col.Result(a.zctx)
+			}
+			if err != nil {
+				return nil, err
 			}
 			types = append(types, v.Type)
 			a.builder.Append(v.Bytes, v.IsContainer())

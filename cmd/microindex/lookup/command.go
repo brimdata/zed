@@ -91,7 +91,7 @@ func (c *LookupCommand) Run(args []string) error {
 		}
 		close(hits)
 	}()
-	writer, err := c.outputFlags.Open()
+	writer, err := c.outputFlags.Open(ctx)
 	if err != nil {
 		return err
 	}

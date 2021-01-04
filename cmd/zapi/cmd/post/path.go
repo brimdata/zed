@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/cmd/zapi/format"
 	"github.com/brimsec/zq/pkg/display"
@@ -71,7 +72,8 @@ func (c *PostPathCommand) Run(args []string) (err error) {
 		return err
 	}
 	c.start = time.Now()
-	stream, err := c.Connection().LogPostPathStream(c.Context(), id, nil, paths...)
+	opts := &client.LogPostOpts{Shaper: c.postFlags.shaperAST}
+	stream, err := c.Connection().LogPostPathStream(c.Context(), id, opts, paths...)
 	if err != nil {
 		return err
 	}

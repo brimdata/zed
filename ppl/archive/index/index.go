@@ -73,7 +73,22 @@ func Indices(ctx context.Context, d iosrc.URI, m DefinitionMap) ([]Index, error)
 	return indices, nil
 }
 
-func ApplyDefinitions(ctx context.Context, d iosrc.URI, r zbuf.Reader, defs ...*Definition) ([]Index, error) {
+func RemoveIndices(ctx context.Context, dir iosrc.URI, defs []*Definition) ([]Index, error) {
+	removed := make([]Index, 0, len(defs))
+	for _, def := range defs {
+		path := IndexPath(dir, def.ID)
+		if err := iosrc.Remove(ctx, path); err != nil {
+			if zqe.IsNotFound(err) {
+				continue
+			}
+			return nil, err
+		}
+		removed = append(removed, Index{def, dir})
+	}
+	return removed, nil
+}
+
+func WriteIndices(ctx context.Context, d iosrc.URI, r zbuf.Reader, defs ...*Definition) ([]Index, error) {
 	writers, err := NewMultiWriter(ctx, d, defs)
 	if err != nil {
 		return nil, err

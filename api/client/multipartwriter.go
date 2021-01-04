@@ -10,6 +10,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zio/ndjsonio"
 )
@@ -25,6 +26,7 @@ type MultipartWriter struct {
 	readers   []io.Reader
 	uris      []iosrc.URI
 	json      *ndjsonio.TypeConfig
+	shaper    ast.Proc
 }
 
 func newMultipartWriter() *MultipartWriter {
@@ -60,6 +62,10 @@ func (m *MultipartWriter) SetJSONConfig(config *ndjsonio.TypeConfig) {
 	m.json = config
 }
 
+func (m *MultipartWriter) SetShaper(shaper ast.Proc) {
+	m.shaper = shaper
+}
+
 func (m *MultipartWriter) ContentType() string {
 	return m.form.FormDataContentType()
 }
@@ -77,6 +83,10 @@ func (m *MultipartWriter) Read(b []byte) (int, error) {
 
 func (m *MultipartWriter) run() {
 	if err := m.sendJSONConfig(); err != nil {
+		m.pw.CloseWithError(err)
+		return
+	}
+	if err := m.sendShaperAST(); err != nil {
 		m.pw.CloseWithError(err)
 		return
 	}
@@ -123,6 +133,17 @@ func (m *MultipartWriter) sendJSONConfig() error {
 		return err
 	}
 	return json.NewEncoder(w).Encode(m.json)
+}
+
+func (m *MultipartWriter) sendShaperAST() error {
+	if m.shaper == nil {
+		return nil
+	}
+	w, err := m.form.CreateFormField("shaper_ast")
+	if err != nil {
+		return err
+	}
+	return json.NewEncoder(w).Encode(m.shaper)
 }
 
 type counter struct {

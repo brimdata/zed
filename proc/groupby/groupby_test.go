@@ -85,15 +85,9 @@ const differentTypeOut = `
 `
 
 const reducersOut = `
-#0:record[key1:string,first:int32,last:int32,sum:int64,avg:float64,min:int64,max:int64]
-0:[a;1;2;3;1.5;1;2;]
-0:[b;1;1;1;1;1;1;]
-`
-
-const reducersOut2 = `
-#0:record[key1:string,sum:int64,avg:float64,min:int64,max:int64]
-0:[a;3;1.5;1;2;]
-0:[b;1;1;1;1;]
+#0:record[key1:string,any:int32,sum:int64,avg:float64,min:int64,max:int64]
+0:[a;1;3;1.5;1;2;]
+0:[b;1;1;1;1;1;]
 `
 
 const arrayKeyIn = `
@@ -145,8 +139,8 @@ const notPresentIn = `
 `
 
 const notPresentOut = `
-#0:record[key:string,max:null,last:null]
-0:[key1;-;-;]
+#0:record[key:string,max:null]
+0:[key1;-;]
 `
 
 const mixedIn = `
@@ -215,7 +209,7 @@ func New(name, input, output, cmd string) test.Internal {
 	}
 }
 
-func tests(decomposable bool) suite {
+func tests() suite {
 	s := suite{}
 
 	// Test a simple groupby
@@ -236,12 +230,7 @@ func tests(decomposable bool) suite {
 	s.add(New("different-key-types", in+differentTypeIn, differentTypeOut, "count() by key1 | sort key1"))
 
 	// Test various reducers
-	if decomposable {
-		s.add(New("reducers", in, reducersOut, "first(n), last(n), sum(n), avg(n), min(n), max(n) by key1 | sort key1"))
-	} else {
-		s.add(New("reducers", in, reducersOut2, "sum(n), avg(n), min(n), max(n) by key1 | sort key1"))
-
-	}
+	s.add(New("reducers", in, reducersOut, "any(n), sum(n), avg(n), min(n), max(n) by key1 | sort key1"))
 
 	// Check out of bounds array indexes
 	s.add(New("array-out-of-bounds", arrayKeyIn, arrayKeyOut, "count() by arr | sort"))
@@ -253,13 +242,7 @@ func tests(decomposable bool) suite {
 	s.add(New("unset-inputs", unsetIn, unsetOut, "sum(val) by key | sort"))
 
 	// Test reducers with missing operands
-	s.add(New("not-present", notPresentIn, notPresentOut, "max(val), last(val) by key | sort"))
-
-	//
-	// Test reducers with mixed-type inputs
-	if !decomposable {
-		s.add(New("mixed-inputs", mixedIn, mixedOut, "first(f), last(f) by key | sort"))
-	}
+	s.add(New("not-present", notPresentIn, notPresentOut, "max(val) by key | sort"))
 
 	s.add(New("aliases", aliasIn, aliasOut, "count() by host | sort host"))
 
@@ -275,7 +258,7 @@ func tests(decomposable bool) suite {
 
 func TestGroupbySystem(t *testing.T) {
 	t.Run("memory", func(t *testing.T) {
-		tests(true).runSystem(t)
+		tests().runSystem(t)
 	})
 	t.Run("spill", func(t *testing.T) {
 		saved := groupby.DefaultLimit
@@ -283,7 +266,7 @@ func TestGroupbySystem(t *testing.T) {
 		defer func() {
 			groupby.DefaultLimit = saved
 		}()
-		tests(false).runSystem(t)
+		tests().runSystem(t)
 	})
 }
 

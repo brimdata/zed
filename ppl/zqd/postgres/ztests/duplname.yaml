@@ -1,0 +1,20 @@
+tag: postgres
+
+env:
+  - PG_TEST
+
+script: |
+  source startup.sh
+  zapi -h $ZQD_HOST new -k archivestore testsp >/dev/null
+  zapi -h $ZQD_HOST new testsp
+
+inputs:
+  - name: startup.sh
+    source: startup.sh
+  - name: migrations
+    symlink: ../migrations
+
+outputs:
+  - name: stderr
+    regexp: |
+      couldn't create new space testsp: space exists

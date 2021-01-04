@@ -1,7 +1,6 @@
 package search
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/brimsec/zq/zbuf"
@@ -13,19 +12,18 @@ import (
 // directly to the client as text/csv.
 type CSVOutput struct {
 	response http.ResponseWriter
-	writer   *csvio.Writer
+	wc       zbuf.WriteCloser
 }
 
 func NewCSVOutput(response http.ResponseWriter, ctrl bool) *CSVOutput {
 	return &CSVOutput{
 		response: response,
-		writer:   csvio.NewWriter(zio.NopCloser(response), true, false),
+		wc: csvio.NewWriter(zio.NopCloser(response), csvio.WriterOpts{
+			EpochDates: false,
+			Fuse:       true,
+			UTF8:       true,
+		}),
 	}
-}
-
-func (r *CSVOutput) flush() {
-	r.writer.Flush()
-	r.response.(http.Flusher).Flush()
 }
 
 func (r *CSVOutput) Collect() interface{} {
@@ -34,22 +32,16 @@ func (r *CSVOutput) Collect() interface{} {
 
 func (r *CSVOutput) SendBatch(cid int, batch zbuf.Batch) error {
 	for _, rec := range batch.Records() {
-		if err := r.writer.Write(rec); err != nil {
-			// Embed an error in the csv output.  We can't report
-			// an http error because we already started successfully
-			// streaming records.
-			msg := fmt.Sprintf("query error: %s\n", err)
-			r.response.Write([]byte(msg))
+		if err := r.wc.Write(rec); err != nil {
 			return err
 		}
 	}
 	batch.Unref()
-	r.flush()
 	return nil
 }
 
 func (r *CSVOutput) End(ctrl interface{}) error {
-	return nil
+	return r.wc.Close()
 }
 
 func (r *CSVOutput) SendControl(ctrl interface{}) error {

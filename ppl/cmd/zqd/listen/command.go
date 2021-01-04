@@ -69,6 +69,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.conf.Auth.SetFlags(f)
 	c.conf.Worker.SetFlags(f)
+	c.conf.DB.SetFlags(f)
 	c.conf.Version = cli.Version
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.configfile, "config", "", "path to zqd config file")
@@ -162,8 +163,10 @@ func (c *Command) init() error {
 	if err != nil {
 		return err
 	}
-	c.conf.Zeek, err = getLauncher(c.zeekRunnerPath, "zeekrunner", false)
-	return err
+	if c.conf.Zeek, err = getLauncher(c.zeekRunnerPath, "zeekrunner", false); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getLauncher(path, defaultFile string, stdout bool) (pcapanalyzer.Launcher, error) {

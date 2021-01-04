@@ -2,7 +2,7 @@ script: |
   source minio.sh
   zar import -R s3://bucket/zartest babble.tzng
   zar ls -R s3://bucket/zartest -ranges
-  zar index -R s3://bucket/zartest -q v
+  zar index create -R s3://bucket/zartest -q v
   echo ===
   zar zq -R s3://bucket/zartest -t "count()"
   zar find -R s3://bucket/zartest -z v=2 | zq -t "drop _log" -

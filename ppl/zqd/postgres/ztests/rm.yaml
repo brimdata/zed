@@ -1,0 +1,26 @@
+tag: postgres
+
+env:
+  - PG_TEST
+
+script: |
+  source startup.sh
+  zapi -h $ZQD_HOST new testsp >/dev/null
+  zapi -h $ZQD_HOST ls
+  zapi -h $ZQD_HOST rm testsp
+  echo ===
+  zapi -h $ZQD_HOST ls
+
+inputs:
+  - name: startup.sh
+    source: startup.sh
+  - name: migrations
+    symlink: ../migrations
+
+outputs:
+  - name: stdout
+    data: |
+      testsp
+      testsp: space removed
+      ===
+      no spaces exist

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"time"
 
 	"github.com/brimsec/zq/api"
@@ -169,6 +170,7 @@ type muxReader struct {
 	cancel      context.CancelFunc
 	index       int
 	statsTickCh <-chan time.Time
+	zr          io.Closer
 }
 
 func (mr *muxReader) Read() (*zng.Record, error) {
@@ -200,7 +202,7 @@ read:
 
 func (mr *muxReader) Close() error {
 	mr.cancel()
-	return nil
+	return mr.zr.Close()
 }
 
 func NewReader(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
@@ -214,9 +216,14 @@ func NewReaderWithConfig(ctx context.Context, conf Config, program ast.Proc, zct
 		cancel()
 		return nil, err
 	}
-	return &muxReader{
+	mr := &muxReader{
 		cancel:      cancel,
 		muxOutput:   mux,
 		statsTickCh: make(chan time.Time),
-	}, nil
+		zr:          ioutil.NopCloser(nil),
+	}
+	if _, ok := reader.(io.Closer); ok {
+		mr.zr = reader.(io.Closer)
+	}
+	return mr, nil
 }

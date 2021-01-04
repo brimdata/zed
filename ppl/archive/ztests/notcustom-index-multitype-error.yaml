@@ -2,7 +2,7 @@ script: |
   mkdir logs
   zar import -R logs multitype.tzng
   # ignore stdout here
-  zar index -R logs id.orig_h > trash
+  zar index create -R logs id.orig_h > trash
   # since index operation failed, no files should be left behind so this
   # ls command should have an empty output
   echo ===

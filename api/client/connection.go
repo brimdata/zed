@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/pcap/pcapio"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/go-resty/resty/v2"
@@ -354,6 +355,7 @@ type PcapReadCloser struct {
 type LogPostOpts struct {
 	JSON      *ndjsonio.TypeConfig
 	StopError bool
+	Shaper    ast.Proc
 }
 
 func (c *Connection) LogPostPath(ctx context.Context, space api.SpaceID, opts *LogPostOpts, paths ...string) error {
@@ -369,10 +371,17 @@ func (c *Connection) LogPostPath(ctx context.Context, space api.SpaceID, opts *L
 }
 
 func (c *Connection) LogPostPathStream(ctx context.Context, space api.SpaceID, opts *LogPostOpts, paths ...string) (*Stream, error) {
-	body := api.LogPostRequest{Paths: paths}
-	if opts != nil {
-		body.JSONTypeConfig = opts.JSON
-		body.StopErr = opts.StopError
+	body := api.LogPostRequest{
+		Paths:          paths,
+		JSONTypeConfig: opts.JSON,
+		StopErr:        opts.StopError,
+	}
+	if opts != nil && opts.Shaper != nil {
+		raw, err := json.Marshal(opts.Shaper)
+		if err != nil {
+			return nil, err
+		}
+		body.Shaper = raw
 	}
 	req := c.Request(ctx).
 		SetBody(body)
@@ -408,6 +417,9 @@ func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts 
 		SetResult(&api.LogPostResponse{}).
 		SetHeader("Content-Type", writer.ContentType())
 	if opts != nil {
+		if opts.Shaper != nil {
+			writer.SetShaper(opts.Shaper)
+		}
 		if opts.StopError {
 			req.SetQueryParam("stop_err", "true")
 		}

@@ -13,7 +13,7 @@ import (
 	"golang.org/x/crypto/ssh/terminal"
 )
 
-func NewFile(path string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
+func NewFile(ctx context.Context, path string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if path == "" {
 		path = "stdout"
 	}
@@ -25,7 +25,7 @@ func NewFile(path string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewFileWithSource(uri, opts, src)
+	return NewFileWithSource(ctx, uri, opts, src)
 }
 
 func IsTerminal(w io.Writer) bool {
@@ -37,8 +37,8 @@ func IsTerminal(w io.Writer) bool {
 	return false
 }
 
-func NewFileWithSource(path iosrc.URI, opts zio.WriterOpts, source iosrc.Source) (zbuf.WriteCloser, error) {
-	f, err := source.NewWriter(context.Background(), path) // XXX pass context?
+func NewFileWithSource(ctx context.Context, path iosrc.URI, opts zio.WriterOpts, source iosrc.Source) (zbuf.WriteCloser, error) {
+	f, err := source.NewWriter(ctx, path)
 	if err != nil {
 		return nil, err
 	}

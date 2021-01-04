@@ -148,7 +148,10 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	writer, err := c.outputFlags.Open()
+	ctx, cancel := signalctx.New(os.Interrupt)
+	defer cancel()
+
+	writer, err := c.outputFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -162,9 +165,6 @@ func (c *Command) Run(args []string) error {
 		}
 	}
 	defer zbuf.CloseReaders(readers)
-
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
 
 	if c.parallel {
 		if err := driver.RunParallel(ctx, d, query, zctx, readers, driver.Config{}); err != nil {

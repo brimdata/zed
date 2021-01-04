@@ -15,8 +15,7 @@ the events.
      + [`collect`](#collect)
      + [`count`](#count)
      + [`countdistinct`](#countdistinct)
-     + [`first`](#first)
-     + [`last`](#last)
+     + [`any`](#any)
      + [`max`](#max)
      + [`min`](#min)
      + [`or`](#or)
@@ -250,6 +249,9 @@ ftp   93
 | **Optional<br>arguments** | None                                                           |
 | **Limitations**           | The potential inaccuracy of the calculated result is described in detail in the code and research linked from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog). |
 
+> Note: partial aggregations are not yet implemented for countdistinct so
+> this might not work yet from Brim or zq.
+
 #### Example:
 
 To see an approximate count of unique `uid` values in our sample data set:
@@ -281,52 +283,30 @@ to perform this test, the ZQL using `countdistinct()` executed almost 3x faster.
 
 ---
 
-### `first`
+### `any`
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the first value observed for a specified field, based on input order. |
-| **Syntax**                | `first(<field-name>)`                                          |
+| **Description**           | Return any value observed for a specified field.               |
+| **Syntax**                | `any(<field-name>)`                                          |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
 
-To see the `name` of the first Zeek `weird` event in our sample data:
+To see the `name` of a Zeek `weird` event in our sample data:
 
 ```zq-command
-zq -f table 'first(name)' weird.log.gz
+zq -f table 'any(name)' weird.log.gz
 ```
 
+For small inputs that fit in memory, this will typically be the first such
+field in the stream, but in general you should not rely upon this.  In this case,
+the output is:
 #### Output:
 ```zq-output
-FIRST
+ANY
 TCP_ack_underflow_or_misorder
-```
-
----
-
-### `last`
-
-|                           |                                                                |
-| ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the last value observed for a specified field, based on input order. |
-| **Syntax**                | `last(<field-name>)`                                           |
-| **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
-| **Optional<br>arguments** | None                                                           |
-
-#### Example:
-
-To see the final domain name queried via DNS in our sample data:
-
-```zq-command
-zq -f table 'last(query)' dns.log.gz
-```
-
-#### Output:
-```zq-output
-LAST
-talk.google.com
 ```
 
 ---

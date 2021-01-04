@@ -1,0 +1,22 @@
+tag: postgres
+
+env:
+  - PG_TEST
+
+script: |
+  source startup.sh
+  zapi -h $ZQD_HOST new testsp1 >/dev/null
+  zapi -h $ZQD_HOST new -k archivestore testsp2 >/dev/null
+  zapi -h $ZQD_HOST new testsp3 >/dev/null
+  zapi -h $ZQD_HOST ls
+
+inputs:
+  - name: startup.sh
+    source: startup.sh
+  - name: migrations
+    symlink: ../migrations
+
+outputs:
+  - name: stdout
+    data: |
+      testsp1   testsp2   testsp3

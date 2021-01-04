@@ -1,6 +1,7 @@
 package zarmap
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"os"
@@ -110,7 +111,7 @@ func (c *Command) Run(args []string) error {
 		rc := detector.MultiFileReader(zctx, paths, opts)
 		defer rc.Close()
 		reader := zbuf.Reader(rc)
-		writer, err := c.openOutput(zardir)
+		writer, err := c.openOutput(ctx, zardir)
 		if err != nil {
 			return err
 		}
@@ -132,12 +133,12 @@ func (c *Command) Run(args []string) error {
 	})
 }
 
-func (c *Command) openOutput(zardir iosrc.URI) (zbuf.WriteCloser, error) {
+func (c *Command) openOutput(ctx context.Context, zardir iosrc.URI) (zbuf.WriteCloser, error) {
 	var path string
 	if filename := c.outputFlags.FileName(); filename != "" {
 		path = zardir.AppendPath(filename).String()
 	}
-	w, err := emitter.NewFile(path, c.outputFlags.Options())
+	w, err := emitter.NewFile(ctx, path, c.outputFlags.Options())
 	if err != nil {
 		return nil, err
 	}

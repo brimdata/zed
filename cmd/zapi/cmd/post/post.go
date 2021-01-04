@@ -70,7 +70,8 @@ func (c *PostCommand) Run(args []string) (err error) {
 	}
 	c.start = time.Now()
 	conn := c.Connection()
-	res, err := conn.LogPostWriter(c.Context(), id, nil, c.logwriter)
+	opts := &client.LogPostOpts{Shaper: c.postFlags.shaperAST}
+	res, err := conn.LogPostWriter(c.Context(), id, opts, c.logwriter)
 	if err != nil {
 		if c.Context().Err() != nil {
 			fmt.Println("post aborted")

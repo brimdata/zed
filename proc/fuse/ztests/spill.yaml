@@ -1,5 +1,6 @@
+# 13B is enough to buffer the first record in memory but not the second.
 script: |
-  zq -t -fusemem 1B fuse in.tzng
+  zq -t -fusemem 13B fuse in.tzng
 
 inputs:
   - name: in.tzng

@@ -199,6 +199,9 @@ type File struct {
 	// Re is a regular expression describing the contents of the file,
 	// which is only applicable to output files.
 	Re string `yaml:"regexp,omitempty"`
+	// Symlink creates a symlink on the specified directory into a test's local
+	// directory. Only applicable to input files.
+	Symlink string `yaml:"symlink,omitempty"`
 }
 
 func (f *File) check() error {
@@ -210,6 +213,9 @@ func (f *File) check() error {
 		cnt++
 	}
 	if f.Source != "" {
+		cnt++
+	}
+	if f.Symlink != "" {
 		cnt++
 	}
 	if cnt > 1 {
@@ -234,6 +240,10 @@ func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 		re, err := regexp.Compile(f.Re)
 		return nil, re, err
 	}
+	if f.Symlink != "" {
+		f.Symlink = filepath.Join(dir, f.Symlink)
+		return nil, nil, nil
+	}
 	b, err := ioutil.ReadFile(filepath.Join(dir, f.Name))
 	if err == nil {
 		return b, nil, nil
@@ -256,9 +266,11 @@ type ZTest struct {
 	errRegex    *regexp.Regexp
 	Warnings    string `yaml:"warnings,omitempty"`
 	// shell mode params
-	Script  string `yaml:"script,omitempty"`
-	Inputs  []File `yaml:"inputs,omitempty"`
-	Outputs []File `yaml:"outputs,omitempty"`
+	Script  string   `yaml:"script,omitempty"`
+	Inputs  []File   `yaml:"inputs,omitempty"`
+	Outputs []File   `yaml:"outputs,omitempty"`
+	Tag     string   `yaml:"tag,omitempty"`
+	Env     []string `yaml:"env,omitempty"`
 }
 
 func (z *ZTest) check() error {
@@ -378,6 +390,9 @@ func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
 		if path == "" {
 			t.Skip("skipping script test on in-process run")
 		}
+		if z.Tag != "" && z.Tag != os.Getenv("ZTEST_TAG") {
+			t.Skipf("skipping script test because tag %q does not match ZTEST_TAG=%q", z.Tag, os.Getenv("ZTEST_TAG"))
+		}
 		adir, _ := filepath.Abs(dirname)
 		if err := runsh(testname, path, adir, z); err != nil {
 			t.Fatalf("%s: %s", filename, err)
@@ -485,6 +500,12 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 		if err != nil {
 			return err
 		}
+		if f.Symlink != "" {
+			if err := dir.Symlink(f.Symlink, f.Name); err != nil {
+				return err
+			}
+			continue
+		}
 		if f.Name == "stdin" {
 			stdin = bytes.NewReader(b)
 			continue
@@ -503,6 +524,9 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 		if err != nil {
 			return err
 		}
+		if f.Symlink != "" {
+			return fmt.Errorf("%s: cannot use a symlink in an output", f.Name)
+		}
 		if b != nil {
 			expectedData[f.Name] = b
 		}
@@ -510,7 +534,7 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 			expectedPattern[f.Name] = re
 		}
 	}
-	stdout, stderr, err := RunShell(dir, path, zt.Script, stdin)
+	stdout, stderr, err := RunShell(dir, path, zt.Script, stdin, zt.Env)
 	if err != nil {
 		// XXX If the err is an exit error, we ignore it and rely on
 		// tests that check stderr etc.  We could pull out the exit

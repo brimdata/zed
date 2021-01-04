@@ -78,7 +78,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	writer, err := c.outputFlags.Open()
+	writer, err := c.outputFlags.Open(context.TODO())
 	if err != nil {
 		return err
 	}

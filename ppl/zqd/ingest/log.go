@@ -8,6 +8,8 @@ import (
 	"sync/atomic"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/zbuf"
@@ -39,6 +41,7 @@ type LogOp struct {
 func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest) (*LogOp, error) {
 	p := &LogOp{
 		warningCh: make(chan string, 5),
+		warnings:  make([]string, 0, 5),
 		zctx:      resolver.NewContext(),
 	}
 	opts := zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}}
@@ -50,6 +53,10 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 	if req.JSONTypeConfig != nil {
 		opts.JSON.TypeConfig = req.JSONTypeConfig
 		opts.JSON.PathRegexp = ndjsonio.DefaultPathRegexp
+	}
+	proc, err := ast.UnpackJSON(nil, req.Shaper)
+	if err != nil {
+		return nil, err
 	}
 	for _, path := range req.Paths {
 		rc, size, err := openIncomingLog(ctx, path)
@@ -68,16 +75,31 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 			continue
 		}
 		zr := zbuf.NewWarningReader(sf, p)
+
 		p.bytesTotal += size
 		p.readCounters = append(p.readCounters, rc)
+
+		if proc != nil {
+			zr, err = driver.NewReader(ctx, proc, p.zctx, zr)
+			if err != nil {
+				return nil, err
+			}
+		}
 		p.readers = append(p.readers, zr)
 	}
+	// this is the only goroutine that calls p.Warn()
 	go p.start(ctx, store)
 	return p, nil
 }
 
 func (p *LogOp) Warn(msg string) error {
-	p.warnings = append(p.warnings, msg)
+	// warnings received before we've started our goroutine are
+	// saved here and will be drained in start()
+	if p.warnings != nil {
+		p.warnings = append(p.warnings, msg)
+		return nil
+	}
+	p.warningCh <- msg
 	return nil
 }
 
@@ -146,6 +168,8 @@ func (p *LogOp) start(ctx context.Context, store storage.Storage) {
 	for _, warning := range p.warnings {
 		p.warningCh <- warning
 	}
+	p.warnings = nil
+
 	defer zbuf.CloseReaders(p.readers)
 	reader, _ := zbuf.MergeReadersByTsAsReader(ctx, p.readers, store.NativeOrder())
 	p.err = store.Write(ctx, p.zctx, reader)
