@@ -139,6 +139,9 @@ kubectl-config:
 	--user=$(ZQD_K8S_USER)@$(ZQD_TEST_CLUSTER)
 	kubectl config use-context zqtest
 
+helm-install-postgres:
+	helm install postgres charts/postgres
+
 helm-install-recruiter:
 	helm install recruiter charts/zqd \
 	--set AWSRegion=us-east-2 \

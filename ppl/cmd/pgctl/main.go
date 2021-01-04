@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	_ "github.com/brimsec/zq/ppl/cmd/pgctl/migrate"
 	_ "github.com/brimsec/zq/ppl/cmd/pgctl/rmtestdb"
 	"github.com/brimsec/zq/ppl/cmd/pgctl/root"
 	_ "github.com/brimsec/zq/ppl/cmd/pgctl/testdb"

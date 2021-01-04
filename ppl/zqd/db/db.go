@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"flag"
 	"fmt"
 
 	"github.com/brimsec/zq/api"
@@ -23,6 +24,24 @@ type DB interface {
 
 type DBKind string
 
+// Implement the flag.Value interface for type DBKind
+
+func (k *DBKind) Set(s string) error {
+	switch s {
+	case string(DBUnspecified), string(DBFile), string(DBPostgres):
+		*k = DBKind(s)
+		return nil
+	}
+	return fmt.Errorf("unsupported db kind: %s", s)
+}
+
+func (k DBKind) String() string {
+	if k == "" {
+		k = DBFile
+	}
+	return string(k)
+}
+
 const (
 	DBUnspecified DBKind = ""
 	DBFile        DBKind = "file"
@@ -32,6 +51,16 @@ const (
 type Config struct {
 	Kind     DBKind
 	Postgres postgresdb.Config
+}
+
+// Init is called after flags have been parsed.
+func (d *Config) Init() error {
+	return d.Postgres.Init()
+}
+
+func (d *Config) SetFlags(fs *flag.FlagSet) {
+	fs.Var(&d.Kind, "db.kind", "the kind of database backing space data (values: file, postgres)")
+	d.Postgres.SetFlagsWithPrefix("db.postgres.", fs)
 }
 
 func Open(ctx context.Context, logger *zap.Logger, conf Config, root iosrc.URI) (DB, error) {

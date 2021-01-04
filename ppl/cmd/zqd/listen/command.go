@@ -88,7 +88,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	if err := c.Init(&c.conf.DB); err != nil {
 		return err
 	}
 	if err := c.init(); err != nil {

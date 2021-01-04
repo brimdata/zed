@@ -48,7 +48,15 @@ spec:
           args: ["listen", "-personality=worker", "-l=:9867", "-worker.recruiter={{ .Values.RecruiterAddr }}",
             "-worker.host=$(STATUS_POD_IP)", "-worker.node=$(SPEC_NODE_NAME)"] 
           {{- else }}
-          args: ["listen", "-l=:9867", "-data={{ .Values.datauri }}", "-worker.recruiter={{ .Values.RecruiterAddr }}"] 
+          args:
+            - "listen"
+            - "-l=:9867"
+            - "-worker.recruiter={{ .Values.RecruiterAddr }}"
+            - "db.kind=postgres"
+            - "db.postgres.addr={{ .Values.postgres.addr }}"
+            - "db.postgres.database={{ .Values.postgres.database }}"
+            - "db.postgres.user={{ .Values.postgres.username }}"
+            - "db.postgres.passwordFile=/creds/postgres/password"
           {{- end }}
           ports:
             - name: http
@@ -105,6 +113,28 @@ spec:
               name: spaces-volume
             - mountPath: /tmp
               name: tmp-volume                   
+            - mountPath: /creds/postgres
+              name: postgres-creds-volume
+
+      {{- if eq .Values.personality "root" }}
+      initContainers:
+        - name: "initdb"
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          image: "{{ .Values.image.repository }}{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["/app/pgctl"]
+          args:
+            - "migrate"
+            - "-m=/postgres/migrations"
+            - "-addr={{ .Values.postgres.addr }}"
+            - "-database={{ .Values.postgres.database }}"
+            - "-user={{ .Values.postgres.username }}"
+            - "-passwordFile=/creds/postgres/password"
+          volumeMounts:
+            - mountPath: /creds/postgres
+              name: postgres-creds-volume
+      {{- end }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -122,3 +152,9 @@ spec:
           emptyDir: {}
         - name: tmp-volume
           emptyDir: {}
+        - name: postgres-creds-volume
+          secret:
+            secretName: {{ .Values.postgres.passwordSecretName }}
+            items:
+              - key: postgresql-password
+                path: password
