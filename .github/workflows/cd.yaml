@@ -7,8 +7,30 @@ on:
       - eks-test-2
 
 jobs:
+  pre-clean:
+    # Delete existing S3 folder and K8s namespace
+    # if they already exist from a previous run.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - name: Set current date as env variable $TODAY
+        run: echo "TODAY=$(date +'%y-%m-%d')" >> $GITHUB_ENV
+      - env:
+          CLUSTER: zq-test
+          NAMESPACE: ci-${{ github.run_number }}
+          ZQD_DATA_URI: s3://zq-ci-test/${{ env.TODAY }}.${{ github.run_number }}
+        run: |
+          set -x
+          aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
+          aws s3 rm --recursive $ZQD_DATA_URI || :
+          kubectl delete ns $NAMESPACE || :
   ecr-image-push:
     # Build and push a Docker image for zqd.
+    needs: pre-clean
     runs-on: ubuntu-latest
     steps:
       - uses: aws-actions/configure-aws-credentials@v1
