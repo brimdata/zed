@@ -36,7 +36,7 @@ inputs:
   - name: recruiter-root.sh
     source: recruiter-root.sh
   - name: smtp.log.gz
-    source: ../data/smtp.log.gz
+    source: smtp.log.gz
 
 outputs:
   - name: stdout
