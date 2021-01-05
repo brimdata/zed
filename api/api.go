@@ -315,3 +315,33 @@ type ArchiveOpenOptions struct {
 type ArchiveCreateOptions struct {
 	LogSizeThreshold *int64 `json:"log_size_threshold,omitempty"`
 }
+
+// AuthAPIAudience is the audience claim for any zqd api access token.
+// Though represented as a URL, it does not need to be a reachable location.
+const AuthAPIAudience = "https://app.brimsecurity.com"
+
+type AuthIdentityResponse struct {
+	TenantID string `json:"tenant_id"`
+	UserID   string `json:"user_id"`
+}
+
+type AuthMethod string
+
+const (
+	AuthMethodNone  AuthMethod = ""
+	AuthMethodAuth0            = "auth0"
+)
+
+type AuthMethodResponse struct {
+	Kind  AuthMethod              `json:"kind"`
+	Auth0 *AuthMethodAuth0Details `json:"auth0,omitempty"`
+}
+
+type AuthMethodAuth0Details struct {
+	// Domain is the Auth0 domain (in url form) to use as the endpoint
+	// for any oauth flows.
+	Domain string `json:"domain"`
+	// ClientID is the public client id to use when interacting with
+	// the above Auth0 domain.
+	ClientID string `json:"client_id"`
+}

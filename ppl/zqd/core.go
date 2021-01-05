@@ -53,7 +53,7 @@ type middleware interface {
 }
 
 type Core struct {
-	auth       mux.MiddlewareFunc
+	auth       *Auth0Authenticator
 	logger     *zap.Logger
 	mgr        *apiserver.Manager
 	registry   *prometheus.Registry
@@ -89,7 +89,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		return nil, err
 	}
 
-	var auth mux.MiddlewareFunc
+	var auth *Auth0Authenticator
 	if conf.Auth.Enabled {
 		if auth, err = newAuthenticator(ctx, conf.Logger, registry, conf.Auth); err != nil {
 			return nil, err
@@ -149,7 +149,11 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/ast", handleASTPost).Methods("POST")
-	c.authhandle("/auth/identity", handleIdentityGet).Methods("GET")
+
+	// /auth/method intentionally requires no authentication
+	c.router.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
+	c.authhandle("/auth/identity", handleAuthIdentityGet).Methods("GET")
+
 	c.authhandle("/search", handleSearch).Methods("POST")
 	c.authhandle("/space", handleSpaceList).Methods("GET")
 	c.authhandle("/space", handleSpacePost).Methods("POST")
@@ -188,7 +192,7 @@ func (c *Core) handler(f func(*Core, http.ResponseWriter, *http.Request)) http.H
 func (c *Core) authhandle(path string, f func(*Core, http.ResponseWriter, *http.Request)) *mux.Route {
 	var h http.Handler
 	if c.auth != nil {
-		h = c.auth(c.handler(f))
+		h = c.auth.Middleware(c.handler(f))
 	} else {
 		h = c.handler(f)
 	}

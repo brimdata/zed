@@ -71,6 +71,10 @@ func (c *Connection) SetUserAgent(useragent string) {
 	c.client.SetHeader("User-Agent", useragent)
 }
 
+func (c *Connection) SetAuthToken(token string) {
+	c.client.SetAuthToken(token)
+}
+
 func (c *Connection) Do(ctx context.Context, method, url string, body interface{}) (*resty.Response, error) {
 	req := c.Request(ctx).SetBody(body)
 	return req.Execute(method, url)
@@ -488,6 +492,26 @@ func (c *Connection) RecruiterStats(ctx context.Context) (*api.RecruiterStatsRes
 		return nil, err
 	}
 	return resp.Result().(*api.RecruiterStatsResponse), nil
+}
+
+func (c *Connection) AuthMethod(ctx context.Context) (*api.AuthMethodResponse, error) {
+	resp, err := c.Request(ctx).
+		SetResult(&api.AuthMethodResponse{}).
+		Get("/auth/method")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.AuthMethodResponse), nil
+}
+
+func (c *Connection) AuthIdentity(ctx context.Context) (*api.AuthIdentityResponse, error) {
+	resp, err := c.Request(ctx).
+		SetResult(&api.AuthIdentityResponse{}).
+		Get("/auth/identity")
+	if err != nil {
+		return nil, err
+	}
+	return resp.Result().(*api.AuthIdentityResponse), nil
 }
 
 type ErrorResponse struct {
