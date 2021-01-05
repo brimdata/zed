@@ -15,10 +15,10 @@ import (
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
 )
 
@@ -170,7 +170,7 @@ func (c *Command) Run(args []string) error {
 
 // parseExpr creates an api.SearchRequest to be used with the client.
 func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
-	search, err := zql.ParseProc(expr)
+	search, err := compiler.ParseProc(expr)
 	if err != nil {
 		return nil, err
 	}
@@ -188,7 +188,7 @@ func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
 // parseExprWithChunk creates an api.WorkerChunkRequest to be used with the client.
 func parseExprWithChunk(expr string, chunkPath string) (*api.WorkerChunkRequest, error) {
 	// This is only for testing using the -chunk flag
-	search, err := zql.ParseProc(expr)
+	search, err := compiler.ParseProc(expr)
 	if err != nil {
 		return nil, err
 	}

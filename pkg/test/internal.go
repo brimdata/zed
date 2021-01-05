@@ -6,13 +6,13 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 )
 
 type Internal struct {
@@ -47,7 +47,7 @@ func newEmitter(ofmt string) (*emitter.Bytes, error) {
 }
 
 func (i *Internal) Run() (string, error) {
-	program, err := zql.ParseProc(i.Query)
+	program, err := compiler.ParseProc(i.Query)
 	if err != nil {
 		return "", fmt.Errorf("parse error: %s (%s)", err, i.Query)
 	}

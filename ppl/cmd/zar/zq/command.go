@@ -9,13 +9,13 @@ import (
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/cli/searchflags"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
 )
 
@@ -70,7 +70,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	query, err := zql.ParseProc(args[0])
+	query, err := compiler.ParseProc(args[0])
 	if err != nil {
 		return err
 	}

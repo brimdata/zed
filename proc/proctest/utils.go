@@ -19,7 +19,6 @@ import (
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/require"
 )
 
@@ -49,7 +48,7 @@ func CompileTestProc(code string, pctx *proc.Context, parent proc.Interface) (pr
 	// a wildcard filter and then pull out just the proc we care
 	// about below.
 	prog := fmt.Sprintf("* | %s", code)
-	parsed, err := zql.ParseProc(prog)
+	parsed, err := compiler.ParseProc(prog)
 	if err != nil {
 		return nil, err
 	}

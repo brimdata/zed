@@ -14,7 +14,6 @@ import (
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +43,7 @@ func parseOneRecord(zngsrc string) (*zng.Record, error) {
 }
 
 func compileExpr(s string) (expr.Evaluator, error) {
-	parsed, err := zql.ParseExpression(s)
+	parsed, err := compiler.ParseExpression(s)
 	if err != nil {
 		return nil, err
 	}

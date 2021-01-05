@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -75,7 +74,7 @@ func TestComputeColumns(t *testing.T) {
 
 	for _, tc := range tests {
 		t.Run(tc.zql, func(t *testing.T) {
-			query, err := zql.ParseProc(tc.zql)
+			query, err := ParseProc(tc.zql)
 			require.NoError(t, err)
 			// apply ReplaceGroupByProcDurationWithKey here because computeColumns
 			// will be applied after it when it is plugged into compilation.
@@ -150,7 +149,7 @@ func TestExpressionFields(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.expr, func(t *testing.T) {
-			e, err := zql.ParseExpression(tc.expr)
+			e, err := ParseExpression(tc.expr)
 			require.NoError(t, err)
 			f := expressionFields(e)
 			assert.Equal(t, tc.expected, f)
@@ -186,7 +185,7 @@ func TestBooleanExpressionFields(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.expr, func(t *testing.T) {
-			parsed, err := zql.ParseProc(tc.expr)
+			parsed, err := ParseProc(tc.expr)
 			require.NoError(t, err)
 			f := booleanExpressionFields(parsed.(*ast.FilterProc).Filter)
 			assert.Equal(t, tc.expected, f)
@@ -289,7 +288,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.zql, func(t *testing.T) {
-			query, err := zql.ParseProc(tc.zql)
+			query, err := ParseProc(tc.zql)
 			require.NoError(t, err)
 
 			ok := IsParallelizable(query.(*ast.SequentialProc), sf(tc.orderField), false)
@@ -298,7 +297,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 			parallelized, ok := Parallelize(query.(*ast.SequentialProc), 2, sf(tc.orderField), false)
 			require.Equal(t, ok, tc.zql != tc.expected)
 
-			expected, err := zql.ParseProc(tc.expected)
+			expected, err := ParseProc(tc.expected)
 			require.NoError(t, err)
 
 			// If the parallelized flowgraph includes a groupby, then adjust the expected AST by setting
@@ -324,12 +323,12 @@ func TestParallelizeFlowgraph(t *testing.T) {
 		orderField := "ts"
 		query := "* | cut ts, y, z | put x=y | rename y=z"
 		dquery := "(filter * | cut ts, y, z | put x=y | rename y=z; filter * | cut ts, y, z | put x=y | rename y=z)"
-		program, err := zql.ParseProc(query)
+		program, err := ParseProc(query)
 		require.NoError(t, err)
 		parallelized, ok := Parallelize(program.(*ast.SequentialProc), 2, sf(orderField), false)
 		require.True(t, ok)
 
-		expected, err := zql.ParseProc(dquery)
+		expected, err := ParseProc(dquery)
 		require.NoError(t, err)
 
 		// We can't express a pass proc in zql, so add it to the AST this way.
@@ -357,7 +356,7 @@ func TestSetGroupByProcInputSortDir(t *testing.T) {
 	}
 	for _, tc := range tests {
 		t.Run(tc.zql, func(t *testing.T) {
-			query, err := zql.ParseProc(tc.zql)
+			query, err := ParseProc(tc.zql)
 			require.NoError(t, err)
 			ReplaceGroupByProcDurationWithKey(query)
 			outputSorted := setGroupByProcInputSortDir(query, sf(tc.inputSortField), 1)

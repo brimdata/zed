@@ -11,7 +11,6 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -44,7 +43,7 @@ func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFil
 		t.Run(c.filter, func(t *testing.T) {
 			t.Helper()
 
-			proc, err := zql.ParseProc(c.filter)
+			proc, err := compiler.ParseProc(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
 			filterExpr := proc.(*ast.FilterProc).Filter
 
@@ -503,7 +502,7 @@ func TestFilters(t *testing.T) {
 
 func TestBadFilter(t *testing.T) {
 	t.Parallel()
-	proc, err := zql.ParseProc(`s =~ \xa8*`)
+	proc, err := compiler.ParseProc(`s =~ \xa8*`)
 	require.NoError(t, err)
 	f := compiler.NewFilter(resolver.NewContext(), proc.(*ast.FilterProc).Filter)
 	_, err = f.AsFilter()

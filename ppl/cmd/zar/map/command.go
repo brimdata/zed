@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cli/procflags"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/iosrc"
@@ -20,7 +21,6 @@ import (
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
 )
 
@@ -71,7 +71,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zar map needs input arguments")
 	}
-	query, err := zql.ParseProc(args[0])
+	query, err := compiler.ParseProc(args[0])
 	if err != nil {
 		return err
 	}

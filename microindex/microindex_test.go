@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
@@ -16,7 +17,6 @@ import (
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -131,7 +131,7 @@ func TestCompare(t *testing.T) {
 			runtest(t, desc, "==", c.value, c.eql)
 		}
 	})
-	r, err := driver.NewReader(context.Background(), zql.MustParseProc("sort ts"), resolver.NewContext(), reader(records))
+	r, err := driver.NewReader(context.Background(), compiler.MustParseProc("sort ts"), resolver.NewContext(), reader(records))
 	require.NoError(t, err)
 	asc := buildAndOpen(t, r, microindex.Keys("ts"), microindex.Order(zbuf.OrderAsc))
 	t.Run("Ascending", func(t *testing.T) {

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/ppl/zqd/ingest"
@@ -18,7 +19,6 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
-	"github.com/brimsec/zq/zql"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -80,7 +80,7 @@ func handleASTPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !request(c, w, r, &req) {
 		return
 	}
-	proc, err := zql.ParseProc(req.ZQL)
+	proc, err := compiler.ParseProc(req.ZQL)
 	if err != nil {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return

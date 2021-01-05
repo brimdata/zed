@@ -7,7 +7,7 @@ import (
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/brimsec/zq/zql"
+	"github.com/brimsec/zq/compiler"
 )
 
 type postFlags struct {
@@ -30,7 +30,7 @@ func (f *postFlags) Init() error {
 		return err
 	}
 	if f.shaper != "" {
-		ast, err := zql.ParseProc(f.shaper)
+		ast, err := compiler.ParseProc(f.shaper)
 		if err != nil {
 			return err
 		}

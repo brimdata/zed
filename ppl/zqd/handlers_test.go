@@ -19,6 +19,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
@@ -31,7 +32,6 @@ import (
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -79,7 +79,7 @@ func TestSearchNoCtrl(t *testing.T) {
 	_, err = conn.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
 
-	parsed, err := zql.ParseProc("*")
+	parsed, err := compiler.ParseProc("*")
 	require.NoError(t, err)
 	proc, err := json.Marshal(parsed)
 	require.NoError(t, err)
@@ -173,7 +173,7 @@ func TestSearchError(t *testing.T) {
 	_, err = conn.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
 
-	parsed, err := zql.ParseProc("*")
+	parsed, err := compiler.ParseProc("*")
 	require.NoError(t, err)
 	proc, err := json.Marshal(parsed)
 	require.NoError(t, err)
@@ -948,7 +948,7 @@ func indexSearch(t *testing.T, conn *client.Connection, space api.SpaceID, index
 // space, returning the tzng results along with a slice of all control
 // messages that were received.
 func search(t *testing.T, conn *client.Connection, space api.SpaceID, prog string) (string, []interface{}) {
-	parsed, err := zql.ParseProc(prog)
+	parsed, err := compiler.ParseProc(prog)
 	require.NoError(t, err)
 	proc, err := json.Marshal(parsed)
 	require.NoError(t, err)
@@ -981,7 +981,7 @@ func tzngCopy(t *testing.T, prog string, in string, outFormat string) string {
 	buf := bytes.NewBuffer(nil)
 	w, err := detector.LookupWriter(zio.NopCloser(buf), zio.WriterOpts{Format: outFormat})
 	require.NoError(t, err)
-	p := zql.MustParseProc(prog)
+	p := compiler.MustParseProc(prog)
 	err = driver.Copy(context.Background(), w, p, zctx, r, driver.Config{})
 	require.NoError(t, err)
 	return buf.String()

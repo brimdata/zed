@@ -5,12 +5,12 @@ import (
 	"fmt"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 )
 
 type RuleKind string
@@ -73,7 +73,7 @@ func UnmarshalRule(b []byte) (Rule, error) {
 
 func NewZqlRule(prog, name string, keys []field.Static) (Rule, error) {
 	// make sure it compiles
-	if _, err := zql.ParseProc(prog); err != nil {
+	if _, err := compiler.ParseProc(prog); err != nil {
 		return Rule{}, err
 	}
 	return Rule{
@@ -158,7 +158,7 @@ func (r Rule) fieldProc() (ast.Proc, error) {
 }
 
 func (r Rule) zqlProc() (ast.Proc, error) {
-	return zql.ParseProc(r.ZQL)
+	return compiler.ParseProc(r.ZQL)
 }
 
 func (r Rule) String() string {

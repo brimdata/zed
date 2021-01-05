@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/fs"
@@ -25,7 +26,6 @@ import (
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
-	"github.com/brimsec/zq/zql"
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 )
@@ -38,7 +38,7 @@ const (
 var (
 	ErrWriteInProgress = errors.New("another write is already in progress")
 
-	zngWriteProc = zql.MustParseProc("sort -r ts")
+	zngWriteProc = compiler.MustParseProc("sort -r ts")
 )
 
 func Load(path iosrc.URI, logger *zap.Logger) (*Storage, error) {
