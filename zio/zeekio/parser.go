@@ -201,7 +201,7 @@ func unflattenRecord(zctx *resolver.Context, cols []zng.Column) ([]zng.Column, e
 			prefix = cols[0].Name[:dot]
 		}
 		for i := range cols {
-			if !strings.HasPrefix(cols[i].Name, prefix) {
+			if !strings.HasPrefix(cols[i].Name, prefix+".") {
 				break
 			}
 			trimmed := strings.TrimPrefix(cols[i].Name, prefix+".")
