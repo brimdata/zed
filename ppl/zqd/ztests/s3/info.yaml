@@ -1,15 +1,13 @@
 script: |
-  source services.sh s3://bucket/zqdroot
-  zapi -h $ZQD_HOST new -k archivestore -thresh 20KiB testsp
+  source services.sh
+  zapi -h $ZQD_HOST new -d ./root -k archivestore -thresh 20KiB testsp
   zapi -h $ZQD_HOST -s testsp post babble.tzng >/dev/null
   echo ===
-  zapi -h $ZQD_HOST -s testsp info | egrep -v 'data_path|id|pcap_path'
-  echo ===
-  zapi -h $ZQD_HOST -s testsp get -f tzng "s=harefoot-raucous"
+  zapi -h $ZQD_HOST info testsp | egrep -v 'data_path|id|pcap_path'
 
 inputs:
   - name: babble.tzng
-    source: ../../data/babble.tzng
+    source: ../../../../ztests/suite/data/babble.tzng
   - name: services.sh
     source: ../services.sh
 
@@ -25,6 +23,3 @@ outputs:
         size:         34.20KB
         pcap_support: false
         pcap_size:    0B
-      ===
-      #0:record[ts:time,s:string,v:int64]
-      0:[1587508881.0613914;harefoot-raucous;137;]

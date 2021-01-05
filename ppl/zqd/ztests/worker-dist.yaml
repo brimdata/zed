@@ -49,7 +49,7 @@ inputs:
   - name: worker-dist.sh
     source: worker-dist.sh
   - name: smtp.log.gz
-    source: ../data/smtp.log.gz
+    source: smtp.log.gz
 
 outputs:
   - name: stdout

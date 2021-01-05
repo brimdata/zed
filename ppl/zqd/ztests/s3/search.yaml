@@ -7,7 +7,7 @@ script: |
 
 inputs:
   - name: babble.tzng
-    source: ../../data/babble.tzng
+    source: ../../../../ztests/suite/data/babble.tzng
   - name: services.sh
     source: ../services.sh
 

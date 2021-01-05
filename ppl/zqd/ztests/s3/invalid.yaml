@@ -8,9 +8,9 @@ inputs:
   - name: services.sh
     source: ../services.sh
   - name: babble.tzng
-    source: ../../data/babble.tzng
+    source: ../../../../ztests/suite/data/babble.tzng
   - name: ng.pcap
-    source: ../../pcap/ng.pcap
+    source: ../../../../ztests/suite/pcap/ng.pcap
 
 outputs:
   - name: stderr
