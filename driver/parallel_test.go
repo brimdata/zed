@@ -10,13 +10,13 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -116,7 +116,7 @@ func TestParallelOrder(t *testing.T) {
 	t.Parallel()
 
 	// Use `v!=3` to trigger & verify empty rank handling in orderedWaiter.
-	query, err := zql.ParseProc("v!=3")
+	query, err := compiler.ParseProc("v!=3")
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
@@ -185,7 +185,7 @@ func (m *scannerCloseMS) SourceFromRequest(context.Context, *api.WorkerChunkRequ
 // TestScannerClose verifies that any open ScannerCloser's will be closed soon
 // after the MultiRun call finishes.
 func TestScannerClose(t *testing.T) {
-	query, err := zql.ParseProc("* | head 1")
+	query, err := compiler.ParseProc("* | head 1")
 	require.NoError(t, err)
 
 	var buf bytes.Buffer

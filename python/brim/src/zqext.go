@@ -6,12 +6,12 @@ import (
 	"context"
 	"errors"
 
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 )
 
 // result converts an error into response structure expected
@@ -47,7 +47,7 @@ func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err er
 	if outpath == "-" {
 		outpath = "/dev/stdout"
 	}
-	query, err := zql.ParseProc(inquery)
+	query, err := compiler.ParseProc(inquery)
 	if err != nil {
 		return err
 	}

@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/brimsec/zq/zql"
+	"github.com/brimsec/zq/compiler"
 	"github.com/mccanne/charm"
 )
 
@@ -70,7 +70,7 @@ func (c *CreateCmd) Run(args []string) error {
 		OutputFile: c.outputFile,
 	}
 	if c.zql != "" {
-		_, err := zql.ParseProc(c.zql)
+		_, err := compiler.ParseProc(c.zql)
 		if err != nil {
 			return err
 		}

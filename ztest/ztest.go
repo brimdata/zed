@@ -128,12 +128,12 @@ import (
 	"unicode/utf8"
 
 	"github.com/brimsec/zq/cli/outputflags"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
-	"github.com/brimsec/zq/zql"
 	"github.com/pmezard/go-difflib/difflib"
 	"gopkg.in/yaml.v3"
 )
@@ -581,7 +581,7 @@ func runzq(path, ZQL string, outputFlags []string, inputs ...string) (string, st
 		// tests.
 		return outbuf.String(), errbuf.String(), err
 	}
-	proc, err := zql.ParseProc(ZQL)
+	proc, err := compiler.ParseProc(ZQL)
 	if err != nil {
 		return "", "", err
 	}

@@ -13,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zql"
 	"github.com/brimsec/zq/ztest"
@@ -48,7 +49,7 @@ func parsePEGjs(z string) ([]byte, error) {
 }
 
 func parseProc(z string) ([]byte, error) {
-	proc, err := zql.ParseProc(z)
+	proc, err := compiler.ParseProc(z)
 	if err != nil {
 		return nil, err
 	}
@@ -118,7 +119,7 @@ func TestInvalid(t *testing.T) {
 // string from inside the AST.
 func parseString(in string) (string, error) {
 	code := fmt.Sprintf("s = \"%s\"", in)
-	tree, err := zql.ParseProc(code)
+	tree, err := compiler.ParseProc(code)
 	if err != nil {
 		return "", err
 	}

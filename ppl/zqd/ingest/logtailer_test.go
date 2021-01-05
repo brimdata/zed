@@ -9,15 +9,15 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/suite"
 )
 
-var sortTs = zql.MustParseProc("sort ts")
+var sortTs = compiler.MustParseProc("sort ts")
 
 const expected = `#0:record[ts:time]
 0:[0;]

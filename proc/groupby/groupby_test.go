@@ -23,7 +23,6 @@ import (
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -271,7 +270,7 @@ func TestGroupbySystem(t *testing.T) {
 }
 
 func compileGroupBy(code string) (*ast.GroupByProc, error) {
-	parsed, err := zql.ParseProc(code)
+	parsed, err := compiler.ParseProc(code)
 	if err != nil {
 		return nil, err
 	}
@@ -486,7 +485,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 	}
 
 	runOne := func(inputSortKey string) []string {
-		proc, err := zql.ParseProc("every 1s count() by ip")
+		proc, err := compiler.ParseProc("every 1s count() by ip")
 		assert.NoError(t, err)
 
 		zctx := resolver.NewContext()

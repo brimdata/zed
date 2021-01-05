@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
 	"github.com/peterh/liner"
@@ -170,7 +171,7 @@ func parsePEGjs(z string) (string, error) {
 }
 
 func parseProc(z string) (string, error) {
-	proc, err := zql.ParseProc(z)
+	proc, err := compiler.ParseProc(z)
 	if err != nil {
 		return "", err
 	}
