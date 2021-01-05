@@ -6,12 +6,12 @@ import (
 	"context"
 	"errors"
 
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/compiler"
 )
 
 // result converts an error into response structure expected
