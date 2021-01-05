@@ -32,3 +32,11 @@ func TestURIWinRelative(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, expected, uri.Filepath())
 }
+
+// github.com/brimsec/brim#1284
+func TestURIWinUNCPath(t *testing.T) {
+	uri, err := ParseURI(`\\34.82.284.241\foo`)
+	require.NoError(t, err)
+	assert.Equal(t, "file://34.82.284.241/foo", uri.String())
+	assert.Equal(t, `\\34.82.284.241\foo`, uri.Filepath())
+}

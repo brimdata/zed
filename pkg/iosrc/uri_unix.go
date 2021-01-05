@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 )
 
+const uncPrefix = "//"
+
 func parseBarePath(path string) (URI, bool, error) {
 	scheme, err := getscheme(path)
 	if err != nil || scheme != "" {
@@ -19,5 +21,10 @@ func parseBarePath(path string) (URI, bool, error) {
 }
 
 func (p URI) Filepath() string {
-	return filepath.FromSlash(p.Path)
+	// If uri has a host, represent file as a UNC path.
+	path := filepath.FromSlash(p.Path)
+	if p.Host != "" {
+		path = uncPrefix + filepath.Join(p.Host, path)
+	}
+	return path
 }
