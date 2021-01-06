@@ -1,12 +1,9 @@
-package apiserver
+package db
 
 import (
 	"flag"
 	"fmt"
 )
-
-// XXX This file and all db related declarations should/will be moved to
-// separate db package in ppl/zqd/db
 
 // Implement the flag.Value interface for type DBKind
 
@@ -26,7 +23,7 @@ func (k DBKind) String() string {
 	return string(k)
 }
 
-func (d *DBConfig) SetFlags(fs *flag.FlagSet) {
+func (d *Config) SetFlags(fs *flag.FlagSet) {
 	fs.Var(&d.Kind, "db.kind", "the kind of database backing space data (values: file, postgres)")
 	fs.Var(&d.Postgres, "db.postgres.url", "postgres url (postgres://[user[:password]@][netloc][:port]/[database])")
 	fs.StringVar(&d.Postgres.Addr, "db.postgres.addr", "localhost:5432", "postgres address")

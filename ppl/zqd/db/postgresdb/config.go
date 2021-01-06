@@ -1,4 +1,4 @@
-package postgres
+package postgresdb
 
 import (
 	"net/url"
