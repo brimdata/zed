@@ -1,6 +1,6 @@
 {
   "name": "zq",
-  "version": "0.26.0-dev",
+  "version": "0.27.0-dev",
   "scripts": {
       "prepack": "node npm/build"
   },
