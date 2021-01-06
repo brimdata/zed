@@ -17,14 +17,12 @@ jobs:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: us-east-2
-      - name: Set current date as env variable $TODAY
-        run: echo "TODAY=$(date +'%y-%m-%d')" >> $GITHUB_ENV
       - env:
           CLUSTER: zq-test
           NAMESPACE: ci-${{ github.run_number }}
-          ZQD_DATA_URI: s3://zq-ci-test/${{ env.TODAY }}.${{ github.run_number }}
         run: |
           set -x
+          ZQD_DATA_URI=s3://zq-ci-test/$(date +'%y-%m-%d').${{ github.run_number }}
           aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
           aws s3 rm --recursive $ZQD_DATA_URI || :
           kubectl delete ns $NAMESPACE || :
@@ -60,15 +58,13 @@ jobs:
       - uses: actions/checkout@v1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Set current date as env variable $TODAY
-        run: echo "TODAY=$(date +'%y-%m-%d')" >> $GITHUB_ENV
       - env:
           CLUSTER: zq-test
           NAMESPACE: ci-${{ github.run_number }}
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
-          ZQD_DATA_URI: s3://zq-ci-test/${{ env.TODAY }}.${{ github.run_number }}
         run: |
           set -x
+          export ZQD_DATA_URI=s3://zq-ci-test/$(date +'%y-%m-%d').${{ github.run_number }}
           aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
           kubectl create ns $NAMESPACE || :
           kubectl config set-context --current --namespace=$NAMESPACE
@@ -92,16 +88,14 @@ jobs:
       - uses: actions/checkout@v1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Set current date as env variable
-        run: echo "TODAY=$(date +'%y-%m-%d')" >> $GITHUB_ENV
       - env:
           CLUSTER: zq-test
           NAMESPACE: ci-${{ github.run_number }}
           SOURCE_LOG_1: s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
           SPACE: files
-          ZQD_DATA_URI: s3://zq-ci-test/${{ env.TODAY }}.${{ github.run_number }}
         run: |
           set -x
+          ZQD_DATA_URI=s3://zq-ci-test/$(date +'%y-%m-%d').${{ github.run_number }}
           make install
           aws eks --region us-east-2 update-kubeconfig --name $CLUSTER
           kubectl config set-context --current --namespace=$NAMESPACE
