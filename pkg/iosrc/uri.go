@@ -3,8 +3,6 @@ package iosrc
 import (
 	"errors"
 	"net/url"
-	"os"
-	"path/filepath"
 	"strings"
 )
 
@@ -27,9 +25,6 @@ func ParseURI(path string) (URI, error) {
 	if u, ok := stdio(path); ok {
 		return u, nil
 	}
-	if strings.HasPrefix(path, uncPrefix) {
-		return parseUNCPath(path)
-	}
 	if u, ok, err := parseBarePath(path); err != nil || ok {
 		return u, err
 	}
@@ -38,20 +33,6 @@ func ParseURI(path string) (URI, error) {
 		return URI{}, err
 	}
 	return URI(*u), nil
-}
-
-func parseUNCPath(path string) (URI, error) {
-	path = strings.TrimPrefix(path, uncPrefix)
-	z := strings.SplitN(path, string(os.PathSeparator), 2)
-	// if z is nil then we have just the host name
-	if z == nil {
-		return URI{Scheme: FileScheme, Host: path}, nil
-	}
-	u := URI{Scheme: FileScheme, Host: z[0], Path: filepath.ToSlash(z[1])}
-	if !strings.HasPrefix(u.Path, "/") {
-		u.Path = "/" + u.Path
-	}
-	return u, nil
 }
 
 func MustParseURI(path string) URI {

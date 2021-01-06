@@ -35,8 +35,19 @@ func TestURIWinRelative(t *testing.T) {
 
 // github.com/brimsec/brim#1284
 func TestURIWinUNCPath(t *testing.T) {
-	uri, err := ParseURI(`\\34.82.284.241\foo`)
-	require.NoError(t, err)
-	assert.Equal(t, "file://34.82.284.241/foo", uri.String())
-	assert.Equal(t, `\\34.82.284.241\foo`, uri.Filepath())
+	cases := []struct {
+		name  string
+		value string
+	}{
+		{name: "BackwardSlash", value: `\\34.82.284.241\foo`},
+		{name: "ForwardSlash", value: `//34.82.284.241/foo`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			uri, err := ParseURI(c.value)
+			require.NoError(t, err)
+			assert.Equal(t, "file://34.82.284.241/foo", uri.String())
+			assert.Equal(t, `\\34.82.284.241\foo`, uri.Filepath())
+		})
+	}
 }
