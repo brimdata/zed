@@ -1,0 +1,9 @@
+dependencies:
+- name: recruiter
+  repository: file://../recruiter
+  version: 0.1.0
+- name: common
+  repository: file://../common
+  version: 0.1.0
+digest: sha256:854b2ab40268896f28cdd08dea61c45a8c54de8d395c621da5c08fe4da5895f2
+generated: "2021-01-06T14:59:47.164983-08:00"
