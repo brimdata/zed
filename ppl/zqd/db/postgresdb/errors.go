@@ -1,4 +1,4 @@
-package postgres
+package postgresdb
 
 import "github.com/go-pg/pg/v10"
 

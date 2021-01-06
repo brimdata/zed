@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/ppl/cmd/pgctl/root"
-	"github.com/brimsec/zq/ppl/zqd/postgres"
+	"github.com/brimsec/zq/ppl/zqd/db/postgresdb"
 	"github.com/go-pg/pg/v10"
 	"github.com/mccanne/charm"
 )
@@ -22,7 +22,7 @@ var RmTestDB = &charm.Spec{
 
 type Command struct {
 	charm.Command
-	postgres postgres.Config
+	postgres postgresdb.Config
 }
 
 func init() {

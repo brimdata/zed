@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/apiserver"
+	"github.com/brimsec/zq/ppl/zqd/db"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/ppl/zqd/worker"
@@ -37,7 +38,7 @@ const indexPage = `
 
 type Config struct {
 	Auth        AuthConfig
-	DB          apiserver.DBConfig
+	DB          db.Config
 	Logger      *zap.Logger
 	Personality string
 	Root        string
