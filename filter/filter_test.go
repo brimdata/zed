@@ -498,6 +498,22 @@ func TestFilters(t *testing.T) {
 		{"rec.str", true},
 	})
 
+	// Test searching an empty top-level record
+	tzng = `
+#0:record[]
+0:[]`
+	runCases(t, tzng, []testcase{
+		{"empty", false},
+	})
+
+	// Test searching an empty nested record
+	tzng = `
+#0:record[empty:record[]]
+0:[[]]`
+	runCases(t, tzng, []testcase{
+		{"empty", true},
+	})
+
 }
 
 func TestBadFilter(t *testing.T) {

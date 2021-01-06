@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/cmd/pgctl/root"
-	"github.com/brimsec/zq/ppl/zqd/postgres"
+	"github.com/brimsec/zq/ppl/zqd/db/postgresdb"
 	"github.com/go-pg/pg/v10"
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -26,7 +26,7 @@ var TestDB = &charm.Spec{
 
 type Command struct {
 	charm.Command
-	postgres   postgres.Config
+	postgres   postgresdb.Config
 	migrations string
 }
 

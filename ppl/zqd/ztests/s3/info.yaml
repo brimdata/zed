@@ -1,0 +1,25 @@
+script: |
+  source services.sh
+  zapi -h $ZQD_HOST new -d ./root -k archivestore -thresh 20KiB testsp
+  zapi -h $ZQD_HOST -s testsp post babble.tzng >/dev/null
+  echo ===
+  zapi -h $ZQD_HOST info testsp | egrep -v 'data_path|id|pcap_path'
+
+inputs:
+  - name: babble.tzng
+    source: ../../../../ztests/suite/data/babble.tzng
+  - name: services.sh
+    source: ../services.sh
+
+outputs:
+  - name: stdout
+    data: |
+      testsp: space created
+      ===
+      testsp
+        name:         testsp
+        storage_kind: archivestore
+        span:         2020-04-21T22:40:30Z+2h43m9.993714061s
+        size:         34.20KB
+        pcap_support: false
+        pcap_size:    0B

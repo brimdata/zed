@@ -9,8 +9,8 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/zqd/apiserver/oldconfig"
-	"github.com/brimsec/zq/ppl/zqd/apiserver/space"
+	"github.com/brimsec/zq/ppl/zqd/db"
+	"github.com/brimsec/zq/ppl/zqd/db/schema"
 	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
@@ -24,7 +24,7 @@ import (
 type Manager struct {
 	alphaFileMigrator *filestore.Migrator
 	compactor         *compactor
-	db                DB
+	db                db.DB
 	logger            *zap.Logger
 	rootPath          iosrc.URI
 
@@ -39,17 +39,8 @@ type Manager struct {
 	deleted prometheus.Counter
 }
 
-func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI, dbconf DBConfig) (*Manager, error) {
-	var db DB
-	var err error
-	switch dbconf.Kind {
-	case DBFile, DBUnspecified:
-		db, err = prepareFileDB(ctx, logger, root)
-	case DBPostgres:
-		db, err = OpenPostgresDB(ctx, dbconf.Postgres)
-	default:
-		return nil, fmt.Errorf("apiserver.Manager: unknown DBKind %q", dbconf.Kind)
-	}
+func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI, dbconf db.Config) (*Manager, error) {
+	db, err := db.Open(ctx, logger, dbconf, root)
 	if err != nil {
 		return nil, err
 	}
@@ -81,55 +72,6 @@ func (m *Manager) Shutdown() {
 	m.compactor.close()
 }
 
-const dbname = "zqd.json"
-
-func prepareFileDB(ctx context.Context, logger *zap.Logger, root iosrc.URI) (*FileDB, error) {
-	dburi := root.AppendPath(dbname)
-	exists, err := iosrc.Exists(ctx, dburi)
-	if err != nil {
-		return nil, err
-	}
-	if exists {
-		return OpenFileDB(ctx, dburi)
-	}
-
-	// If the dbfile doesn't exist, we check if we need to migrate the older
-	// per-space config files into a new dbfile.
-	configs, err := oldconfig.LoadConfigs(ctx, logger, root)
-	if err != nil {
-		return nil, err
-	}
-	var rows []SpaceRow
-	for id, config := range configs {
-		datauri := config.DataURI
-		if datauri.IsZero() {
-			datauri = root.AppendPath(string(id))
-		}
-		rows = append(rows, SpaceRow{
-			ID:      id,
-			Name:    config.Name,
-			DataURI: datauri,
-			Storage: config.Storage,
-		})
-		for _, subcfg := range config.Subspaces {
-			openopts := subcfg.OpenOptions
-			rows = append(rows, SpaceRow{
-				ID:       subcfg.ID,
-				ParentID: id,
-				Name:     subcfg.Name,
-				DataURI:  datauri,
-				Storage: api.StorageConfig{
-					Kind: api.ArchiveStore,
-					Archive: &api.ArchiveConfig{
-						OpenOptions: &openopts,
-					},
-				},
-			})
-		}
-	}
-	return CreateFileDB(ctx, dburi, rows)
-}
-
 func (m *Manager) spawnAlphaMigrations(ctx context.Context) {
 	rows, err := m.db.ListSpaces(ctx)
 	if err != nil {
@@ -151,10 +93,10 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 	if req.Name == "" && req.DataPath == "" {
 		return api.Space{}, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
 	}
-	if !space.ValidSpaceName(req.Name) {
+	if !schema.ValidSpaceName(req.Name) {
 		return api.Space{}, zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
-	id := space.NewSpaceID()
+	id := schema.NewSpaceID()
 	var datapath iosrc.URI
 	if req.DataPath == "" {
 		datapath = m.rootPath.AppendPath(string(id))
@@ -173,7 +115,7 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 	var retryNameConflict bool
 	if req.Name == "" {
 		retryNameConflict = true
-		req.Name = space.SafeName(path.Base(datapath.Path))
+		req.Name = schema.SafeSpaceName(path.Base(datapath.Path))
 	}
 
 	var storecfg api.StorageConfig
@@ -187,7 +129,7 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 		return api.Space{}, zqe.E(zqe.Invalid, "cannot create file storage space on non-file backed data path")
 	}
 
-	row := SpaceRow{
+	row := schema.SpaceRow{
 		ID:      id,
 		Name:    req.Name,
 		DataURI: datapath,
@@ -216,7 +158,7 @@ func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req 
 	if req.Name == "" {
 		return api.Space{}, zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
-	if !space.ValidSpaceName(req.Name) {
+	if !schema.ValidSpaceName(req.Name) {
 		return api.Space{}, zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
 	parent, err := m.db.GetSpace(ctx, parentID)
@@ -226,7 +168,7 @@ func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req 
 	if parent.Storage.Kind != api.ArchiveStore {
 		return api.Space{}, zqe.E(zqe.Invalid, "space does not support creating subspaces")
 	}
-	id := space.NewSpaceID()
+	id := schema.NewSpaceID()
 	cfg := api.StorageConfig{
 		Kind: api.ArchiveStore,
 		Archive: &api.ArchiveConfig{
@@ -236,7 +178,7 @@ func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req 
 	if _, err := m.getStorage(ctx, id, parent.DataURI, cfg); err != nil {
 		return api.Space{}, zqe.ErrInvalid("invalid subspace storage config: %w", err)
 	}
-	row := SpaceRow{
+	row := schema.SpaceRow{
 		ID:       id,
 		ParentID: parentID,
 		Name:     req.Name,
@@ -309,7 +251,7 @@ func (m *Manager) getPcapStorage(ctx context.Context, datauri iosrc.URI) (*pcaps
 	return p, err
 }
 
-func rowToSpace(row SpaceRow) api.Space {
+func rowToSpace(row schema.SpaceRow) api.Space {
 	return api.Space{
 		ID:          row.ID,
 		DataPath:    row.DataURI,
@@ -319,7 +261,7 @@ func rowToSpace(row SpaceRow) api.Space {
 	}
 }
 
-func (m *Manager) rowToSpaceInfo(ctx context.Context, sr SpaceRow) (api.SpaceInfo, error) {
+func (m *Manager) rowToSpaceInfo(ctx context.Context, sr schema.SpaceRow) (api.SpaceInfo, error) {
 	spaceInfo := api.SpaceInfo{Space: rowToSpace(sr)}
 
 	store, err := m.getStorage(ctx, sr.ID, sr.DataURI, sr.Storage)
@@ -389,7 +331,7 @@ func (m *Manager) UpdateSpaceName(ctx context.Context, id api.SpaceID, name stri
 	if name == "" {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
-	if !space.ValidSpaceName(name) {
+	if !schema.ValidSpaceName(name) {
 		return zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
 	return m.db.UpdateSpaceName(ctx, id, name)

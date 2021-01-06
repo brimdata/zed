@@ -81,7 +81,10 @@ type fieldNameIterInfo struct {
 
 func (f *fieldNameIter) init(t *zng.TypeRecord) {
 	f.buf = f.buf[:0]
-	f.stack = append(f.stack[:0], fieldNameIterInfo{t.Columns, 0})
+	f.stack = f.stack[:0]
+	if len(t.Columns) > 0 {
+		f.stack = append(f.stack, fieldNameIterInfo{t.Columns, 0})
+	}
 }
 
 func (f *fieldNameIter) done() bool {
@@ -89,13 +92,13 @@ func (f *fieldNameIter) done() bool {
 }
 
 func (f *fieldNameIter) next() []byte {
-	// Step into records.
+	// Step into non-empty records.
 	for {
 		info := &f.stack[len(f.stack)-1]
 		col := info.columns[info.offset]
 		f.buf = append(f.buf, "."+col.Name...)
 		t, ok := zng.AliasedType(col.Type).(*zng.TypeRecord)
-		if !ok {
+		if !ok || len(t.Columns) == 0 {
 			break
 		}
 		f.stack = append(f.stack, fieldNameIterInfo{t.Columns, 0})

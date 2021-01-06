@@ -89,7 +89,7 @@ test-pcapingest: bin/$(ZEEKPATH)
 test-postgres: build 
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=postgres \
-		go test -v -run TestZq/ppl/zqd/postgres/ztests .
+		go test -v -run TestZq/ppl/zqd/db/postgresdb/ztests .
 
 .PHONY: test-postgres-docker
 test-postgres-docker:

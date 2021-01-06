@@ -1,0 +1,49 @@
+script: |
+  source common.sh
+  source recruiter-root.sh
+  mkdir spacedir
+  #
+  # This creates a space with a small threshold in order to produce
+  # three or more "chunks" in the space
+  #
+  zapi -h $ZQD_HOST new -k archivestore -d spacedir -thresh 15KB testsp > /dev/null
+  #
+  # This is the same smtp.log from zq-sample-data
+  #
+  zapi -h $ZQD_HOST -s testsp post smtp.log.gz > /dev/null
+
+  zq -t "count()" smtp.log.gz > zqcount.tzng
+  zapi -h $ZQD_HOST -s testsp get -workers 2 -t "count()" > zapicount.tzng
+  echo ===
+  diff -s zqcount.tzng zapicount.tzng
+
+  zq -t "39161" smtp.log.gz > zqfilter.tzng
+  zapi -h $ZQD_HOST -s testsp get -workers 2 -t "39161" > zapifilter.tzng
+  echo ===
+  diff -s zqfilter.tzng zapifilter.tzng
+
+  zq -t "sort -r ts | tail 5" smtp.log.gz > zqtail.tzng
+  zapi -h $ZQD_HOST -s testsp get -workers 2 -t "tail 5" > zapitail.tzng
+  echo ===
+  diff -s zqtail.tzng zapitail.tzng
+  # cat zqd-root.log
+  # echo === zqd-w1
+  # cat zqd-w1.log
+ 
+inputs:
+  - name: common.sh
+    source: common.sh
+  - name: recruiter-root.sh
+    source: recruiter-root.sh
+  - name: smtp.log.gz
+    source: smtp.log.gz
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      Files zqcount.tzng and zapicount.tzng are identical
+      ===
+      Files zqfilter.tzng and zapifilter.tzng are identical
+      ===
+      Files zqtail.tzng and zapitail.tzng are identical

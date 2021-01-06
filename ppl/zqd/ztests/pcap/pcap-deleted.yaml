@@ -1,0 +1,43 @@
+script: |
+  source services.sh
+  zapi -h $ZQD_HOST -s testsp postpcap -f ng.pcap >/dev/null
+  echo ===
+  zapi -h $ZQD_HOST -s testsp info | egrep -v 'data_path|id|pcap_path|size'
+  echo ===
+  rm ng.pcap
+  zapi -h $ZQD_HOST -s testsp info | egrep -v 'data_path|id|pcap_path|size'
+  echo ===
+  zapi -h $ZQD_HOST ls
+  echo ===
+  zapi -h $ZQD_HOST -s testsp get -f tzng "_path=conn | count()"
+  echo ===
+  zapi -h $ZQD_HOST rm testsp
+
+inputs:
+  - name: ng.pcap
+    source: ../../../../ztests/suite/pcap/ng.pcap
+  - name: services.sh
+    source: ../services.sh
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      testsp
+        name:         testsp
+        storage_kind: filestore
+        span:         2015-03-05T14:50:47Z+30m45.933045001s
+        pcap_support: true
+      ===
+      testsp
+        name:         testsp
+        storage_kind: filestore
+        span:         2015-03-05T14:50:47Z+30m45.933045001s
+        pcap_support: false
+      ===
+      testsp
+      ===
+      #0:record[count:uint64]
+      0:[5;]
+      ===
+      testsp: space removed

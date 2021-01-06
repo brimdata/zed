@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/apiserver"
+	"github.com/brimsec/zq/ppl/zqd/db"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/ppl/zqd/worker"
@@ -37,7 +38,7 @@ const indexPage = `
 
 type Config struct {
 	Auth        AuthConfig
-	DB          apiserver.DBConfig
+	DB          db.Config
 	Logger      *zap.Logger
 	Personality string
 	Root        string
@@ -79,18 +80,9 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(prometheus.NewGoCollector())
 
-	root, err := iosrc.ParseURI(conf.Root)
-	if err != nil {
-		return nil, err
-	}
-
-	mgr, err := apiserver.NewManager(ctx, conf.Logger, registry, root, conf.DB)
-	if err != nil {
-		return nil, err
-	}
-
 	var auth *Auth0Authenticator
 	if conf.Auth.Enabled {
+		var err error
 		if auth, err = newAuthenticator(ctx, conf.Logger, registry, conf.Auth); err != nil {
 			return nil, err
 		}
@@ -120,9 +112,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	c := &Core{
 		auth:     auth,
 		logger:   conf.Logger,
-		mgr:      mgr,
 		registry: registry,
-		root:     root,
 		router:   router,
 		suricata: conf.Suricata,
 		worker:   conf.Worker,
@@ -131,10 +121,14 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	switch conf.Personality {
 	case "", "all":
-		c.addAPIServerRoutes()
+		if err := c.addAPIServerRoutes(ctx, conf); err != nil {
+			return nil, err
+		}
 		c.addWorkerRoutes()
 	case "apiserver":
-		c.addAPIServerRoutes()
+		if err := c.addAPIServerRoutes(ctx, conf); err != nil {
+			return nil, err
+		}
 	case "recruiter":
 		c.workerPool = recruiter.NewWorkerPool()
 		c.addRecruiterRoutes()
@@ -147,7 +141,14 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	return c, nil
 }
 
-func (c *Core) addAPIServerRoutes() {
+func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) {
+	c.root, err = iosrc.ParseURI(conf.Root)
+	if err != nil {
+		return err
+	}
+	if c.mgr, err = apiserver.NewManager(ctx, conf.Logger, c.registry, c.root, conf.DB); err != nil {
+		return err
+	}
 	c.authhandle("/ast", handleASTPost).Methods("POST")
 	c.authhandle("/auth/identity", handleAuthIdentityGet).Methods("GET")
 	// /auth/method intentionally requires no authentication
@@ -166,6 +167,7 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/space/{space}/pcap", handlePcapPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
 	c.authhandle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
+	return nil
 }
 
 func (c *Core) addRecruiterRoutes() {
@@ -218,7 +220,9 @@ func (c *Core) Root() iosrc.URI {
 }
 
 func (c *Core) Shutdown() {
-	c.mgr.Shutdown()
+	if c.mgr != nil {
+		c.mgr.Shutdown()
+	}
 }
 
 func (c *Core) nextTaskID() int64 {
