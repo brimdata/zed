@@ -46,7 +46,7 @@ func TestURIWinUNCPath(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			uri, err := ParseURI(c.value)
 			require.NoError(t, err)
-			assert.Equal(t, "file://34.82.284.241/foo", uri.String())
+			assert.Equal(t, "file:////34.82.284.241/foo", uri.String())
 			assert.Equal(t, `\\34.82.284.241\foo`, uri.Filepath())
 		})
 	}
