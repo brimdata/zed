@@ -143,10 +143,10 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) {
 	c.root, err = iosrc.ParseURI(conf.Root)
 	if err != nil {
-		return
+		return err
 	}
 	if c.mgr, err = apiserver.NewManager(ctx, conf.Logger, c.registry, c.root, conf.DB); err != nil {
-		return
+		return err
 	}
 	c.authhandle("/ast", handleASTPost).Methods("POST")
 	c.authhandle("/auth/identity", handleIdentityGet).Methods("GET")
