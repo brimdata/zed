@@ -40,7 +40,7 @@ func Open(ctx context.Context, logger *zap.Logger, root iosrc.URI) (*FileDB, err
 		return open(ctx, dburi)
 	}
 
-	// If the dbfile doesn't exist, we check if we need to migrate the older
+	// Since the dbfile doesn't exist, we check if we need to migrate the older
 	// per-space config files into a new dbfile.
 	configs, err := oldconfig.LoadConfigs(ctx, logger, root)
 	if err != nil {
