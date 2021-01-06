@@ -58,7 +58,7 @@ eksctl create iamidentitymapping --cluster zq-test --arn arn:aws:iam::123456:rol
 
 In the zq Makefile, there are several rules to make the developer experience more consistent. These rules depend on having the following env vars defined:
 ```
-export ZQD_ECR_HOST=123456789012.dkr.ecr.us-east-2.amazonaws.com
+export ZQD_ECR_HOST=792043464098.dkr.ecr.us-east-2.amazonaws.com
 export ZQD_DATA_URI=s3://zqd-demo-1/mark/zqd-meta
 export ZQD_K8S_USER=mark
 export ZQD_TEST_CLUSTER=zq-test.us-east-2.eksctl.io
