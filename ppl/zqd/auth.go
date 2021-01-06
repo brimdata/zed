@@ -35,7 +35,7 @@ type AuthConfig struct {
 	Enabled  bool
 	JWKSPath string
 
-	// Domain and ClientID are sent in the /auth/method response so that api
+	// ClientID and Domain are sent in the /auth/method response so that api
 	// clients can interact with the right Auth0 tenant (production, testing, etc)
 	// to obtain tokens.
 	ClientID string
