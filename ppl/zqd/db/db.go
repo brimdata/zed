@@ -35,15 +35,12 @@ type Config struct {
 }
 
 func Open(ctx context.Context, logger *zap.Logger, conf Config, root iosrc.URI) (DB, error) {
-	var db DB
-	var err error
 	switch conf.Kind {
 	case DBFile, DBUnspecified:
-		db, err = filedb.Open(ctx, logger, root)
+		return filedb.Open(ctx, logger, root)
 	case DBPostgres:
-		db, err = postgresdb.Open(ctx, conf.Postgres)
+		return postgresdb.Open(ctx, conf.Postgres)
 	default:
 		return nil, fmt.Errorf("db.Open: unknown DBKind %q", conf.Kind)
 	}
-	return db, err
 }
