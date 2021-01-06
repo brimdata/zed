@@ -20,10 +20,15 @@ import (
 )
 
 const (
+	// AudienceClaimValue is the value of the "aud" standard claim that clients
+	// should use when requesting access tokens for this api.
+	// Though formatted as a URL, it does not need to be a reachable location.
+	AudienceClaimValue = "https://app.brimsecurity.com"
+
 	// These are the namespaced custom claims we expect on any JWT
 	// access token.
-	TenantIDClaim = api.AuthAPIAudience + "/tenant_id"
-	UserIDClaim   = api.AuthAPIAudience + "/user_id"
+	TenantIDClaim = AudienceClaimValue + "/tenant_id"
+	UserIDClaim   = AudienceClaimValue + "/user_id"
 )
 
 type AuthConfig struct {
@@ -39,8 +44,8 @@ type AuthConfig struct {
 
 func (c *AuthConfig) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&c.Enabled, "auth.enabled", false, "enable authentication checks")
-	fs.StringVar(&c.ClientID, "auth.clientid", "", "auth0 client id for api clients (will be publicly accessible")
-	fs.StringVar(&c.Domain, "auth.domain", "", "auth0 domain (as a url) for api clients (will be publicly accessible)")
+	fs.StringVar(&c.ClientID, "auth.clientid", "", "Auth0 client ID for API clients (will be publicly accessible")
+	fs.StringVar(&c.Domain, "auth.domain", "", "Auth0 domain (as a URL) for API clients (will be publicly accessible)")
 	fs.StringVar(&c.JWKSPath, "auth.jwkspath", "", "path to JSON Web Key Set file")
 }
 
@@ -53,7 +58,7 @@ func (c *AuthConfig) Validate() (*url.URL, error) {
 	}
 	u, err := url.Parse(c.Domain)
 	if err != nil {
-		return nil, errors.New("auth.domain must be a valid url")
+		return nil, fmt.Errorf("bad auth.domain URL: %w", err)
 	}
 	return u, nil
 }
@@ -63,17 +68,17 @@ type Auth0Authenticator struct {
 	methodResponse api.AuthMethodResponse
 }
 
-// newAuthenticator returns a mux.MiddlewareFunc that checks for a JWT signed
+// newAuthenticator returns an Auth0Authenticator that checks for a JWT signed
 // by a key referenced in the JWKS file, has the required audience and issuer
-// claims, and contains values for a brim tenant and user id.
+// claims, and contains claims for a brim tenant and user id.
 func newAuthenticator(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, config AuthConfig) (*Auth0Authenticator, error) {
-	domainUrl, err := config.Validate()
+	domainURL, err := config.Validate()
 	if err != nil {
 		return nil, err
 	}
-	// Auth0 issuer is always the url domain plus trailing "/".
+	// Auth0 issuer is always the domain URL with trailing "/".
 	// https://auth0.com/docs/tokens/access-tokens/get-access-tokens#custom-domains-and-the-management-api
-	expectedIssuer := domainUrl.String() + "/"
+	expectedIssuer := domainURL.String() + "/"
 	keys, err := loadPublicKeys(config.JWKSPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load JWKS file: %w", err)
@@ -125,6 +130,7 @@ func newAuthenticator(ctx context.Context, logger *zap.Logger, registerer promet
 		methodResponse: api.AuthMethodResponse{
 			Kind: api.AuthMethodAuth0,
 			Auth0: &api.AuthMethodAuth0Details{
+				Audience: AudienceClaimValue,
 				Domain:   config.Domain,
 				ClientID: config.ClientID,
 			},
@@ -134,7 +140,7 @@ func newAuthenticator(ctx context.Context, logger *zap.Logger, registerer promet
 
 func (a *Auth0Authenticator) Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := a.checker.CheckJWT(w, r); err != nil {
+		if a.checker.CheckJWT(w, r) != nil {
 			// response sent by jwtmiddleware.Options.ErrorHandler
 			return
 		}
@@ -151,12 +157,12 @@ func verifyAPIAudience(claims jwt.MapClaims) bool {
 	// strings.
 	// https://auth0.com/docs/tokens/access-tokens/get-access-tokens#multiple-audiences
 	if str, ok := claims["aud"].(string); ok {
-		return str == api.AuthAPIAudience
+		return str == AudienceClaimValue
 	}
 	if arr, ok := claims["aud"].([]interface{}); ok {
 		for _, a := range arr {
 			s, _ := a.(string)
-			if s == api.AuthAPIAudience {
+			if s == AudienceClaimValue {
 				return true
 			}
 		}

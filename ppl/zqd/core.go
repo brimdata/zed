@@ -149,11 +149,9 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/ast", handleASTPost).Methods("POST")
-
+	c.authhandle("/auth/identity", handleAuthIdentityGet).Methods("GET")
 	// /auth/method intentionally requires no authentication
 	c.router.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
-	c.authhandle("/auth/identity", handleAuthIdentityGet).Methods("GET")
-
 	c.authhandle("/search", handleSearch).Methods("POST")
 	c.authhandle("/space", handleSpaceList).Methods("GET")
 	c.authhandle("/space", handleSpacePost).Methods("POST")

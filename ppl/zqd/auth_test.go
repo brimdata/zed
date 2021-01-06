@@ -59,7 +59,7 @@ func TestAuthIdentity(t *testing.T) {
 	require.Equal(t, http.StatusUnauthorized, identErr.StatusCode())
 
 	token := makeToken(t, "testkey", map[string]interface{}{
-		"aud":             api.AuthAPIAudience,
+		"aud":             zqd.AudienceClaimValue,
 		"exp":             time.Now().Add(1 * time.Hour).Unix(),
 		"iss":             authConfig.Domain + "/",
 		zqd.TenantIDClaim: "test_tenant_id",
@@ -86,7 +86,7 @@ func TestAuthTokenExpiration(t *testing.T) {
 		{
 			name: "missing",
 			token: makeToken(t, "testkey", map[string]interface{}{
-				"aud":             api.AuthAPIAudience,
+				"aud":             zqd.AudienceClaimValue,
 				"iss":             authConfig.Domain + "/",
 				zqd.TenantIDClaim: "test_tenant_id",
 				zqd.UserIDClaim:   "test_user_id",
@@ -95,7 +95,7 @@ func TestAuthTokenExpiration(t *testing.T) {
 		{
 			name: "expired",
 			token: makeToken(t, "testkey", map[string]interface{}{
-				"aud":             api.AuthAPIAudience,
+				"aud":             zqd.AudienceClaimValue,
 				"exp":             time.Now().Add(-1 * time.Hour).Unix(),
 				"iss":             authConfig.Domain + "/",
 				zqd.TenantIDClaim: "test_tenant_id",
@@ -146,6 +146,7 @@ func TestAuthMethodGet(t *testing.T) {
 		require.Equal(t, &api.AuthMethodResponse{
 			Kind: "auth0",
 			Auth0: &api.AuthMethodAuth0Details{
+				Audience: zqd.AudienceClaimValue,
 				Domain:   authConfig.Domain,
 				ClientID: authConfig.ClientID,
 			},

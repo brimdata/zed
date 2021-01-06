@@ -67,12 +67,12 @@ func (c *Connection) ClientHostURL() string {
 	return c.client.HostURL
 }
 
-func (c *Connection) SetUserAgent(useragent string) {
-	c.client.SetHeader("User-Agent", useragent)
-}
-
 func (c *Connection) SetAuthToken(token string) {
 	c.client.SetAuthToken(token)
+}
+
+func (c *Connection) SetUserAgent(useragent string) {
+	c.client.SetHeader("User-Agent", useragent)
 }
 
 func (c *Connection) Do(ctx context.Context, method, url string, body interface{}) (*resty.Response, error) {
