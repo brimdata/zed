@@ -2,6 +2,21 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.27.0
+* zqd: Update Zeek pointer to [v3.2.1-brim8](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim8) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1928)
+* zson: Allow characters `.` and `/` in ZSON type names, and fix an issue when accessing fields in aliased records (#1850)
+* zson: Add a ZSON marshaler and clean up the ZNG marshaler (#1854)
+* zq: Add the `source` field to the JSON typing config to prepare for Zeek v4.x `weird` events (#1884)
+* zq: Add initial Z "shaper" for performing ETL on logs at import time (#1870)
+* zq: Make all aggregators decomposable (#1893)
+* zq/zqd: Invoke [`fuse`](https://github.com/brimsec/zq/tree/master/zql/docs/processors#fuse) automatically when CSV output is requested (#1908)
+* zq: Fix an issue where [`fuse`](https://github.com/brimsec/zq/tree/master/zql/docs/processors#fuse) was not preserving record order (#1909)
+* zar: Create indices when data is imported or chunks are compacted (#1794)
+* zqd: Fix an issue where warnings returned from the `/log/path` endpoint were being dropped (#1903)
+* zq: Fix an issue where an attempted search of an empty record caused a panic (#1911)
+* zq: Fix an issue where a top-level field in a Zeek TSV log was incorrectly read into a nested record (#1930)
+* zq: Fix an issue where files could not be opened from Windows UNC paths (#1929)
+
 ## v0.26.0
 * zqd: Update Zeek pointer to [v3.2.1-brim7](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim7) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1855)
 * zq: Improve the error message shown when row size exceeds max read buffer (#1808)
