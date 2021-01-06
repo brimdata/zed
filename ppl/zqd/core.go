@@ -217,7 +217,9 @@ func (c *Core) Root() iosrc.URI {
 }
 
 func (c *Core) Shutdown() {
-	c.mgr.Shutdown()
+	if c.mgr != nil {
+		c.mgr.Shutdown()
+	}
 }
 
 func (c *Core) nextTaskID() int64 {
