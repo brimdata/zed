@@ -131,7 +131,7 @@ func (m *spanMultiSource) SourceFromRequest(ctx context.Context, req *api.Worker
 		mdPath := chunk.MetadataPath(uri, id)
 		md, err := chunk.ReadMetadata(ctx, mdPath, m.ark.DataOrder)
 		if err != nil {
-			return nil, zqe.E("failed to read chunk metadata: %s %w", mdPath.String(), err)
+			return nil, zqe.E("failed to read chunk metadata from %s: %w", mdPath.String(), err)
 		}
 		si.Chunks = append(si.Chunks, md.Chunk(uri, id))
 	}
