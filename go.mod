@@ -28,7 +28,7 @@ require (
 	github.com/pbnjay/memory v0.0.0-20190104145345-974d429e7ae4
 	github.com/peterh/liner v1.1.0
 	github.com/pierrec/lz4/v4 v4.1.0
-	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
+	github.com/pkg/browser v0.0.0-20201207095918-0426ae3fba23
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/segmentio/ksuid v1.0.2
@@ -42,7 +42,7 @@ require (
 	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208
 	golang.org/x/sys v0.0.0-20201119102817-f84b799fce68
 	golang.org/x/text v0.3.3
-	golang.org/x/tools v0.0.0-20200825202427-b303f430e36d // indirect
+	gopkg.in/auth0.v5 v5.5.0
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c
 )
