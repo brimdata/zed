@@ -69,6 +69,14 @@ You must modify these to fit you environment.
 * ZQD_K8S_USER is your username, which is usually the same as your AWS IAM username.
 * ZQD_TEST_CLUSTER is the host of the EKS cluster you are using.
 
+If you are operating on the zq-test cluster, the script k8s/eks-env.sh will set
+the correct environment variables. Note that this script requires having jq and
+yq in your $PATH. Run:
+
+```
+source k8s/eks-env.sh
+```
+
 ### Create a K8s namespace for your development
 
 Start by creating a namespace, specific to your user, in which to deploy zqd. The following Makefile rule does that. It is design to be run once. It can be run again if you have removed the namespace.
