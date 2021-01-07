@@ -7,43 +7,78 @@ import (
 	"flag"
 	"fmt"
 	"net/http"
+	"net/url"
+	"time"
 
 	jwtmiddleware "github.com/auth0/go-jwt-middleware"
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
 )
 
 const (
-	// authTokenContextValue is the string the jwtmiddleware library uses to
-	// store the validated & parsed JWT in a request's context.
-	authTokenContextValue = "zqd-core-auth-token"
+	// AudienceClaimValue is the value of the "aud" standard claim that clients
+	// should use when requesting access tokens for this api.
+	// Though formatted as a URL, it does not need to be a reachable location.
+	AudienceClaimValue = "https://app.brimsecurity.com"
 
-	tenantIDClaim = "brim_tenant_id"
-	userIDClaim   = "brim_user_id"
+	// These are the namespaced custom claims we expect on any JWT
+	// access token.
+	TenantIDClaim = AudienceClaimValue + "/tenant_id"
+	UserIDClaim   = AudienceClaimValue + "/user_id"
 )
 
 type AuthConfig struct {
 	Enabled  bool
-	Audience string
-	Issuer   string
 	JWKSPath string
+
+	// ClientID and Domain are sent in the /auth/method response so that api
+	// clients can interact with the right Auth0 tenant (production, testing, etc)
+	// to obtain tokens.
+	ClientID string
+	Domain   string
 }
 
 func (c *AuthConfig) SetFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&c.Enabled, "auth.enabled", false, "enable authentication checks")
-	fs.StringVar(&c.Audience, "auth.audience", "", "required JWT audience claim")
-	fs.StringVar(&c.Issuer, "auth.issuer", "", "required JWT issuer claim")
+	fs.StringVar(&c.ClientID, "auth.clientid", "", "Auth0 client ID for API clients (will be publicly accessible")
+	fs.StringVar(&c.Domain, "auth.domain", "", "Auth0 domain (as a URL) for API clients (will be publicly accessible)")
 	fs.StringVar(&c.JWKSPath, "auth.jwkspath", "", "path to JSON Web Key Set file")
 }
 
-// newAuthenticator returns a mux.MiddlewareFunc that checks for a JWT signed
+func (c *AuthConfig) Validate() (*url.URL, error) {
+	if !c.Enabled {
+		return nil, nil
+	}
+	if c.ClientID == "" || c.Domain == "" || c.JWKSPath == "" {
+		return nil, errors.New("auth.clientid, auth.domain, and auth.jwkspath must be set when auth enabled")
+	}
+	u, err := url.Parse(c.Domain)
+	if err != nil {
+		return nil, fmt.Errorf("bad auth.domain URL: %w", err)
+	}
+	return u, nil
+}
+
+type Auth0Authenticator struct {
+	checker        *jwtmiddleware.JWTMiddleware
+	methodResponse api.AuthMethodResponse
+}
+
+// newAuthenticator returns an Auth0Authenticator that checks for a JWT signed
 // by a key referenced in the JWKS file, has the required audience and issuer
-// claims, and contains values for a brim tenant and user id.
-func newAuthenticator(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, config AuthConfig) (mux.MiddlewareFunc, error) {
+// claims, and contains claims for a brim tenant and user id.
+func newAuthenticator(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, config AuthConfig) (*Auth0Authenticator, error) {
+	domainURL, err := config.Validate()
+	if err != nil {
+		return nil, err
+	}
+	// Auth0 issuer is always the domain URL with trailing "/".
+	// https://auth0.com/docs/tokens/access-tokens/get-access-tokens#custom-domains-and-the-management-api
+	expectedIssuer := domainURL.String() + "/"
 	keys, err := loadPublicKeys(config.JWKSPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load JWKS file: %w", err)
@@ -55,16 +90,22 @@ func newAuthenticator(ctx context.Context, logger *zap.Logger, registerer promet
 	checker := jwtmiddleware.New(jwtmiddleware.Options{
 		ValidationKeyGetter: func(token *jwt.Token) (interface{}, error) {
 			claims := token.Claims.(jwt.MapClaims)
-			if !claims.VerifyAudience(config.Audience, true) {
-				return token, errors.New("invalid audience")
+			// jwt-go (called from jwtmiddleware) verifies any expiry claim, but
+			// will not fail if the expiry claim is missing. The call here with
+			// req=true ensures that the claim is both present and valid.
+			if !claims.VerifyExpiresAt(time.Now().Unix(), true) {
+				return token, errors.New("invalid expiration")
 			}
-			if !claims.VerifyIssuer(config.Issuer, true) {
+			if !claims.VerifyIssuer(expectedIssuer, true) {
 				return token, errors.New("invalid issuer")
 			}
-			if tid, _ := claims[tenantIDClaim].(string); tid == "" {
+			if !verifyAPIAudience(claims) {
+				return token, errors.New("invalid audience")
+			}
+			if tid, _ := claims[TenantIDClaim].(string); tid == "" {
 				return token, errors.New("missing tenant id")
 			}
-			if uid, _ := claims[userIDClaim].(string); uid == "" {
+			if uid, _ := claims[UserIDClaim].(string); uid == "" {
 				return token, errors.New("missing user id")
 			}
 			tokenKeyID, _ := token.Header["kid"].(string)
@@ -84,20 +125,58 @@ func newAuthenticator(ctx context.Context, logger *zap.Logger, registerer promet
 		},
 		SigningMethod: jwt.SigningMethodRS256,
 	})
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if err := checker.CheckJWT(w, r); err != nil {
-				// response sent by jwtmiddleware.Options.ErrorHandler
-				return
-			}
-			next.ServeHTTP(w, r)
-		})
+	return &Auth0Authenticator{
+		checker: checker,
+		methodResponse: api.AuthMethodResponse{
+			Kind: api.AuthMethodAuth0,
+			Auth0: &api.AuthMethodAuth0Details{
+				Audience: AudienceClaimValue,
+				Domain:   config.Domain,
+				ClientID: config.ClientID,
+			},
+		},
 	}, nil
 }
 
+func (a *Auth0Authenticator) Middleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if a.checker.CheckJWT(w, r) != nil {
+			// response sent by jwtmiddleware.Options.ErrorHandler
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+func (a *Auth0Authenticator) MethodResponse() api.AuthMethodResponse {
+	return a.methodResponse
+}
+
+func verifyAPIAudience(claims jwt.MapClaims) bool {
+	// Audience claim may either be a string, or a slice of interfaces that are
+	// strings.
+	// https://auth0.com/docs/tokens/access-tokens/get-access-tokens#multiple-audiences
+	if str, ok := claims["aud"].(string); ok {
+		return str == AudienceClaimValue
+	}
+	if arr, ok := claims["aud"].([]interface{}); ok {
+		for _, a := range arr {
+			s, _ := a.(string)
+			if s == AudienceClaimValue {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// authTokenContextValue is the string the jwtmiddleware library uses to
+// store the validated & parsed JWT in a request's context.
+const authTokenContextValue = "zqd-core-auth-token"
+
 type Identity struct {
-	TenantID string `json:"tenant_id"`
-	UserID   string `json:"user_id"`
+	TenantID string
+	UserID   string
 }
 
 func IdentifyFromContext(ctx context.Context) (Identity, bool) {
@@ -106,8 +185,8 @@ func IdentifyFromContext(ctx context.Context) (Identity, bool) {
 		return Identity{}, false
 	}
 	mc := token.Claims.(jwt.MapClaims)
-	tid := mc[tenantIDClaim].(string)
-	uid := mc[userIDClaim].(string)
+	tid := mc[TenantIDClaim].(string)
+	uid := mc[UserIDClaim].(string)
 	return Identity{TenantID: tid, UserID: uid}, true
 }
 
