@@ -124,7 +124,7 @@ jobs:
       - uses: actions/checkout@v1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-     - run: |
+      - run: |
           set -x
           export ZQD_DATA_URI=s3://zq-ci-master/manual-test
           export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
