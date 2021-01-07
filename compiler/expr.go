@@ -258,6 +258,52 @@ func compileCutter(zctx *resolver.Context, node ast.FunctionCall) (*expr.Cutter,
 	return expr.NewCutter(zctx, lhs, rhs)
 }
 
+func shaperOps(name string) map[expr.ShaperTransform]struct{} {
+	switch name {
+	case "cast":
+		return map[expr.ShaperTransform]struct{}{expr.Cast: struct{}{}}
+	case "fill":
+		return map[expr.ShaperTransform]struct{}{expr.Fill: struct{}{}}
+	case "fit":
+		return map[expr.ShaperTransform]struct{}{expr.Crop: struct{}{}, expr.Fill: struct{}{}}
+	case "crop":
+		return map[expr.ShaperTransform]struct{}{expr.Crop: struct{}{}}
+	case "order":
+		return map[expr.ShaperTransform]struct{}{expr.Order: struct{}{}}
+	case "shape":
+		return map[expr.ShaperTransform]struct{}{expr.Crop: struct{}{}, expr.Fill: struct{}{}, expr.Order: struct{}{}, expr.Cast: struct{}{}}
+	default:
+		return nil
+	}
+
+}
+
+func isShaperFunc(name string) bool {
+	switch name {
+	case "cast", "fill", "fit", "crop", "order", "shape":
+		return true
+	}
+	return false
+}
+
+func compileShaper(zctx *resolver.Context, node ast.FunctionCall) (*expr.Shaper, error) {
+	if len(node.Args) < 2 {
+		return nil, function.ErrTooFewArgs
+	}
+	if len(node.Args) > 2 {
+		return nil, function.ErrTooManyArgs
+	}
+	field, err := CompileExpr(zctx, node.Args[0])
+	if err != nil {
+		return nil, err
+	}
+	ev, err := CompileExpr(zctx, node.Args[1])
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewShaper(zctx, field, ev, shaperOps(node.Function))
+}
+
 func compileCall(zctx *resolver.Context, node ast.FunctionCall) (expr.Evaluator, error) {
 	// For now, we special case cut and pick here.  We shuold generalize this
 	// as we will add many more stateful functions and also resolve this
@@ -273,6 +319,9 @@ func compileCall(zctx *resolver.Context, node ast.FunctionCall) (expr.Evaluator,
 	}
 	if node.Function == "pick" {
 		return compileCutter(zctx, node)
+	}
+	if isShaperFunc(node.Function) {
+		return compileShaper(zctx, node)
 	}
 	nargs := len(node.Args)
 	fn, err := function.New(zctx, node.Function, nargs)
