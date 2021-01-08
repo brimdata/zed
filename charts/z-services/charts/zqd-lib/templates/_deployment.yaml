@@ -1,15 +1,10 @@
-{{- define "common.deployment" -}}
-{{- $common := dict "Values" .Values.common -}} 
-{{- $noCommon := omit .Values "common" -}} 
-{{- $overrides := dict "Values" $noCommon -}} 
-{{- $noValues := omit . "Values" -}} 
-{{- with merge $noValues $overrides $common -}}
+{{- define "zqd-lib.deployment" -}}
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "common.fullname" . }}
+  name: {{ include "zqd-lib.fullname" . }}
   labels:
-    {{- include "common.labels" . | nindent 4 }}
+    {{- include "zqd-lib.labels" . | nindent 4 }}
   annotations:
     # This timestamp annotation is added so 'helm update'
     # will always result in yaml changes and trigger an upgrade
@@ -18,7 +13,7 @@ spec:
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
-      {{- include "common.selectorLabels" . | nindent 6 }}
+      {{- include "zqd-lib.selectorLabels" . | nindent 6 }}
   template:
     metadata:
     {{- with .Values.podAnnotations }}
@@ -26,13 +21,13 @@ spec:
         {{- toYaml . | nindent 8 }}
     {{- end }}
       labels:
-        {{- include "common.selectorLabels" . | nindent 8 }}
+        {{- include "zqd-lib.selectorLabels" . | nindent 8 }}
     spec:
       {{- with .Values.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
-      serviceAccountName: {{ include "common.serviceAccountName" . }}
+      serviceAccountName: {{ include "zqd-lib.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
@@ -115,5 +110,4 @@ spec:
           emptyDir: {}
         - name: tmp-volume
           emptyDir: {}
-{{- end -}}
 {{- end -}}

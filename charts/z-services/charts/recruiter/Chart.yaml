@@ -1,0 +1,10 @@
+apiVersion: v2
+name: recruiter
+description: Helm chart for zqd recruiter
+type: application
+version: 0.1.0
+appVersion: 1.16.0
+dependencies:
+  - name: zqd-lib
+    version: 1.0.0
+    repository: file://../zqd-lib

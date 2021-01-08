@@ -19,3 +19,5 @@ spec:
       name: http
   selector:
     {{- include "zqd.selectorLabels" . | nindent 4 }}
+{{- end -}}
+{{- end -}}

@@ -1,0 +1,6 @@
+apiVersion: v2
+name: zqd-lib
+description: Library chart for zqd
+type: library
+version: 0.1.0
+appVersion: 1.16.0
