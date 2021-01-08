@@ -4,14 +4,11 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"math"
-	"net"
 	"regexp"
 
 	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/expr/function"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/reglob"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -715,179 +712,25 @@ func NewCast(expr Evaluator, typ string) (Evaluator, error) {
 	// XXX should handle alias casts... need type context.
 	// compile is going to need a local type context to create literals
 	// of complex types?
-	switch typ {
-	case "int8":
-		return &IntCast{expr, zng.TypeInt8, math.MinInt8, math.MaxInt8}, nil
-	case "int16":
-		return &IntCast{expr, zng.TypeInt16, math.MinInt16, math.MaxInt16}, nil
-	case "int32":
-		return &IntCast{expr, zng.TypeInt32, math.MinInt32, math.MaxInt32}, nil
-	case "int64":
-		return &IntCast{expr, zng.TypeInt64, 0, 0}, nil
-	case "uint8":
-		return &UintCast{expr, zng.TypeUint8, math.MaxUint8}, nil
-	case "uint16":
-		return &UintCast{expr, zng.TypeUint16, math.MaxUint16}, nil
-	case "uint32":
-		return &UintCast{expr, zng.TypeUint32, math.MaxUint32}, nil
-	case "uint64":
-		return &UintCast{expr, zng.TypeUint64, 0}, nil
-	case "float64":
-		return &Float64Cast{expr}, nil
-	case "ip":
-		return &IPCast{expr}, nil
-	case "time":
-		return &TimeCast{expr}, nil
-	case "string":
-		return &StringCast{expr, zng.TypeString}, nil
-	case "bstring":
-		return &StringCast{expr, zng.TypeBstring}, nil
-	case "bytes":
-		return &BytesCast{expr}, nil
-	default:
+	vc := LookupValueCaster(typ)
+	if vc == nil {
 		// XXX See issue #1572.   To implement aliascast here.
 		return nil, fmt.Errorf("cast to %s not implemeneted", typ)
 	}
+	return &evalCast{expr, vc}, nil
 }
 
-type IntCast struct {
-	expr Evaluator
-	typ  zng.Type
-	min  int64
-	max  int64
+type evalCast struct {
+	expr   Evaluator
+	caster ValueCaster
 }
 
-func (i *IntCast) Eval(rec *zng.Record) (zng.Value, error) {
-	zv, err := i.expr.Eval(rec)
+func (c *evalCast) Eval(rec *zng.Record) (zng.Value, error) {
+	zv, err := c.expr.Eval(rec)
 	if err != nil {
 		return zng.Value{}, err
 	}
-	v, ok := coerce.ToInt(zv)
-	// XXX better error message
-	if !ok || (i.min != 0 && (v < i.min || v > i.max)) {
-		return zng.Value{}, ErrBadCast
-	}
-	// XXX GC
-	return zng.Value{i.typ, zng.EncodeInt(v)}, nil
-}
-
-type UintCast struct {
-	expr Evaluator
-	typ  zng.Type
-	max  uint64
-}
-
-func (u *UintCast) Eval(rec *zng.Record) (zng.Value, error) {
-	zv, err := u.expr.Eval(rec)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	v, ok := coerce.ToUint(zv)
-	// XXX better error message
-	if !ok || (u.max != 0 && v > u.max) {
-		return zng.Value{}, ErrBadCast
-	}
-	// XXX GC
-	return zng.Value{u.typ, zng.EncodeUint(v)}, nil
-}
-
-type Float64Cast struct {
-	expr Evaluator
-}
-
-func (i *Float64Cast) Eval(rec *zng.Record) (zng.Value, error) {
-	zv, err := i.expr.Eval(rec)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	f, ok := coerce.ToFloat(zv)
-	if !ok {
-		return zng.Value{}, ErrBadCast
-	}
-	return zng.Value{zng.TypeFloat64, zng.EncodeFloat64(f)}, nil
-}
-
-type IPCast struct {
-	expr Evaluator
-}
-
-func (i *IPCast) Eval(rec *zng.Record) (zng.Value, error) {
-	zv, err := i.expr.Eval(rec)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	if !zv.IsStringy() {
-		return zng.Value{}, ErrBadCast
-	}
-	ip := net.ParseIP(string(zv.Bytes))
-	if ip == nil {
-		return zng.Value{}, ErrBadCast
-	}
-	// XXX GC
-	return zng.Value{zng.TypeIP, zng.EncodeIP(ip)}, nil
-}
-
-type TimeCast struct {
-	expr Evaluator
-}
-
-func (t *TimeCast) Eval(rec *zng.Record) (zng.Value, error) {
-	zv, err := t.expr.Eval(rec)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	if zng.IsFloat(zv.Type.ID()) {
-		f, _ := zng.DecodeFloat64(zv.Bytes)
-		ts := nano.FloatToTs(f)
-		// XXX GC
-		return zng.Value{zng.TypeTime, zng.EncodeTime(ts)}, nil
-	}
-	ns, ok := coerce.ToInt(zv)
-	if !ok {
-		return zng.Value{}, ErrBadCast
-	}
-	return zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(ns))}, nil
-}
-
-type StringCast struct {
-	expr Evaluator
-	typ  zng.Type
-}
-
-func (s *StringCast) Eval(rec *zng.Record) (zng.Value, error) {
-	zv, err := s.expr.Eval(rec)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	if zv.Type.ID() == zng.IdBytes {
-		return zng.Value{s.typ, zng.EncodeString(string(zv.Bytes))}, nil
-	}
-	if enum, ok := zv.Type.(*zng.TypeEnum); ok {
-		selector, _ := zng.DecodeUint(zv.Bytes)
-		element, err := enum.Element(int(selector))
-		if err != nil {
-			return zng.NewError(err), nil
-		}
-		return zng.Value{s.typ, zng.EncodeString(element.Name)}, nil
-	}
-	//XXX here, we need to create a human-readable string rep
-	// rather than a tzng encoding, e.g., for time, an iso date instead of
-	// ns int.  For now, this works for numbers and IPs.  We will fix in a
-	// subsequent PR (see issue #1603).
-	result := zv.Type.StringOf(zv.Bytes, zng.OutFormatUnescaped, false)
-	return zng.Value{s.typ, zng.EncodeString(result)}, nil
-}
-
-type BytesCast struct {
-	expr Evaluator
-}
-
-func (s *BytesCast) Eval(rec *zng.Record) (zng.Value, error) {
-	zv, err := s.expr.Eval(rec)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	return zng.Value{zng.TypeBytes, zng.EncodeBytes(zv.Bytes)}, nil
+	return c.caster(zv)
 }
 
 func NewRootField(name string) Evaluator {
