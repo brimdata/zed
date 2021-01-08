@@ -1,0 +1,14 @@
+zql: '*'
+
+input: |
+  #0:record[a:record[b:record[a1:array[string],a2:array[string]]]]
+  0:[-;]
+  #1:record[s:string]
+  1:[x;]
+
+output-flags: -f csv
+
+output: |+
+  a.b.a1,a.b.a2,s
+  ,,
+  ,,x
