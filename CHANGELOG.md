@@ -2,6 +2,9 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.27.1
+* zq: Fix an issue where nested nulls caused a panic in CSV output (#1954)
+
 ## v0.27.0
 * zqd: Update Zeek pointer to [v3.2.1-brim8](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim8) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1928)
 * zson: Allow characters `.` and `/` in ZSON type names, and fix an issue when accessing fields in aliased records (#1850)
