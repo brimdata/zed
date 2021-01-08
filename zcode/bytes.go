@@ -128,6 +128,12 @@ func AppendPrimitive(dst Bytes, val []byte) Bytes {
 	return append(dst, val...)
 }
 
+// AppendNull appends a null value to dst as either a primitive or container
+// value and returns the extended buffer.
+func AppendNull(dst Bytes) Bytes {
+	return AppendUvarint(dst, tagNull)
+}
+
 // AppendUvarint is like encoding/binary.PutUvarint but appends to dst instead
 // of writing into it.
 func AppendUvarint(dst []byte, u64 uint64) []byte {

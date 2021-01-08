@@ -29,8 +29,16 @@ func New(zctx *resolver.Context) *Flattener {
 
 func recode(dst zcode.Bytes, typ *zng.TypeRecord, in zcode.Bytes) (zcode.Bytes, error) {
 	if in == nil {
-		for k := 0; k < len(typ.Columns); k++ {
-			dst = zcode.AppendPrimitive(dst, nil)
+		for _, col := range typ.Columns {
+			if typ, ok := col.Type.(*zng.TypeRecord); ok {
+				var err error
+				dst, err = recode(dst, typ, nil)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				dst = zcode.AppendNull(dst)
+			}
 		}
 		return dst, nil
 	}
