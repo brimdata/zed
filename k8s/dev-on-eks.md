@@ -70,8 +70,7 @@ You must modify these to fit you environment.
 * ZQD_TEST_CLUSTER is the host of the EKS cluster you are using.
 
 If you are operating on the zq-test cluster, the script k8s/eks-env.sh will set
-the correct environment variables. Note that this script requires having jq and
-yq in your $PATH. Run:
+the correct environment variables. Run:
 
 ```
 source k8s/eks-env.sh
