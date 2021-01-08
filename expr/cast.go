@@ -46,7 +46,12 @@ func LookupValueCaster(typ string) ValueCaster {
 	}
 }
 
-func castToIntN(min, max int64, typ zng.Type) func(zng.Value) (zng.Value, error) {
+var castToInt8 = castToIntN(zng.TypeInt8, math.MinInt8, math.MaxInt8)
+var castToInt16 = castToIntN(zng.TypeInt16, math.MinInt16, math.MaxInt16)
+var castToInt32 = castToIntN(zng.TypeInt32, math.MinInt32, math.MaxInt32)
+var castToInt64 = castToIntN(zng.TypeInt64, 0, 0)
+
+func castToIntN(typ zng.Type, min, max int64) func(zng.Value) (zng.Value, error) {
 	return func(zv zng.Value) (zng.Value, error) {
 		v, ok := coerce.ToInt(zv)
 		// XXX better error message
@@ -58,12 +63,12 @@ func castToIntN(min, max int64, typ zng.Type) func(zng.Value) (zng.Value, error)
 	}
 }
 
-var castToInt8 = castToIntN(math.MinInt8, math.MaxInt8, zng.TypeInt8)
-var castToInt16 = castToIntN(math.MinInt16, math.MaxInt16, zng.TypeInt16)
-var castToInt32 = castToIntN(math.MinInt32, math.MaxInt32, zng.TypeInt32)
-var castToInt64 = castToIntN(0, 0, zng.TypeInt64)
+var castToUint8 = castToUintN(zng.TypeUint8, math.MaxUint8)
+var castToUint16 = castToUintN(zng.TypeUint16, math.MaxUint16)
+var castToUint32 = castToUintN(zng.TypeUint32, math.MaxUint32)
+var castToUint64 = castToUintN(zng.TypeUint64, 0)
 
-func castToUintN(max uint64, typ zng.Type) func(zng.Value) (zng.Value, error) {
+func castToUintN(typ zng.Type, max uint64) func(zng.Value) (zng.Value, error) {
 	return func(zv zng.Value) (zng.Value, error) {
 		v, ok := coerce.ToUint(zv)
 		// XXX better error message
@@ -74,11 +79,6 @@ func castToUintN(max uint64, typ zng.Type) func(zng.Value) (zng.Value, error) {
 		return zng.Value{typ, zng.EncodeUint(v)}, nil
 	}
 }
-
-var castToUint8 = castToUintN(math.MaxUint8, zng.TypeUint8)
-var castToUint16 = castToUintN(math.MaxUint16, zng.TypeUint16)
-var castToUint32 = castToUintN(math.MaxUint32, zng.TypeUint32)
-var castToUint64 = castToUintN(0, zng.TypeUint64)
 
 func castToFloat64(zv zng.Value) (zng.Value, error) {
 	f, ok := coerce.ToFloat(zv)

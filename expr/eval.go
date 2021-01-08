@@ -712,21 +712,20 @@ func NewCast(expr Evaluator, typ string) (Evaluator, error) {
 	// XXX should handle alias casts... need type context.
 	// compile is going to need a local type context to create literals
 	// of complex types?
-
 	vc := LookupValueCaster(typ)
 	if vc == nil {
 		// XXX See issue #1572.   To implement aliascast here.
 		return nil, fmt.Errorf("cast to %s not implemeneted", typ)
 	}
-	return &EvalCast{expr, vc}, nil
+	return &evalCast{expr, vc}, nil
 }
 
-type EvalCast struct {
+type evalCast struct {
 	expr   Evaluator
 	caster ValueCaster
 }
 
-func (c *EvalCast) Eval(rec *zng.Record) (zng.Value, error) {
+func (c *evalCast) Eval(rec *zng.Record) (zng.Value, error) {
 	zv, err := c.expr.Eval(rec)
 	if err != nil {
 		return zng.Value{}, err
