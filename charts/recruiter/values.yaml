@@ -1,2 +1,0 @@
-replicaCount: 1
-args: ["listen", "-personality=recruiter", "-l=:9867"] 

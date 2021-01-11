@@ -1,0 +1,52 @@
+replicaCount: 3
+args: [
+  "listen", 
+  "-personality=worker", 
+  "-l=:9867", 
+  "-worker.recruiter={{ .Values.recruiterAddr }}",
+  "-worker.host=$(STATUS_POD_IP)", 
+  "-worker.node=$(SPEC_NODE_NAME)"] 
+
+image:
+  repository: "localhost:5000/"
+  pullPolicy: Always
+  tag: "zqd"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+securityContext: {}
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+
+resources: {}
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

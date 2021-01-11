@@ -1,6 +1,0 @@
-brim-recruiter:
-  replicaCount: 1
-brim-root:
-  replicaCount: 1
-brim-worker:
-  replicaCount: 3

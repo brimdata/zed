@@ -150,7 +150,7 @@ helm-install-services:
 	--set useCredSecret=false --dry-run
 
 helm-install-recruiter:
-	helm install recruiter charts/zqd \
+	helm install recruiter charts/z-services/charts/recruiter \
 	--set AWSRegion=us-east-2 \
 	--set image.repository=$(ZQD_ECR_HOST)/ \
 	--set image.tag=zqd:$(ECR_VERSION) \
