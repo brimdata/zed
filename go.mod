@@ -28,6 +28,7 @@ require (
 	github.com/pbnjay/memory v0.0.0-20190104145345-974d429e7ae4
 	github.com/peterh/liner v1.1.0
 	github.com/pierrec/lz4/v4 v4.1.0
+	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.7.1
 	github.com/segmentio/ksuid v1.0.2
