@@ -1,8 +1,5 @@
+personality: "recruiter"
 replicaCount: 1
-args: [
-  "listen", 
-  "-personality=recruiter", 
-  "-l=:9867"]
 
 image:
   repository: "localhost:5000/"

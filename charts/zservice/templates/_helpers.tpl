@@ -61,3 +61,21 @@ Create the name of the service account to use
 {{- default "default" .Values.serviceAccount.name }}
 {{- end }}
 {{- end }}
+
+{{/*
+Create args that vary based on .Values.personality
+*/}}
+{{- define "zservice.args" -}}
+{{- $args := list "listen" "-l=:9867" }}
+{{- $args = append $args (print "-personality=" .Values.personality) }}
+{{- if ne .Values.personality "recruiter" }}
+{{- $args = append $args (print "-worker.recruiter=" .Values.recruiterAddr) }}
+{{- end }}
+{{- if eq .Values.personality "root" }}
+{{- $args = append $args (print "-data=" .Values.datauri) }}
+{{- else if eq .Values.personality "worker" }}
+{{- $args = append $args "-worker.host=$(STATUS_POD_IP)" }}
+{{- $args = append $args "-worker.node=$(SPEC_NODE_NAME)" }}
+{{- end }}
+{{- $args }}
+{{- end }}

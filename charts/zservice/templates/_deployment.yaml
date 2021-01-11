@@ -37,7 +37,8 @@ spec:
           image: "{{ .Values.image.repository }}{{ .Values.image.tag | default .Chart.AppVersion }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
           command: ["/app/zqd"]
-          args: {{ .Values.args }}
+          args:
+            {{- include "zservice.args" .  | nindent 12 }}
           ports:
             - name: http
               containerPort: 9867

@@ -1,13 +1,5 @@
-replicaCount: 3
-args: [
-  "listen", 
-  "-personality=recruiter", 
-  "-l=:9867"]
-# args: [
-#   "listen", 
-#   "-l=:9867", 
-#   "-data={{ .Values.datauri }}", 
-#   "-worker.recruiter={{ .Values.recruiterAddr }}"] 
+personality: "root"
+replicaCount: 1
 
 image:
   repository: "localhost:5000/"

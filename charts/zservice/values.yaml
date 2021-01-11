@@ -1,58 +1,7 @@
 recruiter:
   replicaCount: 1
 root:
+  datauri: "file:///spaces"
   recruiterAddr: z-recruiter:9867
 worker:
   recruiterAddr: z-recruiter:9867
-
-AWSRegion: ""
-datauri: "file:///spaces"
-useCredSecret: true
-
-image:
-  repository: "localhost:5000/"
-  pullPolicy: Always
-  # have to use this pull policy if using a latest tag
-  # Overrides the image tag whose default is the chart appVersion.
-  tag: "zqd"
-
-imagePullSecrets: []
-nameOverride: ""
-fullnameOverride: ""
-
-serviceAccount:
-  create: true
-  annotations: {}
-  # The name of the service account to use.
-  # If not set and create is true, a name is generated using the fullname template
-  name: ""
-
-podAnnotations: 
-  # request a linkerd sidecar (works if Linkerd is installed)
-  linkerd.io/inject: enabled
-
-podSecurityContext: {}
-
-securityContext: {}
-
-service:
-  type: ClusterIP
-  port: 9867
-
-ingress:
-  enabled: false
-
-resources: {}
-
-autoscaling:
-  enabled: false
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
-
-nodeSelector: {}
-
-tolerations: []
-
-affinity: {}
