@@ -89,13 +89,13 @@ test-pcapingest: bin/$(ZEEKPATH)
 test-postgres: build 
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=postgres \
-		go test -v -run TestZq/ppl/zqd/postgres/ztests .
+		go test -v -run TestZq/ppl/zqd/db/postgresdb/ztests .
 
 .PHONY: test-postgres-docker
 test-postgres-docker:
 	@docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
 	$(MAKE) test-postgres; \
-		status=$?; \
+		status=$$?; \
 		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
 		exit $$status
 

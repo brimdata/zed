@@ -79,38 +79,38 @@ $ cat zeek_types.log
 #types	bool	count	int	double	time	interval	string	string	port	addr	subnet	enum	set[string]	vector[string]	string	count
 T	123	456	123.4560	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	things,in,a,set	order,is,important	Jeanne	122
 
-$ zq -f zson zeek_types.log
+$ zq -f zson zeek_types.log | tee zeek_types.zson
 {
-    my_bool: T,
+    my_bool: true,
     my_count: 123 (uint64),
     my_int: 456,
-    my_double: 123.456,
+    my_double: 1.23456e+02,
     my_time: 2020-06-18T17:42:31.123456Z,
     my_interval: 2m3.456s (duration),
     my_printable_string: "smile😁smile" (bstring),
-    my_bytes_string: "\x09\x07\x04" (bstring),
-    my_port: 80 (uint16) (=port),
+    my_bytes_string: "\t\x07\x04" (bstring),
+    my_port: 80 (port=(uint16)),
     my_addr: 127.0.0.1,
     my_subnet: 10.0.0.0/8,
     my_enum: "tcp" (=zenum),
     my_set: |[
-        "a",
-        "in",
-        "set",
-        "things"
-    ]| (|[bstring]| (=23)),
+        "a" (bstring),
+        "in" (bstring),
+        "set" (bstring),
+        "things" (bstring)
+    ]| (=0),
     my_vector: [
-        "order",
-        "is",
-        "important"
-    ] ([bstring] (=24)),
+        "order" (bstring),
+        "is" (bstring),
+        "important" (bstring)
+    ] (=1),
     my_record: {
         name: "Jeanne" (bstring),
         age: 122 (uint64)
-    } (=25)
-} (=26)
+    } (=2)
+} (=3)
 
-$ zq -t zeek_types.log | zq -f zeek -
+$ zq -i zson -f zeek zeek_types.zson
 #separator \x09
 #set_separator	,
 #empty_field	(empty)
@@ -119,9 +119,6 @@ $ zq -t zeek_types.log | zq -f zeek -
 #types	bool	count	int	double	time	interval	string	string	port	addr	subnet	enum	set[string]	vector[string]	string	count
 T	123	456	123.456	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	a,in,set,things	order,is,important	Jeanne	122
 ```
-
-> TBD: we don't yet have a ZSON reader so we can update the above example yet.
-> See issue #1679
 
 ## Type-Specific Details
 
@@ -132,7 +129,7 @@ exist) may handle these differently.
 
 Multiple Zeek types discussed below are represented via a
 [type definition](zson.md#25-type-definitions) to one of ZSON's
-[primitive types](zson.md#2-primitive-types). The use of the ZSON type names maintains
+[primitive types](zson.md#33-primitive-values). The use of the ZSON type names maintains
 the history of the field's original Zeek type such that `zq` may restore it
 if/when the field may be later output again in Zeek format. Knowledge of its
 original Zeek type may also enable special operations in ZQL that are unique to
@@ -222,7 +219,7 @@ down in the record hierarchy. Revisiting the data from our
 example:
 
 ```
-$ zq -t zeek_types.log | zq -f zeek "cut my_record" -
+$ zq -i zson -f zeek 'cut my_record' zeek_types.zson
 #separator \x09
 #set_separator	,
 #empty_field	(empty)

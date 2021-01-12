@@ -1,4 +1,4 @@
-package apiserver
+package filedb
 
 import (
 	"context"
@@ -9,15 +9,20 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/ppl/zqd/db/filedb/oldconfig"
+	"github.com/brimsec/zq/ppl/zqd/db/schema"
 	"github.com/brimsec/zq/zqe"
+	"go.uber.org/zap"
 )
+
+const dbname = "zqd.json"
 
 type FileDB struct {
 	mu   sync.Mutex
 	path iosrc.URI
 }
 
-func CreateFileDB(ctx context.Context, path iosrc.URI, rows []SpaceRow) (*FileDB, error) {
+func Create(ctx context.Context, path iosrc.URI, rows []schema.SpaceRow) (*FileDB, error) {
 	db := &FileDB{path: path}
 	if err := db.save(ctx, rows); err != nil {
 		return nil, err
@@ -25,7 +30,54 @@ func CreateFileDB(ctx context.Context, path iosrc.URI, rows []SpaceRow) (*FileDB
 	return db, nil
 }
 
-func OpenFileDB(ctx context.Context, path iosrc.URI) (*FileDB, error) {
+func Open(ctx context.Context, logger *zap.Logger, root iosrc.URI) (*FileDB, error) {
+	dburi := root.AppendPath(dbname)
+	exists, err := iosrc.Exists(ctx, dburi)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return open(ctx, dburi)
+	}
+
+	// Since the dbfile doesn't exist, we check if we need to migrate the older
+	// per-space config files into a new dbfile.
+	configs, err := oldconfig.LoadConfigs(ctx, logger, root)
+	if err != nil {
+		return nil, err
+	}
+	var rows []schema.SpaceRow
+	for id, config := range configs {
+		datauri := config.DataURI
+		if datauri.IsZero() {
+			datauri = root.AppendPath(string(id))
+		}
+		rows = append(rows, schema.SpaceRow{
+			ID:      id,
+			Name:    config.Name,
+			DataURI: datauri,
+			Storage: config.Storage,
+		})
+		for _, subcfg := range config.Subspaces {
+			openopts := subcfg.OpenOptions
+			rows = append(rows, schema.SpaceRow{
+				ID:       subcfg.ID,
+				ParentID: id,
+				Name:     subcfg.Name,
+				DataURI:  datauri,
+				Storage: api.StorageConfig{
+					Kind: api.ArchiveStore,
+					Archive: &api.ArchiveConfig{
+						OpenOptions: &openopts,
+					},
+				},
+			})
+		}
+	}
+	return Create(ctx, dburi, rows)
+}
+
+func open(ctx context.Context, path iosrc.URI) (*FileDB, error) {
 	db := &FileDB{path: path}
 	// Verify file exists & is readable.
 	if _, err := db.load(ctx); err != nil {
@@ -37,11 +89,11 @@ func OpenFileDB(ctx context.Context, path iosrc.URI) (*FileDB, error) {
 const dbversion = 4
 
 type dbdataV4 struct {
-	Version   int        `json:"version"`
-	SpaceRows []SpaceRow `json:"space_rows"`
+	Version   int               `json:"version"`
+	SpaceRows []schema.SpaceRow `json:"space_rows"`
 }
 
-func (db *FileDB) load(ctx context.Context) ([]SpaceRow, error) {
+func (db *FileDB) load(ctx context.Context) ([]schema.SpaceRow, error) {
 	b, err := iosrc.ReadFile(ctx, db.path)
 	if err != nil {
 		return nil, err
@@ -56,7 +108,7 @@ func (db *FileDB) load(ctx context.Context) ([]SpaceRow, error) {
 	return data.SpaceRows, nil
 }
 
-func (db *FileDB) save(ctx context.Context, lcs []SpaceRow) error {
+func (db *FileDB) save(ctx context.Context, lcs []schema.SpaceRow) error {
 	return iosrc.Replace(ctx, db.path, func(w io.Writer) error {
 		return json.NewEncoder(w).Encode(dbdataV4{
 			Version:   dbversion,
@@ -65,7 +117,7 @@ func (db *FileDB) save(ctx context.Context, lcs []SpaceRow) error {
 	})
 }
 
-func (db *FileDB) CreateSpace(ctx context.Context, row SpaceRow) error {
+func (db *FileDB) CreateSpace(ctx context.Context, row schema.SpaceRow) error {
 	if row.ID == "" {
 		return zqe.ErrInvalid("row must have an id")
 	}
@@ -89,7 +141,7 @@ func (db *FileDB) CreateSpace(ctx context.Context, row SpaceRow) error {
 	return db.save(ctx, append(rows, row))
 }
 
-func (db *FileDB) CreateSubspace(ctx context.Context, row SpaceRow) error {
+func (db *FileDB) CreateSubspace(ctx context.Context, row schema.SpaceRow) error {
 	if row.ID == "" {
 		return zqe.ErrInvalid("row must have an id")
 	}
@@ -123,22 +175,22 @@ func (db *FileDB) CreateSubspace(ctx context.Context, row SpaceRow) error {
 	return db.save(ctx, append(rows, row))
 }
 
-func (db *FileDB) GetSpace(ctx context.Context, id api.SpaceID) (SpaceRow, error) {
+func (db *FileDB) GetSpace(ctx context.Context, id api.SpaceID) (schema.SpaceRow, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 	rows, err := db.load(ctx)
 	if err != nil {
-		return SpaceRow{}, err
+		return schema.SpaceRow{}, err
 	}
 	for i := range rows {
 		if rows[i].ID == id {
 			return rows[i], nil
 		}
 	}
-	return SpaceRow{}, zqe.ErrNotFound()
+	return schema.SpaceRow{}, zqe.ErrNotFound()
 }
 
-func (db *FileDB) ListSpaces(ctx context.Context) ([]SpaceRow, error) {
+func (db *FileDB) ListSpaces(ctx context.Context) ([]schema.SpaceRow, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 	return db.load(ctx)

@@ -16,13 +16,13 @@ type Fuser struct {
 	zctx        *resolver.Context
 	memMaxBytes int
 
-	nbytes   int
-	recs     []*zng.Record
-	slotByID [][]int
-	slots    []slot
-	spiller  *spill.File
-	types    resolver.Slice
-	uberType *zng.TypeRecord
+	nbytes    int
+	recs      []*zng.Record
+	typeSlots map[zng.Type][]int
+	slots     []slot
+	spiller   *spill.File
+	types     map[zng.Type]int
+	uberType  *zng.TypeRecord
 }
 
 type slot struct {
@@ -34,7 +34,11 @@ type slot struct {
 // their cumulative size (measured in zcode.Bytes length) exceeds memMaxBytes,
 // at which point it buffers them in a temporary file.
 func NewFuser(zctx *resolver.Context, memMaxBytes int) *Fuser {
-	return &Fuser{zctx: zctx, memMaxBytes: memMaxBytes}
+	return &Fuser{
+		zctx:        zctx,
+		memMaxBytes: memMaxBytes,
+		types:       make(map[zng.Type]int),
+	}
 }
 
 // Close removes the receiver's temporary file if it created one.
@@ -50,10 +54,8 @@ func (f *Fuser) Write(rec *zng.Record) error {
 	if f.finished() {
 		panic("fuser: write after read")
 	}
-	id := rec.Type.ID()
-	typ := f.types.Lookup(id)
-	if typ == nil {
-		f.types.Enter(id, rec.Type)
+	if _, ok := f.types[rec.Type]; !ok {
+		f.types[rec.Type] = len(f.types)
 	}
 	if f.spiller != nil {
 		return f.spiller.Write(rec)
@@ -83,19 +85,18 @@ func (f *Fuser) stash(rec *zng.Record) error {
 }
 
 func (f *Fuser) finished() bool {
-	return f.slotByID != nil
+	return f.typeSlots != nil
 }
 
 func (f *Fuser) finish() error {
 	uber := newSchema()
-	// slotByID provides a map from a type ID to a slice of integers
+	// typeSlots provides a map from a type to a slice of integers
 	// that represent the column position in the uber schema for each column
 	// of the input record type.
-	f.slotByID = make([][]int, len(f.types))
-	for _, typ := range f.types {
+	f.typeSlots = make(map[zng.Type][]int)
+	for _, typ := range typesInOrder(f.types) {
 		if typ != nil {
-			id := typ.ID()
-			f.slotByID[id] = uber.mixin(zng.AliasedType(typ).(*zng.TypeRecord))
+			f.typeSlots[typ] = uber.mixin(zng.AliasedType(typ).(*zng.TypeRecord))
 		}
 	}
 	var err error
@@ -113,6 +114,17 @@ func (f *Fuser) finish() error {
 	return nil
 }
 
+func typesInOrder(in map[zng.Type]int) []zng.Type {
+	if len(in) == 0 {
+		return nil
+	}
+	out := make([]zng.Type, len(in))
+	for typ, position := range in {
+		out[position] = typ
+	}
+	return out
+}
+
 // Read returns the next buffered record after transforming it to the unified
 // schema.
 func (f *Fuser) Read() (*zng.Record, error) {
@@ -128,7 +140,7 @@ func (f *Fuser) Read() (*zng.Record, error) {
 	for k := range f.slots {
 		f.slots[k].zv = nil
 	}
-	slotList := f.slotByID[rec.Type.ID()]
+	slotList := f.typeSlots[rec.Type]
 	it := rec.Raw.Iter()
 	for _, slot := range slotList {
 		zv, _, err := it.Next()

@@ -573,11 +573,22 @@ func extractSpaceID(c *Core, w http.ResponseWriter, r *http.Request) (api.SpaceI
 	return api.SpaceID(id), true
 }
 
-func handleIdentityGet(c *Core, w http.ResponseWriter, r *http.Request) {
+func handleAuthIdentityGet(c *Core, w http.ResponseWriter, r *http.Request) {
 	ident, ok := IdentifyFromContext(r.Context())
 	if !ok {
 		respondError(c, w, r, zqe.ErrInvalid("no valid credentials"))
 		return
 	}
-	respond(c, w, r, http.StatusOK, ident)
+	respond(c, w, r, http.StatusOK, api.AuthIdentityResponse{
+		TenantID: ident.TenantID,
+		UserID:   ident.UserID,
+	})
+}
+
+func handleAuthMethodGet(c *Core, w http.ResponseWriter, r *http.Request) {
+	if c.auth == nil {
+		respond(c, w, r, http.StatusOK, api.AuthMethodResponse{Kind: api.AuthMethodNone})
+		return
+	}
+	respond(c, w, r, http.StatusOK, c.auth.MethodResponse())
 }

@@ -4,9 +4,28 @@ on:
   push:
     branches:
       - master
+      - eks-test-2
 
 jobs:
+  pre-clean:
+    # Delete existing S3 folder and K8s namespace
+    # if they already exist from a previous run.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - run: |
+          set -x
+          ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          aws eks --region us-east-2 update-kubeconfig --name zq-test
+          aws s3 rm --recursive $ZQD_DATA_URI || :
+          kubectl delete ns ci-${{ github.run_number }} || :
   ecr-image-push:
+    # Build and push a Docker image for zqd.
+    needs: pre-clean
     runs-on: ubuntu-latest
     steps:
       - uses: aws-actions/configure-aws-credentials@v1
@@ -21,12 +40,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - env:
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
-          ZQD_DATA_URI: s3://zqd-demo-1/mark/zqd-meta
-          ZQD_K8S_USER: ci-master
-          ZQD_TEST_CLUSTER: zq-test.us-east-2.eksctl.io
         run: |
           make docker-push-ecr
   eks-test-deploy:
+    # Deploys this build to a temporary namespace in order to run smoke tests.
     needs: ecr-image-push
     runs-on: ubuntu-latest
     steps:
@@ -38,13 +55,82 @@ jobs:
       - uses: actions/checkout@v1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - env:
-          ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
-          ZQD_DATA_URI: s3://zqd-demo-1/mark/zqd-meta
-          ZQD_K8S_USER: ci-master
-          ZQD_TEST_CLUSTER: zq-test.us-east-2.eksctl.io
-        run: |
+      - run: |
+          set -x
+          NAMESPACE=ci-${{ github.run_number }}
+          export ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           aws eks --region us-east-2 update-kubeconfig --name zq-test
+          kubectl create ns $NAMESPACE || :
+          kubectl config set-context --current --namespace=$NAMESPACE
+          make helm-uninstall
+          make helm-install-recruiter
+          make helm-install-root
+          make helm-install-worker
+  eks-test-zapi-1:
+    # Run smoke tests for zqd image prior to deploying to ci-master.
+    needs: eks-test-deploy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - uses: actions/checkout@v1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: |
+          set -x
+          SPACE=files
+          ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          make install
+          aws eks --region us-east-2 update-kubeconfig --name zq-test
+          kubectl config set-context --current --namespace=ci-${{ github.run_number }}
+          kubectl scale --replicas=4 deployment/worker-zqd
+          kubectl port-forward svc/recruiter-zqd 8020:9867 &
+          kubectl port-forward svc/root-zqd 9867:9867 &
+          sleep 2 # wait for port-forwards to complete
+          time zapi ls
+          time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
+          # Post an archive of about 1.6 GB to run test queries.
+          time zapi -s $SPACE post s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
+          # There should be 4 workers running now.
+          [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
+          time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
+          time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
+          time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
+          time zapi -s $SPACE get -workers 4 -t 'count()' > count.tzng
+          time zapi -s $SPACE get -workers 4 -t \
+            '* | count() by tx_hosts | sort -r count | head 5' > countbytxhost.tzng
+          diff count.tzng k8s/testdiff/count.tzng
+          diff countbytxhost.tzng k8s/testdiff/countbytxhost.tzng
+      - name: Cleanup on success or failure
+        if: ${{ always() }}
+        run: kubectl delete ns ci-${{ github.run_number }}
+  eks-master-deploy:
+    # Deploys this build to ci-master namespace so it will be available
+    # for manual testing. Only deploy if previous jobs succeed.
+    needs: eks-test-zapi-1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - uses: actions/checkout@v1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: |
+          set -x
+          export ZQD_DATA_URI=s3://zq-ci-master/manual-test
+          export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
+          aws eks --region us-east-2 update-kubeconfig --name zq-test
+          kubectl create ns ci-master || :
           kubectl config set-context --current --namespace=ci-master
           make helm-uninstall
           make helm-install-recruiter
