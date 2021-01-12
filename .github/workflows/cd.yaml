@@ -109,7 +109,7 @@ jobs:
             '* | count() by tx_hosts | sort -r count | head 5' &> countbytxhost.log
           diff count.log k8s/testdiff/count.tzng
           diff countbytxhost.log k8s/testdiff/countbytxhost.tzng
-      - name: Save test logs and remove namespace on success or failure
+      - name: Get zqd logs and remove namespace on success or failure
         if: ${{ always() }}
         run: |
           set -x
@@ -117,10 +117,9 @@ jobs:
           kubectl logs -c zqd -l app.kubernetes.io/instance=recruiter > recruiter.log
           kubectl logs -c zqd -l app.kubernetes.io/instance=root > root.log
           kubectl logs -c zqd -l app.kubernetes.io/instance=worker > worker.log
-          aws s3 cp testoutput $ZQD_DATA_URI --recursive
           kubectl delete ns ci-${{ github.run_number }}
       - name: Save logs as artifact
-        if: runner.os == 'Linux'
+        if: ${{ always() }}
         uses: actions/upload-artifact@v1
         with:
           name: eks-test-logs
