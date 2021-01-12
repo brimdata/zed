@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - log-dist-test
 
 jobs:
   pre-clean:
