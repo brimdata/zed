@@ -13,7 +13,7 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-const primitiveRE = `^(([0-9a-fA-Fx_\$\-\+:eEnumsh./TZ]+)|true|false|null)`
+const primitiveRE = `^(([0-9a-fA-Fx_\$\-\+:eEnumsh./TZµ]+)|true|false|null)`
 const indentationRE = `\n\s*`
 
 type Lexer struct {
