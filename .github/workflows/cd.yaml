@@ -101,24 +101,31 @@ jobs:
           # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
           mkdir testoutput
-          time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testoutput/filter1.log
-          time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testoutput/filter2.log
-          time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testoutput/filter4.log
-          time zapi -s $SPACE get -workers 4 -t 'count()' &> testoutput/count.tzng
+          time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> filter1.log
+          time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> filter2.log
+          time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> filter4.log
+          time zapi -s $SPACE get -workers 4 -t 'count()' &> count.log
           time zapi -s $SPACE get -workers 4 -t \
-            '* | count() by tx_hosts | sort -r count | head 5' &> testoutput/countbytxhost.tzng
-          diff testoutput/count.tzng k8s/testdiff/count.tzng
-          diff testoutput/countbytxhost.tzng k8s/testdiff/countbytxhost.tzng
+            '* | count() by tx_hosts | sort -r count | head 5' &> countbytxhost.log
+          diff count.log k8s/testdiff/count.tzng
+          diff countbytxhost.log k8s/testdiff/countbytxhost.tzng
       - name: Save test logs and remove namespace on success or failure
         if: ${{ always() }}
         run: |
           set -x
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
-          kubectl logs -c zqd -l app.kubernetes.io/instance=recruiter > testoutput/recruiter.log
-          kubectl logs -c zqd -l app.kubernetes.io/instance=root > testoutput/root.log
-          kubectl logs -c zqd -l app.kubernetes.io/instance=worker > testoutput/worker.log
+          kubectl logs -c zqd -l app.kubernetes.io/instance=recruiter > recruiter.log
+          kubectl logs -c zqd -l app.kubernetes.io/instance=root > root.log
+          kubectl logs -c zqd -l app.kubernetes.io/instance=worker > worker.log
           aws s3 cp testoutput $ZQD_DATA_URI --recursive
           kubectl delete ns ci-${{ github.run_number }}
+      - name: Save logs as artifact
+        if: runner.os == 'Linux'
+        uses: actions/upload-artifact@v1
+        with:
+          name: eks-test-logs
+          path: ./*.log
+
   eks-master-deploy:
     # Deploys this build to ci-master namespace so it will be available
     # for manual testing. Only deploy if previous jobs succeed.
