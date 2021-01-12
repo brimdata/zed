@@ -90,7 +90,7 @@ func (f *Fuser) finished() bool {
 
 func (f *Fuser) finish() error {
 	uber := newSchema()
-	// typeSlots provides a map from a type ID to a slice of integers
+	// typeSlots provides a map from a type to a slice of integers
 	// that represent the column position in the uber schema for each column
 	// of the input record type.
 	f.typeSlots = make(map[zng.Type][]int)
