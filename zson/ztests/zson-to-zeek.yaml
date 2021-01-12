@@ -1,0 +1,48 @@
+# If you change the test below after a change to make it pass, make sure the
+# input/output are still in sync with what's at zng/docs/zeek-compat.md.
+
+script: zq -i zson -f zeek zeek_types.zson
+
+inputs:
+  - name: zeek_types.zson
+    data: |
+      {
+          my_bool: true,
+          my_count: 123 (uint64),
+          my_int: 456,
+          my_double: 1.23456e+02,
+          my_time: 2020-06-18T17:42:31.123456Z,
+          my_interval: 2m3.456s (duration),
+          my_printable_string: "smile😁smile" (bstring),
+          my_bytes_string: "\t\x07\x04" (bstring),
+          my_port: 80 (port=(uint16)),
+          my_addr: 127.0.0.1,
+          my_subnet: 10.0.0.0/8,
+          my_enum: "tcp" (=zenum),
+          my_set: |[
+              "a" (bstring),
+              "in" (bstring),
+              "set" (bstring),
+              "things" (bstring)
+          ]| (=0),
+          my_vector: [
+              "order" (bstring),
+              "is" (bstring),
+              "important" (bstring)
+          ] (=1),
+          my_record: {
+              name: "Jeanne" (bstring),
+              age: 122 (uint64)
+          } (=2)
+      } (=3)
+
+outputs:
+  - name: stdout
+    data: |
+      #separator \x09
+      #set_separator	,
+      #empty_field	(empty)
+      #unset_field	-
+      #fields	my_bool	my_count	my_int	my_double	my_time	my_interval	my_printable_string	my_bytes_string	my_port	my_addr	my_subnet	my_enum	my_set	my_vector	my_record.name	my_record.age
+      #types	bool	count	int	double	time	interval	string	string	port	addr	subnet	enum	set[string]	vector[string]	string	count
+      T	123	456	123.456	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	a,in,set,things	order,is,important	Jeanne	122
