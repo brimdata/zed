@@ -85,6 +85,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - run: |
           set -x
+          pwd
           SPACE=files
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
           make install
@@ -113,6 +114,7 @@ jobs:
         if: ${{ always() }}
         run: |
           set -x
+          pwd
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
           kubectl logs -c zqd -l app.kubernetes.io/instance=recruiter > recruiter.log
           kubectl logs -c zqd -l app.kubernetes.io/instance=root > root.log
@@ -120,10 +122,10 @@ jobs:
           kubectl delete ns ci-${{ github.run_number }}
       - name: Save logs as artifact
         if: ${{ always() }}
-        uses: actions/upload-artifact@v1
+        uses: actions/upload-artifact@v2
         with:
           name: eks-test-logs
-          path: ./*.log
+          path: *.log
 
   eks-master-deploy:
     # Deploys this build to ci-master namespace so it will be available
