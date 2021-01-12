@@ -77,6 +77,8 @@ func ReadersToPullers(ctx context.Context, readers []Reader) ([]Puller, error) {
 	return pullers, nil
 }
 
+var ScannerBatchSize = 100
+
 // NewScanner returns a Scanner for r that filters records by filterExpr and s.
 func NewScanner(ctx context.Context, r Reader, filterExpr Filter, s nano.Span) (Scanner, error) {
 	var sa ScannerAble
@@ -95,21 +97,19 @@ func NewScanner(ctx context.Context, r Reader, filterExpr Filter, s nano.Span) (
 			return nil, err
 		}
 	}
-	return &scanner{reader: r, filter: f, span: s, ctx: ctx}, nil
+	sc := &scanner{reader: r, filter: f, span: s, ctx: ctx}
+	sc.Puller = NewPuller(sc, ScannerBatchSize)
+	return sc, nil
 }
 
 type scanner struct {
+	Puller
 	reader Reader
 	filter filter.Filter
 	span   nano.Span
 	ctx    context.Context
-	stats  ScannerStats
-}
 
-var ScannerBatchSize = 100
-
-func (s *scanner) Pull() (Batch, error) {
-	return ReadBatch(s, ScannerBatchSize)
+	stats ScannerStats
 }
 
 func (s *scanner) Stats() *ScannerStats {

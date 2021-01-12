@@ -34,7 +34,7 @@ func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFil
 	t.Helper()
 
 	zctx := resolver.NewContext()
-	batch, err := zbuf.ReadBatch(tzngio.NewReader(strings.NewReader(tzng), zctx), 2)
+	batch, err := zbuf.NewPuller(tzngio.NewReader(strings.NewReader(tzng), zctx), 2).Pull()
 	require.NoError(t, err, "tzng: %q", tzng)
 	require.Exactly(t, 1, batch.Length(), "tzng: %q", tzng)
 	rec := batch.Index(0)
