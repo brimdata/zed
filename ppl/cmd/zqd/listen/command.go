@@ -98,6 +98,8 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		c.logger.Warn("Raising open files limit failed", zap.Error(err))
 	}
+	c.conf.Logger.Info("Open files limit raised", zap.Uint64("limit", openFilesLimit))
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	if c.brimfd != -1 {
@@ -110,13 +112,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer core.Shutdown()
-	c.logger.Info("Starting",
-		zap.String("datadir", c.conf.Root),
-		zap.Uint64("open_files_limit", openFilesLimit),
-		zap.String("personality", c.conf.Personality),
-		zap.Bool("suricata_supported", core.HasSuricata()),
-		zap.Bool("zeek_supported", core.HasZeek()),
-	)
+
 	if c.suricataUpdater != nil {
 		c.launchSuricataUpdate(ctx)
 	}

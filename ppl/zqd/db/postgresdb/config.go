@@ -2,6 +2,7 @@ package postgresdb
 
 import (
 	"net/url"
+	"strings"
 
 	"github.com/go-pg/pg/v10"
 )
@@ -45,4 +46,16 @@ func (c Config) String() string {
 		str += "?" + params.Encode()
 	}
 	return str
+}
+
+// StringRedacted is the same as string except password and a username are
+// redacted. This should be used in logs.
+func (c Config) StringRedacted() string {
+	if c.Password != "" {
+		c.Password = strings.Repeat("*", 5)
+	}
+	if c.User != "" {
+		c.User = string(c.User[0]) + strings.Repeat("*", 4)
+	}
+	return c.String()
 }

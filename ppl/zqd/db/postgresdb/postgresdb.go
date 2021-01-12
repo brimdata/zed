@@ -8,18 +8,25 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/db/schema"
 	"github.com/brimsec/zq/zqe"
 	"github.com/go-pg/pg/v10"
+	"go.uber.org/zap"
 )
 
 type PostgresDB struct {
-	db *pg.DB
+	db     *pg.DB
+	logger *zap.Logger
 }
 
-func Open(ctx context.Context, conf Config) (*PostgresDB, error) {
+func Open(ctx context.Context, logger *zap.Logger, conf Config) (*PostgresDB, error) {
+	logger = logger.With(
+		zap.String("kind", "postgres"),
+		zap.String("uri", conf.StringRedacted()),
+	)
 	db := pg.Connect(&conf.Options)
 	if err := db.Ping(ctx); err != nil {
 		return nil, err
 	}
-	return &PostgresDB{db}, nil
+	logger.Info("Connected")
+	return &PostgresDB{db, logger}, nil
 }
 
 func (d *PostgresDB) CreateSpace(ctx context.Context, row schema.SpaceRow) error {

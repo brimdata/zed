@@ -18,26 +18,32 @@ import (
 const dbname = "zqd.json"
 
 type FileDB struct {
-	mu   sync.Mutex
-	path iosrc.URI
+	mu     sync.Mutex
+	logger *zap.Logger
+	path   iosrc.URI
 }
 
-func Create(ctx context.Context, path iosrc.URI, rows []schema.SpaceRow) (*FileDB, error) {
-	db := &FileDB{path: path}
+func Create(ctx context.Context, logger *zap.Logger, path iosrc.URI, rows []schema.SpaceRow) (*FileDB, error) {
+	db := &FileDB{path: path, logger: logger}
 	if err := db.save(ctx, rows); err != nil {
 		return nil, err
 	}
+	db.logger.Info("Created")
 	return db, nil
 }
 
 func Open(ctx context.Context, logger *zap.Logger, root iosrc.URI) (*FileDB, error) {
 	dburi := root.AppendPath(dbname)
+	logger = logger.With(
+		zap.String("kind", "file"),
+		zap.String("uri", dburi.String()),
+	)
 	exists, err := iosrc.Exists(ctx, dburi)
 	if err != nil {
 		return nil, err
 	}
 	if exists {
-		return open(ctx, dburi)
+		return open(ctx, logger, dburi)
 	}
 
 	// Since the dbfile doesn't exist, we check if we need to migrate the older
@@ -74,15 +80,16 @@ func Open(ctx context.Context, logger *zap.Logger, root iosrc.URI) (*FileDB, err
 			})
 		}
 	}
-	return Create(ctx, dburi, rows)
+	return Create(ctx, logger, dburi, rows)
 }
 
-func open(ctx context.Context, path iosrc.URI) (*FileDB, error) {
-	db := &FileDB{path: path}
+func open(ctx context.Context, logger *zap.Logger, path iosrc.URI) (*FileDB, error) {
+	db := &FileDB{path: path, logger: logger}
 	// Verify file exists & is readable.
 	if _, err := db.load(ctx); err != nil {
 		return nil, err
 	}
+	db.logger.Info("Loaded")
 	return db, nil
 }
 
