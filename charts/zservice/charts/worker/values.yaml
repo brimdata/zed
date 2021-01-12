@@ -1,12 +1,6 @@
 personality: "worker"
 replicaCount: 3
 
-image:
-  repository: "localhost:5000/"
-  pullPolicy: Always
-  tag: "zqd"
-
-imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
 

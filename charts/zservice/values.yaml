@@ -5,3 +5,10 @@ root:
   recruiterAddr: z-recruiter:9867
 worker:
   recruiterAddr: z-recruiter:9867
+global:
+  image:
+    repository: "localhost:5000/"
+    pullPolicy: Always
+    tag: "zqd"
+  imagePullSecrets: []
+  useCredSecret: false

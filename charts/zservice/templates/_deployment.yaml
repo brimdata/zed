@@ -23,7 +23,7 @@ spec:
       labels:
         {{- include "zservice.selectorLabels" . | nindent 8 }}
     spec:
-      {{- with .Values.imagePullSecrets }}
+      {{- with .Values.global.imagePullSecrets }}
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
@@ -34,8 +34,8 @@ spec:
         - name: {{ .Chart.Name }}
           securityContext:
             {{- toYaml .Values.securityContext | nindent 12 }}
-          image: "{{ .Values.image.repository }}{{ .Values.image.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          image: "{{ .Values.global.image.repository }}{{ .Values.global.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
           command: ["/app/zqd"]
           args:
             {{- include "zservice.args" .  | nindent 12 }}
@@ -60,7 +60,7 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-          {{- if .Values.useCredSecret }}
+          {{- if .Values.global.useCredSecret }}
           # These environment variables are set from secrets
           # when there is no service account
           - name: AWS_REGION

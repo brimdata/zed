@@ -139,15 +139,12 @@ kubectl-config:
 	--user=$(ZQD_K8S_USER)@$(ZQD_TEST_CLUSTER)
 	kubectl config use-context zqtest
 
-helm-install-services:
-	cd charts/brim-services
-	helm dependency update
-	cd ../..
-	helm install brim charts/brim-services \
+helm-install:
+	helm install z charts/zservice \
 	--set AWSRegion=us-east-2 \
+	--set datauri=$(ZQD_DATA_URI) \
 	--set image.repository=$(ZQD_ECR_HOST)/ \
-	--set image.tag=zqd:$(ECR_VERSION) \
-	--set useCredSecret=false --dry-run
+	--set image.tag=zqd:$(ECR_VERSION) --dry-run
 
 helm-install-recruiter:
 	helm install recruiter charts/z-services/charts/recruiter \
