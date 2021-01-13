@@ -94,6 +94,7 @@ func (c *Command) Run(args []string) error {
 	if err := c.init(); err != nil {
 		return err
 	}
+	defer c.logger.Sync()
 	openFilesLimit, err := rlimit.RaiseOpenFilesLimit()
 	if err != nil {
 		c.logger.Warn("Raising open files limit failed", zap.Error(err))
