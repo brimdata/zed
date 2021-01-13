@@ -13,6 +13,7 @@ import (
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/segmentio/ksuid"
+	"go.uber.org/zap"
 )
 
 // mergeChunksToSpans takes an unordered set of Chunks with possibly overlapping
@@ -250,12 +251,13 @@ func removeMaskedChunks(spans []SpanInfo, trackMasked bool) []chunk.Chunk {
 }
 
 type compactWriter struct {
-	ark   *Archive
-	ctx   context.Context
-	defs  index.Definitions
-	masks []ksuid.KSUID
-	tsd   tsDir
-	w     *chunk.Writer
+	ark     *Archive
+	ctx     context.Context
+	created []chunk.Chunk
+	defs    index.Definitions
+	masks   []ksuid.KSUID
+	tsd     tsDir
+	w       *chunk.Writer
 }
 
 func (cw *compactWriter) Write(rec *zng.Record) error {
@@ -272,6 +274,7 @@ func (cw *compactWriter) Write(rec *zng.Record) error {
 			if err := cw.w.CloseWithTs(cw.ctx, firstTs, chunkLastTs); err != nil {
 				return err
 			}
+			cw.created = append(cw.created, cw.w.Chunk())
 			cw.w = nil
 		}
 	}
@@ -293,6 +296,12 @@ func (cw *compactWriter) Write(rec *zng.Record) error {
 	return cw.w.Write(rec)
 }
 
+// chunks returns the Chunks written by the compact writer. This is only valid
+// after close() has returned a nil error.
+func (cw *compactWriter) chunks() []chunk.Chunk {
+	return cw.created
+}
+
 func (cw *compactWriter) abort() {
 	if cw.w != nil {
 		cw.w.Abort()
@@ -312,13 +321,13 @@ func (cw *compactWriter) close(lastTs nano.Ts) error {
 	return nil
 }
 
-func compactOverlaps(ctx context.Context, ark *Archive, s SpanInfo) error {
+func compactOverlaps(ctx context.Context, ark *Archive, s SpanInfo) ([]chunk.Chunk, error) {
 	if len(s.Chunks) == 1 {
-		return nil
+		return nil, nil
 	}
 	ss, _, err := newSpanScanner(ctx, ark, resolver.NewContext(), driver.SourceFilter{Span: nano.MaxSpan}, s)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	defer ss.Close()
 	var masks []ksuid.KSUID
@@ -327,7 +336,7 @@ func compactOverlaps(ctx context.Context, ark *Archive, s SpanInfo) error {
 	}
 	defs, err := ark.ReadDefinitions(ctx)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	mw := &compactWriter{
 		ark:   ark,
@@ -339,9 +348,12 @@ func compactOverlaps(ctx context.Context, ark *Archive, s SpanInfo) error {
 	_, slast := spanToFirstLast(ark.DataOrder, s.Span)
 	if err := zbuf.CopyWithContext(ctx, mw, zbuf.PullerReader(ss)); err != nil {
 		mw.abort()
-		return err
+		return nil, err
 	}
-	return mw.close(slast)
+	if err := mw.close(slast); err != nil {
+		return nil, err
+	}
+	return mw.chunks(), nil
 }
 
 // mergeCommonChunkSpans generates a SpanInfo slice by merging runs of
@@ -367,21 +379,41 @@ outer:
 	return append(res, mergeSpanInfos(run, order))
 }
 
-func Compact(ctx context.Context, ark *Archive) error {
+func Compact(ctx context.Context, ark *Archive, logger *zap.Logger) error {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
 	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []chunk.Chunk) error {
 		spans := alignChunksToSpans(chunks, ark.DataOrder, nano.MaxSpan)
 		removeMaskedChunks(spans, false)
 		spans = mergeCommonChunkSpans(spans, ark.DataOrder)
 		for _, s := range spans {
-			if err := compactOverlaps(ctx, ark, s); err != nil {
+			newchunks, err := compactOverlaps(ctx, ark, s)
+			if err != nil {
 				return err
+			}
+			for _, c := range newchunks {
+				m := make([]string, len(c.Masks))
+				for i, u := range c.MaskedPaths() {
+					m[i] = u.String()
+				}
+
+				logger.Info("Compacted chunk created",
+					zap.String("chunk", c.Path().String()),
+					zap.Strings("masks", m),
+				)
 			}
 		}
 		return nil
 	})
 }
 
-func Purge(ctx context.Context, ark *Archive) error {
+func Purge(ctx context.Context, ark *Archive, logger *zap.Logger) error {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
 	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []chunk.Chunk) error {
 		spans := alignChunksToSpans(chunks, ark.DataOrder, nano.MaxSpan)
 		maskedChunks := removeMaskedChunks(spans, true)
@@ -392,6 +424,8 @@ func Purge(ctx context.Context, ark *Archive) error {
 			if err := c.Remove(ctx); err != nil {
 				return err
 			}
+
+			logger.Info("Masked chunk purged", zap.String("chunk", c.Path().String()))
 		}
 		return nil
 	})

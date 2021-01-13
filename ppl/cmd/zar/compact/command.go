@@ -44,11 +44,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	ctx := context.TODO()
-	if err := archive.Compact(ctx, ark); err != nil {
+	if err := archive.Compact(ctx, ark, nil); err != nil {
 		return err
 	}
 	if c.purge {
-		return archive.Purge(ctx, ark)
+		return archive.Purge(ctx, ark, nil)
 	}
 	return nil
 }
