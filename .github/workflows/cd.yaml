@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - compaction-logging
 
 jobs:
   pre-clean:
