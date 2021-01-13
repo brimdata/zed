@@ -10,6 +10,7 @@ ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))
 ZEEKPATH = zeek-$(ZEEKTAG)
 SURICATATAG := $(shell python -c 'import json; print(json.load(open("package.json"))["brimDependencies"]["suricataTag"])')
 SURICATAPATH = suricata-$(SURICATATAG)
+PG_PERSIST = true
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
 #  make TEST=TestZq/ztests/suite/cut/cut
@@ -140,7 +141,8 @@ kubectl-config:
 	kubectl config use-context zqtest
 
 helm-install-postgres:
-	helm install postgres charts/postgres
+	helm install postgres charts/postgres \
+	--set postgresql.persistence.enabled=$(PG_PERSIST)
 
 helm-install-recruiter:
 	helm install recruiter charts/zqd \

@@ -65,7 +65,7 @@ jobs:
           kubectl config set-context --current --namespace=$NAMESPACE
           make helm-uninstall
           k8s/postgres-secret.sh
-          make helm-install-postgres
+          make helm-install-postgres PG_PERSIST=false
           kubectl wait --for=condition=Ready --timeout=60s pods/postgres-postgresql-0
           make helm-install-recruiter
           make helm-install-root
