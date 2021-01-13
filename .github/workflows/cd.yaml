@@ -63,6 +63,9 @@ jobs:
           kubectl create ns $NAMESPACE || :
           kubectl config set-context --current --namespace=$NAMESPACE
           make helm-uninstall
+          k8s/postgres-secret.sh
+          make helm-install-postgres PG_PERSIST=false
+          kubectl wait --for=condition=Ready --timeout=60s pods/postgres-postgresql-0
           make helm-install-recruiter
           make helm-install-root
           make helm-install-worker
@@ -146,6 +149,7 @@ jobs:
           kubectl create ns ci-master || :
           kubectl config set-context --current --namespace=ci-master
           make helm-uninstall
+          make helm-install-postgres
           make helm-install-recruiter
           make helm-install-root
           make helm-install-worker

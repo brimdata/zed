@@ -90,3 +90,10 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
+
+postgres:
+  addr: postgres-postgresql:5432
+  username: "zqd"
+  database: "zqd"
+  # passwordSecretName must have a value called postgres-password
+  passwordSecretName: "postgres"
