@@ -48,6 +48,10 @@ func NewStorage(ark *archive.Archive) *Storage {
 	return &Storage{ark: ark}
 }
 
+func (s *Storage) Kind() api.StorageKind {
+	return api.ArchiveStore
+}
+
 func (s *Storage) NativeOrder() zbuf.Order {
 	return s.ark.DataOrder
 }

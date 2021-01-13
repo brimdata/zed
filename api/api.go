@@ -315,3 +315,17 @@ type ArchiveOpenOptions struct {
 type ArchiveCreateOptions struct {
 	LogSizeThreshold *int64 `json:"log_size_threshold,omitempty"`
 }
+
+// FileStoreReadOnly controls if new spaces may be created using the
+// FileStore storage kind, and if existing FileStore spaces may have new
+// data (either pcap or logs) added to them.
+// This intended to be temporary until we transition to only allowing archive
+// stores for new spaces; see zq#1085.
+var FileStoreReadOnly = false
+
+func DefaultStorageKind() StorageKind {
+	if FileStoreReadOnly {
+		return ArchiveStore
+	}
+	return FileStore
+}

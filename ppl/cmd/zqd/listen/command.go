@@ -12,7 +12,9 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"strconv"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
@@ -35,7 +37,7 @@ var Listen = &charm.Spec{
 	Long: `
 The listen command launches a process to listen on the provided interface and
 `,
-	HiddenFlags: "brimfd,nodename,podip,recruiter,workers",
+	HiddenFlags: "brimfd,nodename,podip,recruiter,workers,filestorereadonly",
 	New:         New,
 }
 
@@ -65,6 +67,15 @@ type Command struct {
 	zeekRunnerPath      string
 }
 
+func setApiFileStoreReadOnly(s string) error {
+	v, err := strconv.ParseBool(s)
+	if err != nil {
+		return err
+	}
+	api.FileStoreReadOnly = v
+	return nil
+}
+
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.conf.Auth.SetFlags(f)
@@ -82,6 +93,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
 	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
+
+	// Hidden flag while we transition to using archive store by default.
+	// See zq#1085
+	f.Var(cli.FuncValue(setApiFileStoreReadOnly), "filestorereadonly", "boolean to make file store spaces read only (and use archive store by default)")
 
 	return c, nil
 }

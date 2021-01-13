@@ -218,7 +218,7 @@ func TestSpaceList(t *testing.T) {
 			ID:          sp.ID,
 			Name:        n,
 			DataPath:    c.Root().AppendPath(string(sp.ID)),
-			StorageKind: api.FileStore,
+			StorageKind: api.DefaultStorageKind(),
 		})
 	}
 
@@ -246,7 +246,7 @@ func TestSpaceInfo(t *testing.T) {
 			ID:          sp.ID,
 			Name:        sp.Name,
 			DataPath:    sp.DataPath,
-			StorageKind: api.FileStore,
+			StorageKind: api.DefaultStorageKind(),
 		},
 		Span:        &span,
 		Size:        81,
@@ -269,7 +269,7 @@ func TestSpaceInfoNoData(t *testing.T) {
 			ID:          sp.ID,
 			Name:        sp.Name,
 			DataPath:    sp.DataPath,
-			StorageKind: api.FileStore,
+			StorageKind: api.DefaultStorageKind(),
 		},
 		Size:        0,
 		PcapSupport: false,
@@ -442,7 +442,7 @@ func TestPostZngLogs(t *testing.T) {
 			ID:          sp.ID,
 			Name:        sp.Name,
 			DataPath:    sp.DataPath,
-			StorageKind: api.FileStore,
+			StorageKind: api.DefaultStorageKind(),
 		},
 		Span:        &nano.Span{Ts: nano.Ts(time.Second), Dur: int64(time.Second) + 1},
 		Size:        79,
@@ -518,7 +518,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 				ID:          sp.ID,
 				Name:        sp.Name,
 				DataPath:    sp.DataPath,
-				StorageKind: api.FileStore,
+				StorageKind: api.DefaultStorageKind(),
 			},
 			Span:        &span,
 			Size:        79,
@@ -611,7 +611,12 @@ func TestSpaceDataDir(t *testing.T) {
 	res := searchTzng(t, conn1, sp.ID, "*")
 	require.Equal(t, test.Trim(src), res)
 
-	_, err = os.Stat(filepath.Join(datapath, "all.zng"))
+	// Verify storage metadata file created in expected location.
+	mdfile := "zar.json"
+	if sp.StorageKind == api.FileStore {
+		mdfile = "all.zng"
+	}
+	_, err = os.Stat(filepath.Join(datapath, mdfile))
 	require.NoError(t, err)
 
 	// Verify space load on startup uses datapath.
@@ -1081,7 +1086,8 @@ func (p *testPcapProcess) Wait() error {
 	if p.wait != nil {
 		return p.wait(p)
 	}
-	return nil
+	_, err := ioutil.ReadAll(p.reader)
+	return err
 }
 
 func (p *testPcapProcess) Stdout() string { return "" }

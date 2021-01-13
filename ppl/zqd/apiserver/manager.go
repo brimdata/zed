@@ -122,8 +122,11 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 	if req.Storage != nil {
 		storecfg = *req.Storage
 	}
+	if storecfg.Kind == api.FileStore && api.FileStoreReadOnly {
+		return api.Space{}, zqe.ErrInvalid("file storage space creation is disabled")
+	}
 	if storecfg.Kind == api.UnknownStore {
-		storecfg.Kind = api.FileStore
+		storecfg.Kind = api.DefaultStorageKind()
 	}
 	if storecfg.Kind == api.FileStore && m.rootPath.Scheme != "file" {
 		return api.Space{}, zqe.E(zqe.Invalid, "cannot create file storage space on non-file backed data path")
