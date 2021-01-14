@@ -196,12 +196,9 @@ func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
 
 // Example configfile
 // logger:
-//   type: waterfall
-//   children:
-//   - path: ./data/access.log
-//     name: "http.access"
-//     level: info
-//     mode: truncate
+//   path: ./data/access.log
+//   level: info
+//   mode: truncate
 // sort_mem_max_bytes: 268432640
 
 func (c *Command) loadConfigFile() error {

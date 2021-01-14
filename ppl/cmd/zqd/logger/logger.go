@@ -10,7 +10,6 @@ type Config struct {
 	// If Path is a file, Mode will determine how the log file is managed.
 	// FileModeAppend is the default if value is undefined.
 	Mode  FileMode      `yaml:"mode,omitempty"`
-	Name  string        `yaml:"name"`
 	Level zapcore.Level `yaml:"level"`
 }
 
@@ -19,11 +18,7 @@ func NewCore(conf Config) (zapcore.Core, error) {
 	if err != nil {
 		return nil, err
 	}
-	core := zapcore.NewCore(jsonEncoder(), w, conf.Level)
-	if conf.Name != "" {
-		core = newNameFilterCore(core, conf.Name)
-	}
-	return core, nil
+	return zapcore.NewCore(jsonEncoder(), w, conf.Level), nil
 }
 
 func jsonEncoder() zapcore.Encoder {
