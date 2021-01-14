@@ -9,37 +9,37 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-type ValueCaster func(zv zng.Value) (zng.Value, error)
+type PrimitiveCaster func(zv zng.Value) (zng.Value, error)
 
-func LookupValueCaster(typ string) ValueCaster {
+func LookupPrimitiveCaster(typ zng.Type) PrimitiveCaster {
 	switch typ {
-	case "int8":
+	case zng.TypeInt8:
 		return castToInt8
-	case "int16":
+	case zng.TypeInt16:
 		return castToInt16
-	case "int32":
+	case zng.TypeInt32:
 		return castToInt32
-	case "int64":
+	case zng.TypeInt64:
 		return castToInt64
-	case "uint8":
+	case zng.TypeUint8:
 		return castToUint8
-	case "uint16":
+	case zng.TypeUint16:
 		return castToUint16
-	case "uint32":
+	case zng.TypeUint32:
 		return castToUint32
-	case "uint64":
+	case zng.TypeUint64:
 		return castToUint64
-	case "float64":
+	case zng.TypeFloat64:
 		return castToFloat64
-	case "ip":
+	case zng.TypeIP:
 		return castToIP
-	case "time":
+	case zng.TypeTime:
 		return castToTime
-	case "string":
+	case zng.TypeString:
 		return castToString
-	case "bstring":
+	case zng.TypeBstring:
 		return castToBstring
-	case "bytes":
+	case zng.TypeBytes:
 		return castToBytes
 	default:
 		return nil

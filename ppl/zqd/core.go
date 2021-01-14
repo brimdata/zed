@@ -55,6 +55,7 @@ type middleware interface {
 
 type Core struct {
 	auth       *Auth0Authenticator
+	db         db.DB
 	logger     *zap.Logger
 	mgr        *apiserver.Manager
 	registry   *prometheus.Registry
@@ -109,9 +110,14 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		json.NewEncoder(w).Encode(&api.VersionResponse{Version: conf.Version})
 	})
 
+	personality := conf.Personality
+	if personality == "" {
+		personality = "all"
+	}
+
 	c := &Core{
 		auth:     auth,
-		logger:   conf.Logger,
+		logger:   conf.Logger.Named("core").With(zap.String("personality", personality)),
 		registry: registry,
 		router:   router,
 		suricata: conf.Suricata,
@@ -119,15 +125,18 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		zeek:     conf.Zeek,
 	}
 
-	switch conf.Personality {
-	case "", "all":
+	var startFields []zap.Field
+	switch personality {
+	case "all", "apiserver":
 		if err := c.addAPIServerRoutes(ctx, conf); err != nil {
 			return nil, err
 		}
-		c.addWorkerRoutes()
-	case "apiserver":
-		if err := c.addAPIServerRoutes(ctx, conf); err != nil {
-			return nil, err
+		if personality == "all" {
+			c.addWorkerRoutes()
+		}
+		startFields = []zap.Field{
+			zap.Bool("suricata_supported", c.HasSuricata()),
+			zap.Bool("zeek_supported", c.HasZeek()),
 		}
 	case "recruiter":
 		c.workerPool = recruiter.NewWorkerPool()
@@ -138,6 +147,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		return nil, fmt.Errorf("unknown personality %s", conf.Personality)
 	}
 
+	c.logger.Info("Started", startFields...)
 	return c, nil
 }
 
@@ -146,7 +156,11 @@ func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) 
 	if err != nil {
 		return err
 	}
-	if c.mgr, err = apiserver.NewManager(ctx, conf.Logger, c.registry, c.root, conf.DB); err != nil {
+	c.db, err = db.Open(ctx, conf.Logger, conf.DB, c.root)
+	if err != nil {
+		return err
+	}
+	if c.mgr, err = apiserver.NewManager(ctx, conf.Logger, c.registry, c.root, c.db); err != nil {
 		return err
 	}
 	c.authhandle("/ast", handleASTPost).Methods("POST")
@@ -223,6 +237,7 @@ func (c *Core) Shutdown() {
 	if c.mgr != nil {
 		c.mgr.Shutdown()
 	}
+	c.logger.Info("Shutdown")
 }
 
 func (c *Core) nextTaskID() int64 {
