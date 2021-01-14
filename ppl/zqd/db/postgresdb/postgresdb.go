@@ -17,15 +17,11 @@ type PostgresDB struct {
 }
 
 func Open(ctx context.Context, logger *zap.Logger, conf Config) (*PostgresDB, error) {
-	logger = logger.With(
-		zap.String("kind", "postgres"),
-		zap.String("uri", conf.StringRedacted()),
-	)
 	db := pg.Connect(&conf.Options)
 	if err := db.Ping(ctx); err != nil {
 		return nil, err
 	}
-	logger.Info("Connected")
+	logger.Info("Connected", zap.String("kind", "postgres"), zap.String("uri", conf.StringRedacted()))
 	return &PostgresDB{db, logger}, nil
 }
 

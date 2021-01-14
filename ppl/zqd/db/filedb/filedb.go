@@ -28,16 +28,12 @@ func Create(ctx context.Context, logger *zap.Logger, path iosrc.URI, rows []sche
 	if err := db.save(ctx, rows); err != nil {
 		return nil, err
 	}
-	db.logger.Info("Created")
+	db.logger.Info("Created", zap.String("kind", "file"), zap.String("uri", path.String()))
 	return db, nil
 }
 
 func Open(ctx context.Context, logger *zap.Logger, root iosrc.URI) (*FileDB, error) {
 	dburi := root.AppendPath(dbname)
-	logger = logger.With(
-		zap.String("kind", "file"),
-		zap.String("uri", dburi.String()),
-	)
 	exists, err := iosrc.Exists(ctx, dburi)
 	if err != nil {
 		return nil, err
@@ -89,7 +85,7 @@ func open(ctx context.Context, logger *zap.Logger, path iosrc.URI) (*FileDB, err
 	if _, err := db.load(ctx); err != nil {
 		return nil, err
 	}
-	db.logger.Info("Loaded")
+	db.logger.Info("Loaded", zap.String("kind", "file"), zap.String("uri", path.String()))
 	return db, nil
 }
 
