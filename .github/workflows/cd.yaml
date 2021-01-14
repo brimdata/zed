@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - eks-test-2
 
 jobs:
   pre-clean:
@@ -64,6 +63,9 @@ jobs:
           kubectl create ns $NAMESPACE || :
           kubectl config set-context --current --namespace=$NAMESPACE
           make helm-uninstall
+          k8s/postgres-secret.sh
+          make helm-install-postgres PG_PERSIST=false
+          kubectl wait --for=condition=Ready --timeout=60s pods/postgres-postgresql-0
           make helm-install-recruiter
           make helm-install-root
           make helm-install-worker
@@ -100,17 +102,31 @@ jobs:
           time zapi -s $SPACE post s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
           # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
-          time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
-          time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
-          time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
-          time zapi -s $SPACE get -workers 4 -t 'count()' > count.tzng
+          mkdir testlog
+          time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter1.log
+          time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter2.log
+          time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter4.log
+          time zapi -s $SPACE get -workers 4 -t 'count()' &> testlog/count.tzng
           time zapi -s $SPACE get -workers 4 -t \
-            '* | count() by tx_hosts | sort -r count | head 5' > countbytxhost.tzng
-          diff count.tzng k8s/testdiff/count.tzng
-          diff countbytxhost.tzng k8s/testdiff/countbytxhost.tzng
-      - name: Cleanup on success or failure
+            '* | count() by tx_hosts | sort -r count | head 5' &> testlog/countbytxhost.tzng
+          diff testlog/count.tzng k8s/testdiff/count.tzng
+          diff testlog/countbytxhost.tzng k8s/testdiff/countbytxhost.tzng
+      - name: Get zqd logs and remove namespace on success or failure
         if: ${{ always() }}
-        run: kubectl delete ns ci-${{ github.run_number }}
+        run: |
+          set -x
+          ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          kubectl logs -c zqd -l app.kubernetes.io/instance=recruiter > testlog/recruiter.log
+          kubectl logs -c zqd -l app.kubernetes.io/instance=root > testlog/root.log
+          kubectl logs -c zqd -l app.kubernetes.io/instance=worker > testlog/worker.log
+          kubectl delete ns ci-${{ github.run_number }}
+      - name: Save logs as artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: eks-testlog
+          path: testlog/
+
   eks-master-deploy:
     # Deploys this build to ci-master namespace so it will be available
     # for manual testing. Only deploy if previous jobs succeed.
@@ -133,6 +149,7 @@ jobs:
           kubectl create ns ci-master || :
           kubectl config set-context --current --namespace=ci-master
           make helm-uninstall
+          make helm-install-postgres
           make helm-install-recruiter
           make helm-install-root
           make helm-install-worker

@@ -3,6 +3,7 @@ package root
 import (
 	"flag"
 
+	"github.com/brimsec/zq/cli"
 	"github.com/mccanne/charm"
 )
 
@@ -15,6 +16,7 @@ var CLI = &charm.Spec{
 
 type Command struct {
 	charm.Command
+	cli cli.Flags
 }
 
 func init() {
@@ -24,6 +26,10 @@ func init() {
 func New(_ charm.Command, _ *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
 	return c, nil
+}
+
+func (c *Command) Init(all ...cli.Initializer) error {
+	return c.cli.Init(all...)
 }
 
 func (c *Command) Run(args []string) error {

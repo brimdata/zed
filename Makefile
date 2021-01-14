@@ -10,6 +10,7 @@ ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))
 ZEEKPATH = zeek-$(ZEEKTAG)
 SURICATATAG := $(shell python -c 'import json; print(json.load(open("package.json"))["brimDependencies"]["suricataTag"])')
 SURICATAPATH = suricata-$(SURICATATAG)
+PG_PERSIST = true
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
 #  make TEST=TestZq/ztests/suite/cut/cut
@@ -145,6 +146,10 @@ helm-install:
 	--set datauri=$(ZQD_DATA_URI) \
 	--set image.repository=$(ZQD_ECR_HOST)/ \
 	--set image.tag=zqd:$(ECR_VERSION) --dry-run
+	
+helm-install-postgres:
+	helm install postgres charts/postgres \
+	--set postgresql.persistence.enabled=$(PG_PERSIST)
 
 helm-install-recruiter:
 	helm install recruiter charts/z-services/charts/recruiter \
@@ -177,6 +182,7 @@ make helm-uninstall:
 	-helm uninstall worker
 	-helm uninstall root
 	-helm uninstall recruiter
+	-helm uninstall postgres
 
 create-release-assets:
 	for os in darwin linux windows; do \
