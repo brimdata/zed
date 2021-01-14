@@ -51,11 +51,7 @@ func (c Config) String() string {
 // StringRedacted is the same as string except password and a username are
 // redacted. This should be used in logs.
 func (c Config) StringRedacted() string {
-	if c.Password != "" {
-		c.Password = strings.Repeat("*", 5)
-	}
-	if c.User != "" {
-		c.User = string(c.User[0]) + strings.Repeat("*", 4)
-	}
+	c.Password = strings.Repeat("*", 5)
+	c.User = strings.Repeat("*", 5)
 	return c.String()
 }
