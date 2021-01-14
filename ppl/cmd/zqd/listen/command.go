@@ -250,18 +250,8 @@ func (c *Command) launchSuricataUpdate(ctx context.Context) {
 // defaultLogger ignores output from the access logger.
 func (c *Command) defaultLogger() *logger.Config {
 	return &logger.Config{
-		Type: logger.TypeWaterfall,
-		Children: []logger.Config{
-			{
-				Name:  "http.access",
-				Path:  "/dev/null",
-				Level: c.logLevel,
-			},
-			{
-				Path:  "stderr",
-				Level: c.logLevel,
-			},
-		},
+		Path:  "stderr",
+		Level: c.logLevel,
 	}
 }
 
