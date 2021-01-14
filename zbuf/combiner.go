@@ -76,6 +76,7 @@ func (c *Combiner) Read() (*zng.Record, error) {
 			}
 			c.done[r.idx] = true
 			if c.finished() {
+				c.cancel()
 				return nil, nil
 			}
 		case <-c.ctx.Done():
