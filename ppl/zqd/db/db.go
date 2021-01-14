@@ -35,7 +35,7 @@ type Config struct {
 }
 
 func Open(ctx context.Context, logger *zap.Logger, conf Config, root iosrc.URI) (DB, error) {
-	logger = logger.Named("db")
+	logger = logger.Named("database")
 	switch conf.Kind {
 	case DBFile, DBUnspecified:
 		return filedb.Open(ctx, logger, root)
