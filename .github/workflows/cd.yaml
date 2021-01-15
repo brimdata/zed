@@ -66,7 +66,6 @@ jobs:
           make helm-uninstall
           k8s/postgres-secret.sh
           make helm-install PG_PERSIST=false
-          sleep 60
           kubectl get pod
           kubectl wait --for=condition=Ready --timeout=60s pods/z-postgresql-0
   eks-test-zapi-1:
@@ -127,26 +126,26 @@ jobs:
           name: eks-testlog
           path: testlog/
 
-  # eks-master-deploy:
-  #   # Deploys this build to ci-master namespace so it will be available
-  #   # for manual testing. Only deploy if previous jobs succeed.
-  #   needs: eks-test-zapi-1
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: aws-actions/configure-aws-credentials@v1
-  #       with:
-  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-  #         aws-region: us-east-2
-  #     - uses: actions/checkout@v1
-  #       with:
-  #         ref: ${{ github.event.pull_request.head.sha }}
-  #     - run: |
-  #         set -x
-  #         export ZQD_DATA_URI=s3://zq-ci-master/manual-test
-  #         export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
-  #         aws eks --region us-east-2 update-kubeconfig --name zq-test
-  #         kubectl create ns ci-master || :
-  #         kubectl config set-context --current --namespace=ci-master
-  #         helm uninstall z
-  #         make helm-install
+  eks-master-deploy:
+    # Deploys this build to ci-master namespace so it will be available
+    # for manual testing. Only deploy if previous jobs succeed.
+    needs: eks-test-zapi-1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+      - uses: actions/checkout@v1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - run: |
+          set -x
+          export ZQD_DATA_URI=s3://zq-ci-master/manual-test
+          export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
+          aws eks --region us-east-2 update-kubeconfig --name zq-test
+          kubectl create ns ci-master || :
+          kubectl config set-context --current --namespace=ci-master
+          helm uninstall z
+          make helm-install
