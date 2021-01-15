@@ -39,15 +39,10 @@ type Manager struct {
 	deleted prometheus.Counter
 }
 
-func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI, dbconf db.Config) (*Manager, error) {
-	db, err := db.Open(ctx, logger, dbconf, root)
-	if err != nil {
-		return nil, err
-	}
-
+func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI, db db.DB) (*Manager, error) {
 	factory := promauto.With(registerer)
 	m := &Manager{
-		logger:   logger,
+		logger:   logger.Named("manager"),
 		rootPath: root,
 		db:       db,
 
@@ -65,6 +60,7 @@ func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.R
 	}
 	m.compactor = newCompactor(m)
 	m.spawnAlphaMigrations(ctx)
+	m.logger.Info("Loaded", zap.String("root", root.String()))
 	return m, nil
 }
 

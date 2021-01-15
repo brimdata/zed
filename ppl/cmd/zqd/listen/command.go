@@ -94,10 +94,13 @@ func (c *Command) Run(args []string) error {
 	if err := c.init(); err != nil {
 		return err
 	}
+	defer c.logger.Sync()
 	openFilesLimit, err := rlimit.RaiseOpenFilesLimit()
 	if err != nil {
 		c.logger.Warn("Raising open files limit failed", zap.Error(err))
 	}
+	c.conf.Logger.Info("Open files limit raised", zap.Uint64("limit", openFilesLimit))
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	if c.brimfd != -1 {
@@ -110,13 +113,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer core.Shutdown()
-	c.logger.Info("Starting",
-		zap.String("datadir", c.conf.Root),
-		zap.Uint64("open_files_limit", openFilesLimit),
-		zap.String("personality", c.conf.Personality),
-		zap.Bool("suricata_supported", core.HasSuricata()),
-		zap.Bool("zeek_supported", core.HasZeek()),
-	)
+
 	if c.suricataUpdater != nil {
 		c.launchSuricataUpdate(ctx)
 	}
@@ -196,12 +193,9 @@ func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
 
 // Example configfile
 // logger:
-//   type: waterfall
-//   children:
-//   - path: ./data/access.log
-//     name: "http.access"
-//     level: info
-//     mode: truncate
+//   path: ./data/access.log
+//   level: info
+//   mode: truncate
 // sort_mem_max_bytes: 268432640
 
 func (c *Command) loadConfigFile() error {
@@ -250,18 +244,8 @@ func (c *Command) launchSuricataUpdate(ctx context.Context) {
 // defaultLogger ignores output from the access logger.
 func (c *Command) defaultLogger() *logger.Config {
 	return &logger.Config{
-		Type: logger.TypeWaterfall,
-		Children: []logger.Config{
-			{
-				Name:  "http.access",
-				Path:  "/dev/null",
-				Level: c.logLevel,
-			},
-			{
-				Path:  "stderr",
-				Level: c.logLevel,
-			},
-		},
+		Path:  "stderr",
+		Level: c.logLevel,
 	}
 }
 

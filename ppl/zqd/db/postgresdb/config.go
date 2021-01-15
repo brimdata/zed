@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/url"
+	"strings"
 
 	"github.com/go-pg/pg/v10"
 )
@@ -78,4 +79,12 @@ func (c Config) String() string {
 		str += "?" + params.Encode()
 	}
 	return str
+}
+
+// StringRedacted is the same as string except password and a username are
+// redacted. This should be used in logs.
+func (c Config) StringRedacted() string {
+	c.Password = strings.Repeat("*", 5)
+	c.User = strings.Repeat("*", 5)
+	return c.String()
 }
