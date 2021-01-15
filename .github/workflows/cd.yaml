@@ -87,12 +87,13 @@ jobs:
           set -x
           SPACE=files
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          mkdir testlog
           make install
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl config set-context --current --namespace=ci-${{ github.run_number }}
-          kubectl scale --replicas=4 deployment/worker-zqd
-          kubectl port-forward svc/recruiter-zqd 8020:9867 &
-          kubectl port-forward svc/root-zqd 9867:9867 &
+          kubectl scale --replicas=4 deployment/z-worker
+          kubectl port-forward svc/z-recruiter 8020:9867 &
+          kubectl port-forward svc/z-root 9867:9867 &
           sleep 2 # wait for port-forwards to complete
           time zapi ls
           time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
@@ -100,7 +101,6 @@ jobs:
           time zapi -s $SPACE post s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
           # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
-          mkdir testlog
           time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter1.log
           time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter2.log
           time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter4.log
