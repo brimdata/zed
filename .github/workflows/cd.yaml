@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - umbrella-chart
 
 jobs:
   pre-clean:
@@ -64,11 +65,8 @@ jobs:
           kubectl config set-context --current --namespace=$NAMESPACE
           make helm-uninstall
           k8s/postgres-secret.sh
-          make helm-install-postgres PG_PERSIST=false
+          make helm-install PG_PERSIST=false
           kubectl wait --for=condition=Ready --timeout=60s pods/postgres-postgresql-0
-          make helm-install-recruiter
-          make helm-install-root
-          make helm-install-worker
   eks-test-zapi-1:
     # Run smoke tests for zqd image prior to deploying to ci-master.
     needs: eks-test-deploy
@@ -116,9 +114,9 @@ jobs:
         run: |
           set -x
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
-          kubectl logs --tail -1  -c zqd -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
-          kubectl logs --tail -1  -c zqd -l app.kubernetes.io/name=root > testlog/root.log
-          kubectl logs --tail -1  -c zqd -l app.kubernetes.io/name=worker > testlog/worker.log
+          kubectl logs --tail -1 -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
+          kubectl logs --tail -1 -l app.kubernetes.io/name=root > testlog/root.log
+          kubectl logs --tail -1 -l app.kubernetes.io/name=worker > testlog/worker.log
           kubectl delete ns ci-${{ github.run_number }}
       - name: Save logs as artifact
         if: ${{ always() }}
@@ -127,29 +125,26 @@ jobs:
           name: eks-testlog
           path: testlog/
 
-  eks-master-deploy:
-    # Deploys this build to ci-master namespace so it will be available
-    # for manual testing. Only deploy if previous jobs succeed.
-    needs: eks-test-zapi-1
-    runs-on: ubuntu-latest
-    steps:
-      - uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
-      - uses: actions/checkout@v1
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - run: |
-          set -x
-          export ZQD_DATA_URI=s3://zq-ci-master/manual-test
-          export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
-          aws eks --region us-east-2 update-kubeconfig --name zq-test
-          kubectl create ns ci-master || :
-          kubectl config set-context --current --namespace=ci-master
-          make helm-uninstall
-          make helm-install-postgres
-          make helm-install-recruiter
-          make helm-install-root
-          make helm-install-worker
+  # eks-master-deploy:
+  #   # Deploys this build to ci-master namespace so it will be available
+  #   # for manual testing. Only deploy if previous jobs succeed.
+  #   needs: eks-test-zapi-1
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: aws-actions/configure-aws-credentials@v1
+  #       with:
+  #         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  #         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  #         aws-region: us-east-2
+  #     - uses: actions/checkout@v1
+  #       with:
+  #         ref: ${{ github.event.pull_request.head.sha }}
+  #     - run: |
+  #         set -x
+  #         export ZQD_DATA_URI=s3://zq-ci-master/manual-test
+  #         export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
+  #         aws eks --region us-east-2 update-kubeconfig --name zq-test
+  #         kubectl create ns ci-master || :
+  #         kubectl config set-context --current --namespace=ci-master
+  #         helm uninstall z
+  #         make helm-install
