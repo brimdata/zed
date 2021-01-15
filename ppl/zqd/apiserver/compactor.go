@@ -95,7 +95,7 @@ func (c *compactor) compact(ctx context.Context, id api.SpaceID) {
 	}
 	logger.Info("Compaction started")
 	start := time.Now()
-	if err := store.Compact(ctx); err != nil {
+	if err := store.Compact(ctx, logger); err != nil {
 		if err == context.Canceled {
 			logger.Info("Compaction canceled")
 		} else {

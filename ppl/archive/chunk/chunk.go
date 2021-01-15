@@ -79,6 +79,15 @@ func (c Chunk) Path() iosrc.URI {
 	return c.Dir.AppendPath(c.FileName())
 }
 
+// MaskedPaths returns a list of the iosrc.URIs of chunks that this chunk masks.
+func (c Chunk) MaskedPaths() []iosrc.URI {
+	paths := make([]iosrc.URI, len(c.Masks))
+	for i, m := range c.Masks {
+		paths[i] = ChunkPath(c.Dir, m)
+	}
+	return paths
+}
+
 func (c Chunk) SeekIndexPath() iosrc.URI {
 	return chunkSeekIndexPath(c.Dir, c.Id)
 }

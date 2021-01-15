@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
+	"go.uber.org/zap"
 )
 
 func Load(ctx context.Context, path iosrc.URI, notifier WriteNotifier, cfg *api.ArchiveConfig) (*Storage, error) {
@@ -148,9 +149,9 @@ func (s *Storage) ArchiveStat(ctx context.Context, zctx *resolver.Context) (zbuf
 	return archive.Stat(ctx, zctx, s.ark)
 }
 
-func (s *Storage) Compact(ctx context.Context) error {
-	if err := archive.Compact(ctx, s.ark); err != nil {
+func (s *Storage) Compact(ctx context.Context, logger *zap.Logger) error {
+	if err := archive.Compact(ctx, s.ark, logger); err != nil {
 		return err
 	}
-	return archive.Purge(ctx, s.ark)
+	return archive.Purge(ctx, s.ark, logger)
 }
