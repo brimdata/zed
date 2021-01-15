@@ -25,9 +25,10 @@ func SendFromReader(out Output, r zbuf.Reader) (err error) {
 		err = out.End(&api.TaskEnd{"TaskEnd", 0, nil})
 	}()
 
+	p := zbuf.NewPuller(r, DefaultMTU)
 	for {
 		var b zbuf.Batch
-		if b, err = zbuf.ReadBatch(r, DefaultMTU); err != nil {
+		if b, err = p.Pull(); err != nil {
 			return
 		}
 		if b == nil {

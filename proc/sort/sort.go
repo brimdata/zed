@@ -77,9 +77,10 @@ func (p *Proc) sortLoop() {
 	}
 	defer runManager.Cleanup()
 	p.warnAboutUnseenFields()
+	puller := zbuf.NewPuller(runManager, 100)
 	for p.pctx.Err() == nil {
 		// Reading from runManager merges the runs.
-		b, err := zbuf.ReadBatch(runManager, 100)
+		b, err := puller.Pull()
 		p.sendResult(b, err)
 		if b == nil || err != nil {
 			return
