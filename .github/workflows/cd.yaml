@@ -68,7 +68,7 @@ jobs:
           make helm-install PG_PERSIST=false
           sleep 60
           kubectl get pod
-          kubectl wait --for=condition=Ready --timeout=150s pods/z-postgresql-0
+          kubectl wait --for=condition=Ready --timeout=60s pods/z-postgresql-0
   eks-test-zapi-1:
     # Run smoke tests for zqd image prior to deploying to ci-master.
     needs: eks-test-deploy
