@@ -120,7 +120,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	}
 
 	switch conf.Personality {
-	case "", "all":
+	case "", "all", "root":
 		if err := c.addAPIServerRoutes(ctx, conf); err != nil {
 			return nil, err
 		}

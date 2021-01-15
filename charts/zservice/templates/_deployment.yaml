@@ -85,7 +85,7 @@ spec:
                 name: aws-credentials
           {{- else }}
           - name: AWS_REGION
-            value: "{{ .Values.AWSRegion }}"
+            value: "{{ .Values.global.AWSRegion }}"
           {{- end }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}

@@ -77,5 +77,7 @@ Create args that vary based on .Values.personality
 {{- $args = append $args "-worker.host=$(STATUS_POD_IP)" }}
 {{- $args = append $args "-worker.node=$(SPEC_NODE_NAME)" }}
 {{- end }}
-{{- $args }}
+{{- range $args }}
+{{ print "- " (. | quote) }}
+{{- end }}
 {{- end }}

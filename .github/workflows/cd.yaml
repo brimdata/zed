@@ -116,9 +116,9 @@ jobs:
         run: |
           set -x
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
-          kubectl logs -c zqd -l app.kubernetes.io/instance=recruiter > testlog/recruiter.log
-          kubectl logs -c zqd -l app.kubernetes.io/instance=root > testlog/root.log
-          kubectl logs -c zqd -l app.kubernetes.io/instance=worker > testlog/worker.log
+          kubectl logs --tail -1  -c zqd -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
+          kubectl logs --tail -1  -c zqd -l app.kubernetes.io/name=root > testlog/root.log
+          kubectl logs --tail -1  -c zqd -l app.kubernetes.io/name=worker > testlog/worker.log
           kubectl delete ns ci-${{ github.run_number }}
       - name: Save logs as artifact
         if: ${{ always() }}

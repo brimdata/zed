@@ -142,17 +142,18 @@ kubectl-config:
 
 helm-install:
 	helm install z charts/zservice \
-	--set AWSRegion=us-east-2 \
 	--set datauri=$(ZQD_DATA_URI) \
-	--set image.repository=$(ZQD_ECR_HOST)/ \
-	--set image.tag=zqd:$(ECR_VERSION) --dry-run
-	
+	--set global.AWSRegion=us-east-2 \
+	--set global.image.repository=$(ZQD_ECR_HOST)/ \
+	--set global.image.tag=zqd:$(ECR_VERSION) \
+	--set postgresql.persistence.enabled=$(PG_PERSIST)
+
 helm-install-postgres:
 	helm install postgres charts/postgres \
 	--set postgresql.persistence.enabled=$(PG_PERSIST)
 
 helm-install-recruiter:
-	helm install recruiter charts/z-services/charts/recruiter \
+	helm install recruiter charts/zqd \
 	--set AWSRegion=us-east-2 \
 	--set image.repository=$(ZQD_ECR_HOST)/ \
 	--set image.tag=zqd:$(ECR_VERSION) \
