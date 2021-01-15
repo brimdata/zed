@@ -88,10 +88,3 @@ func FileExists(path string) bool {
 	}
 	return !info.IsDir()
 }
-
-// FuncValue is an adaptor allowing a function to act as a flag.Value.
-// When we support go 1.16, usages of this can be replaced with flag.Func.
-type FuncValue func(string) error
-
-func (f FuncValue) Set(s string) error { return f(s) }
-func (f FuncValue) String() string     { return "" }

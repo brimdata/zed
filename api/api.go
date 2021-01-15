@@ -321,7 +321,7 @@ type ArchiveCreateOptions struct {
 // data (either pcap or logs) added to them.
 // This intended to be temporary until we transition to only allowing archive
 // stores for new spaces; see zq#1085.
-var FileStoreReadOnly = false
+var FileStoreReadOnly bool
 
 func DefaultStorageKind() StorageKind {
 	if FileStoreReadOnly {

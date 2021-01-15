@@ -12,7 +12,6 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
-	"strconv"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cli"
@@ -37,7 +36,7 @@ var Listen = &charm.Spec{
 	Long: `
 The listen command launches a process to listen on the provided interface and
 `,
-	HiddenFlags: "brimfd,nodename,podip,recruiter,workers,filestorereadonly",
+	HiddenFlags: "brimfd,filestorereadonly,nodename,podip,recruiter,workers",
 	New:         New,
 }
 
@@ -67,15 +66,6 @@ type Command struct {
 	zeekRunnerPath      string
 }
 
-func setApiFileStoreReadOnly(s string) error {
-	v, err := strconv.ParseBool(s)
-	if err != nil {
-		return err
-	}
-	api.FileStoreReadOnly = v
-	return nil
-}
-
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.conf.Auth.SetFlags(f)
@@ -96,7 +86,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 
 	// Hidden flag while we transition to using archive store by default.
 	// See zq#1085
-	f.Var(cli.FuncValue(setApiFileStoreReadOnly), "filestorereadonly", "boolean to make file store spaces read only (and use archive store by default)")
+	f.BoolVar(&api.FileStoreReadOnly, "filestorereadonly", false, "make file store spaces read only (and use archive store by default)")
 
 	return c, nil
 }
