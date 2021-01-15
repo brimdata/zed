@@ -145,7 +145,7 @@ type noEndScanner struct {
 
 func (rp *noEndScanner) Pull() (zbuf.Batch, error) {
 	r := tzngio.NewReader(strings.NewReader(rp.input), rp.zctx)
-	return zbuf.ReadBatch(r, 1)
+	return zbuf.NewPuller(r, 1).Pull()
 }
 
 func (rp *noEndScanner) Stats() *zbuf.ScannerStats {

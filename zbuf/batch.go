@@ -28,10 +28,11 @@ type Batch interface {
 	Records() []*zng.Record
 }
 
-// ReadBatch reads up to n records read from zr and returns them as a Batch.  At
-// EOF, it returns a nil Batch and nil error.  If an error is encoutered, it
-// returns a nil Batch and the error.
-func ReadBatch(zr Reader, n int) (Batch, error) {
+// readBatch reads up to n records from zr and returns them as a Batch.  At EOS,
+// it returns a nil or short (fewer than n records) Batch and nil error.  If an
+// error is encoutered, it returns a nil Batch and the error.  Otherwise,
+// readBatch returns a full Batch of n records and nil error.
+func readBatch(zr Reader, n int) (Batch, error) {
 	recs := make([]*zng.Record, 0, n)
 	for len(recs) < n {
 		rec, err := zr.Read()
@@ -56,6 +57,29 @@ func ReadBatch(zr Reader, n int) (Batch, error) {
 // a nil Batch and nil error.
 type Puller interface {
 	Pull() (Batch, error)
+}
+
+// NewPuller returns a Puller for zr that returns Batches of up to n records.
+func NewPuller(zr Reader, n int) Puller {
+	return &puller{zr: zr, n: n}
+}
+
+type puller struct {
+	zr Reader
+	n  int
+
+	eos bool
+}
+
+func (p *puller) Pull() (Batch, error) {
+	if p.eos {
+		return nil, nil
+	}
+	batch, err := readBatch(p.zr, p.n)
+	if err == nil && (batch == nil || batch.Length() < p.n) {
+		p.eos = true
+	}
+	return batch, err
 }
 
 func CopyPuller(w Writer, p Puller) error {
