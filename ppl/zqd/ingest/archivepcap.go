@@ -61,13 +61,13 @@ func newArchivePcapOp(ctx context.Context, logstore *archivestore.Storage, pcaps
 	if err != nil {
 		return nil, err
 	}
-
 	writer, err := logstore.NewWriter(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	p := &archivePcapOp{
+		warn:      make(chan string),
 		done:      make(chan struct{}),
 		pcapstore: pcapstore,
 		store:     logstore,
@@ -97,38 +97,36 @@ func newArchivePcapOp(ctx context.Context, logstore *archivestore.Storage, pcaps
 
 func (p *archivePcapOp) run(ctx context.Context) error {
 	group, ctx := errgroup.WithContext(ctx)
-	pcapfile, err := iosrc.NewReader(ctx, p.pcapuri)
-	if err != nil {
-		return err
-	}
-	defer pcapfile.Close()
-	// Keeps track of bytes read from pcapfile.
-	r := io.TeeReader(pcapfile, p.pcapCounter)
-
-	group, zreaders, err := p.runAnalyzers(ctx, group, r)
-	if err != nil {
-		return err
-	}
-	defer zbuf.CloseReaders(zreaders)
-	combiner := zbuf.NewCombiner(ctx, zreaders)
-	if err := zbuf.CopyWithContext(ctx, p.writer, combiner); err != nil {
-		p.writer.Close()
-		return err
-	}
-	err = p.writer.Close()
-	if errg := group.Wait(); err == nil {
-		err = errg
-	}
-	return err
+	group.Go(func() error {
+		pcapfile, err := iosrc.NewReader(ctx, p.pcapuri)
+		if err != nil {
+			return err
+		}
+		defer pcapfile.Close()
+		// Keeps track of bytes read from pcapfile.
+		r := io.TeeReader(pcapfile, p.pcapCounter)
+		zreaders, err := p.runAnalyzers(ctx, group, r)
+		if err != nil {
+			return err
+		}
+		defer zbuf.CloseReaders(zreaders)
+		combiner := zbuf.NewCombiner(ctx, zreaders)
+		if err := zbuf.CopyWithContext(ctx, p.writer, combiner); err != nil {
+			p.writer.Close()
+			return err
+		}
+		return p.writer.Close()
+	})
+	return group.Wait()
 }
 
-func (p *archivePcapOp) runAnalyzers(ctx context.Context, group *errgroup.Group, pcapstream io.Reader) (*errgroup.Group, []zbuf.Reader, error) {
+func (p *archivePcapOp) runAnalyzers(ctx context.Context, group *errgroup.Group, pcapstream io.Reader) ([]zbuf.Reader, error) {
 	var pipes []*io.PipeWriter
 	var zreaders []zbuf.Reader
 	if p.zeek != nil {
 		pw, dr, err := p.runAnalyzer(ctx, group, p.zeek)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		pipes = append(pipes, pw)
 		zreaders = append(zreaders, dr)
@@ -136,13 +134,13 @@ func (p *archivePcapOp) runAnalyzers(ctx context.Context, group *errgroup.Group,
 	if p.suricata != nil {
 		pw, dr, err := p.runAnalyzer(ctx, group, p.suricata)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		pipes = append(pipes, pw)
 		// Suricata logs need flowgraph to rename timestamp fields into ts.
 		tr, err := driver.NewReader(ctx, suricataTransform, p.zctx, dr)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 		zreaders = append(zreaders, tr)
 	}
@@ -159,7 +157,7 @@ func (p *archivePcapOp) runAnalyzers(ctx context.Context, group *errgroup.Group,
 		}
 		return err
 	})
-	return group, zreaders, nil
+	return zreaders, nil
 }
 
 func (p *archivePcapOp) runAnalyzer(ctx context.Context, group *errgroup.Group, ln pcapanalyzer.Launcher) (*io.PipeWriter, zbuf.Reader, error) {
@@ -201,8 +199,11 @@ func (p *archivePcapOp) Status() api.PcapPostStatus {
 		PcapSize:           p.pcapBytesTotal,
 		PcapReadSize:       p.pcapCounter.Bytes(),
 		DataChunksWritten:  importStats.DataChunksWritten,
-		RecordsWritten:     importStats.RecordsWritten,
 		RecordBytesWritten: importStats.RecordBytesWritten,
+		RecordsWritten:     importStats.RecordsWritten,
+		// The Brim UI uses the SnapshotCount field to determine
+		// if any data has been created in the space.
+		SnapshotCount: int(importStats.DataChunksWritten),
 	}
 }
 

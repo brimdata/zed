@@ -20,9 +20,9 @@ script: |
 inputs:
   - name: in.tzng
     data: |
-      #0:record[s:string]
-      0:[hello;]
-      0:[world;]
+      #0:record[ts:time,s:string]
+      0:[1;world;]
+      0:[2;hello;]
   - name: services.sh
     source: services.sh
   - name: setup.py

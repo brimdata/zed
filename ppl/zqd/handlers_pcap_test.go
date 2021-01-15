@@ -5,6 +5,7 @@ package zqd_test
 import (
 	"context"
 	"errors"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
@@ -153,7 +154,7 @@ func TestPcapPostInvalidPcap(t *testing.T) {
 				ID:          p.space.ID,
 				Name:        p.space.Name,
 				DataPath:    p.space.DataPath,
-				StorageKind: api.FileStore,
+				StorageKind: api.DefaultStorageKind(),
 			},
 		}
 		require.Equal(t, &expected, info)
@@ -205,7 +206,10 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 // pcap includes the pcap's time range, regardless of whether any records are
 // present or not. See zq#1797.
 func TestPcapTimeRange(t *testing.T) {
-	noopWrite := func(p *testPcapProcess) error { return nil }
+	noopWrite := func(p *testPcapProcess) error {
+		_, err := ioutil.ReadAll(p.reader)
+		return err
+	}
 	p := pcapPostTest(t, "testdata/valid.pcap", testLauncher(nil, noopWrite))
 	info, err := p.client.SpaceInfo(context.Background(), p.space.ID)
 	require.NoError(t, err)
