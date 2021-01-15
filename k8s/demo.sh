@@ -5,15 +5,15 @@ make install
 helm uninstall z
 make docker-push-ecr
 
-sleep 5 # wait for ECR to catch up a little
+sleep 5 # wait for ECR
 
 make helm-install
 
-sleep 15 # usually is enough on my laptop
+sleep 15 # wait for services
 
 ./k8s/zqd-port.sh
 
-# setup in advance:
+aws s3 rm --recursive s3://brim-scratch/mark/sp-m1/zd || :
 zapi new -k archivestore -d s3://brim-scratch/mark/sp-m1 -thresh 5MB sp-m1
 zapi -s sp-m1 post s3://brim-scratch/mark/conn.log.gz
 
