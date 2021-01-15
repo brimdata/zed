@@ -12,7 +12,7 @@
       "bin": "dist"
   },
   "brimDependencies": {
-      "suricataTag": "v5.0.3-brimpre2",
+      "suricataTag": "v5.0.3-brim1",
       "zeekTag": "v3.2.1-brim8"
   }
 }
