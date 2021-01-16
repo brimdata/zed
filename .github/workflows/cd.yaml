@@ -147,5 +147,9 @@ jobs:
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl create ns ci-master || :
           kubectl config set-context --current --namespace=ci-master
-          helm uninstall z
+          helm uninstall postgres || :
+          helm uninstall recruiter || :
+          helm uninstall root || :
+          helm uninstall worker || :
+          helm uninstall z || :
           make helm-install
