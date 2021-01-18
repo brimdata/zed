@@ -103,8 +103,8 @@ jobs:
           # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
           time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter1.log
-          time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter2.log
-          time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter4.log
+          #time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter2.log
+          #time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter4.log
           time zapi -s $SPACE get -workers 4 -t 'count()' &> testlog/count.tzng
           time zapi -s $SPACE get -workers 4 -t \
             '* | count() by tx_hosts | sort -r count | head 5' &> testlog/countbytxhost.tzng
