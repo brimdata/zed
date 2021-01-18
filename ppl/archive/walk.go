@@ -117,12 +117,13 @@ func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Spa
 			continue
 		}
 		dir := tsDir.path(ark)
-		md, err := chunk.ReadMetadata(ctx, chunk.MetadataPath(dir, id), ark.DataOrder)
+		mdPath := chunk.MetadataPath(dir, id)
+		md, err := chunk.ReadMetadata(ctx, mdPath, ark.DataOrder)
 		if err != nil {
 			if zqe.IsNotFound(err) {
 				continue
 			}
-			return nil, err
+			return nil, fmt.Errorf("failed to read chunk metadata from %v: %w", mdPath, err)
 		}
 		chunk := md.Chunk(dir, id)
 		if !filterSpan.Overlaps(chunk.Span()) {
