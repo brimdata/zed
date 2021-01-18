@@ -136,24 +136,11 @@ This creates zng files in an s3 directory called `sample-http-zng` that we will 
 aws s3 ls zqd-demo-1/mark --recursive
 ```
 
-## Deploy the zqd service with Helm
-Here is an example Helm install. This assumes you created an S3 resident space as in the local install above. This is similar to the local Helm deploy. It uses the same charts, but command line parameters overide the Values.yaml to provide specific configuration for EKS.
-
-Substitute the image.repository you created above. Note that unlike the local deployment, we do not use K8s secrets for AWS credentials because the `cluster.yaml` above specified IAM policies for S3 access.
-
-```
-helm install zqd-test-1 charts/zqd \
-  --set AWSRegion="us-east-2" \
-  --set datauri="s3://zqd-demo/mark/zqd-meta" \
-  --set image.repository="123456789012.dkr.ecr.us-east-2.amazonaws.com/" \
-  --set useCredSecret=false
-```
-
 ## Exposing the zqd endpoint
 
 To access the running zqd instance, use kubectl port-forward:
 ```
-kubectl port-forward svc/zqd-test-1 9867:9867 &
+kubectl port-forward svc/z-root 9867:9867 &
 ```
 There is a script `k8s/zqd-port.sh` that does this after removing any existing port-forwards.
 
