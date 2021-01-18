@@ -165,7 +165,7 @@ func (s *Storage) Compact(ctx context.Context, logger *zap.Logger) error {
 	// the case where a directory listing of chunks is made for search, the tsdir is
 	// compacted and purged, then the search attempts to read a deleted chunk from
 	// its now stale directory listing.
-	// This is a stop-gap solution to this problem; a more robust solution
+	// This is a stopgap solution to this problem; a more robust solution
 	// should be architected and implemented.
 	case <-time.After(time.Second * 60):
 		return archive.Purge(ctx, s.ark, logger)
