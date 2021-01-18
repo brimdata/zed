@@ -27,7 +27,6 @@ type SpaceCreateFlags struct {
 }
 
 func (f *SpaceCreateFlags) SetFlags(fs *flag.FlagSet) {
-	f.kind = api.FileStore
 	f.thresh = archive.DefaultLogSizeThreshold
 	fs.Var(&f.kind, "k", "kind of storage for this space")
 	fs.StringVar(&f.datapath, "d", "", "specific directory for storage data")

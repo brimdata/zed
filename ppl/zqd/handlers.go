@@ -23,6 +23,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var errFileStoreReadOnly = zqe.ErrInvalid("file storage spaces are read only")
+
 func errorResponse(e error) (status int, ae *api.Error) {
 	status = http.StatusInternalServerError
 	ae = &api.Error{Type: "Error"}
@@ -284,7 +286,15 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, err)
 		return
 	}
+	if store.Kind() == api.FileStore && api.FileStoreReadOnly {
+		respondError(c, w, r, errFileStoreReadOnly)
+		return
+	}
 	pcapstore, err := c.mgr.GetPcapStorage(ctx, id)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
 
 	op, err := ingest.NewPcapOp(ctx, store, pcapstore, req.Path, c.suricata, c.zeek)
 	if err != nil {
@@ -372,6 +382,10 @@ func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, err)
 		return
 	}
+	if store.Kind() == api.FileStore && api.FileStoreReadOnly {
+		respondError(c, w, r, errFileStoreReadOnly)
+		return
+	}
 
 	op, err := ingest.NewLogOp(r.Context(), store, req)
 	if err != nil {
@@ -436,6 +450,10 @@ func handleLogStream(c *Core, w http.ResponseWriter, r *http.Request) {
 	store, err := c.mgr.GetStorage(r.Context(), id)
 	if err != nil {
 		respondError(c, w, r, err)
+		return
+	}
+	if store.Kind() == api.FileStore && api.FileStoreReadOnly {
+		respondError(c, w, r, errFileStoreReadOnly)
 		return
 	}
 

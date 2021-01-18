@@ -2,16 +2,16 @@ script: |
   source services.sh
   zapi -h $ZQD_HOST new test
   zapi -h $ZQD_HOST -s test post in.tzng
-  zapi -h $ZQD_HOST -s test get -e ndjson > out.ndjson
+  zapi -h $ZQD_HOST -s test get -e ndjson "pick a,b" > out.ndjson
 
 inputs:
   - name: services.sh
     source: services.sh
   - name: in.tzng
     data: |
-      #0:record[a:string,b:string]
-      0:[hello;world;]
-      0:[goodnight;gracie;]
+      #0:record[ts:time,a:string,b:string]
+      0:[2;hello;world;]
+      0:[1;goodnight;gracie;]
 
 outputs:
   - name: out.ndjson
