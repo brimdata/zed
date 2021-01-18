@@ -1,6 +1,6 @@
 apiVersion: v2
 name: zservice
-description: A Helm chart for Kubernetes
+description: Helm chart to deploy distributed zqd services, including postgres
 type: application
 version: 0.1.0
 appVersion: 1.16.0
