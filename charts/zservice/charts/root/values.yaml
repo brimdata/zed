@@ -1,6 +1,13 @@
 personality: "root"
 replicaCount: 1
 
+postgres:
+  addr: z-postgresql-0:5432
+  username: "zqd"
+  database: "zqd"
+  # passwordSecretName must have a value called postgres-password
+  passwordSecretName: "postgres"
+
 nameOverride: ""
 fullnameOverride: ""
 
