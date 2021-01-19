@@ -2,6 +2,7 @@ package archivestore
 
 import (
 	"context"
+	"time"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/driver"
@@ -157,5 +158,16 @@ func (s *Storage) Compact(ctx context.Context, logger *zap.Logger) error {
 	if err := archive.Compact(ctx, s.ark, logger); err != nil {
 		return err
 	}
-	return archive.Purge(ctx, s.ark, logger)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	// Wait for one minute before doing purge. This delay is here to prevent
+	// the case where a directory listing of chunks is made for search, the tsdir is
+	// compacted and purged, then the search attempts to read a deleted chunk from
+	// its now stale directory listing.
+	// This is a stopgap solution to this problem; a more robust solution
+	// should be architected and implemented.
+	case <-time.After(time.Second * 60):
+		return archive.Purge(ctx, s.ark, logger)
+	}
 }
