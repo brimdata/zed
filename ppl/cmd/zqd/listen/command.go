@@ -262,9 +262,9 @@ func (c *Command) initLogger() error {
 	if err != nil {
 		return err
 	}
+	opts := []zap.Option{zap.AddStacktrace(zapcore.WarnLevel)}
 	// If the development mode is on, calls to logger.DPanic will cause a panic
 	// whereas in production would result in an error.
-	var opts []zap.Option
 	if c.devMode {
 		opts = append(opts, zap.Development())
 	}
