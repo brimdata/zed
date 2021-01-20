@@ -14,7 +14,7 @@ import (
 type ShaperTransform int
 
 const (
-	Cast = ShaperTransform(iota)
+	Cast ShaperTransform = 1 << iota
 	Fill
 	Crop
 	Order
@@ -23,7 +23,7 @@ const (
 type step int
 
 const (
-	copyPrimitive = step(iota) // copy field fromIndex from input record
+	copyPrimitive step = iota // copy field fromIndex from input record
 	copyContainer
 	castPrimitive // cast field fromIndex from input record
 	null          // write null
@@ -143,13 +143,13 @@ type Shaper struct {
 	fieldExpr  Evaluator
 	typ        *zng.TypeRecord
 	shapeSpecs map[int]shapeSpec // map from type ID to shapeSpec
-	transforms map[ShaperTransform]struct{}
+	transforms ShaperTransform
 }
 
 // NewShaper returns a shaper that will shape the result of fieldExpr
 // to the provided typExpr. (typExpr should evaluate to a type value,
 // e.g. a value of type TypeType).
-func NewShaper(zctx *resolver.Context, fieldExpr, typExpr Evaluator, shapeTransforms map[ShaperTransform]struct{}) (*Shaper, error) {
+func NewShaper(zctx *resolver.Context, fieldExpr, typExpr Evaluator, tf ShaperTransform) (*Shaper, error) {
 	lit, ok := typExpr.(*Literal)
 	if !ok {
 		return nil, fmt.Errorf("shaping functions (crop, fill, cast, order) take a literal as second parameter")
@@ -181,7 +181,7 @@ func NewShaper(zctx *resolver.Context, fieldExpr, typExpr Evaluator, shapeTransf
 		fieldExpr:  fieldExpr,
 		typ:        recType,
 		shapeSpecs: make(map[int]shapeSpec),
-		transforms: shapeTransforms,
+		transforms: tf,
 	}, nil
 }
 
@@ -213,25 +213,25 @@ func (c *Shaper) Eval(in *zng.Record) (zng.Value, error) {
 func (c *Shaper) createShapeSpec(inType, spec *zng.TypeRecord) (shapeSpec, error) {
 	var err error
 	typ := inType
-	if _, ok := c.transforms[Cast]; ok {
+	if c.transforms&Cast > 0 {
 		typ, err = c.castRecordType(typ, spec)
 		if err != nil {
 			return shapeSpec{}, err
 		}
 	}
-	if _, ok := c.transforms[Crop]; ok {
+	if c.transforms&Crop > 0 {
 		typ, err = c.cropRecordType(typ, spec)
 		if err != nil {
 			return shapeSpec{}, err
 		}
 	}
-	if _, ok := c.transforms[Fill]; ok {
+	if c.transforms&Fill > 0 {
 		typ, err = c.fillRecordType(typ, spec)
 		if err != nil {
 			return shapeSpec{}, err
 		}
 	}
-	if _, ok := c.transforms[Order]; ok {
+	if c.transforms&Order > 0 {
 		typ, err = c.orderRecordType(typ, spec)
 		if err != nil {
 			return shapeSpec{}, err

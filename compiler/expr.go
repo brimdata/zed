@@ -258,32 +258,28 @@ func compileCutter(zctx *resolver.Context, node ast.FunctionCall) (*expr.Cutter,
 	return expr.NewCutter(zctx, lhs, rhs)
 }
 
-func shaperOps(name string) map[expr.ShaperTransform]struct{} {
+func shaperOps(name string) expr.ShaperTransform {
 	switch name {
 	case "cast":
-		return map[expr.ShaperTransform]struct{}{expr.Cast: struct{}{}}
-	case "fill":
-		return map[expr.ShaperTransform]struct{}{expr.Fill: struct{}{}}
-	case "fit":
-		return map[expr.ShaperTransform]struct{}{expr.Crop: struct{}{}, expr.Fill: struct{}{}}
+		return expr.Cast
 	case "crop":
-		return map[expr.ShaperTransform]struct{}{expr.Crop: struct{}{}}
+		return expr.Crop
+	case "fill":
+		return expr.Fill
+	case "fit":
+		return expr.Crop | expr.Fill
 	case "order":
-		return map[expr.ShaperTransform]struct{}{expr.Order: struct{}{}}
+		return expr.Order
 	case "shape":
-		return map[expr.ShaperTransform]struct{}{expr.Crop: struct{}{}, expr.Fill: struct{}{}, expr.Order: struct{}{}, expr.Cast: struct{}{}}
+		return expr.Cast | expr.Crop | expr.Fill | expr.Order
 	default:
-		return nil
+		return 0
 	}
 
 }
 
 func isShaperFunc(name string) bool {
-	switch name {
-	case "cast", "fill", "fit", "crop", "order", "shape":
-		return true
-	}
-	return false
+	return shaperOps(name) != 0
 }
 
 func compileShaper(zctx *resolver.Context, node ast.FunctionCall) (*expr.Shaper, error) {

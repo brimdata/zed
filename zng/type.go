@@ -338,14 +338,8 @@ func IsUnionType(typ Type) bool {
 }
 
 func IsRecordType(typ Type) bool {
-	switch typ := typ.(type) {
-	case *TypeAlias:
-		return IsRecordType(typ.Type)
-	case *TypeRecord:
-		return true
-	default:
-		return false
-	}
+	_, ok := AliasedType(typ).(*TypeRecord)
+	return ok
 }
 
 func IsContainerType(typ Type) bool {
