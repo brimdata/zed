@@ -92,9 +92,9 @@ jobs:
           make install
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl config set-context --current --namespace=ci-${{ github.run_number }}
-          kubectl scale --replicas=4 deployment/z-worker
-          kubectl port-forward svc/z-recruiter 8020:9867 &
-          kubectl port-forward svc/z-root 9867:9867 &
+          kubectl scale --replicas=4 deployment/zsrv-worker
+          kubectl port-forward svc/zsrv-recruiter 8020:9867 &
+          kubectl port-forward svc/zsrv-root 9867:9867 &
           sleep 2 # wait for port-forwards to complete
           time zapi ls
           time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE

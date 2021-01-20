@@ -140,7 +140,7 @@ aws s3 ls zqd-demo-1/mark --recursive
 
 To access the running zqd instance, use kubectl port-forward:
 ```
-kubectl port-forward svc/z-root 9867:9867 &
+kubectl port-forward svc/zsrv-root 9867:9867 &
 ```
 There is a script `k8s/zqd-port.sh` that does this after removing any existing port-forwards.
 
