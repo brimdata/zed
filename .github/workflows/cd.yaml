@@ -63,7 +63,7 @@ jobs:
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl create ns $NAMESPACE || :
           kubectl config set-context --current --namespace=$NAMESPACE
-          helm uninstall z || :
+          helm uninstall zrv || :
           k8s/postgres-secret.sh
           make helm-install PG_PERSIST=false
           kubectl get pod
@@ -147,9 +147,5 @@ jobs:
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl create ns ci-master || :
           kubectl config set-context --current --namespace=ci-master
-          helm uninstall postgres || :
-          helm uninstall recruiter || :
-          helm uninstall root || :
-          helm uninstall worker || :
-          helm uninstall z || :
+          helm uninstall zsrv || :
           make helm-install

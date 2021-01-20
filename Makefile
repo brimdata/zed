@@ -141,7 +141,7 @@ kubectl-config:
 	kubectl config use-context zqtest
 
 helm-install:
-	helm install z charts/zservice \
+	helm install zsrv charts/zservice \
 	--set datauri=$(ZQD_DATA_URI) \
 	--set global.AWSRegion=us-east-2 \
 	--set global.image.repository=$(ZQD_ECR_HOST)/ \

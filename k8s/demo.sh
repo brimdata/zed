@@ -2,7 +2,7 @@
 # This is designed to be run from the zq root directory
 
 make install
-helm uninstall z
+helm uninstall zsrv
 make docker-push-ecr
 
 sleep 5 # wait for ECR
