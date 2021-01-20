@@ -30,32 +30,32 @@ const (
 	record        // record into record below us
 )
 
-// A shapeBuilder is a recursive data structure encoding a series of
+// A op is a recursive data structure encoding a series of
 // copy/cast steps to be carried out over an input record.
-type shapeBuilder struct {
+type op struct {
 	op        step
 	fromIndex int
 	castTypes struct{ from, to zng.Type } // for op == castPrimitive
-	record    []shapeBuilder              // for op == record
+	record    []op                        // for op == record
 }
 
-func (s *shapeBuilder) append(step shapeBuilder) {
+func (s *op) append(step op) {
 	s.record = append(s.record, step)
 }
 
-// create the shapeBuilder needed to build a record of type out from a
+// create the op needed to build a record of type out from a
 // record of type in. The two types must be compatible, meaning that
 // the input type must be an unordered sub-tree of the input type
 // (where 'unordered' means that if the output type has record fields
 // [a b] and the input type has fields [b a] that is ok). It is also
 // ok for leaf primitive types to be different; if they are a casting
 // step is inserted.
-func createBuilder(in, out *zng.TypeRecord) (shapeBuilder, error) {
-	builder := shapeBuilder{op: record}
+func createOp(in, out *zng.TypeRecord) (op, error) {
+	o := op{op: record}
 	for _, outCol := range out.Columns {
 		ind, ok := in.ColumnOfField(outCol.Name)
 		if !ok {
-			builder.append(shapeBuilder{op: null})
+			o.append(op{op: null})
 			continue
 		}
 
@@ -64,28 +64,28 @@ func createBuilder(in, out *zng.TypeRecord) (shapeBuilder, error) {
 		switch {
 		case inCol.Type.ID() == outCol.Type.ID():
 			if zng.IsContainerType(inCol.Type) {
-				builder.append(shapeBuilder{fromIndex: ind, op: copyContainer})
+				o.append(op{fromIndex: ind, op: copyContainer})
 			} else {
-				builder.append(shapeBuilder{fromIndex: ind, op: copyPrimitive})
+				o.append(op{fromIndex: ind, op: copyPrimitive})
 			}
 		case zng.IsRecordType(inCol.Type) && zng.IsRecordType(outCol.Type):
-			step, err := createBuilder(inCol.Type.(*zng.TypeRecord), outCol.Type.(*zng.TypeRecord))
+			step, err := createOp(inCol.Type.(*zng.TypeRecord), outCol.Type.(*zng.TypeRecord))
 			if err != nil {
-				return shapeBuilder{}, err
+				return op{}, err
 			}
 			step.fromIndex = ind
-			builder.append(step)
+			o.append(step)
 		case zng.IsPrimitiveType(inCol.Type) && zng.IsPrimitiveType(outCol.Type):
-			step := shapeBuilder{fromIndex: ind, op: castPrimitive, castTypes: struct{ from, to zng.Type }{inCol.Type, outCol.Type}}
-			builder.append(step)
+			step := op{fromIndex: ind, op: castPrimitive, castTypes: struct{ from, to zng.Type }{inCol.Type, outCol.Type}}
+			o.append(step)
 		default:
-			return shapeBuilder{}, fmt.Errorf("createBuilder incompatible column types %s and %s\n", inCol.Type, outCol.Type)
+			return op{}, fmt.Errorf("createOp incompatible column types %s and %s\n", inCol.Type, outCol.Type)
 		}
 	}
-	return builder, nil
+	return o, nil
 }
 
-func (s shapeBuilder) castPrimitive(in zcode.Bytes, b *zcode.Builder) {
+func (s op) castPrimitive(in zcode.Bytes, b *zcode.Builder) {
 	pc := LookupPrimitiveCaster(s.castTypes.to)
 	v, err := pc(zng.Value{s.castTypes.from, in})
 	if err != nil {
@@ -95,9 +95,9 @@ func (s shapeBuilder) castPrimitive(in zcode.Bytes, b *zcode.Builder) {
 	b.AppendPrimitive(v.Bytes)
 }
 
-func (s shapeBuilder) buildRecord(in zcode.Bytes, b *zcode.Builder) {
+func (s op) buildRecord(in zcode.Bytes, b *zcode.Builder) {
 	if s.op != record {
-		panic("bad shapeBuilder")
+		panic("bad op")
 	}
 	for _, step := range s.record {
 
@@ -131,10 +131,10 @@ func (s shapeBuilder) buildRecord(in zcode.Bytes, b *zcode.Builder) {
 }
 
 // A shapeSpec is a per-input type ID "spec" that contains the output
-// type and the builder to create an output record.
+// type and the op to create an output record.
 type shapeSpec struct {
-	typ     *zng.TypeRecord
-	builder shapeBuilder
+	typ *zng.TypeRecord
+	op  op
 }
 
 type Shaper struct {
@@ -206,7 +206,7 @@ func (c *Shaper) Eval(in *zng.Record) (zng.Value, error) {
 		return inVal, nil
 	}
 
-	spec.builder.buildRecord(inVal.Bytes, &c.b)
+	spec.op.buildRecord(inVal.Bytes, &c.b)
 	return zng.Value{spec.typ, c.b.Bytes()}, nil
 }
 
@@ -237,8 +237,8 @@ func (c *Shaper) createShapeSpec(inType, spec *zng.TypeRecord) (shapeSpec, error
 			return shapeSpec{}, err
 		}
 	}
-	builder, err := createBuilder(inType, typ)
-	return shapeSpec{typ, builder}, err
+	op, err := createOp(inType, typ)
+	return shapeSpec{typ, op}, err
 }
 
 // cropRecordType applies a crop (as specified by the record type 'spec')
