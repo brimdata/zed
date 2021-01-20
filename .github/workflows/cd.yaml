@@ -63,11 +63,11 @@ jobs:
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl create ns $NAMESPACE || :
           kubectl config set-context --current --namespace=$NAMESPACE
-          helm uninstall zrv || :
+          helm uninstall zsrv || :
           k8s/postgres-secret.sh
           make helm-install PG_PERSIST=false
           kubectl get pod
-          kubectl wait --for=condition=Ready --timeout=60s pods/z-postgresql-0
+          kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-postgresql-0
   eks-test-zapi-1:
     # Run smoke tests for zqd image prior to deploying to ci-master.
     needs: eks-test-deploy
