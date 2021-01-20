@@ -3,37 +3,27 @@ package zqd
 import (
 	"context"
 	"net/http"
-	"strconv"
-	"sync/atomic"
 	"time"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/zqe"
 	"github.com/gorilla/mux"
+	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 )
-
-const requestIDKey = "X-Request-ID"
-
-func getRequestID(ctx context.Context) string {
-	if v := ctx.Value(requestIDKey); v != nil {
-		return v.(string)
-	}
-	return ""
-}
 
 // requestIDMiddleware adds the unique identifier of the request to the request
 // context. If the header "X-Request-ID" exists this will be used, otherwise
 // one will be generated.
 func requestIDMiddleware() mux.MiddlewareFunc {
-	var count int64
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			reqID := r.Header.Get(requestIDKey)
+			reqID := r.Header.Get(api.RequestIDHeader)
 			if reqID == "" {
-				reqID = strconv.FormatInt(atomic.AddInt64(&count, 1), 10)
+				reqID = ksuid.New().String()
 			}
-			w.Header().Add(requestIDKey, reqID)
-			ctx := context.WithValue(r.Context(), requestIDKey, reqID)
+			w.Header().Add(api.RequestIDHeader, reqID)
+			ctx := context.WithValue(r.Context(), api.RequestIDHeader, reqID)
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
@@ -43,7 +33,7 @@ func accessLogMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 	logger = logger.Named("http.access")
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			logger := logger.With(zap.String("request_id", getRequestID(r.Context())))
+			logger := logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
 			detailedLogger := logger.With(
 				zap.String("host", r.Host),
 				zap.String("method", r.Method),
@@ -78,7 +68,7 @@ func panicCatchMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 				}
 				logger.DPanic("Panic",
 					zap.Error(zqe.RecoverError(rec)),
-					zap.String("request_id", getRequestID(r.Context())),
+					zap.String("request_id", api.RequestIDFromContext(r.Context())),
 					zap.Stack("stack"),
 				)
 			}()
