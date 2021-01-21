@@ -13,7 +13,7 @@ sleep 15 # wait for services
 
 ./k8s/zqd-port.sh
 
-aws s3 rm --recursive s3://brim-scratch/mark/sp-m1/zd || :
+aws s3 rm --recursive s3://brim-scratch/mark/sp-m1 || :
 zapi new -k archivestore -d s3://brim-scratch/mark/sp-m1 -thresh 5MB sp-m1
 zapi -s sp-m1 post s3://brim-scratch/mark/conn.log.gz
 
