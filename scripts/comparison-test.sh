@@ -80,8 +80,8 @@ do
     echo -e "### $DESC\n" | tee "$MD"
     echo "|**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|" | tee -a "$MD"
     echo "|:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|" | tee -a "$MD"
-    for INPUT in zeek zng zng-uncompressed tzng ndjson ; do
-      for OUTPUT in zeek zng zng-uncompressed tzng ndjson ; do
+    for INPUT in zeek zng zng-uncompressed zson tzng ndjson ; do
+      for OUTPUT in zeek zng zng-uncompressed zson tzng ndjson ; do
         echo -n "|\`zq\`|\`$zql\`|$INPUT|$OUTPUT|" | tee -a "$MD"
         if [[ $INPUT == "zng-uncompressed" ]]; then
           INPUT_FMT="zng"
