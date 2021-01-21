@@ -95,7 +95,6 @@ type Archive struct {
 	DataOrder        zbuf.Order
 	LogSizeThreshold int64
 	LogFilter        []ksuid.KSUID
-	dataSrc          iosrc.Source
 }
 
 func (ark *Archive) metaWrite() error {
@@ -137,8 +136,7 @@ func (ark *Archive) ReadDefinitions(ctx context.Context) (index.Definitions, err
 }
 
 type OpenOptions struct {
-	LogFilter  []string
-	DataSource iosrc.Source
+	LogFilter []string
 }
 
 func OpenArchive(rpath string, oo *OpenOptions) (*Archive, error) {
@@ -173,13 +171,6 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 		Root:             root,
 	}
 
-	if oo != nil && oo.DataSource != nil {
-		ark.dataSrc = oo.DataSource
-	} else {
-		if ark.dataSrc, err = iosrc.GetSource(dpuri); err != nil {
-			return nil, err
-		}
-	}
 	if oo != nil {
 		for _, l := range oo.LogFilter {
 			_, id, ok := chunk.FileMatch(l)

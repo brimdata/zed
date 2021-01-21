@@ -156,7 +156,7 @@ func Walk(ctx context.Context, ark *Archive, v Visitor) error {
 // each such directory and all of its contents.
 func RmDirs(ctx context.Context, ark *Archive) error {
 	return Walk(ctx, ark, func(chunk chunk.Chunk) error {
-		return ark.dataSrc.RemoveAll(ctx, chunk.ZarDir())
+		return iosrc.RemoveAll(ctx, chunk.ZarDir())
 	})
 }
 
