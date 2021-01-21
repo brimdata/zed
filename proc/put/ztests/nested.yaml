@@ -1,0 +1,29 @@
+script:
+  zq -i zson -f zson -pretty=0 'put pre="pre", a.a=1, a.b=2, a.c.a=3, a.d=4, b=5, post="post"' -
+
+inputs:
+  - name: stdin
+    data: |
+      {}
+      {"a": null}
+      {"a": {}}
+      {"a": {"c": null}}
+      {"a": {"c": {}}}
+      {"a": {"c": {"a": 4}}}
+      {"a": {"c": {"a": {"a": 4}}}}
+      {"pre": "pre","a": {"x": 10,"b": 2,"c": {"a": 3},"d": 4},"b": 5,"post": "post"}
+      {"other": "other"}
+
+
+outputs:
+  - name: stdout
+    data: |
+      {pre: "pre",a: {a: 1,b: 2,c: {a: 3} (=0),d: 4} (=1),b: 5,post: "post"} (=2)
+      {a: {a: 1,b: 2,c: {a: 3},d: 4} (1),pre: "pre",b: 5,post: "post"} (=3)
+      {a: {a: 1,b: 2,c: {a: 3},d: 4},pre: "pre",b: 5,post: "post"} (3)
+      {a: {c: {a: 3} (0),a: 1,b: 2,d: 4} (=4),pre: "pre",b: 5,post: "post"} (=5)
+      {a: {c: {a: 3},a: 1,b: 2,d: 4},pre: "pre",b: 5,post: "post"} (5)
+      {a: {c: {a: 3},a: 1,b: 2,d: 4},pre: "pre",b: 5,post: "post"} (5)
+      {a: {c: {a: 3},a: 1,b: 2,d: 4},pre: "pre",b: 5,post: "post"} (5)
+      {pre: "pre",a: {x: 10,b: 2,c: {a: 3} (0),d: 4,a: 1} (=6),b: 5,post: "post"} (=7)
+      {other: "other",pre: "pre",a: {a: 1,b: 2,c: {a: 3},d: 4} (1),b: 5,post: "post"} (=8)
