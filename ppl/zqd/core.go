@@ -127,11 +127,11 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	var startFields []zap.Field
 	switch personality {
-	case "all", "apiserver":
+	case "all", "apiserver", "root":
 		if err := c.addAPIServerRoutes(ctx, conf); err != nil {
 			return nil, err
 		}
-		if personality == "all" {
+		if personality == "all" || personality == "root" {
 			c.addWorkerRoutes()
 		}
 		startFields = []zap.Field{

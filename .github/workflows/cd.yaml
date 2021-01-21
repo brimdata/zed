@@ -62,13 +62,11 @@ jobs:
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl create ns $NAMESPACE || :
           kubectl config set-context --current --namespace=$NAMESPACE
-          make helm-uninstall
+          helm uninstall zsrv || :
           k8s/postgres-secret.sh
-          make helm-install-postgres PG_PERSIST=false
-          kubectl wait --for=condition=Ready --timeout=60s pods/postgres-postgresql-0
-          make helm-install-recruiter
-          make helm-install-root
-          make helm-install-worker
+          make helm-install PG_PERSIST=false
+          kubectl get pod
+          kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-postgresql-0
   eks-test-zapi-1:
     # Run smoke tests for zqd image prior to deploying to ci-master.
     needs: eks-test-deploy
@@ -89,12 +87,13 @@ jobs:
           set -x
           SPACE=files
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          mkdir testlog
           make install
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl config set-context --current --namespace=ci-${{ github.run_number }}
-          kubectl scale --replicas=4 deployment/worker-zqd
-          kubectl port-forward svc/recruiter-zqd 8020:9867 &
-          kubectl port-forward svc/root-zqd 9867:9867 &
+          kubectl scale --replicas=4 deployment/zsrv-worker
+          kubectl port-forward svc/zsrv-recruiter 8020:9867 &
+          kubectl port-forward svc/zsrv-root 9867:9867 &
           sleep 2 # wait for port-forwards to complete
           time zapi ls
           time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
@@ -102,7 +101,6 @@ jobs:
           time zapi -s $SPACE postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
           # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
-          mkdir testlog
           time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter1.log
           time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter2.log
           time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter4.log
@@ -116,9 +114,9 @@ jobs:
         run: |
           set -x
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
-          kubectl logs --tail -1 -c zqd -l app.kubernetes.io/instance=recruiter > testlog/recruiter.log
-          kubectl logs --tail -1 -c zqd -l app.kubernetes.io/instance=root > testlog/root.log
-          kubectl logs --tail -1 -c zqd -l app.kubernetes.io/instance=worker > testlog/worker.log
+          kubectl logs --tail -1 -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
+          kubectl logs --tail -1 -l app.kubernetes.io/name=root > testlog/root.log
+          kubectl logs --tail -1 -l app.kubernetes.io/name=worker > testlog/worker.log
           kubectl delete ns ci-${{ github.run_number }}
       - name: Save logs as artifact
         if: ${{ always() }}
@@ -148,8 +146,5 @@ jobs:
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl create ns ci-master || :
           kubectl config set-context --current --namespace=ci-master
-          make helm-uninstall
-          make helm-install-postgres
-          make helm-install-recruiter
-          make helm-install-root
-          make helm-install-worker
+          helm uninstall zsrv || :
+          make helm-install

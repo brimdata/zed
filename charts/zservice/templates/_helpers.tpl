@@ -2,7 +2,7 @@
 {{/*
 Expand the name of the chart.
 */}}
-{{- define "zqd.name" -}}
+{{- define "zservice.name" -}}
 {{- default .Chart.Name .Values.nameOverride | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
@@ -11,7 +11,7 @@ Create a default fully qualified app name.
 We truncate at 63 chars because some Kubernetes name fields are limited to this (by the DNS naming spec).
 If release name contains chart name it will be used as a full name.
 */}}
-{{- define "zqd.fullname" -}}
+{{- define "zservice.fullname" -}}
 {{- if .Values.fullnameOverride }}
 {{- .Values.fullnameOverride | trunc 63 | trimSuffix "-" }}
 {{- else }}
@@ -27,16 +27,16 @@ If release name contains chart name it will be used as a full name.
 {{/*
 Create chart name and version as used by the chart label.
 */}}
-{{- define "zqd.chart" -}}
+{{- define "zservice.chart" -}}
 {{- printf "%s-%s" .Chart.Name .Chart.Version | replace "+" "_" | trunc 63 | trimSuffix "-" }}
 {{- end }}
 
 {{/*
 Common labels
 */}}
-{{- define "zqd.labels" -}}
-helm.sh/chart: {{ include "zqd.chart" . }}
-{{ include "zqd.selectorLabels" . }}
+{{- define "zservice.labels" -}}
+helm.sh/chart: {{ include "zservice.chart" . }}
+{{ include "zservice.selectorLabels" . }}
 {{- if .Chart.AppVersion }}
 app.kubernetes.io/version: {{ .Chart.AppVersion | quote }}
 {{- end }}
@@ -46,18 +46,38 @@ app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{/*
 Selector labels
 */}}
-{{- define "zqd.selectorLabels" -}}
-app.kubernetes.io/name: {{ include "zqd.name" . }}
+{{- define "zservice.selectorLabels" -}}
+app.kubernetes.io/name: {{ include "zservice.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end }}
 
 {{/*
 Create the name of the service account to use
 */}}
-{{- define "zqd.serviceAccountName" -}}
+{{- define "zservice.serviceAccountName" -}}
 {{- if .Values.serviceAccount.create }}
-{{- default (include "zqd.fullname" .) .Values.serviceAccount.name }}
+{{- default (include "zservice.fullname" .) .Values.serviceAccount.name }}
 {{- else }}
 {{- default "default" .Values.serviceAccount.name }}
+{{- end }}
+{{- end }}
+
+{{/*
+Create args that vary based on .Values.personality
+*/}}
+{{- define "zservice.args" -}}
+{{- $args := list "listen" "-l=:9867" }}
+{{- $args = append $args (print "-personality=" .Values.personality) }}
+{{- if ne .Values.personality "recruiter" }}
+{{- $args = append $args (print "-worker.recruiter=" .Values.recruiterAddr) }}
+{{- end }}
+{{- if eq .Values.personality "root" }}
+{{- $args = append $args (print "-data=" .Values.datauri) }}
+{{- else if eq .Values.personality "worker" }}
+{{- $args = append $args "-worker.host=$(STATUS_POD_IP)" }}
+{{- $args = append $args "-worker.node=$(SPEC_NODE_NAME)" }}
+{{- end }}
+{{- range $args }}
+{{ print "- " (. | quote) }}
 {{- end }}
 {{- end }}

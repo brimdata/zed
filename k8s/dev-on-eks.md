@@ -102,13 +102,6 @@ accounts:
 ./k8s/postgres-secret.sh
 ```
 
-The postgres database can now be installed via helm:
-
-```
-make helm-install-postgres
-```
-
-
 ## Install with Helm
 Helm is used to deploy the zqd image. Use:
 ```
@@ -122,7 +115,7 @@ helm ls
 ```
 If you want to redeploy in your namespace, first uninstall the zqd instance with:
 ```
-helm uninstall zqd
+helm uninstall z
 ```
 To check the status of your running pod in your namespace, use:
 ```

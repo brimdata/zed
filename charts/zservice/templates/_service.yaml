@@ -1,10 +1,10 @@
-{{- if ne .Values.personality "worker"}}
+{{- define "zservice.service" -}}
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "zqd.fullname" . }}
+  name: {{ include "zservice.fullname" . }}
   labels:
-    {{- include "zqd.labels" . | nindent 4 }}
+    {{- include "zservice.labels" . | nindent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -13,5 +13,5 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{- include "zqd.selectorLabels" . | nindent 4 }}
-{{- end }}
+    {{- include "zservice.selectorLabels" . | nindent 4 }}
+{{- end -}}
