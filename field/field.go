@@ -16,6 +16,9 @@ func NewRoot() Static {
 }
 
 func (f Static) String() string {
+	if len(f) == 0 {
+		return "."
+	}
 	return strings.Join(f, ".")
 }
 
@@ -33,6 +36,20 @@ func (f Static) Equal(to Static) bool {
 		}
 	}
 	return true
+}
+
+func (f Static) IsRoot() bool {
+	return len(f) == 0
+}
+
+func (f Static) IsParent(child Static) bool {
+	if f.IsRoot() && !child.IsRoot() {
+		return true
+	}
+	if len(child) <= len(f) {
+		return false
+	}
+	return f.Equal(child[:len(f)])
 }
 
 func Dotted(s string) Static {
