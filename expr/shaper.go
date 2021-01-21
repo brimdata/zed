@@ -206,6 +206,7 @@ func (c *Shaper) Eval(in *zng.Record) (zng.Value, error) {
 		return inVal, nil
 	}
 
+	c.b.Reset()
 	spec.op.buildRecord(inVal.Bytes, &c.b)
 	return zng.Value{spec.typ, c.b.Bytes()}, nil
 }
