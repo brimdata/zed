@@ -132,7 +132,7 @@ func (ark *Archive) ReadDefinitions(ctx context.Context) (index.Definitions, err
 	if zqe.IsNotFound(err) {
 		err = iosrc.MkdirAll(ark.DefinitionsDir(), 0700)
 	}
-	return defs, nil
+	return defs, err
 }
 
 type OpenOptions struct {
