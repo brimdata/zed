@@ -62,6 +62,8 @@ jobs:
           make helm-install PG_PERSIST=false
           kubectl get pod
           kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-postgresql-0
+          kubectl get pod
+          kubectl get deploy
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
