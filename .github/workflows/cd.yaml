@@ -67,11 +67,20 @@ jobs:
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
           #
-          # Scale cluster for tests and set up port-forwards
+          # Scale cluster for tests and set up port-forwards,
+          # then wait for the forwarded ports to be available.
           #
           kubectl scale --replicas=4 deployment/zsrv-worker
           kubectl port-forward svc/zsrv-recruiter 8020:9867 &
           kubectl port-forward svc/zsrv-root 9867:9867 &
+          for i in {1..5} ; do
+            if (nc -z localhost 8020 </dev/null) break 
+            sleep 1
+          done
+          for i in {1..5} ; do
+            if (nc -z localhost 9867 </dev/null) break 
+            sleep 1
+          done
           #
           # Create archive for tests
           #
