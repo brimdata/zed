@@ -61,13 +61,15 @@ jobs:
           make helm-install PG_PERSIST=false
           kubectl get pod
           kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-postgresql-0
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
           #
           # Scale cluster for tests and set up port-forwards
           #
           kubectl scale --replicas=4 deployment/zsrv-worker
           kubectl port-forward svc/zsrv-recruiter 8020:9867 &
           kubectl port-forward svc/zsrv-root 9867:9867 &
-          sleep 2 # wait for port-forwards to complete
           #
           # Create archive for tests
           #
