@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - deploy-job-1
 
 jobs:
   ecr-image-push:
@@ -89,6 +88,7 @@ jobs:
           time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
           # Post an archive of about 1.6 GB to run test queries.
           time zapi -s $SPACE postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
+          # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
           #
           # Run cluster tests
