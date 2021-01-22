@@ -1,0 +1,23 @@
+tag: cluster
+
+env:
+  - AWS_ACCESS_KEY_ID
+  - AWS_REGION
+  - AWS_SECRET_ACCESS_KEY
+  - ZQD_DATA_URI
+
+script: |
+  # Cluster test assumes:
+  # (1) A remote zqd instance is available at 9867
+  # (2) No spaces have yet been created
+  zapi new -k archivestore -d $ZQD_DATA_URI archive-ztest 2>&1
+  zapi -s archive-ztest post s3://brim-sampledata/wrccdc/zeek-logs/x509.log.gz 2>&1
+   
+outputs:
+  # - name: stdout
+  #   data: |
+  #     archive-ztest: space created
+  #     posted 92.71MB in 1m56.695326008s
+  - name: stdout
+    regexp: |
+      archive-ztest: space created\s+posted 92.71MB in \d+m\d{2}\.\d+s
