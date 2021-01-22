@@ -100,6 +100,12 @@ test-postgres-docker:
 		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
 		exit $$status
 
+.PHONY: test-cluster
+test-cluster: build 
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
+		ZTEST_TAG=cluster \
+        go test -v -run TestZq/ppl/zqd/ztests/cluster .
+
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
 

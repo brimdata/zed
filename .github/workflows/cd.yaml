@@ -57,12 +57,9 @@ jobs:
           kubectl create ns $NAMESPACE || :
           kubectl config set-context --current --namespace=$NAMESPACE
           helm uninstall zsrv || :
-          k8s/postgres-secret.sh
+          k8s/postgres-secret.sh || :
           make helm-install PG_PERSIST=false
-          kubectl get pod
           kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-postgresql-0
-          kubectl get pod
-          kubectl get deploy
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
@@ -96,9 +93,7 @@ jobs:
           #
           # Run cluster tests
           #
-          ZTEST_PATH="./dist:./bin" \
-            ZTEST_TAG=cluster \
-            go test -v -run TestZq/ppl/zqd/ztests/cluster .
+          make test-cluster
       - name: Get zqd logs and remove namespace on success or failure
         if: ${{ always() }}
         run: |
