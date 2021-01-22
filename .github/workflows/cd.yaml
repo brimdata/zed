@@ -44,9 +44,10 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - run: |
           set -x
+          NAMESPACE=ci-${{ github.run_number }}
           SPACE=files
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
-          export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
+          ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           make install
           mkdir testlog         
           aws s3 rm --recursive $ZQD_DATA_URI || : # clear data from previous run
@@ -77,10 +78,10 @@ jobs:
           time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
           # Post an archive of about 1.6 GB to run test queries.
           time zapi -s $SPACE postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
+          [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
           #
           # Run tests (TODO: replace with ZTest)
           #
-          [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
           time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter1.log
           time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter2.log
           time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter4.log
