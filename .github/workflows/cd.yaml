@@ -21,9 +21,8 @@ jobs:
       - uses: actions/checkout@v1
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - env:
-          ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
-        run: |
+      - run: |
+          export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           make docker-push-ecr
 
   eks-deploy-test:
@@ -46,8 +45,8 @@ jobs:
           set -x
           NAMESPACE=ci-${{ github.run_number }}
           SPACE=files
-          ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
-          ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
+          export ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           make install
           mkdir testlog         
           aws s3 rm --recursive $ZQD_DATA_URI || : # clear data from previous run
