@@ -62,6 +62,7 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 				sc, err = ph.pg.nextSource()
 
 			} else {
+				println("xyzzy", "nextSourceForConn", ph.workerConn.ClientHostURL())
 				// Worker process parallelism uses nextSourceForConn
 				sc, err = ph.pg.nextSourceForConn(ph.workerConn)
 			}
