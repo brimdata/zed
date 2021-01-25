@@ -44,7 +44,6 @@ jobs:
       - run: |
           set -x
           namespace=ci-${{ github.run_number }}
-          space=files
           export ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
           export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           aws s3 rm --recursive $ZQD_DATA_URI || : # clear data from previous run
