@@ -46,7 +46,7 @@ func accessLogMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 			w = recorder
 			detailedLogger.Debug("Request started")
 			defer func(start time.Time) {
-				detailedLogger.Info("Request completed",
+				detailedLogger.Debug("Request completed",
 					zap.Duration("elapsed", time.Since(start)),
 					zap.Int("response_content_length", recorder.contentLength),
 					zap.Int("status_code", recorder.statusCode),
