@@ -101,10 +101,12 @@ test-postgres-docker:
 		exit $$status
 
 .PHONY: test-cluster
-test-cluster: build 
+test-cluster: build install
+	time zapi new -k archivestore -d $ZQD_DATA_URI $space
+	time zapi -s $space postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=cluster \
-        go test -v -run TestZq/ppl/zqd/ztests/cluster .
+		go test -v -run TestZq/ppl/zqd/ztests/cluster .
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh

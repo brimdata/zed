@@ -1,7 +1,9 @@
 tag: cluster
+
 script: |
   # Test assumes a remote zqd instance with space "files" is available at 9867
   time zapi -s files get -workers 4 -t 'count()' 2>&1
+
 outputs:
   - name: stdout
     data: |

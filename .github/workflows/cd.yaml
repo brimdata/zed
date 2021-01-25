@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - deploy-job-1
 
 jobs:
   ecr-image-push:
@@ -42,52 +43,26 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - run: |
           set -x
-          NAMESPACE=ci-${{ github.run_number }}
-          SPACE=files
+          namespace=ci-${{ github.run_number }}
+          space=files
           export ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
           export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
-          make install
-          mkdir testlog         
           aws s3 rm --recursive $ZQD_DATA_URI || : # clear data from previous run
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           #
-          # Create temporary namespace for tests and deploy zsvc
+          # Create temporary namespace for tests and deploy zsrv
           #     
-          kubectl create ns $NAMESPACE || :
-          kubectl config set-context --current --namespace=$NAMESPACE
+          kubectl create ns $namespace || :
+          kubectl config set-context --current --namespace=$namespace
           helm uninstall zsrv || :
           k8s/postgres-secret.sh || :
           make helm-install PG_PERSIST=false
+          kubectl scale --replicas=4 deployment/zsrv-worker
           kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-postgresql-0
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
-          #
-          # Scale cluster for tests and set up port-forwards,
-          # then wait for the forwarded ports to be available.
-          #
-          kubectl scale --replicas=4 deployment/zsrv-worker
-          kubectl port-forward svc/zsrv-recruiter 8020:9867 &
-          kubectl port-forward svc/zsrv-root 9867:9867 &
-          for i in {1..5} ; do
-            if nc -z localhost 8020 </dev/null ; then
-              break
-            fi
-            sleep 1
-          done
-          for i in {1..5} ; do
-            if nc -z localhost 9867 </dev/null ; then
-              break
-            fi
-            sleep 1
-          done
-          #
-          # Create archive for tests
-          #
-          time zapi ls
-          time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
-          # Post an archive of about 1.6 GB to run test queries.
-          time zapi -s $SPACE postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
+          source k8s/zsrv-port-forward.sh
           # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
           #
@@ -99,6 +74,7 @@ jobs:
         run: |
           set -x
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          mkdir testlog         
           kubectl logs --tail -1 -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
           kubectl logs --tail -1 -l app.kubernetes.io/name=root > testlog/root.log
           kubectl logs --tail -1 -l app.kubernetes.io/name=worker > testlog/worker.log

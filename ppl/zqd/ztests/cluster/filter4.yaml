@@ -1,7 +1,9 @@
 tag: cluster
+
 script: |
   # Test assumes a remote zqd instance with space "files" is available at 9867
   zapi -s files get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' 2>&1 
+
 outputs:
   - name: stdout
     data: |
