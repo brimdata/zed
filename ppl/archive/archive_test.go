@@ -151,9 +151,7 @@ func TestOpenOptions(t *testing.T) {
 }
 
 func TestSeekIndex(t *testing.T) {
-	datapath, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(datapath)
+	datapath := t.TempDir()
 
 	orig := ImportStreamRecordsMax
 	ImportStreamRecordsMax = 1
@@ -161,10 +159,10 @@ func TestSeekIndex(t *testing.T) {
 		ImportStreamRecordsMax = orig
 	}()
 	createArchiveSpace(t, datapath, babble, nil)
-	_, err = OpenArchive(datapath, &OpenOptions{})
+	_, err := OpenArchive(datapath, &OpenOptions{})
 	require.NoError(t, err)
 
-	first1 := nano.Ts(1587508830068523240)
+	first1 := nano.Ts(1587513592062544400)
 	var idxURI iosrc.URI
 	err = filepath.Walk(datapath, func(p string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -176,7 +174,7 @@ func TestSeekIndex(t *testing.T) {
 				return err
 			}
 			uri.Path = path.Dir(uri.Path)
-			chunk, err := chunk.Open(context.Background(), uri, id, zbuf.OrderAsc)
+			chunk, err := chunk.Open(context.Background(), uri, id, zbuf.OrderDesc)
 			if err != nil {
 				return err
 			}
@@ -200,7 +198,7 @@ func TestSeekIndex(t *testing.T) {
 
 	exp := `
 #0:record[ts:time,offset:int64]
-0:[1587508850.06466032;202;]
+0:[1587508850.06466032;23795;]
 `
 	require.Equal(t, test.Trim(exp), buf.String())
 }
