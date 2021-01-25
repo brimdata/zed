@@ -22,7 +22,7 @@ func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, err)
 		return
 	}
-	srch, err := search.NewSearchOp(req.SearchRequest)
+	srch, err := search.NewSearchOp(req.SearchRequest, c.requestLogger(r))
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -56,7 +56,7 @@ func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Reque
 		respondError(c, w, httpReq, err)
 		return
 	}
-	work, err := search.NewWorkerOp(ctx, req, archivestore.NewStorage(ark))
+	work, err := search.NewWorkerOp(ctx, req, archivestore.NewStorage(ark), c.requestLogger(httpReq))
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return
