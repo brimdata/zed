@@ -160,15 +160,12 @@ func TestSeekIndex(t *testing.T) {
 	defer func() {
 		ImportStreamRecordsMax = orig
 	}()
-	createArchiveSpace(t, datapath, babble, &CreateOptions{
-		// Must use SortAscending: true until zq#1329 is addressed.
-		SortAscending: true,
-	})
+	createArchiveSpace(t, datapath, babble, nil)
 	_, err = OpenArchive(datapath, &OpenOptions{})
 	require.NoError(t, err)
 
 	first1 := nano.Ts(1587508830068523240)
-	var idxUri iosrc.URI
+	var idxURI iosrc.URI
 	err = filepath.Walk(datapath, func(p string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -184,13 +181,13 @@ func TestSeekIndex(t *testing.T) {
 				return err
 			}
 			if chunk.First == first1 {
-				idxUri = chunk.SeekIndexPath()
+				idxURI = chunk.SeekIndexPath()
 			}
 		}
 		return nil
 	})
 	require.NoError(t, err)
-	finder, err := microindex.NewFinder(context.Background(), resolver.NewContext(), idxUri)
+	finder, err := microindex.NewFinder(context.Background(), resolver.NewContext(), idxURI)
 	require.NoError(t, err)
 	keys, err := finder.ParseKeys("1587508851")
 	require.NoError(t, err)
