@@ -193,7 +193,6 @@ func (c *Core) addRecruiterRoutes() {
 
 func (c *Core) addWorkerRoutes() {
 	c.router.Handle("/worker/chunksearch", c.handler(handleWorkerChunkSearch)).Methods("POST")
-	c.router.Handle("/worker/release", c.handler(handleWorkerRelease)).Methods("GET")
 	c.router.Handle("/worker/rootsearch", c.handler(handleWorkerRootSearch)).Methods("POST")
 }
 

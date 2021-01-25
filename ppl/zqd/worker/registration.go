@@ -41,7 +41,7 @@ type RegistrationState struct {
 	conn        *client.Connection
 	ctx         context.Context
 	logger      *zap.Logger
-	releaseChan chan string
+	releaseChan chan bool
 	selfaddr    string
 }
 
@@ -55,7 +55,7 @@ func NewRegistrationState(ctx context.Context, srvAddr string, conf WorkerConfig
 		conn:        client.NewConnectionTo("http://" + conf.Recruiter),
 		ctx:         ctx,
 		logger:      logger,
-		releaseChan: make(chan string),
+		releaseChan: make(chan bool),
 		selfaddr:    net.JoinHostPort(host, port),
 	}
 	return rs, nil
@@ -100,71 +100,28 @@ func (rs *RegistrationState) RegisterWithRecruiter() {
 		}
 		rs.logger.Info("Worker is reserved", zap.String("selfaddr", rs.selfaddr))
 		// Start listening to the releaseChannel.
-		// Exit the nested loop on a release.
-		// An idle timeout will cause the process to terminate.
 		ticker := time.NewTicker(rs.conf.IdleTime)
-		// GoDoc mentions fewer special cases with Ticker than with Timer.
-		workerIsIdle := true
-		// The worker "stays" in the ReservedLoop until it is finshed working for a given root process.
-		// The worker starts in the idle state, and is only "busy" while responding to a /worker/chunksearch.
-	ReservedLoop:
-		for {
-			select {
-			case <-ticker.C:
-				if workerIsIdle {
-					rs.logger.Warn("Worker timed out before receiving a request from the root",
-						zap.String("selfaddr", rs.selfaddr))
-					os.Exit(0)
-				}
-			case msg := <-rs.releaseChan:
-				if msg == "release" {
-					rs.logger.Info("Worker is released", zap.String("selfaddr", rs.selfaddr))
-					// Breaking out of this nested loop will continue on to re-register.
-					break ReservedLoop
-				} else if msg == "idle" {
-					workerIsIdle = true
-					ticker = time.NewTicker(rs.conf.IdleTime)
-					// Recreating the ticker is a safe way to reset it.
-				} else { // Assume "busy".
-					workerIsIdle = false
-				}
-			}
+		select {
+		case <-ticker.C:
+			rs.logger.Warn("Worker timed out before receiving a request from the root",
+				zap.String("selfaddr", rs.selfaddr))
+			os.Exit(0)
+			// This should never happen in normal operation.
+			// An idle timeout will cause the process to terminate,
+			// to avoid a double-reservation.
+		case <-rs.releaseChan:
+			rs.logger.Info("Worker is released", zap.String("selfaddr", rs.selfaddr))
+			// Continue on to re-register.
 		}
 	}
 }
-
-// These three methods are called from the worker handlers.
-// They do a nil check on the pointer receiver because if the
-// -worker.bound flag is present then there may be no RegistrationState.
-// The warnings on the default selector should not normally occur,
-// and would indicate that something was broken.
 
 func (rs *RegistrationState) SendRelease() {
 	if rs != nil {
 		select {
-		case rs.releaseChan <- "release":
+		case rs.releaseChan <- true:
 		default:
 			rs.logger.Warn("Receiver not ready for release")
-		}
-	}
-}
-
-func (rs *RegistrationState) SendBusy() {
-	if rs != nil {
-		select {
-		case rs.releaseChan <- "busy":
-		default:
-			rs.logger.Warn("Receiver not ready for busy")
-		}
-	}
-}
-
-func (rs *RegistrationState) SendIdle() {
-	if rs != nil {
-		select {
-		case rs.releaseChan <- "idle":
-		default:
-			rs.logger.Warn("Receiver not ready for idle")
 		}
 	}
 }

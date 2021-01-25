@@ -260,13 +260,6 @@ func (c *Connection) WorkerChunkSearch(ctx context.Context, search api.WorkerChu
 	return c.stream(req)
 }
 
-// WorkerRelease is a message sent from the zqd root to workers in the parallel group
-// when the root process is done and will not be sending additional /worker/chunksearch requests.
-func (c *Connection) WorkerRelease(ctx context.Context) error {
-	_, err := c.Request(ctx).Get("/worker/release")
-	return err
-}
-
 // Search sends a search task to the server and returns a Search interface
 // that the caller uses to stream back results via the Read method.
 func (c *Connection) Search(ctx context.Context, search api.SearchRequest, params map[string]string) (*ZngSearch, error) {
