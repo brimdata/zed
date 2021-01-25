@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqe"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/ksuid"
 )
 
@@ -95,6 +96,8 @@ type Archive struct {
 	DataOrder        zbuf.Order
 	LogSizeThreshold int64
 	LogFilter        []ksuid.KSUID
+
+	smlfs smallFileGetter
 }
 
 func (ark *Archive) metaWrite() error {
@@ -136,7 +139,12 @@ func (ark *Archive) ReadDefinitions(ctx context.Context) (index.Definitions, err
 }
 
 type OpenOptions struct {
-	LogFilter []string
+	LogFilter  []string
+	Registerer prometheus.Registerer
+	// SmallFileCacheSize specifies the number of small files to keep in an lru
+	// cache used to speed up searches. Values less than or equal to 0
+	// (default) disables caching.
+	SmallFileCacheSize int
 }
 
 func OpenArchive(rpath string, oo *OpenOptions) (*Archive, error) {
@@ -164,11 +172,24 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 		return nil, err
 	}
 
+	var smlFS smallFileGetter
+	if smlFS, err = iosrc.GetSource(dpuri); err != nil {
+		return nil, err
+	}
+	if oo != nil && oo.SmallFileCacheSize > 0 {
+		smlFS, err = newSmallFileCache(oo.SmallFileCacheSize, smlFS, oo.Registerer)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	ark := &Archive{
 		DataOrder:        m.DataOrder,
 		DataPath:         dpuri,
 		LogSizeThreshold: m.LogSizeThreshold,
 		Root:             root,
+
+		smlfs: smlFS,
 	}
 
 	if oo != nil {

@@ -13,6 +13,7 @@ import (
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/pkg/promtest"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/ppl/archive/index"
@@ -21,6 +22,8 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -148,6 +151,30 @@ func TestOpenOptions(t *testing.T) {
 `
 	out = indexQuery(t, ark2, pattern, AddPath(DefaultAddPathField, false))
 	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, ark1.Root.RelPath(chunk1.Path()))), out)
+}
+
+func TestMetadataCache(t *testing.T) {
+	datapath := t.TempDir()
+	createArchiveSpace(t, datapath, babble, nil)
+	reg := prometheus.NewRegistry()
+	ark, err := OpenArchive(datapath, &OpenOptions{
+		SmallFileCacheSize: 128,
+		Registerer:         reg,
+	})
+	require.NoError(t, err)
+
+	for i := 0; i < 4; i++ {
+		count, err := RecordCount(context.Background(), ark)
+		require.NoError(t, err)
+		assert.EqualValues(t, 1000, count)
+	}
+
+	kind := prometheus.Labels{"kind": "metadata"}
+	misses := promtest.CounterValue(t, reg, "archive_cache_misses_total", kind)
+	hits := promtest.CounterValue(t, reg, "archive_cache_hits_total", kind)
+
+	assert.EqualValues(t, 2, misses)
+	assert.EqualValues(t, 6, hits)
 }
 
 func TestSeekIndex(t *testing.T) {
