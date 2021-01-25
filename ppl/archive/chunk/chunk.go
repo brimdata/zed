@@ -19,9 +19,9 @@ type FileKind string
 
 const (
 	FileKindUnknown  FileKind = ""
-	FileKindData              = "d"
-	FileKindMetadata          = "m"
-	FileKindSeek              = "ts"
+	FileKindData     FileKind = "d"
+	FileKindMetadata FileKind = "m"
+	FileKindSeek     FileKind = "ts"
 )
 
 var fileRegex = regexp.MustCompile(`(d|m)-([0-9A-Za-z]{27}).zng$`)
