@@ -1,18 +1,18 @@
 package driver
 
 import (
-	"context"
 	"encoding/json"
 	"io"
 	"sync"
-	"time"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/ppl/zqd/recruiter"
+	"github.com/brimsec/zq/ppl/zqd/worker"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
+	"go.uber.org/zap"
 )
 
 type parallelHead struct {
@@ -23,11 +23,6 @@ type parallelHead struct {
 
 	mu sync.Mutex // protects below
 	sc ScannerCloser
-
-	// workerConn is connection to a worker zqd process
-	// that is only used for distributed zqd.
-	// Thread (goroutine) parallelism is used when workerConn is nil.
-	workerConn *client.Connection
 }
 
 func (ph *parallelHead) closeOnDone() {
@@ -55,17 +50,7 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 
 	for {
 		if ph.sc == nil {
-			var sc ScannerCloser
-			var err error
-			if ph.workerConn == nil {
-				// Thread (goroutine) parallelism uses nextSource
-				sc, err = ph.pg.nextSource()
-
-			} else {
-				println("xyzzy", "nextSourceForConn", ph.workerConn.ClientHostURL())
-				// Worker process parallelism uses nextSourceForConn
-				sc, err = ph.pg.nextSourceForConn(ph.workerConn)
-			}
+			sc, err := ph.pg.nextSource()
 			if sc == nil || err != nil {
 				return nil, err
 			}
@@ -115,7 +100,13 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 			if !ok {
 				return nil, pg.sourceErr
 			}
-			sc, err := src.Open(pg.pctx.Context, pg.pctx.TypeContext, pg.filter)
+			var sc ScannerCloser
+			var err error
+			if pg.mcfg.Distributed {
+				sc, err = pg.getRemoteScannerCloser(pg.pctx, src, pg.mcfg.Worker, pg.mcfg.Logger)
+			} else {
+				sc, err = src.Open(pg.pctx.Context, pg.pctx.TypeContext, pg.filter)
+			}
 			if err != nil {
 				return nil, err
 			}
@@ -132,40 +123,28 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 	}
 }
 
-// nextSourceForConn is similar to nextSource, but instead of returning the scannerCloser
-// for an open file (i.e. the stream for the open file),
-// nextSourceForConn sends a request to a remote zqd worker process, and returns
-// the ScannerCloser (i.e.output stream) for the remote zqd worker.
-func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerCloser, error) {
-	select {
-	case src, ok := <-pg.sourceChan:
-		if !ok {
-			return nil, pg.sourceErr
-		}
-		req, err := pg.sourceToRequest(src)
-		if err != nil {
-			return nil, err
-		}
-		rc, err := conn.WorkerChunkSearch(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
-		if err != nil {
-			return nil, err
-		}
-		search := client.NewZngSearch(rc)
-		s, err := zbuf.NewScanner(pg.pctx.Context, search, nil, req.Span)
-		if err != nil {
-			return nil, err
-		}
-		sc := struct {
-			zbuf.Scanner
-			io.Closer
-		}{s, rc}
-		pg.mu.Lock()
-		pg.scanners[sc] = struct{}{}
-		pg.mu.Unlock()
-		return sc, nil
-	case <-pg.pctx.Done():
-		return nil, pg.pctx.Err()
+func (pg *parallelGroup) getRemoteScannerCloser(pctx *proc.Context, src Source, conf worker.WorkerConfig, logger *zap.Logger) (ScannerCloser, error) {
+	conn, err := recruiter.GetWorkerConnection(pctx, conf, logger)
+	if err != nil {
+		return nil, err
 	}
+	req, err := pg.sourceToRequest(src)
+	if err != nil {
+		return nil, err
+	}
+	rc, err := conn.WorkerChunkSearch(pg.pctx.Context, *req, nil) // rc is io.ReadCloser
+	if err != nil {
+		return nil, err
+	}
+	search := client.NewZngSearch(rc)
+	s, err := zbuf.NewScanner(pg.pctx.Context, search, nil, req.Span)
+	if err != nil {
+		return nil, err
+	}
+	return struct {
+		zbuf.Scanner
+		io.Closer
+	}{s, rc}, nil
 }
 
 func (pg *parallelGroup) doneSource(sc ScannerCloser) {
@@ -219,42 +198,9 @@ func createParallelGroup(pctx *proc.Context, filter *compiler.Filter, msrc Multi
 		scanners:   make(map[zbuf.Scanner]struct{}),
 		sourceChan: make(chan Source),
 	}
-	parallelism := mcfg.Parallelism
-	if mcfg.Distributed {
-		workers, err := recruiter.RecruitWorkers(pctx, parallelism, mcfg.Worker, mcfg.Logger)
-		if err != nil {
-			return nil, nil, err
-		}
-		if len(workers) > 0 {
-			var conns []*client.Connection
-			var sources []proc.Interface
-			for _, w := range workers {
-				conn := client.NewConnectionTo("http://" + w)
-				conns = append(conns, conn)
-				sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: conn})
-			}
-			go pg.releaseWorkersOnDone(conns)
-			return sources, pg, nil
-		}
-		// If no workers are available for distributed exec,
-		// fall back to using the root process at parallelism=1.
-		parallelism = 1
-	}
-	// This is the code path used by the zqd daemon for Brim.
 	var sources []proc.Interface
-	for i := 0; i < parallelism; i++ {
+	for i := 0; i < mcfg.Parallelism; i++ {
 		sources = append(sources, &parallelHead{pctx: pctx, pg: pg})
 	}
 	return sources, pg, nil
-}
-
-func (pg *parallelGroup) releaseWorkersOnDone(conns []*client.Connection) {
-	<-pg.pctx.Done()
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
-	defer cancel()
-	// The original context, pg.pctx, is cancelled, so send the release requests
-	// in a new Background context.
-	for _, conn := range conns {
-		recruiter.ReleaseWorker(ctx, conn, pg.mcfg.Logger)
-	}
 }

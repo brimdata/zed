@@ -3,10 +3,8 @@
 package recruiter
 
 import (
-	"context"
 	"fmt"
 	"net"
-	"strings"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
@@ -15,20 +13,19 @@ import (
 	"go.uber.org/zap"
 )
 
-// RecruitWorkers is used by the zqd root process to recruit workers for a distributed query.
-func RecruitWorkers(ctx *proc.Context, workerCount int, conf worker.WorkerConfig, logger *zap.Logger) ([]string, error) {
-	logger.Info("Recruit workers", zap.Int("count", workerCount))
-	if conf.BoundWorkers != "" {
-		// BoundWorkers is a fixed list of workers bound to a root process.
-		// It is used for ZTests and simple clusters without a recruiter.
-		workers := strings.Split(conf.BoundWorkers, ",")
-		for _, w := range workers {
-			if _, _, err := net.SplitHostPort(w); err != nil {
-				return nil, err
-			}
-		}
-		return workers, nil
+func GetWorkerConnection(pctx *proc.Context, conf worker.WorkerConfig, logger *zap.Logger) (*client.Connection, error) {
+	workers, err := recruitWorkers(pctx, 1, conf, logger)
+	if err != nil {
+		return nil, err
 	}
+	if len(workers) == 0 {
+		return nil, fmt.Errorf("no worker is available")
+	}
+	return client.NewConnectionTo("http://" + workers[0]), nil
+}
+
+func recruitWorkers(ctx *proc.Context, workerCount int, conf worker.WorkerConfig, logger *zap.Logger) ([]string, error) {
+	logger.Info("Recruit workers", zap.Int("count", workerCount))
 	if conf.Recruiter == "" {
 		return nil, fmt.Errorf("flag -worker.recruiter is not present")
 	}
@@ -46,9 +43,4 @@ func RecruitWorkers(ctx *proc.Context, workerCount int, conf worker.WorkerConfig
 		workers = append(workers, w.Addr)
 	}
 	return workers, nil
-}
-
-func ReleaseWorker(ctx context.Context, conn *client.Connection, logger *zap.Logger) error {
-	logger.Info("ReleaseWorker", zap.String("addr", conn.ClientHostURL()))
-	return conn.WorkerRelease(ctx)
 }
