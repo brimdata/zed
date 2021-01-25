@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - worker-release
 
 jobs:
   pre-clean:
