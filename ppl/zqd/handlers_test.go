@@ -23,7 +23,9 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/pkg/promtest"
 	"github.com/brimsec/zq/pkg/test"
+	"github.com/brimsec/zq/ppl/archive/immcache"
 	"github.com/brimsec/zq/ppl/zqd"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zbuf"
@@ -666,6 +668,37 @@ func TestCreateArchiveSpace(t *testing.T) {
 `
 	res := searchTzng(t, conn, sp.ID, "s=harefoot-raucous")
 	require.Equal(t, test.Trim(exptzng), res)
+}
+
+func TestArchiveInProcessCache(t *testing.T) {
+	const expcount = `
+#0:record[count:uint64]
+0:[1000;]`
+
+	core, conn := newCoreWithConfig(t, zqd.Config{
+		ImmutableCache: immcache.Config{LocalCacheSize: 128},
+	})
+
+	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
+		Name:    "arktest",
+		Storage: &api.StorageConfig{Kind: api.ArchiveStore},
+	})
+	require.NoError(t, err)
+
+	_, err = conn.LogPost(context.Background(), sp.ID, nil, babbleSorted)
+	require.NoError(t, err)
+
+	for i := 0; i < 4; i++ {
+		res, _ := search(t, conn, sp.ID, "count()")
+		assert.Equal(t, test.Trim(expcount), res)
+	}
+
+	kind := prometheus.Labels{"kind": "metadata"}
+	misses := promtest.CounterValue(t, core.Registry(), "archive_cache_misses_total", kind)
+	hits := promtest.CounterValue(t, core.Registry(), "archive_cache_hits_total", kind)
+
+	assert.EqualValues(t, 2, misses)
+	assert.EqualValues(t, 8, hits)
 }
 
 func TestBlankNameSpace(t *testing.T) {

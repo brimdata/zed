@@ -1,6 +1,7 @@
 package chunk
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 
@@ -21,14 +22,9 @@ type Metadata struct {
 	Size        int64
 }
 
-func ReadMetadata(ctx context.Context, uri iosrc.URI, order zbuf.Order) (Metadata, error) {
-	in, err := iosrc.NewReader(ctx, uri)
-	if err != nil {
-		return Metadata{}, err
-	}
-	defer in.Close()
+func UnmarshalMetadata(b []byte, order zbuf.Order) (Metadata, error) {
 	zctx := resolver.NewContext()
-	zr := zngio.NewReader(in, zctx)
+	zr := zngio.NewReader(bytes.NewReader(b), zctx)
 	rec, err := zr.Read()
 	if err != nil {
 		return Metadata{}, err
@@ -37,7 +33,7 @@ func ReadMetadata(ctx context.Context, uri iosrc.URI, order zbuf.Order) (Metadat
 	if err := resolver.UnmarshalRecord(rec, &md); err != nil {
 		return Metadata{}, err
 	}
-	if err := mdTsOrderCheck(uri, "read", order, md.First, md.Last); err != nil {
+	if err := mdTsOrderCheck("read", order, md.First, md.Last); err != nil {
 		return Metadata{}, err
 	}
 	return md, nil
@@ -56,7 +52,7 @@ func (m Metadata) Chunk(dir iosrc.URI, id ksuid.KSUID) Chunk {
 }
 
 func (m Metadata) Write(ctx context.Context, uri iosrc.URI, order zbuf.Order) error {
-	if err := mdTsOrderCheck(uri, "write", order, m.First, m.Last); err != nil {
+	if err := mdTsOrderCheck("write", order, m.First, m.Last); err != nil {
 		return err
 	}
 	rec, err := resolver.NewMarshaler().MarshalRecord(m)
@@ -79,7 +75,7 @@ func MetadataPath(dir iosrc.URI, id ksuid.KSUID) iosrc.URI {
 	return dir.AppendPath(fmt.Sprintf("%s-%s.zng", FileKindMetadata, id))
 }
 
-func mdTsOrderCheck(u iosrc.URI, op string, order zbuf.Order, first, last nano.Ts) error {
+func mdTsOrderCheck(op string, order zbuf.Order, first, last nano.Ts) error {
 	x, y := first, last
 	if order == zbuf.OrderDesc {
 		x, y = y, x
@@ -87,5 +83,5 @@ func mdTsOrderCheck(u iosrc.URI, op string, order zbuf.Order, first, last nano.T
 	if x <= y {
 		return nil
 	}
-	return fmt.Errorf("metadata failed order check %s op %s order %s first %d last %d", u, op, order, first, last)
+	return fmt.Errorf("metadata failed order check op %s order %s first %d last %d", op, order, first, last)
 }

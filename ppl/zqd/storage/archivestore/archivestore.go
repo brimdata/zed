@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/archive/immcache"
 	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/zbuf"
@@ -18,12 +19,14 @@ import (
 	"go.uber.org/zap"
 )
 
-func Load(ctx context.Context, path iosrc.URI, notifier WriteNotifier, cfg *api.ArchiveConfig) (*Storage, error) {
+func Load(ctx context.Context, path iosrc.URI, notifier WriteNotifier, cfg *api.ArchiveConfig, immcache immcache.ImmutableCache) (*Storage, error) {
 	co := &archive.CreateOptions{}
 	if cfg != nil && cfg.CreateOptions != nil {
 		co.LogSizeThreshold = cfg.CreateOptions.LogSizeThreshold
 	}
-	oo := &archive.OpenOptions{}
+	oo := &archive.OpenOptions{
+		ImmutableCache: immcache,
+	}
 	if cfg != nil && cfg.OpenOptions != nil {
 		oo.LogFilter = cfg.OpenOptions.LogFilter
 	}
