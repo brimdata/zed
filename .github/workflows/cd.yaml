@@ -67,6 +67,7 @@ jobs:
           #
           # Run cluster tests
           #
+          sleep 120
           make test-cluster
       - name: Get zqd logs and remove namespace on success or failure
         if: ${{ always() }}
