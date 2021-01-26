@@ -151,24 +151,19 @@ func TestOpenOptions(t *testing.T) {
 }
 
 func TestSeekIndex(t *testing.T) {
-	datapath, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(datapath)
+	datapath := t.TempDir()
 
 	orig := ImportStreamRecordsMax
 	ImportStreamRecordsMax = 1
 	defer func() {
 		ImportStreamRecordsMax = orig
 	}()
-	createArchiveSpace(t, datapath, babble, &CreateOptions{
-		// Must use SortAscending: true until zq#1329 is addressed.
-		SortAscending: true,
-	})
-	_, err = OpenArchive(datapath, &OpenOptions{})
+	createArchiveSpace(t, datapath, babble, nil)
+	_, err := OpenArchive(datapath, &OpenOptions{})
 	require.NoError(t, err)
 
-	first1 := nano.Ts(1587508830068523240)
-	var idxUri iosrc.URI
+	first1 := nano.Ts(1587513592062544400)
+	var idxURI iosrc.URI
 	err = filepath.Walk(datapath, func(p string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -179,23 +174,24 @@ func TestSeekIndex(t *testing.T) {
 				return err
 			}
 			uri.Path = path.Dir(uri.Path)
-			chunk, err := chunk.Open(context.Background(), uri, id, zbuf.OrderAsc)
+			chunk, err := chunk.Open(context.Background(), uri, id, zbuf.OrderDesc)
 			if err != nil {
 				return err
 			}
 			if chunk.First == first1 {
-				idxUri = chunk.SeekIndexPath()
+				idxURI = chunk.SeekIndexPath()
 			}
 		}
 		return nil
 	})
 	require.NoError(t, err)
-	finder, err := microindex.NewFinder(context.Background(), resolver.NewContext(), idxUri)
+	finder, err := microindex.NewFinder(context.Background(), resolver.NewContext(), idxURI)
 	require.NoError(t, err)
 	keys, err := finder.ParseKeys("1587508851")
 	require.NoError(t, err)
 	rec, err := finder.ClosestLTE(keys)
 	require.NoError(t, err)
+	require.NoError(t, finder.Close())
 
 	var buf bytes.Buffer
 	w := tzngio.NewWriter(zio.NopCloser(&buf))
@@ -203,7 +199,7 @@ func TestSeekIndex(t *testing.T) {
 
 	exp := `
 #0:record[ts:time,offset:int64]
-0:[1587508850.06466032;202;]
+0:[1587508850.06466032;23795;]
 `
 	require.Equal(t, test.Trim(exp), buf.String())
 }
