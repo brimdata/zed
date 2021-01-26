@@ -191,6 +191,7 @@ func TestSeekIndex(t *testing.T) {
 	require.NoError(t, err)
 	rec, err := finder.ClosestLTE(keys)
 	require.NoError(t, err)
+	require.NoError(t, finder.Close())
 
 	var buf bytes.Buffer
 	w := tzngio.NewWriter(zio.NopCloser(&buf))
