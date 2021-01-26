@@ -36,11 +36,12 @@ const (
 )
 
 type SearchOp struct {
+	logger  *zap.Logger
 	query   *Query
 	workers int // for distributed queries only
 }
 
-func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
+func NewSearchOp(req api.SearchRequest, logger *zap.Logger) (*SearchOp, error) {
 	if req.Span.Ts < 0 {
 		return nil, zqe.ErrInvalid("time span must have non-negative timestamp")
 	}
@@ -59,7 +60,10 @@ func NewSearchOp(req api.SearchRequest) (*SearchOp, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &SearchOp{query: query}, nil
+	return &SearchOp{
+		logger: logger,
+		query:  query,
+	}, nil
 }
 
 func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output) (err error) {
@@ -83,9 +87,10 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 	switch st := store.(type) {
 	case *archivestore.Storage:
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
+			Logger:    s.logger,
+			Order:     zbuf.OrderDesc,
 			Span:      s.query.Span,
 			StatsTick: statsTicker.C,
-			Order:     zbuf.OrderDesc,
 		})
 	case *filestore.Storage:
 		rc, err := st.Open(ctx, zctx, s.query.Span)
@@ -95,6 +100,7 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 		defer rc.Close()
 
 		return driver.Run(ctx, d, s.query.Proc, zctx, rc, driver.Config{
+			Logger:            s.logger,
 			ReaderSortKey:     "ts",
 			ReaderSortReverse: true,
 			Span:              s.query.Span,

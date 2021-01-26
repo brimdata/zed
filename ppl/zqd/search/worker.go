@@ -12,16 +12,18 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
+	"go.uber.org/zap"
 )
 
 type WorkerOp struct {
-	proc  ast.Proc
-	span  nano.Span
-	src   driver.Source
-	store *archivestore.Storage
+	logger *zap.Logger
+	proc   ast.Proc
+	span   nano.Span
+	src    driver.Source
+	store  *archivestore.Storage
 }
 
-func NewWorkerOp(ctx context.Context, req api.WorkerChunkRequest, st storage.Storage) (*WorkerOp, error) {
+func NewWorkerOp(ctx context.Context, req api.WorkerChunkRequest, st storage.Storage, logger *zap.Logger) (*WorkerOp, error) {
 	// XXX zqd only supports backwards searches, remove once this has been
 	// fixed.
 	if req.Dir == 1 {
@@ -42,7 +44,13 @@ func NewWorkerOp(ctx context.Context, req api.WorkerChunkRequest, st storage.Sto
 	if err != nil {
 		return nil, err
 	}
-	return &WorkerOp{proc: proc, span: req.Span, src: src, store: store}, nil
+	return &WorkerOp{
+		logger: logger,
+		proc:   proc,
+		span:   req.Span,
+		src:    src,
+		store:  store,
+	}, nil
 }
 
 func (w *WorkerOp) Run(ctx context.Context, output Output) (err error) {
@@ -64,6 +72,7 @@ func (w *WorkerOp) Run(ctx context.Context, output Output) (err error) {
 	zctx := resolver.NewContext()
 
 	return driver.MultiRun(ctx, d, w.proc, zctx, w.store.StaticSource(w.src), driver.MultiConfig{
+		Logger:    w.logger,
 		Span:      w.span,
 		StatsTick: statsTicker.C,
 	})

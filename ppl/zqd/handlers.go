@@ -96,7 +96,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	srch, err := search.NewSearchOp(req)
+	srch, err := search.NewSearchOp(req, c.requestLogger(r))
 	if err != nil {
 		respondError(c, w, r, err)
 		return
