@@ -32,6 +32,10 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 2 {
 		return errors.New("expected <old_name> <new_name>")
 	}
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
+		return err
+	}
 	oldname := args[0]
 	newname := args[1]
 	id, err := cmd.GetSpaceID(c.Context(), c.Connection(), oldname)

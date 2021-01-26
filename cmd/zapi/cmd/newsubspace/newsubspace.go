@@ -39,6 +39,10 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("must specify at least one log from parent")
 	}
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
+		return err
+	}
 	conn := c.Connection()
 	req := api.SubspacePostRequest{
 		Name: c.name,

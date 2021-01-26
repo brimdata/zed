@@ -40,6 +40,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 1 {
 		return errors.New("must specify a space name")
 	}
+	defer c.Cleanup()
 	if err := c.Init(&c.createFlags); err != nil {
 		return err
 	}

@@ -71,11 +71,7 @@ func (c *LoginCommand) Run(args []string) error {
 		return err
 	}
 
-	cpath, err := cmd.UserStdCredentialsPath()
-	if err != nil {
-		return err
-	}
-	creds, err := cmd.LoadCredentials(cpath)
+	creds, err := c.LocalConfig.LoadCredentials()
 	if err != nil {
 		return fmt.Errorf("failed to load credentials file: %w", err)
 	}
@@ -84,9 +80,9 @@ func (c *LoginCommand) Run(args []string) error {
 		ID:      dar.IDToken,
 		Refresh: dar.RefreshToken,
 	})
-	if err := cmd.SaveCredentials(cpath, creds); err != nil {
+	if err := c.LocalConfig.SaveCredentials(creds); err != nil {
 		return fmt.Errorf("failed to save credentials file: %w", err)
 	}
-	fmt.Printf("Login successful, stored credentials for %s in %s\n", c.Host, cpath)
+	fmt.Printf("Login successful, stored credentials for %s\n", c.Host)
 	return nil
 }

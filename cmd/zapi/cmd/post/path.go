@@ -51,6 +51,7 @@ func (c *PostPathCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
 		return errors.New("path arg(s) required")
 	}
+	defer c.Cleanup()
 	if err := c.Init(&c.postFlags); err != nil {
 		return err
 	}

@@ -1,8 +1,9 @@
 package cmd
 
 import (
+	"flag"
+	"fmt"
 	"os"
-	"path"
 	"path/filepath"
 
 	"github.com/brimsec/zq/pkg/fs"
@@ -13,9 +14,32 @@ const (
 	credsFileName     = "credentials.json"
 )
 
-func LoadCredentials(path string) (*Credentials, error) {
+type localConfigFlags struct {
+	configPath string
+}
+
+func (f *localConfigFlags) SetFlags(fs *flag.FlagSet) {
+	fs.StringVar(&f.configPath, "configpath", "", "directory to store local configuration and credentials")
+}
+
+func (f *localConfigFlags) credentialsPath() (string, error) {
+	if f.configPath != "" {
+		return filepath.Abs(filepath.Join(f.configPath, credsFileName))
+	}
+	c, err := os.UserConfigDir()
+	if err != nil {
+		return "", fmt.Errorf("zapi: no user configuration directory available: %w", err)
+	}
+	return filepath.Join(c, zapiConfigDirName, credsFileName), nil
+}
+
+func (f *localConfigFlags) LoadCredentials() (*Credentials, error) {
+	cpath, err := f.credentialsPath()
+	if err != nil {
+		return nil, err
+	}
 	var cf Credentials
-	if err := fs.UnmarshalJSONFile(path, &cf); err != nil {
+	if err := fs.UnmarshalJSONFile(cpath, &cf); err != nil {
 		if os.IsNotExist(err) {
 			return &Credentials{}, nil
 		}
@@ -24,20 +48,15 @@ func LoadCredentials(path string) (*Credentials, error) {
 	return &cf, nil
 }
 
-func SaveCredentials(path string, cf *Credentials) error {
-	return fs.MarshalJSONFile(cf, path, 0600)
-}
-
-func UserStdCredentialsPath() (string, error) {
-	c, err := os.UserConfigDir()
+func (f *localConfigFlags) SaveCredentials(cf *Credentials) error {
+	cpath, err := f.credentialsPath()
 	if err != nil {
-		return "", err
+		return err
 	}
-	zcd := filepath.Join(c, zapiConfigDirName)
-	if err := os.MkdirAll(zcd, 0777); err != nil {
-		return "", err
+	if err := os.MkdirAll(filepath.Dir(cpath), 0700); err != nil {
+		return err
 	}
-	return path.Join(zcd, credsFileName), nil
+	return fs.MarshalJSONFile(cf, cpath, 0600)
 }
 
 type ServiceInfo struct {
