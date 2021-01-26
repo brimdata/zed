@@ -102,7 +102,7 @@ test-postgres-docker:
 
 .PHONY: test-cluster
 test-cluster: build install
-	time zapi new -k archivestore -d $(ZQD_DATA_URI) files
+	-zapi new -k archivestore -d $(ZQD_DATA_URI) files
 	time zapi -s files postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=cluster \
