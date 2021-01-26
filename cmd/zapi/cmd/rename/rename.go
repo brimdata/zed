@@ -12,7 +12,7 @@ import (
 
 var Rename = &charm.Spec{
 	Name:  "rename",
-	Usage: "rename [old_name] [new_name]",
+	Usage: "rename [old_name] new_name",
 	Short: "renames a space",
 	Long:  `Renames a space, given the current space name and a desired new name.`,
 	New: func(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -29,22 +29,34 @@ type Command struct {
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) != 2 {
-		return errors.New("expected <old_name> <new_name>")
-	}
 	defer c.Cleanup()
 	if err := c.Init(); err != nil {
 		return err
 	}
-	oldname := args[0]
-	newname := args[1]
-	id, err := cmd.GetSpaceID(c.Context(), c.Connection(), oldname)
-	if err != nil {
-		return err
+
+	var err error
+	var id api.SpaceID
+	var newname string
+	switch len(args) {
+	case 2:
+		newname = args[1]
+		id, err = cmd.GetSpaceID(c.Context(), c.Connection(), args[0])
+		if err != nil {
+			return err
+		}
+	case 1:
+		newname = args[0]
+		id, err = c.SpaceID()
+		if err != nil {
+			return err
+		}
+	default:
+		return errors.New("rename takes 1 or 2 arguments")
 	}
+
 	if err := c.Connection().SpacePut(c.Context(), id, api.SpacePutRequest{Name: newname}); err != nil {
 		return err
 	}
-	fmt.Printf("%s: space renamed to %s\n", oldname, newname)
+	fmt.Printf("space renamed to %s\n", newname)
 	return nil
 }

@@ -1,0 +1,81 @@
+tag: postgres
+
+script: |
+  ZQD_EXTRA_FLAGS="-auth.enabled=true -auth.clientid=testclient -auth.domain=https://testdomain -auth.jwkspath=./auth-public-jwks.json" source startup.sh
+  zapi -h $ZQD_HOST -configpath ./user1 auth store -access \
+    $(testtoken -domain https://testdomain -privatekeyfile ./auth-private-key -keyid testkey -tenantid tenant1 -userid user1)
+  zapi -h $ZQD_HOST -configpath ./user2 auth store -access \
+    $(testtoken -domain https://testdomain -privatekeyfile ./auth-private-key -keyid testkey -tenantid tenant2 -userid user2)
+  echo ===
+  zapi -configpath ./user1 -h $ZQD_HOST auth verify
+  echo ===
+  zapi -configpath ./user2 -h $ZQD_HOST auth verify
+  echo ===
+  zapi -configpath ./user1 -h $ZQD_HOST new testsp0
+  zapi -configpath ./user1 -h $ZQD_HOST new testsp1
+  zapi -configpath ./user2 -h $ZQD_HOST new testsp0
+  zapi -configpath ./user2 -h $ZQD_HOST new testsp2
+  export USER1_SP1=$(zapi -configpath ./user1 -h $ZQD_HOST info testsp1 | grep "id:" | head -n 1 | awk '{print $2}')
+  export USER2_SP2=$(zapi -configpath ./user2 -h $ZQD_HOST info testsp2| grep "id:" | head -n 1 | awk '{print $2}')
+  export USER1_SP0=$(zapi -configpath ./user1 -h $ZQD_HOST info testsp0 | grep "id:" | head -n 1 | awk '{print $2}')
+  export USER2_SP0=$(zapi -configpath ./user2 -h $ZQD_HOST info testsp0 | grep "id:" | head -n 1 | awk '{print $2}')
+  echo ===
+  echo user1 ls
+  zapi -configpath ./user1 -h $ZQD_HOST ls
+  echo ===
+  echo user2 ls
+  zapi -configpath ./user2 -h $ZQD_HOST ls
+  echo ===
+  echo user1 info
+  zapi -configpath ./user1 -h $ZQD_HOST -id $USER2_SP0 info 2>&1
+  echo ===
+  echo user1 rename
+  zapi -configpath ./user1 -h $ZQD_HOST -id $USER2_SP0 rename newname 2>&1
+  echo ===
+  echo user1 rm
+  zapi -configpath ./user1 -h $ZQD_HOST -id $USER2_SP0 rm 2>&1
+
+
+inputs:
+  - name: startup.sh
+    source: startup.sh
+  - name: migrations
+    symlink: ../migrations
+  - name: auth-public-jwks.json
+    source: ../../../testdata/auth-public-jwks.json
+  - name: auth-private-key
+    source: ../../../testdata/auth-private-key
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      {
+      	"tenant_id": "tenant1",
+      	"user_id": "user1"
+      }
+      ===
+      {
+      	"tenant_id": "tenant2",
+      	"user_id": "user2"
+      }
+      ===
+      testsp0: space created
+      testsp1: space created
+      testsp0: space created
+      testsp2: space created
+      ===
+      user1 ls
+      testsp0   testsp1
+      ===
+      user2 ls
+      testsp0   testsp2
+      ===
+      user1 info
+      status code 403: forbidden
+      ===
+      user1 rename
+      status code 403: forbidden
+      ===
+      user1 rm
+      status code 403: forbidden

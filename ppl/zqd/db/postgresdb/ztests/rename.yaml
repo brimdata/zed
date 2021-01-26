@@ -23,7 +23,7 @@ outputs:
     data: |
       testsp: space created
       ===
-      testsp: space renamed to newname
+      space renamed to newname
       ===
       newname
   - name: stderr
