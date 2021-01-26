@@ -22,6 +22,7 @@ const (
 	Invalid
 	NotFound
 	NoCredentials
+	Forbidden
 )
 
 func (k Kind) String() string {
@@ -38,6 +39,8 @@ func (k Kind) String() string {
 		return "item does not exist"
 	case NoCredentials:
 		return "missing authentication credentials"
+	case Forbidden:
+		return "forbidden"
 	}
 	return "unknown error kind"
 }
@@ -135,11 +138,13 @@ func IsKind(err error, k Kind) bool {
 	return errors.As(err, &zerr) && zerr.Kind == k
 }
 
-func IsOther(err error) bool    { return IsKind(err, Other) }
-func IsConflict(err error) bool { return IsKind(err, Conflict) }
-func IsExists(err error) bool   { return IsKind(err, Exists) }
-func IsInvalid(err error) bool  { return IsKind(err, Invalid) }
-func IsNotFound(err error) bool { return IsKind(err, NotFound) }
+func IsOther(err error) bool            { return IsKind(err, Other) }
+func IsConflict(err error) bool         { return IsKind(err, Conflict) }
+func IsExists(err error) bool           { return IsKind(err, Exists) }
+func IsInvalid(err error) bool          { return IsKind(err, Invalid) }
+func IsNotFound(err error) bool         { return IsKind(err, NotFound) }
+func IsErrNoCredentials(err error) bool { return IsKind(err, NoCredentials) }
+func IsForbidden(err error) bool        { return IsKind(err, Forbidden) }
 
 func ErrOther(args ...interface{}) error         { return errKind(Other, args) }
 func ErrConflict(args ...interface{}) error      { return errKind(Conflict, args) }
@@ -147,6 +152,7 @@ func ErrExists(args ...interface{}) error        { return errKind(Exists, args) 
 func ErrInvalid(args ...interface{}) error       { return errKind(Invalid, args) }
 func ErrNotFound(args ...interface{}) error      { return errKind(NotFound, args) }
 func ErrNoCredentials(args ...interface{}) error { return errKind(NoCredentials, args) }
+func ErrForbidden(args ...interface{}) error     { return errKind(Forbidden, args) }
 
 func errKind(k Kind, args []interface{}) error {
 	args = append([]interface{}{k}, args...)

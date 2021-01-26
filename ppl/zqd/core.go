@@ -49,10 +49,6 @@ type Config struct {
 	Zeek     pcapanalyzer.Launcher
 }
 
-type middleware interface {
-	Middleware(next http.Handler) http.Handler
-}
-
 type Core struct {
 	auth       *Auth0Authenticator
 	db         db.DB
@@ -81,10 +77,10 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(prometheus.NewGoCollector())
 
-	var auth *Auth0Authenticator
+	var authenticator *Auth0Authenticator
 	if conf.Auth.Enabled {
 		var err error
-		if auth, err = newAuthenticator(ctx, conf.Logger, registry, conf.Auth); err != nil {
+		if authenticator, err = NewAuthenticator(ctx, conf.Logger, registry, conf.Auth); err != nil {
 			return nil, err
 		}
 	}
@@ -116,7 +112,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	}
 
 	c := &Core{
-		auth:     auth,
+		auth:     authenticator,
 		logger:   conf.Logger.Named("core").With(zap.String("personality", personality)),
 		registry: registry,
 		router:   router,

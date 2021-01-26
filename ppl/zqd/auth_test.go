@@ -11,6 +11,7 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/ppl/zqd"
+	"github.com/brimsec/zq/ppl/zqd/auth"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -23,6 +24,14 @@ func testAuthConfig() zqd.AuthConfig {
 		Domain:   "https://testdomain",
 		ClientID: "testclientid",
 	}
+}
+
+func makeTestToken(t *testing.T, tenantID auth.TenantID, userID auth.UserID) string {
+	ac := testAuthConfig()
+	token, err := auth.GenerateAccessToken("testkey", "testdata/auth-private-key",
+		1*time.Hour, ac.Domain, tenantID, userID)
+	require.NoError(t, err)
+	return token
 }
 
 func makeToken(t *testing.T, kid string, c jwt.MapClaims) string {
@@ -58,13 +67,7 @@ func TestAuthIdentity(t *testing.T) {
 	require.True(t, errors.As(err, &identErr))
 	require.Equal(t, http.StatusUnauthorized, identErr.StatusCode())
 
-	token := makeToken(t, "testkey", map[string]interface{}{
-		"aud":             zqd.AudienceClaimValue,
-		"exp":             time.Now().Add(1 * time.Hour).Unix(),
-		"iss":             authConfig.Domain + "/",
-		zqd.TenantIDClaim: "test_tenant_id",
-		zqd.UserIDClaim:   "test_user_id",
-	})
+	token := makeTestToken(t, "test_tenant_id", "test_user_id")
 	conn.SetAuthToken(token)
 	res, err := conn.AuthIdentity(context.Background())
 	require.NoError(t, err)
@@ -75,52 +78,6 @@ func TestAuthIdentity(t *testing.T) {
 
 	_, err = conn.SpaceList(context.Background())
 	require.NoError(t, err)
-}
-
-func TestAuthTokenExpiration(t *testing.T) {
-	authConfig := testAuthConfig()
-	var cases = []struct {
-		name  string
-		token string
-	}{
-		{
-			name: "missing",
-			token: makeToken(t, "testkey", map[string]interface{}{
-				"aud":             zqd.AudienceClaimValue,
-				"iss":             authConfig.Domain + "/",
-				zqd.TenantIDClaim: "test_tenant_id",
-				zqd.UserIDClaim:   "test_user_id",
-			}),
-		},
-		{
-			name: "expired",
-			token: makeToken(t, "testkey", map[string]interface{}{
-				"aud":             zqd.AudienceClaimValue,
-				"exp":             time.Now().Add(-1 * time.Hour).Unix(),
-				"iss":             authConfig.Domain + "/",
-				zqd.TenantIDClaim: "test_tenant_id",
-				zqd.UserIDClaim:   "test_user_id",
-			}),
-		},
-	}
-
-	for _, c := range cases {
-		t.Run(c.name, func(t *testing.T) {
-			_, conn := newCoreWithConfig(t, zqd.Config{
-				Auth:   authConfig,
-				Logger: zap.NewNop(),
-			})
-			conn.SetAuthToken(c.token)
-			_, err := conn.AuthIdentity(context.Background())
-
-			var identErr *client.ErrorResponse
-			_, err = conn.AuthIdentity(context.Background())
-			require.Error(t, err)
-			require.True(t, errors.As(err, &identErr))
-			require.Equal(t, http.StatusUnauthorized, identErr.StatusCode())
-			require.Regexp(t, "invalid expiration", identErr.Error())
-		})
-	}
 }
 
 func TestAuthMethodGet(t *testing.T) {
@@ -146,7 +103,7 @@ func TestAuthMethodGet(t *testing.T) {
 		require.Equal(t, &api.AuthMethodResponse{
 			Kind: "auth0",
 			Auth0: &api.AuthMethodAuth0Details{
-				Audience: zqd.AudienceClaimValue,
+				Audience: auth.AudienceClaimValue,
 				Domain:   authConfig.Domain,
 				ClientID: authConfig.ClientID,
 			},

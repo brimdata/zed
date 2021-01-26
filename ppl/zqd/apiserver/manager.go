@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/zqd/auth"
 	"github.com/brimsec/zq/ppl/zqd/db"
 	"github.com/brimsec/zq/ppl/zqd/db/schema"
 	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
@@ -69,7 +70,7 @@ func (m *Manager) Shutdown() {
 }
 
 func (m *Manager) spawnAlphaMigrations(ctx context.Context) {
-	rows, err := m.db.ListSpaces(ctx)
+	rows, err := m.db.ListSpaces(ctx, auth.AnonymousTenantID)
 	if err != nil {
 		return
 	}
@@ -128,11 +129,13 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 		return api.Space{}, zqe.E(zqe.Invalid, "cannot create file storage space on non-file backed data path")
 	}
 
+	ident := auth.IdentifyFromContext(ctx)
 	row := schema.SpaceRow{
-		ID:      id,
-		Name:    req.Name,
-		DataURI: datapath,
-		Storage: storecfg,
+		ID:       id,
+		Name:     req.Name,
+		DataURI:  datapath,
+		Storage:  storecfg,
+		TenantID: ident.TenantID,
 	}
 
 	name := row.Name
@@ -177,12 +180,14 @@ func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req 
 	if _, err := m.getStorage(ctx, id, parent.DataURI, cfg); err != nil {
 		return api.Space{}, zqe.ErrInvalid("invalid subspace storage config: %w", err)
 	}
+	ident := auth.IdentifyFromContext(ctx)
 	row := schema.SpaceRow{
 		ID:       id,
 		ParentID: parentID,
 		Name:     req.Name,
 		DataURI:  parent.DataURI,
 		Storage:  cfg,
+		TenantID: ident.TenantID,
 	}
 	if err := m.db.CreateSubspace(ctx, row); err != nil {
 		return api.Space{}, err
@@ -192,7 +197,7 @@ func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req 
 }
 
 func (m *Manager) GetStorage(ctx context.Context, id api.SpaceID) (storage.Storage, error) {
-	sr, err := m.db.GetSpace(ctx, id)
+	sr, err := m.getSpacePermCheck(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +205,7 @@ func (m *Manager) GetStorage(ctx context.Context, id api.SpaceID) (storage.Stora
 }
 
 func (m *Manager) GetPcapStorage(ctx context.Context, id api.SpaceID) (*pcapstorage.Store, error) {
-	sr, err := m.db.GetSpace(ctx, id)
+	sr, err := m.getSpacePermCheck(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -306,8 +311,20 @@ func (m *Manager) rowToSpaceInfo(ctx context.Context, sr schema.SpaceRow) (api.S
 	return spaceInfo, nil
 }
 
-func (m *Manager) GetSpace(ctx context.Context, id api.SpaceID) (api.SpaceInfo, error) {
+func (m *Manager) getSpacePermCheck(ctx context.Context, id api.SpaceID) (schema.SpaceRow, error) {
 	sr, err := m.db.GetSpace(ctx, id)
+	if err != nil {
+		return schema.SpaceRow{}, err
+	}
+	ident := auth.IdentifyFromContext(ctx)
+	if sr.TenantID != ident.TenantID {
+		return schema.SpaceRow{}, zqe.ErrForbidden()
+	}
+	return sr, nil
+}
+
+func (m *Manager) GetSpace(ctx context.Context, id api.SpaceID) (api.SpaceInfo, error) {
+	sr, err := m.getSpacePermCheck(ctx, id)
 	if err != nil {
 		return api.SpaceInfo{}, err
 	}
@@ -315,7 +332,8 @@ func (m *Manager) GetSpace(ctx context.Context, id api.SpaceID) (api.SpaceInfo, 
 }
 
 func (m *Manager) ListSpaces(ctx context.Context) ([]api.Space, error) {
-	rows, err := m.db.ListSpaces(ctx)
+	ident := auth.IdentifyFromContext(ctx)
+	rows, err := m.db.ListSpaces(ctx, ident.TenantID)
 	if err != nil {
 		return nil, err
 	}
@@ -333,11 +351,14 @@ func (m *Manager) UpdateSpaceName(ctx context.Context, id api.SpaceID, name stri
 	if !schema.ValidSpaceName(name) {
 		return zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
+	if _, err := m.getSpacePermCheck(ctx, id); err != nil {
+		return err
+	}
 	return m.db.UpdateSpaceName(ctx, id, name)
 }
 
 func (m *Manager) DeleteSpace(ctx context.Context, id api.SpaceID) error {
-	sr, err := m.db.GetSpace(ctx, id)
+	sr, err := m.getSpacePermCheck(ctx, id)
 	if err != nil {
 		return err
 	}
