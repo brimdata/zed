@@ -395,8 +395,8 @@ func TestRequestID(t *testing.T) {
 		require.NoError(t, err)
 		res2, err := conn.Do(ctx, "GET", "/space", nil)
 		require.NoError(t, err)
-		assert.Equal(t, "1", res1.Header().Get("X-Request-ID"))
-		assert.Equal(t, "2", res2.Header().Get("X-Request-ID"))
+		assert.NotEqual(t, "", res1.Header().Get("X-Request-ID"))
+		assert.NotEqual(t, "", res2.Header().Get("X-Request-ID"))
 	})
 	t.Run("PropagatesID", func(t *testing.T) {
 		_, conn := newCore(t)

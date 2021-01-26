@@ -1,0 +1,16 @@
+recruiter:
+  replicaCount: 1
+root:
+  datauri: "file:///spaces"
+  recruiterAddr: zsrv-recruiter:9867
+worker:
+  recruiterAddr: zsrv-recruiter:9867
+
+global:
+  AWSRegion: ""
+  image:
+    repository: "localhost:5000/"
+    pullPolicy: Always
+    tag: "zqd"
+  imagePullSecrets: []
+  useCredSecret: false

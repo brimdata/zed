@@ -127,11 +127,11 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	var startFields []zap.Field
 	switch personality {
-	case "all", "apiserver":
+	case "all", "apiserver", "root":
 		if err := c.addAPIServerRoutes(ctx, conf); err != nil {
 			return nil, err
 		}
-		if personality == "all" {
+		if personality == "all" || personality == "root" {
 			c.addWorkerRoutes()
 		}
 		startFields = []zap.Field{
@@ -245,7 +245,7 @@ func (c *Core) nextTaskID() int64 {
 }
 
 func (c *Core) requestLogger(r *http.Request) *zap.Logger {
-	return c.logger.With(zap.String("request_id", getRequestID(r.Context())))
+	return c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
 }
 
 func (c *Core) WorkerRegistration(ctx context.Context, srvAddr string, conf worker.WorkerConfig) error {

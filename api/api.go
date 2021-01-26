@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +15,15 @@ import (
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zjsonio"
 )
+
+const RequestIDHeader = "X-Request-ID"
+
+func RequestIDFromContext(ctx context.Context) string {
+	if v := ctx.Value(RequestIDHeader); v != nil {
+		return v.(string)
+	}
+	return ""
+}
 
 type Error struct {
 	Type    string      `json:"type"`

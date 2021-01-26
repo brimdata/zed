@@ -166,7 +166,7 @@ func NewCompareEquality(lhs, rhs Evaluator, operator string) (*Equal, error) {
 		e.equality = true
 	case "!=":
 	default:
-		return nil, fmt.Errorf("unknown equlity operator: %s", operator)
+		return nil, fmt.Errorf("unknown equality operator: %s", operator)
 	}
 	return e, nil
 }
@@ -716,7 +716,7 @@ func NewCast(expr Evaluator, styp string) (Evaluator, error) {
 	c := LookupPrimitiveCaster(typ)
 	if c == nil {
 		// XXX See issue #1572.   To implement aliascast here.
-		return nil, fmt.Errorf("cast to %s not implemeneted", styp)
+		return nil, fmt.Errorf("cast to %s not implemented", styp)
 	}
 	return &evalCast{expr, c}, nil
 }
@@ -738,7 +738,7 @@ func NewRootField(name string) Evaluator {
 	return NewDotExpr(field.New(name))
 }
 
-var ErrInference = errors.New("assigment name could not be inferred from rhs expressioin")
+var ErrInference = errors.New("assigment name could not be inferred from rhs expression")
 
 type Assignment struct {
 	LHS field.Static

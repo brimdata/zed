@@ -134,7 +134,11 @@ func (c *Connection) SetURL(u string) {
 }
 
 func (c *Connection) Request(ctx context.Context) *resty.Request {
-	return c.client.R().SetContext(ctx)
+	req := c.client.R().SetContext(ctx)
+	if requestID := api.RequestIDFromContext(ctx); requestID != "" {
+		req = req.SetHeader(api.RequestIDHeader, requestID)
+	}
+	return req
 }
 
 // Ping checks to see if the server and measure the time it takes to

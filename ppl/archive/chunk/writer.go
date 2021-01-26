@@ -2,6 +2,7 @@ package chunk
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/brimsec/zq/pkg/bufwriter"
@@ -146,9 +147,10 @@ func (cw *Writer) CloseWithTs(ctx context.Context, firstTs, lastTs nano.Ts) erro
 		Masks:       cw.masks,
 		Size:        cw.dataFileWriter.Position(),
 	}
-	if err := metadata.Write(ctx, MetadataPath(cw.dir, cw.id), cw.order); err != nil {
+	mdPath := MetadataPath(cw.dir, cw.id)
+	if err := metadata.Write(ctx, mdPath, cw.order); err != nil {
 		cw.Abort()
-		return err
+		return fmt.Errorf("failed to write chunk metadata to %v: %w", mdPath, err)
 	}
 	if err := cw.seekIndex.Close(); err != nil {
 		cw.Abort()

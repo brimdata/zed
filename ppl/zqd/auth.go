@@ -119,7 +119,7 @@ func newAuthenticator(ctx context.Context, logger *zap.Logger, registerer promet
 		ErrorHandler: func(w http.ResponseWriter, r *http.Request, errstr string) {
 			unauthorized.Inc()
 			logger.Info("unauthorized request",
-				zap.String("request_id", getRequestID(r.Context())),
+				zap.String("request_id", api.RequestIDFromContext(r.Context())),
 				zap.String("error", errstr))
 			http.Error(w, errstr, http.StatusUnauthorized)
 		},
