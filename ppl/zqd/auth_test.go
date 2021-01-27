@@ -26,7 +26,7 @@ func testAuthConfig() zqd.AuthConfig {
 	}
 }
 
-func makeTestToken(t *testing.T, tenantID auth.TenantID, userID auth.UserID) string {
+func genToken(t *testing.T, tenantID auth.TenantID, userID auth.UserID) string {
 	ac := testAuthConfig()
 	token, err := auth.GenerateAccessToken("testkey", "testdata/auth-private-key",
 		1*time.Hour, ac.Domain, tenantID, userID)
@@ -67,7 +67,7 @@ func TestAuthIdentity(t *testing.T) {
 	require.True(t, errors.As(err, &identErr))
 	require.Equal(t, http.StatusUnauthorized, identErr.StatusCode())
 
-	token := makeTestToken(t, "test_tenant_id", "test_user_id")
+	token := genToken(t, "test_tenant_id", "test_user_id")
 	conn.SetAuthToken(token)
 	res, err := conn.AuthIdentity(context.Background())
 	require.NoError(t, err)

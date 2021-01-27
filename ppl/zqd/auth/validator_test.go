@@ -21,7 +21,7 @@ func testValidator(t *testing.T) *TokenValidator {
 	return v
 }
 
-func makeTestToken(t *testing.T, claims jwt.MapClaims) string {
+func genToken(t *testing.T, claims jwt.MapClaims) string {
 	token, err := makeToken(testKeyID, testKeyFile, claims)
 	require.NoError(t, err)
 	return token
@@ -61,7 +61,7 @@ func TestBadClaims(t *testing.T) {
 	}{
 		{
 			name: "missing audience",
-			token: makeTestToken(t, jwt.MapClaims{
+			token: genToken(t, jwt.MapClaims{
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
 				TenantIDClaim: "test_tenant_id",
@@ -70,7 +70,7 @@ func TestBadClaims(t *testing.T) {
 		},
 		{
 			name: "invalid audience",
-			token: makeTestToken(t, jwt.MapClaims{
+			token: genToken(t, jwt.MapClaims{
 				"aud":         "foo",
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
@@ -80,7 +80,7 @@ func TestBadClaims(t *testing.T) {
 		},
 		{
 			name: "missing expiration",
-			token: makeTestToken(t, jwt.MapClaims{
+			token: genToken(t, jwt.MapClaims{
 				"aud":         AudienceClaimValue,
 				"iss":         "https://testdomain/",
 				TenantIDClaim: "test_tenant_id",
@@ -89,7 +89,7 @@ func TestBadClaims(t *testing.T) {
 		},
 		{
 			name: "expired expiration",
-			token: makeTestToken(t, jwt.MapClaims{
+			token: genToken(t, jwt.MapClaims{
 				"aud":         AudienceClaimValue,
 				"exp":         time.Now().Add(-1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
@@ -99,7 +99,7 @@ func TestBadClaims(t *testing.T) {
 		},
 		{
 			name: "missing issuer",
-			token: makeTestToken(t, jwt.MapClaims{
+			token: genToken(t, jwt.MapClaims{
 				"aud":         AudienceClaimValue,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				TenantIDClaim: "test_tenant_id",
@@ -108,7 +108,7 @@ func TestBadClaims(t *testing.T) {
 		},
 		{
 			name: "invalid issuer",
-			token: makeTestToken(t, jwt.MapClaims{
+			token: genToken(t, jwt.MapClaims{
 				"aud":         AudienceClaimValue,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "foo",
@@ -118,7 +118,7 @@ func TestBadClaims(t *testing.T) {
 		},
 		{
 			name: "missing user id",
-			token: makeTestToken(t, jwt.MapClaims{
+			token: genToken(t, jwt.MapClaims{
 				"aud":         AudienceClaimValue,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
@@ -127,7 +127,7 @@ func TestBadClaims(t *testing.T) {
 		},
 		{
 			name: "anonymous user id",
-			token: makeTestToken(t, jwt.MapClaims{
+			token: genToken(t, jwt.MapClaims{
 				"aud":         AudienceClaimValue,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
@@ -137,7 +137,7 @@ func TestBadClaims(t *testing.T) {
 		},
 		{
 			name: "missing tenant id",
-			token: makeTestToken(t, jwt.MapClaims{
+			token: genToken(t, jwt.MapClaims{
 				"aud":       AudienceClaimValue,
 				"exp":       time.Now().Add(1 * time.Hour).Unix(),
 				"iss":       "https://testdomain/",
@@ -146,7 +146,7 @@ func TestBadClaims(t *testing.T) {
 		},
 		{
 			name: "anonymous user id",
-			token: makeTestToken(t, jwt.MapClaims{
+			token: genToken(t, jwt.MapClaims{
 				"aud":         AudienceClaimValue,
 				"exp":         time.Now().Add(1 * time.Hour).Unix(),
 				"iss":         "https://testdomain/",
@@ -200,7 +200,7 @@ func TestAudienceSlice(t *testing.T) {
 		TenantID: "test_tenant_id",
 		UserID:   "test_user_id",
 	}
-	token := makeTestToken(t, jwt.MapClaims{
+	token := genToken(t, jwt.MapClaims{
 		"aud":         []string{AudienceClaimValue, "foobar"},
 		"exp":         time.Now().Add(1 * time.Hour).Unix(),
 		"iss":         "https://testdomain/",
@@ -212,7 +212,7 @@ func TestAudienceSlice(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expectedIdent, ident)
 
-	token = makeTestToken(t, jwt.MapClaims{
+	token = genToken(t, jwt.MapClaims{
 		"aud":         []string{"foo", "bar"},
 		"exp":         time.Now().Add(1 * time.Hour).Unix(),
 		"iss":         "https://testdomain/",

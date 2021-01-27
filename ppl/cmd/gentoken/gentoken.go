@@ -12,8 +12,8 @@ import (
 )
 
 var CLI = &charm.Spec{
-	Name:  "testtoken",
-	Usage: "testtoken",
+	Name:  "gentoken",
+	Usage: "gentoken",
 	Short: "generate access token to test zqd auth",
 	New:   New,
 }
@@ -42,7 +42,7 @@ func New(_ charm.Command, fs *flag.FlagSet) (charm.Command, error) {
 
 func (c *Command) Run(args []string) error {
 	if len(args) > 0 {
-		return errors.New("testtoken takes no arguments")
+		return errors.New("gentoken takes no arguments")
 	}
 	if c.privateKeyFile == "" {
 		return errors.New("must specify a keyfile")

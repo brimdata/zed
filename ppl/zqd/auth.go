@@ -73,14 +73,14 @@ func (a *Auth0Authenticator) Middleware(next http.Handler) http.Handler {
 		token, ident, err := a.validator.ValidateRequest(r)
 		if err != nil {
 			a.unauthorized.Inc()
-			a.logger.Info("unauthorized request",
+			a.logger.Info("Unauthorized request",
 				zap.String("request_id", api.RequestIDFromContext(r.Context())),
 				zap.Error(err))
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
-		ctx := auth.AuthTokenToContext(r.Context(), token)
-		ctx = auth.IdentityToContext(ctx, ident)
+		ctx := auth.ContextWithAuthToken(r.Context(), token)
+		ctx = auth.ContextWithIdentity(ctx, ident)
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
 	})

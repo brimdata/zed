@@ -34,7 +34,7 @@ func makeToken(keyID string, keyFile string, claims jwt.MapClaims) (string, erro
 func GenerateAccessToken(keyID string, privateKeyFile string, expiration time.Duration, domain string, tenantID TenantID, userID UserID) (string, error) {
 	dstr, err := url.Parse(domain)
 	if err != nil {
-		return "", fmt.Errorf("domain should be url")
+		return "", fmt.Errorf("bad domain URL: %w", err)
 	}
 	return makeToken(keyID, privateKeyFile, jwt.MapClaims{
 		"aud":         AudienceClaimValue,

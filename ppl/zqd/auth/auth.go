@@ -19,7 +19,7 @@ type Identity struct {
 
 type identityKey struct{}
 
-func IdentifyFromContext(ctx context.Context) Identity {
+func IdentityFromContext(ctx context.Context) Identity {
 	ident, ok := ctx.Value(identityKey{}).(Identity)
 	if !ok {
 		return Identity{TenantID: AnonymousTenantID, UserID: AnonymousUserID}
@@ -27,17 +27,17 @@ func IdentifyFromContext(ctx context.Context) Identity {
 	return ident
 }
 
-func IdentityToContext(ctx context.Context, ident Identity) context.Context {
+func ContextWithIdentity(ctx context.Context, ident Identity) context.Context {
 	return context.WithValue(ctx, identityKey{}, ident)
 }
 
-type jwtKey struct{}
+type authTokenKey struct{}
 
 func AuthTokenFromContext(ctx context.Context) (string, bool) {
-	token, ok := ctx.Value(jwtKey{}).(string)
+	token, ok := ctx.Value(authTokenKey{}).(string)
 	return token, ok
 }
 
-func AuthTokenToContext(ctx context.Context, token string) context.Context {
-	return context.WithValue(ctx, jwtKey{}, token)
+func ContextWithAuthToken(ctx context.Context, token string) context.Context {
+	return context.WithValue(ctx, authTokenKey{}, token)
 }

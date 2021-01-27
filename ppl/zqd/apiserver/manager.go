@@ -129,7 +129,7 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 		return api.Space{}, zqe.E(zqe.Invalid, "cannot create file storage space on non-file backed data path")
 	}
 
-	ident := auth.IdentifyFromContext(ctx)
+	ident := auth.IdentityFromContext(ctx)
 	row := schema.SpaceRow{
 		ID:       id,
 		Name:     req.Name,
@@ -180,7 +180,7 @@ func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req 
 	if _, err := m.getStorage(ctx, id, parent.DataURI, cfg); err != nil {
 		return api.Space{}, zqe.ErrInvalid("invalid subspace storage config: %w", err)
 	}
-	ident := auth.IdentifyFromContext(ctx)
+	ident := auth.IdentityFromContext(ctx)
 	row := schema.SpaceRow{
 		ID:       id,
 		ParentID: parentID,
@@ -316,7 +316,7 @@ func (m *Manager) getSpacePermCheck(ctx context.Context, id api.SpaceID) (schema
 	if err != nil {
 		return schema.SpaceRow{}, err
 	}
-	ident := auth.IdentifyFromContext(ctx)
+	ident := auth.IdentityFromContext(ctx)
 	if sr.TenantID != ident.TenantID {
 		return schema.SpaceRow{}, zqe.ErrForbidden()
 	}
@@ -332,7 +332,7 @@ func (m *Manager) GetSpace(ctx context.Context, id api.SpaceID) (api.SpaceInfo, 
 }
 
 func (m *Manager) ListSpaces(ctx context.Context) ([]api.Space, error) {
-	ident := auth.IdentifyFromContext(ctx)
+	ident := auth.IdentityFromContext(ctx)
 	rows, err := m.db.ListSpaces(ctx, ident.TenantID)
 	if err != nil {
 		return nil, err

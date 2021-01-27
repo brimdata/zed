@@ -595,7 +595,7 @@ func extractSpaceID(c *Core, w http.ResponseWriter, r *http.Request) (api.SpaceI
 }
 
 func handleAuthIdentityGet(c *Core, w http.ResponseWriter, r *http.Request) {
-	ident := auth.IdentifyFromContext(r.Context())
+	ident := auth.IdentityFromContext(r.Context())
 	respond(c, w, r, http.StatusOK, api.AuthIdentityResponse{
 		TenantID: string(ident.TenantID),
 		UserID:   string(ident.UserID),

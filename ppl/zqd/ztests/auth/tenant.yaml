@@ -1,9 +1,9 @@
 script: |
   ZQD_EXTRA_FLAGS="-auth.enabled=true -auth.clientid=testclient -auth.domain=https://testdomain -auth.jwkspath=./auth-public-jwks.json" source services.sh
   zapi -h $ZQD_HOST -configpath ./user1 auth store -access \
-    $(testtoken -domain https://testdomain -privatekeyfile ./auth-private-key -keyid testkey -tenantid tenant1 -userid user1)
+    $(gentoken -domain https://testdomain -privatekeyfile ./auth-private-key -keyid testkey -tenantid tenant1 -userid user1)
   zapi -h $ZQD_HOST -configpath ./user2 auth store -access \
-    $(testtoken -domain https://testdomain -privatekeyfile ./auth-private-key -keyid testkey -tenantid tenant2 -userid user2)
+    $(gentoken -domain https://testdomain -privatekeyfile ./auth-private-key -keyid testkey -tenantid tenant2 -userid user2)
   echo ===
   zapi -configpath ./user1 -h $ZQD_HOST auth verify
   echo ===
