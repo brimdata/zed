@@ -14,15 +14,15 @@ const (
 	credsFileName     = "credentials.json"
 )
 
-type localConfigFlags struct {
+type LocalConfigFlags struct {
 	configPath string
 }
 
-func (f *localConfigFlags) SetFlags(fs *flag.FlagSet) {
+func (f *LocalConfigFlags) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&f.configPath, "configpath", "", "directory to store local configuration and credentials")
 }
 
-func (f *localConfigFlags) credentialsPath() (string, error) {
+func (f *LocalConfigFlags) credentialsPath() (string, error) {
 	if f.configPath != "" {
 		return filepath.Abs(filepath.Join(f.configPath, credsFileName))
 	}
@@ -33,7 +33,7 @@ func (f *localConfigFlags) credentialsPath() (string, error) {
 	return filepath.Join(c, zapiConfigDirName, credsFileName), nil
 }
 
-func (f *localConfigFlags) LoadCredentials() (*Credentials, error) {
+func (f *LocalConfigFlags) LoadCredentials() (*Credentials, error) {
 	cpath, err := f.credentialsPath()
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func (f *localConfigFlags) LoadCredentials() (*Credentials, error) {
 	return &cf, nil
 }
 
-func (f *localConfigFlags) SaveCredentials(cf *Credentials) error {
+func (f *LocalConfigFlags) SaveCredentials(cf *Credentials) error {
 	cpath, err := f.credentialsPath()
 	if err != nil {
 		return err

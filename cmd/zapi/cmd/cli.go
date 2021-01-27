@@ -66,7 +66,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 
 type Command struct {
 	Host        string
-	LocalConfig localConfigFlags
+	LocalConfig LocalConfigFlags
 	NoFancy     bool
 	Spacename   string
 	cli         cli.Flags
