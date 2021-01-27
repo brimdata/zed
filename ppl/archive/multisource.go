@@ -125,23 +125,16 @@ func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcCh
 		return err
 	})
 	g.Go(func() error {
-		for {
-			select {
-			case sinfos, ok := <-sinfosChan:
-				if !ok {
-					return nil
+		for sinfos := range sinfosChan {
+			for _, si := range sinfos {
+				select {
+				case srcChan <- &spanSource{ark: m.ark, spanInfo: si, stats: m.stats}:
+				case <-ctx.Done():
+					return ctx.Err()
 				}
-				for _, si := range sinfos {
-					select {
-					case srcChan <- &spanSource{ark: m.ark, spanInfo: si, stats: m.stats}:
-					case <-ctx.Done():
-						return ctx.Err()
-					}
-				}
-			case <-ctx.Done():
-				return ctx.Err()
 			}
 		}
+		return nil
 	})
 	return g.Wait()
 }
