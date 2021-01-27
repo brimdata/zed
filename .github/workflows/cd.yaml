@@ -66,9 +66,8 @@ jobs:
           mkdir testlog
           make install
 
-          kubectl port-forward svc/zsrv-recruiter 8020:9867 &
-          kubectl port-forward svc/zsrv-root 9867:9867 &
-          sleep 2 # wait for port-forwards to complete
+          source k8s/zsv-port-forward.sh
+
           time zapi ls
           time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
           # Post an archive of about 1.6 GB to run test queries.
