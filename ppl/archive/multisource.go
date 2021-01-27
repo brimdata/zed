@@ -21,6 +21,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"go.uber.org/multierr"
+	"golang.org/x/sync/errgroup"
 )
 
 type MultiSource interface {
@@ -105,14 +106,37 @@ func (m *spanMultiSource) OrderInfo() (field.Static, bool) {
 }
 
 func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcChan chan driver.Source) error {
-	return SpanWalk(ctx, m.ark, span, func(si SpanInfo) error {
-		select {
-		case srcChan <- &spanSource{ark: m.ark, spanInfo: si, stats: m.stats}:
-			return nil
-		case <-ctx.Done():
-			return ctx.Err()
-		}
+	// We keep a channel of []SpanInfos filled to reduce the time
+	// query workers are waiting for the next driver.Source.
+	const tsDirPreFetch = 10
+	sinfosChan := make(chan []SpanInfo, tsDirPreFetch)
+	g, ctx := errgroup.WithContext(ctx)
+	g.Go(func() error {
+		err := tsDirVisit(ctx, m.ark, span, func(_ tsDir, chunks []chunk.Chunk) error {
+			sinfos := mergeChunksToSpans(chunks, m.ark.DataOrder, span)
+			select {
+			case sinfosChan <- sinfos:
+				return nil
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		})
+		close(sinfosChan)
+		return err
 	})
+	g.Go(func() error {
+		for sinfos := range sinfosChan {
+			for _, si := range sinfos {
+				select {
+				case srcChan <- &spanSource{ark: m.ark, spanInfo: si, stats: m.stats}:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
+		}
+		return nil
+	})
+	return g.Wait()
 }
 
 func (m *spanMultiSource) SourceFromRequest(ctx context.Context, req *api.WorkerChunkRequest) (driver.Source, error) {
