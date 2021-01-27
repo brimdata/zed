@@ -28,7 +28,7 @@ func (c *WorkerConfig) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&c.BoundWorkers, "worker.bound", "", "bound workers as comma-separated [addr]:port list")
 	fs.BoolVar(&c.Fallback, "worker.fallback", false, "fallback to using fewer workers than requested")
 	fs.StringVar(&c.Host, "worker.host", "", "host ip of container")
-	fs.DurationVar(&c.IdleTime, "worker.idletime", 2*time.Second, "timeout duration for zombie worker processes to exit")
+	fs.DurationVar(&c.IdleTime, "worker.idletime", 10*time.Second, "timeout duration for zombie worker processes to exit")
 	fs.DurationVar(&c.LongPoll, "worker.longpoll", 30*time.Second, "timeout duration for long poll of /recruiter/register request")
 	fs.DurationVar(&c.MaxRetry, "worker.maxretry", 10*time.Second, "maximum retry wait duration for registration request")
 	fs.DurationVar(&c.MinRetry, "worker.minretry", 200*time.Millisecond, "minimum retry wait duration for registration request")
