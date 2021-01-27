@@ -4,6 +4,7 @@ package immcache
 
 import (
 	"context"
+	"flag"
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/prometheus/client_golang/prometheus"
@@ -18,6 +19,10 @@ type Config struct {
 	// local lru cache used to speed up searches. Values less than or equal to 0
 	// (default), disables local caching of immutable files.
 	LocalCacheSize int
+}
+
+func (c *Config) SetFlags(fs *flag.FlagSet) {
+	fs.IntVar(&c.LocalCacheSize, "immcache.localsize", 0, "enables local caching of up to N small files (disabled if 0)")
 }
 
 func New(conf Config, reg prometheus.Registerer) (ImmutableCache, error) {

@@ -71,6 +71,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.conf.Auth.SetFlags(f)
 	c.conf.Worker.SetFlags(f)
 	c.conf.DB.SetFlags(f)
+	c.conf.ImmutableCache.SetFlags(f)
 	c.conf.Version = cli.Version
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.configfile, "config", "", "path to zqd config file")
