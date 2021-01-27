@@ -5,6 +5,7 @@ import (
 	"errors"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/ppl/zqd/auth"
 	"github.com/brimsec/zq/ppl/zqd/db/schema"
 	"github.com/brimsec/zq/zqe"
 	"github.com/go-pg/pg/v10"
@@ -61,9 +62,9 @@ func (d *PostgresDB) GetSpace(ctx context.Context, id api.SpaceID) (schema.Space
 	return space, err
 }
 
-func (d *PostgresDB) ListSpaces(ctx context.Context) ([]schema.SpaceRow, error) {
+func (d *PostgresDB) ListSpaces(ctx context.Context, tenantID auth.TenantID) ([]schema.SpaceRow, error) {
 	var spaces []schema.SpaceRow
-	_, err := d.db.QueryContext(ctx, &spaces, "SELECT * FROM space")
+	_, err := d.db.QueryContext(ctx, &spaces, "SELECT * FROM space WHERE tenant_id = ?", tenantID)
 	return spaces, err
 }
 

@@ -41,6 +41,10 @@ func New(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 // Run lists all spaces in the current zqd host or if a parameter
 // is provided (in glob style) lists the info about that space.
 func (c *Command) Run(args []string) error {
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
+		return err
+	}
 	conn := c.Connection()
 	var ids []api.SpaceID
 	if len(args) > 0 {

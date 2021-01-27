@@ -24,7 +24,7 @@ zqd listen -l=localhost:0 \
   -portfile="$portdir/zqd" \
   -db.kind="postgres" \
   -db.postgres.url=$PG_TEST \
-  -db.postgres.database=$dbname &> zqd.log &
+  -db.postgres.database=$dbname $ZQD_EXTRA_FLAGS &> zqd.log &
 
 zqdpid=$!
 awaitfile $portdir/zqd
