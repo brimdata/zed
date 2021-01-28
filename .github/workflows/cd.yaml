@@ -2,7 +2,6 @@ name: "Deploy"
 
 on:
   pull_request:
-    types: [ labeled ]
   push:
     branches:
       - master
@@ -10,7 +9,7 @@ on:
 jobs:
   ecr-image-push:
     # Build and push a Docker image for zqd.
-    if: ${{ github.event.label.name == 'eks-test' }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'eks-test') }}
     runs-on: ubuntu-latest
     steps:
       - uses: aws-actions/configure-aws-credentials@v1
@@ -29,7 +28,7 @@ jobs:
           make docker-push-ecr
   eks-deploy-test:
     # Deploys this build to a temporary namespace in order to run smoke tests.
-    if: ${{ github.event.label.name == 'eks-test' }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'eks-test') }}
     needs: ecr-image-push
     runs-on: ubuntu-latest
     steps:
@@ -85,7 +84,7 @@ jobs:
   eks-master-deploy:
     # Deploys this build to ci-master namespace so it will be available
     # for manual testing. Only deploy if previous jobs succeed.
-    if: ${{ github.event.label.name == 'eks-test' }}
+    if: ${{ contains(github.event.pull_request.labels.*.name, 'eks-test') }}
     needs: eks-deploy-test
     runs-on: ubuntu-latest
     steps:
