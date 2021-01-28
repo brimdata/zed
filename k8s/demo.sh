@@ -1,5 +1,6 @@
 #!/bin/bash
 # This is designed to be run from the zq root directory
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 make install
 helm uninstall zsrv
@@ -11,7 +12,7 @@ make helm-install
 
 sleep 15 # wait for services
 
-./k8s/zqd-port.sh
+$DIR/zqd-port.sh
 
 aws s3 rm --recursive s3://brim-scratch/mark/sp-m1 || :
 zapi new -k archivestore -d s3://brim-scratch/mark/sp-m1 -thresh 5MB sp-m1
