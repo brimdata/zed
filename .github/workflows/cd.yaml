@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - deploy-job-1
 
 jobs:
   ecr-image-push:
