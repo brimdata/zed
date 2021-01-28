@@ -68,18 +68,11 @@ jobs:
 
           source k8s/zsrv-port-forward.sh
 
-          time zapi ls
-          time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
-          # Post an archive of about 1.6 GB to run test queries.
-          time zapi -s $SPACE postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
           # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
-          time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
-          time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
-          time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts'
-          time zapi -s $SPACE get -workers 4 -t 'count()'
-          time zapi -s $SPACE get -workers 4 -t \
-            '* | count() by tx_hosts | sort -r count | head 5'
+
+          make test-cluster
+          
       - name: Get zqd logs and remove namespace on success or failure
         if: ${{ always() }}
         run: |
