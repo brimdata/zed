@@ -61,9 +61,6 @@ jobs:
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
 
-          SPACE=files
-
-          mkdir testlog
           make install
 
           source k8s/zsrv-port-forward.sh
@@ -72,12 +69,13 @@ jobs:
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
 
           make test-cluster
-          
+
       - name: Get zqd logs and remove namespace on success or failure
         if: ${{ always() }}
         run: |
           set -x
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          mkdir testlog
           kubectl logs --tail -1 -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
           kubectl logs --tail -1 -l app.kubernetes.io/name=root > testlog/root.log
           kubectl logs --tail -1 -l app.kubernetes.io/name=worker > testlog/worker.log
