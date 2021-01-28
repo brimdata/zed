@@ -156,7 +156,10 @@ func (f *Formatter) formatRecord(indent int, typ *zng.TypeRecord, bytes zcode.By
 		}
 		f.build(sep)
 		f.indent(indent, zng.QuotedName(field.Name))
-		f.build(": ")
+		f.build(":")
+		if f.tab > 0 {
+			f.build(" ")
+		}
 		if err := f.formatValue(indent, field.Type, bytes, known, true); err != nil {
 			return err
 		}
