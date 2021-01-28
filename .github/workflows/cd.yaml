@@ -2,13 +2,14 @@ name: "Deploy"
 
 on:
   push:
+    pull_request:
     branches:
       - master
-      - deploy-job-1
 
 jobs:
   ecr-image-push:
     # Build and push a Docker image for zqd.
+    if: contains(github.event.pull_request.labels.*.name, 'eks-test')
     runs-on: ubuntu-latest
     steps:
       - uses: aws-actions/configure-aws-credentials@v1
@@ -27,6 +28,7 @@ jobs:
           make docker-push-ecr
   eks-deploy-test:
     # Deploys this build to a temporary namespace in order to run smoke tests.
+    if: contains(github.event.pull_request.labels.*.name, 'eks-test')
     needs: ecr-image-push
     runs-on: ubuntu-latest
     steps:
@@ -47,7 +49,6 @@ jobs:
           export ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
           export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           aws s3 rm --recursive $ZQD_DATA_URI || : # clear data from previous run
-
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl create ns $namespace || :
           kubectl config set-context --current --namespace=$namespace
@@ -59,16 +60,11 @@ jobs:
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
-
           make install
-
           source k8s/zsrv-port-forward.sh
-
           # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
-
           make test-cluster
-
       - name: Get zqd logs and remove namespace on success or failure
         if: ${{ always() }}
         run: |
@@ -85,10 +81,10 @@ jobs:
         with:
           name: eks-testlog
           path: testlog/
-
   eks-master-deploy:
     # Deploys this build to ci-master namespace so it will be available
     # for manual testing. Only deploy if previous jobs succeed.
+    if: contains(github.event.pull_request.labels.*.name, 'eks-test')
     needs: eks-deploy-test
     runs-on: ubuntu-latest
     steps:
