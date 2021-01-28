@@ -1,0 +1,23 @@
+script: |
+  ZQD_EXTRA_FLAGS=-immcache.localsize=128 source services.sh
+  zapi -h $ZQD_HOST new -d ./root -k archivestore -thresh 20KiB testsp
+  zapi -h $ZQD_HOST -s testsp post babble.tzng >/dev/null
+  echo ===
+  zapi -h $ZQD_HOST -s testsp get -f text "count()"
+  echo ===
+  zapi -h $ZQD_HOST -s testsp get -f text "count()"
+
+inputs:
+  - name: babble.tzng
+    source: ../../../ztests/suite/data/babble.tzng
+  - name: services.sh
+    source: services.sh
+
+outputs:
+  - name: stdout
+    data: |
+      testsp: space created
+      ===
+      1000
+      ===
+      1000
