@@ -66,7 +66,7 @@ jobs:
           mkdir testlog
           make install
 
-          source k8s/zsv-port-forward.sh
+          source k8s/zsrv-port-forward.sh
 
           time zapi ls
           time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
