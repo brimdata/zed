@@ -10,13 +10,13 @@ import (
 )
 
 type FieldNameFinder struct {
-	checkedIDs       big.Int
-	fieldNameIter    FieldNameIter
-	stringCaseFinder *CaseFinder
+	checkedIDs    big.Int
+	fieldNameIter FieldNameIter
+	caseFinder    *CaseFinder
 }
 
 func NewFieldNameFinder(pattern string) *FieldNameFinder {
-	return &FieldNameFinder{stringCaseFinder: NewCaseFinder(pattern)}
+	return &FieldNameFinder{caseFinder: NewCaseFinder(pattern)}
 }
 
 // Find returns true if buf, which holds a sequence of ZNG value messages, might
@@ -61,7 +61,7 @@ func (f *FieldNameFinder) Find(zctx *resolver.Context, buf []byte) bool {
 		}
 		for f.fieldNameIter.Init(tr); !f.fieldNameIter.Done(); {
 			name := f.fieldNameIter.Next()
-			if f.stringCaseFinder.Next(byteconv.UnsafeString(name)) != -1 {
+			if f.caseFinder.Next(byteconv.UnsafeString(name)) != -1 {
 				return true
 			}
 		}

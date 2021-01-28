@@ -23,8 +23,8 @@ type BufferFilter struct {
 	left  *BufferFilter
 	right *BufferFilter
 	fnf   *stringsearch.FieldNameFinder
-	scf   *stringsearch.CaseFinder
-	sf    *stringsearch.Finder
+	cf    *stringsearch.CaseFinder
+	f     *stringsearch.Finder
 }
 
 func NewAndBufferFilter(left, right *BufferFilter) *BufferFilter {
@@ -47,7 +47,7 @@ func NewBufferFilterForString(pattern string) *BufferFilter {
 		// Very short patterns are unprofitable.
 		return nil
 	}
-	return &BufferFilter{op: opStringFinder, sf: stringsearch.NewFinder(pattern)}
+	return &BufferFilter{op: opStringFinder, f: stringsearch.NewFinder(pattern)}
 }
 
 func NewBufferFilterForStringCase(pattern string) *BufferFilter {
@@ -62,7 +62,7 @@ func NewBufferFilterForStringCase(pattern string) *BufferFilter {
 			return nil
 		}
 	}
-	return &BufferFilter{op: opStringCaseFinder, scf: stringsearch.NewCaseFinder(pattern)}
+	return &BufferFilter{op: opStringCaseFinder, cf: stringsearch.NewCaseFinder(pattern)}
 }
 
 // Eval returns true if buf matches the receiver and false otherwise.
@@ -75,9 +75,9 @@ func (b *BufferFilter) Eval(zctx *resolver.Context, buf []byte) bool {
 	case opFieldNameFinder:
 		return b.fnf.Find(zctx, buf)
 	case opStringCaseFinder:
-		return b.scf.Next(byteconv.UnsafeString(buf)) > -1
+		return b.cf.Next(byteconv.UnsafeString(buf)) > -1
 	case opStringFinder:
-		return b.sf.Next(byteconv.UnsafeString(buf)) > -1
+		return b.f.Next(byteconv.UnsafeString(buf)) > -1
 	default:
 		panic(fmt.Sprintf("BufferFilter: unknown op %d", b.op))
 	}
