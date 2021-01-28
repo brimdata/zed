@@ -8,18 +8,18 @@
 // See acknowledgments.txt for full license text from
 // https://github.com/golang/go/blob/master/LICENSE.
 
-package filter
+package stringsearch
 
 import (
 	"strings"
 )
 
-// stringFinder efficiently finds strings in a source text. It's implemented
+// Finder efficiently finds strings in a source text. It's implemented
 // using the Boyer-Moore string search algorithm:
 // https://en.wikipedia.org/wiki/Boyer-Moore_string_search_algorithm
 // https://www.cs.utexas.edu/~moore/publications/fstrpos.pdf (note: this aged
 // document uses 1-based indexing)
-type stringFinder struct {
+type Finder struct {
 	// pattern is the string that we are searching for in the text.
 	pattern string
 
@@ -55,8 +55,8 @@ type stringFinder struct {
 	goodSuffixSkip []int
 }
 
-func makeStringFinder(pattern string) *stringFinder {
-	f := &stringFinder{
+func NewFinder(pattern string) *Finder {
+	f := &Finder{
 		pattern:        pattern,
 		goodSuffixSkip: make([]int, len(pattern)),
 	}
@@ -107,9 +107,9 @@ func longestCommonSuffix(a, b string) (i int) {
 	return
 }
 
-// next returns the index in text of the first occurrence of the pattern. If
+// Next returns the index in text of the first occurrence of the pattern. If
 // the pattern is not found, it returns -1.
-func (f *stringFinder) next(text string) int {
+func (f *Finder) Next(text string) int {
 	i := len(f.pattern) - 1
 	for i < len(text) {
 		// Compare backwards from the end until the first unmatching character.
@@ -133,17 +133,17 @@ func max(a, b int) int {
 	return b
 }
 
-// stringCaseFinder is a stringFinder that ignores case for ASCII letters (but
+// CaseFinder is a Finder that ignores case for ASCII letters (but
 // not for letters with multibyte UTF-8 encodings).
-type stringCaseFinder stringFinder
+type CaseFinder Finder
 
-func makeStringCaseFinder(pattern string) *stringCaseFinder {
-	return (*stringCaseFinder)(makeStringFinder(strings.ToLower(pattern)))
+func NewCaseFinder(pattern string) *CaseFinder {
+	return (*CaseFinder)(NewFinder(strings.ToLower(pattern)))
 }
 
-// next returns the index in text of the first occurrence of the pattern. If
+// Next returns the index in text of the first occurrence of the pattern. If
 // the pattern is not found, it returns -1.
-func (f *stringCaseFinder) next(text string) int {
+func (f *CaseFinder) Next(text string) int {
 	i := len(f.pattern) - 1
 	for i < len(text) {
 		// Compare backwards from the end until the first unmatching character.
