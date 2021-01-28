@@ -100,6 +100,17 @@ test-postgres-docker:
 		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
 		exit $$status
 
+# test-cluster target assumes zqd endpoint is available at port 9867
+.PHONY: test-cluster
+test-cluster: build install
+	-zapi rm files
+	-aws s3 rm --recursive $(ZQD_DATA_URI)
+	zapi new -k archivestore -d $(ZQD_DATA_URI) files
+	time zapi -s files postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
+		ZTEST_TAG=cluster \
+		go test -v -run TestZq/ppl/zqd/ztests/cluster .
+
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
 

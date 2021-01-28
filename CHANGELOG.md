@@ -2,6 +2,45 @@ These entries focus on changes we think are relevant to users of Brim,
 zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
+## v0.28.0
+**NOTE** - Beginning with this release, a subset of the source code in the
+[github.com/brimsec/zq](https://github.com/brimsec/zq) GitHub repository is
+covered by a source-available style license, the
+[Polyform Perimeter License (PPL)](https://polyformproject.org/licenses/perimeter/1.0.0/).
+We've moved the PPL-covered code under a `ppl/` directory in the repository.
+The majority of our source code retains the existing BSD-3-Clause license.
+
+The overwhelming majority of zq/zqd users and developers will not be impacted
+by this change, including those using zq/zqd in commercial settings. The use of
+the source-available Polyform Perimeter license prevents use cases like
+marketing a work as a "as-a-service" style offering for server components like
+zqd while using material covered under the PPL.
+
+In general, we are making this change to ensure technology giants can't use the
+PPL-covered code to make replacement offerings of our projects. We believe
+users and developers should have access to the source code for our projects,
+and we need a sustainable business model to continue funding our work. Using
+the source-available Polyform Perimeter license on portions of the source code
+lets us realize both. 
+
+For more detail regarding licensing, see the
+[CONTRIBUTING.md](https://github.com/brimsec/zq/blob/master/CONTRIBUTING.md)
+doc, and feel free to come talk to us on
+[Slack](https://www.brimsecurity.com/join-slack/) if you have additional
+questions.
+
+---
+
+* zqd: Update Zeek pointer to [v3.2.1-brim9](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim9) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#2010)
+* zqd: Update Suricata pointer to [v5.0.3-brim1](https://github.com/brimsec/build-suricata/releases/tag/v5.0.3-brim1) which disables checksum checks, allowing for alert creation on more types of pcaps (#1975)
+* zson: Update [Zeek Interoperability doc](https://github.com/brimsec/zq/blob/master/zng/docs/zeek-compat.md) to include current ZSON syntax (#1956)
+* zq: Ensure the output from the [`fuse`](https://github.com/brimsec/zq/tree/master/zql/docs/processors#fuse) processor is deterministic (#1958)
+* zq: Fix an issue where the presence of the Greek µ character caused a ZSON read parsing error (#1967)
+* zqd: Fix an issue where Zeek events generated during pcap import and written to an archivestore were only visible after ingest completion (#1973)
+* zqd: Change the logger configuration to output stacktraces on messages of level "warn" and higher (#1990)
+* zq: Update [performance results](https://github.com/brimsec/zq/blob/master/performance/README.md) to include ZSON read/write (#1974)
+
+
 ## v0.27.1
 * zq: Fix an issue where nested nulls caused a panic in CSV output (#1954)
 

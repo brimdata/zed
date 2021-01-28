@@ -81,6 +81,7 @@ func (ph *parallelHead) Done() {
 
 type parallelGroup struct {
 	filter     SourceFilter
+	logger     *zap.Logger
 	mcfg       MultiConfig
 	msrc       MultiSource
 	once       sync.Once
@@ -192,6 +193,7 @@ func createParallelGroup(pctx *proc.Context, filter *compiler.Filter, msrc Multi
 			Filter: filter,
 			Span:   mcfg.Span,
 		},
+		logger:     mcfg.Logger,
 		mcfg:       mcfg,
 		msrc:       msrc,
 		pctx:       pctx,

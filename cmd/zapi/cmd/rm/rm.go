@@ -34,6 +34,10 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 1 {
 		c.Spacename = args[0]
 	}
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
+		return err
+	}
 	id, err := c.SpaceID()
 	if err != nil {
 		return err

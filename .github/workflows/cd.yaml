@@ -7,25 +7,8 @@ on:
       - worker-release
 
 jobs:
-  pre-clean:
-    # Delete existing S3 folder and K8s namespace
-    # if they already exist from a previous run.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
-      - run: |
-          set -x
-          ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
-          aws eks --region us-east-2 update-kubeconfig --name zq-test
-          aws s3 rm --recursive $ZQD_DATA_URI || :
-          kubectl delete ns ci-${{ github.run_number }} || :
   ecr-image-push:
     # Build and push a Docker image for zqd.
-    needs: pre-clean
     runs-on: ubuntu-latest
     steps:
       - uses: aws-actions/configure-aws-credentials@v1
@@ -42,35 +25,9 @@ jobs:
           ZQD_ECR_HOST: ${{ secrets.AWS_ECR_HOST }}
         run: |
           make docker-push-ecr
-  eks-test-deploy:
+  eks-deploy-test:
     # Deploys this build to a temporary namespace in order to run smoke tests.
     needs: ecr-image-push
-    runs-on: ubuntu-latest
-    steps:
-      - uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: us-east-2
-      - uses: actions/checkout@v1
-        with:
-          ref: ${{ github.event.pull_request.head.sha }}
-      - run: |
-          set -x
-          NAMESPACE=ci-${{ github.run_number }}
-          export ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
-          export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
-          aws eks --region us-east-2 update-kubeconfig --name zq-test
-          kubectl create ns $NAMESPACE || :
-          kubectl config set-context --current --namespace=$NAMESPACE
-          helm uninstall zsrv || :
-          k8s/postgres-secret.sh
-          make helm-install PG_PERSIST=false
-          kubectl get pod
-          kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-postgresql-0
-  eks-test-zapi-1:
-    # Run smoke tests for zqd image prior to deploying to ci-master.
-    needs: eks-test-deploy
     runs-on: ubuntu-latest
     steps:
       - uses: actions/setup-go@v2
@@ -86,35 +43,32 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - run: |
           set -x
-          SPACE=files
-          ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
-          mkdir testlog
-          make install
+          namespace=ci-${{ github.run_number }}
+          export ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
+          aws s3 rm --recursive $ZQD_DATA_URI || : # clear data from previous run
           aws eks --region us-east-2 update-kubeconfig --name zq-test
-          kubectl config set-context --current --namespace=ci-${{ github.run_number }}
+          kubectl create ns $namespace || :
+          kubectl config set-context --current --namespace=$namespace
+          helm uninstall zsrv || :
+          k8s/postgres-secret.sh
+          make helm-install PG_PERSIST=false
           kubectl scale --replicas=4 deployment/zsrv-worker
-          kubectl port-forward svc/zsrv-recruiter 8020:9867 &
-          kubectl port-forward svc/zsrv-root 9867:9867 &
-          sleep 2 # wait for port-forwards to complete
-          time zapi ls
-          time zapi new -k archivestore -d $ZQD_DATA_URI $SPACE
-          # Post an archive of about 1.6 GB to run test queries.
-          time zapi -s $SPACE postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
+          kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-postgresql-0
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
+          make install
+          source k8s/zsrv-port-forward.sh
           # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
-          time zapi -s $SPACE get -workers 1 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter1.log
-          time zapi -s $SPACE get -workers 2 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter2.log
-          time zapi -s $SPACE get -workers 4 -t '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' &> testlog/filter4.log
-          time zapi -s $SPACE get -workers 4 -t 'count()' &> testlog/count.tzng
-          time zapi -s $SPACE get -workers 4 -t \
-            '* | count() by tx_hosts | sort -r count | head 5' &> testlog/countbytxhost.tzng
-          diff testlog/count.tzng k8s/testdiff/count.tzng
-          diff testlog/countbytxhost.tzng k8s/testdiff/countbytxhost.tzng
+          make test-cluster
       - name: Get zqd logs and remove namespace on success or failure
         if: ${{ always() }}
         run: |
           set -x
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          mkdir testlog
           kubectl logs --tail -1 -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
           kubectl logs --tail -1 -l app.kubernetes.io/name=root > testlog/root.log
           kubectl logs --tail -1 -l app.kubernetes.io/name=worker > testlog/worker.log
@@ -125,11 +79,10 @@ jobs:
         with:
           name: eks-testlog
           path: testlog/
-
   eks-master-deploy:
     # Deploys this build to ci-master namespace so it will be available
     # for manual testing. Only deploy if previous jobs succeed.
-    needs: eks-test-zapi-1
+    needs: eks-deploy-test
     runs-on: ubuntu-latest
     steps:
       - uses: aws-actions/configure-aws-credentials@v1

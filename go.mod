@@ -6,7 +6,6 @@ require (
 	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
 	github.com/alexbrainman/ps v0.0.0-20171229230509-b3e1b4a15894
 	github.com/apache/thrift v0.0.0-20181112125854-24918abba929
-	github.com/auth0/go-jwt-middleware v0.0.0-20201030150249-d783b5c46b39
 	github.com/aws/aws-sdk-go v1.30.19
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e
