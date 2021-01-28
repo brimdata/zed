@@ -1,4 +1,4 @@
-package filter
+package stringsearch
 
 import (
 	"encoding/binary"
@@ -9,20 +9,20 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type fieldNameFinder struct {
+type FieldNameFinder struct {
 	checkedIDs       big.Int
-	fieldNameIter    fieldNameIter
-	stringCaseFinder *stringCaseFinder
+	fieldNameIter    FieldNameIter
+	stringCaseFinder *CaseFinder
 }
 
-func newFieldNameFinder(pattern string) *fieldNameFinder {
-	return &fieldNameFinder{stringCaseFinder: makeStringCaseFinder(pattern)}
+func NewFieldNameFinder(pattern string) *FieldNameFinder {
+	return &FieldNameFinder{stringCaseFinder: NewCaseFinder(pattern)}
 }
 
-// find returns true if buf, which holds a sequence of ZNG value messages, might
+// Find returns true if buf, which holds a sequence of ZNG value messages, might
 // contain a record with a field whose fully-qualified name (e.g., a.b.c)
 // matches the pattern. find also returns true if it encounters an error.
-func (f *fieldNameFinder) find(zctx *resolver.Context, buf []byte) bool {
+func (f *FieldNameFinder) Find(zctx *resolver.Context, buf []byte) bool {
 	f.checkedIDs.SetInt64(0)
 	for len(buf) > 0 {
 		code := buf[0]
@@ -59,9 +59,9 @@ func (f *fieldNameFinder) find(zctx *resolver.Context, buf []byte) bool {
 		if !ok {
 			return true
 		}
-		for f.fieldNameIter.init(tr); !f.fieldNameIter.done(); {
-			name := f.fieldNameIter.next()
-			if f.stringCaseFinder.next(byteconv.UnsafeString(name)) != -1 {
+		for f.fieldNameIter.Init(tr); !f.fieldNameIter.Done(); {
+			name := f.fieldNameIter.Next()
+			if f.stringCaseFinder.Next(byteconv.UnsafeString(name)) != -1 {
 				return true
 			}
 		}
@@ -69,7 +69,7 @@ func (f *fieldNameFinder) find(zctx *resolver.Context, buf []byte) bool {
 	return false
 }
 
-type fieldNameIter struct {
+type FieldNameIter struct {
 	buf   []byte
 	stack []fieldNameIterInfo
 }
@@ -79,7 +79,7 @@ type fieldNameIterInfo struct {
 	offset  int
 }
 
-func (f *fieldNameIter) init(t *zng.TypeRecord) {
+func (f *FieldNameIter) Init(t *zng.TypeRecord) {
 	f.buf = f.buf[:0]
 	f.stack = f.stack[:0]
 	if len(t.Columns) > 0 {
@@ -87,11 +87,11 @@ func (f *fieldNameIter) init(t *zng.TypeRecord) {
 	}
 }
 
-func (f *fieldNameIter) done() bool {
+func (f *FieldNameIter) Done() bool {
 	return len(f.stack) == 0
 }
 
-func (f *fieldNameIter) next() []byte {
+func (f *FieldNameIter) Next() []byte {
 	// Step into non-empty records.
 	for {
 		info := &f.stack[len(f.stack)-1]

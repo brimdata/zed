@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -13,7 +13,7 @@ import (
 // encoding of a record matching e. (It may also return true for some byte
 // slices that do not match.) compileBufferFilter returns a nil pointer and nil
 // error if it cannot construct a useful filter.
-func compileBufferFilter(e ast.BooleanExpr) (*filter.BufferFilter, error) {
+func compileBufferFilter(e ast.BooleanExpr) (*expr.BufferFilter, error) {
 	switch e := e.(type) {
 	case *ast.CompareAny:
 		if e.Comparator != "=" && e.Comparator != "in" {
@@ -42,7 +42,7 @@ func compileBufferFilter(e ast.BooleanExpr) (*filter.BufferFilter, error) {
 		if right == nil {
 			return left, nil
 		}
-		return filter.NewAndBufferFilter(left, right), nil
+		return expr.NewAndBufferFilter(left, right), nil
 	case *ast.LogicalOr:
 		left, err := compileBufferFilter(e.Left)
 		if err != nil {
@@ -52,7 +52,7 @@ func compileBufferFilter(e ast.BooleanExpr) (*filter.BufferFilter, error) {
 		if left == nil || right == nil || err != nil {
 			return nil, err
 		}
-		return filter.NewOrBufferFilter(left, right), nil
+		return expr.NewOrBufferFilter(left, right), nil
 	case *ast.LogicalNot, *ast.MatchAll:
 		return nil, nil
 	case *ast.Search:
@@ -64,25 +64,25 @@ func compileBufferFilter(e ast.BooleanExpr) (*filter.BufferFilter, error) {
 			if err != nil {
 				return nil, err
 			}
-			left := filter.NewBufferFilterForStringCase(string(pattern))
+			left := expr.NewBufferFilterForStringCase(string(pattern))
 			if left == nil {
 				return nil, nil
 			}
-			right := filter.NewFieldNameFinder(string(pattern))
-			return filter.NewOrBufferFilter(left, right), nil
+			right := expr.NewFieldNameFinder(string(pattern))
+			return expr.NewOrBufferFilter(left, right), nil
 		}
-		left := filter.NewBufferFilterForStringCase(e.Text)
+		left := expr.NewBufferFilterForStringCase(e.Text)
 		right, err := newBufferFilterForLiteral(e.Value)
 		if left == nil || right == nil || err != nil {
 			return nil, err
 		}
-		return filter.NewOrBufferFilter(left, right), nil
+		return expr.NewOrBufferFilter(left, right), nil
 	default:
 		return nil, fmt.Errorf("filter AST unknown type: %T", e)
 	}
 }
 
-func newBufferFilterForLiteral(l ast.Literal) (*filter.BufferFilter, error) {
+func newBufferFilterForLiteral(l ast.Literal) (*expr.BufferFilter, error) {
 	switch l.Type {
 	case "bool", "byte", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float64", "time", "duration":
 		// These are all comparable, so they can require up to three
@@ -104,5 +104,5 @@ func newBufferFilterForLiteral(l ast.Literal) (*filter.BufferFilter, error) {
 	// We're looking for a complete ZNG value, so we can lengthen the
 	// pattern by calling Encode to add a tag.
 	pattern := string(v.Encode(nil))
-	return filter.NewBufferFilterForString(pattern), nil
+	return expr.NewBufferFilterForString(pattern), nil
 }

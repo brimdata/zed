@@ -1,10 +1,11 @@
-package filter
+package expr
 
 import (
 	"fmt"
 	"unicode/utf8"
 
 	"github.com/brimsec/zq/pkg/byteconv"
+	"github.com/brimsec/zq/pkg/stringsearch"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
@@ -21,9 +22,9 @@ type BufferFilter struct {
 	op    int
 	left  *BufferFilter
 	right *BufferFilter
-	fnf   *fieldNameFinder
-	scf   *stringCaseFinder
-	sf    *stringFinder
+	fnf   *stringsearch.FieldNameFinder
+	scf   *stringsearch.CaseFinder
+	sf    *stringsearch.Finder
 }
 
 func NewAndBufferFilter(left, right *BufferFilter) *BufferFilter {
@@ -37,7 +38,7 @@ func NewOrBufferFilter(left, right *BufferFilter) *BufferFilter {
 func NewFieldNameFinder(pattern string) *BufferFilter {
 	return &BufferFilter{
 		op:  opFieldNameFinder,
-		fnf: newFieldNameFinder(pattern),
+		fnf: stringsearch.NewFieldNameFinder(pattern),
 	}
 }
 
@@ -46,7 +47,7 @@ func NewBufferFilterForString(pattern string) *BufferFilter {
 		// Very short patterns are unprofitable.
 		return nil
 	}
-	return &BufferFilter{op: opStringFinder, sf: makeStringFinder(pattern)}
+	return &BufferFilter{op: opStringFinder, sf: stringsearch.NewFinder(pattern)}
 }
 
 func NewBufferFilterForStringCase(pattern string) *BufferFilter {
@@ -61,7 +62,7 @@ func NewBufferFilterForStringCase(pattern string) *BufferFilter {
 			return nil
 		}
 	}
-	return &BufferFilter{op: opStringCaseFinder, scf: makeStringCaseFinder(pattern)}
+	return &BufferFilter{op: opStringCaseFinder, scf: stringsearch.NewCaseFinder(pattern)}
 }
 
 // Eval returns true if buf matches the receiver and false otherwise.
@@ -72,11 +73,11 @@ func (b *BufferFilter) Eval(zctx *resolver.Context, buf []byte) bool {
 	case opOr:
 		return b.left.Eval(zctx, buf) || b.right.Eval(zctx, buf)
 	case opFieldNameFinder:
-		return b.fnf.find(zctx, buf)
+		return b.fnf.Find(zctx, buf)
 	case opStringCaseFinder:
-		return b.scf.next(byteconv.UnsafeString(buf)) > -1
+		return b.scf.Next(byteconv.UnsafeString(buf)) > -1
 	case opStringFinder:
-		return b.sf.next(byteconv.UnsafeString(buf)) > -1
+		return b.sf.Next(byteconv.UnsafeString(buf)) > -1
 	default:
 		panic(fmt.Sprintf("BufferFilter: unknown op %d", b.op))
 	}
