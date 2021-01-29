@@ -182,7 +182,6 @@ func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) 
 	c.authhandle("/space/{space}/log/paths", handleLogPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
-	c.authhandle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
 	return nil
 }
 

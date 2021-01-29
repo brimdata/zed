@@ -16,7 +16,6 @@ import (
 
 type DB interface {
 	CreateSpace(context.Context, schema.SpaceRow) error
-	CreateSubspace(context.Context, schema.SpaceRow) error
 	GetSpace(context.Context, api.SpaceID) (schema.SpaceRow, error)
 	ListSpaces(context.Context, auth.TenantID) ([]schema.SpaceRow, error)
 	UpdateSpaceName(context.Context, api.SpaceID, string) error

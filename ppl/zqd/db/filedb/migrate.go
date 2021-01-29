@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-const currentVersion = 5
+const currentVersion = 6
 
 type dbdata struct {
 	Version   int               `json:"version"`
@@ -47,21 +47,6 @@ func migrateOldConfig(ctx context.Context, logger *zap.Logger, root iosrc.URI) e
 			DataURI: datauri,
 			Storage: config.Storage,
 		})
-		for _, subcfg := range config.Subspaces {
-			openopts := subcfg.OpenOptions
-			rows = append(rows, rowV4{
-				ID:       subcfg.ID,
-				ParentID: id,
-				Name:     subcfg.Name,
-				DataURI:  datauri,
-				Storage: api.StorageConfig{
-					Kind: api.ArchiveStore,
-					Archive: &api.ArchiveConfig{
-						OpenOptions: &openopts,
-					},
-				},
-			})
-		}
 	}
 	return iosrc.Replace(ctx, dburi, func(w io.Writer) error {
 		return json.NewEncoder(w).Encode(dbdataV4{
@@ -95,6 +80,8 @@ func migrateFileDatabase(ctx context.Context, dburi iosrc.URI) error {
 		switch version {
 		case 4:
 			migrator = migrateV5
+		case 5:
+			migrator = migrateV6
 		default:
 			return fmt.Errorf("unsupported database version %d", version)
 		}
@@ -124,11 +111,11 @@ func migrateV5(data []byte) (int, []byte, error) {
 	if err := json.Unmarshal(data, &dbv4); err != nil {
 		return 0, nil, err
 	}
-	var db dbdata
+	var db dbdataV5
 	db.Version = 5
-	db.SpaceRows = make([]schema.SpaceRow, 0, len(dbv4.SpaceRows))
+	db.SpaceRows = make([]rowV5, 0, len(dbv4.SpaceRows))
 	for _, r := range dbv4.SpaceRows {
-		db.SpaceRows = append(db.SpaceRows, schema.SpaceRow{
+		db.SpaceRows = append(db.SpaceRows, rowV5{
 			TenantID: auth.AnonymousTenantID,
 			ID:       r.ID,
 			DataURI:  r.DataURI,
@@ -139,4 +126,39 @@ func migrateV5(data []byte) (int, []byte, error) {
 	}
 	data, err := json.Marshal(db)
 	return 5, data, err
+}
+
+type dbdataV5 struct {
+	Version   int     `json:"version"`
+	SpaceRows []rowV5 `json:"space_rows"`
+}
+
+type rowV5 struct {
+	ID       api.SpaceID       `json:"id"`
+	DataURI  iosrc.URI         `json:"data_uri"`
+	Name     string            `json:"name"`
+	ParentID api.SpaceID       `json:"parent_id"`
+	Storage  api.StorageConfig `json:"storage"`
+	TenantID auth.TenantID     `json:"tenant_id"`
+}
+
+func migrateV6(data []byte) (int, []byte, error) {
+	var dbv5 dbdataV5
+	if err := json.Unmarshal(data, &dbv5); err != nil {
+		return 0, nil, err
+	}
+	var db dbdata
+	db.Version = 6
+	db.SpaceRows = make([]schema.SpaceRow, 0, len(dbv5.SpaceRows))
+	for _, r := range dbv5.SpaceRows {
+		db.SpaceRows = append(db.SpaceRows, schema.SpaceRow{
+			ID:       r.ID,
+			DataURI:  r.DataURI,
+			Name:     r.Name,
+			Storage:  r.Storage,
+			TenantID: r.TenantID,
+		})
+	}
+	data, err := json.Marshal(db)
+	return 6, data, err
 }
