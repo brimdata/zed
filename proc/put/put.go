@@ -37,7 +37,7 @@ type Proc struct {
 type putRule struct {
 	typ         *zng.TypeRecord
 	clauseTypes []zng.Type
-	op          op
+	step        step
 }
 
 func New(pctx *proc.Context, parent proc.Interface, clauses []expr.Assignment) (proc.Interface, error) {
@@ -84,30 +84,30 @@ func (p *Proc) eval(in *zng.Record) ([]zng.Value, error) {
 	return vals, nil
 }
 
-// A op is a recursive data structure encoding a series of steps to be
+// A step is a recursive data structure encoding a series of steps to be
 // carried out to construct an output record from an input record and
 // a slice of evaluated clauses.
-type op struct {
-	op        step
+type step struct {
+	op        op
 	index     int
 	container bool
-	record    []op // for op == record
+	record    []step // for op == record
 }
 
-func (s *op) append(step op) {
+func (s *step) append(step step) {
 	s.record = append(s.record, step)
 }
 
-type step int
+type op int
 
 const (
-	fromInput  step = iota // copy field from input record
-	fromClause             // copy field from put assignment
-	root                   // values are being copied to the root record (put .=)
-	record                 // recurse into record below us
+	fromInput  op = iota // copy field from input record
+	fromClause           // copy field from put assignment
+	root                 // values are being copied to the root record (put .=)
+	record               // recurse into record below us
 )
 
-func (s op) build(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) (zcode.Bytes, error) {
+func (s step) build(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) (zcode.Bytes, error) {
 	switch s.op {
 	case root:
 		bytes := make(zcode.Bytes, len(vals[s.index].Bytes))
@@ -121,11 +121,11 @@ func (s op) build(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) (zcode.Byt
 		return b.Bytes(), nil
 	default:
 		// top-level op should be root or record
-		panic(fmt.Sprintf("put: unexpected op %v", s.op))
+		panic(fmt.Sprintf("put: unexpected step %v", s.op))
 	}
 }
 
-func (s op) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) error {
+func (s step) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) error {
 	ig := newGetter(in)
 
 	for _, step := range s.record {
@@ -207,21 +207,21 @@ func findOverwriteClause(path field.Static, clauses []expr.Assignment) (int, fie
 	return -1, nil, false
 }
 
-func (p *Proc) deriveRule(parentPath field.Static, inType *zng.TypeRecord, vals []zng.Value) (op, *zng.TypeRecord, error) {
+func (p *Proc) deriveRule(parentPath field.Static, inType *zng.TypeRecord, vals []zng.Value) (step, *zng.TypeRecord, error) {
 	// special case: assign to root (put .=x)
 	if p.clauses[0].LHS.IsRoot() {
 		recVal, ok := vals[0].Type.(*zng.TypeRecord)
 		if !ok {
-			return op{}, nil, fmt.Errorf("put .=x: cannot put a non-record to .")
+			return step{}, nil, fmt.Errorf("put .=x: cannot put a non-record to .")
 		}
 		typ, err := p.pctx.TypeContext.LookupTypeRecord(recVal.Columns)
-		return op{op: root, index: 0}, typ, err
+		return step{op: root, index: 0}, typ, err
 	}
 	return p.deriveRecordRule(parentPath, inType.Columns, vals)
 }
 
-func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, vals []zng.Value) (op, *zng.TypeRecord, error) {
-	o := op{op: record}
+func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, vals []zng.Value) (step, *zng.TypeRecord, error) {
+	o := step{op: record}
 	cols := make([]zng.Column, 0)
 
 	// First look at all input columns to see which should
@@ -233,7 +233,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 		switch {
 		// input not overwritten by assignment: copy input value.
 		case !found:
-			o.append(op{
+			o.append(step{
 				op:        fromInput,
 				container: zng.IsContainerType(inCol.Type),
 				index:     i,
@@ -241,7 +241,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 			cols = append(cols, inCol)
 		// input field overwritten by non-nested assignment: copy assignment value.
 		case len(path) == len(matchPath):
-			o.append(op{
+			o.append(step{
 				op:        fromClause,
 				container: zng.IsContainerType(vals[matchIndex].Type),
 				index:     matchIndex,
@@ -249,21 +249,21 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 			cols = append(cols, zng.Column{inCol.Name, vals[matchIndex].Type})
 		// input record field overwritten by nested assignment: recurse.
 		case len(path) < len(matchPath) && zng.IsRecordType(inCol.Type):
-			nestedOp, typ, err := p.deriveRecordRule(path, inCol.Type.(*zng.TypeRecord).Columns, vals)
+			nestedStep, typ, err := p.deriveRecordRule(path, inCol.Type.(*zng.TypeRecord).Columns, vals)
 			if err != nil {
-				return op{}, nil, err
+				return step{}, nil, err
 			}
-			nestedOp.index = i
-			o.append(nestedOp)
+			nestedStep.index = i
+			o.append(nestedStep)
 			cols = append(cols, zng.Column{inCol.Name, typ})
 		// input non-record field overwritten by nested assignment(s): recurse.
 		case len(path) < len(matchPath) && !zng.IsRecordType(inCol.Type):
-			nestedOp, typ, err := p.deriveRecordRule(path, []zng.Column{}, vals)
+			nestedStep, typ, err := p.deriveRecordRule(path, []zng.Column{}, vals)
 			if err != nil {
-				return op{}, nil, err
+				return step{}, nil, err
 			}
-			nestedOp.index = i
-			o.append(nestedOp)
+			nestedStep.index = i
+			o.append(nestedStep)
 			cols = append(cols, zng.Column{inCol.Name, typ})
 		default:
 			panic("faulty logic")
@@ -282,7 +282,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 			switch {
 			// Append value at this level
 			case len(cl.LHS) == len(parentPath)+1:
-				o.append(op{
+				o.append(step{
 					op:        fromClause,
 					container: zng.IsContainerType(vals[i].Type),
 					index:     i,
@@ -291,13 +291,13 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 			// Appended and nest. For example, this would happen with "put b.c=1" applied to a record {"a": 1}.
 			case len(cl.LHS) > len(parentPath)+1:
 				path := append(parentPath, cl.LHS[len(parentPath)])
-				nestedOp, typ, err := p.deriveRecordRule(path, []zng.Column{}, vals)
+				nestedStep, typ, err := p.deriveRecordRule(path, []zng.Column{}, vals)
 				if err != nil {
-					return op{}, nil, err
+					return step{}, nil, err
 				}
-				nestedOp.index = -1
+				nestedStep.index = -1
 				cols = append(cols, zng.Column{cl.LHS[len(parentPath)], typ})
-				o.append(nestedOp)
+				o.append(nestedStep)
 			}
 		}
 	}
@@ -329,12 +329,12 @@ func (p *Proc) lookupRule(inType *zng.TypeRecord, vals []zng.Value) (putRule, er
 	if ok && sameTypes(rule.clauseTypes, vals) {
 		return rule, nil
 	}
-	op, typ, err := p.deriveRule(field.NewRoot(), inType, vals)
+	step, typ, err := p.deriveRule(field.NewRoot(), inType, vals)
 	var clauseTypes []zng.Type
 	for _, val := range vals {
 		clauseTypes = append(clauseTypes, val.Type)
 	}
-	rule = putRule{typ, clauseTypes, op}
+	rule = putRule{typ, clauseTypes, step}
 	p.rules[inType.ID()] = rule
 	return rule, err
 }
@@ -351,7 +351,7 @@ func (p *Proc) put(in *zng.Record) (*zng.Record, error) {
 		return in, nil
 	}
 
-	bytes, err := rule.op.build(in.Raw, &p.builder, vals)
+	bytes, err := rule.step.build(in.Raw, &p.builder, vals)
 	if err != nil {
 		return nil, err
 	}
