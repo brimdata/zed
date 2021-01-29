@@ -31,9 +31,9 @@ func (a *Animal) Color() string { return a.MyColor }
 
 func TestInterfaceMarshal(t *testing.T) {
 	rose := Thing(&Plant{"red"})
-	expectedRose := `{MyColor: "red"} (=Plant)`
+	expectedRose := `{MyColor:"red"} (=Plant)`
 	flamingo := Thing(&Animal{"pink"})
-	expectedFlamingo := `{MyColor: "pink"} (=Animal)`
+	expectedFlamingo := `{MyColor:"pink"} (=Animal)`
 
 	m := zson.NewMarshaler()
 	m.Decorate(zson.StyleSimple)
