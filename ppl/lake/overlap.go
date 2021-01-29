@@ -1,4 +1,4 @@
-package archive
+package lake
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/archive/chunk"
-	"github.com/brimsec/zq/ppl/archive/index"
+	"github.com/brimsec/zq/ppl/lake/chunk"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
@@ -251,7 +251,7 @@ func removeMaskedChunks(spans []SpanInfo, trackMasked bool) []chunk.Chunk {
 }
 
 type compactWriter struct {
-	ark     *Archive
+	lk      *Lake
 	ctx     context.Context
 	created []chunk.Chunk
 	defs    index.Definitions
@@ -263,14 +263,14 @@ type compactWriter struct {
 func (cw *compactWriter) Write(rec *zng.Record) error {
 	if cw.w != nil {
 		pos, firstTs, lastTs := cw.w.Position()
-		if pos > cw.ark.LogSizeThreshold && lastTs != rec.Ts() {
+		if pos > cw.lk.LogSizeThreshold && lastTs != rec.Ts() {
 			// If we need to create a new chunk writer, we must ensure that the
 			// span for the current chunk leaves no gap between its last timestamp
 			// and the first timestamp of our next chunk, to ensure these chunks
 			// are seen as covering the entire span of the source chunks. Hence
 			// the use of 'chunkLastTs', and the lastTs check above to ensure we are
 			// not in a run of records with the same timestamp.
-			chunkLastTs := prevTs(rec.Ts(), cw.ark.DataOrder)
+			chunkLastTs := prevTs(rec.Ts(), cw.lk.DataOrder)
 			if err := cw.w.CloseWithTs(cw.ctx, firstTs, chunkLastTs); err != nil {
 				return err
 			}
@@ -280,8 +280,8 @@ func (cw *compactWriter) Write(rec *zng.Record) error {
 	}
 	if cw.w == nil {
 		var err error
-		cw.w, err = chunk.NewWriter(cw.ctx, cw.tsd.path(cw.ark), chunk.WriterOpts{
-			Order:       cw.ark.DataOrder,
+		cw.w, err = chunk.NewWriter(cw.ctx, cw.tsd.path(cw.lk), chunk.WriterOpts{
+			Order:       cw.lk.DataOrder,
 			Masks:       cw.masks,
 			Definitions: cw.defs,
 			Zng: zngio.WriterOpts{
@@ -321,11 +321,11 @@ func (cw *compactWriter) close(lastTs nano.Ts) error {
 	return nil
 }
 
-func compactOverlaps(ctx context.Context, ark *Archive, s SpanInfo) ([]chunk.Chunk, error) {
+func compactOverlaps(ctx context.Context, lk *Lake, s SpanInfo) ([]chunk.Chunk, error) {
 	if len(s.Chunks) == 1 {
 		return nil, nil
 	}
-	ss, _, err := newSpanScanner(ctx, ark, resolver.NewContext(), driver.SourceFilter{Span: nano.MaxSpan}, s)
+	ss, _, err := newSpanScanner(ctx, lk, resolver.NewContext(), driver.SourceFilter{Span: nano.MaxSpan}, s)
 	if err != nil {
 		return nil, err
 	}
@@ -334,18 +334,18 @@ func compactOverlaps(ctx context.Context, ark *Archive, s SpanInfo) ([]chunk.Chu
 	for _, c := range s.Chunks {
 		masks = append(masks, c.Id)
 	}
-	defs, err := ark.ReadDefinitions(ctx)
+	defs, err := lk.ReadDefinitions(ctx)
 	if err != nil {
 		return nil, err
 	}
 	mw := &compactWriter{
-		ark:   ark,
+		lk:    lk,
 		ctx:   ctx,
 		defs:  defs,
 		masks: masks,
 		tsd:   newTsDir(s.Span.Ts),
 	}
-	_, slast := spanToFirstLast(ark.DataOrder, s.Span)
+	_, slast := spanToFirstLast(lk.DataOrder, s.Span)
 	if err := zbuf.CopyWithContext(ctx, mw, zbuf.PullerReader(ss)); err != nil {
 		mw.abort()
 		return nil, err
@@ -379,17 +379,17 @@ outer:
 	return append(res, mergeSpanInfos(run, order))
 }
 
-func Compact(ctx context.Context, ark *Archive, logger *zap.Logger) error {
+func Compact(ctx context.Context, lk *Lake, logger *zap.Logger) error {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 
-	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []chunk.Chunk) error {
-		spans := alignChunksToSpans(chunks, ark.DataOrder, nano.MaxSpan)
+	return tsDirVisit(ctx, lk, nano.MaxSpan, func(_ tsDir, chunks []chunk.Chunk) error {
+		spans := alignChunksToSpans(chunks, lk.DataOrder, nano.MaxSpan)
 		removeMaskedChunks(spans, false)
-		spans = mergeCommonChunkSpans(spans, ark.DataOrder)
+		spans = mergeCommonChunkSpans(spans, lk.DataOrder)
 		for _, s := range spans {
-			newchunks, err := compactOverlaps(ctx, ark, s)
+			newchunks, err := compactOverlaps(ctx, lk, s)
 			if err != nil {
 				return err
 			}
@@ -409,13 +409,13 @@ func Compact(ctx context.Context, ark *Archive, logger *zap.Logger) error {
 	})
 }
 
-func Purge(ctx context.Context, ark *Archive, logger *zap.Logger) error {
+func Purge(ctx context.Context, lk *Lake, logger *zap.Logger) error {
 	if logger == nil {
 		logger = zap.NewNop()
 	}
 
-	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []chunk.Chunk) error {
-		spans := alignChunksToSpans(chunks, ark.DataOrder, nano.MaxSpan)
+	return tsDirVisit(ctx, lk, nano.MaxSpan, func(_ tsDir, chunks []chunk.Chunk) error {
+		spans := alignChunksToSpans(chunks, lk.DataOrder, nano.MaxSpan)
 		maskedChunks := removeMaskedChunks(spans, true)
 		if len(maskedChunks) == 0 {
 			return nil

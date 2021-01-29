@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/lake/chunk"
 	"github.com/go-redis/redis/v8"
 	"github.com/prometheus/client_golang/prometheus"
 )

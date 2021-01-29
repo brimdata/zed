@@ -9,9 +9,9 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/cli/outputflags"
-	"github.com/brimsec/zq/ppl/archive"
-	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimsec/zq/ppl/lake"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 	"github.com/segmentio/ksuid"
@@ -66,12 +66,12 @@ func (c *LsCommand) Run(args []string) error {
 		return errors.New("a directory must be specified with -R or ZAR_ROOT")
 	}
 
-	ark, err := archive.OpenArchive(c.root, nil)
+	lk, err := lake.OpenLake(c.root, nil)
 	if err != nil {
 		return err
 	}
 
-	defs, err := ark.ReadDefinitions(context.TODO())
+	defs, err := lk.ReadDefinitions(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -82,9 +82,9 @@ func (c *LsCommand) Run(args []string) error {
 	}
 	defer w.Close()
 
-	var stats map[ksuid.KSUID]archive.IndexInfo
+	var stats map[ksuid.KSUID]lake.IndexInfo
 	if c.stats {
-		if stats, err = c.getStats(ark, defs); err != nil {
+		if stats, err = c.getStats(lk, defs); err != nil {
 			return err
 		}
 	}
@@ -135,12 +135,12 @@ func (c *LsCommand) Run(args []string) error {
 	return nil
 }
 
-func (c *LsCommand) getStats(ark *archive.Archive, defs []*index.Definition) (map[ksuid.KSUID]archive.IndexInfo, error) {
-	stats, err := archive.IndexStat(context.TODO(), ark, defs)
+func (c *LsCommand) getStats(lk *lake.Lake, defs []*index.Definition) (map[ksuid.KSUID]lake.IndexInfo, error) {
+	stats, err := lake.IndexStat(context.TODO(), lk, defs)
 	if err != nil {
 		return nil, err
 	}
-	m := make(map[ksuid.KSUID]archive.IndexInfo)
+	m := make(map[ksuid.KSUID]lake.IndexInfo)
 	for _, stat := range stats {
 		m[stat.DefinitionID] = stat
 	}

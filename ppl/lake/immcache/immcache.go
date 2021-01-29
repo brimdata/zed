@@ -1,5 +1,4 @@
-// Package immcache contains facilities for caching immutable files for an
-// archive.
+// Package immcache contains facilities for caching immutable files for a lake.
 package immcache
 
 import (

@@ -1,4 +1,4 @@
-package archive
+package lake
 
 import (
 	"context"
@@ -6,8 +6,8 @@ import (
 	"runtime"
 
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/archive/chunk"
-	"github.com/brimsec/zq/ppl/archive/index"
+	"github.com/brimsec/zq/ppl/lake/chunk"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"golang.org/x/sync/errgroup"
@@ -15,33 +15,33 @@ import (
 )
 
 // EnsureIndices walks through the entirety of an Achive's chunks ensuring that
-// all chunk indices are up-to-date with an Archive's IndexDefs. If the progress
+// all chunk indices are up-to-date with an Lake's IndexDefs. If the progress
 // channel is not nil, the paths of indices affected will be sent over it.
-func EnsureIndices(ctx context.Context, ark *Archive, progress chan<- string) error {
-	defs, err := ark.ReadDefinitions(ctx)
+func EnsureIndices(ctx context.Context, lk *Lake, progress chan<- string) error {
+	defs, err := lk.ReadDefinitions(ctx)
 	if err != nil {
 		return err
 	}
-	return WriteIndices(ctx, ark, progress, defs...)
+	return WriteIndices(ctx, lk, progress, defs...)
 }
 
-func AddRules(ctx context.Context, ark *Archive, rules []index.Rule) ([]*index.Definition, error) {
-	if err := iosrc.MkdirAll(ark.DefinitionsDir(), 0700); err != nil {
+func AddRules(ctx context.Context, lk *Lake, rules []index.Rule) ([]*index.Definition, error) {
+	if err := iosrc.MkdirAll(lk.DefinitionsDir(), 0700); err != nil {
 		return nil, err
 	}
-	return index.WriteRules(ctx, ark.DefinitionsDir(), rules)
+	return index.WriteRules(ctx, lk.DefinitionsDir(), rules)
 }
 
-func ApplyRules(ctx context.Context, ark *Archive, progress chan<- string, rules ...index.Rule) error {
-	defs, err := AddRules(ctx, ark, rules)
+func ApplyRules(ctx context.Context, lk *Lake, progress chan<- string, rules ...index.Rule) error {
+	defs, err := AddRules(ctx, lk, rules)
 	if err != nil {
 		return err
 	}
-	return WriteIndices(ctx, ark, progress, defs...)
+	return WriteIndices(ctx, lk, progress, defs...)
 }
 
-func RemoveDefinitions(ctx context.Context, ark *Archive, defs ...*index.Definition) error {
-	dir := ark.DefinitionsDir()
+func RemoveDefinitions(ctx context.Context, lk *Lake, defs ...*index.Definition) error {
+	dir := lk.DefinitionsDir()
 	for _, def := range defs {
 		if err := index.RemoveDefinition(ctx, dir, def.ID); err != nil {
 			return err
@@ -50,11 +50,11 @@ func RemoveDefinitions(ctx context.Context, ark *Archive, defs ...*index.Definit
 	return nil
 }
 
-func WriteIndices(ctx context.Context, ark *Archive, updates chan<- string, defs ...*index.Definition) error {
+func WriteIndices(ctx context.Context, lk *Lake, updates chan<- string, defs ...*index.Definition) error {
 	prog := progress(updates)
 	sem := semaphore.NewWeighted(int64(runtime.GOMAXPROCS(0)))
 	g, ctx := errgroup.WithContext(ctx)
-	err := Walk(ctx, ark, func(chunk chunk.Chunk) error {
+	err := Walk(ctx, lk, func(chunk chunk.Chunk) error {
 		if err := sem.Acquire(ctx, 1); err != nil {
 			return err
 		}
@@ -75,9 +75,9 @@ func WriteIndices(ctx context.Context, ark *Archive, updates chan<- string, defs
 	return err
 }
 
-func RemoveIndices(ctx context.Context, ark *Archive, updates chan<- string, defs ...*index.Definition) error {
+func RemoveIndices(ctx context.Context, lk *Lake, updates chan<- string, defs ...*index.Definition) error {
 	prog := progress(updates)
-	return Walk(ctx, ark, func(chunk chunk.Chunk) error {
+	return Walk(ctx, lk, func(chunk chunk.Chunk) error {
 		indices, err := index.RemoveIndices(ctx, chunk.ZarDir(), defs)
 		if err != nil {
 			return err

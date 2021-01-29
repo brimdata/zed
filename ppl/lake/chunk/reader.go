@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/archive/seekindex"
+	"github.com/brimsec/zq/ppl/lake/seekindex"
 	"github.com/brimsec/zq/zqe"
 )
 

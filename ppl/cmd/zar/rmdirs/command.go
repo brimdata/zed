@@ -5,8 +5,8 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimsec/zq/ppl/lake"
 	"github.com/mccanne/charm"
 )
 
@@ -39,9 +39,9 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	ark, err := archive.OpenArchive(c.root, nil)
+	lk, err := lake.OpenLake(c.root, nil)
 	if err != nil {
 		return err
 	}
-	return archive.RmDirs(context.TODO(), ark)
+	return lake.RmDirs(context.TODO(), lk)
 }
