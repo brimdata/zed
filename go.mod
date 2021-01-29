@@ -18,6 +18,7 @@ require (
 	github.com/google/gopacket v1.1.17
 	github.com/gorilla/mux v1.7.5-0.20200711200521-98cb6bf42e08
 	github.com/gosuri/uilive v0.0.4
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
 	github.com/klauspost/compress v1.10.3 // indirect
 	github.com/mattn/go-isatty v0.0.12 // indirect
@@ -30,6 +31,7 @@ require (
 	github.com/pkg/browser v0.0.0-20180916011732-0a3d74bf9ce4
 	github.com/pmezard/go-difflib v1.0.0
 	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_model v0.2.0
 	github.com/segmentio/ksuid v1.0.2
 	github.com/stretchr/testify v1.6.1
 	github.com/xitongsys/parquet-go v1.5.3-0.20200514000040-789bba367841

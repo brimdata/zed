@@ -4,8 +4,6 @@ package iosrc
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"os"
 	"time"
@@ -13,11 +11,11 @@ import (
 
 const FileScheme = "file"
 
-var schemes = map[string]Source{
+var DefaultMuxSource = NewMuxSource(map[string]Source{
 	"file":  DefaultFileSource,
 	"stdio": defaultStdioSource,
 	"s3":    defaultS3Source,
-}
+})
 
 type Reader interface {
 	io.Reader
@@ -62,122 +60,49 @@ type ReplacerAble interface {
 }
 
 func NewReader(ctx context.Context, uri URI) (Reader, error) {
-	source, err := GetSource(uri)
-	if err != nil {
-		return nil, err
-	}
-	return source.NewReader(ctx, uri)
+	return DefaultMuxSource.NewReader(ctx, uri)
 }
 
 func NewWriter(ctx context.Context, uri URI) (io.WriteCloser, error) {
-	source, err := GetSource(uri)
-	if err != nil {
-		return nil, err
-	}
-	return source.NewWriter(ctx, uri)
+	return DefaultMuxSource.NewWriter(ctx, uri)
 }
 
 func ReadFile(ctx context.Context, uri URI) ([]byte, error) {
-	source, err := GetSource(uri)
-	if err != nil {
-		return nil, err
-	}
-	return source.ReadFile(ctx, uri)
+	return DefaultMuxSource.ReadFile(ctx, uri)
 }
 
 func WriteFile(ctx context.Context, uri URI, d []byte) error {
-	source, err := GetSource(uri)
-	if err != nil {
-		return err
-	}
-	return source.WriteFile(ctx, d, uri)
+	return DefaultMuxSource.WriteFile(ctx, uri, d)
 }
 
 func Exists(ctx context.Context, uri URI) (bool, error) {
-	source, err := GetSource(uri)
-	if err != nil {
-		return false, err
-	}
-	return source.Exists(ctx, uri)
+	return DefaultMuxSource.Exists(ctx, uri)
 }
 
 func Remove(ctx context.Context, uri URI) error {
-	source, err := GetSource(uri)
-	if err != nil {
-		return err
-	}
-	return source.Remove(ctx, uri)
+	return DefaultMuxSource.Remove(ctx, uri)
 }
 
 func RemoveAll(ctx context.Context, uri URI) error {
-	source, err := GetSource(uri)
-	if err != nil {
-		return err
-	}
-	return source.RemoveAll(ctx, uri)
+	return DefaultMuxSource.RemoveAll(ctx, uri)
 }
 
 func Stat(ctx context.Context, uri URI) (Info, error) {
-	source, err := GetSource(uri)
-	if err != nil {
-		return nil, err
-	}
-	return source.Stat(ctx, uri)
+	return DefaultMuxSource.Stat(ctx, uri)
 }
 
 func ReadDir(ctx context.Context, uri URI) ([]Info, error) {
-	source, err := GetSource(uri)
-	if err != nil {
-		return nil, err
-	}
-	return source.ReadDir(ctx, uri)
+	return DefaultMuxSource.ReadDir(ctx, uri)
 }
 
 func GetSource(uri URI) (Source, error) {
-	scheme := getScheme(uri)
-	source, ok := schemes[scheme]
-	if !ok {
-		return nil, fmt.Errorf("unknown scheme: %q", scheme)
-	}
-	return source, nil
+	return DefaultMuxSource.GetSource(uri)
 }
 
 func Replace(ctx context.Context, uri URI, fn func(w io.Writer) error) error {
-	src, err := GetSource(uri)
-	if err != nil {
-		return err
-	}
-	replacerAble, ok := src.(ReplacerAble)
-	if !ok {
-		return errors.New("source does not support replacement")
-	}
-	r, err := replacerAble.NewReplacer(ctx, uri)
-	if err != nil {
-		return err
-	}
-	if err := fn(r); err != nil {
-		r.Abort()
-		return err
-	}
-	return r.Close()
+	return DefaultMuxSource.Replace(ctx, uri, fn)
 }
 
-// MkdirAll will run Source.MkdirAll on the provided URI if the URI's source
-// is a DirMaker, otherwise it will do nothing.
 func MkdirAll(uri URI, mode os.FileMode) error {
-	src, err := GetSource(uri)
-	if err != nil {
-		return err
-	}
-	if mkr, ok := src.(DirMaker); ok {
-		err = mkr.MkdirAll(uri, mode)
-	}
-	return err
-}
-
-func getScheme(uri URI) string {
-	if uri.Scheme == "" {
-		return FileScheme
-	}
-	return uri.Scheme
+	return DefaultMuxSource.MkdirAll(uri, mode)
 }

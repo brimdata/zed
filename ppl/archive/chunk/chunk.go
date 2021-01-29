@@ -24,6 +24,19 @@ const (
 	FileKindSeek     FileKind = "ts"
 )
 
+func (k FileKind) Description() string {
+	switch k {
+	case FileKindData:
+		return "data"
+	case FileKindMetadata:
+		return "metadata"
+	case "FileKindSeek":
+		return "seekindex"
+	default:
+		return "unknown"
+	}
+}
+
 var fileRegex = regexp.MustCompile(`(d|m)-([0-9A-Za-z]{27}).zng$`)
 
 func FileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
@@ -68,7 +81,11 @@ type Chunk struct {
 }
 
 func Open(ctx context.Context, dir iosrc.URI, id ksuid.KSUID, order zbuf.Order) (Chunk, error) {
-	meta, err := ReadMetadata(ctx, MetadataPath(dir, id), order)
+	b, err := iosrc.ReadFile(ctx, MetadataPath(dir, id))
+	if err != nil {
+		return Chunk{}, err
+	}
+	meta, err := UnmarshalMetadata(b, order)
 	if err != nil {
 		return Chunk{}, err
 	}

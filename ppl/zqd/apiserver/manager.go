@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/archive/immcache"
 	"github.com/brimsec/zq/ppl/zqd/auth"
 	"github.com/brimsec/zq/ppl/zqd/db"
 	"github.com/brimsec/zq/ppl/zqd/db/schema"
@@ -26,7 +27,9 @@ type Manager struct {
 	alphaFileMigrator *filestore.Migrator
 	compactor         *compactor
 	db                db.DB
+	immcache          immcache.ImmutableCache
 	logger            *zap.Logger
+	registerer        prometheus.Registerer
 	rootPath          iosrc.URI
 
 	// We keep instances of any loaded filestore because the seek indexes
@@ -40,12 +43,14 @@ type Manager struct {
 	deleted prometheus.Counter
 }
 
-func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI, db db.DB) (*Manager, error) {
+func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI, db db.DB, icache immcache.ImmutableCache) (*Manager, error) {
 	factory := promauto.With(registerer)
 	m := &Manager{
-		logger:   logger.Named("manager"),
-		rootPath: root,
-		db:       db,
+		db:         db,
+		immcache:   icache,
+		logger:     logger.Named("manager"),
+		registerer: registerer,
+		rootPath:   root,
 
 		alphaFileMigrator: filestore.NewMigrator(ctx),
 		filestores:        make(map[api.SpaceID]*filestore.Storage),
@@ -238,7 +243,7 @@ func (m *Manager) getStorage(ctx context.Context, id api.SpaceID, daturi iosrc.U
 		return st, nil
 	case api.ArchiveStore:
 		wn := &writeNotifier{c: m.compactor, id: id}
-		return archivestore.Load(ctx, daturi, wn, cfg.Archive)
+		return archivestore.Load(ctx, daturi, wn, cfg.Archive, m.immcache)
 	default:
 		return nil, zqe.E(zqe.Invalid, "unknown storage kind: %s", cfg.Kind)
 	}
