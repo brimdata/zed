@@ -18,10 +18,12 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/db"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/ppl/zqd/recruiter"
+	"github.com/brimsec/zq/ppl/zqd/temporal"
 	"github.com/brimsec/zq/ppl/zqd/worker"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	sdkworker "go.temporal.io/sdk/worker"
 	"go.uber.org/zap"
 )
 
@@ -44,6 +46,7 @@ type Config struct {
 	Logger         *zap.Logger
 	Personality    string
 	Root           string
+	Temporal       temporal.Config
 	Version        string
 	Worker         worker.WorkerConfig
 
@@ -53,7 +56,7 @@ type Config struct {
 
 type Core struct {
 	auth       *Auth0Authenticator
-	db         db.DB
+	conf       Config
 	logger     *zap.Logger
 	mgr        *apiserver.Manager
 	registry   *prometheus.Registry
@@ -62,15 +65,14 @@ type Core struct {
 	taskCount  int64
 	workerPool *recruiter.WorkerPool     // state for personality=recruiter
 	workerReg  *worker.RegistrationState // state for personality=worker
-	worker     worker.WorkerConfig       // config for personality=worker
-
-	suricata pcapanalyzer.Launcher
-	zeek     pcapanalyzer.Launcher
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	if conf.Logger == nil {
 		conf.Logger = zap.NewNop()
+	}
+	if conf.Personality == "" {
+		conf.Personality = "all"
 	}
 	if conf.Version == "" {
 		conf.Version = "unknown"
@@ -108,28 +110,26 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		json.NewEncoder(w).Encode(&api.VersionResponse{Version: conf.Version})
 	})
 
-	personality := conf.Personality
-	if personality == "" {
-		personality = "all"
-	}
-
 	c := &Core{
 		auth:     authenticator,
-		logger:   conf.Logger.Named("core").With(zap.String("personality", personality)),
+		conf:     conf,
+		logger:   conf.Logger.Named("core").With(zap.String("personality", conf.Personality)),
 		registry: registry,
 		router:   router,
-		suricata: conf.Suricata,
-		worker:   conf.Worker,
-		zeek:     conf.Zeek,
+	}
+
+	switch conf.Personality {
+	case "all", "apiserver", "temporal":
+		if err := c.initManager(ctx, conf); err != nil {
+			return nil, err
+		}
 	}
 
 	var startFields []zap.Field
-	switch personality {
+	switch conf.Personality {
 	case "all", "apiserver", "root":
-		if err := c.addAPIServerRoutes(ctx, conf); err != nil {
-			return nil, err
-		}
-		if personality == "all" || personality == "root" {
+		c.addAPIServerRoutes()
+		if conf.Personality == "all" || conf.Personality == "root" {
 			c.addWorkerRoutes()
 		}
 		startFields = []zap.Field{
@@ -149,22 +149,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	return c, nil
 }
 
-func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) {
-	c.root, err = iosrc.ParseURI(conf.Root)
-	if err != nil {
-		return err
-	}
-	c.db, err = db.Open(ctx, conf.Logger, conf.DB, c.root)
-	if err != nil {
-		return err
-	}
-	icache, err := immcache.New(conf.ImmutableCache, c.registry)
-	if err != nil {
-		return err
-	}
-	if c.mgr, err = apiserver.NewManager(ctx, conf.Logger, c.registry, c.root, c.db, icache); err != nil {
-		return err
-	}
+func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/ast", handleASTPost).Methods("POST")
 	c.authhandle("/auth/identity", handleAuthIdentityGet).Methods("GET")
 	// /auth/method intentionally requires no authentication
@@ -182,7 +167,6 @@ func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) 
 	c.authhandle("/space/{space}/log/paths", handleLogPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
-	return nil
 }
 
 func (c *Core) addRecruiterRoutes() {
@@ -196,6 +180,30 @@ func (c *Core) addWorkerRoutes() {
 	c.router.Handle("/worker/chunksearch", c.handler(handleWorkerChunkSearch)).Methods("POST")
 	c.router.Handle("/worker/release", c.handler(handleWorkerRelease)).Methods("GET")
 	c.router.Handle("/worker/rootsearch", c.handler(handleWorkerRootSearch)).Methods("POST")
+}
+
+func (c *Core) initManager(ctx context.Context, conf Config) (err error) {
+	c.root, err = iosrc.ParseURI(conf.Root)
+	if err != nil {
+		return err
+	}
+	db, err := db.Open(ctx, c.logger, conf.DB, c.root)
+	if err != nil {
+		return err
+	}
+	icache, err := immcache.New(conf.ImmutableCache, c.registry)
+	if err != nil {
+		return err
+	}
+	var notifier apiserver.Notifier
+	if conf.Temporal.Enabled {
+		notifier, err = temporal.NewNotifier(c.logger, conf.Temporal)
+		if err != nil {
+			return err
+		}
+	}
+	c.mgr, err = apiserver.NewManager(ctx, c.logger, notifier, c.registry, c.root, db, icache)
+	return err
 }
 
 func (c *Core) handler(f func(*Core, http.ResponseWriter, *http.Request)) http.Handler {
@@ -219,11 +227,15 @@ func (c *Core) HTTPHandler() http.Handler {
 }
 
 func (c *Core) HasSuricata() bool {
-	return c.suricata != nil
+	return c.conf.Suricata != nil
 }
 
 func (c *Core) HasZeek() bool {
-	return c.zeek != nil
+	return c.conf.Zeek != nil
+}
+
+func (c *Core) IsTemporalWorker() bool {
+	return c.conf.Temporal.Enabled && (c.conf.Personality == "all" || c.conf.Personality == "temporal")
 }
 
 func (c *Core) Registry() *prometheus.Registry {
@@ -232,6 +244,22 @@ func (c *Core) Registry() *prometheus.Registry {
 
 func (c *Core) Root() iosrc.URI {
 	return c.root
+}
+
+func (c *Core) RunTemporalWorker(ctx context.Context) error {
+	client, err := temporal.NewClient(c.logger.Named("temporal"), c.conf.Temporal)
+	if err != nil {
+		return err
+	}
+	defer client.Close()
+	w := sdkworker.New(client, temporal.TaskQueue, sdkworker.Options{})
+	temporal.InitSpaceWorkflow(c.conf.Temporal, c.mgr, w)
+	if err := w.Start(); err != nil {
+		return err
+	}
+	<-ctx.Done()
+	w.Stop()
+	return ctx.Err()
 }
 
 func (c *Core) Shutdown() {

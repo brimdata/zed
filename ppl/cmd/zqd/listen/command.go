@@ -26,6 +26,7 @@ import (
 	"github.com/mccanne/charm"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v3"
 )
 
@@ -69,17 +70,18 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.conf.Auth.SetFlags(f)
-	c.conf.Worker.SetFlags(f)
 	c.conf.DB.SetFlags(f)
 	c.conf.ImmutableCache.SetFlags(f)
+	c.conf.Temporal.SetFlags(f)
 	c.conf.Version = cli.Version
+	c.conf.Worker.SetFlags(f)
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.configfile, "config", "", "path to zqd config file")
 	f.StringVar(&c.conf.Root, "data", ".", "data location")
 	f.BoolVar(&c.devMode, "dev", false, "run in development mode")
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.Var(&c.logLevel, "loglevel", "logging level")
-	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, recruiter, or worker)")
+	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, recruiter, temporal, or worker)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
 	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
@@ -132,6 +134,7 @@ func (c *Command) Run(args []string) error {
 	}()
 	srv := httpd.New(c.listenAddr, core.HTTPHandler())
 	srv.SetLogger(c.logger.Named("httpd"))
+	g, ctx := errgroup.WithContext(ctx)
 	if err := srv.Start(ctx); err != nil {
 		return err
 	}
@@ -147,7 +150,11 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	}
-	return srv.Wait()
+	if core.IsTemporalWorker() {
+		g.Go(func() error { return core.RunTemporalWorker(ctx) })
+	}
+	g.Go(srv.Wait)
+	return g.Wait()
 }
 
 func (c *Command) init() error {
