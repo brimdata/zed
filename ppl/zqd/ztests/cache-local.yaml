@@ -6,10 +6,12 @@ script: |
   zapi -h $ZQD_HOST -s testsp get -f text "count()"
   echo ===
   zapi -h $ZQD_HOST -s testsp get -f text "count()"
+  echo ===
+  curl $ZQD_HOST/metrics | grep archive_cache
 
 inputs:
   - name: babble.tzng
-    source: ../../../ztests/suite/data/babble.tzng
+    source: ../../../ztests/suite/data/babble-sorted.tzng
   - name: services.sh
     source: services.sh
 
@@ -21,3 +23,10 @@ outputs:
       1000
       ===
       1000
+      ===
+      # HELP archive_cache_hits_total Number of hits for a cache lookup.
+      # TYPE archive_cache_hits_total counter
+      archive_cache_hits_total{kind="metadata"} 4
+      # HELP archive_cache_misses_total Number of misses for a cache lookup.
+      # TYPE archive_cache_misses_total counter
+      archive_cache_misses_total{kind="metadata"} 2
