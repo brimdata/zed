@@ -148,6 +148,19 @@ type Shaper struct {
 	transforms ShaperTransform
 }
 
+// NewShaperType returns a shaper that will shape the result of fieldExpr
+// to the provided typExpr. (typExpr should evaluate to a type value,
+// e.g. a value of type TypeType).
+func NewShaperType(zctx *resolver.Context, fieldExpr Evaluator, typ *zng.TypeRecord, tf ShaperTransform) (*Shaper, error) {
+	return &Shaper{
+		zctx:       zctx,
+		fieldExpr:  fieldExpr,
+		typ:        typ,
+		shapeSpecs: make(map[int]shapeSpec),
+		transforms: tf,
+	}, nil
+}
+
 // NewShaper returns a shaper that will shape the result of fieldExpr
 // to the provided typExpr. (typExpr should evaluate to a type value,
 // e.g. a value of type TypeType).
@@ -178,13 +191,15 @@ func NewShaper(zctx *resolver.Context, fieldExpr, typExpr Evaluator, tf ShaperTr
 	if !isRecord {
 		return nil, fmt.Errorf("shaper needs a record type value as second parameter")
 	}
-	return &Shaper{
-		zctx:       zctx,
-		fieldExpr:  fieldExpr,
-		typ:        recType,
-		shapeSpecs: make(map[int]shapeSpec),
-		transforms: tf,
-	}, nil
+	return NewShaperType(zctx, fieldExpr, recType, tf)
+}
+
+func (c *Shaper) Apply(in *zng.Record) (*zng.Record, error) {
+	v, err := c.Eval(in)
+	if err != nil {
+		return nil, err
+	}
+	return zng.NewRecord(v.Type.(*zng.TypeRecord), v.Bytes), nil
 }
 
 func (c *Shaper) Eval(in *zng.Record) (zng.Value, error) {

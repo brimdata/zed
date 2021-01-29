@@ -2,47 +2,100 @@ package fuse
 
 import (
 	"fmt"
+	"regexp"
 
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
+type renames struct{ srcs, dsts []field.Static }
+
+// A fuse schema holds the fused type as well as a per-input-type
+// rename specification. The latter is needed when input types have
+// name collisions on fields of different types.
 type schema struct {
-	columns []zng.Column
-	// keyed on name + type ID
-	position map[string]int
-	// keyed on name
-	count map[string]int
+	zctx    *resolver.Context
+	typ     *zng.TypeRecord
+	renames map[int]renames
 }
 
-func newSchema() *schema {
+func newSchema(zctx *resolver.Context) (*schema, error) {
+	empty, err := zctx.LookupTypeRecord([]zng.Column{})
+	if err != nil {
+		return nil, err
+	}
 	return &schema{
-		position: make(map[string]int),
-		count:    make(map[string]int),
+		zctx:    zctx,
+		typ:     empty,
+		renames: make(map[int]renames),
+	}, nil
+}
+
+func (s *schema) mixin(mix *zng.TypeRecord) error {
+	fused, renames, err := s.fuseRecordTypes(s.typ, mix, field.NewRoot(), renames{})
+	if err != nil {
+		return err
 	}
+
+	s.typ = fused
+	s.renames[mix.ID()] = renames
+	return nil
 }
 
-func (s *schema) touch(name string) int {
-	cnt := s.count[name] + 1
-	s.count[name] = cnt
-	return cnt
-}
-
-func (s *schema) mixin(typ *zng.TypeRecord) []int {
-	var positions []int
-	for _, c := range typ.Columns {
-		name := c.Name
-		key := fmt.Sprintf("%s%d", name, c.Type.ID())
-		uberPosition, ok := s.position[key]
-		if !ok {
-			cnt := s.touch(name)
-			if cnt > 1 {
-				name = fmt.Sprintf("%s_%d", name, cnt)
-			}
-			uberPosition = len(s.columns)
-			s.position[key] = uberPosition
-			s.columns = append(s.columns, zng.Column{name, c.Type})
+func findColByName(cols []zng.Column, name string) (zng.Column, int, bool) {
+	for i, col := range cols {
+		if col.Name == name {
+			return col, i, true
 		}
-		positions = append(positions, uberPosition)
 	}
-	return positions
+	return zng.Column{}, -1, false
+}
+
+func disambiguate(cols []zng.Column, name string) string {
+	n := 1
+	re := regexp.MustCompile(name + `_(\d+)$`)
+	for _, col := range cols {
+		if col.Name == name || re.MatchString(col.Name) {
+			n++
+		}
+	}
+	if n == 1 {
+		return name
+	}
+	return fmt.Sprintf("%s_%d", name, n)
+}
+
+func (s *schema) fuseRecordTypes(a, b *zng.TypeRecord, path field.Static, renames renames) (*zng.TypeRecord, renames, error) {
+	fused := make([]zng.Column, len(a.Columns))
+	copy(fused, a.Columns)
+	for _, bcol := range b.Columns {
+		acol, i, found := findColByName(fused, bcol.Name)
+		sameType := acol.Type == bcol.Type
+		switch {
+		case found == false:
+			fused = append(fused, bcol)
+		case found == true && sameType == true:
+			continue
+		case found == true && sameType == false:
+			if zng.IsRecordType(acol.Type) && zng.IsRecordType(bcol.Type) {
+				var err error
+				var nest *zng.TypeRecord
+				nest, renames, err = s.fuseRecordTypes(acol.Type.(*zng.TypeRecord), bcol.Type.(*zng.TypeRecord), append(path, bcol.Name), renames)
+				if err != nil {
+					return nil, renames, err
+				}
+				fused[i] = zng.Column{acol.Name, nest}
+				continue
+			}
+			dis := disambiguate(fused, acol.Name)
+			renames.srcs = append(renames.srcs, append(path, acol.Name))
+			renames.dsts = append(renames.dsts, append(path, dis))
+			fused = append(fused, zng.Column{dis, bcol.Type})
+		default:
+			panic("law of excluded middle?")
+		}
+	}
+	rec, err := s.zctx.LookupTypeRecord(fused)
+	return rec, renames, err
 }
