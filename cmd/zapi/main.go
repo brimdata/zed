@@ -10,7 +10,6 @@ import (
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/index"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/info"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/new"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/newsubspace"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/post"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/rename"
 	_ "github.com/brimsec/zq/cmd/zapi/cmd/repl"

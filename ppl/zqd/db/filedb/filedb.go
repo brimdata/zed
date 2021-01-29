@@ -89,43 +89,6 @@ func (db *FileDB) CreateSpace(ctx context.Context, row schema.SpaceRow) error {
 	return db.save(ctx, append(rows, row))
 }
 
-func (db *FileDB) CreateSubspace(ctx context.Context, row schema.SpaceRow) error {
-	if row.ID == "" {
-		return zqe.ErrInvalid("row must have an id")
-	}
-	if row.ParentID == "" {
-		return zqe.ErrInvalid("subspace must have parent id")
-	}
-
-	db.mu.Lock()
-	defer db.mu.Unlock()
-	rows, err := db.load(ctx)
-	if err != nil {
-		return err
-	}
-
-	parentIdx := -1
-	for i, r := range rows {
-		if row.ID == r.ID {
-			return zqe.ErrExists()
-		}
-		if r.TenantID != row.TenantID {
-			continue
-		}
-		if row.Name == r.Name {
-			return zqe.ErrConflict("space with name '%s' already exists", row.Name)
-		}
-		if row.ParentID == r.ID {
-			parentIdx = i
-		}
-	}
-	if parentIdx == -1 {
-		return zqe.ErrNotFound("subspace parent not found")
-	}
-
-	return db.save(ctx, append(rows, row))
-}
-
 func (db *FileDB) GetSpace(ctx context.Context, id api.SpaceID) (schema.SpaceRow, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
@@ -200,9 +163,6 @@ func (db *FileDB) DeleteSpace(ctx context.Context, id api.SpaceID) error {
 	for i := range rows {
 		if rows[i].ID == id {
 			idx = i
-		}
-		if rows[i].ParentID == id {
-			return zqe.E(zqe.Conflict, "cannot delete space with subspaces")
 		}
 	}
 	if idx == -1 {

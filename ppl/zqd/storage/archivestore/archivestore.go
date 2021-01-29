@@ -27,9 +27,6 @@ func Load(ctx context.Context, path iosrc.URI, notifier WriteNotifier, cfg *api.
 	oo := &archive.OpenOptions{
 		ImmutableCache: immcache,
 	}
-	if cfg != nil && cfg.OpenOptions != nil {
-		oo.LogFilter = cfg.OpenOptions.LogFilter
-	}
 	ark, err := archive.CreateOrOpenArchiveWithContext(ctx, path.String(), co, oo)
 	if err != nil {
 		return nil, err

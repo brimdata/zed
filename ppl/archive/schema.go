@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/ppl/archive/immcache"
 	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/zbuf"
@@ -141,7 +140,6 @@ func (ark *Archive) ReadDefinitions(ctx context.Context) (index.Definitions, err
 }
 
 type OpenOptions struct {
-	LogFilter      []string
 	ImmutableCache immcache.ImmutableCache
 }
 
@@ -175,21 +173,11 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 		DataPath:         dpuri,
 		LogSizeThreshold: m.LogSizeThreshold,
 		Root:             root,
-
-		immfiles: iosrc.DefaultMuxSource,
+		immfiles:         iosrc.DefaultMuxSource,
 	}
 
-	if oo != nil {
-		for _, l := range oo.LogFilter {
-			_, id, ok := chunk.FileMatch(l)
-			if !ok {
-				return nil, zqe.E(zqe.Invalid, "log filter %s not a chunk file name", l)
-			}
-			ark.LogFilter = append(ark.LogFilter, id)
-		}
-		if oo.ImmutableCache != nil {
-			ark.immfiles = oo.ImmutableCache
-		}
+	if oo != nil && oo.ImmutableCache != nil {
+		ark.immfiles = oo.ImmutableCache
 	}
 
 	return ark, nil

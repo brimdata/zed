@@ -3,8 +3,6 @@ package archive
 import (
 	"bytes"
 	"context"
-	"fmt"
-	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
@@ -70,88 +68,6 @@ func indexQuery(t *testing.T, ark *Archive, patterns []string, opts ...FindOptio
 	require.NoError(t, zbuf.Copy(w, rc))
 
 	return buf.String()
-}
-
-func TestOpenOptions(t *testing.T) {
-	datapath, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(datapath)
-
-	thresh := int64(1000)
-	createArchiveSpace(t, datapath, babble, &CreateOptions{
-		LogSizeThreshold: &thresh,
-	})
-
-	_, err = OpenArchive(datapath, &OpenOptions{
-		LogFilter: []string{"foo"},
-	})
-	require.Error(t, err)
-	require.Regexp(t, "not a chunk file name", err.Error())
-
-	indexArchiveSpace(t, datapath, ":int64")
-
-	ark1, err := OpenArchive(datapath, nil)
-	require.NoError(t, err)
-
-	// Verifying the complete index search response requires looking at the
-	// filesystem to find the uuids of the data files.
-	expFormat := `
-#zfile=string
-#0:record[key:int64,count:uint64,_log:zfile,first:time,last:time]
-0:[336;1;%s;1587517353.06239121;1587516769.06905117;]
-0:[336;1;%s;1587509477.06450528;1587508830.06852324;]
-`
-
-	first1 := nano.Ts(1587517353062391210)
-	first2 := nano.Ts(1587509477064505280)
-	var chunk1, chunk2 chunk.Chunk
-	err = filepath.Walk(datapath, func(p string, fi os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if k, id, ok := chunk.FileMatch(fi.Name()); ok && k == chunk.FileKindMetadata {
-			uri, err := iosrc.ParseURI(p)
-			if err != nil {
-				return err
-			}
-			uri.Path = path.Dir(uri.Path)
-			chunk, err := chunk.Open(context.Background(), uri, id, zbuf.OrderDesc)
-			if err != nil {
-				return err
-			}
-			switch chunk.First {
-			case first1:
-				chunk1 = chunk
-			case first2:
-				chunk2 = chunk
-			}
-		}
-		return nil
-	})
-	require.NoError(t, err)
-	if chunk1.Id.IsNil() || chunk2.Id.IsNil() {
-		t.Fatalf("expected data files not found")
-	}
-
-	pattern := []string{":int64=336"}
-	out := indexQuery(t, ark1, pattern, AddPath(DefaultAddPathField, false))
-	require.Equal(t,
-		test.Trim(fmt.Sprintf(expFormat, ark1.Root.RelPath(chunk1.Path()), ark1.Root.RelPath(chunk2.Path()))),
-		out,
-	)
-
-	ark2, err := OpenArchive(datapath, &OpenOptions{
-		LogFilter: []string{ark1.Root.RelPath(chunk1.Path())},
-	})
-	require.NoError(t, err)
-
-	expFormat = `
-#zfile=string
-#0:record[key:int64,count:uint64,_log:zfile,first:time,last:time]
-0:[336;1;%s;1587517353.06239121;1587516769.06905117;]
-`
-	out = indexQuery(t, ark2, pattern, AddPath(DefaultAddPathField, false))
-	require.Equal(t, test.Trim(fmt.Sprintf(expFormat, ark1.Root.RelPath(chunk1.Path()))), out)
 }
 
 func TestMetadataCache(t *testing.T) {
