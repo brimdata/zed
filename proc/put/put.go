@@ -107,27 +107,22 @@ const (
 	record                 // recurse into record below us
 )
 
-func (s op) build(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) error {
-	if s.op == root {
-		iter := zcode.Iter(vals[s.index].Bytes)
-		for !iter.Done() {
-			bytes, c, err := iter.Next()
-			if err != nil {
-				return err
-			}
-			if c {
-				b.AppendContainer(bytes)
-			} else {
-				b.AppendPrimitive(bytes)
-			}
+func (s op) build(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) (zcode.Bytes, error) {
+	switch s.op {
+	case root:
+		bytes := make(zcode.Bytes, len(vals[s.index].Bytes))
+		copy(bytes, vals[s.index].Bytes)
+		return bytes, nil
+	case record:
+		b.Reset()
+		if err := s.buildRecord(in, b, vals); err != nil {
+			return nil, err
 		}
-		return nil
-	}
-	if s.op != record {
+		return b.Bytes(), nil
+	default:
 		// top-level op should be root or record
-		panic("invariant violation")
+		panic(fmt.Sprintf("put: unexpected op %v", s.op))
 	}
-	return s.buildRecord(in, b, vals)
 }
 
 func (s op) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) error {
@@ -356,11 +351,11 @@ func (p *Proc) put(in *zng.Record) (*zng.Record, error) {
 		return in, nil
 	}
 
-	p.builder.Reset()
-	if err = rule.op.build(in.Raw, &p.builder, vals); err != nil {
+	bytes, err := rule.op.build(in.Raw, &p.builder, vals)
+	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(rule.typ, p.builder.Bytes()), nil
+	return zng.NewRecord(rule.typ, bytes), nil
 }
 func (p *Proc) Pull() (zbuf.Batch, error) {
 	batch, err := p.parent.Pull()
@@ -375,8 +370,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			return nil, err
 		}
 		// Keep is necessary because put can return its argument.
-		rec.Keep()
-		recs = append(recs, rec)
+		recs = append(recs, rec.Keep())
 	}
 	batch.Unref()
 	return zbuf.Array(recs), nil
