@@ -1,5 +1,5 @@
 script: |
-  zq -P -t '( put k=a+10 ; put k=b+20) | sort k' A.tzng
+  zq -P -t 'split ( => put k=a+10 => put k=b+20) | sort k' A.tzng
 
 inputs:
   - name: A.tzng

@@ -1,5 +1,5 @@
 script: |
-  zq -P -t '( filter * ; filter *) | join a=b hit=sc | sort a' A.tzng C.tzng
+  zq -P -t 'split ( => filter * => filter *) | join a=b hit=sc | sort a' A.tzng C.tzng
 
 inputs:
   - name: A.tzng
