@@ -16,6 +16,11 @@ func (p *Parser) ParseValue() (ast.Value, error) {
 	if err == io.EOF {
 		err = nil
 	}
+	if v == nil && err == nil {
+		if err := p.lexer.check(1); (err != nil && err != io.EOF) || len(p.lexer.cursor) > 0 {
+			return nil, errors.New("zson syntax error")
+		}
+	}
 	return v, err
 }
 

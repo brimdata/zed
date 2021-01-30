@@ -475,7 +475,6 @@ detectablebutbadline`
 	require.NoError(t, err)
 	assert.Regexp(t, ": format detection error.*", res.Warnings[0])
 	assert.Regexp(t, ": line 4: bad format$", res.Warnings[1])
-	assert.EqualValues(t, 114, res.BytesRead)
 }
 
 func TestPostNDJSONLogs(t *testing.T) {
