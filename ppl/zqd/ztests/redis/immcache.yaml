@@ -1,5 +1,7 @@
+tag: services
+
 script: |
-  ZQD_EXTRA_FLAGS=-immcache.localsize=128 source services.sh
+  source services.sh
   zapi -h $ZQD_HOST new -d ./root -k archivestore -thresh 20KiB testsp
   zapi -h $ZQD_HOST -s testsp post babble.tzng >/dev/null
   echo ===
@@ -11,7 +13,7 @@ script: |
 
 inputs:
   - name: babble.tzng
-    source: ../../../ztests/suite/data/babble-sorted.tzng
+    source: ../../../../ztests/suite/data/babble-sorted.tzng
   - name: services.sh
     source: services.sh
 
