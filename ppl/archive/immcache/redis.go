@@ -14,8 +14,8 @@ import (
 
 type RedisCache struct {
 	metrics
-	expiry time.Duration
 	client *redis.Client
+	expiry time.Duration
 }
 
 func NewRedisCache(client *redis.Client, conf Config, reg prometheus.Registerer) *RedisCache {
