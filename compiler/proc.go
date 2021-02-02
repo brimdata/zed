@@ -186,11 +186,8 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 			dsts = append(dsts, dst)
 			srcs = append(srcs, src)
 		}
-		rename, err := rename.New(pctx, parent, srcs, dsts)
-		if err != nil {
-			return nil, err
-		}
-		return rename, nil
+		renamer := rename.NewFunction(pctx.TypeContext, srcs, dsts)
+		return proc.FromFunction(pctx, parent, renamer, "rename"), nil
 
 	case *ast.FuseProc:
 		return fuse.New(pctx, parent)
