@@ -87,14 +87,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			p.typeMap[id] = typ
 		}
 		out := in.Keep()
-		if id != p.typeMap[id].ID() {
-			if out != in {
-				out.Type = p.typeMap[id]
-			} else {
-				out = zng.NewRecord(p.typeMap[id], out.Raw)
-			}
-		}
-		recs = append(recs, out)
+		recs = append(recs, zng.NewRecord(p.typeMap[id], out.Raw))
 	}
 	batch.Unref()
 	return zbuf.Array(recs), nil
