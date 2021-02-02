@@ -153,7 +153,7 @@ kubectl-config:
 
 helm-install:
 	helm install zsrv charts/zservice \
-	--set datauri=$(ZQD_DATA_URI) \
+	--set root.datauri=$(ZQD_DATA_URI) \
 	--set global.AWSRegion=us-east-2 \
 	--set global.image.repository=$(ZQD_ECR_HOST)/ \
 	--set global.image.tag=zqd:$(ECR_VERSION) \
