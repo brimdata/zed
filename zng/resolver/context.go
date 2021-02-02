@@ -727,10 +727,6 @@ func (c *Context) parseElement(typ zng.Type, in string) (string, zng.Element, er
 }
 
 func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
-	id := ext.ID()
-	if id < zng.IdTypeDef {
-		return ext, nil
-	}
 	switch ext := ext.(type) {
 	case *zng.TypeRecord:
 		return c.TranslateTypeRecord(ext)
@@ -759,8 +755,8 @@ func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
 		}
 		return c.LookupTypeAlias(ext.Name, local)
 	default:
-		//XXX
-		panic(fmt.Sprintf("zng cannot translate type: %s", ext))
+		// primitive type
+		return ext, nil
 	}
 }
 
