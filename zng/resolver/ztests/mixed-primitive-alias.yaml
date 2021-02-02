@@ -1,0 +1,28 @@
+script: |
+  zq -t c.log a.zng
+
+inputs:
+  - name: c.log
+    data: |
+      #separator \x09
+      #set_separator	,
+      #empty_field	(empty)
+      #unset_field	-
+      #path	conn
+      #fields	orig_p
+      #types	port
+      80
+# #port=uint16
+# #0:record[src_port:port]
+# 0:[81;]
+  - name: a.zng
+    data: !!binary /ARwb3J0AfYBCHNyY19wb3J0FxgCBFH/
+
+outputs:
+  - name: stdout
+    data: |
+      #port=uint16
+      #0:record[src_port:port]
+      0:[81;]
+      #1:record[_path:string,orig_p:port]
+      1:[conn;80;]
