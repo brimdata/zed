@@ -2,7 +2,7 @@ tag: services
 
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new -d ./root -k archivestore -thresh 20KiB testsp
+  zapi -h $ZQD_HOST new -k archivestore -thresh 20KiB testsp
   zapi -h $ZQD_HOST -s testsp post babble.tzng >/dev/null
   echo ===
   zapi -h $ZQD_HOST -s testsp get -f text "count()"
