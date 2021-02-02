@@ -41,6 +41,7 @@ type Source interface {
 type ScannerCloser interface {
 	zbuf.Scanner
 	io.Closer
+	String() string
 }
 
 type SourceFilter struct {

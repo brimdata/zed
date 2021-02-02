@@ -79,6 +79,9 @@ func (p *puller) Pull() (Batch, error) {
 	if err == nil && (batch == nil || batch.Length() < p.n) {
 		p.eos = true
 	}
+	if err != nil {
+		println("xyzzy", "batch.Pull", err.Error())
+	}
 	return batch, err
 }
 

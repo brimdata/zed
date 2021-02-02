@@ -40,7 +40,7 @@ func GetWorkerConnection(pctx *proc.Context, conf worker.WorkerConfig, logger *z
 		if err != nil {
 			return nil, err
 		}
-		logger.Warn("Retrying recruit worker")
+		logger.Info("Retrying recruit worker")
 		time.Sleep(retryWait)
 		if retryWait < conf.MaxRetry {
 			retryWait = (retryWait * 3) / 2

@@ -46,6 +46,10 @@ type pullerCloser struct {
 	io.Closer
 }
 
+func (pc pullerCloser) String() string {
+	return "pullerCloser"
+}
+
 func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, sf driver.SourceFilter, si SpanInfo) (sc *pullerCloser, stats ChunkStats, err error) {
 	closers := make(multiCloser, 0, len(si.Chunks))
 	pullers := make([]zbuf.Puller, 0, len(si.Chunks))
@@ -228,6 +232,11 @@ func (m *chunkMultiSource) Stats() ChunkStats {
 type scannerCloser struct {
 	zbuf.Scanner
 	io.Closer
+	name string
+}
+
+func (sc scannerCloser) String() string {
+	return sc.name
 }
 
 type chunkSource struct {

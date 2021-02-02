@@ -15,6 +15,16 @@ import (
 	"go.uber.org/zap"
 )
 
+type namedScannerCloser struct {
+	zbuf.Scanner
+	io.Closer
+	name string
+}
+
+func (nsc namedScannerCloser) String() string {
+	return nsc.name
+}
+
 type parallelHead struct {
 	pctx   *proc.Context
 	parent proc.Interface
@@ -58,6 +68,8 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 		}
 		batch, err := ph.sc.Pull()
 		if err != nil {
+			println("xyzzy", "parallelHead.Pull", err.Error(), "sc.name", ph.sc.String(),
+				"BytesRead", ph.sc.Stats().BytesRead, "RecordsRead", ph.sc.Stats().RecordsRead)
 			return nil, err
 		}
 		if batch == nil {
@@ -142,10 +154,7 @@ func (pg *parallelGroup) getRemoteScannerCloser(pctx *proc.Context, src Source, 
 	if err != nil {
 		return nil, err
 	}
-	return struct {
-		zbuf.Scanner
-		io.Closer
-	}{s, rc}, nil
+	return namedScannerCloser{s, rc, conn.ClientHostURL()}, nil
 }
 
 func (pg *parallelGroup) doneSource(sc ScannerCloser) {

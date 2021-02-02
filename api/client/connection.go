@@ -59,6 +59,7 @@ func NewConnection() *Connection {
 func NewConnectionTo(hostURL string) *Connection {
 	client := resty.New()
 	client.HostURL = hostURL
+	client.SetDebug(true)
 	return newConnection(client)
 }
 
