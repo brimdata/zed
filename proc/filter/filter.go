@@ -1,18 +1,18 @@
 package filter
 
 import (
-	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 )
 
 type Proc struct {
-	filter.Filter
+	expr.Filter
 	parent proc.Interface
 }
 
-func New(parent proc.Interface, f filter.Filter) *Proc {
+func New(parent proc.Interface, f expr.Filter) *Proc {
 	return &Proc{
 		parent: parent,
 		Filter: f,

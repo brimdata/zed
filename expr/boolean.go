@@ -1,4 +1,4 @@
-package filter
+package expr
 
 import (
 	"bytes"
@@ -22,7 +22,7 @@ import (
 
 // Predicate is a function that takes a Value and returns a boolean result
 // based on the typed value.
-type Predicate func(zng.Value) bool
+type Boolean func(zng.Value) bool
 
 var compareBool = map[string]func(bool, bool) bool{
 	"=":  func(a, b bool) bool { return a == b },
@@ -38,7 +38,7 @@ var compareBool = map[string]func(bool, bool) bool{
 // CompareBool returns a Predicate that compares zng.Values to a boolean literal
 // that must be a boolean or coercible to an integer.  In the later case, the integer
 // is converted to a boolean.
-func CompareBool(op string, pattern bool) (Predicate, error) {
+func CompareBool(op string, pattern bool) (Boolean, error) {
 	compare, ok := compareBool[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown bool comparator: %s", op)
@@ -78,7 +78,7 @@ var compareFloat = map[string]func(float64, float64) bool{
 // Return a predicate for comparing this value to one more typed
 // byte slices by calling the predicate function with a Value.
 // Operand is one of "=", "!=", "<", "<=", ">", ">=".
-func CompareInt64(op string, pattern int64) (Predicate, error) {
+func CompareInt64(op string, pattern int64) (Boolean, error) {
 	CompareInt, ok1 := compareInt[op]
 	CompareFloat, ok2 := compareFloat[op]
 	if !ok1 || !ok2 {
@@ -118,7 +118,7 @@ func CompareInt64(op string, pattern int64) (Predicate, error) {
 	}, nil
 }
 
-func CompareContainerLen(op string, len int64) (Predicate, error) {
+func CompareContainerLen(op string, len int64) (Boolean, error) {
 	compare, ok := compareInt[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown length comparator: %s", op)
@@ -148,7 +148,7 @@ var compareAddr = map[string]func(net.IP, net.IP) bool{
 // Comparison returns a Predicate that compares typed byte slices that must
 // be TypeAddr with the value's address using a comparison based on op.
 // Only equality operands are allowed.
-func CompareIP(op string, pattern net.IP) (Predicate, error) {
+func CompareIP(op string, pattern net.IP) (Boolean, error) {
 	compare, ok := compareAddr[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
@@ -169,7 +169,7 @@ func CompareIP(op string, pattern net.IP) (Predicate, error) {
 // be coercible to an double with the value's double value using a comparison
 // based on op.  Int, count, port, and double types can
 // all be converted to the integer value.  XXX there are some overflow issues here.
-func CompareFloat64(op string, pattern float64) (Predicate, error) {
+func CompareFloat64(op string, pattern float64) (Boolean, error) {
 	compare, ok := compareFloat[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown double comparator: %s", op)
@@ -224,7 +224,7 @@ var compareString = map[string]func(string, string) bool{
 	"<=": func(a, b string) bool { return a <= b },
 }
 
-func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
+func CompareBstring(op string, pattern zng.Bstring) (Boolean, error) {
 	compare, ok := compareString[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown string comparator: %s", op)
@@ -242,7 +242,7 @@ func CompareBstring(op string, pattern zng.Bstring) (Predicate, error) {
 // compareRegexp returns a Predicate that compares values that must
 // be a string or enum with the value's regular expression using a regex
 // match comparison based on equality or inequality based on op.
-func compareRegexp(op, pattern string) (Predicate, error) {
+func compareRegexp(op, pattern string) (Boolean, error) {
 	re, err := regexp.Compile(string(zng.UnescapeBstring([]byte(pattern))))
 	if err != nil {
 		if syntaxErr, ok := err.(*syntax.Error); ok {
@@ -272,7 +272,7 @@ func compareRegexp(op, pattern string) (Predicate, error) {
 	}
 }
 
-func CompareUnset(op string) (Predicate, error) {
+func CompareUnset(op string) (Boolean, error) {
 	switch op {
 	case "=":
 		return func(v zng.Value) bool {
@@ -334,7 +334,7 @@ var matchSubnet = map[string]func(net.IP, *net.IPNet) bool{
 // byte slice is a subnet, then the comparison is based on strict equality.
 // If the typed byte slice is an addr, then the comparison is performed by
 // doing a CIDR match on the address with the subnet.
-func CompareSubnet(op string, pattern *net.IPNet) (Predicate, error) {
+func CompareSubnet(op string, pattern *net.IPNet) (Boolean, error) {
 	compare, ok1 := compareSubnet[op]
 	match, ok2 := matchSubnet[op]
 	if !ok1 || !ok2 {
@@ -363,7 +363,7 @@ func CompareSubnet(op string, pattern *net.IPNet) (Predicate, error) {
 // at the type of the value being compared, if it is a set or array,
 // the original predicate is applied to each element.  The new precicate
 // returns true iff the predicate matched an element from the collection.
-func Contains(compare Predicate) Predicate {
+func Contains(compare Boolean) Boolean {
 	return func(v zng.Value) bool {
 		var el zng.Value
 		el.Type = zng.InnerType(v.Type)
@@ -389,7 +389,7 @@ func Contains(compare Predicate) Predicate {
 // See the comments of the various type implementations
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
-func Comparison(op string, literal ast.Literal) (Predicate, error) {
+func Comparison(op string, literal ast.Literal) (Boolean, error) {
 	if literal.Type == "regexp" {
 		return compareRegexp(op, literal.Value)
 	} else if (op == "=~" || op == "!~") && literal.Type == "string" {

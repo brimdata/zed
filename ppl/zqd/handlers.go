@@ -219,24 +219,6 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 	respond(c, w, r, http.StatusOK, info)
 }
 
-func handleSubspacePost(c *Core, w http.ResponseWriter, r *http.Request) {
-	var req api.SubspacePostRequest
-	if !request(c, w, r, &req) {
-		return
-	}
-	id, ok := extractSpaceID(c, w, r)
-	if !ok {
-		return
-	}
-
-	info, err := c.mgr.CreateSubspace(r.Context(), id, req)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	respond(c, w, r, http.StatusOK, info)
-}
-
 func handleSpacePut(c *Core, w http.ResponseWriter, r *http.Request) {
 	var req api.SpacePutRequest
 	if !request(c, w, r, &req) {

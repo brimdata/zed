@@ -1,12 +1,12 @@
-package filter
+package expr
 
 import (
 	"errors"
 	"strings"
 
 	"github.com/brimsec/zq/ast"
-	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/byteconv"
+	"github.com/brimsec/zq/pkg/stringsearch"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
@@ -25,7 +25,7 @@ func LogicalNot(expr Filter) Filter {
 	return func(p *zng.Record) bool { return !expr(p) }
 }
 
-func Combine(res expr.Evaluator, pred Predicate) Filter {
+func Combine(res Evaluator, pred Boolean) Filter {
 	return func(r *zng.Record) bool {
 		v, err := res.Eval(r)
 		if err != nil || v.Type == nil {
@@ -36,7 +36,7 @@ func Combine(res expr.Evaluator, pred Predicate) Filter {
 	}
 }
 
-func EvalAny(eval Predicate, recursive bool) Filter {
+func EvalAny(eval Boolean, recursive bool) Filter {
 	if !recursive {
 		return func(r *zng.Record) bool {
 			it := r.ZvalIter()
@@ -128,15 +128,15 @@ func SearchRecordOther(searchtext string, searchval ast.Literal) (Filter, error)
 // matches both field names and values.
 func SearchRecordString(term string) Filter {
 	fieldNameCheck := make(map[zng.Type]bool)
-	var nameIter fieldNameIter
+	var nameIter stringsearch.FieldNameIter
 	return func(r *zng.Record) bool {
 		// Memoize the result of a search across the names in the
 		// record columns for each unique record type.
 		match, ok := fieldNameCheck[r.Type]
 		if !ok {
-			nameIter.init(r.Type)
-			for !nameIter.done() {
-				if stringSearch(byteconv.UnsafeString(nameIter.next()), term) {
+			nameIter.Init(r.Type)
+			for !nameIter.Done() {
+				if stringSearch(byteconv.UnsafeString(nameIter.Next()), term) {
 					match = true
 					break
 				}

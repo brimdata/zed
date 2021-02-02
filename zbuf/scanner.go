@@ -4,14 +4,14 @@ import (
 	"context"
 	"sync/atomic"
 
-	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 )
 
 type Filter interface {
-	AsFilter() (filter.Filter, error)
-	AsBufferFilter() (*filter.BufferFilter, error)
+	AsFilter() (expr.Filter, error)
+	AsBufferFilter() (*expr.BufferFilter, error)
 }
 
 // ScannerAble is implemented by Readers that provide an optimized
@@ -90,7 +90,7 @@ func NewScanner(ctx context.Context, r Reader, filterExpr Filter, s nano.Span) (
 	if sa != nil {
 		return sa.NewScanner(ctx, filterExpr, s)
 	}
-	var f filter.Filter
+	var f expr.Filter
 	if filterExpr != nil {
 		var err error
 		if f, err = filterExpr.AsFilter(); err != nil {
@@ -105,7 +105,7 @@ func NewScanner(ctx context.Context, r Reader, filterExpr Filter, s nano.Span) (
 type scanner struct {
 	Puller
 	reader Reader
-	filter filter.Filter
+	filter expr.Filter
 	span   nano.Span
 	ctx    context.Context
 

@@ -1,4 +1,4 @@
-package filter_test
+package expr_test
 
 import (
 	"encoding/hex"

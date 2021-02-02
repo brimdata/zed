@@ -13,6 +13,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/ppl/archive/immcache"
 	"github.com/brimsec/zq/ppl/zqd/apiserver"
 	"github.com/brimsec/zq/ppl/zqd/db"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
@@ -37,13 +38,14 @@ const indexPage = `
 </html>`
 
 type Config struct {
-	Auth        AuthConfig
-	DB          db.Config
-	Logger      *zap.Logger
-	Personality string
-	Root        string
-	Version     string
-	Worker      worker.WorkerConfig
+	Auth           AuthConfig
+	DB             db.Config
+	ImmutableCache immcache.Config
+	Logger         *zap.Logger
+	Personality    string
+	Root           string
+	Version        string
+	Worker         worker.WorkerConfig
 
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher
@@ -156,7 +158,11 @@ func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) 
 	if err != nil {
 		return err
 	}
-	if c.mgr, err = apiserver.NewManager(ctx, conf.Logger, c.registry, c.root, c.db); err != nil {
+	icache, err := immcache.New(conf.ImmutableCache, c.registry)
+	if err != nil {
+		return err
+	}
+	if c.mgr, err = apiserver.NewManager(ctx, conf.Logger, c.registry, c.root, c.db, icache); err != nil {
 		return err
 	}
 	c.authhandle("/ast", handleASTPost).Methods("POST")
@@ -176,7 +182,6 @@ func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) 
 	c.authhandle("/space/{space}/log/paths", handleLogPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
-	c.authhandle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
 	return nil
 }
 

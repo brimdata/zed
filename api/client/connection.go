@@ -193,20 +193,6 @@ func (c *Connection) SpacePost(ctx context.Context, req api.SpacePostRequest) (*
 	return resp.Result().(*api.Space), nil
 }
 
-func (c *Connection) SubspacePost(ctx context.Context, id api.SpaceID, req api.SubspacePostRequest) (*api.Space, error) {
-	resp, err := c.Request(ctx).
-		SetBody(req).
-		SetResult(&api.Space{}).
-		Post(path.Join("/space", string(id), "subspace"))
-	if err != nil {
-		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusConflict {
-			return nil, ErrSpaceExists
-		}
-		return nil, err
-	}
-	return resp.Result().(*api.Space), nil
-}
-
 func (c *Connection) SpacePut(ctx context.Context, id api.SpaceID, req api.SpacePutRequest) error {
 	_, err := c.Request(ctx).
 		SetBody(req).

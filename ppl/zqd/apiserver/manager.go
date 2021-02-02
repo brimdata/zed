@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/ppl/archive/immcache"
 	"github.com/brimsec/zq/ppl/zqd/auth"
 	"github.com/brimsec/zq/ppl/zqd/db"
 	"github.com/brimsec/zq/ppl/zqd/db/schema"
@@ -26,7 +27,9 @@ type Manager struct {
 	alphaFileMigrator *filestore.Migrator
 	compactor         *compactor
 	db                db.DB
+	immcache          immcache.ImmutableCache
 	logger            *zap.Logger
+	registerer        prometheus.Registerer
 	rootPath          iosrc.URI
 
 	// We keep instances of any loaded filestore because the seek indexes
@@ -40,12 +43,14 @@ type Manager struct {
 	deleted prometheus.Counter
 }
 
-func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI, db db.DB) (*Manager, error) {
+func NewManager(ctx context.Context, logger *zap.Logger, registerer prometheus.Registerer, root iosrc.URI, db db.DB, icache immcache.ImmutableCache) (*Manager, error) {
 	factory := promauto.With(registerer)
 	m := &Manager{
-		logger:   logger.Named("manager"),
-		rootPath: root,
-		db:       db,
+		db:         db,
+		immcache:   icache,
+		logger:     logger.Named("manager"),
+		registerer: registerer,
+		rootPath:   root,
 
 		alphaFileMigrator: filestore.NewMigrator(ctx),
 		filestores:        make(map[api.SpaceID]*filestore.Storage),
@@ -156,46 +161,6 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 	return si, nil
 }
 
-func (m *Manager) CreateSubspace(ctx context.Context, parentID api.SpaceID, req api.SubspacePostRequest) (api.Space, error) {
-	if req.Name == "" {
-		return api.Space{}, zqe.E(zqe.Invalid, "cannot set name to an empty string")
-	}
-	if !schema.ValidSpaceName(req.Name) {
-		return api.Space{}, zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
-	}
-	parent, err := m.db.GetSpace(ctx, parentID)
-	if err != nil {
-		return api.Space{}, err
-	}
-	if parent.Storage.Kind != api.ArchiveStore {
-		return api.Space{}, zqe.E(zqe.Invalid, "space does not support creating subspaces")
-	}
-	id := schema.NewSpaceID()
-	cfg := api.StorageConfig{
-		Kind: api.ArchiveStore,
-		Archive: &api.ArchiveConfig{
-			OpenOptions: &req.OpenOptions,
-		},
-	}
-	if _, err := m.getStorage(ctx, id, parent.DataURI, cfg); err != nil {
-		return api.Space{}, zqe.ErrInvalid("invalid subspace storage config: %w", err)
-	}
-	ident := auth.IdentityFromContext(ctx)
-	row := schema.SpaceRow{
-		ID:       id,
-		ParentID: parentID,
-		Name:     req.Name,
-		DataURI:  parent.DataURI,
-		Storage:  cfg,
-		TenantID: ident.TenantID,
-	}
-	if err := m.db.CreateSubspace(ctx, row); err != nil {
-		return api.Space{}, err
-	}
-	m.created.Inc()
-	return rowToSpace(row), nil
-}
-
 func (m *Manager) GetStorage(ctx context.Context, id api.SpaceID) (storage.Storage, error) {
 	sr, err := m.getSpacePermCheck(ctx, id)
 	if err != nil {
@@ -238,7 +203,7 @@ func (m *Manager) getStorage(ctx context.Context, id api.SpaceID, daturi iosrc.U
 		return st, nil
 	case api.ArchiveStore:
 		wn := &writeNotifier{c: m.compactor, id: id}
-		return archivestore.Load(ctx, daturi, wn, cfg.Archive)
+		return archivestore.Load(ctx, daturi, wn, cfg.Archive, m.immcache)
 	default:
 		return nil, zqe.E(zqe.Invalid, "unknown storage kind: %s", cfg.Kind)
 	}
@@ -260,7 +225,6 @@ func rowToSpace(row schema.SpaceRow) api.Space {
 		ID:          row.ID,
 		DataPath:    row.DataURI,
 		Name:        row.Name,
-		ParentID:    row.ParentID,
 		StorageKind: row.Storage.Kind,
 	}
 }

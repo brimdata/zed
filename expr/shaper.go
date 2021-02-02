@@ -125,7 +125,9 @@ func (s op) buildRecord(in zcode.Bytes, b *zcode.Builder) {
 		case castPrimitive:
 			step.castPrimitive(bytes, b)
 		case record:
+			b.BeginContainer()
 			step.buildRecord(bytes, b)
+			b.EndContainer()
 		}
 	}
 }

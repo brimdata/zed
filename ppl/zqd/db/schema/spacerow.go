@@ -16,7 +16,6 @@ type SpaceRow struct {
 	ID        api.SpaceID       `json:"id"`
 	DataURI   iosrc.URI         `json:"data_uri"`
 	Name      string            `json:"name"`
-	ParentID  api.SpaceID       `json:"parent_id"`
 	Storage   api.StorageConfig `json:"storage"`
 	TenantID  auth.TenantID     `json:"tenant_id"`
 }

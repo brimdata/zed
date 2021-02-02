@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync/atomic"
 
-	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
@@ -15,8 +15,8 @@ import (
 type zngScanner struct {
 	ctx          context.Context
 	reader       *Reader
-	bufferFilter *filter.BufferFilter
-	filter       filter.Filter
+	bufferFilter *expr.BufferFilter
+	filter       expr.Filter
 	rec          zng.Record // Used to reduce memory allocations.
 	span         nano.Span
 	stats        zbuf.ScannerStats

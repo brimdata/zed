@@ -30,25 +30,10 @@ func (d *PostgresDB) CreateSpace(ctx context.Context, row schema.SpaceRow) error
 	if row.ID == "" {
 		return zqe.ErrInvalid("row must have an id")
 	}
-	if row.ParentID != "" {
-		return zqe.ErrInvalid("parent id cannot be set for non-subspace spaces")
-	}
 
 	_, err := d.db.ModelContext(ctx, &row).Insert()
 	if IsUniqueViolation(err) {
 		return zqe.ErrConflict("space with name '%s' already exists", row.Name)
-	}
-	return err
-}
-
-func (d *PostgresDB) CreateSubspace(ctx context.Context, row schema.SpaceRow) error {
-	if row.ParentID == "" {
-		return zqe.ErrInvalid("subspace must have parent id")
-	}
-
-	err := d.CreateSpace(ctx, row)
-	if IsForeignKeyViolation(err) {
-		return zqe.ErrNotFound("subspace parent not found")
 	}
 	return err
 }

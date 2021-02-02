@@ -157,7 +157,13 @@ func (m *spanMultiSource) SourceFromRequest(ctx context.Context, req *api.Worker
 		}
 		uri := tsdir.path(m.ark)
 		mdPath := chunk.MetadataPath(uri, id)
-		md, err := chunk.ReadMetadata(ctx, mdPath, m.ark.DataOrder)
+
+		b, err := m.ark.immfiles.ReadFile(ctx, mdPath)
+		if err != nil {
+			return nil, err
+		}
+
+		md, err := chunk.UnmarshalMetadata(b, m.ark.DataOrder)
 		if err != nil {
 			return nil, zqe.E("failed to read chunk metadata from %s: %w", mdPath.String(), err)
 		}
