@@ -1,4 +1,4 @@
-zql: 'rename s2=s | count() by s2'
+zql: 'rename s2=s | count() by s2 | sort s2'
 
 # This test previously failed only for binary zng.
 # #0:record[s:string]
