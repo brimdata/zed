@@ -50,11 +50,9 @@ type Config struct {
 	// local lru cache used to speed up searches. Values less than or equal to 0
 	// (default), disables local caching of immutable files.
 	LocalCacheSize int
-	// RedisKeyExpiration is the time redis will keep the key of the immutable
-	// file around before deleting this. If RedisKeyExpiration == 0 the key will
-	// be kept around indefinitely. Because this is supposed to be used as an
-	// LRU cache, if the redis server eviction policy is set volitale-lru the
-	// value of RedisKeyExpiration should not be set to 0.
+	// RedisKeyExpiration is the expiration value used when creating keys.
+	// A value of zero (meaning no expiration) should only be used when
+	// Redis is configured with a key eviction policy.
 	RedisKeyExpiration time.Duration
 }
 
