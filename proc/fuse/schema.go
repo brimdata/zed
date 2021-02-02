@@ -53,14 +53,14 @@ func findColByName(cols []zng.Column, name string) (zng.Column, int, bool) {
 }
 
 func disambiguate(cols []zng.Column, name string) string {
-	n := 0
+	n := 1
 	re := regexp.MustCompile(name + `_(\d+)$`)
 	for _, col := range cols {
 		if col.Name == name || re.MatchString(col.Name) {
 			n++
 		}
 	}
-	if n == 0 {
+	if n == 1 {
 		return name
 	}
 	return fmt.Sprintf("%s_%d", name, n)
