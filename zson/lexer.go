@@ -37,7 +37,7 @@ func NewLexer(r io.Reader) (*Lexer, error) {
 	indentation.Longest()
 	return &Lexer{
 		reader:      r,
-		buffer:      make([]byte, 0, ReadSize),
+		buffer:      make([]byte, ReadSize),
 		primitive:   primitive,
 		indentation: indentation,
 	}, nil
@@ -63,9 +63,9 @@ func (l *Lexer) fill(n int) error {
 	} else if remaining > 0 {
 		copy(l.buffer[0:remaining], l.cursor)
 	}
-	cc, err := io.ReadFull(l.reader, l.buffer[remaining:cap(l.buffer)-remaining])
+	cc, err := io.ReadFull(l.reader, l.buffer[remaining:cap(l.buffer)])
 	l.cursor = l.buffer[0 : remaining+cc]
-	if err == io.ErrUnexpectedEOF && len(l.cursor) < n {
+	if err == io.ErrUnexpectedEOF && cc > 0 {
 		err = nil
 	}
 	return err
@@ -92,10 +92,10 @@ func (l *Lexer) skip(n int) error {
 }
 
 func (l *Lexer) peek() (byte, error) {
-	if len(l.cursor) > 1 {
-		return l.cursor[0], nil
+	if err := l.check(1); err != nil {
+		return 0, err
 	}
-	return 0, io.EOF
+	return l.cursor[0], nil
 }
 
 func (l *Lexer) match(b byte) (bool, error) {
