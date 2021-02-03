@@ -1,4 +1,4 @@
-zql: 'put x=network_of(addr)'
+zql: put x=network_of(addr)
 
 input: |
   #0:record[addr:ip]

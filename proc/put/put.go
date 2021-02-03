@@ -155,8 +155,7 @@ func (s step) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) er
 					return err
 				}
 			}
-			err = step.buildRecord(bytes, b, vals)
-			if err != nil {
+			if err := step.buildRecord(bytes, b, vals); err != nil {
 				return err
 			}
 			b.EndContainer()

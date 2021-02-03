@@ -14,7 +14,6 @@ inputs:
       {"pre": "pre","a": {"x": 10,"b": 2,"c": {"a": 3},"d": 4},"b": 5,"post": "post"}
       {"other": "other"}
 
-
 outputs:
   - name: stdout
     data: |
