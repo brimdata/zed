@@ -8,6 +8,7 @@ import (
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/microindex"
+	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
@@ -70,7 +71,7 @@ func (c *Command) Run(args []string) error {
 	}
 	path := args[0]
 	if path == "-" {
-		path = detector.StdinPath
+		path = iosrc.Stdin
 	}
 	zctx := resolver.NewContext()
 	file, err := detector.OpenFile(zctx, path, c.inputFlags.Options())
