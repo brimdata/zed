@@ -25,7 +25,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/promtest"
 	"github.com/brimsec/zq/pkg/test"
-	"github.com/brimsec/zq/ppl/archive/immcache"
+	"github.com/brimsec/zq/ppl/lake/immcache"
 	"github.com/brimsec/zq/ppl/zqd"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zbuf"

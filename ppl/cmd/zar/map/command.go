@@ -14,9 +14,9 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
-	"github.com/brimsec/zq/ppl/archive"
-	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimsec/zq/ppl/lake"
+	"github.com/brimsec/zq/ppl/lake/chunk"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -93,14 +93,14 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
 
-	ark, err := archive.OpenArchiveWithContext(ctx, c.root, nil)
+	lk, err := lake.OpenLakeWithContext(ctx, c.root, nil)
 	if err != nil {
 		return err
 	}
 
 	// XXX this is parallelizable except for writing to stdout when
 	// concatenating results
-	return archive.Walk(ctx, ark, func(chunk chunk.Chunk) error {
+	return lake.Walk(ctx, lk, func(chunk chunk.Chunk) error {
 		zardir := chunk.ZarDir()
 		var paths []string
 		for _, input := range inputs {
@@ -124,7 +124,7 @@ func (c *Command) Run(args []string) error {
 		}
 		err = driver.Run(ctx, d, query, zctx, reader, driver.Config{
 			ReaderSortKey:     "ts",
-			ReaderSortReverse: ark.DataOrder == zbuf.OrderDesc,
+			ReaderSortReverse: lk.DataOrder == zbuf.OrderDesc,
 		})
 		if closeErr := writer.Close(); closeErr != nil && err == nil {
 			err = closeErr

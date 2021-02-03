@@ -1,4 +1,4 @@
-package archive
+package lake
 
 import (
 	"context"
@@ -29,11 +29,11 @@ func testImportStaleDuration(t *testing.T, stale time.Duration, expected uint64)
 0:[1587508850.06466032;202;]`
 
 	// create archive with a 1 ns ImportFlushTimeout
-	ark, err := CreateOrOpenArchive(t.TempDir(), nil, nil)
+	lk, err := CreateOrOpenLake(t.TempDir(), nil, nil)
 	require.NoError(t, err)
 
 	// write one record to an open archive.Writer and do NOT close it.
-	w, err := NewWriter(context.Background(), ark)
+	w, err := NewWriter(context.Background(), lk)
 	require.NoError(t, err)
 	defer w.Close()
 	w.SetStaleDuration(stale)
@@ -43,7 +43,7 @@ func testImportStaleDuration(t *testing.T, stale time.Duration, expected uint64)
 	// flush stale writers and ensure data has been written to archive
 	err = w.flushStaleWriters()
 	require.NoError(t, err)
-	count, err := RecordCount(context.Background(), ark)
+	count, err := RecordCount(context.Background(), lk)
 	require.NoError(t, err)
 	assert.EqualValues(t, expected, count)
 }
