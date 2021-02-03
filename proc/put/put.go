@@ -220,7 +220,7 @@ func (p *Proc) deriveRule(parentPath field.Static, inType *zng.TypeRecord, vals 
 }
 
 func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, vals []zng.Value) (step, *zng.TypeRecord, error) {
-	o := step{op: record}
+	s := step{op: record}
 	cols := make([]zng.Column, 0)
 
 	// First look at all input columns to see which should
@@ -232,7 +232,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 		switch {
 		// input not overwritten by assignment: copy input value.
 		case !found:
-			o.append(step{
+			s.append(step{
 				op:        fromInput,
 				container: zng.IsContainerType(inCol.Type),
 				index:     i,
@@ -240,7 +240,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 			cols = append(cols, inCol)
 		// input field overwritten by non-nested assignment: copy assignment value.
 		case len(path) == len(matchPath):
-			o.append(step{
+			s.append(step{
 				op:        fromClause,
 				container: zng.IsContainerType(vals[matchIndex].Type),
 				index:     matchIndex,
@@ -253,7 +253,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 				return step{}, nil, err
 			}
 			nestedStep.index = i
-			o.append(nestedStep)
+			s.append(nestedStep)
 			cols = append(cols, zng.Column{inCol.Name, typ})
 		// input non-record field overwritten by nested assignment(s): recurse.
 		case len(path) < len(matchPath) && !zng.IsRecordType(inCol.Type):
@@ -262,7 +262,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 				return step{}, nil, err
 			}
 			nestedStep.index = i
-			o.append(nestedStep)
+			s.append(nestedStep)
 			cols = append(cols, zng.Column{inCol.Name, typ})
 		default:
 			panic("faulty logic")
@@ -281,7 +281,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 			switch {
 			// Append value at this level
 			case len(cl.LHS) == len(parentPath)+1:
-				o.append(step{
+				s.append(step{
 					op:        fromClause,
 					container: zng.IsContainerType(vals[i].Type),
 					index:     i,
@@ -296,13 +296,13 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 				}
 				nestedStep.index = -1
 				cols = append(cols, zng.Column{cl.LHS[len(parentPath)], typ})
-				o.append(nestedStep)
+				s.append(nestedStep)
 			}
 		}
 	}
 
 	typ, err := p.pctx.TypeContext.LookupTypeRecord(cols)
-	return o, typ, err
+	return s, typ, err
 }
 
 func hasField(name string, cols []zng.Column) bool {
