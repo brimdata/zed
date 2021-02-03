@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/ppl/archive"
+	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/ppl/zqd/search"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zqe"
@@ -51,12 +51,12 @@ func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Reque
 		return
 	}
 	ctx := httpReq.Context()
-	ark, err := archive.OpenArchiveWithContext(ctx, req.DataPath, &archive.OpenOptions{})
+	lk, err := lake.OpenLakeWithContext(ctx, req.DataPath, &lake.OpenOptions{})
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return
 	}
-	work, err := search.NewWorkerOp(ctx, req, archivestore.NewStorage(ark), c.requestLogger(httpReq))
+	work, err := search.NewWorkerOp(ctx, req, archivestore.NewStorage(lk), c.requestLogger(httpReq))
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return

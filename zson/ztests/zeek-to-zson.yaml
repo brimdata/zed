@@ -23,7 +23,7 @@ outputs:
           my_int: 456,
           my_double: 1.23456e+02,
           my_time: 2020-06-18T17:42:31.123456Z,
-          my_interval: 2m3.456s (duration),
+          my_interval: 2m3.456s,
           my_printable_string: "smile😁smile" (bstring),
           my_bytes_string: "\t\x07\x04" (bstring),
           my_port: 80 (port=(uint16)),

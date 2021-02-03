@@ -38,7 +38,7 @@ func TestCompileParents(t *testing.T) {
 		sources = append(sources, &proctest.RecordPuller{R: r})
 	}
 	t.Run("read two sources", func(t *testing.T) {
-		query, err := compiler.ParseProc("(filter *; filter *) | filter *")
+		query, err := compiler.ParseProc("split (=>filter * =>filter *) | filter *")
 		require.NoError(t, err)
 
 		leaves, err := compiler.Compile(nil, query, pctx, sources)
@@ -51,7 +51,7 @@ func TestCompileParents(t *testing.T) {
 	})
 
 	t.Run("too few parents", func(t *testing.T) {
-		query, err := compiler.ParseProc("(filter *; filter *; filter *) | filter *")
+		query, err := compiler.ParseProc("split (=>filter * =>filter * =>filter *) | filter *")
 		require.NoError(t, err)
 
 		query.(*ast.SequentialProc).Procs = query.(*ast.SequentialProc).Procs[1:]
@@ -61,7 +61,7 @@ func TestCompileParents(t *testing.T) {
 	})
 
 	t.Run("too many parents", func(t *testing.T) {
-		query, err := compiler.ParseProc("* | (filter *; filter *) | filter *")
+		query, err := compiler.ParseProc("* | split(=>filter * =>filter *) | filter *")
 		require.NoError(t, err)
 		_, err = compiler.Compile(nil, query, pctx, sources)
 		require.Error(t, err)
@@ -84,7 +84,7 @@ func TestCompileMergeDone(t *testing.T) {
 	pctx := &proc.Context{Context: context.Background(), TypeContext: zctx}
 	r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
 	src := &proctest.RecordPuller{R: r}
-	query, err := compiler.ParseProc("(filter * ; head 1) | head 3")
+	query, err := compiler.ParseProc("split(=>filter * =>head 1) | head 3")
 	require.NoError(t, err)
 
 	seq, ok := query.(*ast.SequentialProc)

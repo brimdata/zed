@@ -1,4 +1,4 @@
-package archive
+package lake
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/archive/chunk"
-	"github.com/brimsec/zq/ppl/archive/index"
+	"github.com/brimsec/zq/ppl/lake/chunk"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/zbuf"
@@ -34,8 +34,8 @@ var (
 
 const importDefaultStaleDuration = time.Second * 5
 
-func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Reader) error {
-	w, err := NewWriter(ctx, ark)
+func Import(ctx context.Context, lk *Lake, zctx *resolver.Context, r zbuf.Reader) error {
+	w, err := NewWriter(ctx, lk)
 	if err != nil {
 		return err
 	}
@@ -55,7 +55,7 @@ func Import(ctx context.Context, ark *Archive, zctx *resolver.Context, r zbuf.Re
 // written to temporary files. At some point this should have a maxTempFileSize
 // to ensure the Writer does not exceed the size of a provisioned tmpfs.
 type Writer struct {
-	ark           *Archive
+	lk            *Lake
 	cancel        context.CancelFunc
 	ctx           context.Context
 	defs          index.Definitions
@@ -71,15 +71,15 @@ type Writer struct {
 
 // NewWriter creates a zbuf.Writer compliant writer for writing data to an
 // archive.
-func NewWriter(ctx context.Context, ark *Archive) (*Writer, error) {
-	defs, err := ark.ReadDefinitions(ctx)
+func NewWriter(ctx context.Context, lk *Lake) (*Writer, error) {
+	defs, err := lk.ReadDefinitions(ctx)
 	if err != nil {
 		return nil, err
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	g, ctx := errgroup.WithContext(ctx)
 	return &Writer{
-		ark:           ark,
+		lk:            lk,
 		cancel:        cancel,
 		ctx:           ctx,
 		errgroup:      g,
@@ -231,10 +231,10 @@ func (s *ImportStats) Copy() ImportStats {
 
 // tsDirWriter accumulates records for one tsDir.
 // When the expected size of writing the records is greater than
-// ark.LogSizeThreshold, they are written to a chunk file in
+// lk.LogSizeThreshold, they are written to a chunk file in
 // the archive.
 type tsDirWriter struct {
-	ark     *Archive
+	lk      *Lake
 	bufSize int64
 	ctx     context.Context
 	modts   nano.Ts
@@ -246,12 +246,12 @@ type tsDirWriter struct {
 
 func newTsDirWriter(w *Writer, tsDir tsDir) (*tsDirWriter, error) {
 	d := &tsDirWriter{
-		ark:    w.ark,
+		lk:     w.lk,
 		ctx:    w.ctx,
 		tsDir:  tsDir,
 		writer: w,
 	}
-	if err := iosrc.MkdirAll(tsDir.path(w.ark), 0755); err != nil {
+	if err := iosrc.MkdirAll(tsDir.path(w.lk), 0755); err != nil {
 		return nil, err
 	}
 	return d, nil
@@ -281,7 +281,7 @@ func (dw *tsDirWriter) Write(rec *zng.Record) error {
 	dw.records = append(dw.records, rec)
 	dw.addBufSize(int64(len(rec.Raw)))
 	dw.touch()
-	if dw.chunkSizeEstimate() > dw.ark.LogSizeThreshold {
+	if dw.chunkSizeEstimate() > dw.lk.LogSizeThreshold {
 		if err := dw.flush(); err != nil {
 			return err
 		}
@@ -299,7 +299,7 @@ func (dw *tsDirWriter) spill() error {
 	}
 	if dw.spiller == nil {
 		var err error
-		dw.spiller, err = spill.NewMergeSort(importCompareFn(dw.ark))
+		dw.spiller, err = spill.NewMergeSort(importCompareFn(dw.lk))
 		if err != nil {
 			return err
 		}
@@ -327,11 +327,11 @@ func (dw *tsDirWriter) flush() error {
 		if len(dw.records) == 0 {
 			return nil
 		}
-		expr.SortStable(dw.records, importCompareFn(dw.ark))
+		expr.SortStable(dw.records, importCompareFn(dw.lk))
 		r = zbuf.Array(dw.records).NewReader()
 	}
-	w, err := chunk.NewWriter(dw.ctx, dw.tsDir.path(dw.ark), chunk.WriterOpts{
-		Order:       dw.ark.DataOrder,
+	w, err := chunk.NewWriter(dw.ctx, dw.tsDir.path(dw.lk), chunk.WriterOpts{
+		Order:       dw.lk.DataOrder,
 		Definitions: dw.writer.defs,
 		Zng: zngio.WriterOpts{
 			StreamRecordsMax: ImportStreamRecordsMax,
@@ -358,6 +358,6 @@ func (dw *tsDirWriter) flush() error {
 	return nil
 }
 
-func importCompareFn(ark *Archive) expr.CompareFn {
-	return zbuf.NewCompareFn(field.New("ts"), ark.DataOrder == zbuf.OrderDesc)
+func importCompareFn(lk *Lake) expr.CompareFn {
+	return zbuf.NewCompareFn(field.New("ts"), lk.DataOrder == zbuf.OrderDesc)
 }

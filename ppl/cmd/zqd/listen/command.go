@@ -72,6 +72,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.conf.Auth.SetFlags(f)
 	c.conf.DB.SetFlags(f)
 	c.conf.ImmutableCache.SetFlags(f)
+	c.conf.Redis.SetFlags(f)
 	c.conf.Temporal.SetFlags(f)
 	c.conf.Version = cli.Version
 	c.conf.Worker.SetFlags(f)

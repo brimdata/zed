@@ -1,0 +1,13 @@
+zql: 'rename s2=s | count() by s2 | sort s2'
+
+# This test previously failed only for binary zng.
+# #0:record[s:string]
+# 0:[a;]
+# 0:[b;]
+# 0:[a;]
+input: !!binary 9gEBcxAXAgRhFwIEYhcCBGH/
+
+output: |
+  #0:record[s2:string,count:uint64]
+  0:[a;2;]
+  0:[b;1;]

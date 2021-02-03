@@ -11,9 +11,9 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
-	"github.com/brimsec/zq/ppl/archive"
-	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimsec/zq/ppl/lake"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/mccanne/charm"
 )
 
@@ -86,7 +86,7 @@ func (c *CreateCommand) Run(args []string) error {
 		return err
 	}
 
-	ark, err := archive.OpenArchive(c.root, nil)
+	lk, err := lake.OpenLake(c.root, nil)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (c *CreateCommand) Run(args []string) error {
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
 
-	defs, err := c.addRules(ctx, ark, args)
+	defs, err := c.addRules(ctx, lk, args)
 	if err != nil {
 		return err
 	}
@@ -104,7 +104,7 @@ func (c *CreateCommand) Run(args []string) error {
 	}
 
 	if c.ensure {
-		defs, err = ark.ReadDefinitions(ctx)
+		defs, err = lk.ReadDefinitions(ctx)
 		if err != nil {
 			return err
 		}
@@ -115,13 +115,13 @@ func (c *CreateCommand) Run(args []string) error {
 		go c.displayProgress()
 	}
 
-	if err := archive.WriteIndices(ctx, ark, c.progress, defs...); err != nil {
+	if err := lake.WriteIndices(ctx, lk, c.progress, defs...); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (c *CreateCommand) addRules(ctx context.Context, ark *archive.Archive, args []string) ([]*index.Definition, error) {
+func (c *CreateCommand) addRules(ctx context.Context, lk *lake.Lake, args []string) ([]*index.Definition, error) {
 	if len(args) == 0 && c.zql == "" {
 		return nil, nil
 	}
@@ -150,7 +150,7 @@ func (c *CreateCommand) addRules(ctx context.Context, ark *archive.Archive, args
 		rules = append(rules, rule)
 	}
 
-	return archive.AddRules(ctx, ark, rules)
+	return lake.AddRules(ctx, lk, rules)
 }
 
 func (c *CreateCommand) displayProgress() {

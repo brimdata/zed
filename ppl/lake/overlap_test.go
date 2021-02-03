@@ -1,4 +1,4 @@
-package archive
+package lake
 
 import (
 	"context"
@@ -9,7 +9,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/lake/chunk"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
@@ -25,10 +25,10 @@ func kid(s string) ksuid.KSUID {
 	return k
 }
 
-func importTzng(t *testing.T, ark *Archive, s string) {
+func importTzng(t *testing.T, lk *Lake, s string) {
 	zctx := resolver.NewContext()
 	reader := tzngio.NewReader(strings.NewReader(s), zctx)
-	err := Import(context.Background(), ark, zctx, reader)
+	err := Import(context.Background(), lk, zctx, reader)
 	require.NoError(t, err)
 }
 
@@ -194,7 +194,7 @@ func TestOverlapWalking(t *testing.T) {
 	require.NoError(t, err)
 	defer os.RemoveAll(datapath)
 
-	ark, err := CreateOrOpenArchive(datapath, &CreateOptions{}, nil)
+	lk, err := CreateOrOpenLake(datapath, &CreateOptions{}, nil)
 	require.NoError(t, err)
 
 	data1 := `
@@ -213,19 +213,19 @@ func TestOverlapWalking(t *testing.T) {
 0:[.000000025;25;]
 `
 	dataChunkSpans := []nano.Span{{Ts: 15, Dur: 11}, {Ts: 10, Dur: 11}, {Ts: 0, Dur: 6}}
-	importTzng(t, ark, data2)
-	importTzng(t, ark, data1)
-	importTzng(t, ark, data3)
+	importTzng(t, lk, data2)
+	importTzng(t, lk, data1)
+	importTzng(t, lk, data3)
 
 	{
 		var chunks []chunk.Chunk
-		err = tsDirVisit(context.Background(), ark, nano.MaxSpan, func(tsd tsDir, c []chunk.Chunk) error {
+		err = tsDirVisit(context.Background(), lk, nano.MaxSpan, func(tsd tsDir, c []chunk.Chunk) error {
 			chunks = append(chunks, c...)
 			return nil
 		})
 		require.NoError(t, err)
 		require.Len(t, chunks, 3)
-		chunk.Sort(ark.DataOrder, chunks)
+		chunk.Sort(lk.DataOrder, chunks)
 		var spans []nano.Span
 		for _, c := range chunks {
 			spans = append(spans, c.Span())
@@ -234,7 +234,7 @@ func TestOverlapWalking(t *testing.T) {
 	}
 	{
 		var chunks []chunk.Chunk
-		err = Walk(context.Background(), ark, func(c chunk.Chunk) error {
+		err = Walk(context.Background(), lk, func(c chunk.Chunk) error {
 			chunks = append(chunks, c)
 			return nil
 		})
@@ -248,13 +248,13 @@ func TestOverlapWalking(t *testing.T) {
 	}
 	{
 		var chunks []chunk.Chunk
-		err = tsDirVisit(context.Background(), ark, nano.Span{Ts: 12, Dur: 20}, func(tsd tsDir, c []chunk.Chunk) error {
+		err = tsDirVisit(context.Background(), lk, nano.Span{Ts: 12, Dur: 20}, func(tsd tsDir, c []chunk.Chunk) error {
 			chunks = append(chunks, c...)
 			return nil
 		})
 		require.NoError(t, err)
 		assert.Len(t, chunks, 2)
-		chunk.Sort(ark.DataOrder, chunks)
+		chunk.Sort(lk.DataOrder, chunks)
 		var spans []nano.Span
 		for _, c := range chunks {
 			spans = append(spans, c.Span())
@@ -267,7 +267,7 @@ func TestOverlapWalking(t *testing.T) {
 			chunkSpans []nano.Span
 		}
 		var sispans []sispan
-		err = SpanWalk(context.Background(), ark, nano.Span{Ts: 12, Dur: 10}, func(si SpanInfo) error {
+		err = SpanWalk(context.Background(), lk, nano.Span{Ts: 12, Dur: 10}, func(si SpanInfo) error {
 			var chunkSpans []nano.Span
 			for _, c := range si.Chunks {
 				chunkSpans = append(chunkSpans, c.Span())

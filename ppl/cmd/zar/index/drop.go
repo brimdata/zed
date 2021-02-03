@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/brimsec/zq/ppl/archive"
-	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimsec/zq/ppl/lake"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/mccanne/charm"
 	"github.com/segmentio/ksuid"
 )
@@ -55,12 +55,12 @@ func (c *DropCommand) run(args []string) error {
 		return errors.New("no index definition specified")
 	}
 
-	ark, err := archive.OpenArchive(c.root, nil)
+	lk, err := lake.OpenLake(c.root, nil)
 	if err != nil {
 		return err
 	}
 
-	alldefs, err := ark.ReadDefinitions(context.TODO())
+	alldefs, err := lk.ReadDefinitions(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (c *DropCommand) run(args []string) error {
 		return errors.New("no definitions deleted")
 	}
 
-	if err := archive.RemoveDefinitions(context.TODO(), ark, defs...); err != nil {
+	if err := lake.RemoveDefinitions(context.TODO(), lk, defs...); err != nil {
 		return err
 	}
 
@@ -92,7 +92,7 @@ func (c *DropCommand) run(args []string) error {
 			c.progress = make(chan string)
 			go c.displayProgress()
 		}
-		if err := archive.RemoveIndices(context.TODO(), ark, c.progress, defs...); err != nil {
+		if err := lake.RemoveIndices(context.TODO(), lk, c.progress, defs...); err != nil {
 			return err
 		}
 	}

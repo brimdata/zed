@@ -14,7 +14,7 @@ import (
 // syntactically from its value and thus never needs a decorator.
 func Implied(typ zng.Type) bool {
 	switch typ.(type) {
-	case *zng.TypeOfInt64, *zng.TypeOfTime, *zng.TypeOfFloat64, *zng.TypeOfBool, *zng.TypeOfBytes, *zng.TypeOfString, *zng.TypeOfIP, *zng.TypeOfNet, *zng.TypeOfType:
+	case *zng.TypeOfInt64, *zng.TypeOfDuration, *zng.TypeOfTime, *zng.TypeOfFloat64, *zng.TypeOfBool, *zng.TypeOfBytes, *zng.TypeOfString, *zng.TypeOfIP, *zng.TypeOfNet, *zng.TypeOfType:
 		return true
 	}
 	return false

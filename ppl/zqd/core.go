@@ -13,7 +13,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/archive/immcache"
+	"github.com/brimsec/zq/ppl/lake/immcache"
 	"github.com/brimsec/zq/ppl/zqd/apiserver"
 	"github.com/brimsec/zq/ppl/zqd/db"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
@@ -45,6 +45,7 @@ type Config struct {
 	ImmutableCache immcache.Config
 	Logger         *zap.Logger
 	Personality    string
+	Redis          RedisConfig
 	Root           string
 	Temporal       temporal.Config
 	Version        string
@@ -191,7 +192,11 @@ func (c *Core) initManager(ctx context.Context, conf Config) (err error) {
 	if err != nil {
 		return err
 	}
-	icache, err := immcache.New(conf.ImmutableCache, c.registry)
+	rclient, err := NewRedisClient(ctx, conf.Redis)
+	if err != nil {
+		return err
+	}
+	icache, err := immcache.New(conf.ImmutableCache, rclient, c.registry)
 	if err != nil {
 		return err
 	}

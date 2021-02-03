@@ -207,10 +207,10 @@ SequentialTail = __ "|" __ p:Proc { RETURN(p) }
 
 Proc
   = NamedProc
-  / GroupByProc
-  / "(" __ proc:Procs __ ")" {
+  / "split" __ "(" __ "=>" __ proc:Procs __ ")" {
       RETURN(proc)
     }
+  / GroupByProc
 
 Procs
   = first:SequentialProcs rest:ParallelTail* {
@@ -223,7 +223,7 @@ Procs
     }
 
 ParallelTail
-  = __ ";" __ ch:SequentialProcs { RETURN(MAP("op": "SequentialProc", "procs": ch)) }
+  = __ ";"? __ "=>" __ ch:SequentialProcs { RETURN(MAP("op": "SequentialProc", "procs": ch)) }
 
 GroupByProc
   = every:EveryDur? keys:GroupByKeys limit:LimitArg {
