@@ -66,6 +66,10 @@ func NewPattern(op string) (Pattern, error) {
 		return func() Function {
 			return newUnion()
 		}, nil
+	case "uniontype":
+		return func() Function {
+			return newShape()
+		}, nil
 	case "collect":
 		return func() Function {
 			return &Collect{}
