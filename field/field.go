@@ -42,14 +42,8 @@ func (f Static) IsRoot() bool {
 	return len(f) == 0
 }
 
-func (f Static) IsParent(child Static) bool {
-	if f.IsRoot() && !child.IsRoot() {
-		return true
-	}
-	if len(child) <= len(f) {
-		return false
-	}
-	return f.Equal(child[:len(f)])
+func (f Static) HasPrefix(prefix Static) bool {
+	return len(f) >= len(prefix) && prefix.Equal(f[:len(prefix)])
 }
 
 func Dotted(s string) Static {

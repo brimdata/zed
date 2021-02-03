@@ -46,7 +46,7 @@ func New(pctx *proc.Context, parent proc.Interface, clauses []expr.Assignment) (
 			if i != j && p.LHS.Equal(c.LHS) {
 				return nil, fmt.Errorf("put: multiple assignments to %s", p.LHS)
 			}
-			if p.LHS.IsParent(c.LHS) {
+			if c.LHS.HasPrefix(p.LHS) && !c.LHS.Equal(p.LHS) {
 				return nil, fmt.Errorf("put: conflicting nested assignments to %s and %s", p.LHS, c.LHS)
 			}
 
@@ -200,7 +200,7 @@ func (ig *getter) nth(n int) (zcode.Bytes, error) {
 
 func findOverwriteClause(path field.Static, clauses []expr.Assignment) (int, field.Static, bool) {
 	for i, cand := range clauses {
-		if path.Equal(cand.LHS) || path.IsParent(cand.LHS) {
+		if path.Equal(cand.LHS) || (cand.LHS.HasPrefix(path) && !cand.LHS.Equal(path)) {
 			return i, cand.LHS, true
 		}
 	}
@@ -271,7 +271,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 	}
 
 	appendClause := func(cl expr.Assignment) bool {
-		if !parentPath.IsParent(cl.LHS) {
+		if !cl.LHS.HasPrefix(parentPath) {
 			return false
 		}
 		return !hasField(cl.LHS[len(parentPath)], cols)
