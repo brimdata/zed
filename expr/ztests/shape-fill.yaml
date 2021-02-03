@@ -4,7 +4,6 @@ input: |
   #0:record[s:string]
   0:[x;]
 
-
 output: |
   #0:record[s:string,t:record[s:string,a:record[b:record[a1:string]]]]
   0:[x;[x;-;]]
