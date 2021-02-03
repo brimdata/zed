@@ -1,0 +1,18 @@
+redis:
+  usePassword: true
+  existingSecret: redis
+
+  image:
+    tag: "6.0"
+
+  cluster:
+    enabled: false
+
+  # set maxmemory + maxmemory-policy in order to use redis as an lru cache. See
+  # https://redis.io/topics/lru-cache
+  maxmemory: 1gb
+  maxmemoryPolicy: volatile-lfu
+
+  configmap: |
+    maxmemory {{ .Values.maxmemory }}
+    maxmemory-policy {{ .Values.maxmemoryPolicy }}

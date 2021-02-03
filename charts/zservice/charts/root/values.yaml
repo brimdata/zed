@@ -8,6 +8,11 @@ postgres:
   # passwordSecretName must have a value called postgres-password
   passwordSecretName: "postgres"
 
+redis:
+  addr: zsrv-redis-master:6379
+  # passwordSecretName must have a value called redis-password
+  passwordSecretName: "redis"
+
 nameOverride: ""
 fullnameOverride: ""
 
