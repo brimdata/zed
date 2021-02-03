@@ -206,7 +206,7 @@ func findOverwriteClause(path field.Static, clauses []expr.Assignment) (int, fie
 	return -1, nil, false
 }
 
-func (p *Proc) deriveRule(parentPath field.Static, inType *zng.TypeRecord, vals []zng.Value) (step, *zng.TypeRecord, error) {
+func (p *Proc) deriveSteps(inType *zng.TypeRecord, vals []zng.Value) (step, *zng.TypeRecord, error) {
 	// special case: assign to root (put .=x)
 	if p.clauses[0].LHS.IsRoot() {
 		recVal, ok := vals[0].Type.(*zng.TypeRecord)
@@ -216,10 +216,10 @@ func (p *Proc) deriveRule(parentPath field.Static, inType *zng.TypeRecord, vals 
 		typ, err := p.pctx.TypeContext.LookupTypeRecord(recVal.Columns)
 		return step{op: root, index: 0}, typ, err
 	}
-	return p.deriveRecordRule(parentPath, inType.Columns, vals)
+	return p.deriveRecordSteps(field.NewRoot(), inType.Columns, vals)
 }
 
-func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, vals []zng.Value) (step, *zng.TypeRecord, error) {
+func (p *Proc) deriveRecordSteps(parentPath field.Static, inCols []zng.Column, vals []zng.Value) (step, *zng.TypeRecord, error) {
 	s := step{op: record}
 	cols := make([]zng.Column, 0)
 
@@ -248,7 +248,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 			cols = append(cols, zng.Column{inCol.Name, vals[matchIndex].Type})
 		// input record field overwritten by nested assignment: recurse.
 		case len(path) < len(matchPath) && zng.IsRecordType(inCol.Type):
-			nestedStep, typ, err := p.deriveRecordRule(path, inCol.Type.(*zng.TypeRecord).Columns, vals)
+			nestedStep, typ, err := p.deriveRecordSteps(path, inCol.Type.(*zng.TypeRecord).Columns, vals)
 			if err != nil {
 				return step{}, nil, err
 			}
@@ -257,7 +257,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 			cols = append(cols, zng.Column{inCol.Name, typ})
 		// input non-record field overwritten by nested assignment(s): recurse.
 		case len(path) < len(matchPath) && !zng.IsRecordType(inCol.Type):
-			nestedStep, typ, err := p.deriveRecordRule(path, []zng.Column{}, vals)
+			nestedStep, typ, err := p.deriveRecordSteps(path, []zng.Column{}, vals)
 			if err != nil {
 				return step{}, nil, err
 			}
@@ -290,7 +290,7 @@ func (p *Proc) deriveRecordRule(parentPath field.Static, inCols []zng.Column, va
 			// Appended and nest. For example, this would happen with "put b.c=1" applied to a record {"a": 1}.
 			case len(cl.LHS) > len(parentPath)+1:
 				path := append(parentPath, cl.LHS[len(parentPath)])
-				nestedStep, typ, err := p.deriveRecordRule(path, []zng.Column{}, vals)
+				nestedStep, typ, err := p.deriveRecordSteps(path, []zng.Column{}, vals)
 				if err != nil {
 					return step{}, nil, err
 				}
@@ -328,7 +328,7 @@ func (p *Proc) lookupRule(inType *zng.TypeRecord, vals []zng.Value) (putRule, er
 	if ok && sameTypes(rule.clauseTypes, vals) {
 		return rule, nil
 	}
-	step, typ, err := p.deriveRule(field.NewRoot(), inType, vals)
+	step, typ, err := p.deriveSteps(inType, vals)
 	var clauseTypes []zng.Type
 	for _, val := range vals {
 		clauseTypes = append(clauseTypes, val.Type)
