@@ -1,4 +1,4 @@
-tag: postgres
+tag: services
 
 script: |
   # Start an authentication enabled zqd, and create 2 separate access tokens

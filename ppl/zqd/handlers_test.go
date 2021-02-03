@@ -676,7 +676,10 @@ func TestArchiveInProcessCache(t *testing.T) {
 0:[1000;]`
 
 	core, conn := newCoreWithConfig(t, zqd.Config{
-		ImmutableCache: immcache.Config{LocalCacheSize: 128},
+		ImmutableCache: immcache.Config{
+			Kind:           immcache.KindLocal,
+			LocalCacheSize: 128,
+		},
 	})
 
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{
