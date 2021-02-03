@@ -349,7 +349,6 @@ func (p *Proc) put(in *zng.Record) (*zng.Record, error) {
 		p.maybeWarn(err)
 		return in, nil
 	}
-
 	bytes, err := rule.step.build(in.Raw, &p.builder, vals)
 	if err != nil {
 		return nil, err
