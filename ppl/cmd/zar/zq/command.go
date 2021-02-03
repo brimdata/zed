@@ -13,8 +13,8 @@ import (
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
-	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
 )
@@ -75,11 +75,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	ark, err := archive.OpenArchive(c.root, nil)
+	lk, err := lake.OpenLake(c.root, nil)
 	if err != nil {
 		return err
 	}
-	msrc := archive.NewMultiSource(ark, args[1:])
+	msrc := lake.NewMultiSource(lk, args[1:])
 
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
@@ -104,7 +104,7 @@ func (c *Command) Run(args []string) error {
 	return err
 }
 
-func (c *Command) printStats(msrc archive.MultiSource) {
+func (c *Command) printStats(msrc lake.MultiSource) {
 	if c.stats {
 		stats := msrc.Stats()
 		w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)

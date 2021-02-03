@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/ppl/archive/index"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 )
