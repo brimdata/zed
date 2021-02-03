@@ -45,7 +45,7 @@ func (s *op) append(step op) {
 
 // create the op needed to build a record of type out from a
 // record of type in. The two types must be compatible, meaning that
-// the input type must be an unordered sub-tree of the input type
+// the input type must be an unordered subset of the input type
 // (where 'unordered' means that if the output type has record fields
 // [a b] and the input type has fields [b a] that is ok). It is also
 // ok for leaf primitive types to be different; if they are a casting
@@ -322,7 +322,7 @@ func (c *Shaper) orderRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, 
 func (c *Shaper) fillRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, error) {
 	cols := make([]zng.Column, 0)
 	names := make([]string, 0)
-	// Compute ordered list of fields. This takes all the input
+	// Compute union list of fields. This takes all the input
 	// fields and adds the filled fields at the end. For
 	// standalone uses of 'fill()' (as opposed to shape() which
 	// includes order)', this might be surprising and it would
@@ -336,19 +336,32 @@ func (c *Shaper) fillRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 			names = append(names, specCol.Name)
 		}
 	}
+	// Now, figure out filled type for the fields.
 	for _, name := range names {
-		ind, _ := spec.ColumnOfField(name)
-		specCol := spec.Columns[ind]
-		if !input.HasField(name) {
+		var inCol, specCol zng.Column
+		i, inputOk := input.ColumnOfField(name)
+		if inputOk {
+			inCol = input.Columns[i]
+		}
+		i, specOk := spec.ColumnOfField(name)
+		if specOk {
+			specCol = spec.Columns[i]
+		}
+		if !inputOk {
 			// Field not in input: fill.
 			cols = append(cols, specCol)
 			continue
 		}
-		ind, _ = input.ColumnOfField(name)
-		inCol := input.Columns[ind]
+		if !specOk {
+			// Field not in spec: input passes through.
+			cols = append(cols, inCol)
+			continue
+		}
+
+		// Field is present both in input and spec: recurse if
+		// both records, or select appropriate type if not.
 		_, inIsRec := inCol.Type.(*zng.TypeRecord)
 		_, specIsRec := specCol.Type.(*zng.TypeRecord)
-
 		switch {
 		case inIsRec && specIsRec:
 			col, err := c.fillRecordType(inCol.Type.(*zng.TypeRecord), specCol.Type.(*zng.TypeRecord))
