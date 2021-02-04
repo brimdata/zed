@@ -43,13 +43,15 @@ type putRule struct {
 func New(pctx *proc.Context, parent proc.Interface, clauses []expr.Assignment) (proc.Interface, error) {
 	for i, p := range clauses {
 		for j, c := range clauses {
-			if i != j && p.LHS.Equal(c.LHS) {
+			if i == j {
+				continue
+			}
+			if p.LHS.Equal(c.LHS) {
 				return nil, fmt.Errorf("put: multiple assignments to %s", p.LHS)
 			}
-			if c.LHS.HasPrefix(p.LHS) && !c.LHS.Equal(p.LHS) {
+			if c.LHS.HasStrictPrefix(p.LHS) {
 				return nil, fmt.Errorf("put: conflicting nested assignments to %s and %s", p.LHS, c.LHS)
 			}
-
 		}
 	}
 
@@ -199,7 +201,7 @@ func (ig *getter) nth(n int) (zcode.Bytes, error) {
 
 func findOverwriteClause(path field.Static, clauses []expr.Assignment) (int, field.Static, bool) {
 	for i, cand := range clauses {
-		if path.Equal(cand.LHS) || (cand.LHS.HasPrefix(path) && !cand.LHS.Equal(path)) {
+		if path.Equal(cand.LHS) || cand.LHS.HasStrictPrefix(path) {
 			return i, cand.LHS, true
 		}
 	}

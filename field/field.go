@@ -42,6 +42,10 @@ func (f Static) IsRoot() bool {
 	return len(f) == 0
 }
 
+func (f Static) HasStrictPrefix(prefix Static) bool {
+	return len(f) > len(prefix) && prefix.Equal(f[:len(prefix)])
+}
+
 func (f Static) HasPrefix(prefix Static) bool {
 	return len(f) >= len(prefix) && prefix.Equal(f[:len(prefix)])
 }
