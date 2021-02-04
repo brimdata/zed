@@ -72,7 +72,7 @@ jobs:
           kubectl logs --tail -1 -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
           kubectl logs --tail -1 -l app.kubernetes.io/name=root > testlog/root.log
           kubectl logs --tail -1 -l app.kubernetes.io/name=worker > testlog/worker.log
-          kubectl delete ns ci-${{ github.run_number }}
+          # kubectl delete ns ci-${{ github.run_number }}
       - name: Save logs as artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
