@@ -6,7 +6,7 @@ ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
 ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
-TEMPORAL_TAG := v1.6.2
+TEMPORAL_VERSION := 1.6.3
 ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))["brimDependencies"]["zeekTag"])')
 ZEEKPATH = zeek-$(ZEEKTAG)
 SURICATATAG := $(shell python -c 'import json; print(json.load(open("package.json"))["brimDependencies"]["suricataTag"])')
@@ -43,6 +43,16 @@ $(SAMPLEDATA):
 	git clone --depth=1 https://github.com/brimsec/zq-sample-data $(@D)
 
 sampledata: $(SAMPLEDATA)
+
+.PHONY: bin/tctl
+bin/tctl: bin/tctl-$(TEMPORAL_VERSION)
+	ln -fs $(<F) $@
+
+bin/tctl-$(TEMPORAL_VERSION):
+	mkdir -p $(@D)
+	echo 'module deps' > $@.mod
+	go get -d -modfile=$@.mod go.temporal.io/server/cmd/tools/cli@v$(TEMPORAL_VERSION)
+	go build -modfile=$@.mod -o $@ go.temporal.io/server/cmd/tools/cli
 
 bin/$(ZEEKPATH):
 	@mkdir -p bin
@@ -88,50 +98,25 @@ test-pcapingest: bin/$(ZEEKPATH)
 	@ZEEK="$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner" go test -v -run=PcapPost -tags=pcapingest ./ppl/zqd
 
 .PHONY: test-services
-test-services: build
+test-services: build bin/tctl
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
 		go test -v -run TestZq/ppl/zqd/db/postgresdb/ztests .
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
 		go test -v -run TestZq/ppl/zqd/ztests/redis .
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
+		ZTEST_TAG=services \
+		go test -v -run TestZq/ppl/zqd/temporal/ztests .
 
 .PHONY: test-services-docker
+test-services-docker: export TEMPORAL_VERSION := $(TEMPORAL_VERSION)
 test-services-docker:
-	@docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
+	docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
 	$(MAKE) test-services; \
 		status=$$?; \
 		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
 		exit $$status
-
-.PHONY: test-temporal
-test-temporal: build bin/tctl
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
-		ZTEST_TAG=temporal \
-		go test -v -run TestZq/ppl/zqd/temporal/ztests .
-
-.PHONY: bin/tctl
-bin/tctl: bin/tctl-$(TEMPORAL_TAG)
-	ln -fs $(<F) $@
-
-bin/tctl-$(TEMPORAL_TAG):
-	mkdir -p $(@D)
-	echo 'module deps' > $@.mod
-	go get -d -modfile=$@.mod go.temporal.io/server/cmd/tools/cli@$(TEMPORAL_TAG)
-	go build -modfile=$@.mod -o $@ go.temporal.io/server/cmd/tools/cli
-
-.PHONY: test-temporal-docker
-test-temporal-docker: bin/docker-compose.temporal-$(TEMPORAL_TAG).yaml
-	docker-compose -f $< up -d
-	$(MAKE) test-temporal; \
-		status=$$?; \
-		docker-compose -f $< down -v || exit; \
-		exit $$status
-
-bin/docker-compose.temporal-$(TEMPORAL_TAG).yaml:
-	curl -Lfo $@ --create-dirs \
-		https://raw.githubusercontent.com/temporalio/docker-compose/$(TEMPORAL_TAG)/docker-compose-postgres.yml
-
 
 # test-cluster target assumes zqd endpoint is available at port 9867
 .PHONY: test-cluster
