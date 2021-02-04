@@ -112,7 +112,7 @@ test-services: build bin/tctl
 .PHONY: test-services-docker
 test-services-docker: export TEMPORAL_VERSION := $(TEMPORAL_VERSION)
 test-services-docker:
-	docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
+	@docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
 	$(MAKE) test-services; \
 		status=$$?; \
 		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
