@@ -104,8 +104,8 @@ test-postgres-docker:
 .PHONY: test-cluster
 test-cluster: build install
 	-zapi rm files
-	-aws s3 rm --recursive $(ZQD_DATA_URI)
-	zapi new -k archivestore -d $(ZQD_DATA_URI) files
+	-aws s3 rm --recursive $(ZQD_DATA_URI)/zd
+	zapi new -k archivestore files
 	time zapi -s files postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=cluster \
