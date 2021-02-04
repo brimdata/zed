@@ -22,4 +22,4 @@ time zapi -s sp-m1 get -workers 2 -t "count()"
 time zapi -s sp-m1 get -workers 2 -t "39161"
 
 # To add more workers:
-# kubectl scale --replicas=3 deployment/worker-zqd
+# kubectl scale deployment/zsrv-worker --replicas=4

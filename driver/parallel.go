@@ -68,7 +68,7 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 		}
 		batch, err := ph.sc.Pull()
 		if err != nil {
-			println("xyzzy", "parallelHead.Pull", err.Error(), "sc.name", ph.sc.String(),
+			println("xyzzy", "parallelHead.Pull ", err.Error(), "sc.name", ph.sc.String(),
 				"BytesRead", ph.sc.Stats().BytesRead, "RecordsRead", ph.sc.Stats().RecordsRead)
 			return nil, err
 		}
@@ -121,6 +121,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 				sc, err = src.Open(pg.pctx.Context, pg.pctx.TypeContext, pg.filter)
 			}
 			if err != nil {
+				println("xyzzy", "pg.nextSource", err.Error())
 				return nil, err
 			}
 			if sc == nil {
@@ -139,6 +140,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 func (pg *parallelGroup) getRemoteScannerCloser(pctx *proc.Context, src Source, conf worker.WorkerConfig, logger *zap.Logger) (ScannerCloser, error) {
 	conn, err := recruiter.GetWorkerConnection(pctx, conf, logger)
 	if err != nil {
+		println("xyzzy", "recruiter.GetWorkerConnection", err.Error())
 		return nil, err
 	}
 	req, err := pg.sourceToRequest(src)
