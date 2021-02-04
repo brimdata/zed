@@ -26,7 +26,6 @@ import (
 	"github.com/mccanne/charm"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"golang.org/x/sync/errgroup"
 	"gopkg.in/yaml.v3"
 )
 
@@ -135,7 +134,6 @@ func (c *Command) Run(args []string) error {
 	}()
 	srv := httpd.New(c.listenAddr, core.HTTPHandler())
 	srv.SetLogger(c.logger.Named("httpd"))
-	g, ctx := errgroup.WithContext(ctx)
 	if err := srv.Start(ctx); err != nil {
 		return err
 	}
@@ -151,11 +149,7 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	}
-	if core.IsTemporalWorker() {
-		g.Go(func() error { return core.RunTemporalWorker(ctx) })
-	}
-	g.Go(srv.Wait)
-	return g.Wait()
+	return srv.Wait()
 }
 
 func (c *Command) init() error {

@@ -23,6 +23,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.temporal.io/sdk/client"
 	sdkworker "go.temporal.io/sdk/worker"
 	"go.uber.org/zap"
 )
@@ -56,19 +57,21 @@ type Config struct {
 }
 
 type Core struct {
-	auth       *Auth0Authenticator
-	conf       Config
-	logger     *zap.Logger
-	mgr        *apiserver.Manager
-	registry   *prometheus.Registry
-	root       iosrc.URI
-	router     *mux.Router
-	taskCount  int64
-	workerPool *recruiter.WorkerPool     // state for personality=recruiter
-	workerReg  *worker.RegistrationState // state for personality=worker
+	auth           *Auth0Authenticator
+	conf           Config
+	logger         *zap.Logger
+	mgr            *apiserver.Manager
+	registry       *prometheus.Registry
+	root           iosrc.URI
+	router         *mux.Router
+	taskCount      int64
+	temporalClient client.Client
+	temporalWorker sdkworker.Worker
+	workerPool     *recruiter.WorkerPool     // state for personality=recruiter
+	workerReg      *worker.RegistrationState // state for personality=worker
 }
 
-func NewCore(ctx context.Context, conf Config) (*Core, error) {
+func NewCore(ctx context.Context, conf Config) (c *Core, err error) {
 	if conf.Logger == nil {
 		conf.Logger = zap.NewNop()
 	}
@@ -84,7 +87,6 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	var authenticator *Auth0Authenticator
 	if conf.Auth.Enabled {
-		var err error
 		if authenticator, err = NewAuthenticator(ctx, conf.Logger, registry, conf.Auth); err != nil {
 			return nil, err
 		}
@@ -111,7 +113,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		json.NewEncoder(w).Encode(&api.VersionResponse{Version: conf.Version})
 	})
 
-	c := &Core{
+	c = &Core{
 		auth:     authenticator,
 		conf:     conf,
 		logger:   conf.Logger.Named("core").With(zap.String("personality", conf.Personality)),
@@ -119,13 +121,26 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		router:   router,
 	}
 
+	defer func() {
+		if err != nil {
+			c.Shutdown()
+		}
+	}()
+
 	switch conf.Personality {
 	case "all", "apiserver", "temporal":
-		if err := c.initManager(ctx, conf); err != nil {
+		if err := c.initManager(ctx); err != nil {
 			return nil, err
 		}
 	}
-
+	if conf.Temporal.Enabled {
+		switch conf.Personality {
+		case "all", "temporal":
+			if err := c.startTemporalWorker(ctx); err != nil {
+				return nil, err
+			}
+		}
+	}
 	var startFields []zap.Field
 	switch conf.Personality {
 	case "all", "apiserver", "root":
@@ -145,7 +160,6 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	default:
 		return nil, fmt.Errorf("unknown personality %s", conf.Personality)
 	}
-
 	c.logger.Info("Started", startFields...)
 	return c, nil
 }
@@ -183,32 +197,43 @@ func (c *Core) addWorkerRoutes() {
 	c.router.Handle("/worker/rootsearch", c.handler(handleWorkerRootSearch)).Methods("POST")
 }
 
-func (c *Core) initManager(ctx context.Context, conf Config) (err error) {
-	c.root, err = iosrc.ParseURI(conf.Root)
+func (c *Core) initManager(ctx context.Context) (err error) {
+	c.root, err = iosrc.ParseURI(c.conf.Root)
 	if err != nil {
 		return err
 	}
-	db, err := db.Open(ctx, c.logger, conf.DB, c.root)
+	db, err := db.Open(ctx, c.logger, c.conf.DB, c.root)
 	if err != nil {
 		return err
 	}
-	rclient, err := NewRedisClient(ctx, conf.Redis)
+	rclient, err := NewRedisClient(ctx, c.conf.Redis)
 	if err != nil {
 		return err
 	}
-	icache, err := immcache.New(conf.ImmutableCache, rclient, c.registry)
+	icache, err := immcache.New(c.conf.ImmutableCache, rclient, c.registry)
 	if err != nil {
 		return err
 	}
 	var notifier apiserver.Notifier
-	if conf.Temporal.Enabled {
-		notifier, err = temporal.NewNotifier(c.logger, conf.Temporal)
+	if c.conf.Temporal.Enabled {
+		notifier, err = temporal.NewNotifier(c.logger, c.conf.Temporal)
 		if err != nil {
 			return err
 		}
 	}
 	c.mgr, err = apiserver.NewManager(ctx, c.logger, notifier, c.registry, c.root, db, icache)
 	return err
+}
+
+func (c *Core) startTemporalWorker(ctx context.Context) error {
+	var err error
+	c.temporalClient, err = temporal.NewClient(c.logger.Named("temporal"), c.conf.Temporal)
+	if err != nil {
+		return err
+	}
+	c.temporalWorker = sdkworker.New(c.temporalClient, temporal.TaskQueue, sdkworker.Options{})
+	temporal.InitSpaceWorkflow(c.conf.Temporal, c.mgr, c.temporalWorker)
+	return c.temporalWorker.Start()
 }
 
 func (c *Core) handler(f func(*Core, http.ResponseWriter, *http.Request)) http.Handler {
@@ -239,10 +264,6 @@ func (c *Core) HasZeek() bool {
 	return c.conf.Zeek != nil
 }
 
-func (c *Core) IsTemporalWorker() bool {
-	return c.conf.Temporal.Enabled && (c.conf.Personality == "all" || c.conf.Personality == "temporal")
-}
-
 func (c *Core) Registry() *prometheus.Registry {
 	return c.registry
 }
@@ -251,23 +272,13 @@ func (c *Core) Root() iosrc.URI {
 	return c.root
 }
 
-func (c *Core) RunTemporalWorker(ctx context.Context) error {
-	client, err := temporal.NewClient(c.logger.Named("temporal"), c.conf.Temporal)
-	if err != nil {
-		return err
-	}
-	defer client.Close()
-	w := sdkworker.New(client, temporal.TaskQueue, sdkworker.Options{})
-	temporal.InitSpaceWorkflow(c.conf.Temporal, c.mgr, w)
-	if err := w.Start(); err != nil {
-		return err
-	}
-	<-ctx.Done()
-	w.Stop()
-	return ctx.Err()
-}
-
 func (c *Core) Shutdown() {
+	if c.temporalWorker != nil {
+		c.temporalWorker.Stop()
+	}
+	if c.temporalClient != nil {
+		c.temporalClient.Close()
+	}
 	if c.mgr != nil {
 		c.mgr.Shutdown()
 	}
