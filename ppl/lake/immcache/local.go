@@ -5,16 +5,14 @@ import (
 	"path"
 
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/lake/chunk"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promauto"
 )
 
 type LocalCache struct {
-	lru    *lru.ARCCache
-	hits   *prometheus.CounterVec
-	misses *prometheus.CounterVec
+	metrics
+	lru *lru.ARCCache
 }
 
 func NewLocalCache(size int, registerer prometheus.Registerer) (*LocalCache, error) {
@@ -25,23 +23,9 @@ func NewLocalCache(size int, registerer prometheus.Registerer) (*LocalCache, err
 	if registerer == nil {
 		registerer = prometheus.NewRegistry()
 	}
-	factory := promauto.With(registerer)
 	return &LocalCache{
-		lru: lru,
-		hits: factory.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "archive_cache_hits_total",
-				Help: "Number of hits for a cache lookup.",
-			},
-			[]string{"kind"},
-		),
-		misses: factory.NewCounterVec(
-			prometheus.CounterOpts{
-				Name: "archive_cache_misses_total",
-				Help: "Number of misses for a cache lookup.",
-			},
-			[]string{"kind"},
-		),
+		metrics: newMetrics(registerer),
+		lru:     lru,
 	}, nil
 }
 

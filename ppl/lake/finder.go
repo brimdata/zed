@@ -1,10 +1,10 @@
-package archive
+package lake
 
 import (
 	"context"
 
-	"github.com/brimsec/zq/ppl/archive/chunk"
-	"github.com/brimsec/zq/ppl/archive/index"
+	"github.com/brimsec/zq/ppl/lake/chunk"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -14,7 +14,7 @@ import (
 type findOptions struct {
 	skipMissing bool
 	zctx        *resolver.Context
-	addPath     func(ark *Archive, chunk chunk.Chunk, rec *zng.Record) (*zng.Record, error)
+	addPath     func(lk *Lake, chunk chunk.Chunk, rec *zng.Record) (*zng.Record, error)
 }
 
 type FindOption func(*findOptions) error
@@ -45,16 +45,16 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 			{"first", zng.TypeTime},
 			{"last", zng.TypeTime},
 		}
-		opt.addPath = func(ark *Archive, chunk chunk.Chunk, rec *zng.Record) (*zng.Record, error) {
+		opt.addPath = func(lk *Lake, chunk chunk.Chunk, rec *zng.Record) (*zng.Record, error) {
 			var path string
 			if absolutePath {
-				if ark.DataPath.Scheme == "file" {
+				if lk.DataPath.Scheme == "file" {
 					path = chunk.Path().Filepath()
 				} else {
 					path = chunk.Path().String()
 				}
 			} else {
-				path = ark.Root.RelPath(chunk.Path())
+				path = lk.Root.RelPath(chunk.Path())
 			}
 			return opt.zctx.AddColumns(rec, cols, []zng.Value{
 				{cols[0].Type, zng.EncodeString(path)},
@@ -82,17 +82,17 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
 // access to the microindex files.
-func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query index.Query, hits chan<- *zng.Record, opts ...FindOption) error {
+func Find(ctx context.Context, zctx *resolver.Context, lk *Lake, query index.Query, hits chan<- *zng.Record, opts ...FindOption) error {
 	opt := findOptions{
 		zctx:    zctx,
-		addPath: func(_ *Archive, _ chunk.Chunk, rec *zng.Record) (*zng.Record, error) { return rec, nil },
+		addPath: func(_ *Lake, _ chunk.Chunk, rec *zng.Record) (*zng.Record, error) { return rec, nil },
 	}
 	for _, o := range opts {
 		if err := o(&opt); err != nil {
 			return err
 		}
 	}
-	defs, err := ark.ReadDefinitions(ctx)
+	defs, err := lk.ReadDefinitions(ctx)
 	if err != nil {
 		return err
 	}
@@ -100,7 +100,7 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query index
 	if !ok {
 		return zqe.ErrInvalid("no matching index rule found")
 	}
-	return Walk(ctx, ark, func(chunk chunk.Chunk) error {
+	return Walk(ctx, lk, func(chunk chunk.Chunk) error {
 		dir := chunk.ZarDir()
 		rec, err := index.Find(ctx, zctx, dir, matched.DefID, matched.Values...)
 		if rec == nil || (err != nil && zqe.IsNotFound(err) && opt.skipMissing) {
@@ -111,7 +111,7 @@ func Find(ctx context.Context, zctx *resolver.Context, ark *Archive, query index
 			return nil
 		}
 
-		if rec, err = opt.addPath(ark, chunk, rec); err != nil {
+		if rec, err = opt.addPath(lk, chunk, rec); err != nil {
 			return err
 		}
 
@@ -148,7 +148,7 @@ func (f *findReadCloser) Close() error {
 	return nil
 }
 
-func FindReadCloser(ctx context.Context, zctx *resolver.Context, ark *Archive, query index.Query, opts ...FindOption) (zbuf.ReadCloser, error) {
+func FindReadCloser(ctx context.Context, zctx *resolver.Context, lk *Lake, query index.Query, opts ...FindOption) (zbuf.ReadCloser, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	f := &findReadCloser{
 		ctx:    ctx,
@@ -156,7 +156,7 @@ func FindReadCloser(ctx context.Context, zctx *resolver.Context, ark *Archive, q
 		hits:   make(chan *zng.Record),
 	}
 	go func() {
-		f.err = Find(ctx, zctx, ark, query, f.hits, opts...)
+		f.err = Find(ctx, zctx, lk, query, f.hits, opts...)
 		close(f.hits)
 	}()
 	return f, nil

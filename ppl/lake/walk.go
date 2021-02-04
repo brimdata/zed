@@ -1,4 +1,4 @@
-package archive
+package lake
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/lake/chunk"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
@@ -38,8 +38,8 @@ func parseTsDirName(name string) (tsDir, bool) {
 	return newTsDir(nano.TimeToTs(t)), true
 }
 
-func (t tsDir) path(ark *Archive) iosrc.URI {
-	return ark.DataPath.AppendPath(dataDirname, t.name())
+func (t tsDir) path(lk *Lake) iosrc.URI {
+	return lk.DataPath.AppendPath(dataDirname, t.name())
 }
 
 func (t tsDir) name() string {
@@ -51,8 +51,8 @@ type tsDirVisitor func(tsd tsDir, unsortedChunks []chunk.Chunk) error
 // tsDirVisit calls visitor for each tsDir whose span overlaps with the
 // given span. tsDirs are visited in the archive's order, but the
 // chunks passed to visitor are not sorted.
-func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor tsDirVisitor) error {
-	zdDir := ark.DataPath.AppendPath(dataDirname)
+func tsDirVisit(ctx context.Context, lk *Lake, filterSpan nano.Span, visitor tsDirVisitor) error {
+	zdDir := lk.DataPath.AppendPath(dataDirname)
 	dirents, err := iosrc.ReadDir(ctx, zdDir)
 	if err != nil {
 		return err
@@ -69,7 +69,7 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 		tsdirs = append(tsdirs, tsd)
 	}
 	sort.Slice(tsdirs, func(i, j int) bool {
-		if ark.DataOrder == zbuf.OrderAsc {
+		if lk.DataOrder == zbuf.OrderAsc {
 			return tsdirs[i].Ts < tsdirs[j].Ts
 		}
 		return tsdirs[j].Ts < tsdirs[i].Ts
@@ -79,7 +79,7 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 		if err != nil {
 			return err
 		}
-		chunks, err := tsDirEntriesToChunks(ctx, ark, filterSpan, d, dirents)
+		chunks, err := tsDirEntriesToChunks(ctx, lk, filterSpan, d, dirents)
 		if err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func tsDirVisit(ctx context.Context, ark *Archive, filterSpan nano.Span, visitor
 	return nil
 }
 
-func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Span, tsDir tsDir, entries []iosrc.Info) ([]chunk.Chunk, error) {
+func tsDirEntriesToChunks(ctx context.Context, lk *Lake, filterSpan nano.Span, tsDir tsDir, entries []iosrc.Info) ([]chunk.Chunk, error) {
 	type seen struct {
 		data bool
 		meta bool
@@ -98,7 +98,7 @@ func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Spa
 	m := make(map[ksuid.KSUID]seen)
 	for _, e := range entries {
 		if kind, id, ok := chunk.FileMatch(e.Name()); ok {
-			if !ark.filterAllowed(id) {
+			if !lk.filterAllowed(id) {
 				continue
 			}
 			s := m[id]
@@ -116,14 +116,14 @@ func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Spa
 		if !seen.meta || !seen.data {
 			continue
 		}
-		dir := tsDir.path(ark)
+		dir := tsDir.path(lk)
 		mdPath := chunk.MetadataPath(dir, id)
-		b, err := ark.immfiles.ReadFile(ctx, mdPath)
+		b, err := lk.immfiles.ReadFile(ctx, mdPath)
 		if err != nil {
 			return nil, err
 		}
 
-		md, err := chunk.UnmarshalMetadata(b, ark.DataOrder)
+		md, err := chunk.UnmarshalMetadata(b, lk.DataOrder)
 		if err != nil {
 			if zqe.IsNotFound(err) {
 				continue
@@ -142,9 +142,9 @@ func tsDirEntriesToChunks(ctx context.Context, ark *Archive, filterSpan nano.Spa
 type Visitor func(chunk chunk.Chunk) error
 
 // Walk calls visitor for every data chunk in the archive.
-func Walk(ctx context.Context, ark *Archive, v Visitor) error {
-	return tsDirVisit(ctx, ark, nano.MaxSpan, func(_ tsDir, chunks []chunk.Chunk) error {
-		chunk.Sort(ark.DataOrder, chunks)
+func Walk(ctx context.Context, lk *Lake, v Visitor) error {
+	return tsDirVisit(ctx, lk, nano.MaxSpan, func(_ tsDir, chunks []chunk.Chunk) error {
+		chunk.Sort(lk.DataOrder, chunks)
 		for _, c := range chunks {
 			if err := iosrc.MkdirAll(c.ZarDir(), 0700); err != nil {
 				return err
@@ -159,8 +159,8 @@ func Walk(ctx context.Context, ark *Archive, v Visitor) error {
 
 // RmDirs descends a directory hierarchy looking for zar dirs and remove
 // each such directory and all of its contents.
-func RmDirs(ctx context.Context, ark *Archive) error {
-	return Walk(ctx, ark, func(chunk chunk.Chunk) error {
+func RmDirs(ctx context.Context, lk *Lake) error {
+	return Walk(ctx, lk, func(chunk chunk.Chunk) error {
 		return iosrc.RemoveAll(ctx, chunk.ZarDir())
 	})
 }
@@ -221,9 +221,9 @@ func (si *SpanInfo) RemoveMasked() []chunk.Chunk {
 }
 
 // SpanWalk calls visitor with each SpanInfo within the filter span.
-func SpanWalk(ctx context.Context, ark *Archive, filter nano.Span, visitor func(si SpanInfo) error) error {
-	return tsDirVisit(ctx, ark, filter, func(_ tsDir, chunks []chunk.Chunk) error {
-		sinfos := mergeChunksToSpans(chunks, ark.DataOrder, filter)
+func SpanWalk(ctx context.Context, lk *Lake, filter nano.Span, visitor func(si SpanInfo) error) error {
+	return tsDirVisit(ctx, lk, filter, func(_ tsDir, chunks []chunk.Chunk) error {
+		sinfos := mergeChunksToSpans(chunks, lk.DataOrder, filter)
 		for _, s := range sinfos {
 			for _, c := range s.Chunks {
 				if err := iosrc.MkdirAll(c.ZarDir(), 0700); err != nil {

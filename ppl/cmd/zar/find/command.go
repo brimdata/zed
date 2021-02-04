@@ -8,9 +8,9 @@ import (
 
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/ppl/archive"
-	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimsec/zq/ppl/lake"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -75,7 +75,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
-	f.StringVar(&c.pathField, "l", archive.DefaultAddPathField, "zng field name for path name of log file")
+	f.StringVar(&c.pathField, "l", lake.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
@@ -91,7 +91,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	ark, err := archive.OpenArchive(c.root, nil)
+	lk, err := lake.OpenLake(c.root, nil)
 	if err != nil {
 		return err
 	}
@@ -101,12 +101,12 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	var findOptions []archive.FindOption
+	var findOptions []lake.FindOption
 	if c.pathField != "" {
-		findOptions = append(findOptions, archive.AddPath(c.pathField, !c.relativePaths))
+		findOptions = append(findOptions, lake.AddPath(c.pathField, !c.relativePaths))
 	}
 	if c.skipMissing {
-		findOptions = append(findOptions, archive.SkipMissing())
+		findOptions = append(findOptions, lake.SkipMissing())
 	}
 
 	ctx, cancel := context.WithCancel(context.TODO())
@@ -127,7 +127,7 @@ func (c *Command) Run(args []string) error {
 	hits := make(chan *zng.Record)
 	var searchErr error
 	go func() {
-		searchErr = archive.Find(ctx, resolver.NewContext(), ark, query, hits, findOptions...)
+		searchErr = lake.Find(ctx, resolver.NewContext(), lk, query, hits, findOptions...)
 		close(hits)
 	}()
 	for hit := range hits {

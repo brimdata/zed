@@ -45,7 +45,7 @@ func (s *op) append(step op) {
 
 // create the op needed to build a record of type out from a
 // record of type in. The two types must be compatible, meaning that
-// the input type must be an unordered sub-tree of the input type
+// the input type must be an unordered subset of the input type
 // (where 'unordered' means that if the output type has record fields
 // [a b] and the input type has fields [b a] that is ok). It is also
 // ok for leaf primitive types to be different; if they are a casting
@@ -320,52 +320,26 @@ func (c *Shaper) orderRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, 
 // fillRecordType applies a fill (as specified by the record type 'spec')
 // to a record type and returns the resulting record type.
 func (c *Shaper) fillRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, error) {
-	cols := make([]zng.Column, 0)
-	names := make([]string, 0)
-	// Compute ordered list of fields. This takes all the input
-	// fields and adds the filled fields at the end. For
-	// standalone uses of 'fill()' (as opposed to shape() which
-	// includes order)', this might be surprising and it would
-	// likely be preferable to have the filled fields be woven
-	// into the input records. This can come later as needed.
-	for _, col := range input.Columns {
-		names = append(names, col.Name)
-	}
+
+	cols := make([]zng.Column, len(input.Columns), len(input.Columns)+len(spec.Columns))
+	copy(cols, input.Columns)
 	for _, specCol := range spec.Columns {
-		if !input.HasField(specCol.Name) {
-			names = append(names, specCol.Name)
-		}
-	}
-	for _, name := range names {
-		ind, _ := spec.ColumnOfField(name)
-		specCol := spec.Columns[ind]
-		if !input.HasField(name) {
-			// Field not in input: fill.
-			cols = append(cols, specCol)
-			continue
-		}
-		ind, _ = input.ColumnOfField(name)
-		inCol := input.Columns[ind]
-		_, inIsRec := inCol.Type.(*zng.TypeRecord)
-		_, specIsRec := specCol.Type.(*zng.TypeRecord)
-
-		switch {
-		case inIsRec && specIsRec:
-			col, err := c.fillRecordType(inCol.Type.(*zng.TypeRecord), specCol.Type.(*zng.TypeRecord))
-			if err != nil {
-				return nil, err
+		if i, ok := input.ColumnOfField(specCol.Name); ok {
+			// Field is present both in input and spec: recurse if
+			// both records, or select appropriate type if not.
+			if specRecType, ok := specCol.Type.(*zng.TypeRecord); ok {
+				if inRecType, ok := input.Columns[i].Type.(*zng.TypeRecord); ok {
+					filled, err := c.fillRecordType(inRecType, specRecType)
+					if err != nil {
+						return nil, err
+					}
+					cols[i] = zng.Column{specCol.Name, filled}
+				} else {
+					cols[i] = specCol
+				}
 			}
-			cols = append(cols, zng.Column{inCol.Name, col})
-
-		case !inIsRec && !specIsRec:
-			cols = append(cols, inCol)
-
-		case inIsRec && !specIsRec:
-			cols = append(cols, inCol)
-
-		case !inIsRec && specIsRec:
+		} else {
 			cols = append(cols, specCol)
-
 		}
 	}
 	return c.zctx.LookupTypeRecord(cols)
