@@ -25,7 +25,7 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/promtest"
 	"github.com/brimsec/zq/pkg/test"
-	"github.com/brimsec/zq/ppl/archive/immcache"
+	"github.com/brimsec/zq/ppl/lake/immcache"
 	"github.com/brimsec/zq/ppl/zqd"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zbuf"
@@ -676,7 +676,10 @@ func TestArchiveInProcessCache(t *testing.T) {
 0:[1000;]`
 
 	core, conn := newCoreWithConfig(t, zqd.Config{
-		ImmutableCache: immcache.Config{LocalCacheSize: 128},
+		ImmutableCache: immcache.Config{
+			Kind:           immcache.KindLocal,
+			LocalCacheSize: 128,
+		},
 	})
 
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{

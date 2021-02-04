@@ -10,8 +10,8 @@ import (
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/pkg/units"
-	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -55,11 +55,11 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.asc, "asc", false, "store archive data in ascending order")
 	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root)")
-	c.thresh = archive.DefaultLogSizeThreshold
+	c.thresh = lake.DefaultLogSizeThreshold
 	f.Var(&c.thresh, "s", "target size of chunk files, as '10MB' or '4GiB', etc.")
-	c.importBufSize = units.Bytes(archive.ImportBufSize)
+	c.importBufSize = units.Bytes(lake.ImportBufSize)
 	f.Var(&c.importBufSize, "bufsize", "maximum size of data read into memory before flushing to disk, as '99MB', '4GiB', etc.")
-	f.IntVar(&c.importStreamRecordMax, "streammax", archive.ImportStreamRecordsMax, "limit for number of records in each ZNG stream (0 for no limit)")
+	f.IntVar(&c.importStreamRecordMax, "streammax", lake.ImportStreamRecordsMax, "limit for number of records in each ZNG stream (0 for no limit)")
 	f.BoolVar(&c.empty, "empty", false, "create an archive without initial data")
 	c.inputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
@@ -76,11 +76,11 @@ func (c *Command) Run(args []string) error {
 	} else if !c.empty && len(args) == 0 {
 		return errors.New("zar import: at least one input file must be specified (- for stdin)")
 	}
-	archive.ImportBufSize = int64(c.importBufSize)
-	archive.ImportStreamRecordsMax = c.importStreamRecordMax
+	lake.ImportBufSize = int64(c.importBufSize)
+	lake.ImportStreamRecordsMax = c.importStreamRecordMax
 
 	thresh := int64(c.thresh)
-	co := &archive.CreateOptions{
+	co := &lake.CreateOptions{
 		DataPath:         c.dataPath,
 		SortAscending:    c.asc,
 		LogSizeThreshold: &thresh,
@@ -90,7 +90,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 
-	ark, err := archive.CreateOrOpenArchive(c.root, co, nil)
+	lk, err := lake.CreateOrOpenLake(c.root, co, nil)
 	if err != nil {
 		return err
 	}
@@ -109,9 +109,9 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zbuf.CloseReaders(readers)
-	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, ark.DataOrder)
+	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, lk.DataOrder)
 	if err != nil {
 		return err
 	}
-	return archive.Import(ctx, ark, zctx, reader)
+	return lake.Import(ctx, lk, zctx, reader)
 }

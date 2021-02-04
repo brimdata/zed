@@ -86,16 +86,19 @@ test-heavy: build $(SAMPLEDATA)
 test-pcapingest: bin/$(ZEEKPATH)
 	@ZEEK="$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner" go test -v -run=PcapPost -tags=pcapingest ./ppl/zqd
 
-.PHONY: test-postgres
-test-postgres: build 
+.PHONY: test-services
+test-services: build
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
-		ZTEST_TAG=postgres \
+		ZTEST_TAG=services \
 		go test -v -run TestZq/ppl/zqd/db/postgresdb/ztests .
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
+		ZTEST_TAG=services \
+		go test -v -run TestZq/ppl/zqd/ztests/redis .
 
-.PHONY: test-postgres-docker
-test-postgres-docker:
+.PHONY: test-services-docker
+test-services-docker:
 	@docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
-	$(MAKE) test-postgres; \
+	$(MAKE) test-services; \
 		status=$$?; \
 		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
 		exit $$status
@@ -104,8 +107,7 @@ test-postgres-docker:
 .PHONY: test-cluster
 test-cluster: build install
 	-zapi rm files
-	-aws s3 rm --recursive $(ZQD_DATA_URI)
-	zapi new -k archivestore -d $(ZQD_DATA_URI) files
+	zapi new -k archivestore files
 	time zapi -s files postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=cluster \
@@ -153,7 +155,7 @@ kubectl-config:
 
 helm-install:
 	helm upgrade -i zsrv charts/zservice \
-	--set datauri=$(ZQD_DATA_URI) \
+	--set root.datauri=$(ZQD_DATA_URI) \
 	--set global.AWSRegion=us-east-2 \
 	--set global.image.repository=$(ZQD_ECR_HOST)/ \
 	--set global.image.tag=zqd:$(ECR_VERSION) \

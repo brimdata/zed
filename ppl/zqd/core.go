@@ -13,12 +13,13 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/archive/immcache"
+	"github.com/brimsec/zq/ppl/lake/immcache"
 	"github.com/brimsec/zq/ppl/zqd/apiserver"
 	"github.com/brimsec/zq/ppl/zqd/db"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/ppl/zqd/worker"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -43,6 +44,7 @@ type Config struct {
 	ImmutableCache immcache.Config
 	Logger         *zap.Logger
 	Personality    string
+	Redis          RedisConfig
 	Root           string
 	Version        string
 	Worker         worker.WorkerConfig
@@ -54,6 +56,7 @@ type Config struct {
 type Core struct {
 	auth       *Auth0Authenticator
 	db         db.DB
+	redis      *redis.Client
 	logger     *zap.Logger
 	mgr        *apiserver.Manager
 	registry   *prometheus.Registry
@@ -158,7 +161,11 @@ func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) 
 	if err != nil {
 		return err
 	}
-	icache, err := immcache.New(conf.ImmutableCache, c.registry)
+	c.redis, err = NewRedisClient(ctx, conf.Redis)
+	if err != nil {
+		return err
+	}
+	icache, err := immcache.New(conf.ImmutableCache, c.redis, c.registry)
 	if err != nil {
 		return err
 	}

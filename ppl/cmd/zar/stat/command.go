@@ -7,8 +7,8 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/ppl/archive"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zng/resolver"
@@ -48,7 +48,7 @@ func (c *Command) Run(args []string) (err error) {
 		return errors.New("zar stat: too many arguments")
 	}
 
-	ark, err := archive.OpenArchive(c.root, nil)
+	lk, err := lake.OpenLake(c.root, nil)
 	if err != nil {
 		return err
 	}
@@ -64,7 +64,7 @@ func (c *Command) Run(args []string) (err error) {
 		}
 	}()
 
-	rc, err := archive.Stat(context.Background(), resolver.NewContext(), ark)
+	rc, err := lake.Stat(context.Background(), resolver.NewContext(), lk)
 	if err != nil {
 		return err
 	}

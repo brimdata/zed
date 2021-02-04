@@ -147,13 +147,6 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		if err != nil {
 			return nil, err
 		}
-		// XXX fix this limitation (see issue #1753)
-		for _, c := range clauses {
-			if len(c.LHS) > 1 {
-				name := c.LHS.String()
-				return nil, fmt.Errorf("%s: put currently supports only top-level field assignemnts", name)
-			}
-		}
 		put, err := put.New(pctx, parent, clauses)
 		if err != nil {
 			return nil, err
@@ -186,11 +179,8 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 			dsts = append(dsts, dst)
 			srcs = append(srcs, src)
 		}
-		rename, err := rename.New(pctx, parent, srcs, dsts)
-		if err != nil {
-			return nil, err
-		}
-		return rename, nil
+		renamer := rename.NewFunction(pctx.TypeContext, srcs, dsts)
+		return proc.FromFunction(pctx, parent, renamer, "rename"), nil
 
 	case *ast.FuseProc:
 		return fuse.New(pctx, parent)

@@ -9,10 +9,10 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/archive"
-	"github.com/brimsec/zq/ppl/archive/chunk"
-	"github.com/brimsec/zq/ppl/archive/index"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimsec/zq/ppl/lake"
+	"github.com/brimsec/zq/ppl/lake/chunk"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/mccanne/charm"
 )
 
@@ -33,7 +33,7 @@ func init() {
 
 type Command struct {
 	*root.Command
-	ark           *archive.Archive
+	lk            *lake.Lake
 	root          string
 	lflag         bool
 	indexDesc     bool
@@ -60,12 +60,12 @@ func (c *Command) Run(args []string) error {
 	}
 
 	var err error
-	c.ark, err = archive.OpenArchive(c.root, nil)
+	c.lk, err = lake.OpenLake(c.root, nil)
 	if err != nil {
 		return err
 	}
 
-	defs, err := c.ark.ReadDefinitions(context.TODO())
+	defs, err := c.lk.ReadDefinitions(context.TODO())
 	if err != nil {
 		return err
 	}
@@ -77,19 +77,19 @@ func (c *Command) Run(args []string) error {
 		pattern = args[0]
 	}
 	if c.spanInfos {
-		return archive.SpanWalk(context.TODO(), c.ark, nano.MaxSpan, func(si archive.SpanInfo) error {
+		return lake.SpanWalk(context.TODO(), c.lk, nano.MaxSpan, func(si lake.SpanInfo) error {
 			c.printSpanInfo(si, pattern)
 			return nil
 		})
 	}
-	return archive.Walk(context.TODO(), c.ark, func(chunk chunk.Chunk) error {
+	return lake.Walk(context.TODO(), c.lk, func(chunk chunk.Chunk) error {
 		c.printChunk(0, chunk, pattern)
 		return nil
 	})
 }
 
-func (c *Command) printSpanInfo(si archive.SpanInfo, pattern string) {
-	fmt.Println(si.Range(c.ark.DataOrder) + ":")
+func (c *Command) printSpanInfo(si lake.SpanInfo, pattern string) {
+	fmt.Println(si.Range(c.lk.DataOrder) + ":")
 	for _, chunk := range si.Chunks {
 		c.printChunk(1, chunk, pattern)
 	}
@@ -147,7 +147,7 @@ func (c *Command) chunkString(chunk chunk.Chunk) string {
 		return chunk.Range()
 	}
 	if c.relativePaths {
-		return strings.TrimSuffix(c.ark.DataPath.RelPath(chunk.ZarDir()), "/")
+		return strings.TrimSuffix(c.lk.DataPath.RelPath(chunk.ZarDir()), "/")
 	}
 	return chunk.ZarDir().String()
 }

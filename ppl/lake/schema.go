@@ -1,4 +1,4 @@
-package archive
+package lake
 
 import (
 	"context"
@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/archive/immcache"
-	"github.com/brimsec/zq/ppl/archive/index"
+	"github.com/brimsec/zq/ppl/lake/immcache"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
@@ -89,7 +89,7 @@ func (c *CreateOptions) toMetadata() *Metadata {
 	return m
 }
 
-type Archive struct {
+type Lake struct {
 	Root             iosrc.URI
 	DataPath         iosrc.URI
 	DataOrder        zbuf.Order
@@ -101,25 +101,25 @@ type Archive struct {
 	}
 }
 
-func (ark *Archive) metaWrite() error {
+func (lk *Lake) metaWrite() error {
 	m := &Metadata{
 		Version:          0,
-		LogSizeThreshold: ark.LogSizeThreshold,
-		DataOrder:        ark.DataOrder,
-		DataPath:         ark.DataPath.String(),
+		LogSizeThreshold: lk.LogSizeThreshold,
+		DataOrder:        lk.DataOrder,
+		DataPath:         lk.DataPath.String(),
 	}
-	return m.Write(ark.mdURI())
+	return m.Write(lk.mdURI())
 }
 
-func (ark *Archive) mdURI() iosrc.URI {
-	return ark.Root.AppendPath(metadataFilename)
+func (lk *Lake) mdURI() iosrc.URI {
+	return lk.Root.AppendPath(metadataFilename)
 }
 
-func (ark *Archive) filterAllowed(id ksuid.KSUID) bool {
-	if len(ark.LogFilter) == 0 {
+func (lk *Lake) filterAllowed(id ksuid.KSUID) bool {
+	if len(lk.LogFilter) == 0 {
 		return true
 	}
-	for _, fid := range ark.LogFilter {
+	for _, fid := range lk.LogFilter {
 		if fid == id {
 			return true
 		}
@@ -127,14 +127,14 @@ func (ark *Archive) filterAllowed(id ksuid.KSUID) bool {
 	return false
 }
 
-func (ark *Archive) DefinitionsDir() iosrc.URI {
-	return ark.Root.AppendPath(indexdefsDir)
+func (lk *Lake) DefinitionsDir() iosrc.URI {
+	return lk.Root.AppendPath(indexdefsDir)
 }
 
-func (ark *Archive) ReadDefinitions(ctx context.Context) (index.Definitions, error) {
-	defs, err := index.ReadDefinitions(ctx, ark.DefinitionsDir())
+func (lk *Lake) ReadDefinitions(ctx context.Context) (index.Definitions, error) {
+	defs, err := index.ReadDefinitions(ctx, lk.DefinitionsDir())
 	if zqe.IsNotFound(err) {
-		err = iosrc.MkdirAll(ark.DefinitionsDir(), 0700)
+		err = iosrc.MkdirAll(lk.DefinitionsDir(), 0700)
 	}
 	return defs, err
 }
@@ -143,19 +143,19 @@ type OpenOptions struct {
 	ImmutableCache immcache.ImmutableCache
 }
 
-func OpenArchive(rpath string, oo *OpenOptions) (*Archive, error) {
-	return OpenArchiveWithContext(context.Background(), rpath, oo)
+func OpenLake(rpath string, oo *OpenOptions) (*Lake, error) {
+	return OpenLakeWithContext(context.Background(), rpath, oo)
 }
 
-func OpenArchiveWithContext(ctx context.Context, rpath string, oo *OpenOptions) (*Archive, error) {
+func OpenLakeWithContext(ctx context.Context, rpath string, oo *OpenOptions) (*Lake, error) {
 	root, err := iosrc.ParseURI(rpath)
 	if err != nil {
 		return nil, err
 	}
-	return openArchive(ctx, root, oo)
+	return openLake(ctx, root, oo)
 }
 
-func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive, error) {
+func openLake(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Lake, error) {
 	m, err := MetadataRead(ctx, root.AppendPath(metadataFilename))
 	if err != nil {
 		return nil, err
@@ -168,7 +168,7 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 		return nil, err
 	}
 
-	ark := &Archive{
+	lk := &Lake{
 		DataOrder:        m.DataOrder,
 		DataPath:         dpuri,
 		LogSizeThreshold: m.LogSizeThreshold,
@@ -177,17 +177,17 @@ func openArchive(ctx context.Context, root iosrc.URI, oo *OpenOptions) (*Archive
 	}
 
 	if oo != nil && oo.ImmutableCache != nil {
-		ark.immfiles = oo.ImmutableCache
+		lk.immfiles = oo.ImmutableCache
 	}
 
-	return ark, nil
+	return lk, nil
 }
 
-func CreateOrOpenArchive(rpath string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
-	return CreateOrOpenArchiveWithContext(context.Background(), rpath, co, oo)
+func CreateOrOpenLake(rpath string, co *CreateOptions, oo *OpenOptions) (*Lake, error) {
+	return CreateOrOpenLakeWithContext(context.Background(), rpath, co, oo)
 }
 
-func CreateOrOpenArchiveWithContext(ctx context.Context, rpath string, co *CreateOptions, oo *OpenOptions) (*Archive, error) {
+func CreateOrOpenLakeWithContext(ctx context.Context, rpath string, co *CreateOptions, oo *OpenOptions) (*Lake, error) {
 	root, err := iosrc.ParseURI(rpath)
 	if err != nil {
 		return nil, err
@@ -210,5 +210,5 @@ func CreateOrOpenArchiveWithContext(ctx context.Context, rpath string, co *Creat
 		}
 	}
 
-	return openArchive(ctx, root, oo)
+	return openLake(ctx, root, oo)
 }

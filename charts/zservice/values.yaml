@@ -1,3 +1,9 @@
+postgres:
+  addr: zsrv-postgresql:5432
+  username: "zqd"
+  database: "zqd"
+  # passwordSecretName must have a value called postgres-password
+  passwordSecretName: "postgres"
 recruiter:
   replicaCount: 1
 root:

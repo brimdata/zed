@@ -1,4 +1,4 @@
-package archive
+package lake
 
 import (
 	"context"
@@ -13,7 +13,7 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/archive/chunk"
+	"github.com/brimsec/zq/ppl/lake/chunk"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -50,7 +50,7 @@ func (pc pullerCloser) String() string {
 	return "pullerCloser"
 }
 
-func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, sf driver.SourceFilter, si SpanInfo) (sc *pullerCloser, stats ChunkStats, err error) {
+func newSpanScanner(ctx context.Context, lk *Lake, zctx *resolver.Context, sf driver.SourceFilter, si SpanInfo) (sc *pullerCloser, stats ChunkStats, err error) {
 	closers := make(multiCloser, 0, len(si.Chunks))
 	pullers := make([]zbuf.Puller, 0, len(si.Chunks))
 	scanners := make([]zbuf.Scanner, 0, len(si.Chunks))
@@ -73,40 +73,40 @@ func newSpanScanner(ctx context.Context, ark *Archive, zctx *resolver.Context, s
 		pullers = append(pullers, scanner)
 	}
 	return &pullerCloser{
-		Puller:     zbuf.MergeByTs(ctx, pullers, ark.DataOrder),
+		Puller:     zbuf.MergeByTs(ctx, pullers, lk.DataOrder),
 		MultiStats: scanners,
 		Closer:     closers,
 	}, stats, nil
 }
 
-// NewMultiSource returns a driver.MultiSource for an Archive. If no alternative
+// NewMultiSource returns a driver.MultiSource for an Lake. If no alternative
 // paths are specified, the MultiSource will send a source for each span in the
 // driver.SourceFilter span, and report the same ordering as the archive.
 //
 // Otherwise, the sources come from localizing the given alternative paths to
 // each chunk in the archive, recognizing "_" as the chunk file itself, with no
 // defined ordering.
-func NewMultiSource(ark *Archive, altPaths []string) MultiSource {
+func NewMultiSource(lk *Lake, altPaths []string) MultiSource {
 	if len(altPaths) == 1 && altPaths[0] == "_" {
 		altPaths = nil
 	}
 	if len(altPaths) != 0 {
 		return &chunkMultiSource{
-			ark:      ark,
+			lk:       lk,
 			altPaths: altPaths,
 			stats:    &ChunkStats{},
 		}
 	}
-	return &spanMultiSource{ark, &ChunkStats{}}
+	return &spanMultiSource{lk, &ChunkStats{}}
 }
 
 type spanMultiSource struct {
-	ark   *Archive
+	lk    *Lake
 	stats *ChunkStats
 }
 
 func (m *spanMultiSource) OrderInfo() (field.Static, bool) {
-	return field.New("ts"), m.ark.DataOrder == zbuf.OrderDesc
+	return field.New("ts"), m.lk.DataOrder == zbuf.OrderDesc
 }
 
 func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcChan chan driver.Source) error {
@@ -116,8 +116,8 @@ func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcCh
 	sinfosChan := make(chan []SpanInfo, tsDirPreFetch)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		err := tsDirVisit(ctx, m.ark, span, func(_ tsDir, chunks []chunk.Chunk) error {
-			sinfos := mergeChunksToSpans(chunks, m.ark.DataOrder, span)
+		err := tsDirVisit(ctx, m.lk, span, func(_ tsDir, chunks []chunk.Chunk) error {
+			sinfos := mergeChunksToSpans(chunks, m.lk.DataOrder, span)
 			select {
 			case sinfosChan <- sinfos:
 				return nil
@@ -132,7 +132,7 @@ func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcCh
 		for sinfos := range sinfosChan {
 			for _, si := range sinfos {
 				select {
-				case srcChan <- &spanSource{ark: m.ark, spanInfo: si, stats: m.stats}:
+				case srcChan <- &spanSource{lk: m.lk, spanInfo: si, stats: m.stats}:
 				case <-ctx.Done():
 					return ctx.Err()
 				}
@@ -155,22 +155,22 @@ func (m *spanMultiSource) SourceFromRequest(ctx context.Context, req *api.Worker
 		if !ok {
 			return nil, zqe.E(zqe.Invalid, "invalid chunk path: %v", p)
 		}
-		uri := tsdir.path(m.ark)
+		uri := tsdir.path(m.lk)
 		mdPath := chunk.MetadataPath(uri, id)
 
-		b, err := m.ark.immfiles.ReadFile(ctx, mdPath)
+		b, err := m.lk.immfiles.ReadFile(ctx, mdPath)
 		if err != nil {
 			return nil, err
 		}
 
-		md, err := chunk.UnmarshalMetadata(b, m.ark.DataOrder)
+		md, err := chunk.UnmarshalMetadata(b, m.lk.DataOrder)
 		if err != nil {
 			return nil, zqe.E("failed to read chunk metadata from %s: %w", mdPath.String(), err)
 		}
 		si.Chunks = append(si.Chunks, md.Chunk(uri, id))
 	}
 	return &spanSource{
-		ark:      m.ark,
+		lk:       m.lk,
 		spanInfo: si,
 		stats:    m.stats,
 	}, nil
@@ -181,31 +181,31 @@ func (m *spanMultiSource) Stats() ChunkStats {
 }
 
 type spanSource struct {
-	ark      *Archive
+	lk       *Lake
 	spanInfo SpanInfo
 	stats    *ChunkStats
 }
 
 func (s *spanSource) Open(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter) (driver.ScannerCloser, error) {
-	scn, stats, err := newSpanScanner(ctx, s.ark, zctx, sf, s.spanInfo)
+	scn, stats, err := newSpanScanner(ctx, s.lk, zctx, sf, s.spanInfo)
 	s.stats.Accumulate(stats)
 	return scn, err
 }
 
 func (s *spanSource) ToRequest(req *api.WorkerChunkRequest) error {
 	req.Span = s.spanInfo.Span
-	req.DataPath = s.ark.DataPath.String()
+	req.DataPath = s.lk.DataPath.String()
 	for _, c := range s.spanInfo.Chunks {
-		req.ChunkPaths = append(req.ChunkPaths, s.ark.Root.RelPath(c.Path()))
+		req.ChunkPaths = append(req.ChunkPaths, s.lk.Root.RelPath(c.Path()))
 	}
 	return nil
 }
 
-// A chunkMultiSource uses the archive.Walk call to provide a driver.Source
+// A chunkMultiSource uses the lake.Walk call to provide a driver.Source
 // for each chunk in the archive, possibly combining its data with files named
 // by altPaths located in the chunk's zar directory.
 type chunkMultiSource struct {
-	ark      *Archive
+	lk       *Lake
 	altPaths []string
 	stats    *ChunkStats
 }
@@ -215,7 +215,7 @@ func (cms *chunkMultiSource) OrderInfo() (field.Static, bool) {
 }
 
 func (cms *chunkMultiSource) SendSources(ctx context.Context, span nano.Span, srcChan chan driver.Source) error {
-	return Walk(ctx, cms.ark, func(chunk chunk.Chunk) error {
+	return Walk(ctx, cms.lk, func(chunk chunk.Chunk) error {
 		select {
 		case srcChan <- &chunkSource{cms: cms, chunk: chunk, stats: cms.stats}:
 			return nil

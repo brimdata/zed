@@ -1,4 +1,4 @@
-package archive
+package lake
 
 import (
 	"bytes"
@@ -13,9 +13,9 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/promtest"
 	"github.com/brimsec/zq/pkg/test"
-	"github.com/brimsec/zq/ppl/archive/chunk"
-	"github.com/brimsec/zq/ppl/archive/immcache"
-	"github.com/brimsec/zq/ppl/archive/index"
+	"github.com/brimsec/zq/ppl/lake/chunk"
+	"github.com/brimsec/zq/ppl/lake/immcache"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -29,19 +29,19 @@ import (
 const babble = "../../ztests/suite/data/babble.tzng"
 
 func createArchiveSpace(t *testing.T, datapath string, srcfile string, co *CreateOptions) {
-	ark, err := CreateOrOpenArchive(datapath, co, nil)
+	lk, err := CreateOrOpenLake(datapath, co, nil)
 	require.NoError(t, err)
 
-	importTestFile(t, ark, srcfile)
+	importTestFile(t, lk, srcfile)
 }
 
-func importTestFile(t *testing.T, ark *Archive, srcfile string) {
+func importTestFile(t *testing.T, lk *Lake, srcfile string) {
 	zctx := resolver.NewContext()
 	reader, err := detector.OpenFile(zctx, srcfile, zio.ReaderOpts{})
 	require.NoError(t, err)
 	defer reader.Close()
 
-	err = Import(context.Background(), ark, zctx, reader)
+	err = Import(context.Background(), lk, zctx, reader)
 	require.NoError(t, err)
 }
 
@@ -49,17 +49,17 @@ func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 	rule, err := index.NewRule(ruledef)
 	require.NoError(t, err)
 
-	ark, err := OpenArchive(datapath, nil)
+	lk, err := OpenLake(datapath, nil)
 	require.NoError(t, err)
 
-	err = ApplyRules(context.Background(), ark, nil, rule)
+	err = ApplyRules(context.Background(), lk, nil, rule)
 	require.NoError(t, err)
 }
 
-func indexQuery(t *testing.T, ark *Archive, patterns []string, opts ...FindOption) string {
+func indexQuery(t *testing.T, lk *Lake, patterns []string, opts ...FindOption) string {
 	q, err := index.ParseQuery("", patterns)
 	require.NoError(t, err)
-	rc, err := FindReadCloser(context.Background(), resolver.NewContext(), ark, q, opts...)
+	rc, err := FindReadCloser(context.Background(), resolver.NewContext(), lk, q, opts...)
 	require.NoError(t, err)
 	defer rc.Close()
 
@@ -77,13 +77,13 @@ func TestMetadataCache(t *testing.T) {
 	icache, err := immcache.NewLocalCache(128, reg)
 	require.NoError(t, err)
 
-	ark, err := OpenArchive(datapath, &OpenOptions{
+	lk, err := OpenLake(datapath, &OpenOptions{
 		ImmutableCache: icache,
 	})
 	require.NoError(t, err)
 
 	for i := 0; i < 4; i++ {
-		count, err := RecordCount(context.Background(), ark)
+		count, err := RecordCount(context.Background(), lk)
 		require.NoError(t, err)
 		assert.EqualValues(t, 1000, count)
 	}
@@ -105,7 +105,7 @@ func TestSeekIndex(t *testing.T) {
 		ImportStreamRecordsMax = orig
 	}()
 	createArchiveSpace(t, datapath, babble, nil)
-	_, err := OpenArchive(datapath, &OpenOptions{})
+	_, err := OpenLake(datapath, &OpenOptions{})
 	require.NoError(t, err)
 
 	first1 := nano.Ts(1587513592062544400)
