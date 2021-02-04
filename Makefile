@@ -107,8 +107,7 @@ test-services-docker:
 .PHONY: test-cluster
 test-cluster: build install
 	-zapi rm files
-	-aws s3 rm --recursive $(ZQD_DATA_URI)
-	zapi new -k archivestore -d $(ZQD_DATA_URI) files
+	zapi new -k archivestore files
 	time zapi -s files postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=cluster \
@@ -156,7 +155,7 @@ kubectl-config:
 
 helm-install:
 	helm upgrade -i zsrv charts/zservice \
-	--set datauri=$(ZQD_DATA_URI) \
+	--set root.datauri=$(ZQD_DATA_URI) \
 	--set global.AWSRegion=us-east-2 \
 	--set global.image.repository=$(ZQD_ECR_HOST)/ \
 	--set global.image.tag=zqd:$(ECR_VERSION) \
