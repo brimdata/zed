@@ -352,11 +352,9 @@ func (l *Lexer) peekPrimitive() (string, error) {
 	var err error
 	var off int
 	for {
-		if off+utf8.UTFMax > len(l.cursor) {
-			err = l.check(off + utf8.UTFMax)
-			if off <= len(l.cursor) || err != nil {
-				break
-			}
+		err = l.check(off + utf8.UTFMax)
+		if err != nil {
+			break
 		}
 		r, n := utf8.DecodeRune(l.cursor[off:])
 		if unicode.IsSpace(r) || r == ',' {
