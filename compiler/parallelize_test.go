@@ -35,79 +35,79 @@ func TestParallelizeFlowgraph(t *testing.T) {
 		{
 			"* | uniq",
 			"ts",
-			"(filter *; filter *) | uniq",
+			"split (=>filter * =>filter *) | uniq",
 			"ts",
 		},
 		{
 			"* | cut ts, foo=x | uniq",
 			"ts",
-			"(filter * | cut ts, foo=x; filter * | cut ts, foo=x) | uniq",
+			"split (=>filter * | cut ts, foo=x =>filter * | cut ts, foo=x) | uniq",
 			"ts",
 		},
 		{
 			"* | drop x | uniq",
 			"ts",
-			"(filter * | drop x; filter * | drop x) | uniq",
+			"split (=> filter * | drop x =>filter * | drop x) | uniq",
 			"ts",
 		},
 		{
 			"* | put ts=foo | rename foo=boo",
 			"ts",
-			"(filter *; filter *) | put ts=foo | rename foo=boo",
+			"split (=>filter * =>filter *) | put ts=foo | rename foo=boo",
 			"ts",
 		},
 		{
 			"* | put ts=foo | rename foo=boo | count()",
 			"ts",
-			"(filter * | put ts=foo | rename foo=boo | count(); filter * | put ts=foo | rename foo=boo | count()) | count()",
+			"split (=>filter * | put ts=foo | rename foo=boo | count() =>filter * | put ts=foo | rename foo=boo | count()) | count()",
 			"",
 		},
 		{
 			"* | put ts=foo | rename foo=boo | sort",
 			"ts",
-			"(filter * | put ts=foo | rename foo=boo; filter * | put ts=foo | rename foo=boo) | sort",
+			"split (=>filter * | put ts=foo | rename foo=boo =>filter * | put ts=foo | rename foo=boo) | sort",
 			"",
 		},
 		{
 			"* | put x=foo | rename foo=boo | uniq",
 			"ts",
-			"(filter * | put x=foo | rename foo=boo; filter * | put x=foo | rename foo=boo) | uniq",
+			"split (=>filter * | put x=foo | rename foo=boo =>filter * | put x=foo | rename foo=boo) | uniq",
 			"ts",
 		},
 		{
 			"* | sort x | uniq",
 			"ts",
-			"(filter * | sort x; filter * | sort x) | uniq",
+			"split (=>filter * | sort x =>filter * | sort x) | uniq",
 			"x",
 		},
 		{
 			"* | sort | uniq",
 			"ts",
-			"(filter *; filter *) | sort | uniq",
+			"split (=>filter * =>filter *) | sort | uniq",
 			"",
 		},
 		{
 			"* | put x=y | countdistinct(x) by y | uniq",
 			"ts",
-			" (filter * | put x=y | countdistinct(x) by y  ; filter * | put x=y | countdistinct(x) by y) | countdistinct(x) by y | uniq",
+			"split (=>filter * | put x=y | countdistinct(x) by y  =>filter * | put x=y | countdistinct(x) by y) | countdistinct(x) by y | uniq",
 			"",
 		},
 		{
 			"* | count() by y",
 			"ts",
-			"(filter * | count() by y; filter * | count() by y) | count() by y",
+			"split (=>filter * | count() by y =>filter * | count() by y) | count() by y",
 			"",
 		},
 		{
 			"* | every 1h count() by y",
 			"",
-			"(filter * | every 1h count() by y; filter * | every 1h count() by y) | every 1h count() by y",
+			"split (=>filter * | every 1h count() by y =>filter * | every 1h count() by y) | every 1h count() by y",
 			"ts",
 		},
 		{
 			"* | put a=1 | tail",
 			"ts",
-			"(filter * | put a=1 | tail; filter * | put a=1 | tail) | tail",
+			"split (=>filter * | put a=1 | tail =>filter * | put a=1 | tail) | tail",
 			"ts",
 		},
 	}
@@ -147,7 +147,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 	t.Run("* | cut ts, y, z | put x=y | rename y=z", func(t *testing.T) {
 		orderField := "ts"
 		query := "* | cut ts, y, z | put x=y | rename y=z"
-		dquery := "(filter * | cut ts, y, z | put x=y | rename y=z; filter * | cut ts, y, z | put x=y | rename y=z)"
+		dquery := "split (=>filter * | cut ts, y, z | put x=y | rename y=z =>filter * | cut ts, y, z | put x=y | rename y=z)"
 		program, err := ParseProc(query)
 		require.NoError(t, err)
 		parallelized, ok := Parallelize(program.(*ast.SequentialProc), 2, sf(orderField), false)

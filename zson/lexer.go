@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"io"
-	"io/ioutil"
 	"regexp"
 	"strings"
 	"unicode"
@@ -13,45 +12,90 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
+var ErrBufferOverflow = errors.New("zson scanner buffer size exceeded")
+
 const primitiveRE = `^(([0-9a-fA-Fx_\$\-\+:eEnumsh./TZµ]+)|true|false|null)`
 const indentationRE = `\n\s*`
 
 type Lexer struct {
+	reader      io.Reader
 	buffer      []byte
 	cursor      []byte
 	primitive   *regexp.Regexp
 	indentation *regexp.Regexp
 }
 
+const (
+	ReadSize = 64 * 1024
+	MaxSize  = 50 * 1024 * 1024
+)
+
 func NewLexer(r io.Reader) (*Lexer, error) {
-	// XXX Slurping in the entire file faciliated the implementation of
-	// the scanner logic here.  Now that the design is fleshed out, we need
-	// tweak things here to read from the input as a stream.  See issue #1802.
-	b, err := ioutil.ReadAll(r)
-	if err != nil {
-		return nil, err
-	}
 	primitive := regexp.MustCompile(primitiveRE)
 	primitive.Longest()
 	indentation := regexp.MustCompile(indentationRE)
 	indentation.Longest()
 	return &Lexer{
-		buffer:      b,
-		cursor:      b,
+		reader:      r,
+		buffer:      make([]byte, ReadSize),
 		primitive:   primitive,
 		indentation: indentation,
 	}, nil
 }
 
-func (l *Lexer) skip(n int) {
+func roundUp(n int) int {
+	size := ReadSize
+	for size < n {
+		size *= 2
+	}
+	return size
+}
+
+func (l *Lexer) fill(n int) error {
+	if n > MaxSize {
+		return ErrBufferOverflow
+	}
+	remaining := len(l.cursor)
+	if n >= cap(l.buffer) {
+		n = roundUp(n)
+		l.buffer = make([]byte, n)
+		copy(l.buffer, l.cursor)
+	} else if remaining > 0 {
+		copy(l.buffer[0:remaining], l.cursor)
+	}
+	cc, err := io.ReadFull(l.reader, l.buffer[remaining:cap(l.buffer)])
+	l.cursor = l.buffer[0 : remaining+cc]
+	if err == io.ErrUnexpectedEOF && cc > 0 {
+		err = nil
+	}
+	return err
+}
+
+func (l *Lexer) check(n int) error {
+	if len(l.cursor) < n {
+		if err := l.fill(n); err != nil {
+			return err
+		}
+		if len(l.cursor) < n {
+			return io.ErrUnexpectedEOF
+		}
+	}
+	return nil
+}
+
+func (l *Lexer) skip(n int) error {
+	if err := l.check(n); err != nil {
+		return err
+	}
 	l.cursor = l.cursor[n:]
+	return nil
 }
 
 func (l *Lexer) peek() (byte, error) {
-	if len(l.cursor) > 1 {
-		return l.cursor[0], nil
+	if err := l.check(1); err != nil {
+		return 0, err
 	}
-	return 0, io.EOF
+	return l.cursor[0], nil
 }
 
 func (l *Lexer) match(b byte) (bool, error) {
@@ -66,7 +110,9 @@ func (l *Lexer) matchTight(b byte) (bool, error) {
 		return false, io.EOF
 	}
 	if b == l.cursor[0] {
-		l.skip(1)
+		if err := l.skip(1); err != nil {
+			return false, err
+		}
 		return true, nil
 	}
 	return false, nil
@@ -80,12 +126,9 @@ func (l *Lexer) matchBytes(b []byte) (bool, error) {
 }
 
 func (l *Lexer) matchBytesTight(b []byte) (bool, error) {
-	if len(l.cursor) == 0 {
-		return false, io.EOF
-	}
 	n := len(b)
-	if n > len(l.cursor) {
-		return false, io.EOF
+	if err := l.check(n); err != nil {
+		return false, err
 	}
 	ok := bytes.Equal(b, l.cursor[:n])
 	if ok {
@@ -94,19 +137,26 @@ func (l *Lexer) matchBytesTight(b []byte) (bool, error) {
 	return ok, nil
 }
 
-func (l *Lexer) skipTo(b byte) ([]byte, error) {
-	for off := 0; off < len(l.cursor); off++ {
-		c := l.cursor[off]
-		if c == b {
-			return l.cursor[:off+1], nil
+func (l *Lexer) scanTo(b byte) ([]byte, error) {
+	var out []byte
+	for {
+		next, err := l.readByte()
+		if err != nil {
+			return nil, err
+		}
+		if next == b {
+			return out, nil
+		}
+		out = append(out, next)
+		if len(out) > MaxSize {
+			return nil, ErrBufferOverflow
 		}
 	}
-	return nil, nil
 }
 
 func (l *Lexer) readByte() (byte, error) {
-	if len(l.cursor) == 0 {
-		return 0, io.EOF
+	if err := l.check(1); err != nil {
+		return 0, err
 	}
 	b := l.cursor[0]
 	l.cursor = l.cursor[1:]
@@ -114,15 +164,14 @@ func (l *Lexer) readByte() (byte, error) {
 }
 
 func (l *Lexer) peekRune() (rune, int, error) {
-	r, n := utf8.DecodeRune(l.cursor)
-	return r, n, nil
-}
-
-func (l *Lexer) peekRuneAt(n int) (rune, int, error) {
-	if len(l.cursor) < n {
-		return 0, 0, io.EOF
+	err := l.check(utf8.UTFMax)
+	if len(l.cursor) == 0 {
+		if err == nil {
+			err = io.EOF
+		}
+		return 0, 0, err
 	}
-	r, n := utf8.DecodeRune(l.cursor[n:])
+	r, n := utf8.DecodeRune(l.cursor)
 	return r, n, nil
 }
 
@@ -252,20 +301,20 @@ func (l *Lexer) scanString() (string, error) {
 var newline = []byte{'\n'}
 
 func (l *Lexer) scanBacktickString(keepIndentation bool) (string, error) {
-	buf, err := l.skipTo('`')
+	b, err := l.scanTo('`')
 	if err != nil {
+		if err == ErrBufferOverflow || err == io.EOF || err == io.ErrUnexpectedEOF {
+			err = errors.New("unterminated backtick string")
+		}
 		return "", err
 	}
-	n := len(buf) - 1
-	out := buf[:n]
 	if !keepIndentation {
-		out = l.indentation.ReplaceAll(out, newline)
-		if out[0] == '\n' {
-			out = out[1:]
+		b = l.indentation.ReplaceAll(b, newline)
+		if b[0] == '\n' {
+			b = b[1:]
 		}
 	}
-	l.skip(n)
-	return string(out), nil
+	return string(b), nil
 }
 
 func (l *Lexer) scanTypeName() (string, error) {

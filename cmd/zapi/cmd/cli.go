@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"net"
 	"os"
 	"syscall"
 
@@ -58,18 +59,20 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.spaceID, "id", "<space_id>")
 	f.BoolVar(&c.NoFancy, "nofancy", c.NoFancy, "disable fancy CLI output (true if stdout is not a tty)")
 	c.cli.SetFlags(f)
+	c.LocalConfig.SetFlags(f)
 
 	return c, nil
 }
 
 type Command struct {
-	conn      *client.Connection
-	Host      string
-	Spacename string
-	NoFancy   bool
-	ctx       *signalCtx
-	spaceID   api.SpaceID
-	cli       cli.Flags
+	Host        string
+	LocalConfig LocalConfigFlags
+	NoFancy     bool
+	Spacename   string
+	cli         cli.Flags
+	conn        *client.Connection
+	ctx         *signalCtx
+	spaceID     api.SpaceID
 }
 
 func (c *Command) Context() context.Context {
@@ -78,9 +81,6 @@ func (c *Command) Context() context.Context {
 
 // Connection returns a central client.Connection instance.
 func (c *Command) Connection() *client.Connection {
-	if c.conn == nil {
-		c.conn = client.NewConnectionTo("http://" + c.Host)
-	}
 	return c.conn
 }
 
@@ -103,6 +103,19 @@ func (c *Command) Cleanup() {
 }
 
 func (c *Command) Init(all ...cli.Initializer) error {
+	if _, _, err := net.SplitHostPort(c.Host); err == nil {
+		c.Host = "http://" + c.Host
+	}
+	c.conn = client.NewConnectionTo(c.Host)
+
+	creds, err := c.LocalConfig.LoadCredentials()
+	if err != nil {
+		return err
+	}
+	if tokens, ok := creds.ServiceTokens(c.Host); ok {
+		c.conn.SetAuthToken(tokens.Access)
+	}
+
 	return c.cli.Init(all...)
 }
 

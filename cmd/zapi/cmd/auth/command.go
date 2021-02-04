@@ -22,6 +22,7 @@ func init() {
 	Auth.Add(Login)
 	Auth.Add(Logout)
 	Auth.Add(Method)
+	Auth.Add(Store)
 	Auth.Add(Verify)
 	cmd.CLI.Add(Auth)
 }

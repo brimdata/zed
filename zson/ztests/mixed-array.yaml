@@ -11,6 +11,6 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {version: [1 (0=((int64,string))),"b" (0),2 (0)] (=1)} (=2)
-      {version: [8,3]} (2)
-      {version: ["hello","goodbye"]} (2)
+      {version:[1 (0=((int64,string))),"b" (0),2 (0)] (=1)} (=2)
+      {version:[8,3]} (2)
+      {version:["hello","goodbye"]} (2)

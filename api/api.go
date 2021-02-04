@@ -136,11 +136,6 @@ type SpacePostRequest struct {
 	Storage  *StorageConfig `json:"storage,omitempty"`
 }
 
-type SubspacePostRequest struct {
-	Name        string             `json:"name"`
-	OpenOptions ArchiveOpenOptions `json:"open_options"`
-}
-
 type SpacePutRequest struct {
 	Name string `json:"name"`
 }
@@ -314,12 +309,7 @@ type StorageConfig struct {
 }
 
 type ArchiveConfig struct {
-	OpenOptions   *ArchiveOpenOptions   `json:"open_options,omitempty"`
 	CreateOptions *ArchiveCreateOptions `json:"create_options,omitempty"`
-}
-
-type ArchiveOpenOptions struct {
-	LogFilter []string `json:"log_filter,omitempty"`
 }
 
 type ArchiveCreateOptions struct {

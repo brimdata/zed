@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/mccanne/charm"
 )
 
@@ -26,22 +25,6 @@ func NewVerify(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	return &VerifyCommand{Command: parent.(*Command)}, nil
 }
 
-func LoadServiceCredentials(serviceURL string) (cmd.ServiceTokens, error) {
-	cpath, err := cmd.UserStdCredentialsPath()
-	if err != nil {
-		return cmd.ServiceTokens{}, err
-	}
-	svccreds, err := cmd.LoadCredentials(cpath)
-	if err != nil {
-		return cmd.ServiceTokens{}, fmt.Errorf("failed to load credentials file: %w", err)
-	}
-	creds, ok := svccreds.ServiceTokens(serviceURL)
-	if !ok {
-		return cmd.ServiceTokens{}, fmt.Errorf("no stored credentials for %v", serviceURL)
-	}
-	return creds, nil
-}
-
 func (c *VerifyCommand) Run(args []string) error {
 	defer c.Cleanup()
 	if err := c.Init(); err != nil {
@@ -52,11 +35,15 @@ func (c *VerifyCommand) Run(args []string) error {
 	}
 	conn := c.Connection()
 
-	creds, err := LoadServiceCredentials(c.Host)
+	creds, err := c.LocalConfig.LoadCredentials()
 	if err != nil {
 		return err
 	}
-	conn.SetAuthToken(creds.Access)
+	tokens, ok := creds.ServiceTokens(c.Host)
+	if !ok {
+		return fmt.Errorf("no stored credentials for %v", c.Host)
+	}
+	conn.SetAuthToken(tokens.Access)
 
 	res, err := conn.AuthIdentity(c.Context())
 	if err != nil {

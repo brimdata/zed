@@ -12,6 +12,7 @@ import (
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/ctxio"
+	"github.com/brimsec/zq/ppl/zqd/auth"
 	"github.com/brimsec/zq/ppl/zqd/ingest"
 	"github.com/brimsec/zq/ppl/zqd/jsonpipe"
 	"github.com/brimsec/zq/ppl/zqd/search"
@@ -46,6 +47,8 @@ func errorResponse(e error) (status int, ae *api.Error) {
 		status = http.StatusConflict
 	case zqe.NoCredentials:
 		status = http.StatusUnauthorized
+	case zqe.Forbidden:
+		status = http.StatusForbidden
 	}
 
 	ae.Kind = ze.Kind.String()
@@ -209,24 +212,6 @@ func handleSpacePost(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 
 	info, err := c.mgr.CreateSpace(r.Context(), req)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	respond(c, w, r, http.StatusOK, info)
-}
-
-func handleSubspacePost(c *Core, w http.ResponseWriter, r *http.Request) {
-	var req api.SubspacePostRequest
-	if !request(c, w, r, &req) {
-		return
-	}
-	id, ok := extractSpaceID(c, w, r)
-	if !ok {
-		return
-	}
-
-	info, err := c.mgr.CreateSubspace(r.Context(), id, req)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -592,14 +577,10 @@ func extractSpaceID(c *Core, w http.ResponseWriter, r *http.Request) (api.SpaceI
 }
 
 func handleAuthIdentityGet(c *Core, w http.ResponseWriter, r *http.Request) {
-	ident, ok := IdentifyFromContext(r.Context())
-	if !ok {
-		respondError(c, w, r, zqe.ErrInvalid("no valid credentials"))
-		return
-	}
+	ident := auth.IdentityFromContext(r.Context())
 	respond(c, w, r, http.StatusOK, api.AuthIdentityResponse{
-		TenantID: ident.TenantID,
-		UserID:   ident.UserID,
+		TenantID: string(ident.TenantID),
+		UserID:   string(ident.UserID),
 	})
 }
 

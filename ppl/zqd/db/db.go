@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/ppl/zqd/auth"
 	"github.com/brimsec/zq/ppl/zqd/db/filedb"
 	"github.com/brimsec/zq/ppl/zqd/db/postgresdb"
 	"github.com/brimsec/zq/ppl/zqd/db/schema"
@@ -15,9 +16,8 @@ import (
 
 type DB interface {
 	CreateSpace(context.Context, schema.SpaceRow) error
-	CreateSubspace(context.Context, schema.SpaceRow) error
 	GetSpace(context.Context, api.SpaceID) (schema.SpaceRow, error)
-	ListSpaces(context.Context) ([]schema.SpaceRow, error)
+	ListSpaces(context.Context, auth.TenantID) ([]schema.SpaceRow, error)
 	UpdateSpaceName(context.Context, api.SpaceID, string) error
 	DeleteSpace(context.Context, api.SpaceID) error
 }

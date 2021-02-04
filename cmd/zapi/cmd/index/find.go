@@ -7,7 +7,7 @@ import (
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/ppl/archive"
+	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/mccanne/charm"
 )
@@ -62,7 +62,7 @@ type FindCmd struct {
 func NewFind(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &FindCmd{Command: parent.(*Command).Command}
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
-	f.StringVar(&c.pathField, "l", archive.DefaultAddPathField, "zng field name for path name of log file")
+	f.StringVar(&c.pathField, "l", lake.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
@@ -73,6 +73,10 @@ func NewFind(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *FindCmd) Run(args []string) error {
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
+		return err
+	}
 	req := api.IndexSearchRequest{IndexName: c.indexFile, Patterns: args}
 	id, err := c.SpaceID()
 	if err != nil {
