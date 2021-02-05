@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - aurora-helm
 
 jobs:
   ecr-image-push:
