@@ -14,6 +14,10 @@ If you have access to an AWS account, we describe how to set up an EKS cluster f
 
 [Setting up an EKS cluster for zqd](eks-setup.md)
 
+Setting up a hosted DB is an optional step:
+
+[Notes on configuring AWS Aurora for test cluster](aurora.md)
+
 When you have an EKS cluster set up, either using the link above, or using a previously existing cluster, you can use the same Makefile rules for dev deploymemts on zqd into EKS.
 
 [How to deploy zqd on EKS](dev-on-eks.md)
@@ -27,4 +31,5 @@ Includes the K8s command to automatically deploy and test a cluster of services.
 In the process of working all this stuff out, we took a lot of notes on the trouble-shooting steps we sometimes needed. Feel free to dig around for info in here:
 
 [Trouble shooting](troubleshooting.md)
+
 
