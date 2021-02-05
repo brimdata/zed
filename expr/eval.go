@@ -734,7 +734,7 @@ func (c *evalCast) Eval(rec *zng.Record) (zng.Value, error) {
 	}
 	if zv.Bytes == nil {
 		// Take care of null here so the casters don't have to
-		// worry about it.  Anything type can be a null after all.
+		// worry about it.  Any value can be null after all.
 		return zng.Value{c.typ, nil}, nil
 	}
 	return c.caster(zv)

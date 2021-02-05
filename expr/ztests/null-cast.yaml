@@ -5,5 +5,5 @@ input: |
   0:[foo;]
 
 output: |
-  #0:record[s:string,a:int32]
+  #0:record[s:string,a:ip]
   0:[-;-;]
