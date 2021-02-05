@@ -1,4 +1,7 @@
 postgresql:
+  clusterInstance:
+    enabled: true
+    
   # Possible values: standalone, replication.
   architecture: standalone
   

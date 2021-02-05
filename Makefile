@@ -116,8 +116,8 @@ test-cluster: build install
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
 
-zng-output-check: build $(SAMPLEDATA)
-	scripts/zng-output-check.sh
+z-output-check: build $(SAMPLEDATA)
+	scripts/z-output-check.sh
 
 # If the build recipe changes, please also change npm/build.
 build: $(PEG_DEP)
