@@ -35,8 +35,8 @@ require (
 	github.com/xitongsys/parquet-go v1.5.3-0.20200514000040-789bba367841
 	github.com/xitongsys/parquet-go-source v0.0.0-20200509081216-8db33acb0acf
 	github.com/yuin/goldmark v1.2.1
-	go.temporal.io/sdk v1.4.0
-	go.temporal.io/server v1.6.0
+	go.temporal.io/sdk v1.4.1
+	go.temporal.io/server v1.6.3
 	go.uber.org/multierr v1.6.0
 	go.uber.org/zap v1.16.0
 	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
