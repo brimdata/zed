@@ -8,6 +8,18 @@ To build and push the zqd image to the local Docker repo that is deployed on Kin
 make docker-push-local
 ```
 
+## Install Postgres with Helm
+
+Because the helm recipe for postgres uses a persistent volume claim to persist
+the database between installs, we must create a kubernetes secret with postgres
+passwords that will also persist between installs. Run this script to create
+a secret with randomly generated passwords for the postgres admin and zqd user
+accounts:
+
+```
+./k8s/postgres-secret.sh
+```
+
 ## Install with Helm
 Helm is used to deploy the zqd image. Use:
 ```
@@ -21,7 +33,7 @@ helm ls
 ```
 If you want to redeploy in you test env, first uninstall the zqd instance with:
 ```
-helm uninstall zqd
+helm uninstall z
 ```
 To check the status of your running pod in your namespace, use:
 ```
@@ -78,18 +90,4 @@ kubectl get secret aws-credentials -oyaml
 ```
 You will see the new objects. The secrets are base64 encoded.
 
-### Deploy zqd with a S3 datauri
-In this example, we do a helm deploy that sets the S3 datauri for zqd. You should already have an S3 bucket set up for this. You can use any naming convention you want for your S3 datauri. In this example, the S3 bucket has a directory "mark" with a subdir call "zqd-meta". Change both of these values for your S3 setup. 
-```
-helm install zqd-test-1 charts/zqd --set datauri="s3://brim-scratch/mark/zqd-meta"
-```
-Check the logs to see if zqd is running with the correct parameters:
-```
-stern zqd-test-1
-```
-Now follow the instructions that Helm printed out on install to port-forward 9867:
-```
-export POD_NAME=$(kubectl get pods --namespace zq -l "app.kubernetes.io/name=zqd,app.kubernetes.io/instance=zqd-test-1" -o jsonpath="{.items[0].metadata.name}")
-kubectl --namespace zq port-forward $POD_NAME 9867:9867
-```
 

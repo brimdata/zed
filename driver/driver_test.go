@@ -27,7 +27,7 @@ func TestMuxDriver(t *testing.T) {
 #0:record[_path:string,ts:time]
 0:[conn;1425565514.419939;]`
 
-	query, err := compiler.ParseProc("(tail 1; tail 1)")
+	query, err := compiler.ParseProc("split (=>tail 1 =>tail 1)")
 	assert.NoError(t, err)
 
 	t.Run("muxed into one writer", func(t *testing.T) {

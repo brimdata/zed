@@ -45,8 +45,8 @@ func (c *Command) Cleanup() {
 	c.cli.Cleanup()
 }
 
-func (c *Command) Init() error {
-	return c.cli.Init(&c.procFlags)
+func (c *Command) Init(all ...cli.Initializer) error {
+	return c.cli.Init(append(all, &c.procFlags)...)
 }
 
 func (c *Command) Run(args []string) error {

@@ -258,6 +258,48 @@ func compileCutter(zctx *resolver.Context, node ast.FunctionCall) (*expr.Cutter,
 	return expr.NewCutter(zctx, lhs, rhs)
 }
 
+func shaperOps(name string) expr.ShaperTransform {
+	switch name {
+	case "cast":
+		return expr.Cast
+	case "crop":
+		return expr.Crop
+	case "fill":
+		return expr.Fill
+	case "fit":
+		return expr.Crop | expr.Fill
+	case "order":
+		return expr.Order
+	case "shape":
+		return expr.Cast | expr.Crop | expr.Fill | expr.Order
+	default:
+		return 0
+	}
+
+}
+
+func isShaperFunc(name string) bool {
+	return shaperOps(name) != 0
+}
+
+func compileShaper(zctx *resolver.Context, node ast.FunctionCall) (*expr.Shaper, error) {
+	if len(node.Args) < 2 {
+		return nil, function.ErrTooFewArgs
+	}
+	if len(node.Args) > 2 {
+		return nil, function.ErrTooManyArgs
+	}
+	field, err := CompileExpr(zctx, node.Args[0])
+	if err != nil {
+		return nil, err
+	}
+	ev, err := CompileExpr(zctx, node.Args[1])
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewShaper(zctx, field, ev, shaperOps(node.Function))
+}
+
 func compileCall(zctx *resolver.Context, node ast.FunctionCall) (expr.Evaluator, error) {
 	// For now, we special case cut and pick here.  We shuold generalize this
 	// as we will add many more stateful functions and also resolve this
@@ -273,6 +315,9 @@ func compileCall(zctx *resolver.Context, node ast.FunctionCall) (expr.Evaluator,
 	}
 	if node.Function == "pick" {
 		return compileCutter(zctx, node)
+	}
+	if isShaperFunc(node.Function) {
+		return compileShaper(zctx, node)
 	}
 	nargs := len(node.Args)
 	fn, err := function.New(zctx, node.Function, nargs)

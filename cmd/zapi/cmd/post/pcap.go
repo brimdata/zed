@@ -54,6 +54,7 @@ func (c *PostPcapCommand) Run(args []string) (err error) {
 	if len(args) == 0 {
 		return errors.New("path arg required")
 	}
+	defer c.Cleanup()
 	if err := c.Init(&c.postFlags); err != nil {
 		return err
 	}

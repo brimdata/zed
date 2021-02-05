@@ -13,11 +13,13 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/ppl/lake/immcache"
 	"github.com/brimsec/zq/ppl/zqd/apiserver"
 	"github.com/brimsec/zq/ppl/zqd/db"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/ppl/zqd/worker"
+	"github.com/go-redis/redis/v8"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -37,24 +39,24 @@ const indexPage = `
 </html>`
 
 type Config struct {
-	Auth        AuthConfig
-	DB          db.Config
-	Logger      *zap.Logger
-	Personality string
-	Root        string
-	Version     string
-	Worker      worker.WorkerConfig
+	Auth           AuthConfig
+	DB             db.Config
+	ImmutableCache immcache.Config
+	Logger         *zap.Logger
+	Personality    string
+	Redis          RedisConfig
+	Root           string
+	Version        string
+	Worker         worker.WorkerConfig
 
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher
 }
 
-type middleware interface {
-	Middleware(next http.Handler) http.Handler
-}
-
 type Core struct {
 	auth       *Auth0Authenticator
+	db         db.DB
+	redis      *redis.Client
 	logger     *zap.Logger
 	mgr        *apiserver.Manager
 	registry   *prometheus.Registry
@@ -80,10 +82,10 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	registry := prometheus.NewRegistry()
 	registry.MustRegister(prometheus.NewGoCollector())
 
-	var auth *Auth0Authenticator
+	var authenticator *Auth0Authenticator
 	if conf.Auth.Enabled {
 		var err error
-		if auth, err = newAuthenticator(ctx, conf.Logger, registry, conf.Auth); err != nil {
+		if authenticator, err = NewAuthenticator(ctx, conf.Logger, registry, conf.Auth); err != nil {
 			return nil, err
 		}
 	}
@@ -109,9 +111,14 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		json.NewEncoder(w).Encode(&api.VersionResponse{Version: conf.Version})
 	})
 
+	personality := conf.Personality
+	if personality == "" {
+		personality = "all"
+	}
+
 	c := &Core{
-		auth:     auth,
-		logger:   conf.Logger,
+		auth:     authenticator,
+		logger:   conf.Logger.Named("core").With(zap.String("personality", personality)),
 		registry: registry,
 		router:   router,
 		suricata: conf.Suricata,
@@ -119,15 +126,18 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		zeek:     conf.Zeek,
 	}
 
-	switch conf.Personality {
-	case "", "all":
+	var startFields []zap.Field
+	switch personality {
+	case "all", "apiserver", "root":
 		if err := c.addAPIServerRoutes(ctx, conf); err != nil {
 			return nil, err
 		}
-		c.addWorkerRoutes()
-	case "apiserver":
-		if err := c.addAPIServerRoutes(ctx, conf); err != nil {
-			return nil, err
+		if personality == "all" || personality == "root" {
+			c.addWorkerRoutes()
+		}
+		startFields = []zap.Field{
+			zap.Bool("suricata_supported", c.HasSuricata()),
+			zap.Bool("zeek_supported", c.HasZeek()),
 		}
 	case "recruiter":
 		c.workerPool = recruiter.NewWorkerPool()
@@ -138,6 +148,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		return nil, fmt.Errorf("unknown personality %s", conf.Personality)
 	}
 
+	c.logger.Info("Started", startFields...)
 	return c, nil
 }
 
@@ -146,7 +157,19 @@ func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) 
 	if err != nil {
 		return err
 	}
-	if c.mgr, err = apiserver.NewManager(ctx, conf.Logger, c.registry, c.root, conf.DB); err != nil {
+	c.db, err = db.Open(ctx, conf.Logger, conf.DB, c.root)
+	if err != nil {
+		return err
+	}
+	c.redis, err = NewRedisClient(ctx, conf.Logger, conf.Redis)
+	if err != nil {
+		return err
+	}
+	icache, err := immcache.New(conf.ImmutableCache, c.redis, c.registry)
+	if err != nil {
+		return err
+	}
+	if c.mgr, err = apiserver.NewManager(ctx, conf.Logger, c.registry, c.root, c.db, icache); err != nil {
 		return err
 	}
 	c.authhandle("/ast", handleASTPost).Methods("POST")
@@ -166,7 +189,6 @@ func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) 
 	c.authhandle("/space/{space}/log/paths", handleLogPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
-	c.authhandle("/space/{space}/subspace", handleSubspacePost).Methods("POST")
 	return nil
 }
 
@@ -223,6 +245,7 @@ func (c *Core) Shutdown() {
 	if c.mgr != nil {
 		c.mgr.Shutdown()
 	}
+	c.logger.Info("Shutdown")
 }
 
 func (c *Core) nextTaskID() int64 {
@@ -230,7 +253,7 @@ func (c *Core) nextTaskID() int64 {
 }
 
 func (c *Core) requestLogger(r *http.Request) *zap.Logger {
-	return c.logger.With(zap.String("request_id", getRequestID(r.Context())))
+	return c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
 }
 
 func (c *Core) WorkerRegistration(ctx context.Context, srvAddr string, conf worker.WorkerConfig) error {

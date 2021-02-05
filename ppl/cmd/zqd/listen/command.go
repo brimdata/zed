@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"runtime"
 
+	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
@@ -35,7 +36,7 @@ var Listen = &charm.Spec{
 	Long: `
 The listen command launches a process to listen on the provided interface and
 `,
-	HiddenFlags: "brimfd,nodename,podip,recruiter,workers",
+	HiddenFlags: "brimfd,filestorereadonly,nodename,podip,recruiter,workers",
 	New:         New,
 }
 
@@ -70,6 +71,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.conf.Auth.SetFlags(f)
 	c.conf.Worker.SetFlags(f)
 	c.conf.DB.SetFlags(f)
+	c.conf.ImmutableCache.SetFlags(f)
+	c.conf.Redis.SetFlags(f)
 	c.conf.Version = cli.Version
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.configfile, "config", "", "path to zqd config file")
@@ -83,21 +86,28 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
 
+	// Hidden flag while we transition to using archive store by default.
+	// See zq#1085
+	f.BoolVar(&api.FileStoreReadOnly, "filestorereadonly", false, "make file store spaces read only (and use archive store by default)")
+
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	if err := c.Init(&c.conf.DB, &c.conf.Redis); err != nil {
 		return err
 	}
 	if err := c.init(); err != nil {
 		return err
 	}
+	defer c.logger.Sync()
 	openFilesLimit, err := rlimit.RaiseOpenFilesLimit()
 	if err != nil {
 		c.logger.Warn("Raising open files limit failed", zap.Error(err))
 	}
+	c.conf.Logger.Info("Open files limit raised", zap.Uint64("limit", openFilesLimit))
+
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	if c.brimfd != -1 {
@@ -110,13 +120,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer core.Shutdown()
-	c.logger.Info("Starting",
-		zap.String("datadir", c.conf.Root),
-		zap.Uint64("open_files_limit", openFilesLimit),
-		zap.String("personality", c.conf.Personality),
-		zap.Bool("suricata_supported", core.HasSuricata()),
-		zap.Bool("zeek_supported", core.HasZeek()),
-	)
+
 	if c.suricataUpdater != nil {
 		c.launchSuricataUpdate(ctx)
 	}
@@ -196,12 +200,9 @@ func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
 
 // Example configfile
 // logger:
-//   type: waterfall
-//   children:
-//   - path: ./data/access.log
-//     name: "http.access"
-//     level: info
-//     mode: truncate
+//   path: ./data/access.log
+//   level: info
+//   mode: truncate
 // sort_mem_max_bytes: 268432640
 
 func (c *Command) loadConfigFile() error {
@@ -250,18 +251,8 @@ func (c *Command) launchSuricataUpdate(ctx context.Context) {
 // defaultLogger ignores output from the access logger.
 func (c *Command) defaultLogger() *logger.Config {
 	return &logger.Config{
-		Type: logger.TypeWaterfall,
-		Children: []logger.Config{
-			{
-				Name:  "http.access",
-				Path:  "/dev/null",
-				Level: c.logLevel,
-			},
-			{
-				Path:  "stderr",
-				Level: c.logLevel,
-			},
-		},
+		Path:  "stderr",
+		Level: c.logLevel,
 	}
 }
 
@@ -273,9 +264,9 @@ func (c *Command) initLogger() error {
 	if err != nil {
 		return err
 	}
+	opts := []zap.Option{zap.AddStacktrace(zapcore.WarnLevel)}
 	// If the development mode is on, calls to logger.DPanic will cause a panic
 	// whereas in production would result in an error.
-	var opts []zap.Option
 	if c.devMode {
 		opts = append(opts, zap.Development())
 	}

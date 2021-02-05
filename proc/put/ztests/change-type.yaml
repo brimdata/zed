@@ -1,0 +1,14 @@
+zql: put x=network_of(addr)
+
+input: |
+  #0:record[addr:ip]
+  0:[10.0.0.1;]
+  0:[fe80::215:17ff:fe84:c13f;]
+  0:[10.0.0.1;]
+
+output: |
+  #0:record[addr:ip,x:net]
+  0:[10.0.0.1;10.0.0.0/8;]
+  #1:record[addr:ip,x:error]
+  1:[fe80::215:17ff:fe84:c13f;not an IPv4;]
+  0:[10.0.0.1;10.0.0.0/8;]

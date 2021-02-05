@@ -12,7 +12,7 @@ import (
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/pkg/glob"
 	"github.com/brimsec/zq/pkg/units"
-	"github.com/brimsec/zq/ppl/archive"
+	"github.com/brimsec/zq/ppl/lake"
 )
 
 var (
@@ -27,8 +27,7 @@ type SpaceCreateFlags struct {
 }
 
 func (f *SpaceCreateFlags) SetFlags(fs *flag.FlagSet) {
-	f.kind = api.FileStore
-	f.thresh = archive.DefaultLogSizeThreshold
+	f.thresh = lake.DefaultLogSizeThreshold
 	fs.Var(&f.kind, "k", "kind of storage for this space")
 	fs.StringVar(&f.datapath, "d", "", "specific directory for storage data")
 	fs.Var(&f.thresh, "thresh", "target size of chopped files, as '10MB', '4GiB', etc.")

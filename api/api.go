@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -14,6 +15,15 @@ import (
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zjsonio"
 )
+
+const RequestIDHeader = "X-Request-ID"
+
+func RequestIDFromContext(ctx context.Context) string {
+	if v := ctx.Value(RequestIDHeader); v != nil {
+		return v.(string)
+	}
+	return ""
+}
 
 type Error struct {
 	Type    string      `json:"type"`
@@ -124,11 +134,6 @@ type SpacePostRequest struct {
 	Name     string         `json:"name"`
 	DataPath string         `json:"data_path"`
 	Storage  *StorageConfig `json:"storage,omitempty"`
-}
-
-type SubspacePostRequest struct {
-	Name        string             `json:"name"`
-	OpenOptions ArchiveOpenOptions `json:"open_options"`
 }
 
 type SpacePutRequest struct {
@@ -304,14 +309,23 @@ type StorageConfig struct {
 }
 
 type ArchiveConfig struct {
-	OpenOptions   *ArchiveOpenOptions   `json:"open_options,omitempty"`
 	CreateOptions *ArchiveCreateOptions `json:"create_options,omitempty"`
-}
-
-type ArchiveOpenOptions struct {
-	LogFilter []string `json:"log_filter,omitempty"`
 }
 
 type ArchiveCreateOptions struct {
 	LogSizeThreshold *int64 `json:"log_size_threshold,omitempty"`
+}
+
+// FileStoreReadOnly controls if new spaces may be created using the
+// FileStore storage kind, and if existing FileStore spaces may have new
+// data (either pcap or logs) added to them.
+// This intended to be temporary until we transition to only allowing archive
+// stores for new spaces; see zq#1085.
+var FileStoreReadOnly bool
+
+func DefaultStorageKind() StorageKind {
+	if FileStoreReadOnly {
+		return ArchiveStore
+	}
+	return FileStore
 }

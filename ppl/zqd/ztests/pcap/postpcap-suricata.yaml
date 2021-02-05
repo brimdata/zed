@@ -23,3 +23,5 @@ outputs:
       ===
       #0:record[count:uint64]
       0:[379;]
+  - name: stderr
+    data: ""

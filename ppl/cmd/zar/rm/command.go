@@ -10,9 +10,9 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/archive"
-	"github.com/brimsec/zq/ppl/archive/chunk"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimsec/zq/ppl/lake"
+	"github.com/brimsec/zq/ppl/lake/chunk"
 	"github.com/brimsec/zq/zqe"
 	"github.com/mccanne/charm"
 )
@@ -55,36 +55,36 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zar rm: no archive root specified with -R or ZAR_ROOT")
 	}
 
-	ark, err := archive.OpenArchive(c.root, nil)
+	lk, err := lake.OpenLake(c.root, nil)
 	if err != nil {
 		return err
 	}
 
-	return archive.Walk(context.TODO(), ark, func(chunk chunk.Chunk) error {
-		return c.remove(ark, chunk, args)
+	return lake.Walk(context.TODO(), lk, func(chunk chunk.Chunk) error {
+		return c.remove(lk, chunk, args)
 	})
 }
 
-func (c *Command) remove(ark *archive.Archive, chunk chunk.Chunk, names []string) error {
+func (c *Command) remove(lk *lake.Lake, chunk chunk.Chunk, names []string) error {
 	for _, name := range names {
 		path := chunk.ZarDir().AppendPath(name)
 		if err := iosrc.Remove(context.TODO(), path); err != nil {
 			if zqe.IsNotFound(err) {
-				fmt.Printf("%s: not found\n", c.printable(ark, chunk, name))
+				fmt.Printf("%s: not found\n", c.printable(lk, chunk, name))
 				continue
 			}
 			return err
 		}
-		fmt.Printf("%s: removed\n", c.printable(ark, chunk, name))
+		fmt.Printf("%s: removed\n", c.printable(lk, chunk, name))
 	}
 	return nil
 }
-func (c *Command) printable(ark *archive.Archive, chunk chunk.Chunk, objPath string) string {
+func (c *Command) printable(lk *lake.Lake, chunk chunk.Chunk, objPath string) string {
 	if c.showRanges {
 		return path.Join(chunk.Range(), objPath)
 	}
 	if c.relativePaths {
-		return strings.TrimSuffix(ark.DataPath.RelPath(chunk.ZarDir().AppendPath(objPath)), "/")
+		return strings.TrimSuffix(lk.DataPath.RelPath(chunk.ZarDir().AppendPath(objPath)), "/")
 	}
 	return chunk.ZarDir().AppendPath(objPath).String()
 }

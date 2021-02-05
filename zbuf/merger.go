@@ -21,10 +21,10 @@ type Merger struct {
 	cancel  context.CancelFunc
 	cmp     expr.CompareFn
 	once    sync.Once
-	pullers []*puller
+	pullers []*mergerPuller
 }
 
-type puller struct {
+type mergerPuller struct {
 	Puller
 	ch    chan batch
 	recs  []*zng.Record
@@ -62,9 +62,9 @@ func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merge
 		cmp:    cmp,
 		cancel: cancel,
 	}
-	m.pullers = make([]*puller, 0, len(pullers))
+	m.pullers = make([]*mergerPuller, 0, len(pullers))
 	for _, p := range pullers {
-		m.pullers = append(m.pullers, &puller{Puller: p, ch: make(chan batch)})
+		m.pullers = append(m.pullers, &mergerPuller{Puller: p, ch: make(chan batch)})
 	}
 	return m
 }
@@ -133,10 +133,10 @@ func (m *Merger) Read() (*zng.Record, error) {
 	return m.pullers[leader].next(), nil
 }
 
-func (p *puller) next() *zng.Record {
-	rec := p.recs[0]
-	p.recs = p.recs[1:]
-	p.batch = nil
+func (m *mergerPuller) next() *zng.Record {
+	rec := m.recs[0]
+	m.recs = m.recs[1:]
+	m.batch = nil
 	return rec
 }
 
@@ -203,7 +203,7 @@ func (m *Merger) Pull() (Batch, error) {
 		return b, nil
 	}
 	const batchLen = 100 // XXX
-	return ReadBatch(m, batchLen)
+	return readBatch(m, batchLen)
 }
 
 func (m *Merger) Cancel() {

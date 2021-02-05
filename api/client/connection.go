@@ -134,7 +134,11 @@ func (c *Connection) SetURL(u string) {
 }
 
 func (c *Connection) Request(ctx context.Context) *resty.Request {
-	return c.client.R().SetContext(ctx)
+	req := c.client.R().SetContext(ctx)
+	if requestID := api.RequestIDFromContext(ctx); requestID != "" {
+		req = req.SetHeader(api.RequestIDHeader, requestID)
+	}
+	return req
 }
 
 // Ping checks to see if the server and measure the time it takes to
@@ -179,20 +183,6 @@ func (c *Connection) SpacePost(ctx context.Context, req api.SpacePostRequest) (*
 		SetBody(req).
 		SetResult(&api.Space{}).
 		Post("/space")
-	if err != nil {
-		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusConflict {
-			return nil, ErrSpaceExists
-		}
-		return nil, err
-	}
-	return resp.Result().(*api.Space), nil
-}
-
-func (c *Connection) SubspacePost(ctx context.Context, id api.SpaceID, req api.SubspacePostRequest) (*api.Space, error) {
-	resp, err := c.Request(ctx).
-		SetBody(req).
-		SetResult(&api.Space{}).
-		Post(path.Join("/space", string(id), "subspace"))
 	if err != nil {
 		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusConflict {
 			return nil, ErrSpaceExists

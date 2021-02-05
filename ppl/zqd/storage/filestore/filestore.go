@@ -68,6 +68,10 @@ type Storage struct {
 	wsem          *semaphore.Weighted
 }
 
+func (s *Storage) Kind() api.StorageKind {
+	return api.FileStore
+}
+
 func (s *Storage) NativeOrder() zbuf.Order {
 	return zbuf.OrderDesc
 }

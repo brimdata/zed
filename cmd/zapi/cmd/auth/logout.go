@@ -5,7 +5,6 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/mccanne/charm"
 )
 
@@ -35,18 +34,14 @@ func (c *LogoutCommand) Run(args []string) error {
 		return errors.New("logout command takes no arguments")
 	}
 
-	cpath, err := cmd.UserStdCredentialsPath()
-	if err != nil {
-		return err
-	}
-	svccreds, err := cmd.LoadCredentials(cpath)
+	creds, err := c.LocalConfig.LoadCredentials()
 	if err != nil {
 		return fmt.Errorf("failed to load credentials file: %w", err)
 	}
-	svccreds.RemoveTokens(c.Host)
-	if err := cmd.SaveCredentials(cpath, svccreds); err != nil {
+	creds.RemoveTokens(c.Host)
+	if err := c.LocalConfig.SaveCredentials(creds); err != nil {
 		return fmt.Errorf("failed to save credentials file: %w", err)
 	}
-	fmt.Printf("Logout successful, cleared credentials for %s in %s\n", c.Host, cpath)
+	fmt.Printf("Logout successful, cleared credentials for %s\n", c.Host)
 	return nil
 }

@@ -90,6 +90,18 @@ make docker-push-ecr
 ```
 The tag on this image is based on `git describe` so it is specific to your branch. All zqd images share the same ECR repo.
 
+## Install Postgres with Helm
+
+Because the helm recipe for postgres uses a persistent volume claim to persist
+the database between installs, we must create a kubernetes secret with postgres
+passwords that will in kind persist between installs. Run this script to create
+the secret with randomly generated passwords for the postgres admin and zqd user
+accounts:
+
+```
+./k8s/postgres-secret.sh
+```
+
 ## Install with Helm
 Helm is used to deploy the zqd image. Use:
 ```
@@ -103,7 +115,7 @@ helm ls
 ```
 If you want to redeploy in your namespace, first uninstall the zqd instance with:
 ```
-helm uninstall zqd
+helm uninstall z
 ```
 To check the status of your running pod in your namespace, use:
 ```

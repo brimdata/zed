@@ -24,20 +24,18 @@ const (
 )
 
 type ConfigV3 struct {
-	Version   int               `json:"version"`
-	Name      string            `json:"name"`
-	DataURI   iosrc.URI         `json:"data_uri"`
-	Storage   api.StorageConfig `json:"storage"`
-	Subspaces []subspaceConfig  `json:"subspaces"`
+	Version int               `json:"version"`
+	Name    string            `json:"name"`
+	DataURI iosrc.URI         `json:"data_uri"`
+	Storage api.StorageConfig `json:"storage"`
 }
 
 type ConfigV2 struct {
-	Version   int               `json:"version"`
-	Name      string            `json:"name"`
-	DataURI   iosrc.URI         `json:"data_uri"`
-	PcapPath  string            `json:"pcap_path"`
-	Storage   api.StorageConfig `json:"storage"`
-	Subspaces []subspaceConfig  `json:"subspaces"`
+	Version  int               `json:"version"`
+	Name     string            `json:"name"`
+	DataURI  iosrc.URI         `json:"data_uri"`
+	PcapPath string            `json:"pcap_path"`
+	Storage  api.StorageConfig `json:"storage"`
 }
 
 type ConfigV1 struct {
@@ -46,21 +44,14 @@ type ConfigV1 struct {
 	DataPath string `json:"data_path"`
 	// XXX PcapPath should be named pcap_path in json land. To avoid having to
 	// do a migration we'll keep this as-is for now.
-	PcapPath  string            `json:"packet_path"`
-	Storage   api.StorageConfig `json:"storage"`
-	Subspaces []subspaceConfig  `json:"subspaces"`
+	PcapPath string            `json:"packet_path"`
+	Storage  api.StorageConfig `json:"storage"`
 }
 
 // versionCheck is used to establish the version of the loaded config file.
 // This must always remain the same as the Version field in config.
 type versionCheck struct {
 	Version int `json:"version"`
-}
-
-type subspaceConfig struct {
-	ID          api.SpaceID            `json:"id"`
-	Name        string                 `json:"name"`
-	OpenOptions api.ArchiveOpenOptions `json:"open_options"`
 }
 
 type configMigrator struct {
@@ -162,11 +153,10 @@ func migrateConfigV3(data []byte, spaceuri iosrc.URI) (int, []byte, error) {
 		}
 	}
 	c := ConfigV3{
-		Version:   3,
-		Name:      v2.Name,
-		DataURI:   v2.DataURI,
-		Storage:   v2.Storage,
-		Subspaces: v2.Subspaces,
+		Version: 3,
+		Name:    v2.Name,
+		DataURI: v2.DataURI,
+		Storage: v2.Storage,
 	}
 	d, err := json.Marshal(c)
 	return 3, d, err
@@ -185,12 +175,11 @@ func migrateConfigV2(data []byte, _ iosrc.URI) (int, []byte, error) {
 		return 0, nil, err
 	}
 	c := ConfigV2{
-		Version:   2,
-		Name:      v1.Name,
-		DataURI:   du,
-		PcapPath:  v1.PcapPath,
-		Storage:   v1.Storage,
-		Subspaces: v1.Subspaces,
+		Version:  2,
+		Name:     v1.Name,
+		DataURI:  du,
+		PcapPath: v1.PcapPath,
+		Storage:  v1.Storage,
 	}
 	d, err := json.Marshal(c)
 	return 2, d, err

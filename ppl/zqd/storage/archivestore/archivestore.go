@@ -2,35 +2,37 @@ package archivestore
 
 import (
 	"context"
+	"time"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/archive"
-	"github.com/brimsec/zq/ppl/archive/chunk"
-	"github.com/brimsec/zq/ppl/archive/index"
+	"github.com/brimsec/zq/ppl/lake"
+	"github.com/brimsec/zq/ppl/lake/chunk"
+	"github.com/brimsec/zq/ppl/lake/immcache"
+	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/ppl/zqd/storage"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
+	"go.uber.org/zap"
 )
 
-func Load(ctx context.Context, path iosrc.URI, notifier WriteNotifier, cfg *api.ArchiveConfig) (*Storage, error) {
-	co := &archive.CreateOptions{}
+func Load(ctx context.Context, path iosrc.URI, notifier WriteNotifier, cfg *api.ArchiveConfig, immcache immcache.ImmutableCache) (*Storage, error) {
+	co := &lake.CreateOptions{}
 	if cfg != nil && cfg.CreateOptions != nil {
 		co.LogSizeThreshold = cfg.CreateOptions.LogSizeThreshold
 	}
-	oo := &archive.OpenOptions{}
-	if cfg != nil && cfg.OpenOptions != nil {
-		oo.LogFilter = cfg.OpenOptions.LogFilter
+	oo := &lake.OpenOptions{
+		ImmutableCache: immcache,
 	}
-	ark, err := archive.CreateOrOpenArchiveWithContext(ctx, path.String(), co, oo)
+	lk, err := lake.CreateOrOpenLakeWithContext(ctx, path.String(), co, oo)
 	if err != nil {
 		return nil, err
 	}
 	return &Storage{
-		ark:      ark,
+		lk:       lk,
 		notifier: notifier,
 	}, nil
 }
@@ -40,30 +42,34 @@ type WriteNotifier interface {
 }
 
 type Storage struct {
-	ark      *archive.Archive
+	lk       *lake.Lake
 	notifier WriteNotifier
 }
 
-func NewStorage(ark *archive.Archive) *Storage {
-	return &Storage{ark: ark}
+func NewStorage(lk *lake.Lake) *Storage {
+	return &Storage{lk: lk}
+}
+
+func (s *Storage) Kind() api.StorageKind {
+	return api.ArchiveStore
 }
 
 func (s *Storage) NativeOrder() zbuf.Order {
-	return s.ark.DataOrder
+	return s.lk.DataOrder
 }
 
 func (s *Storage) MultiSource() driver.MultiSource {
-	return archive.NewMultiSource(s.ark, nil)
+	return lake.NewMultiSource(s.lk, nil)
 }
 
 func (s *Storage) StaticSource(src driver.Source) driver.MultiSource {
-	return archive.NewStaticSource(s.ark, src)
+	return lake.NewStaticSource(s.lk, src)
 }
 
 func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 	var sum storage.Summary
 	sum.Kind = api.ArchiveStore
-	err := archive.Walk(ctx, s.ark, func(chunk chunk.Chunk) error {
+	err := lake.Walk(ctx, s.lk, func(chunk chunk.Chunk) error {
 		info, err := iosrc.Stat(ctx, chunk.Path())
 		if err != nil {
 			return err
@@ -81,7 +87,7 @@ func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 }
 
 func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error {
-	err := archive.Import(ctx, s.ark, zctx, zr)
+	err := lake.Import(ctx, s.lk, zctx, zr)
 	if s.notifier != nil {
 		s.notifier.WriteNotify()
 	}
@@ -89,7 +95,7 @@ func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Rea
 }
 
 type Writer struct {
-	*archive.Writer
+	*lake.Writer
 	notifier WriteNotifier
 }
 
@@ -103,7 +109,7 @@ func (w *Writer) Close() error {
 
 // NewWriter returns a writer that will start a compaction when it is closed.
 func (s *Storage) NewWriter(ctx context.Context) (*Writer, error) {
-	w, err := archive.NewWriter(ctx, s.ark)
+	w, err := lake.NewWriter(ctx, s.lk)
 	if err != nil {
 		return nil, err
 	}
@@ -137,20 +143,31 @@ func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) err
 		rules = append(rules, rule)
 	}
 	// XXX Eventually this method should provide progress updates.
-	return archive.ApplyRules(ctx, s.ark, nil, rules...)
+	return lake.ApplyRules(ctx, s.lk, nil, rules...)
 }
 
 func (s *Storage) IndexSearch(ctx context.Context, zctx *resolver.Context, query index.Query) (zbuf.ReadCloser, error) {
-	return archive.FindReadCloser(ctx, zctx, s.ark, query, archive.AddPath(archive.DefaultAddPathField, false))
+	return lake.FindReadCloser(ctx, zctx, s.lk, query, lake.AddPath(lake.DefaultAddPathField, false))
 }
 
 func (s *Storage) ArchiveStat(ctx context.Context, zctx *resolver.Context) (zbuf.ReadCloser, error) {
-	return archive.Stat(ctx, zctx, s.ark)
+	return lake.Stat(ctx, zctx, s.lk)
 }
 
-func (s *Storage) Compact(ctx context.Context) error {
-	if err := archive.Compact(ctx, s.ark); err != nil {
+func (s *Storage) Compact(ctx context.Context, logger *zap.Logger) error {
+	if err := lake.Compact(ctx, s.lk, logger); err != nil {
 		return err
 	}
-	return archive.Purge(ctx, s.ark)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	// Wait for one minute before doing purge. This delay is here to prevent
+	// the case where a directory listing of chunks is made for search, the tsdir is
+	// compacted and purged, then the search attempts to read a deleted chunk from
+	// its now stale directory listing.
+	// This is a stopgap solution to this problem; a more robust solution
+	// should be architected and implemented.
+	case <-time.After(time.Second * 60):
+		return lake.Purge(ctx, s.lk, logger)
+	}
 }

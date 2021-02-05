@@ -5,46 +5,35 @@ import (
 	"errors"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/ppl/zqd/auth"
 	"github.com/brimsec/zq/ppl/zqd/db/schema"
 	"github.com/brimsec/zq/zqe"
 	"github.com/go-pg/pg/v10"
+	"go.uber.org/zap"
 )
 
 type PostgresDB struct {
-	db *pg.DB
+	db     *pg.DB
+	logger *zap.Logger
 }
 
-func Open(ctx context.Context, conf Config) (*PostgresDB, error) {
+func Open(ctx context.Context, logger *zap.Logger, conf Config) (*PostgresDB, error) {
 	db := pg.Connect(&conf.Options)
 	if err := db.Ping(ctx); err != nil {
 		return nil, err
 	}
-	return &PostgresDB{db}, nil
+	logger.Info("Connected", zap.String("kind", "postgres"), zap.String("uri", conf.StringRedacted()))
+	return &PostgresDB{db, logger}, nil
 }
 
 func (d *PostgresDB) CreateSpace(ctx context.Context, row schema.SpaceRow) error {
 	if row.ID == "" {
 		return zqe.ErrInvalid("row must have an id")
 	}
-	if row.ParentID != "" {
-		return zqe.ErrInvalid("parent id cannot be set for non-subspace spaces")
-	}
 
 	_, err := d.db.ModelContext(ctx, &row).Insert()
 	if IsUniqueViolation(err) {
 		return zqe.ErrConflict("space with name '%s' already exists", row.Name)
-	}
-	return err
-}
-
-func (d *PostgresDB) CreateSubspace(ctx context.Context, row schema.SpaceRow) error {
-	if row.ParentID == "" {
-		return zqe.ErrInvalid("subspace must have parent id")
-	}
-
-	err := d.CreateSpace(ctx, row)
-	if IsForeignKeyViolation(err) {
-		return zqe.ErrNotFound("subspace parent not found")
 	}
 	return err
 }
@@ -58,9 +47,9 @@ func (d *PostgresDB) GetSpace(ctx context.Context, id api.SpaceID) (schema.Space
 	return space, err
 }
 
-func (d *PostgresDB) ListSpaces(ctx context.Context) ([]schema.SpaceRow, error) {
+func (d *PostgresDB) ListSpaces(ctx context.Context, tenantID auth.TenantID) ([]schema.SpaceRow, error) {
 	var spaces []schema.SpaceRow
-	_, err := d.db.QueryContext(ctx, &spaces, "SELECT * FROM space")
+	_, err := d.db.QueryContext(ctx, &spaces, "SELECT * FROM space WHERE tenant_id = ?", tenantID)
 	return spaces, err
 }
 

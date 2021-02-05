@@ -10,6 +10,7 @@ ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))
 ZEEKPATH = zeek-$(ZEEKTAG)
 SURICATATAG := $(shell python -c 'import json; print(json.load(open("package.json"))["brimDependencies"]["suricataTag"])')
 SURICATAPATH = suricata-$(SURICATATAG)
+PG_PERSIST = true
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
 #  make TEST=TestZq/ztests/suite/cut/cut
@@ -85,19 +86,32 @@ test-heavy: build $(SAMPLEDATA)
 test-pcapingest: bin/$(ZEEKPATH)
 	@ZEEK="$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner" go test -v -run=PcapPost -tags=pcapingest ./ppl/zqd
 
-.PHONY: test-postgres
-test-postgres: build 
+.PHONY: test-services
+test-services: build
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
-		ZTEST_TAG=postgres \
+		ZTEST_TAG=services \
 		go test -v -run TestZq/ppl/zqd/db/postgresdb/ztests .
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
+		ZTEST_TAG=services \
+		go test -v -run TestZq/ppl/zqd/ztests/redis .
 
-.PHONY: test-postgres-docker
-test-postgres-docker:
+.PHONY: test-services-docker
+test-services-docker:
 	@docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
-	$(MAKE) test-postgres; \
+	$(MAKE) test-services; \
 		status=$$?; \
 		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
 		exit $$status
+
+# test-cluster target assumes zqd endpoint is available at port 9867
+.PHONY: test-cluster
+test-cluster: build install
+	-zapi rm files
+	zapi new -k archivestore files
+	time zapi -s files postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
+		ZTEST_TAG=cluster \
+		go test -v -run TestZq/ppl/zqd/ztests/cluster .
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
@@ -139,37 +153,13 @@ kubectl-config:
 	--user=$(ZQD_K8S_USER)@$(ZQD_TEST_CLUSTER)
 	kubectl config use-context zqtest
 
-helm-install-recruiter:
-	helm install recruiter charts/zqd \
-	--set AWSRegion=us-east-2 \
-	--set image.repository=$(ZQD_ECR_HOST)/ \
-	--set image.tag=zqd:$(ECR_VERSION) \
-	--set personality=recruiter \
-	--set useCredSecret=false
-
-helm-install-root:
-	helm install root charts/zqd \
-	--set AWSRegion=us-east-2 \
-	--set datauri=$(ZQD_DATA_URI) \
-	--set image.repository=$(ZQD_ECR_HOST)/ \
-	--set image.tag=zqd:$(ECR_VERSION) \
-	--set personality=root \
-	--set RecruiterAddr=recruiter-zqd:9867 \
-	--set useCredSecret=false
-
-helm-install-worker:
-	helm install worker charts/zqd \
-	--set AWSRegion=us-east-2 \
-	--set image.repository=$(ZQD_ECR_HOST)/ \
-	--set image.tag=zqd:$(ECR_VERSION) \
-	--set personality=worker \
-	--set RecruiterAddr=recruiter-zqd:9867 \
-	--set useCredSecret=false
-
-make helm-uninstall:
-	-helm uninstall worker
-	-helm uninstall root
-	-helm uninstall recruiter
+helm-install:
+	helm upgrade -i zsrv charts/zservice \
+	--set root.datauri=$(ZQD_DATA_URI) \
+	--set global.AWSRegion=us-east-2 \
+	--set global.image.repository=$(ZQD_ECR_HOST)/ \
+	--set global.image.tag=zqd:$(ECR_VERSION) \
+	--set postgresql.persistence.enabled=$(PG_PERSIST)
 
 create-release-assets:
 	for os in darwin linux windows; do \

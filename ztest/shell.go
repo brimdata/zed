@@ -23,6 +23,7 @@ func RunShell(dir *Dir, bindir, script string, stdin io.Reader, useenvs []string
 		}
 	}
 
+	cmd.Env = append(cmd.Env, "HOME="+dir.Path())
 	cmd.Env = append(cmd.Env, "PATH=/bin:/usr/bin:"+bindir)
 	cmd.Dir = dir.Path()
 	cmd.Stdin = stdin

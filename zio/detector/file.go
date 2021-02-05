@@ -18,8 +18,6 @@ import (
 	"github.com/xitongsys/parquet-go/source"
 )
 
-const StdinPath = "/dev/stdin"
-
 // OpenFile creates and returns zbuf.File for the indicated "path",
 // which can be a local file path, a local directory path, or an S3
 // URL. If the path is neither of these or can't otherwise be opened,

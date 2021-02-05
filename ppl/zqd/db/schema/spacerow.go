@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/ppl/zqd/auth"
 	"github.com/segmentio/ksuid"
 )
 
@@ -15,8 +16,8 @@ type SpaceRow struct {
 	ID        api.SpaceID       `json:"id"`
 	DataURI   iosrc.URI         `json:"data_uri"`
 	Name      string            `json:"name"`
-	ParentID  api.SpaceID       `json:"parent_id"`
 	Storage   api.StorageConfig `json:"storage"`
+	TenantID  auth.TenantID     `json:"tenant_id"`
 }
 
 func NewSpaceID() api.SpaceID {

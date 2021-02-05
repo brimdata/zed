@@ -60,6 +60,10 @@ func (c *CreateCmd) Run(args []string) error {
 	if len(args) == 0 && c.zql == "" {
 		return errors.New("zapi index create: one or more indexing patterns must be specified")
 	}
+	defer c.Cleanup()
+	if err := c.Init(); err != nil {
+		return err
+	}
 	id, err := c.SpaceID()
 	if err != nil {
 		return err

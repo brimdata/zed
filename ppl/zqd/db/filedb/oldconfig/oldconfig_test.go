@@ -14,7 +14,7 @@ import (
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/zqd/apiserver"
-	"github.com/brimsec/zq/ppl/zqd/db"
+	"github.com/brimsec/zq/ppl/zqd/db/filedb"
 	"github.com/brimsec/zq/ppl/zqd/db/filedb/oldconfig"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
@@ -142,7 +142,9 @@ func (tm *testMigration) initRoot() {
 
 func (tm *testMigration) manager() *apiserver.Manager {
 	if tm.mgr == nil {
-		mgr, err := apiserver.NewManager(context.Background(), zap.NewNop(), prometheus.NewRegistry(), tm.root, db.Config{Kind: "file"})
+		filedb, err := filedb.Open(context.Background(), zap.NewNop(), tm.root)
+		require.NoError(tm.T, err)
+		mgr, err := apiserver.NewManager(context.Background(), zap.NewNop(), prometheus.NewRegistry(), tm.root, filedb, nil)
 		require.NoError(tm.T, err)
 		tm.mgr = mgr
 	}

@@ -1,4 +1,4 @@
-tag: postgres
+tag: services
 
 env:
   - PG_TEST

@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimsec/zq/filter"
+	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/peeker"
 	"github.com/brimsec/zq/zbuf"
@@ -505,8 +505,8 @@ func (r *Reader) parseValue(rec *zng.Record, id int, b []byte) (*zng.Record, err
 var _ zbuf.ScannerAble = (*Reader)(nil)
 
 func (r *Reader) NewScanner(ctx context.Context, pruner zbuf.Filter, s nano.Span) (zbuf.Scanner, error) {
-	var bf *filter.BufferFilter
-	var f filter.Filter
+	var bf *expr.BufferFilter
+	var f expr.Filter
 	if pruner != nil {
 		var err error
 		bf, err = pruner.AsBufferFilter()

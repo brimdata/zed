@@ -1,0 +1,12 @@
+script: |
+  zq -f zson -i zson -pretty=0 in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      { d:486µs } (=0)
+
+outputs:
+  - name: stdout
+    data: |
+      {d:486µs} (=0)

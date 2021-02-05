@@ -166,7 +166,7 @@ func NewCompareEquality(lhs, rhs Evaluator, operator string) (*Equal, error) {
 		e.equality = true
 	case "!=":
 	default:
-		return nil, fmt.Errorf("unknown equlity operator: %s", operator)
+		return nil, fmt.Errorf("unknown equality operator: %s", operator)
 	}
 	return e, nil
 }
@@ -708,21 +708,22 @@ func (c *Call) Eval(rec *zng.Record) (zng.Value, error) {
 	return c.fn.Call(c.args)
 }
 
-func NewCast(expr Evaluator, typ string) (Evaluator, error) {
+func NewCast(expr Evaluator, styp string) (Evaluator, error) {
 	// XXX should handle alias casts... need type context.
 	// compile is going to need a local type context to create literals
 	// of complex types?
-	vc := LookupValueCaster(typ)
-	if vc == nil {
+	typ := zng.LookupPrimitive(styp)
+	c := LookupPrimitiveCaster(typ)
+	if c == nil {
 		// XXX See issue #1572.   To implement aliascast here.
-		return nil, fmt.Errorf("cast to %s not implemeneted", typ)
+		return nil, fmt.Errorf("cast to %s not implemented", styp)
 	}
-	return &evalCast{expr, vc}, nil
+	return &evalCast{expr, c}, nil
 }
 
 type evalCast struct {
 	expr   Evaluator
-	caster ValueCaster
+	caster PrimitiveCaster
 }
 
 func (c *evalCast) Eval(rec *zng.Record) (zng.Value, error) {
@@ -737,7 +738,7 @@ func NewRootField(name string) Evaluator {
 	return NewDotExpr(field.New(name))
 }
 
-var ErrInference = errors.New("assigment name could not be inferred from rhs expressioin")
+var ErrInference = errors.New("assigment name could not be inferred from rhs expression")
 
 type Assignment struct {
 	LHS field.Static
