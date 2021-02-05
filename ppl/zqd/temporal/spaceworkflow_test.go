@@ -2,6 +2,7 @@ package temporal
 
 import (
 	"context"
+	"go.temporal.io/sdk/workflow"
 	"testing"
 	"time"
 
@@ -29,7 +30,7 @@ func TestSpaceWorkflowWithOneWrite(t *testing.T) {
 
 	e.ExecuteWorkflow(spaceWorkflow)
 	require.True(t, e.IsWorkflowCompleted())
-	require.NoError(t, e.GetWorkflowError())
+	require.True(t, workflow.IsContinueAsNewError(e.GetWorkflowError()))
 	e.AssertExpectations(t)
 }
 
@@ -65,7 +66,7 @@ func TestSpaceWorkflowWithMultipleWrites(t *testing.T) {
 
 	e.ExecuteWorkflow(spaceWorkflow)
 	require.True(t, e.IsWorkflowCompleted())
-	require.NoError(t, e.GetWorkflowError())
+	require.True(t, workflow.IsContinueAsNewError(e.GetWorkflowError()))
 	e.AssertExpectations(t)
 
 	require.Equal(t, config.SpaceCompactDelay, compactTime.Sub(lastWriteTime))

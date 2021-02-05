@@ -70,8 +70,7 @@ func spaceWorkflow(ctx workflow.Context) error {
 			s = workflow.NewSelector(ctx)
 			s.AddReceive(signalCh, func(c workflow.ReceiveChannel, more bool) {})
 			if !s.HasPending() {
-				logger.Info("Workflow completed")
-				return nil
+				return workflow.NewContinueAsNewError(ctx, spaceWorkflow)
 			}
 		}
 	}
@@ -79,7 +78,7 @@ func spaceWorkflow(ctx workflow.Context) error {
 
 func spaceCompactActivity(ctx context.Context, id api.SpaceID) error {
 	l := activity.GetLogger(ctx)
-	l.Info("Activity startexd")
+	l.Info("Activity started")
 	if err := manager.Compact(ctx, id); err != nil {
 		l.Error("Activity failed", "error", err)
 		return err

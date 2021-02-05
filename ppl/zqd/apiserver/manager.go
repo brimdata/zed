@@ -46,6 +46,7 @@ type Manager struct {
 
 type Notifier interface {
 	Shutdown()
+	SpaceCreated(context.Context, api.SpaceID)
 	SpaceDeleted(context.Context, api.SpaceID)
 	SpaceWritten(context.Context, api.SpaceID)
 }
@@ -166,8 +167,9 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 		return api.Space{}, err
 	}
 
-	si := rowToSpace(row)
 	m.created.Inc()
+	si := rowToSpace(row)
+	m.notifier.SpaceCreated(ctx, si.ID)
 	return si, nil
 }
 

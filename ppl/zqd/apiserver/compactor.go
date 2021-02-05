@@ -37,6 +37,8 @@ func newCompactor(manager *Manager) *compactor {
 	return c
 }
 
+func (c *compactor) SpaceCreated(ctx context.Context, id api.SpaceID) {}
+
 func (c *compactor) SpaceDeleted(ctx context.Context, id api.SpaceID) {}
 
 func (c *compactor) SpaceWritten(ctx context.Context, id api.SpaceID) {
