@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - redis-cache-fix
 
 jobs:
   ecr-image-push:
