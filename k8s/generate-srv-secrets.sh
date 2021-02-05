@@ -7,3 +7,6 @@ function genpassword() {
 kubectl create secret generic postgres \
   --from-literal=postgresql-postgres-password=$(genpassword) \
   --from-literal=postgresql-password=$(genpassword)
+
+kubectl create secret generic redis \
+  --from-literal=redis-password=$(genpassword)

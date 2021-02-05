@@ -161,7 +161,7 @@ func (c *Core) addAPIServerRoutes(ctx context.Context, conf Config) (err error) 
 	if err != nil {
 		return err
 	}
-	c.redis, err = NewRedisClient(ctx, conf.Redis)
+	c.redis, err = NewRedisClient(ctx, conf.Logger, conf.Redis)
 	if err != nil {
 		return err
 	}
