@@ -567,12 +567,8 @@ go.opentelemetry.io/otel v0.16.0/go.mod h1:e4GKElweB8W2gWUqbghw0B8t5MCTccc9212eN
 go.temporal.io/api v1.4.0 h1:Ga1Ih8YE5ULs+UGt7u6Ppcf5SUMLyh4BATAs6SyPO0w=
 go.temporal.io/api v1.4.0/go.mod h1:H0yXehwGE9Sn9zVruyy9aumq17SMsK1WmIy4GX3MIKw=
 go.temporal.io/sdk v1.3.0/go.mod h1:hZ3Jd/Aoom1ao+fRyFf6y3MfHwXdPlhJiykX/gGmBeA=
-go.temporal.io/sdk v1.4.0 h1:IDIgfhakfgMv+zOMCQkXyqR7zHH+T4Nt2VAH5qW4w3w=
-go.temporal.io/sdk v1.4.0/go.mod h1:hZ3Jd/Aoom1ao+fRyFf6y3MfHwXdPlhJiykX/gGmBeA=
 go.temporal.io/sdk v1.4.1 h1:1zRRMAJNxy5lh1+QnDzuLXXbj0jJKagvyVzA2bkkqD4=
 go.temporal.io/sdk v1.4.1/go.mod h1:hZ3Jd/Aoom1ao+fRyFf6y3MfHwXdPlhJiykX/gGmBeA=
-go.temporal.io/server v1.6.0 h1:EA4j5XK0voIOWloPt1xqXRw9AducD6kUMTWCLqiTNUA=
-go.temporal.io/server v1.6.0/go.mod h1:bi4zaQXvZufIgw52OeJ9e7xnNQk1tEX5kG9oONkZnEg=
 go.temporal.io/server v1.6.3 h1:mzS0wZB/Dz8LOeBmbhWfTu6WH8Vj/P0Ln/TLAeZQT0g=
 go.temporal.io/server v1.6.3/go.mod h1:bi4zaQXvZufIgw52OeJ9e7xnNQk1tEX5kG9oONkZnEg=
 go.temporal.io/version v0.0.0-20201015012359-4d3bb966d193/go.mod h1:UA9S8/1LaKYae6TyD9NaPMJTZb911JcbqghI2CBSP78=
