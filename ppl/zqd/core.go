@@ -160,6 +160,7 @@ func NewCore(ctx context.Context, conf Config) (c *Core, err error) {
 	default:
 		return nil, fmt.Errorf("unknown personality %s", conf.Personality)
 	}
+
 	c.logger.Info("Started", startFields...)
 	return c, nil
 }
