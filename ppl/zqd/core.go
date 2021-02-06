@@ -203,7 +203,7 @@ func (c *Core) initManager(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	db, err := db.Open(ctx, c.logger, c.conf.DB, c.root)
+	db, err := db.Open(ctx, c.conf.Logger, c.conf.DB, c.root)
 	if err != nil {
 		return err
 	}
@@ -217,18 +217,18 @@ func (c *Core) initManager(ctx context.Context) (err error) {
 	}
 	var notifier apiserver.Notifier
 	if c.conf.Temporal.Enabled {
-		notifier, err = temporal.NewNotifier(c.logger, c.conf.Temporal)
+		notifier, err = temporal.NewNotifier(c.conf.Logger, c.conf.Temporal)
 		if err != nil {
 			return err
 		}
 	}
-	c.mgr, err = apiserver.NewManager(ctx, c.logger, notifier, c.registry, c.root, db, icache)
+	c.mgr, err = apiserver.NewManager(ctx, c.conf.Logger, notifier, c.registry, c.root, db, icache)
 	return err
 }
 
 func (c *Core) startTemporalWorker(ctx context.Context) error {
 	var err error
-	c.temporalClient, err = temporal.NewClient(c.logger.Named("temporal"), c.conf.Temporal)
+	c.temporalClient, err = temporal.NewClient(c.conf.Logger.Named("temporal"), c.conf.Temporal)
 	if err != nil {
 		return err
 	}
