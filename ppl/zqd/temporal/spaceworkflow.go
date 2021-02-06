@@ -39,7 +39,7 @@ func spaceWorkflow(ctx workflow.Context) error {
 		timerFuture := workflow.NewTimer(timerCtx, config.SpaceCompactDelay)
 		var err error
 		var executedActivity bool
-		s.AddFuture(timerFuture, func(f workflow.Future) {
+		s.AddFuture(timerFuture, func(_ workflow.Future) {
 			logger.Info("Workflow timer expired")
 			ctx := workflow.WithActivityOptions(ctx, workflow.ActivityOptions{
 				StartToCloseTimeout: 12 * time.Hour,
