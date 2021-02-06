@@ -206,7 +206,7 @@ func (c *Core) initManager(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	rclient, err := NewRedisClient(ctx, c.conf.Redis)
+	rclient, err := NewRedisClient(ctx, c.conf.Logger, c.conf.Redis)
 	if err != nil {
 		return err
 	}

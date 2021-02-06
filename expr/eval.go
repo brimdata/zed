@@ -718,18 +718,24 @@ func NewCast(expr Evaluator, styp string) (Evaluator, error) {
 		// XXX See issue #1572.   To implement aliascast here.
 		return nil, fmt.Errorf("cast to %s not implemented", styp)
 	}
-	return &evalCast{expr, c}, nil
+	return &evalCast{expr, c, typ}, nil
 }
 
 type evalCast struct {
 	expr   Evaluator
 	caster PrimitiveCaster
+	typ    zng.Type
 }
 
 func (c *evalCast) Eval(rec *zng.Record) (zng.Value, error) {
 	zv, err := c.expr.Eval(rec)
 	if err != nil {
 		return zng.Value{}, err
+	}
+	if zv.Bytes == nil {
+		// Take care of null here so the casters don't have to
+		// worry about it.  Any value can be null after all.
+		return zng.Value{c.typ, nil}, nil
 	}
 	return c.caster(zv)
 }
