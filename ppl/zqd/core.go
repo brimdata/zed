@@ -71,7 +71,7 @@ type Core struct {
 	workerReg      *worker.RegistrationState // state for personality=worker
 }
 
-func NewCore(ctx context.Context, conf Config) (c *Core, err error) {
+func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	if conf.Logger == nil {
 		conf.Logger = zap.NewNop()
 	}
@@ -87,6 +87,7 @@ func NewCore(ctx context.Context, conf Config) (c *Core, err error) {
 
 	var authenticator *Auth0Authenticator
 	if conf.Auth.Enabled {
+		var err error
 		if authenticator, err = NewAuthenticator(ctx, conf.Logger, registry, conf.Auth); err != nil {
 			return nil, err
 		}
@@ -113,7 +114,7 @@ func NewCore(ctx context.Context, conf Config) (c *Core, err error) {
 		json.NewEncoder(w).Encode(&api.VersionResponse{Version: conf.Version})
 	})
 
-	c = &Core{
+	c := &Core{
 		auth:     authenticator,
 		conf:     conf,
 		logger:   conf.Logger.Named("core").With(zap.String("personality", conf.Personality)),
@@ -121,15 +122,10 @@ func NewCore(ctx context.Context, conf Config) (c *Core, err error) {
 		router:   router,
 	}
 
-	defer func() {
-		if err != nil {
-			c.Shutdown()
-		}
-	}()
-
 	switch conf.Personality {
 	case "all", "apiserver", "root", "temporal":
 		if err := c.initManager(ctx); err != nil {
+			c.Shutdown()
 			return nil, err
 		}
 	}
@@ -137,6 +133,7 @@ func NewCore(ctx context.Context, conf Config) (c *Core, err error) {
 		switch conf.Personality {
 		case "all", "temporal":
 			if err := c.startTemporalWorker(ctx); err != nil {
+				c.Shutdown()
 				return nil, err
 			}
 		}
@@ -158,6 +155,7 @@ func NewCore(ctx context.Context, conf Config) (c *Core, err error) {
 	case "worker":
 		c.addWorkerRoutes()
 	default:
+		c.Shutdown()
 		return nil, fmt.Errorf("unknown personality %s", conf.Personality)
 	}
 
