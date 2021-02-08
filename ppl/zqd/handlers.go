@@ -281,7 +281,7 @@ func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	op, err := ingest.NewPcapOp(ctx, store, pcapstore, req.Path, c.suricata, c.zeek)
+	op, err := ingest.NewPcapOp(ctx, store, pcapstore, req.Path, c.conf.Suricata, c.conf.Zeek)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
