@@ -128,7 +128,7 @@ func NewCore(ctx context.Context, conf Config) (c *Core, err error) {
 	}()
 
 	switch conf.Personality {
-	case "all", "apiserver", "temporal":
+	case "all", "apiserver", "root", "temporal":
 		if err := c.initManager(ctx); err != nil {
 			return nil, err
 		}
