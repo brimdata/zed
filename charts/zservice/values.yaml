@@ -1,17 +1,3 @@
-postgres:
-  addr: zsrv-postgresql:5432
-  username: "zqd"
-  database: "zqd"
-  # passwordSecretName must have a value called postgres-password
-  passwordSecretName: "postgres"
-recruiter:
-  replicaCount: 1
-root:
-  datauri: "file:///spaces"
-  recruiterAddr: zsrv-recruiter:9867
-worker:
-  recruiterAddr: zsrv-recruiter:9867
-
 global:
   AWSRegion: ""
   image:
@@ -19,9 +5,56 @@ global:
     pullPolicy: Always
     tag: "zqd"
   imagePullSecrets: []
-  postgresDeploy:
-    enabled: false
   useCredSecret: false
+
+postgres:
+  addr: zsrv-postgresql:5432
+  username: "zqd"
+  database: "zqd"
+  # passwordSecretName must have a value called postgres-password
+  passwordSecretName: "postgres"
+
+postgresql:
+  # Possible values: standalone, replication.
+  architecture: standalone  
+  # Username, password, database for zqd cluster use.
+  postgresqlUsername: "zqd"
+  postgresqlDatabase: "zqd"
+  existingSecret: "postgres"  
+  image:
+    tag: "11"  
+  # Enable persistence using Persistence Volume Claims.
+  persistence:
+    enabled: true  
+    accessModes:
+      - ReadWriteOnce 
+    size: 8Gi
+
+recruiter:
+  replicaCount: 1
+
+redis:
+  usePassword: true
+  existingSecret: redis
+  image:
+    tag: "6.0"
+  cluster:
+    enabled: false
+  # set maxmemory + maxmemory-policy in order to use redis as an lru cache. See
+  # https://redis.io/topics/lru-cache
+  maxmemory: 1gb
+  maxmemoryPolicy: volatile-lfu
+  configmap: |
+    maxmemory {{ .Values.maxmemory }}
+    maxmemory-policy {{ .Values.maxmemoryPolicy }}
+
+root:
+  datauri: "file:///spaces"
+  recruiterAddr: zsrv-recruiter:9867
+
+worker:
+  recruiterAddr: zsrv-recruiter:9867
 
 tags:
   deploy-postgres: false
+  deploy-redis: false

@@ -4,3 +4,16 @@ description: Helm chart to deploy distributed zqd services, including postgres
 type: application
 version: 0.1.0
 appVersion: 1.16.0
+
+dependencies:
+  - name: postgresql
+    repository: https://charts.bitnami.com/bitnami
+    version: 10.x.x
+    tags: 
+      - deploy-postgres
+
+  - name: redis
+    repository: https://charts.bitnami.com/bitnami
+    version: 11.x.x
+    tags: 
+      - deploy-redis
