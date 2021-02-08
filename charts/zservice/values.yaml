@@ -19,4 +19,9 @@ global:
     pullPolicy: Always
     tag: "zqd"
   imagePullSecrets: []
+  postgresDeploy:
+    enabled: false
   useCredSecret: false
+
+tags:
+  deploy-postgres: false

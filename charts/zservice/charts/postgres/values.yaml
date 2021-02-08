@@ -1,7 +1,4 @@
 postgresql:
-  clusterInstance:
-    enabled: true
-    
   # Possible values: standalone, replication.
   architecture: standalone
   
@@ -21,4 +18,7 @@ postgresql:
       - ReadWriteOnce
   
     size: 8Gi
+
+tags:
+  deploy-postgres: false
 

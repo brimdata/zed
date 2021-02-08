@@ -9,4 +9,5 @@ dependencies:
   - name: postgresql
     repository: https://charts.bitnami.com/bitnami
     version: 10.x.x
-    condition: postgresql.clusterInstance.enabled
+    tags: 
+      - deploy-postgres
