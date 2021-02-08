@@ -56,5 +56,5 @@ worker:
   recruiterAddr: zsrv-recruiter:9867
 
 tags:
-  deploy-postgres: false
-  deploy-redis: false
+  deploy-postgres: true
+  deploy-redis: true
