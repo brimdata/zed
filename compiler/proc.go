@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/combine"
-	filterproc "github.com/brimsec/zq/proc/filter"
+	"github.com/brimsec/zq/proc/filter"
 	"github.com/brimsec/zq/proc/fuse"
 	"github.com/brimsec/zq/proc/head"
 	"github.com/brimsec/zq/proc/join"
@@ -133,7 +133,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, parent proc.Int
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
-		return filterproc.New(parent, f), nil
+		return filter.New(parent, f), nil
 
 	case *ast.TopProc:
 		fields, err := CompileExprs(pctx.TypeContext, v.Fields)
