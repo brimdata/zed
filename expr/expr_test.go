@@ -53,7 +53,7 @@ func compileExpr(s string) (expr.Evaluator, error) {
 		return nil, errors.New("expected Expression")
 	}
 
-	return compiler.CompileExpr(resolver.NewContext(), node)
+	return compiler.TestCompileExpr(resolver.NewContext(), node)
 }
 
 // Compile and evaluate a zql expression against a provided Record.
@@ -466,21 +466,12 @@ func TestCompareNonNumbers(t *testing.T) {
 }
 
 func TestPattern(t *testing.T) {
-	testSuccessful(t, `"abc" =~ "abc"`, nil, zbool(true))
-	testSuccessful(t, `"abc" =~ "a*"`, nil, zbool(true))
-	testSuccessful(t, `"abc" =~ "*bc"`, nil, zbool(true))
-	testSuccessful(t, `"abc" =~ "x*"`, nil, zbool(false))
-
-	testSuccessful(t, `"abc" !~ "abc"`, nil, zbool(false))
-	testSuccessful(t, `"abc" !~ "a*"`, nil, zbool(false))
-	testSuccessful(t, `"abc" !~ "*bc"`, nil, zbool(false))
-	testSuccessful(t, `"abc" !~ "x*"`, nil, zbool(true))
-
-	testSuccessful(t, "10.1.1.1 =~ 10.0.0.0/8", nil, zbool(true))
-	testSuccessful(t, "10.1.1.1 =~ 192.168.0.0/16", nil, zbool(false))
-
-	testSuccessful(t, "10.1.1.1 !~ 10.0.0.0/8", nil, zbool(false))
-	testSuccessful(t, "10.1.1.1 !~ 192.168.0.0/16", nil, zbool(true))
+	testSuccessful(t, `"abc" = "abc"`, nil, zbool(true))
+	testSuccessful(t, `"abc" != "abc"`, nil, zbool(false))
+	testSuccessful(t, "10.1.1.1 in 10.0.0.0/8", nil, zbool(true))
+	testSuccessful(t, "10.1.1.1 in 192.168.0.0/16", nil, zbool(false))
+	testSuccessful(t, "!(10.1.1.1 in 10.0.0.0/8)", nil, zbool(false))
+	testSuccessful(t, "!(10.1.1.1 in 192.168.0.0/16)", nil, zbool(true))
 }
 
 func TestIn(t *testing.T) {

@@ -1,8 +1,6 @@
 package compiler
 
 import (
-	"fmt"
-
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zng"
@@ -13,47 +11,45 @@ import (
 // encoding of a record matching e. (It may also return true for some byte
 // slices that do not match.) compileBufferFilter returns a nil pointer and nil
 // error if it cannot construct a useful filter.
-func compileBufferFilter(e ast.BooleanExpr) (*expr.BufferFilter, error) {
+func compileBufferFilter(e ast.Expression) (*expr.BufferFilter, error) {
 	switch e := e.(type) {
-	case *ast.CompareAny:
-		if e.Comparator != "=" && e.Comparator != "in" {
-			return nil, nil
+	case *ast.FunctionCall:
+		if literal, op, ok := isCompareAny(e); ok && (op == "=" || op == "in") {
+			return newBufferFilterForLiteral(*literal)
 		}
-		return newBufferFilterForLiteral(e.Value)
-	case *ast.CompareField:
-		if e.Comparator != "=" && e.Comparator != "in" {
-			return nil, nil
-		}
-		return newBufferFilterForLiteral(e.Value)
-	case *ast.BinaryExpression:
 		return nil, nil
-	case *ast.LogicalAnd:
-		left, err := compileBufferFilter(e.Left)
-		if err != nil {
-			return nil, err
+	case *ast.BinaryExpression:
+		if literal, _ := isFieldEqualOrIn(e); literal != nil {
+			return newBufferFilterForLiteral(*literal)
 		}
-		right, err := compileBufferFilter(e.Right)
-		if err != nil {
-			return nil, err
+		if e.Operator == "and" {
+			left, err := compileBufferFilter(e.LHS)
+			if err != nil {
+				return nil, err
+			}
+			right, err := compileBufferFilter(e.RHS)
+			if err != nil {
+				return nil, err
+			}
+			if left == nil {
+				return right, nil
+			}
+			if right == nil {
+				return left, nil
+			}
+			return expr.NewAndBufferFilter(left, right), nil
 		}
-		if left == nil {
-			return right, nil
+		if e.Operator == "or" {
+			left, err := compileBufferFilter(e.LHS)
+			if err != nil {
+				return nil, err
+			}
+			right, err := compileBufferFilter(e.RHS)
+			if left == nil || right == nil || err != nil {
+				return nil, err
+			}
+			return expr.NewOrBufferFilter(left, right), nil
 		}
-		if right == nil {
-			return left, nil
-		}
-		return expr.NewAndBufferFilter(left, right), nil
-	case *ast.LogicalOr:
-		left, err := compileBufferFilter(e.Left)
-		if err != nil {
-			return nil, err
-		}
-		right, err := compileBufferFilter(e.Right)
-		if left == nil || right == nil || err != nil {
-			return nil, err
-		}
-		return expr.NewOrBufferFilter(left, right), nil
-	case *ast.LogicalNot, *ast.MatchAll:
 		return nil, nil
 	case *ast.Search:
 		if e.Value.Type == "net" || e.Value.Type == "regexp" {
@@ -78,8 +74,96 @@ func compileBufferFilter(e ast.BooleanExpr) (*expr.BufferFilter, error) {
 		}
 		return expr.NewOrBufferFilter(left, right), nil
 	default:
-		return nil, fmt.Errorf("filter AST unknown type: %T", e)
+		return nil, nil
 	}
+}
+
+func isIdOrRoot(e ast.Expression) bool {
+	if _, ok := e.(*ast.Identifier); ok {
+		return true
+	}
+	_, ok := e.(*ast.RootRecord)
+	return ok
+}
+
+func isRootField(e ast.Expression) bool {
+	if isIdOrRoot(e) {
+		return true
+	}
+	b, ok := e.(*ast.BinaryExpression)
+	if !ok || b.Operator != "." {
+		return false
+	}
+	if _, ok := b.LHS.(*ast.RootRecord); !ok {
+		return false
+	}
+	_, ok = b.RHS.(*ast.Identifier)
+	return ok
+}
+
+func isFieldEqualOrIn(e *ast.BinaryExpression) (*ast.Literal, string) {
+	if isRootField(e.LHS) && e.Operator == "=" {
+		if literal, ok := e.RHS.(*ast.Literal); ok {
+			return literal, "="
+		}
+	} else if isRootField(e.RHS) && e.Operator == "in" {
+		if literal, ok := e.LHS.(*ast.Literal); ok && literal.Type != "net" {
+			return literal, "in"
+		}
+	}
+	return nil, ""
+}
+
+func isCompareAny(call *ast.FunctionCall) (*ast.Literal, string, bool) {
+	if call.Function != "or" || len(call.Args) != 1 {
+		return nil, "", false
+	}
+	e, ok := call.Args[0].(*ast.BinaryExpression)
+	if !ok || e.Operator != "@" || !isSelectAll(e.LHS) {
+		return nil, "", false
+	}
+	// expression must be a comparison or an in operator
+	apply, ok := e.RHS.(*ast.FunctionCall)
+	if !ok || len(apply.Args) != 1 {
+		return nil, "", false
+	}
+	pred, ok := apply.Args[0].(*ast.BinaryExpression)
+	if !ok {
+		return nil, "", false
+	}
+	if pred.Operator == "=" {
+		if !isDollar(pred.LHS) {
+			return nil, "", false
+		}
+		if rhs, ok := pred.RHS.(*ast.Literal); ok && rhs.Type != "net" {
+			return rhs, pred.Operator, true
+		}
+	} else if pred.Operator == "in" {
+		if !isDollar(pred.RHS) {
+			return nil, "", false
+		}
+		if lhs, ok := pred.LHS.(*ast.Literal); ok && lhs.Type != "net" {
+			return lhs, pred.Operator, true
+		}
+	}
+	return nil, "", false
+}
+
+func isSelectAll(e ast.Expression) bool {
+	s, ok := e.(*ast.SelectExpression)
+	if !ok || len(s.Selectors) != 1 {
+		return false
+	}
+	_, ok = s.Selectors[0].(*ast.RootRecord)
+	return ok
+}
+
+func isDollar(e ast.Expression) bool {
+	id, ok := e.(*ast.Identifier)
+	if !ok {
+		return false
+	}
+	return id.Name == "$"
 }
 
 func newBufferFilterForLiteral(l ast.Literal) (*expr.BufferFilter, error) {

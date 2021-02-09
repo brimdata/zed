@@ -20,11 +20,6 @@ type Proc interface {
 	ProcNode()
 }
 
-// BooleanExpr is the interface implement by all AST boolean expression nodes.
-type BooleanExpr interface {
-	booleanExprNode()
-}
-
 // Identifier refers to a syntax element analogous to a programming language
 // identifier.  It is currently used exclusively as the RHS of a BinaryExpr "."
 // expression though it may have future uses (e.g., enum names or externally
@@ -55,70 +50,11 @@ type Literal struct {
 	Value string `json:"value"`
 }
 
-// ----------------------------------------------------------------------------
-// Boolean expressions (aka search expressions or filters)
-
-// A boolean expression is represented by a tree consisting of one
-// or more of the following concrete expression nodes.
-//
-type (
-	// A search is a "naked" search term
-	Search struct {
-		Op    string  `json:"op"`
-		Text  string  `json:"text"`
-		Value Literal `json:"value"`
-	}
-
-	// A LogicalAnd node represents a logical and of two subexpressions.
-	LogicalAnd struct {
-		Op    string      `json:"op"`
-		Left  BooleanExpr `json:"left"`
-		Right BooleanExpr `json:"right"`
-	}
-	// A LogicalOr node represents a logical or of two subexpressions.
-	LogicalOr struct {
-		Op    string      `json:"op"`
-		Left  BooleanExpr `json:"left"`
-		Right BooleanExpr `json:"right"`
-	}
-	// A LogicalNot node represents a logical not of a subexpression.
-	LogicalNot struct {
-		Op   string      `json:"op"`
-		Expr BooleanExpr `json:"expr"`
-	}
-	// A MatchAll node represents a filter that matches all records.
-	MatchAll struct {
-		Op string `json:"op"`
-	}
-	// A CompareAny node represents a comparison operator with all of
-	// the fields in a record.
-	CompareAny struct {
-		Op         string `json:"op"`
-		Comparator string `json:"comparator"`
-		Recursive  bool   `json:"recursive"`
-		Value      Literal
-	}
-	// A CompareField node represents a comparison operator with a specific
-	// field in a record.
-	CompareField struct {
-		Op         string     `json:"op"`
-		Comparator string     `json:"comparator"`
-		Field      Expression `json:"field"`
-		Value      Literal    `json:"value"`
-	}
-)
-
-// booleanEpxrNode() ensures that only boolean expression nodes can be
-// assigned to a BooleanExpr.
-//
-func (*Search) booleanExprNode()           {}
-func (*LogicalAnd) booleanExprNode()       {}
-func (*LogicalOr) booleanExprNode()        {}
-func (*LogicalNot) booleanExprNode()       {}
-func (*MatchAll) booleanExprNode()         {}
-func (*CompareAny) booleanExprNode()       {}
-func (*CompareField) booleanExprNode()     {}
-func (*BinaryExpression) booleanExprNode() {}
+type Search struct {
+	Op    string  `json:"op"`
+	Text  string  `json:"text"`
+	Value Literal `json:"value"`
+}
 
 type UnaryExpression struct {
 	Op       string     `json:"op"`
@@ -135,6 +71,11 @@ type BinaryExpression struct {
 	Operator string     `json:"operator"`
 	LHS      Expression `json:"lhs"`
 	RHS      Expression `json:"rhs"`
+}
+
+type SelectExpression struct {
+	Op        string       `json:"op"`
+	Selectors []Expression `json:"selectors"`
 }
 
 type ConditionalExpression struct {
@@ -158,7 +99,9 @@ type CastExpression struct {
 
 func (*UnaryExpression) exprNode()       {}
 func (*BinaryExpression) exprNode()      {}
+func (*SelectExpression) exprNode()      {}
 func (*ConditionalExpression) exprNode() {}
+func (*Search) exprNode()                {}
 func (*FunctionCall) exprNode()          {}
 func (*CastExpression) exprNode()        {}
 func (*Literal) exprNode()               {}
@@ -235,8 +178,8 @@ type (
 	// A FilterProc node represents a proc that discards all records that do
 	// not match the indicfated filter and forwards all that match to its output.
 	FilterProc struct {
-		Op     string      `json:"op"`
-		Filter BooleanExpr `json:"filter"`
+		Op     string     `json:"op"`
+		Filter Expression `json:"filter"`
 	}
 	// A PassProc node represents a passthrough proc that mirrors
 	// incoming Pull()s on its parent and returns the result.
@@ -398,22 +341,45 @@ func DotExprToField(n Expression) (field.Static, bool) {
 			}
 			return append(lhs, rhs...), true
 		}
-	case *Assignment:
-		lhs, ok := DotExprToField(n.LHS)
-		if !ok {
-			return nil, false
-		}
-		rhs, ok := DotExprToField(n.RHS)
-		if !ok {
-			return nil, false
-		}
-		return append(lhs, rhs...), true
 	case *Identifier:
 		return field.Static{n.Name}, true
 	case *RootRecord:
 		return nil, true
 	}
 	return nil, false
+}
+
+func FieldsOf(e Expression) []field.Static {
+	switch e := e.(type) {
+	default:
+		f, _ := DotExprToField(e)
+		if f == nil {
+			return nil
+		}
+		return []field.Static{f}
+	case *BinaryExpression:
+		if e.Operator == "." || e.Operator == "[" {
+			lhs, _ := DotExprToField(e.LHS)
+			rhs, _ := DotExprToField(e.RHS)
+			var fields []field.Static
+			if lhs != nil {
+				fields = append(fields, lhs)
+			}
+			if rhs != nil {
+				fields = append(fields, rhs)
+			}
+			return fields
+		}
+		return append(FieldsOf(e.LHS), FieldsOf(e.RHS)...)
+	case *Assignment:
+		return append(FieldsOf(e.LHS), FieldsOf(e.RHS)...)
+	case *SelectExpression:
+		var fields []field.Static
+		for _, selector := range e.Selectors {
+			fields = append(fields, FieldsOf(selector)...)
+		}
+		return fields
+	}
 }
 
 func NewDotExpr(f field.Static) Expression {
@@ -459,9 +425,9 @@ func FanIn(p Proc) int {
 	return 1
 }
 
-func FilterToProc(be BooleanExpr) *FilterProc {
+func FilterToProc(e Expression) *FilterProc {
 	return &FilterProc{
 		Op:     "FilterProc",
-		Filter: be,
+		Filter: e,
 	}
 }

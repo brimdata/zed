@@ -74,7 +74,7 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 		Logger:      cfg.Logger,
 		Warnings:    make(chan string, 5),
 	}
-	leaves, err := compiler.Compile(cfg.Custom, program, pctx, procs)
+	leaves, err := compiler.Compile(cfg.Custom, program, pctx, nil, procs)
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +122,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	if len(sources) > 1 {
 		program, _ = compiler.Parallelize(program, len(sources), sortKey, sortReversed)
 	}
-	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, sources)
+	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, nil, sources)
 	if err != nil {
 		return nil, err
 	}

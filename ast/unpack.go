@@ -112,7 +112,11 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 	case "TailProc":
 		return &TailProc{}, nil
 	case "FilterProc":
-		filter, err := UnpackChild(node, "filter")
+		f, err := node.Get("filter")
+		if err != nil {
+			return nil, errors.New("ast filter proc: missing filter field")
+		}
+		filter, err := UnpackExpression(f)
 		if err != nil {
 			return nil, err
 		}
@@ -256,17 +260,13 @@ func UnpackExpression(node joe.Interface) (Expression, error) {
 	}
 	switch op {
 	case "UnaryExpr":
-		operandNode, err := node.Get("operand")
-		if err != nil {
-			return nil, errors.New("UnaryExpression missing operand")
-		}
-		operand, err := UnpackExpression(operandNode)
-		if err != nil {
-			return nil, err
-		}
-		return &UnaryExpression{Operand: operand}, nil
+		return unpackUnaryExpr(node)
 	case "BinaryExpr":
 		return unpackBinaryExpr(node)
+	case "SelectExpr":
+		return unpackSelectExpr(node)
+	case "Search":
+		return &Search{}, nil
 	case "ConditionalExpr":
 		conditionNode, err := node.Get("condition")
 		if err != nil {
@@ -350,26 +350,6 @@ func UnpackExpression(node joe.Interface) (Expression, error) {
 	}
 }
 
-func UnpackChild(node joe.Interface, field string) (BooleanExpr, error) {
-	child, err := node.Get(field)
-	if err != nil {
-		return nil, fmt.Errorf("ast.UnpackChild: missing field: %s", field)
-	}
-	return unpackBooleanExpr(child)
-}
-
-func unpackChildren(node joe.Interface) (BooleanExpr, BooleanExpr, error) {
-	left, err := UnpackChild(node, "left")
-	if err != nil {
-		return nil, nil, err
-	}
-	right, err := UnpackChild(node, "right")
-	if err != nil {
-		return nil, nil, err
-	}
-	return left, right, nil
-}
-
 func unpackBinaryExpr(node joe.Interface) (*BinaryExpression, error) {
 	lhsNode, err := node.Get("lhs")
 	if err != nil {
@@ -390,52 +370,28 @@ func unpackBinaryExpr(node joe.Interface) (*BinaryExpression, error) {
 	return &BinaryExpression{LHS: lhs, RHS: rhs}, nil
 }
 
-func unpackBooleanExpr(node joe.Interface) (BooleanExpr, error) {
-	op, err := getString(node, "op")
+func unpackSelectExpr(node joe.Interface) (*SelectExpression, error) {
+	selectorsNode, err := node.Get("selectors")
 	if err != nil {
-		return nil, fmt.Errorf("AST is missing op field")
+		return nil, errors.New("SelectExpression missing selectors field")
 	}
-	switch op {
-	case "Search":
-		return &Search{}, nil
-	case "LogicalAnd":
-		left, right, err := unpackChildren(node)
-		if err != nil {
-			return nil, err
-		}
-		return &LogicalAnd{Left: left, Right: right}, nil
-	case "LogicalOr":
-		left, right, err := unpackChildren(node)
-		if err != nil {
-			return nil, err
-		}
-		return &LogicalOr{Left: left, Right: right}, nil
-	case "LogicalNot":
-		child, err := UnpackChild(node, "expr")
-		if err != nil {
-			return nil, err
-		}
-		return &LogicalNot{Expr: child}, nil
-	case "MatchAll":
-		return &MatchAll{}, nil
-	case "CompareAny":
-		return &CompareAny{}, nil
-	case "BinaryExpression":
-		return unpackBinaryExpr(node)
-	case "CompareField":
-		child, err := node.Get("field")
-		if err != nil {
-			return nil, errors.New("CompareField missing field property")
-		}
-		field, err := UnpackExpression(child)
-		if err != nil {
-			return nil, err
-		}
-		return &CompareField{Field: field}, nil
+	selectors, err := unpackExprs(selectorsNode)
+	if err != nil {
+		return nil, err
+	}
+	return &SelectExpression{Selectors: selectors}, nil
+}
 
-	default:
-		return nil, fmt.Errorf("ast.unpackBooleanExpr: unknown op: %s", op)
+func unpackUnaryExpr(node joe.Interface) (*UnaryExpression, error) {
+	operandNode, err := node.Get("operand")
+	if err != nil {
+		return nil, errors.New("UnaryExpr missing operand")
 	}
+	operand, err := UnpackExpression(operandNode)
+	if err != nil {
+		return nil, err
+	}
+	return &UnaryExpression{Operand: operand}, nil
 }
 
 func UnpackMap(custom Unpacker, m interface{}) (Proc, error) {
