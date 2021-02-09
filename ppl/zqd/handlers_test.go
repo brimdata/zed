@@ -50,7 +50,7 @@ func TestASTPost(t *testing.T) {
 	_, conn := newCore(t)
 	resp, err := conn.Do(context.Background(), http.MethodPost, "/ast", &api.ASTRequest{ZQL: "*"})
 	require.NoError(t, err)
-	require.Equal(t, string(resp.Body()), "{\"op\":\"FilterProc\",\"filter\":{\"op\":\"MatchAll\"}}\n")
+	require.Equal(t, string(resp.Body()), "{\"op\":\"SequentialProc\",\"procs\":[{\"op\":\"FilterProc\",\"filter\":{\"op\":\"Literal\",\"type\":\"bool\",\"value\":\"true\"}}]}\n")
 }
 
 func TestSearch(t *testing.T) {
@@ -666,7 +666,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 #0:record[ts:time,s:string,v:int64]
 0:[1587508881.0613914;harefoot-raucous;137;]
 `
-	res := searchTzng(t, conn, sp.ID, "s=harefoot-raucous")
+	res := searchTzng(t, conn, sp.ID, "s=harefoot\\-raucous")
 	require.Equal(t, test.Trim(exptzng), res)
 }
 

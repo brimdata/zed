@@ -44,10 +44,10 @@ func ensureSequentialProc(p ast.Proc) *ast.SequentialProc {
 }
 
 // liftFilter removes the filter at the head of the flowgraph AST, if
-// one is present, and returns its ast.BooleanExpr and the modified
+// one is present, and returns its ast.Expression and the modified
 // flowgraph AST. If the flowgraph does not start with a filter, it
 // returns nil and the unmodified flowgraph.
-func liftFilter(p ast.Proc) (ast.BooleanExpr, ast.Proc) {
+func liftFilter(p ast.Proc) (ast.Expression, ast.Proc) {
 	if fp, ok := p.(*ast.FilterProc); ok {
 		return fp.Filter, passProc
 	}
