@@ -259,13 +259,18 @@ ReducerAssignment
     }
 
 Reducer
-  = !(NotReducers __ "(") op:IdentifierName __ "(" __ expr:Expr?  __ ")" !(__ ".") where:WhereClause? {
+  = !(NotReducers __ "(") op:ReducerName __ "(" __ expr:Expr?  __ ")" !(__ ".") where:WhereClause? {
       VAR(r) = MAP("op": "Reducer", "operator": op, "expr": NULL, "where":where)
       if ISNOTNULL(expr) {
         r["expr"] = expr
       }
       RETURN(r)
     }
+
+ReducerName
+  = IdentifierName
+  / AndToken
+  / OrToken
 
 NotReducers
   = "not"
@@ -655,7 +660,7 @@ Identifier
   = id:IdentifierName { RETURN(MAP("op": "Identifier", "name": id)) }
 
 IdentifierName
-  = !(IdGuard EOT) IdentifierStart IdentifierRest* {  RETURN(TEXT) }
+  = !(IdGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }
   / "$" { RETURN(TEXT) }
   / "\\" id:IdGuard { RETURN(id) }
 
