@@ -136,7 +136,7 @@ func NewCore(ctx context.Context, conf Config) (c *Core, err error) {
 	if conf.Temporal.Enabled {
 		switch conf.Personality {
 		case "all", "temporal":
-			if err := c.startTemporalWorker(ctx); err != nil {
+			if err := c.startTemporalWorker(); err != nil {
 				return nil, err
 			}
 		}
@@ -226,7 +226,7 @@ func (c *Core) initManager(ctx context.Context) (err error) {
 	return err
 }
 
-func (c *Core) startTemporalWorker(ctx context.Context) error {
+func (c *Core) startTemporalWorker() error {
 	var err error
 	c.temporalClient, err = temporal.NewClient(c.conf.Logger.Named("temporal"), c.conf.Temporal)
 	if err != nil {
