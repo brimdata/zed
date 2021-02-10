@@ -339,18 +339,8 @@ TopProc
     }
 
 CutProc
-  = "cut"i args:CutArgs _ columns:FlexAssignments {
-      VAR(argm) = ASSERT_MAP(args)
-      VAR(proc) = MAP("op": "CutProc", "fields": columns, "complement": false)
-      if HAS(argm, "c") {
-        proc["complement"] = true
-      }
-      RETURN(proc)
-    }
-
-CutArgs
-  = args:(_ "-c" { RETURN(MAP("name": "c", "value": NULL)) })* {
-      return makeArgMap(args)
+  = "cut"i _ columns:FlexAssignments {
+      RETURN(MAP("op": "CutProc", "fields": columns))
     }
 
 PickProc

@@ -147,9 +147,8 @@ type (
 	// input record where each removed field matches one of the named fields
 	// sending each such modified record to its output in the order received.
 	CutProc struct {
-		Op         string       `json:"op"`
-		Complement bool         `json:"complement"`
-		Fields     []Assignment `json:"fields"`
+		Op     string       `json:"op"`
+		Fields []Assignment `json:"fields"`
 	}
 	// A PickProc is like a CutProc but skips records that do not
 	// match all of the field expressions.
