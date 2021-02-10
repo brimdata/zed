@@ -136,6 +136,17 @@ type (
 		MergeOrderReverse bool         `json:"merge_order_reverse,omitempty"`
 		Procs             []Proc       `json:"procs"`
 	}
+	// A SwitchProc node represents a set of procs that each get
+	// a stream of records from their parent.
+	SwitchProc struct {
+		Op    string       `json:"op"`
+		Cases []SwitchCase `json:"cases"`
+		// If non-zero, MergeOrderField contains the field name on
+		// which the branches of this parallel proc should be
+		// merged in the order indicated by MergeOrderReverse.
+		MergeOrderField   field.Static `json:"merge_order_field,omitempty"`
+		MergeOrderReverse bool         `json:"merge_order_reverse,omitempty"`
+	}
 	// A SortProc node represents a proc that sorts records.
 	SortProc struct {
 		Op         string       `json:"op"`
@@ -261,6 +272,11 @@ type (
 	}
 )
 
+type SwitchCase struct {
+	Filter Expression `json:"filter"`
+	Proc   Proc       `json:"proc"`
+}
+
 type Assignment struct {
 	Op  string     `json:"op"`
 	LHS Expression `json:"lhs"`
@@ -296,6 +312,7 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 
 func (*SequentialProc) ProcNode() {}
 func (*ParallelProc) ProcNode()   {}
+func (*SwitchProc) ProcNode()     {}
 func (*SortProc) ProcNode()       {}
 func (*CutProc) ProcNode()        {}
 func (*PickProc) ProcNode()       {}

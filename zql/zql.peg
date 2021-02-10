@@ -77,9 +77,31 @@ Parallel
 ParallelTail
   = __ "=>" __ ch:Sequential { RETURN(ch) }
 
+
+SwitchBranch
+  = filter:SearchBoolean __ "=>" __ proc:Sequential {
+    RETURN(MAP("filter": filter, "proc": proc))
+  }
+
+Switch
+  = first:SwitchBranch rest:SwitchTail+ {
+      RETURN(PREPEND(first, rest))
+    }
+  / first:SwitchBranch {
+      RETURN(ARRAY(first))
+    }
+
+SwitchTail
+  = __ CaseToken __ ch:SwitchBranch { RETURN(ch) }
+
+CaseToken = "case"
+
 Operation
   = "split" __ "(" __ "=>" __ procArray:Parallel __ ")" {
       RETURN(MAP("op": "ParallelProc", "procs": procArray))
+    }
+  / "switch" __ "(" __ CaseToken __ caseArray:Switch __ ")" {
+      RETURN(MAP("op": "SwitchProc", "cases": caseArray))
     }
   / Operator
   / a:Aggregation !ExprGuard  { RETURN(a) }
@@ -175,6 +197,7 @@ SearchGuard
   / NotToken
   / InToken
   / ByToken
+  / CaseToken
 
 /// === Search-embedded Expression Context ===
 
