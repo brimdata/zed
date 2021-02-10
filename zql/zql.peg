@@ -507,11 +507,10 @@ NotExpr
   / CastExpr
 
 CastExpr
-  = e:FuncExpr typ:( ":" typ:PrimitiveType { RETURN(typ) }) {
+  = e:FuncExpr ":" typ:PrimitiveType {
       RETURN(MAP("op": "CastExpr", "expr": e, "type": typ))
     }
   / FuncExpr
-
 
 PrimitiveType
   = (   "bytes" / "uint8" / "uint16" / "uint32" / "uint64"
@@ -574,7 +573,19 @@ DotId
     }
 
 Deref
-  = "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
+  = "[" from:AdditiveExpr __ ":" __ to:AdditiveExpr "]" {
+      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+                            "lhs":from, "rhs":to)))
+    }
+  / "[" __ ":" __ to:AdditiveExpr "]" {
+      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+                            "lhs":MAP("op":"Empty"), "rhs":to)))
+    }
+  / "[" from:AdditiveExpr __ ":" __ "]" {
+      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+                            "lhs":from, "rhs":MAP("op":"Empty"))))
+    }
+  / "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
   / "." !(".") id:Identifier { RETURN(ARRAY(".", id)) }
 
 Primary
@@ -715,9 +726,12 @@ Weeks
 IP
   = UInt "." UInt "." UInt "." UInt { RETURN(TEXT) }
 
+IP6
+  = !( Hex ":" Hex !(HexDigit / ":")) IP6Variations
+
 // this matches a superset of legal syntax for ip6 addresses but the compiler
 // will catch any errors when translating the filter
-IP6
+IP6Variations
   = a:HexColon+ b:IP6Tail {
       RETURN(joinChars(a) + ASSERT_STRING(b))
     }

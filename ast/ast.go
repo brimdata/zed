@@ -35,6 +35,10 @@ type RootRecord struct {
 	Op string `json:"op"`
 }
 
+type Empty struct {
+	Op string `json:"op"`
+}
+
 type Expression interface {
 	exprNode()
 }
@@ -107,6 +111,7 @@ func (*CastExpression) exprNode()        {}
 func (*Literal) exprNode()               {}
 func (*Identifier) exprNode()            {}
 func (*RootRecord) exprNode()            {}
+func (*Empty) exprNode()                 {}
 func (*Assignment) exprNode()            {}
 func (*Reducer) exprNode()               {}
 
@@ -342,7 +347,7 @@ func DotExprToField(n Expression) (field.Static, bool) {
 		}
 	case *Identifier:
 		return field.Static{n.Name}, true
-	case *RootRecord:
+	case *RootRecord, *Empty:
 		return nil, true
 	}
 	return nil, false

@@ -345,6 +345,8 @@ func UnpackExpression(node joe.Interface) (Expression, error) {
 		return &Identifier{}, nil
 	case "RootRecord":
 		return &RootRecord{}, nil
+	case "Empty":
+		return &Empty{}, nil
 	default:
 		return nil, fmt.Errorf("ast.UnpackExpression: unknown op %s", op)
 	}
