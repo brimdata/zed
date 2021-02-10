@@ -278,7 +278,7 @@ func (s *split) Call(args []zng.Value) (zng.Value, error) {
 		return zng.Value{}, err
 	}
 	splits := strings.Split(str, sep)
-	b := s.bytes[0:]
+	b := s.bytes[:0]
 	for _, substr := range splits {
 		b = zcode.AppendPrimitive(b, zng.EncodeString(substr))
 	}
