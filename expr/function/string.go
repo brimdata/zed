@@ -297,7 +297,7 @@ func (j *join) Call(args []zng.Value) (zng.Value, error) {
 	if !ok {
 		return zng.NewErrorf("argument to join() is not an array"), nil
 	}
-	if !zng.IsStringy(zng.AliasedType(typ.Type).ID()) {
+	if !zng.IsStringy(typ.Type.ID()) {
 		return zng.NewErrorf("argument to join() is not a string array"), nil
 	}
 	var separator string
