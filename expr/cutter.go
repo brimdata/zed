@@ -1,7 +1,9 @@
 package expr
 
 import (
+	"errors"
 	"fmt"
+	"github.com/brimsec/zq/zcode"
 	"strings"
 
 	"github.com/brimsec/zq/field"
@@ -30,9 +32,21 @@ type Cutter struct {
 // is false, the Cutter copies any fields in fieldnames, where targets
 // specifies the copied field names.
 func NewCutter(zctx *resolver.Context, fieldRefs []field.Static, fieldExprs []Evaluator) (*Cutter, error) {
-	b, err := builder.NewColumnBuilder(zctx, fieldRefs)
-	if err != nil {
-		return nil, err
+	if len(fieldRefs) > 1 {
+		for _, f := range fieldRefs {
+			if f.IsRoot() {
+				return nil, errors.New("cannot assign to . when cutting multiple values")
+			}
+		}
+	}
+	var b *builder.ColumnBuilder
+	if len(fieldRefs) > 0 && !fieldRefs[0].IsRoot() {
+		// A root field will cause NewColumnBuilder to panic.
+		var err error
+		b, err = builder.NewColumnBuilder(zctx, fieldRefs)
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &Cutter{
 		zctx:        zctx,
@@ -59,6 +73,18 @@ func (c *Cutter) FoundCut() bool {
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
 func (c *Cutter) Apply(in *zng.Record) (*zng.Record, error) {
+	if len(c.fieldRefs) == 1 && c.fieldRefs[0].IsRoot() {
+		zv, err := c.fieldExprs[0].Eval(in)
+		if err != nil {
+			return nil, err
+		}
+		recType, ok := zng.AliasedType(zv.Type).(*zng.TypeRecord)
+		if !ok {
+			return nil, errors.New("cannot cut a non-record to .")
+		}
+		c.dirty = true
+		return zng.NewRecord(recType, append(zcode.Bytes{}, zv.Bytes...)), nil
+	}
 	types := c.typeCache
 	b := c.builder
 	b.Reset()
