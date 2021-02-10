@@ -22,50 +22,7 @@ type Interface interface {
 	Call([]zng.Value) (zng.Value, error)
 }
 
-var deprecated = map[string]string{
-	"Math.abs":              "abs",
-	"Math.ceil":             "ceil",
-	"Math.floor":            "floor",
-	"Math.log":              "log",
-	"Math.max":              "max",
-	"Math.min":              "min",
-	"Math.mod":              "mod",
-	"Math.round":            "round",
-	"Math.pow":              "pow",
-	"Math.sqrt":             "sqrt",
-	"String.byteLen":        "len",
-	"String.formatFloat":    "type cast, e.g., <float-value>:string",
-	"String.formatInt":      "type cast, e.g., <int-value>:string",
-	"String.formatIp":       "type cast, e.g., <ip-value>:string",
-	"String.parseFloat":     "type cast, e.g., <string-value>:float64",
-	"String.parseInt":       "type cast, e.g., <string-value>:int64",
-	"String.parseIp":        "type cast, e.g., <string-value>:ip",
-	"String.replace":        "replace",
-	"String.runeLen":        "rune_len",
-	"String.toLower":        "to_lower",
-	"String.toUpper":        "to_upper",
-	"String.trim":           "trim",
-	"Time.fromISO":          "iso",
-	"Time.fromMilliseconds": "msec and ype cast, e.g., msec(<msec-value>):time",
-	"Time.fromMicroseconds": "usec and type cast, e.g., usec(<usec-value>):time",
-	"Time.fromNanoseconds":  "type cast, e.g., <nsec-value>:time",
-	"Time.trunc":            "trunc",
-	"toBase64":              "to_base64",
-	"fromBase64":            "from_base64",
-}
-
-func isDeprecated(name string) error {
-	msg, ok := deprecated[name]
-	if ok {
-		return fmt.Errorf("function is deprecated: use %s", msg)
-	}
-	return nil
-}
-
 func New(zctx *resolver.Context, name string, narg int) (Interface, error) {
-	if err := isDeprecated(name); err != nil {
-		return nil, err
-	}
 	argmin := 1
 	argmax := 1
 	var f Interface
