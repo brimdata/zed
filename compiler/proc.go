@@ -56,9 +56,6 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		return compileGroupBy(pctx, scope, parent, v)
 
 	case *ast.CutProc:
-		if v.Complement {
-			return nil, errors.New("cut -c deprecated; use drop instead")
-		}
 		assignments, err := compileAssignments(v.Fields, pctx.TypeContext, scope)
 		if err != nil {
 			return nil, err

@@ -120,10 +120,10 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSo
 		// Return true if the output record contains inputSortField.
 		for _, f := range p.Fields {
 			if eq(f.RHS, inputSortField) {
-				return !p.Complement
+				return true
 			}
 		}
-		return p.Complement
+		return false
 	case *ast.PickProc:
 		// Return true if the output record contains inputSortField.
 		for _, f := range p.Fields {
