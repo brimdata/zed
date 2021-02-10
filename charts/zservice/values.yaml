@@ -15,6 +15,7 @@ postgres:
   passwordSecretName: "postgres"
 
 postgresql:
+  # These values only apply to postgres instance running in the cluster (not Aurora)
   # Possible values: standalone, replication.
   architecture: standalone  
   # Username, password, database for zqd cluster use.
