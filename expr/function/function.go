@@ -37,6 +37,9 @@ func New(zctx *resolver.Context, name string, narg int) (Interface, error) {
 		f = &ceil{}
 	case "floor":
 		f = &floor{}
+	case "join":
+		argmax = 2
+		f = &join{}
 	case "log":
 		f = &log{}
 	case "max":
@@ -73,6 +76,10 @@ func New(zctx *resolver.Context, name string, narg int) (Interface, error) {
 		f = &iso{}
 	case "sec":
 		f = &sec{}
+	case "split":
+		argmin = 2
+		argmax = 2
+		f = newSplit(zctx)
 	case "msec":
 		f = &msec{}
 	case "usec":
