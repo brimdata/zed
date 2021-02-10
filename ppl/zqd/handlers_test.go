@@ -60,12 +60,16 @@ func TestSearch(t *testing.T) {
 0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
 `
 	_, conn := newCore(t)
-	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
+	ctx := context.Background()
+	_, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	_, err = conn.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
+	id, err := conn.SpaceLookup(ctx, "test")
 	require.NoError(t, err)
 
-	res := searchTzng(t, conn, sp.ID, "*")
+	_, err = conn.LogPostReaders(context.Background(), id, nil, strings.NewReader(src))
+	require.NoError(t, err)
+
+	res := searchTzng(t, conn, id, "*")
 	require.Equal(t, test.Trim(src), res)
 }
 
@@ -91,9 +95,10 @@ func TestSearchNoCtrl(t *testing.T) {
 		Span:  nano.MaxSpan,
 		Dir:   -1,
 	}
-	r, err := conn.Search(context.Background(), req, map[string]string{"noctrl": "true"})
+	body, err := conn.SearchRaw(context.Background(), req, map[string]string{"noctrl": "true"})
 	require.NoError(t, err)
 	var msgs []interface{}
+	r := client.NewZngSearch(body)
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
 	})
@@ -186,7 +191,7 @@ func TestSearchError(t *testing.T) {
 			Span:  nano.MaxSpan,
 			Dir:   2,
 		}
-		_, err = conn.Search(context.Background(), req, nil)
+		_, err = conn.SearchRaw(context.Background(), req, nil)
 		require.Error(t, err)
 		errResp := err.(*client.ErrorResponse)
 		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
@@ -199,7 +204,7 @@ func TestSearchError(t *testing.T) {
 			Span:  nano.MaxSpan,
 			Dir:   1,
 		}
-		_, err = conn.Search(context.Background(), req, nil)
+		_, err = conn.SearchRaw(context.Background(), req, nil)
 		require.Error(t, err)
 		errResp := err.(*client.ErrorResponse)
 		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
@@ -841,8 +846,9 @@ func search(t *testing.T, conn *client.Connection, space api.SpaceID, prog strin
 		Span:  nano.MaxSpan,
 		Dir:   -1,
 	}
-	r, err := conn.Search(context.Background(), req, nil)
+	body, err := conn.SearchRaw(context.Background(), req, nil)
 	require.NoError(t, err)
+	r := client.NewZngSearch(body)
 	buf := bytes.NewBuffer(nil)
 	w := tzngio.NewWriter(zio.NopCloser(buf))
 	var msgs []interface{}
@@ -854,8 +860,12 @@ func search(t *testing.T, conn *client.Connection, space api.SpaceID, prog strin
 }
 
 func searchTzng(t *testing.T, conn *client.Connection, space api.SpaceID, prog string) string {
-	tzng, _ := search(t, conn, space, prog)
-	return tzng
+	res, err := conn.Search(context.Background(), space, prog)
+	require.NoError(t, err)
+	buf := bytes.NewBuffer(nil)
+	w := tzngio.NewWriter(zio.NopCloser(buf))
+	require.NoError(t, zbuf.Copy(w, res))
+	return buf.String()
 }
 
 func tzngCopy(t *testing.T, prog string, in string, outFormat string) string {
