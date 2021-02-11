@@ -727,7 +727,7 @@ IP
   = UInt "." UInt "." UInt "." UInt { RETURN(TEXT) }
 
 IP6
-  = !( Hex ":" Hex !(HexDigit / ":")) IP6Variations
+  = !( Hex ":" Hex !(HexDigit / ":")) v:IP6Variations { RETURN(v) }
 
 // this matches a superset of legal syntax for ip6 addresses but the compiler
 // will catch any errors when translating the filter

@@ -1,0 +1,7 @@
+zql: fe80::58d2:2d09:e8cb:a8ad
+
+input: &input |
+  #0:record[a:ip]
+  0:[fe80::58d2:2d09:e8cb:a8ad;]
+
+output: *input
