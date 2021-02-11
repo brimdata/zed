@@ -292,8 +292,8 @@ func compileSwitch(custom Hook, pp *ast.SwitchProc, c *proc.Context, scope *Scop
 		// Single parent: insert a switcher and wire to each branch.
 		switcher := switchproc.New(parents[0])
 		parents = []proc.Interface{}
-		for k := 0; k < n; k++ {
-			f, err := compileFilter(c.TypeContext, scope, pp.Cases[k].Filter)
+		for _, c := pp.Cases {
+			f, err := compileFilter(c.TypeContext, scope, c.Filter)
 			if err != nil {
 				return nil, fmt.Errorf("compiling switch case filter: %w", err)
 			}
@@ -305,8 +305,8 @@ func compileSwitch(custom Hook, pp *ast.SwitchProc, c *proc.Context, scope *Scop
 		return nil, fmt.Errorf("proc.compileSwitch: %d parents for switch proc with %d branches", len(parents), len(pp.Cases))
 	}
 	var procs []proc.Interface
-	for k := 0; k < n; k++ {
-		proc, err := Compile(custom, pp.Cases[k].Proc, c, scope, []proc.Interface{parents[k]})
+	for _, p := range parents {
+		proc, err := Compile(custom, pp.Cases[k].Proc, c, scope, []proc.Interface{p})
 		if err != nil {
 			return nil, err
 		}

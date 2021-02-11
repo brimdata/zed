@@ -38,15 +38,15 @@ func unpackProcs(custom Unpacker, node joe.Interface) ([]Proc, error) {
 
 func unpackCases(custom Unpacker, node joe.Interface) ([]SwitchCase, error) {
 	if node == nil {
-		return nil, errors.New("ast.unpackCases: procs field is missing")
+		return nil, errors.New("ast.unpackCases: cases field is missing")
 	}
 	caseList, err := node.Get("cases")
 	if err != nil {
-		return nil, fmt.Errorf("ast.unpackCases: procs field is missing")
+		return nil, fmt.Errorf("ast.unpackCases: cases field is missing")
 	}
 	a, ok := caseList.(joe.Array)
 	if !ok {
-		return nil, fmt.Errorf("ast.unpackCases: procs field is not an array")
+		return nil, fmt.Errorf("ast.unpackCases: cases field is not an array")
 	}
 	cases := make([]SwitchCase, 0, len(a))
 	for _, item := range a {
