@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"syscall"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -67,6 +68,7 @@ func (r *Reader) Read(p []byte) (int, error) {
 	if r.offset >= r.size {
 		return 0, io.EOF
 	}
+request:
 	if r.body == nil {
 		body, err := r.makeRequest(r.offset, r.size-r.offset)
 		if err != nil {
@@ -74,7 +76,19 @@ func (r *Reader) Read(p []byte) (int, error) {
 		}
 		r.body = body
 	}
+
 	n, err := r.body.Read(p)
+	if errors.Is(err, syscall.ECONNRESET) {
+		// If the error is result of a connection reset set the body to nil and
+		// attempt to restart the connection at the current offset. There seems to
+		// be a curious behavior of the s3 service that happens when a single
+		// session maintains numerous long-running download connections to various
+		// objects in a bucket- the service appears to reset connections at random.
+		//
+		// See: https://github.com/aws/aws-sdk-go/issues/1242
+		r.body = nil
+		goto request
+	}
 	if err == io.EOF {
 		err = nil
 	}
