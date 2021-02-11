@@ -90,18 +90,16 @@ func (f *Fuser) finish() error {
 	}
 	for _, typ := range typesInOrder(f.types) {
 		if typ != nil {
-			err := uber.mixin(zng.AliasedType(typ).(*zng.TypeRecord))
-			if err != nil {
-				panic(err)
+			if err = uber.mixin(zng.AliasedType(typ).(*zng.TypeRecord)); err != nil {
+				return err
 			}
 		}
 	}
 
-	shaper, err := expr.NewShaperType(f.zctx, &expr.RootRecord{}, uber.typ, expr.Fill|expr.Order)
+	f.shaper, err = expr.NewShaperType(f.zctx, &expr.RootRecord{}, uber.typ, expr.Fill|expr.Order)
 	if err != nil {
 		return err
 	}
-	f.shaper = shaper
 	for typ, renames := range uber.renames {
 		f.renamers[typ] = rename.NewFunction(f.zctx, renames.srcs, renames.dsts)
 	}

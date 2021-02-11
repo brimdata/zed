@@ -9,7 +9,10 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type renames struct{ srcs, dsts []field.Static }
+type renames struct {
+	srcs []field.Static
+	dsts []field.Static
+}
 
 // A fuse schema holds the fused type as well as a per-input-type
 // rename specification. The latter is needed when input types have
@@ -70,30 +73,28 @@ func (s *schema) fuseRecordTypes(a, b *zng.TypeRecord, path field.Static, rename
 	fused := make([]zng.Column, len(a.Columns))
 	copy(fused, a.Columns)
 	for _, bcol := range b.Columns {
-		acol, i, found := findColByName(fused, bcol.Name)
-		sameType := acol.Type == bcol.Type
-		switch {
-		case found == false:
+		i, ok := a.ColumnOfField(bcol.Name)
+		if !ok {
 			fused = append(fused, bcol)
-		case found == true && sameType == true:
 			continue
-		case found == true && sameType == false:
-			if zng.IsRecordType(acol.Type) && zng.IsRecordType(bcol.Type) {
-				var err error
-				var nest *zng.TypeRecord
-				nest, renames, err = s.fuseRecordTypes(acol.Type.(*zng.TypeRecord), bcol.Type.(*zng.TypeRecord), append(path, bcol.Name), renames)
-				if err != nil {
-					return nil, renames, err
-				}
-				fused[i] = zng.Column{acol.Name, nest}
-				continue
+		}
+		acol := a.Columns[i]
+		switch {
+		case acol == bcol:
+			continue
+		case zng.IsRecordType(acol.Type) && zng.IsRecordType(bcol.Type):
+			var err error
+			var nest *zng.TypeRecord
+			nest, renames, err = s.fuseRecordTypes(acol.Type.(*zng.TypeRecord), bcol.Type.(*zng.TypeRecord), append(path, bcol.Name), renames)
+			if err != nil {
+				return nil, renames, err
 			}
+			fused[i] = zng.Column{acol.Name, nest}
+		default:
 			dis := disambiguate(fused, acol.Name)
 			renames.srcs = append(renames.srcs, append(path, acol.Name))
 			renames.dsts = append(renames.dsts, append(path, dis))
 			fused = append(fused, zng.Column{dis, bcol.Type})
-		default:
-			panic("law of excluded middle?")
 		}
 	}
 	rec, err := s.zctx.LookupTypeRecord(fused)
