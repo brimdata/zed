@@ -1,6 +1,8 @@
 package expr
 
 import (
+	"errors"
+
 	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
@@ -21,6 +23,32 @@ func NewSlice(elem, from, to Evaluator) *Slice {
 	}
 }
 
+var ErrSliceIndex = errors.New("slice index is not a number")
+var ErrSliceIndexEmpty = errors.New("slice index is empty")
+
+func sliceIndex(slot Evaluator, elem zng.Value, rec *zng.Record) (int, error) {
+	if slot == nil {
+		return 0, ErrSliceIndexEmpty
+	}
+	zv, err := slot.Eval(rec)
+	if err != nil {
+		return 0, err
+	}
+	v, ok := coerce.ToInt(zv)
+	if !ok {
+		return 0, ErrSliceIndex
+	}
+	index := int(v)
+	if index < 0 {
+		n, err := elem.ContainerLength()
+		if err != nil {
+			return 0, err
+		}
+		index += n
+	}
+	return index, nil
+}
+
 func (s *Slice) Eval(rec *zng.Record) (zng.Value, error) {
 	elem, err := s.elem.Eval(rec)
 	if err != nil {
@@ -32,50 +60,34 @@ func (s *Slice) Eval(rec *zng.Record) (zng.Value, error) {
 	if elem.Bytes == nil {
 		return elem, nil
 	}
-	var from int
-	if s.from != nil {
-		zv, err := s.from.Eval(rec)
-		if err != nil {
-			return zv, err
+	from, err := sliceIndex(s.from, elem, rec)
+	if err != nil && err != ErrSliceIndexEmpty {
+		if err == ErrSliceIndex {
+			return zng.NewError(err), nil
 		}
-		v, ok := coerce.ToInt(zv)
-		if !ok {
-			return zng.NewErrorf("slice index is not a number"), nil
-		}
-		from = int(v)
+		return zng.Value{}, err
 	}
-	var to int
-	if s.to == nil {
-		v, err := elem.ContainerLength()
+	to, err := sliceIndex(s.to, elem, rec)
+	if err != nil {
+		if err != ErrSliceIndexEmpty {
+			if err == ErrSliceIndex {
+				return zng.NewError(err), nil
+			}
+			return zng.Value{}, err
+		}
+		n, err := elem.ContainerLength()
 		if err != nil {
 			return zng.Value{}, err
 		}
-		to = int(v)
-	} else {
-		zv, err := s.to.Eval(rec)
-		if err != nil {
-			return zv, err
-		}
-		v, ok := coerce.ToInt(zv)
-		if !ok {
-			return zng.NewErrorf("slice index is not a number"), nil
-		}
-		to = int(v)
-		if to < 0 {
-			n, err := elem.ContainerLength()
-			if err != nil {
-				return zng.Value{}, err
-			}
-			to += n
-		}
+		to = int(n)
 	}
-	// XXX This could be a bit more efficient by just finding the boundary
-	// in the inbound zcode.Bytes and returning the slice into that.
-	// See issue #2099.
 	b := s.bytes[:0]
 	if b == nil {
 		b = make(zcode.Bytes, 0, 100)
 	}
+	// XXX This could be a bit more efficient by just finding the boundary
+	// in the inbound zcode.Bytes and returning the slice into that.
+	// See issue #2099.
 	it := elem.Bytes.Iter()
 	for k := 0; !it.Done(); k++ {
 		bytes, container, err := it.Next()
