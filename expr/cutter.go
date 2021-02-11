@@ -40,7 +40,7 @@ func NewCutter(zctx *resolver.Context, fieldRefs []field.Static, fieldExprs []Ev
 		}
 	}
 	var b *builder.ColumnBuilder
-	if len(fieldRefs) > 0 && !fieldRefs[0].IsRoot() {
+	if len(fieldRefs) == 0 || !fieldRefs[0].IsRoot() {
 		// A root field will cause NewColumnBuilder to panic.
 		var err error
 		b, err = builder.NewColumnBuilder(zctx, fieldRefs)
