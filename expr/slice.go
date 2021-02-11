@@ -81,27 +81,18 @@ func (s *Slice) Eval(rec *zng.Record) (zng.Value, error) {
 		}
 		to = int(n)
 	}
-	b := s.bytes[:0]
-	if b == nil {
-		b = make(zcode.Bytes, 0, 100)
+	bytes := elem.Bytes
+	it := bytes.Iter()
+	if from < 0 {
+		from = 0
 	}
-	// XXX This could be a bit more efficient by just finding the boundary
-	// in the inbound zcode.Bytes and returning the slice into that.
-	// See issue #2099.
-	it := elem.Bytes.Iter()
-	for k := 0; !it.Done(); k++ {
-		bytes, container, err := it.Next()
-		if err != nil {
+	for k := 0; k < to && !it.Done(); k++ {
+		if k == from {
+			bytes = zcode.Bytes(it)
+		}
+		if _, _, err := it.Next(); err != nil {
 			return zng.Value{}, err
 		}
-		if k < int(from) {
-			continue
-		}
-		if k >= int(to) {
-			break
-		}
-		b = zcode.AppendAs(b, container, bytes)
 	}
-	s.bytes = b
-	return zng.Value{elem.Type, b}, nil
+	return zng.Value{elem.Type, bytes[:len(bytes)-len(it)]}, nil
 }
