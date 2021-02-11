@@ -57,6 +57,8 @@ func compileExpr(zctx *resolver.Context, scope *Scope, node ast.Expression) (exp
 		scope = &Scope{}
 	}
 	switch n := node.(type) {
+	case *ast.Empty:
+		return nil, errors.New("empty expression outside of slice")
 	case *ast.Literal:
 		return expr.NewLiteral(*n)
 	case *ast.Identifier:
@@ -87,6 +89,13 @@ func compileExpr(zctx *resolver.Context, scope *Scope, node ast.Expression) (exp
 	}
 }
 
+func compileExprWithEmpty(zctx *resolver.Context, scope *Scope, node ast.Expression) (expr.Evaluator, error) {
+	if _, ok := node.(*ast.Empty); ok {
+		return nil, nil
+	}
+	return compileExpr(zctx, scope, node)
+}
+
 func rootField(name string) *ast.BinaryExpression {
 	return &ast.BinaryExpression{
 		Op:       "BinaryExpr",
@@ -115,6 +124,9 @@ func compileBinary(zctx *resolver.Context, scope *Scope, op string, LHS, RHS ast
 	if op == "@" {
 		return nil, errors.New("generator expression encountered outside of aggregator")
 	}
+	if slice, ok := RHS.(*ast.BinaryExpression); ok && slice.Operator == ":" {
+		return compileSlice(zctx, scope, LHS, slice)
+	}
 	lhs, err := compileExpr(zctx, scope, LHS)
 	if err != nil {
 		return nil, err
@@ -141,6 +153,22 @@ func compileBinary(zctx *resolver.Context, scope *Scope, op string, LHS, RHS ast
 	default:
 		return nil, fmt.Errorf("invalid binary operator %s", op)
 	}
+}
+
+func compileSlice(zctx *resolver.Context, scope *Scope, container ast.Expression, slice *ast.BinaryExpression) (expr.Evaluator, error) {
+	from, err := compileExprWithEmpty(zctx, scope, slice.LHS)
+	if err != nil {
+		return nil, err
+	}
+	to, err := compileExprWithEmpty(zctx, scope, slice.RHS)
+	if err != nil {
+		return nil, err
+	}
+	e, err := compileExpr(zctx, scope, container)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewSlice(e, from, to), nil
 }
 
 func compileGenerator(zctx *resolver.Context, scope *Scope, e ast.Expression) (expr.Generator, error) {
