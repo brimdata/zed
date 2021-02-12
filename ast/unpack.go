@@ -190,6 +190,9 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 			return nil, err
 		}
 		return &JoinProc{LeftKey: leftKey, RightKey: rightKey, Clauses: clauses}, nil
+	case "SqlExpr":
+		return unpackSQL(node)
+
 	default:
 		return nil, fmt.Errorf("ast.unpackProc: unknown proc op: %s", op)
 	}
@@ -342,6 +345,8 @@ func UnpackExpression(node joe.Interface) (Expression, error) {
 		return &RootRecord{}, nil
 	case "Empty":
 		return &Empty{}, nil
+	case "SqlExpr":
+		return unpackSQL(node)
 	default:
 		return nil, fmt.Errorf("ast.UnpackExpression: unknown op %s", op)
 	}
@@ -449,4 +454,167 @@ func UnpackJSON(custom Unpacker, buf []byte) (Proc, error) {
 		return nil, err
 	}
 	return proc, nil
+}
+
+func unpackSQL(node joe.Interface) (*SqlExpression, error) {
+	// The select proc assumes all fields present in the JSON though
+	// they can hold null values.
+	selectField, err := node.Get("select")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackSQL: 'select' field is missing")
+	}
+	var selectAssignments []Assignment
+	if selectField != nil {
+		selectAssignments, err = unpackAssignments(selectField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackSQL: 'select' field has wrong format")
+		}
+	}
+	fromField, err := node.Get("from")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackSQL: 'from' field is missing")
+	}
+	var fromExpr Expression
+	if fromField != nil {
+		fromExpr, err = UnpackExpression(fromField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackSQL: 'from' field has wrong format")
+		}
+	}
+	joinsField, err := node.Get("joins")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackSQL: 'joins' field is missing")
+	}
+	joins, err := unpackJoins(joinsField)
+	if err != nil {
+		return nil, err
+	}
+	whereField, err := node.Get("where")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackSQL: 'where' field is missing")
+	}
+	var whereExpr Expression
+	if whereField != nil {
+		whereExpr, err = UnpackExpression(whereField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackSQL: 'where' field has wrong format")
+		}
+	}
+	groupbyField, err := node.Get("groupby")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackSQL: 'groupby' field is missing")
+	}
+	var groupbyExprs []Expression
+	if groupbyField != nil {
+		groupbyExprs, err = unpackExprs(groupbyField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackSQL: 'groupby' field has wrong format")
+		}
+	}
+	havingField, err := node.Get("having")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackSQL: 'having' field is missing")
+	}
+	var havingExpr Expression
+	if havingField != nil {
+		havingExpr, err = UnpackExpression(havingField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackSQL: 'having' field has wrong format")
+		}
+	}
+	orderField, err := node.Get("order")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackSQL: 'order' field is missing")
+	}
+	var orderExprs []Expression
+	if orderField != nil {
+		orderExprs, err = unpackExprs(orderField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackSQL: 'order' field has wrong format")
+		}
+	}
+	return &SqlExpression{
+		Op:      "SqlExpr",
+		Select:  selectAssignments,
+		From:    fromExpr,
+		Joins:   joins,
+		Where:   whereExpr,
+		GroupBy: groupbyExprs,
+		Having:  havingExpr,
+		Order:   orderExprs,
+		//Ascending literal for order doens't need further unpacking
+	}, nil
+}
+
+func unpackJoins(node joe.Interface) ([]JoinClause, error) {
+	if node == nil {
+		return nil, nil
+	}
+	a, ok := node.(joe.Array)
+	if !ok {
+		return nil, errors.New("ast.unpackJoins: 'joins' field is not an array")
+	}
+	joins := make([]JoinClause, 0, len(a))
+	for _, item := range a {
+		e, err := unpackJoin(item)
+		if err != nil {
+			return nil, err
+		}
+		joins = append(joins, *e)
+	}
+	return joins, nil
+}
+
+func unpackJoin(node joe.Interface) (*JoinClause, error) {
+	tableField, err := node.Get("table")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackJoin: 'table' field is missing")
+	}
+	var tableExpr Expression
+	if tableField != nil {
+		tableExpr, err = UnpackExpression(tableField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackJoin: 'table' field has wrong format")
+		}
+	}
+	leftKeyField, err := node.Get("left_key")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackJoin: 'left_key' field is missing")
+	}
+	var leftKeyExpr Expression
+	if leftKeyField != nil {
+		leftKeyExpr, err = UnpackExpression(leftKeyField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackJoin: 'left_key' field has wrong format")
+		}
+	}
+	rightKeyField, err := node.Get("right_key")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackJoin: 'right_key' field is missing")
+	}
+	var rightKeyExpr Expression
+	if rightKeyField != nil {
+		rightKeyExpr, err = UnpackExpression(rightKeyField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackJoin: 'right_key' field has wrong format")
+		}
+	}
+	aliasField, err := node.Get("alias")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackJoin: 'alias' field is missing")
+	}
+	var aliasExpr Expression
+	if aliasField != nil {
+		aliasExpr, err = UnpackExpression(aliasField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackJoin: 'alias' field has wrong format")
+		}
+	}
+	return &JoinClause{
+		Op:       "JoinClause",
+		Table:    tableExpr,
+		LeftKey:  leftKeyExpr,
+		RightKey: rightKeyExpr,
+		Alias:    aliasExpr,
+	}, nil
 }

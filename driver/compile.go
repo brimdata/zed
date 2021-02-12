@@ -53,7 +53,10 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 	if cfg.Span.Dur == 0 {
 		cfg.Span = nano.MaxSpan
 	}
-	filterExpr, program := compiler.Optimize(zctx, program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
+	filterExpr, program, err := compiler.Optimize(zctx, program, field.Dotted(cfg.ReaderSortKey), cfg.ReaderSortReverse)
+	if err != nil {
+		return nil, err
+	}
 	procs := make([]proc.Interface, 0, len(readers))
 	scanners := make([]zbuf.Scanner, 0, len(readers))
 	for _, r := range readers {
@@ -104,7 +107,10 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	}
 
 	sortKey, sortReversed := msrc.OrderInfo()
-	filterExpr, program := compiler.Optimize(zctx, program, sortKey, sortReversed)
+	filterExpr, program, err := compiler.Optimize(zctx, program, sortKey, sortReversed)
+	if err != nil {
+		return nil, err
+	}
 
 	if !compiler.IsParallelizable(program, sortKey, sortReversed) {
 		mcfg.Parallelism = 1

@@ -19,19 +19,24 @@ func zbufDirInt(reversed bool) int {
 	return 1
 }
 
-func Optimize(zctx *resolver.Context, program ast.Proc, sortKey field.Static, sortReversed bool) (*Filter, ast.Proc) {
+func Optimize(zctx *resolver.Context, program ast.Proc, sortKey field.Static, sortReversed bool) (*Filter, ast.Proc, error) {
 	if program == nil {
-		return nil, passProc
+		return nil, passProc, nil
 	}
-	SemanticTransform(program)
+	var err error
+	program, err = SemanticTransform(program)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	if sortKey != nil {
 		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
 	}
 	fe, p := liftFilter(program)
 	if fe == nil {
-		return nil, p
+		return nil, p, nil
 	}
-	return NewFilter(zctx, fe), p
+	return NewFilter(zctx, fe), p, nil
 }
 
 func ensureSequentialProc(p ast.Proc) *ast.SequentialProc {
@@ -101,15 +106,35 @@ func SemanticTransform(p ast.Proc) (ast.Proc, error) {
 			}
 		}
 	case *ast.SequentialProc:
-		for k := range p.Procs {
-			var err error
-			p.Procs[k], err = SemanticTransform(p.Procs[k])
+		var procs []ast.Proc
+		for _, p := range p.Procs {
+			converted, err := SemanticTransform(p)
 			if err != nil {
 				return nil, err
 			}
+			// If the transform turns a proc into a seq proc,
+			// splice it in...
+			if seq, ok := converted.(*ast.SequentialProc); ok {
+				procs = append(procs, seq.Procs...)
+			} else {
+				procs = append(procs, converted)
+			}
 		}
+		return &ast.SequentialProc{
+			Op:    "SequentialProc",
+			Procs: procs,
+		}, nil
 	case *ast.FunctionCall:
 		converted, err := convertFunctionProc(p)
+		if err != nil {
+			return nil, err
+		}
+		// The conversion may be a group-by so we recursively
+		// invoke the transformation here...
+		return SemanticTransform(converted)
+
+	case *ast.SqlExpression:
+		converted, err := convertSQLProc(p)
 		if err != nil {
 			return nil, err
 		}
