@@ -14,13 +14,12 @@ import (
 	"github.com/brimsec/zq/zqe"
 )
 
-var defaultS3Source = &s3Source{}
-var _ Source = defaultS3Source
-var _ ReplacerAble = defaultS3Source
+var defaultS3Source = &s3Source{Client: s3io.NewClient(nil)}
 
-func init() {
-	defaultS3Source.Client = s3io.NewClient(nil)
-}
+var (
+	_ Source       = defaultS3Source
+	_ ReplacerAble = defaultS3Source
+)
 
 type s3Source struct {
 	Client s3iface.S3API
