@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"time"
 
@@ -36,12 +35,8 @@ func (s *s3Source) NewReader(ctx context.Context, u URI) (Reader, error) {
 }
 
 func (s *s3Source) ReadFile(ctx context.Context, u URI) ([]byte, error) {
-	r, err := NewReader(ctx, u)
-	if err != nil {
-		return nil, err
-	}
-	defer r.Close()
-	return ioutil.ReadAll(r)
+	b, err := s3io.ReadFile(ctx, u.String(), s.Client)
+	return b, wrapErr(err)
 }
 
 func (s *s3Source) WriteFile(ctx context.Context, d []byte, u URI) error {
