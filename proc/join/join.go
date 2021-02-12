@@ -116,8 +116,8 @@ func (p *Proc) Done() {
 
 func (p *Proc) setJoinKey(key zng.Value) {
 	// Copy the joinkey value into the joinKeBytes buffer since
-	// we want to stash it and they zcode.Bytes points to a record
-	// that could be freed.
+	// we want to stash it and the zcode.Bytes points to a record
+	// that otherwise could be freed.
 	p.joinKey.Type = key.Type
 	p.joinKey.Bytes = append(p.joinKey.Bytes[:0], key.Bytes...)
 }
