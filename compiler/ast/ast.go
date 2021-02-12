@@ -127,6 +127,7 @@ func (*RootRecord) exprNode()            {}
 func (*Empty) exprNode()                 {}
 func (*Assignment) exprNode()            {}
 func (*Reducer) exprNode()               {}
+func (*SqlExpression) exprNode()         {}
 
 // ----------------------------------------------------------------------------
 // Procs
@@ -302,11 +303,56 @@ type (
 		Name string `json:"name"`
 		Type Type   `json:"type"`
 	}
+	// A SqlExpression can be a proc, an expression inside of a sql FROM clause,
+	// or an expression used as a Z value generator.  Currenly, the "select"
+	// keyword collides with the select() generator function (it can be parsed
+	// unambiguosly because of the parens but this is not user friendly
+	// so we need a new name for select()... see issue #2133).
+	// TBD: from alias, "in" over tuples, WITH sub-queries, multi-table FROM
+	// implying a JOIN, aliases for tables in FROM and JOIN.
+	SqlExpression struct {
+		Op      string       `json:"op"`
+		Select  []Assignment `json:"select"`
+		From    *SqlFrom     `json:"from"`
+		Joins   []SqlJoin    `json:"joins"`
+		Where   Expression   `json:"where"`
+		GroupBy []Expression `json:"groupby"`
+		Having  Expression   `json:"having"`
+		OrderBy *SqlOrderBy  `json:"orderby"`
+		Limit   int          `json:"limit"`
+	}
 )
 
 type SwitchCase struct {
 	Filter Expression `json:"filter"`
 	Proc   Proc       `json:"proc"`
+}
+
+
+type SqlFrom struct {
+	Table Expression `json:"table"`
+	Alias Expression `json:"alias"`
+}
+
+type SqlOrderBy struct {
+	Keys      []Expression `json:"keys"`
+	Direction string       `json:"direction"`
+}
+
+// SqlJoin is currently limited to left-outer.
+// Table is a type expression for a record that selects Z records with
+// a uniform schema and optionally places them in a sub-field of "."
+// according to Alias (which is a string expression).  Thus, exactly like
+// with SQL, you can refer to dotted references of columns using the
+// alias name.  Also, at some point the table expression can simply be a
+// typedef name so you can refer to tables by their name (i.e., where the
+// name refers to the record-type/schema of the corresponding Z records).
+type SqlJoin struct {
+	Table    Expression `json:"table"`
+	LeftKey  Expression `json:"left_key"`
+	RightKey Expression `json:"right_key"`
+	Alias    Expression `json:"alias"`
+>>>>>>> 1630ecd6 (first, partial stab at SQL compat):ast/ast.go
 }
 
 type Assignment struct {
@@ -363,6 +409,7 @@ func (*JoinProc) ProcNode()       {}
 func (*ConstProc) ProcNode()      {}
 func (*TypeProc) ProcNode()       {}
 func (*FunctionCall) ProcNode()   {}
+func (*SqlExpression) ProcNode()  {}
 
 // A Reducer is an AST node that represents a reducer function.  The Operator
 // field indicates the aggregation method while the Expr field indicates

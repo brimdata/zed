@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/brimsec/zq/ast/dumper"
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/compiler/semantic"
 	"github.com/brimsec/zq/zfmt"
