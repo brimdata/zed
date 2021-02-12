@@ -23,7 +23,7 @@ func Optimize(zctx *resolver.Context, program ast.Proc, sortKey field.Static, so
 	if program == nil {
 		return nil, passProc
 	}
-	ReplaceGroupByProcDurationWithKey(program)
+	SemanticTransform(program)
 	if sortKey != nil {
 		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
 	}
@@ -67,7 +67,12 @@ func liftFilter(p ast.Proc) (ast.Expression, ast.Proc) {
 	return nil, p
 }
 
-func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
+// SemanticTransform does a semantic analysis on a flowgraph to an
+// intermediate representation that can be compiled into the runtime
+// object.  Currently, it only replaces the group-by duration with
+// a truncation call on the ts and replaces FunctionCall's in proc context
+// with either a group-by or filter-proc based on the function's name.
+func SemanticTransform(p ast.Proc) (ast.Proc, error) {
 	switch p := p.(type) {
 	case *ast.GroupByProc:
 		if duration := p.Duration.Seconds; duration != 0 {
@@ -88,14 +93,31 @@ func ReplaceGroupByProcDurationWithKey(p ast.Proc) {
 			p.Keys = append([]ast.Assignment{durationKey}, p.Keys...)
 		}
 	case *ast.ParallelProc:
-		for _, pp := range p.Procs {
-			ReplaceGroupByProcDurationWithKey(pp)
+		for k := range p.Procs {
+			var err error
+			p.Procs[k], err = SemanticTransform(p.Procs[k])
+			if err != nil {
+				return nil, err
+			}
 		}
 	case *ast.SequentialProc:
-		for _, pp := range p.Procs {
-			ReplaceGroupByProcDurationWithKey(pp)
+		for k := range p.Procs {
+			var err error
+			p.Procs[k], err = SemanticTransform(p.Procs[k])
+			if err != nil {
+				return nil, err
+			}
 		}
+	case *ast.FunctionCall:
+		converted, err := convertFunctionProc(p)
+		if err != nil {
+			return nil, err
+		}
+		// The conversion may be a group-by so we recursively
+		// invoke the transformation here...
+		return SemanticTransform(converted)
 	}
+	return p, nil
 }
 
 func eq(e ast.Expression, b field.Static) bool {
