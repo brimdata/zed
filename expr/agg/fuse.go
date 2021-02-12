@@ -40,7 +40,7 @@ func (f *Fuse) Result(zctx *resolver.Context) (zng.Value, error) {
 
 	tt := zson.NewTypeTable(zctx)
 	for _, p := range f.partials {
-		typ, err := tt.LookupType(string(p.Bytes))
+		typ, err := tt.LookupType("(" + string(p.Bytes) + ")")
 		if err != nil {
 			return zng.Value{}, fmt.Errorf("invalid partial value: %s", err)
 		}
