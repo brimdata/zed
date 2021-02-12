@@ -2,6 +2,7 @@ package fuse
 
 import (
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/expr/agg"
 	"github.com/brimsec/zq/proc/rename"
 	"github.com/brimsec/zq/proc/spill"
 	"github.com/brimsec/zq/zng"
@@ -84,24 +85,24 @@ func (f *Fuser) finished() bool {
 }
 
 func (f *Fuser) finish() error {
-	uber, err := newSchema(f.zctx)
+	uber, err := agg.NewSchema(f.zctx)
 	if err != nil {
 		return err
 	}
 	for _, typ := range typesInOrder(f.types) {
 		if typ != nil {
-			if err = uber.mixin(zng.AliasedType(typ).(*zng.TypeRecord)); err != nil {
+			if err = uber.Mixin(zng.AliasedType(typ).(*zng.TypeRecord)); err != nil {
 				return err
 			}
 		}
 	}
 
-	f.shaper, err = expr.NewShaperType(f.zctx, &expr.RootRecord{}, uber.typ, expr.Fill|expr.Order)
+	f.shaper, err = expr.NewShaperType(f.zctx, &expr.RootRecord{}, uber.Type, expr.Fill|expr.Order)
 	if err != nil {
 		return err
 	}
-	for typ, renames := range uber.renames {
-		f.renamers[typ] = rename.NewFunction(f.zctx, renames.srcs, renames.dsts)
+	for typ, renames := range uber.Renames {
+		f.renamers[typ] = rename.NewFunction(f.zctx, renames.Srcs, renames.Dsts)
 	}
 
 	if f.spiller != nil {
