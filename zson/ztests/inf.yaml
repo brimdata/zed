@@ -1,0 +1,20 @@
+script: |
+  zq -f zson -i zson -pretty=0 in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      {float64:null (float64)} (=0)
+      {float64:0e+00} (0)
+      {float64:1.7976931348623157e+308} (0)
+      {float64:5e-324} (0)
+      {float64:-Inf} (0)
+      {float64:+Inf} (0)
+      {float64:NaN} (0)
+
+outputs:
+  - name: stdout
+    data: |
+      {version:[1 (0=((int64,string))),"b" (0),2 (0)] (=1)} (=2)
+      {version:[8,3]} (2)
+      {version:["hello","goodbye"]} (2)

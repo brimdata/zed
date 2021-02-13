@@ -14,7 +14,7 @@ import (
 
 var ErrBufferOverflow = errors.New("zson scanner buffer size exceeded")
 
-const primitiveRE = `^(([0-9a-fA-Fx_\$\-\+:eEnumsh./TZµ]+)|true|false|null)`
+const primitiveRE = `^(([0-9a-fA-Fx_\$\-\+:eEnumsh./TZµ]+)|true|false|null|-Inf|-inf|\+Inf|\+inf|NaN|nan)`
 const indentationRE = `\n\s*`
 
 type Lexer struct {
