@@ -132,6 +132,23 @@ func (w *Writer) Close() error {
 	return w.closeWithError(nil)
 }
 
+func ReadFile(ctx context.Context, path string, client s3iface.S3API) ([]byte, error) {
+	bucket, key, err := parsePath(path)
+	if err != nil {
+		return nil, err
+	}
+	wbuf := aws.NewWriteAtBuffer(nil)
+	downloader := s3manager.NewDownloaderWithClient(client)
+	_, err = downloader.DownloadWithContext(ctx, wbuf, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, err
+	}
+	return wbuf.Bytes(), nil
+}
+
 func RemoveAll(ctx context.Context, path string, client s3iface.S3API) error {
 	bucket, key, err := parsePath(path)
 	if err != nil {
