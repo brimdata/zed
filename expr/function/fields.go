@@ -45,10 +45,6 @@ func (f *fields) Call(args []zng.Value) (zng.Value, error) {
 	return zng.Value{f.typ, bytes}, nil
 }
 
-type has struct {
-	types *zson.TypeTable
-}
-
 func isRecordType(zv zng.Value, types *zson.TypeTable) *zng.TypeRecord {
 	if typ, ok := zng.AliasedType(zv.Type).(*zng.TypeRecord); ok {
 		return typ
