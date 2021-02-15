@@ -89,6 +89,13 @@ type ConditionalExpression struct {
 	Else      Expression `json:"else"`
 }
 
+// A FunctionCall represents different things dependending on its context.
+// As a proc, it is either a group-by with no group-by keys and no duration,
+// or a filter with a function that is boolean valued.  This is determined
+// by the compiler rather than the syntax tree based on the specific functions
+// and aggregators that are defined at compile time.  In expression context,
+// a function call has the standard semantics where it takes one or more arguments
+// and returns a result.
 type FunctionCall struct {
 	Op       string       `json:"op"`
 	Function string       `json:"function"`
@@ -315,13 +322,7 @@ func (*PutProc) ProcNode()        {}
 func (*RenameProc) ProcNode()     {}
 func (*FuseProc) ProcNode()       {}
 func (*JoinProc) ProcNode()       {}
-
-// A FunctionCall can also represent a proc that is either a group-by
-// with no group-by keys and no duration or a filter with a function
-// that is boolean valued.  This is determined by the compiler rather
-// than the syntax tree based on the specific functions and aggregators
-// tha are defined at compile time.
-func (*FunctionCall) ProcNode() {}
+func (*FunctionCall) ProcNode()   {}
 
 // A Reducer is an AST node that represents a reducer function.  The Operator
 // field indicates the aggregation method while the Expr field indicates
