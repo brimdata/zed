@@ -334,7 +334,7 @@ func CompileLval(node ast.Expression) (field.Static, error) {
 	return nil, errors.New("invalid expression on lhs of assignment")
 }
 
-var ErrInference = errors.New("assignment name could not be inferred from rhs expressioin")
+var ErrInference = errors.New("assignment name could not be inferred from rhs expression")
 
 func CompileAssignment(zctx *resolver.Context, scope *Scope, node *ast.Assignment) (expr.Assignment, error) {
 	rhs, err := compileExpr(zctx, scope, node.RHS)
