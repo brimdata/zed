@@ -151,6 +151,12 @@ func (p *Parser) parseDecorator(any ast.Any, val ast.Value) (ast.Value, error) {
 	}, nil
 }
 
+// A bug in Go's time.ParseDuration() function causes an error for
+// duration value math.MinInt64.  We work around this by explicitly
+// checking for the string that represents this duration (which is
+// correctly returned by time.Duration.String()).
+const minDuration = "-2562047h47m16.854775808s"
+
 func (p *Parser) matchPrimitive() (*ast.Primitive, error) {
 	if val, err := p.matchStringPrimitive(); val != nil || err != nil {
 		return val, noEOF(err)
@@ -178,18 +184,22 @@ func (p *Parser) matchPrimitive() (*ast.Primitive, error) {
 		typ = "null"
 	} else if _, err := strconv.ParseInt(s, 10, 64); err == nil {
 		typ = "int64"
+	} else if _, err := strconv.ParseUint(s, 10, 64); err == nil {
+		typ = "uint64"
 	} else if _, err := strconv.ParseFloat(s, 64); err == nil {
 		typ = "float64"
 	} else if _, err := time.Parse(time.RFC3339Nano, s); err == nil {
 		typ = "time"
-	} else if _, err := time.ParseDuration(s); err == nil {
+	} else if _, err := time.ParseDuration(s); err == nil || s == minDuration {
 		typ = "duration"
 	} else if _, _, err := net.ParseCIDR(s); err == nil {
 		typ = "net"
 	} else if ip := net.ParseIP(s); ip != nil {
 		typ = "ip"
-	} else if len(s) >= 4 && s[0:2] == "0x" {
-		if _, err := hex.DecodeString(s[2:]); err == nil {
+	} else if len(s) >= 2 && s[0:2] == "0x" {
+		if len(s) == 2 {
+			typ = "bytes"
+		} else if _, err := hex.DecodeString(s[2:]); err == nil {
 			typ = "bytes"
 		} else {
 			return nil, err
