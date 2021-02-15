@@ -341,7 +341,7 @@ func (l *Lexer) scanIdentifier() (string, error) {
 		return "", err
 	}
 	if !zng.IsIdentifier(s) {
-		s = ""
+		return "", errors.New("malformed identifier")
 	}
 	return s, nil
 }
