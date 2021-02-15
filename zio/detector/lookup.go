@@ -32,7 +32,7 @@ func (*nullWriter) Close() error {
 	return nil
 }
 
-func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
+func LookupWriter(w io.WriteCloser, zctx *resolver.Context, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if opts.Format == "" {
 		opts.Format = "tzng"
 	}
@@ -58,7 +58,7 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, erro
 	case "table":
 		return tableio.NewWriter(w, opts.UTF8, opts.EpochDates), nil
 	case "csv":
-		return csvio.NewWriter(w, csvio.WriterOpts{
+		return csvio.NewWriter(w, zctx, csvio.WriterOpts{
 			EpochDates: opts.EpochDates,
 			Fuse:       opts.CSVFuse,
 			UTF8:       opts.UTF8,
