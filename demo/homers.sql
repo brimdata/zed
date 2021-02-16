@@ -1,3 +1,4 @@
+
 #include "tables.zq"
 
 SELECT people.nameFirst, people.nameLast, batting.HR, teams.name
@@ -9,3 +10,4 @@ FROM BATTING batting
 WHERE batting.yearID = 1977 AND teams.yearID = 1977
 ORDER BY batting.HR DESC
 LIMIT 10
+
