@@ -7,7 +7,6 @@ import (
 	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/expr/agg"
 	"github.com/brimsec/zq/field"
-	"github.com/kr/pretty"
 )
 
 func convertSQLProc(sql *ast.SqlExpression) (ast.Proc, error) {
@@ -88,9 +87,7 @@ func convertSQLProc(sql *ast.SqlExpression) (ast.Proc, error) {
 		}
 		procs = append(procs, p)
 	}
-	p := wrap(procs)
-	pretty.Println(p)
-	return p, nil
+	return wrap(procs), nil
 }
 
 func convertSQLTableRef(e ast.Expression) (ast.Proc, error) {
