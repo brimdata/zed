@@ -64,14 +64,16 @@ func convertSQLProc(sql *ast.SqlExpression) (ast.Proc, error) {
 		if sql.Having != nil {
 			return nil, errors.New("HAVING clause used without GROUP BY")
 		}
+		// GroupBy will do the cutting but if there's no GroupBy,
+		// then we need a cut for the select expressions.
+		// For SELECT *, cutter is nil.
 		selector, err := convertSQLSelect(selection)
 		if err != nil {
 			return nil, err
 		}
-		// GroupBy will do the cutting but if there's no GroupBy,
-		// then we need a cut for the select expressions.
-		// For SELECT *, cutter is nil.
-		procs = append(procs, selector)
+		if selector != nil {
+			procs = append(procs, selector)
+		}
 	}
 	if sql.OrderBy != nil {
 		direction := 1

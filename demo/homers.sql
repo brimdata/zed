@@ -10,4 +10,3 @@ FROM BATTING batting
 WHERE batting.yearID = 1977 AND teams.yearID = 1977
 ORDER BY batting.HR DESC
 LIMIT 10
-
