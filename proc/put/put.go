@@ -348,8 +348,7 @@ func (p *Proc) put(in *zng.Record) (*zng.Record, error) {
 	}
 	rule, err := p.lookupRule(in.Type, vals)
 	if err != nil {
-		p.maybeWarn(err)
-		return in, nil
+		return nil, err
 	}
 
 	bytes, err := rule.step.build(in.Raw, &p.builder, vals)
