@@ -5,8 +5,7 @@ split (
   => split (
      => is(BATTING) | yearID=1977 | cut playerID,yearID,teamID,HR | sort playerID
       => is(PEOPLE) | sort playerID
-     ) | join playerID=playerID people=cut(nameFirst,nameLast,playerID) | sort teamID
+     ) | join playerID=playerID people=cut(nameFirst,nameLast,playerID,birthYear) | sort teamID
   => is(TEAMS) | yearID=1977 | cut teamID,name | sort teamID
 ) | join teamID=teamID name
-  | sort -r HR | head 10 | cut first=people.nameFirst,last=people.nameLast,homers=HR,team=name
-
+  | sort -r HR | head 10 | cut first=people.nameFirst,last=people.nameLast,homers=HR,team=name,age=1977-people.birthYear
