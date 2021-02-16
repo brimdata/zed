@@ -576,12 +576,12 @@ function peg$parse(input, options) {
           },
       peg$c226 = function(expr) { return ["[", expr] },
       peg$c227 = function(id) { return [".", id] },
-      peg$c228 = function(assignments, from, joins, where, groupby, having, orderby, limit) {
+      peg$c228 = function(selection, from, joins, where, groupby, having, orderby, limit) {
             return {
               
             "op": "SqlExpr",
               
-            "select": assignments,
+            "select": selection,
               
             "from": from,
               

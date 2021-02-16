@@ -209,10 +209,14 @@ func convertSQLGroupBy(groupByKeys []ast.Expression, selection sqlSelection) (as
 	}, nil
 }
 
-// A sqlPick is one column of a XXX
+// A sqlPick is one column of a select statement.  We bookkeep here whether
+// a column is a scalar expression or an aggregation by looking up the function
+// name and seeing if it's an aggregator or not.  We also infer the column
+// names so we can do SQL error checking relating the selections to the group-by
+// keys, something that is not needed in Z.
 type sqlPick struct {
 	name       field.Static
-	agg        *ast.Reducer // XXX not sure we need this because we can just copy from select
+	agg        *ast.Reducer
 	assignment ast.Assignment
 }
 
@@ -224,11 +228,6 @@ func newSQLSelection(assignments []ast.Assignment) (sqlSelection, error) {
 	// the transformations will all relable data from stage to stage
 	// and Select names refer to the names at the last stage of
 	// the table.
-
-	// XXX we should do a semantic check of everything before we
-	// traansform the AST, otherwise the user is going to get weird
-	// errors (i.e., bad cut expression etc).  We will live with this
-	// for now as we get this working.
 	var s sqlSelection
 	for _, a := range assignments {
 		name, err := deriveAs(a)

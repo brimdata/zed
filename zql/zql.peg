@@ -603,7 +603,7 @@ Primary
 /// === SQL Compat ===
 
 SqlProc
-  = assignments:SqlSelect
+  = selection:SqlSelect
     from:SqlFrom
     joins:SqlJoins
     where:SqlWhere
@@ -614,7 +614,7 @@ SqlProc
     {
       RETURN(MAP(
         "op": "SqlExpr",
-        "select": assignments,
+        "select": selection,
         "from": from,
         "joins": joins,
         "where": where,
