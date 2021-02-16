@@ -73,6 +73,13 @@ func convertSQLProc(sql *ast.SqlExpression) (ast.Proc, error) {
 		// For SELECT *, cutter is nil.
 		procs = append(procs, selector)
 	}
+	if sql.OrderBy != nil {
+		direction := 1
+		if sql.OrderBy.Direction == "desc" {
+			direction = -1
+		}
+		procs = append(procs, sortByMulti(sql.OrderBy.Keys, direction))
+	}
 	if sql.Limit != 0 {
 		p := &ast.HeadProc{
 			Op:    "HeadProc",
@@ -184,10 +191,14 @@ func convertSQLJoin(leftPath []ast.Proc, sqlJoin ast.SqlJoin) ([]ast.Proc, error
 }
 
 func sortBy(e ast.Expression) *ast.SortProc {
+	return sortByMulti([]ast.Expression{e}, 1)
+}
+
+func sortByMulti(keys []ast.Expression, direction int) *ast.SortProc {
 	return &ast.SortProc{
 		Op:      "SortProc",
-		Fields:  []ast.Expression{e},
-		SortDir: 1,
+		Fields:  keys,
+		SortDir: direction,
 	}
 }
 

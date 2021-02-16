@@ -544,7 +544,7 @@ func unpackSQL(node joe.Interface) (*SqlExpression, error) {
 	}
 	var orderByExpr *SqlOrderBy
 	if orderField != nil {
-		keysField, err := fromField.Get("keys")
+		keysField, err := orderField.Get("keys")
 		if err != nil {
 			return nil, fmt.Errorf("ast.unpackSQL: 'orderby.keys' field is missing")
 		}

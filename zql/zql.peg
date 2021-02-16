@@ -700,8 +700,8 @@ SqlOrderBy
   / "" { RETURN(NULL) }
 
 SqlDirection
-  = "desc"i { RETURN("asc") }
-  / ("asc"i / "") { RETURN("asc") }
+  = _ dir:(ASC / DESC) { RETURN(dir) }
+  / "" { RETURN("asc") }
 
 SqlLimit
   = _ LIMIT _ count:UInt { RETURN(count) }
@@ -718,9 +718,11 @@ HAVING = "having"i { RETURN("having") }
 ORDER = "order"i { RETURN("order") }
 ON = "on"i { RETURN("on") }
 LIMIT = "limit"i { RETURN("limit") }
+ASC = "asc"i { RETURN("asc") }
+DESC = "desc"i { RETURN("desc") }
 
 SqlTokenSentinels
-  = SELECT / AS / FROM /  JOIN / WHERE / GROUP / HAVING / ORDER / LIMIT
+  = SELECT / AS / FROM /  JOIN / WHERE / GROUP / HAVING / ORDER / LIMIT / ASC / DESC
 
 /// === Literals ===
 
