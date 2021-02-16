@@ -181,6 +181,10 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/space/{space}/log/paths", handleLogPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
+
+	// XXX POC ES Bulk API
+	sub := c.router.PathPrefix("/space/{space}/elastic-bulk")
+	sub.Handler(c.handler(handleElasticBulk))
 }
 
 func (c *Core) addRecruiterRoutes() {

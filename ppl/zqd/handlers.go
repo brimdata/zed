@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/brimsec/zq/api"
@@ -18,6 +19,8 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/search"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/gorilla/mux"
@@ -590,4 +593,114 @@ func handleAuthMethodGet(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	respond(c, w, r, http.StatusOK, c.auth.MethodResponse())
+}
+
+type esBulkReader struct {
+	*ndjsonio.Reader
+	lines int
+}
+
+func newEsBulkReader(zctx *resolver.Context, r *http.Request) (*esBulkReader, error) {
+	jr, err := ndjsonio.NewReader(r.Body, zctx, ndjsonio.ReaderOpts{}, r.URL.String())
+	if err != nil {
+		return nil, err
+	}
+	return &esBulkReader{
+		Reader: jr,
+	}, nil
+}
+
+func (r *esBulkReader) Read() (*zng.Record, error) {
+	for {
+		rec, err := r.Reader.Read()
+		if err != nil {
+			return nil, err
+		}
+		if rec == nil {
+			if r.lines%2 != 0 {
+				return nil, zqe.ErrInvalid("non-paired lines in elastic bulk api")
+			}
+			return nil, nil
+		}
+		r.lines++
+		if r.lines%2 != 0 {
+			// We only allow indexing commands.
+			_, err = rec.Access("index")
+			if err != nil {
+				return nil, zqe.ErrInvalid("non-index command in elastic bulk api")
+			}
+			continue
+		}
+		return rec, nil
+	}
+}
+
+func (r *esBulkReader) Count() int {
+	return r.lines / 2
+}
+
+type bulkResponseItem struct {
+	Status int `json:"status"`
+}
+
+type bulkResponse struct {
+	Errors bool                          `json:"errors"`
+	Items  []map[string]bulkResponseItem `json:"items"`
+}
+
+func genEsBulkResponse(count int) bulkResponse {
+	r := bulkResponse{}
+	// XXX We should just construct the response string manually.
+	for i := 0; i < count; i++ {
+		item := bulkResponseItem{Status: 200}
+		r.Items = append(r.Items, map[string]bulkResponseItem{"index": item})
+	}
+	return r
+}
+
+func esBulkPost(c *Core, w http.ResponseWriter, r *http.Request, spaceID api.SpaceID) {
+	st, err := c.mgr.GetStorage(r.Context(), spaceID)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	as, ok := st.(*archivestore.Storage)
+	if !ok {
+		respondError(c, w, r, zqe.E(zqe.Invalid, "esbulk API only supported on lake storage"))
+		return
+	}
+	zctx := resolver.NewContext()
+	rdr, err := newEsBulkReader(zctx, r)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	err = as.Write(r.Context(), zctx, rdr)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	respond(c, w, r, http.StatusOK, genEsBulkResponse(rdr.Count()))
+}
+
+func handleElasticBulk(c *Core, w http.ResponseWriter, r *http.Request) {
+	id, ok := extractSpaceID(c, w, r)
+	if !ok {
+		return
+	}
+	switch r.Method {
+	case "GET":
+		if strings.HasSuffix(r.URL.Path, "/elastic-bulk") || strings.HasSuffix(r.URL.Path, "/elastic-bulk/") {
+			// Some clients (like OSS Beats) require this route to be present
+			// to know the server's elasticsearch version.
+			w.Write([]byte(`{"version":{"number":"5.0.0"}}`))
+			return
+		}
+		// Return ok to other routes, typically attempts to create templates
+		// by OSS Beats.
+		w.WriteHeader(http.StatusOK)
+		return
+	case "POST":
+		esBulkPost(c, w, r, id)
+	}
 }
