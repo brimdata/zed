@@ -76,6 +76,9 @@ func (c *Cutter) Apply(in *zng.Record) (*zng.Record, error) {
 	if len(c.fieldRefs) == 1 && c.fieldRefs[0].IsRoot() {
 		zv, err := c.fieldExprs[0].Eval(in)
 		if err != nil {
+			if err == ErrNoSuchField {
+				return nil, nil
+			}
 			return nil, err
 		}
 		recType, ok := zng.AliasedType(zv.Type).(*zng.TypeRecord)
