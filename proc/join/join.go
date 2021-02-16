@@ -26,6 +26,7 @@ type Proc struct {
 	joinKey     zng.Value
 	joinSet     []*zng.Record
 	types       map[int]map[int]*zng.TypeRecord
+	inner       bool
 }
 
 func New(pctx *proc.Context, left, right proc.Interface, leftKey, rightKey expr.Evaluator, lhs []field.Static, rhs []expr.Evaluator) (*Proc, error) {
@@ -46,6 +47,7 @@ func New(pctx *proc.Context, left, right proc.Interface, leftKey, rightKey expr.
 		compare: expr.NewValueCompareFn(false),
 		cutter:  cutter,
 		types:   make(map[int]map[int]*zng.TypeRecord),
+		inner:   true,
 	}, nil
 }
 
@@ -84,7 +86,9 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if rightRecs == nil {
 			// Nothing to add to the left join.
 			// Accumulate this record for an outer join.
-			out = append(out, leftRec.Keep())
+			if !p.inner {
+				out = append(out, leftRec.Keep())
+			}
 			continue
 		}
 		// For every record on the right with a key matching

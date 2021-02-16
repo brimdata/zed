@@ -9,18 +9,6 @@ import (
 	"github.com/brimsec/zq/field"
 )
 
-// XXX function names case insensitive
-
-//		Op        string       `json:"op"`
-//		Select    []Assignment `json:"select"`
-//		From      Expression   `json:"from"`
-//		Joins     []JoinClause `json:"joins"`
-//		Where     Expression   `json:"where"`
-//		GroupBy   []Expression `json:"groupby"`
-//		Having    Expression   `json:"having"`
-//		Order     []Expression `json:"order"`
-//		Ascending Literal      `json:"asc"`
-
 func convertSQLProc(sql *ast.SqlExpression) (ast.Proc, error) {
 	selection, err := newSQLSelection(sql.Select)
 	if err != err {
@@ -28,11 +16,19 @@ func convertSQLProc(sql *ast.SqlExpression) (ast.Proc, error) {
 	}
 	var procs []ast.Proc
 	if sql.From != nil {
-		tableFilter, err := convertSQLTableRef(sql.From)
+		tableFilter, err := convertSQLTableRef(sql.From.Table)
 		if err != nil {
 			return nil, err
 		}
 		procs = append(procs, tableFilter)
+		if sql.From.Alias != nil {
+			// If there's an alias, we do a 'cut alias=.'
+			alias, err := convertSQLAlias(sql.From.Alias)
+			if err != nil {
+				return nil, err
+			}
+			procs = append(procs, alias)
+		}
 	}
 	if sql.Where != nil {
 		filter := &ast.FilterProc{
@@ -67,6 +63,13 @@ func convertSQLProc(sql *ast.SqlExpression) (ast.Proc, error) {
 		// For SELECT *, cutter is nil.
 		procs = append(procs, selector)
 	}
+	if sql.Limit != 0 {
+		p := &ast.HeadProc{
+			Op:    "HeadProc",
+			Count: sql.Limit,
+		}
+		procs = append(procs, p)
+	}
 	if len(procs) == 0 {
 		return nil, nil
 	}
@@ -99,6 +102,21 @@ func convertSQLTableRef(e ast.Expression) (ast.Proc, error) {
 	return &ast.FilterProc{
 		Op:     "FilterProc",
 		Filter: e,
+	}, nil
+}
+
+func convertSQLAlias(e ast.Expression) (*ast.CutProc, error) {
+	if _, err := CompileLval(e); err != nil {
+		return nil, fmt.Errorf("illegal alias: %w", err)
+	}
+	cut := ast.Assignment{
+		Op:  "Assignment",
+		LHS: e,
+		RHS: &ast.RootRecord{},
+	}
+	return &ast.CutProc{
+		Op:     "CutProc",
+		Fields: []ast.Assignment{cut},
 	}, nil
 }
 

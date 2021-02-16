@@ -280,19 +280,29 @@ type (
 	// TBD: from alias, "in" over tuples, WITH sub-queries, multi-table FROM
 	// implying a JOIN, aliases for tables in FROM and JOIN.
 	SqlExpression struct {
-		Op        string       `json:"op"`
-		Select    []Assignment `json:"select"`
-		From      Expression   `json:"from"`
-		Joins     []JoinClause `json:"joins"`
-		Where     Expression   `json:"where"`
-		GroupBy   []Expression `json:"groupby"`
-		Having    Expression   `json:"having"`
-		Order     []Expression `json:"order"`
-		Ascending Literal      `json:"asc"`
+		Op      string       `json:"op"`
+		Select  []Assignment `json:"select"`
+		From    *SqlFrom     `json:"from"`
+		Joins   []SqlJoin    `json:"joins"`
+		Where   Expression   `json:"where"`
+		GroupBy []Expression `json:"groupby"`
+		Having  Expression   `json:"having"`
+		OrderBy *SqlOrderBy  `json:"orderby"`
+		Limit   int          `json:"limit"`
 	}
 )
 
-// JoinClause is currently limited to left-outer.
+type SqlFrom struct {
+	Table Expression `json:"table"`
+	Alias Expression `json:"alias"`
+}
+
+type SqlOrderBy struct {
+	Keys      []Expression `json:"keys"`
+	Direction string       `json:"direction"`
+}
+
+// SqlJoin is currently limited to left-outer.
 // Table is a type expression for a record that selects Z records with
 // a uniform schema and optionally places them in a sub-field of "."
 // according to Alias (which is a string expression).  Thus, exactly like
@@ -300,8 +310,7 @@ type (
 // alias name.  Also, at some point the table expression can simply be a
 // typedef name so you can refer to tables by their name (i.e., where the
 // name refers to the record-type/schema of the corresponding Z records).
-type JoinClause struct {
-	Op       string     `json:"op"`
+type SqlJoin struct {
 	Table    Expression `json:"table"`
 	LeftKey  Expression `json:"left_key"`
 	RightKey Expression `json:"right_key"`

@@ -171,7 +171,7 @@ GlobPart
 Stars = "*"+ { RETURN(TEXT) }
 
 SearchGuard
-  = SqlToken
+  = SqlTokenSentinels
   / AndToken
   / OrToken
   / NotToken
@@ -609,7 +609,8 @@ SqlProc
     where:SqlWhere
     groupby:SqlGroupBy
     having:SqlHaving
-    order:SqlOrderBy
+    orderby:SqlOrderBy
+    limit:SqlLimit
     {
       RETURN(MAP(
         "op": "SqlExpr",
@@ -619,7 +620,8 @@ SqlProc
         "where": where,
         "groupby": groupby,
         "having": having,
-        "order": order ))
+        "orderby": orderby,
+        "limit": limit ))
     }
 
 // XXX note having generic expressions here can be confusing because Z
@@ -641,7 +643,13 @@ SqlAssignments
     }
 
 SqlFrom
-  = _ FROM _ table:SqlTable { RETURN(table) }
+  = _ FROM _ table:SqlTable alias:SqlAlias {
+      RETURN(MAP("table": table, "alias": alias))
+    }
+  / "" { RETURN(NULL) }
+
+SqlAlias
+  = _ id:Lval { RETURN(id) }
   / "" { RETURN(NULL) }
 
 //XXX for now, a "table" is simply type expression (string) that selects records
@@ -649,7 +657,7 @@ SqlFrom
 // For example, the runtime could load all the known record typedefs from a space
 // into the global scope so that table names can refer to these "named schemas".
 SqlTable
-  = SearchBoolean
+  = Expr
 
 SqlJoins
   = first:SqlJoin rest:(__ "," __ join:SqlJoin { RETURN(join) })* {
@@ -660,13 +668,13 @@ SqlJoins
 // XXX For now, an ON clause is required with JOIN.  No implied cross joins.
 // Actually, no cross-joins at all right now.
 SqlJoin
-  = _ JOIN _ table:SqlTable _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey {
+  = _ JOIN _ table:SqlTable alias:SqlAlias _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey {
       RETURN(MAP(
         "op": "JoinClause",
         "table": table,
         "left_key": leftKey,
         "right_key": rightKey,
-        "alias": NULL))
+        "alias": alias))
     }
 
 // SqlWhere is currently a SearchBoolean though Z search shortcuts may
@@ -686,13 +694,18 @@ SqlHaving
   / "" { RETURN(NULL) }
 
 SqlOrderBy
-  = _ ORDER _ BY _ columns:Exprs { RETURN(columns) }
+  = _ ORDER _ BY _ keys:Exprs direction:SqlDirection {
+      RETURN(MAP("keys": keys, "direction":direction))
+    }
   / "" { RETURN(NULL) }
 
-// XXX not yet
-//SqlAlias
-//  = Lval
-//  / "" { RETURN(NULL) }
+SqlDirection
+  = "desc"i { RETURN("asc") }
+  / ("asc"i / "") { RETURN("asc") }
+
+SqlLimit
+  = _ LIMIT _ count:UInt { RETURN(count) }
+  / "" { RETURN(0) }
 
 SELECT = "select"i { RETURN("select") }
 AS = "as"i { RETURN("as") }
@@ -704,9 +717,10 @@ BY = ByToken
 HAVING = "having"i { RETURN("having") }
 ORDER = "order"i { RETURN("order") }
 ON = "on"i { RETURN("on") }
+LIMIT = "limit"i { RETURN("limit") }
 
-SqlToken
-  = SELECT / AS / FROM /  WHERE / GROUP / BY / HAVING / ORDER
+SqlTokenSentinels
+  = SELECT / AS / FROM /  WHERE / GROUP / HAVING / ORDER / LIMIT
 
 /// === Literals ===
 
@@ -786,7 +800,7 @@ IdentifierName
   = !(IdGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }
   / "$" { RETURN(TEXT) }
   / "\\" id:IdGuard { RETURN(id) }
-  / id:SqlToken &(__ "(") { RETURN(id) }
+  / id:SqlTokenSentinels &(__ "(") { RETURN(id) }
 
 IdGuard
   = BooleanLiteral

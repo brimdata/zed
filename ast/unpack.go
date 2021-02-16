@@ -474,12 +474,28 @@ func unpackSQL(node joe.Interface) (*SqlExpression, error) {
 	if err != nil {
 		return nil, fmt.Errorf("ast.unpackSQL: 'from' field is missing")
 	}
-	var fromExpr Expression
+	var fromExpr *SqlFrom
 	if fromField != nil {
-		fromExpr, err = UnpackExpression(fromField)
+		tableField, err := fromField.Get("table")
 		if err != nil {
-			return nil, fmt.Errorf("ast.unpackSQL: 'from' field has wrong format")
+			return nil, fmt.Errorf("ast.unpackSQL: 'from.table' field is missing")
 		}
+		tableExpr, err := UnpackExpression(tableField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackSQL: 'from.table' field has wrong format")
+		}
+		aliasField, err := fromField.Get("alias")
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackSQL: 'from.alias' field is missing")
+		}
+		var aliasExpr Expression
+		if aliasField != nil {
+			aliasExpr, err = UnpackExpression(aliasField)
+			if err != nil {
+				return nil, fmt.Errorf("ast.unpackSQL: 'from.alias' field has wrong format")
+			}
+		}
+		fromExpr = &SqlFrom{Table: tableExpr, Alias: aliasExpr}
 	}
 	joinsField, err := node.Get("joins")
 	if err != nil {
@@ -500,13 +516,13 @@ func unpackSQL(node joe.Interface) (*SqlExpression, error) {
 			return nil, fmt.Errorf("ast.unpackSQL: 'where' field has wrong format")
 		}
 	}
-	groupbyField, err := node.Get("groupby")
+	groupByField, err := node.Get("groupby")
 	if err != nil {
 		return nil, fmt.Errorf("ast.unpackSQL: 'groupby' field is missing")
 	}
-	var groupbyExprs []Expression
-	if groupbyField != nil {
-		groupbyExprs, err = unpackExprs(groupbyField)
+	var groupByExprs []Expression
+	if groupByField != nil {
+		groupByExprs, err = unpackExprs(groupByField)
 		if err != nil {
 			return nil, fmt.Errorf("ast.unpackSQL: 'groupby' field has wrong format")
 		}
@@ -522,16 +538,21 @@ func unpackSQL(node joe.Interface) (*SqlExpression, error) {
 			return nil, fmt.Errorf("ast.unpackSQL: 'having' field has wrong format")
 		}
 	}
-	orderField, err := node.Get("order")
+	orderField, err := node.Get("orderby")
 	if err != nil {
-		return nil, fmt.Errorf("ast.unpackSQL: 'order' field is missing")
+		return nil, fmt.Errorf("ast.unpackSQL: 'orderby' field is missing")
 	}
-	var orderExprs []Expression
+	var orderByExpr *SqlOrderBy
 	if orderField != nil {
-		orderExprs, err = unpackExprs(orderField)
+		keysField, err := fromField.Get("keys")
 		if err != nil {
-			return nil, fmt.Errorf("ast.unpackSQL: 'order' field has wrong format")
+			return nil, fmt.Errorf("ast.unpackSQL: 'orderby.keys' field is missing")
 		}
+		keysExprs, err := unpackExprs(keysField)
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackSQL: 'orderby.keys' field has wrong format")
+		}
+		orderByExpr = &SqlOrderBy{Keys: keysExprs}
 	}
 	return &SqlExpression{
 		Op:      "SqlExpr",
@@ -539,14 +560,13 @@ func unpackSQL(node joe.Interface) (*SqlExpression, error) {
 		From:    fromExpr,
 		Joins:   joins,
 		Where:   whereExpr,
-		GroupBy: groupbyExprs,
+		GroupBy: groupByExprs,
 		Having:  havingExpr,
-		Order:   orderExprs,
-		//Ascending literal for order doens't need further unpacking
+		OrderBy: orderByExpr,
 	}, nil
 }
 
-func unpackJoins(node joe.Interface) ([]JoinClause, error) {
+func unpackJoins(node joe.Interface) ([]SqlJoin, error) {
 	if node == nil {
 		return nil, nil
 	}
@@ -554,7 +574,7 @@ func unpackJoins(node joe.Interface) ([]JoinClause, error) {
 	if !ok {
 		return nil, errors.New("ast.unpackJoins: 'joins' field is not an array")
 	}
-	joins := make([]JoinClause, 0, len(a))
+	joins := make([]SqlJoin, 0, len(a))
 	for _, item := range a {
 		e, err := unpackJoin(item)
 		if err != nil {
@@ -565,7 +585,7 @@ func unpackJoins(node joe.Interface) ([]JoinClause, error) {
 	return joins, nil
 }
 
-func unpackJoin(node joe.Interface) (*JoinClause, error) {
+func unpackJoin(node joe.Interface) (*SqlJoin, error) {
 	tableField, err := node.Get("table")
 	if err != nil {
 		return nil, fmt.Errorf("ast.unpackJoin: 'table' field is missing")
@@ -610,8 +630,7 @@ func unpackJoin(node joe.Interface) (*JoinClause, error) {
 			return nil, fmt.Errorf("ast.unpackJoin: 'alias' field has wrong format")
 		}
 	}
-	return &JoinClause{
-		Op:       "JoinClause",
+	return &SqlJoin{
 		Table:    tableExpr,
 		LeftKey:  leftKeyExpr,
 		RightKey: rightKeyExpr,
