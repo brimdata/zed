@@ -660,7 +660,7 @@ SqlTable
   = Expr
 
 SqlJoins
-  = first:SqlJoin rest:(__ "," __ join:SqlJoin { RETURN(join) })* {
+  = first:SqlJoin rest:(join:SqlJoin { RETURN(join) })* {
       RETURN(PREPEND(first, rest))
     }
   / "" { RETURN(NULL) }
