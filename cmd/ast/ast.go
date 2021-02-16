@@ -62,7 +62,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.all, "all", false, "run all and show variants")
 	f.BoolVar(&c.optimize, "O", false, "run semantic optimizer on ast version")
 	f.BoolVar(&c.dumper, "D", false, "dump ast version as lisp-y debugger output")
-	f.StringVar(&c.file, "i", "", "specify input file")
+	f.StringVar(&c.file, "z", "", "specify input file for Z script")
 	return c, nil
 }
 
