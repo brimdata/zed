@@ -6,10 +6,12 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os/exec"
 	"strings"
 
+	"github.com/brimsec/zq/ast/dumper"
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
@@ -40,12 +42,15 @@ func init() {
 }
 
 type Command struct {
-	repl   bool
-	js     bool
-	pigeon bool
-	ast    bool
-	all    bool
-	n      int
+	repl     bool
+	js       bool
+	pigeon   bool
+	ast      bool
+	all      bool
+	optimize bool
+	dumper   bool
+	file     string
+	n        int
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
@@ -55,17 +60,25 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.pigeon, "pigeon", true, "run pigeon version of peg parser")
 	f.BoolVar(&c.ast, "ast", false, "run pigeon version of peg parser and show marshaled ast")
 	f.BoolVar(&c.all, "all", false, "run all and show variants")
+	f.BoolVar(&c.optimize, "O", false, "run semantic optimizer on ast version")
+	f.BoolVar(&c.dumper, "D", false, "dump ast version as lisp-y debugger output")
+	f.StringVar(&c.file, "i", "", "specify input file")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) == 0 {
+	if len(args) == 0 && c.file == "" {
 		return Ast.Exec(c, []string{"help"})
 	}
 	if c.all {
 		c.ast = true
 		c.pigeon = true
 		c.js = true
+	}
+	if c.optimize {
+		c.ast = true
+		c.pigeon = false
+		c.js = false
 	}
 	c.n = 0
 	if c.js {
@@ -81,7 +94,16 @@ func (c *Command) Run(args []string) error {
 		c.interactive()
 		return nil
 	}
-	return c.parse(strings.Join(args, " "))
+	var src string
+	if c.file != "" {
+		b, err := ioutil.ReadFile(c.file)
+		if err != nil {
+			return err
+		}
+		src = string(b)
+	}
+	src += strings.Join(args, " ")
+	return c.parse(src)
 }
 
 func (c *Command) parse(z string) error {
@@ -106,7 +128,7 @@ func (c *Command) parse(z string) error {
 		fmt.Println(s)
 	}
 	if c.ast {
-		s, err := parseProc(z)
+		s, err := parseProc(z, c.optimize, c.dumper)
 		if err != nil {
 			return err
 		}
@@ -170,10 +192,19 @@ func parsePEGjs(z string) (string, error) {
 	return normalize(b)
 }
 
-func parseProc(z string) (string, error) {
+func parseProc(z string, optimize, debug bool) (string, error) {
 	proc, err := compiler.ParseProc(z)
 	if err != nil {
 		return "", err
+	}
+	if optimize {
+		proc, err = compiler.SemanticTransform(proc)
+		if err != nil {
+			return "", err
+		}
+	}
+	if debug {
+		return dumper.Format(proc), nil
 	}
 	procJSON, err := json.Marshal(proc)
 	if err != nil {
