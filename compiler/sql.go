@@ -135,27 +135,41 @@ func wrap(procs []ast.Proc) ast.Proc {
 }
 
 func convertSQLJoins(fromPath []ast.Proc, joins []ast.SqlJoin) ([]ast.Proc, error) {
-	if len(joins) != 1 {
-		panic("TBD")
+	left := fromPath
+	for _, right := range joins {
+		var err error
+		left, err = convertSQLJoin(left, right)
+		if err != nil {
+			return nil, err
+		}
 	}
-	sqlJoin := joins[0]
+	return left, nil
+}
+
+// For now, each joining table is on the right...
+// We don't have logic to not care about the side of the JOIN ON keys...
+func convertSQLJoin(leftPath []ast.Proc, sqlJoin ast.SqlJoin) ([]ast.Proc, error) {
 	if sqlJoin.Alias == nil {
 		return nil, errors.New("JOIN currently requires alias, e.g., JOIN <type> <alias> (will be fixed soon)")
 	}
-	fromPath = append(fromPath, sortBy(sqlJoin.LeftKey))
+	leftPath = append(leftPath, sortBy(sqlJoin.LeftKey))
 
 	joinFilter, err := convertSQLTableRef(sqlJoin.Table)
 	if err != nil {
 		return nil, err
 	}
-	joinPath := []ast.Proc{joinFilter}
+	rightPath := []ast.Proc{joinFilter}
 	cut, err := convertSQLAlias(sqlJoin.Alias)
 	if err != nil {
 		return nil, errors.New("JOIN alias must be a name")
 	}
-	joinPath = append(joinPath, cut)
-	joinPath = append(joinPath, sortBy(sqlJoin.RightKey))
+	rightPath = append(rightPath, cut)
+	rightPath = append(rightPath, sortBy(sqlJoin.RightKey))
 
+	fork := &ast.ParallelProc{
+		Op:    "ParallelProc",
+		Procs: []ast.Proc{wrap(leftPath), wrap(rightPath)},
+	}
 	alias := ast.Assignment{
 		Op:  "Assignment",
 		RHS: sqlJoin.Alias,
@@ -165,10 +179,6 @@ func convertSQLJoins(fromPath []ast.Proc, joins []ast.SqlJoin) ([]ast.Proc, erro
 		LeftKey:  sqlJoin.LeftKey,
 		RightKey: sqlJoin.RightKey,
 		Clauses:  []ast.Assignment{alias},
-	}
-	fork := &ast.ParallelProc{
-		Op:    "ParallelProc",
-		Procs: []ast.Proc{wrap(fromPath), wrap(joinPath)},
 	}
 	return []ast.Proc{fork, join}, nil
 }
