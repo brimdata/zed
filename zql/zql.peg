@@ -720,7 +720,7 @@ ON = "on"i { RETURN("on") }
 LIMIT = "limit"i { RETURN("limit") }
 
 SqlTokenSentinels
-  = SELECT / AS / FROM /  WHERE / GROUP / HAVING / ORDER / LIMIT
+  = SELECT / AS / FROM /  JOIN / WHERE / GROUP / HAVING / ORDER / LIMIT
 
 /// === Literals ===
 

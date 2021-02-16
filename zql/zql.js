@@ -7535,15 +7535,18 @@ function peg$parse(input, options) {
       if (s0 === peg$FAILED) {
         s0 = peg$parseFROM();
         if (s0 === peg$FAILED) {
-          s0 = peg$parseWHERE();
+          s0 = peg$parseJOIN();
           if (s0 === peg$FAILED) {
-            s0 = peg$parseGROUP();
+            s0 = peg$parseWHERE();
             if (s0 === peg$FAILED) {
-              s0 = peg$parseHAVING();
+              s0 = peg$parseGROUP();
               if (s0 === peg$FAILED) {
-                s0 = peg$parseORDER();
+                s0 = peg$parseHAVING();
                 if (s0 === peg$FAILED) {
-                  s0 = peg$parseLIMIT();
+                  s0 = peg$parseORDER();
+                  if (s0 === peg$FAILED) {
+                    s0 = peg$parseLIMIT();
+                  }
                 }
               }
             }

@@ -30,6 +30,16 @@ func convertSQLProc(sql *ast.SqlExpression) (ast.Proc, error) {
 			procs = append(procs, alias)
 		}
 	}
+	if sql.Joins != nil {
+		if len(procs) == 0 {
+			//XXX allow self join where we create a null path
+			return nil, errors.New("cannot JOIN without a FROM")
+		}
+		procs, err = convertSQLJoins(procs, sql.Joins)
+		if err != nil {
+			return nil, err
+		}
+	}
 	if sql.Where != nil {
 		filter := &ast.FilterProc{
 			Op:     "FilterProc",
@@ -70,16 +80,7 @@ func convertSQLProc(sql *ast.SqlExpression) (ast.Proc, error) {
 		}
 		procs = append(procs, p)
 	}
-	if len(procs) == 0 {
-		return nil, nil
-	}
-	if len(procs) == 1 {
-		return procs[0], nil
-	}
-	return &ast.SequentialProc{
-		Op:    "SequentialProc",
-		Procs: procs,
-	}, nil
+	return wrap(procs), nil
 }
 
 func convertSQLTableRef(e ast.Expression) (ast.Proc, error) {
@@ -118,6 +119,66 @@ func convertSQLAlias(e ast.Expression) (*ast.CutProc, error) {
 		Op:     "CutProc",
 		Fields: []ast.Assignment{cut},
 	}, nil
+}
+
+func wrap(procs []ast.Proc) ast.Proc {
+	if len(procs) == 0 {
+		return nil
+	}
+	if len(procs) == 1 {
+		return procs[0]
+	}
+	return &ast.SequentialProc{
+		Op:    "SequentialProc",
+		Procs: procs,
+	}
+}
+
+func convertSQLJoins(fromPath []ast.Proc, joins []ast.SqlJoin) ([]ast.Proc, error) {
+	if len(joins) != 1 {
+		panic("TBD")
+	}
+	sqlJoin := joins[0]
+	if sqlJoin.Alias == nil {
+		return nil, errors.New("JOIN currently requires alias, e.g., JOIN <type> <alias> (will be fixed soon)")
+	}
+	fromPath = append(fromPath, sortBy(sqlJoin.LeftKey))
+
+	joinFilter, err := convertSQLTableRef(sqlJoin.Table)
+	if err != nil {
+		return nil, err
+	}
+	joinPath := []ast.Proc{joinFilter}
+	cut, err := convertSQLAlias(sqlJoin.Alias)
+	if err != nil {
+		return nil, errors.New("JOIN alias must be a name")
+	}
+	joinPath = append(joinPath, cut)
+	joinPath = append(joinPath, sortBy(sqlJoin.RightKey))
+
+	alias := ast.Assignment{
+		Op:  "Assignment",
+		RHS: sqlJoin.Alias,
+	}
+	join := &ast.JoinProc{
+		Op:       "JoinProc",
+		LeftKey:  sqlJoin.LeftKey,
+		RightKey: sqlJoin.RightKey,
+		Clauses:  []ast.Assignment{alias},
+	}
+	fork := &ast.ParallelProc{
+		Op:    "ParallelProc",
+		Procs: []ast.Proc{wrap(fromPath), wrap(joinPath)},
+	}
+	return []ast.Proc{fork, join}, nil
+}
+
+func sortBy(e ast.Expression) *ast.SortProc {
+	return &ast.SortProc{
+		Op:      "SortProc",
+		Fields:  []ast.Expression{e},
+		SortDir: 1,
+	}
 }
 
 func convertSQLSelect(selection sqlSelection) (ast.Proc, error) {
