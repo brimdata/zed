@@ -9,18 +9,18 @@ import (
 	"github.com/brimsec/zq/zson"
 )
 
-type Fuse struct {
+type fuse struct {
 	shapes   map[*zng.TypeRecord]struct{}
 	partials []zng.Value
 }
 
-func newFuse() *Fuse {
-	return &Fuse{
+func newFuse() *fuse {
+	return &fuse{
 		shapes: make(map[*zng.TypeRecord]struct{}),
 	}
 }
 
-func (f *Fuse) Consume(v zng.Value) error {
+func (f *fuse) Consume(v zng.Value) error {
 	// only works for record types, e.g., fuse(foo.x) where foo.x is a record
 	typ, ok := v.Type.(*zng.TypeRecord)
 	if !ok {
@@ -30,12 +30,15 @@ func (f *Fuse) Consume(v zng.Value) error {
 	return nil
 }
 
-func (f *Fuse) Result(zctx *resolver.Context) (zng.Value, error) {
+func (f *fuse) Result(zctx *resolver.Context) (zng.Value, error) {
 	if len(f.shapes)+len(f.partials) == 0 {
 		// empty input
 		return zng.Value{zng.TypeNull, nil}, nil
 	}
-	schema, _ := NewSchema(zctx)
+	schema, err := NewSchema(zctx)
+	if err != nil {
+		return zng.Value{}, err
+	}
 	schema.unify = true
 
 	tt := zson.NewTypeTable(zctx)
@@ -56,7 +59,7 @@ func (f *Fuse) Result(zctx *resolver.Context) (zng.Value, error) {
 	return zng.Value{zng.TypeType, zcode.Bytes(schema.Type.ZSON())}, nil
 }
 
-func (f *Fuse) ConsumeAsPartial(p zng.Value) error {
+func (f *fuse) ConsumeAsPartial(p zng.Value) error {
 	if p.Type != zng.TypeType {
 		return ErrBadValue
 	}
@@ -64,6 +67,6 @@ func (f *Fuse) ConsumeAsPartial(p zng.Value) error {
 	return nil
 }
 
-func (f *Fuse) ResultAsPartial(zctx *resolver.Context) (zng.Value, error) {
+func (f *fuse) ResultAsPartial(zctx *resolver.Context) (zng.Value, error) {
 	return f.Result(zctx)
 }

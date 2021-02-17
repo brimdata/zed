@@ -44,15 +44,6 @@ func (s *Schema) Mixin(mix *zng.TypeRecord) error {
 	return nil
 }
 
-func findColByName(cols []zng.Column, name string) (zng.Column, int, bool) {
-	for i, col := range cols {
-		if col.Name == name {
-			return col, i, true
-		}
-	}
-	return zng.Column{}, -1, false
-}
-
 func disambiguate(cols []zng.Column, name string) string {
 	n := 1
 	re := regexp.MustCompile(name + `_(\d+)$`)
@@ -126,15 +117,14 @@ func (s *Schema) fuseRecordTypes(a, b *zng.TypeRecord, path field.Static, rename
 				return nil, renames, err
 			}
 			fused[i] = zng.Column{acol.Name, nest}
+		case s.unify:
+			fused[i] = zng.Column{acol.Name, unify(s.zctx, acol.Type, bcol.Type)}
+
 		default:
-			if s.unify {
-				fused[i] = zng.Column{acol.Name, unify(s.zctx, acol.Type, bcol.Type)}
-			} else {
-				dis := disambiguate(fused, acol.Name)
-				renames.Srcs = append(renames.Srcs, append(path, acol.Name))
-				renames.Dsts = append(renames.Dsts, append(path, dis))
-				fused = append(fused, zng.Column{dis, bcol.Type})
-			}
+			dis := disambiguate(fused, acol.Name)
+			renames.Srcs = append(renames.Srcs, append(path, acol.Name))
+			renames.Dsts = append(renames.Dsts, append(path, dis))
+			fused = append(fused, zng.Column{dis, bcol.Type})
 		}
 	}
 	rec, err := s.zctx.LookupTypeRecord(fused)
