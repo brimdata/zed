@@ -3,8 +3,8 @@ zql: |
 
 input: |
   #0:record[a:null,b:int64]
-  0:[-;-;[];]
+  0:[-;-;]
 
 output: |
   #0:record[a:string,b:string]
-  0:[-;-;-;]
+  0:[-;-;]
