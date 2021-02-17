@@ -1,22 +1,17 @@
-script: |
-  zq -t -i zson "by typeof(.) | sort ." in.zson
+zql: by typeof(.) | sort .
 
-inputs:
-  - name: in.zson
-    data: |
-      { n: null (|{string,int32}|) }
-      { n: null (|[string]|) }
-      { n: null ([string]) }
-      { n: null ({a: string}) }
+input: |
+  { n: null (|{string,int32}|) }
+  { n: null (|[string]|) }
+  { n: null ([string]) }
+  { n: null ({a: string}) }
 
-outputs:
-  - name: stdout
-    data: |
-      #0:record[n:map[string,int32]]
-      0:[-;]
-      #1:record[n:set[string]]
-      1:[-;]
-      #2:record[n:array[string]]
-      2:[-;]
-      #3:record[n:record[a:string]]
-      3:[-;]
+output: |
+  #0:record[n:map[string,int32]]
+  0:[-;]
+  #1:record[n:set[string]]
+  1:[-;]
+  #2:record[n:array[string]]
+  2:[-;]
+  #3:record[n:record[a:string]]
+  3:[-;]
