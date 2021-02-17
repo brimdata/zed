@@ -188,6 +188,12 @@ func (v Value) IsError() bool {
 	return v.Type == TypeError
 }
 
+var missingAsBytes = []byte(missing)
+
+func (v Value) IsMissing() bool {
+	return v.Type == TypeError && bytes.Equal(v.Bytes, missingAsBytes)
+}
+
 func (v Value) Equal(p Value) bool {
 	return v.Type == p.Type && bytes.Equal(v.Bytes, p.Bytes)
 }

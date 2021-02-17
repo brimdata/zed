@@ -3,10 +3,10 @@ package expr
 import (
 	"errors"
 	"fmt"
-	"github.com/brimsec/zq/zcode"
 	"strings"
 
 	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/builder"
 	"github.com/brimsec/zq/zng/resolver"
@@ -76,7 +76,7 @@ func (c *Cutter) Apply(in *zng.Record) (*zng.Record, error) {
 	if len(c.fieldRefs) == 1 && c.fieldRefs[0].IsRoot() {
 		zv, err := c.fieldExprs[0].Eval(in)
 		if err != nil {
-			if err == ErrNoSuchField {
+			if err == zng.ErrMissing {
 				return nil, nil
 			}
 			return nil, err
@@ -95,7 +95,7 @@ func (c *Cutter) Apply(in *zng.Record) (*zng.Record, error) {
 	for k, e := range c.fieldExprs {
 		zv, err := e.Eval(in)
 		if err != nil {
-			if err == ErrNoSuchField {
+			if err == zng.ErrMissing {
 				if c.droppers != nil {
 					if c.droppers[k] == nil {
 						c.droppers[k] = NewDropper(c.zctx, c.fieldRefs[k:k+1])
@@ -175,7 +175,7 @@ func (c *Cutter) Eval(rec *zng.Record) (zng.Value, error) {
 		return zng.Value{}, err
 	}
 	if out == nil {
-		return zng.Value{}, ErrNoSuchField
+		return zng.Value{}, zng.ErrMissing
 	}
 	return zng.Value{out.Type, out.Raw}, nil
 }

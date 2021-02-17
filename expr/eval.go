@@ -15,15 +15,10 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-var ErrNoSuchField = errors.New("field is not present")
 var ErrIncompatibleTypes = coerce.ErrIncompatibleTypes
 var ErrIndexOutOfBounds = errors.New("array index out of bounds")
 var ErrNotContainer = errors.New("cannot apply in to a non-container")
 var ErrBadCast = errors.New("bad cast")
-
-// The literature on SQL++ etc uses the concept of missing values rather than
-// "no such field".  Missing seems more apt.
-var ErrMissing = ErrNoSuchField
 
 type Evaluator interface {
 	Eval(*zng.Record) (zng.Value, error)

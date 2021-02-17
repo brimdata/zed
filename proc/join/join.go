@@ -72,7 +72,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			// If the left key isn't present (which is not a thing
 			// in a sql join), then drop the record and return only
 			// left records that can eval the key expression.
-			if err == expr.ErrNoSuchField {
+			if err == zng.ErrMissing {
 				continue
 			}
 			return nil, err
@@ -133,7 +133,7 @@ func (p *Proc) getJoinSet(leftKey zng.Value) ([]*zng.Record, error) {
 		}
 		rightKey, err := p.getRightKey.Eval(rec)
 		if err != nil {
-			if err == expr.ErrNoSuchField {
+			if err == zng.ErrMissing {
 				p.right.Read()
 				continue
 			}
@@ -172,7 +172,7 @@ func (p *Proc) readJoinSet(joinKey zng.Value) ([]*zng.Record, error) {
 		}
 		key, err := p.getRightKey.Eval(rec)
 		if err != nil {
-			if err == expr.ErrNoSuchField {
+			if err == zng.ErrMissing {
 				p.right.Read()
 				continue
 			}
