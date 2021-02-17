@@ -545,8 +545,8 @@ func TestPostNDJSONLogs(t *testing.T) {
 }
 
 func TestPostNDJSONLogWarning(t *testing.T) {
-	src1 := strings.NewReader(`{"ts":"1000","_path":"nosuchpath"}
-{"ts":"2000","_path":"http"}`)
+	src1 := strings.NewReader(`{"ts":"1000","_path":"http"}
+{"ts":"2000","_path":"nosuchpath"}`)
 	src2 := strings.NewReader(`{"ts":"1000","_path":"http"}
 {"ts":"1000","_path":"http","extra":"foo"}`)
 	tc := ndjsonio.TypeConfig{
@@ -574,7 +574,7 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	res, err := conn.LogPostReaders(context.Background(), sp.ID, opts, src1, src2)
 	require.NoError(t, err)
 	require.Len(t, res.Warnings, 2)
-	assert.Regexp(t, ": line 1: descriptor not found", res.Warnings[0])
+	assert.Regexp(t, ": line 2: descriptor not found", res.Warnings[0])
 	assert.Regexp(t, ": line 2: incomplete descriptor", res.Warnings[1])
 	assert.EqualValues(t, 134, res.BytesRead)
 }
