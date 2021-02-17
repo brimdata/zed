@@ -7,6 +7,9 @@ import (
 	"github.com/brimsec/zq/zcode"
 )
 
+var ErrMissing = errors.New("missing")
+var Missing = NewError(ErrMissing)
+
 type TypeOfError struct{}
 
 func NewErrorf(format string, args ...interface{}) Value {

@@ -33,11 +33,11 @@ func NewDotExpr(f field.Static) Evaluator {
 func accessField(record zng.Value, field string) (zng.Value, error) {
 	recType, ok := zng.AliasedType(record.Type).(*zng.TypeRecord)
 	if !ok {
-		return zng.Value{}, ErrNoSuchField
+		return zng.Value{}, zng.ErrMissing
 	}
 	idx, ok := recType.ColumnOfField(field)
 	if !ok {
-		return zng.Value{}, ErrNoSuchField
+		return zng.Value{}, zng.ErrMissing
 	}
 	typ := recType.Columns[idx].Type
 	if record.Bytes == nil {

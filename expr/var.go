@@ -15,7 +15,7 @@ func NewVar(ref *zng.Value) *Var {
 func (v *Var) Eval(*zng.Record) (zng.Value, error) {
 	zv := *v.ref
 	if zv.Type == nil {
-		return zng.Value{}, ErrMissing
+		return zng.Value{}, zng.ErrMissing
 	}
 	return zv, nil
 }
