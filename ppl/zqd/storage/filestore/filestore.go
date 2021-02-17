@@ -185,9 +185,8 @@ func (s *Storage) Summary(_ context.Context) (storage.Summary, error) {
 }
 
 type info struct {
-	AlphaMigrated bool    `json:"alpha_migrated"`
-	MinTime       nano.Ts `json:"min_time"`
-	MaxTime       nano.Ts `json:"max_time"`
+	MinTime nano.Ts `json:"min_time"`
+	MaxTime nano.Ts `json:"max_time"`
 }
 
 // readInfoFile reads the info file on disk (if it exists) and sets the cached
@@ -198,7 +197,6 @@ func (s *Storage) readInfoFile() error {
 		if !os.IsNotExist(err) {
 			return err
 		}
-		inf.AlphaMigrated = true
 	}
 	s.span = nano.NewSpanTs(inf.MinTime, inf.MaxTime)
 	return nil
@@ -218,9 +216,8 @@ func (s *Storage) syncInfoFile() error {
 		return nil
 	}
 	info := info{
-		MinTime:       s.span.Ts,
-		MaxTime:       s.span.End(),
-		AlphaMigrated: true,
+		MinTime: s.span.Ts,
+		MaxTime: s.span.End(),
 	}
 	return fs.MarshalJSONFile(info, path, 0600)
 }
