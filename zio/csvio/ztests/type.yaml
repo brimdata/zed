@@ -6,5 +6,6 @@ input: |
 
 output-flags: -f csv
 
-output: |
+output: |+
   type
+
