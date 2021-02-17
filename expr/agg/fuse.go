@@ -47,8 +47,8 @@ func (f *fuse) Result(zctx *resolver.Context) (zng.Value, error) {
 		if err != nil {
 			return zng.Value{}, fmt.Errorf("invalid partial value: %s", err)
 		}
-		recType, isRecord := typ.(*zng.TypeRecord)
-		if !isRecord {
+		recType, ok := typ.(*zng.TypeRecord)
+		if !ok {
 			return zng.Value{}, fmt.Errorf("unexpected partial type %s", typ)
 		}
 		schema.Mixin(recType)
