@@ -199,7 +199,8 @@ func Run(t *testing.T, dirname string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, b := range bundles {
+	for _, bundle := range bundles {
+		b := bundle
 		t.Run(b.TestName, func(t *testing.T) {
 			t.Parallel()
 			if b.Error != nil {
