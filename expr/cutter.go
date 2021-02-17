@@ -5,9 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimsec/zq/zcode"
-
 	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/builder"
 	"github.com/brimsec/zq/zng/resolver"

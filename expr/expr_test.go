@@ -143,7 +143,7 @@ func TestPrimitives(t *testing.T) {
 	testSuccessful(t, "s", record, zstring("hello"))
 
 	// Test bad field reference
-	testError(t, "doesnexist", record, zng.ErrMissing, "referencing non-existent field")
+	testError(t, "doesnexist", record, zng.ErrMissing, "referencing nonexistent field")
 }
 
 func TestComplex(t *testing.T) {
