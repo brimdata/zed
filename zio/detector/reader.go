@@ -45,7 +45,7 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	}
 	track.Reset()
 
-	// Only use NDJSON if there is an explicit config to control the NDJSON
+	// Only try NDJSON if there is an explicit config to control the NDJSON
 	// parser.  Otherwise, if this is NDJSON, we will fall through below
 	// and match ZSON, which can decode NDJSON.  If someone wants "strict"
 	// JSON parsing (i.e., treat all numbers as float64 not a mix of int64
@@ -59,7 +59,13 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 			return nil, err
 		}
 		if err := match(nr, "ndjson"); err != nil {
-			return nil, err
+			// Some clients might attach a typeconfig even
+			// if they're not sending JSON. So try again
+			// without a typeconfig to do regular
+			// autodetection on all formats.
+			copyOpts := opts
+			copyOpts.JSON.TypeConfig = nil
+			return NewReaderWithOpts(recorder, zctx, path, copyOpts)
 		}
 		return ndjsonio.NewReader(recorder, zctx, opts.JSON, path)
 	}
