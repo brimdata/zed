@@ -1,4 +1,4 @@
-zql: by typeof(.) | sort .
+zql: '*'
 
 input: |
   { n: null (|{string,int32}|) }

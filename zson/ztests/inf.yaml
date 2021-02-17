@@ -16,7 +16,7 @@ outputs:
   - name: stdout
     data: |
       {float64:null (float64)} (=0)
-      {float64:0e+00} (0)
+      {float64:0.} (0)
       {float64:1.7976931348623157e+308} (0)
       {float64:5e-324} (0)
       {float64:-Inf} (0)
