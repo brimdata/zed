@@ -69,6 +69,9 @@ func (p *Proc) maybeWarn(err error) {
 	s := err.Error()
 	_, alreadyWarned := p.warned[s]
 	if !alreadyWarned {
+		if err == zng.ErrMissing {
+			s = "put: a referenced field is missing"
+		}
 		p.pctx.Warnings <- s
 		p.warned[s] = struct{}{}
 	}
