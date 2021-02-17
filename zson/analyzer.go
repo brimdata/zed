@@ -628,7 +628,6 @@ func (a Analyzer) convertTypeMap(zctx *resolver.Context, tmap *ast.TypeMap) (*zn
 	if err != nil {
 		return nil, err
 	}
-
 	return zctx.LookupTypeMap(keyType, valType), nil
 }
 
