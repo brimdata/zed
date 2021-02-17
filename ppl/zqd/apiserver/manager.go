@@ -25,13 +25,12 @@ import (
 )
 
 type Manager struct {
-	alphaFileMigrator *filestore.Migrator
-	db                db.DB
-	immcache          immcache.ImmutableCache
-	logger            *zap.Logger
-	notifier          Notifier
-	registerer        prometheus.Registerer
-	rootPath          iosrc.URI
+	db         db.DB
+	immcache   immcache.ImmutableCache
+	logger     *zap.Logger
+	notifier   Notifier
+	registerer prometheus.Registerer
+	rootPath   iosrc.URI
 
 	// We keep instances of any loaded filestore because the seek indexes
 	// we create for them are not persisted to disk. We are unlikely to
@@ -61,8 +60,7 @@ func NewManager(ctx context.Context, logger *zap.Logger, n Notifier, registerer 
 		registerer: registerer,
 		rootPath:   root,
 
-		alphaFileMigrator: filestore.NewMigrator(ctx),
-		filestores:        make(map[api.SpaceID]*filestore.Storage),
+		filestores: make(map[api.SpaceID]*filestore.Storage),
 
 		created: factory.NewCounter(prometheus.CounterOpts{
 			Name: "spaces_created_total",
@@ -76,30 +74,12 @@ func NewManager(ctx context.Context, logger *zap.Logger, n Notifier, registerer 
 	if m.notifier == nil {
 		m.notifier = newCompactor(m)
 	}
-	m.spawnAlphaMigrations(ctx)
 	m.logger.Info("Loaded", zap.String("root", root.String()))
 	return m, nil
 }
 
 func (m *Manager) Shutdown() {
 	m.notifier.Shutdown()
-}
-
-func (m *Manager) spawnAlphaMigrations(ctx context.Context) {
-	rows, err := m.db.ListSpaces(ctx, auth.AnonymousTenantID)
-	if err != nil {
-		return
-	}
-	for _, row := range rows {
-		if row.Storage.Kind != api.FileStore {
-			continue
-		}
-		store, err := m.getStorage(ctx, row.ID, row.DataURI, row.Storage)
-		if err != nil {
-			continue
-		}
-		m.alphaFileMigrator.Add(store.(*filestore.Storage))
-	}
 }
 
 func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (api.Space, error) {
