@@ -82,11 +82,13 @@ Operation
       RETURN(MAP("op": "ParallelProc", "procs": procArray))
     }
   / Operator
-  / f:Function !(ExprGuard / (_ ("by" / "with" / "where")) / (__ ",")) { RETURN(f) }
-  / a:Aggregation !ExprGuard  { RETURN(a) }
+  / f:Function &EndOfOp { RETURN(f) }
+  / a:Aggregation &EndOfOp  { RETURN(a) }
   / expr:SearchBoolean !AggGuard {
       RETURN(MAP("op": "FilterProc", "filter": expr))
     }
+
+EndOfOp = __ ("|" / "=>" / ")" / EOF)
 
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(")
 AggGuard = (_ (ByToken / "-with") EOT) / (__ ",")
@@ -221,7 +223,7 @@ Aggregation
   = every:EveryDur? keys:GroupByKeys limit:LimitArg {
       RETURN(MAP("op": "GroupByProc", "keys": keys, "reducers": NULL, "duration": every, "limit": limit))
     }
-  / every:EveryDur? reducers:Reducers keys:(_ GroupByKeys)? limit:LimitArg? {
+  / every:EveryDur? reducers:Reducers keys:(_ GroupByKeys)? limit:LimitArg {
       VAR(p) = MAP("op": "GroupByProc", "keys": NULL, "reducers": reducers, "duration": every, "limit": limit)
       if ISNOTNULL(keys) {
         p["keys"] = ASSERT_ARRAY(keys)[1]
@@ -260,7 +262,7 @@ ReducerAssignment
     }
 
 Reducer
-  = !(NotReducers __ "(") op:ReducerName __ "(" __ expr:Expr?  __ ")" !(__ ".") where:WhereClause? {
+  = !FuncGuard op:ReducerName __ "(" __ expr:Expr?  __ ")" !(__ ".") where:WhereClause? {
       VAR(r) = MAP("op": "Reducer", "operator": op, "expr": NULL, "where":where)
       if ISNOTNULL(expr) {
         r["expr"] = expr
@@ -272,10 +274,6 @@ ReducerName
   = IdentifierName
   / AndToken
   / OrToken
-
-NotReducers
-  = "not"
-  / "match"
 
 WhereClause = _ "where" _ expr:SearchBoolean { RETURN(expr) }
 
@@ -535,6 +533,13 @@ FuncExpr
   / DerefExpr
   / Primary
 
+FuncGuard = NotFuncs __ "("
+
+NotFuncs
+  = "not"
+  / "match"
+  / "select"
+
 MatchExpr
   = "match" __ "(" expr:SearchBoolean ")" { RETURN(expr) }
 
@@ -544,7 +549,7 @@ SelectExpr
     }
 
 Function
-  = fn:IdentifierName __ "(" __ args:ArgumentList __ ")" {
+  = !FuncGuard fn:IdentifierName __ "(" __ args:ArgumentList __ ")" {
       RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
     }
 
