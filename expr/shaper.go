@@ -86,6 +86,10 @@ func createOp(in, out *zng.TypeRecord) (op, error) {
 }
 
 func (s op) castPrimitive(in zcode.Bytes, b *zcode.Builder) {
+	if in == nil {
+		b.AppendNull()
+		return
+	}
 	pc := LookupPrimitiveCaster(s.castTypes.to)
 	v, err := pc(zng.Value{s.castTypes.from, in})
 	if err != nil {
