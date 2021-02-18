@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/expr"
@@ -113,7 +112,10 @@ type indexer struct {
 func newIndexer(ctx context.Context, u iosrc.URI, def *Definition, r zbuf.Reader) (*indexer, error) {
 	zctx := resolver.NewContext()
 	conf := driver.Config{Custom: compile}
-	program := &ast.Program{Entry: def.Proc}
+	program, err := compiler.CompileProgram(def.Z)
+	if err != nil {
+		return nil, err
+	}
 	fgr, err := driver.NewReaderWithConfig(ctx, conf, program, zctx, r)
 	if err != nil {
 		return nil, err

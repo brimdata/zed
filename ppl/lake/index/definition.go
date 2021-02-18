@@ -6,15 +6,14 @@ import (
 	"path"
 	"regexp"
 
-	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/segmentio/ksuid"
 )
 
 type Definition struct {
 	Rule
-	ID   ksuid.KSUID
-	Proc ast.Proc
+	ID ksuid.KSUID
+	Z  string
 }
 
 // ReadDefinitions opens and reads all the index defs in the specified

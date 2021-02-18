@@ -13,8 +13,8 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/compiler"
+	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"

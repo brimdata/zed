@@ -298,15 +298,17 @@ func (c *Connection) WorkerRelease(ctx context.Context) error {
 //		fmt.Println(rec)
 //	}
 //
-func (c *Connection) Search(ctx context.Context, spaceID api.SpaceID, query string) (*ZngSearch, error) {
-	programBytes, err := c.ZtoAST(ctx, query)
+func (c *Connection) Search(ctx context.Context, spaceID api.SpaceID, z string) (*ZngSearch, error) {
+	// XXX do a local error check or let the server decide if there's
+	// an error?  either way, the mismatch should be detected.
+	_, err := c.ZtoAST(ctx, z)
 	if err != nil {
 		return nil, err
 	}
 	r, err := c.SearchRaw(ctx, api.SearchRequest{
-		Space:   spaceID,
-		Program: programBytes,
-		Dir:     -1,
+		Space: spaceID,
+		Z:     z,
+		Dir:   -1,
 	}, nil)
 	if err != nil {
 		return nil, err

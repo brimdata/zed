@@ -6,7 +6,6 @@ import (
 	"github.com/brimsec/zq/compiler/semantic"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/pkg/joe"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zql"

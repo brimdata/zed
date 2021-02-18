@@ -52,6 +52,13 @@ type TaskEnd struct {
 }
 
 type SearchRequest struct {
+	Space SpaceID   `json:"space" validate:"required"`
+	Z     string    `json:"z"`
+	Span  nano.Span `json:"span"`
+	Dir   int       `json:"dir" validate:"required"`
+}
+
+type ZRequest struct {
 	Space SpaceID         `json:"space" validate:"required"`
 	ZDSL  json.RawMessage `json:"program,omitempty"`
 	Span  nano.Span       `json:"span"`

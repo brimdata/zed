@@ -73,7 +73,7 @@ func UnmarshalRule(b []byte) (Rule, error) {
 
 func NewZqlRule(prog, name string, keys []field.Static) (Rule, error) {
 	// make sure it compiles
-	if _, err := compiler.ParseProc(prog); err != nil {
+	if _, err := compiler.ParseProgram(prog); err != nil {
 		return Rule{}, err
 	}
 	return Rule{

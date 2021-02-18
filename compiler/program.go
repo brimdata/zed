@@ -2,7 +2,7 @@ package compiler
 
 import (
 	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/compiler/flow"
+	"github.com/brimsec/zq/compiler/kernel"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zng/resolver"
@@ -10,11 +10,11 @@ import (
 
 type Program struct {
 	ast     *ast.Program
-	dag     *flow.Graph
+	dsl     *kernel.DSL
 	scope   *Scope
 	outputs []proc.Interface
 	pctx    *proc.Context
-	filter  *Filter
+	filter  kernel.BoolExpr
 }
 
 func NewProgram(p *ast.Program, pctx *proc.Context) *Program {
@@ -94,4 +94,35 @@ func compileConsts(zctx *resolver.Context, scope *Scope, consts []ast.Const) err
 func compileTypes(zctx *resolver.Context, scope *Scope, types []ast.TypeConst) error {
 	//TBD
 	return nil
+}
+
+//XXX this should be methods on Program...
+
+var _ zbuf.Filter = (*Filter)(nil)
+
+func (p *Program) AsFilter() (expr.Filter, error) {
+	if p.filter == nil {
+		return nil, nil
+	}
+	// XXX nil scope... when we implement global scope, the filters
+	// will need access to it.
+	// XXX this will change soon to DSL
+	return kernel.CompileFilter(f.zctx, nil, p.filter)
+}
+
+func (p *Program) AsBufferFilter() (*expr.BufferFilter, error) {
+	if p.filter == nil {
+		return nil, nil
+	}
+	return kernel.CompileBufferFilter(p.filter)
+}
+
+func (f *Filter) AST() ast.Expression {
+	//XXX change to dsl
+	return p.filter
+}
+
+func (f *Filter) AsProc() ast.Proc {
+	//XXX change to dsl
+	return ast.FilterToProc(f.ast)
 }
