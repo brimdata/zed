@@ -3,7 +3,6 @@ package lake
 import (
 	"context"
 	"fmt"
-	"sort"
 	"sync"
 	"time"
 
@@ -70,27 +69,30 @@ func tsDirVisit(ctx context.Context, lk *Lake, filterSpan nano.Span, visitor tsD
 		}
 		tsdirs = append(tsdirs, tsd)
 	}
-	sort.Slice(tsdirs, func(i, j int) bool {
-		if lk.DataOrder == zbuf.OrderAsc {
-			return tsdirs[i].Ts < tsdirs[j].Ts
-		}
-		return tsdirs[j].Ts < tsdirs[i].Ts
-	})
-	for _, d := range tsdirs {
-		dirents, err := iosrc.ReadDir(ctx, zdDir.AppendPath(d.name()))
+
+	stream := newTsDirStream(ctx, lk, tsdirs)
+	for {
+		tsdir, chunks, err := stream.Next()
 		if err != nil {
 			return err
 		}
-		chunks, err := tsDirEntriesToChunks(ctx, lk, d, dirents)
-		if err != nil {
-			return err
+		if tsdir == nil {
+			break
 		}
 		chunks = chunks.Overlapping(filterSpan)
-		if err := visitor(d, chunks); err != nil {
+		if err := visitor(*tsdir, chunks); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func tsDirChunks(ctx context.Context, d tsDir, lk *Lake) (chunk.Chunks, error) {
+	dirents, err := iosrc.ReadDir(ctx, lk.DataPath.AppendPath(dataDirname, d.name()))
+	if err != nil {
+		return nil, err
+	}
+	return tsDirEntriesToChunks(ctx, lk, d, dirents)
 }
 
 func tsDirEntriesToChunks(ctx context.Context, lk *Lake, tsDir tsDir, entries []iosrc.Info) (chunk.Chunks, error) {
