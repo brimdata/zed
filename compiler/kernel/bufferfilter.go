@@ -1,4 +1,4 @@
-package compiler
+package kernel
 
 import (
 	"github.com/brimsec/zq/compiler/ast"

@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/compiler"
 	// XXX replace this with flow DSL
 	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimsec/zq/compiler/kernel"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/zqd/worker"
@@ -20,7 +21,7 @@ import (
 
 // XXX ReaderSortKey should be a field.Static.  Issue #1467.
 type Config struct {
-	Custom            compiler.Hook
+	Custom            kernel.Hook
 	Logger            *zap.Logger
 	ReaderSortKey     string
 	ReaderSortReverse bool
@@ -75,7 +76,7 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 		Logger:      cfg.Logger,
 		Warnings:    make(chan string, 5),
 	}
-	leaves, err := compiler.Compile(cfg.Custom, program, pctx, nil, procs)
+	leaves, err := compiler.Compile(cfg.Custom, program, pctx, procs)
 	if err != nil {
 		return nil, err
 	}
@@ -83,7 +84,7 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 }
 
 type MultiConfig struct {
-	Custom      compiler.Hook
+	Custom      kernel.Hook
 	Distributed bool // true if remote request specified worker count
 	Order       zbuf.Order
 	Logger      *zap.Logger
@@ -123,7 +124,7 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 	if len(sources) > 1 {
 		program, _ = compiler.Parallelize(program, len(sources), sortKey, sortReversed)
 	}
-	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, nil, sources)
+	leaves, err := compiler.Compile(mcfg.Custom, program, pctx, sources)
 	if err != nil {
 		return nil, err
 	}

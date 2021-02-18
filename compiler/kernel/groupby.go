@@ -1,4 +1,4 @@
-package compiler
+package kernel
 
 import (
 	"errors"

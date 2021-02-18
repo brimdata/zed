@@ -13,6 +13,7 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimsec/zq/compiler/semantic"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc/groupby"
@@ -376,7 +377,7 @@ func TestGroupbyUnit(t *testing.T) {
 
 			astProc, err := compileGroupBy(zql)
 			assert.NoError(t, err)
-			compiler.SemanticTransform(astProc)
+			semantic.Transform(astProc)
 			astProc.InputSortDir = dir
 			tctx := proctest.NewTestContext(resolver)
 			src := proctest.NewTestSource(inBatches)
