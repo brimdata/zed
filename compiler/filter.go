@@ -3,7 +3,7 @@ package compiler
 import (
 	"fmt"
 
-	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"

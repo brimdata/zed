@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/zcode"
 )
 

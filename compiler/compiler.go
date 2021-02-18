@@ -1,7 +1,7 @@
 package compiler
 
 import (
-	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/pkg/joe"
 	"github.com/brimsec/zq/zql"
 	"github.com/mitchellh/mapstructure"
