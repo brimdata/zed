@@ -55,7 +55,7 @@ func MustParseProc(query string) ast.Proc {
 	return proc
 }
 
-// XXX These functions will all get reworked in a subsequent when
+// XXX These functions will all get reworked in a subsequent PR when
 // the semantic pass converts an AST to a flow DSL.
 
 func Optimize(zctx *resolver.Context, program ast.Proc, sortKey field.Static, sortReversed bool) (*kernel.Filter, ast.Proc) {
