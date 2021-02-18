@@ -219,8 +219,8 @@ func (f *Formatter) formatUnion(indent int, union *zng.TypeUnion, bytes zcode.By
 	// disambiguation.  See issue #1764.
 	// In other words, just because we known the union's type doesn't mean
 	// we know the type of a particular value of that union.
-	known := false
-	parentImplied := true
+	const known = false
+	const parentImplied = true
 	return f.formatValue(indent, typ, bytes, known, parentImplied, true)
 }
 
@@ -384,7 +384,7 @@ func (f *Formatter) formatTypeEnum(typ *zng.TypeEnum) error {
 		f.build(sep)
 		f.buildf("%s:", zng.QuotedName(elem.Name))
 		known := k != 0
-		parentImplied := true
+		const parentImplied = true
 		if err := f.formatValue(0, inner, elem.Value, known, parentImplied, true); err != nil {
 			return err
 		}
