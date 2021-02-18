@@ -13,9 +13,22 @@ import (
 // Implied returns true for primitive types whose type can be inferred
 // syntactically from its value and thus never needs a decorator.
 func Implied(typ zng.Type) bool {
-	switch typ.(type) {
+	switch typ := typ.(type) {
 	case *zng.TypeOfInt64, *zng.TypeOfDuration, *zng.TypeOfTime, *zng.TypeOfFloat64, *zng.TypeOfBool, *zng.TypeOfBytes, *zng.TypeOfString, *zng.TypeOfIP, *zng.TypeOfNet, *zng.TypeOfType:
 		return true
+	case *zng.TypeRecord:
+		for _, c := range typ.Columns {
+			if !Implied(c.Type) {
+				return false
+			}
+		}
+		return true
+	case *zng.TypeArray:
+		return Implied(typ.Type)
+	case *zng.TypeSet:
+		return Implied(typ.Type)
+	case *zng.TypeMap:
+		return Implied(typ.KeyType) && Implied(typ.ValType)
 	}
 	return false
 }
