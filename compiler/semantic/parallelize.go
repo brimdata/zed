@@ -1,10 +1,13 @@
-package compiler
+package semantic
 
 import (
 	"encoding/json"
+	"fmt"
 	"strconv"
 
 	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimsec/zq/compiler/kernel"
+	"github.com/brimsec/zq/expr/agg"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -19,19 +22,19 @@ func zbufDirInt(reversed bool) int {
 	return 1
 }
 
-func Optimize(zctx *resolver.Context, program ast.Proc, sortKey field.Static, sortReversed bool) (*Filter, ast.Proc) {
+func Optimize(zctx *resolver.Context, program ast.Proc, sortKey field.Static, sortReversed bool) (*kernel.Filter, ast.Proc) {
 	if program == nil {
 		return nil, passProc
 	}
-	SemanticTransform(program)
+	Transform(program)
 	if sortKey != nil {
-		setGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
+		SetGroupByProcInputSortDir(program, sortKey, zbufDirInt(sortReversed))
 	}
 	fe, p := liftFilter(program)
 	if fe == nil {
 		return nil, p
 	}
-	return NewFilter(zctx, fe), p
+	return kernel.NewFilter(zctx, fe), p
 }
 
 func ensureSequentialProc(p ast.Proc) *ast.SequentialProc {
@@ -67,12 +70,14 @@ func liftFilter(p ast.Proc) (ast.Expression, ast.Proc) {
 	return nil, p
 }
 
-// SemanticTransform does a semantic analysis on a flowgraph to an
+// Transform does a semantic analysis on a flowgraph to an
 // intermediate representation that can be compiled into the runtime
 // object.  Currently, it only replaces the group-by duration with
 // a truncation call on the ts and replaces FunctionCall's in proc context
 // with either a group-by or filter-proc based on the function's name.
-func SemanticTransform(p ast.Proc) (ast.Proc, error) {
+// XXX In a subsequent PR, instead of modifed the AST in place we will
+// translate the AST into a flow DSL.
+func Transform(p ast.Proc) (ast.Proc, error) {
 	switch p := p.(type) {
 	case *ast.GroupByProc:
 		if duration := p.Duration.Seconds; duration != 0 {
@@ -95,7 +100,7 @@ func SemanticTransform(p ast.Proc) (ast.Proc, error) {
 	case *ast.ParallelProc:
 		for k := range p.Procs {
 			var err error
-			p.Procs[k], err = SemanticTransform(p.Procs[k])
+			p.Procs[k], err = Transform(p.Procs[k])
 			if err != nil {
 				return nil, err
 			}
@@ -103,7 +108,7 @@ func SemanticTransform(p ast.Proc) (ast.Proc, error) {
 	case *ast.SequentialProc:
 		for k := range p.Procs {
 			var err error
-			p.Procs[k], err = SemanticTransform(p.Procs[k])
+			p.Procs[k], err = Transform(p.Procs[k])
 			if err != nil {
 				return nil, err
 			}
@@ -115,9 +120,37 @@ func SemanticTransform(p ast.Proc) (ast.Proc, error) {
 		}
 		// The conversion may be a group-by so we recursively
 		// invoke the transformation here...
-		return SemanticTransform(converted)
+		return Transform(converted)
 	}
 	return p, nil
+}
+
+// convertFunctionProc converts a FunctionCall ast node at proc level
+// to a group-by or a filter-proc based on the name of the function.
+// This way, Z of the form `... | exists(...) | ...` can be distinguished
+// from `count()` by the name lookup here at compile time.
+func convertFunctionProc(call *ast.FunctionCall) (ast.Proc, error) {
+	if _, err := agg.NewPattern(call.Function); err != nil {
+		// Assume it's a valid function and convert.  If not,
+		// the compiler will report an unknown function error.
+		return ast.FilterToProc(call), nil
+	}
+	var e ast.Expression
+	if len(call.Args) > 1 {
+		return nil, fmt.Errorf("%s: wrong number of arguments", call.Function)
+	}
+	if len(call.Args) == 1 {
+		e = call.Args[0]
+	}
+	reducer := &ast.Reducer{
+		Op:       "Reducer",
+		Operator: call.Function,
+		Expr:     e,
+	}
+	return &ast.GroupByProc{
+		Op:       "GroupByProc",
+		Reducers: []ast.Assignment{{RHS: reducer}},
+	}, nil
 }
 
 func eq(e ast.Expression, b field.Static) bool {
@@ -128,15 +161,15 @@ func eq(e ast.Expression, b field.Static) bool {
 	return a.Equal(b)
 }
 
-// setGroupByProcInputSortDir examines p under the assumption that its input is
+// SetGroupByProcInputSortDir examines p under the assumption that its input is
 // sorted according to inputSortField and inputSortDir.  If p is an
-// ast.GroupByProc and setGroupByProcInputSortDir can determine that its first
+// ast.GroupByProc and SetGroupByProcInputSortDir can determine that its first
 // grouping key is inputSortField or an order-preserving function of
-// inputSortField, setGroupByProcInputSortDir sets ast.GroupByProc.InputSortDir
-// to inputSortDir.  setGroupByProcInputSortDir returns true if it determines
+// inputSortField, SetGroupByProcInputSortDir sets ast.GroupByProc.InputSortDir
+// to inputSortDir.  SetGroupByProcInputSortDir returns true if it determines
 // that p's output will remain sorted according to inputSortField and
 // inputSortDir; otherwise, it returns false.
-func setGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSortDir int) bool {
+func SetGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSortDir int) bool {
 	switch p := p.(type) {
 	case *ast.CutProc:
 		// Return true if the output record contains inputSortField.
@@ -196,7 +229,7 @@ func setGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSo
 		return true
 	case *ast.SequentialProc:
 		for _, pp := range p.Procs {
-			if !setGroupByProcInputSortDir(pp, inputSortField, inputSortDir) {
+			if !SetGroupByProcInputSortDir(pp, inputSortField, inputSortDir) {
 				return false
 			}
 		}

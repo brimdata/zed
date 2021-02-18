@@ -1,4 +1,4 @@
-package compiler
+package kernel
 
 import (
 	"errors"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/expr/agg"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/combine"
@@ -185,11 +184,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		return fuse.New(pctx, parent)
 
 	case *ast.FunctionCall:
-		p, err := convertFunctionProc(v)
-		if err != nil {
-			return nil, err
-		}
-		return compileProc(custom, p, pctx, scope, parent)
+		return nil, errors.New("internal bug: semantic analyzer should have converted functioni in proc context to filter or group-by")
 
 	case *ast.JoinProc:
 		return nil, ErrJoinParents
@@ -210,34 +205,6 @@ func compileAssignments(assignments []ast.Assignment, zctx *resolver.Context, sc
 		keys = append(keys, a)
 	}
 	return keys, nil
-}
-
-// convertFunctionProc converts a FunctionCall ast node at proc level
-// to a group-by or a filter-proc based on the name of the function.
-// This way, Z of the form `... | exists(...) | ...` can be distinguished
-// from `count()` by the name lookup here at compile time.
-func convertFunctionProc(call *ast.FunctionCall) (ast.Proc, error) {
-	if _, err := agg.NewPattern(call.Function); err != nil {
-		// Assume it's a valid function and convert.  If not,
-		// the compiler will report an unknown function error.
-		return ast.FilterToProc(call), nil
-	}
-	var e ast.Expression
-	if len(call.Args) > 1 {
-		return nil, fmt.Errorf("%s: wrong number of arguments", call.Function)
-	}
-	if len(call.Args) == 1 {
-		e = call.Args[0]
-	}
-	reducer := &ast.Reducer{
-		Op:       "Reducer",
-		Operator: call.Function,
-		Expr:     e,
-	}
-	return &ast.GroupByProc{
-		Op:       "GroupByProc",
-		Reducers: []ast.Assignment{{RHS: reducer}},
-	}, nil
 }
 
 func splitAssignments(assignments []expr.Assignment) ([]field.Static, []expr.Evaluator) {

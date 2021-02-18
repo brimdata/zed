@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimsec/zq/compiler/semantic"
 	"github.com/brimsec/zq/field"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -116,17 +117,17 @@ func TestParallelizeFlowgraph(t *testing.T) {
 			query, err := ParseProc(tc.zql)
 			require.NoError(t, err)
 
-			ok := IsParallelizable(query.(*ast.SequentialProc), sf(tc.orderField), false)
+			ok := semantic.IsParallelizable(query.(*ast.SequentialProc), sf(tc.orderField), false)
 			require.Equal(t, ok, tc.zql != tc.expected)
 
-			seq, err := SemanticTransform(query.(*ast.SequentialProc))
+			seq, err := semantic.Transform(query.(*ast.SequentialProc))
 			require.NoError(t, err)
-			parallelized, ok := Parallelize(seq, 2, sf(tc.orderField), false)
+			parallelized, ok := semantic.Parallelize(seq, 2, sf(tc.orderField), false)
 			require.Equal(t, ok, tc.zql != tc.expected)
 
 			expectedProc, err := ParseProc(tc.expected)
 			require.NoError(t, err)
-			expected, err := SemanticTransform(expectedProc)
+			expected, err := semantic.Transform(expectedProc)
 			require.NoError(t, err)
 
 			// If the parallelized flowgraph includes a groupby, then adjust the expected AST by setting
@@ -154,7 +155,7 @@ func TestParallelizeFlowgraph(t *testing.T) {
 		dquery := "split (=>filter * | cut ts, y, z | put x=y | rename y=z =>filter * | cut ts, y, z | put x=y | rename y=z)"
 		program, err := ParseProc(query)
 		require.NoError(t, err)
-		parallelized, ok := Parallelize(program.(*ast.SequentialProc), 2, sf(orderField), false)
+		parallelized, ok := semantic.Parallelize(program.(*ast.SequentialProc), 2, sf(orderField), false)
 		require.True(t, ok)
 
 		expected, err := ParseProc(dquery)
@@ -187,8 +188,8 @@ func TestSetGroupByProcInputSortDir(t *testing.T) {
 		t.Run(tc.zql, func(t *testing.T) {
 			query, err := ParseProc(tc.zql)
 			require.NoError(t, err)
-			SemanticTransform(query)
-			outputSorted := setGroupByProcInputSortDir(query, sf(tc.inputSortField), 1)
+			semantic.Transform(query)
+			outputSorted := semantic.SetGroupByProcInputSortDir(query, sf(tc.inputSortField), 1)
 			require.Equal(t, tc.outputSorted, outputSorted)
 
 			var found bool
