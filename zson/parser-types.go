@@ -3,7 +3,9 @@ package zson
 import (
 	"unicode"
 
-	"github.com/brimsec/zq/ast"
+	// XXX should move ZSON ast into zq/zson/ast... it's a bit different
+	// than Z literals so it deserves its own home.
+	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/zng"
 )
 

@@ -8,7 +8,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/compiler/ast"
 )
 
 func (p *Parser) ParseValue() (ast.Value, error) {

@@ -3,7 +3,7 @@ package compiler
 import (
 	"testing"
 
-	"github.com/brimsec/zq/ast"
+	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/field"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
