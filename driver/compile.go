@@ -7,10 +7,9 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/compiler"
-	"github.com/brimsec/zq/compiler/kernel"
-
 	// XXX replace this with flow DSL
 	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimsec/zq/compiler/kernel"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/zqd/worker"

@@ -184,7 +184,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		return fuse.New(pctx, parent)
 
 	case *ast.FunctionCall:
-		return nil, errors.New("internal bug: semantic analyzer should have converted functioni in proc context to filter or group-by")
+		return nil, errors.New("internal error: semantic analyzer should have converted function in proc context to filter or group-by")
 
 	case *ast.JoinProc:
 		return nil, ErrJoinParents
