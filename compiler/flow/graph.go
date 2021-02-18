@@ -1,25 +1,22 @@
-// Package ast declares the types used to represent syntax trees for zql
-// queries.
-package ast
-
-// This module is derived from the GO ast design pattern
-// https://golang.org/pkg/go/ast/
-//
-// Copyright 2009 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
+package flow
 
 import (
-	"encoding/json"
-
-	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/zng"
 )
 
+type Graph interface {
+	graphNode()
+}
+
+type Operator interface {
+	operatorNode()
+}
+
 type Program struct {
-	Op     string      `json:"op"`
-	Consts []Const     `json:"consts"`
-	Types  []TypeConst `json:"types"`
-	Entry  Proc        `json:"entry"`
+	Consts    []Const
+	Types     []Type
+	Functions []Function
+	Entry     Operator
 }
 
 type Const struct {
@@ -28,23 +25,15 @@ type Const struct {
 	Value Literal `json:"value"`
 }
 
-type TypeConst struct {
+type Type struct {
 	Op   string `json:"op"`
 	Name string `json:"name"`
-	// For now types are strings of their ZSON type.  When we add
-	// type parsing to the grammar, this will change to Type.
-	Type string `json:"type"`
+        Value zng.Value
 }
 
-// Proc is the interface implemented by all AST processor nodes.
-type Proc interface {
-	ProcNode()
-}
+type Function struct{}
 
-// Identifier refers to a syntax element analogous to a programming language
-// identifier.  It is currently used exclusively as the RHS of a BinaryExpr "."
-// expression though it may have future uses (e.g., enum names or externally
-// referred to data e.g, maps to do external joins).
+
 type Identifier struct {
 	Op   string `json:"op"`
 	Name string `json:"name"`

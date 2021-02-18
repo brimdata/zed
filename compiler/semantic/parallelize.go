@@ -9,7 +9,6 @@ import (
 	"github.com/brimsec/zq/compiler/kernel"
 	"github.com/brimsec/zq/expr/agg"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/zng/resolver"
 )
 
 var passProc = &ast.PassProc{Op: "PassProc"}
@@ -292,18 +291,18 @@ func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, rever
 	}, true
 }
 
-// IsParallelizable reports whether Parallelize can parallelize p when called
+// isParallelizable reports whether Parallelize can parallelize p when called
 // with the same arguments.
-func IsParallelizable(p ast.Proc, inputSortField field.Static, inputSortReversed bool) bool {
-	_, ok := Parallelize(copyProc(p), 0, inputSortField, inputSortReversed)
+func isParallelizable(p ast.Proc, inputSortField field.Static, inputSortReversed bool) bool {
+	_, ok := parallelize(copyProc(p), 0, inputSortField, inputSortReversed)
 	return ok
 }
 
-// Parallelize takes a sequential proc AST and tries to
+// parallelize takes a sequential proc AST and tries to
 // parallelize it by splitting as much as possible of the sequence
 // into N parallel branches. The boolean return argument indicates
 // whether the flowgraph could be parallelized.
-func Parallelize(p ast.Proc, N int, inputSortField field.Static, inputSortReversed bool) (*ast.SequentialProc, bool) {
+func parallelize(p ast.Proc, N int, inputSortField field.Static, inputSortReversed bool) (*ast.SequentialProc, bool) {
 	seq := ensureSequentialProc(p)
 	orderSensitiveTail := true
 	for i := range seq.Procs {

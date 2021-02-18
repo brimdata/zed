@@ -299,14 +299,14 @@ func (c *Connection) WorkerRelease(ctx context.Context) error {
 //	}
 //
 func (c *Connection) Search(ctx context.Context, spaceID api.SpaceID, query string) (*ZngSearch, error) {
-	procBytes, err := c.ZtoAST(ctx, query)
+	programBytes, err := c.ZtoAST(ctx, query)
 	if err != nil {
 		return nil, err
 	}
 	r, err := c.SearchRaw(ctx, api.SearchRequest{
-		Space: spaceID,
-		Proc:  procBytes,
-		Dir:   -1,
+		Space:   spaceID,
+		Program: programBytes,
+		Dir:     -1,
 	}, nil)
 	if err != nil {
 		return nil, err
