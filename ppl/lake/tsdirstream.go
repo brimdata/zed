@@ -4,14 +4,15 @@ import (
 	"container/heap"
 	"context"
 	"sort"
-	"sync/atomic"
 
 	"github.com/brimsec/zq/ppl/lake/chunk"
 	"github.com/brimsec/zq/zbuf"
+	"golang.org/x/sync/errgroup"
 )
 
 type tsDirStream struct {
-	ch chan tsDirStreamResult
+	ch  chan tsDirStreamResult
+	err error
 }
 
 func newTsDirStream(ctx context.Context, lk *Lake, tsDirs []tsDir) *tsDirStream {
@@ -23,69 +24,67 @@ func newTsDirStream(ctx context.Context, lk *Lake, tsDirs []tsDir) *tsDirStream 
 	})
 
 	t := &tsDirStream{ch: make(chan tsDirStreamResult)}
-
-	if len(tsDirs) > 0 {
-		go t.run(ctx, lk, tsDirs)
-	} else {
-		close(t.ch)
-	}
-
+	go t.run(ctx, lk, tsDirs)
 	return t
 }
 
 func (t *tsDirStream) run(ctx context.Context, lk *Lake, tsDirs []tsDir) {
-	var count int64
 	ch := make(chan tsDirStreamResult)
 	results := &tsDirStreamResultHeap{order: lk.DataOrder}
-
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	g, ctx := errgroup.WithContext(ctx)
 
 	for _, tsDir := range tsDirs {
 		tsDir := tsDir
-		atomic.AddInt64(&count, 1)
-		go func() {
+		g.Go(func() error {
 			chunks, err := tsDirChunks(ctx, tsDir, lk)
-			ch <- tsDirStreamResult{tsDir: tsDir, chunks: chunks, err: err}
-			if c := atomic.AddInt64(&count, -1); c == 0 {
-				close(ch)
+			if err != nil {
+				return err
 			}
-		}()
+			select {
+			case ch <- tsDirStreamResult{tsDir: tsDir, chunks: chunks}:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+			return nil
+		})
 	}
 
-	for result := range ch {
-		if result.err != nil {
-			cancel()
-			// drain channel
-			for range ch {
+	g.Go(func() error {
+		for len(tsDirs) > 0 {
+			result, ok := <-ch
+			if !ok {
+				return nil
 			}
-			t.ch <- result
-			break
-		}
-		heap.Push(results, result)
 
-		for results.Len() > 0 && results.items[0].tsDir == tsDirs[0] {
-			next := heap.Pop(results).(tsDirStreamResult)
-			tsDirs = tsDirs[1:]
-			t.ch <- next
+			heap.Push(results, result)
+			for results.Len() > 0 && results.items[0].tsDir == tsDirs[0] {
+				next := heap.Pop(results).(tsDirStreamResult)
+				tsDirs = tsDirs[1:]
+				select {
+				case t.ch <- next:
+				case <-ctx.Done():
+					return ctx.Err()
+				}
+			}
 		}
-	}
-
+		return nil
+	})
+	t.err = g.Wait()
+	close(ch)
 	close(t.ch)
 }
 
 func (t *tsDirStream) Next() (*tsDir, chunk.Chunks, error) {
 	result, ok := <-t.ch
 	if !ok {
-		return nil, nil, nil
+		return nil, nil, t.err
 	}
-	return &result.tsDir, result.chunks, result.err
+	return &result.tsDir, result.chunks, nil
 }
 
 type tsDirStreamResult struct {
 	tsDir  tsDir
 	chunks []chunk.Chunk
-	err    error
 }
 
 type tsDirStreamResultHeap struct {
