@@ -1,0 +1,10 @@
+zql: |
+  put . = crop(., "{set:|[{b:string}]|,arr:[{a:string}]}")
+
+input: |
+  #0:record[arr:array[record[a:string,b:string]],set:set[record[a:string,b:string]]]
+  0:[[[one;two;][three;four;]][[one;two;][three;four;]]]
+
+output: |
+  #0:record[arr:array[record[a:string]],set:set[record[b:string]]]
+  0:[[[one;][three;]][[two;][four;]]]

@@ -352,18 +352,35 @@ func (s *Shaper) cropRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 
 		specCol := spec.Columns[ind]
 		switch {
-		case !zng.IsRecordType(inCol.Type):
+		case zng.IsPrimitiveType(inCol.Type):
 			// 2. Field is non-record in input: keep (regardless of crop record-ness)
 			cols = append(cols, inCol)
-		case zng.IsRecordType(specCol.Type):
+		case zng.IsRecordType(inCol.Type) && zng.IsRecordType(specCol.Type):
 			// 3. Both records: recurse
 			out, err := s.cropRecordType(inCol.Type.(*zng.TypeRecord), specCol.Type.(*zng.TypeRecord))
 			if err != nil {
 				return nil, err
 			}
 			cols = append(cols, zng.Column{inCol.Name, out})
+		case isCollectionType(inCol.Type) && isCollectionType(specCol.Type) &&
+			zng.IsRecordType(innerType(inCol.Type)) && zng.IsRecordType(innerType(specCol.Type)):
+			// 4. array/set of records
+			inner, err := s.cropRecordType(innerType(inCol.Type).(*zng.TypeRecord), innerType(specCol.Type).(*zng.TypeRecord))
+			if err != nil {
+				return nil, err
+			}
+			var t zng.Type
+			if _, ok := inCol.Type.(*zng.TypeArray); ok {
+				t, err = s.zctx.LookupTypeArray(inner), nil
+			} else {
+				t, err = s.zctx.LookupTypeSet(inner), nil
+			}
+			if err != nil {
+				return nil, err
+			}
+			cols = append(cols, zng.Column{inCol.Name, t})
 		default:
-			// 4. record input but non-record in crop: keep crop
+			// 5. record input but non-record in crop: keep crop
 			cols = append(cols, specCol)
 
 		}
