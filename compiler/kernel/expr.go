@@ -70,15 +70,14 @@ func compileExpr(zctx *resolver.Context, scope *Scope, e Expr) (expr.Evaluator, 
 		return &expr.RootRecord{}, nil
 	case *EmptyExpr:
 		return nil, errors.New("system error: empty expression encountered in compiler")
-	case *Identifier:
-		// If the identifier refers to a named variable in scope (like "$"),
-		// then return a Var expression referring to the pointer to the value.
-		// Note that constants may be accessed this way too by entering their
-		// names into the global (outermost) scope in the Scope entity.
-		if ref := scope.Lookup(e.Name); ref != nil {
-			return expr.NewVar(ref), nil
+	case *Ref:
+		ref := scope.Lookup(e.Name)
+		if ref == nil {
+			return nil, fmt.Errorf("no such variable: '%s'", e.Name)
 		}
-		return compileExpr(zctx, scope, rootField(e.Name))
+		return expr.NewVar(ref), nil
+	case *Identifier:
+		return nil, fmt.Errorf("identifier out of context: '%s'", e.Name)
 	case *SearchExpr:
 		return nil, errors.New("search TBD")
 	case *SeqExpr:

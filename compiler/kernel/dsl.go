@@ -101,6 +101,10 @@ type (
 		Op          string       `json:"op"`
 		Assignments []Assignment `json:"assignments"`
 	}
+	Ref struct {
+		Op   string `json:"op"`
+		Name string `json:"name"`
+	}
 	Rename struct {
 		Op          string            `json:"op"`
 		Assignments []FieldAssignment `json:"assignments"`
@@ -262,13 +266,14 @@ func (*ConstExpr) expr()  {}
 func (*Dot) expr()        {}
 func (*EmptyExpr) expr()  {}
 func (*Identifier) expr() {}
+func (*Ref) expr()        {}
 func (*SearchExpr) expr() {}
 func (*SeqExpr) expr()    {}
 func (*UnaryExpr) expr()  {}
 
-func (*UnaryExpr) boolean()  {}
 func (*BinaryExpr) boolean() {}
 func (*ConstExpr) boolean()  {}
+func (*UnaryExpr) boolean()  {}
 
 func DotExprToField(n Expr) (field.Static, bool) {
 	switch n := n.(type) {
