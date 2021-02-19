@@ -438,10 +438,11 @@ func (s *Shaper) fillRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 	copy(cols, input.Columns)
 	for _, specCol := range spec.Columns {
 		if i, ok := input.ColumnOfField(specCol.Name); ok {
+			inCol := input.Columns[i]
 			// Field is present both in input and spec: recurse if
 			// both records, or select appropriate type if not.
 			if specRecType, ok := specCol.Type.(*zng.TypeRecord); ok {
-				if inRecType, ok := input.Columns[i].Type.(*zng.TypeRecord); ok {
+				if inRecType, ok := inCol.Type.(*zng.TypeRecord); ok {
 					filled, err := s.fillRecordType(inRecType, specRecType)
 					if err != nil {
 						return nil, err
@@ -449,6 +450,24 @@ func (s *Shaper) fillRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 					cols[i] = zng.Column{specCol.Name, filled}
 				} else {
 					cols[i] = specCol
+				}
+				continue
+			}
+			if isCollectionType(inCol.Type) && isCollectionType(specCol.Type) && zng.IsRecordType(innerType(inCol.Type)) && zng.IsRecordType(innerType(specCol.Type)) {
+				if inner, err := s.fillRecordType(innerType(inCol.Type).(*zng.TypeRecord), innerType(specCol.Type).(*zng.TypeRecord)); err != nil {
+					return nil, err
+				} else {
+					var err error
+					var t zng.Type
+					if _, ok := inCol.Type.(*zng.TypeArray); ok {
+						t, err = s.zctx.LookupTypeArray(inner), nil
+					} else {
+						t, err = s.zctx.LookupTypeSet(inner), nil
+					}
+					if err != nil {
+						return nil, err
+					}
+					cols[i] = zng.Column{specCol.Name, t}
 				}
 			}
 		} else {
