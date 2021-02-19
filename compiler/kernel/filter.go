@@ -3,7 +3,6 @@ package kernel
 import (
 	"fmt"
 
-	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -60,7 +59,7 @@ func compileRegexp(search *RegexpExpr) (expr.Filter, error) {
 
 func compileSearch(search *SearchExpr) (expr.Filter, error) {
 	typ := zng.AliasedType(search.Value.Type)
-	if zng.AliasedType(typ) == zng.TypeNet {
+	if typ == zng.TypeNet {
 		match, err := expr.Comparison("=", search.Value)
 		if err != nil {
 			return nil, err
@@ -111,46 +110,49 @@ func compileFilter(zctx *resolver.Context, scope *Scope, e Expr) (expr.Filter, e
 	case *SearchExpr:
 		return compileSearch(e)
 
-	case *ast.BinaryExpression:
-		if v.Operator == "and" {
-			left, err := compileFilter(zctx, scope, v.LHS)
+	case *BinaryExpr:
+		if e.Operator == "and" {
+			left, err := compileFilter(zctx, scope, e.LHS)
 			if err != nil {
 				return nil, err
 			}
-			right, err := compileFilter(zctx, scope, v.RHS)
+			right, err := compileFilter(zctx, scope, e.RHS)
 			if err != nil {
 				return nil, err
 			}
 			return expr.LogicalAnd(left, right), nil
 		}
-		if v.Operator == "or" {
-			left, err := compileFilter(zctx, scope, v.LHS)
+		if e.Operator == "or" {
+			left, err := compileFilter(zctx, scope, e.LHS)
 			if err != nil {
 				return nil, err
 			}
-			right, err := compileFilter(zctx, scope, v.RHS)
+			right, err := compileFilter(zctx, scope, e.RHS)
 			if err != nil {
 				return nil, err
 			}
 			return expr.LogicalOr(left, right), nil
 		}
-		if f, err := compileCompareField(zctx, scope, v); f != nil || err != nil {
+		if f, err := compileCompareField(zctx, scope, e); f != nil || err != nil {
 			return f, err
 		}
-		return compilExprPredicate(zctx, scope, v)
+		return compilExprPredicate(zctx, scope, e)
 
-	case *ast.FunctionCall:
-		if f, err := compileCompareAny(v); f != nil || err != nil {
+	case *CallExpr:
+		return compilExprPredicate(zctx, scope, e)
+
+	case *SeqExpr:
+		if f, err := compileCompareAny(e); f != nil || err != nil {
 			return f, err
 		}
-		return compilExprPredicate(zctx, scope, v)
+		return compilExprPredicate(zctx, scope, e)
 
 	default:
-		return nil, fmt.Errorf("Filter AST unknown type: %v", v)
+		return nil, fmt.Errorf("Filter AST unknown type: %v", e)
 	}
 }
 
-func compilExprPredicate(zctx *resolver.Context, scope *Scope, e ast.Expression) (expr.Filter, error) {
+func compilExprPredicate(zctx *resolver.Context, scope *Scope, e Expr) (expr.Filter, error) {
 	predicate, err := compileExpr(zctx, scope, e)
 	if err != nil {
 		return nil, err
@@ -167,21 +169,21 @@ func compilExprPredicate(zctx *resolver.Context, scope *Scope, e ast.Expression)
 	}, nil
 }
 
-func compileCompareAny(e *ast.FunctionCall) (expr.Filter, error) {
-	literal, op, ok := isCompareAny(e)
+func compileCompareAny(seq *SeqExpr) (expr.Filter, error) {
+	literal, op, ok := isCompareAny(seq)
 	if !ok {
 		return nil, nil
 	}
 	var pred expr.Boolean
 	var err error
 	if op == "in" {
-		comparison, err := expr.Comparison("=", *literal)
+		comparison, err := expr.Comparison("=", literal.Value)
 		if err != nil {
 			return nil, err
 		}
 		pred = expr.Contains(comparison)
 	} else {
-		pred, err = expr.Comparison(op, *literal)
+		pred, err = expr.Comparison(op, literal.Value)
 		if err != nil {
 			return nil, err
 		}

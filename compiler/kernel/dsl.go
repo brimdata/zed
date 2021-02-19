@@ -245,6 +245,10 @@ type Method struct {
 	Args []Expr `json:"args"`
 }
 
+func (c *ConstExpr) IsNet() bool {
+	return zng.AliasedType(c.Value.Type) == zng.TypeNet
+}
+
 func (*BinaryExpr) expr() {}
 func (*CallExpr) expr()   {}
 func (*CastExpr) expr()   {}
