@@ -1,0 +1,10 @@
+zql: |
+  put . = order(., "{set:|[{b:string,a:string}]|,arr:[{b:string,a:string}]}")
+
+input: |
+  #0:record[arr:array[record[a:string,b:string]],set:set[record[a:string,b:string]]]
+  0:[[[one;two;][three;four;]][[one;two;][three;four;]]]
+
+output: |
+  #0:record[set:set[record[b:string,a:string]],arr:array[record[b:string,a:string]]]
+  0:[[[two;one;][four;three;]][[two;one;][four;three;]]]

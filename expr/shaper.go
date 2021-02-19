@@ -401,6 +401,24 @@ func (s *Shaper) orderRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, 
 				}
 				continue
 			}
+			if isCollectionType(inCol.Type) && isCollectionType(specCol.Type) && zng.IsRecordType(innerType(inCol.Type)) && zng.IsRecordType(innerType(specCol.Type)) {
+				if inner, err := s.orderRecordType(innerType(inCol.Type).(*zng.TypeRecord), innerType(specCol.Type).(*zng.TypeRecord)); err != nil {
+					return nil, err
+				} else {
+					var err error
+					var t zng.Type
+					if _, ok := inCol.Type.(*zng.TypeArray); ok {
+						t, err = s.zctx.LookupTypeArray(inner), nil
+					} else {
+						t, err = s.zctx.LookupTypeSet(inner), nil
+					}
+					if err != nil {
+						return nil, err
+					}
+					cols = append(cols, zng.Column{specCol.Name, t})
+				}
+				continue
+			}
 			cols = append(cols, inCol)
 		}
 	}
