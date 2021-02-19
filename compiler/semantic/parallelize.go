@@ -113,6 +113,15 @@ func Transform(p ast.Proc) (ast.Proc, error) {
 				return nil, err
 			}
 		}
+	case *ast.SwitchProc:
+		for k := range p.Cases {
+			var err error
+			tr, err := Transform(p.Cases[k].Proc)
+			if err != nil {
+				return nil, err
+			}
+			p.Cases[k] = ast.SwitchCase{Filter: p.Cases[k].Filter, Proc: tr}
+		}
 	case *ast.FunctionCall:
 		converted, err := convertFunctionProc(p)
 		if err != nil {

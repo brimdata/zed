@@ -19,6 +19,7 @@ import (
 	"github.com/brimsec/zq/proc/rename"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/proc/split"
+	"github.com/brimsec/zq/proc/switcher"
 	"github.com/brimsec/zq/proc/tail"
 	"github.com/brimsec/zq/proc/top"
 	"github.com/brimsec/zq/proc/uniq"
@@ -226,6 +227,14 @@ func enteringJoin(nodes []ast.Proc) bool {
 	return ok
 }
 
+func mergeInfo(p ast.Proc) (field.Static, bool) {
+	if par, ok := p.(*ast.ParallelProc); ok {
+		return par.MergeOrderField, par.MergeOrderReverse
+	}
+	swi := p.(*ast.SwitchProc)
+	return swi.MergeOrderField, swi.MergeOrderReverse
+}
+
 func compileSequential(custom Hook, nodes []ast.Proc, pctx *proc.Context, scope *Scope, parents []proc.Interface) ([]proc.Interface, error) {
 	node := nodes[0]
 	parents, err := Compile(custom, node, pctx, scope, parents)
@@ -240,9 +249,9 @@ func compileSequential(custom Hook, nodes []ast.Proc, pctx *proc.Context, scope 
 	}
 	if len(parents) > 1 && !enteringJoin(nodes[1:]) {
 		var parent proc.Interface
-		p := node.(*ast.ParallelProc)
-		if p.MergeOrderField != nil {
-			cmp := zbuf.NewCompareFn(p.MergeOrderField, p.MergeOrderReverse)
+		orderField, orderReverse := mergeInfo(node)
+		if orderField != nil {
+			cmp := zbuf.NewCompareFn(orderField, orderReverse)
 			parent = merge.New(pctx, parents, cmp)
 		} else {
 			parent = combine.New(pctx, parents)
@@ -277,6 +286,35 @@ func compileParallel(custom Hook, pp *ast.ParallelProc, c *proc.Context, scope *
 	return procs, nil
 }
 
+func compileSwitch(custom Hook, pp *ast.SwitchProc, pctx *proc.Context, scope *Scope, parents []proc.Interface) ([]proc.Interface, error) {
+	n := len(pp.Cases)
+	if len(parents) == 1 {
+		// Single parent: insert a switcher and wire to each branch.
+		switcher := switcher.New(parents[0])
+		parents = []proc.Interface{}
+		for _, c := range pp.Cases {
+			f, err := compileFilter(pctx.TypeContext, scope, c.Filter)
+			if err != nil {
+				return nil, fmt.Errorf("compiling switch case filter: %w", err)
+			}
+			sc := switcher.NewProc(f)
+			parents = append(parents, sc)
+		}
+	}
+	if len(parents) != n {
+		return nil, fmt.Errorf("proc.compileSwitch: %d parents for switch proc with %d branches", len(parents), len(pp.Cases))
+	}
+	var procs []proc.Interface
+	for k := 0; k < n; k++ {
+		proc, err := Compile(custom, pp.Cases[k].Proc, pctx, scope, []proc.Interface{parents[k]})
+		if err != nil {
+			return nil, err
+		}
+		procs = append(procs, proc...)
+	}
+	return procs, nil
+}
+
 // Compile compiles an AST into a graph of Procs, and returns
 // the leaves.  A custom compiler hook can be included and it will be tried first
 // for each node encountered during the compilation.
@@ -298,6 +336,9 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, paren
 
 	case *ast.ParallelProc:
 		return compileParallel(custom, node, pctx, scope, parents)
+
+	case *ast.SwitchProc:
+		return compileSwitch(custom, node, pctx, scope, parents)
 
 	case *ast.JoinProc:
 		if len(parents) != 2 {

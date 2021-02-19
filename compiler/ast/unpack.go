@@ -36,6 +36,41 @@ func unpackProcs(custom Unpacker, node joe.Interface) ([]Proc, error) {
 	return procs, nil
 }
 
+func unpackCases(custom Unpacker, node joe.Interface) ([]SwitchCase, error) {
+	if node == nil {
+		return nil, errors.New("ast.unpackCases: cases field is missing")
+	}
+	caseList, err := node.Get("cases")
+	if err != nil {
+		return nil, fmt.Errorf("ast.unpackCases: cases field is missing")
+	}
+	a, ok := caseList.(joe.Array)
+	if !ok {
+		return nil, fmt.Errorf("ast.unpackCases: cases field is not an array")
+	}
+	cases := make([]SwitchCase, 0, len(a))
+	for _, item := range a {
+		procJ, err := item.Get("proc")
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackCases: proc field is missing")
+		}
+		proc, err := unpackProc(custom, procJ)
+		if err != nil {
+			return nil, err
+		}
+		filtJ, err := item.Get("filter")
+		if err != nil {
+			return nil, fmt.Errorf("ast.unpackCases: filter field is missing")
+		}
+		filt, err := UnpackExpression(filtJ)
+		if err != nil {
+			return nil, err
+		}
+		cases = append(cases, SwitchCase{Filter: filt, Proc: proc})
+	}
+	return cases, nil
+}
+
 func getString(node joe.Interface, field string) (string, error) {
 	item, err := node.Get(field)
 	if err != nil {
@@ -79,6 +114,12 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 			return nil, err
 		}
 		return &ParallelProc{Procs: procs}, nil
+	case "SwitchProc":
+		cases, err := unpackCases(custom, node)
+		if err != nil {
+			return nil, err
+		}
+		return &SwitchProc{Cases: cases}, nil
 	case "SortProc":
 		a, _ := node.Get("fields")
 		fields, err := unpackExprs(a)
