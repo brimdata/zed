@@ -9,6 +9,10 @@ type Literal struct {
 	zv zng.Value
 }
 
+func NewConst(zv zng.Value) (*Literal, error) {
+	return &Literal{zv}, nil
+}
+
 //XXX only works for primitive... will need zctx for complex literals
 func NewLiteral(val ast.Literal) (*Literal, error) {
 	zv, err := zng.Parse(val)

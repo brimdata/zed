@@ -12,19 +12,41 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, node *ast.GroupByProc) (*groupby.Proc, error) {
-	keys, err := compileAssignments(node.Keys, pctx.TypeContext, scope)
+func compileAgg(pctx *proc.Context, scope *Scope, parent proc.Interface, p *Agg) (*groupby.Proc, error) {
+	keys, err := compileAssignments(p.Keys, pctx.TypeContext, scope) //XXX
 	if err != nil {
 		return nil, err
 	}
-	names, reducers, err := compileAggs(node.Reducers, scope, pctx.TypeContext)
+	aggLvals, aggFuncs, err := compileAggAssignments(p.AggAssignments, scope, pctx.TypeContext)
 	if err != nil {
 		return nil, err
 	}
-	return groupby.New(pctx, parent, keys, names, reducers, node.Limit, node.InputSortDir, node.ConsumePart, node.EmitPart)
+	sortdir := 1
+	if p.InputDesc {
+		sortdir = -1
+	}
+	return groupby.New(pctx, parent, keys, lvals, aggFuncs, p.Limit, sortdir, p.partialsIn, p.partialsIn)
 }
 
-func compileAggs(assignments []ast.Assignment, scope *Scope, zctx *resolver.Context) ([]field.Static, []*expr.Aggregator, error) {
+func compileAggAssignments(assignments []AggAssignment, zctx *resolver.Context, scope *Scope) ([]field.Static, []expr.Evaluator, error) {
+	lvals := make([]field.Static, 0, len(assignments))
+	exprs := make([]expr.Evaluator, 0, len(assignments))
+	for _, assignment := range assignments {
+		e, err := compileExpr(zctx, scope, &assignment.RHS)
+		if err != nil {
+			return nil, nil, err
+		}
+		exprs = append(exprs, e)
+		lval, err := CompileLval(assignment.LHS)
+		if err != nil {
+			// XXX this error checking shouldn't be necessary
+			return nil, nil, fmt.Errorf("lhs of assigment agg assignment: %w", err)
+		}
+	}
+	return lvals, exprs, nil
+}
+
+func compileAggFuncs(assignments []ast.Assignment, scope *Scope, zctx *resolver.Context) ([]field.Static, []*expr.Aggregator, error) {
 	names := make([]field.Static, 0, len(assignments))
 	aggs := make([]*expr.Aggregator, 0, len(assignments))
 	for _, assignment := range assignments {

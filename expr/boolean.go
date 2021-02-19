@@ -10,7 +10,7 @@ import (
 
 	//XXX this shouldn't be reaching into the AST but we'll leave it for
 	// now until we factor-in the flow-based package
-	"github.com/brimsec/zq/compiler/ast"
+
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zng"
 )
@@ -230,10 +230,10 @@ func CompareBstring(op string, pattern zng.Bstring) (Boolean, error) {
 	}, nil
 }
 
-// compareRegexp returns a Predicate that compares values that must
+// RegexpComparison returns a Predicate that compares values that must
 // be a string or enum with the value's regular expression using a regex
 // match comparison based on equality or inequality based on op.
-func compareRegexp(op, pattern string) (Boolean, error) {
+func RegexpComparison(op, pattern string) (Boolean, error) {
 	re, err := regexp.Compile(string(zng.UnescapeBstring([]byte(pattern))))
 	if err != nil {
 		if syntaxErr, ok := err.(*syntax.Error); ok {
@@ -377,30 +377,29 @@ func Contains(compare Boolean) Boolean {
 // See the comments of the various type implementations
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
-func Comparison(op string, literal ast.Literal) (Boolean, error) {
-	if literal.Type == "regexp" {
-		return compareRegexp(op, literal.Value)
-	}
-	v, err := zng.ParseLiteral(literal)
-	if err != nil {
-		return nil, err
-	}
-	switch v := v.(type) {
+func Comparison(op string, literal zng.Value) (Boolean, error) {
+	switch literal.Type.(type) {
 	case nil:
 		return CompareUnset(op)
-	case net.IP:
-		return CompareIP(op, v)
-	case *net.IPNet:
-		return CompareSubnet(op, v)
-	case bool:
-		return CompareBool(op, v)
-	case float64: //XXX
-		return CompareFloat64(op, v)
-	case zng.Bstring: //XXX
-		return CompareBstring(op, v)
-	case int64:
-		return CompareInt64(op, v)
+	case *zng.TypeOfIP:
+		addr, _ := zng.DecodeIP(literal.Bytes)
+		return CompareIP(op, addr)
+	case *zng.TypeOfNet:
+		net, _ := zng.DecodeNet(literal.Bytes)
+		return CompareSubnet(op, net)
+	case *zng.TypeOfBool:
+		b, _ := zng.DecodeBool(literal.Bytes)
+		return CompareBool(op, b)
+	case *zng.TypeOfFloat64:
+		f, _ := zng.DecodeFloat64(literal.Bytes)
+		return CompareFloat64(op, f)
+	case *zng.TypeOfBstring, *zng.TypeOfString:
+		return CompareBstring(op, zng.Bstring(literal.Bytes))
+		//XXX other int types?
+	case *zng.TypeOfInt64:
+		i, _ := zng.DecodeInt(literal.Bytes)
+		return CompareInt64(op, i)
 	default:
-		return nil, fmt.Errorf("unknown type of constant: %s (%T)", literal.Type, v)
+		return nil, fmt.Errorf("unupported type in expr.Comparison: %T", literal.Type)
 	}
 }

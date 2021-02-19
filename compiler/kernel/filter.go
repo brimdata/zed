@@ -9,29 +9,25 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpression) (expr.Filter, error) {
+func compileCompareField(zctx *resolver.Context, scope *Scope, e *BinaryExpr) (expr.Filter, error) {
 	if e.Operator == "in" {
-		literal, ok := e.LHS.(*ast.Literal)
+		literal, ok := e.LHS.(*ConstExpr)
 		if !ok {
 			return nil, nil
 		}
-		// Check if RHS is a legit lval/field.
-		if _, err := CompileLval(e.RHS); err != nil {
-			return nil, nil
-		}
-		resolver, err := compileExpr(zctx, scope, e.RHS)
+		lval, err := compileExpr(zctx, scope, e.RHS)
 		if err != nil {
 			return nil, err
 		}
-		eql, _ := expr.Comparison("=", *literal)
+		eql, _ := expr.Comparison("=", literal.Value)
 		comparison := expr.Contains(eql)
-		return expr.Combine(resolver, comparison), nil
+		return expr.Combine(lval, comparison), nil
 	}
-	literal, ok := e.RHS.(*ast.Literal)
+	literal, ok := e.RHS.(*ConstExpr)
 	if !ok {
 		return nil, nil
 	}
-	comparison, err := expr.Comparison(e.Operator, *literal)
+	comparison, err := expr.Comparison(e.Operator, literal.Value)
 	if err != nil {
 		// If this fails, return no match instead of the error and
 		// let later-on code detect the error as this could be a
@@ -49,9 +45,23 @@ func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr
 	return expr.Combine(resolver, comparison), nil
 }
 
-func compileSearch(node *ast.Search) (expr.Filter, error) {
-	if node.Value.Type == "regexp" || node.Value.Type == "net" {
-		match, err := expr.Comparison("=", node.Value)
+//XXX contains vs match?
+func compileRegexp(search *RegexpExpr) (expr.Filter, error) {
+	match, err := expr.RegexpComparison("=", search.Pattern)
+	if err != nil {
+		return nil, err
+	}
+	contains := expr.Contains(match)
+	pred := func(zv zng.Value) bool {
+		return match(zv) || contains(zv)
+	}
+	return expr.EvalAny(pred, true), nil
+}
+
+func compileSearch(search *SearchExpr) (expr.Filter, error) {
+	typ := zng.AliasedType(search.Value.Type)
+	if zng.AliasedType(typ) == zng.TypeNet {
+		match, err := expr.Comparison("=", search.Value)
 		if err != nil {
 			return nil, err
 		}
@@ -62,49 +72,44 @@ func compileSearch(node *ast.Search) (expr.Filter, error) {
 
 		return expr.EvalAny(pred, true), nil
 	}
-
-	if node.Value.Type == "string" {
-		term, err := zng.TypeBstring.Parse([]byte(node.Value.Value))
-		if err != nil {
-			return nil, err
-		}
-		return expr.SearchRecordString(string(term)), nil
+	if typ == zng.TypeString {
+		// Bstring?  => already parsed if in a zng value?!
+		//term, err := zng.TypeBstring.Parse(z...
+		//if err != nil {
+		//	return nil, err
+		//}
+		return expr.SearchRecordString(string(search.Value.Bytes)), nil
 	}
 
-	return expr.SearchRecordOther(node.Text, node.Value)
+	return expr.SearchRecordOther(search.Text, search.Value)
 }
 
-func compileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (expr.Filter, error) {
-	switch v := node.(type) {
-	case *ast.UnaryExpression:
-		if v.Operator != "!" {
-			return nil, fmt.Errorf("unknown unary operator: %s", v.Operator)
+func compileFilter(zctx *resolver.Context, scope *Scope, e Expr) (expr.Filter, error) {
+	switch e := e.(type) {
+	case *UnaryExpr:
+		if e.Operator != "!" {
+			return nil, fmt.Errorf("unknown unary operator: %s", e.Operator)
 		}
-		e, err := compileFilter(zctx, scope, v.Operand)
+		filter, err := compileFilter(zctx, scope, e.Operand)
 		if err != nil {
 			return nil, err
 		}
-		return expr.LogicalNot(e), nil
+		return expr.LogicalNot(filter), nil
 
-	case *ast.Literal:
-		// This literal translation should happen elsewhere will
-		// be fixed when we add ZSON literals to Z, e.g.,
-		// ast.Literal.AsBool() etc methods.
-		if v.Type != "bool" {
-			return nil, fmt.Errorf("bad literal type in filter compiler: %s", v.Type)
+	case *ConstExpr:
+		// XXX should be checked by semantic...
+		// we should have a boolean literal type so this
+		// can't happen here
+		if zng.AliasedType(e.Value.Type) != zng.TypeBool {
+			return nil, fmt.Errorf("bad literal type in filter compiler: %s", e.Value.Type)
 		}
-		var b bool
-		switch v.Value {
-		case "true":
-			b = true
-		case "false":
-		default:
-			return nil, fmt.Errorf("bad boolean value in ast.Literal: %s", v.Value)
+		if zng.IsTrue(e.Value.Bytes) {
+			return func(*zng.Record) bool { return true }, nil
 		}
-		return func(*zng.Record) bool { return b }, nil
+		return func(*zng.Record) bool { return false }, nil
 
-	case *ast.Search:
-		return compileSearch(v)
+	case *SearchExpr:
+		return compileSearch(e)
 
 	case *ast.BinaryExpression:
 		if v.Operator == "and" {

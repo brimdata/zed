@@ -47,29 +47,17 @@ type FunctionDef struct {
 // Operators
 
 type (
-	Sequential struct {
-		Op        string     `json:"op"`
-		Operators []Operator `json:"operators"`
-	}
-	Parallel struct {
-		Op        string     `json:"op"`
-		Operators []Operator `json:"operators"`
-	}
-	Merge struct {
-		Field   field.Static `json:"field"`
-		Reverse bool         `json:"reverse"`
-	}
-	Sort struct {
-		Op         string `json:"op"`
-		Fields     []Expr `json:"fields"`
-		Reverse    bool   `json:"reverse"`
-		NullsFirst bool   `json:"nullsfirst"`
+	Agg struct {
+		Op          string          `json:"op"`
+		Keys        []Assignment    `json:"keys"`
+		Aggs        []AggAssignment `json:"aggs"`
+		Duration    zng.Value       `json:"duration"`
+		Limit       int             `json:"limit"`
+		InputDesc   bool            `json:"input_desc"`
+		PartialsIn  bool            `json:"partials_in,omitempty"`
+		PartialsOut bool            `json:"partials_out,omitempty"`
 	}
 	Cut struct {
-		Op     string       `json:"op"`
-		Fields []Assignment `json:"fields"`
-	}
-	Pick struct {
 		Op     string       `json:"op"`
 		Fields []Assignment `json:"fields"`
 	}
@@ -77,40 +65,37 @@ type (
 		Op     string `json:"op"`
 		Fields []Expr `json:"fields"`
 	}
-	Head struct {
-		Op    string `json:"op"`
-		Count int    `json:"count"`
-	}
-	Tail struct {
-		Op    string `json:"op"`
-		Count int    `json:"count"`
-	}
 	Filter struct {
 		Op     string `json:"op"`
 		Filter Expr   `json:"filter"`
 	}
+	Fuse struct {
+		Op string `json:"op"`
+	}
+	Head struct {
+		Op    string `json:"op"`
+		Count int    `json:"count"`
+	}
+	Join struct {
+		Op       string       `json:"op"`
+		LeftKey  Expr         `json:"left_key"`
+		RightKey Expr         `json:"right_key"`
+		Clauses  []Assignment `json:"clauses"`
+	}
+	Merge struct {
+		Field   field.Static `json:"field"`
+		Reverse bool         `json:"reverse"`
+	}
+	Parallel struct {
+		Op        string     `json:"op"`
+		Operators []Operator `json:"operators"`
+	}
 	Pass struct {
 		Op string `json:"op"`
 	}
-	Uniq struct {
-		Op    string `json:"op"`
-		Cflag bool   `json:"cflag"`
-	}
-	Agg struct {
-		Op           string          `json:"op"`
-		Duration     zng.Value       `json:"duration"`
-		InputSortDir int             `json:"input_sort_dir,omitempty"`
-		Limit        int             `json:"limit"`
-		Keys         []Assignment    `json:"keys"`
-		Aggs         []AggAssignment `json:"aggs"`
-		PartialsIn   bool            `json:"partials_in,omitempty"`
-		PartialsOut  bool            `json:"partials_out,omitempty"`
-	}
-	Top struct {
-		Op     string `json:"op"`
-		Limit  int    `json:"limit"`
-		Fields []Expr `json:"fields"`
-		Flush  bool   `json:"flush"`
+	Pick struct {
+		Op     string       `json:"op"`
+		Fields []Assignment `json:"fields"`
 	}
 	Put struct {
 		Op      string       `json:"op"`
@@ -120,14 +105,29 @@ type (
 		Op     string       `json:"op"`
 		Fields []Assignment `json:"fields"`
 	}
-	Fuse struct {
-		Op string `json:"op"`
+	Sequential struct {
+		Op        string     `json:"op"`
+		Operators []Operator `json:"operators"`
 	}
-	Join struct {
-		Op       string       `json:"op"`
-		LeftKey  Expr         `json:"left_key"`
-		RightKey Expr         `json:"right_key"`
-		Clauses  []Assignment `json:"clauses"`
+	Sort struct {
+		Op         string `json:"op"`
+		Fields     []Expr `json:"fields"`
+		Reverse    bool   `json:"reverse"`
+		NullsFirst bool   `json:"nullsfirst"`
+	}
+	Tail struct {
+		Op    string `json:"op"`
+		Count int    `json:"count"`
+	}
+	Top struct {
+		Op     string `json:"op"`
+		Limit  int    `json:"limit"`
+		Fields []Expr `json:"fields"`
+		Flush  bool   `json:"flush"`
+	}
+	Uniq struct {
+		Op    string `json:"op"`
+		Cflag bool   `json:"cflag"`
 	}
 )
 
@@ -147,25 +147,24 @@ type AggFunc struct {
 	Where BoolExpr `json:"where"`
 }
 
-//XXX alphabetize
-func (*Sequential) operator() {}
-func (*Parallel) operator()   {}
-func (*Sort) operator()       {}
-func (*Cut) operator()        {}
-func (*Pick) operator()       {}
-func (*Drop) operator()       {}
-func (*Head) operator()       {}
-func (*Tail) operator()       {}
-func (*Pass) operator()       {}
-func (*Filter) operator()     {}
-func (*Uniq) operator()       {}
 func (*Agg) operator()        {}
-func (*Top) operator()        {}
-func (*Put) operator()        {}
-func (*Rename) operator()     {}
+func (*Cut) operator()        {}
+func (*Drop) operator()       {}
+func (*Filter) operator()     {}
 func (*Fuse) operator()       {}
+func (*Head) operator()       {}
 func (*Join) operator()       {}
 func (*Merge) operator()      {}
+func (*Parallel) operator()   {}
+func (*Pass) operator()       {}
+func (*Pick) operator()       {}
+func (*Put) operator()        {}
+func (*Rename) operator()     {}
+func (*Sequential) operator() {}
+func (*Sort) operator()       {}
+func (*Tail) operator()       {}
+func (*Top) operator()        {}
+func (*Uniq) operator()       {}
 
 // ----------------------------------------------------------------------------
 // Expressions
@@ -180,55 +179,13 @@ type BoolExpr interface {
 }
 
 type (
-	Identifier struct {
-		Op   string `json:"op"`
-		Name string `json:"name"`
-	}
-	Dot struct {
-		Op string `json:"op"`
-	}
-	EmptyExpr struct {
-		Op string `json:"op"`
-	}
-	//XXX break out regexp, etc
-	SearchExpr struct {
-		Op   string `json:"op"`
-		Text string `json:"text"`
-		//XXX zng.Value doesn't work
-		Value zng.Value `json:"value"`
-	}
-	UnaryExpr struct {
-		Op       string `json:"op"`
-		Operator string `json:"operator"`
-		Operand  Expr   `json:"operand"`
-	}
 	BinaryExpr struct {
 		Op       string `json:"op"`
 		Operator string `json:"operator"`
 		LHS      Expr   `json:"lhs"`
 		RHS      Expr   `json:"rhs"`
 	}
-	//XXX need to change this to not overlap with SQL
-	SelectExpr struct {
-		Op        string `json:"op"`
-		Selectors []Expr `json:"selectors"`
-	}
-	ConstExpr struct {
-		Op    string    `json:"op"`
-		Value zng.Value `json:"value"`
-	}
-	CondExpr struct {
-		Op        string `json:"op"`
-		Condition Expr   `json:"condition"`
-		Then      Expr   `json:"then"`
-		Else      Expr   `json:"else"`
-	}
 	CallExpr struct {
-		Op   string `json:"op"`
-		Name string `json:"function"`
-		Args []Expr `json:"args"`
-	}
-	MethodExpr struct {
 		Op   string `json:"op"`
 		Name string `json:"function"`
 		Args []Expr `json:"args"`
@@ -238,20 +195,67 @@ type (
 		Expr Expr   `json:"expr"`
 		Type string `json:"type"`
 	}
+	CondExpr struct {
+		Op        string `json:"op"`
+		Condition Expr   `json:"condition"`
+		Then      Expr   `json:"then"`
+		Else      Expr   `json:"else"`
+	}
+	ConstExpr struct {
+		Op    string    `json:"op"`
+		Value zng.Value `json:"value"`
+	}
+	Dot struct {
+		Op string `json:"op"`
+	}
+	EmptyExpr struct {
+		Op string `json:"op"`
+	}
+	Identifier struct {
+		Op   string `json:"op"`
+		Name string `json:"name"`
+	}
+	//XXX break out regexp, etc
+	SearchExpr struct {
+		Op   string `json:"op"`
+		Text string `json:"text"`
+		//XXX zng.Value doesn't work yet... need marshaling
+		// and unmarshal requires ZSON parsing.
+		Value zng.Value `json:"value"`
+	}
+	RegexpExpr struct {
+		Op      string `json:"op"`
+		Pattern string `json:"pattern"`
+	}
+	SeqExpr struct {
+		Op        string   `json:"op"`
+		Name      string   `json:"name"`
+		Selectors []Expr   `json:"selectors"`
+		Methods   []Method `json:"methods"`
+	}
+	UnaryExpr struct {
+		Op       string `json:"op"`
+		Operator string `json:"operator"`
+		Operand  Expr   `json:"operand"`
+	}
 )
 
-func (*UnaryExpr) expr()  {}
+type Method struct {
+	Name string `json:"name"`
+	Args []Expr `json:"args"`
+}
+
 func (*BinaryExpr) expr() {}
-func (*SelectExpr) expr() {}
-func (*CondExpr) expr()   {}
-func (*SearchExpr) expr() {}
 func (*CallExpr) expr()   {}
 func (*CastExpr) expr()   {}
+func (*CondExpr) expr()   {}
 func (*ConstExpr) expr()  {}
-func (*Identifier) expr() {}
 func (*Dot) expr()        {}
 func (*EmptyExpr) expr()  {}
-func (*Assignment) expr() {}
+func (*Identifier) expr() {}
+func (*SearchExpr) expr() {}
+func (*SeqExpr) expr()    {}
+func (*UnaryExpr) expr()  {}
 
 func (*UnaryExpr) boolean()  {}
 func (*BinaryExpr) boolean() {}
@@ -306,12 +310,24 @@ func FieldsOf(e Expr) []field.Static {
 			return fields
 		}
 		return append(FieldsOf(e.LHS), FieldsOf(e.RHS)...)
-	case *Assignment:
-		return append(FieldsOf(e.LHS), FieldsOf(e.RHS)...)
-	case *SelectExpr:
+		//XXX
+		//case *Assignment:
+		//	return append(FieldsOf(e.LHS), FieldsOf(e.RHS)...)
+	case *SeqExpr:
 		var fields []field.Static
 		for _, selector := range e.Selectors {
 			fields = append(fields, FieldsOf(selector)...)
+		}
+		for _, m := range e.Methods {
+			for _, e := range m.Args {
+				fields = append(fields, FieldsOf(e)...)
+			}
+		}
+		return fields
+	case *CallExpr:
+		var fields []field.Static
+		for _, e := range e.Args {
+			fields = append(fields, FieldsOf(e)...)
 		}
 		return fields
 	}

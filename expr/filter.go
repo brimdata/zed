@@ -4,7 +4,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/stringsearch"
 	"github.com/brimsec/zq/zcode"
@@ -104,7 +103,7 @@ var errMatch = errors.New("match")
 // field or inside any set or array.  It also matches a record if the string
 // representaton of the search value appears inside inside any string-valued
 // field (or inside any element of a set or array of strings).
-func SearchRecordOther(searchtext string, searchval ast.Literal) (Filter, error) {
+func SearchRecordOther(searchtext string, searchval zng.Value) (Filter, error) {
 	typedCompare, err := Comparison("=", searchval)
 	if err != nil {
 		return nil, err
