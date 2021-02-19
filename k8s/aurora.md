@@ -18,8 +18,8 @@ Use the following settings:
 1. DB cluster id: zq-test-aurora
 1. Master Username: postgres
 1. Password: In some tools you have to type the password.
-`openssl rand -base64 9 | awk '{print tolower($0)}'`
-will generate a password that is easier to type.
+`openssl rand -base64 12 | awk '{print tolower($0)}'`
+will generate a password that is easy to type.
 1. Instance size: bustable class, t3.medium
 1. Do not create relpica
 1. VPC: create new VPC
@@ -59,7 +59,7 @@ http://fruzenshtein.com/eks-kubernetes-aws-connect-rds/
 ## Test it from the EKS cluster
 Start a bash session from a container:
 ```
-kubectl run -i --tty --rm postgresdebug --image=alpine -- sh
+kubectl run -i --tty --rm myshell --image=alpine -- sh
 ```
 Then use psql to connect to the RDS instance with:
 ```
@@ -76,9 +76,43 @@ The peering connection created should have two route tables, one for each VPC. I
 The security group for the RDS VPC may need to be updated with the AWS console. It needs an inbound route for port 5432 with CIDR 192.168.0.0/16.
 
 ## Public accessiblity
-I do not think we need a publically accesible DB, but that could change. If you run the wizard and specify public accessiblity, we will need to do other things the be able to connect. See the trouble-shooting guide at: 
+I do not think we need a publicly accesible DB, but that could change. If you run the wizard and specify public accessiblity, we will need to do other things the be able to connect. See the trouble-shooting guide at: 
 https://docs.aws.amazon.com/AmazonRDS/latest/AuroraUserGuide/CHAP_Troubleshooting.html#CHAP_Troubleshooting.Connecting
 You will have to do the step described here:
 "Internet gateway – For a DB instance to be publicly accessible, the subnets in its DB subnet group must have an internet gateway."  
 "On the Route Table tab, verify that there is a route with 0.0.0.0/0 as the destination and the internet gateway for your VPC as the target."
 
+## Creating a user for testing
+To create users for testing, we will use kubectl, as above, to open an admin session with psql where we create a user and grant permissions. We use kubectl because we do currently do not allow connections to the database from outside the EKS cluster.
+```
+kubectl run -i --tty --rm myshell --image=alpine -- sh
+# apk update
+# apk add postgresql
+# psql  -U postgres -h <RDS host>
+```
+And use the following psql commands to create the user:
+```
+CREATE USER theusername WITH ENCRYPTED PASSWORD 'thepassword';
+ALTER USER theusername CREATEDB;
+```
+You can generate a password with something similar to:
+```
+openssl rand -base64 12 | awk '{print tolower($0)}'
+```
+In the future I would like to automate this, but given that this process will only need to be done once for each developer, it may not be worth it at this point.
+
+## Configuring secrets for Aurora
+After you have created a Postgres user for our aurora instance, create the K8s secrets for that user in correct namespace with the following command:
+```
+kubectl create secret generic aurora-conn \
+  --from-literal="addr=$(aws rds describe-db-cluster-endpoints \
+  --db-cluster-identifier zq-test-aurora \
+   | jq -r ".DBClusterEndpoints[] | select(.EndpointType==\"WRITER\") | .Endpoint" \
+  --from-literal="user=THEUSERNAME" \
+  --from-literal="password=THEPASSWORD"
+```
+To make sure the secret looks right, try:
+```
+kubectl get secret aurora-conn --template={{.data.addr}} | base64 --decode
+```
+Your zqd sessions will connect to the db using this username (not the master username) and the session will have permission to create a database and perform the migrations.

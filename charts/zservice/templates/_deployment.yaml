@@ -60,6 +60,18 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
+          {{- if .Values.global.useAurora }}
+          - name: AURORA_ADDR
+            valueFrom:
+              secretKeyRef:
+                key: addr
+                name: aurora-conn          
+          - name: AURORA_USER
+            valueFrom:
+              secretKeyRef:
+                key: user
+                name: aurora-conn          
+          {{- end }}
           {{- if .Values.global.useCredSecret }}
           # These environment variables are set from secrets
           # when there is no service account
@@ -111,10 +123,15 @@ spec:
           args:
             - "migrate"
             - "-m=/postgres/migrations"
-            - "-addr={{ .Values.postgres.addr }}"
-            - "-database={{ .Values.postgres.database }}"
-            - "-user={{ .Values.postgres.username }}"
             - "-passwordFile=/creds/postgres/password"
+            - "-database={{ .Values.postgres.database }}"
+              {{- if .Values.global.useAurora -}}
+            - "-addr=$(AURORA_ADDR)"
+            - "-user=$(AURORA_USER)"
+              {{- else -}}
+            - "-addr={{ .Values.postgres.addr }}"
+            - "-user={{ .Values.postgres.username }}"
+              {{- end -}}
           volumeMounts:
             - mountPath: /creds/postgres
               name: postgres-creds-volume
@@ -141,8 +158,13 @@ spec:
           secret:
             secretName: {{ .Values.postgres.passwordSecretName }}
             items:
+              {{- if .Values.global.useAurora -}}
+              - key: aurora-conn
+                path: password
+              {{- else -}}
               - key: postgresql-password
                 path: password
+              {{- end -}}
         - name: redis-creds-volume
           secret:
             secretName: {{ .Values.redis.passwordSecretName }}
