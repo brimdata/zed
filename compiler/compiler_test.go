@@ -6,8 +6,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/compiler"
+	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc"
@@ -41,7 +41,7 @@ func TestCompileParents(t *testing.T) {
 		query, err := compiler.ParseProc("split (=>filter * =>filter *) | filter *")
 		require.NoError(t, err)
 
-		leaves, err := compiler.Compile(nil, query, pctx, nil, sources)
+		leaves, err := compiler.Compile(nil, query, pctx, sources)
 		require.NoError(t, err)
 
 		var sb strings.Builder
@@ -56,14 +56,14 @@ func TestCompileParents(t *testing.T) {
 
 		query.(*ast.SequentialProc).Procs = query.(*ast.SequentialProc).Procs[1:]
 
-		_, err = compiler.Compile(nil, query, pctx, nil, sources)
+		_, err = compiler.Compile(nil, query, pctx, sources)
 		require.Error(t, err)
 	})
 
 	t.Run("too many parents", func(t *testing.T) {
 		query, err := compiler.ParseProc("* | split(=>filter * =>filter *) | filter *")
 		require.NoError(t, err)
-		_, err = compiler.Compile(nil, query, pctx, nil, sources)
+		_, err = compiler.Compile(nil, query, pctx, sources)
 		require.Error(t, err)
 	})
 }
@@ -94,7 +94,7 @@ func TestCompileMergeDone(t *testing.T) {
 
 	// Force the parallel proc to create a merge proc instead of combine.
 	p.MergeOrderField = field.New("k")
-	leaves, err := compiler.Compile(nil, query, pctx, nil, []proc.Interface{src})
+	leaves, err := compiler.Compile(nil, query, pctx, []proc.Interface{src})
 	require.NoError(t, err)
 
 	var sb strings.Builder

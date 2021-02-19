@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/compiler"
+	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -63,7 +63,7 @@ func CompileTestProc(code string, pctx *proc.Context, parent proc.Interface) (pr
 }
 
 func CompileTestProcAST(node ast.Proc, pctx *proc.Context, parent proc.Interface) (proc.Interface, error) {
-	procs, err := compiler.Compile(nil, node, pctx, nil, []proc.Interface{parent})
+	procs, err := compiler.Compile(nil, node, pctx, []proc.Interface{parent})
 	if err != nil {
 		return nil, err
 	}

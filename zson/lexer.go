@@ -14,7 +14,7 @@ import (
 
 var ErrBufferOverflow = errors.New("zson scanner buffer size exceeded")
 
-const primitiveRE = `^(([0-9a-fA-Fx_\$\-\+:eEnumsh./TZµ]+)|true|false|null)`
+const primitiveRE = `^(([0-9a-fA-Fx_\$\-\+:eEnumsh./TZµ]+)|true|false|null|-Inf|-inf|\+Inf|\+inf|NaN|nan)`
 const indentationRE = `\n\s*`
 
 type Lexer struct {
@@ -322,6 +322,9 @@ func (l *Lexer) scanTypeName() (string, error) {
 	for {
 		r, n, err := l.peekRune()
 		if err != nil {
+			if err == io.EOF {
+				return s.String(), nil
+			}
 			return "", err
 		}
 		if !zng.TypeChar(r) {
@@ -338,7 +341,7 @@ func (l *Lexer) scanIdentifier() (string, error) {
 		return "", err
 	}
 	if !zng.IsIdentifier(s) {
-		s = ""
+		return "", errors.New("malformed identifier")
 	}
 	return s, nil
 }

@@ -45,7 +45,7 @@ func (a *Aggregator) Apply(f agg.Function, rec *zng.Record) error {
 	}
 	zv, err := a.expr.Eval(rec)
 	if err != nil {
-		if err == ErrNoSuchField {
+		if err == zng.ErrMissing {
 			err = nil
 		}
 		return err

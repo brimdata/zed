@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/ast"
 	"github.com/brimsec/zq/compiler"
+	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zio/tzngio"

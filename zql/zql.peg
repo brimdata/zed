@@ -104,10 +104,13 @@ Operation
       RETURN(MAP("op": "SwitchProc", "cases": caseArray))
     }
   / Operator
-  / a:Aggregation !ExprGuard  { RETURN(a) }
+  / f:Function &EndOfOp { RETURN(f) }
+  / a:Aggregation &EndOfOp  { RETURN(a) }
   / expr:SearchBoolean !AggGuard {
       RETURN(MAP("op": "FilterProc", "filter": expr))
     }
+
+EndOfOp = __ ("|" / "=>" / ")" / EOF)
 
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(")
 AggGuard = (_ (ByToken / "-with") EOT) / (__ ",")
@@ -243,7 +246,7 @@ Aggregation
   = every:EveryDur? keys:GroupByKeys limit:LimitArg {
       RETURN(MAP("op": "GroupByProc", "keys": keys, "reducers": NULL, "duration": every, "limit": limit))
     }
-  / every:EveryDur? reducers:Reducers keys:(_ GroupByKeys)? limit:LimitArg? {
+  / every:EveryDur? reducers:Reducers keys:(_ GroupByKeys)? limit:LimitArg {
       VAR(p) = MAP("op": "GroupByProc", "keys": NULL, "reducers": reducers, "duration": every, "limit": limit)
       if ISNOTNULL(keys) {
         p["keys"] = ASSERT_ARRAY(keys)[1]
@@ -282,7 +285,7 @@ ReducerAssignment
     }
 
 Reducer
-  = !(NotReducers __ "(") op:ReducerName __ "(" __ expr:Expr?  __ ")" !(__ ".") where:WhereClause? {
+  = !FuncGuard op:ReducerName __ "(" __ expr:Expr?  __ ")" !(__ ".") where:WhereClause? {
       VAR(r) = MAP("op": "Reducer", "operator": op, "expr": NULL, "where":where)
       if ISNOTNULL(expr) {
         r["expr"] = expr
@@ -294,10 +297,6 @@ ReducerName
   = IdentifierName
   / AndToken
   / OrToken
-
-NotReducers
-  = "not"
-  / "match"
 
 WhereClause = _ "where" _ expr:SearchBoolean { RETURN(expr) }
 
@@ -362,18 +361,8 @@ TopProc
     }
 
 CutProc
-  = "cut"i args:CutArgs _ columns:FlexAssignments {
-      VAR(argm) = ASSERT_MAP(args)
-      VAR(proc) = MAP("op": "CutProc", "fields": columns, "complement": false)
-      if HAS(argm, "c") {
-        proc["complement"] = true
-      }
-      RETURN(proc)
-    }
-
-CutArgs
-  = args:(_ "-c" { RETURN(MAP("name": "c", "value": NULL)) })* {
-      return makeArgMap(args)
+  = "cut"i _ columns:FlexAssignments {
+      RETURN(MAP("op": "CutProc", "fields": columns))
     }
 
 PickProc
@@ -422,8 +411,12 @@ RenameProc
       RETURN(MAP("op": "RenameProc", "fields": PREPEND(first, rest)))
     }
 
+// The paren guard is to allow parsing fuse() as an aggregator. This
+// is temporary pending finalizing the names
+// (https://github.com/brimsec/zq/issues/2114) for the fuse proc and
+// aggregator, at which point we may no longer need this.
 FuseProc
-  = "fuse"i {
+  = "fuse"i !(__ "(") {
       RETURN(MAP("op": "FuseProc"))
     }
 
@@ -540,11 +533,10 @@ NotExpr
   / CastExpr
 
 CastExpr
-  = e:FuncExpr typ:( ":" typ:PrimitiveType { RETURN(typ) }) {
+  = e:FuncExpr ":" typ:PrimitiveType {
       RETURN(MAP("op": "CastExpr", "expr": e, "type": typ))
     }
   / FuncExpr
-
 
 PrimitiveType
   = (   "bytes" / "uint8" / "uint16" / "uint32" / "uint64"
@@ -564,6 +556,13 @@ FuncExpr
   / DerefExpr
   / Primary
 
+FuncGuard = NotFuncs __ "("
+
+NotFuncs
+  = "not"
+  / "match"
+  / "select"
+
 MatchExpr
   = "match" __ "(" expr:SearchBoolean ")" { RETURN(expr) }
 
@@ -573,7 +572,7 @@ SelectExpr
     }
 
 Function
-  = fn:IdentifierName __ "(" __ args:ArgumentList __ ")" {
+  = !FuncGuard fn:IdentifierName __ "(" __ args:ArgumentList __ ")" {
       RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
     }
 
@@ -607,7 +606,19 @@ DotId
     }
 
 Deref
-  = "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
+  = "[" from:AdditiveExpr __ ":" __ to:AdditiveExpr "]" {
+      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+                            "lhs":from, "rhs":to)))
+    }
+  / "[" __ ":" __ to:AdditiveExpr "]" {
+      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+                            "lhs":MAP("op":"Empty"), "rhs":to)))
+    }
+  / "[" from:AdditiveExpr __ ":" __ "]" {
+      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+                            "lhs":from, "rhs":MAP("op":"Empty"))))
+    }
+  / "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
   / "." !(".") id:Identifier { RETURN(ARRAY(".", id)) }
 
 Primary
@@ -748,9 +759,12 @@ Weeks
 IP
   = UInt "." UInt "." UInt "." UInt { RETURN(TEXT) }
 
+IP6
+  = !( Hex ":" Hex !(HexDigit / ":")) v:IP6Variations { RETURN(v) }
+
 // this matches a superset of legal syntax for ip6 addresses but the compiler
 // will catch any errors when translating the filter
-IP6
+IP6Variations
   = a:HexColon+ b:IP6Tail {
       RETURN(joinChars(a) + ASSERT_STRING(b))
     }
