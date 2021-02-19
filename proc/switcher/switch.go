@@ -1,4 +1,4 @@
-package switchproc
+package switcher
 
 import (
 	"sync"
@@ -154,7 +154,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 }
 
 func (p *Proc) Done() {
-	// Signal to our parent SwitchProc that this path is done by
+	// Signal to our parent Switcher that this path is done by
 	// sending a request with a nil channel object.  We go ahead
 	// and mark the Proc done by setting its channel to nil in
 	// case a spurious Pull() is called, but this should not

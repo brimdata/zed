@@ -19,7 +19,7 @@ import (
 	"github.com/brimsec/zq/proc/rename"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/proc/split"
-	"github.com/brimsec/zq/proc/switchproc"
+	"github.com/brimsec/zq/proc/switcher"
 	"github.com/brimsec/zq/proc/tail"
 	"github.com/brimsec/zq/proc/top"
 	"github.com/brimsec/zq/proc/uniq"
@@ -290,7 +290,7 @@ func compileSwitch(custom Hook, pp *ast.SwitchProc, c *proc.Context, scope *Scop
 	n := len(pp.Cases)
 	if len(parents) == 1 {
 		// Single parent: insert a switcher and wire to each branch.
-		switcher := switchproc.New(parents[0])
+		switcher := switcher.New(parents[0])
 		parents = []proc.Interface{}
 		for _, c := pp.Cases {
 			f, err := compileFilter(c.TypeContext, scope, c.Filter)
