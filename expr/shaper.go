@@ -84,7 +84,7 @@ func createStep(in, out *zng.TypeRecord) (step, error) {
 	return s, nil
 }
 
-func (s step) castPrimitive(in zcode.Bytes, b *zcode.Builder) {
+func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) {
 	if in == nil {
 		b.AppendNull()
 		return
@@ -98,7 +98,7 @@ func (s step) castPrimitive(in zcode.Bytes, b *zcode.Builder) {
 	b.AppendPrimitive(v.Bytes)
 }
 
-func (s step) buildRecord(in zcode.Bytes, b *zcode.Builder) {
+func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) {
 	if s.op != record {
 		panic("bad op")
 	}
