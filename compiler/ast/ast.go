@@ -460,7 +460,11 @@ func NewReducerAssignment(op string, lval field.Static, arg field.Static) Assign
 	if lhs == nil {
 		lhs = field.New(op)
 	}
-	return Assignment{LHS: NewDotExpr(lhs), RHS: reducer}
+	return Assignment{
+		Op:  "Assignment",
+		LHS: NewDotExpr(lhs),
+		RHS: reducer,
+	}
 }
 
 func FanIn(p Proc) int {
