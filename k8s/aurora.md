@@ -116,3 +116,8 @@ To make sure the secret looks right, try:
 kubectl get secret aurora-conn --template={{.data.addr}} | base64 --decode
 ```
 Your zqd sessions will connect to the db using this username (not the master username) and the session will have permission to create a database and perform the migrations.
+
+## Helm Deploy with Aurora
+```
+HELM_OPTIONS="--set global.useAurora=true --set tags.deploy-postgres=false" make helm-install
+```

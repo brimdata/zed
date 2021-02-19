@@ -5,6 +5,7 @@ global:
     pullPolicy: Always
     tag: "zqd"
   imagePullSecrets: []
+  useAurora: false
   useCredSecret: false
 
 postgres:

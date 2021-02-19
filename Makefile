@@ -153,13 +153,16 @@ kubectl-config:
 	--user=$(ZQD_K8S_USER)@$(ZQD_TEST_CLUSTER)
 	kubectl config use-context zqtest
 
+# Allows extra option with e.g.
+# HELM_OPTIONS="--dry-run" make helm-install
 helm-install:
 	helm upgrade -i zsrv charts/zservice \
 	--set root.datauri=$(ZQD_DATA_URI) \
 	--set global.AWSRegion=us-east-2 \
 	--set global.image.repository=$(ZQD_ECR_HOST)/ \
 	--set global.image.tag=zqd:$(ECR_VERSION) \
-	--set postgresql.persistence.enabled=$(PG_PERSIST)
+	--set postgresql.persistence.enabled=$(PG_PERSIST) \
+	$(HELM_OPTIONS)
 
 create-release-assets:
 	for os in darwin linux windows; do \

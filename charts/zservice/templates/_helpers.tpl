@@ -74,10 +74,15 @@ Create args that vary based on .Values.personality
 {{- if eq .Values.personality "root" }}
 {{- $args = append $args (print "-data=" .Values.datauri) }}
 {{- $args = append $args (print "-db.kind=postgres") }}
-{{- $args = append $args (print "-db.postgres.addr=" .Values.postgres.addr) }}
 {{- $args = append $args (print "-db.postgres.database=" .Values.postgres.database) }}
-{{- $args = append $args (print "-db.postgres.user=" .Values.postgres.username) }}
 {{- $args = append $args (print "-db.postgres.passwordFile=/creds/postgres/password") }}
+  {{- if .Values.global.useAurora }}
+{{- $args = append $args (print "-db.postgres.addr=$(AURORA_ADDR)") }}
+{{- $args = append $args (print "-db.postgres.user=$(AURORA_USER)") }}
+  {{- else }}
+{{- $args = append $args (print "-db.postgres.addr=" .Values.postgres.addr) }}
+{{- $args = append $args (print "-db.postgres.user=" .Values.postgres.username) }}
+  {{- end }}
 {{- $args = append $args (print "-immcache.kind=redis") }}
 {{- $args = append $args (print "-redis.enabled") }}
 {{- $args = append $args (print "-redis.addr=" .Values.redis.addr) }}

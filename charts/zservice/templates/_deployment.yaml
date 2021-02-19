@@ -125,13 +125,13 @@ spec:
             - "-m=/postgres/migrations"
             - "-passwordFile=/creds/postgres/password"
             - "-database={{ .Values.postgres.database }}"
-              {{- if .Values.global.useAurora -}}
+              {{- if .Values.global.useAurora }}
             - "-addr=$(AURORA_ADDR)"
             - "-user=$(AURORA_USER)"
-              {{- else -}}
+              {{- else }}
             - "-addr={{ .Values.postgres.addr }}"
             - "-user={{ .Values.postgres.username }}"
-              {{- end -}}
+              {{- end }}
           volumeMounts:
             - mountPath: /creds/postgres
               name: postgres-creds-volume
@@ -156,15 +156,17 @@ spec:
         {{- if eq .Values.personality "root" }}
         - name: postgres-creds-volume
           secret:
+              {{- if .Values.global.useAurora }}
+            secretName: aurora-conn
+            items:
+              - key: password
+                path: password
+              {{- else }}
             secretName: {{ .Values.postgres.passwordSecretName }}
             items:
-              {{- if .Values.global.useAurora -}}
-              - key: aurora-conn
-                path: password
-              {{- else -}}
               - key: postgresql-password
                 path: password
-              {{- end -}}
+              {{- end }}
         - name: redis-creds-volume
           secret:
             secretName: {{ .Values.redis.passwordSecretName }}
