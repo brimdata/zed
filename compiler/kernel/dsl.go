@@ -58,8 +58,8 @@ type (
 		PartialsOut bool            `json:"partials_out,omitempty"`
 	}
 	Cut struct {
-		Op     string       `json:"op"`
-		Fields []Assignment `json:"fields"`
+		Op          string       `json:"op"`
+		Assignments []Assignment `json:"assignments"`
 	}
 	Drop struct {
 		Op     string `json:"op"`
@@ -77,10 +77,10 @@ type (
 		Count int    `json:"count"`
 	}
 	Join struct {
-		Op       string       `json:"op"`
-		LeftKey  Expr         `json:"left_key"`
-		RightKey Expr         `json:"right_key"`
-		Clauses  []Assignment `json:"clauses"`
+		Op          string       `json:"op"`
+		LeftKey     Expr         `json:"left_key"`
+		RightKey    Expr         `json:"right_key"`
+		Assignments []Assignment `json:"assignments"`
 	}
 	Merge struct {
 		Field   field.Static `json:"field"`
@@ -94,16 +94,16 @@ type (
 		Op string `json:"op"`
 	}
 	Pick struct {
-		Op     string       `json:"op"`
-		Fields []Assignment `json:"fields"`
+		Op          string       `json:"op"`
+		Assignments []Assignment `json:"assignments"`
 	}
 	Put struct {
-		Op      string       `json:"op"`
-		Clauses []Assignment `json:"clauses"`
+		Op          string       `json:"op"`
+		Assignments []Assignment `json:"assignments"`
 	}
 	Rename struct {
-		Op     string       `json:"op"`
-		Fields []Assignment `json:"fields"`
+		Op          string       `json:"op"`
+		Assignments []Assignment `json:"assignments"`
 	}
 	Sequential struct {
 		Op        string     `json:"op"`

@@ -181,7 +181,10 @@ func compileSeqExpr(zctx *resolver.Context, scope *Scope, seq *SeqExpr) (expr.Ev
 	}
 	generator := expr.Generator(expr.NewSelector(exprs))
 	for _, m := range seq.Methods {
-		generator, err := compileMethod(zctx, scope, generator, m)
+		generator, err = compileMethod(zctx, scope, generator, m)
+		if err != nil {
+			return nil, err
+		}
 	}
 	pattern, err := agg.NewPattern(seq.Name)
 	if err != nil {

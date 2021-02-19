@@ -8,12 +8,10 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/proc/combine"
 	"github.com/brimsec/zq/proc/filter"
 	"github.com/brimsec/zq/proc/fuse"
 	"github.com/brimsec/zq/proc/head"
 	"github.com/brimsec/zq/proc/join"
-	"github.com/brimsec/zq/proc/merge"
 	"github.com/brimsec/zq/proc/pass"
 	"github.com/brimsec/zq/proc/put"
 	"github.com/brimsec/zq/proc/rename"
@@ -22,7 +20,6 @@ import (
 	"github.com/brimsec/zq/proc/tail"
 	"github.com/brimsec/zq/proc/top"
 	"github.com/brimsec/zq/proc/uniq"
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
@@ -40,23 +37,25 @@ func isContainerProc(node ast.Proc) bool {
 	return false
 }
 
-func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, parent proc.Interface) (proc.Interface, error) {
+func compileOperator(custom Hook, o Operator, pctx *proc.Context, scope *Scope, parent proc.Interface) (proc.Interface, error) {
 	if custom != nil {
-		// XXX custom should take scope
-		p, err := custom(node, pctx, parent)
-		if err != nil {
-			return nil, err
-		}
-		if p != nil {
-			return p, err
-		}
+		panic("get rid of custom procs")
+		// XXX custom should take scope... just move custom procs
+		// into the core...
+		//p, err := custom(node, pctx, parent)
+		//if err != nil {
+		//	return nil, err
+		//}
+		//if p != nil {
+		//	return p, err
+		//}
 	}
-	switch v := node.(type) {
-	case *ast.GroupByProc:
-		return compileGroupBy(pctx, scope, parent, v)
+	switch o := o.(type) {
+	case *Agg:
+		return compileAgg(pctx, scope, parent, o)
 
-	case *ast.CutProc:
-		assignments, err := compileAssignments(v.Fields, pctx.TypeContext, scope)
+	case *Cut:
+		assignments, err := compileAssignments(o.Assignments, pctx.TypeContext, scope)
 		if err != nil {
 			return nil, err
 		}
@@ -68,8 +67,8 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		cutter.AllowPartialCuts()
 		return proc.FromFunction(pctx, parent, cutter, "cut"), nil
 
-	case *ast.PickProc:
-		assignments, err := compileAssignments(v.Fields, pctx.TypeContext, scope)
+	case *Pick:
+		assignments, err := compileAssignments(o.Assignments, pctx.TypeContext, scope)
 		if err != nil {
 			return nil, err
 		}
@@ -80,13 +79,13 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		}
 		return proc.FromFunction(pctx, parent, cutter, "pick"), nil
 
-	case *ast.DropProc:
-		if len(v.Fields) == 0 {
+	case *Drop:
+		if len(o.Fields) == 0 {
 			return nil, errors.New("drop: no fields given")
 		}
-		fields := make([]field.Static, 0, len(v.Fields))
-		for _, e := range v.Fields {
-			field, ok := ast.DotExprToField(e)
+		fields := make([]field.Static, 0, len(o.Fields))
+		for _, e := range o.Fields {
+			field, ok := DotExprToField(e)
 			if !ok {
 				return nil, errors.New("drop: arg not a field")
 			}
@@ -95,53 +94,58 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		dropper := expr.NewDropper(pctx.TypeContext, fields)
 		return proc.FromFunction(pctx, parent, dropper, "drop"), nil
 
-	case *ast.SortProc:
-		fields, err := CompileExprs(pctx.TypeContext, scope, v.Fields)
+	case *Sort:
+		fields, err := CompileExprs(pctx.TypeContext, scope, o.Fields)
 		if err != nil {
 			return nil, err
 		}
-		sort, err := sort.New(pctx, parent, fields, v.SortDir, v.NullsFirst)
+		sortdir := 1
+		if o.Reverse {
+			sortdir = -1
+		}
+		sort, err := sort.New(pctx, parent, fields, sortdir, o.NullsFirst)
 		if err != nil {
 			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
 		return sort, nil
 
-	case *ast.HeadProc:
-		limit := v.Count
+	case *Head:
+		limit := o.Count
 		if limit == 0 {
 			limit = 1
 		}
 		return head.New(parent, limit), nil
 
-	case *ast.TailProc:
-		limit := v.Count
+	case *Tail:
+		limit := o.Count
 		if limit == 0 {
 			limit = 1
 		}
 		return tail.New(parent, limit), nil
 
-	case *ast.UniqProc:
-		return uniq.New(pctx, parent, v.Cflag), nil
+	case *Uniq:
+		return uniq.New(pctx, parent, o.Cflag), nil
 
-	case *ast.PassProc:
+	case *Pass:
+		// analyzer should take this out?
 		return pass.New(parent), nil
 
-	case *ast.FilterProc:
-		f, err := compileFilter(pctx.TypeContext, scope, v.Filter)
+	case *Filter:
+		f, err := compileFilter(pctx.TypeContext, scope, o.Filter)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
 		return filter.New(parent, f), nil
 
-	case *ast.TopProc:
-		fields, err := CompileExprs(pctx.TypeContext, scope, v.Fields)
+	case *Top:
+		fields, err := CompileExprs(pctx.TypeContext, scope, o.Fields)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
-		return top.New(parent, v.Limit, fields, v.Flush), nil
+		return top.New(parent, o.Limit, fields, o.Flush), nil
 
-	case *ast.PutProc:
-		clauses, err := compileAssignments(v.Clauses, pctx.TypeContext, scope)
+	case *Put:
+		clauses, err := compileAssignments(o.Assignments, pctx.TypeContext, scope)
 		if err != nil {
 			return nil, err
 		}
@@ -151,9 +155,9 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		}
 		return put, nil
 
-	case *ast.RenameProc:
+	case *Rename:
 		var srcs, dsts []field.Static
-		for _, fa := range v.Fields {
+		for _, fa := range o.Assignments {
 			dst, err := CompileLval(fa.LHS)
 			if err != nil {
 				return nil, err
@@ -180,25 +184,22 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		renamer := rename.NewFunction(pctx.TypeContext, srcs, dsts)
 		return proc.FromFunction(pctx, parent, renamer, "rename"), nil
 
-	case *ast.FuseProc:
+	case *Fuse:
 		return fuse.New(pctx, parent)
 
-	case *ast.FunctionCall:
-		return nil, errors.New("internal error: semantic analyzer should have converted function in proc context to filter or group-by")
-
-	case *ast.JoinProc:
+	case *Join:
 		return nil, ErrJoinParents
 
 	default:
-		return nil, fmt.Errorf("unknown AST type: %v", v)
+		return nil, fmt.Errorf("unknown AST type: %v", o)
 
 	}
 }
 
-func compileAssignments(assignments []kernel.Assignment, zctx *resolver.Context, scope *Scope) ([]expr.Assignment, error) {
+func compileAssignments(assignments []Assignment, zctx *resolver.Context, scope *Scope) ([]expr.Assignment, error) {
 	keys := make([]expr.Assignment, 0, len(assignments))
 	for _, assignment := range assignments {
-		a, err := CompileAssignment(zctx, scope, &assignment)
+		a, err := CompileAssignment(zctx, scope, assignment)
 		if err != nil {
 			return nil, err
 		}
@@ -218,42 +219,47 @@ func splitAssignments(assignments []expr.Assignment) ([]field.Static, []expr.Eva
 	return lhs, rhs
 }
 
-func enteringJoin(nodes []ast.Proc) bool {
+func enteringJoin(ops []Operator) bool {
 	var ok bool
-	if len(nodes) > 0 {
-		_, ok = nodes[0].(*ast.JoinProc)
+	if len(ops) > 0 {
+		_, ok = ops[0].(*Join)
 	}
 	return ok
 }
 
-func compileSequential(custom Hook, nodes []ast.Proc, pctx *proc.Context, scope *Scope, parents []proc.Interface) ([]proc.Interface, error) {
-	node := nodes[0]
-	parents, err := Compile(custom, node, pctx, scope, parents)
+func compileSequential(custom Hook, ops []Operator, pctx *proc.Context, scope *Scope, parents []proc.Interface) ([]proc.Interface, error) {
+	o := ops[0]
+	parents, err := Compile(custom, o, pctx, scope, parents)
 	if err != nil {
 		return nil, err
 	}
 	// merge unless we're at the end of the chain,
 	// in which case the output layer will mux
 	// into channels.
-	if len(nodes) == 1 {
+	if len(ops) == 1 {
 		return parents, nil
 	}
-	if len(parents) > 1 && !enteringJoin(nodes[1:]) {
-		var parent proc.Interface
-		p := node.(*ast.ParallelProc)
-		if p.MergeOrderField != nil {
-			cmp := zbuf.NewCompareFn(p.MergeOrderField, p.MergeOrderReverse)
-			parent = merge.New(pctx, parents, cmp)
-		} else {
-			parent = combine.New(pctx, parents)
+
+	/*
+		//XXX semantic pass will do this restructure
+		if len(parents) > 1 && !enteringJoin(ops[1:]) {
+			var parent proc.Interface
+			p := o.(*Parallel)
+			if p.MergeOrderField != nil {
+				cmp := zbuf.NewCompareFn(p.MergeOrderField, p.MergeOrderReverse)
+				parent = merge.New(pctx, parents, cmp)
+			} else {
+				parent = combine.New(pctx, parents)
+			}
+			parents = []proc.Interface{parent}
 		}
-		parents = []proc.Interface{parent}
-	}
-	return compileSequential(custom, nodes[1:], pctx, scope, parents)
+	*/
+
+	return compileSequential(custom, ops[1:], pctx, scope, parents)
 }
 
-func compileParallel(custom Hook, pp *ast.ParallelProc, c *proc.Context, scope *Scope, parents []proc.Interface) ([]proc.Interface, error) {
-	n := len(pp.Procs)
+func compileParallel(custom Hook, par *Parallel, c *proc.Context, scope *Scope, parents []proc.Interface) ([]proc.Interface, error) {
+	n := len(par.Operators)
 	if len(parents) == 1 {
 		// Single parent: insert a splitter and wire to each branch.
 		splitter := split.New(parents[0])
@@ -264,11 +270,11 @@ func compileParallel(custom Hook, pp *ast.ParallelProc, c *proc.Context, scope *
 		}
 	}
 	if len(parents) != n {
-		return nil, fmt.Errorf("proc.CompileProc: %d parents for parallel proc with %d branches", len(parents), len(pp.Procs))
+		return nil, fmt.Errorf("proc.CompileProc: %d parents for parallel proc with %d branches", len(parents), len(par.Operators))
 	}
 	var procs []proc.Interface
 	for k := 0; k < n; k++ {
-		proc, err := Compile(custom, pp.Procs[k], c, scope, []proc.Interface{parents[k]})
+		proc, err := Compile(custom, par.Operators[k], c, scope, []proc.Interface{parents[k]})
 		if err != nil {
 			return nil, err
 		}
@@ -280,7 +286,7 @@ func compileParallel(custom Hook, pp *ast.ParallelProc, c *proc.Context, scope *
 // Compile compiles an AST into a graph of Procs, and returns
 // the leaves.  A custom compiler hook can be included and it will be tried first
 // for each node encountered during the compilation.
-func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, parents []proc.Interface) ([]proc.Interface, error) {
+func Compile(custom Hook, o Operator, pctx *proc.Context, scope *Scope, parents []proc.Interface) ([]proc.Interface, error) {
 	if len(parents) == 0 {
 		return nil, errors.New("no parents")
 	}
@@ -289,30 +295,30 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, paren
 		// we assume no global context and allocate a fresh, empty scope.
 		scope = newScope()
 	}
-	switch node := node.(type) {
-	case *ast.SequentialProc:
-		if len(node.Procs) == 0 {
-			return nil, errors.New("sequential proc without procs")
+	switch o := o.(type) {
+	case *Sequential:
+		if len(o.Operators) == 0 {
+			return nil, errors.New("Z sequential without operators")
 		}
-		return compileSequential(custom, node.Procs, pctx, scope, parents)
+		return compileSequential(custom, o.Operators, pctx, scope, parents)
 
-	case *ast.ParallelProc:
-		return compileParallel(custom, node, pctx, scope, parents)
+	case *Parallel:
+		return compileParallel(custom, o, pctx, scope, parents)
 
-	case *ast.JoinProc:
+	case *Join:
 		if len(parents) != 2 {
 			return nil, ErrJoinParents
 		}
-		assignments, err := compileAssignments(node.Clauses, pctx.TypeContext, scope)
+		assignments, err := compileAssignments(o.Assignments, pctx.TypeContext, scope)
 		if err != nil {
 			return nil, err
 		}
 		lhs, rhs := splitAssignments(assignments)
-		leftKey, err := compileExpr(pctx.TypeContext, scope, node.LeftKey)
+		leftKey, err := compileExpr(pctx.TypeContext, scope, o.LeftKey)
 		if err != nil {
 			return nil, err
 		}
-		rightKey, err := compileExpr(pctx.TypeContext, scope, node.RightKey)
+		rightKey, err := compileExpr(pctx.TypeContext, scope, o.RightKey)
 		if err != nil {
 			return nil, err
 		}
@@ -324,9 +330,9 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, paren
 
 	default:
 		if len(parents) > 1 {
-			return nil, fmt.Errorf("ast type %v cannot have multiple parents", node)
+			return nil, fmt.Errorf("ast type %v cannot have multiple parents", o)
 		}
-		p, err := compileProc(custom, node, pctx, scope, parents[0])
+		p, err := compileOperator(custom, o, pctx, scope, parents[0])
 		return []proc.Interface{p}, err
 	}
 }
