@@ -100,11 +100,14 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, indexPage)
 	})
-	router.HandleFunc("/debug/pprof/", pprof.Index)
-	router.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	router.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	router.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	router.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
+	debug := router.PathPrefix("/debug/pprof").Subrouter()
+	debug.HandleFunc("/cmdline", pprof.Cmdline)
+	debug.HandleFunc("/profile", pprof.Profile)
+	debug.HandleFunc("/symbol", pprof.Symbol)
+	debug.HandleFunc("/trace", pprof.Trace)
+	debug.PathPrefix("/").HandlerFunc(pprof.Index)
+
 	router.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
 	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, "ok")
