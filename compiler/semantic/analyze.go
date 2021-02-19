@@ -8,33 +8,21 @@ import (
 	"github.com/brimsec/zq/compiler/kernel"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/combine"
-	"github.com/brimsec/zq/proc/filter"
-	"github.com/brimsec/zq/proc/fuse"
-	"github.com/brimsec/zq/proc/head"
 	"github.com/brimsec/zq/proc/join"
 	"github.com/brimsec/zq/proc/merge"
-	"github.com/brimsec/zq/proc/pass"
-	"github.com/brimsec/zq/proc/put"
-	"github.com/brimsec/zq/proc/rename"
-	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/proc/split"
-	"github.com/brimsec/zq/proc/tail"
-	"github.com/brimsec/zq/proc/top"
-	"github.com/brimsec/zq/proc/uniq"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-func Analyze(program *ast.Program) (kernel.Program, error) {
+func Analyze(program *ast.Program) (*kernel.Program, error) {
 	//XXX TBD
 	return nil, nil
 }
-
-//func swing(a) {
-//
-//}
 
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
 
@@ -50,174 +38,173 @@ func isContainerProc(node ast.Proc) bool {
 	return false
 }
 
-func semAssignemnts([]assignemnts ast.Assignment) (kernel.Proc, error) {
-        return nil, nil
+func semAssignments(zctx *resolver.Context, scope *kernel.Scope, assignemnts []ast.Assignment) ([]kernel.Assignment, error) {
+	return nil, nil
 }
 
-func semProc(p ast.Proc, pctx *proc.Context, scope *Scope) (kernel.Proc, error) {
+func semAggFuncs(assignemnts []ast.Assignment) ([]kernel.AggAssignment, error) {
+	return nil, nil
+
+}
+
+func semExprs(zctx *resolver.Context, scope *kernel.Scope, exprs []ast.Expression) ([]kernel.Expr, error) {
+	return nil, nil
+}
+
+//XXX should return kernel.Boolean interface
+func semBool(zctx *resolver.Context, scope *kernel.Scope, predicate ast.Expression) (kernel.Expr, error) {
+	return nil, nil
+}
+
+func semField(expr ast.Expression) (field.Static, error) {
+	//XXX see CompilLval
+	return nil, nil
+}
+
+func semProc(p ast.Proc, pctx *proc.Context, scope *kernel.Scope) (kernel.Operator, error) {
 	switch p := p.(type) {
-        case ast.GroupByProc:
-                keys, err := semAssignments(p.Keys)
-                if err != nil {
-                        return nil, err
-                }
-                aggs, err := semAggFuncs(p.Reducers)
-                if err != nil {
-                        return nil, err
-                }
-                duration := nano.Duration(p.Seconds, 0)
-                bytes, _ := EncodeDuration(duration)
-                return &kernel.Agg{
-                        Op: "Agg",
-                        Keys: keys,
-                        Aggs: aggs,
-                        Duration: zng.Value{zng.TypeDuration, bytes},
-                        Limit: p.Limit,
-                }
-
-        case ast.CutProc:
-                a, err := semAssignemnts(p.Clauses)
-                if err != nil {
-                        return nil, err
-                }
-                return &kernel.Cut{
-                        Op:"Cut",
-                        Assignments: a,
-                }, nil
-func (*Agg) operator()        {}
-func (*Cut) operator()        {}
-func (*Drop) operator()       {}
-func (*Filter) operator()     {}
-func (*Fuse) operator()       {}
-func (*Head) operator()       {}
-func (*Join) operator()       {}
-func (*Merge) operator()      {}
-func (*Parallel) operator()   {}
-func (*Pass) operator()       {}
-func (*Pick) operator()       {}
-func (*Put) operator()        {}
-func (*Rename) operator()     {}
-func (*Sequential) operator() {}
-func (*Sort) operator()       {}
-func (*Tail) operator()       {}
-func (*Top) operator()        {}
-func (*Uniq) operator()       {}
-
 	case *ast.GroupByProc:
-		return compileGroupBy(pctx, scope, parent, v)
+		keys, err := semAssignments(pctx.TypeContext, scope, p.Keys)
+		if err != nil {
+			return nil, err
+		}
+		aggs, err := semAggFuncs(p.Reducers)
+		if err != nil {
+			return nil, err
+		}
+		duration := nano.Duration(int64(p.Duration.Seconds), 0)
+		bytes := zng.EncodeDuration(duration)
+		return &kernel.Agg{
+			Op:       "Agg",
+			Keys:     keys,
+			Aggs:     aggs,
+			Duration: zng.Value{zng.TypeDuration, bytes},
+			Limit:    p.Limit,
+		}, nil
 
 	case *ast.CutProc:
-		assignments, err := compileAssignments(v.Fields, pctx.TypeContext, scope)
+		a, err := semAssignments(pctx.TypeContext, scope, p.Fields)
 		if err != nil {
 			return nil, err
 		}
-		lhs, rhs := splitAssignments(assignments)
-		cutter, err := expr.NewCutter(pctx.TypeContext, lhs, rhs)
-		if err != nil {
-			return nil, err
-		}
-		cutter.AllowPartialCuts()
-		return proc.FromFunction(pctx, parent, cutter, "cut"), nil
+		return &kernel.Cut{
+			Op:          "Cut",
+			Assignments: a,
+		}, nil
 
 	case *ast.PickProc:
-		assignments, err := compileAssignments(v.Fields, pctx.TypeContext, scope)
+		a, err := semAssignments(pctx.TypeContext, scope, p.Fields)
 		if err != nil {
 			return nil, err
 		}
-		lhs, rhs := splitAssignments(assignments)
-		cutter, err := expr.NewCutter(pctx.TypeContext, lhs, rhs)
-		if err != nil {
-			return nil, err
-		}
-		return proc.FromFunction(pctx, parent, cutter, "pick"), nil
+		return &kernel.Pick{
+			Op:          "Pick",
+			Assignments: a,
+		}, nil
 
 	case *ast.DropProc:
-		if len(v.Fields) == 0 {
-			return nil, errors.New("drop: no fields given")
-		}
-		fields := make([]field.Static, 0, len(v.Fields))
-		for _, e := range v.Fields {
+		fields := make([]field.Static, 0, len(p.Fields))
+		for _, e := range p.Fields {
 			field, ok := ast.DotExprToField(e)
 			if !ok {
 				return nil, errors.New("drop: arg not a field")
 			}
 			fields = append(fields, field)
 		}
-		dropper := expr.NewDropper(pctx.TypeContext, fields)
-		return proc.FromFunction(pctx, parent, dropper, "drop"), nil
+		return &kernel.Drop{
+			Op:     "Drop",
+			Fields: fields,
+		}, nil
 
 	case *ast.SortProc:
-		fields, err := CompileExprs(pctx.TypeContext, scope, v.Fields)
+		fields, err := semExprs(pctx.TypeContext, scope, p.Fields)
 		if err != nil {
 			return nil, err
 		}
-		sort, err := sort.New(pctx, parent, fields, v.SortDir, v.NullsFirst)
-		if err != nil {
-			return nil, fmt.Errorf("compiling sort: %w", err)
-		}
-		return sort, nil
+		return &kernel.Sort{
+			Op:     "Sort",
+			Fields: fields,
+		}, nil
 
 	case *ast.HeadProc:
-		limit := v.Count
-		if limit == 0 {
-			limit = 1
+		count := p.Count
+		if count == 0 {
+			count = 1
 		}
-		return head.New(parent, limit), nil
+		return &kernel.Head{
+			Op:    "Head",
+			Count: count,
+		}, nil
 
 	case *ast.TailProc:
-		limit := v.Count
-		if limit == 0 {
-			limit = 1
+		count := p.Count
+		if count == 0 {
+			count = 1
 		}
-		return tail.New(parent, limit), nil
+		return &kernel.Tail{
+			Op:    "Tail",
+			Count: count,
+		}, nil
 
 	case *ast.UniqProc:
-		return uniq.New(pctx, parent, v.Cflag), nil
+		return &kernel.Uniq{
+			Op:    "Uniq",
+			Cflag: p.Cflag,
+		}, nil
 
+		//XXX delete this
 	case *ast.PassProc:
-		return pass.New(parent), nil
+		return &kernel.Pass{"Pass"}, nil
 
 	case *ast.FilterProc:
-		f, err := compileFilter(pctx.TypeContext, scope, v.Filter)
+		f, err := semBool(pctx.TypeContext, scope, p.Filter)
 		if err != nil {
-			return nil, fmt.Errorf("compiling filter: %w", err)
+			return nil, err
 		}
-		return filter.New(parent, f), nil
+		return &kernel.Filter{
+			Op:        "Filter",
+			Predicate: f,
+		}, nil
 
 	case *ast.TopProc:
-		fields, err := CompileExprs(pctx.TypeContext, scope, v.Fields)
+		fields, err := semExprs(pctx.TypeContext, scope, p.Fields)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
-		return top.New(parent, v.Limit, fields, v.Flush), nil
+		return &kernel.Top{
+			Op:     "Top",
+			Fields: fields,
+			Limit:  p.Limit,
+			Flush:  p.Flush,
+		}, nil
 
 	case *ast.PutProc:
-		clauses, err := compileAssignments(v.Clauses, pctx.TypeContext, scope)
+		assignments, err := semAssignments(pctx.TypeContext, scope, p.Clauses)
 		if err != nil {
 			return nil, err
 		}
-		put, err := put.New(pctx, parent, clauses)
-		if err != nil {
-			return nil, err
-		}
-		return put, nil
+		return &kernel.Put{
+			Op:          "Put",
+			Assignments: assignments,
+		}, nil
 
 	case *ast.RenameProc:
-		var srcs, dsts []field.Static
-		for _, fa := range v.Fields {
-			dst, err := CompileLval(fa.LHS)
+		var assignments []kernel.FieldAssignment
+		for _, fa := range p.Fields {
+			dst, err := semField(fa.LHS)
 			if err != nil {
 				return nil, err
 			}
 			// We call CompileLval on the RHS because renames are
 			// restricted to dotted field name expressions.
-			src, err := CompileLval(fa.RHS)
+			src, err := semField(fa.RHS)
 			if err != nil {
 				return nil, err
 			}
 			if len(dst) != len(src) {
 				return nil, fmt.Errorf("cannot rename %s to %s", src, dst)
 			}
+			//XXX kernel has to check this.
 			// Check that the prefixes match and, if not, report first place
 			// that they don't.
 			for i := 0; i <= len(src)-2; i++ {
@@ -225,14 +212,16 @@ func (*Uniq) operator()       {}
 					return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", src, dst, src[i], dst[i])
 				}
 			}
-			dsts = append(dsts, dst)
-			srcs = append(srcs, src)
+			assignment := kernel.FieldAssignment{dst, src}
+			assignments = append(assignments, assignment)
 		}
-		renamer := rename.NewFunction(pctx.TypeContext, srcs, dsts)
-		return proc.FromFunction(pctx, parent, renamer, "rename"), nil
+		return &kernel.Rename{
+			Op:          "Rename",
+			Assignments: assignments,
+		}, nil
 
 	case *ast.FuseProc:
-		return fuse.New(pctx, parent)
+		return &kernel.Fuse{"Fuse"}, nil
 
 	case *ast.FunctionCall:
 		return nil, errors.New("internal error: semantic analyzer should have converted function in proc context to filter or group-by")
@@ -241,7 +230,7 @@ func (*Uniq) operator()       {}
 		return nil, ErrJoinParents
 
 	default:
-		return nil, fmt.Errorf("unknown AST type: %v", v)
+		return nil, fmt.Errorf("unknown AST type: %v", p)
 
 	}
 }

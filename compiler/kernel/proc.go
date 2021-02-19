@@ -83,15 +83,7 @@ func compileOperator(custom Hook, o Operator, pctx *proc.Context, scope *Scope, 
 		if len(o.Fields) == 0 {
 			return nil, errors.New("drop: no fields given")
 		}
-		fields := make([]field.Static, 0, len(o.Fields))
-		for _, e := range o.Fields {
-			field, ok := DotExprToField(e)
-			if !ok {
-				return nil, errors.New("drop: arg not a field")
-			}
-			fields = append(fields, field)
-		}
-		dropper := expr.NewDropper(pctx.TypeContext, fields)
+		dropper := expr.NewDropper(pctx.TypeContext, o.Fields)
 		return proc.FromFunction(pctx, parent, dropper, "drop"), nil
 
 	case *Sort:
@@ -131,7 +123,7 @@ func compileOperator(custom Hook, o Operator, pctx *proc.Context, scope *Scope, 
 		return pass.New(parent), nil
 
 	case *Filter:
-		f, err := compileFilter(pctx.TypeContext, scope, o.Filter)
+		f, err := compileFilter(pctx.TypeContext, scope, o.Predicate)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
@@ -156,23 +148,12 @@ func compileOperator(custom Hook, o Operator, pctx *proc.Context, scope *Scope, 
 		return put, nil
 
 	case *Rename:
-		var srcs, dsts []field.Static
+		var dsts, srcs []field.Static
 		for _, fa := range o.Assignments {
-			dst, err := CompileLval(fa.LHS)
-			if err != nil {
-				return nil, err
-			}
-			// We call CompileLval on the RHS because renames are
-			// restricted to dotted field name expressions.
-			src, err := CompileLval(fa.RHS)
-			if err != nil {
-				return nil, err
-			}
-			if len(dst) != len(src) {
-				return nil, fmt.Errorf("cannot rename %s to %s", src, dst)
-			}
 			// Check that the prefixes match and, if not, report first place
 			// that they don't.
+			src := fa.RHS
+			dst := fa.LHS
 			for i := 0; i <= len(src)-2; i++ {
 				if src[i] != dst[i] {
 					return nil, fmt.Errorf("cannot rename %s to %s (differ in %s vs %s)", src, dst, src[i], dst[i])

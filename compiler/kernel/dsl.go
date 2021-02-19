@@ -62,12 +62,12 @@ type (
 		Assignments []Assignment `json:"assignments"`
 	}
 	Drop struct {
-		Op     string `json:"op"`
-		Fields []Expr `json:"fields"`
+		Op     string         `json:"op"`
+		Fields []field.Static `json:"fields"`
 	}
 	Filter struct {
-		Op     string `json:"op"`
-		Filter Expr   `json:"filter"`
+		Op        string `json:"op"`
+		Predicate Expr   `json:"predicate"`
 	}
 	Fuse struct {
 		Op string `json:"op"`
@@ -102,8 +102,8 @@ type (
 		Assignments []Assignment `json:"assignments"`
 	}
 	Rename struct {
-		Op          string       `json:"op"`
-		Assignments []Assignment `json:"assignments"`
+		Op          string            `json:"op"`
+		Assignments []FieldAssignment `json:"assignments"`
 	}
 	Sequential struct {
 		Op        string     `json:"op"`
@@ -130,6 +130,11 @@ type (
 		Cflag bool   `json:"cflag"`
 	}
 )
+
+type FieldAssignment struct {
+	LHS field.Static `json:"lhs"`
+	RHS field.Static `json:"rhs"`
+}
 
 type Assignment struct {
 	LHS Expr `json:"lhs"`
@@ -385,7 +390,7 @@ func (p *Program) FanIn() int {
 
 func FilterToProc(e Expr) *Filter {
 	return &Filter{
-		Op:     "Filter",
-		Filter: e,
+		Op:        "Filter",
+		Predicate: e,
 	}
 }
