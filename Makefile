@@ -161,8 +161,24 @@ helm-install:
 	--set global.AWSRegion=us-east-2 \
 	--set global.image.repository=$(ZQD_ECR_HOST)/ \
 	--set global.image.tag=zqd:$(ECR_VERSION) \
-	--set postgresql.persistence.enabled=$(PG_PERSIST) \
-	$(HELM_OPTIONS)
+	--set postgresql.persistence.enabled=$(PG_PERSIST)
+
+# helm-install-with-aurora does an install into the namespace of the current-context.
+# It gets the Aurora endpoint from aws rds, and makes the assumption that there
+# will be a 1-1 correspondence between K8s namespaces and Postgres usernames for deployment.
+helm-install-with-aurora:
+	helm upgrade -i zsrv charts/zservice \
+	--set root.datauri=$(ZQD_DATA_URI) \
+	--set global.AWSRegion=us-east-2 \
+	--set global.image.repository=$(ZQD_ECR_HOST)/ \
+	--set global.image.tag=zqd:$(ECR_VERSION) \
+	--set global.postgres.addr=$$(aws rds describe-db-cluster-endpoints \
+      --db-cluster-identifier zq-test-aurora \
+      | jq -r ".DBClusterEndpoints[] | select(.EndpointType==\"WRITER\") | .Endpoint"):5432 \
+	--set global.postgres.database=$(ZQD_AURORA_USER) \
+	--set global.postgres.username=$(ZQD_AURORA_USER) \
+	--set global.postgres.passwordSecretName=aurora \
+	--set tags.deploy-postgres=false
 
 create-release-assets:
 	for os in darwin linux windows; do \

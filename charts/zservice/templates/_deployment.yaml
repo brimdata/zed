@@ -60,18 +60,6 @@ spec:
             valueFrom:
               fieldRef:
                 fieldPath: spec.nodeName
-          {{- if .Values.global.useAurora }}
-          - name: AURORA_ADDR
-            valueFrom:
-              secretKeyRef:
-                key: addr
-                name: aurora-conn          
-          - name: AURORA_USER
-            valueFrom:
-              secretKeyRef:
-                key: user
-                name: aurora-conn          
-          {{- end }}
           {{- if .Values.global.useCredSecret }}
           # These environment variables are set from secrets
           # when there is no service account
@@ -123,15 +111,10 @@ spec:
           args:
             - "migrate"
             - "-m=/postgres/migrations"
+            - "-addr={{ .Values.global.postgres.addr }}"
+            - "-database={{ .Values.global.postgres.database }}"
+            - "-user={{ .Values.global.postgres.username }}"
             - "-passwordFile=/creds/postgres/password"
-            - "-database={{ .Values.postgres.database }}"
-              {{- if .Values.global.useAurora }}
-            - "-addr=$(AURORA_ADDR)"
-            - "-user=$(AURORA_USER)"
-              {{- else }}
-            - "-addr={{ .Values.postgres.addr }}"
-            - "-user={{ .Values.postgres.username }}"
-              {{- end }}
           volumeMounts:
             - mountPath: /creds/postgres
               name: postgres-creds-volume
@@ -156,17 +139,10 @@ spec:
         {{- if eq .Values.personality "root" }}
         - name: postgres-creds-volume
           secret:
-              {{- if .Values.global.useAurora }}
-            secretName: aurora-conn
-            items:
-              - key: password
-                path: password
-              {{- else }}
-            secretName: {{ .Values.postgres.passwordSecretName }}
+            secretName: {{ .Values.global.postgres.passwordSecretName }}
             items:
               - key: postgresql-password
                 path: password
-              {{- end }}
         - name: redis-creds-volume
           secret:
             secretName: {{ .Values.redis.passwordSecretName }}

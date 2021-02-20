@@ -82,6 +82,8 @@ jobs:
   eks-master-deploy:
     # Deploys this build to ci-master namespace so it will be available
     # for manual testing. Only deploy if previous jobs succeed.
+    # The cluster tests are repeated here because in this case they run using 
+    # the Aurora instance rather than postgres in K8s.
     needs: eks-deploy-test
     runs-on: ubuntu-latest
     steps:
@@ -95,10 +97,17 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - run: |
           set -x
+          export ZQD_AURORA_USER=cimaster
           export ZQD_DATA_URI=s3://zq-ci-master/manual-test
           export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl create ns ci-master || :
           kubectl config set-context --current --namespace=ci-master
           helm uninstall zsrv || :
-          make helm-install
+          make helm-install-with-aurora
+          kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-postgresql-0
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
+          source k8s/zsrv-port-forward.sh
+          make test-cluster

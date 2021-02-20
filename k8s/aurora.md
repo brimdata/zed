@@ -88,36 +88,37 @@ To create users for testing, we will use kubectl, as above, to open an admin ses
 kubectl run -i --tty --rm myshell --image=alpine -- sh
 # apk update
 # apk add postgresql
-# psql  -U postgres -h <RDS host>
+# psql -U postgres -h <RDS host>
 ```
-And use the following psql commands to create the user:
+And use the following psql commands to create the user and a database:
 ```
 CREATE USER theusername WITH ENCRYPTED PASSWORD 'thepassword';
 ALTER USER theusername CREATEDB;
+SET ROLE theusername;
+CREATE DATABASE theusername;
 ```
+The database name must be globally unique for this, so the database cannot be 'zqd'. By convention we create individual test databases in the Aurora cluster for each user, where the database name is the same as the username.
+
 You can generate a password with something similar to:
 ```
 openssl rand -base64 12 | awk '{print tolower($0)}'
 ```
-In the future I would like to automate this, but given that this process will only need to be done once for each developer, it may not be worth it at this point.
+In the future we would like to automate this, but given that this process will only need to be done once for each developer, it may not be worth it at this point.
 
 ## Configuring secrets for Aurora
 After you have created a Postgres user for our aurora instance, create the K8s secrets for that user in correct namespace with the following command:
 ```
-kubectl create secret generic aurora-conn \
-  --from-literal="addr=$(aws rds describe-db-cluster-endpoints \
-  --db-cluster-identifier zq-test-aurora \
-   | jq -r ".DBClusterEndpoints[] | select(.EndpointType==\"WRITER\") | .Endpoint" \
-  --from-literal="user=THEUSERNAME" \
-  --from-literal="password=THEPASSWORD"
+kubectl create secret generic aurora \
+  --from-literal="postgresql-password=THEPASSWORD"
 ```
 To make sure the secret looks right, try:
 ```
-kubectl get secret aurora-conn --template={{.data.addr}} | base64 --decode
+kubectl get secret aurora --template={{.data.postgresql-password}} | base64 --decode
 ```
 Your zqd sessions will connect to the db using this username (not the master username) and the session will have permission to create a database and perform the migrations.
 
 ## Helm Deploy with Aurora
 ```
-HELM_OPTIONS="--set global.useAurora=true --set tags.deploy-postgres=false" make helm-install
+make helm-install-with-aurora
 ```
+Includes are the values overrides that are needed to deploy a zqd cluster that uses the zq-test-aurora instance rather than a postgres deployment in K8s.

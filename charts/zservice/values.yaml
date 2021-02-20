@@ -5,15 +5,13 @@ global:
     pullPolicy: Always
     tag: "zqd"
   imagePullSecrets: []
-  useAurora: false
+  postgres:
+    addr: zsrv-postgresql:5432
+    username: "zqd"
+    database: "zqd"
+    # passwordSecretName must have a value called postgres-password
+    passwordSecretName: "postgres"
   useCredSecret: false
-
-postgres:
-  addr: zsrv-postgresql:5432
-  username: "zqd"
-  database: "zqd"
-  # passwordSecretName must have a value called postgres-password
-  passwordSecretName: "postgres"
 
 postgresql:
   # These values only apply to postgres instance running in the cluster (not Aurora)
