@@ -519,12 +519,12 @@ func compileExprs(zctx *resolver.Context, scope *Scope, in []ast.Expression) ([]
 func compileTypeExpr(zctx *resolver.Context, scope *Scope, t ast.TypeExpr) (expr.Evaluator, error) {
 	if typ, ok := t.Type.(*ast.TypeName); ok {
 		// We currently support dynamic type names only for
-		// top-level type names.  By dyanmic, we mean typedefs that
+		// top-level type names.  By dynamic, we mean typedefs that
 		// come from the data instead of the Z.  For dynamic type
 		// names that are embedded lower down in a complex type,
 		// we need to implement some type of tracker objec that
 		// can resolve the type when all the dependent types are found.
-		// See issue #XXXX.
+		// See issue #2182.
 		return expr.NewTypeFunc(zctx, typ.Name), nil
 	}
 	typ, err := zson.TranslateType(zctx, t.Type)
