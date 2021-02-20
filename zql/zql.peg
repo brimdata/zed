@@ -54,7 +54,25 @@ start = __ ast:Z __ EOF { RETURN(ast) }
 // but we do for everything but FilterProc because the zq runtime is fragile
 // to this difference right now.  See issue #1809.
 Z // = !(Operator / Aggregation / "(") op:Operation &EOF { RETURN(op) }
-  = Sequential
+  = consts:Const+ __ first:Operation rest:SequentialTail* {
+      VAR(procs) = ASSERT_ARRAY(consts)
+      APPEND(procs, first)
+      FOREACH(ASSERT_ARRAY(rest), p) {
+        APPEND(procs, p)
+      }
+      RETURN(MAP("op": "SequentialProc", "procs": procs))
+    }
+  / Sequential
+
+Const = __ v:AnyConst { RETURN(v) }
+
+AnyConst
+  = "const" _ id:IdentifierName __ "=" __ literal:Literal ( __ ";" / EOL ) {
+      RETURN(MAP("op":"ConstProc","name":id, "value":literal))
+    }
+  / "type" _ id:IdentifierName __ "=" __ typ:Type ( __ ";" / EOL ) {
+      RETURN(MAP("op":"TypeProc","name":id, "type":typ))
+    }
 
 Sequential
   = first:Operation rest:SequentialTail+ {
@@ -201,6 +219,7 @@ SearchGuard
   / InToken
   / ByToken
   / CaseToken
+  / "type("
 
 /// === Search-embedded Expression Context ===
 
@@ -227,13 +246,14 @@ SearchExprMul
     }
 
 SearchExprCast
-  = e:SearchExprFunc typ:( ":" typ:PrimitiveType { RETURN(typ) }) {
+  = e:SearchExprFunc __ ":" __ typ:CastType {
       RETURN(MAP("op": "CastExpr", "expr": e, "type": typ))
     }
   / SearchExprFunc
 
 SearchExprFunc
   = MatchExpr
+  / TypeLiteral
   / first:Function rest:(Deref)*  {
       RETURN(makeBinaryExprChain(first, rest))
     }
@@ -533,23 +553,15 @@ NotExpr
   / CastExpr
 
 CastExpr
-  = e:FuncExpr ":" typ:PrimitiveType {
+  = e:FuncExpr __ ":" __ typ:CastType {
       RETURN(MAP("op": "CastExpr", "expr": e, "type": typ))
     }
   / FuncExpr
 
-PrimitiveType
-  = (   "bytes" / "uint8" / "uint16" / "uint32" / "uint64"
-      / "int8" / "int16" / "int32" / "int64"
-      / "duration" / "time"
-      / "float64"
-      / "bool" / "bytes" / "string" / "bstring"
-      / "ip" / "net"
-      / "type" / "error" / "null" ) { RETURN(TEXT) }
-
 FuncExpr
   = SelectExpr
   / MatchExpr
+  / TypeLiteral
   / first:Function rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
     }
@@ -562,6 +574,7 @@ NotFuncs
   = "not"
   / "match"
   / "select"
+  / "type"
 
 MatchExpr
   = "match" __ "(" expr:SearchBoolean ")" { RETURN(expr) }
@@ -626,7 +639,8 @@ Primary
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
 Literal
-  = StringLiteral
+  = TypeLiteral
+  / StringLiteral
   / RegexpLiteral
   / SubnetLiteral
   / AddressLiteral
@@ -678,6 +692,86 @@ BooleanLiteral
 NullLiteral
   = "null"           { RETURN(MAP("op": "Literal", "type": "null", "value": "")) }
 
+TypeLiteral
+  = typ:TypeExternal {
+      RETURN(MAP("op": "TypeExpr", "type": typ))
+    }
+
+CastType
+  = TypeExternal
+  / PrimitiveType
+
+TypeExternal
+  = "type" __ "(" __ typ:Type __ ")" { RETURN(typ)}
+  / "type" __ "(" __ typ:TypeUnion __ ")" { RETURN(typ) }
+  / ComplexType
+
+Type
+  = AmbigousType
+  / ComplexType
+
+AmbigousType
+  = "null" {
+      RETURN(MAP("op": "TypeNull"))
+    }
+  / name:PrimitiveType
+  / name:IdentifierName __ '=' __ "(" __ typ:Type __ ")" {
+      RETURN(MAP("op": "TypeDef", "name": name, "type": typ))
+  }
+  / name:IdentifierName {
+      RETURN(MAP("op": "TypeName", "name": name))
+    }
+  / "(" __ u:TypeUnion  ")" { RETURN(u) }
+
+TypeUnion
+  = types:TypeList {
+      RETURN(MAP("op": "TypeUnion", "types": types))
+    }
+
+TypeList
+  = first:Type rest:TypeListTail+ {
+    RETURN(PREPEND(first, rest))
+  }
+
+TypeListTail = __ "," __ typ:Type { RETURN(typ) }
+
+PrimitiveType
+  = (   "bytes" / "uint8" / "uint16" / "uint32" / "uint64"
+      / "int8" / "int16" / "int32" / "int64"
+      / "duration" / "time"
+      / "float64"
+      / "bool" / "bytes" / "string" / "bstring"
+      / "ip" / "net"
+      / "type" / "error" ) {
+          RETURN(MAP("op": "TypePrimitive", "name": TEXT))
+        }
+
+ComplexType
+  = "{" __ fields:TypeFieldList __ "}" {
+      RETURN(MAP("op":"TypeRecord", "fields":fields))
+    }
+  / "[" __ typ:Type __ "]" {
+      RETURN(MAP("op":"TypeArray", "type":typ))
+    }
+  / "|[" __ typ:Type __ "]|" {
+      RETURN(MAP("op":"TypeSet", "type":typ))
+    }
+  / "|{" __ keyType:Type __ "," __ valType:Type __ "}|" {
+      RETURN(MAP("op":"TypeMap", "key_type":keyType, "val_type": valType))
+    }
+
+TypeFieldList
+  = first:TypeField rest:TypeFieldListTail* {
+    RETURN(PREPEND(first, rest))
+  }
+
+TypeFieldListTail = __ "," __ typ:TypeField { RETURN(typ) }
+
+TypeField
+  = name:IdentifierName __ ":" __ typ:Type {
+      RETURN(MAP("name": name, "type": typ))
+    }
+
 EqualityToken
   = EqualityOperator / RelativeOperator
 
@@ -697,10 +791,14 @@ IdentifierName
   = !(IdGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }
   / "$" { RETURN(TEXT) }
   / "\\" id:IdGuard { RETURN(id) }
+  // "type" is a search guard but shouldn't be an id guard
+  / "type" { RETURN(TEXT) }
+
 
 IdGuard
   = BooleanLiteral
   / NullLiteral
+  / TypeExternal
   / SearchGuard
 
 Duration
@@ -925,5 +1023,6 @@ MultiLineComment
 SingleLineComment
   = "//" (!LineTerminator SourceCharacter)*
 
+EOL = WhiteSpace* LineTerminator
 EOT = _ / EOF
 EOF = !.

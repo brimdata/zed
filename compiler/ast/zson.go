@@ -35,18 +35,6 @@ type Any interface {
 	anyNode()
 }
 
-const (
-	PrimitiveOp = "primitive"
-	RecordOp    = "record"
-	ArrayOp     = "array"
-	SetOp       = "set"
-	UnionOp     = "union"
-	EnumOp      = "enum"
-	MapOp       = "map"
-	NullOp      = "null"
-	TypeValueOp = "type_value"
-)
-
 type (
 	Primitive struct {
 		Op   string `json:"op"`
@@ -98,19 +86,6 @@ func (*TypeValue) anyNode() {}
 type Type interface {
 	typeNode()
 }
-
-const (
-	TypePrimitiveOp = "type_primitive"
-	TypeRecordOp    = "type_record"
-	TypeArrayOp     = "type_array"
-	TypeSetOp       = "type_set"
-	TypeUnionOp     = "type_union"
-	TypeEnumOp      = "enum_set"
-	TypeMapOp       = "type_map"
-	TypeNullOp      = "type_null"
-	TypeNameOp      = "type_name"
-	TypeDefOp       = "type_def"
-)
 
 type (
 	TypePrimitive struct {

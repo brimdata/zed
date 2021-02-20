@@ -723,6 +723,32 @@ func (c *Call) Eval(rec *zng.Record) (zng.Value, error) {
 	return c.fn.Call(c.args)
 }
 
+// A TyepFunc returns a type value of the named type (where the name is
+// a Z typedef).  It returns MISSING if the name doesn't exist.
+type TypeFunc struct {
+	name string
+	zctx *resolver.Context
+	zv   zng.Value
+}
+
+func NewTypeFunc(zctx *resolver.Context, name string) *TypeFunc {
+	return &TypeFunc{
+		name: name,
+		zctx: zctx,
+	}
+}
+
+func (t *TypeFunc) Eval(rec *zng.Record) (zng.Value, error) {
+	if t.zv.Bytes == nil {
+		typ := t.zctx.LookupTypeDef(t.name)
+		if typ == nil {
+			return zng.Missing, nil
+		}
+		t.zv = zng.NewTypeType(typ)
+	}
+	return t.zv, nil
+}
+
 type Exists struct {
 	zctx  *resolver.Context
 	exprs []Evaluator
@@ -745,15 +771,14 @@ func (e *Exists) Eval(rec *zng.Record) (zng.Value, error) {
 	return zng.True, nil
 }
 
-func NewCast(expr Evaluator, styp string) (Evaluator, error) {
+func NewCast(expr Evaluator, typ zng.Type) (Evaluator, error) {
 	// XXX should handle alias casts... need type context.
 	// compile is going to need a local type context to create literals
 	// of complex types?
-	typ := zng.LookupPrimitive(styp)
 	c := LookupPrimitiveCaster(typ)
 	if c == nil {
 		// XXX See issue #1572.   To implement aliascast here.
-		return nil, fmt.Errorf("cast to %s not implemented", styp)
+		return nil, fmt.Errorf("cast to '%s' not implemented", typ.ZSON())
 	}
 	return &evalCast{expr, c, typ}, nil
 }

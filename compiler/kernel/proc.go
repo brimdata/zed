@@ -24,7 +24,9 @@ import (
 	"github.com/brimsec/zq/proc/top"
 	"github.com/brimsec/zq/proc/uniq"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zson"
 )
 
 var ErrJoinParents = errors.New("join requires two upstream parallel query paths")
@@ -326,13 +328,18 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, paren
 		// Outermost caller should pass in global scope object.  If nil,
 		// we assume no global context and allocate a fresh, empty scope.
 		scope = newScope()
+		scope.Enter()
 	}
 	switch node := node.(type) {
 	case *ast.SequentialProc:
 		if len(node.Procs) == 0 {
 			return nil, errors.New("sequential proc without procs")
 		}
-		return compileSequential(custom, node.Procs, pctx, scope, parents)
+		procs, err := compileConsts(pctx.TypeContext, scope, node.Procs)
+		if err != nil {
+			return nil, err
+		}
+		return compileSequential(custom, procs, pctx, scope, parents)
 
 	case *ast.ParallelProc:
 		return compileParallel(custom, node, pctx, scope, parents)
@@ -370,4 +377,41 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, paren
 		p, err := compileProc(custom, node, pctx, scope, parents[0])
 		return []proc.Interface{p}, err
 	}
+}
+
+func compileConsts(zctx *resolver.Context, scope *Scope, procs []ast.Proc) ([]ast.Proc, error) {
+	for k, p := range procs {
+		switch p := p.(type) {
+		case *ast.ConstProc:
+			name := p.Name
+			literal := p.Value
+			typ, err := zson.LookupType(zctx, literal.Type)
+			if err != nil {
+				return nil, err
+			}
+			bytes, err := typ.Parse([]byte(literal.Value))
+			if err != nil {
+				return nil, err
+			}
+			zv := zng.Value{typ, bytes}
+			scope.Bind(name, &zv)
+
+		case *ast.TypeProc:
+			name := p.Name
+			typ, err := zson.TranslateType(zctx, p.Type)
+			if err != nil {
+				return nil, err
+			}
+			alias, err := zctx.LookupTypeAlias(name, typ)
+			if err != nil {
+				return nil, err
+			}
+			zv := zng.NewTypeType(alias)
+			scope.Bind(name, &zv)
+
+		default:
+			return procs[k:], nil
+		}
+	}
+	return nil, nil
 }
