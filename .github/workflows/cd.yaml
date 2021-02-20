@@ -88,6 +88,9 @@ jobs:
     needs: eks-deploy-test
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
       - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -104,12 +107,12 @@ jobs:
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl create ns ci-master || :
           kubectl config set-context --current --namespace=ci-master
-          helm uninstall zsrv || :
           make helm-install-with-aurora
           kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-redis-master-0
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
+          make install
           source k8s/zsrv-port-forward.sh
           make test-cluster
       - name: Get zqd logs on success or failure
