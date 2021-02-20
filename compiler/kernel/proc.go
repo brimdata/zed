@@ -383,18 +383,23 @@ func compileConsts(zctx *resolver.Context, scope *Scope, procs []ast.Proc) ([]as
 	for k, p := range procs {
 		switch p := p.(type) {
 		case *ast.ConstProc:
-			name := p.Name
-			literal := p.Value
-			typ, err := zson.LookupType(zctx, literal.Type)
+			e, err := compileExpr(zctx, scope, p.Expr)
 			if err != nil {
 				return nil, err
 			}
-			bytes, err := typ.Parse([]byte(literal.Value))
+			typ, err := zctx.LookupTypeRecord([]zng.Column{})
 			if err != nil {
 				return nil, err
 			}
-			zv := zng.Value{typ, bytes}
-			scope.Bind(name, &zv)
+			rec := zng.NewRecord(typ, nil)
+			zv, err := e.Eval(rec)
+			if err != nil {
+				if err == zng.ErrMissing {
+					err = fmt.Errorf("cannot resolve const '%s' at compile time", p.Name)
+				}
+				return nil, err
+			}
+			scope.Bind(p.Name, &zv)
 
 		case *ast.TypeProc:
 			name := p.Name

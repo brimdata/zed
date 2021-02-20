@@ -67,8 +67,8 @@ Z // = !(Operator / Aggregation / "(") op:Operation &EOF { RETURN(op) }
 Const = __ v:AnyConst { RETURN(v) }
 
 AnyConst
-  = "const" _ id:IdentifierName __ "=" __ literal:Literal ( __ ";" / EOL ) {
-      RETURN(MAP("op":"ConstProc","name":id, "value":literal))
+  = "const" _ id:IdentifierName __ "=" __ expr:Expr ( __ ";" / EOL ) {
+      RETURN(MAP("op":"ConstProc","name":id, "expr":expr))
     }
   / "type" _ id:IdentifierName __ "=" __ typ:Type ( __ ";" / EOL ) {
       RETURN(MAP("op":"TypeProc","name":id, "type":typ))

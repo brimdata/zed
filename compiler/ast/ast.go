@@ -292,9 +292,9 @@ type (
 	// smuggled in as fake procs.  When we refactor this AST into a parser AST
 	// proper and a separate kernel DSL, we will clean this up.
 	ConstProc struct {
-		Op    string  `json:"op"`
-		Name  string  `json:"name"`
-		Value Literal `json:"value"`
+		Op   string     `json:"op"`
+		Name string     `json:"name"`
+		Expr Expression `json:"expr"`
 	}
 
 	TypeProc struct {

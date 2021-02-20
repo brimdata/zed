@@ -157,8 +157,8 @@ function peg$parse(input, options) {
       peg$c6 = peg$literalExpectation("=", false),
       peg$c7 = ";",
       peg$c8 = peg$literalExpectation(";", false),
-      peg$c9 = function(id, literal) {
-            return {"op":"ConstProc","name":id, "value":literal}
+      peg$c9 = function(id, expr) {
+            return {"op":"ConstProc","name":id, "expr":expr}
           },
       peg$c10 = "type",
       peg$c11 = peg$literalExpectation("type", false),
@@ -1138,7 +1138,7 @@ function peg$parse(input, options) {
             if (s5 !== peg$FAILED) {
               s6 = peg$parse__();
               if (s6 !== peg$FAILED) {
-                s7 = peg$parseLiteral();
+                s7 = peg$parseConditionalExpr();
                 if (s7 !== peg$FAILED) {
                   s8 = peg$currPos;
                   s9 = peg$parse__();

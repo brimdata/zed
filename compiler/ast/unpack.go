@@ -232,11 +232,19 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 		}
 		return &JoinProc{LeftKey: leftKey, RightKey: rightKey, Clauses: clauses}, nil
 	case "ConstProc":
-		return &ConstProc{}, nil
+		exprField, err := node.Get("expr")
+		if err != nil {
+			return nil, errors.New("expr field is missing from ast.ConstProc")
+		}
+		e, err := UnpackExpression(exprField)
+		if err != nil {
+			return nil, err
+		}
+		return &ConstProc{Expr: e}, nil
 	case "TypeProc":
 		t, err := node.Get("type")
 		if err != nil {
-			return nil, errors.New("type field is from ast.TypeProc")
+			return nil, errors.New("type field is missing from ast.TypeProc")
 		}
 		typ, err := unpackType(t)
 		if err != nil {

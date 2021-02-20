@@ -1,0 +1,10 @@
+zql: const t = a ; put x=t
+
+input: |
+  {a:1}
+  {a:2}
+
+output: ""
+
+errorRE: |
+  cannot resolve const 't' at compile time
