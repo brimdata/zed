@@ -1,0 +1,87 @@
+tag: services
+
+script: |
+  # Start an authentication enabled zqd, and create 2 separate access tokens
+  # representing different users in different tenants.
+  ZQD_EXTRA_FLAGS="-auth.enabled=true -auth.clientid=testclient -auth.domain=https://testdomain -auth.jwkspath=./auth-public-jwks.json" source startup.sh
+  zapi -h $ZQD_HOST -configpath ./user1 auth store -access \
+    $(gentoken -domain https://testdomain -privatekeyfile ./auth-private-key -keyid testkey -tenantid tenant1 -userid user1)
+  zapi -h $ZQD_HOST -configpath ./user2 auth store -access \
+    $(gentoken -domain https://testdomain -privatekeyfile ./auth-private-key -keyid testkey -tenantid tenant2 -userid user2)
+  zapi -configpath ./user1 -h $ZQD_HOST auth verify
+  zapi -configpath ./user2 -h $ZQD_HOST auth verify
+  export zapi_user1="zapi -configpath ./user1 -h $ZQD_HOST"
+  export zapi_user2="zapi -configpath ./user2 -h $ZQD_HOST"
+  echo ===
+
+  # Create a space for each user.
+  $zapi_user1 new user1space1
+  export USER1_SP1=$($zapi_user1 ls -l -f zng | zq -f text "name=user1space1 | pick id" -)
+  $zapi_user2 new user2space2
+  export USER2_SP2=$($zapi_user2 ls -l -f zng | zq -f text "name=user2space2 | pick id" -)
+  echo ===
+
+  # Create an intake for each user, specifying a target space, and verify
+  # the reported ids match.
+  export USER1_IN1=$($zapi_user1 intake new -f zng -target user1space1 user1intake1 | zq -f text "pick id" -)
+  export USER2_IN2=$($zapi_user2 intake new -f zng -target user2space2 user2intake2 | zq -f text "pick id" -)
+  # List the spaces for each user, and verify that they see only the intakes
+  # that they created.
+  echo user1 intake ls
+  $zapi_user1 intake ls
+  test $($zapi_user1 intake ls -l -f zng | zq -f text "pick target_space_id" -) = $USER1_SP1 && echo user1 space1 intake1 id match
+  echo ===
+  echo user2 intake ls
+  $zapi_user2 intake ls
+  test $($zapi_user2 intake ls -l -f zng | zq -f text "pick target_space_id" -) = $USER2_SP2 && echo user2 space2 intake2 id match
+  echo ===
+
+  # Verify that user1 can't change the name of user2's intake.
+  $zapi_user1 intake update -name "foo" $USER2_IN2 2>/dev/null || echo failed as expected
+  $zapi_user2 intake ls
+  echo ===
+
+  # Verify that an intake target space must belong to the intake tenant.
+  $zapi_user1 intake update -target $USER2_SP2 user1intake1 2>/dev/null || echo failed as expected
+  test $($zapi_user1 intake ls -l -f zng | zq -f text "pick target_space_id" -) = $USER1_SP1 && echo user1 space1 intake1 id match
+  echo ===
+
+inputs:
+  - name: startup.sh
+    source: startup.sh
+  - name: migrations
+    symlink: ../migrations
+  - name: auth-public-jwks.json
+    source: ../../../testdata/auth-public-jwks.json
+  - name: auth-private-key
+    source: ../../../testdata/auth-private-key
+
+outputs:
+  - name: stdout
+    data: |
+      {
+      	"tenant_id": "tenant1",
+      	"user_id": "user1"
+      }
+      {
+      	"tenant_id": "tenant2",
+      	"user_id": "user2"
+      }
+      ===
+      user1space1: space created
+      user2space2: space created
+      ===
+      user1 intake ls
+      user1intake1
+      user1 space1 intake1 id match
+      ===
+      user2 intake ls
+      user2intake2
+      user2 space2 intake2 id match
+      ===
+      failed as expected
+      user2intake2
+      ===
+      failed as expected
+      user1 space1 intake1 id match
+      ===

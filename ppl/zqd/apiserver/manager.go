@@ -19,6 +19,7 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/ppl/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
+	"github.com/brimsec/zq/zql"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
@@ -86,7 +87,7 @@ func (m *Manager) CreateSpace(ctx context.Context, req api.SpacePostRequest) (ap
 	if req.Name == "" && req.DataPath == "" {
 		return api.Space{}, zqe.E(zqe.Invalid, "must supply non-empty name or dataPath")
 	}
-	if !schema.ValidSpaceName(req.Name) {
+	if !schema.ValidResourceName(req.Name) {
 		return api.Space{}, zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
 	id := schema.NewSpaceID()
@@ -305,7 +306,7 @@ func (m *Manager) UpdateSpaceName(ctx context.Context, id api.SpaceID, name stri
 	if name == "" {
 		return zqe.E(zqe.Invalid, "cannot set name to an empty string")
 	}
-	if !schema.ValidSpaceName(name) {
+	if !schema.ValidResourceName(name) {
 		return zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
 	if _, err := m.getSpacePermCheck(ctx, id); err != nil {
@@ -345,6 +346,116 @@ func (m *Manager) Purge(ctx context.Context, id api.SpaceID) error {
 	return m.withArchiveStorage(ctx, id, "Purge", func(s *archivestore.Storage, l *zap.Logger) error {
 		return s.Purge(ctx, l)
 	})
+}
+
+func (m *Manager) CreateIntake(ctx context.Context, req api.IntakePostRequest) (api.Intake, error) {
+	ident := auth.IdentityFromContext(ctx)
+	row := schema.IntakeRow{
+		ID:            schema.NewIntakeID(),
+		Name:          req.Name,
+		Shaper:        req.Shaper,
+		TargetSpaceID: req.TargetSpaceID,
+		TenantID:      ident.TenantID,
+	}
+	if err := m.validateIntake(ctx, row); err != nil {
+		return api.Intake{}, err
+	}
+	if err := m.db.CreateIntake(ctx, row); err != nil {
+		return api.Intake{}, err
+	}
+	return rowToIntake(row), nil
+}
+
+func (m *Manager) GetIntake(ctx context.Context, id api.IntakeID) (api.Intake, error) {
+	row, err := m.getIntakePermCheck(ctx, id)
+	if err != nil {
+		return api.Intake{}, err
+	}
+	return rowToIntake(row), nil
+}
+
+func (m *Manager) ListIntakes(ctx context.Context) ([]api.Intake, error) {
+	ident := auth.IdentityFromContext(ctx)
+	rows, err := m.db.ListIntakes(ctx, ident.TenantID)
+	if err != nil {
+		return nil, err
+	}
+	res := make([]api.Intake, 0, len(rows))
+	for _, row := range rows {
+		res = append(res, rowToIntake(row))
+	}
+	return res, nil
+}
+
+func (m *Manager) validateIntake(ctx context.Context, row schema.IntakeRow) error {
+	if row.Name == "" {
+		return zqe.E(zqe.Invalid, "name must not be empty")
+	}
+	if !schema.ValidResourceName(row.Name) {
+		return zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
+	}
+	if row.Shaper != "" {
+		if _, err := zql.Parse("", []byte(row.Shaper)); err != nil {
+			return zqe.ErrInvalid("invalid shaper program: %w", err)
+		}
+	}
+	if row.TargetSpaceID != "" {
+		if _, err := m.getSpacePermCheck(ctx, row.TargetSpaceID); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (m *Manager) UpdateIntake(ctx context.Context, id api.IntakeID, req api.IntakePostRequest) (api.Intake, error) {
+	_, err := m.getIntakePermCheck(ctx, id)
+	if err != nil {
+		return api.Intake{}, err
+	}
+	ident := auth.IdentityFromContext(ctx)
+	row := schema.IntakeRow{
+		ID:            id,
+		Name:          req.Name,
+		Shaper:        req.Shaper,
+		TargetSpaceID: req.TargetSpaceID,
+		TenantID:      ident.TenantID,
+	}
+	if err := m.validateIntake(ctx, row); err != nil {
+		return api.Intake{}, err
+	}
+	if err := m.db.UpdateIntake(ctx, row); err != nil {
+		return api.Intake{}, err
+	}
+	return rowToIntake(row), nil
+}
+
+func (m *Manager) DeleteIntake(ctx context.Context, id api.IntakeID) error {
+	_, err := m.getIntakePermCheck(ctx, id)
+	if err != nil {
+		return err
+	}
+	return m.db.DeleteIntake(ctx, id)
+}
+
+func (m *Manager) getIntakePermCheck(ctx context.Context, id api.IntakeID) (schema.IntakeRow, error) {
+	row, err := m.db.GetIntake(ctx, id)
+	if err != nil {
+		return schema.IntakeRow{}, err
+	}
+	ident := auth.IdentityFromContext(ctx)
+	if row.TenantID != ident.TenantID {
+		return schema.IntakeRow{}, zqe.ErrForbidden()
+	}
+	return row, nil
+}
+
+func rowToIntake(row schema.IntakeRow) api.Intake {
+	return api.Intake{
+		ID:            row.ID,
+		Name:          row.Name,
+		Shaper:        row.Shaper,
+		TargetSpaceID: row.TargetSpaceID,
+	}
 }
 
 type withArchiveStoreFunc func(*archivestore.Storage, *zap.Logger) error

@@ -1002,3 +1002,91 @@ func writeLogsFn(logs []string) procFn {
 		return err
 	}
 }
+
+func TestIntakeCRUD(t *testing.T) {
+	root := createTempDir(t)
+	_, conn := newCoreAtDir(t, root)
+	ctx := context.Background()
+
+	intakes, err := conn.IntakeList(ctx)
+	require.NoError(t, err)
+	require.Empty(t, intakes)
+
+	// Should be able to create an intake without a shaper or target space
+	intake1, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+		Name: "intake1",
+	})
+	require.NoError(t, err)
+
+	res, err := conn.IntakeInfo(ctx, intake1.ID)
+	require.NoError(t, err)
+	require.Equal(t, "intake1", res.Name)
+	require.Empty(t, res.Shaper)
+	require.Empty(t, res.TargetSpaceID)
+
+	intakes, err = conn.IntakeList(ctx)
+	require.NoError(t, err)
+	require.Len(t, intakes, 1)
+	require.Equal(t, intake1.ID, intakes[0].ID)
+
+	sp2, err := conn.SpacePost(ctx, api.SpacePostRequest{
+		Name: "sp2",
+	})
+	require.NoError(t, err)
+
+	intake2, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+		Name:          "intake2",
+		TargetSpaceID: sp2.ID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "intake2", intake2.Name)
+	require.Equal(t, sp2.ID, intake2.TargetSpaceID)
+
+	intakes, err = conn.IntakeList(ctx)
+	require.NoError(t, err)
+	require.Len(t, intakes, 2)
+	require.Equal(t, intake1.ID, intakes[0].ID)
+	require.Equal(t, intake2.ID, intakes[1].ID)
+	require.Equal(t, sp2.ID, intakes[1].TargetSpaceID)
+
+	updateres, err := conn.IntakeUpdate(ctx, intake2.ID, api.IntakePostRequest{
+		Name:          "intake2rename",
+		Shaper:        intake2.Shaper,
+		TargetSpaceID: intake2.TargetSpaceID,
+	})
+	require.NoError(t, err)
+	require.Equal(t, "intake2rename", updateres.Name)
+	require.Equal(t, intake2.ID, updateres.ID)
+	require.Equal(t, sp2.ID, intake2.TargetSpaceID)
+	require.Empty(t, updateres.Shaper)
+
+	infores, err := conn.IntakeInfo(ctx, intake2.ID)
+	require.NoError(t, err)
+	require.Equal(t, "intake2rename", infores.Name)
+	require.Equal(t, intake2.ID, infores.ID)
+	require.Equal(t, sp2.ID, infores.TargetSpaceID)
+	require.Empty(t, infores.Shaper)
+
+	updateres, err = conn.IntakeUpdate(ctx, intake2.ID, api.IntakePostRequest{
+		Name:          "intake2",
+		Shaper:        "foo",
+		TargetSpaceID: intake2.TargetSpaceID,
+	})
+	require.NoError(t, err)
+
+	updateres, err = conn.IntakeUpdate(ctx, intake2.ID, api.IntakePostRequest{
+		Name:          "intake2",
+		Shaper:        "\"",
+		TargetSpaceID: intake2.TargetSpaceID,
+	})
+	require.Error(t, err)
+	require.Regexp(t, "invalid shaper", err.Error())
+
+	err = conn.IntakeDelete(ctx, intake1.ID)
+	require.NoError(t, err)
+
+	intakes, err = conn.IntakeList(ctx)
+	require.NoError(t, err)
+	require.Len(t, intakes, 1)
+	require.Equal(t, intake2.ID, intakes[0].ID)
+}

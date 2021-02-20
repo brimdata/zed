@@ -15,3 +15,8 @@ func IsForeignKeyViolation(err error) bool {
 	pgerr, ok := err.(pg.Error)
 	return ok && pgerr.Field('C') == "23503"
 }
+
+func IsNotNullViolation(err error) bool {
+	pgerr, ok := err.(pg.Error)
+	return ok && pgerr.Field('C') == "23502"
+}

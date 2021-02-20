@@ -20,6 +20,12 @@ type DB interface {
 	ListSpaces(context.Context, auth.TenantID) ([]schema.SpaceRow, error)
 	UpdateSpaceName(context.Context, api.SpaceID, string) error
 	DeleteSpace(context.Context, api.SpaceID) error
+
+	CreateIntake(context.Context, schema.IntakeRow) error
+	DeleteIntake(context.Context, api.IntakeID) error
+	GetIntake(context.Context, api.IntakeID) (schema.IntakeRow, error)
+	ListIntakes(context.Context, auth.TenantID) ([]schema.IntakeRow, error)
+	UpdateIntake(context.Context, schema.IntakeRow) error
 }
 
 type DBKind string

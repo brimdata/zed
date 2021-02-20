@@ -11,6 +11,8 @@ require (
 	github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.4.9
+	github.com/go-pg/pg/extra/pgdebug v0.2.0
+	github.com/go-pg/pg/extra/pgotel v0.2.0 // indirect
 	github.com/go-pg/pg/v10 v10.7.3
 	github.com/go-redis/redis/v8 v8.4.11
 	github.com/go-resty/resty/v2 v2.2.0
