@@ -705,12 +705,13 @@ TypeExternal
   = "type" __ "(" __ typ:Type __ ")" { RETURN(typ)}
   / "type" __ "(" __ typ:TypeUnion __ ")" { RETURN(typ) }
   / ComplexType
+  / typ:PrimitiveTypeExternal !IdentifierRest { RETURN(typ) }
 
 Type
-  = AmbigousType
+  = AmbiguousType
   / ComplexType
 
-AmbigousType
+AmbiguousType
   = "null" {
       RETURN(MAP("op": "TypeNull"))
     }
@@ -735,17 +736,6 @@ TypeList
 
 TypeListTail = __ "," __ typ:Type { RETURN(typ) }
 
-PrimitiveType
-  = (   "bytes" / "uint8" / "uint16" / "uint32" / "uint64"
-      / "int8" / "int16" / "int32" / "int64"
-      / "duration" / "time"
-      / "float64"
-      / "bool" / "bytes" / "string" / "bstring"
-      / "ip" / "net"
-      / "type" / "error" ) {
-          RETURN(MAP("op": "TypePrimitive", "name": TEXT))
-        }
-
 ComplexType
   = "{" __ fields:TypeFieldList __ "}" {
       RETURN(MAP("op":"TypeRecord", "fields":fields))
@@ -759,6 +749,36 @@ ComplexType
   / "|{" __ keyType:Type __ "," __ valType:Type __ "}|" {
       RETURN(MAP("op":"TypeMap", "key_type":keyType, "val_type": valType))
     }
+
+PrimitiveType
+  = PrimitiveTypeExternal
+  / PrimitiveTypeInternal
+
+// External types can be appear in expressions without using the type()
+// operator.  Unlike internal type names, these names would not confuse
+// someone that they cannot be used as field names.  For example, you can
+// say is(int32).
+PrimitiveTypeExternal
+  = (   "uint8" / "uint16" / "uint32" / "uint64"
+      / "int8" / "int16" / "int32" / "int64"
+      / "float64"
+      / "bool" / "string" ) {
+          RETURN(MAP("op": "TypePrimitive", "name": TEXT))
+        }
+
+// Internal types must be enclosed in a type() operator when appearing in an
+// expression.  Unlike external type names, these names could surprise
+// someone that they cannot be used as field names.  For example, you cannot
+// say is(net) but instead must is(type(net)).  Of course you can still say,
+// {x:int32,n:net} as the use of net here is not an expression.
+PrimitiveTypeInternal
+  = (   "duration" / "time"
+      / "bytes"
+      / "bstring"
+      / "ip" / "net"
+      / "type" / "error" ) {
+          RETURN(MAP("op": "TypePrimitive", "name": TEXT))
+        }
 
 TypeFieldList
   = first:TypeField rest:TypeFieldListTail* {
@@ -791,7 +811,7 @@ IdentifierName
   = !(IdGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }
   / "$" { RETURN(TEXT) }
   / "\\" id:IdGuard { RETURN(id) }
-  // "type" is a search guard but shouldn't be an id guard
+  // "type" is a search guard but should not be an id guard
   / "type" { RETURN(TEXT) }
 
 
