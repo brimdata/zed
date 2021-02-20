@@ -231,6 +231,26 @@ func unpackProc(custom Unpacker, node joe.Interface) (Proc, error) {
 			return nil, err
 		}
 		return &JoinProc{LeftKey: leftKey, RightKey: rightKey, Clauses: clauses}, nil
+	case "ConstProc":
+		exprField, err := node.Get("expr")
+		if err != nil {
+			return nil, errors.New("expr field is missing from ast.ConstProc")
+		}
+		e, err := UnpackExpression(exprField)
+		if err != nil {
+			return nil, err
+		}
+		return &ConstProc{Expr: e}, nil
+	case "TypeProc":
+		t, err := node.Get("type")
+		if err != nil {
+			return nil, errors.New("type field is missing from ast.TypeProc")
+		}
+		typ, err := unpackType(t)
+		if err != nil {
+			return nil, err
+		}
+		return &TypeProc{Type: typ}, nil
 	default:
 		return nil, fmt.Errorf("ast.unpackProc: unknown proc op: %s", op)
 	}
@@ -362,7 +382,15 @@ func UnpackExpression(node joe.Interface) (Expression, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &CastExpression{Expr: expr}, nil
+		castType, err := node.Get("type")
+		if err != nil {
+			return nil, errors.New("ast.CastExpression has no field 'type'")
+		}
+		typ, err := unpackType(castType)
+		if err != nil {
+			return nil, err
+		}
+		return &CastExpression{Expr: expr, Type: typ}, nil
 	case "Reducer":
 		exprNode, _ := node.Get("expr")
 		var expr Expression
@@ -381,6 +409,16 @@ func UnpackExpression(node joe.Interface) (Expression, error) {
 		return &Identifier{}, nil
 	case "RootRecord":
 		return &RootRecord{}, nil
+	case "TypeExpr":
+		t, err := node.Get("type")
+		if err != nil {
+			return nil, errors.New("ast.TypeExpr: no type field")
+		}
+		typ, err := unpackType(t)
+		if err != nil {
+			return nil, err
+		}
+		return &TypeExpr{Type: typ}, nil
 	case "Empty":
 		return &Empty{}, nil
 	default:
@@ -450,6 +488,123 @@ func unpackUnaryExpr(node joe.Interface) (*UnaryExpression, error) {
 		return nil, err
 	}
 	return &UnaryExpression{Operand: operand}, nil
+}
+
+func unpackType(node joe.Interface) (Type, error) {
+	op, err := getString(node, "op")
+	if err != nil {
+		return nil, err
+	}
+	switch op {
+	case "TypeNull":
+		return &TypeNull{}, nil
+	case "TypeName":
+		return &TypeName{}, nil
+	case "TypeDef":
+		typeField, err := node.Get("type")
+		if err != nil {
+			return nil, errors.New("ast.unpackType: TypeDef has no type field")
+		}
+		typ, err := unpackType(typeField)
+		if err != nil {
+			return nil, err
+		}
+		return &TypeDef{Type: typ}, nil
+	case "TypePrimitive":
+		return &TypePrimitive{}, nil
+	case "TypeRecord":
+		a, _ := node.Get("fields")
+		fields, err := unpackTypeFields(a)
+		if err != nil {
+			return nil, err
+		}
+		return &TypeRecord{Fields: fields}, nil
+	case "TypeUnion":
+		a, _ := node.Get("types")
+		types, err := unpackTypes(a)
+		if err != nil {
+			return nil, err
+		}
+		return &TypeUnion{Types: types}, nil
+	case "TypeArray":
+		arrayType, err := node.Get("type")
+		if err != nil {
+			return nil, errors.New("ast.unpackType: TypeArray has no type field")
+		}
+		typ, err := unpackType(arrayType)
+		if err != nil {
+			return nil, err
+		}
+		return &TypeArray{Type: typ}, nil
+	case "TypeSet":
+		setType, err := node.Get("type")
+		if err != nil {
+			return nil, errors.New("ast.unpackType: TypeSet has no type field")
+		}
+		typ, err := unpackType(setType)
+		if err != nil {
+			return nil, err
+		}
+		return &TypeSet{Type: typ}, nil
+	case "TypeMap":
+		keyTypeField, err := node.Get("key_type")
+		if err != nil {
+			return nil, errors.New("ast.unpackType: TypeMap has no key_type field")
+		}
+		keyType, err := unpackType(keyTypeField)
+		valTypeField, err := node.Get("val_type")
+		if err != nil {
+			return nil, errors.New("ast.unpackType: TypeMap has no val_type field")
+		}
+		valType, err := unpackType(valTypeField)
+		if err != nil {
+			return nil, err
+		}
+		return &TypeMap{KeyType: keyType, ValType: valType}, nil
+	}
+	return nil, fmt.Errorf("ast.unpacketType: unknown op: %s", op)
+}
+
+func unpackTypes(node joe.Interface) ([]Type, error) {
+	if node == nil {
+		return nil, nil
+	}
+	a, ok := node.(joe.Array)
+	if !ok {
+		return nil, errors.New("ast.unpackTypes: types property should be an array")
+	}
+	types := make([]Type, 0, len(a))
+	for _, item := range a {
+		typ, err := unpackType(item)
+		if err != nil {
+			return nil, err
+		}
+		types = append(types, typ)
+	}
+	return types, nil
+}
+
+func unpackTypeFields(node joe.Interface) ([]TypeField, error) {
+	if node == nil {
+		return nil, nil
+	}
+	a, ok := node.(joe.Array)
+	if !ok {
+		return nil, errors.New("ast.unpackTypeFields: fields property should be an array")
+	}
+	types := make([]TypeField, 0, len(a))
+	for _, item := range a {
+		fieldType, err := item.Get("type")
+		if err != nil {
+			return nil, errors.New("ast.unpackTypeFields: no type field")
+		}
+		typ, err := unpackType(fieldType)
+		if err != nil {
+			return nil, err
+		}
+		types = append(types, TypeField{Type: typ})
+	}
+	return types, nil
 }
 
 func UnpackMap(custom Unpacker, m interface{}) (Proc, error) {

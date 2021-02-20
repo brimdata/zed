@@ -9,7 +9,9 @@ import (
 	"github.com/brimsec/zq/expr/agg"
 	"github.com/brimsec/zq/expr/function"
 	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zson"
 )
 
 // TestCompileExpr provides an exported entry point for unit tests
@@ -84,6 +86,8 @@ func compileExpr(zctx *resolver.Context, scope *Scope, node ast.Expression) (exp
 		return compileCall(zctx, scope, *n)
 	case *ast.CastExpression:
 		return compileCast(zctx, scope, *n)
+	case *ast.TypeExpr:
+		return compileTypeExpr(zctx, scope, *n)
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", node)
 	}
@@ -306,7 +310,12 @@ func compileCast(zctx *resolver.Context, scope *Scope, node ast.CastExpression) 
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewCast(e, node.Type)
+	//XXX we should handle runtime resolution of typedef names
+	typ, err := zson.TranslateType(zctx, node.Type)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewCast(e, typ)
 }
 
 func CompileLval(node ast.Expression) (field.Static, error) {
@@ -505,4 +514,22 @@ func compileExprs(zctx *resolver.Context, scope *Scope, in []ast.Expression) ([]
 		out = append(out, ev)
 	}
 	return out, nil
+}
+
+func compileTypeExpr(zctx *resolver.Context, scope *Scope, t ast.TypeExpr) (expr.Evaluator, error) {
+	if typ, ok := t.Type.(*ast.TypeName); ok {
+		// We currently support dynamic type names only for
+		// top-level type names.  By dynamic, we mean typedefs that
+		// come from the data instead of the Z.  For dynamic type
+		// names that are embedded lower down in a complex type,
+		// we need to implement some type of tracker objec that
+		// can resolve the type when all the dependent types are found.
+		// See issue #2182.
+		return expr.NewTypeFunc(zctx, typ.Name), nil
+	}
+	typ, err := zson.TranslateType(zctx, t.Type)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewLiteralVal(zng.NewTypeType(typ)), nil
 }

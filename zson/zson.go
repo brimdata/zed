@@ -7,7 +7,11 @@
 package zson
 
 import (
+	"strings"
+
+	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
 )
 
 // Implied returns true for primitive types whose type can be inferred
@@ -51,4 +55,20 @@ func SelfDescribing(typ zng.Type) bool {
 		return SelfDescribing(typ.Type)
 	}
 	return false
+}
+
+func LookupType(zctx *resolver.Context, zson string) (zng.Type, error) {
+	zp, err := NewParser(strings.NewReader(zson))
+	if err != nil {
+		return nil, err
+	}
+	ast, err := zp.parseType()
+	if ast == nil || noEOF(err) != nil {
+		return nil, err
+	}
+	return NewAnalyzer().convertType(zctx, ast)
+}
+
+func TranslateType(zctx *resolver.Context, astType ast.Type) (zng.Type, error) {
+	return NewAnalyzer().convertType(zctx, astType)
 }

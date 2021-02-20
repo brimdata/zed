@@ -105,7 +105,12 @@ type FunctionCall struct {
 type CastExpression struct {
 	Op   string     `json:"op"`
 	Expr Expression `json:"expr"`
-	Type string     `json:"type"`
+	Type Type       `json:"type"`
+}
+
+type TypeExpr struct {
+	Op   string `json:"op"`
+	Type Type   `json:"type"`
 }
 
 func (*UnaryExpression) exprNode()       {}
@@ -115,6 +120,7 @@ func (*ConditionalExpression) exprNode() {}
 func (*Search) exprNode()                {}
 func (*FunctionCall) exprNode()          {}
 func (*CastExpression) exprNode()        {}
+func (*TypeExpr) exprNode()              {}
 func (*Literal) exprNode()               {}
 func (*Identifier) exprNode()            {}
 func (*RootRecord) exprNode()            {}
@@ -281,6 +287,21 @@ type (
 		RightKey Expression   `json:"right_key"`
 		Clauses  []Assignment `json:"clauses"`
 	}
+
+	// XXX This is a quick and dirty way to get constants into Z.  They are
+	// smuggled in as fake procs.  When we refactor this AST into a parser AST
+	// proper and a separate kernel DSL, we will clean this up.
+	ConstProc struct {
+		Op   string     `json:"op"`
+		Name string     `json:"name"`
+		Expr Expression `json:"expr"`
+	}
+
+	TypeProc struct {
+		Op   string `json:"op"`
+		Name string `json:"name"`
+		Type Type   `json:"type"`
+	}
 )
 
 type SwitchCase struct {
@@ -339,6 +360,8 @@ func (*PutProc) ProcNode()        {}
 func (*RenameProc) ProcNode()     {}
 func (*FuseProc) ProcNode()       {}
 func (*JoinProc) ProcNode()       {}
+func (*ConstProc) ProcNode()      {}
+func (*TypeProc) ProcNode()       {}
 func (*FunctionCall) ProcNode()   {}
 
 // A Reducer is an AST node that represents a reducer function.  The Operator
