@@ -18,6 +18,10 @@ func NewLiteral(val ast.Literal) (*Literal, error) {
 	return &Literal{zv}, nil
 }
 
+func NewLiteralVal(zv zng.Value) *Literal {
+	return &Literal{zv}
+}
+
 func (l *Literal) Eval(*zng.Record) (zng.Value, error) {
 	return l.zv, nil
 }

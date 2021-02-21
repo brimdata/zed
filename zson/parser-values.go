@@ -215,7 +215,7 @@ func (p *Parser) matchPrimitive() (*ast.Primitive, error) {
 	}
 	l.skip(len(s))
 	return &ast.Primitive{
-		Op:   ast.PrimitiveOp,
+		Op:   "Primitive",
 		Type: typ,
 		Text: s,
 	}, nil
@@ -227,7 +227,7 @@ func (p *Parser) matchStringPrimitive() (*ast.Primitive, error) {
 		return nil, noEOF(err)
 	}
 	return &ast.Primitive{
-		Op:   ast.PrimitiveOp,
+		Op:   "Primitive",
 		Type: "string",
 		Text: s,
 	}, nil
@@ -284,7 +284,7 @@ func (p *Parser) matchBacktickString() (*ast.Primitive, error) {
 		return nil, p.error("mismatched string backticks")
 	}
 	return &ast.Primitive{
-		Op:   ast.PrimitiveOp,
+		Op:   "Primitive",
 		Type: "string",
 		Text: s,
 	}, nil
@@ -307,7 +307,7 @@ func (p *Parser) matchRecord() (*ast.Record, error) {
 		return nil, p.error("mismatched braces while parsing record type")
 	}
 	return &ast.Record{
-		Op:     ast.RecordOp,
+		Op:     "Record",
 		Fields: fields,
 	}, nil
 }
@@ -393,7 +393,7 @@ func (p *Parser) matchArray() (*ast.Array, error) {
 		return nil, p.error("mismatched brackets while parsing array type")
 	}
 	return &ast.Array{
-		Op:       ast.ArrayOp,
+		Op:       "Array",
 		Elements: vals,
 	}, nil
 }
@@ -446,7 +446,7 @@ func (p *Parser) matchSetOrMap() (ast.Any, error) {
 			return nil, p.error("mismatched set value brackets")
 		}
 		val = &ast.Set{
-			Op:       ast.SetOp,
+			Op:       "Set",
 			Elements: vals,
 		}
 	} else {
@@ -470,7 +470,7 @@ func (p *Parser) matchSetOrMap() (ast.Any, error) {
 			return nil, p.error("mismatched map value brackets")
 		}
 		val = &ast.Map{
-			Op:      ast.MapOp,
+			Op:      "Map",
 			Entries: entries,
 		}
 	}
@@ -553,7 +553,7 @@ func (p *Parser) matchEnum() (*ast.Enum, error) {
 		return nil, noEOF(err)
 	}
 	return &ast.Enum{
-		Op:   ast.EnumOp,
+		Op:   "Enum",
 		Name: name,
 	}, nil
 }
@@ -575,7 +575,7 @@ func (p *Parser) matchTypeValue() (*ast.TypeValue, error) {
 		return nil, p.error("mismatched parentheses while parsing type value")
 	}
 	return &ast.TypeValue{
-		Op:    ast.TypeValueOp,
+		Op:    "TypeValue",
 		Value: typ,
 	}, nil
 }

@@ -250,15 +250,7 @@ func NewShaper(zctx *resolver.Context, fieldExpr, typExpr Evaluator, tf ShaperTr
 		return nil, fmt.Errorf("shaping functions (crop, fill, cast, order) take a literal as second parameter")
 	}
 
-	// Z doesn't yet have type value literals, so we accept a
-	// string literal and parse it. When type value lits are in,
-	// this only change will be to require zng.TypeType rather
-	// than zng.TypeString. Since a TypeType value holds the type
-	// as zson, parsing with the zson.TypeTable below will be
-	// identical.
-	//
-	// if lit.zv.Type != zng.TypeType {
-	if lit.zv.Type != zng.TypeString {
+	if lit.zv.Type != zng.TypeType {
 		return nil, fmt.Errorf("shaper needs a type value as second parameter")
 	}
 	tt := zson.NewTypeTable(zctx)

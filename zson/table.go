@@ -1,7 +1,6 @@
 package zson
 
 import (
-	"strings"
 	"sync"
 
 	"github.com/brimsec/zq/zcode"
@@ -50,16 +49,8 @@ func (t *TypeTable) LookupType(zson string) (zng.Type, error) {
 	defer t.mu.Unlock()
 	typ, ok := t.toType[zson]
 	if !ok {
-		zp, err := NewParser(strings.NewReader(zson))
-		if err != nil {
-			return nil, err
-		}
-		ast, err := zp.parseType()
-		if ast == nil || noEOF(err) != nil {
-			return nil, err
-		}
-		a := NewAnalyzer()
-		typ, err = a.convertType(t.zctx, ast)
+		var err error
+		typ, err = LookupType(t.zctx, zson)
 		if err != nil {
 			return nil, err
 		}

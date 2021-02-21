@@ -46,6 +46,18 @@ func ensureSequentialProc(p ast.Proc) *ast.SequentialProc {
 	}
 }
 
+func countConsts(procs []ast.Proc) int {
+	for k, p := range procs {
+		switch p.(type) {
+		case *ast.ConstProc, *ast.TypeProc:
+			continue
+		default:
+			return k
+		}
+	}
+	return 0
+}
+
 // liftFilter removes the filter at the head of the flowgraph AST, if
 // one is present, and returns its ast.Expression and the modified
 // flowgraph AST. If the flowgraph does not start with a filter, it
@@ -56,12 +68,19 @@ func liftFilter(p ast.Proc) (ast.Expression, ast.Proc) {
 	}
 	seq, ok := p.(*ast.SequentialProc)
 	if ok && len(seq.Procs) > 0 {
-		if fp, ok := seq.Procs[0].(*ast.FilterProc); ok {
+		nc := countConsts(seq.Procs)
+		if nc == len(seq.Procs) {
+			return nil, p
+		}
+		if fp, ok := seq.Procs[nc].(*ast.FilterProc); ok {
 			rest := ast.Proc(passProc)
-			if len(seq.Procs) > 1 {
+			if len(seq.Procs) > nc+1 {
+				var procs []ast.Proc
+				procs = append(procs, seq.Procs[0:nc]...)
+				procs = append(procs, seq.Procs[nc+1:]...)
 				rest = &ast.SequentialProc{
 					Op:    "SequentialProc",
-					Procs: seq.Procs[1:],
+					Procs: procs,
 				}
 			}
 			return fp.Filter, rest
@@ -243,7 +262,7 @@ func SetGroupByProcInputSortDir(p ast.Proc, inputSortField field.Static, inputSo
 			}
 		}
 		return true
-	case *ast.FilterProc, *ast.HeadProc, *ast.PassProc, *ast.UniqProc, *ast.TailProc, *ast.FuseProc:
+	case *ast.FilterProc, *ast.HeadProc, *ast.PassProc, *ast.UniqProc, *ast.TailProc, *ast.FuseProc, *ast.ConstProc, *ast.TypeProc:
 		return true
 	default:
 		return false
@@ -326,7 +345,7 @@ func Parallelize(p ast.Proc, N int, inputSortField field.Static, inputSortRevers
 	}
 	for i := range seq.Procs {
 		switch p := seq.Procs[i].(type) {
-		case *ast.FilterProc, *ast.PassProc:
+		case *ast.FilterProc, *ast.PassProc, *ast.ConstProc, *ast.TypeProc:
 			// Stateless procs: continue until we reach one of the procs below at
 			// which point we'll either split the flowgraph or see we can't and return it as-is.
 			continue
