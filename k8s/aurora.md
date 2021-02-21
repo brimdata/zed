@@ -1,5 +1,7 @@
 # Setting up Aurora Postgres for out EKS cluster
 
+If Aurora is already set up for your AWS account and EKS cluster, then skip down to the the instructions at "Creating a user for testing."
+
 These instructions will be a mix of using the AWS console wizards along with a shell script to permit VPC routes from the EKS cluster to the Aurora instance.
 
 The Aurora instance is created in its own VPC, since we expect it to potentially outlive our EKS test clusters. Since the EKS clusters do not have permanent state, we can reconfigure them with no downtime, unlike the database.
@@ -106,7 +108,7 @@ openssl rand -base64 12 | awk '{print tolower($0)}'
 In the future we would like to automate this, but given that this process will only need to be done once for each developer, it may not be worth it at this point.
 
 ## Configuring secrets for Aurora
-After you have created a Postgres user for our aurora instance, create the K8s secrets for that user in correct namespace with the following command:
+After you have created a Postgres user for the aurora instance, create the K8s secrets for that user in correct namespace with the following command:
 ```
 kubectl create secret generic aurora \
   --from-literal="postgresql-password=THEPASSWORD"
@@ -118,7 +120,12 @@ kubectl get secret aurora --template={{.data.postgresql-password}} | base64 --de
 Your zqd sessions will connect to the db using this username (not the master username) and the session will have permission to create a database and perform the migrations.
 
 ## Helm Deploy with Aurora
+In order to deploy zqd with Aurora access, you must set an additional environment variable:
+```
+ZQD_AURORA_USER=theusername
+```
+And use this alternate Makefile target to deploy:
 ```
 make helm-install-with-aurora
 ```
-Includes are the values overrides that are needed to deploy a zqd cluster that uses the zq-test-aurora instance rather than a postgres deployment in K8s.
+This target includes are the values overrides that are needed to deploy a zqd cluster which uses the zq-test-aurora instance (rather than a postgres container in K8s).
