@@ -153,8 +153,6 @@ kubectl-config:
 	--user=$(ZQD_K8S_USER)@$(ZQD_TEST_CLUSTER)
 	kubectl config use-context zqtest
 
-# Allows extra option with e.g.
-# HELM_OPTIONS="--dry-run" make helm-install
 helm-install:
 	helm upgrade -i zsrv charts/zservice \
 	--set root.datauri=$(ZQD_DATA_URI) \
@@ -163,9 +161,6 @@ helm-install:
 	--set global.image.tag=zqd:$(ECR_VERSION) \
 	--set postgresql.persistence.enabled=$(PG_PERSIST)
 
-# helm-install-with-aurora does an install into the namespace of the current-context.
-# It gets the Aurora endpoint from aws rds, and makes the assumption that there
-# will be a 1-1 correspondence between K8s namespaces and Postgres usernames for deployment.
 helm-install-with-aurora:
 	helm upgrade -i zsrv charts/zservice \
 	--set root.datauri=$(ZQD_DATA_URI) \

@@ -2,7 +2,7 @@
 
 These instructions will be a mix of using the AWS console wizards along with a shell script to permit VPC routes from the EKS cluster to the Aurora instance.
 
-The Aurora instance is created in its own VPC, since we expect it to potentially outlive our EKS test clusters. Since the EKS cluster do not have any permanent state, they can be rebuilt at an time, unlike our database.
+The Aurora instance is created in its own VPC, since we expect it to potentially outlive our EKS test clusters. Since the EKS clusters do not have permanent state, we can reconfigure them with no downtime, unlike the database.
 
 ## Create Aurora Postgres Cluster with RDS Wizard
 
