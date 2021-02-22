@@ -10,11 +10,11 @@ func Marshal(v interface{}) (zng.Value, error) {
 }
 
 func NewMarshaler() *zson.MarshalZNGContext {
-	return zson.NewZNGMarshalerWithContext(zson.NewTypeContext())
+	return zson.NewZNGMarshalerWithContext(zson.NewContext())
 }
 
 func NewMarshalerWithContext(zctx *Context) *zson.MarshalZNGContext {
-	return zson.NewZNGMarshalerWithContext(zctx.TypeContext)
+	return zson.NewZNGMarshalerWithContext(zctx.Context)
 }
 
 const (

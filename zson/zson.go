@@ -56,7 +56,7 @@ func SelfDescribing(typ zng.Type) bool {
 	return false
 }
 
-func LookupType(zctx *TypeContext, zson string) (zng.Type, error) {
+func LookupType(zctx *Context, zson string) (zng.Type, error) {
 	zp, err := NewParser(strings.NewReader(zson))
 	if err != nil {
 		return nil, err
@@ -68,6 +68,6 @@ func LookupType(zctx *TypeContext, zson string) (zng.Type, error) {
 	return NewAnalyzer().convertType(zctx, ast)
 }
 
-func TranslateType(zctx *TypeContext, astType ast.Type) (zng.Type, error) {
+func TranslateType(zctx *Context, astType ast.Type) (zng.Type, error) {
 	return NewAnalyzer().convertType(zctx, astType)
 }

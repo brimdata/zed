@@ -70,9 +70,9 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	}
 
 	// ZSON comes after NDJSON since ZSON is a superset of JSON.
-	zsonErr := match(zson.NewReader(track, resolver.NewContext().TypeContext), "zson")
+	zsonErr := match(zson.NewReader(track, resolver.NewContext().Context), "zson")
 	if zsonErr == nil {
-		return zson.NewReader(recorder, zctx.TypeContext), nil
+		return zson.NewReader(recorder, zctx.Context), nil
 	}
 	track.Reset()
 

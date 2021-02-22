@@ -41,7 +41,7 @@ func (f *fuse) Result(zctx *resolver.Context) (zng.Value, error) {
 	}
 	schema.unify = true
 
-	tt := zson.NewTypeTable(zctx.TypeContext)
+	tt := zson.NewTypeTable(zctx.Context)
 	for _, p := range f.partials {
 		typ, err := tt.LookupType(string(p.Bytes))
 		if err != nil {

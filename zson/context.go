@@ -13,18 +13,18 @@ var (
 	ErrAliasExists = errors.New("alias exists with different type")
 )
 
-// A TypeContext manages the mapping between small-integer descriptor identifiers
+// A Context manages the mapping between small-integer descriptor identifiers
 // and zng descriptor objects, which hold the binding between an identifier
 // and a zng.Type.
-type TypeContext struct {
+type Context struct {
 	mu       sync.RWMutex
 	table    []zng.Type
 	lut      map[string]int
 	typedefs map[string]*zng.TypeAlias
 }
 
-func NewTypeContext() *TypeContext {
-	return &TypeContext{
+func NewContext() *Context {
+	return &Context{
 		//XXX hack... leave blanks for primitive types... will fix this later
 		table:    make([]zng.Type, zng.IdTypeDef),
 		lut:      make(map[string]int),
@@ -32,7 +32,7 @@ func NewTypeContext() *TypeContext {
 	}
 }
 
-func (c *TypeContext) Reset() {
+func (c *Context) Reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	// Reset the table that maps type ID numbers to zng.Types and reset
@@ -42,19 +42,19 @@ func (c *TypeContext) Reset() {
 	c.lut = make(map[string]int)
 }
 
-func (c *TypeContext) Len() int {
+func (c *Context) Len() int {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return len(c.table)
 }
 
-func (c *TypeContext) LookupType(id int) (zng.Type, error) {
+func (c *Context) LookupType(id int) (zng.Type, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	return c.lookupTypeWithLock(id)
 }
 
-func (c *TypeContext) lookupTypeWithLock(id int) (zng.Type, error) {
+func (c *Context) lookupTypeWithLock(id int) (zng.Type, error) {
 	if id < 0 || id >= len(c.table) {
 		return nil, fmt.Errorf("id %d out of range for table of size %d", id, len(c.table))
 	}
@@ -69,7 +69,7 @@ func (c *TypeContext) lookupTypeWithLock(id int) (zng.Type, error) {
 	return nil, fmt.Errorf("no type found for id %d", id)
 }
 
-func (c *TypeContext) Lookup(td int) *zng.TypeRecord {
+func (c *Context) Lookup(td int) *zng.TypeRecord {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 	if td >= len(c.table) {
@@ -84,7 +84,7 @@ func (c *TypeContext) Lookup(td int) *zng.TypeRecord {
 	return nil
 }
 
-func (c *TypeContext) addTypeWithLock(key string, typ zng.Type) {
+func (c *Context) addTypeWithLock(key string, typ zng.Type) {
 	id := len(c.table)
 	c.lut[key] = id
 	c.table = append(c.table, typ)
@@ -111,7 +111,7 @@ func (c *TypeContext) addTypeWithLock(key string, typ zng.Type) {
 // AddType adds a new type from a path that could race with another
 // path creating the same type.  So we take the lock then check if the
 // type already exists and if not add it while locked.
-func (c *TypeContext) AddType(t zng.Type) zng.Type {
+func (c *Context) AddType(t zng.Type) zng.Type {
 	key := t.ZSON()
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -130,7 +130,7 @@ func (c *TypeContext) AddType(t zng.Type) zng.Type {
 // and returned.  The closure of types within the columns must all be from
 // this type context.  If you want to use columns from a different type context,
 // use TranslateTypeRecord.
-func (c *TypeContext) LookupTypeRecord(columns []zng.Column) (*zng.TypeRecord, error) {
+func (c *Context) LookupTypeRecord(columns []zng.Column) (*zng.TypeRecord, error) {
 	// First check for duplicate columns
 	names := make(map[string]struct{})
 	var val struct{}
@@ -155,7 +155,7 @@ func (c *TypeContext) LookupTypeRecord(columns []zng.Column) (*zng.TypeRecord, e
 	return typ, nil
 }
 
-func (c *TypeContext) MustLookupTypeRecord(columns []zng.Column) *zng.TypeRecord {
+func (c *Context) MustLookupTypeRecord(columns []zng.Column) *zng.TypeRecord {
 	r, err := c.LookupTypeRecord(columns)
 	if err != nil {
 		panic(err)
@@ -163,7 +163,7 @@ func (c *TypeContext) MustLookupTypeRecord(columns []zng.Column) *zng.TypeRecord
 	return r
 }
 
-func (c *TypeContext) LookupTypeSet(inner zng.Type) *zng.TypeSet {
+func (c *Context) LookupTypeSet(inner zng.Type) *zng.TypeSet {
 	tmp := &zng.TypeSet{Type: inner}
 	key := tmp.ZSON()
 	c.mu.Lock()
@@ -177,7 +177,7 @@ func (c *TypeContext) LookupTypeSet(inner zng.Type) *zng.TypeSet {
 	return typ
 }
 
-func (c *TypeContext) LookupTypeMap(keyType, valType zng.Type) *zng.TypeMap {
+func (c *Context) LookupTypeMap(keyType, valType zng.Type) *zng.TypeMap {
 	tmp := &zng.TypeMap{KeyType: keyType, ValType: valType}
 	key := tmp.ZSON()
 	c.mu.Lock()
@@ -191,7 +191,7 @@ func (c *TypeContext) LookupTypeMap(keyType, valType zng.Type) *zng.TypeMap {
 	return typ
 }
 
-func (c *TypeContext) LookupTypeArray(inner zng.Type) *zng.TypeArray {
+func (c *Context) LookupTypeArray(inner zng.Type) *zng.TypeArray {
 	tmp := &zng.TypeArray{Type: inner}
 	key := tmp.ZSON()
 	c.mu.Lock()
@@ -205,7 +205,7 @@ func (c *TypeContext) LookupTypeArray(inner zng.Type) *zng.TypeArray {
 	return typ
 }
 
-func (c *TypeContext) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
+func (c *Context) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
 	tmp := zng.TypeUnion{Types: types}
 	key := tmp.ZSON()
 	c.mu.Lock()
@@ -219,7 +219,7 @@ func (c *TypeContext) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
 	return typ
 }
 
-func (c *TypeContext) LookupTypeEnum(typ zng.Type, elements []zng.Element) *zng.TypeEnum {
+func (c *Context) LookupTypeEnum(typ zng.Type, elements []zng.Element) *zng.TypeEnum {
 	tmp := zng.TypeEnum{Type: typ, Elements: elements}
 	key := tmp.ZSON()
 	c.mu.Lock()
@@ -233,13 +233,13 @@ func (c *TypeContext) LookupTypeEnum(typ zng.Type, elements []zng.Element) *zng.
 	return enumType
 }
 
-func (c *TypeContext) LookupTypeDef(name string) *zng.TypeAlias {
+func (c *Context) LookupTypeDef(name string) *zng.TypeAlias {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return c.typedefs[name]
 }
 
-func (c *TypeContext) LookupTypeAlias(name string, target zng.Type) (*zng.TypeAlias, error) {
+func (c *Context) LookupTypeAlias(name string, target zng.Type) (*zng.TypeAlias, error) {
 	tmp := zng.TypeAlias{Name: name, Type: target}
 	key := tmp.ZSON()
 	c.mu.Lock()
@@ -263,7 +263,7 @@ func (c *TypeContext) LookupTypeAlias(name string, target zng.Type) (*zng.TypeAl
 // record along with new rightmost columns as indicated with the given values.
 // If any of the newly provided columns already exists in the specified value,
 // an error is returned.
-func (c *TypeContext) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng.Value) (*zng.Record, error) {
+func (c *Context) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng.Value) (*zng.Record, error) {
 	oldCols := r.Type.Columns
 	outCols := make([]zng.Column, len(oldCols), len(oldCols)+len(newCols))
 	copy(outCols, oldCols)
@@ -294,7 +294,7 @@ func (c *TypeContext) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng
 
 //XXX package zson should do this now...?
 
-func (c *TypeContext) LookupByName(zson string) (zng.Type, error) {
+func (c *Context) LookupByName(zson string) (zng.Type, error) {
 	typ, err := LookupType(c, zson) //XXX
 	if err != nil {
 		if typ := c.LookupTypeDef(zson); typ != nil {
@@ -306,18 +306,18 @@ func (c *TypeContext) LookupByName(zson string) (zng.Type, error) {
 
 // Localize takes a type from another context and creates and returns that
 // type in this context.
-func (c *TypeContext) Localize(foreign zng.Type) zng.Type {
+func (c *Context) Localize(foreign zng.Type) zng.Type {
 	// there can't be an error here since the type string
 	// is generated internally
 	typ, _ := c.LookupByName(foreign.ZSON())
 	return typ
 }
 
-func (c *TypeContext) TranslateType(ext zng.Type) (zng.Type, error) {
+func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
 	return c.LookupByName(ext.ZSON())
 }
 
-func (t *TypeContext) TranslateTypeRecord(ext *zng.TypeRecord) (*zng.TypeRecord, error) {
+func (t *Context) TranslateTypeRecord(ext *zng.TypeRecord) (*zng.TypeRecord, error) {
 	typ, err := t.TranslateType(ext)
 	if err != nil {
 		return nil, err

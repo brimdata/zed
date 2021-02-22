@@ -40,7 +40,7 @@ func NewMarshalerIndent(indent int) *MarshalContext {
 	}
 }
 
-func NewMarshalerWithContext(zctx *TypeContext) *MarshalContext {
+func NewMarshalerWithContext(zctx *Context) *MarshalContext {
 	return &MarshalContext{
 		MarshalZNGContext: NewZNGMarshalerWithContext(zctx),
 	}
@@ -64,7 +64,7 @@ func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (st
 
 type UnmarshalContext struct {
 	*UnmarshalZNGContext
-	zctx     *TypeContext
+	zctx     *Context
 	analyzer Analyzer
 	builder  *Builder
 }
@@ -72,7 +72,7 @@ type UnmarshalContext struct {
 func NewUnmarshaler() *UnmarshalContext {
 	return &UnmarshalContext{
 		UnmarshalZNGContext: NewZNGUnmarshaler(),
-		zctx:                NewTypeContext(),
+		zctx:                NewContext(),
 		analyzer:            NewAnalyzer(),
 		builder:             NewBuilder(),
 	}
@@ -111,19 +111,19 @@ func MarshalZNG(v interface{}) (zng.Value, error) {
 }
 
 type MarshalZNGContext struct {
-	*TypeContext
+	*Context
 	zcode.Builder
 	decorator func(string, string) string
 	bindings  map[string]string
 }
 
 func NewZNGMarshaler() *MarshalZNGContext {
-	return NewZNGMarshalerWithContext(NewTypeContext())
+	return NewZNGMarshalerWithContext(NewContext())
 }
 
-func NewZNGMarshalerWithContext(zctx *TypeContext) *MarshalZNGContext {
+func NewZNGMarshalerWithContext(zctx *Context) *MarshalZNGContext {
 	return &MarshalZNGContext{
-		TypeContext: zctx,
+		Context: zctx,
 	}
 }
 
@@ -187,7 +187,7 @@ func (m *MarshalZNGContext) MarshalCustom(names []string, fields []interface{}) 
 	// efficient cache ahead of formatting the columns into a string,
 	// e.g., compute a has in place across the field names then do a
 	// closed-address exact match for the values in the slot.
-	recType, err := m.TypeContext.LookupTypeRecord(cols)
+	recType, err := m.Context.LookupTypeRecord(cols)
 	if err != nil {
 		return nil, err
 	}
@@ -299,7 +299,7 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zng.Type, error) {
 				alias = m.decorator(name, path)
 			}
 			if alias != "" {
-				return m.TypeContext.LookupTypeAlias(alias, typ)
+				return m.Context.LookupTypeAlias(alias, typ)
 			}
 		}
 	}
@@ -394,7 +394,7 @@ func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zng.Type, error) {
 		columns = append(columns, zng.Column{name, typ})
 	}
 	m.Builder.EndContainer()
-	return m.TypeContext.LookupTypeRecord(columns)
+	return m.Context.LookupTypeRecord(columns)
 }
 
 func isIP(typ reflect.Type) bool {
@@ -426,7 +426,7 @@ func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zng.Type, error
 			return nil, err
 		}
 	}
-	return m.TypeContext.LookupTypeArray(innerType), nil
+	return m.Context.LookupTypeArray(innerType), nil
 }
 
 func (m *MarshalZNGContext) lookupType(typ reflect.Type) (zng.Type, error) {
@@ -436,7 +436,7 @@ func (m *MarshalZNGContext) lookupType(typ reflect.Type) (zng.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		return m.TypeContext.LookupTypeArray(typ), nil
+		return m.Context.LookupTypeArray(typ), nil
 	case reflect.Struct:
 		return m.lookupTypeRecord(typ)
 	case reflect.Ptr:
@@ -479,7 +479,7 @@ func (m *MarshalZNGContext) lookupTypeRecord(structType reflect.Type) (zng.Type,
 		}
 		columns = append(columns, zng.Column{name, fieldType})
 	}
-	return m.TypeContext.LookupTypeRecord(columns)
+	return m.Context.LookupTypeRecord(columns)
 }
 
 type ZNGUnmarshaler interface {

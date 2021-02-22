@@ -90,7 +90,7 @@ func New(zctx *resolver.Context, name string, narg int) (Interface, bool, error)
 		argmax = 2
 		f = &trunc{}
 	case "typeof":
-		f = &typeOf{zson.NewTypeTable(zctx.TypeContext)}
+		f = &typeOf{zson.NewTypeTable(zctx.Context)}
 	case "fields":
 		typ := zctx.LookupTypeArray(zng.TypeString)
 		f = &fields{types: zctx.NewTypeTable(), typ: typ}

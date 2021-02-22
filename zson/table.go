@@ -11,10 +11,10 @@ type TypeTable struct {
 	mu      sync.Mutex
 	toBytes map[zng.Type]zcode.Bytes
 	toType  map[string]zng.Type
-	zctx    *TypeContext
+	zctx    *Context
 }
 
-func NewTypeTable(zctx *TypeContext) *TypeTable {
+func NewTypeTable(zctx *Context) *TypeTable {
 	return &TypeTable{
 		toBytes: make(map[zng.Type]zcode.Bytes),
 		toType:  make(map[string]zng.Type),

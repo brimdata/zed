@@ -204,7 +204,7 @@ func Stat(ctx context.Context, zctx *resolver.Context, lk *Lake) (zbuf.ReadClose
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	mzctx := zson.NewZNGMarshaler()
-	mzctx.TypeContext = zctx.TypeContext
+	mzctx.Context = zctx.Context
 	s := &statReadCloser{
 		lk:       lk,
 		ctx:      ctx,

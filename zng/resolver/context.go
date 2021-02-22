@@ -19,15 +19,15 @@ type TypeResolver interface {
 // and zng descriptor objects, which hold the binding between an identifier
 // and a zng.Type.
 type Context struct {
-	*zson.TypeContext
+	*zson.Context
 }
 
 func NewContext() *Context {
 	return &Context{
-		TypeContext: zson.NewTypeContext(),
+		Context: zson.NewContext(),
 	}
 }
 
 func (c *Context) NewTypeTable() *zson.TypeTable {
-	return zson.NewTypeTable(c.TypeContext)
+	return zson.NewTypeTable(c.Context)
 }
