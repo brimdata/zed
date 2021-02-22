@@ -83,8 +83,7 @@ jobs:
   eks-master-deploy:
     # Deploys this build to ci-master namespace so it will be available
     # for manual testing. Only deploy if previous jobs succeed.
-    # The cluster tests are repeated here because they run using 
-    # the Aurora instance rather than postgres in K8s.
+    # make test-cluster is repeated because for this test it will use Aurora.
     needs: eks-deploy-test
     runs-on: ubuntu-latest
     steps:
