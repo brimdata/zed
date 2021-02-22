@@ -1,5 +1,5 @@
 zql: |
-  put . = order(., {set:|[{b:string,a:string}]|,arr:[{b:string,a:string}]})
+  put . = order({set:|[{b:string,a:string}]|,arr:[{b:string,a:string}]})
 
 input: |
   #0:record[arr:array[record[a:string,b:string]],set:set[record[a:string,b:string]]]
