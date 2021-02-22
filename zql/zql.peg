@@ -343,6 +343,7 @@ Operator
   / RenameProc
   / FuseProc
   / JoinProc
+  / TasteProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
@@ -459,6 +460,26 @@ JoinProc
 JoinKey
   = Lval
   / "(" expr:Expr ")" { RETURN(expr) }
+
+TasteProc
+  = "taste"i e:TasteExpr {
+      RETURN(MAP("op": "GroupByProc",
+        "keys": ARRAY(MAP("op": "Assignment",
+                   "lhs": MAP("op": "Identifier", "name": "shape"),
+                   "rhs": MAP("op": "FunctionCall", "function": "typeof",
+                              "args": ARRAY(e)))),
+        "reducers": ARRAY(MAP("op": "Assignment",
+                              "lhs": MAP("op": "Identifier", "name": "taste"),
+                              "rhs": MAP("op": "Reducer",
+                                         "operator": "any",
+                                         "expr": e,
+                                         "where": NULL))),
+        "duration": NULL, "limit": 0))
+    }
+
+TasteExpr
+  = _ lval:Lval { RETURN(lval)}
+  / "" { RETURN(MAP("op":"RootRecord")) }
 
 Lval = DerefExpr
 
