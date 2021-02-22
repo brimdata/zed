@@ -104,7 +104,7 @@ func (w *Writer) LastSOS() int64 {
 
 func (w *Writer) Write(r *zng.Record) error {
 	// First send any typedefs for unsent types.
-	typ := w.encoder.Lookup(r.Type)
+	typ := w.encoder.Lookup(r.Alias)
 	if typ == nil {
 		var b []byte
 		var err error
@@ -127,6 +127,9 @@ func (w *Writer) Write(r *zng.Record) error {
 	}
 	dst := w.buffer[:0]
 	id := typ.ID()
+	if typ, ok := typ.(*zng.TypeAlias); ok {
+		id = typ.AliasID()
+	}
 	if id < zng.CtrlValueEscape {
 		dst = append(dst, byte(id))
 	} else {

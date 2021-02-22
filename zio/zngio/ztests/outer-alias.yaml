@@ -1,0 +1,12 @@
+script: |
+  zq  - | zq -f zson -pretty=0 -
+
+inputs:
+  - name: stdin
+    data: |
+      {x:0} (=typ)
+
+outputs:
+  - name: stdout
+    data: |
+      {x:0} (=typ)
