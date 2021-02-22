@@ -441,17 +441,21 @@ func isShaperFunc(name string) bool {
 }
 
 func compileShaper(zctx *resolver.Context, scope *Scope, node ast.FunctionCall) (*expr.Shaper, error) {
-	if len(node.Args) < 2 {
+	args := node.Args
+	if len(args) == 1 {
+		args = append([]ast.Expression{&ast.RootRecord{}}, args...)
+	}
+	if len(args) < 2 {
 		return nil, function.ErrTooFewArgs
 	}
-	if len(node.Args) > 2 {
+	if len(args) > 2 {
 		return nil, function.ErrTooManyArgs
 	}
-	field, err := compileExpr(zctx, scope, node.Args[0])
+	field, err := compileExpr(zctx, scope, args[0])
 	if err != nil {
 		return nil, err
 	}
-	ev, err := compileExpr(zctx, scope, node.Args[1])
+	ev, err := compileExpr(zctx, scope, args[1])
 	if err != nil {
 		return nil, err
 	}
