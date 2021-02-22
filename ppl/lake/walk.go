@@ -72,19 +72,15 @@ func tsDirVisit(ctx context.Context, lk *Lake, filterSpan nano.Span, visitor tsD
 
 	stream := newTsDirStream(ctx, lk, tsdirs)
 	for {
-		tsdir, chunks, err := stream.Next()
-		if err != nil {
+		tsdir, chunks, err := stream.next()
+		if tsdir == nil || err != nil {
 			return err
-		}
-		if tsdir == nil {
-			break
 		}
 		chunks = chunks.Overlapping(filterSpan)
 		if err := visitor(*tsdir, chunks); err != nil {
 			return err
 		}
 	}
-	return nil
 }
 
 func tsDirChunks(ctx context.Context, d tsDir, lk *Lake) (chunk.Chunks, error) {
