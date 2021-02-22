@@ -477,8 +477,8 @@ func (r *Reader) readTypeAlias() error {
 }
 
 func (r *Reader) parseValue(rec *zng.Record, id int, b []byte) (*zng.Record, error) {
-	typ := r.zctx.Lookup(id)
-	if typ == nil {
+	typ, err := r.zctx.LookupType(id)
+	if err != nil {
 		return nil, zng.ErrTypeIDInvalid
 	}
 	sharedType := r.mapper.Map(id)
