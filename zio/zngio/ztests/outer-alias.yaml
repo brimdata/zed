@@ -1,5 +1,5 @@
 script: |
-  zq  - | zq -f zson -pretty=0
+  zq  - | zq -f zson -pretty=0 -
 
 inputs:
   - name: stdin
