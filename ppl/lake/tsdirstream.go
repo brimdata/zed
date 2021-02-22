@@ -59,8 +59,15 @@ func (t *tsDirStream) run(ctx context.Context, lk *Lake, tsDirs []tsDir) {
 	close(tsDirChs)
 	g.Go(func() error {
 		for ch := range tsDirChs {
+			var result tsDirStreamResult
 			select {
-			case t.ch <- <-ch:
+			case result = <-ch:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+
+			select {
+			case t.ch <- result:
 			case <-ctx.Done():
 				return ctx.Err()
 			}
