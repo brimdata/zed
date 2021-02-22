@@ -1,5 +1,5 @@
 zql: |
-  put . = cast(., "{a:[ip],b:[{b:ip}]}")
+  put . = cast(., {a:[ip],b:[{b:ip}]})
 
 input: |
   #0:record[a:set[string],b:set[record[b:string]]]
