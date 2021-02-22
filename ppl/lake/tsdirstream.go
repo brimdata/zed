@@ -33,14 +33,12 @@ func newTsDirStream(ctx context.Context, lk *Lake, tsDirs []tsDir) *tsDirStream 
 }
 
 func (t *tsDirStream) run(ctx context.Context, lk *Lake, tsDirs []tsDir) {
-	// Use a channel of channels to ensure results are returned in the correct
-	// order.
-	tsDirChs := make(chan chan tsDirStreamResult, len(tsDirs))
+	tsDirChs := make([]chan tsDirStreamResult, len(tsDirs))
 	g, ctx := errgroup.WithContext(ctx)
-	for _, tsDir := range tsDirs {
+	for i, tsDir := range tsDirs {
 		tsDir := tsDir
 		ch := make(chan tsDirStreamResult)
-		tsDirChs <- ch
+		tsDirChs[i] = ch
 
 		g.Go(func() error {
 			chunks, err := tsDirChunks(ctx, tsDir, lk)
@@ -56,9 +54,8 @@ func (t *tsDirStream) run(ctx context.Context, lk *Lake, tsDirs []tsDir) {
 		})
 	}
 
-	close(tsDirChs)
 	g.Go(func() error {
-		for ch := range tsDirChs {
+		for _, ch := range tsDirChs {
 			var result tsDirStreamResult
 			select {
 			case result = <-ch:
