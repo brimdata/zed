@@ -102,20 +102,6 @@ func castToIP(zv zng.Value) (zng.Value, error) {
 	return zng.Value{zng.TypeIP, zng.EncodeIP(ip)}, nil
 }
 
-func castToTime(zv zng.Value) (zng.Value, error) {
-	if zng.IsFloat(zv.Type.ID()) {
-		f, _ := zng.DecodeFloat64(zv.Bytes)
-		ts := nano.FloatToTs(f)
-		// XXX GC
-		return zng.Value{zng.TypeTime, zng.EncodeTime(ts)}, nil
-	}
-	ns, ok := coerce.ToInt(zv)
-	if !ok {
-		return zng.Value{}, ErrBadCast
-	}
-	return zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(ns))}, nil
-}
-
 func castToDuration(zv zng.Value) (zng.Value, error) {
 	if zng.IsFloat(zv.Type.ID()) {
 		f, _ := zng.DecodeFloat64(zv.Bytes)
@@ -128,6 +114,20 @@ func castToDuration(zv zng.Value) (zng.Value, error) {
 		return zng.Value{}, ErrBadCast
 	}
 	return zng.Value{zng.TypeDuration, zng.EncodeDuration(ns)}, nil
+}
+
+func castToTime(zv zng.Value) (zng.Value, error) {
+	if zng.IsFloat(zv.Type.ID()) {
+		f, _ := zng.DecodeFloat64(zv.Bytes)
+		ts := nano.FloatToTs(f)
+		// XXX GC
+		return zng.Value{zng.TypeTime, zng.EncodeTime(ts)}, nil
+	}
+	ns, ok := coerce.ToInt(zv)
+	if !ok {
+		return zng.Value{}, ErrBadCast
+	}
+	return zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(ns))}, nil
 }
 
 func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
