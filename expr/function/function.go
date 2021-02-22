@@ -7,7 +7,6 @@ import (
 	"github.com/brimsec/zq/anymath"
 	"github.com/brimsec/zq/expr/result"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zson"
 )
 
@@ -22,7 +21,7 @@ type Interface interface {
 	Call([]zng.Value) (zng.Value, error)
 }
 
-func New(zctx *resolver.Context, name string, narg int) (Interface, bool, error) {
+func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
 	argmin := 1
 	argmax := 1
 	var root bool
@@ -90,15 +89,15 @@ func New(zctx *resolver.Context, name string, narg int) (Interface, bool, error)
 		argmax = 2
 		f = &trunc{}
 	case "typeof":
-		f = &typeOf{zson.NewTypeTable(zctx.Context)}
+		f = &typeOf{zctx}
 	case "fields":
 		typ := zctx.LookupTypeArray(zng.TypeString)
-		f = &fields{types: zctx.NewTypeTable(), typ: typ}
+		f = &fields{zctx: zctx, typ: typ}
 	case "is":
 		argmin = 1
 		argmax = 2
 		root = true
-		f = &is{types: zctx.NewTypeTable()}
+		f = &is{zctx: zctx}
 	case "iserr":
 		f = &isErr{}
 	case "to_base64":
@@ -151,12 +150,12 @@ func (l *lenFn) Call(args []zng.Value) (zng.Value, error) {
 }
 
 type typeOf struct {
-	types *zson.TypeTable
+	zctx *zson.Context
 }
 
 func (t *typeOf) Call(args []zng.Value) (zng.Value, error) {
 	typ := args[0].Type
-	return t.types.LookupValue(typ), nil
+	return t.zctx.LookupTypeValue(typ), nil
 }
 
 type isErr struct{}
@@ -169,7 +168,7 @@ func (*isErr) Call(args []zng.Value) (zng.Value, error) {
 }
 
 type is struct {
-	types *zson.TypeTable
+	zctx *zson.Context
 }
 
 func (i *is) Call(args []zng.Value) (zng.Value, error) {
@@ -186,7 +185,7 @@ func (i *is) Call(args []zng.Value) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	typ, err := i.types.LookupType(s)
+	typ, err := i.zctx.LookupByName(s)
 	if err == nil && typ == zvSubject.Type {
 		return zng.True, nil
 	}

@@ -493,7 +493,7 @@ func compileCall(zctx *resolver.Context, scope *Scope, node ast.FunctionCall) (e
 		return expr.NewExists(zctx, exprs), nil
 	}
 	nargs := len(node.Args)
-	fn, root, err := function.New(zctx, node.Function, nargs)
+	fn, root, err := function.New(zctx.Context, node.Function, nargs)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", node.Function, err)
 	}

@@ -27,10 +27,6 @@ func (t *TypeEnum) ID() int {
 	return t.id
 }
 
-func (t *TypeEnum) SetID(id int) {
-	t.id = id
-}
-
 func (t *TypeEnum) Element(index int) (*Element, error) {
 	if index < 0 || index >= len(t.Elements) {
 		return nil, ErrEnumIndex

@@ -28,11 +28,6 @@ func (t *TypeAlias) AliasID() int {
 	return t.id
 }
 
-//XXX get rid of this when we implement full ZNG
-func (t *TypeAlias) SetID(id int) {
-	t.id = id
-}
-
 func (t *TypeAlias) String() string {
 	return t.Name
 }

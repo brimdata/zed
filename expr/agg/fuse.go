@@ -6,7 +6,6 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zson"
 )
 
 type fuse struct {
@@ -41,9 +40,8 @@ func (f *fuse) Result(zctx *resolver.Context) (zng.Value, error) {
 	}
 	schema.unify = true
 
-	tt := zson.NewTypeTable(zctx.Context)
 	for _, p := range f.partials {
-		typ, err := tt.LookupType(string(p.Bytes))
+		typ, err := zctx.Context.LookupByName(string(p.Bytes))
 		if err != nil {
 			return zng.Value{}, fmt.Errorf("invalid partial value: %s", err)
 		}
