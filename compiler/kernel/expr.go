@@ -311,7 +311,7 @@ func compileCast(zctx *resolver.Context, scope *Scope, node ast.CastExpression) 
 		return nil, err
 	}
 	//XXX we should handle runtime resolution of typedef names
-	typ, err := zson.TranslateType(zctx, node.Type)
+	typ, err := zson.TranslateType(zctx.TypeContext, node.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -527,7 +527,7 @@ func compileTypeExpr(zctx *resolver.Context, scope *Scope, t ast.TypeExpr) (expr
 		// See issue #2182.
 		return expr.NewTypeFunc(zctx, typ.Name), nil
 	}
-	typ, err := zson.TranslateType(zctx, t.Type)
+	typ, err := zson.TranslateType(zctx.TypeContext, t.Type)
 	if err != nil {
 		return nil, err
 	}

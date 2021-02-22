@@ -8,7 +8,7 @@ import (
 	"github.com/brimsec/zq/zng"
 )
 
-const SegmapTypeString = "array[record[offset:int64,length:int32]]"
+const SegmapTypeString = "[{offset:int64,length:int32}]"
 
 type Segment struct {
 	Offset int64

@@ -12,6 +12,7 @@ import (
 
 	"github.com/brimsec/zq/pkg/skim"
 	"github.com/brimsec/zq/zio/ndjsonio/compat"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/buger/jsonparser"
@@ -43,6 +44,7 @@ type Reader struct {
 	typ     *typeParser
 	zctx    *resolver.Context
 	stats   ReadStats
+	types   *tzngio.TypeParser
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepath string) (*Reader, error) {
@@ -66,6 +68,7 @@ func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepa
 		stats:   ReadStats{Stats: &scanner.Stats, typeStats: &typeStats{}},
 		inf:     inferParser{zctx},
 		zctx:    zctx,
+		types:   tzngio.NewTypeParser(zctx),
 	}
 	if opts.TypeConfig != nil {
 		var path string
@@ -110,7 +113,7 @@ func (r *Reader) configureTypes(tc TypeConfig, defaultPath string, warn chan<- s
 		if err != nil {
 			return fmt.Errorf("error decoding type \"%s\": %s", typeName, err)
 		}
-		typ, err := r.zctx.LookupByName(typeName)
+		typ, err := r.types.Parse(typeName)
 		if err != nil {
 			return err
 		}

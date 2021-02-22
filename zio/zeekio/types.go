@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
 )
 
 var ErrIncompatibleZeekType = errors.New("type cannot be represented in zeek format")
@@ -30,7 +30,7 @@ func isValidInputType(typ zng.Type) bool {
 	}
 }
 
-func zeekTypeToZng(typstr string, zctx *resolver.Context) (zng.Type, error) {
+func zeekTypeToZng(typstr string, types *tzngio.TypeParser) (zng.Type, error) {
 	// As zng types diverge from zeek types, we'll probably want to
 	// re-do this but lets keep it simple for now.
 	typstr = strings.ReplaceAll(typstr, "string", "bstring")
@@ -42,7 +42,7 @@ func zeekTypeToZng(typstr string, zctx *resolver.Context) (zng.Type, error) {
 	typstr = strings.ReplaceAll(typstr, "subnet", "net")
 	typstr = strings.ReplaceAll(typstr, "enum", "zenum")
 	typstr = strings.ReplaceAll(typstr, "vector", "array")
-	typ, err := zctx.LookupByName(typstr)
+	typ, err := types.Parse(typstr)
 	if err != nil {
 		return nil, err
 	}

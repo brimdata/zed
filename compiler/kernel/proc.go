@@ -403,7 +403,7 @@ func compileConsts(zctx *resolver.Context, scope *Scope, procs []ast.Proc) ([]as
 
 		case *ast.TypeProc:
 			name := p.Name
-			typ, err := zson.TranslateType(zctx, p.Type)
+			typ, err := zson.TranslateType(zctx.TypeContext, p.Type)
 			if err != nil {
 				return nil, err
 			}

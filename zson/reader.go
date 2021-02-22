@@ -5,18 +5,17 @@ import (
 	"io"
 
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
 )
 
 type Reader struct {
 	reader   io.Reader
-	zctx     *resolver.Context
+	zctx     *TypeContext
 	parser   *Parser
 	analyzer Analyzer
 	builder  *Builder
 }
 
-func NewReader(r io.Reader, zctx *resolver.Context) *Reader {
+func NewReader(r io.Reader, zctx *TypeContext) *Reader {
 	return &Reader{
 		reader:   r,
 		zctx:     zctx,

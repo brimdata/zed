@@ -1,13 +1,6 @@
 package zson_test
 
-import (
-	"strings"
-	"testing"
-
-	"github.com/brimsec/zq/zson"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-)
+/* NOT YET
 
 func trim(s string) string {
 	return strings.TrimSpace(s) + "\n"
@@ -85,3 +78,5 @@ func TestMarshal(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, `true (=Roll)`, z)
 }
+
+*/
