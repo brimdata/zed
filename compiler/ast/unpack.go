@@ -15,7 +15,6 @@ var unpacker = unpack.New().Init(
 	DefValue{},
 	DropProc{},
 	Empty{},
-	Entry{},
 	Enum{},
 	FilterProc{},
 	FunctionCall{},
@@ -47,7 +46,6 @@ var unpacker = unpack.New().Init(
 	TypeDef{},
 	TypeEnum{},
 	TypeExpr{},
-	TypeField{},
 	TypeMap{},
 	TypeName{},
 	TypeNull{},
@@ -58,14 +56,19 @@ var unpacker = unpack.New().Init(
 	TypeUnion{},
 	TypeValue{},
 	UniqProc{},
-).AddAs(BinaryExpression{}, "BinaryExpr").AddAs(SelectExpression{}, "SelectExpr").AddAs(UnaryExpression{}, "UnaryExpr").AddAs(CastExpression{}, "CastExpr").AddAs(ConditionalExpression{}, "ConditionalExpr")
+	BinaryExpression{},
+	SelectExpression{},
+	UnaryExpression{},
+	CastExpression{},
+	ConditionalExpression{},
+)
 
 // UnpackJSON transforms a JSON representation of a proc into an ast.Proc.
 func UnpackJSON(buf []byte) (Proc, error) {
 	if len(buf) == 0 {
 		return nil, nil
 	}
-	result, err := unpacker.UnpackBytes("op", buf)
+	result, err := unpacker.UnpackBytes(buf)
 	if err != nil {
 		return nil, err
 	}
@@ -77,7 +80,7 @@ func UnpackJSON(buf []byte) (Proc, error) {
 }
 
 func UnpackMapAsProc(m interface{}) (Proc, error) {
-	object, err := unpacker.UnpackMap("op", m)
+	object, err := unpacker.UnpackMap(m)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +92,7 @@ func UnpackMapAsProc(m interface{}) (Proc, error) {
 }
 
 func UnpackMapAsExpr(m interface{}) (Expression, error) {
-	object, err := unpacker.UnpackMap("op", m)
+	object, err := unpacker.UnpackMap(m)
 	if err != nil {
 		return nil, err
 	}

@@ -10,10 +10,10 @@ import (
 
 var zero reflect.Value
 
-type Reflector map[string]reflect.Type
+type Reflector map[string]map[string]reflect.Type
 
 func New() Reflector {
-	return make(map[string]reflect.Type)
+	return make(map[string]map[string]reflect.Type)
 }
 
 func (r Reflector) Init(templates ...interface{}) Reflector {
@@ -24,51 +24,55 @@ func (r Reflector) Init(templates ...interface{}) Reflector {
 }
 
 func (r Reflector) Add(template interface{}) Reflector {
-	return r.AddAs(template, "")
-}
-
-func (r Reflector) AddAs(template interface{}, name string) Reflector {
-	typ, err := jsonCheckStruct(template)
+	typ := reflect.TypeOf(template)
+	unpackKey, unpackVal, err := structToUnpackRule(typ)
 	if err != nil {
 		panic(err.Error())
 	}
-	if name == "" {
-		name = typ.Name()
+	if unpackKey == "" {
+		panic(fmt.Sprintf("unpack tag not found for Go type '%s'", typ.Name()))
 	}
-	if _, ok := r[name]; ok {
-		panic(fmt.Sprintf("reflector template for '%s' already exists", name))
+	types := r.get(unpackKey, true)
+	_, ok := types[unpackVal]
+	if ok {
+		panic(fmt.Sprintf("unpack binding for json field '%s' and Go type '%s' already exists", unpackKey, unpackVal))
 	}
-	r[name] = typ
+	if unpackVal == "" {
+		// skip
+		types[unpackVal] = nil
+	} else {
+		types[unpackVal] = typ
+	}
 	return r
 }
 
-func (r Reflector) Skip(template interface{}) Reflector {
-	val := reflect.ValueOf(template)
-	if val.Kind() != reflect.Struct {
-		panic("cannot unpack into a non-struct type")
+func (r Reflector) get(unpackKey string, create bool) map[string]reflect.Type {
+	types, ok := r[unpackKey]
+	if !ok && create {
+		types = make(map[string]reflect.Type)
+		r[unpackKey] = types
 	}
-	r[val.Type().Name()] = nil
-	return r
+	return types
 }
 
-func (r Reflector) Unpack(key, s string) (interface{}, error) {
-	return r.UnpackBytes(key, []byte(s))
+func (r Reflector) Unpack(s string) (interface{}, error) {
+	return r.UnpackBytes([]byte(s))
 }
 
-func (r Reflector) UnpackBytes(key string, b []byte) (interface{}, error) {
+func (r Reflector) UnpackBytes(b []byte) (interface{}, error) {
 	var jsonMap interface{}
 	if err := json.Unmarshal(b, &jsonMap); err != nil {
 		return nil, fmt.Errorf("unpacker error parsing JSON: %w", err)
 	}
-	return r.UnpackMap(key, jsonMap)
+	return r.UnpackMap(jsonMap)
 }
 
-func (r Reflector) UnpackMap(key string, m interface{}) (interface{}, error) {
+func (r Reflector) UnpackMap(m interface{}) (interface{}, error) {
 	object, ok := m.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("cannot unpack non-object JSON value")
 	}
-	skeleton, err := r.unpack(key, object)
+	skeleton, err := r.unpack(object)
 	if err != nil {
 		return nil, err
 	}
@@ -87,30 +91,43 @@ func (r Reflector) UnpackMap(key string, m interface{}) (interface{}, error) {
 	return skeleton, dec.Decode(m)
 }
 
-func (r Reflector) lookup(keyField string, object map[string]interface{}) (reflect.Value, error) {
-	key, ok := object[keyField]
-	if !ok {
-		return zero, nil
+func (r Reflector) lookup(object map[string]interface{}) (reflect.Value, error) {
+	var hits int
+	for key, val := range object {
+		types := r.get(key, false)
+		if types == nil {
+			continue
+		}
+		unpackVal, ok := val.(string)
+		if !ok {
+			return zero, fmt.Errorf("unpack key in JSON field '%s' is not a string: '%T'", key, val)
+		}
+		hits++
+		template, ok := types[unpackVal]
+		if ok {
+			if template == nil {
+				// skip
+				return zero, nil
+			}
+			return reflect.New(template), nil
+		}
 	}
-	skey, ok := key.(string)
-	if !ok {
-		return zero, fmt.Errorf("unpack: key is not a string: '%T'", key)
+	// If we hit a key but it didn't have any matching rule (even to skip),
+	// then we raise an error.
+	if hits > 0 {
+		return zero, fmt.Errorf("unpack: JSON object found with candidate key(s) having no template match")
 	}
-	template, ok := r[skey]
-	if !ok {
-		return zero, fmt.Errorf("unpack: no template for key '%s'", key)
-	}
-	return reflect.New(template), nil
+	return zero, nil
 }
 
-func (r Reflector) unpack(keyField string, p interface{}) (interface{}, error) {
+func (r Reflector) unpack(p interface{}) (interface{}, error) {
 	switch p := p.(type) {
 	case map[string]interface{}:
-		converted, err := r.unpackObject(keyField, p)
+		converted, err := r.unpackObject(p)
 		if err != nil {
 			return nil, err
 		}
-		template, err := r.lookup(keyField, p)
+		template, err := r.lookup(p)
 		if err != nil {
 			return nil, err
 		}
@@ -131,15 +148,15 @@ func (r Reflector) unpack(keyField string, p interface{}) (interface{}, error) {
 		return converted, nil
 
 	case []interface{}:
-		return r.unpackArray(keyField, p)
+		return r.unpackArray(p)
 	}
 	return nil, nil
 }
 
-func (r Reflector) unpackObject(keyField string, in map[string]interface{}) (map[string]interface{}, error) {
+func (r Reflector) unpackObject(in map[string]interface{}) (map[string]interface{}, error) {
 	out := make(map[string]interface{})
 	for k, v := range in {
-		child, err := r.unpack(keyField, v)
+		child, err := r.unpack(v)
 		if err != nil {
 			return nil, err
 		}
@@ -148,10 +165,10 @@ func (r Reflector) unpackObject(keyField string, in map[string]interface{}) (map
 	return out, nil
 }
 
-func (r Reflector) unpackArray(keyField string, in []interface{}) ([]interface{}, error) {
+func (r Reflector) unpackArray(in []interface{}) ([]interface{}, error) {
 	out := make([]interface{}, 0, len(in))
 	for _, p := range in {
-		converted, err := r.unpack(keyField, p)
+		converted, err := r.unpack(p)
 		if err != nil {
 			return nil, err
 		}
