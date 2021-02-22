@@ -14,6 +14,7 @@ import (
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -254,7 +255,7 @@ func TestUnmarshalSlice(t *testing.T) {
 
 type testMarshaler string
 
-func (m testMarshaler) MarshalZNG(mc *resolver.MarshalContext) (zng.Type, error) {
+func (m testMarshaler) MarshalZNG(mc *zson.MarshalZNGContext) (zng.Type, error) {
 	return mc.MarshalValue("marshal-" + string(m))
 }
 
@@ -468,7 +469,7 @@ func TestInterfaceUnmarshal(t *testing.T) {
 func TestBindings(t *testing.T) {
 	t1 := Make(1)
 	m := resolver.NewMarshaler()
-	m.NamedBindings([]resolver.Binding{
+	m.NamedBindings([]zson.Binding{
 		{"SpecialThingOne", &Thing{}},
 		{"SpecialThingTwo", &ThingTwo{}},
 	})
@@ -477,7 +478,7 @@ func TestBindings(t *testing.T) {
 	assert.Equal(t, "SpecialThingOne=({a:string,B:int64})", zv.Type.ZSON())
 
 	u := resolver.NewUnmarshaler()
-	u.NamedBindings([]resolver.Binding{
+	u.NamedBindings([]zson.Binding{
 		{"SpecialThingOne", &Thing{}},
 		{"SpecialThingTwo", &ThingTwo{}},
 	})

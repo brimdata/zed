@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -21,7 +22,7 @@ type statReadCloser struct {
 	defnames map[ksuid.KSUID]string
 	err      error
 	recs     chan *zng.Record
-	zctx     *resolver.MarshalContext
+	zctx     *zson.MarshalZNGContext
 }
 
 func (s *statReadCloser) Read() (*zng.Record, error) {
@@ -202,8 +203,8 @@ func Stat(ctx context.Context, zctx *resolver.Context, lk *Lake) (zbuf.ReadClose
 		defnames[def.ID] = def.String()
 	}
 	ctx, cancel := context.WithCancel(ctx)
-	mzctx := resolver.NewMarshaler()
-	mzctx.Context = zctx
+	mzctx := zson.NewZNGMarshaler()
+	mzctx.Context = zctx.Context
 	s := &statReadCloser{
 		lk:       lk,
 		ctx:      ctx,

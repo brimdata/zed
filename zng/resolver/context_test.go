@@ -37,11 +37,11 @@ func TestDuplicates(t *testing.T) {
 		zng.NewColumn("b", setType),
 	})
 	require.NoError(t, err)
-	typ2, err := ctx.LookupByName("record[a:string,b:set[int32]]")
+	typ2, err := ctx.LookupByName("{a:string,b:|[int32]|}")
 	require.NoError(t, err)
 	assert.EqualValues(t, typ1.ID(), typ2.ID())
 	assert.EqualValues(t, setType.ID(), typ2.(*zng.TypeRecord).Columns[1].Type.ID())
-	typ3, err := ctx.LookupByName("set[int32]")
+	typ3, err := ctx.LookupByName("|[int32]|")
 	require.NoError(t, err)
 	assert.Equal(t, setType.ID(), typ3.ID())
 }
@@ -49,9 +49,9 @@ func TestDuplicates(t *testing.T) {
 func TestTranslateAlias(t *testing.T) {
 	c1 := resolver.NewContext()
 	c2 := resolver.NewContext()
-	set1, err := c1.LookupByName("set[int64]")
+	set1, err := c1.LookupByName("|[int64]|")
 	require.NoError(t, err)
-	set2, err := c2.LookupByName("set[int64]")
+	set2, err := c2.LookupByName("|[int64]|")
 	require.NoError(t, err)
 	alias1, err := c1.LookupTypeAlias("foo", set1)
 	require.NoError(t, err)

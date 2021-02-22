@@ -9,7 +9,7 @@ import (
 )
 
 func TestFieldNameIter(t *testing.T) {
-	const typeString = "record[r1:record[r2:record[s:string,r3:record[t:time]],a:array[int64],r4:record[i:ip]],empty:record[]]"
+	const typeString = "{r1:{r2:{s:string,r3:{t:time}},a:[int64],r4:{i:ip}},empty:{}}"
 	typ, err := resolver.NewContext().LookupByName(typeString)
 	require.NoError(t, err)
 	var f FieldNameIter
@@ -27,7 +27,7 @@ func TestFieldNameIter(t *testing.T) {
 	require.True(t, f.Done())
 }
 func TestFieldNameIterEmptyTopLevelRecord(t *testing.T) {
-	typ, err := resolver.NewContext().LookupByName("record[]")
+	typ, err := resolver.NewContext().LookupByName("{}")
 	require.NoError(t, err)
 	var f FieldNameIter
 	f.Init(typ.(*zng.TypeRecord))

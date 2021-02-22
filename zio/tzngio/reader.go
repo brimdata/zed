@@ -46,6 +46,7 @@ type Reader struct {
 	zctx    *resolver.Context
 	mapper  map[string]zng.Type
 	parser  *zng.Parser
+	types   *TypeParser
 }
 
 func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
@@ -57,6 +58,7 @@ func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 		zctx:    zctx,
 		mapper:  make(map[string]zng.Type),
 		parser:  zng.NewParser(),
+		types:   NewTypeParser(zctx),
 	}
 }
 
@@ -143,7 +145,7 @@ func (r *Reader) parseTypeDef(line []byte) (bool, error) {
 		}
 		isAlias = true
 	}
-	typ, err := r.zctx.LookupByName(string(rest))
+	typ, err := r.types.Parse(string(rest))
 	if err != nil {
 		return false, err
 	}

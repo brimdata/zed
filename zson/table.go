@@ -5,17 +5,16 @@ import (
 
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
 )
 
 type TypeTable struct {
 	mu      sync.Mutex
 	toBytes map[zng.Type]zcode.Bytes
 	toType  map[string]zng.Type
-	zctx    *resolver.Context
+	zctx    *Context
 }
 
-func NewTypeTable(zctx *resolver.Context) *TypeTable {
+func NewTypeTable(zctx *Context) *TypeTable {
 	return &TypeTable{
 		toBytes: make(map[zng.Type]zcode.Bytes),
 		toType:  make(map[string]zng.Type),
