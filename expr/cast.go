@@ -144,7 +144,9 @@ func castToTime(zv zng.Value) (zng.Value, error) {
 
 func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
 	return func(zv zng.Value) (zng.Value, error) {
-		if zv.Type.ID() == zng.IdBytes {
+		id := zv.Type.ID()
+		if id == zng.IdBytes {
+			//XXX this should be ZSON encoding?
 			return zng.Value{typ, zng.EncodeString(string(zv.Bytes))}, nil
 		}
 		if enum, ok := zv.Type.(*zng.TypeEnum); ok {
@@ -155,11 +157,14 @@ func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
 			}
 			return zng.Value{typ, zng.EncodeString(element.Name)}, nil
 		}
-		//XXX here, we need to create a human-readable string rep
-		// rather than a tzng encoding, e.g., for time, an iso date instead of
-		// ns int.  For now, this works for numbers and IPs.  We will fix in a
-		// subsequent PR (see issue #1603).
-		result := zv.Type.StringOf(zv.Bytes, zng.OutFormatUnescaped, false)
+		if zng.IsStringy(id) {
+			// If it's already stringy, then the z encoding can stay
+			// the same and we just update the stringy type.
+			return zng.Value{typ, zv.Bytes}, nil
+		}
+		// Otherwise, we'll use a canonical ZSON value for the string rep
+		// of an arbitrary value cast to a string.
+		result := zv.Type.ZSONOf(zv.Bytes)
 		return zng.Value{typ, zng.EncodeString(result)}, nil
 	}
 }

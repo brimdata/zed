@@ -8,6 +8,7 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -17,9 +18,8 @@ var ErrNotFound = errors.New("key not found")
 // Finder looks up values in a microindex using its embedded index.
 type Finder struct {
 	*Reader
-	zctx    *resolver.Context
-	uri     iosrc.URI
-	builder *zng.Builder
+	zctx *resolver.Context
+	uri  iosrc.URI
 }
 
 // NewFinder returns an object that is used to lookup keys in a microindex.
@@ -234,10 +234,10 @@ func (f *Finder) ParseKeys(inputs ...string) (*zng.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
-	if f.builder == nil {
-		f.builder = zng.NewBuilder(f.trailer.KeyType)
-	}
-	rec, err := f.builder.Parse(inputs...)
+	// XXX this should parse a ZSON literal and try to cast it
+	// to the key type.  For now, we let tzngio handles this as
+	// Z literal syntax is coming soon.
+	rec, err := tzngio.ParseKeys(f.trailer.KeyType, inputs...)
 	if err == zng.ErrIncomplete {
 		err = nil
 	}

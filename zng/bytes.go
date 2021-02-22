@@ -1,7 +1,6 @@
 package zng
 
 import (
-	"encoding/base64"
 	"encoding/hex"
 
 	"github.com/brimsec/zq/zcode"
@@ -21,18 +20,6 @@ func DecodeBytes(zv zcode.Bytes) ([]byte, error) {
 	return []byte(zv), nil
 }
 
-func (t *TypeOfBytes) Parse(in []byte) (zcode.Bytes, error) {
-	s := string(in)
-	if s == "" {
-		return []byte{}, nil
-	}
-	b, err := base64.StdEncoding.DecodeString(s)
-	if err != nil {
-		return nil, err
-	}
-	return zcode.Bytes(b), nil
-}
-
 func (t *TypeOfBytes) ID() int {
 	return IdBytes
 }
@@ -41,12 +28,8 @@ func (t *TypeOfBytes) String() string {
 	return "bytes"
 }
 
-func (t *TypeOfBytes) StringOf(zv zcode.Bytes, fmt OutFmt, inContainer bool) string {
-	return base64.StdEncoding.EncodeToString(zv)
-}
-
 func (t *TypeOfBytes) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.StringOf(zv, OutFormatUnescaped, false), nil
+	return t.ZSONOf(zv), nil
 }
 
 func (t *TypeOfBytes) ZSON() string {

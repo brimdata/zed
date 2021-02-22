@@ -45,7 +45,7 @@ type Reader struct {
 	stats   ReadStats
 	zctx    *resolver.Context
 	mapper  map[string]zng.Type
-	parser  *zng.Parser
+	parser  *Parser
 	types   *TypeParser
 }
 
@@ -57,7 +57,7 @@ func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
 		stats:   ReadStats{Stats: &scanner.Stats},
 		zctx:    zctx,
 		mapper:  make(map[string]zng.Type),
-		parser:  zng.NewParser(),
+		parser:  NewParser(),
 		types:   NewTypeParser(zctx),
 	}
 }

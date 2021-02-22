@@ -4,7 +4,6 @@ import (
 	"errors"
 	"net"
 
-	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
 )
 
@@ -37,28 +36,12 @@ func DecodeIP(zv zcode.Bytes) (net.IP, error) {
 	return nil, errors.New("failure trying to decode IP address that is not 4 or 16 bytes long")
 }
 
-func (t *TypeOfIP) Parse(in []byte) (zcode.Bytes, error) {
-	ip, err := byteconv.ParseIP(in)
-	if err != nil {
-		return nil, err
-	}
-	return EncodeIP(ip), nil
-}
-
 func (t *TypeOfIP) ID() int {
 	return IdIP
 }
 
 func (t *TypeOfIP) String() string {
 	return "ip"
-}
-
-func (t *TypeOfIP) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
-	ip, err := DecodeIP(zv)
-	if err != nil {
-		return badZng(err, t, zv)
-	}
-	return ip.String()
 }
 
 func (t *TypeOfIP) Marshal(zv zcode.Bytes) (interface{}, error) {

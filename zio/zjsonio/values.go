@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -72,10 +73,7 @@ func encodePrimitive(typ zng.Type, v []byte) (interface{}, error) {
 		return fld, nil
 	}
 
-	fieldBytes := zng.Value{typ, v}.Format(zng.OutFormatUnescaped)
-	fld = string(fieldBytes)
-
-	return fld, nil
+	return tzngio.StringOf(zng.Value{typ, v}, tzngio.OutFormatUnescaped, false), nil
 }
 
 func encodeAny(typ zng.Type, val []byte) (interface{}, error) {
@@ -164,7 +162,7 @@ func decodeRecord(b *zcode.Builder, typ *zng.TypeRecord, v interface{}) error {
 	b.BeginContainer()
 	for k, val := range values {
 		if k >= len(cols) {
-			return &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
+			return &zng.RecordTypeError{Name: "<record>", Type: typ.ZSON(), Err: zng.ErrExtraField}
 		}
 		// each column either a string value or an array of string values
 		if val == nil {
@@ -185,11 +183,10 @@ func decodePrimitive(builder *zcode.Builder, typ zng.Type, v interface{}) error 
 	if !ok {
 		return errors.New("zjson primitive value is not a JSON string")
 	}
-	b := []byte(s)
 	if zng.IsContainerType(typ) && !zng.IsUnionType(typ) {
-		return zng.ErrNotContainer
+		return zng.ErrNotPrimitive
 	}
-	zv, err := typ.Parse(b)
+	zv, err := tzngio.ParseValue(typ, []byte(s))
 	if err != nil {
 		return err
 	}

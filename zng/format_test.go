@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +31,7 @@ func TestFormatting(t *testing.T) {
 	assert.NoError(t, err)
 
 	type Expect struct {
-		fmt      zng.OutFmt
+		fmt      tzngio.OutFmt
 		expected string
 	}
 
@@ -46,9 +47,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("foo"),
 			[]Expect{
-				{zng.OutFormatZeek, "foo"},
-				{zng.OutFormatZeekAscii, "foo"},
-				{zng.OutFormatZNG, "foo"},
+				{tzngio.OutFormatZeek, "foo"},
+				{tzngio.OutFormatZeekAscii, "foo"},
+				{tzngio.OutFormatZNG, "foo"},
 			},
 		},
 
@@ -56,9 +57,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{zng.TypeBstring, nil},
 			[]Expect{
-				{zng.OutFormatZeek, "-"},
-				{zng.OutFormatZeekAscii, "-"},
-				{zng.OutFormatZNG, "-"},
+				{tzngio.OutFormatZeek, "-"},
+				{tzngio.OutFormatZeekAscii, "-"},
+				{tzngio.OutFormatZNG, "-"},
 			},
 		},
 
@@ -66,9 +67,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("-"),
 			[]Expect{
-				{zng.OutFormatZeek, `\x2d`},
-				{zng.OutFormatZeekAscii, `\x2d`},
-				{zng.OutFormatZNG, `\x2d`},
+				{tzngio.OutFormatZeek, `\x2d`},
+				{tzngio.OutFormatZeekAscii, `\x2d`},
+				{tzngio.OutFormatZNG, `\x2d`},
 			},
 		},
 
@@ -76,9 +77,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("--"),
 			[]Expect{
-				{zng.OutFormatZeek, "--"},
-				{zng.OutFormatZeekAscii, "--"},
-				{zng.OutFormatZNG, "--"},
+				{tzngio.OutFormatZeek, "--"},
+				{tzngio.OutFormatZeekAscii, "--"},
+				{tzngio.OutFormatZNG, "--"},
 			},
 		},
 
@@ -86,9 +87,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{zng.TypeBstring, []byte{0xae, 0x8c, 0x9f, 0xf0}},
 			[]Expect{
-				{zng.OutFormatZeek, `\xae\x8c\x9f\xf0`},
-				{zng.OutFormatZeekAscii, `\xae\x8c\x9f\xf0`},
-				{zng.OutFormatZNG, `\xae\x8c\x9f\xf0`},
+				{tzngio.OutFormatZeek, `\xae\x8c\x9f\xf0`},
+				{tzngio.OutFormatZeekAscii, `\xae\x8c\x9f\xf0`},
+				{tzngio.OutFormatZNG, `\xae\x8c\x9f\xf0`},
 			},
 		},
 
@@ -96,9 +97,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring(`\`),
 			[]Expect{
-				{zng.OutFormatZeek, `\\`},
-				{zng.OutFormatZeekAscii, `\\`},
-				{zng.OutFormatZNG, `\\`},
+				{tzngio.OutFormatZeek, `\\`},
+				{tzngio.OutFormatZeekAscii, `\\`},
+				{tzngio.OutFormatZNG, `\\`},
 			},
 		},
 
@@ -106,9 +107,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("\n\t"),
 			[]Expect{
-				{zng.OutFormatZeek, `\x0a\x09`},
-				{zng.OutFormatZeekAscii, `\x0a\x09`},
-				{zng.OutFormatZNG, `\x0a\x09`},
+				{tzngio.OutFormatZeek, `\x0a\x09`},
+				{tzngio.OutFormatZeekAscii, `\x0a\x09`},
+				{tzngio.OutFormatZNG, `\x0a\x09`},
 			},
 		},
 
@@ -116,9 +117,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("a,b"),
 			[]Expect{
-				{zng.OutFormatZeek, `a,b`},
-				{zng.OutFormatZeekAscii, `a,b`},
-				{zng.OutFormatZNG, `a,b`},
+				{tzngio.OutFormatZeek, `a,b`},
+				{tzngio.OutFormatZeekAscii, `a,b`},
+				{tzngio.OutFormatZNG, `a,b`},
 			},
 		},
 
@@ -126,9 +127,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("[hello"),
 			[]Expect{
-				{zng.OutFormatZeek, `[hello`},
-				{zng.OutFormatZeekAscii, `[hello`},
-				{zng.OutFormatZNG, `\x5bhello`},
+				{tzngio.OutFormatZeek, `[hello`},
+				{tzngio.OutFormatZeekAscii, `[hello`},
+				{tzngio.OutFormatZNG, `\x5bhello`},
 			},
 		},
 
@@ -136,9 +137,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("hello["),
 			[]Expect{
-				{zng.OutFormatZeek, `hello[`},
-				{zng.OutFormatZeekAscii, `hello[`},
-				{zng.OutFormatZNG, `hello[`},
+				{tzngio.OutFormatZeek, `hello[`},
+				{tzngio.OutFormatZeekAscii, `hello[`},
+				{tzngio.OutFormatZNG, `hello[`},
 			},
 		},
 
@@ -146,9 +147,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring(";"),
 			[]Expect{
-				{zng.OutFormatZeek, `;`},
-				{zng.OutFormatZeekAscii, `;`},
-				{zng.OutFormatZNG, `\x3b`},
+				{tzngio.OutFormatZeek, `;`},
+				{tzngio.OutFormatZeekAscii, `;`},
+				{tzngio.OutFormatZNG, `\x3b`},
 			},
 		},
 
@@ -157,9 +158,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewBstring("🌮"),
 			[]Expect{
-				{zng.OutFormatZeek, "🌮"},
-				{zng.OutFormatZeekAscii, `\xf0\x9f\x8c\xae`},
-				{zng.OutFormatZNG, "🌮"},
+				{tzngio.OutFormatZeek, "🌮"},
+				{tzngio.OutFormatZeekAscii, `\xf0\x9f\x8c\xae`},
+				{tzngio.OutFormatZNG, "🌮"},
 			},
 		},
 
@@ -171,9 +172,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString("-"),
 			[]Expect{
-				{zng.OutFormatZeek, `\u002d`},
-				{zng.OutFormatZeekAscii, `\u002d`},
-				{zng.OutFormatZNG, `\u002d`},
+				{tzngio.OutFormatZeek, `\u002d`},
+				{tzngio.OutFormatZeekAscii, `\u002d`},
+				{tzngio.OutFormatZNG, `\u002d`},
 			},
 		},
 
@@ -181,9 +182,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString(`\`),
 			[]Expect{
-				{zng.OutFormatZeek, `\\`},
-				{zng.OutFormatZeekAscii, `\\`},
-				{zng.OutFormatZNG, `\\`},
+				{tzngio.OutFormatZeek, `\\`},
+				{tzngio.OutFormatZeekAscii, `\\`},
+				{tzngio.OutFormatZNG, `\\`},
 			},
 		},
 
@@ -191,9 +192,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString("\n\t"),
 			[]Expect{
-				{zng.OutFormatZeek, `\u{a}\u{9}`},
-				{zng.OutFormatZeekAscii, `\u{a}\u{9}`},
-				{zng.OutFormatZNG, `\u{a}\u{9}`},
+				{tzngio.OutFormatZeek, `\u{a}\u{9}`},
+				{tzngio.OutFormatZeekAscii, `\u{a}\u{9}`},
+				{tzngio.OutFormatZNG, `\u{a}\u{9}`},
 			},
 		},
 
@@ -201,9 +202,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString("a,b"),
 			[]Expect{
-				{zng.OutFormatZeek, `a,b`},
-				{zng.OutFormatZeekAscii, `a,b`},
-				{zng.OutFormatZNG, `a,b`},
+				{tzngio.OutFormatZeek, `a,b`},
+				{tzngio.OutFormatZeekAscii, `a,b`},
+				{tzngio.OutFormatZNG, `a,b`},
 			},
 		},
 
@@ -211,9 +212,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString("[hello"),
 			[]Expect{
-				{zng.OutFormatZeek, `[hello`},
-				{zng.OutFormatZeekAscii, `[hello`},
-				{zng.OutFormatZNG, `\u{5b}hello`},
+				{tzngio.OutFormatZeek, `[hello`},
+				{tzngio.OutFormatZeekAscii, `[hello`},
+				{tzngio.OutFormatZNG, `\u{5b}hello`},
 			},
 		},
 
@@ -221,9 +222,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.NewString(";"),
 			[]Expect{
-				{zng.OutFormatZeek, `;`},
-				{zng.OutFormatZeekAscii, `;`},
-				{zng.OutFormatZNG, `\u{3b}`},
+				{tzngio.OutFormatZeek, `;`},
+				{tzngio.OutFormatZeekAscii, `;`},
+				{tzngio.OutFormatZNG, `\u{3b}`},
 			},
 		},
 
@@ -235,9 +236,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringSetType, nil},
 			[]Expect{
-				{zng.OutFormatZeek, "-"},
-				{zng.OutFormatZeekAscii, "-"},
-				{zng.OutFormatZNG, "-"},
+				{tzngio.OutFormatZeek, "-"},
+				{tzngio.OutFormatZeekAscii, "-"},
+				{tzngio.OutFormatZNG, "-"},
 			},
 		},
 
@@ -245,9 +246,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringSetType, []byte{}},
 			[]Expect{
-				{zng.OutFormatZeek, "(empty)"},
-				{zng.OutFormatZeekAscii, "(empty)"},
-				{zng.OutFormatZNG, "[]"},
+				{tzngio.OutFormatZeek, "(empty)"},
+				{tzngio.OutFormatZeekAscii, "(empty)"},
+				{tzngio.OutFormatZNG, "[]"},
 			},
 		},
 
@@ -258,9 +259,9 @@ func TestFormatting(t *testing.T) {
 				makeContainer([]byte("abc"), []byte("xyz")),
 			},
 			[]Expect{
-				{zng.OutFormatZeek, "abc,xyz"},
-				{zng.OutFormatZeekAscii, "abc,xyz"},
-				{zng.OutFormatZNG, "[abc;xyz;]"},
+				{tzngio.OutFormatZeek, "abc,xyz"},
+				{tzngio.OutFormatZeekAscii, "abc,xyz"},
+				{tzngio.OutFormatZNG, "[abc;xyz;]"},
 			},
 		},
 
@@ -268,7 +269,7 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringSetType, makeContainer([]byte("a,b"))},
 			[]Expect{
-				{zng.OutFormatZeek, `a\x2cb`},
+				{tzngio.OutFormatZeek, `a\x2cb`},
 			},
 		},
 
@@ -283,7 +284,7 @@ func TestFormatting(t *testing.T) {
 			},
 			[]Expect{
 				// not representable in zeek
-				{zng.OutFormatZNG, `[[a;b;];[x;y;];]`},
+				{tzngio.OutFormatZNG, `[[a;b;];[x;y;];]`},
 			},
 		},
 
@@ -295,9 +296,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringVecType, nil},
 			[]Expect{
-				{zng.OutFormatZeek, "-"},
-				{zng.OutFormatZeekAscii, "-"},
-				{zng.OutFormatZNG, "-"},
+				{tzngio.OutFormatZeek, "-"},
+				{tzngio.OutFormatZeekAscii, "-"},
+				{tzngio.OutFormatZNG, "-"},
 			},
 		},
 
@@ -305,9 +306,9 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringVecType, []byte{}},
 			[]Expect{
-				{zng.OutFormatZeek, "(empty)"},
-				{zng.OutFormatZeekAscii, "(empty)"},
-				{zng.OutFormatZNG, "[]"},
+				{tzngio.OutFormatZeek, "(empty)"},
+				{tzngio.OutFormatZeekAscii, "(empty)"},
+				{tzngio.OutFormatZNG, "[]"},
 			},
 		},
 
@@ -318,9 +319,9 @@ func TestFormatting(t *testing.T) {
 				makeContainer([]byte("abc"), []byte("xyz")),
 			},
 			[]Expect{
-				{zng.OutFormatZeek, "abc,xyz"},
-				{zng.OutFormatZeekAscii, "abc,xyz"},
-				{zng.OutFormatZNG, "[abc;xyz;]"},
+				{tzngio.OutFormatZeek, "abc,xyz"},
+				{tzngio.OutFormatZeekAscii, "abc,xyz"},
+				{tzngio.OutFormatZNG, "[abc;xyz;]"},
 			},
 		},
 
@@ -335,7 +336,7 @@ func TestFormatting(t *testing.T) {
 			},
 			[]Expect{
 				// not representable in zeek
-				{zng.OutFormatZNG, `[[a;b;];[x;y;];]`},
+				{tzngio.OutFormatZNG, `[[a;b;];[x;y;];]`},
 			},
 		},
 
@@ -343,7 +344,7 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringVecType, makeContainer([]byte("a,b"))},
 			[]Expect{
-				{zng.OutFormatZeek, `a\x2cb`},
+				{tzngio.OutFormatZeek, `a\x2cb`},
 			},
 		},
 
@@ -354,8 +355,8 @@ func TestFormatting(t *testing.T) {
 				makeContainer([]byte("-"), nil),
 			},
 			[]Expect{
-				{zng.OutFormatZeek, `\x2d,-`},
-				{zng.OutFormatZNG, `[\x2d;-;]`},
+				{tzngio.OutFormatZeek, `\x2d,-`},
+				{tzngio.OutFormatZNG, `[\x2d;-;]`},
 			},
 		},
 
@@ -363,8 +364,8 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{bstringVecType, makeContainer([]byte{})},
 			[]Expect{
-				{zng.OutFormatZeek, ""},
-				{zng.OutFormatZNG, `[;]`},
+				{tzngio.OutFormatZeek, ""},
+				{tzngio.OutFormatZNG, `[;]`},
 			},
 		},
 
@@ -379,7 +380,7 @@ func TestFormatting(t *testing.T) {
 				makeContainer([]byte("foo"), []byte("bar")),
 			},
 			[]Expect{
-				{zng.OutFormatZNG, `[foo;bar;]`},
+				{tzngio.OutFormatZNG, `[foo;bar;]`},
 			},
 		},
 
@@ -387,14 +388,14 @@ func TestFormatting(t *testing.T) {
 		{
 			zng.Value{recType, makeContainer(nil, nil)},
 			[]Expect{
-				{zng.OutFormatZNG, `[-;-;]`},
+				{tzngio.OutFormatZNG, `[-;-;]`},
 			},
 		},
 	}
 	for _, tc := range cases {
 		for _, expect := range tc.expected {
 			t.Run(expect.expected, func(t *testing.T) {
-				res := tc.val.Format(expect.fmt)
+				res := tzngio.FormatValue(tc.val, expect.fmt)
 				assert.Equal(t, expect.expected, res)
 			})
 		}

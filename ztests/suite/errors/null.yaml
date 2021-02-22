@@ -1,5 +1,5 @@
 script: |
-  zq null.tzng
+  zq -z -i tzng null.tzng
 
 inputs:
   - name: null.tzng
@@ -10,4 +10,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      cannot instantiate type null with nonempty value "bleah"
+      .*invalid text body of null value: "bleah"

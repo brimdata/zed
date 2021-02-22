@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zeekio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
@@ -17,7 +18,7 @@ type Writer struct {
 	EpochDates bool
 	writer     io.WriteCloser
 	flattener  *flattener.Flattener
-	format     zng.OutFmt
+	format     tzngio.OutFmt
 }
 
 type WriterOpts struct {
@@ -26,9 +27,9 @@ type WriterOpts struct {
 }
 
 func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts, dates bool) *Writer {
-	format := zng.OutFormatZeekAscii
+	format := tzngio.OutFormatZeekAscii
 	if utf8 {
-		format = zng.OutFormatZeek
+		format = tzngio.OutFormatZeek
 	}
 	return &Writer{
 		WriterOpts: opts,
@@ -64,13 +65,13 @@ func (w *Writer) Write(rec *zng.Record) error {
 					v = ts.Time().UTC().Format(time.RFC3339Nano)
 				}
 			} else {
-				v = value.Format(w.format)
+				v = tzngio.FormatValue(value, w.format)
 			}
 			if w.ShowFields {
 				s = col.Name + ":"
 			}
 			if w.ShowTypes {
-				s = s + col.Type.String() + ":"
+				s = s + tzngio.TypeString(col.Type) + ":"
 			}
 			out = append(out, s+v)
 		}

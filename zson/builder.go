@@ -41,7 +41,7 @@ func (b *Builder) Build(val Value) (zng.Value, error) {
 func (b *Builder) buildValue(val Value) error {
 	switch val := val.(type) {
 	case *Primitive:
-		return b.buildPrimitive(val)
+		return b.BuildPrimitive(val)
 	case *Record:
 		return b.buildRecord(val)
 	case *Array:
@@ -63,7 +63,7 @@ func (b *Builder) buildValue(val Value) error {
 	return fmt.Errorf("unknown ast type: %T", val)
 }
 
-func (b *Builder) buildPrimitive(val *Primitive) error {
+func (b *Builder) BuildPrimitive(val *Primitive) error {
 	switch zng.AliasedType(val.Type).(type) {
 	case *zng.TypeOfUint8, *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
 		v, err := strconv.ParseUint(val.Text, 10, 64)

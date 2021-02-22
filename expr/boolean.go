@@ -13,6 +13,7 @@ import (
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zson"
 )
 
 //XXX TBD:
@@ -201,7 +202,7 @@ var compareString = map[string]func(string, string) bool{
 	"<=": func(a, b string) bool { return a <= b },
 }
 
-func CompareBstring(op string, pattern zng.Bstring) (Boolean, error) {
+func CompareBstring(op string, pattern Bstring) (Boolean, error) {
 	compare, ok := compareString[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown string comparator: %s", op)
@@ -375,7 +376,7 @@ func Comparison(op string, literal ast.Literal) (Boolean, error) {
 	if literal.Type == "regexp" {
 		return compareRegexp(op, literal.Value)
 	}
-	v, err := zng.ParseLiteral(literal)
+	v, err := parseLiteral(literal)
 	if err != nil {
 		return nil, err
 	}
@@ -390,11 +391,46 @@ func Comparison(op string, literal ast.Literal) (Boolean, error) {
 		return CompareBool(op, v)
 	case float64: //XXX
 		return CompareFloat64(op, v)
-	case zng.Bstring: //XXX
+	case Bstring: //XXX
 		return CompareBstring(op, v)
 	case int64:
 		return CompareInt64(op, v)
 	default:
 		return nil, fmt.Errorf("unknown type of constant: %s (%T)", literal.Type, v)
+	}
+}
+
+//XXX this shoulw all go away ?
+
+type Port uint32
+type Bstring []byte
+
+func parseLiteral(literal ast.Literal) (interface{}, error) {
+	// String literals inside zql are parsed as zng bstrings
+	// (since bstrings can represent a wider range of values,
+	// specifically arrays of bytes that do not correspond to
+	// UTF-8 encoded strings).
+	if literal.Type == "string" {
+		literal = ast.Literal{Op: "Literal", Type: "bstring", Value: literal.Value}
+	}
+	zv, err := zson.ParsePrimitive(literal.Type, literal.Value)
+	if err != nil {
+		return nil, err
+	}
+	switch zv.Type.(type) {
+	case nil:
+		return nil, nil
+	case *zng.TypeOfIP:
+		// marshal doesn't work for addr
+		return zng.DecodeIP(zv.Bytes)
+	case *zng.TypeOfNet:
+		// marshal doesn't work for subnet
+		return zng.DecodeNet(zv.Bytes)
+	case *zng.TypeOfBstring:
+		// marshal doesn't work for bstring
+		s, err := zng.DecodeString(zv.Bytes)
+		return Bstring(s), err
+	default:
+		return zv.Type.Marshal(zv.Bytes)
 	}
 }

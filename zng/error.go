@@ -45,10 +45,6 @@ func DecodeError(zv zcode.Bytes) (error, error) {
 	return errors.New(string(zv)), nil
 }
 
-func (t *TypeOfError) Parse(in []byte) (zcode.Bytes, error) {
-	return zcode.Bytes(in), nil
-}
-
 func (t *TypeOfError) ID() int {
 	return IdError
 }
@@ -57,12 +53,9 @@ func (t *TypeOfError) String() string {
 	return "error"
 }
 
-func (t *TypeOfError) StringOf(zv zcode.Bytes, fmt OutFmt, inContainer bool) string {
-	return string(zv)
-}
-
 func (t *TypeOfError) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.StringOf(zv, OutFormatUnescaped, false), nil
+	//return t.StringOf(zv, OutFormatUnescaped, false), nil
+	return nil, nil
 }
 
 func (t *TypeOfError) ZSON() string {

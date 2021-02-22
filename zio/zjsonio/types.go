@@ -5,13 +5,14 @@ import (
 
 	"github.com/brimsec/zq/pkg/joe"
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
 
 func encodeTypeAny(in zng.Type) joe.Interface {
 	if !zng.IsContainerType(in) {
-		return joe.String(in.String())
+		return joe.String(tzngio.TypeString(in))
 	}
 	return encodeTypeObj(in)
 }
@@ -42,7 +43,7 @@ func encodeType(typ zng.Type) (joe.String, joe.Interface) {
 		types := []zng.Type{typ.KeyType, typ.ValType}
 		return joe.String("map"), encodeTypes(types)
 	default:
-		return joe.String(typ.String()), nil
+		return joe.String(tzngio.TypeString(typ)), nil
 	}
 }
 
