@@ -95,7 +95,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	router := mux.NewRouter()
 	router.Use(requestIDMiddleware())
-	router.Use(accessLogMiddleware(conf.Logger))
+	router.Use(accessLogMiddleware(conf.Logger, "/status", "/metrics"))
 	router.Use(panicCatchMiddleware(conf.Logger))
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		io.WriteString(w, indexPage)
