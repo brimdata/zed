@@ -6,11 +6,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os/exec"
 	"strings"
 
 	"github.com/brimsec/zq/compiler"
+	"github.com/brimsec/zq/compiler/semantic"
+	"github.com/brimsec/zq/zfmt"
 	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
 	"github.com/peterh/liner"
@@ -29,6 +32,10 @@ translated into the analytics requests that is sent to the zqd search endpoint.
 By default, it runs the built-in PEG parser built into this go binary.
 If you specify -js, it will try to run a javascript version of the parser
 by execing node in the currrent directory running the javascript in ./zql/run.js.
+
+The -O flag is handy for turning on and off the compiler, which lets you see
+how the parsed AST is transformed into a runtime object comprised of the
+Z kernel operators.
 `,
 	New: func(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 		return New(flags)
@@ -40,12 +47,16 @@ func init() {
 }
 
 type Command struct {
-	repl   bool
-	js     bool
-	pigeon bool
-	ast    bool
-	all    bool
-	n      int
+	repl     bool
+	js       bool
+	pigeon   bool
+	ast      bool
+	all      bool
+	optimize bool
+	debug    bool
+	canon    bool
+	n        int
+	includes includes
 }
 
 func New(f *flag.FlagSet) (charm.Command, error) {
@@ -55,17 +66,37 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.pigeon, "pigeon", true, "run pigeon version of peg parser")
 	f.BoolVar(&c.ast, "ast", false, "run pigeon version of peg parser and show marshaled ast")
 	f.BoolVar(&c.all, "all", false, "run all and show variants")
+	f.BoolVar(&c.optimize, "O", true, "run semantic optimizer on ast version")
+	f.BoolVar(&c.debug, "D", false, "display ast version as lisp-y debugger output")
+	f.BoolVar(&c.canon, "C", false, "display canonical version")
+	f.Var(&c.includes, "I", "source file containing Z query text (may be used multiple times)")
 	return c, nil
 }
 
+type includes []string
+
+func (i includes) String() string {
+	return strings.Join(i, ",")
+}
+
+func (i *includes) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
 func (c *Command) Run(args []string) error {
-	if len(args) == 0 {
+	if len(args) == 0 && len(c.includes) == 0 {
 		return Ast.Exec(c, []string{"help"})
 	}
 	if c.all {
 		c.ast = true
 		c.pigeon = true
 		c.js = true
+	}
+	if c.optimize {
+		c.ast = true
+		c.pigeon = false
+		c.js = false
 	}
 	c.n = 0
 	if c.js {
@@ -81,7 +112,18 @@ func (c *Command) Run(args []string) error {
 		c.interactive()
 		return nil
 	}
-	return c.parse(strings.Join(args, " "))
+	var src string
+	if len(c.includes) > 0 {
+		for _, path := range c.includes {
+			b, err := ioutil.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			src += "\n" + string(b)
+		}
+	}
+	src += strings.Join(args, " ")
+	return c.parse(src)
 }
 
 func (c *Command) parse(z string) error {
@@ -105,8 +147,8 @@ func (c *Command) parse(z string) error {
 		}
 		fmt.Println(s)
 	}
-	if c.ast {
-		s, err := parseProc(z)
+	if c.ast || c.debug || c.canon {
+		s, err := parseProc(z, c.optimize, c.debug, c.canon)
 		if err != nil {
 			return err
 		}
@@ -170,10 +212,22 @@ func parsePEGjs(z string) (string, error) {
 	return normalize(b)
 }
 
-func parseProc(z string) (string, error) {
+func parseProc(z string, optimize, debug, canon bool) (string, error) {
 	proc, err := compiler.ParseProc(z)
 	if err != nil {
 		return "", err
+	}
+	if optimize {
+		proc, err = semantic.Transform(proc)
+		if err != nil {
+			return "", err
+		}
+	}
+	if debug {
+		return zfmt.Debug(proc), nil
+	}
+	if canon {
+		return zfmt.Canonical(proc), nil
 	}
 	procJSON, err := json.Marshal(proc)
 	if err != nil {

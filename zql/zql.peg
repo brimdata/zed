@@ -263,10 +263,10 @@ SearchExprFunc
 /// === Aggregations ===
 
 Aggregation
-  = every:EveryDur? keys:GroupByKeys limit:LimitArg {
+  = Summarize every:EveryDur keys:GroupByKeys limit:LimitArg {
       RETURN(MAP("op": "GroupByProc", "keys": keys, "reducers": NULL, "duration": every, "limit": limit))
     }
-  / every:EveryDur? reducers:Reducers keys:(_ GroupByKeys)? limit:LimitArg {
+  / Summarize every:EveryDur reducers:Reducers keys:(_ GroupByKeys)? limit:LimitArg {
       VAR(p) = MAP("op": "GroupByProc", "keys": NULL, "reducers": reducers, "duration": every, "limit": limit)
       if ISNOTNULL(keys) {
         p["keys"] = ASSERT_ARRAY(keys)[1]
@@ -274,8 +274,11 @@ Aggregation
       RETURN(p)
     }
 
+Summarize = "summarize" _ / ""
+
 EveryDur
   = "every"i _ dur:Duration _ { RETURN(dur) }
+  / ""  { RETURN(NULL) }
 
 GroupByKeys
   = ByToken _ columns:FlexAssignments { RETURN(columns) }
