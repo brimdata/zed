@@ -1,6 +1,6 @@
 script: |
   microindex convert -f 50 -o index.zng -k _child -
-  microindex section -t -trailer index.zng
+  microindex section -f tzng -trailer index.zng
 
 inputs:
   - name: stdin

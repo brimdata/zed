@@ -5,6 +5,8 @@ input: |
   0:[yodawg;a;1;foo;]
   0:[yodawg;b;2;bar;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[foo:string,bar:string,[...]:int32,yodawg:string,s1:string,s2:string,k:int64]
   0:[yodawg;a;1;foo;foo;yodawg;2;]

@@ -4,6 +4,8 @@ input: |
   #0:record[a:int32]
   0:[1;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:int32,b:null]
   0:[1;-;]

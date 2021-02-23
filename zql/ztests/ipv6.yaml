@@ -7,4 +7,6 @@ input: &input |
   0:[2d09:e8cb:a8ad::;]
   0:[::;]
 
+output-flags: -f tzng
+
 output: *input

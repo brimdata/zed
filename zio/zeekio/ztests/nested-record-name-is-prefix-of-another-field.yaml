@@ -11,8 +11,9 @@ input: |
   #types	time	string	addr	port	addr	port	count	string	string	string	addr	string	port	addr	string	port
   1521932484.182433	C8Yyb34kUAKDIM5ff1	10.199.194.15	39041	10.47.8.251	7777	5	-	-	connection not allowed by ruleset	-	-	-	-	google.com	0
 
+output-flags: -f tzng
+
 output: |
   #port=uint16
   #0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],version:uint64,user:bstring,password:bstring,status:bstring,request:record[host:ip,name:bstring],request_p:port,bound:record[host:ip,name:bstring],bound_p:port]
   0:[socks;1521932484.182433;C8Yyb34kUAKDIM5ff1;[10.199.194.15;39041;10.47.8.251;7777;]5;-;-;connection not allowed by ruleset;[-;-;]-;[-;google.com;]0;]
-  

@@ -5,30 +5,30 @@ script: |
   zar import -R logs babble-norm-shuf-3.tzng
   zar ls -R logs -ranges -spaninfos
   echo ===
-  zar stat -R logs -f zng | zq -t "drop log_id" -
+  zar stat -R logs -f zng | zq -f tzng "drop log_id" -
   echo ===
   zar compact -R logs
   zar ls -R logs -ranges -spaninfos
-  zar stat -R logs -f zng | zq -t "drop log_id" -
+  zar stat -R logs -f zng | zq -f tzng "drop log_id" -
   echo ===
   zar import -R logs babble-norm-shuf-4.tzng
   zar ls -R logs -ranges -spaninfos
   echo ===
   zar compact -R logs
   zar ls -R logs -ranges -spaninfos
-  zar zq -R logs -t "count()"
+  zar zq -R logs -f tzng "count()"
   echo ===
-  zar stat -R logs -f zng | zq -t "drop log_id" -
+  zar stat -R logs -f zng | zq -f tzng "drop log_id" -
   echo ===
   zar compact -R logs -purge
-  zar zq -R logs -t "count()"
-  zar stat -R logs -f zng | zq -t "drop log_id" -
+  zar zq -R logs -f tzng "count()"
+  zar stat -R logs -f zng | zq -f tzng "drop log_id" -
   echo ===
   zar import -R logs babble-norm-shuf-5.tzng
-  zar zq -R logs -t "count()"
+  zar zq -R logs -f tzng "count()"
   echo ===
-  zar zq -R logs -t "*" > t1.tzng
-  zq -t "sort -r ts" babble-norm.tzng > t2.tzng
+  zar zq -R logs -f tzng "*" > t1.tzng
+  zq -f tzng "sort -r ts" babble-norm.tzng > t2.tzng
   diff -s t1.tzng t2.tzng
 
 

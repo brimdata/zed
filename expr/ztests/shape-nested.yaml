@@ -6,6 +6,8 @@ input: |
   {"a": {"b": 1}}
   {"a": {"c": 1, "b": 1}}
 
+output-flags: -f tzng
+
 output: |
   #0:record[x:record[a:record[a:float64,b:float64]]]
   0:[[[1;-;]]]

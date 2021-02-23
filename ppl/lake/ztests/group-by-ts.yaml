@@ -4,15 +4,15 @@ script: |
   # this small target size causes each tsdir to have several chunk files.
   zar import -R logs -s 256B group-by-ts.zng
   echo ===
-  zar zq -R logs -t 'head 1'
+  zar zq -R logs -f tzng 'head 1'
   echo ===
-  zar zq -R logs -t 'tail 1'
+  zar zq -R logs -f tzng 'tail 1'
   echo ===
-  zar zq -R logs -t 'avg(g)'
+  zar zq -R logs -f tzng 'avg(g)'
   echo ===
-  zar zq -R logs -t 'count() by g | sort g'
+  zar zq -R logs -f tzng 'count() by g | sort g'
   echo ===
-  zar zq -R logs -t 'every 3600s count() by g | sort ts, g'
+  zar zq -R logs -f tzng 'every 3600s count() by g | sort ts, g'
 
 inputs:
   - name: group-by-ts.zng

@@ -1,9 +1,9 @@
 script: |
   # b isn't in the input so this creates a valid microindex that is empty
   microindex create -o index.zng -k b in.tzng
-  zq -t index.zng
+  zq -f tzng index.zng
   echo ===
-  microindex lookup -t -k 0 index.zng
+  microindex lookup -f tzng -k 0 index.zng
   echo ===
 
 inputs:

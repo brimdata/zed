@@ -1,6 +1,6 @@
 script: |
   zar import -R logs -streammax 2 -
-  microindex section -s 0 -t logs/zd/19700101/ts-*.zng
+  microindex section -s 0 -f tzng logs/zd/19700101/ts-*.zng
 
 inputs:
   - name: stdin

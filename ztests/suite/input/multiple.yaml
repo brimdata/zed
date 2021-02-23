@@ -7,6 +7,8 @@ input:
   - !!binary |
       9gEFY291bnQDFwIEAv8=
 
+output-flags: -f tzng
+
 output: |
   #0:record[count:uint64]
   0:[2;]

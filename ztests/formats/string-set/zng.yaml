@@ -10,6 +10,8 @@ input: |
   0:[[z;a;]]
   0:[[z;a;-;dup;dup;]]
 
+output-flags: -f tzng
+
 output: |
   #0:record[f:set[bstring]]
   0:[-;]

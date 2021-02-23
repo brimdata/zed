@@ -1,7 +1,7 @@
 script: |
-  zq -t "s=a*b" in.tzng
+  zq -f tzng "s=a*b" in.tzng
   echo ===
-  zq -t "s=a*b+1" in.tzng
+  zq -f tzng "s=a*b+1" in.tzng
 inputs:
   - name: in.tzng
     data: |

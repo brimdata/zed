@@ -12,6 +12,8 @@ input: |
   #4:record[x:time]
   4:[-;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[avg:float64,count:uint64,countdistinct:uint64,any:uint64,max:uint64,min:uint64,sum:uint64]
   0:[-;5;1;-;-;-;-;]

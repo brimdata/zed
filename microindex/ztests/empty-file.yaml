@@ -1,6 +1,6 @@
 script: |
   echo -n "" > empty.zng
-  microindex lookup -t -k none empty.zng
+  microindex lookup -k none empty.zng
 
 outputs:
   - name: stderr

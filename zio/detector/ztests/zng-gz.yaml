@@ -9,6 +9,8 @@ input: !!binary |
   nZ7b1NmvajVRuPwrzjjQxgf3AS+Pgi7OPJ6TjAfT/EHe8IDwfnOAz6XrdXaNFYcMqgrVUG
   mrWpWJSsQj3WWh522h2zr+brGxTKoGqQAQAA
 
+output-flags: -f tzng
+
 output: |
   #port=uint16
   #0:record[_path:string,ts:time,uid:string,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],version:string,cipher:string,curve:string,server_name:string,resumed:bool,last_alert:string,next_protocol:string,established:bool,cert_chain_fuids:array[string],client_cert_chain_fuids:array[string],subject:string,issuer:string,client_subject:string,client_issuer:string,validation_status:string]

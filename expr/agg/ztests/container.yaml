@@ -1,6 +1,6 @@
 script: |
-  zq -t "union(x)" in.tzng > union.tzng
-  zq -t "collect(x)" in.tzng > collect.tzng
+  zq -f tzng "union(x)" in.tzng > union.tzng
+  zq -f tzng "collect(x)" in.tzng > collect.tzng
 
 inputs:
   - name: in.tzng

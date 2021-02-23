@@ -4,6 +4,8 @@ input: |
   #0:record[m:map[string,record[a:int32,b:int32]]]
   0:[[a;[1;2;]b;[2;3;]c;[3;4;]]]
 
+output-flags: -f tzng
+
 output: |
   #0:record[m:map[string,record[a:int32,b:int32]],x:int32]
   0:[[a;[1;2;]b;[2;3;]c;[3;4;]]2;]

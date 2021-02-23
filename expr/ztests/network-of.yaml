@@ -4,6 +4,8 @@ input: |
   #0:record[a:ip,mask:net]
   0:[10.1.2.129;255.255.255.128/25;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:ip,mask:net,n1:net,n2:net]
   0:[10.1.2.129;255.255.255.128/25;10.1.2.128/25;10.1.2.0/24;]

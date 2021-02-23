@@ -7,6 +7,8 @@ input: |
   0:[a;]
   0:[Bar;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[s:string]
   0:[a;]

@@ -8,6 +8,8 @@ input: |
   #2:record[a:record[],b:record[]]
   2:[[][]]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:record[],b:record[]]
   0:[[][]]

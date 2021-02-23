@@ -1,12 +1,12 @@
 script: |
   mkdir logs
   zar import -R logs babble.tzng
-  zar zq -R logs "count()" | zq -t -
+  zar zq -R logs "count()" | zq -f tzng -
   echo ===
   zar map -R logs -o count.zng "count()"
-  zar zq -R logs "* | sort -r count" count.zng | zq -t -
+  zar zq -R logs "* | sort -r count" count.zng | zq -f tzng -
   echo ===
-  zar zq -R logs "sum(count)" count.zng | zq -t -
+  zar zq -R logs "sum(count)" count.zng | zq -f tzng -
 
 inputs:
   - name: babble.tzng

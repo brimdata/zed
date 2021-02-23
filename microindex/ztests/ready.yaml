@@ -1,6 +1,6 @@
 script: |
   microindex create -x -f 20 -o index.zng -k key -
-  microindex section -t -s 2 index.zng
+  microindex section -f tzng -s 2 index.zng
 
 inputs:
   - name: stdin

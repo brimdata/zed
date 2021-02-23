@@ -2,6 +2,8 @@ zql: '*'
 
 input: !!binary +QIHEPYBAWEXGAwXBAISYXNkZmFzZGYYBAcCBAIYAQD/
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:union[int64,string]]
   0:[1:asdfasdf;]

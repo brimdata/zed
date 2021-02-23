@@ -1,9 +1,9 @@
 script: |
   microindex create -o index -k s babble.tzng
-  zq -t index.zng > index.tzng
+  zq -f tzng index.zng > index.tzng
   zq -o sorted.zng "count() by s | put key=s | cut key | sort key" babble.tzng
   microindex convert -o manual -k key sorted.zng
-  zq -t manual.zng > manual.tzng
+  zq -f tzng manual.zng > manual.tzng
   diff index.tzng manual.tzng
 
 inputs:

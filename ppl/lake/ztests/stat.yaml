@@ -4,9 +4,9 @@ script: |
   zar index create -R logs -q :string v
   echo ===
   # Verify the log_id's in the default table format.
-  zq -t "count()" $(zar stat -R logs | grep -v ^TYPE | awk '{print "logs/"$2}' | sort | uniq)
+  zq -f tzng "count()" $(zar stat -R logs | grep -v ^TYPE | awk '{print "logs/"$2}' | sort | uniq)
   echo ===
-  zar stat -R logs -f zng | zq -t "drop log_id, definition.id | sort first, type, definition.description" -
+  zar stat -R logs -f zng | zq -f tzng "drop log_id, definition.id | sort first, type, definition.description" -
 
 inputs:
   - name: babble.tzng

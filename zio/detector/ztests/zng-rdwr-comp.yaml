@@ -1,9 +1,9 @@
 script: |
   zq -znglz4blocksize=0 -o uncomp.zng in.tzng
   zq  -o comp.zng in.tzng
-  zq -t uncomp.zng
+  zq -f tzng uncomp.zng
   echo ===
-  zq -t comp.zng
+  zq -f tzng comp.zng
 
 inputs:
   - name: in.tzng

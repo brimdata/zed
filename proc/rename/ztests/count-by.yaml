@@ -7,6 +7,8 @@ zql: 'rename s2=s | count() by s2 | sort s2'
 # 0:[a;]
 input: !!binary 9gEBcxAXAgRhFwIEYhcCBGH/
 
+output-flags: -f tzng
+
 output: |
   #0:record[s2:string,count:uint64]
   0:[a;2;]

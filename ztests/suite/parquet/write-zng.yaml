@@ -3,7 +3,7 @@
 # properly handled.
 
 script: |
-  zq -i parquet conn.parquet | zq -t -
+  zq -i parquet conn.parquet | zq -f tzng -
 
 inputs:
   - name: conn.parquet

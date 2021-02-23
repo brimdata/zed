@@ -8,6 +8,8 @@ input: |
   0:[elephant;a;1;]
   0:[cat;b;1;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[result:record[animal:string,count:uint64]]
   0:[[cat;3;]]
