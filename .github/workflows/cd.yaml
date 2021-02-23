@@ -43,7 +43,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - run: |
           set -x
-          namespace=ci-temp-${{ github.run_number: -1 }}
+          runnum=${{ github.run_number }}
+          namespace=ci-temp-${runnum: -1}
           export ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
           export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           aws s3 rm --recursive $ZQD_DATA_URI || : # clear data from previous run
