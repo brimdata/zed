@@ -82,7 +82,7 @@ jobs:
           path: testlog/
   eks-master-deploy:
     # Deploys this build to ci-master namespace so it will be available
-    # for manual testing. Only deploy if previous jobs succeed.
+    # for manual testing. Only deploy if previous jobs succeed. 
     # make test-cluster is repeated because for this test it will use Aurora.
     needs: eks-deploy-test
     runs-on: ubuntu-latest

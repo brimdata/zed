@@ -196,6 +196,7 @@ func CreateOrOpenLakeWithContext(ctx context.Context, rpath string, co *CreateOp
 	mdPath := root.AppendPath(metadataFilename)
 	ok, err := iosrc.Exists(ctx, mdPath)
 	if err != nil {
+		//println("error from iosrc.Exists", mdPath.String())
 		return nil, err
 	}
 	if !ok {
