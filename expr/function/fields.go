@@ -7,7 +7,7 @@ import (
 )
 
 type fields struct {
-	types *zson.TypeTable
+	zctx  *zson.Context
 	typ   zng.Type
 	bytes zcode.Bytes
 }
@@ -28,7 +28,7 @@ func fieldNames(typ *zng.TypeRecord) []string {
 
 func (f *fields) Call(args []zng.Value) (zng.Value, error) {
 	zvSubject := args[0]
-	typ := isRecordType(zvSubject, f.types)
+	typ := isRecordType(zvSubject, f.zctx)
 	if typ == nil {
 		return zng.Missing, nil
 	}
@@ -40,7 +40,7 @@ func (f *fields) Call(args []zng.Value) (zng.Value, error) {
 	return zng.Value{f.typ, bytes}, nil
 }
 
-func isRecordType(zv zng.Value, types *zson.TypeTable) *zng.TypeRecord {
+func isRecordType(zv zng.Value, zctx *zson.Context) *zng.TypeRecord {
 	if typ, ok := zng.AliasedType(zv.Type).(*zng.TypeRecord); ok {
 		return typ
 	}
@@ -49,7 +49,7 @@ func isRecordType(zv zng.Value, types *zson.TypeTable) *zng.TypeRecord {
 		if err != nil {
 			return nil
 		}
-		typ, err := types.LookupType(s)
+		typ, err := zctx.LookupByName(s)
 		if err != nil {
 			return nil
 		}

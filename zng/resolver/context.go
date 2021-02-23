@@ -27,7 +27,3 @@ func NewContext() *Context {
 		Context: zson.NewContext(),
 	}
 }
-
-func (c *Context) NewTypeTable() *zson.TypeTable {
-	return zson.NewTypeTable(c.Context)
-}

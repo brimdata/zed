@@ -18,16 +18,17 @@ var (
 // and a zng.Type.
 type Context struct {
 	mu       sync.RWMutex
-	table    []zng.Type
-	lut      map[string]int
+	byID     []zng.Type
+	toType   map[string]zng.Type
+	toBytes  map[zng.Type]zcode.Bytes
 	typedefs map[string]*zng.TypeAlias
 }
 
 func NewContext() *Context {
 	return &Context{
-		//XXX hack... leave blanks for primitive types... will fix this later
-		table:    make([]zng.Type, zng.IdTypeDef),
-		lut:      make(map[string]int),
+		byID:     make([]zng.Type, zng.IdTypeDef, 2*zng.IdTypeDef),
+		toType:   make(map[string]zng.Type),
+		toBytes:  make(map[zng.Type]zcode.Bytes),
 		typedefs: make(map[string]*zng.TypeAlias),
 	}
 }
@@ -35,93 +36,48 @@ func NewContext() *Context {
 func (c *Context) Reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	// Reset the table that maps type ID numbers to zng.Types and reset
-	// the lookup table that maps type strings to these locally scoped
-	// type ID number.
-	c.table = c.table[:zng.IdTypeDef]
-	c.lut = make(map[string]int)
+	c.byID = c.byID[:zng.IdTypeDef]
+	c.toType = make(map[string]zng.Type)
+	c.toBytes = make(map[zng.Type]zcode.Bytes)
+	c.typedefs = make(map[string]*zng.TypeAlias)
 }
 
-func (c *Context) Len() int {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	return len(c.table)
+func (c *Context) nextIDWithLock() int {
+	return len(c.byID)
 }
 
 func (c *Context) LookupType(id int) (zng.Type, error) {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.lookupTypeWithLock(id)
-}
-
-func (c *Context) lookupTypeWithLock(id int) (zng.Type, error) {
-	if id < 0 || id >= len(c.table) {
-		return nil, fmt.Errorf("id %d out of range for table of size %d", id, len(c.table))
+	if id < 0 {
+		return nil, fmt.Errorf("type id (%d) cannot be negative", id)
 	}
 	if id < zng.IdTypeDef {
 		typ := zng.LookupPrimitiveById(id)
-		if typ != nil {
-			return typ, nil
-		}
-	} else if typ := c.table[id]; typ != nil {
 		return typ, nil
 	}
-	return nil, fmt.Errorf("no type found for id %d", id)
-}
-
-func (c *Context) Lookup(td int) *zng.TypeRecord {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
-	if td >= len(c.table) {
+	if id >= len(c.byID) {
+		return nil, fmt.Errorf("type id (%d) not in type context (size %d)", id, len(c.byID))
+	}
+	if typ := c.byID[id]; typ != nil {
+		return typ, nil
+	}
+	return nil, fmt.Errorf("no type found for type id %d", id)
+}
+
+func (c *Context) Lookup(id int) *zng.TypeRecord {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if id >= len(c.byID) {
 		return nil
 	}
-	typ := c.table[td]
+	typ := c.byID[id]
 	if typ != nil {
 		if typ, ok := typ.(*zng.TypeRecord); ok {
 			return typ
 		}
 	}
 	return nil
-}
-
-func (c *Context) addTypeWithLock(key string, typ zng.Type) {
-	id := len(c.table)
-	c.lut[key] = id
-	c.table = append(c.table, typ)
-	switch typ := typ.(type) {
-	case *zng.TypeAlias:
-		typ.SetID(id)
-	case *zng.TypeRecord:
-		typ.SetID(id)
-	case *zng.TypeArray:
-		typ.SetID(id)
-	case *zng.TypeSet:
-		typ.SetID(id)
-	case *zng.TypeUnion:
-		typ.SetID(id)
-	case *zng.TypeEnum:
-		typ.SetID(id)
-	case *zng.TypeMap:
-		typ.SetID(id)
-	default:
-		panic("unsupported type in addTypeWithLock: " + typ.ZSON())
-	}
-}
-
-// AddType adds a new type from a path that could race with another
-// path creating the same type.  So we take the lock then check if the
-// type already exists and if not add it while locked.
-func (c *Context) AddType(t zng.Type) zng.Type {
-	key := t.ZSON()
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	id, ok := c.lut[key]
-	if ok {
-		t = c.table[id]
-	} else {
-		c.addTypeWithLock(key, t)
-	}
-	return t
 }
 
 // LookupTypeRecord returns a zng.TypeRecord within this context that binds with the
@@ -145,13 +101,12 @@ func (c *Context) LookupTypeRecord(columns []zng.Column) (*zng.TypeRecord, error
 	key := tmp.ZSON()
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	id, ok := c.lut[key]
-	if ok {
-		return c.table[id].(*zng.TypeRecord), nil
+	if typ, ok := c.toType[key]; ok {
+		return typ.(*zng.TypeRecord), nil
 	}
 	dup := make([]zng.Column, 0, len(columns))
-	typ := zng.NewTypeRecord(-1, append(dup, columns...))
-	c.addTypeWithLock(key, typ)
+	typ := zng.NewTypeRecord(c.nextIDWithLock(), append(dup, columns...))
+	c.enterWithLock(typ)
 	return typ, nil
 }
 
@@ -168,12 +123,11 @@ func (c *Context) LookupTypeSet(inner zng.Type) *zng.TypeSet {
 	key := tmp.ZSON()
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	id, ok := c.lut[key]
-	if ok {
-		return c.table[id].(*zng.TypeSet)
+	if typ, ok := c.toType[key]; ok {
+		return typ.(*zng.TypeSet)
 	}
-	typ := zng.NewTypeSet(-1, inner)
-	c.addTypeWithLock(key, typ)
+	typ := zng.NewTypeSet(c.nextIDWithLock(), inner)
+	c.enterWithLock(typ)
 	return typ
 }
 
@@ -182,12 +136,11 @@ func (c *Context) LookupTypeMap(keyType, valType zng.Type) *zng.TypeMap {
 	key := tmp.ZSON()
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	id, ok := c.lut[key]
-	if ok {
-		return c.table[id].(*zng.TypeMap)
+	if typ, ok := c.toType[key]; ok {
+		return typ.(*zng.TypeMap)
 	}
-	typ := zng.NewTypeMap(-1, keyType, valType)
-	c.addTypeWithLock(key, typ)
+	typ := zng.NewTypeMap(c.nextIDWithLock(), keyType, valType)
+	c.enterWithLock(typ)
 	return typ
 }
 
@@ -196,12 +149,11 @@ func (c *Context) LookupTypeArray(inner zng.Type) *zng.TypeArray {
 	key := tmp.ZSON()
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	id, ok := c.lut[key]
-	if ok {
-		return c.table[id].(*zng.TypeArray)
+	if typ, ok := c.toType[key]; ok {
+		return typ.(*zng.TypeArray)
 	}
-	typ := zng.NewTypeArray(-1, inner)
-	c.addTypeWithLock(key, typ)
+	typ := zng.NewTypeArray(c.nextIDWithLock(), inner)
+	c.enterWithLock(typ)
 	return typ
 }
 
@@ -210,27 +162,25 @@ func (c *Context) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
 	key := tmp.ZSON()
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	id, ok := c.lut[key]
-	if ok {
-		return c.table[id].(*zng.TypeUnion)
+	if typ, ok := c.toType[key]; ok {
+		return typ.(*zng.TypeUnion)
 	}
-	typ := zng.NewTypeUnion(-1, types)
-	c.addTypeWithLock(key, typ)
+	typ := zng.NewTypeUnion(c.nextIDWithLock(), types)
+	c.enterWithLock(typ)
 	return typ
 }
 
-func (c *Context) LookupTypeEnum(typ zng.Type, elements []zng.Element) *zng.TypeEnum {
-	tmp := zng.TypeEnum{Type: typ, Elements: elements}
+func (c *Context) LookupTypeEnum(elemType zng.Type, elements []zng.Element) *zng.TypeEnum {
+	tmp := zng.TypeEnum{Type: elemType, Elements: elements}
 	key := tmp.ZSON()
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	id, ok := c.lut[key]
-	if ok {
-		return c.table[id].(*zng.TypeEnum)
+	if typ, ok := c.toType[key]; ok {
+		return typ.(*zng.TypeEnum)
 	}
-	enumType := zng.NewTypeEnum(-1, typ, elements)
-	c.addTypeWithLock(key, enumType)
-	return enumType
+	typ := zng.NewTypeEnum(c.nextIDWithLock(), elemType, elements)
+	c.enterWithLock(typ)
+	return typ
 }
 
 func (c *Context) LookupTypeDef(name string) *zng.TypeAlias {
@@ -244,18 +194,18 @@ func (c *Context) LookupTypeAlias(name string, target zng.Type) (*zng.TypeAlias,
 	key := tmp.ZSON()
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	id, ok := c.lut[key]
-	if ok {
-		alias := c.table[id].(*zng.TypeAlias)
+	if typ, ok := c.toType[key]; ok {
+		alias := typ.(*zng.TypeAlias)
 		if zng.SameType(alias.Type, target) {
 			return alias, nil
 		} else {
+			// XXX This should go.  See issue #2202.
 			return nil, ErrAliasExists
 		}
 	}
-	typ := zng.NewTypeAlias(-1, name, target)
+	typ := zng.NewTypeAlias(c.nextIDWithLock(), name, target)
 	c.typedefs[name] = typ
-	c.addTypeWithLock(key, typ)
+	c.enterWithLock(typ)
 	return typ, nil
 }
 
@@ -285,34 +235,47 @@ func (c *Context) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng.Val
 	return zng.NewRecord(typ, zv), nil
 }
 
-// LookupByName returns the Type indicated by the zng type string.  The type string
+// LookupByName returns the Type indicated by the ZSON type string.  The type string
 // may be a simple type like int, double, time, etc or it may be a set
-// or an array, which are recusively composed of other types.  The set and array
-// type definitions are encoded in the same fashion as zeek stores them as type field
-// in a zeek file header.  Each unique compound type object is created once and
-// interned so that pointer comparison can be used to determine type equality.
-
-//XXX package zson should do this now...?
-
+// or an array, which are recusively composed of other types.  Nested sub-types
+// of complex types are each created once and interned so that pointer comparison
+// can be used to determine type equality.
 func (c *Context) LookupByName(zson string) (zng.Type, error) {
-	typ, err := LookupType(c, zson) //XXX
-	if err != nil {
-		if typ := c.LookupTypeDef(zson); typ != nil {
-			return typ, nil
-		}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	typ, ok := c.toType[zson]
+	if ok {
+		return typ, nil
 	}
-	return typ, err
+	if typ := zng.LookupPrimitive(zson); typ != nil {
+		c.toBytes[typ] = zcode.Bytes(zson)
+		c.toType[zson] = typ
+		return typ, nil
+	}
+	// ParseType will re-enter the context and create and/or
+	// return an existing type.  Since it's re-entrant we can't
+	// (and don't want to) hold the lock.  There can be a race
+	// here but it doesn't matter because there is only ever one
+	// type that wins the day because of the incremental locking on
+	// each component of a nested type.
+	c.mu.Unlock()
+	typ, err := ParseType(c, zson)
+	if err != nil {
+		return nil, err
+	}
+	c.mu.Lock()
+	// ParseType will ensure the canonical zson is in the toType table,
+	// but the zson argument here may be any conforming zson type string.
+	// Since this string may appear repeatedly (e.g., type values
+	// coming from an external system) we put an extra entry in the
+	// lookup-table to cache it so we don't parse every instance
+	// of a type string when it is not in canonical form.
+	c.toType[zson] = typ
+	return typ, nil
 }
 
-// Localize takes a type from another context and creates and returns that
+// TranslateType takes a type from another context and creates and returns that
 // type in this context.
-func (c *Context) Localize(foreign zng.Type) zng.Type {
-	// there can't be an error here since the type string
-	// is generated internally
-	typ, _ := c.LookupByName(foreign.ZSON())
-	return typ
-}
-
 func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
 	return c.LookupByName(ext.ZSON())
 }
@@ -326,4 +289,30 @@ func (t *Context) TranslateTypeRecord(ext *zng.TypeRecord) (*zng.TypeRecord, err
 		return typ, nil
 	}
 	return nil, errors.New("TranslateTypeRecord: system error parsing TypeRecord")
+}
+
+func (c *Context) enterWithLock(typ zng.Type) {
+	zson := typ.ZSON()
+	c.toBytes[typ] = zcode.Bytes(zson)
+	c.toType[zson] = typ
+	c.byID = append(c.byID, typ)
+}
+
+func (c *Context) LookupTypeValue(typ zng.Type) zng.Value {
+	c.mu.Lock()
+	bytes, ok := c.toBytes[typ]
+	c.mu.Unlock()
+	if ok {
+		return zng.Value{zng.TypeType, bytes}
+	}
+	// In general, this shouldn't happen except for a foreign
+	// type that wasn't initially created in this context.
+	// In this case, it will work out fine since we round-trip
+	// through a string.
+	typ, err := c.LookupByName(typ.ZSON())
+	if err != nil {
+		// This really shouldn't happen...
+		return zng.Missing
+	}
+	return c.LookupTypeValue(typ)
 }

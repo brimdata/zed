@@ -20,11 +20,6 @@ func (t *TypeArray) ID() int {
 	return t.id
 }
 
-//XXX get rid of this when we implement full ZNG
-func (t *TypeArray) SetID(id int) {
-	t.id = id
-}
-
 func (t *TypeArray) String() string {
 	return fmt.Sprintf("array[%s]", t.Type)
 }

@@ -598,7 +598,10 @@ func (a Analyzer) convertType(zctx *Context, typ ast.Type) (zng.Type, error) {
 	case *ast.TypeName:
 		typ, ok := a[t.Name]
 		if !ok {
-			return nil, fmt.Errorf("no such type name: %q", t.Name)
+			typ = zctx.LookupTypeDef(t.Name)
+			if typ == nil {
+				return nil, fmt.Errorf("no such type name: %q", t.Name)
+			}
 		}
 		return typ, nil
 	}

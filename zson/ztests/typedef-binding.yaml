@@ -1,0 +1,18 @@
+zql: |
+  type port=uint16
+  type rec={p:port}
+  is(r,type(rec))
+
+input: |
+  #port=uint16
+  #rec=record[p:port]
+  #0:record[r:rec]
+  0:[[80;]]
+  #1:record[s:string]
+  1:[hello;]
+
+output: |
+  #port=uint16
+  #rec=record[p:port]
+  #0:record[r:rec]
+  0:[[80;]]

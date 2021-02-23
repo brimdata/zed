@@ -33,10 +33,6 @@ func (t *TypeRecord) ID() int {
 	return t.id
 }
 
-func (t *TypeRecord) SetID(id int) {
-	t.id = id
-}
-
 func (t *TypeRecord) String() string {
 	return TypeRecordString(t.Columns)
 }

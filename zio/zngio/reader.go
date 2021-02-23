@@ -370,7 +370,7 @@ func (r *Reader) readTypeSet() error {
 	if err != nil {
 		return err
 	}
-	r.zctx.AddType(&zng.TypeSet{Type: typ})
+	r.zctx.LookupTypeSet(typ)
 	return nil
 }
 
@@ -434,7 +434,7 @@ func (r *Reader) readTypeMap() error {
 	if err != nil {
 		return err
 	}
-	r.zctx.AddType(&zng.TypeMap{KeyType: keyType, ValType: valType})
+	r.zctx.LookupTypeMap(keyType, valType)
 	return nil
 }
 
@@ -447,7 +447,7 @@ func (r *Reader) readTypeArray() error {
 	if err != nil {
 		return err
 	}
-	r.zctx.AddType(zng.NewTypeArray(-1, inner))
+	r.zctx.LookupTypeArray(inner)
 	return nil
 }
 
@@ -478,7 +478,7 @@ func (r *Reader) readTypeAlias() error {
 
 func (r *Reader) parseValue(rec *zng.Record, id int, b []byte) (*zng.Record, error) {
 	typ, err := r.zctx.LookupType(id)
-	if err != nil {
+	if typ == nil || err != nil {
 		return nil, zng.ErrTypeIDInvalid
 	}
 	sharedType := r.mapper.Map(id)

@@ -18,7 +18,6 @@ type Formatter struct {
 	typeTab     int
 	typeNewline string
 	nid         int
-	types       *TypeTable
 	builder     strings.Builder
 	stack       []strings.Builder
 	implied     map[zng.Type]bool
