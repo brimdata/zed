@@ -102,11 +102,7 @@ func (c *Context) LookupTypeRecord(columns []zng.Column) (*zng.TypeRecord, error
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
-		recType, ok := typ.(*zng.TypeRecord)
-		if !ok {
-			return nil, errors.New("internal error: record type not found for record ZSON")
-		}
-		return recType, nil
+		return typ.(*zng.TypeRecord), nil
 	}
 	dup := make([]zng.Column, 0, len(columns))
 	typ := zng.NewTypeRecord(c.nextIDWithLock(), append(dup, columns...))
@@ -128,8 +124,7 @@ func (c *Context) LookupTypeSet(inner zng.Type) *zng.TypeSet {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
-		typ, _ := typ.(*zng.TypeSet)
-		return typ
+		return typ.(*zng.TypeSet)
 	}
 	typ := zng.NewTypeSet(c.nextIDWithLock(), inner)
 	c.enterWithLock(typ)
@@ -142,8 +137,7 @@ func (c *Context) LookupTypeMap(keyType, valType zng.Type) *zng.TypeMap {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
-		typ, _ := typ.(*zng.TypeMap)
-		return typ
+		return typ.(*zng.TypeMap)
 	}
 	typ := zng.NewTypeMap(c.nextIDWithLock(), keyType, valType)
 	c.enterWithLock(typ)
@@ -156,8 +150,7 @@ func (c *Context) LookupTypeArray(inner zng.Type) *zng.TypeArray {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
-		typ, _ := typ.(*zng.TypeArray)
-		return typ
+		return typ.(*zng.TypeArray)
 	}
 	typ := zng.NewTypeArray(c.nextIDWithLock(), inner)
 	c.enterWithLock(typ)
@@ -170,8 +163,7 @@ func (c *Context) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
-		typ, _ := typ.(*zng.TypeUnion)
-		return typ
+		return typ.(*zng.TypeUnion)
 	}
 	typ := zng.NewTypeUnion(c.nextIDWithLock(), types)
 	c.enterWithLock(typ)
@@ -184,8 +176,7 @@ func (c *Context) LookupTypeEnum(elemType zng.Type, elements []zng.Element) *zng
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
-		typ, _ := typ.(*zng.TypeEnum)
-		return typ
+		return typ.(*zng.TypeEnum)
 	}
 	typ := zng.NewTypeEnum(c.nextIDWithLock(), elemType, elements)
 	c.enterWithLock(typ)
@@ -253,33 +244,33 @@ func (c *Context) LookupByName(zson string) (zng.Type, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	typ, ok := c.toType[zson]
-	if !ok {
-		if typ := zng.LookupPrimitive(zson); typ != nil {
-			c.toBytes[typ] = zcode.Bytes(zson)
-			c.toType[zson] = typ
-			return typ, nil
-		}
-		var err error
-		// ParseType() we will re-enter the context and create and/or
-		// return an existing type.  Since it's re-entrant we can't
-		// (and don't want to) hold the lock.  There can be a race
-		// here but it doesn't matter because there is only ever one
-		// type that wins the day because of the incremental locking on
-		// each component of a nested type.
-		c.mu.Unlock()
-		typ, err = ParseType(c, zson)
-		if err != nil {
-			return nil, err
-		}
-		c.mu.Lock()
-		// ParseType will ensure the canonical zson is in the toType table,
-		// but the zson argument here may be any conforming zson type string.
-		// Since this string may appear repeatedly (e.g., type values
-		// coming from an external system) we put an extra entry in the
-		// lookup-table to cache it so we don't parse every instance
-		// of a type string when it is not in canonical form.
-		c.toType[zson] = typ
+	if ok {
+		return typ, nil
 	}
+	if typ := zng.LookupPrimitive(zson); typ != nil {
+		c.toBytes[typ] = zcode.Bytes(zson)
+		c.toType[zson] = typ
+		return typ, nil
+	}
+	// ParseType will re-enter the context and create and/or
+	// return an existing type.  Since it's re-entrant we can't
+	// (and don't want to) hold the lock.  There can be a race
+	// here but it doesn't matter because there is only ever one
+	// type that wins the day because of the incremental locking on
+	// each component of a nested type.
+	c.mu.Unlock()
+	typ, err := ParseType(c, zson)
+	if err != nil {
+		return nil, err
+	}
+	c.mu.Lock()
+	// ParseType will ensure the canonical zson is in the toType table,
+	// but the zson argument here may be any conforming zson type string.
+	// Since this string may appear repeatedly (e.g., type values
+	// coming from an external system) we put an extra entry in the
+	// lookup-table to cache it so we don't parse every instance
+	// of a type string when it is not in canonical form.
+	c.toType[zson] = typ
 	return typ, nil
 }
 
