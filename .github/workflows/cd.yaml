@@ -43,7 +43,7 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - run: |
           set -x
-          namespace=ci-${{ github.run_number }}
+          namespace=ci-temp-${{ github.run_number: -1 }}
           export ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
           export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           aws s3 rm --recursive $ZQD_DATA_URI || : # clear data from previous run
@@ -73,7 +73,7 @@ jobs:
           kubectl logs --tail 1000 -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
           kubectl logs --all-containers --tail 1000 -l app.kubernetes.io/name=root > testlog/root.log
           kubectl logs --tail 1000 -l app.kubernetes.io/name=worker > testlog/worker.log
-          #kubectl delete ns ci-${{ github.run_number }}
+          helm uninstall zsrv
       - name: Save logs as artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
