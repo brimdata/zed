@@ -8,7 +8,7 @@ script: |
   zapi -h $ZQD_HOST new testsp1 >/dev/null
   zapi -h $ZQD_HOST new -k archivestore testsp2 >/dev/null
   zapi -h $ZQD_HOST new testsp3 >/dev/null
-  zapi -h $ZQD_HOST ls -f zng | zq -f text "pick name" -
+  zapi -h $ZQD_HOST ls
 
 inputs:
   - name: startup.sh

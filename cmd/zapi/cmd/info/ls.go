@@ -58,8 +58,8 @@ func (c *LsCommand) Run(args []string) error {
 		return cmd.WriteOutput(c.Context(), c.outputFlags, newSpaceReader(matches))
 	}
 	names := make([]string, 0, len(matches))
-	for i := range matches {
-		names = append(names, matches[i].Name)
+	for _, m := range matches {
+		names = append(names, m.Name)
 	}
 	return cmd.WriteOutput(c.Context(), c.outputFlags, newNameReader(names))
 }

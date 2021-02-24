@@ -10,7 +10,6 @@ script: |
   zapi -h $ZQD_HOST rm testsp
   echo ===
   zapi -h $ZQD_HOST ls
-  echo ===
 
 inputs:
   - name: startup.sh
@@ -23,5 +22,4 @@ outputs:
     data: |
       testsp
       testsp: space removed
-      ===
       ===

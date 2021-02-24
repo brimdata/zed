@@ -10,7 +10,7 @@ script: |
   zapi -h $ZQD_HOST rename testsp newname
   echo ===
   zapi -h $ZQD_HOST new newname 
-  zapi -h $ZQD_HOST ls -f zng | zq -f text "pick name" -
+  zapi -h $ZQD_HOST ls
 
 inputs:
   - name: startup.sh
