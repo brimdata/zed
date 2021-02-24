@@ -482,7 +482,7 @@ func (r *Reader) parseValue(rec *zng.Record, id int, b []byte) (*zng.Record, err
 		return nil, zng.ErrTypeIDInvalid
 	}
 	if _, ok := zng.AliasedType(typ).(*zng.TypeRecord); !ok {
-		// An "id" of a top-level zng value not conformign with a
+		// An "id" of a top-level zng value not conforming with a
 		// record type is valid zng data but not supported by zq.
 		// This can also happen when trying to parse random non-zng
 		// data by the auto-dector.
