@@ -1,3 +1,6 @@
+# This test is disabled for now.  See issue #2207
+skip: true
+
 zql: '*'
 
 input: |
@@ -9,7 +12,7 @@ input: |
   #open	2020-04-10-18-15-32
   #fields	ts	fid	bof
   #types	time	string	string
-  1425634708.454143	FTBt2P3wJBdHGKpZwc	 
+  1425634708.454143	FTBt2P3wJBdHGKpZwc
 
 output: |
   #0:record[_path:string,ts:time,fid:bstring,bof:bstring]

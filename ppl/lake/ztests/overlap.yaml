@@ -4,10 +4,10 @@ script: |
   zar import -R logs babble-split2.tzng
   zar ls -R logs -spaninfos -ranges
   echo ===
-  zar stat -R logs -f zng | zq -t "drop log_id" -
+  zar stat -R logs -f zng | zq -f tzng "drop log_id" -
   echo ===
-  zar zq -R logs -t "*" > t1
-  zq -t "sort -r ts" babble.tzng > t2
+  zar zq -R logs -f tzng "*" > t1
+  zq -f tzng "sort -r ts" babble.tzng > t2
   test -s t1 && test -s t2 && diff t1 t2 && echo t1 t2 equal
 
 inputs:

@@ -1,4 +1,4 @@
-script: zq -t -j types.json "every 1d count()" in.ndjson > http.tzng
+script: zq -f tzng -j types.json "every 1d count()" in.ndjson > http.tzng
 
 inputs:
   - name: in.ndjson

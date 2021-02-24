@@ -1,4 +1,4 @@
-script: zq in.tzng | zq -t -
+script: zq in.tzng | zq -f tzng -
 
 inputs:
   - name: in.tzng

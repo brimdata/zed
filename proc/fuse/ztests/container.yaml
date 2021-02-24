@@ -6,6 +6,8 @@ input: |
   #1:record[r:record[y:int32,z:int32],s:string,r2:record[x:int32]]
   1:[[4;5;]world;[6;]]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:string,r:record[x:int32,y:int32,z:int32],s:string,r2:record[x:int32]]
   0:[hello;[1;2;-;]-;-;]

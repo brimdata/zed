@@ -10,6 +10,8 @@ input: |
   1:[[4;5;]world;[6;]b;]
   1:[[4;5;]world;[6;]c;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[key:string,fuse:type]
   0:[a;{a:string,r:{x:int32,y:int32,z:int32},key:string,s:string,r2:{x:int32}};]

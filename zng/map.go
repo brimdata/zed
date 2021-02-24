@@ -23,10 +23,6 @@ func (t *TypeMap) ID() int {
 	return t.id
 }
 
-func (t *TypeMap) SetID(id int) {
-	t.id = id
-}
-
 func (t *TypeMap) String() string {
 	return fmt.Sprintf("map[%s,%s]", t.KeyType, t.ValType)
 }

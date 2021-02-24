@@ -1,7 +1,7 @@
 script: |
   source minio.sh
   mv babble.tzng ./data/bucket
-  zq -t "count()" s3://bucket/babble.tzng
+  zq -f tzng "count()" s3://bucket/babble.tzng
 
 inputs:
   - name: babble.tzng

@@ -6,6 +6,8 @@ input: |
   #1:record[r:record[a:int8,b:int8],s:string]
   1:[[1;2;]a;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[r:bool,rb:bool,div0:bool,s:bool,both:bool]
   0:[T;F;F;T;F;]

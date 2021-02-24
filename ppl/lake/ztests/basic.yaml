@@ -3,9 +3,9 @@ script: |
   zar import -R logs babble.tzng
   echo ===
   zar index create -R logs -q v
-  zar find -R logs -z v=2 | zq -t "drop _log" -
+  zar find -R logs -z v=2 | zq -f tzng "drop _log" -
   echo ===
-  zar find -R logs -z v=10 | zq -t "drop _log" -
+  zar find -R logs -z v=10 | zq -f tzng "drop _log" -
   echo ===
 
 inputs:

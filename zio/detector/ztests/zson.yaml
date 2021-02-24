@@ -7,6 +7,8 @@ input: |
   {a:["foo","bar"] (=1)} (=2)
   {a:["bar"]} (2)
 
+output-flags: -f tzng
+
 output: |
   #0:record[_path:string]
   0:[conn;]

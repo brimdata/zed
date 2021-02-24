@@ -3,9 +3,9 @@ script: |
   zapi -h $ZQD_HOST new -k archivestore testsp >/dev/null
   zapi -h $ZQD_HOST -s testsp index create :ip _path
   zapi -h $ZQD_HOST -s testsp post data.tzng >/dev/null
-  zapi -h $ZQD_HOST -s testsp index find -z _path=http | zq -t "drop _log" -
+  zapi -h $ZQD_HOST -s testsp index find _path=http | zq -f tzng "drop _log" -
   echo ===
-  zapi -h $ZQD_HOST -s testsp index find -z :ip=127.0.0.3 | zq -t "drop _log" -
+  zapi -h $ZQD_HOST -s testsp index find :ip=127.0.0.3 | zq -f tzng "drop _log" -
 
 inputs:
   - name: services.sh

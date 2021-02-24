@@ -8,6 +8,8 @@ input: |
   #0:record[a:int32,b:int32,c:int32]
   0:[1;2;3;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:int64,b:int64,c:int64]
   0:[3;2;1;]

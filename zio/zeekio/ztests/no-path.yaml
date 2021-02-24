@@ -11,6 +11,8 @@ input: |
   #path -
   😁
 
+output-flags: -f tzng
+
 output: |
   #0:record[foo:bstring]
   0:[😁;]

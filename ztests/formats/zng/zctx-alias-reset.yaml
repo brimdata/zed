@@ -1,7 +1,7 @@
 # Test that type aliases are properly reset and reusable after stream boundaries
 
 script: |
-  zq -b 2 in.tzng | zq -t -
+  zq -b 2 in.tzng | zq -f tzng -
 
 inputs:
   - name: in.tzng

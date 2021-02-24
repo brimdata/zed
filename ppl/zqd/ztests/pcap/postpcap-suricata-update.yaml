@@ -12,12 +12,7 @@ script: |
   echo "suricataupdater --local rules --url http://notexist" >> ./suricataupdater
   chmod a+x ./suricataupdater
 
-  source services.sh
-  zqd listen -l=localhost:0 -portfile=zqd-suricata-port -data="$zqdroot" -suricataupdater=./suricataupdater -loglevel=info &> zqd.log &
-  zqdpid=$!
-  awaitfile zqd-suricata-port
-  trap "kill -9 $zqdpid" EXIT
-  export ZQD_HOST=localhost:$(cat zqd-suricata-port)
+  ZQD_EXTRA_FLAGS='-loglevel=info -suricataupdater=./suricataupdater' source services.sh
 
   # Wait for a zqd log line indicating that the suricata-update
   # background process has completed.

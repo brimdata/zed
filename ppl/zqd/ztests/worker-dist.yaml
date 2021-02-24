@@ -18,31 +18,31 @@ script: |
   #
   zapi -h $ZQD_HOST -s testsp post smtp.log.gz > /dev/null
   #
-  # The count() from zq should be identical to 
+  # The count() from zq should be identical to
   # the count() from zapi get -chunk
   #
-  zq -t "count()" smtp.log.gz > zqcount.tzng
-  zapi -h $ZQD_HOST -s testsp get -workers 2 -t "count()" > zapicount.tzng
+  zq -f tzng "count()" smtp.log.gz > zqcount.tzng
+  zapi -h $ZQD_HOST -s testsp get -workers 2 -f tzng "count()" > zapicount.tzng
   echo ===
   diff -s zqcount.tzng zapicount.tzng
   #
   # Compare output from a simple filter for a unique string.
-  # This will verify that filter expressions are 
+  # This will verify that filter expressions are
   # passed though to the worker zqd.
   #
-  zq -t "39161" smtp.log.gz > zqfilter.tzng
-  zapi -h $ZQD_HOST -s testsp get -workers 2 -t "39161" > zapifilter.tzng
+  zq -f tzng "39161" smtp.log.gz > zqfilter.tzng
+  zapi -h $ZQD_HOST -s testsp get -workers 2 -f tzng "39161" > zapifilter.tzng
   echo ===
   diff -s zqfilter.tzng zapifilter.tzng
   #
-  # Compare output from the tail function to make sure 
+  # Compare output from the tail function to make sure
   # the record order is the same.
   #
-  zq -t "sort -r ts | tail 5" smtp.log.gz > zqtail.tzng
-  zapi -h $ZQD_HOST -s testsp get -workers 2 -t "tail 5" > zapitail.tzng
+  zq -f tzng "sort -r ts | tail 5" smtp.log.gz > zqtail.tzng
+  zapi -h $ZQD_HOST -s testsp get -workers 2 -f tzng "tail 5" > zapitail.tzng
   echo ===
   diff -s zqtail.tzng zapitail.tzng
-  
+
 inputs:
   - name: common.sh
     source: common.sh

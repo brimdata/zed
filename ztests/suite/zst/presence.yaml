@@ -1,12 +1,12 @@
 script: |
   zst create -o o1.zst p1.tzng
-  zq -i zst -t -o o1.tzng o1.zst
+  zq -i zst -f tzng -o o1.tzng o1.zst
   zst create -o o2.zst p2.tzng
-  zq -i zst -t -o o2.tzng o2.zst
+  zq -i zst -f tzng -o o2.tzng o2.zst
   zst create -o o3.zst p3.tzng
-  zq -i zst -t -o o3.tzng o3.zst
+  zq -i zst -f tzng -o o3.tzng o3.zst
   zst create -o o4.zst p4.tzng
-  zq -i zst -t -o o4.tzng o4.zst
+  zq -i zst -f tzng -o o4.tzng o4.zst
 
 inputs:
   - name: p1.tzng

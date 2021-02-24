@@ -10,6 +10,8 @@ input: |
    #0:record[id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],other:float64]
    0:[[ff02::fb;5353;1.2.3.4;5353;]123;]
 
+output-flags: -f tzng
+
 output: |
    #port=uint16
    #0:record[id:record[orig_h:ip,orig_p:port],other:float64,id2:record[orig_h:ip,orig_p:port]]

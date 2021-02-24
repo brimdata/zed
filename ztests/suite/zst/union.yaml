@@ -1,6 +1,6 @@
 script: |
   zst create -o out.zst in.tzng
-  zq -i zst -t out.zst
+  zq -i zst -f tzng out.zst
 
 inputs:
   - name: in.tzng

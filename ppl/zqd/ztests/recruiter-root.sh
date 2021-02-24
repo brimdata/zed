@@ -16,7 +16,7 @@ awaitfile $portdir/zqd-w1
 
 zqd listen -personality=worker -l=localhost:0 -portfile=$portdir/zqd-w2 \
   -worker.recruiter=$recruiter -worker.node=$node_name &> zqd-w2.log &
-zqdw1pid=$!
+zqdw2pid=$!
 awaitfile $portdir/zqd-w2
 
 # (3) Start a zqd "root" process (default personality for now) that may recruit workers.

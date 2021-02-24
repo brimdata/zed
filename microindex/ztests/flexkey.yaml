@@ -3,11 +3,11 @@ script: |
   # -x says input keys already sorted and don't create new base records
   microindex convert -f 20000 -o index.zng -k key tmp.zng
   # 50 not in index
-  microindex section -t -s 1 index.zng
+  microindex section -f tzng -s 1 index.zng
   echo ===
-  microindex lookup -t -k wailer-strick index.zng
+  microindex lookup -f tzng -k wailer-strick index.zng
   echo ===
-  microindex lookup -t -k Anatinacea-bestrew index.zng
+  microindex lookup -f tzng -k Anatinacea-bestrew index.zng
 
 inputs:
   - name: babble.tzng

@@ -5,6 +5,8 @@ input: |
   #0:record[a:foo]
   0:[[1;]]
 
+output-flags: -f tzng
+
 output: |
   #0:record[v:int8]
   0:[1;]

@@ -8,6 +8,8 @@ input: |
   #1:record[id:record[orig_p:port,resp_p:port]]
   1:[[39681;3389;]]
 
+output-flags: -f tzng
+
 output: |
   #port=uint16
   #0:record[net:record[src:ip,orig_p:port,dst:ip,resp_p:port]]

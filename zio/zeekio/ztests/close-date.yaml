@@ -11,6 +11,8 @@ input: |
   10.000000	1
   #close  2019-10-10-08-30-35
 
+output-flags: -f tzng
+
 output: |
   #0:record[_path:string,ts:time,d:float64]
   0:[a;10;1;]

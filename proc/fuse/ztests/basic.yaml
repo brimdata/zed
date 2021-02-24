@@ -6,6 +6,8 @@ input: |
   #1:record[b:string,c:string]
   1:[goodnight;gracie;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:string,b:string,c:string]
   0:[hello;world;-;]

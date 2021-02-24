@@ -1,6 +1,6 @@
 script: |
   zq -o tmp.zng babble.tzng
-  microindex lookup -t -k 469 tmp.zng
+  microindex lookup -f tzng -k 469 tmp.zng
 
 inputs:
   - name: babble.tzng

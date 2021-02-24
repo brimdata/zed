@@ -6,6 +6,8 @@ input: |
   0:[-;]
   0:[[]]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a1:array[int32],a2:array[int32],a3:array[int32],a4:array[int32],a5:array[int32],a6:array[int32],a7:array[int32],a8:array[int32]]
   0:[[11;12;][11;12;13;][10;][10;11;12;][][13;][12;][10;11;]]

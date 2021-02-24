@@ -22,10 +22,6 @@ func (t *TypeUnion) ID() int {
 	return t.id
 }
 
-func (t *TypeUnion) SetID(id int) {
-	t.id = id
-}
-
 func (t *TypeUnion) TypeIndex(index int) (Type, error) {
 	if index < 0 || index >= len(t.Types) {
 		return nil, ErrUnionIndex

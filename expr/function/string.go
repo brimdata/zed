@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zson"
 )
 
 // XXX these string format functions should be handlded by :string cast
@@ -254,7 +255,7 @@ type split struct {
 	bytes zcode.Bytes
 }
 
-func newSplit(zctx *resolver.Context) *split {
+func newSplit(zctx *zson.Context) *split {
 	return &split{
 		typ: zctx.LookupTypeArray(zng.TypeString),
 	}

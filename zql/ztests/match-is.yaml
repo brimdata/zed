@@ -9,6 +9,8 @@ input: |
   1:[b;0;]
   0:[b;a;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[s1:string,s2:string]
   0:[a;b;]

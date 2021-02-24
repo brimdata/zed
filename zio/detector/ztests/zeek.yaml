@@ -10,6 +10,8 @@ input: |
   #types	time	string	addr	port	addr	port	string	string	string	string	bool	string	string	bool	vector[string]	vector[string]	string	string	string	string	string
   1490385563.053424	CfEBop2hbfJYpjG5Hd	10.10.7.90	51913	54.230.87.24	443	TLSv12	TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256	-	choices.truste.com	T	-	http/1.1	T	-	-	-	-	-	-	-
 
+output-flags: -f tzng
+
 output: |
   #port=uint16
   #0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],version:bstring,cipher:bstring,curve:bstring,server_name:bstring,resumed:bool,last_alert:bstring,next_protocol:bstring,established:bool,cert_chain_fuids:array[bstring],client_cert_chain_fuids:array[bstring],subject:bstring,issuer:bstring,client_subject:bstring,client_issuer:bstring,validation_status:bstring]

@@ -1,10 +1,10 @@
 script: |
   zst create -o out.zst in.tzng
-  zst cut -t -k a out.zst
+  zst cut -f tzng -k a out.zst
   echo ===
-  zst cut -t -k b out.zst
+  zst cut -f tzng -k b out.zst
   echo ===
-  zst cut -t -k b.c out.zst
+  zst cut -f tzng -k b.c out.zst
 
 inputs:
   - name: in.tzng

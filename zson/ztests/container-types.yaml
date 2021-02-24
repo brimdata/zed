@@ -6,6 +6,8 @@ input: |
   { n: null ([string]) }
   { n: null ({a: string}) }
 
+output-flags: -f tzng
+
 output: |
   #0:record[n:map[string,int32]]
   0:[-;]

@@ -3,7 +3,7 @@
 #
 
 script: |
-  zq -i parquet conn.parquet dns.parquet | zq -t -
+  zq -i parquet conn.parquet dns.parquet | zq -f tzng -
 
 inputs:
   - name: conn.parquet

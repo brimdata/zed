@@ -1,4 +1,4 @@
-script: zq -t -j types.json "*" *.log > http.tzng
+script: zq -f tzng -j types.json "*" *.log > http.tzng
 
 inputs:
   - name: http_20190830_08:00:00-09:00:00-0500.log

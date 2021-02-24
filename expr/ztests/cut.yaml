@@ -15,6 +15,8 @@ input: |
   0:[1;a;]
   0:[3;e;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[x:int32,s:string,v:record[s:string,x:int32]]
   0:[1;a;[a;1;]]

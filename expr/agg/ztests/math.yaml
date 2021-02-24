@@ -1,9 +1,9 @@
 script: |
-  zq -t "avg(n)" in.tzng > avg.tzng
-  zq -t "count()" in.tzng > count.tzng
-  zq -t "any(n)" in.tzng > any.tzng
-  zq -t "min(n)" in.tzng > min.tzng
-  zq -t "max(n)" in.tzng > max.tzng
+  zq -f tzng "avg(n)" in.tzng > avg.tzng
+  zq -f tzng "count()" in.tzng > count.tzng
+  zq -f tzng "any(n)" in.tzng > any.tzng
+  zq -f tzng "min(n)" in.tzng > min.tzng
+  zq -f tzng "max(n)" in.tzng > max.tzng
 
 inputs:
   - name: in.tzng

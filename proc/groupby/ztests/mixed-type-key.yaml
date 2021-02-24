@@ -8,6 +8,8 @@ input: |
   1:[x509;FYNFkU3KccxXgIuUg5;]
   0:[weird;[10.47.5.155;40712;91.189.91.23;80;]]
 
+output-flags: -f tzng
+
 output: |
   #0:record[id:record[orig_h:ip],count:uint64]
   0:[[10.47.1.152;]1;]

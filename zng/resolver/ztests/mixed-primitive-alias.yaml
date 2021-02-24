@@ -1,5 +1,5 @@
 script: |
-  zq -t c.log a.zng
+  zq -f tzng c.log a.zng
 
 inputs:
   - name: c.log

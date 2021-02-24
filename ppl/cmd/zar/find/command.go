@@ -11,7 +11,6 @@ import (
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/ppl/lake/index"
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/mccanne/charm"
@@ -66,7 +65,6 @@ type Command struct {
 	indexFile     string
 	pathField     string
 	relativePaths bool
-	zng           bool
 	outputFlags   outputflags.Flags
 }
 
@@ -77,7 +75,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
 	f.StringVar(&c.pathField, "l", lake.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
-	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
 	c.outputFlags.SetFlags(f)
@@ -115,15 +112,11 @@ func (c *Command) Run(args []string) error {
 	if outputFile == "-" {
 		outputFile = ""
 	}
-	var writer zbuf.WriteCloser
-	if c.zng {
-		var err error
-		writer, err = emitter.NewFile(ctx, outputFile, c.outputFlags.Options())
-		if err != nil {
-			return err
-		}
-		defer writer.Close()
+	writer, err := emitter.NewFile(ctx, outputFile, c.outputFlags.Options())
+	if err != nil {
+		return err
 	}
+	defer writer.Close()
 	hits := make(chan *zng.Record)
 	var searchErr error
 	go func() {
