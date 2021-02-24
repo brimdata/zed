@@ -80,10 +80,7 @@ func NewAggregator(zctx *resolver.Context, keyRefs, keyExprs, aggRefs []expr.Eva
 		// As the default sort behavior, nullsMax=true for ascending order and
 		// nullsMax=false for descending order is also expected for streaming
 		// groupby.
-		nullsMax := true
-		if inputSortDir < 0 {
-			nullsMax = false
-		}
+		nullsMax := inputSortDir > 0
 
 		vs := expr.NewValueCompareFn(nullsMax)
 		if inputSortDir < 0 {
