@@ -95,7 +95,7 @@ next:
 		if err != nil {
 			return nil, zqe.ErrInvalid("shaper_ast too big")
 		}
-		proc, err := ast.UnpackJSON(nil, raw)
+		proc, err := ast.UnpackJSON(raw)
 		if err != nil {
 			return nil, err
 		}

@@ -127,7 +127,7 @@ type Query struct {
 
 // UnpackQuery transforms a api.SearchRequest into a Query.
 func UnpackQuery(req api.SearchRequest) (*Query, error) {
-	proc, err := ast.UnpackJSON(nil, req.Proc)
+	proc, err := ast.UnpackJSON(req.Proc)
 	if err != nil {
 		return nil, err
 	}
