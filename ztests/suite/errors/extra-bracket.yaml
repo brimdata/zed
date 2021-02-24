@@ -1,6 +1,6 @@
 # extra bracket in record type should cause an errror
 script: |
-  zq -t -i tzng in.tzng
+  zq -f tzng -i tzng in.tzng
 
 inputs:
   - name: in.tzng

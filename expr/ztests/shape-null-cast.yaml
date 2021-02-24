@@ -5,6 +5,8 @@ input: |
   #0:record[a:null,b:int64]
   0:[-;-;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:string,b:string]
   0:[-;-;]

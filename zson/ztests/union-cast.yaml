@@ -1,5 +1,5 @@
 script: |
-  zq -t -i zson "by typeof(.) | sort ." in.zson
+  zq -f tzng -i zson "by typeof(.) | sort ." in.zson
 
 inputs:
   - name: in.zson

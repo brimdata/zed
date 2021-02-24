@@ -2,7 +2,7 @@
 
 script: |
   zq -b 1 in.tzng > s.zng
-  zq -t s.zng
+  zq -f tzng s.zng
 
 inputs:
   - name: in.tzng

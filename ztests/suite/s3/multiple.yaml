@@ -1,7 +1,7 @@
 script: |
   source minio.sh
   mv *.tzng data/bucket
-  zq -t "sort ts" s3://bucket/log1.tzng s3://bucket/log2.tzng
+  zq -f tzng "sort ts" s3://bucket/log1.tzng s3://bucket/log2.tzng
 
 inputs:
   - name: minio.sh

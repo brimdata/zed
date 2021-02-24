@@ -1,4 +1,4 @@
-script: zq -t -j types.json "*" in.ndjson > http.tzng
+script: zq -f tzng -j types.json "*" in.ndjson > http.tzng
 
 inputs:
   - name: in.ndjson

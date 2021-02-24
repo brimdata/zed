@@ -3,7 +3,7 @@ script: |
   zq -o in1.zng in.tzng
   zq -o trailer.zng trailer.tzng
   cat in1.zng trailer.zng > index.zng
-  microindex lookup -t -k hello index.zng
+  microindex lookup -f tzng -k hello index.zng
 
 inputs:
   - name: in.tzng

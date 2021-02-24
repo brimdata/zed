@@ -19,6 +19,8 @@ input: |
       dst: { addr: 10.1.2.88, port: 19801 }
   } (conn)
 
+output-flags: -f tzng
+
 output: |
   #socket=record[addr:ip,port:uint16]
   #0:record[info:string,src:socket,dst:socket,pi:float64]

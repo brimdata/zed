@@ -19,7 +19,8 @@ type Flags struct {
 	dir          string
 	outputFile   string
 	forceBinary  bool
-	textShortcut bool
+	zsonShortcut bool
+	zsonPretty   bool
 }
 
 func (f *Flags) Options() zio.WriterOpts {
@@ -61,22 +62,26 @@ func (f *Flags) SetFlagsWithFormat(fs *flag.FlagSet, format string) {
 
 func (f *Flags) SetFormatFlags(fs *flag.FlagSet) {
 	fs.StringVar(&f.Format, "f", "zng", "format for output data [zng,zst,ndjson,table,text,csv,zeek,zjson,zson,tzng]")
-	fs.BoolVar(&f.textShortcut, "t", false, "use format tzng independent of -f option")
+	fs.BoolVar(&f.zsonShortcut, "z", false, "use line-oriented zson output independent of -f option")
+	fs.BoolVar(&f.zsonPretty, "Z", false, "use formatted zson output independent of -f option")
 	fs.BoolVar(&f.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
 }
 
 func (f *Flags) Init() error {
-	if f.textShortcut {
+	if f.zsonShortcut || f.zsonPretty {
 		if f.Format != "zng" {
-			return errors.New("cannot use -t with -f")
+			return errors.New("cannot use -z or -Z with -f")
 		}
-		f.Format = "tzng"
+		f.Format = "zson"
+		if !f.zsonPretty {
+			f.ZSON.Pretty = 0
+		}
 	}
 	if f.outputFile == "-" {
 		f.outputFile = ""
 	}
 	if f.outputFile == "" && f.Format == "zng" && IsTerminal(os.Stdout) && !f.forceBinary {
-		return errors.New("writing binary zng data to terminal; override with -B or use -t for text.")
+		return errors.New("writing binary zng data to terminal; override with -B or use -z for ZSON.")
 	}
 	return nil
 }
@@ -86,7 +91,7 @@ func (f *Flags) InitWithFormat(format string) error {
 		f.outputFile = ""
 	}
 	if f.outputFile == "" && f.Format == "zng" && IsTerminal(os.Stdout) && !f.forceBinary {
-		return errors.New("writing binary zng data to terminal; override with -B or use -t for text.")
+		return errors.New("writing binary zng data to terminal; override with -B or use -z for ZSON.")
 	}
 	return nil
 }

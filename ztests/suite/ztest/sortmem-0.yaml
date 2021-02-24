@@ -1,5 +1,5 @@
-script: zq -sortmem 0 -t -
-        
+script: zq -sortmem 0 -f tzng -
+
 outputs:
   - name: stderr
     data: |

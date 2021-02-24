@@ -6,6 +6,8 @@ input: |
    #0:record[id:record[orig_h:string,resp_h:string]]
    0:[[ff02::fb;ff02::fb;]]
 
+output-flags: -f tzng
+
 output: |
    #port=uint16
    #0:record[id_filled:record[orig_h:string,resp_h:string,orig_p:port],id_fitted:record[orig_h:string,orig_p:port]]

@@ -9,6 +9,8 @@ input: |
   1:[b;0;]
   0:[b;a;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[shape:type,taste:int32]
   0:[int32;0;]

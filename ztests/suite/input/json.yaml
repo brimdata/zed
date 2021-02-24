@@ -6,6 +6,8 @@ input: |
 
   { "obj1": { "null1": null } }
 
+output-flags: -f tzng
+
 output: |
   #0:record[string1:string,string2:string,int1:int64,bool1:bool]
   0:[value1;value1;4;T;]

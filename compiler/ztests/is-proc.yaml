@@ -7,6 +7,8 @@ input: |
   1:[2;]
   0:[3;bar;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:int32,b:string]
   0:[1;foo;]

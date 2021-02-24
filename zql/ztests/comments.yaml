@@ -1,5 +1,5 @@
 script: |
-  zq -t -I count.zql in.tzng
+  zq -f tzng -I count.zql in.tzng
 
 inputs:
   - name: count.zql

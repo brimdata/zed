@@ -11,6 +11,8 @@ input: |
   #1:record[s:string]
   1:[hello;]
 
+output-flags: -f tzng
+
 output: |
   #port=uint16
   #rec=record[p:port]

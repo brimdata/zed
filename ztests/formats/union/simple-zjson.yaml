@@ -5,6 +5,8 @@ input: |
   {"id":24,"values":[["0","1"]]}
   {"id":24,"values":[null]}
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:union[int32,string]]
   0:[1:asdfasdf;]

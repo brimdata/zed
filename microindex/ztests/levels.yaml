@@ -1,8 +1,8 @@
 script: |
   microindex create -o index.zng -k s -f 200 babble.tzng
-  microindex section -t -trailer index.zng
+  microindex section -f tzng -trailer index.zng
   echo ===
-  microindex section -t -s 2 index.zng
+  microindex section -f tzng -s 2 index.zng
 
 inputs:
   - name: babble.tzng

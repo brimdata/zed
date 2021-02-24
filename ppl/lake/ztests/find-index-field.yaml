@@ -5,9 +5,9 @@ script: |
   zar index create -R logs -q referenced_file.id.orig_h
   echo ===
   zar find -R logs referenced_file.id.orig_h=1.1.1.1
-  zar find -R logs -z referenced_file.id.orig_h=192.168.1.102 | zq -t "drop _log" -
+  zar find -R logs -z referenced_file.id.orig_h=192.168.1.102 | zq -f tzng "drop _log" -
   echo ===
-  zq -t "count(key)" $(find . -name idx-*) # check unset not indexed
+  zq -f tzng "count(key)" $(find . -name idx-*) # check unset not indexed
 
 
 inputs:

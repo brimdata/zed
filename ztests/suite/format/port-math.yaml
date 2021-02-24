@@ -1,9 +1,9 @@
 script: |
-  zq -t "put x=p1+1" in.tzng
+  zq -f tzng "put x=p1+1" in.tzng
   echo ===
-  zq -t "put x=p1>p2" in.tzng
+  zq -f tzng "put x=p1>p2" in.tzng
   echo ===
-  zq -t "put x=a+p1+p2" in.tzng
+  zq -f tzng "put x=a+p1+p2" in.tzng
 
 
 inputs:

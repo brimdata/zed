@@ -8,6 +8,9 @@ input: |
   #1:record[key:string]
   1:[a;]
   0:[b;1;]
+
+output-flags: -f tzng
+
 output: |
   #0:record[key:string,t1:bool,t2:bool,t3:bool,t4:bool,t5:bool]
   0:[a;F;F;F;F;-;]

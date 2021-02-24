@@ -1,11 +1,11 @@
 script: |
   zq "tail 900" babble.tzng | zar import -R asc -asc -streammax=100 -
   zq "head 250" babble.tzng | zar import -R asc -streammax=100 -
-  zar zq -R asc -t -s "count()"
+  zar zq -R asc -f tzng -s "count()"
   echo === | tee /dev/stderr
   zq "tail 900" babble.tzng | zar import -R desc -streammax=100 -
   zq "head 250" babble.tzng | zar import -R desc -streammax=100 -
-  zar zq -R desc -t -s "count()"
+  zar zq -R desc -f tzng -s "count()"
 
 inputs:
   - name: babble.tzng

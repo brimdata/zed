@@ -1,7 +1,7 @@
 script: |
-  zq -P -t 'split ( => filter * => filter * ) | join a=b hit=sb | sort a' A.tzng B.tzng
+  zq -P -f tzng 'split ( => filter * => filter * ) | join a=b hit=sb | sort a' A.tzng B.tzng
   echo ===
-  zq -P -t 'join a=b hit=sb | sort a' A.tzng B.tzng
+  zq -P -f tzng 'join a=b hit=sb | sort a' A.tzng B.tzng
 
 inputs:
   - name: A.tzng

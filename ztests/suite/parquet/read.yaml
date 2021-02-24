@@ -2,7 +2,7 @@
 # Apache NiFi and a custom Avro schema.
 
 script: |
-  zq -t -i parquet conn.parquet
+  zq -f tzng -i parquet conn.parquet
 
 inputs:
   - name: conn.parquet

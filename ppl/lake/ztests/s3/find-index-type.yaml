@@ -2,17 +2,17 @@ script: |
   source minio.sh
   zar import -R logs -data s3://bucket/zartest log.tzng
   zar index create -R logs -q :ip
-  zar find -R logs -z :ip=1.1.1.1 | zq -t "drop _log" -
+  zar find -R logs :ip=1.1.1.1 | zq -f tzng "drop _log" -
   echo ===
-  zar find -R logs -z :ip=192.168.1.102 | zq -t "drop _log" -
+  zar find -R logs :ip=192.168.1.102 | zq -f tzng "drop _log" -
   echo ===
-  zar find -R logs -z :ip=192.168.2.1 | zq -t "drop _log" -
+  zar find -R logs :ip=192.168.2.1 | zq -f tzng "drop _log" -
   echo ===
-  zar find -R logs -z :ip=192.168.1.1 | zq -t "drop _log" -
+  zar find -R logs :ip=192.168.1.1 | zq -f tzng "drop _log" -
   echo ===
   zar ls -R logs -l -ranges -desc
-  echo === 
-  zq -t "count(key)" $(find data/bucket/zartest -name "idx-*") # check unset not indexed
+  echo ===
+  zq -f tzng "count(key)" $(find data/bucket/zartest -name "idx-*") # check unset not indexed
 
 inputs:
   - name: log.tzng

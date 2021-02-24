@@ -11,6 +11,8 @@ input: |
   #types	time
   1425565514.419939
 
+output-flags: -f tzng
+
 output: |
   #0:record[ts:time,count:uint64]
   0:[1425513600;1;]

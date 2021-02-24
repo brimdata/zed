@@ -1,4 +1,4 @@
-script: zq -sortmem 1MiB -t -
+script: zq -sortmem 1MiB -f tzng -
 
 inputs:
   - name: stdin

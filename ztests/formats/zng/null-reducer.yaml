@@ -1,5 +1,5 @@
 script: |
-  zq "sum(a) by v" in.tzng | zq -t -
+  zq "sum(a) by v" in.tzng | zq -f tzng -
 
 inputs:
   - name: in.tzng

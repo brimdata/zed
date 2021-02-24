@@ -5,6 +5,8 @@ input: |
   0:[[]1;foo;aGVsbG8K;]
   0:[[1;]2;Bar;dGhlcmUK;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:array[int32],x:int32,s:string,b:bytes,y:int64,to_lower:string,typeof:type]
   0:[[]1;foo;aGVsbG8K;2;foo;string;]
