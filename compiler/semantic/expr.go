@@ -99,9 +99,13 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 			Type: e.Type, //XXX
 		}, nil
 	case *ast.TypeValue:
+		tv, err := semType(scope, e.Value)
+		if err != nil {
+			return nil, err
+		}
 		return &ast.TypeValue{
 			Kind:  "TypeValue",
-			Value: e.Value,
+			Value: tv,
 		}, nil
 	case *ast.Agg:
 		expr, err := semExprNullable(scope, e.Expr)

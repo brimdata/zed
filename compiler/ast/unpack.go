@@ -46,6 +46,8 @@ var unpacker = unpack.New(
 	SeqExpr{},
 	Sequential{},
 	Set{},
+	SqlExpr{},
+	SqlOrderBy{},
 	Sort{},
 	Switch{},
 	Tail{},

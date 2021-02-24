@@ -210,7 +210,8 @@ PatternMatch
 Pattern = Regexp / Glob
 
 SearchGuard
-  = AndToken
+  = SqlTokenSentinels
+  / AndToken
   / OrToken
   / NotToken
   / InToken
@@ -330,6 +331,8 @@ AggAssignments
       RETURN(result)
     }
 
+/// === Operators (aka Procs) ===
+
 Operator
   = SortProc
   / TopProc
@@ -346,6 +349,7 @@ Operator
   / ShapeProc
   / JoinProc
   / TasteProc
+  / SqlProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
@@ -498,6 +502,8 @@ TasteProc
 TasteExpr
   = _ lval:Lval { RETURN(lval)}
   / "" { RETURN(MAP("kind":"Root")) }
+
+/// === Expressions ===
 
 Lval = DerefExpr
 
@@ -688,6 +694,127 @@ Primary
   = Literal
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
+
+/// === SQL Compat ===
+
+SqlProc
+  = selection:SqlSelect
+    from:SqlFrom
+    joins:SqlJoins
+    where:SqlWhere
+    groupby:SqlGroupBy
+    having:SqlHaving
+    orderby:SqlOrderBy
+    limit:SqlLimit
+    {
+      RETURN(MAP(
+        "kind": "SqlExpr",
+        "select": selection,
+        "from": from,
+        "joins": joins,
+        "where": where,
+        "groupby": groupby,
+        "having": having,
+        "orderby": orderby,
+        "limit": limit ))
+    }
+
+SqlSelect
+  = SELECT _ "*" { RETURN(NULL) }
+  / SELECT _ assignments:SqlAssignments { RETURN(assignments) }
+
+SqlAssignment
+  = rhs:Expr _ AS _ lhs:Lval { RETURN(MAP("kind": "Assignment", "lhs": lhs, "rhs": rhs)) }
+  / expr:Expr { RETURN(MAP("kind": "Assignment", "lhs": NULL, "rhs": expr)) }
+
+SqlAssignments
+  = first:SqlAssignment rest:(__ "," __ expr:SqlAssignment { RETURN(expr) })* {
+      RETURN(PREPEND(first, rest))
+    }
+
+SqlFrom
+  = _ FROM _ table:SqlTable alias:SqlAlias {
+      RETURN(MAP("table": table, "alias": alias))
+    }
+  / "" { RETURN(NULL) }
+
+SqlAlias
+  = _ AS _ id:Lval { RETURN(id) }
+  / _ id:Lval { RETURN(id) }
+  / "" { RETURN(NULL) }
+
+SqlTable
+  = Expr
+  / "*" { RETURN(MAP("kind": "Primitive", "type":"bool", "text":"true"))}
+
+SqlJoins
+  = first:SqlJoin rest:(join:SqlJoin { RETURN(join) })* {
+      RETURN(PREPEND(first, rest))
+    }
+  / "" { RETURN(NULL) }
+
+SqlJoin
+  = style:SqlJoinStyle _ JOIN _ table:SqlTable alias:SqlAlias _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey {
+      RETURN(MAP(
+        "table": table,
+        "style": style,
+        "left_key": leftKey,
+        "right_key": rightKey,
+        "alias": alias))
+    }
+
+SqlJoinStyle
+  = _ style:(LEFT / RIGHT / INNER) { RETURN(style) }
+  / ""         { RETURN("inner") }
+
+SqlWhere
+  = _ WHERE _ expr:SearchBoolean { RETURN(expr) }
+  / "" { RETURN(NULL) }
+
+SqlGroupBy
+  = _ GROUP _ BY _ columns:FieldExprs { RETURN(columns) }
+  / "" { RETURN(NULL) }
+
+SqlHaving
+  = _ HAVING _ expr:SearchBoolean { RETURN(expr) }
+  / "" { RETURN(NULL) }
+
+SqlOrderBy
+  = _ ORDER _ BY _ keys:Exprs direction:SqlDirection {
+      RETURN(MAP("kind": "SqlOrderBy", "keys": keys, "direction":direction))
+    }
+  / "" { RETURN(NULL) }
+
+SqlDirection
+  = _ dir:(ASC / DESC) { RETURN(dir) }
+  / "" { RETURN("asc") }
+
+SqlLimit
+  = _ LIMIT _ count:UInt { RETURN(count) }
+  / "" { RETURN(0) }
+
+SELECT = "select"i { RETURN("select") }
+AS = "as"i { RETURN("as") }
+FROM = "from"i { RETURN("from") }
+JOIN = "join"i { RETURN("join") }
+WHERE = "where"i { RETURN("where") }
+GROUP = "group"i { RETURN("group") }
+BY = ByToken
+HAVING = "having"i { RETURN("having") }
+ORDER = "order"i { RETURN("order") }
+ON = "on"i { RETURN("on") }
+LIMIT = "limit"i { RETURN("limit") }
+ASC = "asc"i { RETURN("asc") }
+DESC = "desc"i { RETURN("desc") }
+LEFT = "left"i { RETURN("left") }
+RIGHT = "right"i { RETURN("right") }
+INNER = "inner"i { RETURN("inner") }
+
+SqlTokenSentinels
+  = SELECT / AS / FROM /  JOIN / WHERE / GROUP / HAVING / ORDER / LIMIT / ON
+
+/// === Literals ===
+
 Literal
   = TypeLiteral
   / StringLiteral
@@ -737,7 +864,7 @@ NullLiteral
   = "null"           { RETURN(MAP("kind": "Primitive", "type": "null", "text": "")) }
 
 TypeLiteral
-  = typ:TypeExternal {
+  = !(SqlTokenSentinels EOT) typ:TypeExternal {
       RETURN(MAP("kind": "TypeValue", "value": typ))
     }
 
@@ -832,22 +959,22 @@ TypeFieldList
 TypeFieldListTail = __ "," __ typ:TypeField { RETURN(typ) }
 
 TypeField
-  = name:IdentifierName __ ":" __ typ:Type {
+  = name:FieldName __ ":" __ typ:Type {
       RETURN(MAP("name": name, "type": typ))
     }
+
+FieldName
+  = IdentifierName
+  / QuotedString
 
 EqualityToken
   = EqualityOperator / RelativeOperator
 
-AndToken = "and"i { RETURN("and") }
-
-OrToken = "or"i { RETURN("or") }
-
-InToken = "in"i { RETURN("in") }
-
-NotToken = "not"i { RETURN("not") }
-
-ByToken = "by"i { RETURN("by") }
+AndToken = "and"i !IdentifierRest { RETURN("and") }
+OrToken = "or"i !IdentifierRest { RETURN("or") }
+InToken = "in"i !IdentifierRest { RETURN("in") }
+NotToken = "not"i !IdentifierRest { RETURN("not") }
+ByToken = "by"i !IdentifierRest { RETURN("by") }
 
 IdentifierStart = [A-Za-z_$]
 
@@ -862,7 +989,7 @@ IdentifierName
   / "\\" id:IdGuard { RETURN(id) }
   // "type" is a search guard but should not be an id guard
   / "type" { RETURN(TEXT) }
-
+  / id:SqlTokenSentinels &(__ "(") { RETURN(id) }
 
 IdGuard
   = BooleanLiteral

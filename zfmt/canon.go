@@ -1,6 +1,8 @@
 package zfmt
 
 import (
+	"strings"
+
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/zng"
 )
@@ -98,6 +100,8 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.write("match(")
 		c.literal(e.Value)
 		c.write(")")
+	case *ast.SqlExpr:
+		c.sql(e)
 	case *ast.Path:
 		c.fieldpath(e.Name)
 	case *ast.Ref:
@@ -143,6 +147,15 @@ func (c *canon) binary(e *ast.BinaryExpr) {
 		c.expr(e.LHS, true)
 		c.write("%s", e.Op)
 		c.expr(e.RHS, true)
+	}
+}
+
+func (c *canon) sql(e *ast.SqlExpr) {
+	if e.Select == nil {
+		c.write(" SELECT *")
+	} else {
+		c.write(" SELECT")
+		c.assignments(e.Select)
 	}
 }
 
@@ -211,6 +224,70 @@ func (c *canon) proc(p ast.Proc) {
 		c.typ(p.Type)
 		c.ret()
 		c.flush()
+	case *ast.SqlExpr:
+		c.next()
+		c.open("SELECT ")
+		if p.Select == nil {
+			c.write("*")
+		} else {
+			c.assignments(p.Select)
+		}
+		if p.From != nil {
+			c.ret()
+			c.write("FROM ")
+			c.expr(p.From.Table, false)
+			if p.From.Alias != nil {
+				c.write(" AS ")
+				c.expr(p.From.Alias, false)
+			}
+		}
+		for _, join := range p.Joins {
+			c.ret()
+			switch join.Style {
+			case "left":
+				c.write("LEFT ")
+			case "right":
+				c.write("RIGHT ")
+			}
+			c.write("JOIN ")
+			c.expr(join.Table, false)
+			if join.Alias != nil {
+				c.write(" AS ")
+				c.expr(join.Alias, false)
+			}
+			c.write(" ON ")
+			c.expr(join.LeftKey, false)
+			c.write("=")
+			c.expr(join.RightKey, false)
+		}
+		if p.Where != nil {
+			c.ret()
+			c.write("WHERE ")
+			c.expr(p.Where, false)
+		}
+		if p.GroupBy != nil {
+			c.ret()
+			c.write("GROUP BY ")
+			c.exprs(p.GroupBy)
+		}
+		if p.Having != nil {
+			c.ret()
+			c.write("HAVING ")
+			c.expr(p.Having, false)
+		}
+		if p.OrderBy != nil {
+			c.ret()
+			c.write("ORDER BY ")
+			c.exprs(p.OrderBy.Keys)
+			if p.OrderBy.Direction != "" {
+				c.write(" ")
+				c.write(strings.ToUpper(p.OrderBy.Direction))
+			}
+		}
+		if p.Limit != 0 {
+			c.ret()
+			c.write("LIMIT %d", p.Limit)
+		}
 	case *ast.Summarize:
 		c.next()
 		c.open("summarize")
