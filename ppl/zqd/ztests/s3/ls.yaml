@@ -4,7 +4,7 @@ script: |
   zapi -h $ZQD_HOST new -k archivestore testsp2
   zapi -h $ZQD_HOST new -k archivestore testsp3
   echo ===
-  zapi -h $ZQD_HOST ls
+  zapi -h $ZQD_HOST ls -f zng | zq -f text "pick name" -
 
 inputs:
   - name: services.sh
@@ -17,4 +17,6 @@ outputs:
       testsp2: space created
       testsp3: space created
       ===
-      testsp1   testsp2   testsp3
+      testsp1
+      testsp2
+      testsp3

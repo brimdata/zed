@@ -5,6 +5,7 @@ script: |
   zapi -h $ZQD_HOST rm testsp
   echo ===
   zapi -h $ZQD_HOST ls
+  echo ===
 
 inputs:
   - name: services.sh
@@ -17,4 +18,4 @@ outputs:
       ===
       testsp: space removed
       ===
-      no spaces exist
+      ===

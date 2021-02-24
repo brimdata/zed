@@ -1,0 +1,43 @@
+script: |
+  source services.sh
+  zapi -h $ZQD_HOST new -k archivestore sp1
+  zapi -h $ZQD_HOST new -k archivestore sp2
+  echo ===
+
+  # Verify that the default output format is tabular.
+  zapi -h $ZQD_HOST ls | awk '{print $2,$4}'
+  echo ===
+
+  # Verify that output flags are honored.
+  zapi -h $ZQD_HOST ls -f zson | zq -i zson -f zson "pick name,storage_kind" -
+  echo ===
+  zapi -h $ZQD_HOST ls -f zng | zq -i zng -f tzng "pick name,storage_kind" -
+  echo ===
+
+inputs:
+  - name: services.sh
+    source: services.sh
+
+outputs:
+  - name: stdout
+    data: |
+      sp1: space created
+      sp2: space created
+      ===
+      NAME STORAGE_KIND
+      sp1 archivestore
+      sp2 archivestore
+      ===
+      {
+          name: "sp1",
+          storage_kind: "archivestore"
+      }
+      {
+          name: "sp2",
+          storage_kind: "archivestore"
+      }
+      ===
+      #0:record[name:string,storage_kind:string]
+      0:[sp1;archivestore;]
+      0:[sp2;archivestore;]
+      ===

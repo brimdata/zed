@@ -7,7 +7,7 @@ script: |
   rm ng.pcap
   zapi -h $ZQD_HOST -s testsp info | egrep -v 'data_path|id|pcap_path|size|storage_kind'
   echo ===
-  zapi -h $ZQD_HOST ls
+  zapi -h $ZQD_HOST ls -f zng | zq -f text "pick name" -
   echo ===
   zapi -h $ZQD_HOST -s testsp get -f tzng "_path=conn | count()"
   echo ===
