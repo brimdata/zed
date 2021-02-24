@@ -87,7 +87,12 @@ jobs:
     # make test-cluster is repeated because for this test it will use Aurora.
     needs: eks-deploy-test
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
+      - name: Turnstyle
+        uses: softprops/turnstyle@v0.1.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/setup-go@v2
         with:
           go-version: '1.15'
