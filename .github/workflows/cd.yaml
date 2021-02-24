@@ -87,7 +87,7 @@ jobs:
     # make test-cluster is repeated because for this test it will use Aurora.
     needs: eks-deploy-test
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
     steps:
       - name: Turnstyle
         uses: softprops/turnstyle@v0.1.2
