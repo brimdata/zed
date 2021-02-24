@@ -24,14 +24,14 @@ func (r Reflector) Add(template interface{}) Reflector {
 	typ := reflect.TypeOf(template)
 	unpackKey, unpackVal, skip, err := structToUnpackRule(typ)
 	if err != nil {
-		panic(err.Error())
+		panic(err)
 	}
 	if unpackKey == "" {
-		panic(fmt.Sprintf("unpack tag not found for Go type '%s'", typ.Name()))
+		panic(fmt.Sprintf("unpack tag not found for Go type '%s'", typ.String()))
 	}
 	types := r.get(unpackKey, true)
 	if _, ok := types[unpackVal]; ok {
-		panic(fmt.Sprintf("unpack binding for json field '%s' and Go type '%s' already exists", unpackKey, unpackVal))
+		panic(fmt.Sprintf("unpack binding for JSON field '%s' and Go type '%s' already exists", unpackKey, unpackVal))
 	}
 	if skip {
 		types[unpackVal] = nil

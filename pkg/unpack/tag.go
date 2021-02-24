@@ -14,7 +14,7 @@ const (
 )
 
 var (
-	ErrTag      = errors.New(`unpack tag must have form "", "<value>", "skip", "<value>,skip"`)
+	ErrTag      = errors.New(`unpack tag must have form "", "<value>", ",skip", "<value>,skip"`)
 	ErrSkip     = errors.New("unpack skip tag can only appear once")
 	ErrNeedJSON = errors.New("unpack tag cannot appear without a JSON tag")
 )
@@ -49,7 +49,7 @@ func jsonFieldName(f reflect.StructField) (string, bool) {
 // unpack="key,skip" unpack="key", unpack="", or unpack="skip"
 func structToUnpackRule(typ reflect.Type) (string, string, bool, error) {
 	if typ.Kind() != reflect.Struct {
-		return "", "", false, errors.New("cannot unpack into non-struct")
+		return "", "", false, fmt.Errorf("cannot unpack into non-struct type '%s'", typ)
 	}
 	names := make(map[string]struct{})
 	var unpackKey string
@@ -60,13 +60,16 @@ func structToUnpackRule(typ reflect.Type) (string, string, bool, error) {
 		jsonField, jsonOk, _ := parseTag(tagJSON, field)
 		if jsonOk {
 			if _, ok := names[jsonField]; ok {
-				return "", "", false, fmt.Errorf("json field tag '%s' in struct type '%s' not unique", jsonField, typ.Name())
+				return "", "", false, fmt.Errorf("JSON field tag '%s' in struct type '%s' not unique", jsonField, typ.Name())
 			}
 			names[jsonField] = struct{}{}
 		}
 		unpackOpt, unpackOk, opts := parseTag(tagUnpack, typ.Field(k))
 		if !unpackOk {
 			continue
+		}
+		if jsonField == "-" {
+			return "", "", false, fmt.Errorf("unpack: cannot unpack field '%s' of struct type '%s' with JSON tag '-'", field.Name, typ.Name())
 		}
 		if len(opts) > 1 {
 			return "", "", false, fmt.Errorf("unpack: too many tag options in field '%s' of struct type '%s'", field.Name, typ.Name())
@@ -92,6 +95,9 @@ func structToUnpackRule(typ reflect.Type) (string, string, bool, error) {
 		}
 		if unpackOpt == "" {
 			unpackOpt = typ.Name()
+			if unpackOpt == "" {
+				return "", "", false, fmt.Errorf("unpack tag missing value struct type is nameless in field '%s' of struct '%s' may only be 'skip'", field.Name, typ.String())
+			}
 		}
 		unpackKey = jsonField
 		unpackVal = unpackOpt
