@@ -29,12 +29,10 @@ func (c *canon) close() {
 }
 
 func (c *canon) assignments(assignments []ast.Assignment) {
-	first := true
-	for _, a := range assignments {
-		if !first {
+	for k, a := range assignments {
+		if k > 0 {
 			c.write(",")
 		}
-		first = false
 		if a.LHS != nil {
 			c.expr(a.LHS, false)
 			c.write("=")
@@ -44,11 +42,8 @@ func (c *canon) assignments(assignments []ast.Assignment) {
 }
 
 func (c *canon) exprs(exprs []ast.Expression) {
-	first := true
-	for _, e := range exprs {
-		if first {
-			first = false
-		} else {
+	for k, e := range exprs {
+		if k > 0 {
 			c.write(", ")
 		}
 		c.expr(e, false)

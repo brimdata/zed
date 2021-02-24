@@ -69,7 +69,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.optimize, "O", true, "run semantic optimizer on ast version")
 	f.BoolVar(&c.debug, "D", false, "display ast version as lisp-y debugger output")
 	f.BoolVar(&c.canon, "C", false, "display canonical version")
-	f.Var(&c.includes, "I", "source file containing Z query text (may be used multiple times)")
+	f.Var(&c.includes, "I", "source file containing Z query text (may be repeated)")
 	return c, nil
 }
 
