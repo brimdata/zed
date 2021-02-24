@@ -487,8 +487,10 @@ function peg$parse(input, options) {
       peg$c170 = "taste",
       peg$c171 = peg$literalExpectation("taste", true),
       peg$c172 = function(e) {
-            return {"op": "GroupByProc",
+            return {"op": "SequentialProc", "procs": [
               
+            {"op": "GroupByProc",
+                
             "keys": [{"op": "Assignment",
                          
             "lhs": {"op": "Identifier", "name": "shape"},
@@ -496,7 +498,7 @@ function peg$parse(input, options) {
             "rhs": {"op": "FunctionCall", "function": "typeof",
                                     
             "args": [e]}}],
-              
+                
             "reducers": [{"op": "Assignment",
                                     
             "lhs": {"op": "Identifier", "name": "taste"},
@@ -508,8 +510,16 @@ function peg$parse(input, options) {
             "expr": e,
                                                
             "where": null}}],
+                
+            "duration": null, "limit": 0},
               
-            "duration": null, "limit": 0}
+            {"op": "CutProc",
+                  
+            "fields": [{"op": "Assignment",
+                                      
+            "lhs": null,
+                                      
+            "rhs": {"op": "Identifier", "name": "taste"}}]}]}
           
           },
       peg$c173 = function(lval) { return lval},
