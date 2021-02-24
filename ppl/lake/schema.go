@@ -196,7 +196,11 @@ func CreateOrOpenLakeWithContext(ctx context.Context, rpath string, co *CreateOp
 	mdPath := root.AppendPath(metadataFilename)
 	ok, err := iosrc.Exists(ctx, mdPath)
 	if err != nil {
-		//println("error from iosrc.Exists", mdPath.String())
+		// The error encountered here has been an S3 permission failure,
+		// and it is fatal, so a panic might be better.
+		// A log message would be good in any case. Providing access to
+		// a logger will require modifying mulitple layers of APIs, so we
+		// should discuss the best solution first. -Mark
 		return nil, err
 	}
 	if !ok {
