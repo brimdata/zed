@@ -47,9 +47,9 @@ func jsonFieldName(f reflect.StructField) (string, bool) {
 // unmarshling into this concrete type.  If there is not exactly one unpack
 // tag, then an error is returned.
 // unpack="key,skip" unpack="key", unpack="", or unpack="skip"
-func structToUnpackRule(typ reflect.Type) (string, string, error) {
+func structToUnpackRule(typ reflect.Type) (string, string, bool, error) {
 	if typ.Kind() != reflect.Struct {
-		return "", "", errors.New("cannot unpack into non-struct")
+		return "", "", false, errors.New("cannot unpack into non-struct")
 	}
 	names := make(map[string]struct{})
 	var unpackKey string
@@ -60,7 +60,7 @@ func structToUnpackRule(typ reflect.Type) (string, string, error) {
 		jsonField, jsonOk, _ := parseTag(tagJSON, field)
 		if jsonOk {
 			if _, ok := names[jsonField]; ok {
-				return "", "", fmt.Errorf("json field tag '%s' in struct type '%s' not unique", jsonField, typ.Name())
+				return "", "", false, fmt.Errorf("json field tag '%s' in struct type '%s' not unique", jsonField, typ.Name())
 			}
 			names[jsonField] = struct{}{}
 		}
@@ -68,45 +68,33 @@ func structToUnpackRule(typ reflect.Type) (string, string, error) {
 		if !unpackOk {
 			continue
 		}
-		val, skip, err := parseUnpackOpts(unpackOpt, opts, typ.Name())
-		if err != nil {
-			return "", "", err
+		if len(opts) > 1 {
+			return "", "", false, fmt.Errorf("unpack: too many tag options in field '%s' of struct type '%s'", field.Name, typ.Name())
+		}
+		var skip bool
+		if len(opts) == 1 {
+			if opts[0] != "skip" {
+				return "", "", false, fmt.Errorf("unpack: second tag option in field '%s' of struct type '%s' may only be 'skip'", field.Name, typ.Name())
+			}
+			skip = true
 		}
 		if skip {
 			if unpackSkip {
-				return "", "", ErrSkip
+				return "", "", false, ErrSkip
 			}
 			unpackSkip = true
 		}
 		if unpackKey != "" {
-			return "", "", fmt.Errorf("unpack key appears twice (for JSON field %s and %s) ", unpackKey, jsonField)
+			return "", "", false, fmt.Errorf("unpack key appears twice in field '%s' of struct type '%s' may only be 'skip'", field.Name, typ.Name())
 		}
 		if jsonField == "" {
 			jsonField = field.Name
 		}
+		if unpackOpt == "" {
+			unpackOpt = typ.Name()
+		}
 		unpackKey = jsonField
-		unpackVal = val
+		unpackVal = unpackOpt
 	}
-	return unpackKey, unpackVal, nil
-}
-
-func parseUnpackOpts(unpackOpt string, opts []string, typName string) (string, bool, error) {
-	if len(opts) > 1 {
-		return "", false, ErrTag
-	}
-	var skip bool
-	if len(opts) == 0 {
-		if unpackOpt == "skip" {
-			return "", true, nil
-		}
-	} else {
-		if opts[0] != "skip" {
-			return "", false, ErrTag
-		}
-		skip = true
-	}
-	if unpackOpt == "" {
-		unpackOpt = typName
-	}
-	return unpackOpt, skip, nil
+	return unpackKey, unpackVal, unpackSkip, nil
 }

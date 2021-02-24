@@ -6,10 +6,13 @@ import (
 	"github.com/brimsec/zq/pkg/unpack"
 )
 
-var unpacker = unpack.New().Init(
+var unpacker = unpack.New(
 	Array{},
 	Assignment{},
+	BinaryExpression{},
+	CastExpression{},
 	CastValue{},
+	ConditionalExpression{},
 	ConstProc{},
 	CutProc{},
 	DefValue{},
@@ -36,6 +39,7 @@ var unpacker = unpack.New().Init(
 	RenameProc{},
 	RootRecord{},
 	Search{},
+	SelectExpression{},
 	SequentialProc{},
 	Set{},
 	SortProc{},
@@ -55,12 +59,8 @@ var unpacker = unpack.New().Init(
 	TypeSet{},
 	TypeUnion{},
 	TypeValue{},
-	UniqProc{},
-	BinaryExpression{},
-	SelectExpression{},
 	UnaryExpression{},
-	CastExpression{},
-	ConditionalExpression{},
+	UniqProc{},
 )
 
 // UnpackJSON transforms a JSON representation of a proc into an ast.Proc.

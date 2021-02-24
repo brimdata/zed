@@ -12,11 +12,8 @@ var zero reflect.Value
 
 type Reflector map[string]map[string]reflect.Type
 
-func New() Reflector {
-	return make(map[string]map[string]reflect.Type)
-}
-
-func (r Reflector) Init(templates ...interface{}) Reflector {
+func New(templates ...interface{}) Reflector {
+	r := Reflector(make(map[string]map[string]reflect.Type))
 	for _, t := range templates {
 		r.Add(t)
 	}
@@ -25,7 +22,7 @@ func (r Reflector) Init(templates ...interface{}) Reflector {
 
 func (r Reflector) Add(template interface{}) Reflector {
 	typ := reflect.TypeOf(template)
-	unpackKey, unpackVal, err := structToUnpackRule(typ)
+	unpackKey, unpackVal, skip, err := structToUnpackRule(typ)
 	if err != nil {
 		panic(err.Error())
 	}
@@ -33,12 +30,10 @@ func (r Reflector) Add(template interface{}) Reflector {
 		panic(fmt.Sprintf("unpack tag not found for Go type '%s'", typ.Name()))
 	}
 	types := r.get(unpackKey, true)
-	_, ok := types[unpackVal]
-	if ok {
+	if _, ok := types[unpackVal]; ok {
 		panic(fmt.Sprintf("unpack binding for json field '%s' and Go type '%s' already exists", unpackKey, unpackVal))
 	}
-	if unpackVal == "" {
-		// skip
+	if skip {
 		types[unpackVal] = nil
 	} else {
 		types[unpackVal] = typ
@@ -79,10 +74,16 @@ func (r Reflector) UnpackMap(m interface{}) (interface{}, error) {
 	if rv, ok := skeleton.(reflect.Value); ok {
 		skeleton = rv.Interface()
 	}
+	v := skeleton
+	if _, ok := v.(map[string]interface{}); ok {
+		// If the root record wasn't decoded to a struct ptr,
+		// we pass a pointer to mapstructure as it requires
+		// a pointer val.
+		v = &skeleton
+	}
 	c := &mapstructure.DecoderConfig{
 		TagName: "json",
-		Result:  skeleton,
-		//Squash:  true,
+		Result:  v,
 	}
 	dec, err := mapstructure.NewDecoder(c)
 	if err != nil {
@@ -103,8 +104,7 @@ func (r Reflector) lookup(object map[string]interface{}) (reflect.Value, error) 
 			return zero, fmt.Errorf("unpack key in JSON field '%s' is not a string: '%T'", key, val)
 		}
 		hits++
-		template, ok := types[unpackVal]
-		if ok {
+		if template, ok := types[unpackVal]; ok {
 			if template == nil {
 				// skip
 				return zero, nil
@@ -146,7 +146,6 @@ func (r Reflector) unpack(p interface{}) (interface{}, error) {
 			return template, nil
 		}
 		return converted, nil
-
 	case []interface{}:
 		return r.unpackArray(p)
 	}
@@ -201,8 +200,8 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 		emptyFieldVal := val.Field(i)
 		switch emptyFieldVal.Kind() {
 		case reflect.Interface:
-			if emptyFieldVal.NumMethod() == 0 || o == nil {
-				// empty interface or null interface pointer
+			if o == nil {
+				// null interface pointer
 				continue
 			}
 			// For every interface type converted, we store the value in

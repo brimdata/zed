@@ -8,9 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type Expr interface {
-	Which() string
-}
+type Expr interface{}
 
 type BinaryExpr struct {
 	Op  string `json:"op" unpack:""`
@@ -33,18 +31,6 @@ type Terminal struct {
 	Body string `json:"body"`
 }
 
-func (t *Terminal) Which() string {
-	return t.Body
-}
-
-func (*BinaryExpr) Which() string {
-	return "BinaryExpr"
-}
-
-func (*UnaryExpr) Which() string {
-	return "UnaryExpr"
-}
-
 const binaryExprJSON = `
 {
 	"op":"BinaryExpr",
@@ -59,7 +45,7 @@ var binaryExprExpected = &BinaryExpr{
 }
 
 func TestUnpackBinaryExpr(t *testing.T) {
-	reflector := unpack.New().Init(
+	reflector := unpack.New(
 		BinaryExpr{},
 		UnaryExpr{},
 		Terminal{},
@@ -90,7 +76,7 @@ var typeTagExpected = &BinaryExpr2{
 }
 
 func TestUnpackTypeTag(t *testing.T) {
-	reflector := unpack.New().Init(
+	reflector := unpack.New(
 		BinaryExpr2{},
 		Terminal{},
 	)
@@ -127,7 +113,7 @@ var nestedExpected = &BinaryExpr{
 }
 
 func TestUnpackNested(t *testing.T) {
-	reflector := unpack.New().Init(
+	reflector := unpack.New(
 		BinaryExpr{},
 		UnaryExpr{},
 		Terminal{},
@@ -179,7 +165,7 @@ var embeddedExpected = &Embedded{
 }
 
 func TestUnpackEmbedded(t *testing.T) {
-	reflector := unpack.New().Init(
+	reflector := unpack.New(
 		BinaryExpr{},
 		UnaryExpr{},
 		Terminal{},
@@ -205,7 +191,7 @@ var listExpected = &List{
 }
 
 func TestUnpackList(t *testing.T) {
-	reflector := unpack.New().Init(
+	reflector := unpack.New(
 		BinaryExpr{},
 		UnaryExpr{},
 		Terminal{},
@@ -250,7 +236,7 @@ var pairListExpected = &PairList{
 }
 
 func TestUnpackPairList(t *testing.T) {
-	reflector := unpack.New().Init(
+	reflector := unpack.New(
 		BinaryExpr{},
 		UnaryExpr{},
 		Terminal{},
@@ -272,14 +258,10 @@ type Assignment struct {
 	RHS Expr   `json:"rhs"`
 }
 
-func (*Assignment) Which() string { return "Assignment" }
-
 type Identifier struct {
 	Op   string `json:"op" unpack:""`
 	Name string `json:"name"`
 }
-
-func (*Identifier) Which() string { return "Identifier" }
 
 const cutJSON = `
         {
@@ -334,7 +316,7 @@ var cutExpected = &CutProc{
 }
 
 func TestUnpackCut(t *testing.T) {
-	reflector := unpack.New().Init(
+	reflector := unpack.New(
 		CutProc{},
 		Identifier{},
 		Assignment{},
@@ -342,4 +324,35 @@ func TestUnpackCut(t *testing.T) {
 	actual, err := reflector.Unpack(cutJSON)
 	require.NoError(t, err)
 	assert.Equal(t, cutExpected, actual)
+}
+
+const skipJSON = `
+{
+	"op":"BinaryExpr",
+	"lhs": { "op": "Terminal", "body": "foo" } ,
+	"rhs": { "op": "Terminal", "body": "bar" }
+}`
+
+type BinaryExpr3 struct {
+	Op  string `json:"op" unpack:"BinaryExpr,skip"`
+	LHS Expr   `json:"lhs"`
+	RHS Expr   `json:"rhs"`
+}
+
+var skipExpected = map[string]interface{}{
+	"lhs": map[string]interface{}{
+		"body": "foo", "op": "Terminal"},
+	"op": "BinaryExpr",
+	"rhs": map[string]interface{}{
+		"body": "bar",
+		"op":   "Terminal"}}
+
+func TestUnpackSkip(t *testing.T) {
+	reflector := unpack.New(
+		BinaryExpr3{},
+		Terminal{},
+	)
+	actual, err := reflector.Unpack(skipJSON)
+	require.NoError(t, err)
+	assert.Equal(t, skipExpected, actual)
 }
