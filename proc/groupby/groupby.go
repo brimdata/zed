@@ -77,8 +77,12 @@ func NewAggregator(zctx *resolver.Context, keyRefs, keyExprs, aggRefs []expr.Eva
 
 	nkeys := len(keyExprs)
 	if nkeys > 0 && inputSortDir != 0 {
-		// As the default sort behavior, nullsMax=true is also expected for streaming groupby.
-		vs := expr.NewValueCompareFn(true)
+		// As the default sort behavior, nullsMax=true for ascending order and
+		// nullsMax=false for descending order is also expected for streaming
+		// groupby.
+		nullsMax := inputSortDir > 0
+
+		vs := expr.NewValueCompareFn(nullsMax)
 		if inputSortDir < 0 {
 			valueCompare = func(a, b zng.Value) int { return vs(b, a) }
 		} else {
