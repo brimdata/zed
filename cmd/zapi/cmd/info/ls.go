@@ -24,12 +24,14 @@ much like the traditional unix ls command.`,
 
 type LsCommand struct {
 	*cmd.Command
+	lflag       bool
 	outputFlags outputflags.Flags
 }
 
 func NewLs(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &LsCommand{Command: parent.(*cmd.Command)}
-	c.outputFlags.DefaultFormat = "table"
+	f.BoolVar(&c.lflag, "l", false, "output full information for each space")
+	c.outputFlags.DefaultFormat = "text"
 	c.outputFlags.SetFormatFlags(f)
 	return c, nil
 }
@@ -52,13 +54,27 @@ func (c *LsCommand) Run(args []string) error {
 	if len(matches) == 0 {
 		return cmd.ErrNoMatch
 	}
-	return cmd.WriteOutput(c.Context(), c.outputFlags, newSpaceReader(matches))
+	if c.lflag {
+		return cmd.WriteOutput(c.Context(), c.outputFlags, newSpaceReader(matches))
+	}
+	names := make([]string, 0, len(matches))
+	for i := range matches {
+		names = append(names, matches[i].Name)
+	}
+	return cmd.WriteOutput(c.Context(), c.outputFlags, newNameReader(names))
 }
 
 type spaceReader struct {
 	idx    int
 	spaces []api.Space
 	mc     *zson.MarshalZNGContext
+}
+
+func newSpaceReader(spaces []api.Space) *spaceReader {
+	return &spaceReader{
+		spaces: spaces,
+		mc:     resolver.NewMarshaler(),
+	}
 }
 
 func (r *spaceReader) Read() (*zng.Record, error) {
@@ -73,9 +89,29 @@ func (r *spaceReader) Read() (*zng.Record, error) {
 	return rec, nil
 }
 
-func newSpaceReader(spaces []api.Space) *spaceReader {
-	return &spaceReader{
-		spaces: spaces,
-		mc:     resolver.NewMarshaler(),
+type nameReader struct {
+	idx   int
+	names []string
+	mc    *zson.MarshalZNGContext
+}
+
+func newNameReader(names []string) *nameReader {
+	return &nameReader{
+		names: names,
+		mc:    resolver.NewMarshaler(),
 	}
+}
+
+func (r *nameReader) Read() (*zng.Record, error) {
+	if r.idx >= len(r.names) {
+		return nil, nil
+	}
+	rec, err := r.mc.MarshalRecord(struct {
+		Name string `zng:"name"`
+	}{r.names[r.idx]})
+	if err != nil {
+		return nil, err
+	}
+	r.idx++
+	return rec, nil
 }
