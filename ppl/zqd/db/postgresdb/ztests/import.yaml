@@ -7,7 +7,7 @@ script: |
   source startup.sh
   zapi -h $ZQD_HOST new -k archivestore testsp >/dev/null
   zapi -h $ZQD_HOST -s testsp post babble.tzng >/dev/null
-  zapi -h $ZQD_HOST -s testsp get -t "count()"
+  zapi -h $ZQD_HOST -s testsp get -f tzng "count()"
 
 inputs:
   - name: startup.sh
