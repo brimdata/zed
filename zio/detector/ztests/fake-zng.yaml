@@ -1,0 +1,10 @@
+script: zq -f tzng -
+
+inputs:
+  - name: stdin
+    data: !!binary |
+      AAAAHGZ0eXBtcDQyAAAAAWlzb21tcDQxbXA0MgAA
+
+outputs:
+  - name: stderr
+    regexp: .*non-record, top-level zng values are not supported
