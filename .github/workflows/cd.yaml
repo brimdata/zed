@@ -71,9 +71,9 @@ jobs:
           set -x
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
           mkdir testlog
-          kubectl logs --tail 1000 -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
-          kubectl logs --all-containers --tail 1000 -l app.kubernetes.io/name=root > testlog/root.log
-          kubectl logs --tail 1000 -l app.kubernetes.io/name=worker > testlog/worker.log
+          kubectl logs --tail 10000 -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
+          kubectl logs --all-containers --tail 10000 -l app.kubernetes.io/name=root > testlog/root.log
+          kubectl logs --tail 10000 -l app.kubernetes.io/name=worker > testlog/worker.log
           helm uninstall zsrv
       - name: Save logs as artifact
         if: ${{ always() }}
@@ -121,9 +121,9 @@ jobs:
           set -x
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
           mkdir testlogm
-          kubectl logs --tail 1000 -l app.kubernetes.io/name=recruiter > testlogm/recruiter.log
-          kubectl logs --all-containers --tail 1000 -l app.kubernetes.io/name=root > testlogm/root.log
-          kubectl logs --tail 1000 -l app.kubernetes.io/name=worker > testlogm/worker.log
+          kubectl logs --tail 10000 -l app.kubernetes.io/name=recruiter > testlogm/recruiter.log
+          kubectl logs --all-containers --tail 10000 -l app.kubernetes.io/name=root > testlogm/root.log
+          kubectl logs --tail 10000 -l app.kubernetes.io/name=worker > testlogm/worker.log
       - name: Save logs as artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
