@@ -19,4 +19,6 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      testsp1   testsp2   testsp3
+      testsp1
+      testsp2
+      testsp3

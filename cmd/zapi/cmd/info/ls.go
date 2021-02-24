@@ -2,36 +2,37 @@ package info
 
 import (
 	"flag"
-	"fmt"
-	"os"
-	"strings"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/brimsec/zq/pkg/colw"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zson"
 	"github.com/mccanne/charm"
-	"github.com/mccanne/charm/pkg/termwidth"
 )
 
 var Ls = &charm.Spec{
 	Name:  "ls",
-	Usage: "ls [-l] [glob1 glob2 ...]",
+	Usage: "ls [glob1 glob2 ...]",
 	Short: "list spaces or information about a space",
 	Long: `The ls command lists the names and information about spaces known to the system.
 When run with arguments, only the spaces that match the glob-style parameters are shown
-much like the traditional unix ls command.  When used with "-l", each space specified
-is listed with its detailed information as in the info command.`,
+much like the traditional unix ls command.`,
 	New: NewLs,
 }
 
 type LsCommand struct {
 	*cmd.Command
-	lflag bool
+	lflag       bool
+	outputFlags outputflags.Flags
 }
 
 func NewLs(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &LsCommand{Command: parent.(*cmd.Command)}
-	f.BoolVar(&c.lflag, "l", false, "show detail information about each space listed")
+	f.BoolVar(&c.lflag, "l", false, "output full information for each space")
+	c.outputFlags.DefaultFormat = "text"
+	c.outputFlags.SetFormatFlags(f)
 	return c, nil
 }
 
@@ -46,7 +47,6 @@ func (c *LsCommand) Run(args []string) error {
 	matches, err := cmd.SpaceGlob(c.Context(), conn, args...)
 	if err != nil {
 		if err == cmd.ErrNoSpacesExist {
-			fmt.Println("no spaces exist")
 			return nil
 		}
 		return err
@@ -55,24 +55,63 @@ func (c *LsCommand) Run(args []string) error {
 		return cmd.ErrNoMatch
 	}
 	if c.lflag {
-		// print details about each space
-		return printSpaceSummaries(matches)
+		return cmd.WriteOutput(c.Context(), c.outputFlags, newSpaceReader(matches))
 	}
-	names := cmd.SpaceNames(matches)
-	width := termwidth.Width()
-	// print listing laid out in columns like ls
-	err = colw.Write(os.Stdout, names, width, 3)
-	if err == colw.ErrDoesNotFit {
-		fmt.Println(strings.Join(names, "\n"))
+	names := make([]string, 0, len(matches))
+	for _, m := range matches {
+		names = append(names, m.Name)
 	}
-	return err
+	return cmd.WriteOutput(c.Context(), c.outputFlags, newNameReader(names))
 }
 
-func printSpaceSummaries(sl []api.Space) error {
-	for _, space := range sl {
-		if err := printSpace(space.Name, space); err != nil {
-			return err
-		}
+type spaceReader struct {
+	idx    int
+	spaces []api.Space
+	mc     *zson.MarshalZNGContext
+}
+
+func newSpaceReader(spaces []api.Space) *spaceReader {
+	return &spaceReader{
+		spaces: spaces,
+		mc:     resolver.NewMarshaler(),
 	}
-	return nil
+}
+
+func (r *spaceReader) Read() (*zng.Record, error) {
+	if r.idx >= len(r.spaces) {
+		return nil, nil
+	}
+	rec, err := r.mc.MarshalRecord(r.spaces[r.idx])
+	if err != nil {
+		return nil, err
+	}
+	r.idx++
+	return rec, nil
+}
+
+type nameReader struct {
+	idx   int
+	names []string
+	mc    *zson.MarshalZNGContext
+}
+
+func newNameReader(names []string) *nameReader {
+	return &nameReader{
+		names: names,
+		mc:    resolver.NewMarshaler(),
+	}
+}
+
+func (r *nameReader) Read() (*zng.Record, error) {
+	if r.idx >= len(r.names) {
+		return nil, nil
+	}
+	rec, err := r.mc.MarshalRecord(struct {
+		Name string `zng:"name"`
+	}{r.names[r.idx]})
+	if err != nil {
+		return nil, err
+	}
+	r.idx++
+	return rec, nil
 }

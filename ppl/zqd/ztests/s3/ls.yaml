@@ -17,4 +17,6 @@ outputs:
       testsp2: space created
       testsp3: space created
       ===
-      testsp1   testsp2   testsp3
+      testsp1
+      testsp2
+      testsp3

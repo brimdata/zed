@@ -16,11 +16,12 @@ import (
 
 type Flags struct {
 	zio.WriterOpts
-	dir          string
-	outputFile   string
-	forceBinary  bool
-	zsonShortcut bool
-	zsonPretty   bool
+	DefaultFormat string
+	dir           string
+	outputFile    string
+	forceBinary   bool
+	zsonShortcut  bool
+	zsonPretty    bool
 }
 
 func (f *Flags) Options() zio.WriterOpts {
@@ -61,7 +62,10 @@ func (f *Flags) SetFlagsWithFormat(fs *flag.FlagSet, format string) {
 }
 
 func (f *Flags) SetFormatFlags(fs *flag.FlagSet) {
-	fs.StringVar(&f.Format, "f", "zng", "format for output data [zng,zst,ndjson,table,text,csv,zeek,zjson,zson,tzng]")
+	if f.DefaultFormat == "" {
+		f.DefaultFormat = "zng"
+	}
+	fs.StringVar(&f.Format, "f", f.DefaultFormat, "format for output data [zng,zst,ndjson,table,text,csv,zeek,zjson,zson,tzng]")
 	fs.BoolVar(&f.zsonShortcut, "z", false, "use line-oriented zson output independent of -f option")
 	fs.BoolVar(&f.zsonPretty, "Z", false, "use formatted zson output independent of -f option")
 	fs.BoolVar(&f.forceBinary, "B", false, "allow binary zng be sent to a terminal output")

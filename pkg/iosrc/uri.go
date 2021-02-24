@@ -4,6 +4,9 @@ import (
 	"errors"
 	"net/url"
 	"strings"
+
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zson"
 )
 
 type URI url.URL
@@ -90,6 +93,10 @@ func (u *URI) UnmarshalText(b []byte) error {
 	}
 	*u = uri
 	return nil
+}
+
+func (u URI) MarshalZNG(mc *zson.MarshalZNGContext) (zng.Type, error) {
+	return mc.MarshalValue(u.String())
 }
 
 // Maybe rawurl is of the form scheme:path.
