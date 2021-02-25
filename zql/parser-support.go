@@ -153,6 +153,7 @@ func ImproveError(src string, e error) error {
 	}
 	b.WriteString(strings.Join(lines[:lineNo+1], "\n"))
 	b.WriteByte('\n')
+	colNo--
 	for k := 0; k < colNo; k++ {
 		if k >= colNo-4 && k != colNo-1 {
 			b.WriteByte('=')
