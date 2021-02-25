@@ -13,10 +13,14 @@ import (
 )
 
 var Intake = &charm.Spec{
-	Name:   "intake",
-	Usage:  "intake [subcommand]",
-	Short:  "commands to control intake resources",
-	Long:   ``,
+	Name:  "intake",
+	Usage: "intake [subcommand]",
+	Short: "commands to create and control intake resources",
+	Long: `
+An intake provides a way to filter and/or process data through a Z program,
+referred to as a "shaper", before appending any resulting data into a target
+space.
+`,
 	New:    New,
 	Hidden: true,
 }

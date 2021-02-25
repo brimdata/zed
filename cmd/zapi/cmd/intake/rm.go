@@ -10,7 +10,7 @@ import (
 var Rm = &charm.Spec{
 	Name:  "rm",
 	Usage: "intake rm",
-	Short: "delete intake",
+	Short: "delete an intake",
 	Long:  ``,
 	New:   NewRm,
 }

@@ -15,8 +15,12 @@ var Post = &charm.Spec{
 	Name:  "post",
 	Usage: "intake post <intake> <file|S3-object|->",
 	Short: "post data to intake",
-	Long:  ``,
-	New:   NewPost,
+	Long: `
+"intake post" sends the data in the file (or stdin if "-" is used) to the specified
+intake, where it will be processed by the intake's shaper, and any resulting
+data will be added to the intake's target space.
+`,
+	New: NewPost,
 }
 
 type PostCommand struct {

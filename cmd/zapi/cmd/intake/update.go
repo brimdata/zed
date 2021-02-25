@@ -13,9 +13,13 @@ import (
 var Update = &charm.Spec{
 	Name:  "update",
 	Usage: "intake update",
-	Short: "update intake",
-	Long:  ``,
-	New:   NewUpdate,
+	Short: "update an intake's configuration",
+	Long: `
+"intake update" can be used to change the configuration for an intake, including
+changing the configured shaper, target, or name. If desired, the intake's shaper
+and target space may be cleared by specifying an empty string for either.
+`,
+	New: NewUpdate,
 }
 
 type UpdateCommand struct {

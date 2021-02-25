@@ -13,7 +13,7 @@ import (
 var NewSpec = &charm.Spec{
 	Name:  "new",
 	Usage: "intake new <name>",
-	Short: "create intake",
+	Short: "create a new intake",
 	Long:  ``,
 	New:   NewNew,
 }
