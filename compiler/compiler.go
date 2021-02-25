@@ -16,7 +16,7 @@ import (
 func ParseProc(z string) (ast.Proc, error) {
 	parsed, err := zql.ParseZ(z)
 	if err != nil {
-		return nil, zql.ImproveError(z, err)
+		return nil, err
 	}
 	return ast.UnpackMapAsProc(parsed)
 }
