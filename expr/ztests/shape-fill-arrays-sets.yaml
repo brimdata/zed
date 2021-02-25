@@ -1,9 +1,11 @@
 zql: |
-  put . = fill(., {arr:[{b:string,a:string}],set:|[{b:string,a:string}]|})
+  put . = fill({arr:[{b:string,a:string}],set:|[{b:string,a:string}]|})
 
 input: |
   #0:record[arr:array[record[a:string]],set:set[record[a:string]]]
   0:[[[one;][three;]][[one;][three;]]]
+
+output-flags: -f tzng
 
 output: |
   #0:record[arr:array[record[a:string,b:string]],set:set[record[a:string,b:string]]]

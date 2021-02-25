@@ -199,8 +199,9 @@ func TestSortExternal(t *testing.T) {
 	sort.Strings(ss)
 	output := makeTzng(ss)
 	(&ztest.ZTest{
-		ZQL:    "sort s",
-		Input:  []string{input},
-		Output: output,
+		ZQL:         "sort s",
+		Input:       []string{input},
+		Output:      output,
+		OutputFlags: "-f tzng",
 	}).Run(t, "", "", "", "")
 }

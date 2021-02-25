@@ -1,0 +1,11 @@
+zql: summarize count() where _path=conn
+
+input: |
+  {_path:"conn"}
+  {_path:"dns"}
+  {_path:"conn"}
+
+output-flags: -pretty=0
+
+output: |
+  {count:2 (uint64)} (=0)

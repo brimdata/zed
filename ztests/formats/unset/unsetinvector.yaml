@@ -14,6 +14,8 @@ input: |
   -
   #close	2020-01-14-20-00-00
 
+output-flags: -f tzng
+
 output: |
   #0:record[_path:string,vector_int:array[int64]]
   0:[ArrayUnsets;[123;-;456;]]

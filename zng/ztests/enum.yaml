@@ -6,6 +6,8 @@ input: |
   0:[1;]
   0:[2;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]],s:string,v:int64]
   0:[0;foo;2;]

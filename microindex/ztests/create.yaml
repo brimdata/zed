@@ -1,6 +1,6 @@
 script: |
   microindex create -o index.zng -k a in.tzng
-  zq -t index.zng
+  zq -f tzng index.zng
 
 inputs:
   - name: in.tzng

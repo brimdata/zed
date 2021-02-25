@@ -12,6 +12,8 @@ input: |
   0:[1;a;]
   0:[3;e;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:set[record[x:int32]],b:set[record[x:int32,s:string]]]
   0:[[[1;][2;][3;]][[1;a;][2;b;][3;e;]]]

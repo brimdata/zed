@@ -1,7 +1,7 @@
 script: |
-  zq -t "count() where foo" in.tzng
+  zq -f tzng "count() where foo" in.tzng
   echo ===
-  zq -t "foo | count()" in.tzng
+  zq -f tzng "foo | count()" in.tzng
 
 inputs:
   - name: in.tzng

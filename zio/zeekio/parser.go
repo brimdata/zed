@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -23,6 +24,7 @@ type header struct {
 type Parser struct {
 	header
 	zctx       *resolver.Context
+	types      *tzngio.TypeParser
 	unknown    int // Count of unknown directives
 	needfields bool
 	needtypes  bool
@@ -43,6 +45,7 @@ func NewParser(r *resolver.Context) *Parser {
 	return &Parser{
 		header: header{separator: " "},
 		zctx:   r,
+		types:  tzngio.NewTypeParser(r),
 	}
 }
 
@@ -70,7 +73,7 @@ func (p *Parser) parseTypes(types []string) error {
 		p.needfields = true
 	}
 	for k, name := range types {
-		typ, err := zeekTypeToZng(name, p.zctx)
+		typ, err := zeekTypeToZng(name, p.types)
 		if err != nil {
 			return err
 		}

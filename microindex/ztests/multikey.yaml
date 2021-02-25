@@ -5,13 +5,13 @@ script: |
   zq -o sorted.zng "sum(v) by s | sort sum,s"  babble.tzng
   # convert assumes input keys already sorted and doesn't create new base records
   microindex convert -f 200 -o index.zng -k sum,s sorted.zng
-  microindex section -t -s 1 index.zng
+  microindex section -f tzng -s 1 index.zng
   echo ===
   # exact lookup of the one record
-  microindex lookup -t -k 149,wailer-strick index.zng
+  microindex lookup -f tzng -k 149,wailer-strick index.zng
   echo ===
   # don't cares for secondary key... returns multiple matches
-  microindex lookup -t -k 100 index.zng
+  microindex lookup -f tzng -k 100 index.zng
 
 inputs:
   - name: babble.tzng

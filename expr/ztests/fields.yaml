@@ -6,6 +6,8 @@ input: |
   #1:record[r:record[a:int8,b:int8],s:string]
   1:[[1;2;]a;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[fields:array[string],fields2:array[string]]
   0:[[r.a;s;][a;]]

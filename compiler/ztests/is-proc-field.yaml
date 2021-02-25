@@ -10,6 +10,8 @@ input: |
   2:[foo;]
   2:[bar;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:string]
   0:[foo;]

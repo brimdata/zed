@@ -1,5 +1,5 @@
 zql: |
-  put . = cast(., {a:|[ip]|,b:|[{b:ip}]|})
+  put . = cast({a:|[ip]|,b:|[{b:ip}]|})
 
 input: |
   #0:record[a:array[string],b:array[record[b:string]]]
@@ -8,6 +8,8 @@ input: |
   0:[[1.1.1.1;2.2.2.2;2.2.2.2;][[1.1.1.1;][2.2.2.2;][2.2.2.2;]]]
   0:[[-;1.1.1.1;][-;[-;][2.2.2.2;]]]
 
+
+output-flags: -f tzng
 
 output: |
   #0:record[a:set[ip],b:set[record[b:ip]]]

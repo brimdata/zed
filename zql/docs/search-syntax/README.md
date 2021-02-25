@@ -20,11 +20,11 @@
 
 ## Search all events
 
-The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a ZNG-formatted dump of all events. The default `zq` output is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll sometimes make use of the `-t` option to output the text-based TZNG format, which is readable at the command line.
+The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a ZNG-formatted dump of all events. The default `zq` output is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll sometimes make use of the `-f tzng` option to output the text-based TZNG format, which is readable at the command line.
 
 #### Example:
 ```zq-command
-zq -t '*' conn.log.gz
+zq -f tzng '*' conn.log.gz
 ```
 
 #### Output:
@@ -42,14 +42,14 @@ zq -t '*' conn.log.gz
 If the ZQL argument is left out entirely, this wildcard is the default search. The following shorthand command line would produce the same output shown above.
 
 ```
-zq -t conn.log.gz
+zq -f tzng conn.log.gz
 ```
 
 To start a ZQL pipeline with this default search, you can similarly leave out the leading `* |` before invoking your first [processor](#../processors/README.md) or [aggregate function](#../aggregate-functions/README.md).
 
 #### Example #1:
 ```zq-command
-zq -t 'cut server_tree_name' ntlm.log.gz # Shorthand for: zq '* | cut server_tree_name' ntlm.log.gz
+zq -f tzng 'cut server_tree_name' ntlm.log.gz # Shorthand for: zq '* | cut server_tree_name' ntlm.log.gz
 ```
 
 #### Output:
@@ -63,7 +63,7 @@ zq -t 'cut server_tree_name' ntlm.log.gz # Shorthand for: zq '* | cut server_tre
 
 #### Example #2:
 ```zq-command
-zq -t 'count() by _path | sort' *.log.gz  # Shorthand for: zq '* | count() by _path | sort' *.log.gz
+zq -f tzng 'count() by _path | sort' *.log.gz  # Shorthand for: zq '* | count() by _path | sort' *.log.gz
 ```
 
 #### Output:
@@ -253,7 +253,7 @@ When working with named fields, the data type of the field becomes significant i
 1. To match successfully, the value entered must be comparable to the data type of the named field. For instance, the `host` field of the `http` events in our sample data are of `string` type, since it logs an HTTP header that is often a hostname or an IP address.
 
    ```zq-command
-   zq -t 'count() by host | sort count,host' http.log.gz
+   zq -f tzng 'count() by host | sort count,host' http.log.gz
    ```
 
    #### Output:

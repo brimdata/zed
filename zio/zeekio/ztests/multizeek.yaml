@@ -13,6 +13,8 @@ input: |
   #types	time	int
   11.0	1
 
+output-flags: -f tzng
+
 output: |
   #0:record[_path:string,ts:time,d:float64]
   0:[a;10;1;]

@@ -16,6 +16,8 @@ input: |
   z,a
   -,z,a,,dup,dup
 
+output-flags: -f tzng
+
 output: |
   #0:record[f:set[bstring]]
   0:[-;]

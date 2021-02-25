@@ -1,6 +1,6 @@
 # one input has first bad line (detection fails)
 script: |
-  zq -t -e=false  "*" good.tzng bad.tzng > res.tzng
+  zq -f tzng -e=false  "*" good.tzng bad.tzng > res.tzng
 
 inputs:
   - name: good.tzng

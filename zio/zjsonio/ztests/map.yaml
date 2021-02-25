@@ -1,5 +1,5 @@
 script: |
-  zq -f zjson in.tzng | zq -t -
+  zq -f zjson in.tzng | zq -f tzng -
 
 
 inputs:

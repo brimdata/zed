@@ -54,7 +54,7 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 		opts.JSON.TypeConfig = req.JSONTypeConfig
 		opts.JSON.PathRegexp = ndjsonio.DefaultPathRegexp
 	}
-	proc, err := ast.UnpackJSON(nil, req.Shaper)
+	proc, err := ast.UnpackJSON(req.Shaper)
 	if err != nil {
 		return nil, err
 	}

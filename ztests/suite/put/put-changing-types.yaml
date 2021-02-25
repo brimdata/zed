@@ -7,6 +7,8 @@ input: |
   0:[0;]
   0:[1;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[x:int32,y:int32]
   0:[0;0;]

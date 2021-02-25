@@ -1,7 +1,7 @@
 script: |
-  zq -t "_path=conn | count()" in.tzng
+  zq -f tzng "_path=conn | count()" in.tzng
   echo ===
-  zq -t "count() where _path=conn" in.tzng
+  zq -f tzng "count() where _path=conn" in.tzng
 
 inputs:
   - name: in.tzng

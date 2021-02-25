@@ -370,7 +370,7 @@ func (r *Reader) readTypeSet() error {
 	if err != nil {
 		return err
 	}
-	r.zctx.AddType(&zng.TypeSet{Type: typ})
+	r.zctx.LookupTypeSet(typ)
 	return nil
 }
 
@@ -434,7 +434,7 @@ func (r *Reader) readTypeMap() error {
 	if err != nil {
 		return err
 	}
-	r.zctx.AddType(&zng.TypeMap{KeyType: keyType, ValType: valType})
+	r.zctx.LookupTypeMap(keyType, valType)
 	return nil
 }
 
@@ -447,7 +447,7 @@ func (r *Reader) readTypeArray() error {
 	if err != nil {
 		return err
 	}
-	r.zctx.AddType(zng.NewTypeArray(-1, inner))
+	r.zctx.LookupTypeArray(inner)
 	return nil
 }
 
@@ -477,10 +477,18 @@ func (r *Reader) readTypeAlias() error {
 }
 
 func (r *Reader) parseValue(rec *zng.Record, id int, b []byte) (*zng.Record, error) {
-	typ := r.zctx.Lookup(id)
-	if typ == nil {
+	typ, err := r.zctx.LookupType(id)
+	if typ == nil || err != nil {
 		return nil, zng.ErrTypeIDInvalid
 	}
+	if _, ok := zng.AliasedType(typ).(*zng.TypeRecord); !ok {
+		// An "id" of a top-level zng value not conforming with a
+		// record type is valid zng data but not supported by zq.
+		// This can also happen when trying to parse random non-zng
+		// data by the auto-dector.
+		return nil, errors.New("non-record, top-level zng values are not supported")
+	}
+
 	sharedType := r.mapper.Map(id)
 	if sharedType == nil {
 		var err error

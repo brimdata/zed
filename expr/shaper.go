@@ -6,7 +6,6 @@ import (
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zson"
 )
 
 // A ShaperTransform represents one of the different transforms that a
@@ -253,8 +252,7 @@ func NewShaper(zctx *resolver.Context, fieldExpr, typExpr Evaluator, tf ShaperTr
 	if lit.zv.Type != zng.TypeType {
 		return nil, fmt.Errorf("shaper needs a type value as second parameter")
 	}
-	tt := zson.NewTypeTable(zctx)
-	shapeToType, err := tt.LookupType(string(lit.zv.Bytes))
+	shapeToType, err := zctx.Context.LookupByName(string(lit.zv.Bytes))
 	if err != nil {
 		return nil, fmt.Errorf("shaper could not parse type value literal: %s", err)
 	}

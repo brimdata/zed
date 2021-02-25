@@ -1,4 +1,4 @@
-script: zq -t -j types.json "*" in.zng
+script: zq -f tzng -j types.json "*" in.zng
 
 
 inputs:

@@ -6,6 +6,8 @@ input: |
   {"id":27,"values":[["2",["\"a\"","\"b\""]]]}
   {"id":27,"values":[["3",["1","123"]]]}
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:union[string,array[int32],array[string],union[string,int32]]]
   0:[0:"hello";]

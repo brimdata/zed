@@ -7,7 +7,6 @@ import (
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -35,7 +34,7 @@ func TestZsonParser(t *testing.T) {
 	assert.NotEqual(t, s, "")
 }
 
-func analyze(zctx *resolver.Context, path string) (zson.Value, error) {
+func analyze(zctx *zson.Context, path string) (zson.Value, error) {
 	val, err := parse(path)
 	if err != nil {
 		return nil, err
@@ -45,14 +44,14 @@ func analyze(zctx *resolver.Context, path string) (zson.Value, error) {
 }
 
 func TestZsonAnalyzer(t *testing.T) {
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	val, err := analyze(zctx, testFile)
 	require.NoError(t, err)
 	assert.NotNil(t, val)
 }
 
 func TestZsonBuilder(t *testing.T) {
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	val, err := analyze(zctx, testFile)
 	require.NoError(t, err)
 	b := zson.NewBuilder()

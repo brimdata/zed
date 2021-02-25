@@ -14,13 +14,13 @@ script: |
   # Create 2 spaces for each user, using the same name for one of the spaces,
   # export their space id for later usage.
   zapi -configpath ./user1 -h $ZQD_HOST new testsp0
-  export USER1_SP0=$(zapi -configpath ./user1 -h $ZQD_HOST info testsp0 | grep "id:" | head -n 1 | awk '{print $2}')
+  export USER1_SP0=$(zapi -configpath ./user1 -h $ZQD_HOST ls -l -f zng | zq -f text "name=testsp0 | pick id" -)
   zapi -configpath ./user1 -h $ZQD_HOST new testsp1
-  export USER1_SP1=$(zapi -configpath ./user1 -h $ZQD_HOST info testsp1 | grep "id:" | head -n 1 | awk '{print $2}')
+  export USER1_SP1=$(zapi -configpath ./user1 -h $ZQD_HOST ls -l -f zng | zq -f text "name=testsp1 | pick id" -)
   zapi -configpath ./user2 -h $ZQD_HOST new testsp0
-  export USER2_SP0=$(zapi -configpath ./user2 -h $ZQD_HOST info testsp0 | grep "id:" | head -n 1 | awk '{print $2}')
+  export USER2_SP0=$(zapi -configpath ./user2 -h $ZQD_HOST ls -l -f zng | zq -f text "name=testsp0 | pick id" -)
   zapi -configpath ./user2 -h $ZQD_HOST new testsp2
-  export USER2_SP2=$(zapi -configpath ./user2 -h $ZQD_HOST info testsp2| grep "id:" | head -n 1 | awk '{print $2}')
+  export USER2_SP2=$(zapi -configpath ./user2 -h $ZQD_HOST ls -l -f zng | zq -f text "name=testsp2 | pick id" -)
   echo ===
   # List the spaces for each user, and verify that they see only the spaces
   # that they created.
@@ -71,10 +71,12 @@ outputs:
       testsp2: space created
       ===
       user1 ls
-      testsp0   testsp1
+      testsp0
+      testsp1
       ===
       user2 ls
-      testsp0   testsp2
+      testsp0
+      testsp2
       ===
       user1 info
       status code 403: forbidden

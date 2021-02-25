@@ -80,7 +80,7 @@ func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts zio.Rea
 	case "zng":
 		return zngio.NewReaderWithOpts(r, zctx, opts.Zng), nil
 	case "zson":
-		return zson.NewReader(r, zctx), nil
+		return zson.NewReader(r, zctx.Context), nil
 	case "zst":
 		return zstio.NewReader(r, zctx)
 	}

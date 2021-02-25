@@ -7,5 +7,6 @@ input: &input |
   0:[-;]
   0:[;]
 
-output: *input
+output-flags: -f tzng
 
+output: *input

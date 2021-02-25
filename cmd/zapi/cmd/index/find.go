@@ -55,7 +55,6 @@ type FindCmd struct {
 	indexFile     string
 	pathField     string
 	relativePaths bool
-	zng           bool
 	outputFlags   outputflags.Flags
 }
 
@@ -64,7 +63,6 @@ func NewFind(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
 	f.StringVar(&c.pathField, "l", lake.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
-	f.BoolVar(&c.zng, "z", false, "write results as zng stream rather than list of files")
 
 	// Flags added for writers are -f, -T, -F, -E, -U, and -b
 	c.outputFlags.SetFlags(f)

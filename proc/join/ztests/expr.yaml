@@ -1,11 +1,11 @@
 script: |
-  zq -t -P 'join s b' A.tzng B.tzng
+  zq -f tzng -P 'join s b' A.tzng B.tzng
   echo ===
-  zq -t -P 'join s=(to_lower(s)) b' A.tzng B.tzng
+  zq -f tzng -P 'join s=(to_lower(s)) b' A.tzng B.tzng
   echo ===
-  zq -t -P 'join (to_lower(s))=(to_lower(s)) b' A.tzng B.tzng
+  zq -f tzng -P 'join (to_lower(s))=(to_lower(s)) b' A.tzng B.tzng
   echo ===
-  zq -t -P 'join s' A.tzng B.tzng
+  zq -f tzng -P 'join s' A.tzng B.tzng
 
 inputs:
   - name: A.tzng

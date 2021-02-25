@@ -42,6 +42,7 @@ func ensureSequentialProc(p ast.Proc) *ast.SequentialProc {
 		return p
 	}
 	return &ast.SequentialProc{
+		Op:    "SequentialProc",
 		Procs: []ast.Proc{p},
 	}
 }
@@ -101,6 +102,7 @@ func Transform(p ast.Proc) (ast.Proc, error) {
 	case *ast.GroupByProc:
 		if duration := p.Duration.Seconds; duration != 0 {
 			durationKey := ast.Assignment{
+				Op:  "Assignment",
 				LHS: ast.NewDotExpr(field.New("ts")),
 				RHS: &ast.FunctionCall{
 					Op:       "FunctionCall",
@@ -176,8 +178,13 @@ func convertFunctionProc(call *ast.FunctionCall) (ast.Proc, error) {
 		Expr:     e,
 	}
 	return &ast.GroupByProc{
-		Op:       "GroupByProc",
-		Reducers: []ast.Assignment{{RHS: reducer}},
+		Op: "GroupByProc",
+		Reducers: []ast.Assignment{
+			{
+				Op:  "Assignment",
+				RHS: reducer,
+			},
+		},
 	}, nil
 }
 
@@ -282,7 +289,7 @@ func copyProc(p ast.Proc) ast.Proc {
 	if err != nil {
 		panic(err)
 	}
-	copy, err := ast.UnpackJSON(nil, b)
+	copy, err := ast.UnpackJSON(b)
 	if err != nil {
 		panic(err)
 	}

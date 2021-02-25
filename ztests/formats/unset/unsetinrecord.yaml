@@ -12,6 +12,8 @@ input: |
   -	-
   #close	2020-01-14-20-00-00
 
+output-flags: -f tzng
+
 output: |
   #0:record[_path:string,rec:record[a:int64,b:int64]]
   0:[ArrayGap;[-;-;]]

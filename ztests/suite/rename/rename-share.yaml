@@ -6,6 +6,8 @@ input: |
   #0:record[id:record[orig_h:port,resp_h:port]]
   0:[[39681;3389;]]
 
+output-flags: -f tzng
+
 output: |
   #port=uint16
   #0:record[id:record[orig_h:port]]

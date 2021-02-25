@@ -22,11 +22,6 @@ func (t *TypeSet) ID() int {
 	return t.id
 }
 
-//XXX get rid of this when we implement full ZNG
-func (t *TypeSet) SetID(id int) {
-	t.id = id
-}
-
 func (t *TypeSet) String() string {
 	return fmt.Sprintf("set[%s]", t.Type)
 }

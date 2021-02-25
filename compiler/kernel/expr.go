@@ -311,7 +311,7 @@ func compileCast(zctx *resolver.Context, scope *Scope, node ast.CastExpression) 
 		return nil, err
 	}
 	//XXX we should handle runtime resolution of typedef names
-	typ, err := zson.TranslateType(zctx, node.Type)
+	typ, err := zson.TranslateType(zctx.Context, node.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -441,17 +441,21 @@ func isShaperFunc(name string) bool {
 }
 
 func compileShaper(zctx *resolver.Context, scope *Scope, node ast.FunctionCall) (*expr.Shaper, error) {
-	if len(node.Args) < 2 {
+	args := node.Args
+	if len(args) == 1 {
+		args = append([]ast.Expression{&ast.RootRecord{}}, args...)
+	}
+	if len(args) < 2 {
 		return nil, function.ErrTooFewArgs
 	}
-	if len(node.Args) > 2 {
+	if len(args) > 2 {
 		return nil, function.ErrTooManyArgs
 	}
-	field, err := compileExpr(zctx, scope, node.Args[0])
+	field, err := compileExpr(zctx, scope, args[0])
 	if err != nil {
 		return nil, err
 	}
-	ev, err := compileExpr(zctx, scope, node.Args[1])
+	ev, err := compileExpr(zctx, scope, args[1])
 	if err != nil {
 		return nil, err
 	}
@@ -489,7 +493,7 @@ func compileCall(zctx *resolver.Context, scope *Scope, node ast.FunctionCall) (e
 		return expr.NewExists(zctx, exprs), nil
 	}
 	nargs := len(node.Args)
-	fn, root, err := function.New(zctx, node.Function, nargs)
+	fn, root, err := function.New(zctx.Context, node.Function, nargs)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", node.Function, err)
 	}
@@ -527,7 +531,7 @@ func compileTypeExpr(zctx *resolver.Context, scope *Scope, t ast.TypeExpr) (expr
 		// See issue #2182.
 		return expr.NewTypeFunc(zctx, typ.Name), nil
 	}
-	typ, err := zson.TranslateType(zctx, t.Type)
+	typ, err := zson.TranslateType(zctx.Context, t.Type)
 	if err != nil {
 		return nil, err
 	}

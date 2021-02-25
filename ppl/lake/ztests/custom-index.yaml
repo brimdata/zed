@@ -3,7 +3,7 @@ script: |
   zar import -R logs babble.tzng
   zar index create -R logs -q -f 500 -o customindex -z "sum(v) by s | put key=s | sort key"
   echo ===
-  zar find -R logs -x customindex -z -f tzng "inelegancy-Atoxyl" | zq -f tzng "cut s, sum" -
+  zar find -R logs -x customindex "inelegancy-Atoxyl" | zq -f tzng "cut s, sum" -
 
 inputs:
   - name: babble.tzng

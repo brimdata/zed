@@ -9,6 +9,8 @@ input: |
   1:[5;]
   1:[7;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[[.]:record[x:int32,s:string],count:uint64]
   0:[[1;foo;]1;]

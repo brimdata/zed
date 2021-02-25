@@ -1,7 +1,7 @@
 script: |
   zar import -R logs -s 32B -
-  zar zq -t -R logs "*" > 1.tzng
-  zar zq -t -R logs "*" > 2.tzng
+  zar zq -f tzng -R logs "*" > 1.tzng
+  zar zq -f tzng -R logs "*" > 2.tzng
   diff 1.tzng 2.tzng && echo success
 
 inputs:

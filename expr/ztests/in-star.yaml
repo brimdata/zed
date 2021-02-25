@@ -6,6 +6,8 @@ input: |
   0:[[1;]]
   0:[[2;3;]]
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:array[uint32]]
   0:[[1;2;]]

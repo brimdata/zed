@@ -3,6 +3,8 @@ zql: put .=a
 input: |
   {"a": {"a": "a", "b": "b"}, "b": "b"}
 
+output-flags: -f tzng
+
 output: |
    #0:record[a:string,b:string]
    0:[a;b;]

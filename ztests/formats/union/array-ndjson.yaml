@@ -9,6 +9,8 @@ input: |
   {"d":["foo", false, ["foo", 2], {"dd": ["foo", 2, true]}]}
   {"f":["foo", false, ["foo", 2], {"d.d": ["foo", 2, true]}]}
 
+output-flags: -f tzng
+
 output: |
   #0:record[a:array[union[string,int64]]]
   0:[[0:foo;1:1;]]

@@ -6,6 +6,8 @@ input: |
   0:[[hello;]]
   0:[[world;]]
 
+output-flags: -f tzng
+
 output: |
   #0:record[r:record[s:string],r2:record[s:string]]
   0:[[hello;][hello;]]

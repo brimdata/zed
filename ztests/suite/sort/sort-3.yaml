@@ -29,6 +29,8 @@ input: |
   0:[[0;3094;5;]1;]
   0:[[0;2961;]1;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[TTLs:array[duration],count:uint64]
   0:[[0;]18;]
@@ -57,4 +59,3 @@ output: |
   0:[[0;2961;]1;]
   0:[[0;3094;5;]1;]
   0:[[0;14799;1;]1;]
-

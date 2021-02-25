@@ -1,7 +1,7 @@
 # create a zng with sos every two records then index it as a time index
 script: |
   zq -b 2 - | microindex seek -f 100 -o index.zng -k ts -
-  zq -t index.zng
+  zq -f tzng index.zng
 
 inputs:
   - name: stdin
