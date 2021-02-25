@@ -283,6 +283,7 @@ type (
 	// A JoinProc node represents a proc that joins two zng streams.
 	JoinProc struct {
 		Op       string       `json:"op" unpack:""`
+		Kind     string       `json:"kind"`
 		LeftKey  Expression   `json:"left_key"`
 		RightKey Expression   `json:"right_key"`
 		Clauses  []Assignment `json:"clauses"`

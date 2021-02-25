@@ -445,20 +445,26 @@ FuseProc
     }
 
 JoinProc
-  = "join"i _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("op": "JoinProc", "left_key": leftKey, "right_key": rightKey, "clauses": NULL)
+  = kind:JoinKind "join"i _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
+      VAR(proc) = MAP("op": "JoinProc", "kind": kind, "left_key": leftKey, "right_key": rightKey, "clauses": NULL)
       if ISNOTNULL(columns) {
         proc["clauses"] = ASSERT_ARRAY(columns)[1]
       }
       RETURN(proc)
     }
-  / "join"i _ key:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("op": "JoinProc", "left_key": key, "right_key": key, "clauses": NULL)
+  / kind:JoinKind  "join"i _ key:JoinKey columns:(_ FlexAssignments)? {
+      VAR(proc) = MAP("op": "JoinProc", "kind": kind, "left_key": key, "right_key": key, "clauses": NULL)
       if ISNOTNULL(columns) {
         proc["clauses"] = ASSERT_ARRAY(columns)[1]
       }
       RETURN(proc)
     }
+
+JoinKind
+  = "inner"i _ { RETURN("inner") }
+  / "left"i  _ { RETURN("left") }
+  / "right"i _ { RETURN("right") }
+  / ""         { RETURN("inner") }
 
 JoinKey
   = Lval
