@@ -2,7 +2,9 @@ package zql
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -113,4 +115,56 @@ func makeUnicodeChar(chars interface{}) string {
 	}
 
 	return string(r)
+}
+
+var syntaxRegexp = regexp.MustCompile(`^([0-9]+):([0-9]+) \(([0-9]+)\): no match found`)
+
+func ImproveError(src string, e error) error {
+	fmt.Printf("===\n%s===\n", src)
+	hits := syntaxRegexp.FindStringSubmatch(e.Error())
+	if len(hits) != 4 {
+		return e
+	}
+	lineNo, err := strconv.Atoi(hits[1])
+	if err != nil {
+		return e
+	}
+	colNo, err := strconv.Atoi(hits[2])
+	if err != nil {
+		return e
+	}
+	if colNo > 100 {
+		return e
+	}
+	_, err = strconv.Atoi(hits[3])
+	if err != nil {
+		return e
+	}
+	lineNo--
+	lines := strings.Split(src, "\n")
+	if lineNo >= len(lines) {
+		return e
+	}
+	var b strings.Builder
+	if len(lines) == 1 {
+		b.WriteString(fmt.Sprintf("error parsing Z at column %d:\n", colNo))
+	} else {
+		b.WriteString(fmt.Sprintf("error parsing Z at line %d, col %d:", lineNo+1, colNo))
+	}
+	b.WriteString(strings.Join(lines[:lineNo+1], "\n"))
+	b.WriteByte('\n')
+	for k := 0; k < colNo; k++ {
+		if k >= colNo-4 && k != colNo-1 {
+			b.WriteByte('=')
+		} else {
+			b.WriteByte(' ')
+		}
+	}
+	b.WriteByte('^')
+	b.WriteString(" ===")
+	if lineNo+1 < len(lines) {
+		b.WriteByte('\n')
+		b.WriteString(strings.Join(lines[lineNo+1:], "\n"))
+	}
+	return errors.New(strings.TrimRight(b.String(), "\n"))
 }

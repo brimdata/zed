@@ -1,0 +1,13 @@
+script: |
+  zq -z 'count() by ,x,y' -
+
+inputs:
+  - name: stdin
+    data: ""
+
+outputs:
+  - name: stderr
+    data: |
+      zq: parse error: error parsing Z at column 12:
+      count() by ,x,y
+              === ^ ===
