@@ -1,9 +1,11 @@
 #!/bin/bash
 
 # start two zqd workers and a zqd root process
-zqd listen -l=localhost:0 -portfile=$portdir/zqd-w1 -data=$zqdroot -loglevel=warn -suricataupdater=true &> zqd-w1.log &
+mkdir -p worker_root_1
+zqd listen -l=localhost:0 -portfile=$portdir/zqd-w1 -data=worker_root_1 -loglevel=warn -suricataupdater=true &> zqd-w1.log &
 zqdw1pid=$!
-zqd listen -l=localhost:0 -portfile=$portdir/zqd-w2 -data=$zqdroot -loglevel=warn -suricataupdater=true &> zqd-w2.log &
+mkdir -p worker_root_2
+zqd listen -l=localhost:0 -portfile=$portdir/zqd-w2 -data=worker_root_2 -loglevel=warn -suricataupdater=true &> zqd-w2.log &
 zqdw2pid=$!
 
 awaitfile $portdir/zqd-w1
