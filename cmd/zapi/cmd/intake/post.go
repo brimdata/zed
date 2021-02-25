@@ -13,7 +13,7 @@ import (
 
 var Post = &charm.Spec{
 	Name:  "post",
-	Usage: "intake post",
+	Usage: "intake post <intake> <file|S3-object|->",
 	Short: "post data to intake",
 	Long:  ``,
 	New:   NewPost,

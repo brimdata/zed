@@ -22,11 +22,9 @@ script: |
   echo ===
 
   # Create an intake for each user, specifying a target space, and verify
-  # the reported ids match.
+  # the reported ids match, and each user only sees their intakes.
   export USER1_IN1=$($zapi_user1 intake new -f zng -target user1space1 user1intake1 | zq -f text "pick id" -)
   export USER2_IN2=$($zapi_user2 intake new -f zng -target user2space2 user2intake2 | zq -f text "pick id" -)
-  # List the spaces for each user, and verify that they see only the intakes
-  # that they created.
   echo user1 intake ls
   $zapi_user1 intake ls
   test $($zapi_user1 intake ls -l -f zng | zq -f text "pick target_space_id" -) = $USER1_SP1 && echo user1 space1 intake1 id match
