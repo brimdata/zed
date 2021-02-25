@@ -2,6 +2,7 @@ package zql
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
@@ -113,4 +114,59 @@ func makeUnicodeChar(chars interface{}) string {
 	}
 
 	return string(r)
+}
+
+func ImproveError(src string, e error) error {
+	el, ok := e.(errList)
+	if !ok || len(el) != 1 {
+		return e
+	}
+	pe, ok := el[0].(*parserError)
+	if !ok {
+		return e
+	}
+	lineNo, colNo := pe.pos.line-1, pe.pos.col
+	lines := strings.Split(src, "\n")
+	if lineNo >= len(lines) {
+		return e
+	}
+	var b strings.Builder
+	if len(lines) == 1 {
+		b.WriteString(fmt.Sprintf("error parsing Z at column %d:\n", colNo))
+	} else {
+		b.WriteString(fmt.Sprintf("error parsing Z at line %d, col %d:", lineNo+1, colNo))
+	}
+	b.WriteString(strings.Join(lines[:lineNo+1], "\n"))
+	b.WriteByte('\n')
+	colNo--
+	for k := 0; k < colNo; k++ {
+		if k >= colNo-4 && k != colNo-1 {
+			b.WriteByte('=')
+		} else {
+			b.WriteByte(' ')
+		}
+	}
+	b.WriteByte('^')
+	b.WriteString(" ===")
+	if lineNo+1 < len(lines) {
+		b.WriteByte('\n')
+		b.WriteString(strings.Join(lines[lineNo+1:], "\n"))
+	}
+	return errors.New(strings.TrimRight(b.String(), "\n"))
+}
+
+func ParseZ(src string) (interface{}, error) {
+	p, err := Parse("", []byte(src))
+	if err != nil {
+		return nil, ImproveError(src, err)
+	}
+	return p, nil
+}
+
+func ParseZByRule(rule, src string) (interface{}, error) {
+	p, err := Parse("", []byte(src), Entrypoint(rule))
+	if err != nil {
+		return nil, ImproveError(src, err)
+	}
+	return p, nil
 }
