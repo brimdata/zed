@@ -2,6 +2,6 @@
 
 package rlimit
 
-func raiseOpenFilesLimit() (uint64, error) {
+func raiseOpenFilesLimit() (int, error) {
 	return 0, nil
 }

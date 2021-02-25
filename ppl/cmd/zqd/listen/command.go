@@ -107,7 +107,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		c.logger.Warn("Raising open files limit failed", zap.Error(err))
 	}
-	c.conf.Logger.Info("Open files limit raised", zap.Uint64("limit", openFilesLimit))
+	c.conf.Logger.Info("Open files limit raised", zap.Int("limit", openFilesLimit))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
