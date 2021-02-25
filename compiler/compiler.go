@@ -13,8 +13,8 @@ import (
 
 // ParseProc() is an entry point for use from external go code,
 // mostly just a wrapper around Parse() that casts the return value.
-func ParseProc(z string, opts ...zql.Option) (ast.Proc, error) {
-	parsed, err := zql.Parse("", []byte(z), opts...)
+func ParseProc(z string) (ast.Proc, error) {
+	parsed, err := zql.ParseZ(z)
 	if err != nil {
 		return nil, zql.ImproveError(z, err)
 	}
@@ -22,7 +22,7 @@ func ParseProc(z string, opts ...zql.Option) (ast.Proc, error) {
 }
 
 func ParseExpression(expr string) (ast.Expression, error) {
-	m, err := zql.Parse("", []byte(expr), zql.Entrypoint("Expr"))
+	m, err := zql.ParseZByRule("Expr", expr)
 	if err != nil {
 		return nil, err
 	}

@@ -149,7 +149,7 @@ func (c *Command) Run(args []string) error {
 	}
 	query, err := compiler.ParseProc(zqlSrc)
 	if err != nil {
-		return fmt.Errorf("zq: parse error: %s", err)
+		return fmt.Errorf("zq: parse error: %w", err)
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err

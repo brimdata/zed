@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"regexp"
 	"strconv"
 	"strings"
 )
@@ -117,30 +116,16 @@ func makeUnicodeChar(chars interface{}) string {
 	return string(r)
 }
 
-var syntaxRegexp = regexp.MustCompile(`^([0-9]+):([0-9]+) \(([0-9]+)\): no match found`)
-
 func ImproveError(src string, e error) error {
-	fmt.Printf("===\n%s===\n", src)
-	hits := syntaxRegexp.FindStringSubmatch(e.Error())
-	if len(hits) != 4 {
+	el, ok := e.(errList)
+	if !ok || len(el) != 1 {
 		return e
 	}
-	lineNo, err := strconv.Atoi(hits[1])
-	if err != nil {
+	pe, ok := el[0].(*parserError)
+	if !ok {
 		return e
 	}
-	colNo, err := strconv.Atoi(hits[2])
-	if err != nil {
-		return e
-	}
-	if colNo > 100 {
-		return e
-	}
-	_, err = strconv.Atoi(hits[3])
-	if err != nil {
-		return e
-	}
-	lineNo--
+	lineNo, colNo := pe.pos.line-1, pe.pos.col
 	lines := strings.Split(src, "\n")
 	if lineNo >= len(lines) {
 		return e
@@ -168,4 +153,20 @@ func ImproveError(src string, e error) error {
 		b.WriteString(strings.Join(lines[lineNo+1:], "\n"))
 	}
 	return errors.New(strings.TrimRight(b.String(), "\n"))
+}
+
+func ParseZ(src string) (interface{}, error) {
+	p, err := Parse("", []byte(src))
+	if err != nil {
+		return nil, ImproveError(src, err)
+	}
+	return p, nil
+}
+
+func ParseZByRule(rule, src string) (interface{}, error) {
+	p, err := Parse("", []byte(src), Entrypoint(rule))
+	if err != nil {
+		return nil, ImproveError(src, err)
+	}
+	return p, nil
 }
