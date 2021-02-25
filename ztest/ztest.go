@@ -430,43 +430,54 @@ func (z *ZTest) RunScript(testname, shellPath, workingDir, filename string) erro
 }
 
 func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
+	skip, err := z.RunTest(testname, path, dirname, filename)
+	if skip != "" {
+		t.Skip(skip)
+	}
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func (z *ZTest) RunTest(tmpDirName, shellPath, dirname, filename string) (string, error) {
 	if err := z.check(); err != nil {
-		t.Fatalf("%s: bad yaml format: %s", filename, err)
+		return "", fmt.Errorf("%s: bad yaml format: %s", filename, err)
 	}
 	if z.Script != "" {
-		if msg := z.ShouldSkip(path); msg != "" {
-			t.Skip(msg)
+		if msg := z.ShouldSkip(shellPath); msg != "" {
+			return msg, nil
 		}
-		if err := z.RunScript(testname, path, dirname, filename); err != nil {
-			t.Fatalf("%s: %s", filename, err)
+		if err := z.RunScript(tmpDirName, shellPath, dirname, filename); err != nil {
+			return "", fmt.Errorf("%s: %w", filename, err)
 		}
-		return
+		return "", nil
 	}
 	outputFlags := append([]string{"-f", "zson", "-pretty=0"}, strings.Fields(z.OutputFlags)...)
-	out, errout, err := runzq(path, z.ZQL, outputFlags, z.Input...)
+	out, errout, err := runzq(shellPath, z.ZQL, outputFlags, z.Input...)
 	if err != nil {
 		if z.errRegex != nil {
 			if !z.errRegex.MatchString(errout) {
-				t.Fatalf("%s: error doesn't match expected error regex: %s %s", filename, z.ErrorRE, errout)
+				return "", fmt.Errorf("%s: error doesn't match expected error regex: %s %s", filename, z.ErrorRE, errout)
 			}
 		} else {
 			if out != "" {
 				out = "\noutput:\n" + out
 			}
-			t.Fatalf("%s: %s%s", filename, err, out)
+			return "", fmt.Errorf("%s: %w %s", filename, err, out)
 		}
 	} else if z.errRegex != nil {
-		t.Fatalf("%s: no error when expecting error regex: %s", filename, z.ErrorRE)
+		return "", fmt.Errorf("%s: no error when expecting error regex: %s", filename, z.ErrorRE)
 	} else if z.Warnings != errout {
-		t.Fatalf("%s: %s", filename, diffErr("warnings", z.Warnings, errout))
+		return "", fmt.Errorf("%s: %s", filename, diffErr("warnings", z.Warnings, errout))
 	}
 	expectedOut, err := z.getOutput()
 	if err != nil {
-		t.Fatalf("%s: getting test output: %s", filename, err)
+		return "", fmt.Errorf("%s: getting test output: %w", filename, err)
 	}
 	if expectedOut != out {
-		t.Fatalf("%s: %s", filename, diffErr("output", expectedOut, out))
+		return "", fmt.Errorf("%s: %s", filename, diffErr("output", expectedOut, out))
 	}
+	return "", nil
 }
 
 func diffErr(name, expected, actual string) error {
@@ -531,10 +542,10 @@ func checkData(files map[string][]byte, dir *Dir, stdout, stderr string) error {
 	return nil
 }
 
-func runsh(testname, path, dirname string, zt *ZTest) error {
-	dir, err := NewDir(testname)
+func runsh(tmpDirName, path, dirname string, zt *ZTest) error {
+	dir, err := NewDir(tmpDirName)
 	if err != nil {
-		return fmt.Errorf("creating ztest scratch dir: \"%s\": %w", testname, err)
+		return fmt.Errorf("creating ztest scratch dir: \"%s\": %w", tmpDirName, err)
 	}
 	var stdin io.Reader
 	defer dir.RemoveAll()
@@ -661,9 +672,6 @@ func lookupzq(path string) (string, error) {
 		zq, err := exec.LookPath(filepath.Join(dir, "zq"))
 		if err == nil {
 			return zq, nil
-		}
-		if !errors.Is(err, exec.ErrNotFound) {
-			return "", err
 		}
 	}
 	return "", zqe.E(zqe.NotFound)
