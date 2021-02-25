@@ -8,6 +8,8 @@ input: |
   #2:record[t:float64,d:float64]
   2:[1;1;]
 
+output-flags: -f tzng
+
 output: |
   #0:record[t:time,d:duration]
   0:[0.000000001;0.000000001;]
