@@ -7,7 +7,7 @@ import (
 	"syscall"
 )
 
-func raiseOpenFilesLimit() (int, error) {
+func raiseOpenFilesLimit() (uint64, error) {
 	rlimit, err := maxRlimit()
 	if err != nil {
 		return 0, err
@@ -18,5 +18,5 @@ func raiseOpenFilesLimit() (int, error) {
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlimit); err != nil {
 		return 0, fmt.Errorf("getrlimit: %w", err)
 	}
-	return int(rlimit.Cur), nil
+	return uint64(rlimit.Cur), nil
 }
