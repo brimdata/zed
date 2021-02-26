@@ -1,8 +1,6 @@
 FROM golang:1.15-alpine AS build
 RUN apk --update add ca-certificates
 
-ARG LDFLAGS
-
 # All these steps will be cached
 RUN mkdir /build
 WORKDIR /build
@@ -15,6 +13,8 @@ COPY go.mod go.sum ./
 RUN go mod download
 # COPY the source code as the last step
 COPY . .
+
+ARG LDFLAGS
 
 # And compile the project 
 # CGO_ENABLED and installsuffix are part of the scheme to get better caching on builds
