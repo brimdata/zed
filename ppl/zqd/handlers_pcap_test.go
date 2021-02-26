@@ -224,6 +224,70 @@ func launcherFromEnv(t *testing.T, key string) pcapanalyzer.Launcher {
 	return ln
 }
 
+func testLauncher(start, wait procFn) pcapanalyzer.Launcher {
+	return func(ctx context.Context, r io.Reader, dir string) (pcapanalyzer.ProcessWaiter, error) {
+		p := &testPcapProcess{
+			ctx:    ctx,
+			reader: r,
+			wd:     dir,
+			wait:   wait,
+			start:  start,
+		}
+		return p, p.Start()
+	}
+}
+
+type testPcapProcess struct {
+	ctx    context.Context
+	reader io.Reader
+	wd     string
+	start  procFn
+	wait   procFn
+}
+
+func (p *testPcapProcess) Start() error {
+	if p.start != nil {
+		return p.start(p)
+	}
+	return nil
+}
+
+func (p *testPcapProcess) Wait() error {
+	if p.wait != nil {
+		return p.wait(p)
+	}
+	_, err := ioutil.ReadAll(p.reader)
+	return err
+}
+
+func (p *testPcapProcess) Stdout() string { return "" }
+
+type procFn func(t *testPcapProcess) error
+
+func writeLogsFn(logs []string) procFn {
+	return func(p *testPcapProcess) error {
+		for _, log := range logs {
+			r, err := fs.Open(log)
+			if err != nil {
+				return err
+			}
+			defer r.Close()
+			base := filepath.Base(r.Name())
+			w, err := os.Create(filepath.Join(p.wd, base))
+			if err != nil {
+				return err
+			}
+			defer w.Close()
+			if _, err = io.Copy(w, r); err != nil {
+				return err
+			}
+		}
+		// drain the reader
+		_, err := io.Copy(ioutil.Discard, p.reader)
+		return err
+	}
+}
+
 type pcapPostTestResult struct {
 	client   *client.Connection
 	core     *zqd.Core
@@ -250,3 +314,4 @@ func testPcapPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string) pcap
 		client:   client,
 	}
 }
+
