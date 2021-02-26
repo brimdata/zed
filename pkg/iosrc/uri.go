@@ -21,7 +21,7 @@ const (
 // as a URI. A path's prefix must be in the form of scheme:path//. This deviates
 // from the RFC for a URI's generic syntax which allows for scheme:path. There
 // may be a valid relative file path that matches scheme:path. For our purposes
-// we want to error on the side of reading a path as a file.
+// we want to err on the side of reading a path as a file.
 var uriRegexp = regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9+-.]*://")
 
 // ParseURI parses the path using `url.Parse`. If the provided uri does not
