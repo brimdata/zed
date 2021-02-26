@@ -226,9 +226,5 @@ func (p *zsonParse) Call(args []zng.Value) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	zv, err := zson.NewBuilder().Build(val)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	return zv, nil
+	return zson.NewBuilder().Build(val)
 }
