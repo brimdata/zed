@@ -184,7 +184,7 @@ helm-install-with-aurora:
 	--set global.image.tag=zqd:$(ECR_VERSION) \
 	--set global.postgres.addr=$$(aws rds describe-db-cluster-endpoints \
 		--db-cluster-identifier zq-test-aurora \
-		| jq -r ".DBClusterEndpoints[] | select(.EndpointType==\"WRITER\") | .Endpoint"):5432 \
+		--output text --query "DBClusterEndpoints[?EndpointType=='WRITER'] | [0].Endpoint"):5432 \
 	--set global.postgres.database=$(ZQD_AURORA_USER) \
 	--set global.postgres.username=$(ZQD_AURORA_USER) \
 	--set global.postgres.passwordSecretName=aurora \
