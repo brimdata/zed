@@ -15,7 +15,7 @@
 This is a sketch of an early prototype of zar and related tools for
 indexing and searching log archives and running interesting graph queries.
 
-We'll use the test data here:
+We'll use the [ZNG](../../../zng/docs/README.md)-format test data from here:
 ```
 https://github.com/brimsec/zq-sample-data/tree/master/zng
 ```
@@ -125,9 +125,10 @@ or...
 Now let's say you want to search for a particular IP across all the zar logs.
 This is easy. You just say:
 ```
-zar zq "id.orig_h=10.10.23.2" | zq -Z -
+zar zq -Z "id.orig_h=10.10.23.2"
 ```
-which gives this result in [ZSON](../../../zng/docs/zson.md) format:
+which gives this result in the [ZSON](../../../zng/docs/zson.md) format. ZSON
+describes the complete detail from the ZNG stream as human-readable text.
 ```
 {
     _path: "conn",
@@ -238,19 +239,17 @@ and you'll find "hits" in multiple chunks:
 ## operating directly on micro-indexes
 
 Let's say instead of searching for what log chunk a value is in, we want to
-actually pull out the zng records that comprise the index.  This turns out
+actually pull out the records that comprise the index.  This turns out
 to be really powerful in general, but to give you a taste here, you can say...
 ```
-zar find -z -x microindex-type-ip.zng 10.47.21.138 | zq -t -
+zar find -z :ip=10.47.21.138
 ```
-where `-z` says to produce zng output instead of a path listing,
+where `-z` says to produce compact ZSON output instead of a table,
 and you'll get this...
 ```
-#zfile=string
-#0:record[key:ip,count:uint64,_log:zfile,first:time,last:time]
-0:[10.47.21.138;7;/path/to/ZAR_ROOT/zd/20180324/d-1jvy17wRMItpJQy7BOqV0tJ3VOJ.zng;1521912809.032641;1521911720.608867;]
-0:[10.47.21.138;3;/path/to/ZAR_ROOT/zd/20180324/d-1jvy0t5HhfvTvfPXiTd9VzhqmWK.zng;1521912355.502493;1521911720.601374;]
-0:[10.47.21.138;4;/path/to/ZAR_ROOT/zd/20180324/d-1jvy0lIfit4cfvDENwzx7OWYcXD.zng;1521911994.618642;1521911720.600725;]
+{key:10.47.21.138,count:7 (uint64),_log:"/Users/phil/logs/zd/20180324/d-1ozm0pGRppq2ToyxhnzxhbVX8Yf.zng" (=zfile),first:2018-03-24T17:33:29.032641Z,last:2018-03-24T17:15:20.608867Z} (=0)
+{key:10.47.21.138,count:3,_log:"/Users/phil/logs/zd/20180324/d-1ozm0WjvCWAa4nAPppzVMWZJBfT.zng",first:2018-03-24T17:25:55.502493Z,last:2018-03-24T17:15:20.601374Z} (0)
+{key:10.47.21.138,count:4,_log:"/Users/phil/logs/zd/20180324/d-1ozm0CGvgJhFtwQguEY5mNrnMH9.zng",first:2018-03-24T17:19:54.618642Z,last:2018-03-24T17:15:20.600725Z} (0)
 ```
 The find command adds a column called "_log" (which can be disabled
 or customized to a different field name) so you can see where the
@@ -272,7 +271,7 @@ this key, we'll compute the number of times that value appeared for each zeek
 log type.  To do this, we'll run "zar index" in a way that leaves
 these results behind in each zar directory:
 ```
-zar index -q -o custom.zng -k id.orig_h -z "count() by _path, id.orig_h | sort id.orig_h"
+zar index create -q -o custom.zng -k id.orig_h -z "count() by _path, id.orig_h | sort id.orig_h"
 ```
 Unlike for the field and type indexes we created previously, for
 custom indexes the index file name must be specified via the `-o`
