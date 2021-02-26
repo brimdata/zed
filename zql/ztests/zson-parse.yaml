@@ -1,0 +1,23 @@
+script: |
+  zq -f tzng -I def.zql in.tzng
+
+inputs:
+  - name: def.zql
+    data: |
+      const r=zson_parse('{a:"1",b:2}')
+      put ra=r.a,rb=r.b
+
+  - name: in.tzng
+    data: |
+      #0:record[v:int64]
+      0:[1;]
+      0:[2;]
+      0:[3;]
+
+outputs:
+  - name: stdout
+    data: |
+      #0:record[v:int64,ra:string,rb:int64]
+      0:[1;1;2;]
+      0:[2;1;2;]
+      0:[3;1;2;]
