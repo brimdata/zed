@@ -93,10 +93,10 @@ func createStepSet(in, out zng.Type) (step, error) {
 }
 
 func isCollectionType(t zng.Type) bool {
-	if _, ok := t.(*zng.TypeArray); ok {
-		return true
-	}
-	if _, ok := t.(*zng.TypeSet); ok {
+	switch t := t.(type) {
+	case *zng.TypeAlias:
+		return isCollectionType(t.Type)
+	case *zng.TypeArray, *zng.TypeSet:
 		return true
 	}
 	return false
@@ -104,6 +104,8 @@ func isCollectionType(t zng.Type) bool {
 
 func innerType(t zng.Type) zng.Type {
 	switch t := t.(type) {
+	case *zng.TypeAlias:
+		return innerType(t.Type)
 	case *zng.TypeArray:
 		return t.Type
 	case *zng.TypeSet:
@@ -506,7 +508,7 @@ func (s *Shaper) castRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 
 		if inCol.Type.ID() == specCol.Type.ID() {
 			// Field has same type in cast: output type unmodified.
-			cols = append(cols, inCol)
+			cols = append(cols, specCol)
 			continue
 		}
 		castType, err := s.castType(inCol.Type, specCol.Type)
@@ -523,12 +525,12 @@ func (c *Shaper) castType(inType, specType zng.Type) (zng.Type, error) {
 	switch {
 	case zng.IsRecordType(inType) && zng.IsRecordType(specType):
 		// Matching field is a record: recurse.
-		inRec := inType.(*zng.TypeRecord)
-		castRec := specType.(*zng.TypeRecord)
+		inRec := zng.AliasedType(inType).(*zng.TypeRecord)
+		castRec := zng.AliasedType(specType).(*zng.TypeRecord)
 		return c.castRecordType(inRec, castRec)
 	case zng.IsPrimitiveType(inType) && zng.IsPrimitiveType(specType):
 		// Matching field is a primitive: output type is cast type.
-		if LookupPrimitiveCaster(specType) == nil {
+		if LookupPrimitiveCaster(zng.AliasedType(specType)) == nil {
 			return nil, fmt.Errorf("cast to %s not implemented", specType)
 		}
 		return specType, nil
@@ -537,7 +539,7 @@ func (c *Shaper) castType(inType, specType zng.Type) (zng.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		if _, ok := specType.(*zng.TypeArray); ok {
+		if _, ok := zng.AliasedType(specType).(*zng.TypeArray); ok {
 			return c.zctx.LookupTypeArray(out), nil
 		}
 		return c.zctx.LookupTypeSet(out), nil
