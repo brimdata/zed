@@ -99,9 +99,6 @@ func tsDirEntriesToChunks(ctx context.Context, lk *Lake, tsDir tsDir, entries []
 	m := make(map[ksuid.KSUID]seen)
 	for _, e := range entries {
 		if kind, id, ok := chunk.FileMatch(e.Name()); ok {
-			if !lk.filterAllowed(id) {
-				continue
-			}
 			s := m[id]
 			switch kind {
 			case chunk.FileKindData:
