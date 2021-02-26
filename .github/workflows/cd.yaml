@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - master
-      - temporal-helm
 
 jobs:
   ecr-image-push:

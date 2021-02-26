@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - master
+      - temporal-helm
 
 jobs:
   test:
