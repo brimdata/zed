@@ -10,21 +10,21 @@ script: |
     $(gentoken -domain https://testdomain -privatekeyfile ./auth-private-key -keyid testkey -tenantid tenant2 -userid user2)
   zapi -configpath ./user1 -h $ZQD_HOST auth verify
   zapi -configpath ./user2 -h $ZQD_HOST auth verify
-  export zapi_user1="zapi -configpath ./user1 -h $ZQD_HOST"
-  export zapi_user2="zapi -configpath ./user2 -h $ZQD_HOST"
+  zapi_user1="zapi -configpath ./user1 -h $ZQD_HOST"
+  zapi_user2="zapi -configpath ./user2 -h $ZQD_HOST"
   echo ===
 
   # Create a space for each user.
   $zapi_user1 new user1space1
-  export USER1_SP1=$($zapi_user1 ls -l -f zng | zq -f text "name=user1space1 | pick id" -)
+  USER1_SP1=$($zapi_user1 ls -l -f zng | zq -f text "name=user1space1 | pick id" -)
   $zapi_user2 new user2space2
-  export USER2_SP2=$($zapi_user2 ls -l -f zng | zq -f text "name=user2space2 | pick id" -)
+  USER2_SP2=$($zapi_user2 ls -l -f zng | zq -f text "name=user2space2 | pick id" -)
   echo ===
 
   # Create an intake for each user, specifying a target space, and verify
   # the reported ids match, and each user only sees their intakes.
-  export USER1_IN1=$($zapi_user1 intake new -f zng -target user1space1 user1intake1 | zq -f text "pick id" -)
-  export USER2_IN2=$($zapi_user2 intake new -f zng -target user2space2 user2intake2 | zq -f text "pick id" -)
+  USER1_IN1=$($zapi_user1 intake new -f zng -target user1space1 user1intake1 | zq -f text "pick id" -)
+  USER2_IN2=$($zapi_user2 intake new -f zng -target user2space2 user2intake2 | zq -f text "pick id" -)
   echo user1 intake ls
   $zapi_user1 intake ls
   test $($zapi_user1 intake ls -l -f zng | zq -f text "pick target_space_id" -) = $USER1_SP1 && echo user1 space1 intake1 id match
