@@ -314,4 +314,3 @@ func testPcapPostWithConfig(t *testing.T, conf zqd.Config, pcapfile string) pcap
 		client:   client,
 	}
 }
-
