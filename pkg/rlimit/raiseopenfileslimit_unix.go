@@ -12,16 +12,15 @@ func raiseOpenFilesLimit() (uint64, error) {
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlimit); err != nil {
 		return 0, fmt.Errorf("getrlimit: %w", err)
 	}
-	var err error
-	rlimit.Cur, err = kernMaxFiles(rlimit.Max)
-	if err != nil {
+	if err := kernMaxFiles(&rlimit); err != nil {
 		return 0, err
 	}
+	rlimit.Cur = rlimit.Max
 	if err := syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rlimit); err != nil {
 		return 0, fmt.Errorf("setrlimit: %w", err)
 	}
 	if err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rlimit); err != nil {
 		return 0, fmt.Errorf("getrlimit: %w", err)
 	}
-	return rlimit.Cur, nil
+	return uint64(rlimit.Cur), nil
 }

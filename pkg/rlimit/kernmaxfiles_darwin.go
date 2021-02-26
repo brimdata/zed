@@ -2,17 +2,18 @@ package rlimit
 
 import (
 	"fmt"
+	"syscall"
 
 	"golang.org/x/sys/unix"
 )
 
-func kernMaxFiles(max uint64) (uint64, error) {
+func kernMaxFiles(rlimit *syscall.Rlimit) error {
 	kernMax, err := unix.SysctlUint32("kern.maxfilesperproc")
 	if err != nil {
-		return 0, fmt.Errorf("systcl: %w", err)
+		return fmt.Errorf("systcl: %w", err)
 	}
-	if uint64(kernMax) < max {
-		return uint64(kernMax), nil
+	if uint64(kernMax) < rlimit.Max {
+		rlimit.Max = uint64(kernMax)
 	}
-	return max, nil
+	return nil
 }
