@@ -80,7 +80,7 @@ func parseInt(v interface{}) interface{} {
 
 func parseFloat(v interface{}) interface{} {
 	num := v.(string)
-	if f, err := strconv.ParseFloat(num, 10); err != nil {
+	if f, err := strconv.ParseFloat(num, 64); err != nil {
 		return f
 	}
 
