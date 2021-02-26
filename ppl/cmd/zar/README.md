@@ -281,7 +281,7 @@ zar ls custom.zng
 ```
 To see what's in it:
 ```
-find $ZAR_ROOT -name custom.zng | head -n 1 | xargs zq -f table 'head 10' -
+find $ZAR_ROOT -name idx-`for file in $ZAR_ROOT/indexdefs/*; do   zq -z $file | grep 'name:"custom.zng"' > /dev/null; if [ $? = 0 ]; then echo $file | sed 's/.*indexdefs\/idxdef-//'; fi done` | head -n 1 | xargs zq -f table 'head 10' -
 ```
 You can see the IPs, counts, and _path strings.
 
@@ -289,7 +289,7 @@ At the bottom you'll also find a record describing the micro-index layout. To
 see it:
 
 ```
-find $ZAR_ROOT -name custom.zng | head -n 1 | xargs zq -f table 'tail 1' -
+find $ZAR_ROOT -name idx-`for file in $ZAR_ROOT/indexdefs/*; do   zq -z $file | grep 'name:"custom.zng"' > /dev/null; if [ $? = 0 ]; then echo $file | sed 's/.*indexdefs\/idxdef-//'; fi done` | head -n 1 | xargs zq -f table 'tail 1' -
 ```
 
 ### zar find with custom index
@@ -297,7 +297,7 @@ find $ZAR_ROOT -name custom.zng | head -n 1 | xargs zq -f table 'tail 1' -
 And now I can go back to my example from before and use "zar find" on the custom
 index:
 ```
-zar find -z -x custom.zng 10.164.94.120 | zq -t -
+zar find -z -x custom.zng 10.164.94.120
 ```
 Now we're talking!  And if you take the results and do a little more math to
 aggregate the aggregations, like this:
