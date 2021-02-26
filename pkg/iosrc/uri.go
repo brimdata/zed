@@ -18,7 +18,7 @@ const (
 )
 
 // uriRegexp is the regular expression used to determine if a path is treated
-// as a URI. A path's prefix must be in the form of scheme:path//. This deviates
+// as a URI. A path's prefix must be in the form of scheme://path. This deviates
 // from the RFC for a URI's generic syntax which allows for scheme:path. There
 // may be a valid relative file path that matches scheme:path. For our purposes
 // we want to err on the side of reading a path as a file.
