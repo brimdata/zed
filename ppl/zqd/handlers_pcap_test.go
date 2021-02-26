@@ -5,15 +5,18 @@ package zqd_test
 import (
 	"context"
 	"errors"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
+	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/test"
