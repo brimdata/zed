@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -21,13 +20,11 @@ import (
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/promtest"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/ppl/lake/immcache"
 	"github.com/brimsec/zq/ppl/zqd"
-	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -937,68 +934,4 @@ func promCounterValue(g prometheus.Gatherer, name string) interface{} {
 		}
 	}
 	return errors.New("metric not found")
-}
-
-func testLauncher(start, wait procFn) pcapanalyzer.Launcher {
-	return func(ctx context.Context, r io.Reader, dir string) (pcapanalyzer.ProcessWaiter, error) {
-		p := &testPcapProcess{
-			ctx:    ctx,
-			reader: r,
-			wd:     dir,
-			wait:   wait,
-			start:  start,
-		}
-		return p, p.Start()
-	}
-}
-
-type procFn func(t *testPcapProcess) error
-
-type testPcapProcess struct {
-	ctx    context.Context
-	reader io.Reader
-	wd     string
-	start  procFn
-	wait   procFn
-}
-
-func (p *testPcapProcess) Start() error {
-	if p.start != nil {
-		return p.start(p)
-	}
-	return nil
-}
-
-func (p *testPcapProcess) Wait() error {
-	if p.wait != nil {
-		return p.wait(p)
-	}
-	_, err := ioutil.ReadAll(p.reader)
-	return err
-}
-
-func (p *testPcapProcess) Stdout() string { return "" }
-
-func writeLogsFn(logs []string) procFn {
-	return func(p *testPcapProcess) error {
-		for _, log := range logs {
-			r, err := fs.Open(log)
-			if err != nil {
-				return err
-			}
-			defer r.Close()
-			base := filepath.Base(r.Name())
-			w, err := os.Create(filepath.Join(p.wd, base))
-			if err != nil {
-				return err
-			}
-			defer w.Close()
-			if _, err = io.Copy(w, r); err != nil {
-				return err
-			}
-		}
-		// drain the reader
-		_, err := io.Copy(ioutil.Discard, p.reader)
-		return err
-	}
 }
