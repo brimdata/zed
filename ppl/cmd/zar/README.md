@@ -125,17 +125,39 @@ or...
 Now let's say you want to search for a particular IP across all the zar logs.
 This is easy. You just say:
 ```
-zar zq "id.orig_h=10.10.23.2" | zq -t -
+zar zq "id.orig_h=10.10.23.2" | zq -Z -
 ```
-which gives this somewhat cryptic result in text zng format:
+which gives this result in [ZSON](../../../zng/docs/zson.md) format:
 ```
-#port=uint16
-#zenum=string
-#0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],proto:zenum,service:bstring,duration:duration,orig_bytes:uint64,resp_bytes:uint64,conn_state:bstring,local_orig:bool,local_resp:bool,missed_bytes:uint64,history:bstring,orig_pkts:uint64,orig_ip_bytes:uint64,resp_pkts:uint64,resp_ip_bytes:uint64,tunnel_parents:set[bstring]]
-0:[conn;1521911721.307472;C4NuQHXpLAuXjndmi;[10.10.23.2;11;10.0.0.111;0;]icmp;-;1260.819589;23184;0;OTH;-;-;0;-;828;46368;0;0;-;]
+{
+    _path: "conn",
+    ts: 2018-03-24T17:15:21.307472Z,
+    uid: "C4NuQHXpLAuXjndmi" (bstring),
+    id: {
+        orig_h: 10.10.23.2,
+        orig_p: 11 (port=(uint16)),
+        resp_h: 10.0.0.111,
+        resp_p: 0 (port)
+    } (=0),
+    proto: "icmp" (=zenum),
+    service: null (bstring),
+    duration: 21m0.819589s,
+    orig_bytes: 23184 (uint64),
+    resp_bytes: 0 (uint64),
+    conn_state: "OTH" (bstring),
+    local_orig: null (bool),
+    local_resp: null (bool),
+    missed_bytes: 0 (uint64),
+    history: null (bstring),
+    orig_pkts: 828 (uint64),
+    orig_ip_bytes: 46368 (uint64),
+    resp_pkts: 0 (uint64),
+    resp_ip_bytes: 0 (uint64),
+    tunnel_parents: null (1=(|[bstring]|))
+} (=2)
 ```
 (If you want to learn more about this format, check out the
-[ZNG spec](../../../zng/docs/spec.md).)
+[ZSON spec](../../../zng/docs/zson.md).)
 
 You might have noticed that this is kind of slow --- like all the counting above ---
 because every record is read to search for that IP.
@@ -151,7 +173,7 @@ you would like in a search index.  But for now, let's look at just IP addresses.
 The "zar index" command makes it easy to index any field or any zng type.
 e.g., to index every value that is of type IP, we simply say
 ```
-zar index :ip
+zar index create :ip
 ```
 For each zar log, this command will find every field of type IP in every log record
 and add a key for that field's value to log's index file.
@@ -163,12 +185,12 @@ zar ls -l
 You will see all the indexes left behind. They are just zng files.
 If you want to see one, just look at it with zq, e.g.
 ```
-find $ZAR_ROOT -name microindex-type-ip.zng | head -n 1 | xargs zq -t -
+find $ZAR_ROOT -name idx-* | head -n 1 | xargs zq -z -
 ```
 Now if you run "zar find", it will efficiently look through all the index files
 instead of the logs and run much faster...
 ```
-zar find :ip=10.10.23.2
+zar find -f table :ip=10.10.23.2
 ```
 In the output here, you'll see this IP exists in exactly one log file:
 ```
@@ -201,21 +223,16 @@ job when you have a new idea about what to index.
 So, let's say you later decide you want searches over the "uri" field to run fast.
 You just run "zar index" again but with different parameters:
 ```
-zar index uri
+zar index create uri
 ```
 And now you can run field matches on `uri`:
 ```
-zar find uri=/file
+zar find -f table uri=/file
 ```
 and you'll find "hits" in multiple chunks:
 ```
 /path/to/ZAR_ROOT/zd/20180324/d-1jQ2d5DwDHJULCRN6gq84IwArbb.zng
 /path/to/ZAR_ROOT/zd/20180324/d-1jQ2co6Ttjk9wEUdzI2yW7koYtB.zng
-```
-If you have a look, you'll see there are index files now for both type ip
-and field uri:
-```
-zar ls -l
 ```
 
 ## operating directly on micro-indexes
