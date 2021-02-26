@@ -679,7 +679,7 @@ func TestConditional(t *testing.T) {
 	testSuccessful(t, "x != 0 ? x : y", record, zint64(1))
 }
 
-func a(t *testing.T) {
+func TestCasts(t *testing.T) {
 	// Test casts to byte
 	testSuccessful(t, "10 :uint8", nil, zng.Value{zng.TypeUint8, zng.EncodeUint(10)})
 	testError(t, "-1 :uint8", nil, expr.ErrBadCast, "out of range cast to uint8")
@@ -729,9 +729,7 @@ func a(t *testing.T) {
 	testSuccessful(t, "1589126400.0 :time", nil, ts)
 	testSuccessful(t, "1589126400 :time", nil, ts)
 	testError(t, `"1234" :time`, nil, expr.ErrBadCast, "cannot cast string to time")
-}
 
-func TestCasts(t *testing.T) {
 	testSuccessful(t, "1.2:string", nil, zstring("1.2"))
 	testSuccessful(t, "5:string", nil, zstring("5"))
 	testSuccessful(t, "1.2.3.4:string", nil, zstring("1.2.3.4"))
