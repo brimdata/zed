@@ -1,0 +1,19 @@
+script: |
+  ast -C 'foo | split (=> count() by x=.["@foo"] => sum(x) => put a=b*c ) | cut cake | sort -r x'
+
+outputs:
+  - name: stdout
+    data: |
+      filter match("foo")
+      | split (
+        =>
+          summarize
+              count() by x=.["@foo"]
+        =>
+          summarize
+              sum(x)
+        =>
+          put a=b*c
+      )
+      | cut cake
+      | sort -r x

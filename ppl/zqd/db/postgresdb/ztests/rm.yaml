@@ -6,7 +6,7 @@ env:
 script: |
   source startup.sh
   zapi -h $ZQD_HOST new testsp >/dev/null
-  zapi -h $ZQD_HOST ls
+  zapi -h $ZQD_HOST ls -f zng | zq -f text "pick name" -
   zapi -h $ZQD_HOST rm testsp
   echo ===
   zapi -h $ZQD_HOST ls
@@ -23,4 +23,3 @@ outputs:
       testsp
       testsp: space removed
       ===
-      no spaces exist

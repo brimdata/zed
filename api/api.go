@@ -110,11 +110,10 @@ func (s *SpaceID) Set(str string) error {
 }
 
 type Space struct {
-	ID          SpaceID     `json:"id"`
-	ParentID    SpaceID     `json:"parent_id,omitempty"`
-	Name        string      `json:"name"`
-	DataPath    iosrc.URI   `json:"data_path"`
-	StorageKind StorageKind `json:"storage_kind"`
+	ID          SpaceID     `json:"id" zng:"id"`
+	Name        string      `json:"name" zng:"name"`
+	DataPath    iosrc.URI   `json:"data_path" zng:"data_path"`
+	StorageKind StorageKind `json:"storage_kind" zng:"storage_kind"`
 }
 
 type SpaceInfo struct {

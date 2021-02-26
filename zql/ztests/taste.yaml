@@ -1,18 +1,12 @@
-zql: taste | sort taste
+zql: taste | sort
 
 input: |
-  #0:record[s1:string,s2:string]
-  0:[a;b;]
-  0:[b;b;]
-  #1:record[s1:string,s2:int32]
-  1:[a;0;]
-  1:[b;0;]
-  0:[b;a;]
-
-output-flags: -f tzng
+  {s1:"a",s2:"b"}
+  {s1:"b",s2:"b"}
+  {s1:"a",s2:0}
+  {s1:"b",s2:0}
+  {s1:"b",s2:"a"}
 
 output: |
-  #0:record[shape:type,taste:record[s1:string,s2:int32]]
-  0:[{s1:string,s2:int32};[a;0;]]
-  #1:record[shape:type,taste:record[s1:string,s2:string]]
-  1:[{s1:string,s2:string};[a;b;]]
+  {taste:{s1:"a",s2:0}}
+  {taste:{s1:"a",s2:"b"}}

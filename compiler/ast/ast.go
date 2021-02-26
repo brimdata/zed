@@ -25,18 +25,18 @@ type Proc interface {
 // expression though it may have future uses (e.g., enum names or externally
 // referred to data e.g, maps to do external joins).
 type Identifier struct {
-	Op   string `json:"op"`
+	Op   string `json:"op" unpack:""`
 	Name string `json:"name"`
 }
 
 // RootRecord refers to the outer record being operated upon.  Field accesses
 // typically begin with the LHS of a "." expression set to a RootRecord.
 type RootRecord struct {
-	Op string `json:"op"`
+	Op string `json:"op" unpack:""`
 }
 
 type Empty struct {
-	Op string `json:"op"`
+	Op string `json:"op" unpack:""`
 }
 
 type Expression interface {
@@ -49,19 +49,19 @@ type Expression interface {
 // the native Go types) and value is a string representation of that value that
 // must conform to the provided type.
 type Literal struct {
-	Op    string `json:"op"`
+	Op    string `json:"op" unpack:""`
 	Type  string `json:"type"`
 	Value string `json:"value"`
 }
 
 type Search struct {
-	Op    string  `json:"op"`
+	Op    string  `json:"op" unpack:""`
 	Text  string  `json:"text"`
 	Value Literal `json:"value"`
 }
 
 type UnaryExpression struct {
-	Op       string     `json:"op"`
+	Op       string     `json:"op" unpack:"UnaryExpr"`
 	Operator string     `json:"operator"`
 	Operand  Expression `json:"operand"`
 }
@@ -71,19 +71,19 @@ type UnaryExpression struct {
 // comparisons (=, !=, <, <=, >, >=), index operatons (on arrays, sets, and records)
 // with operator "[" and a dot expression (".") (on records).
 type BinaryExpression struct {
-	Op       string     `json:"op"`
+	Op       string     `json:"op" unpack:"BinaryExpr"`
 	Operator string     `json:"operator"`
 	LHS      Expression `json:"lhs"`
 	RHS      Expression `json:"rhs"`
 }
 
 type SelectExpression struct {
-	Op        string       `json:"op"`
+	Op        string       `json:"op" unpack:"SelectExpr"`
 	Selectors []Expression `json:"selectors"`
 }
 
 type ConditionalExpression struct {
-	Op        string     `json:"op"`
+	Op        string     `json:"op" unpack:"ConditionalExpr"`
 	Condition Expression `json:"condition"`
 	Then      Expression `json:"then"`
 	Else      Expression `json:"else"`
@@ -97,19 +97,19 @@ type ConditionalExpression struct {
 // a function call has the standard semantics where it takes one or more arguments
 // and returns a result.
 type FunctionCall struct {
-	Op       string       `json:"op"`
+	Op       string       `json:"op" unpack:""`
 	Function string       `json:"function"`
 	Args     []Expression `json:"args"`
 }
 
 type CastExpression struct {
-	Op   string     `json:"op"`
+	Op   string     `json:"op" unpack:"CastExpr"`
 	Expr Expression `json:"expr"`
 	Type Type       `json:"type"`
 }
 
 type TypeExpr struct {
-	Op   string `json:"op"`
+	Op   string `json:"op" unpack:""`
 	Type Type   `json:"type"`
 }
 
@@ -140,13 +140,13 @@ type (
 	// and each subsequent proc processes the output records from the
 	// previous proc.
 	SequentialProc struct {
-		Op    string `json:"op"`
+		Op    string `json:"op" unpack:""`
 		Procs []Proc `json:"procs"`
 	}
 	// A ParallelProc node represents a set of procs that each get
 	// a stream of records from their parent.
 	ParallelProc struct {
-		Op string `json:"op"`
+		Op string `json:"op" unpack:""`
 		// If non-zero, MergeOrderField contains the field name on
 		// which the branches of this parallel proc should be
 		// merged in the order indicated by MergeOrderReverse.
@@ -157,7 +157,7 @@ type (
 	// A SwitchProc node represents a set of procs that each get
 	// a stream of records from their parent.
 	SwitchProc struct {
-		Op    string       `json:"op"`
+		Op    string       `json:"op" unpack:""`
 		Cases []SwitchCase `json:"cases"`
 		// If non-zero, MergeOrderField contains the field name on
 		// which the branches of this parallel proc should be
@@ -167,7 +167,7 @@ type (
 	}
 	// A SortProc node represents a proc that sorts records.
 	SortProc struct {
-		Op         string       `json:"op"`
+		Op         string       `json:"op" unpack:""`
 		Fields     []Expression `json:"fields"`
 		SortDir    int          `json:"sortdir"`
 		NullsFirst bool         `json:"nullsfirst"`
@@ -176,50 +176,50 @@ type (
 	// input record where each removed field matches one of the named fields
 	// sending each such modified record to its output in the order received.
 	CutProc struct {
-		Op     string       `json:"op"`
+		Op     string       `json:"op" unpack:""`
 		Fields []Assignment `json:"fields"`
 	}
 	// A PickProc is like a CutProc but skips records that do not
 	// match all of the field expressions.
 	PickProc struct {
-		Op     string       `json:"op"`
+		Op     string       `json:"op" unpack:""`
 		Fields []Assignment `json:"fields"`
 	}
 	// A DropProc node represents a proc that removes fields from each
 	// input record.
 	DropProc struct {
-		Op     string       `json:"op"`
+		Op     string       `json:"op" unpack:""`
 		Fields []Expression `json:"fields"`
 	}
 	// A HeadProc node represents a proc that forwards the indicated number
 	// of records then terminates.
 	HeadProc struct {
-		Op    string `json:"op"`
+		Op    string `json:"op" unpack:""`
 		Count int    `json:"count"`
 	}
 	// A TailProc node represents a proc that reads all its records from its
 	// input transmits the final number of records indicated by the count.
 	TailProc struct {
-		Op    string `json:"op"`
+		Op    string `json:"op" unpack:""`
 		Count int    `json:"count"`
 	}
 	// A FilterProc node represents a proc that discards all records that do
 	// not match the indicfated filter and forwards all that match to its output.
 	FilterProc struct {
-		Op     string     `json:"op"`
+		Op     string     `json:"op" unpack:""`
 		Filter Expression `json:"filter"`
 	}
 	// A PassProc node represents a passthrough proc that mirrors
 	// incoming Pull()s on its parent and returns the result.
 	PassProc struct {
-		Op string `json:"op"`
+		Op string `json:"op" unpack:""`
 	}
 	// A UniqProc node represents a proc that discards any record that matches
 	// the previous record transmitted.  The Cflag causes the output records
 	// to contain a new field called count that contains the number of matched
 	// records in that set, similar to the unix shell command uniq.
 	UniqProc struct {
-		Op    string `json:"op"`
+		Op    string `json:"op" unpack:""`
 		Cflag bool   `json:"cflag"`
 	}
 	// A GroupByProc node represents a proc that consumes all the records
@@ -243,7 +243,7 @@ type (
 	// method. It is an error for either of these flags to be true
 	// if any reducer in Reducers is non-decomposable.
 	GroupByProc struct {
-		Op           string       `json:"op"`
+		Op           string       `json:"op" unpack:""`
 		Duration     Duration     `json:"duration"`
 		InputSortDir int          `json:"input_sort_dir,omitempty"`
 		Limit        int          `json:"limit"`
@@ -258,31 +258,32 @@ type (
 	// the top N of the sort.
 	// - It has a hidden option (FlushEvery) to sort and emit on every batch.
 	TopProc struct {
-		Op     string       `json:"op"`
+		Op     string       `json:"op" unpack:""`
 		Limit  int          `json:"limit"`
 		Fields []Expression `json:"fields"`
 		Flush  bool         `json:"flush"`
 	}
 
 	PutProc struct {
-		Op      string       `json:"op"`
+		Op      string       `json:"op" unpack:""`
 		Clauses []Assignment `json:"clauses"`
 	}
 
 	// A RenameProc node represents a proc that renames fields.
 	RenameProc struct {
-		Op     string       `json:"op"`
+		Op     string       `json:"op" unpack:""`
 		Fields []Assignment `json:"fields"`
 	}
 
 	// A FuseProc node represents a proc that turns a zng stream into a dataframe.
 	FuseProc struct {
-		Op string `json:"op"`
+		Op string `json:"op" unpack:""`
 	}
 
 	// A JoinProc node represents a proc that joins two zng streams.
 	JoinProc struct {
-		Op       string       `json:"op"`
+		Op       string       `json:"op" unpack:""`
+		Kind     string       `json:"kind"`
 		LeftKey  Expression   `json:"left_key"`
 		RightKey Expression   `json:"right_key"`
 		Clauses  []Assignment `json:"clauses"`
@@ -292,13 +293,13 @@ type (
 	// smuggled in as fake procs.  When we refactor this AST into a parser AST
 	// proper and a separate kernel DSL, we will clean this up.
 	ConstProc struct {
-		Op   string     `json:"op"`
+		Op   string     `json:"op" unpack:""`
 		Name string     `json:"name"`
 		Expr Expression `json:"expr"`
 	}
 
 	TypeProc struct {
-		Op   string `json:"op"`
+		Op   string `json:"op" unpack:""`
 		Name string `json:"name"`
 		Type Type   `json:"type"`
 	}
@@ -310,7 +311,7 @@ type SwitchCase struct {
 }
 
 type Assignment struct {
-	Op  string     `json:"op"`
+	Op  string     `json:"op" unpack:""`
 	LHS Expression `json:"lhs"`
 	RHS Expression `json:"rhs"`
 }
@@ -371,7 +372,7 @@ func (*FunctionCall) ProcNode()   {}
 // a function of the record, e.g., count() counts up records without looking
 // into them.
 type Reducer struct {
-	Op       string     `json:"op"`
+	Op       string     `json:"op" unpack:""`
 	Operator string     `json:"operator"`
 	Expr     Expression `json:"expr"`
 	Where    Expression `json:"where"`
@@ -460,7 +461,11 @@ func NewReducerAssignment(op string, lval field.Static, arg field.Static) Assign
 	if lhs == nil {
 		lhs = field.New(op)
 	}
-	return Assignment{LHS: NewDotExpr(lhs), RHS: reducer}
+	return Assignment{
+		Op:  "Assignment",
+		LHS: NewDotExpr(lhs),
+		RHS: reducer,
+	}
 }
 
 func FanIn(p Proc) int {

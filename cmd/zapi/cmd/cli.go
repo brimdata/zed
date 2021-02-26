@@ -12,6 +12,8 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/outputflags"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/kballard/go-shellquote"
 	"github.com/mccanne/charm"
 	"golang.org/x/crypto/ssh/terminal"
@@ -161,4 +163,16 @@ func (c *Command) Prompt() string {
 
 func Errorf(spec string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, CLI.Name+": "+spec, args...)
+}
+
+func WriteOutput(ctx context.Context, flags outputflags.Flags, r zbuf.Reader) error {
+	wc, err := flags.Open(ctx)
+	if err != nil {
+		return err
+	}
+	err = zbuf.CopyWithContext(ctx, wc, r)
+	if closeErr := wc.Close(); err == nil {
+		err = closeErr
+	}
+	return err
 }
