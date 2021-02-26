@@ -176,6 +176,20 @@ helm-install:
 	--set global.image.tag=zqd:$(ECR_VERSION) \
 	--set postgresql.persistence.enabled=$(PG_PERSIST)
 
+helm-install-with-aurora:
+	helm upgrade -i zsrv charts/zservice \
+	--set root.datauri=$(ZQD_DATA_URI) \
+	--set global.AWSRegion=us-east-2 \
+	--set global.image.repository=$(ZQD_ECR_HOST)/ \
+	--set global.image.tag=zqd:$(ECR_VERSION) \
+	--set global.postgres.addr=$$(aws rds describe-db-cluster-endpoints \
+		--db-cluster-identifier zq-test-aurora \
+		--output text --query "DBClusterEndpoints[?EndpointType=='WRITER'] | [0].Endpoint"):5432 \
+	--set global.postgres.database=$(ZQD_AURORA_USER) \
+	--set global.postgres.username=$(ZQD_AURORA_USER) \
+	--set global.postgres.passwordSecretName=aurora \
+	--set tags.deploy-postgres=false
+
 create-release-assets:
 	for os in darwin linux windows; do \
 		zqdir=zq-$(VERSION).$${os}-amd64 ; \
