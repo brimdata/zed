@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - master
+      - temporal-helm
 
 jobs:
   ecr-image-push:
@@ -64,6 +65,9 @@ jobs:
           # There should be 4 workers running now.
           [[ 4 == $(curl http://localhost:8020/recruiter/listfree | jq -r ".workers | length") ]]
           make test-cluster
+          pg_password=$(kubectl get secret postgres --template="{{ index .data \"postgresql-password\" }}" | base64 --decode)
+          export PG_TEST=postgres://zqd:${pg_password}@$zsrv-postgresql:5432/zqd?sslmode=disable
+          make test-services
       - name: Get zqd logs and remove namespace on success or failure
         if: ${{ always() }}
         run: |
