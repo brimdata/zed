@@ -1009,9 +1009,9 @@ EscapeSequence
   / UnicodeEscape
 
 SingleCharEscape
-  = "'" { RETURN("'")}
-  / '"' { RETURN('"')}
-  / "\\" { RETURN("\\")}
+  = "'"
+  / "\""
+  / "\\"
   / "b" { RETURN("\b") }
   / "f" { RETURN("\f") }
   / "n" { RETURN("\n") }
