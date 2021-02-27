@@ -727,8 +727,9 @@ func TestCasts(t *testing.T) {
 	// Test casts to time
 	ts := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1589126400_000_000_000))}
 	testSuccessful(t, "1589126400.0 :time", nil, ts)
+	ts = zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1589126400))}
 	testSuccessful(t, "1589126400 :time", nil, ts)
-	testError(t, `"1234" :time`, nil, expr.ErrBadCast, "cannot cast string to time")
+	testSuccessful(t, `"1589126400" :time`, nil, ts)
 
 	testSuccessful(t, "1.2:string", nil, zstring("1.2"))
 	testSuccessful(t, "5:string", nil, zstring("5"))
