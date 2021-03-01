@@ -447,11 +447,13 @@ func (s *Shaper) fillRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 	copy(cols, input.Columns)
 	for _, specCol := range spec.Columns {
 		if i, ok := input.ColumnOfField(specCol.Name); ok {
+			specType := zng.AliasedType(specCol.Type)
 			inCol := input.Columns[i]
+			inType := zng.AliasedType(inCol.Type)
 			// Field is present both in input and spec: recurse if
 			// both records, or select appropriate type if not.
-			if specRecType, ok := specCol.Type.(*zng.TypeRecord); ok {
-				if inRecType, ok := inCol.Type.(*zng.TypeRecord); ok {
+			if specRecType, ok := specType.(*zng.TypeRecord); ok {
+				if inRecType, ok := inType.(*zng.TypeRecord); ok {
 					filled, err := s.fillRecordType(inRecType, specRecType)
 					if err != nil {
 						return nil, err
@@ -462,21 +464,25 @@ func (s *Shaper) fillRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 				}
 				continue
 			}
-			if isCollectionType(inCol.Type) && isCollectionType(specCol.Type) && zng.IsRecordType(innerType(inCol.Type)) && zng.IsRecordType(innerType(specCol.Type)) {
-				if inner, err := s.fillRecordType(innerType(inCol.Type).(*zng.TypeRecord), innerType(specCol.Type).(*zng.TypeRecord)); err != nil {
-					return nil, err
-				} else {
-					var err error
-					var t zng.Type
-					if _, ok := inCol.Type.(*zng.TypeArray); ok {
-						t, err = s.zctx.LookupTypeArray(inner), nil
-					} else {
-						t, err = s.zctx.LookupTypeSet(inner), nil
-					}
-					if err != nil {
+			if isCollectionType(inType) && isCollectionType(specType) {
+				inInner := zng.AliasedType(innerType(inCol.Type))
+				specInner := zng.AliasedType(innerType(specCol.Type))
+				if zng.IsRecordType(inInner) && zng.IsRecordType(specInner) {
+					if inner, err := s.fillRecordType(inInner.(*zng.TypeRecord), specInner.(*zng.TypeRecord)); err != nil {
 						return nil, err
+					} else {
+						var err error
+						var t zng.Type
+						if _, ok := inCol.Type.(*zng.TypeArray); ok {
+							t, err = s.zctx.LookupTypeArray(inner), nil
+						} else {
+							t, err = s.zctx.LookupTypeSet(inner), nil
+						}
+						if err != nil {
+							return nil, err
+						}
+						cols[i] = zng.Column{specCol.Name, t}
 					}
-					cols[i] = zng.Column{specCol.Name, t}
 				}
 			}
 		} else {

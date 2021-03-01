@@ -8,5 +8,3 @@ input: |
 output: |
   {a:1 (=port),b:{p:1 (port)} (=0),c:[1 (port)] (=1)} (=2)
   {a:1,b:{p:1},c:[1]} (2)
-
-
