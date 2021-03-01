@@ -18,12 +18,15 @@ func NewBool(b bool) Value {
 	return Value{TypeBool, EncodeBool(b)}
 }
 
-func EncodeBool(b bool) zcode.Bytes {
-	var v [1]byte
+func AppendBool(zb zcode.Bytes, b bool) zcode.Bytes {
 	if b {
-		v[0] = 1
+		return append(zb, 1)
 	}
-	return v[:]
+	return append(zb, 0)
+}
+
+func EncodeBool(b bool) zcode.Bytes {
+	return AppendBool(nil, b)
 }
 
 func DecodeBool(zv zcode.Bytes) (bool, error) {
