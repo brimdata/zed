@@ -83,7 +83,7 @@ func joinErrs(errs []error) error {
 func match(r zbuf.Reader, name string) error {
 	_, err := r.Read()
 	if err != nil {
-		return fmt.Errorf("%s: %s", name, err)
+		return fmt.Errorf("%s: %w", name, err)
 	}
 	return nil
 }

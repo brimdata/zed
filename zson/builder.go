@@ -121,7 +121,7 @@ func (b *Builder) BuildPrimitive(val *Primitive) error {
 			var err error
 			bytes, err = hex.DecodeString(s[2:])
 			if err != nil {
-				return fmt.Errorf("invalid bytes: %s (%s)", s, err.Error())
+				return fmt.Errorf("invalid bytes: %s (%w)", s, err)
 			}
 		}
 		b.AppendPrimitive(zcode.Bytes(bytes))
@@ -146,7 +146,7 @@ func (b *Builder) BuildPrimitive(val *Primitive) error {
 	case *zng.TypeOfNet:
 		_, net, err := net.ParseCIDR(val.Text)
 		if err != nil {
-			return fmt.Errorf("invalid network: %s (%s)", val.Text, err.Error())
+			return fmt.Errorf("invalid network: %s (%w)", val.Text, err)
 		}
 		b.AppendPrimitive(zng.EncodeNet(net))
 		return nil

@@ -97,7 +97,7 @@ func (s *ShellTest) Run(root, pwd string) (string, string, error) {
 	cmd.Stderr = &stderr
 	err := cmd.Run()
 	if err != nil {
-		err = fmt.Errorf("%s: (%s) failed with stderr: %s", s.scriptName, err, stderr.String())
+		err = fmt.Errorf("%s: (%w) failed with stderr: %s", s.scriptName, err, stderr.String())
 	}
 	return stdout.String(), stderr.String(), err
 }

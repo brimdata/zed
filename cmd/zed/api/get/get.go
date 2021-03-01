@@ -109,7 +109,7 @@ func (c *Command) Run(args []string) error {
 		}
 		req, err := parseExpr(id, expr)
 		if err != nil {
-			return fmt.Errorf("parse error: %s", err)
+			return fmt.Errorf("parse error: %w", err)
 		}
 		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
 		params := map[string]string{"format": c.encoding}
@@ -133,7 +133,7 @@ func (c *Command) Run(args []string) error {
 		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
 		params := map[string]string{"format": c.encoding}
 		if err != nil {
-			return fmt.Errorf("parse plus chunk error: %s", err)
+			return fmt.Errorf("parse plus chunk error: %w", err)
 		}
 		r, err = conn.WorkerChunkSearch(c.Context(), *req, params)
 		if err != nil {
