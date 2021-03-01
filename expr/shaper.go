@@ -407,10 +407,12 @@ func (s *Shaper) orderRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, 
 	// with use, so starting with simpler algorithm for now.
 	//
 	for _, specCol := range spec.Columns {
+		specType := zng.AliasedType(specCol.Type)
 		if ind, ok := input.ColumnOfField(specCol.Name); ok {
 			inCol := input.Columns[ind]
-			if zng.IsRecordType(inCol.Type) && zng.IsRecordType(specCol.Type) {
-				if nested, err := s.orderRecordType(inCol.Type.(*zng.TypeRecord), specCol.Type.(*zng.TypeRecord)); err != nil {
+			inType := zng.AliasedType(inCol.Type)
+			if zng.IsRecordType(inType) && zng.IsRecordType(specType) {
+				if nested, err := s.orderRecordType(inType.(*zng.TypeRecord), specType.(*zng.TypeRecord)); err != nil {
 					return nil, err
 				} else {
 					cols = append(cols, zng.Column{specCol.Name, nested})
@@ -418,7 +420,9 @@ func (s *Shaper) orderRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, 
 				continue
 			}
 			if isCollectionType(inCol.Type) && isCollectionType(specCol.Type) && zng.IsRecordType(innerType(inCol.Type)) && zng.IsRecordType(innerType(specCol.Type)) {
-				if inner, err := s.orderRecordType(innerType(inCol.Type).(*zng.TypeRecord), innerType(specCol.Type).(*zng.TypeRecord)); err != nil {
+				inInner := zng.AliasedType(innerType(inCol.Type))
+				specInner := zng.AliasedType(innerType(specCol.Type))
+				if inner, err := s.orderRecordType(inInner.(*zng.TypeRecord), specInner.(*zng.TypeRecord)); err != nil {
 					return nil, err
 				} else {
 					var err error
