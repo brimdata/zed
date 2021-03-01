@@ -33,8 +33,7 @@ func testSuccessful(t *testing.T, e string, record string, expect zng.Value) {
 	}
 	t.Run(e, func(t *testing.T) {
 		t.Parallel()
-		err := zt.RunInternal("")
-		if err != nil {
+		if err := zt.RunInternal(""); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -48,12 +47,11 @@ func testError(t *testing.T, e string, record string, expectErr error, descripti
 		ZQL:     fmt.Sprintf("cut result = %s", e),
 		Input:   []string{record},
 		Output:  "",
-		ErrorRE: fmt.Sprintf(".*%s.*", expectErr),
+		ErrorRE: expectErr.Error(),
 	}
 	t.Run(e, func(t *testing.T) {
 		t.Parallel()
-		err := zt.RunInternal("")
-		if err != nil {
+		if err := zt.RunInternal(""); err != nil {
 			t.Fatal(err)
 		}
 	})
@@ -103,9 +101,6 @@ func TestPrimitives(t *testing.T) {
 	testSuccessful(t, "x", record, zint32(10))
 	testSuccessful(t, "f", record, zfloat64(2.5))
 	testSuccessful(t, "s", record, zstring("hello"))
-
-	// Test bad field reference
-	//	testError(t, "doesnexist", record, zng.ErrMissing, "referencing nonexistent field")
 }
 
 func TestLogical(t *testing.T) {

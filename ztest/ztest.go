@@ -404,12 +404,6 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 	if d.Decode(&v) != io.EOF {
 		return nil, errors.New("found multiple YAML documents or garbage after first document")
 	}
-	if z.ErrorRE != "" {
-		z.errRegex, err = regexp.Compile(z.ErrorRE)
-		if err != nil {
-			return nil, err
-		}
-	}
 	return &z, nil
 }
 
@@ -431,7 +425,7 @@ func (z *ZTest) ShouldSkip(path string) string {
 
 func (z *ZTest) RunScript(testname, shellPath, workingDir, filename string) error {
 	if err := z.check(); err != nil {
-		return fmt.Errorf("%s: bad yaml format: %s", filename, err)
+		return fmt.Errorf("%s: bad yaml format: %w", filename, err)
 	}
 	adir, _ := filepath.Abs(workingDir)
 	return runsh(testname, shellPath, adir, z)
@@ -452,7 +446,7 @@ func (z *ZTest) RunInternal(path string) error {
 			if out != "" {
 				out = "\noutput:\n" + out
 			}
-			return fmt.Errorf("%s%s", err, out)
+			return fmt.Errorf("%w%s", err, out)
 		}
 	} else if z.errRegex != nil {
 		return fmt.Errorf("no error when expecting error regex: %s", z.ErrorRE)
@@ -461,7 +455,7 @@ func (z *ZTest) RunInternal(path string) error {
 	}
 	expectedOut, err := z.getOutput()
 	if err != nil {
-		return fmt.Errorf("getting test output: %s", err)
+		return fmt.Errorf("getting test output: %w", err)
 	}
 	if expectedOut != out {
 		return diffErr("output", expectedOut, out)
