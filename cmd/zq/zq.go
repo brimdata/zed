@@ -131,26 +131,25 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	paths := args
-	var zqlSrc string
-	if len(c.includes) > 0 {
-		for _, path := range c.includes {
-			b, err := ioutil.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			zqlSrc += "\n" + string(b)
+	var srcs []string
+	for _, path := range c.includes {
+		b, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
 		}
+		srcs = append(srcs, string(b))
 	}
 	if !cli.FileExists(paths[0]) && !s3io.IsS3Path(paths[0]) {
-		zqlSrc += paths[0]
+		srcs = append(srcs, paths[0])
 		paths = paths[1:]
 	}
+	zqlSrc := strings.Join(srcs, "\n")
 	if zqlSrc == "" {
 		zqlSrc = "*"
 	}
 	query, err := compiler.ParseProc(zqlSrc)
 	if err != nil {
-		return fmt.Errorf("zq: parse error: %s\n=== with this input ===\n%s\n==== end of input =====", err, zqlSrc)
+		return fmt.Errorf("zq: parse error: %w", err)
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err

@@ -4,21 +4,16 @@ import (
 	"path/filepath"
 )
 
-func parseBarePath(path string) (URI, bool, error) {
-	if filepath.VolumeName(path) == "" {
-		if scheme, err := getscheme(path); err != nil || scheme != "" {
-			return URI{}, false, err
-		}
-	}
+func parseBarePath(path string) (URI, error) {
 	path, err := filepath.Abs(path)
 	if err != nil {
-		return URI{}, false, err
+		return URI{}, err
 	}
 	if len(filepath.VolumeName(path)) == 2 {
 		// Add leading '/' to paths beginning with a drive letter.
 		path = "/" + path
 	}
-	return URI{Scheme: FileScheme, Path: filepath.ToSlash(path)}, true, nil
+	return URI{Scheme: FileScheme, Path: filepath.ToSlash(path)}, nil
 }
 
 func (p URI) Filepath() string {

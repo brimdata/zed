@@ -1,0 +1,10 @@
+zql: |
+  type port=int64; type prec={p: port}; type parr=[prec]; put .=crop({a:prec, b:parr})
+
+input: |
+  {a:{p:1 (port=(int64)), q: null (port)} (=0),b:[{p:1,q:2 (port)} (=1)] (=2),c:3 (port)} (=3)
+  {a:{p:1 (=myport),q:null (port)} (=4),b:[{p:1 (myport),q:2 (port)} (=5)] (=6),c:3 (port)} (=7)
+
+output: |
+  {a:{p:1 (=port)} (=0),b:[{p:1}]} (=1)
+  {a:{p:1 (=myport)} (=2),b:[{p:1} (2)] (=3)} (=4)

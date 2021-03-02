@@ -12,9 +12,6 @@ kind: ClusterConfig
 metadata:
   name: zq-test
   region: us-east-2
-  version: "1.19"
-  tags:
-    cluster: zq-test
 
 managedNodeGroups:
   - name: m5-large

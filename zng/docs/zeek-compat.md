@@ -12,7 +12,7 @@
 
 ## Introduction
 
-As the ZSON data model was inspired by the [Zeek TSV log format](https://docs.zeek.org/en/stable/examples/logs/),
+As the ZSON data model was inspired by the [Zeek TSV log format](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs),
 the ZSON/ZNG formats maintain comprehensive interoperability with Zeek.
 In comparison, when Zeek is configured to output its logs in JSON format, much of the
 rich type information is lost in translation.  On the other hand, Zeek TSV
@@ -56,7 +56,7 @@ applicable to handling certain types.
 
 * **Note**: The [Zeek data type](https://docs.zeek.org/en/current/script-reference/types.html)
 page describes the types in the context of the
-[Zeek scripting language](https://docs.zeek.org/en/current/examples/scripting/).
+[Zeek scripting language](https://docs.zeek.org/en/master/scripting/index.html).
 The Zeek types available in scripting are a superset of the data types that may
 appear in Zeek log files. The encodings of the types also differ in some ways
 between the two contexts. However, we link to this reference because there is

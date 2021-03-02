@@ -445,20 +445,26 @@ FuseProc
     }
 
 JoinProc
-  = "join"i _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("op": "JoinProc", "left_key": leftKey, "right_key": rightKey, "clauses": NULL)
+  = kind:JoinKind "join"i _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
+      VAR(proc) = MAP("op": "JoinProc", "kind": kind, "left_key": leftKey, "right_key": rightKey, "clauses": NULL)
       if ISNOTNULL(columns) {
         proc["clauses"] = ASSERT_ARRAY(columns)[1]
       }
       RETURN(proc)
     }
-  / "join"i _ key:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("op": "JoinProc", "left_key": key, "right_key": key, "clauses": NULL)
+  / kind:JoinKind  "join"i _ key:JoinKey columns:(_ FlexAssignments)? {
+      VAR(proc) = MAP("op": "JoinProc", "kind": kind, "left_key": key, "right_key": key, "clauses": NULL)
       if ISNOTNULL(columns) {
         proc["clauses"] = ASSERT_ARRAY(columns)[1]
       }
       RETURN(proc)
     }
+
+JoinKind
+  = "inner"i _ { RETURN("inner") }
+  / "left"i  _ { RETURN("left") }
+  / "right"i _ { RETURN("right") }
+  / ""         { RETURN("inner") }
 
 JoinKey
   = Lval
@@ -466,18 +472,23 @@ JoinKey
 
 TasteProc
   = "taste"i e:TasteExpr {
-      RETURN(MAP("op": "GroupByProc",
-        "keys": ARRAY(MAP("op": "Assignment",
+      RETURN(MAP("op": "SequentialProc", "procs": ARRAY(
+        MAP("op": "GroupByProc",
+          "keys": ARRAY(MAP("op": "Assignment",
                    "lhs": MAP("op": "Identifier", "name": "shape"),
                    "rhs": MAP("op": "FunctionCall", "function": "typeof",
                               "args": ARRAY(e)))),
-        "reducers": ARRAY(MAP("op": "Assignment",
+          "reducers": ARRAY(MAP("op": "Assignment",
                               "lhs": MAP("op": "Identifier", "name": "taste"),
                               "rhs": MAP("op": "Reducer",
                                          "operator": "any",
                                          "expr": e,
                                          "where": NULL))),
-        "duration": NULL, "limit": 0))
+          "duration": NULL, "limit": 0),
+        MAP("op": "CutProc",
+            "fields": ARRAY(MAP("op": "Assignment",
+                                "lhs": NULL,
+                                "rhs": MAP("op": "Identifier", "name": "taste")))))))
     }
 
 TasteExpr
@@ -998,9 +1009,9 @@ EscapeSequence
   / UnicodeEscape
 
 SingleCharEscape
-  = "'" { RETURN("'")}
-  / '"' { RETURN('"')}
-  / "\\" { RETURN("\\")}
+  = "'"
+  / "\""
+  / "\\"
   / "b" { RETURN("\b") }
   / "f" { RETURN("\f") }
   / "n" { RETURN("\n") }

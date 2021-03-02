@@ -67,5 +67,5 @@ func ParseUint64(b []byte) (uint64, error) {
 }
 
 func ParseFloat64(b []byte) (float64, error) {
-	return strconv.ParseFloat(UnsafeString(b), 10)
+	return strconv.ParseFloat(UnsafeString(b), 64)
 }

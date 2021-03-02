@@ -364,7 +364,21 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, paren
 		if err != nil {
 			return nil, err
 		}
-		join, err := join.New(pctx, parents[0], parents[1], leftKey, rightKey, lhs, rhs)
+		inner := true
+		leftParent := parents[0]
+		rightParent := parents[1]
+		switch node.Kind {
+		case "left":
+			inner = false
+		case "right":
+			inner = false
+			leftKey, rightKey = rightKey, leftKey
+			leftParent, rightParent = rightParent, leftParent
+		case "inner":
+		default:
+			return nil, fmt.Errorf("unknown kind of join: '%s'", node.Kind)
+		}
+		join, err := join.New(pctx, inner, leftParent, rightParent, leftKey, rightKey, lhs, rhs)
 		if err != nil {
 			return nil, err
 		}

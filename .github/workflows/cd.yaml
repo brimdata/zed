@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - master
-      - fix-eks-deploy
+      - aurora-helm
 
 jobs:
   ecr-image-push:
@@ -43,7 +43,8 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - run: |
           set -x
-          namespace=ci-${{ github.run_number }}
+          runnum=${{ github.run_number }}
+          namespace=ci-temp-${runnum: -1}
           export ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
           export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           aws s3 rm --recursive $ZQD_DATA_URI || : # clear data from previous run
@@ -51,10 +52,11 @@ jobs:
           kubectl create ns $namespace || :
           kubectl config set-context --current --namespace=$namespace
           helm uninstall zsrv || :
-          k8s/generate-srv-secrets.sh
+          k8s/generate-srv-secrets.sh || :
           make helm-install PG_PERSIST=false
           kubectl scale --replicas=4 deployment/zsrv-worker
           kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-postgresql-0
+          kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-redis-master-0
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
@@ -69,10 +71,10 @@ jobs:
           set -x
           ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
           mkdir testlog
-          kubectl logs --tail -1 -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
-          kubectl logs --tail -1 -l app.kubernetes.io/name=root > testlog/root.log
-          kubectl logs --tail -1 -l app.kubernetes.io/name=worker > testlog/worker.log
-          kubectl delete ns ci-${{ github.run_number }}
+          kubectl logs --tail 10000 -l app.kubernetes.io/name=recruiter > testlog/recruiter.log
+          kubectl logs --all-containers --tail 10000 -l app.kubernetes.io/name=root > testlog/root.log
+          kubectl logs --tail 10000 -l app.kubernetes.io/name=worker > testlog/worker.log
+          helm uninstall zsrv
       - name: Save logs as artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
@@ -82,9 +84,18 @@ jobs:
   eks-master-deploy:
     # Deploys this build to ci-master namespace so it will be available
     # for manual testing. Only deploy if previous jobs succeed.
+    # make test-cluster is repeated because for this test it will use Aurora.
     needs: eks-deploy-test
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
+      - name: Turnstyle
+        uses: softprops/turnstyle@v0.1.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-go@v2
+        with:
+          go-version: '1.15'
       - uses: aws-actions/configure-aws-credentials@v1
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -95,10 +106,32 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - run: |
           set -x
+          export ZQD_AURORA_USER=cimaster
           export ZQD_DATA_URI=s3://zq-ci-master/manual-test
           export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl create ns ci-master || :
           kubectl config set-context --current --namespace=ci-master
-          helm uninstall zsrv || :
-          make helm-install
+          make helm-install-with-aurora
+          kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-redis-master-0
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
+          make install
+          source k8s/zsrv-port-forward.sh
+          make test-cluster
+      - name: Get zqd logs on success or failure
+        if: ${{ always() }}
+        run: |
+          set -x
+          ZQD_DATA_URI=s3://zq-ci-test/$(date +%y-%m-%d).${{ github.run_number }}
+          mkdir testlogm
+          kubectl logs --tail 10000 -l app.kubernetes.io/name=recruiter > testlogm/recruiter.log
+          kubectl logs --all-containers --tail 10000 -l app.kubernetes.io/name=root > testlogm/root.log
+          kubectl logs --tail 10000 -l app.kubernetes.io/name=worker > testlogm/worker.log
+      - name: Save logs as artifact
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: eks-testlogm
+          path: testlogm/

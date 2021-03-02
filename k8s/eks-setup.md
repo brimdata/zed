@@ -91,6 +91,22 @@ Using the AWS console is the most convenient way to delete your EKS cluster, sin
 
 When you want to delete the EKS cluster, you must first delete the nodegroup. This will take a few minutes.
 
+# EKS Cluster maintenance for Brim Development
+
+## Upgrading the cluster
+Our policy will be to keep the zq-test cluster upgraded as new stable releases are made available for EKS. We will upgrade the test cluster to the "default" choice for EKS (not always latest.) We follow the AWS instructions "by the book" at https://docs.aws.amazon.com/eks/latest/userguide/update-cluster.html using eksctl. This involves munual steps and generally takes over an hour to complete, but does not require downtime.
+
+## Changing the nodegroup
+A nodegroup will need to be replaced when we decide on different instance sizes (e.g. changing from c5 to m5 ec2 instances.) The nodegroup requires IAM policies to be set. Use the file k8s/nodegroup.yaml as an example, edit it as needed. Then use the following command to create a new nodegroup:
+```
+eksctl create nodegroup --config-file=k8s/nodegroup.yaml
+```
+Usually we will want to remove the old nodegroup after creating a new one. EKS handles this pretty well by rescheduling the pods to the new nodegroup before removing the old one. All the services will eventually restart, but since we have no stateful services that cannot safely restart, this is not disruptive.
+```
+eksctl get nodegroups --cluster=zq-test
+eksctl delete nodegroup --cluster=zq-test --name=theoldnodegroup
+``` 
+
 # Appendix: tasks that are included in Makefile rules but that are useful to remember
 
 ## Pushing locally built Docker images from your local dev machine to ECR

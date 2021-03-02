@@ -13,21 +13,20 @@ func NewNet(s *net.IPNet) Value {
 	return Value{TypeNet, EncodeNet(s)}
 }
 
-func EncodeNet(subnet *net.IPNet) zcode.Bytes {
-	var b [32]byte
-	ip := subnet.IP.To4()
-	if ip != nil {
-		copy(b[:], ip)
+func AppendNet(zb zcode.Bytes, subnet *net.IPNet) zcode.Bytes {
+	if ip := subnet.IP.To4(); ip != nil {
+		zb = append(zb, ip...)
 		if len(subnet.Mask) == 16 {
-			copy(b[4:], subnet.Mask[12:])
-		} else {
-			copy(b[4:], subnet.Mask)
+			return append(zb, subnet.Mask[12:]...)
 		}
-		return b[:8]
+		return append(zb, subnet.Mask...)
 	}
-	copy(b[:], subnet.IP)
-	copy(b[16:], subnet.Mask)
-	return b[:]
+	zb = append(zb, subnet.IP...)
+	return append(zb, subnet.Mask...)
+}
+
+func EncodeNet(subnet *net.IPNet) zcode.Bytes {
+	return AppendNet(nil, subnet)
 }
 
 func DecodeNet(zv zcode.Bytes) (*net.IPNet, error) {
