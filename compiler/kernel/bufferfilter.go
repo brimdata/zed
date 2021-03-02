@@ -120,7 +120,7 @@ func isCompareAny(seq *ast.SeqExpr) (*ast.Literal, string, bool) {
 	}
 	// expression must be a comparison or an in operator
 	method := seq.Methods[0]
-	if len(method.Args) != 1 {
+	if len(method.Args) != 1 || method.Name != "map" {
 		return nil, "", false
 	}
 	pred, ok := method.Args[0].(*ast.BinaryExpression)
@@ -155,11 +155,10 @@ func isSelectAll(e ast.Expression) bool {
 }
 
 func isDollar(e ast.Expression) bool {
-	id, ok := e.(*ast.Identifier)
-	if !ok {
-		return false
+	if ref, ok := e.(*ast.Ref); ok && ref.Name == "$" {
+		return true
 	}
-	return id.Name == "$"
+	return false
 }
 
 func newBufferFilterForLiteral(l ast.Literal) (*expr.BufferFilter, error) {
