@@ -328,8 +328,7 @@ func (c *canon) proc(p ast.Proc) {
 
 func isTrue(e ast.Expression) bool {
 	if lit, ok := e.(*ast.Literal); ok {
-		ok = lit.Type == "bool" && lit.Value == "true"
-		return ok
+		return lit.Type == "bool" && lit.Value == "true"
 	}
 	return false
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/field"
 )
 
-// Transform does a semantic analysis on a flowgraph to an
+// semProc does a semantic analysis on a flowgraph to an
 // intermediate representation that can be compiled into the runtime
 // object.  Currently, it only replaces the group-by duration with
 // a truncation call on the ts and replaces FunctionCall's in proc context

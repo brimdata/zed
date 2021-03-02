@@ -278,8 +278,6 @@ func semAssignments(scope *Scope, assignments []ast.Assignment) ([]ast.Assignmen
 	return out, nil
 }
 
-var ErrInference = errors.New("assignment name could not be inferred from rhs expression")
-
 func semAssignment(scope *Scope, a ast.Assignment) (ast.Assignment, error) {
 	rhs, err := semExpr(scope, a.RHS)
 	if err != nil {
@@ -303,7 +301,7 @@ func semAssignment(scope *Scope, a ast.Assignment) (ast.Assignment, error) {
 	} else {
 		lhs, err = semField(scope, a.RHS)
 		if err != nil {
-			return ast.Assignment{}, ErrInference
+			return ast.Assignment{}, errors.New("assignment name could not be inferred from rhs expression")
 		}
 	}
 	return ast.Assignment{"Assignment", lhs, rhs}, nil
@@ -363,7 +361,7 @@ func semField(scope *Scope, e ast.Expression) (ast.Expression, error) {
 			}, nil
 		}
 	case *ast.Identifier:
-		if ref := scope.Lookup(e.Name); ref != nil {
+		if scope.Lookup(e.Name) != nil {
 			// For now, this could only be a literal but
 			// it may refer to other data types down the
 			// road so we call it a "ref" for now.

@@ -144,8 +144,8 @@ func (c *Command) Run(args []string) error {
 }
 
 func (c *Command) header(msg string) {
-	bars := strings.Repeat("=", len(msg))
 	if c.n > 1 {
+		bars := strings.Repeat("=", len(msg))
 		fmt.Printf("/%s\\\n", bars)
 		fmt.Printf("|%s|\n", msg)
 		fmt.Printf("\\%s/\n", bars)
@@ -176,7 +176,6 @@ func (c *Command) parse(z string) error {
 		}
 		c.header("proc")
 		c.writeProc(p)
-
 	}
 	if c.semantic {
 		runtime, err := c.compile(z)

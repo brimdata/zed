@@ -75,11 +75,8 @@ func UnpackJSON(buf []byte) (interface{}, error) {
 // UnpackJSONAsProc transforms a JSON representation of a proc into an ast.Proc.
 func UnpackJSONAsProc(buf []byte) (Proc, error) {
 	result, err := UnpackJSON(buf)
-	if err != nil {
+	if result == nil || err != nil {
 		return nil, err
-	}
-	if result == nil {
-		return nil, nil
 	}
 	proc, ok := result.(Proc)
 	if !ok {
@@ -90,11 +87,8 @@ func UnpackJSONAsProc(buf []byte) (Proc, error) {
 
 func UnpackMapAsProc(m interface{}) (Proc, error) {
 	object, err := unpacker.UnpackMap(m)
-	if err != nil {
+	if object == nil || err != nil {
 		return nil, err
-	}
-	if object == nil {
-		return nil, nil
 	}
 	proc, ok := object.(Proc)
 	if !ok {
@@ -105,11 +99,8 @@ func UnpackMapAsProc(m interface{}) (Proc, error) {
 
 func UnpackMapAsExpr(m interface{}) (Expression, error) {
 	object, err := unpacker.UnpackMap(m)
-	if err != nil {
+	if object == nil || err != nil {
 		return nil, err
-	}
-	if object == nil {
-		return nil, nil
 	}
 	e, ok := object.(Expression)
 	if !ok {

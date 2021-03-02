@@ -439,8 +439,7 @@ func DotExprToFieldPath(e Expression) *FieldPath {
 func FieldsOf(e Expression) []field.Static {
 	switch e := e.(type) {
 	default:
-		f := DotExprToFieldPath(e)
-		if f != nil {
+		if f := DotExprToFieldPath(e); f != nil {
 			return []field.Static{f.Name}
 		}
 		return nil

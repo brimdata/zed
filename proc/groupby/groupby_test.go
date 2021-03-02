@@ -397,7 +397,7 @@ func TestGroupbyUnit(t *testing.T) {
 			err = runtime.Compile(nil, pctx, []proc.Interface{src})
 			assert.NoError(t, err)
 			outputs := runtime.Outputs()
-			assert.Equal(t, 1, len(outputs))
+			assert.Len(t, outputs, 1)
 			procTest := proctest.NewProcTest(outputs[0], pctx)
 
 			for _, s := range out {
