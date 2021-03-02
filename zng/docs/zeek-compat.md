@@ -56,7 +56,7 @@ applicable to handling certain types.
 
 * **Note**: The [Zeek data type](https://docs.zeek.org/en/current/script-reference/types.html)
 page describes the types in the context of the
-[Zeek scripting language](https://docs.zeek.org/en/current/examples/scripting/).
+[Zeek scripting language](https://docs.zeek.org/en/master/scripting/index.html).
 The Zeek types available in scripting are a superset of the data types that may
 appear in Zeek log files. The encodings of the types also differ in some ways
 between the two contexts. However, we link to this reference because there is
