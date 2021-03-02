@@ -93,15 +93,15 @@ func createStepSet(in, out zng.Type) (step, error) {
 }
 
 func isCollectionType(t zng.Type) bool {
-	switch t := t.(type) {
-	case *zng.TypeAlias:
-		return isCollectionType(t.Type)
+	switch zng.AliasedType(t).(type) {
 	case *zng.TypeArray, *zng.TypeSet:
 		return true
 	}
 	return false
 }
 
+// This is similar to zng.InnerType except it handles aliases. Should
+// be unified, see #2270.
 func innerType(t zng.Type) zng.Type {
 	switch t := t.(type) {
 	case *zng.TypeAlias:
@@ -357,10 +357,10 @@ func (s *Shaper) cropRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 			}
 			cols = append(cols, zng.Column{inCol.Name, out})
 		case isCollectionType(inType) && isCollectionType(specType):
-			if zng.IsRecordType(innerType(inType)) && zng.IsRecordType(innerType(specType)) {
+			inInner := zng.AliasedType(zng.InnerType(inType))
+			specInner := zng.AliasedType(zng.InnerType(specType))
+			if zng.IsRecordType(inInner) && zng.IsRecordType(specInner) {
 				// 4. array/set of records
-				inInner := zng.AliasedType(innerType(inType))
-				specInner := zng.AliasedType(innerType(specType))
 				inner, err := s.cropRecordType(inInner.(*zng.TypeRecord), specInner.(*zng.TypeRecord))
 				if err != nil {
 					return nil, err
@@ -407,10 +407,10 @@ func (s *Shaper) orderRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, 
 	// with use, so starting with simpler algorithm for now.
 	//
 	for _, specCol := range spec.Columns {
-		specType := zng.AliasedType(specCol.Type)
 		if ind, ok := input.ColumnOfField(specCol.Name); ok {
 			inCol := input.Columns[ind]
 			inType := zng.AliasedType(inCol.Type)
+			specType := zng.AliasedType(specCol.Type)
 			if zng.IsRecordType(inType) && zng.IsRecordType(specType) {
 				if nested, err := s.orderRecordType(inType.(*zng.TypeRecord), specType.(*zng.TypeRecord)); err != nil {
 					return nil, err
