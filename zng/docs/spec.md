@@ -551,7 +551,7 @@ representing machine words are serialized in little-endian format.
 
 ## Appendix A. Related Links
 
-* [Zeek ASCII logging](https://docs.zeek.org/en/stable/examples/logs/)
+* [Zeek ASCII logging](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs)
 * [Binary logging in Zeek](https://old.zeek.org/development/projects/binary-logging.html)
 * [Hadoop sequence file](https://cwiki.apache.org/confluence/display/HADOOP2/SequenceFile)
 * [Avro](https://avro.apache.org)

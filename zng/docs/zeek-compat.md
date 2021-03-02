@@ -12,7 +12,7 @@
 
 ## Introduction
 
-As the ZSON data model was inspired by the [Zeek TSV log format](https://docs.zeek.org/en/stable/examples/logs/),
+As the ZSON data model was inspired by the [Zeek TSV log format](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs),
 the ZSON/ZNG formats maintain comprehensive interoperability with Zeek.
 In comparison, when Zeek is configured to output its logs in JSON format, much of the
 rich type information is lost in translation.  On the other hand, Zeek TSV
