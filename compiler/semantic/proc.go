@@ -81,8 +81,10 @@ func semProc(scope *Scope, p ast.Proc) (ast.Proc, error) {
 			procs = append(procs, converted)
 		}
 		return &ast.ParallelProc{
-			Op:    "ParallelProc",
-			Procs: procs,
+			Op:                "ParallelProc",
+			MergeOrderField:   p.MergeOrderField,
+			MergeOrderReverse: p.MergeOrderReverse,
+			Procs:             procs,
 		}, nil
 	case *ast.SequentialProc:
 		var procs []ast.Proc
