@@ -130,8 +130,7 @@ func compileBinary(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpression
 	if err != nil {
 		return nil, err
 	}
-	op := e.Operator
-	switch op {
+	switch op := e.Operator; op {
 	case "and", "or":
 		return compileLogical(lhs, rhs, op)
 	case "in":

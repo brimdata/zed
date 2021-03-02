@@ -324,9 +324,6 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, paren
 	if len(parents) == 0 {
 		return nil, errors.New("no parents")
 	}
-	if scope == nil {
-		panic("no scope")
-	}
 	switch node := node.(type) {
 	case *ast.SequentialProc:
 		if len(node.Procs) == 0 {
