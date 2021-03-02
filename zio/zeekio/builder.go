@@ -3,13 +3,17 @@ package zeekio
 import (
 	"bytes"
 	"errors"
+	"net"
 
+	"github.com/brimsec/zq/pkg/byteconv"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 )
 
 type builder struct {
 	zcode.Builder
+	buf             []byte
 	fields          [][]byte
 	reorderedFields [][]byte
 }
@@ -113,10 +117,80 @@ func (b *builder) appendPrimitive(typ zng.Type, val []byte) error {
 		b.AppendPrimitive(nil)
 		return nil
 	}
-	zv, err := typ.Parse(val)
-	if err != nil {
-		return err
+	switch typ.ID() {
+	case zng.IdInt64:
+		v, err := byteconv.ParseInt64(val)
+		if err != nil {
+			return err
+		}
+		b.buf = zng.AppendInt(b.buf[:0], v)
+	case zng.IdUint16:
+		// Zeek's port type is aliased to uint16.
+		v, err := byteconv.ParseUint16(val)
+		if err != nil {
+			return err
+		}
+		b.buf = zng.AppendUint(b.buf[:0], uint64(v))
+	case zng.IdUint64:
+		v, err := byteconv.ParseUint64(val)
+		if err != nil {
+			return err
+		}
+		b.buf = zng.AppendUint(b.buf[:0], v)
+	case zng.IdDuration:
+		v, err := nano.ParseDuration(val)
+		if err != nil {
+			return err
+		}
+		b.buf = zng.AppendDuration(b.buf[:0], v)
+	case zng.IdTime:
+		v, err := nano.Parse(val)
+		if err != nil {
+			return err
+		}
+		b.buf = zng.AppendTime(b.buf[:0], v)
+	case zng.IdFloat64:
+		v, err := byteconv.ParseFloat64(val)
+		if err != nil {
+			return err
+		}
+		b.buf = zng.AppendFloat64(b.buf[:0], v)
+	case zng.IdBool:
+		v, err := byteconv.ParseBool(val)
+		if err != nil {
+			return err
+		}
+		b.buf = zng.AppendBool(b.buf[:0], v)
+	case zng.IdString:
+		// Zeek's enum type is aliased to string.
+		zb, err := zng.TypeString.Parse(val)
+		if err != nil {
+			return err
+		}
+		b.AppendPrimitive(zb)
+		return nil
+	case zng.IdBstring:
+		zb, err := zng.TypeBstring.Parse(val)
+		if err != nil {
+			return err
+		}
+		b.AppendPrimitive(zb)
+		return nil
+	case zng.IdIP:
+		v, err := byteconv.ParseIP(val)
+		if err != nil {
+			return err
+		}
+		b.buf = zng.AppendIP(b.buf[:0], v)
+	case zng.IdNet:
+		_, v, err := net.ParseCIDR(string(val))
+		if err != nil {
+			return err
+		}
+		b.buf = zng.AppendNet(b.buf[:0], v)
+	default:
+		panic(typ)
 	}
-	b.AppendPrimitive(zv)
+	b.AppendPrimitive(b.buf)
 	return nil
 }
