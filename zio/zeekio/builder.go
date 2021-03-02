@@ -16,6 +16,7 @@ type builder struct {
 
 func (b *builder) build(typ *zng.TypeRecord, sourceFields []int, path []byte, data []byte) (*zng.Record, error) {
 	b.Reset()
+	b.Grow(len(data))
 	columns := typ.Columns
 	if path != nil {
 		if columns[0].Name != "_path" {

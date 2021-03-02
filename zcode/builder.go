@@ -21,6 +21,16 @@ func (b *Builder) Reset() {
 	b.containers = b.containers[:0]
 }
 
+// Grow guarantees that at least n bytes can be added to the Builder's
+// underlying buffer without another allocation.
+func (b *Builder) Grow(n int) {
+	if cap(b.bytes)-len(b.bytes) < n {
+		buf := make([]byte, len(b.bytes), 2*cap(b.bytes)+n)
+		copy(buf, b.bytes)
+		b.bytes = buf
+	}
+}
+
 // BeginContainer opens a new container.
 func (b *Builder) BeginContainer() {
 	// Allocate one byte for the container tag.  When EndContainer writes
