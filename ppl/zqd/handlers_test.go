@@ -918,7 +918,7 @@ func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *client.Connec
 	}
 	core, err := zqd.NewCore(context.Background(), conf)
 	require.NoError(t, err)
-	srv := httptest.NewServer(core.HTTPHandler())
+	srv := httptest.NewServer(core)
 	t.Cleanup(srv.Close)
 	return core, client.NewConnectionTo(srv.URL)
 }
