@@ -262,8 +262,8 @@ func (c *Core) authhandle(path string, f func(*Core, http.ResponseWriter, *http.
 }
 
 func (c *Core) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	rm := &mux.RouteMatch{}
-	if c.routerAux.Match(r, rm) {
+	var rm mux.RouteMatch
+	if c.routerAux.Match(r, &rm) {
 		rm.Handler.ServeHTTP(w, r)
 		return
 	}
