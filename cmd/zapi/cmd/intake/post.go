@@ -13,7 +13,7 @@ import (
 
 var Post = &charm.Spec{
 	Name:  "post",
-	Usage: "intake post <intake> <file|S3-object|->",
+	Usage: "intake post <intake-name-or-id> <file|S3-object|->",
 	Short: "post data to intake",
 	Long: `
 "intake post" sends the data in the file (or stdin if "-" is used) to the specified

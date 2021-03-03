@@ -12,7 +12,6 @@ var Ls = &charm.Spec{
 	Name:  "ls",
 	Usage: "intake ls [-l]",
 	Short: "list intakes",
-	Long:  ``,
 	New:   NewLs,
 }
 

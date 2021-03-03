@@ -14,7 +14,6 @@ var NewSpec = &charm.Spec{
 	Name:  "new",
 	Usage: "intake new <name>",
 	Short: "create a new intake",
-	Long:  ``,
 	New:   NewNew,
 }
 
@@ -33,7 +32,7 @@ func NewNew(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.outputFlags.SetFormatFlags(f)
 
 	f.StringVar(&c.shaper, "shaper", "", "intake Z shaper code")
-	f.StringVar(&c.targetSpace, "target", "", "intake target space (name or id)")
+	f.StringVar(&c.targetSpace, "target", "", "intake target space name or id")
 	return c, nil
 }
 

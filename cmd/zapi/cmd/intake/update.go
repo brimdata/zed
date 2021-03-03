@@ -12,7 +12,7 @@ import (
 
 var Update = &charm.Spec{
 	Name:  "update",
-	Usage: "intake update",
+	Usage: "intake update <intake-name-or-id>",
 	Short: "update an intake's configuration",
 	Long: `
 "intake update" can be used to change the configuration for an intake, including
