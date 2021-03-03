@@ -349,6 +349,9 @@ func (m *Manager) Purge(ctx context.Context, id api.SpaceID) error {
 }
 
 func (m *Manager) CreateIntake(ctx context.Context, req api.IntakePostRequest) (api.Intake, error) {
+	if req.Name == "" {
+		return api.Intake{}, zqe.E(zqe.Invalid, "name must not be empty")
+	}
 	ident := auth.IdentityFromContext(ctx)
 	row := schema.IntakeRow{
 		ID:            schema.NewIntakeID(),
@@ -388,9 +391,6 @@ func (m *Manager) ListIntakes(ctx context.Context) ([]api.Intake, error) {
 }
 
 func (m *Manager) validateIntake(ctx context.Context, row schema.IntakeRow) error {
-	if row.Name == "" {
-		return zqe.E(zqe.Invalid, "name must not be empty")
-	}
 	if !schema.ValidResourceName(row.Name) {
 		return zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
