@@ -63,7 +63,8 @@ type Core struct {
 	mgr            *apiserver.Manager
 	registry       *prometheus.Registry
 	root           iosrc.URI
-	router         *mux.Router
+	routerAPI      *mux.Router
+	routerAux      *mux.Router
 	taskCount      int64
 	temporalClient client.Client
 	temporalWorker sdkworker.Worker
@@ -93,37 +94,21 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		}
 	}
 
-	router := mux.NewRouter()
-	router.Use(requestIDMiddleware())
-	router.Use(accessLogMiddleware(conf.Logger, "/status", "/metrics"))
-	router.Use(panicCatchMiddleware(conf.Logger))
-	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, indexPage)
-	})
-
-	debug := router.PathPrefix("/debug/pprof").Subrouter()
-	debug.HandleFunc("/cmdline", pprof.Cmdline)
-	debug.HandleFunc("/profile", pprof.Profile)
-	debug.HandleFunc("/symbol", pprof.Symbol)
-	debug.HandleFunc("/trace", pprof.Trace)
-	debug.PathPrefix("/").HandlerFunc(pprof.Index)
-
-	router.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
-	router.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "ok")
-	})
-	router.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&api.VersionResponse{Version: conf.Version})
-	})
+	apiRouter := mux.NewRouter()
+	apiRouter.Use(requestIDMiddleware())
+	apiRouter.Use(accessLogMiddleware(conf.Logger))
+	apiRouter.Use(panicCatchMiddleware(conf.Logger))
 
 	c := &Core{
-		auth:     authenticator,
-		conf:     conf,
-		logger:   conf.Logger.Named("core").With(zap.String("personality", conf.Personality)),
-		registry: registry,
-		router:   router,
+		auth:      authenticator,
+		conf:      conf,
+		logger:    conf.Logger.Named("core").With(zap.String("personality", conf.Personality)),
+		registry:  registry,
+		routerAPI: apiRouter,
+		routerAux: mux.NewRouter(),
 	}
+
+	c.addAuxilaryRoutes()
 
 	switch conf.Personality {
 	case "all", "apiserver", "root", "temporal":
@@ -166,11 +151,33 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	return c, nil
 }
 
+func (c *Core) addAuxilaryRoutes() {
+	c.routerAux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, indexPage)
+	})
+
+	debug := c.routerAux.PathPrefix("/debug/pprof").Subrouter()
+	debug.HandleFunc("/cmdline", pprof.Cmdline)
+	debug.HandleFunc("/profile", pprof.Profile)
+	debug.HandleFunc("/symbol", pprof.Symbol)
+	debug.HandleFunc("/trace", pprof.Trace)
+	debug.PathPrefix("/").HandlerFunc(pprof.Index)
+
+	c.routerAux.Handle("/metrics", promhttp.HandlerFor(c.registry, promhttp.HandlerOpts{}))
+	c.routerAux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "ok")
+	})
+	c.routerAux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(&api.VersionResponse{Version: c.conf.Version})
+	})
+}
+
 func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/ast", handleASTPost).Methods("POST")
 	c.authhandle("/auth/identity", handleAuthIdentityGet).Methods("GET")
 	// /auth/method intentionally requires no authentication
-	c.router.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
+	c.routerAPI.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
 	c.authhandle("/search", handleSearch).Methods("POST")
 	c.authhandle("/space", handleSpaceList).Methods("GET")
 	c.authhandle("/space", handleSpacePost).Methods("POST")
@@ -187,16 +194,16 @@ func (c *Core) addAPIServerRoutes() {
 }
 
 func (c *Core) addRecruiterRoutes() {
-	c.router.Handle("/recruiter/listfree", c.handler(handleListFree)).Methods("GET")
-	c.router.Handle("/recruiter/recruit", c.handler(handleRecruit)).Methods("POST")
-	c.router.Handle("/recruiter/register", c.handler(handleRegister)).Methods("POST")
-	c.router.Handle("/recruiter/stats", c.handler(handleRecruiterStats)).Methods("GET")
+	c.routerAPI.Handle("/recruiter/listfree", c.handler(handleListFree)).Methods("GET")
+	c.routerAPI.Handle("/recruiter/recruit", c.handler(handleRecruit)).Methods("POST")
+	c.routerAPI.Handle("/recruiter/register", c.handler(handleRegister)).Methods("POST")
+	c.routerAPI.Handle("/recruiter/stats", c.handler(handleRecruiterStats)).Methods("GET")
 }
 
 func (c *Core) addWorkerRoutes() {
-	c.router.Handle("/worker/chunksearch", c.handler(handleWorkerChunkSearch)).Methods("POST")
-	c.router.Handle("/worker/release", c.handler(handleWorkerRelease)).Methods("GET")
-	c.router.Handle("/worker/rootsearch", c.handler(handleWorkerRootSearch)).Methods("POST")
+	c.routerAPI.Handle("/worker/chunksearch", c.handler(handleWorkerChunkSearch)).Methods("POST")
+	c.routerAPI.Handle("/worker/release", c.handler(handleWorkerRelease)).Methods("GET")
+	c.routerAPI.Handle("/worker/rootsearch", c.handler(handleWorkerRootSearch)).Methods("POST")
 }
 
 func (c *Core) initManager(ctx context.Context) (err error) {
@@ -251,11 +258,16 @@ func (c *Core) authhandle(path string, f func(*Core, http.ResponseWriter, *http.
 	} else {
 		h = c.handler(f)
 	}
-	return c.router.Handle(path, h)
+	return c.routerAPI.Handle(path, h)
 }
 
-func (c *Core) HTTPHandler() http.Handler {
-	return c.router
+func (c *Core) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	rm := &mux.RouteMatch{}
+	if c.routerAux.Match(r, rm) {
+		rm.Handler.ServeHTTP(w, r)
+		return
+	}
+	c.routerAPI.ServeHTTP(w, r)
 }
 
 func (c *Core) HasSuricata() bool {
