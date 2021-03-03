@@ -386,30 +386,28 @@ func compileShaper(zctx *resolver.Context, scope *Scope, node ast.FunctionCall) 
 }
 
 func compileCall(zctx *resolver.Context, scope *Scope, node ast.FunctionCall) (expr.Evaluator, error) {
-	// For now, we special case cut and pick here.  We shuold generalize this
+	// For now, we special case stateful functions here.  We shuold generalize this
 	// as we will add many more stateful functions and also resolve this
 	// the changes to create running aggegation functions from reducers.
 	// XXX See issue #1259.
-	if node.Function == "cut" {
+	switch {
+	case node.Function == "cut":
 		cut, err := compileCutter(zctx, scope, node)
 		if err != nil {
 			return nil, err
 		}
 		cut.AllowPartialCuts()
 		return cut, nil
-	}
-	if node.Function == "pick" {
+	case node.Function == "pick":
 		return compileCutter(zctx, scope, node)
-	}
-	if isShaperFunc(node.Function) {
-		return compileShaper(zctx, scope, node)
-	}
-	if node.Function == "exists" {
+	case node.Function == "exists":
 		exprs, err := compileExprs(zctx, scope, node.Args)
 		if err != nil {
 			return nil, fmt.Errorf("exists: bad argument: %w", err)
 		}
 		return expr.NewExists(zctx, exprs), nil
+	case isShaperFunc(node.Function):
+		return compileShaper(zctx, scope, node)
 	}
 	nargs := len(node.Args)
 	fn, root, err := function.New(zctx.Context, node.Function, nargs)
