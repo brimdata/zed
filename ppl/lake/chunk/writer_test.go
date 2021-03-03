@@ -25,9 +25,13 @@ func TestWriterIndex(t *testing.T) {
 0:[1;100;]`
 	def := index.MustNewDefinition(index.NewTypeRule(zng.TypeInt64))
 	chunk := testWriteWithDef(t, data, def)
-	rec, err := index.Find(context.Background(), resolver.NewContext(), chunk.ZarDir(), def.ID, "100")
+	reader, err := index.Find(context.Background(), resolver.NewContext(), chunk.ZarDir(), def.ID, "100")
 	require.NoError(t, err)
-	v, err := rec.AccessInt("count")
+	recs, err := zbuf.ReadAll(reader)
+	require.NoError(t, err)
+	require.NoError(t, reader.Close())
+	require.Len(t, recs, 1)
+	v, err := recs[0].AccessInt("count")
 	require.NoError(t, err)
 	require.EqualValues(t, 2, v)
 }
@@ -41,8 +45,12 @@ func TestWriterSkipsInputPath(t *testing.T) {
 	inputdef.Input = "input_path"
 	zctx := resolver.NewContext()
 	chunk := testWriteWithDef(t, data, sdef, inputdef)
-	_, err := index.Find(context.Background(), zctx, chunk.ZarDir(), sdef.ID, "100")
-	assert.NoError(t, err)
+	reader, err := index.Find(context.Background(), zctx, chunk.ZarDir(), sdef.ID, "test")
+	require.NoError(t, err)
+	recs, err := zbuf.ReadAll(reader)
+	require.NoError(t, err)
+	require.NoError(t, reader.Close())
+	assert.Len(t, recs, 1)
 	_, err = index.Find(context.Background(), zctx, chunk.ZarDir(), inputdef.ID, "100")
 	assert.Truef(t, zqe.IsNotFound(err), "expected err to be zqe.IsNotFound, got: %v", err)
 }

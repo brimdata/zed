@@ -63,13 +63,16 @@ func TestWriteIndices(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Find-%s-%t", test.def.Kind, test.has), func(t *testing.T) {
-			rec, err := Find(ctx, resolver.NewContext(), dir, test.def.ID, test.pattern)
+			reader, err := Find(ctx, resolver.NewContext(), dir, test.def.ID, test.pattern)
 			require.NoError(t, err)
+			recs, err := zbuf.ReadAll(reader)
+			require.NoError(t, err)
+			require.NoError(t, reader.Close())
 
 			if test.has {
-				assert.NotNilf(t, rec, "expected query %s=%s to return a result", test.def, test.pattern)
+				assert.Lenf(t, recs, 1, "expected query %s=%s to return a result", test.def, test.pattern)
 			} else {
-				assert.Nilf(t, rec, "expected query %s=%s to return a result", test.def, test.pattern)
+				assert.Lenf(t, recs, 0, "expected query %s=%s to return no result", test.def, test.pattern)
 			}
 		})
 	}
@@ -81,9 +84,13 @@ func TestFindTypeRule(t *testing.T) {
 	err := zbuf.Copy(w, babbleReader(t))
 	require.NoError(t, err)
 	require.NoError(t, w.Close())
-	rec, err := FindFromPath(context.Background(), resolver.NewContext(), w.URI, "456")
+	reader, err := FindFromPath(context.Background(), resolver.NewContext(), w.URI, "456")
 	require.NoError(t, err)
-	require.NotNil(t, rec)
+	recs, err := zbuf.ReadAll(reader)
+	require.NoError(t, err)
+	require.NoError(t, reader.Close())
+	require.Len(t, recs, 1)
+	rec := recs[0]
 	count, err := rec.AccessInt("count")
 	require.NoError(t, err)
 	key, err := rec.AccessInt("key")
@@ -99,9 +106,13 @@ func TestZQLRule(t *testing.T) {
 	err = zbuf.Copy(w, babbleReader(t))
 	require.NoError(t, err)
 	require.NoError(t, w.Close())
-	rec, err := FindFromPath(context.Background(), resolver.NewContext(), w.URI, "kartometer-trifocal")
+	reader, err := FindFromPath(context.Background(), resolver.NewContext(), w.URI, "kartometer-trifocal")
 	require.NoError(t, err)
-	require.NotNil(t, rec)
+	recs, err := zbuf.ReadAll(reader)
+	require.NoError(t, err)
+	require.NoError(t, reader.Close())
+	require.Len(t, recs, 1)
+	rec := recs[0]
 	count, err := rec.AccessInt("sum")
 	require.NoError(t, err)
 	key, err := rec.AccessString("key")
