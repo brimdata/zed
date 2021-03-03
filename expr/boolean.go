@@ -113,20 +113,6 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 	}, nil
 }
 
-func CompareContainerLen(op string, len int64) (Boolean, error) {
-	compare, ok := compareInt[op]
-	if !ok {
-		return nil, fmt.Errorf("unknown length comparator: %s", op)
-	}
-	return func(v zng.Value) bool {
-		actual, err := v.ContainerLength()
-		if err != nil {
-			return false
-		}
-		return compare(int64(actual), len)
-	}, nil
-}
-
 //XXX should just do equality and we should compare in the encoded domain
 // and not make copies and have separate cases for len 4 and len 16
 var compareAddr = map[string]func(net.IP, net.IP) bool{
