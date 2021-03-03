@@ -3,8 +3,8 @@ zql: |
 
 input: |
   {a:{q:1 (port=(int64)), p: 2 (port)} (=0),b:[{q:1,p:2 (port)} (=1)] (=2),c:3 (port)} (=3)
-  {a:{q:1 (=myport), p: 2 (myport)} (=0),b:[{q:1 (myport),p:2 (myport)} (=1)] (=2),c:3 (myport)} (=3)
+  {a:{q:1 (myport=(int16)), p: 2 (myport)} (=0),b:[{q:1 (myport),p:2 (myport)} (=1)] (=2),c:3 (myport)} (=3)
 
 output: |
   {c:3 (=port),b:[{p:2 (port),q:1} (=0)] (=1),a:{p:2 (port),q:1 (port)} (=2)} (=3)
-  {c:3 (=myport),b:[{p:2 (myport),q:1 (myport)} (=4)] (=5),a:{p:2,q:1} (4)} (=6)
+  {c:3 (myport=(int16)),b:[{p:2 (myport),q:1 (myport)} (=4)] (=5),a:{p:2,q:1} (4)} (=6)
