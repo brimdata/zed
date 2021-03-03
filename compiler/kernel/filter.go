@@ -132,22 +132,22 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (e
 		if f, err := compileCompareField(zctx, scope, v); f != nil || err != nil {
 			return f, err
 		}
-		return compilExprPredicate(zctx, scope, v)
+		return compileExprPredicate(zctx, scope, v)
 
 	case *ast.FunctionCall:
-		return compilExprPredicate(zctx, scope, v)
+		return compileExprPredicate(zctx, scope, v)
 	case *ast.SeqExpr:
 		if f, err := compileCompareAny(v); f != nil || err != nil {
 			return f, err
 		}
-		return compilExprPredicate(zctx, scope, v)
+		return compileExprPredicate(zctx, scope, v)
 
 	default:
 		return nil, fmt.Errorf("Filter AST unknown type: %v", v)
 	}
 }
 
-func compilExprPredicate(zctx *resolver.Context, scope *Scope, e ast.Expression) (expr.Filter, error) {
+func compileExprPredicate(zctx *resolver.Context, scope *Scope, e ast.Expression) (expr.Filter, error) {
 	predicate, err := compileExpr(zctx, scope, e)
 	if err != nil {
 		return nil, err
