@@ -24,7 +24,13 @@ When you have an EKS cluster set up, either using the link above, or using a pre
 
 The Brim AWS account is used to automatically deploy and test the master branch of zq in a test EKS cluster. If you fork the repo, you may want to do something similar.
 
+## Optional: Aurora and Temporal
+
 If Aurora has been configured for testing, then in order to deploy on EKS and use Aurora you may also follow the steps [here](aurora.md) starting with "Creating a user for testing".
+
+To deploy Temporal, the Temporal schema must be initialized in Aurora. Follow the steps [here](temporal.md) .
+
+## Deployment for github actions
 
 `.github/workflows/cd.yaml`
 
