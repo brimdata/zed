@@ -91,6 +91,22 @@ tcp
 udp
 ```
 
+If you work a lot at the UNIX/Linux shell, you might have sought to accomplish
+the same via a familiar, verbose idiom. This works in ZQL, but the `by`
+shorthand is preferable.
+
+```zq-command
+zq -f table 'cut proto | sort | uniq' conn.log.gz # Not advised - "by" is more succinct
+```
+
+#### Output:
+```zq-output
+PROTO
+icmp
+tcp
+udp
+```
+
 #### Example #2:
 
 By specifying multiple comma-separated field names, one batch is formed for each
