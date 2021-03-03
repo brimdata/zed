@@ -2,7 +2,7 @@ zql: |
   type port=int64; type prec={p: port}; type parr=[port]; put .=cast({a:port, b:prec, c: parr})
 
 input: |
-  {a: 1 (=myport), b:{p: 1 (myport)}, c:[1(myport)]}
+  {a: 1 (myport=(int16)), b:{p: 1 (myport)}, c:[1(myport)]}
   {a: 1, b:{p: 1}, c:[1]}
 
 output: |

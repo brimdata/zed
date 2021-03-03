@@ -144,7 +144,7 @@ func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) {
 		b.AppendNull()
 		return
 	}
-	pc := LookupPrimitiveCaster(s.castTypes.to)
+	pc := LookupPrimitiveCaster(zng.AliasedType(s.castTypes.to))
 	v, err := pc(zng.Value{s.castTypes.from, in})
 	if err != nil {
 		b.AppendNull()
