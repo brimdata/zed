@@ -94,21 +94,40 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		}
 	}
 
-	apiRouter := mux.NewRouter()
-	apiRouter.Use(requestIDMiddleware())
-	apiRouter.Use(accessLogMiddleware(conf.Logger))
-	apiRouter.Use(panicCatchMiddleware(conf.Logger))
+	routerAux := mux.NewRouter()
+	routerAux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, indexPage)
+	})
+
+	debug := routerAux.PathPrefix("/debug/pprof").Subrouter()
+	debug.HandleFunc("/cmdline", pprof.Cmdline)
+	debug.HandleFunc("/profile", pprof.Profile)
+	debug.HandleFunc("/symbol", pprof.Symbol)
+	debug.HandleFunc("/trace", pprof.Trace)
+	debug.PathPrefix("/").HandlerFunc(pprof.Index)
+
+	routerAux.Handle("/metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
+	routerAux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
+		io.WriteString(w, "ok")
+	})
+	routerAux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(&api.VersionResponse{Version: conf.Version})
+	})
+
+	routerAPI := mux.NewRouter()
+	routerAPI.Use(requestIDMiddleware())
+	routerAPI.Use(accessLogMiddleware(conf.Logger))
+	routerAPI.Use(panicCatchMiddleware(conf.Logger))
 
 	c := &Core{
 		auth:      authenticator,
 		conf:      conf,
 		logger:    conf.Logger.Named("core").With(zap.String("personality", conf.Personality)),
 		registry:  registry,
-		routerAPI: apiRouter,
-		routerAux: mux.NewRouter(),
+		routerAPI: routerAPI,
+		routerAux: routerAux,
 	}
-
-	c.addAuxilaryRoutes()
 
 	switch conf.Personality {
 	case "all", "apiserver", "root", "temporal":
@@ -149,28 +168,6 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	c.logger.Info("Started", startFields...)
 	return c, nil
-}
-
-func (c *Core) addAuxilaryRoutes() {
-	c.routerAux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, indexPage)
-	})
-
-	debug := c.routerAux.PathPrefix("/debug/pprof").Subrouter()
-	debug.HandleFunc("/cmdline", pprof.Cmdline)
-	debug.HandleFunc("/profile", pprof.Profile)
-	debug.HandleFunc("/symbol", pprof.Symbol)
-	debug.HandleFunc("/trace", pprof.Trace)
-	debug.PathPrefix("/").HandlerFunc(pprof.Index)
-
-	c.routerAux.Handle("/metrics", promhttp.HandlerFor(c.registry, promhttp.HandlerOpts{}))
-	c.routerAux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, "ok")
-	})
-	c.routerAux.HandleFunc("/version", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Add("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(&api.VersionResponse{Version: c.conf.Version})
-	})
 }
 
 func (c *Core) addAPIServerRoutes() {
@@ -261,15 +258,6 @@ func (c *Core) authhandle(path string, f func(*Core, http.ResponseWriter, *http.
 	return c.routerAPI.Handle(path, h)
 }
 
-func (c *Core) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	var rm mux.RouteMatch
-	if c.routerAux.Match(r, &rm) {
-		rm.Handler.ServeHTTP(w, r)
-		return
-	}
-	c.routerAPI.ServeHTTP(w, r)
-}
-
 func (c *Core) HasSuricata() bool {
 	return c.conf.Suricata != nil
 }
@@ -284,6 +272,15 @@ func (c *Core) Registry() *prometheus.Registry {
 
 func (c *Core) Root() iosrc.URI {
 	return c.root
+}
+
+func (c *Core) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var rm mux.RouteMatch
+	if c.routerAux.Match(r, &rm) {
+		rm.Handler.ServeHTTP(w, r)
+		return
+	}
+	c.routerAPI.ServeHTTP(w, r)
 }
 
 func (c *Core) Shutdown() {
