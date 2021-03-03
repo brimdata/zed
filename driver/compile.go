@@ -9,6 +9,7 @@ import (
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/compiler/kernel"
+	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/zqd/worker"
 	"github.com/brimsec/zq/proc"
@@ -53,7 +54,11 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 	if cfg.Span.Dur == 0 {
 		cfg.Span = nano.MaxSpan
 	}
-	runtime, err := compiler.New(zctx, program)
+	var sortKey field.Static
+	if cfg.ReaderSortKey != "" {
+		sortKey = field.New(cfg.ReaderSortKey)
+	}
+	runtime, err := compiler.NewWithSortedInput(zctx, program, sortKey, cfg.ReaderSortReverse)
 	if err != nil {
 		return nil, err
 	}
