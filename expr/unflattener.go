@@ -30,16 +30,13 @@ func NewUnflattener(zctx *resolver.Context) *Unflattener {
 }
 
 func (u *Unflattener) lookupBuilderAndType(in *zng.TypeRecord) (*builder.ColumnBuilder, *zng.TypeRecord, error) {
-	b, ok := u.builders[in.ID()]
-	if ok {
-		b.Reset()
+	if b, ok := u.builders[in.ID()]; ok {
 		return b, u.recordTypes[in.ID()], nil
 	}
-	cols := in.Columns
 	var foundDotted bool
 	var fields []field.Static
 	var types []zng.Type
-	for _, c := range cols {
+	for _, c := range in.Columns {
 		dotted := field.Dotted(c.Name)
 		if len(dotted) > 1 {
 			foundDotted = true
@@ -74,8 +71,8 @@ func (u *Unflattener) Apply(in *zng.Record) (*zng.Record, error) {
 	if b == nil {
 		return in, nil
 	}
-	iter := in.Raw.Iter()
-	for !iter.Done() {
+	b.Reset()
+	for iter := in.Raw.Iter(); !iter.Done(); {
 		zv, con, err := iter.Next()
 		if err != nil {
 			return nil, err
