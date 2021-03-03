@@ -406,6 +406,8 @@ func compileCall(zctx *resolver.Context, scope *Scope, node ast.FunctionCall) (e
 			return nil, fmt.Errorf("exists: bad argument: %w", err)
 		}
 		return expr.NewExists(zctx, exprs), nil
+	case node.Function == "unflatten":
+		return expr.NewUnflattener(zctx), nil
 	case isShaperFunc(node.Function):
 		return compileShaper(zctx, scope, node)
 	}
