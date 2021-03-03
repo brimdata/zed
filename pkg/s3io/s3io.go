@@ -18,6 +18,8 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
 )
 
 var ErrInvalidS3Path = errors.New("path is not a valid s3 location")
@@ -39,6 +41,10 @@ func NewClient(cfg *aws.Config) *s3.S3 {
 	scs := session.SharedConfigEnable
 	if os.Getenv("AWS_SDK_LOAD_CONFIG") != "" {
 		scs = session.SharedConfigStateFromEnv
+	}
+	tp := otel.GetTracerProvider()
+	if tp != nil {
+		cfg.HTTPClient = &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
 	}
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
 		Config:            *cfg,

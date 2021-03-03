@@ -23,6 +23,7 @@ import (
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux"
 	"go.temporal.io/sdk/client"
 	sdkworker "go.temporal.io/sdk/worker"
 	"go.uber.org/zap"
@@ -116,6 +117,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	})
 
 	routerAPI := mux.NewRouter()
+	routerAPI.Use(otelmux.Middleware("api"))
 	routerAPI.Use(requestIDMiddleware())
 	routerAPI.Use(accessLogMiddleware(conf.Logger))
 	routerAPI.Use(panicCatchMiddleware(conf.Logger))

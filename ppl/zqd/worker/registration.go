@@ -9,6 +9,8 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"go.uber.org/zap"
 )
 
@@ -45,6 +47,7 @@ type RegistrationState struct {
 	logger      *zap.Logger
 	releaseChan chan string
 	selfaddr    string
+	tracer      trace.Tracer
 }
 
 func NewRegistrationState(ctx context.Context, srvAddr string, conf WorkerConfig, logger *zap.Logger) (*RegistrationState, error) {
@@ -52,6 +55,8 @@ func NewRegistrationState(ctx context.Context, srvAddr string, conf WorkerConfig
 	if conf.Host != "" {
 		host = conf.Host
 	}
+
+	tp := otel.GetTracerProvider()
 	rs := &RegistrationState{
 		conf:        conf,
 		conn:        client.NewConnectionTo("http://" + conf.Recruiter),
@@ -59,34 +64,21 @@ func NewRegistrationState(ctx context.Context, srvAddr string, conf WorkerConfig
 		logger:      logger,
 		releaseChan: make(chan string),
 		selfaddr:    net.JoinHostPort(host, port),
+		tracer:      tp.Tracer("github.com/brimsec/zq/ppl/zqd/worker"),
 	}
 	return rs, nil
 }
 
 // RegisterWithRecruiter is used by personality=worker.
 func (rs *RegistrationState) RegisterWithRecruiter() {
-	req := api.RegisterRequest{
-		Timeout: int(rs.conf.LongPoll / time.Millisecond),
-		Worker: api.Worker{
-			Addr:     rs.selfaddr,
-			NodeName: rs.conf.Node,
-		},
-	}
 	retryWait := rs.conf.MinRetry
 	// Loop for registration long polling.
 	for {
-		rs.logger.Debug("Register",
-			zap.Duration("longpoll", rs.conf.LongPoll),
-			zap.String("recruiter", rs.conf.Recruiter))
-		resp, err := rs.conn.Register(rs.ctx, req)
-		if err != nil {
-			rs.logger.Error(
-				"Error on recruiter registration, waiting to retry",
-				zap.Duration("retry", retryWait),
-				zap.String("recruiter", rs.conf.Recruiter),
-				zap.Error(err))
+		resp := rs.pollRecruiter()
+		if resp == nil {
 			// Delay next request. There is an
 			// exponential backoff on registration errors.
+			rs.logger.Info("Waiting to retry", zap.Duration("retry", retryWait))
 			time.Sleep(retryWait)
 			if retryWait < rs.conf.MaxRetry {
 				retryWait = (retryWait * 3) / 2
@@ -133,6 +125,32 @@ func (rs *RegistrationState) RegisterWithRecruiter() {
 			}
 		}
 	}
+}
+
+func (rs *RegistrationState) pollRecruiter() *api.RegisterResponse {
+	ctx, span := rs.tracer.Start(rs.ctx, "worker-registration")
+	defer span.End()
+
+	logger := rs.logger
+	logger.Debug("Register",
+		zap.Duration("longpoll", rs.conf.LongPoll),
+		zap.String("recruiter", rs.conf.Recruiter))
+
+	resp, err := rs.conn.Register(ctx, api.RegisterRequest{
+		Timeout: int(rs.conf.LongPoll / time.Millisecond),
+		Worker: api.Worker{
+			Addr:     rs.selfaddr,
+			NodeName: rs.conf.Node,
+		},
+	})
+
+	if err != nil {
+		logger.Error("Error on recruiter registration",
+			zap.String("recruiter", rs.conf.Recruiter),
+			zap.Error(err))
+	}
+
+	return resp
 }
 
 // These three methods are called from the worker handlers.

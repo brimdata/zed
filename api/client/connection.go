@@ -19,6 +19,7 @@ import (
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zqe"
 	"github.com/go-resty/resty/v2"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 const (
@@ -58,7 +59,8 @@ func NewConnection() *Connection {
 // NewConnectionTo creates a new connection with the given useragent string
 // and a base URL derived from the hostURL argument.
 func NewConnectionTo(hostURL string) *Connection {
-	client := resty.New()
+	httpclient := &http.Client{Transport: otelhttp.NewTransport(http.DefaultTransport)}
+	client := resty.NewWithClient(httpclient)
 	client.HostURL = hostURL
 	return newConnection(client)
 }

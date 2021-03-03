@@ -99,7 +99,7 @@ the secret with randomly generated passwords for the postgres admin and zqd user
 accounts:
 
 ```
-./k8s/postgres-secret.sh
+./k8s/generate-srv-secrets.sh
 ```
 
 ## Install with Helm

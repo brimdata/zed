@@ -12,6 +12,8 @@ global:
     # passwordSecretName must have a value called postgres-password
     passwordSecretName: "postgres"
   useCredSecret: false
+  otel:
+    enabled: true
 
 postgresql:
   # These values only apply to postgres instance running in the cluster (not Aurora)

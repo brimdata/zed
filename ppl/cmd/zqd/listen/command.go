@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"runtime"
+	"time"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cli"
@@ -24,6 +25,13 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/mccanne/charm"
+	"go.opentelemetry.io/contrib/propagators/aws/xray"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpgrpc"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	"go.opentelemetry.io/otel/semconv"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
@@ -36,7 +44,7 @@ var Listen = &charm.Spec{
 	Long: `
 The listen command launches a process to listen on the provided interface and
 `,
-	HiddenFlags: "brimfd,filestorereadonly,nodename,podip,recruiter,workers",
+	HiddenFlags: "brimfd,filestorereadonly,nodename,podip,recruiter,workers,otel.enabled",
 	New:         New,
 }
 
@@ -60,6 +68,7 @@ type Command struct {
 	devMode             bool
 	listenAddr          string
 	logLevel            zapcore.Level
+	otelEnabled         bool
 	portFile            string
 	suricataRunnerPath  string
 	suricataUpdaterPath string
@@ -90,6 +99,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	// Hidden flag while we transition to using archive store by default.
 	// See zq#1085
 	f.BoolVar(&api.FileStoreReadOnly, "filestorereadonly", false, "make file store spaces read only (and use archive store by default)")
+	f.BoolVar(&c.otelEnabled, "otel.enabled", false, "enable open telemetry tracing")
 
 	return c, nil
 }
@@ -116,6 +126,15 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	}
+
+	if c.otelEnabled {
+		otelFlush, err := c.initOtel(ctx)
+		if err != nil {
+			return err
+		}
+		defer otelFlush()
+	}
+
 	core, err := zqd.NewCore(ctx, c.conf)
 	if err != nil {
 		return err
@@ -285,4 +304,45 @@ func (c *Command) writePortFile(addr string) error {
 		_, err := w.Write([]byte(port))
 		return err
 	})
+}
+
+func (c *Command) initOtel(ctx context.Context) (func(), error) {
+	c.logger.Debug("Open telemetry exporter starting")
+	driver := otlpgrpc.NewDriver(
+		otlpgrpc.WithInsecure(),
+		otlpgrpc.WithEndpoint("localhost:55680"),
+	)
+	exp, err := otlp.NewExporter(ctx, driver)
+	if err != nil {
+		return nil, err
+	}
+	cfg := sdktrace.Config{
+		DefaultSampler: sdktrace.AlwaysSample(),
+	}
+	idg := xray.NewIDGenerator()
+	resources := resource.NewWithAttributes(
+		semconv.ServiceNameKey.String(c.conf.Personality),
+		semconv.ServiceVersionKey.String(c.conf.Version),
+	)
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithConfig(cfg),
+		sdktrace.WithSyncer(exp),
+		sdktrace.WithIDGenerator(idg),
+		sdktrace.WithResource(resources),
+	)
+	otel.SetTextMapPropagator(xray.Propagator{})
+	otel.SetTracerProvider(tracerProvider)
+	c.logger.Info("Open telemetry exporter started")
+	return func() {
+		// Do not use passed context in case zqd is shutting down because of a
+		// cancelled context.
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+		defer cancel()
+		err := exp.Shutdown(ctx)
+		if err != nil {
+			c.logger.Error("Error shutting down otel exporter", zap.Error(err))
+			return
+		}
+		c.logger.Info("Open telemetry exporter shutdown")
+	}, nil
 }

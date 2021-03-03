@@ -100,6 +100,14 @@ spec:
             - mountPath: /creds/redis
               name: redis-creds-volume
           {{- end }}
+      {{- if .Values.global.otel.enabled }}
+        - name: aws-otel-collector
+          image: amazon/aws-otel-collector:latest
+          env:
+            - name: AWS_REGION
+              value: {{ .Values.global.AWSRegion }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+      {{- end }}
       {{- if eq .Values.personality "root" }}
       initContainers:
         - name: "initdb"

@@ -86,6 +86,9 @@ Create args that vary based on .Values.personality
 {{- $args = append $args "-worker.host=$(STATUS_POD_IP)" }}
 {{- $args = append $args "-worker.node=$(SPEC_NODE_NAME)" }}
 {{- end }}
+{{- if .Values.global.otel.enabled }}
+{{- $args = append $args "-otel.enabled" }}
+{{- end }}
 {{- range $args }}
 {{ print "- " (. | quote) }}
 {{- end }}

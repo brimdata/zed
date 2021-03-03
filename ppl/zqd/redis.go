@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/go-redis/redis/extra/redisotel"
 	"github.com/go-redis/redis/v8"
 	"go.uber.org/zap"
 )
@@ -19,6 +20,7 @@ func NewRedisClient(ctx context.Context, logger *zap.Logger, conf RedisConfig) (
 
 	logger = logger.Named("redis")
 	client := redis.NewClient(&conf.Options)
+	client.AddHook(redisotel.TracingHook{})
 
 	if err := client.Ping(ctx).Err(); err != nil {
 		logger.Error("Could not connect to server",
