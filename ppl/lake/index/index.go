@@ -8,7 +8,6 @@ import (
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
@@ -106,25 +105,16 @@ func WriteIndices(ctx context.Context, d iosrc.URI, r zbuf.Reader, defs ...*Defi
 	return writers.Indices(), nil
 }
 
-func Find(ctx context.Context, zctx *resolver.Context, d iosrc.URI, id ksuid.KSUID, patterns ...string) (*zng.Record, error) {
+func Find(ctx context.Context, zctx *resolver.Context, d iosrc.URI, id ksuid.KSUID, patterns ...string) (zbuf.ReadCloser, error) {
 	return FindFromPath(ctx, zctx, IndexPath(d, id), patterns...)
 }
 
-func FindFromPath(ctx context.Context, zctx *resolver.Context, idxfile iosrc.URI, patterns ...string) (*zng.Record, error) {
-	finder, err := microindex.NewFinder(ctx, zctx, idxfile)
+func FindFromPath(ctx context.Context, zctx *resolver.Context, idxfile iosrc.URI, patterns ...string) (zbuf.ReadCloser, error) {
+	finder, err := microindex.NewFinderReader(ctx, zctx, idxfile, patterns...)
 	if err != nil {
 		return nil, fmt.Errorf("index find %s: %w", idxfile, err)
 	}
-	defer finder.Close()
-	keys, err := finder.ParseKeys(patterns...)
-	if err != nil {
-		return nil, fmt.Errorf("index find %s: %w", finder.Path(), err)
-	}
-	rec, err := finder.Lookup(keys)
-	if err != nil {
-		return nil, fmt.Errorf("index find %s: %w", finder.Path(), err)
-	}
-	return rec, nil
+	return finder, nil
 }
 
 func indexFilename(id ksuid.KSUID) string {

@@ -102,25 +102,34 @@ func Find(ctx context.Context, zctx *resolver.Context, lk *Lake, query index.Que
 	}
 	return Walk(ctx, lk, func(chunk chunk.Chunk) error {
 		dir := chunk.ZarDir()
-		rec, err := index.Find(ctx, zctx, dir, matched.DefID, matched.Values...)
-		if rec == nil || (err != nil && zqe.IsNotFound(err) && opt.skipMissing) {
-			// No index for this rule.  Skip it if the skip boolean
-			// says it's ok.  Otherwise, we return ErrNotExist since
-			// the client was looking for something that wasn't indexed,
-			// and they would probably want to know.
-			return nil
-		}
-
-		if rec, err = opt.addPath(lk, chunk, rec); err != nil {
+		reader, err := index.Find(ctx, zctx, dir, matched.DefID, matched.Values...)
+		if err != nil {
+			if zqe.IsNotFound(err) && opt.skipMissing {
+				// No index for this rule.  Skip it if the skip boolean
+				// says it's ok.  Otherwise, we return ErrNotExist since
+				// the client was looking for something that wasn't indexed,
+				// and they would probably want to know.
+				return nil
+			}
 			return err
 		}
 
-		select {
-		case hits <- rec:
-		case <-ctx.Done():
-			return ctx.Err()
+		defer reader.Close()
+		for {
+			rec, err := reader.Read()
+			if rec == nil || err != nil {
+				return err
+			}
+			if rec, err = opt.addPath(lk, chunk, rec); err != nil {
+				return err
+			}
+
+			select {
+			case hits <- rec:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
 		}
-		return nil
 	})
 }
 
