@@ -1,0 +1,14 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: temporalsql
+spec:
+  template:
+    # This is the pod template
+    spec:
+      containers:
+      - name: temporalsql
+        image: 792043464098.dkr.ecr.us-east-2.amazonaws.com/temporal:1.7.0
+        command: ['sh', '-c', 'echo "Connect to run temporal update" && sleep 3600']
+      restartPolicy: OnFailure
+    # The pod template ends here
