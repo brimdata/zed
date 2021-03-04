@@ -505,7 +505,7 @@ conn  2018-03-24T17:15:20.637761Z Cmgywj2O8KZAHHjddb 10.47.1.154 49582     134.7
 
 ### `not`
 
-Use the `not` operator to invert the matching logic the term to the right of it in your search.
+Use the `not` operator to invert the matching logic in the term that comes to the right of it in your search.
 
 For example, suppose you've noticed that the vast majority of the sample Zeek events are of log types like `conn`, `dns`, `files`, etc. You could review some of the less-common Zeek event types by inverting the logic of a [regexp match](#regular-expressions).
 
