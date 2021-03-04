@@ -37,21 +37,17 @@ easier to run all the commands by setting an environment variable pointing
 to the root of the logs tree.
 ```
 mkdir ./logs
-set ZAR_ROOT=`pwd`/logs
+ZAR_ROOT=`pwd`/logs
 ```
 
 Now, let's ingest the data using "zar import".  We are working on more
 sophisticated ways to ingest data (e.g., by the standard time partitioning
 techniques of year/month/day/hour etc), but for now zar import just chops
-its input into chunk files of approximately equal size.
-
-Zar import expects its input to be
-in the zng format so we'll use zq to take all the zng logs, gunzip them,
-and feed them to "zar import", which here expects its data on stdin.  We'll chop them
-into chunks of 25MB, which is very small, but in this example the data set is
+its input into chunk files of approximately equal size. We'll chop into chunks
+of 25MB, which is very small, but in this example the data set is
 fairly small (175MB) and you can always try it out on larger data sets:
 ```
-zq zng/*.gz | zar import -s 25MB -
+zar import -s 25MB zng/*.gz
 ```
 
 ## initializing the archive
@@ -101,10 +97,10 @@ zar map "count()" | zq -f table -
 which results in:
 ```
 COUNT
-188697
-436829
-409224
-427328
+275745
+276326
+290789
+619218
 ```
 
 You could take the stream of event counts and sum them to get a total:
