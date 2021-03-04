@@ -246,22 +246,30 @@ func NewShaperType(zctx *resolver.Context, fieldExpr Evaluator, typ *zng.TypeRec
 // to the provided typExpr. (typExpr should evaluate to a type value,
 // e.g. a value of type TypeType).
 func NewShaper(zctx *resolver.Context, fieldExpr, typExpr Evaluator, tf ShaperTransform) (*Shaper, error) {
-	lit, ok := typExpr.(*Literal)
-	if !ok {
-		return nil, fmt.Errorf("shaping functions (crop, fill, cast, order) take a literal as second parameter")
+	switch typExpr.(type) {
+	case *Var, *TypeFunc, *Literal:
+	default:
+		return nil, fmt.Errorf("shaping functions (crop, fill, cast, order) require a type value as second parameter")
 	}
-
-	if lit.zv.Type != zng.TypeType {
-		return nil, fmt.Errorf("shaper needs a type value as second parameter")
+	typVal, err := typExpr.Eval(nil)
+	if err != nil {
+		return nil, err
 	}
-	shapeToType, err := zctx.Context.LookupByName(string(lit.zv.Bytes))
+	if typVal.Type != zng.TypeType {
+		return nil, fmt.Errorf("shaping functions (crop, fill, cast, order) require a type value as second parameter")
+	}
+	s, err := zng.DecodeString(typVal.Bytes)
+	if err != nil {
+		return nil, err
+	}
+	shapeToType, err := zctx.Context.LookupByName(s)
 	if err != nil {
 		return nil, fmt.Errorf("shaper could not parse type value literal: %s", err)
 	}
 
-	recType, isRecord := shapeToType.(*zng.TypeRecord)
+	recType, isRecord := zng.AliasedType(shapeToType).(*zng.TypeRecord)
 	if !isRecord {
-		return nil, fmt.Errorf("shaper needs a record type value as second parameter")
+		return nil, fmt.Errorf("shaper needs a record type value as second parameter (got %T %T)", shapeToType, zng.AliasedType(shapeToType))
 	}
 	return NewShaperType(zctx, fieldExpr, recType, tf)
 }
