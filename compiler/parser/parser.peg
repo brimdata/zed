@@ -51,8 +51,8 @@ start = __ ast:Z __ EOF { RETURN(ast) }
 // but we do for everything but FilterProc because the zed runtime is fragile
 // to this difference right now.  See issue #1809.
 Z // = !(Operator / Aggregation / "(") op:Operation &EOF { RETURN(op) }
-  = consts:Const+ __ first:Operation rest:SequentialTail* {
-      VAR(procs) = ASSERT_ARRAY(consts)
+  = decls:Decl+ __ first:Operation rest:SequentialTail* {
+      VAR(procs) = ASSERT_ARRAY(decls)
       APPEND(procs, first)
       FOREACH(ASSERT_ARRAY(rest), p) {
         APPEND(procs, p)
@@ -61,9 +61,9 @@ Z // = !(Operator / Aggregation / "(") op:Operation &EOF { RETURN(op) }
     }
   / Sequential
 
-Const = __ v:AnyConst { RETURN(v) }
+Decl = __ v:AnyDecl { RETURN(v) }
 
-AnyConst
+AnyDecl
   = "const" _ id:IdentifierName __ "=" __ expr:Expr ( __ ";" / EOL ) {
       RETURN(MAP("kind":"Const","name":id, "expr":expr))
     }
