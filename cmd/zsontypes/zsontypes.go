@@ -18,7 +18,7 @@ var ZsonTypes = &charm.Spec{
 	Short: "tool for printing zson types for legacy types.json",
 	Long: `
 The Zsontypes tool prints a ZSON-formatted for each type defined in a legacy types.json file.
-It is intended to help those transitioning from teh "types.json" approach to the newer Z-based approach.
+It is intended to help those transitioning from the "types.json" approach to the newer Z-based approach.
 `,
 	New: func(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 		return New(flags)
