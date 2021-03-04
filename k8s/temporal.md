@@ -1,6 +1,6 @@
 # Setup instructions for Temporal
 
-Temporal in installed as a subchart of our zservice Helm "umbrella" chart.
+Temporal is installed as a subchart of our zservice Helm "umbrella" chart.
 
 Our Helm subchart is based on:
 https://github.com/temporalio/helm-charts
@@ -15,7 +15,7 @@ We supress the install of Grafana, Prometheus, and Kafka by including the follow
     --set grafana.enabled=false \
     --set kafka.enabled=false \
 ```
-Each use that will run Temporal must have an initialized database available. We use Aurora for the per-user Temporal databases. Setting up a Temporal database on the zq-test-aurora instance involve manual steps, because the Temporal database initialization and migration code is not designed to be run automated. (We confirmed this with the the Temporal dev team.)
+Each user that will run Temporal must have an initialized database available. We use Aurora for the per-user Temporal databases. Setting up a Temporal database on the zq-test-aurora instance involve manual steps, because the Temporal database initialization and migration code is not designed to be run automated. (We confirmed this with the the Temporal dev team.)
 
 ## Database initialization for Temporal
 We will follow a pattern similar to what we have done for setting up Aurora users for testing.
@@ -95,5 +95,19 @@ helm repo add brim https://brimsec.github.io/helm-chart/
 helm search repo temporal
 ```
 Will show the newly added Temporal helm chart.
+
+## Using Makefile rule to deploy temporal
+Temporal may be deployed as part of the zservice Helm chart. Use:
+```
+make helm-install-with-aurora-temporal
+```
+Prior to using this target, you must set three env vars that are used to configure Temporal DB access:
+```
+ZQD_AURORA_USER=theusername
+ZQD_AURORA_PW=$$(kubectl get secret postgres --template="{{ index .data \"postgresql-password\" }}" | base64 --decode)
+ZQD_AURORA_HOST=$(aws rds describe-db-cluster-endpoints \
+		--db-cluster-identifier zq-test-aurora \
+		--output text --query "DBClusterEndpoints[?EndpointType=='WRITER'] | [0].Endpoint"):5432
+```
 
 

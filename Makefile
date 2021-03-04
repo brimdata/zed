@@ -190,6 +190,24 @@ helm-install-with-aurora:
 	--set global.postgres.passwordSecretName=aurora \
 	--set tags.deploy-postgres=false
 
+helm-install-with-aurora-temporal:
+	helm upgrade -i zsrv charts/zservice \
+	--set root.datauri=$(ZQD_DATA_URI) \
+	--set global.AWSRegion=us-east-2 \
+	--set global.image.repository=$(ZQD_ECR_HOST)/ \
+	--set global.image.tag=zqd:$(ECR_VERSION) \
+	--set global.postgres.addr=$(ZQD_AURORA_HOST) \
+	--set global.postgres.database=$(ZQD_AURORA_USER) \
+	--set global.postgres.username=$(ZQD_AURORA_USER) \
+	--set global.postgres.passwordSecretName=aurora \
+	--set tags.deploy-postgres=false \
+	--set temporal.server.config.persistence.default.sql.user=$(ZQD_AURORA_USER) \
+	--set temporal.server.config.persistence.default.sql.password=$(ZQD_AURORA_PW) \
+	--set temporal.server.config.persistence.visibility.sql.user=$(ZQD_AURORA_USER) \
+	--set temporal.server.config.persistence.visibility.sql.password=$(ZQD_AURORA_PW) \
+	--set temporal.server.config.persistence.default.sql.host=$(ZQD_AURORA_HOST) \
+	--set temporal.server.config.persistence.visibility.sql.host=$(ZQD_AURORA_HOST)
+
 create-release-assets:
 	for os in darwin linux windows; do \
 		zqdir=zq-$(VERSION).$${os}-amd64 ; \

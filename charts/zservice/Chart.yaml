@@ -19,7 +19,7 @@ dependencies:
       - deploy-redis
 
   - name: temporal
-    version: "1.7.0"
-    repository: "file://../dependency_chart/nginx"
+    version: 0.x.x
+    repository: https://brimsec.github.io/helm-chart/
     tags: 
-      - deploy-redis
+      - deploy-temporal
