@@ -17,8 +17,9 @@ var ZsonTypes = &charm.Spec{
 	Usage: "zsontypes <file.json>",
 	Short: "tool for printing zson types for legacy types.json",
 	Long: `
-The Zsontypes tool prints a ZSON-formatted for each type defined in a legacy types.json file.
+The Zsontypes tool prints a ZSON-formatted string for each type defined in a legacy types.json file.
 It is intended to help those transitioning from the "types.json" approach to the newer Z-based approach.
+
 `,
 	New: func(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 		return New(flags)
@@ -32,8 +33,7 @@ func init() {
 type Command struct{}
 
 func New(f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{}
-	return c, nil
+	return &Command{}, nil
 }
 
 func (c *Command) Run(args []string) error {
@@ -50,22 +50,19 @@ func (c *Command) printTypes(fname string) error {
 		return err
 	}
 	zctx := resolver.NewContext()
-	tp := tzngio.NewTypeParser(zctx)
-
 	// (from ndjson.io.NewReader)
 	// Note: we add hardwired aliases for "port" to "uint16" when reading
 	// *any* json file but they are only used when the schema mapper
 	// (aka typings config) references such types from a configured schema.
 	// However, the schema mapper should be responsible for creating these
 	// aliases according to its configuration.  See issue #1427.
-	_, err = zctx.LookupTypeAlias("zenum", zng.TypeString)
-	if err != nil {
+	if _, err := zctx.LookupTypeAlias("zenum", zng.TypeString); err != nil {
 		return err
 	}
-	_, err = zctx.LookupTypeAlias("port", zng.TypeUint16)
-	if err != nil {
+	if _, err = zctx.LookupTypeAlias("port", zng.TypeUint16); err != nil {
 		return err
 	}
+	tp := tzngio.NewTypeParser(zctx)
 
 	for key, columns := range tc.Descriptors {
 		typeName, err := compat.DecodeType(columns)
