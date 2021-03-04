@@ -23,4 +23,5 @@ Each of the following sections describes these elements of the query language in
 * [Search syntax](search-syntax/README.md)
 * [Processors](processors/README.md)
 * [Aggregate Functions](aggregate-functions/README.md)
+* [Grouping](grouping/README.md)
 * [Data Types](data-types/README.md)

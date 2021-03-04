@@ -1,0 +1,8 @@
+zql: |
+  type port=int64; type prec={p: port, q: port}; type parr=[prec]; put .=shape({c: port, b:parr, a:prec})
+
+input: |
+  {a:{q:1(myport=(int16)), p: 2 (myport)}, b:[{q:1}],c:3 }
+
+output: |
+  {c:3 (=port),b:[{p:null (port),q:1 (port)} (=0)] (=1),a:{p:2,q:1} (0)} (=2)

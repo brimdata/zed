@@ -1,0 +1,14 @@
+zql: 'put .=unflatten()'
+
+input: |
+  #0:record[a:int64,[b.a]:int64,[b.b]:int64,[b.c.a]:int64,c:int64]
+  0:[1;2;3;4;5;]
+  #1:record[a:int64,b:record[a:int64,b:int64,c:record[a:int64]],c:int64]
+  1:[1;[2;3;[4;]]5;]
+  #2:record[a:int64,[b.a]:int64]
+  2:[1;2;]
+
+output: |
+  {a:1,b:{a:2,b:3,c:{a:4}},c:5}
+  {a:1,b:{a:2,b:3,c:{a:4}},c:5}
+  {a:1,b:{a:2}}

@@ -315,3 +315,9 @@ zapi new -k archivestore -d s3://zqd-demo-1/mark/zeek-logs/conn conn-space
 ```
 
 Now you can run Brim, and it will use the same local:9867 port used by zapi. You will see the three spaces you just created, dpd-space, dns-space, and conn-space.
+
+## Finding everything in a namespace
+```
+kubectl api-resources --verbs=list --namespaced -o name \
+  | xargs -n 1 kubectl get --show-kind --ignore-not-found -n <namespace>
+```

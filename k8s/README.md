@@ -14,11 +14,17 @@ If you have access to an AWS account, we describe how to set up an EKS cluster f
 
 [Setting up an EKS cluster for zqd](eks-setup.md)
 
+Setting up a hosted DB is an optional step:
+
+[Notes on configuring AWS Aurora for test cluster](aurora.md)
+
 When you have an EKS cluster set up, either using the link above, or using a previously existing cluster, you can use the same Makefile rules for dev deploymemts on zqd into EKS.
 
 [How to deploy zqd on EKS](dev-on-eks.md)
 
-The Brim AWS account is used to automatically deploy and test the master branch of zq in a test EKS cluster. If you fork the repo, you may want to do something similar. 
+The Brim AWS account is used to automatically deploy and test the master branch of zq in a test EKS cluster. If you fork the repo, you may want to do something similar.
+
+If Aurora has been configured for testing, then in order to deploy on EKS and use Aurora you may also follow the steps [here](aurora.md) starting with "Creating a user for testing".
 
 `.github/workflows/cd.yaml`
 
@@ -27,4 +33,5 @@ Includes the K8s command to automatically deploy and test a cluster of services.
 In the process of working all this stuff out, we took a lot of notes on the trouble-shooting steps we sometimes needed. Feel free to dig around for info in here:
 
 [Trouble shooting](troubleshooting.md)
+
 

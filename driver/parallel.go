@@ -9,7 +9,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
-	"github.com/brimsec/zq/compiler/kernel"
+	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/ppl/zqd/recruiter"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
@@ -182,8 +182,8 @@ func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerChunkRequest, e
 	if err := src.ToRequest(&req); err != nil {
 		return nil, err
 	}
-	if filterExpr := pg.filter.Filter; filterExpr != nil {
-		b, err := json.Marshal(filterExpr.AsProc())
+	if filter := pg.filter.Filter.AsProc(); filter != nil {
+		b, err := json.Marshal(filter)
 		if err != nil {
 			return nil, err
 		}
@@ -208,7 +208,7 @@ func (pg *parallelGroup) run() {
 	close(pg.sourceChan)
 }
 
-func createParallelGroup(pctx *proc.Context, filter *kernel.Filter, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
+func createParallelGroup(pctx *proc.Context, filter *compiler.Runtime, msrc MultiSource, mcfg MultiConfig) ([]proc.Interface, *parallelGroup, error) {
 	pg := &parallelGroup{
 		filter: SourceFilter{
 			Filter: filter,

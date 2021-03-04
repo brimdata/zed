@@ -1,0 +1,10 @@
+zql: |
+  type port=int64; type prec={p: port, q: port}; type parr=[prec]; put .=fill({a:prec, b:parr, c:port})
+
+input: |
+  {a: {q: 1}, b: [{p: 1}]}
+  {a: {q: 1 (myport=(int16))}, b:[{p: 1 (myport)}]}
+
+output: |
+  {a:{q:1,p:null (port=(int64))} (=0),b:[{p:1,q:null (port)} (=1)] (=2),c:null (port)} (=3)
+  {a:{q:1 (myport=(int16)),p:null (port)} (=4),b:[{p:1 (myport),q:null (port)} (=5)] (=6),c:null (port)} (=7)

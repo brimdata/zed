@@ -17,8 +17,8 @@ var unpacker = unpack.New(
 	CutProc{},
 	DefValue{},
 	DropProc{},
-	Empty{},
 	Enum{},
+	FieldPath{},
 	FilterProc{},
 	FunctionCall{},
 	FuseProc{},
@@ -36,10 +36,12 @@ var unpacker = unpack.New(
 	PutProc{},
 	Record{},
 	Reducer{},
+	Ref{},
 	RenameProc{},
 	RootRecord{},
 	Search{},
 	SelectExpression{},
+	SeqExpr{},
 	SequentialProc{},
 	Set{},
 	SortProc{},
@@ -63,13 +65,17 @@ var unpacker = unpack.New(
 	UniqProc{},
 )
 
-// UnpackJSON transforms a JSON representation of a proc into an ast.Proc.
-func UnpackJSON(buf []byte) (Proc, error) {
+func UnpackJSON(buf []byte) (interface{}, error) {
 	if len(buf) == 0 {
 		return nil, nil
 	}
-	result, err := unpacker.UnpackBytes(buf)
-	if err != nil {
+	return unpacker.UnpackBytes(buf)
+}
+
+// UnpackJSONAsProc transforms a JSON representation of a proc into an ast.Proc.
+func UnpackJSONAsProc(buf []byte) (Proc, error) {
+	result, err := UnpackJSON(buf)
+	if result == nil || err != nil {
 		return nil, err
 	}
 	proc, ok := result.(Proc)
@@ -81,7 +87,7 @@ func UnpackJSON(buf []byte) (Proc, error) {
 
 func UnpackMapAsProc(m interface{}) (Proc, error) {
 	object, err := unpacker.UnpackMap(m)
-	if err != nil {
+	if object == nil || err != nil {
 		return nil, err
 	}
 	proc, ok := object.(Proc)
@@ -93,7 +99,7 @@ func UnpackMapAsProc(m interface{}) (Proc, error) {
 
 func UnpackMapAsExpr(m interface{}) (Expression, error) {
 	object, err := unpacker.UnpackMap(m)
-	if err != nil {
+	if object == nil || err != nil {
 		return nil, err
 	}
 	e, ok := object.(Expression)

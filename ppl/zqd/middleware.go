@@ -29,36 +29,29 @@ func requestIDMiddleware() mux.MiddlewareFunc {
 	}
 }
 
-func accessLogMiddleware(logger *zap.Logger, ignore ...string) mux.MiddlewareFunc {
-	ignoredPaths := make(map[string]struct{})
-	for _, path := range ignore {
-		ignoredPaths[path] = struct{}{}
-	}
+func accessLogMiddleware(logger *zap.Logger) mux.MiddlewareFunc {
 	logger = logger.Named("http.access")
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if _, ok := ignoredPaths[r.URL.Path]; !ok {
-				logger := logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
-				detailedLogger := logger.With(
-					zap.String("host", r.Host),
-					zap.String("method", r.Method),
-					zap.String("proto", r.Proto),
-					zap.String("remote_addr", r.RemoteAddr),
-					zap.Int64("request_content_length", r.ContentLength),
-					zap.Stringer("url", r.URL),
+			logger := logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
+			detailedLogger := logger.With(
+				zap.String("host", r.Host),
+				zap.String("method", r.Method),
+				zap.String("proto", r.Proto),
+				zap.String("remote_addr", r.RemoteAddr),
+				zap.Int64("request_content_length", r.ContentLength),
+				zap.Stringer("url", r.URL),
+			)
+			recorder := newRecordingResponseWriter(w)
+			w = recorder
+			detailedLogger.Debug("Request started")
+			defer func(start time.Time) {
+				detailedLogger.Info("Request completed",
+					zap.Duration("elapsed", time.Since(start)),
+					zap.Int("response_content_length", recorder.contentLength),
+					zap.Int("status_code", recorder.statusCode),
 				)
-				recorder := newRecordingResponseWriter(w)
-				w = recorder
-				detailedLogger.Debug("Request started")
-				defer func(start time.Time) {
-					detailedLogger.Info("Request completed",
-						zap.Duration("elapsed", time.Since(start)),
-						zap.Int("response_content_length", recorder.contentLength),
-						zap.Int("status_code", recorder.statusCode),
-					)
-				}(time.Now())
-			}
-
+			}(time.Now())
 			next.ServeHTTP(w, r)
 		})
 	}

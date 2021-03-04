@@ -12,16 +12,16 @@ kind: ClusterConfig
 metadata:
   name: zq-test
   region: us-east-2
-  version: "1.17"
+  version: "1.19"
   tags:
     cluster: zq-test
 
 managedNodeGroups:
-  - name: standard-workers
-    instanceType: m5ad.xlarge
-    minSize: 1
+  - name: m5-large
+    instanceType: m5.large
+    minSize: 3
     maxSize: 3
-    desiredCapacity: 1
+    desiredCapacity: 3
     ssh:
       allow: false
     iam:

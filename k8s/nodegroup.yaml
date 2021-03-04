@@ -1,0 +1,34 @@
+# Configuration file used for creating a development cluster with eksctl
+# Schema reference:
+# https://eksctl.io/usage/schema/
+# Doc reference:
+# https://eksctl.io/usage/creating-and-managing-clusters/
+# Doc for Managed NodeGroups:
+# https://eksctl.io/usage/eks-managed-nodes/
+
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: zq-test
+  region: us-east-2
+
+managedNodeGroups:
+  - name: m5-large
+    instanceType: m5.large
+    minSize: 3
+    maxSize: 3
+    desiredCapacity: 3
+    ssh:
+      allow: false
+    iam:
+      attachPolicyARNs:
+        # Policies generically required for EKS nodes
+        - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+        - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+        - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+        # S3 access policies needed for zqd
+        - arn:aws:iam::aws:policy/AmazonS3FullAccess
+      withAddonPolicies:
+        autoScaler: true
+

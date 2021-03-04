@@ -14,6 +14,9 @@ import (
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zson"
 	"github.com/kballard/go-shellquote"
 	"github.com/mccanne/charm"
 	"golang.org/x/crypto/ssh/terminal"
@@ -175,4 +178,31 @@ func WriteOutput(ctx context.Context, flags outputflags.Flags, r zbuf.Reader) er
 		err = closeErr
 	}
 	return err
+}
+
+type nameReader struct {
+	idx   int
+	names []string
+	mc    *zson.MarshalZNGContext
+}
+
+func NewNameReader(names []string) zbuf.Reader {
+	return &nameReader{
+		names: names,
+		mc:    resolver.NewMarshaler(),
+	}
+}
+
+func (r *nameReader) Read() (*zng.Record, error) {
+	if r.idx >= len(r.names) {
+		return nil, nil
+	}
+	rec, err := r.mc.MarshalRecord(struct {
+		Name string `zng:"name"`
+	}{r.names[r.idx]})
+	if err != nil {
+		return nil, err
+	}
+	r.idx++
+	return rec, nil
 }

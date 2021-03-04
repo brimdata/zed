@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -21,13 +20,11 @@ import (
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/promtest"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/ppl/lake/immcache"
 	"github.com/brimsec/zq/ppl/zqd"
-	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
@@ -921,7 +918,7 @@ func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *client.Connec
 	}
 	core, err := zqd.NewCore(context.Background(), conf)
 	require.NoError(t, err)
-	srv := httptest.NewServer(core.HTTPHandler())
+	srv := httptest.NewServer(core)
 	t.Cleanup(srv.Close)
 	return core, client.NewConnectionTo(srv.URL)
 }
@@ -939,66 +936,117 @@ func promCounterValue(g prometheus.Gatherer, name string) interface{} {
 	return errors.New("metric not found")
 }
 
-func testLauncher(start, wait procFn) pcapanalyzer.Launcher {
-	return func(ctx context.Context, r io.Reader, dir string) (pcapanalyzer.ProcessWaiter, error) {
-		p := &testPcapProcess{
-			ctx:    ctx,
-			reader: r,
-			wd:     dir,
-			wait:   wait,
-			start:  start,
-		}
-		return p, p.Start()
-	}
-}
+func TestIntake(t *testing.T) {
+	t.Run("create", func(t *testing.T) {
+		_, conn := newCoreAtDir(t, createTempDir(t))
+		ctx := context.Background()
 
-type procFn func(t *testPcapProcess) error
+		intakes, err := conn.IntakeList(ctx)
+		require.NoError(t, err)
+		require.Empty(t, intakes)
 
-type testPcapProcess struct {
-	ctx    context.Context
-	reader io.Reader
-	wd     string
-	start  procFn
-	wait   procFn
-}
+		// Should be able to create an intake without a shaper or target space
+		intake1, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+			Name: "intake1",
+		})
+		require.NoError(t, err)
 
-func (p *testPcapProcess) Start() error {
-	if p.start != nil {
-		return p.start(p)
-	}
-	return nil
-}
+		res, err := conn.IntakeInfo(ctx, intake1.ID)
+		require.NoError(t, err)
+		require.Equal(t, "intake1", res.Name)
+		require.Empty(t, res.Shaper)
+		require.Empty(t, res.TargetSpaceID)
 
-func (p *testPcapProcess) Wait() error {
-	if p.wait != nil {
-		return p.wait(p)
-	}
-	_, err := ioutil.ReadAll(p.reader)
-	return err
-}
+		intakes, err = conn.IntakeList(ctx)
+		require.NoError(t, err)
+		require.Len(t, intakes, 1)
+		require.Equal(t, intake1.ID, intakes[0].ID)
 
-func (p *testPcapProcess) Stdout() string { return "" }
+		err = conn.IntakeDelete(ctx, intake1.ID)
+		require.NoError(t, err)
+	})
 
-func writeLogsFn(logs []string) procFn {
-	return func(p *testPcapProcess) error {
-		for _, log := range logs {
-			r, err := fs.Open(log)
-			if err != nil {
-				return err
-			}
-			defer r.Close()
-			base := filepath.Base(r.Name())
-			w, err := os.Create(filepath.Join(p.wd, base))
-			if err != nil {
-				return err
-			}
-			defer w.Close()
-			if _, err = io.Copy(w, r); err != nil {
-				return err
-			}
-		}
-		// drain the reader
-		_, err := io.Copy(ioutil.Discard, p.reader)
-		return err
-	}
+	t.Run("postNoShaper", func(t *testing.T) {
+		_, conn := newCoreAtDir(t, createTempDir(t))
+		ctx := context.Background()
+
+		sp1, err := conn.SpacePost(ctx, api.SpacePostRequest{
+			Name: "sp1",
+		})
+		require.NoError(t, err)
+
+		in1, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+			Name:          "in1",
+			TargetSpaceID: sp1.ID,
+		})
+		require.NoError(t, err)
+		require.Equal(t, "in1", in1.Name)
+		require.Equal(t, sp1.ID, in1.TargetSpaceID)
+
+		src := `
+#0:record[ts:time,a:string,b:string]
+0:[2;hello;world;]
+0:[1;goodnight;gracie;]
+`
+		err = conn.IntakePostData(ctx, in1.ID, strings.NewReader(src))
+		require.NoError(t, err)
+
+		require.Equal(t, test.Trim(src), searchTzng(t, conn, sp1.ID, "*"))
+	})
+
+	t.Run("postWithShaper", func(t *testing.T) {
+		_, conn := newCoreAtDir(t, createTempDir(t))
+		ctx := context.Background()
+
+		sp1, err := conn.SpacePost(ctx, api.SpacePostRequest{
+			Name: "sp1",
+		})
+		require.NoError(t, err)
+
+		in1, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+			Name:          "in1",
+			TargetSpaceID: sp1.ID,
+			Shaper:        "hello",
+		})
+		require.NoError(t, err)
+		require.Equal(t, "in1", in1.Name)
+		require.Equal(t, sp1.ID, in1.TargetSpaceID)
+
+		src := `
+#0:record[ts:time,a:string,b:string]
+0:[2;hello;world;]
+0:[1;goodnight;gracie;]
+`
+		err = conn.IntakePostData(ctx, in1.ID, strings.NewReader(src))
+		require.NoError(t, err)
+
+		exp := `
+#0:record[ts:time,a:string,b:string]
+0:[2;hello;world;]
+`
+		require.Equal(t, test.Trim(exp), searchTzng(t, conn, sp1.ID, "*"))
+	})
+
+	t.Run("invalidShaper", func(t *testing.T) {
+		_, conn := newCoreAtDir(t, createTempDir(t))
+		ctx := context.Background()
+
+		_, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+			Name:   "in1",
+			Shaper: "\"",
+		})
+		require.Error(t, err)
+		require.Regexp(t, "invalid shaper", err.Error())
+
+		in1, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+			Name: "in1",
+		})
+		require.NoError(t, err)
+
+		_, err = conn.IntakeUpdate(ctx, in1.ID, api.IntakePostRequest{
+			Shaper: "\"",
+		})
+		require.Error(t, err)
+		require.Regexp(t, "invalid shaper", err.Error())
+	})
 }

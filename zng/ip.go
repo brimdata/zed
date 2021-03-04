@@ -14,12 +14,16 @@ func NewIP(a net.IP) Value {
 	return Value{TypeIP, EncodeIP(a)}
 }
 
-func EncodeIP(a net.IP) zcode.Bytes {
+func AppendIP(zb zcode.Bytes, a net.IP) zcode.Bytes {
 	ip := a.To4()
 	if ip == nil {
 		ip = net.IP(a)
 	}
-	return zcode.Bytes(ip)
+	return append(zb, ip...)
+}
+
+func EncodeIP(a net.IP) zcode.Bytes {
+	return AppendIP(nil, a)
 }
 
 func DecodeIP(zv zcode.Bytes) (net.IP, error) {

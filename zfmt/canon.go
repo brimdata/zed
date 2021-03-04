@@ -64,8 +64,6 @@ func (c *canon) expr(e ast.Expression, paren bool) {
 			c.write(" where ")
 			c.expr(e.Where, false)
 		}
-	case *ast.Empty:
-		c.write("(empty)")
 	case *ast.Literal:
 		c.literal(*e)
 	case *ast.Identifier:
@@ -102,6 +100,10 @@ func (c *canon) expr(e ast.Expression, paren bool) {
 		c.write("match(")
 		c.literal(e.Value)
 		c.write(")")
+	case *ast.FieldPath:
+		c.fieldpath(e.Name)
+	case *ast.Ref:
+		c.write("%s", e.Name)
 	default:
 		c.open("(unknown expr %T)", e)
 		c.close()
@@ -112,11 +114,17 @@ func (c *canon) expr(e ast.Expression, paren bool) {
 func (c *canon) binary(e *ast.BinaryExpression) {
 	switch e.Operator {
 	case ".":
-		c.dot(e)
-	case "@":
-		c.write(" BUG:@")
+		if !isRoot(e.LHS) {
+			c.expr(e.LHS, false)
+			c.write(".")
+		}
+		c.expr(e.RHS, false)
 	case "[":
-		c.expr(e.LHS, false)
+		if isRoot(e.LHS) {
+			c.write(".")
+		} else {
+			c.expr(e.LHS, false)
+		}
 		c.write("[")
 		c.expr(e.RHS, false)
 		c.write("]")
@@ -136,24 +144,16 @@ func (c *canon) binary(e *ast.BinaryExpression) {
 	}
 }
 
-func (c *canon) dot(e *ast.BinaryExpression) {
-	id, ok := e.RHS.(*ast.Identifier)
-	if !ok {
-		c.write("AST bug: dot operator")
-		return
+func isRoot(e ast.Expression) bool {
+	if _, ok := e.(*ast.RootRecord); ok {
+		return true
 	}
-	switch e := e.LHS.(type) {
-	case *ast.RootRecord:
-		c.write(id.Name)
-	case *ast.BinaryExpression:
-		if e.Operator != "." {
-			c.write("AST bug: dot operator")
+	if f, ok := e.(*ast.FieldPath); ok {
+		if f.Name != nil && len(f.Name) == 0 {
+			return true
 		}
-		c.dot(e)
-		c.write(".%s", id.Name)
-	default:
-		c.write("AST bug: dot operator")
 	}
+	return false
 }
 
 func (c *canon) next() {
@@ -192,12 +192,23 @@ func (c *canon) proc(p ast.Proc) {
 		c.ret()
 		c.flush()
 		c.write(")")
+		if p.MergeOrderField != nil {
+			c.write(" merge-by ")
+			c.fieldpath(p.MergeOrderField)
+		}
+		if p.MergeOrderReverse {
+			c.write(" rev")
+		}
 	case *ast.ConstProc:
 		c.write("const %s=", p.Name)
 		c.expr(p.Expr, false)
+		c.ret()
+		c.flush()
 	case *ast.TypeProc:
 		c.write("type %s=", p.Name)
 		c.typ(p.Type)
+		c.ret()
+		c.flush()
 	case *ast.GroupByProc:
 		c.next()
 		c.open("summarize")
@@ -210,10 +221,13 @@ func (c *canon) proc(p ast.Proc) {
 		if p.EmitPart {
 			c.write(" partials-out")
 		}
+		if p.InputSortDir != 0 {
+			c.write(" sort-dir %d", p.InputSortDir)
+		}
 		c.ret()
 		c.open()
 		c.assignments(p.Reducers)
-		if p.Keys != nil {
+		if len(p.Keys) != 0 {
 			c.write(" by ")
 			c.assignments(p.Keys)
 		}
@@ -243,8 +257,10 @@ func (c *canon) proc(p ast.Proc) {
 		if p.NullsFirst {
 			c.write(" -nulls first")
 		}
-		c.space()
-		c.exprs(p.Fields)
+		if len(p.Fields) > 0 {
+			c.space()
+			c.exprs(p.Fields)
+		}
 	case *ast.HeadProc:
 		c.next()
 		c.write("head %d", p.Count)
@@ -263,7 +279,11 @@ func (c *canon) proc(p ast.Proc) {
 	case *ast.FilterProc:
 		c.next()
 		c.open("filter ")
-		c.expr(p.Filter, false)
+		if isTrue(p.Filter) {
+			c.write("*")
+		} else {
+			c.expr(p.Filter, false)
+		}
 		c.close()
 	case *ast.TopProc:
 		c.next()
@@ -275,7 +295,7 @@ func (c *canon) proc(p ast.Proc) {
 		c.assignments(p.Clauses)
 	case *ast.RenameProc:
 		c.next()
-		c.write("rename")
+		c.write("rename ")
 		c.assignments(p.Fields)
 	case *ast.FuseProc:
 		c.next()
@@ -306,6 +326,13 @@ func (c *canon) proc(p ast.Proc) {
 	}
 }
 
+func isTrue(e ast.Expression) bool {
+	if lit, ok := e.(*ast.Literal); ok {
+		return lit.Type == "bool" && lit.Value == "true"
+	}
+	return false
+}
+
 //XXX this needs to change when we use the zson values from the ast
 func (c *canon) literal(e ast.Literal) {
 	switch e.Type {
@@ -317,6 +344,15 @@ func (c *canon) literal(e ast.Literal) {
 		//XXX need decorators for non-implied
 		c.write("%s", e.Value)
 
+	}
+}
+
+func (c *canon) fieldpath(path []string) {
+	for k, s := range path {
+		if k != 0 {
+			c.write(".")
+		}
+		c.write(s)
 	}
 }
 

@@ -111,9 +111,9 @@ spec:
           args:
             - "migrate"
             - "-m=/postgres/migrations"
-            - "-addr={{ .Values.postgres.addr }}"
-            - "-database={{ .Values.postgres.database }}"
-            - "-user={{ .Values.postgres.username }}"
+            - "-addr={{ .Values.global.postgres.addr }}"
+            - "-database={{ .Values.global.postgres.database }}"
+            - "-user={{ .Values.global.postgres.username }}"
             - "-passwordFile=/creds/postgres/password"
           volumeMounts:
             - mountPath: /creds/postgres
@@ -139,7 +139,7 @@ spec:
         {{- if eq .Values.personality "root" }}
         - name: postgres-creds-volume
           secret:
-            secretName: {{ .Values.postgres.passwordSecretName }}
+            secretName: {{ .Values.global.postgres.passwordSecretName }}
             items:
               - key: postgresql-password
                 path: password
