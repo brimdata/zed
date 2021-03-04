@@ -262,7 +262,7 @@ When working with named fields, the data type of the field becomes significant i
 
    An attempted field/value match `host=10.47.21.1` would not match the event counted in the middle row of this table, since ZQL recognizes the bare value `10.47.21.1` as an IP address before comparing it to all the fields named `host` that it sees in the input stream. However, `host="10.47.21.1"` would match, since the quotes cause ZQL to treat the value as a string.
 
-2.  The correct operator must be chosen based on whether the field type is primitive or complex.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a primitive type, `addr`. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a complex type, `set[addr]`.
+2.  The correct operator must be chosen based on whether the field type is primitive or complex.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a primitive type, `addr`. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a complex type, `set[addr]`. See the section below on [Containment](#containment) for details in the `in` operator.
 
 See the [Data Types](../data-types/README.md) page for more details on types and the operators for working with them.
 
@@ -317,9 +317,9 @@ http  2018-03-24T17:17:47.57066Z  CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.
 
 ### Containment
 
-Rather than testing for strict equality or pattern matches, you may want to determine if a value is among the many possible values that may be stored in a complex field. This is performed with the `in` operaetor.
+Rather than testing for strict equality or pattern matches, you may want to determine if a value is among the many possible elements of a complex field. This is performed with the `in` operator.
 
-Our Zeek `dns` events include the `answers` field which is an array of the multiple responses that may have been returned for a query. To determine which responses included hostname `e5803.b.akamaiedge.net`, we'll use `in` and also wrap the hostname in quotes, since otherwise it would have been interpreted as a dot-separated nested field reference.
+Our Zeek `dns` events include the `answers` field, which is an array of the multiple responses that may have been returned for a query. To determine which responses included hostname `e5803.b.akamaiedge.net`, we'll use `in`.
 
 #### Example:
 ```zq-command
@@ -335,6 +335,22 @@ dns   2018-03-24T17:25:29.650694Z CHx5jo2qosRtQOZs1  10.47.6.10 55186     10.0.0
 dns   2018-03-24T17:25:29.650698Z CHx5jo2qosRtQOZs1  10.47.6.10 55186     10.0.0.100 53        udp   30327    0.095173 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17632,20 F
 dns   2018-03-24T17:30:24.694336Z CG5CeD4zyD41L4yt0d 10.47.6.10 55135     10.0.0.100 53        udp   2542     0.032114 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17337,20 F
 dns   2018-03-24T17:30:24.694339Z CG5CeD4zyD41L4yt0d 10.47.6.10 55135     10.0.0.100 53        udp   2542     0.032113 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17337,20 F
+```
+
+Notice that we wrapped the hostname in quotes. If we'd left it "bare", it would have been interpreted as an attempt to find records with a field called `e5803.b.akamaiedge.net` whose value is contained in the `answers` array of the same record. Since there's no field called `e5803.b.akamaiedge.net` in our data, this would have returning nothing. However, the `query` field does exist in our `dns` events, so the following example does return matches.
+
+#### Example:
+```zq-command
+zq -f table 'query in answers' dns.log.gz
+```
+
+#### Output:
+```zq-output
+_PATH TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY      QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS    TTLS REJECTED
+dns   2018-03-24T17:24:06.142423Z CCd3Uu1nPHikbjizuc 10.47.7.10 53280     10.0.0.100 53        udp   25252    0.000868 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
+dns   2018-03-24T17:24:06.142426Z CCd3Uu1nPHikbjizuc 10.47.7.10 53280     10.0.0.100 53        udp   25252    0.000869 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
+dns   2018-03-24T17:30:43.213667Z CV4T3j1mb4LbxNNgBl 10.47.7.10 53647     10.0.0.100 53        udp   45561    0.001054 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
+dns   2018-03-24T17:30:43.213671Z CV4T3j1mb4LbxNNgBl 10.47.7.10 53647     10.0.0.100 53        udp   45561    0.001053 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
 ```
 
 Determining whether the value of a Zeek `addr`-type field is contained within a subnet also uses `in`.
@@ -392,9 +408,9 @@ dns   2018-03-24T17:34:52.637238Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.
 
 ### Wildcard Field Names
 
-It's possible to search across _all_ top-level fields of the value's data type by entering a wildcard where you'd normally enter the field name.
+It's possible to search across _all_ top-level fields of a value's data type by entering a wildcard where you'd normally enter the field name.
 
-Fr example, if we use the `*` wildcard in a search for the `addr`-type value `10.150.0.85`, we match only the single `notice` event, as this is the only event with a matching top-level field of the `addr` type (the `dst` field). Compare this with our [bare word](#bare-word) example where we also matched as a substring of the `string`-type field named `certificate.subject`. This highlights how bare word searches match both on typed values and their string representation, whereas a field/value match is stricter, and considers typed values only.
+In the following search for the `addr`-type value `10.150.0.85`, we match only a single `notice` event, as this is the only event in our data with a matching top-level field of the `addr` type (the `dst` field).
 
 #### Example:
 ```zq-command
@@ -407,9 +423,9 @@ _PATH  TS                          UID                ID.ORIG_H    ID.ORIG_P ID.
 notice 2018-03-24T17:15:32.521729Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
 ```
 
-This same address `10.150.0.85` appears in other IP address fields in our data such as `id.resp_h`, these were not matched because these happend to be _nested_ fields (i.e. `resp_h` is a field nested inside the record called `id`). An enhancement with an alterante syntax is planned to allow searches to reach into nested reocrds when desired (see [zq/2250](https://github.com/brimsec/zq/issues/2250) and [zq/1428](https://github.com/brimsec/zq/issues/1428)).
+This same address `10.150.0.85` appears in other IP address fields in our data such as `id.resp_h`, but these were not matched because these happend to be _nested_ fields (e.g. `resp_h` is a field nested inside the record called `id`). An enhancement with an alternate syntax is planned to allow type-specific searches to reach into nested records when desired (see [zq/2250](https://github.com/brimsec/zq/issues/2250) and [zq/1428](https://github.com/brimsec/zq/issues/1428)). Compare this with the [bare word](#bare-word) searches we showed previously that perform type-independent matches for values in all locations, including in nested records and complex fields.
 
-The `*` wildcard can be similarly used to match when the value appears in a complex top-level field. Searching again for our `addr`-type value `10.150.0.85`, here we'll match in complex fields of type `set[addr]` or `array[addr]`, such as `tx_hosts` in this case.
+The `*` wildcard can also be used to match when the value appears in a complex top-level field. Searching again for our `addr`-type value `10.150.0.85`, here we'll match in complex fields of type `set[addr]` or `array[addr]`, such as `tx_hosts` in this case.
 
 #### Example:
 ```zq-command
@@ -489,7 +505,7 @@ conn  2018-03-24T17:15:20.637761Z Cmgywj2O8KZAHHjddb 10.47.1.154 49582     134.7
 
 ### `not`
 
-Use the `not` operator to invert the matching logic of everything to the right of it in your search expression.
+Use the `not` operator to invert the matching logic the term to the right of it in your search.
 
 For example, suppose you've noticed that the vast majority of the sample Zeek events are of log types like `conn`, `dns`, `files`, etc. You could review some of the less-common Zeek event types by inverting the logic of a [regexp match](#regular-expressions).
 
@@ -516,7 +532,7 @@ rdp   2018-03-24T17:15:21.258458Z C8Tful1TvM3Zf5x8fl 10.164.94.120 39681     10.
 
 * **Note**: The `!` operator can also be used as alternative shorthand:
 
-        zq -f table '! _path=~/conn|dns|files|ssl|x509|http|weird/' *.log.gz
+        zq -f table '! _path=/conn|dns|files|ssl|x509|http|weird/' *.log.gz
 
 ### Parentheses & Order of Evaluation
 
