@@ -567,3 +567,59 @@ func (e *ErrorResponse) Unwrap() error {
 func (e *ErrorResponse) Error() string {
 	return fmt.Sprintf("status code %d: %v", e.StatusCode(), e.Err)
 }
+
+func (c *Connection) IntakeList(ctx context.Context) ([]api.Intake, error) {
+	var res []api.Intake
+	_, err := c.Request(ctx).
+		SetResult(&res).
+		Get("/intake")
+	return res, err
+}
+
+func (c *Connection) IntakeCreate(ctx context.Context, req api.IntakePostRequest) (api.Intake, error) {
+	resp, err := c.Request(ctx).
+		SetBody(req).
+		SetResult(&api.Intake{}).
+		Post("/intake")
+	if err != nil {
+		return api.Intake{}, err
+	}
+	return *resp.Result().(*api.Intake), nil
+}
+
+func (c *Connection) IntakeInfo(ctx context.Context, id api.IntakeID) (api.Intake, error) {
+	path := path.Join("/intake", string(id))
+	resp, err := c.Request(ctx).
+		SetResult(&api.Intake{}).
+		Get(path)
+	if err != nil {
+		return api.Intake{}, err
+	}
+	return *resp.Result().(*api.Intake), nil
+}
+
+func (c *Connection) IntakeUpdate(ctx context.Context, id api.IntakeID, req api.IntakePostRequest) (api.Intake, error) {
+	path := path.Join("/intake", string(id))
+	resp, err := c.Request(ctx).
+		SetBody(req).
+		SetResult(&api.Intake{}).
+		Post(path)
+	if err != nil {
+		return api.Intake{}, err
+	}
+	return *resp.Result().(*api.Intake), nil
+}
+
+func (c *Connection) IntakeDelete(ctx context.Context, id api.IntakeID) error {
+	path := path.Join("/intake", string(id))
+	_, err := c.Request(ctx).Delete(path)
+	return err
+}
+
+func (c *Connection) IntakePostData(ctx context.Context, id api.IntakeID, r io.Reader) error {
+	path := path.Join("/intake", string(id), "/data")
+	_, err := c.Request(ctx).
+		SetBody(r).
+		Post(path)
+	return err
+}

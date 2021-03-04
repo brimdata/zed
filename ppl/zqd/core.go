@@ -188,6 +188,17 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/space/{space}/log/paths", handleLogPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
+
+	c.authhandle("/intake", handleIntakeCreate).Methods("POST")
+	c.authhandle("/intake/{intake}", handleIntakeGet).Methods("GET")
+	c.authhandle("/intake", handleIntakeList).Methods("GET")
+	c.authhandle("/intake/{intake}", handleIntakeUpdate).Methods("POST")
+	c.authhandle("/intake/{intake}", handleIntakeDelete).Methods("DELETE")
+
+	c.authhandle("/intake/{intake}/data", handleIntakePostData).Methods("POST")
+
+	// TODO: /elastic-bulk intake route for elasticsearch bulk api support
+	// c.handle("/intake/{intake}/elastic-bulk", ...)
 }
 
 func (c *Core) addRecruiterRoutes() {

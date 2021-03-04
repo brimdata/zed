@@ -25,12 +25,12 @@ func NewSpaceID() api.SpaceID {
 	return api.SpaceID(fmt.Sprintf("sp_%s", id.String()))
 }
 
-func invalidSpaceNameRune(r rune) bool {
+func invalidResourceNameRune(r rune) bool {
 	return r == '/' || !unicode.IsPrint(r)
 }
 
-func ValidSpaceName(s string) bool {
-	return strings.IndexFunc(s, invalidSpaceNameRune) == -1
+func ValidResourceName(s string) bool {
+	return strings.IndexFunc(s, invalidResourceNameRune) == -1
 }
 
 // SafeSpaceName converts the proposed name to a name that adheres to the constraints
@@ -38,7 +38,7 @@ func ValidSpaceName(s string) bool {
 func SafeSpaceName(proposed string) string {
 	var sb strings.Builder
 	for _, r := range proposed {
-		if invalidSpaceNameRune(r) {
+		if invalidResourceNameRune(r) {
 			r = '_'
 		}
 		sb.WriteRune(r)
