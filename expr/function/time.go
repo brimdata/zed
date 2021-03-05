@@ -1,6 +1,7 @@
 package function
 
 import (
+	"bytes"
 	"time"
 
 	"github.com/brimsec/zq/expr/coerce"
@@ -21,8 +22,16 @@ func (i *iso) Call(args []zng.Value) (zng.Value, error) {
 	if zv.Bytes == nil {
 		return zng.Value{zng.TypeTime, nil}, nil
 	}
-	ts, e := time.Parse(time.RFC3339Nano, string(zv.Bytes))
-	if e != nil {
+	var ts time.Time
+	var err error
+	switch {
+	case bytes.Contains(zv.Bytes, []byte{'Z'}):
+		ts, err = time.Parse(time.RFC3339Nano, string(zv.Bytes))
+	case bytes.Contains(zv.Bytes, []byte{'-'}):
+		// ISO8601 with signed offset
+		ts, err = time.Parse("2006-01-02T15:04:05.999999999-0700", string(zv.Bytes))
+	}
+	if err != nil {
 		return badarg("iso")
 	}
 	return zng.Value{zng.TypeTime, i.Time(nano.Ts(ts.UnixNano()))}, nil
