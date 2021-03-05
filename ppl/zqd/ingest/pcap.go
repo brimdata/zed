@@ -25,12 +25,9 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 )
-
-//go:generate go run ../../../zio/ndjsonio/typegenerator -o ./suricata.go -package ingest -var suricataTC ./suricata-types.json
 
 type PcapOp interface {
 	Status() api.PcapPostStatus
@@ -43,7 +40,11 @@ type PcapOp interface {
 	Snap() <-chan struct{}
 }
 
-var suricataTransform = compiler.MustParseProc("rename ts=timestamp")
+var suricataShaper = compiler.MustParseProc(
+	`type alert = {event_type:bstring,src_ip:ip,src_port:port=(uint16),dest_ip:ip,dest_port:port=(uint16),vlan:[uint16],proto:bstring,app_proto:bstring,alert:{severity:uint16,signature:bstring,category:bstring,action:bstring,signature_id:uint64,gid:uint64,rev:uint64,metadata:{signature_severity:[bstring],former_category:[bstring],attack_target:[bstring],deployment:[bstring],affected_product:[bstring],created_at:[bstring],performance_impact:[bstring],updated_at:[bstring],malware_family:[bstring],tag:[bstring]}},flow_id:uint64,pcap_cnt:uint64,timestamp:time,tx_id:uint64,icmp_code:uint64,icmp_type:uint64,community_id:bstring}
+
+put timestamp=iso(timestamp) | put . = shape(alert) | rename ts=timestamp
+`)
 
 type ClearableStore interface {
 	storage.Storage
@@ -319,14 +320,14 @@ func (p *legacyPcapOp) createSnapshot(ctx context.Context) error {
 func (p *legacyPcapOp) convertSuricataLog(ctx context.Context) error {
 	zctx := resolver.NewContext()
 	path := filepath.Join(p.logdir, "eve.json")
-	zr, err := detector.OpenFile(zctx, path, zio.ReaderOpts{JSON: ndjsonio.ReaderOpts{TypeConfig: suricataTC, Warnings: p.warn}})
+	zr, err := detector.OpenFile(zctx, path, zio.ReaderOpts{})
 	if err != nil {
 		return err
 	}
 	defer zr.Close()
 	return fs.ReplaceFile(filepath.Join(p.logdir, "eve.zng"), os.FileMode(0666), func(w io.Writer) error {
 		zw := zngio.NewWriter(zio.NopCloser(w), zngio.WriterOpts{})
-		return driver.Copy(ctx, zw, suricataTransform, zctx, zr, driver.Config{})
+		return driver.Copy(ctx, zw, suricataShaper, zctx, zr, driver.Config{})
 	})
 }
 
