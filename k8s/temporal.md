@@ -4,63 +4,13 @@ Temporal is installed as a subchart of our zservice Helm "umbrella" chart.
 
 Our Helm subchart is based on:
 https://github.com/temporalio/helm-charts
-With minimal changes. The installation pattern we follow is for 
-We use a minimal install of Temporal, based on the instructions at:
+With minimal changes.
 
-https://github.com/temporalio/helm-charts#install-with-your-own-postgresql
-
-We supress the install of Grafana, Prometheus, and Kafka by including the following flags:
-```
-    --set prometheus.enabled=false \
-    --set grafana.enabled=false \
-    --set kafka.enabled=false \
-```
-Each user that will run Temporal must have an initialized database available. We use Aurora for the per-user Temporal databases. Setting up a Temporal database on the zq-test-aurora instance involve manual steps, because the Temporal database initialization and migration code is not designed to be run automated. (We confirmed this with the the Temporal dev team.)
-
-## Database initialization for Temporal
-We will follow a pattern similar to what we have done for setting up Aurora users for testing.
-
-We will need a Docker container with the most recent build of `temporal-sql-tool`. Here's hopw to create that. Note that we are working with Temporal v1.7.0. For stability, we will not use other versions or try buildiong head from the repo.
-```
-# The git clone and the docker build steps can be skipped
-# if an image has already been pushed to $ZQD_ECR_HOST/temporal:1.7.0
-git clone https://github.com/temporalio/temporal.git
-git checkout v1.7.0
-docker build -t temporal .
-aws ecr get-login-password --region us-east-2 | \
-  docker login --username AWS --password-stdin $ZQD_ECR_HOST/temporal
-docker tag temporal $ZQD_ECR_HOST/temporal:1.7.0
-docker push $ZQD_ECR_HOST/temporal:1.7.0
-# launch K8s pod with this docker image
-kubectl apply -f k8s/temporal-sql-job.yaml
-kubectl get pod
-# use the pod name from get pod in the command below
-kubectl exec --stdin --tty temporalsql-XX999 -- sh
-```
-In the shell for the pod, use these commands, adapted for your username, to set up the Temporal databases. Note that every database name must be qualified by prefixing a username, because we need seperate Temporal databases for test isolation.
-
-```
-export SQL_PLUGIN=postgres
-export SQL_HOST=<RDS host>
-export SQL_PORT=5432
-export SQL_USER=theusername
-export SQL_PASSWORD=thepassword
-
-temporal-sql-tool create-database -database theusername_temporal
-SQL_DATABASE=theusername_temporal temporal-sql-tool setup-schema -v 0.0
-SQL_DATABASE=theusername_temporal temporal-sql-tool update -schema-dir schema/postgresql/v96/temporal/versioned
-
-temporal-sql-tool create-database -database theusername_temporal_visibility
-SQL_DATABASE=theusername_temporal_visibility temporal-sql-tool setup-schema -v 0.0
-SQL_DATABASE=theusername_temporal_visibility temporal-sql-tool update -schema-dir schema/postgresql/v96/visibility/versioned
-```
-Afterwards you can delete the temporalsql pod.
+Each user that will run Temporal must have an initialized database available. We use Aurora for the per-user Temporal databases. Setting up a Temporal database on the zq-test-aurora instance involves manual steps, because the Temporal database initialization and migration code is not designed to be run automated. (We confirmed this with the the Temporal dev team.)
 
 ## Helm chart for Temporal
-
-https://github.com/temporalio/helm-charts
-
-Includes a helm chart for Temporal, which includes dependencies on:
+`https://github.com/temporalio/helm-charts`
+includes a helm chart for Temporal, which includes dependencies on:
 Cassandra, ElasticSearch, Kafka (with Zookeeper), Promethueus, Grafana
 We use the helm chart following a pattern similar to:
 https://github.com/temporalio/helm-charts#install-with-your-own-postgresql
@@ -96,18 +46,60 @@ helm search repo temporal
 ```
 Will show the newly added Temporal helm chart.
 
+## Database initialization for Temporal
+We will follow a pattern similar to what we have done for setting up Aurora users for testing.
+
+We will need a Docker container with the most recent build of `temporal-sql-tool`. Here's hopw to create that. Note that we are working with Temporal v1.7.0. For stability, we will not use other versions or try buildiong head from the repo.
+```
+# The git clone and the docker build steps can be skipped
+# if an image has already been pushed to $ZQD_ECR_HOST/temporal:1.7.0
+git clone https://github.com/temporalio/temporal.git
+git checkout v1.7.0
+docker build -t temporal .
+aws ecr get-login-password --region us-east-2 | \
+  docker login --username AWS --password-stdin $ZQD_ECR_HOST/temporal
+docker tag temporal $ZQD_ECR_HOST/temporal:1.7.0
+docker push $ZQD_ECR_HOST/temporal:1.7.0
+# launch K8s pod with this docker image
+kubectl apply -f k8s/temporal-sql.yaml
+kubectl exec --stdin --tty temporal-sql -- sh
+```
+In the shell for the pod, use these commands, adapted for your username, to set up the Temporal databases. Note that every database name must be qualified by prefixing a username, because we need seperate Temporal databases for test isolation.
+
+```
+export SQL_PLUGIN=postgres
+export SQL_PORT=5432
+export SQL_HOST=<RDS host>
+export SQL_USER=theusername
+export SQL_PASSWORD=thepassword
+
+temporal-sql-tool create-database -database theusername_temporal
+SQL_DATABASE=theusername_temporal temporal-sql-tool setup-schema -v 0.0
+SQL_DATABASE=theusername_temporal temporal-sql-tool update -schema-dir schema/postgresql/v96/temporal/versioned
+
+temporal-sql-tool create-database -database theusername_temporal_visibility
+SQL_DATABASE=theusername_temporal_visibility temporal-sql-tool setup-schema -v 0.0
+SQL_DATABASE=theusername_temporal_visibility temporal-sql-tool update -schema-dir schema/postgresql/v96/visibility/versioned
+```
+Afterwards you can delete the temporalsql pod.
+
 ## Using Makefile rule to deploy temporal
 Temporal may be deployed as part of the zservice Helm chart. Use:
 ```
 make helm-install-with-aurora-temporal
 ```
-Prior to using this target, you must set three env vars that are used to configure Temporal DB access:
+Prior to using this target, you must set additional environment variables that are used to configure Temporal DB access:
 ```
+TEMPORAL_DATABASE=theusername_temporal
+TEMPORAL_VISIBILITY_DATABASE=theusername_temporal_visibility
 ZQD_AURORA_USER=theusername
-ZQD_AURORA_PW=$$(kubectl get secret postgres --template="{{ index .data \"postgresql-password\" }}" | base64 --decode)
+ZQD_AURORA_PW=$$(kubectl get secret aurora --template="{{ index .data \"postgresql-password\" }}" | base64 --decode)
 ZQD_AURORA_HOST=$(aws rds describe-db-cluster-endpoints \
 		--db-cluster-identifier zq-test-aurora \
 		--output text --query "DBClusterEndpoints[?EndpointType=='WRITER'] | [0].Endpoint"):5432
 ```
+Note that by convention, we qualify the database names with the username. This is to allow test isolation between deployments of Temporal.
+
+
 
 

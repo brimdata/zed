@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: temporal-sql
+spec:
+  containers:
+  - name: temporalsql
+    image: 792043464098.dkr.ecr.us-east-2.amazonaws.com/temporal:1.7.0
+    command: ['sh', '-c', 'echo "Connect to run temporal update" && sleep 3600']
+  

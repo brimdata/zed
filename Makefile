@@ -196,16 +196,18 @@ helm-install-with-aurora-temporal:
 	--set global.AWSRegion=us-east-2 \
 	--set global.image.repository=$(ZQD_ECR_HOST)/ \
 	--set global.image.tag=zqd:$(ECR_VERSION) \
-	--set global.postgres.addr=$(ZQD_AURORA_HOST) \
+	--set global.postgres.addr=$(ZQD_AURORA_HOST):5432 \
 	--set global.postgres.database=$(ZQD_AURORA_USER) \
 	--set global.postgres.username=$(ZQD_AURORA_USER) \
 	--set global.postgres.passwordSecretName=aurora \
 	--set tags.deploy-postgres=false \
+	--set temporal.server.config.persistence.default.sql.database=$(TEMPORAL_DATABASE) \
 	--set temporal.server.config.persistence.default.sql.user=$(ZQD_AURORA_USER) \
 	--set temporal.server.config.persistence.default.sql.password=$(ZQD_AURORA_PW) \
+	--set temporal.server.config.persistence.default.sql.host=$(ZQD_AURORA_HOST) \
+	--set temporal.server.config.persistence.default.sql.database=$(TEMPORAL_VISIBILITY_DATABASE) \
 	--set temporal.server.config.persistence.visibility.sql.user=$(ZQD_AURORA_USER) \
 	--set temporal.server.config.persistence.visibility.sql.password=$(ZQD_AURORA_PW) \
-	--set temporal.server.config.persistence.default.sql.host=$(ZQD_AURORA_HOST) \
 	--set temporal.server.config.persistence.visibility.sql.host=$(ZQD_AURORA_HOST)
 
 create-release-assets:
