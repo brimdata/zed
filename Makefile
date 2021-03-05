@@ -205,7 +205,7 @@ helm-install-with-aurora-temporal:
 	--set temporal.server.config.persistence.default.sql.user=$(ZQD_AURORA_USER) \
 	--set temporal.server.config.persistence.default.sql.password=$(ZQD_AURORA_PW) \
 	--set temporal.server.config.persistence.default.sql.host=$(ZQD_AURORA_HOST) \
-	--set temporal.server.config.persistence.default.sql.database=$(TEMPORAL_VISIBILITY_DATABASE) \
+	--set temporal.server.config.persistence.visibility.sql.database=$(TEMPORAL_VISIBILITY_DATABASE) \
 	--set temporal.server.config.persistence.visibility.sql.user=$(ZQD_AURORA_USER) \
 	--set temporal.server.config.persistence.visibility.sql.password=$(ZQD_AURORA_PW) \
 	--set temporal.server.config.persistence.visibility.sql.host=$(ZQD_AURORA_HOST)

@@ -100,6 +100,3 @@ ZQD_AURORA_HOST=$(aws rds describe-db-cluster-endpoints \
 ```
 Note that by convention, we qualify the database names with the username. This is to allow test isolation between deployments of Temporal.
 
-
-
-
