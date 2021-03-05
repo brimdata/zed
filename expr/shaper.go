@@ -262,14 +262,14 @@ func NewShaper(zctx *resolver.Context, fieldExpr, typExpr Evaluator, tf ShaperTr
 	if err != nil {
 		return nil, err
 	}
-	shapeToType, err := zctx.Context.LookupByName(s)
+	shapeType, err := zctx.Context.LookupByName(s)
 	if err != nil {
 		return nil, fmt.Errorf("shaper could not parse type value literal: %s", err)
 	}
 
-	recType, isRecord := zng.AliasedType(shapeToType).(*zng.TypeRecord)
+	recType, isRecord := zng.AliasedType(shapeType).(*zng.TypeRecord)
 	if !isRecord {
-		return nil, fmt.Errorf("shaper needs a record type value as second parameter (got %T %T)", shapeToType, zng.AliasedType(shapeToType))
+		return nil, fmt.Errorf("shaping functions (crop, fill, cast, order) require a record type value as second parameter (got %T %T)", shapeType, zng.AliasedType(shapeType))
 	}
 	return NewShaperType(zctx, fieldExpr, recType, tf)
 }
