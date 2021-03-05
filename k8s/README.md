@@ -36,7 +36,7 @@ To deploy Temporal, the Temporal schema must be initialized in Aurora. Follow th
 
 Includes the K8s command to automatically deploy and test a cluster of services.
 
-In the process of working all this stuff out, we took a lot of notes on the trouble-shooting steps we sometimes needed. Feel free to dig around for info in here:
+In the process of working all this stuff out, we took a lot of notes on the trouble-shooting steps we sometimes needed:
 
 [Trouble shooting](troubleshooting.md)
 

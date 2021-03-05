@@ -8,6 +8,8 @@ With minimal changes.
 
 Each user that will run Temporal must have an initialized database available. We use Aurora for the per-user Temporal databases. Setting up a Temporal database on the zq-test-aurora instance involves manual steps, because the Temporal database initialization and migration code is not designed to be run automated. (We confirmed this with the the Temporal dev team.)
 
+Temporal has a concept of namespaces. A namespace must be registered before use. An external utility called tctl is used for that. There are instructions below for doing this after the Helm deploy.
+
 ## Helm chart for Temporal
 `https://github.com/temporalio/helm-charts`
 includes a helm chart for Temporal, which includes dependencies on:
@@ -16,7 +18,7 @@ We use the helm chart following a pattern similar to:
 https://github.com/temporalio/helm-charts#install-with-your-own-postgresql
 And avoid all the dependencies above.
 
-temporalio/helm-charts above is not designed to be used as a subchart within an umbrella Helm chart, and ths is not available in a helm repository. Brim wants to use it as a subchart, so we have followed a strategy similar to what is described here:
+`temporalio/helm-charts` is not designed to be used as a subchart within an umbrella Helm chart, and thus is not available in a helm repository. Brim uses it as a subchart, so we have followed a strategy similar to what is described here:
 https://medium.com/@mattiaperi/create-a-public-helm-chart-repository-with-github-pages-49b180dbb417
 In order to create a respository that we can use for our subchart dependency on Temporal.
 We have created a git repo:
@@ -49,10 +51,10 @@ Will show the newly added Temporal helm chart.
 ## Database initialization for Temporal
 We will follow a pattern similar to what we have done for setting up Aurora users for testing.
 
-We will need a Docker container with the most recent build of `temporal-sql-tool`. Here's hopw to create that. Note that we are working with Temporal v1.7.0. For stability, we will not use other versions or try buildiong head from the repo.
+We will use a Docker container with the most recent build of `temporal-sql-tool`. Here's how to create that. Note that we are working with Temporal v1.7.0. The git clone and the docker build steps can be skipped
+if a Docker image has already been pushed to $ZQD_ECR_HOST/temporal:1.7.0.
+
 ```
-# The git clone and the docker build steps can be skipped
-# if an image has already been pushed to $ZQD_ECR_HOST/temporal:1.7.0
 git clone https://github.com/temporalio/temporal.git
 git checkout v1.7.0
 docker build -t temporal .
@@ -60,10 +62,14 @@ aws ecr get-login-password --region us-east-2 | \
   docker login --username AWS --password-stdin $ZQD_ECR_HOST/temporal
 docker tag temporal $ZQD_ECR_HOST/temporal:1.7.0
 docker push $ZQD_ECR_HOST/temporal:1.7.0
-# launch K8s pod with this docker image
-kubectl apply -f k8s/temporal-sql.yaml
+kubectl run -i --tty --rm temporal-sql --image=$ZQD_ECR_HOST/temporal:1.7.0 -- sh
+```
+If you have envsubst installed, an alternate way of starting the pod is:
+```
+envsubst < k8s/temporal-sql.yaml | kubectl apply -f -
 kubectl exec --stdin --tty temporal-sql -- sh
 ```
+
 In the shell for the pod, use these commands, adapted for your username, to set up the Temporal databases. Note that every database name must be qualified by prefixing a username, because we need seperate Temporal databases for test isolation.
 
 ```
@@ -81,7 +87,6 @@ temporal-sql-tool create-database -database theusername_temporal_visibility
 SQL_DATABASE=theusername_temporal_visibility temporal-sql-tool setup-schema -v 0.0
 SQL_DATABASE=theusername_temporal_visibility temporal-sql-tool update -schema-dir schema/postgresql/v96/visibility/versioned
 ```
-Afterwards you can delete the temporalsql pod.
 
 ## Using Makefile rule to deploy temporal
 Temporal may be deployed as part of the zservice Helm chart. Use:
@@ -100,3 +105,15 @@ ZQD_AURORA_HOST=$(aws rds describe-db-cluster-endpoints \
 ```
 Note that by convention, we qualify the database names with the username. This is to allow test isolation between deployments of Temporal.
 
+## Use tctl to register a namespace for ztests
+After Temporal has been deployed, and it finds the Postgres database and is status "Running", a namespace must be registered before the Ztests will run.
+
+The Temporal image which contains the temporal-sql-tool also incudes tctl. It must be run from this image to have access to the temporal front-end in the Kubernetes cluster. Start a pod the same as for the sql tool:
+```
+kubectl run -i --tty -rm temporal-sql --image=$ZQD_ECR_HOST/temporal:1.7.0 -- sh
+```
+And in the interactive shell for the pod use the command:
+```
+tctl --address zsrv-temporal-frontend:7233 --ns zqd-ztest-persistent namespace register
+```
+This registers the namespace that is used for the temporal cluster Ztests.

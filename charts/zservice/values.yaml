@@ -11,6 +11,9 @@ global:
     database: "zqd"
     # passwordSecretName must have a value called postgres-password
     passwordSecretName: "postgres"
+  temporal:
+    addr: zsrv-temporal-frontend:7233
+    namespace: "zqd-ztest-persistent"
   useCredSecret: false
 
 postgresql:

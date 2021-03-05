@@ -71,7 +71,7 @@ Create args that vary based on .Values.personality
 {{- if ne .Values.personality "recruiter" }}
 {{- $args = append $args (print "-worker.recruiter=" .Values.recruiterAddr) }}
 {{- end }}
-{{- if eq .Values.personality "root" }}
+{{- if or (eq .Values.personality "root") (eq .Values.personality "temporal") }}
 {{- $args = append $args (print "-data=" .Values.datauri) }}
 {{- $args = append $args (print "-db.kind=postgres") }}
 {{- $args = append $args (print "-db.postgres.addr=" .Values.global.postgres.addr) }}
@@ -85,6 +85,13 @@ Create args that vary based on .Values.personality
 {{- else if eq .Values.personality "worker" }}
 {{- $args = append $args "-worker.host=$(STATUS_POD_IP)" }}
 {{- $args = append $args "-worker.node=$(SPEC_NODE_NAME)" }}
+{{- end }}
+{{- if eq .Values.personality "temporal" }}
+{{- $args = append $args (print "-temporal.addr=" .Values.global.temporal.addr) }}
+{{- $args = append $args (print "-temporal.enabled=true") }}
+{{- $args = append $args (print "-temporal.namespace=" .Values.global.temporal.namespace) }}
+{{- $args = append $args (print "-temporal.spacecompactdelay=0s") }}
+{{- $args = append $args (print "-temporal.spacepurgedelay=0s") }}
 {{- end }}
 {{- range $args }}
 {{ print "- " (. | quote) }}
