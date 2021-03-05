@@ -155,6 +155,8 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	case "recruiter":
 		c.workerPool = recruiter.NewWorkerPool()
 		c.addRecruiterRoutes()
+	case "temporal":
+		// No additional API routes to zqd temporal worker
 	case "worker":
 		c.addWorkerRoutes()
 	default:

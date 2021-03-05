@@ -117,3 +117,4 @@ And in the interactive shell for the pod use the command:
 tctl --address zsrv-temporal-frontend:7233 --ns zqd-ztest-persistent namespace register
 ```
 This registers the namespace that is used for the temporal cluster Ztests.
+
