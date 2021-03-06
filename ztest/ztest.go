@@ -206,9 +206,6 @@ func Run(t *testing.T, dirname string) {
 			if b.Error != nil {
 				t.Fatalf("%s: %s", b.FileName, b.Error)
 			}
-			if b.Test.Skip {
-				t.Skip("test is disabled")
-			}
 			b.Test.Run(t, b.TestName, shellPath, dirname, b.FileName)
 		})
 	}
@@ -408,17 +405,18 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 }
 
 func (z *ZTest) ShouldSkip(path string) string {
-	if runtime.GOOS == "windows" {
+	switch {
+	case z.Script != "" && runtime.GOOS == "windows":
 		// XXX skip in windows until we figure out the best
 		// way to support script-driven tests across
 		// environments
-		return "skipping script test on Windows"
-	}
-	if path == "" {
-		return "skipping script test on in-process run"
-	}
-	if z.Tag != "" && z.Tag != os.Getenv("ZTEST_TAG") {
-		return fmt.Sprintf("skipping script test because tag %q does not match ZTEST_TAG=%q", z.Tag, os.Getenv("ZTEST_TAG"))
+		return "script test on Windows"
+	case z.Script != "" && path == "":
+		return "script test on in-process run"
+	case z.Skip:
+		return "skip is true"
+	case z.Tag != "" && z.Tag != os.Getenv("ZTEST_TAG"):
+		return fmt.Sprintf("tag %q does not match ZTEST_TAG=%q", z.Tag, os.Getenv("ZTEST_TAG"))
 	}
 	return ""
 }
@@ -465,7 +463,7 @@ func (z *ZTest) RunInternal(path string) error {
 
 func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
 	if msg := z.ShouldSkip(path); msg != "" {
-		t.Skip(msg)
+		t.Skip("skipping test:", msg)
 	}
 	var err error
 	if z.Script != "" {
