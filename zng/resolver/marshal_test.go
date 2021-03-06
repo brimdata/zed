@@ -259,9 +259,9 @@ func (m testMarshaler) MarshalZNG(mc *zson.MarshalZNGContext) (zng.Type, error) 
 	return mc.MarshalValue("marshal-" + string(m))
 }
 
-func (m *testMarshaler) UnmarshalZNG(zv zng.Value) error {
+func (m *testMarshaler) UnmarshalZNG(mc *zson.UnmarshalZNGContext, zv zng.Value) error {
 	var s string
-	if err := resolver.NewUnmarshaler().Unmarshal(zv, &s); err != nil {
+	if err := mc.Unmarshal(zv, &s); err != nil {
 		return err
 	}
 	ss := strings.Split(s, "-")
@@ -292,8 +292,8 @@ func TestMarshalInterface(t *testing.T) {
 	var r2 rectype
 	err = resolver.UnmarshalRecord(rec, &r2)
 	require.NoError(t, err)
-	assert.Equal(t, "m1", string(*r1.M1))
-	assert.Equal(t, "m2", string(r1.M2))
+	assert.Equal(t, "m1", string(*r2.M1))
+	assert.Equal(t, "m2", string(r2.M2))
 }
 
 func TestMarshalArray(t *testing.T) {
