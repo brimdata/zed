@@ -106,6 +106,9 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
       - run: |
           set -x
+          aws eks --region us-east-2 update-kubeconfig --name zq-test
+          kubectl create ns ci-master || true
+          kubectl config set-context --current --namespace=ci-master
           export ZQD_AURORA_USER=cimaster
           export ZQD_AURORA_PW=$(kubectl get secret aurora --template="{{ index .data \"postgresql-password\" }}" | base64 --decode)
           export ZQD_AURORA_HOST=$(aws rds describe-db-cluster-endpoints --db-cluster-identifier zq-test-aurora --output text --query "DBClusterEndpoints[?EndpointType=='WRITER'] | [0].Endpoint")
@@ -113,9 +116,6 @@ jobs:
           export TEMPORAL_VISIBILITY_DATABASE=cimaster_temporal_visibility
           export ZQD_DATA_URI=s3://zq-ci-master/manual-test
           export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
-          aws eks --region us-east-2 update-kubeconfig --name zq-test
-          kubectl create ns ci-master || true
-          kubectl config set-context --current --namespace=ci-master
           make helm-install-with-aurora-temporal
           kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-redis-master-0
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
