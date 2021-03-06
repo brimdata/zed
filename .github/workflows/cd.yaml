@@ -134,6 +134,7 @@ jobs:
           kubectl logs --tail 10000 -l app.kubernetes.io/name=recruiter > testlogm/recruiter.log
           kubectl logs --all-containers --tail 10000 -l app.kubernetes.io/name=root > testlogm/root.log
           kubectl logs --tail 10000 -l app.kubernetes.io/name=worker > testlogm/worker.log
+          kubectl logs --tail 10000 -l app.kubernetes.io/name=zqd-temporal > testlogm/zqd-temporal.log
       - name: Save logs as artifact
         if: ${{ always() }}
         uses: actions/upload-artifact@v2
