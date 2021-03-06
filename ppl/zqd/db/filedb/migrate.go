@@ -18,8 +18,9 @@ import (
 const currentVersion = 6
 
 type dbdata struct {
-	Version   int               `json:"version"`
-	SpaceRows []schema.SpaceRow `json:"space_rows"`
+	Version    int                `json:"version"`
+	SpaceRows  []schema.SpaceRow  `json:"space_rows"`
+	IntakeRows []schema.IntakeRow `json:"intake_rows"`
 }
 
 func migrateOldConfig(ctx context.Context, logger *zap.Logger, root iosrc.URI) error {
@@ -161,4 +162,21 @@ func migrateV6(data []byte) (int, []byte, error) {
 	}
 	data, err := json.Marshal(db)
 	return 6, data, err
+}
+
+type dbdataV6 struct {
+	Version   int               `json:"version"`
+	SpaceRows []schema.SpaceRow `json:"space_rows"`
+}
+
+func migrateV7(data []byte) (int, []byte, error) {
+	var dbv6 dbdataV6
+	if err := json.Unmarshal(data, &dbv6); err != nil {
+		return 0, nil, err
+	}
+	var db dbdata
+	db.Version = 7
+	db.SpaceRows = dbv6.SpaceRows
+	data, err := json.Marshal(db)
+	return 7, data, err
 }

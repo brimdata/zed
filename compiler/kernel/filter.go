@@ -5,48 +5,9 @@ import (
 
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
-
-var _ zbuf.Filter = (*Filter)(nil)
-
-// Filter wraps an ast.BooleanExpr and implements the zbuf.Filter interface
-// so that scanners can generate filters and buffer filters from an AST without
-// importing compiler (and causing an import loop).
-type Filter struct {
-	zctx *resolver.Context
-	ast  ast.Expression
-}
-
-func NewFilter(zctx *resolver.Context, ast ast.Expression) *Filter {
-	return &Filter{zctx, ast}
-}
-
-func (f *Filter) AsFilter() (expr.Filter, error) {
-	if f == nil {
-		return nil, nil
-	}
-	// XXX nil scope... when we implement global scope, the filters
-	// will need access to it.
-	return compileFilter(f.zctx, nil, f.ast)
-}
-
-func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
-	if f == nil {
-		return nil, nil
-	}
-	return compileBufferFilter(f.ast)
-}
-
-func (f *Filter) AST() ast.Expression {
-	return f.ast
-}
-
-func (f *Filter) AsProc() ast.Proc {
-	return ast.FilterToProc(f.ast)
-}
 
 func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpression) (expr.Filter, error) {
 	if e.Operator == "in" {
@@ -55,7 +16,7 @@ func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr
 			return nil, nil
 		}
 		// Check if RHS is a legit lval/field.
-		if _, err := CompileLval(e.RHS); err != nil {
+		if _, err := compileLval(e.RHS); err != nil {
 			return nil, nil
 		}
 		resolver, err := compileExpr(zctx, scope, e.RHS)
@@ -78,7 +39,7 @@ func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr
 		return nil, nil
 	}
 	// Check if LHS is a legit lval/field before compiling the expr.
-	if _, err := CompileLval(e.LHS); err != nil {
+	if _, err := compileLval(e.LHS); err != nil {
 		return nil, nil
 	}
 	resolver, err := compileExpr(zctx, scope, e.LHS)
@@ -113,13 +74,13 @@ func compileSearch(node *ast.Search) (expr.Filter, error) {
 	return expr.SearchRecordOther(node.Text, node.Value)
 }
 
-func compileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (expr.Filter, error) {
+func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (expr.Filter, error) {
 	switch v := node.(type) {
 	case *ast.UnaryExpression:
 		if v.Operator != "!" {
 			return nil, fmt.Errorf("unknown unary operator: %s", v.Operator)
 		}
-		e, err := compileFilter(zctx, scope, v.Operand)
+		e, err := CompileFilter(zctx, scope, v.Operand)
 		if err != nil {
 			return nil, err
 		}
@@ -147,22 +108,22 @@ func compileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (e
 
 	case *ast.BinaryExpression:
 		if v.Operator == "and" {
-			left, err := compileFilter(zctx, scope, v.LHS)
+			left, err := CompileFilter(zctx, scope, v.LHS)
 			if err != nil {
 				return nil, err
 			}
-			right, err := compileFilter(zctx, scope, v.RHS)
+			right, err := CompileFilter(zctx, scope, v.RHS)
 			if err != nil {
 				return nil, err
 			}
 			return expr.LogicalAnd(left, right), nil
 		}
 		if v.Operator == "or" {
-			left, err := compileFilter(zctx, scope, v.LHS)
+			left, err := CompileFilter(zctx, scope, v.LHS)
 			if err != nil {
 				return nil, err
 			}
-			right, err := compileFilter(zctx, scope, v.RHS)
+			right, err := CompileFilter(zctx, scope, v.RHS)
 			if err != nil {
 				return nil, err
 			}
@@ -171,20 +132,22 @@ func compileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (e
 		if f, err := compileCompareField(zctx, scope, v); f != nil || err != nil {
 			return f, err
 		}
-		return compilExprPredicate(zctx, scope, v)
+		return compileExprPredicate(zctx, scope, v)
 
 	case *ast.FunctionCall:
+		return compileExprPredicate(zctx, scope, v)
+	case *ast.SeqExpr:
 		if f, err := compileCompareAny(v); f != nil || err != nil {
 			return f, err
 		}
-		return compilExprPredicate(zctx, scope, v)
+		return compileExprPredicate(zctx, scope, v)
 
 	default:
 		return nil, fmt.Errorf("Filter AST unknown type: %v", v)
 	}
 }
 
-func compilExprPredicate(zctx *resolver.Context, scope *Scope, e ast.Expression) (expr.Filter, error) {
+func compileExprPredicate(zctx *resolver.Context, scope *Scope, e ast.Expression) (expr.Filter, error) {
 	predicate, err := compileExpr(zctx, scope, e)
 	if err != nil {
 		return nil, err
@@ -201,7 +164,7 @@ func compilExprPredicate(zctx *resolver.Context, scope *Scope, e ast.Expression)
 	}, nil
 }
 
-func compileCompareAny(e *ast.FunctionCall) (expr.Filter, error) {
+func compileCompareAny(e *ast.SeqExpr) (expr.Filter, error) {
 	literal, op, ok := isCompareAny(e)
 	if !ok {
 		return nil, nil

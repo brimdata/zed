@@ -12,7 +12,6 @@ import (
 	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zqe"
-	"github.com/segmentio/ksuid"
 )
 
 const (
@@ -94,7 +93,6 @@ type Lake struct {
 	DataPath         iosrc.URI
 	DataOrder        zbuf.Order
 	LogSizeThreshold int64
-	LogFilter        []ksuid.KSUID
 
 	immfiles interface {
 		ReadFile(context.Context, iosrc.URI) ([]byte, error)
@@ -113,18 +111,6 @@ func (lk *Lake) metaWrite() error {
 
 func (lk *Lake) mdURI() iosrc.URI {
 	return lk.Root.AppendPath(metadataFilename)
-}
-
-func (lk *Lake) filterAllowed(id ksuid.KSUID) bool {
-	if len(lk.LogFilter) == 0 {
-		return true
-	}
-	for _, fid := range lk.LogFilter {
-		if fid == id {
-			return true
-		}
-	}
-	return false
 }
 
 func (lk *Lake) DefinitionsDir() iosrc.URI {

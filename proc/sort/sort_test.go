@@ -148,10 +148,9 @@ func TestSort(t *testing.T) {
 	proctest.TestOneProc(t, unsortedInts+unsetInt, ascendingInts+unsetInt, "sort foo")
 
 	// Test sorting records that don't all have the requested field.
-	// XXX sort.Stable() is apparently re-ordering the nofoo records?
-	// const missingFields = nofoo + unsortedStrings
-	// const missingSorted = sortedStrings + nofoo
-	// testOne(t, missingFields, missingSorted, "sort foo")
+	const missingFields = nofoo + unsortedStrings
+	const missingSorted = sortedStrings + nofoo
+	proctest.TestOneProc(t, missingFields, missingSorted, "sort foo")
 
 	// Test sorting records with different types.
 	const mixedTypesIn = unsortedStrings + unsortedInts

@@ -17,20 +17,14 @@ func NewFloat64(f float64) Value {
 	return Value{TypeFloat64, EncodeFloat64(f)}
 }
 
-func EncodeFloat64(d float64) zcode.Bytes {
-	bits := math.Float64bits(d)
-	var b [8]byte
-	binary.LittleEndian.PutUint64(b[:], bits)
-	return b[:]
+func AppendFloat64(zb zcode.Bytes, d float64) zcode.Bytes {
+	buf := make([]byte, 8)
+	binary.LittleEndian.PutUint64(buf, math.Float64bits(d))
+	return append(zb, buf...)
 }
 
-func AppendFloat64(b zcode.Bytes, d float64) zcode.Bytes {
-	if cap(b) < 8 {
-		b = make([]byte, 0, 8)
-	}
-	bits := math.Float64bits(d)
-	binary.LittleEndian.PutUint64(b[:8], bits)
-	return b[:8]
+func EncodeFloat64(d float64) zcode.Bytes {
+	return AppendFloat64(nil, d)
 }
 
 func DecodeFloat64(zv zcode.Bytes) (float64, error) {

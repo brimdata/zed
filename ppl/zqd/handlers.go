@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/compiler"
+	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pkg/ctxio"
 	"github.com/brimsec/zq/ppl/zqd/auth"
@@ -18,6 +19,9 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/search"
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/gorilla/mux"
@@ -564,6 +568,127 @@ func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
 	if err := search.SendFromReader(out, rc); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
+}
+
+func handleIntakeList(c *Core, w http.ResponseWriter, r *http.Request) {
+	intakes, err := c.mgr.ListIntakes(r.Context())
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	respond(c, w, r, http.StatusOK, intakes)
+}
+
+func handleIntakeCreate(c *Core, w http.ResponseWriter, r *http.Request) {
+	var req api.IntakePostRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+	intake, err := c.mgr.CreateIntake(r.Context(), req)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	respond(c, w, r, http.StatusOK, intake)
+}
+
+func handleIntakeDelete(c *Core, w http.ResponseWriter, r *http.Request) {
+	id, ok := extractIntakeID(c, w, r)
+	if !ok {
+		return
+	}
+	if err := c.mgr.DeleteIntake(r.Context(), id); err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func handleIntakeGet(c *Core, w http.ResponseWriter, r *http.Request) {
+	id, ok := extractIntakeID(c, w, r)
+	if !ok {
+		return
+	}
+	info, err := c.mgr.GetIntake(r.Context(), id)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	respond(c, w, r, http.StatusOK, info)
+}
+
+func handleIntakeUpdate(c *Core, w http.ResponseWriter, r *http.Request) {
+	id, ok := extractIntakeID(c, w, r)
+	if !ok {
+		return
+	}
+	var req api.IntakePostRequest
+	if !request(c, w, r, &req) {
+		return
+	}
+	info, err := c.mgr.UpdateIntake(r.Context(), id, req)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	respond(c, w, r, http.StatusOK, info)
+}
+
+func handleIntakePostData(c *Core, w http.ResponseWriter, r *http.Request) {
+	id, ok := extractIntakeID(c, w, r)
+	if !ok {
+		return
+	}
+	intake, err := c.mgr.GetIntake(r.Context(), id)
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	if intake.TargetSpaceID == "" {
+		respondError(c, w, r, zqe.ErrConflict("intake %s has no target space", intake.ID))
+		return
+	}
+	store, err := c.mgr.GetStorage(r.Context(), intake.TargetSpaceID)
+	if err != nil {
+		if errors.Is(err, zqe.ErrNotFound()) {
+			err = zqe.ErrConflict("intake id %s missing target space id %s", intake.ID, intake.TargetSpaceID)
+		}
+		respondError(c, w, r, err)
+		return
+	}
+	zctx := resolver.NewContext()
+	zr, err := detector.NewReaderWithOpts(r.Body, zctx, "", zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}})
+	if err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	if intake.Shaper != "" {
+		proc, err := compiler.ParseProc(intake.Shaper)
+		if err != nil {
+			respondError(c, w, r, err)
+			return
+		}
+		zr, err = driver.NewReader(r.Context(), proc, zctx, zr)
+		if err != nil {
+			respondError(c, w, r, err)
+			return
+		}
+	}
+	if err := store.Write(r.Context(), zctx, zr); err != nil {
+		respondError(c, w, r, err)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
+func extractIntakeID(c *Core, w http.ResponseWriter, r *http.Request) (api.IntakeID, bool) {
+	v := mux.Vars(r)
+	id, ok := v["intake"]
+	if !ok {
+		respondError(c, w, r, zqe.E(zqe.Invalid, "no intake id in path"))
+		return "", false
+	}
+	return api.IntakeID(id), true
 }
 
 func extractSpaceID(c *Core, w http.ResponseWriter, r *http.Request) (api.SpaceID, bool) {

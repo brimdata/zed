@@ -206,9 +206,6 @@ func Run(t *testing.T, dirname string) {
 			if b.Error != nil {
 				t.Fatalf("%s: %s", b.FileName, b.Error)
 			}
-			if b.Test.Skip {
-				t.Skip("test is disabled")
-			}
 			b.Test.Run(t, b.TestName, shellPath, dirname, b.FileName)
 		})
 	}
@@ -327,6 +324,11 @@ func (z *ZTest) check() error {
 	} else {
 		return errors.New("either a zql field or script field must be present")
 	}
+	if z.ErrorRE != "" {
+		var err error
+		z.errRegex, err = regexp.Compile(z.ErrorRE)
+		return err
+	}
 	return nil
 }
 
@@ -399,73 +401,78 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 	if d.Decode(&v) != io.EOF {
 		return nil, errors.New("found multiple YAML documents or garbage after first document")
 	}
-	if z.ErrorRE != "" {
-		z.errRegex, err = regexp.Compile(z.ErrorRE)
-		if err != nil {
-			return nil, err
-		}
-	}
 	return &z, nil
 }
 
 func (z *ZTest) ShouldSkip(path string) string {
-	if runtime.GOOS == "windows" {
+	switch {
+	case z.Script != "" && runtime.GOOS == "windows":
 		// XXX skip in windows until we figure out the best
 		// way to support script-driven tests across
 		// environments
-		return "skipping script test on Windows"
-	}
-	if path == "" {
-		return "skipping script test on in-process run"
-	}
-	if z.Tag != "" && z.Tag != os.Getenv("ZTEST_TAG") {
-		return fmt.Sprintf("skipping script test because tag %q does not match ZTEST_TAG=%q", z.Tag, os.Getenv("ZTEST_TAG"))
+		return "script test on Windows"
+	case z.Script != "" && path == "":
+		return "script test on in-process run"
+	case z.Skip:
+		return "skip is true"
+	case z.Tag != "" && z.Tag != os.Getenv("ZTEST_TAG"):
+		return fmt.Sprintf("tag %q does not match ZTEST_TAG=%q", z.Tag, os.Getenv("ZTEST_TAG"))
 	}
 	return ""
 }
 
 func (z *ZTest) RunScript(testname, shellPath, workingDir, filename string) error {
+	if err := z.check(); err != nil {
+		return fmt.Errorf("%s: bad yaml format: %w", filename, err)
+	}
 	adir, _ := filepath.Abs(workingDir)
 	return runsh(testname, shellPath, adir, z)
 }
 
-func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
+func (z *ZTest) RunInternal(path string) error {
 	if err := z.check(); err != nil {
-		t.Fatalf("%s: bad yaml format: %s", filename, err)
-	}
-	if z.Script != "" {
-		if msg := z.ShouldSkip(path); msg != "" {
-			t.Skip(msg)
-		}
-		if err := z.RunScript(testname, path, dirname, filename); err != nil {
-			t.Fatalf("%s: %s", filename, err)
-		}
-		return
+		return fmt.Errorf("bad yaml format: %w", err)
 	}
 	outputFlags := append([]string{"-f", "zson", "-pretty=0"}, strings.Fields(z.OutputFlags)...)
 	out, errout, err := runzq(path, z.ZQL, outputFlags, z.Input...)
 	if err != nil {
 		if z.errRegex != nil {
 			if !z.errRegex.MatchString(errout) {
-				t.Fatalf("%s: error doesn't match expected error regex: %s %s", filename, z.ErrorRE, errout)
+				return fmt.Errorf("error doesn't match expected error regex: %s %s", z.ErrorRE, errout)
 			}
 		} else {
 			if out != "" {
 				out = "\noutput:\n" + out
 			}
-			t.Fatalf("%s: %s%s", filename, err, out)
+			return fmt.Errorf("%w%s", err, out)
 		}
 	} else if z.errRegex != nil {
-		t.Fatalf("%s: no error when expecting error regex: %s", filename, z.ErrorRE)
+		return fmt.Errorf("no error when expecting error regex: %s", z.ErrorRE)
 	} else if z.Warnings != errout {
-		t.Fatalf("%s: %s", filename, diffErr("warnings", z.Warnings, errout))
+		return diffErr("warnings", z.Warnings, errout)
 	}
 	expectedOut, err := z.getOutput()
 	if err != nil {
-		t.Fatalf("%s: getting test output: %s", filename, err)
+		return fmt.Errorf("getting test output: %w", err)
 	}
 	if expectedOut != out {
-		t.Fatalf("%s: %s", filename, diffErr("output", expectedOut, out))
+		return diffErr("output", expectedOut, out)
+	}
+	return nil
+}
+
+func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
+	if msg := z.ShouldSkip(path); msg != "" {
+		t.Skip("skipping test:", msg)
+	}
+	var err error
+	if z.Script != "" {
+		err = z.RunScript(testname, path, dirname, filename)
+	} else {
+		err = z.RunInternal(path)
+	}
+	if err != nil {
+		t.Fatalf("%s: %s", filename, err)
 	}
 }
 

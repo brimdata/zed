@@ -6,6 +6,7 @@ ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
 ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
+MINIO_VERSION := 0.0.0-20201211152140-453ab257caf5
 TEMPORAL_VERSION := 1.6.3
 ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))["brimDependencies"]["zeekTag"])')
 ZEEKPATH = zeek-$(ZEEKTAG)
@@ -68,12 +69,16 @@ bin/$(SURICATAPATH):
 	unzip -q bin/$(SURICATAPATH).zip -d bin \
 		&& mv bin/suricata bin/$(SURICATAPATH)
 
-bin/minio:
-	@mkdir -p bin
-	@echo 'module deps' > bin/go.mod
-	@echo 'replace github.com/minio/minio => github.com/brimsec/minio v0.0.0-20201211152140-453ab257caf5' >> bin/go.mod
-	@cd bin && go get -d github.com/minio/minio
-	@cd bin && GOBIN="$(CURDIR)/bin" go install github.com/minio/minio
+.PHONY: bin/minio
+bin/minio: bin/minio-$(MINIO_VERSION)
+	ln -fs $(<F) $@
+
+bin/minio-$(MINIO_VERSION):
+	mkdir -p $(@D)
+	echo 'module deps' > $@.mod
+	go mod edit -modfile=$@.mod -replace=github.com/minio/minio=github.com/brimsec/minio@v$(MINIO_VERSION)
+	go get -d -modfile=$@.mod github.com/minio/minio
+	go build -modfile=$@.mod -o $@ github.com/minio/minio
 
 generate:
 	@GOBIN="$(CURDIR)/bin" go install github.com/golang/mock/mockgen
@@ -263,4 +268,4 @@ clean: clean-python
 
 .PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
 .PHONY: perf-compare build install create-release-assets clean clean-python
-.PHONY: build-python-wheel generate test-generate bin/minio
+.PHONY: build-python-wheel generate test-generate

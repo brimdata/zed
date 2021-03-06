@@ -6,7 +6,7 @@ script: |
 
 inputs:
   - name: services.sh
-    source: services.sh
+    source: ../services.sh
   - name: bad.tzng
     data: |
       #0:record[ip:string]
