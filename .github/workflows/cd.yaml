@@ -115,14 +115,16 @@ jobs:
           aws eks --region us-east-2 update-kubeconfig --name zq-test
           kubectl create ns ci-master || :
           kubectl config set-context --current --namespace=ci-master
-          make helm-install-with-aurora
+          make helm-install-with-aurora-temporal
           kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-redis-master-0
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-recruiter
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-root
           kubectl wait --for=condition=available --timeout=120s deployment/zsrv-worker
-          make install
-          source k8s/zsrv-port-forward.sh
+          kubectl wait --for=condition=available --timeout=120s deployment/zsrv-zqd-temporal
+          make install # this installs zapi locally
+          source k8s/port-forward-temporal.sh
           make test-cluster
+          make test-temporal
       - name: Get zqd logs on success or failure
         if: ${{ always() }}
         run: |

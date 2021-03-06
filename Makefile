@@ -128,6 +128,13 @@ test-cluster: build install
 		ZTEST_TAG=cluster \
 		go test -v -run TestZq/ppl/zqd/ztests/cluster .
 
+# test-temporal target assumes zqd-temporal endpoint is available at port 9868
+.PHONY: test-temporal
+test-temporal: build install
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
+		ZTEST_TAG=temporal \
+		go test -v -run TestZq/ppl/zqd/temporal/ztests .
+
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
 
@@ -170,7 +177,7 @@ kubectl-config:
 
 helm-install:
 	helm upgrade -i zsrv charts/zservice \
-	--set root.datauri=$(ZQD_DATA_URI) \
+	--set global.datauri=$(ZQD_DATA_URI) \
 	--set global.AWSRegion=us-east-2 \
 	--set global.image.repository=$(ZQD_ECR_HOST)/ \
 	--set global.image.tag=zqd:$(ECR_VERSION) \
@@ -178,7 +185,7 @@ helm-install:
 
 helm-install-with-aurora:
 	helm upgrade -i zsrv charts/zservice \
-	--set root.datauri=$(ZQD_DATA_URI) \
+	--set global.datauri=$(ZQD_DATA_URI) \
 	--set global.AWSRegion=us-east-2 \
 	--set global.image.repository=$(ZQD_ECR_HOST)/ \
 	--set global.image.tag=zqd:$(ECR_VERSION) \
@@ -192,7 +199,7 @@ helm-install-with-aurora:
 
 helm-install-with-aurora-temporal:
 	helm upgrade -i zsrv charts/zservice \
-	--set root.datauri=$(ZQD_DATA_URI) \
+	--set global.datauri=$(ZQD_DATA_URI) \
 	--set global.AWSRegion=us-east-2 \
 	--set global.image.repository=$(ZQD_ECR_HOST)/ \
 	--set global.image.tag=zqd:$(ECR_VERSION) \

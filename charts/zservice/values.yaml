@@ -1,5 +1,6 @@
 global:
   AWSRegion: ""
+  datauri: "file:///spaces"
   image:
     repository: "localhost:5000/"
     pullPolicy: Always
@@ -11,6 +12,7 @@ global:
     database: "zqd"
     # passwordSecretName must have a value called postgres-password
     passwordSecretName: "postgres"
+  recruiterAddr: zsrv-recruiter:9867
   temporal:
     addr: zsrv-temporal-frontend:7233
     namespace: "zqd-ztest-persistent"
@@ -59,6 +61,7 @@ worker:
   recruiterAddr: zsrv-recruiter:9867
 
 temporal:
+  datauri: "file:///spaces"
   server:
     config:
       persistence:

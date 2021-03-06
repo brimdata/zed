@@ -68,11 +68,11 @@ Create args that vary based on .Values.personality
 {{- define "zservice.args" -}}
 {{- $args := list "listen" "-l=:9867" }}
 {{- $args = append $args (print "-personality=" .Values.personality) }}
-{{- if ne .Values.personality "recruiter" }}
-{{- $args = append $args (print "-worker.recruiter=" .Values.recruiterAddr) }}
+{{- if or (eq .Values.personality "root") (eq .Values.personality "worker") }}
+{{- $args = append $args (print "-worker.recruiter=" .Values.global.recruiterAddr) }}
 {{- end }}
 {{- if or (eq .Values.personality "root") (eq .Values.personality "temporal") }}
-{{- $args = append $args (print "-data=" .Values.datauri) }}
+{{- $args = append $args (print "-data=" .Values.global.datauri) }}
 {{- $args = append $args (print "-db.kind=postgres") }}
 {{- $args = append $args (print "-db.postgres.addr=" .Values.global.postgres.addr) }}
 {{- $args = append $args (print "-db.postgres.database=" .Values.global.postgres.database) }}
