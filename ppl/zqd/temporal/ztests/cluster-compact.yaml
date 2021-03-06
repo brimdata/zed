@@ -6,21 +6,19 @@ env:
   - AWS_SECRET_ACCESS_KEY
 
 script: |
-  set -x
   exec 2>&1
   host=localhost:9868
   space=ZTest_cluster_compact
-  zapi -h $host rm $space || true
+  zapi -h $host rm $space  >/dev/null || true
   # Test assumes a zqd-temporal instance is reachable at port 9868
-  zapi -h $host new -k archivestore $space
-  zapi -h $host -s $space post babble.tzng
-  zapi -h $host -s $space post babble.tzng
+  zapi -h $host new -k archivestore $space >/dev/null
+  zapi -h $host -s $space post babble.tzng >/dev/null
+  zapi -h $host -s $space post babble.tzng >/dev/null
   # Give the Temporal workflow a chance to run.
-  sleep 1
+  sleep 5
   data_path=$(zapi -h $host ls -l -f zng | zq -f text "name=\"$space\" | cut data_path" -)
-  echo $data_path
   zar ls -R $data_path -ranges
-  zapi -h $host rm $space # >/dev/null
+  zapi -h $host rm $space >/dev/null
 
 inputs:
   - name: babble.tzng
