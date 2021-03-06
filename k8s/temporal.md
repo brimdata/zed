@@ -98,7 +98,7 @@ Prior to using this target, you must set additional environment variables that a
 TEMPORAL_DATABASE=theusername_temporal
 TEMPORAL_VISIBILITY_DATABASE=theusername_temporal_visibility
 ZQD_AURORA_USER=theusername
-ZQD_AURORA_PW=$$(kubectl get secret aurora --template="{{ index .data \"postgresql-password\" }}" | base64 --decode)
+ZQD_AURORA_PW=$(kubectl get secret aurora --template="{{ index .data \"postgresql-password\" }}" | base64 --decode)
 ZQD_AURORA_HOST=$(aws rds describe-db-cluster-endpoints \
 		--db-cluster-identifier zq-test-aurora \
 		--output text --query "DBClusterEndpoints[?EndpointType=='WRITER'] | [0].Endpoint"):5432
@@ -115,5 +115,9 @@ kubectl run -i --tty -rm temporal-sql --image=$ZQD_ECR_HOST/temporal:1.7.0 -- sh
 And in the interactive shell for the pod use the command:
 ```
 tctl --address zsrv-temporal-frontend:7233 --ns zqd-ztest-persistent namespace register
+```
+It should respond with: 
+```
+Namespace zqd-ztest-persistent successfully registered.
 ```
 This registers the namespace that is used for the temporal cluster Ztests.

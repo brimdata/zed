@@ -107,10 +107,16 @@ jobs:
       - run: |
           set -x
           export ZQD_AURORA_USER=cimaster
+          export ZQD_AURORA_PW=$(kubectl get secret aurora --template="{{ index .data \"postgresql-password\" }}" | base64 --decode)
+          export ZQD_AURORA_HOST=$(aws rds describe-db-cluster-endpoints \
+		        --db-cluster-identifier zq-test-aurora \
+		        --output text --query "DBClusterEndpoints[?EndpointType=='WRITER'] | [0].Endpoint")
+          export TEMPORAL_DATABASE=cimaster_temporal
+          export TEMPORAL_VISIBILITY_DATABASE=cimaster_temporal_visibility
           export ZQD_DATA_URI=s3://zq-ci-master/manual-test
           export ZQD_ECR_HOST=${{ secrets.AWS_ECR_HOST }}
           aws eks --region us-east-2 update-kubeconfig --name zq-test
-          kubectl create ns ci-master || :
+          kubectl create ns ci-master || true
           kubectl config set-context --current --namespace=ci-master
           make helm-install-with-aurora-temporal
           kubectl wait --for=condition=Ready --timeout=60s pods/zsrv-redis-master-0
@@ -121,7 +127,7 @@ jobs:
           make install # this installs zapi locally
           source k8s/port-forward-temporal.sh
           make test-cluster
-          env
+          env # TODO: REMOVE
           make test-temporal
       - name: Get zqd logs on success or failure
         if: ${{ always() }}
