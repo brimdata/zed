@@ -108,9 +108,7 @@ jobs:
           set -x
           export ZQD_AURORA_USER=cimaster
           export ZQD_AURORA_PW=$(kubectl get secret aurora --template="{{ index .data \"postgresql-password\" }}" | base64 --decode)
-          export ZQD_AURORA_HOST=$(aws rds describe-db-cluster-endpoints \
-		        --db-cluster-identifier zq-test-aurora \
-		        --output text --query "DBClusterEndpoints[?EndpointType=='WRITER'] | [0].Endpoint")
+          export ZQD_AURORA_HOST=$(aws rds describe-db-cluster-endpoints --db-cluster-identifier zq-test-aurora --output text --query "DBClusterEndpoints[?EndpointType=='WRITER'] | [0].Endpoint")
           export TEMPORAL_DATABASE=cimaster_temporal
           export TEMPORAL_VISIBILITY_DATABASE=cimaster_temporal_visibility
           export ZQD_DATA_URI=s3://zq-ci-master/manual-test
