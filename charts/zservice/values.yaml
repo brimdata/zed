@@ -14,6 +14,7 @@ global:
     passwordSecretName: "postgres"
   recruiterAddr: zsrv-recruiter:9867
   temporal:
+    enabled: false
     addr: zsrv-temporal-frontend:7233
     namespace: "zqd-ztest-persistent"
   useCredSecret: false
@@ -118,7 +119,10 @@ temporal:
   kafka:
     enabled: false
 
+zqd-temporal:
+  enabled: true
+
 tags:
   deploy-postgres: true
   deploy-redis: true
-  deploy-temporal: true
+  deploy-temporal: false

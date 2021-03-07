@@ -213,6 +213,7 @@ helm-install-with-aurora-temporal:
 	--set global.postgres.username=$(ZQD_AURORA_USER) \
 	--set global.postgres.passwordSecretName=aurora \
 	--set tags.deploy-postgres=false \
+	--set tags.deploy-temporal=true \
 	--set temporal.server.config.persistence.default.sql.database=$(TEMPORAL_DATABASE) \
 	--set temporal.server.config.persistence.default.sql.user=$(ZQD_AURORA_USER) \
 	--set temporal.server.config.persistence.default.sql.password=$(ZQD_AURORA_PW) \
@@ -221,6 +222,7 @@ helm-install-with-aurora-temporal:
 	--set temporal.server.config.persistence.visibility.sql.user=$(ZQD_AURORA_USER) \
 	--set temporal.server.config.persistence.visibility.sql.password=$(ZQD_AURORA_PW) \
 	--set temporal.server.config.persistence.visibility.sql.host=$(ZQD_AURORA_HOST)
+
 
 create-release-assets:
 	for os in darwin linux windows; do \
