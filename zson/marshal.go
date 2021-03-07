@@ -546,6 +546,12 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		}
 		return v.Interface().(ZNGUnmarshaler).UnmarshalZNG(u, zv)
 	}
+	if v.CanAddr() {
+		pv := v.Addr()
+		if pv.CanInterface() && pv.Type().Implements(unmarshalerTypeZNG) {
+			return pv.Interface().(ZNGUnmarshaler).UnmarshalZNG(u, zv)
+		}
+	}
 	if _, ok := v.Interface().(nano.Ts); ok {
 		if zv.Type != zng.TypeTime {
 			return incompatTypeError(zv.Type, v)
