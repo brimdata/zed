@@ -259,8 +259,8 @@ SearchExprFunc
   / first:Function rest:(Deref)*  {
       RETURN(makeBinaryExprChain(first, rest))
     }
-  / DerefExpr
   / Literal
+  / DerefExpr
 
 /// === Aggregations ===
 
