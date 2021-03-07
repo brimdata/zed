@@ -3303,9 +3303,9 @@ function peg$parse(input, options) {
           s0 = peg$FAILED;
         }
         if (s0 === peg$FAILED) {
-          s0 = peg$parseDerefExpr();
+          s0 = peg$parseLiteral();
           if (s0 === peg$FAILED) {
-            s0 = peg$parseLiteral();
+            s0 = peg$parseDerefExpr();
           }
         }
       }

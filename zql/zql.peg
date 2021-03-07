@@ -1,50 +1,47 @@
-#define DQUOTE \x22
-#define SQUOTE \x27
-
 #ifdef GO
 {
     package zql
 }
-#define RETURN(x) return x, nil
-#define VAR(x) var x
-#define NULL nil
+#define APPEND(arr, value) arr = append(arr, value)
 #define ARRAY(...) []interface{}{__VA_ARGS__}
 #define ARRAY_LEN(a) len(a.([]interface{}))
-#define FOREACH(arr, var) for _, var := range arr
-#define APPEND(arr, value) arr = append(arr, value)
-#define PREPEND(value, arr) append([]interface{}{value}, (arr.([]interface{}))...)
-#define TEXT string(c.text)
-#define TOSTRING(s) fmt.Sprintf("%v", s)
-#define ISNOTNULL(n) n != nil
 #define ASSERT_ARRAY(a) a.([]interface{})
-#define ASSERT_STRING(s) s.(string)
 #define ASSERT_INT(i) i.(int)
 #define ASSERT_MAP(m) m.(map[string]interface{})
+#define ASSERT_STRING(s) s.(string)
+#define FOREACH(arr, var) for _, var := range arr
 #define HAS(m, k) _, ok := m[k]; ok
+#define ISNOTNULL(n) n != nil
 #define MAP(...) map[string]interface{}{__VA_ARGS__}
+#define NULL nil
+#define PREPEND(value, arr) append([]interface{}{value}, (arr.([]interface{}))...)
 #define PRINT(...) fmt.Println(__VA_ARGS__)
+#define RETURN(x) return x, nil
+#define TEXT string(c.text)
+#define TOSTRING(s) fmt.Sprintf("%v", s)
+#define VAR(x) var x
 #else
 {
 #include "parser-support.js"
 }
-#define RETURN(x) return x
-#define VAR(x) let x
-#define NULL null
+#define APPEND(arr, value) arr.push(value)
 #define ARRAY(...) [__VA_ARGS__]
 #define ARRAY_LEN(a) a.length
-#define FOREACH(arr, var) for(let var of arr)
-#define APPEND(arr, value) arr.push(value)
-#define PREPEND(value, arr) [value, ...arr]
-#define TEXT text()
-#define ASSERT_INT(i) i
-#define TOSTRING(s) s.toString()
-#define ISNOTNULL(n) (n)
 #define ASSERT_ARRAY(a) a
-#define ASSERT_STRING(s) s
+#define ASSERT_INT(i) i
 #define ASSERT_MAP(m) m
+#define ASSERT_STRING(s) s
+#define FOREACH(arr, var) for(let var of arr)
 #define HAS(m, k) (k in m)
+#define ISNOTNULL(n) (n)
 #define MAP(...) {__VA_ARGS__}
+#define NULL null
+#define PREPEND(value, arr) [value, ...arr]
 #define PRINT(...) console.log(__VAR_ARGS__)
+#define RETURN(x) return x
+#define TEXT text()
+#define TOSTRING(s) s.toString()
+#define VAR(x) let x
 #endif
 
 start = __ ast:Z __ EOF { RETURN(ast) }
@@ -131,6 +128,7 @@ Operation
 EndOfOp = __ ("|" / "=>" / ")" / EOF)
 
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(")
+
 AggGuard = (_ (ByToken / "-with") EOT) / (__ ",")
 
 SearchBoolean
@@ -261,8 +259,8 @@ SearchExprFunc
   / first:Function rest:(Deref)*  {
       RETURN(makeBinaryExprChain(first, rest))
     }
-  / DerefExpr
   / Literal
+  / DerefExpr
 
 /// === Aggregations ===
 
@@ -846,12 +844,17 @@ EqualityToken
   = EqualityOperator / RelativeOperator
 
 AndToken = "and"i { RETURN("and") }
+
 OrToken = "or"i { RETURN("or") }
+
 InToken = "in"i { RETURN("in") }
+
 NotToken = "not"i { RETURN("not") }
+
 ByToken = "by"i { RETURN("by") }
 
 IdentifierStart = [A-Za-z_$]
+
 IdentifierRest = IdentifierStart / [0-9]
 
 Identifier
@@ -901,6 +904,7 @@ HoursToken
   / "hour"
 
 DaysToken = "days"/"day"/"d"
+
 WeeksToken = "weeks"/"week"/"wks"/"wk"/"w"
 
 Seconds
@@ -954,6 +958,7 @@ IP6Tail
   / Hex
 
 ColonHex = ":" v:Hex { RETURN(":" + ASSERT_STRING(v)) }
+
 HexColon = v:Hex ":" { RETURN(ASSERT_STRING(v) + ":") }
 
 IP4Net
@@ -1057,6 +1062,7 @@ EscapedChar
   = [\x00-\x1f\\]
 
 _  = AnySpace+
+
 __ = AnySpace*
 
 AnySpace
@@ -1094,5 +1100,7 @@ SingleLineComment
   = "//" (!LineTerminator SourceCharacter)*
 
 EOL = WhiteSpace* LineTerminator
+
 EOT = _ / EOF
+
 EOF = !.
