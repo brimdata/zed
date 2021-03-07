@@ -125,7 +125,6 @@ jobs:
           make install # this installs zapi locally
           source k8s/port-forward-temporal.sh
           make test-cluster
-          env # TODO: REMOVE
           make test-temporal
       - name: Get zqd logs on success or failure
         if: ${{ always() }}
