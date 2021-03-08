@@ -271,8 +271,8 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 			if errors.Is(err, zng.ErrMissing) {
 				// block this input type
 				a.block[id] = struct{}{}
-				return nil
 			}
+			return nil
 		}
 		if i == 0 && a.inputSortDir != 0 {
 			prim = a.updateMaxTableKey(zv)
