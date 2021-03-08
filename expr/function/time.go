@@ -21,8 +21,14 @@ func (i *iso) Call(args []zng.Value) (zng.Value, error) {
 	if zv.Bytes == nil {
 		return zng.Value{zng.TypeTime, nil}, nil
 	}
-	ts, e := time.Parse(time.RFC3339Nano, string(zv.Bytes))
-	if e != nil {
+	// Handles ISO 8601 with time zone of Z or an offset not containing a colon.
+	format := "2006-01-02T15:04:05.999999999Z0700"
+	if l := len(zv.Bytes); l > 2 && zv.Bytes[l-3] == ':' {
+		// Handles ISO 8601 with time zone of Z or an offset containing a colon.
+		format = time.RFC3339Nano
+	}
+	ts, err := time.Parse(format, string(zv.Bytes))
+	if err != nil {
 		return badarg("iso")
 	}
 	return zng.Value{zng.TypeTime, i.Time(nano.Ts(ts.UnixNano()))}, nil
