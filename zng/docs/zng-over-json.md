@@ -16,10 +16,16 @@ The ZNG data format has richly typed records and a deterministic column order.
 Thus, encoding ZNG directly into JSON objects would not work without loss
 of information.
 
-For example, consider this ZNG (in TZNG format):
+For example, consider this ZNG (in [ZSON](zson.md) format):
 ```
-#0:record[ts:time,a:string,b:record[x:int64,y:ip]]
-0:[1521911721.926018012;hello, world;[4611686018427387904;127.0.0.1;]]
+{
+    ts: 2018-03-24T17:15:21.926018012Z,
+    a: "hello, world",
+    b: {
+        x: 4611686018427387904,
+        y: 127.0.0.1
+    }
+}
 ```
 A straightforward translation to JSON might look like this:
 ```
@@ -127,7 +133,7 @@ records, sets, arrays, and unions.
 The ZJSON type encoding for a primitive type is simply its string name,
 e.g., "int32" or "string".  Complex types are structured and their
 mapping onto JSON depends on the type.  For example,
-the ZNG type `record[s:string,x:int32]` has this JSON format:
+the ZNG type `{s:string,x:int32}` has this JSON format:
 ```
 {
   "type": "record",
@@ -280,14 +286,11 @@ Here is an example that illustrates values of a repeated type,
 nesting, records, array, and union:
 
 ```
-#0:record[s:string,r:record[a:int32,b:int32]]
-0:[hello;[1;2;]]
-0:[world;[3;4;]]
-#1:record[s:string,r:record[a:array[int32]]]
-1:[hello;[[1;2;3;]]]
-#2:record[s:string,r:record[x:record[u:union[string,int32]]]]
-2:[goodnight;[[0:foo;]]]
-2:[gracie;[[1:12;]]]
+{s:"hello",r:{a:1 (int32),b:2 (int32)} (=0)} (=1)
+{s:"world",r:{a:3,b:4}} (1)
+{s:"hello",r:{a:[1 (int32),2 (int32),3 (int32)] (=2)} (=3)} (=4)
+{s:"goodnight",r:{x:{u:"foo" (5=((string,int32)))} (=6)} (=7)} (=8)
+{s:"gracie",r:{x:{u:12 (int32)}}} (8)
 ```
 
 This data is represented in ZJSON as follows;

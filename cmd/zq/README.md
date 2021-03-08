@@ -20,13 +20,13 @@ data, which is used in the examples in the
 [query language documentation](../../zql/docs/README.md).
 
 To cut the columns of a Zeek "conn" log like `zeek-cut`, and output to the
- terminal, use `cut`:
+ terminal, use [`cut`](../../zql/docs/processors/README.md#cut):
 
 ```
-zq -t "* | cut ts,id.orig_h,id.orig_p" conn.log
+zq -z "* | cut ts,id.orig_h,id.orig_p" conn.log
 ```
 
-The `-t` tells `zq` to use [TZNG](../../zng/docs/spec.md#4-zng-text-format-tzng)
+The `-z` tells `zq` to use human-readable text [ZSON](../../zng/docs/zson.md)
 for its output format. The "`*`" 
 tells `zq` to match every line, which is sent to the `cut` processor
 using the UNIX-like pipe syntax.
@@ -34,7 +34,7 @@ using the UNIX-like pipe syntax.
 When looking over everything like this, you can omit the search pattern
 as a shorthand.
 ```
-zq -t "cut ts,id.orig_h,id.orig_p" conn.log
+zq -z "cut ts,id.orig_h,id.orig_p" conn.log
 ```
 
 The default output is the binary ZNG format. If you want just the tab-separated
@@ -48,7 +48,7 @@ format:
 ```
 zq -f zeek "cut ts,id.orig_h,id.orig_p" conn.log
 ```
-You can use an aggregate function to summarize data over one or
+You can use an [aggregate function](../../zql/docs/aggregate-functions/README.md) to summarize data over one or
 more fields, e.g., summing field values, counting, or computing an average.
 ```
 zq -t "sum(orig_bytes)" conn.log
@@ -93,11 +93,14 @@ at the [performance](../../performance/README.md) page.
 | Format | Read | Auto-Detect | Write | Description |
 |--------|------|-------------|-------|-------------|
 | zng | yes | yes | yes | [ZNG specification](../../zng/docs/spec.md) |
-| tzng | yes | yes | yes | [TZNG specification](../../zng/docs/spec.md#4-zng-text-format-tzng) |
+| zst | yes | no | yes | [ZST specification](../../zst/README.md) |
+| zson | yes | yes | yes | [ZSON specification](../../zng/docs/zson.md) |
+| tzng | yes | yes | yes | Alternate text-based ZNG format |
 | ndjson | yes | yes | yes | Newline delimited JSON records |
 | zeek  | yes | yes | yes | [Zeek compatible](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs) tab separated values |
 | zjson | yes | yes | yes | [ZNG over JSON](../../zng/docs/zng-over-json.md) |
 | parquet | yes | no | no | [Parquet file format](https://github.com/apache/parquet-format#file-format)
 | table | no | no | yes | table output, with column headers |
 | text | no | no | yes | space separated output |
+| csv | no | no | yes | Comma-separated values |
 | types | no | no | yes | outputs input record types |
