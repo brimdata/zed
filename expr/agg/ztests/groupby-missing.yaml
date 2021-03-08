@@ -1,0 +1,9 @@
+zql: |
+  by a=a[0], b=b.c
+
+input: |
+   {a: "a", b: "b"}
+   {a: [0], b: {c: 1}}
+
+output: |
+  {a:0,b:1}
