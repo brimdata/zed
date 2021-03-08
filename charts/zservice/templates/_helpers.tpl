@@ -82,16 +82,14 @@ Create args that vary based on .Values.personality
 {{- $args = append $args (print "-redis.enabled") }}
 {{- $args = append $args (print "-redis.addr=" .Values.redis.addr) }}
 {{- $args = append $args (print "-redis.passwordFile=/creds/redis/password") }}
-{{- else if eq .Values.personality "worker" }}
-{{- $args = append $args "-worker.host=$(STATUS_POD_IP)" }}
-{{- $args = append $args "-worker.node=$(SPEC_NODE_NAME)" }}
-{{- end }}
-{{- if eq .Values.personality "temporal" }}
 {{- $args = append $args (print "-temporal.addr=" .Values.global.temporal.addr) }}
 {{- $args = append $args (print "-temporal.enabled=true") }}
 {{- $args = append $args (print "-temporal.namespace=" .Values.global.temporal.namespace) }}
 {{- $args = append $args (print "-temporal.spacecompactdelay=0s") }}
 {{- $args = append $args (print "-temporal.spacepurgedelay=0s") }}
+{{- else if eq .Values.personality "worker" }}
+{{- $args = append $args "-worker.host=$(STATUS_POD_IP)" }}
+{{- $args = append $args "-worker.node=$(SPEC_NODE_NAME)" }}
 {{- end }}
 {{- range $args }}
 {{ print "- " (. | quote) }}
