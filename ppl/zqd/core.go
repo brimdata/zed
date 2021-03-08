@@ -159,6 +159,8 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	case "recruiter":
 		c.workerPool = recruiter.NewWorkerPool()
 		c.addRecruiterRoutes()
+	case "temporal":
+		// temporal is a valid personality without additional routes
 	case "worker":
 		c.addWorkerRoutes()
 	default:
