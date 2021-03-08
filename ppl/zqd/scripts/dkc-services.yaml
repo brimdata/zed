@@ -21,6 +21,15 @@ services:
       - POSTGRES_USER=test
       - POSTGRES_PWD=test
       - POSTGRES_SEEDS=database
-    image: temporalio/auto-setup:${TEMPORAL_VERSION:?}
+    image: temporalio/auto-setup:1.6.3
     ports:
       - 7233:7233
+  aws-otel-collector:
+    image: amazon/aws-otel-collector:latest
+    command: ["--log-level=DEBUG"]
+    environment:
+      - AWS_REGION=us-east-2
+    volumes:
+      - ~/.aws:/root/.aws
+    ports:
+      - "55680:55680"

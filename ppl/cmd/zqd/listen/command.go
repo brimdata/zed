@@ -16,6 +16,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/cli/oteldetector"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
 	"github.com/brimsec/zq/pkg/rlimit"
@@ -29,6 +30,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpgrpc"
+	"go.opentelemetry.io/otel/propagation"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/semconv"
@@ -320,17 +322,25 @@ func (c *Command) initOtel(ctx context.Context) (func(), error) {
 		DefaultSampler: sdktrace.AlwaysSample(),
 	}
 	idg := xray.NewIDGenerator()
-	resources := resource.NewWithAttributes(
+	resources, err := resource.Detect(ctx, oteldetector.NewK8sDetector())
+	if err != nil {
+		return nil, err
+	}
+	resources = resource.Merge(resources, resource.NewWithAttributes(
 		semconv.ServiceNameKey.String(c.conf.Personality),
 		semconv.ServiceVersionKey.String(c.conf.Version),
-	)
+	))
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithConfig(cfg),
 		sdktrace.WithSyncer(exp),
 		sdktrace.WithIDGenerator(idg),
 		sdktrace.WithResource(resources),
 	)
-	otel.SetTextMapPropagator(xray.Propagator{})
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+		xray.Propagator{},
+	))
 	otel.SetTracerProvider(tracerProvider)
 	c.logger.Info("Open telemetry exporter started")
 	return func() {

@@ -8,7 +8,6 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/auth"
 	"github.com/brimsec/zq/ppl/zqd/db/schema"
 	"github.com/brimsec/zq/zqe"
-	"github.com/go-pg/pg/extra/pgotel"
 	"github.com/go-pg/pg/v10"
 	"go.uber.org/zap"
 )
@@ -20,10 +19,10 @@ type PostgresDB struct {
 
 func Open(ctx context.Context, logger *zap.Logger, conf Config) (*PostgresDB, error) {
 	db := pg.Connect(&conf.Options)
-	db.AddQueryHook(pgotel.TracingHook{})
 	if err := db.Ping(ctx); err != nil {
 		return nil, err
 	}
+	db.AddQueryHook(NewTracingHook(conf))
 	logger.Info("Connected", zap.String("kind", "postgres"), zap.String("uri", conf.StringRedacted()))
 	return &PostgresDB{db, logger}, nil
 }

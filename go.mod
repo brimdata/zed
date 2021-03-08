@@ -11,10 +11,10 @@ require (
 	github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
 	github.com/fsnotify/fsnotify v1.4.9
-	github.com/go-pg/pg/extra/pgotel v0.2.0
-	github.com/go-pg/pg/v10 v10.7.3
-	github.com/go-redis/redis/extra/redisotel v0.2.0
-	github.com/go-redis/redis/v8 v8.6.0
+	github.com/go-pg/pg/extra/pgotel v0.3.0
+	github.com/go-pg/pg/v10 v10.8.0
+	github.com/go-redis/redis/extra/redisotel v0.3.0
+	github.com/go-redis/redis/v8 v8.7.0
 	github.com/go-resty/resty/v2 v2.2.0
 	github.com/golang-migrate/migrate/v4 v4.14.1
 	github.com/golang/mock v1.4.4
@@ -37,20 +37,20 @@ require (
 	github.com/xitongsys/parquet-go v1.5.3-0.20200514000040-789bba367841
 	github.com/xitongsys/parquet-go-source v0.0.0-20200509081216-8db33acb0acf
 	github.com/yuin/goldmark v1.2.1
-	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.17.0
-	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.17.0
-	go.opentelemetry.io/contrib/propagators/aws v0.17.0
-	go.opentelemetry.io/otel v0.17.0
-	go.opentelemetry.io/otel/exporters/otlp v0.17.0
-	go.opentelemetry.io/otel/sdk v0.17.0
-	go.opentelemetry.io/otel/trace v0.17.0
+	go.opentelemetry.io/contrib/instrumentation/github.com/gorilla/mux/otelmux v0.18.0
+	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.18.0
+	go.opentelemetry.io/contrib/propagators/aws v0.18.0
+	go.opentelemetry.io/otel v0.18.0
+	go.opentelemetry.io/otel/exporters/otlp v0.18.0
+	go.opentelemetry.io/otel/sdk v0.18.0
+	go.opentelemetry.io/otel/trace v0.18.0
 	go.temporal.io/sdk v1.4.1
 	go.temporal.io/server v1.6.3
 	go.uber.org/multierr v1.6.0
 	go.uber.org/zap v1.16.0
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
+	golang.org/x/crypto v0.0.0-20210220033148-5ea612d1eb83
 	golang.org/x/sync v0.0.0-20201207232520-09787c993a3a
-	golang.org/x/sys v0.0.0-20210112080510-489259a85091
+	golang.org/x/sys v0.0.0-20210305034016-7844c3c200c3
 	golang.org/x/text v0.3.4
 	google.golang.org/grpc v1.36.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0

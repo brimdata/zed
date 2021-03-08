@@ -128,7 +128,7 @@ func (rs *RegistrationState) RegisterWithRecruiter() {
 }
 
 func (rs *RegistrationState) pollRecruiter() *api.RegisterResponse {
-	ctx, span := rs.tracer.Start(rs.ctx, "worker-registration")
+	ctx, span := rs.tracer.Start(rs.ctx, "worker registration", trace.WithSpanKind(trace.SpanKindInternal))
 	defer span.End()
 
 	logger := rs.logger

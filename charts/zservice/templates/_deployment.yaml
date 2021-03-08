@@ -94,6 +94,8 @@ spec:
               name: spaces-volume
             - mountPath: /tmp
               name: tmp-volume                   
+            - mountPath: /etc/podinfo
+              name: podinfo
           {{- if eq .Values.personality "root" }}
             - mountPath: /creds/postgres
               name: postgres-creds-volume
@@ -158,4 +160,16 @@ spec:
               - key: redis-password
                 path: password
         {{- end }}
+        - name: podinfo
+          downwardAPI:
+            items:
+              - path: "name"
+                fieldRef:
+                  fieldPath: metadata.name
+              - path: "namespace"
+                fieldRef:
+                  fieldPath: metadata.namespace
+              - path: "uid"
+                fieldRef:
+                  fieldPath: metadata.uid
 {{- end -}}

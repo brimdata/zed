@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"net/url"
 	"strings"
 
@@ -29,6 +30,14 @@ func (c *Config) Init() error {
 		c.Password = string(b)
 	}
 	return nil
+}
+
+func (c *Config) HostPort() (string, string) {
+	host, port, err := net.SplitHostPort(c.Addr)
+	if err != nil {
+		panic(err)
+	}
+	return host, port
 }
 
 func (c *Config) SetFlagsWithPrefix(prefix string, fs *flag.FlagSet) {
