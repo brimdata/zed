@@ -1,0 +1,14 @@
+image:
+  repository: amazon/aws-for-fluent-bit
+  tag: 2.10.0
+  pullPolicy: Always
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name:
+
+aws:
+  region: us-east-2
+  clusterName:
+
