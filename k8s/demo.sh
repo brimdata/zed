@@ -18,8 +18,8 @@ aws s3 rm --recursive s3://brim-scratch/mark/sp-m1 || :
 zapi new -k archivestore -d s3://brim-scratch/mark/sp-m1 -thresh 5MB sp-m1
 zapi -s sp-m1 post s3://brim-scratch/mark/conn.log.gz
 
-zapi -s sp-m1 get -t "count()"
-zapi -s sp-m1 get -t "39161"
+zapi -s sp-m1 get -z zson "count()"
+zapi -s sp-m1 get -z "39161"
 
 make test-cluster
 

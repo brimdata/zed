@@ -1,5 +1,4 @@
 # Setup instructions for Temporal
-
 Temporal is installed as a subchart of our zservice Helm "umbrella" chart.
 
 Our Helm subchart is based on:

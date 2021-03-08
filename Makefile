@@ -212,6 +212,7 @@ helm-install-with-aurora-temporal:
 	--set global.postgres.database=$(ZQD_AURORA_USER) \
 	--set global.postgres.username=$(ZQD_AURORA_USER) \
 	--set global.postgres.passwordSecretName=aurora \
+	--set global.temporal.enabled=true \
 	--set tags.deploy-postgres=false \
 	--set tags.deploy-temporal=true \
 	--set temporal.server.config.persistence.default.sql.database=$(TEMPORAL_DATABASE) \
