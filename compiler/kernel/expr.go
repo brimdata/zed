@@ -352,7 +352,7 @@ func shaperOps(name string) expr.ShaperTransform {
 	case "order":
 		return expr.Order
 	case "shape":
-		return expr.Cast | expr.Crop | expr.Fill | expr.Order
+		return expr.Cast | expr.Fill | expr.Order
 	default:
 		return 0
 	}
