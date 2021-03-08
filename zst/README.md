@@ -475,7 +475,7 @@ gracie
 ===
 ```
 
-To see the detailed zst structure output as ZSON, you can use the `zst`
+To see the detailed zst structure described as ZSON, you can use the `zst`
 command like this:
 ```
 zst inspect -Z -trailer hello.zst
