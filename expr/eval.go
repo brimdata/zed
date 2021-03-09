@@ -616,7 +616,7 @@ func (i *Index) Eval(rec *zng.Record) (zng.Value, error) {
 	case *zng.TypeMap:
 		return indexMap(typ, container.Bytes, index)
 	default:
-		return zng.Value{}, fmt.Errorf("cannot index type \"%s\" with key \"%s\"", typ, index)
+		return zng.Value{}, zng.ErrMissing
 	}
 }
 
