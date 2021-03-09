@@ -116,7 +116,7 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 			if !ok {
 				return nil, pg.sourceErr
 			}
-			sc, err := src.Open(pg.pctx.Context, pg.pctx.TypeContext, pg.filter)
+			sc, err := src.Open(pg.pctx.Context, pg.pctx.Zctx, pg.filter)
 			if err != nil {
 				return nil, err
 			}

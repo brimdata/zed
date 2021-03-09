@@ -13,11 +13,11 @@ import (
 )
 
 func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, node *ast.GroupByProc) (*groupby.Proc, error) {
-	keys, err := compileAssignments(node.Keys, pctx.TypeContext, scope)
+	keys, err := compileAssignments(node.Keys, pctx.Zctx, scope)
 	if err != nil {
 		return nil, err
 	}
-	names, reducers, err := compileAggs(node.Reducers, scope, pctx.TypeContext)
+	names, reducers, err := compileAggs(node.Reducers, scope, pctx.Zctx)
 	if err != nil {
 		return nil, err
 	}

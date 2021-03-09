@@ -31,7 +31,7 @@ func TestCompileParents(t *testing.T) {
 0:[1;]
 `
 	zctx := resolver.NewContext()
-	pctx := &proc.Context{Context: context.Background(), TypeContext: zctx}
+	pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 	var sources []proc.Interface
 	for i := 0; i < 2; i++ {
 		r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
@@ -71,7 +71,7 @@ func TestCompileMergeDone(t *testing.T) {
 0:[4;]
 `
 	zctx := resolver.NewContext()
-	pctx := &proc.Context{Context: context.Background(), TypeContext: zctx}
+	pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 	r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
 	src := &proctest.RecordPuller{R: r}
 	query, err := compiler.ParseProc("split(=>filter * =>head 1) | head 3")

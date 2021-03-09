@@ -164,7 +164,7 @@ func CompileAssignments(dsts []field.Static, srcs []field.Static) ([]field.Stati
 }
 
 func CompileProc(p ast.Proc, pctx *proc.Context, inputs []proc.Interface) (*Runtime, error) {
-	r, err := New(pctx.TypeContext, p)
+	r, err := New(pctx.Zctx, p)
 	if err != nil {
 		return nil, err
 	}

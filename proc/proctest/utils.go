@@ -118,9 +118,9 @@ func NewTestContext(zctx *resolver.Context) *proc.Context {
 		zctx = resolver.NewContext()
 	}
 	return &proc.Context{
-		Context:     context.Background(),
-		TypeContext: zctx,
-		Warnings:    make(chan string, 5),
+		Context:  context.Background(),
+		Warnings: make(chan string, 5),
+		Zctx:     zctx,
 	}
 }
 
