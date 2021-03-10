@@ -484,7 +484,7 @@ which provides the output (comments added with explanations):
 
 ```
 {
-    a: null (string),                // First, the schemas are defined (just one here)
+    a: null (string),                // First, the schemas are defined (just one here).
     b: null (string)
 }
 {
