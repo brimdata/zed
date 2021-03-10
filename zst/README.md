@@ -496,8 +496,8 @@ which provides the output (comments added with explanations):
     ] (=1)
 } (=2)
 {
-    a: {                             // Next comes the column assembly records
-        column: [                    // (again, only one schema in this example, so only one such record)
+    a: {                             // Next comes the column assembly records.
+        column: [                    // (Again, only one schema in this example, so only one such record.)
             {
                 offset: 0,
                 length: 16
