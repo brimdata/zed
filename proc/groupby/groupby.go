@@ -132,7 +132,7 @@ func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggN
 		names = append(names, e.LHS)
 	}
 	names = append(names, aggNames...)
-	builder, err := builder.NewColumnBuilder(pctx.TypeContext, names)
+	builder, err := builder.NewColumnBuilder(pctx.Zctx, names)
 	if err != nil {
 		return nil, err
 	}
@@ -146,7 +146,7 @@ func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggN
 		keyRefs = append(keyRefs, expr.NewDotExpr(e.LHS))
 		keyExprs = append(keyExprs, e.RHS)
 	}
-	agg, err := NewAggregator(pctx.TypeContext, keyRefs, keyExprs, valRefs, aggs, builder, limit, inputSortDir, partialsIn, partialsOut)
+	agg, err := NewAggregator(pctx.Zctx, keyRefs, keyExprs, valRefs, aggs, builder, limit, inputSortDir, partialsIn, partialsOut)
 	if err != nil {
 		return nil, err
 	}

@@ -59,12 +59,12 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		return compileGroupBy(pctx, scope, parent, v)
 
 	case *ast.CutProc:
-		assignments, err := compileAssignments(v.Fields, pctx.TypeContext, scope)
+		assignments, err := compileAssignments(v.Fields, pctx.Zctx, scope)
 		if err != nil {
 			return nil, err
 		}
 		lhs, rhs := splitAssignments(assignments)
-		cutter, err := expr.NewCutter(pctx.TypeContext, lhs, rhs)
+		cutter, err := expr.NewCutter(pctx.Zctx, lhs, rhs)
 		if err != nil {
 			return nil, err
 		}
@@ -72,12 +72,12 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		return proc.FromFunction(pctx, parent, cutter, "cut"), nil
 
 	case *ast.PickProc:
-		assignments, err := compileAssignments(v.Fields, pctx.TypeContext, scope)
+		assignments, err := compileAssignments(v.Fields, pctx.Zctx, scope)
 		if err != nil {
 			return nil, err
 		}
 		lhs, rhs := splitAssignments(assignments)
-		cutter, err := expr.NewCutter(pctx.TypeContext, lhs, rhs)
+		cutter, err := expr.NewCutter(pctx.Zctx, lhs, rhs)
 		if err != nil {
 			return nil, err
 		}
@@ -95,11 +95,11 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 			}
 			fields = append(fields, field.Name)
 		}
-		dropper := expr.NewDropper(pctx.TypeContext, fields)
+		dropper := expr.NewDropper(pctx.Zctx, fields)
 		return proc.FromFunction(pctx, parent, dropper, "drop"), nil
 
 	case *ast.SortProc:
-		fields, err := CompileExprs(pctx.TypeContext, scope, v.Fields)
+		fields, err := CompileExprs(pctx.Zctx, scope, v.Fields)
 		if err != nil {
 			return nil, err
 		}
@@ -130,21 +130,21 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		return pass.New(parent), nil
 
 	case *ast.FilterProc:
-		f, err := CompileFilter(pctx.TypeContext, scope, v.Filter)
+		f, err := CompileFilter(pctx.Zctx, scope, v.Filter)
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
 		return filter.New(parent, f), nil
 
 	case *ast.TopProc:
-		fields, err := CompileExprs(pctx.TypeContext, scope, v.Fields)
+		fields, err := CompileExprs(pctx.Zctx, scope, v.Fields)
 		if err != nil {
 			return nil, fmt.Errorf("compiling top: %w", err)
 		}
 		return top.New(parent, v.Limit, fields, v.Flush), nil
 
 	case *ast.PutProc:
-		clauses, err := compileAssignments(v.Clauses, pctx.TypeContext, scope)
+		clauses, err := compileAssignments(v.Clauses, pctx.Zctx, scope)
 		if err != nil {
 			return nil, err
 		}
@@ -180,7 +180,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 			dsts = append(dsts, dst)
 			srcs = append(srcs, src)
 		}
-		renamer := rename.NewFunction(pctx.TypeContext, srcs, dsts)
+		renamer := rename.NewFunction(pctx.Zctx, srcs, dsts)
 		return proc.FromFunction(pctx, parent, renamer, "rename"), nil
 
 	case *ast.FuseProc:
@@ -295,7 +295,7 @@ func compileSwitch(custom Hook, pp *ast.SwitchProc, pctx *proc.Context, scope *S
 		switcher := switcher.New(parents[0])
 		parents = []proc.Interface{}
 		for _, c := range pp.Cases {
-			f, err := CompileFilter(pctx.TypeContext, scope, c.Filter)
+			f, err := CompileFilter(pctx.Zctx, scope, c.Filter)
 			if err != nil {
 				return nil, fmt.Errorf("compiling switch case filter: %w", err)
 			}
@@ -341,16 +341,16 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, paren
 		if len(parents) != 2 {
 			return nil, ErrJoinParents
 		}
-		assignments, err := compileAssignments(node.Clauses, pctx.TypeContext, scope)
+		assignments, err := compileAssignments(node.Clauses, pctx.Zctx, scope)
 		if err != nil {
 			return nil, err
 		}
 		lhs, rhs := splitAssignments(assignments)
-		leftKey, err := compileExpr(pctx.TypeContext, scope, node.LeftKey)
+		leftKey, err := compileExpr(pctx.Zctx, scope, node.LeftKey)
 		if err != nil {
 			return nil, err
 		}
-		rightKey, err := compileExpr(pctx.TypeContext, scope, node.RightKey)
+		rightKey, err := compileExpr(pctx.Zctx, scope, node.RightKey)
 		if err != nil {
 			return nil, err
 		}

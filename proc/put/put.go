@@ -218,7 +218,7 @@ func (p *Proc) deriveSteps(inType *zng.TypeRecord, vals []zng.Value) (step, *zng
 		if !ok {
 			return step{}, nil, fmt.Errorf("put .=x: cannot put a non-record to .")
 		}
-		typ, err := p.pctx.TypeContext.LookupTypeRecord(recVal.Columns)
+		typ, err := p.pctx.Zctx.LookupTypeRecord(recVal.Columns)
 		return step{op: root, index: 0}, typ, err
 	}
 	return p.deriveRecordSteps(field.NewRoot(), inType.Columns, vals)
@@ -306,7 +306,7 @@ func (p *Proc) deriveRecordSteps(parentPath field.Static, inCols []zng.Column, v
 		}
 	}
 
-	typ, err := p.pctx.TypeContext.LookupTypeRecord(cols)
+	typ, err := p.pctx.Zctx.LookupTypeRecord(cols)
 	return s, typ, err
 }
 
