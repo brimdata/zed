@@ -488,7 +488,7 @@ which provides the output (comments added with explanations):
     b: null (string)
 }
 {
-    root: [                          // Then, the root reassembly record
+    root: [                          // Then, the root reassembly record.
         {
             offset: 29,
             length: 2 (int32)
