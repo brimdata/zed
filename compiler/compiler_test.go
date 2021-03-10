@@ -31,17 +31,14 @@ func TestCompileParents(t *testing.T) {
 0:[1;]
 `
 	zctx := resolver.NewContext()
-	pctx := &proc.Context{Context: context.Background(), TypeContext: zctx}
+	pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 	var sources []proc.Interface
 	for i := 0; i < 2; i++ {
 		r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
 		sources = append(sources, &proctest.RecordPuller{R: r})
 	}
 	t.Run("read two sources", func(t *testing.T) {
-		query, err := compiler.ParseProc("split (=>filter * =>filter *) | filter *")
-		require.NoError(t, err)
-
-		leaves, err := compiler.Compile(nil, query, pctx, sources)
+		leaves, err := compiler.CompileZ("split (=>filter * =>filter *) | filter *", pctx, sources)
 		require.NoError(t, err)
 
 		var sb strings.Builder
@@ -51,19 +48,12 @@ func TestCompileParents(t *testing.T) {
 	})
 
 	t.Run("too few parents", func(t *testing.T) {
-		query, err := compiler.ParseProc("split (=>filter * =>filter * =>filter *) | filter *")
-		require.NoError(t, err)
-
-		query.(*ast.SequentialProc).Procs = query.(*ast.SequentialProc).Procs[1:]
-
-		_, err = compiler.Compile(nil, query, pctx, sources)
+		_, err := compiler.CompileZ("split (=>filter * =>filter * =>filter *) | filter *", pctx, sources)
 		require.Error(t, err)
 	})
 
 	t.Run("too many parents", func(t *testing.T) {
-		query, err := compiler.ParseProc("* | split(=>filter * =>filter *) | filter *")
-		require.NoError(t, err)
-		_, err = compiler.Compile(nil, query, pctx, sources)
+		_, err := compiler.CompileZ("* | split(=>filter * =>filter *) | filter *", pctx, sources)
 		require.Error(t, err)
 	})
 }
@@ -81,7 +71,7 @@ func TestCompileMergeDone(t *testing.T) {
 0:[4;]
 `
 	zctx := resolver.NewContext()
-	pctx := &proc.Context{Context: context.Background(), TypeContext: zctx}
+	pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 	r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
 	src := &proctest.RecordPuller{R: r}
 	query, err := compiler.ParseProc("split(=>filter * =>head 1) | head 3")
@@ -94,10 +84,10 @@ func TestCompileMergeDone(t *testing.T) {
 
 	// Force the parallel proc to create a merge proc instead of combine.
 	p.MergeOrderField = field.New("k")
-	leaves, err := compiler.Compile(nil, query, pctx, []proc.Interface{src})
+	runtime, err := compiler.CompileProc(query, pctx, []proc.Interface{src})
 	require.NoError(t, err)
 
 	var sb strings.Builder
-	err = zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), leaves[0])
+	err = zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), runtime.Outputs()[0])
 	require.NoError(t, err)
 }

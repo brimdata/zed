@@ -42,7 +42,7 @@ func (d *PostgresDB) GetSpace(ctx context.Context, id api.SpaceID) (schema.Space
 	var space schema.SpaceRow
 	_, err := d.db.QueryOneContext(ctx, &space, "SELECT * FROM space WHERE id = ?", id)
 	if errors.Is(err, pg.ErrNoRows) {
-		err = zqe.ErrNotFound("subspace parent not found")
+		err = zqe.ErrNotFound("space not found")
 	}
 	return space, err
 }
@@ -68,5 +68,47 @@ func (d *PostgresDB) DeleteSpace(ctx context.Context, id api.SpaceID) error {
 	if IsForeignKeyViolation(err) {
 		return zqe.ErrConflict("cannot delete space with subspaces")
 	}
+	return err
+}
+
+func (d *PostgresDB) CreateIntake(ctx context.Context, row schema.IntakeRow) error {
+	if row.ID == "" {
+		return zqe.ErrInvalid("row must have an id")
+	}
+	_, err := d.db.ModelContext(ctx, &row).Insert()
+	if IsUniqueViolation(err) {
+		return zqe.ErrConflict("intake with name '%s' already exists", row.Name)
+	}
+	return err
+}
+
+func (d *PostgresDB) GetIntake(ctx context.Context, id api.IntakeID) (schema.IntakeRow, error) {
+	var intake schema.IntakeRow
+	_, err := d.db.QueryOneContext(ctx, &intake, "SELECT * FROM intake WHERE id = ?", id)
+	if errors.Is(err, pg.ErrNoRows) {
+		err = zqe.ErrNotFound("intake not found")
+	}
+	return intake, err
+}
+
+func (d *PostgresDB) ListIntakes(ctx context.Context, tenantID auth.TenantID) ([]schema.IntakeRow, error) {
+	var intakes []schema.IntakeRow
+	_, err := d.db.QueryContext(ctx, &intakes, "SELECT * FROM intake WHERE tenant_id = ?", tenantID)
+	return intakes, err
+}
+
+func (d *PostgresDB) UpdateIntake(ctx context.Context, row schema.IntakeRow) error {
+	if row.ID == "" {
+		return zqe.ErrInvalid("row must have an id")
+	}
+	_, err := d.db.ModelContext(ctx, &row).Update()
+	if IsUniqueViolation(err) {
+		return zqe.ErrConflict("intake with name '%s' already exists", row.Name)
+	}
+	return err
+}
+
+func (d *PostgresDB) DeleteIntake(ctx context.Context, id api.IntakeID) error {
+	_, err := d.db.ExecOneContext(ctx, "DELETE FROM intake WHERE id = ?", id)
 	return err
 }

@@ -132,7 +132,7 @@ func (c *Command) Run(args []string) error {
 		c.logger.Info("Signal received", zap.Stringer("signal", sig))
 		cancel()
 	}()
-	srv := httpd.New(c.listenAddr, core.HTTPHandler())
+	srv := httpd.New(c.listenAddr, core)
 	srv.SetLogger(c.logger.Named("httpd"))
 	if err := srv.Start(ctx); err != nil {
 		return err

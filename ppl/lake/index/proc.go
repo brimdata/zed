@@ -72,7 +72,7 @@ func (f *FieldCutter) Pull() (zbuf.Batch, error) {
 			}
 			if f.builder == nil {
 				cols := []zng.Column{{f.out.Leaf(), val.Type}}
-				rectyp := f.pctx.TypeContext.MustLookupTypeRecord(cols)
+				rectyp := f.pctx.Zctx.MustLookupTypeRecord(cols)
 				f.builder = zng.NewBuilder(rectyp)
 			}
 			recs = append(recs, f.builder.Build(val.Bytes).Keep())
@@ -88,13 +88,6 @@ func (f *FieldCutter) Done() {
 	f.parent.Done()
 }
 
-type fieldCutterNode struct {
-	field field.Static
-	out   field.Static
-}
-
-func (t *fieldCutterNode) ProcNode() {}
-
 // A TypeSplitter is a custom proc that, given an input record and a
 // zng type T, outputs one record for each field of the input record of
 // type T. It is used for type-based indexing.
@@ -108,7 +101,7 @@ type TypeSplitter struct {
 // output records' single column is named colName.
 func NewTypeSplitter(pctx *proc.Context, parent proc.Interface, typ zng.Type, colName string) (proc.Interface, error) {
 	cols := []zng.Column{{colName, typ}}
-	rectyp := pctx.TypeContext.MustLookupTypeRecord(cols)
+	rectyp := pctx.Zctx.MustLookupTypeRecord(cols)
 	builder := zng.NewBuilder(rectyp)
 
 	return &TypeSplitter{
@@ -145,23 +138,16 @@ func (t *TypeSplitter) Done() {
 	t.parent.Done()
 }
 
-type typeSplitterNode struct {
-	key      field.Static
-	typeName string
-}
-
-func (t *typeSplitterNode) ProcNode() {}
-
 func compile(node ast.Proc, pctx *proc.Context, parent proc.Interface) (proc.Interface, error) {
 	switch v := node.(type) {
-	case *fieldCutterNode:
-		return NewFieldCutter(pctx, parent, v.field, v.out)
-	case *typeSplitterNode:
-		typ, err := pctx.TypeContext.LookupByName(v.typeName)
+	case *ast.FieldCutter:
+		return NewFieldCutter(pctx, parent, v.Field, v.Out)
+	case *ast.TypeSplitter:
+		typ, err := pctx.Zctx.LookupByName(v.TypeName)
 		if err != nil {
 			return nil, err
 		}
-		return NewTypeSplitter(pctx, parent, typ, v.key.String())
+		return NewTypeSplitter(pctx, parent, typ, v.Key.String())
 	}
 	return nil, nil
 }

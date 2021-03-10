@@ -91,6 +91,22 @@ tcp
 udp
 ```
 
+If you work a lot at the UNIX/Linux shell, you might have sought to accomplish
+the same via a familiar, verbose idiom. This works in ZQL, but the `by`
+shorthand is preferable.
+
+```zq-command
+zq -f table 'cut proto | sort | uniq' conn.log.gz # Not advised - "by" is more succinct
+```
+
+#### Output:
+```zq-output
+PROTO
+icmp
+tcp
+udp
+```
+
 #### Example #2:
 
 By specifying multiple comma-separated field names, one batch is formed for each
@@ -181,8 +197,8 @@ zq -f table 'count() by host,query | sort -r' http.log.gz dns.log.gz
 
 This is due to the `query` field not being present in any of the `http` records
 and the `host` field not being present in any of the `dns` records. This can
-be observed by looking at the TZNG representation of the type definitions for
-each record type.
+be observed by looking at the [ZSON](../../../zng/docs/zson.md)
+representation of the type definitions for each record type.
 
 ```zq-command
 zq -f zson 'count() by _path,typeof(.) | sort _path' http.log.gz dns.log.gz

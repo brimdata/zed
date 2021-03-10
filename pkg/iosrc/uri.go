@@ -1,8 +1,8 @@
 package iosrc
 
 import (
-	"errors"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/brimsec/zq/zng"
@@ -17,6 +17,13 @@ const (
 	Stderr = "stdio:///stderr"
 )
 
+// uriRegexp is the regular expression used to determine if a path is treated
+// as a URI. A path's prefix must be in the form of scheme://path. This deviates
+// from the RFC for a URI's generic syntax which allows for scheme:path. There
+// may be a valid relative file path that matches scheme:path. For our purposes
+// we want to err on the side of reading a path as a file.
+var uriRegexp = regexp.MustCompile("^[a-zA-Z][a-zA-Z0-9+-.]*://")
+
 // ParseURI parses the path using `url.Parse`. If the provided uri does not
 // contain a scheme, the scheme will set to file. Relative paths will be
 // treated as files and resolved as absolute paths using filepath.Abs.
@@ -28,14 +35,14 @@ func ParseURI(path string) (URI, error) {
 	if u, ok := stdio(path); ok {
 		return u, nil
 	}
-	if u, ok, err := parseBarePath(path); err != nil || ok {
-		return u, err
+	if uriRegexp.MatchString(path) {
+		u, err := url.Parse(path)
+		if err != nil {
+			return URI{}, err
+		}
+		return URI(*u), nil
 	}
-	u, err := url.Parse(path)
-	if err != nil {
-		return URI{}, err
-	}
-	return URI(*u), nil
+	return parseBarePath(path)
 }
 
 func MustParseURI(path string) URI {
@@ -97,32 +104,4 @@ func (u *URI) UnmarshalText(b []byte) error {
 
 func (u URI) MarshalZNG(mc *zson.MarshalZNGContext) (zng.Type, error) {
 	return mc.MarshalValue(u.String())
-}
-
-// Maybe rawurl is of the form scheme:path.
-// (Scheme must be [a-zA-Z][a-zA-Z0-9+-.]*)
-// If so, return scheme, path; else return "", rawurl.
-// Adapted from url package: https://golang.org/src/net/url/url.go?s=27728:27773#L973
-func getscheme(rawurl string) (scheme string, err error) {
-	for i := 0; i < len(rawurl); i++ {
-		c := rawurl[i]
-		switch {
-		case 'a' <= c && c <= 'z' || 'A' <= c && c <= 'Z':
-		// do nothing
-		case '0' <= c && c <= '9' || c == '+' || c == '-' || c == '.':
-			if i == 0 {
-				return "", nil
-			}
-		case c == ':':
-			if i == 0 {
-				return "", errors.New("missing protocol scheme")
-			}
-			return rawurl[:i], nil
-		default:
-			// we have encountered an invalid character,
-			// so there is no valid scheme
-			return "", nil
-		}
-	}
-	return "", nil
 }

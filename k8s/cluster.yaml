@@ -32,6 +32,8 @@ managedNodeGroups:
         - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
         # S3 access policies needed for zqd
         - arn:aws:iam::aws:policy/AmazonS3FullAccess
+        # CloudWatch access policies needed for eks logging agent
+        - arn:aws:iam::aws:policy/CloudWatchAgentServerPolicy
       withAddonPolicies:
         autoScaler: true
 

@@ -61,13 +61,13 @@ func (c *LsCommand) Run(args []string) error {
 	for _, m := range matches {
 		names = append(names, m.Name)
 	}
-	return cmd.WriteOutput(c.Context(), c.outputFlags, newNameReader(names))
+	return cmd.WriteOutput(c.Context(), c.outputFlags, cmd.NewNameReader(names))
 }
 
 type spaceReader struct {
 	idx    int
-	spaces []api.Space
 	mc     *zson.MarshalZNGContext
+	spaces []api.Space
 }
 
 func newSpaceReader(spaces []api.Space) *spaceReader {
@@ -82,33 +82,6 @@ func (r *spaceReader) Read() (*zng.Record, error) {
 		return nil, nil
 	}
 	rec, err := r.mc.MarshalRecord(r.spaces[r.idx])
-	if err != nil {
-		return nil, err
-	}
-	r.idx++
-	return rec, nil
-}
-
-type nameReader struct {
-	idx   int
-	names []string
-	mc    *zson.MarshalZNGContext
-}
-
-func newNameReader(names []string) *nameReader {
-	return &nameReader{
-		names: names,
-		mc:    resolver.NewMarshaler(),
-	}
-}
-
-func (r *nameReader) Read() (*zng.Record, error) {
-	if r.idx >= len(r.names) {
-		return nil, nil
-	}
-	rec, err := r.mc.MarshalRecord(struct {
-		Name string `zng:"name"`
-	}{r.names[r.idx]})
 	if err != nil {
 		return nil, err
 	}

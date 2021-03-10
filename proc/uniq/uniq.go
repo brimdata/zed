@@ -34,7 +34,7 @@ func (p *Proc) wrap(t *zng.Record) *zng.Record {
 		// use a non-underscore field name by default, such as "count".
 		cols := []zng.Column{zng.NewColumn("_uniq", zng.TypeUint64)}
 		vals := []zng.Value{zng.NewUint64(p.count)}
-		newR, err := p.pctx.TypeContext.AddColumns(t, cols, vals)
+		newR, err := p.pctx.Zctx.AddColumns(t, cols, vals)
 		if err != nil {
 			p.pctx.Logger.Error("AddColumns failed", zap.Error(err))
 			return t

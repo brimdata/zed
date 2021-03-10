@@ -918,7 +918,7 @@ func newCoreWithConfig(t *testing.T, conf zqd.Config) (*zqd.Core, *client.Connec
 	}
 	core, err := zqd.NewCore(context.Background(), conf)
 	require.NoError(t, err)
-	srv := httptest.NewServer(core.HTTPHandler())
+	srv := httptest.NewServer(core)
 	t.Cleanup(srv.Close)
 	return core, client.NewConnectionTo(srv.URL)
 }
@@ -934,4 +934,119 @@ func promCounterValue(g prometheus.Gatherer, name string) interface{} {
 		}
 	}
 	return errors.New("metric not found")
+}
+
+func TestIntake(t *testing.T) {
+	t.Run("create", func(t *testing.T) {
+		_, conn := newCoreAtDir(t, createTempDir(t))
+		ctx := context.Background()
+
+		intakes, err := conn.IntakeList(ctx)
+		require.NoError(t, err)
+		require.Empty(t, intakes)
+
+		// Should be able to create an intake without a shaper or target space
+		intake1, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+			Name: "intake1",
+		})
+		require.NoError(t, err)
+
+		res, err := conn.IntakeInfo(ctx, intake1.ID)
+		require.NoError(t, err)
+		require.Equal(t, "intake1", res.Name)
+		require.Empty(t, res.Shaper)
+		require.Empty(t, res.TargetSpaceID)
+
+		intakes, err = conn.IntakeList(ctx)
+		require.NoError(t, err)
+		require.Len(t, intakes, 1)
+		require.Equal(t, intake1.ID, intakes[0].ID)
+
+		err = conn.IntakeDelete(ctx, intake1.ID)
+		require.NoError(t, err)
+	})
+
+	t.Run("postNoShaper", func(t *testing.T) {
+		_, conn := newCoreAtDir(t, createTempDir(t))
+		ctx := context.Background()
+
+		sp1, err := conn.SpacePost(ctx, api.SpacePostRequest{
+			Name: "sp1",
+		})
+		require.NoError(t, err)
+
+		in1, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+			Name:          "in1",
+			TargetSpaceID: sp1.ID,
+		})
+		require.NoError(t, err)
+		require.Equal(t, "in1", in1.Name)
+		require.Equal(t, sp1.ID, in1.TargetSpaceID)
+
+		src := `
+#0:record[ts:time,a:string,b:string]
+0:[2;hello;world;]
+0:[1;goodnight;gracie;]
+`
+		err = conn.IntakePostData(ctx, in1.ID, strings.NewReader(src))
+		require.NoError(t, err)
+
+		require.Equal(t, test.Trim(src), searchTzng(t, conn, sp1.ID, "*"))
+	})
+
+	t.Run("postWithShaper", func(t *testing.T) {
+		_, conn := newCoreAtDir(t, createTempDir(t))
+		ctx := context.Background()
+
+		sp1, err := conn.SpacePost(ctx, api.SpacePostRequest{
+			Name: "sp1",
+		})
+		require.NoError(t, err)
+
+		in1, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+			Name:          "in1",
+			TargetSpaceID: sp1.ID,
+			Shaper:        "hello",
+		})
+		require.NoError(t, err)
+		require.Equal(t, "in1", in1.Name)
+		require.Equal(t, sp1.ID, in1.TargetSpaceID)
+
+		src := `
+#0:record[ts:time,a:string,b:string]
+0:[2;hello;world;]
+0:[1;goodnight;gracie;]
+`
+		err = conn.IntakePostData(ctx, in1.ID, strings.NewReader(src))
+		require.NoError(t, err)
+
+		exp := `
+#0:record[ts:time,a:string,b:string]
+0:[2;hello;world;]
+`
+		require.Equal(t, test.Trim(exp), searchTzng(t, conn, sp1.ID, "*"))
+	})
+
+	t.Run("invalidShaper", func(t *testing.T) {
+		_, conn := newCoreAtDir(t, createTempDir(t))
+		ctx := context.Background()
+
+		_, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+			Name:   "in1",
+			Shaper: "\"",
+		})
+		require.Error(t, err)
+		require.Regexp(t, "invalid shaper", err.Error())
+
+		in1, err := conn.IntakeCreate(ctx, api.IntakePostRequest{
+			Name: "in1",
+		})
+		require.NoError(t, err)
+
+		_, err = conn.IntakeUpdate(ctx, in1.ID, api.IntakePostRequest{
+			Shaper: "\"",
+		})
+		require.Error(t, err)
+		require.Regexp(t, "invalid shaper", err.Error())
+	})
 }

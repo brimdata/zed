@@ -63,10 +63,11 @@ func CompileTestProc(code string, pctx *proc.Context, parent proc.Interface) (pr
 }
 
 func CompileTestProcAST(node ast.Proc, pctx *proc.Context, parent proc.Interface) (proc.Interface, error) {
-	procs, err := compiler.Compile(nil, node, pctx, []proc.Interface{parent})
+	runtime, err := compiler.CompileProc(node, pctx, []proc.Interface{parent})
 	if err != nil {
 		return nil, err
 	}
+	procs := runtime.Outputs()
 	if len(procs) != 1 {
 		return nil, errors.New("expected 1 proc")
 	}
@@ -117,9 +118,9 @@ func NewTestContext(zctx *resolver.Context) *proc.Context {
 		zctx = resolver.NewContext()
 	}
 	return &proc.Context{
-		Context:     context.Background(),
-		TypeContext: zctx,
-		Warnings:    make(chan string, 5),
+		Context:  context.Background(),
+		Warnings: make(chan string, 5),
+		Zctx:     zctx,
 	}
 }
 

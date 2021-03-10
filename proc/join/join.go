@@ -30,7 +30,7 @@ type Proc struct {
 }
 
 func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, rightKey expr.Evaluator, lhs []field.Static, rhs []expr.Evaluator) (*Proc, error) {
-	cutter, err := expr.NewCutter(pctx.TypeContext, lhs, rhs)
+	cutter, err := expr.NewCutter(pctx.Zctx, lhs, rhs)
 	if err != nil {
 		return nil, err
 	}
@@ -219,7 +219,7 @@ func (p *Proc) buildType(left, right *zng.TypeRecord) (*zng.TypeRecord, error) {
 		}
 		cols = append(cols, zng.Column{name, c.Type})
 	}
-	return p.pctx.TypeContext.LookupTypeRecord(cols)
+	return p.pctx.Zctx.LookupTypeRecord(cols)
 }
 
 func (p *Proc) combinedType(left, right *zng.TypeRecord) (*zng.TypeRecord, error) {

@@ -1,0 +1,26 @@
+script: |
+  source services.sh
+  zapi="zapi -h $ZQD_HOST"
+  $zapi new sp1
+  $zapi intake new -target sp1 -shaper foo -f zng in1 | zq -z "pick name,shaper" -
+  echo ===
+  $zapi intake post in1 ./in.zson
+  $zapi -s sp1 get -z
+
+inputs:
+  - name: services.sh
+    source: ../services.sh
+  - name: in.zson
+    data: |
+      {name:"a"}
+      {name:"b"}
+      {name:"foo"}
+      {name:"c"}
+
+outputs:
+  - name: stdout
+    data: |
+      sp1: space created
+      {name:"in1",shaper:"foo"}
+      ===
+      {name:"foo"}
