@@ -15,6 +15,7 @@ import (
 type FinderReader struct {
 	compare expr.KeyCompareFn
 	finder  *Finder
+	inputs  []string
 	reader  zbuf.Reader
 }
 
@@ -23,27 +24,30 @@ func NewFinderReader(ctx context.Context, zctx *resolver.Context, uri iosrc.URI,
 	if err != nil {
 		return nil, err
 	}
-	keys, err := finder.ParseKeys(inputs...)
+	return &FinderReader{finder: finder, inputs: inputs}, nil
+}
+
+func (f *FinderReader) init() error {
+	keys, err := f.finder.ParseKeys(f.inputs...)
 	if err != nil {
-		finder.Close()
-		return nil, err
+		return err
 	}
-	compare, err := expr.NewKeyCompareFn(keys)
+	f.compare, err = expr.NewKeyCompareFn(keys)
 	if err != nil {
-		finder.Close()
-		return nil, err
+		return err
 	}
-	reader, err := finder.search(compare)
-	if err != nil {
-		finder.Close()
-		return nil, err
-	}
-	return &FinderReader{compare: compare, finder: finder, reader: reader}, nil
+	f.reader, err = f.finder.search(f.compare)
+	return err
 }
 
 func (f *FinderReader) Read() (*zng.Record, error) {
 	if f.finder.IsEmpty() {
 		return nil, nil
+	}
+	if f.compare == nil {
+		if err := f.init(); err != nil {
+			return nil, err
+		}
 	}
 	return lookup(f.reader, f.compare, f.finder.trailer.Order, eql)
 }
