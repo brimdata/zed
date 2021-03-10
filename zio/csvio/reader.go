@@ -4,9 +4,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
-	"math"
 	"strconv"
-	"strings"
 
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zson"
@@ -31,10 +29,12 @@ type Reader struct {
 //	StringsOnly bool
 //}
 
-func NewReader(reader io.Reader, zctx *zson.Context) *Reader {
+func NewReader(r io.Reader, zctx *zson.Context) *Reader {
+	reader := csv.NewReader(r)
+	reader.ReuseRecord = true
 	return &Reader{
 		zctx:      zctx,
-		reader:    csv.NewReader(reader),
+		reader:    reader,
 		marshaler: zson.NewZNGMarshaler(),
 		//strings:   opts.StringsOnly,
 	}
@@ -67,7 +67,11 @@ func (r *Reader) Read() (*zng.Record, error) {
 }
 
 func (r *Reader) init(hdr []string) {
-	r.hdr = hdr
+	h := make([]string, 0, len(hdr))
+	for _, s := range hdr {
+		h = append(h, s)
+	}
+	r.hdr = h
 	r.vals = make([]interface{}, len(hdr))
 }
 
@@ -89,14 +93,7 @@ func (r *Reader) translate(fields []string) (*zng.Record, error) {
 }
 
 func convertString(s string) interface{} {
-	switch strings.ToLower(s) {
-	case "+inf", "inf":
-		return math.MaxFloat64
-	case "-inf":
-		return -math.MaxFloat64
-	case "nan":
-		return math.NaN()
-	case "":
+	if s == "" {
 		return nil
 	}
 	if v, err := strconv.ParseFloat(s, 64); err == nil {
