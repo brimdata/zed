@@ -26,7 +26,7 @@ To cut the columns of a Zeek "conn" log like `zeek-cut`, and output to the
 zq -z "* | cut ts,id.orig_h,id.orig_p" conn.log
 ```
 
-The `-z` tells `zq` to use human-readable text [ZSON](../../zng/docs/zson.md)
+The `-z` tells `zq` to use human-readable [ZSON](../../zng/docs/zson.md)
 for its output format. The "`*`" 
 tells `zq` to match every line, which is sent to the `cut` processor
 using the UNIX-like pipe syntax.
