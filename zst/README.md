@@ -516,7 +516,7 @@ which provides the output (comments added with explanations):
     } (3)
 } (=4)
 {
-    magic: "zst",                    // Finally, the trailer as a new zng stream
+    magic: "zst",                    // Finally, the trailer as a new zng stream.
     version: 1 (int32),
     skew_thresh: 26214400 (int32),
     segment_thresh: 5242880 (int32),
