@@ -449,8 +449,7 @@ using the same selector value within the union value.
 
 ### Hello, world
 
-Start with this zng data (printed in human-readable [ZSON](../zng/docs/zson.md)
-text format):
+Start with this zng data (shown as human-readable [ZSON](../zng/docs/zson.md)):
 ```
 {a:"hello",b:"world"}
 {a:"goodnight",b:"gracie"}
