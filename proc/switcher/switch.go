@@ -117,6 +117,7 @@ func (s *Switcher) send(results []proc.Result) {
 			results[i].Batch.Ref()
 			ch <- results[i]
 			s.requests[i] = nil
+			results[i].Batch = nil
 		}
 	}
 }
