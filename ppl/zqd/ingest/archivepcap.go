@@ -17,7 +17,6 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zng/resolver"
 	"golang.org/x/sync/errgroup"
 )
@@ -137,8 +136,7 @@ func (p *archivePcapOp) runAnalyzers(ctx context.Context, group *errgroup.Group,
 			return nil, err
 		}
 		pipes = append(pipes, pw)
-		// Suricata logs need flowgraph to rename timestamp fields into ts.
-		tr, err := driver.NewReader(ctx, suricataTransform, p.zctx, dr)
+		tr, err := driver.NewReader(ctx, suricataShaper, p.zctx, dr)
 		if err != nil {
 			return nil, err
 		}
@@ -171,9 +169,7 @@ func (p *archivePcapOp) runAnalyzer(ctx context.Context, group *errgroup.Group, 
 	if err != nil {
 		return nil, nil, err
 	}
-	dr, err := newLogTailer(p.zctx, logdir, zio.ReaderOpts{
-		JSON: ndjsonio.ReaderOpts{TypeConfig: suricataTC, Warnings: p.warn},
-	})
+	dr, err := newLogTailer(p.zctx, logdir, zio.ReaderOpts{})
 	if err != nil {
 		return nil, nil, err
 	}
