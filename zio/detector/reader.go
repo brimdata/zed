@@ -84,6 +84,14 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	}
 	track.Reset()
 
+	// XXX This is a placeholder until we add a flag to the csv reader
+	// for "strict" mode.  See issue #2316.
+	//csvErr := match(csvio.NewReader(track, zson.NewContext()), "csv")
+	//if csvErr == nil {
+	//	return csvio.NewReader(recorder, zctx.Context), nil
+	//}
+	//track.Reset()
+
 	parquetErr := errors.New("parquet: auto-detection not supported")
 	zstErr := errors.New("zst: auto-detection not supported")
 	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zsonErr, zngErr, parquetErr, zstErr})
