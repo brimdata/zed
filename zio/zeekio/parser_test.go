@@ -236,10 +236,15 @@ func TestLegacyZeekInvalid(t *testing.T) {
 	assertError(t, err, "bad types/fields definition", "mismatched #fields/#types headers")
 	*/
 
-	// Test that the wrong number of values is an error
+	// Test that too many values is an error
 	parser = startTest(t, append(standardHeaders, fh, th))
 	_, err = sendLegacyValues(parser, append(values, "extra"))
 	assertError(t, err, "too many values", "wrong number of values")
+
+	// Test that too few values is an error
+	parser = startTest(t, append(standardHeaders, fh, th))
+	_, err = sendLegacyValues(parser, values[:len(values)-2])
+	assertError(t, err, "too few values", "wrong number of values")
 
 	// XXX check invalid types?
 }

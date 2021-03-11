@@ -41,8 +41,10 @@ func (b *builder) build(typ *zng.TypeRecord, sourceFields []int, path []byte, da
 		}
 	}
 	b.fields = append(b.fields, data[start:])
-	if len(b.fields) > len(sourceFields) {
+	if actual, expected := len(b.fields), len(sourceFields); actual > expected {
 		return nil, errors.New("too many values")
+	} else if actual < expected {
+		return nil, errors.New("too few values")
 	}
 	b.reorderedFields = b.reorderedFields[:0]
 	for _, s := range sourceFields {
