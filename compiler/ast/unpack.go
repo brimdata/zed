@@ -29,7 +29,7 @@ var unpacker = unpack.New(
 	JoinProc{},
 	Literal{},
 	Map{},
-	NullifyProc{},
+	ShapeProc{},
 	ParallelProc{},
 	PassProc{},
 	PickProc{},

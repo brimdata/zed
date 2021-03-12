@@ -1,4 +1,4 @@
-zql: nullify
+zql: shape
 
 input: |
   #0:record[a:float64,b:null,c:float64]

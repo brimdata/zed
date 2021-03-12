@@ -1,4 +1,4 @@
-package nullify
+package shape
 
 import (
 	"sync"
@@ -15,17 +15,17 @@ type Proc struct {
 	pctx   *proc.Context
 	parent proc.Interface
 
-	nullifier *Nullifier
-	once      sync.Once
-	resultCh  chan proc.Result
+	shaper   *Shaper
+	once     sync.Once
+	resultCh chan proc.Result
 }
 
 func New(pctx *proc.Context, parent proc.Interface) (*Proc, error) {
 	return &Proc{
-		pctx:      pctx,
-		parent:    parent,
-		nullifier: NewNullifier(pctx.Zctx, MemMaxBytes),
-		resultCh:  make(chan proc.Result),
+		pctx:     pctx,
+		parent:   parent,
+		shaper:   NewShaper(pctx.Zctx, MemMaxBytes),
+		resultCh: make(chan proc.Result),
 	}, nil
 }
 
@@ -68,7 +68,7 @@ func (p *Proc) writeBatch(batch zbuf.Batch) error {
 	l := batch.Length()
 	for i := 0; i < l; i++ {
 		rec := batch.Index(i)
-		if err := p.nullifier.Write(rec); err != nil {
+		if err := p.shaper.Write(rec); err != nil {
 			return err
 		}
 	}
@@ -96,7 +96,7 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) {
 }
 
 func (p *Proc) shutdown(err error) {
-	if err2 := p.nullifier.Close(); err == nil {
+	if err2 := p.shaper.Close(); err == nil {
 		err = err2
 	}
 	p.sendResult(nil, err)
@@ -110,7 +110,7 @@ func (p *Proc) Done() {
 func (p *Proc) nextBatch() (zbuf.Batch, error) {
 	var out []*zng.Record
 	for len(out) < BatchSize {
-		rec, err := p.nullifier.Read()
+		rec, err := p.shaper.Read()
 		if err != nil {
 			return nil, err
 		}

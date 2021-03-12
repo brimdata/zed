@@ -313,7 +313,7 @@ type (
 		Type Type   `json:"type"`
 	}
 
-	NullifyProc struct {
+	ShapeProc struct {
 		Op string `json:"op" unpack:""`
 	}
 )
@@ -389,7 +389,7 @@ func (*JoinProc) ProcNode()       {}
 func (*ConstProc) ProcNode()      {}
 func (*TypeProc) ProcNode()       {}
 func (*FunctionCall) ProcNode()   {}
-func (*NullifyProc) ProcNode()    {}
+func (*ShapeProc) ProcNode()      {}
 
 // A Reducer is an AST node that represents a reducer function.  The Operator
 // field indicates the aggregation method while the Expr field indicates

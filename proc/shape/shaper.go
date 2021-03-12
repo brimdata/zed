@@ -1,4 +1,4 @@
-package nullify
+package shape
 
 import (
 	"errors"
@@ -10,7 +10,7 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-type Nullifier struct {
+type Shaper struct {
 	zctx        *resolver.Context
 	memMaxBytes int
 
@@ -121,8 +121,8 @@ func (a *anchor) needRecode() []zng.Column {
 	return nil
 }
 
-func NewNullifier(zctx *resolver.Context, memMaxBytes int) *Nullifier {
-	return &Nullifier{
+func NewShaper(zctx *resolver.Context, memMaxBytes int) *Shaper {
+	return &Shaper{
 		zctx:        zctx,
 		memMaxBytes: memMaxBytes,
 		anchors:     make(map[uint64]*anchor),
@@ -132,9 +132,9 @@ func NewNullifier(zctx *resolver.Context, memMaxBytes int) *Nullifier {
 }
 
 // Close removes the receiver's temporary file if it created one.
-func (n *Nullifier) Close() error {
-	if n.spiller != nil {
-		return n.spiller.CloseAndRemove()
+func (s *Shaper) Close() error {
+	if s.spiller != nil {
+		return s.spiller.CloseAndRemove()
 	}
 	return nil
 }
@@ -147,9 +147,9 @@ func hash(h *maphash.Hash, cols []zng.Column) uint64 {
 	return h.Sum64()
 }
 
-func (n *Nullifier) lookupAnchor(columns []zng.Column) *anchor {
-	h := hash(&n.hash, columns)
-	for a := n.anchors[h]; a != nil; a = a.next {
+func (s *Shaper) lookupAnchor(columns []zng.Column) *anchor {
+	h := hash(&s.hash, columns)
+	for a := s.anchors[h]; a != nil; a = a.next {
 		if a.match(columns) {
 			return a
 		}
@@ -157,11 +157,11 @@ func (n *Nullifier) lookupAnchor(columns []zng.Column) *anchor {
 	return nil
 }
 
-func (n *Nullifier) newAnchor(columns []zng.Column) *anchor {
-	h := hash(&n.hash, columns)
+func (s *Shaper) newAnchor(columns []zng.Column) *anchor {
+	h := hash(&s.hash, columns)
 	a := &anchor{columns: columns}
-	a.next = n.anchors[h]
-	n.anchors[h] = a
+	a.next = s.anchors[h]
+	s.anchors[h] = a
 	a.integers = make([]integer, len(columns))
 	for k := range columns {
 		// start off as int64 and invalidate when we see
@@ -172,47 +172,47 @@ func (n *Nullifier) newAnchor(columns []zng.Column) *anchor {
 	return a
 }
 
-func (n *Nullifier) update(rec *zng.Record) {
-	if a, ok := n.typeAnchor[rec.Type]; ok {
+func (s *Shaper) update(rec *zng.Record) {
+	if a, ok := s.typeAnchor[rec.Type]; ok {
 		a.updateInts(rec)
 		return
 	}
-	a := n.lookupAnchor(rec.Type.Columns)
+	a := s.lookupAnchor(rec.Type.Columns)
 	if a == nil {
-		a = n.newAnchor(rec.Type.Columns)
+		a = s.newAnchor(rec.Type.Columns)
 	} else {
 		a.mixIn(rec.Type.Columns)
 	}
 	a.updateInts(rec)
-	n.typeAnchor[rec.Type] = a
+	s.typeAnchor[rec.Type] = a
 }
 
-func (n *Nullifier) needRecode(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
-	target, ok := n.recode[typ]
+func (s *Shaper) needRecode(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
+	target, ok := s.recode[typ]
 	if !ok {
-		a := n.typeAnchor[typ]
+		a := s.typeAnchor[typ]
 		cols := a.needRecode()
 		if cols != nil {
 			var err error
-			target, err = n.zctx.LookupTypeRecord(cols)
+			target, err = s.zctx.LookupTypeRecord(cols)
 			if err != nil {
 				return nil, err
 			}
 		}
-		n.recode[typ] = target
+		s.recode[typ] = target
 	}
 	return target, nil
 }
 
-func (n *Nullifier) lookupType(in *zng.TypeRecord) (*zng.TypeRecord, error) {
-	a, ok := n.typeAnchor[in]
+func (s *Shaper) lookupType(in *zng.TypeRecord) (*zng.TypeRecord, error) {
+	a, ok := s.typeAnchor[in]
 	if !ok {
-		return nil, errors.New("nullifier: unencountered type (this is a bug)")
+		return nil, errors.New("Shaper: unencountered type (this is a bug)")
 	}
 	typ := a.typ
 	if typ == nil {
 		var err error
-		typ, err = n.zctx.LookupTypeRecord(a.columns)
+		typ, err = s.zctx.LookupTypeRecord(a.columns)
 		if err != nil {
 			return nil, err
 		}
@@ -222,49 +222,49 @@ func (n *Nullifier) lookupType(in *zng.TypeRecord) (*zng.TypeRecord, error) {
 }
 
 // Write buffers rec. If called after Read, Write panics.
-func (n *Nullifier) Write(rec *zng.Record) error {
-	if n.spiller != nil {
-		return n.spiller.Write(rec)
+func (s *Shaper) Write(rec *zng.Record) error {
+	if s.spiller != nil {
+		return s.spiller.Write(rec)
 	}
-	if err := n.stash(rec); err != nil {
+	if err := s.stash(rec); err != nil {
 		return err
 	}
-	n.update(rec)
+	s.update(rec)
 	return nil
 }
 
-func (n *Nullifier) stash(rec *zng.Record) error {
-	n.nbytes += len(rec.Raw)
-	if n.nbytes >= n.memMaxBytes {
+func (s *Shaper) stash(rec *zng.Record) error {
+	s.nbytes += len(rec.Raw)
+	if s.nbytes >= s.memMaxBytes {
 		var err error
-		n.spiller, err = spill.NewTempFile()
+		s.spiller, err = spill.NewTempFile()
 		if err != nil {
 			return err
 		}
-		for _, rec := range n.recs {
-			if err := n.spiller.Write(rec); err != nil {
+		for _, rec := range s.recs {
+			if err := s.spiller.Write(rec); err != nil {
 				return err
 			}
 		}
-		n.recs = nil
-		return n.spiller.Write(rec)
+		s.recs = nil
+		return s.spiller.Write(rec)
 	}
 	rec = rec.Keep()
-	n.recs = append(n.recs, rec)
+	s.recs = append(s.recs, rec)
 	return nil
 }
 
-func (n *Nullifier) Read() (*zng.Record, error) {
-	rec, err := n.next()
+func (s *Shaper) Read() (*zng.Record, error) {
+	rec, err := s.next()
 	if rec == nil || err != nil {
 		return nil, err
 	}
-	typ, err := n.lookupType(rec.Type)
+	typ, err := s.lookupType(rec.Type)
 	if err != nil {
 		return nil, err
 	}
 	bytes := rec.Raw
-	targetType, err := n.needRecode(rec.Type)
+	targetType, err := s.needRecode(rec.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -288,7 +288,7 @@ func recode(from, to []zng.Column, bytes zcode.Bytes) (zcode.Bytes, error) {
 		toType := to[k].Type
 		if fromCol.Type != toType && b != nil {
 			if fromCol.Type != zng.TypeFloat64 {
-				return nil, errors.New("nullify: can't recode from non float64")
+				return nil, errors.New("shape: can't recode from non float64")
 			}
 			f, _ := zng.DecodeFloat64(b)
 			if toType == zng.TypeInt64 {
@@ -304,14 +304,14 @@ func recode(from, to []zng.Column, bytes zcode.Bytes) (zcode.Bytes, error) {
 	return out, nil
 }
 
-func (n *Nullifier) next() (*zng.Record, error) {
-	if n.spiller != nil {
-		return n.spiller.Read()
+func (s *Shaper) next() (*zng.Record, error) {
+	if s.spiller != nil {
+		return s.spiller.Read()
 	}
 	var rec *zng.Record
-	if len(n.recs) > 0 {
-		rec = n.recs[0]
-		n.recs = n.recs[1:]
+	if len(s.recs) > 0 {
+		rec = s.recs[0]
+		s.recs = s.recs[1:]
 	}
 	return rec, nil
 

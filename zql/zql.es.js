@@ -624,10 +624,10 @@ function peg$parse(input, options) {
       peg$c165 = function() {
             return {"op": "FuseProc"}
           },
-      peg$c166 = "nullify",
-      peg$c167 = peg$literalExpectation("nullify", true),
+      peg$c166 = "shape",
+      peg$c167 = peg$literalExpectation("shape", true),
       peg$c168 = function() {
-            return {"op": "NullifyProc"}
+            return {"op": "ShapeProc"}
           },
       peg$c169 = "join",
       peg$c170 = peg$literalExpectation("join", true),
@@ -4053,7 +4053,7 @@ function peg$parse(input, options) {
                         if (s0 === peg$FAILED) {
                           s0 = peg$parseFuseProc();
                           if (s0 === peg$FAILED) {
-                            s0 = peg$parseNullifyProc();
+                            s0 = peg$parseShapeProc();
                             if (s0 === peg$FAILED) {
                               s0 = peg$parseJoinProc();
                               if (s0 === peg$FAILED) {
@@ -4864,13 +4864,13 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseNullifyProc() {
+  function peg$parseShapeProc() {
     var s0, s1;
 
     s0 = peg$currPos;
-    if (input.substr(peg$currPos, 7).toLowerCase() === peg$c166) {
-      s1 = input.substr(peg$currPos, 7);
-      peg$currPos += 7;
+    if (input.substr(peg$currPos, 5).toLowerCase() === peg$c166) {
+      s1 = input.substr(peg$currPos, 5);
+      peg$currPos += 5;
     } else {
       s1 = peg$FAILED;
       if (peg$silentFails === 0) { peg$fail(peg$c167); }

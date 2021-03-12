@@ -347,7 +347,7 @@ Operator
   / PutProc
   / RenameProc
   / FuseProc
-  / NullifyProc
+  / ShapeProc
   / JoinProc
   / TasteProc
 
@@ -447,9 +447,9 @@ FuseProc
       RETURN(MAP("op": "FuseProc"))
     }
 
-NullifyProc
-  = "nullify"i {
-      RETURN(MAP("op": "NullifyProc"))
+ShapeProc
+  = "shape"i {
+      RETURN(MAP("op": "ShapeProc"))
     }
 
 JoinProc

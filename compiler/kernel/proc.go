@@ -14,10 +14,10 @@ import (
 	"github.com/brimsec/zq/proc/head"
 	"github.com/brimsec/zq/proc/join"
 	"github.com/brimsec/zq/proc/merge"
-	"github.com/brimsec/zq/proc/nullify"
 	"github.com/brimsec/zq/proc/pass"
 	"github.com/brimsec/zq/proc/put"
 	"github.com/brimsec/zq/proc/rename"
+	"github.com/brimsec/zq/proc/shape"
 	"github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/proc/split"
 	"github.com/brimsec/zq/proc/switcher"
@@ -190,8 +190,8 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 	case *ast.FunctionCall:
 		return nil, errors.New("internal error: semantic analyzer should have converted function in proc context to filter or group-by")
 
-	case *ast.NullifyProc:
-		return nullify.New(pctx, parent)
+	case *ast.ShapeProc:
+		return shape.New(pctx, parent)
 
 	case *ast.JoinProc:
 		return nil, ErrJoinParents
