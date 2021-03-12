@@ -22,7 +22,7 @@ To install `zq` or any other tool from this repo, you can either clone the repo
  [release](https://github.com/brimsec/zq/releases), available for Windows, macOS, and Linux.
 
 If you don't have Go installed, download and install it from the
-[Go downloads page](https://golang.org/dl/). Go version 1.15 or later is
+[Go downloads page](https://golang.org/dl/). Go version 1.16 or later is
 required.
 
 To install the binaries in `$GOPATH/bin`, clone this repo and
