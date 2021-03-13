@@ -347,6 +347,7 @@ Operator
   / PutProc
   / RenameProc
   / FuseProc
+  / ShapeProc
   / JoinProc
   / TasteProc
 
@@ -444,6 +445,11 @@ RenameProc
 FuseProc
   = "fuse"i !(__ "(") {
       RETURN(MAP("op": "FuseProc"))
+    }
+
+ShapeProc
+  = "shape"i {
+      RETURN(MAP("op": "ShapeProc"))
     }
 
 JoinProc

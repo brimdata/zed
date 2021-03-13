@@ -1,0 +1,20 @@
+zql: shape
+
+input: |
+  #0:record[a:float64,b:null,c:float64]
+  0:[10;-;-;]
+  0:[11;-;-;]
+  0:[-;-;-;]
+  #1:record[a:null,b:float64,c:float64]
+  1:[-;11;11.2;]
+  1:[-;12;1;]
+  #2:record[a:null,b:null,c:null]
+  2:[-;-;-;]
+
+output: |
+  {a:10,b:null (int64),c:null (float64)}
+  {a:11,b:null (int64),c:null (float64)}
+  {a:null (int64),b:null (int64),c:null (float64)}
+  {a:null (int64),b:11,c:1.12e+01}
+  {a:null (int64),b:12,c:1.}
+  {a:null (int64),b:null (int64),c:null (float64)}

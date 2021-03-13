@@ -128,6 +128,8 @@ func semProc(scope *Scope, p ast.Proc) (ast.Proc, error) {
 			return nil, err
 		}
 		return semProc(scope, converted)
+	case *ast.ShapeProc:
+		return p, nil
 	case *ast.CutProc:
 		assignments, err := semAssignments(scope, p.Fields)
 		if err != nil {
