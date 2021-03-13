@@ -3,8 +3,11 @@ package expr
 import (
 	"math"
 	"net"
+	"strconv"
+	"time"
 
 	"github.com/brimsec/zq/expr/coerce"
+	"github.com/brimsec/zq/expr/function"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 )
@@ -103,7 +106,23 @@ func castToIP(zv zng.Value) (zng.Value, error) {
 }
 
 func castToDuration(zv zng.Value) (zng.Value, error) {
-	if zng.IsFloat(zv.Type.ID()) {
+	id := zv.Type.ID()
+	if zng.IsStringy(id) {
+		s := string(zv.Bytes)
+		d, err := time.ParseDuration(s)
+		var ns int64
+		if err == nil {
+			ns = int64(d)
+		} else {
+			f, ferr := strconv.ParseFloat(s, 64)
+			if ferr != nil {
+				return zng.NewError(err), nil
+			}
+			ns = int64(f * 1e9)
+		}
+		return zng.Value{zng.TypeDuration, zng.EncodeDuration(ns)}, nil
+	}
+	if zng.IsFloat(id) {
 		f, _ := zng.DecodeFloat64(zv.Bytes)
 		ts := int64(nano.FloatToTs(f))
 		// XXX GC
@@ -113,21 +132,15 @@ func castToDuration(zv zng.Value) (zng.Value, error) {
 	if !ok {
 		return zng.Value{}, ErrBadCast
 	}
-	return zng.Value{zng.TypeDuration, zng.EncodeDuration(ns)}, nil
+	return zng.Value{zng.TypeDuration, zng.EncodeDuration(1_000_000_000 * ns)}, nil
 }
 
 func castToTime(zv zng.Value) (zng.Value, error) {
-	if zng.IsFloat(zv.Type.ID()) {
-		f, _ := zng.DecodeFloat64(zv.Bytes)
-		ts := nano.FloatToTs(f)
-		// XXX GC
-		return zng.Value{zng.TypeTime, zng.EncodeTime(ts)}, nil
+	ts, err := function.CastToTime(zv)
+	if err != nil {
+		return zng.NewError(err), nil
 	}
-	ns, ok := coerce.ToInt(zv)
-	if !ok {
-		return zng.Value{}, ErrBadCast
-	}
-	return zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(ns))}, nil
+	return zng.Value{zng.TypeTime, zng.EncodeTime(ts)}, nil
 }
 
 func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {

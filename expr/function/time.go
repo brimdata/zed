@@ -1,6 +1,8 @@
 package function
 
 import (
+	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/brimsec/zq/expr/coerce"
@@ -14,90 +16,49 @@ type iso struct {
 }
 
 func (i *iso) Call(args []zng.Value) (zng.Value, error) {
-	zv := args[0]
-	if !zv.IsStringy() {
-		return badarg("iso")
-	}
-	if zv.Bytes == nil {
-		return zng.Value{zng.TypeTime, nil}, nil
-	}
-	// Handles ISO 8601 with time zone of Z or an offset not containing a colon.
-	format := "2006-01-02T15:04:05.999999999Z0700"
-	if l := len(zv.Bytes); l > 2 && zv.Bytes[l-3] == ':' {
-		// Handles ISO 8601 with time zone of Z or an offset containing a colon.
-		format = time.RFC3339Nano
-	}
-	ts, err := time.Parse(format, string(zv.Bytes))
+	ts, err := CastToTime(args[0])
 	if err != nil {
-		return badarg("iso")
+		return zng.NewError(err), nil
 	}
-	return zng.Value{zng.TypeTime, i.Time(nano.Ts(ts.UnixNano()))}, nil
+	return zng.Value{zng.TypeTime, i.Time(ts)}, nil
 }
 
-type sec struct {
-	result.Buffer
-}
-
-func (s *sec) Call(args []zng.Value) (zng.Value, error) {
-	zv := args[0]
+func CastToTime(zv zng.Value) (nano.Ts, error) {
 	if zv.Bytes == nil {
-		return zng.Value{zng.TypeInt64, nil}, nil
+		// Any nil value is cast to a zero time...
+		return 0, nil
 	}
-	ns, ok := coerce.ToInt(zv)
-	if !ok {
+	id := zv.Type.ID()
+	if zng.IsStringy(id) {
+		// Handles ISO 8601 with time zone of Z or an offset not containing a colon.
+		format := "2006-01-02T15:04:05.999999999Z0700"
+		if l := len(zv.Bytes); l > 2 && zv.Bytes[l-3] == ':' {
+			// Handles ISO 8601 with time zone of Z or an offset containing a colon.
+			format = time.RFC3339Nano
+		}
+		s := string(zv.Bytes)
+		ts, err := time.Parse(format, s)
+		if err != nil {
+			sec, ferr := strconv.ParseFloat(s, 64)
+			if ferr != nil {
+				return 0, err
+			}
+			return nano.Ts(1e9 * sec), nil
+		}
+		return nano.Ts(ts.UnixNano()), nil
+	}
+	var ns int64
+	if zng.IsInteger(id) {
+		ns, _ = coerce.ToInt(zv)
+		ns *= 1_000_000_000
+	} else if zng.IsFloat(id) {
 		sec, ok := coerce.ToFloat(zv)
 		if !ok {
-			return badarg("sec")
+			return 0, fmt.Errorf("cannot convert value of type %s to time", zv.Type)
 		}
-		ns = int64(1e9 * sec)
-	} else {
-		ns *= 1_000_000_000
+		ns = int64(sec * 1e9)
 	}
-	return zng.Value{zng.TypeInt64, s.Int(ns)}, nil
-}
-
-type msec struct {
-	result.Buffer
-}
-
-func (m *msec) Call(args []zng.Value) (zng.Value, error) {
-	zv := args[0]
-	if zv.Bytes == nil {
-		return zng.Value{zng.TypeInt64, nil}, nil
-	}
-	ns, ok := coerce.ToInt(zv)
-	if !ok {
-		ms, ok := coerce.ToFloat(zv)
-		if !ok {
-			return badarg("msec")
-		}
-		ns = int64(1e6 * ms)
-	} else {
-		ns *= 1_000_000
-	}
-	return zng.Value{zng.TypeInt64, m.Int(ns)}, nil
-}
-
-type usec struct {
-	result.Buffer
-}
-
-func (u *usec) Call(args []zng.Value) (zng.Value, error) {
-	zv := args[0]
-	if zv.Bytes == nil {
-		return zng.Value{zng.TypeInt64, nil}, nil
-	}
-	ns, ok := coerce.ToInt(zv)
-	if !ok {
-		us, ok := coerce.ToFloat(zv)
-		if !ok {
-			return badarg("usec")
-		}
-		ns = int64(1000. * us)
-	} else {
-		ns *= 1000
-	}
-	return zng.Value{zng.TypeInt64, u.Int(ns)}, nil
+	return nano.Ts(ns), nil
 }
 
 type trunc struct {
