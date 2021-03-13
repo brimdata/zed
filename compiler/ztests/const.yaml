@@ -4,9 +4,8 @@ input: |
   {a:1}
   {a:2}
 
-output-flags: -f tzng
+output-flags: -z
 
 output: |
-  #0:record[a:int64,x:type]
-  0:[1;{a:string};]
-  0:[2;{a:string};]
+  {a:1,x:({a:string})}
+  {a:2,x:({a:string})}
