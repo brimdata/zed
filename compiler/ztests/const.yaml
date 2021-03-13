@@ -4,8 +4,6 @@ input: |
   {a:1}
   {a:2}
 
-output-flags: -z
-
 output: |
   {a:1,x:({a:string})}
   {a:2,x:({a:string})}
