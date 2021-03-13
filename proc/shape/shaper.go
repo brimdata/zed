@@ -46,10 +46,9 @@ func (a *anchor) match(cols []zng.Column) bool {
 	}
 	for k, c := range a.columns {
 		in := cols[k]
-		if c.Type == in.Type || nulltype(c.Type) || nulltype(in.Type) {
-			continue
+		if c.Type != in.Type && !nulltype(c.Type) && !nulltype(in.Type) {
+			return false
 		}
-		return false
 	}
 	return true
 }
@@ -64,12 +63,13 @@ func (a *anchor) mixIn(cols []zng.Column) {
 
 func (i *integer) check(zv zng.Value) {
 	id := zv.Type.ID()
-	if zng.IsInteger(id) || nulltype(zv.Type) {
+	if zng.IsInteger(id) || id == zng.IdNull {
 		return
 	}
 	if !zng.IsFloat(id) {
 		i.signed = false
 		i.unsigned = false
+		return
 	}
 	f, _ := zng.DecodeFloat64(zv.Bytes)
 	//XXX We could track signed vs unsigned and overflow,
@@ -86,12 +86,12 @@ func (i *integer) check(zv zng.Value) {
 
 func (a *anchor) updateInts(rec *zng.Record) error {
 	it := rec.Raw.Iter()
-	for k := range a.columns {
+	for k, c := range rec.Type.Columns {
 		bytes, _, err := it.Next()
 		if err != nil {
 			return err
 		}
-		zv := zng.Value{rec.Type.Columns[k].Type, bytes}
+		zv := zng.Value{c.Type, bytes}
 		a.integers[k].check(zv)
 	}
 	return nil
@@ -100,8 +100,7 @@ func (a *anchor) updateInts(rec *zng.Record) error {
 func (a *anchor) recodeType() []zng.Column {
 	var cols []zng.Column
 	for k, c := range a.typ.Columns {
-		i := a.integers[k]
-		if i.signed {
+		if i := a.integers[k]; i.signed {
 			c.Type = zng.TypeInt64
 		} else if i.unsigned {
 			c.Type = zng.TypeUint64
@@ -112,8 +111,7 @@ func (a *anchor) recodeType() []zng.Column {
 }
 
 func (a *anchor) needRecode() []zng.Column {
-	for k := range a.typ.Columns {
-		i := a.integers[k]
+	for _, i := range a.integers {
 		if i.signed || i.unsigned {
 			return a.recodeType()
 		}
@@ -159,11 +157,13 @@ func (s *Shaper) lookupAnchor(columns []zng.Column) *anchor {
 
 func (s *Shaper) newAnchor(columns []zng.Column) *anchor {
 	h := hash(&s.hash, columns)
-	a := &anchor{columns: columns}
-	a.next = s.anchors[h]
+	a := &anchor{
+		columns:  columns,
+		integers: make([]integer, len(columns)),
+		next:     s.anchors[h],
+	}
 	s.anchors[h] = a
-	a.integers = make([]integer, len(columns))
-	for k := range columns {
+	for k := range a.integers {
 		// start off as int64 and invalidate when we see
 		// a value that doesn't fit.
 		a.integers[k].unsigned = true

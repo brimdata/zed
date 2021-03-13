@@ -38,11 +38,11 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 }
 
 func (p *Proc) run() {
-	if err := p.pullInput(); err != nil {
-		p.shutdown(err)
-		return
+	err := p.pullInput()
+	if err == nil {
+		err = p.pushOutput()
 	}
-	p.shutdown(p.pushOutput())
+	p.shutdown(err)
 }
 
 func (p *Proc) pullInput() error {
@@ -51,11 +51,8 @@ func (p *Proc) pullInput() error {
 			return err
 		}
 		batch, err := p.parent.Pull()
-		if err != nil {
+		if err != nil || batch == nil {
 			return err
-		}
-		if batch == nil {
-			return nil
 		}
 		if err := p.writeBatch(batch); err != nil {
 			return err
