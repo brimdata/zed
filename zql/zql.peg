@@ -92,30 +92,30 @@ Parallel
 ParallelTail
   = __ "=>" __ ch:Sequential { RETURN(ch) }
 
-
 SwitchBranch
-  = filter:SearchBoolean __ "=>" __ proc:Sequential {
-    RETURN(MAP("filter": filter, "proc": proc))
-  }
+  = __ CaseToken _ filter:SearchBoolean __ "=>" __ proc:Sequential {
+      RETURN(MAP("filter": filter, "proc": proc))
+    }
+  / __ DefaultToken __ "=>" __ proc:Sequential {
+      RETURN(MAP("filter": MAP("op": "Literal", "type": "bool", "value": "true"), "proc": proc))
+    }
 
 Switch
-  = first:SwitchBranch rest:SwitchTail+ {
+  = first:SwitchBranch rest:SwitchBranch+ {
       RETURN(PREPEND(first, rest))
     }
   / first:SwitchBranch {
       RETURN(ARRAY(first))
     }
 
-SwitchTail
-  = __ CaseToken __ ch:SwitchBranch { RETURN(ch) }
-
-CaseToken = "case"
+CaseToken = "case"i
+DefaultToken = "default"i
 
 Operation
   = "split" __ "(" __ "=>" __ procArray:Parallel __ ")" {
       RETURN(MAP("op": "ParallelProc", "procs": procArray))
     }
-  / "switch" __ "(" __ CaseToken __ caseArray:Switch __ ")" {
+  / "switch" __ "(" __ caseArray:Switch __ ")" {
       RETURN(MAP("op": "SwitchProc", "cases": caseArray))
     }
   / Operator
@@ -221,6 +221,7 @@ SearchGuard
   / InToken
   / ByToken
   / CaseToken
+  / DefaultToken
   / "type("
 
 /// === Search-embedded Expression Context ===
