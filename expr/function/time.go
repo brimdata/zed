@@ -2,11 +2,11 @@ package function
 
 import (
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/expr/result"
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 )
@@ -25,7 +25,7 @@ func (i *iso) Call(args []zng.Value) (zng.Value, error) {
 
 func CastToTime(zv zng.Value) (nano.Ts, error) {
 	if zv.Bytes == nil {
-		// Any nil value is cast to a zero time...
+		// Any nil value is cast to a zero time.
 		return 0, nil
 	}
 	id := zv.Type.ID()
@@ -36,10 +36,9 @@ func CastToTime(zv zng.Value) (nano.Ts, error) {
 			// Handles ISO 8601 with time zone of Z or an offset containing a colon.
 			format = time.RFC3339Nano
 		}
-		s := string(zv.Bytes)
-		ts, err := time.Parse(format, s)
+		ts, err := time.Parse(format, byteconv.UnsafeString(zv.Bytes))
 		if err != nil {
-			sec, ferr := strconv.ParseFloat(s, 64)
+			sec, ferr := byteconv.ParseFloat64(zv.Bytes)
 			if ferr != nil {
 				return 0, err
 			}
@@ -47,18 +46,17 @@ func CastToTime(zv zng.Value) (nano.Ts, error) {
 		}
 		return nano.Ts(ts.UnixNano()), nil
 	}
-	var ns int64
 	if zng.IsInteger(id) {
-		ns, _ = coerce.ToInt(zv)
-		ns *= 1_000_000_000
-	} else if zng.IsFloat(id) {
-		sec, ok := coerce.ToFloat(zv)
-		if !ok {
-			return 0, fmt.Errorf("cannot convert value of type %s to time", zv.Type)
+		if sec, ok := coerce.ToInt(zv); ok {
+			return nano.Ts(sec * 1_000_000_000), nil
 		}
-		ns = int64(sec * 1e9)
 	}
-	return nano.Ts(ns), nil
+	if zng.IsFloat(id) {
+		if sec, ok := coerce.ToFloat(zv); ok {
+			return nano.Ts(sec * 1e9), nil
+		}
+	}
+	return 0, fmt.Errorf("cannot convert value of type %s to time", zv.Type)
 }
 
 type trunc struct {

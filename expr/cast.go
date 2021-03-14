@@ -3,11 +3,11 @@ package expr
 import (
 	"math"
 	"net"
-	"strconv"
 	"time"
 
 	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/expr/function"
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 )
@@ -108,13 +108,12 @@ func castToIP(zv zng.Value) (zng.Value, error) {
 func castToDuration(zv zng.Value) (zng.Value, error) {
 	id := zv.Type.ID()
 	if zng.IsStringy(id) {
-		s := string(zv.Bytes)
-		d, err := time.ParseDuration(s)
+		d, err := time.ParseDuration(byteconv.UnsafeString(zv.Bytes))
 		var ns int64
 		if err == nil {
 			ns = int64(d)
 		} else {
-			f, ferr := strconv.ParseFloat(s, 64)
+			f, ferr := byteconv.ParseFloat64(zv.Bytes)
 			if ferr != nil {
 				return zng.NewError(err), nil
 			}

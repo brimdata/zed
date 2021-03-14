@@ -649,7 +649,6 @@ func TestCasts(t *testing.T) {
 	// Test casts to time
 	ts := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1589126400_000_000_000))}
 	testSuccessful(t, "1589126400.0 :time", "", ts)
-	ts = zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1589126400_000_000_000))}
 	testSuccessful(t, "1589126400 :time", "", ts)
 	testSuccessful(t, `"1589126400" :time`, "", ts)
 
