@@ -1,14 +1,10 @@
 zql: 'a+b>=2'
 
 input: |
-  #0:record[a:int32,b:int32]
-  0:[1;2;]
-  0:[-1;2;]
-  0:[1;1;]
-
-output-flags: -f tzng
+  {a:1 (int32),b:2 (int32)} (=0)
+  {a:-1,b:2} (0)
+  {a:1,b:1} (0)
 
 output: |
-  #0:record[a:int32,b:int32]
-  0:[1;2;]
-  0:[1;1;]
+  {a:1 (int32),b:2 (int32)} (=0)
+  {a:1,b:1} (0)
