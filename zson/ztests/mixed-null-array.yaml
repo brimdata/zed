@@ -1,5 +1,5 @@
 script: |
-  zq -f tzng -i zson -pretty=0 in.zson
+  zq -z in.zson
 
 inputs:
   - name: in.zson
@@ -12,10 +12,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[version:array[int64]]
-      0:[[1;-;]]
-      0:[[-;2;]]
-      #1:record[version:array[null]]
-      1:[[-;-;]]
-      #2:record[version:array[union[null,string,int64]]]
-      2:[[-;1:foo;2:3;]]
+      {version:[1,null (int64)]}
+      {version:[null (int64),2]}
+      {version:[null (null),null (null)] (=0)} (=1)
+      {version:[null (2=((null,string,int64))),"foo" (2),3 (2)] (=3)} (=4)

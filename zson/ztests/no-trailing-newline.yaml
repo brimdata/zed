@@ -1,5 +1,5 @@
 script: |
-  zq -f tzng -i zson "count()" in.zson
+  zq -z "count()" in.zson
 
 inputs:
   - name: in.zson
@@ -14,5 +14,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[count:uint64]
-      0:[2;]
+      {count:2 (uint64)} (=0)
