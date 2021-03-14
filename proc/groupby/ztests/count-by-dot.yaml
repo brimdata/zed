@@ -1,20 +1,14 @@
 zql: 'count() by . | sort .'
 
 input: |
-  #0:record[x:int32,s:string]
-  0:[1;foo;]
-  0:[2;Bar;]
-  #1:record[y:int64]
-  1:[5;]
-  1:[5;]
-  1:[7;]
-
-output-flags: -f tzng
+  {x:1 (int32),s:"foo"} (=0)
+  {x:2,s:"Bar"} (0)
+  {y:5}
+  {y:5}
+  {y:7}
 
 output: |
-  #0:record[[.]:record[x:int32,s:string],count:uint64]
-  0:[[1;foo;]1;]
-  0:[[2;Bar;]1;]
-  #1:record[[.]:record[y:int64],count:uint64]
-  1:[[5;]2;]
-  1:[[7;]1;]
+  {".":{x:1 (int32),s:"foo"} (=0),count:1 (uint64)} (=1)
+  {".":{x:2,s:"Bar"},count:1} (1)
+  {".":{y:5},count:2 (uint64)} (=2)
+  {".":{y:7},count:1} (2)

@@ -1,7 +1,6 @@
 zql: 'put .=a'
 
 input: |
-  #0:record[a:int32]
-  0:[1;]
+  {a:1 (int32)} (=0)
   
 errorRE: cannot put a non-record to \.

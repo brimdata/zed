@@ -1,14 +1,12 @@
 # 13B is enough to buffer the first record in memory but not the second.
 script: |
-  zq -f tzng -fusemem 13B fuse in.tzng
+  zq -z -fusemem 13B fuse in.zson
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[a:string,b:string]
-      0:[hello;world;]
-      #1:record[b:string,c:string]
-      1:[goodnight;gracie;]
+      {a:"hello",b:"world"}
+      {b:"goodnight",c:"gracie"}
 
 outputs:
   - name: stderr
@@ -16,6 +14,5 @@ outputs:
 
   - name: stdout
     data: |
-      #0:record[a:string,b:string,c:string]
-      0:[hello;world;-;]
-      0:[-;goodnight;gracie;]
+      {a:"hello",b:"world",c:null (string)}
+      {a:null (string),b:"goodnight",c:"gracie"}

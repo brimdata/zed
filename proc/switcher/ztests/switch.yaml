@@ -7,17 +7,12 @@ zql: |
      ) | sort a
 
 input: |
-  #0:record[a:int32,s:string]
-  0:[1;a;]
-  0:[2;B;]
-  0:[3;c;]
-  0:[4;c;]
-
-output-flags: -f tzng
+  {a:1 (int32),s:"a"} (=0)
+  {a:2,s:"B"} (0)
+  {a:3,s:"c"} (0)
+  {a:4,s:"c"} (0)
 
 output: |
-  #0:record[a:int32,s:string,v:string]
-  0:[1;a;one;]
-  0:[2;B;two;]
-  #1:record[count:uint64,a:int64]
-  1:[1;-1;]
+  {a:1 (int32),s:"a",v:"one"} (=0)
+  {a:2,s:"B",v:"two"} (0)
+  {count:1 (uint64),a:-1} (=1)

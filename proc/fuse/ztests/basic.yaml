@@ -1,14 +1,9 @@
 zql: fuse
 
 input: |
-  #0:record[a:string,b:string]
-  0:[hello;world;]
-  #1:record[b:string,c:string]
-  1:[goodnight;gracie;]
-
-output-flags: -f tzng
+  {a:"hello",b:"world"}
+  {b:"goodnight",c:"gracie"}
 
 output: |
-  #0:record[a:string,b:string,c:string]
-  0:[hello;world;-;]
-  0:[-;goodnight;gracie;]
+  {a:"hello",b:"world",c:null (string)}
+  {a:null (string),b:"goodnight",c:"gracie"}
