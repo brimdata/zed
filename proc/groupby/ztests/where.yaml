@@ -1,18 +1,13 @@
 zql: "sum(x) where s='a', s2=sum(x) by key=animal | sort ."
 
 input: |
-  #0:record[animal:string,s:string,x:int32]
-  0:[cat;a;1;]
-  0:[dog;b;1;]
-  0:[cat;a;1;]
-  0:[elephant;a;1;]
-  0:[cat;b;1;]
-
-output-flags: -f tzng
+  {animal:"cat",s:"a",x:1 (int32)} (=0)
+  {animal:"dog",s:"b",x:1} (0)
+  {animal:"cat",s:"a",x:1} (0)
+  {animal:"elephant",s:"a",x:1} (0)
+  {animal:"cat",s:"b",x:1} (0)
 
 output: |
-  #0:record[key:string,sum:int64,s2:int64]
-  0:[cat;2;3;]
-  0:[elephant;1;1;]
-  #1:record[key:string,sum:null,s2:int64]
-  1:[dog;-;1;]
+  {key:"cat",sum:2,s2:3}
+  {key:"elephant",sum:1,s2:1}
+  {key:"dog",sum:null (null),s2:1} (=0)

@@ -1,17 +1,13 @@
 zql: 'sort to_lower(s)'
 
 input: |
-  #0:record[s:string]
-  0:[foo;]
-  0:[C;]
-  0:[a;]
-  0:[Bar;]
-
-output-flags: -f tzng
+  {s:"foo"}
+  {s:"C"}
+  {s:"a"}
+  {s:"Bar"}
 
 output: |
-  #0:record[s:string]
-  0:[a;]
-  0:[Bar;]
-  0:[C;]
-  0:[foo;]
+  {s:"a"}
+  {s:"Bar"}
+  {s:"C"}
+  {s:"foo"}
