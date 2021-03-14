@@ -3,26 +3,17 @@ zql: "*"
 output-flags: -f zson -pretty=4
 
 input: |
-  #port=uint16
-  #zenum=string
-  #flow=record[orig_h:ip,orig_p:port,resp_h:ip,resp_port:port]
-  #0:record[_path:string,ts:time,id:flow,proto:zenum]
-  0:[conn;1521911720.600725;[10.47.1.152;49562;23.217.103.245;80;]tcp;]
-  0:[conn;1521911720.6008;[10.128.0.207;13;10.47.19.254;14;]icmp;]
-  0:[conn;1521911720.60131;[10.128.0.207;59777;10.47.28.6;443;]tcp;]
-  #1:record[flows:array[flow]]
-  1:[[[10.47.1.152;49562;23.217.103.245;80;]]]
-  1:[[[10.47.1.152;49562;23.217.103.245;80;][10.128.0.207;13;10.47.19.254;14;]]]
-  #2:record[ips:set[ip]]
-  2:[[10.0.0.1;192.168.1.1;]]
-  #3:record[nums:set[uint64]]
-  3:[[1;2;3;]]
-  #4:record[u:union[uint64,string]]
-  4:[0:12;]
-  4:[1:foo;]
-  #5:record[m:map[string,int32]]
-  5:[[a;1;b;2;c;3;]]
-  5:[[d;5;e;6;]]
+  {_path:"conn",ts:2018-03-24T17:15:20.600725Z,id:{orig_h:10.47.1.152,orig_p:49562 (port=(uint16)),resp_h:23.217.103.245,resp_port:80 (port)} (=flow),proto:"tcp" (=zenum)} (=0)
+  {_path:"conn",ts:2018-03-24T17:15:20.6008Z,id:{orig_h:10.128.0.207,orig_p:13,resp_h:10.47.19.254,resp_port:14},proto:"icmp"} (0)
+  {_path:"conn",ts:2018-03-24T17:15:20.60131Z,id:{orig_h:10.128.0.207,orig_p:59777,resp_h:10.47.28.6,resp_port:443},proto:"tcp"} (0)
+  {flows:[{orig_h:10.47.1.152,orig_p:49562,resp_h:23.217.103.245,resp_port:80} (flow)] (=1)} (=2)
+  {flows:[{orig_h:10.47.1.152,orig_p:49562,resp_h:23.217.103.245,resp_port:80},{orig_h:10.128.0.207,orig_p:13,resp_h:10.47.19.254,resp_port:14}]} (2)
+  {ips:|[10.0.0.1,192.168.1.1]|}
+  {nums:|[1 (uint64),2 (uint64),3 (uint64)]| (=3)} (=4)
+  {u:12 (uint64) (5=((uint64,string)))} (=6)
+  {u:"foo"} (6)
+  {m:|{{"a",1 (int32)},{"b",2 (int32)},{"c",3 (int32)}}| (=7)} (=8)
+  {m:|{{"d",5},{"e",6}}|} (8)
 
 output: |
   {

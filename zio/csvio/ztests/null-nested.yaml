@@ -1,10 +1,8 @@
 zql: '*'
 
 input: |
-  #0:record[a:record[b:record[a1:array[string],a2:array[string]]]]
-  0:[-;]
-  #1:record[s:string]
-  1:[x;]
+  {a:null (0=({b:1=({a1:2=([string]),a2:2})}))}
+  {s:"x"}
 
 output-flags: -f csv
 

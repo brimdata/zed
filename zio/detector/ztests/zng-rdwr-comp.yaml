@@ -1,24 +1,18 @@
 script: |
-  zq -znglz4blocksize=0 -o uncomp.zng in.tzng
-  zq  -o comp.zng in.tzng
-  zq -f tzng uncomp.zng
+  zq -znglz4blocksize=0 -o uncomp.zng in.zson
+  zq  -o comp.zng in.zson
+  zq -z uncomp.zng
   echo ===
-  zq -f tzng comp.zng
+  zq -z comp.zng
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #port=uint16
-      #0:record[_path:bstring,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],version:bstring,cipher:bstring,curve:bstring,server_name:bstring,resumed:bool,last_alert:bstring,next_protocol:bstring,established:bool,cert_chain_fuids:array[bstring],client_cert_chain_fuids:array[bstring],subject:bstring,issuer:bstring,client_subject:bstring,client_issuer:bstring,validation_status:bstring]
-      0:[ssl;1490385563.053424;CfEBop2hbfJYpjG5Hd;[10.10.7.90;51913;54.230.87.24;443;]TLSv12;TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;-;choices.truste.com;T;-;http/1.1;T;-;-;-;-;-;-;-;]
+      {_path:"ssl" (bstring),ts:2017-03-24T19:59:23.053424Z,uid:"CfEBop2hbfJYpjG5Hd" (bstring),id:{orig_h:10.10.7.90,orig_p:51913 (port=(uint16)),resp_h:54.230.87.24,resp_p:443 (port)} (=0),version:"TLSv12" (bstring),cipher:"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256" (bstring),curve:null (bstring),server_name:"choices.truste.com" (bstring),resumed:true,last_alert:null (bstring),next_protocol:"http/1.1" (bstring),established:true,cert_chain_fuids:null (1=([bstring])),client_cert_chain_fuids:null (1),subject:null (bstring),issuer:null (bstring),client_subject:null (bstring),client_issuer:null (bstring),validation_status:null (bstring)} (=2)
 
 outputs:
   - name: stdout
     data: |
-      #port=uint16
-      #0:record[_path:bstring,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],version:bstring,cipher:bstring,curve:bstring,server_name:bstring,resumed:bool,last_alert:bstring,next_protocol:bstring,established:bool,cert_chain_fuids:array[bstring],client_cert_chain_fuids:array[bstring],subject:bstring,issuer:bstring,client_subject:bstring,client_issuer:bstring,validation_status:bstring]
-      0:[ssl;1490385563.053424;CfEBop2hbfJYpjG5Hd;[10.10.7.90;51913;54.230.87.24;443;]TLSv12;TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;-;choices.truste.com;T;-;http/1.1;T;-;-;-;-;-;-;-;]
+      {_path:"ssl" (bstring),ts:2017-03-24T19:59:23.053424Z,uid:"CfEBop2hbfJYpjG5Hd" (bstring),id:{orig_h:10.10.7.90,orig_p:51913 (port=(uint16)),resp_h:54.230.87.24,resp_p:443 (port)} (=0),version:"TLSv12" (bstring),cipher:"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256" (bstring),curve:null (bstring),server_name:"choices.truste.com" (bstring),resumed:true,last_alert:null (bstring),next_protocol:"http/1.1" (bstring),established:true,cert_chain_fuids:null (1=([bstring])),client_cert_chain_fuids:null (1),subject:null (bstring),issuer:null (bstring),client_subject:null (bstring),client_issuer:null (bstring),validation_status:null (bstring)} (=2)
       ===
-      #port=uint16
-      #0:record[_path:bstring,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],version:bstring,cipher:bstring,curve:bstring,server_name:bstring,resumed:bool,last_alert:bstring,next_protocol:bstring,established:bool,cert_chain_fuids:array[bstring],client_cert_chain_fuids:array[bstring],subject:bstring,issuer:bstring,client_subject:bstring,client_issuer:bstring,validation_status:bstring]
-      0:[ssl;1490385563.053424;CfEBop2hbfJYpjG5Hd;[10.10.7.90;51913;54.230.87.24;443;]TLSv12;TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;-;choices.truste.com;T;-;http/1.1;T;-;-;-;-;-;-;-;]
+      {_path:"ssl" (bstring),ts:2017-03-24T19:59:23.053424Z,uid:"CfEBop2hbfJYpjG5Hd" (bstring),id:{orig_h:10.10.7.90,orig_p:51913 (port=(uint16)),resp_h:54.230.87.24,resp_p:443 (port)} (=0),version:"TLSv12" (bstring),cipher:"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256" (bstring),curve:null (bstring),server_name:"choices.truste.com" (bstring),resumed:true,last_alert:null (bstring),next_protocol:"http/1.1" (bstring),established:true,cert_chain_fuids:null (1=([bstring])),client_cert_chain_fuids:null (1),subject:null (bstring),issuer:null (bstring),client_subject:null (bstring),client_issuer:null (bstring),validation_status:null (bstring)} (=2)

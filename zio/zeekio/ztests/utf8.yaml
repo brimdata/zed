@@ -1,12 +1,11 @@
-script: zq -f zeek -U in.tzng
+script: zq -f zeek -U in.zson
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-        #0:record[_path:string,foo:bstring]
-        0:[;\xf0\x9f\x98\x81;]
-        0:[magic;\xf0\x9f\x98\x81;]
-        0:[;foo\xf0\x9f\x98\x81bar\x00\x01baz;]
+        {_path:"",foo:"😁" (bstring)} (=0)
+        {_path:"magic",foo:"😁"} (0)
+        {_path:"",foo:"foo😁bar\x00\x01baz"} (0)
 
 outputs:
   - name: stdout

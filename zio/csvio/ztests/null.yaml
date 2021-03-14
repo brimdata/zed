@@ -1,9 +1,8 @@
 zql: '*'
 
 input: |
-  #0:record[null:null]
-  0:[-;]
-  0:[;]
+  {null:null (null)} (=0)
+  {null:null} (0)
 
 output-flags: -f csv
 

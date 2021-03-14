@@ -3,8 +3,7 @@
 zql: '*'
 
 input: |
-  #0:record[b:uint8,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint64,a:ip,n:net,d:duration]
-  0:[0;0;0;0;0;0;0;10.1.2.3;10.0.0.0/8;1000;]
+  {b:0 (uint8),i16:0 (int16),u16:0 (uint16),i32:0 (int32),u32:0 (uint32),i64:0,u64:0 (uint64),a:10.1.2.3,n:10.0.0.0/8,d:16m40s} (=0)
 
 output-flags: -f zeek
 

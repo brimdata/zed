@@ -11,11 +11,7 @@ input: |
   #path -
   😁
 
-output-flags: -f tzng
-
 output: |
-  #0:record[foo:bstring]
-  0:[😁;]
-  #1:record[_path:string,foo:bstring]
-  1:[magic;😁;]
-  0:[😁;]
+  {foo:"😁" (bstring)} (=0)
+  {_path:"magic",foo:"😁" (bstring)} (=1)
+  {foo:"😁"} (0)

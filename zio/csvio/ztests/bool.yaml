@@ -1,10 +1,9 @@
 zql: '*'
 
 input: |
-  #0:record[bool:bool]
-  0:[-;]
-  0:[F;]
-  0:[T;]
+  {bool:null (bool)}
+  {bool:false}
+  {bool:true}
 
 output-flags: -f csv
 

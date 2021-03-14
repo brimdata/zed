@@ -3,8 +3,7 @@ script: zq -f zeek -
 inputs:
   - name: stdin
     data: |
-        #0:record[a:array[record[s:string]]]
-        0:[[[foo;]]]
+        {a:[{s:"foo"}]}
 
 outputs:
   - name: stderr

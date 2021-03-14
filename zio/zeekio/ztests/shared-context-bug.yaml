@@ -9,9 +9,5 @@ input: |
   #types	addr	port	addr	port	set[string]
   10.164.94.120	39681	10.47.3.155	3389	-
 
-output-flags: -f tzng
-
 output: |
-  #port=uint16
-  #0:record[id:record[orig_p:port,resp_h:ip,resp_p:port],id2:ip]
-  0:[[39681;10.47.3.155;3389;]10.164.94.120;]
+  {id:{orig_p:39681 (port=(uint16)),resp_h:10.47.3.155,resp_p:3389 (port)} (=0),id2:10.164.94.120} (=1)

@@ -1,4 +1,4 @@
-script: zq -f tzng -
+script: zq -z -
 
 inputs:
   - name: stdin

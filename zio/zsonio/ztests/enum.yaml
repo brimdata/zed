@@ -3,10 +3,9 @@ zql: "*"
 output-flags: -f zson -pretty=4
 
 input: |
-  #0:record[flip:enum[uint8,HEADS:[0],TAILS:[1]]]
-  0:[0;]
-  0:[1;]
-  0:[0;]
+  {flip:HEADS (0=(<HEADS:0 (uint8),TAILS:1>))} (=1)
+  {flip:TAILS} (1)
+  {flip:HEADS} (1)
 
 output: |
   {
