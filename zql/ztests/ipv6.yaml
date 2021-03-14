@@ -1,12 +1,9 @@
 zql: 'fe80::58d2:2d09:e8cb:a8ad OR ::58d2:2d09:e8cb:a8ad OR 2d09:e8cb:a8ad:: OR ::'
 
 input: &input |
-  #0:record[a:ip]
-  0:[fe80::58d2:2d09:e8cb:a8ad;]
-  0:[::58d2:2d09:e8cb:a8ad;]
-  0:[2d09:e8cb:a8ad::;]
-  0:[::;]
-
-output-flags: -f tzng
+  {a:fe80::58d2:2d09:e8cb:a8ad}
+  {a:::58d2:2d09:e8cb:a8ad}
+  {a:2d09:e8cb:a8ad::}
+  {a:::}
 
 output: *input

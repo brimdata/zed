@@ -1,10 +1,9 @@
 zql: '"foo\"bar"'
 
 input: |
-  #0:record[s:string]
-  0:[foo"bar;]
-  0:[foobar;]
-  0:["foobar";]
+  {s:"foo\"bar"}
+  {s:"foobar"}
+  {s:"\"foobar\""}
 
 output: |
   {s:"foo\"bar"}

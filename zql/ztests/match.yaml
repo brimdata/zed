@@ -1,14 +1,10 @@
 zql: match(a)
 
 input: |
-  #0:record[s1:string,s2:string]
-  0:[a;b;]
-  0:[b;a;]
-  0:[b;b;]
-
-output-flags: -f tzng
+  {s1:"a",s2:"b"}
+  {s1:"b",s2:"a"}
+  {s1:"b",s2:"b"}
 
 output: |
-  #0:record[s1:string,s2:string]
-  0:[a;b;]
-  0:[b;a;]
+  {s1:"a",s2:"b"}
+  {s1:"b",s2:"a"}

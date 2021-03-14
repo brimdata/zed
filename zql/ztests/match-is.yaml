@@ -1,17 +1,12 @@
 zql: match(a) is(s2,'string')
 
 input: |
-  #0:record[s1:string,s2:string]
-  0:[a;b;]
-  0:[b;b;]
-  #1:record[s1:string,s2:int32]
-  1:[a;0;]
-  1:[b;0;]
-  0:[b;a;]
-
-output-flags: -f tzng
+  {s1:"a",s2:"b"}
+  {s1:"b",s2:"b"}
+  {s1:"a",s2:0 (int32)} (=0)
+  {s1:"b",s2:0} (0)
+  {s1:"b",s2:"a"}
 
 output: |
-  #0:record[s1:string,s2:string]
-  0:[a;b;]
-  0:[b;a;]
+  {s1:"a",s2:"b"}
+  {s1:"b",s2:"a"}
