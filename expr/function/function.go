@@ -75,16 +75,10 @@ func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
 		f = &trim{}
 	case "iso":
 		f = &iso{}
-	case "sec":
-		f = &sec{}
 	case "split":
 		argmin = 2
 		argmax = 2
 		f = newSplit(zctx)
-	case "msec":
-		f = &msec{}
-	case "usec":
-		f = &usec{}
 	case "trunc":
 		argmin = 2
 		argmax = 2

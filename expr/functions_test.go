@@ -191,25 +191,9 @@ func TestTime(t *testing.T) {
 
 	exp := fmt.Sprintf(`iso("%s")`, iso)
 	testSuccessful(t, exp, "", zval)
-	exp = fmt.Sprintf("msec(%d):time", msec)
-	testSuccessful(t, exp, "", zval)
-	exp = fmt.Sprintf("msec(%d.0):time", msec)
-	testSuccessful(t, exp, "", zval)
-	exp = fmt.Sprintf("usec(%d):time", msec*1000)
-	testSuccessful(t, exp, "", zval)
-	exp = fmt.Sprintf("usec(%d.0):time", msec*1000)
-	testSuccessful(t, exp, "", zval)
-	exp = fmt.Sprintf("%d:time", nsec)
-	testSuccessful(t, exp, "", zval)
+
 	testSuccessful(t, "trunc(1590506867.967, 1)", "", zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1590506867 * 1_000_000_000))})
 
-	testError(t, "iso()", "", function.ErrTooFewArgs, "Time.fromISO() with no args")
-	testError(t, `iso("abc", "def")`, "", function.ErrTooManyArgs, "Time.fromISO() with too many args")
-	testError(t, "iso(1234)", "", function.ErrBadArgument, "Time.fromISO() with wrong argument type")
-
-	testError(t, "msec()", "", function.ErrTooFewArgs, "Time.fromMilliseconds() with no args")
-	testError(t, "msec(123, 456)", "", function.ErrTooManyArgs, "Time.fromMilliseconds() with too many args")
-
-	testError(t, "usec()", "", function.ErrTooFewArgs, "Time.fromMicroseconds() with no args")
-	testError(t, "usec(123, 456)", "", function.ErrTooManyArgs, "Time.fromMicroseconds() with too many args")
+	testError(t, "iso()", "", function.ErrTooFewArgs, "iso() with no args")
+	testError(t, `iso("abc", "def")`, "", function.ErrTooManyArgs, "iso() with too many args")
 }
