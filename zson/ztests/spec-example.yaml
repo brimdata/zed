@@ -1,5 +1,5 @@
 script: |
-  zq -f tzng -i zson in.zson
+  zq -z in.zson
 
 inputs:
   - name: in.zson
@@ -26,16 +26,10 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #socket=record[addr:ip,port:uint16]
-      #conn=record[info:string,src:socket,dst:socket]
-      conn:[Connection Example;[10.1.1.2;80;][10.0.1.2;20130;]]
-      conn:[Connection Example 2;[10.1.1.8;80;][10.1.2.88;19801;]]
-      #access_list=record[info:string,nets:array[net]]
-      access_list:[Access List Example;[10.1.1.0/24;10.1.2.0/24;]]
-      #2:record[metric:string,ts:time,value:int64]
-      2:[A;1606236249.586441;120;]
-      #3:record[metric:string,ts:time,value:float64]
-      3:[B;1606236260.726057;0.86;]
-      2:[A;1606236272.201458;126;]
-      #4:record[metric:string,ts:time,value:record[x:int64,y:int64]]
-      4:[C;1606236283.547506;[10;101;]]
+      {info:"Connection Example",src:{addr:10.1.1.2,port:80 (uint16)} (=socket),dst:{addr:10.0.1.2,port:20130} (socket)} (=conn)
+      {info:"Connection Example 2",src:{addr:10.1.1.8,port:80},dst:{addr:10.1.2.88,port:19801}} (conn)
+      {info:"Access List Example",nets:[10.1.1.0/24,10.1.2.0/24]} (=access_list)
+      {metric:"A",ts:2020-11-24T16:44:09.586441Z,value:120}
+      {metric:"B",ts:2020-11-24T16:44:20.726057Z,value:8.6e-01}
+      {metric:"A",ts:2020-11-24T16:44:32.201458Z,value:126}
+      {metric:"C",ts:2020-11-24T16:44:43.547506Z,value:{x:10,y:101}}

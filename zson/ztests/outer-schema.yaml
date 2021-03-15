@@ -1,5 +1,5 @@
 script: |
-  zq -f tzng -i zson -pretty=0 in.zson
+  zq -z in.zson
 
 inputs:
   - name: in.zson
@@ -11,7 +11,6 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #city_schema=record[city:string,state:string,population:uint32]
-      city_schema:[Berkeley;CA;121643;]
-      city_schema:[Broad Cove;ME;806;]
-      city_schema:[Baton Rouge;LA;221599;]
+      {city:"Berkeley",state:"CA",population:121643 (uint32)} (=city_schema)
+      {city:"Broad Cove",state:"ME",population:806} (city_schema)
+      {city:"Baton Rouge",state:"LA",population:221599} (city_schema)
