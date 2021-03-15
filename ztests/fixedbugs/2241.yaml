@@ -1,0 +1,15 @@
+script: |
+  zar import -R ./zartest -
+  zar index create -R ./zartest uri
+  zar find -R ./zartest -f table uri=/file
+
+inputs:
+  - name: stdin
+    data: |
+      {_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl" (bstring),id:{orig_h:10.164.94.120,orig_p:39681 (port=(uint16)),resp_h:10.47.3.155,resp_p:3389 (port)} (=0),proto:"tcp" (=zenum),service:null (bstring),duration:4.266ms,orig_bytes:97 (uint64),resp_bytes:19 (uint64),conn_state:"RSTR" (bstring),local_orig:null (bool),local_resp:null (bool),missed_bytes:0 (uint64),history:"ShADTdtr" (bstring),orig_pkts:10 (uint64),orig_ip_bytes:730 (uint64),resp_pkts:6 (uint64),resp_ip_bytes:342 (uint64),tunnel_parents:null (1=(|[bstring]|))}
+
+outputs:
+  - name: stdout
+    data: ""
+  - name: stderr
+    data: ""
