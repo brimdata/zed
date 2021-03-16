@@ -202,7 +202,7 @@ var compareString = map[string]func(string, string) bool{
 	"<=": func(a, b string) bool { return a <= b },
 }
 
-func CompareBstring(op string, pattern Bstring) (Boolean, error) {
+func CompareBstring(op string, pattern bstring) (Boolean, error) {
 	compare, ok := compareString[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown string comparator: %s", op)
@@ -391,7 +391,7 @@ func Comparison(op string, literal ast.Literal) (Boolean, error) {
 		return CompareBool(op, v)
 	case float64: //XXX
 		return CompareFloat64(op, v)
-	case Bstring: //XXX
+	case bstring: //XXX
 		return CompareBstring(op, v)
 	case int64:
 		return CompareInt64(op, v)
@@ -402,8 +402,7 @@ func Comparison(op string, literal ast.Literal) (Boolean, error) {
 
 //XXX this shoulw all go away ?
 
-type Port uint32
-type Bstring []byte
+type bstring []byte
 
 func parseLiteral(literal ast.Literal) (interface{}, error) {
 	// String literals inside zql are parsed as zng bstrings
@@ -429,7 +428,7 @@ func parseLiteral(literal ast.Literal) (interface{}, error) {
 	case *zng.TypeOfBstring:
 		// marshal doesn't work for bstring
 		s, err := zng.DecodeString(zv.Bytes)
-		return Bstring(s), err
+		return bstring(s), err
 	default:
 		return zv.Type.Marshal(zv.Bytes)
 	}

@@ -167,7 +167,7 @@ func (d *indexer) Write(rec *zng.Record) error {
 		d.keyType = key.Type
 	}
 	if key.Type.ID() != d.keyType.ID() {
-		return fmt.Errorf("key type changed from '%s' to '%s'", d.keyType.ZSON(), key.Type.ZSON())
+		return fmt.Errorf("key type changed from %q to %q", d.keyType.ZSON(), key.Type.ZSON())
 	}
 	return d.microindex.Write(rec)
 }

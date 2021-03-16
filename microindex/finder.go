@@ -235,7 +235,7 @@ func (f *Finder) ParseKeys(inputs ...string) (*zng.Record, error) {
 		return nil, nil
 	}
 	// XXX this should parse a ZSON literal and try to cast it
-	// to the key type.  For now, we let tzngio handles this as
+	// to the key type.  For now, we let tzngio handle this as
 	// Z literal syntax is coming soon.
 	rec, err := tzngio.ParseKeys(f.trailer.KeyType, inputs...)
 	if err == zng.ErrIncomplete {

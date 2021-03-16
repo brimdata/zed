@@ -72,7 +72,6 @@ func encodePrimitive(typ zng.Type, v []byte) (interface{}, error) {
 	if v == nil {
 		return fld, nil
 	}
-
 	return tzngio.StringOf(zng.Value{typ, v}, tzngio.OutFormatUnescaped, false), nil
 }
 

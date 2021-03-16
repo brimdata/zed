@@ -115,7 +115,7 @@ func (c *Command) Run(args []string) error {
 			}
 			builder = zng.NewBuilder(typ)
 		} else if keyType != k.Type {
-			return fmt.Errorf("key type changed from '%s' to '%s'", keyType.ZSON(), k.Type.ZSON())
+			return fmt.Errorf("key type changed from %q to %q", keyType.ZSON(), k.Type.ZSON())
 		}
 		offBytes := zng.EncodeInt(offset)
 		out := builder.Build(k.Bytes, offBytes)

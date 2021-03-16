@@ -10,4 +10,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      .*invalid text body of null value: "bleah"
+      invalid text body of null value: "bleah"

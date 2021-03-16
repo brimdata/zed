@@ -54,8 +54,7 @@ func (t *TypeOfError) String() string {
 }
 
 func (t *TypeOfError) Marshal(zv zcode.Bytes) (interface{}, error) {
-	//return t.StringOf(zv, OutFormatUnescaped, false), nil
-	return nil, nil
+	return t.ZSONOf(zv), nil
 }
 
 func (t *TypeOfError) ZSON() string {
