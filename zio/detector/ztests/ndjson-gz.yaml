@@ -9,8 +9,5 @@ input: !!binary |
   LSE6z5IIkwO5z4Ezb4IUyPe5HlaZ4kyUARUNJ8lmTTohgPDuOQGRab6sbYtFtv7l/sdlnU
   LfL2XKuWB2V6hk8Vor+Q0YhH9fyBe5rC8eoTRjsGvfkBAAA=
 
-output-flags: -f tzng
-
 output: |
-  #0:record[_path:string,cert_chain_fuids:array[null],cipher:string,client_cert_chain_fuids:array[null],client_issuer:null,client_subject:null,curve:null,established:bool,id:record[orig_h:string,orig_p:int64,resp_h:string,resp_p:int64],issuer:null,last_alert:null,next_protocol:string,resumed:bool,server_name:string,subject:null,ts:record[ns:int64,sec:int64],uid:string,validation_status:null,version:string]
-  0:[ssl;[]TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256;[]-;-;-;T;[10.10.7.90;51913;54.230.87.24;443;]-;-;http/1.1;T;choices.truste.com;-;[53424000;1490385563;]CfEBop2hbfJYpjG5Hd;-;TLSv12;]
+  {_path:"ssl",cert_chain_fuids:[] (0=([null])),cipher:"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",client_cert_chain_fuids:[] (0),client_issuer:null (null),client_subject:null (null),curve:null (null),established:true,id:{orig_h:"10.10.7.90",orig_p:51913,resp_h:"54.230.87.24",resp_p:443},issuer:null (null),last_alert:null (null),next_protocol:"http/1.1",resumed:true,server_name:"choices.truste.com",subject:null (null),ts:{ns:53424000,sec:1490385563},uid:"CfEBop2hbfJYpjG5Hd",validation_status:null (null),version:"TLSv12"} (=1)

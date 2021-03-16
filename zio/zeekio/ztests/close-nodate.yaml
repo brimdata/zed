@@ -11,8 +11,5 @@ input: |
   10.000000	1
   #close
 
-output-flags: -f tzng
-
 output: |
-  #0:record[_path:string,ts:time,d:float64]
-  0:[a;10;1;]
+  {_path:"a",ts:1970-01-01T00:00:10Z,d:1.}

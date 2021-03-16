@@ -1,15 +1,13 @@
 script: |
-  zq -f zjson in.tzng | zq -f tzng -
+  zq -f zjson in.zson | zq -z -
 
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[m:map[string,record[a:int32,b:int32]]]
-      0:[[a;[1;2;]b;[2;3;]c;[3;4;]]]
+      {m:|{{"a",{a:1 (int32),b:2 (int32)} (=0)},{"b",{a:2,b:3} (0)},{"c",{a:3,b:4} (0)}}| (=1)} (=2)
 
 outputs:
   - name: stdout
     data: |
-      #0:record[m:map[string,record[a:int32,b:int32]]]
-      0:[[a;[1;2;]b;[2;3;]c;[3;4;]]]
+      {m:|{{"a",{a:1 (int32),b:2 (int32)} (=0)},{"b",{a:2,b:3} (0)},{"c",{a:3,b:4} (0)}}| (=1)} (=2)

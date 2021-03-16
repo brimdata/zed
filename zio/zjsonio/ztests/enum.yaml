@@ -1,19 +1,17 @@
 script: |
-  zq -f zjson in.tzng | zq -f tzng -
+  zq -f zjson in.zson | zq -z -
 
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]]]
-      0:[0;]
-      0:[1;]
-      0:[2;]
+      {e:foo (0=(<foo:1 (int32),bar:2,baz:4>))} (=1)
+      {e:bar} (1)
+      {e:baz} (1)
 
 outputs:
   - name: stdout
     data: |
-      #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]]]
-      0:[0;]
-      0:[1;]
-      0:[2;]
+      {e:foo (0=(<foo:1 (int32),bar:2,baz:4>))} (=1)
+      {e:bar} (1)
+      {e:baz} (1)

@@ -1,10 +1,9 @@
 zql: '*'
 
 input: |
-  #0:record[bytes:bytes]
-  0:[-;]
-  0:[;]
-  0:[aGVsbG8K;]
+  {bytes:null (bytes)}
+  {bytes:0x}
+  {bytes:0x68656c6c6f0a}
 
 output-flags: -f csv
 

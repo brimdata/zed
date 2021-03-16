@@ -1,13 +1,12 @@
 zql: '*'
 
 input: |
-  #0:record[string:string]
-  0:[-;]
-  0:[;]
-  0:[";]
-  0:[,;]
-  0:[\u002d;]
-  0:[\u005c;]
+  {string:null (string)}
+  {string:""}
+  {string:"\""}
+  {string:","}
+  {string:"-"}
+  {string:"\\"}
 
 output-flags: -f csv
 

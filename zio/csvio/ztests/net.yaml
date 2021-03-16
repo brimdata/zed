@@ -1,9 +1,8 @@
 zql: '*'
 
 input: |
-  #0:record[net:net]
-  0:[-;]
-  0:[1.2.3.4/32;]
+  {net:null (net)}
+  {net:1.2.3.4/32}
 
 output-flags: -f csv
 

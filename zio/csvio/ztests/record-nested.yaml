@@ -1,8 +1,7 @@
 zql: '*'
 
 input: |
-  #0:record[a:string,b:record[c:string,d:string]]
-  0:[hello;[world;goodbye;]]
+  {a:"hello",b:{c:"world",d:"goodbye"}}
 
 output-flags: -f csv
 

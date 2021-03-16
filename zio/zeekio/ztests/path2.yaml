@@ -10,8 +10,5 @@ input: |
   #types	string	string
   notconn	yes
 
-output-flags: -f tzng
-
 output: |
-  #0:record[_path:bstring,foo:bstring]
-  0:[notconn;yes;]
+  {_path:"notconn" (bstring),foo:"yes" (bstring)} (=0)

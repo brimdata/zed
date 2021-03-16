@@ -7,13 +7,9 @@ input: |
   {a:["foo","bar"] (=1)} (=2)
   {a:["bar"]} (2)
 
-output-flags: -f tzng
-
 output: |
-  #0:record[_path:string]
-  0:[conn;]
-  0:[foo;]
-  0:[conn;]
-  #1:record[a:array[string]]
-  1:[[foo;bar;]]
-  1:[[bar;]]
+  {_path:"conn"}
+  {_path:"foo"}
+  {_path:"conn"}
+  {a:["foo","bar"]}
+  {a:["bar"]}

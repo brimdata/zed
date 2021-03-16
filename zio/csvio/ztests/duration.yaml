@@ -1,11 +1,10 @@
 zql: '*'
 
 input: |
-  #0:record[duration:duration]
-  0:[-;]
-  0:[0;]
-  0:[-9223372036.854775808;]
-  0:[9223372036.854775807;]
+  {duration:null (duration)}
+  {duration:0s}
+  {duration:-2562047h47m16.854775808s}
+  {duration:2562047h47m16.854775807s}
 
 output-flags: -f csv
 
