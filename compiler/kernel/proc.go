@@ -361,7 +361,7 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, paren
 		inner := true
 		leftParent := parents[0]
 		rightParent := parents[1]
-		switch node.Kind {
+		switch node.Style {
 		case "left":
 			inner = false
 		case "right":
@@ -370,7 +370,7 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, paren
 			leftParent, rightParent = rightParent, leftParent
 		case "inner":
 		default:
-			return nil, fmt.Errorf("unknown kind of join: '%s'", node.Kind)
+			return nil, fmt.Errorf("unknown kind of join: '%s'", node.Style)
 		}
 		join, err := join.New(pctx, inner, leftParent, rightParent, leftKey, rightKey, lhs, rhs)
 		if err != nil {

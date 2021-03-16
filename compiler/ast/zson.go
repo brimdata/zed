@@ -4,25 +4,19 @@ type Value interface {
 	valueNode()
 }
 
-const (
-	ImpliedValueOp = "implied_value"
-	CastValueOp    = "cast_value"
-	DefValueOp     = "def_value"
-)
-
 type ImpliedValue struct {
-	Op string `json:"op" unpack:""`
-	Of Any    `json:"of"`
+	Kind string `json:"kind" unpack:""`
+	Of   Any    `json:"of"`
 }
 
 type DefValue struct {
-	Op       string `json:"op" unpack:""`
+	Kind     string `json:"kind" unpack:""`
 	Of       Any    `json:"of"`
 	TypeName string `json:"type_name"`
 }
 
 type CastValue struct {
-	Op   string `json:"op" unpack:""`
+	Kind string `json:"kind" unpack:""`
 	Of   Value  `json:"of"`
 	Type Type   `json:"type"`
 }
@@ -37,12 +31,12 @@ type Any interface {
 
 type (
 	Primitive struct {
-		Op   string `json:"op" unpack:""`
+		Kind string `json:"kind" unpack:""`
 		Type string `json:"type"`
 		Text string `json:"text"`
 	}
 	Record struct {
-		Op     string  `json:"op" unpack:""`
+		Kind   string  `json:"Kind" unpack:""`
 		Fields []Field `json:"fields"`
 	}
 	Field struct {
@@ -50,19 +44,19 @@ type (
 		Value Value  `json:"value"`
 	}
 	Array struct {
-		Op       string  `json:"op" unpack:""`
+		Kind     string  `json:"kind" unpack:""`
 		Elements []Value `json:"elements"`
 	}
 	Set struct {
-		Op       string  `json:"op" unpack:""`
+		Kind     string  `json:"kind" unpack:""`
 		Elements []Value `json:"elements"`
 	}
 	Enum struct {
-		Op   string `json:"op" unpack:""`
+		Kind string `json:"kind" unpack:""`
 		Name string `json:"name"`
 	}
 	Map struct {
-		Op      string  `json:"op" unpack:""`
+		Kind    string  `json:"kind" unpack:""`
 		Entries []Entry `json:"entries"`
 	}
 	Entry struct {
@@ -70,7 +64,7 @@ type (
 		Value Value `json:"value"`
 	}
 	TypeValue struct {
-		Op    string `json:"op" unpack:""`
+		Kind  string `json:"kind" unpack:""`
 		Value Type   `json:"value"`
 	}
 )
@@ -89,11 +83,11 @@ type Type interface {
 
 type (
 	TypePrimitive struct {
-		Op   string `json:"op" unpack:""`
+		Kind string `json:"kind" unpack:""`
 		Name string `json:"name"`
 	}
 	TypeRecord struct {
-		Op     string      `json:"op" unpack:""`
+		Kind   string      `json:"kind" unpack:""`
 		Fields []TypeField `json:"fields"`
 	}
 	TypeField struct {
@@ -101,37 +95,37 @@ type (
 		Type Type   `json:"type"`
 	}
 	TypeArray struct {
-		Op   string `json:"op" unpack:""`
+		Kind string `json:"kind" unpack:""`
 		Type Type   `json:"type"`
 	}
 	TypeSet struct {
-		Op   string `json:"op" unpack:""`
+		Kind string `json:"kind" unpack:""`
 		Type Type   `json:"type"`
 	}
 	TypeUnion struct {
-		Op    string `json:"op" unpack:""`
+		Kind  string `json:"kind" unpack:""`
 		Types []Type `json:"types"`
 	}
 	// Enum has just the elements and relies on the semantic checker
 	// to determine a type from the decorator either within or from above.
 	TypeEnum struct {
-		Op       string  `json:"op" unpack:""`
+		Kind     string  `json:"kind" unpack:""`
 		Elements []Field `json:"elements"`
 	}
 	TypeMap struct {
-		Op      string `json:"op" unpack:""`
+		Kind    string `json:"kind" unpack:""`
 		KeyType Type   `json:"key_type"`
 		ValType Type   `json:"val_type"`
 	}
 	TypeNull struct {
-		Op string `json:"op" unpack:""`
+		Kind string `json:"kind" unpack:""`
 	}
 	TypeName struct {
-		Op   string `json:"op" unpack:""`
+		Kind string `json:"kind" unpack:""`
 		Name string `json:"name"`
 	}
 	TypeDef struct {
-		Op   string `json:"op" unpack:""`
+		Kind string `json:"kind" unpack:""`
 		Name string `json:"name"`
 		Type Type   `json:"type"`
 	}

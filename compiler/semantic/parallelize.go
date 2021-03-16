@@ -8,7 +8,7 @@ import (
 	"github.com/brimsec/zq/field"
 )
 
-var passProc = &ast.Pass{Op: "Pass"}
+var passProc = &ast.Pass{Kind: "Pass"}
 
 //XXX
 func zbufDirInt(reversed bool) int {
@@ -23,7 +23,7 @@ func ensureSequentialProc(p ast.Proc) *ast.Sequential {
 		return p
 	}
 	return &ast.Sequential{
-		Op:    "Sequential",
+		Kind:  "Sequential",
 		Procs: []ast.Proc{p},
 	}
 }
@@ -58,7 +58,7 @@ func liftFilter(p ast.Proc) (ast.Expr, ast.Proc) {
 			rest := ast.Proc(passProc)
 			if len(seq.Procs) > 1 {
 				rest = &ast.Sequential{
-					Op:    "Sequential",
+					Kind:  "Sequential",
 					Procs: seq.Procs[1:],
 				}
 			}
@@ -192,7 +192,7 @@ func copyProc(p ast.Proc) ast.Proc {
 func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, reverse bool, N int) (*ast.Sequential, bool) {
 	if len(branch) == 0 {
 		return &ast.Sequential{
-			Op:    "Sequential",
+			Kind:  "Sequential",
 			Procs: tail,
 		}, false
 	}
@@ -200,22 +200,22 @@ func buildSplitFlowgraph(branch, tail []ast.Proc, mergeField field.Static, rever
 		// Insert a pass tail in order to force a merge of the
 		// parallel branches when compiling. (Trailing parallel branches are wired to
 		// a mux output).
-		tail = []ast.Proc{&ast.Pass{Op: "Pass"}}
+		tail = []ast.Proc{passProc}
 	}
 	pp := &ast.Parallel{
-		Op:           "Parallel",
+		Kind:         "Parallel",
 		Procs:        []ast.Proc{},
 		MergeBy:      mergeField,
 		MergeReverse: reverse,
 	}
 	for i := 0; i < N; i++ {
 		pp.Procs = append(pp.Procs, &ast.Sequential{
-			Op:    "Sequential",
+			Kind:  "Sequential",
 			Procs: copyProcs(branch),
 		})
 	}
 	return &ast.Sequential{
-		Op:    "Sequential",
+		Kind:  "Sequential",
 		Procs: append([]ast.Proc{pp}, tail...),
 	}, true
 }

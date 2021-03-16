@@ -47,7 +47,7 @@ func TestASTPost(t *testing.T) {
 	_, conn := newCore(t)
 	resp, err := conn.Do(context.Background(), http.MethodPost, "/ast", &api.ASTRequest{ZQL: "*"})
 	require.NoError(t, err)
-	require.Equal(t, string(resp.Body()), "{\"op\":\"Sequential\",\"procs\":[{\"op\":\"Filter\",\"expr\":{\"op\":\"Literal\",\"type\":\"bool\",\"value\":\"true\"}}]}\n")
+	require.Equal(t, string(resp.Body()), "{\"kind\":\"Sequential\",\"procs\":[{\"kind\":\"Filter\",\"expr\":{\"kind\":\"Literal\",\"type\":\"bool\",\"value\":\"true\"}}]}\n")
 }
 
 func TestSearch(t *testing.T) {

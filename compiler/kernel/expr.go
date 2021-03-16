@@ -14,7 +14,7 @@ import (
 	"github.com/brimsec/zq/zson"
 )
 
-var Root = &ast.Path{Op: "Path", Name: []string{}}
+var Root = &ast.Path{Kind: "Path", Name: []string{}}
 
 // compileExpr compiles the given Expression into an object
 // that evaluates the expression against a provided Record.  It returns an
@@ -111,14 +111,14 @@ func CompileExprs(zctx *resolver.Context, scope *Scope, nodes []ast.Expr) ([]exp
 }
 
 func compileBinary(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (expr.Evaluator, error) {
-	if slice, ok := e.RHS.(*ast.BinaryExpr); ok && slice.Kind == ":" {
+	if slice, ok := e.RHS.(*ast.BinaryExpr); ok && slice.Op == ":" {
 		return compileSlice(zctx, scope, e.LHS, slice)
 	}
 	lhs, err := compileExpr(zctx, scope, e.LHS)
 	if err != nil {
 		return nil, err
 	}
-	if e.Kind == "." {
+	if e.Op == "." {
 		// We should change this to DotExpr.  See issue #2255.
 		id, ok := e.RHS.(*ast.Id)
 		if !ok {
@@ -130,7 +130,7 @@ func compileBinary(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (exp
 	if err != nil {
 		return nil, err
 	}
-	switch op := e.Kind; op {
+	switch op := e.Op; op {
 	case "and", "or":
 		return compileLogical(lhs, rhs, op)
 	case "in":
@@ -222,11 +222,11 @@ func compileMethod(zctx *resolver.Context, scope *Scope, src expr.Generator, met
 	}
 }
 
-func compileUnary(zctx *resolver.Context, scope *Scope, node ast.UnaryExpr) (expr.Evaluator, error) {
-	if node.Kind != "!" {
-		return nil, fmt.Errorf("unknown unary operator %s\n", node.Kind)
+func compileUnary(zctx *resolver.Context, scope *Scope, unary ast.UnaryExpr) (expr.Evaluator, error) {
+	if unary.Op != "!" {
+		return nil, fmt.Errorf("unknown unary operator %s\n", unary.Op)
 	}
-	e, err := compileExpr(zctx, scope, node.Operand)
+	e, err := compileExpr(zctx, scope, unary.Operand)
 	if err != nil {
 		return nil, err
 	}

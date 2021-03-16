@@ -76,7 +76,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.write(".")
 	case *ast.UnaryExpr:
 		c.space()
-		c.write(e.Kind)
+		c.write(e.Op)
 		c.expr(e.Operand, true)
 	case *ast.SelectExpr:
 		c.write("TBD:select")
@@ -112,7 +112,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 }
 
 func (c *canon) binary(e *ast.BinaryExpr) {
-	switch e.Kind {
+	switch e.Op {
 	case ".":
 		if !isRoot(e.LHS) {
 			c.expr(e.LHS, false)
@@ -130,16 +130,16 @@ func (c *canon) binary(e *ast.BinaryExpr) {
 		c.write("]")
 	case "in", "and":
 		c.expr(e.LHS, false)
-		c.write(" %s ", e.Kind)
+		c.write(" %s ", e.Op)
 		c.expr(e.RHS, false)
 	case "or":
 		c.expr(e.LHS, true)
-		c.write(" %s ", e.Kind)
+		c.write(" %s ", e.Op)
 		c.expr(e.RHS, true)
 	default:
 		// do need parens calc
 		c.expr(e.LHS, true)
-		c.write("%s", e.Kind)
+		c.write("%s", e.Op)
 		c.expr(e.RHS, true)
 	}
 }

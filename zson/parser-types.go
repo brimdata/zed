@@ -84,7 +84,7 @@ func (p *Parser) matchTypeName() (ast.Type, error) {
 		return nil, p.errorf("bad type sytax in typedef '%s=...'", name)
 	}
 	return &ast.TypeDef{
-		Op:   "TypeDef",
+		Kind: "TypeDef",
 		Name: name,
 		Type: tv.Value,
 	}, nil
@@ -121,7 +121,7 @@ func (p *Parser) matchTypeRecord() (*ast.TypeRecord, error) {
 		return nil, p.error("mismatched braces while parsing record type")
 	}
 	return &ast.TypeRecord{
-		Op:     "TypeRecord",
+		Kind:   "TypeRecord",
 		Fields: fields,
 	}, nil
 }
@@ -169,7 +169,7 @@ func (p *Parser) matchTypeArray() (*ast.TypeArray, error) {
 		return nil, p.error("mismatched brackets while parsing array type")
 	}
 	return &ast.TypeArray{
-		Op:   "TypeArray",
+		Kind: "TypeArray",
 		Type: typ,
 	}, nil
 }
@@ -199,7 +199,7 @@ func (p *Parser) matchTypeSetOrMap() (ast.Type, error) {
 			return nil, p.error("mismatched set-brackets while parsing set type")
 		}
 		typ = &ast.TypeSet{
-			Op:   "TypeSet",
+			Kind: "TypeSet",
 			Type: inner,
 		}
 	} else {
@@ -251,7 +251,7 @@ func (p *Parser) parseTypeMap() (*ast.TypeMap, error) {
 		return nil, err
 	}
 	return &ast.TypeMap{
-		Op:      "TypeMap",
+		Kind:    "TypeMap",
 		KeyType: keyType,
 		ValType: valType,
 	}, nil
@@ -291,7 +291,7 @@ func (p *Parser) matchTypeUnion() (*ast.TypeUnion, error) {
 		return nil, p.error("mismatched parentheses while parsing union type")
 	}
 	return &ast.TypeUnion{
-		Op:    "TypeUnion",
+		Kind:  "TypeUnion",
 		Types: types,
 	}, nil
 }
@@ -313,7 +313,7 @@ func (p *Parser) matchTypeEnum() (*ast.TypeEnum, error) {
 		return nil, p.error("mismatched brackets while parsing enum type")
 	}
 	return &ast.TypeEnum{
-		Op:       "TypeEnum",
+		Kind:     "TypeEnum",
 		Elements: fields,
 	}, nil
 }

@@ -22,7 +22,7 @@ func CompileBufferFilter(e ast.Expr) (*expr.BufferFilter, error) {
 		if literal, _ := isFieldEqualOrIn(e); literal != nil {
 			return newBufferFilterForLiteral(*literal)
 		}
-		if e.Kind == "and" {
+		if e.Op == "and" {
 			left, err := CompileBufferFilter(e.LHS)
 			if err != nil {
 				return nil, err
@@ -39,7 +39,7 @@ func CompileBufferFilter(e ast.Expr) (*expr.BufferFilter, error) {
 			}
 			return expr.NewAndBufferFilter(left, right), nil
 		}
-		if e.Kind == "or" {
+		if e.Op == "or" {
 			left, err := CompileBufferFilter(e.LHS)
 			if err != nil {
 				return nil, err
@@ -91,7 +91,7 @@ func isRootField(e ast.Expr) bool {
 		return true
 	}
 	b, ok := e.(*ast.BinaryExpr)
-	if !ok || b.Kind != "." {
+	if !ok || b.Op != "." {
 		return false
 	}
 	if _, ok := b.LHS.(*ast.Root); !ok {
@@ -102,11 +102,11 @@ func isRootField(e ast.Expr) bool {
 }
 
 func isFieldEqualOrIn(e *ast.BinaryExpr) (*ast.Literal, string) {
-	if isRootField(e.LHS) && e.Kind == "=" {
+	if isRootField(e.LHS) && e.Op == "=" {
 		if literal, ok := e.RHS.(*ast.Literal); ok {
 			return literal, "="
 		}
-	} else if isRootField(e.RHS) && e.Kind == "in" {
+	} else if isRootField(e.RHS) && e.Op == "in" {
 		if literal, ok := e.LHS.(*ast.Literal); ok && literal.Type != "net" {
 			return literal, "in"
 		}
@@ -127,19 +127,19 @@ func isCompareAny(seq *ast.SeqExpr) (*ast.Literal, string, bool) {
 	if !ok {
 		return nil, "", false
 	}
-	if pred.Kind == "=" {
+	if pred.Op == "=" {
 		if !isDollar(pred.LHS) {
 			return nil, "", false
 		}
 		if rhs, ok := pred.RHS.(*ast.Literal); ok && rhs.Type != "net" {
-			return rhs, pred.Kind, true
+			return rhs, pred.Op, true
 		}
-	} else if pred.Kind == "in" {
+	} else if pred.Op == "in" {
 		if !isDollar(pred.RHS) {
 			return nil, "", false
 		}
 		if lhs, ok := pred.LHS.(*ast.Literal); ok && lhs.Type != "net" {
-			return lhs, pred.Kind, true
+			return lhs, pred.Op, true
 		}
 	}
 	return nil, "", false

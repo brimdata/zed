@@ -107,7 +107,7 @@ func (r *Runtime) AsProc() ast.Proc {
 	}
 	procs = append(procs, p)
 	return &ast.Sequential{
-		Op:    "Sequential",
+		Kind:  "Sequential",
 		Procs: procs,
 	}
 }

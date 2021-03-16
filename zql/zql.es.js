@@ -292,7 +292,7 @@ function peg$parse(input, options) {
             for(let  p of rest) {
               procs.push( p);
             }
-            return {"op": "Sequential", "procs": procs}
+            return {"kind": "Sequential", "procs": procs}
           },
       peg$c2 = function(v) { return v },
       peg$c3 = "const",
@@ -302,18 +302,18 @@ function peg$parse(input, options) {
       peg$c7 = ";",
       peg$c8 = peg$literalExpectation(";", false),
       peg$c9 = function(id, expr) {
-            return {"op":"Const","name":id, "expr":expr}
+            return {"kind":"Const","name":id, "expr":expr}
           },
       peg$c10 = "type",
       peg$c11 = peg$literalExpectation("type", false),
       peg$c12 = function(id, typ) {
-            return {"op":"TypeProc","name":id, "type":typ}
+            return {"kind":"TypeProc","name":id, "type":typ}
           },
       peg$c13 = function(first, rest) {
-            return {"op": "Sequential", "procs": [first, ... rest]}
+            return {"kind": "Sequential", "procs": [first, ... rest]}
           },
       peg$c14 = function(op) {
-            return {"op": "Sequential", "procs": [op]}
+            return {"kind": "Sequential", "procs": [op]}
           },
       peg$c15 = "|",
       peg$c16 = peg$literalExpectation("|", false),
@@ -331,7 +331,7 @@ function peg$parse(input, options) {
             return {"expr": e, "proc": proc}
           },
       peg$c24 = function(proc) {
-            return {"expr": {"op": "Literal", "type": "bool", "value": "true"}, "proc": proc}
+            return {"expr": {"kind": "Literal", "type": "bool", "value": "true"}, "proc": proc}
           },
       peg$c25 = "case",
       peg$c26 = peg$literalExpectation("case", true),
@@ -344,17 +344,17 @@ function peg$parse(input, options) {
       peg$c33 = ")",
       peg$c34 = peg$literalExpectation(")", false),
       peg$c35 = function(procArray) {
-            return {"op": "Parallel", "procs": procArray}
+            return {"kind": "Parallel", "procs": procArray}
           },
       peg$c36 = "switch",
       peg$c37 = peg$literalExpectation("switch", false),
       peg$c38 = function(caseArray) {
-            return {"op": "Switch", "cases": caseArray}
+            return {"kind": "Switch", "cases": caseArray}
           },
       peg$c39 = function(f) { return f },
       peg$c40 = function(a) { return a },
       peg$c41 = function(expr) {
-            return {"op": "Filter", "expr": expr}
+            return {"kind": "Filter", "expr": expr}
           },
       peg$c42 = ":",
       peg$c43 = peg$literalExpectation(":", false),
@@ -373,27 +373,27 @@ function peg$parse(input, options) {
       peg$c52 = "!",
       peg$c53 = peg$literalExpectation("!", false),
       peg$c54 = function(e) {
-            return {"op": "UnaryExpr", "kind": "!", "operand": e}
+            return {"kind": "UnaryExpr", "op": "!", "operand": e}
           },
       peg$c55 = function(expr) { return expr },
       peg$c56 = "*",
       peg$c57 = peg$literalExpectation("*", false),
       peg$c58 = function(compareOp, v) {
-            return {"op": "Call", "name": "or",
+            return {"kind": "Call", "name": "or",
               
             "args": [
                 
-            {"op": "SelectExpr",
+            {"kind": "SelectExpr",
                     
-            "selectors": [{"op": "Root"}],
+            "selectors": [{"kind": "Root"}],
                     
             "methods": [
                       
-            {"op": "Call", "name": "map",
+            {"kind": "Call", "name": "map",
                           
-            "args": [{"op": "BinaryExpr", "kind": "=",
+            "args": [{"kind": "BinaryExpr", "op": "=",
                                             
-            "lhs": {"op": "Id", "name": "$"},
+            "lhs": {"kind": "Id", "name": "$"},
                                             
             "rhs": v}]}]}]}
           
@@ -406,24 +406,24 @@ function peg$parse(input, options) {
 
           },
       peg$c59 = function(f, comp, v) {
-            return {"op": "BinaryExpr", "kind":comp, "lhs":f, "rhs":v}
+            return {"kind": "BinaryExpr", "op":comp, "lhs":f, "rhs":v}
           },
       peg$c60 = function(v) {
-            return {"op": "Call", "name": "or",
+            return {"kind": "Call", "name": "or",
               
             "args": [
                 
-            {"op": "SelectExpr",
+            {"kind": "SelectExpr",
                     
-            "selectors": [{"op": "Root"}],
+            "selectors": [{"kind": "Root"}],
                     
             "methods": [
                       
-            {"op": "Call", "name": "map",
+            {"kind": "Call", "name": "map",
                           
-            "args": [{"op": "BinaryExpr", "kind": "in",
+            "args": [{"kind": "BinaryExpr", "op": "in",
                                             
-            "rhs": {"op": "Id", "name": "$"},
+            "rhs": {"kind": "Id", "name": "$"},
                                             
             "lhs": v}]}]}]}
           
@@ -436,17 +436,17 @@ function peg$parse(input, options) {
 
           },
       peg$c61 = function(v) {
-            return {"op": "Search", "text": text(), "value": v}
+            return {"kind": "Search", "text": text(), "value": v}
           },
       peg$c62 = function() {
-            return {"op": "Literal", "type": "bool", "value": "true"}
+            return {"kind": "Literal", "type": "bool", "value": "true"}
           },
       peg$c63 = function(v) {
-            return {"op": "Literal", "type": "string", "value": v}
+            return {"kind": "Literal", "type": "string", "value": v}
           },
       peg$c64 = function(v) {
             let str = v;
-            let literal = {"op": "Literal", "type": "string", "value": v};
+            let literal = {"kind": "Literal", "type": "string", "value": v};
             if (reglob$1.IsGlobby(str)) {
               literal["type"] = "regexp";
               literal["value"] = reglob$1.Reglob(str);
@@ -477,13 +477,13 @@ function peg$parse(input, options) {
               return makeBinaryExprChain(first, rest)
           },
       peg$c84 = function(e, typ) {
-            return {"op": "Cast", "expr": e, "type": typ}
+            return {"kind": "Cast", "expr": e, "type": typ}
           },
       peg$c85 = function(every, keys, limit) {
-            return {"op": "Summarize", "keys": keys, "aggs": null, "duration": every, "limit": limit}
+            return {"kind": "Summarize", "keys": keys, "aggs": null, "duration": every, "limit": limit}
           },
       peg$c86 = function(every, aggs, keys, limit) {
-            let p = {"op": "Summarize", "keys": null, "aggs": aggs, "duration": every, "limit": limit};
+            let p = {"kind": "Summarize", "keys": null, "aggs": aggs, "duration": every, "limit": limit};
             if (keys) {
               p["keys"] = keys[1];
             }
@@ -503,18 +503,18 @@ function peg$parse(input, options) {
       peg$c98 = peg$literalExpectation("-limit", false),
       peg$c99 = function(limit) { return limit },
       peg$c100 = function() { return 0 },
-      peg$c101 = function(expr) { return {"op": "Assignment", "lhs": null, "rhs": expr} },
+      peg$c101 = function(expr) { return {"kind": "Assignment", "lhs": null, "rhs": expr} },
       peg$c102 = function(first, expr) { return expr },
       peg$c103 = function(lval, agg) {
-            return {"op": "Assignment", "lhs": lval, "rhs": agg}
+            return {"kind": "Assignment", "lhs": lval, "rhs": agg}
           },
       peg$c104 = function(agg) {
-            return {"op": "Assignment", "lhs": null, "rhs": agg}
+            return {"kind": "Assignment", "lhs": null, "rhs": agg}
           },
       peg$c105 = ".",
       peg$c106 = peg$literalExpectation(".", false),
       peg$c107 = function(op, expr, where) {
-            let r = {"op": "Agg", "name": op, "expr": null, "where":where};
+            let r = {"kind": "Agg", "name": op, "expr": null, "where":where};
             if (expr) {
               r["expr"] = expr;
             }
@@ -534,7 +534,7 @@ function peg$parse(input, options) {
       peg$c113 = function(args, l) { return l },
       peg$c114 = function(args, list) {
             let argm = args;
-            let proc = {"op": "Sort", "args": list, "sortdir": 1, "nullsfirst": false};
+            let proc = {"kind": "Sort", "args": list, "sortdir": 1, "nullsfirst": false};
             if ( "r" in argm) {
               proc["sortdir"] = -1;
             }
@@ -563,7 +563,7 @@ function peg$parse(input, options) {
       peg$c130 = peg$literalExpectation("-flush", false),
       peg$c131 = function(limit, flush, f) { return f },
       peg$c132 = function(limit, flush, fields) {
-            let proc = {"op": "Top", "limit": 0, "args": null, "flush": false};
+            let proc = {"kind": "Top", "limit": 0, "args": null, "flush": false};
             if (limit) {
               proc["limit"] = limit;
             }
@@ -578,26 +578,26 @@ function peg$parse(input, options) {
       peg$c133 = "cut",
       peg$c134 = peg$literalExpectation("cut", true),
       peg$c135 = function(args) {
-            return {"op": "Cut", "args": args}
+            return {"kind": "Cut", "args": args}
           },
       peg$c136 = "pick",
       peg$c137 = peg$literalExpectation("pick", true),
       peg$c138 = function(args) {
-            return {"op": "Pick", "args": args}
+            return {"kind": "Pick", "args": args}
           },
       peg$c139 = "drop",
       peg$c140 = peg$literalExpectation("drop", true),
       peg$c141 = function(args) {
-            return {"op": "Drop", "args": args}
+            return {"kind": "Drop", "args": args}
           },
       peg$c142 = "head",
       peg$c143 = peg$literalExpectation("head", true),
-      peg$c144 = function(count) { return {"op": "Head", "count": count} },
-      peg$c145 = function() { return {"op": "Head", "count": 1} },
+      peg$c144 = function(count) { return {"kind": "Head", "count": count} },
+      peg$c145 = function() { return {"kind": "Head", "count": 1} },
       peg$c146 = "tail",
       peg$c147 = peg$literalExpectation("tail", true),
-      peg$c148 = function(count) { return {"op": "Tail", "count": count} },
-      peg$c149 = function() { return {"op": "Tail", "count": 1} },
+      peg$c148 = function(count) { return {"kind": "Tail", "count": count} },
+      peg$c149 = function() { return {"kind": "Tail", "count": 1} },
       peg$c150 = "filter",
       peg$c151 = peg$literalExpectation("filter", true),
       peg$c152 = function(op) {
@@ -608,43 +608,43 @@ function peg$parse(input, options) {
       peg$c155 = "-c",
       peg$c156 = peg$literalExpectation("-c", false),
       peg$c157 = function() {
-            return {"op": "Uniq", "cflag": true}
+            return {"kind": "Uniq", "cflag": true}
           },
       peg$c158 = function() {
-            return {"op": "Uniq", "cflag": false}
+            return {"kind": "Uniq", "cflag": false}
           },
       peg$c159 = "put",
       peg$c160 = peg$literalExpectation("put", true),
       peg$c161 = function(args) {
-            return {"op": "Put", "args": args}
+            return {"kind": "Put", "args": args}
           },
       peg$c162 = "rename",
       peg$c163 = peg$literalExpectation("rename", true),
       peg$c164 = function(first, cl) { return cl },
       peg$c165 = function(first, rest) {
-            return {"op": "Rename", "args": [first, ... rest]}
+            return {"kind": "Rename", "args": [first, ... rest]}
           },
       peg$c166 = "fuse",
       peg$c167 = peg$literalExpectation("fuse", true),
       peg$c168 = function() {
-            return {"op": "Fuse"}
+            return {"kind": "Fuse"}
           },
       peg$c169 = "shape",
       peg$c170 = peg$literalExpectation("shape", true),
       peg$c171 = function() {
-            return {"op": "Shape"}
+            return {"kind": "Shape"}
           },
       peg$c172 = "join",
       peg$c173 = peg$literalExpectation("join", true),
-      peg$c174 = function(kind, leftKey, rightKey, columns) {
-            let proc = {"op": "Join", "kind": kind, "left_key": leftKey, "right_key": rightKey, "args": null};
+      peg$c174 = function(style, leftKey, rightKey, columns) {
+            let proc = {"kind": "Join", "style": style, "left_key": leftKey, "right_key": rightKey, "args": null};
             if (columns) {
               proc["args"] = columns[1];
             }
             return proc
           },
-      peg$c175 = function(kind, key, columns) {
-            let proc = {"op": "Join", "kind": kind, "left_key": key, "right_key": key, "args": null};
+      peg$c175 = function(style, key, columns) {
+            let proc = {"kind": "Join", "style": style, "left_key": key, "right_key": key, "args": null};
             if (columns) {
               proc["args"] = columns[1];
             }
@@ -662,23 +662,23 @@ function peg$parse(input, options) {
       peg$c185 = "taste",
       peg$c186 = peg$literalExpectation("taste", true),
       peg$c187 = function(e) {
-            return {"op": "Sequential", "procs": [
+            return {"kind": "Sequential", "procs": [
               
-            {"op": "Summarize",
+            {"kind": "Summarize",
                 
-            "keys": [{"op": "Assignment",
+            "keys": [{"kind": "Assignment",
                          
-            "lhs": {"op": "Id", "name": "shape"},
+            "lhs": {"kind": "Id", "name": "shape"},
                          
-            "rhs": {"op": "Call", "name": "typeof",
+            "rhs": {"kind": "Call", "name": "typeof",
                                     
             "args": [e]}}],
                 
-            "aggs": [{"op": "Assignment",
+            "aggs": [{"kind": "Assignment",
                                     
-            "lhs": {"op": "Id", "name": "taste"},
+            "lhs": {"kind": "Id", "name": "taste"},
                                     
-            "rhs": {"op": "Agg",
+            "rhs": {"kind": "Agg",
                                                
             "name": "any",
                                                
@@ -688,17 +688,17 @@ function peg$parse(input, options) {
                 
             "duration": null, "limit": 0},
               
-            {"op": "Cut",
+            {"kind": "Cut",
                   
-            "args": [{"op": "Assignment",
+            "args": [{"kind": "Assignment",
                                       
             "lhs": null,
                                       
-            "rhs": {"op": "Id", "name": "taste"}}]}]}
+            "rhs": {"kind": "Id", "name": "taste"}}]}]}
           
           },
       peg$c188 = function(lval) { return lval},
-      peg$c189 = function() { return {"op":"Root"} },
+      peg$c189 = function() { return {"kind":"Root"} },
       peg$c190 = function(first, rest) {
             let result = [first];
 
@@ -708,11 +708,11 @@ function peg$parse(input, options) {
 
             return result
           },
-      peg$c191 = function(lhs, rhs) { return {"op": "Assignment", "lhs": lhs, "rhs": rhs} },
+      peg$c191 = function(lhs, rhs) { return {"kind": "Assignment", "lhs": lhs, "rhs": rhs} },
       peg$c192 = "?",
       peg$c193 = peg$literalExpectation("?", false),
       peg$c194 = function(condition, thenClause, elseClause) {
-            return {"op": "Conditional", "cond": condition, "then": thenClause, "else": elseClause}
+            return {"kind": "Conditional", "cond": condition, "then": thenClause, "else": elseClause}
           },
       peg$c195 = function(first, comp, expr) { return [comp, expr] },
       peg$c196 = "+",
@@ -722,7 +722,7 @@ function peg$parse(input, options) {
       peg$c200 = "/",
       peg$c201 = peg$literalExpectation("/", false),
       peg$c202 = function(e) {
-              return {"op": "UnaryExpr", "kind": "!", "operand": e}
+              return {"kind": "UnaryExpr", "op": "!", "operand": e}
           },
       peg$c203 = "not",
       peg$c204 = peg$literalExpectation("not", false),
@@ -731,21 +731,21 @@ function peg$parse(input, options) {
       peg$c207 = "select",
       peg$c208 = peg$literalExpectation("select", false),
       peg$c209 = function(args, methods) {
-            return {"op":"SelectExpr", "selectors":args, "methods": methods}
+            return {"kind":"SelectExpr", "selectors":args, "methods": methods}
           },
       peg$c210 = function(methods) { return methods },
       peg$c211 = function(fn, args) {
-            return {"op": "Call", "name": fn, "args": args}
+            return {"kind": "Call", "name": fn, "args": args}
           },
       peg$c212 = function(first, e) { return e },
       peg$c213 = function() { return [] },
       peg$c214 = function() {
-            return {"op":"Root"}
+            return {"kind":"Root"}
           },
       peg$c215 = function(field) {
-            return {"op": "BinaryExpr", "kind":".",
+            return {"kind": "BinaryExpr", "op":".",
                            
-            "lhs":{"op":"Root"},
+            "lhs":{"kind":"Root"},
                            
             "rhs":field}
           
@@ -756,28 +756,28 @@ function peg$parse(input, options) {
       peg$c218 = "]",
       peg$c219 = peg$literalExpectation("]", false),
       peg$c220 = function(expr) {
-            return {"op": "BinaryExpr", "kind":"[",
+            return {"kind": "BinaryExpr", "op":"[",
                            
-            "lhs":{"op":"Root"},
+            "lhs":{"kind":"Root"},
                            
             "rhs":expr}
           
 
           },
       peg$c221 = function(from, to) {
-            return ["[", {"op": "BinaryExpr", "kind":":",
+            return ["[", {"kind": "BinaryExpr", "op":":",
                                   
             "lhs":from, "rhs":to}]
           
           },
       peg$c222 = function(to) {
-            return ["[", {"op": "BinaryExpr", "kind":":",
+            return ["[", {"kind": "BinaryExpr", "op":":",
                                   
             "lhs": null, "rhs":to}]
           
           },
       peg$c223 = function(from) {
-            return ["[", {"op": "BinaryExpr", "kind":":",
+            return ["[", {"kind": "BinaryExpr", "op":":",
                                   
             "lhs":from, "rhs": null}]
           
@@ -785,46 +785,46 @@ function peg$parse(input, options) {
       peg$c224 = function(expr) { return ["[", expr] },
       peg$c225 = function(id) { return [".", id] },
       peg$c226 = function(v) {
-            return {"op": "Literal", "type": "regexp", "value": v}
+            return {"kind": "Literal", "type": "regexp", "value": v}
           },
       peg$c227 = function(v) {
-            return {"op": "Literal", "type": "net", "value": v}
+            return {"kind": "Literal", "type": "net", "value": v}
           },
       peg$c228 = function(v) {
-            return {"op": "Literal", "type": "ip", "value": v}
+            return {"kind": "Literal", "type": "ip", "value": v}
           },
       peg$c229 = function(v) {
-            return {"op": "Literal", "type": "float64", "value": v}
+            return {"kind": "Literal", "type": "float64", "value": v}
           },
       peg$c230 = function(v) {
-            return {"op": "Literal", "type": "int64", "value": v}
+            return {"kind": "Literal", "type": "int64", "value": v}
           },
       peg$c231 = "true",
       peg$c232 = peg$literalExpectation("true", false),
-      peg$c233 = function() { return {"op": "Literal", "type": "bool", "value": "true"} },
+      peg$c233 = function() { return {"kind": "Literal", "type": "bool", "value": "true"} },
       peg$c234 = "false",
       peg$c235 = peg$literalExpectation("false", false),
-      peg$c236 = function() { return {"op": "Literal", "type": "bool", "value": "false"} },
+      peg$c236 = function() { return {"kind": "Literal", "type": "bool", "value": "false"} },
       peg$c237 = "null",
       peg$c238 = peg$literalExpectation("null", false),
-      peg$c239 = function() { return {"op": "Literal", "type": "null", "value": ""} },
+      peg$c239 = function() { return {"kind": "Literal", "type": "null", "value": ""} },
       peg$c240 = function(typ) {
-            return {"op": "TypeValue", "value": typ}
+            return {"kind": "TypeValue", "value": typ}
           },
       peg$c241 = function(typ) { return typ},
       peg$c242 = function(typ) { return typ },
       peg$c243 = function() {
-            return {"op": "TypeNull"}
+            return {"kind": "TypeNull"}
           },
       peg$c244 = function(name, typ) {
-            return {"op": "TypeDef", "name": name, "type": typ}
+            return {"kind": "TypeDef", "name": name, "type": typ}
         },
       peg$c245 = function(name) {
-            return {"op": "TypeName", "name": name}
+            return {"kind": "TypeName", "name": name}
           },
       peg$c246 = function(u) { return u },
       peg$c247 = function(types) {
-            return {"op": "TypeUnion", "types": types}
+            return {"kind": "TypeUnion", "types": types}
           },
       peg$c248 = function(first, rest) {
           return [first, ... rest]
@@ -834,24 +834,24 @@ function peg$parse(input, options) {
       peg$c251 = "}",
       peg$c252 = peg$literalExpectation("}", false),
       peg$c253 = function(fields) {
-            return {"op":"TypeRecord", "fields":fields}
+            return {"kind":"TypeRecord", "fields":fields}
           },
       peg$c254 = function(typ) {
-            return {"op":"TypeArray", "type":typ}
+            return {"kind":"TypeArray", "type":typ}
           },
       peg$c255 = "|[",
       peg$c256 = peg$literalExpectation("|[", false),
       peg$c257 = "]|",
       peg$c258 = peg$literalExpectation("]|", false),
       peg$c259 = function(typ) {
-            return {"op":"TypeSet", "type":typ}
+            return {"kind":"TypeSet", "type":typ}
           },
       peg$c260 = "|{",
       peg$c261 = peg$literalExpectation("|{", false),
       peg$c262 = "}|",
       peg$c263 = peg$literalExpectation("}|", false),
       peg$c264 = function(keyType, valType) {
-            return {"op":"TypeMap", "key_type":keyType, "val_type": valType}
+            return {"kind":"TypeMap", "key_type":keyType, "val_type": valType}
           },
       peg$c265 = "uint8",
       peg$c266 = peg$literalExpectation("uint8", false),
@@ -876,7 +876,7 @@ function peg$parse(input, options) {
       peg$c285 = "string",
       peg$c286 = peg$literalExpectation("string", false),
       peg$c287 = function() {
-                return {"op": "TypePrimitive", "name": text()}
+                return {"kind": "TypePrimitive", "name": text()}
               },
       peg$c288 = "duration",
       peg$c289 = peg$literalExpectation("duration", false),
@@ -912,7 +912,7 @@ function peg$parse(input, options) {
       peg$c317 = peg$classExpectation([["A", "Z"], ["a", "z"], "_", "$"], false, false),
       peg$c318 = /^[0-9]/,
       peg$c319 = peg$classExpectation([["0", "9"]], false, false),
-      peg$c320 = function(id) { return {"op": "Id", "name": id} },
+      peg$c320 = function(id) { return {"kind": "Id", "name": id} },
       peg$c321 = function() {  return text() },
       peg$c322 = "$",
       peg$c323 = peg$literalExpectation("$", false),
@@ -4929,7 +4929,7 @@ function peg$parse(input, options) {
     var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11;
 
     s0 = peg$currPos;
-    s1 = peg$parseJoinKind();
+    s1 = peg$parseJoinStyle();
     if (s1 !== peg$FAILED) {
       if (input.substr(peg$currPos, 4).toLowerCase() === peg$c172) {
         s2 = input.substr(peg$currPos, 4);
@@ -5017,7 +5017,7 @@ function peg$parse(input, options) {
     }
     if (s0 === peg$FAILED) {
       s0 = peg$currPos;
-      s1 = peg$parseJoinKind();
+      s1 = peg$parseJoinStyle();
       if (s1 !== peg$FAILED) {
         if (input.substr(peg$currPos, 4).toLowerCase() === peg$c172) {
           s2 = input.substr(peg$currPos, 4);
@@ -5078,7 +5078,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseJoinKind() {
+  function peg$parseJoinStyle() {
     var s0, s1, s2;
 
     s0 = peg$currPos;
@@ -11251,7 +11251,7 @@ function peg$parse(input, options) {
   function makeBinaryExprChain(first, rest) {
     let ret = first;
     for (let part of rest) {
-      ret = { op: "BinaryExpr", kind: part[0], lhs: ret, rhs: part[1] };
+      ret = { kind: "BinaryExpr", op: part[0], lhs: ret, rhs: part[1] };
     }
     return ret
   }

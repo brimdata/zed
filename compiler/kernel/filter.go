@@ -10,7 +10,7 @@ import (
 )
 
 func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (expr.Filter, error) {
-	if e.Kind == "in" {
+	if e.Op == "in" {
 		literal, ok := e.LHS.(*ast.Literal)
 		if !ok {
 			return nil, nil
@@ -31,7 +31,7 @@ func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr
 	if !ok {
 		return nil, nil
 	}
-	comparison, err := expr.Comparison(e.Kind, *literal)
+	comparison, err := expr.Comparison(e.Op, *literal)
 	if err != nil {
 		// If this fails, return no match instead of the error and
 		// let later-on code detect the error as this could be a
@@ -77,8 +77,8 @@ func compileSearch(node *ast.Search) (expr.Filter, error) {
 func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Filter, error) {
 	switch v := node.(type) {
 	case *ast.UnaryExpr:
-		if v.Kind != "!" {
-			return nil, fmt.Errorf("unknown unary operator: %s", v.Kind)
+		if v.Op != "!" {
+			return nil, fmt.Errorf("unknown unary operator: %s", v.Op)
 		}
 		e, err := CompileFilter(zctx, scope, v.Operand)
 		if err != nil {
@@ -107,7 +107,7 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Fi
 		return compileSearch(v)
 
 	case *ast.BinaryExpr:
-		if v.Kind == "and" {
+		if v.Op == "and" {
 			left, err := CompileFilter(zctx, scope, v.LHS)
 			if err != nil {
 				return nil, err
@@ -118,7 +118,7 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Fi
 			}
 			return expr.LogicalAnd(left, right), nil
 		}
-		if v.Kind == "or" {
+		if v.Op == "or" {
 			left, err := CompileFilter(zctx, scope, v.LHS)
 			if err != nil {
 				return nil, err

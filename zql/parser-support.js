@@ -25,7 +25,7 @@ function makeArgMap(args) {
 function makeBinaryExprChain(first, rest) {
   let ret = first
   for (let part of rest) {
-    ret = { op: "BinaryExpr", kind: part[0], lhs: ret, rhs: part[1] };
+    ret = { kind: "BinaryExpr", op: part[0], lhs: ret, rhs: part[1] };
   }
   return ret
 }

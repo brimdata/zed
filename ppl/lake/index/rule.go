@@ -127,19 +127,19 @@ var countAst = ast.NewAggAssignment("count", nil, nil)
 // the type passed in as argument.
 func (r Rule) typeProc() (ast.Proc, error) {
 	return &ast.Sequential{
-		Op: "Sequential",
+		Kind: "Sequential",
 		Procs: []ast.Proc{
 			&ast.TypeSplitter{
 				Key:      keyName,
 				TypeName: r.Type,
 			},
 			&ast.Summarize{
-				Op:   "Summarize",
+				Kind: "Summarize",
 				Keys: []ast.Assignment{keyAst},
 				Aggs: []ast.Assignment{countAst},
 			},
 			&ast.Sort{
-				Op:   "Sort",
+				Kind: "Sort",
 				Args: []ast.Expr{ast.NewDotExpr(keyName)},
 			},
 		},
@@ -148,19 +148,19 @@ func (r Rule) typeProc() (ast.Proc, error) {
 
 func (r Rule) fieldProc() (ast.Proc, error) {
 	return &ast.Sequential{
-		Op: "Sequential",
+		Kind: "Sequential",
 		Procs: []ast.Proc{
 			&ast.FieldCutter{
 				Field: field.Dotted(r.Field),
 				Out:   keyName,
 			},
 			&ast.Summarize{
-				Op:   "Summarize",
+				Kind: "Summarize",
 				Keys: []ast.Assignment{keyAst},
 				Aggs: []ast.Assignment{countAst},
 			},
 			&ast.Sort{
-				Op:   "Sort",
+				Kind: "Sort",
 				Args: []ast.Expr{ast.NewDotExpr(keyName)},
 			},
 		},

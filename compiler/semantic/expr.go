@@ -46,8 +46,8 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 			return nil, err
 		}
 		return &ast.UnaryExpr{
-			Op:      "UnaryExpr",
-			Kind:    e.Kind,
+			Kind:    "UnaryExpr",
+			Op:      e.Op,
 			Operand: expr,
 		}, nil
 	case *ast.SelectExpr:
@@ -68,7 +68,7 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 			return nil, err
 		}
 		return &ast.Conditional{
-			Op:   "Conditional",
+			Kind: "Conditional",
 			Cond: cond,
 			Then: thenExpr,
 			Else: elseExpr,
@@ -81,13 +81,13 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 			return nil, err
 		}
 		return &ast.Cast{
-			Op:   "Cast",
+			Kind: "Cast",
 			Expr: expr,
 			Type: e.Type, //XXX
 		}, nil
 	case *ast.TypeValue:
 		return &ast.TypeValue{
-			Op:    "TypeValue",
+			Kind:  "TypeValue",
 			Value: e.Value,
 		}, nil
 	case *ast.Agg:
@@ -103,7 +103,7 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 			return nil, err
 		}
 		return &ast.Agg{
-			Op:    "Agg",
+			Kind:  "Agg",
 			Name:  e.Name,
 			Expr:  expr,
 			Where: where,
@@ -113,11 +113,11 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 }
 
 func semBinary(scope *Scope, e *ast.BinaryExpr) (ast.Expr, error) {
-	op := e.Kind
+	op := e.Op
 	if op == "." {
 		return semField(scope, e)
 	}
-	if slice, ok := e.RHS.(*ast.BinaryExpr); ok && slice.Kind == ":" {
+	if slice, ok := e.RHS.(*ast.BinaryExpr); ok && slice.Op == ":" {
 		if op != "[" {
 			return nil, errors.New("slice outside of index operator")
 		}
@@ -130,8 +130,8 @@ func semBinary(scope *Scope, e *ast.BinaryExpr) (ast.Expr, error) {
 			return nil, err
 		}
 		return &ast.BinaryExpr{
-			Op:   "BinaryExpr",
-			Kind: "[",
+			Kind: "BinaryExpr",
+			Op:   "[",
 			LHS:  ref,
 			RHS:  slice,
 		}, nil
@@ -145,8 +145,8 @@ func semBinary(scope *Scope, e *ast.BinaryExpr) (ast.Expr, error) {
 		return nil, err
 	}
 	return &ast.BinaryExpr{
-		Op:   "BinaryExpr",
-		Kind: e.Kind,
+		Kind: "BinaryExpr",
+		Op:   e.Op,
 		LHS:  lhs,
 		RHS:  rhs,
 	}, nil
@@ -162,8 +162,8 @@ func semSlice(scope *Scope, slice *ast.BinaryExpr) (*ast.BinaryExpr, error) {
 		return nil, err
 	}
 	return &ast.BinaryExpr{
-		Op:   "BinaryExpr",
-		Kind: ":",
+		Kind: "BinaryExpr",
+		Op:   ":",
 		LHS:  sliceFrom,
 		RHS:  sliceTo,
 	}, nil
@@ -185,7 +185,7 @@ func semCall(scope *Scope, call *ast.Call) (ast.Expr, error) {
 		return nil, fmt.Errorf("%s: bad argument: %w", call.Name, err)
 	}
 	return &ast.Call{
-		Op:   "Call",
+		Kind: "Call",
 		Name: call.Name,
 		Args: exprs,
 	}, nil
@@ -216,7 +216,7 @@ func semSequence(scope *Scope, call *ast.Call) (*ast.SeqExpr, error) {
 		methods = append(methods, *m)
 	}
 	return &ast.SeqExpr{
-		Op:        "SeqExpr",
+		Kind:      "SeqExpr",
 		Name:      call.Name,
 		Selectors: selectors,
 		Methods:   methods,
@@ -324,7 +324,7 @@ func semFields(scope *Scope, exprs []ast.Expr) ([]ast.Expr, error) {
 func semField(scope *Scope, e ast.Expr) (ast.Expr, error) {
 	switch e := e.(type) {
 	case *ast.BinaryExpr:
-		if e.Kind == "." {
+		if e.Op == "." {
 			lhs, err := semField(scope, e.LHS)
 			if err != nil {
 				return nil, err
@@ -338,13 +338,13 @@ func semField(scope *Scope, e ast.Expr) (ast.Expr, error) {
 				return lhs, nil
 			}
 			return &ast.BinaryExpr{
-				Op:   "BinaryExpr",
-				Kind: ".",
+				Kind: "BinaryExpr",
+				Op:   ".",
 				LHS:  lhs,
 				RHS:  id,
 			}, nil
 		}
-		if e.Kind == "[" {
+		if e.Op == "[" {
 			lhs, err := semField(scope, e.LHS)
 			if err != nil {
 				return nil, err
@@ -354,8 +354,8 @@ func semField(scope *Scope, e ast.Expr) (ast.Expr, error) {
 				return nil, err
 			}
 			return &ast.BinaryExpr{
-				Op:   "BinaryExpr",
-				Kind: "[",
+				Kind: "BinaryExpr",
+				Op:   "[",
 				LHS:  lhs,
 				RHS:  rhs,
 			}, nil
@@ -370,9 +370,9 @@ func semField(scope *Scope, e ast.Expr) (ast.Expr, error) {
 		if e.Name == "$" {
 			return &ast.Ref{"Ref", "$"}, nil
 		}
-		return &ast.Path{Op: "Path", Name: []string{e.Name}}, nil
+		return &ast.Path{Kind: "Path", Name: []string{e.Name}}, nil
 	case *ast.Root:
-		return &ast.Path{Op: "Path", Name: []string{}}, nil
+		return &ast.Path{Kind: "Path", Name: []string{}}, nil
 	}
 	// This includes a null Expr, which can happen if the AST is missing
 	// a field or sets it to null.
@@ -397,16 +397,16 @@ func convertFunctionProc(call *ast.Call) (ast.Proc, error) {
 		e = call.Args[0]
 	}
 	agg := &ast.Agg{
-		Op:   "Agg",
+		Kind: "Agg",
 		Name: call.Name,
 		Expr: e,
 	}
 	return &ast.Summarize{
-		Op: "Summarize",
+		Kind: "Summarize",
 		Aggs: []ast.Assignment{
 			{
-				Op:  "Assignment",
-				RHS: agg,
+				Kind: "Assignment",
+				RHS:  agg,
 			},
 		},
 	}, nil
