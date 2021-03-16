@@ -57,7 +57,7 @@ Z // = !(Operator / Aggregation / "(") op:Operation &EOF { RETURN(op) }
       FOREACH(ASSERT_ARRAY(rest), p) {
         APPEND(procs, p)
       }
-      RETURN(MAP("op": "SequentialProc", "procs": procs))
+      RETURN(MAP("op": "Sequential", "procs": procs))
     }
   / Sequential
 
@@ -65,7 +65,7 @@ Const = __ v:AnyConst { RETURN(v) }
 
 AnyConst
   = "const" _ id:IdentifierName __ "=" __ expr:Expr ( __ ";" / EOL ) {
-      RETURN(MAP("op":"ConstProc","name":id, "expr":expr))
+      RETURN(MAP("op":"Const","name":id, "expr":expr))
     }
   / "type" _ id:IdentifierName __ "=" __ typ:Type ( __ ";" / EOL ) {
       RETURN(MAP("op":"TypeProc","name":id, "type":typ))
@@ -73,10 +73,10 @@ AnyConst
 
 Sequential
   = first:Operation rest:SequentialTail+ {
-      RETURN(MAP("op": "SequentialProc", "procs": PREPEND(first, rest)))
+      RETURN(MAP("op": "Sequential", "procs": PREPEND(first, rest)))
     }
   / op:Operation {
-      RETURN(MAP("op": "SequentialProc", "procs": ARRAY(op)))
+      RETURN(MAP("op": "Sequential", "procs": ARRAY(op)))
     }
 
 SequentialTail = __ "|" __ p:Operation { RETURN(p) }
@@ -93,11 +93,11 @@ ParallelTail
   = __ "=>" __ ch:Sequential { RETURN(ch) }
 
 SwitchBranch
-  = __ CaseToken _ filter:SearchBoolean __ "=>" __ proc:Sequential {
-      RETURN(MAP("filter": filter, "proc": proc))
+  = __ CaseToken _ e:SearchBoolean __ "=>" __ proc:Sequential {
+      RETURN(MAP("expr": e, "proc": proc))
     }
   / __ DefaultToken __ "=>" __ proc:Sequential {
-      RETURN(MAP("filter": MAP("op": "Literal", "type": "bool", "value": "true"), "proc": proc))
+      RETURN(MAP("expr": MAP("op": "Literal", "type": "bool", "value": "true"), "proc": proc))
     }
 
 Switch
@@ -113,16 +113,16 @@ DefaultToken = "default"i
 
 Operation
   = "split" __ "(" __ "=>" __ procArray:Parallel __ ")" {
-      RETURN(MAP("op": "ParallelProc", "procs": procArray))
+      RETURN(MAP("op": "Parallel", "procs": procArray))
     }
   / "switch" __ "(" __ caseArray:Switch __ ")" {
-      RETURN(MAP("op": "SwitchProc", "cases": caseArray))
+      RETURN(MAP("op": "Switch", "cases": caseArray))
     }
   / Operator
   / f:Function &EndOfOp { RETURN(f) }
   / a:Aggregation &EndOfOp  { RETURN(a) }
   / expr:SearchBoolean !AggGuard {
-      RETURN(MAP("op": "FilterProc", "filter": expr))
+      RETURN(MAP("op": "Filter", "expr": expr))
     }
 
 EndOfOp = __ ("|" / "=>" / ")" / EOF)
@@ -146,7 +146,7 @@ SearchAnd
 
 SearchFactor
   = (NotToken _ / "!" __) e:SearchFactor {
-      RETURN(MAP("op": "UnaryExpr", "operator": "!", "operand": e))
+      RETURN(MAP("op": "UnaryExpr", "kind": "!", "operand": e))
     }
   / ShortCut
   / SearchExpr
@@ -154,28 +154,28 @@ SearchFactor
 
 ShortCut
   = "*" __ compareOp:EqualityToken __ v:SearchValue {
-      RETURN(MAP("op": "FunctionCall", "function": "or",
+      RETURN(MAP("op": "Call", "name": "or",
         "args": ARRAY(
           MAP("op": "SelectExpr",
-              "selectors": ARRAY(MAP("op": "RootRecord")),
+              "selectors": ARRAY(MAP("op": "Root")),
               "methods": ARRAY(
-                MAP("op": "FunctionCall", "function": "map",
-                    "args": ARRAY(MAP("op": "BinaryExpr", "operator": "=",
-                                      "lhs": MAP("op": "Identifier", "name": "$"),
+                MAP("op": "Call", "name": "map",
+                    "args": ARRAY(MAP("op": "BinaryExpr", "kind": "=",
+                                      "lhs": MAP("op": "Id", "name": "$"),
                                       "rhs": v))))))))
     }
   / f:Lval __ comp:EqualityToken __ v:GlobbySearchValue !ExprGuard {
-      RETURN(MAP("op": "BinaryExpr", "operator":comp, "lhs":f, "rhs":v))
+      RETURN(MAP("op": "BinaryExpr", "kind":comp, "lhs":f, "rhs":v))
     }
   / v:SearchValue _ InToken _ "*" {
-      RETURN(MAP("op": "FunctionCall", "function": "or",
+      RETURN(MAP("op": "Call", "name": "or",
         "args": ARRAY(
           MAP("op": "SelectExpr",
-              "selectors": ARRAY(MAP("op": "RootRecord")),
+              "selectors": ARRAY(MAP("op": "Root")),
               "methods": ARRAY(
-                MAP("op": "FunctionCall", "function": "map",
-                    "args": ARRAY(MAP("op": "BinaryExpr", "operator": "in",
-                                      "rhs": MAP("op": "Identifier", "name": "$"),
+                MAP("op": "Call", "name": "map",
+                    "args": ARRAY(MAP("op": "BinaryExpr", "kind": "in",
+                                      "rhs": MAP("op": "Id", "name": "$"),
                                       "lhs": v))))))))
     }
   / !(SearchGuard EOT) v:GlobbySearchValue !ExprGuard {
@@ -250,7 +250,7 @@ SearchExprMul
 
 SearchExprCast
   = e:SearchExprFunc __ ":" __ typ:CastType {
-      RETURN(MAP("op": "CastExpr", "expr": e, "type": typ))
+      RETURN(MAP("op": "Cast", "expr": e, "type": typ))
     }
   / SearchExprFunc
 
@@ -267,10 +267,10 @@ SearchExprFunc
 
 Aggregation
   = Summarize every:EveryDur keys:GroupByKeys limit:LimitArg {
-      RETURN(MAP("op": "GroupByProc", "keys": keys, "reducers": NULL, "duration": every, "limit": limit))
+      RETURN(MAP("op": "Summarize", "keys": keys, "aggs": NULL, "duration": every, "limit": limit))
     }
-  / Summarize every:EveryDur reducers:Reducers keys:(_ GroupByKeys)? limit:LimitArg {
-      VAR(p) = MAP("op": "GroupByProc", "keys": NULL, "reducers": reducers, "duration": every, "limit": limit)
+  / Summarize every:EveryDur aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
+      VAR(p) = MAP("op": "Summarize", "keys": NULL, "aggs": aggs, "duration": every, "limit": limit)
       if ISNOTNULL(keys) {
         p["keys"] = ASSERT_ARRAY(keys)[1]
       }
@@ -302,32 +302,32 @@ FlexAssignments
       RETURN(PREPEND(first, rest))
     }
 
-ReducerAssignment
-  = lval:Lval __ "=" __ reducer:Reducer {
-      RETURN(MAP("op": "Assignment", "lhs": lval, "rhs": reducer))
+AggAssignment
+  = lval:Lval __ "=" __ agg:Agg {
+      RETURN(MAP("op": "Assignment", "lhs": lval, "rhs": agg))
     }
-  / reducer:Reducer {
-      RETURN(MAP("op": "Assignment", "lhs": NULL, "rhs": reducer))
+  / agg:Agg {
+      RETURN(MAP("op": "Assignment", "lhs": NULL, "rhs": agg))
     }
 
-Reducer
-  = !FuncGuard op:ReducerName __ "(" __ expr:Expr?  __ ")" !(__ ".") where:WhereClause? {
-      VAR(r) = MAP("op": "Reducer", "operator": op, "expr": NULL, "where":where)
+Agg
+  = !FuncGuard op:AggName __ "(" __ expr:Expr?  __ ")" !(__ ".") where:WhereClause? {
+      VAR(r) = MAP("op": "Agg", "name": op, "expr": NULL, "where":where)
       if ISNOTNULL(expr) {
         r["expr"] = expr
       }
       RETURN(r)
     }
 
-ReducerName
+AggName
   = IdentifierName
   / AndToken
   / OrToken
 
 WhereClause = _ "where" _ expr:SearchBoolean { RETURN(expr) }
 
-Reducers
-  = first:ReducerAssignment rest:(__ "," __ ReducerAssignment)* {
+AggAssignments
+  = first:AggAssignment rest:(__ "," __ AggAssignment)* {
       VAR(result) = ARRAY(first)
       FOREACH(ASSERT_ARRAY(rest), r) {
         APPEND(result, ASSERT_ARRAY(r)[3])
@@ -355,7 +355,7 @@ Operator
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
       VAR(argm) = ASSERT_MAP(args)
-      VAR(proc) = MAP("op": "SortProc", "fields": list, "sortdir": 1, "nullsfirst": false)
+      VAR(proc) = MAP("op": "Sort", "args": list, "sortdir": 1, "nullsfirst": false)
       if HAS(argm, "r") {
         proc["sortdir"] = -1
       }
@@ -375,12 +375,12 @@ SortArg
 
 TopProc
   = "top"i limit:(_ n:UInt { RETURN(n)})? flush:(_ "-flush")? fields:(_ f:FieldExprs { RETURN(f) })? {
-      VAR(proc) = MAP("op": "TopProc", "limit": 0, "fields": NULL, "flush": false)
+      VAR(proc) = MAP("op": "Top", "limit": 0, "args": NULL, "flush": false)
       if ISNOTNULL(limit) {
         proc["limit"] = limit
       }
       if ISNOTNULL(fields) {
-        proc["fields"] = fields
+        proc["args"] = fields
       }
       if ISNOTNULL(flush) {
         proc["flush"] = true
@@ -389,27 +389,27 @@ TopProc
     }
 
 CutProc
-  = "cut"i _ columns:FlexAssignments {
-      RETURN(MAP("op": "CutProc", "fields": columns))
+  = "cut"i _ args:FlexAssignments {
+      RETURN(MAP("op": "Cut", "args": args))
     }
 
 PickProc
-  = "pick"i _ columns:FlexAssignments {
-      RETURN(MAP("op": "PickProc", "fields": columns))
+  = "pick"i _ args:FlexAssignments {
+      RETURN(MAP("op": "Pick", "args": args))
     }
 
 DropProc
-  = "drop"i _ columns:FieldExprs {
-      RETURN(MAP("op": "DropProc", "fields": columns))
+  = "drop"i _ args:FieldExprs {
+      RETURN(MAP("op": "Drop", "args": args))
     }
 
 HeadProc
-  = "head"i _ count:UInt { RETURN(MAP("op": "HeadProc", "count": count)) }
-  / "head"i { RETURN(MAP("op": "HeadProc", "count": 1)) }
+  = "head"i _ count:UInt { RETURN(MAP("op": "Head", "count": count)) }
+  / "head"i { RETURN(MAP("op": "Head", "count": 1)) }
 
 TailProc
-  = "tail"i _ count:UInt { RETURN(MAP("op": "TailProc", "count": count)) }
-  / "tail"i { RETURN(MAP("op": "TailProc", "count": 1)) }
+  = "tail"i _ count:UInt { RETURN(MAP("op": "Tail", "count": count)) }
+  / "tail"i { RETURN(MAP("op": "Tail", "count": 1)) }
 
 FilterProc
   = "filter"i _ op:Filter {
@@ -418,25 +418,25 @@ FilterProc
 
 Filter
   = expr:SearchBoolean {
-      RETURN(MAP("op": "FilterProc", "filter": expr))
+      RETURN(MAP("op": "Filter", "expr": expr))
     }
 
 UniqProc
   = "uniq"i _ "-c" {
-      RETURN(MAP("op": "UniqProc", "cflag": true))
+      RETURN(MAP("op": "Uniq", "cflag": true))
     }
   / "uniq"i {
-      RETURN(MAP("op": "UniqProc", "cflag": false))
+      RETURN(MAP("op": "Uniq", "cflag": false))
     }
 
 PutProc
-  = "put"i _ columns:FlexAssignments {
-      RETURN(MAP("op": "PutProc", "clauses": columns))
+  = "put"i _ args:FlexAssignments {
+      RETURN(MAP("op": "Put", "args": args))
     }
 
 RenameProc
   = "rename"i _ first:Assignment rest:(__ "," __ cl:Assignment { RETURN(cl) })* {
-      RETURN(MAP("op": "RenameProc", "fields": PREPEND(first, rest)))
+      RETURN(MAP("op": "Rename", "args": PREPEND(first, rest)))
     }
 
 // The paren guard is to allow parsing fuse() as an aggregator. This
@@ -445,26 +445,26 @@ RenameProc
 // aggregator, at which point we may no longer need this.
 FuseProc
   = "fuse"i !(__ "(") {
-      RETURN(MAP("op": "FuseProc"))
+      RETURN(MAP("op": "Fuse"))
     }
 
 ShapeProc
   = "shape"i {
-      RETURN(MAP("op": "ShapeProc"))
+      RETURN(MAP("op": "Shape"))
     }
 
 JoinProc
   = kind:JoinKind "join"i _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("op": "JoinProc", "kind": kind, "left_key": leftKey, "right_key": rightKey, "clauses": NULL)
+      VAR(proc) = MAP("op": "Join", "kind": kind, "left_key": leftKey, "right_key": rightKey, "args": NULL)
       if ISNOTNULL(columns) {
-        proc["clauses"] = ASSERT_ARRAY(columns)[1]
+        proc["args"] = ASSERT_ARRAY(columns)[1]
       }
       RETURN(proc)
     }
   / kind:JoinKind  "join"i _ key:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("op": "JoinProc", "kind": kind, "left_key": key, "right_key": key, "clauses": NULL)
+      VAR(proc) = MAP("op": "Join", "kind": kind, "left_key": key, "right_key": key, "args": NULL)
       if ISNOTNULL(columns) {
-        proc["clauses"] = ASSERT_ARRAY(columns)[1]
+        proc["args"] = ASSERT_ARRAY(columns)[1]
       }
       RETURN(proc)
     }
@@ -481,28 +481,28 @@ JoinKey
 
 TasteProc
   = "taste"i e:TasteExpr {
-      RETURN(MAP("op": "SequentialProc", "procs": ARRAY(
-        MAP("op": "GroupByProc",
+      RETURN(MAP("op": "Sequential", "procs": ARRAY(
+        MAP("op": "Summarize",
           "keys": ARRAY(MAP("op": "Assignment",
-                   "lhs": MAP("op": "Identifier", "name": "shape"),
-                   "rhs": MAP("op": "FunctionCall", "function": "typeof",
+                   "lhs": MAP("op": "Id", "name": "shape"),
+                   "rhs": MAP("op": "Call", "name": "typeof",
                               "args": ARRAY(e)))),
-          "reducers": ARRAY(MAP("op": "Assignment",
-                              "lhs": MAP("op": "Identifier", "name": "taste"),
-                              "rhs": MAP("op": "Reducer",
-                                         "operator": "any",
+          "aggs": ARRAY(MAP("op": "Assignment",
+                              "lhs": MAP("op": "Id", "name": "taste"),
+                              "rhs": MAP("op": "Agg",
+                                         "name": "any",
                                          "expr": e,
                                          "where": NULL))),
           "duration": NULL, "limit": 0),
-        MAP("op": "CutProc",
-            "fields": ARRAY(MAP("op": "Assignment",
+        MAP("op": "Cut",
+            "args": ARRAY(MAP("op": "Assignment",
                                 "lhs": NULL,
-                                "rhs": MAP("op": "Identifier", "name": "taste")))))))
+                                "rhs": MAP("op": "Id", "name": "taste")))))))
     }
 
 TasteExpr
   = _ lval:Lval { RETURN(lval)}
-  / "" { RETURN(MAP("op":"RootRecord")) }
+  / "" { RETURN(MAP("op":"Root")) }
 
 Lval = DerefExpr
 
@@ -537,7 +537,7 @@ Expr = ConditionalExpr
 
 ConditionalExpr
   = condition:LogicalOrExpr __ "?" __ thenClause:Expr __ ":" __ elseClause:Expr {
-      RETURN(MAP("op": "ConditionalExpr", "condition": condition, "then": thenClause, "else": elseClause))
+      RETURN(MAP("op": "Conditional", "cond": condition, "then": thenClause, "else": elseClause))
     }
   / LogicalOrExpr
 
@@ -592,13 +592,13 @@ MultiplicativeOperator = ("*" / "/") { RETURN(TEXT) }
 
 NotExpr
   = "!" __ e:NotExpr {
-        RETURN(MAP("op": "UnaryExpr", "operator": "!", "operand": e))
+        RETURN(MAP("op": "UnaryExpr", "kind": "!", "operand": e))
     }
   / CastExpr
 
 CastExpr
   = e:FuncExpr __ ":" __ typ:CastType {
-      RETURN(MAP("op": "CastExpr", "expr": e, "type": typ))
+      RETURN(MAP("op": "Cast", "expr": e, "type": typ))
     }
   / FuncExpr
 
@@ -641,7 +641,7 @@ Method
 
 Function
   = !FuncGuard fn:IdentifierName __ "(" __ args:ArgumentList __ ")" {
-      RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
+      RETURN(MAP("op": "Call", "name": fn, "args": args))
     }
 
 ArgumentList
@@ -658,32 +658,32 @@ DerefExpr
       RETURN(makeBinaryExprChain(first, rest))
     }
   / "." {
-      RETURN(MAP("op":"RootRecord"))
+      RETURN(MAP("op":"Root"))
     }
 
 DotId
   = "." field:Identifier {
-      RETURN(MAP("op": "BinaryExpr", "operator":".",
-                     "lhs":MAP("op":"RootRecord"),
+      RETURN(MAP("op": "BinaryExpr", "kind":".",
+                     "lhs":MAP("op":"Root"),
                      "rhs":field))
     }
   / "." "[" expr:Expr "]" {
-      RETURN(MAP("op": "BinaryExpr", "operator":"[",
-                     "lhs":MAP("op":"RootRecord"),
+      RETURN(MAP("op": "BinaryExpr", "kind":"[",
+                     "lhs":MAP("op":"Root"),
                      "rhs":expr))
     }
 
 Deref
   = "[" from:AdditiveExpr __ ":" __ to:AdditiveExpr "]" {
-      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "kind":":",
                             "lhs":from, "rhs":to)))
     }
   / "[" __ ":" __ to:AdditiveExpr "]" {
-      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "kind":":",
                             "lhs": NULL, "rhs":to)))
     }
   / "[" from:AdditiveExpr __ ":" __ "]" {
-      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "kind":":",
                             "lhs":from, "rhs": NULL)))
     }
   / "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
@@ -749,7 +749,7 @@ NullLiteral
 
 TypeLiteral
   = typ:TypeExternal {
-      RETURN(MAP("op": "TypeExpr", "type": typ))
+      RETURN(MAP("op": "TypeValue", "value": typ))
     }
 
 CastType
@@ -865,7 +865,7 @@ IdentifierStart = [A-Za-z_$]
 IdentifierRest = IdentifierStart / [0-9]
 
 Identifier
-  = id:IdentifierName { RETURN(MAP("op": "Identifier", "name": id)) }
+  = id:IdentifierName { RETURN(MAP("op": "Id", "name": id)) }
 
 IdentifierName
   = !(IdGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }

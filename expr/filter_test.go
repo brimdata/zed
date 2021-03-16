@@ -511,11 +511,11 @@ func TestFilters(t *testing.T) {
 
 }
 
-func filterProc(p ast.Proc) *ast.FilterProc {
-	if seq, ok := p.(*ast.SequentialProc); ok {
+func filterProc(p ast.Proc) *ast.Filter {
+	if seq, ok := p.(*ast.Sequential); ok {
 		p = seq.Procs[0]
 	}
-	if f, ok := p.(*ast.FilterProc); ok {
+	if f, ok := p.(*ast.Filter); ok {
 		return f
 	}
 	return nil

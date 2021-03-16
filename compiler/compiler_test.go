@@ -77,13 +77,13 @@ func TestCompileMergeDone(t *testing.T) {
 	query, err := compiler.ParseProc("split(=>filter * =>head 1) | head 3")
 	require.NoError(t, err)
 
-	seq, ok := query.(*ast.SequentialProc)
+	seq, ok := query.(*ast.Sequential)
 	require.Equal(t, ok, true)
-	p, ok := seq.Procs[0].(*ast.ParallelProc)
+	p, ok := seq.Procs[0].(*ast.Parallel)
 	require.Equal(t, ok, true)
 
 	// Force the parallel proc to create a merge proc instead of combine.
-	p.MergeOrderField = field.New("k")
+	p.MergeBy = field.New("k")
 	runtime, err := compiler.CompileProc(query, pctx, []proc.Interface{src})
 	require.NoError(t, err)
 
