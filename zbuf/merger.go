@@ -37,7 +37,8 @@ type batch struct {
 }
 
 func NewCompareFn(mergeField field.Static, reversed bool) expr.CompareFn {
-	fn := expr.NewCompareFn(true, expr.NewDotExpr(mergeField))
+	nullsMax := !reversed
+	fn := expr.NewCompareFn(nullsMax, expr.NewDotExpr(mergeField))
 	fn = totalOrderCompare(fn)
 	if !reversed {
 		return fn
