@@ -41,7 +41,7 @@ type PcapOp interface {
 }
 
 var suricataShaper = compiler.MustParseProc(
-	`type alert = {event_type:bstring,src_ip:ip,src_port:port=(uint16),dest_ip:ip,dest_port:port=(uint16),vlan:[uint16],proto:bstring,app_proto:bstring,alert:{severity:uint16,signature:bstring,category:bstring,action:bstring,signature_id:uint64,gid:uint64,rev:uint64,metadata:{signature_severity:[bstring],former_category:[bstring],attack_target:[bstring],deployment:[bstring],affected_product:[bstring],created_at:[bstring],performance_impact:[bstring],updated_at:[bstring],malware_family:[bstring],tag:[bstring]}},flow_id:uint64,pcap_cnt:uint64,timestamp:time,tx_id:uint64,icmp_code:uint64,icmp_type:uint64,community_id:bstring}
+	`type alert = {event_type:bstring,src_ip:ip,src_port:port=(uint16),dest_ip:ip,dest_port:port=(uint16),vlan:[uint16],proto:bstring,app_proto:bstring,alert:{severity:uint16,signature:bstring,category:bstring,action:bstring,signature_id:uint64,gid:uint64,rev:uint64,metadata:{signature_severity:[bstring],former_category:[bstring],attack_target:[bstring],deployment:[bstring],affected_product:[bstring],created_at:[bstring],performance_impact:[bstring],updated_at:[bstring],malware_family:[bstring],tag:[bstring]}},flow_id:uint64,pcap_cnt:uint64,timestamp:time,tx_id:uint64,icmp_code:uint64,icmp_type:uint64,tunnel:{src_ip:ip,src_port:port=(uint16),dest_ip:ip,dest_port:port=(uint16),proto:bstring,depth:uint64},community_id:bstring}
 
 put timestamp=iso(timestamp) | put . = shape(alert) | rename ts=timestamp
 `)
