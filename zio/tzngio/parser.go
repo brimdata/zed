@@ -264,6 +264,8 @@ func ParseTime(in []byte) (zcode.Bytes, error) {
 
 func ParseValue(typ zng.Type, in []byte) (zcode.Bytes, error) {
 	switch typ := typ.(type) {
+	case *zng.TypeAlias:
+		return ParseValue(typ.Type, in)
 	case *zng.TypeRecord:
 		return ParseRecord(typ, in)
 	case *zng.TypeArray, *zng.TypeSet, *zng.TypeUnion, *zng.TypeMap:
