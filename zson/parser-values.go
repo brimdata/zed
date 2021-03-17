@@ -582,15 +582,13 @@ func (p *Parser) matchTypeValue() (*ast.TypeValue, error) {
 	}, nil
 }
 
-// XXX This function is a placerholder while we convert ast.Literal
-// to zson literals.  See issue #2335.
-func ParsePrimitive(t, v string) (zng.Value, error) {
-	typ := zng.LookupPrimitive(t)
+func ParsePrimitive(v ast.Primitive) (zng.Value, error) {
+	typ := zng.LookupPrimitive(v.Type)
 	if typ == nil {
-		return zng.Value{}, fmt.Errorf("no such type: %s", t)
+		return zng.Value{}, fmt.Errorf("no such type: %s", v.Type)
 	}
 	var b Builder
-	if err := b.BuildPrimitive(&Primitive{Type: typ, Text: v}); err != nil {
+	if err := b.BuildPrimitive(&Primitive{Type: typ, Text: v.Text}); err != nil {
 		return zng.Value{}, err
 	}
 	it := b.Bytes().Iter()

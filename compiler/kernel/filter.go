@@ -12,7 +12,7 @@ import (
 
 func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (expr.Filter, error) {
 	if e.Op == "in" {
-		literal, ok := e.LHS.(*ast.Literal)
+		literal, ok := e.LHS.(*ast.Primitive)
 		if !ok {
 			return nil, nil
 		}
@@ -28,7 +28,7 @@ func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr
 		comparison := expr.Contains(eql)
 		return expr.Combine(resolver, comparison), nil
 	}
-	literal, ok := e.RHS.(*ast.Literal)
+	literal, ok := e.RHS.(*ast.Primitive)
 	if !ok {
 		return nil, nil
 	}
@@ -65,7 +65,7 @@ func compileSearch(node *ast.Search) (expr.Filter, error) {
 	}
 
 	if node.Value.Type == "string" {
-		term, err := tzngio.ParseBstring([]byte(node.Value.Value))
+		term, err := tzngio.ParseBstring([]byte(node.Value.Text))
 		if err != nil {
 			return nil, err
 		}
@@ -87,7 +87,7 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Fi
 		}
 		return expr.LogicalNot(e), nil
 
-	case *ast.Literal:
+	case *ast.Primitive:
 		// This literal translation should happen elsewhere will
 		// be fixed when we add ZSON literals to Z, e.g.,
 		// ast.Literal.AsBool() etc methods.
@@ -95,12 +95,12 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Fi
 			return nil, fmt.Errorf("bad literal type in filter compiler: %s", v.Type)
 		}
 		var b bool
-		switch v.Value {
+		switch v.Text {
 		case "true":
 			b = true
 		case "false":
 		default:
-			return nil, fmt.Errorf("bad boolean value in ast.Literal: %s", v.Value)
+			return nil, fmt.Errorf("bad boolean value in ast.Literal: %s", v.Text)
 		}
 		return func(*zng.Record) bool { return b }, nil
 

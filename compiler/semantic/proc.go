@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
+	"time"
 
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/field"
@@ -20,7 +21,11 @@ func semProc(scope *Scope, p ast.Proc) (ast.Proc, error) {
 	switch p := p.(type) {
 	case *ast.Summarize:
 		keys := p.Keys
-		if duration := p.Duration.Seconds; duration != 0 {
+		if duration := p.Duration; duration != nil {
+			d, err := time.ParseDuration(duration.Text)
+			if err != nil {
+				return nil, err
+			}
 			durationKey := ast.Assignment{
 				Kind: "Assignment",
 				LHS:  ast.NewDotExpr(field.New("ts")),
@@ -29,10 +34,11 @@ func semProc(scope *Scope, p ast.Proc) (ast.Proc, error) {
 					Name: "trunc",
 					Args: []ast.Expr{
 						ast.NewDotExpr(field.New("ts")),
-						&ast.Literal{
-							Kind:  "Literal",
-							Type:  "int64",
-							Value: strconv.Itoa(duration),
+						&ast.Primitive{
+							Kind: "Primitive",
+							Type: "int64",
+							// XXX trunc should handle duration type
+							Text: strconv.Itoa(int(d.Seconds())),
 						}},
 				},
 			}

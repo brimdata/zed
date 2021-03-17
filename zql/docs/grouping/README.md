@@ -19,16 +19,16 @@ To create batches of events that are close together in time, specify
 `every <duration>` before invoking your aggregate function(s).
 
 The `<duration>` may be expressed in any of the following units of time. A
-numeric value may also precede the unit specification, in which case any of
-the shorthand variations may also be used.
+numeric value must precede the unit specification.  The syntax conforms
+to the `dur-time` format of RFC-3339, with the `t` prefix dropped.
 
-| **Unit**  | **Plural shorthand (optional)**   |
-|-----------|-----------------------------------|
-| `second`  | `seconds`, `secs`, `sec`, `s`     |
-| `minute`  | `minutes`, `mins`, `min`, `m`     |
-| `hour`    | `hours`, `hrs`, `hr`, `h`         |
-| `day`     | `days`, `d`                       |
-| `week`    | `weeks`, `wks`, `wk`, `w`         |
+| **Unit**  | **Suffix** |
+|-----------|------------|
+| `second`  | `s`        |
+| `minute`  | `m`        |
+| `hour`    | `h`        |
+
+XXX finish RFC-3339
 
 #### Example #1:
 
@@ -36,7 +36,7 @@ To see the total number of bytes originated across all connections during each
 minute:
 
 ```zq-command
-zq -f table 'every minute sum(orig_bytes) | sort -r ts' conn.log.gz
+zq -f table 'every 1m sum(orig_bytes) | sort -r ts' conn.log.gz
 ```
 
 #### Output:
@@ -54,7 +54,7 @@ TS                   SUM
 To see which 30-second intervals contained the most events:
 
 ```zq-command
-zq -f table 'every 30sec count() | sort -r count' *.log.gz
+zq -f table 'every 30s count() | sort -r count' *.log.gz
 ```
 
 #### Output:
@@ -248,7 +248,7 @@ If we were counting events into 5-minute batches and wanted to see these
 results ordered by incrementing timestamp of each batch:
 
 ```zq-command
-zq -f table 'every 5 minutes count() | sort ts' *.log.gz
+zq -f table 'every 5m count() | sort ts' *.log.gz
 ```
 
 #### Output:
@@ -264,7 +264,7 @@ TS                   COUNT
 If we'd wanted to see them ordered from lowest to highest event count:
 
 ```zq-command
-zq -f table 'every 5 minutes count() | sort count' *.log.gz
+zq -f table 'every 5m count() | sort count' *.log.gz
 ```
 
 #### Output:

@@ -83,7 +83,7 @@ To check whether we've seen higher DNS round-trip times when servers return
 longer lists of `answers`:
 
 ```zq-command
-zq -f table 'answers != null | every 5 minutes short_rtt=avg(rtt) where len(answers)<=2, short_count=count() where len(answers)<=2, long_rtt=avg(rtt) where len(answers)>2, long_count=count() where len(answers)>2 | sort ts' dns.log.gz
+zq -f table 'answers != null | every 5m short_rtt=avg(rtt) where len(answers)<=2, short_count=count() where len(answers)<=2, long_rtt=avg(rtt) where len(answers)>2, long_count=count() where len(answers)>2 | sort ts' dns.log.gz
 ```
 
 #### Output:

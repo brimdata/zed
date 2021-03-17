@@ -192,14 +192,6 @@ func ParseUnion(t *zng.TypeUnion, in []byte) (zcode.Bytes, error) {
 	return ParseContainer(t, in)
 }
 
-//XXX this literal stuff is going away replace with ast.Value
-
-// Parse translates an ast.Literal into a Value.
-// This currently supports only primitive literals.
-func Parse(v ast.Literal) (zng.Value, error) {
-	return zson.ParsePrimitive(v.Type, v.Value)
-}
-
 func ParseBstring(in []byte) (zcode.Bytes, error) {
 	normalized := norm.NFC.Bytes(zng.UnescapeBstring(in))
 	return normalized, nil
@@ -289,7 +281,12 @@ func ParseValue(typ zng.Type, in []byte) (zcode.Bytes, error) {
 	case *zng.TypeOfTime:
 		return ParseTime(in)
 	default:
-		zv, err := zson.ParsePrimitive(typ.ZSON(), string(in))
+		primitive := ast.Primitive{
+			Kind: "Primitive",
+			Type: typ.ZSON(),
+			Text: string(in),
+		}
+		zv, err := zson.ParsePrimitive(primitive)
 		if err != nil {
 			return nil, err
 		}

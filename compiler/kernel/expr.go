@@ -51,7 +51,7 @@ func compileExpr(zctx *resolver.Context, scope *Scope, e ast.Expr) (expr.Evaluat
 		return nil, errors.New("null expression not allowed")
 	}
 	switch e := e.(type) {
-	case *ast.Literal:
+	case *ast.Primitive:
 		return expr.NewLiteral(*e)
 	case *ast.Id:
 		// This should be converted in the semantic pass but it can come

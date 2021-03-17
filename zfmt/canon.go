@@ -64,7 +64,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 			c.write(" where ")
 			c.expr(e.Where, false)
 		}
-	case *ast.Literal:
+	case *ast.Primitive:
 		c.literal(*e)
 	case *ast.Id:
 		// If the identifier refers to a named variable in scope (like "$"),
@@ -212,8 +212,12 @@ func (c *canon) proc(p ast.Proc) {
 	case *ast.Summarize:
 		c.next()
 		c.open("summarize")
-		if secs := p.Duration.Seconds; secs != 0 {
-			c.write(" every %s", time.Duration(1_000_000_000*secs))
+		var d time.Duration
+		if p.Duration != nil {
+			d, _ = time.ParseDuration(p.Duration.Text)
+		}
+		if d != 0 {
+			c.write(" every %s", d)
 		}
 		if p.PartialsIn {
 			c.write(" partials-in")
@@ -327,22 +331,22 @@ func (c *canon) proc(p ast.Proc) {
 }
 
 func isTrue(e ast.Expr) bool {
-	if lit, ok := e.(*ast.Literal); ok {
-		return lit.Type == "bool" && lit.Value == "true"
+	if p, ok := e.(*ast.Primitive); ok {
+		return p.Type == "bool" && p.Text == "true"
 	}
 	return false
 }
 
 //XXX this needs to change when we use the zson values from the ast
-func (c *canon) literal(e ast.Literal) {
+func (c *canon) literal(e ast.Primitive) {
 	switch e.Type {
 	case "string", "bstring", "error":
-		c.write("\"%s\"", e.Value)
+		c.write("\"%s\"", e.Text)
 	case "regexp":
-		c.write("/%s/", e.Value)
+		c.write("/%s/", e.Text)
 	default:
 		//XXX need decorators for non-implied
-		c.write("%s", e.Value)
+		c.write("%s", e.Text)
 
 	}
 }

@@ -57,7 +57,7 @@ func CompileBufferFilter(e ast.Expr) (*expr.BufferFilter, error) {
 			return nil, nil
 		}
 		if e.Value.Type == "string" {
-			pattern, err := tzngio.ParseBstring([]byte(e.Value.Value))
+			pattern, err := tzngio.ParseBstring([]byte(e.Value.Text))
 			if err != nil {
 				return nil, err
 			}
@@ -102,20 +102,20 @@ func isRootField(e ast.Expr) bool {
 	return ok
 }
 
-func isFieldEqualOrIn(e *ast.BinaryExpr) (*ast.Literal, string) {
+func isFieldEqualOrIn(e *ast.BinaryExpr) (*ast.Primitive, string) {
 	if isRootField(e.LHS) && e.Op == "=" {
-		if literal, ok := e.RHS.(*ast.Literal); ok {
+		if literal, ok := e.RHS.(*ast.Primitive); ok {
 			return literal, "="
 		}
 	} else if isRootField(e.RHS) && e.Op == "in" {
-		if literal, ok := e.LHS.(*ast.Literal); ok && literal.Type != "net" {
+		if literal, ok := e.LHS.(*ast.Primitive); ok && literal.Type != "net" {
 			return literal, "in"
 		}
 	}
 	return nil, ""
 }
 
-func isCompareAny(seq *ast.SeqExpr) (*ast.Literal, string, bool) {
+func isCompareAny(seq *ast.SeqExpr) (*ast.Primitive, string, bool) {
 	if seq.Name != "or" || len(seq.Methods) != 1 {
 		return nil, "", false
 	}
@@ -132,14 +132,14 @@ func isCompareAny(seq *ast.SeqExpr) (*ast.Literal, string, bool) {
 		if !isDollar(pred.LHS) {
 			return nil, "", false
 		}
-		if rhs, ok := pred.RHS.(*ast.Literal); ok && rhs.Type != "net" {
+		if rhs, ok := pred.RHS.(*ast.Primitive); ok && rhs.Type != "net" {
 			return rhs, pred.Op, true
 		}
 	} else if pred.Op == "in" {
 		if !isDollar(pred.RHS) {
 			return nil, "", false
 		}
-		if lhs, ok := pred.LHS.(*ast.Literal); ok && lhs.Type != "net" {
+		if lhs, ok := pred.LHS.(*ast.Primitive); ok && lhs.Type != "net" {
 			return lhs, pred.Op, true
 		}
 	}
@@ -162,7 +162,7 @@ func isDollar(e ast.Expr) bool {
 	return false
 }
 
-func newBufferFilterForLiteral(l ast.Literal) (*expr.BufferFilter, error) {
+func newBufferFilterForLiteral(l ast.Primitive) (*expr.BufferFilter, error) {
 	switch l.Type {
 	case "bool", "byte", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float64", "time", "duration":
 		// These are all comparable, so they can require up to three
@@ -177,7 +177,7 @@ func newBufferFilterForLiteral(l ast.Literal) (*expr.BufferFilter, error) {
 		// Match the behavior of zng.ParseLiteral.
 		l.Type = "bstring"
 	}
-	v, err := zson.ParsePrimitive(l.Type, l.Value)
+	v, err := zson.ParsePrimitive(l)
 	if err != nil {
 		return nil, err
 	}
