@@ -217,7 +217,7 @@ func CompareBstring(op string, pattern []byte) (Boolean, error) {
 	}, nil
 }
 
-func CheckRegexp(pattern string) (*regexp.Regexp, error) {
+func CompileRegexp(pattern string) (*regexp.Regexp, error) {
 	re, err := regexp.Compile(string(zng.UnescapeBstring([]byte(pattern))))
 	if err != nil {
 		if syntaxErr, ok := err.(*syntax.Error); ok {
@@ -228,33 +228,14 @@ func CheckRegexp(pattern string) (*regexp.Regexp, error) {
 	return re, err
 }
 
-// compareRegexp returns a Predicate that compares values that must
-// be a string or enum with the value's regular expression using a regex
-// match comparison based on equality or inequality based on op.
-func compareRegexp(op, pattern string) (Boolean, error) {
-	re, err := CheckRegexp(pattern)
-	if err != nil {
-		return nil, err
-	}
-	switch op {
-	case "=":
-		return func(v zng.Value) bool {
-			switch v.Type.ID() {
-			case zng.IdString, zng.IdBstring:
-				return re.Match(v.Bytes)
-			}
-			return false
-		}, nil
-	case "!=":
-		return func(v zng.Value) bool {
-			switch v.Type.ID() {
-			case zng.IdString, zng.IdBstring:
-				return !re.Match(v.Bytes)
-			}
-			return false
-		}, nil
-	default:
-		return nil, fmt.Errorf("unknown pattern comparator: %s", op)
+// NewRegexp returns a Booelan that compares values that must
+// be a stringy the given regexp.
+func NewRegexpBool(re *regexp.Regexp) Boolean {
+	return func(v zng.Value) bool {
+		if zng.IsStringy(v.Type.ID()) {
+			return re.Match(v.Bytes)
+		}
+		return false
 	}
 }
 
@@ -373,11 +354,6 @@ func Contains(compare Boolean) Boolean {
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
 func Comparison(op string, primitive ast.Primitive) (Boolean, error) {
-	//XXX regexp is not a primitive type... this should be handled
-	// with a different thing.
-	if primitive.Type == "regexp" {
-		return compareRegexp(op, primitive.Text)
-	}
 	// String literals inside zql are parsed as zng bstrings
 	// (since bstrings can represent a wider range of values,
 	// specifically arrays of bytes that do not correspond to

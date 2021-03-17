@@ -13,12 +13,20 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 	switch e := e.(type) {
 	case nil:
 		return nil, errors.New("semantic analysis: illegal null value encountered in AST")
-	case *ast.Primitive:
-		if e.Type == "regexp" { //XXX
-			if _, err := expr.CheckRegexp(e.Text); err != nil {
-				return nil, err
-			}
+	case *ast.Regexp:
+		if _, err := expr.CompileRegexp(e.Pattern); err != nil {
+			return nil, err
 		}
+		converted, err := semExpr(scope, e.Expr)
+		if err != nil {
+			return nil, err
+		}
+		return &ast.Regexp{
+			Kind:    "Regexp",
+			Pattern: e.Pattern,
+			Expr:    converted,
+		}, nil
+	case *ast.Primitive:
 		return e, nil
 	case *ast.Id:
 		// We use static scoping here to see if an identifier is

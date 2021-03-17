@@ -86,6 +86,8 @@ func compileExpr(zctx *resolver.Context, scope *Scope, e ast.Expr) (expr.Evaluat
 		return compileTypeValue(zctx, scope, e)
 	case *ast.SeqExpr:
 		return compileSeqExpr(zctx, scope, e)
+	case *ast.Regexp:
+		return compileRegexp(zctx, scope, e)
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", e)
 	}
@@ -126,6 +128,13 @@ func compileBinary(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (exp
 		}
 		return expr.NewDotAccess(lhs, id.Name), nil
 	}
+	if reAST, ok := e.RHS.(*ast.Regexp); ok && e.Op == "in" {
+		re, err := expr.CompileRegexp(reAST.Pattern)
+		if err != nil {
+			return nil, err
+		}
+		return expr.NewRegexp(re, lhs), nil
+	}
 	rhs, err := compileExpr(zctx, scope, e.RHS)
 	if err != nil {
 		return nil, err
@@ -137,8 +146,6 @@ func compileBinary(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (exp
 		return expr.NewIn(lhs, rhs), nil
 	case "=", "!=":
 		return expr.NewCompareEquality(lhs, rhs, op)
-	case "=~", "!~":
-		return expr.NewPatternMatch(lhs, rhs, op)
 	case "<", "<=", ">", ">=":
 		return expr.NewCompareRelative(lhs, rhs, op)
 	case "+", "-", "*", "/":
@@ -455,4 +462,16 @@ func compileTypeValue(zctx *resolver.Context, scope *Scope, t *ast.TypeValue) (e
 		return nil, err
 	}
 	return expr.NewLiteralVal(zng.NewTypeType(typ)), nil
+}
+
+func compileRegexp(zctx *resolver.Context, scope *Scope, regexp *ast.Regexp) (expr.Evaluator, error) {
+	e, err := compileExpr(zctx, scope, regexp.Expr)
+	if err != nil {
+		return nil, err
+	}
+	re, err := expr.CompileRegexp(regexp.Pattern)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewRegexp(re, e), nil
 }

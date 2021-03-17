@@ -37,6 +37,7 @@ var unpacker = unpack.New(
 	Record{},
 	Agg{},
 	Ref{},
+	Regexp{},
 	Rename{},
 	Root{},
 	Search{},

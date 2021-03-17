@@ -111,8 +111,11 @@ func (a *AggExpr) Eval(rec *zng.Record) (zng.Value, error) {
 	a.src.Init(rec)
 	for {
 		zv, err := a.src.Next()
+		if err == zng.ErrMissing {
+			continue
+		}
 		if err != nil {
-			return zng.Value{}, nil
+			return zng.Value{}, err
 		}
 		if zv.Type == nil {
 			return f.Result(a.zctx)

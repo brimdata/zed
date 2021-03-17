@@ -106,6 +106,12 @@ type SeqExpr struct {
 	Methods   []Method `json:"methods"`
 }
 
+type Regexp struct {
+	Kind    string `json:"kind" unpack:""`
+	Pattern string `json:"pattern"`
+	Expr    Expr   `json:"expr"`
+}
+
 func (*UnaryExpr) exprNode()   {}
 func (*BinaryExpr) exprNode()  {}
 func (*SelectExpr) exprNode()  {}
@@ -122,6 +128,7 @@ func (*Root) exprNode()        {}
 func (*Assignment) exprNode() {}
 func (*Agg) exprNode()        {}
 func (*SeqExpr) exprNode()    {}
+func (*Regexp) exprNode()     {}
 func (*TypeValue) exprNode()  {}
 
 // ----------------------------------------------------------------------------
