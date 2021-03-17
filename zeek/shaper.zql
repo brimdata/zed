@@ -54,7 +54,7 @@ type weird={_path:string,ts:time,uid:bstring,id:id,name:bstring,addl:bstring,not
 type x509={_path:string,ts:time,id:bstring,certificate:{version:uint64,serial:bstring,subject:bstring,issuer:bstring,not_valid_before:time,not_valid_after:time,key_alg:bstring,sig_alg:bstring,key_type:bstring,key_length:uint64,exponent:bstring,curve:bstring},san:{dns:[bstring],uri:[bstring],email:[bstring],ip:[ip]},basic_constraints:{ca:bool,path_len:uint64},_write_ts:time};
 
 
-put ts = iso(ts), _write_ts=iso(_write_ts) | put .=unflatten(.)
+put .=unflatten(.)
    | switch (
     case _path=files => put . = shape(files)
     case _path=http => put . = shape(http)
