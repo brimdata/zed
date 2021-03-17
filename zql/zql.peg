@@ -884,11 +884,27 @@ IdGuard
   / SearchGuard
 
 Duration
-  = "-"? DurationOptions {
+  = "-"? Durations {
       RETURN(MAP("kind": "Primitive", "type": "duration", "text": TEXT))
     }
 
-DurationOptions
+Durations
+  = DateDurations "t"i TimeDurations
+  / TimeDurations
+  / DateDurations
+
+DateDurations
+  = Years
+  / Months
+  / Weeks
+  / Days
+
+Years = UInt "y"i Months?
+Months = UInt "m"i Days?
+Days = UInt "d"i
+Weeks = UInt "w"i
+
+TimeDurations
   = Hours
   / Minutes
   / Seconds
