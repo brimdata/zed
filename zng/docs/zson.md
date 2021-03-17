@@ -362,10 +362,19 @@ There are 23 types of primitive values with syntax defined as follows:
 | `null`     | the string `null` |
 
 The format of a _duration string_
-is an optionally-signed sequence of decimal numbers,
+is an optionally-signed concatenation of decimal numbers,
 each with optional fraction and a unit suffix,
 such as "300ms", "-1.5h" or "2h45m".
-Valid time units are "ns", "us" (or "µs"), "ms", "s", "m", "h".
+Valid time units are
+"ns" (nanosecond),
+"us" (microsecond),
+"ms" (millisecond),
+"s" (second),
+"m" (minute),
+"h" (hour),
+"d" (day),
+"w" (week), and
+"y" (year).
 
 The format of floating point values is a _non-integer string_
 conforming to any floating point representation that cannot be

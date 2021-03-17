@@ -250,7 +250,7 @@ func (ps *PcapSearch) FromQuery(v url.Values) error {
 	}
 	span := nano.Span{
 		Ts:  nano.Unix(tsSec, tsNs),
-		Dur: nano.Duration(durSec, durNs),
+		Dur: nano.DurationFromParts(durSec, durNs),
 	}
 	ps.Span = span
 	ps.Proto = v.Get("proto")

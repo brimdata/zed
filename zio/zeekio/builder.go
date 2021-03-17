@@ -141,11 +141,11 @@ func (b *builder) appendPrimitive(typ zng.Type, val []byte) error {
 		}
 		b.buf = zng.AppendUint(b.buf[:0], v)
 	case zng.IdDuration:
-		v, err := nano.ParseDuration(val)
+		v, err := nano.Parse(val) // zeek-style fractional ts
 		if err != nil {
 			return err
 		}
-		b.buf = zng.AppendDuration(b.buf[:0], v)
+		b.buf = zng.AppendDuration(b.buf[:0], nano.Duration(v))
 	case zng.IdTime:
 		v, err := nano.Parse(val)
 		if err != nil {

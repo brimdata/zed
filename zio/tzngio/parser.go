@@ -223,11 +223,11 @@ func ParseBytes(in []byte) (zcode.Bytes, error) {
 }
 
 func ParseDuration(in []byte) (zcode.Bytes, error) {
-	dur, err := nano.ParseDuration(in)
+	d, err := nano.Parse(in) // zeek-style, full 64-bit ns fractional number
 	if err != nil {
 		return nil, err
 	}
-	return zng.EncodeDuration(int64(dur)), nil
+	return zng.EncodeDuration(nano.Duration(d)), nil
 }
 
 func ParseIP(in []byte) (zcode.Bytes, error) {

@@ -11,10 +11,18 @@ import (
 type Ts int64
 
 const (
-	Day       = int64(86400) * 1000000000
-	MinTs     = Ts(0)
-	MaxTs     = Ts(math.MaxInt64)
-	maxMillis = MaxTs / 1000000
+	Nanosecond  = Duration(1)
+	Microsecond = 1000 * Nanosecond
+	Millisecond = 1000 * Microsecond
+	Second      = 1000 * Millisecond
+	Minute      = 60 * Second
+	Hour        = 60 * Minute
+	Day         = 24 * Hour
+	Week        = 7 * Day
+	Year        = 365 * Day
+	MinTs       = Ts(0)
+	MaxTs       = Ts(math.MaxInt64)
+	maxMillis   = MaxTs / 1000000
 )
 
 type jsonTs struct {
@@ -85,7 +93,7 @@ func (t Ts) Trunc(bin int64) Ts {
 }
 
 func (t Ts) Midnight() Ts {
-	return t.Trunc(Day)
+	return t.Trunc(int64(Day))
 }
 
 func (t Ts) DayOf() Span {
@@ -130,17 +138,17 @@ func (t Ts) AppendFloat(dst []byte, precision int) []byte {
 	return dst
 }
 
-func (t Ts) Add(v int64) Ts {
-	return Ts(int64(t) + v)
+func (t Ts) Add(d Duration) Ts {
+	return Ts(int64(t) + int64(d))
 }
 
-func (t Ts) Sub(v int64) Ts {
-	return Ts(int64(t) - v)
+func (t Ts) Sub(d Duration) Ts {
+	return Ts(int64(t) - int64(d))
 }
 
 // SubTs returns the duration t-u.
-func (t Ts) SubTs(u Ts) int64 {
-	return int64(t - u)
+func (t Ts) SubTs(u Ts) Duration {
+	return Duration(t - u)
 }
 
 // convert a golang time to a nano Ts
@@ -248,11 +256,6 @@ func ParseRFC3339Nano(s []byte) (Ts, error) {
 	return TimeToTs(t), nil
 }
 
-func ParseDuration(s []byte) (int64, error) {
-	d, err := Parse(s)
-	return int64(d), err
-}
-
 // Max compares and returns the largest Ts.
 func Max(a, b Ts) Ts {
 	if a > b {
@@ -273,16 +276,4 @@ func Min(a, b Ts) Ts {
 // and nsec nanoseconds since January 1, 1970 UTC.
 func Unix(sec, ns int64) Ts {
 	return Ts(int64(sec)*1000000000 + int64(ns))
-}
-
-// Duration returns an int64 representation of the combined sec and ns passed
-// through.
-func Duration(sec, ns int64) int64 {
-	return int64(sec)*1000000000 + int64(ns)
-}
-
-// A duration is more or less the same as a Ts except it is relative to 0
-// rather than epoch.
-func DurationString(dur int64) string {
-	return Ts(dur).StringFloat()
 }
