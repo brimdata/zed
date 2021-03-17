@@ -4,6 +4,7 @@ import (
 	"math"
 	"net"
 	"time"
+	"unicode/utf8"
 
 	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/expr/function"
@@ -145,12 +146,11 @@ func castToTime(zv zng.Value) (zng.Value, error) {
 func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
 	return func(zv zng.Value) (zng.Value, error) {
 		id := zv.Type.ID()
-		if id == zng.IdBytes {
-			bytes, ok := zng.EscapeString(zv.Bytes)
-			if !ok {
+		if id == zng.IdBytes || id == zng.IdBstring {
+			if !utf8.Valid(zv.Bytes) {
 				return zng.NewErrorf("non-utf8 bytes cannot be cast to string"), nil
 			}
-			return zng.Value{typ, bytes}, nil
+			return zng.Value{typ, zv.Bytes}, nil
 		}
 		if enum, ok := zv.Type.(*zng.TypeEnum); ok {
 			selector, _ := zng.DecodeUint(zv.Bytes)
