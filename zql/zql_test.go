@@ -123,20 +123,20 @@ func parseString(in string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if seq, ok := tree.(*ast.SequentialProc); ok {
+	if seq, ok := tree.(*ast.Sequential); ok {
 		tree = seq.Procs[0]
 	}
-	filt, ok := tree.(*ast.FilterProc)
+	filt, ok := tree.(*ast.Filter)
 	if !ok {
-		return "", fmt.Errorf("Expected FilterProc got %T", tree)
+		return "", fmt.Errorf("Expected Filter proc got %T", tree)
 	}
-	comp, ok := filt.Filter.(*ast.BinaryExpression)
+	comp, ok := filt.Expr.(*ast.BinaryExpr)
 	if !ok {
-		return "", fmt.Errorf("Expected BinaryExpression got %T", filt.Filter)
+		return "", fmt.Errorf("Expected BinaryExpr got %T", filt.Expr)
 	}
 	literal, ok := comp.RHS.(*ast.Literal)
 	if !ok {
-		return "", fmt.Errorf("Expected Literal got %T", filt.Filter)
+		return "", fmt.Errorf("Expected Literal got %T", filt.Expr)
 	}
 	return literal.Value, nil
 }

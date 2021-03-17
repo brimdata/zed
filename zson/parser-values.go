@@ -59,8 +59,8 @@ func (p *Parser) matchValue() (ast.Value, error) {
 
 func anyAsValue(any ast.Any) *ast.ImpliedValue {
 	return &ast.ImpliedValue{
-		Op: ast.ImpliedValueOp,
-		Of: any,
+		Kind: "ImpliedValue",
+		Of:   any,
 	}
 }
 
@@ -133,7 +133,7 @@ func (p *Parser) parseDecorator(any ast.Any, val ast.Value) (ast.Value, error) {
 			return nil, p.error("bad short-form type definition")
 		}
 		return &ast.DefValue{
-			Op:       ast.DefValueOp,
+			Kind:     "DefValue",
 			Of:       any,
 			TypeName: name,
 		}, nil
@@ -144,13 +144,13 @@ func (p *Parser) parseDecorator(any ast.Any, val ast.Value) (ast.Value, error) {
 	}
 	if any != nil {
 		return &ast.CastValue{
-			Op:   ast.CastValueOp,
+			Kind: "CastValue",
 			Of:   anyAsValue(any),
 			Type: typ,
 		}, nil
 	}
 	return &ast.CastValue{
-		Op:   ast.CastValueOp,
+		Kind: "CastValue",
 		Of:   val,
 		Type: typ,
 	}, nil
@@ -215,7 +215,7 @@ func (p *Parser) matchPrimitive() (*ast.Primitive, error) {
 	}
 	l.skip(len(s))
 	return &ast.Primitive{
-		Op:   "Primitive",
+		Kind: "Primitive",
 		Type: typ,
 		Text: s,
 	}, nil
@@ -227,7 +227,7 @@ func (p *Parser) matchStringPrimitive() (*ast.Primitive, error) {
 		return nil, noEOF(err)
 	}
 	return &ast.Primitive{
-		Op:   "Primitive",
+		Kind: "Primitive",
 		Type: "string",
 		Text: s,
 	}, nil
@@ -284,7 +284,7 @@ func (p *Parser) matchBacktickString() (*ast.Primitive, error) {
 		return nil, p.error("mismatched string backticks")
 	}
 	return &ast.Primitive{
-		Op:   "Primitive",
+		Kind: "Primitive",
 		Type: "string",
 		Text: s,
 	}, nil
@@ -307,7 +307,7 @@ func (p *Parser) matchRecord() (*ast.Record, error) {
 		return nil, p.error("mismatched braces while parsing record type")
 	}
 	return &ast.Record{
-		Op:     "Record",
+		Kind:   "Record",
 		Fields: fields,
 	}, nil
 }
@@ -393,7 +393,7 @@ func (p *Parser) matchArray() (*ast.Array, error) {
 		return nil, p.error("mismatched brackets while parsing array type")
 	}
 	return &ast.Array{
-		Op:       "Array",
+		Kind:     "Array",
 		Elements: vals,
 	}, nil
 }
@@ -446,7 +446,7 @@ func (p *Parser) matchSetOrMap() (ast.Any, error) {
 			return nil, p.error("mismatched set value brackets")
 		}
 		val = &ast.Set{
-			Op:       "Set",
+			Kind:     "Set",
 			Elements: vals,
 		}
 	} else {
@@ -470,7 +470,7 @@ func (p *Parser) matchSetOrMap() (ast.Any, error) {
 			return nil, p.error("mismatched map value brackets")
 		}
 		val = &ast.Map{
-			Op:      "Map",
+			Kind:    "Map",
 			Entries: entries,
 		}
 	}
@@ -553,7 +553,7 @@ func (p *Parser) matchEnum() (*ast.Enum, error) {
 		return nil, noEOF(err)
 	}
 	return &ast.Enum{
-		Op:   "Enum",
+		Kind: "Enum",
 		Name: name,
 	}, nil
 }
@@ -575,7 +575,7 @@ func (p *Parser) matchTypeValue() (*ast.TypeValue, error) {
 		return nil, p.error("mismatched parentheses while parsing type value")
 	}
 	return &ast.TypeValue{
-		Op:    "TypeValue",
+		Kind:  "TypeValue",
 		Value: typ,
 	}, nil
 }

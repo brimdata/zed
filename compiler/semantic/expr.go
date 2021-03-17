@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/expr/agg"
 )
 
-func semExpr(scope *Scope, e ast.Expression) (ast.Expression, error) {
+func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 	switch e := e.(type) {
 	case nil:
 		return nil, errors.New("semantic analysis: illegal null value encountered in AST")
@@ -20,7 +20,7 @@ func semExpr(scope *Scope, e ast.Expression) (ast.Expression, error) {
 			}
 		}
 		return e, nil
-	case *ast.Identifier:
+	case *ast.Id:
 		// We use static scoping here to see if an identifier is
 		// a "var" reference to the name or a field access
 		// and transform the ast node appropriately.  The semantic AST
@@ -36,26 +36,26 @@ func semExpr(scope *Scope, e ast.Expression) (ast.Expression, error) {
 			return &ast.Ref{"Ref", "$"}, nil
 		}
 		return semField(scope, e)
-	case *ast.RootRecord:
+	case *ast.Root:
 		return semField(scope, e)
 	case *ast.Search:
 		return e, nil
-	case *ast.UnaryExpression:
+	case *ast.UnaryExpr:
 		expr, err := semExpr(scope, e.Operand)
 		if err != nil {
 			return nil, err
 		}
-		return &ast.UnaryExpression{
-			Op:       "UnaryExpr",
-			Operator: e.Operator,
-			Operand:  expr,
+		return &ast.UnaryExpr{
+			Kind:    "UnaryExpr",
+			Op:      e.Op,
+			Operand: expr,
 		}, nil
-	case *ast.SelectExpression:
+	case *ast.SelectExpr:
 		return nil, errors.New("select expression found outside of generator context")
-	case *ast.BinaryExpression:
+	case *ast.BinaryExpr:
 		return semBinary(scope, e)
-	case *ast.ConditionalExpression:
-		cond, err := semExpr(scope, e.Condition)
+	case *ast.Conditional:
+		cond, err := semExpr(scope, e.Cond)
 		if err != nil {
 			return nil, err
 		}
@@ -67,57 +67,57 @@ func semExpr(scope *Scope, e ast.Expression) (ast.Expression, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ast.ConditionalExpression{
-			Op:        "ConditionalExpr",
-			Condition: cond,
-			Then:      thenExpr,
-			Else:      elseExpr,
+		return &ast.Conditional{
+			Kind: "Conditional",
+			Cond: cond,
+			Then: thenExpr,
+			Else: elseExpr,
 		}, nil
-	case *ast.FunctionCall:
+	case *ast.Call:
 		return semCall(scope, e)
-	case *ast.CastExpression:
+	case *ast.Cast:
 		expr, err := semExpr(scope, e.Expr)
 		if err != nil {
 			return nil, err
 		}
-		return &ast.CastExpression{
-			Op:   "CastExpr",
+		return &ast.Cast{
+			Kind: "Cast",
 			Expr: expr,
 			Type: e.Type, //XXX
 		}, nil
-	case *ast.TypeExpr:
-		return &ast.TypeExpr{
-			Op:   "TypeExpr",
-			Type: e.Type, //XXX
+	case *ast.TypeValue:
+		return &ast.TypeValue{
+			Kind:  "TypeValue",
+			Value: e.Value,
 		}, nil
-	case *ast.Reducer:
+	case *ast.Agg:
 		expr, err := semExprNullable(scope, e.Expr)
 		if err != nil {
 			return nil, err
 		}
-		if expr == nil && e.Operator != "count" {
-			return nil, fmt.Errorf("aggregator '%s' requires argument", e.Operator)
+		if expr == nil && e.Name != "count" {
+			return nil, fmt.Errorf("aggregator '%s' requires argument", e.Name)
 		}
 		where, err := semExprNullable(scope, e.Where)
 		if err != nil {
 			return nil, err
 		}
-		return &ast.Reducer{
-			Op:       "Reducer",
-			Operator: e.Operator,
-			Expr:     expr,
-			Where:    where,
+		return &ast.Agg{
+			Kind:  "Agg",
+			Name:  e.Name,
+			Expr:  expr,
+			Where: where,
 		}, nil
 	}
 	return nil, fmt.Errorf("invalid expression type %T", e)
 }
 
-func semBinary(scope *Scope, e *ast.BinaryExpression) (ast.Expression, error) {
-	op := e.Operator
+func semBinary(scope *Scope, e *ast.BinaryExpr) (ast.Expr, error) {
+	op := e.Op
 	if op == "." {
 		return semField(scope, e)
 	}
-	if slice, ok := e.RHS.(*ast.BinaryExpression); ok && slice.Operator == ":" {
+	if slice, ok := e.RHS.(*ast.BinaryExpr); ok && slice.Op == ":" {
 		if op != "[" {
 			return nil, errors.New("slice outside of index operator")
 		}
@@ -129,11 +129,11 @@ func semBinary(scope *Scope, e *ast.BinaryExpression) (ast.Expression, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ast.BinaryExpression{
-			Op:       "BinaryExpr",
-			Operator: "[",
-			LHS:      ref,
-			RHS:      slice,
+		return &ast.BinaryExpr{
+			Kind: "BinaryExpr",
+			Op:   "[",
+			LHS:  ref,
+			RHS:  slice,
 		}, nil
 	}
 	lhs, err := semExpr(scope, e.LHS)
@@ -144,15 +144,15 @@ func semBinary(scope *Scope, e *ast.BinaryExpression) (ast.Expression, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &ast.BinaryExpression{
-		Op:       "BinaryExpr",
-		Operator: e.Operator,
-		LHS:      lhs,
-		RHS:      rhs,
+	return &ast.BinaryExpr{
+		Kind: "BinaryExpr",
+		Op:   e.Op,
+		LHS:  lhs,
+		RHS:  rhs,
 	}, nil
 }
 
-func semSlice(scope *Scope, slice *ast.BinaryExpression) (*ast.BinaryExpression, error) {
+func semSlice(scope *Scope, slice *ast.BinaryExpr) (*ast.BinaryExpr, error) {
 	sliceFrom, err := semExprNullable(scope, slice.LHS)
 	if err != nil {
 		return nil, err
@@ -161,45 +161,45 @@ func semSlice(scope *Scope, slice *ast.BinaryExpression) (*ast.BinaryExpression,
 	if err != nil {
 		return nil, err
 	}
-	return &ast.BinaryExpression{
-		Op:       "BinaryExpr",
-		Operator: ":",
-		LHS:      sliceFrom,
-		RHS:      sliceTo,
+	return &ast.BinaryExpr{
+		Kind: "BinaryExpr",
+		Op:   ":",
+		LHS:  sliceFrom,
+		RHS:  sliceTo,
 	}, nil
 }
 
-func semExprNullable(scope *Scope, e ast.Expression) (ast.Expression, error) {
+func semExprNullable(scope *Scope, e ast.Expr) (ast.Expr, error) {
 	if e == nil {
 		return nil, nil
 	}
 	return semExpr(scope, e)
 }
 
-func semCall(scope *Scope, call *ast.FunctionCall) (ast.Expression, error) {
+func semCall(scope *Scope, call *ast.Call) (ast.Expr, error) {
 	if e, err := semSequence(scope, call); e != nil || err != nil {
 		return e, err
 	}
 	exprs, err := semExprs(scope, call.Args)
 	if err != nil {
-		return nil, fmt.Errorf("%s: bad argument: %w", call.Function, err)
+		return nil, fmt.Errorf("%s: bad argument: %w", call.Name, err)
 	}
-	return &ast.FunctionCall{
-		Op:       "FunctionCall",
-		Function: call.Function,
-		Args:     exprs,
+	return &ast.Call{
+		Kind: "Call",
+		Name: call.Name,
+		Args: exprs,
 	}, nil
 }
 
-func semSequence(scope *Scope, call *ast.FunctionCall) (*ast.SeqExpr, error) {
+func semSequence(scope *Scope, call *ast.Call) (*ast.SeqExpr, error) {
 	if len(call.Args) != 1 {
 		return nil, nil
 	}
-	sel, ok := call.Args[0].(*ast.SelectExpression)
+	sel, ok := call.Args[0].(*ast.SelectExpr)
 	if !ok {
 		return nil, nil
 	}
-	_, err := agg.NewPattern(call.Function)
+	_, err := agg.NewPattern(call.Name)
 	if err != nil {
 		return nil, nil
 	}
@@ -216,15 +216,15 @@ func semSequence(scope *Scope, call *ast.FunctionCall) (*ast.SeqExpr, error) {
 		methods = append(methods, *m)
 	}
 	return &ast.SeqExpr{
-		Op:        "SeqExpr",
-		Name:      call.Function,
+		Kind:      "SeqExpr",
+		Name:      call.Name,
 		Selectors: selectors,
 		Methods:   methods,
 	}, nil
 }
 
-func semMethod(scope *Scope, call ast.FunctionCall) (*ast.Method, error) {
-	switch call.Function {
+func semMethod(scope *Scope, call ast.Call) (*ast.Method, error) {
+	switch call.Name {
 	case "map":
 		if len(call.Args) != 1 {
 			return nil, errors.New("map() method requires one argument")
@@ -236,7 +236,7 @@ func semMethod(scope *Scope, call ast.FunctionCall) (*ast.Method, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ast.Method{Name: "map", Args: []ast.Expression{e}}, nil
+		return &ast.Method{Name: "map", Args: []ast.Expr{e}}, nil
 	case "filter":
 		if len(call.Args) != 1 {
 			return nil, errors.New("filter() method requires one argument")
@@ -248,14 +248,14 @@ func semMethod(scope *Scope, call ast.FunctionCall) (*ast.Method, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ast.Method{Name: "filter", Args: []ast.Expression{e}}, nil
+		return &ast.Method{Name: "filter", Args: []ast.Expr{e}}, nil
 	default:
-		return nil, fmt.Errorf("uknown method: %s", call.Function)
+		return nil, fmt.Errorf("uknown method: %s", call.Name)
 	}
 }
 
-func semExprs(scope *Scope, in []ast.Expression) ([]ast.Expression, error) {
-	exprs := make([]ast.Expression, 0, len(in))
+func semExprs(scope *Scope, in []ast.Expr) ([]ast.Expr, error) {
+	exprs := make([]ast.Expr, 0, len(in))
 	for _, e := range in {
 		expr, err := semExpr(scope, e)
 		if err != nil {
@@ -283,7 +283,7 @@ func semAssignment(scope *Scope, a ast.Assignment) (ast.Assignment, error) {
 	if err != nil {
 		return ast.Assignment{}, fmt.Errorf("rhs of assigment expression: %w", err)
 	}
-	var lhs ast.Expression
+	var lhs ast.Expr
 	if a.LHS != nil {
 		// XXX currently only support explicit field lvals
 		// (i.e., no assignments to array elements etc... instead
@@ -292,12 +292,12 @@ func semAssignment(scope *Scope, a ast.Assignment) (ast.Assignment, error) {
 		if err != nil {
 			return ast.Assignment{}, fmt.Errorf("lhs of assigment expression: %w", err)
 		}
-	} else if call, ok := a.RHS.(*ast.FunctionCall); ok {
-		lhs = &ast.FieldPath{"FieldPath", []string{call.Function}}
-	} else if r, ok := a.RHS.(*ast.Reducer); ok {
-		lhs = &ast.FieldPath{"FieldPath", []string{r.Operator}}
-	} else if _, ok := a.RHS.(*ast.RootRecord); ok {
-		lhs = &ast.FieldPath{"FieldPath", []string{"."}}
+	} else if call, ok := a.RHS.(*ast.Call); ok {
+		lhs = &ast.Path{"Path", []string{call.Name}}
+	} else if agg, ok := a.RHS.(*ast.Agg); ok {
+		lhs = &ast.Path{"Path", []string{agg.Name}}
+	} else if _, ok := a.RHS.(*ast.Root); ok {
+		lhs = &ast.Path{"Path", []string{"."}}
 	} else {
 		lhs, err = semField(scope, a.RHS)
 		if err != nil {
@@ -307,8 +307,8 @@ func semAssignment(scope *Scope, a ast.Assignment) (ast.Assignment, error) {
 	return ast.Assignment{"Assignment", lhs, rhs}, nil
 }
 
-func semFields(scope *Scope, exprs []ast.Expression) ([]ast.Expression, error) {
-	fields := make([]ast.Expression, 0, len(exprs))
+func semFields(scope *Scope, exprs []ast.Expr) ([]ast.Expr, error) {
+	fields := make([]ast.Expr, 0, len(exprs))
 	for _, e := range exprs {
 		f, err := semField(scope, e)
 		if err != nil {
@@ -321,30 +321,30 @@ func semFields(scope *Scope, exprs []ast.Expression) ([]ast.Expression, error) {
 
 // semField checks that an expression is a field refernce and converts it
 // to a field path if possible.  It will convert any references to Refs.
-func semField(scope *Scope, e ast.Expression) (ast.Expression, error) {
+func semField(scope *Scope, e ast.Expr) (ast.Expr, error) {
 	switch e := e.(type) {
-	case *ast.BinaryExpression:
-		if e.Operator == "." {
+	case *ast.BinaryExpr:
+		if e.Op == "." {
 			lhs, err := semField(scope, e.LHS)
 			if err != nil {
 				return nil, err
 			}
-			id, ok := e.RHS.(*ast.Identifier)
+			id, ok := e.RHS.(*ast.Id)
 			if !ok {
 				return nil, errors.New("RHS of dot operator is not an identifier")
 			}
-			if lhs, ok := lhs.(*ast.FieldPath); ok {
+			if lhs, ok := lhs.(*ast.Path); ok {
 				lhs.Name = append(lhs.Name, id.Name)
 				return lhs, nil
 			}
-			return &ast.BinaryExpression{
-				Op:       "BinaryExpr",
-				Operator: ".",
-				LHS:      lhs,
-				RHS:      id,
+			return &ast.BinaryExpr{
+				Kind: "BinaryExpr",
+				Op:   ".",
+				LHS:  lhs,
+				RHS:  id,
 			}, nil
 		}
-		if e.Operator == "[" {
+		if e.Op == "[" {
 			lhs, err := semField(scope, e.LHS)
 			if err != nil {
 				return nil, err
@@ -353,14 +353,14 @@ func semField(scope *Scope, e ast.Expression) (ast.Expression, error) {
 			if err != nil {
 				return nil, err
 			}
-			return &ast.BinaryExpression{
-				Op:       "BinaryExpr",
-				Operator: "[",
-				LHS:      lhs,
-				RHS:      rhs,
+			return &ast.BinaryExpr{
+				Kind: "BinaryExpr",
+				Op:   "[",
+				LHS:  lhs,
+				RHS:  rhs,
 			}, nil
 		}
-	case *ast.Identifier:
+	case *ast.Id:
 		if scope.Lookup(e.Name) != nil {
 			// For now, this could only be a literal but
 			// it may refer to other data types down the
@@ -370,9 +370,9 @@ func semField(scope *Scope, e ast.Expression) (ast.Expression, error) {
 		if e.Name == "$" {
 			return &ast.Ref{"Ref", "$"}, nil
 		}
-		return &ast.FieldPath{Op: "FieldPath", Name: []string{e.Name}}, nil
-	case *ast.RootRecord:
-		return &ast.FieldPath{Op: "FieldPath", Name: []string{}}, nil
+		return &ast.Path{Kind: "Path", Name: []string{e.Name}}, nil
+	case *ast.Root:
+		return &ast.Path{Kind: "Path", Name: []string{}}, nil
 	}
 	// This includes a null Expr, which can happen if the AST is missing
 	// a field or sets it to null.
@@ -383,30 +383,30 @@ func semField(scope *Scope, e ast.Expression) (ast.Expression, error) {
 // to a group-by or a filter-proc based on the name of the function.
 // This way, Z of the form `... | exists(...) | ...` can be distinguished
 // from `count()` by the name lookup here at compile time.
-func convertFunctionProc(call *ast.FunctionCall) (ast.Proc, error) {
-	if _, err := agg.NewPattern(call.Function); err != nil {
+func convertFunctionProc(call *ast.Call) (ast.Proc, error) {
+	if _, err := agg.NewPattern(call.Name); err != nil {
 		// Assume it's a valid function and convert.  If not,
 		// the compiler will report an unknown function error.
 		return ast.FilterToProc(call), nil
 	}
-	var e ast.Expression
+	var e ast.Expr
 	if len(call.Args) > 1 {
-		return nil, fmt.Errorf("%s: wrong number of arguments", call.Function)
+		return nil, fmt.Errorf("%s: wrong number of arguments", call.Name)
 	}
 	if len(call.Args) == 1 {
 		e = call.Args[0]
 	}
-	reducer := &ast.Reducer{
-		Op:       "Reducer",
-		Operator: call.Function,
-		Expr:     e,
+	agg := &ast.Agg{
+		Kind: "Agg",
+		Name: call.Name,
+		Expr: e,
 	}
-	return &ast.GroupByProc{
-		Op: "GroupByProc",
-		Reducers: []ast.Assignment{
+	return &ast.Summarize{
+		Kind: "Summarize",
+		Aggs: []ast.Assignment{
 			{
-				Op:  "Assignment",
-				RHS: reducer,
+				Kind: "Assignment",
+				RHS:  agg,
 			},
 		},
 	}, nil

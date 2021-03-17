@@ -115,7 +115,12 @@ func (r Reflector) lookup(object map[string]interface{}) (reflect.Value, error) 
 	// If we hit a key but it didn't have any matching rule (even to skip),
 	// then we raise an error.
 	if hits > 0 {
-		return zero, fmt.Errorf("unpack: JSON object found with candidate key(s) having no template match")
+		b, err := json.Marshal(object)
+		objtext := string(b)
+		if err != nil {
+			objtext = err.Error()
+		}
+		return zero, fmt.Errorf("unpack: JSON object found with candidate key(s) having no template match\n%s", objtext)
 	}
 	return zero, nil
 }

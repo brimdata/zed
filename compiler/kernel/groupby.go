@@ -12,16 +12,16 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, node *ast.GroupByProc) (*groupby.Proc, error) {
+func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, node *ast.Summarize) (*groupby.Proc, error) {
 	keys, err := compileAssignments(node.Keys, pctx.Zctx, scope)
 	if err != nil {
 		return nil, err
 	}
-	names, reducers, err := compileAggs(node.Reducers, scope, pctx.Zctx)
+	names, reducers, err := compileAggs(node.Aggs, scope, pctx.Zctx)
 	if err != nil {
 		return nil, err
 	}
-	return groupby.New(pctx, parent, keys, names, reducers, node.Limit, node.InputSortDir, node.ConsumePart, node.EmitPart)
+	return groupby.New(pctx, parent, keys, names, reducers, node.Limit, node.InputSortDir, node.PartialsIn, node.PartialsOut)
 }
 
 func compileAggs(assignments []ast.Assignment, scope *Scope, zctx *resolver.Context) ([]field.Static, []*expr.Aggregator, error) {
@@ -39,11 +39,11 @@ func compileAggs(assignments []ast.Assignment, scope *Scope, zctx *resolver.Cont
 }
 
 func compileAgg(zctx *resolver.Context, scope *Scope, assignment ast.Assignment) (field.Static, *expr.Aggregator, error) {
-	aggAST, ok := assignment.RHS.(*ast.Reducer)
+	aggAST, ok := assignment.RHS.(*ast.Agg)
 	if !ok {
 		return nil, nil, errors.New("aggregator is not an aggregation expression")
 	}
-	aggOp := aggAST.Operator
+	aggName := aggAST.Name
 	var err error
 	var arg expr.Evaluator
 	if aggAST.Expr != nil {
@@ -57,7 +57,7 @@ func compileAgg(zctx *resolver.Context, scope *Scope, assignment ast.Assignment)
 	// the name of reducer function.
 	var lhs field.Static
 	if assignment.LHS == nil {
-		lhs = field.New(aggOp)
+		lhs = field.New(aggName)
 	} else {
 		lhs, err = compileLval(assignment.LHS)
 		if err != nil {
@@ -71,6 +71,6 @@ func compileAgg(zctx *resolver.Context, scope *Scope, assignment ast.Assignment)
 			return nil, nil, err
 		}
 	}
-	m, err := expr.NewAggregator(aggOp, arg, where)
+	m, err := expr.NewAggregator(aggName, arg, where)
 	return lhs, m, err
 }

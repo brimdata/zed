@@ -9,7 +9,7 @@ type AST struct {
 	entry   ast.Proc
 	unopt   ast.Proc
 	consts  []ast.Proc
-	filter  ast.Expression
+	filter  ast.Expr
 	sortKey field.Static
 	sortRev bool
 }
@@ -29,7 +29,7 @@ func (a *AST) Consts() []ast.Proc {
 	return a.consts
 }
 
-func (a *AST) Filter() ast.Expression {
+func (a *AST) Filter() ast.Expr {
 	return a.filter
 }
 

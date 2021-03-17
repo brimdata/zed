@@ -9,8 +9,8 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpression) (expr.Filter, error) {
-	if e.Operator == "in" {
+func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (expr.Filter, error) {
+	if e.Op == "in" {
 		literal, ok := e.LHS.(*ast.Literal)
 		if !ok {
 			return nil, nil
@@ -31,7 +31,7 @@ func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr
 	if !ok {
 		return nil, nil
 	}
-	comparison, err := expr.Comparison(e.Operator, *literal)
+	comparison, err := expr.Comparison(e.Op, *literal)
 	if err != nil {
 		// If this fails, return no match instead of the error and
 		// let later-on code detect the error as this could be a
@@ -74,11 +74,11 @@ func compileSearch(node *ast.Search) (expr.Filter, error) {
 	return expr.SearchRecordOther(node.Text, node.Value)
 }
 
-func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (expr.Filter, error) {
+func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Filter, error) {
 	switch v := node.(type) {
-	case *ast.UnaryExpression:
-		if v.Operator != "!" {
-			return nil, fmt.Errorf("unknown unary operator: %s", v.Operator)
+	case *ast.UnaryExpr:
+		if v.Op != "!" {
+			return nil, fmt.Errorf("unknown unary operator: %s", v.Op)
 		}
 		e, err := CompileFilter(zctx, scope, v.Operand)
 		if err != nil {
@@ -106,8 +106,8 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (e
 	case *ast.Search:
 		return compileSearch(v)
 
-	case *ast.BinaryExpression:
-		if v.Operator == "and" {
+	case *ast.BinaryExpr:
+		if v.Op == "and" {
 			left, err := CompileFilter(zctx, scope, v.LHS)
 			if err != nil {
 				return nil, err
@@ -118,7 +118,7 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (e
 			}
 			return expr.LogicalAnd(left, right), nil
 		}
-		if v.Operator == "or" {
+		if v.Op == "or" {
 			left, err := CompileFilter(zctx, scope, v.LHS)
 			if err != nil {
 				return nil, err
@@ -134,7 +134,7 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (e
 		}
 		return compileExprPredicate(zctx, scope, v)
 
-	case *ast.FunctionCall:
+	case *ast.Call:
 		return compileExprPredicate(zctx, scope, v)
 	case *ast.SeqExpr:
 		if f, err := compileCompareAny(v); f != nil || err != nil {
@@ -147,7 +147,7 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expression) (e
 	}
 }
 
-func compileExprPredicate(zctx *resolver.Context, scope *Scope, e ast.Expression) (expr.Filter, error) {
+func compileExprPredicate(zctx *resolver.Context, scope *Scope, e ast.Expr) (expr.Filter, error) {
 	predicate, err := compileExpr(zctx, scope, e)
 	if err != nil {
 		return nil, err

@@ -9,50 +9,49 @@ import (
 var unpacker = unpack.New(
 	Array{},
 	Assignment{},
-	BinaryExpression{},
-	CastExpression{},
+	BinaryExpr{},
+	Call{},
+	Cast{},
 	CastValue{},
-	ConditionalExpression{},
-	ConstProc{},
-	CutProc{},
+	Conditional{},
+	Const{},
+	Cut{},
 	DefValue{},
-	DropProc{},
+	Drop{},
 	Enum{},
-	FieldPath{},
-	FilterProc{},
-	FunctionCall{},
-	FuseProc{},
-	GroupByProc{},
-	HeadProc{},
-	Identifier{},
+	Filter{},
+	Fuse{},
+	Summarize{},
+	Head{},
+	Id{},
 	ImpliedValue{},
-	JoinProc{},
+	Join{},
 	Literal{},
 	Map{},
-	ShapeProc{},
-	ParallelProc{},
-	PassProc{},
-	PickProc{},
+	Shape{},
+	Parallel{},
+	Pass{},
+	Path{},
+	Pick{},
 	Primitive{},
-	PutProc{},
+	Put{},
 	Record{},
-	Reducer{},
+	Agg{},
 	Ref{},
-	RenameProc{},
-	RootRecord{},
+	Rename{},
+	Root{},
 	Search{},
-	SelectExpression{},
+	SelectExpr{},
 	SeqExpr{},
-	SequentialProc{},
+	Sequential{},
 	Set{},
-	SortProc{},
-	SwitchProc{},
-	TailProc{},
-	TopProc{},
+	Sort{},
+	Switch{},
+	Tail{},
+	Top{},
 	TypeArray{},
 	TypeDef{},
 	TypeEnum{},
-	TypeExpr{},
 	TypeMap{},
 	TypeName{},
 	TypeNull{},
@@ -62,8 +61,8 @@ var unpacker = unpack.New(
 	TypeSet{},
 	TypeUnion{},
 	TypeValue{},
-	UnaryExpression{},
-	UniqProc{},
+	UnaryExpr{},
+	Uniq{},
 )
 
 func UnpackJSON(buf []byte) (interface{}, error) {
@@ -98,12 +97,12 @@ func UnpackMapAsProc(m interface{}) (Proc, error) {
 	return proc, nil
 }
 
-func UnpackMapAsExpr(m interface{}) (Expression, error) {
+func UnpackMapAsExpr(m interface{}) (Expr, error) {
 	object, err := unpacker.UnpackMap(m)
 	if object == nil || err != nil {
 		return nil, err
 	}
-	e, ok := object.(Expression)
+	e, ok := object.(Expr)
 	if !ok {
 		return nil, errors.New("ast.UnpackMapAsExpr: not an expression")
 	}

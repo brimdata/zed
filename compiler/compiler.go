@@ -106,8 +106,8 @@ func (r *Runtime) AsProc() ast.Proc {
 		procs = append(procs, p)
 	}
 	procs = append(procs, p)
-	return &ast.SequentialProc{
-		Op:    "SequentialProc",
+	return &ast.Sequential{
+		Kind:  "Sequential",
 		Procs: procs,
 	}
 }
@@ -135,7 +135,7 @@ func ParseProc(z string) (ast.Proc, error) {
 	return ast.UnpackMapAsProc(parsed)
 }
 
-func ParseExpression(expr string) (ast.Expression, error) {
+func ParseExpression(expr string) (ast.Expr, error) {
 	m, err := zql.ParseZByRule("Expr", expr)
 	if err != nil {
 		return nil, err

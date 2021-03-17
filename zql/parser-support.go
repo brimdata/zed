@@ -16,7 +16,7 @@ func makeChain(first interface{}, restIn interface{}, op string) interface{} {
 	result := first
 	for _, term := range rest {
 		result = map[string]interface{}{
-			"op":    op,
+			"kind":  op,
 			"left":  result,
 			"right": term,
 		}
@@ -29,10 +29,10 @@ func makeBinaryExprChain(first, rest interface{}) interface{} {
 	for _, p := range rest.([]interface{}) {
 		part := p.([]interface{})
 		ret = map[string]interface{}{
-			"op":       "BinaryExpr",
-			"operator": part[0],
-			"lhs":      ret,
-			"rhs":      part[1],
+			"kind": "BinaryExpr",
+			"op":   part[0],
+			"lhs":  ret,
+			"rhs":  part[1],
 		}
 	}
 	return ret
