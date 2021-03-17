@@ -26,7 +26,6 @@ var unpacker = unpack.New(
 	Id{},
 	ImpliedValue{},
 	Join{},
-	Literal{},
 	Map{},
 	Shape{},
 	Parallel{},

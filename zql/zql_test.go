@@ -134,11 +134,11 @@ func parseString(in string) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("Expected BinaryExpr got %T", filt.Expr)
 	}
-	literal, ok := comp.RHS.(*ast.Literal)
+	literal, ok := comp.RHS.(*ast.Primitive)
 	if !ok {
 		return "", fmt.Errorf("Expected Literal got %T", filt.Expr)
 	}
-	return literal.Value, nil
+	return literal.Text, nil
 }
 
 // Test handling of unicode escapes in the parser

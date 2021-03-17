@@ -13,9 +13,9 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 	switch e := e.(type) {
 	case nil:
 		return nil, errors.New("semantic analysis: illegal null value encountered in AST")
-	case *ast.Literal:
-		if e.Type == "regexp" {
-			if _, err := expr.CheckRegexp(e.Value); err != nil {
+	case *ast.Primitive:
+		if e.Type == "regexp" { //XXX
+			if _, err := expr.CheckRegexp(e.Text); err != nil {
 				return nil, err
 			}
 		}

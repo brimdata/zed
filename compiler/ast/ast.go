@@ -10,7 +10,7 @@ package ast
 // license that can be found in the LICENSE file.
 
 import (
-	"encoding/json"
+	"time"
 
 	"github.com/brimsec/zq/field"
 )
@@ -46,21 +46,10 @@ type Expr interface {
 	exprNode()
 }
 
-// Literal is a string representation of a literal value where the
-// type field indicates the underlying data type (of the set of all supported
-// zng data types, derived from the zng type system and not to be confused with
-// the native Go types) and value is a string representation of that value that
-// must conform to the provided type.
-type Literal struct {
-	Kind  string `json:"kind" unpack:""`
-	Type  string `json:"type"`
-	Value string `json:"value"`
-}
-
 type Search struct {
-	Kind  string  `json:"kind" unpack:""`
-	Text  string  `json:"text"`
-	Value Literal `json:"value"`
+	Kind  string    `json:"kind" unpack:""`
+	Text  string    `json:"text"`
+	Value Primitive `json:"value"` //XXX search should be extended to complex types
 }
 
 type UnaryExpr struct {
@@ -126,7 +115,7 @@ func (*Conditional) exprNode() {}
 func (*Search) exprNode()      {}
 func (*Call) exprNode()        {}
 func (*Cast) exprNode()        {}
-func (*Literal) exprNode()     {}
+func (*Primitive) exprNode()   {}
 func (*Id) exprNode()          {}
 func (*Path) exprNode()        {}
 func (*Ref) exprNode()         {}
@@ -251,7 +240,7 @@ type (
 	// expect partial results as input.
 	Summarize struct {
 		Kind         string       `json:"kind" unpack:""`
-		Duration     Duration     `json:"duration"`
+		Duration     *Primitive   `json:"duration"`
 		InputSortDir int          `json:"input_sort_dir,omitempty"`
 		Limit        int          `json:"limit"`
 		Keys         []Assignment `json:"keys"`
@@ -331,31 +320,13 @@ type Assignment struct {
 	RHS  Expr   `json:"rhs"`
 }
 
-//XXX TBD: chance to nano.Duration
-type Duration struct {
-	Seconds int `json:"seconds"`
-}
-
-type DurationNode struct {
-	Type    string `json:"type"`
-	Seconds int    `json:"seconds"`
-}
-
-func (d *Duration) MarshalJSON() ([]byte, error) {
-	if d.Seconds == 0 {
-		return json.Marshal(nil)
+func DurationToPrimitive(sec int) *Primitive {
+	d := time.Duration(sec) * time.Second
+	return &Primitive{
+		Kind: "Primitive",
+		Type: "duration",
+		Text: d.String(),
 	}
-	v := DurationNode{"Duration", d.Seconds}
-	return json.Marshal(&v)
-}
-
-func (d *Duration) UnmarshalJSON(b []byte) error {
-	var v DurationNode
-	if err := json.Unmarshal(b, &v); err != nil {
-		return err
-	}
-	d.Seconds = v.Seconds
-	return nil
 }
 
 func (*Sequential) ProcNode() {}
@@ -414,11 +385,11 @@ func DotExprToFieldPath(e Expr) *Path {
 			if lhs == nil {
 				return nil
 			}
-			id, ok := e.RHS.(*Literal)
+			id, ok := e.RHS.(*Primitive)
 			if !ok || id.Type != "string" {
 				return nil
 			}
-			lhs.Name = append(lhs.Name, id.Value)
+			lhs.Name = append(lhs.Name, id.Text)
 			return lhs
 		}
 	case *Id:

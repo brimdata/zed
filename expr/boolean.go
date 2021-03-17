@@ -202,7 +202,7 @@ var compareString = map[string]func(string, string) bool{
 	"<=": func(a, b string) bool { return a <= b },
 }
 
-func CompareBstring(op string, pattern bstring) (Boolean, error) {
+func CompareBstring(op string, pattern []byte) (Boolean, error) {
 	compare, ok := compareString[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown string comparator: %s", op)
@@ -372,64 +372,61 @@ func Contains(compare Boolean) Boolean {
 // See the comments of the various type implementations
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
-func Comparison(op string, literal ast.Literal) (Boolean, error) {
+func Comparison(op string, literal ast.Primitive) (Boolean, error) {
+	//XXX regexp is not a primitive type... this should be handled
+	// with a different thing.
 	if literal.Type == "regexp" {
-		return compareRegexp(op, literal.Value)
+		return compareRegexp(op, literal.Text)
 	}
-	v, err := parseLiteral(literal)
-	if err != nil {
-		return nil, err
-	}
-	switch v := v.(type) {
-	case nil:
-		return CompareUnset(op)
-	case net.IP:
-		return CompareIP(op, v)
-	case *net.IPNet:
-		return CompareSubnet(op, v)
-	case bool:
-		return CompareBool(op, v)
-	case float64: //XXX
-		return CompareFloat64(op, v)
-	case bstring: //XXX
-		return CompareBstring(op, v)
-	case int64:
-		return CompareInt64(op, v)
-	default:
-		return nil, fmt.Errorf("unknown type of constant: %s (%T)", literal.Type, v)
-	}
-}
-
-//XXX this shoulw all go away ?
-
-type bstring []byte
-
-func parseLiteral(literal ast.Literal) (interface{}, error) {
 	// String literals inside zql are parsed as zng bstrings
 	// (since bstrings can represent a wider range of values,
 	// specifically arrays of bytes that do not correspond to
 	// UTF-8 encoded strings).
 	if literal.Type == "string" {
-		literal = ast.Literal{Kind: "Literal", Type: "bstring", Value: literal.Value}
+		literal = ast.Primitive{Kind: "Primitive", Type: "bstring", Text: literal.Text}
 	}
-	zv, err := zson.ParsePrimitive(literal.Type, literal.Value)
+	zv, err := zson.ParsePrimitive(literal)
 	if err != nil {
 		return nil, err
 	}
 	switch zv.Type.(type) {
-	case nil:
-		return nil, nil
+	case *zng.TypeOfNull:
+		return CompareUnset(op)
 	case *zng.TypeOfIP:
-		// marshal doesn't work for addr
-		return zng.DecodeIP(zv.Bytes)
+		v, err := zng.DecodeIP(zv.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		return CompareIP(op, v)
 	case *zng.TypeOfNet:
-		// marshal doesn't work for subnet
-		return zng.DecodeNet(zv.Bytes)
-	case *zng.TypeOfBstring:
-		// marshal doesn't work for bstring
-		s, err := zng.DecodeString(zv.Bytes)
-		return bstring(s), err
+		v, err := zng.DecodeNet(zv.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		return CompareSubnet(op, v)
+	case *zng.TypeOfBool:
+		v, err := zng.DecodeBool(zv.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		return CompareBool(op, v)
+	case *zng.TypeOfFloat64:
+		v, err := zng.DecodeFloat64(zv.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		return CompareFloat64(op, v)
+	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfType, *zng.TypeOfError:
+		return CompareBstring(op, zv.Bytes)
+	//XXX need to support other number types.  we previously did not have a
+	// way to express other int types as Z literals
+	case *zng.TypeOfInt64:
+		v, err := zng.DecodeInt(zv.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		return CompareInt64(op, v)
 	default:
-		return zv.Type.Marshal(zv.Bytes)
+		return nil, fmt.Errorf("literal comparison of type %q unsupported", zv.Type.ZSON())
 	}
 }

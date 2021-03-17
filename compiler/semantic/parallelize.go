@@ -299,7 +299,7 @@ func parallelize(p ast.Proc, N int, inputSortField field.Static, inputSortRevers
 			// To decompose the groupby, we split the flowgraph into branches that run up to and including a groupby,
 			// followed by a post-merge groupby that composes the results.
 			var mergeField field.Static
-			if p.Duration.Seconds != 0 {
+			if p.Duration != nil {
 				// Group by time requires a time-ordered merge, irrespective of any upstream ordering.
 				mergeField = field.New("ts")
 			}

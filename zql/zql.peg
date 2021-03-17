@@ -97,7 +97,7 @@ SwitchBranch
       RETURN(MAP("expr": e, "proc": proc))
     }
   / __ DefaultToken __ "=>" __ proc:Sequential {
-      RETURN(MAP("expr": MAP("kind": "Literal", "type": "bool", "value": "true"), "proc": proc))
+      RETURN(MAP("expr": MAP("kind": "Primitive", "type": "bool", "text": "true"), "proc": proc))
     }
 
 Switch
@@ -182,23 +182,23 @@ ShortCut
       RETURN(MAP("kind": "Search", "text": TEXT, "value": v))
     }
   / "*" !ExprGuard {
-      RETURN(MAP("kind": "Literal", "type": "bool", "value": "true"))
+      RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true"))
     }
 
 SearchValue
   = Literal
   / v:KeyWord {
-      RETURN(MAP("kind": "Literal", "type": "string", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "string", "text": v))
     }
 
 GlobbySearchValue
   = Literal
   / v:SearchGlob {
       VAR(str) = ASSERT_STRING(v)
-      VAR(literal) = MAP("kind": "Literal", "type": "string", "value": v)
+      VAR(literal) = MAP("kind": "Primitive", "type": "string", "text": v)
       if (reglob.IsGlobby(str)) {
         literal["type"] = "regexp"
-        literal["value"] = reglob.Reglob(str)
+        literal["text"] = reglob.Reglob(str)
       }
       RETURN(literal)
     }
@@ -706,46 +706,48 @@ Literal
 
 StringLiteral
   = v:QuotedString {
-      RETURN(MAP("kind": "Literal", "type": "string", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "string", "text": v))
     }
+
+// XXX regexp is not a primitive type
 
 RegexpLiteral
   = v:Regexp !KeyWordStart {
-      RETURN(MAP("kind": "Literal", "type": "regexp", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "regexp", "text": v))
     }
 
 SubnetLiteral
   = v:IP6Net !IdentifierRest {
-      RETURN(MAP("kind": "Literal", "type": "net", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "net", "text": v))
     }
   / v:IP4Net {
-      RETURN(MAP("kind": "Literal", "type": "net", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "net", "text": v))
     }
 
 AddressLiteral
   = v:IP6 !IdentifierRest {
-      RETURN(MAP("kind": "Literal", "type": "ip", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "ip", "text": v))
     }
   / v:IP {
-      RETURN(MAP("kind": "Literal", "type": "ip", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "ip", "text": v))
     }
 
 FloatLiteral
   = v:FloatString {
-      RETURN(MAP("kind": "Literal", "type": "float64", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "float64", "text": v))
     }
 
 IntegerLiteral
   = v:IntString {
-      RETURN(MAP("kind": "Literal", "type": "int64", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "int64", "text": v))
     }
 
 BooleanLiteral
-  = "true"           { RETURN(MAP("kind": "Literal", "type": "bool", "value": "true")) }
-  / "false"          { RETURN(MAP("kind": "Literal", "type": "bool", "value": "false")) }
+  = "true"           { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true")) }
+  / "false"          { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "false")) }
 
 NullLiteral
-  = "null"           { RETURN(MAP("kind": "Literal", "type": "null", "value": "")) }
+  = "null"           { RETURN(MAP("kind": "Primitive", "type": "null", "text": "")) }
 
 TypeLiteral
   = typ:TypeExternal {
@@ -882,59 +884,25 @@ IdGuard
   / SearchGuard
 
 Duration
-  = Seconds
+  = "-"? DurationOptions {
+      RETURN(MAP("kind": "Primitive", "type": "duration", "text": TEXT))
+    }
+
+DurationOptions
+  = Hours
   / Minutes
-  / Hours
-  / Hours _ "and" _ Minutes
-  / Days
-  / Weeks
+  / Seconds
+  / Milliseconds
+  / Microseconds
+  / Nanoseconds
 
-SecondsToken
-  = "seconds"
-  / "second"
-  / "secs"
-  / "sec"
-  / "s"
+Hours = UInt "h"i Minutes?
+Minutes = UInt "m"i !("s"i) Seconds?
+Seconds = UInt "s"i Milliseconds?
+Milliseconds = UInt "ms"i Microseconds?
+Microseconds = UInt ("u"i / "μ") "s"i Nanoseconds?
+Nanoseconds = UInt "ns"i
 
-MinutesToken
-  = "minutes"
-  / "minute"
-  / "mins"
-  / "min"
-  / "m"
-
-HoursToken
-  = "hours"
-  / "hrs"
-  / "hr"
-  / "h"
-  / "hour"
-
-DaysToken = "days"/"day"/"d"
-
-WeeksToken = "weeks"/"week"/"wks"/"wk"/"w"
-
-Seconds
-  = "second" { RETURN(MAP("type": "Duration", "seconds": 1)) }
-  / num:UInt __ SecondsToken { RETURN(MAP("type": "Duration", "seconds": num)) }
-
-Minutes
-  = "minute" { RETURN(MAP("type": "Duration", "seconds": 60)) }
-  / num:UInt __ MinutesToken { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*60)) }
-
-Hours
-  = "hour" { RETURN(MAP("type": "Duration", "seconds": 3600)) }
-  / num:UInt __ HoursToken { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600)) }
-
-Days
-  = "day" { RETURN(MAP("type": "Duration", "seconds": 3600*24)) }
-  / num:UInt __ DaysToken { RETURN(MAP("type": "Duration", "seconds": (ASSERT_INT(num)*3600*24))) }
-
-Weeks
-  = "week" { RETURN(MAP("type": "Duration", "seconds": 3600*24*7)) }
-  / num:UInt __ WeeksToken { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600*24*7)) }
-
-//XXX what about mac addrs?
 IP
   = UInt "." UInt "." UInt "." UInt { RETURN(TEXT) }
 
