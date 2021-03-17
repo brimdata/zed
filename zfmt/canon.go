@@ -331,8 +331,8 @@ func (c *canon) proc(p ast.Proc) {
 }
 
 func isTrue(e ast.Expr) bool {
-	if lit, ok := e.(*ast.Primitive); ok {
-		return lit.Type == "bool" && lit.Text == "true"
+	if p, ok := e.(*ast.Primitive); ok {
+		return p.Type == "bool" && p.Text == "true"
 	}
 	return false
 }

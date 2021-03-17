@@ -372,20 +372,20 @@ func Contains(compare Boolean) Boolean {
 // See the comments of the various type implementations
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
-func Comparison(op string, literal ast.Primitive) (Boolean, error) {
+func Comparison(op string, primitive ast.Primitive) (Boolean, error) {
 	//XXX regexp is not a primitive type... this should be handled
 	// with a different thing.
-	if literal.Type == "regexp" {
-		return compareRegexp(op, literal.Text)
+	if primitive.Type == "regexp" {
+		return compareRegexp(op, primitive.Text)
 	}
 	// String literals inside zql are parsed as zng bstrings
 	// (since bstrings can represent a wider range of values,
 	// specifically arrays of bytes that do not correspond to
 	// UTF-8 encoded strings).
-	if literal.Type == "string" {
-		literal = ast.Primitive{Kind: "Primitive", Type: "bstring", Text: literal.Text}
+	if primitive.Type == "string" {
+		primitive = ast.Primitive{Kind: "Primitive", Type: "bstring", Text: primitive.Text}
 	}
-	zv, err := zson.ParsePrimitive(literal)
+	zv, err := zson.ParsePrimitive(primitive)
 	if err != nil {
 		return nil, err
 	}

@@ -10,8 +10,6 @@ package ast
 // license that can be found in the LICENSE file.
 
 import (
-	"time"
-
 	"github.com/brimsec/zq/field"
 )
 
@@ -318,15 +316,6 @@ type Assignment struct {
 	Kind string `json:"kind" unpack:""`
 	LHS  Expr   `json:"lhs"`
 	RHS  Expr   `json:"rhs"`
-}
-
-func DurationToPrimitive(sec int) *Primitive {
-	d := time.Duration(sec) * time.Second
-	return &Primitive{
-		Kind: "Primitive",
-		Type: "duration",
-		Text: d.String(),
-	}
 }
 
 func (*Sequential) ProcNode() {}
