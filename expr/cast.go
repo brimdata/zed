@@ -146,8 +146,11 @@ func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
 	return func(zv zng.Value) (zng.Value, error) {
 		id := zv.Type.ID()
 		if id == zng.IdBytes {
-			//XXX this should be ZSON encoding?
-			return zng.Value{typ, zng.EncodeString(string(zv.Bytes))}, nil
+			bytes, ok := zng.EscapeString(zv.Bytes)
+			if !ok {
+				return zng.NewErrorf("non-utf8 bytes cannot be cast to string"), nil
+			}
+			return zng.Value{typ, bytes}, nil
 		}
 		if enum, ok := zv.Type.(*zng.TypeEnum); ok {
 			selector, _ := zng.DecodeUint(zv.Bytes)

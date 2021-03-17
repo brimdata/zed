@@ -21,7 +21,7 @@ func QuotedString(data []byte, bstr bool) string {
 	out = append(out, '"')
 	for i := 0; i < len(data); {
 		r, l := utf8.DecodeRune(data[i:])
-		if c := StringEscape(r); c != 0 {
+		if c := esc(r); c != 0 {
 			out = append(out, data[start:i]...)
 			out = append(out, '\\', c)
 			i++
@@ -44,7 +44,28 @@ func QuotedString(data []byte, bstr bool) string {
 	return string(out)
 }
 
-func StringEscape(r rune) byte {
+func EscapeString(data []byte) ([]byte, bool) {
+	var out []byte
+	var start int
+	for i := 0; i < len(data); {
+		r, l := utf8.DecodeRune(data[i:])
+		if r == utf8.RuneError {
+			return nil, false
+		}
+		if c := esc(r); c != 0 {
+			out = append(out, data[start:i]...)
+			out = append(out, '\\', c)
+			i++
+			start = i
+			continue
+		}
+		i += l
+	}
+	out = append(out, data[start:len(data)]...)
+	return out, true
+}
+
+func esc(r rune) byte {
 	switch r {
 	case '\\':
 		return '\\'

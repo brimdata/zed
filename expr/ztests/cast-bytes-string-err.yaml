@@ -1,0 +1,7 @@
+zql: 'put s=b:string'
+
+input: |
+  {b:0xc328}
+
+output: |
+  {b:0xc328,s:"non-utf8 bytes cannot be cast to string" (error)} (=0)
