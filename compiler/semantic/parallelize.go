@@ -227,11 +227,12 @@ func parallelize(p ast.Proc, N int, inputSortField field.Static, inputSortRevers
 
 	seq := ensureSequentialProc(p)
 	orderSensitiveTail := true
+loop:
 	for i := range seq.Procs {
 		switch seq.Procs[i].(type) {
 		case *ast.Sort, *ast.Summarize:
 			orderSensitiveTail = false
-			break
+			break loop
 		default:
 			continue
 		}
