@@ -1,0 +1,25 @@
+# https://github.com/brimsec/zq/issues/2293
+# Ensure that zar find does not panic on an empty index.
+script: |
+  zar import -R ./zartest -
+  zar index create -q -R ./zartest uri
+  zar find -R ./zartest -f table uri=/file
+
+inputs:
+  - name: stdin
+    data: |
+      {
+        _path: "conn",
+        id: {
+          orig_h:10.164.94.120,
+          orig_p:39681 (port=(uint16)),
+          resp_h:10.47.3.155,
+          resp_p:3389 (port)
+        } (=0),
+      }
+
+outputs:
+  - name: stdout
+    data: ""
+  - name: stderr
+    data: ""
