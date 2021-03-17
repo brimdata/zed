@@ -52,29 +52,12 @@ func DecodeNet(zv zcode.Bytes) (*net.IPNet, error) {
 	return nil, errors.New("failure trying to decode IP subnet that is not 8 or 32 bytes long")
 }
 
-func (t *TypeOfNet) Parse(in []byte) (zcode.Bytes, error) {
-	_, subnet, err := net.ParseCIDR(string(in))
-	if err != nil {
-		return nil, err
-	}
-	return EncodeNet(subnet), nil
-}
-
 func (t *TypeOfNet) ID() int {
 	return IdNet
 }
 
 func (t *TypeOfNet) String() string {
 	return "net"
-}
-
-func (t *TypeOfNet) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
-	s, err := DecodeNet(zv)
-	if err != nil {
-		return badZng(err, t, zv)
-	}
-	ipnet := net.IPNet(*s)
-	return ipnet.String()
 }
 
 func (t *TypeOfNet) Marshal(zv zcode.Bytes) (interface{}, error) {

@@ -182,7 +182,7 @@ func decodeSections(rec *zng.Record) ([]int64, error) {
 		// This is an empty index.  Just return nil/success.
 		return nil, nil
 	}
-	zvals, err := arrayType.Decode(v.Bytes)
+	zvals, err := zng.Split(arrayType.Type, v.Bytes)
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,11 @@
+zql: |
+  type types = {
+    bstring: bstring
+  }
+  put . = shape(types)
+
+input: |
+  { bstring:"this is a bstring" }
+
+output: |
+  {bstring:"this is a bstring" (bstring)} (=0)

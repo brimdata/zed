@@ -1,11 +1,13 @@
-package zng
+package tzngio
 
 import (
 	"testing"
 
+	"github.com/brimsec/zq/zng"
 	"github.com/stretchr/testify/require"
 )
 
+//XXX move back to package zng
 func TestUnescapeBstring(t *testing.T) {
 	cases := []struct {
 		unescaped string
@@ -21,10 +23,10 @@ func TestUnescapeBstring(t *testing.T) {
 	for _, c := range cases {
 		in, expected := c.escaped, c.unescaped
 
-		actual := UnescapeBstring([]byte(in))
+		actual := zng.UnescapeBstring([]byte(in))
 		require.Exactly(t, []byte(expected), actual, "case: %#v", c)
 
-		actual = UnescapeBstring([]byte("prefix" + in + "suffix"))
+		actual = zng.UnescapeBstring([]byte("prefix" + in + "suffix"))
 		expected = "prefix" + expected + "suffix"
 		require.Exactly(t, []byte(expected), actual, "case: %#v", c)
 	}

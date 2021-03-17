@@ -153,7 +153,7 @@ func (f *Formatter) formatRecord(indent int, typ *zng.TypeRecord, bytes zcode.By
 	it := bytes.Iter()
 	for _, field := range typ.Columns {
 		if it.Done() {
-			return &zng.RecordTypeError{Name: string(field.Name), Type: field.Type.String(), Err: zng.ErrMissingField}
+			return &zng.RecordTypeError{Name: string(field.Name), Type: field.Type.ZSON(), Err: zng.ErrMissingField}
 		}
 		bytes, _, err := it.Next()
 		if err != nil {
@@ -297,7 +297,7 @@ func (f *Formatter) formatType(typ zng.Type) {
 		return
 	}
 	if typ.ID() < zng.IdTypeDef {
-		name := typ.String()
+		name := typ.ZSON()
 		f.typedefs[typ] = name
 		f.build(name)
 		return
@@ -346,7 +346,7 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 	case *zng.TypeOfType:
 		f.build(typ.ZSON())
 	default:
-		panic("unknown case in formatTypeBody(): " + typ.String())
+		panic("unknown case in formatTypeBody(): " + typ.ZSON())
 	}
 	return nil
 }

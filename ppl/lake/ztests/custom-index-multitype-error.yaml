@@ -14,4 +14,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      key type changed from record\[id:record\[orig_h:ip\]\] to record\[id:record\[orig_h:string\]\]
+      key type changed from "{id:{orig_h:ip}}" to "{id:{orig_h:string}}"

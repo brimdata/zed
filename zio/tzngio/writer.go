@@ -58,7 +58,7 @@ func (w *Writer) Write(r *zng.Record) error {
 			op = ":"
 		}
 		w.tracker[inId] = name
-		_, err := fmt.Fprintf(w.writer, "#%s%s%s\n", name, op, r.Type)
+		_, err := fmt.Fprintf(w.writer, "#%s%s%s\n", name, op, TypeString(r.Type))
 		if err != nil {
 			return err
 		}
@@ -83,7 +83,7 @@ func (w *Writer) writeAliases(typ zng.Type) error {
 		id := alias.AliasID()
 		if _, ok := w.aliases[id]; !ok {
 			w.aliases[id] = struct{}{}
-			_, err := fmt.Fprintf(w.writer, "#%s=%s\n", alias.Name, alias.Type.String())
+			_, err := fmt.Fprintf(w.writer, "#%s=%s\n", alias.Name, TypeString(alias.Type))
 			if err != nil {
 				return err
 			}
@@ -131,8 +131,7 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 		return w.writeUnion(parent)
 	}
 	if typ, ok := realType.(*zng.TypeMap); ok {
-		//  XXX StringOf() should return an error arg.  See Issue #1417.
-		s := typ.StringOf(parent.Bytes, zng.OutFormatZNG, true)
+		s := StringOf(zng.Value{typ, parent.Bytes}, OutFormatZNG, true)
 		return w.write(s)
 	}
 	if err := w.write("["); err != nil {
@@ -140,7 +139,7 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 	}
 	childType, columns := zng.ContainedType(realType)
 	if childType == nil && columns == nil {
-		return zng.ErrSyntax
+		return ErrSyntax
 	}
 	k := 0
 	if len(parent.Bytes) > 0 {
@@ -151,7 +150,7 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 			}
 			if columns != nil {
 				if k >= len(columns) {
-					return &zng.RecordTypeError{Name: "<record>", Type: parent.Type.String(), Err: zng.ErrExtraField}
+					return &zng.RecordTypeError{Name: "<record>", Type: parent.Type.ZSON(), Err: zng.ErrExtraField}
 				}
 				childType = columns[k].Type
 				k++
@@ -175,7 +174,7 @@ func (w *Writer) writeValue(v zng.Value) error {
 	if v.IsUnsetOrNil() {
 		return w.write("-;")
 	}
-	if err := w.write(v.Format(zng.OutFormatZNG)); err != nil {
+	if err := w.write(FormatValue(v, OutFormatZNG)); err != nil {
 		return err
 	}
 	return w.write(";")

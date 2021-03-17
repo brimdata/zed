@@ -8,6 +8,7 @@ import (
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -47,7 +48,7 @@ func NewRule(pattern string) (Rule, error) {
 func NewTypeRule(typ zng.Type) Rule {
 	return Rule{
 		Kind: RuleType,
-		Type: typ.String(),
+		Type: tzngio.TypeString(typ),
 	}
 }
 

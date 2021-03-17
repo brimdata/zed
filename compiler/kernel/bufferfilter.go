@@ -3,7 +3,8 @@ package kernel
 import (
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zio/tzngio"
+	"github.com/brimsec/zq/zson"
 )
 
 // CompileBufferFilter tries to return a BufferFilter for e such that the
@@ -56,7 +57,7 @@ func CompileBufferFilter(e ast.Expr) (*expr.BufferFilter, error) {
 			return nil, nil
 		}
 		if e.Value.Type == "string" {
-			pattern, err := zng.TypeBstring.Parse([]byte(e.Value.Value))
+			pattern, err := tzngio.ParseBstring([]byte(e.Value.Value))
 			if err != nil {
 				return nil, err
 			}
@@ -176,7 +177,7 @@ func newBufferFilterForLiteral(l ast.Literal) (*expr.BufferFilter, error) {
 		// Match the behavior of zng.ParseLiteral.
 		l.Type = "bstring"
 	}
-	v, err := zng.Parse(l)
+	v, err := zson.ParsePrimitive(l.Type, l.Value)
 	if err != nil {
 		return nil, err
 	}

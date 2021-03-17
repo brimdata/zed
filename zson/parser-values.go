@@ -3,12 +3,14 @@ package zson
 import (
 	"encoding/hex"
 	"errors"
+	"fmt"
 	"io"
 	"net"
 	"strconv"
 	"time"
 
 	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimsec/zq/zng"
 )
 
 func (p *Parser) ParseValue() (ast.Value, error) {
@@ -578,4 +580,20 @@ func (p *Parser) matchTypeValue() (*ast.TypeValue, error) {
 		Kind:  "TypeValue",
 		Value: typ,
 	}, nil
+}
+
+// XXX This function is a placerholder while we convert ast.Literal
+// to zson literals.  See issue #2335.
+func ParsePrimitive(t, v string) (zng.Value, error) {
+	typ := zng.LookupPrimitive(t)
+	if typ == nil {
+		return zng.Value{}, fmt.Errorf("no such type: %s", t)
+	}
+	var b Builder
+	if err := b.BuildPrimitive(&Primitive{Type: typ, Text: v}); err != nil {
+		return zng.Value{}, err
+	}
+	it := b.Bytes().Iter()
+	bytes, _, _ := it.Next()
+	return zng.Value{typ, bytes}, nil
 }

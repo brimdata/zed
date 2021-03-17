@@ -1,0 +1,7 @@
+zql: 'cut s=b:string'
+
+input: |
+  {b:"\x30\x31\x32"(bstring)}
+
+output: |
+  {s:"012"}

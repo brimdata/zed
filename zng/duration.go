@@ -3,7 +3,6 @@ package zng
 import (
 	"time"
 
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 )
 
@@ -25,14 +24,6 @@ func DecodeDuration(zv zcode.Bytes) (int64, error) {
 	return DecodeInt(zv)
 }
 
-func (t *TypeOfDuration) Parse(in []byte) (zcode.Bytes, error) {
-	dur, err := nano.ParseDuration(in)
-	if err != nil {
-		return nil, err
-	}
-	return EncodeDuration(int64(dur)), nil
-}
-
 func (t *TypeOfDuration) ID() int {
 	return IdDuration
 }
@@ -41,20 +32,8 @@ func (t *TypeOfDuration) String() string {
 	return "duration"
 }
 
-func (t *TypeOfDuration) StringOf(zv zcode.Bytes, _ OutFmt, _ bool) string {
-	i, err := DecodeDuration(zv)
-	if err != nil {
-		return badZng(err, t, zv)
-	}
-	// This format of a fractional second is used by zeek in logs.
-	// It uses enough precision to fully represent the 64-bit ns
-	// accuracy of a nano Duration. Such values cannot be represented by
-	// float64's without loss of the least significant digits of ns,
-	return nano.DurationString(i)
-}
-
 func (t *TypeOfDuration) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.StringOf(zv, OutFormatUnescaped, false), nil
+	return t.ZSONOf(zv), nil
 }
 
 func (t *TypeOfDuration) ZSON() string {

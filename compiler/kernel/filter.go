@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/expr"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 )
@@ -64,7 +65,7 @@ func compileSearch(node *ast.Search) (expr.Filter, error) {
 	}
 
 	if node.Value.Type == "string" {
-		term, err := zng.TypeBstring.Parse([]byte(node.Value.Value))
+		term, err := tzngio.ParseBstring([]byte(node.Value.Value))
 		if err != nil {
 			return nil, err
 		}

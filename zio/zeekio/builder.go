@@ -8,6 +8,7 @@ import (
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -165,14 +166,14 @@ func (b *builder) appendPrimitive(typ zng.Type, val []byte) error {
 		b.buf = zng.AppendBool(b.buf[:0], v)
 	case zng.IdString:
 		// Zeek's enum type is aliased to string.
-		zb, err := zng.TypeString.Parse(val)
+		zb, err := tzngio.ParseString(val)
 		if err != nil {
 			return err
 		}
 		b.AppendPrimitive(zb)
 		return nil
 	case zng.IdBstring:
-		zb, err := zng.TypeBstring.Parse(val)
+		zb, err := tzngio.ParseBstring(val)
 		if err != nil {
 			return err
 		}

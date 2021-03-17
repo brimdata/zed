@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimsec/zq/proc/fuse"
 	"github.com/brimsec/zq/zbuf"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
@@ -20,7 +21,7 @@ type Writer struct {
 	writer     io.WriteCloser
 	encoder    *csv.Writer
 	flattener  *flattener.Flattener
-	format     zng.OutFmt
+	format     tzngio.OutFmt
 	first      *zng.TypeRecord
 }
 
@@ -31,9 +32,9 @@ type WriterOpts struct {
 }
 
 func NewWriter(w io.WriteCloser, zctx *resolver.Context, opts WriterOpts) zbuf.WriteCloser {
-	format := zng.OutFormatZeekAscii
+	format := tzngio.OutFormatZeekAscii
 	if opts.UTF8 {
-		format = zng.OutFormatZeek
+		format = tzngio.OutFormatZeek
 	}
 	zw := &Writer{
 		writer:     w,
@@ -94,7 +95,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 			case zng.IdString, zng.IdBstring, zng.IdType, zng.IdError:
 				v = string(value.Bytes)
 			default:
-				v = value.Format(w.format)
+				v = tzngio.FormatValue(value, w.format)
 			}
 		}
 		out = append(out, v)
