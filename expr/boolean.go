@@ -410,7 +410,7 @@ func parseLiteral(literal ast.Literal) (interface{}, error) {
 	// specifically arrays of bytes that do not correspond to
 	// UTF-8 encoded strings).
 	if literal.Type == "string" {
-		literal = ast.Literal{Op: "Literal", Type: "bstring", Value: literal.Value}
+		literal = ast.Literal{Kind: "Literal", Type: "bstring", Value: literal.Value}
 	}
 	zv, err := zson.ParsePrimitive(literal.Type, literal.Value)
 	if err != nil {
