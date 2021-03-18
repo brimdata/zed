@@ -11,18 +11,10 @@ import (
 type Ts int64
 
 const (
-	Nanosecond  = Duration(1)
-	Microsecond = 1000 * Nanosecond
-	Millisecond = 1000 * Microsecond
-	Second      = 1000 * Millisecond
-	Minute      = 60 * Second
-	Hour        = 60 * Minute
-	Day         = 24 * Hour
-	Week        = 7 * Day
-	Year        = 365 * Day
-	MinTs       = Ts(0)
-	MaxTs       = Ts(math.MaxInt64)
-	maxMillis   = MaxTs / 1000000
+	MinTs Ts = 0
+	MaxTs Ts = math.MaxInt64
+
+	maxMillis = MaxTs / 1000000
 )
 
 type jsonTs struct {
@@ -88,12 +80,12 @@ func (t Ts) Time() time.Time {
 	return time.Unix(int64(sec), int64(ns)).UTC()
 }
 
-func (t Ts) Trunc(bin int64) Ts {
-	return Ts(int64(t) / bin * bin)
+func (t Ts) Trunc(bin Duration) Ts {
+	return Ts(Duration(t) / bin * bin)
 }
 
 func (t Ts) Midnight() Ts {
-	return t.Trunc(int64(Day))
+	return t.Trunc(Day)
 }
 
 func (t Ts) DayOf() Span {

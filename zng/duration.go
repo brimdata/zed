@@ -21,10 +21,7 @@ func AppendDuration(bytes zcode.Bytes, d nano.Duration) zcode.Bytes {
 
 func DecodeDuration(zv zcode.Bytes) (nano.Duration, error) {
 	i, err := DecodeInt(zv)
-	if err != nil {
-		return 0, err
-	}
-	return nano.Duration(i), nil
+	return nano.Duration(i), err
 }
 
 func (t *TypeOfDuration) ID() int {

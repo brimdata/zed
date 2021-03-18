@@ -12,12 +12,22 @@ import (
 
 type Duration int64
 
-type unit struct {
+const (
+	Nanosecond  Duration = 1
+	Microsecond          = 1000 * Nanosecond
+	Millisecond          = 1000 * Microsecond
+	Second               = 1000 * Millisecond
+	Minute               = 60 * Second
+	Hour                 = 60 * Minute
+	Day                  = 24 * Hour
+	Week                 = 7 * Day
+	Year                 = 365 * Day
+)
+
+var units = []struct {
 	name string
 	size int64
-}
-
-var units = []unit{
+}{
 	{"y", int64(Year)},
 	{"d", int64(Day)},
 	{"h", int64(Hour)},
@@ -43,8 +53,10 @@ func (d Duration) String() string {
 		if ns >= u.size {
 			nunit := ns / u.size
 			ns -= nunit * u.size
-			b.WriteString(strconv.FormatInt(nunit, 10))
-			b.WriteString(u.name)
+			if nunit > 0 {
+				b.WriteString(strconv.FormatInt(nunit, 10))
+				b.WriteString(u.name)
+			}
 			if ns == 0 {
 				return b.String()
 			}
@@ -91,8 +103,7 @@ func writeFixedPoint(b *strings.Builder, ns, scale int64) {
 }
 
 func (d Duration) MarshalJSON() ([]byte, error) {
-	s := d.String()
-	return json.Marshal(&s)
+	return json.Marshal(d.String())
 }
 
 func (d *Duration) UnmarshalJSON(b []byte) error {
@@ -108,8 +119,18 @@ func (d *Duration) UnmarshalJSON(b []byte) error {
 	return nil
 }
 
+func DurationFromParts(sec, ns int64) Duration {
+	return Duration(sec)*Second + Duration(ns)
+}
+
+func DurationFromFloat(fsec float64) Duration {
+	rsec := math.Round(fsec)
+	ns := fsec - rsec
+	return DurationFromParts(int64(rsec), int64(ns*1e9))
+}
+
 var parseRE = regexp.MustCompile("([.0-9]+)(ns|us|ms|s|m|h|d|w|y)")
-var syntaxRE = regexp.MustCompile("^([.0-9]+(ns|us|ms|s|m|h|d|w|y))+$")
+var syntaxRE = regexp.MustCompile("^-?([.0-9]+(ns|us|ms|s|m|h|d|w|y))+$")
 
 var scale = map[string]Duration{
 	"ns": Nanosecond,
@@ -141,33 +162,36 @@ func ParseDuration(s string) (Duration, error) {
 		if len(m) != 3 {
 			return 0, fmt.Errorf("invalid duration: %q", s)
 		}
-		factor, ok := scale[m[2]]
+		unit, ok := scale[m[2]]
 		if !ok {
 			return 0, fmt.Errorf("invalid duration: %q", s)
 		}
 		val, err := strconv.ParseInt(m[1], 10, 64)
 		if err == nil {
-			d += Duration(val) * factor
+			d += Duration(val) * unit
 			continue
 		}
-		f, err := strconv.ParseFloat(m[1], 64)
-		if err != nil {
+		parts := strings.Split(m[1], ".")
+		if len(parts) != 2 {
 			return 0, fmt.Errorf("invalid duration: %q", s)
 		}
-		d += Duration(f * float64(factor))
+		if len(parts[0]) > 0 {
+			whole, err := strconv.ParseInt(parts[0], 10, 64)
+			if err != nil {
+				return 0, fmt.Errorf("invalid duration: %q", s)
+			}
+			d += Duration(whole) * unit
+		}
+		frac := strings.TrimRight(parts[1], "0")
+		var extra Duration
+		for _, digit := range []byte(frac) {
+			extra += Duration(digit-'0') * unit
+			unit /= 10
+		}
+		d += (extra + 5) / 10
 	}
 	if negative {
 		d = -d
 	}
 	return d, nil
-}
-
-func DurationFromParts(sec, ns int64) Duration {
-	return Duration(sec*1_000_000_000 + ns)
-}
-
-func FloatToDuration(fsec float64) Duration {
-	rsec := math.Round(fsec)
-	ns := fsec - rsec
-	return DurationFromParts(int64(rsec), int64(ns*1e9))
 }

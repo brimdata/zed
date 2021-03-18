@@ -279,18 +279,16 @@ func ToDuration(in zng.Value) (nano.Duration, bool) {
 		if v > math.MaxInt64 {
 			return 0, false
 		}
-		out = 1_000_000_000 * nano.Duration(v)
+		out = nano.Duration(v) * nano.Second
 	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
 		var v int64
 		v, err = zng.DecodeInt(in.Bytes)
 		//XXX check for overflow here
-		v *= 1_000_000_000
-		out = nano.Duration(v)
+		out = nano.Duration(v) * nano.Second
 	case zng.IdFloat64:
 		var v float64
 		v, err = zng.DecodeFloat64(in.Bytes)
-		v *= 1e9
-		out = nano.Duration(v)
+		out = nano.DurationFromFloat(v)
 	default:
 		return 0, false
 	}

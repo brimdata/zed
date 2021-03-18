@@ -114,14 +114,14 @@ func castToDuration(zv zng.Value) (zng.Value, error) {
 			if ferr != nil {
 				return zng.NewError(err), nil
 			}
-			d = nano.FloatToDuration(f)
+			d = nano.DurationFromFloat(f)
 		}
 		// XXX GC
 		return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
 	}
 	if zng.IsFloat(id) {
 		f, _ := zng.DecodeFloat64(zv.Bytes)
-		d := nano.FloatToDuration(f)
+		d := nano.DurationFromFloat(f)
 		// XXX GC
 		return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
 	}
@@ -129,7 +129,7 @@ func castToDuration(zv zng.Value) (zng.Value, error) {
 	if !ok {
 		return zng.Value{}, ErrBadCast
 	}
-	d := nano.Duration(sec * 1_000_000_000)
+	d := nano.Duration(sec) * nano.Second
 	// XXX GC
 	return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
 }
