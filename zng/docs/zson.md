@@ -364,7 +364,7 @@ There are 23 types of primitive values with syntax defined as follows:
 The format of a _duration string_
 is an optionally-signed concatenation of decimal numbers,
 each with optional fraction and a unit suffix,
-such as "300ms", "-1.5h" or "2h45m".
+such as "300ms", "-1.5h" or "2h45m", representing a 64-bit nanosecond value.
 Valid time units are
 "ns" (nanosecond),
 "us" (microsecond),
@@ -373,8 +373,11 @@ Valid time units are
 "m" (minute),
 "h" (hour),
 "d" (day),
-"w" (week), and
-"y" (year).
+"w" (7 days), and
+"y" (365 days).
+Note that each of these time units accurately represents its calendar value,
+except for the "y" unit, which does not reflect leap years and so forth.
+Instead, "y" is defined as the number of nanoseconds in 365 days.
 
 The format of floating point values is a _non-integer string_
 conforming to any floating point representation that cannot be

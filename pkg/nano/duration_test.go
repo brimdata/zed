@@ -12,11 +12,12 @@ import (
 
 var boomerangs = []string{
 	"1ns",
-	"1us",
-	"1ms",
-	"1s",
-	"1m",
-	"1h",
+	"2us",
+	"3ms",
+	"4s",
+	"5m",
+	"6h",
+	"8y",
 	"2y3d5h24m1s",
 	"100us",
 	"123ns",
@@ -43,6 +44,8 @@ func TestDuration(t *testing.T) {
 	checkdur(t, "111230us", "111.23ms")
 	checkdur(t, "1234ns", "1.234us")
 	checkdur(t, "", "0s")
+	checkdur(t, "1w", "7d")
+	checkdur(t, "1.5w", "10d12h")
 }
 
 func checkdur(t *testing.T, in, expected string) {
