@@ -102,6 +102,10 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.fieldpath(e.Name)
 	case *ast.Ref:
 		c.write("%s", e.Name)
+	case *ast.TypeValue:
+		c.write("type(")
+		c.typ(e.Value)
+		c.write(")")
 	default:
 		c.open("(unknown expr %T)", e)
 		c.close()
@@ -347,6 +351,10 @@ func (c *canon) literal(e ast.Primitive) {
 }
 
 func (c *canon) fieldpath(path []string) {
+	if len(path) == 0 {
+		c.write(".")
+		return
+	}
 	for k, s := range path {
 		if k != 0 {
 			c.write(".")
