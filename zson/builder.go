@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math"
 	"net"
 	"strconv"
 	"time"
@@ -80,15 +79,11 @@ func (b *Builder) BuildPrimitive(val *Primitive) error {
 		b.AppendPrimitive(zng.EncodeInt(v))
 		return nil
 	case *zng.TypeOfDuration:
-		v, err := time.ParseDuration(val.Text)
+		d, err := nano.ParseDuration(val.Text)
 		if err != nil {
-			if val.Text == minDuration {
-				v = time.Duration(math.MinInt64)
-			} else {
-				return fmt.Errorf("invalid duration: %s", val.Text)
-			}
+			return fmt.Errorf("invalid duration: %s", val.Text)
 		}
-		b.AppendPrimitive(zng.EncodeDuration(int64(v)))
+		b.AppendPrimitive(zng.EncodeDuration(d))
 		return nil
 	case *zng.TypeOfTime:
 		t, err := time.Parse(time.RFC3339Nano, val.Text)

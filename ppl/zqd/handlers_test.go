@@ -14,7 +14,6 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/api/client"
@@ -448,7 +447,7 @@ func TestPostZngLogs(t *testing.T) {
 			DataPath:    sp.DataPath,
 			StorageKind: api.DefaultStorageKind(),
 		},
-		Span:        &nano.Span{Ts: nano.Ts(time.Second), Dur: int64(time.Second) + 1},
+		Span:        &nano.Span{Ts: nano.Ts(nano.Second), Dur: nano.Second + 1},
 		Size:        79,
 		PcapSupport: false,
 	}, info)
@@ -659,6 +658,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 		Span: &span,
 		Size: 35118,
 	}
+
 	si, err := conn.SpaceInfo(context.Background(), sp.ID)
 	require.NoError(t, err)
 	require.Equal(t, expsi, si)

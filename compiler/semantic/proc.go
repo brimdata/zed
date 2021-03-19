@@ -3,11 +3,10 @@ package semantic
 import (
 	"errors"
 	"fmt"
-	"strconv"
-	"time"
 
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/pkg/nano"
 )
 
 // semProc does a semantic analysis on a flowgraph to an
@@ -22,7 +21,7 @@ func semProc(scope *Scope, p ast.Proc) (ast.Proc, error) {
 	case *ast.Summarize:
 		keys := p.Keys
 		if duration := p.Duration; duration != nil {
-			d, err := time.ParseDuration(duration.Text)
+			d, err := nano.ParseDuration(duration.Text)
 			if err != nil {
 				return nil, err
 			}
@@ -36,9 +35,8 @@ func semProc(scope *Scope, p ast.Proc) (ast.Proc, error) {
 						ast.NewDotExpr(field.New("ts")),
 						&ast.Primitive{
 							Kind: "Primitive",
-							Type: "int64",
-							// XXX trunc should handle duration type
-							Text: strconv.Itoa(int(d.Seconds())),
+							Type: "duration",
+							Text: d.String(),
 						}},
 				},
 			}

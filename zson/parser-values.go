@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -197,7 +198,7 @@ func (p *Parser) matchPrimitive() (*ast.Primitive, error) {
 		typ = "float64"
 	} else if _, err := time.Parse(time.RFC3339Nano, s); err == nil {
 		typ = "time"
-	} else if _, err := time.ParseDuration(s); err == nil || s == minDuration {
+	} else if _, err := nano.ParseDuration(s); err == nil {
 		typ = "duration"
 	} else if _, _, err := net.ParseCIDR(s); err == nil {
 		typ = "net"

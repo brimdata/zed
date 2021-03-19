@@ -884,40 +884,22 @@ IdGuard
   / SearchGuard
 
 Duration
-  = "-"? Durations {
+  = "-"? (Decimal TimeUnit)+ {
       RETURN(MAP("kind": "Primitive", "type": "duration", "text": TEXT))
     }
 
-Durations
-  = DateDurations "t"i TimeDurations
-  / TimeDurations
-  / DateDurations
+Decimal = UInt ("." UInt)?
 
-DateDurations
-  = Years
-  / Months
-  / Weeks
-  / Days
-
-Years = UInt "y"i Months?
-Months = UInt "m"i Days?
-Days = UInt "d"i
-Weeks = UInt "w"i
-
-TimeDurations
-  = Hours
-  / Minutes
-  / Seconds
-  / Milliseconds
-  / Microseconds
-  / Nanoseconds
-
-Hours = UInt "h"i Minutes?
-Minutes = UInt "m"i !("s"i) Seconds?
-Seconds = UInt "s"i Milliseconds?
-Milliseconds = UInt "ms"i Microseconds?
-Microseconds = UInt ("u"i / "μ") "s"i Nanoseconds?
-Nanoseconds = UInt "ns"i
+TimeUnit
+  = "ns"i
+  / "us"i
+  / "ms"i
+  / "s"i
+  / "m"i
+  / "h"i
+  / "d"i
+  / "w"i
+  / "y"i
 
 IP
   = UInt "." UInt "." UInt "." UInt { RETURN(TEXT) }

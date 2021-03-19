@@ -3,7 +3,6 @@ package expr
 import (
 	"math"
 	"net"
-	"time"
 	"unicode/utf8"
 
 	"github.com/brimsec/zq/expr/coerce"
@@ -109,30 +108,30 @@ func castToIP(zv zng.Value) (zng.Value, error) {
 func castToDuration(zv zng.Value) (zng.Value, error) {
 	id := zv.Type.ID()
 	if zng.IsStringy(id) {
-		d, err := time.ParseDuration(byteconv.UnsafeString(zv.Bytes))
-		var ns int64
-		if err == nil {
-			ns = int64(d)
-		} else {
+		d, err := nano.ParseDuration(byteconv.UnsafeString(zv.Bytes))
+		if err != nil {
 			f, ferr := byteconv.ParseFloat64(zv.Bytes)
 			if ferr != nil {
 				return zng.NewError(err), nil
 			}
-			ns = int64(f * 1e9)
+			d = nano.DurationFromFloat(f)
 		}
-		return zng.Value{zng.TypeDuration, zng.EncodeDuration(ns)}, nil
+		// XXX GC
+		return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
 	}
 	if zng.IsFloat(id) {
 		f, _ := zng.DecodeFloat64(zv.Bytes)
-		ts := int64(nano.FloatToTs(f))
+		d := nano.DurationFromFloat(f)
 		// XXX GC
-		return zng.Value{zng.TypeDuration, zng.EncodeDuration(ts)}, nil
+		return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
 	}
-	ns, ok := coerce.ToInt(zv)
+	sec, ok := coerce.ToInt(zv)
 	if !ok {
 		return zng.Value{}, ErrBadCast
 	}
-	return zng.Value{zng.TypeDuration, zng.EncodeDuration(1_000_000_000 * ns)}, nil
+	d := nano.Duration(sec) * nano.Second
+	// XXX GC
+	return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
 }
 
 func castToTime(zv zng.Value) (zng.Value, error) {

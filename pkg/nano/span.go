@@ -1,7 +1,6 @@
 package nano
 
 import (
-	"encoding/json"
 	"fmt"
 	"math"
 	"time"
@@ -12,40 +11,14 @@ var MaxSpan = Span{Ts: 0, Dur: math.MaxInt64}
 
 // Span represents a time span.  Spans are half-open: [Ts, Ts + Dur).
 type Span struct {
-	Ts
-	Dur int64
-}
-
-type jsonSpan struct {
-	Ts  Ts `json:"ts"`
-	Dur Ts `json:"dur"`
-}
-
-// MarshalJSON fulfills the json.Marshaler interface.  We need to encode
-// Dur as a 64-bit timestamp so we use jsonSpan to do the conversion.
-func (s Span) MarshalJSON() ([]byte, error) {
-	v := jsonSpan{s.Ts, Ts(s.Dur)}
-	return json.Marshal(&v)
-}
-
-// UnmarshalJSON fulfills the json.Marshaler interface.  We need to encode
-// Dur as a 64-bit timestamp so we use jsonSpan to do the conversion.
-// XXX It would be nice to have Dur data type that we could marshal/unmarshal
-// but that creates a lot of casting changes in the current code.  Maybe later.
-func (s *Span) UnmarshalJSON(in []byte) error {
-	var v jsonSpan
-	if err := json.Unmarshal(in, &v); err != nil {
-		return err
-	}
-	s.Ts = v.Ts
-	s.Dur = int64(v.Dur)
-	return nil
+	Ts  Ts       `json:"ts"`
+	Dur Duration `json:"dur"`
 }
 
 // NewSpanTs creates a Span from a Ts pair.  The Span is
 // half-open: [start, end).
 func NewSpanTs(start, end Ts) Span {
-	return Span{Ts: start, Dur: int64(end - start)}
+	return Span{Ts: start, Dur: Duration(end - start)}
 }
 
 // End returns the first Ts after the Span (in other words, the smallest Ts
@@ -57,13 +30,13 @@ func (s Span) End() Ts {
 // SubSpan divides the span into n subspans of approximately equal length and
 // returns the i-th.
 func (s Span) SubSpan(i, n int) Span {
-	partitionSize := s.Dur / int64(n)
-	start := s.Ts.Add(int64(i) * partitionSize)
+	partitionSize := s.Dur / Duration(n)
+	start := s.Ts.Add(Duration(i) * partitionSize)
 
 	// Extend the final subspan to the end of s.  It is short by s.Dur % n
 	// if integer division has truncated the value of partitionSize.
 	if i == n-1 {
-		partitionSize = int64(s.End() - start)
+		partitionSize = Duration(s.End() - start)
 	}
 
 	return Span{Ts: start, Dur: partitionSize}
@@ -72,9 +45,9 @@ func (s Span) SubSpan(i, n int) Span {
 // Partition divides the span into n subspans of approximately equal length and
 // returns the index of the subspan containing ts.
 func (s Span) Partition(ts Ts, n int) int {
-	off := ts - s.Ts
-	partitionSize := s.Dur / int64(n)
-	i := int(int64(off) / partitionSize)
+	off := int64(ts - s.Ts)
+	partitionSize := int64(s.Dur) / int64(n)
+	i := int(off / partitionSize)
 
 	// Fix the index if greater than that of the final span.  This happens
 	// when ts > partitionSize * n, which in turn can happen when integer
@@ -88,7 +61,7 @@ func (s Span) Partition(ts Ts, n int) int {
 
 // MinDur returns the smallest duration >= minDur among spans
 // that would be partioned in a span tree of degree fanout.
-func (s Span) MinDur(minDur int64, fanout int) int64 {
+func (s Span) MinDur(minDur Duration, fanout int) Duration {
 	span := s
 	for {
 		child := span.SubSpan(0, fanout)
@@ -99,7 +72,7 @@ func (s Span) MinDur(minDur int64, fanout int) int64 {
 	}
 }
 
-func MinDurForDay(minDur int64, fanout int) int64 {
+func MinDurForDay(minDur Duration, fanout int) Duration {
 	s := Span{Ts: 0, Dur: Day}
 	return s.MinDur(minDur, fanout)
 }

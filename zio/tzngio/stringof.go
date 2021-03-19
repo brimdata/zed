@@ -192,7 +192,7 @@ func StringOfDuration(t *zng.TypeOfDuration, zv zcode.Bytes, _ OutFmt, _ bool) s
 	// It uses enough precision to fully represent the 64-bit ns
 	// accuracy of a nano Duration. Such values cannot be represented by
 	// float64's without loss of the least significant digits of ns,
-	return nano.DurationString(i)
+	return nano.Ts(i).StringFloat()
 }
 
 func StringOfMap(t *zng.TypeMap, zv zcode.Bytes, fmt OutFmt, _ bool) string {

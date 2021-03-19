@@ -168,12 +168,12 @@ func NewDuration(f *anymath.Function) *Duration {
 }
 
 func (d *Duration) result() zng.Value {
-	return zng.NewDuration(d.state)
+	return zng.NewDuration(nano.Duration(d.state))
 }
 
 func (d *Duration) consume(v zng.Value) error {
 	if v, ok := coerce.ToDuration(v); ok {
-		d.state = d.function(d.state, v)
+		d.state = d.function(d.state, int64(v))
 		return nil
 	}
 	return zng.ErrTypeMismatch

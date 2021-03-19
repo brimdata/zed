@@ -64,18 +64,28 @@ type trunc struct {
 }
 
 func (t *trunc) Call(args []zng.Value) (zng.Value, error) {
-	zv := args[0]
-	if zv.Bytes == nil {
+	tsArg := args[0]
+	binArg := args[1]
+	if tsArg.Bytes == nil || binArg.Bytes == nil {
 		return zng.Value{zng.TypeTime, nil}, nil
 	}
-	ts, ok := coerce.ToTime(zv)
+	ts, ok := coerce.ToTime(tsArg)
 	if !ok {
 		return badarg("trunc")
 	}
-	dur, ok := coerce.ToInt(args[1])
-	if !ok {
-		return badarg("trunc")
+	var bin nano.Duration
+	if binArg.Type == zng.TypeDuration {
+		var err error
+		bin, err = zng.DecodeDuration(binArg.Bytes)
+		if err != nil {
+			return zng.Value{}, err
+		}
+	} else {
+		d, ok := coerce.ToInt(binArg)
+		if !ok {
+			return badarg("trunc")
+		}
+		bin = nano.Duration(d) * nano.Second
 	}
-	dur *= 1_000_000_000
-	return zng.Value{zng.TypeTime, t.Time(nano.Ts(ts.Trunc(dur)))}, nil
+	return zng.Value{zng.TypeTime, t.Time(nano.Ts(ts.Trunc(bin)))}, nil
 }

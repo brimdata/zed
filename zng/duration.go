@@ -1,27 +1,27 @@
 package zng
 
 import (
-	"time"
-
+	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
 )
 
 type TypeOfDuration struct{}
 
-func NewDuration(i int64) Value {
-	return Value{TypeDuration, EncodeDuration(i)}
+func NewDuration(d nano.Duration) Value {
+	return Value{TypeDuration, EncodeDuration(d)}
 }
 
-func EncodeDuration(i int64) zcode.Bytes {
-	return EncodeInt(i)
+func EncodeDuration(d nano.Duration) zcode.Bytes {
+	return EncodeInt(int64(d))
 }
 
-func AppendDuration(bytes zcode.Bytes, d int64) zcode.Bytes {
-	return AppendInt(bytes, d)
+func AppendDuration(bytes zcode.Bytes, d nano.Duration) zcode.Bytes {
+	return AppendInt(bytes, int64(d))
 }
 
-func DecodeDuration(zv zcode.Bytes) (int64, error) {
-	return DecodeInt(zv)
+func DecodeDuration(zv zcode.Bytes) (nano.Duration, error) {
+	i, err := DecodeInt(zv)
+	return nano.Duration(i), err
 }
 
 func (t *TypeOfDuration) ID() int {
@@ -41,9 +41,9 @@ func (t *TypeOfDuration) ZSON() string {
 }
 
 func (t *TypeOfDuration) ZSONOf(zv zcode.Bytes) string {
-	ns, err := DecodeDuration(zv)
+	d, err := DecodeDuration(zv)
 	if err != nil {
 		return badZng(err, t, zv)
 	}
-	return time.Duration(ns).String()
+	return d.String()
 }

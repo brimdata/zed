@@ -266,8 +266,8 @@ func ToTime(zv zng.Value) (nano.Ts, bool) {
 // and Double are converted as seconds. The resulting coerced value is
 // written to out, and true is returned. If the value cannot be
 // coerced, then false is returned.
-func ToDuration(in zng.Value) (int64, bool) {
-	var out int64
+func ToDuration(in zng.Value) (nano.Duration, bool) {
+	var out nano.Duration
 	var err error
 	switch in.Type.ID() {
 	case zng.IdDuration:
@@ -279,16 +279,16 @@ func ToDuration(in zng.Value) (int64, bool) {
 		if v > math.MaxInt64 {
 			return 0, false
 		}
-		out = 1_000_000_000 * int64(v)
+		out = nano.Duration(v) * nano.Second
 	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
-		out, err = zng.DecodeInt(in.Bytes)
+		var v int64
+		v, err = zng.DecodeInt(in.Bytes)
 		//XXX check for overflow here
-		out *= 1_000_000_000
+		out = nano.Duration(v) * nano.Second
 	case zng.IdFloat64:
 		var v float64
 		v, err = zng.DecodeFloat64(in.Bytes)
-		v *= 1e9
-		out = int64(v)
+		out = nano.DurationFromFloat(v)
 	default:
 		return 0, false
 	}

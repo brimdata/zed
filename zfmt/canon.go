@@ -1,8 +1,6 @@
 package zfmt
 
 import (
-	"time"
-
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/zng"
 )
@@ -212,12 +210,9 @@ func (c *canon) proc(p ast.Proc) {
 	case *ast.Summarize:
 		c.next()
 		c.open("summarize")
-		var d time.Duration
 		if p.Duration != nil {
-			d, _ = time.ParseDuration(p.Duration.Text)
-		}
-		if d != 0 {
-			c.write(" every %s", d)
+			c.write(" every ")
+			c.literal(*p.Duration)
 		}
 		if p.PartialsIn {
 			c.write(" partials-in")
