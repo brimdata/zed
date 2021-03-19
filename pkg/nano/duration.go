@@ -127,10 +127,6 @@ func DurationFromFloat(fsec float64) Duration {
 	return Duration(fsec * 1e9)
 }
 
-func DurationFromFloat2(fsec float64) Duration {
-	return Duration(fsec * 1e9)
-}
-
 var parseRE = regexp.MustCompile("([.0-9]+)(ns|us|ms|s|m|h|d|w|y)")
 var syntaxRE = regexp.MustCompile("^-?([.0-9]+(ns|us|ms|s|m|h|d|w|y))+$")
 
