@@ -1,9 +1,9 @@
 script: |
-  microindex create -o index.zng -k s -f 20 babble.tzng
+  microindex create -o index.zng -k s -f 20 babble.zson
 
 inputs:
-  - name: babble.tzng
-    source: ../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stderr

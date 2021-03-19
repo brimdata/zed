@@ -1,26 +1,24 @@
 script: |
-  zar import -streammax=100 -asc -R asc babble.tzng
-  zar zq -f tzng -start 2020-04-21T23:59:26.063Z -end 2020-04-21T23:59:38.069Z -s -R asc "*"
+  zar import -streammax=100 -asc -R asc babble.zson
+  zar zq -z -start 2020-04-21T23:59:26.063Z -end 2020-04-21T23:59:38.069Z -s -R asc "*"
   echo === | tee /dev/stderr
-  zar import -streammax=100 -R desc babble.tzng
-  zar zq -f tzng -start 2020-04-21T23:59:26.063Z -end 2020-04-21T23:59:38.069Z -s -R desc "*"
+  zar import -streammax=100 -R desc babble.zson
+  zar zq -z -start 2020-04-21T23:59:26.063Z -end 2020-04-21T23:59:38.069Z -s -R desc "*"
 
 inputs:
-  - name: babble.tzng
-    source: ../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stdout
     data: |
-      #0:record[ts:time,s:string,v:int64]
-      0:[1587513566.06326664;potbellied-Dedanim;230;]
-      0:[1587513569.06985813;areek-ashless;266;]
-      0:[1587513578.0687693;topcoating-rhexis;415;]
+      {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
+      {ts:2020-04-21T23:59:29.06985813Z,s:"areek-ashless",v:266}
+      {ts:2020-04-21T23:59:38.0687693Z,s:"topcoating-rhexis",v:415}
       ===
-      #0:record[ts:time,s:string,v:int64]
-      0:[1587513578.0687693;topcoating-rhexis;415;]
-      0:[1587513569.06985813;areek-ashless;266;]
-      0:[1587513566.06326664;potbellied-Dedanim;230;]
+      {ts:2020-04-21T23:59:38.0687693Z,s:"topcoating-rhexis",v:415}
+      {ts:2020-04-21T23:59:29.06985813Z,s:"areek-ashless",v:266}
+      {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
   - name: stderr
     data: |
       data opened: 17565

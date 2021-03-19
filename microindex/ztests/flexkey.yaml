@@ -1,27 +1,24 @@
 script: |
-  zq -o tmp.zng "sum(v) by s | put key=s | sort key"  babble.tzng
+  zq -o tmp.zng "sum(v) by s | put key=s | sort key"  babble.zson
   # -x says input keys already sorted and don't create new base records
   microindex convert -f 20000 -o index.zng -k key tmp.zng
   # 50 not in index
-  microindex section -f tzng -s 1 index.zng
+  microindex section -z -s 1 index.zng
   echo ===
-  microindex lookup -f tzng -k wailer-strick index.zng
+  microindex lookup -z -k wailer-strick index.zng
   echo ===
-  microindex lookup -f tzng -k Anatinacea-bestrew index.zng
+  microindex lookup -z -k Anatinacea-bestrew index.zng
 
 inputs:
-  - name: babble.tzng
-    source: ../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stdout
     data: |
-      #0:record[key:string,_child:int64]
-      0:[Algedi-pigeonman;0;]
-      0:[immanency-sarcastical;20020;]
+      {key:"Algedi-pigeonman",_child:0}
+      {key:"immanency-sarcastical",_child:20020}
       ===
-      #0:record[s:string,sum:int64,key:string]
-      0:[wailer-strick;149;wailer-strick;]
+      {s:"wailer-strick",sum:149,key:"wailer-strick"}
       ===
-      #0:record[s:string,sum:int64,key:string]
-      0:[Anatinacea-bestrew;339;Anatinacea-bestrew;]
+      {s:"Anatinacea-bestrew",sum:339,key:"Anatinacea-bestrew"}

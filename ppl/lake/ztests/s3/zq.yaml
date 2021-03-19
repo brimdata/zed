@@ -1,14 +1,14 @@
 script: |
   mkdir logs
   source minio.sh
-  zar import -R logs -data s3://bucket/zartest babble.tzng
+  zar import -R logs -data s3://bucket/zartest babble.zson
   zar map -R logs -o count.zng "count()"
   echo ===
   zar ls -R logs -ranges -l
 
 inputs:
-  - name: babble.tzng
-    source: ../../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../../ztests/suite/data/babble.zson
   - name: minio.sh
     source: ../../../../ztests/suite/s3/minio.sh
 

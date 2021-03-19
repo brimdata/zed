@@ -1,21 +1,20 @@
 # test a simple indexing scenario with the use of the -i flag
 script: |
   mkdir logs
-  zar import -R logs babble.tzng
+  zar import -R logs babble.zson
   zar map -R logs  -q -o sums.zng "sum(v) by s"
   zar index create -R logs -f 10000 -i sums.zng -q -o testindex -z "put key=s | sort key"
   echo ===
   id=$(zar stat -f zng -R logs | zq -f text '.type = index | cut definition.id | head 1' -)
-  microindex section -f tzng -s 1 $(find logs/zd/20200422/ -name "idx-$id.zng" | head -n 1)
+  microindex section --z -s 1 $(find logs/zd/20200422/ -name "idx-$id.zng" | head -n 1)
 
 inputs:
-  - name: babble.tzng
-    source: ../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stdout
     data: |
       ===
-      #0:record[key:string,_child:int64]
-      0:[Algedi-pigeonman;0;]
-      0:[increasement-elaioleucite;10025;]
+      {key:"Algedi-pigeonman",_child:0}
+      {key:"increasement-elaioleucite",_child:10025}
