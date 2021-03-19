@@ -1,14 +1,13 @@
 script: |
   microindex convert -f 50 -o index.zng -k _child -
-  microindex section -f tzng -trailer index.zng
+  microindex section -z -trailer index.zng
 
 inputs:
   - name: stdin
     data: |
-      #0:record[key:string,_child:int64]
-      0:[a;0;]
-      0:[b;1;]
-      0:[c;2;]
+      {key:"a",_child:0}
+      {key:"b",_child:1}
+      {key:"c",_child:2}
 
 # because a key has the name _btree_child, _btree_child_0 is used
 # as the child key in the b-tree sections
@@ -17,5 +16,4 @@ outputs:
     data: ''
   - name: stdout
     data: |
-      #0:record[magic:string,version:int32,descending:bool,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[_child:int64]]
-      0:[microindex;2;F;_child_0;50;[33;]-;]
+      {magic:"microindex",version:2 (int32),descending:false,child_field:"_child_0",frame_thresh:50 (int32),sections:[33],keys:null (0=({_child:int64}))} (=1)
