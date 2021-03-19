@@ -124,9 +124,11 @@ func DurationFromParts(sec, ns int64) Duration {
 }
 
 func DurationFromFloat(fsec float64) Duration {
-	rsec := math.Round(fsec)
-	ns := fsec - rsec
-	return DurationFromParts(int64(rsec), int64(ns*1e9))
+	return Duration(fsec * 1e9)
+}
+
+func DurationFromFloat2(fsec float64) Duration {
+	return Duration(fsec * 1e9)
 }
 
 var parseRE = regexp.MustCompile("([.0-9]+)(ns|us|ms|s|m|h|d|w|y)")
