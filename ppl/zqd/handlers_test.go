@@ -29,6 +29,7 @@ import (
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
 	"github.com/brimsec/zq/zio/tzngio"
+	"github.com/brimsec/zq/zio/zsonio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
@@ -38,8 +39,8 @@ import (
 )
 
 const (
-	babble       = "../../ztests/suite/data/babble.tzng"
-	babbleSorted = "../../ztests/suite/data/babble-sorted.tzng"
+	babble       = "../../ztests/suite/data/babble.zson"
+	babbleSorted = "../../ztests/suite/data/babble-sorted.zson"
 )
 
 func TestASTPost(t *testing.T) {
@@ -51,9 +52,8 @@ func TestASTPost(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	const src = `
-#0:record[_path:string,ts:time,uid:bstring]
-0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
-0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
+{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
 `
 	_, conn := newCore(t)
 	ctx := context.Background()
@@ -71,9 +71,8 @@ func TestSearch(t *testing.T) {
 
 func TestSearchNoCtrl(t *testing.T) {
 	src := `
-#0:record[_path:string,ts:time,uid:bstring]
-0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
-0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
+{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
 `
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
@@ -99,7 +98,7 @@ func TestSearchNoCtrl(t *testing.T) {
 		msgs = append(msgs, i)
 	})
 	buf := bytes.NewBuffer(nil)
-	w := tzngio.NewWriter(zio.NopCloser(buf))
+	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
 	require.NoError(t, zbuf.Copy(w, r))
 	require.Equal(t, test.Trim(src), buf.String())
 	require.Equal(t, 0, len(msgs))
@@ -107,9 +106,8 @@ func TestSearchNoCtrl(t *testing.T) {
 
 func TestSearchStats(t *testing.T) {
 	src := `
-#0:record[_path:string,ts:time]
-0:[a;1;]
-0:[b;1;]
+{_path:"a",ts:1970-01-01T00:00:01Z}
+{_path:"b",ts:1970-01-01T00:00:01Z}
 `
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
@@ -136,15 +134,13 @@ func TestSearchStats(t *testing.T) {
 
 func TestGroupByReverse(t *testing.T) {
 	src := `
-#0:record[_path:string,ts:time,uid:bstring]
-0:[conn;1;CBrzd94qfowOqJwCHa;]
-0:[conn;1;C8Tful1TvM3Zf5x8fl;]
-0:[conn;2;C8Tful1TvM3Zf5x8fl;]
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
+{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
 `
 	counts := `
-#0:record[ts:time,count:uint64]
-0:[2;1;]
-0:[1;2;]
+{ts:1970-01-01T00:00:02Z,count:1 (uint64)} (=0)
+{ts:1970-01-01T00:00:01Z,count:2} (0)
 `
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
@@ -166,9 +162,8 @@ func TestSearchEmptySpace(t *testing.T) {
 
 func TestSearchError(t *testing.T) {
 	src := `
-#0:record[_path:string,ts:time,uid:bstring]
-0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
-0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
+{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
 `
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
@@ -233,9 +228,9 @@ func TestSpaceList(t *testing.T) {
 
 func TestSpaceInfo(t *testing.T) {
 	src := `
-#0:record[_path:string,ts:time,uid:bstring]
-0:[conn;1;CBrzd94qfowOqJwCHa;]
-0:[conn;2;C8Tful1TvM3Zf5x8fl;]`
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
+`
 	ctx := context.Background()
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
@@ -414,15 +409,15 @@ func TestRequestID(t *testing.T) {
 
 func TestPostZngLogs(t *testing.T) {
 	const src1 = `
-#0:record[_path:string,ts:time,uid:bstring]
-0:[conn;1;CBrzd94qfowOqJwCHa;]`
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+`
 	const src2 = `
-#0:record[_path:string,ts:time,uid:bstring]
-0:[conn;2;CBrzd94qfowOqJwCHa;]`
+{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+`
 	const expected = `
-#0:record[_path:string,ts:time,uid:bstring]
-0:[conn;2;CBrzd94qfowOqJwCHa;]
-0:[conn;1;CBrzd94qfowOqJwCHa;]`
+{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"} (0)
+`
 
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
@@ -456,9 +451,9 @@ func TestPostZngLogs(t *testing.T) {
 func TestPostZngLogWarning(t *testing.T) {
 	const src1 = `undetectableformat`
 	const src2 = `
-#0:record[_path:string,ts:time,uid:bstring]
-0:[conn;1;CBrzd94qfowOqJwCHa;]
-detectablebutbadline`
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+detectablebutbadline
+`
 
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
@@ -575,10 +570,12 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 	assert.EqualValues(t, 134, res.BytesRead)
 }
 
+// Other attempts at malformed ZSON closer to the original are not yet flagged
+// as errors. See https://github.com/brimsec/zq/issues/2057#issuecomment-803148819
 func TestPostLogStopErr(t *testing.T) {
 	const src = `
-#0:record[_path:string,ts:time,uid:bstring
-0:[conn;1;CBrzd94qfowOqJwCHa;]`
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring} (=0)
+`
 
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
@@ -592,9 +589,8 @@ func TestPostLogStopErr(t *testing.T) {
 
 func TestSpaceDataDir(t *testing.T) {
 	src := `
-#0:record[_path:string,ts:time,uid:bstring]
-0:[conn;1521911723.205187;CBrzd94qfowOqJwCHa;]
-0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;]
+{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
 `
 
 	root := createTempDir(t)
@@ -664,8 +660,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 	require.Equal(t, expsi, si)
 
 	exptzng := `
-#0:record[ts:time,s:string,v:int64]
-0:[1587508881.0613914;harefoot-raucous;137;]
+{ts:2020-04-21T22:41:21.0613914Z,s:"harefoot-raucous",v:137}
 `
 	res := searchTzng(t, conn, sp.ID, "s=harefoot\\-raucous")
 	require.Equal(t, test.Trim(exptzng), res)
@@ -673,8 +668,8 @@ func TestCreateArchiveSpace(t *testing.T) {
 
 func TestArchiveInProcessCache(t *testing.T) {
 	const expcount = `
-#0:record[count:uint64]
-0:[1000;]`
+{count:1000 (uint64)} (=0)
+`
 
 	core, conn := newCoreWithConfig(t, zqd.Config{
 		ImmutableCache: immcache.Config{
@@ -754,13 +749,12 @@ func TestIndexSearch(t *testing.T) {
 	require.NoError(t, err)
 
 	exp := `
-#0:record[key:int64,count:uint64,first:time,last:time]
-0:[257;1;1587518582.06699522;1587518014.06491752;]
-0:[257;1;1587516748.0632538;1587516200.06892251;]
-0:[257;1;1587512245.0693411;1587511709.06845389;]
-0:[257;1;1587511703.06774599;1587511182.064686;]
-0:[257;1;1587510666.06396109;1587510062.069881;]
-0:[257;1;1587509477.06450528;1587508830.06852324;]
+{key:257,count:1 (uint64),first:2020-04-22T01:23:02.06699522Z,last:2020-04-22T01:13:34.06491752Z} (=0)
+{key:257,count:1,first:2020-04-22T00:52:28.0632538Z,last:2020-04-22T00:43:20.06892251Z} (0)
+{key:257,count:1,first:2020-04-21T23:37:25.0693411Z,last:2020-04-21T23:28:29.06845389Z} (0)
+{key:257,count:1,first:2020-04-21T23:28:23.06774599Z,last:2020-04-21T23:19:42.064686Z} (0)
+{key:257,count:1,first:2020-04-21T23:11:06.06396109Z,last:2020-04-21T23:01:02.069881Z} (0)
+{key:257,count:1,first:2020-04-21T22:51:17.06450528Z,last:2020-04-21T22:40:30.06852324Z} (0)
 `
 	res, _ := indexSearch(t, conn, sp.ID, "", []string{"v=257"})
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop _log", res, "tzng"))
@@ -791,12 +785,10 @@ func TestArchiveStat(t *testing.T) {
 	require.NoError(t, err)
 
 	exp := `
-#0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
-0:[chunk;1587518620.0622373;1587513611.06391469;16995;496;]
-#1:record[type:string,first:time,last:time,definition:record[description:string],size:uint64,record_count:uint64,keys:array[record[name:string,type:string]]]
-1:[index;1587518620.0622373;1587513611.06391469;[field-v;]2281;0;[[key;int64;]]]
-0:[chunk;1587513592.0625444;1587508830.06852324;17206;504;]
-1:[index;1587513592.0625444;1587508830.06852324;[field-v;]2267;0;[[key;int64;]]]
+{type:"chunk",first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:11.06391469Z,size:16995 (uint64),record_count:496 (uint64)} (=0)
+{type:"index",first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:11.06391469Z,definition:{description:"field-v"},size:2281 (uint64),record_count:0 (uint64),keys:[{name:"key",type:"int64"}]} (=1)
+{type:"chunk",first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z,size:17206,record_count:504} (0)
+{type:"index",first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z,definition:{description:"field-v"},size:2267,record_count:0,keys:[{name:"key",type:"int64"}]} (1)
 `
 	res := archiveStat(t, conn, sp.ID)
 	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop log_id, definition.id", res, "tzng"))
@@ -806,7 +798,7 @@ func archiveStat(t *testing.T, conn *client.Connection, space api.SpaceID) strin
 	r, err := conn.ArchiveStat(context.Background(), space, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := tzngio.NewWriter(zio.NopCloser(buf))
+	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
 	require.NoError(t, zbuf.Copy(w, r))
 	return buf.String()
 }
@@ -819,7 +811,7 @@ func indexSearch(t *testing.T, conn *client.Connection, space api.SpaceID, index
 	r, err := conn.IndexSearch(context.Background(), space, req, nil)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := tzngio.NewWriter(zio.NopCloser(buf))
+	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
 	var msgs []interface{}
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
@@ -846,7 +838,7 @@ func search(t *testing.T, conn *client.Connection, space api.SpaceID, prog strin
 	require.NoError(t, err)
 	r := client.NewZngSearch(body)
 	buf := bytes.NewBuffer(nil)
-	w := tzngio.NewWriter(zio.NopCloser(buf))
+	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
 	var msgs []interface{}
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
@@ -859,7 +851,7 @@ func searchTzng(t *testing.T, conn *client.Connection, space api.SpaceID, prog s
 	res, err := conn.Search(context.Background(), space, prog)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
-	w := tzngio.NewWriter(zio.NopCloser(buf))
+	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
 	require.NoError(t, zbuf.Copy(w, res))
 	return buf.String()
 }
@@ -984,9 +976,8 @@ func TestIntake(t *testing.T) {
 		require.Equal(t, sp1.ID, in1.TargetSpaceID)
 
 		src := `
-#0:record[ts:time,a:string,b:string]
-0:[2;hello;world;]
-0:[1;goodnight;gracie;]
+{ts:1970-01-01T00:00:02Z,a:"hello",b:"world"}
+{ts:1970-01-01T00:00:01Z,a:"goodnight",b:"gracie"}
 `
 		err = conn.IntakePostData(ctx, in1.ID, strings.NewReader(src))
 		require.NoError(t, err)
@@ -1013,16 +1004,14 @@ func TestIntake(t *testing.T) {
 		require.Equal(t, sp1.ID, in1.TargetSpaceID)
 
 		src := `
-#0:record[ts:time,a:string,b:string]
-0:[2;hello;world;]
-0:[1;goodnight;gracie;]
+{ts:1970-01-01T00:00:02Z,a:"hello",b:"world"}
+{ts:1970-01-01T00:00:01Z,a:"goodnight",b:"gracie"}
 `
 		err = conn.IntakePostData(ctx, in1.ID, strings.NewReader(src))
 		require.NoError(t, err)
 
 		exp := `
-#0:record[ts:time,a:string,b:string]
-0:[2;hello;world;]
+{ts:1970-01-01T00:00:02Z,a:"hello",b:"world"}
 `
 		require.Equal(t, test.Trim(exp), searchTzng(t, conn, sp1.ID, "*"))
 	})
