@@ -448,12 +448,14 @@ func TestPostZngLogs(t *testing.T) {
 	}, info)
 }
 
+// Skipped trying to convert this one to ZSON for now.
+// See https://github.com/brimsec/zq/issues/2057#issuecomment-803187964
 func TestPostZngLogWarning(t *testing.T) {
 	const src1 = `undetectableformat`
 	const src2 = `
-{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
-detectablebutbadline
-`
+#0:record[_path:string,ts:time,uid:bstring]
+0:[conn;1;CBrzd94qfowOqJwCHa;]
+detectablebutbadline`
 
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
@@ -471,7 +473,10 @@ detectablebutbadline
 func TestPostNDJSONLogs(t *testing.T) {
 	const src = `{"ts":"1000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}
 {"ts":"2000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}`
-	const expected = "#0:record[_path:string,ts:time,uid:bstring]\n0:[http;2;CXY9a54W2dLZwzPXf1;]\n0:[http;1;CXY9a54W2dLZwzPXf1;]"
+	const expected = `
+{_path:"http",ts:1970-01-01T00:00:02Z,uid:"CXY9a54W2dLZwzPXf1" (bstring)} (=0)
+{_path:"http",ts:1970-01-01T00:00:01Z,uid:"CXY9a54W2dLZwzPXf1"} (0)
+`
 	tc := ndjsonio.TypeConfig{
 		Descriptors: map[string][]interface{}{
 			"http_log": []interface{}{
