@@ -64,7 +64,7 @@ func indexQuery(t *testing.T, lk *Lake, patterns []string, opts ...FindOption) s
 	defer rc.Close()
 
 	var buf bytes.Buffer
-	w := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{0})
+	w := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
 	require.NoError(t, zbuf.Copy(w, rc))
 
 	return buf.String()
@@ -140,7 +140,7 @@ func TestSeekIndex(t *testing.T) {
 	require.NoError(t, finder.Close())
 
 	var buf bytes.Buffer
-	w := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{0})
+	w := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
 	require.NoError(t, w.Write(rec))
 
 	exp := `
