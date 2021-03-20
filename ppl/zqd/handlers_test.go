@@ -65,7 +65,7 @@ func TestSearch(t *testing.T) {
 	_, err = conn.LogPostReaders(context.Background(), id, nil, strings.NewReader(src))
 	require.NoError(t, err)
 
-	res := searchTzng(t, conn, id, "*")
+	res := searchZson(t, conn, id, "*")
 	require.Equal(t, test.Trim(src), res)
 }
 
@@ -147,7 +147,7 @@ func TestGroupByReverse(t *testing.T) {
 	require.NoError(t, err)
 	_, err = conn.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
-	res := searchTzng(t, conn, sp.ID, "every 1s count()")
+	res := searchZson(t, conn, sp.ID, "every 1s count()")
 	require.Equal(t, test.Trim(counts), res)
 }
 
@@ -156,7 +156,7 @@ func TestSearchEmptySpace(t *testing.T) {
 	_, conn := newCore(t)
 	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
-	res := searchTzng(t, conn, sp.ID, "*")
+	res := searchZson(t, conn, sp.ID, "*")
 	require.Equal(t, "", res)
 }
 
@@ -428,9 +428,9 @@ func TestPostZngLogs(t *testing.T) {
 		strings.NewReader(src2),
 	)
 	require.NoError(t, err)
-	assert.Equal(t, api.LogPostResponse{Type: "LogPostResponse", BytesRead: 150}, pres)
+	assert.Equal(t, api.LogPostResponse{Type: "LogPostResponse", BytesRead: 160}, pres)
 
-	res := searchTzng(t, conn, sp.ID, "*")
+	res := searchZson(t, conn, sp.ID, "*")
 	require.EqualValues(t, test.Trim(expected), res)
 
 	info, err := conn.SpaceInfo(context.Background(), sp.ID)
@@ -473,10 +473,8 @@ detectablebutbadline`
 func TestPostNDJSONLogs(t *testing.T) {
 	const src = `{"ts":"1000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}
 {"ts":"2000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}`
-	const expected = `
-{_path:"http",ts:1970-01-01T00:00:02Z,uid:"CXY9a54W2dLZwzPXf1" (bstring)} (=0)
-{_path:"http",ts:1970-01-01T00:00:01Z,uid:"CXY9a54W2dLZwzPXf1"} (0)
-`
+	const expected = `{_path:"http",ts:1970-01-01T00:00:02Z,uid:"CXY9a54W2dLZwzPXf1" (bstring)} (=0)
+{_path:"http",ts:1970-01-01T00:00:01Z,uid:"CXY9a54W2dLZwzPXf1"} (0)`
 	tc := ndjsonio.TypeConfig{
 		Descriptors: map[string][]interface{}{
 			"http_log": []interface{}{
@@ -509,7 +507,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 		_, err = conn.LogPostReaders(context.Background(), sp.ID, opts, strings.NewReader(src))
 		require.NoError(t, err)
 
-		res := searchTzng(t, conn, sp.ID, "*")
+		res := searchZson(t, conn, sp.ID, "*")
 		require.Equal(t, expected, strings.TrimSpace(res))
 
 		span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
@@ -611,7 +609,7 @@ func TestSpaceDataDir(t *testing.T) {
 	require.NoError(t, err)
 	_, err = conn1.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
-	res := searchTzng(t, conn1, sp.ID, "*")
+	res := searchZson(t, conn1, sp.ID, "*")
 	require.Equal(t, test.Trim(src), res)
 
 	// Verify storage metadata file created in expected location.
@@ -625,7 +623,7 @@ func TestSpaceDataDir(t *testing.T) {
 	// Verify space load on startup uses datapath.
 	_, conn2 := newCoreAtDir(t, root)
 
-	res = searchTzng(t, conn2, sp.ID, "*")
+	res = searchZson(t, conn2, sp.ID, "*")
 	require.Equal(t, test.Trim(src), res)
 }
 
@@ -664,11 +662,11 @@ func TestCreateArchiveSpace(t *testing.T) {
 	require.NoError(t, err)
 	require.Equal(t, expsi, si)
 
-	exptzng := `
+	expzson := `
 {ts:2020-04-21T22:41:21.0613914Z,s:"harefoot-raucous",v:137}
 `
-	res := searchTzng(t, conn, sp.ID, "s=harefoot\\-raucous")
-	require.Equal(t, test.Trim(exptzng), res)
+	res := searchZson(t, conn, sp.ID, "s=harefoot\\-raucous")
+	require.Equal(t, test.Trim(expzson), res)
 }
 
 func TestArchiveInProcessCache(t *testing.T) {
@@ -762,7 +760,7 @@ func TestIndexSearch(t *testing.T) {
 {key:257,count:1,first:2020-04-21T22:51:17.06450528Z,last:2020-04-21T22:40:30.06852324Z} (0)
 `
 	res, _ := indexSearch(t, conn, sp.ID, "", []string{"v=257"})
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop _log", res, "tzng"))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop _log", res, "zson"))
 }
 
 func TestArchiveStat(t *testing.T) {
@@ -796,7 +794,7 @@ func TestArchiveStat(t *testing.T) {
 {type:"index",first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z,definition:{description:"field-v"},size:2267,record_count:0,keys:[{name:"key",type:"int64"}]} (1)
 `
 	res := archiveStat(t, conn, sp.ID)
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop log_id, definition.id", res, "tzng"))
+	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop log_id, definition.id", res, "zson"))
 }
 
 func archiveStat(t *testing.T, conn *client.Connection, space api.SpaceID) string {
@@ -826,7 +824,7 @@ func indexSearch(t *testing.T, conn *client.Connection, space api.SpaceID, index
 }
 
 // search runs the provided zql program as a search on the provided
-// space, returning the tzng results along with a slice of all control
+// space, returning the zson results along with a slice of all control
 // messages that were received.
 func search(t *testing.T, conn *client.Connection, space api.SpaceID, prog string) (string, []interface{}) {
 	parsed, err := compiler.ParseProc(prog)
@@ -852,7 +850,7 @@ func search(t *testing.T, conn *client.Connection, space api.SpaceID, prog strin
 	return buf.String(), msgs
 }
 
-func searchTzng(t *testing.T, conn *client.Connection, space api.SpaceID, prog string) string {
+func searchZson(t *testing.T, conn *client.Connection, space api.SpaceID, prog string) string {
 	res, err := conn.Search(context.Background(), space, prog)
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
@@ -987,7 +985,7 @@ func TestIntake(t *testing.T) {
 		err = conn.IntakePostData(ctx, in1.ID, strings.NewReader(src))
 		require.NoError(t, err)
 
-		require.Equal(t, test.Trim(src), searchTzng(t, conn, sp1.ID, "*"))
+		require.Equal(t, test.Trim(src), searchZson(t, conn, sp1.ID, "*"))
 	})
 
 	t.Run("postWithShaper", func(t *testing.T) {
@@ -1018,7 +1016,7 @@ func TestIntake(t *testing.T) {
 		exp := `
 {ts:1970-01-01T00:00:02Z,a:"hello",b:"world"}
 `
-		require.Equal(t, test.Trim(exp), searchTzng(t, conn, sp1.ID, "*"))
+		require.Equal(t, test.Trim(exp), searchZson(t, conn, sp1.ID, "*"))
 	})
 
 	t.Run("invalidShaper", func(t *testing.T) {
