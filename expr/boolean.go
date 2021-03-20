@@ -228,9 +228,9 @@ func CompileRegexp(pattern string) (*regexp.Regexp, error) {
 	return re, err
 }
 
-// NewRegexp returns a Booelan that compares values that must
+// NewRegexpBoolean returns a Booelan that compares values that must
 // be a stringy the given regexp.
-func NewRegexpBool(re *regexp.Regexp) Boolean {
+func NewRegexpBoolean(re *regexp.Regexp) Boolean {
 	return func(v zng.Value) bool {
 		if zng.IsStringy(v.Type.ID()) {
 			return re.Match(v.Bytes)
