@@ -26,11 +26,10 @@ import (
 	"github.com/brimsec/zq/ppl/zqd"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zsonio"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zson"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -752,16 +751,15 @@ func TestIndexSearch(t *testing.T) {
 	require.NoError(t, err)
 
 	exp := `
-#0:record[key:int64,count:uint64,first:time,last:time]
-0:[257;1;1587518582.06699522;1587518014.06491752;]
-0:[257;1;1587516748.0632538;1587516200.06892251;]
-0:[257;1;1587512245.0693411;1587511709.06845389;]
-0:[257;1;1587511703.06774599;1587511182.064686;]
-0:[257;1;1587510666.06396109;1587510062.069881;]
-0:[257;1;1587509477.06450528;1587508830.06852324;]
+{key:257,count:1 (uint64),first:2020-04-22T01:23:02.06699522Z,last:2020-04-22T01:13:34.06491752Z} (=0)
+{key:257,count:1,first:2020-04-22T00:52:28.0632538Z,last:2020-04-22T00:43:20.06892251Z} (0)
+{key:257,count:1,first:2020-04-21T23:37:25.0693411Z,last:2020-04-21T23:28:29.06845389Z} (0)
+{key:257,count:1,first:2020-04-21T23:28:23.06774599Z,last:2020-04-21T23:19:42.064686Z} (0)
+{key:257,count:1,first:2020-04-21T23:11:06.06396109Z,last:2020-04-21T23:01:02.069881Z} (0)
+{key:257,count:1,first:2020-04-21T22:51:17.06450528Z,last:2020-04-21T22:40:30.06852324Z} (0)
 `
 	res, _ := indexSearch(t, conn, sp.ID, "", []string{"v=257"})
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop _log", res, "tzng"))
+	assert.Equal(t, test.Trim(exp), zsonCopy(t, "drop _log", res))
 }
 
 func TestArchiveStat(t *testing.T) {
@@ -789,15 +787,13 @@ func TestArchiveStat(t *testing.T) {
 	require.NoError(t, err)
 
 	exp := `
-#0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
-0:[chunk;1587518620.0622373;1587513611.06391469;16995;496;]
-#1:record[type:string,first:time,last:time,definition:record[description:string],size:uint64,record_count:uint64,keys:array[record[name:string,type:string]]]
-1:[index;1587518620.0622373;1587513611.06391469;[field-v;]2281;0;[[key;int64;]]]
-0:[chunk;1587513592.0625444;1587508830.06852324;17206;504;]
-1:[index;1587513592.0625444;1587508830.06852324;[field-v;]2267;0;[[key;int64;]]]
+{type:"chunk",first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:11.06391469Z,size:16995 (uint64),record_count:496 (uint64)} (=0)
+{type:"index",first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:11.06391469Z,definition:{description:"field-v"},size:2281 (uint64),record_count:0 (uint64),keys:[{name:"key",type:"int64"}]} (=1)
+{type:"chunk",first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z,size:17206,record_count:504} (0)
+{type:"index",first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z,definition:{description:"field-v"},size:2267,record_count:0,keys:[{name:"key",type:"int64"}]} (1)
 `
 	res := archiveStat(t, conn, sp.ID)
-	assert.Equal(t, test.Trim(exp), tzngCopy(t, "drop log_id, definition.id", res, "tzng"))
+	assert.Equal(t, test.Trim(exp), zsonCopy(t, "drop log_id, definition.id", res))
 }
 
 func archiveStat(t *testing.T, conn *client.Connection, space api.SpaceID) string {
@@ -862,14 +858,13 @@ func searchZson(t *testing.T, conn *client.Connection, space api.SpaceID, prog s
 	return buf.String()
 }
 
-func tzngCopy(t *testing.T, prog string, in string, outFormat string) string {
+func zsonCopy(t *testing.T, prog string, in string) string {
 	zctx := resolver.NewContext()
-	r := tzngio.NewReader(bytes.NewReader([]byte(in)), zctx)
-	buf := bytes.NewBuffer(nil)
-	w, err := detector.LookupWriter(zio.NopCloser(buf), zctx, zio.WriterOpts{Format: outFormat})
-	require.NoError(t, err)
+	r := zson.NewReader(strings.NewReader(in), zctx.Context)
+	var buf bytes.Buffer
+	w := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
 	p := compiler.MustParseProc(prog)
-	err = driver.Copy(context.Background(), w, p, zctx, r, driver.Config{})
+	err := driver.Copy(context.Background(), w, p, zctx, r, driver.Config{})
 	require.NoError(t, err)
 	return buf.String()
 }
