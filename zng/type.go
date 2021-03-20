@@ -380,3 +380,14 @@ func ReferencedID(typ Type) int {
 	}
 	return typ.ID()
 }
+
+func TypeRecordOf(typ Type) *TypeRecord {
+	for {
+		alias, ok := typ.(*TypeAlias)
+		if !ok {
+			typ, _ := typ.(*TypeRecord)
+			return typ
+		}
+		typ = alias.Type
+	}
+}

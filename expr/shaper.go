@@ -9,7 +9,11 @@ import (
 )
 
 // A ShaperTransform represents one of the different transforms that a
-// shaper can apply.
+// shaper can apply.  The transforms are represented as a bit flags that
+// can be bitwide-ored together to create a single shaping operator that
+// represents the composition of all operators.  This composition is efficient
+// as it is carried once per incoming type signature then operator is run
+// for every value of that type.
 type ShaperTransform int
 
 const (
@@ -216,7 +220,7 @@ func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) {
 // A shapeSpec is a per-input type ID "spec" that contains the output
 // type and the op to create an output record.
 type shapeSpec struct {
-	typ  *zng.TypeRecord
+	typ  zng.Type
 	step step
 }
 
@@ -224,7 +228,7 @@ type Shaper struct {
 	zctx       *resolver.Context
 	b          zcode.Builder
 	fieldExpr  Evaluator
-	typ        *zng.TypeRecord
+	typ        zng.Type
 	shapeSpecs map[int]shapeSpec // map from type ID to shapeSpec
 	transforms ShaperTransform
 }
@@ -232,7 +236,7 @@ type Shaper struct {
 // NewShaperType returns a shaper that will shape the result of fieldExpr
 // to the provided typExpr. (typExpr should evaluate to a type value,
 // e.g. a value of type TypeType).
-func NewShaperType(zctx *resolver.Context, fieldExpr Evaluator, typ *zng.TypeRecord, tf ShaperTransform) (*Shaper, error) {
+func NewShaper(zctx *resolver.Context, fieldExpr Evaluator, typ zng.Type, tf ShaperTransform) (*Shaper, error) {
 	return &Shaper{
 		zctx:       zctx,
 		fieldExpr:  fieldExpr,
@@ -242,15 +246,17 @@ func NewShaperType(zctx *resolver.Context, fieldExpr Evaluator, typ *zng.TypeRec
 	}, nil
 }
 
-// NewShaper returns a shaper that will shape the result of fieldExpr
+// NewShaperFromTypeExpr returns a shaper that will shape the result of fieldExpr
 // to the provided typExpr. (typExpr should evaluate to a type value,
 // e.g. a value of type TypeType).
-func NewShaper(zctx *resolver.Context, fieldExpr, typExpr Evaluator, tf ShaperTransform) (*Shaper, error) {
+func NewShaperFromTypeExpr(zctx *resolver.Context, fieldExpr, typExpr Evaluator, tf ShaperTransform) (*Shaper, error) {
 	switch typExpr.(type) {
 	case *Var, *TypeFunc, *Literal:
 	default:
 		return nil, fmt.Errorf("shaping functions (crop, fill, cast, order) require a type value as second parameter")
 	}
+	// XXX This needs to be done at runtime because the type expression can
+	// depend on typenames defined in the data.  See issue #2383.
 	typVal, err := typExpr.Eval(nil)
 	if err != nil {
 		return nil, err
@@ -267,11 +273,11 @@ func NewShaper(zctx *resolver.Context, fieldExpr, typExpr Evaluator, tf ShaperTr
 		return nil, fmt.Errorf("shaper could not parse type value literal: %s", err)
 	}
 
-	recType, isRecord := zng.AliasedType(shapeType).(*zng.TypeRecord)
+	_, isRecord := zng.AliasedType(shapeType).(*zng.TypeRecord)
 	if !isRecord {
 		return nil, fmt.Errorf("shaping functions (crop, fill, cast, order) require a record type value as second parameter (got %T %T)", shapeType, zng.AliasedType(shapeType))
 	}
-	return NewShaperType(zctx, fieldExpr, recType, tf)
+	return NewShaper(zctx, fieldExpr, shapeType, tf)
 }
 
 func (s *Shaper) Apply(in *zng.Record) (*zng.Record, error) {
@@ -292,7 +298,7 @@ func (s *Shaper) Eval(in *zng.Record) (zng.Value, error) {
 		return inVal, nil
 	}
 	if _, ok := s.shapeSpecs[in.Type.ID()]; !ok {
-		spec, err := s.createShapeSpec(inType, s.typ)
+		spec, err := s.createShapeSpec(inType)
 		if err != nil {
 			return zng.Value{}, err
 		}
@@ -308,8 +314,9 @@ func (s *Shaper) Eval(in *zng.Record) (zng.Value, error) {
 	return zng.Value{spec.typ, s.b.Bytes()}, nil
 }
 
-func (s *Shaper) createShapeSpec(inType, spec *zng.TypeRecord) (shapeSpec, error) {
+func (s *Shaper) createShapeSpec(inType *zng.TypeRecord) (shapeSpec, error) {
 	var err error
+	spec := zng.TypeRecordOf(s.typ)
 	typ := inType
 	if s.transforms&Cast > 0 {
 		typ, err = s.castRecordType(typ, spec)
@@ -336,7 +343,16 @@ func (s *Shaper) createShapeSpec(inType, spec *zng.TypeRecord) (shapeSpec, error
 		}
 	}
 	step, err := createStepRecord(inType, typ)
-	return shapeSpec{typ, step}, err
+	var final zng.Type
+	if typ.ID() == s.typ.ID() {
+		// If the underlying records are the same, then use the
+		// spec record as it might be an alias and the intention
+		// would be to case to the named type.
+		final = s.typ
+	} else {
+		final = typ
+	}
+	return shapeSpec{final, step}, err
 }
 
 // cropRecordType applies a crop (as specified by the record type 'spec')

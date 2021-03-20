@@ -97,7 +97,7 @@ func (f *Fuser) finish() error {
 		}
 	}
 
-	f.shaper, err = expr.NewShaperType(f.zctx, &expr.RootRecord{}, uber.Type, expr.Fill|expr.Order)
+	f.shaper, err = expr.NewShaper(f.zctx, &expr.RootRecord{}, uber.Type, expr.Fill|expr.Order)
 	if err != nil {
 		return err
 	}
