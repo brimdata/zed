@@ -13,7 +13,7 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 	switch e := e.(type) {
 	case nil:
 		return nil, errors.New("semantic analysis: illegal null value encountered in AST")
-	case *ast.Regexp:
+	case *ast.RegexpMatch:
 		if _, err := expr.CompileRegexp(e.Pattern); err != nil {
 			return nil, err
 		}
@@ -21,10 +21,15 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ast.Regexp{
-			Kind:    "Regexp",
+		return &ast.RegexpMatch{
+			Kind:    "RegexpMatch",
 			Pattern: e.Pattern,
 			Expr:    converted,
+		}, nil
+	case *ast.RegexpSearch:
+		return &ast.RegexpSearch{
+			Kind:    "RegexpSearch",
+			Pattern: e.Pattern,
 		}, nil
 	case *ast.Primitive:
 		return e, nil

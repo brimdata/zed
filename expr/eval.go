@@ -209,16 +209,16 @@ func (e *Equal) Eval(rec *zng.Record) (zng.Value, error) {
 	return zng.False, nil
 }
 
-type Regexp struct {
+type RegexpMatch struct {
 	re   *regexp.Regexp
 	expr Evaluator
 }
 
-func NewRegexp(re *regexp.Regexp, e Evaluator) *Regexp {
-	return &Regexp{re, e}
+func NewRegexpMatch(re *regexp.Regexp, e Evaluator) *RegexpMatch {
+	return &RegexpMatch{re, e}
 }
 
-func (r *Regexp) Eval(rec *zng.Record) (zng.Value, error) {
+func (r *RegexpMatch) Eval(rec *zng.Record) (zng.Value, error) {
 	zv, err := r.expr.Eval(rec)
 	if err != nil {
 		return zng.Value{}, err
@@ -227,6 +227,28 @@ func (r *Regexp) Eval(rec *zng.Record) (zng.Value, error) {
 		return zng.Value{}, zng.ErrMissing
 	}
 	if r.re.Match(zv.Bytes) {
+		return zng.True, nil
+	}
+	return zng.False, nil
+}
+
+type RegexpSearch struct {
+	re     *regexp.Regexp
+	filter Filter
+}
+
+func NewRegexpSearch(re *regexp.Regexp) *RegexpSearch {
+	match := NewRegexpBoolean(re)
+	contains := Contains(match)
+	pred := func(zv zng.Value) bool {
+		return match(zv) || contains(zv)
+	}
+	filter := EvalAny(pred, true)
+	return &RegexpSearch{re, filter}
+}
+
+func (r *RegexpSearch) Eval(rec *zng.Record) (zng.Value, error) {
+	if r.filter(rec) {
 		return zng.True, nil
 	}
 	return zng.False, nil

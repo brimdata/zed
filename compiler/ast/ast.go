@@ -106,10 +106,15 @@ type SeqExpr struct {
 	Methods   []Method `json:"methods"`
 }
 
-type Regexp struct {
+type RegexpMatch struct {
 	Kind    string `json:"kind" unpack:""`
 	Pattern string `json:"pattern"`
 	Expr    Expr   `json:"expr"`
+}
+
+type RegexpSearch struct {
+	Kind    string `json:"kind" unpack:""`
+	Pattern string `json:"pattern"`
 }
 
 func (*UnaryExpr) exprNode()   {}
@@ -125,11 +130,12 @@ func (*Path) exprNode()        {}
 func (*Ref) exprNode()         {}
 func (*Root) exprNode()        {}
 
-func (*Assignment) exprNode() {}
-func (*Agg) exprNode()        {}
-func (*SeqExpr) exprNode()    {}
-func (*Regexp) exprNode()     {}
-func (*TypeValue) exprNode()  {}
+func (*Assignment) exprNode()   {}
+func (*Agg) exprNode()          {}
+func (*SeqExpr) exprNode()      {}
+func (*RegexpSearch) exprNode() {}
+func (*RegexpMatch) exprNode()  {}
+func (*TypeValue) exprNode()    {}
 
 // ----------------------------------------------------------------------------
 // Procs

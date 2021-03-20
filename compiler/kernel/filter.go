@@ -54,7 +54,7 @@ func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr
 }
 
 func compileSearch(node *ast.Search) (expr.Filter, error) {
-	if node.Value.Type == "regexp" || node.Value.Type == "net" {
+	if node.Value.Type == "net" {
 		match, err := expr.Comparison("=", node.Value)
 		if err != nil {
 			return nil, err
@@ -80,7 +80,7 @@ func compileSearch(node *ast.Search) (expr.Filter, error) {
 
 func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Filter, error) {
 	switch v := node.(type) {
-	case *ast.Regexp:
+	case *ast.RegexpMatch:
 		e, err := compileExpr(zctx, scope, v.Expr)
 		if err != nil {
 			return nil, err
@@ -91,6 +91,18 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Fi
 		}
 		pred := expr.NewRegexpBoolean(re)
 		return expr.Apply(e, pred), nil
+
+	case *ast.RegexpSearch:
+		re, err := expr.CompileRegexp(v.Pattern)
+		if err != nil {
+			return nil, err
+		}
+		match := expr.NewRegexpBoolean(re)
+		contains := expr.Contains(match)
+		pred := func(zv zng.Value) bool {
+			return match(zv) || contains(zv)
+		}
+		return expr.EvalAny(pred, true), nil
 
 	case *ast.UnaryExpr:
 		if v.Op != "!" {

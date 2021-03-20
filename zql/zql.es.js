@@ -447,40 +447,19 @@ function peg$parse(input, options) {
             return {"kind": "Primitive", "type": "string", "text": v}
           },
       peg$c66 = function(pattern) {
-            return {"kind": "Call", "name": "or",
-              
-            "args": [
-                
-            {"kind": "SelectExpr",
-                    
-            "selectors": [{"kind": "Root"}],
-                    
-            "methods": [
-                      
-            {"kind": "Call", "name": "map",
-                          
-            "args": [{"kind": "Regexp", "pattern": pattern,
-                                            
-            "expr": {"kind": "Id", "name": "$"}}]}]}]}
-          
-
-
-
-
-
-
+            return {"kind": "RegexpSearch", "pattern": pattern}
           },
       peg$c67 = "in",
       peg$c68 = peg$literalExpectation("in", false),
       peg$c69 = function(f, pattern) {
-            return {"kind": "Regexp", "pattern": pattern, "expr": f}
+            return {"kind": "RegexpMatch", "pattern": pattern, "expr": f}
           },
       peg$c70 = "!=",
       peg$c71 = peg$literalExpectation("!=", false),
       peg$c72 = function(f, pattern) {
             return {"kind": "UnaryExpr", "op": "!",
                         
-            "operand": {"kind": "Regexp", "pattern": pattern, "expr": f}}
+            "operand": {"kind": "RegexpMatch", "pattern": pattern, "expr": f}}
           
           },
       peg$c73 = "type(",

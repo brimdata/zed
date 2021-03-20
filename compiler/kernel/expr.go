@@ -86,8 +86,8 @@ func compileExpr(zctx *resolver.Context, scope *Scope, e ast.Expr) (expr.Evaluat
 		return compileTypeValue(zctx, scope, e)
 	case *ast.SeqExpr:
 		return compileSeqExpr(zctx, scope, e)
-	case *ast.Regexp:
-		return compileRegexp(zctx, scope, e)
+	case *ast.RegexpMatch:
+		return compileRegexpMatch(zctx, scope, e)
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", e)
 	}
@@ -127,13 +127,6 @@ func compileBinary(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (exp
 			return nil, fmt.Errorf("Z kernel: RHS of dot operator is not a name")
 		}
 		return expr.NewDotAccess(lhs, id.Name), nil
-	}
-	if reAST, ok := e.RHS.(*ast.Regexp); ok && e.Op == "in" {
-		re, err := expr.CompileRegexp(reAST.Pattern)
-		if err != nil {
-			return nil, err
-		}
-		return expr.NewRegexp(re, lhs), nil
 	}
 	rhs, err := compileExpr(zctx, scope, e.RHS)
 	if err != nil {
@@ -464,14 +457,22 @@ func compileTypeValue(zctx *resolver.Context, scope *Scope, t *ast.TypeValue) (e
 	return expr.NewLiteralVal(zng.NewTypeType(typ)), nil
 }
 
-func compileRegexp(zctx *resolver.Context, scope *Scope, regexp *ast.Regexp) (expr.Evaluator, error) {
-	e, err := compileExpr(zctx, scope, regexp.Expr)
+func compileRegexpMatch(zctx *resolver.Context, scope *Scope, match *ast.RegexpMatch) (expr.Evaluator, error) {
+	e, err := compileExpr(zctx, scope, match.Expr)
 	if err != nil {
 		return nil, err
 	}
-	re, err := expr.CompileRegexp(regexp.Pattern)
+	re, err := expr.CompileRegexp(match.Pattern)
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewRegexp(re, e), nil
+	return expr.NewRegexpMatch(re, e), nil
+}
+
+func compileRegexpSearch(zctx *resolver.Context, scope *Scope, search *ast.RegexpSearch) (expr.Evaluator, error) {
+	re, err := expr.CompileRegexp(search.Pattern)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewRegexpSearch(re), nil
 }
