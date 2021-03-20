@@ -89,7 +89,7 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Fi
 		if err != nil {
 			return nil, err
 		}
-		pred := expr.NewRegexpBool(re)
+		pred := expr.NewRegexpBoolean(re)
 		return expr.Apply(e, pred), nil
 
 	case *ast.UnaryExpr:
