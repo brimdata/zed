@@ -406,7 +406,7 @@ func TestRequestID(t *testing.T) {
 	})
 }
 
-func TestPostZngLogs(t *testing.T) {
+func TestPostZsonLogs(t *testing.T) {
 	const src1 = `
 {_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
 `
