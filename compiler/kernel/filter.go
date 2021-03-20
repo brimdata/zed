@@ -14,6 +14,9 @@ func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr
 	if e.Op == "in" {
 		literal, ok := e.LHS.(*ast.Primitive)
 		if !ok {
+			// XXX If the RHS here is a literal container or a subnet,
+			// we should optimize this case.  This is part of
+			// epic #2341.
 			return nil, nil
 		}
 		// Check if RHS is a legit lval/field.
@@ -26,7 +29,7 @@ func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr
 		}
 		eql, _ := expr.Comparison("=", *literal)
 		comparison := expr.Contains(eql)
-		return expr.Combine(resolver, comparison), nil
+		return expr.Apply(resolver, comparison), nil
 	}
 	literal, ok := e.RHS.(*ast.Primitive)
 	if !ok {
@@ -47,11 +50,11 @@ func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr
 	if err != nil {
 		return nil, err
 	}
-	return expr.Combine(resolver, comparison), nil
+	return expr.Apply(resolver, comparison), nil
 }
 
 func compileSearch(node *ast.Search) (expr.Filter, error) {
-	if node.Value.Type == "regexp" || node.Value.Type == "net" {
+	if node.Value.Type == "net" {
 		match, err := expr.Comparison("=", node.Value)
 		if err != nil {
 			return nil, err
@@ -77,6 +80,30 @@ func compileSearch(node *ast.Search) (expr.Filter, error) {
 
 func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Filter, error) {
 	switch v := node.(type) {
+	case *ast.RegexpMatch:
+		e, err := compileExpr(zctx, scope, v.Expr)
+		if err != nil {
+			return nil, err
+		}
+		re, err := expr.CompileRegexp(v.Pattern)
+		if err != nil {
+			return nil, err
+		}
+		pred := expr.NewRegexpBoolean(re)
+		return expr.Apply(e, pred), nil
+
+	case *ast.RegexpSearch:
+		re, err := expr.CompileRegexp(v.Pattern)
+		if err != nil {
+			return nil, err
+		}
+		match := expr.NewRegexpBoolean(re)
+		contains := expr.Contains(match)
+		pred := func(zv zng.Value) bool {
+			return match(zv) || contains(zv)
+		}
+		return expr.EvalAny(pred, true), nil
+
 	case *ast.UnaryExpr:
 		if v.Op != "!" {
 			return nil, fmt.Errorf("unknown unary operator: %s", v.Op)
