@@ -103,19 +103,15 @@ func writeFixedPoint(b *strings.Builder, ns, scale int64) {
 }
 
 func (d Duration) MarshalJSON() ([]byte, error) {
-	return json.Marshal(d.String())
+	return json.Marshal(Ts(d))
 }
 
 func (d *Duration) UnmarshalJSON(b []byte) error {
-	var s string
-	if err := json.Unmarshal(b, &s); err != nil {
+	var ts Ts
+	if err := json.Unmarshal(b, &ts); err != nil {
 		return err
 	}
-	v, err := ParseDuration(s)
-	if err != nil {
-		return err
-	}
-	*d = v
+	*d = Duration(ts)
 	return nil
 }
 
