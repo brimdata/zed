@@ -1,36 +1,32 @@
 script: |
-  zq -P -f tzng 'split ( => put k=a+10 => put k=b+20) | sort k' A.tzng B.tzng
+  zq -P -z 'split ( => put k=a+10 => put k=b+20) | sort k' A.zson B.zson
 
 inputs:
-  - name: A.tzng
+  - name: A.zson
     data: |
-      #0:record[a:int32]
-      0:[1;]
-      0:[3;]
-      0:[5;]
-      0:[3;]
-      0:[1;]
-  - name: B.tzng
+      {a:1 (int32)} (=0)
+      {a:3} (0)
+      {a:5} (0)
+      {a:3} (0)
+      {a:1} (0)
+  - name: B.zson
     data: |
-      #0:record[b:int32]
-      0:[2;]
-      0:[4;]
-      0:[6;]
-      0:[4;]
-      0:[2;]
+      {b:2 (int32)} (=0)
+      {b:4} (0)
+      {b:6} (0)
+      {b:4} (0)
+      {b:2} (0)
 
 outputs:
   - name: stdout
     data: |
-      #0:record[a:int32,k:int64]
-      0:[1;11;]
-      0:[1;11;]
-      0:[3;13;]
-      0:[3;13;]
-      0:[5;15;]
-      #1:record[b:int32,k:int64]
-      1:[2;22;]
-      1:[2;22;]
-      1:[4;24;]
-      1:[4;24;]
-      1:[6;26;]
+      {a:1 (int32),k:11} (=0)
+      {a:1,k:11} (0)
+      {a:3,k:13} (0)
+      {a:3,k:13} (0)
+      {a:5,k:15} (0)
+      {b:2 (int32),k:22} (=1)
+      {b:2,k:22} (1)
+      {b:4,k:24} (1)
+      {b:4,k:24} (1)
+      {b:6,k:26} (1)
