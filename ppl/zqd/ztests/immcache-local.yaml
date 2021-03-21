@@ -1,7 +1,7 @@
 script: |
   ZQD_EXTRA_FLAGS=-immcache.kind=local source services.sh
   zapi -h $ZQD_HOST new -d ./root -k archivestore -thresh 20KiB testsp
-  zapi -h $ZQD_HOST -s testsp post babble.tzng >/dev/null
+  zapi -h $ZQD_HOST -s testsp post babble-sorted.zson >/dev/null
   echo ===
   zapi -h $ZQD_HOST -s testsp get -f text "count()"
   echo ===
@@ -10,8 +10,8 @@ script: |
   curl $ZQD_HOST/metrics | grep archive_cache
 
 inputs:
-  - name: babble.tzng
-    source: ../../../ztests/suite/data/babble-sorted.tzng
+  - name: babble-sorted.zson
+    source: ../../../ztests/suite/data/babble-sorted.zson
   - name: services.sh
     source: services.sh
 

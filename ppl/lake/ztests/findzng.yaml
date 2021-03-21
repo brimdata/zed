@@ -1,17 +1,16 @@
 
 script: |
   mkdir logs
-  zar import -R logs babble.tzng
+  zar import -R logs babble.zson
   # make an index by hand for each log containing a sum
   zar index create -R logs -q -o index -k s -z "sum(v) by s | sort s"
-  zar find -R logs -o - -x index -z amphitheatral-televox | zq -f tzng "drop _log" -
+  zar find -R logs -o - -x index -z amphitheatral-televox | zq -z "drop _log" -
 
 inputs:
-  - name: babble.tzng
-    source: ../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stdout
     data: |
-      #0:record[s:string,sum:int64,first:time,last:time]
-      0:[amphitheatral-televox;251;1587513592.0625444;1587508830.06852324;]
+      {s:"amphitheatral-televox",sum:251,first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z}

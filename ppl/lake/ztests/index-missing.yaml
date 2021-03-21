@@ -1,11 +1,11 @@
 script: |
-  zar import -R logs babble.tzng
+  zar import -R logs babble.zson
   echo ===
   zar find -R logs v=10 # no such index
 
 inputs:
-  - name: babble.tzng
-    source: ../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stderr

@@ -42,13 +42,13 @@ func TestPcapPostSuccess(t *testing.T) {
 	p := pcapPostTest(t, pcapfile, launcherFromEnv(t, "ZEEK"))
 	t.Run("DataReverseSorted", func(t *testing.T) {
 		expected := `
-#0:record[ts:time]
-0:[1501770880.988247;]
-0:[1501770880.988247;]
-0:[1501770877.501001;]
-0:[1501770877.471635;]
-0:[1501770877.471635;]`
-		res := searchTzng(t, p.client, p.space.ID, "pick ts")
+{ts:2017-08-03T14:34:40.988247Z}
+{ts:2017-08-03T14:34:40.988247Z}
+{ts:2017-08-03T14:34:37.501001Z}
+{ts:2017-08-03T14:34:37.471635Z}
+{ts:2017-08-03T14:34:37.471635Z}
+`
+		res := searchZson(t, p.client, p.space.ID, "pick ts")
 		assert.Equal(t, test.Trim(expected), res)
 	})
 	t.Run("SpaceInfo", func(t *testing.T) {
