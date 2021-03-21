@@ -347,7 +347,7 @@ func (s *Shaper) createShapeSpec(inType *zng.TypeRecord) (shapeSpec, error) {
 	if typ.ID() == s.typ.ID() {
 		// If the underlying records are the same, then use the
 		// spec record as it might be an alias and the intention
-		// would be to case to the named type.
+		// would be to cast to the named type.
 		final = s.typ
 	} else {
 		final = typ

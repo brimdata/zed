@@ -218,7 +218,6 @@ func (p *Proc) deriveSteps(inType *zng.TypeRecord, vals []zng.Value) (step, zng.
 		if zng.TypeRecordOf(typ) == nil {
 			return step{}, nil, fmt.Errorf("put .=x: cannot put a non-record to .")
 		}
-		//typ, err := p.pctx.Zctx.LookupTypeRecord(recVal.Columns)
 		return step{op: root, index: 0}, typ, nil
 	}
 	return p.deriveRecordSteps(field.NewRoot(), inType.Columns, vals)
