@@ -1,16 +1,16 @@
 script: |
   mkdir logs
-  zar  import -R logs -sortmem 0 babble.tzng
+  zar  import -R logs -sortmem 0 babble.zson
   echo ===
-  zar  import -R logs -sortmem 1MiB babble.tzng
+  zar  import -R logs -sortmem 1MiB babble.zson
   echo ===
   zar index create -R logs -q v
-  zar find -R logs -z v=106 | zq -f tzng "drop _log" -
+  zar find -R logs -z v=106 | zq -z "drop _log" -
   echo ===
 
 inputs:
-  - name: babble.tzng
-    source: ../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stderr
@@ -20,7 +20,6 @@ outputs:
     data: |
       ===
       ===
-      #0:record[key:int64,count:uint64,first:time,last:time]
-      0:[106;1;1587518620.0622373;1587513611.06391469;]
-      0:[106;2;1587513592.0625444;1587508830.06852324;]
+      {key:106,count:1 (uint64),first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:11.06391469Z} (=0)
+      {key:106,count:2,first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z} (0)
       ===

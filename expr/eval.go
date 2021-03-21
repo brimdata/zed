@@ -9,7 +9,6 @@ import (
 	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/expr/function"
 	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/reglob"
 	"github.com/brimsec/zq/zcode"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -210,56 +209,46 @@ func (e *Equal) Eval(rec *zng.Record) (zng.Value, error) {
 	return zng.False, nil
 }
 
-type Match struct {
-	equality bool
-	lhs      Evaluator
-	rhs      Evaluator
+type RegexpMatch struct {
+	re   *regexp.Regexp
+	expr Evaluator
 }
 
-func NewPatternMatch(lhs, rhs Evaluator, op string) (*Match, error) {
-	equality := true
-	if op == "!~" {
-		equality = false
-	}
-	return &Match{
-		equality: equality,
-		lhs:      lhs,
-		rhs:      rhs,
-	}, nil
+func NewRegexpMatch(re *regexp.Regexp, e Evaluator) *RegexpMatch {
+	return &RegexpMatch{re, e}
 }
 
-func (m *Match) Eval(rec *zng.Record) (zng.Value, error) {
-	lhs, err := m.lhs.Eval(rec)
+func (r *RegexpMatch) Eval(rec *zng.Record) (zng.Value, error) {
+	zv, err := r.expr.Eval(rec)
 	if err != nil {
 		return zng.Value{}, err
 	}
-	rhs, err := m.rhs.Eval(rec)
-	if err != nil {
-		return zng.Value{}, err
+	if !zng.IsStringy(zv.Type.ID()) {
+		return zng.Value{}, zng.ErrMissing
 	}
-	var result bool
-	rid := rhs.Type.ID()
-	lid := lhs.Type.ID()
-	if zng.IsStringy(rid) {
-		if !zng.IsStringy(lid) {
-			return zng.Value{}, ErrIncompatibleTypes
-		}
-		pattern := reglob.Reglob(string(rhs.Bytes))
-		result, err = regexp.MatchString(pattern, string(lhs.Bytes))
-		if err != nil {
-			return zng.Value{}, fmt.Errorf("error comparing pattern: %w", err)
-		}
-	} else if rid == zng.IdNet && lid == zng.IdIP {
-		addr, _ := zng.DecodeIP(lhs.Bytes)
-		net, _ := zng.DecodeNet(rhs.Bytes)
-		result = net.IP.Equal(addr.Mask(net.Mask))
-	} else {
-		return zng.Value{}, ErrIncompatibleTypes
+	if r.re.Match(zv.Bytes) {
+		return zng.True, nil
 	}
-	if !m.equality {
-		result = !result
+	return zng.False, nil
+}
+
+type RegexpSearch struct {
+	re     *regexp.Regexp
+	filter Filter
+}
+
+func NewRegexpSearch(re *regexp.Regexp) *RegexpSearch {
+	match := NewRegexpBoolean(re)
+	contains := Contains(match)
+	pred := func(zv zng.Value) bool {
+		return match(zv) || contains(zv)
 	}
-	if result {
+	filter := EvalAny(pred, true)
+	return &RegexpSearch{re, filter}
+}
+
+func (r *RegexpSearch) Eval(rec *zng.Record) (zng.Value, error) {
+	if r.filter(rec) {
 		return zng.True, nil
 	}
 	return zng.False, nil

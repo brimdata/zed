@@ -1,22 +1,22 @@
 script: |
   mkdir logs
-  zar import -R logs babble-split1.tzng
-  zar import -R logs babble-split2.tzng
+  zar import -R logs babble-split1.zson
+  zar import -R logs babble-split2.zson
   zar ls -R logs -spaninfos -ranges
   echo ===
-  zar stat -R logs -f zng | zq -f tzng "drop log_id" -
+  zar stat -R logs -f zng | zq -z "drop log_id" -
   echo ===
-  zar zq -R logs -f tzng "*" > t1
-  zq -f tzng "sort -r ts" babble.tzng > t2
+  zar zq -R logs -z "*" > t1
+  zq -z "sort -r ts" babble.zson > t2
   test -s t1 && test -s t2 && diff t1 t2 && echo t1 t2 equal
 
 inputs:
-  - name: babble.tzng
-    source: ../../../ztests/suite/data/babble.tzng
-  - name: babble-split1.tzng
-    source: ../../../ztests/suite/data/babble-split1.tzng
-  - name: babble-split2.tzng
-    source: ../../../ztests/suite/data/babble-split2.tzng
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
+  - name: babble-split1.zson
+    source: ../../../ztests/suite/data/babble-split1.zson
+  - name: babble-split2.zson
+    source: ../../../ztests/suite/data/babble-split2.zson
 
 outputs:
   - name: stdout
@@ -32,10 +32,9 @@ outputs:
           [1587513592062544400-1587508849063583900]
           [1587513582066687740-1587508830068523240]
       ===
-      #0:record[type:string,first:time,last:time,size:uint64,record_count:uint64]
-      0:[chunk;1587518620.0622373;1587513632.06930723;8460;245;]
-      0:[chunk;1587518601.06632034;1587513611.06391469;8752;251;]
-      0:[chunk;1587513592.0625444;1587508849.0635839;8527;249;]
-      0:[chunk;1587513582.06668774;1587508830.06852324;8863;255;]
+      {type:"chunk",first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:32.06930723Z,size:8460 (uint64),record_count:245 (uint64)} (=0)
+      {type:"chunk",first:2020-04-22T01:23:21.06632034Z,last:2020-04-22T00:00:11.06391469Z,size:8752,record_count:251} (0)
+      {type:"chunk",first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:49.0635839Z,size:8527,record_count:249} (0)
+      {type:"chunk",first:2020-04-21T23:59:42.06668774Z,last:2020-04-21T22:40:30.06852324Z,size:8863,record_count:255} (0)
       ===
       t1 t2 equal

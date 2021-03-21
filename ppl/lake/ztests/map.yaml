@@ -1,32 +1,28 @@
 script: |
   mkdir logs
-  zar import -R logs babble.tzng
-  zar map -R logs "count()" | zq -f tzng -
+  zar import -R logs babble.zson
+  zar map -R logs "count()" | zq -z -
   echo ===
   zar map -R logs -o count.zng "count()"
-  zq -f tzng "sum(count)" $(find ./logs -name count.zng)
+  zq -z "sum(count)" $(find ./logs -name count.zng)
   echo ===
   zar map -R logs -o top.zng "count() by v | sort -r count, v | head 1"
   zar map -R logs -o bottom.zng "count() by v | sort count, v | head 1"
-  zar map -R logs -f tzng "sort v" top.zng bottom.zng
+  zar map -R logs -z "sort v" top.zng bottom.zng
 
 inputs:
-  - name: babble.tzng
-    source: ../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stdout
     data: |
-      #0:record[count:uint64]
-      0:[496;]
-      0:[504;]
+      {count:496 (uint64)} (=0)
+      {count:504} (0)
       ===
-      #0:record[sum:uint64]
-      0:[1000;]
+      {sum:1000 (uint64)} (=0)
       ===
-      #0:record[v:int64,count:uint64]
-      0:[1;1;]
-      0:[278;6;]
-      #0:record[v:int64,count:uint64]
-      0:[1;1;]
-      0:[14;5;]
+      {v:1,count:1 (uint64)} (=0)
+      {v:278,count:6} (0)
+      {v:1,count:1 (uint64)} (=0)
+      {v:14,count:5} (0)

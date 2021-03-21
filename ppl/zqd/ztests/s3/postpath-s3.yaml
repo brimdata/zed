@@ -1,18 +1,17 @@
 script: |
   source services.sh 
   mkdir -p s3/bucket
-  mv babble.tzng s3/bucket
-  zapi -h $ZQD_HOST -s testsp postpath -f s3://bucket/babble.tzng >/dev/null
-  zapi -h $ZQD_HOST -s testsp get -f tzng "count()"
+  mv babble.zson s3/bucket
+  zapi -h $ZQD_HOST -s testsp postpath -f s3://bucket/babble.zson >/dev/null
+  zapi -h $ZQD_HOST -s testsp get -z "count()"
 
 inputs:
-  - name: babble.tzng
-    source: ../../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../../ztests/suite/data/babble.zson
   - name: services.sh
     source: ../services.sh
 
 outputs:
   - name: stdout
     data: |
-      #0:record[count:uint64]
-      0:[1000;]
+      {count:1000 (uint64)} (=0)

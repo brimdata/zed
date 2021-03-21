@@ -112,7 +112,10 @@ func (a *AggExpr) Eval(rec *zng.Record) (zng.Value, error) {
 	for {
 		zv, err := a.src.Next()
 		if err != nil {
-			return zng.Value{}, nil
+			if err == zng.ErrMissing {
+				continue
+			}
+			return zng.Value{}, err
 		}
 		if zv.Type == nil {
 			return f.Result(a.zctx)

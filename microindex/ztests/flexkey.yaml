@@ -1,5 +1,5 @@
 script: |
-  zq -o tmp.zng "sum(v) by s | put key=s | sort key"  babble.tzng
+  zq -o tmp.zng "sum(v) by s | put key=s | sort key"  babble.zson
   # -x says input keys already sorted and don't create new base records
   microindex convert -f 20000 -o index.zng -k key tmp.zng
   # 50 not in index
@@ -10,8 +10,8 @@ script: |
   microindex lookup -z -k Anatinacea-bestrew index.zng
 
 inputs:
-  - name: babble.tzng
-    source: ../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stdout

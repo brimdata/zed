@@ -2,32 +2,29 @@ script: |
   # create a sorted-keys base layer with primary key "sum" and secondary
   # key "s".  Note that the keys do not need to appear in precedence order
   # in the base zng index.
-  zq -o sorted.zng "sum(v) by s | sort sum,s"  babble.tzng
+  zq -o sorted.zng "sum(v) by s | sort sum,s"  babble.zson
   # convert assumes input keys already sorted and doesn't create new base records
   microindex convert -f 200 -o index.zng -k sum,s sorted.zng
-  microindex section -f tzng -s 1 index.zng
+  microindex section -z -s 1 index.zng
   echo ===
   # exact lookup of the one record
-  microindex lookup -f tzng -k 149,wailer-strick index.zng
+  microindex lookup -z -k 149,wailer-strick index.zng
   echo ===
   # don't cares for secondary key... returns multiple matches
-  microindex lookup -f tzng -k 100 index.zng
+  microindex lookup --z -k 100 index.zng
 
 inputs:
-  - name: babble.tzng
-    source: ../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stdout
     data: |
-      #0:record[sum:int64,s:string,_child:int64]
-      0:[0;Chechehet-nonofficially;0;]
-      0:[194;ethionic-pastorate;218;]
+      {sum:0,s:"Chechehet-nonofficially",_child:0}
+      {sum:194,s:"ethionic-pastorate",_child:218}
       ===
-      #0:record[s:string,sum:int64]
-      0:[wailer-strick;149;]
+      {s:"wailer-strick",sum:149}
       ===
-      #0:record[s:string,sum:int64]
-      0:[Trachinus-salvability;100;]
-      0:[chuckies-spinsterlike;100;]
-      0:[thermogenesis-electrometrical;100;]
+      {s:"Trachinus-salvability",sum:100}
+      {s:"chuckies-spinsterlike",sum:100}
+      {s:"thermogenesis-electrometrical",sum:100}
