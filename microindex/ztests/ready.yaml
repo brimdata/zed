@@ -1,25 +1,23 @@
 script: |
   microindex create -x -f 20 -o index.zng -k key -
-  microindex section -f tzng -s 2 index.zng
+  microindex section -z -s 2 index.zng
 
 inputs:
   - name: stdin
     data: |
-        #0:record[key:string,val:int64]
-        0:[a;0;]
-        0:[b;1;]
-        0:[c;2;]
-        0:[d;3;]
-        0:[e;4;]
-        0:[f;3;]
-        0:[g;2;]
-        0:[h;1;]
-        0:[i;0;]
-        0:[j;-1;]
+        {key:"a",val:0}
+        {key:"b",val:1}
+        {key:"c",val:2}
+        {key:"d",val:3}
+        {key:"e",val:4}
+        {key:"f",val:3}
+        {key:"g",val:2}
+        {key:"h",val:1}
+        {key:"i",val:0}
+        {key:"j",val:-1}
 
 outputs:
   - name: stdout
     data: |
-      #0:record[key:string,_child:int64]
-      0:[a;0;]
-      0:[e;24;]
+      {key:"a",_child:0}
+      {key:"e",_child:24}
