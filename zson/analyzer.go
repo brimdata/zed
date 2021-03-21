@@ -153,9 +153,6 @@ func (a Analyzer) enterTypeDef(zctx *Context, name string, typ zng.Type) (*zng.T
 		if alias, err = zctx.LookupTypeAlias(name, typ); err != nil {
 			return nil, err
 		}
-		if existing, ok := a[name]; ok && existing != alias {
-			return nil, fmt.Errorf("type %q redefined from %q to %q", name, existing.ZSON(), typ.ZSON())
-		}
 		typ = alias
 	}
 	a[name] = typ
