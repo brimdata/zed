@@ -1,14 +1,14 @@
 script: |
   mkdir logs
-  zar import -R logs babble-mergelargestchunk1.tzng
-  zar import -R logs babble-mergelargestchunk2.tzng
+  zar import -R logs babble-mergelargestchunk1.zson
+  zar import -R logs babble-mergelargestchunk2.zson
   zar ls -R logs -spaninfos -ranges
 
 inputs:
-  - name: babble-mergelargestchunk1.tzng
-    source: ../testdata/babble-mergelargestchunk1.tzng
-  - name: babble-mergelargestchunk2.tzng
-    source: ../testdata/babble-mergelargestchunk2.tzng
+  - name: babble-mergelargestchunk1.zson
+    source: ../testdata/babble-mergelargestchunk1.zson
+  - name: babble-mergelargestchunk2.zson
+    source: ../testdata/babble-mergelargestchunk2.zson
 
 outputs:
   - name: stdout

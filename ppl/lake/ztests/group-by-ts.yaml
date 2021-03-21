@@ -1,57 +1,52 @@
 script: |
   mkdir logs
-  # group-by-ts.zng contains records over two days, mapping to two tsdirs, and
+  # group-by-ts.zson contains records over two days, mapping to two tsdirs, and
   # this small target size causes each tsdir to have several chunk files.
-  zar import -R logs -s 256B group-by-ts.zng
+  zar import -R logs -s 256B group-by-ts.zson
   echo ===
-  zar zq -R logs -f tzng 'head 1'
+  zar zq -R logs -z 'head 1'
   echo ===
-  zar zq -R logs -f tzng 'tail 1'
+  zar zq -R logs -z 'tail 1'
   echo ===
-  zar zq -R logs -f tzng 'avg(g)'
+  zar zq -R logs -z 'avg(g)'
   echo ===
-  zar zq -R logs -f tzng 'count() by g | sort g'
+  zar zq -R logs -z 'count() by g | sort g'
   echo ===
-  zar zq -R logs -f tzng 'every 3600s count() by g | sort ts, g'
+  zar zq -R logs -z 'every 3600s count() by g | sort ts, g'
 
 inputs:
-  - name: group-by-ts.zng
-    source: ../testdata/group-by-ts.zng
+  - name: group-by-ts.zson
+    source: ../testdata/group-by-ts.zson
 
 outputs:
   - name: stdout
     data: |
       ===
-      #0:record[ts:time,g:string,v:int64]
-      0:[95940;g1;1599;]
+      {ts:1970-01-02T02:39:00Z,g:"g1",v:1599}
       ===
-      #0:record[ts:time,g:string,v:int64]
-      0:[0;g2;0;]
+      {ts:1970-01-01T00:00:00Z,g:"g2",v:0}
       ===
-      #0:record[avg:float64]
-      0:[-;]
+      {avg:null (float64)}
       ===
-      #0:record[g:string,count:uint64]
-      0:[g0;115;]
-      0:[g1;107;]
-      0:[g2;98;]
+      {g:"g0",count:115 (uint64)} (=0)
+      {g:"g1",count:107} (0)
+      {g:"g2",count:98} (0)
       ===
-      #0:record[ts:time,g:string,count:uint64]
-      0:[0;g0;21;]
-      0:[0;g1;22;]
-      0:[0;g2;17;]
-      0:[3600;g0;19;]
-      0:[3600;g1;21;]
-      0:[3600;g2;20;]
-      0:[7200;g0;12;]
-      0:[7200;g1;14;]
-      0:[7200;g2;14;]
-      0:[86400;g0;28;]
-      0:[86400;g1;16;]
-      0:[86400;g2;16;]
-      0:[90000;g0;20;]
-      0:[90000;g1;20;]
-      0:[90000;g2;20;]
-      0:[93600;g0;15;]
-      0:[93600;g1;14;]
-      0:[93600;g2;11;]
+      {ts:1970-01-01T00:00:00Z,g:"g0",count:21 (uint64)} (=0)
+      {ts:1970-01-01T00:00:00Z,g:"g1",count:22} (0)
+      {ts:1970-01-01T00:00:00Z,g:"g2",count:17} (0)
+      {ts:1970-01-01T01:00:00Z,g:"g0",count:19} (0)
+      {ts:1970-01-01T01:00:00Z,g:"g1",count:21} (0)
+      {ts:1970-01-01T01:00:00Z,g:"g2",count:20} (0)
+      {ts:1970-01-01T02:00:00Z,g:"g0",count:12} (0)
+      {ts:1970-01-01T02:00:00Z,g:"g1",count:14} (0)
+      {ts:1970-01-01T02:00:00Z,g:"g2",count:14} (0)
+      {ts:1970-01-02T00:00:00Z,g:"g0",count:28} (0)
+      {ts:1970-01-02T00:00:00Z,g:"g1",count:16} (0)
+      {ts:1970-01-02T00:00:00Z,g:"g2",count:16} (0)
+      {ts:1970-01-02T01:00:00Z,g:"g0",count:20} (0)
+      {ts:1970-01-02T01:00:00Z,g:"g1",count:20} (0)
+      {ts:1970-01-02T01:00:00Z,g:"g2",count:20} (0)
+      {ts:1970-01-02T02:00:00Z,g:"g0",count:15} (0)
+      {ts:1970-01-02T02:00:00Z,g:"g1",count:14} (0)
+      {ts:1970-01-02T02:00:00Z,g:"g2",count:11} (0)
