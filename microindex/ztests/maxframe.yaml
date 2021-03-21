@@ -1,11 +1,10 @@
 script: |
-  microindex create -f 1000000000 -o index.zng -k a in.tzng
+  microindex create -f 1000000000 -o index.zng -k a in.zson
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[a:string]
-      0:[hello;]
+      {a:"hello"}
 
 outputs:
   - name: stderr

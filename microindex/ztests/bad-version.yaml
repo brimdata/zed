@@ -1,19 +1,17 @@
 script: |
   # cat together the index and trailer so we get an eos before the trailer
-  zq -o in1.zng in.tzng
-  zq -o trailer.zng trailer.tzng
+  zq -o in1.zng in.zson
+  zq -o trailer.zng trailer.zson
   cat in1.zng trailer.zng > index.zng
-  microindex lookup -f tzng -k hello index.zng
+  microindex lookup -z -k hello index.zng
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[key:string]
-      0:[hello;]
-  - name: trailer.tzng
+      {key:"hello"}
+  - name: trailer.zson
     data: |
-      #1:record[magic:string,version:int32,descending:bool,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[key:string]]
-      1:[microindex;0;F;_child;32768;[16;]-;]
+      {magic:"microindex",version:0 (int32),descending:false,child_field:"_child",frame_thresh:32768 (int32),sections:[16],keys:null (0=({key:string}))} (=1)
 
 outputs:
   - name: stderr

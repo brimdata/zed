@@ -1,17 +1,14 @@
 script: |
-  microindex create -o index.zng -k a in.tzng
-  zq -f tzng index.zng
+  microindex create -o index.zng -k a in.zson
+  zq -z index.zng
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[a:string]
-      0:[hello;]
+      {a:"hello"}
 
 outputs:
   - name: stdout
     data: |
-      #0:record[key:string]
-      0:[hello;]
-      #1:record[magic:string,version:int32,descending:bool,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[key:string]]
-      1:[microindex;2;F;_child;32768;[16;]-;]
+      {key:"hello"}
+      {magic:"microindex",version:2 (int32),descending:false,child_field:"_child",frame_thresh:32768 (int32),sections:[16],keys:null (0=({key:string}))} (=1)
