@@ -18,8 +18,9 @@ tips for their effective use.
 To create batches of events that are close together in time, specify
 `every <duration>` before invoking your aggregate function(s).
 
-The `<duration>` may be expressed in any of the following units of time. A
-numeric value must precede the unit specification.
+The `<duration>` may be expressed as a combination of one or more of the
+following units of time. An integer or decimal value must precede the
+specification of each unit.
 
 | **Unit**    | **Suffix** |
 |-------------|------------|
@@ -56,10 +57,11 @@ TS                   SUM
 
 #### Example #2:
 
-To see which 30-second intervals contained the most events:
+To see which 30-second intervals contained the most events, expressing the
+duration as a half-minute:
 
 ```zq-command
-zq -f table 'every 30s count() | sort -r count' *.log.gz
+zq -f table 'every 0.5m count() | sort -r count' *.log.gz
 ```
 
 #### Output:
@@ -68,6 +70,24 @@ TS                   COUNT
 2018-03-24T17:19:00Z 73512
 2018-03-24T17:16:30Z 59701
 2018-03-24T17:20:00Z 51229
+...
+```
+
+#### Example #3:
+
+To see the highest-numbered responding network port during each 90-second
+interval, expressing the duration as a mix of minutes and seconds:
+
+```zq-command
+zq -f table 'every 1m30s max(id.resp_p) | sort -r ts' conn.log.gz
+```
+
+#### Output:
+```zq-output head:4
+TS                   MAX
+2018-03-24T17:36:00Z 60008
+2018-03-24T17:34:30Z 60008
+2018-03-24T17:33:00Z 65389
 ...
 ```
 
