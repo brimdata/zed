@@ -2,27 +2,24 @@ script: |
   source services.sh
   zapi -h $ZQD_HOST new -k archivestore testsp >/dev/null
   zapi -h $ZQD_HOST -s testsp index create :ip _path
-  zapi -h $ZQD_HOST -s testsp post data.tzng >/dev/null
-  zapi -h $ZQD_HOST -s testsp index find _path=http | zq -f tzng "drop _log" -
+  zapi -h $ZQD_HOST -s testsp post data.zson >/dev/null
+  zapi -h $ZQD_HOST -s testsp index find _path=http | zq -z "drop _log" -
   echo ===
-  zapi -h $ZQD_HOST -s testsp index find :ip=127.0.0.3 | zq -f tzng "drop _log" -
+  zapi -h $ZQD_HOST -s testsp index find :ip=127.0.0.3 | zq -z "drop _log" -
 
 inputs:
   - name: services.sh
     source: services.sh
-  - name: data.tzng
+  - name: data.zson
     data: |
-      #0:record[_path:string,ts:time,orig_h:ip]
-      0:[conn;1;127.0.0.1;]
-      0:[http;1;127.0.0.1;]
-      0:[conn;2;127.0.0.2;]
-      0:[http;2;127.0.0.3;]
+      {_path:"conn",ts:1970-01-01T00:00:01Z,orig_h:127.0.0.1}
+      {_path:"http",ts:1970-01-01T00:00:01Z,orig_h:127.0.0.1}
+      {_path:"conn",ts:1970-01-01T00:00:02Z,orig_h:127.0.0.2}
+      {_path:"http",ts:1970-01-01T00:00:02Z,orig_h:127.0.0.3}
 
 outputs:
   - name: stdout
     data: |
-      #0:record[key:string,count:uint64,first:time,last:time]
-      0:[http;2;2;1;]
+      {key:"http",count:2 (uint64),first:1970-01-01T00:00:02Z,last:1970-01-01T00:00:01Z} (=0)
       ===
-      #0:record[key:ip,count:uint64,first:time,last:time]
-      0:[127.0.0.3;1;2;1;]
+      {key:127.0.0.3,count:1 (uint64),first:1970-01-01T00:00:02Z,last:1970-01-01T00:00:01Z} (=0)

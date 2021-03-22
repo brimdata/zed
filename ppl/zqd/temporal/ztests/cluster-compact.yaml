@@ -11,8 +11,8 @@ script: |
   space=ZTest_cluster_compact
   zapi -h $host rm $space &>/dev/null || true
   zapi -h $host new -k archivestore $space >/dev/null
-  zapi -h $host -s $space post babble.tzng >/dev/null
-  zapi -h $host -s $space post babble.tzng >/dev/null
+  zapi -h $host -s $space post babble.zson >/dev/null
+  zapi -h $host -s $space post babble.zson >/dev/null
   # Give the Temporal workflow a chance to run.
   sleep 5
   data_path=$(zapi -h $host ls -l -f zng | zq -f text "name=\"$space\" | cut data_path" -)
@@ -20,8 +20,8 @@ script: |
   zapi -h $host rm $space >/dev/null
 
 inputs:
-  - name: babble.tzng
-    source: ../../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../../ztests/suite/data/babble.zson
   - name: temporal.sh
 
 outputs:

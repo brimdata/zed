@@ -2,14 +2,13 @@ tag: cluster
 
 script: |
   # Test assumes a remote zqd instance with space "files" is available at 9867
-  zapi -s files get -workers 4 -f tzng 'count() by tx_hosts | sort -r count | head 5' 2>&1
+  zapi -s files get -workers 4 -z 'count() by tx_hosts | sort -r count | head 5' 2>&1
 
 outputs:
   - name: stdout
     data: |
-      #0:record[tx_hosts:set[ip],count:uint64]
-      0:[[10.47.2.156;]985198;]
-      0:[[10.47.7.58;]827462;]
-      0:[[10.47.5.58;]779783;]
-      0:[[10.47.8.58;]659903;]
-      0:[[10.47.1.58;]536395;]
+      {tx_hosts:|[10.47.2.156]|,count:985198 (uint64)} (=0)
+      {tx_hosts:|[10.47.7.58]|,count:827462} (0)
+      {tx_hosts:|[10.47.5.58]|,count:779783} (0)
+      {tx_hosts:|[10.47.8.58]|,count:659903} (0)
+      {tx_hosts:|[10.47.1.58]|,count:536395} (0)

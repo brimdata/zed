@@ -1,9 +1,9 @@
 script: |
   source services.sh
   zapi -h $ZQD_HOST -s testsp postpcap -k archivestore -f alerts.pcap >/dev/null
-  zapi -h $ZQD_HOST -s testsp get -f tzng "event_type = alert | every 1s count()"
+  zapi -h $ZQD_HOST -s testsp get -z "event_type = alert | every 1s count()"
   echo ===
-  zapi -h $ZQD_HOST -s testsp get -f tzng "_path != null | count()"
+  zapi -h $ZQD_HOST -s testsp get -z "_path != null | count()"
 
 inputs:
   - name: alerts.pcap
@@ -14,9 +14,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[ts:time,count:uint64]
-      0:[1425568033;13;]
-      0:[1425567868;2;]
+      {ts:2015-03-05T15:07:13Z,count:13 (uint64)} (=0)
+      {ts:2015-03-05T15:04:28Z,count:2} (0)
       ===
-      #0:record[count:uint64]
-      0:[379;]
+      {count:379 (uint64)} (=0)

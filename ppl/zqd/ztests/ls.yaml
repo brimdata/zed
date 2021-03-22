@@ -11,7 +11,7 @@ script: |
   # Verify that output flags are honored.
   zapi -h $ZQD_HOST ls -l -f zson | zq -i zson -f zson "pick name,storage_kind" -
   echo ===
-  zapi -h $ZQD_HOST ls -l -f zng | zq -i zng -f tzng "pick name,storage_kind" -
+  zapi -h $ZQD_HOST ls -l -f zng | zq -i zng -f table "pick name,storage_kind" -
   echo ===
 
 inputs:
@@ -36,7 +36,7 @@ outputs:
           storage_kind: "archivestore"
       }
       ===
-      #0:record[name:string,storage_kind:string]
-      0:[sp1;archivestore;]
-      0:[sp2;archivestore;]
+      NAME STORAGE_KIND
+      sp1  archivestore
+      sp2  archivestore
       ===
