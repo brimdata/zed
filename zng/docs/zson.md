@@ -1,16 +1,12 @@
 # ZSON - ZNG Structured Object-record Notation
 
-> ### DRAFT 12/2/20
+> ### DRAFT 3/21/21
 > ### Note: This specification is in BETA development.
-> We plan to have a final form established by Spring 2021.
+> We plan to have a final form established soon.
 >
 > ZSON is intended as a literal superset of JSON and NDJSON syntax.
 > If there is anything in this document that conflicts with this goal,
 > please let us know and we will address it.
->
-> Regarding the state of the implementation of the ZSON format in zq:
-> * An input reader is not yet implemented,
-> * End-of-sequence markers are not yet conveyed in the writer.
 
 * [1. Introduction](#1-introduction)
   + [1.1 Some Examples](#11-some-examples)
@@ -166,10 +162,8 @@ the decorator implies the missing names, e.g.,
 
 ## 2. The ZSON Data Model
 
-ZSON data is defined as an ordered sequence of one or more typed data values
-separated at any point or not at all by an end-of-sequence marker `.`.
-Each sequence implies a type context as described below and the `.` marker causes
-a new type context to be established for subsequent elements of the sequence.
+ZSON data is defined as an ordered sequence of one or more typed data values.
+A sequence implies a type context as described below.
 
 Each value's type is either a "primitive type", a "complex type", the "type type",
 or the "null type".
@@ -219,9 +213,7 @@ Type definitions embedded in the data sequence bind a name to a type
 so that later values can refer to their type by name instead of explicitly
 enumerating the type of every element.  A collection of bindings from name to
 type is called a "type context."  As bindings are read from a sequence, they
-create the sequence's type context.  The context may be reset at any point in
-the sequence, implying that a new binding must be defined from that point on
-for each unique use of a type.
+create the sequence's type context.
 
 A type name is either internal or external.  Internal names are used exclusively
 to organize the types in the type context within the data sequence itself and have
@@ -236,9 +228,23 @@ Internal type names are represented by integers while external names are
 represented by identifiers.  When ZSON data is organized into a sequence
 comprised of two or more subsequences where each subsequence has its own
 type context, the internal names may be "reused" across type contexts to refer
-to different types but external names must have the same type value across
-subsequences.  It is a "type mismatch" error if an external name has different
-type values across subsequences.
+to different types but external names should generally have the same type value
+throughout.  That said, external type definitions _may_ vary and an implementation
+must properly handle changing external name by updating the binding between
+the type name and the new type for all subsequent values in the sequence.
+
+> Handling type definition conflicts is outside of the scope of ZSON, but an implementation
+> may police all external definitions so that "type conflicts" are rejected with
+> an error, or it may arrange to name types with a version number (e.g., example.0,
+> example.1, etc.), and then have operators that understand that example.* are all variations
+> of a commonly named type "example".
+
+> Note that the semantics of type definitions allows an implementation to "reset" the type
+> context at any point in the sequence causing it to re-emit tyepdefs for each type used
+> thereafter, thus creating a seekable synchronization point in a ZSON data stream.  That said,
+> an implementation would typically not do this for a ZSON sequence but use similar
+> patterns in ZNG and ZST to have seekable data footprints that are far more
+> efficient than ZSON.
 
 ## 3. The ZSON Format
 
