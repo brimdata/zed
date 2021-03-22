@@ -40,10 +40,10 @@ func (t *TypeAlias) ZSONOf(zv zcode.Bytes) string {
 	return t.Type.ZSONOf(zv)
 }
 
-func AliasedType(typ Type) Type {
-	alias, isAlias := typ.(*TypeAlias)
-	if isAlias {
-		return AliasedType(alias.Type)
+func AliasOf(typ Type) Type {
+	alias, ok := typ.(*TypeAlias)
+	if ok {
+		return AliasOf(alias.Type)
 	}
 	return typ
 }

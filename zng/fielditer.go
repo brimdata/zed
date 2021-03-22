@@ -40,7 +40,7 @@ func (r *fieldIter) Next() ([]string, Value, error) {
 	col := info.typ.Columns[info.offset]
 	fullname := append(info.field, col.Name)
 
-	recType, isRecord := AliasedType(col.Type).(*TypeRecord)
+	recType, isRecord := AliasOf(col.Type).(*TypeRecord)
 	if isRecord {
 		if !container {
 			return nil, Value{}, ErrMismatch

@@ -91,13 +91,13 @@ func (f *Fuser) finish() error {
 	}
 	for _, typ := range typesInOrder(f.types) {
 		if typ != nil {
-			if err = uber.Mixin(zng.AliasedType(typ).(*zng.TypeRecord)); err != nil {
+			if err = uber.Mixin(zng.AliasOf(typ).(*zng.TypeRecord)); err != nil {
 				return err
 			}
 		}
 	}
 
-	f.shaper, err = expr.NewShaperType(f.zctx, &expr.RootRecord{}, uber.Type, expr.Fill|expr.Order)
+	f.shaper, err = expr.NewShaper(f.zctx, &expr.RootRecord{}, uber.Type, expr.Fill|expr.Order)
 	if err != nil {
 		return err
 	}

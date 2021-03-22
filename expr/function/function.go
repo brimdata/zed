@@ -133,7 +133,7 @@ func (l *lenFn) Call(args []zng.Value) (zng.Value, error) {
 	if zv.Bytes == nil {
 		return zng.Value{zng.TypeInt64, nil}, nil
 	}
-	switch zng.AliasedType(args[0].Type).(type) {
+	switch zng.AliasOf(args[0].Type).(type) {
 	case *zng.TypeArray, *zng.TypeSet:
 		len, err := zv.ContainerLength()
 		if err != nil {

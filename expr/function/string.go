@@ -294,7 +294,7 @@ type join struct {
 
 func (j *join) Call(args []zng.Value) (zng.Value, error) {
 	zsplits := args[0]
-	typ, ok := zng.AliasedType(zsplits.Type).(*zng.TypeArray)
+	typ, ok := zng.AliasOf(zsplits.Type).(*zng.TypeArray)
 	if !ok {
 		return zng.NewErrorf("argument to join() is not an array"), nil
 	}

@@ -31,7 +31,7 @@ func NewDotExpr(f field.Static) Evaluator {
 }
 
 func accessField(record zng.Value, field string) (zng.Value, error) {
-	recType, ok := zng.AliasedType(record.Type).(*zng.TypeRecord)
+	recType, ok := zng.AliasOf(record.Type).(*zng.TypeRecord)
 	if !ok {
 		return zng.Value{}, zng.ErrMissing
 	}

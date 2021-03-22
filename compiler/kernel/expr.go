@@ -382,7 +382,7 @@ func compileShaper(zctx *resolver.Context, scope *Scope, node ast.Call) (*expr.S
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewShaper(zctx, field, ev, shaperOps(node.Name))
+	return expr.NewShaperFromTypeExpr(zctx, field, ev, shaperOps(node.Name))
 }
 
 func compileCall(zctx *resolver.Context, scope *Scope, call ast.Call) (expr.Evaluator, error) {

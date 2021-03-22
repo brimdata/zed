@@ -37,7 +37,7 @@ type integer struct {
 }
 
 func nulltype(t zng.Type) bool {
-	return zng.AliasedType(t) == zng.TypeNull
+	return zng.AliasOf(t) == zng.TypeNull
 }
 
 func (a *anchor) match(cols []zng.Column) bool {

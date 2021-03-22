@@ -63,7 +63,7 @@ func (b *Builder) buildValue(val Value) error {
 }
 
 func (b *Builder) BuildPrimitive(val *Primitive) error {
-	switch zng.AliasedType(val.Type).(type) {
+	switch zng.AliasOf(val.Type).(type) {
 	case *zng.TypeOfUint8, *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
 		v, err := strconv.ParseUint(val.Text, 10, 64)
 		if err != nil {
