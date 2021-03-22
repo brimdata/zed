@@ -19,16 +19,21 @@ To create batches of events that are close together in time, specify
 `every <duration>` before invoking your aggregate function(s).
 
 The `<duration>` may be expressed in any of the following units of time. A
-numeric value must precede the unit specification.  The syntax conforms
-to the `dur-time` format of RFC-3339, with the `t` prefix dropped.
+numeric value must precede the unit specification.
 
-| **Unit**  | **Suffix** |
-|-----------|------------|
-| `second`  | `s`        |
-| `minute`  | `m`        |
-| `hour`    | `h`        |
+| **Unit**    | **Suffix** |
+|-------------|------------|
+| nanosecond  | `ns`       |
+| microsecond | `us`       |
+| millisecond | `ms`       |
+| second      | `s`        |
+| minute      | `m`        |
+| hour        | `h`        |
+| day         | `d`        |
+| week        | `w`        |
+| year        | `y`        |
 
-XXX finish RFC-3339
+* **Note**: The year (`y`) duration assumes a year is always precisely 365 days. It does not account for leap years/seconds.
 
 #### Example #1:
 
