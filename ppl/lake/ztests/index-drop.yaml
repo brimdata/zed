@@ -1,6 +1,6 @@
 script: |
   zar import -R logs -empty
-  zar import -R logs data.tzng
+  zar import -R logs data.zson
   zar index create -R logs -q _path :ip
   zar index ls -R logs -stats -f zng > stats.zng
   zq -f table "drop id" stats.zng
@@ -9,13 +9,12 @@ script: |
   zar index ls -R logs -stats -f zng | zq -f table "drop id" -
 
 inputs:
-  - name: data.tzng
+  - name: data.zson
     data: |
-      #0:record[_path:string,ts:time,orig_h:ip]
-      0:[conn;1;127.0.0.1;]
-      0:[http;1;127.0.0.1;]
-      0:[conn;2;127.0.0.2;]
-      0:[http;2;127.0.0.2;]
+      {_path:"conn",ts:1970-01-01T00:00:01Z,orig_h:127.0.0.1}
+      {_path:"http",ts:1970-01-01T00:00:01Z,orig_h:127.0.0.1}
+      {_path:"conn",ts:1970-01-01T00:00:02Z,orig_h:127.0.0.2}
+      {_path:"http",ts:1970-01-01T00:00:02Z,orig_h:127.0.0.2}
 
 outputs:
   - name: stdout
