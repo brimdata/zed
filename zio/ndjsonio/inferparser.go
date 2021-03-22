@@ -67,7 +67,7 @@ func (p *inferParser) parseObject(b []byte) (zng.Value, error) {
 		return zng.Value{}, err
 	}
 	for _, v := range zngValues {
-		columnBuilder.Append(v.Bytes, zng.IsContainerType(zng.AliasedType(v.Type)))
+		columnBuilder.Append(v.Bytes, zng.IsContainerType(zng.AliasOf(v.Type)))
 	}
 	zbytes, err := columnBuilder.Encode()
 	if err != nil {

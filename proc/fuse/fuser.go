@@ -91,7 +91,7 @@ func (f *Fuser) finish() error {
 	}
 	for _, typ := range typesInOrder(f.types) {
 		if typ != nil {
-			if err = uber.Mixin(zng.AliasedType(typ).(*zng.TypeRecord)); err != nil {
+			if err = uber.Mixin(zng.AliasOf(typ).(*zng.TypeRecord)); err != nil {
 				return err
 			}
 		}

@@ -34,6 +34,6 @@ func (m *Mapper) Read() (*zng.Record, error) {
 		}
 	}
 	rec.Alias = sharedType
-	rec.Type = zng.AliasedType(sharedType).(*zng.TypeRecord)
+	rec.Type = zng.AliasOf(sharedType).(*zng.TypeRecord)
 	return rec, nil
 }

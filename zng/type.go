@@ -312,8 +312,13 @@ func IsUnionType(typ Type) bool {
 }
 
 func IsRecordType(typ Type) bool {
-	_, ok := AliasedType(typ).(*TypeRecord)
+	_, ok := AliasOf(typ).(*TypeRecord)
 	return ok
+}
+
+func TypeRecordOf(typ Type) *TypeRecord {
+	t, _ := AliasOf(typ).(*TypeRecord)
+	return t
 }
 
 func IsContainerType(typ Type) bool {
@@ -379,15 +384,4 @@ func ReferencedID(typ Type) int {
 		return typ.Type.ID()
 	}
 	return typ.ID()
-}
-
-func TypeRecordOf(typ Type) *TypeRecord {
-	for {
-		alias, ok := typ.(*TypeAlias)
-		if !ok {
-			typ, _ := typ.(*TypeRecord)
-			return typ
-		}
-		typ = alias.Type
-	}
 }

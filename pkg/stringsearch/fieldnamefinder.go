@@ -55,7 +55,7 @@ func (f *FieldNameFinder) Find(zctx *resolver.Context, buf []byte) bool {
 		if err != nil {
 			return true
 		}
-		tr, ok := zng.AliasedType(t).(*zng.TypeRecord)
+		tr, ok := zng.AliasOf(t).(*zng.TypeRecord)
 		if !ok {
 			return true
 		}
@@ -97,7 +97,7 @@ func (f *FieldNameIter) Next() []byte {
 		info := &f.stack[len(f.stack)-1]
 		col := info.columns[info.offset]
 		f.buf = append(f.buf, "."+col.Name...)
-		t, ok := zng.AliasedType(col.Type).(*zng.TypeRecord)
+		t, ok := zng.AliasOf(col.Type).(*zng.TypeRecord)
 		if !ok || len(t.Columns) == 0 {
 			break
 		}

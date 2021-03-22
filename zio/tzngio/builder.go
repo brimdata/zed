@@ -50,7 +50,7 @@ func (b *builder) parseRecord(typ *zng.TypeRecord, in []string) ([]string, error
 			continue
 		}
 
-		switch v := zng.AliasedType(col.Type).(type) {
+		switch v := zng.AliasOf(col.Type).(type) {
 		case *zng.TypeRecord:
 			b.BeginContainer()
 			in, err = b.parseRecord(v, in)
@@ -86,7 +86,7 @@ func (b *builder) parseRecord(typ *zng.TypeRecord, in []string) ([]string, error
 }
 
 func (b *builder) parseArray(typ *zng.TypeArray, in string) error {
-	inner := zng.InnerType(zng.AliasedType(typ))
+	inner := zng.InnerType(zng.AliasOf(typ))
 	if len(in) == 0 {
 		return nil
 	}
@@ -126,7 +126,7 @@ func (b *builder) parseArray(typ *zng.TypeArray, in string) error {
 }
 
 func (b *builder) parseSet(typ *zng.TypeSet, in string) error {
-	inner := zng.InnerType(zng.AliasedType(typ))
+	inner := zng.InnerType(zng.AliasOf(typ))
 	if len(in) == 0 {
 		return nil
 	}

@@ -55,7 +55,7 @@ const (
 // ParseContainer parses the given byte array representing a container
 // in the zng format.
 func (p *Parser) ParseContainer(typ zng.Type, b []byte) ([]byte, error) {
-	realType := zng.AliasedType(typ)
+	realType := zng.AliasOf(typ)
 	// This is hokey.
 	var keyType, valType zng.Type
 	if typ, ok := realType.(*zng.TypeMap); ok {
@@ -111,7 +111,7 @@ func (p *Parser) ParseContainer(typ zng.Type, b []byte) ([]byte, error) {
 // ParseField parses the given byte array representing any value
 // in the zng format.
 func (p *Parser) ParseField(typ zng.Type, b []byte) ([]byte, error) {
-	realType := zng.AliasedType(typ)
+	realType := zng.AliasOf(typ)
 	var err error
 	var index int
 	if len(b) >= 2 && b[0] == '-' && b[1] == ';' {

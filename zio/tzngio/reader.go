@@ -204,7 +204,7 @@ func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	recType, ok := zng.AliasedType(typ).(*zng.TypeRecord)
+	recType, ok := zng.AliasOf(typ).(*zng.TypeRecord)
 	if !ok {
 		return nil, errors.New("outer type is not a record type")
 	}

@@ -10,10 +10,10 @@ import (
 
 // A ShaperTransform represents one of the different transforms that a
 // shaper can apply.  The transforms are represented as a bit flags that
-// can be bitwide-ored together to create a single shaping operator that
+// can be bitwise-ored together to create a single shaping operator that
 // represents the composition of all operators.  This composition is efficient
-// as it is carried once per incoming type signature then operator is run
-// for every value of that type.
+// as it is carried once per incoming type signature and then the resulting
+// operator is run for every value of that type.
 type ShaperTransform int
 
 const (
@@ -97,7 +97,7 @@ func createStepSet(in, out zng.Type) (step, error) {
 }
 
 func isCollectionType(t zng.Type) bool {
-	switch zng.AliasedType(t).(type) {
+	switch zng.AliasOf(t).(type) {
 	case *zng.TypeArray, *zng.TypeSet:
 		return true
 	}
@@ -148,7 +148,7 @@ func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) {
 		b.AppendNull()
 		return
 	}
-	pc := LookupPrimitiveCaster(zng.AliasedType(s.castTypes.to))
+	pc := LookupPrimitiveCaster(zng.AliasOf(s.castTypes.to))
 	v, err := pc(zng.Value{s.castTypes.from, in})
 	if err != nil {
 		b.AppendNull()
@@ -273,9 +273,8 @@ func NewShaperFromTypeExpr(zctx *resolver.Context, fieldExpr, typExpr Evaluator,
 		return nil, fmt.Errorf("shaper could not parse type value literal: %s", err)
 	}
 
-	_, isRecord := zng.AliasedType(shapeType).(*zng.TypeRecord)
-	if !isRecord {
-		return nil, fmt.Errorf("shaping functions (crop, fill, cast, order) require a record type value as second parameter (got %T %T)", shapeType, zng.AliasedType(shapeType))
+	if _, ok := zng.AliasOf(shapeType).(*zng.TypeRecord); !ok {
+		return nil, fmt.Errorf("shaping functions (crop, fill, cast, order) require a record type value as second parameter (got %T %T)", shapeType, zng.AliasOf(shapeType))
 	}
 	return NewShaper(zctx, fieldExpr, shapeType, tf)
 }
@@ -366,9 +365,9 @@ func (s *Shaper) cropRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 			continue
 		}
 
-		inType := zng.AliasedType(inCol.Type)
+		inType := zng.AliasOf(inCol.Type)
 		specCol := spec.Columns[ind]
-		specType := zng.AliasedType(specCol.Type)
+		specType := zng.AliasOf(specCol.Type)
 		switch {
 		case zng.IsPrimitiveType(inType):
 			// 2. Field is non-record in input: keep (regardless of crop record-ness)
@@ -381,8 +380,8 @@ func (s *Shaper) cropRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 			}
 			cols = append(cols, zng.Column{inCol.Name, out})
 		case isCollectionType(inType) && isCollectionType(specType):
-			inInner := zng.AliasedType(zng.InnerType(inType))
-			specInner := zng.AliasedType(zng.InnerType(specType))
+			inInner := zng.AliasOf(zng.InnerType(inType))
+			specInner := zng.AliasOf(zng.InnerType(specType))
 			if zng.IsRecordType(inInner) && zng.IsRecordType(specInner) {
 				// 4. array/set of records
 				inner, err := s.cropRecordType(inInner.(*zng.TypeRecord), specInner.(*zng.TypeRecord))
@@ -433,8 +432,8 @@ func (s *Shaper) orderRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, 
 	for _, specCol := range spec.Columns {
 		if ind, ok := input.ColumnOfField(specCol.Name); ok {
 			inCol := input.Columns[ind]
-			inType := zng.AliasedType(inCol.Type)
-			specType := zng.AliasedType(specCol.Type)
+			inType := zng.AliasOf(inCol.Type)
+			specType := zng.AliasOf(specCol.Type)
 			if zng.IsRecordType(inType) && zng.IsRecordType(specType) {
 				if nested, err := s.orderRecordType(inType.(*zng.TypeRecord), specType.(*zng.TypeRecord)); err != nil {
 					return nil, err
@@ -444,8 +443,8 @@ func (s *Shaper) orderRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, 
 				continue
 			}
 			if isCollectionType(inCol.Type) && isCollectionType(specCol.Type) && zng.IsRecordType(innerType(inCol.Type)) && zng.IsRecordType(innerType(specCol.Type)) {
-				inInner := zng.AliasedType(innerType(inCol.Type))
-				specInner := zng.AliasedType(innerType(specCol.Type))
+				inInner := zng.AliasOf(innerType(inCol.Type))
+				specInner := zng.AliasOf(innerType(specCol.Type))
 				if inner, err := s.orderRecordType(inInner.(*zng.TypeRecord), specInner.(*zng.TypeRecord)); err != nil {
 					return nil, err
 				} else {
@@ -482,9 +481,9 @@ func (s *Shaper) fillRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 	copy(cols, input.Columns)
 	for _, specCol := range spec.Columns {
 		if i, ok := input.ColumnOfField(specCol.Name); ok {
-			specType := zng.AliasedType(specCol.Type)
+			specType := zng.AliasOf(specCol.Type)
 			inCol := input.Columns[i]
-			inType := zng.AliasedType(inCol.Type)
+			inType := zng.AliasOf(inCol.Type)
 			// Field is present both in input and spec: recurse if
 			// both records, or select appropriate type if not.
 			if specRecType, ok := specType.(*zng.TypeRecord); ok {
@@ -500,8 +499,8 @@ func (s *Shaper) fillRecordType(input, spec *zng.TypeRecord) (*zng.TypeRecord, e
 				continue
 			}
 			if isCollectionType(inType) && isCollectionType(specType) {
-				inInner := zng.AliasedType(innerType(inCol.Type))
-				specInner := zng.AliasedType(innerType(specCol.Type))
+				inInner := zng.AliasOf(innerType(inCol.Type))
+				specInner := zng.AliasOf(innerType(specCol.Type))
 				if zng.IsRecordType(inInner) && zng.IsRecordType(specInner) {
 					if inner, err := s.fillRecordType(inInner.(*zng.TypeRecord), specInner.(*zng.TypeRecord)); err != nil {
 						return nil, err
@@ -566,12 +565,12 @@ func (c *Shaper) castType(inType, specType zng.Type) (zng.Type, error) {
 	switch {
 	case zng.IsRecordType(inType) && zng.IsRecordType(specType):
 		// Matching field is a record: recurse.
-		inRec := zng.AliasedType(inType).(*zng.TypeRecord)
-		castRec := zng.AliasedType(specType).(*zng.TypeRecord)
+		inRec := zng.AliasOf(inType).(*zng.TypeRecord)
+		castRec := zng.AliasOf(specType).(*zng.TypeRecord)
 		return c.castRecordType(inRec, castRec)
 	case zng.IsPrimitiveType(inType) && zng.IsPrimitiveType(specType):
 		// Matching field is a primitive: output type is cast type.
-		if LookupPrimitiveCaster(zng.AliasedType(specType)) == nil {
+		if LookupPrimitiveCaster(zng.AliasOf(specType)) == nil {
 			return nil, fmt.Errorf("cast to %s not implemented", specType)
 		}
 		return specType, nil
@@ -580,7 +579,7 @@ func (c *Shaper) castType(inType, specType zng.Type) (zng.Type, error) {
 		if err != nil {
 			return nil, err
 		}
-		if _, ok := zng.AliasedType(specType).(*zng.TypeArray); ok {
+		if _, ok := zng.AliasOf(specType).(*zng.TypeArray); ok {
 			return c.zctx.LookupTypeArray(out), nil
 		}
 		return c.zctx.LookupTypeSet(out), nil

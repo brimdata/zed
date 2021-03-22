@@ -79,7 +79,7 @@ func (f *FilterMethod) Next() (zng.Value, error) {
 		if err != nil {
 			return zng.Value{}, err
 		}
-		if zng.AliasedType(b.Type) != zng.TypeBool {
+		if zng.AliasOf(b.Type) != zng.TypeBool {
 			return zng.NewErrorf("not a boolean"), nil
 		}
 		if zng.IsTrue(b.Bytes) {

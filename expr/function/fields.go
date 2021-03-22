@@ -15,7 +15,7 @@ type fields struct {
 func fieldNames(typ *zng.TypeRecord) []string {
 	var out []string
 	for _, c := range typ.Columns {
-		if typ, ok := zng.AliasedType(c.Type).(*zng.TypeRecord); ok {
+		if typ, ok := zng.AliasOf(c.Type).(*zng.TypeRecord); ok {
 			for _, subfield := range fieldNames(typ) {
 				out = append(out, c.Name+"."+subfield)
 			}
@@ -41,7 +41,7 @@ func (f *fields) Call(args []zng.Value) (zng.Value, error) {
 }
 
 func isRecordType(zv zng.Value, zctx *zson.Context) *zng.TypeRecord {
-	if typ, ok := zng.AliasedType(zv.Type).(*zng.TypeRecord); ok {
+	if typ, ok := zng.AliasOf(zv.Type).(*zng.TypeRecord); ok {
 		return typ
 	}
 	if zv.Type == zng.TypeType {
@@ -53,7 +53,7 @@ func isRecordType(zv zng.Value, zctx *zson.Context) *zng.TypeRecord {
 		if err != nil {
 			return nil
 		}
-		if typ, ok := zng.AliasedType(typ).(*zng.TypeRecord); ok {
+		if typ, ok := zng.AliasOf(typ).(*zng.TypeRecord); ok {
 			return typ
 		}
 	}

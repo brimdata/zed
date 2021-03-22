@@ -46,7 +46,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 	}
 	// ZSON can represent value streams that aren't records,
 	// but we handle only top-level records here.
-	if _, ok := zng.AliasedType(zv.Type).(*zng.TypeRecord); !ok {
+	if _, ok := zng.AliasOf(zv.Type).(*zng.TypeRecord); !ok {
 		return nil, fmt.Errorf("top-level ZSON value not a record: %s", zv.Type.ZSON())
 	}
 	return zng.NewRecordFromType(zv.Type, zv.Bytes), nil

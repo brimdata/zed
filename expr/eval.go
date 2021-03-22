@@ -129,12 +129,12 @@ func (i *In) Eval(rec *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return container, err
 	}
-	if typ := zng.AliasedType(container.Type); typ == zng.TypeNet {
+	if typ := zng.AliasOf(container.Type); typ == zng.TypeNet {
 		n, err := zng.DecodeNet(container.Bytes)
 		if err != nil {
 			return zng.Value{}, err
 		}
-		if typ := zng.AliasedType(elem.Type); typ != zng.TypeIP {
+		if typ := zng.AliasOf(elem.Type); typ != zng.TypeIP {
 			return zng.Value{}, ErrIncompatibleTypes
 		}
 		a, err := zng.DecodeIP(elem.Bytes)
