@@ -403,9 +403,21 @@ func compileCall(zctx *resolver.Context, scope *Scope, call ast.Call) (expr.Eval
 	case call.Name == "exists":
 		exprs, err := compileExprs(zctx, scope, call.Args)
 		if err != nil {
-			return nil, fmt.Errorf("exists: bad argument: %w", err)
+			return nil, fmt.Errorf("exists(): bad argument: %w", err)
 		}
 		return expr.NewExists(zctx, exprs), nil
+	case call.Name == "missing":
+		exprs, err := compileExprs(zctx, scope, call.Args)
+		if err != nil {
+			return nil, fmt.Errorf("missing(): bad argument: %w", err)
+		}
+		return expr.NewMissing(exprs), nil
+	case call.Name == "has":
+		exprs, err := compileExprs(zctx, scope, call.Args)
+		if err != nil {
+			return nil, fmt.Errorf("has(): bad argument: %w", err)
+		}
+		return expr.NewHas(exprs), nil
 	case call.Name == "unflatten":
 		return expr.NewUnflattener(zctx), nil
 	case isShaperFunc(call.Name):
