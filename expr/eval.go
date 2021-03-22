@@ -760,6 +760,46 @@ func (e *Exists) Eval(rec *zng.Record) (zng.Value, error) {
 	return zng.True, nil
 }
 
+type Missing struct {
+	exprs []Evaluator
+}
+
+func NewMissing(exprs []Evaluator) *Missing {
+	return &Missing{exprs}
+}
+
+func (m *Missing) Eval(rec *zng.Record) (zng.Value, error) {
+	for _, e := range m.exprs {
+		if _, err := e.Eval(rec); err != nil {
+			if err == zng.ErrMissing {
+				return zng.True, nil
+			}
+			return zng.Value{}, err
+		}
+	}
+	return zng.False, nil
+}
+
+type Has struct {
+	exprs []Evaluator
+}
+
+func NewHas(exprs []Evaluator) *Has {
+	return &Has{exprs}
+}
+
+func (h *Has) Eval(rec *zng.Record) (zng.Value, error) {
+	for _, e := range h.exprs {
+		if _, err := e.Eval(rec); err != nil {
+			if err == zng.ErrMissing {
+				return zng.False, nil
+			}
+			return zng.Value{}, err
+		}
+	}
+	return zng.True, nil
+}
+
 func NewCast(expr Evaluator, typ zng.Type) (Evaluator, error) {
 	// XXX should handle alias casts... need type context.
 	// compile is going to need a local type context to create literals
