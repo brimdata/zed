@@ -736,6 +736,7 @@ SqlFrom
   = _ FROM _ table:SqlTable alias:SqlAlias {
       RETURN(MAP("table": table, "alias": alias))
     }
+  / _ FROM _ "*" { RETURN(NULL) }
   / "" { RETURN(NULL) }
 
 SqlAlias
@@ -745,7 +746,6 @@ SqlAlias
 
 SqlTable
   = Expr
-  / "*" { RETURN(MAP("kind": "Primitive", "type":"bool", "text":"true"))}
 
 SqlJoins
   = first:SqlJoin rest:(join:SqlJoin { RETURN(join) })* {
