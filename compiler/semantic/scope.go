@@ -43,12 +43,12 @@ type entry struct {
 	refcnt int
 }
 
-type Binder map[string]entry
+type Binder map[string]*entry
 
 func NewBinder() Binder {
-	return make(map[string]entry)
+	return make(map[string]*entry)
 }
 
 func (b Binder) Define(name string, ref ast.Proc) {
-	b[name] = entry{proc: ref}
+	b[name] = &entry{proc: ref}
 }

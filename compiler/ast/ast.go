@@ -137,6 +137,8 @@ func (*RegexpSearch) exprNode() {}
 func (*RegexpMatch) exprNode()  {}
 func (*TypeValue) exprNode()    {}
 
+func (*SQLExpr) exprNode() {}
+
 // ----------------------------------------------------------------------------
 // Procs
 
@@ -309,7 +311,24 @@ type (
 		Name string `json:"name"`
 		Type Type   `json:"type"`
 	}
-
+	// A SQLExpr can be a proc, an expression inside of a SQL FROM clause,
+	// or an expression used as a Z value generator.  Currenly, the "select"
+	// keyword collides with the select() generator function (it can be parsed
+	// unambiguosly because of the parens but this is not user friendly
+	// so we need a new name for select()... see issue #2133).
+	// TBD: from alias, "in" over tuples, WITH sub-queries, multi-table FROM
+	// implying a JOIN, aliases for tables in FROM and JOIN.
+	SQLExpr struct {
+		Kind    string       `json:"kind" unpack:""`
+		Select  []Assignment `json:"select"`
+		From    *SQLFrom     `json:"from"`
+		Joins   []SQLJoin    `json:"joins"`
+		Where   Expr         `json:"where"`
+		GroupBy []Expr       `json:"group_by"`
+		Having  Expr         `json:"having"`
+		OrderBy *SQLOrderBy  `json:"order_by"`
+		Limit   int          `json:"limit"`
+	}
 	Shape struct {
 		Kind string `json:"kind" unpack:""`
 	}
@@ -323,6 +342,25 @@ type Method struct {
 type Case struct {
 	Expr Expr `json:"expr"`
 	Proc Proc `json:"proc"`
+}
+
+type SQLFrom struct {
+	Table Expr `json:"table"`
+	Alias Expr `json:"alias"`
+}
+
+type SQLOrderBy struct {
+	Kind  string `json:"kind" unpack:""`
+	Keys  []Expr `json:"keys"`
+	Order string `json:"order"`
+}
+
+type SQLJoin struct {
+	Table    Expr   `json:"table"`
+	Style    string `json:"style"`
+	LeftKey  Expr   `json:"left_key"`
+	RightKey Expr   `json:"right_key"`
+	Alias    Expr   `json:"alias"`
 }
 
 type Assignment struct {
@@ -353,6 +391,8 @@ func (*Const) ProcNode()      {}
 func (*TypeProc) ProcNode()   {}
 func (*Call) ProcNode()       {}
 func (*Shape) ProcNode()      {}
+
+func (*SQLExpr) ProcNode() {}
 
 // An Agg is an AST node that represents a aggregate function.  The Name
 // field indicates the aggregation method while the Expr field indicates

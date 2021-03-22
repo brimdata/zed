@@ -43,8 +43,11 @@ func (a *AST) Analyze() error {
 		return err
 	}
 	a.entry, err = semProc(scope, a.entry)
+	if err != nil {
+		return err
+	}
 	a.unopt = a.entry
-	return err
+	return nil
 }
 
 func (a *AST) Optimize() error {
