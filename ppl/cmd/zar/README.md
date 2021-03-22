@@ -243,9 +243,9 @@ zar find -z :ip=10.47.21.138
 where `-z` says to produce compact ZSON output instead of a table,
 and you'll get this...
 ```
-{key:10.47.21.138,count:7 (uint64),_log:"/Users/phil/logs/zd/20180324/d-1ozm0pGRppq2ToyxhnzxhbVX8Yf.zng" (=zfile),first:2018-03-24T17:33:29.032641Z,last:2018-03-24T17:15:20.608867Z} (=0)
-{key:10.47.21.138,count:3,_log:"/Users/phil/logs/zd/20180324/d-1ozm0WjvCWAa4nAPppzVMWZJBfT.zng",first:2018-03-24T17:25:55.502493Z,last:2018-03-24T17:15:20.601374Z} (0)
-{key:10.47.21.138,count:4,_log:"/Users/phil/logs/zd/20180324/d-1ozm0CGvgJhFtwQguEY5mNrnMH9.zng",first:2018-03-24T17:19:54.618642Z,last:2018-03-24T17:15:20.600725Z} (0)
+{key:10.47.21.138,count:7 (uint64),_log:"/path/to/ZAR_ROOT/zd/20180324/d-1ozm0pGRppq2ToyxhnzxhbVX8Yf.zng" (=zfile),first:2018-03-24T17:33:29.032641Z,last:2018-03-24T17:15:20.608867Z} (=0)
+{key:10.47.21.138,count:3,_log:"/path/to/ZAR_ROOT/zd/20180324/d-1ozm0WjvCWAa4nAPppzVMWZJBfT.zng",first:2018-03-24T17:25:55.502493Z,last:2018-03-24T17:15:20.601374Z} (0)
+{key:10.47.21.138,count:4,_log:"/path/to/ZAR_ROOT/zd/20180324/d-1ozm0CGvgJhFtwQguEY5mNrnMH9.zng",first:2018-03-24T17:19:54.618642Z,last:2018-03-24T17:15:20.600725Z} (0)
 ```
 The find command adds a column called "_log" (which can be disabled
 or customized to a different field name) so you can see where the
@@ -267,7 +267,7 @@ this key, we'll compute the number of times that value appeared for each zeek
 log type.  To do this, we'll run "zar index" in a way that leaves
 these results behind in each zar directory:
 ```
-zar index create -q -o custom.zng -k id.orig_h -z "count() by _path, id.orig_h | sort id.orig_h"
+zar index create -q -o custom.zng -k id.orig_h "count() by _path, id.orig_h | sort id.orig_h"
 ```
 Unlike for the field and type indexes we created previously, for
 custom indexes the index file name must be specified via the `-o`
@@ -298,33 +298,33 @@ zar find -z -x custom.zng 10.164.94.120
 Now we're talking!  And if you take the results and do a little more math to
 aggregate the aggregations, like this:
 ```
-zar find -z -x custom.zng 10.164.94.120 | zq -f table "count=sum(count) by _path" -
+zar find -z -x custom.zng 10.164.94.120 | zq -f table "count=sum(count) by _path | sort -r" -
 ```
 You'll get
 ```
 _PATH       COUNT
-dns         8
-dpd         24
-ftp         93
-rdp         4116
-rfb         3
-ssh         1
-ssl         9538
 conn        26726
 http        13485
-ntlm        80
+ssl         9538
+rdp         4116
 smtp        1178
 weird       316
-notice      35
-dce_rpc     2
-smb_files   1
+ftp         93
+ntlm        80
 smb_mapping 65
+notice      35
+dpd         24
+dns         8
+rfb         3
+dce_rpc     2
+ssh         1
+smb_files   1
 ```
 We can compute this aggregation now for any IP in the micro-index
 without reading any of the original log files!  You'll get the same
 output from this...
 ```
-zq "id.orig_h=10.164.94.120" zng/*.gz | zq -f table "count() by _path" -
+zq "id.orig_h=10.164.94.120" zng/*.gz | zq -f table "count() by _path | sort -r" -
 ```
 But using zar with the custom indexes is MUCH faster.  Pretty cool.
 
@@ -340,28 +340,35 @@ For example, let's say we want to build an index that has primary key
 `id.resp_h` and secondary key `id.orig_h` from all the conn logs where we
 cache the sum of response bytes to each originator.
 ```
-zar index -o custom2.zng -k id.resp_h,id.orig_h -z "_path=conn | resp_bytes=sum(resp_bytes) by id.resp_h,id.orig_h | sort id.resp_h,id.orig_h"
+zar index create -o custom2.zng -k id.resp_h,id.orig_h "_path=conn | resp_bytes=sum(resp_bytes) by id.resp_h,id.orig_h | sort id.resp_h,id.orig_h"
 ```
 And now we can search with a primary key and a secondary key, e.g.,
 ```
-zar find -z -x custom2.zng 216.58.193.206 10.47.6.173 | zq -t -
+zar find -x custom2.zng 216.58.193.206 10.47.6.173 | zq -Z -
 ```
 which produces just one record as this pair appears in only one log file.
 ```
-#zfile=string
-#0:record[id:record[resp_h:ip,orig_h:ip],resp_bytes:uint64,_log:zfile,first:time,last:time]
-0:[[216.58.193.206;10.47.6.173;]5112;/path/to/ZAR_ROOT/zd/20180324/d-1jQ2d5DwDHJULCRN6gq84IwArbb.zng;1521912355.502512;1521911720.601374;]
+{
+    id: {
+        resp_h: 216.58.193.206,
+        orig_h: 10.47.6.173
+    },
+    resp_bytes: 5112 (uint64),
+    _log: "/path/to/ZAR_ROOT/zd/20180324/d-1q85q79hAjNCHg5Wx0EQlkulmKU.zng" (=zfile),
+    first: 2018-03-24T17:29:56.0241Z,
+    last: 2018-03-24T17:15:20.601374Z
+} (=0)
 ```
 The nice thing here is that you can also just specify a primary key, which will
 issue a search that returns all the index hits that have the primary key with
 any value for the secondary key, e.g.,
 ```
-zar find -z -x custom2.zng 216.58.193.206 | zq -t -
+zar find -x custom2.zng 216.58.193.206 | zq -z -
 ```
 and of course you can sum up all the response bytes to get a table and output
 it as text...
 ```
-zar find -z -x custom2.zng 216.58.193.206 | zq -f text "sum(resp_bytes)" -
+zar find -x custom2.zng 216.58.193.206 | zq -f text "sum(resp_bytes)" -
 ```
 Note that you can't "wild card" the primary key when doing a search via
 "zar find" because the index is sorted by primary key first, then secondary
@@ -376,7 +383,7 @@ a count of all bytes received by 10.47.6.173 as the originator, which is the
 secondary key.  While we could build a different custom index where id.orig_h
 is the primary key, we could also just scan the custom2 index using brute force:
 ```
-zar map id.orig_h=10.47.6.173 custom2.zng | zq -f text "sum(resp_bytes)" -
+zar map id.orig_h=10.47.6.173 idx-`for file in $ZAR_ROOT/indexdefs/*; do   zq -z $file | grep 'name:"custom2.zng"' > /dev/null; if [ $? = 0 ]; then echo $file | sed 's/.*indexdefs\/idxdef-//'; fi done` | zq -f text "sum(resp_bytes)" -
 ```
 Even though this is a "brute force scan", it's a brute force scan of only this
 one micro-index so it runs much faster than scanning all of the original
