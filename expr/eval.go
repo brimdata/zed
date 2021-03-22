@@ -770,8 +770,7 @@ func NewMissing(exprs []Evaluator) *Missing {
 
 func (m *Missing) Eval(rec *zng.Record) (zng.Value, error) {
 	for _, e := range m.exprs {
-		_, err := e.Eval(rec)
-		if err != nil {
+		if _, err := e.Eval(rec); err != nil {
 			if err == zng.ErrMissing {
 				return zng.True, nil
 			}
@@ -791,8 +790,7 @@ func NewHas(exprs []Evaluator) *Has {
 
 func (h *Has) Eval(rec *zng.Record) (zng.Value, error) {
 	for _, e := range h.exprs {
-		_, err := e.Eval(rec)
-		if err != nil {
+		if _, err := e.Eval(rec); err != nil {
 			if err == zng.ErrMissing {
 				return zng.False, nil
 			}

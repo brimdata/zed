@@ -163,7 +163,6 @@ func (*nameOf) Call(args []zng.Value) (zng.Value, error) {
 	typ := args[0].Type
 	if alias, ok := typ.(*zng.TypeAlias); ok {
 		// XXX GC
-		//fmt.Println("NAMEOF", typ.ZSON())
 		return zng.Value{zng.TypeString, zng.EncodeString(alias.Name)}, nil
 	}
 	return zng.Value{}, zng.ErrMissing

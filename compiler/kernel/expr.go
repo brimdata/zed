@@ -386,7 +386,7 @@ func compileShaper(zctx *resolver.Context, scope *Scope, node ast.Call) (*expr.S
 }
 
 func compileCall(zctx *resolver.Context, scope *Scope, call ast.Call) (expr.Evaluator, error) {
-	// For now, we special case stateful functions here.  We shuold generalize this
+	// For now, we special case stateful functions here.  We should generalize this
 	// as we will add many more stateful functions and also resolve this
 	// the changes to create running aggegation functions from reducers.
 	// XXX See issue #1259.
@@ -426,7 +426,7 @@ func compileCall(zctx *resolver.Context, scope *Scope, call ast.Call) (expr.Eval
 	nargs := len(call.Args)
 	fn, root, err := function.New(zctx.Context, call.Name, nargs)
 	if err != nil {
-		return nil, fmt.Errorf("%s: %w", call.Name, err)
+		return nil, fmt.Errorf("%s(): %w", call.Name, err)
 	}
 	args := call.Args
 	if root {
@@ -434,7 +434,7 @@ func compileCall(zctx *resolver.Context, scope *Scope, call ast.Call) (expr.Eval
 	}
 	exprs, err := compileExprs(zctx, scope, args)
 	if err != nil {
-		return nil, fmt.Errorf("%s: bad argument: %w", call.Name, err)
+		return nil, fmt.Errorf("%s(): bad argument: %w", call.Name, err)
 	}
 	return expr.NewCall(zctx, fn, exprs), nil
 }
