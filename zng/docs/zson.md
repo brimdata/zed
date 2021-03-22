@@ -233,11 +233,11 @@ throughout.  That said, external type definitions _may_ vary and an implementati
 must properly handle changing external name by updating the binding between
 the type name and the new type for all subsequent values in the sequence.
 
-> Handling type definition conflicts outside of the scope of ZSON, but an implementation
+> Handling type definition conflicts is outside of the scope of ZSON, but an implementation
 > may police all external definitions so that "type conflicts" are rejected with
-> an error, or it may arrange to name types with a version number, e.g., example.0,
-> example.1, etc then have operators that understand that example.* are all variations
-> of a commonly named type "example."
+> an error, or it may arrange to name types with a version number (e.g., example.0,
+> example.1, etc.), and then have operators that understand that example.* are all variations
+> of a commonly named type "example".
 
 > Note that the semantics of type definitions allows an implementation to "reset" the type
 > context at any point in the sequence causing it to re-emit tyepdefs for each type used
