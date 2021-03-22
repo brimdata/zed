@@ -100,7 +100,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.write("match(")
 		c.literal(e.Value)
 		c.write(")")
-	case *ast.SqlExpr:
+	case *ast.SQLExpr:
 		c.sql(e)
 	case *ast.Path:
 		c.fieldpath(e.Name)
@@ -150,7 +150,7 @@ func (c *canon) binary(e *ast.BinaryExpr) {
 	}
 }
 
-func (c *canon) sql(e *ast.SqlExpr) {
+func (c *canon) sql(e *ast.SQLExpr) {
 	if e.Select == nil {
 		c.write(" SELECT *")
 	} else {
@@ -224,7 +224,7 @@ func (c *canon) proc(p ast.Proc) {
 		c.typ(p.Type)
 		c.ret()
 		c.flush()
-	case *ast.SqlExpr:
+	case *ast.SQLExpr:
 		c.next()
 		c.open("SELECT ")
 		if p.Select == nil {
@@ -279,9 +279,9 @@ func (c *canon) proc(p ast.Proc) {
 			c.ret()
 			c.write("ORDER BY ")
 			c.exprs(p.OrderBy.Keys)
-			if p.OrderBy.Direction != "" {
+			if p.OrderBy.Order != "" {
 				c.write(" ")
-				c.write(strings.ToUpper(p.OrderBy.Direction))
+				c.write(strings.ToUpper(p.OrderBy.Order))
 			}
 		}
 		if p.Limit != 0 {

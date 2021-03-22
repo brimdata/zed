@@ -56,10 +56,6 @@ func (f Static) HasPrefix(prefix Static) bool {
 	return len(f) >= len(prefix) && prefix.Equal(f[:len(prefix)])
 }
 
-func (f Static) IsPrefixOf(of Static) bool {
-	return of.HasPrefix(f)
-}
-
 func (f Static) In(set []Static) bool {
 	for _, item := range set {
 		if f.Equal(item) {

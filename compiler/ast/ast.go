@@ -137,7 +137,7 @@ func (*RegexpSearch) exprNode() {}
 func (*RegexpMatch) exprNode()  {}
 func (*TypeValue) exprNode()    {}
 
-func (*SqlExpr) exprNode() {}
+func (*SQLExpr) exprNode() {}
 
 // ----------------------------------------------------------------------------
 // Procs
@@ -311,22 +311,22 @@ type (
 		Name string `json:"name"`
 		Type Type   `json:"type"`
 	}
-	// A SqlExpr can be a proc, an expression inside of a sql FROM clause,
+	// A SQLExpr can be a proc, an expression inside of a SQL FROM clause,
 	// or an expression used as a Z value generator.  Currenly, the "select"
 	// keyword collides with the select() generator function (it can be parsed
 	// unambiguosly because of the parens but this is not user friendly
 	// so we need a new name for select()... see issue #2133).
 	// TBD: from alias, "in" over tuples, WITH sub-queries, multi-table FROM
 	// implying a JOIN, aliases for tables in FROM and JOIN.
-	SqlExpr struct {
+	SQLExpr struct {
 		Kind    string       `json:"kind" unpack:""`
 		Select  []Assignment `json:"select"`
-		From    *SqlFrom     `json:"from"`
-		Joins   []SqlJoin    `json:"joins"`
+		From    *SQLFrom     `json:"from"`
+		Joins   []SQLJoin    `json:"joins"`
 		Where   Expr         `json:"where"`
-		GroupBy []Expr       `json:"groupby"`
+		GroupBy []Expr       `json:"group_by"`
 		Having  Expr         `json:"having"`
-		OrderBy *SqlOrderBy  `json:"orderby"`
+		OrderBy *SQLOrderBy  `json:"order_by"`
 		Limit   int          `json:"limit"`
 	}
 	Shape struct {
@@ -344,25 +344,18 @@ type Case struct {
 	Proc Proc `json:"proc"`
 }
 
-type SqlFrom struct {
+type SQLFrom struct {
 	Table Expr `json:"table"`
 	Alias Expr `json:"alias"`
 }
 
-type SqlOrderBy struct {
-	Kind      string `json:"kind" unpack:""`
-	Keys      []Expr `json:"keys"`
-	Direction string `json:"direction"`
+type SQLOrderBy struct {
+	Kind  string `json:"kind" unpack:""`
+	Keys  []Expr `json:"keys"`
+	Order string `json:"order"`
 }
 
-// In SqlJoin, Table is a type expression for a record that selects Z records with
-// a uniform schema and optionally places them in a sub-field of "."
-// according to Alias (which is a string expression).  Thus, exactly like
-// with SQL, you can refer to dotted references of columns using the
-// alias name.  Also, at some point the table expression can simply be a
-// typedef name so you can refer to tables by their name (i.e., where the
-// name refers to the record-type/schema of the corresponding Z records).
-type SqlJoin struct {
+type SQLJoin struct {
 	Table    Expr   `json:"table"`
 	Style    string `json:"style"`
 	LeftKey  Expr   `json:"left_key"`
@@ -399,7 +392,7 @@ func (*TypeProc) ProcNode()   {}
 func (*Call) ProcNode()       {}
 func (*Shape) ProcNode()      {}
 
-func (*SqlExpr) ProcNode() {}
+func (*SQLExpr) ProcNode() {}
 
 // An Agg is an AST node that represents a aggregate function.  The Name
 // field indicates the aggregation method while the Expr field indicates

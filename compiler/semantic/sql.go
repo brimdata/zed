@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/field"
 )
 
-func convertSQLProc(scope *Scope, sql *ast.SqlExpr) (ast.Proc, error) {
+func convertSQLProc(scope *Scope, sql *ast.SQLExpr) (ast.Proc, error) {
 	selection, err := newSQLSelection(scope, sql.Select)
 	if err != err {
 		return nil, err
@@ -91,11 +91,7 @@ func convertSQLProc(scope *Scope, sql *ast.SqlExpr) (ast.Proc, error) {
 		}
 	}
 	if sql.OrderBy != nil {
-		direction := 1
-		if sql.OrderBy.Direction == "desc" {
-			direction = -1
-		}
-		procs = append(procs, sortByMulti(sql.OrderBy.Keys, direction))
+		procs = append(procs, sortByMulti(sql.OrderBy.Keys, sql.OrderBy.Order))
 	}
 	if sql.Limit != 0 {
 		p := &ast.Head{
@@ -111,15 +107,13 @@ func convertSQLProc(scope *Scope, sql *ast.SqlExpr) (ast.Proc, error) {
 }
 
 func isId(e ast.Expr) (string, bool) {
-	if e != nil {
-		if id, ok := e.(*ast.Id); ok {
-			return id.Name, true
-		}
+	if id, ok := e.(*ast.Id); ok {
+		return id.Name, true
 	}
 	return "", false
 }
 
-func liftWhereFilter(alias, where ast.Expr, joins []ast.SqlJoin) *ast.Filter {
+func liftWhereFilter(alias, where ast.Expr, joins []ast.SQLJoin) *ast.Filter {
 	aliasId, ok := isId(alias)
 	if !ok {
 		return nil
@@ -142,8 +136,7 @@ func liftWhereFilter(alias, where ast.Expr, joins []ast.SqlJoin) *ast.Filter {
 func eligiblePred(aliasId string, e ast.Expr) ast.Expr {
 	switch e := e.(type) {
 	case *ast.UnaryExpr:
-		operand := eligiblePred(aliasId, e.Operand)
-		if operand != nil {
+		if operand := eligiblePred(aliasId, e.Operand); operand != nil {
 			return &ast.UnaryExpr{
 				Kind:    "UnaryExpr",
 				Op:      "!",
@@ -240,7 +233,7 @@ func wrap(procs []ast.Proc) ast.Proc {
 	}
 }
 
-func convertSQLJoins(scope *Scope, fromPath []ast.Proc, joins []ast.SqlJoin) ([]ast.Proc, error) {
+func convertSQLJoins(scope *Scope, fromPath []ast.Proc, joins []ast.SQLJoin) ([]ast.Proc, error) {
 	left := fromPath
 	for _, right := range joins {
 		var err error
@@ -254,7 +247,7 @@ func convertSQLJoins(scope *Scope, fromPath []ast.Proc, joins []ast.SqlJoin) ([]
 
 // For now, each joining table is on the right...
 // We don't have logic to not care about the side of the JOIN ON keys...
-func convertSQLJoin(scope *Scope, leftPath []ast.Proc, sqlJoin ast.SqlJoin) ([]ast.Proc, error) {
+func convertSQLJoin(scope *Scope, leftPath []ast.Proc, sqlJoin ast.SQLJoin) ([]ast.Proc, error) {
 	if sqlJoin.Alias == nil {
 		return nil, errors.New("JOIN currently requires alias, e.g., JOIN <type> <alias> (will be fixed soon)")
 	}
@@ -291,10 +284,17 @@ func convertSQLJoin(scope *Scope, leftPath []ast.Proc, sqlJoin ast.SqlJoin) ([]a
 }
 
 func sortBy(e ast.Expr) *ast.Sort {
-	return sortByMulti([]ast.Expr{e}, 1)
+	return sortByMulti([]ast.Expr{e}, "asc")
 }
 
-func sortByMulti(keys []ast.Expr, direction int) *ast.Sort {
+func sortByMulti(keys []ast.Expr, order string) *ast.Sort {
+	// XXX ast.Sort should take a zbuf.Order instead of an in direction
+	// (and probably this constant should move out of zbuf and into ast)
+	// See issue #2397
+	direction := 1
+	if order == "desc" {
+		direction = -1
+	}
 	return &ast.Sort{
 		Kind:    "Sort",
 		Args:    keys,
@@ -313,10 +313,10 @@ func convertSQLSelect(selection sqlSelection) (ast.Proc, error) {
 		}
 	}
 	if nagg == 0 {
-		return selection.Cut(), nil
+		return selection.cut(), nil
 	}
 	if nagg != len(selection) {
-		return nil, errors.New("cannot mix aggregations and non-aggregations without a group-by")
+		return nil, errors.New("cannot mix aggregations and non-aggregations without a GROUP BY")
 	}
 	// Note here that we reconstruct the group-by aggregators instead of
 	// using the assignments in ast.SqlExpression.Select since the SQL peg
@@ -344,26 +344,26 @@ func convertSQLGroupBy(scope *Scope, groupByKeys []ast.Expr, selection sqlSelect
 	for _, key := range groupByKeys {
 		name, err := sqlField(scope, key)
 		if err != nil {
-			return nil, fmt.Errorf("bad group-by key: %w", err)
+			return nil, fmt.Errorf("bad GROUP BY key: %w", err)
 		}
 		keys = append(keys, name)
 	}
 	// Make sure all group-by keys are in the selection.
-	all := selection.Fields()
+	all := selection.fields()
 	for _, key := range keys {
 		//XXX fix this for select *?
 		if !key.In(all) {
 			if key.HasPrefixIn(all) {
-				return nil, fmt.Errorf("'%s': group-by key cannot be a sub-field of the selected value", key)
+				return nil, fmt.Errorf("'%s': GROUP BY key cannot be a sub-field of the selected value", key)
 			}
-			return nil, fmt.Errorf("'%s': group-by key not in selection", key)
+			return nil, fmt.Errorf("'%s': GROUP BY key not in selection", key)
 		}
 	}
 	// Make sure all scalars are in the group-by keys.
-	scalars := selection.Scalars()
-	for _, f := range scalars.Fields() {
+	scalars := selection.scalars()
+	for _, f := range scalars.fields() {
 		if !f.In(keys) {
-			return nil, fmt.Errorf("'%s': selected expression is missing from group-by clause (and is not an aggregation)", f)
+			return nil, fmt.Errorf("'%s': selected expression is missing from GROUP BY clause (and is not an aggregation)", f)
 		}
 	}
 	// Now that the selection and keys have been checked, build the
@@ -375,7 +375,7 @@ func convertSQLGroupBy(scope *Scope, groupByKeys []ast.Expr, selection sqlSelect
 		keyExprs = append(keyExprs, p.assignment)
 	}
 	var aggExprs []ast.Assignment
-	for _, p := range selection.Aggs() {
+	for _, p := range selection.aggs() {
 		aggExprs = append(aggExprs, ast.Assignment{
 			LHS: p.assignment.LHS,
 			RHS: p.agg,
@@ -423,7 +423,7 @@ func newSQLSelection(scope *Scope, assignments []ast.Assignment) (sqlSelection, 
 	return s, nil
 }
 
-func (s sqlSelection) Fields() []field.Static {
+func (s sqlSelection) fields() []field.Static {
 	var fields []field.Static
 	for _, p := range s {
 		fields = append(fields, p.name)
@@ -431,7 +431,7 @@ func (s sqlSelection) Fields() []field.Static {
 	return fields
 }
 
-func (s sqlSelection) Aggs() sqlSelection {
+func (s sqlSelection) aggs() sqlSelection {
 	var aggs sqlSelection
 	for _, p := range s {
 		if p.agg != nil {
@@ -441,7 +441,7 @@ func (s sqlSelection) Aggs() sqlSelection {
 	return aggs
 }
 
-func (s sqlSelection) Scalars() sqlSelection {
+func (s sqlSelection) scalars() sqlSelection {
 	var scalars sqlSelection
 	for _, p := range s {
 		if p.agg == nil {
@@ -451,7 +451,7 @@ func (s sqlSelection) Scalars() sqlSelection {
 	return scalars
 }
 
-func (s sqlSelection) Cut() *ast.Cut {
+func (s sqlSelection) cut() *ast.Cut {
 	if len(s) == 0 {
 		return nil
 	}
@@ -490,7 +490,7 @@ func isAgg(e ast.Expr) (*ast.Agg, error) {
 func deriveAs(scope *Scope, a ast.Assignment) (field.Static, error) {
 	sa, err := semAssignment(scope, a)
 	if err != nil {
-		return nil, fmt.Errorf("AS clause of select: %w", err)
+		return nil, fmt.Errorf("AS clause of SELECT: %w", err)
 	}
 	f, ok := sa.LHS.(*ast.Path)
 	if !ok {

@@ -27,11 +27,11 @@ func (r Reflector) Add(template interface{}) Reflector {
 		panic(err)
 	}
 	if unpackKey == "" {
-		panic(fmt.Sprintf("unpack tag not found for Go type '%s'", typ.String()))
+		panic(fmt.Sprintf("unpack tag not found for Go type %q", typ.String()))
 	}
 	types := r.get(unpackKey, true)
 	if _, ok := types[unpackVal]; ok {
-		panic(fmt.Sprintf("unpack binding for JSON field '%s' and Go type '%s' already exists", unpackKey, unpackVal))
+		panic(fmt.Sprintf("unpack binding for JSON field %q and Go type %q already exists", unpackKey, unpackVal))
 	}
 	if skip {
 		types[unpackVal] = nil
@@ -101,7 +101,7 @@ func (r Reflector) lookup(object map[string]interface{}) (reflect.Value, error) 
 		}
 		unpackVal, ok := val.(string)
 		if !ok {
-			return zero, fmt.Errorf("unpack key in JSON field '%s' is not a string: '%T'", key, val)
+			return zero, fmt.Errorf("unpack key in JSON field %q is not a string: '%T'", key, val)
 		}
 		hits++
 		if template, ok := types[unpackVal]; ok {
@@ -216,19 +216,18 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 			// interface value so we return an error.
 			rval, ok := o.(reflect.Value)
 			if !ok {
-				return fmt.Errorf("JSON field '%s': value for interface '%s' unknown inside of struct type '%s'", fieldName, goName(emptyFieldVal), goName(val))
+				return fmt.Errorf("JSON field %q: value for interface %q unknown inside of struct type %q", fieldName, goName(emptyFieldVal), goName(val))
 			}
 			emptyFieldVal.Set(rval)
 		case reflect.Ptr:
 			derefType := emptyFieldVal.Type().Elem()
 			if derefType.Kind() == reflect.Struct {
-				subVal, ok := o.(reflect.Value)
-				if ok {
+				if subVal, ok := o.(reflect.Value); ok {
 					if subVal.Type().AssignableTo(emptyFieldVal.Type()) {
 						emptyFieldVal.Set(subVal)
 						continue
 					}
-					return fmt.Errorf("JSON field '%s': cannot assign value of type '%s' inside of struct type '%s'", fieldName, goName(subVal), goName(val))
+					return fmt.Errorf("JSON field %q: cannot assign value of type %q inside of struct type %q", fieldName, goName(subVal), goName(val))
 				}
 				subObject, ok := o.(map[string]interface{})
 				if !ok {
@@ -264,7 +263,7 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 			}
 			elems, ok := o.([]interface{})
 			if !ok {
-				return fmt.Errorf("JSON field '%s': attempting to decode non-array JSON into a Go slice", fieldName)
+				return fmt.Errorf("JSON field %q: attempting to decode non-array JSON into a Go slice", fieldName)
 			}
 			if len(elems) == 0 {
 				// (I think) this empty slice will raise an error by
@@ -323,7 +322,7 @@ func convertStruct(structPtr reflect.Value, in map[string]interface{}) error {
 			s := reflect.MakeSlice(sliceType, 0, len(elems))
 			s, err := convertSlice(s, elems)
 			if err != nil {
-				return fmt.Errorf("JSON field '%s': %w", fieldName, err)
+				return fmt.Errorf("JSON field %q: %w", fieldName, err)
 			}
 			emptyFieldVal.Set(s)
 		}
@@ -348,7 +347,7 @@ func assignStruct(structVal reflect.Value, object map[string]interface{}) error 
 		}
 		structField := structVal.Field(i)
 		if !rval.Type().AssignableTo(structField.Type()) {
-			return fmt.Errorf("JSON field '%s': converted field not type-compatible with Go struct", fieldName)
+			return fmt.Errorf("JSON field %q: converted field not type-compatible with Go struct", fieldName)
 		}
 		structField.Set(rval)
 	}
@@ -397,14 +396,14 @@ func squashPtrs(elems []interface{}, elemType reflect.Type, fieldName string) ([
 	for k := range elems {
 		rval, ok := elems[k].(reflect.Value)
 		if !ok {
-			return nil, fmt.Errorf("JSON field '%s': converted array elements of type '%s' not type-compatible with Go slice elements of type '%s'", fieldName, goName(sampleElemPtr), elemType.Name())
+			return nil, fmt.Errorf("JSON field %q: converted array elements of type %q not type-compatible with Go slice elements of type %q", fieldName, goName(sampleElemPtr), elemType.Name())
 		}
 		if rval.Type().Kind() != reflect.Ptr || rval.IsZero() {
-			return nil, fmt.Errorf("JSON field '%s': converted array elements of type '%s' not type-compatible with Go slice elements of type '%s'", fieldName, goName(rval), elemType.Name())
+			return nil, fmt.Errorf("JSON field %q: converted array elements of type %q not type-compatible with Go slice elements of type %q", fieldName, goName(rval), elemType.Name())
 		}
 		deref := rval.Elem()
 		if !deref.Type().AssignableTo(elemType) {
-			return nil, fmt.Errorf("JSON field '%s': converted array elements of type '%s' not type-compatible with Go slice elements of type '%s'", fieldName, goName(rval), elemType.Name())
+			return nil, fmt.Errorf("JSON field %q: converted array elements of type %q not type-compatible with Go slice elements of type %q", fieldName, goName(rval), elemType.Name())
 		}
 		out = append(out, deref)
 	}

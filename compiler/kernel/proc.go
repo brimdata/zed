@@ -196,7 +196,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 	case *ast.Join:
 		return nil, ErrJoinParents
 
-	case *ast.SqlExpr:
+	case *ast.SQLExpr:
 		return nil, errors.New("internal bug: semantic analyzer should transform SQL expr before calling proc compiler")
 
 	default:

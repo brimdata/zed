@@ -287,7 +287,7 @@ func semProc(scope *Scope, p ast.Proc) (ast.Proc, error) {
 			RightKey: rightKey,
 			Args:     assignments,
 		}, nil
-	case *ast.SqlExpr:
+	case *ast.SQLExpr:
 		converted, err := convertSQLProc(scope, p)
 		if err != nil {
 			return nil, err

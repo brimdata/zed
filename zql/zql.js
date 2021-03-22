@@ -644,7 +644,7 @@ function peg$parse(input, options) {
       peg$c228 = function(selection, from, joins, where, groupby, having, orderby, limit) {
             return {
               
-            "kind": "SqlExpr",
+            "kind": "SQLExpr",
               
             "select": selection,
               
@@ -654,11 +654,11 @@ function peg$parse(input, options) {
               
             "where": where,
               
-            "groupby": groupby,
+            "group_by": groupby,
               
             "having": having,
               
-            "orderby": orderby,
+            "order_by": orderby,
               
             "limit": limit }
           
@@ -689,8 +689,8 @@ function peg$parse(input, options) {
 
           },
       peg$c235 = function(style) { return style },
-      peg$c236 = function(keys, direction) {
-            return {"kind": "SqlOrderBy", "keys": keys, "direction":direction}
+      peg$c236 = function(keys, order) {
+            return {"kind": "SQLOrderBy", "keys": keys, "order":order}
           },
       peg$c237 = function(dir) { return dir },
       peg$c238 = function() { return "asc" },
@@ -2963,7 +2963,7 @@ function peg$parse(input, options) {
   function peg$parseSearchGuard() {
     var s0;
 
-    s0 = peg$parseSqlTokenSentinels();
+    s0 = peg$parseSQLTokenSentinels();
     if (s0 === peg$FAILED) {
       s0 = peg$parseAndToken();
       if (s0 === peg$FAILED) {
@@ -4148,7 +4148,7 @@ function peg$parse(input, options) {
                               if (s0 === peg$FAILED) {
                                 s0 = peg$parseTasteProc();
                                 if (s0 === peg$FAILED) {
-                                  s0 = peg$parseSqlProc();
+                                  s0 = peg$parseSQLProc();
                                 }
                               }
                             }
@@ -7357,25 +7357,25 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlProc() {
+  function peg$parseSQLProc() {
     var s0, s1, s2, s3, s4, s5, s6, s7, s8;
 
     s0 = peg$currPos;
-    s1 = peg$parseSqlSelect();
+    s1 = peg$parseSQLSelect();
     if (s1 !== peg$FAILED) {
-      s2 = peg$parseSqlFrom();
+      s2 = peg$parseSQLFrom();
       if (s2 !== peg$FAILED) {
-        s3 = peg$parseSqlJoins();
+        s3 = peg$parseSQLJoins();
         if (s3 !== peg$FAILED) {
-          s4 = peg$parseSqlWhere();
+          s4 = peg$parseSQLWhere();
           if (s4 !== peg$FAILED) {
-            s5 = peg$parseSqlGroupBy();
+            s5 = peg$parseSQLGroupBy();
             if (s5 !== peg$FAILED) {
-              s6 = peg$parseSqlHaving();
+              s6 = peg$parseSQLHaving();
               if (s6 !== peg$FAILED) {
-                s7 = peg$parseSqlOrderBy();
+                s7 = peg$parseSQLOrderBy();
                 if (s7 !== peg$FAILED) {
-                  s8 = peg$parseSqlLimit();
+                  s8 = peg$parseSQLLimit();
                   if (s8 !== peg$FAILED) {
                     peg$savedPos = s0;
                     s1 = peg$c228(s1, s2, s3, s4, s5, s6, s7, s8);
@@ -7416,7 +7416,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlSelect() {
+  function peg$parseSQLSelect() {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
@@ -7453,7 +7453,7 @@ function peg$parse(input, options) {
       if (s1 !== peg$FAILED) {
         s2 = peg$parse_();
         if (s2 !== peg$FAILED) {
-          s3 = peg$parseSqlAssignments();
+          s3 = peg$parseSQLAssignments();
           if (s3 !== peg$FAILED) {
             peg$savedPos = s0;
             s1 = peg$c229(s3);
@@ -7475,7 +7475,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlAssignment() {
+  function peg$parseSQLAssignment() {
     var s0, s1, s2, s3, s4, s5;
 
     s0 = peg$currPos;
@@ -7525,11 +7525,11 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlAssignments() {
+  function peg$parseSQLAssignments() {
     var s0, s1, s2, s3, s4, s5, s6, s7;
 
     s0 = peg$currPos;
-    s1 = peg$parseSqlAssignment();
+    s1 = peg$parseSQLAssignment();
     if (s1 !== peg$FAILED) {
       s2 = [];
       s3 = peg$currPos;
@@ -7545,7 +7545,7 @@ function peg$parse(input, options) {
         if (s5 !== peg$FAILED) {
           s6 = peg$parse__();
           if (s6 !== peg$FAILED) {
-            s7 = peg$parseSqlAssignment();
+            s7 = peg$parseSQLAssignment();
             if (s7 !== peg$FAILED) {
               peg$savedPos = s3;
               s4 = peg$c104(s1, s7);
@@ -7581,7 +7581,7 @@ function peg$parse(input, options) {
           if (s5 !== peg$FAILED) {
             s6 = peg$parse__();
             if (s6 !== peg$FAILED) {
-              s7 = peg$parseSqlAssignment();
+              s7 = peg$parseSQLAssignment();
               if (s7 !== peg$FAILED) {
                 peg$savedPos = s3;
                 s4 = peg$c104(s1, s7);
@@ -7619,7 +7619,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlFrom() {
+  function peg$parseSQLFrom() {
     var s0, s1, s2, s3, s4, s5;
 
     s0 = peg$currPos;
@@ -7631,7 +7631,7 @@ function peg$parse(input, options) {
         if (s3 !== peg$FAILED) {
           s4 = peg$parseConditionalExpr();
           if (s4 !== peg$FAILED) {
-            s5 = peg$parseSqlAlias();
+            s5 = peg$parseSQLAlias();
             if (s5 !== peg$FAILED) {
               peg$savedPos = s0;
               s1 = peg$c231(s4, s5);
@@ -7705,7 +7705,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlAlias() {
+  function peg$parseSQLAlias() {
     var s0, s1, s2, s3, s4;
 
     s0 = peg$currPos;
@@ -7767,15 +7767,15 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlJoins() {
+  function peg$parseSQLJoins() {
     var s0, s1, s2, s3, s4;
 
     s0 = peg$currPos;
-    s1 = peg$parseSqlJoin();
+    s1 = peg$parseSQLJoin();
     if (s1 !== peg$FAILED) {
       s2 = [];
       s3 = peg$currPos;
-      s4 = peg$parseSqlJoin();
+      s4 = peg$parseSQLJoin();
       if (s4 !== peg$FAILED) {
         peg$savedPos = s3;
         s4 = peg$c233(s1, s4);
@@ -7784,7 +7784,7 @@ function peg$parse(input, options) {
       while (s3 !== peg$FAILED) {
         s2.push(s3);
         s3 = peg$currPos;
-        s4 = peg$parseSqlJoin();
+        s4 = peg$parseSQLJoin();
         if (s4 !== peg$FAILED) {
           peg$savedPos = s3;
           s4 = peg$c233(s1, s4);
@@ -7816,11 +7816,11 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlJoin() {
+  function peg$parseSQLJoin() {
     var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12, s13, s14;
 
     s0 = peg$currPos;
-    s1 = peg$parseSqlJoinStyle();
+    s1 = peg$parseSQLJoinStyle();
     if (s1 !== peg$FAILED) {
       s2 = peg$parse_();
       if (s2 !== peg$FAILED) {
@@ -7830,7 +7830,7 @@ function peg$parse(input, options) {
           if (s4 !== peg$FAILED) {
             s5 = peg$parseConditionalExpr();
             if (s5 !== peg$FAILED) {
-              s6 = peg$parseSqlAlias();
+              s6 = peg$parseSQLAlias();
               if (s6 !== peg$FAILED) {
                 s7 = peg$parse_();
                 if (s7 !== peg$FAILED) {
@@ -7917,7 +7917,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlJoinStyle() {
+  function peg$parseSQLJoinStyle() {
     var s0, s1, s2;
 
     s0 = peg$currPos;
@@ -7955,7 +7955,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlWhere() {
+  function peg$parseSQLWhere() {
     var s0, s1, s2, s3, s4;
 
     s0 = peg$currPos;
@@ -7999,7 +7999,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlGroupBy() {
+  function peg$parseSQLGroupBy() {
     var s0, s1, s2, s3, s4, s5, s6;
 
     s0 = peg$currPos;
@@ -8055,7 +8055,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlHaving() {
+  function peg$parseSQLHaving() {
     var s0, s1, s2, s3, s4;
 
     s0 = peg$currPos;
@@ -8099,7 +8099,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlOrderBy() {
+  function peg$parseSQLOrderBy() {
     var s0, s1, s2, s3, s4, s5, s6, s7;
 
     s0 = peg$currPos;
@@ -8115,7 +8115,7 @@ function peg$parse(input, options) {
             if (s5 !== peg$FAILED) {
               s6 = peg$parseExprs();
               if (s6 !== peg$FAILED) {
-                s7 = peg$parseSqlDirection();
+                s7 = peg$parseSQLOrder();
                 if (s7 !== peg$FAILED) {
                   peg$savedPos = s0;
                   s1 = peg$c236(s6, s7);
@@ -8161,7 +8161,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlDirection() {
+  function peg$parseSQLOrder() {
     var s0, s1, s2;
 
     s0 = peg$currPos;
@@ -8196,7 +8196,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlLimit() {
+  function peg$parseSQLLimit() {
     var s0, s1, s2, s3, s4;
 
     s0 = peg$currPos;
@@ -8540,7 +8540,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseSqlTokenSentinels() {
+  function peg$parseSQLTokenSentinels() {
     var s0;
 
     s0 = peg$parseSELECT();
@@ -8790,7 +8790,7 @@ function peg$parse(input, options) {
     s1 = peg$currPos;
     peg$silentFails++;
     s2 = peg$currPos;
-    s3 = peg$parseSqlTokenSentinels();
+    s3 = peg$parseSQLTokenSentinels();
     if (s3 !== peg$FAILED) {
       s4 = peg$parseEOT();
       if (s4 !== peg$FAILED) {
@@ -10176,7 +10176,7 @@ function peg$parse(input, options) {
           s0 = s1;
           if (s0 === peg$FAILED) {
             s0 = peg$currPos;
-            s1 = peg$parseSqlTokenSentinels();
+            s1 = peg$parseSQLTokenSentinels();
             if (s1 !== peg$FAILED) {
               s2 = peg$currPos;
               peg$silentFails++;

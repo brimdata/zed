@@ -210,7 +210,7 @@ PatternMatch
 Pattern = Regexp / Glob
 
 SearchGuard
-  = SqlTokenSentinels
+  = SQLTokenSentinels
   / AndToken
   / OrToken
   / NotToken
@@ -349,7 +349,7 @@ Operator
   / ShapeProc
   / JoinProc
   / TasteProc
-  / SqlProc
+  / SQLProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
@@ -697,64 +697,64 @@ Primary
 
 /// === SQL Compat ===
 
-SqlProc
-  = selection:SqlSelect
-    from:SqlFrom
-    joins:SqlJoins
-    where:SqlWhere
-    groupby:SqlGroupBy
-    having:SqlHaving
-    orderby:SqlOrderBy
-    limit:SqlLimit
+SQLProc
+  = selection:SQLSelect
+    from:SQLFrom
+    joins:SQLJoins
+    where:SQLWhere
+    groupby:SQLGroupBy
+    having:SQLHaving
+    orderby:SQLOrderBy
+    limit:SQLLimit
     {
       RETURN(MAP(
-        "kind": "SqlExpr",
+        "kind": "SQLExpr",
         "select": selection,
         "from": from,
         "joins": joins,
         "where": where,
-        "groupby": groupby,
+        "group_by": groupby,
         "having": having,
-        "orderby": orderby,
+        "order_by": orderby,
         "limit": limit ))
     }
 
-SqlSelect
+SQLSelect
   = SELECT _ "*" { RETURN(NULL) }
-  / SELECT _ assignments:SqlAssignments { RETURN(assignments) }
+  / SELECT _ assignments:SQLAssignments { RETURN(assignments) }
 
-SqlAssignment
+SQLAssignment
   = rhs:Expr _ AS _ lhs:Lval { RETURN(MAP("kind": "Assignment", "lhs": lhs, "rhs": rhs)) }
   / expr:Expr { RETURN(MAP("kind": "Assignment", "lhs": NULL, "rhs": expr)) }
 
-SqlAssignments
-  = first:SqlAssignment rest:(__ "," __ expr:SqlAssignment { RETURN(expr) })* {
+SQLAssignments
+  = first:SQLAssignment rest:(__ "," __ expr:SQLAssignment { RETURN(expr) })* {
       RETURN(PREPEND(first, rest))
     }
 
-SqlFrom
-  = _ FROM _ table:SqlTable alias:SqlAlias {
+SQLFrom
+  = _ FROM _ table:SQLTable alias:SQLAlias {
       RETURN(MAP("table": table, "alias": alias))
     }
   / _ FROM _ "*" { RETURN(NULL) }
   / "" { RETURN(NULL) }
 
-SqlAlias
+SQLAlias
   = _ AS _ id:Lval { RETURN(id) }
   / _ id:Lval { RETURN(id) }
   / "" { RETURN(NULL) }
 
-SqlTable
+SQLTable
   = Expr
 
-SqlJoins
-  = first:SqlJoin rest:(join:SqlJoin { RETURN(join) })* {
+SQLJoins
+  = first:SQLJoin rest:(join:SQLJoin { RETURN(join) })* {
       RETURN(PREPEND(first, rest))
     }
   / "" { RETURN(NULL) }
 
-SqlJoin
-  = style:SqlJoinStyle _ JOIN _ table:SqlTable alias:SqlAlias _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey {
+SQLJoin
+  = style:SQLJoinStyle _ JOIN _ table:SQLTable alias:SQLAlias _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey {
       RETURN(MAP(
         "table": table,
         "style": style,
@@ -763,33 +763,33 @@ SqlJoin
         "alias": alias))
     }
 
-SqlJoinStyle
+SQLJoinStyle
   = _ style:(LEFT / RIGHT / INNER) { RETURN(style) }
   / ""         { RETURN("inner") }
 
-SqlWhere
+SQLWhere
   = _ WHERE _ expr:SearchBoolean { RETURN(expr) }
   / "" { RETURN(NULL) }
 
-SqlGroupBy
+SQLGroupBy
   = _ GROUP _ BY _ columns:FieldExprs { RETURN(columns) }
   / "" { RETURN(NULL) }
 
-SqlHaving
+SQLHaving
   = _ HAVING _ expr:SearchBoolean { RETURN(expr) }
   / "" { RETURN(NULL) }
 
-SqlOrderBy
-  = _ ORDER _ BY _ keys:Exprs direction:SqlDirection {
-      RETURN(MAP("kind": "SqlOrderBy", "keys": keys, "direction":direction))
+SQLOrderBy
+  = _ ORDER _ BY _ keys:Exprs order:SQLOrder {
+      RETURN(MAP("kind": "SQLOrderBy", "keys": keys, "order":order))
     }
   / "" { RETURN(NULL) }
 
-SqlDirection
+SQLOrder
   = _ dir:(ASC / DESC) { RETURN(dir) }
   / "" { RETURN("asc") }
 
-SqlLimit
+SQLLimit
   = _ LIMIT _ count:UInt { RETURN(count) }
   / "" { RETURN(0) }
 
@@ -810,7 +810,7 @@ LEFT = "left"i { RETURN("left") }
 RIGHT = "right"i { RETURN("right") }
 INNER = "inner"i { RETURN("inner") }
 
-SqlTokenSentinels
+SQLTokenSentinels
   = SELECT / AS / FROM /  JOIN / WHERE / GROUP / HAVING / ORDER / LIMIT / ON
 
 /// === Literals ===
@@ -864,7 +864,7 @@ NullLiteral
   = "null"           { RETURN(MAP("kind": "Primitive", "type": "null", "text": "")) }
 
 TypeLiteral
-  = !(SqlTokenSentinels EOT) typ:TypeExternal {
+  = !(SQLTokenSentinels EOT) typ:TypeExternal {
       RETURN(MAP("kind": "TypeValue", "value": typ))
     }
 
@@ -989,7 +989,7 @@ IdentifierName
   / "\\" id:IdGuard { RETURN(id) }
   // "type" is a search guard but should not be an id guard
   / "type" { RETURN(TEXT) }
-  / id:SqlTokenSentinels &(__ "(") { RETURN(id) }
+  / id:SQLTokenSentinels &(__ "(") { RETURN(id) }
 
 IdGuard
   = BooleanLiteral
