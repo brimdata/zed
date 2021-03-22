@@ -3,8 +3,11 @@ package expr
 import (
 	"math"
 	"net"
+	"unicode/utf8"
 
 	"github.com/brimsec/zq/expr/coerce"
+	"github.com/brimsec/zq/expr/function"
+	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
 )
@@ -103,37 +106,50 @@ func castToIP(zv zng.Value) (zng.Value, error) {
 }
 
 func castToDuration(zv zng.Value) (zng.Value, error) {
-	if zng.IsFloat(zv.Type.ID()) {
-		f, _ := zng.DecodeFloat64(zv.Bytes)
-		ts := int64(nano.FloatToTs(f))
+	id := zv.Type.ID()
+	if zng.IsStringy(id) {
+		d, err := nano.ParseDuration(byteconv.UnsafeString(zv.Bytes))
+		if err != nil {
+			f, ferr := byteconv.ParseFloat64(zv.Bytes)
+			if ferr != nil {
+				return zng.NewError(err), nil
+			}
+			d = nano.DurationFromFloat(f)
+		}
 		// XXX GC
-		return zng.Value{zng.TypeDuration, zng.EncodeDuration(ts)}, nil
+		return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
 	}
-	ns, ok := coerce.ToInt(zv)
+	if zng.IsFloat(id) {
+		f, _ := zng.DecodeFloat64(zv.Bytes)
+		d := nano.DurationFromFloat(f)
+		// XXX GC
+		return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
+	}
+	sec, ok := coerce.ToInt(zv)
 	if !ok {
 		return zng.Value{}, ErrBadCast
 	}
-	return zng.Value{zng.TypeDuration, zng.EncodeDuration(ns)}, nil
+	d := nano.Duration(sec) * nano.Second
+	// XXX GC
+	return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
 }
 
 func castToTime(zv zng.Value) (zng.Value, error) {
-	if zng.IsFloat(zv.Type.ID()) {
-		f, _ := zng.DecodeFloat64(zv.Bytes)
-		ts := nano.FloatToTs(f)
-		// XXX GC
-		return zng.Value{zng.TypeTime, zng.EncodeTime(ts)}, nil
+	ts, err := function.CastToTime(zv)
+	if err != nil {
+		return zng.NewError(err), nil
 	}
-	ns, ok := coerce.ToInt(zv)
-	if !ok {
-		return zng.Value{}, ErrBadCast
-	}
-	return zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(ns))}, nil
+	return zng.Value{zng.TypeTime, zng.EncodeTime(ts)}, nil
 }
 
 func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
 	return func(zv zng.Value) (zng.Value, error) {
-		if zv.Type.ID() == zng.IdBytes {
-			return zng.Value{typ, zng.EncodeString(string(zv.Bytes))}, nil
+		id := zv.Type.ID()
+		if id == zng.IdBytes || id == zng.IdBstring {
+			if !utf8.Valid(zv.Bytes) {
+				return zng.NewErrorf("non-UTF-8 bytes cannot be cast to string"), nil
+			}
+			return zng.Value{typ, zv.Bytes}, nil
 		}
 		if enum, ok := zv.Type.(*zng.TypeEnum); ok {
 			selector, _ := zng.DecodeUint(zv.Bytes)
@@ -143,11 +159,14 @@ func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
 			}
 			return zng.Value{typ, zng.EncodeString(element.Name)}, nil
 		}
-		//XXX here, we need to create a human-readable string rep
-		// rather than a tzng encoding, e.g., for time, an iso date instead of
-		// ns int.  For now, this works for numbers and IPs.  We will fix in a
-		// subsequent PR (see issue #1603).
-		result := zv.Type.StringOf(zv.Bytes, zng.OutFormatUnescaped, false)
+		if zng.IsStringy(id) {
+			// If it's already stringy, then the z encoding can stay
+			// the same and we just update the stringy type.
+			return zng.Value{typ, zv.Bytes}, nil
+		}
+		// Otherwise, we'll use a canonical ZSON value for the string rep
+		// of an arbitrary value cast to a string.
+		result := zv.Type.ZSONOf(zv.Bytes)
 		return zng.Value{typ, zng.EncodeString(result)}, nil
 	}
 }

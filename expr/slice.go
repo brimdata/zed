@@ -54,7 +54,7 @@ func (s *Slice) Eval(rec *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return elem, err
 	}
-	if _, ok := zng.AliasedType(elem.Type).(*zng.TypeArray); !ok {
+	if _, ok := zng.AliasOf(elem.Type).(*zng.TypeArray); !ok {
 		return zng.NewErrorf("sliced value is not an array"), nil
 	}
 	if elem.Bytes == nil {

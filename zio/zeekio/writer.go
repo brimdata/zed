@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
@@ -19,15 +20,15 @@ type Writer struct {
 	header
 	flattener *flattener.Flattener
 	typ       *zng.TypeRecord
-	format    zng.OutFmt
+	format    tzngio.OutFmt
 }
 
 func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
-	var format zng.OutFmt
+	var format tzngio.OutFmt
 	if utf8 {
-		format = zng.OutFormatZeek
+		format = tzngio.OutFormatZeek
 	} else {
-		format = zng.OutFormatZeekAscii
+		format = tzngio.OutFormatZeekAscii
 	}
 	return &Writer{
 		writer:    w,
@@ -124,7 +125,7 @@ func isHighPrecision(ts nano.Ts) bool {
 
 // This returns the zeek strings for this record.  XXX We need to not use this.
 // XXX change to Pretty for output writers?... except zeek?
-func ZeekStrings(r *zng.Record, fmt zng.OutFmt) ([]string, error) {
+func ZeekStrings(r *zng.Record, fmt tzngio.OutFmt) ([]string, error) {
 	var ss []string
 	it := r.ZvalIter()
 	for _, col := range r.Type.Columns {
@@ -146,7 +147,7 @@ func ZeekStrings(r *zng.Record, fmt zng.OutFmt) ([]string, error) {
 			}
 			field = string(ts.AppendFloat(nil, precision))
 		} else {
-			field = col.Type.StringOf(val, fmt, false)
+			field = tzngio.StringOf(zng.Value{col.Type, val}, fmt, false)
 		}
 		ss = append(ss, field)
 	}

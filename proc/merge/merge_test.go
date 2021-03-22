@@ -102,7 +102,7 @@ func TestParallelOrder(t *testing.T) {
 	for i, c := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
 			zctx := resolver.NewContext()
-			pctx := &proc.Context{Context: context.Background(), TypeContext: zctx}
+			pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 			var parents []proc.Interface
 			for _, s := range c.inputs {
 				r := tzngio.NewReader(bytes.NewReader([]byte(s)), zctx)

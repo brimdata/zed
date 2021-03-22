@@ -1,4 +1,4 @@
-FROM golang:1.15-alpine AS build
+FROM golang:1.16-alpine AS build
 RUN apk --update add ca-certificates
 
 # All these steps will be cached

@@ -10,6 +10,7 @@ import (
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/flattener"
 	"github.com/brimsec/zq/zng/resolver"
@@ -396,7 +397,7 @@ func parseSimpleType(value []byte, typ zng.Type) ([]byte, error) {
 		}
 		return zng.EncodeInt(int64(int8(f))), nil
 	default:
-		b, err := typ.Parse(value)
+		b, err := tzngio.ParseValue(typ, value)
 		if err != nil {
 			return nil, err
 		}

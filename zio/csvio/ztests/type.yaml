@@ -1,8 +1,7 @@
 zql: '*'
 
 input: |
-  #0:record[type:type]
-  0:[-;]
+  {type:null (type)}
 
 output-flags: -f csv
 

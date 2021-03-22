@@ -2,7 +2,6 @@ package temporal
 
 import (
 	"context"
-	"go.temporal.io/sdk/workflow"
 	"testing"
 	"time"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/sdk/testsuite"
+	"go.temporal.io/sdk/workflow"
 )
 
 var testConfig = Config{

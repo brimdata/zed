@@ -4,5 +4,5 @@ outputs:
   - name: stdout
     data: |
       filter *
-      | summarize every 1h0m0s sort-dir 1
-          count=count() by ts=trunc(ts, 3600)
+      | summarize every 1h sort-dir 1
+          count=count() by ts=trunc(ts, 1h)

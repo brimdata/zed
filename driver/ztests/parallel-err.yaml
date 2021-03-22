@@ -1,11 +1,10 @@
 script: |
-  zq -P -f tzng 'split ( => put k=a+10 => put k=b+20) | sort k' A.tzng
+  zq -P -z 'split ( => put k=a+10 => put k=b+20) | sort k' A.zson
 
 inputs:
-  - name: A.tzng
+  - name: A.zson
     data: |
-      #0:record[a:int32]
-      0:[1;]
+      {a:1 (int32)} (=0)
 
 outputs:
   - name: stderr

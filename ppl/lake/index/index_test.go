@@ -9,23 +9,22 @@ import (
 
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimsec/zq/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWriteIndices(t *testing.T) {
 	const data = `
-#0:record[ts:time,orig_h:ip,proto:string]
-0:[1;127.0.0.1;conn;]
-0:[2;127.0.0.2;conn;]
+{ts:1970-01-01T00:00:01Z,orig_h:127.0.0.1,proto:"conn"}
+{ts:1970-01-01T00:00:02Z,orig_h:127.0.0.2,proto:"conn"}
 `
 	dir := iosrc.MustParseURI(t.TempDir())
 
 	ctx := context.Background()
-	r := tzngio.NewReader(strings.NewReader(data), resolver.NewContext())
+	r := zson.NewReader(strings.NewReader(data), zson.NewContext())
 
 	ip := MustNewDefinition(NewTypeRule(zng.TypeIP))
 	proto := MustNewDefinition(NewFieldRule("proto"))
@@ -123,7 +122,7 @@ func TestZQLRule(t *testing.T) {
 
 func babbleReader(t *testing.T) zbuf.Reader {
 	t.Helper()
-	r, err := os.Open("../../../ztests/suite/data/babble-sorted.tzng")
+	r, err := os.Open("../../../ztests/suite/data/babble-sorted.zson")
 	require.NoError(t, err)
-	return tzngio.NewReader(r, resolver.NewContext())
+	return zson.NewReader(r, zson.NewContext())
 }

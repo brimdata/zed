@@ -1,5 +1,5 @@
 script: |
-  zq -f zson -i zson -pretty=0 in.zson
+  zq -z in.zson
 
 inputs:
   - name: in.zson

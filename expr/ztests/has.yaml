@@ -1,0 +1,10 @@
+zql: has(x)
+
+input: |
+  {x:1}
+  {y:1}
+  {x:"foo",y:1,z:2}
+
+output: |
+  {x:1}
+  {x:"foo",y:1,z:2}

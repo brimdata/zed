@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"sync"
 
 	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/field"
@@ -43,6 +44,7 @@ requires specifying the key and output file name. For example:
 
 type CreateCommand struct {
 	*root.Command
+	displayer  displayer
 	framesize  int
 	inputFile  string
 	keys       string
@@ -50,8 +52,6 @@ type CreateCommand struct {
 	ensure     bool
 	noapply    bool
 	procFlags  procflags.Flags
-	progress   chan string
-	quiet      bool
 	root       string
 	zql        string
 }
@@ -65,7 +65,7 @@ func NewCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.inputFile, "i", "_", "input file relative to each zar directory ('_' means archive log file in the parent of the zar directory)")
 	f.BoolVar(&c.noapply, "noapply", false, "create index rules but do not apply them to the archive")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file (for custom indexes)")
-	f.BoolVar(&c.quiet, "q", false, "don't print progress on stdout")
+	f.BoolVar(&c.displayer.quiet, "q", false, "don't print progress on stdout")
 	f.StringVar(&c.zql, "z", "", "zql for custom indexes")
 	c.procFlags.SetFlags(f)
 	return c, nil
@@ -110,15 +110,10 @@ func (c *CreateCommand) Run(args []string) error {
 		}
 	}
 
-	if !c.quiet {
-		c.progress = make(chan string)
-		go c.displayProgress()
-	}
+	c.displayer.run()
+	defer c.displayer.close()
 
-	if err := lake.WriteIndices(ctx, lk, c.progress, defs...); err != nil {
-		return err
-	}
-	return nil
+	return lake.WriteIndices(ctx, lk, c.displayer.ch, defs...)
 }
 
 func (c *CreateCommand) addRules(ctx context.Context, lk *lake.Lake, args []string) ([]*index.Definition, error) {
@@ -153,8 +148,26 @@ func (c *CreateCommand) addRules(ctx context.Context, lk *lake.Lake, args []stri
 	return lake.AddRules(ctx, lk, rules)
 }
 
-func (c *CreateCommand) displayProgress() {
-	for line := range c.progress {
-		fmt.Println(line)
-	}
+type displayer struct {
+	ch    chan string
+	quiet bool
+	wg    sync.WaitGroup
+}
+
+func (d *displayer) run() {
+	d.ch = make(chan string)
+	d.wg.Add(1)
+	go func() {
+		for line := range d.ch {
+			if !d.quiet {
+				fmt.Println(line)
+			}
+		}
+		d.wg.Done()
+	}()
+}
+
+func (d *displayer) close() {
+	close(d.ch)
+	d.wg.Wait()
 }

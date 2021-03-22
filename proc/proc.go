@@ -37,9 +37,9 @@ type Result struct {
 // in which they are running.
 type Context struct {
 	context.Context
-	TypeContext *resolver.Context
-	Logger      *zap.Logger
-	Warnings    chan string
+	Logger   *zap.Logger
+	Warnings chan string
+	Zctx     *resolver.Context
 }
 
 func EOS(batch zbuf.Batch, err error) bool {

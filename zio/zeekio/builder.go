@@ -8,6 +8,7 @@ import (
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 )
 
@@ -41,8 +42,10 @@ func (b *builder) build(typ *zng.TypeRecord, sourceFields []int, path []byte, da
 		}
 	}
 	b.fields = append(b.fields, data[start:])
-	if len(b.fields) > len(sourceFields) {
+	if actual, expected := len(b.fields), len(sourceFields); actual > expected {
 		return nil, errors.New("too many values")
+	} else if actual < expected {
+		return nil, errors.New("too few values")
 	}
 	b.reorderedFields = b.reorderedFields[:0]
 	for _, s := range sourceFields {
@@ -138,11 +141,11 @@ func (b *builder) appendPrimitive(typ zng.Type, val []byte) error {
 		}
 		b.buf = zng.AppendUint(b.buf[:0], v)
 	case zng.IdDuration:
-		v, err := nano.ParseDuration(val)
+		v, err := nano.Parse(val) // zeek-style fractional ts
 		if err != nil {
 			return err
 		}
-		b.buf = zng.AppendDuration(b.buf[:0], v)
+		b.buf = zng.AppendDuration(b.buf[:0], nano.Duration(v))
 	case zng.IdTime:
 		v, err := nano.Parse(val)
 		if err != nil {
@@ -163,14 +166,14 @@ func (b *builder) appendPrimitive(typ zng.Type, val []byte) error {
 		b.buf = zng.AppendBool(b.buf[:0], v)
 	case zng.IdString:
 		// Zeek's enum type is aliased to string.
-		zb, err := zng.TypeString.Parse(val)
+		zb, err := tzngio.ParseString(val)
 		if err != nil {
 			return err
 		}
 		b.AppendPrimitive(zb)
 		return nil
 	case zng.IdBstring:
-		zb, err := zng.TypeBstring.Parse(val)
+		zb, err := tzngio.ParseBstring(val)
 		if err != nil {
 			return err
 		}

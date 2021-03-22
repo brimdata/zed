@@ -1,15 +1,14 @@
 script: |
   mkdir logs
-  zar import -R logs babble.tzng
+  zar import -R logs babble.zson
   zar index create -R logs -q -o index -k sum,s -z "sum(v) by s | sort sum,s"
-  zar find -R logs -z -x index 149 wailer-strick | zq -f tzng "drop _log" -
+  zar find -R logs -z -x index 149 wailer-strick | zq -z "drop _log" -
 
 inputs:
-  - name: babble.tzng
-    source: ../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stdout
     data: |
-      #0:record[s:string,sum:int64,first:time,last:time]
-      0:[wailer-strick;149;1587513592.0625444;1587508830.06852324;]
+      {s:"wailer-strick",sum:149,first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z}

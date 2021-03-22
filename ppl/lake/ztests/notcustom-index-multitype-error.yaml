@@ -1,6 +1,6 @@
 script: |
   mkdir logs
-  zar import -R logs multitype.tzng
+  zar import -R logs multitype.zson
   # ignore stdout here
   zar index create -R logs id.orig_h > trash
   # since index operation failed, no files should be left behind so this
@@ -10,13 +10,10 @@ script: |
   echo ===
 
 inputs:
-  - name: multitype.tzng
+  - name: multitype.zson
     data: |
-      #0:record[_path:string,ts:time,id:record[orig_h:ip]]
-      0:[smb_cmd;1258594907.85978;[192.168.2.1;]]
-      #1:record[_path:string,ts:time,id:record[orig_h:string]]
-      1:[smb_cmd;1258594907.85978;[192.168.2.1;]]
-
+      {_path:"smb_cmd",ts:2009-11-19T01:41:47.85978Z,id:{orig_h:192.168.2.1}}
+      {_path:"smb_cmd",ts:2009-11-19T01:41:47.85978Z,id:{orig_h:"192.168.2.1"}}
 
 outputs:
   - name: stderr

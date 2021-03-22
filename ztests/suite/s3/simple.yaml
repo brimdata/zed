@@ -1,16 +1,15 @@
 script: |
   source minio.sh
-  mv babble.tzng ./data/bucket
-  zq -f tzng "count()" s3://bucket/babble.tzng
+  mv babble.zson ./data/bucket
+  zq -z "count()" s3://bucket/babble.zson
 
 inputs:
-  - name: babble.tzng
-    source: ../data/babble.tzng
+  - name: babble.zson
+    source: ../data/babble.zson
   - name: minio.sh
     source: minio.sh
 
 outputs:
   - name: stdout
     data: |
-      #0:record[count:uint64]
-      0:[1000;]
+      {count:1000 (uint64)} (=0)

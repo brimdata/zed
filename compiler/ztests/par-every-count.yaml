@@ -6,12 +6,12 @@ outputs:
       split (
         =>
           filter *
-          | summarize every 1h0m0s partials-out sort-dir 1
-              count=count() by ts=trunc(ts, 3600),y=y
+          | summarize every 1h partials-out sort-dir 1
+              count=count() by ts=trunc(ts, 1h),y=y
         =>
           filter *
-          | summarize every 1h0m0s partials-out sort-dir 1
-              count=count() by ts=trunc(ts, 3600),y=y
+          | summarize every 1h partials-out sort-dir 1
+              count=count() by ts=trunc(ts, 1h),y=y
       ) merge-by ts
-      | summarize every 1h0m0s partials-in sort-dir 1
-          count=count() by ts=trunc(ts, 3600),y=y
+      | summarize every 1h partials-in sort-dir 1
+          count=count() by ts=trunc(ts, 1h),y=y

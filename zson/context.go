@@ -190,17 +190,11 @@ func (c *Context) LookupTypeDef(name string) *zng.TypeAlias {
 }
 
 func (c *Context) LookupTypeAlias(name string, target zng.Type) (*zng.TypeAlias, error) {
-	tmp := zng.TypeAlias{Name: name, Type: target}
-	key := tmp.ZSON()
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if typ, ok := c.toType[key]; ok {
-		alias := typ.(*zng.TypeAlias)
-		if zng.SameType(alias.Type, target) {
+	if alias, ok := c.typedefs[name]; ok {
+		if alias.Type == target {
 			return alias, nil
-		} else {
-			// XXX This should go.  See issue #2202.
-			return nil, ErrAliasExists
 		}
 	}
 	typ := zng.NewTypeAlias(c.nextIDWithLock(), name, target)

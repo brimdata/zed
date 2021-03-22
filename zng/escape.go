@@ -2,7 +2,6 @@ package zng
 
 import (
 	"bytes"
-	"regexp"
 	"unicode"
 	"unicode/utf8"
 )
@@ -14,13 +13,15 @@ func QuotedName(name string) string {
 	return name
 }
 
+const hexdigits = "0123456789abcdef"
+
 func QuotedString(data []byte, bstr bool) string {
 	var out []byte
 	var start int
 	out = append(out, '"')
 	for i := 0; i < len(data); {
 		r, l := utf8.DecodeRune(data[i:])
-		if c := StringEscape(r); c != 0 {
+		if c := esc(r); c != 0 {
 			out = append(out, data[start:i]...)
 			out = append(out, '\\', c)
 			i++
@@ -43,33 +44,7 @@ func QuotedString(data []byte, bstr bool) string {
 	return string(out)
 }
 
-// ShouldEscape determines if the given code point at the given position
-// in a value should be escaped for the given output format.  This function
-// does not account for unprintable characters, its main purpose is to
-// centralize the logic about which characters are syntatically significant
-// in each output format and hence must be escaped.  The inContainer parameter
-// specifies whether this values is inside a set or vector (which is needed
-// to correctly implement  zeek log escaping rules).
-func ShouldEscape(r rune, fmt OutFmt, pos int, inContainer bool) bool {
-	if fmt != OutFormatUnescaped && r == '\\' {
-		return true
-	}
-
-	if fmt == OutFormatZNG && (r == ';' || (pos == 0 && (r == '[' || r == ']'))) {
-		return true
-	}
-
-	if (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) && (r == '\t' || (r == ',' && inContainer)) {
-		return true
-	}
-
-	if fmt == OutFormatZeekAscii && r > 0x7f {
-		return true
-	}
-	return false
-}
-
-func StringEscape(r rune) byte {
+func esc(r rune) byte {
 	switch r {
 	case '\\':
 		return '\\'
@@ -136,31 +111,4 @@ func Unhex(b byte) byte {
 		return b - 'A' + 10
 	}
 	return 255
-}
-
-func replaceStringEscape(in []byte) []byte {
-	var r rune
-	i := 2
-	if in[i] == '{' {
-		i++
-	}
-	for ; i < len(in) && in[i] != '}'; i++ {
-		r <<= 4
-		r |= rune(Unhex(in[i]))
-	}
-	return []byte(string(r))
-}
-
-var pattern = regexp.MustCompile(`\\u([0-9A-Fa-f]{4}|\{[0-9A-Fa-f]{1,6}\})`)
-
-// UnescapeString replaces all the escaped characters defined in the
-// for the zng spec for the string type with their unescaped equivalents.
-func UnescapeString(data []byte) []byte {
-	r := pattern.ReplaceAllFunc(data, replaceStringEscape)
-	// ReplaceAllFunc() returns nil when data is an empty string but the
-	// difference is meaningful inside zng...
-	if r == nil {
-		return data
-	}
-	return r
 }

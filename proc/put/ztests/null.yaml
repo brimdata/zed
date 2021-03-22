@@ -1,11 +1,7 @@
 zql: put b=null
 
 input: |
-  #0:record[a:int32]
-  0:[1;]
-
-output-flags: -f tzng
+  {a:1 (int32)} (=0)
 
 output: |
-  #0:record[a:int32,b:null]
-  0:[1;-;]
+  {a:1 (int32),b:null (null)} (=0)

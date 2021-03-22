@@ -8,6 +8,7 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zcode"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/builder"
 	"github.com/brimsec/zq/zng/resolver"
@@ -66,7 +67,7 @@ func (p *inferParser) parseObject(b []byte) (zng.Value, error) {
 		return zng.Value{}, err
 	}
 	for _, v := range zngValues {
-		columnBuilder.Append(v.Bytes, zng.IsContainerType(zng.AliasedType(v.Type)))
+		columnBuilder.Append(v.Bytes, zng.IsContainerType(zng.AliasOf(v.Type)))
 	}
 	zbytes, err := columnBuilder.Encode()
 	if err != nil {
@@ -196,7 +197,7 @@ func (p *inferParser) parseString(b []byte) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	s, err := zng.TypeString.Parse(b)
+	s, err := tzngio.ParseString(b)
 	if err != nil {
 		return zng.Value{}, err
 	}

@@ -1,5 +1,5 @@
 script: |
-  zq -f tzng -I count.zql in.tzng
+  zq -z -I count.zql in.zson
 
 inputs:
   - name: count.zql
@@ -7,15 +7,13 @@ inputs:
       2 | c  = count() //,
           , sum(v) // moon
 
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[v:int64]
-      0:[1;]
-      0:[2;]
-      0:[3;]
+      {v:1}
+      {v:2}
+      {v:3}
 
 outputs:
   - name: stdout
     data: |
-      #0:record[c:uint64,sum:int64]
-      0:[1;2;]
+      {c:1 (uint64),sum:2} (=0)

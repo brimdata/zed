@@ -89,7 +89,7 @@ func zngTypeToZeek(typ zng.Type) (string, error) {
 		}
 		return zngTypeToZeek(typ.Type)
 	case *zng.TypeOfBool, *zng.TypeOfString, *zng.TypeOfTime:
-		return typ.String(), nil
+		return typ.ZSON(), nil
 	default:
 		return "", fmt.Errorf("type %s: %w", typ, ErrIncompatibleZeekType)
 	}

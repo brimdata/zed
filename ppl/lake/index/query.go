@@ -3,6 +3,7 @@ package index
 import (
 	"strings"
 
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zqe"
 	"github.com/segmentio/ksuid"
@@ -46,7 +47,8 @@ func ParseQuery(name string, patterns []string) (Query, error) {
 		if err != nil {
 			return Query{}, err
 		}
-		q.Type = typ.String()
+		//XXX should use zson
+		q.Type = tzngio.TypeString(typ)
 	} else {
 		q.Field = path
 	}

@@ -4,9 +4,9 @@ script: |
 inputs:
   - name: in.zson
     data: |
-      { d:486µs } (=0)
+      { d:486us } (=0)
 
 outputs:
   - name: stdout
     data: |
-      {d:486µs}
+      {d:486us}

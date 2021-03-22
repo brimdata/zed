@@ -1,10 +1,10 @@
 script: |
-  zq -o tmp.zng babble.tzng
-  microindex lookup -f tzng -k 469 tmp.zng
+  zq -o tmp.zng babble.zson
+  microindex lookup -z -k 469 tmp.zng
 
 inputs:
-  - name: babble.tzng
-    source: ../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stderr

@@ -3,7 +3,8 @@ package kernel
 import (
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zio/tzngio"
+	"github.com/brimsec/zq/zson"
 )
 
 // CompileBufferFilter tries to return a BufferFilter for e such that the
@@ -11,18 +12,18 @@ import (
 // encoding of a record matching e. (It may also return true for some byte
 // slices that do not match.) compileBufferFilter returns a nil pointer and nil
 // error if it cannot construct a useful filter.
-func CompileBufferFilter(e ast.Expression) (*expr.BufferFilter, error) {
+func CompileBufferFilter(e ast.Expr) (*expr.BufferFilter, error) {
 	switch e := e.(type) {
 	case *ast.SeqExpr:
 		if literal, op, ok := isCompareAny(e); ok && (op == "=" || op == "in") {
 			return newBufferFilterForLiteral(*literal)
 		}
 		return nil, nil
-	case *ast.BinaryExpression:
+	case *ast.BinaryExpr:
 		if literal, _ := isFieldEqualOrIn(e); literal != nil {
 			return newBufferFilterForLiteral(*literal)
 		}
-		if e.Operator == "and" {
+		if e.Op == "and" {
 			left, err := CompileBufferFilter(e.LHS)
 			if err != nil {
 				return nil, err
@@ -39,7 +40,7 @@ func CompileBufferFilter(e ast.Expression) (*expr.BufferFilter, error) {
 			}
 			return expr.NewAndBufferFilter(left, right), nil
 		}
-		if e.Operator == "or" {
+		if e.Op == "or" {
 			left, err := CompileBufferFilter(e.LHS)
 			if err != nil {
 				return nil, err
@@ -56,7 +57,7 @@ func CompileBufferFilter(e ast.Expression) (*expr.BufferFilter, error) {
 			return nil, nil
 		}
 		if e.Value.Type == "string" {
-			pattern, err := zng.TypeBstring.Parse([]byte(e.Value.Value))
+			pattern, err := tzngio.ParseBstring([]byte(e.Value.Text))
 			if err != nil {
 				return nil, err
 			}
@@ -78,43 +79,43 @@ func CompileBufferFilter(e ast.Expression) (*expr.BufferFilter, error) {
 	}
 }
 
-func isIdOrRoot(e ast.Expression) bool {
-	if _, ok := e.(*ast.Identifier); ok {
+func isIdOrRoot(e ast.Expr) bool {
+	if _, ok := e.(*ast.Id); ok {
 		return true
 	}
-	_, ok := e.(*ast.RootRecord)
+	_, ok := e.(*ast.Root)
 	return ok
 }
 
-func isRootField(e ast.Expression) bool {
+func isRootField(e ast.Expr) bool {
 	if isIdOrRoot(e) {
 		return true
 	}
-	b, ok := e.(*ast.BinaryExpression)
-	if !ok || b.Operator != "." {
+	b, ok := e.(*ast.BinaryExpr)
+	if !ok || b.Op != "." {
 		return false
 	}
-	if _, ok := b.LHS.(*ast.RootRecord); !ok {
+	if _, ok := b.LHS.(*ast.Root); !ok {
 		return false
 	}
-	_, ok = b.RHS.(*ast.Identifier)
+	_, ok = b.RHS.(*ast.Id)
 	return ok
 }
 
-func isFieldEqualOrIn(e *ast.BinaryExpression) (*ast.Literal, string) {
-	if isRootField(e.LHS) && e.Operator == "=" {
-		if literal, ok := e.RHS.(*ast.Literal); ok {
+func isFieldEqualOrIn(e *ast.BinaryExpr) (*ast.Primitive, string) {
+	if isRootField(e.LHS) && e.Op == "=" {
+		if literal, ok := e.RHS.(*ast.Primitive); ok {
 			return literal, "="
 		}
-	} else if isRootField(e.RHS) && e.Operator == "in" {
-		if literal, ok := e.LHS.(*ast.Literal); ok && literal.Type != "net" {
+	} else if isRootField(e.RHS) && e.Op == "in" {
+		if literal, ok := e.LHS.(*ast.Primitive); ok && literal.Type != "net" {
 			return literal, "in"
 		}
 	}
 	return nil, ""
 }
 
-func isCompareAny(seq *ast.SeqExpr) (*ast.Literal, string, bool) {
+func isCompareAny(seq *ast.SeqExpr) (*ast.Primitive, string, bool) {
 	if seq.Name != "or" || len(seq.Methods) != 1 {
 		return nil, "", false
 	}
@@ -123,45 +124,45 @@ func isCompareAny(seq *ast.SeqExpr) (*ast.Literal, string, bool) {
 	if len(method.Args) != 1 || method.Name != "map" {
 		return nil, "", false
 	}
-	pred, ok := method.Args[0].(*ast.BinaryExpression)
+	pred, ok := method.Args[0].(*ast.BinaryExpr)
 	if !ok {
 		return nil, "", false
 	}
-	if pred.Operator == "=" {
+	if pred.Op == "=" {
 		if !isDollar(pred.LHS) {
 			return nil, "", false
 		}
-		if rhs, ok := pred.RHS.(*ast.Literal); ok && rhs.Type != "net" {
-			return rhs, pred.Operator, true
+		if rhs, ok := pred.RHS.(*ast.Primitive); ok && rhs.Type != "net" {
+			return rhs, pred.Op, true
 		}
-	} else if pred.Operator == "in" {
+	} else if pred.Op == "in" {
 		if !isDollar(pred.RHS) {
 			return nil, "", false
 		}
-		if lhs, ok := pred.LHS.(*ast.Literal); ok && lhs.Type != "net" {
-			return lhs, pred.Operator, true
+		if lhs, ok := pred.LHS.(*ast.Primitive); ok && lhs.Type != "net" {
+			return lhs, pred.Op, true
 		}
 	}
 	return nil, "", false
 }
 
-func isSelectAll(e ast.Expression) bool {
-	s, ok := e.(*ast.SelectExpression)
+func isSelectAll(e ast.Expr) bool {
+	s, ok := e.(*ast.SelectExpr)
 	if !ok || len(s.Selectors) != 1 {
 		return false
 	}
-	_, ok = s.Selectors[0].(*ast.RootRecord)
+	_, ok = s.Selectors[0].(*ast.Root)
 	return ok
 }
 
-func isDollar(e ast.Expression) bool {
+func isDollar(e ast.Expr) bool {
 	if ref, ok := e.(*ast.Ref); ok && ref.Name == "$" {
 		return true
 	}
 	return false
 }
 
-func newBufferFilterForLiteral(l ast.Literal) (*expr.BufferFilter, error) {
+func newBufferFilterForLiteral(l ast.Primitive) (*expr.BufferFilter, error) {
 	switch l.Type {
 	case "bool", "byte", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float64", "time", "duration":
 		// These are all comparable, so they can require up to three
@@ -176,7 +177,7 @@ func newBufferFilterForLiteral(l ast.Literal) (*expr.BufferFilter, error) {
 		// Match the behavior of zng.ParseLiteral.
 		l.Type = "bstring"
 	}
-	v, err := zng.Parse(l)
+	v, err := zson.ParsePrimitive(l)
 	if err != nil {
 		return nil, err
 	}

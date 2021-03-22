@@ -81,7 +81,7 @@ func (c *Cutter) Apply(in *zng.Record) (*zng.Record, error) {
 			}
 			return nil, err
 		}
-		recType, ok := zng.AliasedType(zv.Type).(*zng.TypeRecord)
+		recType, ok := zng.AliasOf(zv.Type).(*zng.TypeRecord)
 		if !ok {
 			return nil, errors.New("cannot cut a non-record to .")
 		}

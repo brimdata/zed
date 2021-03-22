@@ -69,6 +69,8 @@ func LookupWriter(w io.WriteCloser, zctx *resolver.Context, opts zio.WriterOpts)
 
 func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts zio.ReaderOpts) (zbuf.Reader, error) {
 	switch opts.Format {
+	case "csv":
+		return csvio.NewReader(r, zctx.Context), nil
 	case "tzng":
 		return tzngio.NewReader(r, zctx), nil
 	case "zeek":

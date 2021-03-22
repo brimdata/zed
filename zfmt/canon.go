@@ -1,7 +1,7 @@
 package zfmt
 
 import (
-	"time"
+	"strings"
 
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/zng"
@@ -41,7 +41,7 @@ func (c *canon) assignments(assignments []ast.Assignment) {
 	}
 }
 
-func (c *canon) exprs(exprs []ast.Expression) {
+func (c *canon) exprs(exprs []ast.Expr) {
 	for k, e := range exprs {
 		if k > 0 {
 			c.write(", ")
@@ -50,12 +50,12 @@ func (c *canon) exprs(exprs []ast.Expression) {
 	}
 }
 
-func (c *canon) expr(e ast.Expression, paren bool) {
+func (c *canon) expr(e ast.Expr, paren bool) {
 	switch e := e.(type) {
 	case nil:
 		c.write("null")
-	case *ast.Reducer:
-		c.write("%s(", e.Operator)
+	case *ast.Agg:
+		c.write("%s(", e.Name)
 		if e.Expr != nil {
 			c.expr(e.Expr, false)
 		}
@@ -64,46 +64,52 @@ func (c *canon) expr(e ast.Expression, paren bool) {
 			c.write(" where ")
 			c.expr(e.Where, false)
 		}
-	case *ast.Literal:
+	case *ast.Primitive:
 		c.literal(*e)
-	case *ast.Identifier:
+	case *ast.Id:
 		// If the identifier refers to a named variable in scope (like "$"),
 		// then return a Var expression referring to the pointer to the value.
 		// Note that constants may be accessed this way too by entering their
 		// names into the global (outermost) scope in the Scope entity.
 		c.write(e.Name)
-	case *ast.RootRecord:
+	case *ast.Root:
 		c.write(".")
-	case *ast.UnaryExpression:
+	case *ast.UnaryExpr:
 		c.space()
-		c.write(e.Operator)
+		c.write(e.Op)
 		c.expr(e.Operand, true)
-	case *ast.SelectExpression:
+	case *ast.SelectExpr:
 		c.write("TBD:select")
-	case *ast.BinaryExpression:
+	case *ast.BinaryExpr:
 		c.binary(e)
-	case *ast.ConditionalExpression:
+	case *ast.Conditional:
 		c.write("(")
-		c.expr(e.Condition, true)
+		c.expr(e.Cond, true)
 		c.write(") ? ")
 		c.expr(e.Then, false)
 		c.write(" : ")
 		c.expr(e.Else, false)
-	case *ast.FunctionCall:
-		c.write("%s(", e.Function)
+	case *ast.Call:
+		c.write("%s(", e.Name)
 		c.exprs(e.Args)
 		c.write(")")
-	case *ast.CastExpression:
+	case *ast.Cast:
 		c.expr(e.Expr, false)
 		c.open(":%s", e.Type)
 	case *ast.Search:
 		c.write("match(")
 		c.literal(e.Value)
 		c.write(")")
-	case *ast.FieldPath:
+	case *ast.SQLExpr:
+		c.sql(e)
+	case *ast.Path:
 		c.fieldpath(e.Name)
 	case *ast.Ref:
 		c.write("%s", e.Name)
+	case *ast.TypeValue:
+		c.write("type(")
+		c.typ(e.Value)
+		c.write(")")
 	default:
 		c.open("(unknown expr %T)", e)
 		c.close()
@@ -111,8 +117,8 @@ func (c *canon) expr(e ast.Expression, paren bool) {
 	}
 }
 
-func (c *canon) binary(e *ast.BinaryExpression) {
-	switch e.Operator {
+func (c *canon) binary(e *ast.BinaryExpr) {
+	switch e.Op {
 	case ".":
 		if !isRoot(e.LHS) {
 			c.expr(e.LHS, false)
@@ -130,25 +136,34 @@ func (c *canon) binary(e *ast.BinaryExpression) {
 		c.write("]")
 	case "in", "and":
 		c.expr(e.LHS, false)
-		c.write(" %s ", e.Operator)
+		c.write(" %s ", e.Op)
 		c.expr(e.RHS, false)
 	case "or":
 		c.expr(e.LHS, true)
-		c.write(" %s ", e.Operator)
+		c.write(" %s ", e.Op)
 		c.expr(e.RHS, true)
 	default:
 		// do need parens calc
 		c.expr(e.LHS, true)
-		c.write("%s", e.Operator)
+		c.write("%s", e.Op)
 		c.expr(e.RHS, true)
 	}
 }
 
-func isRoot(e ast.Expression) bool {
-	if _, ok := e.(*ast.RootRecord); ok {
+func (c *canon) sql(e *ast.SQLExpr) {
+	if e.Select == nil {
+		c.write(" SELECT *")
+	} else {
+		c.write(" SELECT")
+		c.assignments(e.Select)
+	}
+}
+
+func isRoot(e ast.Expr) bool {
+	if _, ok := e.(*ast.Root); ok {
 		return true
 	}
-	if f, ok := e.(*ast.FieldPath); ok {
+	if f, ok := e.(*ast.Path); ok {
 		if f.Name != nil && len(f.Name) == 0 {
 			return true
 		}
@@ -173,11 +188,11 @@ func (c *canon) next() {
 
 func (c *canon) proc(p ast.Proc) {
 	switch p := p.(type) {
-	case *ast.SequentialProc:
+	case *ast.Sequential:
 		for _, p := range p.Procs {
 			c.proc(p)
 		}
-	case *ast.ParallelProc:
+	case *ast.Parallel:
 		c.next()
 		c.open("split (")
 		for _, p := range p.Procs {
@@ -192,14 +207,14 @@ func (c *canon) proc(p ast.Proc) {
 		c.ret()
 		c.flush()
 		c.write(")")
-		if p.MergeOrderField != nil {
+		if p.MergeBy != nil {
 			c.write(" merge-by ")
-			c.fieldpath(p.MergeOrderField)
+			c.fieldpath(p.MergeBy)
 		}
-		if p.MergeOrderReverse {
+		if p.MergeReverse {
 			c.write(" rev")
 		}
-	case *ast.ConstProc:
+	case *ast.Const:
 		c.write("const %s=", p.Name)
 		c.expr(p.Expr, false)
 		c.ret()
@@ -209,16 +224,81 @@ func (c *canon) proc(p ast.Proc) {
 		c.typ(p.Type)
 		c.ret()
 		c.flush()
-	case *ast.GroupByProc:
+	case *ast.SQLExpr:
+		c.next()
+		c.open("SELECT ")
+		if p.Select == nil {
+			c.write("*")
+		} else {
+			c.assignments(p.Select)
+		}
+		if p.From != nil {
+			c.ret()
+			c.write("FROM ")
+			c.expr(p.From.Table, false)
+			if p.From.Alias != nil {
+				c.write(" AS ")
+				c.expr(p.From.Alias, false)
+			}
+		}
+		for _, join := range p.Joins {
+			c.ret()
+			switch join.Style {
+			case "left":
+				c.write("LEFT ")
+			case "right":
+				c.write("RIGHT ")
+			}
+			c.write("JOIN ")
+			c.expr(join.Table, false)
+			if join.Alias != nil {
+				c.write(" AS ")
+				c.expr(join.Alias, false)
+			}
+			c.write(" ON ")
+			c.expr(join.LeftKey, false)
+			c.write("=")
+			c.expr(join.RightKey, false)
+		}
+		if p.Where != nil {
+			c.ret()
+			c.write("WHERE ")
+			c.expr(p.Where, false)
+		}
+		if p.GroupBy != nil {
+			c.ret()
+			c.write("GROUP BY ")
+			c.exprs(p.GroupBy)
+		}
+		if p.Having != nil {
+			c.ret()
+			c.write("HAVING ")
+			c.expr(p.Having, false)
+		}
+		if p.OrderBy != nil {
+			c.ret()
+			c.write("ORDER BY ")
+			c.exprs(p.OrderBy.Keys)
+			if p.OrderBy.Order != "" {
+				c.write(" ")
+				c.write(strings.ToUpper(p.OrderBy.Order))
+			}
+		}
+		if p.Limit != 0 {
+			c.ret()
+			c.write("LIMIT %d", p.Limit)
+		}
+	case *ast.Summarize:
 		c.next()
 		c.open("summarize")
-		if secs := p.Duration.Seconds; secs != 0 {
-			c.write(" every %s", time.Duration(1_000_000_000*secs))
+		if p.Duration != nil {
+			c.write(" every ")
+			c.literal(*p.Duration)
 		}
-		if p.ConsumePart {
+		if p.PartialsIn {
 			c.write(" partials-in")
 		}
-		if p.EmitPart {
+		if p.PartialsOut {
 			c.write(" partials-out")
 		}
 		if p.InputSortDir != 0 {
@@ -226,7 +306,7 @@ func (c *canon) proc(p ast.Proc) {
 		}
 		c.ret()
 		c.open()
-		c.assignments(p.Reducers)
+		c.assignments(p.Aggs)
 		if len(p.Keys) != 0 {
 			c.write(" by ")
 			c.assignments(p.Keys)
@@ -236,19 +316,19 @@ func (c *canon) proc(p ast.Proc) {
 		}
 		c.close()
 		c.close()
-	case *ast.CutProc:
+	case *ast.Cut:
 		c.next()
 		c.write("cut ")
-		c.assignments(p.Fields)
-	case *ast.PickProc:
+		c.assignments(p.Args)
+	case *ast.Pick:
 		c.next()
 		c.open("pick ")
-		c.assignments(p.Fields)
-	case *ast.DropProc:
+		c.assignments(p.Args)
+	case *ast.Drop:
 		c.next()
 		c.write("drop ")
-		c.exprs(p.Fields)
-	case *ast.SortProc:
+		c.exprs(p.Args)
+	case *ast.Sort:
 		c.next()
 		c.write("sort")
 		if p.SortDir < 0 {
@@ -257,55 +337,55 @@ func (c *canon) proc(p ast.Proc) {
 		if p.NullsFirst {
 			c.write(" -nulls first")
 		}
-		if len(p.Fields) > 0 {
+		if len(p.Args) > 0 {
 			c.space()
-			c.exprs(p.Fields)
+			c.exprs(p.Args)
 		}
-	case *ast.HeadProc:
+	case *ast.Head:
 		c.next()
 		c.write("head %d", p.Count)
-	case *ast.TailProc:
+	case *ast.Tail:
 		c.next()
 		c.write("tail %d", p.Count)
-	case *ast.UniqProc:
+	case *ast.Uniq:
 		c.next()
 		c.write("uniq")
 		if p.Cflag {
 			c.write(" -c")
 		}
-	case *ast.PassProc:
+	case *ast.Pass:
 		c.next()
 		c.write("pass")
-	case *ast.FilterProc:
+	case *ast.Filter:
 		c.next()
 		c.open("filter ")
-		if isTrue(p.Filter) {
+		if isTrue(p.Expr) {
 			c.write("*")
 		} else {
-			c.expr(p.Filter, false)
+			c.expr(p.Expr, false)
 		}
 		c.close()
-	case *ast.TopProc:
+	case *ast.Top:
 		c.next()
 		c.write("top limit=%d flush=%t ", p.Limit, p.Flush)
-		c.exprs(p.Fields)
-	case *ast.PutProc:
+		c.exprs(p.Args)
+	case *ast.Put:
 		c.next()
 		c.write("put ")
-		c.assignments(p.Clauses)
-	case *ast.RenameProc:
+		c.assignments(p.Args)
+	case *ast.Rename:
 		c.next()
 		c.write("rename ")
-		c.assignments(p.Fields)
-	case *ast.FuseProc:
+		c.assignments(p.Args)
+	case *ast.Fuse:
 		c.next()
 		c.write("fuse")
-	case *ast.FunctionCall:
+	case *ast.Call:
 		c.next()
-		c.write("%s(", p.Function)
+		c.write("%s(", p.Name)
 		c.exprs(p.Args)
 		c.write(")")
-	case *ast.JoinProc:
+	case *ast.Join:
 		c.next()
 		c.open("join on ")
 		c.expr(p.LeftKey, false)
@@ -313,7 +393,7 @@ func (c *canon) proc(p ast.Proc) {
 		c.expr(p.RightKey, false)
 		c.ret()
 		c.open("join-cut ")
-		c.assignments(p.Clauses)
+		c.assignments(p.Args)
 		c.close()
 		c.close()
 	//case *ast.SqlExpression:
@@ -326,28 +406,32 @@ func (c *canon) proc(p ast.Proc) {
 	}
 }
 
-func isTrue(e ast.Expression) bool {
-	if lit, ok := e.(*ast.Literal); ok {
-		return lit.Type == "bool" && lit.Value == "true"
+func isTrue(e ast.Expr) bool {
+	if p, ok := e.(*ast.Primitive); ok {
+		return p.Type == "bool" && p.Text == "true"
 	}
 	return false
 }
 
 //XXX this needs to change when we use the zson values from the ast
-func (c *canon) literal(e ast.Literal) {
+func (c *canon) literal(e ast.Primitive) {
 	switch e.Type {
 	case "string", "bstring", "error":
-		c.write("\"%s\"", e.Value)
+		c.write("\"%s\"", e.Text)
 	case "regexp":
-		c.write("/%s/", e.Value)
+		c.write("/%s/", e.Text)
 	default:
 		//XXX need decorators for non-implied
-		c.write("%s", e.Value)
+		c.write("%s", e.Text)
 
 	}
 }
 
 func (c *canon) fieldpath(path []string) {
+	if len(path) == 0 {
+		c.write(".")
+		return
+	}
 	for k, s := range path {
 		if k != 0 {
 			c.write(".")

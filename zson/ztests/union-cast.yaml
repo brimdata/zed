@@ -1,5 +1,5 @@
 script: |
-  zq -f tzng -i zson "by typeof(.) | sort ." in.zson
+  zq -z "by typeof(.) | sort ." in.zson
 
 inputs:
   - name: in.zson
@@ -18,6 +18,5 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[typeof:type]
-      0:[{r:{u:sint=((int32,string))}};]
-      0:[{r:{v:sint=((int32,string))}};]
+      {typeof:({r:{u:sint=((int32,string))}})}
+      {typeof:({r:{v:sint=((int32,string))}})}

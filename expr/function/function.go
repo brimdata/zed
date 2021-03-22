@@ -75,22 +75,18 @@ func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
 		f = &trim{}
 	case "iso":
 		f = &iso{}
-	case "sec":
-		f = &sec{}
 	case "split":
 		argmin = 2
 		argmax = 2
 		f = newSplit(zctx)
-	case "msec":
-		f = &msec{}
-	case "usec":
-		f = &usec{}
 	case "trunc":
 		argmin = 2
 		argmax = 2
 		f = &trunc{}
 	case "typeof":
 		f = &typeOf{zctx}
+	case "nameof":
+		f = &nameOf{}
 	case "fields":
 		typ := zctx.LookupTypeArray(zng.TypeString)
 		f = &fields{zctx: zctx, typ: typ}
@@ -137,7 +133,7 @@ func (l *lenFn) Call(args []zng.Value) (zng.Value, error) {
 	if zv.Bytes == nil {
 		return zng.Value{zng.TypeInt64, nil}, nil
 	}
-	switch zng.AliasedType(args[0].Type).(type) {
+	switch zng.AliasOf(args[0].Type).(type) {
 	case *zng.TypeArray, *zng.TypeSet:
 		len, err := zv.ContainerLength()
 		if err != nil {
@@ -159,6 +155,17 @@ type typeOf struct {
 func (t *typeOf) Call(args []zng.Value) (zng.Value, error) {
 	typ := args[0].Type
 	return t.zctx.LookupTypeValue(typ), nil
+}
+
+type nameOf struct{}
+
+func (*nameOf) Call(args []zng.Value) (zng.Value, error) {
+	typ := args[0].Type
+	if alias, ok := typ.(*zng.TypeAlias); ok {
+		// XXX GC
+		return zng.Value{zng.TypeString, zng.EncodeString(alias.Name)}, nil
+	}
+	return zng.Value{}, zng.ErrMissing
 }
 
 type isErr struct{}

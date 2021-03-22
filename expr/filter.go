@@ -25,9 +25,9 @@ func LogicalNot(expr Filter) Filter {
 	return func(p *zng.Record) bool { return !expr(p) }
 }
 
-func Combine(res Evaluator, pred Boolean) Filter {
+func Apply(e Evaluator, pred Boolean) Filter {
 	return func(r *zng.Record) bool {
-		v, err := res.Eval(r)
+		v, err := e.Eval(r)
 		if err != nil || v.Type == nil {
 			// field (or sub-field) doesn't exist in this record
 			return false
@@ -104,7 +104,7 @@ var errMatch = errors.New("match")
 // field or inside any set or array.  It also matches a record if the string
 // representaton of the search value appears inside inside any string-valued
 // field (or inside any element of a set or array of strings).
-func SearchRecordOther(searchtext string, searchval ast.Literal) (Filter, error) {
+func SearchRecordOther(searchtext string, searchval ast.Primitive) (Filter, error) {
 	typedCompare, err := Comparison("=", searchval)
 	if err != nil {
 		return nil, err

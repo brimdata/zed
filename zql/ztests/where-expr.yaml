@@ -1,21 +1,18 @@
 script: |
-  zq -f tzng "_path=conn | count()" in.tzng
+  zq -z "_path=conn | count()" in.zson
   echo ===
-  zq -f tzng "count() where _path=conn" in.tzng
+  zq -z "count() where _path=conn" in.zson
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[_path:string]
-      0:[conn;]
-      0:[dns;]
-      0:[conn;]
+      {_path:"conn"}
+      {_path:"dns"}
+      {_path:"conn"}
 
 outputs:
   - name: stdout
     data: |
-      #0:record[count:uint64]
-      0:[2;]
+      {count:2 (uint64)} (=0)
       ===
-      #0:record[count:uint64]
-      0:[2;]
+      {count:2 (uint64)} (=0)

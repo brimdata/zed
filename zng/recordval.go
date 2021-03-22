@@ -62,7 +62,7 @@ func NewRecord(typ *TypeRecord, raw zcode.Bytes) *Record {
 
 func NewRecordFromType(typ Type, raw zcode.Bytes) *Record {
 	return &Record{
-		Type:        AliasedType(typ).(*TypeRecord),
+		Type:        AliasOf(typ).(*TypeRecord),
 		Alias:       typ,
 		nonvolatile: true,
 		Raw:         raw,
@@ -79,7 +79,7 @@ func NewRecordCheck(typ *TypeRecord, raw zcode.Bytes) (*Record, error) {
 
 func NewRecordCheckFromType(typ Type, raw zcode.Bytes) (*Record, error) {
 	r := &Record{
-		Type:        AliasedType(typ).(*TypeRecord),
+		Type:        AliasOf(typ).(*TypeRecord),
 		Alias:       typ,
 		nonvolatile: true,
 		Raw:         raw,
@@ -106,7 +106,7 @@ func NewVolatileRecord(typ *TypeRecord, raw zcode.Bytes) *Record {
 
 func NewVolatileRecordFromType(typ Type, raw zcode.Bytes) *Record {
 	return &Record{
-		Type:  AliasedType(typ).(*TypeRecord),
+		Type:  AliasOf(typ).(*TypeRecord),
 		Alias: typ,
 		Raw:   raw,
 	}
@@ -288,7 +288,7 @@ func (r *Record) AccessString(field string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	switch AliasedType(v.Type).(type) {
+	switch AliasOf(v.Type).(type) {
 	case *TypeOfString, *TypeOfBstring:
 		return DecodeString(v.Bytes)
 	default:
@@ -301,7 +301,7 @@ func (r *Record) AccessBool(field string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	if _, ok := AliasedType(v.Type).(*TypeOfBool); !ok {
+	if _, ok := AliasOf(v.Type).(*TypeOfBool); !ok {
 		return false, ErrTypeMismatch
 	}
 	return DecodeBool(v.Bytes)
@@ -312,7 +312,7 @@ func (r *Record) AccessInt(field string) (int64, error) {
 	if err != nil {
 		return 0, err
 	}
-	switch AliasedType(v.Type).(type) {
+	switch AliasOf(v.Type).(type) {
 	case *TypeOfUint8:
 		b, err := DecodeUint(v.Bytes)
 		return int64(b), err
@@ -336,7 +336,7 @@ func (r *Record) AccessIP(field string) (net.IP, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _, ok := AliasedType(v.Type).(*TypeOfIP); !ok {
+	if _, ok := AliasOf(v.Type).(*TypeOfIP); !ok {
 		return nil, ErrTypeMismatch
 	}
 	return DecodeIP(v.Bytes)
@@ -347,7 +347,7 @@ func (r *Record) AccessTime(field string) (nano.Ts, error) {
 	if err != nil {
 		return 0, err
 	}
-	if _, ok := AliasedType(v.Type).(*TypeOfTime); !ok {
+	if _, ok := AliasOf(v.Type).(*TypeOfTime); !ok {
 		return 0, ErrTypeMismatch
 	}
 	return DecodeTime(v.Bytes)

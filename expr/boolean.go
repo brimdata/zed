@@ -13,6 +13,7 @@ import (
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zson"
 )
 
 //XXX TBD:
@@ -201,7 +202,7 @@ var compareString = map[string]func(string, string) bool{
 	"<=": func(a, b string) bool { return a <= b },
 }
 
-func CompareBstring(op string, pattern zng.Bstring) (Boolean, error) {
+func CompareBstring(op string, pattern []byte) (Boolean, error) {
 	compare, ok := compareString[op]
 	if !ok {
 		return nil, fmt.Errorf("unknown string comparator: %s", op)
@@ -216,7 +217,7 @@ func CompareBstring(op string, pattern zng.Bstring) (Boolean, error) {
 	}, nil
 }
 
-func CheckRegexp(pattern string) (*regexp.Regexp, error) {
+func CompileRegexp(pattern string) (*regexp.Regexp, error) {
 	re, err := regexp.Compile(string(zng.UnescapeBstring([]byte(pattern))))
 	if err != nil {
 		if syntaxErr, ok := err.(*syntax.Error); ok {
@@ -227,33 +228,14 @@ func CheckRegexp(pattern string) (*regexp.Regexp, error) {
 	return re, err
 }
 
-// compareRegexp returns a Predicate that compares values that must
-// be a string or enum with the value's regular expression using a regex
-// match comparison based on equality or inequality based on op.
-func compareRegexp(op, pattern string) (Boolean, error) {
-	re, err := CheckRegexp(pattern)
-	if err != nil {
-		return nil, err
-	}
-	switch op {
-	case "=":
-		return func(v zng.Value) bool {
-			switch v.Type.ID() {
-			case zng.IdString, zng.IdBstring:
-				return re.Match(v.Bytes)
-			}
-			return false
-		}, nil
-	case "!=":
-		return func(v zng.Value) bool {
-			switch v.Type.ID() {
-			case zng.IdString, zng.IdBstring:
-				return !re.Match(v.Bytes)
-			}
-			return false
-		}, nil
-	default:
-		return nil, fmt.Errorf("unknown pattern comparator: %s", op)
+// NewRegexpBoolean returns a Booelan that compares values that must
+// be a stringy the given regexp.
+func NewRegexpBoolean(re *regexp.Regexp) Boolean {
+	return func(v zng.Value) bool {
+		if zng.IsStringy(v.Type.ID()) {
+			return re.Match(v.Bytes)
+		}
+		return false
 	}
 }
 
@@ -371,30 +353,56 @@ func Contains(compare Boolean) Boolean {
 // See the comments of the various type implementations
 // of this method as some types limit the operand to equality and
 // the various types handle coercion in different ways.
-func Comparison(op string, literal ast.Literal) (Boolean, error) {
-	if literal.Type == "regexp" {
-		return compareRegexp(op, literal.Value)
+func Comparison(op string, primitive ast.Primitive) (Boolean, error) {
+	// String literals inside zql are parsed as zng bstrings
+	// (since bstrings can represent a wider range of values,
+	// specifically arrays of bytes that do not correspond to
+	// UTF-8 encoded strings).
+	if primitive.Type == "string" {
+		primitive = ast.Primitive{Kind: "Primitive", Type: "bstring", Text: primitive.Text}
 	}
-	v, err := zng.ParseLiteral(literal)
+	zv, err := zson.ParsePrimitive(primitive)
 	if err != nil {
 		return nil, err
 	}
-	switch v := v.(type) {
-	case nil:
+	switch zv.Type.(type) {
+	case *zng.TypeOfNull:
 		return CompareUnset(op)
-	case net.IP:
+	case *zng.TypeOfIP:
+		v, err := zng.DecodeIP(zv.Bytes)
+		if err != nil {
+			return nil, err
+		}
 		return CompareIP(op, v)
-	case *net.IPNet:
+	case *zng.TypeOfNet:
+		v, err := zng.DecodeNet(zv.Bytes)
+		if err != nil {
+			return nil, err
+		}
 		return CompareSubnet(op, v)
-	case bool:
+	case *zng.TypeOfBool:
+		v, err := zng.DecodeBool(zv.Bytes)
+		if err != nil {
+			return nil, err
+		}
 		return CompareBool(op, v)
-	case float64: //XXX
+	case *zng.TypeOfFloat64:
+		v, err := zng.DecodeFloat64(zv.Bytes)
+		if err != nil {
+			return nil, err
+		}
 		return CompareFloat64(op, v)
-	case zng.Bstring: //XXX
-		return CompareBstring(op, v)
-	case int64:
+	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfType, *zng.TypeOfError:
+		return CompareBstring(op, zv.Bytes)
+	//XXX need to support other number types.  we previously did not have a
+	// way to express other int types as Z literals
+	case *zng.TypeOfInt64:
+		v, err := zng.DecodeInt(zv.Bytes)
+		if err != nil {
+			return nil, err
+		}
 		return CompareInt64(op, v)
 	default:
-		return nil, fmt.Errorf("unknown type of constant: %s (%T)", literal.Type, v)
+		return nil, fmt.Errorf("literal comparison of type %q unsupported", zv.Type.ZSON())
 	}
 }

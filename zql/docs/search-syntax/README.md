@@ -9,6 +9,7 @@
   * [Field/Value Match](#fieldvalue-match)
     + [Role of Data Types](#role-of-data-types)
     + [Pattern Matches](#pattern-matches)
+    + [Containment](#containment)
     + [Comparisons](#comparisons)
     + [Wildcard Field Names](#wildcard-field-names)
     + [Other Examples](#other-examples)
@@ -20,58 +21,53 @@
 
 ## Search all events
 
-The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a ZNG-formatted dump of all events. The default `zq` output is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll sometimes make use of the `-f tzng` option to output the text-based TZNG format, which is readable at the command line.
+The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a dump of all events. The default `zq` output is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll sometimes make use of the `-z` option to output the text-based [ZSON](../../../zng/docs/zson.md) format, which is readable at the command line.
 
 #### Example:
 ```zq-command
-zq -f tzng '*' conn.log.gz
+zq -z '*' conn.log.gz
 ```
 
 #### Output:
-```zq-output head:7
-#port=uint16
-#zenum=string
-#0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],proto:zenum,service:bstring,duration:duration,orig_bytes:uint64,resp_bytes:uint64,conn_state:bstring,local_orig:bool,local_resp:bool,missed_bytes:uint64,history:bstring,orig_pkts:uint64,orig_ip_bytes:uint64,resp_pkts:uint64,resp_ip_bytes:uint64,tunnel_parents:set[bstring]]
-0:[conn;1521911721.255387;C8Tful1TvM3Zf5x8fl;[10.164.94.120;39681;10.47.3.155;3389;]tcp;-;0.004266;97;19;RSTR;-;-;0;ShADTdtr;10;730;6;342;-;]
-0:[conn;1521911721.411148;CXWfTK3LRdiuQxBbM6;[10.47.25.80;50817;10.128.0.218;23189;]tcp;-;0.000486;0;0;REJ;-;-;0;Sr;2;104;2;80;-;]
-0:[conn;1521911721.926018;CM59GGQhNEoKONb5i;[10.47.25.80;50817;10.128.0.218;23189;]tcp;-;0.000538;0;0;REJ;-;-;0;Sr;2;104;2;80;-;]
-0:[conn;1521911722.690601;CuKFds250kxFgkhh8f;[10.47.25.80;50813;10.128.0.218;27765;]tcp;-;0.000546;0;0;REJ;-;-;0;Sr;2;104;2;80;-;]
+```zq-output head:4
+{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl" (bstring),id:{orig_h:10.164.94.120,orig_p:39681 (port=(uint16)),resp_h:10.47.3.155,resp_p:3389 (port)} (=0),proto:"tcp" (=zenum),service:null (bstring),duration:4.266ms,orig_bytes:97 (uint64),resp_bytes:19 (uint64),conn_state:"RSTR" (bstring),local_orig:null (bool),local_resp:null (bool),missed_bytes:0 (uint64),history:"ShADTdtr" (bstring),orig_pkts:10 (uint64),orig_ip_bytes:730 (uint64),resp_pkts:6 (uint64),resp_ip_bytes:342 (uint64),tunnel_parents:null (1=(|[bstring]|))} (=2)
+{_path:"conn",ts:2018-03-24T17:15:21.411148Z,uid:"CXWfTK3LRdiuQxBbM6",id:{orig_h:10.47.25.80,orig_p:50817,resp_h:10.128.0.218,resp_p:23189},proto:"tcp",service:null,duration:486us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
+{_path:"conn",ts:2018-03-24T17:15:21.926018Z,uid:"CM59GGQhNEoKONb5i",id:{orig_h:10.47.25.80,orig_p:50817,resp_h:10.128.0.218,resp_p:23189},proto:"tcp",service:null,duration:538us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
+{_path:"conn",ts:2018-03-24T17:15:22.690601Z,uid:"CuKFds250kxFgkhh8f",id:{orig_h:10.47.25.80,orig_p:50813,resp_h:10.128.0.218,resp_p:27765},proto:"tcp",service:null,duration:546us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
 ...
 ```
 
 If the ZQL argument is left out entirely, this wildcard is the default search. The following shorthand command line would produce the same output shown above.
 
 ```
-zq -f tzng conn.log.gz
+zq -z conn.log.gz
 ```
 
 To start a ZQL pipeline with this default search, you can similarly leave out the leading `* |` before invoking your first [processor](#../processors/README.md) or [aggregate function](#../aggregate-functions/README.md).
 
 #### Example #1:
 ```zq-command
-zq -f tzng 'cut server_tree_name' ntlm.log.gz # Shorthand for: zq '* | cut server_tree_name' ntlm.log.gz
+zq -z 'cut server_tree_name' ntlm.log.gz  # Shorthand for: zq -z '* | cut server_tree_name' ntlm.log.gz
 ```
 
 #### Output:
-```zq-output head:4
-#0:record[server_tree_name:bstring]
-0:[factory.oompa.loompa;]
-0:[factory.oompa.loompa;]
-0:[jerry.land;]
+```zq-output head:3
+{server_tree_name:"factory.oompa.loompa" (bstring)} (=0)
+{server_tree_name:"factory.oompa.loompa"} (0)
+{server_tree_name:"jerry.land"} (0)
 ...
 ```
 
 #### Example #2:
 ```zq-command
-zq -f tzng 'count() by _path | sort' *.log.gz  # Shorthand for: zq '* | count() by _path | sort' *.log.gz
+zq -z 'count() by _path | sort' *.log.gz  # Shorthand for: zq -z '* | count() by _path | sort' *.log.gz
 ```
 
 #### Output:
-```zq-output head:4
-#0:record[_path:string,count:uint64]
-0:[capture_loss;2;]
-0:[rfb;3;]
-0:[stats;5;]
+```zq-output head:3
+{_path:"capture_loss",count:2 (uint64)} (=0)
+{_path:"rfb",count:3} (0)
+{_path:"stats",count:5} (0)
 ...
 ```
 
@@ -253,21 +249,20 @@ When working with named fields, the data type of the field becomes significant i
 1. To match successfully, the value entered must be comparable to the data type of the named field. For instance, the `host` field of the `http` events in our sample data are of `string` type, since it logs an HTTP header that is often a hostname or an IP address.
 
    ```zq-command
-   zq -f tzng 'count() by host | sort count,host' http.log.gz
+   zq -z 'count() by host | sort count,host' http.log.gz
    ```
 
    #### Output:
-   ```zq-output head:4
-   #0:record[host:bstring,count:uint64]
-   0:[0988253c66242502070643933dd49e88.clo.footprintdns.com;1;]
-   0:[10.47.21.1;1;]
-   0:[10.47.21.80/..;1;]
+   ```zq-output head:3
+   {host:"0988253c66242502070643933dd49e88.clo.footprintdns.com" (bstring),count:1 (uint64)} (=0)
+   {host:"10.47.21.1",count:1} (0)
+   {host:"10.47.21.80/..",count:1} (0)
    ...
    ```
 
    An attempted field/value match `host=10.47.21.1` would not match the event counted in the middle row of this table, since ZQL recognizes the bare value `10.47.21.1` as an IP address before comparing it to all the fields named `host` that it sees in the input stream. However, `host="10.47.21.1"` would match, since the quotes cause ZQL to treat the value as a string.
 
-2.  The correct operator must be chosen based on whether the field type is primitive or complex.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a primitive type, `addr`. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a complex type, `set[addr]`.
+2.  The correct operator must be chosen based on whether the field type is primitive or complex.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a primitive type, `addr`. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a complex type, `set[addr]`. See the section below on [Containment](#containment) for details regarding the `in` operator.
 
 See the [Data Types](../data-types/README.md) page for more details on types and the operators for working with them.
 
@@ -279,10 +274,12 @@ An important distinction is that a "bare" field/value match is treated as an _ex
 ```zq-command
 zq -f table 'certificate.subject=Widgits' *.log.gz         # Produces no output
 ```
+
+#### Output:
 ```zq-output
 ```
 
-To achieve this with a field/value match, we can use [glob wildcards](#glob-wildcards). Because this is not testing for strict equality, here we use the pattern matching operator (`=~`) between the field name and value.
+To achieve this with a field/value match, we can use [glob wildcards](#glob-wildcards).
 
 #### Example:
 ```zq-command
@@ -300,11 +297,11 @@ x509  2018-03-24T17:15:47.493786Z FdBWBA3eODh6nHFt82 3                   C5F8CDF
 ...
 ```
 
-[Regular expressions](#regular-expressions) can also be used with the `=~` operator in field/value matches.
+[Regular expressions](#regular-expressions) can also be used in field/value matches.
 
 #### Example:
 ```zq-command
-zq -f table 'uri = /scripts\/waE8_BuNCEKM.(pl|sh)/' http.log.gz
+zq -f table 'uri=/scripts\/waE8_BuNCEKM.(pl|sh)/' http.log.gz
 ```
 
 #### Output:
@@ -318,7 +315,45 @@ http  2018-03-24T17:17:47.561097Z CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.
 http  2018-03-24T17:17:47.57066Z  CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8080      26          GET    10.47.3.142 /scripts/waE8_BuNCEKM.shtml -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                1635              404         Not Found  -         -        (empty) -        -        -       -          -              -               FdKLBd3fhPSqFIDFWc -              text/html
 ```
 
-Determining whether the value of a Zeek `addr`-type field is within a subnet also uses the pattern matching operator.
+### Containment
+
+Rather than testing for strict equality or pattern matches, you may want to determine if a value is among the many possible elements of a complex field. This is performed with the `in` operator.
+
+Our Zeek `dns` events include the `answers` field, which is an array of the multiple responses that may have been returned for a query. To determine which responses included hostname `e5803.b.akamaiedge.net`, we'll use `in`.
+
+#### Example:
+```zq-command
+zq -f table '"e5803.b.akamaiedge.net" in answers' dns.log.gz
+```
+
+#### Output:
+```zq-output
+_PATH TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                               TTLS         REJECTED
+dns   2018-03-24T17:20:25.827504Z CATruWimwi1KR0gec  10.47.3.10 63576     10.0.0.100 53        udp   16678    0.072468 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17936,20 F
+dns   2018-03-24T17:20:25.827506Z CATruWimwi1KR0gec  10.47.3.10 63576     10.0.0.100 53        udp   16678    0.072468 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17936,20 F
+dns   2018-03-24T17:25:29.650694Z CHx5jo2qosRtQOZs1  10.47.6.10 55186     10.0.0.100 53        udp   30327    0.095174 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17632,20 F
+dns   2018-03-24T17:25:29.650698Z CHx5jo2qosRtQOZs1  10.47.6.10 55186     10.0.0.100 53        udp   30327    0.095173 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17632,20 F
+dns   2018-03-24T17:30:24.694336Z CG5CeD4zyD41L4yt0d 10.47.6.10 55135     10.0.0.100 53        udp   2542     0.032114 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17337,20 F
+dns   2018-03-24T17:30:24.694339Z CG5CeD4zyD41L4yt0d 10.47.6.10 55135     10.0.0.100 53        udp   2542     0.032113 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17337,20 F
+```
+
+Notice that we wrapped the hostname in quotes. If we'd left it "bare", it would have been interpreted as an attempt to find records with a field called `e5803.b.akamaiedge.net` whose value is contained in the `answers` array of the same record. Since there's no field called `e5803.b.akamaiedge.net` in our data, this would have returning nothing. However, the `query` field does exist in our `dns` events, so the following example does return matches.
+
+#### Example:
+```zq-command
+zq -f table 'query in answers' dns.log.gz
+```
+
+#### Output:
+```zq-output
+_PATH TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY      QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS    TTLS REJECTED
+dns   2018-03-24T17:24:06.142423Z CCd3Uu1nPHikbjizuc 10.47.7.10 53280     10.0.0.100 53        udp   25252    0.000868 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
+dns   2018-03-24T17:24:06.142426Z CCd3Uu1nPHikbjizuc 10.47.7.10 53280     10.0.0.100 53        udp   25252    0.000869 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
+dns   2018-03-24T17:30:43.213667Z CV4T3j1mb4LbxNNgBl 10.47.7.10 53647     10.0.0.100 53        udp   45561    0.001054 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
+dns   2018-03-24T17:30:43.213671Z CV4T3j1mb4LbxNNgBl 10.47.7.10 53647     10.0.0.100 53        udp   45561    0.001053 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
+```
+
+Determining whether the value of a Zeek `addr`-type field is contained within a subnet also uses `in`.
 
 #### Example:
 ```zq-command
@@ -336,7 +371,7 @@ conn  2018-03-24T17:35:07.721609Z CCbNQn22j5UPZ4tute 10.47.26.25 59095     208.7
 
 ### Comparisons
 
-In addition to testing for equality and pattern matching via `=` and `=~`, other common comparison operators `!=`, `<`, `>`, `<=`, and `=>` are also available.
+In addition to testing for equality and pattern matching via `=`, other common comparison operators `!=`, `<`, `>`, `<=`, and `=>` are also available.
 
 For example, the following search finds connections that have transferred many bytes.
 
@@ -373,29 +408,9 @@ dns   2018-03-24T17:34:52.637238Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.
 
 ### Wildcard Field Names
 
-It's possible to search across _all_ fields of the value's data type by entering a wildcard in place of the field name. Two wildcard operators are available depending on how broad you want your search to be. The `*` operator matches all top-level fields of the value's type, and the `**` operator additionally matches such values when they appear nested within records.
+It's possible to search across _all_ top-level fields of a value's data type by entering a wildcard where you'd normally enter the field name.
 
-For example, the following search matches many `ssl` and `conn` events that contain the value `10.150.0.85` in `addr`-type fields of the `id` record, such as `id.resp_h`. It also matches `notice` events where it appears in `id.resp_h` and also `dst`, a top-level field also of the `addr` type. Compare this with our [bare word](#bare-word) example where we also matched as a substring of the `string`-type field named `certificate.subject`. This highlights how bare word searches match both on typed values and their string representation, whereas a field/value match is stricter, and considers typed values only.
-
-#### Example:
-```zq-command-disabled
-zq -f table '**=10.150.0.85' *.log.gz
-```
-
-#### Output:
-```zq-output-disabled head:8
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY   ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
-conn  2018-03-24T17:15:22.18798Z  CFis4J1xm9BOgtib34 10.47.8.10   56800     10.150.0.85 443       tcp   -       1.000534 31         77         SF         -          -          0            ^dtAfDTFr 8         382           10        554           -
-conn  2018-03-24T17:15:25.527535Z CnvVUp1zg3fnDKrlFk 10.47.27.186 58665     10.150.0.85 443       tcp   -       1.000958 31         77         SF         -          -          0            ^dtAfDFTr 8         478           10        626           -
-conn  2018-03-24T17:15:27.167552Z CsSFJyH4ucFtpmhqa  10.10.18.2   57331     10.150.0.85 443       tcp   -       1.000978 31         77         SF         -          -          0            ^dtAfDFTr 8         478           10        626           -
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P VERSION CIPHER                                CURVE  SERVER_NAME RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS   CLIENT_CERT_CHAIN_FUIDS SUBJECT                                                      ISSUER                                                       CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
-ssl   2018-03-24T17:15:32.513518Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FZW30y2Nwc9i0qmdvg (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-_PATH  TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P FUID               FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                              SUB                                                          SRC          DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
-notice 2018-03-24T17:15:32.521729Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
-...
-```
-
-However, if we use the single `*` wildcard, we match only the single `notice` event, as this is the only event with a matching top-level field of the `addr` type (the `dst` field).
+In the following search for the `addr`-type value `10.150.0.85`, we match only a single `notice` event, as this is the only event in our data with a matching top-level field of the `addr` type (the `dst` field).
 
 #### Example:
 ```zq-command
@@ -408,7 +423,9 @@ _PATH  TS                          UID                ID.ORIG_H    ID.ORIG_P ID.
 notice 2018-03-24T17:15:32.521729Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
 ```
 
-Similarly, the following search will only match when the value appears in a complex top-level field of type `set[addr]` or `array[addr]`, such as `tx_hosts` in this case.
+This same address `10.150.0.85` appears in other IP address fields in our data such as `id.resp_h`, but these were not matched because these happend to be _nested_ fields (e.g. `resp_h` is a field nested inside the record called `id`). An enhancement with an alternate syntax is planned to allow type-specific searches to reach into nested records when desired (see [zq/2250](https://github.com/brimsec/zq/issues/2250) and [zq/1428](https://github.com/brimsec/zq/issues/1428)). Compare this with the [bare word](#bare-word) searches we showed previously that perform type-independent matches for values in all locations, including in nested records and complex fields.
+
+The `*` wildcard can also be used to match when the value appears in a complex top-level field. Searching again for our `addr`-type value `10.150.0.85`, here we'll match in complex fields of type `set[addr]` or `array[addr]`, such as `tx_hosts` in this case.
 
 #### Example:
 ```zq-command
@@ -488,7 +505,7 @@ conn  2018-03-24T17:15:20.637761Z Cmgywj2O8KZAHHjddb 10.47.1.154 49582     134.7
 
 ### `not`
 
-Use the `not` operator to invert the matching logic of everything to the right of it in your search expression.
+Use the `not` operator to invert the matching logic in the term that comes to the right of it in your search.
 
 For example, suppose you've noticed that the vast majority of the sample Zeek events are of log types like `conn`, `dns`, `files`, etc. You could review some of the less-common Zeek event types by inverting the logic of a [regexp match](#regular-expressions).
 
@@ -515,7 +532,7 @@ rdp   2018-03-24T17:15:21.258458Z C8Tful1TvM3Zf5x8fl 10.164.94.120 39681     10.
 
 * **Note**: The `!` operator can also be used as alternative shorthand:
 
-        zq -f table '! _path=~/conn|dns|files|ssl|x509|http|weird/' *.log.gz
+        zq -f table '! _path=/conn|dns|files|ssl|x509|http|weird/' *.log.gz
 
 ### Parentheses & Order of Evaluation
 
@@ -525,7 +542,7 @@ For example, the following search leverages the implicit boolean `and` to find a
 
 #### Example:
 ```zq-command
-zq -f table '_path=smb_mapping not share_type=DISK' *.log.gz
+zq -f table 'not share_type=DISK _path=smb_mapping' *.log.gz
 ```
 
 #### Output:
@@ -538,12 +555,11 @@ smb_mapping 2018-03-24T17:15:25.562072Z C3kUnM2kEJZnvZmSp7 10.164.94.120 45903  
 ...
 ```
 
-XXX fix comment
-If we change the order of the terms to what's shown below, now we match almost every event we have. This is due to the left-to-right evaluation: Since the `not` comes first, it inverts the logic of _everything that comes after it_, hence giving us all stored events _other than_ `smb_mapping` events that have the value of their `share_type` field set to `DISK`.
+Terms wrapped in parentheses along with their operators will be evaluated _first_, overriding the default left-to-right evaluation. If we wrap the search terms as shown below, now we match almost every event we have. This is because the `not` is now inverting the logic of everything in the parentheses, hence giving us all stored events _other than_ `smb_mapping` events that have the value of their `share_type` field set to `DISK`.
 
 #### Example:
 ```zq-command
-zq -f table 'not (share_type=DISK and _path=smb_mapping)' *.log.gz
+zq -f table 'not (share_type=DISK _path=smb_mapping)' *.log.gz
 ```
 
 #### Output:
@@ -557,26 +573,6 @@ _PATH TS                          UID               ID.ORIG_H     ID.ORIG_P ID.R
 http  2018-03-24T17:15:20.609736Z CpQfkTi8xytq87HW2 10.164.94.120 36729     10.47.3.200 80        1           GET    10.47.3.200 /chassis/config/GeneralChassisConfig.html -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                56                301         Moved Permanently -         -        (empty) -        -        -       -          -              -               FnHkIl1kylqZ3O9xhg -              text/html
 _PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H    ID.RESP_P NAME                             ADDL NOTICE PEER
 weird 2018-03-24T17:15:20.610033Z C45Ff03lESjMQQQej1 10.47.5.155 40712     91.189.91.23 80        above_hole_data_without_any_acks -    F      zeek
-...
-```
-
-Terms wrapped in parentheses along with their operators will be evaluated _first_, overriding the default left-to-right evaluation.
-
-For example, we can rewrite our reordered search as shown below to restore its logic to that of the original.
-
-#### Example:
-```zq-command
-zq -f table '(not share_type=DISK) _path=smb_mapping' *.log.gz
-```
-
-#### Output:
-
-```zq-output head:5
-_PATH       TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H    ID.RESP_P PATH                     SERVICE NATIVE_FILE_SYSTEM SHARE_TYPE
-smb_mapping 2018-03-24T17:15:21.625534Z ChZRry3Z4kv3i25TJf 10.164.94.120 36315     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
-smb_mapping 2018-03-24T17:15:22.021668Z C0jyse1JYc82Acu4xl 10.164.94.120 34691     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
-smb_mapping 2018-03-24T17:15:24.619169Z C2byFA2Y10G1GLUXgb 10.164.94.120 35337     10.47.27.80  445       \\\\PC-NEWMAN\\IPC$      -       -                  PIPE
-smb_mapping 2018-03-24T17:15:25.562072Z C3kUnM2kEJZnvZmSp7 10.164.94.120 45903     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      -       -                  PIPE
 ...
 ```
 

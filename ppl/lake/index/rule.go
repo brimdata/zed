@@ -8,6 +8,7 @@ import (
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/zio"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
@@ -47,7 +48,7 @@ func NewRule(pattern string) (Rule, error) {
 func NewTypeRule(typ zng.Type) Rule {
 	return Rule{
 		Kind: RuleType,
-		Type: typ.String(),
+		Type: tzngio.TypeString(typ),
 	}
 }
 
@@ -121,38 +122,48 @@ var keyAst = ast.Assignment{
 	LHS: ast.NewDotExpr(keyName),
 	RHS: ast.NewDotExpr(keyName),
 }
-var countAst = ast.NewReducerAssignment("count", nil, nil)
+var countAst = ast.NewAggAssignment("count", nil, nil)
 
 // NewFieldRule creates an indexing rule that will index all fields of
 // the type passed in as argument.
 func (r Rule) typeProc() (ast.Proc, error) {
-	return &ast.SequentialProc{
+	return &ast.Sequential{
+		Kind: "Sequential",
 		Procs: []ast.Proc{
 			&ast.TypeSplitter{
 				Key:      keyName,
 				TypeName: r.Type,
 			},
-			&ast.GroupByProc{
-				Keys:     []ast.Assignment{keyAst},
-				Reducers: []ast.Assignment{countAst},
+			&ast.Summarize{
+				Kind: "Summarize",
+				Keys: []ast.Assignment{keyAst},
+				Aggs: []ast.Assignment{countAst},
 			},
-			&ast.SortProc{Fields: []ast.Expression{ast.NewDotExpr(keyName)}},
+			&ast.Sort{
+				Kind: "Sort",
+				Args: []ast.Expr{ast.NewDotExpr(keyName)},
+			},
 		},
 	}, nil
 }
 
 func (r Rule) fieldProc() (ast.Proc, error) {
-	return &ast.SequentialProc{
+	return &ast.Sequential{
+		Kind: "Sequential",
 		Procs: []ast.Proc{
 			&ast.FieldCutter{
 				Field: field.Dotted(r.Field),
 				Out:   keyName,
 			},
-			&ast.GroupByProc{
-				Keys:     []ast.Assignment{keyAst},
-				Reducers: []ast.Assignment{countAst},
+			&ast.Summarize{
+				Kind: "Summarize",
+				Keys: []ast.Assignment{keyAst},
+				Aggs: []ast.Assignment{countAst},
 			},
-			&ast.SortProc{Fields: []ast.Expression{ast.NewDotExpr(keyName)}},
+			&ast.Sort{
+				Kind: "Sort",
+				Args: []ast.Expr{ast.NewDotExpr(keyName)},
+			},
 		},
 	}, nil
 }

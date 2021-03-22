@@ -3,15 +3,17 @@ package expr
 import (
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/zng"
+	"github.com/brimsec/zq/zson"
 )
 
 type Literal struct {
 	zv zng.Value
 }
 
-//XXX only works for primitive... will need zctx for complex literals
-func NewLiteral(val ast.Literal) (*Literal, error) {
-	zv, err := zng.Parse(val)
+//XXX This only works for primitive... will need zctx for complex literals.
+// See issue #2335.
+func NewLiteral(val ast.Primitive) (*Literal, error) {
+	zv, err := zson.ParsePrimitive(val)
 	if err != nil {
 		return nil, err
 	}

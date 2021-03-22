@@ -24,7 +24,7 @@ func New(pctx *proc.Context, parent proc.Interface) (*Proc, error) {
 	return &Proc{
 		pctx:     pctx,
 		parent:   parent,
-		fuser:    NewFuser(pctx.TypeContext, MemMaxBytes),
+		fuser:    NewFuser(pctx.Zctx, MemMaxBytes),
 		resultCh: make(chan proc.Result),
 	}, nil
 }

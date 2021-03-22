@@ -1,50 +1,47 @@
-#define DQUOTE \x22
-#define SQUOTE \x27
-
 #ifdef GO
 {
     package zql
 }
-#define RETURN(x) return x, nil
-#define VAR(x) var x
-#define NULL nil
+#define APPEND(arr, value) arr = append(arr, value)
 #define ARRAY(...) []interface{}{__VA_ARGS__}
 #define ARRAY_LEN(a) len(a.([]interface{}))
-#define FOREACH(arr, var) for _, var := range arr
-#define APPEND(arr, value) arr = append(arr, value)
-#define PREPEND(value, arr) append([]interface{}{value}, (arr.([]interface{}))...)
-#define TEXT string(c.text)
-#define TOSTRING(s) fmt.Sprintf("%v", s)
-#define ISNOTNULL(n) n != nil
 #define ASSERT_ARRAY(a) a.([]interface{})
-#define ASSERT_STRING(s) s.(string)
 #define ASSERT_INT(i) i.(int)
 #define ASSERT_MAP(m) m.(map[string]interface{})
+#define ASSERT_STRING(s) s.(string)
+#define FOREACH(arr, var) for _, var := range arr
 #define HAS(m, k) _, ok := m[k]; ok
+#define ISNOTNULL(n) n != nil
 #define MAP(...) map[string]interface{}{__VA_ARGS__}
+#define NULL nil
+#define PREPEND(value, arr) append([]interface{}{value}, (arr.([]interface{}))...)
 #define PRINT(...) fmt.Println(__VA_ARGS__)
+#define RETURN(x) return x, nil
+#define TEXT string(c.text)
+#define TOSTRING(s) fmt.Sprintf("%v", s)
+#define VAR(x) var x
 #else
 {
 #include "parser-support.js"
 }
-#define RETURN(x) return x
-#define VAR(x) let x
-#define NULL null
+#define APPEND(arr, value) arr.push(value)
 #define ARRAY(...) [__VA_ARGS__]
 #define ARRAY_LEN(a) a.length
-#define FOREACH(arr, var) for(let var of arr)
-#define APPEND(arr, value) arr.push(value)
-#define PREPEND(value, arr) [value, ...arr]
-#define TEXT text()
-#define ASSERT_INT(i) i
-#define TOSTRING(s) s.toString()
-#define ISNOTNULL(n) (n)
 #define ASSERT_ARRAY(a) a
-#define ASSERT_STRING(s) s
+#define ASSERT_INT(i) i
 #define ASSERT_MAP(m) m
+#define ASSERT_STRING(s) s
+#define FOREACH(arr, var) for(let var of arr)
 #define HAS(m, k) (k in m)
+#define ISNOTNULL(n) (n)
 #define MAP(...) {__VA_ARGS__}
+#define NULL null
+#define PREPEND(value, arr) [value, ...arr]
 #define PRINT(...) console.log(__VAR_ARGS__)
+#define RETURN(x) return x
+#define TEXT text()
+#define TOSTRING(s) s.toString()
+#define VAR(x) let x
 #endif
 
 start = __ ast:Z __ EOF { RETURN(ast) }
@@ -60,7 +57,7 @@ Z // = !(Operator / Aggregation / "(") op:Operation &EOF { RETURN(op) }
       FOREACH(ASSERT_ARRAY(rest), p) {
         APPEND(procs, p)
       }
-      RETURN(MAP("op": "SequentialProc", "procs": procs))
+      RETURN(MAP("kind": "Sequential", "procs": procs))
     }
   / Sequential
 
@@ -68,18 +65,18 @@ Const = __ v:AnyConst { RETURN(v) }
 
 AnyConst
   = "const" _ id:IdentifierName __ "=" __ expr:Expr ( __ ";" / EOL ) {
-      RETURN(MAP("op":"ConstProc","name":id, "expr":expr))
+      RETURN(MAP("kind":"Const","name":id, "expr":expr))
     }
   / "type" _ id:IdentifierName __ "=" __ typ:Type ( __ ";" / EOL ) {
-      RETURN(MAP("op":"TypeProc","name":id, "type":typ))
+      RETURN(MAP("kind":"TypeProc","name":id, "type":typ))
     }
 
 Sequential
   = first:Operation rest:SequentialTail+ {
-      RETURN(MAP("op": "SequentialProc", "procs": PREPEND(first, rest)))
+      RETURN(MAP("kind": "Sequential", "procs": PREPEND(first, rest)))
     }
   / op:Operation {
-      RETURN(MAP("op": "SequentialProc", "procs": ARRAY(op)))
+      RETURN(MAP("kind": "Sequential", "procs": ARRAY(op)))
     }
 
 SequentialTail = __ "|" __ p:Operation { RETURN(p) }
@@ -95,42 +92,43 @@ Parallel
 ParallelTail
   = __ "=>" __ ch:Sequential { RETURN(ch) }
 
-
 SwitchBranch
-  = filter:SearchBoolean __ "=>" __ proc:Sequential {
-    RETURN(MAP("filter": filter, "proc": proc))
-  }
+  = __ CaseToken _ e:SearchBoolean __ "=>" __ proc:Sequential {
+      RETURN(MAP("expr": e, "proc": proc))
+    }
+  / __ DefaultToken __ "=>" __ proc:Sequential {
+      RETURN(MAP("expr": MAP("kind": "Primitive", "type": "bool", "text": "true"), "proc": proc))
+    }
 
 Switch
-  = first:SwitchBranch rest:SwitchTail+ {
+  = first:SwitchBranch rest:SwitchBranch+ {
       RETURN(PREPEND(first, rest))
     }
   / first:SwitchBranch {
       RETURN(ARRAY(first))
     }
 
-SwitchTail
-  = __ CaseToken __ ch:SwitchBranch { RETURN(ch) }
-
-CaseToken = "case"
+CaseToken = "case"i
+DefaultToken = "default"i
 
 Operation
   = "split" __ "(" __ "=>" __ procArray:Parallel __ ")" {
-      RETURN(MAP("op": "ParallelProc", "procs": procArray))
+      RETURN(MAP("kind": "Parallel", "procs": procArray))
     }
-  / "switch" __ "(" __ CaseToken __ caseArray:Switch __ ")" {
-      RETURN(MAP("op": "SwitchProc", "cases": caseArray))
+  / "switch" __ "(" __ caseArray:Switch __ ")" {
+      RETURN(MAP("kind": "Switch", "cases": caseArray))
     }
   / Operator
   / f:Function &EndOfOp { RETURN(f) }
   / a:Aggregation &EndOfOp  { RETURN(a) }
   / expr:SearchBoolean !AggGuard {
-      RETURN(MAP("op": "FilterProc", "filter": expr))
+      RETURN(MAP("kind": "Filter", "expr": expr))
     }
 
 EndOfOp = __ ("|" / "=>" / ")" / EOF)
 
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(")
+
 AggGuard = (_ (ByToken / "-with") EOT) / (__ ",")
 
 SearchBoolean
@@ -148,7 +146,7 @@ SearchAnd
 
 SearchFactor
   = (NotToken _ / "!" __) e:SearchFactor {
-      RETURN(MAP("op": "UnaryExpr", "operator": "!", "operand": e))
+      RETURN(MAP("kind": "UnaryExpr", "op": "!", "operand": e))
     }
   / ShortCut
   / SearchExpr
@@ -156,73 +154,70 @@ SearchFactor
 
 ShortCut
   = "*" __ compareOp:EqualityToken __ v:SearchValue {
-      RETURN(MAP("op": "FunctionCall", "function": "or",
+      RETURN(MAP("kind": "Call", "name": "or",
         "args": ARRAY(
-          MAP("op": "SelectExpr",
-              "selectors": ARRAY(MAP("op": "RootRecord")),
+          MAP("kind": "SelectExpr",
+              "selectors": ARRAY(MAP("kind": "Root")),
               "methods": ARRAY(
-                MAP("op": "FunctionCall", "function": "map",
-                    "args": ARRAY(MAP("op": "BinaryExpr", "operator": "=",
-                                      "lhs": MAP("op": "Identifier", "name": "$"),
+                MAP("kind": "Call", "name": "map",
+                    "args": ARRAY(MAP("kind": "BinaryExpr", "op": "=",
+                                      "lhs": MAP("kind": "Id", "name": "$"),
                                       "rhs": v))))))))
     }
-  / f:Lval __ comp:EqualityToken __ v:GlobbySearchValue !ExprGuard {
-      RETURN(MAP("op": "BinaryExpr", "operator":comp, "lhs":f, "rhs":v))
+  / match:PatternMatch !ExprGuard { RETURN(match) }
+  / f:Lval __ comp:EqualityToken __ v:SearchValue !ExprGuard {
+      RETURN(MAP("kind": "BinaryExpr", "op":comp, "lhs":f, "rhs":v))
     }
   / v:SearchValue _ InToken _ "*" {
-      RETURN(MAP("op": "FunctionCall", "function": "or",
+      RETURN(MAP("kind": "Call", "name": "or",
         "args": ARRAY(
-          MAP("op": "SelectExpr",
-              "selectors": ARRAY(MAP("op": "RootRecord")),
+          MAP("kind": "SelectExpr",
+              "selectors": ARRAY(MAP("kind": "Root")),
               "methods": ARRAY(
-                MAP("op": "FunctionCall", "function": "map",
-                    "args": ARRAY(MAP("op": "BinaryExpr", "operator": "in",
-                                      "rhs": MAP("op": "Identifier", "name": "$"),
+                MAP("kind": "Call", "name": "map",
+                    "args": ARRAY(MAP("kind": "BinaryExpr", "op": "in",
+                                      "rhs": MAP("kind": "Id", "name": "$"),
                                       "lhs": v))))))))
     }
-  / !(SearchGuard EOT) v:GlobbySearchValue !ExprGuard {
-      RETURN(MAP("op": "Search", "text": TEXT, "value": v))
+  / !(SearchGuard EOT) search:PatternSearch { RETURN(search) }
+  / !(SearchGuard EOT) v:SearchValue !ExprGuard {
+      RETURN(MAP("kind": "Search", "text": TEXT, "value": v))
     }
   / "*" !ExprGuard {
-      RETURN(MAP("op": "Literal", "type": "bool", "value": "true"))
+      RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true"))
     }
 
 SearchValue
   = Literal
-  / v:KeyWord {
-      RETURN(MAP("op": "Literal", "type": "string", "value": v))
+  / !Regexp v:KeyWord {
+      RETURN(MAP("kind": "Primitive", "type": "string", "text": v))
     }
 
-GlobbySearchValue
-  = Literal
-  / v:SearchGlob {
-      VAR(str) = ASSERT_STRING(v)
-      VAR(literal) = MAP("op": "Literal", "type": "string", "value": v)
-      if (reglob.IsGlobby(str)) {
-        literal["type"] = "regexp"
-        literal["value"] = reglob.Reglob(str)
-      }
-      RETURN(literal)
+PatternSearch
+  = pattern:Pattern {
+      RETURN(MAP("kind": "RegexpSearch", "pattern": pattern))
     }
 
-SearchGlob
-  = head:GlobPart+ tail:("*")* {
-      RETURN(joinChars(head) + joinChars(tail))
+PatternMatch
+  = f:Lval ((__ "=" __) / (_ "in" _))  pattern:Pattern {
+      RETURN(MAP("kind": "RegexpMatch", "pattern": pattern, "expr": f))
+    }
+  / f:Lval __ "!=" __  pattern:Pattern {
+      RETURN(MAP("kind": "UnaryExpr", "op": "!",
+                  "operand": MAP("kind": "RegexpMatch", "pattern": pattern, "expr": f)))
     }
 
-GlobPart
-  = s:Stars v:KeyWord { RETURN(ASSERT_STRING(s)+ASSERT_STRING(v)) }
-  / KeyWord
-
-Stars = "*"+ { RETURN(TEXT) }
+Pattern = Regexp / Glob
 
 SearchGuard
-  = AndToken
+  = SQLTokenSentinels
+  / AndToken
   / OrToken
   / NotToken
   / InToken
   / ByToken
   / CaseToken
+  / DefaultToken
   / "type("
 
 /// === Search-embedded Expression Context ===
@@ -251,7 +246,7 @@ SearchExprMul
 
 SearchExprCast
   = e:SearchExprFunc __ ":" __ typ:CastType {
-      RETURN(MAP("op": "CastExpr", "expr": e, "type": typ))
+      RETURN(MAP("kind": "Cast", "expr": e, "type": typ))
     }
   / SearchExprFunc
 
@@ -261,17 +256,17 @@ SearchExprFunc
   / first:Function rest:(Deref)*  {
       RETURN(makeBinaryExprChain(first, rest))
     }
-  / DerefExpr
   / Literal
+  / DerefExpr
 
 /// === Aggregations ===
 
 Aggregation
   = Summarize every:EveryDur keys:GroupByKeys limit:LimitArg {
-      RETURN(MAP("op": "GroupByProc", "keys": keys, "reducers": NULL, "duration": every, "limit": limit))
+      RETURN(MAP("kind": "Summarize", "keys": keys, "aggs": NULL, "duration": every, "limit": limit))
     }
-  / Summarize every:EveryDur reducers:Reducers keys:(_ GroupByKeys)? limit:LimitArg {
-      VAR(p) = MAP("op": "GroupByProc", "keys": NULL, "reducers": reducers, "duration": every, "limit": limit)
+  / Summarize every:EveryDur aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
+      VAR(p) = MAP("kind": "Summarize", "keys": NULL, "aggs": aggs, "duration": every, "limit": limit)
       if ISNOTNULL(keys) {
         p["keys"] = ASSERT_ARRAY(keys)[1]
       }
@@ -296,45 +291,47 @@ LimitArg
 // an expression like "count() by foo", the rhs is Field "foo" and the lhs is nil.
 FlexAssignment
   = Assignment
-  / expr:Expr { RETURN(MAP("op": "Assignment", "lhs": NULL, "rhs": expr)) }
+  / expr:Expr { RETURN(MAP("kind": "Assignment", "lhs": NULL, "rhs": expr)) }
 
 FlexAssignments
   = first:FlexAssignment rest:(__ "," __ expr:FlexAssignment { RETURN(expr) })* {
       RETURN(PREPEND(first, rest))
     }
 
-ReducerAssignment
-  = lval:Lval __ "=" __ reducer:Reducer {
-      RETURN(MAP("op": "Assignment", "lhs": lval, "rhs": reducer))
+AggAssignment
+  = lval:Lval __ "=" __ agg:Agg {
+      RETURN(MAP("kind": "Assignment", "lhs": lval, "rhs": agg))
     }
-  / reducer:Reducer {
-      RETURN(MAP("op": "Assignment", "lhs": NULL, "rhs": reducer))
+  / agg:Agg {
+      RETURN(MAP("kind": "Assignment", "lhs": NULL, "rhs": agg))
     }
 
-Reducer
-  = !FuncGuard op:ReducerName __ "(" __ expr:Expr?  __ ")" !(__ ".") where:WhereClause? {
-      VAR(r) = MAP("op": "Reducer", "operator": op, "expr": NULL, "where":where)
+Agg
+  = !FuncGuard op:AggName __ "(" __ expr:Expr?  __ ")" !(__ ".") where:WhereClause? {
+      VAR(r) = MAP("kind": "Agg", "name": op, "expr": NULL, "where":where)
       if ISNOTNULL(expr) {
         r["expr"] = expr
       }
       RETURN(r)
     }
 
-ReducerName
+AggName
   = IdentifierName
   / AndToken
   / OrToken
 
 WhereClause = _ "where" _ expr:SearchBoolean { RETURN(expr) }
 
-Reducers
-  = first:ReducerAssignment rest:(__ "," __ ReducerAssignment)* {
+AggAssignments
+  = first:AggAssignment rest:(__ "," __ AggAssignment)* {
       VAR(result) = ARRAY(first)
       FOREACH(ASSERT_ARRAY(rest), r) {
         APPEND(result, ASSERT_ARRAY(r)[3])
       }
       RETURN(result)
     }
+
+/// === Operators (aka Procs) ===
 
 Operator
   = SortProc
@@ -349,13 +346,15 @@ Operator
   / PutProc
   / RenameProc
   / FuseProc
+  / ShapeProc
   / JoinProc
   / TasteProc
+  / SQLProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
       VAR(argm) = ASSERT_MAP(args)
-      VAR(proc) = MAP("op": "SortProc", "fields": list, "sortdir": 1, "nullsfirst": false)
+      VAR(proc) = MAP("kind": "Sort", "args": list, "sortdir": 1, "nullsfirst": false)
       if HAS(argm, "r") {
         proc["sortdir"] = -1
       }
@@ -375,12 +374,12 @@ SortArg
 
 TopProc
   = "top"i limit:(_ n:UInt { RETURN(n)})? flush:(_ "-flush")? fields:(_ f:FieldExprs { RETURN(f) })? {
-      VAR(proc) = MAP("op": "TopProc", "limit": 0, "fields": NULL, "flush": false)
+      VAR(proc) = MAP("kind": "Top", "limit": 0, "args": NULL, "flush": false)
       if ISNOTNULL(limit) {
         proc["limit"] = limit
       }
       if ISNOTNULL(fields) {
-        proc["fields"] = fields
+        proc["args"] = fields
       }
       if ISNOTNULL(flush) {
         proc["flush"] = true
@@ -389,27 +388,27 @@ TopProc
     }
 
 CutProc
-  = "cut"i _ columns:FlexAssignments {
-      RETURN(MAP("op": "CutProc", "fields": columns))
+  = "cut"i _ args:FlexAssignments {
+      RETURN(MAP("kind": "Cut", "args": args))
     }
 
 PickProc
-  = "pick"i _ columns:FlexAssignments {
-      RETURN(MAP("op": "PickProc", "fields": columns))
+  = "pick"i _ args:FlexAssignments {
+      RETURN(MAP("kind": "Pick", "args": args))
     }
 
 DropProc
-  = "drop"i _ columns:FieldExprs {
-      RETURN(MAP("op": "DropProc", "fields": columns))
+  = "drop"i _ args:FieldExprs {
+      RETURN(MAP("kind": "Drop", "args": args))
     }
 
 HeadProc
-  = "head"i _ count:UInt { RETURN(MAP("op": "HeadProc", "count": count)) }
-  / "head"i { RETURN(MAP("op": "HeadProc", "count": 1)) }
+  = "head"i _ count:UInt { RETURN(MAP("kind": "Head", "count": count)) }
+  / "head"i { RETURN(MAP("kind": "Head", "count": 1)) }
 
 TailProc
-  = "tail"i _ count:UInt { RETURN(MAP("op": "TailProc", "count": count)) }
-  / "tail"i { RETURN(MAP("op": "TailProc", "count": 1)) }
+  = "tail"i _ count:UInt { RETURN(MAP("kind": "Tail", "count": count)) }
+  / "tail"i { RETURN(MAP("kind": "Tail", "count": 1)) }
 
 FilterProc
   = "filter"i _ op:Filter {
@@ -418,25 +417,25 @@ FilterProc
 
 Filter
   = expr:SearchBoolean {
-      RETURN(MAP("op": "FilterProc", "filter": expr))
+      RETURN(MAP("kind": "Filter", "expr": expr))
     }
 
 UniqProc
   = "uniq"i _ "-c" {
-      RETURN(MAP("op": "UniqProc", "cflag": true))
+      RETURN(MAP("kind": "Uniq", "cflag": true))
     }
   / "uniq"i {
-      RETURN(MAP("op": "UniqProc", "cflag": false))
+      RETURN(MAP("kind": "Uniq", "cflag": false))
     }
 
 PutProc
-  = "put"i _ columns:FlexAssignments {
-      RETURN(MAP("op": "PutProc", "clauses": columns))
+  = "put"i _ args:FlexAssignments {
+      RETURN(MAP("kind": "Put", "args": args))
     }
 
 RenameProc
   = "rename"i _ first:Assignment rest:(__ "," __ cl:Assignment { RETURN(cl) })* {
-      RETURN(MAP("op": "RenameProc", "fields": PREPEND(first, rest)))
+      RETURN(MAP("kind": "Rename", "args": PREPEND(first, rest)))
     }
 
 // The paren guard is to allow parsing fuse() as an aggregator. This
@@ -445,26 +444,31 @@ RenameProc
 // aggregator, at which point we may no longer need this.
 FuseProc
   = "fuse"i !(__ "(") {
-      RETURN(MAP("op": "FuseProc"))
+      RETURN(MAP("kind": "Fuse"))
+    }
+
+ShapeProc
+  = "shape"i {
+      RETURN(MAP("kind": "Shape"))
     }
 
 JoinProc
-  = kind:JoinKind "join"i _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("op": "JoinProc", "kind": kind, "left_key": leftKey, "right_key": rightKey, "clauses": NULL)
+  = style:JoinStyle "join"i _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
+      VAR(proc) = MAP("kind": "Join", "style": style, "left_key": leftKey, "right_key": rightKey, "args": NULL)
       if ISNOTNULL(columns) {
-        proc["clauses"] = ASSERT_ARRAY(columns)[1]
+        proc["args"] = ASSERT_ARRAY(columns)[1]
       }
       RETURN(proc)
     }
-  / kind:JoinKind  "join"i _ key:JoinKey columns:(_ FlexAssignments)? {
-      VAR(proc) = MAP("op": "JoinProc", "kind": kind, "left_key": key, "right_key": key, "clauses": NULL)
+  / style:JoinStyle  "join"i _ key:JoinKey columns:(_ FlexAssignments)? {
+      VAR(proc) = MAP("kind": "Join", "style": style, "left_key": key, "right_key": key, "args": NULL)
       if ISNOTNULL(columns) {
-        proc["clauses"] = ASSERT_ARRAY(columns)[1]
+        proc["args"] = ASSERT_ARRAY(columns)[1]
       }
       RETURN(proc)
     }
 
-JoinKind
+JoinStyle
   = "inner"i _ { RETURN("inner") }
   / "left"i  _ { RETURN("left") }
   / "right"i _ { RETURN("right") }
@@ -476,28 +480,30 @@ JoinKey
 
 TasteProc
   = "taste"i e:TasteExpr {
-      RETURN(MAP("op": "SequentialProc", "procs": ARRAY(
-        MAP("op": "GroupByProc",
-          "keys": ARRAY(MAP("op": "Assignment",
-                   "lhs": MAP("op": "Identifier", "name": "shape"),
-                   "rhs": MAP("op": "FunctionCall", "function": "typeof",
+      RETURN(MAP("kind": "Sequential", "procs": ARRAY(
+        MAP("kind": "Summarize",
+          "keys": ARRAY(MAP("kind": "Assignment",
+                   "lhs": MAP("kind": "Id", "name": "shape"),
+                   "rhs": MAP("kind": "Call", "name": "typeof",
                               "args": ARRAY(e)))),
-          "reducers": ARRAY(MAP("op": "Assignment",
-                              "lhs": MAP("op": "Identifier", "name": "taste"),
-                              "rhs": MAP("op": "Reducer",
-                                         "operator": "any",
+          "aggs": ARRAY(MAP("kind": "Assignment",
+                              "lhs": MAP("kind": "Id", "name": "taste"),
+                              "rhs": MAP("kind": "Agg",
+                                         "name": "any",
                                          "expr": e,
                                          "where": NULL))),
           "duration": NULL, "limit": 0),
-        MAP("op": "CutProc",
-            "fields": ARRAY(MAP("op": "Assignment",
+        MAP("kind": "Cut",
+            "args": ARRAY(MAP("kind": "Assignment",
                                 "lhs": NULL,
-                                "rhs": MAP("op": "Identifier", "name": "taste")))))))
+                                "rhs": MAP("kind": "Id", "name": "taste")))))))
     }
 
 TasteExpr
   = _ lval:Lval { RETURN(lval)}
-  / "" { RETURN(MAP("op":"RootRecord")) }
+  / "" { RETURN(MAP("kind":"Root")) }
+
+/// === Expressions ===
 
 Lval = DerefExpr
 
@@ -526,13 +532,13 @@ Exprs
     }
 
 Assignment
-  = lhs:Lval __ "=" __ rhs:Expr { RETURN(MAP("op": "Assignment", "lhs": lhs, "rhs": rhs)) }
+  = lhs:Lval __ "=" __ rhs:Expr { RETURN(MAP("kind": "Assignment", "lhs": lhs, "rhs": rhs)) }
 
 Expr = ConditionalExpr
 
 ConditionalExpr
   = condition:LogicalOrExpr __ "?" __ thenClause:Expr __ ":" __ elseClause:Expr {
-      RETURN(MAP("op": "ConditionalExpr", "condition": condition, "then": thenClause, "else": elseClause))
+      RETURN(MAP("kind": "Conditional", "cond": condition, "then": thenClause, "else": elseClause))
     }
   / LogicalOrExpr
 
@@ -587,13 +593,13 @@ MultiplicativeOperator = ("*" / "/") { RETURN(TEXT) }
 
 NotExpr
   = "!" __ e:NotExpr {
-        RETURN(MAP("op": "UnaryExpr", "operator": "!", "operand": e))
+        RETURN(MAP("kind": "UnaryExpr", "op": "!", "operand": e))
     }
   / CastExpr
 
 CastExpr
   = e:FuncExpr __ ":" __ typ:CastType {
-      RETURN(MAP("op": "CastExpr", "expr": e, "type": typ))
+      RETURN(MAP("kind": "Cast", "expr": e, "type": typ))
     }
   / FuncExpr
 
@@ -620,7 +626,7 @@ MatchExpr
 
 SelectExpr
   = "select" __ "(" __ args:ArgumentList __ ")" methods:Methods {
-      RETURN(MAP("op":"SelectExpr", "selectors":args, "methods": methods))
+      RETURN(MAP("kind":"SelectExpr", "selectors":args, "methods": methods))
     }
 
 // Note that this is written this way instead of using Method* above since
@@ -636,7 +642,7 @@ Method
 
 Function
   = !FuncGuard fn:IdentifierName __ "(" __ args:ArgumentList __ ")" {
-      RETURN(MAP("op": "FunctionCall", "function": fn, "args": args))
+      RETURN(MAP("kind": "Call", "name": fn, "args": args))
     }
 
 ArgumentList
@@ -653,32 +659,32 @@ DerefExpr
       RETURN(makeBinaryExprChain(first, rest))
     }
   / "." {
-      RETURN(MAP("op":"RootRecord"))
+      RETURN(MAP("kind":"Root"))
     }
 
 DotId
   = "." field:Identifier {
-      RETURN(MAP("op": "BinaryExpr", "operator":".",
-                     "lhs":MAP("op":"RootRecord"),
+      RETURN(MAP("kind": "BinaryExpr", "op":".",
+                     "lhs":MAP("kind":"Root"),
                      "rhs":field))
     }
   / "." "[" expr:Expr "]" {
-      RETURN(MAP("op": "BinaryExpr", "operator":"[",
-                     "lhs":MAP("op":"RootRecord"),
+      RETURN(MAP("kind": "BinaryExpr", "op":"[",
+                     "lhs":MAP("kind":"Root"),
                      "rhs":expr))
     }
 
 Deref
   = "[" from:AdditiveExpr __ ":" __ to:AdditiveExpr "]" {
-      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+      RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op":":",
                             "lhs":from, "rhs":to)))
     }
   / "[" __ ":" __ to:AdditiveExpr "]" {
-      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+      RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op":":",
                             "lhs": NULL, "rhs":to)))
     }
   / "[" from:AdditiveExpr __ ":" __ "]" {
-      RETURN(ARRAY("[", MAP("op": "BinaryExpr", "operator":":",
+      RETURN(ARRAY("[", MAP("kind": "BinaryExpr", "op":":",
                             "lhs":from, "rhs": NULL)))
     }
   / "[" expr:Expr "]" { RETURN(ARRAY("[", expr)) }
@@ -688,10 +694,130 @@ Primary
   = Literal
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
+
+/// === SQL Compat ===
+
+SQLProc
+  = selection:SQLSelect
+    from:SQLFrom
+    joins:SQLJoins
+    where:SQLWhere
+    groupby:SQLGroupBy
+    having:SQLHaving
+    orderby:SQLOrderBy
+    limit:SQLLimit
+    {
+      RETURN(MAP(
+        "kind": "SQLExpr",
+        "select": selection,
+        "from": from,
+        "joins": joins,
+        "where": where,
+        "group_by": groupby,
+        "having": having,
+        "order_by": orderby,
+        "limit": limit ))
+    }
+
+SQLSelect
+  = SELECT _ "*" { RETURN(NULL) }
+  / SELECT _ assignments:SQLAssignments { RETURN(assignments) }
+
+SQLAssignment
+  = rhs:Expr _ AS _ lhs:Lval { RETURN(MAP("kind": "Assignment", "lhs": lhs, "rhs": rhs)) }
+  / expr:Expr { RETURN(MAP("kind": "Assignment", "lhs": NULL, "rhs": expr)) }
+
+SQLAssignments
+  = first:SQLAssignment rest:(__ "," __ expr:SQLAssignment { RETURN(expr) })* {
+      RETURN(PREPEND(first, rest))
+    }
+
+SQLFrom
+  = _ FROM _ table:SQLTable alias:SQLAlias {
+      RETURN(MAP("table": table, "alias": alias))
+    }
+  / _ FROM _ "*" { RETURN(NULL) }
+  / "" { RETURN(NULL) }
+
+SQLAlias
+  = _ AS _ id:Lval { RETURN(id) }
+  / _ id:Lval { RETURN(id) }
+  / "" { RETURN(NULL) }
+
+SQLTable
+  = Expr
+
+SQLJoins
+  = first:SQLJoin rest:(join:SQLJoin { RETURN(join) })* {
+      RETURN(PREPEND(first, rest))
+    }
+  / "" { RETURN(NULL) }
+
+SQLJoin
+  = style:SQLJoinStyle _ JOIN _ table:SQLTable alias:SQLAlias _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey {
+      RETURN(MAP(
+        "table": table,
+        "style": style,
+        "left_key": leftKey,
+        "right_key": rightKey,
+        "alias": alias))
+    }
+
+SQLJoinStyle
+  = _ style:(LEFT / RIGHT / INNER) { RETURN(style) }
+  / ""         { RETURN("inner") }
+
+SQLWhere
+  = _ WHERE _ expr:SearchBoolean { RETURN(expr) }
+  / "" { RETURN(NULL) }
+
+SQLGroupBy
+  = _ GROUP _ BY _ columns:FieldExprs { RETURN(columns) }
+  / "" { RETURN(NULL) }
+
+SQLHaving
+  = _ HAVING _ expr:SearchBoolean { RETURN(expr) }
+  / "" { RETURN(NULL) }
+
+SQLOrderBy
+  = _ ORDER _ BY _ keys:Exprs order:SQLOrder {
+      RETURN(MAP("kind": "SQLOrderBy", "keys": keys, "order":order))
+    }
+  / "" { RETURN(NULL) }
+
+SQLOrder
+  = _ dir:(ASC / DESC) { RETURN(dir) }
+  / "" { RETURN("asc") }
+
+SQLLimit
+  = _ LIMIT _ count:UInt { RETURN(count) }
+  / "" { RETURN(0) }
+
+SELECT = "select"i { RETURN("select") }
+AS = "as"i { RETURN("as") }
+FROM = "from"i { RETURN("from") }
+JOIN = "join"i { RETURN("join") }
+WHERE = "where"i { RETURN("where") }
+GROUP = "group"i { RETURN("group") }
+BY = ByToken
+HAVING = "having"i { RETURN("having") }
+ORDER = "order"i { RETURN("order") }
+ON = "on"i { RETURN("on") }
+LIMIT = "limit"i { RETURN("limit") }
+ASC = "asc"i { RETURN("asc") }
+DESC = "desc"i { RETURN("desc") }
+LEFT = "left"i { RETURN("left") }
+RIGHT = "right"i { RETURN("right") }
+INNER = "inner"i { RETURN("inner") }
+
+SQLTokenSentinels
+  = SELECT / AS / FROM /  JOIN / WHERE / GROUP / HAVING / ORDER / LIMIT / ON
+
+/// === Literals ===
+
 Literal
   = TypeLiteral
   / StringLiteral
-  / RegexpLiteral
   / SubnetLiteral
   / AddressLiteral
   / FloatLiteral
@@ -701,50 +827,45 @@ Literal
 
 StringLiteral
   = v:QuotedString {
-      RETURN(MAP("op": "Literal", "type": "string", "value": v))
-    }
-
-RegexpLiteral
-  = v:Regexp !KeyWordStart {
-      RETURN(MAP("op": "Literal", "type": "regexp", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "string", "text": v))
     }
 
 SubnetLiteral
   = v:IP6Net !IdentifierRest {
-      RETURN(MAP("op": "Literal", "type": "net", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "net", "text": v))
     }
   / v:IP4Net {
-      RETURN(MAP("op": "Literal", "type": "net", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "net", "text": v))
     }
 
 AddressLiteral
   = v:IP6 !IdentifierRest {
-      RETURN(MAP("op": "Literal", "type": "ip", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "ip", "text": v))
     }
   / v:IP {
-      RETURN(MAP("op": "Literal", "type": "ip", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "ip", "text": v))
     }
 
 FloatLiteral
   = v:FloatString {
-      RETURN(MAP("op": "Literal", "type": "float64", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "float64", "text": v))
     }
 
 IntegerLiteral
   = v:IntString {
-      RETURN(MAP("op": "Literal", "type": "int64", "value": v))
+      RETURN(MAP("kind": "Primitive", "type": "int64", "text": v))
     }
 
 BooleanLiteral
-  = "true"           { RETURN(MAP("op": "Literal", "type": "bool", "value": "true")) }
-  / "false"          { RETURN(MAP("op": "Literal", "type": "bool", "value": "false")) }
+  = "true"           { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true")) }
+  / "false"          { RETURN(MAP("kind": "Primitive", "type": "bool", "text": "false")) }
 
 NullLiteral
-  = "null"           { RETURN(MAP("op": "Literal", "type": "null", "value": "")) }
+  = "null"           { RETURN(MAP("kind": "Primitive", "type": "null", "text": "")) }
 
 TypeLiteral
-  = typ:TypeExternal {
-      RETURN(MAP("op": "TypeExpr", "type": typ))
+  = !(SQLTokenSentinels EOT) typ:TypeExternal {
+      RETURN(MAP("kind": "TypeValue", "value": typ))
     }
 
 CastType
@@ -763,20 +884,20 @@ Type
 
 AmbiguousType
   = "null" {
-      RETURN(MAP("op": "TypeNull"))
+      RETURN(MAP("kind": "TypeNull"))
     }
   / name:PrimitiveType
   / name:IdentifierName __ '=' __ "(" __ typ:Type __ ")" {
-      RETURN(MAP("op": "TypeDef", "name": name, "type": typ))
+      RETURN(MAP("kind": "TypeDef", "name": name, "type": typ))
   }
   / name:IdentifierName {
-      RETURN(MAP("op": "TypeName", "name": name))
+      RETURN(MAP("kind": "TypeName", "name": name))
     }
   / "(" __ u:TypeUnion  ")" { RETURN(u) }
 
 TypeUnion
   = types:TypeList {
-      RETURN(MAP("op": "TypeUnion", "types": types))
+      RETURN(MAP("kind": "TypeUnion", "types": types))
     }
 
 TypeList
@@ -788,16 +909,16 @@ TypeListTail = __ "," __ typ:Type { RETURN(typ) }
 
 ComplexType
   = "{" __ fields:TypeFieldList __ "}" {
-      RETURN(MAP("op":"TypeRecord", "fields":fields))
+      RETURN(MAP("kind":"TypeRecord", "fields":fields))
     }
   / "[" __ typ:Type __ "]" {
-      RETURN(MAP("op":"TypeArray", "type":typ))
+      RETURN(MAP("kind":"TypeArray", "type":typ))
     }
   / "|[" __ typ:Type __ "]|" {
-      RETURN(MAP("op":"TypeSet", "type":typ))
+      RETURN(MAP("kind":"TypeSet", "type":typ))
     }
   / "|{" __ keyType:Type __ "," __ valType:Type __ "}|" {
-      RETURN(MAP("op":"TypeMap", "key_type":keyType, "val_type": valType))
+      RETURN(MAP("kind":"TypeMap", "key_type":keyType, "val_type": valType))
     }
 
 PrimitiveType
@@ -813,7 +934,7 @@ PrimitiveTypeExternal
       / "int8" / "int16" / "int32" / "int64"
       / "float64"
       / "bool" / "string" ) {
-          RETURN(MAP("op": "TypePrimitive", "name": TEXT))
+          RETURN(MAP("kind": "TypePrimitive", "name": TEXT))
         }
 
 // Internal types must be enclosed in a type() operator when appearing in an
@@ -827,7 +948,7 @@ PrimitiveTypeInternal
       / "bstring"
       / "ip" / "net"
       / "type" / "error" ) {
-          RETURN(MAP("op": "TypePrimitive", "name": TEXT))
+          RETURN(MAP("kind": "TypePrimitive", "name": TEXT))
         }
 
 TypeFieldList
@@ -838,24 +959,29 @@ TypeFieldList
 TypeFieldListTail = __ "," __ typ:TypeField { RETURN(typ) }
 
 TypeField
-  = name:IdentifierName __ ":" __ typ:Type {
+  = name:FieldName __ ":" __ typ:Type {
       RETURN(MAP("name": name, "type": typ))
     }
+
+FieldName
+  = IdentifierName
+  / QuotedString
 
 EqualityToken
   = EqualityOperator / RelativeOperator
 
-AndToken = "and"i { RETURN("and") }
-OrToken = "or"i { RETURN("or") }
-InToken = "in"i { RETURN("in") }
-NotToken = "not"i { RETURN("not") }
-ByToken = "by"i { RETURN("by") }
+AndToken = "and"i !IdentifierRest { RETURN("and") }
+OrToken = "or"i !IdentifierRest { RETURN("or") }
+InToken = "in"i !IdentifierRest { RETURN("in") }
+NotToken = "not"i !IdentifierRest { RETURN("not") }
+ByToken = "by"i !IdentifierRest { RETURN("by") }
 
 IdentifierStart = [A-Za-z_$]
+
 IdentifierRest = IdentifierStart / [0-9]
 
 Identifier
-  = id:IdentifierName { RETURN(MAP("op": "Identifier", "name": id)) }
+  = id:IdentifierName { RETURN(MAP("kind": "Id", "name": id)) }
 
 IdentifierName
   = !(IdGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }
@@ -863,7 +989,7 @@ IdentifierName
   / "\\" id:IdGuard { RETURN(id) }
   // "type" is a search guard but should not be an id guard
   / "type" { RETURN(TEXT) }
-
+  / id:SQLTokenSentinels &(__ "(") { RETURN(id) }
 
 IdGuard
   = BooleanLiteral
@@ -872,58 +998,23 @@ IdGuard
   / SearchGuard
 
 Duration
-  = Seconds
-  / Minutes
-  / Hours
-  / Hours _ "and" _ Minutes
-  / Days
-  / Weeks
+  = "-"? (Decimal TimeUnit)+ {
+      RETURN(MAP("kind": "Primitive", "type": "duration", "text": TEXT))
+    }
 
-SecondsToken
-  = "seconds"
-  / "second"
-  / "secs"
-  / "sec"
-  / "s"
+Decimal = UInt ("." UInt)?
 
-MinutesToken
-  = "minutes"
-  / "minute"
-  / "mins"
-  / "min"
-  / "m"
+TimeUnit
+  = "ns"i
+  / "us"i
+  / "ms"i
+  / "s"i
+  / "m"i
+  / "h"i
+  / "d"i
+  / "w"i
+  / "y"i
 
-HoursToken
-  = "hours"
-  / "hrs"
-  / "hr"
-  / "h"
-  / "hour"
-
-DaysToken = "days"/"day"/"d"
-WeeksToken = "weeks"/"week"/"wks"/"wk"/"w"
-
-Seconds
-  = "second" { RETURN(MAP("type": "Duration", "seconds": 1)) }
-  / num:UInt __ SecondsToken { RETURN(MAP("type": "Duration", "seconds": num)) }
-
-Minutes
-  = "minute" { RETURN(MAP("type": "Duration", "seconds": 60)) }
-  / num:UInt __ MinutesToken { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*60)) }
-
-Hours
-  = "hour" { RETURN(MAP("type": "Duration", "seconds": 3600)) }
-  / num:UInt __ HoursToken { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600)) }
-
-Days
-  = "day" { RETURN(MAP("type": "Duration", "seconds": 3600*24)) }
-  / num:UInt __ DaysToken { RETURN(MAP("type": "Duration", "seconds": (ASSERT_INT(num)*3600*24))) }
-
-Weeks
-  = "week" { RETURN(MAP("type": "Duration", "seconds": 3600*24*7)) }
-  / num:UInt __ WeeksToken { RETURN(MAP("type": "Duration", "seconds": ASSERT_INT(num)*3600*24*7)) }
-
-//XXX what about mac addrs?
 IP
   = UInt "." UInt "." UInt "." UInt { RETURN(TEXT) }
 
@@ -954,6 +1045,7 @@ IP6Tail
   / Hex
 
 ColonHex = ":" v:Hex { RETURN(":" + ASSERT_STRING(v)) }
+
 HexColon = v:Hex ":" { RETURN(ASSERT_STRING(v) + ":") }
 
 IP4Net
@@ -1005,14 +1097,41 @@ KeyWord
   = head:KeyWordStart tail:KeyWordRest* { RETURN(ASSERT_STRING(head) + joinChars(tail)) }
 
 KeyWordStart
-  = [a-zA-Z_.:/%#@~] { RETURN(TEXT) }
+  = KeyWordChars
   / KeyWordEsc
+
+KeyWordChars = [a-zA-Z_.:/%#@~] { RETURN(TEXT) }
 
 KeyWordRest
   = KeyWordStart
   / [0-9]
 
 KeyWordEsc = "\\" s:(KeywordEscape / EscapeSequence)  { RETURN(s) }
+
+Glob
+  = &GlobProperStart &GlobHasStar head:GlobStart tail:GlobRest* {
+      RETURN(reglob.Reglob(ASSERT_STRING(head) + joinChars(tail)))
+    }
+
+GlobProperStart = "*"* KeyWordStart
+GlobHasStar = KeyWordRest* "*"
+
+GlobStart
+  = KeyWordChars
+  / GlobEsc
+  / "*" { RETURN("*")}
+
+GlobRest
+  = GlobStart
+  / [0-9]
+
+GlobEsc = "\\" s:(GlobEscape / EscapeSequence)  { RETURN(s) }
+
+GlobEscape
+  = "=" { RETURN("=") }
+  / "*" { RETURN("\\*") }
+  / [+-]
+
 
 SingleQuotedChar
   = !("'" / EscapedChar) . { RETURN(TEXT) }
@@ -1036,7 +1155,7 @@ SingleCharEscape
 
 KeywordEscape
   = "=" { RETURN("=") }
-  / "*" { RETURN("\\*") }
+  / "*" { RETURN("*") }
   / [+-]
 
 UnicodeEscape
@@ -1048,7 +1167,7 @@ UnicodeEscape
     }
 
 Regexp
-  = "/" body:RegexpBody "/" { RETURN(body) }
+  = "/" body:RegexpBody "/" !KeyWordStart { RETURN(body) }
 
 RegexpBody
   = ([^/\\]/"\\/")+ { RETURN(TEXT) }
@@ -1057,6 +1176,7 @@ EscapedChar
   = [\x00-\x1f\\]
 
 _  = AnySpace+
+
 __ = AnySpace*
 
 AnySpace
@@ -1094,5 +1214,7 @@ SingleLineComment
   = "//" (!LineTerminator SourceCharacter)*
 
 EOL = WhiteSpace* LineTerminator
+
 EOT = _ / EOF
+
 EOF = !.

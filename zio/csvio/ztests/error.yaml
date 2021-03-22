@@ -1,13 +1,12 @@
 zql: '*'
 
 input: |
-  #0:record[error:error]
-  0:[-;]
-  0:[;]
-  0:[";]
-  0:[,;]
-  0:[\u002d;]
-  0:[\u005c;]
+  {error:null (error)} (=0)
+  {error:""} (0)
+  {error:"\""} (0)
+  {error:","} (0)
+  {error:"\\u002d"} (0)
+  {error:"\\u005c"} (0)
 
 output-flags: -f csv
 

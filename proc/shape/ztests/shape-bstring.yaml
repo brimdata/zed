@@ -1,0 +1,9 @@
+zql: |
+  type custom = {bstring: bstring}
+  put . = shape(custom)
+
+input: |
+  { bstring:"this is a bstring" }
+
+output: |
+  {bstring:"this is a bstring" (bstring)} (=custom)

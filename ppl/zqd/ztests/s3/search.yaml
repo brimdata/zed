@@ -1,13 +1,13 @@
 script: |
   source services.sh s3://bucket/zqdroot
   zapi -h $ZQD_HOST new -d s3://bucket/zartest -k archivestore -thresh 20KiB testsp
-  zapi -h $ZQD_HOST -s testsp post babble.tzng >/dev/null
+  zapi -h $ZQD_HOST -s testsp post babble.zson >/dev/null
   echo ===
-  zapi -h $ZQD_HOST -s testsp get -f tzng 's="harefoot-raucous"'
+  zapi -h $ZQD_HOST -s testsp get -z 's="harefoot-raucous"'
 
 inputs:
-  - name: babble.tzng
-    source: ../../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../../ztests/suite/data/babble.zson
   - name: services.sh
     source: ../services.sh
 
@@ -16,5 +16,4 @@ outputs:
     data: |
       testsp: space created
       ===
-      #0:record[ts:time,s:string,v:int64]
-      0:[1587508881.0613914;harefoot-raucous;137;]
+      {ts:2020-04-21T22:41:21.0613914Z,s:"harefoot-raucous",v:137}

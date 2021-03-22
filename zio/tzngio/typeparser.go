@@ -330,7 +330,7 @@ func (c *TypeParser) parseElement(typ zng.Type, in string) (string, zng.Element,
 		return "", zng.Element{}, zng.ErrTypeSyntax
 	}
 	val := rest[:rbracket]
-	zv, err := typ.Parse([]byte(val))
+	zv, err := ParseValue(typ, []byte(val))
 	if err != nil {
 		return "", zng.Element{}, zng.ErrTypeSyntax
 	}

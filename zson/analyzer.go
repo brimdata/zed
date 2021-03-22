@@ -126,7 +126,7 @@ func (a Analyzer) convertValue(zctx *Context, val ast.Value, parent zng.Type) (V
 		if err != nil {
 			return nil, err
 		}
-		if union, ok := zng.AliasedType(parent).(*zng.TypeUnion); ok {
+		if union, ok := zng.AliasOf(parent).(*zng.TypeUnion); ok {
 			v, err = a.convertUnion(zctx, v, union, parent)
 		}
 		return v, err
@@ -138,7 +138,7 @@ func (a Analyzer) typeCheck(cast, parent zng.Type) error {
 	if parent == nil || cast == parent {
 		return nil
 	}
-	if _, ok := zng.AliasedType(parent).(*zng.TypeUnion); ok {
+	if _, ok := zng.AliasOf(parent).(*zng.TypeUnion); ok {
 		// We let unions through this type check with no further checking
 		// as any union incompability will be caught in convertAnyValue().
 		return nil
@@ -153,9 +153,6 @@ func (a Analyzer) enterTypeDef(zctx *Context, name string, typ zng.Type) (*zng.T
 		if alias, err = zctx.LookupTypeAlias(name, typ); err != nil {
 			return nil, err
 		}
-		if existing, ok := a[name]; ok && existing != alias {
-			return nil, fmt.Errorf("type %q redefined from %q to %q", name, existing.ZSON(), typ.ZSON())
-		}
 		typ = alias
 	}
 	a[name] = typ
@@ -166,7 +163,7 @@ func (a Analyzer) convertAny(zctx *Context, val ast.Any, cast zng.Type) (Value, 
 	// If we're casting something to a union, then the thing inside needs to
 	// describe itself and we can convert the inner value to a union value when
 	// we know its type (so we can code the selector).
-	if union, ok := zng.AliasedType(cast).(*zng.TypeUnion); ok {
+	if union, ok := zng.AliasOf(cast).(*zng.TypeUnion); ok {
 		v, err := a.convertAny(zctx, val, nil)
 		if err != nil {
 			return nil, err
@@ -253,7 +250,7 @@ func (a Analyzer) convertRecord(zctx *Context, val *ast.Record, cast zng.Type) (
 	var fields []Value
 	var err error
 	if cast != nil {
-		recType, ok := zng.AliasedType(cast).(*zng.TypeRecord)
+		recType, ok := zng.AliasOf(cast).(*zng.TypeRecord)
 		if !ok {
 			return nil, fmt.Errorf("record decorator not of type record: %T", cast)
 		}
@@ -306,7 +303,7 @@ func arrayElemCast(cast zng.Type) (zng.Type, error) {
 	if cast == nil {
 		return nil, nil
 	}
-	if arrayType, ok := zng.AliasedType(cast).(*zng.TypeArray); ok {
+	if arrayType, ok := zng.AliasOf(cast).(*zng.TypeArray); ok {
 		return arrayType.Type, nil
 	}
 	return nil, errors.New("array decorator not of type array")
@@ -420,7 +417,7 @@ func differentTypes(vals []Value) []zng.Type {
 func (a Analyzer) convertSet(zctx *Context, set *ast.Set, cast zng.Type) (Value, error) {
 	var elemType zng.Type
 	if cast != nil {
-		setType, ok := zng.AliasedType(cast).(*zng.TypeSet)
+		setType, ok := zng.AliasOf(cast).(*zng.TypeSet)
 		if !ok {
 			return nil, fmt.Errorf("set decorator not of type set: %T", cast)
 		}
@@ -477,7 +474,7 @@ func (a Analyzer) convertEnum(zctx *Context, val *ast.Enum, cast zng.Type) (Valu
 	if cast == nil {
 		return nil, fmt.Errorf("identifier %q must be enum and requires decorator", val.Name)
 	}
-	enum, ok := zng.AliasedType(cast).(*zng.TypeEnum)
+	enum, ok := zng.AliasOf(cast).(*zng.TypeEnum)
 	if !ok {
 		return nil, fmt.Errorf("identifier %q is enum and incompatible with type %q", val.Name, cast.ZSON())
 	}
@@ -496,7 +493,7 @@ func (a Analyzer) convertEnum(zctx *Context, val *ast.Enum, cast zng.Type) (Valu
 func (a Analyzer) convertMap(zctx *Context, m *ast.Map, cast zng.Type) (Value, error) {
 	var keyType, valType zng.Type
 	if cast != nil {
-		typ, ok := zng.AliasedType(cast).(*zng.TypeMap)
+		typ, ok := zng.AliasOf(cast).(*zng.TypeMap)
 		if !ok {
 			return nil, errors.New("map decorator not of type map")
 		}
@@ -536,7 +533,7 @@ func (a Analyzer) convertMap(zctx *Context, m *ast.Map, cast zng.Type) (Value, e
 
 func (a Analyzer) convertTypeValue(zctx *Context, tv *ast.TypeValue, cast zng.Type) (Value, error) {
 	if cast != nil {
-		if _, ok := zng.AliasedType(cast).(*zng.TypeOfType); !ok {
+		if _, ok := zng.AliasOf(cast).(*zng.TypeOfType); !ok {
 			return nil, fmt.Errorf("cannot apply decorator (%q) to a type value", cast.ZSON())
 		}
 	}

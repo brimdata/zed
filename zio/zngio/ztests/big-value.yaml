@@ -1,5 +1,5 @@
 script: |
-  zq -znglz4blocksize=0 -o out.zng in.tzng
+  zq -znglz4blocksize=0 -o out.zng in.zson
   for i in {1..7}; do
     cat out.zng out.zng out.zng out.zng > out2.zng
     mv out2.zng out.zng
@@ -8,11 +8,10 @@ script: |
   zq  -i zng -o /dev/null -readmax 10KB "count()" bigrow.zng
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[s:string]
-      0:[big data;]
-      0:[too big;]
+      {s:"big data"}
+      {s:"too big"}
 
 outputs:
   - name: stderr

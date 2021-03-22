@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
@@ -14,8 +15,7 @@ func TestContextAddColumns(t *testing.T) {
 	ctx := resolver.NewContext()
 	d, err := ctx.LookupTypeRecord([]zng.Column{zng.NewColumn("s1", zng.TypeString)})
 	require.NoError(t, err)
-	b := zng.NewBuilder(d)
-	r, err := b.Parse("S1")
+	r, err := tzngio.ParseKeys(d, "S1")
 	require.NoError(t, err)
 	cols := []zng.Column{zng.NewColumn("ts", zng.TypeTime), zng.NewColumn("s2", zng.TypeString)}
 	ts, _ := nano.Parse([]byte("123.456"))

@@ -1,26 +1,25 @@
 script: |
   zar import -R logs -s 32B -
-  zar zq -f tzng -R logs "*" > 1.tzng
-  zar zq -f tzng -R logs "*" > 2.tzng
-  diff 1.tzng 2.tzng && echo success
+  zar zq -z -R logs "*" > 1.zson
+  zar zq -z -R logs "*" > 2.zson
+  diff 1.zson 2.zson && echo success
 
 inputs:
   - name: stdin
     data: |
-      #0:record[ts:time,s:string,v:int64]
-      0:[1;Potamogalidae-precommissure;51;]
-      0:[1;Galchic-unwheeled;51;]
-      0:[1;protohydrogen-plesiomorphism;320;]
-      0:[1;unethicalness-vallis;148;]
-      0:[1;proceeding-noncausality;449;]
-      0:[1;investitor-dortiship;287;]
-      0:[1;gatelike-nucleolocentrosome;336;]
-      0:[1;subarea-preoffense;373;]
-      0:[1;lacklusterness-Magyarization;91;]
-      0:[1;unendeared-Petasites;331;]
-      0:[1;psalis-Guarnieri;456;]
-      0:[1;harefoot-raucous;137;]
-      0:[1;crosshaul-capersome;109;]
+      {ts:1970-01-01T00:00:01Z,s:"Potamogalidae-precommissure",v:51}
+      {ts:1970-01-01T00:00:01Z,s:"Galchic-unwheeled",v:51}
+      {ts:1970-01-01T00:00:01Z,s:"protohydrogen-plesiomorphism",v:320}
+      {ts:1970-01-01T00:00:01Z,s:"unethicalness-vallis",v:148}
+      {ts:1970-01-01T00:00:01Z,s:"proceeding-noncausality",v:449}
+      {ts:1970-01-01T00:00:01Z,s:"investitor-dortiship",v:287}
+      {ts:1970-01-01T00:00:01Z,s:"gatelike-nucleolocentrosome",v:336}
+      {ts:1970-01-01T00:00:01Z,s:"subarea-preoffense",v:373}
+      {ts:1970-01-01T00:00:01Z,s:"lacklusterness-Magyarization",v:91}
+      {ts:1970-01-01T00:00:01Z,s:"unendeared-Petasites",v:331}
+      {ts:1970-01-01T00:00:01Z,s:"psalis-Guarnieri",v:456}
+      {ts:1970-01-01T00:00:01Z,s:"harefoot-raucous",v:137}
+      {ts:1970-01-01T00:00:01Z,s:"crosshaul-capersome",v:109}
 
 outputs:
   - name: stdout

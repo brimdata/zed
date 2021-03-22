@@ -35,7 +35,7 @@ func Stat(ctx context.Context, uri iosrc.URI) (*Info, error) {
 	for i, c := range columns {
 		keys[i] = InfoKey{
 			Name:     c.Name,
-			TypeName: c.Type.String(),
+			TypeName: c.Type.ZSON(),
 		}
 	}
 	return &Info{

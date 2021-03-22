@@ -1,14 +1,10 @@
 zql: 'c=a+b'
 
 input: |
-  #0:record[a:int32,b:int32,c:int32]
-  0:[1;2;3;]
-  0:[-1;2;1;]
-  0:[1;1;0;]
-
-output-flags: -f tzng
+  {a:1 (int32),b:2 (int32),c:3 (int32)} (=0)
+  {a:-1,b:2,c:1} (0)
+  {a:1,b:1,c:0} (0)
 
 output: |
-  #0:record[a:int32,b:int32,c:int32]
-  0:[1;2;3;]
-  0:[-1;2;1;]
+  {a:1 (int32),b:2 (int32),c:3 (int32)} (=0)
+  {a:-1,b:2,c:1} (0)

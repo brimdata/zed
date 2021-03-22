@@ -9,7 +9,7 @@ type AST struct {
 	entry   ast.Proc
 	unopt   ast.Proc
 	consts  []ast.Proc
-	filter  ast.Expression
+	filter  ast.Expr
 	sortKey field.Static
 	sortRev bool
 }
@@ -29,7 +29,7 @@ func (a *AST) Consts() []ast.Proc {
 	return a.consts
 }
 
-func (a *AST) Filter() ast.Expression {
+func (a *AST) Filter() ast.Expr {
 	return a.filter
 }
 
@@ -43,8 +43,11 @@ func (a *AST) Analyze() error {
 		return err
 	}
 	a.entry, err = semProc(scope, a.entry)
+	if err != nil {
+		return err
+	}
 	a.unopt = a.entry
-	return err
+	return nil
 }
 
 func (a *AST) Optimize() error {

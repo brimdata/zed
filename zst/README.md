@@ -449,13 +449,18 @@ using the same selector value within the union value.
 
 ### Hello, world
 
+Start with this zng data (shown as human-readable [ZSON](../zng/docs/zson.md)):
 ```
-#0:record[a:string,b:string]
-0:[hello;world;]
-0:[goodnight;gracie;]
+{a:"hello",b:"world"}
+{a:"goodnight",b:"gracie"}
 ```
 
-Segments would be laid out like this:
+To convert to zst format:
+```
+zq -f zst hello.zson > hello.zst
+```
+
+Segments in the zst format would be laid out like this:
 ```
 === column for a
 hello
@@ -468,83 +473,58 @@ gracie
 0
 ===
 ```
-First, the schemas are defined (just one here):
+
+To see the detailed zst structure described as ZSON, you can use the `zst`
+command like this:
 ```
-#0:record[a:string,b:string]
-0:[-;-;]
+zst inspect -Z -trailer hello.zst
 ```
 
-Then, root reassembly record:
-```
-#1:record[root:array[record[offset:int64,length:int32]]]
-1:[[[29;2;]]]
-```
-Next comes the column reassembly records (again, only schema in this
-example, so only one such record):
-```
-#2:record[a:record[column:array[record[offset:int64,length:int32]],presence:array[record[offset:int64,length:int32]]],b:record[column:array[record[offset:int64,length:int32]],presence:array[record[offset:int64,length:int32]]]]
-2:[[[[0;16;]][]][[[16;13;]][]]]
-```
-And finally, the trailer as a new zng stream:
-```
-#0:record[magic:string,version:int32,skew_thresh:int32,segment_thresh:int32,sections:array[int64]]
-0:[zst;1;26214400;5242880;[31;94;]]
-```
+which provides the output (comments added with explanations):
 
-All of this can be viewed a bit more easily in json...
-For example, you can use the zst command like this:
-```
-zst inspect -t -trailer hello.zst
-```
-to get the output above, but it's all a bit more easily viewed as json,
-so you can do this too...
-```
-zst inspect -f ndjson -trailer hello.zst | jq
-```
-to view it all a bit more easily (with loss of information due to json):
 ```
 {
-  "a": null,
-  "b": null
+    a: null (string),                // First, the schemas are defined (just one here).
+    b: null (string)
 }
 {
-  "root": [
-    {
-      "length": 2,
-      "offset": 29
-    }
-  ]
-}
+    root: [                          // Then, the root reassembly record.
+        {
+            offset: 29,
+            length: 2 (int32)
+        } (=0)
+    ] (=1)
+} (=2)
 {
-  "a": {
-    "column": [
-      {
-        "length": 16,
-        "offset": 0
-      }
-    ],
-    "presence": []
-  },
-  "b": {
-    "column": [
-      {
-        "length": 13,
-        "offset": 16
-      }
-    ],
-    "presence": []
-  }
-}
+    a: {                             // Next comes the column assembly records.
+        column: [                    // (Again, only one schema in this example, so only one such record.)
+            {
+                offset: 0,
+                length: 16
+            }
+        ] (1),
+        presence: [] (1)
+    } (=3),
+    b: {
+        column: [
+            {
+                offset: 16,
+                length: 13
+            }
+        ],
+        presence: []
+    } (3)
+} (=4)
 {
-  "magic": "zst",
-  "sections": [
-    31,
-    94
-  ],
-  "segment_thresh": 5242880,
-  "skew_thresh": 26214400,
-  "version": 1
-}
+    magic: "zst",                    // Finally, the trailer as a new zng stream.
+    version: 1 (int32),
+    skew_thresh: 26214400 (int32),
+    segment_thresh: 5242880 (int32),
+    sections: [
+        31,
+        94
+    ]
+} (=5)
 ```
 
 > Note finally, if there were 10MB of zng row data here, the reassembly section

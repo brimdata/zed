@@ -1,15 +1,11 @@
 zql: put s1=sum(select(.)), s2=sum(select(.).filter($>=3))
 
 input: |
-  #0:record[a:int32,b:int32,c:int32]
-  0:[1;2;3;]
-  0:[2;3;4;]
-  0:[3;4;5;]
-
-output-flags: -f tzng
+  {a:1 (int32),b:2 (int32),c:3 (int32)} (=0)
+  {a:2,b:3,c:4} (0)
+  {a:3,b:4,c:5} (0)
 
 output: |
-  #0:record[a:int32,b:int32,c:int32,s1:int64,s2:int64]
-  0:[1;2;3;6;3;]
-  0:[2;3;4;9;7;]
-  0:[3;4;5;12;12;]
+  {a:1 (int32),b:2 (int32),c:3 (int32),s1:6,s2:3} (=0)
+  {a:2,b:3,c:4,s1:9,s2:7} (0)
+  {a:3,b:4,c:5,s1:12,s2:12} (0)

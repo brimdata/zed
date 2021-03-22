@@ -52,9 +52,9 @@ func CompileTestProc(code string, pctx *proc.Context, parent proc.Interface) (pr
 	if err != nil {
 		return nil, err
 	}
-	sp, ok := parsed.(*ast.SequentialProc)
+	sp, ok := parsed.(*ast.Sequential)
 	if !ok {
-		return nil, errors.New("expected SequentialProc")
+		return nil, errors.New("expected Sequential proc")
 	}
 	if len(sp.Procs) != 2 {
 		return nil, errors.New("expected 2 procs")
@@ -118,9 +118,9 @@ func NewTestContext(zctx *resolver.Context) *proc.Context {
 		zctx = resolver.NewContext()
 	}
 	return &proc.Context{
-		Context:     context.Background(),
-		TypeContext: zctx,
-		Warnings:    make(chan string, 5),
+		Context:  context.Background(),
+		Warnings: make(chan string, 5),
+		Zctx:     zctx,
 	}
 }
 

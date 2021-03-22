@@ -1,13 +1,9 @@
 zql: cut u1=union(select(r1)),u2=union(select(r1,r2))
 
 input: |
-  #0:record[r1:record[a:int32,b:int32],r2:record[a:int32,b:int32]]
-  0:[[1;2;][3;4;]]
-  0:[[3;4;][5;6;]]
-
-output-flags: -f tzng
+  {r1:{a:1 (int32),b:2 (int32)} (=0),r2:{a:3,b:4} (0)} (=1)
+  {r1:{a:3,b:4},r2:{a:5,b:6}} (1)
 
 output: |
-  #0:record[u1:set[int32],u2:set[int32]]
-  0:[[1;2;][1;2;3;4;]]
-  0:[[3;4;][3;4;5;6;]]
+  {u1:|[1 (int32),2 (int32)]| (=0),u2:|[1,2,3,4]| (0)} (=1)
+  {u1:|[3,4]|,u2:|[3,4,5,6]|} (1)

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"math"
 	"net"
 	"strconv"
 	"time"
@@ -41,7 +40,7 @@ func (b *Builder) Build(val Value) (zng.Value, error) {
 func (b *Builder) buildValue(val Value) error {
 	switch val := val.(type) {
 	case *Primitive:
-		return b.buildPrimitive(val)
+		return b.BuildPrimitive(val)
 	case *Record:
 		return b.buildRecord(val)
 	case *Array:
@@ -63,8 +62,8 @@ func (b *Builder) buildValue(val Value) error {
 	return fmt.Errorf("unknown ast type: %T", val)
 }
 
-func (b *Builder) buildPrimitive(val *Primitive) error {
-	switch zng.AliasedType(val.Type).(type) {
+func (b *Builder) BuildPrimitive(val *Primitive) error {
+	switch zng.AliasOf(val.Type).(type) {
 	case *zng.TypeOfUint8, *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
 		v, err := strconv.ParseUint(val.Text, 10, 64)
 		if err != nil {
@@ -80,15 +79,11 @@ func (b *Builder) buildPrimitive(val *Primitive) error {
 		b.AppendPrimitive(zng.EncodeInt(v))
 		return nil
 	case *zng.TypeOfDuration:
-		v, err := time.ParseDuration(val.Text)
+		d, err := nano.ParseDuration(val.Text)
 		if err != nil {
-			if val.Text == minDuration {
-				v = time.Duration(math.MinInt64)
-			} else {
-				return fmt.Errorf("invalid duration: %s", val.Text)
-			}
+			return fmt.Errorf("invalid duration: %s", val.Text)
 		}
-		b.AppendPrimitive(zng.EncodeDuration(int64(v)))
+		b.AppendPrimitive(zng.EncodeDuration(d))
 		return nil
 	case *zng.TypeOfTime:
 		t, err := time.Parse(time.RFC3339Nano, val.Text)

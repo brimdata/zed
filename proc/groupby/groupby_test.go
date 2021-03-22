@@ -277,16 +277,16 @@ func setSortDir(p ast.Proc, dir int) {
 	// is saying that the group-by keys are sorted and we should be
 	// using compiler.NewWithSortedInput and passing in the group-by key
 	// for the sortKey.
-	p.(*ast.SequentialProc).Procs[0].(*ast.GroupByProc).InputSortDir = dir
+	p.(*ast.Sequential).Procs[0].(*ast.Summarize).InputSortDir = dir
 }
 
-func compileGroupBy(code string) (*ast.GroupByProc, error) {
+func compileGroupBy(code string) (*ast.Summarize, error) {
 	parsed, err := compiler.ParseProc(code)
 	if err != nil {
 		return nil, err
 	}
-	sp := parsed.(*ast.SequentialProc)
-	return sp.Procs[0].(*ast.GroupByProc), nil
+	sp := parsed.(*ast.Sequential)
+	return sp.Procs[0].(*ast.Summarize), nil
 }
 
 func TestGroupbyUnit(t *testing.T) {

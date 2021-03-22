@@ -78,12 +78,11 @@ func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, read
 		scanners = append(scanners, sn)
 		procs = append(procs, &scannerProc{sn})
 	}
-
 	pctx := &proc.Context{
-		Context:     ctx,
-		TypeContext: zctx,
-		Logger:      cfg.Logger,
-		Warnings:    make(chan string, 5),
+		Context:  ctx,
+		Logger:   cfg.Logger,
+		Warnings: make(chan string, 5),
+		Zctx:     zctx,
 	}
 	if err := runtime.Compile(cfg.Custom, pctx, procs); err != nil {
 		return nil, err
@@ -125,10 +124,10 @@ func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context,
 		mcfg.Parallelism = 1
 	}
 	pctx := &proc.Context{
-		Context:     ctx,
-		TypeContext: zctx,
-		Logger:      mcfg.Logger,
-		Warnings:    make(chan string, 5),
+		Context:  ctx,
+		Logger:   mcfg.Logger,
+		Warnings: make(chan string, 5),
+		Zctx:     zctx,
 	}
 	sources, pgroup, err := createParallelGroup(pctx, runtime, msrc, mcfg)
 	if err != nil {

@@ -19,14 +19,14 @@ import (
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/tzngio"
+	"github.com/brimsec/zq/zio/zsonio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-const babble = "../../ztests/suite/data/babble.tzng"
+const babble = "../../ztests/suite/data/babble.zson"
 
 func createArchiveSpace(t *testing.T, datapath string, srcfile string, co *CreateOptions) {
 	lk, err := CreateOrOpenLake(datapath, co, nil)
@@ -64,7 +64,7 @@ func indexQuery(t *testing.T, lk *Lake, patterns []string, opts ...FindOption) s
 	defer rc.Close()
 
 	var buf bytes.Buffer
-	w := tzngio.NewWriter(zio.NopCloser(&buf))
+	w := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
 	require.NoError(t, zbuf.Copy(w, rc))
 
 	return buf.String()
@@ -140,12 +140,11 @@ func TestSeekIndex(t *testing.T) {
 	require.NoError(t, finder.Close())
 
 	var buf bytes.Buffer
-	w := tzngio.NewWriter(zio.NopCloser(&buf))
+	w := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
 	require.NoError(t, w.Write(rec))
 
 	exp := `
-#0:record[ts:time,offset:int64]
-0:[1587508850.06466032;23795;]
+{ts:2020-04-21T22:40:50.06466032Z,offset:23795}
 `
 	require.Equal(t, test.Trim(exp), buf.String())
 }

@@ -35,7 +35,7 @@ type Proc struct {
 // Such changes aren't typically expected but are possible in the expression
 // language.
 type putRule struct {
-	typ         *zng.TypeRecord
+	typ         zng.Type
 	clauseTypes []zng.Type
 	step        step
 }
@@ -211,15 +211,14 @@ func findOverwriteClause(path field.Static, clauses []expr.Assignment) (int, fie
 	return -1, nil, false
 }
 
-func (p *Proc) deriveSteps(inType *zng.TypeRecord, vals []zng.Value) (step, *zng.TypeRecord, error) {
+func (p *Proc) deriveSteps(inType *zng.TypeRecord, vals []zng.Value) (step, zng.Type, error) {
 	// special case: assign to root (put .=x)
 	if p.clauses[0].LHS.IsRoot() {
-		recVal, ok := vals[0].Type.(*zng.TypeRecord)
-		if !ok {
+		typ := vals[0].Type
+		if zng.TypeRecordOf(typ) == nil {
 			return step{}, nil, fmt.Errorf("put .=x: cannot put a non-record to .")
 		}
-		typ, err := p.pctx.TypeContext.LookupTypeRecord(recVal.Columns)
-		return step{op: root, index: 0}, typ, err
+		return step{op: root, index: 0}, typ, nil
 	}
 	return p.deriveRecordSteps(field.NewRoot(), inType.Columns, vals)
 }
@@ -306,7 +305,7 @@ func (p *Proc) deriveRecordSteps(parentPath field.Static, inCols []zng.Column, v
 		}
 	}
 
-	typ, err := p.pctx.TypeContext.LookupTypeRecord(cols)
+	typ, err := p.pctx.Zctx.LookupTypeRecord(cols)
 	return s, typ, err
 }
 
@@ -358,7 +357,7 @@ func (p *Proc) put(in *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(rule.typ, bytes), nil
+	return zng.NewRecordFromType(rule.typ, bytes), nil
 }
 func (p *Proc) Pull() (zbuf.Batch, error) {
 	batch, err := p.parent.Pull()

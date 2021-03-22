@@ -546,6 +546,12 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		}
 		return v.Interface().(ZNGUnmarshaler).UnmarshalZNG(u, zv)
 	}
+	if v.CanAddr() {
+		pv := v.Addr()
+		if pv.CanInterface() && pv.Type().Implements(unmarshalerTypeZNG) {
+			return pv.Interface().(ZNGUnmarshaler).UnmarshalZNG(u, zv)
+		}
+	}
 	if _, ok := v.Interface().(nano.Ts); ok {
 		if zv.Type != zng.TypeTime {
 			return incompatTypeError(zv.Type, v)
@@ -611,7 +617,7 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 	case reflect.String:
 		// XXX We bundle string, bstring, type, error all into string.
 		// See issue #1853.
-		switch zng.AliasedType(zv.Type) {
+		switch zng.AliasOf(zv.Type) {
 		case zng.TypeString, zng.TypeBstring, zng.TypeType, zng.TypeError:
 		default:
 			return incompatTypeError(zv.Type, v)
@@ -624,7 +630,7 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		v.SetString(x)
 		return err
 	case reflect.Bool:
-		if zng.AliasedType(zv.Type) != zng.TypeBool {
+		if zng.AliasOf(zv.Type) != zng.TypeBool {
 			return incompatTypeError(zv.Type, v)
 		}
 		if zv.Bytes == nil {
@@ -635,7 +641,7 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		v.SetBool(x)
 		return err
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		switch zng.AliasedType(zv.Type) {
+		switch zng.AliasOf(zv.Type) {
 		case zng.TypeInt8, zng.TypeInt16, zng.TypeInt32, zng.TypeInt64:
 		default:
 			return incompatTypeError(zv.Type, v)
@@ -648,7 +654,7 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		v.SetInt(x)
 		return err
 	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		switch zng.AliasedType(zv.Type) {
+		switch zng.AliasOf(zv.Type) {
 		case zng.TypeUint8, zng.TypeUint16, zng.TypeUint32, zng.TypeUint64:
 		default:
 			return incompatTypeError(zv.Type, v)
@@ -662,7 +668,7 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		return err
 	case reflect.Float32, reflect.Float64:
 		// TODO: zng.TypeFloat32 when it lands
-		switch zng.AliasedType(zv.Type) {
+		switch zng.AliasOf(zv.Type) {
 		case zng.TypeFloat64:
 		default:
 			return incompatTypeError(zv.Type, v)
@@ -680,7 +686,7 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 }
 
 func (u *UnmarshalZNGContext) decodeIP(zv zng.Value, v reflect.Value) error {
-	if zng.AliasedType(zv.Type) != zng.TypeIP {
+	if zng.AliasOf(zv.Type) != zng.TypeIP {
 		return incompatTypeError(zv.Type, v)
 	}
 	if zv.Bytes == nil {
@@ -693,7 +699,7 @@ func (u *UnmarshalZNGContext) decodeIP(zv zng.Value, v reflect.Value) error {
 }
 
 func (u *UnmarshalZNGContext) decodeRecord(zv zng.Value, sval reflect.Value) error {
-	recType, ok := zng.AliasedType(zv.Type).(*zng.TypeRecord)
+	recType, ok := zng.AliasOf(zv.Type).(*zng.TypeRecord)
 	if !ok {
 		return errors.New("not a record")
 	}
@@ -724,7 +730,7 @@ func (u *UnmarshalZNGContext) decodeRecord(zv zng.Value, sval reflect.Value) err
 }
 
 func (u *UnmarshalZNGContext) decodeArray(zv zng.Value, arrVal reflect.Value) error {
-	arrType, ok := zng.AliasedType(zv.Type).(*zng.TypeArray)
+	arrType, ok := zng.AliasOf(zv.Type).(*zng.TypeArray)
 	if !ok {
 		return errors.New("not an array")
 	}

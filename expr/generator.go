@@ -79,7 +79,7 @@ func (f *FilterMethod) Next() (zng.Value, error) {
 		if err != nil {
 			return zng.Value{}, err
 		}
-		if zng.AliasedType(b.Type) != zng.TypeBool {
+		if zng.AliasOf(b.Type) != zng.TypeBool {
 			return zng.NewErrorf("not a boolean"), nil
 		}
 		if zng.IsTrue(b.Bytes) {
@@ -112,7 +112,10 @@ func (a *AggExpr) Eval(rec *zng.Record) (zng.Value, error) {
 	for {
 		zv, err := a.src.Next()
 		if err != nil {
-			return zng.Value{}, nil
+			if err == zng.ErrMissing {
+				continue
+			}
+			return zng.Value{}, err
 		}
 		if zv.Type == nil {
 			return f.Result(a.zctx)

@@ -1,31 +1,29 @@
 script: |
-  microindex create -o index.zng -k s -f 200 babble.tzng
-  microindex section -f tzng -trailer index.zng
+  microindex create -o index.zng -k s -f 200 babble.zson
+  microindex section -z -trailer index.zng
   echo ===
-  microindex section -f tzng -s 2 index.zng
+  microindex section -z -s 2 index.zng
 
 inputs:
-  - name: babble.tzng
-    source: ../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stdout
     data: |
-      #0:record[magic:string,version:int32,descending:bool,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[key:string]]
-      0:[microindex;2;F;_child;200;[24069;36;414;3192;]-;]
+      {magic:"microindex",version:2 (int32),descending:false,child_field:"_child",frame_thresh:200 (int32),sections:[24069,36,414,3192],keys:null (0=({key:string}))} (=1)
       ===
-      #0:record[key:string,_child:int64]
-      0:[Algedi-pigeonman;0;]
-      0:[Rupicola-overponderous;222;]
-      0:[antiprohibitionist-sinusoid;440;]
-      0:[brochure-chiropodous;640;]
-      0:[cowhiding-pterylographic;851;]
-      0:[equinate-serialist;1060;]
-      0:[heaper-praedial;1275;]
-      0:[intracranial-preyful;1484;]
-      0:[milliard-diffusely;1690;]
-      0:[overwomanly-transverberation;1904;]
-      0:[placoganoidean-spookery;2134;]
-      0:[recollapse-accompliceship;2338;]
-      0:[seventy-unbracing;2543;]
-      0:[supraprotest-asseveratively;2745;]
+      {key:"Algedi-pigeonman",_child:0}
+      {key:"Rupicola-overponderous",_child:222}
+      {key:"antiprohibitionist-sinusoid",_child:440}
+      {key:"brochure-chiropodous",_child:640}
+      {key:"cowhiding-pterylographic",_child:851}
+      {key:"equinate-serialist",_child:1060}
+      {key:"heaper-praedial",_child:1275}
+      {key:"intracranial-preyful",_child:1484}
+      {key:"milliard-diffusely",_child:1690}
+      {key:"overwomanly-transverberation",_child:1904}
+      {key:"placoganoidean-spookery",_child:2134}
+      {key:"recollapse-accompliceship",_child:2338}
+      {key:"seventy-unbracing",_child:2543}
+      {key:"supraprotest-asseveratively",_child:2745}

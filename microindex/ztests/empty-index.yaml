@@ -1,21 +1,19 @@
 script: |
   # b isn't in the input so this creates a valid microindex that is empty
-  microindex create -o index.zng -k b in.tzng
-  zq -f tzng index.zng
+  microindex create -o index.zng -k b in.zson
+  zq -z index.zng
   echo ===
-  microindex lookup -f tzng -k 0 index.zng
+  microindex lookup iz -k 0 index.zng
   echo ===
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[a:string]
-      0:[hello;]
+      {a:"hello"}
 
 outputs:
   - name: stdout
     data: |
-      #0:record[magic:string,version:int32,descending:bool,child_field:string,frame_thresh:int32,sections:array[int64],keys:record[key:null]]
-      0:[microindex;2;F;;32768;-;-;]
+      {magic:"microindex",version:2 (int32),descending:false,child_field:"",frame_thresh:32768 (int32),sections:null (0=([int64])),keys:null (1=({key:null}))} (=2)
       ===
       ===

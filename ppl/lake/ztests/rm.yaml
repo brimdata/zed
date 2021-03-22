@@ -1,6 +1,6 @@
 script: |
   mkdir logs
-  zar import -R logs babble.tzng
+  zar import -R logs babble.zson
   zar ls -R logs -ranges
   echo ===
   (cd ./logs; find zd -type d -regex ".*\.zar$") | sort > t1
@@ -13,8 +13,8 @@ script: |
   test -s t1 && test -s t2 && diff t1 t2 && echo foo removed
 
 inputs:
-  - name: babble.tzng
-    source: ../../../ztests/suite/data/babble.tzng
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
 
 outputs:
   - name: stdout
