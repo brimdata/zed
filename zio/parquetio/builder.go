@@ -52,7 +52,7 @@ func (b *builder) appendValue(typ zng.Type, v interface{}) {
 				}
 				b.EndContainer()
 			default:
-				panic(v)
+				panic(fmt.Sprintf("unknown type %T", v))
 			}
 		case *zng.TypeMap:
 			switch v := v["key_value"].(type) {
@@ -66,7 +66,7 @@ func (b *builder) appendValue(typ zng.Type, v interface{}) {
 				}
 				b.EndContainer()
 			default:
-				panic(v)
+				panic(fmt.Sprintf("unknown type %T", v))
 			}
 		case *zng.TypeRecord:
 			b.BeginContainer()
@@ -75,9 +75,9 @@ func (b *builder) appendValue(typ zng.Type, v interface{}) {
 			}
 			b.EndContainer()
 		default:
-			panic(typ)
+			panic(fmt.Sprintf("unknown type %T", typ))
 		}
 	default:
-		panic(fmt.Sprintf("%T", v))
+		panic(fmt.Sprintf("unknown type %T", v))
 	}
 }

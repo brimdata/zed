@@ -2,6 +2,7 @@ package parquetio
 
 import (
 	"errors"
+	"fmt"
 	"math"
 
 	"github.com/brimsec/zq/zng"
@@ -168,7 +169,7 @@ func newColumnDefinition(name string, typ zng.Type) (*parquetschema.ColumnDefini
 	case *zng.TypeMap:
 		return newMapColumnDefinition(name, typ.KeyType, typ.ValType)
 	default:
-		panic(typ)
+		panic(fmt.Sprintf("unknown type %T", typ))
 	}
 }
 

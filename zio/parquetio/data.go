@@ -66,7 +66,7 @@ func newData(typ zng.Type, zb zcode.Bytes) (interface{}, error) {
 	case *zng.TypeMap:
 		return newMapData(typ.KeyType, typ.ValType, zb)
 	}
-	panic(fmt.Sprintf("unexpected type %T", typ))
+	panic(fmt.Sprintf("unknown type %T", typ))
 }
 
 func newListData(typ zng.Type, zb zcode.Bytes) (map[string]interface{}, error) {
