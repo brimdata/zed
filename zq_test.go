@@ -141,55 +141,6 @@ func isValidTzng(input string) bool {
 	}
 }
 
-func findTzngs(t *testing.T, dirs map[string]struct{}) ([]ztest.Bundle, error) {
-	const script = `
-exec 2>&1
-zq -f zson - > baseline.zson &&
-zq -i zson -f zson baseline.zson > boomerang.zson &&
-diff baseline.zson boomerang.zson
-`
-	var out []ztest.Bundle
-	for path := range dirs {
-		bundles, err := ztest.Load(path)
-		if err != nil {
-			t.Log(err)
-			continue
-		}
-		// Transform the bundles into boomerang tests by taking each
-		// tzng source and creating a new ztest.Bundle.
-		for _, bundle := range bundles {
-			if bundle.Error != nil || expectFailure(bundle) {
-				continue
-			}
-			// Normalize the diffrent kinds of test inputs into
-			// a single pattern.
-			for _, src := range bundle.Test.Input {
-				if !isValidTzng(src) {
-					continue
-				}
-				b := ztest.Bundle{
-					TestName: bundle.TestName,
-					FileName: bundle.FileName,
-					Test:     boomerang(script, src),
-				}
-				out = append(out, b)
-			}
-			for _, src := range bundle.Test.Inputs {
-				if src.Data == nil || !isValidTzng(*src.Data) {
-					continue
-				}
-				b := ztest.Bundle{
-					TestName: bundle.TestName,
-					FileName: bundle.FileName,
-					Test:     boomerang(script, *src.Data),
-				}
-				out = append(out, b)
-			}
-		}
-	}
-	return out, nil
-}
-
 func runParquetBoomerangs(t *testing.T, dirs map[string]struct{}) {
 	if testing.Short() {
 		return
