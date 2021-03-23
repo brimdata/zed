@@ -205,6 +205,7 @@ func newListColumnDefinition(name string, typ zng.Type) (*parquetschema.ColumnDe
 			Name:           name,
 			NumChildren:    int32Ptr(1),
 			ConvertedType:  convertedList,
+			LogicalType:    logicalList,
 		},
 	}, nil
 }
