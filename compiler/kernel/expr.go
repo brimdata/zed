@@ -94,6 +94,14 @@ func compileExpr(zctx *resolver.Context, scope *Scope, e ast.Expr) (expr.Evaluat
 		return compileSeqExpr(zctx, scope, e)
 	case *ast.RegexpMatch:
 		return compileRegexpMatch(zctx, scope, e)
+	case *ast.RecordExpr:
+		return compileRecordExpr(zctx, scope, e)
+	case *ast.ArrayExpr:
+		return compileArrayExpr(zctx, scope, e)
+	case *ast.SetExpr:
+		return compileSetExpr(zctx, scope, e)
+	case *ast.MapExpr:
+		return compileMapExpr(zctx, scope, e)
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", e)
 	}
@@ -493,4 +501,50 @@ func compileRegexpSearch(zctx *resolver.Context, scope *Scope, search *ast.Regex
 		return nil, err
 	}
 	return expr.NewRegexpSearch(re), nil
+}
+
+func compileRecordExpr(zctx *resolver.Context, scope *Scope, record *ast.RecordExpr) (expr.Evaluator, error) {
+	var names []string
+	var exprs []expr.Evaluator
+	for _, f := range record.Fields {
+		e, err := compileExpr(zctx, scope, f.Value)
+		if err != nil {
+			return nil, err
+		}
+		names = append(names, f.Name)
+		exprs = append(exprs, e)
+	}
+	return expr.NewRecordExpr(zctx.Context, names, exprs), nil
+}
+
+func compileArrayExpr(zctx *resolver.Context, scope *Scope, array *ast.ArrayExpr) (expr.Evaluator, error) {
+	exprs, err := compileExprs(zctx, scope, array.Exprs)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewArrayExpr(zctx.Context, exprs), nil
+}
+
+func compileSetExpr(zctx *resolver.Context, scope *Scope, set *ast.SetExpr) (expr.Evaluator, error) {
+	exprs, err := compileExprs(zctx, scope, set.Exprs)
+	if err != nil {
+		return nil, err
+	}
+	return expr.NewSetExpr(zctx.Context, exprs), nil
+}
+
+func compileMapExpr(zctx *resolver.Context, scope *Scope, m *ast.MapExpr) (expr.Evaluator, error) {
+	var entries []expr.Entry
+	for _, f := range m.Entries {
+		key, err := compileExpr(zctx, scope, f.Key)
+		if err != nil {
+			return nil, err
+		}
+		val, err := compileExpr(zctx, scope, f.Value)
+		if err != nil {
+			return nil, err
+		}
+		entries = append(entries, expr.Entry{key, val})
+	}
+	return expr.NewMapExpr(zctx.Context, entries), nil
 }

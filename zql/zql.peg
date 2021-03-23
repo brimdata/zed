@@ -79,7 +79,7 @@ Sequential
       RETURN(MAP("kind": "Sequential", "procs": ARRAY(op)))
     }
 
-SequentialTail = __ "|" __ p:Operation { RETURN(p) }
+SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
 
 Parallel
   = first:Sequential rest:ParallelTail+ {
@@ -125,7 +125,8 @@ Operation
       RETURN(MAP("kind": "Filter", "expr": expr))
     }
 
-EndOfOp = __ ("|" / "=>" / ")" / EOF)
+EndOfOp = __ (Pipe / "=>" / ")" / EOF)
+Pipe = "|" !("{" / "[")
 
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(")
 
@@ -257,6 +258,10 @@ SearchExprFunc
       RETURN(makeBinaryExprChain(first, rest))
     }
   / Literal
+  / Record
+  / Array
+  / Set
+  / Map
   / DerefExpr
 
 /// === Aggregations ===
@@ -520,17 +525,6 @@ FieldExprs
       RETURN(result)
     }
 
-Exprs
-  = first:Expr rest:(__ "," __ Expr)* {
-      VAR(result) = ARRAY(first)
-
-      FOREACH(ASSERT_ARRAY(rest), r) {
-        APPEND(result, ASSERT_ARRAY(r)[3])
-      }
-
-      RETURN(result)
-    }
-
 Assignment
   = lhs:Lval __ "=" __ rhs:Expr { RETURN(MAP("kind": "Assignment", "lhs": lhs, "rhs": rhs)) }
 
@@ -625,7 +619,7 @@ MatchExpr
   = "match" __ "(" expr:SearchBoolean ")" { RETURN(expr) }
 
 SelectExpr
-  = "select" __ "(" __ args:ArgumentList __ ")" methods:Methods {
+  = "select" __ "(" __ args:Exprs __ ")" methods:Methods {
       RETURN(MAP("kind":"SelectExpr", "selectors":args, "methods": methods))
     }
 
@@ -641,15 +635,18 @@ Method
   = __ "." __ f:Function { RETURN(f) }
 
 Function
-  = !FuncGuard fn:IdentifierName __ "(" __ args:ArgumentList __ ")" {
+  = !FuncGuard fn:IdentifierName __ "(" __ args:OptionalExprs __ ")" {
       RETURN(MAP("kind": "Call", "name": fn, "args": args))
     }
 
-ArgumentList
+OptionalExprs
+  = Exprs
+  / __ { RETURN(ARRAY()) }
+
+Exprs
   = first:Expr rest:(__ "," __ e:Expr { RETURN(e) })* {
       RETURN(PREPEND(first, rest))
     }
-  / __ { RETURN(ARRAY()) }
 
 DerefExpr
   = first:DotId rest:(Deref)* {
@@ -692,8 +689,57 @@ Deref
 
 Primary
   = Literal
+  / Record
+  / Array
+  / Set
+  / Map
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
+Record
+  = "{" __ fields:Fields __ "}" {
+      RETURN(MAP("kind":"RecordExpr", "fields":fields ))
+    }
+
+Fields
+  = first:Field rest:FieldTail* {
+    RETURN(PREPEND(first, rest))
+  }
+
+FieldTail = __ "," __ f:Field { RETURN(f) }
+
+Field
+  = name:FieldName __ ":" __ value:Expr {
+      RETURN(MAP("name": name, "value": value))
+    }
+
+Array
+  = "[" __ exprs:OptionalExprs __ "]" {
+      RETURN(MAP("kind":"ArrayExpr", "exprs":exprs ))
+    }
+
+Set
+  = "|[" __ exprs:OptionalExprs __ "]|" {
+      RETURN(MAP("kind":"SetExpr", "exprs":exprs ))
+    }
+
+Map
+  = "|{" __ exprs:Entries __ "}|" {
+      RETURN(MAP("kind":"MapExpr", "entries":exprs ))
+    }
+
+Entries
+  = first:Entry rest:EntryTail* {
+    RETURN(PREPEND(first, rest))
+  }
+  / __ { RETURN(ARRAY()) }
+
+
+EntryTail = __ "," __ e:Entry { RETURN(e) }
+
+Entry
+  = key:Expr __ ":" __ value:Expr {
+      RETURN(MAP("key": key, "value": value))
+    }
 
 /// === SQL Compat ===
 
@@ -872,23 +918,24 @@ TypeLiteral
 
 CastType
   = TypeExternal
-  / PrimitiveType
+  / !"null" typ:PrimitiveType { RETURN(typ) }
 
 TypeExternal
-  = "type" __ "(" __ typ:Type __ ")" { RETURN(typ)}
-  / "type" __ "(" __ typ:TypeUnion __ ")" { RETURN(typ) }
-  / ComplexType
+  = ExplicitType
+  / ComplexTypeExternal
   / typ:PrimitiveTypeExternal !IdentifierRest { RETURN(typ) }
 
 Type
-  = AmbiguousType
+  = ExplicitType
+  / AmbiguousType
   / ComplexType
 
+ExplicitType
+  = "type" __ "(" __ typ:Type __ ")" { RETURN(typ)}
+  / "type" __ "(" __ typ:TypeUnion __ ")" { RETURN(typ) }
+
 AmbiguousType
-  = "null" {
-      RETURN(MAP("kind": "TypeNull"))
-    }
-  / name:PrimitiveType
+  = name:PrimitiveType
   / name:IdentifierName __ '=' __ "(" __ typ:Type __ ")" {
       RETURN(MAP("kind": "TypeDef", "name": name, "type": typ))
   }
@@ -916,10 +963,24 @@ ComplexType
   / "[" __ typ:Type __ "]" {
       RETURN(MAP("kind":"TypeArray", "type":typ))
     }
-  / "|[" __ typ:Type __ "]|" {
+  / "|[" __  typ:Type __ "]|" {
       RETURN(MAP("kind":"TypeSet", "type":typ))
     }
   / "|{" __ keyType:Type __ "," __ valType:Type __ "}|" {
+      RETURN(MAP("kind":"TypeMap", "key_type":keyType, "val_type": valType))
+    }
+
+ComplexTypeExternal
+  = "{" __ fields:TypeFieldList __ "}" {
+      RETURN(MAP("kind":"TypeRecord", "fields":fields))
+    }
+  / "[" __ typ:TypeExternal __ "]" {
+      RETURN(MAP("kind":"TypeArray", "type":typ))
+    }
+  / "|[" __ typ:TypeExternal __ "]|" {
+      RETURN(MAP("kind":"TypeSet", "type":typ))
+    }
+  / "|{" __ keyType:TypeExternal __ "," __ valType:TypeExternal __ "}|" {
       RETURN(MAP("kind":"TypeMap", "key_type":keyType, "val_type": valType))
     }
 
@@ -943,13 +1004,15 @@ PrimitiveTypeExternal
 // expression.  Unlike external type names, these names could surprise
 // someone that they cannot be used as field names.  For example, you cannot
 // say is(net) but instead must is(type(net)).  Of course you can still say,
-// {x:int32,n:net} as the use of net here is not an expression.
+// {x:int32,n:net} as the use of net here is not an expression.  We include
+// null here as well so null outside of an explicit type expression is
+// the null value (and can be changed into a null type using type(null)).
 PrimitiveTypeInternal
   = (   "duration" / "time"
       / "bytes"
       / "bstring"
       / "ip" / "net"
-      / "type" / "error" ) {
+      / "type" / "error" / "null" ) {
           RETURN(MAP("kind": "TypePrimitive", "name": TEXT))
         }
 
@@ -962,6 +1025,18 @@ TypeFieldListTail = __ "," __ typ:TypeField { RETURN(typ) }
 
 TypeField
   = name:FieldName __ ":" __ typ:Type {
+      RETURN(MAP("name": name, "type": typ))
+    }
+
+TypeFieldListExternal
+  = first:TypeField rest:TypeFieldListTailExternal* {
+    RETURN(PREPEND(first, rest))
+  }
+
+TypeFieldListTailExternal = __ "," __ typ:TypeFieldExternal { RETURN(typ) }
+
+TypeFieldExternal
+  = name:FieldName __ ":" __ typ:TypeExternal {
       RETURN(MAP("name": name, "type": typ))
     }
 

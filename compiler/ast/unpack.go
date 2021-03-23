@@ -8,6 +8,7 @@ import (
 
 var unpacker = unpack.New(
 	Array{},
+	ArrayExpr{},
 	Assignment{},
 	BinaryExpr{},
 	Call{},
@@ -27,6 +28,7 @@ var unpacker = unpack.New(
 	ImpliedValue{},
 	Join{},
 	Map{},
+	MapExpr{},
 	Shape{},
 	Parallel{},
 	Pass{},
@@ -39,6 +41,7 @@ var unpacker = unpack.New(
 	Ref{},
 	RegexpMatch{},
 	RegexpSearch{},
+	RecordExpr{},
 	Rename{},
 	Root{},
 	Search{},
@@ -46,6 +49,7 @@ var unpacker = unpack.New(
 	SeqExpr{},
 	Sequential{},
 	Set{},
+	SetExpr{},
 	SQLExpr{},
 	SQLOrderBy{},
 	Sort{},
