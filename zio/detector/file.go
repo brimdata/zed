@@ -9,13 +9,8 @@ import (
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/parquetio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-
-	"github.com/xitongsys/parquet-go-source/local"
-	parquets3 "github.com/xitongsys/parquet-go-source/s3"
-	"github.com/xitongsys/parquet-go/source"
 )
 
 // OpenFile creates and returns zbuf.File for the indicated "path",
@@ -31,12 +26,6 @@ func OpenFileWithContext(ctx context.Context, zctx *resolver.Context, path strin
 	if err != nil {
 		return nil, err
 	}
-
-	// Parquet is special and needs its own reader for s3 sources.
-	if opts.Format == "parquet" {
-		return OpenParquet(zctx, uri, opts)
-	}
-
 	f, err := iosrc.NewReader(ctx, uri)
 	if err != nil {
 		return nil, err
@@ -44,29 +33,10 @@ func OpenFileWithContext(ctx context.Context, zctx *resolver.Context, path strin
 	return OpenFromNamedReadCloser(zctx, f, path, opts)
 }
 
-func OpenParquet(zctx *resolver.Context, uri iosrc.URI, opts zio.ReaderOpts) (*zbuf.File, error) {
-	var pf source.ParquetFile
-	var err error
-	if uri.Scheme == "s3" {
-		pf, err = parquets3.NewS3FileReader(context.Background(), uri.Host, uri.Path, opts.AwsCfg)
-	} else {
-		pf, err = local.NewLocalFileReader(uri.Filepath())
-	}
-	if err != nil {
-		return nil, err
-	}
-
-	r, err := parquetio.NewReader(pf, zctx, parquetio.ReaderOpts{})
-	if err != nil {
-		return nil, err
-	}
-	return zbuf.NewFile(r, pf, uri.String()), nil
-}
-
 func OpenFromNamedReadCloser(zctx *resolver.Context, rc io.ReadCloser, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
 	var err error
 	r := io.Reader(rc)
-	if opts.Format != "zst" {
+	if opts.Format != "parquet" && opts.Format != "zst" {
 		r = GzipReader(rc)
 	}
 	var zr zbuf.Reader

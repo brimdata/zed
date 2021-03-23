@@ -8,6 +8,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimsec/zq/zio/parquetio"
 	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/ztest"
@@ -25,6 +27,9 @@ func TestZq(t *testing.T) {
 			ztest.Run(t, d)
 		})
 	}
+	t.Run("ParquetBoomerang", func(t *testing.T) {
+		runParquetBoomerangs(t, dirs)
+	})
 	t.Run("ZsonBoomerang", func(t *testing.T) {
 		runZsonBoomerangs(t, dirs)
 	})
@@ -47,7 +52,13 @@ func runZsonBoomerangs(t *testing.T, dirs map[string]struct{}) {
 	if testing.Short() {
 		return
 	}
-	bundles, err := findTzngs(t, dirs)
+	const script = `
+exec 2>&1
+zq -f zson - > baseline.zson &&
+zq -i zson -f zson baseline.zson > boomerang.zson &&
+diff baseline.zson boomerang.zson
+`
+	bundles, err := findInputs(t, dirs, script, isValidTzng)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -79,33 +90,23 @@ type BoomerangError struct {
 }
 
 func (b *BoomerangError) Error() string {
-	return fmt.Sprintf("%s\n=== with this zson ===\n\n%s\n\n=== from file ===\n\n%s\n\n", b.Err, b.Zson, b.FileName)
+	return fmt.Sprintf("%s\n=== with this input ===\n\n%s\n\n=== from file ===\n\n%s\n\n", b.Err, b.Zson, b.FileName)
 }
 
-const script = `
-zq -f zson in.tzng > baseline.zson
-zq -i zson -f zson baseline.zson > boomerang.zson
-diff baseline.zson boomerang.zson
-echo EOF
-`
-
-var eof = `EOF
-`
-var empty = ""
-
-func boomerang(zson string) *ztest.ZTest {
+func boomerang(script, input string) *ztest.ZTest {
+	var empty string
 	return &ztest.ZTest{
 		Script: script,
 		Inputs: []ztest.File{
 			{
-				Name: "in.tzng",
-				Data: &zson,
+				Name: "stdin",
+				Data: &input,
 			},
 		},
 		Outputs: []ztest.File{
 			{
 				Name: "stdout",
-				Data: &eof,
+				Data: &empty,
 			},
 			{
 				Name: "stderr",
@@ -127,8 +128,8 @@ func expectFailure(b ztest.Bundle) bool {
 	return false
 }
 
-func isValidTzng(src string) bool {
-	r := tzngio.NewReader(strings.NewReader(src), resolver.NewContext())
+func isValidTzng(input string) bool {
+	r := tzngio.NewReader(strings.NewReader(input), resolver.NewContext())
 	for {
 		rec, err := r.Read()
 		if err != nil {
@@ -140,7 +141,65 @@ func isValidTzng(src string) bool {
 	}
 }
 
-func findTzngs(t *testing.T, dirs map[string]struct{}) ([]ztest.Bundle, error) {
+func runParquetBoomerangs(t *testing.T, dirs map[string]struct{}) {
+	if testing.Short() {
+		return
+	}
+	const script = `
+exec 2>&1
+zq -f parquet -o baseline.parquet fuse - &&
+zq -i parquet -f parquet -o boomerang.parquet baseline.parquet &&
+diff baseline.parquet boomerang.parquet
+`
+	bundles, err := findInputs(t, dirs, script, isValidForParquet)
+	if err != nil {
+		t.Fatal(err)
+	}
+	shellPath, err := ztest.ShellPath()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, b := range bundles {
+		b := b
+		t.Run(b.TestName, func(t *testing.T) {
+			t.Parallel()
+			err := b.RunScript(shellPath, ".")
+			if err != nil {
+				if s := err.Error(); strings.Contains(s, parquetio.ErrEmptyRecordType.Error()) ||
+					strings.Contains(s, parquetio.ErrNullType.Error()) ||
+					strings.Contains(s, parquetio.ErrUnionType.Error()) {
+					t.Skip("skipping because the Parquet writer cannot handle an input type")
+				}
+				err = &BoomerangError{
+					*b.Test.Inputs[0].Data,
+					b.FileName,
+					err,
+				}
+			}
+			require.NoError(t, err)
+		})
+	}
+}
+
+func isValidForParquet(input string) bool {
+	r, err := detector.NewReader(strings.NewReader(input), resolver.NewContext())
+	if err != nil {
+		return false
+	}
+	var found bool
+	for {
+		rec, err := r.Read()
+		if err != nil {
+			return false
+		}
+		if rec == nil {
+			return found
+		}
+		found = true
+	}
+}
+
+func findInputs(t *testing.T, dirs map[string]struct{}, script string, isValidInput func(string) bool) ([]ztest.Bundle, error) {
 	var out []ztest.Bundle
 	for path := range dirs {
 		bundles, err := ztest.Load(path)
@@ -149,34 +208,30 @@ func findTzngs(t *testing.T, dirs map[string]struct{}) ([]ztest.Bundle, error) {
 			continue
 		}
 		// Transform the bundles into boomerang tests by taking each
-		// tzng source and creating a new ztest.Bundle.
+		// source and creating a new ztest.Bundle.
 		for _, bundle := range bundles {
 			if bundle.Error != nil || expectFailure(bundle) {
 				continue
 			}
 			// Normalize the diffrent kinds of test inputs into
 			// a single pattern.
-			for _, src := range bundle.Test.Input {
-				if !isValidTzng(src) {
-					continue
+			for _, input := range bundle.Test.Input {
+				if isValidInput(input) {
+					out = append(out, ztest.Bundle{
+						TestName: bundle.TestName,
+						FileName: bundle.FileName,
+						Test:     boomerang(script, input),
+					})
 				}
-				b := ztest.Bundle{
-					TestName: bundle.TestName,
-					FileName: bundle.FileName,
-					Test:     boomerang(src),
-				}
-				out = append(out, b)
 			}
-			for _, src := range bundle.Test.Inputs {
-				if src.Data == nil || !isValidTzng(*src.Data) {
-					continue
+			for _, input := range bundle.Test.Inputs {
+				if input.Data != nil && isValidInput(*input.Data) {
+					out = append(out, ztest.Bundle{
+						TestName: bundle.TestName,
+						FileName: bundle.FileName,
+						Test:     boomerang(script, *input.Data),
+					})
 				}
-				b := ztest.Bundle{
-					TestName: bundle.TestName,
-					FileName: bundle.FileName,
-					Test:     boomerang(*src.Data),
-				}
-				out = append(out, b)
 			}
 		}
 	}

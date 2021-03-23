@@ -5,11 +5,11 @@ go 1.16
 require (
 	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
 	github.com/alexbrainman/ps v0.0.0-20171229230509-b3e1b4a15894
-	github.com/apache/thrift v0.0.0-20181112125854-24918abba929
 	github.com/aws/aws-sdk-go v1.36.17
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/fraugster/parquet-go v0.3.0
 	github.com/fsnotify/fsnotify v1.4.9
 	github.com/go-pg/pg/v10 v10.7.3
 	github.com/go-redis/redis/v8 v8.4.11
@@ -32,8 +32,6 @@ require (
 	github.com/prometheus/client_model v0.2.0
 	github.com/segmentio/ksuid v1.0.2
 	github.com/stretchr/testify v1.6.1
-	github.com/xitongsys/parquet-go v1.5.3-0.20200514000040-789bba367841
-	github.com/xitongsys/parquet-go-source v0.0.0-20200509081216-8db33acb0acf
 	github.com/yuin/goldmark v1.2.1
 	go.temporal.io/sdk v1.4.1
 	go.temporal.io/server v1.6.3
@@ -46,5 +44,7 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v3 v3.0.0-20210106172901-c476de37821d
 )
+
+replace github.com/fraugster/parquet-go => github.com/brimsec/parquet-go v0.3.1
 
 replace github.com/minio/minio => github.com/brimsec/minio v0.0.0-20201019191454-3c6f24527f6d
