@@ -26,7 +26,6 @@ var (
 	convertedMapKeyValue     = parquet.ConvertedTypePtr(parquet.ConvertedType_MAP_KEY_VALUE)
 	convertedList            = parquet.ConvertedTypePtr(parquet.ConvertedType_LIST)
 	convertedEnum            = parquet.ConvertedTypePtr(parquet.ConvertedType_ENUM)
-	convertedDecimal         = parquet.ConvertedTypePtr(parquet.ConvertedType_DECIMAL)
 	convertedDate            = parquet.ConvertedTypePtr(parquet.ConvertedType_DATE)
 	convertedTimeMillis      = parquet.ConvertedTypePtr(parquet.ConvertedType_TIME_MILLIS)
 	convertedTimeMicros      = parquet.ConvertedTypePtr(parquet.ConvertedType_TIME_MICROS)
@@ -63,7 +62,6 @@ var (
 	logicalInt16           = &parquet.LogicalType{INTEGER: &parquet.IntType{BitWidth: 16, IsSigned: true}}
 	logicalInt32           = &parquet.LogicalType{INTEGER: &parquet.IntType{BitWidth: 32, IsSigned: true}}
 	logicalInt64           = &parquet.LogicalType{INTEGER: &parquet.IntType{BitWidth: 64, IsSigned: true}}
-	logicalUnknown         = &parquet.LogicalType{UNKNOWN: &parquet.NullType{}}
 	logicalBSON            = &parquet.LogicalType{BSON: &parquet.BsonType{}}
 	logicalJSON            = &parquet.LogicalType{JSON: &parquet.JsonType{}}
 	logicalUUID            = &parquet.LogicalType{UUID: &parquet.UUIDType{}}
