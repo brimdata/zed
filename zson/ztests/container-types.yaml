@@ -7,7 +7,7 @@ input: |
   { n: null ({a: string}) }
 
 output: |
-  {n:null (0=(|{stringint32}|))} (=1)
+  {n:null (0=(|{string,int32}|))} (=1)
   {n:null (2=(|[string]|))}
   {n:null (3=([string]))}
   {n:null (4=({a:string}))}

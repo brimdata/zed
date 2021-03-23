@@ -337,6 +337,7 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 	case *zng.TypeMap:
 		f.build("|{")
 		f.formatType(typ.KeyType)
+		f.build(",")
 		f.formatType(typ.ValType)
 		f.build("}|")
 	case *zng.TypeUnion:
