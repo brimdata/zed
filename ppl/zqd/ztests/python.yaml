@@ -8,7 +8,7 @@ script: |
 
   source services.sh
   zapi -h $ZQD_HOST new test >/dev/null
-  zapi -h $ZQD_HOST -s test post in.tzng >/dev/null
+  zapi -h $ZQD_HOST -s test post in.zson >/dev/null
 
   python <<EOF
   import zqd
@@ -18,11 +18,10 @@ script: |
   EOF
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[ts:time,s:string]
-      0:[1;world;]
-      0:[2;hello;]
+      {ts:1970-01-01T00:00:01Z,s:"world"}
+      {ts:1970-01-01T00:00:02Z,s:"hello"}
   - name: services.sh
     source: services.sh
   - name: setup.py

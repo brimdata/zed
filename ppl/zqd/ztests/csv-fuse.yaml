@@ -1,18 +1,16 @@
 script: |
   source services.sh
   zapi -h $ZQD_HOST new test
-  zapi -h $ZQD_HOST -s test post in.tzng
+  zapi -h $ZQD_HOST -s test post in.zson
   zapi -h $ZQD_HOST -s test get -e csv > out.csv
 
 inputs:
   - name: services.sh
     source: services.sh
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[a:string]
-      0:[hello;]
-      #1:record[b:int32]
-      1:[123;]
+      {a:"hello"}
+      {b:123 (int32)} (=0)
 
 outputs:
   - name: out.csv

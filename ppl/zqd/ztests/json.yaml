@@ -1,16 +1,15 @@
 script: |
   source services.sh
   zapi -h $ZQD_HOST new test
-  zapi -h $ZQD_HOST -s test post in.tzng
+  zapi -h $ZQD_HOST -s test post in.zson
   zapi -h $ZQD_HOST -s test get -e json > out.json
 
 inputs:
   - name: services.sh
     source: services.sh
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[a:string,b:record[c:string,d:string]]
-      0:[hello;[world;goodbye;]]
+      {a:"hello",b:{c:"world",d:"goodbye"}}
 
 outputs:
   - name: out.json

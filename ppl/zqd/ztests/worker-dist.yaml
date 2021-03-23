@@ -21,27 +21,27 @@ script: |
   # The count() from zq should be identical to
   # the count() from zapi get -chunk
   #
-  zq -f tzng "count()" smtp.log.gz > zqcount.tzng
-  zapi -h $ZQD_HOST -s testsp get -workers 2 -f tzng "count()" > zapicount.tzng
+  zq -f zson "count()" smtp.log.gz > zqcount.zson
+  zapi -h $ZQD_HOST -s testsp get -workers 2 -f zson "count()" > zapicount.zson
   echo ===
-  diff -s zqcount.tzng zapicount.tzng
+  diff -s zqcount.zson zapicount.zson
   #
   # Compare output from a simple filter for a unique string.
   # This will verify that filter expressions are
   # passed though to the worker zqd.
   #
-  zq -f tzng "39161" smtp.log.gz > zqfilter.tzng
-  zapi -h $ZQD_HOST -s testsp get -workers 2 -f tzng "39161" > zapifilter.tzng
+  zq -f zson "39161" smtp.log.gz > zqfilter.zson
+  zapi -h $ZQD_HOST -s testsp get -workers 2 -f zson "39161" > zapifilter.zson
   echo ===
-  diff -s zqfilter.tzng zapifilter.tzng
+  diff -s zqfilter.zson zapifilter.zson
   #
   # Compare output from the tail function to make sure
   # the record order is the same.
   #
-  zq -f tzng "sort -r ts | tail 5" smtp.log.gz > zqtail.tzng
-  zapi -h $ZQD_HOST -s testsp get -workers 2 -f tzng "tail 5" > zapitail.tzng
+  zq -f zson "sort -r ts | tail 5" smtp.log.gz > zqtail.zson
+  zapi -h $ZQD_HOST -s testsp get -workers 2 -f zson "tail 5" > zapitail.zson
   echo ===
-  diff -s zqtail.tzng zapitail.tzng
+  diff -s zqtail.zson zapitail.zson
 
 inputs:
   - name: common.sh
@@ -55,8 +55,8 @@ outputs:
   - name: stdout
     data: |
       ===
-      Files zqcount.tzng and zapicount.tzng are identical
+      Files zqcount.zson and zapicount.zson are identical
       ===
-      Files zqfilter.tzng and zapifilter.tzng are identical
+      Files zqfilter.zson and zapifilter.zson are identical
       ===
-      Files zqtail.tzng and zapitail.tzng are identical
+      Files zqtail.zson and zapitail.zson are identical

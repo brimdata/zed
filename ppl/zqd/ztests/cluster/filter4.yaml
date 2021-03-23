@@ -2,10 +2,9 @@ tag: cluster
 
 script: |
   # Test assumes a remote zqd instance with space "files" is available at 9867
-  zapi -s files get -workers 4 -f tzng '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' 2>&1 
+  zapi -s files get -workers 4 -z '"FgzbkQ15TOoOENn1lb" | sort tx_hosts' 2>&1 
 
 outputs:
   - name: stdout
     data: |
-      #0:record[_path:string,ts:time,fuid:bstring,tx_hosts:set[ip],rx_hosts:set[ip],conn_uids:set[bstring],source:bstring,depth:uint64,analyzers:set[bstring],mime_type:bstring,filename:bstring,duration:duration,local_orig:bool,is_orig:bool,seen_bytes:uint64,total_bytes:uint64,missing_bytes:uint64,overflow_bytes:uint64,timedout:bool,parent_fuid:bstring,md5:bstring,sha1:bstring,sha256:bstring,extracted:bstring,extracted_cutoff:bool,extracted_size:uint64]
-      0:[files;1521940131.094903;FgzbkQ15TOoOENn1lb;[198.199.95.203;][10.47.25.80;][Cc4q8L1Hhp9MjJiVcl;]SSL;0;[MD5;SHA1;X509;SHA256;]application/x-x509-ca-cert;-;0;-;F;1174;-;0;0;F;-;b15409274f54ad8f023d3b85a5ecec5d;e6a3b45b062d509b3382282d196efe97d5956ccb;25847d668eb4f04fdd40b12b6b0740c567da7d024308eb6c2c96fe41d9de218d;-;-;-;]
+      {_path:"files",ts:2018-03-25T01:08:51.094903Z,fuid:"FgzbkQ15TOoOENn1lb" (bstring),tx_hosts:|[198.199.95.203]|,rx_hosts:|[10.47.25.80]|,conn_uids:|["Cc4q8L1Hhp9MjJiVcl" (bstring)]| (=0),source:"SSL" (bstring),depth:0 (uint64),analyzers:|["MD5","SHA1","X509","SHA256"]| (0),mime_type:"application/x-x509-ca-cert" (bstring),filename:null (bstring),duration:0s,local_orig:null (bool),is_orig:false,seen_bytes:1174 (uint64),total_bytes:null (uint64),missing_bytes:0 (uint64),overflow_bytes:0 (uint64),timedout:false,parent_fuid:null (bstring),md5:"b15409274f54ad8f023d3b85a5ecec5d" (bstring),sha1:"e6a3b45b062d509b3382282d196efe97d5956ccb" (bstring),sha256:"25847d668eb4f04fdd40b12b6b0740c567da7d024308eb6c2c96fe41d9de218d" (bstring),extracted:null (bstring),extracted_cutoff:null (bool),extracted_size:null (uint64)} (=1)

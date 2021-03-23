@@ -9,7 +9,7 @@ script: |
   echo ===
   zapi -h $ZQD_HOST ls
   echo ===
-  zapi -h $ZQD_HOST -s testsp get -f tzng "_path=conn | count()"
+  zapi -h $ZQD_HOST -s testsp get -z "_path=conn | count()"
   echo ===
   zapi -h $ZQD_HOST rm testsp
 
@@ -35,7 +35,6 @@ outputs:
       ===
       testsp
       ===
-      #0:record[count:uint64]
-      0:[5;]
+      {count:5 (uint64)} (=0)
       ===
       testsp: space removed

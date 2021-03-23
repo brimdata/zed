@@ -3,7 +3,7 @@ tag: services
 script: |
   source services.sh
   zapi -h $ZQD_HOST new -k archivestore -thresh 20KiB testsp
-  zapi -h $ZQD_HOST -s testsp post babble.tzng >/dev/null
+  zapi -h $ZQD_HOST -s testsp post babble.zson >/dev/null
   echo ===
   zapi -h $ZQD_HOST -s testsp get -f text "count()"
   echo ===
@@ -12,8 +12,8 @@ script: |
   curl $ZQD_HOST/metrics | grep archive_cache
 
 inputs:
-  - name: babble.tzng
-    source: ../../../../ztests/suite/data/babble-sorted.tzng
+  - name: babble.zson
+    source: ../../../../ztests/suite/data/babble-sorted.zson
   - name: services.sh
     source: services.sh
 

@@ -29,7 +29,7 @@ script: |
   done
 
   zapi -h $ZQD_HOST -s testsp postpcap -f alerts.pcap >/dev/null
-  zapi -h $ZQD_HOST -s testsp get -f tzng "event_type = alert | count()"
+  zapi -h $ZQD_HOST -s testsp get -z "event_type = alert | count()"
 
 inputs:
   - name: alerts.pcap
@@ -42,5 +42,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[count:uint64]
-      0:[15;]
+      {count:15 (uint64)} (=0)

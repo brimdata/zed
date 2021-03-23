@@ -2,10 +2,9 @@ tag: cluster
 
 script: |
   # Test assumes a remote zqd instance with space "files" is available at 9867
-  time zapi -s files get -workers 4 -f tzng 'count()' 2>&1
+  time zapi -s files get -workers 4 -z 'count()' 2>&1
 
 outputs:
   - name: stdout
     data: |
-      #0:record[count:uint64]
-      0:[12243237;]
+      {count:12243237 (uint64)} (=0)
