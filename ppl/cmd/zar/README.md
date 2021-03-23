@@ -405,15 +405,15 @@ The classic map-reduce example is word count.  Let's do this example with
 the uri field in http logs.  First, we map each record that has a uri
 to a new record with that uri and a count of 1:
 ```
-zar map -o words.zng "uri != null | cut uri | put count=1"
+zar map -q -o words.zng "uri != null | cut uri | put count=1"
 ```
 again you can look at one of the files...
 ```
-find $ZAR_ROOT -name words.zng | head -n 1 | xargs zq -t -
+find $ZAR_ROOT -name words.zng ! -size 0 | head -n 1 | xargs zq -z -
 ```
 Now we reduce by aggregating the uri and summing the counts:
 ```
-zar map -o wordcounts.zng "sum(count) by uri | cut uri,count=sum" words.zng
+zar map -q -o wordcounts.zng "sum(count) by uri | cut uri,count=sum" words.zng
 ```
 If we were dealing with a huge archive, we could do an approximation by taking
 the top 1000 in each zar directory then we could aggregate with another zq
