@@ -61,6 +61,10 @@ func zbool(b bool) zng.Value {
 	return zng.Value{zng.TypeBool, zng.EncodeBool(b)}
 }
 
+func zerr(s string) zng.Value {
+	return zng.Value{zng.TypeError, zng.EncodeString(s)}
+}
+
 func zint32(v int32) zng.Value {
 	return zng.Value{zng.TypeInt32, zng.EncodeInt(int64(v))}
 }
@@ -418,9 +422,9 @@ func TestIn(t *testing.T) {
 	testSuccessful(t, "1 in s", record, zbool(false))
 	testSuccessful(t, "4 in s", record, zbool(true))
 
-	testError(t, `"boo" in a`, record, expr.ErrIncompatibleTypes, "in operator with mismatched type")
-	testError(t, `"boo" in s`, record, expr.ErrIncompatibleTypes, "in operator with mismatched type")
-	testError(t, "1 in 2", record, expr.ErrNotContainer, "in operator with non-container")
+	testSuccessful(t, `"boo" in a`, record, zbool(false))
+	testSuccessful(t, `"boo" in s`, record, zbool(false))
+	testSuccessful(t, "1 in 2", record, zerr("'in' operator applied to non-container type"))
 }
 
 func TestArithmetic(t *testing.T) {
