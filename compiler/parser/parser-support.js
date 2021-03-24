@@ -1,4 +1,4 @@
-let reglob = require("../reglob/reglob")
+let reglob = require("../../reglob/reglob")
 
 function makeChain(first, rest, op) {
   if (!rest || rest.length == 0) {

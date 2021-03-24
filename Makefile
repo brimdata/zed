@@ -247,9 +247,9 @@ build-python-lib:
 clean-python:
 	@rm -rf python/brim/build
 
-PEG_GEN = zql/zql.go zql/zql.js zql/zql.es.js
-$(PEG_GEN): zql/Makefile zql/parser-support.js zql/zql.peg
-	$(MAKE) -C zql
+PEG_GEN := $(addprefix compiler/parser/parser., go js es.js)
+$(PEG_GEN): compiler/parser/Makefile compiler/parser/parser-support.js compiler/parser/parser.peg
+	$(MAKE) -C compiler/parser
 
 # This rule is best for edit-compile-debug cycle of peg development.  It should
 # properly trigger rebuilds of peg-generated code, but best to run "make" in the

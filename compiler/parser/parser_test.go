@@ -1,4 +1,4 @@
-package zql_test
+package parser_test
 
 import (
 	"bufio"
@@ -14,8 +14,8 @@ import (
 
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimsec/zq/compiler/parser"
 	"github.com/brimsec/zq/pkg/fs"
-	"github.com/brimsec/zq/zql"
 	"github.com/brimsec/zq/ztest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -57,7 +57,7 @@ func parseProc(z string) ([]byte, error) {
 }
 
 func parsePigeon(z string) ([]byte, error) {
-	ast, err := zql.Parse("", []byte(z))
+	ast, err := parser.Parse("", []byte(z))
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +86,7 @@ func testZQL(t *testing.T, line string) {
 }
 
 func TestValid(t *testing.T) {
-	file, err := fs.Open("valid.zql")
+	file, err := fs.Open("valid.zed")
 	require.NoError(t, err)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -104,12 +104,12 @@ func TestZtestZqls(t *testing.T) {
 }
 
 func TestInvalid(t *testing.T) {
-	file, err := fs.Open("invalid.zql")
+	file, err := fs.Open("invalid.zed")
 	require.NoError(t, err)
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		_, err := zql.Parse("", line)
+		_, err := parser.Parse("", line)
 		assert.Error(t, err, "zql: %q", line)
 	}
 }

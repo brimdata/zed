@@ -1,6 +1,6 @@
 #ifdef GO
 {
-    package zql
+    package parser
 }
 #define APPEND(arr, value) arr = append(arr, value)
 #define ARRAY(...) []interface{}{__VA_ARGS__}

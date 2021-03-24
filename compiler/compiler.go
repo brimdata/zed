@@ -3,13 +3,13 @@ package compiler
 import (
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/compiler/kernel"
+	"github.com/brimsec/zq/compiler/parser"
 	"github.com/brimsec/zq/compiler/semantic"
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 )
 
 var _ zbuf.Filter = (*Runtime)(nil)
@@ -128,7 +128,7 @@ func (r *Runtime) Parallelize(n int) bool {
 // ParseProc() is an entry point for use from external go code,
 // mostly just a wrapper around Parse() that casts the return value.
 func ParseProc(z string) (ast.Proc, error) {
-	parsed, err := zql.ParseZ(z)
+	parsed, err := parser.ParseZ(z)
 	if err != nil {
 		return nil, err
 	}
@@ -136,7 +136,7 @@ func ParseProc(z string) (ast.Proc, error) {
 }
 
 func ParseExpression(expr string) (ast.Expr, error) {
-	m, err := zql.ParseZByRule("Expr", expr)
+	m, err := parser.ParseZByRule("Expr", expr)
 	if err != nil {
 		return nil, err
 	}

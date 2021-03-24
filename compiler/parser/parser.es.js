@@ -13924,9 +13924,9 @@ function peg$parse(input, options) {
   }
 }
 
-var zql = {
+var parser = {
   SyntaxError: peg$SyntaxError,
   parse:       peg$parse
 };
 
-export default zql;
+export default parser;

@@ -1,4 +1,4 @@
-package zql
+package parser
 
 import (
 	"bytes"

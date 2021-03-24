@@ -13,27 +13,27 @@ import (
 
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimsec/zq/compiler/parser"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/zfmt"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zql"
 	"github.com/mccanne/charm"
 	"github.com/peterh/liner"
 )
 
 var Ast = &charm.Spec{
 	Name:  "ast",
-	Usage: "ast [ options ] zql",
-	Short: "tool for inspecting zql abtract-syntax trees",
+	Usage: "ast [ options ] zed",
+	Short: "tool for inspecting Z abstract-syntax trees",
 	Long: `
-The ast command parses a zql expression and prints the resulting abstract-syntax
+The ast command parses a Z expression (zed) and prints the resulting abstract-syntax
 tree as JSON object to standard output.  This serves a tool for dev and test
-but could also be used by power users trying to understand how zql syntax is
+but could also be used by power users trying to understand how Z syntax is
 translated into the analytics requests that is sent to the zqd search endpoint.
 
 By default, it runs the built-in PEG parser built into this go binary.
 If you specify -js, it will try to run a javascript version of the parser
-by execing node in the currrent directory running the javascript in ./zql/run.js.
+by execing node in the currrent directory running the javascript in ./compiler/parser/run.js.
 
 The -O flag is handy for turning on and off the compiler, which lets you see
 how the parsed AST is transformed into a runtime object comprised of the
@@ -246,7 +246,7 @@ func (c *Command) compile(z string) (*compiler.Runtime, error) {
 }
 
 const nodeProblem = `
-Failed to run node on ./zql/run.js.  The "-js" flag is for PEG
+Failed to run node on ./compiler/parser/run.js.  The "-js" flag is for PEG
 development and should only be used when running ast in the root
 directory of the zq repo.`
 
@@ -269,7 +269,7 @@ func (c *Command) interactive() {
 }
 
 func runNode(dir, line string) ([]byte, error) {
-	cmd := exec.Command("node", "./zql/run.js", "-e", "start")
+	cmd := exec.Command("node", "./compiler/parser/run.js", "-e", "start")
 	if dir != "" {
 		cmd.Dir = dir
 	}
@@ -309,7 +309,7 @@ func procFmt(proc ast.Proc, canon bool) (string, error) {
 }
 
 func parsePigeon(z string) (string, error) {
-	ast, err := zql.Parse("", []byte(z))
+	ast, err := parser.Parse("", []byte(z))
 	if err != nil {
 		return "", err
 	}

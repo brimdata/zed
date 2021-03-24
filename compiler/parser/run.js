@@ -1,7 +1,7 @@
 'use strict';
 
 const fs = require('fs');
-const zql = require('./zql')
+const parser = require('./parser')
 
 let startRule = 'start';
 
@@ -15,7 +15,7 @@ function wrap(e) {
 
 function parse_query(line) {
     try {
-        return zql.parse(line, {startRule});
+        return parser.parse(line, {startRule});
     } catch (e) {
         return wrap(e);
     }
@@ -33,11 +33,11 @@ while (argv.length > 0) {
     }
 }
 
-let zql_src;
+let zsrc;
 try {
-    zql_src = fs.readFileSync(filename, 'utf8');
+    zsrc = fs.readFileSync(filename, 'utf8');
 } catch (e) {
     show(wrap(e));
     process.exit(1);
 }
-show(parse_query(zql_src));
+show(parse_query(zsrc));
