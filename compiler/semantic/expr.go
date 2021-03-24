@@ -162,7 +162,7 @@ func semBinary(scope *Scope, e *ast.BinaryExpr) (ast.Expr, error) {
 		return nil, err
 	}
 	// If we index a root record with a string constant, then just
-	// extend the path...
+	// extend the path.
 	if op == "[" {
 		if path := isRootIndex(scope, lhs, rhs); path != nil {
 			return path, nil
@@ -191,10 +191,8 @@ func isStringConst(scope *Scope, e ast.Expr) (string, bool) {
 		return p.Text, true
 	}
 	if ref, ok := e.(*ast.Ref); ok {
-		if p := scope.Lookup(ref.Name); p != nil {
-			if c, ok := p.(*ast.Const); ok {
-				return isStringConst(scope, c.Expr)
-			}
+		if c, ok := scope.Lookup(ref.Name).(*ast.Const); ok {
+			return isStringConst(scope, c.Expr)
 		}
 	}
 	return "", false
