@@ -286,7 +286,7 @@ At the bottom you'll also find a record describing the micro-index layout. To
 see it:
 
 ```
-find $ZAR_ROOT -name idx-`for file in $ZAR_ROOT/indexdefs/*; do   zq -z $file | grep 'name:"custom.zng"' > /dev/null; if [ $? = 0 ]; then echo $file | sed 's/.*indexdefs\/idxdef-//'; fi done` | head -n 1 | xargs zq -f table 'tail 1' -
+find $ZAR_ROOT -name idx-$(zar index ls -f zng | zq -f text 'desc="zql-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'tail 1' -
 ```
 
 ### zar find with custom index
