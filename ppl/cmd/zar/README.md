@@ -43,11 +43,12 @@ mkdir $ZAR_ROOT
 ```
 
 Now, let's ingest the data using "zar import".  We are working on more
-sophisticated ways to ingest data (e.g., by the standard time partitioning
-techniques of year/month/day/hour etc), but for now zar import just chops
-its input into chunk files of approximately equal size.  We'll chop into chunks
-of 25MB, which is very small, but in this example the data set is
-fairly small (175MB) and you can always try it out on larger data sets:
+sophisticated ways to ingest data (e.g., arbitrary partition keys and
+auto-sizing of partitions) but for now zar import just chops its input into
+chunk files of approximately equal size, each sorted by timestamp in descending
+order.  We'll chop into chunks of 25MB, which is very small, but in this
+example the data set is fairly small (175MB) and you can always try it out on
+larger data sets:
 ```
 zar import -s 25MB zng/*.gz
 ```
