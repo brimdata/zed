@@ -1,0 +1,6 @@
+zql: '*'
+
+input: &input |
+  {duration:-292y171d23h47m16.854775807s}
+
+output: *input
