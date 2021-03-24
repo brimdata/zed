@@ -439,6 +439,9 @@ func (c *canon) fieldpath(path []string) {
 			}
 			c.write(s)
 		} else {
+			if k == 0 {
+				c.write(".")
+			}
 			c.write("[%q]", s)
 		}
 	}
