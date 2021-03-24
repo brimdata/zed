@@ -1,3 +1,5 @@
+skip: true
+
 script: |
   source services.sh
   zapi -h $ZQD_HOST -s testsp postpcap -k archivestore -f alerts.pcap >/dev/null
