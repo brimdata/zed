@@ -32,12 +32,14 @@ ln -s zq-sample-data/zng
 
 ## ingesting the data
 
-Let's take those logs and ingest them into a directory.   We'll make it
-easier to run all the commands by setting an environment variable pointing
-to the root of the logs tree.
+Let's take those logs and ingest them into a directory.  Often we'd keep our
+archive somewhere like [Amazon S3](https://aws.amazon.com/s3/), but since we're
+just doing a quick test we'll use local temp space.  We'll make it easier to
+run all the commands by setting an environment variable pointing to the root of
+the logs tree.
 ```
-mkdir ./logs
-ZAR_ROOT=`pwd`/logs
+mkdir /tmp/logs
+ZAR_ROOT=/tmp/logs
 ```
 
 Now, let's ingest the data using "zar import".  We are working on more
@@ -191,7 +193,7 @@ zar find -f table :ip=10.10.23.2
 ```
 In the output here, you'll see this IP exists in exactly one log file:
 ```
-/path/to/ZAR_ROOT/zd/20180324/d-1jQ2dLYVOL4NSSYCYC4P400ZfPN.zng
+/tmp/logs/zd/20180324/d-1jQ2dLYVOL4NSSYCYC4P400ZfPN.zng
 ```
 
 (In this and later outputs in this README that show pathnames in the archive,
@@ -228,8 +230,8 @@ zar find -f table uri=/file
 ```
 and you'll find "hits" in multiple chunks:
 ```
-/path/to/ZAR_ROOT/zd/20180324/d-1jQ2d5DwDHJULCRN6gq84IwArbb.zng
-/path/to/ZAR_ROOT/zd/20180324/d-1jQ2co6Ttjk9wEUdzI2yW7koYtB.zng
+/tmp/logs/zd/20180324/d-1jQ2d5DwDHJULCRN6gq84IwArbb.zng
+/tmp/logs/zd/20180324/d-1jQ2co6Ttjk9wEUdzI2yW7koYtB.zng
 ```
 
 ## operating directly on micro-indexes
@@ -243,9 +245,9 @@ zar find -z :ip=10.47.21.138
 where `-z` says to produce compact ZSON output instead of a table,
 and you'll get this...
 ```
-{key:10.47.21.138,count:7 (uint64),_log:"/path/to/ZAR_ROOT/zd/20180324/d-1ozm0pGRppq2ToyxhnzxhbVX8Yf.zng" (=zfile),first:2018-03-24T17:33:29.032641Z,last:2018-03-24T17:15:20.608867Z} (=0)
-{key:10.47.21.138,count:3,_log:"/path/to/ZAR_ROOT/zd/20180324/d-1ozm0WjvCWAa4nAPppzVMWZJBfT.zng",first:2018-03-24T17:25:55.502493Z,last:2018-03-24T17:15:20.601374Z} (0)
-{key:10.47.21.138,count:4,_log:"/path/to/ZAR_ROOT/zd/20180324/d-1ozm0CGvgJhFtwQguEY5mNrnMH9.zng",first:2018-03-24T17:19:54.618642Z,last:2018-03-24T17:15:20.600725Z} (0)
+{key:10.47.21.138,count:7 (uint64),_log:"/tmp/logs/zd/20180324/d-1ozm0pGRppq2ToyxhnzxhbVX8Yf.zng" (=zfile),first:2018-03-24T17:33:29.032641Z,last:2018-03-24T17:15:20.608867Z} (=0)
+{key:10.47.21.138,count:3,_log:"/tmp/logs/zd/20180324/d-1ozm0WjvCWAa4nAPppzVMWZJBfT.zng",first:2018-03-24T17:25:55.502493Z,last:2018-03-24T17:15:20.601374Z} (0)
+{key:10.47.21.138,count:4,_log:"/tmp/logs/zd/20180324/d-1ozm0CGvgJhFtwQguEY5mNrnMH9.zng",first:2018-03-24T17:19:54.618642Z,last:2018-03-24T17:15:20.600725Z} (0)
 ```
 The find command adds a column called "_log" (which can be disabled
 or customized to a different field name) so you can see where the
@@ -354,7 +356,7 @@ which produces just one record as this pair appears in only one log file.
         orig_h: 10.47.6.173
     },
     resp_bytes: 5112 (uint64),
-    _log: "/path/to/ZAR_ROOT/zd/20180324/d-1q85q79hAjNCHg5Wx0EQlkulmKU.zng" (=zfile),
+    _log: "/tmp/logs/zd/20180324/d-1q85q79hAjNCHg5Wx0EQlkulmKU.zng" (=zfile),
     first: 2018-03-24T17:29:56.0241Z,
     last: 2018-03-24T17:15:20.601374Z
 } (=0)
