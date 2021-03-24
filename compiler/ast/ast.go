@@ -117,6 +117,36 @@ type RegexpSearch struct {
 	Pattern string `json:"pattern"`
 }
 
+type RecordExpr struct {
+	Kind   string      `json:"kind" unpack:""`
+	Fields []FieldExpr `json:"fields"`
+}
+
+type FieldExpr struct {
+	Name  string `json:"name"`
+	Value Expr   `json:"value"`
+}
+
+type ArrayExpr struct {
+	Kind  string `json:"kind" unpack:""`
+	Exprs []Expr `json:"exprs"`
+}
+
+type SetExpr struct {
+	Kind  string `json:"kind" unpack:""`
+	Exprs []Expr `json:"exprs"`
+}
+
+type MapExpr struct {
+	Kind    string      `json:"kind" unpack:""`
+	Entries []EntryExpr `json:"entries"`
+}
+
+type EntryExpr struct {
+	Key   Expr `json:"key"`
+	Value Expr `json:"value"`
+}
+
 func (*UnaryExpr) exprNode()   {}
 func (*BinaryExpr) exprNode()  {}
 func (*SelectExpr) exprNode()  {}
@@ -136,6 +166,11 @@ func (*SeqExpr) exprNode()      {}
 func (*RegexpSearch) exprNode() {}
 func (*RegexpMatch) exprNode()  {}
 func (*TypeValue) exprNode()    {}
+
+func (*RecordExpr) exprNode() {}
+func (*ArrayExpr) exprNode()  {}
+func (*SetExpr) exprNode()    {}
+func (*MapExpr) exprNode()    {}
 
 func (*SQLExpr) exprNode() {}
 

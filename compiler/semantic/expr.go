@@ -125,6 +125,54 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 			Expr:  expr,
 			Where: where,
 		}, nil
+	case *ast.RecordExpr:
+		var fields []ast.FieldExpr
+		for _, f := range e.Fields {
+			value, err := semExpr(scope, f.Value)
+			if err != nil {
+				return nil, err
+			}
+			fields = append(fields, ast.FieldExpr{f.Name, value})
+		}
+		return &ast.RecordExpr{
+			Kind:   "RecordExpr",
+			Fields: fields,
+		}, nil
+	case *ast.ArrayExpr:
+		exprs, err := semExprs(scope, e.Exprs)
+		if err != nil {
+			return nil, err
+		}
+		return &ast.ArrayExpr{
+			Kind:  "ArrayExpr",
+			Exprs: exprs,
+		}, nil
+	case *ast.SetExpr:
+		exprs, err := semExprs(scope, e.Exprs)
+		if err != nil {
+			return nil, err
+		}
+		return &ast.SetExpr{
+			Kind:  "SetExpr",
+			Exprs: exprs,
+		}, nil
+	case *ast.MapExpr:
+		var entries []ast.EntryExpr
+		for _, entry := range e.Entries {
+			key, err := semExpr(scope, entry.Key)
+			if err != nil {
+				return nil, err
+			}
+			val, err := semExpr(scope, entry.Value)
+			if err != nil {
+				return nil, err
+			}
+			entries = append(entries, ast.EntryExpr{key, val})
+		}
+		return &ast.MapExpr{
+			Kind:    "MapExpr",
+			Entries: entries,
+		}, nil
 	}
 	return nil, fmt.Errorf("invalid expression type %T", e)
 }
