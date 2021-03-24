@@ -287,7 +287,7 @@ func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 type ZTest struct {
 	ZQL         string `yaml:"zql,omitempty"`
 	Skip        bool   `yaml:"skip,omitempty"`
-	Input       Inputs `yaml:"input,omitempty"`
+	Input       string `yaml:"input,omitempty"`
 	Output      string `yaml:"output,omitempty"`
 	OutputHex   string `yaml:"outputHex,omitempty"`
 	OutputFlags string `yaml:"output-flags,omitempty"`
@@ -303,11 +303,7 @@ type ZTest struct {
 }
 
 func (z *ZTest) check() error {
-	if z.ZQL != "" {
-		if z.Input == nil {
-			return errors.New("input field missing in a zq test")
-		}
-	} else if z.Script != "" {
+	if z.Script != "" {
 		if z.Outputs == nil {
 			return errors.New("outputs field missing in a sh test")
 		}
@@ -321,7 +317,7 @@ func (z *ZTest) check() error {
 				return err
 			}
 		}
-	} else {
+	} else if z.ZQL == "" {
 		return errors.New("either a zql field or script field must be present")
 	}
 	if z.ErrorRE != "" {
@@ -329,25 +325,6 @@ func (z *ZTest) check() error {
 		z.errRegex, err = regexp.Compile(z.ErrorRE)
 		return err
 	}
-	return nil
-}
-
-// Inputs is an array of strings. Its only purpose is to support parsing of
-// both single string and array yaml values for the field ZTest.Input.
-type Inputs []string
-
-func (i *Inputs) UnmarshalYAML(value *yaml.Node) error {
-	if value.Kind == yaml.SequenceNode {
-		var inputs []string
-		err := value.Decode(&inputs)
-		*i = inputs
-		return err
-	}
-	var input string
-	if err := value.Decode(&input); err != nil {
-		return err
-	}
-	*i = append(*i, input)
 	return nil
 }
 
@@ -434,7 +411,7 @@ func (z *ZTest) RunInternal(path string) error {
 		return fmt.Errorf("bad yaml format: %w", err)
 	}
 	outputFlags := append([]string{"-f", "zson", "-pretty=0"}, strings.Fields(z.OutputFlags)...)
-	out, errout, err := runzq(path, z.ZQL, outputFlags, z.Input...)
+	out, errout, err := runzq(path, z.ZQL, outputFlags, z.Input)
 	if err != nil {
 		if z.errRegex != nil {
 			if !z.errRegex.MatchString(errout) {
