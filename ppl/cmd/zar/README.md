@@ -245,9 +245,8 @@ zar find -z :ip=10.47.21.138
 where `-z` says to produce compact ZSON output instead of a table,
 and you'll get this...
 ```
-{key:10.47.21.138,count:7 (uint64),_log:"/tmp/logs/zd/20180324/d-1ozm0pGRppq2ToyxhnzxhbVX8Yf.zng" (=zfile),first:2018-03-24T17:33:29.032641Z,last:2018-03-24T17:15:20.608867Z} (=0)
-{key:10.47.21.138,count:3,_log:"/tmp/logs/zd/20180324/d-1ozm0WjvCWAa4nAPppzVMWZJBfT.zng",first:2018-03-24T17:25:55.502493Z,last:2018-03-24T17:15:20.601374Z} (0)
-{key:10.47.21.138,count:4,_log:"/tmp/logs/zd/20180324/d-1ozm0CGvgJhFtwQguEY5mNrnMH9.zng",first:2018-03-24T17:19:54.618642Z,last:2018-03-24T17:15:20.600725Z} (0)
+{key:10.47.21.138,count:1 (uint64),_log:"/tmp/logs/zd/20180324/d-1qCzy6mfDLtsDXeEU1EJxSn1DTi.zng" (=zfile),first:2018-03-24T17:36:30.01359Z,last:2018-03-24T17:15:20.600725Z} (=0)
+{key:10.47.21.138,count:13,_log:"/tmp/logs/zd/20180324/d-1qCzyJtVcZh8fLyFgTJl0fcoyrp.zng",first:2018-03-24T17:29:56.0241Z,last:2018-03-24T17:15:20.601374Z} (0)
 ```
 The find command adds a column called "_log" (which can be disabled
 or customized to a different field name) so you can see where the
@@ -300,7 +299,7 @@ zar find -z -x custom.zng 10.164.94.120
 Now we're talking!  And if you take the results and do a little more math to
 aggregate the aggregations, like this:
 ```
-zar find -z -x custom.zng 10.164.94.120 | zq -f table "count=sum(count) by _path | sort -r" -
+zar find -x custom.zng 10.164.94.120 | zq -f table "count=sum(count) by _path | sort -r" -
 ```
 You'll get
 ```
