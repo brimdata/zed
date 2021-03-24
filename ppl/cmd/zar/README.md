@@ -125,7 +125,7 @@ This is easy. You just say:
 ```
 zar zq -Z "id.orig_h=10.10.23.2"
 ```
-which gives this result in the [ZSON](../../../zng/docs/zson.md) format. ZSON
+which gives this result in the [ZSON](../../../zng/docs/zson.md) format.  ZSON
 describes the complete detail from the ZNG stream as human-readable text.
 ```
 {
