@@ -555,7 +555,7 @@ func getNthFromContainer(container zcode.Bytes, idx uint) (zcode.Bytes, error) {
 			return zv, nil
 		}
 	}
-	return nil, ErrIndexOutOfBounds
+	return nil, zng.ErrMissing
 }
 
 func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
@@ -618,7 +618,7 @@ func indexArray(typ *zng.TypeArray, array zcode.Bytes, index zng.Value) (zng.Val
 	if zng.IsSigned(id) {
 		v, _ := zng.DecodeInt(index.Bytes)
 		if idx < 0 {
-			return zng.NewErrorf("array index out of bounds"), nil
+			return zng.Value{}, zng.ErrMissing
 		}
 		idx = uint(v)
 	} else {
@@ -653,7 +653,7 @@ func indexMap(typ *zng.TypeMap, mapBytes zcode.Bytes, key zng.Value) (zng.Value,
 	if valBytes, ok := lookupKey(mapBytes, key.Bytes); ok {
 		return zng.Value{typ.ValType, valBytes}, nil
 	}
-	return zng.NewErrorf("key not found in map: %s", key), nil
+	return zng.Value{}, zng.ErrMissing
 }
 
 type Conditional struct {

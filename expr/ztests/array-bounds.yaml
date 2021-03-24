@@ -1,0 +1,9 @@
+zql: put b=missing(a[2])
+
+input: |
+  {a:[1,2,3]}
+  {a:[1,2]}
+
+output: |
+  {a:[1,2,3],b:false}
+  {a:[1,2],b:true}
