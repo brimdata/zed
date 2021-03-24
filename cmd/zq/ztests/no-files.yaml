@@ -1,0 +1,8 @@
+script: |
+  zq -z doesnotexist
+
+outputs:
+  - name: stdout
+    data: ""
+  - name: stderr
+    regexp: "no such file"

@@ -130,7 +130,6 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	paths := args
 	var srcs []string
 	for _, path := range c.includes {
 		b, err := ioutil.ReadFile(path)
@@ -139,7 +138,13 @@ func (c *Command) Run(args []string) error {
 		}
 		srcs = append(srcs, string(b))
 	}
+	paths := args
 	if !cli.FileExists(paths[0]) && !s3io.IsS3Path(paths[0]) {
+		if len(paths) == 1 {
+			// We don't interpret the first arg as a query if there
+			// are no additional args.
+			return fmt.Errorf("zq: no such file: %s", paths[0])
+		}
 		srcs = append(srcs, paths[0])
 		paths = paths[1:]
 	}
