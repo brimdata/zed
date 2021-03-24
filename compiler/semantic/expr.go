@@ -161,12 +161,41 @@ func semBinary(scope *Scope, e *ast.BinaryExpr) (ast.Expr, error) {
 	if err != nil {
 		return nil, err
 	}
+	// If we index a root record with a string constant, then just
+	// extend the path.
+	if op == "[" {
+		if path := isRootIndex(scope, lhs, rhs); path != nil {
+			return path, nil
+		}
+	}
 	return &ast.BinaryExpr{
 		Kind: "BinaryExpr",
 		Op:   e.Op,
 		LHS:  lhs,
 		RHS:  rhs,
 	}, nil
+}
+
+func isRootIndex(scope *Scope, lhs, rhs ast.Expr) *ast.Path {
+	if path, ok := lhs.(*ast.Path); ok && len(path.Name) == 0 {
+		if s, ok := isStringConst(scope, rhs); ok {
+			path.Name = append(path.Name, s)
+			return path
+		}
+	}
+	return nil
+}
+
+func isStringConst(scope *Scope, e ast.Expr) (string, bool) {
+	if p, ok := e.(*ast.Primitive); ok && p.Type == "string" {
+		return p.Text, true
+	}
+	if ref, ok := e.(*ast.Ref); ok {
+		if c, ok := scope.Lookup(ref.Name).(*ast.Const); ok {
+			return isStringConst(scope, c.Expr)
+		}
+	}
+	return "", false
 }
 
 func semSlice(scope *Scope, slice *ast.BinaryExpr) (*ast.BinaryExpr, error) {
@@ -369,6 +398,9 @@ func semField(scope *Scope, e ast.Expr) (ast.Expr, error) {
 			rhs, err := semExpr(scope, e.RHS)
 			if err != nil {
 				return nil, err
+			}
+			if path := isRootIndex(scope, lhs, rhs); path != nil {
+				return path, nil
 			}
 			return &ast.BinaryExpr{
 				Kind: "BinaryExpr",
