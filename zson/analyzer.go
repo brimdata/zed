@@ -595,6 +595,9 @@ func (a Analyzer) convertType(zctx *Context, typ ast.Type) (zng.Type, error) {
 	case *ast.TypeName:
 		typ, ok := a[t.Name]
 		if !ok {
+			// We avoid the nil-interface bug here by assigning to alias
+			// and then typ because assigning directly to typ will create
+			// a nin-nil interface pointer for a nil result.
 			alias := zctx.LookupTypeDef(t.Name)
 			if alias == nil {
 				return nil, fmt.Errorf("no such type name: %q", t.Name)
