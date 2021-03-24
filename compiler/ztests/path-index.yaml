@@ -1,0 +1,7 @@
+zql: 'put .["x.y"]=to_lower(.["x.y"])'
+
+input: |
+  {"x.y":"Hello, World"}
+
+output: |
+  {"x.y":"hello, world"}
