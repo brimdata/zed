@@ -278,7 +278,7 @@ zar ls custom.zng
 ```
 To see what's in it:
 ```
-find $ZAR_ROOT -name idx-`for file in $ZAR_ROOT/indexdefs/*; do   zq -z $file | grep 'name:"custom.zng"' > /dev/null; if [ $? = 0 ]; then echo $file | sed 's/.*indexdefs\/idxdef-//'; fi done` | head -n 1 | xargs zq -f table 'head 10' -
+find $ZAR_ROOT -name idx-$(zar index ls -f zng | zq -f text 'desc="zql-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'head 10' -
 ```
 You can see the IPs, counts, and _path strings.
 
