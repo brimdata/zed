@@ -433,10 +433,14 @@ func (c *canon) fieldpath(path []string) {
 		return
 	}
 	for k, s := range path {
-		if k != 0 {
-			c.write(".")
+		if zng.IsIdentifier(s) {
+			if k != 0 {
+				c.write(".")
+			}
+			c.write(s)
+		} else {
+			c.write("[%q]", s)
 		}
-		c.write(s)
 	}
 }
 
