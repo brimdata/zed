@@ -229,5 +229,5 @@ func (m *MapExpr) Eval(rec *zng.Record) (zng.Value, error) {
 		// Return empty map instead of null map.
 		bytes = []byte{}
 	}
-	return zng.Value{m.typ, bytes}, nil
+	return zng.Value{m.typ, zng.NormalizeMap(bytes)}, nil
 }
