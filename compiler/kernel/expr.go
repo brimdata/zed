@@ -74,7 +74,6 @@ func compileExpr(zctx *resolver.Context, scope *Scope, e ast.Expr) (expr.Evaluat
 			return nil, err
 		}
 		return expr.FilterEvaluator(f), nil
-
 	case *ast.Path:
 		return expr.NewDotExpr(field.Static(e.Name)), nil
 	case *ast.UnaryExpr:
