@@ -571,10 +571,6 @@ func TestArrayIndex(t *testing.T) {
 	testSuccessful(t, "x[i]", record, zint64(2))
 	testSuccessful(t, "i+1", record, zint64(2))
 	testSuccessful(t, "x[i+1]", record, zint64(3))
-
-	// The way testError works causes MISSING values to be ignored.
-	//testError(t, "x[-1]", record, zng.ErrMissing, "negative array index")
-	//testError(t, "x[3]", record, zng.ErrMissing, "array index too large")
 }
 
 func TestFieldReference(t *testing.T) {
