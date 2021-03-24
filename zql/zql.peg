@@ -820,6 +820,8 @@ Literal
   / StringLiteral
   / SubnetLiteral
   / AddressLiteral
+  / Duration
+  / Time
   / FloatLiteral
   / IntegerLiteral
   / BooleanLiteral
@@ -996,6 +998,24 @@ IdGuard
   / NullLiteral
   / TypeExternal
   / SearchGuard
+
+Time
+  = FullDate "T" FullTime {
+      RETURN(MAP("kind": "Primitive", "type": "time", "text": TEXT))
+    }
+
+FullDate = D4 "-" D2 "-" D2
+
+D4 = [0-9][0-9][0-9][0-9]
+D2 = [0-9][0-9]
+
+FullTime = PartialTime TimeOffset
+
+PartialTime = D2 ":" D2 ":" D2 ("." [0-9]+)?
+
+TimeOffset
+  = "Z"
+  / ("+" / "-") D2 ":" D2 ("." [0-9]+)?
 
 Duration
   = "-"? (Decimal TimeUnit)+ {

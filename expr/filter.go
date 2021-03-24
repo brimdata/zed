@@ -155,3 +155,12 @@ func SearchRecordString(term string) Filter {
 		})
 	}
 }
+
+type FilterEvaluator Filter
+
+func (f FilterEvaluator) Eval(rec *zng.Record) (zng.Value, error) {
+	if f(rec) {
+		return zng.True, nil
+	}
+	return zng.False, nil
+}

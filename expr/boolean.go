@@ -80,7 +80,7 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 	if !ok1 || !ok2 {
 		return nil, fmt.Errorf("unknown int comparator: %s", op)
 	}
-	// many different zeek data types can be compared with integers
+	// many different Z data types can be compared with integers
 	return func(val zng.Value) bool {
 		zv := val.Bytes
 		switch val.Type.ID() {
@@ -108,6 +108,46 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(int64(v), pattern*1e9)
+			}
+		}
+		return false
+	}, nil
+}
+
+func CompareTime(op string, pattern int64) (Boolean, error) {
+	CompareInt, ok1 := compareInt[op]
+	CompareFloat, ok2 := compareFloat[op]
+	if !ok1 || !ok2 {
+		return nil, fmt.Errorf("unknown int comparator: %s", op)
+	}
+	// many different Z data types can be compared with integers
+	return func(val zng.Value) bool {
+		zv := val.Bytes
+		switch val.Type.ID() {
+		case zng.IdInt8, zng.IdInt16, zng.IdInt32, zng.IdInt64:
+			v, err := zng.DecodeInt(zv)
+			if err == nil {
+				return CompareInt(v, pattern)
+			}
+		case zng.IdUint8, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+			v, err := zng.DecodeUint(zv)
+			if err == nil && v <= math.MaxInt64 {
+				return CompareInt(int64(v), pattern)
+			}
+		case zng.IdFloat64:
+			v, err := zng.DecodeFloat64(zv)
+			if err == nil {
+				return CompareFloat(v, float64(pattern))
+			}
+		case zng.IdTime:
+			ts, err := zng.DecodeTime(zv)
+			if err == nil {
+				return CompareInt(int64(ts), pattern)
+			}
+		case zng.IdDuration:
+			v, err := zng.DecodeInt(zv)
+			if err == nil {
+				return CompareInt(int64(v), pattern)
 			}
 		}
 		return false
@@ -394,14 +434,18 @@ func Comparison(op string, primitive ast.Primitive) (Boolean, error) {
 		return CompareFloat64(op, v)
 	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfType, *zng.TypeOfError:
 		return CompareBstring(op, zv.Bytes)
-	//XXX need to support other number types.  we previously did not have a
-	// way to express other int types as Z literals
 	case *zng.TypeOfInt64:
 		v, err := zng.DecodeInt(zv.Bytes)
 		if err != nil {
 			return nil, err
 		}
 		return CompareInt64(op, v)
+	case *zng.TypeOfTime, *zng.TypeOfDuration:
+		v, err := zng.DecodeInt(zv.Bytes)
+		if err != nil {
+			return nil, err
+		}
+		return CompareTime(op, v)
 	default:
 		return nil, fmt.Errorf("literal comparison of type %q unsupported", zv.Type.ZSON())
 	}
