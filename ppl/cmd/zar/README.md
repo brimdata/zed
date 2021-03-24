@@ -267,7 +267,7 @@ this key, we'll compute the number of times that value appeared for each zeek
 log type.  To do this, we'll run "zar index" in a way that leaves
 these results behind in each zar directory:
 ```
-zar index create -q -o custom.zng -k id.orig_h "count() by _path, id.orig_h | sort id.orig_h"
+zar index create -q -o custom.zng -k id.orig_h -z "count() by _path, id.orig_h | sort id.orig_h"
 ```
 Unlike for the field and type indexes we created previously, for
 custom indexes the index file name must be specified via the `-o`
@@ -340,7 +340,7 @@ For example, let's say we want to build an index that has primary key
 `id.resp_h` and secondary key `id.orig_h` from all the conn logs where we
 cache the sum of response bytes to each originator.
 ```
-zar index create -o custom2.zng -k id.resp_h,id.orig_h "_path=conn | resp_bytes=sum(resp_bytes) by id.resp_h,id.orig_h | sort id.resp_h,id.orig_h"
+zar index create -o custom2.zng -k id.resp_h,id.orig_h -z "_path=conn | resp_bytes=sum(resp_bytes) by id.resp_h,id.orig_h | sort id.resp_h,id.orig_h"
 ```
 And now we can search with a primary key and a secondary key, e.g.,
 ```
