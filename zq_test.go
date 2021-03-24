@@ -10,7 +10,6 @@ import (
 
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zio/parquetio"
-	"github.com/brimsec/zq/zio/tzngio"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/ztest"
 	"github.com/stretchr/testify/require"
@@ -58,7 +57,7 @@ zq -f zson - > baseline.zson &&
 zq -i zson -f zson baseline.zson > boomerang.zson &&
 diff baseline.zson boomerang.zson
 `
-	bundles, err := findInputs(t, dirs, script, isValidTzng)
+	bundles, err := findInputs(t, dirs, script, isValidForZson)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -128,8 +127,11 @@ func expectFailure(b ztest.Bundle) bool {
 	return false
 }
 
-func isValidTzng(input string) bool {
-	r := tzngio.NewReader(strings.NewReader(input), resolver.NewContext())
+func isValidForZson(input string) bool {
+	r, err := detector.NewReader(strings.NewReader(input), resolver.NewContext())
+	if err != nil {
+		return false
+	}
 	for {
 		rec, err := r.Read()
 		if err != nil {
