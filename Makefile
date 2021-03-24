@@ -247,8 +247,7 @@ build-python-lib:
 clean-python:
 	@rm -rf python/brim/build
 
-PARSER_GEN = compiler/parser/parser
-PEG_GEN = $(PARSER_GEN).go $(PARSER_GEN).js $(PARSER_GEN).es.js
+PEG_GEN := $(addprefix compiler/parser/parser., go js es.js)
 $(PEG_GEN): compiler/parser/Makefile compiler/parser/parser-support.js compiler/parser/parser.peg
 	$(MAKE) -C compiler/parser
 
