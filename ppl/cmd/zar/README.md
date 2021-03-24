@@ -38,8 +38,8 @@ just doing a quick test we'll use local temp space.  We'll make it easier to
 run all the commands by setting an environment variable pointing to the root of
 the logs tree.
 ```
-mkdir /tmp/logs
-ZAR_ROOT=/tmp/logs
+export ZAR_ROOT=/tmp/logs
+mkdir $ZAR_ROOT
 ```
 
 Now, let's ingest the data using "zar import".  We are working on more
