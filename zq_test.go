@@ -217,14 +217,12 @@ func findInputs(t *testing.T, dirs map[string]struct{}, script string, isValidIn
 			}
 			// Normalize the diffrent kinds of test inputs into
 			// a single pattern.
-			for _, input := range bundle.Test.Input {
-				if isValidInput(input) {
-					out = append(out, ztest.Bundle{
-						TestName: bundle.TestName,
-						FileName: bundle.FileName,
-						Test:     boomerang(script, input),
-					})
-				}
+			if input := bundle.Test.Input; isValidInput(input) {
+				out = append(out, ztest.Bundle{
+					TestName: bundle.TestName,
+					FileName: bundle.FileName,
+					Test:     boomerang(script, input),
+				})
 			}
 			for _, input := range bundle.Test.Inputs {
 				if input.Data != nil && isValidInput(*input.Data) {

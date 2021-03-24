@@ -28,7 +28,7 @@ func testSuccessful(t *testing.T, e string, record string, expect zng.Value) {
 	require.NoError(t, err)
 	zt := &ztest.ZTest{
 		ZQL:    fmt.Sprintf("cut result = %s", e),
-		Input:  []string{record},
+		Input:  record,
 		Output: val + "\n",
 	}
 	t.Run(e, func(t *testing.T) {
@@ -45,7 +45,7 @@ func testError(t *testing.T, e string, record string, expectErr error, descripti
 	}
 	zt := &ztest.ZTest{
 		ZQL:     fmt.Sprintf("cut result = %s", e),
-		Input:   []string{record},
+		Input:   record,
 		Output:  "",
 		ErrorRE: expectErr.Error(),
 	}
