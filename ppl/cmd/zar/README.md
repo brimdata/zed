@@ -15,7 +15,7 @@
 This is a sketch of an early prototype of zar and related tools for
 indexing and searching log archives and running interesting graph queries.
 
-We'll use the test data here:
+We'll use the [ZNG](../../../zng/docs/README.md)-format test data from here:
 ```
 https://github.com/brimsec/zq-sample-data/tree/master/zng
 ```
@@ -32,26 +32,25 @@ ln -s zq-sample-data/zng
 
 ## ingesting the data
 
-Let's take those logs and ingest them into a directory.   We'll make it
-easier to run all the commands by setting an environment variable pointing
-to the root of the logs tree.
+Let's take those logs and ingest them into a directory.  Often we'd keep our
+archive somewhere like [Amazon S3](https://aws.amazon.com/s3/), but since we're
+just doing a quick test we'll use local temp space.  We'll make it easier to
+run all the commands by setting an environment variable pointing to the root of
+the logs tree.
 ```
-mkdir ./logs
-set ZAR_ROOT=`pwd`/logs
+export ZAR_ROOT=/tmp/logs
+mkdir $ZAR_ROOT
 ```
 
 Now, let's ingest the data using "zar import".  We are working on more
-sophisticated ways to ingest data (e.g., by the standard time partitioning
-techniques of year/month/day/hour etc), but for now zar import just chops
-its input into chunk files of approximately equal size.
-
-Zar import expects its input to be
-in the zng format so we'll use zq to take all the zng logs, gunzip them,
-and feed them to "zar import", which here expects its data on stdin.  We'll chop them
-into chunks of 25MB, which is very small, but in this example the data set is
-fairly small (175MB) and you can always try it out on larger data sets:
+sophisticated ways to ingest data (e.g., arbitrary partition keys and
+auto-sizing of partitions) but for now zar import just chops its input into
+chunk files of approximately equal size, each sorted by timestamp in descending
+order.  We'll chop into chunks of 25MB, which is very small, but in this
+example the data set is fairly small (175MB) and you can always try it out on
+larger data sets:
 ```
-zq zng/*.gz | zar import -s 25MB -
+zar import -s 25MB zng/*.gz
 ```
 
 ## initializing the archive
@@ -101,10 +100,10 @@ zar map "count()" | zq -f table -
 which results in:
 ```
 COUNT
-188697
-436829
-409224
-427328
+275745
+276326
+290789
+619218
 ```
 
 You could take the stream of event counts and sum them to get a total:
@@ -125,17 +124,40 @@ or...
 Now let's say you want to search for a particular IP across all the zar logs.
 This is easy. You just say:
 ```
-zar zq "id.orig_h=10.10.23.2" | zq -t -
+zar zq -Z "id.orig_h=10.10.23.2"
 ```
-which gives this somewhat cryptic result in text zng format:
+which gives this result in the [ZSON](../../../zng/docs/zson.md) format.  ZSON
+describes the complete detail from the ZNG stream as human-readable text.
 ```
-#port=uint16
-#zenum=string
-#0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port],proto:zenum,service:bstring,duration:duration,orig_bytes:uint64,resp_bytes:uint64,conn_state:bstring,local_orig:bool,local_resp:bool,missed_bytes:uint64,history:bstring,orig_pkts:uint64,orig_ip_bytes:uint64,resp_pkts:uint64,resp_ip_bytes:uint64,tunnel_parents:set[bstring]]
-0:[conn;1521911721.307472;C4NuQHXpLAuXjndmi;[10.10.23.2;11;10.0.0.111;0;]icmp;-;1260.819589;23184;0;OTH;-;-;0;-;828;46368;0;0;-;]
+{
+    _path: "conn",
+    ts: 2018-03-24T17:15:21.307472Z,
+    uid: "C4NuQHXpLAuXjndmi" (bstring),
+    id: {
+        orig_h: 10.10.23.2,
+        orig_p: 11 (port=(uint16)),
+        resp_h: 10.0.0.111,
+        resp_p: 0 (port)
+    } (=0),
+    proto: "icmp" (=zenum),
+    service: null (bstring),
+    duration: 21m0.819589s,
+    orig_bytes: 23184 (uint64),
+    resp_bytes: 0 (uint64),
+    conn_state: "OTH" (bstring),
+    local_orig: null (bool),
+    local_resp: null (bool),
+    missed_bytes: 0 (uint64),
+    history: null (bstring),
+    orig_pkts: 828 (uint64),
+    orig_ip_bytes: 46368 (uint64),
+    resp_pkts: 0 (uint64),
+    resp_ip_bytes: 0 (uint64),
+    tunnel_parents: null (1=(|[bstring]|))
+} (=2)
 ```
 (If you want to learn more about this format, check out the
-[ZNG spec](../../../zng/docs/spec.md).)
+[ZSON spec](../../../zng/docs/zson.md).)
 
 You might have noticed that this is kind of slow --- like all the counting above ---
 because every record is read to search for that IP.
@@ -151,7 +173,7 @@ you would like in a search index.  But for now, let's look at just IP addresses.
 The "zar index" command makes it easy to index any field or any zng type.
 e.g., to index every value that is of type IP, we simply say
 ```
-zar index :ip
+zar index create :ip
 ```
 For each zar log, this command will find every field of type IP in every log record
 and add a key for that field's value to log's index file.
@@ -163,16 +185,16 @@ zar ls -l
 You will see all the indexes left behind. They are just zng files.
 If you want to see one, just look at it with zq, e.g.
 ```
-find $ZAR_ROOT -name microindex-type-ip.zng | head -n 1 | xargs zq -t -
+find $ZAR_ROOT -name idx-* | head -n 1 | xargs zq -z -
 ```
 Now if you run "zar find", it will efficiently look through all the index files
 instead of the logs and run much faster...
 ```
-zar find :ip=10.10.23.2
+zar find -f table :ip=10.10.23.2
 ```
 In the output here, you'll see this IP exists in exactly one log file:
 ```
-/path/to/ZAR_ROOT/zd/20180324/d-1jQ2dLYVOL4NSSYCYC4P400ZfPN.zng
+/tmp/logs/zd/20180324/d-1jQ2dLYVOL4NSSYCYC4P400ZfPN.zng
 ```
 
 (In this and later outputs in this README that show pathnames in the archive,
@@ -201,21 +223,16 @@ job when you have a new idea about what to index.
 So, let's say you later decide you want searches over the "uri" field to run fast.
 You just run "zar index" again but with different parameters:
 ```
-zar index uri
+zar index create uri
 ```
 And now you can run field matches on `uri`:
 ```
-zar find uri=/file
+zar find -f table uri=/file
 ```
 and you'll find "hits" in multiple chunks:
 ```
-/path/to/ZAR_ROOT/zd/20180324/d-1jQ2d5DwDHJULCRN6gq84IwArbb.zng
-/path/to/ZAR_ROOT/zd/20180324/d-1jQ2co6Ttjk9wEUdzI2yW7koYtB.zng
-```
-If you have a look, you'll see there are index files now for both type ip
-and field uri:
-```
-zar ls -l
+/tmp/logs/zd/20180324/d-1jQ2d5DwDHJULCRN6gq84IwArbb.zng
+/tmp/logs/zd/20180324/d-1jQ2co6Ttjk9wEUdzI2yW7koYtB.zng
 ```
 
 ## operating directly on micro-indexes
@@ -224,16 +241,13 @@ Let's say instead of searching for what log chunk a value is in, we want to
 actually pull out the zng records that comprise the index.  This turns out
 to be really powerful in general, but to give you a taste here, you can say...
 ```
-zar find -z -x microindex-type-ip.zng 10.47.21.138 | zq -t -
+zar find -z :ip=10.47.21.138
 ```
-where `-z` says to produce zng output instead of a path listing,
+where `-z` says to produce compact ZSON output instead of a table,
 and you'll get this...
 ```
-#zfile=string
-#0:record[key:ip,count:uint64,_log:zfile,first:time,last:time]
-0:[10.47.21.138;7;/path/to/ZAR_ROOT/zd/20180324/d-1jvy17wRMItpJQy7BOqV0tJ3VOJ.zng;1521912809.032641;1521911720.608867;]
-0:[10.47.21.138;3;/path/to/ZAR_ROOT/zd/20180324/d-1jvy0t5HhfvTvfPXiTd9VzhqmWK.zng;1521912355.502493;1521911720.601374;]
-0:[10.47.21.138;4;/path/to/ZAR_ROOT/zd/20180324/d-1jvy0lIfit4cfvDENwzx7OWYcXD.zng;1521911994.618642;1521911720.600725;]
+{key:10.47.21.138,count:1 (uint64),_log:"/tmp/logs/zd/20180324/d-1qCzy6mfDLtsDXeEU1EJxSn1DTi.zng" (=zfile),first:2018-03-24T17:36:30.01359Z,last:2018-03-24T17:15:20.600725Z} (=0)
+{key:10.47.21.138,count:13,_log:"/tmp/logs/zd/20180324/d-1qCzyJtVcZh8fLyFgTJl0fcoyrp.zng",first:2018-03-24T17:29:56.0241Z,last:2018-03-24T17:15:20.601374Z} (0)
 ```
 The find command adds a column called "_log" (which can be disabled
 or customized to a different field name) so you can see where the
@@ -255,7 +269,7 @@ this key, we'll compute the number of times that value appeared for each zeek
 log type.  To do this, we'll run "zar index" in a way that leaves
 these results behind in each zar directory:
 ```
-zar index -q -o custom.zng -k id.orig_h -z "count() by _path, id.orig_h | sort id.orig_h"
+zar index create -q -o custom.zng -k id.orig_h -z "count() by _path, id.orig_h | sort id.orig_h"
 ```
 Unlike for the field and type indexes we created previously, for
 custom indexes the index file name must be specified via the `-o`
@@ -265,7 +279,7 @@ zar ls custom.zng
 ```
 To see what's in it:
 ```
-find $ZAR_ROOT -name custom.zng | head -n 1 | xargs zq -f table 'head 10' -
+find $ZAR_ROOT -name idx-$(zar index ls -f zng | zq -f text 'desc="zql-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'head 10' -
 ```
 You can see the IPs, counts, and _path strings.
 
@@ -273,7 +287,7 @@ At the bottom you'll also find a record describing the micro-index layout. To
 see it:
 
 ```
-find $ZAR_ROOT -name custom.zng | head -n 1 | xargs zq -f table 'tail 1' -
+find $ZAR_ROOT -name idx-$(zar index ls -f zng | zq -f text 'desc="zql-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'tail 1' -
 ```
 
 ### zar find with custom index
@@ -281,38 +295,38 @@ find $ZAR_ROOT -name custom.zng | head -n 1 | xargs zq -f table 'tail 1' -
 And now I can go back to my example from before and use "zar find" on the custom
 index:
 ```
-zar find -z -x custom.zng 10.164.94.120 | zq -t -
+zar find -z -x custom.zng 10.164.94.120
 ```
 Now we're talking!  And if you take the results and do a little more math to
 aggregate the aggregations, like this:
 ```
-zar find -z -x custom.zng 10.164.94.120 | zq -f table "count=sum(count) by _path" -
+zar find -x custom.zng 10.164.94.120 | zq -f table "count=sum(count) by _path | sort -r" -
 ```
 You'll get
 ```
 _PATH       COUNT
-dns         8
-dpd         24
-ftp         93
-rdp         4116
-rfb         3
-ssh         1
-ssl         9538
 conn        26726
 http        13485
-ntlm        80
+ssl         9538
+rdp         4116
 smtp        1178
 weird       316
-notice      35
-dce_rpc     2
-smb_files   1
+ftp         93
+ntlm        80
 smb_mapping 65
+notice      35
+dpd         24
+dns         8
+rfb         3
+dce_rpc     2
+ssh         1
+smb_files   1
 ```
 We can compute this aggregation now for any IP in the micro-index
 without reading any of the original log files!  You'll get the same
 output from this...
 ```
-zq "id.orig_h=10.164.94.120" zng/*.gz | zq -f table "count() by _path" -
+zq "id.orig_h=10.164.94.120" zng/*.gz | zq -f table "count() by _path | sort -r" -
 ```
 But using zar with the custom indexes is MUCH faster.  Pretty cool.
 
@@ -328,28 +342,35 @@ For example, let's say we want to build an index that has primary key
 `id.resp_h` and secondary key `id.orig_h` from all the conn logs where we
 cache the sum of response bytes to each originator.
 ```
-zar index -o custom2.zng -k id.resp_h,id.orig_h -z "_path=conn | resp_bytes=sum(resp_bytes) by id.resp_h,id.orig_h | sort id.resp_h,id.orig_h"
+zar index create -o custom2.zng -k id.resp_h,id.orig_h -z "_path=conn | resp_bytes=sum(resp_bytes) by id.resp_h,id.orig_h | sort id.resp_h,id.orig_h"
 ```
 And now we can search with a primary key and a secondary key, e.g.,
 ```
-zar find -z -x custom2.zng 216.58.193.206 10.47.6.173 | zq -t -
+zar find -Z -x custom2.zng 216.58.193.206 10.47.6.173
 ```
 which produces just one record as this pair appears in only one log file.
 ```
-#zfile=string
-#0:record[id:record[resp_h:ip,orig_h:ip],resp_bytes:uint64,_log:zfile,first:time,last:time]
-0:[[216.58.193.206;10.47.6.173;]5112;/path/to/ZAR_ROOT/zd/20180324/d-1jQ2d5DwDHJULCRN6gq84IwArbb.zng;1521912355.502512;1521911720.601374;]
+{
+    id: {
+        resp_h: 216.58.193.206,
+        orig_h: 10.47.6.173
+    },
+    resp_bytes: 5112 (uint64),
+    _log: "/tmp/logs/zd/20180324/d-1q85q79hAjNCHg5Wx0EQlkulmKU.zng" (=zfile),
+    first: 2018-03-24T17:29:56.0241Z,
+    last: 2018-03-24T17:15:20.601374Z
+} (=0)
 ```
 The nice thing here is that you can also just specify a primary key, which will
 issue a search that returns all the index hits that have the primary key with
 any value for the secondary key, e.g.,
 ```
-zar find -z -x custom2.zng 216.58.193.206 | zq -t -
+zar find -z -x custom2.zng 216.58.193.206
 ```
 and of course you can sum up all the response bytes to get a table and output
 it as text...
 ```
-zar find -z -x custom2.zng 216.58.193.206 | zq -f text "sum(resp_bytes)" -
+zar find -x custom2.zng 216.58.193.206 | zq -f text "sum(resp_bytes)" -
 ```
 Note that you can't "wild card" the primary key when doing a search via
 "zar find" because the index is sorted by primary key first, then secondary
@@ -364,7 +385,7 @@ a count of all bytes received by 10.47.6.173 as the originator, which is the
 secondary key.  While we could build a different custom index where id.orig_h
 is the primary key, we could also just scan the custom2 index using brute force:
 ```
-zar map id.orig_h=10.47.6.173 custom2.zng | zq -f text "sum(resp_bytes)" -
+zar map id.orig_h=10.47.6.173 idx-$(zar index ls -f zng | zq -f text 'desc="zql-custom2.zng" | cut id' -).zng | zq -f text "sum(resp_bytes)" -
 ```
 Even though this is a "brute force scan", it's a brute force scan of only this
 one micro-index so it runs much faster than scanning all of the original
@@ -386,15 +407,15 @@ The classic map-reduce example is word count.  Let's do this example with
 the uri field in http logs.  First, we map each record that has a uri
 to a new record with that uri and a count of 1:
 ```
-zar map -o words.zng "uri != null | cut uri | put count=1"
+zar map -q -o words.zng "uri != null | cut uri | put count=1"
 ```
 again you can look at one of the files...
 ```
-find $ZAR_ROOT -name words.zng | head -n 1 | xargs zq -t -
+find $ZAR_ROOT -name words.zng ! -size 0 | head -n 1 | xargs zq -z -
 ```
 Now we reduce by aggregating the uri and summing the counts:
 ```
-zar map -o wordcounts.zng "sum(count) by uri | cut uri,count=sum" words.zng
+zar map -q -o wordcounts.zng "sum(count) by uri | cut uri,count=sum" words.zng
 ```
 If we were dealing with a huge archive, we could do an approximation by taking
 the top 1000 in each zar directory then we could aggregate with another zq
@@ -433,10 +454,10 @@ run the following commands to a create a multi-key search index
 keyed by all unique instances of IP address pairs (in both directions)
 where each index includes a count of the occurrences.
 ```
-zar map -o forward.zng "id.orig_h != null | put from=id.orig_h,to=id.resp_h | count() by from,to"
-zar map -o reverse.zng "id.orig_h != null | put from=id.resp_h,to=id.orig_h | count() by from,to"
-zar map -o directed-pairs.zng "count=sum(count) by from,to | sort from,to" forward.zng reverse.zng
-zar index -i directed-pairs.zng -o graph.zng -k from,to -z "*"
+zar map -o forward.zng "id.orig_h != null | put from_addr=id.orig_h,to_addr=id.resp_h | count() by from_addr,to_addr"
+zar map -o reverse.zng "id.orig_h != null | put from_addr=id.resp_h,to_addr=id.orig_h | count() by from_addr,to_addr"
+zar map -o directed-pairs.zng "count=sum(count) by from_addr,to_addr | sort from_addr,to_addr" forward.zng reverse.zng
+zar index create -i directed-pairs.zng -o graph.zng -k from_addr,to_addr -z "*"
 ```
 > (Note: there is a small change we can make to zql to do this with one
 > command... coming soon.)
@@ -444,21 +465,21 @@ zar index -i directed-pairs.zng -o graph.zng -k from,to -z "*"
 This creates an index called "graph" that you can use to search for IP address
 pair relationships, e.g., you can say
 ```
-zar find -z -x graph.zng 216.58.193.195 | zq -f table "count=sum(count) by from,to" -
+zar find -x graph.zng 216.58.193.195 | zq -f table "count=sum(count) by from_addr,to_addr | sort -r count" -
 ```
 to get a listing of all of the edges from IP 216.58.193.195 to any other IP,
 which looks like this:
 ```
-FROM           TO           COUNT
-216.58.193.195 10.47.1.100  6
-216.58.193.195 10.47.1.150  8
-216.58.193.195 10.47.1.151  8
-216.58.193.195 10.47.1.152  18
-216.58.193.195 10.47.1.153  4
-216.58.193.195 10.47.1.154  4
-216.58.193.195 10.47.1.155  18
-216.58.193.195 10.47.1.208  10
+FROM_ADDR      TO_ADDR      COUNT
+216.58.193.195 10.47.2.155  55
 216.58.193.195 10.47.2.100  47
+216.58.193.195 10.47.6.162  31
+216.58.193.195 10.47.7.150  30
+216.58.193.195 10.47.5.153  26
+216.58.193.195 10.47.3.154  25
+216.58.193.195 10.47.5.152  24
+216.58.193.195 10.47.8.19   23
+216.58.193.195 10.47.7.154  19
 ...
 ```
 To view this with d3, we can collect up the edges emanating from a few IP addresses
@@ -466,10 +487,10 @@ and format the output as ndjson in the format expected by bostock's
 force-directed graph.
 This command sequence will collect up the edges into `edges.njdson`:
 ```
-zar find -z -x graph.zng 216.58.193.195 | zq "count() by from,to" - > edges.zng
-zar find -z -x graph.zng 10.47.6.162 | zq "count() by from,to" - >> edges.zng
-zar find -z -x graph.zng 10.47.5.153 | zq "count() by from,to" - >> edges.zng
-zq -f ndjson "value=sum(count) by from,to | cut source=from,target=to,value" edges.zng >> edges.ndjson
+zar find -z -x graph.zng 216.58.193.195 | zq "count() by from_addr,to_addr" - > edges.zng
+zar find -z -x graph.zng 10.47.6.162 | zq "count() by from_addr,to_addr" - >> edges.zng
+zar find -z -x graph.zng 10.47.5.153 | zq "count() by from_addr,to_addr" - >> edges.zng
+zq -f ndjson "value=sum(count) by from_addr,to_addr | cut source=from_addr,target=to_addr,value" edges.zng >> edges.ndjson
 ```
 > (Note: with a few additions to zql and zar, we can make this much simpler and
 > more efficient.  Coming soon.  Also, we should be able to say `group by node`,
@@ -478,9 +499,9 @@ zq -f ndjson "value=sum(count) by from,to | cut source=from,target=to,value" edg
 Now that we have the edges in `edges.ndjson`, let's grab all the nodes
 in the graph and put them in the form expected by bostock using this command sequence:
 ```
-zq "count() by from | put id=from" edges.zng > nodes.zng
-zq "count() by to | put id=to" edges.zng >> nodes.zng
-zq -f ndjson "count() by id | cut id | put group=1" nodes.zng > nodes.ndjson
+zq "count() by from_addr | put id=from_addr" edges.zng > nodes.zng
+zq "count() by to_addr | put id=to_addr" edges.zng >> nodes.zng
+zq -f ndjson "count() by id | cut id | put addr_group=1" nodes.zng > nodes.ndjson
 ```
 <!-- markdown-link-check-disable -->
 To make a simple demo of this concept here, I cut and paste the nodes and edges
