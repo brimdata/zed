@@ -453,10 +453,10 @@ run the following commands to a create a multi-key search index
 keyed by all unique instances of IP address pairs (in both directions)
 where each index includes a count of the occurrences.
 ```
-zar map -o forward.zng "id.orig_h != null | put from=id.orig_h,to=id.resp_h | count() by from,to"
-zar map -o reverse.zng "id.orig_h != null | put from=id.resp_h,to=id.orig_h | count() by from,to"
-zar map -o directed-pairs.zng "count=sum(count) by from,to | sort from,to" forward.zng reverse.zng
-zar index -i directed-pairs.zng -o graph.zng -k from,to -z "*"
+zar map -o forward.zng "id.orig_h != null | put from_addr=id.orig_h,to_addr=id.resp_h | count() by from_addr,to_addr"
+zar map -o reverse.zng "id.orig_h != null | put from_addr=id.resp_h,to_addr=id.orig_h | count() by from_addr,to_addr"
+zar map -o directed-pairs.zng "count=sum(count) by from_addr,to_addr | sort from_addr,to_addr" forward.zng reverse.zng
+zar index create -i directed-pairs.zng -o graph.zng -k from_addr,to_addr -z "*"
 ```
 > (Note: there is a small change we can make to zql to do this with one
 > command... coming soon.)
@@ -464,21 +464,21 @@ zar index -i directed-pairs.zng -o graph.zng -k from,to -z "*"
 This creates an index called "graph" that you can use to search for IP address
 pair relationships, e.g., you can say
 ```
-zar find -z -x graph.zng 216.58.193.195 | zq -f table "count=sum(count) by from,to" -
+zar find -x graph.zng 216.58.193.195 | zq -f table "count=sum(count) by from_addr,to_addr | sort -r count" -
 ```
 to get a listing of all of the edges from IP 216.58.193.195 to any other IP,
 which looks like this:
 ```
-FROM           TO           COUNT
-216.58.193.195 10.47.1.100  6
-216.58.193.195 10.47.1.150  8
-216.58.193.195 10.47.1.151  8
-216.58.193.195 10.47.1.152  18
-216.58.193.195 10.47.1.153  4
-216.58.193.195 10.47.1.154  4
-216.58.193.195 10.47.1.155  18
-216.58.193.195 10.47.1.208  10
+FROM_ADDR      TO_ADDR      COUNT
+216.58.193.195 10.47.2.155  55
 216.58.193.195 10.47.2.100  47
+216.58.193.195 10.47.6.162  31
+216.58.193.195 10.47.7.150  30
+216.58.193.195 10.47.5.153  26
+216.58.193.195 10.47.3.154  25
+216.58.193.195 10.47.5.152  24
+216.58.193.195 10.47.8.19   23
+216.58.193.195 10.47.7.154  19
 ...
 ```
 To view this with d3, we can collect up the edges emanating from a few IP addresses
@@ -486,10 +486,10 @@ and format the output as ndjson in the format expected by bostock's
 force-directed graph.
 This command sequence will collect up the edges into `edges.njdson`:
 ```
-zar find -z -x graph.zng 216.58.193.195 | zq "count() by from,to" - > edges.zng
-zar find -z -x graph.zng 10.47.6.162 | zq "count() by from,to" - >> edges.zng
-zar find -z -x graph.zng 10.47.5.153 | zq "count() by from,to" - >> edges.zng
-zq -f ndjson "value=sum(count) by from,to | cut source=from,target=to,value" edges.zng >> edges.ndjson
+zar find -z -x graph.zng 216.58.193.195 | zq "count() by from_addr,to_addr" - > edges.zng
+zar find -z -x graph.zng 10.47.6.162 | zq "count() by from_addr,to_addr" - >> edges.zng
+zar find -z -x graph.zng 10.47.5.153 | zq "count() by from_addr,to_addr" - >> edges.zng
+zq -f ndjson "value=sum(count) by from_addr,to_addr | cut source=from_addr,target=to_addr,value" edges.zng >> edges.ndjson
 ```
 > (Note: with a few additions to zql and zar, we can make this much simpler and
 > more efficient.  Coming soon.  Also, we should be able to say `group by node`,
@@ -498,9 +498,9 @@ zq -f ndjson "value=sum(count) by from,to | cut source=from,target=to,value" edg
 Now that we have the edges in `edges.ndjson`, let's grab all the nodes
 in the graph and put them in the form expected by bostock using this command sequence:
 ```
-zq "count() by from | put id=from" edges.zng > nodes.zng
-zq "count() by to | put id=to" edges.zng >> nodes.zng
-zq -f ndjson "count() by id | cut id | put group=1" nodes.zng > nodes.ndjson
+zq "count() by from_addr | put id=from_addr" edges.zng > nodes.zng
+zq "count() by to_addr | put id=to_addr" edges.zng >> nodes.zng
+zq -f ndjson "count() by id | cut id | put addr_group=1" nodes.zng > nodes.ndjson
 ```
 <!-- markdown-link-check-disable -->
 To make a simple demo of this concept here, I cut and paste the nodes and edges
