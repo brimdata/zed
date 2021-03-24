@@ -345,7 +345,7 @@ zar index create -o custom2.zng -k id.resp_h,id.orig_h -z "_path=conn | resp_byt
 ```
 And now we can search with a primary key and a secondary key, e.g.,
 ```
-zar find -x custom2.zng 216.58.193.206 10.47.6.173 | zq -Z -
+zar find -Z -x custom2.zng 216.58.193.206 10.47.6.173
 ```
 which produces just one record as this pair appears in only one log file.
 ```
@@ -364,7 +364,7 @@ The nice thing here is that you can also just specify a primary key, which will
 issue a search that returns all the index hits that have the primary key with
 any value for the secondary key, e.g.,
 ```
-zar find -x custom2.zng 216.58.193.206 | zq -z -
+zar find -z -x custom2.zng 216.58.193.206
 ```
 and of course you can sum up all the response bytes to get a table and output
 it as text...
