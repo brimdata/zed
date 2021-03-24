@@ -237,7 +237,7 @@ and you'll find "hits" in multiple chunks:
 ## operating directly on micro-indexes
 
 Let's say instead of searching for what log chunk a value is in, we want to
-actually pull out the records that comprise the index.  This turns out
+actually pull out the zng records that comprise the index.  This turns out
 to be really powerful in general, but to give you a taste here, you can say...
 ```
 zar find -z :ip=10.47.21.138
