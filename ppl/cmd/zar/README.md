@@ -384,7 +384,7 @@ a count of all bytes received by 10.47.6.173 as the originator, which is the
 secondary key.  While we could build a different custom index where id.orig_h
 is the primary key, we could also just scan the custom2 index using brute force:
 ```
-zar map id.orig_h=10.47.6.173 idx-`for file in $ZAR_ROOT/indexdefs/*; do   zq -z $file | grep 'name:"custom2.zng"' > /dev/null; if [ $? = 0 ]; then echo $file | sed 's/.*indexdefs\/idxdef-//'; fi done` | zq -f text "sum(resp_bytes)" -
+zar map id.orig_h=10.47.6.173 idx-$(zar index ls -f zng | zq -f text 'desc="zql-custom2.zng" | cut id' -).zng | zq -f text "sum(resp_bytes)" -
 ```
 Even though this is a "brute force scan", it's a brute force scan of only this
 one micro-index so it runs much faster than scanning all of the original
