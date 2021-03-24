@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/api"
+	"github.com/brimsec/zq/compiler/parser"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/ppl/lake/immcache"
@@ -19,7 +20,6 @@ import (
 	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
 	"github.com/brimsec/zq/ppl/zqd/storage/filestore"
 	"github.com/brimsec/zq/zqe"
-	"github.com/brimsec/zq/zql"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"
@@ -395,7 +395,7 @@ func (m *Manager) validateIntake(ctx context.Context, row schema.IntakeRow) erro
 		return zqe.E(zqe.Invalid, "name may not contain '/' or non-printable characters")
 	}
 	if row.Shaper != "" {
-		if _, err := zql.Parse("", []byte(row.Shaper)); err != nil {
+		if _, err := parser.Parse("", []byte(row.Shaper)); err != nil {
 			return zqe.ErrInvalid("invalid shaper program: %w", err)
 		}
 	}
