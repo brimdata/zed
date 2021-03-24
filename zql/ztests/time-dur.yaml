@@ -1,0 +1,11 @@
+zql: 'cut b1=t=2018-03-24T17:15:56.5Z,b2=d=1y,b3=d>=1y,b4=match(2018-03-24T17:15:56.6Z)'
+
+input: |
+  {t:2018-03-24T17:15:56.4Z,d:1m}
+  {t:2018-03-24T17:15:56.5Z,d:1y}
+  {t:2018-03-24T17:15:56.6Z,d:1y3m}
+
+output: |
+  {b1:false,b2:false,b3:false,b4:false}
+  {b1:true,b2:true,b3:true,b4:false}
+  {b1:false,b2:false,b3:true,b4:true}

@@ -68,6 +68,13 @@ func compileExpr(zctx *resolver.Context, scope *Scope, e ast.Expr) (expr.Evaluat
 			return expr.NewVar(ref), nil
 		}
 		return nil, fmt.Errorf("unknown reference: '%s'", e.Name)
+	case *ast.Search:
+		f, err := compileSearch(e)
+		if err != nil {
+			return nil, err
+		}
+		return expr.FilterEvaluator(f), nil
+
 	case *ast.Path:
 		return expr.NewDotExpr(field.Static(e.Name)), nil
 	case *ast.UnaryExpr:
