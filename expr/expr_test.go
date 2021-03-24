@@ -571,9 +571,6 @@ func TestArrayIndex(t *testing.T) {
 	testSuccessful(t, "x[i]", record, zint64(2))
 	testSuccessful(t, "i+1", record, zint64(2))
 	testSuccessful(t, "x[i+1]", record, zint64(3))
-
-	testError(t, "x[-1]", record, expr.ErrIndexOutOfBounds, "negative array index")
-	testError(t, "x[3]", record, expr.ErrIndexOutOfBounds, "array index too large")
 }
 
 func TestFieldReference(t *testing.T) {
