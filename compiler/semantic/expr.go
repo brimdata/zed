@@ -161,10 +161,10 @@ func semBinary(scope *Scope, e *ast.BinaryExpr) (ast.Expr, error) {
 	if err != nil {
 		return nil, err
 	}
-	// If we index a path expression with a string constant, then just
+	// If we index a root record with a string constant, then just
 	// extend the path...
 	if op == "[" {
-		if path := isPathIndex(scope, lhs, rhs); path != nil {
+		if path := isRootIndex(scope, lhs, rhs); path != nil {
 			return path, nil
 		}
 	}
@@ -176,8 +176,8 @@ func semBinary(scope *Scope, e *ast.BinaryExpr) (ast.Expr, error) {
 	}, nil
 }
 
-func isPathIndex(scope *Scope, lhs, rhs ast.Expr) *ast.Path {
-	if path, ok := lhs.(*ast.Path); ok {
+func isRootIndex(scope *Scope, lhs, rhs ast.Expr) *ast.Path {
+	if path, ok := lhs.(*ast.Path); ok && len(path.Name) == 0 {
 		if s, ok := isStringConst(scope, rhs); ok {
 			path.Name = append(path.Name, s)
 			return path
@@ -401,7 +401,7 @@ func semField(scope *Scope, e ast.Expr) (ast.Expr, error) {
 			if err != nil {
 				return nil, err
 			}
-			if path := isPathIndex(scope, lhs, rhs); path != nil {
+			if path := isRootIndex(scope, lhs, rhs); path != nil {
 				return path, nil
 			}
 			return &ast.BinaryExpr{
