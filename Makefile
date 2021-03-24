@@ -91,28 +91,28 @@ test-unit:
 	@go test -short ./...
 
 test-system: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH)" go test -v .
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH)" go test .
 
 test-run: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH)" go test -v . -run $(TEST)
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH)" go test . -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
-	@go test -v -tags=heavy ./tests
+	@go test -tags=heavy ./tests
 
 test-pcapingest: bin/$(ZEEKPATH)
-	@ZEEK="$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner" go test -v -run=PcapPost -tags=pcapingest ./ppl/zqd
+	@ZEEK="$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner" go test -run=PcapPost -tags=pcapingest ./ppl/zqd
 
 .PHONY: test-services
 test-services: build bin/tctl
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
-		go test -v -run TestZq/ppl/zqd/db/postgresdb/ztests .
+		go test -run TestZq/ppl/zqd/db/postgresdb/ztests .
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
-		go test -v -run TestZq/ppl/zqd/ztests/redis .
+		go test -run TestZq/ppl/zqd/ztests/redis .
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
-		go test -v -run TestZq/ppl/zqd/temporal/ztests .
+		go test -run TestZq/ppl/zqd/temporal/ztests .
 
 .PHONY: test-services-docker
 test-services-docker: export TEMPORAL_VERSION := $(TEMPORAL_VERSION)
@@ -131,14 +131,14 @@ test-cluster: build install
 	time zapi -s files postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=cluster \
-		go test -v -run TestZq/ppl/zqd/ztests/cluster .
+		go test -run TestZq/ppl/zqd/ztests/cluster .
 
 # test-temporal target assumes zqd-temporal endpoint is available at port 9868
 .PHONY: test-temporal
 test-temporal: build install
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=temporal \
-		go test -v -run TestZq/ppl/zqd/temporal/ztests .
+		go test -run TestZq/ppl/zqd/temporal/ztests .
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
