@@ -21,6 +21,7 @@ type Formatter struct {
 	builder     strings.Builder
 	stack       []strings.Builder
 	implied     map[zng.Type]bool
+	zctx        *Context
 }
 
 func NewFormatter(pretty int) *Formatter {
@@ -34,6 +35,7 @@ func NewFormatter(pretty int) *Formatter {
 		newline:    newline,
 		whitespace: strings.Repeat(" ", 80),
 		implied:    make(map[zng.Type]bool),
+		zctx:       NewContext(),
 	}
 }
 
@@ -70,7 +72,7 @@ func (f *Formatter) formatValueAndDecorate(typ zng.Type, bytes zcode.Bytes) erro
 	if err := f.formatValue(0, typ, bytes, known, implied, false); err != nil {
 		return err
 	}
-	f.decorate(typ, false, bytes == nil)
+	f.decorate(0, typ, false, bytes == nil)
 	return nil
 }
 
@@ -81,7 +83,7 @@ func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, par
 		if parentImplied {
 			parentKnown = false
 		}
-		f.decorate(typ, parentKnown, true)
+		f.decorate(indent, typ, parentKnown, true)
 		return nil
 	}
 	var err error
@@ -104,10 +106,13 @@ func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, par
 	case *zng.TypeEnum:
 		f.build(t.ZSONOf(bytes))
 	case *zng.TypeOfType:
-		f.buildf("(%s)", string(bytes))
+		typ := f.zctx.FromTypeValue(zng.Value{t, bytes})
+		f.build("(")
+		f.formatType(indent, typ, true)
+		f.build(")")
 	}
 	if err == nil && decorate {
-		f.decorate(typ, parentKnown, null)
+		f.decorate(indent, typ, parentKnown, null)
 	}
 	return err
 }
@@ -118,7 +123,7 @@ func (f *Formatter) nextInternalType() string {
 	return name
 }
 
-func (f *Formatter) decorate(typ zng.Type, known, null bool) {
+func (f *Formatter) decorate(indent int, typ zng.Type, known, null bool) {
 	if known || (!null && f.isImplied(typ)) {
 		return
 	}
@@ -138,7 +143,7 @@ func (f *Formatter) decorate(typ zng.Type, known, null bool) {
 		return
 	}
 	f.build(" (")
-	f.formatType(typ)
+	f.formatType(indent, typ, false)
 	f.build(")")
 }
 
@@ -279,7 +284,7 @@ func (f *Formatter) buildf(s string, args ...interface{}) {
 // Typedefs handled by decorators are handled in decorate().
 // The routine re-enters the type formatter with a fresh builder by
 // invoking push()/pop().
-func (f *Formatter) formatType(typ zng.Type) {
+func (f *Formatter) formatType(indent int, typ zng.Type, typeval bool) {
 	if name, ok := f.typedefs[typ]; ok {
 		f.build(name)
 		return
@@ -292,7 +297,7 @@ func (f *Formatter) formatType(typ zng.Type) {
 		f.typedefs[typ] = name
 		f.build(name)
 		f.build("=(")
-		f.formatType(alias.Type)
+		f.formatType(indent, alias.Type, typeval)
 		f.build(")")
 		return
 	}
@@ -302,19 +307,24 @@ func (f *Formatter) formatType(typ zng.Type) {
 		f.build(name)
 		return
 	}
-	name := f.nextInternalType()
-	f.build(name)
-	f.build("=(")
+	var name string
+	if !typeval {
+		name = f.nextInternalType()
+		f.build(name)
+		f.build("=(")
+	}
 	f.push()
-	f.formatTypeBody(typ)
+	f.formatTypeBody(indent, typ, typeval)
 	s := f.builder.String()
 	f.pop()
 	f.build(s)
-	f.build(")")
-	f.typedefs[typ] = name
+	if !typeval {
+		f.build(")")
+		f.typedefs[typ] = name
+	}
 }
 
-func (f *Formatter) formatTypeBody(typ zng.Type) error {
+func (f *Formatter) formatTypeBody(indent int, typ zng.Type, typeval bool) error {
 	if name, ok := f.typedefs[typ]; ok {
 		f.build(name)
 		return nil
@@ -325,25 +335,25 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 		// plain form vs embedded typedef.
 		panic("alias shouldn't be formatted")
 	case *zng.TypeRecord:
-		f.formatTypeRecord(typ)
+		f.formatTypeRecord(indent, typ, typeval)
 	case *zng.TypeArray:
 		f.build("[")
-		f.formatType(typ.Type)
+		f.formatType(indent, typ.Type, typeval)
 		f.build("]")
 	case *zng.TypeSet:
 		f.build("|[")
-		f.formatType(typ.Type)
+		f.formatType(indent, typ.Type, typeval)
 		f.build("]|")
 	case *zng.TypeMap:
 		f.build("|{")
-		f.formatType(typ.KeyType)
+		f.formatType(indent, typ.KeyType, typeval)
 		f.build(",")
-		f.formatType(typ.ValType)
+		f.formatType(indent, typ.ValType, typeval)
 		f.build("}|")
 	case *zng.TypeUnion:
-		f.formatTypeUnion(typ)
+		f.formatTypeUnion(indent, typ, typeval)
 	case *zng.TypeEnum:
-		return f.formatTypeEnum(typ)
+		return f.formatTypeEnum(indent, typ)
 	case *zng.TypeOfType:
 		f.build(typ.ZSON())
 	default:
@@ -352,31 +362,37 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 	return nil
 }
 
-func (f *Formatter) formatTypeRecord(typ *zng.TypeRecord) {
-	var sep string
+func (f *Formatter) formatTypeRecord(indent int, typ *zng.TypeRecord, typeval bool) {
 	f.build("{")
+	if len(typ.Columns) == 0 {
+		f.build("}")
+		return
+	}
+	indent += f.tab
+	sep := f.newline
 	for _, col := range typ.Columns {
 		f.build(sep)
-		f.build(zng.QuotedName(col.Name))
+		f.indent(indent, zng.QuotedName(col.Name))
 		f.build(":")
-		f.formatType(col.Type)
-		sep = ","
+		f.formatType(indent, col.Type, typeval)
+		sep = "," + f.newline
 	}
-	f.build("}")
+	f.build(f.newline)
+	f.indent(indent-f.tab, "}")
 }
 
-func (f *Formatter) formatTypeUnion(typ *zng.TypeUnion) {
+func (f *Formatter) formatTypeUnion(indent int, typ *zng.TypeUnion, typeval bool) {
 	var sep string
 	f.build("(")
 	for _, typ := range typ.Types {
 		f.build(sep)
-		f.formatType(typ)
+		f.formatType(indent, typ, typeval)
 		sep = ","
 	}
 	f.build(")")
 }
 
-func (f *Formatter) formatTypeEnum(typ *zng.TypeEnum) error {
+func (f *Formatter) formatTypeEnum(indent int, typ *zng.TypeEnum) error {
 	var sep string
 	f.build("<")
 	inner := typ.Type
@@ -385,7 +401,7 @@ func (f *Formatter) formatTypeEnum(typ *zng.TypeEnum) error {
 		f.buildf("%s:", zng.QuotedName(elem.Name))
 		known := k != 0
 		const parentImplied = true
-		if err := f.formatValue(0, inner, elem.Value, known, parentImplied, true); err != nil {
+		if err := f.formatValue(indent, inner, elem.Value, known, parentImplied, true); err != nil {
 			return err
 		}
 		sep = ","
