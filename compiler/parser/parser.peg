@@ -589,18 +589,15 @@ NotExpr
   = "!" __ e:NotExpr {
         RETURN(MAP("kind": "UnaryExpr", "op": "!", "operand": e))
     }
-  / CastExpr
-
-CastExpr
-  = e:FuncExpr __ ":" __ typ:CastType {
-      RETURN(MAP("kind": "Cast", "expr": e, "type": typ))
-    }
   / FuncExpr
 
 FuncExpr
   = SelectExpr
   / MatchExpr
-  / TypeLiteral
+  / typ:TypeLiteral !(__ "(") { RETURN(typ) }
+  / first:Cast rest:(Deref)* {
+      RETURN(makeBinaryExprChain(first, rest))
+    }
   / first:Function rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
     }
@@ -633,6 +630,11 @@ Methods
 
 Method
   = __ "." __ f:Function { RETURN(f) }
+
+Cast
+  = typ:CastType __ "(" __ expr:Expr __ ")" {
+      RETURN(MAP("kind": "Cast", "expr": expr, "type": typ))
+    }
 
 Function
   = !FuncGuard fn:IdentifierName __ "(" __ args:OptionalExprs __ ")" {
@@ -918,7 +920,7 @@ TypeLiteral
 
 CastType
   = TypeExternal
-  / !"null" typ:PrimitiveType { RETURN(typ) }
+  / PrimitiveType
 
 TypeExternal
   = ExplicitType

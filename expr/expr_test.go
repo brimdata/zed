@@ -600,65 +600,65 @@ func TestConditional(t *testing.T) {
 
 func TestCasts(t *testing.T) {
 	// Test casts to byte
-	testSuccessful(t, "10 :uint8", "", zng.Value{zng.TypeUint8, zng.EncodeUint(10)})
-	testError(t, "-1 :uint8", "", expr.ErrBadCast, "out of range cast to uint8")
-	testError(t, "300 :uint8", "", expr.ErrBadCast, "out of range cast to uint8")
-	testError(t, `"foo" :uint8`, "", expr.ErrBadCast, "cannot cast incompatible type to uint8")
+	testSuccessful(t, "uint8(10)", "", zng.Value{zng.TypeUint8, zng.EncodeUint(10)})
+	testError(t, "uint8(-1)", "", expr.ErrBadCast, "out of range cast to uint8")
+	testError(t, "uint8(300)", "", expr.ErrBadCast, "out of range cast to uint8")
+	testError(t, `uint8("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint8")
 
 	// Test casts to int16
-	testSuccessful(t, "10 :int16", "", zng.Value{zng.TypeInt16, zng.EncodeInt(10)})
-	testError(t, "-33000 :int16", "", expr.ErrBadCast, "out of range cast to int16")
-	testError(t, "33000 :int16", "", expr.ErrBadCast, "out of range cast to int16")
-	testError(t, `"foo" :int16`, "", expr.ErrBadCast, "cannot cast incompatible type to int16")
+	testSuccessful(t, "int16(10)", "", zng.Value{zng.TypeInt16, zng.EncodeInt(10)})
+	testError(t, "int16(-33000)", "", expr.ErrBadCast, "out of range cast to int16")
+	testError(t, "int16(33000)", "", expr.ErrBadCast, "out of range cast to int16")
+	testError(t, `int16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int16")
 
 	// Test casts to uint16
-	testSuccessful(t, "10 :uint16", "", zng.Value{zng.TypeUint16, zng.EncodeUint(10)})
-	testError(t, "-1 :uint16", "", expr.ErrBadCast, "out of range cast to uint16")
-	testError(t, "66000 :uint16", "", expr.ErrBadCast, "out of range cast to uint16")
-	testError(t, `"foo" :uint16`, "", expr.ErrBadCast, "cannot cast incompatible type to uint16")
+	testSuccessful(t, "uint16(10)", "", zng.Value{zng.TypeUint16, zng.EncodeUint(10)})
+	testError(t, "uint16(-1)", "", expr.ErrBadCast, "out of range cast to uint16")
+	testError(t, "uint16(66000)", "", expr.ErrBadCast, "out of range cast to uint16")
+	testError(t, `uint16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint16")
 
 	// Test casts to int32
-	testSuccessful(t, "10 :int32", "", zng.Value{zng.TypeInt32, zng.EncodeInt(10)})
-	testError(t, "-2200000000 :int32", "", expr.ErrBadCast, "out of range cast to int32")
-	testError(t, "2200000000 :int32", "", expr.ErrBadCast, "out of range cast to int32")
-	testError(t, `"foo" :int32`, "", expr.ErrBadCast, "cannot cast incompatible type to int32")
+	testSuccessful(t, "int32(10)", "", zng.Value{zng.TypeInt32, zng.EncodeInt(10)})
+	testError(t, "int32(-2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
+	testError(t, "int32(2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
+	testError(t, `int32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int32")
 
 	// Test casts to uint32
-	testSuccessful(t, "10 :uint32", "", zng.Value{zng.TypeUint32, zng.EncodeUint(10)})
-	testError(t, "-1 :uint32", "", expr.ErrBadCast, "out of range cast to uint32")
-	testError(t, "4300000000 :uint8", "", expr.ErrBadCast, "out of range cast to uint32")
-	testError(t, `"foo" :uint32`, "", expr.ErrBadCast, "cannot cast incompatible type to uint32")
+	testSuccessful(t, "uint32(10)", "", zng.Value{zng.TypeUint32, zng.EncodeUint(10)})
+	testError(t, "uint32(-1)", "", expr.ErrBadCast, "out of range cast to uint32")
+	testError(t, "uint8(4300000000)", "", expr.ErrBadCast, "out of range cast to uint32")
+	testError(t, `uint32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint32")
 
 	// Test casts to uint64
-	testSuccessful(t, "10 :uint64", "", zuint64(10))
-	testError(t, "-1 :uint64", "", expr.ErrBadCast, "out of range cast to uint64")
-	testError(t, `"foo" :uint64`, "", expr.ErrBadCast, "cannot cast incompatible type to uint64")
+	testSuccessful(t, "uint64(10)", "", zuint64(10))
+	testError(t, "uint64(-1)", "", expr.ErrBadCast, "out of range cast to uint64")
+	testError(t, `uint64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint64")
 
 	// Test casts to float64
-	testSuccessful(t, "10 :float64", "", zfloat64(10))
-	testError(t, `"foo" :float64`, "", expr.ErrBadCast, "cannot cast incompatible type to float64")
+	testSuccessful(t, "float64(10)", "", zfloat64(10))
+	testError(t, `float64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to float64")
 
 	// Test casts to ip
-	testSuccessful(t, `"1.2.3.4" :ip`, "", zip(t, "1.2.3.4"))
-	testError(t, "1234 :ip", "", expr.ErrBadCast, "cast of invalid ip address fails")
-	testError(t, `"not an address" :ip`, "", expr.ErrBadCast, "cast of invalid ip address fails")
+	testSuccessful(t, `ip("1.2.3.4")`, "", zip(t, "1.2.3.4"))
+	testError(t, "ip(1234)", "", expr.ErrBadCast, "cast of invalid ip address fails")
+	testError(t, `ip("not an address")`, "", expr.ErrBadCast, "cast of invalid ip address fails")
 
 	// Test casts to time
 	ts := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1589126400_000_000_000))}
-	testSuccessful(t, "1589126400.0 :time", "", ts)
-	testSuccessful(t, "1589126400 :time", "", ts)
-	testSuccessful(t, `"1589126400" :time`, "", ts)
+	testSuccessful(t, "time(1589126400.0)", "", ts)
+	testSuccessful(t, "time(1589126400)", "", ts)
+	testSuccessful(t, `time("1589126400")`, "", ts)
 
-	testSuccessful(t, "1.2:string", "", zstring("1.2e+00")) //XXX see #2353
-	testSuccessful(t, "5:string", "", zstring("5"))
-	testSuccessful(t, "1.2.3.4:string", "", zstring("1.2.3.4"))
-	testSuccessful(t, `"1":int64`, "", zint64(1))
-	testSuccessful(t, `"-1":int64`, "", zint64(-1))
-	testSuccessful(t, `"5.5":float64`, "", zfloat64(5.5))
-	testSuccessful(t, `"1.2.3.4":ip`, "", zaddr("1.2.3.4"))
+	testSuccessful(t, "string(1.2)", "", zstring("1.2e+00")) //XXX see #2353
+	testSuccessful(t, "string(5)", "", zstring("5"))
+	testSuccessful(t, "string(1.2.3.4)", "", zstring("1.2.3.4"))
+	testSuccessful(t, `int64("1")`, "", zint64(1))
+	testSuccessful(t, `int64("-1")`, "", zint64(-1))
+	testSuccessful(t, `float64("5.5")`, "", zfloat64(5.5))
+	testSuccessful(t, `ip("1.2.3.4")`, "", zaddr("1.2.3.4"))
 
-	testError(t, "1:ip", "", expr.ErrBadCast, "ip cast non-ip arg")
-	testError(t, `"abc":int64`, "", expr.ErrBadCast, "int64 cast with non-parseable string")
-	testError(t, `"abc":float64`, "", expr.ErrBadCast, "float64 cast with non-parseable string")
-	testError(t, `"abc":ip`, "", expr.ErrBadCast, "ip cast with non-parseable string")
+	testError(t, "ip(1)", "", expr.ErrBadCast, "ip cast non-ip arg")
+	testError(t, `int64("abc")`, "", expr.ErrBadCast, "int64 cast with non-parseable string")
+	testError(t, `float64("abc")`, "", expr.ErrBadCast, "float64 cast with non-parseable string")
+	testError(t, `ip("abc")`, "", expr.ErrBadCast, "ip cast with non-parseable string")
 }

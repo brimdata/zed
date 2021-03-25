@@ -1,4 +1,4 @@
-zql: put t=t:time
+zql: put t=time(t)
 
 input: |
   {t:1521911720.600843}
