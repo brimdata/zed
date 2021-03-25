@@ -310,3 +310,17 @@ func (c *Context) LookupTypeValue(typ zng.Type) zng.Value {
 	}
 	return c.LookupTypeValue(typ)
 }
+
+func (c *Context) FromTypeValue(value zng.Value) zng.Type {
+	c.mu.Lock()
+	typ, ok := c.toType[string(value.Bytes)]
+	c.mu.Unlock()
+	if !ok {
+		// In general, this shouldn't happen except for a foreign
+		// type that wasn't initially created in this context.
+		// In this case, it will work out fine since we round-trip
+		// through a string.
+		typ, _ = c.LookupByName(string(value.Bytes))
+	}
+	return typ
+}
