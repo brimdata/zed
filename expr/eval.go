@@ -129,27 +129,39 @@ func (i *In) Eval(rec *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return container, err
 	}
-	if typ := zng.AliasOf(container.Type); typ == zng.TypeNet {
-		n, err := zng.DecodeNet(container.Bytes)
-		if err != nil {
-			return zng.Value{}, err
-		}
-		if typ := zng.AliasOf(elem.Type); typ != zng.TypeIP {
-			return zng.Value{}, ErrIncompatibleTypes
-		}
-		a, err := zng.DecodeIP(elem.Bytes)
-		if err != nil {
-			return zng.Value{}, err
-		}
-		if n.IP.Equal(a.Mask(n.Mask)) {
-			return zng.True, nil
-		}
-		return zng.False, nil
+	switch typ := zng.AliasOf(container.Type).(type) {
+	case *zng.TypeOfNet:
+		return inNet(elem, container)
+	case *zng.TypeArray:
+		return i.inContainer(zng.AliasOf(typ.Type), elem, container)
+	case *zng.TypeSet:
+		return i.inContainer(zng.AliasOf(typ.Type), elem, container)
+	case *zng.TypeMap:
+		return i.inMap(typ, elem, container)
+	default:
+		return zng.NewErrorf("'in' operator applied to non-container type"), nil
 	}
-	typ := zng.InnerType(container.Type)
-	if typ == nil {
-		return zng.Value{}, ErrNotContainer
+}
+
+func inNet(elem, net zng.Value) (zng.Value, error) {
+	n, err := zng.DecodeNet(net.Bytes)
+	if err != nil {
+		return zng.Value{}, err
 	}
+	if typ := zng.AliasOf(elem.Type); typ != zng.TypeIP {
+		return zng.NewErrorf("'in' operator applied to non-container type"), nil
+	}
+	a, err := zng.DecodeIP(elem.Bytes)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	if n.IP.Equal(a.Mask(n.Mask)) {
+		return zng.True, nil
+	}
+	return zng.False, nil
+}
+
+func (i *In) inContainer(typ zng.Type, elem, container zng.Value) (zng.Value, error) {
 	iter := container.Bytes.Iter()
 	for {
 		if iter.Done() {
@@ -160,13 +172,35 @@ func (i *In) Eval(rec *zng.Record) (zng.Value, error) {
 			return zng.Value{}, err
 		}
 		_, err = i.vals.Coerce(elem, zng.Value{typ, zv})
-		if err != nil {
-			return zng.Value{}, err
-		}
-		if i.vals.Equal() {
+		if err == nil && i.vals.Equal() {
 			return zng.True, nil
 		}
 	}
+}
+
+func (i *In) inMap(typ *zng.TypeMap, elem, container zng.Value) (zng.Value, error) {
+	keyType := zng.AliasOf(typ.KeyType)
+	valType := zng.AliasOf(typ.ValType)
+	iter := container.Bytes.Iter()
+	for !iter.Done() {
+		zv, _, err := iter.Next()
+		if err != nil {
+			return zng.Value{}, err
+		}
+		_, err = i.vals.Coerce(elem, zng.Value{keyType, zv})
+		if err == nil && i.vals.Equal() {
+			return zng.True, nil
+		}
+		zv, _, err = iter.Next()
+		if err != nil {
+			return zng.Value{}, err
+		}
+		_, err = i.vals.Coerce(elem, zng.Value{valType, zv})
+		if err == nil && i.vals.Equal() {
+			return zng.True, nil
+		}
+	}
+	return zng.False, nil
 }
 
 type Equal struct {

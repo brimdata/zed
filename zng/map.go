@@ -129,6 +129,7 @@ func (t *TypeMap) ZSONOf(zv zcode.Bytes) string {
 		b.WriteString(sep)
 		b.WriteByte('{')
 		b.WriteString(t.KeyType.ZSONOf(val))
+		b.WriteByte(',')
 		val, _, err = it.Next()
 		if err != nil {
 			return badZng(err, t, zv)
