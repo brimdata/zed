@@ -75,9 +75,9 @@ type keyval struct {
 }
 
 // NormalizeMap interprets zv as a map body and returns an equivalent map body
-// that is normalized according to the ZNG specification (i.e., each element's
-// tag-counted value is lexicographically greater than that of the preceding
-// element).
+// that is normalized according to the ZNG specification (i.e., the tag-counted
+// value of each entry's key is lexicographically greater than that of the
+// preceding entry).
 func NormalizeMap(zv zcode.Bytes) zcode.Bytes {
 	elements := make([]keyval, 0, 8)
 	for it := zv.Iter(); !it.Done(); {
