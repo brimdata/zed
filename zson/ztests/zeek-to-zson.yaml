@@ -21,7 +21,7 @@ outputs:
           my_bool: true,
           my_count: 123 (uint64),
           my_int: 456,
-          my_double: 1.23456e+02,
+          my_double: 123.456,
           my_time: 2020-06-18T17:42:31.123456Z,
           my_interval: 2m3.456s,
           my_printable_string: "smile😁smile" (bstring),

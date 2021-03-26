@@ -653,7 +653,7 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, "time(1589126400)", "", ts)
 	testSuccessful(t, `time("1589126400")`, "", ts)
 
-	testSuccessful(t, "string(1.2)", "", zstring("1.2e+00")) //XXX see #2353
+	testSuccessful(t, "string(1.2)", "", zstring("1.2"))
 	testSuccessful(t, "string(5)", "", zstring("5"))
 	testSuccessful(t, "string(1.2.3.4)", "", zstring("1.2.3.4"))
 	testSuccessful(t, `int64("1")`, "", zint64(1))
