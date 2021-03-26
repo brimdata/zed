@@ -1,7 +1,7 @@
 script: |
   source services.sh
   zapi -h $ZQD_HOST new test
-  zapi -h $ZQD_HOST -s test postpath -z "put ip=ip:ip" in.zson in.zson
+  zapi -h $ZQD_HOST -s test postpath -z "put ip=ip(ip)" in.zson in.zson
   zapi -h $ZQD_HOST -s test get -f zson > out.zson
 
 inputs:

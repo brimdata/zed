@@ -9,7 +9,7 @@ npm = npm --global --prefix $(deps)
 
 all: parser.go parser.js parser.es.js
 
-.PHONY: parse.go
+.PHONY: parser.go
 parser.go:
 ifeq "$(shell go version -m $(deps)/bin/goimports 2>&1 | fgrep $(GOIMPORTS_VERSION))" ""
 	mkdir -p $(deps)
@@ -24,7 +24,7 @@ endif
 	cpp -DGO -E -P parser.peg | $(deps)/bin/pigeon -o $@
 	$(deps)/bin/goimports -w $@
 
-.PHONY: parse.js
+.PHONY: parser.js
 parser.js:
 ifeq "$(shell $(deps)/bin/pegjs --version 2>&1 | fgrep $(PEGJS_VERSION))" ""
 	$(npm) install pegjs@$(PEGJS_VERSION)

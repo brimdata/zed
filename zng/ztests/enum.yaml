@@ -1,4 +1,4 @@
-zql: "put s=e:string, v=e+1"
+zql: "put s=string(e), v=e+1"
 
 input: |
   #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]]]
