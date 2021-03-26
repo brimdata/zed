@@ -188,7 +188,7 @@ func (s *Shaper) update(rec *zng.Record) {
 	s.typeAnchor[rec.Type] = a
 }
 
-func (s *Shaper) needRecode(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
+func (s *Shaper) needRecode(typ zng.Type) (*zng.TypeRecord, error) {
 	target, ok := s.recode[typ]
 	if !ok {
 		a := s.typeAnchor[typ]
@@ -205,7 +205,7 @@ func (s *Shaper) needRecode(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
 	return target, nil
 }
 
-func (s *Shaper) lookupType(in *zng.TypeRecord) (*zng.TypeRecord, error) {
+func (s *Shaper) lookupType(in zng.Type) (*zng.TypeRecord, error) {
 	a, ok := s.typeAnchor[in]
 	if !ok {
 		return nil, errors.New("Shaper: unencountered type (this is a bug)")
@@ -260,15 +260,12 @@ func (s *Shaper) Read() (*zng.Record, error) {
 	if rec == nil || err != nil {
 		return nil, err
 	}
-	//XXX BUG?  Shaper lookup should be based on the type name not
-	// just the underlying record shape
-	recType := zng.TypeRecordOf(rec.Type)
-	typ, err := s.lookupType(recType)
+	typ, err := s.lookupType(rec.Type)
 	if err != nil {
 		return nil, err
 	}
 	bytes := rec.Bytes
-	targetType, err := s.needRecode(recType)
+	targetType, err := s.needRecode(rec.Type)
 	if err != nil {
 		return nil, err
 	}

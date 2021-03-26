@@ -159,7 +159,6 @@ func (w *Writer) Write(rec *zng.Record) error {
 		if err != nil {
 			return err
 		}
-		//XXX BUG should preserve typedefs?
 		w.keyType = zng.TypeRecordOf(keys.Type)
 		w.childField = uniqChildField(w.zctx, keys)
 	}

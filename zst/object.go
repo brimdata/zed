@@ -138,7 +138,7 @@ func (o *Object) readAssembly() (*Assembly, error) {
 		if zv.Bytes != nil {
 			break
 		}
-		//XXX BUG: need to preserve top-level type
+		//XXX See issue #2439: Wneed to preserve top-level type here.
 		assembly.schemas = append(assembly.schemas, zng.TypeRecordOf(rec.Type))
 	}
 	var err error

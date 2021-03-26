@@ -102,8 +102,7 @@ func (r *Record) Keep() *Record {
 	}
 }
 
-//XXX change to CopyBytes
-func (r *Record) CopyBody() {
+func (r *Record) CopyBytes() {
 	if r.nonvolatile {
 		return
 	}

@@ -139,7 +139,7 @@ func encodeContainer(typ zng.Type, val zcode.Bytes) (interface{}, error) {
 	return out, nil
 }
 
-func (s *Stream) encodeAliases(typ *zng.TypeRecord) []Alias {
+func (s *Stream) encodeAliases(typ zng.Type) []Alias {
 	var aliases []Alias
 	for _, alias := range zng.AliasTypes(typ) {
 		id := alias.AliasID()

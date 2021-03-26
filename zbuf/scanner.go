@@ -141,7 +141,7 @@ func (s *scanner) Read() (*zng.Record, error) {
 		atomic.AddInt64(&s.stats.RecordsMatched, 1)
 		// Copy the underlying buffer (if volatile) because next call to
 		// reader.Next() may overwrite said buffer.
-		rec.CopyBody()
+		rec.CopyBytes()
 		return rec, nil
 	}
 }
