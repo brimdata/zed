@@ -69,7 +69,7 @@ func (r *Function) Apply(in *zng.Record) (*zng.Record, error) {
 	if _, ok := r.typeMap[id]; !ok {
 		typ, err := r.computeType(zng.TypeRecordOf(in.Type))
 		if err != nil {
-			return nil, fmt.Errorf("rename: %w", err)
+			return nil, fmt.Errorf("%s: %w", r, err)
 		}
 		r.typeMap[id] = typ
 	}
@@ -77,4 +77,6 @@ func (r *Function) Apply(in *zng.Record) (*zng.Record, error) {
 	return zng.NewRecord(r.typeMap[id], out.Bytes), nil
 }
 
-func (r *Function) Warning() string { return "" }
+func (_ *Function) String() string { return "rename" }
+
+func (_ *Function) Warning() string { return "" }

@@ -99,10 +99,9 @@ func contains(ss []field.Static, el field.Static) bool {
 	return false
 }
 
-// Warning implements proc.Function.
-func (d *Dropper) Warning() string {
-	return ""
-}
+func (_ *Dropper) String() string { return "drop" }
+
+func (_ *Dropper) Warning() string { return "" }
 
 // Apply implements proc.Function and returns a new record comprising fields
 // that are not specified in the set of drop targets.

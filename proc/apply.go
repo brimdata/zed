@@ -8,33 +8,28 @@ import (
 )
 
 type Function interface {
+	fmt.Stringer
 	Apply(*zng.Record) (*zng.Record, error)
 	Warning() string
 }
 
 type applier struct {
-	pctx          *Context
-	parent        Interface
-	function      Function
-	warningPrefix string
+	pctx     *Context
+	parent   Interface
+	function Function
 }
 
-// XXX proc.FromFunction takes a warningPrefix, which is just the name of the function.
-// Instead, Function should implement fmt.Stringer and have its String() method
-// return its name.  See issue #1776.
-
-func FromFunction(pctx *Context, parent Interface, f Function, warningPrefix string) *applier {
+func FromFunction(pctx *Context, parent Interface, f Function) *applier {
 	return &applier{
-		pctx:          pctx,
-		parent:        parent,
-		function:      f,
-		warningPrefix: warningPrefix,
+		pctx:     pctx,
+		parent:   parent,
+		function: f,
 	}
 }
 
 func (a *applier) warn() {
 	if s := a.function.Warning(); s != "" {
-		a.pctx.Warnings <- fmt.Sprintf("%s: %s", a.warningPrefix, s)
+		a.pctx.Warnings <- fmt.Sprintf("%s: %s", a.function, s)
 	}
 }
 

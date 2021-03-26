@@ -1,0 +1,7 @@
+zed: pick x,y
+
+input: |
+  {x:1}
+
+warnings: |
+  pick: no record found with columns x,y

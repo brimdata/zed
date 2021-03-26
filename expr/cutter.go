@@ -162,6 +162,8 @@ func fieldList(fields []Evaluator) string {
 	return strings.Join(each, ",")
 }
 
+func (_ *Cutter) String() string { return "cut" }
+
 func (c *Cutter) Warning() string {
 	if c.FoundCut() {
 		return ""
