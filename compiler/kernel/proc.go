@@ -70,7 +70,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 			return nil, err
 		}
 		cutter.AllowPartialCuts()
-		return proc.FromFunction(pctx, parent, cutter, "cut"), nil
+		return proc.FromFunction(pctx, parent, cutter), nil
 
 	case *ast.Pick:
 		assignments, err := compileAssignments(v.Args, pctx.Zctx, scope)
@@ -82,7 +82,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		if err != nil {
 			return nil, err
 		}
-		return proc.FromFunction(pctx, parent, cutter, "pick"), nil
+		return proc.FromFunction(pctx, parent, &picker{cutter}), nil
 
 	case *ast.Drop:
 		if len(v.Args) == 0 {
@@ -97,7 +97,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 			fields = append(fields, field.Name)
 		}
 		dropper := expr.NewDropper(pctx.Zctx, fields)
-		return proc.FromFunction(pctx, parent, dropper, "drop"), nil
+		return proc.FromFunction(pctx, parent, dropper), nil
 
 	case *ast.Sort:
 		fields, err := CompileExprs(pctx.Zctx, scope, v.Args)
@@ -182,7 +182,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 			srcs = append(srcs, src)
 		}
 		renamer := rename.NewFunction(pctx.Zctx, srcs, dsts)
-		return proc.FromFunction(pctx, parent, renamer, "rename"), nil
+		return proc.FromFunction(pctx, parent, renamer), nil
 
 	case *ast.Fuse:
 		return fuse.New(pctx, parent)
@@ -204,6 +204,10 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 
 	}
 }
+
+type picker struct{ *expr.Cutter }
+
+func (_ *picker) String() string { return "pick" }
 
 func compileAssignments(assignments []ast.Assignment, zctx *resolver.Context, scope *Scope) ([]expr.Assignment, error) {
 	keys := make([]expr.Assignment, 0, len(assignments))
