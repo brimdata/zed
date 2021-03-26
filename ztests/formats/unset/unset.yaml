@@ -1,4 +1,4 @@
-zql: '*'
+zed: '*'
 
 input: |
   {"vec": ["foo", null, "-"]}

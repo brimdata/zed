@@ -1,4 +1,4 @@
-zql: avg(x), count(x), countdistinct(x), any(x), max(x), min(x), sum(x)
+zed: avg(x), count(x), countdistinct(x), any(x), max(x), min(x), sum(x)
 
 input: |
   #0:record[x:uint64]

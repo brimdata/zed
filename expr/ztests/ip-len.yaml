@@ -1,4 +1,4 @@
-zql: cut n1=len(addr),n2=len(n)
+zed: cut n1=len(addr),n2=len(n)
 
 input: |
   #0:record[addr:ip,n:net]

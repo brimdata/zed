@@ -1,4 +1,4 @@
-zql: tail 2
+zed: tail 2
 
 input: |
   #0:record[x:string]

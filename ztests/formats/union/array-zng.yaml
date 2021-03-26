@@ -1,4 +1,4 @@
-zql: '*'
+zed: '*'
 
 input: |
   #0:record[a:array[union[int32,string]]]

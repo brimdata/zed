@@ -1,4 +1,4 @@
-zql: drop id
+zed: drop id
 
 input: |
   #0:record[id:record[ip:ip],id2:record[ip:ip]]

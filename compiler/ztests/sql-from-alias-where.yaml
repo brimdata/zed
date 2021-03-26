@@ -1,4 +1,4 @@
-zql: |
+zed: |
   SELECT *
   FROM fruit f
   ORDER BY f.name

@@ -1,4 +1,4 @@
-zql: 'count() by . | sort .'
+zed: 'count() by . | sort .'
 
 input: |
   {x:1 (int32),s:"foo"} (=0)

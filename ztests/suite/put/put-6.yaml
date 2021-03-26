@@ -1,5 +1,5 @@
 # Tests integer division by zero error
-zql: put y = x / 0
+zed: put y = x / 0
 
 input: |
   #0:record[x:int32]

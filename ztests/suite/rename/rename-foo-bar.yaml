@@ -1,4 +1,4 @@
-zql: rename f=foo, b=bar
+zed: rename f=foo, b=bar
 
 input: |
   #0:record[foo:string]

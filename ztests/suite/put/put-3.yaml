@@ -1,5 +1,5 @@
 # Tests writing a new record
-zql: put r2 = r
+zed: put r2 = r
 
 input: |
   #0:record[r:record[s:string]]

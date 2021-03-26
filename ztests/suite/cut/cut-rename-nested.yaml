@@ -1,4 +1,4 @@
-zql: cut ports=id, resp_p=id.resp_p
+zed: cut ports=id, resp_p=id.resp_p
 
 input: |
   #port=uint16

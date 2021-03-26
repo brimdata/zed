@@ -1,4 +1,4 @@
-zql: 'cut s=string(b)'
+zed: 'cut s=string(b)'
 
 input: |
   {b:"\x30\x31\x32"(bstring)}

@@ -1,4 +1,4 @@
-zql: |
+zed: |
   const r=zson_parse('{a:"1",b:2}')
   put ra=r.a,rb=r.b
 

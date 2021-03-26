@@ -1,5 +1,5 @@
 # Tests overwriting a record with a primitive value
-zql: put r = x
+zed: put r = x
 
 input: |
   #0:record[x:int32,r:record[s:string]]

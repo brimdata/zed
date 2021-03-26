@@ -1,4 +1,4 @@
-zql: '*'
+zed: '*'
 
 input: |
   {"id":24,"schema":{"of":[{"name":"a","of":["int32","string"],"type":"union"}],"type":"record"},"values":[["1","asdfasdf"]]}

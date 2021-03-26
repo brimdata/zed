@@ -1,4 +1,4 @@
-zql: |
+zed: |
   put . = crop({set:|[{b:string}]|,arr:[{a:string}]})
 
 input: |

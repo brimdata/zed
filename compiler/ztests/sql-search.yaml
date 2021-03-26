@@ -1,4 +1,4 @@
-zql: |
+zed: |
   SELECT *
   WHERE 'red' in color OR age < 20
 

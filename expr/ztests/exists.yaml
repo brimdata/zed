@@ -1,4 +1,4 @@
-zql: cut r=exists(r),rb=exists(r.b),div0=exists(s/0),s=exists(s),both=exists(r,r.b)
+zed: cut r=exists(r),rb=exists(r.b),div0=exists(s/0),s=exists(s),both=exists(r,r.b)
 
 input: |
   #0:record[r:record[a:int32],s:int32]

@@ -1,4 +1,4 @@
-zql: every 24h count()
+zed: every 24h count()
 
 # This log is path-less in order to make "ts" the first column and
 # that verify we handle this case correctly.

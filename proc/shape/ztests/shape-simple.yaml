@@ -1,4 +1,4 @@
-zql: shape
+zed: shape
 
 input: |
   {a:10,b:null}

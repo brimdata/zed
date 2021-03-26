@@ -1,7 +1,7 @@
 # Test frame markers inserted into a zng frame (including testing
 # that type definitions are repeated as needed).
 
-zql: '*'
+zed: '*'
 
 input: |
   #0:record[_path:string,ts:time,d:float64]

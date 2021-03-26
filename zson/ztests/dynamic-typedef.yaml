@@ -1,4 +1,4 @@
-zql: "*"
+zed: "*"
 
 input: &input |
   {x:1} (=foo)

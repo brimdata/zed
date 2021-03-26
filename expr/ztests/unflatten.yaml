@@ -1,4 +1,4 @@
-zql: 'put .=unflatten()'
+zed: 'put .=unflatten()'
 
 input: |
   #0:record[a:int64,[b.a]:int64,[b.b]:int64,[b.c.a]:int64,c:int64]

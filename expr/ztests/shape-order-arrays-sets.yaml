@@ -1,4 +1,4 @@
-zql: |
+zed: |
   put . = order({set:|[{b:string,a:string}]|,arr:[{b:string,a:string}]})
 
 input: |

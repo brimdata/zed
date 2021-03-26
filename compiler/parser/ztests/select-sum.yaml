@@ -1,4 +1,4 @@
-zql: put s1=sum(select(.)), s2=sum(select(.).filter($>=3))
+zed: put s1=sum(select(.)), s2=sum(select(.).filter($>=3))
 
 input: |
   {a:1 (int32),b:2 (int32),c:3 (int32)} (=0)

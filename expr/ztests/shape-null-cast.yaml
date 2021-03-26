@@ -1,4 +1,4 @@
-zql: |
+zed: |
    put . = shape({a:string,b:string})
 
 input: |

@@ -1,4 +1,4 @@
-zql: |
+zed: |
    put .=order({id: {orig_h: string, orig_p: port=(uint16), resp_h:ip,resp_p:port=(uint16)}})
 
 input: |

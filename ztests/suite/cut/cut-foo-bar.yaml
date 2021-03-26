@@ -1,4 +1,4 @@
-zql: cut foo, bar
+zed: cut foo, bar
 
 input: |
   #0:record[foo:string]

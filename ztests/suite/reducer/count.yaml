@@ -1,4 +1,4 @@
-zql: count()
+zed: count()
 
 input: |
   #0:record[_path:string,foo:string]

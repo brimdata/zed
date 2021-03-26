@@ -1,4 +1,4 @@
-zql: 'put x=cut(.,b)'
+zed: 'put x=cut(.,b)'
 
 input: |
   #0:record[a:int32,b:int32]

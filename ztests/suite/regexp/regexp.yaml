@@ -1,4 +1,4 @@
-zql: foo*
+zed: foo*
 
 input: |
   #0:record[a:string,b:string]

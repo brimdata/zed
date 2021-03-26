@@ -1,4 +1,4 @@
-zql: '*'
+zed: '*'
 
 input: |
   {"id":27,"schema":{"of":[{"name":"a","of":["string",{"of":"int32","type":"array"},{"of":"string","type":"array"},{"of":["string","int32"],"type":"union"}],"type":"union"}],"type":"record"},"values":[["0","\"hello\""]]}

@@ -1,7 +1,7 @@
 # Enable after fixing https://github.com/brimsec/zq/issues/2145.
 skip: true
 
-zql: all=fuse(.),r=fuse(r)
+zed: all=fuse(.),r=fuse(r)
 
 input: |
   #0:record[a:string,r:record[x:int32,y:int32]]

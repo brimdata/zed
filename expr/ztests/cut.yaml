@@ -1,4 +1,4 @@
-zql: put v=cut(s,x)
+zed: put v=cut(s,x)
 
 warnings: |
   put: a referenced field is missing

@@ -1,4 +1,4 @@
-zql: count(), count()
+zed: count(), count()
 
 input: |
   #0:record[x:int32]

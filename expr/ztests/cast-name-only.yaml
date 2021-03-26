@@ -1,4 +1,4 @@
-zql: type foo = {x:int64} ; put .=cast(., type(foo))
+zed: type foo = {x:int64} ; put .=cast(., type(foo))
 
 input: |
   {x:123}

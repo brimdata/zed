@@ -1,4 +1,4 @@
-zql: sort TTLs
+zed: sort TTLs
 
 input: |
   #0:record[TTLs:array[duration],count:uint64]

@@ -1,4 +1,4 @@
-zql: 'by x=network_of(addr) | sort .'
+zed: 'by x=network_of(addr) | sort .'
 
 input: |
   {addr:10.0.0.1}

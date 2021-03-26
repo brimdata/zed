@@ -1,4 +1,4 @@
-zql: cut f=foo, b=bar
+zed: cut f=foo, b=bar
 
 input: |
   #0:record[foo:string]

@@ -1,4 +1,4 @@
-zql: put missingX=missing(x),missingType=missing(nameof(.))
+zed: put missingX=missing(x),missingType=missing(nameof(.))
 
 input: |
   {x:1}

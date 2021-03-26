@@ -1,4 +1,4 @@
-zql: 'put s=string(b)'
+zed: 'put s=string(b)'
 
 input: |
   {b:0xc328}

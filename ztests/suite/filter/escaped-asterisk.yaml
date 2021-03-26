@@ -1,4 +1,4 @@
-zql: A\=\*
+zed: A\=\*
 
 input: |
   #0:record[s:string]

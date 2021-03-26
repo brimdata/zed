@@ -1,4 +1,4 @@
-zql: match(a)
+zed: match(a)
 
 input: |
   {s1:"a",s2:"b"}

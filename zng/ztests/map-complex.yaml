@@ -1,4 +1,4 @@
-zql: 'put x=m["b"].a'
+zed: 'put x=m["b"].a'
 
 input: |
   #0:record[m:map[string,record[a:int32,b:int32]]]

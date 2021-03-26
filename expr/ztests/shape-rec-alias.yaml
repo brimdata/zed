@@ -1,4 +1,4 @@
-zql: |
+zed: |
   type person = {name:string,likes:string,age:int64}
   put .=cast(.,type(person))
 

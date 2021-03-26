@@ -1,4 +1,4 @@
-zql: |
+zed: |
    put z=iso(z), offsetWithoutColon=iso(offsetWithoutColon), offsetWithColon=iso(offsetWithColon)
 
 input: |

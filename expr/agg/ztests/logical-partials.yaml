@@ -1,4 +1,4 @@
-zql: 't1=or(x>2),t2=or(x>4),t3=and(x>0),t4=and(x>2),t5=and(x>2) where x>2 by key with -limit 1 | sort .'
+zed: 't1=or(x>2),t2=or(x>4),t3=and(x>0),t4=and(x>2),t5=and(x>2) where x>2 by key with -limit 1 | sort .'
 input: |
   #0:record[key:string,x:int32]
   0:[a;1;]

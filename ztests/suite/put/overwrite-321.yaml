@@ -1,4 +1,4 @@
-zql: put a=3,b=2,c=1
+zed: put a=3,b=2,c=1
 
 input: |
   #0:record[a:int32,b:int32]

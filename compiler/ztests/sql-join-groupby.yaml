@@ -1,4 +1,4 @@
-zql: |
+zed: |
   SELECT p.name, union(f.name)
   FROM fruit f
   LEFT JOIN person p ON f.flavor = p.likes

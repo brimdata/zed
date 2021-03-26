@@ -1,4 +1,4 @@
-zql: SELECT *
+zed: SELECT *
 
 input: &input |
   {name:"apple",color:"red",flavor:"tart"} (=fruit)

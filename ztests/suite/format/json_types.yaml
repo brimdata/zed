@@ -1,6 +1,6 @@
 # This test covers serializing all the different zng types to json.
 
-zql: '*'
+zed: '*'
 
 input: |
   #0:record[a:ip,a2:ip,b:bool,c:uint64,f:float64,i:int32,interval:duration,p:uint16,s:string,t:time]

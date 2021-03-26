@@ -1,4 +1,4 @@
-zql: '*'
+zed: '*'
 
 input: |
   {net:null (net)}
