@@ -31,7 +31,7 @@ func searchForZqls() ([]string, error) {
 			if err != nil {
 				return err
 			}
-			z := zt.ZQL
+			z := zt.Zed
 			if z == "" || z == "*" {
 				return nil
 			}
