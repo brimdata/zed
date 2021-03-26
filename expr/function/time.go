@@ -2,13 +2,14 @@ package function
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/expr/result"
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
+
+	"github.com/araddon/dateparse"
 )
 
 type iso struct {
@@ -30,13 +31,7 @@ func CastToTime(zv zng.Value) (nano.Ts, error) {
 	}
 	id := zv.Type.ID()
 	if zng.IsStringy(id) {
-		// Handles ISO 8601 with time zone of Z or an offset not containing a colon.
-		format := "2006-01-02T15:04:05.999999999Z0700"
-		if l := len(zv.Bytes); l > 2 && zv.Bytes[l-3] == ':' {
-			// Handles ISO 8601 with time zone of Z or an offset containing a colon.
-			format = time.RFC3339Nano
-		}
-		ts, err := time.Parse(format, byteconv.UnsafeString(zv.Bytes))
+		ts, err := dateparse.ParseAny(byteconv.UnsafeString(zv.Bytes))
 		if err != nil {
 			sec, ferr := byteconv.ParseFloat64(zv.Bytes)
 			if ferr != nil {
