@@ -16,7 +16,9 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/pcap/pcapio"
+	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zqe"
 	"github.com/go-resty/resty/v2"
 )
@@ -446,6 +448,16 @@ func (c *Connection) LogPost(ctx context.Context, space api.SpaceID, opts *LogPo
 		return api.LogPostResponse{}, err
 	}
 	return c.LogPostWriter(ctx, space, opts, w)
+}
+
+func (c *Connection) PostRecords(ctx context.Context, space api.SpaceID, opts *LogPostOpts, zreaders ...zbuf.Reader) (api.LogPostResponse, error) {
+	readers := make([]io.Reader, len(zreaders))
+	for i, z := range zreaders {
+		r := zngio.IOReader(z, zngio.WriterOpts{})
+		readers[i] = r
+		defer r.Close()
+	}
+	return c.LogPostReaders(ctx, space, opts, readers...)
 }
 
 func (c *Connection) LogPostReaders(ctx context.Context, space api.SpaceID, opts *LogPostOpts, readers ...io.Reader) (api.LogPostResponse, error) {
