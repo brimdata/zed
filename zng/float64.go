@@ -58,5 +58,5 @@ func (t *TypeOfFloat64) ZSONOf(zv zcode.Bytes) string {
 	if d == float64(int64(d)) {
 		return fmt.Sprintf("%d.", int64(d))
 	}
-	return strconv.FormatFloat(d, 'e', -1, 64)
+	return strconv.FormatFloat(d, 'g', -1, 64)
 }

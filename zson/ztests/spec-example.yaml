@@ -30,6 +30,6 @@ outputs:
       {info:"Connection Example 2",src:{addr:10.1.1.8,port:80},dst:{addr:10.1.2.88,port:19801}} (conn)
       {info:"Access List Example",nets:[10.1.1.0/24,10.1.2.0/24]} (=access_list)
       {metric:"A",ts:2020-11-24T16:44:09.586441Z,value:120}
-      {metric:"B",ts:2020-11-24T16:44:20.726057Z,value:8.6e-01}
+      {metric:"B",ts:2020-11-24T16:44:20.726057Z,value:0.86}
       {metric:"A",ts:2020-11-24T16:44:32.201458Z,value:126}
       {metric:"C",ts:2020-11-24T16:44:43.547506Z,value:{x:10,y:101}}
