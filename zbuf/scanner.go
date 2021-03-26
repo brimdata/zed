@@ -131,17 +131,17 @@ func (s *scanner) Read() (*zng.Record, error) {
 		if err != nil || rec == nil {
 			return nil, err
 		}
-		atomic.AddInt64(&s.stats.BytesRead, int64(len(rec.Raw)))
+		atomic.AddInt64(&s.stats.BytesRead, int64(len(rec.Bytes)))
 		atomic.AddInt64(&s.stats.RecordsRead, 1)
 		if s.span != nano.MaxSpan && !s.span.Contains(rec.Ts()) ||
 			s.filter != nil && !s.filter(rec) {
 			continue
 		}
-		atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Raw)))
+		atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Bytes)))
 		atomic.AddInt64(&s.stats.RecordsMatched, 1)
 		// Copy the underlying buffer (if volatile) because next call to
 		// reader.Next() may overwrite said buffer.
-		rec.CopyBody()
+		rec.CopyBytes()
 		return rec, nil
 	}
 }

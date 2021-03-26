@@ -33,88 +33,45 @@ type RecordTypeError struct {
 func (r *RecordTypeError) Error() string { return r.Name + " (" + r.Type + "): " + r.Err.Error() }
 func (r *RecordTypeError) Unwrap() error { return r.Err }
 
-// XXX A Record wraps a zng.Record and can simultaneously represent its raw
-// serialized zng form or its parsed zng.Record form.  This duality lets us
-// parse raw logs and perform fast-path operations directly on the zng data
-// without having to parse the entire record.  Thus, the same code that performs
-// operations on zeek data can work with either serialized data or native
-// zng.Records by accessing data via the Record methods.
+// A Record wraps a zng.Value and provides helper methods for accessing
+// and iterating over the record's fields.
 type Record struct {
-	Type        *TypeRecord
-	Alias       Type
+	Value
 	nonvolatile bool
-	// Raw is the serialization format for records.  A raw value comprises a
-	// sequence of zvals, one per descriptor column.  The descriptor is stored
-	// outside of the raw serialization but is needed to interpret the raw values.
-	Raw     zcode.Bytes
-	ts      nano.Ts
-	tsValid bool
+	ts          nano.Ts
+	tsValid     bool
 }
 
-func NewRecord(typ *TypeRecord, raw zcode.Bytes) *Record {
+func NewRecord(typ Type, bytes zcode.Bytes) *Record {
 	return &Record{
-		Type:        typ,
-		Alias:       typ,
+		Value:       Value{typ, bytes},
 		nonvolatile: true,
-		Raw:         raw,
 	}
 }
 
-func NewRecordFromType(typ Type, raw zcode.Bytes) *Record {
-	return &Record{
-		Type:        AliasOf(typ).(*TypeRecord),
-		Alias:       typ,
-		nonvolatile: true,
-		Raw:         raw,
-	}
-}
-
-func NewRecordCheck(typ *TypeRecord, raw zcode.Bytes) (*Record, error) {
-	r := NewRecord(typ, raw)
+func NewRecordCheck(typ Type, bytes zcode.Bytes) (*Record, error) {
+	r := NewRecord(typ, bytes)
 	if err := r.TypeCheck(); err != nil {
 		return nil, err
 	}
 	return r, nil
 }
 
-func NewRecordCheckFromType(typ Type, raw zcode.Bytes) (*Record, error) {
-	r := &Record{
-		Type:        AliasOf(typ).(*TypeRecord),
-		Alias:       typ,
-		nonvolatile: true,
-		Raw:         raw,
-	}
-	if err := r.TypeCheck(); err != nil {
-		return nil, err
-	}
-	return r, nil
-}
-
-// NewVolatileRecord creates a record from a raw value and marks
+// NewVolatileRecord creates a record from a zcode.Bytes and marks
 // it volatile so that Keep() must be called to make it safe.
-// This is useful for readers that allocate records whose raw body points
+// This is useful for readers that allocate records whose Bytes field points
 // into a reusable buffer allowing the scanner to filter these records
-// without having their body copied to safe memory, i.e., when the scanner
+// without having the Bytes buffer copied to safe memory, i.e., when the scanner
 // matches a record, it will call Keep() to make a safe copy.
-func NewVolatileRecord(typ *TypeRecord, raw zcode.Bytes) *Record {
+func NewVolatileRecord(typ Type, bytes zcode.Bytes) *Record {
 	return &Record{
-		Type:  typ,
-		Alias: typ,
-		Raw:   raw,
-	}
-}
-
-func NewVolatileRecordFromType(typ Type, raw zcode.Bytes) *Record {
-	return &Record{
-		Type:  AliasOf(typ).(*TypeRecord),
-		Alias: typ,
-		Raw:   raw,
+		Value: Value{typ, bytes},
 	}
 }
 
 // ZvalIter returns a zcode.Iter iterator over the receiver's values.
 func (r *Record) ZvalIter() zcode.Iter {
-	return r.Raw.Iter()
+	return r.Bytes.Iter()
 }
 
 // FieldIter returns a fieldIter iterator over the receiver's values.
@@ -122,7 +79,7 @@ func (r *Record) FieldIter() fieldIter {
 	return fieldIter{
 		stack: []iterInfo{iterInfo{
 			iter: r.ZvalIter(),
-			typ:  r.Type,
+			typ:  TypeRecordOf(r.Type),
 		}},
 	}
 }
@@ -131,47 +88,38 @@ func (r *Record) Keep() *Record {
 	if r.nonvolatile {
 		return r
 	}
-	raw := make(zcode.Bytes, len(r.Raw))
-	copy(raw, r.Raw)
+	bytes := make(zcode.Bytes, len(r.Bytes))
+	copy(bytes, r.Bytes)
 	return &Record{
-		Type:        r.Type,
-		Alias:       r.Alias,
+		Value:       Value{r.Type, bytes},
 		nonvolatile: true,
-		Raw:         raw,
 		ts:          r.ts,
 		tsValid:     r.tsValid,
 	}
 }
 
-func (r *Record) CopyBody() {
+func (r *Record) CopyBytes() {
 	if r.nonvolatile {
 		return
 	}
-	body := make(zcode.Bytes, len(r.Raw))
-	copy(body, r.Raw)
-	r.Raw = body
+	bytes := make(zcode.Bytes, len(r.Bytes))
+	copy(bytes, r.Bytes)
+	r.Bytes = bytes
 	r.nonvolatile = true
 }
 
 func (r *Record) HasField(field string) bool {
-	return r.Type.HasField(field)
-}
-
-func (r *Record) Bytes() []byte {
-	if r.Raw == nil {
-		panic("this shouldn't happen")
-	}
-	return r.Raw
+	return TypeRecordOf(r.Type).HasField(field)
 }
 
 // Walk traverses a record in depth-first order, calling a
 // RecordVisitor on the way.
 func (r *Record) Walk(rv Visitor) error {
-	return walkRecord(r.Type, r.Raw, rv)
+	return walkRecord(TypeRecordOf(r.Type), r.Bytes, rv)
 }
 
-// TypeCheck checks that the value coding in Raw is structurally consistent
-// with this value's descriptor.  It does not check that the actual leaf
+// TypeCheck checks that the Bytes field is structurally consistent
+// with this value's Type.  It does not check that the actual leaf
 // values when parsed are type compatible with the leaf types.
 func (r *Record) TypeCheck() error {
 	return r.Walk(func(typ Type, body zcode.Bytes) error {
@@ -236,7 +184,7 @@ func checkEnum(typ *TypeEnum, body zcode.Bytes) error {
 // result is nil without error, then that columnn is unset in this record value.
 func (r *Record) Slice(column int) (zcode.Bytes, error) {
 	var zv zcode.Bytes
-	for i, it := 0, r.Raw.Iter(); i <= column; i++ {
+	for i, it := 0, r.Bytes.Iter(); i <= column; i++ {
 		if it.Done() {
 			return nil, ErrMissing
 		}
@@ -249,14 +197,18 @@ func (r *Record) Slice(column int) (zcode.Bytes, error) {
 	return zv, nil
 }
 
+func (r *Record) Columns() []Column {
+	return TypeRecordOf(r.Type).Columns
+}
+
 // Value returns the indicated column as a Value.  If the column doesn't
 // exist or another error occurs, the nil Value is returned.
-func (r *Record) Value(col int) Value {
+func (r *Record) ValueByColumn(col int) Value {
 	zv, err := r.Slice(col)
 	if err != nil {
 		return Value{}
 	}
-	return Value{r.Type.Columns[col].Type, zv}
+	return Value{r.Columns()[col].Type, zv}
 }
 
 func (r *Record) ValueByField(field string) (Value, error) {
@@ -264,15 +216,15 @@ func (r *Record) ValueByField(field string) (Value, error) {
 	if !ok {
 		return Value{}, ErrMissing
 	}
-	return r.Value(col), nil
+	return r.ValueByColumn(col), nil
 }
 
 func (r *Record) ColumnOfField(field string) (int, bool) {
-	return r.Type.ColumnOfField(field)
+	return TypeRecordOf(r.Type).ColumnOfField(field)
 }
 
 func (r *Record) TypeOfColumn(col int) Type {
-	return r.Type.Columns[col].Type
+	return TypeRecordOf(r.Type).Columns[col].Type
 }
 
 func (r *Record) Access(field string) (Value, error) {
@@ -280,7 +232,7 @@ func (r *Record) Access(field string) (Value, error) {
 	if !ok {
 		return Value{}, ErrMissing
 	}
-	return r.Value(col), nil
+	return r.ValueByColumn(col), nil
 }
 
 func (r *Record) AccessString(field string) (string, error) {
@@ -372,10 +324,10 @@ func (r *Record) Ts() nano.Ts {
 }
 
 func (r *Record) String() string {
-	return Value{r.Type, r.Raw}.String()
+	return r.Value.String()
 }
 
 // MarshalJSON implements json.Marshaler.
 func (r *Record) MarshalJSON() ([]byte, error) {
-	return Value{r.Alias, r.Raw}.MarshalJSON()
+	return r.Value.MarshalJSON()
 }

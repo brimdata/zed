@@ -70,9 +70,9 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 			// XXX we don't use rec.CopyBody() here because it will
 			// mark the record volatile but that zng.Record is in
 			// the buffer and will get incorrectly reused.
-			b := make([]byte, len(rec.Raw))
-			copy(b, rec.Raw)
-			rec.Raw = b
+			b := make([]byte, len(rec.Bytes))
+			copy(b, rec.Bytes)
+			rec.Bytes = b
 			batch := newBatch(nil)
 			batch.add(rec)
 			return batch, nil
@@ -124,13 +124,13 @@ func (s *zngScanner) scanBatch() (zbuf.Batch, error) {
 }
 
 func (s *zngScanner) scanOne(rec *zng.Record) (*zng.Record, error) {
-	atomic.AddInt64(&s.stats.BytesRead, int64(len(rec.Raw)))
+	atomic.AddInt64(&s.stats.BytesRead, int64(len(rec.Bytes)))
 	atomic.AddInt64(&s.stats.RecordsRead, 1)
 	if s.span != nano.MaxSpan && !s.span.Contains(rec.Ts()) ||
 		s.filter != nil && !s.filter(rec) {
 		return nil, nil
 	}
-	atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Raw)))
+	atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Bytes)))
 	atomic.AddInt64(&s.stats.RecordsMatched, 1)
 	return rec, nil
 }

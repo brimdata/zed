@@ -385,3 +385,10 @@ func ReferencedID(typ Type) int {
 	}
 	return typ.ID()
 }
+
+func TypeID(typ Type) int {
+	if alias, ok := typ.(*TypeAlias); ok {
+		return alias.id
+	}
+	return typ.ID()
+}

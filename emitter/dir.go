@@ -29,7 +29,7 @@ type Dir struct {
 	ext     string
 	stderr  io.Writer // XXX use warnings channel
 	opts    zio.WriterOpts
-	writers map[*zng.TypeRecord]zbuf.WriteCloser
+	writers map[zng.Type]zbuf.WriteCloser
 	paths   map[string]zbuf.WriteCloser
 	source  iosrc.Source
 }
@@ -61,7 +61,7 @@ func NewDirWithSource(ctx context.Context, dir iosrc.URI, prefix string, stderr 
 		ext:     e,
 		stderr:  stderr,
 		opts:    opts,
-		writers: make(map[*zng.TypeRecord]zbuf.WriteCloser),
+		writers: make(map[zng.Type]zbuf.WriteCloser),
 		paths:   make(map[string]zbuf.WriteCloser),
 		source:  source,
 	}, nil

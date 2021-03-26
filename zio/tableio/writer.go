@@ -61,8 +61,9 @@ func (w *Writer) Write(r *zng.Record) error {
 			w.nline = 0
 		}
 		// First time, or new descriptor, print header
-		w.writeHeader(r.Type)
-		w.typ = r.Type
+		typ := zng.TypeRecordOf(r.Type)
+		w.writeHeader(typ)
+		w.typ = typ
 	}
 	if w.nline >= w.limit {
 		w.flush()
@@ -70,9 +71,9 @@ func (w *Writer) Write(r *zng.Record) error {
 		w.nline = 0
 	}
 	var out []string
-	for k, col := range r.Type.Columns {
+	for k, col := range r.Columns() {
 		var v string
-		value := r.Value(k)
+		value := r.ValueByColumn(k)
 		if !w.epochDates && col.Type == zng.TypeTime {
 			if !value.IsUnsetOrNil() {
 				ts, err := zng.DecodeTime(value.Bytes)

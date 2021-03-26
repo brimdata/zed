@@ -52,7 +52,7 @@ func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFil
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
 				assert.Equal(t, c.expected, f(rec),
-					"filter: %q\nrecord:\n%s", c.filter, hex.Dump(rec.Raw))
+					"filter: %q\nrecord:\n%s", c.filter, hex.Dump(rec.Bytes))
 			}
 
 			bf, err := runtime.AsBufferFilter()
@@ -67,8 +67,8 @@ func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFil
 				// ZNG value message for rec, assembled here.
 				require.Less(t, rec.Type.ID(), 0x40)
 				buf := []byte{byte(rec.Type.ID())}
-				buf = zcode.AppendUvarint(buf, uint64(len(rec.Raw)))
-				buf = append(buf, rec.Raw...)
+				buf = zcode.AppendUvarint(buf, uint64(len(rec.Bytes)))
+				buf = append(buf, rec.Bytes...)
 				assert.Equal(t, expected, bf.Eval(zctx, buf),
 					"filter: %q\nbuffer:\n%s", c.filter, hex.Dump(buf))
 			}

@@ -50,7 +50,7 @@ func (f *Formatter) pop() {
 
 func (f *Formatter) FormatRecord(rec *zng.Record) (string, error) {
 	f.builder.Reset()
-	if err := f.formatValueAndDecorate(rec.Alias, rec.Raw); err != nil {
+	if err := f.formatValueAndDecorate(rec.Type, rec.Bytes); err != nil {
 		return "", err
 	}
 	return f.builder.String(), nil

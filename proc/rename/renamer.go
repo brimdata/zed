@@ -67,14 +67,14 @@ func (r *Function) computeType(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
 func (r *Function) Apply(in *zng.Record) (*zng.Record, error) {
 	id := in.Type.ID()
 	if _, ok := r.typeMap[id]; !ok {
-		typ, err := r.computeType(in.Type)
+		typ, err := r.computeType(zng.TypeRecordOf(in.Type))
 		if err != nil {
 			return nil, fmt.Errorf("rename: %w", err)
 		}
 		r.typeMap[id] = typ
 	}
 	out := in.Keep()
-	return zng.NewRecord(r.typeMap[id], out.Raw), nil
+	return zng.NewRecord(r.typeMap[id], out.Bytes), nil
 }
 
 func (r *Function) Warning() string { return "" }

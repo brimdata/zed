@@ -28,7 +28,7 @@ func NewAssembler(a *Assembly, seeker Seeker) (*Assembler, error) {
 	assembler.columns = make([]*column.Record, len(a.schemas))
 	for k := 0; k < len(a.schemas); k++ {
 		rec := a.columns[k]
-		zv := zng.Value{rec.Type, rec.Raw}
+		zv := rec.Value
 		record_col := &column.Record{}
 		if err := record_col.UnmarshalZNG(a.schemas[k], zv, seeker); err != nil {
 			return nil, err

@@ -25,15 +25,14 @@ func (m *Mapper) Read() (*zng.Record, error) {
 	if rec == nil {
 		return nil, nil
 	}
-	id := rec.Type.ID()
+	id := zng.TypeID(rec.Type)
 	sharedType := m.mapper.Map(id)
 	if sharedType == nil {
-		sharedType, err = m.mapper.Enter(id, rec.Alias)
+		sharedType, err = m.mapper.Enter(id, rec.Type)
 		if err != nil {
 			return nil, err
 		}
 	}
-	rec.Alias = sharedType
-	rec.Type = zng.AliasOf(sharedType).(*zng.TypeRecord)
+	rec.Type = sharedType
 	return rec, nil
 }

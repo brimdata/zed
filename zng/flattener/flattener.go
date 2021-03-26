@@ -71,7 +71,7 @@ func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 	id := r.Type.ID()
 	flatType := f.mapper.Map(id)
 	if flatType == nil {
-		cols := FlattenColumns(r.Type.Columns)
+		cols := FlattenColumns(r.Columns())
 		var err error
 		flatType, err = f.zctx.LookupTypeRecord(cols)
 		if err != nil {
@@ -85,7 +85,7 @@ func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 	if r.Type == flatType {
 		return r, nil
 	}
-	zv, err := recode(nil, r.Type, r.Raw)
+	zv, err := recode(nil, zng.TypeRecordOf(r.Type), r.Bytes)
 	if err != nil {
 		return nil, err
 	}

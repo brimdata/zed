@@ -64,7 +64,7 @@ func (u *Unflattener) lookupBuilderAndType(in *zng.TypeRecord) (*builder.ColumnB
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
 func (u *Unflattener) Apply(in *zng.Record) (*zng.Record, error) {
-	b, typ, err := u.lookupBuilderAndType(in.Type)
+	b, typ, err := u.lookupBuilderAndType(zng.TypeRecordOf(in.Type))
 	if err != nil {
 		return nil, err
 	}
@@ -72,7 +72,7 @@ func (u *Unflattener) Apply(in *zng.Record) (*zng.Record, error) {
 		return in, nil
 	}
 	b.Reset()
-	for iter := in.Raw.Iter(); !iter.Done(); {
+	for iter := in.Bytes.Iter(); !iter.Done(); {
 		zv, con, err := iter.Next()
 		if err != nil {
 			return nil, err
@@ -83,7 +83,7 @@ func (u *Unflattener) Apply(in *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecordFromType(typ, zbytes), nil
+	return zng.NewRecord(typ, zbytes), nil
 }
 
 func (c *Unflattener) Eval(rec *zng.Record) (zng.Value, error) {
@@ -94,5 +94,5 @@ func (c *Unflattener) Eval(rec *zng.Record) (zng.Value, error) {
 	if out == nil {
 		return zng.Value{}, zng.ErrMissing
 	}
-	return zng.Value{out.Type, out.Raw}, nil
+	return out.Value, nil
 }

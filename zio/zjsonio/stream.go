@@ -28,7 +28,7 @@ func (s *Stream) Transform(r *zng.Record) (*Record, error) {
 		aliases = s.encodeAliases(r.Type)
 		typ = encodeTypeObj(r.Type)
 	}
-	v, err := encodeAny(r.Type, r.Raw)
+	v, err := encodeAny(r.Type, r.Bytes)
 	if err != nil {
 		return nil, err
 	}

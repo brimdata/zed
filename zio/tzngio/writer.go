@@ -47,7 +47,7 @@ func (w *Writer) Write(r *zng.Record) error {
 		if err := w.writeAliases(r.Type); err != nil {
 			return err
 		}
-		typ := r.Alias
+		typ := r.Type
 		var op string
 		if alias, ok := typ.(*zng.TypeAlias); ok {
 			name = alias.Name
@@ -71,7 +71,7 @@ func (w *Writer) Write(r *zng.Record) error {
 	// zng type.  We should just call StringOf on r.Type here and get rid of
 	// all these write* methods and make sure there is consistency between this
 	// logic and the logic in the StringOfs.  See issue #1417.
-	if err := w.writeContainer(zng.Value{Type: r.Type, Bytes: r.Raw}); err != nil {
+	if err := w.writeContainer(r.Value); err != nil {
 		return err
 	}
 	return w.write("\n")

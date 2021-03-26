@@ -16,11 +16,11 @@ import (
 )
 
 func TestRecordTypeCheck(t *testing.T) {
-	r := zng.Record{
-		Type: zng.NewTypeRecord(0, []zng.Column{
+	r := zng.NewRecord(
+		zng.NewTypeRecord(0, []zng.Column{
 			zng.NewColumn("f", zng.NewTypeSet(0, zng.TypeString)),
 		}),
-	}
+		nil)
 	t.Run("set/error/duplicate-element", func(t *testing.T) {
 		var b zcode.Builder
 		b.BeginContainer()
@@ -28,7 +28,7 @@ func TestRecordTypeCheck(t *testing.T) {
 		b.AppendPrimitive([]byte("dup"))
 		// Don't normalize.
 		b.EndContainer()
-		r.Raw = b.Bytes()
+		r.Bytes = b.Bytes()
 		assert.EqualError(t, r.TypeCheck(), "<set element> (set[string]): duplicate element")
 	})
 	t.Run("set/error/unsorted-elements", func(t *testing.T) {
@@ -39,7 +39,7 @@ func TestRecordTypeCheck(t *testing.T) {
 		b.AppendPrimitive([]byte("b"))
 		// Don't normalize.
 		b.EndContainer()
-		r.Raw = b.Bytes()
+		r.Bytes = b.Bytes()
 		assert.EqualError(t, r.TypeCheck(), "<set element> (set[string]): elements not sorted")
 	})
 	t.Run("set/primitive-elements", func(t *testing.T) {
@@ -51,7 +51,7 @@ func TestRecordTypeCheck(t *testing.T) {
 		b.AppendPrimitive([]byte("a"))
 		b.TransformContainer(zng.NormalizeSet)
 		b.EndContainer()
-		r.Raw = b.Bytes()
+		r.Bytes = b.Bytes()
 		assert.NoError(t, r.TypeCheck())
 	})
 	t.Run("set/complex-elements", func(t *testing.T) {
@@ -64,14 +64,13 @@ func TestRecordTypeCheck(t *testing.T) {
 		}
 		b.TransformContainer(zng.NormalizeSet)
 		b.EndContainer()
-		r := zng.Record{
-			Type: zng.NewTypeRecord(0, []zng.Column{
+		r := zng.NewRecord(
+			zng.NewTypeRecord(0, []zng.Column{
 				zng.NewColumn("f", zng.NewTypeSet(0, zng.NewTypeRecord(0, []zng.Column{
 					zng.NewColumn("g", zng.TypeString),
 				}))),
 			}),
-			Raw: b.Bytes(),
-		}
+			b.Bytes())
 		assert.NoError(t, r.TypeCheck())
 	})
 

@@ -44,7 +44,7 @@ func readBatch(zr Reader, n int) (Batch, error) {
 		}
 		// Copy the underlying buffer (if volatile) because call to next
 		// reader.Next() may overwrite said buffer.
-		rec.CopyBody()
+		rec.CopyBytes()
 		recs = append(recs, rec)
 	}
 	if len(recs) == 0 {

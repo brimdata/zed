@@ -85,8 +85,8 @@ func (i *integer) check(zv zng.Value) {
 }
 
 func (a *anchor) updateInts(rec *zng.Record) error {
-	it := rec.Raw.Iter()
-	for k, c := range rec.Type.Columns {
+	it := rec.Bytes.Iter()
+	for k, c := range rec.Columns() {
 		bytes, _, err := it.Next()
 		if err != nil {
 			return err
@@ -177,17 +177,18 @@ func (s *Shaper) update(rec *zng.Record) {
 		a.updateInts(rec)
 		return
 	}
-	a := s.lookupAnchor(rec.Type.Columns)
+	columns := rec.Columns()
+	a := s.lookupAnchor(columns)
 	if a == nil {
-		a = s.newAnchor(rec.Type.Columns)
+		a = s.newAnchor(columns)
 	} else {
-		a.mixIn(rec.Type.Columns)
+		a.mixIn(columns)
 	}
 	a.updateInts(rec)
 	s.typeAnchor[rec.Type] = a
 }
 
-func (s *Shaper) needRecode(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
+func (s *Shaper) needRecode(typ zng.Type) (*zng.TypeRecord, error) {
 	target, ok := s.recode[typ]
 	if !ok {
 		a := s.typeAnchor[typ]
@@ -204,7 +205,7 @@ func (s *Shaper) needRecode(typ *zng.TypeRecord) (*zng.TypeRecord, error) {
 	return target, nil
 }
 
-func (s *Shaper) lookupType(in *zng.TypeRecord) (*zng.TypeRecord, error) {
+func (s *Shaper) lookupType(in zng.Type) (*zng.TypeRecord, error) {
 	a, ok := s.typeAnchor[in]
 	if !ok {
 		return nil, errors.New("Shaper: unencountered type (this is a bug)")
@@ -234,7 +235,7 @@ func (s *Shaper) Write(rec *zng.Record) error {
 }
 
 func (s *Shaper) stash(rec *zng.Record) error {
-	s.nbytes += len(rec.Raw)
+	s.nbytes += len(rec.Bytes)
 	if s.nbytes >= s.memMaxBytes {
 		var err error
 		s.spiller, err = spill.NewTempFile()
@@ -263,7 +264,7 @@ func (s *Shaper) Read() (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	bytes := rec.Raw
+	bytes := rec.Bytes
 	targetType, err := s.needRecode(rec.Type)
 	if err != nil {
 		return nil, err
@@ -274,7 +275,7 @@ func (s *Shaper) Read() (*zng.Record, error) {
 		}
 		typ = targetType
 	}
-	return zng.NewRecordFromType(typ, bytes), nil
+	return zng.NewRecord(typ, bytes), nil
 }
 
 func recode(from, to []zng.Column, bytes zcode.Bytes) (zcode.Bytes, error) {

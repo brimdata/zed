@@ -498,9 +498,9 @@ func (r *Reader) parseValue(rec *zng.Record, id int, b []byte) (*zng.Record, err
 		}
 	}
 	if rec == nil {
-		rec = zng.NewVolatileRecordFromType(sharedType, b)
+		rec = zng.NewVolatileRecord(sharedType, b)
 	} else {
-		*rec = *zng.NewVolatileRecordFromType(sharedType, b)
+		*rec = *zng.NewVolatileRecord(sharedType, b)
 	}
 	if r.validate {
 		if err := rec.TypeCheck(); err != nil {

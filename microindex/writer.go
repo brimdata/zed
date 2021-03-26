@@ -159,7 +159,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 		if err != nil {
 			return err
 		}
-		w.keyType = keys.Type
+		w.keyType = zng.TypeRecordOf(keys.Type)
 		w.childField = uniqChildField(w.zctx, keys)
 	}
 	return w.writer.write(rec)

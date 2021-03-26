@@ -243,13 +243,13 @@ func (p *Proc) splice(left, right *zng.Record) (*zng.Record, error) {
 		// stream.
 		return left, nil
 	}
-	typ, err := p.combinedType(left.Type, right.Type)
+	typ, err := p.combinedType(zng.TypeRecordOf(left.Type), zng.TypeRecordOf(right.Type))
 	if err != nil {
 		return nil, err
 	}
-	n := len(left.Raw)
-	bytes := make([]byte, n+len(right.Raw))
-	copy(bytes, left.Raw)
-	copy(bytes[n:], right.Raw)
+	n := len(left.Bytes)
+	bytes := make([]byte, n+len(right.Bytes))
+	copy(bytes, left.Bytes)
+	copy(bytes[n:], right.Bytes)
 	return zng.NewRecord(typ, bytes), nil
 }

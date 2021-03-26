@@ -65,9 +65,9 @@ func (w *Writer) Write(rec *zng.Record) error {
 		return err
 	}
 	if w.first == nil {
-		w.first = rec.Type
+		w.first = zng.TypeRecordOf(rec.Type)
 		var hdr []string
-		for _, col := range rec.Type.Columns {
+		for _, col := range rec.Columns() {
 			hdr = append(hdr, col.Name)
 		}
 		if err := w.encoder.Write(hdr); err != nil {
@@ -77,9 +77,10 @@ func (w *Writer) Write(rec *zng.Record) error {
 		return ErrNotDataFrame
 	}
 	var out []string
-	for k, col := range rec.Type.Columns {
+	for k, col := range rec.Columns() {
 		var v string
-		value := rec.Value(k)
+		// O(n^2)
+		value := rec.ValueByColumn(k)
 		if !value.IsUnsetOrNil() {
 			switch col.Type.ID() {
 			case zng.IdTime:
