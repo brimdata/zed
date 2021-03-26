@@ -21,7 +21,7 @@ type Fuser struct {
 	spiller *spill.File
 	types   map[zng.Type]int
 
-	shaper   *expr.Shaper
+	shaper   *expr.ConstShaper
 	renamers map[int]*rename.Function
 }
 
@@ -97,10 +97,7 @@ func (f *Fuser) finish() error {
 		}
 	}
 
-	f.shaper, err = expr.NewShaper(f.zctx, &expr.RootRecord{}, uber.Type, expr.Fill|expr.Order)
-	if err != nil {
-		return err
-	}
+	f.shaper = expr.NewConstShaper(f.zctx.Context, &expr.RootRecord{}, uber.Type, expr.Fill|expr.Order)
 	for typ, renames := range uber.Renames {
 		f.renamers[typ] = rename.NewFunction(f.zctx, renames.Srcs, renames.Dsts)
 	}

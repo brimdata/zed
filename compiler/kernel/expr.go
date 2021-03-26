@@ -392,11 +392,14 @@ func compileShaper(zctx *resolver.Context, scope *Scope, node ast.Call) (*expr.S
 	if err != nil {
 		return nil, err
 	}
-	ev, err := compileExpr(zctx, scope, args[1])
+	typExpr, err := compileExpr(zctx, scope, args[1])
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewShaperFromTypeExpr(zctx, field, ev, shaperOps(node.Name))
+	// XXX When we do constant folding, we should detect when typeExpr is
+	// a constant and allocate a ConstShaper instead of a (dynamic) Shaper.
+	// See issue #2425.
+	return expr.NewShaper(zctx.Context, field, typExpr, shaperOps(node.Name)), nil
 }
 
 func compileCall(zctx *resolver.Context, scope *Scope, call ast.Call) (expr.Evaluator, error) {
