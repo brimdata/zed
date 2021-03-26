@@ -220,7 +220,6 @@ func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) {
 // A shaper is a per-input type ID "spec" that contains the output
 // type and the op to create an output record.
 type shaper struct {
-	zctx *zson.Context
 	typ  zng.Type
 	step step
 }
@@ -274,13 +273,13 @@ func (s *Shaper) Eval(rec *zng.Record) (zng.Value, error) {
 	if typVal.Type != zng.TypeType {
 		return zng.NewErrorf("shaper function type argument is not a type"), nil
 	}
-	shapeTo := s.zctx.FromTypeValue(typVal)
-	if shapeTo == nil {
-		return zng.NewErrorf("shaper encountered unknown type value: %q", string(typVal.Bytes)), nil
+	shapeTo, err := s.zctx.FromTypeBytes(typVal.Bytes)
+	if err != nil {
+		return zng.NewErrorf("shaper encountered unknown type value: %s", err), nil
 	}
 	shaper, ok := s.shapers[shapeTo]
 	if !ok {
-		if _, ok := zng.AliasOf(shapeTo).(*zng.TypeRecord); !ok {
+		if zng.TypeRecordOf(shapeTo) == nil {
 			return zng.NewErrorf("shaper function type argument is not a record type: %q", shapeTo.ZSON()), nil
 		}
 		shaper = NewConstShaper(s.zctx, s.expr, shapeTo, s.transforms)
@@ -315,8 +314,8 @@ func (c *ConstShaper) Eval(in *zng.Record) (zng.Value, error) {
 		}
 		c.shapers[id] = s
 	}
-	if s.typ.ID() == in.Type.ID() {
-		return inVal, nil
+	if s.typ.ID() == id {
+		return zng.Value{s.typ, inVal.Bytes}, nil
 	}
 	c.b.Reset()
 	s.step.buildRecord(inVal.Bytes, &c.b)
@@ -361,7 +360,7 @@ func createShaper(zctx *zson.Context, transforms ShaperTransform, shapeTo zng.Ty
 	} else {
 		final = typ
 	}
-	return &shaper{zctx, final, step}, err
+	return &shaper{final, step}, err
 }
 
 // cropRecordType applies a crop (as specified by the record type 'spec')
