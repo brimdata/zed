@@ -646,7 +646,7 @@ func lookupzq(path string) (string, error) {
 		if err == nil {
 			return zq, nil
 		}
-		if !errors.Is(err, exec.ErrNotFound) {
+		if !errors.Is(err, os.ErrNotExist) {
 			return "", err
 		}
 	}
