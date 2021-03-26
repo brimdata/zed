@@ -255,6 +255,7 @@ func (c *Context) LookupByName(zson string) (zng.Type, error) {
 	c.mu.Unlock()
 	typ, err := ParseType(c, zson)
 	if err != nil {
+		c.mu.Lock()
 		return nil, err
 	}
 	c.mu.Lock()
