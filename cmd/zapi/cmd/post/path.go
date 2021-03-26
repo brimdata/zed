@@ -116,6 +116,10 @@ loop:
 func abspaths(paths []string) ([]string, error) {
 	out := make([]string, len(paths))
 	for i, path := range paths {
+		if path == "-" {
+			out[i] = iosrc.Stdin
+			continue
+		}
 		uri, err := iosrc.ParseURI(path)
 		if err != nil {
 			return nil, err
