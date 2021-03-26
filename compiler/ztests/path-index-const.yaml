@@ -1,0 +1,7 @@
+zed: 'const x="y" ; put .[x]=to_lower(.[x])'
+
+input: |
+  {y:"Hello, World"}
+
+output: |
+  {y:"hello, world"}
