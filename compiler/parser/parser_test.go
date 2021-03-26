@@ -29,7 +29,7 @@ func searchForZqls() ([]string, error) {
 		if !info.IsDir() && strings.HasSuffix(path, ".yaml") && re.MatchString(path) {
 			zt, err := ztest.FromYAMLFile(path)
 			if err != nil {
-				return err
+				return fmt.Errorf("%s: %w", path, err)
 			}
 			z := zt.Zed
 			if z == "" || z == "*" {
