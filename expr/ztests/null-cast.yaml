@@ -1,4 +1,4 @@
-zql: cut s=null:string,a=null:ip
+zql: cut s=string(null),a=ip(null)
 
 input: |
   #0:record[x:string]

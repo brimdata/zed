@@ -1,0 +1,7 @@
+zql: type foo = {x:int64} ; put .=cast(., type(foo))
+
+input: |
+  {x:123}
+
+output: |
+  {x:123} (=foo)
