@@ -20,7 +20,7 @@ func NewBuilder(typ *TypeRecord) *Builder {
 	return &Builder{Type: typ}
 }
 
-// Build encodes the top-level zcode.Bytes values as the Raw field
+// Build encodes the top-level zcode.Bytes values as the Bytes field
 // of a record and sets that field and the Type field of the passed-in record.
 // XXX This currently only works for zvals that are properly formatted for
 // the top-level scan of the record, e.g., if a field is record[id:[record:[orig_h:ip]]

@@ -33,12 +33,8 @@ type RecordTypeError struct {
 func (r *RecordTypeError) Error() string { return r.Name + " (" + r.Type + "): " + r.Err.Error() }
 func (r *RecordTypeError) Unwrap() error { return r.Err }
 
-// XXX A Record wraps a zng.Record and can simultaneously represent its raw
-// serialized zng form or its parsed zng.Record form.  This duality lets us
-// parse raw logs and perform fast-path operations directly on the zng data
-// without having to parse the entire record.  Thus, the same code that performs
-// operations on zeek data can work with either serialized data or native
-// zng.Records by accessing data via the Record methods.
+// A Record wraps a zng.Value and provides helper methods for accessing
+// and iterating over the record's fields.
 type Record struct {
 	Value
 	nonvolatile bool
@@ -53,19 +49,19 @@ func NewRecord(typ Type, bytes zcode.Bytes) *Record {
 	}
 }
 
-func NewRecordCheck(typ Type, raw zcode.Bytes) (*Record, error) {
-	r := NewRecord(typ, raw)
+func NewRecordCheck(typ Type, bytes zcode.Bytes) (*Record, error) {
+	r := NewRecord(typ, bytes)
 	if err := r.TypeCheck(); err != nil {
 		return nil, err
 	}
 	return r, nil
 }
 
-// NewVolatileRecord creates a record from a raw value and marks
+// NewVolatileRecord creates a record from a zcode.Bytes and marks
 // it volatile so that Keep() must be called to make it safe.
-// This is useful for readers that allocate records whose raw body points
+// This is useful for readers that allocate records whose Bytes field points
 // into a reusable buffer allowing the scanner to filter these records
-// without having their body copied to safe memory, i.e., when the scanner
+// without having the Bytes buffer copied to safe memory, i.e., when the scanner
 // matches a record, it will call Keep() to make a safe copy.
 func NewVolatileRecord(typ Type, bytes zcode.Bytes) *Record {
 	return &Record{
@@ -122,8 +118,8 @@ func (r *Record) Walk(rv Visitor) error {
 	return walkRecord(TypeRecordOf(r.Type), r.Bytes, rv)
 }
 
-// TypeCheck checks that the value coding in Raw is structurally consistent
-// with this value's descriptor.  It does not check that the actual leaf
+// TypeCheck checks that the Bytes field is structurally consistent
+// with this value's Type.  It does not check that the actual leaf
 // values when parsed are type compatible with the leaf types.
 func (r *Record) TypeCheck() error {
 	return r.Walk(func(typ Type, body zcode.Bytes) error {
