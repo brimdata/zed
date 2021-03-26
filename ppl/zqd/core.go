@@ -34,9 +34,9 @@ const indexPage = `
   <title>ZQD daemon</title>
   <body style="padding:10px">
     <h2>ZQD</h2>
-    <p>A <a href="https://github.com/brimsec/zq/tree/master/cmd/zqd">zqd</a> daemon is listening on this host/port.</p>
+    <p>A <a href="https://github.com/brimsec/zq/tree/main/cmd/zqd">zqd</a> daemon is listening on this host/port.</p>
     <p>If you're a <a href="https://www.brimsecurity.com/">Brim</a> user, connect to this host/port from the <a href="https://github.com/brimsec/brim">Brim application</a> in the graphical desktop interface in your operating system (not a web browser).</p>
-    <p>If your goal is to perform command line operations against this zqd, use the <a href="https://github.com/brimsec/zq/tree/master/cmd/zapi">zapi</a> client.</p>
+    <p>If your goal is to perform command line operations against this zqd, use the <a href="https://github.com/brimsec/zq/tree/main/cmd/zapi">zapi</a> client.</p>
   </body>
 </html>`
 

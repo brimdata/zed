@@ -169,7 +169,7 @@ to store as which of these two ZSON data types. Therefore the ZSON
 
 One exception to this is Zeek's `_path` field. As it's a standard field that's
 known to be populated by Zeek's logging system (or populated by `zq` when reading some
-[Zeek JSON data](https://github.com/brimsec/zq/tree/master/zeek#type-definition-structure--importance-of-_path))
+[Zeek JSON data](https://github.com/brimsec/zq/tree/main/zeek#type-definition-structure--importance-of-_path))
 `zq` currently handles `_path` using ZSON's `string` type.
 
 If Zeek were to provide an option to generate logs directly in ZSON/ZNG format, this

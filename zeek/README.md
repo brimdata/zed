@@ -125,7 +125,7 @@ appeared in the TSV header:
 Therefore, an operation such as a CIDR match would not work as expected
 if the JSON event were read _without_ using `-j` to specify the data type
 definition. In the following ZQL pipeline, the
-[`cut` processor](https://github.com/brimsec/zq/tree/master/zql/docs/processors#cut)
+[`cut` processor](https://github.com/brimsec/zq/tree/main/zql/docs/processors#cut)
 emits a warning because no events were returned from the attempted CIDR
 match.
 
@@ -230,7 +230,7 @@ Next we'll walk through an example where we handle each of these exceptions.
 
 First we'll regenerate our Zeek JSON logs from the same subset of
 [wrccdc 2018 pcaps](https://archive.wrccdc.org/pcaps/2018/) described in
-the [zq-sample-data README](https://github.com/brimsec/zq-sample-data/blob/master/README.md),
+the [zq-sample-data README](https://github.com/brimsec/zq-sample-data/blob/main/README.md),
 but with a customized Zeek v3.1.2 that has the following additional packages
 installed:
 

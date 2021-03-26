@@ -17,7 +17,7 @@ indexing and searching log archives and running interesting graph queries.
 
 We'll use the [ZNG](../../../zng/docs/README.md)-format test data from here:
 ```
-https://github.com/brimsec/zq-sample-data/tree/master/zng
+https://github.com/brimsec/zq-sample-data/tree/main/zng
 ```
 You can copy just the zng data directory needed for this demo
 into your current directory using subversion:
