@@ -11,7 +11,6 @@ import (
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/proc/proctest"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -35,7 +34,7 @@ func TestCompileParents(t *testing.T) {
 	var sources []proc.Interface
 	for i := 0; i < 2; i++ {
 		r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
-		sources = append(sources, &proctest.RecordPuller{R: r})
+		sources = append(sources, proc.NopDone(zbuf.NewPuller(r, 10)))
 	}
 	t.Run("read two sources", func(t *testing.T) {
 		leaves, err := compiler.CompileZ("split (=>filter * =>filter *) | filter *", pctx, sources)
@@ -73,7 +72,7 @@ func TestCompileMergeDone(t *testing.T) {
 	zctx := resolver.NewContext()
 	pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 	r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
-	src := &proctest.RecordPuller{R: r}
+	src := proc.NopDone(zbuf.NewPuller(r, 10))
 	query, err := compiler.ParseProc("split(=>filter * =>head 1) | head 3")
 	require.NoError(t, err)
 

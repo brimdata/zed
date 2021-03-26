@@ -1,0 +1,14 @@
+zed: top 3 foo
+
+input: |
+  {foo:null (int64)}
+  {foo:1}
+  {foo:2}
+  {foo:3}
+  {foo:4}
+  {foo:5}
+
+output: |
+  {foo:5}
+  {foo:4}
+  {foo:3}

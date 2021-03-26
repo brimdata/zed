@@ -45,3 +45,13 @@ type Context struct {
 func EOS(batch zbuf.Batch, err error) bool {
 	return batch == nil || err != nil
 }
+
+type done struct {
+	zbuf.Puller
+}
+
+func (*done) Done() {}
+
+func NopDone(puller zbuf.Puller) *done {
+	return &done{puller}
+}

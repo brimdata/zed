@@ -1,0 +1,18 @@
+script: |
+  zq -z "cut rec.sub1,other,rec.sub2" in.zson
+  zq -z "cut rec1.rec2.sub1,other,rec1.sub2" in.zson
+  zq -z "cut rec1.rec2.sub1,other,rec1.rec2.sub2" in.zson
+  zq -z "cut t.rec.sub1,t.other,t.rec.sub2" in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      {}
+
+outputs:
+  - name: stderr
+    data: |
+      fields in record rec must be adjacent
+      fields in record rec1 must be adjacent
+      fields in record rec1 must be adjacent
+      fields in record t.rec must be adjacent
