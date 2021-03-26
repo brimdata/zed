@@ -1,4 +1,4 @@
-zql: is(type(foo))
+zed: is(type(foo))
 
 input: |
   {x:1}
