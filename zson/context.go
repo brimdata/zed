@@ -254,11 +254,10 @@ func (c *Context) LookupByName(zson string) (zng.Type, error) {
 	// each component of a nested type.
 	c.mu.Unlock()
 	typ, err := ParseType(c, zson)
+	c.mu.Lock()
 	if err != nil {
-		c.mu.Lock()
 		return nil, err
 	}
-	c.mu.Lock()
 	// ParseType will ensure the canonical zson is in the toType table,
 	// but the zson argument here may be any conforming zson type string.
 	// Since this string may appear repeatedly (e.g., type values
