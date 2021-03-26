@@ -1,4 +1,4 @@
-zql: 'cut .=a,x=b'
+zed: 'cut .=a,x=b'
 
 input: |
   #0:record[a:int32,b:int32]

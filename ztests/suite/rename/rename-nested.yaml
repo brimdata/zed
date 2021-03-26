@@ -1,4 +1,4 @@
-zql: rename id.dst=id.resp_h, id.src=id.orig_h, net=id
+zed: rename id.dst=id.resp_h, id.src=id.orig_h, net=id
 
 input: |
   #port=uint16

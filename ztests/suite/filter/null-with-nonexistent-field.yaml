@@ -1,4 +1,4 @@
-zql: not (t=null or t!=null)
+zed: not (t=null or t!=null)
 
 input: &input |
   #0:record[s:string]

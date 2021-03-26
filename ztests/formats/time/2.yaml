@@ -1,4 +1,4 @@
-zql: '*'
+zed: '*'
 
 input: |
   #0:record[_path:string,ts:time,ts2:time]

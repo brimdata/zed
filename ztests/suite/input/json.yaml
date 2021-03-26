@@ -1,4 +1,4 @@
-zql: '*'
+zed: '*'
 
 input: |
   { "string1": "value1", "string2": "value1", "int1": 4, "bool1": true }

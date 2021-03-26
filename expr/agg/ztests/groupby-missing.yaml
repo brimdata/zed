@@ -1,4 +1,4 @@
-zql: |
+zed: |
   by a=a[0], b=b.c
 
 input: |

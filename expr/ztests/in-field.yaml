@@ -1,4 +1,4 @@
-zql: 2 in a
+zed: 2 in a
 
 input: |
   #0:record[a:array[uint32]]

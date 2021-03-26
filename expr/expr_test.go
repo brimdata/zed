@@ -27,7 +27,7 @@ func testSuccessful(t *testing.T, e string, record string, expect zng.Value) {
 	val, err := formatter.Format(zng.Value{rec.Type, rec.Raw})
 	require.NoError(t, err)
 	zt := &ztest.ZTest{
-		ZQL:    fmt.Sprintf("cut result = %s", e),
+		Zed:    fmt.Sprintf("cut result = %s", e),
 		Input:  record,
 		Output: val + "\n",
 	}
@@ -44,7 +44,7 @@ func testError(t *testing.T, e string, record string, expectErr error, descripti
 		record = "{}"
 	}
 	zt := &ztest.ZTest{
-		ZQL:     fmt.Sprintf("cut result = %s", e),
+		Zed:     fmt.Sprintf("cut result = %s", e),
 		Input:   record,
 		Output:  "",
 		ErrorRE: expectErr.Error(),

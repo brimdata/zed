@@ -1,4 +1,4 @@
-zql: sort -r -nulls last s
+zed: sort -r -nulls last s
 
 input: |
   #0:record[s:string]

@@ -1,4 +1,4 @@
-zql: const t = a ; put x=t
+zed: const t = a ; put x=t
 
 input: |
   {a:1}

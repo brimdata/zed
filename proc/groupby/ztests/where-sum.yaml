@@ -1,4 +1,4 @@
-zql: "lg=sum(x) where x>=5, sm=sum(x) where x<8"
+zed: "lg=sum(x) where x>=5, sm=sum(x) where x<8"
 
 input: |
   {x:1 (int32)} (=0)

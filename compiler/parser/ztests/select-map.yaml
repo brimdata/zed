@@ -1,4 +1,4 @@
-zql: cut out=collect(select(.).map($*a))
+zed: cut out=collect(select(.).map($*a))
 
 input: |
   {a:1 (int32),b:2 (int32),c:3 (int32)} (=0)

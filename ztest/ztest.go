@@ -2,17 +2,17 @@
 // with the compiled-ini zq code base, (2) run as a sub-process using the zq
 // executable build artifact, or (3) run as a bash script running a sequence
 // of arbitrary shell commands invoking any of the build artifacts.  The
-// first two cases comprise the "ZQL test style" and the last case
+// first two cases comprise the "Zed test style" and the last case
 // comprises the "script test style".  Case (1) is easier to debug by
 // simply running "go test" compared replicating the test using "go run".
 // Script-style tests don't have this convenience.
 //
-// In the ZQL style, ztest runs a ZQL query on an input and checks
+// In the Zed style, ztest runs a Zed program on an input and checks
 // for an expected output.
 //
-// A ZQL-style test is defined in a YAML file.
+// A Zed-style test is defined in a YAML file.
 //
-//    zql: count()
+//    zed: count()
 //
 //    input: |
 //      #0:record[i:int64]
@@ -27,7 +27,7 @@
 // "zq -i auto" (including optional gzip compression).  Output format defaults
 // to tzng but can be set to anything accepted by "zq -f".
 //
-//    zql: count()
+//    zed: count()
 //
 //    input: |
 //      #0:record[i:int64]
@@ -45,7 +45,7 @@
 // any of zq/cmd tools in addition to zq.  Here, the yaml sets up a collection
 // of input files and stdin, the script runs, and the test driver compares expected
 // output files, stdout, and stderr with data in the yaml spec.  In this case,
-// instead of specifying, "zql", "input", "output", you specify the yaml arrays
+// instead of specifying, "zed", "input", "output", you specify the yaml arrays
 // "inputs" and "outputs" --- where each array element defines a file, stdin,
 // stdout, or stderr --- and a "script" that specifies a multi-line yaml string
 // defining the script, e.g.,
@@ -285,7 +285,7 @@ func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 
 // ZTest defines a ztest.
 type ZTest struct {
-	ZQL         string `yaml:"zql,omitempty"`
+	Zed         string `yaml:"zed,omitempty"`
 	Skip        bool   `yaml:"skip,omitempty"`
 	Input       string `yaml:"input,omitempty"`
 	Output      string `yaml:"output,omitempty"`
@@ -317,8 +317,8 @@ func (z *ZTest) check() error {
 				return err
 			}
 		}
-	} else if z.ZQL == "" {
-		return errors.New("either a zql field or script field must be present")
+	} else if z.Zed == "" {
+		return errors.New("either a zed field or script field must be present")
 	}
 	if z.ErrorRE != "" {
 		var err error
@@ -411,7 +411,7 @@ func (z *ZTest) RunInternal(path string) error {
 		return fmt.Errorf("bad yaml format: %w", err)
 	}
 	outputFlags := append([]string{"-f", "zson", "-pretty=0"}, strings.Fields(z.OutputFlags)...)
-	out, errout, err := runzq(path, z.ZQL, outputFlags, z.Input)
+	out, errout, err := runzq(path, z.Zed, outputFlags, z.Input)
 	if err != nil {
 		if z.errRegex != nil {
 			if !z.errRegex.MatchString(errout) {
@@ -581,13 +581,13 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 	return checkData(expectedData, dir, stdout, stderr)
 }
 
-// runzq runs the query in ZQL over inputs and returns the output.  inputs may
-// be in any format recognized by "zq -i auto" and may be gzip-compressed.
+// runzq runs the Zed program in zed over inputs and returns the output.  inputs
+// may be in any format recognized by "zq -i auto" and may be gzip-compressed.
 // outputFlags may contain any flags accepted by cli/outputflags.Flags.  If path
-// is empty, the query runs in the current process.  If path is not empty, it
+// is empty, the program runs in the current process.  If path is not empty, it
 // specifies a command search path used to find a zq executable to run the
-// query.
-func runzq(path, ZQL string, outputFlags []string, inputs ...string) (string, string, error) {
+// program.
+func runzq(path, zed string, outputFlags []string, inputs ...string) (string, string, error) {
 	var errbuf, outbuf bytes.Buffer
 	if path != "" {
 		zq, err := lookupzq(path)
@@ -599,7 +599,7 @@ func runzq(path, ZQL string, outputFlags []string, inputs ...string) (string, st
 			return "", "", err
 		}
 		defer os.RemoveAll(tmpdir)
-		cmd := exec.Command(zq, append(append(outputFlags, ZQL), files...)...)
+		cmd := exec.Command(zq, append(append(outputFlags, zed), files...)...)
 		cmd.Stdout = &outbuf
 		cmd.Stderr = &errbuf
 		err = cmd.Run()
@@ -608,7 +608,7 @@ func runzq(path, ZQL string, outputFlags []string, inputs ...string) (string, st
 		// tests.
 		return outbuf.String(), errbuf.String(), err
 	}
-	proc, err := compiler.ParseProc(ZQL)
+	proc, err := compiler.ParseProc(zed)
 	if err != nil {
 		return "", "", err
 	}

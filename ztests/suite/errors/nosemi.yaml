@@ -1,4 +1,4 @@
-zql: filter *
+zed: filter *
 
 input: |
   #0:record[x:int32]

@@ -1,4 +1,4 @@
-zql: |
+zed: |
   put . = fill({arr:[{b:string,a:string}],set:|[{b:string,a:string}]|})
 
 input: |

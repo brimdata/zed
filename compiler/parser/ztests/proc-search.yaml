@@ -1,4 +1,4 @@
-zql: '* | bar'
+zed: '* | bar'
 
 input: |
   {s1:"foo",s2:"bar"}

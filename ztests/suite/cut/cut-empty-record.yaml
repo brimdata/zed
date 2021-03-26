@@ -1,4 +1,4 @@
-zql: cut a, b
+zed: cut a, b
 
 input: |
   #0:record[]

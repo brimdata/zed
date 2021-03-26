@@ -1,4 +1,4 @@
-zql: a in [1,2,3]
+zed: a in [1,2,3]
 
 input: |
   {a:2}

@@ -1,4 +1,4 @@
-zql: '*'
+zed: '*'
 
 input: |
   {error:null (error)} (=0)

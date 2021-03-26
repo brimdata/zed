@@ -1,4 +1,4 @@
-zql: |
+zed: |
   type port=int64; type prec={p: port, q: port}; type parr=[prec]; put .=shape({c: port, b:parr, a:prec})
 
 input: |

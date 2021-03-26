@@ -1,4 +1,4 @@
-zql: cut fields(.), fields2=fields(r)
+zed: cut fields(.), fields2=fields(r)
 
 input: |
   #0:record[r:record[a:int32],s:int32]

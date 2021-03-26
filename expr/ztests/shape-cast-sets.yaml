@@ -1,4 +1,4 @@
-zql: |
+zed: |
   put . = cast({a:|[ip]|,b:|[{b:ip}]|})
 
 input: |

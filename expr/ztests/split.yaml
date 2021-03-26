@@ -1,4 +1,4 @@
-zql: |
+zed: |
    cut a1=split(s1,"."),a2=split(s2,"."),a3=split(s3,"."),a4=split(s4,"."),oo=split(s1,"oo")
 
 input: |

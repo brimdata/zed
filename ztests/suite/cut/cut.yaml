@@ -1,4 +1,4 @@
-zql: cut foo
+zed: cut foo
 
 input: |
   #separator \x09

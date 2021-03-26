@@ -1,4 +1,4 @@
-zql: 'cut y=x+1,a=to_lower(s),typeof(s)'
+zed: 'cut y=x+1,a=to_lower(s),typeof(s)'
 
 input: |
   #0:record[a:array[int32],x:int32,s:string,b:bytes]

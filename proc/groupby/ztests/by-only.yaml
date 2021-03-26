@@ -1,4 +1,4 @@
-zql: 'by s | sort s'
+zed: 'by s | sort s'
 
 input: |
   {x:1 (int32),s:"b"} (=0)

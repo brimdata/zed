@@ -1,4 +1,4 @@
-zql: "sum(x) where s='a', s2=sum(x) by key=animal | sort ."
+zed: "sum(x) where s='a', s2=sum(x) by key=animal | sort ."
 
 input: |
   {animal:"cat",s:"a",x:1 (int32)} (=0)

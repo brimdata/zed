@@ -1,6 +1,6 @@
 # Tests that put handles different output types for the same input
 # type correctly
-zql: 'put y = x > 0 ? "string" : x'
+zed: 'put y = x > 0 ? "string" : x'
 
 input: |
   #0:record[x:int32]

@@ -1,4 +1,4 @@
-zql: '*'
+zed: '*'
 
 # The last input line should end with a tab character.
 input: |

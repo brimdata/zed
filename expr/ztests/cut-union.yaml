@@ -1,4 +1,4 @@
-zql: a=union(cut(x)),b=union(cut(x,s))
+zed: a=union(cut(x)),b=union(cut(x,s))
 
 input: |
   #0:record[x:int32,s:string]

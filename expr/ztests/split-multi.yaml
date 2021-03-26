@@ -1,4 +1,4 @@
-zql: cut split(s,".")
+zed: cut split(s,".")
 
 input: |
   #0:record[s:string]

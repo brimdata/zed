@@ -1,4 +1,4 @@
-zql: |
+zed: |
   type custom = {bstring: bstring}
   put . = shape(custom)
 

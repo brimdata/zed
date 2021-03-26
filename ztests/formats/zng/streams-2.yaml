@@ -1,6 +1,6 @@
 # Test that type ids are not re-used across zng streams.
 
-zql: '*'
+zed: '*'
 
 input: |
   #0:record[s:string]

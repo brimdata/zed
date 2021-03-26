@@ -1,4 +1,4 @@
-zql: 'count()'
+zed: 'count()'
 
 # This is the concatenation of two identical ZNG streams generated with
 # `bash -c '(zq - <<<{a:1}; zq - <<<{a:1}) | base64'`.

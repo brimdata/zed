@@ -1,4 +1,4 @@
-zql: rename foo=goo
+zed: rename foo=goo
 
 input: |
   #0:record[foo:string,goo:string]

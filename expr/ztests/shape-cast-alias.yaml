@@ -1,4 +1,4 @@
-zql: |
+zed: |
   type port=int64; type prec={p: port}; type parr=[port]; put .=cast({a:port, b:prec, c: parr})
 
 input: |

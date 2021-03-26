@@ -1,4 +1,4 @@
-zql: "*"
+zed: "*"
 
 output-flags: -f zson -pretty=4
 

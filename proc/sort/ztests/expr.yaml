@@ -1,4 +1,4 @@
-zql: 'sort to_lower(s)'
+zed: 'sort to_lower(s)'
 
 input: |
   {s:"foo"}

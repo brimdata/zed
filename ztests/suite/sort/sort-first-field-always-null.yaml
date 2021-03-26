@@ -1,4 +1,4 @@
-zql: sort x, y
+zed: sort x, y
 
 input: |
   #0:record[x:int64,y:int64]

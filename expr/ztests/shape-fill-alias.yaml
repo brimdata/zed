@@ -1,4 +1,4 @@
-zql: |
+zed: |
   type port=int64; type prec={p: port, q: port}; type parr=[prec]; put .=fill({a:prec, b:parr, c:port})
 
 input: |

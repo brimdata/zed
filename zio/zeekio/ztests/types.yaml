@@ -2,7 +2,7 @@
 # the ZNG type system are handled correctly (i.e., that the Zeek types
 # are preserved on a pass through zq).
 
-zql: '*'
+zed: '*'
 
 input: &input |
   #separator \x09

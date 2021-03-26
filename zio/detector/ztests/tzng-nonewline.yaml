@@ -1,4 +1,4 @@
-zql: '*'
+zed: '*'
 
 input: |-
   #port=uint16

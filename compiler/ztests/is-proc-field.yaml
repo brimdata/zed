@@ -1,4 +1,4 @@
-zql: is(a,'string')
+zed: is(a,'string')
 
 input: |
   {a:1 (int32),b:"foo"} (=0)

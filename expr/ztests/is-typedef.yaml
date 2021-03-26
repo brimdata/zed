@@ -1,4 +1,4 @@
-zql: |
+zed: |
   type socket={addr:ip, port:uint16}
   const PI=3.14
   is(src,type(socket)) | put pi=PI

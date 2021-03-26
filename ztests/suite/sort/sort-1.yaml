@@ -1,4 +1,4 @@
-zql: sort x
+zed: sort x
 
 input: |
   #0:record[x:set[ip]]

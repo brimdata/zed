@@ -1,4 +1,4 @@
-zql: '*'
+zed: '*'
 
 input: |
   {bstring:null (bstring)} (=0)

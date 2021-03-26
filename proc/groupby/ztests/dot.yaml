@@ -1,4 +1,4 @@
-zql: 'count() by typeof(.) | sort count'
+zed: 'count() by typeof(.) | sort count'
 
 output-flags: -f zson -pretty=4
 

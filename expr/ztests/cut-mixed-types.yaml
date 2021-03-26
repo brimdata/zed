@@ -1,4 +1,4 @@
-zql: 'cut x=network_of(addr)'
+zed: 'cut x=network_of(addr)'
 
 input: |
   #0:record[addr:ip]

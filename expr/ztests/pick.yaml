@@ -1,4 +1,4 @@
-zql: pick s,x
+zed: pick s,x
 
 input: |
   #0:record[x:int32,s:string]

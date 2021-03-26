@@ -1,4 +1,4 @@
-zql: s=null
+zed: s=null
 
 input: |
   #0:record[s:string]

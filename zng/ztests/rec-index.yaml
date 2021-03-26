@@ -1,4 +1,4 @@
-zql: 'put x=r[".bar@"]+3'
+zed: 'put x=r[".bar@"]+3'
 
 input: |
   #0:record[r:record[[.bar@]:int32,x:string]]

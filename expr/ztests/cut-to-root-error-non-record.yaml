@@ -1,4 +1,4 @@
-zql: 'cut .=a'
+zed: 'cut .=a'
 
 input: |
   #0:record[a:int32]

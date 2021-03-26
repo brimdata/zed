@@ -1,4 +1,4 @@
-zql: fuse
+zed: fuse
 
 input: |
   {a:"hello",r:{x:1 (int32),y:2 (int32)} (=0)} (=1)

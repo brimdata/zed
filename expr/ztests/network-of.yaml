@@ -1,4 +1,4 @@
-zql: put n1=network_of(a,mask),n2=network_of(a,24)
+zed: put n1=network_of(a,mask),n2=network_of(a,24)
 
 input: |
   #0:record[a:ip,mask:net]

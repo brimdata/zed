@@ -1,4 +1,4 @@
-zql: fuse(.) by key with -limit 1
+zed: fuse(.) by key with -limit 1
 
 input: |
   #0:record[a:string,r:record[x:int32,y:int32],key:string]

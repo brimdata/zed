@@ -1,5 +1,5 @@
 # Tests multiple output expressions
-zql: put a=1, b=2
+zed: put a=1, b=2
 
 input: |
   #0:record[x:int32]

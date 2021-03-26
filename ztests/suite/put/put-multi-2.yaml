@@ -1,5 +1,5 @@
 # Test overwriting multiple fields in-order
-zql: put a=b, b=a
+zed: put a=b, b=a
 
 input: |
   #0:record[a:int32,b:int32]

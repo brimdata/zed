@@ -1,4 +1,4 @@
-zql: cut u1=union(select(r1)),u2=union(select(r1,r2))
+zed: cut u1=union(select(r1)),u2=union(select(r1,r2))
 
 input: |
   {r1:{a:1 (int32),b:2 (int32)} (=0),r2:{a:3,b:4} (0)} (=1)

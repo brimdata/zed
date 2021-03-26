@@ -1,4 +1,4 @@
-zql: fuse
+zed: fuse
 
 input: |
   {a:"hello",b:"world"}

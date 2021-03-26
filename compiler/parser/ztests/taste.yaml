@@ -1,4 +1,4 @@
-zql: taste | sort
+zed: taste | sort
 
 input: |
   {s1:"a",s2:"b"}

@@ -1,4 +1,4 @@
-zql: cut v=a.f
+zed: cut v=a.f
 
 input: |
   #foo=record[f:int8]

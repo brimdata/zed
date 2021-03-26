@@ -1,4 +1,4 @@
-zql: sort host
+zed: sort host
 
 input: |
   #0:record[host:ip]

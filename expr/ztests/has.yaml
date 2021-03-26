@@ -1,4 +1,4 @@
-zql: has(x)
+zed: has(x)
 
 input: |
   {x:1}
