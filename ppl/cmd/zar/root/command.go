@@ -25,7 +25,7 @@ a value in the associated chunk file, micro-indexes can be used to to make
 searching an archive very fast.
 
 See the zar README in the zq github repo for more information:
-https://github.com/brimsec/zq/blob/master/cmd/zar/README.md
+https://github.com/brimsec/zq/blob/main/cmd/zar/README.md
 `,
 	New: New,
 }

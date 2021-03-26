@@ -34,7 +34,7 @@ go mod edit -replace=github.com/org/repo=../repo
 
 ### Testing
 
-Before any PRs are merged to master, all tests must pass.
+Before any PRs are merged to main, all tests must pass.
 
 To run unit tests in your local repo, execute:
 ```

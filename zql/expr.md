@@ -2,7 +2,7 @@
 
 > This document describes recent work on unifying the search syntax with
 > the expression syntax.  We are checking this markdown file here with a bunch
-> of thoughts and notes into master for now with the
+> of thoughts and notes into main for now with the
 > goal of integrating these concepts into the mainline documentation.
 > See Issue #2021.
 
