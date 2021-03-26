@@ -1,4 +1,3 @@
-
 zed: put t1=time("2020-01-08T19:15Z"), t2=time("1/2/2020"), t3=time("12 Feb 2006 19:17")
 
 input: |

@@ -3,13 +3,12 @@ package function
 import (
 	"fmt"
 
+	"github.com/araddon/dateparse"
 	"github.com/brimsec/zq/expr/coerce"
 	"github.com/brimsec/zq/expr/result"
 	"github.com/brimsec/zq/pkg/byteconv"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zng"
-
-	"github.com/araddon/dateparse"
 )
 
 type iso struct {
