@@ -85,8 +85,8 @@ func (i *integer) check(zv zng.Value) {
 }
 
 func (a *anchor) updateInts(rec *zng.Record) error {
-	it := rec.Raw.Iter()
-	for k, c := range rec.Type.Columns {
+	it := rec.Bytes.Iter()
+	for k, c := range rec.Columns() {
 		bytes, _, err := it.Next()
 		if err != nil {
 			return err
@@ -177,11 +177,12 @@ func (s *Shaper) update(rec *zng.Record) {
 		a.updateInts(rec)
 		return
 	}
-	a := s.lookupAnchor(rec.Type.Columns)
+	columns := rec.Columns()
+	a := s.lookupAnchor(columns)
 	if a == nil {
-		a = s.newAnchor(rec.Type.Columns)
+		a = s.newAnchor(columns)
 	} else {
-		a.mixIn(rec.Type.Columns)
+		a.mixIn(columns)
 	}
 	a.updateInts(rec)
 	s.typeAnchor[rec.Type] = a
@@ -234,7 +235,7 @@ func (s *Shaper) Write(rec *zng.Record) error {
 }
 
 func (s *Shaper) stash(rec *zng.Record) error {
-	s.nbytes += len(rec.Raw)
+	s.nbytes += len(rec.Bytes)
 	if s.nbytes >= s.memMaxBytes {
 		var err error
 		s.spiller, err = spill.NewTempFile()
@@ -259,12 +260,15 @@ func (s *Shaper) Read() (*zng.Record, error) {
 	if rec == nil || err != nil {
 		return nil, err
 	}
-	typ, err := s.lookupType(rec.Type)
+	//XXX BUG?  Shaper lookup should be based on the type name not
+	// just the underlying record shape
+	recType := zng.TypeRecordOf(rec.Type)
+	typ, err := s.lookupType(recType)
 	if err != nil {
 		return nil, err
 	}
-	bytes := rec.Raw
-	targetType, err := s.needRecode(rec.Type)
+	bytes := rec.Bytes
+	targetType, err := s.needRecode(recType)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +278,7 @@ func (s *Shaper) Read() (*zng.Record, error) {
 		}
 		typ = targetType
 	}
-	return zng.NewRecordFromType(typ, bytes), nil
+	return zng.NewRecord(typ, bytes), nil
 }
 
 func recode(from, to []zng.Column, bytes zcode.Bytes) (zcode.Bytes, error) {

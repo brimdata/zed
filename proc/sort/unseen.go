@@ -24,11 +24,12 @@ func newUnseenFieldTracker(fields []expr.Evaluator) *unseenFieldTracker {
 }
 
 func (u *unseenFieldTracker) update(rec *zng.Record) {
-	if len(u.unseenFields) == 0 || u.seenTypes[rec.Type] {
+	recType := zng.TypeRecordOf(rec.Type)
+	if len(u.unseenFields) == 0 || u.seenTypes[recType] {
 		// Either have seen this type or nothing to unsee anymore.
 		return
 	}
-	u.seenTypes[rec.Type] = true
+	u.seenTypes[recType] = true
 	for field := range u.unseenFields {
 		v, _ := field.Eval(rec)
 		if !v.IsNil() {

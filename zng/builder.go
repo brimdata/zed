@@ -44,9 +44,7 @@ func (b *Builder) Build(zvs ...zcode.Bytes) *Record {
 	// Note that t.rec.nonvolatile is false so anything downstream
 	// will have to copy the record and we can re-use the record value
 	// between subsequent calls.
-	b.rec.Type = b.Type
-	b.rec.Alias = b.Type
-	b.rec.Raw = b.Bytes()
+	b.rec.Value = Value{b.Type, b.Bytes()}
 	return &b.rec
 }
 

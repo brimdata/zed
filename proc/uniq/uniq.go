@@ -49,7 +49,7 @@ func (p *Proc) appendUniq(out []*zng.Record, t *zng.Record) []*zng.Record {
 		p.last = t.Keep()
 		p.count = 1
 		return out
-	} else if bytes.Equal(t.Raw, p.last.Raw) {
+	} else if bytes.Equal(t.Bytes, p.last.Bytes) {
 		p.count++
 		return out
 	}

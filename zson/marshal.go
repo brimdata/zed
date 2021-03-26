@@ -499,7 +499,7 @@ func UnmarshalZNG(zv zng.Value, v interface{}) error {
 }
 
 func UnmarshalZNGRecord(rec *zng.Record, v interface{}) error {
-	return NewZNGUnmarshaler().decodeAny(zng.Value{rec.Alias, rec.Raw}, reflect.ValueOf(v))
+	return NewZNGUnmarshaler().decodeAny(rec.Value, reflect.ValueOf(v))
 }
 
 func incompatTypeError(zt zng.Type, v reflect.Value) error {

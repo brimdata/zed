@@ -65,8 +65,7 @@ func NewCutAssembler(zctx *resolver.Context, fields []string, object *Object) (*
 	cnt := 0
 	for k, schema := range a.schemas {
 		var err error
-		rec := a.columns[k]
-		zv := zng.Value{rec.Type, rec.Raw}
+		zv := a.columns[k].Value
 		topcol := &column.Record{}
 		if err := topcol.UnmarshalZNG(a.schemas[k], zv, object.seeker); err != nil {
 			return nil, err

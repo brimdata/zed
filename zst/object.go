@@ -134,11 +134,12 @@ func (o *Object) readAssembly() (*Assembly, error) {
 		if rec == nil {
 			return nil, errors.New("no reassembly records found in zst file")
 		}
-		zv := rec.Value(0)
+		zv := rec.ValueByColumn(0)
 		if zv.Bytes != nil {
 			break
 		}
-		assembly.schemas = append(assembly.schemas, rec.Type)
+		//XXX BUG: need to preserve top-level type
+		assembly.schemas = append(assembly.schemas, zng.TypeRecordOf(rec.Type))
 	}
 	var err error
 	assembly.root, err = rec.Access("root")

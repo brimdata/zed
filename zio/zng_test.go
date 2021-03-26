@@ -304,11 +304,11 @@ func TestStreams(t *testing.T) {
 
 	rec, rec2Off, err := zr.SkipStream()
 	require.NoError(t, err)
-	assert.Equal(t, recs[2].Raw, rec.Raw)
+	assert.Equal(t, recs[2].Bytes, rec.Bytes)
 
 	rec, rec4Off, err := zr.SkipStream()
 	require.NoError(t, err)
-	assert.Equal(t, recs[4].Raw, rec.Raw)
+	assert.Equal(t, recs[4].Bytes, rec.Bytes)
 
 	zs := zngio.NewSeeker(bytes.NewReader(out.Buffer.Bytes()), resolver.NewContext())
 
@@ -316,17 +316,17 @@ func TestStreams(t *testing.T) {
 	require.NoError(t, err)
 	rec, err = zs.Read()
 	require.NoError(t, err)
-	assert.Equal(t, recs[4].Raw, rec.Raw)
+	assert.Equal(t, recs[4].Bytes, rec.Bytes)
 
 	_, err = zs.Seek(rec2Off)
 	require.NoError(t, err)
 	rec, err = zs.Read()
 	require.NoError(t, err)
-	assert.Equal(t, recs[2].Raw, rec.Raw)
+	assert.Equal(t, recs[2].Bytes, rec.Bytes)
 
 	_, err = zs.Seek(0)
 	require.NoError(t, err)
 	rec, err = zs.Read()
 	require.NoError(t, err)
-	assert.Equal(t, recs[0].Raw, rec.Raw)
+	assert.Equal(t, recs[0].Bytes, rec.Bytes)
 }

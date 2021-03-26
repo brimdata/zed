@@ -25,15 +25,17 @@ func (m *Mapper) Read() (*zng.Record, error) {
 	if rec == nil {
 		return nil, nil
 	}
+	//XXX BUG: this should use zng.TypeID(rec.Type) where zng.TypeID
+	// doesn't follow alias.  Or, we should have TypeIDOf()
 	id := rec.Type.ID()
 	sharedType := m.mapper.Map(id)
 	if sharedType == nil {
-		sharedType, err = m.mapper.Enter(id, rec.Alias)
+		sharedType, err = m.mapper.Enter(id, rec.Type)
 		if err != nil {
 			return nil, err
 		}
 	}
-	rec.Alias = sharedType
+	rec.Type = sharedType
 	rec.Type = zng.AliasOf(sharedType).(*zng.TypeRecord)
 	return rec, nil
 }

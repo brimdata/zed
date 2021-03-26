@@ -49,5 +49,5 @@ func (r *Reader) Read() (*zng.Record, error) {
 	if _, ok := zng.AliasOf(zv.Type).(*zng.TypeRecord); !ok {
 		return nil, fmt.Errorf("top-level ZSON value not a record: %s", zv.Type.ZSON())
 	}
-	return zng.NewRecordFromType(zv.Type, zv.Bytes), nil
+	return zng.NewRecord(zv.Type, zv.Bytes), nil
 }

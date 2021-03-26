@@ -208,9 +208,9 @@ func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 	if !ok {
 		return nil, errors.New("outer type is not a record type")
 	}
-	raw, err := r.parser.Parse(recType, rest)
+	bytes, err := r.parser.Parse(recType, rest)
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecordCheckFromType(typ, raw)
+	return zng.NewRecordCheck(typ, bytes)
 }

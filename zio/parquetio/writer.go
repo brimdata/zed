@@ -32,8 +32,8 @@ func (w *Writer) Close() error {
 
 func (w *Writer) Write(rec *zng.Record) error {
 	if w.typ == nil {
-		w.typ = rec.Type
-		sd, err := newSchemaDefinition(rec.Type)
+		w.typ = zng.TypeRecordOf(rec.Type)
+		sd, err := newSchemaDefinition(w.typ)
 		if err != nil {
 			return err
 		}
@@ -41,7 +41,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 	} else if w.typ != rec.Type {
 		return csvio.ErrNotDataFrame
 	}
-	data, err := newRecordData(rec.Type, rec.Raw)
+	data, err := newRecordData(zng.TypeRecordOf(rec.Type), rec.Bytes)
 	if err != nil {
 		return err
 	}

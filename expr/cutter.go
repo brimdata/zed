@@ -177,5 +177,5 @@ func (c *Cutter) Eval(rec *zng.Record) (zng.Value, error) {
 	if out == nil {
 		return zng.Value{}, zng.ErrMissing
 	}
-	return zng.Value{out.Type, out.Raw}, nil
+	return out.Value, nil
 }

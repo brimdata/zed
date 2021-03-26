@@ -101,7 +101,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 	inputID := rec.Type.ID()
 	schemaID, ok := w.schemaMap[inputID]
 	if !ok {
-		recType, err := w.zctx.TranslateTypeRecord(rec.Type)
+		recType, err := w.zctx.TranslateTypeRecord(zng.TypeRecordOf(rec.Type))
 		if err != nil {
 			return err
 		}
@@ -114,10 +114,10 @@ func (w *Writer) Write(rec *zng.Record) error {
 	if err := w.root.Write(int32(schemaID)); err != nil {
 		return err
 	}
-	if err := w.schemas[schemaID].Write(rec.Raw); err != nil {
+	if err := w.schemas[schemaID].Write(rec.Bytes); err != nil {
 		return err
 	}
-	w.footprint += len(rec.Raw)
+	w.footprint += len(rec.Bytes)
 	if w.footprint >= w.skewThresh {
 		w.footprint = 0
 		return w.flush(false)

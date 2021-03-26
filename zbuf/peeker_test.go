@@ -35,28 +35,28 @@ func TestPeeker(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(rec1.Raw, rec2.Raw) {
+	if !bytes.Equal(rec1.Bytes, rec2.Bytes) {
 		t.Error("rec1 != rec2")
 	}
 	rec3, err := peeker.Read()
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(rec1.Raw, rec3.Raw) {
+	if !bytes.Equal(rec1.Bytes, rec3.Bytes) {
 		t.Error("rec1 != rec3")
 	}
 	rec4, err := peeker.Peek()
 	if err != nil {
 		t.Error(err)
 	}
-	if bytes.Equal(rec3.Raw, rec4.Raw) {
+	if bytes.Equal(rec3.Bytes, rec4.Bytes) {
 		t.Error("rec3 == rec4")
 	}
 	rec5, err := peeker.Read()
 	if err != nil {
 		t.Error(err)
 	}
-	if !bytes.Equal(rec4.Raw, rec5.Raw) {
+	if !bytes.Equal(rec4.Bytes, rec5.Bytes) {
 		t.Error("rec4 != rec5")
 	}
 }

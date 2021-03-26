@@ -46,7 +46,7 @@ func NewDropper(zctx *resolver.Context, fields []field.Static) *Dropper {
 }
 
 func (d *Dropper) newDropper(r *zng.Record) (*dropper, error) {
-	fields, fieldTypes := complementFields(d.fields, nil, r.Type)
+	fields, fieldTypes := complementFields(d.fields, nil, zng.TypeRecordOf(r.Type))
 	// If the set of dropped fields is equal to the all of record's
 	// fields, then there is no output for this input type.
 	// We return nil to block this input type.

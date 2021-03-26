@@ -37,7 +37,7 @@ func TestBuilder(t *testing.T) {
 	b0 := zng.NewBuilder(t0)
 	ip := net.ParseIP("1.2.3.4")
 	rec := b0.Build(zng.EncodeIP(ip))
-	assert.Equal(t, r0.Raw, rec.Raw)
+	assert.Equal(t, r0.Bytes, rec.Bytes)
 
 	t1, err := zctx.LookupTypeRecord([]zng.Column{
 		{"a", zng.TypeInt64},
@@ -47,7 +47,7 @@ func TestBuilder(t *testing.T) {
 	assert.NoError(t, err)
 	b1 := zng.NewBuilder(t1)
 	rec = b1.Build(zng.EncodeInt(1), zng.EncodeInt(2), zng.EncodeInt(3))
-	assert.Equal(t, r1.Raw, rec.Raw)
+	assert.Equal(t, r1.Bytes, rec.Bytes)
 
 	subrec, err := zctx.LookupTypeRecord([]zng.Column{{"x", zng.TypeInt64}})
 	assert.NoError(t, err)
@@ -68,13 +68,13 @@ func TestBuilder(t *testing.T) {
 	var rb zcode.Builder
 	rb.AppendPrimitive(zng.EncodeInt(3))
 	rec = b2.Build(zng.EncodeInt(7), rb.Bytes())
-	assert.Equal(t, r2.Raw, rec.Raw)
+	assert.Equal(t, r2.Bytes, rec.Bytes)
 
 	//rec, err = b2.Parse("7", "3")
 	//assert.NoError(t, err)
-	//assert.Equal(t, r2.Raw, rec.Raw)
+	//assert.Equal(t, r2.Bytes, rec.Bytes)
 
 	//rec, err = b2.Parse("7")
 	//assert.Equal(t, err, zng.ErrIncomplete)
-	//assert.Equal(t, r3.Raw, rec.Raw)
+	//assert.Equal(t, r3.Bytes, rec.Bytes)
 }

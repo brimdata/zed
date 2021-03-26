@@ -246,16 +246,16 @@ func TestNewRawFromJSON(t *testing.T) {
 			r := tzngio.NewReader(strings.NewReader(c.tzng), resolver.NewContext())
 			expected, err := r.Read()
 			require.NoError(t, err)
-			typ := expected.Type
+			typ := zng.TypeRecordOf(expected.Type)
 			ti := &typeInfo{
 				flatDesc:   typ,
 				descriptor: typ,
 				typedVals:  make([]typedVal, len(typ.Columns)),
 				path:       []byte(c.defaultPath),
 			}
-			raw, _, err := ti.newRawFromJSON([]byte(c.json))
+			bytes, _, err := ti.newRawFromJSON([]byte(c.json))
 			require.NoError(t, err)
-			rec := &zng.Record{Type: typ, Raw: raw}
+			rec := zng.NewRecord(typ, bytes)
 			assert.Equal(t, expected.String(), rec.String())
 		})
 	}

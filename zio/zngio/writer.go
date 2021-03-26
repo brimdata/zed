@@ -104,11 +104,11 @@ func (w *Writer) LastSOS() int64 {
 
 func (w *Writer) Write(r *zng.Record) error {
 	// First send any typedefs for unsent types.
-	typ := w.encoder.Lookup(r.Alias)
+	typ := w.encoder.Lookup(r.Type)
 	if typ == nil {
 		var b []byte
 		var err error
-		b, typ, err = w.encoder.Encode(w.buffer[:0], r.Alias)
+		b, typ, err = w.encoder.Encode(w.buffer[:0], r.Type)
 		if err != nil {
 			return err
 		}
@@ -136,10 +136,10 @@ func (w *Writer) Write(r *zng.Record) error {
 		dst = append(dst, zng.CtrlValueEscape)
 		dst = zcode.AppendUvarint(dst, uint64(id-zng.CtrlValueEscape))
 	}
-	dst = zcode.AppendUvarint(dst, uint64(len(r.Raw)))
+	dst = zcode.AppendUvarint(dst, uint64(len(r.Bytes)))
 	// XXX instead of copying write we should do two writes... so we don't
 	// copy the bulk of the data an extra time here when we don't need to.
-	dst = append(dst, r.Raw...)
+	dst = append(dst, r.Bytes...)
 	w.buffer = dst
 	if err := w.write(dst); err != nil {
 		return err

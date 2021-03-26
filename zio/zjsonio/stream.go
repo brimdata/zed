@@ -25,10 +25,11 @@ func (s *Stream) Transform(r *zng.Record) (*Record, error) {
 	var typ joe.Object
 	var aliases []Alias
 	if !s.tracker.Seen(id) {
-		aliases = s.encodeAliases(r.Type)
+		//XXX BUG: need to encode any top-level record aliases
+		aliases = s.encodeAliases(zng.TypeRecordOf(r.Type))
 		typ = encodeTypeObj(r.Type)
 	}
-	v, err := encodeAny(r.Type, r.Raw)
+	v, err := encodeAny(r.Type, r.Bytes)
 	if err != nil {
 		return nil, err
 	}

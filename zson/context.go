@@ -208,7 +208,7 @@ func (c *Context) LookupTypeAlias(name string, target zng.Type) (*zng.TypeAlias,
 // If any of the newly provided columns already exists in the specified value,
 // an error is returned.
 func (c *Context) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng.Value) (*zng.Record, error) {
-	oldCols := r.Type.Columns
+	oldCols := zng.TypeRecordOf(r.Type).Columns
 	outCols := make([]zng.Column, len(oldCols), len(oldCols)+len(newCols))
 	copy(outCols, oldCols)
 	for _, col := range newCols {
@@ -217,8 +217,8 @@ func (c *Context) AddColumns(r *zng.Record, newCols []zng.Column, vals []zng.Val
 		}
 		outCols = append(outCols, col)
 	}
-	zv := make(zcode.Bytes, len(r.Raw))
-	copy(zv, r.Raw)
+	zv := make(zcode.Bytes, len(r.Bytes))
+	copy(zv, r.Bytes)
 	for _, val := range vals {
 		zv = val.Encode(zv)
 	}

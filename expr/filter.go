@@ -40,7 +40,7 @@ func EvalAny(eval Boolean, recursive bool) Filter {
 	if !recursive {
 		return func(r *zng.Record) bool {
 			it := r.ZvalIter()
-			for _, c := range r.Type.Columns {
+			for _, c := range r.Columns() {
 				val, _, err := it.Next()
 				if err != nil {
 					return false
@@ -71,7 +71,7 @@ func EvalAny(eval Boolean, recursive bool) Filter {
 		return false
 	}
 	return func(r *zng.Record) bool {
-		return fn(r.Raw, r.Type.Columns)
+		return fn(r.Bytes, r.Columns())
 	}
 }
 
@@ -134,7 +134,7 @@ func SearchRecordString(term string) Filter {
 		// record columns for each unique record type.
 		match, ok := fieldNameCheck[r.Type]
 		if !ok {
-			nameIter.Init(r.Type)
+			nameIter.Init(zng.TypeRecordOf(r.Type))
 			for !nameIter.Done() {
 				if stringSearch(byteconv.UnsafeString(nameIter.Next()), term) {
 					match = true

@@ -51,7 +51,7 @@ func (w *Writer) Write(r *zng.Record) error {
 		if err := w.writeHeader(r, path); err != nil {
 			return err
 		}
-		w.typ = r.Type
+		w.typ = zng.TypeRecordOf(r.Type)
 	}
 	values, err := ZeekStrings(r, w.format)
 	if err != nil {
@@ -94,7 +94,7 @@ func (w *Writer) writeHeader(r *zng.Record, path string) error {
 	}
 	if d != w.typ {
 		s += "#fields"
-		for _, col := range d.Columns {
+		for _, col := range zng.TypeRecordOf(d).Columns {
 			if col.Name == "_path" {
 				continue
 			}
@@ -102,7 +102,7 @@ func (w *Writer) writeHeader(r *zng.Record, path string) error {
 		}
 		s += "\n"
 		s += "#types"
-		for _, col := range d.Columns {
+		for _, col := range zng.TypeRecordOf(d).Columns {
 			if col.Name == "_path" {
 				continue
 			}
@@ -128,7 +128,7 @@ func isHighPrecision(ts nano.Ts) bool {
 func ZeekStrings(r *zng.Record, fmt tzngio.OutFmt) ([]string, error) {
 	var ss []string
 	it := r.ZvalIter()
-	for _, col := range r.Type.Columns {
+	for _, col := range zng.TypeRecordOf(r.Type).Columns {
 		val, _, err := it.Next()
 		if err != nil {
 			return nil, err

@@ -132,7 +132,7 @@ func TestNestedRecords(t *testing.T) {
 	require.NoError(t, err)
 
 	// First check that the descriptor was created correctly
-	cols := record.Type.Columns
+	cols := zng.TypeRecordOf(record.Type).Columns
 	assert.Equal(t, 5, len(cols), "Descriptor has 5 columns")
 	//assert.Equal(t, "_path", cols[0].Name, "Column 0 is _path")
 	assert.Equal(t, "a", cols[0].Name, "Column 0 is a")

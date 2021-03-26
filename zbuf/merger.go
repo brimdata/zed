@@ -50,7 +50,7 @@ func totalOrderCompare(fn expr.CompareFn) expr.CompareFn {
 	return func(a, b *zng.Record) int {
 		cmp := fn(a, b)
 		if cmp == 0 {
-			return bytes.Compare(a.Raw, b.Raw)
+			return bytes.Compare(a.Bytes, b.Bytes)
 		}
 		return cmp
 	}
@@ -97,7 +97,7 @@ func MergeByTs(ctx context.Context, pullers []Puller, order Order) *Merger {
 		if aTs > bTs {
 			return 1
 		}
-		return bytes.Compare(a.Raw, b.Raw)
+		return bytes.Compare(a.Bytes, b.Bytes)
 	}
 	return NewMerger(ctx, pullers, cmp)
 }

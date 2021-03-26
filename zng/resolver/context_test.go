@@ -22,9 +22,9 @@ func TestContextAddColumns(t *testing.T) {
 	r, err = ctx.AddColumns(r, cols, []zng.Value{zng.NewTime(ts), zng.NewString("S2")})
 	require.NoError(t, err)
 	assert.EqualValues(t, 123456000000, r.Ts())
-	assert.EqualValues(t, zng.NewString("S1"), r.Value(0))
-	assert.EqualValues(t, zng.NewTime(ts), r.Value(1))
-	assert.EqualValues(t, zng.NewString("S2"), r.Value(2))
+	assert.EqualValues(t, zng.NewString("S1"), r.ValueByColumn(0))
+	assert.EqualValues(t, zng.NewTime(ts), r.ValueByColumn(1))
+	assert.EqualValues(t, zng.NewString("S2"), r.ValueByColumn(2))
 	zv, _ := r.Slice(4)
 	assert.Nil(t, zv)
 }

@@ -110,7 +110,7 @@ func (p *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
 		for i := 0; i < l; i++ {
 			rec := batch.Index(i)
 			p.unseenFieldTracker.update(rec)
-			nbytes += len(rec.Raw)
+			nbytes += len(rec.Bytes)
 			// We're keeping records owned by batch so don't call Unref.
 			recs = append(recs, rec)
 		}
@@ -203,7 +203,7 @@ var intTypes = []zng.Type{
 }
 
 func GuessSortKey(rec *zng.Record) field.Static {
-	typ := rec.Type
+	typ := zng.TypeRecordOf(rec.Type)
 	if fld := firstOf(typ, intTypes); fld != "" {
 		return field.New(fld)
 	}

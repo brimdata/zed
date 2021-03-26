@@ -348,17 +348,18 @@ func (p *Proc) put(in *zng.Record) (*zng.Record, error) {
 		p.maybeWarn(err)
 		return in, nil
 	}
-	rule, err := p.lookupRule(in.Type, vals)
+	rule, err := p.lookupRule(zng.TypeRecordOf(in.Type), vals)
 	if err != nil {
 		return nil, err
 	}
 
-	bytes, err := rule.step.build(in.Raw, &p.builder, vals)
+	bytes, err := rule.step.build(in.Bytes, &p.builder, vals)
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecordFromType(rule.typ, bytes), nil
+	return zng.NewRecord(rule.typ, bytes), nil
 }
+
 func (p *Proc) Pull() (zbuf.Batch, error) {
 	batch, err := p.parent.Pull()
 	if proc.EOS(batch, err) {

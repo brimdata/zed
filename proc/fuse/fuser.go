@@ -60,7 +60,7 @@ func (f *Fuser) Write(rec *zng.Record) error {
 }
 
 func (f *Fuser) stash(rec *zng.Record) error {
-	f.nbytes += len(rec.Raw)
+	f.nbytes += len(rec.Bytes)
 	if f.nbytes >= f.memMaxBytes {
 		var err error
 		f.spiller, err = spill.NewTempFile()

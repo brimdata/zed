@@ -179,8 +179,8 @@ func (p *ProcTest) Expect(data zbuf.Batch) error {
 		if received.Type != expected.Type {
 			return fmt.Errorf("descriptor mismatch in record %d", i)
 		}
-		if bytes.Compare(received.Raw, expected.Raw) != 0 {
-			return fmt.Errorf("mismatch in record %d: %s vs %s", i, received.Raw, expected.Raw)
+		if bytes.Compare(received.Bytes, expected.Bytes) != 0 {
+			return fmt.Errorf("mismatch in record %d: %s vs %s", i, received.Bytes, expected.Bytes)
 		}
 	}
 
@@ -263,7 +263,7 @@ func TestOneProcWithWarnings(t *testing.T, zngin, zngout string, warnings []stri
 			r1 := recsout.Index(i)
 			r2 := result.Index(i)
 			// XXX could print something a lot pretter if/when this fails.
-			require.Equalf(t, r2.Raw, r1.Raw, "Expected record %d to match", i)
+			require.Equalf(t, r2.Bytes, r1.Bytes, "Expected record %d to match", i)
 		}
 	}
 }
@@ -303,7 +303,7 @@ func TestOneProcWithBatches(t *testing.T, cmd string, zngs ...string) {
 		r1 := batchout.Index(i)
 		r2 := result.Index(i)
 		// XXX could print something a lot pretter if/when this fails.
-		require.Equalf(t, string(r2.Raw), string(r1.Raw), "Expected record %d to match", i)
+		require.Equalf(t, string(r2.Bytes), string(r1.Bytes), "Expected record %d to match", i)
 	}
 }
 
@@ -327,11 +327,11 @@ func TestOneProcUnsorted(t *testing.T, zngin, zngout string, cmd string) {
 
 	require.Equal(t, recsout.Length(), result.Length(), "Got correct number of output records")
 	res := result.Records()
-	sort.Slice(res, func(i, j int) bool { return bytes.Compare(res[i].Raw, res[j].Raw) > 0 })
+	sort.Slice(res, func(i, j int) bool { return bytes.Compare(res[i].Bytes, res[j].Bytes) > 0 })
 	expected := recsout.Records()
-	sort.Slice(expected, func(i, j int) bool { return bytes.Compare(expected[i].Raw, expected[j].Raw) > 0 })
+	sort.Slice(expected, func(i, j int) bool { return bytes.Compare(expected[i].Bytes, expected[j].Bytes) > 0 })
 	for i := 0; i < len(res); i++ {
 		// XXX could print something a lot pretter if/when this fails.
-		require.Equalf(t, expected[i].Raw, res[i].Raw, "Expected record %d to match", i)
+		require.Equalf(t, expected[i].Bytes, res[i].Bytes, "Expected record %d to match", i)
 	}
 }

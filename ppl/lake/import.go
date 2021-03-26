@@ -279,7 +279,7 @@ func (dw *tsDirWriter) Write(rec *zng.Record) error {
 	// sorting.
 	rec.CopyBody()
 	dw.records = append(dw.records, rec)
-	dw.addBufSize(int64(len(rec.Raw)))
+	dw.addBufSize(int64(len(rec.Bytes)))
 	dw.touch()
 	if dw.chunkSizeEstimate() > dw.lk.LogSizeThreshold {
 		if err := dw.flush(); err != nil {
