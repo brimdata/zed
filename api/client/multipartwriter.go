@@ -42,8 +42,11 @@ func MultipartFileWriter(files ...string) (*MultipartWriter, error) {
 		if err != nil {
 			return nil, err
 		}
-		info, _ := iosrc.Stat(context.Background(), u)
-		if info != nil {
+		if u.Scheme != "stdio" {
+			info, err := iosrc.Stat(context.Background(), u)
+			if err != nil {
+				return nil, err
+			}
 			m.BytesTotal += info.Size()
 		}
 		m.uris = append(m.uris, u)
