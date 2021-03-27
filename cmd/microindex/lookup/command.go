@@ -12,7 +12,7 @@ import (
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Lookup = &charm.Spec{

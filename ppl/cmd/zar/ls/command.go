@@ -13,7 +13,7 @@ import (
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/ppl/lake/chunk"
 	"github.com/brimsec/zq/ppl/lake/index"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Ls = &charm.Spec{

@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/ppl/lake"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var RmDirs = &charm.Spec{

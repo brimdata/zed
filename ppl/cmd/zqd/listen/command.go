@@ -23,7 +23,7 @@ import (
 	"github.com/brimsec/zq/ppl/zqd"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/proc/sort"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"

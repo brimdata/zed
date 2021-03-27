@@ -13,7 +13,7 @@ import (
 	"github.com/golang-migrate/migrate/v4"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/segmentio/ksuid"
 )
 

@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/cli/procflags"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Zqd = &charm.Spec{

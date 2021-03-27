@@ -16,7 +16,7 @@ import (
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Zq = &charm.Spec{

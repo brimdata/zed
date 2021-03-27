@@ -4,15 +4,13 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"os"
 
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/microindex"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/mccanne/charm"
-	"golang.org/x/crypto/ssh/terminal"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Section = &charm.Spec{
@@ -46,10 +44,6 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.IntVar(&c.section, "s", -1, "include the indicated section in the output")
 	c.outputFlags.SetFlags(f)
 	return c, nil
-}
-
-func isTerminal(f *os.File) bool {
-	return terminal.IsTerminal(int(f.Fd()))
 }
 
 func (c *Command) Run(args []string) error {

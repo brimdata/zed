@@ -10,7 +10,7 @@ import (
 	"github.com/brimsec/zq/ppl/cmd/pgctl/root"
 	"github.com/brimsec/zq/ppl/zqd/db/postgresdb"
 	"github.com/go-pg/pg/v10"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var RmTestDB = &charm.Spec{

@@ -6,7 +6,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Verify = &charm.Spec{

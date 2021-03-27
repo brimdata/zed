@@ -9,7 +9,7 @@ import (
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Find = &charm.Spec{

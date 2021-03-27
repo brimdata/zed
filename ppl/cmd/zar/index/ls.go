@@ -13,7 +13,7 @@ import (
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/segmentio/ksuid"
 )
 

@@ -4,7 +4,7 @@ import (
 	"flag"
 
 	"github.com/brimsec/zq/ppl/cmd/zqd/root"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 func init() {

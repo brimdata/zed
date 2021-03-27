@@ -4,7 +4,7 @@ import (
 	"flag"
 
 	"github.com/brimsec/zq/cmd/zapi/cmd"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Auth = &charm.Spec{

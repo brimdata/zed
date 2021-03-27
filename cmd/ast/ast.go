@@ -15,9 +15,9 @@ import (
 	"github.com/brimsec/zq/compiler/ast"
 	"github.com/brimsec/zq/compiler/parser"
 	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/zfmt"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/mccanne/charm"
 	"github.com/peterh/liner"
 )
 

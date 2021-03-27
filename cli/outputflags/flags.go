@@ -7,11 +7,11 @@ import (
 	"os"
 
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/pkg/terminal"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zio/zstio"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 type Flags struct {
@@ -84,7 +84,7 @@ func (f *Flags) Init() error {
 	if f.outputFile == "-" {
 		f.outputFile = ""
 	}
-	if f.outputFile == "" && f.Format == "zng" && IsTerminal(os.Stdout) && !f.forceBinary {
+	if f.outputFile == "" && f.Format == "zng" && terminal.IsTerminalFile(os.Stdout) && !f.forceBinary {
 		return errors.New("writing binary zng data to terminal; override with -B or use -z for ZSON.")
 	}
 	return nil
@@ -94,7 +94,7 @@ func (f *Flags) InitWithFormat(format string) error {
 	if f.outputFile == "-" {
 		f.outputFile = ""
 	}
-	if f.outputFile == "" && f.Format == "zng" && IsTerminal(os.Stdout) && !f.forceBinary {
+	if f.outputFile == "" && f.Format == "zng" && terminal.IsTerminalFile(os.Stdout) && !f.forceBinary {
 		return errors.New("writing binary zng data to terminal; override with -B or use -z for ZSON.")
 	}
 	return nil
@@ -117,8 +117,4 @@ func (f *Flags) Open(ctx context.Context) (zbuf.WriteCloser, error) {
 		return nil, err
 	}
 	return w, nil
-}
-
-func IsTerminal(f *os.File) bool {
-	return terminal.IsTerminal(int(f.Fd()))
 }

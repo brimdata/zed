@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/brimsec/zq/ppl/zqd/auth"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var CLI = &charm.Spec{
