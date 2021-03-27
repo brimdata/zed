@@ -26,29 +26,32 @@ func testSuccessful(t *testing.T, e string, record string, expect zng.Value) {
 	formatter := zson.NewFormatter(0)
 	val, err := formatter.Format(rec.Value)
 	require.NoError(t, err)
-	zt := &ztest.ZTest{
+	runZTest(t, e, &ztest.ZTest{
 		Zed:    fmt.Sprintf("cut result = %s", e),
 		Input:  record,
 		Output: val + "\n",
-	}
-	t.Run(e, func(t *testing.T) {
-		t.Parallel()
-		if err := zt.RunInternal(""); err != nil {
-			t.Fatal(err)
-		}
 	})
 }
 
-func testError(t *testing.T, e string, record string, expectErr error, description string) {
+func testError(t *testing.T, e string, expectErr error, description string) {
+	runZTest(t, e, &ztest.ZTest{
+		Zed:     fmt.Sprintf("cut result = %s", e),
+		ErrorRE: expectErr.Error(),
+	})
+}
+
+func testWarning(t *testing.T, e string, record string, expectErr error, description string) {
 	if record == "" {
 		record = "{}"
 	}
-	zt := &ztest.ZTest{
-		Zed:     fmt.Sprintf("cut result = %s", e),
-		Input:   record,
-		Output:  "",
-		ErrorRE: expectErr.Error(),
-	}
+	runZTest(t, e, &ztest.ZTest{
+		Zed:      fmt.Sprintf("cut result = %s", e),
+		Input:    record,
+		Warnings: fmt.Sprintf("cut: %s\ncut: no record found with columns <not a field>\n", expectErr),
+	})
+}
+
+func runZTest(t *testing.T, e string, zt *ztest.ZTest) {
 	t.Run(e, func(t *testing.T) {
 		t.Parallel()
 		if err := zt.RunInternal(""); err != nil {
@@ -232,33 +235,33 @@ func TestCompareNumbers(t *testing.T) {
 #0:record[x:%s,s:string,bs:bstring,i:ip,n:net]
 0:[1;hello;world;10.1.1.1;10.1.0.0/16;]`, typ)
 
-		testError(t, "x = s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testError(t, "x != s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testError(t, "x < s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testError(t, "x <= s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testError(t, "x > s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testError(t, "x >= s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		testWarning(t, "x = s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		testWarning(t, "x != s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		testWarning(t, "x < s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		testWarning(t, "x <= s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		testWarning(t, "x > s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		testWarning(t, "x >= s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
 
-		testError(t, "x = bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testError(t, "x != bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testError(t, "x < bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testError(t, "x <= bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testError(t, "x > bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testError(t, "x >= bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
+		testWarning(t, "x = bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
+		testWarning(t, "x != bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
+		testWarning(t, "x < bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
+		testWarning(t, "x <= bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
+		testWarning(t, "x > bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
+		testWarning(t, "x >= bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
 
-		testError(t, "x = i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testError(t, "x != i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testError(t, "x < i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testError(t, "x <= i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testError(t, "x > i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testError(t, "x >= i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
+		testWarning(t, "x = i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
+		testWarning(t, "x != i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
+		testWarning(t, "x < i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
+		testWarning(t, "x <= i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
+		testWarning(t, "x > i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
+		testWarning(t, "x >= i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
 
-		testError(t, "x = n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testError(t, "x != n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testError(t, "x < n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testError(t, "x <= n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testError(t, "x > n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testError(t, "x >= n", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		testWarning(t, "x = n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
+		testWarning(t, "x != n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
+		testWarning(t, "x < n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
+		testWarning(t, "x <= n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
+		testWarning(t, "x > n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
+		testWarning(t, "x >= n", record, expr.ErrIncompatibleTypes, "comparing integer and string")
 	}
 
 	// Test comparison between signed and unsigned and also
@@ -359,7 +362,7 @@ func TestCompareNonNumbers(t *testing.T) {
 			for _, op := range allOperators {
 				exp := fmt.Sprintf("%s = %s", t1.field, t2.field)
 				desc := fmt.Sprintf("compare %s %s %s", t1.typ, op, t2.typ)
-				testError(t, exp, record, expr.ErrIncompatibleTypes, desc)
+				testWarning(t, exp, record, expr.ErrIncompatibleTypes, desc)
 			}
 		}
 	}
@@ -554,14 +557,14 @@ func TestArithmetic(t *testing.T) {
 	testSuccessful(t, `"hello" + " world"`, record, zstring("hello world"))
 
 	// Test string arithmetic other than + fails
-	testError(t, `"hello" - " world"`, record, expr.ErrIncompatibleTypes, "subtracting strings")
-	testError(t, `"hello" * " world"`, record, expr.ErrIncompatibleTypes, "multiplying strings")
-	testError(t, `"hello" / " world"`, record, expr.ErrIncompatibleTypes, "dividing strings")
+	testWarning(t, `"hello" - " world"`, record, expr.ErrIncompatibleTypes, "subtracting strings")
+	testWarning(t, `"hello" * " world"`, record, expr.ErrIncompatibleTypes, "multiplying strings")
+	testWarning(t, `"hello" / " world"`, record, expr.ErrIncompatibleTypes, "dividing strings")
 
 	// Test that addition fails on an unsupported type
-	testError(t, "10.1.1.1 + 1", record, expr.ErrIncompatibleTypes, "adding ip and integer")
-	testError(t, "10.1.1.1 + 3.14159", record, expr.ErrIncompatibleTypes, "adding ip and float")
-	testError(t, `10.1.1.1 + "foo"`, record, expr.ErrIncompatibleTypes, "adding ip and string")
+	testWarning(t, "10.1.1.1 + 1", record, expr.ErrIncompatibleTypes, "adding ip and integer")
+	testWarning(t, "10.1.1.1 + 3.14159", record, expr.ErrIncompatibleTypes, "adding ip and float")
+	testWarning(t, `10.1.1.1 + "foo"`, record, expr.ErrIncompatibleTypes, "adding ip and string")
 }
 
 func TestArrayIndex(t *testing.T) {
@@ -594,7 +597,7 @@ func TestConditional(t *testing.T) {
 
 	testSuccessful(t, `x = 0 ? "zero" : "not zero"`, record, zstring("not zero"))
 	testSuccessful(t, `x = 1 ? "one" : "not one"`, record, zstring("one"))
-	testError(t, `x ? "x" : "not x"`, record, expr.ErrIncompatibleTypes, "conditional with non-boolean condition")
+	testWarning(t, `x ? "x" : "not x"`, record, expr.ErrIncompatibleTypes, "conditional with non-boolean condition")
 
 	// Ensure that the unevaluated clause doesn't generate errors
 	// (field y doesn't exist but it shouldn't be evaluated)
@@ -605,47 +608,47 @@ func TestConditional(t *testing.T) {
 func TestCasts(t *testing.T) {
 	// Test casts to byte
 	testSuccessful(t, "uint8(10)", "", zng.Value{zng.TypeUint8, zng.EncodeUint(10)})
-	testError(t, "uint8(-1)", "", expr.ErrBadCast, "out of range cast to uint8")
-	testError(t, "uint8(300)", "", expr.ErrBadCast, "out of range cast to uint8")
-	testError(t, `uint8("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint8")
+	testWarning(t, "uint8(-1)", "", expr.ErrBadCast, "out of range cast to uint8")
+	testWarning(t, "uint8(300)", "", expr.ErrBadCast, "out of range cast to uint8")
+	testWarning(t, `uint8("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint8")
 
 	// Test casts to int16
 	testSuccessful(t, "int16(10)", "", zng.Value{zng.TypeInt16, zng.EncodeInt(10)})
-	testError(t, "int16(-33000)", "", expr.ErrBadCast, "out of range cast to int16")
-	testError(t, "int16(33000)", "", expr.ErrBadCast, "out of range cast to int16")
-	testError(t, `int16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int16")
+	testWarning(t, "int16(-33000)", "", expr.ErrBadCast, "out of range cast to int16")
+	testWarning(t, "int16(33000)", "", expr.ErrBadCast, "out of range cast to int16")
+	testWarning(t, `int16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int16")
 
 	// Test casts to uint16
 	testSuccessful(t, "uint16(10)", "", zng.Value{zng.TypeUint16, zng.EncodeUint(10)})
-	testError(t, "uint16(-1)", "", expr.ErrBadCast, "out of range cast to uint16")
-	testError(t, "uint16(66000)", "", expr.ErrBadCast, "out of range cast to uint16")
-	testError(t, `uint16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint16")
+	testWarning(t, "uint16(-1)", "", expr.ErrBadCast, "out of range cast to uint16")
+	testWarning(t, "uint16(66000)", "", expr.ErrBadCast, "out of range cast to uint16")
+	testWarning(t, `uint16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint16")
 
 	// Test casts to int32
 	testSuccessful(t, "int32(10)", "", zng.Value{zng.TypeInt32, zng.EncodeInt(10)})
-	testError(t, "int32(-2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
-	testError(t, "int32(2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
-	testError(t, `int32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int32")
+	testWarning(t, "int32(-2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
+	testWarning(t, "int32(2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
+	testWarning(t, `int32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int32")
 
 	// Test casts to uint32
 	testSuccessful(t, "uint32(10)", "", zng.Value{zng.TypeUint32, zng.EncodeUint(10)})
-	testError(t, "uint32(-1)", "", expr.ErrBadCast, "out of range cast to uint32")
-	testError(t, "uint8(4300000000)", "", expr.ErrBadCast, "out of range cast to uint32")
-	testError(t, `uint32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint32")
+	testWarning(t, "uint32(-1)", "", expr.ErrBadCast, "out of range cast to uint32")
+	testWarning(t, "uint8(4300000000)", "", expr.ErrBadCast, "out of range cast to uint32")
+	testWarning(t, `uint32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint32")
 
 	// Test casts to uint64
 	testSuccessful(t, "uint64(10)", "", zuint64(10))
-	testError(t, "uint64(-1)", "", expr.ErrBadCast, "out of range cast to uint64")
-	testError(t, `uint64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint64")
+	testWarning(t, "uint64(-1)", "", expr.ErrBadCast, "out of range cast to uint64")
+	testWarning(t, `uint64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint64")
 
 	// Test casts to float64
 	testSuccessful(t, "float64(10)", "", zfloat64(10))
-	testError(t, `float64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to float64")
+	testWarning(t, `float64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to float64")
 
 	// Test casts to ip
 	testSuccessful(t, `ip("1.2.3.4")`, "", zip(t, "1.2.3.4"))
-	testError(t, "ip(1234)", "", expr.ErrBadCast, "cast of invalid ip address fails")
-	testError(t, `ip("not an address")`, "", expr.ErrBadCast, "cast of invalid ip address fails")
+	testWarning(t, "ip(1234)", "", expr.ErrBadCast, "cast of invalid ip address fails")
+	testWarning(t, `ip("not an address")`, "", expr.ErrBadCast, "cast of invalid ip address fails")
 
 	// Test casts to time
 	ts := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1589126400_000_000_000))}
@@ -661,8 +664,8 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, `float64("5.5")`, "", zfloat64(5.5))
 	testSuccessful(t, `ip("1.2.3.4")`, "", zaddr("1.2.3.4"))
 
-	testError(t, "ip(1)", "", expr.ErrBadCast, "ip cast non-ip arg")
-	testError(t, `int64("abc")`, "", expr.ErrBadCast, "int64 cast with non-parseable string")
-	testError(t, `float64("abc")`, "", expr.ErrBadCast, "float64 cast with non-parseable string")
-	testError(t, `ip("abc")`, "", expr.ErrBadCast, "ip cast with non-parseable string")
+	testWarning(t, "ip(1)", "", expr.ErrBadCast, "ip cast non-ip arg")
+	testWarning(t, `int64("abc")`, "", expr.ErrBadCast, "int64 cast with non-parseable string")
+	testWarning(t, `float64("abc")`, "", expr.ErrBadCast, "float64 cast with non-parseable string")
+	testWarning(t, `ip("abc")`, "", expr.ErrBadCast, "ip cast with non-parseable string")
 }

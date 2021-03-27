@@ -5,8 +5,6 @@
 package rename
 
 import (
-	"fmt"
-
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/zng"
@@ -69,7 +67,7 @@ func (r *Function) Apply(in *zng.Record) (*zng.Record, error) {
 	if _, ok := r.typeMap[id]; !ok {
 		typ, err := r.computeType(zng.TypeRecordOf(in.Type))
 		if err != nil {
-			return nil, fmt.Errorf("%s: %w", r, err)
+			return nil, err
 		}
 		r.typeMap[id] = typ
 	}
