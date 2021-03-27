@@ -38,9 +38,9 @@ require (
 	go.temporal.io/server v1.6.3
 	go.uber.org/multierr v1.6.0
 	go.uber.org/zap v1.16.0
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20210105210732-16f7687f5001
+	golang.org/x/term v0.0.0-20210317153231-de623e64d2a6
 	golang.org/x/text v0.3.4
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v3 v3.0.0-20210106172901-c476de37821d
