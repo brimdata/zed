@@ -1,0 +1,30 @@
+script: |
+  zq -Z -I shaper.zed weird.zson
+
+inputs:
+  - name: shaper.zed
+    source: ../shaper.zed
+  - name: weird.zson
+    data: |
+      {"_path":"weird","_write_ts":"2018-03-24T17:15:20.600843Z","ts":"2018-03-24T17:15:20.600843Z","uid":"C1zOivgBT6dBmknqk","id.orig_h":"10.47.1.152","id.orig_p":49562,"id.resp_h":"23.217.103.245","id.resp_p":80,"name":"TCP_ack_underflow_or_misorder","notice":false,"peer":"zeek"}
+
+outputs:
+  - name: stdout
+    data: |
+      {
+          _path: "weird",
+          ts: 2018-03-24T17:15:20.600843Z,
+          uid: "C1zOivgBT6dBmknqk" (bstring),
+          id: {
+              orig_h: 10.47.1.152,
+              orig_p: 49562 (port=(uint16)),
+              resp_h: 23.217.103.245,
+              resp_p: 80 (port)
+          } (=0),
+          name: "TCP_ack_underflow_or_misorder" (bstring),
+          addl: null (bstring),
+          notice: false,
+          peer: "zeek" (bstring),
+          source: null (bstring),
+          _write_ts: 2018-03-24T17:15:20.600843Z
+      } (=1)
