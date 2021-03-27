@@ -11,7 +11,6 @@ import (
 	"github.com/brimsec/zq/pkg/test"
 	"github.com/brimsec/zq/proc"
 	"github.com/brimsec/zq/proc/merge"
-	"github.com/brimsec/zq/proc/proctest"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/tzngio"
@@ -106,7 +105,7 @@ func TestParallelOrder(t *testing.T) {
 			var parents []proc.Interface
 			for _, s := range c.inputs {
 				r := tzngio.NewReader(bytes.NewReader([]byte(s)), zctx)
-				parents = append(parents, &proctest.RecordPuller{R: r})
+				parents = append(parents, proc.NopDone(zbuf.NewPuller(r, 10)))
 			}
 			cmp := zbuf.NewCompareFn(field.New(c.field), c.reversed)
 			om := merge.New(pctx.Context, parents, cmp)

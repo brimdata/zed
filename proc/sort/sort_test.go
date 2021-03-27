@@ -7,167 +7,168 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/proc/proctest"
 	sortproc "github.com/brimsec/zq/proc/sort"
 	"github.com/brimsec/zq/ztest"
 )
 
 // Data sets for tests:
 const unsortedInts = `
-#0:record[foo:int32]
-0:[100;]
-0:[2;]
-0:[9100;]
+{foo:100}
+{foo:2}
+{foo:9100}
 `
 
 const ascendingInts = `
-#0:record[foo:int32]
-0:[2;]
-0:[100;]
-0:[9100;]
+{foo:2}
+{foo:100}
+{foo:9100}
 `
 
 const descendingInts = `
-#0:record[foo:int32]
-0:[9100;]
-0:[100;]
-0:[2;]
+{foo:9100}
+{foo:100}
+{foo:2}
 `
 
 const unsortedStrings = `
-#1:record[foo:string]
-1:[zzz;]
-1:[hello;]
-1:[abc;]
-1:[abcd;]
-`
+{foo:"zzz"}
+{foo:"hello"}
+{foo:"abc"}
+{foo:"abcd"}
+ `
 const sortedStrings = `
-#1:record[foo:string]
-1:[abc;]
-1:[abcd;]
-1:[hello;]
-1:[zzz;]
+{foo:"abc"}
+{foo:"abcd"}
+{foo:"hello"}
+{foo:"zzz"}
 `
 
 // A point that can be included with unsortedInts
 const unsetInt = `
-0:[-;]
+{foo:null (int64)}
 `
 
 // Some records that don't include the field "foo".  These are combined
 // with sets that include foo to test mixed records.
 const nofoo = `
-#2:record[notfoo:int32]
-2:[1;]
-2:[2;]
-2:[3;]
+{notfoo:1}
+{notfoo:2}
+{notfoo:3}
 `
 
 // Records for testing sorting on multiple fields.
 const multiIn = `
-#3:record[foo:int32,bar:int32]
-3:[5;10;]
-3:[10;10;]
-3:[10;5;]
-3:[5;5;]
+{foo:5,bar:10}
+{foo:10,bar:10}
+{foo:10,bar:5}
+{foo:5,bar:5}
 `
 
 const foobarOut = `
-#3:record[foo:int32,bar:int32]
-3:[5;5;]
-3:[5;10;]
-3:[10;5;]
-3:[10;10;]
+{foo:5,bar:5}
+{foo:5,bar:10}
+{foo:10,bar:5}
+{foo:10,bar:10}
 `
 
 const barfooOut = `
-#3:record[foo:int32,bar:int32]
-3:[5;5;]
-3:[10;5;]
-3:[5;10;]
-3:[10;10;]
+{foo:5,bar:5}
+{foo:10,bar:5}
+{foo:5,bar:10}
+{foo:10,bar:10}
 `
 
 // Test cases for sort without a field list, in which case sort chooses
 // the field to sort on.
 // First case: prefer an int-valued field (n in this case)
 const chooseIn1 = `
-#4:record[s:string,n:int32,ts:time]
-4:[a;300;1574610096.000000;]
-4:[b;100;1574610095.000000;]
-4:[c;200;1574610094.000000;]
+{s:"a",n:300,ts:2019-11-24T15:41:36Z}
+{s:"b",n:100,ts:2019-11-24T15:41:35Z}
+{s:"c",n:200,ts:2019-11-24T15:41:34Z}
 `
 
 const chooseOut1 = `
-#4:record[s:string,n:int32,ts:time]
-4:[b;100;1574610095.000000;]
-4:[c;200;1574610094.000000;]
-4:[a;300;1574610096.000000;]
+{s:"b",n:100,ts:2019-11-24T15:41:35Z}
+{s:"c",n:200,ts:2019-11-24T15:41:34Z}
+{s:"a",n:300,ts:2019-11-24T15:41:36Z}
 `
 
 // Second case: prefer a non-time-valued field.
 const chooseIn2 = `
-#4:record[s:string,ts:time]
-4:[c;1574610094.000000;]
-4:[a;1574610096.000000;]
-4:[b;1574610095.000000;]
+{s:"c",ts:2019-11-24T15:41:34Z}
+{s:"a",ts:2019-11-24T15:41:36Z}
+{s:"b",ts:2019-11-24T15:41:35Z}
 `
 
 const chooseOut2 = `
-#4:record[s:string,ts:time]
-4:[a;1574610096.000000;]
-4:[b;1574610095.000000;]
-4:[c;1574610094.000000;]
+{s:"a",ts:2019-11-24T15:41:36Z}
+{s:"b",ts:2019-11-24T15:41:35Z}
+{s:"c",ts:2019-11-24T15:41:34Z}
 `
 
 // This case: no numeric fields, just take the very first one.
 const chooseIn3 = `
-#4:record[s:string,s2:string]
-4:[a;c;]
-4:[c;a;]
-4:[b;b;]
+{s:"a",s2:"c"}
+{s:"c",s2:"a"}
+{s:"b",s2:"b"}
 `
 const chooseOut3 = `
-#4:record[s:string,s2:string]
-4:[a;c;]
-4:[b;b;]
-4:[c;a;]
+{s:"a",s2:"c"}
+{s:"b",s2:"b"}
+{s:"c",s2:"a"}
 `
+
+func trim(s string) string {
+	return strings.TrimSpace(s) + "\n"
+}
+
+func cat(ss ...string) string {
+	var out string
+	for _, s := range ss {
+		out += trim(s)
+	}
+	return out
+}
+
+func runTest(t *testing.T, cmd, input, output string) {
+	(&ztest.ZTest{
+		Zed:    cmd,
+		Input:  input,
+		Output: trim(output),
+	}).Run(t, "", "", "", "")
+}
 
 func TestSort(t *testing.T) {
 	// Test simple sorting of integers.
-	proctest.TestOneProc(t, unsortedInts, ascendingInts, "sort foo")
+	runTest(t, "sort foo", unsortedInts, ascendingInts)
 
 	// Test sorting ints in reverse.
-	proctest.TestOneProc(t, unsortedInts, descendingInts, "sort -r foo")
+	runTest(t, "sort -r foo", unsortedInts, descendingInts)
 
 	// Test sorting strings.
-	proctest.TestOneProc(t, unsortedStrings, sortedStrings, "sort foo")
+	runTest(t, "sort foo", unsortedStrings, sortedStrings)
 
 	// Test that unset values are sorted to the end
-	proctest.TestOneProc(t, unsortedInts+unsetInt, ascendingInts+unsetInt, "sort foo")
+	runTest(t, "sort foo", unsortedInts+trim(unsetInt), ascendingInts+trim(unsetInt))
 
 	// Test sorting records that don't all have the requested field.
-	const missingFields = nofoo + unsortedStrings
-	const missingSorted = sortedStrings + nofoo
-	proctest.TestOneProc(t, missingFields, missingSorted, "sort foo")
+	missingFields := cat(nofoo, unsortedStrings)
+	missingSorted := cat(sortedStrings, nofoo)
+	runTest(t, "sort foo", missingFields, missingSorted)
 
 	// Test sorting records with different types.
-	const mixedTypesIn = unsortedStrings + unsortedInts
-	const mixedTypesOut = ascendingInts + sortedStrings
-	proctest.TestOneProc(t, mixedTypesIn, mixedTypesOut, "sort foo")
+	mixedTypesIn := cat(unsortedStrings, unsortedInts)
+	mixedTypesOut := cat(ascendingInts, sortedStrings)
+	runTest(t, "sort foo", mixedTypesIn, mixedTypesOut)
 
 	// Test sorting on multiple fields.
-	proctest.TestOneProc(t, multiIn, foobarOut, "sort foo, bar")
-	proctest.TestOneProc(t, multiIn, barfooOut, "sort bar, foo")
+	runTest(t, "sort foo, bar", multiIn, foobarOut)
+	runTest(t, "sort bar, foo", multiIn, barfooOut)
 
 	// Test that choosing a field when none is provided works.
-	proctest.TestOneProc(t, chooseIn1, chooseOut1, "sort")
-	proctest.TestOneProc(t, chooseIn2, chooseOut2, "sort")
-	proctest.TestOneProc(t, chooseIn3, chooseOut3, "sort")
-
-	const warning = "Sort field bar not present in input"
-	proctest.TestOneProcWithWarnings(t, unsortedInts, ascendingInts, []string{warning}, "sort foo, bar")
+	runTest(t, "sort", chooseIn1, chooseOut1)
+	runTest(t, "sort", chooseIn2, chooseOut2)
+	runTest(t, "sort", chooseIn3, chooseOut3)
 }
 
 func TestSortExternal(t *testing.T) {
@@ -177,11 +178,10 @@ func TestSortExternal(t *testing.T) {
 		sortproc.MemMaxBytes = saved
 	}()
 
-	makeTzng := func(ss []string) string {
+	makeZSON := func(ss []string) string {
 		var b strings.Builder
-		b.WriteString("#0:record[s:string]\n")
 		for _, s := range ss {
-			b.WriteString(fmt.Sprintf("0:[%s;]\n", s))
+			b.WriteString(fmt.Sprintf("{s:%q}\n", s))
 		}
 		return b.String()
 	}
@@ -194,13 +194,8 @@ func TestSortExternal(t *testing.T) {
 		n += len(s)
 		ss = append(ss, s)
 	}
-	input := makeTzng(ss)
+	input := makeZSON(ss)
 	sort.Strings(ss)
-	output := makeTzng(ss)
-	(&ztest.ZTest{
-		Zed:         "sort s",
-		Input:       input,
-		Output:      output,
-		OutputFlags: "-f tzng",
-	}).Run(t, "", "", "", "")
+	output := makeZSON(ss)
+	runTest(t, "sort s", input, output)
 }

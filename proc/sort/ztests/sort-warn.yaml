@@ -1,0 +1,14 @@
+zed: sort foo, bar
+
+input: |
+  {foo:100}
+  {foo:2}
+  {foo:9100}
+
+output: |
+  {foo:2}
+  {foo:100}
+  {foo:9100}
+
+warnings: |
+  Sort field bar not present in input

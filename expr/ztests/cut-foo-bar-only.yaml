@@ -1,0 +1,11 @@
+zed: cut foo
+
+input: |
+  {bar:"bar1"}
+  {bar:"bar2"}
+  {bar:"bar3"}
+
+output: ""
+
+warnings: |
+  cut: no record found with columns foo
