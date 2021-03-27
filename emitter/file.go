@@ -14,7 +14,16 @@ import (
 	"github.com/brimsec/zq/zng/resolver"
 )
 
-func NewFile(ctx context.Context, path string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
+type file struct {
+	zbuf.WriteCloser
+	isstdio bool
+}
+
+func (f *file) ToStdio() bool {
+	return f.isstdio
+}
+
+func NewFile(ctx context.Context, path string, opts zio.WriterOpts) (Emitter, error) {
 	if path == "" {
 		path = "stdout"
 	}
@@ -36,7 +45,7 @@ func IsTerminal(w io.Writer) bool {
 	return false
 }
 
-func NewFileWithSource(ctx context.Context, path iosrc.URI, opts zio.WriterOpts, source iosrc.Source) (zbuf.WriteCloser, error) {
+func NewFileWithSource(ctx context.Context, path iosrc.URI, opts zio.WriterOpts, source iosrc.Source) (Emitter, error) {
 	f, err := source.NewWriter(ctx, path)
 	if err != nil {
 		return nil, err
@@ -61,5 +70,5 @@ func NewFileWithSource(ctx context.Context, path iosrc.URI, opts zio.WriterOpts,
 	if err != nil {
 		return nil, err
 	}
-	return w, nil
+	return &file{w, path.Scheme == "stdio"}, nil
 }

@@ -8,7 +8,6 @@ import (
 
 	"github.com/brimsec/zq/emitter"
 	"github.com/brimsec/zq/pkg/terminal"
-	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zio/zstio"
@@ -104,7 +103,7 @@ func (f *Flags) FileName() string {
 	return f.outputFile
 }
 
-func (f *Flags) Open(ctx context.Context) (zbuf.WriteCloser, error) {
+func (f *Flags) Open(ctx context.Context) (emitter.Emitter, error) {
 	if f.dir != "" {
 		d, err := emitter.NewDir(ctx, f.dir, f.outputFile, os.Stderr, f.WriterOpts)
 		if err != nil {
