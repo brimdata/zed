@@ -46,12 +46,12 @@ func EOS(batch zbuf.Batch, err error) bool {
 	return batch == nil || err != nil
 }
 
+func NopDone(puller zbuf.Puller) *done {
+	return &done{puller}
+}
+
 type done struct {
 	zbuf.Puller
 }
 
 func (*done) Done() {}
-
-func NopDone(puller zbuf.Puller) *done {
-	return &done{puller}
-}
