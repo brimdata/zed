@@ -4,4 +4,6 @@ input: |
   #0:record[a:int32]
   0:[1;]
 
-errorRE: cannot cut a non-record to \.
+warnings: |
+  cut: cannot cut a non-record to .
+  cut: no record found with columns a
