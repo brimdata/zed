@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/ppl/lake/index"
-	"github.com/mccanne/charm"
 	"github.com/segmentio/ksuid"
 )
 

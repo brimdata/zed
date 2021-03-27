@@ -22,7 +22,7 @@ require (
 	github.com/gosuri/uilive v0.0.4
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51
-	github.com/mccanne/charm v0.0.3-0.20191224190439-b05e1b7b1be3
+	github.com/kr/text v0.2.0
 	github.com/mitchellh/mapstructure v1.3.3
 	github.com/pbnjay/memory v0.0.0-20190104145345-974d429e7ae4
 	github.com/peterh/liner v1.1.0
@@ -38,9 +38,9 @@ require (
 	go.temporal.io/server v1.6.3
 	go.uber.org/multierr v1.6.0
 	go.uber.org/zap v1.16.0
-	golang.org/x/crypto v0.0.0-20201221181555-eec23a3978ad
 	golang.org/x/sync v0.0.0-20201020160332-67f06af15bc9
 	golang.org/x/sys v0.0.0-20210105210732-16f7687f5001
+	golang.org/x/term v0.0.0-20210317153231-de623e64d2a6
 	golang.org/x/text v0.3.4
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v3 v3.0.0-20210106172901-c476de37821d

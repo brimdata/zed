@@ -13,12 +13,12 @@ import (
 	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/s3io"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/mccanne/charm"
 )
 
 var Zq = &charm.Spec{

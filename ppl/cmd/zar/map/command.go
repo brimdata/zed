@@ -11,6 +11,7 @@ import (
 	"github.com/brimsec/zq/compiler"
 	"github.com/brimsec/zq/driver"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
@@ -21,7 +22,6 @@ import (
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/mccanne/charm"
 )
 
 var Map = &charm.Spec{

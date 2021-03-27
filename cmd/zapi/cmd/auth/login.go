@@ -8,7 +8,7 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/cmd/zapi/cmd/auth/devauth"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/pkg/browser"
 )
 

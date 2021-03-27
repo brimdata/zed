@@ -7,9 +7,9 @@ import (
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/mccanne/charm"
 )
 
 var Find = &charm.Spec{

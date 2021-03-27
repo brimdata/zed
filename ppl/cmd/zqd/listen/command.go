@@ -15,6 +15,7 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cli"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/httpd"
 	"github.com/brimsec/zq/pkg/rlimit"
@@ -23,7 +24,6 @@ import (
 	"github.com/brimsec/zq/ppl/zqd"
 	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
 	"github.com/brimsec/zq/proc/sort"
-	"github.com/mccanne/charm"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"

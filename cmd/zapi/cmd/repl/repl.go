@@ -7,9 +7,9 @@ import (
 
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/repl"
 	"github.com/brimsec/zq/pkg/units"
-	"github.com/mccanne/charm"
 )
 
 var Repl = &charm.Spec{

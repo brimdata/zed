@@ -13,13 +13,13 @@ import (
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/cli/outputflags"
+	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimsec/zq/pkg/terminal"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zson"
 	"github.com/kballard/go-shellquote"
-	"github.com/mccanne/charm"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 var Get *charm.Spec
@@ -56,7 +56,7 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	}
 
 	// If not a terminal make nofancy on by default.
-	c.NoFancy = !terminal.IsTerminal(int(os.Stdout.Fd()))
+	c.NoFancy = !terminal.IsTerminalFile(os.Stdout)
 
 	defaultHost := "localhost:9867"
 	f.StringVar(&c.Host, "h", defaultHost, "<host[:port]>")

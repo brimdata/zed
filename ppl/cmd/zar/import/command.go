@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimsec/zq/cli/inputflags"
 	"github.com/brimsec/zq/cli/procflags"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/pkg/units"
@@ -14,7 +15,6 @@ import (
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/mccanne/charm"
 )
 
 var Import = &charm.Spec{

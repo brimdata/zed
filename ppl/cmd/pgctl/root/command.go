@@ -4,7 +4,7 @@ import (
 	"flag"
 
 	"github.com/brimsec/zq/cli"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var CLI = &charm.Spec{

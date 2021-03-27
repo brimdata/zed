@@ -4,15 +4,13 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"os"
 
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zst/root"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zst"
-	"github.com/mccanne/charm"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 var Read = &charm.Spec{
@@ -43,10 +41,6 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.outputFlags.SetFlags(f)
 	return c, nil
-}
-
-func isTerminal(f *os.File) bool {
-	return terminal.IsTerminal(int(f.Fd()))
 }
 
 func (c *Command) Run(args []string) error {

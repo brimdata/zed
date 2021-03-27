@@ -8,9 +8,9 @@ import (
 	"github.com/brimsec/zq/cli/inputflags"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zst/root"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/mccanne/charm"
 )
 
 var Create = &charm.Spec{

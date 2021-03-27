@@ -5,7 +5,7 @@ import (
 	"log"
 
 	"github.com/brimsec/zq/cli"
-	"github.com/mccanne/charm"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Pcap = &charm.Spec{

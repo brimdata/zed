@@ -11,8 +11,8 @@ import (
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/cmd/zapi/format"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/display"
-	"github.com/mccanne/charm"
 )
 
 var Post = &charm.Spec{

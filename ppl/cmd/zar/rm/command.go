@@ -9,12 +9,12 @@ import (
 	"path"
 	"strings"
 
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/ppl/lake/chunk"
 	"github.com/brimsec/zq/zqe"
-	"github.com/mccanne/charm"
 )
 
 var Rm = &charm.Spec{

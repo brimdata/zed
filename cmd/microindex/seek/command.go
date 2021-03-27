@@ -10,11 +10,11 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/microindex"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/zio/zngio"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/mccanne/charm"
 )
 
 var Seek = &charm.Spec{

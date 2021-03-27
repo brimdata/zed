@@ -7,11 +7,11 @@ import (
 
 	"github.com/brimsec/zq/pkg/bufwriter"
 	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimsec/zq/pkg/terminal"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
-	"golang.org/x/crypto/ssh/terminal"
 )
 
 func NewFile(ctx context.Context, path string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
@@ -31,9 +31,7 @@ func NewFile(ctx context.Context, path string, opts zio.WriterOpts) (zbuf.WriteC
 
 func IsTerminal(w io.Writer) bool {
 	if f, ok := w.(*os.File); ok {
-		if terminal.IsTerminal(int(f.Fd())) {
-			return true
-		}
+		return terminal.IsTerminalFile(f)
 	}
 	return false
 }

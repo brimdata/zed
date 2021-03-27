@@ -9,11 +9,11 @@ import (
 	"github.com/brimsec/zq/expr"
 	"github.com/brimsec/zq/field"
 	"github.com/brimsec/zq/microindex"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zio/detector"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/mccanne/charm"
 )
 
 var Create = &charm.Spec{
