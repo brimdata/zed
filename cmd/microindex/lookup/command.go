@@ -9,10 +9,10 @@ import (
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/microindex/root"
 	"github.com/brimsec/zq/microindex"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Lookup = &charm.Spec{

@@ -6,10 +6,10 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zson"
-	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Ls = &charm.Spec{

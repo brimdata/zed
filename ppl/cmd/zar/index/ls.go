@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	"github.com/brimsec/zq/cli/outputflags"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/pkg/charm"
 	"github.com/segmentio/ksuid"
 )
 

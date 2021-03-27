@@ -10,8 +10,8 @@ import (
 
 	"github.com/brimsec/zq/cmd/pcap/root"
 	"github.com/brimsec/zq/pcap"
-	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimsec/zq/pkg/fs"
 )
 
 var Index = &charm.Spec{

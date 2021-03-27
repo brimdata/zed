@@ -13,13 +13,13 @@ import (
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cli"
 	"github.com/brimsec/zq/cli/outputflags"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/terminal"
 	"github.com/brimsec/zq/zbuf"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
 	"github.com/brimsec/zq/zson"
 	"github.com/kballard/go-shellquote"
-	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Get *charm.Spec

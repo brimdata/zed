@@ -13,9 +13,9 @@ import (
 	"github.com/brimsec/zq/api/client"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/cmd/zapi/format"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/display"
 	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/charm"
 )
 
 var PostPath = &charm.Spec{

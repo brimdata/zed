@@ -7,8 +7,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/brimsec/zq/pkg/iosrc"
 	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimsec/zq/pkg/iosrc"
 )
 
 var Post = &charm.Spec{

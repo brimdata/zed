@@ -5,9 +5,9 @@ import (
 	"flag"
 	"os"
 
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/ppl/lake"
-	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Compact = &charm.Spec{

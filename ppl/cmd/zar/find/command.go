@@ -8,12 +8,12 @@ import (
 
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/emitter"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/ppl/lake/index"
 	"github.com/brimsec/zq/zng"
 	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Find = &charm.Spec{

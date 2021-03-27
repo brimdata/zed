@@ -12,8 +12,8 @@ import (
 	"github.com/brimsec/zq/api"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/cmd/zapi/format"
-	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimsec/zq/pkg/nano"
 )
 
 var Info = &charm.Spec{

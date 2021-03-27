@@ -12,9 +12,9 @@ import (
 	"github.com/brimsec/zq/cmd/pcap/root"
 	"github.com/brimsec/zq/pcap"
 	"github.com/brimsec/zq/pcap/pcapio"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Slice = &charm.Spec{

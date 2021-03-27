@@ -10,12 +10,12 @@ import (
 
 	"github.com/brimsec/zq/cli/procflags"
 	"github.com/brimsec/zq/field"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/rlimit"
 	"github.com/brimsec/zq/pkg/signalctx"
 	"github.com/brimsec/zq/ppl/cmd/zar/root"
 	"github.com/brimsec/zq/ppl/lake"
 	"github.com/brimsec/zq/ppl/lake/index"
-	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Create = &charm.Spec{

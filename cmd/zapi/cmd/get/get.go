@@ -16,10 +16,10 @@ import (
 	"github.com/brimsec/zq/cli/outputflags"
 	"github.com/brimsec/zq/cmd/zapi/cmd"
 	"github.com/brimsec/zq/compiler"
+	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/pkg/fs"
 	"github.com/brimsec/zq/pkg/nano"
 	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/pkg/charm"
 )
 
 var Get = &charm.Spec{
