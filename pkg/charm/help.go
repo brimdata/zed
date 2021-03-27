@@ -1,6 +1,7 @@
 package charm
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"os"
@@ -9,6 +10,8 @@ import (
 	"github.com/brimsec/zq/pkg/terminal"
 	"github.com/kr/text"
 )
+
+var NeedHelp = errors.New("help")
 
 var Help = &Spec{
 	Name:  "help",
