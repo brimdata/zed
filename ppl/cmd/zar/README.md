@@ -15,6 +15,26 @@
 This is a sketch of an early prototype of zar and related tools for
 indexing and searching log archives and running interesting graph queries.
 
+# Contents
+
+  * [Test data](#test-data)
+  * [Ingesting the data](#ingesting-the-data)
+  * [Initializing the archive](#initializing-the-archive)
+  * [Counting is our "hello world"](#counting-is-our-hello-world)
+  * [Search for an IP](#search-for-an-ip)
+  * [Micro-indexes](#micro-indexes)
+  * [Creating more micro-indexes](#creating-more-micro-indexes)
+  * [Operating directly on micro-indexes](#operating-directly-on-micro-indexes)
+  * [Custom indexes: Storing aggregations in an index](#custom-indexes-storing-aggregations-in-an-index)
+  * [`zar find` with custom index](#zar-find-with-custom-index)
+  * [Multi-key custom indexes](#multi-key-custom-indexes)
+  * [Map-reduce](#map-reduce)
+  * [Simple graph queries](#simple-graph-queries)
+  * [A final word about pipes...](#a-final-word-about-pipes)
+  * [Cleanup](#cleanup)
+
+## Test data
+
 We'll use the [ZNG](../../../zng/docs/README.md)-format test data from here:
 ```
 https://github.com/brimsec/zq-sample-data/tree/main/zng
@@ -30,7 +50,7 @@ git clone --depth=1 https://github.com/brimsec/zq-sample-data.git
 ln -s zq-sample-data/zng
 ```
 
-## ingesting the data
+## Ingesting the data
 
 Let's take those logs and ingest them into a directory.  Often we'd keep our
 archive somewhere like [Amazon S3](https://aws.amazon.com/s3/), but since we're
@@ -45,15 +65,16 @@ mkdir $ZAR_ROOT
 Now, let's ingest the data using "zar import".  We are working on more
 sophisticated ways to ingest data (e.g., arbitrary partition keys and
 auto-sizing of partitions) but for now zar import just chops its input into
-chunk files of approximately equal size, each sorted by timestamp in descending
-order.  We'll chop into chunks of 25MB, which is very small, but in this
-example the data set is fairly small (175MB) and you can always try it out on
-larger data sets:
+LZ4-compressed chunk files of approximately equal size, each sorted by
+timestamp in descending order.  We'll chop into chunks of approximately 25MB
+each, which is very small, but in this example the data set is fairly small
+(71 MB of LZ4-compressed ZNG) and you can always try it out on larger data
+sets:
 ```
 zar import -s 25MB zng/*.gz
 ```
 
-## initializing the archive
+## Initializing the archive
 
 Try "zar ls" now and you can see the zar directories.  This is where zar puts
 lots of interesting data associated with each chunk file of the ingested logs.
@@ -61,7 +82,7 @@ lots of interesting data associated with each chunk file of the ingested logs.
 zar ls
 ```
 
-## counting is our "hello world"
+## Counting is our "hello world"
 
 Now that it's set up, you can do stuff with the archive.  Maybe the simplest thing
 is to count up all the events across the archive.  Since the chunk files
@@ -76,7 +97,8 @@ zar zq "count()" > counts.zng
 This invocation of zar traverses the archive, applies the zql "count()" operator
 on the data from all the chunks, and writes the output as a stream of zng data.
 By default, the output is sent to stdout, which means you can simply pipe the
-resulting stream to a vanilla zq command that will show the output as a table:
+resulting stream to a vanilla zq command that specifies `-` to expect the
+stream on stdin, then show the output as a table:
 ```
 zar zq "count()" | zq -f table -
 ```
@@ -84,6 +106,13 @@ which, for example, results in:
 ```
 COUNT
 1462078
+```
+
+The zq common options are also available when invoking zar, so instead of a
+pipeline we can get the same result in one shot via:
+
+```
+zar zq -f table "count()"
 ```
 
 "zar zq" treats the archive as if it were one large set of data, regardless
@@ -95,7 +124,7 @@ to either stdout, or to a new file in the chunk's directory.
 Here's an example using the same "count()" query as before:
 
 ```
-zar map "count()" | zq -f table -
+zar -f table map "count()"
 ```
 which results in:
 ```
@@ -119,7 +148,7 @@ or...
 1462078
 ```
 
-## search for an IP
+## Search for an IP
 
 Now let's say you want to search for a particular IP across all the zar logs.
 This is easy. You just say:
@@ -201,7 +230,7 @@ In the output here, you'll see this IP exists in exactly one log file:
 the portion of the paths following `d-` will be unique and hence differ in your
 output if you repeat the commands.)
 
-## micro-indexes
+## Micro-indexes
 
 We call these zng files "micro indexes" because each index pertains to just one
 chunk of log file and represents just one indexing rule.  If you're curious about
@@ -214,7 +243,7 @@ bitmaps that tell you exactly where each event is in the event store, our model
 is to instead build lots of small indexes for each log chunk and index different
 things in the different indexes.
 
-## creating more micro-indexes
+## Creating more micro-indexes
 
 The beauty of this approach is that you can add and delete micro-indexes
 whenever you want.  No need to suffer the fate of a massive reindexing
@@ -235,7 +264,7 @@ and you'll find "hits" in multiple chunks:
 /tmp/logs/zd/20180324/d-1jQ2co6Ttjk9wEUdzI2yW7koYtB.zng
 ```
 
-## operating directly on micro-indexes
+## Operating directly on micro-indexes
 
 Let's say instead of searching for what log chunk a value is in, we want to
 actually pull out the zng records that comprise the index.  This turns out
@@ -259,7 +288,7 @@ But, what if we wanted to put even more information in the index
 alongside each key?  If we could, it seems we could do arbitrarily
 interesting things with this...
 
-## custom indexes: storing aggregations in an index
+## Custom indexes: Storing aggregations in an index
 
 Since everything is a zng file, you can create whatever values you want to
 go along with your index keys using zql queries.  Why don't we go back to counting?
@@ -290,7 +319,7 @@ see it:
 find $ZAR_ROOT -name idx-$(zar index ls -f zng | zq -f text 'desc="zql-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'tail 1' -
 ```
 
-### zar find with custom index
+## `zar find` with custom index
 
 And now I can go back to my example from before and use "zar find" on the custom
 index:
@@ -330,7 +359,7 @@ zq "id.orig_h=10.164.94.120" zng/*.gz | zq -f table "count() by _path | sort -r"
 ```
 But using zar with the custom indexes is MUCH faster.  Pretty cool.
 
-## multi-key custom indexes
+## Multi-key custom indexes
 
 In addition to a single-key search, you can build indexes with multiple keys
 in each row.  To do this, you list the keys in order
@@ -439,7 +468,7 @@ URI                     SUM
 ```
 Pretty cool!
 
-## simple graph queries
+## Simple graph queries
 
 Here is another example to illustrate the power of zar/zq.  Just like you can
 build search indexes with arbitrary zql commands, you can also build graph indexes
@@ -509,9 +538,9 @@ data into a gist and added some commas with `awk`.  Check out this
 [d3 "block"](https://bl.ocks.org/mccanne/ff6f703cf202aee59197fff1f63d04fe).
 <!-- markdown-link-check-enable -->
 
-## pipes
+## A final word about pipes...
 
-We love pipes in the zq project. Make a test file:
+As you've likely noticed, we love pipes in the zq project. Make a test file:
 
 ```
 zq "head 10000" zng/* > pipes.zng
@@ -541,7 +570,7 @@ zq -f text "count()" pipes.zng
 zq -f text "count()" pipes2.zng
 ```
 
-## cleanup
+## Cleanup
 
 To clean out all the files you've created in the zar directories and
 start over, just run
