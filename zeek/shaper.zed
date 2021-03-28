@@ -53,7 +53,56 @@ type tunnel={_path:string,ts:time,uid:bstring,id:id,tunnel_type:zenum,action:zen
 type weird={_path:string,ts:time,uid:bstring,id:id,name:bstring,addl:bstring,notice:bool,peer:bstring,source:bstring,_write_ts:time};
 type x509={_path:string,ts:time,id:bstring,certificate:{version:uint64,serial:bstring,subject:bstring,issuer:bstring,not_valid_before:time,not_valid_after:time,key_alg:bstring,sig_alg:bstring,key_type:bstring,key_length:uint64,exponent:bstring,curve:bstring},san:{dns:[bstring],uri:[bstring],email:[bstring],ip:[ip]},basic_constraints:{ca:bool,path_len:uint64},_write_ts:time};
 
-
-const schemas = |{ "broker": broker, "capture_loss": capture_loss, "cluster": cluster, "config": config, "conn": conn, "dce_rpc": dce_rpc, "dhcp": dhcp, "dnp3": dnp3, "dns": dns, "dpd": dpd, "files": files, "ftp": ftp, "http": http, "intel": intel, "irc": irc, "kerberos": kerberos, "known_certs": known_certs, "known_hosts": known_hosts, "known_services": known_services, "loaded_scripts": loaded_scripts, "modbus": modbus, "mysql": mysql, "netcontrol": netcontrol, "netcontrol_drop": netcontrol_drop, "netcontrol_shunt": netcontrol_shunt, "notice": notice, "notice_alarm": notice_alarm, "ntlm": ntlm, "ntp": ntp, "packet_filter": packet_filter, "pe": pe, "radius": radius, "rdp": rdp, "reporter": reporter, "rfb": rfb, "signatures": signatures, "sip": sip, "smb_files": smb_files, "smb_mapping": smb_mapping, "smtp": smtp, "snmp": snmp, "socks": socks, "software": software, "ssh": ssh, "ssl": ssl, "stats": stats, "syslog": syslog, "tunnel": tunnel, "weird": weird, "x509": x509 }|
+const schemas = |{
+  "broker": broker,
+  "capture_loss": capture_loss,
+  "cluster": cluster,
+  "config": config,
+  "conn": conn,
+  "dce_rpc": dce_rpc,
+  "dhcp": dhcp,
+  "dnp3": dnp3,
+  "dns": dns,
+  "dpd": dpd,
+  "files": files,
+  "ftp": ftp,
+  "http": http,
+  "intel": intel,
+  "irc": irc,
+  "kerberos": kerberos,
+  "known_certs": known_certs,
+  "known_hosts": known_hosts,
+  "known_services": known_services,
+  "loaded_scripts": loaded_scripts,
+  "modbus": modbus, "mysql": mysql,
+  "netcontrol": netcontrol,
+  "netcontrol_drop": netcontrol_drop,
+  "netcontrol_shunt": netcontrol_shunt,
+  "notice": notice,
+  "notice_alarm": notice_alarm,
+  "ntlm": ntlm, "ntp": ntp,
+  "packet_filter": packet_filter,
+  "pe": pe,
+  "radius": radius,
+  "rdp": rdp,
+  "reporter": reporter,
+  "rfb": rfb,
+  "signatures": signatures,
+  "sip": sip,
+  "smb_files": smb_files,
+  "smb_mapping": smb_mapping,
+  "smtp": smtp,
+  "snmp": snmp,
+  "socks": socks,
+  "software": software,
+  "ssh": ssh,
+  "ssl": ssl,
+  "stats": stats,
+  "syslog": syslog,
+  "tunnel": tunnel,
+  "weird": weird,
+  "x509":
+  x509
+}|
 
 put .=unflatten(.) | put . = shape(schemas[_path])
