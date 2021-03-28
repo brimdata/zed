@@ -1,10 +1,10 @@
 script: |
-  zq -Z -I shaper.zed weird.zson
+  zq -Z -I shaper.zed -
 
 inputs:
   - name: shaper.zed
     source: ../shaper.zed
-  - name: weird.zson
+  - name: stdin
     data: |
       {"_path":"weird","_write_ts":"2018-03-24T17:15:20.600843Z","ts":"2018-03-24T17:15:20.600843Z","uid":"C1zOivgBT6dBmknqk","id.orig_h":"10.47.1.152","id.orig_p":49562,"id.resp_h":"23.217.103.245","id.resp_p":80,"name":"TCP_ack_underflow_or_misorder","notice":false,"peer":"zeek"}
 
