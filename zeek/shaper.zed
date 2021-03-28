@@ -15,9 +15,9 @@ type dpd={_path:string,ts:time,uid:bstring,id:id,proto:zenum,analyzer:bstring,fa
 type files={_path:string,ts:time,fuid:bstring,tx_hosts:|[ip]|,rx_hosts:|[ip]|,conn_uids:|[bstring]|,source:bstring,depth:uint64,analyzers:|[bstring]|,mime_type:bstring,filename:bstring,duration:duration,local_orig:bool,is_orig:bool,seen_bytes:uint64,total_bytes:uint64,missing_bytes:uint64,overflow_bytes:uint64,timedout:bool,parent_fuid:bstring,md5:bstring,sha1:bstring,sha256:bstring,extracted:bstring,extracted_cutoff:bool,extracted_size:uint64,_write_ts:time};
 type ftp={_path:string,ts:time,uid:bstring,id:id,user:bstring,password:bstring,command:bstring,arg:bstring,mime_type:bstring,file_size:uint64,reply_code:uint64,reply_msg:bstring,data_channel:{passive:bool,orig_h:ip,resp_h:ip,resp_p:port=(uint16)},fuid:bstring,_write_ts:time};
 type http={_path:string,ts:time,uid:bstring,id:id,trans_depth:uint64,method:bstring,host:bstring,uri:bstring,referrer:bstring,version:bstring,user_agent:bstring,origin:bstring,request_body_len:uint64,response_body_len:uint64,status_code:uint64,status_msg:bstring,info_code:uint64,info_msg:bstring,tags:|[zenum]|,username:bstring,password:bstring,proxied:|[bstring]|,orig_fuids:[bstring],orig_filenames:[bstring],orig_mime_types:[bstring],resp_fuids:[bstring],resp_filenames:[bstring],resp_mime_types:[bstring],_write_ts:time};
-type intel={_path:string,ts:time,uid:bstring,id:id,seen:{indicator:bstring,indicator_type:zenum,where:zenum,node:bstring},matched:|[zenum]|,sources:|[bstring]|,fuid:bstring,file_mime_type:bstring,file_desc:bstring,_write_ts:time};
+type intel={_path:string,ts:time,uid:bstring,id:id,seen:{indicator:bstring,indicator_type:zenum,\where:zenum,node:bstring},matched:|[zenum]|,sources:|[bstring]|,fuid:bstring,file_mime_type:bstring,file_desc:bstring,_write_ts:time};
 type irc={_path:string,ts:time,uid:bstring,id:id,nick:bstring,user:bstring,command:bstring,value:bstring,addl:bstring,dcc_file_name:bstring,dcc_file_size:uint64,dcc_mime_type:bstring,fuid:bstring,_write_ts:time};
-type kerberos={_path:string,ts:time,uid:bstring,id:id,request_type:bstring,client:bstring,service:bstring,success:bool,error_msg:bstring,from:time,till:time,cipher:bstring,forwardable:bool,renewable:bool,client_cert_subject:bstring,client_cert_fuid:bstring,server_cert_subject:bstring,server_cert_fuid:bstring,_write_ts:time};
+type kerberos={_path:string,ts:time,uid:bstring,id:id,request_type:bstring,client:bstring,service:bstring,success:bool,error_msg:bstring,\from:time,till:time,cipher:bstring,forwardable:bool,renewable:bool,client_cert_subject:bstring,client_cert_fuid:bstring,server_cert_subject:bstring,server_cert_fuid:bstring,_write_ts:time};
 type known_certs={_path:string,ts:time,host:ip,port_num:port=(uint16),subject:bstring,issuer_subject:bstring,serial:bstring,_write_ts:time};
 type known_hosts={_path:string,ts:time,host:ip,_write_ts:time};
 type known_services={_path:string,ts:time,host:ip,port_num:port=(uint16),port_proto:zenum,service:|[bstring]|,_write_ts:time};
@@ -41,7 +41,7 @@ type signatures={_path:string,ts:time,uid:bstring,src_addr:ip,src_port:port=(uin
 type sip={_path:string,ts:time,uid:bstring,id:id,trans_depth:uint64,method:bstring,uri:bstring,date:bstring,request_from:bstring,request_to:bstring,response_from:bstring,response_to:bstring,reply_to:bstring,call_id:bstring,seq:bstring,subject:bstring,request_path:[bstring],response_path:[bstring],user_agent:bstring,status_code:uint64,status_msg:bstring,warning:bstring,request_body_len:uint64,response_body_len:uint64,content_type:bstring,_write_ts:time};
 type smb_files={_path:string,ts:time,uid:bstring,id:id,fuid:bstring,action:zenum,path:bstring,name:bstring,size:uint64,prev_name:bstring,times:{modified:time,accessed:time,created:time,changed:time},_write_ts:time};
 type smb_mapping={_path:string,ts:time,uid:bstring,id:id,path:bstring,service:bstring,native_file_system:bstring,share_type:bstring,_write_ts:time};
-type smtp={_path:string,ts:time,uid:bstring,id:id,trans_depth:uint64,helo:bstring,mailfrom:bstring,rcptto:|[bstring]|,date:bstring,from:bstring,to:|[bstring]|,cc:|[bstring]|,reply_to:bstring,msg_id:bstring,in_reply_to:bstring,subject:bstring,x_originating_ip:ip,first_received:bstring,second_received:bstring,last_reply:bstring,path:[ip],user_agent:bstring,tls:bool,fuids:[bstring],is_webmail:bool,_write_ts:time};
+type smtp={_path:string,ts:time,uid:bstring,id:id,trans_depth:uint64,helo:bstring,mailfrom:bstring,rcptto:|[bstring]|,date:bstring,\from:bstring,to:|[bstring]|,cc:|[bstring]|,reply_to:bstring,msg_id:bstring,in_reply_to:bstring,subject:bstring,x_originating_ip:ip,first_received:bstring,second_received:bstring,last_reply:bstring,path:[ip],user_agent:bstring,tls:bool,fuids:[bstring],is_webmail:bool,_write_ts:time};
 type snmp={_path:string,ts:time,uid:bstring,id:id,duration:duration,version:bstring,community:bstring,get_requests:uint64,get_bulk_requests:uint64,get_responses:uint64,set_requests:uint64,display_string:bstring,up_since:time,_write_ts:time};
 type socks={_path:string,ts:time,uid:bstring,id:id,version:uint64,user:bstring,password:bstring,status:bstring,request:{host:ip,name:bstring},request_p:port=(uint16),bound:{host:ip,name:bstring},bound_p:port=(uint16),_write_ts:time};
 type software={_path:string,ts:time,host:ip,host_p:port=(uint16),software_type:zenum,name:bstring,version:{major:uint64,minor:uint64,minor2:uint64,minor3:uint64,addl:bstring},unparsed_version:bstring,_write_ts:time};
@@ -53,57 +53,56 @@ type tunnel={_path:string,ts:time,uid:bstring,id:id,tunnel_type:zenum,action:zen
 type weird={_path:string,ts:time,uid:bstring,id:id,name:bstring,addl:bstring,notice:bool,peer:bstring,source:bstring,_write_ts:time};
 type x509={_path:string,ts:time,id:bstring,certificate:{version:uint64,serial:bstring,subject:bstring,issuer:bstring,not_valid_before:time,not_valid_after:time,key_alg:bstring,sig_alg:bstring,key_type:bstring,key_length:uint64,exponent:bstring,curve:bstring},san:{dns:[bstring],uri:[bstring],email:[bstring],ip:[ip]},basic_constraints:{ca:bool,path_len:uint64},_write_ts:time};
 
+const schemas = |{
+  "broker": broker,
+  "capture_loss": capture_loss,
+  "cluster": cluster,
+  "config": config,
+  "conn": conn,
+  "dce_rpc": dce_rpc,
+  "dhcp": dhcp,
+  "dnp3": dnp3,
+  "dns": dns,
+  "dpd": dpd,
+  "files": files,
+  "ftp": ftp,
+  "http": http,
+  "intel": intel,
+  "irc": irc,
+  "kerberos": kerberos,
+  "known_certs": known_certs,
+  "known_hosts": known_hosts,
+  "known_services": known_services,
+  "loaded_scripts": loaded_scripts,
+  "modbus": modbus, "mysql": mysql,
+  "netcontrol": netcontrol,
+  "netcontrol_drop": netcontrol_drop,
+  "netcontrol_shunt": netcontrol_shunt,
+  "notice": notice,
+  "notice_alarm": notice_alarm,
+  "ntlm": ntlm, "ntp": ntp,
+  "packet_filter": packet_filter,
+  "pe": pe,
+  "radius": radius,
+  "rdp": rdp,
+  "reporter": reporter,
+  "rfb": rfb,
+  "signatures": signatures,
+  "sip": sip,
+  "smb_files": smb_files,
+  "smb_mapping": smb_mapping,
+  "smtp": smtp,
+  "snmp": snmp,
+  "socks": socks,
+  "software": software,
+  "ssh": ssh,
+  "ssl": ssl,
+  "stats": stats,
+  "syslog": syslog,
+  "tunnel": tunnel,
+  "weird": weird,
+  "x509":
+  x509
+}|
 
-put .=unflatten(.)
-   | switch (
-    case _path=files => put . = shape(files)
-    case _path=http => put . = shape(http)
-    case _path=rdp => put . = shape(rdp)
-    case _path=ssl => put . = shape(ssl)
-    case _path=tunnel => put . = shape(tunnel)
-    case _path=dns => put . = shape(dns)
-    case _path=known_certs => put . = shape(known_certs)
-    case _path=dhcp => put . = shape(dhcp)
-    case _path=modbus => put . = shape(modbus)
-    case _path=ntp => put . = shape(ntp)
-    case _path=snmp => put . = shape(snmp)
-    case _path=ssh => put . = shape(ssh)
-    case _path=syslog => put . = shape(syslog)
-    case _path=x509 => put . = shape(x509)
-    case _path=capture_loss => put . = shape(capture_loss)
-    case _path=dce_rpc => put . = shape(dce_rpc)
-    case _path=ftp => put . = shape(ftp)
-    case _path=notice => put . = shape(notice)
-    case _path=packet_filter => put . = shape(packet_filter)
-    case _path=radius => put . = shape(radius)
-    case _path=smtp => put . = shape(smtp)
-    case _path=stats => put . = shape(stats)
-    case _path=weird => put . = shape(weird)
-    case _path=dpd => put . = shape(dpd)
-    case _path=intel => put . = shape(intel)
-    case _path=irc => put . = shape(irc)
-    case _path=kerberos => put . = shape(kerberos)
-    case _path=loaded_scripts => put . = shape(loaded_scripts)
-    case _path=mysql => put . = shape(mysql)
-    case _path=netcontrol => put . = shape(netcontrol)
-    case _path=netcontrol_shunt => put . = shape(netcontrol_shunt)
-    case _path=signatures => put . = shape(signatures)
-    case _path=socks => put . = shape(socks)
-    case _path=software => put . = shape(software)
-    case _path=known_services => put . = shape(known_services)
-    case _path=sip => put . = shape(sip)
-    case _path=smb_mapping => put . = shape(smb_mapping)
-    case _path=broker => put . = shape(broker)
-    case _path=config => put . = shape(config)
-    case _path=notice_alarm => put . = shape(notice_alarm)
-    case _path=pe => put . = shape(pe)
-    case _path=smb_files => put . = shape(smb_files)
-    case _path=cluster => put . = shape(cluster)
-    case _path=conn => put . = shape(conn)
-    case _path=dnp3 => put . = shape(dnp3)
-    case _path=known_hosts => put . = shape(known_hosts)
-    case _path=netcontrol_drop => put . = shape(netcontrol_drop)
-    case _path=ntlm => put . = shape(ntlm)
-    case _path=reporter => put . = shape(reporter)
-    case _path=rfb => put . = shape(rfb)
-)
+put .=unflatten(.) | put . = shape(schemas[_path])
