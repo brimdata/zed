@@ -3,11 +3,11 @@ package zqd
 import (
 	"net/http"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/ppl/lake"
-	"github.com/brimsec/zq/ppl/zqd/search"
-	"github.com/brimsec/zq/ppl/zqd/storage/archivestore"
-	"github.com/brimsec/zq/zqe"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/ppl/lake"
+	"github.com/brimdata/zq/ppl/zqd/search"
+	"github.com/brimdata/zq/ppl/zqd/storage/archivestore"
+	"github.com/brimdata/zq/zqe"
 	"go.uber.org/zap"
 )
 

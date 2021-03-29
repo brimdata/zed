@@ -3,8 +3,8 @@ package split
 import (
 	"sync"
 
-	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/zbuf"
+	"github.com/brimdata/zq/proc"
+	"github.com/brimdata/zq/zbuf"
 )
 
 // Splitter splits its input into multiple proc outputs.  Since procs run from the

@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/brimsec/zq/compiler"
-	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/microindex"
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/compiler"
+	"github.com/brimdata/zq/driver"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zq/microindex"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 func NewWriter(ctx context.Context, u iosrc.URI, def *Definition) (*Writer, error) {

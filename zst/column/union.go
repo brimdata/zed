@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 type UnionWriter struct {

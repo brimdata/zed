@@ -1,7 +1,7 @@
 package semantic
 
 import (
-	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimdata/zq/compiler/ast"
 )
 
 type Scope struct {

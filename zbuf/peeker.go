@@ -1,7 +1,7 @@
 package zbuf
 
 import (
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/zng"
 )
 
 // Peeker wraps a Stream while adding a Peek method, which allows inspection

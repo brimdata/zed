@@ -20,7 +20,7 @@ dependencies:
 
   - name: temporal
     version: 0.x.x
-    repository: https://brimsec.github.io/helm-chart/
+    repository: https://brimdata.github.io/helm-chart/
     tags:
       - deploy-temporal
 

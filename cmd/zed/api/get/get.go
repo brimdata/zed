@@ -11,15 +11,15 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/api/client"
-	"github.com/brimsec/zq/cli/outputflags"
-	apicmd "github.com/brimsec/zq/cmd/zed/api"
-	"github.com/brimsec/zq/compiler"
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/pkg/fs"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zbuf"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/api/client"
+	"github.com/brimdata/zq/cli/outputflags"
+	apicmd "github.com/brimdata/zq/cmd/zed/api"
+	"github.com/brimdata/zq/compiler"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/pkg/fs"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zbuf"
 )
 
 var Get = &charm.Spec{

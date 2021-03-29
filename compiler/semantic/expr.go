@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/expr/agg"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/expr/agg"
 )
 
 func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {

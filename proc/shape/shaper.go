@@ -4,10 +4,10 @@ import (
 	"errors"
 	"hash/maphash"
 
-	"github.com/brimsec/zq/proc/spill"
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/proc/spill"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 type Shaper struct {

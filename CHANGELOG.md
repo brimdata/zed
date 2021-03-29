@@ -3,23 +3,23 @@ zq, or pcap.  For all changes to zqd, its API, or to other components in the
 zq repo, check the git log.
 
 ## v0.29.0
-* zqd: Update Zeek pointer to [v3.2.1-brim10](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim10) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#2081)
+* zqd: Update Zeek pointer to [v3.2.1-brim10](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim10) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#2081)
 * zql: Add shaping primitive functions `cast()`, `fill()`, `crop()`, and `order()`, along with `fit()` and `shape()` (#1984, #2059, #2073, #2033)
 * zson: Read ZSON incrementally rather than all at once (#2031)
 * zson: Tighten whitespace in ZSON `-pretty=0` output (#2030)
 * zql: Change parallel graph syntax to use `split` and `=>` (#2037)
 * zson: Add `duration` to the implied type list (#2039)
-* zq: Fix an issue with [`rename`](https://github.com/brimsec/zq/tree/main/zql/docs/processors#rename) where a subsequent `count()` would return no results (#2046)
+* zq: Fix an issue with [`rename`](https://github.com/brimdata/zq/tree/main/zql/docs/processors#rename) where a subsequent `count()` would return no results (#2046)
 * zq: Fix an issue where multiple alias typedefs were generated for the same type, causing a TZNG read failure (#2047)
 * zson: Fix an issue with string scanning in the ZSON parser that caused the failure `parse error: parsing string literal` (#2048)
 * zq: Fix an issue on Windows where `-` was not being treated as a way to read from stdin (#2061)
-* zq: Add support in [`put`](https://github.com/brimsec/zq/tree/main/zql/docs/processors#put) for assigning to `.` and to nested fields (#2018)
+* zq: Add support in [`put`](https://github.com/brimdata/zq/tree/main/zql/docs/processors#put) for assigning to `.` and to nested fields (#2018)
 * zson: Fix an issue where reading ZSON caused the failure `parse error: mismatched braces while parsing record type` (#2058)
 * zson: Fix an issue where casting `null` values to string types caused invalid output (#2077)
 
 ## v0.28.0
 **NOTE** - Beginning with this release, a subset of the source code in the
-[github.com/brimsec/zq](https://github.com/brimsec/zq) GitHub repository is
+[github.com/brimdata/zq](https://github.com/brimdata/zq) GitHub repository is
 covered by a source-available style license, the
 [Polyform Perimeter License (PPL)](https://polyformproject.org/licenses/perimeter/1.0.0/).
 We've moved the PPL-covered code under a `ppl/` directory in the repository.
@@ -39,34 +39,34 @@ the source-available Polyform Perimeter license on portions of the source code
 lets us realize both. 
 
 For more detail regarding licensing, see the
-[CONTRIBUTING.md](https://github.com/brimsec/zq/blob/main/CONTRIBUTING.md)
+[CONTRIBUTING.md](https://github.com/brimdata/zq/blob/main/CONTRIBUTING.md)
 doc, and feel free to come talk to us on
 [Slack](https://www.brimsecurity.com/join-slack/) if you have additional
 questions.
 
 ---
 
-* zqd: Update Zeek pointer to [v3.2.1-brim9](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim9) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#2010)
-* zqd: Update Suricata pointer to [v5.0.3-brim1](https://github.com/brimsec/build-suricata/releases/tag/v5.0.3-brim1) which disables checksum checks, allowing for alert creation on more types of pcaps (#1975)
-* zson: Update [Zeek Interoperability doc](https://github.com/brimsec/zq/blob/main/zng/docs/zeek-compat.md) to include current ZSON syntax (#1956)
-* zq: Ensure the output from the [`fuse`](https://github.com/brimsec/zq/tree/main/zql/docs/processors#fuse) processor is deterministic (#1958)
+* zqd: Update Zeek pointer to [v3.2.1-brim9](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim9) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#2010)
+* zqd: Update Suricata pointer to [v5.0.3-brim1](https://github.com/brimdata/build-suricata/releases/tag/v5.0.3-brim1) which disables checksum checks, allowing for alert creation on more types of pcaps (#1975)
+* zson: Update [Zeek Interoperability doc](https://github.com/brimdata/zq/blob/main/zng/docs/zeek-compat.md) to include current ZSON syntax (#1956)
+* zq: Ensure the output from the [`fuse`](https://github.com/brimdata/zq/tree/main/zql/docs/processors#fuse) processor is deterministic (#1958)
 * zq: Fix an issue where the presence of the Greek µ character caused a ZSON read parsing error (#1967)
 * zqd: Fix an issue where Zeek events generated during pcap import and written to an archivestore were only visible after ingest completion (#1973)
 * zqd: Change the logger configuration to output stacktraces on messages of level "warn" and higher (#1990)
-* zq: Update [performance results](https://github.com/brimsec/zq/blob/main/performance/README.md) to include ZSON read/write (#1974)
+* zq: Update [performance results](https://github.com/brimdata/zq/blob/main/performance/README.md) to include ZSON read/write (#1974)
 
 ## v0.27.1
 * zq: Fix an issue where nested nulls caused a panic in CSV output (#1954)
 
 ## v0.27.0
-* zqd: Update Zeek pointer to [v3.2.1-brim8](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim8) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1928)
+* zqd: Update Zeek pointer to [v3.2.1-brim8](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim8) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#1928)
 * zson: Allow characters `.` and `/` in ZSON type names, and fix an issue when accessing fields in aliased records (#1850)
 * zson: Add a ZSON marshaler and clean up the ZNG marshaler (#1854)
 * zq: Add the `source` field to the JSON typing config to prepare for Zeek v4.x `weird` events (#1884)
 * zq: Add initial Z "shaper" for performing ETL on logs at import time (#1870)
 * zq: Make all aggregators decomposable (#1893)
-* zq/zqd: Invoke [`fuse`](https://github.com/brimsec/zq/tree/main/zql/docs/processors#fuse) automatically when CSV output is requested (#1908)
-* zq: Fix an issue where [`fuse`](https://github.com/brimsec/zq/tree/main/zql/docs/processors#fuse) was not preserving record order (#1909)
+* zq/zqd: Invoke [`fuse`](https://github.com/brimdata/zq/tree/main/zql/docs/processors#fuse) automatically when CSV output is requested (#1908)
+* zq: Fix an issue where [`fuse`](https://github.com/brimdata/zq/tree/main/zql/docs/processors#fuse) was not preserving record order (#1909)
 * zar: Create indices when data is imported or chunks are compacted (#1794)
 * zqd: Fix an issue where warnings returned from the `/log/path` endpoint were being dropped (#1903)
 * zq: Fix an issue where an attempted search of an empty record caused a panic (#1911)
@@ -74,7 +74,7 @@ questions.
 * zq: Fix an issue where files could not be opened from Windows UNC paths (#1929)
 
 ## v0.26.0
-* zqd: Update Zeek pointer to [v3.2.1-brim7](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim7) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1855)
+* zqd: Update Zeek pointer to [v3.2.1-brim7](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim7) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#1855)
 * zq: Improve the error message shown when row size exceeds max read buffer (#1808)
 * zqd: Remove `listen -pprof` flag (profiling data is now always made available) (#1800)
 * zson: Add initial ZSON parser and reader (#1806, #1829, #1830, #1832)
@@ -85,22 +85,22 @@ questions.
 * zq: Add NDJSON typing configuration for the Suricata "vlan" field (#1851)
 
 ## v0.25.0
-* zqd: Update Zeek pointer to [v3.2.1-brim6](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim6) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1795)
-* zqd: Update Suricata pointer to [v5.0.3-brimpre2](https://github.com/brimsec/build-suricata/releases/tag/v5.0.3-brimpre2) to generate alerts for imported pcaps (#1729)
+* zqd: Update Zeek pointer to [v3.2.1-brim6](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim6) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#1795)
+* zqd: Update Suricata pointer to [v5.0.3-brimpre2](https://github.com/brimdata/build-suricata/releases/tag/v5.0.3-brimpre2) to generate alerts for imported pcaps (#1729)
 * zqd: Make some columns more prominent (moved leftward) in Suricata alert records (#1749)
 * zq: Fix an issue where returned errors could cause a panic due to type mismatches (#1720, #1727, #1728, #1740, #1773)
 * python: Fix an issue where the [Python client](https://medium.com/brim-securitys-knowledge-funnel/visualizing-ip-traffic-with-brim-zeek-and-networkx-3844a4c25a2f) did not generate an error when `zqd` was absent (#1711)
 * zql: Allow the `len()` function to work on `ip` and `net` types (#1725)
-* zson: Add a [draft specification](https://github.com/brimsec/zq/blob/main/zng/docs/zson.md) of the new ZSON format (#1715, #1735, #1741, #1765)
+* zson: Add a [draft specification](https://github.com/brimdata/zq/blob/main/zng/docs/zson.md) of the new ZSON format (#1715, #1735, #1741, #1765)
 * zng: Add support for marshaling of `time` values (#1743)
 * zar: Fix an issue where a `couldn't read trailer` failure was observed during a `zar zq` query (#1748)
 * zar: Fix an issue where `zar import` of a 14 GB data set triggered a SEGV (#1766)
-* zql: Add a new [`drop`](https://github.com/brimsec/zq/tree/main/zql/docs/processors#drop) processor, which replaces `cut -c` (#1773)
-* zql: Add a new [`pick`](https://github.com/brimsec/zq/tree/main/zql/docs/processors#pick) processor, which acts like a stricter [`cut`](https://github.com/brimsec/zq/tree/main/zql/docs/processors#cut) (#1773, #1788)
+* zql: Add a new [`drop`](https://github.com/brimdata/zq/tree/main/zql/docs/processors#drop) processor, which replaces `cut -c` (#1773)
+* zql: Add a new [`pick`](https://github.com/brimdata/zq/tree/main/zql/docs/processors#pick) processor, which acts like a stricter [`cut`](https://github.com/brimdata/zq/tree/main/zql/docs/processors#cut) (#1773, #1788)
 * zqd: Improve performance when listing Spaces via the API (#1779, #1786)
 
 ## v0.24.0
-* zq: Update Zeek pointer to [v3.2.1-brim5](https://github.com/brimsec/zeek/releases/tag/v3.2.1-brim5) which provides the latest [geolocation](https://github.com/brimsec/brim/wiki/Geolocation) data (#1713)
+* zq: Update Zeek pointer to [v3.2.1-brim5](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim5) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#1713)
 * zql: For functions, introduce "snake case" names and deprecate package syntax (#1575, #1609)
 * zql: Add a `cut()` function (#1585)
 * zar: Allow `zar import` of multiple paths (#1582)
@@ -109,9 +109,9 @@ questions.
 * zar: Fix an issue where `zar zq` yielded incorrect event counts compared to plain `zq` (#1588, #1602)
 * zq: Fix a memory bug in `collect()` that caused incorrect results (#1598)
 * zqd: Support log imports over the network (#1336)
-* zq: Update [performance results](https://github.com/brimsec/zq/blob/main/performance/README.md) to reflect recent improvements (#1605, #1669, #1671)
+* zq: Update [performance results](https://github.com/brimdata/zq/blob/main/performance/README.md) to reflect recent improvements (#1605, #1669, #1671)
 * zq: Move Zeek & Suricata dependencies into `package.json` so Brim can point to them also (#1607, #1610)
-* zql: Add support for [aggregation-less group by](https://github.com/brimsec/zq/tree/main/zql/docs/grouping#example-1-1) (#1615, #1623)
+* zql: Add support for [aggregation-less group by](https://github.com/brimdata/zq/tree/main/zql/docs/grouping#example-1-1) (#1615, #1623)
 * zqd: Run `suricata-update` at startup when Suricata pcap analysis is enabled (#1586)
 * zqd: Add example Prometheus metrics (#1627)
 * zq: Fix an issue where doing `put` of a null value caused a crash (#1631)
@@ -128,12 +128,12 @@ questions.
 * zq: Add an experimental writer for a new format called ZSON (#1681)
 * zar: Fix an issue during import that could buffer too much data (#1652, #1696)
 * zql: Add a `network_of()` function for mapping IP addresses to CIDR nets (#1700)
-* zql: Add a [docs example](https://github.com/brimsec/zq/tree/main/zql/docs/grouping#example-4) showing `by` grouping with non-present fields (#1703)
+* zql: Add a [docs example](https://github.com/brimdata/zq/tree/main/zql/docs/grouping#example-4) showing `by` grouping with non-present fields (#1703)
 
 ## v0.23.0
-* zql: Add `week` as a unit for [time grouping with `every`](https://github.com/brimsec/zq/tree/main/zql/docs/grouping#time-grouping---every) (#1374)
-* zq: Fix an issue where a `null` value in a [JSON type definition](https://github.com/brimsec/zq/blob/main/zeek/README.md) caused a failure without an error message (#1377)
-* zq: Add [`zst` format](https://github.com/brimsec/zq/blob/main/zst/README.md) to `-i` and `-f` command-line help (#1384)
+* zql: Add `week` as a unit for [time grouping with `every`](https://github.com/brimdata/zq/tree/main/zql/docs/grouping#time-grouping---every) (#1374)
+* zq: Fix an issue where a `null` value in a [JSON type definition](https://github.com/brimdata/zq/blob/main/zeek/README.md) caused a failure without an error message (#1377)
+* zq: Add [`zst` format](https://github.com/brimdata/zq/blob/main/zst/README.md) to `-i` and `-f` command-line help (#1384)
 * zq: ZNG spec and `zq` updates to introduce the beta ZNG storage format (#1375, #1415, #1394, #1457, #1512, #1523, #1529), also adddressing the following:
    * New data type `bytes` for storing sequences of bytes encoded as base64 (#1315)
    * Improvements to the `enum` data type (#1314)
@@ -147,13 +147,13 @@ questions.
 * zq: Add backward compatibility for reading the alpha ZNG storage format (#1386, #1392, #1393, #1441)
 * zqd: Check and convert alpha ZNG filestores to beta ZNG (#1574, #1576)
 * zq: Fix an issue where spill-to-disk file names could collide (#1391)
-* zq: Allow the [`fuse` processor](https://github.com/brimsec/zq/tree/main/zql/docs/processors#fuse) to spill-to-disk to avoid memory limitations (#1355, #1402)
-* zq: No longer require `_path` as a first column in a [JSON type definition](https://github.com/brimsec/zq/blob/main/zeek/README.md) (#1370)
-* zql: Improve ZQL docs for [aggregate functions](https://github.com/brimsec/zq/blob/main/zql/docs/aggregate-functions/README.md) and [grouping](https://github.com/brimsec/zq/blob/main/zql/docs/grouping/README.md) (#1385)
+* zq: Allow the [`fuse` processor](https://github.com/brimdata/zq/tree/main/zql/docs/processors#fuse) to spill-to-disk to avoid memory limitations (#1355, #1402)
+* zq: No longer require `_path` as a first column in a [JSON type definition](https://github.com/brimdata/zq/blob/main/zeek/README.md) (#1370)
+* zql: Improve ZQL docs for [aggregate functions](https://github.com/brimdata/zq/blob/main/zql/docs/aggregate-functions/README.md) and [grouping](https://github.com/brimdata/zq/blob/main/zql/docs/grouping/README.md) (#1385)
 * zql: Point links for developer docs at [pkg.go.dev](https://pkg.go.dev/) instead of [godoc.org](https://godoc.org/) (#1401)
 * zq: Add support for timestamps with signed timezone offsets (#1389)
-* zq: Add a [JSON type definition](https://github.com/brimsec/zq/blob/main/zeek/README.md) for alert events in [Suricata EVE logs](https://suricata.readthedocs.io/en/suricata-5.0.2/output/eve/eve-json-output.html) (#1400)
-* zq: Update the [ZNG over JSON (ZJSON)](https://github.com/brimsec/zq/blob/main/zng/docs/zng-over-json.md) spec and implementation (#1299)
+* zq: Add a [JSON type definition](https://github.com/brimdata/zq/blob/main/zeek/README.md) for alert events in [Suricata EVE logs](https://suricata.readthedocs.io/en/suricata-5.0.2/output/eve/eve-json-output.html) (#1400)
+* zq: Update the [ZNG over JSON (ZJSON)](https://github.com/brimdata/zq/blob/main/zng/docs/zng-over-json.md) spec and implementation (#1299)
 * zar: Use buffered streaming for archive import (#1397)
 * zq: Add an `ast` command that prints parsed ZQL as its underlying JSON object (#1416)
 * zar: Fix an issue where `zar` would SEGV when attempting to query a non-existent index (#1449)
@@ -163,10 +163,10 @@ questions.
 * zq: Choose default memory limits for `sort` & `fuse` based on the amount of system memory (#1413)
 * zapi: Fix an issue where `create` and `find` were erroneously registered as root-level commands (#1477)
 * zqd: Support pcap ingest into archive Spaces (#1450)
-* zql: Add [`where` filtering](https://github.com/brimsec/zq/tree/main/zql/docs/aggregate-functions#where-filtering) for use with aggregate functions (#1490, #1481, #1533)
-* zql: Add [`union()`](https://github.com/brimsec/zq/tree/main/zql/docs/aggregate-functions#union) aggregate function (#1493, #1534)
-* zql: Add [`collect()`](https://github.com/brimsec/zq/tree/main/zql/docs/aggregate-functions#collect) aggregate function (#1496, #1534)
-* zql: Add [`and()`](https://github.com/brimsec/zq/tree/main/zql/docs/aggregate-functions#and) and [`or()`](https://github.com/brimsec/zq/tree/main/zql/docs/aggregate-functions#or) aggregate functions (#1497, #1534)
+* zql: Add [`where` filtering](https://github.com/brimdata/zq/tree/main/zql/docs/aggregate-functions#where-filtering) for use with aggregate functions (#1490, #1481, #1533)
+* zql: Add [`union()`](https://github.com/brimdata/zq/tree/main/zql/docs/aggregate-functions#union) aggregate function (#1493, #1534)
+* zql: Add [`collect()`](https://github.com/brimdata/zq/tree/main/zql/docs/aggregate-functions#collect) aggregate function (#1496, #1534)
+* zql: Add [`and()`](https://github.com/brimdata/zq/tree/main/zql/docs/aggregate-functions#and) and [`or()`](https://github.com/brimdata/zq/tree/main/zql/docs/aggregate-functions#or) aggregate functions (#1497, #1534)
 * zq: Fix an issue where searches did not match field names of records with unset values (#1511)
 * zq: Fix an issue where searches were not reaching into records inside arrays (#1516)
 * zar: Support microindexes created with a sorted flow of records in descending order (#1526)
@@ -181,7 +181,7 @@ questions.
 * zqd: Add a Python `zqd` API client for use with tools like [JupyterLab](https://jupyterlab.readthedocs.io/en/stable/) (#1564)
 
 ## v0.22.0
-* zq: Change the implementation of the `union` type to conform with the [ZNG spec](https://github.com/brimsec/zq/blob/main/zng/docs/spec.md#3114-union-typedef) (#1245)
+* zq: Change the implementation of the `union` type to conform with the [ZNG spec](https://github.com/brimdata/zq/blob/main/zng/docs/spec.md#3114-union-typedef) (#1245)
 * zq: Make options/flags and version reporting consistent across CLI tools (#1249, #1254, #1256, #1296, #1323, #1334, #1328)
 * zqd: Fix an issue that was preventing flows in nanosecond pcaps from opening in Brim (#1243, #1241)
 * zq: Fix an issue where the TZNG reader did not recognize a bad record type as a syntax error (#1260)
@@ -195,11 +195,11 @@ questions.
 * pcap: Mention ICMP protocol filtering (`-p icmp`) in help text (#1281)
 * zq: Point to new Slack community URL https://www.brimsecurity.com/join-slack/ in docs (#1304)
 * zqd: Fix an issue where starting `zqd listen` created excess error messages when subdirectories were present (#1303)
-* zql: Add the [`fuse` processor](https://github.com/brimsec/zq/tree/main/zql/docs/processors#fuse) for unifying records under a single schema (#1310, #1319, #1324)
+* zql: Add the [`fuse` processor](https://github.com/brimdata/zq/tree/main/zql/docs/processors#fuse) for unifying records under a single schema (#1310, #1319, #1324)
 * zql: Fix broken links in documentation (#1321, #1339)
-* zst: Introduce the [ZST format](https://github.com/brimsec/zq/blob/main/zst/README.md) for columnar data based on ZNG (#1268, #1338)
+* zst: Introduce the [ZST format](https://github.com/brimdata/zq/blob/main/zst/README.md) for columnar data based on ZNG (#1268, #1338)
 * pcap: Fix an issue where certain pcapng files could fail import with a `bad option length` error (#1341)
-* zql: [Document the `**` operator](https://github.com/brimsec/zq/tree/main/zql/docs/search-syntax#wildcard-field-names) for type-sepcific searches that look within nested records (#1337)
+* zql: [Document the `**` operator](https://github.com/brimdata/zq/tree/main/zql/docs/search-syntax#wildcard-field-names) for type-sepcific searches that look within nested records (#1337)
 * zar: Change the archive data file layout to prepare for handing chunk files with overlapping ranges and improved S3 support (#1330)
 * zar: Support archive data files with overlapping time spans (#1348)
 * zqd: Add a page containing guidance for users that directly access the root `zqd` endpoint in a browser (#1350)
@@ -212,7 +212,7 @@ questions.
 * zq: Improve performance by making fewer API calls in S3 reader (#1191)
 * zq: Use memory more efficiently by reducing allocations (#1190, #1201)
 * zqd: Fix an issue where a pcap moved/deleted after import caused a 404 response and white screen in Brim (#1198)
-* zqd: Include details on [adding observability](https://github.com/brimsec/zq/tree/main/k8s#adding-observability) to the docs for running `zqd` in Kubernetes (#1173)
+* zqd: Include details on [adding observability](https://github.com/brimdata/zq/tree/main/k8s#adding-observability) to the docs for running `zqd` in Kubernetes (#1173)
 * zq: Improve performance by removing unnecessary type checks (#1192, #1205)
 * zq: Add additional Boyer-Moore optimizations to improve search performance (#1188)
 * zq: Fix an issue where data import would sometimes fail with a "too many files" error (#1210)
@@ -220,13 +220,13 @@ questions.
 * zq: Fix an issue where non-adjacent record fields in Zeek TSV logs could not be read (#1225, #1218)
 * zql: Fix an issue where `cut -c` sometimes returned a "bad uvarint" error (#1227)
 * zq: Add support for empty ZNG records and empty NDJSON objects (#1228)
-* zng: Fix the tag value examples in the [ZNG spec](https://github.com/brimsec/zq/blob/main/zng/docs/spec.md) (#1230)
+* zng: Fix the tag value examples in the [ZNG spec](https://github.com/brimdata/zq/blob/main/zng/docs/spec.md) (#1230)
 * zq: Update LZ4 dependency to eliminate some memory allocations (#1232)
 * zar: Add a `-sortmem` flag to allow `zar import` to use more memory to improve performance (#1203)
 * zqd: Fix an issue where file paths containing URI escape codes could not be opened in Brim (#1238)
 
 ## v0.20.0
-* zqd: Publish initial [docs](https://github.com/brimsec/zq/blob/main/k8s/README.md) for running `zqd` in Kubernetes (#1101)
+* zqd: Publish initial [docs](https://github.com/brimdata/zq/blob/main/k8s/README.md) for running `zqd` in Kubernetes (#1101)
 * zq: Provide a better error message when an invalid IP address is parsed (#1106)
 * zar: Use single files for microindexes (#1110)
 * zar: Fix an issue where `zar index` could not handle more than 5 "levels" (#1119)
@@ -235,7 +235,7 @@ questions.
 * zar: Add `zar map` to handle "for each file" operations (#1138, #1148)
 * zq: Add Boyer-Moore filter optimization to ZNG scanner to improve performance (#1080)
 * zar: Change "zdx" to "microindex" (#1150)
-* zar: Update the [`zar` README](https://github.com/brimsec/zq/blob/main/ppl/cmd/zar/README.md) to reflect recent changes in commands/output (#1149)
+* zar: Update the [`zar` README](https://github.com/brimdata/zq/blob/main/ppl/cmd/zar/README.md) to reflect recent changes in commands/output (#1149)
 * zqd: Fix an issue where text stack traces could leak into ZJSON response streams (#1166)
 * zq: Fix an issue where an error "slice bounds out of range" would be triggered during attempted type conversion (#1158)
 * pcap: Fix an issue with pcapng files that have extra bytes at end-of-file (#1178)
@@ -244,12 +244,12 @@ questions.
 
 ## v0.19.1
 
-* zq: Move third party license texts in zq repo to a single [acknowledgments.txt](https://github.com/brimsec/zq/blob/main/acknowledgments.txt) file (#1107)
+* zq: Move third party license texts in zq repo to a single [acknowledgments.txt](https://github.com/brimdata/zq/blob/main/acknowledgments.txt) file (#1107)
 * zq: Automatically load AWS config from shared config file `~/.aws/config` by default (#1109)
 * zqd: Fix an issue with excess characters in Space names after upgrade (#1112)
 
 ## v0.19.0
-* zq: ZNG output is now LZ4-compressed by default (#1050, #1064, #1063, [ZNG spec](https://github.com/brimsec/zq/blob/main/zng/docs/spec.md#313-compressed-value-message-block))
+* zq: ZNG output is now LZ4-compressed by default (#1050, #1064, #1063, [ZNG spec](https://github.com/brimdata/zq/blob/main/zng/docs/spec.md#313-compressed-value-message-block))
 * zar: Adjust import size threshold to account for compression (#1082)
 * zqd: Support starting `zqd` with datapath set to an S3 path (#1072)
 * zq: Fix an issue with panics during pcap import (#1090)
@@ -260,32 +260,32 @@ questions.
 
 ## v0.18.0
 * zql: Fix an issue where data type casting was not working in Brim (#1008)
-* zql: Add a new [`rename` processor](https://github.com/brimsec/zq/tree/main/zql/docs/processors#rename) to rename fields in a record (#998, #1038)
+* zql: Add a new [`rename` processor](https://github.com/brimdata/zq/tree/main/zql/docs/processors#rename) to rename fields in a record (#998, #1038)
 * zqd: Fix an issue where API responses were being blocked in Brim due to commas in Content-Disposition headers (#1014) 
 * zq: Improve error messaging on S3 object-not-found (#1019)
 * zapi: Fix an issue where `pcappost` run with `-f` and an existing Space name caused a panic (#1042)
 * zqd: Add a `-prometheus` option to add [Prometheus](https://prometheus.io/) metrics routes the API (#1046)
-* zq: Update [README](https://github.com/brimsec/zq/blob/main/README.md) and add docs for more command-line tools (#1049)
+* zq: Update [README](https://github.com/brimdata/zq/blob/main/README.md) and add docs for more command-line tools (#1049)
 
 ## v0.17.0
 * zq: Fix an issue where the inferred JSON reader crashed on multiple nested fields (#948)
 * zq: Introduce spill-to-disk groupby for performing very large aggregations (#932, #963)
 * zql: Use syntax `c=count()` instead of `count() as c` for naming the field that holds the value returned by an aggregate function (#950)
 * zql: Fix an issue where attempts to `tail` too much caused a panic (#958)
-* zng: Readability improvements in the [ZNG specification](https://github.com/brimsec/zq/blob/main/zng/docs/spec.md) (#935)
+* zng: Readability improvements in the [ZNG specification](https://github.com/brimdata/zq/blob/main/zng/docs/spec.md) (#935)
 * zql: Fix an issue where use of `cut`, `put`, and `cut` in the same pipeline caused a panic (#980)
 * zql: Fix an issue that was preventing the `uniq` processor from  working in the Brim app (#984)
 * zq: Fix an issue where spurious type IDs were being created (#964)
 * zql: Support renaming a field via the `cut` processor (#969)
 
 ## v0.16.0
-* zng: Readability improvements in the [ZNG specification](https://github.com/brimsec/zq/blob/main/zng/docs/spec.md) (#897, #910, #917)
+* zng: Readability improvements in the [ZNG specification](https://github.com/brimdata/zq/blob/main/zng/docs/spec.md) (#897, #910, #917)
 * zq: Support directory output to S3 (#898)
 * zql: Group-by no longer emits records in "deterministic but undefined" order (#914)
 * zqd: Revise constraints on Space names (#853, #926, #944, #945)
 * zqd: Fix an issue where a file replacement race could cause an "access is denied" error in Brim during pcap import (#925)
-* zng: Revise [Zeek compatibility](https://github.com/brimsec/zq/blob/main/zng/docs/zeek-compat.md) doc (#919)
-* zql: Clarify [`cut` processor documentation](https://github.com/brimsec/zq/tree/main/zql/docs/processors#cut) (#924)
+* zng: Revise [Zeek compatibility](https://github.com/brimdata/zq/blob/main/zng/docs/zeek-compat.md) doc (#919)
+* zql: Clarify [`cut` processor documentation](https://github.com/brimdata/zq/tree/main/zql/docs/processors#cut) (#924)
 * zqd: Fix an issue where an invalid 1970 Space start time could be created in Brim during pcap inport (#938)
 
 ## v0.15.0
@@ -293,7 +293,7 @@ questions.
 * zql: Add a new function `Time.trunc()` (#842)
 * zql: Support grouping by computed keys (#860)
 * zq: Change implementation of `every X` to use a computed groupby key (#893)
-* zql: Clean up the [ZQL docs](https://github.com/brimsec/zq/tree/main/zql/docs) (#884)
+* zql: Clean up the [ZQL docs](https://github.com/brimdata/zq/tree/main/zql/docs) (#884)
 * zql: Change `cut` processor to emit any matching fields (#899)
 * zq: Allow output to an S3 bucket (#889)
 
@@ -328,7 +328,7 @@ questions.
 * zq: Use an external sort for large inputs (removes the 10-million line `sort` limit) (#527)
 * zq: Fix an issue where duplicate field names could be produced by aggregate functions & group-by (#676)
 * zar: Introduce an experimental prototype for working with archived logs
- ([README](https://github.com/brimsec/zq/blob/main/ppl/cmd/zar/README.md)) (#700)
+ ([README](https://github.com/brimdata/zq/blob/main/ppl/cmd/zar/README.md)) (#700)
 * zq: Support recursive record nesting in Zeek reader/writer (#715)
 * zqd: Zeek log import support needed for Brim (#616, #517, #608, #592, #592, #582, #709)
 
@@ -417,7 +417,7 @@ questions.
 
 ## v0.1.0
 
-* zq moves from github.com/mccanne/zq to github.com/brimsec/zq.
+* zq moves from github.com/mccanne/zq to github.com/brimdata/zq.
 * Parser and AST moved to zq repo from github.com/looky-cloud/lookytalk.
 * Query language name changed to ZQL.
 * ZNG specification added.

@@ -82,8 +82,8 @@ github.com/bkaradzic/go-lz4 v1.0.0/go.mod h1:0YdlkowM3VswSROI7qDxhRvJ3sLhlFrRRwj
 github.com/blang/semver/v4 v4.0.0/go.mod h1:IbckMUScFkM3pff0VJDNKRiT6TG/YpiHIM2yvyW5YoQ=
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869/go.mod h1:Ekp36dRnpXw/yCqJaO+ZrUyxD+3VXMFFr56k5XYrpB4=
 github.com/bmizerany/perks v0.0.0-20141205001514-d9a9656a3a4b/go.mod h1:ac9efd0D1fsDb3EJvhqgXRbFx7bs2wqZ10HQPeU8U/Q=
-github.com/brimsec/parquet-go v0.3.1 h1:4NFIzfGQvU1Ne8VP19bOy6gVBvA+6JFliXwdH8GWmEc=
-github.com/brimsec/parquet-go v0.3.1/go.mod h1:qIL8Wm6AK06QHCj9OBFW6PyS+7ukZxc20K/acSeGUas=
+github.com/brimdata/parquet-go v0.3.1 h1:4NFIzfGQvU1Ne8VP19bOy6gVBvA+6JFliXwdH8GWmEc=
+github.com/brimdata/parquet-go v0.3.1/go.mod h1:qIL8Wm6AK06QHCj9OBFW6PyS+7ukZxc20K/acSeGUas=
 github.com/bsm/sarama-cluster v2.1.15+incompatible/go.mod h1:r7ao+4tTNXvWm+VRpRJchr2kQhqxgmAp2iEX5W96gMM=
 github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e h1:oJCXMss/3rg5F6Poy9wG3JQusc58Mzk5B9Z6wSnssNE=
 github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e/go.mod h1:errmMKH8tTB49UR2A8C8DPYkyudelsYJwJFaZHQ6ik8=

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimdata/zq/zcode"
 )
 
 // ErrMissing is returned by entities that fail because a referenced field

@@ -6,11 +6,11 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/brimsec/zq/expr/result"
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zson"
+	"github.com/brimdata/zq/expr/result"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zq/zson"
 )
 
 // XXX these string format functions should be handlded by :string cast

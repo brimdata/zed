@@ -9,12 +9,12 @@ import (
 	"io"
 	"os"
 
-	"github.com/brimsec/zq/cmd/pcap/root"
-	"github.com/brimsec/zq/pcap"
-	"github.com/brimsec/zq/pcap/pcapio"
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/pkg/fs"
-	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimdata/zq/cmd/pcap/root"
+	"github.com/brimdata/zq/pcap"
+	"github.com/brimdata/zq/pcap/pcapio"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/pkg/fs"
+	"github.com/brimdata/zq/pkg/nano"
 )
 
 var Slice = &charm.Spec{

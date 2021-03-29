@@ -9,14 +9,14 @@ import (
 	"os"
 	"regexp"
 
-	"github.com/brimsec/zq/cli/auto"
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/zngio"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/cli/auto"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio"
+	"github.com/brimdata/zq/zio/detector"
+	"github.com/brimdata/zq/zio/ndjsonio"
+	"github.com/brimdata/zq/zio/zngio"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 type Flags struct {

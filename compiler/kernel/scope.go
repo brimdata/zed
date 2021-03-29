@@ -1,6 +1,6 @@
 package kernel
 
-import "github.com/brimsec/zq/zng"
+import "github.com/brimdata/zq/zng"
 
 // A Scope is a stack of bindings that map identifiers to literals,
 // generator variables, functions etc.  Currently, we only handle iterators

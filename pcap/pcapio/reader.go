@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zio/detector"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zio/detector"
 	"github.com/google/gopacket/layers"
 	"go.uber.org/multierr"
 )

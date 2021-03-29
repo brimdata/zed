@@ -6,17 +6,17 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/brimsec/zq/cli/outputflags"
-	"github.com/brimsec/zq/cli/procflags"
-	"github.com/brimsec/zq/cli/searchflags"
-	"github.com/brimsec/zq/compiler"
-	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/pkg/rlimit"
-	"github.com/brimsec/zq/pkg/signalctx"
-	"github.com/brimsec/zq/ppl/cmd/zar/root"
-	"github.com/brimsec/zq/ppl/lake"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/cli/outputflags"
+	"github.com/brimdata/zq/cli/procflags"
+	"github.com/brimdata/zq/cli/searchflags"
+	"github.com/brimdata/zq/compiler"
+	"github.com/brimdata/zq/driver"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/pkg/rlimit"
+	"github.com/brimdata/zq/pkg/signalctx"
+	"github.com/brimdata/zq/ppl/cmd/zar/root"
+	"github.com/brimdata/zq/ppl/lake"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 var Zq = &charm.Spec{

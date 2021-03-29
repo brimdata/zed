@@ -5,16 +5,16 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zio/zeekio"
-	"github.com/brimsec/zq/zio/zjsonio"
-	"github.com/brimsec/zq/zio/zngio"
-	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zqe"
-	"github.com/brimsec/zq/zson"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio"
+	"github.com/brimdata/zq/zio/ndjsonio"
+	"github.com/brimdata/zq/zio/tzngio"
+	"github.com/brimdata/zq/zio/zeekio"
+	"github.com/brimdata/zq/zio/zjsonio"
+	"github.com/brimdata/zq/zio/zngio"
+	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zq/zson"
 )
 
 func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zio.ReaderOpts) (zbuf.Reader, error) {

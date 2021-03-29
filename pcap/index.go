@@ -7,10 +7,10 @@ import (
 	"io/ioutil"
 	"unsafe"
 
-	"github.com/brimsec/zq/pcap/pcapio"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/pkg/ranger"
-	"github.com/brimsec/zq/pkg/slicer"
+	"github.com/brimdata/zq/pcap/pcapio"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/pkg/ranger"
+	"github.com/brimdata/zq/pkg/slicer"
 )
 
 type Index []Section

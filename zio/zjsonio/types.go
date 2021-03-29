@@ -3,11 +3,11 @@ package zjsonio
 import (
 	"errors"
 
-	"github.com/brimsec/zq/pkg/joe"
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/pkg/joe"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zio/tzngio"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 func encodeTypeAny(in zng.Type) joe.Interface {

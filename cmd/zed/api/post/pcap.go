@@ -11,11 +11,11 @@ import (
 	"text/tabwriter"
 	"time"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/cmd/zapi/format"
-	apicmd "github.com/brimsec/zq/cmd/zed/api"
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/pkg/display"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/cmd/zapi/format"
+	apicmd "github.com/brimdata/zq/cmd/zed/api"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/pkg/display"
 )
 
 var PostPcap = &charm.Spec{

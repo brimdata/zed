@@ -7,13 +7,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/pkg/peeker"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/pkg/peeker"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 	"github.com/pierrec/lz4/v4"
 )
 

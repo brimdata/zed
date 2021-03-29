@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/expr/agg"
-	"github.com/brimsec/zq/field"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/expr/agg"
+	"github.com/brimdata/zq/field"
 )
 
 func convertSQLProc(scope *Scope, sql *ast.SQLExpr) (ast.Proc, error) {

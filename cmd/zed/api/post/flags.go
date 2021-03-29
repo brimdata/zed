@@ -4,10 +4,10 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimsec/zq/api/client"
-	apicmd "github.com/brimsec/zq/cmd/zed/api"
-	"github.com/brimsec/zq/compiler"
-	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimdata/zq/api/client"
+	apicmd "github.com/brimdata/zq/cmd/zed/api"
+	"github.com/brimdata/zq/compiler"
+	"github.com/brimdata/zq/compiler/ast"
 )
 
 type postFlags struct {

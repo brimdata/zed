@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio/tzngio"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 func newTextReader(logs string) *tzngio.Reader {

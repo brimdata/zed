@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/brimsec/zq/api"
+	"github.com/brimdata/zq/api"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/temporal"
 	"go.uber.org/zap"

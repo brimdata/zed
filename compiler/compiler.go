@@ -1,15 +1,15 @@
 package compiler
 
 import (
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/compiler/kernel"
-	"github.com/brimsec/zq/compiler/parser"
-	"github.com/brimsec/zq/compiler/semantic"
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/compiler/kernel"
+	"github.com/brimdata/zq/compiler/parser"
+	"github.com/brimdata/zq/compiler/semantic"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zq/proc"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 var _ zbuf.Filter = (*Runtime)(nil)

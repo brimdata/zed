@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	"github.com/araddon/dateparse"
-	"github.com/brimsec/zq/expr/coerce"
-	"github.com/brimsec/zq/expr/result"
-	"github.com/brimsec/zq/pkg/byteconv"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/expr/coerce"
+	"github.com/brimdata/zq/expr/result"
+	"github.com/brimdata/zq/pkg/byteconv"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zng"
 )
 
 type iso struct {

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zng"
 )
 
 // XXX this comes from the old zng.Builder code and should be replaced

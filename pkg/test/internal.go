@@ -6,13 +6,13 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/brimsec/zq/compiler"
-	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/compiler"
+	"github.com/brimdata/zq/driver"
+	"github.com/brimdata/zq/emitter"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio"
+	"github.com/brimdata/zq/zio/detector"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 type Internal struct {

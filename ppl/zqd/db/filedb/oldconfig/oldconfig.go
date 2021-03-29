@@ -9,11 +9,11 @@ import (
 	"io"
 	"path"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/zqd/db/schema"
-	"github.com/brimsec/zq/ppl/zqd/pcapstorage"
-	"github.com/brimsec/zq/zqe"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/ppl/zqd/db/schema"
+	"github.com/brimdata/zq/ppl/zqd/pcapstorage"
+	"github.com/brimdata/zq/zqe"
 	"go.uber.org/zap"
 )
 

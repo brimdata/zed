@@ -3,7 +3,7 @@ package zng
 import (
 	"fmt"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimdata/zq/zcode"
 )
 
 type TypeOfType struct{}

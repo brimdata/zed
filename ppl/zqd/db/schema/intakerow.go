@@ -3,8 +3,8 @@ package schema
 import (
 	"fmt"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/ppl/zqd/auth"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/ppl/zqd/auth"
 	"github.com/segmentio/ksuid"
 )
 

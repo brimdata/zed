@@ -5,7 +5,7 @@ import (
 	"flag"
 	"math"
 
-	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimdata/zq/pkg/nano"
 )
 
 type tsArg nano.Ts

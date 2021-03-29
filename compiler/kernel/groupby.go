@@ -4,12 +4,12 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/proc/groupby"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zq/proc"
+	"github.com/brimdata/zq/proc/groupby"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, node *ast.Summarize) (*groupby.Proc, error) {

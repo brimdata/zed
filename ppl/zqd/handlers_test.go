@@ -15,21 +15,21 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/api/client"
-	"github.com/brimsec/zq/compiler"
-	"github.com/brimsec/zq/driver"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/pkg/promtest"
-	"github.com/brimsec/zq/pkg/test"
-	"github.com/brimsec/zq/ppl/lake/immcache"
-	"github.com/brimsec/zq/ppl/zqd"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/zsonio"
-	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zson"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/api/client"
+	"github.com/brimdata/zq/compiler"
+	"github.com/brimdata/zq/driver"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/pkg/promtest"
+	"github.com/brimdata/zq/pkg/test"
+	"github.com/brimdata/zq/ppl/lake/immcache"
+	"github.com/brimdata/zq/ppl/zqd"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio"
+	"github.com/brimdata/zq/zio/ndjsonio"
+	"github.com/brimdata/zq/zio/zsonio"
+	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zq/zson"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -448,7 +448,7 @@ func TestPostZsonLogs(t *testing.T) {
 }
 
 // Skipped trying to convert this one to ZSON for now.
-// See https://github.com/brimsec/zq/issues/2057#issuecomment-803187964
+// See https://github.com/brimdata/zq/issues/2057#issuecomment-803187964
 func TestPostZngLogWarning(t *testing.T) {
 	const src1 = `undetectableformat`
 	const src2 = `
@@ -573,7 +573,7 @@ func TestPostNDJSONLogWarning(t *testing.T) {
 }
 
 // Other attempts at malformed ZSON closer to the original are not yet flagged
-// as errors. See https://github.com/brimsec/zq/issues/2057#issuecomment-803148819
+// as errors. See https://github.com/brimdata/zq/issues/2057#issuecomment-803148819
 func TestPostLogStopErr(t *testing.T) {
 	const src = `
 {_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring} (=0)

@@ -10,11 +10,11 @@ import (
 	"io"
 	"regexp"
 
-	"github.com/brimsec/zq/pkg/skim"
-	"github.com/brimsec/zq/zio/ndjsonio/compat"
-	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/pkg/skim"
+	"github.com/brimdata/zq/zio/ndjsonio/compat"
+	"github.com/brimdata/zq/zio/tzngio"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 	"github.com/buger/jsonparser"
 )
 

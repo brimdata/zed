@@ -3,7 +3,7 @@ package semantic
 import (
 	"encoding/json"
 
-	"github.com/brimsec/zq/compiler/ast"
+	"github.com/brimdata/zq/compiler/ast"
 )
 
 func semType(scope *Scope, typ ast.Type) (ast.Type, error) {

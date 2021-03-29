@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/brimsec/zq/cmd/zed/ast"
-	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimdata/zq/cmd/zed/ast"
+	"github.com/brimdata/zq/pkg/charm"
 )
 
 func main() {

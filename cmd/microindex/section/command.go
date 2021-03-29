@@ -5,12 +5,12 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimsec/zq/cli/outputflags"
-	"github.com/brimsec/zq/cmd/microindex/root"
-	"github.com/brimsec/zq/microindex"
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/cli/outputflags"
+	"github.com/brimdata/zq/cmd/microindex/root"
+	"github.com/brimdata/zq/microindex"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 var Section = &charm.Spec{

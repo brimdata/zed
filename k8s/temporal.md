@@ -22,11 +22,11 @@ And avoid all the dependencies above.
 https://medium.com/@mattiaperi/create-a-public-helm-chart-repository-with-github-pages-49b180dbb417
 In order to create a respository that we can use for our subchart dependency on Temporal.
 We have created a git repo:
-https://github.com/brimsec/helm-chart
+https://github.com/brimdata/helm-chart
 That includes the repo `https://github.com/temporalio/helm-charts` as a git submodule.
 The steps to do this, in case they need to be repeated, are:
 ```
-git clone https://github.com/brimsec/helm-chart.git
+git clone https://github.com/brimdata/helm-chart.git
 cd helm-chart/helm-chart-sources
 git submodule add https://github.com/temporalio/helm-charts.git temporal
 cd temporal
@@ -35,7 +35,7 @@ helm dependency update
 cd ../..
 helm package helm-chart-sources/*
 git status # should have untracked file: temporal-0.2.2.tgz
-helm repo index --url https://brimsec.github.io/helm-chart/ .
+helm repo index --url https://brimdata.github.io/helm-chart/ .
 # repo index creates the index.yaml file that is needed to "publish" the chart
 git add .
 git commit -m "new index"
@@ -43,7 +43,7 @@ git push
 ```
 Assuming that all the steps from Mattia Peri's article above have been taken, the Temporal helm chart will be available from the brim repo:
 ```
-helm repo add brim https://brimsec.github.io/helm-chart/
+helm repo add brim https://brimdata.github.io/helm-chart/
 helm search repo temporal
 ```
 Will show the newly added Temporal helm chart.

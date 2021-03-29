@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/axiomhq/hyperloglog"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 // CountDistinct uses hyperloglog to approximate the count of unique values for

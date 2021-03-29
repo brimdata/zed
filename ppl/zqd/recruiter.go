@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/ppl/zqd/recruiter"
-	"github.com/brimsec/zq/zqe"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/ppl/zqd/recruiter"
+	"github.com/brimdata/zq/zqe"
 	"go.uber.org/zap"
 )
 

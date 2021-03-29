@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimsec/zq/pkg/bufwriter"
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/ppl/lake/index"
-	"github.com/brimsec/zq/ppl/lake/seekindex"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/zngio"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/pkg/bufwriter"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/ppl/lake/index"
+	"github.com/brimdata/zq/ppl/lake/seekindex"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio/zngio"
+	"github.com/brimdata/zq/zng"
 	"github.com/segmentio/ksuid"
 )
 

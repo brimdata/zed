@@ -4,9 +4,9 @@ import (
 	"encoding/binary"
 	"math/big"
 
-	"github.com/brimsec/zq/pkg/byteconv"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/pkg/byteconv"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 type FieldNameFinder struct {

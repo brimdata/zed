@@ -5,7 +5,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/brimsec/zq/api"
+	"github.com/brimdata/zq/api"
 )
 
 type Stream struct {

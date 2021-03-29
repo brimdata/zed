@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/api/client"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/api/client"
 	"go.uber.org/zap"
 )
 

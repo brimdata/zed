@@ -3,13 +3,13 @@ package index
 import (
 	"fmt"
 
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zq/proc"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zng"
 )
 
 // A FieldCutter is a custom proc that, given an input record and a

@@ -3,10 +3,10 @@ package function
 import (
 	"math"
 
-	"github.com/brimsec/zq/anymath"
-	"github.com/brimsec/zq/expr/coerce"
-	"github.com/brimsec/zq/expr/result"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/anymath"
+	"github.com/brimdata/zq/expr/coerce"
+	"github.com/brimdata/zq/expr/result"
+	"github.com/brimdata/zq/zng"
 )
 
 type abs struct {

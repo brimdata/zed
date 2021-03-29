@@ -3,8 +3,8 @@ package proc
 import (
 	"fmt"
 
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng"
 )
 
 type Function interface {

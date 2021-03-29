@@ -271,7 +271,7 @@ source ~/.bash_profile
 go version  # make sure go is there!
 # install git, clone and install zq
 sudo yum install git -y
-git clone https://github.com/brimsec/zq
+git clone https://github.com/brimdata/zq
 cd zq
 make install
 ~/go/bin/zar help  # make sure zar is built!

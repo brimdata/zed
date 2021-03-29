@@ -4,11 +4,11 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/pkg/byteconv"
-	"github.com/brimsec/zq/pkg/stringsearch"
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/pkg/byteconv"
+	"github.com/brimdata/zq/pkg/stringsearch"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zng"
 )
 
 type Filter func(*zng.Record) bool

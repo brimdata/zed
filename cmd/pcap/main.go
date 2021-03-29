@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
-	_ "github.com/brimsec/zq/cmd/pcap/cut"
-	_ "github.com/brimsec/zq/cmd/pcap/index"
-	_ "github.com/brimsec/zq/cmd/pcap/info"
-	"github.com/brimsec/zq/cmd/pcap/root"
-	_ "github.com/brimsec/zq/cmd/pcap/slice"
-	_ "github.com/brimsec/zq/cmd/pcap/ts"
+	_ "github.com/brimdata/zq/cmd/pcap/cut"
+	_ "github.com/brimdata/zq/cmd/pcap/index"
+	_ "github.com/brimdata/zq/cmd/pcap/info"
+	"github.com/brimdata/zq/cmd/pcap/root"
+	_ "github.com/brimdata/zq/cmd/pcap/slice"
+	_ "github.com/brimdata/zq/cmd/pcap/ts"
 )
 
 // Version is set via the Go linker.

@@ -13,11 +13,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/pcap/pcapio"
-	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zqe"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/pcap/pcapio"
+	"github.com/brimdata/zq/zio/ndjsonio"
+	"github.com/brimdata/zq/zqe"
 	"github.com/go-resty/resty/v2"
 )
 

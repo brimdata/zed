@@ -4,16 +4,16 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/proc/spill"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/builder"
-	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zng/typevector"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zq/proc"
+	"github.com/brimdata/zq/proc/spill"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/builder"
+	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zq/zng/typevector"
 )
 
 var DefaultLimit = 1000000

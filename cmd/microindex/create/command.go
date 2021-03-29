@@ -4,16 +4,16 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimsec/zq/cli/inputflags"
-	"github.com/brimsec/zq/cmd/microindex/root"
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/microindex"
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/cli/inputflags"
+	"github.com/brimdata/zq/cmd/microindex/root"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zq/microindex"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio/detector"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 var Create = &charm.Spec{

@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/brimsec/zq/pkg/bufwriter"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimdata/zq/pkg/bufwriter"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio"
+	"github.com/brimdata/zq/zio/ndjsonio"
 )
 
 // NDJSONOutput implements the Output inteface and writes NDJSON encoded-output

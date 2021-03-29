@@ -16,7 +16,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/brimsec/zq/reglob"
+	"github.com/brimdata/zq/reglob"
 )
 
 var g = &grammar{

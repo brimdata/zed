@@ -11,13 +11,13 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/brimsec/zq/compiler"
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/compiler/parser"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/zfmt"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/compiler"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/compiler/parser"
+	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/zfmt"
+	"github.com/brimdata/zq/zng/resolver"
 	"github.com/peterh/liner"
 )
 

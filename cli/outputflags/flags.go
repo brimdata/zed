@@ -6,12 +6,12 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimsec/zq/emitter"
-	"github.com/brimsec/zq/pkg/terminal"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/zngio"
-	"github.com/brimsec/zq/zio/zstio"
+	"github.com/brimdata/zq/emitter"
+	"github.com/brimdata/zq/pkg/terminal"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio"
+	"github.com/brimdata/zq/zio/zngio"
+	"github.com/brimdata/zq/zio/zstio"
 )
 
 type Flags struct {

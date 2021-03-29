@@ -1,9 +1,9 @@
 package expr
 
 import (
-	"github.com/brimsec/zq/expr/agg"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/expr/agg"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 type Generator interface {

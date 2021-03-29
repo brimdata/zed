@@ -5,10 +5,10 @@ import (
 	"errors"
 	"sync/atomic"
 
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng"
 )
 
 // zngScanner implements scanner.Scanner.

@@ -1,6 +1,6 @@
 # make sure we can read packets with a buggy caplen greater than the
 # original packet size.  bad-caplen.pcap was extracted from the pcap
-# in brim/issue https://github.com/brimsec/brim/issues/615.
+# in brim/issue https://github.com/brimdata/brim/issues/615.
 script: |
   pcap index -r extra.pcapng
 

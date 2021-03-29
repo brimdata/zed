@@ -3,7 +3,7 @@ package zng
 import (
 	"fmt"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimdata/zq/zcode"
 )
 
 func Split(elemType Type, b zcode.Bytes) ([]Value, error) {

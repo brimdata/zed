@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimdata/zq/zcode"
 )
 
 type TypeMap struct {

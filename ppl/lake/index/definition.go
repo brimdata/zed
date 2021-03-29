@@ -6,8 +6,8 @@ import (
 	"path"
 	"regexp"
 
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/pkg/iosrc"
 	"github.com/segmentio/ksuid"
 )
 

@@ -6,12 +6,12 @@ import (
 	"os"
 	"time"
 
-	_ "github.com/brimsec/zq/cmd/microindex/convert"
-	_ "github.com/brimsec/zq/cmd/microindex/create"
-	_ "github.com/brimsec/zq/cmd/microindex/lookup"
-	"github.com/brimsec/zq/cmd/microindex/root"
-	_ "github.com/brimsec/zq/cmd/microindex/section"
-	_ "github.com/brimsec/zq/cmd/microindex/seek"
+	_ "github.com/brimdata/zq/cmd/microindex/convert"
+	_ "github.com/brimdata/zq/cmd/microindex/create"
+	_ "github.com/brimdata/zq/cmd/microindex/lookup"
+	"github.com/brimdata/zq/cmd/microindex/root"
+	_ "github.com/brimdata/zq/cmd/microindex/section"
+	_ "github.com/brimdata/zq/cmd/microindex/seek"
 )
 
 func main() {

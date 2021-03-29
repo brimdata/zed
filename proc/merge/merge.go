@@ -3,9 +3,9 @@ package merge
 import (
 	"context"
 
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/zbuf"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/proc"
+	"github.com/brimdata/zq/zbuf"
 )
 
 // A Merge proc merges multiple upstream inputs into one output.

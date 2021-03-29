@@ -3,10 +3,10 @@ package emitter
 import (
 	"bytes"
 
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio"
+	"github.com/brimdata/zq/zio/detector"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 type Bytes struct {

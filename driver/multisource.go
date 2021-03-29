@@ -4,12 +4,12 @@ import (
 	"context"
 	"io"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/compiler"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/compiler"
+	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 // A MultiSource is a set of one or more ZNG record sources, which could be

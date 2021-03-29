@@ -8,7 +8,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/brimsec/zq/cli/inputflags"
+	"github.com/brimdata/zq/cli/inputflags"
 )
 
 func main() {
@@ -32,7 +32,7 @@ func main() {
 
 	contents := fmt.Sprintf(`package %s
 
-import "github.com/brimsec/zq/zio/ndjsonio"
+import "github.com/brimdata/zq/zio/ndjsonio"
 
 var %s *ndjsonio.TypeConfig = %#v`, packageName, varName, tc)
 

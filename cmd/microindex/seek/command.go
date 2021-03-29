@@ -6,15 +6,15 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/brimsec/zq/cmd/microindex/root"
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/microindex"
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/pkg/fs"
-	"github.com/brimsec/zq/zio/zngio"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/cmd/microindex/root"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zq/microindex"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/pkg/fs"
+	"github.com/brimdata/zq/zio/zngio"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 var Seek = &charm.Spec{

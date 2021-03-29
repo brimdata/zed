@@ -5,10 +5,10 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/brimsec/zq/api"
-	apicmd "github.com/brimsec/zq/cmd/zed/api"
-	"github.com/brimsec/zq/compiler"
-	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimdata/zq/api"
+	apicmd "github.com/brimdata/zq/cmd/zed/api"
+	"github.com/brimdata/zq/compiler"
+	"github.com/brimdata/zq/pkg/charm"
 )
 
 var Create = &charm.Spec{

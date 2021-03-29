@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zio/parquetio"
-	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/ztest"
+	"github.com/brimdata/zq/zio/detector"
+	"github.com/brimdata/zq/zio/parquetio"
+	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zq/ztest"
 	"github.com/stretchr/testify/require"
 )
 

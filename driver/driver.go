@@ -8,11 +8,11 @@ import (
 	"io/ioutil"
 	"time"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 type Driver interface {

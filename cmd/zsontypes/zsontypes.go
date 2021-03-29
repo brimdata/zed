@@ -4,12 +4,12 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimsec/zq/cli/inputflags"
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/zio/ndjsonio/compat"
-	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/cli/inputflags"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/zio/ndjsonio/compat"
+	"github.com/brimdata/zq/zio/tzngio"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 var ZsonTypes = &charm.Spec{

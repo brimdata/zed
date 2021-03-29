@@ -3,7 +3,7 @@ package pcapio
 import (
 	"fmt"
 
-	"github.com/brimsec/zq/zqe"
+	"github.com/brimdata/zq/zqe"
 )
 
 type ErrInvalidPcap struct {

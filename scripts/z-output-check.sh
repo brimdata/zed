@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # zq is currently the only known tool that outputs data in ZNG formats. Sample
-# ZNG data from zq is stored in the https://github.com/brimsec/zq-sample-data
+# ZNG data from zq is stored in the https://github.com/brimdata/zq-sample-data
 # repo. Therefore, if a change in zq causes the ZNG output format to change,
 # we'll want to know about it ASAP, since if it's a bug we'll want to fix it
 # in zq, and if it's an intentional enhancement we'll want to update the ZNG

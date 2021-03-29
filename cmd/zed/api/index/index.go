@@ -3,8 +3,8 @@ package idx
 import (
 	"flag"
 
-	apicmd "github.com/brimsec/zq/cmd/zed/api"
-	"github.com/brimsec/zq/pkg/charm"
+	apicmd "github.com/brimdata/zq/cmd/zed/api"
+	"github.com/brimdata/zq/pkg/charm"
 )
 
 var Index = &charm.Spec{

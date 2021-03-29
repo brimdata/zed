@@ -3,8 +3,8 @@ package expr
 import (
 	"errors"
 
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zng"
 )
 
 type Selector struct {

@@ -3,8 +3,8 @@ package zstio
 import (
 	"io"
 
-	"github.com/brimsec/zq/pkg/units"
-	"github.com/brimsec/zq/zst"
+	"github.com/brimdata/zq/pkg/units"
+	"github.com/brimdata/zq/zst"
 )
 
 const (

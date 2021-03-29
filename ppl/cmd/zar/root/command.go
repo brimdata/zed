@@ -3,8 +3,8 @@ package root
 import (
 	"flag"
 
-	"github.com/brimsec/zq/cli"
-	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimdata/zq/cli"
+	"github.com/brimdata/zq/pkg/charm"
 )
 
 var Zar = &charm.Spec{
@@ -25,7 +25,7 @@ a value in the associated chunk file, micro-indexes can be used to to make
 searching an archive very fast.
 
 See the zar README in the zq github repo for more information:
-https://github.com/brimsec/zq/blob/main/cmd/zar/README.md
+https://github.com/brimdata/zq/blob/main/cmd/zar/README.md
 `,
 	New: New,
 }

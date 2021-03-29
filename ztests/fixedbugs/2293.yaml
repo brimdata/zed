@@ -1,4 +1,4 @@
-# https://github.com/brimsec/zq/issues/2293
+# https://github.com/brimdata/zq/issues/2293
 # Ensure that zar find does not panic on an empty index.
 script: |
   zar import -R ./zartest -

@@ -5,7 +5,7 @@ export GO111MODULE=on
 ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
 ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
-LDFLAGS = -s -X github.com/brimsec/zq/cli.Version=$(VERSION)
+LDFLAGS = -s -X github.com/brimdata/zq/cli.Version=$(VERSION)
 MINIO_VERSION := 0.0.0-20201211152140-453ab257caf5
 TEMPORAL_VERSION := 1.6.3
 ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))["brimDependencies"]["zeekTag"])')
@@ -41,7 +41,7 @@ tidy:
 SAMPLEDATA:=zq-sample-data/README.md
 
 $(SAMPLEDATA):
-	git clone --depth=1 https://github.com/brimsec/zq-sample-data $(@D)
+	git clone --depth=1 https://github.com/brimdata/zq-sample-data $(@D)
 
 sampledata: $(SAMPLEDATA)
 
@@ -58,14 +58,14 @@ bin/tctl-$(TEMPORAL_VERSION):
 bin/$(ZEEKPATH):
 	@mkdir -p bin
 	@curl -L -o bin/$(ZEEKPATH).zip \
-		https://github.com/brimsec/zeek/releases/download/$(ZEEKTAG)/zeek-$(ZEEKTAG).$$(go env GOOS)-$(ARCH).zip
+		https://github.com/brimdata/zeek/releases/download/$(ZEEKTAG)/zeek-$(ZEEKTAG).$$(go env GOOS)-$(ARCH).zip
 	@unzip -q bin/$(ZEEKPATH).zip -d bin \
 		&& mv bin/zeek bin/$(ZEEKPATH)
 
 bin/$(SURICATAPATH):
 	@mkdir -p bin
 	curl -L -o bin/$(SURICATAPATH).zip \
-		https://github.com/brimsec/build-suricata/releases/download/$(SURICATATAG)/suricata-$(SURICATATAG).$$(go env GOOS)-$(ARCH).zip
+		https://github.com/brimdata/build-suricata/releases/download/$(SURICATATAG)/suricata-$(SURICATATAG).$$(go env GOOS)-$(ARCH).zip
 	unzip -q bin/$(SURICATAPATH).zip -d bin \
 		&& mv bin/suricata bin/$(SURICATAPATH)
 
@@ -76,7 +76,7 @@ bin/minio: bin/minio-$(MINIO_VERSION)
 bin/minio-$(MINIO_VERSION):
 	mkdir -p $(@D)
 	echo 'module deps' > $@.mod
-	go mod edit -modfile=$@.mod -replace=github.com/minio/minio=github.com/brimsec/minio@v$(MINIO_VERSION)
+	go mod edit -modfile=$@.mod -replace=github.com/minio/minio=github.com/brimdata/minio@v$(MINIO_VERSION)
 	go get -d -modfile=$@.mod github.com/minio/minio
 	go build -modfile=$@.mod -o $@ github.com/minio/minio
 

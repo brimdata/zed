@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/brimsec/zq/pkg/fs"
+	"github.com/brimdata/zq/pkg/fs"
 )
 
 const (

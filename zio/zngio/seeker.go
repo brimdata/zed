@@ -3,7 +3,7 @@ package zngio
 import (
 	"io"
 
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 type Seeker struct {

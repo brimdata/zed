@@ -7,13 +7,13 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brimsec/zq/pkg/byteconv"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/flattener"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/pkg/byteconv"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zio/tzngio"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/flattener"
+	"github.com/brimdata/zq/zng/resolver"
 	"github.com/buger/jsonparser"
 )
 
