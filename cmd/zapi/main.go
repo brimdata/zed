@@ -21,8 +21,7 @@ import (
 
 func main() {
 	api.Cmd.Add(charm.Help)
-	_, err := api.Cmd.ExecRoot(os.Args[1:])
-	if err != nil {
+	if _, err := api.Cmd.ExecRoot(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}

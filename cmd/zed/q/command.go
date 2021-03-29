@@ -28,7 +28,7 @@ var Cmd = &charm.Spec{
 	HiddenFlags: "cpuprofile,memprofile,pathregexp",
 	Long: `
 "zed q" is a command for searching and analyzing data using the zed language
-(and/or via an experimental SQL subset embedded in the zed language).
+(including the experimental SQL subset embedded in the zed language).
 If you have istalled the shortcuts, "zq" is a shortcut for the "zed q" command.
 
 "zed q" applies boolean logic
@@ -54,7 +54,7 @@ beginning of stream will determine the format.
 The output format is binary ZNG by default, but can be overridden with -f.
 
 After the options, a zed "query" string may be specified as a
-single argument conforming with the zed language syntax;
+single argument conforming to the zed language syntax;
 i.e., it should be quoted as a single string in the shell.
 
 If the first argument is a path to a valid file rather than a zed query,
@@ -64,7 +64,7 @@ and an existing file, then the file overrides.
 
 The zed query text may include files using -I, which is particularly
 convenient when a large, complex query spans multiple lines.  In this case,
-these Zed files are concatenated together along with the command-line zed query text
+these zed files are concatenated together along with the command-line zed query text
 in the order appearing on the command-line.
 
 See the zed source repository for more information:

@@ -6,6 +6,7 @@ import (
 	"flag"
 
 	"github.com/brimsec/zq/cli/outputflags"
+	zedzst "github.com/brimsec/zq/cmd/zed/zst"
 	zstcmd "github.com/brimsec/zq/cmd/zed/zst"
 	"github.com/brimsec/zq/pkg/charm"
 	"github.com/brimsec/zq/zbuf"
@@ -30,11 +31,11 @@ the -trailer option (off by defaulut) indicates that the trailer should be inclu
 }
 
 func init() {
-	zstcmd.Cmd.Add(Inspect)
+	zedzst.Cmd.Add(Inspect)
 }
 
 type Command struct {
-	*zstcmd.Command
+	*zedzst.Command
 	outputFlags outputflags.Flags
 	trailer     bool
 	reassembly  bool

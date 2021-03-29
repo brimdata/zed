@@ -34,9 +34,7 @@ var Cmd = &charm.Spec{
 The "zed api" command-line tool is used to talk to a zed lake service endpoint.
 This service could be "zed server" running on your laptop or in the cloud.
 If you have installed the shortcuts,
-"zapi" is a shortcut for the "zed api" command.
-
-Zapi is prounounced "zappy".
+"zapi" (prounounced "zappy") is a shortcut for the "zed api" command.
 
 With "zed api" you can create spaces, list spaces, post data to spaces, and run queries.
 

@@ -78,7 +78,7 @@ func (s *Spec) ExecRoot(args []string) (Command, error) {
 		if err != NeedHelp {
 			return nil, err
 		}
-		// Look for a help subcommand first in the sub-command that
+		// Look for a help subcommand first in the subcommand that
 		// asked for help, and if none, then in the root command.
 		help := cmd.spec.lookupSub("help")
 		if help == nil {
@@ -87,7 +87,7 @@ func (s *Spec) ExecRoot(args []string) (Command, error) {
 				return nil, errors.New("charm error: sub-command asked for help but no charm help registered")
 			}
 		}
-		help.Exec(nil, []string{})
+		help.Exec(nil, nil)
 		return nil, nil
 	}
 	return cmd.command, nil

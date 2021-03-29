@@ -24,15 +24,15 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "ast",
 	Usage: "ast [ options ] zed",
-	Short: "inspect zed language abstract-syntax trees",
+	Short: "inspect zed language abstract syntax trees",
 	Long: `
-The "zed ast" command parses a Zed expression and prints the resulting abstract-syntax
+The "zed ast" command parses a Zed expression and prints the resulting abstract syntax
 tree as JSON object to standard output.  If you have istalled the
 shortcuts, "zast" is a short cut for the "zed ast" command.
 
-"zed ast" is a tool for dev and test
-but could also be used by power users trying to understand how Zed syntax is
-translated into the analytics requests that is sent to the zed server search endpoint.
+"zed ast" is a tool for dev and test,
+and is also useful to advanced users for understanding how Zed syntax is
+translated into an analytics requests sent to the "zed server" search endpoint.
 
 By default, it runs the built-in PEG parser built into this go binary.
 If you specify -js, it will try to run a javascript version of the parser

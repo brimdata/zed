@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/brimsec/zq/api"
-	apicmd "github.com/brimsec/zq/cmd/zed/api"
+	zedapi "github.com/brimsec/zq/cmd/zed/api"
 	"github.com/brimsec/zq/cmd/zed/api/auth/devauth"
 	"github.com/brimsec/zq/pkg/charm"
 	"github.com/pkg/browser"
@@ -75,7 +75,7 @@ func (c *LoginCommand) Run(args []string) error {
 	if err != nil {
 		return fmt.Errorf("failed to load credentials file: %w", err)
 	}
-	creds.AddTokens(c.Host, apicmd.ServiceTokens{
+	creds.AddTokens(c.Host, zedapi.ServiceTokens{
 		Access:  dar.AccessToken,
 		ID:      dar.IDToken,
 		Refresh: dar.RefreshToken,
