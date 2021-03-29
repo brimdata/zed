@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zq/field"
 	"github.com/brimdata/zq/proc"
 	"github.com/brimdata/zq/proc/combine"
-	"github.com/brimdata/zq/proc/filter"
 	"github.com/brimdata/zq/proc/fuse"
 	"github.com/brimdata/zq/proc/head"
 	"github.com/brimdata/zq/proc/join"
@@ -135,7 +134,7 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
-		return filter.New(parent, f), nil
+		return proc.FromFunction(pctx, parent, filterFunction(f)), nil
 
 	case *ast.Top:
 		fields, err := CompileExprs(pctx.Zctx, scope, v.Args)
@@ -204,6 +203,19 @@ func compileProc(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, p
 
 	}
 }
+
+type filterFunction expr.Filter
+
+func (f filterFunction) Apply(rec *zng.Record) (*zng.Record, error) {
+	if f(rec) {
+		return rec, nil
+	}
+	return nil, nil
+}
+
+func (_ filterFunction) String() string { return "filter" }
+
+func (_ filterFunction) Warning() string { return "" }
 
 type picker struct{ *expr.Cutter }
 
