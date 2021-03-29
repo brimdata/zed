@@ -47,7 +47,9 @@ func (a *applier) Pull() (zbuf.Batch, error) {
 				continue
 			}
 			if out != nil {
-				recs = append(recs, out)
+				// Keep is necessary because Apply can return
+				// its argument.
+				recs = append(recs, out.Keep())
 			}
 		}
 		batch.Unref()
