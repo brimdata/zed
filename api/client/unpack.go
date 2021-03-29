@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/brimsec/zq/api"
+	"github.com/brimdata/zq/api"
 )
 
 // unpack transforms a piped json stream into the appropriate api response

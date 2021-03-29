@@ -3,7 +3,7 @@ package ast
 import (
 	"errors"
 
-	"github.com/brimsec/zq/pkg/unpack"
+	"github.com/brimdata/zq/pkg/unpack"
 )
 
 var unpacker = unpack.New(

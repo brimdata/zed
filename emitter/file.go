@@ -5,13 +5,13 @@ import (
 	"io"
 	"os"
 
-	"github.com/brimsec/zq/pkg/bufwriter"
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/terminal"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/detector"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/pkg/bufwriter"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/pkg/terminal"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio"
+	"github.com/brimdata/zq/zio/detector"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 func NewFile(ctx context.Context, path string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {

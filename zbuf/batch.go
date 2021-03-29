@@ -1,7 +1,7 @@
 package zbuf
 
 import (
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/zng"
 )
 
 // Batch is an interface to a bundle of records.  Reference counting allows

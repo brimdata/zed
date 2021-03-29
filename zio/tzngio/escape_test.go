@@ -3,7 +3,7 @@ package tzngio
 import (
 	"testing"
 
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/zng"
 	"github.com/stretchr/testify/require"
 )
 

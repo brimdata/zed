@@ -8,10 +8,10 @@ import (
 	"net"
 	"strings"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/api/client"
-	"github.com/brimsec/zq/ppl/zqd/worker"
-	"github.com/brimsec/zq/proc"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/api/client"
+	"github.com/brimdata/zq/ppl/zqd/worker"
+	"github.com/brimdata/zq/proc"
 	"go.uber.org/zap"
 )
 

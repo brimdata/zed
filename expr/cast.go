@@ -5,11 +5,11 @@ import (
 	"net"
 	"unicode/utf8"
 
-	"github.com/brimsec/zq/expr/coerce"
-	"github.com/brimsec/zq/expr/function"
-	"github.com/brimsec/zq/pkg/byteconv"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/expr/coerce"
+	"github.com/brimdata/zq/expr/function"
+	"github.com/brimdata/zq/pkg/byteconv"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zng"
 )
 
 type PrimitiveCaster func(zv zng.Value) (zng.Value, error)

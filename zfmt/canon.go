@@ -3,8 +3,8 @@ package zfmt
 import (
 	"strings"
 
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/zng"
 )
 
 func Canonical(p ast.Proc) string {

@@ -1,12 +1,12 @@
 package fuse
 
 import (
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/expr/agg"
-	"github.com/brimsec/zq/proc/rename"
-	"github.com/brimsec/zq/proc/spill"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/expr/agg"
+	"github.com/brimdata/zq/proc/rename"
+	"github.com/brimdata/zq/proc/spill"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 // Fuser buffers records written to it, assembling from them a unified schema of

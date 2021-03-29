@@ -33,7 +33,7 @@ func TestURIWinRelative(t *testing.T) {
 	assert.Equal(t, expected, uri.Filepath())
 }
 
-// github.com/brimsec/brim#1284
+// github.com/brimdata/brim#1284
 func TestURIWinUNCPath(t *testing.T) {
 	cases := []struct {
 		name  string

@@ -5,9 +5,9 @@ import (
 	"context"
 	"sync"
 
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zq/zng"
 )
 
 // A Merger merges multiple upstream Pullers into one downstream Puller.

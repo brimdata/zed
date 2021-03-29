@@ -9,11 +9,11 @@ import (
 	"reflect"
 	"text/tabwriter"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/cmd/zapi/format"
-	apicmd "github.com/brimsec/zq/cmd/zed/api"
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/pkg/nano"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/cmd/zapi/format"
+	apicmd "github.com/brimdata/zq/cmd/zed/api"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/pkg/nano"
 )
 
 var Info = &charm.Spec{

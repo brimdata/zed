@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/lake/immcache"
-	"github.com/brimsec/zq/ppl/lake/index"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zqe"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/ppl/lake/immcache"
+	"github.com/brimdata/zq/ppl/lake/index"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zqe"
 )
 
 const (
@@ -38,7 +38,7 @@ func (c *Metadata) Write(uri iosrc.URI) error {
 		// Ensure the mtime is updated on the file after the close. This Chtimes
 		// call was required due to failures seen in CI, when an mtime change
 		// wasn't observed after some writes.
-		// See https://github.com/brimsec/brim/issues/883.
+		// See https://github.com/brimdata/brim/issues/883.
 		now := time.Now()
 		return os.Chtimes(uri.Filepath(), now, now)
 	}

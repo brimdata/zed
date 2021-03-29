@@ -5,12 +5,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/compiler"
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/compiler"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zio/tzngio"
+	"github.com/brimdata/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -254,8 +254,8 @@ func TestFilters(t *testing.T) {
 		{`a = S`, false},
 		{`a = s`, false},
 		{`\u017F`, true},
-		{`S`, false}, // Should be true; see https://github.com/brimsec/zq/issues/1207.
-		{`s`, false}, // Should be true; see https://github.com/brimsec/zq/issues/1207.
+		{`S`, false}, // Should be true; see https://github.com/brimdata/zq/issues/1207.
+		{`s`, false}, // Should be true; see https://github.com/brimdata/zq/issues/1207.
 	})
 
 	// Test U+212A KELVIN SIGN.

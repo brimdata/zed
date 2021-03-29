@@ -1,10 +1,10 @@
 package filter
 
 import (
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/proc"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng"
 )
 
 type Proc struct {

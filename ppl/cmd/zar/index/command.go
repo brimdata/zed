@@ -3,8 +3,8 @@ package index
 import (
 	"flag"
 
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/ppl/cmd/zar/root"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/ppl/cmd/zar/root"
 )
 
 var Index = &charm.Spec{

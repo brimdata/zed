@@ -7,11 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zson"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zq/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

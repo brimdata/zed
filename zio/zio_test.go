@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/zio/tzngio"
+	"github.com/brimdata/zq/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

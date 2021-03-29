@@ -1,4 +1,4 @@
-//go:generate mockgen -destination=./mock/mock_source.go -package=mock github.com/brimsec/zq/pkg/iosrc Source
+//go:generate mockgen -destination=./mock/mock_source.go -package=mock github.com/brimdata/zq/pkg/iosrc Source
 
 package iosrc
 

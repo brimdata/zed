@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/brimsec/zq/api"
+	"github.com/brimdata/zq/api"
 	"go.uber.org/zap"
 )
 

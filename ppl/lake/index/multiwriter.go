@@ -4,9 +4,9 @@ import (
 	"context"
 	"path"
 
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zqe"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zqe"
 	"go.uber.org/multierr"
 )
 

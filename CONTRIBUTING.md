@@ -3,7 +3,7 @@
 Thank you for contributing to `zq`!
 
 Per [common practice](https://www.thinkful.com/learn/github-pull-request-tutorial/Feel-Free-to-Ask#Feel-Free-to-Ask),
-please [open an issue](https://github.com/brimsec/zq/issues) before sending a pull request.  If you
+please [open an issue](https://github.com/brimdata/zq/issues) before sending a pull request.  If you
 think your ideas might benefit from some refinement via Q&A, come talk to us on
 [Slack](https://www.brimsecurity.com/join-slack/) as well.
 
@@ -22,7 +22,7 @@ Dependencies are specified in the [`go.mod` file](./go.mod) and fetched
 automatically by commands like `go build` and `go test`.  No explicit
 fetch commands are necessary.  However, you must set the environment
 variable `GO111MODULE=on` if your repo is at
-`$GOPATH/src/github.com/brimsec/zq`.
+`$GOPATH/src/github.com/brimdata/zq`.
 
 When `go.mod` or its companion `go.sum` are modified during development, run
 `go mod tidy` and then commit the changes to both files.

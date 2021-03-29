@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brimsec/zq/pkg/fs"
-	"github.com/brimsec/zq/zqe"
+	"github.com/brimdata/zq/pkg/fs"
+	"github.com/brimdata/zq/zqe"
 	"github.com/dgrijalva/jwt-go"
 )
 

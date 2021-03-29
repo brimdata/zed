@@ -10,10 +10,10 @@ import (
 
 	//XXX this shouldn't be reaching into the AST but we'll leave it for
 	// now until we factor-in the flow-based package
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/pkg/byteconv"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zson"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/pkg/byteconv"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zson"
 )
 
 //XXX TBD:

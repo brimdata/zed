@@ -11,15 +11,15 @@ import (
 	"net/http/pprof"
 	"sync/atomic"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/lake/immcache"
-	"github.com/brimsec/zq/ppl/zqd/apiserver"
-	"github.com/brimsec/zq/ppl/zqd/db"
-	"github.com/brimsec/zq/ppl/zqd/pcapanalyzer"
-	"github.com/brimsec/zq/ppl/zqd/recruiter"
-	"github.com/brimsec/zq/ppl/zqd/temporal"
-	"github.com/brimsec/zq/ppl/zqd/worker"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/ppl/lake/immcache"
+	"github.com/brimdata/zq/ppl/zqd/apiserver"
+	"github.com/brimdata/zq/ppl/zqd/db"
+	"github.com/brimdata/zq/ppl/zqd/pcapanalyzer"
+	"github.com/brimdata/zq/ppl/zqd/recruiter"
+	"github.com/brimdata/zq/ppl/zqd/temporal"
+	"github.com/brimdata/zq/ppl/zqd/worker"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -34,9 +34,9 @@ const indexPage = `
   <title>ZQD daemon</title>
   <body style="padding:10px">
     <h2>ZQD</h2>
-    <p>A <a href="https://github.com/brimsec/zq/tree/main/cmd/zqd">zqd</a> daemon is listening on this host/port.</p>
-    <p>If you're a <a href="https://www.brimsecurity.com/">Brim</a> user, connect to this host/port from the <a href="https://github.com/brimsec/brim">Brim application</a> in the graphical desktop interface in your operating system (not a web browser).</p>
-    <p>If your goal is to perform command line operations against this zqd, use the <a href="https://github.com/brimsec/zq/tree/main/cmd/zapi">zapi</a> client.</p>
+    <p>A <a href="https://github.com/brimdata/zq/tree/main/cmd/zqd">zqd</a> daemon is listening on this host/port.</p>
+    <p>If you're a <a href="https://www.brimsecurity.com/">Brim</a> user, connect to this host/port from the <a href="https://github.com/brimdata/brim">Brim application</a> in the graphical desktop interface in your operating system (not a web browser).</p>
+    <p>If your goal is to perform command line operations against this zqd, use the <a href="https://github.com/brimdata/zq/tree/main/cmd/zapi">zapi</a> client.</p>
   </body>
 </html>`
 

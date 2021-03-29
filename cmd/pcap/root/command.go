@@ -4,8 +4,8 @@ import (
 	"flag"
 	"log"
 
-	"github.com/brimsec/zq/cli"
-	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimdata/zq/cli"
+	"github.com/brimdata/zq/pkg/charm"
 )
 
 var Pcap = &charm.Spec{

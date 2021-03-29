@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strconv"
 
-	"github.com/brimsec/zq/zcode"
-	"github.com/brimsec/zq/zio/tzngio"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zq/zio/tzngio"
+	"github.com/brimdata/zq/zng"
 )
 
 func encodeUnion(typ *zng.TypeUnion, v []byte) (interface{}, error) {

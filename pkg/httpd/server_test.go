@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brimsec/zq/pkg/httpd"
+	"github.com/brimdata/zq/pkg/httpd"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

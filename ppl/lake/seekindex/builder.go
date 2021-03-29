@@ -3,11 +3,11 @@ package seekindex
 import (
 	"context"
 
-	"github.com/brimsec/zq/microindex"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/microindex"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 var schema = []zng.Column{

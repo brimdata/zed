@@ -17,8 +17,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/pkg/peeker"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/pkg/peeker"
 	"github.com/google/gopacket/layers"
 )
 

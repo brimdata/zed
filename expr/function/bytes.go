@@ -3,7 +3,7 @@ package function
 import (
 	"encoding/base64"
 
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/zng"
 )
 
 type fromBase64 struct{}

@@ -6,7 +6,7 @@ dependencies:
   repository: https://charts.bitnami.com/bitnami
   version: 11.3.4
 - name: temporal
-  repository: https://brimsec.github.io/helm-chart/
+  repository: https://brimdata.github.io/helm-chart/
   version: 0.2.2
 - name: zqd-temporal
   repository: ""

@@ -10,10 +10,10 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zio/ndjsonio"
-	"github.com/brimsec/zq/zio/zjsonio"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zio/ndjsonio"
+	"github.com/brimdata/zq/zio/zjsonio"
 )
 
 const RequestIDHeader = "X-Request-ID"

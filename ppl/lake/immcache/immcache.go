@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/brimsec/zq/pkg/iosrc"
+	"github.com/brimdata/zq/pkg/iosrc"
 	"github.com/go-redis/redis/v8"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"

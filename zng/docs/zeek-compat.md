@@ -21,7 +21,7 @@ can be converted to ZSON/ZNG and back to Zeek TSV without any loss of informatio
 This document describes how the ZSON type system
 is able to represent each of the types that may appear in Zeek logs.
 
-Tools like [`zq`](https://github.com/brimsec/zq) and [Brim](https://github.com/brimsec/brim)
+Tools like [`zq`](https://github.com/brimdata/zq) and [Brim](https://github.com/brimdata/brim)
 maintain an internal ZNG representation of any Zeek data that is read or
 imported. Therefore, knowing the equivalent types will prove useful when
 performing [ZQL](../../zql/README.md) operations such as
@@ -169,7 +169,7 @@ to store as which of these two ZSON data types. Therefore the ZSON
 
 One exception to this is Zeek's `_path` field. As it's a standard field that's
 known to be populated by Zeek's logging system (or populated by `zq` when reading some
-[Zeek JSON data](https://github.com/brimsec/zq/tree/main/zeek#type-definition-structure--importance-of-_path))
+[Zeek JSON data](https://github.com/brimdata/zq/tree/main/zeek#type-definition-structure--importance-of-_path))
 `zq` currently handles `_path` using ZSON's `string` type.
 
 If Zeek were to provide an option to generate logs directly in ZSON/ZNG format, this

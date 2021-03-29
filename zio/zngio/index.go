@@ -6,10 +6,10 @@ import (
 	"os"
 	"sync"
 
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 type Ordering int

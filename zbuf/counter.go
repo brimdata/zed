@@ -3,7 +3,7 @@ package zbuf
 import (
 	"sync/atomic"
 
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/zng"
 )
 
 // Counter wraps a zbuf.Reader and provides a method to return the number

@@ -6,10 +6,10 @@ import (
 	"regexp"
 	"sort"
 
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zqe"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zqe"
 	"github.com/segmentio/ksuid"
 )
 

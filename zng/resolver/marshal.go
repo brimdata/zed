@@ -1,8 +1,8 @@
 package resolver
 
 import (
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zson"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zson"
 )
 
 func Marshal(v interface{}) (zng.Value, error) {

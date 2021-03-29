@@ -3,7 +3,7 @@ package column
 import (
 	"io"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimdata/zq/zcode"
 )
 
 type Spiller struct {

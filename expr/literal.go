@@ -1,9 +1,9 @@
 package expr
 
 import (
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zson"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zson"
 )
 
 type Literal struct {

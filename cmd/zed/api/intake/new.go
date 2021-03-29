@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/cli/outputflags"
-	apicmd "github.com/brimsec/zq/cmd/zed/api"
-	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/cli/outputflags"
+	apicmd "github.com/brimdata/zq/cmd/zed/api"
+	"github.com/brimdata/zq/pkg/charm"
 )
 
 var NewSpec = &charm.Spec{

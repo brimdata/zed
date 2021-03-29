@@ -1,11 +1,11 @@
 package agg
 
 import (
-	"github.com/brimsec/zq/anymath"
-	"github.com/brimsec/zq/expr/coerce"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/anymath"
+	"github.com/brimdata/zq/expr/coerce"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
 )
 
 type consumer interface {

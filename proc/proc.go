@@ -3,8 +3,8 @@ package proc
 import (
 	"context"
 
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng/resolver"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng/resolver"
 	"go.uber.org/zap"
 )
 

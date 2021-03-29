@@ -3,7 +3,7 @@ package zng
 import (
 	"errors"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimdata/zq/zcode"
 )
 
 var ErrIncomplete = errors.New("not enough values supplied to complete record")

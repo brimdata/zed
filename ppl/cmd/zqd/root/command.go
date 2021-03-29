@@ -5,9 +5,9 @@ import (
 	"log"
 	"strings"
 
-	"github.com/brimsec/zq/cli"
-	"github.com/brimsec/zq/cli/procflags"
-	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimdata/zq/cli"
+	"github.com/brimdata/zq/cli/procflags"
+	"github.com/brimdata/zq/pkg/charm"
 )
 
 var Zqd = &charm.Spec{

@@ -2,7 +2,7 @@ package tests
 
 /*
 Find valid ZQ examples in markdown, run them against
-https://github.com/brimsec/zq-sample-data/zeek-default, and compare results in
+https://github.com/brimdata/zq-sample-data/zeek-default, and compare results in
 docs with results produced.
 
 Use markers in markdown fenced code blocks to denote either a zq command or

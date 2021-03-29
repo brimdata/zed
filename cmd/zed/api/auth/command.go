@@ -3,8 +3,8 @@ package auth
 import (
 	"flag"
 
-	"github.com/brimsec/zq/cmd/zed/api"
-	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimdata/zq/cmd/zed/api"
+	"github.com/brimdata/zq/pkg/charm"
 )
 
 var Auth = &charm.Spec{

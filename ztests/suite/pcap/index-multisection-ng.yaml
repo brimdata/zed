@@ -2,7 +2,7 @@
 # issues handling multi-section pcapngs with overlapping timestamps
 # (https://github.com/zeek/zeek/issues/864). This test is for
 # non-overlapping timestamps, for which we had a bug that was fixed in
-# https://github.com/brimsec/zq/pull/424.
+# https://github.com/brimdata/zq/pull/424.
 script: |
   pcap index -r non-overlap.pcapng -x non-overlap.index
   pcap slice -p tcp -r non-overlap.pcapng -x non-overlap.index -from 1583768523.826851 -to 1583768523.827279 192.168.10.120:62576 104.123.204.164:443 | pcap ts -w out1

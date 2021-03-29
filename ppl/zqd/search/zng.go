@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zio"
-	"github.com/brimsec/zq/zio/zngio"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zio"
+	"github.com/brimdata/zq/zio/zngio"
+	"github.com/brimdata/zq/zng"
 )
 
 // ZngOutput writes zng encodings directly to the client via

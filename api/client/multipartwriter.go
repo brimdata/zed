@@ -10,9 +10,9 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/brimsec/zq/compiler/ast"
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/zio/ndjsonio"
+	"github.com/brimdata/zq/compiler/ast"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/zio/ndjsonio"
 )
 
 type MultipartWriter struct {

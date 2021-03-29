@@ -1,7 +1,7 @@
 package ast
 
 import (
-	"github.com/brimsec/zq/field"
+	"github.com/brimdata/zq/field"
 )
 
 // These ast types are to support the custom procs used by the indexer.

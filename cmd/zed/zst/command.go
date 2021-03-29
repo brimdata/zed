@@ -3,8 +3,8 @@ package zst
 import (
 	"flag"
 
-	"github.com/brimsec/zq/cli"
-	"github.com/brimsec/zq/pkg/charm"
+	"github.com/brimdata/zq/cli"
+	"github.com/brimdata/zq/pkg/charm"
 )
 
 var Cmd = &charm.Spec{

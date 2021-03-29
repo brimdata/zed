@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zson"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zson"
 )
 
 type URI url.URL

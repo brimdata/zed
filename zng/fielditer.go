@@ -3,7 +3,7 @@ package zng
 import (
 	"errors"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimdata/zq/zcode"
 )
 
 var (

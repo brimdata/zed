@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	_ "github.com/brimsec/zq/ppl/cmd/pgctl/migrate"
-	_ "github.com/brimsec/zq/ppl/cmd/pgctl/rmtestdb"
-	"github.com/brimsec/zq/ppl/cmd/pgctl/root"
-	_ "github.com/brimsec/zq/ppl/cmd/pgctl/testdb"
+	_ "github.com/brimdata/zq/ppl/cmd/pgctl/migrate"
+	_ "github.com/brimdata/zq/ppl/cmd/pgctl/rmtestdb"
+	"github.com/brimdata/zq/ppl/cmd/pgctl/root"
+	_ "github.com/brimdata/zq/ppl/cmd/pgctl/testdb"
 )
 
 func main() {

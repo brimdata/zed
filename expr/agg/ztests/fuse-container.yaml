@@ -1,4 +1,4 @@
-# Enable after fixing https://github.com/brimsec/zq/issues/2145.
+# Enable after fixing https://github.com/brimdata/zq/issues/2145.
 skip: true
 
 zed: all=fuse(.),r=fuse(r)

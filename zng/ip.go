@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/brimsec/zq/zcode"
+	"github.com/brimdata/zq/zcode"
 )
 
 type TypeOfIP struct{}

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/field"
-	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/proc/spill"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zq/proc"
+	"github.com/brimdata/zq/proc/spill"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng"
 )
 
 // MemMaxBytes specifies the maximum amount of memory that each sort proc

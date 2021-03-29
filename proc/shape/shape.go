@@ -3,9 +3,9 @@ package shape
 import (
 	"sync"
 
-	"github.com/brimsec/zq/proc"
-	"github.com/brimsec/zq/zbuf"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/proc"
+	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zq/zng"
 )
 
 var MemMaxBytes = 128 * 1024 * 1024

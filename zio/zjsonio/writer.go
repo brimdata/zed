@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/brimsec/zq/pkg/joe"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/pkg/joe"
+	"github.com/brimdata/zq/zng"
 )
 
 type Alias struct {

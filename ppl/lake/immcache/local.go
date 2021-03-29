@@ -4,8 +4,8 @@ import (
 	"context"
 	"path"
 
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/ppl/lake/chunk"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/ppl/lake/chunk"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/prometheus/client_golang/prometheus"
 )

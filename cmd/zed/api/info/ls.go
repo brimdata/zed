@@ -3,13 +3,13 @@ package info
 import (
 	"flag"
 
-	"github.com/brimsec/zq/api"
-	"github.com/brimsec/zq/cli/outputflags"
-	apicmd "github.com/brimsec/zq/cmd/zed/api"
-	"github.com/brimsec/zq/pkg/charm"
-	"github.com/brimsec/zq/zng"
-	"github.com/brimsec/zq/zng/resolver"
-	"github.com/brimsec/zq/zson"
+	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zq/cli/outputflags"
+	apicmd "github.com/brimdata/zq/cmd/zed/api"
+	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zq/zson"
 )
 
 var Ls = &charm.Spec{

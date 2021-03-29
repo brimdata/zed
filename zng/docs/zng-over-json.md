@@ -67,7 +67,7 @@ so appropriate for a structured data format like ZNG.
 That said, JSON can be used as an encoding format for ZNG by mapping ZNG data
 onto a JSON-based protocol.  This allows clients like web apps or
 electron apps to receive and understand ZNG and, with the help of client
-libraries like [zealot](https://github.com/brimsec/brim/tree/master/zealot),
+libraries like [zealot](https://github.com/brimdata/brim/tree/master/zealot),
 to be enabled with rich, structured ZNG types that are implemented on top of
 the basic JavaScript types.
 
@@ -270,12 +270,12 @@ A sequence of ZJSON objects may be framed in two primary ways.
 
 First, they can simply be a sequence of newline delimited JSON where
 each object is transmitted as a single line terminated with a newline character,
-e.g., the [zq](https://github.com/brimsec/zq) CLI command writes its
+e.g., the [zq](https://github.com/brimdata/zq) CLI command writes its
 ZJSON output as lines of NDJSON.
 
 Second, the objects may be encoded in a JSON array embedded in some other
 JSON-framed protocol, e.g., embedded in the the search results messages
-of the [zqd REST API](https://github.com/brimsec/zq/blob/main/api/api.go).
+of the [zqd REST API](https://github.com/brimdata/zq/blob/main/api/api.go).
 
 It is up to an implementation to determine how the ZJSON
 objects are framed according to its particular use case.

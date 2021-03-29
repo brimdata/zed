@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/brimsec/zq/pkg/iosrc"
-	"github.com/brimsec/zq/pkg/nano"
-	"github.com/brimsec/zq/zbuf"
+	"github.com/brimdata/zq/pkg/iosrc"
+	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zq/zbuf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -1,8 +1,8 @@
 package sort
 
 import (
-	"github.com/brimsec/zq/expr"
-	"github.com/brimsec/zq/zng"
+	"github.com/brimdata/zq/expr"
+	"github.com/brimdata/zq/zng"
 )
 
 type unseenFieldTracker struct {
