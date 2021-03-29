@@ -4,23 +4,24 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/brimsec/zq/cmd/zapi/cmd"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/auth"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/get"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/index"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/info"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/intake"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/new"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/post"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/rename"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/repl"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/rm"
-	_ "github.com/brimsec/zq/cmd/zapi/cmd/version"
+	"github.com/brimsec/zq/cmd/zed/api"
+	_ "github.com/brimsec/zq/cmd/zed/api/auth"
+	_ "github.com/brimsec/zq/cmd/zed/api/get"
+	_ "github.com/brimsec/zq/cmd/zed/api/index"
+	_ "github.com/brimsec/zq/cmd/zed/api/info"
+	_ "github.com/brimsec/zq/cmd/zed/api/intake"
+	_ "github.com/brimsec/zq/cmd/zed/api/new"
+	_ "github.com/brimsec/zq/cmd/zed/api/post"
+	_ "github.com/brimsec/zq/cmd/zed/api/rename"
+	_ "github.com/brimsec/zq/cmd/zed/api/repl"
+	_ "github.com/brimsec/zq/cmd/zed/api/rm"
+	_ "github.com/brimsec/zq/cmd/zed/api/version"
+	"github.com/brimsec/zq/pkg/charm"
 )
 
 func main() {
-	_, err := cmd.CLI.ExecRoot(os.Args[1:])
-	if err != nil {
+	api.Cmd.Add(charm.Help)
+	if _, err := api.Cmd.ExecRoot(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
