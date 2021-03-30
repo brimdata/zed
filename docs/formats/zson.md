@@ -61,7 +61,7 @@ type of every value expressed in a ZSON input.
 
 In addition to the human-readable format described here, the ZSON data model
 is realized in an efficient binary format called
-[ZNG](spec.md) and a columnar variation
+[ZNG](zng.md) and a columnar variation
 of ZNG called [ZST](zst.md).
 While ZNG and ZST are suited for production workflows and operational systems
 where performance matters most,

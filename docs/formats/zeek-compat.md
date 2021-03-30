@@ -1,5 +1,7 @@
 # ZSON Interoperability with Zeek Logs
 
+> NOTE: this should be movted to brimcap.  See issue #2458.
+
 - [Introduction](#introduction)
 - [Equivalent Types](#equivalent-types)
 - [Example](#example)
