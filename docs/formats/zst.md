@@ -1,7 +1,7 @@
 # Zst - *z*ng-*st*acked format
 
 Zst, pronounced "zest", is a format for columnar data based on
-[zng](../zng/docs/spec.md).
+[zng](zng.md).
 Zst is the "stacked" version of zng, where the fields from a stream of
 zng records are stacked into vectors that form columns.
 
@@ -144,7 +144,7 @@ in a single pass.
 The data section contains raw data values organized into "segments",
 where a segment is simply a seek offset and byte length relative to the
 data section.  Each segment contains a sequence of
-[primitive-type zng values](../zng/docs/spec.md#5-primitive-types),
+[primitive-type zng values](zng.md#5-primitive-types),
 encoded as counted-length byte sequences where the counted-length is
 variable-length encoded as in the zng spec.
 
@@ -178,7 +178,7 @@ Segments are sub-divided into frames where each frame is compressed
 independently of each other, similar to zng compression framing.
 
 > TBD: use the
-> [same compression format](../zng/docs/spec.md#312-compressed-value-message-block)
+> [same compression format](zng.md#312-compressed-value-message-block)
 > exactly?
 
 > The intent here is that segments are sized so that sequential read access
@@ -449,7 +449,7 @@ using the same selector value within the union value.
 
 ### Hello, world
 
-Start with this zng data (shown as human-readable [ZSON](../zng/docs/zson.md)):
+Start with this zng data (shown as human-readable [ZSON](zson.md)):
 ```
 {a:"hello",b:"world"}
 {a:"goodnight",b:"gracie"}

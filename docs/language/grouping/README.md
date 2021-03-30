@@ -222,7 +222,7 @@ zq -f table 'count() by host,query | sort -r' http.log.gz dns.log.gz
 
 This is due to the `query` field not being present in any of the `http` records
 and the `host` field not being present in any of the `dns` records. This can
-be observed by looking at the [ZSON](../../../zng/docs/zson.md)
+be observed by looking at the [ZSON](../../formats/zson.md)
 representation of the type definitions for each record type.
 
 ```zq-command

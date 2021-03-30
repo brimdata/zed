@@ -12,8 +12,8 @@ and store structured log data, including:
  archives
 * The [zapi](cmd/zapi/README.md) command line tool, for interacting with the
 API provided by zqd
-* The [ZQL](zql/docs/README.md) query language definition and implementation
-* The [ZNG](zng/docs/README.md) structured log specification and supporting components
+* The [ZQL](docs/language/README.md) query language definition and implementation
+* The [ZNG](docs/formats/zng.md) structured log specification and supporting components
 
 ## Installation
 
@@ -44,4 +44,3 @@ Join our [Public Slack](https://www.brimsecurity.com/join-slack/) workspace for 
 
 [tests-img]: https://github.com/brimdata/zq/workflows/Tests/badge.svg
 [tests]: https://github.com/brimdata/zq/actions?query=workflow%3ATests
-

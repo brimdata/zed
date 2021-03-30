@@ -190,7 +190,7 @@ If you examine it in a JSON browser, you'll see that the type definition in
 specifies a `_path` of a unique Zeek event type, then names a corresponding
 `descriptor` configuration.
 2. A section of `descriptors` that define the expected the name and
-[ZNG](../zng/docs/spec.md)
+[ZNG](../docs/formats/zng.md)
 data type for each field in a Zeek event that was identified by a rule.
 
 Zeek's `_path` field plays an important role in this definition. `zq` will
@@ -348,7 +348,7 @@ fields that HASSH added to the `ssh` events, and the bottom two sets
 describe the newly-defined `unknown_mime_type_discovery` event.
 
 ```
-# diff ~/zq/zeek/types.json types-custom.json 
+# diff ~/zq/zeek/types.json types-custom.json
 3075a3076,3103
 >         "name": "hasshVersion",
 >         "type": "bstring"

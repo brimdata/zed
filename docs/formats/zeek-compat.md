@@ -1,5 +1,7 @@
 # ZSON Interoperability with Zeek Logs
 
+> NOTE: this should be movted to brimcap.  See issue #2458.
+
 - [Introduction](#introduction)
 - [Equivalent Types](#equivalent-types)
 - [Example](#example)
@@ -24,8 +26,8 @@ is able to represent each of the types that may appear in Zeek logs.
 Tools like [`zq`](https://github.com/brimdata/zq) and [Brim](https://github.com/brimdata/brim)
 maintain an internal ZNG representation of any Zeek data that is read or
 imported. Therefore, knowing the equivalent types will prove useful when
-performing [ZQL](../../zql/README.md) operations such as
-[type casting](../../zql/docs/data-types#example) or looking at the
+performing [ZQL](../language/README.md) operations such as
+[type casting](../language/data-types#example) or looking at the
 data when output as [ZSON](zson.md).
 
 ## Equivalent Types

@@ -35,7 +35,7 @@ indexing and searching log archives and running interesting graph queries.
 
 ## Test data
 
-We'll use the [ZNG](../../../zng/docs/README.md)-format test data from here:
+We'll use the [ZNG](../../../docs/formats/zng.md)-format test data from here:
 ```
 https://github.com/brimdata/zq-sample-data/tree/main/zng
 ```
@@ -155,7 +155,7 @@ This is easy. You just say:
 ```
 zar zq -Z "id.orig_h=10.10.23.2"
 ```
-which gives this result in the [ZSON](../../../zng/docs/zson.md) format.  ZSON
+which gives this result in the [ZSON](../../../docs/formats/zson.md) format.  ZSON
 describes the complete detail from the ZNG stream as human-readable text.
 ```
 {
@@ -186,7 +186,7 @@ describes the complete detail from the ZNG stream as human-readable text.
 } (=2)
 ```
 (If you want to learn more about this format, check out the
-[ZSON spec](../../../zng/docs/zson.md).)
+[ZSON spec](../../../docs/formats/zson.md).)
 
 You might have noticed that this is kind of slow --- like all the counting above ---
 because every record is read to search for that IP.

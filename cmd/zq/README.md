@@ -1,10 +1,10 @@
 # `zq`
 
-`zq` is a command-line tool to search, analyze, and transform structured logs. 
- It evaluates [ZQL ](../../zql/docs/README.md) queries against input log
-  files, producing an output log stream in the [ZNG](../../zng/docs/spec.md)
+`zq` is a command-line tool to search, analyze, and transform structured logs.
+ It evaluates [ZQL ](../../docs/language/README.md) queries against input log
+  files, producing an output log stream in the [ZNG](../../docs/formats/zng.md)
   format by default.
-  
+
 For all `zq` options, use the help subcommand:
 
 ```
@@ -17,17 +17,17 @@ Here are a few examples using a small Zeek formatted log file, `conn.log`,
 located in this directory. See the
 [zq-sample-data repo](https://github.com/brimdata/zq-sample-data) for more test
 data, which is used in the examples in the
-[query language documentation](../../zql/docs/README.md).
+[query language documentation](../../docs/language/README.md).
 
 To cut the columns of a Zeek "conn" log like `zeek-cut`, and output to the
- terminal, use [`cut`](../../zql/docs/processors/README.md#cut):
+ terminal, use [`cut`](../../docs/language/processors/README.md#cut):
 
 ```
 zq -z "* | cut ts,id.orig_h,id.orig_p" conn.log
 ```
 
-The `-z` tells `zq` to use human-readable [ZSON](../../zng/docs/zson.md)
-for its output format. The "`*`" 
+The `-z` tells `zq` to use human-readable [ZSON](../../docs/formats/zson.md)
+for its output format. The "`*`"
 tells `zq` to match every line, which is sent to the `cut` processor
 using the UNIX-like pipe syntax.
 
@@ -48,7 +48,7 @@ format:
 ```
 zq -f zeek "cut ts,id.orig_h,id.orig_p" conn.log
 ```
-You can use an [aggregate function](../../zql/docs/aggregate-functions/README.md) to summarize data over one or
+You can use an [aggregate function](../../docs/language/aggregate-functions/README.md) to summarize data over one or
 more fields, e.g., summing field values, counting, or computing an average.
 ```
 zq -t "sum(orig_bytes)" conn.log
@@ -56,7 +56,7 @@ zq -t "orig_bytes > 10000 | count()" conn.log
 zq -t "avg(orig_bytes)" conn.log
 ```
 
-The [ZNG specification](../../zng/docs/spec.md) describes how the format can
+The [ZNG specification](../../docs/formats/zng.md) describes how the format can
 represent a stream of heterogeneously typed records. By leveraging this,
 diverse Zeek logs can be combined into a single file.
 
@@ -92,13 +92,13 @@ at the [performance](../../performance/README.md) page.
 
 | Format | Read | Auto-Detect | Write | Description |
 |--------|------|-------------|-------|-------------|
-| zng | yes | yes | yes | [ZNG specification](../../zng/docs/spec.md) |
-| zst | yes | no | yes | [ZST specification](../../zst/README.md) |
-| zson | yes | yes | yes | [ZSON specification](../../zng/docs/zson.md) |
+| zng | yes | yes | yes | [ZNG specification](../../docs/formats/zng.md) |
+| zst | yes | no | yes | [ZST specification](../../docs/formats/zst.md) |
+| zson | yes | yes | yes | [ZSON specification](../../docs/formats/zson.md) |
 | tzng | yes | yes | yes | Alternate text-based ZNG format |
 | ndjson | yes | yes | yes | Newline delimited JSON records |
 | zeek  | yes | yes | yes | [Zeek compatible](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs) tab separated values |
-| zjson | yes | yes | yes | [ZNG over JSON](../../zng/docs/zng-over-json.md) |
+| zjson | yes | yes | yes | [ZNG over JSON](../../docs/formats/zng-over-json.md) |
 | parquet | yes | no | no | [Parquet file format](https://github.com/apache/parquet-format#file-format)
 | table | no | no | yes | table output, with column headers |
 | text | no | no | yes | space separated output |
