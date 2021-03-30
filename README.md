@@ -13,7 +13,7 @@ and store structured log data, including:
 * The [zapi](cmd/zapi/README.md) command line tool, for interacting with the
 API provided by zqd
 * The [ZQL](docs/language/README.md) query language definition and implementation
-* The [ZNG](docs/formats/README.md) structured log specification and supporting components
+* The [ZNG](docs/formats/zng.md) structured log specification and supporting components
 
 ## Installation
 

@@ -2,7 +2,7 @@
 
 `zq` is a command-line tool to search, analyze, and transform structured logs.
  It evaluates [ZQL ](../../docs/language/README.md) queries against input log
-  files, producing an output log stream in the [ZNG](../../docs/formats/spec.md)
+  files, producing an output log stream in the [ZNG](../../docs/formats/zng.md)
   format by default.
 
 For all `zq` options, use the help subcommand:
@@ -56,7 +56,7 @@ zq -t "orig_bytes > 10000 | count()" conn.log
 zq -t "avg(orig_bytes)" conn.log
 ```
 
-The [ZNG specification](../../docs/formats/spec.md) describes how the format can
+The [ZNG specification](../../docs/formats/zng.md) describes how the format can
 represent a stream of heterogeneously typed records. By leveraging this,
 diverse Zeek logs can be combined into a single file.
 
@@ -92,7 +92,7 @@ at the [performance](../../performance/README.md) page.
 
 | Format | Read | Auto-Detect | Write | Description |
 |--------|------|-------------|-------|-------------|
-| zng | yes | yes | yes | [ZNG specification](../../docs/formats/spec.md) |
+| zng | yes | yes | yes | [ZNG specification](../../docs/formats/zng.md) |
 | zst | yes | no | yes | [ZST specification](../../docs/formats/zst.md) |
 | zson | yes | yes | yes | [ZSON specification](../../docs/formats/zson.md) |
 | tzng | yes | yes | yes | Alternate text-based ZNG format |

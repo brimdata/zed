@@ -35,7 +35,7 @@ indexing and searching log archives and running interesting graph queries.
 
 ## Test data
 
-We'll use the [ZNG](../../../docs/formats/README.md)-format test data from here:
+We'll use the [ZNG](../../../docs/formats/zng.md)-format test data from here:
 ```
 https://github.com/brimdata/zq-sample-data/tree/main/zng
 ```

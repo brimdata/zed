@@ -1,7 +1,7 @@
 # ZNG Compression Format Specification
 
 This document specifies values for the `<format>` field of a
-[ZNG compressed value message block](spec.md#312-compressed-value-message-block)
+[ZNG compressed value message block](zng.md#312-compressed-value-message-block)
 and the corresponding algorithms for the `<compressed-messages>` field.
 
 A `<format>` of `0` specifies that `<compressed-messages>` contains an

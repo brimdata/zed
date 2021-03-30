@@ -190,7 +190,7 @@ If you examine it in a JSON browser, you'll see that the type definition in
 specifies a `_path` of a unique Zeek event type, then names a corresponding
 `descriptor` configuration.
 2. A section of `descriptors` that define the expected the name and
-[ZNG](../docs/formats/spec.md)
+[ZNG](../docs/formats/zng.md)
 data type for each field in a Zeek event that was identified by a rule.
 
 Zeek's `_path` field plays an important role in this definition. `zq` will
