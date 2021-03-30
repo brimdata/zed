@@ -7,7 +7,7 @@ in the most recent generally-available releases of Brim
 ([v0.24.0](https://github.com/brimdata/brim/releases/tag/v0.24.0)) and/or `zq`
 ([v0.29.0](https://github.com/brimdata/zq/releases/tag/v0.29.0)), follow
 [this link](https://github.com/brimdata/zq/tree/v0.29.0/zql/docs/README.md)
-to browse the docs for ZQL as they existed as of that tagged version.
+to browse the docs for ZQL as it existed in those tagged releases.
 
 If you're developing code or otherwise working on current commits of the
 [Brim](https://github.com/brimdata/brim) and/or `zq` projects, docs for the
