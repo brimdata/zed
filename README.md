@@ -1,19 +1,29 @@
 # `zed` [![Tests][tests-img]][tests]
 
-The `zed` repository contains tools and components used to search, analyze,
-and store structured log data, including:
+The `zed` project is a new, clean-slate design for a data-engineering stack.
+At zed's foundation lies a new family of self-describing
+data formats based on the "zed data model", which blends the highly structured
+approach of dataframes and relational tables with the loosely structured
+document model of JSON.
 
-* The [zq](cmd/zq/README.md) command line tool, for searching and analyzing log
- files
+While the zed system is built around its family of data formats, it is also
+interoperable with popular data formats like NDJSON, CSV, and Parquet.
+
+This repository contains tools and components used to organize, search, analyze,
+and store zed data, including:
+
+* The [zq](cmd/zq/README.md) command line tool for searching and analyzing data
 * The [zqd](ppl/cmd/zqd/README.md) daemon, which serves a REST API to manage
- and query log archives, and is the backend for the [Brim](https://github.com/brimdata/brim)
+ and query zed data lakes, and is the backend for the [Brim](https://github.com/brimdata/brim)
  application
-* The [zar](ppl/cmd/zar/README.md) command line tool, for working with log data
- archives
 * The [zapi](cmd/zapi/README.md) command line tool, for interacting with the
 API provided by zqd
-* The [ZQL](docs/language/README.md) query language definition and implementation
-* The [ZNG](docs/formats/zng.md) structured log specification and supporting components
+* The [zed language](docs/language/README.md) documentation
+* The [zed formats](docs/formats/README.md) specifications and documentation
+
+We believe the zed data architecture provides a powerful foundation for the
+modern data lake and are actively developing tooling and software components
+for the emerging "zed data lake".
 
 ## Installation
 
