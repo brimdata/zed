@@ -36,8 +36,8 @@ func ZQAbsPath() (string, error) {
 	return filepath.Join(distdir, "zq"), nil
 }
 
-// ZQSampleDataAbsPath returns the absolute path of zed-sample-data.
-func ZQSampleDataAbsPath() (string, error) {
+// ZedSampleDataAbsPath returns the absolute path of zed-sample-data.
+func ZedSampleDataAbsPath() (string, error) {
 	repo, err := RepoAbsPath()
 	if err != nil {
 		return repo, err

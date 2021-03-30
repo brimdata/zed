@@ -239,7 +239,7 @@ func QualifyCommand(command string) ([]string, error) {
 	zql := strings.TrimSpace(pieces[1])
 
 	var fileargs []string
-	sampledata, err := ZQSampleDataAbsPath()
+	sampledata, err := ZedSampleDataAbsPath()
 	if err != nil {
 		return nil, err
 	}

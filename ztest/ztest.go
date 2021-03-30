@@ -42,7 +42,7 @@
 //
 // Alternatively, tests can be configured to run as shell scripts.
 // In this style of test, arbitrary bash scripts can run chaining together
-// any of zq/cmd tools in addition to zq.  Here, the yaml sets up a collection
+// any of the tools in cmd/ in addition to zq.  Here, the yaml sets up a collection
 // of input files and stdin, the script runs, and the test driver compares expected
 // output files, stdout, and stderr with data in the yaml spec.  In this case,
 // instead of specifying, "zed", "input", "output", you specify the yaml arrays

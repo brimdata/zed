@@ -48,7 +48,7 @@ start = __ ast:Z __ EOF { RETURN(ast) }
 
 // A Z script can be either a single operation or a chain of operations.
 // For a single operation, we do not need to wrap operator in a SequentialProc,
-// but we do for everything but FilterProc because the zq runtime is fragile
+// but we do for everything but FilterProc because the zed runtime is fragile
 // to this difference right now.  See issue #1809.
 Z // = !(Operator / Aggregation / "(") op:Operation &EOF { RETURN(op) }
   = consts:Const+ __ first:Operation rest:SequentialTail* {

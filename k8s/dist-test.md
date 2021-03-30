@@ -12,7 +12,7 @@ This is a test for a local machine.
 ```
 mkdir ./testp
 cd testp
-cp zq/zed-sample-data/zeek-default/conn.log.gz .
+cp .../zed-sample-data/zeek-default/conn.log.gz .
 mkdir spaces
 zqd listen -data spaces
 ```

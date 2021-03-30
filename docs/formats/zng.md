@@ -13,8 +13,8 @@
 > * Only streams of `record` types (which may consist of any combination of
 >   other implemented types) are supported by zq even though a stream of
 >   any types may currently be expressed in value messages.
-> * ZQL syntax for working with the [`enum` type](#3115-enum-typedef) is not yet implemented. ([zq/1498](https://github.com/brimdata/zed/issues/1498))
-> * [Primitive Types](#3-primitive-types) for `float16`, `float32`, and `decimal` are not yet implemented. ([zq/1312](https://github.com/brimdata/zed/issues/1312), [zq/1522](https://github.com/brimdata/zed/issues/1522))
+> * ZQL syntax for working with the [`enum` type](#3115-enum-typedef) is not yet implemented. ([#1498](https://github.com/brimdata/zed/issues/1498))
+> * [Primitive Types](#3-primitive-types) for `float16`, `float32`, and `decimal` are not yet implemented. ([#1312](https://github.com/brimdata/zed/issues/1312), [#1522](https://github.com/brimdata/zed/issues/1522))
 
 * [1. Introduction](#1-introduction)
 * [2. The ZNG Format](#2-the-zng-format)

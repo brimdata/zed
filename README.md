@@ -1,6 +1,6 @@
-# `zq` [![Tests][tests-img]][tests]
+# `zed` [![Tests][tests-img]][tests]
 
-The `zq` repository contains tools and components used to search, analyze,
+The `zed` repository contains tools and components used to search, analyze,
 and store structured log data, including:
 
 * The [zq](cmd/zq/README.md) command line tool, for searching and analyzing log
@@ -30,13 +30,13 @@ execute `make install`:
 
 ```
 git clone https://github.com/brimdata/zed
-cd zq
+cd zed
 make install
 ```
 
 ## Contributing
 
-See the [contributing guide](CONTRIBUTING.md) on how you can help improve `zq`!
+See the [contributing guide](CONTRIBUTING.md) on how you can help improve `zed`!
 
 ## Join the Community
 

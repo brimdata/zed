@@ -1,5 +1,5 @@
 #!/bin/bash
-# This is designed to be run from the zq root directory
+# This is designed to be run from the repository root.
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
 make install

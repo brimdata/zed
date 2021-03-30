@@ -59,7 +59,7 @@ aws s3 ls # make sure the bucket exists!
 zqd listen -data s3://brim-scratch/mark/zqd-meta
 ```
 zqd will stay running in that console, listening at `localhost:9867` by default.
-zqd will not create any s3 objects in zqd-meta until we issue a zapi command. Before using zapi, we use `zar import` in another console to copy sample data from our zq repo into s3:
+zqd will not create any s3 objects in zqd-meta until we issue a zapi command. Before using zapi, we use `zar import` in another console to copy sample data from this repository into s3:
 ```
 zar import -R s3://brim-scratch/mark/sample-http-zng zed-sample-data/zng/http.zng.gz
 ```

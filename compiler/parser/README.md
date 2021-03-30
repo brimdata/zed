@@ -37,7 +37,7 @@ the zql parser.
 ## Development
 
 During development, the easiest way to run the parser
-is with this `make` command at the root of the `zq repo`:
+is with this `make` command at the root of this repository:
 ```
 make peg
 ```

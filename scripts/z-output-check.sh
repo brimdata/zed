@@ -36,7 +36,7 @@ else
   echo "------------------------------------------------------------------------------"
   echo "Output format has changed. If your work intentionally changed ZNG/ZSON/TZNG"
   echo "output and hence you do not suspect a bug, either update the zed-sample-data"
-  echo "repo with new output files and MD5 hashes to make this test pass, or open a zq"
+  echo "repo with new output files and MD5 hashes to make this test pass, or open a zed"
   echo "issue and include the output from this script and someone else will take care"
   echo "of it ASAP."
   exit 1

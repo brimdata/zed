@@ -1,6 +1,6 @@
 These entries focus on changes we think are relevant to users of Brim,
-zq, or pcap.  For all changes to zqd, its API, or to other components in the
-zq repo, check the git log.
+zq, or pcap.  For all changes to zqd, its API, or other components in the
+this repository, check the git log.
 
 ## v0.29.0
 * zqd: Update Zeek pointer to [v3.2.1-brim10](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim10) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#2081)
@@ -244,7 +244,7 @@ questions.
 
 ## v0.19.1
 
-* zq: Move third party license texts in zq repo to a single [acknowledgments.txt](https://github.com/brimdata/zed/blob/main/acknowledgments.txt) file (#1107)
+* zq: Move third party license texts in this repository to a single [acknowledgments.txt](https://github.com/brimdata/zed/blob/main/acknowledgments.txt) file (#1107)
 * zq: Automatically load AWS config from shared config file `~/.aws/config` by default (#1109)
 * zqd: Fix an issue with excess characters in Space names after upgrade (#1112)
 
@@ -418,7 +418,7 @@ questions.
 ## v0.1.0
 
 * zq moves from github.com/mccanne/zq to github.com/brimdata/zed.
-* Parser and AST moved to zq repo from github.com/looky-cloud/lookytalk.
+* Parser and AST moved to this repository from github.com/looky-cloud/lookytalk.
 * Query language name changed to ZQL.
 * ZNG specification added.
 

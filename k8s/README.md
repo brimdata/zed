@@ -22,7 +22,7 @@ When you have an EKS cluster set up, either using the link above, or using a pre
 
 [How to deploy zqd on EKS](dev-on-eks.md)
 
-The Brim AWS account is used to automatically deploy and test the main branch of zq in a test EKS cluster. If you fork the repo, you may want to do something similar.
+The Brim AWS account is used to automatically deploy and test the main branch in a test EKS cluster. If you fork the repo, you may want to do something similar.
 
 ## Optional: Aurora and Temporal
 

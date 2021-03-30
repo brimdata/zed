@@ -51,12 +51,12 @@ A set of JSON-format Zeek logs will now be present in `~/zed-sample-data/zeek-nd
 
 # Usage
 
-Assuming you have the [`zq`](https://github.com/brimdata/zed) repository locally
-cloned to `~/zq` and the `zq` binary is in your `$PATH`, here's an example of
+Assuming you have the [`zed`](https://github.com/brimdata/zed) repository locally
+cloned to `~/zed` and the `zq` binary is in your `$PATH`, here's an example of
 reading in all Zeek events while applying the JSON type definition:
 
 ```
-# zq -f table -j ~/zq/zeek/types.json "count()" ~/zed-sample-data/zeek-ndjson/*
+# zq -f table -j ~/zed/zeek/types.json "count()" ~/zed-sample-data/zeek-ndjson/*
 COUNT
 1462078
 ```
@@ -154,7 +154,7 @@ However, once we apply the the type definition, `zq` now knows to treat
 `id.orig_h` as an IP address.
 
 ```
-# zq -f zeek -j ~/zq/zeek/types.json "cut ts,id.orig_h | head 1" ~/zed-sample-data/zeek-ndjson/http.ndjson.gz
+# zq -f zeek -j ~/zed/zeek/types.json "cut ts,id.orig_h | head 1" ~/zed-sample-data/zeek-ndjson/http.ndjson.gz
 #separator \x09
 #set_separator	,
 #empty_field	(empty)
@@ -168,7 +168,7 @@ Revisiting our original query, now the CIDR match succeeds, and we see the
 expected result.
 
 ```
-# zq -f table -j ~/zq/zeek/types.json "id.orig_h =~ 10.47.0.0/16 | cut ts,id.orig_h | head 1" ~/zed-sample-data/zeek-ndjson/http.ndjson.gz
+# zq -f table -j ~/zed/zeek/types.json "id.orig_h =~ 10.47.0.0/16 | cut ts,id.orig_h | head 1" ~/zed-sample-data/zeek-ndjson/http.ndjson.gz
 TS                ID.ORIG_H
 1521911722.314494 10.47.5.155
 ```
@@ -277,7 +277,7 @@ Now we attempt to read the new events with `zq`, using the same type
 definition as before.
 
 ```
-# zq -f table -j ~/zq/zeek/types.json "count()" json_streaming_*.log
+# zq -f table -j ~/zed/zeek/types.json "count()" json_streaming_*.log
 json_streaming_ssh.2.log: line 1: incomplete descriptor
 ```
 
@@ -289,7 +289,7 @@ error message that references the line number where it encountered the first
 problem.
 
 ```
-# zq -f table -e=false -j ~/zq/zeek/types.json "count()" json_streaming_*.log
+# zq -f table -e=false -j ~/zed/zeek/types.json "count()" json_streaming_*.log
 json_streaming_ssh.2.log: line 1: incomplete descriptor
 json_streaming_unknown_mime_type_discovery.1.log: line 1: descriptor not found
 json_streaming_unknown_mime_type_discovery.2.log: line 1: descriptor not found
@@ -348,7 +348,7 @@ fields that HASSH added to the `ssh` events, and the bottom two sets
 describe the newly-defined `unknown_mime_type_discovery` event.
 
 ```
-# diff ~/zq/zeek/types.json types-custom.json
+# diff ~/zed/zeek/types.json types-custom.json
 3075a3076,3103
 >         "name": "hasshVersion",
 >         "type": "bstring"

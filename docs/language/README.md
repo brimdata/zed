@@ -1,4 +1,4 @@
-# `zq` log query language (ZQL)
+# `zed` log query language (ZQL)
 
 ZQL is a powerful query language for searching and analyzing event data. It is in many ways optimal for working with [Zeek](https://www.zeek.org/) data, though it can be used to query any data in in [ZNG](../formats/zng.md) or [NDJSON](http://ndjson.org/) format.
 
