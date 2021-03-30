@@ -37,17 +37,17 @@ indexing and searching log archives and running interesting graph queries.
 
 We'll use the [ZNG](../../../docs/formats/zng.md)-format test data from here:
 ```
-https://github.com/brimdata/zq-sample-data/tree/main/zng
+https://github.com/brimdata/zed-sample-data/tree/main/zng
 ```
 You can copy just the zng data directory needed for this demo
 into your current directory using subversion:
 ```
-svn checkout https://github.com/brimdata/zq-sample-data/trunk/zng
+svn checkout https://github.com/brimdata/zed-sample-data/trunk/zng
 ```
 Or, you can clone the whole data repo using git and symlink the zng dir:
 ```
-git clone --depth=1 https://github.com/brimdata/zq-sample-data.git
-ln -s zq-sample-data/zng
+git clone --depth=1 https://github.com/brimdata/zed-sample-data.git
+ln -s zed-sample-data/zng
 ```
 
 ## Ingesting the data

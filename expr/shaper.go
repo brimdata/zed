@@ -3,9 +3,9 @@ package expr
 import (
 	"fmt"
 
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zson"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 )
 
 // A ShaperTransform represents one of the different transforms that a

@@ -7,7 +7,7 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zed/zcode"
 )
 
 type TypeOfFloat64 struct{}

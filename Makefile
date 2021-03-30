@@ -5,7 +5,7 @@ export GO111MODULE=on
 ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
 ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
-LDFLAGS = -s -X github.com/brimdata/zq/cli.Version=$(VERSION)
+LDFLAGS = -s -X github.com/brimdata/zed/cli.Version=$(VERSION)
 MINIO_VERSION := 0.0.0-20201211152140-453ab257caf5
 TEMPORAL_VERSION := 1.6.3
 ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))["brimDependencies"]["zeekTag"])')
@@ -15,7 +15,7 @@ SURICATAPATH = suricata-$(SURICATATAG)
 PG_PERSIST = true
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
-#  make TEST=TestZq/ztests/suite/cut/cut
+#  make TEST=TestZed/ztests/suite/cut/cut
 ifneq "$(TEST)" ""
 test-one: test-run
 endif
@@ -38,10 +38,10 @@ tidy:
 	go mod tidy
 	git diff --exit-code -- go.mod go.sum
 
-SAMPLEDATA:=zq-sample-data/README.md
+SAMPLEDATA:=zed-sample-data/README.md
 
 $(SAMPLEDATA):
-	git clone --depth=1 https://github.com/brimdata/zq-sample-data $(@D)
+	git clone --depth=1 https://github.com/brimdata/zed-sample-data $(@D)
 
 sampledata: $(SAMPLEDATA)
 
@@ -106,13 +106,13 @@ test-pcapingest: bin/$(ZEEKPATH)
 test-services: build bin/tctl
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
-		go test -run TestZq/ppl/zqd/db/postgresdb/ztests .
+		go test -run TestZed/ppl/zqd/db/postgresdb/ztests .
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
-		go test -run TestZq/ppl/zqd/ztests/redis .
+		go test -run TestZed/ppl/zqd/ztests/redis .
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
-		go test -run TestZq/ppl/zqd/temporal/ztests .
+		go test -run TestZed/ppl/zqd/temporal/ztests .
 
 .PHONY: test-services-docker
 test-services-docker: export TEMPORAL_VERSION := $(TEMPORAL_VERSION)
@@ -131,14 +131,14 @@ test-cluster: build install
 	time zapi -s files postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=cluster \
-		go test -run TestZq/ppl/zqd/ztests/cluster .
+		go test -run TestZed/ppl/zqd/ztests/cluster .
 
 # test-temporal target assumes zqd-temporal endpoint is available at port 9868
 .PHONY: test-temporal
 test-temporal: build install
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=temporal \
-		go test -run TestZq/ppl/zqd/temporal/ztests .
+		go test -run TestZed/ppl/zqd/temporal/ztests .
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh

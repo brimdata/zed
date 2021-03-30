@@ -4,7 +4,7 @@ import (
 	"context"
 	"io"
 
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 )
 
 // Reader wraps the Read method.

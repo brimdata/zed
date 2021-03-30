@@ -8,9 +8,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
 )
 
 var (

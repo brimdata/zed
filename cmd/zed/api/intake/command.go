@@ -3,13 +3,13 @@ package intake
 import (
 	"flag"
 
-	"github.com/brimdata/zq/api"
-	apicmd "github.com/brimdata/zq/cmd/zed/api"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zqe"
-	"github.com/brimdata/zq/zson"
+	"github.com/brimdata/zed/api"
+	apicmd "github.com/brimdata/zed/cmd/zed/api"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 )
 
 var Intake = &charm.Spec{

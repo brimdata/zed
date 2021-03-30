@@ -9,9 +9,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zng"
 )
 
 func (p *Parser) ParseValue() (ast.Value, error) {

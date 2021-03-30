@@ -445,7 +445,7 @@ RenameProc
 
 // The paren guard is to allow parsing fuse() as an aggregator. This
 // is temporary pending finalizing the names
-// (https://github.com/brimdata/zq/issues/2114) for the fuse proc and
+// (https://github.com/brimdata/zed/issues/2114) for the fuse proc and
 // aggregator, at which point we may no longer need this.
 FuseProc
   = "fuse"i !(__ "(") {

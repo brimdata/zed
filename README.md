@@ -19,7 +19,7 @@ API provided by zqd
 
 To install `zq` or any other tool from this repo, you can either clone the repo
  and compile from source, or use a pre-compiled
- [release](https://github.com/brimdata/zq/releases), available for Windows, macOS, and Linux.
+ [release](https://github.com/brimdata/zed/releases), available for Windows, macOS, and Linux.
 
 If you don't have Go installed, download and install it from the
 [Go downloads page](https://golang.org/dl/). Go version 1.16 or later is
@@ -29,7 +29,7 @@ To install the binaries in `$GOPATH/bin`, clone this repo and
 execute `make install`:
 
 ```
-git clone https://github.com/brimdata/zq
+git clone https://github.com/brimdata/zed
 cd zq
 make install
 ```
@@ -42,5 +42,5 @@ See the [contributing guide](CONTRIBUTING.md) on how you can help improve `zq`!
 
 Join our [Public Slack](https://www.brimsecurity.com/join-slack/) workspace for announcements, Q&A, and to trade tips!
 
-[tests-img]: https://github.com/brimdata/zq/workflows/Tests/badge.svg
-[tests]: https://github.com/brimdata/zq/actions?query=workflow%3ATests
+[tests-img]: https://github.com/brimdata/zed/workflows/Tests/badge.svg
+[tests]: https://github.com/brimdata/zed/actions?query=workflow%3ATests

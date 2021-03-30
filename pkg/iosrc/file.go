@@ -6,8 +6,8 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/brimdata/zq/pkg/fs"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/pkg/fs"
+	"github.com/brimdata/zed/zqe"
 )
 
 var DefaultFileSource = &FileSource{Perm: 0666}

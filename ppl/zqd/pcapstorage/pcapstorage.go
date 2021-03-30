@@ -8,12 +8,12 @@ import (
 	"os"
 	"sync"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/pcap"
-	"github.com/brimdata/zq/pcap/pcapio"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/pcap"
+	"github.com/brimdata/zed/pcap/pcapio"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zqe"
 )
 
 const (

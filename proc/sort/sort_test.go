@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	sortproc "github.com/brimdata/zq/proc/sort"
-	"github.com/brimdata/zq/ztest"
+	sortproc "github.com/brimdata/zed/proc/sort"
+	"github.com/brimdata/zed/ztest"
 )
 
 // Data sets for tests:

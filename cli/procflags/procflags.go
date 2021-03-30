@@ -4,9 +4,9 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimdata/zq/cli/auto"
-	"github.com/brimdata/zq/proc/fuse"
-	"github.com/brimdata/zq/proc/sort"
+	"github.com/brimdata/zed/cli/auto"
+	"github.com/brimdata/zed/proc/fuse"
+	"github.com/brimdata/zed/proc/sort"
 	"github.com/pbnjay/memory"
 )
 

@@ -5,10 +5,10 @@ import (
 	"errors"
 	"io"
 
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zst/column"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zst/column"
 )
 
 func NewCutter(object *Object, fields []string) (*Reader, error) {

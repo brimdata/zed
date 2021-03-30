@@ -4,14 +4,14 @@ import (
 	"context"
 	"time"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/driver"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/ppl/zqd/storage"
-	"github.com/brimdata/zq/ppl/zqd/storage/archivestore"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/ppl/zqd/storage"
+	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zqe"
 	"go.uber.org/zap"
 )
 

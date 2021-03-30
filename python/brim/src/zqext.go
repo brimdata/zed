@@ -6,12 +6,12 @@ import (
 	"context"
 	"errors"
 
-	"github.com/brimdata/zq/compiler"
-	"github.com/brimdata/zq/driver"
-	"github.com/brimdata/zq/emitter"
-	"github.com/brimdata/zq/zio"
-	"github.com/brimdata/zq/zio/detector"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/emitter"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 // result converts an error into response structure expected

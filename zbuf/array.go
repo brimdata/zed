@@ -1,7 +1,7 @@
 package zbuf
 
 import (
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 )
 
 // Array is a slice of of records that implements the Batch and

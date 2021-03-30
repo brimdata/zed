@@ -9,12 +9,12 @@ import (
 	"path"
 	"strings"
 
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/ppl/cmd/zar/root"
-	"github.com/brimdata/zq/ppl/lake"
-	"github.com/brimdata/zq/ppl/lake/chunk"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/ppl/cmd/zar/root"
+	"github.com/brimdata/zed/ppl/lake"
+	"github.com/brimdata/zed/ppl/lake/chunk"
+	"github.com/brimdata/zed/zqe"
 )
 
 var Rm = &charm.Spec{

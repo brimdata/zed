@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"github.com/brimdata/zq/ppl/lake/chunk"
-	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zed/ppl/lake/chunk"
+	"github.com/brimdata/zed/zbuf"
 	"golang.org/x/sync/errgroup"
 )
 

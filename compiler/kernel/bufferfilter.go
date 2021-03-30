@@ -1,10 +1,10 @@
 package kernel
 
 import (
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/expr"
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zson"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zson"
 )
 
 // CompileBufferFilter tries to return a BufferFilter for e such that the

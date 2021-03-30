@@ -5,12 +5,12 @@ import (
 	"errors"
 	"net"
 
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/pkg/byteconv"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zson"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/pkg/byteconv"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 	"golang.org/x/text/unicode/norm"
 )
 

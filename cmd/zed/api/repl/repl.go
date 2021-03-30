@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zq/api"
-	apicmd "github.com/brimdata/zq/cmd/zed/api"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/pkg/repl"
-	"github.com/brimdata/zq/pkg/units"
+	"github.com/brimdata/zed/api"
+	apicmd "github.com/brimdata/zed/cmd/zed/api"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/repl"
+	"github.com/brimdata/zed/pkg/units"
 )
 
 var Repl = &charm.Spec{

@@ -3,10 +3,10 @@ package search
 import (
 	"net/http"
 
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio"
-	"github.com/brimdata/zq/zio/csvio"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/csvio"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 // CSVOutput implements the Output inteface and writes csv encoded-output

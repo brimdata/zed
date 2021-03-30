@@ -3,7 +3,7 @@ package unpack_test
 import (
 	"testing"
 
-	"github.com/brimdata/zq/pkg/unpack"
+	"github.com/brimdata/zed/pkg/unpack"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

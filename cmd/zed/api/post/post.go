@@ -8,11 +8,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/brimdata/zq/api/client"
-	"github.com/brimdata/zq/cmd/zapi/format"
-	apicmd "github.com/brimdata/zq/cmd/zed/api"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/pkg/display"
+	"github.com/brimdata/zed/api/client"
+	"github.com/brimdata/zed/cmd/zapi/format"
+	apicmd "github.com/brimdata/zed/cmd/zed/api"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/display"
 )
 
 var Post = &charm.Spec{

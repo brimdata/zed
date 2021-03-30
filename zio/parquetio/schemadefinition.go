@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 	"github.com/fraugster/parquet-go/parquet"
 	"github.com/fraugster/parquet-go/parquetschema"
 )

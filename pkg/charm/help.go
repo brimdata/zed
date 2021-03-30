@@ -7,7 +7,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/brimdata/zq/pkg/terminal"
+	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/kr/text"
 )
 

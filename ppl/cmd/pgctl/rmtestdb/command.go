@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/ppl/cmd/pgctl/root"
-	"github.com/brimdata/zq/ppl/zqd/db/postgresdb"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/ppl/cmd/pgctl/root"
+	"github.com/brimdata/zed/ppl/zqd/db/postgresdb"
 	"github.com/go-pg/pg/v10"
 )
 

@@ -5,8 +5,8 @@ The query language formerly known as ZQL is evolving!
 If you've landed at this page because you're looking for docs regarding ZQL
 in the most recent generally-available releases of Brim
 ([v0.24.0](https://github.com/brimdata/brim/releases/tag/v0.24.0)) and/or `zq`
-([v0.29.0](https://github.com/brimdata/zq/releases/tag/v0.29.0)), follow
-[this link](https://github.com/brimdata/zq/tree/v0.29.0/zql/docs/README.md)
+([v0.29.0](https://github.com/brimdata/zed/releases/tag/v0.29.0)), follow
+[this link](https://github.com/brimdata/zed/tree/v0.29.0/zql/docs/README.md)
 to browse the docs for ZQL as it existed in those tagged releases.
 
 If you're developing code or otherwise working on current commits of the

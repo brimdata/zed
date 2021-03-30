@@ -4,7 +4,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zed/pkg/charm"
 )
 
 var Rm = &charm.Spec{

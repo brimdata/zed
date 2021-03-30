@@ -6,11 +6,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/ppl/lake/chunk"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/ppl/lake/chunk"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zqe"
 	"github.com/segmentio/ksuid"
 	"golang.org/x/sync/errgroup"
 )

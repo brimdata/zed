@@ -1,4 +1,4 @@
-package zq
+package zed
 
 import (
 	"fmt"
@@ -8,14 +8,14 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zq/zio/detector"
-	"github.com/brimdata/zq/zio/parquetio"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/ztest"
+	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/parquetio"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/require"
 )
 
-func TestZq(t *testing.T) {
+func TestZed(t *testing.T) {
 	t.Parallel()
 	dirs, err := findZTests()
 	require.NoError(t, err)

@@ -9,8 +9,8 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
-	"github.com/brimdata/zq/pkg/s3io"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/pkg/s3io"
+	"github.com/brimdata/zed/zqe"
 )
 
 var defaultS3Source = &s3Source{Client: s3io.NewClient(nil)}

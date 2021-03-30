@@ -3,10 +3,10 @@ package storage
 import (
 	"context"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 type Summary struct {

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"net"
 
-	"github.com/brimdata/zq/expr/result"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/expr/result"
+	"github.com/brimdata/zed/zng"
 )
 
 type networkOf struct {

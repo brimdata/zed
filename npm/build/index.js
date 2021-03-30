@@ -14,7 +14,7 @@ const getVersion = () => {
   return cmdOut.toString().trim()
 }
 
-const getLdflags = (version) => `-s -X github.com/brimdata/zq/cli.Version=${version}`
+const getLdflags = (version) => `-s -X github.com/brimdata/zed/cli.Version=${version}`
 
 const getBuildCommand = (options) =>
   // Double-quotes work both in Windows and *nix shells

@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/pkg/nano"
 )
 
 // semProc does a semantic analysis on a flowgraph to an

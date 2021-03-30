@@ -3,10 +3,10 @@ package search
 import (
 	"context"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/ppl/lake/index"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/ppl/lake/index"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 type IndexSearcher interface {

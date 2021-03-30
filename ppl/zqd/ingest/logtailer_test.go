@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/brimdata/zq/compiler"
-	"github.com/brimdata/zq/driver"
-	"github.com/brimdata/zq/zio"
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zng/resolver"
 	"github.com/stretchr/testify/suite"
 )
 

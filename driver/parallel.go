@@ -7,12 +7,12 @@ import (
 	"sync"
 	"time"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/api/client"
-	"github.com/brimdata/zq/compiler"
-	"github.com/brimdata/zq/ppl/zqd/recruiter"
-	"github.com/brimdata/zq/proc"
-	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/api/client"
+	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/ppl/zqd/recruiter"
+	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/zbuf"
 	"go.uber.org/zap"
 )
 

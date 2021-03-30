@@ -3,9 +3,9 @@ package index
 import (
 	"strings"
 
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zqe"
 	"github.com/segmentio/ksuid"
 )
 

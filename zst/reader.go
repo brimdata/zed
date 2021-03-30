@@ -3,8 +3,8 @@ package zst
 import (
 	"context"
 
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 // Reader implements the zbuf.Reader and io.Closer.  It reads a columnar

@@ -3,8 +3,8 @@ package parquetio
 import (
 	"fmt"
 
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
 )
 
 type builder struct {

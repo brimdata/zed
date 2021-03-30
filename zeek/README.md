@@ -36,27 +36,27 @@ who have tried it. Whether you've used this feature and it "just worked" or if
 you hit challenges and need help, please join our
 [public Slack](https://www.brimsecurity.com/join-slack/)
 and tell us about it, or
-[open an issue](https://github.com/brimdata/zq/issues/new/choose). Thanks!
+[open an issue](https://github.com/brimdata/zed/issues/new/choose). Thanks!
 
 # Sample data
 
 To see a working example before working with your own data, clone the
-[zq-sample-data](https://github.com/brimdata/zq-sample-data) repository.
+[zed-sample-data](https://github.com/brimdata/zed-sample-data) repository.
 
 ```
-# git clone --depth=1 https://github.com/brimdata/zq-sample-data ~/zq-sample-data
+# git clone --depth=1 https://github.com/brimdata/zed-sample-data ~/zed-sample-data
 ```
 
-A set of JSON-format Zeek logs will now be present in `~/zq-sample-data/zeek-ndjson`.
+A set of JSON-format Zeek logs will now be present in `~/zed-sample-data/zeek-ndjson`.
 
 # Usage
 
-Assuming you have the [`zq`](https://github.com/brimdata/zq) repository locally
+Assuming you have the [`zq`](https://github.com/brimdata/zed) repository locally
 cloned to `~/zq` and the `zq` binary is in your `$PATH`, here's an example of
 reading in all Zeek events while applying the JSON type definition:
 
 ```
-# zq -f table -j ~/zq/zeek/types.json "count()" ~/zq-sample-data/zeek-ndjson/*
+# zq -f table -j ~/zq/zeek/types.json "count()" ~/zed-sample-data/zeek-ndjson/*
 COUNT
 1462078
 ```
@@ -74,7 +74,7 @@ Consider this Zeek HTTP event as output by the
 package:
 
 ```
-# gzcat ~/zq-sample-data/zeek-ndjson/http.ndjson.gz | head -n 1 | jq -S .
+# gzcat ~/zed-sample-data/zeek-ndjson/http.ndjson.gz | head -n 1 | jq -S .
 {
   "_path": "http",
   "_write_ts": "2018-03-24T17:15:20.610930Z",
@@ -109,7 +109,7 @@ event with how it's described when output in Zeek's default TSV log format.
 Here the schema is defined in a pair of headers at the top of the log.
 
 ```
-# gzcat ~/zq-sample-data/zeek-default/http.log.gz | egrep "#fields"\|"#types"
+# gzcat ~/zed-sample-data/zeek-default/http.log.gz | egrep "#fields"\|"#types"
 #fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	trans_depth	method	host	uri	referrer	version	user_agent	origin	request_body_len	response_body_len	status_code	status_msg	info_code	info_msg	tags	username	password	proxied	orig_fuids	orig_filenames	orig_mime_types	resp_fuids	resp_filenames	resp_mime_types
 #types	time	string	addr	port	addr	port	count	string	stringstring	string	string	string	string	count	count	count	string	count	string	set[enum]	string	string	set[string]	vector[string]	vector[string]	vector[string]	vector[string]	vector[string]	vector[string]
 ```
@@ -125,12 +125,12 @@ appeared in the TSV header:
 Therefore, an operation such as a CIDR match would not work as expected
 if the JSON event were read _without_ using `-j` to specify the data type
 definition. In the following ZQL pipeline, the
-[`cut` processor](https://github.com/brimdata/zq/tree/main/zql/docs/processors#cut)
+[`cut` processor](https://github.com/brimdata/zed/tree/main/zql/docs/processors#cut)
 emits a warning because no events were returned from the attempted CIDR
 match.
 
 ```
-# zq -f table "id.orig_h =~ 10.47.0.0/16 | cut ts,id.orig_h | head 1" ~/zq-sample-data/zeek-ndjson/http.ndjson.gz
+# zq -f table "id.orig_h =~ 10.47.0.0/16 | cut ts,id.orig_h | head 1" ~/zed-sample-data/zeek-ndjson/http.ndjson.gz
 Cut fields ts,id.orig_h not present together in input
 ```
 
@@ -140,7 +140,7 @@ this more clearly by having `zq` print an event back out in Zeek format after
 inferring data types:
 
 ```
-# zq -f zeek "cut ts,id.orig_h | head 1" ~/zq-sample-data/zeek-ndjson/http.ndjson.gz
+# zq -f zeek "cut ts,id.orig_h | head 1" ~/zed-sample-data/zeek-ndjson/http.ndjson.gz
 #separator \x09
 #set_separator	,
 #empty_field	(empty)
@@ -154,7 +154,7 @@ However, once we apply the the type definition, `zq` now knows to treat
 `id.orig_h` as an IP address.
 
 ```
-# zq -f zeek -j ~/zq/zeek/types.json "cut ts,id.orig_h | head 1" ~/zq-sample-data/zeek-ndjson/http.ndjson.gz
+# zq -f zeek -j ~/zq/zeek/types.json "cut ts,id.orig_h | head 1" ~/zed-sample-data/zeek-ndjson/http.ndjson.gz
 #separator \x09
 #set_separator	,
 #empty_field	(empty)
@@ -168,7 +168,7 @@ Revisiting our original query, now the CIDR match succeeds, and we see the
 expected result.
 
 ```
-# zq -f table -j ~/zq/zeek/types.json "id.orig_h =~ 10.47.0.0/16 | cut ts,id.orig_h | head 1" ~/zq-sample-data/zeek-ndjson/http.ndjson.gz
+# zq -f table -j ~/zq/zeek/types.json "id.orig_h =~ 10.47.0.0/16 | cut ts,id.orig_h | head 1" ~/zed-sample-data/zeek-ndjson/http.ndjson.gz
 TS                ID.ORIG_H
 1521911722.314494 10.47.5.155
 ```
@@ -197,7 +197,7 @@ Zeek's `_path` field plays an important role in this definition. `zq` will
 typically learn the `_path` for events in one of two ways:
 
 * **Explicit** - It will be included in each JSON event, such as if the events were output by the [JSON Streaming Logs](https://github.com/corelight/json-streaming-logs)
-package. This was the case for the zq-sample-data events shown above.
+package. This was the case for the zed-sample-data events shown above.
 * **Implicit** - `zq` will deduce it from filenames, such as if the Zeek logs were output
 by the built-in [ASCII logger](https://docs.zeek.org/en/current/scripts/base/frameworks/logging/writers/ascii.zeek.html)
 with `redef LogAscii::use_json = T;` configured. If the files have been subject
@@ -230,7 +230,7 @@ Next we'll walk through an example where we handle each of these exceptions.
 
 First we'll regenerate our Zeek JSON logs from the same subset of
 [wrccdc 2018 pcaps](https://archive.wrccdc.org/pcaps/2018/) described in
-the [zq-sample-data README](https://github.com/brimdata/zq-sample-data/blob/main/README.md),
+the [zed-sample-data README](https://github.com/brimdata/zed-sample-data/blob/main/README.md),
 but with a customized Zeek v3.1.2 that has the following additional packages
 installed:
 

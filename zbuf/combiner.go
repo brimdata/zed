@@ -4,7 +4,7 @@ import (
 	"context"
 	"sync"
 
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 )
 
 // A Combiner is a Reader that returns records by reading from multiple Readers.

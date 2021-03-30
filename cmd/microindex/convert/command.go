@@ -4,15 +4,15 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimdata/zq/cli/inputflags"
-	"github.com/brimdata/zq/cmd/microindex/root"
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/microindex"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio/detector"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/cli/inputflags"
+	"github.com/brimdata/zed/cmd/microindex/root"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/microindex"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var Convert = &charm.Spec{

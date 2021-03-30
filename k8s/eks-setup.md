@@ -168,7 +168,7 @@ Now use zar to create an object in S3.
 
 For the following zar import, change the directory name to match your s3 bucket.
 ```
-zar import -R s3://zqd-demo-1/mark/sample-http-zng zq-sample-data/zng/http.zng.gz
+zar import -R s3://zqd-demo-1/mark/sample-http-zng zed-sample-data/zng/http.zng.gz
 ```
 This creates zng files in an s3 directory called `sample-http-zng` that we will use from zapi after zqd has been deployed. To check what zar created:
 ```

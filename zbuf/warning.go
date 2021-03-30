@@ -3,7 +3,7 @@ package zbuf
 import (
 	"fmt"
 
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 )
 
 type Warner interface {

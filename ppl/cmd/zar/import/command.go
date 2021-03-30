@@ -5,16 +5,16 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimdata/zq/cli/inputflags"
-	"github.com/brimdata/zq/cli/procflags"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/pkg/rlimit"
-	"github.com/brimdata/zq/pkg/signalctx"
-	"github.com/brimdata/zq/pkg/units"
-	"github.com/brimdata/zq/ppl/cmd/zar/root"
-	"github.com/brimdata/zq/ppl/lake"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/cli/inputflags"
+	"github.com/brimdata/zed/cli/procflags"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/rlimit"
+	"github.com/brimdata/zed/pkg/signalctx"
+	"github.com/brimdata/zed/pkg/units"
+	"github.com/brimdata/zed/ppl/cmd/zar/root"
+	"github.com/brimdata/zed/ppl/lake"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var Import = &charm.Spec{

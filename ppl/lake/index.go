@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"runtime"
 
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/ppl/lake/chunk"
-	"github.com/brimdata/zq/ppl/lake/index"
-	"github.com/brimdata/zq/zio/zngio"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/ppl/lake/chunk"
+	"github.com/brimdata/zed/ppl/lake/index"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zng/resolver"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )

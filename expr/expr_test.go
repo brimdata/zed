@@ -5,13 +5,13 @@ import (
 	"net"
 	"testing"
 
-	"github.com/brimdata/zq/expr"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zson"
-	"github.com/brimdata/zq/ztest"
+	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/require"
 )
 

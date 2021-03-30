@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
 	"github.com/stretchr/testify/require"
 )
 

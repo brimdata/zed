@@ -3,7 +3,7 @@ package zng
 import (
 	"encoding/hex"
 
-	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zed/zcode"
 )
 
 type TypeOfBytes struct{}

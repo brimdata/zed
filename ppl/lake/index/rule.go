@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/brimdata/zq/compiler"
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/zio"
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zio/zngio"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 type RuleKind string

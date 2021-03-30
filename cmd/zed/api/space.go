@@ -8,11 +8,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/api/client"
-	"github.com/brimdata/zq/pkg/glob"
-	"github.com/brimdata/zq/pkg/units"
-	"github.com/brimdata/zq/ppl/lake"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/api/client"
+	"github.com/brimdata/zed/pkg/glob"
+	"github.com/brimdata/zed/pkg/units"
+	"github.com/brimdata/zed/ppl/lake"
 )
 
 var (

@@ -1,9 +1,9 @@
 package fuse
 
 import (
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 func WriteCloser(wc zbuf.WriteCloser, zctx *resolver.Context) zbuf.WriteCloser {

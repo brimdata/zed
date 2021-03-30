@@ -5,9 +5,9 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/ppl/zqd/auth"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/ppl/zqd/auth"
 	"github.com/segmentio/ksuid"
 )
 

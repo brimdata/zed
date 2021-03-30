@@ -3,8 +3,8 @@ package expr
 import (
 	"errors"
 
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zng"
 )
 
 type RootRecord struct{}

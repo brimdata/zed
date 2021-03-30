@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zq/pkg/iosrc"
-	iosrcmock "github.com/brimdata/zq/pkg/iosrc/mock"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio"
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/pkg/iosrc"
+	iosrcmock "github.com/brimdata/zed/pkg/iosrc/mock"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zng/resolver"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )

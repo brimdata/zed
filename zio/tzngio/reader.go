@@ -8,9 +8,9 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/brimdata/zq/pkg/skim"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/pkg/skim"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var (

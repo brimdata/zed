@@ -7,11 +7,11 @@ import (
 	"os"
 	"time"
 
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/ppl/lake/immcache"
-	"github.com/brimdata/zq/ppl/lake/index"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/ppl/lake/immcache"
+	"github.com/brimdata/zed/ppl/lake/index"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zqe"
 )
 
 const (

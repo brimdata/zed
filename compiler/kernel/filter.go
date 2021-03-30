@@ -3,11 +3,11 @@ package kernel
 import (
 	"fmt"
 
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/expr"
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (expr.Filter, error) {

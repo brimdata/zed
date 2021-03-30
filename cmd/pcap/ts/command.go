@@ -7,10 +7,10 @@ import (
 	"io"
 	"os"
 
-	"github.com/brimdata/zq/cmd/pcap/root"
-	"github.com/brimdata/zq/pcap/pcapio"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/pkg/fs"
+	"github.com/brimdata/zed/cmd/pcap/root"
+	"github.com/brimdata/zed/pcap/pcapio"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/fs"
 )
 
 var Ts = &charm.Spec{

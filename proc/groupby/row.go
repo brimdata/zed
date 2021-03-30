@@ -1,9 +1,9 @@
 package groupby
 
 import (
-	"github.com/brimdata/zq/expr"
-	"github.com/brimdata/zq/expr/agg"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/expr/agg"
+	"github.com/brimdata/zed/zng"
 )
 
 type valRow []agg.Function

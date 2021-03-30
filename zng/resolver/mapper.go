@@ -1,7 +1,7 @@
 package resolver
 
 import (
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 )
 
 type Mapper struct {

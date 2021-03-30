@@ -4,14 +4,14 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/expr"
-	"github.com/brimdata/zq/expr/agg"
-	"github.com/brimdata/zq/expr/function"
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zson"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/expr/agg"
+	"github.com/brimdata/zed/expr/function"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var Root = &ast.Path{Kind: "Path", Name: []string{}}

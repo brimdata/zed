@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 )
 
 type Reader struct {

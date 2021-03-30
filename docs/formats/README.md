@@ -17,4 +17,4 @@ in JSON for easy transmission and decoding to JSON-based clients as is
 implemented by the
 [zealot javascript library](https://github.com/brimdata/brim/tree/master/zealot)
 and the
-[zed python library](https://github.com/brimdata/zq/tree/main/python).
+[zed python library](https://github.com/brimdata/zed/tree/main/python).

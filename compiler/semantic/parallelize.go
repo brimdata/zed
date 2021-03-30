@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/field"
 )
 
 var passProc = &ast.Pass{Kind: "Pass"}

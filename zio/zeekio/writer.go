@@ -6,11 +6,11 @@ import (
 	"io"
 	"strings"
 
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/flattener"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/flattener"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var ErrDescriptorChanged = errors.New("descriptor changed")

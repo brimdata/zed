@@ -8,14 +8,14 @@ import (
 	"os"
 	"sync"
 
-	"github.com/brimdata/zq/cli/procflags"
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/pkg/rlimit"
-	"github.com/brimdata/zq/pkg/signalctx"
-	"github.com/brimdata/zq/ppl/cmd/zar/root"
-	"github.com/brimdata/zq/ppl/lake"
-	"github.com/brimdata/zq/ppl/lake/index"
+	"github.com/brimdata/zed/cli/procflags"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/rlimit"
+	"github.com/brimdata/zed/pkg/signalctx"
+	"github.com/brimdata/zed/ppl/cmd/zar/root"
+	"github.com/brimdata/zed/ppl/lake"
+	"github.com/brimdata/zed/ppl/lake/index"
 )
 
 var Create = &charm.Spec{

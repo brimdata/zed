@@ -5,9 +5,9 @@ import (
 	"net"
 	"testing"
 
-	"github.com/brimdata/zq/expr/function"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/expr/function"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zng"
 )
 
 func namedErrBadArgument(name string) error {

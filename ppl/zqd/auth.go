@@ -6,8 +6,8 @@ import (
 	"flag"
 	"net/http"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/ppl/zqd/auth"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/ppl/zqd/auth"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"go.uber.org/zap"

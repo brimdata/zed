@@ -3,8 +3,8 @@ package expr
 import (
 	"errors"
 
-	"github.com/brimdata/zq/expr/agg"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/expr/agg"
+	"github.com/brimdata/zed/zng"
 )
 
 var (

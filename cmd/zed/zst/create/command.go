@@ -5,12 +5,12 @@ import (
 	"errors"
 	"flag"
 
-	"github.com/brimdata/zq/cli/inputflags"
-	"github.com/brimdata/zq/cli/outputflags"
-	"github.com/brimdata/zq/cmd/zed/zst"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/cli/inputflags"
+	"github.com/brimdata/zed/cli/outputflags"
+	"github.com/brimdata/zed/cmd/zed/zst"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var Create = &charm.Spec{

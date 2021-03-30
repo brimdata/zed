@@ -14,7 +14,7 @@ script: |
   #
   zapi -h $ZQD_HOST new -k archivestore -d spacedir -thresh 15KB testsp > /dev/null
   #
-  # This is the same smtp.log from zq-sample-data
+  # This is the same smtp.log from zed-sample-data
   #
   zapi -h $ZQD_HOST -s testsp post smtp.log.gz > /dev/null
   #

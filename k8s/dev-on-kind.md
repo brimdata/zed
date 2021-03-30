@@ -56,7 +56,7 @@ To test locally, run this script to forward the Kind/K8s ports to local ports:
 Now use zapi to create a Brim "space":
 ```
 zapi new -k archivestore http-space
-zapi -s http-space post s3://zq-sample-data/zng/http.zng.gz
+zapi -s http-space post s3://zed-sample-data/zng/http.zng.gz
 ```
 And try some zapi queries:
 ```

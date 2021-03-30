@@ -12,11 +12,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zq/compiler"
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/compiler/parser"
-	"github.com/brimdata/zq/pkg/fs"
-	"github.com/brimdata/zq/ztest"
+	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/parser"
+	"github.com/brimdata/zed/pkg/fs"
+	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

@@ -1,7 +1,7 @@
 package typevector
 
 import (
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 )
 
 type Type []zng.Type
