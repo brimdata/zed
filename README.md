@@ -1,13 +1,13 @@
 # `zed` [![Tests][tests-img]][tests]
 
-The `zed` project is a new, clean-slate design for a data-engineering stack.
+The zed project is a new, clean-slate design for a data-engineering stack.
 At zed's foundation lies a new family of self-describing
 data formats based on the "zed data model", which blends the highly structured
 approach of dataframes and relational tables with the loosely structured
 document model of JSON.
 
 While the zed system is built around its family of data formats, it is also
-interoperable with popular data formats like NDJSON, CSV, and Parquet.
+interoperable with popular data formats like CSV, (ND)JSON, and Parquet.
 
 This repository contains tools and components used to organize, search, analyze,
 and store zed data, including:
@@ -22,7 +22,7 @@ API provided by zqd
 * The [zed formats](docs/formats/README.md) specifications and documentation
 
 We believe the zed data architecture provides a powerful foundation for the
-modern data lake and are actively developing tooling and software components
+modern data lake and are actively developing tools and software components
 for the emerging "zed data lake".
 
 ## Installation
