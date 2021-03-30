@@ -1,4 +1,4 @@
-package zq
+package zed
 
 import (
 	"flag"
@@ -6,17 +6,17 @@ import (
 	"os"
 	"text/tabwriter"
 
-	"github.com/brimdata/zq/cli/outputflags"
-	"github.com/brimdata/zq/cli/procflags"
-	"github.com/brimdata/zq/cli/searchflags"
-	"github.com/brimdata/zq/compiler"
-	"github.com/brimdata/zq/driver"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/pkg/rlimit"
-	"github.com/brimdata/zq/pkg/signalctx"
-	"github.com/brimdata/zq/ppl/cmd/zar/root"
-	"github.com/brimdata/zq/ppl/lake"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/cli/outputflags"
+	"github.com/brimdata/zed/cli/procflags"
+	"github.com/brimdata/zed/cli/searchflags"
+	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/rlimit"
+	"github.com/brimdata/zed/pkg/signalctx"
+	"github.com/brimdata/zed/ppl/cmd/zar/root"
+	"github.com/brimdata/zed/ppl/lake"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var Zq = &charm.Spec{

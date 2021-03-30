@@ -59,9 +59,9 @@ aws s3 ls # make sure the bucket exists!
 zqd listen -data s3://brim-scratch/mark/zqd-meta
 ```
 zqd will stay running in that console, listening at `localhost:9867` by default.
-zqd will not create any s3 objects in zqd-meta until we issue a zapi command. Before using zapi, we use `zar import` in another console to copy sample data from our zq repo into s3:
+zqd will not create any s3 objects in zqd-meta until we issue a zapi command. Before using zapi, we use `zar import` in another console to copy sample data from this repository into s3:
 ```
-zar import -R s3://brim-scratch/mark/sample-http-zng zq-sample-data/zng/http.zng.gz
+zar import -R s3://brim-scratch/mark/sample-http-zng zed-sample-data/zng/http.zng.gz
 ```
 This creates zng files in an s3 directory called `sample-http-zng` that we will use from zapi. To check what zar created:
 ```
@@ -271,7 +271,7 @@ source ~/.bash_profile
 go version  # make sure go is there!
 # install git, clone and install zq
 sudo yum install git -y
-git clone https://github.com/brimdata/zq
+git clone https://github.com/brimdata/zed
 cd zq
 make install
 ~/go/bin/zar help  # make sure zar is built!

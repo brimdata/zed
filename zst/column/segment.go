@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
 )
 
 const SegmapTypeString = "[{offset:int64,length:int32}]"

@@ -13,17 +13,17 @@ import (
 	"os/signal"
 	"runtime"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/cli"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/pkg/fs"
-	"github.com/brimdata/zq/pkg/httpd"
-	"github.com/brimdata/zq/pkg/rlimit"
-	"github.com/brimdata/zq/ppl/cmd/zqd/logger"
-	"github.com/brimdata/zq/ppl/cmd/zqd/root"
-	"github.com/brimdata/zq/ppl/zqd"
-	"github.com/brimdata/zq/ppl/zqd/pcapanalyzer"
-	"github.com/brimdata/zq/proc/sort"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/cli"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/fs"
+	"github.com/brimdata/zed/pkg/httpd"
+	"github.com/brimdata/zed/pkg/rlimit"
+	"github.com/brimdata/zed/ppl/cmd/zqd/logger"
+	"github.com/brimdata/zed/ppl/cmd/zqd/root"
+	"github.com/brimdata/zed/ppl/zqd"
+	"github.com/brimdata/zed/ppl/zqd/pcapanalyzer"
+	"github.com/brimdata/zed/proc/sort"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 	"gopkg.in/yaml.v3"
@@ -88,7 +88,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
 
 	// Hidden flag while we transition to using archive store by default.
-	// See zq#1085
+	// See issue 1085
 	f.BoolVar(&api.FileStoreReadOnly, "filestorereadonly", false, "make file store spaces read only (and use archive store by default)")
 
 	return c, nil

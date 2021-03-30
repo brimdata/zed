@@ -6,18 +6,18 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/brimdata/zq/expr"
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/ppl/lake/chunk"
-	"github.com/brimdata/zq/ppl/lake/index"
-	"github.com/brimdata/zq/proc/sort"
-	"github.com/brimdata/zq/proc/spill"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio/zngio"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/ppl/lake/chunk"
+	"github.com/brimdata/zed/ppl/lake/index"
+	"github.com/brimdata/zed/proc/sort"
+	"github.com/brimdata/zed/proc/spill"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
@@ -51,7 +51,7 @@ func Import(ctx context.Context, lk *Lake, zctx *resolver.Context, r zbuf.Reader
 // footprint of the collection of tsDirWriter and instructs the tsDirWriter
 // with the largest footprint to spill its records to a temporary file on disk.
 //
-// TODO zq#1432 Writer does not currently keep track of size of records
+// TODO issue 1432 Writer does not currently keep track of size of records
 // written to temporary files. At some point this should have a maxTempFileSize
 // to ensure the Writer does not exceed the size of a provisioned tmpfs.
 type Writer struct {

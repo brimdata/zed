@@ -7,11 +7,11 @@ import (
 	"io"
 	"sync"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/ppl/zqd/auth"
-	"github.com/brimdata/zq/ppl/zqd/db/schema"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/ppl/zqd/auth"
+	"github.com/brimdata/zed/ppl/zqd/db/schema"
+	"github.com/brimdata/zed/zqe"
 	"go.uber.org/zap"
 )
 

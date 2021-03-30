@@ -4,11 +4,11 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/brimdata/zq/pkg/fs"
-	"github.com/brimdata/zq/zio"
-	"github.com/brimdata/zq/zio/detector"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/pkg/fs"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 type result struct {

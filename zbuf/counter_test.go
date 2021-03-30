@@ -4,8 +4,8 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

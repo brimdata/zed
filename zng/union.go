@@ -6,7 +6,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zed/zcode"
 )
 
 type TypeUnion struct {

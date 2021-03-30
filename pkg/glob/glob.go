@@ -4,7 +4,7 @@ package glob
 import (
 	"regexp"
 
-	"github.com/brimdata/zq/reglob"
+	"github.com/brimdata/zed/reglob"
 )
 
 func Glob(matches []string, pattern string, candidates []string) ([]string, error) {

@@ -3,8 +3,8 @@ package stringsearch
 import (
 	"testing"
 
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 	"github.com/stretchr/testify/require"
 )
 

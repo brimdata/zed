@@ -15,8 +15,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/pkg/peeker"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/peeker"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 )

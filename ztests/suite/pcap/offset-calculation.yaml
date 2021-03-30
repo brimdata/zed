@@ -1,4 +1,4 @@
-# Test for an offset calculation bug that was fixed in https://github.com/brimdata/zq/pull/433
+# Test for an offset calculation bug that was fixed in https://github.com/brimdata/zed/pull/433
 script: |
   pcap index -r oneflow.pcap -x packets.idx.json
   pcap slice -from 1583768524.415634000 -to 1583768600 -p tcp -r oneflow.pcap -x packets.idx.json 192.168.10.120:62458 34.232.129.83:443 | pcap ts

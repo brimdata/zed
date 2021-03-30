@@ -4,10 +4,10 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/cli/outputflags"
-	apicmd "github.com/brimdata/zq/cmd/zed/api"
-	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/cli/outputflags"
+	apicmd "github.com/brimdata/zed/cmd/zed/api"
+	"github.com/brimdata/zed/pkg/charm"
 )
 
 var Update = &charm.Spec{

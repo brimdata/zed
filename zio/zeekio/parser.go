@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 type header struct {

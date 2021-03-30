@@ -10,7 +10,7 @@ package ast
 // license that can be found in the LICENSE file.
 
 import (
-	"github.com/brimdata/zq/field"
+	"github.com/brimdata/zed/field"
 )
 
 // Proc is the interface implemented by all AST processor nodes.

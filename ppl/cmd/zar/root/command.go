@@ -3,8 +3,8 @@ package root
 import (
 	"flag"
 
-	"github.com/brimdata/zq/cli"
-	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zed/cli"
+	"github.com/brimdata/zed/pkg/charm"
 )
 
 var Zar = &charm.Spec{
@@ -24,8 +24,8 @@ keyed records and supports very fast lookup of keys. When the key represents
 a value in the associated chunk file, micro-indexes can be used to to make
 searching an archive very fast.
 
-See the zar README in the zq github repo for more information:
-https://github.com/brimdata/zq/blob/main/cmd/zar/README.md
+See the zar README in the zed repository for more information:
+https://github.com/brimdata/zed/blob/main/cmd/zar/README.md
 `,
 	New: New,
 }

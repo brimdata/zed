@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/brimdata/zq/pkg/slicer"
+	"github.com/brimdata/zed/pkg/slicer"
 	"github.com/stretchr/testify/assert"
 )
 

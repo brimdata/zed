@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zed/zcode"
 )
 
 type TypeArray struct {

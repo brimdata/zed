@@ -5,9 +5,9 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/ppl/cmd/zar/root"
-	"github.com/brimdata/zq/ppl/lake"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/ppl/cmd/zar/root"
+	"github.com/brimdata/zed/ppl/lake"
 )
 
 var RmDirs = &charm.Spec{

@@ -14,15 +14,15 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/api/client"
-	"github.com/brimdata/zq/pkg/fs"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/pkg/test"
-	"github.com/brimdata/zq/ppl/zqd"
-	"github.com/brimdata/zq/ppl/zqd/pcapanalyzer"
-	"github.com/brimdata/zq/ppl/zqd/pcapstorage"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/api/client"
+	"github.com/brimdata/zed/pkg/fs"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/test"
+	"github.com/brimdata/zed/ppl/zqd"
+	"github.com/brimdata/zed/ppl/zqd/pcapanalyzer"
+	"github.com/brimdata/zed/ppl/zqd/pcapstorage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -207,7 +207,7 @@ func TestPcapPostZeekFailAfterWrite(t *testing.T) {
 
 // TestPcapTimeRange verifies that the time range for a space with an imported
 // pcap includes the pcap's time range, regardless of whether any records are
-// present or not. See zq#1797.
+// present or not. See issue 1797.
 func TestPcapTimeRange(t *testing.T) {
 	noopWrite := func(p *testPcapProcess) error {
 		_, err := ioutil.ReadAll(p.reader)

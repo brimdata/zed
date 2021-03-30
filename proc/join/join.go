@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/brimdata/zq/expr"
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/proc"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng"
 )
 
 type Proc struct {

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/ppl/lake/seekindex"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/ppl/lake/seekindex"
+	"github.com/brimdata/zed/zqe"
 )
 
 type Reader struct {

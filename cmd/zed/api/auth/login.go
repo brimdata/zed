@@ -5,10 +5,10 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zq/api"
-	zedapi "github.com/brimdata/zq/cmd/zed/api"
-	"github.com/brimdata/zq/cmd/zed/api/auth/devauth"
-	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zed/api"
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
+	"github.com/brimdata/zed/cmd/zed/api/auth/devauth"
+	"github.com/brimdata/zed/pkg/charm"
 	"github.com/pkg/browser"
 )
 

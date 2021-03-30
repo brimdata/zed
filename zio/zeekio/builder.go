@@ -5,11 +5,11 @@ import (
 	"errors"
 	"net"
 
-	"github.com/brimdata/zq/pkg/byteconv"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/pkg/byteconv"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zng"
 )
 
 type builder struct {

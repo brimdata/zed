@@ -9,8 +9,8 @@ package zson
 import (
 	"strings"
 
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/zng"
 )
 
 // Implied returns true for primitive types whose type can be inferred

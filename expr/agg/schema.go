@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 type Renames struct{ Srcs, Dsts []field.Static }

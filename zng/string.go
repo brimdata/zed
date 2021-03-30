@@ -1,7 +1,7 @@
 package zng
 
 import (
-	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zed/zcode"
 )
 
 type TypeOfString struct{}

@@ -1,8 +1,8 @@
 package zbuf
 
 import (
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 type Mapper struct {

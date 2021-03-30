@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var ErrEmptyTypeList = errors.New("empty type list in set or union")

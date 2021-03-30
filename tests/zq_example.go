@@ -2,7 +2,7 @@ package tests
 
 /*
 Find valid ZQ examples in markdown, run them against
-https://github.com/brimdata/zq-sample-data/zeek-default, and compare results in
+https://github.com/brimdata/zed-sample-data/zeek-default, and compare results in
 docs with results produced.
 
 Use markers in markdown fenced code blocks to denote either a zq command or
@@ -36,7 +36,7 @@ zql 'field='value'   | count()' *.log.gz  # not ok
 zql "field=\"value\" | count()" *.log.gz  # not ok
 
 A zq-command MUST reference one or more files or globs, expanded at
-zq-sample-data/zeek-default.
+zed-sample-data/zeek-default.
 
 Examples:
 
@@ -239,7 +239,7 @@ func QualifyCommand(command string) ([]string, error) {
 	zql := strings.TrimSpace(pieces[1])
 
 	var fileargs []string
-	sampledata, err := ZQSampleDataAbsPath()
+	sampledata, err := ZedSampleDataAbsPath()
 	if err != nil {
 		return nil, err
 	}

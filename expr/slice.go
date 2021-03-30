@@ -3,9 +3,9 @@ package expr
 import (
 	"errors"
 
-	"github.com/brimdata/zq/expr/coerce"
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/expr/coerce"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
 )
 
 type Slice struct {

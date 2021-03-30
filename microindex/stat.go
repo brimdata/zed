@@ -3,8 +3,8 @@ package microindex
 import (
 	"context"
 
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 type InfoKey struct {

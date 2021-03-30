@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zed/api"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/sdk/testsuite"

@@ -3,8 +3,8 @@ package auth
 import (
 	"flag"
 
-	"github.com/brimdata/zq/cmd/zed/api"
-	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zed/cmd/zed/api"
+	"github.com/brimdata/zed/pkg/charm"
 )
 
 var Auth = &charm.Spec{
@@ -14,7 +14,7 @@ var Auth = &charm.Spec{
 	Long:  ``,
 	New:   New,
 	// Marking auth & subcommands hidden until support plumbed through all
-	// operations, see zq#1887 .
+	// operations, see issue 1887 .
 	Hidden: true,
 }
 

@@ -1,7 +1,7 @@
 package resolver
 
 import (
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 )
 
 // Slice is a table of descriptors respresented as a slice and grown

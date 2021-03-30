@@ -3,10 +3,10 @@ package lake
 import (
 	"context"
 
-	"github.com/brimdata/zq/driver"
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zbuf"
+	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zbuf"
 )
 
 // staticSource is an implementation of driver.MultiSource that provides

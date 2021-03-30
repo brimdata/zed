@@ -3,8 +3,8 @@ package root
 import (
 	"flag"
 
-	"github.com/brimdata/zq/cli"
-	"github.com/brimdata/zq/pkg/charm"
+	"github.com/brimdata/zed/cli"
+	"github.com/brimdata/zed/pkg/charm"
 )
 
 var MicroIndex = &charm.Spec{

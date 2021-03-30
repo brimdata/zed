@@ -1,10 +1,10 @@
 package expr
 
 import (
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/builder"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/builder"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 type dropper struct {

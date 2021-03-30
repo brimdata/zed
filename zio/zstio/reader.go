@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zst"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zst"
 )
 
 func NewReader(r io.Reader, zctx *resolver.Context) (*zst.Reader, error) {

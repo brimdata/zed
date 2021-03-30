@@ -11,13 +11,13 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/brimdata/zq/compiler"
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/compiler/parser"
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/zfmt"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/parser"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/zfmt"
+	"github.com/brimdata/zed/zng/resolver"
 	"github.com/peterh/liner"
 )
 
@@ -247,7 +247,7 @@ func (c *Command) compile(z string) (*compiler.Runtime, error) {
 const nodeProblem = `
 Failed to run node on ./compiler/parser/run.js.  The "-js" flag is for PEG
 development and should only be used when running ast in the root
-directory of the zq repo.`
+directory of the zed repository.`
 
 func (c *Command) interactive() {
 	rl := liner.NewLiner()

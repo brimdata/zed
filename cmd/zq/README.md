@@ -15,7 +15,7 @@ zq help
 
 Here are a few examples using a small Zeek formatted log file, `conn.log`,
 located in this directory. See the
-[zq-sample-data repo](https://github.com/brimdata/zq-sample-data) for more test
+[zed-sample-data repo](https://github.com/brimdata/zed-sample-data) for more test
 data, which is used in the examples in the
 [query language documentation](../../docs/language/README.md).
 

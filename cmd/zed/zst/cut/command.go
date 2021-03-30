@@ -6,12 +6,12 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/brimdata/zq/cli/outputflags"
-	zstcmd "github.com/brimdata/zq/cmd/zed/zst"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zst"
+	"github.com/brimdata/zed/cli/outputflags"
+	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zst"
 )
 
 var Cut = &charm.Spec{

@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/brimdata/zq/microindex"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/microindex"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zqe"
 	"github.com/segmentio/ksuid"
 )
 

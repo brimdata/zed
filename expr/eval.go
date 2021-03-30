@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/brimdata/zq/expr/coerce"
-	"github.com/brimdata/zq/expr/function"
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/expr/coerce"
+	"github.com/brimdata/zed/expr/function"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var ErrIncompatibleTypes = coerce.ErrIncompatibleTypes

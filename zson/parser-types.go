@@ -3,10 +3,10 @@ package zson
 import (
 	"unicode"
 
-	// XXX should move ZSON ast into zq/zson/ast... it's a bit different
+	// XXX should move ZSON ast into zson/ast. it's a bit different
 	// than Z literals so it deserves its own home.
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/zng"
 )
 
 func (p *Parser) parseType() (ast.Type, error) {

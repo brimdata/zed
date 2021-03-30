@@ -5,10 +5,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/proc"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zqe"
 )
 
 type muxResult struct {

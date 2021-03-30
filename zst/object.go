@@ -31,13 +31,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zio/zngio"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zst/column"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zst/column"
 )
 
 type Seeker interface {

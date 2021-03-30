@@ -1,5 +1,5 @@
 {
-  "name": "zq",
+  "name": "zed",
   "version": "0.29.0-dev",
   "scripts": {
       "prepack": "node npm/build"

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zed/zcode"
 )
 
 type TypeEnum struct {

@@ -5,14 +5,14 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zq/pkg/bufwriter"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/ppl/lake/index"
-	"github.com/brimdata/zq/ppl/lake/seekindex"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio/zngio"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/pkg/bufwriter"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/ppl/lake/index"
+	"github.com/brimdata/zed/ppl/lake/seekindex"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zng"
 	"github.com/segmentio/ksuid"
 )
 
@@ -159,7 +159,7 @@ func (cw *Writer) CloseWithTs(ctx context.Context, firstTs, lastTs nano.Ts) erro
 	if err := cw.indexWriter.Close(); err != nil {
 		return err
 	}
-	// TODO: zq#1264
+	// TODO: issue 1264
 	// Add an entry to the update log for S3 backed stores containing the
 	// location of the just added data & index file.
 	cw.chunk = metadata.Chunk(cw.dir, cw.id)

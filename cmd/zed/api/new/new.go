@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 
-	apicmd "github.com/brimdata/zq/cmd/zed/api"
-	"github.com/brimdata/zq/pkg/charm"
+	apicmd "github.com/brimdata/zed/cmd/zed/api"
+	"github.com/brimdata/zed/pkg/charm"
 )
 
 var NewSpec = &charm.Spec{

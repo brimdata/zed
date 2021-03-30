@@ -1,9 +1,9 @@
 package head
 
 import (
-	"github.com/brimdata/zq/proc"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng"
 )
 
 type Proc struct {

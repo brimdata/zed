@@ -4,7 +4,7 @@ import (
 	"errors"
 	"net"
 
-	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zed/zcode"
 )
 
 type TypeOfNet struct{}

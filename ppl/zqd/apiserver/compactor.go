@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zed/api"
 	"golang.org/x/sync/semaphore"
 )
 

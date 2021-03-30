@@ -7,12 +7,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zio/zjsonio"
-	"github.com/brimdata/zq/zio/zngio"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zio/zjsonio"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

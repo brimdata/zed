@@ -3,9 +3,9 @@ package pcap
 import (
 	"io"
 
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/pkg/ranger"
-	"github.com/brimdata/zq/pkg/slicer"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/ranger"
+	"github.com/brimdata/zed/pkg/slicer"
 )
 
 func NewSlicer(seeker io.ReadSeeker, index Index, span nano.Span) (*slicer.Reader, error) {

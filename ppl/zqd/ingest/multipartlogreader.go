@@ -9,16 +9,16 @@ import (
 	"mime/multipart"
 	"sync/atomic"
 
-	"github.com/brimdata/zq/compiler/ast"
-	"github.com/brimdata/zq/driver"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio"
-	"github.com/brimdata/zq/zio/detector"
-	"github.com/brimdata/zq/zio/ndjsonio"
-	"github.com/brimdata/zq/zio/zngio"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/ndjsonio"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zqe"
 )
 
 const maxShaperAstBytes = 1000 * 1000

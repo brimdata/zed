@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zq/zson"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

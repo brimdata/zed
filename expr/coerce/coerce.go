@@ -6,10 +6,10 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/brimdata/zq/expr/result"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/expr/result"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
 )
 
 var ErrOverflow = errors.New("integer overflow: uint64 value too large for int64")

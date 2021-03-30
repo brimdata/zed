@@ -3,12 +3,12 @@ package lake
 import (
 	"context"
 
-	"github.com/brimdata/zq/ppl/lake/chunk"
-	"github.com/brimdata/zq/ppl/lake/index"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/ppl/lake/chunk"
+	"github.com/brimdata/zed/ppl/lake/index"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zqe"
 )
 
 type findOptions struct {

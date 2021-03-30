@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brimdata/zq/pkg/nano"
+	"github.com/brimdata/zed/pkg/nano"
 	"github.com/stretchr/testify/assert"
 )
 

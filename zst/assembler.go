@@ -4,9 +4,9 @@ import (
 	"errors"
 	"io"
 
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zst/column"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zst/column"
 )
 
 var ErrBadSchemaID = errors.New("bad schema id in root reassembly column")

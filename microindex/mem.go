@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/brimdata/zq/expr"
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 // MemTable implements an in-memory table to build a microindex.

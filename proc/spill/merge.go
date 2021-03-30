@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strconv"
 
-	"github.com/brimdata/zq/expr"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 // MergeSort manages "runs" (files of sorted zng records) that are spilled to

@@ -3,10 +3,10 @@ package client
 import (
 	"io"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/zio/zngio"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 type ZngSearch struct {

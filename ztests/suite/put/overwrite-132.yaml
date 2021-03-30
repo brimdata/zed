@@ -1,4 +1,4 @@
-# Exercises the bug in zq issue 1152
+# Exercises the bug in issue #1152.
 # Note that the expression logic coerces int32 to int64.
 # When we revist the expression design this will probably change
 # and this test will need to be updated.

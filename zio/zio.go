@@ -4,11 +4,11 @@ import (
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/brimdata/zq/zio/ndjsonio"
-	"github.com/brimdata/zq/zio/textio"
-	"github.com/brimdata/zq/zio/zngio"
-	"github.com/brimdata/zq/zio/zsonio"
-	"github.com/brimdata/zq/zio/zstio"
+	"github.com/brimdata/zed/zio/ndjsonio"
+	"github.com/brimdata/zed/zio/textio"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zio/zsonio"
+	"github.com/brimdata/zed/zio/zstio"
 )
 
 type ReaderOpts struct {

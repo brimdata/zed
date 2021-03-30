@@ -1,4 +1,4 @@
-module github.com/brimdata/zq
+module github.com/brimdata/zed
 
 go 1.16
 

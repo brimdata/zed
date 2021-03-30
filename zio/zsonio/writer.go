@@ -3,8 +3,8 @@ package zsonio
 import (
 	"io"
 
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zson"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 )
 
 type Writer struct {

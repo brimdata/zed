@@ -6,12 +6,12 @@ import (
 	"io"
 	"time"
 
-	"github.com/brimdata/zq/proc/fuse"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/flattener"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/proc/fuse"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/flattener"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var ErrNotDataFrame = errors.New("csv output requires uniform records but different types encountered")

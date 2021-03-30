@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zq/anymath"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/anymath"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 // A Pattern is a template for creating instances of aggregator functions.

@@ -3,11 +3,11 @@ package search
 import (
 	"net/http"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/ppl/zqd/jsonpipe"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio/zjsonio"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/ppl/zqd/jsonpipe"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio/zjsonio"
+	"github.com/brimdata/zed/zng"
 )
 
 // ZJSON implements the Output interface.

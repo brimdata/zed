@@ -3,7 +3,7 @@ package tzngio
 import (
 	"regexp"
 
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 )
 
 // ShouldEscape determines if the given code point at the given position

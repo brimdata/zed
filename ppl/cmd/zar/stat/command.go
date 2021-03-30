@@ -6,13 +6,13 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimdata/zq/emitter"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/ppl/cmd/zar/root"
-	"github.com/brimdata/zq/ppl/lake"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/emitter"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/ppl/cmd/zar/root"
+	"github.com/brimdata/zed/ppl/lake"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var Stat = &charm.Spec{

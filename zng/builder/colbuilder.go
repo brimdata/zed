@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var ErrNonAdjacent = errors.New("non adjacent fields")

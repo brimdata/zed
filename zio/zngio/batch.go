@@ -4,7 +4,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 )
 
 type batch struct {

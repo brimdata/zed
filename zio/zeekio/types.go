@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zq/zio/tzngio"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zng"
 )
 
 var ErrIncompatibleZeekType = errors.New("type cannot be represented in zeek format")

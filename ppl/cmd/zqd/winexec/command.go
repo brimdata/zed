@@ -3,8 +3,8 @@ package winexec
 import (
 	"flag"
 
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/ppl/cmd/zqd/root"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/ppl/cmd/zqd/root"
 )
 
 func init() {

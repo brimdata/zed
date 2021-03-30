@@ -4,8 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/ppl/zqd/apiserver"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/ppl/zqd/apiserver"
 	"go.temporal.io/sdk/activity"
 	"go.temporal.io/sdk/worker"
 	"go.temporal.io/sdk/workflow"

@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/brimdata/zq/api"
+	"github.com/brimdata/zed/api"
 )
 
 var sep = []byte("\n\n")

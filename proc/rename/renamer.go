@@ -5,10 +5,10 @@
 package rename
 
 import (
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/proc"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var _ proc.Function = (*Function)(nil)

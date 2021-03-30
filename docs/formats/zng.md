@@ -5,7 +5,7 @@
 > the BETA phase.  We plan to
 > declare the specification stable and finalized in spring 2021.
 >
-> [Zq](https://github.com/brimdata/zq/blob/main/README.md)'s
+> [Zq](https://github.com/brimdata/zed/blob/main/README.md)'s
 > implementation of ZNG is tracking this spec and as it changes,
 > the zq output format is subject to change.  In this branch,
 > zq attempts to implement everything herein excepting:
@@ -13,8 +13,8 @@
 > * Only streams of `record` types (which may consist of any combination of
 >   other implemented types) are supported by zq even though a stream of
 >   any types may currently be expressed in value messages.
-> * ZQL syntax for working with the [`enum` type](#3115-enum-typedef) is not yet implemented. ([zq/1498](https://github.com/brimdata/zq/issues/1498))
-> * [Primitive Types](#3-primitive-types) for `float16`, `float32`, and `decimal` are not yet implemented. ([zq/1312](https://github.com/brimdata/zq/issues/1312), [zq/1522](https://github.com/brimdata/zq/issues/1522))
+> * ZQL syntax for working with the [`enum` type](#3115-enum-typedef) is not yet implemented. ([#1498](https://github.com/brimdata/zed/issues/1498))
+> * [Primitive Types](#3-primitive-types) for `float16`, `float32`, and `decimal` are not yet implemented. ([#1312](https://github.com/brimdata/zed/issues/1312), [#1522](https://github.com/brimdata/zed/issues/1522))
 
 * [1. Introduction](#1-introduction)
 * [2. The ZNG Format](#2-the-zng-format)
@@ -72,7 +72,7 @@ Likewise, ZNG is a superset of SQL relational tables so any table could potentia
 be exported as ZNG data and re-imported from ZNG to SQL (though there is
 no notion of constraints like foreign keys in the ZNG format).
 
-The [`zq`](https://github.com/brimdata/zq) command-line tool provides a
+The [`zq`](https://github.com/brimdata/zed) command-line tool provides a
 reference implementation of ZNG as it's described here, including the type
 system, error handling, etc., barring the exceptions
 described in the [beta notice](#note-this-specification-is-in-beta-development)

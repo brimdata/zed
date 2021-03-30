@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/zqe"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/zqe"
 	"github.com/gorilla/mux"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"

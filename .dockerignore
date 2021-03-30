@@ -2,6 +2,6 @@ bin/
 dist/
 python/brim/build/
 tests/test-root
-zq-sample-data
+zed-sample-data
 zql/deps/
 .idea

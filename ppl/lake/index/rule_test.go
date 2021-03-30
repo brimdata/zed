@@ -3,8 +3,8 @@ package index
 import (
 	"testing"
 
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zng"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

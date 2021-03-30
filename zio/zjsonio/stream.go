@@ -3,9 +3,9 @@ package zjsonio
 import (
 	"errors"
 
-	"github.com/brimdata/zq/pkg/joe"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/pkg/joe"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 type Stream struct {

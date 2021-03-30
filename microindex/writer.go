@@ -7,15 +7,15 @@ import (
 	"io/ioutil"
 	"os"
 
-	"github.com/brimdata/zq/compiler"
-	"github.com/brimdata/zq/expr"
-	"github.com/brimdata/zq/field"
-	"github.com/brimdata/zq/pkg/bufwriter"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio/zngio"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/pkg/bufwriter"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 // Writer implements the zbuf.Writer interface. A Writer creates a microindex,

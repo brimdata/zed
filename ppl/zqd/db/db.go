@@ -5,12 +5,12 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zq/api"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/ppl/zqd/auth"
-	"github.com/brimdata/zq/ppl/zqd/db/filedb"
-	"github.com/brimdata/zq/ppl/zqd/db/postgresdb"
-	"github.com/brimdata/zq/ppl/zqd/db/schema"
+	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/ppl/zqd/auth"
+	"github.com/brimdata/zed/ppl/zqd/db/filedb"
+	"github.com/brimdata/zed/ppl/zqd/db/postgresdb"
+	"github.com/brimdata/zed/ppl/zqd/db/schema"
 	"go.uber.org/zap"
 )
 

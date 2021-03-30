@@ -10,10 +10,10 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/pkg/nano"
-	"github.com/brimdata/zq/zio/ndjsonio"
-	"github.com/brimdata/zq/zio/zjsonio"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zio/ndjsonio"
+	"github.com/brimdata/zed/zio/zjsonio"
 )
 
 const RequestIDHeader = "X-Request-ID"
@@ -319,7 +319,7 @@ type ArchiveCreateOptions struct {
 // FileStore storage kind, and if existing FileStore spaces may have new
 // data (either pcap or logs) added to them.
 // This intended to be temporary until we transition to only allowing archive
-// stores for new spaces; see zq#1085.
+// stores for new spaces; see issue 1085.
 var FileStoreReadOnly bool
 
 func DefaultStorageKind() StorageKind {

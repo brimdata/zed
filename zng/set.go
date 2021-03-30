@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/brimdata/zq/zcode"
+	"github.com/brimdata/zed/zcode"
 )
 
 type TypeSet struct {

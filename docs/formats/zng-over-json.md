@@ -270,12 +270,12 @@ A sequence of ZJSON objects may be framed in two primary ways.
 
 First, they can simply be a sequence of newline delimited JSON where
 each object is transmitted as a single line terminated with a newline character,
-e.g., the [zq](https://github.com/brimdata/zq) CLI command writes its
+e.g., the [zq](https://github.com/brimdata/zed) CLI command writes its
 ZJSON output as lines of NDJSON.
 
 Second, the objects may be encoded in a JSON array embedded in some other
 JSON-framed protocol, e.g., embedded in the the search results messages
-of the [zqd REST API](https://github.com/brimdata/zq/blob/main/api/api.go).
+of the [zqd REST API](https://github.com/brimdata/zed/blob/main/api/api.go).
 
 It is up to an implementation to determine how the ZJSON
 objects are framed according to its particular use case.

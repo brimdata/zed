@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zq/anymath"
-	"github.com/brimdata/zq/expr/result"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zson"
+	"github.com/brimdata/zed/anymath"
+	"github.com/brimdata/zed/expr/result"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 )
 
 var (

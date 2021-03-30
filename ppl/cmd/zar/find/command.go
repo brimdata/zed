@@ -6,14 +6,14 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/brimdata/zq/cli/outputflags"
-	"github.com/brimdata/zq/emitter"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/ppl/cmd/zar/root"
-	"github.com/brimdata/zq/ppl/lake"
-	"github.com/brimdata/zq/ppl/lake/index"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/cli/outputflags"
+	"github.com/brimdata/zed/emitter"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/ppl/cmd/zar/root"
+	"github.com/brimdata/zed/ppl/lake"
+	"github.com/brimdata/zed/ppl/lake/index"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var Find = &charm.Spec{

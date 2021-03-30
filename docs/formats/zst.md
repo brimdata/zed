@@ -41,10 +41,10 @@ an arbitrary schema.  In this way, you can think of a zng stream as a diverse
 collection of sql-like tables where the rows from each table are interspersed
 amongst each other in a deterministic order.
 
-> In the [zq implementation](https://github.com/brimdata/zq), a zng row is a
-> [zng.Record](https://github.com/brimdata/zq/blob/42103ef6a15b3ee53fbcd980604e75c42ea3308d/zng/recordval.go#L39)
+> In the [zq implementation](https://github.com/brimdata/zed), a zng row is a
+> [zng.Record](https://github.com/brimdata/zed/blob/42103ef6a15b3ee53fbcd980604e75c42ea3308d/zng/recordval.go#L39)
 > and a schema is a
-> [zng.TypeRecord](https://github.com/brimdata/zq/blob/42103ef6a15b3ee53fbcd980604e75c42ea3308d/zng/record.go#L10).
+> [zng.TypeRecord](https://github.com/brimdata/zed/blob/42103ef6a15b3ee53fbcd980604e75c42ea3308d/zng/record.go#L10).
 
 Each zng stream has its own, embedded "type context" that defines the schema
 of each row value. A zng stream is fully self-contained and self describing.

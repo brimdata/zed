@@ -1,7 +1,7 @@
 package column
 
 import (
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zng"
 )
 
 type IntWriter struct {

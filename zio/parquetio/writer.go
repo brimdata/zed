@@ -3,8 +3,8 @@ package parquetio
 import (
 	"io"
 
-	"github.com/brimdata/zq/zio/csvio"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zio/csvio"
+	"github.com/brimdata/zed/zng"
 	goparquet "github.com/fraugster/parquet-go"
 )
 

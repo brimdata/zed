@@ -6,13 +6,13 @@ import (
 	"flag"
 	"strings"
 
-	"github.com/brimdata/zq/cli/outputflags"
-	"github.com/brimdata/zq/cmd/microindex/root"
-	"github.com/brimdata/zq/microindex"
-	"github.com/brimdata/zq/pkg/charm"
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/zng"
-	"github.com/brimdata/zq/zng/resolver"
+	"github.com/brimdata/zed/cli/outputflags"
+	"github.com/brimdata/zed/cmd/microindex/root"
+	"github.com/brimdata/zed/microindex"
+	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var Lookup = &charm.Spec{

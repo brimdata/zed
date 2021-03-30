@@ -7,10 +7,10 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/brimdata/zq/pkg/iosrc"
-	"github.com/brimdata/zq/zbuf"
-	"github.com/brimdata/zq/zio"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zng"
 )
 
 var (

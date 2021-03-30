@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/brimdata/zq/zcode"
-	"github.com/brimdata/zq/zng"
+	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zng"
 )
 
 type CompareFn func(a *zng.Record, b *zng.Record) int
