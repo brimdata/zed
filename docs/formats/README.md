@@ -1,4 +1,4 @@
-# ZNG Documentation
+# Zed Formats
 
 This directory contains specifications for the zed family of data formats,
 providing a unified approach to row, columnar, and human-readable formats.
