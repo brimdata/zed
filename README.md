@@ -1,6 +1,6 @@
 # `zed` [![Tests][tests-img]][tests]
 
-The zed project is a new, clean-slate design for a data-engineering stack.
+The zed project is a new, clean-slate design for a data engineering stack.
 At zed's foundation lies a new family of self-describing
 data formats based on the "zed data model", which blends the highly structured
 approach of dataframes and relational tables with the loosely structured
