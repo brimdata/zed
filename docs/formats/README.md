@@ -1,4 +1,4 @@
-# ZNG Documentation
+# Z data format specifications
 
 * [ZSON specification](zson.md)
 * [ZNG specification](spec.md)
