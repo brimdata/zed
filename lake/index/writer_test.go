@@ -51,7 +51,7 @@ func TestWriterError(t *testing.T) {
 	err = w.Close()
 	assert.EqualError(t, err, "type of id field changed from string to int64")
 
-	// if an on close, the writer should have removed the microindex
+	// if an on close, the writer should have removed the index
 	assert.NoFileExists(t, w.URI.Filepath())
 }
 

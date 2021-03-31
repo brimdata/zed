@@ -3,9 +3,9 @@ package lake
 import (
 	"context"
 
+	zedindex "github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/lake/chunk"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/microindex"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
@@ -78,14 +78,14 @@ type defDesc struct {
 }
 
 type indexStat struct {
-	Type        string               `zng:"type"`
-	LogID       string               `zng:"log_id"`
-	First       nano.Ts              `zng:"first"`
-	Last        nano.Ts              `zng:"last"`
-	Definition  defDesc              `zng:"definition"`
-	Size        uint64               `zng:"size"`
-	RecordCount uint64               `zng:"record_count"`
-	Keys        []microindex.InfoKey `zng:"keys"`
+	Type        string             `zng:"type"`
+	LogID       string             `zng:"log_id"`
+	First       nano.Ts            `zng:"first"`
+	Last        nano.Ts            `zng:"last"`
+	Definition  defDesc            `zng:"definition"`
+	Size        uint64             `zng:"size"`
+	RecordCount uint64             `zng:"record_count"`
+	Keys        []zedindex.InfoKey `zng:"keys"`
 }
 
 func (s *statReadCloser) indexRecords(chunk chunk.Chunk) error {
@@ -95,7 +95,7 @@ func (s *statReadCloser) indexRecords(chunk chunk.Chunk) error {
 		return err
 	}
 	for _, id := range ids {
-		info, err := microindex.Stat(s.ctx, index.IndexPath(dir, id))
+		info, err := zedindex.Stat(s.ctx, index.IndexPath(dir, id))
 		if err != nil {
 			return err
 		}

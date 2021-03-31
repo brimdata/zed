@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/microindex"
+	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
@@ -66,9 +66,9 @@ func (w *Writer) Write(rec *zng.Record) error {
 
 func (w *Writer) Close() error {
 	// If once has not be called, this means a write has never been called.
-	// Abort microindex so no file is written.
+	// Abort index so no file is written.
 	w.once.Do(func() {
-		w.indexer.microindex.Abort()
+		w.indexer.index.Abort()
 	})
 	close(w.done)
 	close(w.rwCh)
@@ -77,7 +77,7 @@ func (w *Writer) Close() error {
 
 func (w *Writer) Abort() {
 	w.Close()
-	w.indexer.microindex.Abort()
+	w.indexer.index.Abort()
 }
 
 // onceError is an object that will only store an error once.
@@ -101,12 +101,12 @@ func (a *onceError) Load() error {
 }
 
 type indexer struct {
-	err        onceError
-	cutter     *expr.Cutter
-	fgr        zbuf.ReadCloser
-	keyType    zng.Type
-	microindex *microindex.Writer
-	wg         sync.WaitGroup
+	err     onceError
+	cutter  *expr.Cutter
+	fgr     zbuf.ReadCloser
+	keyType zng.Type
+	index   *index.Writer
+	wg      sync.WaitGroup
 }
 
 func newIndexer(ctx context.Context, u iosrc.URI, def *Definition, r zbuf.Reader) (*indexer, error) {
@@ -120,11 +120,11 @@ func newIndexer(ctx context.Context, u iosrc.URI, def *Definition, r zbuf.Reader
 	if len(keys) == 0 {
 		keys = []field.Static{keyName}
 	}
-	opts := []microindex.Option{microindex.KeyFields(keys...)}
+	opts := []index.Option{index.KeyFields(keys...)}
 	if def.Framesize > 0 {
-		opts = append(opts, microindex.FrameThresh(def.Framesize))
+		opts = append(opts, index.FrameThresh(def.Framesize))
 	}
-	writer, err := microindex.NewWriterWithContext(ctx, zctx, u.String(), opts...)
+	writer, err := index.NewWriterWithContext(ctx, zctx, u.String(), opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -134,9 +134,9 @@ func newIndexer(ctx context.Context, u iosrc.URI, def *Definition, r zbuf.Reader
 		return nil, err
 	}
 	d := &indexer{
-		fgr:        fgr,
-		cutter:     cutter,
-		microindex: writer,
+		fgr:    fgr,
+		cutter: cutter,
+		index:  writer,
 	}
 	return d, nil
 }
@@ -145,10 +145,10 @@ func (d *indexer) start() {
 	d.wg.Add(1)
 	go func() {
 		if err := zbuf.Copy(d, d.fgr); err != nil {
-			d.microindex.Abort()
+			d.index.Abort()
 			d.err.Store(err)
 		}
-		d.err.Store(d.microindex.Close())
+		d.err.Store(d.index.Close())
 		d.wg.Done()
 	}()
 }
@@ -169,5 +169,5 @@ func (d *indexer) Write(rec *zng.Record) error {
 	if key.Type.ID() != d.keyType.ID() {
 		return fmt.Errorf("key type changed from %q to %q", d.keyType.ZSON(), key.Type.ZSON())
 	}
-	return d.microindex.Write(rec)
+	return d.index.Write(rec)
 }

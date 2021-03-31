@@ -22,9 +22,9 @@ indexing and searching zed data lakes.
   * [Initializing the archive](#initializing-the-archive)
   * [Counting is our "hello world"](#counting-is-our-hello-world)
   * [Search for an IP](#search-for-an-ip)
-  * [Micro-indexes](#micro-indexes)
-  * [Creating more micro-indexes](#creating-more-micro-indexes)
-  * [Operating directly on micro-indexes](#operating-directly-on-micro-indexes)
+  * [Indexes](#indexes)
+  * [Creating more indexes](#creating-more-indexes)
+  * [Operating directly on indexes](#operating-directly-on-indexes)
   * [Custom indexes: Storing aggregations in an index](#custom-indexes-storing-aggregations-in-an-index)
   * [`zed lake find` with custom index](#zed-lake-find-with-custom-index)
   * [Multi-key custom indexes](#multi-key-custom-indexes)
@@ -232,9 +232,9 @@ In the output here, you'll see this IP exists in exactly one lake chunk:
 the portion of the paths following `d-` will be unique and hence differ in your
 output if you repeat the commands.)
 
-## Micro-indexes
+## Indexes
 
-We call these zng files "micro indexes" because each index pertains to just one
+A "zed index" is a zng index file that pertains to just one
 chunk of lake data and represents just one indexing rule.  If you're curious about
 what's in the index, it's just a sorted list of keyed records along with some
 additional zng streams that comprise a constant b-tree index into the sorted list.
@@ -247,9 +247,9 @@ things in the different indexes.  This approach dovetails with the modern
 cloud warehouse approach of scanning native-cloud storage objets and efficiently
 pruning objects that are not needed from the scan.
 
-## Creating more micro-indexes
+## Creating more indexes
 
-The beauty of this approach is that you can add and delete micro-indexes
+The beauty of this approach is that you can add and delete indexes
 whenever you want.  No need to suffer the fate of a massive reindexing
 job when you have a new idea about what to index.
 
@@ -268,7 +268,7 @@ and you'll find "hits" in multiple lake chunks:
 /tmp/logs/zd/20180324/d-1jQ2co6Ttjk9wEUdzI2yW7koYtB.zng
 ```
 
-## Operating directly on micro-indexes
+## Operating directly on indexes
 
 Let's say instead of searching for what lake chunk a value is in, we want to
 actually pull out the zng records that comprise the index.  This turns out
@@ -316,7 +316,7 @@ find $ZAR_ROOT -name idx-$(zed lake index ls -f zng | zq -f text 'desc="zql-cust
 ```
 You can see the IPs, counts, and _path strings.
 
-At the bottom you'll also find a record describing the micro-index layout. To
+At the bottom you'll also find a record describing the index layout. To
 see it:
 
 ```
@@ -355,7 +355,7 @@ dce_rpc     2
 ssh         1
 smb_files   1
 ```
-We can compute this aggregation now for any IP in the micro-index
+We can compute this aggregation now for any IP in the index
 without reading any of the original data files!  You'll get the same
 output from this...
 ```
@@ -422,7 +422,7 @@ is the primary key, we could also just scan the custom2 index using brute force:
 zed lake map id.orig_h=10.47.6.173 idx-$(zed lake index ls -f zng | zq -f text 'desc="zql-custom2.zng" | cut id' -).zng | zq -f text "sum(resp_bytes)" -
 ```
 Even though this is a "brute force scan", it's a brute force scan of only this
-one micro-index so it runs much faster than scanning all of the original
+one index so it runs much faster than scanning all of the original
 log data to perform the same query.
 
 But to double check here, you can run

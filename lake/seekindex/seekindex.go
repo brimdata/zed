@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/brimdata/zed/microindex"
+	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
@@ -14,12 +14,12 @@ import (
 )
 
 type SeekIndex struct {
-	finder *microindex.Finder
+	finder *index.Finder
 	uri    iosrc.URI
 }
 
 func Open(ctx context.Context, uri iosrc.URI) (*SeekIndex, error) {
-	finder, err := microindex.NewFinder(ctx, resolver.NewContext(), uri)
+	finder, err := index.NewFinder(ctx, resolver.NewContext(), uri)
 	if err != nil {
 		return nil, err
 	}

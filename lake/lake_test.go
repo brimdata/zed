@@ -8,10 +8,10 @@ import (
 	"path/filepath"
 	"testing"
 
+	zedindex "github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/lake/chunk"
 	"github.com/brimdata/zed/lake/immcache"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/microindex"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/promtest"
@@ -131,7 +131,7 @@ func TestSeekIndex(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
-	finder, err := microindex.NewFinder(context.Background(), resolver.NewContext(), idxURI)
+	finder, err := zedindex.NewFinder(context.Background(), resolver.NewContext(), idxURI)
 	require.NoError(t, err)
 	keys, err := finder.ParseKeys("1587508851")
 	require.NoError(t, err)

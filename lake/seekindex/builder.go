@@ -3,7 +3,7 @@ package seekindex
 import (
 	"context"
 
-	"github.com/brimdata/zed/microindex"
+	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
@@ -17,12 +17,12 @@ var schema = []zng.Column{
 
 type Builder struct {
 	builder *zng.Builder
-	writer  *microindex.Writer
+	writer  *index.Writer
 }
 
 func NewBuilder(ctx context.Context, path string, order zbuf.Order) (*Builder, error) {
 	zctx := resolver.NewContext()
-	writer, err := microindex.NewWriterWithContext(ctx, zctx, path, microindex.Order(order), microindex.Keys("ts"))
+	writer, err := index.NewWriterWithContext(ctx, zctx, path, index.Order(order), index.Keys("ts"))
 	if err != nil {
 		return nil, err
 	}

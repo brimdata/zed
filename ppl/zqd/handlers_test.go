@@ -788,9 +788,9 @@ func TestArchiveStat(t *testing.T) {
 
 	exp := `
 {type:"chunk",first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:11.06391469Z,size:16995 (uint64),record_count:496 (uint64)} (=0)
-{type:"index",first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:11.06391469Z,definition:{description:"field-v"},size:2281 (uint64),record_count:0 (uint64),keys:[{name:"key",type:"int64"}]} (=1)
+{type:"index",first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:11.06391469Z,definition:{description:"field-v"},size:2280 (uint64),record_count:0 (uint64),keys:[{name:"key",type:"int64"}]} (=1)
 {type:"chunk",first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z,size:17206,record_count:504} (0)
-{type:"index",first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z,definition:{description:"field-v"},size:2267,record_count:0,keys:[{name:"key",type:"int64"}]} (1)
+{type:"index",first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z,definition:{description:"field-v"},size:2266,record_count:0,keys:[{name:"key",type:"int64"}]} (1)
 `
 	res := archiveStat(t, conn, sp.ID)
 	assert.Equal(t, test.Trim(exp), zsonCopy(t, "drop log_id, definition.id", res))

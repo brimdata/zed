@@ -1,0 +1,11 @@
+script: |
+  zed index create -o index.zng -k s -f 20 babble.zson
+
+inputs:
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
+
+outputs:
+  - name: stderr
+    regexp: |
+      .*too many levels.*

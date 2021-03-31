@@ -1,0 +1,15 @@
+script: |
+  zed index create -o index.zng -k s babble.zson
+  zq -z index.zng > index.zson
+  zq -o sorted.zng "count() by s | put key=s | cut key | sort key" babble.zson
+  zed index convert -o manual.zng -k key sorted.zng
+  zq -z manual.zng > manual.zson
+  diff index.zson manual.zson
+
+inputs:
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
+
+outputs:
+  - name: stdout
+    data: ''

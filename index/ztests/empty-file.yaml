@@ -1,0 +1,8 @@
+script: |
+  echo -n "" > empty.zng
+  zed index lookup -k none empty.zng
+
+outputs:
+  - name: stderr
+    regexp: |
+      .*: zed index trailer not found

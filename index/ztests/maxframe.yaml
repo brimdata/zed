@@ -1,0 +1,12 @@
+script: |
+  zed index create -f 1000000000 -o index.zng -k a in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      {a:"hello"}
+
+outputs:
+  - name: stderr
+    data: |
+      frame threshold too large (1000000000)

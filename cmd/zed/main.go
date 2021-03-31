@@ -37,6 +37,13 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/zst/inspect"
 	_ "github.com/brimdata/zed/cmd/zed/zst/read"
 	"github.com/brimdata/zed/pkg/charm"
+
+	"github.com/brimdata/zed/cmd/zed/index"
+	_ "github.com/brimdata/zed/cmd/zed/index/convert"
+	_ "github.com/brimdata/zed/cmd/zed/index/create"
+	_ "github.com/brimdata/zed/cmd/zed/index/lookup"
+	_ "github.com/brimdata/zed/cmd/zed/index/section"
+	_ "github.com/brimdata/zed/cmd/zed/index/seek"
 )
 
 func main() {
@@ -46,6 +53,7 @@ func main() {
 	zed.Add(query.Cmd)
 	zed.Add(zst.Cmd)
 	zed.Add(lake.Cmd)
+	zed.Add(index.Cmd)
 	if _, err := zed.ExecRoot(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)

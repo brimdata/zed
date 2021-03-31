@@ -1,0 +1,19 @@
+script: |
+  # cat together the index and trailer so we get an eos before the trailer
+  zq -o in1.zng in.zson
+  zq -o trailer.zng trailer.zson
+  cat in1.zng trailer.zng > index.zng
+  zed index lookup -z -k hello index.zng
+
+inputs:
+  - name: in.zson
+    data: |
+      {key:"hello"}
+  - name: trailer.zson
+    data: |
+      {magic:"zed_index",version:0 (int32),descending:false,child_field:"_child",frame_thresh:32768 (int32),sections:[16],keys:null (0=({key:string}))} (=1)
+
+outputs:
+  - name: stderr
+    regexp: |
+      .*: zed index version 0 found while expecting version 2
