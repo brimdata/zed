@@ -39,7 +39,7 @@ the source-available Polyform Perimeter license on portions of the source code
 lets us realize both.
 
 For more detail regarding licensing, see the
-[CONTRIBUTING.md](https://github.com/brimdata/zed/blob/main/CONTRIBUTING.md)
+[CONTRIBUTING.md](CONTRIBUTING.md)
 doc, and feel free to come talk to us on
 [Slack](https://www.brimsecurity.com/join-slack/) if you have additional
 questions.
@@ -53,7 +53,7 @@ questions.
 * zq: Fix an issue where the presence of the Greek µ character caused a ZSON read parsing error (#1967)
 * zqd: Fix an issue where Zeek events generated during pcap import and written to an archivestore were only visible after ingest completion (#1973)
 * zqd: Change the logger configuration to output stacktraces on messages of level "warn" and higher (#1990)
-* zq: Update [performance results](https://github.com/brimdata/zed/blob/main/performance/README.md) to include ZSON read/write (#1974)
+* zq: Update [performance results](performance/README.md) to include ZSON read/write (#1974)
 
 ## v0.27.1
 * zq: Fix an issue where nested nulls caused a panic in CSV output (#1954)
@@ -109,7 +109,7 @@ questions.
 * zar: Fix an issue where `zar zq` yielded incorrect event counts compared to plain `zq` (#1588, #1602)
 * zq: Fix a memory bug in `collect()` that caused incorrect results (#1598)
 * zqd: Support log imports over the network (#1336)
-* zq: Update [performance results](https://github.com/brimdata/zed/blob/main/performance/README.md) to reflect recent improvements (#1605, #1669, #1671)
+* zq: Update [performance results](performance/README.md) to reflect recent improvements (#1605, #1669, #1671)
 * zq: Move Zeek & Suricata dependencies into `package.json` so Brim can point to them also (#1607, #1610)
 * zql: Add support for [aggregation-less group by](docs/language/grouping#example-1-1) (#1615, #1623)
 * zqd: Run `suricata-update` at startup when Suricata pcap analysis is enabled (#1586)
@@ -132,7 +132,7 @@ questions.
 
 ## v0.23.0
 * zql: Add `week` as a unit for [time grouping with `every`](docs/language/grouping#time-grouping---every) (#1374)
-* zq: Fix an issue where a `null` value in a [JSON type definition](https://github.com/brimdata/zed/blob/main/zeek/README.md) caused a failure without an error message (#1377)
+* zq: Fix an issue where a `null` value in a [JSON type definition](zeek/README.md) caused a failure without an error message (#1377)
 * zq: Add [`zst` format](docs/formats/zst.md) to `-i` and `-f` command-line help (#1384)
 * zq: ZNG spec and `zq` updates to introduce the beta ZNG storage format (#1375, #1415, #1394, #1457, #1512, #1523, #1529), also adddressing the following:
    * New data type `bytes` for storing sequences of bytes encoded as base64 (#1315)
@@ -148,11 +148,11 @@ questions.
 * zqd: Check and convert alpha ZNG filestores to beta ZNG (#1574, #1576)
 * zq: Fix an issue where spill-to-disk file names could collide (#1391)
 * zq: Allow the [`fuse` processor](docs/language/processors#fuse) to spill-to-disk to avoid memory limitations (#1355, #1402)
-* zq: No longer require `_path` as a first column in a [JSON type definition](https://github.com/brimdata/zed/blob/main/zeek/README.md) (#1370)
+* zq: No longer require `_path` as a first column in a [JSON type definition](zeek/README.md) (#1370)
 * zql: Improve ZQL docs for [aggregate functions](docs/language/aggregate-functions) and [grouping](docs/language/grouping) (#1385)
 * zql: Point links for developer docs at [pkg.go.dev](https://pkg.go.dev/) instead of [godoc.org](https://godoc.org/) (#1401)
 * zq: Add support for timestamps with signed timezone offsets (#1389)
-* zq: Add a [JSON type definition](https://github.com/brimdata/zed/blob/main/zeek/README.md) for alert events in [Suricata EVE logs](https://suricata.readthedocs.io/en/suricata-5.0.2/output/eve/eve-json-output.html) (#1400)
+* zq: Add a [JSON type definition](zeek/README.md) for alert events in [Suricata EVE logs](https://suricata.readthedocs.io/en/suricata-5.0.2/output/eve/eve-json-output.html) (#1400)
 * zq: Update the [ZNG over JSON (ZJSON)](docs/formats/zng-over-json.md) spec and implementation (#1299)
 * zar: Use buffered streaming for archive import (#1397)
 * zq: Add an `ast` command that prints parsed ZQL as its underlying JSON object (#1416)
@@ -212,7 +212,7 @@ questions.
 * zq: Improve performance by making fewer API calls in S3 reader (#1191)
 * zq: Use memory more efficiently by reducing allocations (#1190, #1201)
 * zqd: Fix an issue where a pcap moved/deleted after import caused a 404 response and white screen in Brim (#1198)
-* zqd: Include details on [adding observability](https://github.com/brimdata/zed/tree/main/k8s#adding-observability) to the docs for running `zqd` in Kubernetes (#1173)
+* zqd: Include details on [adding observability](k8s#adding-observability) to the docs for running `zqd` in Kubernetes (#1173)
 * zq: Improve performance by removing unnecessary type checks (#1192, #1205)
 * zq: Add additional Boyer-Moore optimizations to improve search performance (#1188)
 * zq: Fix an issue where data import would sometimes fail with a "too many files" error (#1210)
@@ -226,7 +226,7 @@ questions.
 * zqd: Fix an issue where file paths containing URI escape codes could not be opened in Brim (#1238)
 
 ## v0.20.0
-* zqd: Publish initial [docs](https://github.com/brimdata/zed/blob/main/k8s/README.md) for running `zqd` in Kubernetes (#1101)
+* zqd: Publish initial [docs](k8s/README.md) for running `zqd` in Kubernetes (#1101)
 * zq: Provide a better error message when an invalid IP address is parsed (#1106)
 * zar: Use single files for microindexes (#1110)
 * zar: Fix an issue where `zar index` could not handle more than 5 "levels" (#1119)
@@ -244,7 +244,7 @@ questions.
 
 ## v0.19.1
 
-* zq: Move third party license texts in this repository to a single [acknowledgments.txt](https://github.com/brimdata/zed/blob/main/acknowledgments.txt) file (#1107)
+* zq: Move third party license texts in this repository to a single [acknowledgments.txt](acknowledgments.txt) file (#1107)
 * zq: Automatically load AWS config from shared config file `~/.aws/config` by default (#1109)
 * zqd: Fix an issue with excess characters in Space names after upgrade (#1112)
 
@@ -265,7 +265,7 @@ questions.
 * zq: Improve error messaging on S3 object-not-found (#1019)
 * zapi: Fix an issue where `pcappost` run with `-f` and an existing Space name caused a panic (#1042)
 * zqd: Add a `-prometheus` option to add [Prometheus](https://prometheus.io/) metrics routes the API (#1046)
-* zq: Update [README](https://github.com/brimdata/zed/blob/main/README.md) and add docs for more command-line tools (#1049)
+* zq: Update [README](README.md) and add docs for more command-line tools (#1049)
 
 ## v0.17.0
 * zq: Fix an issue where the inferred JSON reader crashed on multiple nested fields (#948)
