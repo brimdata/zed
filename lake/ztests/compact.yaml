@@ -16,18 +16,18 @@ script: |
   echo ===
   zed lake compact -R logs
   zed lake ls -R logs -ranges -spaninfos
-  zed lake zq -R logs -z "count()"
+  zed lake query -R logs -z "count()"
   echo ===
   zed lake stat -R logs -f zng | zq -z "drop log_id" -
   echo ===
   zed lake compact -R logs -purge
-  zed lake zq -R logs -z "count()"
+  zed lake query -R logs -z "count()"
   zed lake stat -R logs -f zng | zq -z "drop log_id" -
   echo ===
   zed lake import -R logs babble-norm-shuf-5.zson
-  zed lake zq -R logs -z "count()"
+  zed lake query -R logs -z "count()"
   echo ===
-  zed lake zq -R logs -z "*" > t1.zson
+  zed lake query -R logs -z "*" > t1.zson
   zq -z "sort -r ts" babble-norm.zson > t2.zson
   diff -s t1.zson t2.zson
 

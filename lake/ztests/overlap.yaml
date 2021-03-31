@@ -6,7 +6,7 @@ script: |
   echo ===
   zed lake stat -R logs -f zng | zq -z "drop log_id" -
   echo ===
-  zed lake zq -R logs -z "*" > t1
+  zed lake query -R logs -z "*" > t1
   zq -z "sort -r ts" babble.zson > t2
   test -s t1 && test -s t2 && diff t1 t2 && echo t1 t2 equal
 

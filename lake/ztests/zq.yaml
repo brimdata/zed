@@ -1,12 +1,12 @@
 script: |
   mkdir logs
   zed lake import -R logs babble.zson
-  zed lake zq -R logs "count()" | zq -z -
+  zed lake query -R logs "count()" | zq -z -
   echo ===
   zed lake map -R logs -o count.zng "count()"
-  zed lake zq -R logs "* | sort -r count" count.zng | zq -z -
+  zed lake query -R logs "* | sort -r count" count.zng | zq -z -
   echo ===
-  zed lake zq -R logs "sum(count)" count.zng | zq -z -
+  zed lake query -R logs "sum(count)" count.zng | zq -z -
 
 inputs:
   - name: babble.zson

@@ -19,14 +19,13 @@ import (
 	"github.com/brimdata/zed/zng/resolver"
 )
 
-//XXX change this to q
-var Zq = &charm.Spec{
-	Name:  "zq",
-	Usage: "zq [-R root] [options] zql [file...]",
+var Query = &charm.Spec{
+	Name:  "query",
+	Usage: "query [-R root] [options] zql [file...]",
 	Short: "execute ZQL against all archive directories",
 	Long: `
-"zar zq" executes a ZQL query against one or more files from all the directories
-of an archive, generating a single result stream. By default, the chunk file in
+"zed lake query" executes a zed query against one or more files from all the directories
+of a zed lake, generating a single result stream. By default, the chunk file in
 each directory is used, but one or more files may be specified. The special file
 name "_" refers to the chunk file itself, and other names are interpreted
 relative to each chunk's directory.
@@ -35,7 +34,7 @@ relative to each chunk's directory.
 }
 
 func init() {
-	zedlake.Cmd.Add(Zq)
+	zedlake.Cmd.Add(Query)
 }
 
 type Command struct {

@@ -4,7 +4,7 @@ script: |
   zed lake ls -R s3://bucket/lake_test -ranges
   zed lake index create -R s3://bucket/lake_test -q v
   echo ===
-  zed lake zq -R s3://bucket/lake_test -z "count()"
+  zed lake query -R s3://bucket/lake_test -z "count()"
   zed lake find -R s3://bucket/lake_test v=2 | zq -z "drop _log" -
   echo ===
   zed lake ls -R s3://bucket/lake_test -relative | sort > t1

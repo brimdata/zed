@@ -1,11 +1,11 @@
 script: |
   zq "tail 900" babble.zson | zed lake import -R asc -asc -streammax=100 -
   zq "head 250" babble.zson | zed lake import -R asc -streammax=100 -
-  zed lake zq -R asc -z -s "count()"
+  zed lake query -R asc -z -s "count()"
   echo === | tee /dev/stderr
   zq "tail 900" babble.zson | zed lake import -R desc -streammax=100 -
   zq "head 250" babble.zson | zed lake import -R desc -streammax=100 -
-  zed lake zq -R desc -z -s "count()"
+  zed lake query -R desc -z -s "count()"
 
 inputs:
   - name: babble.zson
