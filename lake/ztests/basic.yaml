@@ -1,0 +1,21 @@
+script: |
+  mkdir logs
+  zed lake import -R logs babble.zson
+  echo ===
+  zed lake index create -R logs -q v
+  zed lake find -R logs -z v=2 | zq -z "drop _log" -
+  echo ===
+  zed lake find -R logs -z v=10 | zq -z "drop _log" -
+  echo ===
+
+inputs:
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      {key:2,count:1 (uint64),first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:11.06391469Z} (=0)
+      ===
+      ===

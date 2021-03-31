@@ -1,15 +1,19 @@
-package idx
+package find
 
 import (
+	"context"
 	"flag"
+	"fmt"
+	"os"
 
-	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/cli/outputflags"
-	apicmd "github.com/brimdata/zed/cmd/zed/api"
+	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/emitter"
 	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zng/resolver"
 )
 
 var Find = &charm.Spec{
@@ -17,20 +21,20 @@ var Find = &charm.Spec{
 	Usage: "find [options] pattern [pattern...]",
 	Short: "look through zar index files and displays matches",
 	Long: `
-"zapi index find" searches an archive-backed space
+"zar find" searches a zar archive
 looking for zng files that have been indexed and performs a search on
 each such index file in accordance with the specified search pattern.
-Indexes are created by "zapi index create".
+Indexes are created by "zar index".
 
 For standard indexes, "pattern" argument has the form "field=value" (for field searches)
 or ":type=value" (for type searches).  For example, if type "ip" has been
 indexed then the IP 10.0.1.2 can be searched by saying
 
-	zapi index find :ip=10.0.1.2
+	zar find :ip=10.0.1.2
 
 Or if the field "uri" has been indexed, you might say
 
-	zapi index uri=/x/y/z
+	zar find uri=/x/y/z
 
 For custom indexes, the name of index is given by the -x option,
 and the "pattern" argument(s) comprise one or more values that
@@ -41,25 +45,33 @@ search keys.  For example, an index with custom keys of the form
 
 could be queried using syntax like this
 
-	zapi idx find -x custom 99 10.0.0.1 hello
+	zar find -x custom 99 10.0.0.1 hello
 
 The results of a search is either a list of the paths of each
 zng log that matches the pattern (the default), or a zng stream of the
 records of the base layer of the index file (-z)
 `,
-	New: NewFind,
+	New: New,
 }
 
-type FindCmd struct {
-	*apicmd.Command
+func init() {
+	zedlake.Cmd.Add(Find)
+}
+
+type Command struct {
+	*zedlake.Command
+	root          string
+	skipMissing   bool
 	indexFile     string
 	pathField     string
 	relativePaths bool
 	outputFlags   outputflags.Flags
 }
 
-func NewFind(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &FindCmd{Command: parent.(*Command).Command}
+func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	c := &Command{Command: parent.(*zedlake.Command)}
+	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
+	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
 	f.StringVar(&c.pathField, "l", lake.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
@@ -70,24 +82,61 @@ func NewFind(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	return c, nil
 }
 
-func (c *FindCmd) Run(args []string) error {
+func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
 	if err := c.Init(&c.outputFlags); err != nil {
 		return err
 	}
-	req := api.IndexSearchRequest{IndexName: c.indexFile, Patterns: args}
-	id, err := c.SpaceID()
+
+	lk, err := lake.OpenLake(c.root, nil)
 	if err != nil {
 		return err
 	}
-	stream, err := c.Connection().IndexSearch(c.Context(), id, req, nil)
+
+	query, err := index.ParseQuery(c.indexFile, args)
 	if err != nil {
 		return err
 	}
-	writer, err := emitter.NewFile(c.Context(), c.outputFlags.FileName(), c.outputFlags.Options())
+
+	var findOptions []lake.FindOption
+	if c.pathField != "" {
+		findOptions = append(findOptions, lake.AddPath(c.pathField, !c.relativePaths))
+	}
+	if c.skipMissing {
+		findOptions = append(findOptions, lake.SkipMissing())
+	}
+
+	ctx, cancel := context.WithCancel(context.TODO())
+	defer cancel()
+	outputFile := c.outputFlags.FileName()
+	if outputFile == "-" {
+		outputFile = ""
+	}
+	writer, err := emitter.NewFile(ctx, outputFile, c.outputFlags.Options())
 	if err != nil {
 		return err
 	}
 	defer writer.Close()
-	return zbuf.Copy(writer, stream)
+	hits := make(chan *zng.Record)
+	var searchErr error
+	go func() {
+		searchErr = lake.Find(ctx, resolver.NewContext(), lk, query, hits, findOptions...)
+		close(hits)
+	}()
+	for hit := range hits {
+		var err error
+		if writer != nil {
+			err = writer.Write(hit)
+		} else {
+			var path string
+			path, err = hit.AccessString(c.pathField)
+			if err == nil {
+				fmt.Println(path)
+			}
+		}
+		if err != nil {
+			return err
+		}
+	}
+	return searchErr
 }

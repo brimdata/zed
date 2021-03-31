@@ -1,0 +1,16 @@
+
+script: |
+  mkdir logs
+  zed lake import -R logs babble.zson
+  # make an index by hand for each log containing a sum
+  zed lake index create -R logs -q -o index -k s -z "sum(v) by s | sort s"
+  zed lake find -R logs -o - -x index -z amphitheatral-televox | zq -z "drop _log" -
+
+inputs:
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
+
+outputs:
+  - name: stdout
+    data: |
+      {s:"amphitheatral-televox",sum:251,first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z}

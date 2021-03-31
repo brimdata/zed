@@ -19,6 +19,17 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/api/rm"
 	_ "github.com/brimdata/zed/cmd/zed/api/version"
 	"github.com/brimdata/zed/cmd/zed/ast"
+	"github.com/brimdata/zed/cmd/zed/lake"
+	_ "github.com/brimdata/zed/cmd/zed/lake/compact"
+	_ "github.com/brimdata/zed/cmd/zed/lake/find"
+	_ "github.com/brimdata/zed/cmd/zed/lake/import"
+	_ "github.com/brimdata/zed/cmd/zed/lake/index"
+	_ "github.com/brimdata/zed/cmd/zed/lake/ls"
+	_ "github.com/brimdata/zed/cmd/zed/lake/map"
+	_ "github.com/brimdata/zed/cmd/zed/lake/rm"
+	_ "github.com/brimdata/zed/cmd/zed/lake/rmdirs"
+	_ "github.com/brimdata/zed/cmd/zed/lake/stat"
+	_ "github.com/brimdata/zed/cmd/zed/lake/zq"
 	"github.com/brimdata/zed/cmd/zed/q"
 	"github.com/brimdata/zed/cmd/zed/zst"
 	_ "github.com/brimdata/zed/cmd/zed/zst/create"
@@ -34,6 +45,7 @@ func main() {
 	zed.Add(ast.Cmd)
 	zed.Add(q.Cmd)
 	zed.Add(zst.Cmd)
+	zed.Add(lake.Cmd)
 	if _, err := zed.ExecRoot(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)

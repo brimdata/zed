@@ -1,0 +1,30 @@
+script: |
+  mkdir logs
+  source minio.sh
+  zed lake import -R logs -data s3://bucket/lake_test babble.zson
+  zed lake map -R logs -o count.zng "count()"
+  echo ===
+  zed lake ls -R logs -ranges -l
+  echo ===
+  zed lake rm -R logs -ranges count.zng
+  echo ===
+  zed lake rm -R logs -ranges count.zng
+
+inputs:
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
+  - name: minio.sh
+    source: ../../../ztests/suite/s3/minio.sh
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      [1587518620062237300-1587513611063914690]/count.zng
+      [1587513592062544400-1587508830068523240]/count.zng
+      ===
+      [1587518620062237300-1587513611063914690]/count.zng: removed
+      [1587513592062544400-1587508830068523240]/count.zng: removed
+      ===
+      [1587518620062237300-1587513611063914690]/count.zng: not found
+      [1587513592062544400-1587508830068523240]/count.zng: not found

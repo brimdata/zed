@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/ppl/lake"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/ppl/zqd/search"
 	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
 	"github.com/brimdata/zed/zqe"

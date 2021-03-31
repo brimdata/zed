@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/ppl/lake/index"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng/resolver"
 )

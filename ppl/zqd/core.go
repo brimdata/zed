@@ -12,8 +12,8 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/lake/immcache"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/ppl/lake/immcache"
 	"github.com/brimdata/zed/ppl/zqd/apiserver"
 	"github.com/brimdata/zed/ppl/zqd/db"
 	"github.com/brimdata/zed/ppl/zqd/pcapanalyzer"

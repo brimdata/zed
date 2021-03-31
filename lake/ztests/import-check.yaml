@@ -1,0 +1,14 @@
+script: |
+  mkdir logs
+  zed lake import -R logs missingcol.zson
+
+inputs:
+  - name: missingcol.zson
+    data: |
+      {a:"a",b:"b"} (=foo)
+      {a:"a"} (foo)
+
+outputs:
+  - name: stderr
+    regexp: |
+      .*record decorator columns \(2\) mismatched with value columns \(1\)

@@ -9,15 +9,15 @@ script: |
   exec 2>&1
   host=localhost:9867 # service endpoint for zqd root
   space=ZTest_cluster_compact
-  zapi -h $host rm $space &>/dev/null || true
-  zapi -h $host new -k archivestore $space >/dev/null
-  zapi -h $host -s $space post babble.zson >/dev/null
-  zapi -h $host -s $space post babble.zson >/dev/null
+  zed api -h $host rm $space &>/dev/null || true
+  zed api -h $host new -k archivestore $space >/dev/null
+  zed api -h $host -s $space post babble.zson >/dev/null
+  zed api -h $host -s $space post babble.zson >/dev/null
   # Give the Temporal workflow a chance to run.
   sleep 5
-  data_path=$(zapi -h $host ls -l -f zng | zq -f text "name=\"$space\" | cut data_path" -)
-  zar ls -R $data_path -ranges
-  zapi -h $host rm $space >/dev/null
+  data_path=$(zed api -h $host ls -l -f zng | zq -f text "name=\"$space\" | cut data_path" -)
+  zed lake ls -R $data_path -ranges
+  zed api -h $host rm $space >/dev/null
 
 inputs:
   - name: babble.zson

@@ -1,0 +1,22 @@
+script: |
+  mkdir logs
+  source minio.sh
+  zed lake import -R logs -data s3://bucket/lake_test babble.zson
+  zed lake ls -R logs -ranges
+  echo ===
+  zed lake stat -R logs -f zng | zq -z "drop log_id" -
+
+inputs:
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
+  - name: minio.sh
+    source: ../../../ztests/suite/s3/minio.sh
+
+outputs:
+  - name: stdout
+    data: |
+      [1587518620062237300-1587513611063914690]
+      [1587513592062544400-1587508830068523240]
+      ===
+      {type:"chunk",first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:11.06391469Z,size:16995 (uint64),record_count:496 (uint64)} (=0)
+      {type:"chunk",first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:30.06852324Z,size:17206,record_count:504} (0)

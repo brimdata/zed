@@ -10,9 +10,9 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/glob"
 	"github.com/brimdata/zed/pkg/units"
-	"github.com/brimdata/zed/ppl/lake"
 )
 
 var (
