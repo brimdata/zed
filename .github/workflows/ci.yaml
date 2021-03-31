@@ -14,7 +14,8 @@ jobs:
         with:
           go-version: '1.16'
       - uses: actions/checkout@v2
-        fetch-depth: 0
+        with:
+          fetch-depth: 0
       - run: go mod download
       - run: make fmt
       - run: make tidy
