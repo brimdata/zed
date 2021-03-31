@@ -1,4 +1,4 @@
-package q
+package query
 
 import (
 	"flag"
@@ -22,20 +22,20 @@ import (
 )
 
 var Cmd = &charm.Spec{
-	Name:        "q",
-	Usage:       "q [ options ] [ zed-query ] file [ file ... ]",
+	Name:        "query",
+	Usage:       "query [ options ] [ zed-query ] file [ file ... ]",
 	Short:       "apply zed queries to data files or streams",
 	HiddenFlags: "cpuprofile,memprofile,pathregexp",
 	Long: `
-"zed q" is a command for searching and analyzing data using the zed language
+"zed query" is a command for searching and analyzing data using the zed language
 (including the experimental SQL subset embedded in the zed language).
-If you have istalled the shortcuts, "zq" is a shortcut for the "zed q" command.
+If you have istalled the shortcuts, "zq" is a shortcut for the "zed query" command.
 
-"zed q" applies boolean logic
+"zed query" applies boolean logic
 to filter each input value, optionally computes analytics and transformations,
 and writes its output to one or more files or standard output.
 
-"zed q" must be run with at least one input file specified.  As with awk, standard input
+"zed query" must be run with at least one input file specified.  As with awk, standard input
 can be specified with a "-" in the place of the file name.  Output is sent to
 standard output unless a -o or -d argument is provided, in which case output is
 sent to the indicated file comforming to the type implied by the extension (unless

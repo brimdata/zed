@@ -4,15 +4,15 @@ script: |
   # this small target size causes each tsdir to have several chunk files.
   zed lake import -R logs -s 256B group-by-ts.zson
   echo ===
-  zed lake zq -R logs -z 'head 1'
+  zed lake query -R logs -z 'head 1'
   echo ===
-  zed lake zq -R logs -z 'tail 1'
+  zed lake query -R logs -z 'tail 1'
   echo ===
-  zed lake zq -R logs -z 'avg(g)'
+  zed lake query -R logs -z 'avg(g)'
   echo ===
-  zed lake zq -R logs -z 'count() by g | sort g'
+  zed lake query -R logs -z 'count() by g | sort g'
   echo ===
-  zed lake zq -R logs -z 'every 3600s count() by g | sort ts, g'
+  zed lake query -R logs -z 'every 3600s count() by g | sort ts, g'
 
 inputs:
   - name: group-by-ts.zson
