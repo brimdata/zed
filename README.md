@@ -1,4 +1,4 @@
-# `zed` [![Tests][tests-img]][tests]
+# zed [![Tests][tests-img]][tests]
 
 The zed project is a new, clean-slate design for a data engineering stack.
 At zed's foundation lies a new family of self-describing
@@ -46,7 +46,7 @@ make install
 
 ## Contributing
 
-See the [contributing guide](CONTRIBUTING.md) on how you can help improve `zed`!
+See the [contributing guide](CONTRIBUTING.md) on how you can help improve zed!
 
 ## Join the Community
 
