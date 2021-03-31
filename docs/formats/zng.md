@@ -5,7 +5,7 @@
 > the BETA phase.  We plan to
 > declare the specification stable and finalized in spring 2021.
 >
-> [Zq](https://github.com/brimdata/zed/blob/main/README.md)'s
+> [Zed](../../README.md)'s
 > implementation of ZNG is tracking this spec and as it changes,
 > the zq output format is subject to change.  In this branch,
 > zq attempts to implement everything herein excepting:

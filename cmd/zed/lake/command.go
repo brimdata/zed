@@ -25,8 +25,8 @@ keyed records and supports very fast lookup of keys. When the key represents
 a value in the associated chunk file, micro-indexes can be used to to make
 searching an archive very fast.
 
-See the zar README in the zed repository for more information:
-https://github.com/brimdata/zed/blob/main/cmd/zar/README.md
+See the zed lake README in the zed repository for more information:
+https://github.com/brimdata/zed/blob/main/docs/lake/README.md
 `,
 	New: New,
 }
