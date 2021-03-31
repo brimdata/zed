@@ -275,7 +275,7 @@ ZJSON output as lines of NDJSON.
 
 Second, the objects may be encoded in a JSON array embedded in some other
 JSON-framed protocol, e.g., embedded in the the search results messages
-of the [zqd REST API](api/api.go).
+of the [zqd REST API](../../api/api.go).
 
 It is up to an implementation to determine how the ZJSON
 objects are framed according to its particular use case.
