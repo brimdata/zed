@@ -10,7 +10,7 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "index",
 	Usage: "index <command> [options] [arguments...]",
-	Short: "create and search zed indexes from zed streams or files",
+	Short: "create and search zed indexes",
 	Long: `
 "zed index" is command-line utility for creating and manipulating zed indexes.
 `,

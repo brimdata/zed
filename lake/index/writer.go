@@ -104,8 +104,8 @@ type indexer struct {
 	err     onceError
 	cutter  *expr.Cutter
 	fgr     zbuf.ReadCloser
-	keyType zng.Type
 	index   *index.Writer
+	keyType zng.Type
 	wg      sync.WaitGroup
 }
 

@@ -19,6 +19,12 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/api/rm"
 	_ "github.com/brimdata/zed/cmd/zed/api/version"
 	"github.com/brimdata/zed/cmd/zed/ast"
+	"github.com/brimdata/zed/cmd/zed/index"
+	_ "github.com/brimdata/zed/cmd/zed/index/convert"
+	_ "github.com/brimdata/zed/cmd/zed/index/create"
+	_ "github.com/brimdata/zed/cmd/zed/index/lookup"
+	_ "github.com/brimdata/zed/cmd/zed/index/section"
+	_ "github.com/brimdata/zed/cmd/zed/index/seek"
 	"github.com/brimdata/zed/cmd/zed/lake"
 	_ "github.com/brimdata/zed/cmd/zed/lake/compact"
 	_ "github.com/brimdata/zed/cmd/zed/lake/find"
@@ -37,13 +43,6 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/zst/inspect"
 	_ "github.com/brimdata/zed/cmd/zed/zst/read"
 	"github.com/brimdata/zed/pkg/charm"
-
-	"github.com/brimdata/zed/cmd/zed/index"
-	_ "github.com/brimdata/zed/cmd/zed/index/convert"
-	_ "github.com/brimdata/zed/cmd/zed/index/create"
-	_ "github.com/brimdata/zed/cmd/zed/index/lookup"
-	_ "github.com/brimdata/zed/cmd/zed/index/section"
-	_ "github.com/brimdata/zed/cmd/zed/index/seek"
 )
 
 func main() {
