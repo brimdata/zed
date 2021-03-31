@@ -1,0 +1,20 @@
+# test a simple indexing scenario with the use of the -i flag
+script: |
+  mkdir logs
+  zed lake import -R logs babble.zson
+  zed lake map -R logs  -q -o sums.zng "sum(v) by s"
+  zed lake index create -R logs -f 10000 -i sums.zng -q -o testindex -z "put key=s | sort key"
+  echo ===
+  id=$(zed lake stat -f zng -R logs | zq -f text '.type = index | cut definition.id | head 1' -)
+  microindex section --z -s 1 $(find logs/zd/20200422/ -name "idx-$id.zng" | head -n 1)
+
+inputs:
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      {key:"Algedi-pigeonman",_child:0}
+      {key:"increasement-elaioleucite",_child:10025}

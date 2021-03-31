@@ -1,9 +1,9 @@
 # https://github.com/brimdata/zed/issues/2293
-# Ensure that zar find does not panic on an empty index.
+# Ensure that zed lake find does not panic on an empty index.
 script: |
-  zar import -R ./zartest -
-  zar index create -q -R ./zartest uri
-  zar find -R ./zartest -f table uri=/file
+  zed lake import -R ./lake_test -
+  zed lake index create -q -R ./lake_test uri
+  zed lake find -R ./lake_test -f table uri=/file
 
 inputs:
   - name: stdin

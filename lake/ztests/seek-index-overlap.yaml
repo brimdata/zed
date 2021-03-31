@@ -1,0 +1,26 @@
+script: |
+  zq "tail 900" babble.zson | zed lake import -R asc -asc -streammax=100 -
+  zq "head 250" babble.zson | zed lake import -R asc -streammax=100 -
+  zed lake zq -R asc -z -s "count()"
+  echo === | tee /dev/stderr
+  zq "tail 900" babble.zson | zed lake import -R desc -streammax=100 -
+  zq "head 250" babble.zson | zed lake import -R desc -streammax=100 -
+  zed lake zq -R desc -z -s "count()"
+
+inputs:
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
+
+outputs:
+  - name: stdout
+    data: |
+      {count:1150 (uint64)} (=0)
+      ===
+      {count:1150 (uint64)} (=0)
+  - name: stderr
+    data: |
+      data opened: 49051
+      data read:   40293
+      ===
+      data opened: 49036
+      data read:   43751

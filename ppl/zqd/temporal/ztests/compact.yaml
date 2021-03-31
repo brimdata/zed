@@ -3,12 +3,12 @@ tag: services
 script: |
   exec 2>&1
   source temporal.sh
-  zapi -h $ZQD_HOST new -k archivestore test >/dev/null
-  zapi -h $ZQD_HOST -s test post babble.zson >/dev/null
-  zapi -h $ZQD_HOST -s test post babble.zson >/dev/null
+  zed api -h $ZQD_HOST new -k archivestore test >/dev/null
+  zed api -h $ZQD_HOST -s test post babble.zson >/dev/null
+  zed api -h $ZQD_HOST -s test post babble.zson >/dev/null
   # Give the Temporal workflow a chance to run.
   sleep 1
-  zar ls -R data/sp_* -ranges
+  zed lake ls -R data/sp_* -ranges
 
 inputs:
   - name: babble.zson

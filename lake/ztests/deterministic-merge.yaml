@@ -1,0 +1,27 @@
+script: |
+  zed lake import -R logs -s 32B -
+  zed lake zq -z -R logs "*" > 1.zson
+  zed lake zq -z -R logs "*" > 2.zson
+  diff 1.zson 2.zson && echo success
+
+inputs:
+  - name: stdin
+    data: |
+      {ts:1970-01-01T00:00:01Z,s:"Potamogalidae-precommissure",v:51}
+      {ts:1970-01-01T00:00:01Z,s:"Galchic-unwheeled",v:51}
+      {ts:1970-01-01T00:00:01Z,s:"protohydrogen-plesiomorphism",v:320}
+      {ts:1970-01-01T00:00:01Z,s:"unethicalness-vallis",v:148}
+      {ts:1970-01-01T00:00:01Z,s:"proceeding-noncausality",v:449}
+      {ts:1970-01-01T00:00:01Z,s:"investitor-dortiship",v:287}
+      {ts:1970-01-01T00:00:01Z,s:"gatelike-nucleolocentrosome",v:336}
+      {ts:1970-01-01T00:00:01Z,s:"subarea-preoffense",v:373}
+      {ts:1970-01-01T00:00:01Z,s:"lacklusterness-Magyarization",v:91}
+      {ts:1970-01-01T00:00:01Z,s:"unendeared-Petasites",v:331}
+      {ts:1970-01-01T00:00:01Z,s:"psalis-Guarnieri",v:456}
+      {ts:1970-01-01T00:00:01Z,s:"harefoot-raucous",v:137}
+      {ts:1970-01-01T00:00:01Z,s:"crosshaul-capersome",v:109}
+
+outputs:
+  - name: stdout
+    data: |
+      success

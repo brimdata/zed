@@ -1,0 +1,29 @@
+script: |
+  source minio.sh
+  zed lake import -R s3://bucket/lake_test babble.zson
+  zed lake ls -R s3://bucket/lake_test -ranges
+  zed lake index create -R s3://bucket/lake_test -q v
+  echo ===
+  zed lake zq -R s3://bucket/lake_test -z "count()"
+  zed lake find -R s3://bucket/lake_test v=2 | zq -z "drop _log" -
+  echo ===
+  zed lake ls -R s3://bucket/lake_test -relative | sort > t1
+  (cd ./data/bucket/lake_test; find zd -type d -regex ".*\.zar$") | sort > t2
+  test -s t1 && test -s t2 && diff t1 t2 && echo ls matches
+
+inputs:
+  - name: babble.zson
+    source: ../../../ztests/suite/data/babble.zson
+  - name: minio.sh
+    source: ../../../ztests/suite/s3/minio.sh
+
+outputs:
+  - name: stdout
+    data: |
+      [1587518620062237300-1587513611063914690]
+      [1587513592062544400-1587508830068523240]
+      ===
+      {count:1000 (uint64)} (=0)
+      {key:2,count:1 (uint64),first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:11.06391469Z} (=0)
+      ===
+      ls matches
