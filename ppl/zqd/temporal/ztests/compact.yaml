@@ -12,7 +12,7 @@ script: |
 
 inputs:
   - name: babble.zson
-    source: ../../../../ztests/suite/data/babble.zson
+    source: ../../../../testdata/babble.zson
   - name: temporal.sh
 
 outputs:

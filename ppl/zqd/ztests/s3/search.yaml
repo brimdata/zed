@@ -7,7 +7,7 @@ script: |
 
 inputs:
   - name: babble.zson
-    source: ../../../../ztests/suite/data/babble.zson
+    source: ../../../../testdata/babble.zson
   - name: services.sh
     source: ../services.sh
 

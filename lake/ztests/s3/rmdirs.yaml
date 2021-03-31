@@ -12,9 +12,9 @@ script: |
 
 inputs:
   - name: babble.zson
-    source: ../../../ztests/suite/data/babble.zson
+    source: ../../../testdata/babble.zson
   - name: minio.sh
-    source: ../../../ztests/suite/s3/minio.sh
+    source: ../../../testdata/minio.sh
 
 outputs:
   - name: stdout

@@ -13,7 +13,7 @@ inputs:
   - name: startup.sh
     source: startup.sh
   - name: babble.zson
-    source: ../../../../../ztests/suite/data/babble.zson
+    source: ../../../../../testdata/babble.zson
   - name: migrations
     symlink: ../migrations
 

@@ -12,11 +12,11 @@ script: |
 
 inputs:
   - name: babble.zson
-    source: ../../ztests/suite/data/babble.zson
+    source: ../../testdata/babble.zson
   - name: babble-split1.zson
-    source: ../../ztests/suite/data/babble-split1.zson
+    source: ../../testdata/babble-split1.zson
   - name: babble-split2.zson
-    source: ../../ztests/suite/data/babble-split2.zson
+    source: ../../testdata/babble-split2.zson
 
 outputs:
   - name: stdout

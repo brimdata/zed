@@ -8,9 +8,9 @@ inputs:
   - name: services.sh
     source: ../services.sh
   - name: babble.zson
-    source: ../../../../ztests/suite/data/babble.zson
+    source: ../../../../testdata/babble.zson
   - name: ng.pcap
-    source: ../../../../ztests/suite/pcap/ng.pcap
+    source: ../../../../pcap/ztests/ng.pcap
 
 outputs:
   - name: stderr

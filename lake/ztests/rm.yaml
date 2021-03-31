@@ -14,7 +14,7 @@ script: |
 
 inputs:
   - name: babble.zson
-    source: ../../ztests/suite/data/babble.zson
+    source: ../../testdata/babble.zson
 
 outputs:
   - name: stdout
