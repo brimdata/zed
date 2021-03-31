@@ -45,7 +45,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.lflag, "l", false, "long form")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	f.BoolVar(&c.indexDesc, "desc", false, "display index description in lieu of index file name")

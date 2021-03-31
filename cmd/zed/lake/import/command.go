@@ -27,7 +27,7 @@ from an existing file, S3 location, or stdin.
 
 The input data is sorted and partitioned by time into approximately equal
 sized ZNG files, called "chunks". The path of each chunk is a subdirectory in
-the specified root location (-R or ZAR_ROOT), where the subdirectory name is
+the specified root location (-R or ZED_LAKE_ROOT), where the subdirectory name is
 derived from the timestamp of the first zng record in that chunk.
 `,
 	New: New,
@@ -53,7 +53,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
 	f.BoolVar(&c.asc, "asc", false, "store archive data in ascending order")
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.dataPath, "data", "", "location for storing data files (defaults to root)")
 	c.thresh = lake.DefaultLogSizeThreshold
 	f.Var(&c.thresh, "s", "target size of chunk files, as '10MB' or '4GiB', etc.")

@@ -39,7 +39,7 @@ type DropCommand struct {
 
 func NewDrop(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &DropCommand{Command: parent.(*Command).Command}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.noapply, "noapply", false, "remove index definition only")
 	f.BoolVar(&c.quiet, "q", false, "do not display progress updates will deleting indices")
 

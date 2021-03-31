@@ -41,7 +41,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 	f.BoolVar(&c.showRanges, "ranges", false, "display time ranges instead of paths")
 	return c, nil
@@ -57,7 +57,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zar rm: no file specified")
 	}
 	if c.root == "" {
-		return errors.New("zar rm: no archive root specified with -R or ZAR_ROOT")
+		return errors.New("zar rm: no archive root specified with -R or ZED_LAKE_ROOT")
 	}
 
 	lk, err := lake.OpenLake(c.root, nil)

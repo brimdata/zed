@@ -58,7 +58,7 @@ type CreateCommand struct {
 
 func NewCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &CreateCommand{Command: parent.(*Command).Command}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.ensure, "ensure", false, "ensures that index rules are applied to all chunks")
 	f.StringVar(&c.keys, "k", "key", "one or more comma-separated key fields")
 	f.IntVar(&c.framesize, "f", 32*1024, "minimum frame size used in microindex file")
@@ -80,7 +80,7 @@ func (c *CreateCommand) Run(args []string) error {
 		return errors.New("unless -ensure is specified, one or more indexing patterns must be specified")
 	}
 	if c.root == "" {
-		return errors.New("a directory must be specified with -R or ZAR_ROOT")
+		return errors.New("a directory must be specified with -R or ZED_LAKE_ROOT")
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err

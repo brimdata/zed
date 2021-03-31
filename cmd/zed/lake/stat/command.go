@@ -38,7 +38,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root location of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
 	f.StringVar(&c.format, "f", "table", "format for output data [zng,ndjson,table,text,zeek,zjson,tzng] (default \"table\")")
 	return c, nil
 }
