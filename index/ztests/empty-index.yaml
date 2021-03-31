@@ -1,0 +1,19 @@
+script: |
+  # b isn't in the input so this creates a valid zed index that is empty
+  zed index create -o index.zng -k b in.zson
+  zq -z index.zng
+  echo ===
+  zed index lookup iz -k 0 index.zng
+  echo ===
+
+inputs:
+  - name: in.zson
+    data: |
+      {a:"hello"}
+
+outputs:
+  - name: stdout
+    data: |
+      {magic:"zed_index",version:2 (int32),descending:false,child_field:"",frame_thresh:32768 (int32),sections:null (0=([int64])),keys:null (1=({key:null}))} (=2)
+      ===
+      ===

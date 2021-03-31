@@ -36,7 +36,7 @@ PPL-covered code to make replacement offerings of our projects. We believe
 users and developers should have access to the source code for our projects,
 and we need a sustainable business model to continue funding our work. Using
 the source-available Polyform Perimeter license on portions of the source code
-lets us realize both. 
+lets us realize both.
 
 For more detail regarding licensing, see the
 [CONTRIBUTING.md](https://github.com/brimdata/zed/blob/main/CONTRIBUTING.md)
@@ -235,7 +235,7 @@ questions.
 * zar: Add `zar map` to handle "for each file" operations (#1138, #1148)
 * zq: Add Boyer-Moore filter optimization to ZNG scanner to improve performance (#1080)
 * zar: Change "zdx" to "microindex" (#1150)
-* zar: Update the [`zar` README](https://github.com/brimdata/zed/blob/main/ppl/cmd/zar/README.md) to reflect recent changes in commands/output (#1149)
+* zar: Update the `zar` README to reflect recent changes in commands/output (#1149)
 * zqd: Fix an issue where text stack traces could leak into ZJSON response streams (#1166)
 * zq: Fix an issue where an error "slice bounds out of range" would be triggered during attempted type conversion (#1158)
 * pcap: Fix an issue with pcapng files that have extra bytes at end-of-file (#1178)
@@ -261,7 +261,7 @@ questions.
 ## v0.18.0
 * zql: Fix an issue where data type casting was not working in Brim (#1008)
 * zql: Add a new [`rename` processor](docs/language/processors#rename) to rename fields in a record (#998, #1038)
-* zqd: Fix an issue where API responses were being blocked in Brim due to commas in Content-Disposition headers (#1014) 
+* zqd: Fix an issue where API responses were being blocked in Brim due to commas in Content-Disposition headers (#1014)
 * zq: Improve error messaging on S3 object-not-found (#1019)
 * zapi: Fix an issue where `pcappost` run with `-f` and an existing Space name caused a panic (#1042)
 * zqd: Add a `-prometheus` option to add [Prometheus](https://prometheus.io/) metrics routes the API (#1046)
@@ -327,8 +327,7 @@ questions.
 * zql: Make ipv4 subnet bases contain 4 octets to remove ambiguity between fractions & CIDR (#670)
 * zq: Use an external sort for large inputs (removes the 10-million line `sort` limit) (#527)
 * zq: Fix an issue where duplicate field names could be produced by aggregate functions & group-by (#676)
-* zar: Introduce an experimental prototype for working with archived logs
- ([README](https://github.com/brimdata/zed/blob/main/ppl/cmd/zar/README.md)) (#700)
+* zar: Introduce an experimental prototype for working with archived logs (#700)
 * zq: Support recursive record nesting in Zeek reader/writer (#715)
 * zqd: Zeek log import support needed for Brim (#616, #517, #608, #592, #592, #582, #709)
 
@@ -397,7 +396,7 @@ questions.
 * zqd supports ingesting pcapng formatted packet capture files.
 
 ## v0.4.0
-  
+
 * zqd adds an endpoint to create a new empty space via post
 * zqd adds an endpoint to post packet captures that are indexed and turned into Zeek logs
 

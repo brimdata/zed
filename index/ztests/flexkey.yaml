@@ -1,0 +1,24 @@
+script: |
+  zq -o tmp.zng "sum(v) by s | put key=s | sort key"  babble.zson
+  # -x says input keys already sorted and don't create new base records
+  zed index convert -f 20000 -o index.zng -k key tmp.zng
+  # 50 not in index
+  zed index section -z -s 1 index.zng
+  echo ===
+  zed index lookup -z -k wailer-strick index.zng
+  echo ===
+  zed index lookup -z -k Anatinacea-bestrew index.zng
+
+inputs:
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
+
+outputs:
+  - name: stdout
+    data: |
+      {key:"Algedi-pigeonman",_child:0}
+      {key:"immanency-sarcastical",_child:20020}
+      ===
+      {s:"wailer-strick",sum:149,key:"wailer-strick"}
+      ===
+      {s:"Anatinacea-bestrew",sum:339,key:"Anatinacea-bestrew"}

@@ -1,0 +1,23 @@
+script: |
+  zed index create -x -f 20 -o index.zng -k key -
+  zed index section -z -s 2 index.zng
+
+inputs:
+  - name: stdin
+    data: |
+        {key:"a",val:0}
+        {key:"b",val:1}
+        {key:"c",val:2}
+        {key:"d",val:3}
+        {key:"e",val:4}
+        {key:"f",val:3}
+        {key:"g",val:2}
+        {key:"h",val:1}
+        {key:"i",val:0}
+        {key:"j",val:-1}
+
+outputs:
+  - name: stdout
+    data: |
+      {key:"a",_child:0}
+      {key:"e",_child:24}

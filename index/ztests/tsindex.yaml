@@ -1,0 +1,23 @@
+script: |
+  # index ts every 10 records
+  zq -b 10 babble.zson | zed index create -S -o index -k ts -
+  # exact lookup for this particular ts
+  zed index lookup -z -k 1587512531.06754599 index
+  echo ===
+  # exact lookup for an absent ts
+  zed index lookup -z -k 1587512531.06754600 index
+  echo ===
+  # closest lookup for the absent ts
+  zed index lookup -c -z -k 1587512531.06754600 index
+
+inputs:
+  - name: babble.zson
+    source: ../../ztests/suite/data/babble.zson
+
+outputs:
+  - name: stdout
+    data: |
+      {key:2020-04-21T23:42:11.06754599Z}
+      ===
+      ===
+      {key:2020-04-21T23:42:11.06754599Z}

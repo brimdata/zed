@@ -1,0 +1,19 @@
+script: |
+  zed index convert -f 50 -o index.zng -k _child -
+  zed index section -z -trailer index.zng
+
+inputs:
+  - name: stdin
+    data: |
+      {key:"a",_child:0}
+      {key:"b",_child:1}
+      {key:"c",_child:2}
+
+# because a key has the name _btree_child, _btree_child_0 is used
+# as the child key in the b-tree sections
+outputs:
+  - name: stderr
+    data: ''
+  - name: stdout
+    data: |
+      {magic:"zed_index",version:2 (int32),descending:false,child_field:"_child_0",frame_thresh:50 (int32),sections:[33],keys:null (0=({_child:int64}))} (=1)

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
-	"github.com/brimdata/zed/microindex"
+	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng/resolver"
@@ -110,7 +110,7 @@ func Find(ctx context.Context, zctx *resolver.Context, d iosrc.URI, id ksuid.KSU
 }
 
 func FindFromPath(ctx context.Context, zctx *resolver.Context, idxfile iosrc.URI, patterns ...string) (zbuf.ReadCloser, error) {
-	finder, err := microindex.NewFinderReader(ctx, zctx, idxfile, patterns...)
+	finder, err := index.NewFinderReader(ctx, zctx, idxfile, patterns...)
 	if err != nil {
 		return nil, fmt.Errorf("index find %s: %w", idxfile, err)
 	}
