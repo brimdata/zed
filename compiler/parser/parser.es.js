@@ -286,8 +286,8 @@ function peg$parse(input, options) {
       peg$startRuleFunction  = peg$parsestart,
 
       peg$c0 = function(ast) { return ast },
-      peg$c1 = function(consts, first, rest) {
-            let procs = consts;
+      peg$c1 = function(decls, first, rest) {
+            let procs = decls;
             procs.push( first);
             for(let  p of rest) {
               procs.push( p);
@@ -1304,11 +1304,11 @@ function peg$parse(input, options) {
 
     s0 = peg$currPos;
     s1 = [];
-    s2 = peg$parseConst();
+    s2 = peg$parseDecl();
     if (s2 !== peg$FAILED) {
       while (s2 !== peg$FAILED) {
         s1.push(s2);
-        s2 = peg$parseConst();
+        s2 = peg$parseDecl();
       }
     } else {
       s1 = peg$FAILED;
@@ -1351,13 +1351,13 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseConst() {
+  function peg$parseDecl() {
     var s0, s1, s2;
 
     s0 = peg$currPos;
     s1 = peg$parse__();
     if (s1 !== peg$FAILED) {
-      s2 = peg$parseAnyConst();
+      s2 = peg$parseAnyDecl();
       if (s2 !== peg$FAILED) {
         peg$savedPos = s0;
         s1 = peg$c2(s2);
@@ -1374,7 +1374,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseAnyConst() {
+  function peg$parseAnyDecl() {
     var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10;
 
     s0 = peg$currPos;
