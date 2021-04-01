@@ -58,8 +58,8 @@ just doing a quick test we'll use local temp space.  We'll make it easier to
 run all the commands by setting an environment variable pointing to the root of
 the logs tree.
 ```
-export ZAR_ROOT=/tmp/logs
-mkdir $ZAR_ROOT
+export ZED_LAKE_ROOT=/tmp/logs
+mkdir $ZED_LAKE_ROOT
 ```
 
 Now, let's ingest the data using `zed lake import`.  We are working on more
@@ -216,7 +216,7 @@ zed lake ls -l
 You will see all the indexes left behind. They are just zng files.
 If you want to see one, just look at it with zq, e.g.
 ```
-find $ZAR_ROOT -name idx-* | head -n 1 | xargs zq -z -
+find $ZED_LAKE_ROOT -name idx-* | head -n 1 | xargs zq -z -
 ```
 Now if you run "zed lake find", it will efficiently look through all the index files
 instead of the raw lake data and run much faster...
@@ -312,7 +312,7 @@ zed lake ls custom.zng
 ```
 To see what's in it:
 ```
-find $ZAR_ROOT -name idx-$(zed lake index ls -f zng | zq -f text 'desc="zql-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'head 10' -
+find $ZED_LAKE_ROOT -name idx-$(zed lake index ls -f zng | zq -f text 'desc="zql-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'head 10' -
 ```
 You can see the IPs, counts, and _path strings.
 
@@ -320,7 +320,7 @@ At the bottom you'll also find a record describing the index layout. To
 see it:
 
 ```
-find $ZAR_ROOT -name idx-$(zed lake index ls -f zng | zq -f text 'desc="zql-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'tail 1' -
+find $ZED_LAKE_ROOT -name idx-$(zed lake index ls -f zng | zq -f text 'desc="zql-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'tail 1' -
 ```
 
 ## `zed lake find` with custom index
@@ -445,7 +445,7 @@ zed lake map -q -o words.zng "uri != null | cut uri | put count=1"
 ```
 again you can look at one of the files...
 ```
-find $ZAR_ROOT -name words.zng ! -size 0 | head -n 1 | xargs zq -z -
+find $ZED_LAKE_ROOT -name words.zng ! -size 0 | head -n 1 | xargs zq -z -
 ```
 Now we reduce by aggregating the uri and summing the counts:
 ```
@@ -580,5 +580,5 @@ zq -f text "count()" pipes2.zng
 To clean out all the files you've created in the lake directories and
 start over, just run
 ```
-zed lake rmdirs $ZAR_ROOT
+zed lake rmdirs $ZED_LAKE_ROOT
 ```

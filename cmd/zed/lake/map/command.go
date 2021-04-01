@@ -55,7 +55,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
-	f.StringVar(&c.root, "R", os.Getenv("ZAR_ROOT"), "root directory of zar archive to walk")
+	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root directory of zar archive to walk")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	c.outputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
