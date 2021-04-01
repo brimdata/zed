@@ -1,8 +1,8 @@
-bin
-dist/
-python/brim/build/
-tests/test-root
-zed-sample-data
-zql/deps/
+/bin/
+/compiler/parser/deps/
+/dist/
+/python/brim/build/
+/zed-sample-data/
+
 .idea
 .DS_Store
