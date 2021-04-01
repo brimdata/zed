@@ -1,8 +1,7 @@
 zed: '*'
 
 input: !!binary |
-        IzA6cmVjb3JkW2E6YXJyYXlbdW5pb25baW50NjQsc3RyaW5nXV1dCjA6W1sxOm
-        FzZGZhc2RmOy07MDoxMDA7XV0KMDpbLTtdCg==
+  +QIHEPcX9gEBYRgZEiMXBAISYXNkZmFzZGYABwIEyBkBAP8=
 
 output: |
   {a:["asdfasdf" (0=((int64,string))),null (0),100 (0)] (=1)} (=2)
