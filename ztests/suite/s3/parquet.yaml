@@ -1,14 +1,13 @@
 script: |
   source minio.sh
-  mv *.tzng data/bucket
-  zq -i parquet dns.parquet
+  mv dns.parquet data/bucket
+  zq -z -i parquet "count()" s3://bucket/dns.parquet
 
 inputs:
   - name: minio.sh
-    source: minio.sh
   - name: dns.parquet
-    source: dns.parquet
 
 outputs:
   - name: stdout
-    source: dns.zng
+    data: |
+      {count:10 (uint64)} (=0)
