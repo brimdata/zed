@@ -1,11 +1,10 @@
 script: |
-  zq - < bad.tzng
+  zq -
 
 inputs:
-  - name: bad.tzng
+  - name: stdin
     data: |
-        #0:record[_path:string]
-        0:[conn;1;]
+      Garbage!
 
 outputs:
   - name: stderr

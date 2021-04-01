@@ -1,19 +1,13 @@
 zed: a=union(cut(x)),b=union(cut(x,s))
 
 input: |
-  #0:record[x:int32,s:string]
-  0:[1;a;]
-  0:[2;b;]
-  #1:record[s:string]
-  1:[x;]
-  1:[b;]
-  #2:record[none:string]
-  2:[bad;]
-  0:[1;a;]
-  0:[3;e;]
-
-output-flags: -f tzng
+  {x:1 (int32),s:"a"} (=0)
+  {x:2,s:"b"} (0)
+  {s:"x"}
+  {s:"b"}
+  {none:"bad"}
+  {x:1,s:"a"} (0)
+  {x:3,s:"e"} (0)
 
 output: |
-  #0:record[a:set[record[x:int32]],b:set[record[x:int32,s:string]]]
-  0:[[[1;][2;][3;]][[1;a;][2;b;][3;e;]]]
+  {a:|[{x:1 (int32)} (=0),{x:2} (0),{x:3} (0)]| (=1),b:|[{x:1 (int32),s:"a"} (=2),{x:2,s:"b"} (2),{x:3,s:"e"} (2)]| (=3)} (=4)

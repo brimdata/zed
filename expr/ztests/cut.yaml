@@ -4,27 +4,19 @@ warnings: |
   put: a referenced field is missing
 
 input: |
-  #0:record[x:int32,s:string]
-  0:[1;a;]
-  0:[2;b;]
-  #1:record[s:string]
-  1:[x;]
-  1:[b;]
-  #2:record[none:string]
-  2:[bad;]
-  0:[1;a;]
-  0:[3;e;]
-
-output-flags: -f tzng
+  {x:1 (int32),s:"a"} (=0)
+  {x:2,s:"b"} (0)
+  {s:"x"}
+  {s:"b"}
+  {none:"bad"}
+  {x:1,s:"a"} (0)
+  {x:3,s:"e"} (0)
 
 output: |
-  #0:record[x:int32,s:string,v:record[s:string,x:int32]]
-  0:[1;a;[a;1;]]
-  0:[2;b;[b;2;]]
-  #1:record[s:string,v:record[s:string]]
-  1:[x;[x;]]
-  1:[b;[b;]]
-  #2:record[none:string]
-  2:[bad;]
-  0:[1;a;[a;1;]]
-  0:[3;e;[e;3;]]
+  {x:1 (int32),s:"a",v:{s:"a",x:1 (int32)} (=0)} (=1)
+  {x:2,s:"b",v:{s:"b",x:2}} (1)
+  {s:"x",v:{s:"x"}}
+  {s:"b",v:{s:"b"}}
+  {none:"bad"}
+  {x:1,s:"a",v:{s:"a",x:1}} (1)
+  {x:3,s:"e",v:{s:"e",x:3}} (1)

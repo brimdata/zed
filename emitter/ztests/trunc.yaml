@@ -1,21 +1,18 @@
 script: |
-  zq -f tzng -o out.tzng long.tzng
-  zq -f tzng -o out.tzng short.tzng
-  zq -f tzng out.tzng
+  zq -z -o out.zson long.zson
+  zq -z -o out.zson short.zson
+  zq -z out.zson
 
 inputs:
-  - name: short.tzng
+  - name: short.zson
     data: |
-      #0:record[a:string]
-      0:[hello;]
-  - name: long.tzng
+      {a:"hello"}
+  - name: long.zson
     data: |
-      #0:record[a:string]
-      0:[hello;]
-      0:[there;]
+      {a:"hello"}
+      {a:"there"}
 
 outputs:
   - name: stdout
     data: |
-      #0:record[a:string]
-      0:[hello;]
+      {a:"hello"}

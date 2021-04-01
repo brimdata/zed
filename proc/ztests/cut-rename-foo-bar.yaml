@@ -1,27 +1,16 @@
 zed: cut f=foo, b=bar
 
 input: |
-  #0:record[foo:string]
-  0:[foo0;]
-  #1:record[foo:string,goo:string]
-  1:[foo1;goo1;]
-  #2:record[bar:string]
-  2:[bar2;]
-  #3:record[goo:string,bar:string]
-  3:[goo3;bar3;]
-  #4:record[bar:string,goo:string,foo:string]
-  4:[bar4;goo4;foo4;]
-  #5:record[goo:string]
-  5:[goo5;]
-
-output-flags: -f tzng
+  {foo:"foo0"}
+  {foo:"foo1",goo:"goo1"}
+  {bar:"bar2"}
+  {goo:"goo3",bar:"bar3"}
+  {bar:"bar4",goo:"goo4",foo:"foo4"}
+  {goo:"goo5"}
 
 output: |
-  #0:record[f:string]
-  0:[foo0;]
-  0:[foo1;]
-  #1:record[b:string]
-  1:[bar2;]
-  1:[bar3;]
-  #2:record[f:string,b:string]
-  2:[foo4;bar4;]
+  {f:"foo0"}
+  {f:"foo1"}
+  {b:"bar2"}
+  {b:"bar3"}
+  {f:"foo4",b:"bar4"}

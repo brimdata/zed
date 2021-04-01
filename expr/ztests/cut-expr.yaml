@@ -1,13 +1,9 @@
 zed: 'cut y=x+1,a=to_lower(s),typeof(s)'
 
 input: |
-  #0:record[a:array[int32],x:int32,s:string,b:bytes]
-  0:[[]1;foo;aGVsbG8K;]
-  0:[[1;]2;Bar;dGhlcmUK;]
-
-output-flags: -f tzng
+  {a:[] (0=([int32])),x:1 (int32),s:"foo",b:0x68656c6c6f0a} (=1)
+  {a:[1],x:2,s:"Bar",b:0x74686572650a} (1)
 
 output: |
-  #0:record[y:int64,a:string,typeof:type]
-  0:[2;foo;string;]
-  0:[3;bar;string;]
+  {y:2,a:"foo",typeof:(string)}
+  {y:3,a:"bar",typeof:(string)}

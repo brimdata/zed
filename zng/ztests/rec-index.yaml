@@ -1,11 +1,7 @@
 zed: 'put x=r[".bar@"]+3'
 
 input: |
-  #0:record[r:record[[.bar@]:int32,x:string]]
-  0:[[123;hello;]]
-
-output-flags: -f tzng
+  {r:{".bar@":123 (int32),x:"hello"} (=0)} (=1)
 
 output: |
-  #0:record[r:record[[.bar@]:int32,x:string],x:int64]
-  0:[[123;hello;]126;]
+  {r:{".bar@":123 (int32),x:"hello"} (=0),x:126} (=1)

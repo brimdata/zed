@@ -126,7 +126,7 @@ func (b *Builder) BuildPrimitive(val *Primitive) error {
 		}
 		b.AppendPrimitive(zcode.Bytes(bytes))
 		return nil
-	case *zng.TypeOfString, *zng.TypeOfError:
+	case *zng.TypeOfString, *zng.TypeOfType, *zng.TypeOfError:
 		body := zng.EncodeString(val.Text)
 		if !utf8.Valid(body) {
 			return fmt.Errorf("invalid utf8 string: %q", val.Text)

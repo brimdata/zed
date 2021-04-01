@@ -2,15 +2,8 @@
 zed: split (=>rename id2=id =>cut id.orig_h) | sort id
 
 input: |
-  #port=uint16
-  #0:record[id:record[orig_h:port,resp_h:port]]
-  0:[[39681;3389;]]
-
-output-flags: -f tzng
+  {id:{orig_h:39681 (port=(uint16)),resp_h:3389 (port)} (=0)} (=1)
 
 output: |
-  #port=uint16
-  #0:record[id:record[orig_h:port]]
-  0:[[39681;]]
-  #1:record[id2:record[orig_h:port,resp_h:port]]
-  1:[[39681;3389;]]
+  {id:{orig_h:39681 (port=(uint16))} (=0)} (=1)
+  {id2:{orig_h:39681 (port),resp_h:3389 (port)} (=2)} (=3)

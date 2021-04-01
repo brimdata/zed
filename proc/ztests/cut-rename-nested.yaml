@@ -1,17 +1,9 @@
 zed: cut ports=id, resp_p=id.resp_p
 
 input: |
-  #port=uint16
-  #0:record[id:record[orig_p:port,resp_p:port]]
-  0:[[1;2;]]
-  #1:record[id:array[port]]
-  1:[[3;4;]]
-
-output-flags: -f tzng
+  {id:{orig_p:1 (port=(uint16)),resp_p:2 (port)} (=0)} (=1)
+  {id:[3 (port),4 (port)] (=2)} (=3)
 
 output: |
-  #port=uint16
-  #0:record[ports:record[orig_p:port,resp_p:port],resp_p:port]
-  0:[[1;2;]2;]
-  #1:record[ports:array[port]]
-  1:[[3;4;]]
+  {ports:{orig_p:1 (port=(uint16)),resp_p:2 (port)} (=0),resp_p:2 (port)} (=1)
+  {ports:[3 (port),4 (port)] (=2)} (=3)

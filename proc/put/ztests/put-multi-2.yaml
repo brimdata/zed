@@ -2,13 +2,9 @@
 zed: put a=b, b=a
 
 input: |
-  #0:record[a:int32,b:int32]
-  0:[1;2;]
-  0:[3;4;]
-
-output-flags: -f tzng
+  {a:1 (int32),b:2 (int32)} (=0)
+  {a:3,b:4} (0)
 
 output: |
-  #0:record[a:int32,b:int32]
-  0:[2;1;]
-  0:[4;3;]
+  {a:2 (int32),b:1 (int32)} (=0)
+  {a:4,b:3} (0)

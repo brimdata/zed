@@ -1,21 +1,15 @@
 zed: sort -nulls first s
 
 input: |
-  #0:record[s:string]
-  #1:record[notS:string]
-  0:[b;]
-  0:[c;]
-  0:[a;]
-  0:[-;]
-  1:[bleah;]
-
-output-flags: -f tzng
+  {s:"b"}
+  {s:"c"}
+  {s:"a"}
+  {s:null (string)}
+  {notS:"bleah"}
 
 output: |
-  #0:record[s:string]
-  0:[-;]
-  #1:record[notS:string]
-  1:[bleah;]
-  0:[a;]
-  0:[b;]
-  0:[c;]
+  {s:null (string)}
+  {notS:"bleah"}
+  {s:"a"}
+  {s:"b"}
+  {s:"c"}

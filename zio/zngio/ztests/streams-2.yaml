@@ -3,11 +3,9 @@
 zed: '*'
 
 input: |
-  #0:record[s:string]
-  0:[a;]
-  #1:record[i:int32]
-  1:[1;]
-  1:[2;]
+  {s:"a"}
+  {i:1 (int32)} (=0)
+  {i:2} (0)
 
 output-flags: -f zng -b 2 -znglz4blocksize=0
 

@@ -5,17 +5,10 @@ zed: |
    // cast to type with different field order, does not change output order
    id2=cast(id, {resp_h:ip,resp_p:port=(uint16),orig_h:ip,orig_p:port})
 
-
 input: |
-   #port=uint16
-   #0:record[id:record[orig_h:ip,orig_p:port,resp_p:port,resp_h:string],other:float64]
-   0:[[ff02::fb;5353;5353;1.2.3.4;]123;]
-   0:[[ff02::fb;5353;5353;notanip;]123;]
-
-output-flags: -f tzng
+  {id:{orig_h:ff02::fb,orig_p:5353 (port=(uint16)),resp_p:5353 (port),resp_h:"1.2.3.4"} (=0),other:123.} (=1)
+  {id:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:"notanip"},other:123.} (1)
 
 output: |
-   #port=uint16
-   #0:record[id:record[orig_h:ip,orig_p:port,resp_p:port,resp_h:ip],other:float64,id2:record[orig_h:ip,orig_p:port,resp_p:port,resp_h:ip]]
-   0:[[ff02::fb;5353;5353;1.2.3.4;]123;[ff02::fb;5353;5353;1.2.3.4;]]
-   0:[[ff02::fb;5353;5353;-;]123;[ff02::fb;5353;5353;-;]]
+  {id:{orig_h:ff02::fb,orig_p:5353 (port=(uint16)),resp_p:5353 (port),resp_h:1.2.3.4} (=0),other:123.,id2:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:1.2.3.4} (0)} (=1)
+  {id:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:null},other:123.,id2:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:null}} (1)

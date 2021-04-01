@@ -1,5 +1,4 @@
-script: zq -f tzng -j types.json "*" in.zng
-
+script: zq -z -j types.json "*" in.zng
 
 inputs:
   - name: in.zng
@@ -14,7 +13,6 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[s:string]
-      0:[a;]
-      0:[b;]
-      0:[a;]
+      {s:"a"}
+      {s:"b"}
+      {s:"a"}

@@ -1,5 +1,5 @@
 script: |
-  zq -f tzng -i zst /dev/null
+  zq -i zst /dev/null
 
 outputs:
   - name: stderr

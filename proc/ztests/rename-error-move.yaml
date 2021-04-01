@@ -1,8 +1,6 @@
 zed: rename dst=id.resp_h
 
 input: |
-  #port=uint16
-  #0:record[id:record[orig_h:ip,orig_p:port,resp_h:ip,resp_p:port]]
-  0:[[10.164.94.120;39681;10.47.3.155;3389;]]
+  {id:{orig_h:10.164.94.120,orig_p:39681 (port=(uint16)),resp_h:10.47.3.155,resp_p:3389 (port)} (=0)} (=1)
 
 errorRE: "cannot rename id.resp_h to dst"

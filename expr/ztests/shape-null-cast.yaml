@@ -2,11 +2,7 @@ zed: |
    put . = shape({a:string,b:string})
 
 input: |
-  #0:record[a:null,b:int64]
-  0:[-;-;]
-
-output-flags: -f tzng
+  {a:null (null),b:null (int64)} (=0)
 
 output: |
-  #0:record[a:string,b:string]
-  0:[-;-;]
+  {a:null (string),b:null (string)}

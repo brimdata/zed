@@ -2,13 +2,7 @@ zed: |
    cut id_filled=fill(id, {orig_h:ip,orig_p:port=(uint16)}),  id_fitted=fit(id, {orig_h:ip,orig_p:port=(uint16)})
 
 input: |
-   #port=uint16
-   #0:record[id:record[orig_h:string,resp_h:string]]
-   0:[[ff02::fb;ff02::fb;]]
-
-output-flags: -f tzng
+  {id:{orig_h:"ff02::fb",resp_h:"ff02::fb"}}
 
 output: |
-   #port=uint16
-   #0:record[id_filled:record[orig_h:string,resp_h:string,orig_p:port],id_fitted:record[orig_h:string,orig_p:port]]
-   0:[[ff02::fb;ff02::fb;-;][ff02::fb;-;]]
+  {id_filled:{orig_h:"ff02::fb",resp_h:"ff02::fb",orig_p:null (port=(uint16))} (=0),id_fitted:{orig_h:"ff02::fb",orig_p:null (port)} (=1)} (=2)

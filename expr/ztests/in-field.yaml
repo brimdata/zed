@@ -1,14 +1,10 @@
 zed: 2 in a
 
 input: |
-  #0:record[a:array[uint32]]
-  0:[[1;2;]]
-  0:[[1;]]
-  0:[[2;3;]]
-
-output-flags: -f tzng
+  {a:[1 (uint32),2 (uint32)] (=0)} (=1)
+  {a:[1]} (1)
+  {a:[2,3]} (1)
 
 output: |
-  #0:record[a:array[uint32]]
-  0:[[1;2;]]
-  0:[[2;3;]]
+  {a:[1 (uint32),2 (uint32)] (=0)} (=1)
+  {a:[2,3]} (1)

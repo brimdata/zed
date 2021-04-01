@@ -1,11 +1,7 @@
 zed: drop id
 
 input: |
-  #0:record[id:record[ip:ip],id2:record[ip:ip]]
-  0:[-;[1.1.1.1;]]
-
-output-flags: -f tzng
+  {id:null (0=({ip:ip})),id2:{ip:1.1.1.1}}
 
 output: |
-  #0:record[id2:record[ip:ip]]
-  0:[[1.1.1.1;]]
+  {id2:{ip:1.1.1.1}}

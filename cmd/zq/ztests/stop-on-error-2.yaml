@@ -1,23 +1,20 @@
-# one input has first bad line (detection fails)
+# Second input has bad first line (detection fails).
 script: |
-  zq -f tzng -e=false  "*" good.tzng bad.tzng > res.tzng
+  zq -z -e=false "*" good.zson bad.zson
 
 inputs:
-  - name: good.tzng
+  - name: good.zson
     data: |
-        #0:record[_path:string,ts:time]
-        0:[conn;1;]
-  - name: bad.tzng
+      {_path:"conn",ts:1970-01-01T00:00:01Z}
+  - name: bad.zson
     data: |
-        #0:record[_path:string,ts:time]
-        1:[conn;1;]
-        0:[conn;1;]
+      {_path:"conn",ts:1970-01-01T00:00:01Z} (1)
+      {_path:"conn",ts:1970-01-01T00:00:01Z}
 
 outputs:
-  - name: res.tzng
+  - name: stdout
     data: |
-        #0:record[_path:string,ts:time]
-        0:[conn;1;]
+      {_path:"conn",ts:1970-01-01T00:00:01Z}
   - name: stderr
     regexp: |
-      bad.tzng: format detection error.*
+      bad.zson: format detection error.*

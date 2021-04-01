@@ -2,10 +2,7 @@ zed: '*'
 
 input: !!binary +QIHEPYBAWEXGAwXBAISYXNkZmFzZGYYBAcCBAIYAQD/
 
-output-flags: -f tzng
-
 output: |
-  #0:record[a:union[int64,string]]
-  0:[1:asdfasdf;]
-  0:[0:1;]
-  0:[-;]
+  {a:"asdfasdf" (0=((int64,string)))} (=1)
+  {a:1} (1)
+  {a:null} (1)

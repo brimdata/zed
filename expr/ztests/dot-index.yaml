@@ -1,13 +1,9 @@
 zed: put s1=.["yodawg"],s2=.[yodawg],k=.["..."]+1
 
 input: |
-  #0:record[foo:string,[bar]:string,[...]:int32,yodawg:string]
-  0:[yodawg;a;1;foo;]
-  0:[yodawg;b;2;bar;]
-
-output-flags: -f tzng
+  {foo:"yodawg",bar:"a","...":1 (int32),yodawg:"foo"} (=0)
+  {foo:"yodawg",bar:"b","...":2,yodawg:"bar"} (0)
 
 output: |
-  #0:record[foo:string,bar:string,[...]:int32,yodawg:string,s1:string,s2:string,k:int64]
-  0:[yodawg;a;1;foo;foo;yodawg;2;]
-  0:[yodawg;b;2;bar;bar;b;3;]
+  {foo:"yodawg",bar:"a","...":1 (int32),yodawg:"foo",s1:"foo",s2:"yodawg",k:2} (=0)
+  {foo:"yodawg",bar:"b","...":2,yodawg:"bar",s1:"bar",s2:"b",k:3} (0)

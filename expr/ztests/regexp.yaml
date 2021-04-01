@@ -1,16 +1,12 @@
 zed: foo*
 
 input: |
-  #0:record[a:string,b:string]
-  0:[hello;there;]
-  0:[foox;there;]
-  0:[hello;foox;]
-  0:[;foo;]
-
-output-flags: -f tzng
+  {a:"hello",b:"there"}
+  {a:"foox",b:"there"}
+  {a:"hello",b:"foox"}
+  {a:"",b:"foo"}
 
 output: |
-  #0:record[a:string,b:string]
-  0:[foox;there;]
-  0:[hello;foox;]
-  0:[;foo;]
+  {a:"foox",b:"there"}
+  {a:"hello",b:"foox"}
+  {a:"",b:"foo"}

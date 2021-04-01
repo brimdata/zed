@@ -1,39 +1,38 @@
-script: zq -f tzng -j types.json "*" in.ndjson > http.tzng
+script: zq -z -j types.json "*" in.ndjson
 
 inputs:
   - name: in.ndjson
     data: |
-        {"ts":"2017-03-24T19:59:23.306076Z","uids":["b", "a"],"_path":"sets"}
+      {"ts":"2017-03-24T19:59:23.306076Z","uids":["b", "a"],"_path":"sets"}
   - name: types.json
     data: |
-        {
-          "descriptors": {
-            "sets_log": [
-              {
-                "name": "_path",
-                "type": "string"
-              },
-              {
-                "name": "ts",
-                "type": "time"
-              },
-              {
-                "name": "uids",
-                "type": "set[bstring]"
-              }
-              ]
-             },
-          "rules": [
+      {
+        "descriptors": {
+          "sets_log": [
             {
               "name": "_path",
-              "value": "sets",
-              "descriptor": "sets_log"
+              "type": "string"
+            },
+            {
+              "name": "ts",
+              "type": "time"
+            },
+            {
+              "name": "uids",
+              "type": "set[bstring]"
             }
-          ]
-        }
+            ]
+           },
+        "rules": [
+          {
+            "name": "_path",
+            "value": "sets",
+            "descriptor": "sets_log"
+          }
+        ]
+      }
 
 outputs:
-  - name: http.tzng
+  - name: stdout
     data: |
-            #0:record[_path:string,ts:time,uids:set[bstring]]
-            0:[sets;1490385563.306076;[a;b;]]
+      {_path:"sets",ts:2017-03-24T19:59:23.306076Z,uids:|["a" (bstring),"b" (bstring)]| (=0)} (=1)

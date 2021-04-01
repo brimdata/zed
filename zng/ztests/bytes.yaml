@@ -1,11 +1,7 @@
 zed: put c=string(b) | put d=to_base64(c),f=bytes(to_base64(c)) | put e=string(from_base64(d))
 
 input: |
-  #0:record[b:bytes]
-  0:[aGksIHdvcmxk;]
-
-output-flags: -f tzng
+  {b:0x68692c20776f726c64}
 
 output: |
-  #0:record[b:bytes,c:string,d:string,f:bytes,e:string]
-  0:[aGksIHdvcmxk;hi, world;aGksIHdvcmxk;YUdrc0lIZHZjbXhr;hi, world;]
+  {b:0x68692c20776f726c64,c:"hi, world",d:"aGksIHdvcmxk",f:0x61476b7349486476636d786b,e:"hi, world"}

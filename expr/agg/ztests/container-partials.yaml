@@ -2,32 +2,28 @@
 # with a single-row limit.  We also make sure the partials consumer can handle
 # an empty input by inncluding a record for key "a" with no value column.
 script: |
-  zq -f tzng "union(x) by key with -limit 1" in.tzng > union.tzng
-  zq -f tzng "collect(x) by key with -limit 1" in.tzng > collect.tzng
+  zq -z "union(x) by key with -limit 1" in.zson > union.zson
+  zq -z "collect(x) by key with -limit 1" in.zson > collect.zson
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[key:string,x:int32]
-      0:[a;1;]
-      0:[a;-1;]
-      0:[b;2;]
-      0:[b;1;]
-      0:[a;8;]
-      0:[b;1;]
-      #1:record[key:string]
-      1:[a;]
-      1:[a;]
-      1:[a;]
+      {key:"a",x:1 (int32)} (=0)
+      {key:"a",x:-1} (0)
+      {key:"b",x:2} (0)
+      {key:"b",x:1} (0)
+      {key:"a",x:8} (0)
+      {key:"b",x:1} (0)
+      {key:"a"}
+      {key:"a"}
+      {key:"a"}
 
 outputs:
-  - name: union.tzng
+  - name: union.zson
     data: |
-      #0:record[key:string,union:set[int32]]
-      0:[a;[1;-1;8;]]
-      0:[b;[1;2;]]
-  - name: collect.tzng
+      {key:"a",union:|[1 (int32),-1 (int32),8 (int32)]| (=0)} (=1)
+      {key:"b",union:|[1,2]|} (1)
+  - name: collect.zson
     data: |
-      #0:record[key:string,collect:array[int32]]
-      0:[a;[1;-1;8;]]
-      0:[b;[2;1;1;]]
+      {key:"a",collect:[1 (int32),-1 (int32),8 (int32)] (=0)} (=1)
+      {key:"b",collect:[2,1,1]} (1)

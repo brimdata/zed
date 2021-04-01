@@ -1,17 +1,15 @@
 script: |
-  zst create -o out.zst in.tzng
-  zq -i zst -f tzng out.zst
+  zst create -o out.zst -
+  zq -z -i zst out.zst
 
 inputs:
-  - name: in.tzng
+  - name: stdin
     data: |
-      #0:record[a:string,b:union[string,float64]]
-      0:[hello;0:foo;]
-      0:[world;1:1;]
+      {a:"hello",b:"foo" (0=((string,float64)))} (=1)
+      {a:"world",b:1.} (1)
 
 outputs:
   - name: stdout
     data: |
-      #0:record[a:string,b:union[string,float64]]
-      0:[hello;0:foo;]
-      0:[world;1:1;]
+      {a:"hello",b:"foo" (0=((string,float64)))} (=1)
+      {a:"world",b:1.} (1)

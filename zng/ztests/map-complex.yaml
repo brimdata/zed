@@ -1,11 +1,7 @@
 zed: 'put x=m["b"].a'
 
 input: |
-  #0:record[m:map[string,record[a:int32,b:int32]]]
-  0:[[a;[1;2;]b;[2;3;]c;[3;4;]]]
-
-output-flags: -f tzng
+  {m:|{{"a",{a:1 (int32),b:2 (int32)} (=0)},{"b",{a:2,b:3} (0)},{"c",{a:3,b:4} (0)}}| (=1)} (=2)
 
 output: |
-  #0:record[m:map[string,record[a:int32,b:int32]],x:int32]
-  0:[[a;[1;2;]b;[2;3;]c;[3;4;]]2;]
+  {m:|{{"a",{a:1 (int32),b:2 (int32)} (=0)},{"b",{a:2,b:3} (0)},{"c",{a:3,b:4} (0)}}| (=1),x:2 (int32)} (=2)

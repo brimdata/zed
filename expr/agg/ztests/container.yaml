@@ -1,24 +1,21 @@
 script: |
-  zq -f tzng "union(x)" in.tzng > union.tzng
-  zq -f tzng "collect(x)" in.tzng > collect.tzng
+  zq -z "union(x)" in.zson > union.zson
+  zq -z "collect(x)" in.zson > collect.zson
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[x:int32]
-      0:[1;]
-      0:[-1;]
-      0:[2;]
-      0:[1;]
-      0:[8;]
-      0:[1;]
+      {x:1 (int32)} (=0)
+      {x:-1} (0)
+      {x:2} (0)
+      {x:1} (0)
+      {x:8} (0)
+      {x:1} (0)
 
 outputs:
-  - name: union.tzng
+  - name: union.zson
     data: |
-      #0:record[union:set[int32]]
-      0:[[1;-1;2;8;]]
-  - name: collect.tzng
+      {union:|[1 (int32),-1 (int32),2 (int32),8 (int32)]| (=0)} (=1)
+  - name: collect.zson
     data: |
-      #0:record[collect:array[int32]]
-      0:[[1;-1;2;1;8;1;]]
+      {collect:[1 (int32),-1 (int32),2 (int32),1 (int32),8 (int32),1 (int32)] (=0)} (=1)

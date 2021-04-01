@@ -1,19 +1,11 @@
 zed: avg(x), count(x), countdistinct(x), any(x), max(x), min(x), sum(x)
 
 input: |
-  #0:record[x:uint64]
-  0:[-;]
-  #1:record[x:float64]
-  1:[-;]
-  #2:record[x:int64]
-  2:[-;]
-  #3:record[x:duration]
-  3:[-;]
-  #4:record[x:time]
-  4:[-;]
-
-output-flags: -f tzng
+  {x:null (uint64)} (=0)
+  {x:null (float64)}
+  {x:null (int64)}
+  {x:null (duration)}
+  {x:null (time)}
 
 output: |
-  #0:record[avg:float64,count:uint64,countdistinct:uint64,any:uint64,max:uint64,min:uint64,sum:uint64]
-  0:[-;5;1;-;-;-;-;]
+  {avg:null (float64),count:5 (uint64),countdistinct:1 (uint64),any:null (uint64),max:null (uint64),min:null (uint64),sum:null (uint64)} (=0)

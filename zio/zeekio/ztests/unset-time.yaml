@@ -12,8 +12,5 @@ input: |
   -	e3ad37edfdf
   #close	2020-01-14-20-00-00
 
-output-flags: -f tzng
-
 output: |
-  #0:record[_path:string,ts:time,uid:bstring]
-  0:[p;-;e3ad37edfdf;]
+  {_path:"p",ts:null (time),uid:"e3ad37edfdf" (bstring)} (=0)

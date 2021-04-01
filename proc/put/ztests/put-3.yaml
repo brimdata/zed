@@ -2,13 +2,9 @@
 zed: put r2 = r
 
 input: |
-  #0:record[r:record[s:string]]
-  0:[[hello;]]
-  0:[[world;]]
-
-output-flags: -f tzng
+  {r:{s:"hello"}}
+  {r:{s:"world"}}
 
 output: |
-  #0:record[r:record[s:string],r2:record[s:string]]
-  0:[[hello;][hello;]]
-  0:[[world;][world;]]
+  {r:{s:"hello"},r2:{s:"hello"}}
+  {r:{s:"world"},r2:{s:"world"}}

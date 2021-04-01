@@ -1,29 +1,20 @@
 script: |
-  zq -f tzng "put x=p1+1" in.tzng
+  zq -z "put x=p1+1" in.zson
   echo ===
-  zq -f tzng "put x=p1>p2" in.tzng
+  zq -z "put x=p1>p2" in.zson
   echo ===
-  zq -f tzng "put x=a+p1+p2" in.tzng
-
+  zq -z "put x=a+p1+p2" in.zson
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #port=uint16
-      #0:record[a:int32,p1:port,p2:port]
-      0:[1;100;200;]
+      {a:1 (int32),p1:100 (port=(uint16)),p2:200 (port)} (=0)
 
 outputs:
   - name: stdout
     data: |
-      #port=uint16
-      #0:record[a:int32,p1:port,p2:port,x:int64]
-      0:[1;100;200;101;]
+      {a:1 (int32),p1:100 (port=(uint16)),p2:200 (port),x:101} (=0)
       ===
-      #port=uint16
-      #0:record[a:int32,p1:port,p2:port,x:bool]
-      0:[1;100;200;F;]
+      {a:1 (int32),p1:100 (port=(uint16)),p2:200 (port),x:false} (=0)
       ===
-      #port=uint16
-      #0:record[a:int32,p1:port,p2:port,x:int32]
-      0:[1;100;200;301;]
+      {a:1 (int32),p1:100 (port=(uint16)),p2:200 (port),x:301 (int32)} (=0)

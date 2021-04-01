@@ -3,14 +3,9 @@
 zed: 'put y = x > 0 ? "string" : x'
 
 input: |
-  #0:record[x:int32]
-  0:[0;]
-  0:[1;]
-
-output-flags: -f tzng
+  {x:0 (int32)} (=0)
+  {x:1} (0)
 
 output: |
-  #0:record[x:int32,y:int32]
-  0:[0;0;]
-  #1:record[x:int32,y:string]
-  1:[1;string;]
+  {x:0 (int32),y:0 (int32)} (=0)
+  {x:1 (int32),y:"string"} (=1)

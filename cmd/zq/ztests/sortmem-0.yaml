@@ -1,4 +1,4 @@
-script: zq -sortmem 0 -f tzng -
+script: zq -sortmem 0 -
 
 outputs:
   - name: stderr

@@ -2,11 +2,7 @@
 zed: put y = x / 0
 
 input: |
-  #0:record[x:int32]
-  0:[1;]
-
-output-flags: -f tzng
+  {x:1 (int32)} (=0)
 
 output: |
-  #0:record[x:int32,y:error]
-  0:[1;signed integer divide by 0;]
+  {x:1 (int32),y:"signed integer divide by 0" (error)} (=0)

@@ -5,8 +5,5 @@ zed: 'count()'
 input: !!binary |
   9gEBYQcXAgQC//YBAWEHFwIEAv8=
 
-output-flags: -f tzng
-
 output: |
-  #0:record[count:uint64]
-  0:[2;]
+  {count:2 (uint64)} (=0)

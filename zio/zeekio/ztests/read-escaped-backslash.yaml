@@ -10,8 +10,5 @@ input: |
   #types	string
   co\\m
 
-output-flags: -f tzng
-
 output: |
-  #0:record[_path:string,my_str:bstring]
-  0:[Backslash;co\\m;]
+  {_path:"Backslash",my_str:"co\\m" (bstring)} (=0)

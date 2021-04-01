@@ -1,12 +1,7 @@
 zed: cut v=a.f
 
 input: |
-  #foo=record[f:int8]
-  #0:record[a:foo]
-  0:[[1;]]
-
-output-flags: -f tzng
+  {a:{f:1 (int8)} (=foo)} (=0)
 
 output: |
-  #0:record[v:int8]
-  0:[1;]
+  {v:1 (int8)} (=0)

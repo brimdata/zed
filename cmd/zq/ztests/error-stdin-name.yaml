@@ -1,13 +1,13 @@
 script: |
-  zq  -i tzng - < bad.tzng
+  zq -
 
 inputs:
-  - name: bad.tzng
+  - name: stdin
     data: |
-        #0:record[_path:string]
-        0:[conn;1;]
+      {a:1} (=0)
+      {b:2} (1)
 
 outputs:
   - name: stderr
-    regexp: |
-      stdin: .* record with extra field
+    data: |
+      stdio:///stdin: no such type name: "1"

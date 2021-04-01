@@ -1,17 +1,16 @@
 zed: count()
 
 input: |
-  #0:record[_path:string,foo:string]
-  0:[conn;1;]
-  0:[conn;2;]
-  0:[conn;3;]
-  0:[conn;4;]
-  0:[conn;5;]
-  0:[conn;6;]
-  0:[conn;7;]
-  0:[conn;8;]
-  0:[conn;9;]
-  0:[conn;10;]
+  {_path:"conn",foo:"1"}
+  {_path:"conn",foo:"2"}
+  {_path:"conn",foo:"3"}
+  {_path:"conn",foo:"4"}
+  {_path:"conn",foo:"5"}
+  {_path:"conn",foo:"6"}
+  {_path:"conn",foo:"7"}
+  {_path:"conn",foo:"8"}
+  {_path:"conn",foo:"9"}
+  {_path:"conn",foo:"10"}
 
 output-flags: -f table
 
