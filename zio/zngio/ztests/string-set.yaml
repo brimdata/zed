@@ -2,14 +2,11 @@ zed: '*'
 
 input: !!binary +BH2AQFmFxgBABgBARgCAwAYBQkIZHVwGAUJBGEEehgFCQRhBHoYChMABGEEeghkdXD/
 
-output-flags: -f tzng
-
 output: |
-  #0:record[f:set[bstring]]
-  0:[-;]
-  0:[[]]
-  0:[[-;]]
-  0:[[dup;]]
-  0:[[a;z;]]
-  0:[[a;z;]]
-  0:[[-;a;z;dup;]]
+  {f:null (0=(|[bstring]|))} (=1)
+  {f:|[]|} (1)
+  {f:|[null]|} (1)
+  {f:|["dup"]|} (1)
+  {f:|["a","z"]|} (1)
+  {f:|["a","z"]|} (1)
+  {f:|[null,"a","z","dup"]|} (1)

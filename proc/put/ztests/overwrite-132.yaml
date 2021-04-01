@@ -5,11 +5,7 @@
 zed: put c=1,a=3,b=2
 
 input: |
-  #0:record[a:int32,b:int32,c:int32]
-  0:[1;2;3;]
-
-output-flags: -f tzng
+  {a:1 (int32),b:2 (int32),c:3 (int32)} (=0)
 
 output: |
-  #0:record[a:int64,b:int64,c:int64]
-  0:[3;2;1;]
+  {a:3,b:2,c:1}

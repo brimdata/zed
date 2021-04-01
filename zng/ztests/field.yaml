@@ -1,11 +1,7 @@
 zed: "*"
 
 input: |
-  #0:record[[foo]:bytes,[.bar@]:int32,x:string]
-  0:[aGksIHdvcmxk;123;hello;]
-
-output-flags: -f tzng
+  {foo:0x68692c20776f726c64,".bar@":123 (int32),x:"hello"} (=0)
 
 output: |
-  #0:record[foo:bytes,[.bar@]:int32,x:string]
-  0:[aGksIHdvcmxk;123;hello;]
+  {foo:0x68692c20776f726c64,".bar@":123 (int32),x:"hello"} (=0)

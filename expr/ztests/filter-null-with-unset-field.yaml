@@ -1,14 +1,10 @@
 zed: s=null
 
 input: |
-  #0:record[s:string]
-  0:[A=B;]
-  0:[A=*;]
-  0:[-;]
-  0:[;]
-
-output-flags: -f tzng
+  {s:"A=B"}
+  {s:"A=*"}
+  {s:null (string)}
+  {s:""}
 
 output: |
-  #0:record[s:string]
-  0:[-;]
+  {s:null (string)}

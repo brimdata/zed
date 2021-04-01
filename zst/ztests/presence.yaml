@@ -1,105 +1,97 @@
 script: |
-  zst create -o o1.zst p1.tzng
-  zq -i zst -f tzng -o o1.tzng o1.zst
-  zst create -o o2.zst p2.tzng
-  zq -i zst -f tzng -o o2.tzng o2.zst
-  zst create -o o3.zst p3.tzng
-  zq -i zst -f tzng -o o3.tzng o3.zst
-  zst create -o o4.zst p4.tzng
-  zq -i zst -f tzng -o o4.tzng o4.zst
+  zst create -o o1.zst p1.zson
+  zq -z -o o1.zson -i zst o1.zst
+  zst create -o o2.zst p2.zson
+  zq -z -o o2.zson -i zst o2.zst
+  zst create -o o3.zst p3.zson
+  zq -z -o o3.zson -i zst o3.zst
+  zst create -o o4.zst p4.zson
+  zq -z -o o4.zson -i zst o4.zst
 
 inputs:
-  - name: p1.tzng
+  - name: p1.zson
     data: |
-        #0:record[s:string]
-        0:[-;]
-  - name: p2.tzng
+      {s:null (string)}
+  - name: p2.zson
     data: |
-        #0:record[s:string]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[x;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-  - name: p3.tzng
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:"x"}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+  - name: p3.zson
     data: |
-        #0:record[s:string]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[x;]
-  - name: p4.tzng
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:"x"}
+  - name: p4.zson
     data: |
-        #0:record[s:string]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[-;]
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:null (string)}
 
 outputs:
-  - name: o1.tzng
+  - name: o1.zson
     data: |
-        #0:record[s:string]
-        0:[-;]
-  - name: o2.tzng
+      {s:null (string)}
+  - name: o2.zson
     data: |
-        #0:record[s:string]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[x;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-  - name: o3.tzng
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:"x"}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+  - name: o3.zson
     data: |
-        #0:record[s:string]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[-;]
-        0:[x;]
-  - name: o4.tzng
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:null (string)}
+      {s:"x"}
+  - name: o4.zson
     data: |
-        #0:record[s:string]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[x;]
-        0:[-;]
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:"x"}
+      {s:null (string)}

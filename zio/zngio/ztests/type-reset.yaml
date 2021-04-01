@@ -1,9 +1,8 @@
 zed: '*'
 
 input: |
-  #0:record[_path:string,ts:time,d:float64]
-  0:[a;10;1;]
-  0:[xyz;20;1.5;]
+  {_path:"a",ts:1970-01-01T00:00:10Z,d:1.}
+  {_path:"xyz",ts:1970-01-01T00:00:20Z,d:1.5}
 
 output-flags: -f zng -b 2
 

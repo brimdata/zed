@@ -1,37 +1,31 @@
 script: |
-  zq -f tzng "avg(n)" in.tzng > avg.tzng
-  zq -f tzng "count()" in.tzng > count.tzng
-  zq -f tzng "any(n)" in.tzng > any.tzng
-  zq -f tzng "min(n)" in.tzng > min.tzng
-  zq -f tzng "max(n)" in.tzng > max.tzng
+  zq -z "avg(n)" in.zson > avg.zson
+  zq -z "count()" in.zson > count.zson
+  zq -z "any(n)" in.zson > any.zson
+  zq -z "min(n)" in.zson > min.zson
+  zq -z "max(n)" in.zson > max.zson
 
 inputs:
-  - name: in.tzng
+  - name: in.zson
     data: |
-      #0:record[n:int32]
-      0:[0;]
-      0:[5;]
-      0:[10;]
+      {n:0 (int32)} (=0)
+      {n:5} (0)
+      {n:10} (0)
 
 outputs:
-  - name: avg.tzng
+  - name: avg.zson
     data: |
-      #0:record[avg:float64]
-      0:[5;]
-  - name: count.tzng
+      {avg:5.}
+  - name: count.zson
     data: |
-      #0:record[count:uint64]
-      0:[3;]
-  - name: any.tzng
-    data: |
-      #0:record[any:int32]
-      0:[0;]
+      {count:3 (uint64)} (=0)
   # Note: min/max shouldn't be int64 (especially for uint)  Issue #1506.
-  - name: min.tzng
+  - name: any.zson
     data: |
-      #0:record[min:int64]
-      0:[0;]
-  - name: max.tzng
+      {any:0 (int32)} (=0)
+  - name: min.zson
     data: |
-      #0:record[max:int64]
-      0:[10;]
+      {min:0}
+  - name: max.zson
+    data: |
+      {max:10}

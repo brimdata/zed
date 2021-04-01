@@ -1,35 +1,34 @@
-script: zq -f tzng -j types.json "*" in.ndjson > out.tzng
+script: zq -z -j types.json in.ndjson
 
 inputs:
   - name: in.ndjson
     data: |
-        {"name": "foo","_path":"nots"}
+      {"name": "foo","_path":"nots"}
   - name: types.json
     data: |
-        {
-          "descriptors": {
-            "nots_log": [
-              {
-                "name": "_path",
-                "type": "string"
-              },
-              {
-                "name": "name",
-                "type": "bstring"
-              }
-              ]
-             },
-          "rules": [
+      {
+        "descriptors": {
+          "nots_log": [
             {
               "name": "_path",
-              "value": "nots",
-              "descriptor": "nots_log"
+              "type": "string"
+            },
+            {
+              "name": "name",
+              "type": "bstring"
             }
-          ]
-        }
+            ]
+           },
+        "rules": [
+          {
+            "name": "_path",
+            "value": "nots",
+            "descriptor": "nots_log"
+          }
+        ]
+      }
 
 outputs:
-  - name: out.tzng
+  - name: stdout
     data: |
-        #0:record[_path:string,name:bstring]
-        0:[nots;foo;]
+      {_path:"nots",name:"foo" (bstring)} (=0)

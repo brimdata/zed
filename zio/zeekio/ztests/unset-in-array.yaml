@@ -14,10 +14,7 @@ input: |
   -
   #close	2020-01-14-20-00-00
 
-output-flags: -f tzng
-
 output: |
-  #0:record[_path:string,vector_int:array[int64]]
-  0:[ArrayUnsets;[123;-;456;]]
-  0:[ArrayUnsets;[]]
-  0:[ArrayUnsets;-;]
+  {_path:"ArrayUnsets",vector_int:[123,null (int64),456]}
+  {_path:"ArrayUnsets",vector_int:[] (0=([int64]))}
+  {_path:"ArrayUnsets",vector_int:null (0)}

@@ -1,18 +1,11 @@
 zed: put . = fill({a:{b:{c:string}}})
 
 input: |
-  #0:record[s:string]
-  0:[x;]
-  #1:record[a:record[s:string]]
-  1:[-;]
-  1:[[-;]]
-
-
-output-flags: -f tzng
+  {s:"x"}
+  {a:null (0=({s:string}))}
+  {a:{s:null (string)}}
 
 output: |
-  #0:record[s:string,a:record[b:record[c:string]]]
-  0:[x;-;]
-  #1:record[a:record[s:string,b:record[c:string]]]
-  1:[-;]
-  1:[[-;-;]]
+  {s:"x",a:null (0=({b:1=({c:string})}))}
+  {a:null (2=({s:string,b:1}))}
+  {a:{s:null (string),b:null (1)}}

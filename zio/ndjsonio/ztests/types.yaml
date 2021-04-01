@@ -3,8 +3,7 @@
 zed: '*'
 
 input: |
-  #0:record[a:ip,a2:ip,b:bool,c:uint64,f:float64,i:int32,interval:duration,p:uint16,s:string,t:time]
-  0:[10.1.1.1;fe80::eef4:bbff:fe51:89ec;t;517;3.14159;18;60.0;443;Hello, world!;1578407783.487;]
+  {a:10.1.1.1,a2:fe80::eef4:bbff:fe51:89ec,b:true,c:517 (uint64),f:3.14159,i:18 (int32),interval:1m,p:443 (uint16),s:"Hello, world!",t:2020-01-07T14:36:23.487Z} (=0)
 
 output-flags: -f ndjson
 

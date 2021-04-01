@@ -1,15 +1,11 @@
 zed: cut split(s,".")
 
 input: |
-  #0:record[s:string]
-  0:[foo.bar.com;]
-  0:[foo;]
-  0:[acme.io;]
-
-output-flags: -f tzng
+  {s:"foo.bar.com"}
+  {s:"foo"}
+  {s:"acme.io"}
 
 output: |
-  #0:record[split:array[string]]
-  0:[[foo;bar;com;]]
-  0:[[foo;]]
-  0:[[acme;io;]]
+  {split:["foo","bar","com"]}
+  {split:["foo"]}
+  {split:["acme","io"]}

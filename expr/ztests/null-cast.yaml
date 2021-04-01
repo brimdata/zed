@@ -1,11 +1,7 @@
 zed: cut s=string(null),a=ip(null)
 
 input: |
-  #0:record[x:string]
-  0:[foo;]
-
-output-flags: -f tzng
+  {x:"foo"}
 
 output: |
-  #0:record[s:string,a:ip]
-  0:[-;-;]
+  {s:null (string),a:null (ip)}

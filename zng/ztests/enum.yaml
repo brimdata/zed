@@ -1,15 +1,11 @@
 zed: "put s=string(e), v=e+1"
 
 input: |
-  #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]]]
-  0:[0;]
-  0:[1;]
-  0:[2;]
-
-output-flags: -f tzng
+  {e:foo (0=(<foo:1 (int32),bar:2,baz:4>))} (=1)
+  {e:bar} (1)
+  {e:baz} (1)
 
 output: |
-  #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]],s:string,v:int64]
-  0:[0;foo;2;]
-  0:[1;bar;3;]
-  0:[2;baz;5;]
+  {e:foo (0=(<foo:1 (int32),bar:2,baz:4>)),s:"foo",v:2} (=1)
+  {e:bar,s:"bar",v:3} (1)
+  {e:baz,s:"baz",v:5} (1)

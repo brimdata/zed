@@ -1,5 +1,5 @@
 script: |
-  zq -i ndjson -j types.json "*" *.ndjson > http.tzng
+  zq -i ndjson -j types.json "*" *.ndjson
 
 inputs:
   - name: http.ndjson

@@ -1,8 +1,7 @@
 zed: rename foo=goo
 
 input: |
-  #0:record[foo:string,goo:string]
-  0:[foo1;goo1;]
+  {foo:"foo1",goo:"goo1"}
 
 warnings: |
   rename: duplicate field foo

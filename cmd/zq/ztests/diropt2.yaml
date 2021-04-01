@@ -1,29 +1,25 @@
-script: zq -f tzng -d out -o foo- "*" in.tzng
+script: zq -z -d out -o foo- "*" -
 
 inputs:
-  - name: in.tzng
+  - name: stdin
     data: |
-      #0:record[_path:string,a:string]
-      #1:record[_path:string,a:int64]
-      0:[conn;foo;]
-      1:[dns;1;]
-      1:[dns;2;]
-      1:[dns;3;]
-      0:[conn;hello;]
-      0:[conn;world;]
-      1:[dns;4;]
+      {_path:"conn",a:"foo"}
+      {_path:"dns",a:1}
+      {_path:"dns",a:2}
+      {_path:"dns",a:3}
+      {_path:"conn",a:"hello"}
+      {_path:"conn",a:"world"}
+      {_path:"dns",a:4}
 
 outputs:
-  - name: out/foo-conn.tzng
+  - name: out/foo-conn.zson
     data: |
-      #0:record[_path:string,a:string]
-      0:[conn;foo;]
-      0:[conn;hello;]
-      0:[conn;world;]
-  - name: out/foo-dns.tzng
+      {_path:"conn",a:"foo"}
+      {_path:"conn",a:"hello"}
+      {_path:"conn",a:"world"}
+  - name: out/foo-dns.zson
     data: |
-      #0:record[_path:string,a:int64]
-      0:[dns;1;]
-      0:[dns;2;]
-      0:[dns;3;]
-      0:[dns;4;]
+      {_path:"dns",a:1}
+      {_path:"dns",a:2}
+      {_path:"dns",a:3}
+      {_path:"dns",a:4}

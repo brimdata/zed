@@ -2,7 +2,7 @@
 # Apache NiFi and a custom Avro schema.
 
 script: |
-  zq -f tzng -i parquet conn.parquet
+  zq -z -i parquet conn.parquet
 
 inputs:
   - name: conn.parquet
@@ -10,14 +10,13 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      #0:record[_path:string,ts:float64,uid:string,id_orig_h:string,id_orig_p:int64,id_resp_h:string,id_resp_p:int64,proto:string,duration:float64,orig_bytes:int64,resp_bytes:int64,conn_state:string,missed_bytes:int64,history:string,orig_pkts:int64,orig_ip_bytes:int64,resp_pkts:int64,resp_ip_bytes:int64]
-      0:[conn;1521835183.460591;C1UTdt1Fx86IbcUyDl;10.147.172.39;20620;10.47.1.54;9815;tcp;0.3108789920806885;0;0;REJ;0;Sr;2;80;2;80;]
-      0:[conn;1521835182.341333;CEOJpRC23AYij2hWh;10.237.102.3;11344;10.47.1.51;180;tcp;0.32901906967163086;0;0;REJ;0;Sr;2;80;2;80;]
-      0:[conn;1521835183.521865;CSVS9y2f3guBsMJTc9;10.147.172.39;23380;10.47.1.208;6764;tcp;0.0002830028533935547;0;0;REJ;0;Sr;2;80;2;80;]
-      0:[conn;1521835180.202843;CxUBl02PHFE4G8CFwj;10.237.102.3;13733;10.47.1.55;4957;tcp;0.0018019676208496094;0;0;REJ;0;Sr;2;80;2;80;]
-      0:[conn;1521835183.809758;CLunkV2xqhVX9LMn0d;10.147.172.39;20464;10.47.1.30;6766;tcp;0.00034499168395996094;0;0;REJ;0;Sr;2;80;2;80;]
-      0:[conn;1521835182.596165;C5s4IN2WPL7u8leUxi;10.237.102.3;14389;10.47.1.54;3607;tcp;0.312701940536499;0;0;REJ;0;Sr;2;80;2;80;]
-      0:[conn;1521835181.975703;CINcYi3FsUWz1FNHVg;10.237.102.3;17476;10.47.1.208;2629;tcp;0.00018596649169921875;0;0;REJ;0;Sr;2;80;2;80;]
-      0:[conn;1521835182.221383;CERIDN1klQYEa6EGid;10.147.172.39;26422;10.47.1.50;6947;tcp;0.29776597023010254;0;0;REJ;0;Sr;2;80;2;80;]
-      0:[conn;1521835183.092898;CcHHMD4wopPMgw7x77;10.147.172.39;20663;10.47.1.200;5804;tcp;0.0005340576171875;0;0;REJ;0;Sr;2;80;2;80;]
-      0:[conn;1521835183.311316;CJK50b14RtQUHMRGw;10.147.172.39;22283;10.47.1.53;5321;tcp;0.26862287521362305;0;0;REJ;0;Sr;2;80;2;80;]
+      {_path:"conn",ts:1.521835183460591e+09,uid:"C1UTdt1Fx86IbcUyDl",id_orig_h:"10.147.172.39",id_orig_p:20620,id_resp_h:"10.47.1.54",id_resp_p:9815,proto:"tcp",duration:0.3108789920806885,orig_bytes:0,resp_bytes:0,conn_state:"REJ",missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:80,resp_pkts:2,resp_ip_bytes:80}
+      {_path:"conn",ts:1.521835182341333e+09,uid:"CEOJpRC23AYij2hWh",id_orig_h:"10.237.102.3",id_orig_p:11344,id_resp_h:"10.47.1.51",id_resp_p:180,proto:"tcp",duration:0.32901906967163086,orig_bytes:0,resp_bytes:0,conn_state:"REJ",missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:80,resp_pkts:2,resp_ip_bytes:80}
+      {_path:"conn",ts:1.521835183521865e+09,uid:"CSVS9y2f3guBsMJTc9",id_orig_h:"10.147.172.39",id_orig_p:23380,id_resp_h:"10.47.1.208",id_resp_p:6764,proto:"tcp",duration:0.0002830028533935547,orig_bytes:0,resp_bytes:0,conn_state:"REJ",missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:80,resp_pkts:2,resp_ip_bytes:80}
+      {_path:"conn",ts:1.521835180202843e+09,uid:"CxUBl02PHFE4G8CFwj",id_orig_h:"10.237.102.3",id_orig_p:13733,id_resp_h:"10.47.1.55",id_resp_p:4957,proto:"tcp",duration:0.0018019676208496094,orig_bytes:0,resp_bytes:0,conn_state:"REJ",missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:80,resp_pkts:2,resp_ip_bytes:80}
+      {_path:"conn",ts:1.521835183809758e+09,uid:"CLunkV2xqhVX9LMn0d",id_orig_h:"10.147.172.39",id_orig_p:20464,id_resp_h:"10.47.1.30",id_resp_p:6766,proto:"tcp",duration:0.00034499168395996094,orig_bytes:0,resp_bytes:0,conn_state:"REJ",missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:80,resp_pkts:2,resp_ip_bytes:80}
+      {_path:"conn",ts:1.521835182596165e+09,uid:"C5s4IN2WPL7u8leUxi",id_orig_h:"10.237.102.3",id_orig_p:14389,id_resp_h:"10.47.1.54",id_resp_p:3607,proto:"tcp",duration:0.312701940536499,orig_bytes:0,resp_bytes:0,conn_state:"REJ",missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:80,resp_pkts:2,resp_ip_bytes:80}
+      {_path:"conn",ts:1.521835181975703e+09,uid:"CINcYi3FsUWz1FNHVg",id_orig_h:"10.237.102.3",id_orig_p:17476,id_resp_h:"10.47.1.208",id_resp_p:2629,proto:"tcp",duration:0.00018596649169921875,orig_bytes:0,resp_bytes:0,conn_state:"REJ",missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:80,resp_pkts:2,resp_ip_bytes:80}
+      {_path:"conn",ts:1.521835182221383e+09,uid:"CERIDN1klQYEa6EGid",id_orig_h:"10.147.172.39",id_orig_p:26422,id_resp_h:"10.47.1.50",id_resp_p:6947,proto:"tcp",duration:0.29776597023010254,orig_bytes:0,resp_bytes:0,conn_state:"REJ",missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:80,resp_pkts:2,resp_ip_bytes:80}
+      {_path:"conn",ts:1.521835183092898e+09,uid:"CcHHMD4wopPMgw7x77",id_orig_h:"10.147.172.39",id_orig_p:20663,id_resp_h:"10.47.1.200",id_resp_p:5804,proto:"tcp",duration:0.0005340576171875,orig_bytes:0,resp_bytes:0,conn_state:"REJ",missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:80,resp_pkts:2,resp_ip_bytes:80}
+      {_path:"conn",ts:1.521835183311316e+09,uid:"CJK50b14RtQUHMRGw",id_orig_h:"10.147.172.39",id_orig_p:22283,id_resp_h:"10.47.1.53",id_resp_p:5321,proto:"tcp",duration:0.26862287521362305,orig_bytes:0,resp_bytes:0,conn_state:"REJ",missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:80,resp_pkts:2,resp_ip_bytes:80}

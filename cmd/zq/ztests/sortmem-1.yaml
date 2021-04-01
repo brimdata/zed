@@ -1,13 +1,10 @@
-script: zq -sortmem 1MiB -f tzng -
+script: zq -sortmem 1MiB -z -
 
 inputs:
   - name: stdin
-    data: |
-      #0:record[a:string]
-      0:[hello;]
+    data: &stdin |
+      {a:"hello"}
 
 outputs:
   - name: stdout
-    data: |
-      #0:record[a:string]
-      0:[hello;]
+    data: *stdin

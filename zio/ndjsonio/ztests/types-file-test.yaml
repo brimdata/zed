@@ -1,4 +1,4 @@
-script: zq -f tzng -j types.json "*" in.ndjson > http.tzng
+script: zq -z -j types.json "*" in.ndjson
 
 inputs:
   - name: in.ndjson
@@ -6,43 +6,42 @@ inputs:
       {"ts":"2017-03-24T19:59:23.306076Z","uid":"CXY9a54W2dLZwzPXf1","id.orig_h":"10.10.7.65","_path":"http"}
   - name: types.json
     data: |
-        {
-          "descriptors": {
-            "http_log": [
-              {
-                "name": "_path",
-                "type": "string"
-              },
-              {
-                "name": "ts",
-                "type": "time"
-              },
-              {
-                "name": "uid",
-                "type": "bstring"
-              },
-              {
-                "name": "id",
-                "type": [
-                  {
-                    "name": "orig_h",
-                    "type": "ip"
-                  }
-                 ]
-               }
-              ]
-             },
-          "rules": [
+      {
+        "descriptors": {
+          "http_log": [
             {
               "name": "_path",
-              "value": "http",
-              "descriptor": "http_log"
-            }
-          ]
-        }
+              "type": "string"
+            },
+            {
+              "name": "ts",
+              "type": "time"
+            },
+            {
+              "name": "uid",
+              "type": "bstring"
+            },
+            {
+              "name": "id",
+              "type": [
+                {
+                  "name": "orig_h",
+                  "type": "ip"
+                }
+               ]
+             }
+            ]
+           },
+        "rules": [
+          {
+            "name": "_path",
+            "value": "http",
+            "descriptor": "http_log"
+          }
+        ]
+      }
 
 outputs:
-  - name: http.tzng
+  - name: stdout
     data: |
-        #0:record[_path:string,ts:time,uid:bstring,id:record[orig_h:ip]]
-        0:[http;1490385563.306076;CXY9a54W2dLZwzPXf1;[10.10.7.65;]]
+      {_path:"http",ts:2017-03-24T19:59:23.306076Z,uid:"CXY9a54W2dLZwzPXf1" (bstring),id:{orig_h:10.10.7.65}} (=0)

@@ -1,23 +1,20 @@
 script: |
   source minio.sh
-  mv *.tzng data/bucket
-  zq -f tzng "sort ts" s3://bucket/log1.tzng s3://bucket/log2.tzng
+  mv *.zson data/bucket
+  zq -z "sort ts" s3://bucket/log1.zson s3://bucket/log2.zson
 
 inputs:
   - name: minio.sh
     source: ../../../testdata/minio.sh
-  - name: log1.tzng
+  - name: log1.zson
     data: |
-      #0:record[ts:time,uid:bstring]
-      0:[1521911721.255387;C8Tful1TvM3Zf5x8fl;]
-  - name: log2.tzng
+      {ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl" (bstring)} (=0)
+  - name: log2.zson
     data: |
-      #0:record[ts:time,uid:bstring]
-      0:[1521911721.411148;CXWfTK3LRdiuQxBbM6;]
+      {ts:2018-03-24T17:15:21.411148Z,uid:"CXWfTK3LRdiuQxBbM6" (bstring)} (=0)
 
 outputs:
   - name: stdout
     data: |
-      #0:record[ts:time,uid:bstring]
-      0:[1521911721.255387;C8Tful1TvM3Zf5x8fl;]
-      0:[1521911721.411148;CXWfTK3LRdiuQxBbM6;]
+      {ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl" (bstring)} (=0)
+      {ts:2018-03-24T17:15:21.411148Z,uid:"CXWfTK3LRdiuQxBbM6"} (0)

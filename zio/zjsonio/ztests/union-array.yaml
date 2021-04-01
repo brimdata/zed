@@ -4,9 +4,6 @@ input: |
   {"id":25,"schema":{"of":[{"name":"a","of":{"of":["int32","string"],"type":"union"},"type":"array"}],"type":"record"},"values":[[["1","asdfasdf"],null,["0","100"]]]}
   {"id":25,"values":[null]}
 
-output-flags: -f tzng
-
 output: |
-  #0:record[a:array[union[int32,string]]]
-  0:[[1:asdfasdf;-;0:100;]]
-  0:[-;]
+  {a:["asdfasdf" (0=((int32,string))),null (0),100 (int32) (0)] (=1)} (=2)
+  {a:null} (2)

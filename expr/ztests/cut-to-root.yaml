@@ -1,13 +1,14 @@
 zed: 'cut .=a'
 
 input: |
-  #0:record[a:record[b:int32]]
-  0:[-;]
-  0:[[-;]]
-  0:[[1;]]
+  {a:null (0=({b:int32}))} (=1)
+  {a:{b:null}} (1)
+  {a:{b:1}} (1)
 
 output-flags: -f tzng
 
+# Convert to ZSON when https://github.com/brimdata/zed/issues/2476 is
+# fixed.
 output: |
   #0:record[b:int32]
   0:[]

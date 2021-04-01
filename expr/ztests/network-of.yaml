@@ -1,11 +1,7 @@
 zed: put n1=network_of(a,mask),n2=network_of(a,24)
 
 input: |
-  #0:record[a:ip,mask:net]
-  0:[10.1.2.129;255.255.255.128/25;]
-
-output-flags: -f tzng
+  {a:10.1.2.129,mask:255.255.255.128/25}
 
 output: |
-  #0:record[a:ip,mask:net,n1:net,n2:net]
-  0:[10.1.2.129;255.255.255.128/25;10.1.2.128/25;10.1.2.0/24;]
+  {a:10.1.2.129,mask:255.255.255.128/25,n1:10.1.2.128/25,n2:10.1.2.0/24}

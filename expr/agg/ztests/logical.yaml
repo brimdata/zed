@@ -1,13 +1,9 @@
 zed: 't1=or(x>2),t2=or(x>4),t3=and(x>0),t4=and(x>2),t5=and(x>2) where x>2'
 
 input: |
-  #0:record[x:int32]
-  0:[1;]
-  0:[2;]
-  0:[3;]
-
-output-flags: -f tzng
+  {x:1 (int32)} (=0)
+  {x:2} (0)
+  {x:3} (0)
 
 output: |
-  #0:record[t1:bool,t2:bool,t3:bool,t4:bool,t5:bool]
-  0:[T;F;T;F;T;]
+  {t1:true,t2:false,t3:true,t4:false,t5:true}

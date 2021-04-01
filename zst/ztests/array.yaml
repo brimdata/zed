@@ -1,19 +1,17 @@
 script: |
-  zst create -o out.zst in.tzng
-  zq -i zst -f tzng out.zst
+  zst create -o out.zst -
+  zq -z -i zst out.zst
 
 inputs:
-  - name: in.tzng
+  - name: stdin
     data: |
-      #0:record[a:string,b:array[record[a:string,b:string]]]
-      0:[hello;[[a;b;][c;d;][e;f;]]]
-      0:[world;-;]
-      0:[goodnight;[[a;b;][c;-;][e;f;]]]
+      {a:"hello",b:[{a:"a",b:"b"},{a:"c",b:"d"},{a:"e",b:"f"}]}
+      {a:"world",b:null (0=([1=({a:string,b:string})]))}
+      {a:"goodnight",b:[{a:"a",b:"b"},{a:"c",b:null (string)},{a:"e",b:"f"}]}
 
 outputs:
   - name: stdout
     data: |
-      #0:record[a:string,b:array[record[a:string,b:string]]]
-      0:[hello;[[a;b;][c;d;][e;f;]]]
-      0:[world;-;]
-      0:[goodnight;[[a;b;][c;-;][e;f;]]]
+      {a:"hello",b:[{a:"a",b:"b"},{a:"c",b:"d"},{a:"e",b:"f"}]}
+      {a:"world",b:null (0=([1=({a:string,b:string})]))}
+      {a:"goodnight",b:[{a:"a",b:"b"},{a:"c",b:null (string)},{a:"e",b:"f"}]}

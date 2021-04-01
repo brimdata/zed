@@ -1,15 +1,9 @@
 zed: cut a, b
 
 input: |
-  #0:record[]
-  0:[]
-  #1:record[a:record[]]
-  1:[[]]
-  #2:record[a:record[],b:record[]]
-  2:[[][]]
-
-output-flags: -f tzng
+  {}
+  {a:{}}
+  {a:{},b:{}}
 
 output: |
-  #0:record[a:record[],b:record[]]
-  0:[[][]]
+  {a:{},b:{}}

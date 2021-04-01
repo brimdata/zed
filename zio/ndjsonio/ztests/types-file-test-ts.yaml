@@ -1,35 +1,34 @@
-script: zq -f tzng -j types.json "every 24h count()" in.ndjson > http.tzng
+script: zq -z -j types.json "every 24h count()" in.ndjson
 
 inputs:
   - name: in.ndjson
     data: |
-        {"ts":"2015-03-05T14:25:14.419939Z","_path":"ts"}
+      {"ts":"2015-03-05T14:25:14.419939Z","_path":"ts"}
   - name: types.json
     data: |
-        {
-          "descriptors": {
-            "ts_log": [
-              {
-                "name": "_path",
-                "type": "string"
-              },
-              {
-                "name": "ts",
-                "type": "time"
-              }
-              ]
-             },
-          "rules": [
+      {
+        "descriptors": {
+          "ts_log": [
             {
               "name": "_path",
-              "value": "ts",
-              "descriptor": "ts_log"
+              "type": "string"
+            },
+            {
+              "name": "ts",
+              "type": "time"
             }
-          ]
-        }
+            ]
+           },
+        "rules": [
+          {
+            "name": "_path",
+            "value": "ts",
+            "descriptor": "ts_log"
+          }
+        ]
+      }
 
 outputs:
-  - name: http.tzng
+  - name: stdout
     data: |
-        #0:record[ts:time,count:uint64]
-        0:[1425513600;1;]
+      {ts:2015-03-05T00:00:00Z,count:1 (uint64)} (=0)

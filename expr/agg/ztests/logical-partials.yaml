@@ -1,17 +1,13 @@
 zed: 't1=or(x>2),t2=or(x>4),t3=and(x>0),t4=and(x>2),t5=and(x>2) where x>2 by key with -limit 1 | sort .'
-input: |
-  #0:record[key:string,x:int32]
-  0:[a;1;]
-  0:[a;-1;]
-  0:[b;2;]
-  0:[b;1;]
-  #1:record[key:string]
-  1:[a;]
-  0:[b;1;]
 
-output-flags: -f tzng
+input: |
+  {key:"a",x:1 (int32)} (=0)
+  {key:"a",x:-1} (0)
+  {key:"b",x:2} (0)
+  {key:"b",x:1} (0)
+  {key:"a"}
+  {key:"b",x:1} (0)
 
 output: |
-  #0:record[key:string,t1:bool,t2:bool,t3:bool,t4:bool,t5:bool]
-  0:[a;F;F;F;F;-;]
-  0:[b;F;F;T;F;-;]
+  {key:"a",t1:false,t2:false,t3:false,t4:false,t5:null (bool)}
+  {key:"b",t1:false,t2:false,t3:true,t4:false,t5:null (bool)}

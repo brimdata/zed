@@ -1,21 +1,17 @@
 # Test that type contexts are properly reset and reusable after stream boundaries
 
 script: |
-  zq -b 1 in.tzng > s.zng
-  zq -f tzng s.zng
+  zq -b 1 - > s.zng
+  zq -z s.zng
 
 inputs:
-  - name: in.tzng
+  - name: stdin
     data: |
-      #0:record[a:string]
-      0:[hello;]
-      #1:record[b:int64]
-      1:[10;]
+      {a:"hello"}
+      {b:10}
 
 outputs:
   - name: stdout
     data: |
-      #0:record[a:string]
-      0:[hello;]
-      #1:record[b:int64]
-      1:[10;]
+      {a:"hello"}
+      {b:10}

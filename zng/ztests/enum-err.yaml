@@ -1,13 +1,12 @@
 script: |
-  zq -i tzng in.tzng
+  zq -z -
 
 inputs:
-  - name: in.tzng
+  - name: stdin
     data: |
-      #0:record[e:enum[int32,foo:[1],bar:[2],baz:[4]]]
-      0:[100;]
+      {e:bang (0=(<foo:1 (int32),bar:2,baz:4>))} (=1)
 
 outputs:
   - name: stderr
     regexp: |
-      enum selector out of range
+      zson: identifier "bang" not a member of enum type "<foo:1,bar:2,baz:4>"

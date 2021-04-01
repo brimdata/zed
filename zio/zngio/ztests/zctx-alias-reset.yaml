@@ -1,24 +1,18 @@
 # Test that type aliases are properly reset and reusable after stream boundaries
 
 script: |
-  zq -b 2 in.tzng | zq -f tzng -
+  zq -b 2 - | zq -z -
 
 inputs:
-  - name: in.tzng
+  - name: stdin
     data: |
-      #0:record[ts:time]
-      0:[1425565512.963801;]
-      #zenum=string
-      #1:record[ts:time,proto:zenum]
-      1:[1425565514.419939;udp;]
-      1:[1425565514.419939;udp;]
+      {ts:2015-03-05T14:25:12.963801Z}
+      {ts:2015-03-05T14:25:14.419939Z,proto:"udp" (=zenum)} (=0)
+      {ts:2015-03-05T14:25:14.419939Z,proto:"udp"} (0)
 
 outputs:
   - name: stdout
     data: |
-      #0:record[ts:time]
-      0:[1425565512.963801;]
-      #zenum=string
-      #1:record[ts:time,proto:zenum]
-      1:[1425565514.419939;udp;]
-      1:[1425565514.419939;udp;]
+      {ts:2015-03-05T14:25:12.963801Z}
+      {ts:2015-03-05T14:25:14.419939Z,proto:"udp" (=zenum)} (=0)
+      {ts:2015-03-05T14:25:14.419939Z,proto:"udp"} (0)

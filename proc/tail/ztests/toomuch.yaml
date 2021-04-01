@@ -1,11 +1,7 @@
 zed: tail 2
 
 input: |
-  #0:record[x:string]
-  0:[first;]
-
-output-flags: -f tzng
+  {x:"first"}
 
 output: |
-  #0:record[x:string]
-  0:[first;]
+  {x:"first"}

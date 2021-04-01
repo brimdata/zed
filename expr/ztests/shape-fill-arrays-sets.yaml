@@ -2,11 +2,7 @@ zed: |
   put . = fill({arr:[{b:string,a:string}],set:|[{b:string,a:string}]|})
 
 input: |
-  #0:record[arr:array[record[a:string]],set:set[record[a:string]]]
-  0:[[[one;][three;]][[one;][three;]]]
-
-output-flags: -f tzng
+  {arr:[{a:"one"},{a:"three"}],set:|[{a:"one"},{a:"three"}]|}
 
 output: |
-  #0:record[arr:array[record[a:string,b:string]],set:set[record[a:string,b:string]]]
-  0:[[[one;-;][three;-;]][[one;-;][three;-;]]]
+  {arr:[{a:"one",b:null (string)},{a:"three",b:null (string)}],set:|[{a:"one",b:null (string)},{a:"three",b:null (string)}]|}

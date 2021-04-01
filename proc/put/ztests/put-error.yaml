@@ -3,16 +3,12 @@
 zed: put y = sqrt(x)
 
 input: |
-  #0:record[x:int32]
-  0:[-1;]
-  0:[-2;]
-
-output-flags: -f tzng
+  {x:-1 (int32)} (=0)
+  {x:-2} (0)
 
 output: |
-  #0:record[x:int32]
-  0:[-1;]
-  0:[-2;]
+  {x:-1 (int32)} (=0)
+  {x:-2} (0)
 
 warnings: |
   sqrt: bad argument

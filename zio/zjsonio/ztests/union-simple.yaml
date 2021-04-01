@@ -5,10 +5,7 @@ input: |
   {"id":24,"values":[["0","1"]]}
   {"id":24,"values":[null]}
 
-output-flags: -f tzng
-
 output: |
-  #0:record[a:union[int32,string]]
-  0:[1:asdfasdf;]
-  0:[0:1;]
-  0:[-;]
+  {a:"asdfasdf" (0=((int32,string)))} (=1)
+  {a:1 (int32)} (1)
+  {a:null} (1)

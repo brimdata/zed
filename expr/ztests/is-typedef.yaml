@@ -19,10 +19,6 @@ input: |
       dst: { addr: 10.1.2.88, port: 19801 }
   } (conn)
 
-output-flags: -f tzng
-
 output: |
-  #socket=record[addr:ip,port:uint16]
-  #0:record[info:string,src:socket,dst:socket,pi:float64]
-  0:[Connection Example;[10.1.1.2;80;][10.0.1.2;20130;]3.14;]
-  0:[Connection Example 2;[10.1.1.8;80;][10.1.2.88;19801;]3.14;]
+  {info:"Connection Example",src:{addr:10.1.1.2,port:80 (uint16)} (=socket),dst:{addr:10.0.1.2,port:20130} (socket),pi:3.14} (=0)
+  {info:"Connection Example 2",src:{addr:10.1.1.8,port:80},dst:{addr:10.1.2.88,port:19801},pi:3.14} (0)

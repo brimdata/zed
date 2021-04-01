@@ -4,13 +4,8 @@ skip: true
 zed: fuse(.)
 
 input: |
-  #0:record[a:string,b:string]
-  0:[hello;world;]
-  #1:record[a:string,b:int32]
-  1:[goodnight;123;]
-
-output-flags: -f tzng
+  {a:"hello",b:"world"}
+  {a:"goodnight",b:123 (int32)} (=0)
 
 output: |
-  #0:record[fuse:type]
-  0:[{a:string,b:(string,int32)};]
+  {fuse:({a:string,b:(string,int32)})}
