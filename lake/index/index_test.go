@@ -122,7 +122,7 @@ func TestZQLRule(t *testing.T) {
 
 func babbleReader(t *testing.T) zbuf.Reader {
 	t.Helper()
-	r, err := os.Open("../../ztests/suite/data/babble-sorted.zson")
+	r, err := os.Open("../../testdata/babble-sorted.zson")
 	require.NoError(t, err)
 	return zson.NewReader(r, zson.NewContext())
 }

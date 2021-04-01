@@ -5,9 +5,9 @@ script: |
 
 inputs:
   - name: babble.zson
-    source: ../data/babble.zson
+    source: ../../../testdata/babble.zson
   - name: minio.sh
-    source: minio.sh
+    source: ../../../testdata/minio.sh
 
 outputs:
   - name: stdout

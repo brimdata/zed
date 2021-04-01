@@ -38,8 +38,8 @@ import (
 )
 
 const (
-	babble       = "../../ztests/suite/data/babble.zson"
-	babbleSorted = "../../ztests/suite/data/babble-sorted.zson"
+	babble       = "../../testdata/babble.zson"
+	babbleSorted = "../../testdata/babble-sorted.zson"
 )
 
 func TestASTPost(t *testing.T) {

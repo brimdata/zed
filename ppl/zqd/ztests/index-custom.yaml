@@ -9,7 +9,7 @@ inputs:
   - name: services.sh
     source: services.sh
   - name: babble.zson
-    source: ../../../ztests/suite/data/babble.zson
+    source: ../../../testdata/babble.zson
 
 outputs:
   - name: stdout

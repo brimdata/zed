@@ -4,7 +4,7 @@ script: |
 
 inputs:
   - name: ng.pcap
-    source: ../../../../ztests/suite/pcap/ng.pcap
+    source: ../../../../pcap/ztests/ng.pcap
   - name: services.sh
     source: ../services.sh
 

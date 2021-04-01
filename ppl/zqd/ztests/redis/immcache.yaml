@@ -13,7 +13,7 @@ script: |
 
 inputs:
   - name: babble.zson
-    source: ../../../../ztests/suite/data/babble-sorted.zson
+    source: ../../../../testdata/babble-sorted.zson
   - name: services.sh
     source: services.sh
 
