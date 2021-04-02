@@ -1,5 +1,5 @@
 script: |
-  zq -P -z 'split ( => filter * => filter *) | left join a=b hit=sc | sort a' A.zson C.zson
+  zq -z 'left join a=b hit=sc | sort a' A.zson C.zson
 
 inputs:
   - name: A.zson

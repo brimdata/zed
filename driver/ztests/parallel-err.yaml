@@ -1,10 +1,12 @@
 script: |
-  zq -P -z 'split ( => put k=a+10 => put k=b+20) | sort k' A.zson
+  zq -z 'join a=b' A.zson
 
 inputs:
   - name: A.zson
     data: |
       {a:1 (int32)} (=0)
+      {a:2} (0)
+      {a:3} (0)
 
 outputs:
   - name: stderr

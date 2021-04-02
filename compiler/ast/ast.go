@@ -531,14 +531,10 @@ func NewAggAssignment(kind string, lval field.Static, arg field.Static) Assignme
 }
 
 func FanIn(p Proc) int {
-	first := p
-	if seq, ok := first.(*Sequential); ok {
-		first = seq.Procs[0]
-	}
-	if p, ok := first.(*Parallel); ok {
-		return len(p.Procs)
-	}
-	if _, ok := first.(*Join); ok {
+	switch p := p.(type) {
+	case *Sequential:
+		return FanIn(p.Procs[0])
+	case *Join:
 		return 2
 	}
 	return 1

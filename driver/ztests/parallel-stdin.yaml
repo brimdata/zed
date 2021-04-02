@@ -1,32 +1,21 @@
 script: |
-  zq -P -z 'split ( => put k=a+10 => put k=b+20) | sort k' - B.zson
+  zq -z 'join a=b b=b' - B.zson
 
 inputs:
   - name: stdin
     data: |
       {a:1 (int32)} (=0)
+      {a:2} (0)
       {a:3} (0)
-      {a:5} (0)
-      {a:3} (0)
-      {a:1} (0)
   - name: B.zson
     data: |
-      {b:2 (int32)} (=0)
-      {b:4} (0)
-      {b:6} (0)
-      {b:4} (0)
+      {b:1 (int32)} (=0)
       {b:2} (0)
+      {b:3} (0)
 
 outputs:
   - name: stdout
     data: |
-      {a:1 (int32),k:11} (=0)
-      {a:1,k:11} (0)
-      {a:3,k:13} (0)
-      {a:3,k:13} (0)
-      {a:5,k:15} (0)
-      {b:2 (int32),k:22} (=1)
-      {b:2,k:22} (1)
-      {b:4,k:24} (1)
-      {b:4,k:24} (1)
-      {b:6,k:26} (1)
+      {a:1 (int32),b:1 (int32)} (=0)
+      {a:2,b:2} (0)
+      {a:3,b:3} (0)
