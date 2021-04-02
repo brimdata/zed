@@ -20,7 +20,7 @@ indexing and searching zed data lakes.
   * [Test data](#test-data)
   * [Ingesting the data](#ingesting-the-data)
   * [Initializing the archive](#initializing-the-archive)
-  * [Counting is our "hello world"](#counting-is-our-hello-world)
+  * [Counting as "hello world"](#counting-as-hello-world)
   * [Search for an IP](#search-for-an-ip)
   * [Indexes](#indexes)
   * [Creating more indexes](#creating-more-indexes)
@@ -92,7 +92,7 @@ all of them and aggregate the result.
 The `zq` subcommand of `zed lake` lets you do this.  Here's how you run `zq`
 on the data of every log in the archive:
 ```
-zed lake zq "count()" > counts.zng
+zed lake query "count()" > counts.zng
 ```
 This invocation of `zed lake` traverses the lake, applies the zed "count()" operator
 on the data from all the chunks, and writes the output as a stream of zng data.
@@ -100,7 +100,7 @@ By default, the output is sent to stdout, which means you can simply pipe the
 resulting stream to a vanilla `zq` command that specifies `-` to expect the
 stream on stdin, then show the output as a table:
 ```
-zed lake zq "count()" | zq -f table -
+zed lake query "count()" | zq -f table -
 ```
 which, for example, results in:
 ```
@@ -108,14 +108,14 @@ COUNT
 1462078
 ```
 
-The `zq` common options are also available when invoking `zed lake zq`, so instead of a
+The `zq` common options are also available when invoking `zed lake query`, so instead of a
 pipeline we can get the same result in one shot via:
 
 ```
-zed lake zq -f table "count()"
+zed lake query -f table "count()"
 ```
 
-`zed lake zq` treats the lake as if it were one large set of data, regardless
+`zed lake query` treats the lake as if it were one large set of data, regardless
 of how many chunk files are in it. It's also possible to perform queries for
 each chunk; that's done with a command called `zed lake map`.
 This invocation of `zed lake`
@@ -125,11 +125,10 @@ to either stdout, or to a new file in the chunk's directory.
 Here's an example using the same "count()" query as before:
 
 ```
-zed lake -f table map "count()"
+zed lake map -f text "count()"
 ```
 which results in:
 ```
-COUNT
 275745
 276326
 290789
@@ -154,7 +153,7 @@ or...
 Now let's say you want to search for a particular IP across the zed lake.
 This is easy. You just say:
 ```
-zed lake zq -Z "id.orig_h=10.10.23.2"
+zed lake query -Z "id.orig_h=10.10.23.2"
 ```
 which gives this result in the [ZSON](../formats/zson.md) format.  ZSON
 describes the complete detail from the ZNG stream as human-readable text.
@@ -524,7 +523,7 @@ This command sequence will collect up the edges into `edges.njdson`:
 zed lake find -z -x graph.zng 216.58.193.195 | zq "count() by from_addr,to_addr" - > edges.zng
 zed lake find -z -x graph.zng 10.47.6.162 | zq "count() by from_addr,to_addr" - >> edges.zng
 zed lake find -z -x graph.zng 10.47.5.153 | zq "count() by from_addr,to_addr" - >> edges.zng
-zed lake -f ndjson "value=sum(count) by from_addr,to_addr | cut source=from_addr,target=to_addr,value" edges.zng >> edges.ndjson
+zq -f ndjson "value=sum(count) by from_addr,to_addr | cut source=from_addr,target=to_addr,value" edges.zng >> edges.ndjson
 ```
 > (Note: with a few additions to zed, we can make this much simpler and
 > more efficient.  Coming soon.  Also, we should be able to say `group by node`,
