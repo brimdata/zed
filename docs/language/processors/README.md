@@ -59,10 +59,10 @@ zq -f table 'cut _path,ts,share_type' *
 
 #### Output:
 ```zq-output head:4
-_PATH  TS
-stats  2018-03-24T17:15:20.600725Z
-weird  2018-03-24T17:15:20.600843Z
-weird  2018-03-24T17:15:20.608108Z
+_PATH        TS
+capture_loss 2018-03-24T17:30:20.600852Z
+capture_loss 2018-03-24T17:36:30.158766Z
+conn         2018-03-24T17:15:21.255387Z
 ...
 ```
 

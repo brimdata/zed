@@ -71,6 +71,34 @@ func Copy(dst Writer, src Reader) error {
 	return CopyWithContext(context.Background(), dst, src)
 }
 
+// MultiReader returns a Reader that is the logical concatenation of readers,
+// which are read sequentially.  Its Read methed returns any non-nil error
+// returned by a reader and returns end of stream after all readers have
+// returned end of stream.
+func MultiReader(readers ...Reader) Reader {
+	if len(readers) == 1 {
+		return readers[0]
+	}
+	r := make([]Reader, len(readers))
+	copy(r, readers)
+	return &multiReader{r}
+}
+
+type multiReader struct {
+	readers []Reader
+}
+
+func (m *multiReader) Read() (*zng.Record, error) {
+	for len(m.readers) > 0 {
+		rec, err := m.readers[0].Read()
+		if rec != nil || err != nil {
+			return rec, err
+		}
+		m.readers = m.readers[1:]
+	}
+	return nil, nil
+}
+
 func MultiWriter(writers ...Writer) Writer {
 	w := make([]Writer, len(writers))
 	copy(w, writers)
