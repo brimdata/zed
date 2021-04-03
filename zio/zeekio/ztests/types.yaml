@@ -1,6 +1,6 @@
 # Test that Zeek types that get special handling for compatibility with
-# the ZNG type system are handled correctly (i.e., that the Zeek types
-# are preserved on a pass through zq).
+# the ZNG type system are handled correctly (i.e., that the Zeek types,
+# including those inside containers, are preserved on a pass through zq).
 
 zed: '*'
 
@@ -10,9 +10,9 @@ input: &input |
   #empty_field	(empty)
   #unset_field	-
   #path	conn
-  #fields	s	e	vi	vs	p	c	a	n	i	t	b
-  #types	string	enum	vector[int]	vector[string]	port	count	addr	subnet	interval	time	bool
-  foo	bar	1,2,3	a,b,c	80	1000	10.5.100.20	10.0.0.0/8	1000	1582404982.000000	T
+  #fields	s	e	se	vi	vs	p	c	a	n	i	t	b
+  #types	string	enum	set[enum]	vector[int]	vector[string]	port	count	addr	subnet	interval	time	bool
+  foo	bar	a,b,c	1,2,3	a,b,c	80	1000	10.5.100.20	10.0.0.0/8	1000	1582404982.000000	T
 
 output-flags: -f zeek
 
