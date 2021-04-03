@@ -96,7 +96,7 @@ func zip(t *testing.T, s string) zng.Value {
 func znet(t *testing.T, s string) zng.Value {
 	_, net, err := net.ParseCIDR(s)
 	require.NoError(t, err)
-	return zng.Value{zng.TypeIP, zng.EncodeNet(net)}
+	return zng.Value{zng.TypeNet, zng.EncodeNet(net)}
 }
 
 func TestPrimitives(t *testing.T) {

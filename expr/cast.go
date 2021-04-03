@@ -116,7 +116,7 @@ func castToNet(zv zng.Value) (zng.Value, error) {
 		return zng.Value{}, ErrBadCast
 	}
 	// XXX GC
-	return zng.Value{zng.TypeIP, zng.EncodeNet(net)}, nil
+	return zng.Value{zng.TypeNet, zng.EncodeNet(net)}, nil
 }
 
 func castToDuration(zv zng.Value) (zng.Value, error) {
