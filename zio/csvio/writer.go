@@ -17,18 +17,16 @@ import (
 var ErrNotDataFrame = errors.New("csv output requires uniform records but different types encountered")
 
 type Writer struct {
-	epochDates bool
-	writer     io.WriteCloser
-	encoder    *csv.Writer
-	flattener  *flattener.Flattener
-	format     tzngio.OutFmt
-	first      *zng.TypeRecord
+	writer    io.WriteCloser
+	encoder   *csv.Writer
+	flattener *flattener.Flattener
+	format    tzngio.OutFmt
+	first     *zng.TypeRecord
 }
 
 type WriterOpts struct {
-	EpochDates bool
-	Fuse       bool
-	UTF8       bool
+	Fuse bool
+	UTF8 bool
 }
 
 func NewWriter(w io.WriteCloser, zctx *resolver.Context, opts WriterOpts) zbuf.WriteCloser {
@@ -37,11 +35,10 @@ func NewWriter(w io.WriteCloser, zctx *resolver.Context, opts WriterOpts) zbuf.W
 		format = tzngio.OutFormatZeek
 	}
 	zw := &Writer{
-		writer:     w,
-		epochDates: opts.EpochDates,
-		encoder:    csv.NewWriter(w),
-		flattener:  flattener.New(resolver.NewContext()),
-		format:     format,
+		writer:    w,
+		encoder:   csv.NewWriter(w),
+		flattener: flattener.New(resolver.NewContext()),
+		format:    format,
 	}
 	if opts.Fuse {
 		return fuse.WriteCloser(zw, zctx)
@@ -88,11 +85,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 				if err != nil {
 					return err
 				}
-				if w.epochDates {
-					v = ts.StringFloat()
-				} else {
-					v = ts.Time().UTC().Format(time.RFC3339Nano)
-				}
+				v = ts.Time().UTC().Format(time.RFC3339Nano)
 			case zng.IdString, zng.IdBstring, zng.IdType, zng.IdError:
 				v = string(value.Bytes)
 			default:

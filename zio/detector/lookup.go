@@ -54,14 +54,13 @@ func LookupWriter(w io.WriteCloser, zctx *resolver.Context, opts zio.WriterOpts)
 	case "zst":
 		return zstio.NewWriter(w, opts.Zst)
 	case "text":
-		return textio.NewWriter(w, opts.UTF8, opts.Text, opts.EpochDates), nil
+		return textio.NewWriter(w, opts.UTF8, opts.Text), nil
 	case "table":
-		return tableio.NewWriter(w, opts.UTF8, opts.EpochDates), nil
+		return tableio.NewWriter(w, opts.UTF8), nil
 	case "csv":
 		return csvio.NewWriter(w, zctx, csvio.WriterOpts{
-			EpochDates: opts.EpochDates,
-			Fuse:       opts.CSVFuse,
-			UTF8:       opts.UTF8,
+			Fuse: opts.CSVFuse,
+			UTF8: opts.UTF8,
 		}), nil
 	case "parquet":
 		return parquetio.NewWriter(w), nil

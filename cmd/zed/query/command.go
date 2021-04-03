@@ -92,7 +92,6 @@ type Command struct {
 func New(f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
 
-	// Flags added for writers are -f, -T, -F, -E, -U, and -b
 	c.outputFlags.SetFlags(f)
 
 	// Flags added for readers are -i, etc

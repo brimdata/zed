@@ -64,7 +64,6 @@ func NewFind(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.pathField, "l", lake.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 
-	// Flags added for writers are -f, -T, -F, -E, -U, and -b
 	c.outputFlags.SetFlags(f)
 
 	return c, nil

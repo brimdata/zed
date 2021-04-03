@@ -19,14 +19,13 @@ type ReaderOpts struct {
 }
 
 type WriterOpts struct {
-	CSVFuse    bool
-	Format     string
-	UTF8       bool
-	EpochDates bool
-	Text       textio.WriterOpts
-	Zng        zngio.WriterOpts
-	ZSON       zsonio.WriterOpts
-	Zst        zstio.WriterOpts
+	CSVFuse bool
+	Format  string
+	UTF8    bool
+	Text    textio.WriterOpts
+	Zng     zngio.WriterOpts
+	ZSON    zsonio.WriterOpts
+	Zst     zstio.WriterOpts
 }
 
 func Extension(format string) string {
