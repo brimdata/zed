@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/flattener"
 	"github.com/brimdata/zed/zng/resolver"
@@ -15,10 +14,9 @@ import (
 
 type Writer struct {
 	WriterOpts
-	EpochDates bool
-	writer     io.WriteCloser
-	flattener  *flattener.Flattener
-	format     tzngio.OutFmt
+	writer    io.WriteCloser
+	flattener *flattener.Flattener
+	format    tzngio.OutFmt
 }
 
 type WriterOpts struct {
@@ -26,14 +24,13 @@ type WriterOpts struct {
 	ShowFields bool
 }
 
-func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts, dates bool) *Writer {
+func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts) *Writer {
 	format := tzngio.OutFormatZeekAscii
 	if utf8 {
 		format = tzngio.OutFormatZeek
 	}
 	return &Writer{
 		WriterOpts: opts,
-		EpochDates: dates,
 		writer:     w,
 		flattener:  flattener.New(resolver.NewContext()),
 		format:     format,
@@ -50,37 +47,29 @@ func (w *Writer) Write(rec *zng.Record) error {
 		return err
 	}
 	var out []string
-	if w.ShowFields || w.ShowTypes || !w.EpochDates {
-		for k, col := range zng.TypeRecordOf(rec.Type).Columns {
-			var s, v string
-			value := rec.ValueByColumn(k)
-			if !w.EpochDates && col.Type == zng.TypeTime {
-				if value.IsUnsetOrNil() {
-					v = "-"
-				} else {
-					ts, err := zng.DecodeTime(value.Bytes)
-					if err != nil {
-						return err
-					}
-					v = ts.Time().UTC().Format(time.RFC3339Nano)
-				}
+	for k, col := range zng.TypeRecordOf(rec.Type).Columns {
+		var s, v string
+		value := rec.ValueByColumn(k)
+		if col.Type == zng.TypeTime {
+			if value.IsUnsetOrNil() {
+				v = "-"
 			} else {
-				v = tzngio.FormatValue(value, w.format)
+				ts, err := zng.DecodeTime(value.Bytes)
+				if err != nil {
+					return err
+				}
+				v = ts.Time().UTC().Format(time.RFC3339Nano)
 			}
-			if w.ShowFields {
-				s = col.Name + ":"
-			}
-			if w.ShowTypes {
-				s = s + tzngio.TypeString(col.Type) + ":"
-			}
-			out = append(out, s+v)
+		} else {
+			v = tzngio.FormatValue(value, w.format)
 		}
-	} else {
-		var err error
-		out, err = zeekio.ZeekStrings(rec, w.format)
-		if err != nil {
-			return err
+		if w.ShowFields {
+			s = col.Name + ":"
 		}
+		if w.ShowTypes {
+			s = s + tzngio.TypeString(col.Type) + ":"
+		}
+		out = append(out, s+v)
 	}
 	s := strings.Join(out, "\t")
 	_, err = fmt.Fprintf(w.writer, "%s\n", s)

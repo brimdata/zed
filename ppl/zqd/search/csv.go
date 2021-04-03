@@ -20,9 +20,8 @@ func NewCSVOutput(response http.ResponseWriter, ctrl bool) *CSVOutput {
 	return &CSVOutput{
 		response: response,
 		wc: csvio.NewWriter(zio.NopCloser(response), resolver.NewContext(), csvio.WriterOpts{
-			EpochDates: false,
-			Fuse:       true,
-			UTF8:       true,
+			Fuse: true,
+			UTF8: true,
 		}),
 	}
 }

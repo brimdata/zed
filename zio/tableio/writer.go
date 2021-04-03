@@ -14,29 +14,27 @@ import (
 )
 
 type Writer struct {
-	writer     io.WriteCloser
-	flattener  *flattener.Flattener
-	table      *tabwriter.Writer
-	typ        *zng.TypeRecord
-	limit      int
-	nline      int
-	epochDates bool
-	format     tzngio.OutFmt
+	writer    io.WriteCloser
+	flattener *flattener.Flattener
+	table     *tabwriter.Writer
+	typ       *zng.TypeRecord
+	limit     int
+	nline     int
+	format    tzngio.OutFmt
 }
 
-func NewWriter(w io.WriteCloser, utf8, epochDates bool) *Writer {
+func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	table := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
 	format := tzngio.OutFormatZeekAscii
 	if utf8 {
 		format = tzngio.OutFormatZeek
 	}
 	return &Writer{
-		writer:     w,
-		flattener:  flattener.New(resolver.NewContext()),
-		table:      table,
-		limit:      1000,
-		epochDates: epochDates,
-		format:     format,
+		writer:    w,
+		flattener: flattener.New(resolver.NewContext()),
+		table:     table,
+		limit:     1000,
+		format:    format,
 	}
 }
 
@@ -74,7 +72,7 @@ func (w *Writer) Write(r *zng.Record) error {
 	for k, col := range r.Columns() {
 		var v string
 		value := r.ValueByColumn(k)
-		if !w.epochDates && col.Type == zng.TypeTime {
+		if col.Type == zng.TypeTime {
 			if !value.IsUnsetOrNil() {
 				ts, err := zng.DecodeTime(value.Bytes)
 				if err != nil {
