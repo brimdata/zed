@@ -93,6 +93,11 @@ func zip(t *testing.T, s string) zng.Value {
 	require.NotNil(t, ip, "converted ip")
 	return zng.Value{zng.TypeIP, zng.EncodeIP(ip)}
 }
+func znet(t *testing.T, s string) zng.Value {
+	_, net, err := net.ParseCIDR(s)
+	require.NoError(t, err)
+	return zng.Value{zng.TypeIP, zng.EncodeNet(net)}
+}
 
 func TestPrimitives(t *testing.T) {
 	record := `
@@ -649,6 +654,12 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, `ip("1.2.3.4")`, "", zip(t, "1.2.3.4"))
 	testWarning(t, "ip(1234)", "", expr.ErrBadCast, "cast of invalid ip address fails")
 	testWarning(t, `ip("not an address")`, "", expr.ErrBadCast, "cast of invalid ip address fails")
+
+	// Test casts to net
+	testSuccessful(t, `net("1.2.3.0/24")`, "", znet(t, "1.2.3.0/24"))
+	testWarning(t, "net(1234)", "", expr.ErrBadCast, "cast of invalid net fails")
+	testWarning(t, `net("not an address")`, "", expr.ErrBadCast, "cast of invalid net fails")
+	testWarning(t, `net("1.2.3.4")`, "", expr.ErrBadCast, "cast of invalid net fails")
 
 	// Test casts to time
 	ts := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1589126400_000_000_000))}

@@ -36,6 +36,8 @@ func LookupPrimitiveCaster(typ zng.Type) PrimitiveCaster {
 		return castToFloat64
 	case zng.TypeIP:
 		return castToIP
+	case zng.TypeNet:
+		return castToNet
 	case zng.TypeDuration:
 		return castToDuration
 	case zng.TypeTime:
@@ -103,6 +105,18 @@ func castToIP(zv zng.Value) (zng.Value, error) {
 	}
 	// XXX GC
 	return zng.Value{zng.TypeIP, zng.EncodeIP(ip)}, nil
+}
+
+func castToNet(zv zng.Value) (zng.Value, error) {
+	if !zv.IsStringy() {
+		return zng.Value{}, ErrBadCast
+	}
+	_, net, err := net.ParseCIDR(string(zv.Bytes))
+	if err != nil {
+		return zng.Value{}, ErrBadCast
+	}
+	// XXX GC
+	return zng.Value{zng.TypeIP, zng.EncodeNet(net)}, nil
 }
 
 func castToDuration(zv zng.Value) (zng.Value, error) {
