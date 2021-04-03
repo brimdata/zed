@@ -614,7 +614,7 @@ func runzq(path, zed string, outputFlags []string, inputs ...string) (string, st
 	}
 	ctx := context.Background()
 	zctx := resolver.NewContext()
-	rc, err := loadInputs(ctx, inputs, zctx)
+	rc, err := loadInputs(inputs, zctx)
 	if err != nil {
 		return "", err.Error(), err
 	}
@@ -653,7 +653,7 @@ func lookupzq(path string) (string, error) {
 	return "", zqe.E(zqe.NotFound)
 }
 
-func loadInputs(ctx context.Context, inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {
+func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, input := range inputs {
 		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)
@@ -662,7 +662,7 @@ func loadInputs(ctx context.Context, inputs []string, zctx *resolver.Context) (z
 		}
 		readers = append(readers, zr)
 	}
-	return zbuf.MergeReadersByTsAsReader(ctx, readers, zbuf.OrderAsc)
+	return zbuf.ConcatReader(readers...), nil
 }
 
 func tmpInputFiles(inputs []string) (string, []string, error) {

@@ -1,8 +1,8 @@
 script: |
-  zq -z c.log a.zng
+  zq -z a.log b.zng
 
 inputs:
-  - name: c.log
+  - name: a.log
     data: |
       #separator \x09
       #set_separator	,
@@ -13,11 +13,11 @@ inputs:
       #types	port
       80
   # {src_port:81 (port=(uint16))} (=0)
-  - name: a.zng
+  - name: b.zng
     data: !!binary /ARwb3J0AfYBCHNyY19wb3J0FxgCBFH/
 
 outputs:
   - name: stdout
     data: |
-      {src_port:81 (port=(uint16))} (=0)
-      {_path:"conn",orig_p:80 (port)} (=1)
+      {_path:"conn",orig_p:80 (port=(uint16))} (=0)
+      {src_port:81 (port)} (=1)

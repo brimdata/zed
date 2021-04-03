@@ -71,6 +71,34 @@ func Copy(dst Writer, src Reader) error {
 	return CopyWithContext(context.Background(), dst, src)
 }
 
+// ConcatReader returns a Reader that is the logical concatenation of readers,
+// which are read sequentially.  Its Read methed returns any non-nil error
+// returned by a reader and returns end of stream after all readers have
+// returned end of stream.
+func ConcatReader(readers ...Reader) Reader {
+	if len(readers) == 1 {
+		return readers[0]
+	}
+	r := make([]Reader, len(readers))
+	copy(r, readers)
+	return &concatReader{r}
+}
+
+type concatReader struct {
+	readers []Reader
+}
+
+func (c *concatReader) Read() (*zng.Record, error) {
+	for len(c.readers) > 0 {
+		rec, err := c.readers[0].Read()
+		if rec != nil || err != nil {
+			return rec, err
+		}
+		c.readers = c.readers[1:]
+	}
+	return nil, nil
+}
+
 func MultiWriter(writers ...Writer) Writer {
 	w := make([]Writer, len(writers))
 	copy(w, writers)
