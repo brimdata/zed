@@ -31,6 +31,7 @@ type notice={_path:string,ts:time,uid:bstring,id:id,fuid:bstring,file_mime_type:
 type notice_alarm={_path:string,ts:time,uid:bstring,id:id,fuid:bstring,file_mime_type:bstring,file_desc:bstring,proto:zenum,note:zenum,msg:bstring,sub:bstring,src:ip,dst:ip,p:port=(uint16),n:uint64,peer_descr:bstring,actions:|[zenum]|,suppress_for:duration,remote_location:{country_code:bstring,region:bstring,city:bstring,latitude:float64,longitude:float64},_write_ts:time};
 type ntlm={_path:string,ts:time,uid:bstring,id:id,username:bstring,hostname:bstring,domainname:bstring,server_nb_computer_name:bstring,server_dns_computer_name:bstring,server_tree_name:bstring,success:bool,_write_ts:time};
 type ntp={_path:string,ts:time,uid:bstring,id:id,version:uint64,mode:uint64,stratum:uint64,poll:duration,precision:duration,root_delay:duration,root_disp:duration,ref_id:bstring,ref_time:time,org_time:time,rec_time:time,xmt_time:time,num_exts:uint64,_write_ts:time};
+type openflow={_path:string,ts:time,dpid:uint64,match:{in_port:uint64,dl_src:bstring,dl_dst:bstring,dl_vlan:uint64,dl_vlan_pcp:uint64,dl_type:uint64,nw_tos:uint64,nw_proto:uint64,nw_src:net,nw_dst:net,tp_src:uint64,tp_dst:uint64},flow_mod:{cookie:uint64,table_id:uint64,command:zenum=(string),idle_timeout:uint64,hard_timeout:uint64,priority:uint64,out_port:uint64,out_group:uint64,flags:uint64,actions:{out_ports:[uint64],vlan_vid:uint64,vlan_pcp:uint64,vlan_strip:bool,dl_src:bstring,dl_dst:bstring,nw_tos:uint64,nw_src:ip,nw_dst:ip,tp_src:uint64,tp_dst:uint64}}};
 type packet_filter={_path:string,ts:time,node:bstring,filter:bstring,init:bool,success:bool,_write_ts:time};
 type pe={_path:string,ts:time,id:bstring,machine:bstring,compile_ts:time,os:bstring,subsystem:bstring,is_exe:bool,is_64bit:bool,uses_aslr:bool,uses_dep:bool,uses_code_integrity:bool,uses_seh:bool,has_import_table:bool,has_export_table:bool,has_cert_table:bool,has_debug_data:bool,section_names:[bstring],_write_ts:time};
 type radius={_path:string,ts:time,uid:bstring,id:id,username:bstring,mac:bstring,framed_addr:ip,tunnel_client:bstring,connect_info:bstring,reply_msg:bstring,result:bstring,ttl:duration,_write_ts:time};
@@ -74,13 +75,16 @@ const schemas = |{
   "known_hosts": known_hosts,
   "known_services": known_services,
   "loaded_scripts": loaded_scripts,
-  "modbus": modbus, "mysql": mysql,
+  "modbus": modbus,
+  "mysql": mysql,
   "netcontrol": netcontrol,
   "netcontrol_drop": netcontrol_drop,
   "netcontrol_shunt": netcontrol_shunt,
   "notice": notice,
   "notice_alarm": notice_alarm,
-  "ntlm": ntlm, "ntp": ntp,
+  "ntlm": ntlm,
+  "ntp": ntp,
+  "openflow": openflow,
   "packet_filter": packet_filter,
   "pe": pe,
   "radius": radius,
