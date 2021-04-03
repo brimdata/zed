@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
 	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
@@ -81,7 +82,6 @@ type Command struct {
 	stats       bool
 	quiet       bool
 	stopErr     bool
-	parallel    bool
 	includes    includes
 	inputFlags  inputflags.Flags
 	outputFlags outputflags.Flags
@@ -106,7 +106,6 @@ func New(f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
-	f.BoolVar(&c.parallel, "P", false, "read two or more files into parallel-input zql query")
 	f.Var(&c.includes, "I", "source file containing Z query text (may be used multiple times)")
 	return c, nil
 }
@@ -184,7 +183,8 @@ func (c *Command) Run(args []string) error {
 	}
 	defer zbuf.CloseReaders(readers)
 
-	if c.parallel {
+	if ast.FanIn(query) > 1 {
+
 		if err := driver.RunParallel(ctx, d, query, zctx, readers, driver.Config{}); err != nil {
 			writer.Close()
 			return err
