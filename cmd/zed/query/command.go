@@ -190,7 +190,7 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	} else {
-		reader := zbuf.MultiReader(readers...)
+		reader := zbuf.ConcatReader(readers...)
 		if err := driver.Run(ctx, d, query, zctx, reader, driver.Config{}); err != nil {
 			writer.Close()
 			return err

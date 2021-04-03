@@ -662,7 +662,7 @@ func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {
 		}
 		readers = append(readers, zr)
 	}
-	return zbuf.MultiReader(readers...), nil
+	return zbuf.ConcatReader(readers...), nil
 }
 
 func tmpInputFiles(inputs []string) (string, []string, error) {
