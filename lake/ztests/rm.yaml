@@ -1,30 +1,15 @@
 script: |
-  mkdir logs
-  zed lake import -R logs babble.zson
-  zed lake ls -R logs -ranges
-  echo ===
-  (cd ./logs; find zd -type d -regex ".*\.zar$") | sort > t1
-  touch $(find logs/zd -type d -regex ".*\.zar$" | sort | head -n 1)/foo
-  zed lake ls -R logs -ranges -l foo
-  echo ===
-  zed lake rm -R logs -ranges foo
-  echo ===
-  (cd ./logs; find zd -type d -regex ".*\.zar$") | sort > t2
-  test -s t1 && test -s t2 && diff t1 t2 && echo foo removed
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -p logs -q
+  zed lake drop -p logs -q
+  zed lake log -p logs
 
 inputs:
   - name: babble.zson
     source: ../../testdata/babble.zson
 
 outputs:
-  - name: stdout
+  - name: stderr
     data: |
-      [1587518620062237300-1587513611063914690]
-      [1587513592062544400-1587508830068523240]
-      ===
-      [1587513592062544400-1587508830068523240]/foo
-      ===
-      [1587518620062237300-1587513611063914690]/foo: not found
-      [1587513592062544400-1587508830068523240]/foo: removed
-      ===
-      foo removed
+      logs: pool not found

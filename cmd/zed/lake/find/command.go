@@ -1,19 +1,13 @@
 package find
 
 import (
-	"context"
+	"errors"
 	"flag"
-	"fmt"
 	"os"
 
 	"github.com/brimdata/zed/cli/outputflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/zio/emitter"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 )
 
 var Find = &charm.Spec{
@@ -21,6 +15,8 @@ var Find = &charm.Spec{
 	Usage: "find [options] pattern [pattern...]",
 	Short: "look through zar index files and displays matches",
 	Long: `
+TBD: update this help: Issue #2532
+
 "zar find" searches a zar archive
 looking for zng files that have been indexed and performs a search on
 each such index file in accordance with the specified search pattern.
@@ -73,7 +69,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
-	f.StringVar(&c.pathField, "l", lake.DefaultAddPathField, "zng field name for path name of log file")
+	//f.StringVar(&c.pathField, "l", lake.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 
 	c.outputFlags.SetFlags(f)
@@ -82,6 +78,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	return errors.New("issue #2532")
+	/* NOT YET
 	defer c.Cleanup()
 	if err := c.Init(&c.outputFlags); err != nil {
 		return err
@@ -138,4 +136,5 @@ func (c *Command) Run(args []string) error {
 		}
 	}
 	return searchErr
+	*/
 }

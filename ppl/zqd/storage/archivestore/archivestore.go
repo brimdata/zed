@@ -2,14 +2,15 @@ package archivestore
 
 import (
 	"context"
+	"errors"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/chunk"
 	"github.com/brimdata/zed/lake/immcache"
 	"github.com/brimdata/zed/lake/index"
+	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/ppl/zqd/storage"
 	"github.com/brimdata/zed/zbuf"
@@ -18,20 +19,32 @@ import (
 	"go.uber.org/zap"
 )
 
+// XXX this abstraction is upside down.  the API should talk directly to the
+// lake and we should get rid of the all.zng file interface.
+
 func Load(ctx context.Context, path iosrc.URI, notifier WriteNotifier, cfg *api.ArchiveConfig, immcache immcache.ImmutableCache) (*Storage, error) {
-	co := &lake.CreateOptions{}
-	if cfg != nil && cfg.CreateOptions != nil {
-		co.LogSizeThreshold = cfg.CreateOptions.LogSizeThreshold
-	}
-	oo := &lake.OpenOptions{
-		ImmutableCache: immcache,
-	}
-	lk, err := lake.CreateOrOpenLakeWithContext(ctx, path.String(), co, oo)
+	// TBD this should be a wrapper around iosrc
+	//oo := &lake.OpenOptions{
+	//	ImmutableCache: immcache,
+	//}
+
+	//XXX we shouldn't do create as a side effect of Load.
+	// The client should explicitly create a lake if so desired.
+	poolName := "default" //XXX
+	lk, err := lake.CreateOrOpen(ctx, path)
 	if err != nil {
 		return nil, err
 	}
+	pool, err := lk.OpenPool(ctx, poolName)
+	if err != nil {
+		//XXX sort keys should be in API
+		pool, err = lk.CreatePool(ctx, poolName, field.DottedList("ts"), zbuf.OrderDesc, 0)
+		if err != nil {
+			return nil, err
+		}
+	}
 	return &Storage{
-		lk:       lk,
+		pool:     pool,
 		notifier: notifier,
 	}, nil
 }
@@ -41,12 +54,12 @@ type WriteNotifier interface {
 }
 
 type Storage struct {
-	lk       *lake.Lake
+	pool     *lake.Pool
 	notifier WriteNotifier
 }
 
-func NewStorage(lk *lake.Lake) *Storage {
-	return &Storage{lk: lk}
+func NewStorage(pool *lake.Pool) *Storage {
+	return &Storage{pool: pool}
 }
 
 func (s *Storage) Kind() api.StorageKind {
@@ -54,41 +67,53 @@ func (s *Storage) Kind() api.StorageKind {
 }
 
 func (s *Storage) NativeOrder() zbuf.Order {
-	return s.lk.DataOrder
+	return s.pool.Order
 }
 
 func (s *Storage) MultiSource() driver.MultiSource {
-	return lake.NewMultiSource(s.lk, nil)
+	return lake.NewMultiSource(s.pool)
 }
 
 func (s *Storage) StaticSource(src driver.Source) driver.MultiSource {
-	return lake.NewStaticSource(s.lk, src)
+	return lake.NewStaticSource(s.pool, src)
 }
 
 func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 	var sum storage.Summary
 	sum.Kind = api.ArchiveStore
-	err := lake.Walk(ctx, s.lk, func(chunk chunk.Chunk) error {
-		info, err := iosrc.Stat(ctx, chunk.Path())
+	head, err := s.pool.Log().Head(ctx)
+	if err != nil {
+		return sum, err
+	}
+	ch := make(chan segment.Reference, 10)
+	go func() {
+		head.Scan(ctx, ch)
+		close(ch)
+	}()
+	for seg := range ch {
+		//XXX should get this from the log
+		info, err := iosrc.Stat(ctx, seg.RowObjectPath(s.pool.DataPath))
 		if err != nil {
-			return err
+			return sum, err
 		}
 		sum.DataBytes += info.Size()
-		sum.RecordCount += int64(chunk.RecordCount)
+		sum.RecordCount += int64(seg.Count)
 		if sum.Span.Dur == 0 {
-			sum.Span = chunk.Span()
+			sum.Span = seg.Span()
 		} else {
-			sum.Span = sum.Span.Union(chunk.Span())
+			sum.Span = sum.Span.Union(seg.Span())
 		}
-		return nil
-	})
+	}
 	return sum, err
 }
 
 func (s *Storage) Write(ctx context.Context, zctx *zson.Context, zr zbuf.Reader) error {
-	err := lake.Import(ctx, s.lk, zctx, zr)
+	commits, err := s.pool.Add(ctx, zctx, zr)
 	if s.notifier != nil {
 		s.notifier.WriteNotify()
+	}
+	if err == nil {
+		err = s.pool.Commit(ctx, commits, 0, "api-user", "<api-blank>")
 	}
 	return err
 }
@@ -108,7 +133,7 @@ func (w *Writer) Close() error {
 
 // NewWriter returns a writer that will start a compaction when it is closed.
 func (s *Storage) NewWriter(ctx context.Context) (*Writer, error) {
-	w, err := lake.NewWriter(ctx, s.lk)
+	w, err := lake.NewWriter(ctx, s.pool)
 	if err != nil {
 		return nil, err
 	}
@@ -141,22 +166,27 @@ func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) err
 		rule.Input = req.InputFile
 		rules = append(rules, rule)
 	}
+	return errors.New("TBD")
 	// XXX Eventually this method should provide progress updates.
-	return lake.ApplyRules(ctx, s.lk, nil, rules...)
+	//return lake.ApplyRules(ctx, s.lk, nil, rules...)
 }
 
 func (s *Storage) IndexSearch(ctx context.Context, zctx *zson.Context, query index.Query) (zbuf.ReadCloser, error) {
-	return lake.FindReadCloser(ctx, zctx, s.lk, query, lake.AddPath(lake.DefaultAddPathField, false))
+	return nil, errors.New("TBD")
+	//return lake.FindReadCloser(ctx, zctx, s.lk, query, lake.AddPath(lake.DefaultAddPathField, false))
 }
 
 func (s *Storage) ArchiveStat(ctx context.Context, zctx *zson.Context) (zbuf.ReadCloser, error) {
-	return lake.Stat(ctx, zctx, s.lk)
+	return nil, errors.New("TBD")
+	//return lake.Stat(ctx, zctx, s.lk)
 }
 
 func (s *Storage) Compact(ctx context.Context, logger *zap.Logger) error {
-	return lake.Compact(ctx, s.lk, logger)
+	return errors.New("TBD")
+	//return lake.Compact(ctx, s.lk, logger)
 }
 
 func (s *Storage) Purge(ctx context.Context, logger *zap.Logger) error {
-	return lake.Purge(ctx, s.lk, logger)
+	return errors.New("TBD")
+	//return lake.Purge(ctx, s.lk, logger)
 }

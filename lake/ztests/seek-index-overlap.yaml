@@ -1,11 +1,15 @@
 script: |
-  zq "tail 900" babble.zson | zed lake import -R asc -asc -streammax=100 -
-  zq "head 250" babble.zson | zed lake import -R asc -streammax=100 -
-  zed lake query -R asc -z -s "count()"
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -p asc -order asc -q
+  zed lake create -p desc -order desc -q
+  zq "tail 900" babble.zson | zed lake load -p asc -streammax=100 -q -
+  zq "head 250" babble.zson | zed lake load -p asc -streammax=100 -q -
+  zed lake query -p asc -z -s "count()"
   echo === | tee /dev/stderr
-  zq "tail 900" babble.zson | zed lake import -R desc -streammax=100 -
-  zq "head 250" babble.zson | zed lake import -R desc -streammax=100 -
-  zed lake query -R desc -z -s "count()"
+  zq "tail 900" babble.zson | zed lake load -p desc -streammax=100 -q -
+  zq "head 250" babble.zson | zed lake load -p desc -streammax=100 -q -
+  zed lake query -p desc -z -s "count()"
 
 inputs:
   - name: babble.zson
@@ -19,8 +23,8 @@ outputs:
       {count:1150 (uint64)} (=0)
   - name: stderr
     data: |
-      data opened: 49051
-      data read:   40293
+      data opened: 37833
+      data read:   37833
       ===
-      data opened: 49036
-      data read:   43751
+      data opened: 37833
+      data read:   37833

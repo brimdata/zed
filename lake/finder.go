@@ -1,16 +1,9 @@
 package lake
 
-import (
-	"context"
+//XXX this should take a key range, consult the journal to get candidates,
+// and return hits to segments.
 
-	"github.com/brimdata/zed/lake/chunk"
-	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zqe"
-	"github.com/brimdata/zed/zson"
-)
-
+/*
 type findOptions struct {
 	skipMissing bool
 	zctx        *zson.Context
@@ -170,3 +163,4 @@ func FindReadCloser(ctx context.Context, zctx *zson.Context, lk *Lake, query ind
 	}()
 	return f, nil
 }
+*/

@@ -1,13 +1,21 @@
 script: |
-  zed lake import -streammax=100 -asc -R asc babble.zson
-  zed lake query -z -start 2020-04-21T23:59:26.063Z -end 2020-04-21T23:59:38.069Z -s -R asc "*"
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -p asc -order asc -q
+  zed lake load -q -streammax=100 -p asc babble.zson
+  zed lake query -z -start 2020-04-21T23:59:26.063Z -end 2020-04-21T23:59:38.069Z -s -p asc "*"
   echo === | tee /dev/stderr
-  zed lake import -streammax=100 -R desc babble.zson
-  zed lake query -z -start 2020-04-21T23:59:26.063Z -end 2020-04-21T23:59:38.069Z -s -R desc "*"
+  zed lake create -p desc -order desc -q
+  zed lake load -q -streammax=100 -p desc babble.zson
+  zed lake query -z -start 2020-04-21T23:59:26.063Z -end 2020-04-21T23:59:38.069Z -s -p desc "*"
 
 inputs:
   - name: babble.zson
     source: ../../testdata/babble.zson
+
+# Note: compared to the previous zar model, we do not have aritificial
+# partitions into days so in this sample data, we read a whole seek index
+# which is larger compared to the day.
 
 outputs:
   - name: stdout
@@ -21,8 +29,8 @@ outputs:
       {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
   - name: stderr
     data: |
-      data opened: 17565
-      data read:   3642
+      data opened: 32889
+      data read:   6964
       ===
-      data opened: 17555
-      data read:   3473
+      data opened: 32889
+      data read:   6955

@@ -1,3 +1,5 @@
+skip: issue 2532
+
 # https://github.com/brimdata/zed/issues/2293
 # Ensure that zed lake find does not panic on an empty index.
 script: |

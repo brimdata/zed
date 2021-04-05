@@ -1,3 +1,5 @@
+skip: issue 2532
+
 # test a simple indexing scenario with the use of the -i flag
 script: |
   mkdir logs

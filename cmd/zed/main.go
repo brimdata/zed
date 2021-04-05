@@ -1,11 +1,9 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
 
-	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cmd/zed/api"
 	_ "github.com/brimdata/zed/cmd/zed/api/auth"
 	_ "github.com/brimdata/zed/cmd/zed/api/get"
@@ -26,17 +24,24 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/index/section"
 	_ "github.com/brimdata/zed/cmd/zed/index/seek"
 	"github.com/brimdata/zed/cmd/zed/lake"
-	_ "github.com/brimdata/zed/cmd/zed/lake/compact"
+	_ "github.com/brimdata/zed/cmd/zed/lake/add"
+	_ "github.com/brimdata/zed/cmd/zed/lake/commit"
+	_ "github.com/brimdata/zed/cmd/zed/lake/create"
+	_ "github.com/brimdata/zed/cmd/zed/lake/delete"
+	_ "github.com/brimdata/zed/cmd/zed/lake/drop"
 	_ "github.com/brimdata/zed/cmd/zed/lake/find"
-	_ "github.com/brimdata/zed/cmd/zed/lake/import"
 	_ "github.com/brimdata/zed/cmd/zed/lake/index"
+	_ "github.com/brimdata/zed/cmd/zed/lake/init"
+	_ "github.com/brimdata/zed/cmd/zed/lake/load"
+	_ "github.com/brimdata/zed/cmd/zed/lake/log"
 	_ "github.com/brimdata/zed/cmd/zed/lake/ls"
-	_ "github.com/brimdata/zed/cmd/zed/lake/map"
+	_ "github.com/brimdata/zed/cmd/zed/lake/merge"
 	_ "github.com/brimdata/zed/cmd/zed/lake/query"
-	_ "github.com/brimdata/zed/cmd/zed/lake/rm"
-	_ "github.com/brimdata/zed/cmd/zed/lake/rmdirs"
+	_ "github.com/brimdata/zed/cmd/zed/lake/stage"
 	_ "github.com/brimdata/zed/cmd/zed/lake/stat"
+	_ "github.com/brimdata/zed/cmd/zed/lake/vacate"
 	"github.com/brimdata/zed/cmd/zed/query"
+	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/cmd/zed/zst"
 	_ "github.com/brimdata/zed/cmd/zed/zst/create"
 	_ "github.com/brimdata/zed/cmd/zed/zst/cut"
@@ -46,6 +51,7 @@ import (
 )
 
 func main() {
+	zed := root.Zed
 	zed.Add(charm.Help)
 	zed.Add(api.Cmd)
 	zed.Add(ast.Cmd)
@@ -57,40 +63,4 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
-}
-
-var zed = &charm.Spec{
-	Name:  "zed",
-	Usage: "zed <command> [options] [arguments...]",
-	Short: "run zed commands",
-	Long: `
-zed is a command-line tool for creating, configuring, ingesting into,
-querying, and orchestrating zed data lakes.`,
-	New: newCmd,
-}
-
-type root struct {
-	charm.Command
-	cli cli.Flags
-}
-
-func newCmd(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	r := &root{}
-	r.cli.SetFlags(f)
-	return r, nil
-}
-
-func (r *root) Cleanup() {
-	r.cli.Cleanup()
-}
-
-func (r *root) Init(all ...cli.Initializer) error {
-	return r.cli.Init(all...)
-}
-
-func (r *root) Run(args []string) error {
-	if len(args) == 0 {
-		return charm.NeedHelp
-	}
-	return charm.ErrNoRun
 }

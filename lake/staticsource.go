@@ -17,15 +17,15 @@ type staticSource struct {
 	src driver.Source
 }
 
-func NewStaticSource(lk *Lake, src driver.Source) driver.MultiSource {
+func NewStaticSource(pool *Pool, src driver.Source) driver.MultiSource {
 	return &staticSource{
-		spanMultiSource: &spanMultiSource{lk: lk},
+		spanMultiSource: &spanMultiSource{pool: pool},
 		src:             src,
 	}
 }
 
 func (s *staticSource) OrderInfo() (field.Static, bool) {
-	return field.New("ts"), s.lk.DataOrder == zbuf.OrderDesc
+	return field.New("ts"), s.pool.Order == zbuf.OrderDesc
 }
 
 func (s *staticSource) SendSources(ctx context.Context, span nano.Span, srcChan chan driver.Source) error {

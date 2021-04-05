@@ -1,3 +1,5 @@
+skip: issue 2532
+
 script: |
   source services.sh
   zapi -h $ZQD_HOST new -k archivestore -thresh 1B testsp >/dev/null
