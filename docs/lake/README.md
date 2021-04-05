@@ -1,4 +1,4 @@
-# zed lake overview
+# Zed lake overview
 
 > DISCLAIMER: "ZED LAKE" IS A CURRENTLY A PROTOTYPE UNDER DEVELOPMENT AND IS
 > CHANGING QUICKLY.  PLEASE EXPERIMENT WITH IT AND GIVE US FEEDBACK BUT
@@ -12,8 +12,8 @@
 
 ---
 
-This documents describes the "zed lake" command, a work-in-progress for
-indexing and searching zed data lakes.
+This documents describes the `zed lake` command, a work-in-progress for
+indexing and searching Zed data lakes.
 
 # Contents
 
@@ -94,7 +94,7 @@ on the data of every log in the archive:
 ```
 zed lake query "count()" > counts.zng
 ```
-This invocation of `zed lake` traverses the lake, applies the zed "count()" operator
+This invocation of `zed lake` traverses the lake, applies the Zed "count()" operator
 on the data from all the chunks, and writes the output as a stream of zng data.
 By default, the output is sent to stdout, which means you can simply pipe the
 resulting stream to a vanilla `zq` command that specifies `-` to expect the
@@ -150,7 +150,7 @@ or...
 
 ## Search for an IP
 
-Now let's say you want to search for a particular IP across the zed lake.
+Now let's say you want to search for a particular IP across the Zed lake.
 This is easy. You just say:
 ```
 zed lake query -Z "id.orig_h=10.10.23.2"
@@ -193,19 +193,19 @@ because every record is read to search for that IP.
 
 We can speed this up by building an index.  
 `zed lake` lets you pretty much build any
-sort of index you'd like and you can even embed whatever custom zed analytics
+sort of index you'd like and you can even embed whatever custom Zed analytics
 you would like in a search index.  But for now, let's look at just IP addresses.
 
 > NOTE: we are in the process of changing `zed lake index` to operate over
 > specific key ranges instead of the arbitrary boundaries formed with lake chunks.
 > For now, this describes the old behavior.
 
-The "zed lake index" command makes it easy to index any field or any zed type.
+The `zed lake index` command makes it easy to index any field or any Zed type.
 e.g., to index every value that is of type IP, we simply say
 ```
 zed lake index create :ip
 ```
-For each zed lake chunk, this command will find every field of type IP in every
+For each Zed lake chunk, this command will find every field of type IP in every
 record and add a key for that field's value to chunk's index file.
 
 Hmm that was interesting.  If you type
@@ -217,7 +217,7 @@ If you want to see one, just look at it with zq, e.g.
 ```
 find $ZED_LAKE_ROOT -name idx-* | head -n 1 | xargs zq -z -
 ```
-Now if you run "zed lake find", it will efficiently look through all the index files
+Now if you run `zed lake find`, it will efficiently look through all the index files
 instead of the raw lake data and run much faster...
 ```
 zed lake find -f table :ip=10.10.23.2
@@ -233,7 +233,7 @@ output if you repeat the commands.)
 
 ## Indexes
 
-A "zed index" is a zng index file that pertains to just one
+A `zed index` is a zng index file that pertains to just one
 chunk of lake data and represents just one indexing rule.  If you're curious about
 what's in the index, it's just a sorted list of keyed records along with some
 additional zng streams that comprise a constant b-tree index into the sorted list.
@@ -253,7 +253,7 @@ whenever you want.  No need to suffer the fate of a massive reindexing
 job when you have a new idea about what to index.
 
 So, let's say you later decide you want searches over the "uri" field to run fast.
-You just run "zed lake index" again but with different parameters:
+You just run `zed lake index` again but with different parameters:
 ```
 zed lake index create uri
 ```
@@ -294,11 +294,11 @@ interesting things with this...
 ## Custom indexes: Storing aggregations in an index
 
 Since everything is a zng file, you can create whatever values you want to
-go along with your index keys using zed queries.  Why don't we go back to counting?
+go along with your index keys using Zed queries.  Why don't we go back to counting?
 
 Let's create an index keyed on the field id.orig_h and for each unique value of
 this key, we'll compute the number of times that value appeared for each zeek
-log type.  To do this, we'll run "zed lake index" in a way that leaves
+log type.  To do this, we'll run `zed lake index` in a way that leaves
 these results behind in each lake directory:
 ```
 zed lake index create -q -o custom.zng -k id.orig_h -z "count() by _path, id.orig_h | sort id.orig_h"
@@ -405,7 +405,7 @@ it as text...
 zed lake find -x custom2.zng 216.58.193.206 | zq -f text "sum(resp_bytes)" -
 ```
 Note that you can't "wild card" the primary key when doing a search via
-"zed lake find" because the index is sorted by primary key first, then secondary
+`zed lake find` because the index is sorted by primary key first, then secondary
 key, and so forth, and efficient lookups are carried out by traversing the
 b-tree index structure of these sorted keys.  But remember,
 everything is a zng file, so you can do a brute-force search on the base-layer
@@ -475,7 +475,7 @@ Pretty cool!
 ## Simple graph queries
 
 Here is another example to illustrate the power of `zed lake`.  Just like you can
-build search indexes with arbitrary zed queries, you can also build graph indexes
+build search indexes with arbitrary Zed queries, you can also build graph indexes
 to hold edge lists and node attributes, providing an efficient means to do
 topological queries of graph data structures.  While this doesn't provide a
 full-featured graph database like [neo4j](https://github.com/neo4j/neo4j),
@@ -492,7 +492,7 @@ zed lake map -o reverse.zng "id.orig_h != null | put from_addr=id.resp_h,to_addr
 zed lake map -o directed-pairs.zng "count=sum(count) by from_addr,to_addr | sort from_addr,to_addr" forward.zng reverse.zng
 zed lake index create -i directed-pairs.zng -o graph.zng -k from_addr,to_addr -z "*"
 ```
-> (Note: there is a small change we can make to the zed language to do this with one
+> (Note: there is a small change we can make to the Zed language to do this with one
 > command... coming soon.)
 
 This creates an index called "graph" that you can use to search for IP address
@@ -525,7 +525,7 @@ zed lake find -z -x graph.zng 10.47.6.162 | zq "count() by from_addr,to_addr" - 
 zed lake find -z -x graph.zng 10.47.5.153 | zq "count() by from_addr,to_addr" - >> edges.zng
 zq -f ndjson "value=sum(count) by from_addr,to_addr | cut source=from_addr,target=to_addr,value" edges.zng >> edges.ndjson
 ```
-> (Note: with a few additions to zed, we can make this much simpler and
+> (Note: with a few additions to Zed, we can make this much simpler and
 > more efficient.  Coming soon.  Also, we should be able to say `group by node`,
 > which implies no reducer and emits columns with just the group-by keys.)
 
@@ -550,7 +550,7 @@ As you've likely noticed, we love pipes in the zq project. Make a test file:
 zq "head 10000" zng/* > pipes.zng
 ```
 
-You can use pipes in zed expressions like you've seen above:
+You can use pipes in Zed expressions like you've seen above:
 
 ```
 zq -f table "orig_bytes > 100 | count() by id.resp_p | sort -r" pipes.zng
@@ -561,7 +561,7 @@ Or you can pipe the output of one zq to another...
 zq "orig_bytes > 100 | count() by id.resp_p" pipes.zng | zq -f table "sort -r" -
 ```
 We were careful to make the output of zq just a stream of zng records.
-So whether you are piping within a zed query, or between zq commands, or
+So whether you are piping within a Zed query, or between zq commands, or
 between zed and zq, or over the network (ssh zq...), it's all the same.
 ```
 zq "orig_bytes > 100" pipes.zng | zq "count() by id.resp_p" - | zq -f table "sort -r" -
