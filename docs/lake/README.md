@@ -233,7 +233,7 @@ output if you repeat the commands.)
 
 ## Indexes
 
-A `zed index` is a zng index file that pertains to just one
+A Zed index is a zng index file that pertains to just one
 chunk of lake data and represents just one indexing rule.  If you're curious about
 what's in the index, it's just a sorted list of keyed records along with some
 additional zng streams that comprise a constant b-tree index into the sorted list.
