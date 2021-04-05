@@ -108,10 +108,27 @@ This example reads every record from the `logs` pool starting
 from time `2020-1-1T12:00`, in ascending order,
 send the  results as ZNG to stdout, then pipe the output to `zq` to count the record:
 ```
-zed lake scan -p logs -from 2020-1-1T12:00 -order asc - | zq "count()" -
+zed lake scan -p logs -from 2020-1-1T12:00 -order asc | zq "count()" -
 ```
-Of course, this is just an example as there are far more efficient means
-to count records, as this is just an example.
+
+### Query
+
+Of course, the example is an inefficient way to count records.  Instead of
+reading the records out of the lake and processing them, a better approach
+is to push the query into the lake.
+
+The `query` command lets you do this, e.g.,
+```
+zed lake query -p logs -from 2020-1-1T12:00 -order asc "count()" -
+```
+Here, the query planner and optimizer can notice that the query is just
+counting records and implement the query by mostly reading metadata from
+the lake.
+
+Arbitrarily complex Zed queries can be executed over the lake in this fashion
+and the planner can utilize cloud resources to parallelize and scale the
+query over many parallel workers that simultaneously access the Zed lake data in
+shared cloud storage (while also accessing locally cached copies of data).
 
 ### Add and Commit
 
