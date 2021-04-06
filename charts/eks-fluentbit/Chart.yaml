@@ -1,6 +1,0 @@
-apiVersion: v2
-name: eks-fluentbit
-description: Helm chart to deploy fluentbit for sending kubernetes logs to aws cloudwatch.
-type: application
-version: 0.1.0
-appVersion: 1.16.0
