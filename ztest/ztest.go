@@ -141,17 +141,8 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-func ShellPath() (string, error) {
-	path := os.Getenv("ZTEST_PATH")
-	if path != "" {
-		if out, _, err := runzq(path, "help", nil); err != nil {
-			if out != "" {
-				out = fmt.Sprintf(" with output %q", out)
-			}
-			return "", fmt.Errorf("failed to exec zq in dir $ZTEST_PATH %s: %s%s", path, err, out)
-		}
-	}
-	return path, nil
+func ShellPath() string {
+	return os.Getenv("ZTEST_PATH")
 }
 
 type Bundle struct {
@@ -194,10 +185,7 @@ func Load(dirname string) ([]Bundle, error) {
 // subtest named f.  path is a command search path like the
 // PATH environment variable.
 func Run(t *testing.T, dirname string) {
-	shellPath, err := ShellPath()
-	if err != nil {
-		t.Fatal(err)
-	}
+	shellPath := ShellPath()
 	bundles, err := Load(dirname)
 	if err != nil {
 		t.Fatal(err)
