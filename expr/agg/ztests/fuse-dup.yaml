@@ -1,5 +1,4 @@
-# Enable after fixing https://github.com/brimdata/zed/issues/2145.
-skip: true
+skip: Enable after fixing https://github.com/brimdata/zed/issues/2145.
 
 zed: fuse(.)
 

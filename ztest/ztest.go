@@ -107,6 +107,9 @@
 // is not a script test, Run runs ztests in the current process and skips
 // the script tests.  Otherwise, Run runs each ztest in a separate process
 // using the zq executable in the directories specified by ZTEST_PATH.
+//
+// Tests of either style can be skipped by setting the skip field to a non-empty
+// string.  A message containing the string will be written to the test log.
 package ztest
 
 import (
@@ -285,8 +288,11 @@ func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 
 // ZTest defines a ztest.
 type ZTest struct {
+	Skip string `yaml:"skip,omitempty"`
+	Tag  string `yaml:"tag,omitempty"`
+
+	// For Zed-style tests.
 	Zed         string `yaml:"zed,omitempty"`
-	Skip        bool   `yaml:"skip,omitempty"`
 	Input       string `yaml:"input,omitempty"`
 	Output      string `yaml:"output,omitempty"`
 	OutputHex   string `yaml:"outputHex,omitempty"`
@@ -294,11 +300,11 @@ type ZTest struct {
 	ErrorRE     string `yaml:"errorRE"`
 	errRegex    *regexp.Regexp
 	Warnings    string `yaml:"warnings,omitempty"`
-	// shell mode params
+
+	// For script-style tests.
 	Script  string   `yaml:"script,omitempty"`
 	Inputs  []File   `yaml:"inputs,omitempty"`
 	Outputs []File   `yaml:"outputs,omitempty"`
-	Tag     string   `yaml:"tag,omitempty"`
 	Env     []string `yaml:"env,omitempty"`
 }
 
@@ -390,8 +396,8 @@ func (z *ZTest) ShouldSkip(path string) string {
 		return "script test on Windows"
 	case z.Script != "" && path == "":
 		return "script test on in-process run"
-	case z.Skip:
-		return "skip is true"
+	case z.Skip != "":
+		return z.Skip
 	case z.Tag != "" && z.Tag != os.Getenv("ZTEST_TAG"):
 		return fmt.Sprintf("tag %q does not match ZTEST_TAG=%q", z.Tag, os.Getenv("ZTEST_TAG"))
 	}
