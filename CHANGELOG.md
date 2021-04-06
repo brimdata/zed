@@ -212,7 +212,7 @@ questions.
 * zq: Improve performance by making fewer API calls in S3 reader (#1191)
 * zq: Use memory more efficiently by reducing allocations (#1190, #1201)
 * zqd: Fix an issue where a pcap moved/deleted after import caused a 404 response and white screen in Brim (#1198)
-* zqd: Include details on [adding observability](k8s#adding-observability) to the docs for running `zqd` in Kubernetes (#1173)
+* zqd: Include details on adding observability to the docs for running `zqd` in Kubernetes (#1173)
 * zq: Improve performance by removing unnecessary type checks (#1192, #1205)
 * zq: Add additional Boyer-Moore optimizations to improve search performance (#1188)
 * zq: Fix an issue where data import would sometimes fail with a "too many files" error (#1210)
@@ -226,7 +226,7 @@ questions.
 * zqd: Fix an issue where file paths containing URI escape codes could not be opened in Brim (#1238)
 
 ## v0.20.0
-* zqd: Publish initial [docs](k8s/README.md) for running `zqd` in Kubernetes (#1101)
+* zqd: Publish initial docs for running `zqd` in Kubernetes (#1101)
 * zq: Provide a better error message when an invalid IP address is parsed (#1106)
 * zar: Use single files for microindexes (#1110)
 * zar: Fix an issue where `zar index` could not handle more than 5 "levels" (#1119)

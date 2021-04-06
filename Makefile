@@ -4,7 +4,6 @@ export GO111MODULE=on
 # npm/build.
 ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
-ECR_VERSION = $(VERSION)-$(ZQD_K8S_USER)
 LDFLAGS = -s -X github.com/brimdata/zed/cli.Version=$(VERSION)
 MINIO_VERSION := 0.0.0-20201211152140-453ab257caf5
 TEMPORAL_VERSION := 1.6.3
@@ -123,16 +122,6 @@ test-services-docker:
 		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
 		exit $$status
 
-# test-cluster target assumes zqd endpoint is available at port 9867
-.PHONY: test-cluster
-test-cluster: build install
-	-zapi rm files
-	zapi new -k archivestore files
-	time zapi -s files postpath s3://brim-sampledata/wrccdc/zeek-logs/files.log.gz
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
-		ZTEST_TAG=cluster \
-		go test -run TestZed/ppl/zqd/ztests/cluster .
-
 # test-temporal target assumes zqd-temporal endpoint is available at port 9868
 .PHONY: test-temporal
 test-temporal: build install
@@ -165,64 +154,6 @@ docker-push-local: docker
 	docker push localhost:5000/zqd:latest
 	docker tag zqd localhost:5000/zqd:$(VERSION)
 	docker push localhost:5000/zqd:$(VERSION)
-
-docker-push-ecr: docker
-	aws ecr get-login-password --region us-east-2 | docker login \
-	  --username AWS --password-stdin $(ZQD_ECR_HOST)/zqd
-	docker tag zqd $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
-	docker push $(ZQD_ECR_HOST)/zqd:$(ECR_VERSION)
-
-kubectl-config:
-	kubectl create namespace $(ZQD_K8S_USER)
-	kubectl config set-context zqtest \
-	--namespace=$(ZQD_K8S_USER) \
-	--cluster=$(ZQD_TEST_CLUSTER) \
-	--user=$(ZQD_K8S_USER)@$(ZQD_TEST_CLUSTER)
-	kubectl config use-context zqtest
-
-helm-install:
-	helm upgrade -i zsrv charts/zservice \
-	--set global.datauri=$(ZQD_DATA_URI) \
-	--set global.AWSRegion=us-east-2 \
-	--set global.image.repository=$(ZQD_ECR_HOST)/ \
-	--set global.image.tag=zqd:$(ECR_VERSION) \
-	--set postgresql.persistence.enabled=$(PG_PERSIST)
-
-helm-install-with-aurora:
-	helm upgrade -i zsrv charts/zservice \
-	--set global.datauri=$(ZQD_DATA_URI) \
-	--set global.AWSRegion=us-east-2 \
-	--set global.image.repository=$(ZQD_ECR_HOST)/ \
-	--set global.image.tag=zqd:$(ECR_VERSION) \
-	--set global.postgres.addr=$$(aws rds describe-db-cluster-endpoints \
-		--db-cluster-identifier zq-test-aurora \
-		--output text --query "DBClusterEndpoints[?EndpointType=='WRITER'] | [0].Endpoint"):5432 \
-	--set global.postgres.database=$(ZQD_AURORA_USER) \
-	--set global.postgres.username=$(ZQD_AURORA_USER) \
-	--set global.postgres.passwordSecretName=aurora \
-	--set tags.deploy-postgres=false
-
-helm-install-with-aurora-temporal:
-	helm upgrade -i zsrv charts/zservice \
-	--set global.datauri=$(ZQD_DATA_URI) \
-	--set global.AWSRegion=us-east-2 \
-	--set global.image.repository=$(ZQD_ECR_HOST)/ \
-	--set global.image.tag=zqd:$(ECR_VERSION) \
-	--set global.postgres.addr=$(ZQD_AURORA_HOST):5432 \
-	--set global.postgres.database=$(ZQD_AURORA_USER) \
-	--set global.postgres.username=$(ZQD_AURORA_USER) \
-	--set global.postgres.passwordSecretName=aurora \
-	--set global.temporal.enabled=true \
-	--set tags.deploy-postgres=false \
-	--set tags.deploy-temporal=true \
-	--set temporal.server.config.persistence.default.sql.database=$(TEMPORAL_DATABASE) \
-	--set temporal.server.config.persistence.default.sql.user=$(ZQD_AURORA_USER) \
-	--set temporal.server.config.persistence.default.sql.password=$(ZQD_AURORA_PW) \
-	--set temporal.server.config.persistence.default.sql.host=$(ZQD_AURORA_HOST) \
-	--set temporal.server.config.persistence.visibility.sql.database=$(TEMPORAL_VISIBILITY_DATABASE) \
-	--set temporal.server.config.persistence.visibility.sql.user=$(ZQD_AURORA_USER) \
-	--set temporal.server.config.persistence.visibility.sql.password=$(ZQD_AURORA_PW) \
-	--set temporal.server.config.persistence.visibility.sql.host=$(ZQD_AURORA_HOST)
 
 create-release-assets:
 	for os in darwin linux windows; do \
