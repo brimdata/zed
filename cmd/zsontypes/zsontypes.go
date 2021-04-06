@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var ZsonTypes = &charm.Spec{
@@ -73,7 +74,7 @@ func (c *Command) printTypes(fname string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("%s: %s\n", key, typ.ZSON())
+		fmt.Printf("%s: %s\n", key, zson.FormatType(typ))
 	}
 	return nil
 }

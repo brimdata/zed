@@ -89,16 +89,14 @@ func (c *Context) Lookup(id int) *zng.TypeRecord {
 func (c *Context) LookupTypeRecord(columns []zng.Column) (*zng.TypeRecord, error) {
 	// First check for duplicate columns
 	names := make(map[string]struct{})
-	var val struct{}
 	for _, col := range columns {
 		_, ok := names[col.Name]
 		if ok {
 			return nil, fmt.Errorf("duplicate field %s", col.Name)
 		}
-		names[col.Name] = val
+		names[col.Name] = struct{}{}
 	}
-	tmp := &zng.TypeRecord{Columns: columns}
-	key := tmp.ZSON()
+	key := FormatType(&zng.TypeRecord{Columns: columns})
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
@@ -119,8 +117,7 @@ func (c *Context) MustLookupTypeRecord(columns []zng.Column) *zng.TypeRecord {
 }
 
 func (c *Context) LookupTypeSet(inner zng.Type) *zng.TypeSet {
-	tmp := &zng.TypeSet{Type: inner}
-	key := tmp.ZSON()
+	key := FormatType(&zng.TypeSet{Type: inner})
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
@@ -132,8 +129,7 @@ func (c *Context) LookupTypeSet(inner zng.Type) *zng.TypeSet {
 }
 
 func (c *Context) LookupTypeMap(keyType, valType zng.Type) *zng.TypeMap {
-	tmp := &zng.TypeMap{KeyType: keyType, ValType: valType}
-	key := tmp.ZSON()
+	key := FormatType(&zng.TypeMap{KeyType: keyType, ValType: valType})
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
@@ -145,8 +141,7 @@ func (c *Context) LookupTypeMap(keyType, valType zng.Type) *zng.TypeMap {
 }
 
 func (c *Context) LookupTypeArray(inner zng.Type) *zng.TypeArray {
-	tmp := &zng.TypeArray{Type: inner}
-	key := tmp.ZSON()
+	key := FormatType(&zng.TypeArray{Type: inner})
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
@@ -158,8 +153,7 @@ func (c *Context) LookupTypeArray(inner zng.Type) *zng.TypeArray {
 }
 
 func (c *Context) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
-	tmp := zng.TypeUnion{Types: types}
-	key := tmp.ZSON()
+	key := FormatType(&zng.TypeUnion{Types: types})
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
@@ -171,8 +165,7 @@ func (c *Context) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
 }
 
 func (c *Context) LookupTypeEnum(elemType zng.Type, elements []zng.Element) *zng.TypeEnum {
-	tmp := zng.TypeEnum{Type: elemType, Elements: elements}
-	key := tmp.ZSON()
+	key := FormatType(&zng.TypeEnum{Type: elemType, Elements: elements})
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
@@ -271,7 +264,7 @@ func (c *Context) LookupByName(zson string) (zng.Type, error) {
 // TranslateType takes a type from another context and creates and returns that
 // type in this context.
 func (c *Context) TranslateType(ext zng.Type) (zng.Type, error) {
-	return c.LookupByName(ext.ZSON())
+	return c.LookupByName(FormatType(ext))
 }
 
 func (t *Context) TranslateTypeRecord(ext *zng.TypeRecord) (*zng.TypeRecord, error) {
@@ -286,7 +279,7 @@ func (t *Context) TranslateTypeRecord(ext *zng.TypeRecord) (*zng.TypeRecord, err
 }
 
 func (c *Context) enterWithLock(typ zng.Type) {
-	zson := typ.ZSON()
+	zson := FormatType(typ)
 	c.toBytes[typ] = zcode.Bytes(zson)
 	c.toType[zson] = typ
 	c.byID = append(c.byID, typ)
@@ -303,7 +296,7 @@ func (c *Context) LookupTypeValue(typ zng.Type) zng.Value {
 	// type that wasn't initially created in this context.
 	// In this case, it will work out fine since we round-trip
 	// through a string.
-	typ, err := c.LookupByName(typ.ZSON())
+	typ, err := c.LookupByName(FormatType(typ))
 	if err != nil {
 		// This really shouldn't happen...
 		return zng.Missing

@@ -3,7 +3,6 @@ package agg
 import (
 	"fmt"
 
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
 )
@@ -54,7 +53,7 @@ func (f *fuse) Result(zctx *resolver.Context) (zng.Value, error) {
 	for typ := range f.shapes {
 		schema.Mixin(typ)
 	}
-	return zng.Value{zng.TypeType, zcode.Bytes(schema.Type.ZSON())}, nil
+	return zctx.Context.LookupTypeValue(schema.Type), nil
 }
 
 func (f *fuse) ConsumeAsPartial(p zng.Value) error {

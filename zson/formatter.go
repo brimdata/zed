@@ -345,7 +345,7 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 	case *zng.TypeEnum:
 		return f.formatTypeEnum(typ)
 	case *zng.TypeOfType:
-		f.build(typ.ZSON())
+		formatType(&f.builder, make(typemap), typ)
 	default:
 		panic("unknown case in formatTypeBody(): " + typ.ZSON())
 	}
@@ -421,4 +421,75 @@ func (t typemap) known(typ zng.Type) bool {
 		return false
 	}
 	return typ.ID() < zng.IdTypeDef
+}
+
+// FormatType formats a type in canonical form to represent type values
+// as standalone entities.
+func FormatType(typ zng.Type) string {
+	var b strings.Builder
+	formatType(&b, make(typemap), typ)
+	return b.String()
+}
+
+func formatType(b *strings.Builder, typedefs typemap, typ zng.Type) {
+	if name, ok := typedefs[typ]; ok {
+		b.WriteString(name)
+		return
+	}
+	switch t := typ.(type) {
+	case *zng.TypeAlias:
+		name := t.Name
+		b.WriteString(name)
+		if _, ok := typedefs[typ]; !ok {
+			typedefs[typ] = name
+			b.WriteString("=(")
+			formatType(b, typedefs, t.Type)
+			b.WriteByte(')')
+		}
+	case *zng.TypeRecord:
+		b.WriteByte('{')
+		var sep string
+		for _, col := range t.Columns {
+			b.WriteString(sep)
+			b.WriteString(zng.QuotedName(col.Name))
+			b.WriteString(":")
+			formatType(b, typedefs, col.Type)
+			sep = ","
+		}
+		b.WriteByte('}')
+	case *zng.TypeArray:
+		b.WriteByte('[')
+		formatType(b, typedefs, t.Type)
+		b.WriteByte(']')
+	case *zng.TypeSet:
+		b.WriteString("|[")
+		formatType(b, typedefs, t.Type)
+		b.WriteString("]|")
+	case *zng.TypeMap:
+		b.WriteString("|{")
+		formatType(b, typedefs, t.KeyType)
+		b.WriteByte(',')
+		formatType(b, typedefs, t.ValType)
+		b.WriteString("}|")
+	case *zng.TypeUnion:
+		b.WriteByte('(')
+		var sep string
+		for _, typ := range t.Types {
+			b.WriteString(sep)
+			formatType(b, typedefs, typ)
+			sep = ","
+		}
+		b.WriteByte(')')
+	case *zng.TypeEnum:
+		b.WriteByte('<')
+		var sep string
+		for _, elem := range t.Elements {
+			b.WriteString(sep)
+			b.WriteString(zng.QuotedName(elem.Name))
+			sep = ","
+		}
+		b.WriteByte('>')
+	default:
+		b.WriteString(typ.ZSON())
+	}
 }

@@ -30,4 +30,4 @@ outputs:
       {typeof:({metric:string,ts:time,value:float64})}
       {typeof:(access_list=({info:string,nets:[net]}))}
       {typeof:({metric:string,ts:time,value:{x:int64,y:int64}})}
-      {typeof:(conn=({info:string,src:socket=({addr:ip,port:uint16}),dst:socket=({addr:ip,port:uint16})}))}
+      {typeof:(conn=({info:string,src:socket=({addr:ip,port:uint16}),dst:socket}))}

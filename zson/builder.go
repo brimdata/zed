@@ -249,6 +249,6 @@ func (b *Builder) buildEnum(enum *Enum) error {
 }
 
 func (b *Builder) buildTypeValue(tv *TypeValue) error {
-	b.AppendPrimitive(zcode.Bytes(tv.Value.ZSON()))
+	b.AppendPrimitive(zcode.Bytes(FormatType(tv.Value)))
 	return nil
 }
