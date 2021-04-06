@@ -6,7 +6,6 @@ ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X github.com/brimdata/zed/cli.Version=$(VERSION)
 MINIO_VERSION := 0.0.0-20201211152140-453ab257caf5
-TEMPORAL_VERSION := 1.6.3
 ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))["brimDependencies"]["zeekTag"])')
 ZEEKPATH = zeek-$(ZEEKTAG)
 SURICATATAG := $(shell python -c 'import json; print(json.load(open("package.json"))["brimDependencies"]["suricataTag"])')
@@ -43,16 +42,6 @@ $(SAMPLEDATA):
 	git clone --depth=1 https://github.com/brimdata/zed-sample-data $(@D)
 
 sampledata: $(SAMPLEDATA)
-
-.PHONY: bin/tctl
-bin/tctl: bin/tctl-$(TEMPORAL_VERSION)
-	ln -fs $(<F) $@
-
-bin/tctl-$(TEMPORAL_VERSION):
-	mkdir -p $(@D)
-	echo 'module deps' > $@.mod
-	go get -d -modfile=$@.mod go.temporal.io/server/cmd/tools/cli@v$(TEMPORAL_VERSION)
-	go build -modfile=$@.mod -o $@ go.temporal.io/server/cmd/tools/cli
 
 bin/$(ZEEKPATH):
 	@mkdir -p bin
@@ -102,32 +91,21 @@ test-pcapingest: bin/$(ZEEKPATH)
 	@ZEEK="$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner" go test -run=PcapPost -tags=pcapingest ./ppl/zqd
 
 .PHONY: test-services
-test-services: build bin/tctl
+test-services: build
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
 		go test -run TestZed/ppl/zqd/db/postgresdb/ztests .
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
 		go test -run TestZed/ppl/zqd/ztests/redis .
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
-		ZTEST_TAG=services \
-		go test -run TestZed/ppl/zqd/temporal/ztests .
 
 .PHONY: test-services-docker
-test-services-docker: export TEMPORAL_VERSION := $(TEMPORAL_VERSION)
 test-services-docker:
 	@docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
 	$(MAKE) test-services; \
 		status=$$?; \
 		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
 		exit $$status
-
-# test-temporal target assumes zqd-temporal endpoint is available at port 9868
-.PHONY: test-temporal
-test-temporal: build install
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
-		ZTEST_TAG=temporal \
-		go test -run TestZed/ppl/zqd/temporal/ztests .
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh

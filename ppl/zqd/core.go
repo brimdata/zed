@@ -18,13 +18,10 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/db"
 	"github.com/brimdata/zed/ppl/zqd/pcapanalyzer"
 	"github.com/brimdata/zed/ppl/zqd/recruiter"
-	"github.com/brimdata/zed/ppl/zqd/temporal"
 	"github.com/brimdata/zed/ppl/zqd/worker"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.temporal.io/sdk/client"
-	sdkworker "go.temporal.io/sdk/worker"
 	"go.uber.org/zap"
 )
 
@@ -48,7 +45,6 @@ type Config struct {
 	Personality    string
 	Redis          RedisConfig
 	Root           string
-	Temporal       temporal.Config
 	Version        string
 	Worker         worker.WorkerConfig
 
@@ -57,19 +53,17 @@ type Config struct {
 }
 
 type Core struct {
-	auth           *Auth0Authenticator
-	conf           Config
-	logger         *zap.Logger
-	mgr            *apiserver.Manager
-	registry       *prometheus.Registry
-	root           iosrc.URI
-	routerAPI      *mux.Router
-	routerAux      *mux.Router
-	taskCount      int64
-	temporalClient client.Client
-	temporalWorker sdkworker.Worker
-	workerPool     *recruiter.WorkerPool     // state for personality=recruiter
-	workerReg      *worker.RegistrationState // state for personality=worker
+	auth       *Auth0Authenticator
+	conf       Config
+	logger     *zap.Logger
+	mgr        *apiserver.Manager
+	registry   *prometheus.Registry
+	root       iosrc.URI
+	routerAPI  *mux.Router
+	routerAux  *mux.Router
+	taskCount  int64
+	workerPool *recruiter.WorkerPool     // state for personality=recruiter
+	workerReg  *worker.RegistrationState // state for personality=worker
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
@@ -130,19 +124,10 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	}
 
 	switch conf.Personality {
-	case "all", "apiserver", "root", "temporal":
+	case "all", "apiserver", "root":
 		if err := c.initManager(ctx); err != nil {
 			c.Shutdown()
 			return nil, err
-		}
-	}
-	if conf.Temporal.Enabled {
-		switch conf.Personality {
-		case "all", "temporal":
-			if err := c.startTemporalWorker(); err != nil {
-				c.Shutdown()
-				return nil, err
-			}
 		}
 	}
 	var startFields []zap.Field
@@ -159,8 +144,6 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	case "recruiter":
 		c.workerPool = recruiter.NewWorkerPool()
 		c.addRecruiterRoutes()
-	case "temporal":
-		// temporal is a valid personality without additional routes
 	case "worker":
 		c.addWorkerRoutes()
 	default:
@@ -233,26 +216,8 @@ func (c *Core) initManager(ctx context.Context) (err error) {
 	if err != nil {
 		return err
 	}
-	var notifier apiserver.Notifier
-	if c.conf.Temporal.Enabled {
-		notifier, err = temporal.NewNotifier(c.conf.Logger, c.conf.Temporal)
-		if err != nil {
-			return err
-		}
-	}
-	c.mgr, err = apiserver.NewManager(ctx, c.conf.Logger, notifier, c.registry, c.root, db, icache)
+	c.mgr, err = apiserver.NewManager(ctx, c.conf.Logger, nil, c.registry, c.root, db, icache)
 	return err
-}
-
-func (c *Core) startTemporalWorker() error {
-	var err error
-	c.temporalClient, err = temporal.NewClient(c.conf.Logger.Named("temporal"), c.conf.Temporal)
-	if err != nil {
-		return err
-	}
-	c.temporalWorker = sdkworker.New(c.temporalClient, temporal.TaskQueue, sdkworker.Options{})
-	temporal.InitSpaceWorkflow(c.conf.Temporal, c.mgr, c.temporalWorker)
-	return c.temporalWorker.Start()
 }
 
 func (c *Core) handler(f func(*Core, http.ResponseWriter, *http.Request)) http.Handler {
@@ -297,12 +262,6 @@ func (c *Core) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Core) Shutdown() {
-	if c.temporalWorker != nil {
-		c.temporalWorker.Stop()
-	}
-	if c.temporalClient != nil {
-		c.temporalClient.Close()
-	}
 	if c.mgr != nil {
 		c.mgr.Shutdown()
 	}
