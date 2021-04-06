@@ -61,10 +61,7 @@ diff baseline.zson boomerang.zson
 	if err != nil {
 		t.Fatal(err)
 	}
-	shellPath, err := ztest.ShellPath()
-	if err != nil {
-		t.Fatal(err)
-	}
+	shellPath := ztest.ShellPath()
 	for _, b := range bundles {
 		b := b
 		t.Run(b.TestName, func(t *testing.T) {
@@ -157,10 +154,7 @@ diff baseline.parquet boomerang.parquet
 	if err != nil {
 		t.Fatal(err)
 	}
-	shellPath, err := ztest.ShellPath()
-	if err != nil {
-		t.Fatal(err)
-	}
+	shellPath := ztest.ShellPath()
 	for _, b := range bundles {
 		b := b
 		t.Run(b.TestName, func(t *testing.T) {
