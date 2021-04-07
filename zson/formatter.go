@@ -353,42 +353,42 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 }
 
 func (f *Formatter) formatTypeRecord(typ *zng.TypeRecord) {
-	var sep string
 	f.build("{")
-	for _, col := range typ.Columns {
-		f.build(sep)
+	for k, col := range typ.Columns {
+		if k > 0 {
+			f.build(",")
+		}
 		f.build(zng.QuotedName(col.Name))
 		f.build(":")
 		f.formatType(col.Type)
-		sep = ","
 	}
 	f.build("}")
 }
 
 func (f *Formatter) formatTypeUnion(typ *zng.TypeUnion) {
-	var sep string
 	f.build("(")
-	for _, typ := range typ.Types {
-		f.build(sep)
+	for k, typ := range typ.Types {
+		if k > 0 {
+			f.build(",")
+		}
 		f.formatType(typ)
-		sep = ","
 	}
 	f.build(")")
 }
 
 func (f *Formatter) formatTypeEnum(typ *zng.TypeEnum) error {
-	var sep string
 	f.build("<")
 	inner := typ.Type
 	for k, elem := range typ.Elements {
-		f.build(sep)
+		if k > 0 {
+			f.build(",")
+		}
 		f.buildf("%s:", zng.QuotedName(elem.Name))
 		known := k != 0
 		const parentImplied = true
 		if err := f.formatValue(0, inner, elem.Value, known, parentImplied, true); err != nil {
 			return err
 		}
-		sep = ","
 	}
 	f.build(">")
 	return nil
@@ -448,13 +448,13 @@ func formatType(b *strings.Builder, typedefs typemap, typ zng.Type) {
 		}
 	case *zng.TypeRecord:
 		b.WriteByte('{')
-		var sep string
-		for _, col := range t.Columns {
-			b.WriteString(sep)
+		for k, col := range t.Columns {
+			if k > 0 {
+				b.WriteByte(',')
+			}
 			b.WriteString(zng.QuotedName(col.Name))
 			b.WriteString(":")
 			formatType(b, typedefs, col.Type)
-			sep = ","
 		}
 		b.WriteByte('}')
 	case *zng.TypeArray:
@@ -473,20 +473,20 @@ func formatType(b *strings.Builder, typedefs typemap, typ zng.Type) {
 		b.WriteString("}|")
 	case *zng.TypeUnion:
 		b.WriteByte('(')
-		var sep string
-		for _, typ := range t.Types {
-			b.WriteString(sep)
+		for k, typ := range t.Types {
+			if k > 0 {
+				b.WriteByte(',')
+			}
 			formatType(b, typedefs, typ)
-			sep = ","
 		}
 		b.WriteByte(')')
 	case *zng.TypeEnum:
 		b.WriteByte('<')
-		var sep string
-		for _, elem := range t.Elements {
-			b.WriteString(sep)
+		for k, elem := range t.Elements {
+			if k > 0 {
+				b.WriteByte(',')
+			}
 			b.WriteString(zng.QuotedName(elem.Name))
-			sep = ","
 		}
 		b.WriteByte('>')
 	default:
