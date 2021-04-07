@@ -345,7 +345,7 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 	case *zng.TypeEnum:
 		return f.formatTypeEnum(typ)
 	case *zng.TypeOfType:
-		f.build(typ.ZSON())
+		formatType(&f.builder, make(typemap), typ)
 	default:
 		panic("unknown case in formatTypeBody(): " + typ.ZSON())
 	}
@@ -353,42 +353,42 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 }
 
 func (f *Formatter) formatTypeRecord(typ *zng.TypeRecord) {
-	var sep string
 	f.build("{")
-	for _, col := range typ.Columns {
-		f.build(sep)
+	for k, col := range typ.Columns {
+		if k > 0 {
+			f.build(",")
+		}
 		f.build(zng.QuotedName(col.Name))
 		f.build(":")
 		f.formatType(col.Type)
-		sep = ","
 	}
 	f.build("}")
 }
 
 func (f *Formatter) formatTypeUnion(typ *zng.TypeUnion) {
-	var sep string
 	f.build("(")
-	for _, typ := range typ.Types {
-		f.build(sep)
+	for k, typ := range typ.Types {
+		if k > 0 {
+			f.build(",")
+		}
 		f.formatType(typ)
-		sep = ","
 	}
 	f.build(")")
 }
 
 func (f *Formatter) formatTypeEnum(typ *zng.TypeEnum) error {
-	var sep string
 	f.build("<")
 	inner := typ.Type
 	for k, elem := range typ.Elements {
-		f.build(sep)
+		if k > 0 {
+			f.build(",")
+		}
 		f.buildf("%s:", zng.QuotedName(elem.Name))
 		known := k != 0
 		const parentImplied = true
 		if err := f.formatValue(0, inner, elem.Value, known, parentImplied, true); err != nil {
 			return err
 		}
-		sep = ","
 	}
 	f.build(">")
 	return nil
@@ -421,4 +421,75 @@ func (t typemap) known(typ zng.Type) bool {
 		return false
 	}
 	return typ.ID() < zng.IdTypeDef
+}
+
+// FormatType formats a type in canonical form to represent type values
+// as standalone entities.
+func FormatType(typ zng.Type) string {
+	var b strings.Builder
+	formatType(&b, make(typemap), typ)
+	return b.String()
+}
+
+func formatType(b *strings.Builder, typedefs typemap, typ zng.Type) {
+	if name, ok := typedefs[typ]; ok {
+		b.WriteString(name)
+		return
+	}
+	switch t := typ.(type) {
+	case *zng.TypeAlias:
+		name := t.Name
+		b.WriteString(name)
+		if _, ok := typedefs[typ]; !ok {
+			typedefs[typ] = name
+			b.WriteString("=(")
+			formatType(b, typedefs, t.Type)
+			b.WriteByte(')')
+		}
+	case *zng.TypeRecord:
+		b.WriteByte('{')
+		for k, col := range t.Columns {
+			if k > 0 {
+				b.WriteByte(',')
+			}
+			b.WriteString(zng.QuotedName(col.Name))
+			b.WriteString(":")
+			formatType(b, typedefs, col.Type)
+		}
+		b.WriteByte('}')
+	case *zng.TypeArray:
+		b.WriteByte('[')
+		formatType(b, typedefs, t.Type)
+		b.WriteByte(']')
+	case *zng.TypeSet:
+		b.WriteString("|[")
+		formatType(b, typedefs, t.Type)
+		b.WriteString("]|")
+	case *zng.TypeMap:
+		b.WriteString("|{")
+		formatType(b, typedefs, t.KeyType)
+		b.WriteByte(',')
+		formatType(b, typedefs, t.ValType)
+		b.WriteString("}|")
+	case *zng.TypeUnion:
+		b.WriteByte('(')
+		for k, typ := range t.Types {
+			if k > 0 {
+				b.WriteByte(',')
+			}
+			formatType(b, typedefs, typ)
+		}
+		b.WriteByte(')')
+	case *zng.TypeEnum:
+		b.WriteByte('<')
+		for k, elem := range t.Elements {
+			if k > 0 {
+				b.WriteByte(',')
+			}
+			b.WriteString(zng.QuotedName(elem.Name))
+		}
+		b.WriteByte('>')
+	default:
+		b.WriteString(typ.ZSON())
+	}
 }
