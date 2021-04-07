@@ -169,41 +169,6 @@ func TestRawCompressed(t *testing.T) {
 	boomerang(t, tzngBig(), true)
 }
 
-const ctrl = `
-#!message1
-#0:record[id:record[a:string,s:set[string]]]
-#!message2
-0:[[-;[]]]
-#!message3
-#!message4`
-
-func TestCtrl(t *testing.T) {
-	// this tests reading of control via text zng,
-	// then writing of raw control, and reading back the result
-	in := []byte(strings.TrimSpace(ctrl) + "\n")
-	r := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
-
-	_, body, err := r.ReadPayload()
-	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message1"))
-
-	_, body, err = r.ReadPayload()
-	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message2"))
-
-	_, body, err = r.ReadPayload()
-	assert.NoError(t, err)
-	assert.True(t, body == nil)
-
-	_, body, err = r.ReadPayload()
-	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message3"))
-
-	_, body, err = r.ReadPayload()
-	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message4"))
-}
-
 func TestZjson(t *testing.T) {
 	boomerangZJSON(t, tzng1)
 	boomerangZJSON(t, tzng2)
