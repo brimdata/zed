@@ -25,17 +25,6 @@ func (o *Output) Close() error {
 	return nil
 }
 
-func identity(t *testing.T, logs string) {
-	var out Output
-	dst := tzngio.NewWriter(&out)
-	in := []byte(strings.TrimSpace(logs) + "\n")
-	src := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
-	err := zbuf.Copy(dst, src)
-	if assert.NoError(t, err) {
-		assert.Equal(t, in, out.Bytes())
-	}
-}
-
 // Send logs to tzng reader -> zng writer -> zng reader -> tzng writer
 func boomerang(t *testing.T, logs string, compress bool) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
@@ -131,18 +120,6 @@ func tzngBig() string {
 	s += repeat('c', 30000) + ";"
 	s += repeat('d', 2) + ";]\n"
 	return s
-}
-
-func TestTzng(t *testing.T) {
-	identity(t, tzng1)
-	identity(t, tzng2)
-	identity(t, tzng3)
-	identity(t, tzng4)
-	identity(t, tzng5)
-	identity(t, tzng6)
-	identity(t, tzng7)
-	identity(t, tzng8)
-	identity(t, tzngBig())
 }
 
 func TestRaw(t *testing.T) {
