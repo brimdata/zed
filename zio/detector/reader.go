@@ -12,22 +12,21 @@ import (
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 )
 
-func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zio.ReaderOpts) (zbuf.Reader, error) {
+func NewReaderWithOpts(r io.Reader, zctx *zson.Context, path string, opts zio.ReaderOpts) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
-	tzngErr := match(tzngio.NewReader(track, resolver.NewContext()), "tzng")
+	tzngErr := match(tzngio.NewReader(track, zson.NewContext()), "tzng")
 	if tzngErr == nil {
 		return tzngio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 
-	zr, err := zeekio.NewReader(track, resolver.NewContext())
+	zr, err := zeekio.NewReader(track, zson.NewContext())
 	if err != nil {
 		return nil, err
 	}
@@ -38,7 +37,7 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	track.Reset()
 
 	// zjson must come before ndjson since zjson is a subset of ndjson
-	zjsonErr := match(zjsonio.NewReader(track, resolver.NewContext()), "zjson")
+	zjsonErr := match(zjsonio.NewReader(track, zson.NewContext()), "zjson")
 	if zjsonErr == nil {
 		return zjsonio.NewReader(recorder, zctx), nil
 	}
@@ -53,7 +52,7 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	ndjsonErr := errors.New("no json type config: ndjson detector skipped")
 	if opts.JSON.TypeConfig != nil {
 		// ndjson must come after zjson since zjson is a subset of ndjson
-		nr, err := ndjsonio.NewReader(track, resolver.NewContext(), opts.JSON, path)
+		nr, err := ndjsonio.NewReader(track, zson.NewContext(), opts.JSON, path)
 		if err != nil {
 			return nil, err
 		}
@@ -70,15 +69,15 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	}
 
 	// ZSON comes after NDJSON since ZSON is a superset of JSON.
-	zsonErr := match(zson.NewReader(track, resolver.NewContext().Context), "zson")
+	zsonErr := match(zson.NewReader(track, zson.NewContext()), "zson")
 	if zsonErr == nil {
-		return zson.NewReader(recorder, zctx.Context), nil
+		return zson.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 
 	zngOpts := opts.Zng
 	zngOpts.Validate = true
-	zngErr := match(zngio.NewReaderWithOpts(track, resolver.NewContext(), zngOpts), "zng")
+	zngErr := match(zngio.NewReaderWithOpts(track, zson.NewContext(), zngOpts), "zng")
 	if zngErr == nil {
 		return zngio.NewReaderWithOpts(recorder, zctx, opts.Zng), nil
 	}
@@ -88,7 +87,7 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	// for "strict" mode.  See issue #2316.
 	//csvErr := match(csvio.NewReader(track, zson.NewContext()), "csv")
 	//if csvErr == nil {
-	//	return csvio.NewReader(recorder, zctx.Context), nil
+	//	return csvio.NewReader(recorder, Context), nil
 	//}
 	//track.Reset()
 
@@ -97,7 +96,7 @@ func NewReaderWithOpts(r io.Reader, zctx *resolver.Context, path string, opts zi
 	return nil, joinErrs([]error{tzngErr, zeekErr, ndjsonErr, zjsonErr, zsonErr, zngErr, parquetErr, zstErr})
 }
 
-func NewReader(r io.Reader, zctx *resolver.Context) (zbuf.Reader, error) {
+func NewReader(r io.Reader, zctx *zson.Context) (zbuf.Reader, error) {
 	return NewReaderWithOpts(r, zctx, "", zio.ReaderOpts{})
 }
 

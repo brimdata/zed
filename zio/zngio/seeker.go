@@ -3,7 +3,7 @@ package zngio
 import (
 	"io"
 
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Seeker struct {
@@ -11,11 +11,11 @@ type Seeker struct {
 	seeker io.ReadSeeker
 }
 
-func NewSeeker(s io.ReadSeeker, zctx *resolver.Context) *Seeker {
+func NewSeeker(s io.ReadSeeker, zctx *zson.Context) *Seeker {
 	return NewSeekerWithSize(s, zctx, ReadSize)
 }
 
-func NewSeekerWithSize(s io.ReadSeeker, zctx *resolver.Context, framesize int) *Seeker {
+func NewSeekerWithSize(s io.ReadSeeker, zctx *zson.Context, framesize int) *Seeker {
 	return &Seeker{
 		Reader: *NewReaderWithOpts(s, zctx, ReaderOpts{Size: framesize}),
 		seeker: s,

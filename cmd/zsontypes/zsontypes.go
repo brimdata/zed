@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed/zio/ndjsonio/compat"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -50,7 +49,7 @@ func (c *Command) printTypes(fname string) error {
 	if err != nil {
 		return err
 	}
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	// (from ndjson.io.NewReader)
 	// Note: we add hardwired aliases for "port" to "uint16" when reading
 	// *any* json file but they are only used when the schema mapper

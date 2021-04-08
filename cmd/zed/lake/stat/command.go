@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var Stat = &charm.Spec{
@@ -68,7 +68,7 @@ func (c *Command) Run(args []string) (err error) {
 		}
 	}()
 
-	rc, err := lake.Stat(context.Background(), resolver.NewContext(), lk)
+	rc, err := lake.Stat(context.Background(), zson.NewContext(), lk)
 	if err != nil {
 		return err
 	}

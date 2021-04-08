@@ -8,13 +8,13 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var _ proc.Function = (*Function)(nil)
 
 type Function struct {
-	zctx *resolver.Context
+	zctx *zson.Context
 	// For the dst field name, we just store the leaf name since the
 	// src path and the dst path are the same and only differ in the leaf name.
 	srcs    []field.Static
@@ -22,7 +22,7 @@ type Function struct {
 	typeMap map[int]*zng.TypeRecord
 }
 
-func NewFunction(zctx *resolver.Context, srcs, dsts []field.Static) *Function {
+func NewFunction(zctx *zson.Context, srcs, dsts []field.Static) *Function {
 	return &Function{zctx, srcs, dsts, make(map[int]*zng.TypeRecord)}
 }
 

@@ -7,7 +7,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 func encodeTypeAny(in zng.Type) joe.Interface {
@@ -90,7 +90,7 @@ func encodeTypes(in []zng.Type) joe.Array {
 	return types
 }
 
-func decodeType(zctx *resolver.Context, typ joe.String, of joe.Interface) (zng.Type, error) {
+func decodeType(zctx *zson.Context, typ joe.String, of joe.Interface) (zng.Type, error) {
 	switch typ {
 	case "record":
 		return decodeTypeColumns(zctx, of)
@@ -118,7 +118,7 @@ func decodeType(zctx *resolver.Context, typ joe.String, of joe.Interface) (zng.T
 	}
 }
 
-func decodeTypeRecord(zctx *resolver.Context, v joe.Interface) (*zng.TypeRecord, error) {
+func decodeTypeRecord(zctx *zson.Context, v joe.Interface) (*zng.TypeRecord, error) {
 	typ, err := decodeTypeAny(zctx, v)
 	if err != nil {
 		return nil, err
@@ -129,7 +129,7 @@ func decodeTypeRecord(zctx *resolver.Context, v joe.Interface) (*zng.TypeRecord,
 	return nil, errors.New("not a record type")
 }
 
-func decodeTypeColumns(zctx *resolver.Context, of joe.Interface) (*zng.TypeRecord, error) {
+func decodeTypeColumns(zctx *zson.Context, of joe.Interface) (*zng.TypeRecord, error) {
 	cols, ok := of.(joe.Array)
 	if !ok {
 		return nil, errors.New("zjson record columns not an array")
@@ -157,7 +157,7 @@ func decodeTypeColumns(zctx *resolver.Context, of joe.Interface) (*zng.TypeRecor
 	return zctx.LookupTypeRecord(columns)
 }
 
-func decodeTypeUnion(zctx *resolver.Context, of joe.Interface) (*zng.TypeUnion, error) {
+func decodeTypeUnion(zctx *zson.Context, of joe.Interface) (*zng.TypeUnion, error) {
 	cols, ok := of.(joe.Array)
 	if !ok {
 		return nil, errors.New("zjson union type not an array")
@@ -173,7 +173,7 @@ func decodeTypeUnion(zctx *resolver.Context, of joe.Interface) (*zng.TypeUnion, 
 	return zctx.LookupTypeUnion(types), nil
 }
 
-func decodeTypeMap(zctx *resolver.Context, of joe.Interface) (*zng.TypeMap, error) {
+func decodeTypeMap(zctx *zson.Context, of joe.Interface) (*zng.TypeMap, error) {
 	items, ok := of.(joe.Array)
 	if !ok {
 		return nil, errors.New("zjson map type not an array")
@@ -192,7 +192,7 @@ func decodeTypeMap(zctx *resolver.Context, of joe.Interface) (*zng.TypeMap, erro
 	return zctx.LookupTypeMap(keyType, valType), nil
 }
 
-func decodeTypeEnum(zctx *resolver.Context, of joe.Interface) (*zng.TypeEnum, error) {
+func decodeTypeEnum(zctx *zson.Context, of joe.Interface) (*zng.TypeEnum, error) {
 	items, ok := of.(joe.Array)
 	if !ok {
 		return nil, errors.New("zjson enum type not an array")
@@ -241,7 +241,7 @@ func decodeEnumElement(typ zng.Type, object joe.Object) (zng.Element, error) {
 	return zng.Element{sname, zv}, nil
 }
 
-func decodeTypeObj(zctx *resolver.Context, in joe.Object) (zng.Type, error) {
+func decodeTypeObj(zctx *zson.Context, in joe.Object) (zng.Type, error) {
 	typ, err := in.GetString("type")
 	if err != nil {
 		return nil, err
@@ -250,7 +250,7 @@ func decodeTypeObj(zctx *resolver.Context, in joe.Object) (zng.Type, error) {
 	return decodeType(zctx, joe.String(typ), of)
 }
 
-func decodeTypeAny(zctx *resolver.Context, in joe.Interface) (zng.Type, error) {
+func decodeTypeAny(zctx *zson.Context, in joe.Interface) (zng.Type, error) {
 	s, ok := in.(joe.String)
 	if ok {
 		t, err := zctx.LookupByName(string(s))

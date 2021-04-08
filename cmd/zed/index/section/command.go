@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var Section = &charm.Spec{
@@ -55,7 +55,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zed index section: must be run with a single path argument")
 	}
 	path := args[0]
-	reader, err := index.NewReader(resolver.NewContext(), path)
+	reader, err := index.NewReader(zson.NewContext(), path)
 	if err != nil {
 		return err
 	}

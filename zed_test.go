@@ -10,7 +10,7 @@ import (
 
 	"github.com/brimdata/zed/zio/detector"
 	"github.com/brimdata/zed/zio/parquetio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/require"
 )
@@ -125,7 +125,7 @@ func expectFailure(b ztest.Bundle) bool {
 }
 
 func isValidForZson(input string) bool {
-	r, err := detector.NewReader(strings.NewReader(input), resolver.NewContext())
+	r, err := detector.NewReader(strings.NewReader(input), zson.NewContext())
 	if err != nil {
 		return false
 	}
@@ -178,7 +178,7 @@ diff baseline.parquet boomerang.parquet
 }
 
 func isValidForParquet(input string) bool {
-	r, err := detector.NewReader(strings.NewReader(input), resolver.NewContext())
+	r, err := detector.NewReader(strings.NewReader(input), zson.NewContext())
 	if err != nil {
 		return false
 	}

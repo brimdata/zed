@@ -18,7 +18,6 @@ import (
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zio/zstio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -32,7 +31,7 @@ func (*nullWriter) Close() error {
 	return nil
 }
 
-func LookupWriter(w io.WriteCloser, zctx *resolver.Context, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
+func LookupWriter(w io.WriteCloser, zctx *zson.Context, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
 	if opts.Format == "" {
 		opts.Format = "tzng"
 	}
@@ -69,10 +68,10 @@ func LookupWriter(w io.WriteCloser, zctx *resolver.Context, opts zio.WriterOpts)
 	}
 }
 
-func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts zio.ReaderOpts) (zbuf.Reader, error) {
+func lookupReader(r io.Reader, zctx *zson.Context, path string, opts zio.ReaderOpts) (zbuf.Reader, error) {
 	switch opts.Format {
 	case "csv":
-		return csvio.NewReader(r, zctx.Context), nil
+		return csvio.NewReader(r, zctx), nil
 	case "tzng":
 		return tzngio.NewReader(r, zctx), nil
 	case "zeek":
@@ -84,7 +83,7 @@ func lookupReader(r io.Reader, zctx *resolver.Context, path string, opts zio.Rea
 	case "zng":
 		return zngio.NewReaderWithOpts(r, zctx, opts.Zng), nil
 	case "zson":
-		return zson.NewReader(r, zctx.Context), nil
+		return zson.NewReader(r, zctx), nil
 	case "zst":
 		return zstio.NewReader(r, zctx)
 	case "parquet":

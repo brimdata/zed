@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -23,7 +24,7 @@ type Metadata struct {
 }
 
 func UnmarshalMetadata(b []byte, order zbuf.Order) (Metadata, error) {
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	zr := zngio.NewReader(bytes.NewReader(b), zctx)
 	rec, err := zr.Read()
 	if err != nil {

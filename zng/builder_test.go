@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,13 +22,13 @@ const builder = `
 2:[7;-;]`
 
 func TestBuilder(t *testing.T) {
-	r := tzngio.NewReader(strings.NewReader(builder), resolver.NewContext())
+	r := tzngio.NewReader(strings.NewReader(builder), zson.NewContext())
 	r0, _ := r.Read()
 	r1, _ := r.Read()
 	r2, _ := r.Read()
 	//r3, _ := r.Read()
 
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 
 	t0, err := zctx.LookupTypeRecord([]zng.Column{
 		{"key", zng.TypeIP},

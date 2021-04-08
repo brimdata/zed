@@ -13,7 +13,7 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var Find = &charm.Spec{
@@ -119,7 +119,7 @@ func (c *Command) Run(args []string) error {
 	hits := make(chan *zng.Record)
 	var searchErr error
 	go func() {
-		searchErr = lake.Find(ctx, resolver.NewContext(), lk, query, hits, findOptions...)
+		searchErr = lake.Find(ctx, zson.NewContext(), lk, query, hits, findOptions...)
 		close(hits)
 	}()
 	for hit := range hits {

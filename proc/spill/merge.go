@@ -9,7 +9,7 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 // MergeSort manages "runs" (files of sorted zng records) that are spilled to
@@ -21,7 +21,7 @@ type MergeSort struct {
 	compareFn expr.CompareFn
 	tempDir   string
 	spillSize int64
-	zctx      *resolver.Context
+	zctx      *zson.Context
 }
 
 const TempPrefix = "zq-spill-"
@@ -45,7 +45,7 @@ func NewMergeSort(compareFn expr.CompareFn) (*MergeSort, error) {
 	return &MergeSort{
 		compareFn: compareFn,
 		tempDir:   tempDir,
-		zctx:      resolver.NewContext(),
+		zctx:      zson.NewContext(),
 	}, nil
 }
 

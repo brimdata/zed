@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Writer struct {
@@ -181,6 +181,6 @@ func (w *Writer) writeValue(v zng.Value) error {
 }
 
 func WriteString(w zbuf.Writer, s string) error {
-	r := NewReader(strings.NewReader(s), resolver.NewContext())
+	r := NewReader(strings.NewReader(s), zson.NewContext())
 	return zbuf.Copy(w, r)
 }

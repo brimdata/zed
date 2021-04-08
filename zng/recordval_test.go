@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -84,7 +84,7 @@ const in = `
 `
 
 func TestRecordAccessAlias(t *testing.T) {
-	reader := tzngio.NewReader(strings.NewReader(in), resolver.NewContext())
+	reader := tzngio.NewReader(strings.NewReader(in), zson.NewContext())
 	rec, err := reader.Read()
 	require.NoError(t, err)
 	s, err := rec.AccessString("foo")
@@ -107,7 +107,7 @@ func TestRecordTs(t *testing.T) {
 	}
 	for _, c := range cases {
 		input := fmt.Sprintf("#0:%s\n0:%s\n", c.typ, c.val)
-		zr := tzngio.NewReader(strings.NewReader(input), resolver.NewContext())
+		zr := tzngio.NewReader(strings.NewReader(input), zson.NewContext())
 		rec, err := zr.Read()
 		assert.NoError(t, err)
 		require.NotNil(t, rec)

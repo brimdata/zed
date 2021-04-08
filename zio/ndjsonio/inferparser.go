@@ -11,12 +11,12 @@ import (
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/builder"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/buger/jsonparser"
 )
 
 type inferParser struct {
-	zctx *resolver.Context
+	zctx *zson.Context
 }
 
 func (p *inferParser) parseObject(b []byte) (zng.Value, error) {

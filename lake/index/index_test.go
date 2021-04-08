@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -62,7 +61,7 @@ func TestWriteIndices(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Find-%s-%t", test.def.Kind, test.has), func(t *testing.T) {
-			reader, err := Find(ctx, resolver.NewContext(), dir, test.def.ID, test.pattern)
+			reader, err := Find(ctx, zson.NewContext(), dir, test.def.ID, test.pattern)
 			require.NoError(t, err)
 			recs, err := zbuf.ReadAll(reader)
 			require.NoError(t, err)
@@ -83,7 +82,7 @@ func TestFindTypeRule(t *testing.T) {
 	err := zbuf.Copy(w, babbleReader(t))
 	require.NoError(t, err)
 	require.NoError(t, w.Close())
-	reader, err := FindFromPath(context.Background(), resolver.NewContext(), w.URI, "456")
+	reader, err := FindFromPath(context.Background(), zson.NewContext(), w.URI, "456")
 	require.NoError(t, err)
 	recs, err := zbuf.ReadAll(reader)
 	require.NoError(t, err)
@@ -105,7 +104,7 @@ func TestZQLRule(t *testing.T) {
 	err = zbuf.Copy(w, babbleReader(t))
 	require.NoError(t, err)
 	require.NoError(t, w.Close())
-	reader, err := FindFromPath(context.Background(), resolver.NewContext(), w.URI, "kartometer-trifocal")
+	reader, err := FindFromPath(context.Background(), zson.NewContext(), w.URI, "kartometer-trifocal")
 	require.NoError(t, err)
 	recs, err := zbuf.ReadAll(reader)
 	require.NoError(t, err)

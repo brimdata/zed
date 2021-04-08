@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 const (
@@ -24,7 +24,7 @@ type Reader struct {
 	zngio.Seeker
 	reader     iosrc.Reader
 	path       iosrc.URI
-	zctx       *resolver.Context
+	zctx       *zson.Context
 	size       int64
 	trailer    *Trailer
 	trailerLen int
@@ -35,7 +35,7 @@ type Reader struct {
 // Seek() may be called on this Reader.  Any call to Seek() must be to
 // an offset that begins a new zng stream (e.g., beginning of file or
 // the data immediately following an end-of-stream code)
-func NewReader(zctx *resolver.Context, path string) (*Reader, error) {
+func NewReader(zctx *zson.Context, path string) (*Reader, error) {
 	uri, err := iosrc.ParseURI(path)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func NewReader(zctx *resolver.Context, path string) (*Reader, error) {
 	return NewReaderFromURI(context.Background(), zctx, uri)
 }
 
-func NewReaderWithContext(ctx context.Context, zctx *resolver.Context, path string) (*Reader, error) {
+func NewReaderWithContext(ctx context.Context, zctx *zson.Context, path string) (*Reader, error) {
 	uri, err := iosrc.ParseURI(path)
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func NewReaderWithContext(ctx context.Context, zctx *resolver.Context, path stri
 	return NewReaderFromURI(ctx, zctx, uri)
 }
 
-func NewReaderFromURI(ctx context.Context, zctx *resolver.Context, uri iosrc.URI) (*Reader, error) {
+func NewReaderFromURI(ctx context.Context, zctx *zson.Context, uri iosrc.URI) (*Reader, error) {
 	r, err := iosrc.NewReader(ctx, uri)
 	if err != nil {
 		return nil, err

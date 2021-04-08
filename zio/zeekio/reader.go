@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/skim"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 const (
@@ -20,7 +20,7 @@ type Reader struct {
 	parser  *Parser
 }
 
-func NewReader(reader io.Reader, zctx *resolver.Context) (*Reader, error) {
+func NewReader(reader io.Reader, zctx *zson.Context) (*Reader, error) {
 	_, err := zctx.LookupTypeAlias("zenum", zng.TypeString)
 	if err != nil {
 		return nil, err

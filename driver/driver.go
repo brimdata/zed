@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Driver interface {
@@ -22,7 +22,7 @@ type Driver interface {
 	Stats(api.ScannerStats) error
 }
 
-func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader, cfg Config) error {
+func Run(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zbuf.Reader, cfg Config) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -33,7 +33,7 @@ func Run(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context
 	return runMux(mux, d, cfg.StatsTick)
 }
 
-func RunParallel(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, readers []zbuf.Reader, cfg Config) error {
+func RunParallel(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, readers []zbuf.Reader, cfg Config) error {
 	if len(readers) != ast.FanIn(program) {
 		return errors.New("number of input sources must match number of parallel inputs in zql query")
 	}
@@ -47,7 +47,7 @@ func RunParallel(ctx context.Context, d Driver, program ast.Proc, zctx *resolver
 	return runMux(mux, d, cfg.StatsTick)
 }
 
-func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) error {
+func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, msrc MultiSource, mcfg MultiConfig) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -159,7 +159,7 @@ func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
 
 // Copy applies a proc to all records from a zbuf.Reader, writing to a
 // single zbuf.Writer. The proc must have a single tail.
-func Copy(ctx context.Context, w zbuf.Writer, prog ast.Proc, zctx *resolver.Context, r zbuf.Reader, cfg Config) error {
+func Copy(ctx context.Context, w zbuf.Writer, prog ast.Proc, zctx *zson.Context, r zbuf.Reader, cfg Config) error {
 	d := &transformDriver{w: w}
 	return Run(ctx, d, prog, zctx, r, cfg)
 }
@@ -205,11 +205,11 @@ func (mr *muxReader) Close() error {
 	return mr.zr.Close()
 }
 
-func NewReader(ctx context.Context, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
+func NewReader(ctx context.Context, program ast.Proc, zctx *zson.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
 	return NewReaderWithConfig(ctx, Config{}, program, zctx, reader)
 }
 
-func NewReaderWithConfig(ctx context.Context, conf Config, program ast.Proc, zctx *resolver.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
+func NewReaderWithConfig(ctx context.Context, conf Config, program ast.Proc, zctx *zson.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	mux, err := compile(ctx, program, zctx, []zbuf.Reader{reader}, conf)
 	if err != nil {

@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -38,7 +38,7 @@ func TestFailOnConcurrentWrites(t *testing.T) {
 	require.NoError(t, err)
 	store, err := Load(u, zap.NewNop())
 	require.NoError(t, err)
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	wr := &waitReader{dur: time.Second * 5}
 	wr.Add(1)
 	go func() {
@@ -72,7 +72,7 @@ func TestWriteNoRecords(t *testing.T) {
 	err = store.SetSpan(sp)
 	require.NoError(t, err)
 
-	err = store.Write(context.Background(), resolver.NewContext(), &emptyReader{})
+	err = store.Write(context.Background(), zson.NewContext(), &emptyReader{})
 	require.NoError(t, err)
 
 	sum, err := store.Summary(context.Background())

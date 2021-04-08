@@ -19,7 +19,7 @@ import (
 	"github.com/brimdata/zed/pkg/s3io"
 	"github.com/brimdata/zed/pkg/signalctx"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var Cmd = &charm.Spec{
@@ -158,7 +158,7 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	readers, err := c.inputFlags.Open(zctx, paths, c.stopErr)
 	if err != nil {
 		return err

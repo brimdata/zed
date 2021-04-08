@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type fuse struct {
@@ -28,7 +28,7 @@ func (f *fuse) Consume(v zng.Value) error {
 	return nil
 }
 
-func (f *fuse) Result(zctx *resolver.Context) (zng.Value, error) {
+func (f *fuse) Result(zctx *zson.Context) (zng.Value, error) {
 	if len(f.shapes)+len(f.partials) == 0 {
 		// empty input
 		return zng.Value{zng.TypeNull, nil}, nil
@@ -40,7 +40,7 @@ func (f *fuse) Result(zctx *resolver.Context) (zng.Value, error) {
 	schema.unify = true
 
 	for _, p := range f.partials {
-		typ, err := zctx.Context.LookupByName(string(p.Bytes))
+		typ, err := zctx.LookupByName(string(p.Bytes))
 		if err != nil {
 			return zng.Value{}, fmt.Errorf("invalid partial value: %s", err)
 		}
@@ -53,7 +53,7 @@ func (f *fuse) Result(zctx *resolver.Context) (zng.Value, error) {
 	for typ := range f.shapes {
 		schema.Mixin(typ)
 	}
-	return zctx.Context.LookupTypeValue(schema.Type), nil
+	return zctx.LookupTypeValue(schema.Type), nil
 }
 
 func (f *fuse) ConsumeAsPartial(p zng.Value) error {
@@ -64,6 +64,6 @@ func (f *fuse) ConsumeAsPartial(p zng.Value) error {
 	return nil
 }
 
-func (f *fuse) ResultAsPartial(zctx *resolver.Context) (zng.Value, error) {
+func (f *fuse) ResultAsPartial(zctx *zson.Context) (zng.Value, error) {
 	return f.Result(zctx)
 }

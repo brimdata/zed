@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/worker"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
 )
 
@@ -47,7 +47,7 @@ func (n *namedScanner) Pull() (zbuf.Batch, error) {
 	return b, err
 }
 
-func compile(ctx context.Context, program ast.Proc, zctx *resolver.Context, readers []zbuf.Reader, cfg Config) (*muxOutput, error) {
+func compile(ctx context.Context, program ast.Proc, zctx *zson.Context, readers []zbuf.Reader, cfg Config) (*muxOutput, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = zap.NewNop()
 	}
@@ -101,7 +101,7 @@ type MultiConfig struct {
 	Worker      worker.WorkerConfig
 }
 
-func compileMulti(ctx context.Context, program ast.Proc, zctx *resolver.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
+func compileMulti(ctx context.Context, program ast.Proc, zctx *zson.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {
 	if mcfg.Logger == nil {
 		mcfg.Logger = zap.NewNop()
 	}

@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/groupby"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, node *ast.Summarize) (*groupby.Proc, error) {
@@ -24,7 +24,7 @@ func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, nod
 	return groupby.New(pctx, parent, keys, names, reducers, node.Limit, node.InputSortDir, node.PartialsIn, node.PartialsOut)
 }
 
-func compileAggs(assignments []ast.Assignment, scope *Scope, zctx *resolver.Context) ([]field.Static, []*expr.Aggregator, error) {
+func compileAggs(assignments []ast.Assignment, scope *Scope, zctx *zson.Context) ([]field.Static, []*expr.Aggregator, error) {
 	names := make([]field.Static, 0, len(assignments))
 	aggs := make([]*expr.Aggregator, 0, len(assignments))
 	for _, assignment := range assignments {
@@ -38,7 +38,7 @@ func compileAggs(assignments []ast.Assignment, scope *Scope, zctx *resolver.Cont
 	return names, aggs, nil
 }
 
-func compileAgg(zctx *resolver.Context, scope *Scope, assignment ast.Assignment) (field.Static, *expr.Aggregator, error) {
+func compileAgg(zctx *zson.Context, scope *Scope, assignment ast.Assignment) (field.Static, *expr.Aggregator, error) {
 	aggAST, ok := assignment.RHS.(*ast.Agg)
 	if !ok {
 		return nil, nil, errors.New("aggregator is not an aggregation expression")

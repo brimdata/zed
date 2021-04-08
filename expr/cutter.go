@@ -9,12 +9,12 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/builder"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zng/typevector"
+	"github.com/brimdata/zed/zson"
 )
 
 type Cutter struct {
-	zctx        *resolver.Context
+	zctx        *zson.Context
 	builder     *builder.ColumnBuilder
 	fieldRefs   []field.Static
 	fieldExprs  []Evaluator
@@ -31,7 +31,7 @@ type Cutter struct {
 // the Cutter copies fields that are not in fieldnames. If complement
 // is false, the Cutter copies any fields in fieldnames, where targets
 // specifies the copied field names.
-func NewCutter(zctx *resolver.Context, fieldRefs []field.Static, fieldExprs []Evaluator) (*Cutter, error) {
+func NewCutter(zctx *zson.Context, fieldRefs []field.Static, fieldExprs []Evaluator) (*Cutter, error) {
 	if len(fieldRefs) > 1 {
 		for _, f := range fieldRefs {
 			if f.IsRoot() {

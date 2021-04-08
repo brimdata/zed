@@ -15,7 +15,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 // Writer implements the zbuf.Writer interface. A Writer creates a zed index,
@@ -49,7 +49,7 @@ import (
 type Writer struct {
 	uri         iosrc.URI
 	keyFields   []field.Static
-	zctx        *resolver.Context
+	zctx        *zson.Context
 	writer      *indexWriter
 	cutter      *expr.Cutter
 	tmpdir      string
@@ -78,11 +78,11 @@ type indexWriter struct {
 // provide keys in increasing lexicographic order.  Duplicate keys are not
 // allowed but will not be detected.  Close() or Abort() must be called when
 // done writing.
-func NewWriter(zctx *resolver.Context, path string, options ...Option) (*Writer, error) {
+func NewWriter(zctx *zson.Context, path string, options ...Option) (*Writer, error) {
 	return NewWriterWithContext(context.Background(), zctx, path, options...)
 }
 
-func NewWriterWithContext(ctx context.Context, zctx *resolver.Context, path string, options ...Option) (*Writer, error) {
+func NewWriterWithContext(ctx context.Context, zctx *zson.Context, path string, options ...Option) (*Writer, error) {
 	w := &Writer{zctx: zctx}
 	for _, opt := range options {
 		opt.apply(w)
@@ -281,7 +281,7 @@ func (w *Writer) writeEmptyTrailer() error {
 	return writeTrailer(zw, w.zctx, "", w.frameThresh, nil, typ, w.order)
 }
 
-func writeTrailer(w *zngio.Writer, zctx *resolver.Context, childField string, frameThresh int, sizes []int64, keyType *zng.TypeRecord, order zbuf.Order) error {
+func writeTrailer(w *zngio.Writer, zctx *zson.Context, childField string, frameThresh int, sizes []int64, keyType *zng.TypeRecord, order zbuf.Order) error {
 	// Finally, write the size records as the trailer of the index.
 	rec, err := newTrailerRecord(zctx, childField, frameThresh, sizes, keyType, order)
 	if err != nil {

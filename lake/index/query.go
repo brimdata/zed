@@ -4,8 +4,8 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -43,7 +43,7 @@ func ParseQuery(name string, patterns []string) (Query, error) {
 	q := Query{Values: []string{v[1]}}
 	path := v[0]
 	if path[0] == ':' {
-		typ, err := resolver.NewContext().LookupByName(path[1:])
+		typ, err := zson.NewContext().LookupByName(path[1:])
 		if err != nil {
 			return Query{}, err
 		}

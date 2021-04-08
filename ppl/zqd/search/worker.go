@@ -10,8 +10,8 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/ppl/zqd/storage"
 	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
 )
 
@@ -69,7 +69,7 @@ func (w *WorkerOp) Run(ctx context.Context, output Output) (err error) {
 
 	statsTicker := time.NewTicker(StatsInterval)
 	defer statsTicker.Stop()
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 
 	return driver.MultiRun(ctx, d, w.proc, zctx, w.store.StaticSource(w.src), driver.MultiConfig{
 		Logger:    w.logger,

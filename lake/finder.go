@@ -7,13 +7,13 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 )
 
 type findOptions struct {
 	skipMissing bool
-	zctx        *resolver.Context
+	zctx        *zson.Context
 	addPath     func(lk *Lake, chunk chunk.Chunk, rec *zng.Record) (*zng.Record, error)
 }
 
@@ -82,7 +82,7 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 // be more efficient at large scale to allow multipe patterns that
 // are effectively OR-ed together so that there is locality of
 // access to the microindex files.
-func Find(ctx context.Context, zctx *resolver.Context, lk *Lake, query index.Query, hits chan<- *zng.Record, opts ...FindOption) error {
+func Find(ctx context.Context, zctx *zson.Context, lk *Lake, query index.Query, hits chan<- *zng.Record, opts ...FindOption) error {
 	opt := findOptions{
 		zctx:    zctx,
 		addPath: func(_ *Lake, _ chunk.Chunk, rec *zng.Record) (*zng.Record, error) { return rec, nil },
@@ -157,7 +157,7 @@ func (f *findReadCloser) Close() error {
 	return nil
 }
 
-func FindReadCloser(ctx context.Context, zctx *resolver.Context, lk *Lake, query index.Query, opts ...FindOption) (zbuf.ReadCloser, error) {
+func FindReadCloser(ctx context.Context, zctx *zson.Context, lk *Lake, query index.Query, opts ...FindOption) (zbuf.ReadCloser, error) {
 	ctx, cancel := context.WithCancel(ctx)
 	f := &findReadCloser{
 		ctx:    ctx,

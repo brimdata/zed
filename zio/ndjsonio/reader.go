@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/zio/ndjsonio/compat"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/buger/jsonparser"
 )
 
@@ -42,12 +42,12 @@ type Reader struct {
 	scanner *skim.Scanner
 	inf     inferParser
 	typ     *typeParser
-	zctx    *resolver.Context
+	zctx    *zson.Context
 	stats   ReadStats
 	types   *tzngio.TypeParser
 }
 
-func NewReader(reader io.Reader, zctx *resolver.Context, opts ReaderOpts, filepath string) (*Reader, error) {
+func NewReader(reader io.Reader, zctx *zson.Context, opts ReaderOpts, filepath string) (*Reader, error) {
 	// Note: we add hardwired aliases for "port" to "uint16" when reading
 	// *any* json file but they are only used when the schema mapper
 	// (aka typings config) references such types from a configured schema.

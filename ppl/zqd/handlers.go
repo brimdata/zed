@@ -22,8 +22,8 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 	"github.com/gorilla/mux"
 	"go.uber.org/zap"
 )
@@ -446,7 +446,7 @@ func handleLogStream(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	zr := ingest.NewMultipartLogReader(form, zctx)
 
 	if r.URL.Query().Get("stop_err") != "" {
@@ -532,7 +532,7 @@ func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 type ArchiveStater interface {
-	ArchiveStat(context.Context, *resolver.Context) (zbuf.ReadCloser, error)
+	ArchiveStat(context.Context, *zson.Context) (zbuf.ReadCloser, error)
 }
 
 func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
@@ -551,7 +551,7 @@ func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rc, err := as.ArchiveStat(r.Context(), resolver.NewContext())
+	rc, err := as.ArchiveStat(r.Context(), zson.NewContext())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -656,7 +656,7 @@ func handleIntakePostData(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, err)
 		return
 	}
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	zr, err := detector.NewReaderWithOpts(r.Body, zctx, "", zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}})
 	if err != nil {
 		respondError(c, w, r, err)

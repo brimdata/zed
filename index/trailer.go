@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 const (
@@ -41,7 +41,7 @@ type Trailer struct {
 
 var ErrNotIndex = errors.New("not a zed index")
 
-func newTrailerRecord(zctx *resolver.Context, childField string, frameThresh int, sections []int64, keyType *zng.TypeRecord, order zbuf.Order) (*zng.Record, error) {
+func newTrailerRecord(zctx *zson.Context, childField string, frameThresh int, sections []int64, keyType *zng.TypeRecord, order zbuf.Order) (*zng.Record, error) {
 	sectionsType := zctx.LookupTypeArray(zng.TypeInt64)
 	cols := []zng.Column{
 		{MagicField, zng.TypeString},
@@ -102,7 +102,7 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, int, error) {
 				continue
 			}
 			r := bytes.NewReader(buf[off:n])
-			rec, _ := zngio.NewReader(r, resolver.NewContext()).Read()
+			rec, _ := zngio.NewReader(r, zson.NewContext()).Read()
 			if rec == nil {
 				continue
 			}
@@ -200,7 +200,7 @@ func decodeSections(rec *zng.Record) ([]int64, error) {
 	return sizes, nil
 }
 
-func uniqChildField(zctx *resolver.Context, keys *zng.Record) string {
+func uniqChildField(zctx *zson.Context, keys *zng.Record) string {
 	// This loop works around the corner case that the field reserved
 	// for the child pointer is in use by another key...
 	childField := ChildFieldVal

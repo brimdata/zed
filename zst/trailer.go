@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 const (
@@ -38,7 +38,7 @@ type Trailer struct {
 
 var ErrNotZst = errors.New("not a zst object")
 
-func newTrailerRecord(zctx *resolver.Context, skewThresh, segmentThresh int, sections []int64) (*zng.Record, error) {
+func newTrailerRecord(zctx *zson.Context, skewThresh, segmentThresh int, sections []int64) (*zng.Record, error) {
 	sectionsType := zctx.LookupTypeArray(zng.TypeInt64)
 	cols := []zng.Column{
 		{MagicField, zng.TypeString},
@@ -97,7 +97,7 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, error) {
 				continue
 			}
 			r := bytes.NewReader(buf[off:n])
-			rec, _ := zngio.NewReader(r, resolver.NewContext()).Read()
+			rec, _ := zngio.NewReader(r, zson.NewContext()).Read()
 			if rec == nil {
 				continue
 			}

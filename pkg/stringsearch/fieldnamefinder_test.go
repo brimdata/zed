@@ -4,13 +4,13 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/require"
 )
 
 func TestFieldNameIter(t *testing.T) {
 	const typeString = "{r1:{r2:{s:string,r3:{t:time}},a:[int64],r4:{i:ip}},empty:{}}"
-	typ, err := resolver.NewContext().LookupByName(typeString)
+	typ, err := zson.NewContext().LookupByName(typeString)
 	require.NoError(t, err)
 	var f FieldNameIter
 	f.Init(typ.(*zng.TypeRecord))
@@ -27,7 +27,7 @@ func TestFieldNameIter(t *testing.T) {
 	require.True(t, f.Done())
 }
 func TestFieldNameIterEmptyTopLevelRecord(t *testing.T) {
-	typ, err := resolver.NewContext().LookupByName("{}")
+	typ, err := zson.NewContext().LookupByName("{}")
 	require.NoError(t, err)
 	var f FieldNameIter
 	f.Init(typ.(*zng.TypeRecord))

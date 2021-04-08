@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
 )
 
@@ -39,7 +39,7 @@ type Context struct {
 	context.Context
 	Logger   *zap.Logger
 	Warnings chan string
-	Zctx     *resolver.Context
+	Zctx     *zson.Context
 }
 
 func EOS(batch zbuf.Batch, err error) bool {

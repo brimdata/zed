@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type FieldNameFinder struct {
@@ -22,7 +22,7 @@ func NewFieldNameFinder(pattern string) *FieldNameFinder {
 // Find returns true if buf, which holds a sequence of ZNG value messages, might
 // contain a record with a field whose fully-qualified name (e.g., a.b.c)
 // matches the pattern. find also returns true if it encounters an error.
-func (f *FieldNameFinder) Find(zctx *resolver.Context, buf []byte) bool {
+func (f *FieldNameFinder) Find(zctx *zson.Context, buf []byte) bool {
 	f.checkedIDs.SetInt64(0)
 	for len(buf) > 0 {
 		code := buf[0]

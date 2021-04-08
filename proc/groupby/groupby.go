@@ -12,8 +12,8 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/builder"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zng/typevector"
+	"github.com/brimdata/zed/zson"
 )
 
 var DefaultLimit = 1000000
@@ -32,7 +32,7 @@ type Proc struct {
 // ("every") group-by operations.  Records are generated in a
 // deterministic but undefined total order.
 type Aggregator struct {
-	zctx *resolver.Context
+	zctx *zson.Context
 	// The keyTypes and outTypes tables maps a vector of types resulting
 	// from evaluating the key and reducer expressions to a small int,
 	// such that the same vector of types maps to the same small int.
@@ -68,7 +68,7 @@ type Row struct {
 	reducers valRow
 }
 
-func NewAggregator(zctx *resolver.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *builder.ColumnBuilder, limit, inputSortDir int, partialsIn, partialsOut bool) (*Aggregator, error) {
+func NewAggregator(zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *builder.ColumnBuilder, limit, inputSortDir int, partialsIn, partialsOut bool) (*Aggregator, error) {
 	if limit == 0 {
 		limit = DefaultLimit
 	}

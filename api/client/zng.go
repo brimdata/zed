@@ -6,7 +6,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type ZngSearch struct {
@@ -16,7 +16,7 @@ type ZngSearch struct {
 
 func NewZngSearch(body io.Reader) *ZngSearch {
 	return &ZngSearch{
-		reader: zngio.NewReader(body, resolver.NewContext()),
+		reader: zngio.NewReader(body, zson.NewContext()),
 	}
 }
 

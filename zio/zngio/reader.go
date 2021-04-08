@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/pierrec/lz4/v4"
 )
 
@@ -28,9 +29,9 @@ type Reader struct {
 	peekerOffset    int64 // never points inside a compressed value message block
 	uncompressedBuf *buffer
 	// shared/output context
-	sctx *resolver.Context
+	sctx *zson.Context
 	// internal context implied by zng file
-	zctx *resolver.Context
+	zctx *zson.Context
 	// mapper to map internal to shared type contexts
 	mapper   *resolver.Mapper
 	sos      int64
@@ -50,11 +51,11 @@ type AppMessage struct {
 	Bytes    []byte
 }
 
-func NewReader(reader io.Reader, sctx *resolver.Context) *Reader {
+func NewReader(reader io.Reader, sctx *zson.Context) *Reader {
 	return NewReaderWithOpts(reader, sctx, ReaderOpts{})
 }
 
-func NewReaderWithOpts(reader io.Reader, sctx *resolver.Context, opts ReaderOpts) *Reader {
+func NewReaderWithOpts(reader io.Reader, sctx *zson.Context, opts ReaderOpts) *Reader {
 	if opts.Size == 0 {
 		opts.Size = ReadSize
 	}
@@ -67,7 +68,7 @@ func NewReaderWithOpts(reader io.Reader, sctx *resolver.Context, opts ReaderOpts
 	return &Reader{
 		peeker:   peeker.NewReader(reader, opts.Size, opts.Max),
 		sctx:     sctx,
-		zctx:     resolver.NewContext(),
+		zctx:     zson.NewContext(),
 		mapper:   resolver.NewMapper(sctx),
 		validate: opts.Validate,
 	}

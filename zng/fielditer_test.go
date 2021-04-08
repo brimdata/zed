@@ -6,13 +6,13 @@ import (
 
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 
 	"github.com/stretchr/testify/require"
 )
 
 func parseZng(s string) (*zng.Record, error) {
-	reader := tzngio.NewReader(strings.NewReader(s), resolver.NewContext())
+	reader := tzngio.NewReader(strings.NewReader(s), zson.NewContext())
 	return reader.Read()
 }
 

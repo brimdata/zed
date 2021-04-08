@@ -29,7 +29,7 @@ var (
 // of the underlying type.
 type Type interface {
 	Marshal(zcode.Bytes) (interface{}, error)
-	// ID returns a unique (per resolver.Context) identifier that
+	// ID returns a unique (per zson.Context) identifier that
 	// represents this type.  For an aliased type, this identifier
 	// represents the actual underlying type and not the alias itself.
 	// Callers that care about the underlying type of a zng.Value for

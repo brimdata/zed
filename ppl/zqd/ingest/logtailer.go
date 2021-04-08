@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type result struct {
@@ -24,7 +24,7 @@ type logTailer struct {
 	opts    zio.ReaderOpts
 	readers map[string]*fs.TFile
 	watcher *fs.DirWatcher
-	zctx    *resolver.Context
+	zctx    *zson.Context
 
 	// synchronization primitives
 	results chan result
@@ -32,7 +32,7 @@ type logTailer struct {
 	wg      sync.WaitGroup
 }
 
-func newLogTailer(zctx *resolver.Context, dir string, opts zio.ReaderOpts) (*logTailer, error) {
+func newLogTailer(zctx *zson.Context, dir string, opts zio.ReaderOpts) (*logTailer, error) {
 	dir = filepath.Clean(dir)
 	watcher, err := fs.NewDirWatcher(dir)
 	if err != nil {

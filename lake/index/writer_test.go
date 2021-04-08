@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -40,7 +40,7 @@ func TestWriterError(t *testing.T) {
 #0:record[ts:time,id:int64]
 0:[2;2;]`
 	w := testWriter(t, NewFieldRule("id"))
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	arr1, err := zbuf.ReadAll(tzngio.NewReader(strings.NewReader(r1), zctx))
 	require.NoError(t, err)
 	arr2, err := zbuf.ReadAll(tzngio.NewReader(strings.NewReader(r2), zctx))

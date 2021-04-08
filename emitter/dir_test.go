@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
 )
@@ -35,7 +35,7 @@ func TestDirS3Source(t *testing.T) {
 	src.EXPECT().NewWriter(context.Background(), uri.AppendPath("http.tzng")).
 		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
 
-	r := tzngio.NewReader(strings.NewReader(tzng), resolver.NewContext())
+	r := tzngio.NewReader(strings.NewReader(tzng), zson.NewContext())
 	require.NoError(t, err)
 	w, err := NewDirWithSource(context.Background(), uri, "", os.Stderr, zio.WriterOpts{Format: "tzng"}, src)
 	require.NoError(t, err)

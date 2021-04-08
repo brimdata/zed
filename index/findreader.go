@@ -7,7 +7,7 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 // FinderReader is zbuf.Reader version of Finder that streams back all records
@@ -19,7 +19,7 @@ type FinderReader struct {
 	reader  zbuf.Reader
 }
 
-func NewFinderReader(ctx context.Context, zctx *resolver.Context, uri iosrc.URI, inputs ...string) (*FinderReader, error) {
+func NewFinderReader(ctx context.Context, zctx *zson.Context, uri iosrc.URI, inputs ...string) (*FinderReader, error) {
 	finder, err := NewFinder(ctx, zctx, uri)
 	if err != nil {
 		return nil, err

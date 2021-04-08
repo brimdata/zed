@@ -13,7 +13,7 @@ import (
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/suite"
 )
 
@@ -45,7 +45,7 @@ const expected = `#0:record[ts:time]
 type logTailerTSuite struct {
 	suite.Suite
 	dir  string
-	zctx *resolver.Context
+	zctx *zson.Context
 	dr   *logTailer
 }
 
@@ -58,7 +58,7 @@ func (s *logTailerTSuite) SetupTest() {
 	s.Require().NoError(err)
 	s.dir = dir
 	s.T().Cleanup(func() { os.RemoveAll(s.dir) })
-	s.zctx = resolver.NewContext()
+	s.zctx = zson.NewContext()
 	s.dr, err = newLogTailer(s.zctx, s.dir, zio.ReaderOpts{Format: "tzng"})
 	s.Require().NoError(err)
 }

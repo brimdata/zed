@@ -17,8 +17,8 @@ import (
 	"github.com/brimdata/zed/zio/detector"
 	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 )
 
 var (
@@ -33,7 +33,7 @@ type LogOp struct {
 	err          error
 
 	warningCh chan string
-	zctx      *resolver.Context
+	zctx      *zson.Context
 }
 
 // Logs ingests the provided list of files into the provided space.
@@ -42,7 +42,7 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 	p := &LogOp{
 		warningCh: make(chan string, 5),
 		warnings:  make([]string, 0, 5),
-		zctx:      resolver.NewContext(),
+		zctx:      zson.NewContext(),
 	}
 	opts := zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}}
 	//XXX if there is a json config, then the input has to be ndjson

@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -192,7 +191,7 @@ func IndexStat(ctx context.Context, lk *Lake, defs []*index.Definition) ([]Index
 	return stats, nil
 }
 
-func Stat(ctx context.Context, zctx *resolver.Context, lk *Lake) (zbuf.ReadCloser, error) {
+func Stat(ctx context.Context, zctx *zson.Context, lk *Lake) (zbuf.ReadCloser, error) {
 	defs, err := lk.ReadDefinitions(ctx)
 	if err != nil {
 		return nil, err
@@ -204,7 +203,7 @@ func Stat(ctx context.Context, zctx *resolver.Context, lk *Lake) (zbuf.ReadClose
 	}
 	ctx, cancel := context.WithCancel(ctx)
 	mzctx := zson.NewZNGMarshaler()
-	mzctx.Context = zctx.Context
+	mzctx.Context = zctx
 	s := &statReadCloser{
 		lk:       lk,
 		ctx:      ctx,

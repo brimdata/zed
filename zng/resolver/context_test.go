@@ -6,13 +6,13 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestContextAddColumns(t *testing.T) {
-	ctx := resolver.NewContext()
+	ctx := zson.NewContext()
 	d, err := ctx.LookupTypeRecord([]zng.Column{zng.NewColumn("s1", zng.TypeString)})
 	require.NoError(t, err)
 	r, err := tzngio.ParseKeys(d, "S1")
@@ -30,7 +30,7 @@ func TestContextAddColumns(t *testing.T) {
 }
 
 func TestDuplicates(t *testing.T) {
-	ctx := resolver.NewContext()
+	ctx := zson.NewContext()
 	setType := ctx.LookupTypeSet(zng.TypeInt32)
 	typ1, err := ctx.LookupTypeRecord([]zng.Column{
 		zng.NewColumn("a", zng.TypeString),
@@ -47,8 +47,8 @@ func TestDuplicates(t *testing.T) {
 }
 
 func TestTranslateAlias(t *testing.T) {
-	c1 := resolver.NewContext()
-	c2 := resolver.NewContext()
+	c1 := zson.NewContext()
+	c2 := zson.NewContext()
 	set1, err := c1.LookupByName("|[int64]|")
 	require.NoError(t, err)
 	set2, err := c2.LookupByName("|[int64]|")
@@ -63,7 +63,7 @@ func TestTranslateAlias(t *testing.T) {
 }
 
 func TestCopyMutateColumns(t *testing.T) {
-	c := resolver.NewContext()
+	c := zson.NewContext()
 	cols := []zng.Column{{"foo", zng.TypeString}, {"bar", zng.TypeInt64}}
 	typ, err := c.LookupTypeRecord(cols)
 	require.NoError(t, err)

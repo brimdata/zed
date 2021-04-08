@@ -7,7 +7,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var schema = []zng.Column{
@@ -21,7 +21,7 @@ type Builder struct {
 }
 
 func NewBuilder(ctx context.Context, path string, order zbuf.Order) (*Builder, error) {
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	writer, err := index.NewWriterWithContext(ctx, zctx, path, index.Order(order), index.Keys("ts"))
 	if err != nil {
 		return nil, err

@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +25,7 @@ func TestCtrl(t *testing.T) {
 	// this tests reading of control via text zng,
 	// then writing of raw control, and reading back the result
 	in := []byte(strings.TrimSpace(ctrl) + "\n")
-	r := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+	r := tzngio.NewReader(bytes.NewReader(in), zson.NewContext())
 
 	_, body, err := r.ReadPayload()
 	assert.NoError(t, err)
@@ -61,7 +61,7 @@ func TestDescriptors(t *testing.T) {
 	// Step 4 - Test that referencing an invalid descriptor is an error.
 	src += "100:[something;somethingelse;]\n"
 
-	r := tzngio.NewReader(strings.NewReader(src), resolver.NewContext())
+	r := tzngio.NewReader(strings.NewReader(src), zson.NewContext())
 
 	// Check Step 1
 	record, err := r.Read()
@@ -108,13 +108,13 @@ func TestDescriptors(t *testing.T) {
 	}
 
 	for _, z := range zngs {
-		r := tzngio.NewReader(strings.NewReader(z), resolver.NewContext())
+		r := tzngio.NewReader(strings.NewReader(z), zson.NewContext())
 		_, err = r.Read()
 		assert.Error(t, err, "tzng parse error", "invalid tzng")
 	}
 
 	// Descriptor with an invalid type is rejected
-	r = tzngio.NewReader(strings.NewReader("#4:notatype\n"), resolver.NewContext())
+	r = tzngio.NewReader(strings.NewReader("#4:notatype\n"), zson.NewContext())
 	_, err = r.Read()
 	assert.Error(t, err, "unknown type", "descriptor with invalid type")
 }
@@ -123,21 +123,21 @@ func TestSyntax(t *testing.T) {
 	const bad1 = `
 #0:record[_path:string,ts:time,uid:string,resp_ip_bytes:count,tunnel_parents:set[string]]
 0:[conn;1425565514.419939;CogZFI3py5JsFZGik;0;]`
-	r := tzngio.NewReader(strings.NewReader(bad1), resolver.NewContext())
+	r := tzngio.NewReader(strings.NewReader(bad1), zson.NewContext())
 	_, err := r.Read()
 	require.Error(t, err, "bad1 must have error")
 
 	const bad2 = `
 #0:record[a:string,record[b:string]]
 0:[foo;[bar;]]`
-	r = tzngio.NewReader(strings.NewReader(bad2), resolver.NewContext())
+	r = tzngio.NewReader(strings.NewReader(bad2), zson.NewContext())
 	_, err = r.Read()
 	require.Error(t, err, "bad2 must have error")
 
 	const bad3 = `
 #0:record[_path:string,ts:time,uid:string,resp_ip_bytes:count,tunnel_parents:set[string]]
 0:[conn;1425565514.419939;CogZFI3py5JsFZGik;0;0;[]]`
-	r = tzngio.NewReader(strings.NewReader(bad3), resolver.NewContext())
+	r = tzngio.NewReader(strings.NewReader(bad3), zson.NewContext())
 	_, err = r.Read()
 	require.Error(t, err, "bad3 must have error")
 
@@ -211,7 +211,7 @@ func (o *output) Close() error { return nil }
 func boomerangErr(t *testing.T, name, logs, errorMsg string, errorArgs ...interface{}) {
 	t.Run(name, func(t *testing.T) {
 		in := []byte(strings.TrimSpace(logs) + "\n")
-		zngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+		zngSrc := tzngio.NewReader(bytes.NewReader(in), zson.NewContext())
 		zngDst := tzngio.NewWriter(&output{})
 		err := zbuf.Copy(zngDst, zngSrc)
 		assert.Errorf(t, err, errorMsg, errorArgs...)
@@ -223,7 +223,7 @@ func boomerang(t *testing.T, name, logs string) {
 	t.Run(name, func(t *testing.T) {
 		var out output
 		in := []byte(strings.TrimSpace(logs) + "\n")
-		zngSrc := tzngio.NewReader(bytes.NewReader(in), resolver.NewContext())
+		zngSrc := tzngio.NewReader(bytes.NewReader(in), zson.NewContext())
 		zngDst := tzngio.NewWriter(&out)
 		err := zbuf.Copy(zngDst, zngSrc)
 		require.NoError(t, err)

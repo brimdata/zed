@@ -31,7 +31,7 @@ func rectzng(t *testing.T, rec *zng.Record) string {
 	return b.String()
 }
 
-func tzngToRec(t *testing.T, zctx *resolver.Context, tzng string) *zng.Record {
+func tzngToRec(t *testing.T, zctx *zson.Context, tzng string) *zng.Record {
 	r := tzngio.NewReader(strings.NewReader(tzng), zctx)
 	rec, err := r.Read()
 	require.NoError(t, err)
@@ -45,7 +45,7 @@ func boomerang(t *testing.T, in interface{}, out interface{}) {
 	zw := zngio.NewWriter(zio.NopCloser(&buf), zngio.WriterOpts{})
 	err = zw.Write(rec)
 	require.NoError(t, err)
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	zr := zngio.NewReader(&buf, zctx)
 	rec, err = zr.Read()
 	require.NoError(t, err)
@@ -156,7 +156,7 @@ func TestIPType(t *testing.T) {
 	addr := net.ParseIP("192.168.1.1").To4()
 	require.NotNil(t, addr)
 	s := TestIP{Addr: addr}
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	m := resolver.NewMarshalerWithContext(zctx)
 	rec, err := m.MarshalRecord(s)
 	require.NoError(t, err)
@@ -199,7 +199,7 @@ func TestUnmarshalRecord(t *testing.T) {
 `
 	require.Equal(t, trim(exp), rectzng(t, rec))
 
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	rec = tzngToRec(t, zctx, exp)
 
 	var v2 T1
@@ -225,7 +225,7 @@ func TestUnmarshalSlice(t *testing.T) {
 	v1 := T1{
 		T1f1: []bool{true, false, true},
 	}
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	rec, err := resolver.NewMarshalerWithContext(zctx).MarshalRecord(v1)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
@@ -242,7 +242,7 @@ func TestUnmarshalSlice(t *testing.T) {
 	v3 := T2{
 		Field1: []*int{intp(1), intp(2)},
 	}
-	zctx = resolver.NewContext()
+	zctx = zson.NewContext()
 	rec, err = resolver.NewMarshalerWithContext(zctx).MarshalRecord(v3)
 	require.NoError(t, err)
 	require.NotNil(t, rec)

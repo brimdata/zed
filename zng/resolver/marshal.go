@@ -13,8 +13,8 @@ func NewMarshaler() *zson.MarshalZNGContext {
 	return zson.NewZNGMarshalerWithContext(zson.NewContext())
 }
 
-func NewMarshalerWithContext(zctx *Context) *zson.MarshalZNGContext {
-	return zson.NewZNGMarshalerWithContext(zctx.Context)
+func NewMarshalerWithContext(zctx *zson.Context) *zson.MarshalZNGContext {
+	return zson.NewZNGMarshalerWithContext(zctx)
 }
 
 const (

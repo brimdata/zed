@@ -36,7 +36,7 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/column"
 )
 
@@ -49,7 +49,7 @@ type Seeker interface {
 type Object struct {
 	seeker   Seeker
 	closer   io.Closer
-	zctx     *resolver.Context
+	zctx     *zson.Context
 	assembly *Assembly
 	trailer  *Trailer
 	size     int64
@@ -57,7 +57,7 @@ type Object struct {
 	err      error
 }
 
-func NewObject(zctx *resolver.Context, s Seeker, size int64) (*Object, error) {
+func NewObject(zctx *zson.Context, s Seeker, size int64) (*Object, error) {
 	trailer, err := readTrailer(s, size)
 	if err != nil {
 		return nil, err
@@ -78,7 +78,7 @@ func NewObject(zctx *resolver.Context, s Seeker, size int64) (*Object, error) {
 	return o, err
 }
 
-func NewObjectFromSeeker(zctx *resolver.Context, s Seeker) (*Object, error) {
+func NewObjectFromSeeker(zctx *zson.Context, s Seeker) (*Object, error) {
 	// We can't get the size from a stat, so get it by seeking.
 	size, err := s.Seek(0, io.SeekEnd)
 	if err != nil {
@@ -87,7 +87,7 @@ func NewObjectFromSeeker(zctx *resolver.Context, s Seeker) (*Object, error) {
 	return NewObject(zctx, s, size)
 }
 
-func NewObjectFromPath(ctx context.Context, zctx *resolver.Context, path string) (*Object, error) {
+func NewObjectFromPath(ctx context.Context, zctx *zson.Context, path string) (*Object, error) {
 	uri, err := iosrc.ParseURI(path)
 	if err != nil {
 		return nil, err

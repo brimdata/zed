@@ -16,7 +16,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -38,10 +38,10 @@ func (c *onClose) Close() error {
 }
 
 type testSource struct {
-	opener func(*resolver.Context, SourceFilter) (ScannerCloser, error)
+	opener func(*zson.Context, SourceFilter) (ScannerCloser, error)
 }
 
-func (s *testSource) Open(ctx context.Context, zctx *resolver.Context, sf SourceFilter) (ScannerCloser, error) {
+func (s *testSource) Open(ctx context.Context, zctx *zson.Context, sf SourceFilter) (ScannerCloser, error) {
 	return s.opener(zctx, sf)
 }
 
@@ -82,7 +82,7 @@ func (m *orderedmsrc) SendSources(ctx context.Context, span nano.Span, srcChan c
 	}
 	for i := range parallelTestInputs {
 		i := i
-		opener := func(zctx *resolver.Context, sf SourceFilter) (ScannerCloser, error) {
+		opener := func(zctx *zson.Context, sf SourceFilter) (ScannerCloser, error) {
 			rdr := tzngio.NewReader(strings.NewReader(parallelTestInputs[i]), zctx)
 			sn, err := zbuf.NewScanner(ctx, rdr, sf.Filter, sf.Span)
 			if err != nil {
@@ -121,7 +121,7 @@ func TestParallelOrder(t *testing.T) {
 
 	var buf bytes.Buffer
 	d := NewCLI(tzngio.NewWriter(zio.NopCloser(&buf)))
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	err = MultiRun(context.Background(), d, query, zctx, &orderedmsrc{}, MultiConfig{
 		Parallelism: len(parallelTestInputs),
 	})
@@ -140,7 +140,7 @@ func TestParallelOrder(t *testing.T) {
 // A noEndScanner never returns proc.EOS from its Pull().
 type noEndScanner struct {
 	input string
-	zctx  *resolver.Context
+	zctx  *zson.Context
 }
 
 func (rp *noEndScanner) Pull() (zbuf.Batch, error) {
@@ -162,7 +162,7 @@ func (m *scannerCloseMS) OrderInfo() (field.Static, bool) {
 }
 
 func (m *scannerCloseMS) SendSources(ctx context.Context, span nano.Span, srcChan chan Source) error {
-	opener := func(zctx *resolver.Context, _ SourceFilter) (ScannerCloser, error) {
+	opener := func(zctx *zson.Context, _ SourceFilter) (ScannerCloser, error) {
 		return &scannerCloser{
 			// Use a noEndScanner so that a parallel head never tries to
 			// close the ScannerCloser in its Pull. That way, if the Close fires,
@@ -190,7 +190,7 @@ func TestScannerClose(t *testing.T) {
 
 	var buf bytes.Buffer
 	d := NewCLI(tzngio.NewWriter(zio.NopCloser(&buf)))
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	ms := &scannerCloseMS{
 		input: `
 #0:record[v:int32,ts:time]

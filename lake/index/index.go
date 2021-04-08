@@ -8,8 +8,8 @@ import (
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -105,11 +105,11 @@ func WriteIndices(ctx context.Context, d iosrc.URI, r zbuf.Reader, defs ...*Defi
 	return writers.Indices(), nil
 }
 
-func Find(ctx context.Context, zctx *resolver.Context, d iosrc.URI, id ksuid.KSUID, patterns ...string) (zbuf.ReadCloser, error) {
+func Find(ctx context.Context, zctx *zson.Context, d iosrc.URI, id ksuid.KSUID, patterns ...string) (zbuf.ReadCloser, error) {
 	return FindFromPath(ctx, zctx, IndexPath(d, id), patterns...)
 }
 
-func FindFromPath(ctx context.Context, zctx *resolver.Context, idxfile iosrc.URI, patterns ...string) (zbuf.ReadCloser, error) {
+func FindFromPath(ctx context.Context, zctx *zson.Context, idxfile iosrc.URI, patterns ...string) (zbuf.ReadCloser, error) {
 	finder, err := index.NewFinderReader(ctx, zctx, idxfile, patterns...)
 	if err != nil {
 		return nil, fmt.Errorf("index find %s: %w", idxfile, err)

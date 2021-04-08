@@ -135,8 +135,8 @@ import (
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/detector"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 	"github.com/pmezard/go-difflib/difflib"
 	"gopkg.in/yaml.v3"
 )
@@ -607,7 +607,7 @@ func runzq(path, zed string, outputFlags []string, inputs ...string) (string, st
 		return "", "", err
 	}
 	ctx := context.Background()
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	rc, err := loadInputs(inputs, zctx)
 	if err != nil {
 		return "", err.Error(), err
@@ -647,7 +647,7 @@ func lookupzq(path string) (string, error) {
 	return "", zqe.E(zqe.NotFound)
 }
 
-func loadInputs(inputs []string, zctx *resolver.Context) (zbuf.Reader, error) {
+func loadInputs(inputs []string, zctx *zson.Context) (zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, input := range inputs {
 		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)

@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 )
@@ -325,7 +325,7 @@ func compactOverlaps(ctx context.Context, lk *Lake, s SpanInfo) ([]chunk.Chunk, 
 	if len(s.Chunks) == 1 {
 		return nil, nil
 	}
-	ss, _, err := newSpanScanner(ctx, lk, resolver.NewContext(), driver.SourceFilter{Span: nano.MaxSpan}, s)
+	ss, _, err := newSpanScanner(ctx, lk, zson.NewContext(), driver.SourceFilter{Span: nano.MaxSpan}, s)
 	if err != nil {
 		return nil, err
 	}

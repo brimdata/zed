@@ -21,7 +21,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var Map = &charm.Spec{
@@ -106,7 +106,7 @@ func (c *Command) Run(args []string) error {
 		for _, input := range inputs {
 			paths = append(paths, chunk.Localize(input).String())
 		}
-		zctx := resolver.NewContext()
+		zctx := zson.NewContext()
 		opts := zio.ReaderOpts{Format: "zng"}
 		rc := detector.MultiFileReader(zctx, paths, opts)
 		defer rc.Close()

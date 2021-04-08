@@ -2,7 +2,7 @@ package agg
 
 import (
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Any zng.Value
@@ -16,7 +16,7 @@ func (a *Any) Consume(v zng.Value) error {
 	return nil
 }
 
-func (a Any) Result(*resolver.Context) (zng.Value, error) {
+func (a Any) Result(*zson.Context) (zng.Value, error) {
 	if a.Type == nil {
 		return zng.Value{Type: zng.TypeNull}, nil
 	}
@@ -27,6 +27,6 @@ func (a *Any) ConsumeAsPartial(v zng.Value) error {
 	return a.Consume(v)
 }
 
-func (a Any) ResultAsPartial(*resolver.Context) (zng.Value, error) {
+func (a Any) ResultAsPartial(*zson.Context) (zng.Value, error) {
 	return a.Result(nil)
 }

@@ -3,6 +3,7 @@ package zbuf
 import (
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Mapper struct {
@@ -10,7 +11,7 @@ type Mapper struct {
 	mapper *resolver.Mapper
 }
 
-func NewMapper(reader Reader, zctx *resolver.Context) *Mapper {
+func NewMapper(reader Reader, zctx *zson.Context) *Mapper {
 	return &Mapper{
 		Reader: reader,
 		mapper: resolver.NewMapper(zctx),

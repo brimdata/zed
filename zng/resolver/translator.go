@@ -4,16 +4,17 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 )
 
 type Translator struct {
 	mu sync.Mutex
 	Slice
-	inputCtx  *Context
-	outputCtx *Context
+	inputCtx  *zson.Context
+	outputCtx *zson.Context
 }
 
-func NewTranslator(in, out *Context) *Translator {
+func NewTranslator(in, out *zson.Context) *Translator {
 	return &Translator{
 		inputCtx:  in,
 		outputCtx: out,

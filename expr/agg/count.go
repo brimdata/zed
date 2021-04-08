@@ -2,7 +2,7 @@ package agg
 
 import (
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Count uint64
@@ -14,7 +14,7 @@ func (c *Count) Consume(v zng.Value) error {
 	return nil
 }
 
-func (c Count) Result(*resolver.Context) (zng.Value, error) {
+func (c Count) Result(*zson.Context) (zng.Value, error) {
 	return zng.NewUint64(uint64(c)), nil
 }
 
@@ -26,6 +26,6 @@ func (c *Count) ConsumeAsPartial(p zng.Value) error {
 	return err
 }
 
-func (c Count) ResultAsPartial(*resolver.Context) (zng.Value, error) {
+func (c Count) ResultAsPartial(*zson.Context) (zng.Value, error) {
 	return c.Result(nil)
 }

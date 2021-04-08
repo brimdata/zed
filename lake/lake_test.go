@@ -20,7 +20,7 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +36,7 @@ func createArchiveSpace(t *testing.T, datapath string, srcfile string, co *Creat
 }
 
 func importTestFile(t *testing.T, lk *Lake, srcfile string) {
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	reader, err := detector.OpenFile(zctx, srcfile, zio.ReaderOpts{})
 	require.NoError(t, err)
 	defer reader.Close()
@@ -59,7 +59,7 @@ func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 func indexQuery(t *testing.T, lk *Lake, patterns []string, opts ...FindOption) string {
 	q, err := index.ParseQuery("", patterns)
 	require.NoError(t, err)
-	rc, err := FindReadCloser(context.Background(), resolver.NewContext(), lk, q, opts...)
+	rc, err := FindReadCloser(context.Background(), zson.NewContext(), lk, q, opts...)
 	require.NoError(t, err)
 	defer rc.Close()
 
@@ -131,7 +131,7 @@ func TestSeekIndex(t *testing.T) {
 		return nil
 	})
 	require.NoError(t, err)
-	finder, err := zedindex.NewFinder(context.Background(), resolver.NewContext(), idxURI)
+	finder, err := zedindex.NewFinder(context.Background(), zson.NewContext(), idxURI)
 	require.NoError(t, err)
 	keys, err := finder.ParseKeys("1587508851")
 	require.NoError(t, err)

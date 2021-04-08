@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type PrimitiveWriter struct {
@@ -39,7 +39,7 @@ func (p *PrimitiveWriter) Flush(eof bool) error {
 	return err
 }
 
-func (p *PrimitiveWriter) MarshalZNG(zctx *resolver.Context, b *zcode.Builder) (zng.Type, error) {
+func (p *PrimitiveWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zng.Type, error) {
 	b.BeginContainer()
 	for _, segment := range p.segments {
 		// Add a segmap record to the array for each segment.

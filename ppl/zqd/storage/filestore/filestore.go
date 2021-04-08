@@ -21,8 +21,8 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
 	"golang.org/x/sync/semaphore"
 )
@@ -77,7 +77,7 @@ func (s *Storage) join(args ...string) string {
 	return filepath.Join(args...)
 }
 
-func (s *Storage) Open(ctx context.Context, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
+func (s *Storage) Open(ctx context.Context, zctx *zson.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	f, err := fs.Open(s.join(allZngFile))
 	if err != nil {
 		if !os.IsNotExist(err) {
@@ -109,7 +109,7 @@ func (w *spanWriter) Write(rec *zng.Record) error {
 	return nil
 }
 
-func (s *Storage) Write(ctx context.Context, zctx *resolver.Context, zr zbuf.Reader) error {
+func (s *Storage) Write(ctx context.Context, zctx *zson.Context, zr zbuf.Reader) error {
 	if !s.wsem.TryAcquire(1) {
 		return zqe.E(zqe.Conflict, ErrWriteInProgress)
 	}
