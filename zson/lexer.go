@@ -63,7 +63,7 @@ func (l *Lexer) fill(n int) error {
 	} else if remaining > 0 {
 		copy(l.buffer[0:remaining], l.cursor)
 	}
-	cc, err := io.ReadFull(l.reader, l.buffer[remaining:cap(l.buffer)])
+	cc, err := io.ReadAtLeast(l.reader, l.buffer[remaining:cap(l.buffer)], n)
 	l.cursor = l.buffer[0 : remaining+cc]
 	if err == io.ErrUnexpectedEOF && cc > 0 {
 		err = nil
@@ -164,12 +164,14 @@ func (l *Lexer) readByte() (byte, error) {
 }
 
 func (l *Lexer) peekRune() (rune, int, error) {
-	err := l.check(utf8.UTFMax)
-	if len(l.cursor) == 0 {
-		if err == nil {
-			err = io.EOF
+	if !utf8.FullRune(l.cursor) {
+		err := l.fill(utf8.UTFMax)
+		if len(l.cursor) == 0 {
+			if err == nil {
+				err = io.EOF
+			}
+			return 0, 0, err
 		}
-		return 0, 0, err
 	}
 	r, n := utf8.DecodeRune(l.cursor)
 	return r, n, nil

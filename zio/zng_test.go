@@ -25,17 +25,6 @@ func (o *Output) Close() error {
 	return nil
 }
 
-func identity(t *testing.T, logs string) {
-	var out Output
-	dst := tzngio.NewWriter(&out)
-	in := []byte(strings.TrimSpace(logs) + "\n")
-	src := tzngio.NewReader(bytes.NewReader(in), zson.NewContext())
-	err := zbuf.Copy(dst, src)
-	if assert.NoError(t, err) {
-		assert.Equal(t, in, out.Bytes())
-	}
-}
-
 // Send logs to tzng reader -> zng writer -> zng reader -> tzng writer
 func boomerang(t *testing.T, logs string, compress bool) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
@@ -133,18 +122,6 @@ func tzngBig() string {
 	return s
 }
 
-func TestTzng(t *testing.T) {
-	identity(t, tzng1)
-	identity(t, tzng2)
-	identity(t, tzng3)
-	identity(t, tzng4)
-	identity(t, tzng5)
-	identity(t, tzng6)
-	identity(t, tzng7)
-	identity(t, tzng8)
-	identity(t, tzngBig())
-}
-
 func TestRaw(t *testing.T) {
 	boomerang(t, tzng1, false)
 	boomerang(t, tzng2, false)
@@ -167,41 +144,6 @@ func TestRawCompressed(t *testing.T) {
 	boomerang(t, tzng7, true)
 	boomerang(t, tzng8, true)
 	boomerang(t, tzngBig(), true)
-}
-
-const ctrl = `
-#!message1
-#0:record[id:record[a:string,s:set[string]]]
-#!message2
-0:[[-;[]]]
-#!message3
-#!message4`
-
-func TestCtrl(t *testing.T) {
-	// this tests reading of control via text zng,
-	// then writing of raw control, and reading back the result
-	in := []byte(strings.TrimSpace(ctrl) + "\n")
-	r := tzngio.NewReader(bytes.NewReader(in), zson.NewContext())
-
-	_, body, err := r.ReadPayload()
-	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message1"))
-
-	_, body, err = r.ReadPayload()
-	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message2"))
-
-	_, body, err = r.ReadPayload()
-	assert.NoError(t, err)
-	assert.True(t, body == nil)
-
-	_, body, err = r.ReadPayload()
-	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message3"))
-
-	_, body, err = r.ReadPayload()
-	assert.NoError(t, err)
-	assert.Equal(t, body, []byte("message4"))
 }
 
 func TestZjson(t *testing.T) {
