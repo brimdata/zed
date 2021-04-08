@@ -5,7 +5,7 @@ import (
 	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type consumer interface {
@@ -23,7 +23,7 @@ func newMathReducer(f *anymath.Function) *mathReducer {
 	return &mathReducer{function: f}
 }
 
-func (m *mathReducer) Result(*resolver.Context) (zng.Value, error) {
+func (m *mathReducer) Result(*zson.Context) (zng.Value, error) {
 	if m.math == nil {
 		if m.typ == nil {
 			return zng.Value{Type: zng.TypeNull, Bytes: nil}, nil
@@ -74,7 +74,7 @@ func (m *mathReducer) consumeVal(val zng.Value) {
 	}
 }
 
-func (m *mathReducer) ResultAsPartial(*resolver.Context) (zng.Value, error) {
+func (m *mathReducer) ResultAsPartial(*zson.Context) (zng.Value, error) {
 	return m.Result(nil)
 }
 

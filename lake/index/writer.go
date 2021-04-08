@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 func NewWriter(ctx context.Context, u iosrc.URI, def *Definition) (*Writer, error) {
@@ -110,7 +110,7 @@ type indexer struct {
 }
 
 func newIndexer(ctx context.Context, u iosrc.URI, def *Definition, r zbuf.Reader) (*indexer, error) {
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	conf := driver.Config{Custom: compile}
 	fgr, err := driver.NewReaderWithConfig(ctx, conf, def.Proc, zctx, r)
 	if err != nil {

@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 // A MultiSource is a set of one or more ZNG record sources, which could be
@@ -34,7 +34,7 @@ type MultiSource interface {
 }
 
 type Source interface {
-	Open(context.Context, *resolver.Context, SourceFilter) (ScannerCloser, error)
+	Open(context.Context, *zson.Context, SourceFilter) (ScannerCloser, error)
 	ToRequest(*api.WorkerChunkRequest) error
 }
 

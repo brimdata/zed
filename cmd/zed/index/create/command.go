@@ -13,7 +13,7 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/detector"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var Create = &charm.Spec{
@@ -75,7 +75,7 @@ func (c *Command) Run(args []string) error {
 	if path == "-" {
 		path = iosrc.Stdin
 	}
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	file, err := detector.OpenFile(zctx, path, c.inputFlags.Options())
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (c *Command) Run(args []string) error {
 	return writer.Close()
 }
 
-func (c *Command) buildTable(zctx *resolver.Context, reader zbuf.Reader) (*index.MemTable, error) {
+func (c *Command) buildTable(zctx *zson.Context, reader zbuf.Reader) (*index.MemTable, error) {
 	readKey := expr.NewDotExpr(field.Dotted(c.keyField))
 	table := index.NewMemTable(zctx)
 	for {

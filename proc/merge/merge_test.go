@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -100,7 +100,7 @@ func TestParallelOrder(t *testing.T) {
 
 	for i, c := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			zctx := resolver.NewContext()
+			zctx := zson.NewContext()
 			pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 			var parents []proc.Interface
 			for _, s := range c.inputs {

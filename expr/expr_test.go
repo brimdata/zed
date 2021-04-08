@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/require"
@@ -19,7 +18,7 @@ func testSuccessful(t *testing.T, e string, record string, expect zng.Value) {
 	if record == "" {
 		record = "{}"
 	}
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	typ, _ := zctx.LookupTypeRecord([]zng.Column{zng.Column{"result", expect.Type}})
 	bytes := zcode.AppendPrimitive(nil, expect.Bytes)
 	rec := zng.NewRecord(typ, bytes)

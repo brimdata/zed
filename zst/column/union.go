@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type UnionWriter struct {
@@ -54,7 +54,7 @@ func (u *UnionWriter) Flush(eof bool) error {
 	return nil
 }
 
-func (u *UnionWriter) MarshalZNG(zctx *resolver.Context, b *zcode.Builder) (zng.Type, error) {
+func (u *UnionWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zng.Type, error) {
 	var cols []zng.Column
 	b.BeginContainer()
 	for k, value := range u.values {

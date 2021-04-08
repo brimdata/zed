@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var Create = &charm.Spec{
@@ -68,7 +68,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("must specify one or more input files")
 	}
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	readers, err := c.inputFlags.Open(zctx, args, true)
 	if err != nil {
 		return err

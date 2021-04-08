@@ -5,17 +5,18 @@ import (
 
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 )
 
 type Encoder struct {
 	table   []zng.Type
-	zctx    *Context
+	zctx    *zson.Context
 	encoded map[int]struct{}
 }
 
 func NewEncoder() *Encoder {
 	return &Encoder{
-		zctx:    NewContext(),
+		zctx:    zson.NewContext(),
 		encoded: make(map[int]struct{}),
 	}
 }

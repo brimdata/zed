@@ -3,7 +3,7 @@ package expr
 import (
 	"github.com/brimdata/zed/expr/agg"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Generator interface {
@@ -89,12 +89,12 @@ func (f *FilterMethod) Next() (zng.Value, error) {
 }
 
 type AggExpr struct {
-	zctx   *resolver.Context
+	zctx   *zson.Context
 	newAgg agg.Pattern
 	src    Generator
 }
 
-func NewAggExpr(zctx *resolver.Context, pattern agg.Pattern, src Generator) *AggExpr {
+func NewAggExpr(zctx *zson.Context, pattern agg.Pattern, src Generator) *AggExpr {
 	return &AggExpr{
 		zctx:   zctx,
 		newAgg: pattern,

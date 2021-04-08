@@ -9,8 +9,8 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -25,7 +25,7 @@ func TestWriterIndex(t *testing.T) {
 0:[1;100;]`
 	def := index.MustNewDefinition(index.NewTypeRule(zng.TypeInt64))
 	chunk := testWriteWithDef(t, data, def)
-	reader, err := index.Find(context.Background(), resolver.NewContext(), chunk.ZarDir(), def.ID, "100")
+	reader, err := index.Find(context.Background(), zson.NewContext(), chunk.ZarDir(), def.ID, "100")
 	require.NoError(t, err)
 	recs, err := zbuf.ReadAll(reader)
 	require.NoError(t, err)
@@ -43,7 +43,7 @@ func TestWriterSkipsInputPath(t *testing.T) {
 	sdef := index.MustNewDefinition(index.NewFieldRule("s"))
 	inputdef := index.MustNewDefinition(index.NewTypeRule(zng.TypeInt64))
 	inputdef.Input = "input_path"
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	chunk := testWriteWithDef(t, data, sdef, inputdef)
 	reader, err := index.Find(context.Background(), zctx, chunk.ZarDir(), sdef.ID, "test")
 	require.NoError(t, err)

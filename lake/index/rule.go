@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type RuleKind string
@@ -36,7 +37,7 @@ type Rule struct {
 
 func NewRule(pattern string) (Rule, error) {
 	if pattern[0] == ':' {
-		typ, err := resolver.NewContext().LookupByName(pattern[1:])
+		typ, err := zson.NewContext().LookupByName(pattern[1:])
 		if err != nil {
 			return Rule{}, err
 		}
@@ -62,7 +63,7 @@ func NewFieldRule(fieldName string) Rule {
 }
 
 func UnmarshalRule(b []byte) (Rule, error) {
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	zr := zngio.NewReader(bytes.NewReader(b), zctx)
 	rec, err := zr.Read()
 	if err != nil {

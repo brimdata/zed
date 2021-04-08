@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 // Reader implements the zbuf.Reader and io.Closer.  It reads a columnar
@@ -29,7 +29,7 @@ func NewReader(object *Object) (*Reader, error) {
 
 }
 
-func NewReaderFromPath(ctx context.Context, zctx *resolver.Context, path string) (*Reader, error) {
+func NewReaderFromPath(ctx context.Context, zctx *zson.Context, path string) (*Reader, error) {
 	object, err := NewObjectFromPath(ctx, zctx, path)
 	if err != nil {
 		return nil, err
@@ -42,7 +42,7 @@ func NewReaderFromPath(ctx context.Context, zctx *resolver.Context, path string)
 	return reader, nil
 }
 
-func NewReaderFromSeeker(zctx *resolver.Context, seeker Seeker) (*Reader, error) {
+func NewReaderFromSeeker(zctx *zson.Context, seeker Seeker) (*Reader, error) {
 	object, err := NewObjectFromSeeker(zctx, seeker)
 	if err != nil {
 		return nil, err

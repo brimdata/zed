@@ -6,10 +6,11 @@ import (
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Flattener struct {
-	zctx   *resolver.Context
+	zctx   *zson.Context
 	mapper *resolver.Mapper
 }
 
@@ -17,7 +18,7 @@ type Flattener struct {
 // records where the type context of the received records must match the
 // zctx parameter provided here.  Any new type descriptors that are created
 // to flatten types also use zctx.
-func New(zctx *resolver.Context) *Flattener {
+func New(zctx *zson.Context) *Flattener {
 	return &Flattener{
 		zctx: zctx,
 		// This mapper maps types back into the same context and gives

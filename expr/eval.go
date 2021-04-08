@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var ErrIncompatibleTypes = coerce.ErrIncompatibleTypes
@@ -289,7 +289,7 @@ func (r *RegexpSearch) Eval(rec *zng.Record) (zng.Value, error) {
 }
 
 type numeric struct {
-	zctx *resolver.Context
+	zctx *zson.Context
 	lhs  Evaluator
 	rhs  Evaluator
 	vals coerce.Pair
@@ -613,12 +613,12 @@ func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
 // Index represents an index operator "container[index]" where container is
 // either an array (with index type integer) or a record (with index type string).
 type Index struct {
-	zctx      *resolver.Context
+	zctx      *zson.Context
 	container Evaluator
 	index     Evaluator
 }
 
-func NewIndexExpr(zctx *resolver.Context, container, index Evaluator) (Evaluator, error) {
+func NewIndexExpr(zctx *zson.Context, container, index Evaluator) (Evaluator, error) {
 	return &Index{zctx, container, index}, nil
 }
 
@@ -719,14 +719,14 @@ func (c *Conditional) Eval(rec *zng.Record) (zng.Value, error) {
 }
 
 type Call struct {
-	zctx    *resolver.Context
+	zctx    *zson.Context
 	fn      function.Interface
 	exprs   []Evaluator
 	args    []zng.Value
 	AddRoot bool
 }
 
-func NewCall(zctx *resolver.Context, fn function.Interface, exprs []Evaluator) *Call {
+func NewCall(zctx *zson.Context, fn function.Interface, exprs []Evaluator) *Call {
 	return &Call{
 		zctx:  zctx,
 		fn:    fn,
@@ -750,11 +750,11 @@ func (c *Call) Eval(rec *zng.Record) (zng.Value, error) {
 // a Z typedef).  It returns MISSING if the name doesn't exist.
 type TypeFunc struct {
 	name string
-	zctx *resolver.Context
+	zctx *zson.Context
 	zv   zng.Value
 }
 
-func NewTypeFunc(zctx *resolver.Context, name string) *TypeFunc {
+func NewTypeFunc(zctx *zson.Context, name string) *TypeFunc {
 	return &TypeFunc{
 		name: name,
 		zctx: zctx,
@@ -773,11 +773,11 @@ func (t *TypeFunc) Eval(rec *zng.Record) (zng.Value, error) {
 }
 
 type Exists struct {
-	zctx  *resolver.Context
+	zctx  *zson.Context
 	exprs []Evaluator
 }
 
-func NewExists(zctx *resolver.Context, exprs []Evaluator) *Exists {
+func NewExists(zctx *zson.Context, exprs []Evaluator) *Exists {
 	return &Exists{
 		zctx:  zctx,
 		exprs: exprs,

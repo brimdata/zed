@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"golang.org/x/sync/errgroup"
 	"golang.org/x/sync/semaphore"
 )
@@ -102,7 +102,7 @@ func writeChunkIndices(ctx context.Context, chunk chunk.Chunk, list index.Defini
 			return nil, err
 		}
 
-		zr := zngio.NewReader(r, resolver.NewContext())
+		zr := zngio.NewReader(r, zson.NewContext())
 		added, err := index.WriteIndices(ctx, chunk.ZarDir(), zr, defs...)
 		if err != nil {
 			r.Close()

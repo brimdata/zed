@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,7 +26,7 @@ func kid(s string) ksuid.KSUID {
 }
 
 func importTzng(t *testing.T, lk *Lake, s string) {
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	reader := tzngio.NewReader(strings.NewReader(s), zctx)
 	err := Import(context.Background(), lk, zctx, reader)
 	require.NoError(t, err)

@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/pkg/signalctx"
 	"github.com/brimdata/zed/pkg/units"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var Import = &charm.Spec{
@@ -103,7 +103,7 @@ func (c *Command) Run(args []string) error {
 	defer cancel()
 
 	paths := args
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	readers, err := c.inputFlags.Open(zctx, paths, false)
 	if err != nil {
 		return err

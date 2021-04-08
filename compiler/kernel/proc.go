@@ -25,7 +25,6 @@ import (
 	"github.com/brimdata/zed/proc/uniq"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -221,7 +220,7 @@ type picker struct{ *expr.Cutter }
 
 func (_ *picker) String() string { return "pick" }
 
-func compileAssignments(assignments []ast.Assignment, zctx *resolver.Context, scope *Scope) ([]expr.Assignment, error) {
+func compileAssignments(assignments []ast.Assignment, zctx *zson.Context, scope *Scope) ([]expr.Assignment, error) {
 	keys := make([]expr.Assignment, 0, len(assignments))
 	for _, assignment := range assignments {
 		a, err := CompileAssignment(zctx, scope, &assignment)
@@ -406,7 +405,7 @@ func Compile(custom Hook, node ast.Proc, pctx *proc.Context, scope *Scope, paren
 	}
 }
 
-func LoadConsts(zctx *resolver.Context, scope *Scope, procs []ast.Proc) error {
+func LoadConsts(zctx *zson.Context, scope *Scope, procs []ast.Proc) error {
 	for _, p := range procs {
 		switch p := p.(type) {
 		case *ast.Const:
@@ -430,7 +429,7 @@ func LoadConsts(zctx *resolver.Context, scope *Scope, procs []ast.Proc) error {
 
 		case *ast.TypeProc:
 			name := p.Name
-			typ, err := zson.TranslateType(zctx.Context, p.Type)
+			typ, err := zson.TranslateType(zctx, p.Type)
 			if err != nil {
 				return err
 			}

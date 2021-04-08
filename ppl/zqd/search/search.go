@@ -16,8 +16,8 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/storage/filestore"
 	"github.com/brimdata/zed/ppl/zqd/worker"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
 )
 
@@ -81,7 +81,7 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 
 	statsTicker := time.NewTicker(StatsInterval)
 	defer statsTicker.Stop()
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 
 	switch st := store.(type) {
 	case *archivestore.Storage:

@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Renames struct{ Srcs, Dsts []field.Static }
@@ -15,13 +15,13 @@ type Renames struct{ Srcs, Dsts []field.Static }
 // rename specification. The latter is needed when input types have
 // name collisions on fields of different types.
 type Schema struct {
-	zctx    *resolver.Context
+	zctx    *zson.Context
 	Type    *zng.TypeRecord
 	Renames map[int]Renames
 	unify   bool
 }
 
-func NewSchema(zctx *resolver.Context) (*Schema, error) {
+func NewSchema(zctx *zson.Context) (*Schema, error) {
 	empty, err := zctx.LookupTypeRecord([]zng.Column{})
 	if err != nil {
 		return nil, err
@@ -58,7 +58,7 @@ func disambiguate(cols []zng.Column, name string) string {
 	return fmt.Sprintf("%s_%d", name, n)
 }
 
-func unify(zctx *resolver.Context, t, u zng.Type) zng.Type {
+func unify(zctx *zson.Context, t, u zng.Type) zng.Type {
 	tIsUnion := zng.IsUnionType(t)
 	uIsUnion := zng.IsUnionType(u)
 	switch {

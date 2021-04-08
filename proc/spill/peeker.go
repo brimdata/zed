@@ -2,7 +2,7 @@ package spill
 
 import (
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type peeker struct {
@@ -11,7 +11,7 @@ type peeker struct {
 	ordinal    int
 }
 
-func newPeeker(filename string, ordinal int, recs []*zng.Record, zctx *resolver.Context) (*peeker, error) {
+func newPeeker(filename string, ordinal int, recs []*zng.Record, zctx *zson.Context) (*peeker, error) {
 	f, err := NewFileWithPath(filename, zctx)
 	if err != nil {
 		return nil, err

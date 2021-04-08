@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/flattener"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var ErrNotDataFrame = errors.New("csv output requires uniform records but different types encountered")
@@ -29,7 +29,7 @@ type WriterOpts struct {
 	UTF8 bool
 }
 
-func NewWriter(w io.WriteCloser, zctx *resolver.Context, opts WriterOpts) zbuf.WriteCloser {
+func NewWriter(w io.WriteCloser, zctx *zson.Context, opts WriterOpts) zbuf.WriteCloser {
 	format := tzngio.OutFormatZeekAscii
 	if opts.UTF8 {
 		format = tzngio.OutFormatZeek
@@ -37,7 +37,7 @@ func NewWriter(w io.WriteCloser, zctx *resolver.Context, opts WriterOpts) zbuf.W
 	zw := &Writer{
 		writer:    w,
 		encoder:   csv.NewWriter(w),
-		flattener: flattener.New(resolver.NewContext()),
+		flattener: flattener.New(zson.NewContext()),
 		format:    format,
 	}
 	if opts.Fuse {

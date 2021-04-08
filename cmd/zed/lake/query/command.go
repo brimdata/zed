@@ -16,7 +16,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/signalctx"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var Query = &charm.Spec{
@@ -92,7 +92,7 @@ func (c *Command) Run(args []string) error {
 	if !c.quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	err = driver.MultiRun(ctx, d, query, resolver.NewContext(), msrc, driver.MultiConfig{
+	err = driver.MultiRun(ctx, d, query, zson.NewContext(), msrc, driver.MultiConfig{
 		Span: c.searchFlags.Span(),
 	})
 	if closeErr := writer.Close(); err == nil {

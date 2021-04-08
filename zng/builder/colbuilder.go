@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var ErrNonAdjacent = errors.New("non adjacent fields")
@@ -75,7 +75,7 @@ type fieldInfo struct {
 type ColumnBuilder struct {
 	fields   []fieldInfo
 	builder  *zcode.Builder
-	zctx     *resolver.Context
+	zctx     *zson.Context
 	curField int
 }
 
@@ -84,7 +84,7 @@ type ColumnBuilder struct {
 // Append should be called to enter field values in the left to right order
 // of the provided fields and Encode is called to retrieve the nested zcode.Bytes
 // value.  Reset should be called before encoding the next record.
-func NewColumnBuilder(zctx *resolver.Context, fields []field.Static) (*ColumnBuilder, error) {
+func NewColumnBuilder(zctx *zson.Context, fields []field.Static) (*ColumnBuilder, error) {
 	seenRecords := make(map[string]bool)
 	fieldInfos := make([]fieldInfo, 0, len(fields))
 	var currentRecord []string

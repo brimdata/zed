@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -250,7 +249,7 @@ func (*trim) Call(args []zng.Value) (zng.Value, error) {
 }
 
 type split struct {
-	zctx  *resolver.Context
+	zctx  *zson.Context
 	typ   zng.Type
 	bytes zcode.Bytes
 }

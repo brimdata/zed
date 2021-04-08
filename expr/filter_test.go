@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -33,7 +33,7 @@ func runCasesExpectBufferFilterFalsePositives(t *testing.T, tzng string, cases [
 func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFilterFalsePositives bool) {
 	t.Helper()
 
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	batch, err := zbuf.NewPuller(tzngio.NewReader(strings.NewReader(tzng), zctx), 2).Pull()
 	require.NoError(t, err, "tzng: %q", tzng)
 	require.Exactly(t, 1, batch.Length(), "tzng: %q", tzng)
@@ -45,7 +45,7 @@ func runCasesHelper(t *testing.T, tzng string, cases []testcase, expectBufferFil
 
 			p, err := compiler.ParseProc(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
-			runtime, err := compiler.New(resolver.NewContext(), p)
+			runtime, err := compiler.New(zson.NewContext(), p)
 			require.NoError(t, err, "filter: %q", c.filter)
 
 			f, err := runtime.AsFilter()
@@ -525,6 +525,6 @@ func TestBadFilter(t *testing.T) {
 	t.Parallel()
 	proc, err := compiler.ParseProc(`s = \xa8*`)
 	require.NoError(t, err)
-	_, err = compiler.New(resolver.NewContext(), proc)
+	_, err = compiler.New(zson.NewContext(), proc)
 	assert.Error(t, err, "error parsing regexp: invalid UTF-8: `^\xa8.*$`")
 }

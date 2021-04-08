@@ -7,10 +7,10 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
-func compileCompareField(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (expr.Filter, error) {
+func compileCompareField(zctx *zson.Context, scope *Scope, e *ast.BinaryExpr) (expr.Filter, error) {
 	if e.Op == "in" {
 		literal, ok := e.LHS.(*ast.Primitive)
 		if !ok {
@@ -78,7 +78,7 @@ func compileSearch(node *ast.Search) (expr.Filter, error) {
 	return expr.SearchRecordOther(node.Text, node.Value)
 }
 
-func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Filter, error) {
+func CompileFilter(zctx *zson.Context, scope *Scope, node ast.Expr) (expr.Filter, error) {
 	switch v := node.(type) {
 	case *ast.RegexpMatch:
 		e, err := compileExpr(zctx, scope, v.Expr)
@@ -175,7 +175,7 @@ func CompileFilter(zctx *resolver.Context, scope *Scope, node ast.Expr) (expr.Fi
 	}
 }
 
-func compileExprPredicate(zctx *resolver.Context, scope *Scope, e ast.Expr) (expr.Filter, error) {
+func compileExprPredicate(zctx *zson.Context, scope *Scope, e ast.Expr) (expr.Filter, error) {
 	predicate, err := compileExpr(zctx, scope, e)
 	if err != nil {
 		return nil, err

@@ -17,7 +17,7 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -31,7 +31,7 @@ type archivePcapOp struct {
 	store          *archivestore.Storage
 	writer         *archivestore.Writer
 	zeek, suricata pcapanalyzer.Launcher
-	zctx           *resolver.Context
+	zctx           *zson.Context
 
 	// snap not used for archive store pcap ingest. Here for functional parity
 	// with legacyPcapOp. Can be removed once filestore has been deprecated
@@ -75,7 +75,7 @@ func newArchivePcapOp(ctx context.Context, logstore *archivestore.Storage, pcaps
 		suricata:  suricata,
 		writer:    writer,
 		zeek:      zeek,
-		zctx:      resolver.NewContext(),
+		zctx:      zson.NewContext(),
 
 		startTime:      nano.Now(),
 		pcapBytesTotal: info.Size(),

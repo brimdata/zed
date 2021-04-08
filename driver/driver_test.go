@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +31,7 @@ func TestMuxDriver(t *testing.T) {
 	assert.NoError(t, err)
 
 	t.Run("muxed into one writer", func(t *testing.T) {
-		zctx := resolver.NewContext()
+		zctx := zson.NewContext()
 		reader := tzngio.NewReader(strings.NewReader(input), zctx)
 		assert.NoError(t, err)
 		c := counter{}
@@ -42,7 +42,7 @@ func TestMuxDriver(t *testing.T) {
 	})
 
 	t.Run("muxed into individual writers", func(t *testing.T) {
-		zctx := resolver.NewContext()
+		zctx := zson.NewContext()
 		reader := tzngio.NewReader(strings.NewReader(input), zctx)
 		assert.NoError(t, err)
 		cs := []zbuf.Writer{&counter{}, &counter{}}

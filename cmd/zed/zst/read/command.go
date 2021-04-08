@@ -9,7 +9,7 @@ import (
 	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst"
 )
 
@@ -54,7 +54,7 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	path := args[0]
-	reader, err := zst.NewReaderFromPath(ctx, resolver.NewContext(), path)
+	reader, err := zst.NewReaderFromPath(ctx, zson.NewContext(), path)
 	if err != nil {
 		return err
 	}

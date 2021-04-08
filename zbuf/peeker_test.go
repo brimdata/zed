@@ -7,12 +7,12 @@ import (
 
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 func newTextReader(logs string) *tzngio.Reader {
 	logs = strings.TrimSpace(logs) + "\n"
-	return tzngio.NewReader(strings.NewReader(logs), resolver.NewContext())
+	return tzngio.NewReader(strings.NewReader(logs), zson.NewContext())
 }
 
 const input = `

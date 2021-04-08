@@ -18,8 +18,8 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zson"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
@@ -46,7 +46,7 @@ type pullerCloser struct {
 	io.Closer
 }
 
-func newSpanScanner(ctx context.Context, lk *Lake, zctx *resolver.Context, sf driver.SourceFilter, si SpanInfo) (sc *pullerCloser, stats ChunkStats, err error) {
+func newSpanScanner(ctx context.Context, lk *Lake, zctx *zson.Context, sf driver.SourceFilter, si SpanInfo) (sc *pullerCloser, stats ChunkStats, err error) {
 	closers := make(multiCloser, 0, len(si.Chunks))
 	pullers := make([]zbuf.Puller, 0, len(si.Chunks))
 	scanners := make([]zbuf.Scanner, 0, len(si.Chunks))
@@ -182,7 +182,7 @@ type spanSource struct {
 	stats    *ChunkStats
 }
 
-func (s *spanSource) Open(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter) (driver.ScannerCloser, error) {
+func (s *spanSource) Open(ctx context.Context, zctx *zson.Context, sf driver.SourceFilter) (driver.ScannerCloser, error) {
 	scn, stats, err := newSpanScanner(ctx, s.lk, zctx, sf, s.spanInfo)
 	s.stats.Accumulate(stats)
 	return scn, err
@@ -242,7 +242,7 @@ type chunkSource struct {
 	stats *ChunkStats
 }
 
-func (s *chunkSource) Open(ctx context.Context, zctx *resolver.Context, sf driver.SourceFilter) (driver.ScannerCloser, error) {
+func (s *chunkSource) Open(ctx context.Context, zctx *zson.Context, sf driver.SourceFilter) (driver.ScannerCloser, error) {
 	var size int64
 	paths := make([]string, len(s.cms.altPaths))
 	for i, input := range s.cms.altPaths {

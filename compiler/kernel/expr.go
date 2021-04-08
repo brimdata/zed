@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -46,7 +45,7 @@ var Root = &ast.Path{Kind: "Path", Name: []string{}}
 // TBD: string values and net.IP address do not need to be copied because they
 // are allocated by go libraries and temporary buffers are not used.  This will
 // change down the road when we implement no-allocation string and IP conversion.
-func compileExpr(zctx *resolver.Context, scope *Scope, e ast.Expr) (expr.Evaluator, error) {
+func compileExpr(zctx *zson.Context, scope *Scope, e ast.Expr) (expr.Evaluator, error) {
 	if e == nil {
 		return nil, errors.New("null expression not allowed")
 	}
@@ -107,14 +106,14 @@ func compileExpr(zctx *resolver.Context, scope *Scope, e ast.Expr) (expr.Evaluat
 	}
 }
 
-func compileExprWithEmpty(zctx *resolver.Context, scope *Scope, e ast.Expr) (expr.Evaluator, error) {
+func compileExprWithEmpty(zctx *zson.Context, scope *Scope, e ast.Expr) (expr.Evaluator, error) {
 	if e == nil {
 		return nil, nil
 	}
 	return compileExpr(zctx, scope, e)
 }
 
-func CompileExprs(zctx *resolver.Context, scope *Scope, nodes []ast.Expr) ([]expr.Evaluator, error) {
+func CompileExprs(zctx *zson.Context, scope *Scope, nodes []ast.Expr) ([]expr.Evaluator, error) {
 	var exprs []expr.Evaluator
 	for k := range nodes {
 		e, err := compileExpr(zctx, scope, nodes[k])
@@ -126,7 +125,7 @@ func CompileExprs(zctx *resolver.Context, scope *Scope, nodes []ast.Expr) ([]exp
 	return exprs, nil
 }
 
-func compileBinary(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (expr.Evaluator, error) {
+func compileBinary(zctx *zson.Context, scope *Scope, e *ast.BinaryExpr) (expr.Evaluator, error) {
 	if slice, ok := e.RHS.(*ast.BinaryExpr); ok && slice.Op == ":" {
 		return compileSlice(zctx, scope, e.LHS, slice)
 	}
@@ -164,7 +163,7 @@ func compileBinary(zctx *resolver.Context, scope *Scope, e *ast.BinaryExpr) (exp
 	}
 }
 
-func compileSlice(zctx *resolver.Context, scope *Scope, container ast.Expr, slice *ast.BinaryExpr) (expr.Evaluator, error) {
+func compileSlice(zctx *zson.Context, scope *Scope, container ast.Expr, slice *ast.BinaryExpr) (expr.Evaluator, error) {
 	from, err := compileExprWithEmpty(zctx, scope, slice.LHS)
 	if err != nil {
 		return nil, err
@@ -180,7 +179,7 @@ func compileSlice(zctx *resolver.Context, scope *Scope, container ast.Expr, slic
 	return expr.NewSlice(e, from, to), nil
 }
 
-func compileSeqExpr(zctx *resolver.Context, scope *Scope, seq *ast.SeqExpr) (expr.Evaluator, error) {
+func compileSeqExpr(zctx *zson.Context, scope *Scope, seq *ast.SeqExpr) (expr.Evaluator, error) {
 	selectors, err := compileExprs(zctx, scope, seq.Selectors)
 	if err != nil {
 		return nil, err
@@ -200,7 +199,7 @@ func compileSeqExpr(zctx *resolver.Context, scope *Scope, seq *ast.SeqExpr) (exp
 	return expr.NewAggExpr(zctx, pattern, sequence), nil
 }
 
-func compileMethod(zctx *resolver.Context, scope *Scope, src expr.Generator, method ast.Method) (expr.Generator, error) {
+func compileMethod(zctx *zson.Context, scope *Scope, src expr.Generator, method ast.Method) (expr.Generator, error) {
 	switch method.Name {
 	case "map":
 		if len(method.Args) != 1 {
@@ -236,7 +235,7 @@ func compileMethod(zctx *resolver.Context, scope *Scope, src expr.Generator, met
 	}
 }
 
-func compileUnary(zctx *resolver.Context, scope *Scope, unary ast.UnaryExpr) (expr.Evaluator, error) {
+func compileUnary(zctx *zson.Context, scope *Scope, unary ast.UnaryExpr) (expr.Evaluator, error) {
 	if unary.Op != "!" {
 		return nil, fmt.Errorf("unknown unary operator %s\n", unary.Op)
 	}
@@ -258,7 +257,7 @@ func compileLogical(lhs, rhs expr.Evaluator, operator string) (expr.Evaluator, e
 	}
 }
 
-func compileConditional(zctx *resolver.Context, scope *Scope, node ast.Conditional) (expr.Evaluator, error) {
+func compileConditional(zctx *zson.Context, scope *Scope, node ast.Conditional) (expr.Evaluator, error) {
 	predicate, err := compileExpr(zctx, scope, node.Cond)
 	if err != nil {
 		return nil, err
@@ -274,7 +273,7 @@ func compileConditional(zctx *resolver.Context, scope *Scope, node ast.Condition
 	return expr.NewConditional(predicate, thenExpr, elseExpr), nil
 }
 
-func compileDotExpr(zctx *resolver.Context, scope *Scope, lhs, rhs ast.Expr) (expr.Evaluator, error) {
+func compileDotExpr(zctx *zson.Context, scope *Scope, lhs, rhs ast.Expr) (expr.Evaluator, error) {
 	id, ok := rhs.(*ast.Id)
 	if !ok {
 		return nil, errors.New("rhs of dot expression is not an identifier")
@@ -286,13 +285,13 @@ func compileDotExpr(zctx *resolver.Context, scope *Scope, lhs, rhs ast.Expr) (ex
 	return expr.NewDotAccess(record, id.Name), nil
 }
 
-func compileCast(zctx *resolver.Context, scope *Scope, node ast.Cast) (expr.Evaluator, error) {
+func compileCast(zctx *zson.Context, scope *Scope, node ast.Cast) (expr.Evaluator, error) {
 	e, err := compileExpr(zctx, scope, node.Expr)
 	if err != nil {
 		return nil, err
 	}
 	//XXX we should handle runtime resolution of typedef names
-	typ, err := zson.TranslateType(zctx.Context, node.Type)
+	typ, err := zson.TranslateType(zctx, node.Type)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +305,7 @@ func compileLval(e ast.Expr) (field.Static, error) {
 	return nil, errors.New("invalid expression on lhs of assignment")
 }
 
-func CompileAssignment(zctx *resolver.Context, scope *Scope, node *ast.Assignment) (expr.Assignment, error) {
+func CompileAssignment(zctx *zson.Context, scope *Scope, node *ast.Assignment) (expr.Assignment, error) {
 	lhs, err := compileLval(node.LHS)
 	if err != nil {
 		return expr.Assignment{}, err
@@ -331,7 +330,7 @@ func CompileAssignments(dsts []field.Static, srcs []field.Static) ([]field.Stati
 	return fields, resolvers
 }
 
-func compileCutter(zctx *resolver.Context, scope *Scope, node ast.Call) (*expr.Cutter, error) {
+func compileCutter(zctx *zson.Context, scope *Scope, node ast.Call) (*expr.Cutter, error) {
 	var lhs []field.Static
 	var rhs []expr.Evaluator
 	for _, expr := range node.Args {
@@ -377,7 +376,7 @@ func isShaperFunc(name string) bool {
 	return shaperOps(name) != 0
 }
 
-func compileShaper(zctx *resolver.Context, scope *Scope, node ast.Call) (*expr.Shaper, error) {
+func compileShaper(zctx *zson.Context, scope *Scope, node ast.Call) (*expr.Shaper, error) {
 	args := node.Args
 	if len(args) == 1 {
 		args = append([]ast.Expr{Root}, args...)
@@ -399,10 +398,10 @@ func compileShaper(zctx *resolver.Context, scope *Scope, node ast.Call) (*expr.S
 	// XXX When we do constant folding, we should detect when typeExpr is
 	// a constant and allocate a ConstShaper instead of a (dynamic) Shaper.
 	// See issue #2425.
-	return expr.NewShaper(zctx.Context, field, typExpr, shaperOps(node.Name)), nil
+	return expr.NewShaper(zctx, field, typExpr, shaperOps(node.Name)), nil
 }
 
-func compileCall(zctx *resolver.Context, scope *Scope, call ast.Call) (expr.Evaluator, error) {
+func compileCall(zctx *zson.Context, scope *Scope, call ast.Call) (expr.Evaluator, error) {
 	// For now, we special case stateful functions here.  We should generalize this
 	// as we will add many more stateful functions and also resolve this
 	// the changes to create running aggegation functions from reducers.
@@ -441,7 +440,7 @@ func compileCall(zctx *resolver.Context, scope *Scope, call ast.Call) (expr.Eval
 		return compileShaper(zctx, scope, call)
 	}
 	nargs := len(call.Args)
-	fn, root, err := function.New(zctx.Context, call.Name, nargs)
+	fn, root, err := function.New(zctx, call.Name, nargs)
 	if err != nil {
 		return nil, fmt.Errorf("%s(): %w", call.Name, err)
 	}
@@ -456,7 +455,7 @@ func compileCall(zctx *resolver.Context, scope *Scope, call ast.Call) (expr.Eval
 	return expr.NewCall(zctx, fn, exprs), nil
 }
 
-func compileExprs(zctx *resolver.Context, scope *Scope, in []ast.Expr) ([]expr.Evaluator, error) {
+func compileExprs(zctx *zson.Context, scope *Scope, in []ast.Expr) ([]expr.Evaluator, error) {
 	out := make([]expr.Evaluator, 0, len(in))
 	for _, e := range in {
 		ev, err := compileExpr(zctx, scope, e)
@@ -468,7 +467,7 @@ func compileExprs(zctx *resolver.Context, scope *Scope, in []ast.Expr) ([]expr.E
 	return out, nil
 }
 
-func compileTypeValue(zctx *resolver.Context, scope *Scope, t *ast.TypeValue) (expr.Evaluator, error) {
+func compileTypeValue(zctx *zson.Context, scope *Scope, t *ast.TypeValue) (expr.Evaluator, error) {
 	if typ, ok := t.Value.(*ast.TypeName); ok {
 		// We currently support dynamic type names only for
 		// top-level type names.  By dynamic, we mean typedefs that
@@ -479,14 +478,14 @@ func compileTypeValue(zctx *resolver.Context, scope *Scope, t *ast.TypeValue) (e
 		// See issue #2182.
 		return expr.NewTypeFunc(zctx, typ.Name), nil
 	}
-	typ, err := zson.TranslateType(zctx.Context, t.Value)
+	typ, err := zson.TranslateType(zctx, t.Value)
 	if err != nil {
 		return nil, err
 	}
 	return expr.NewLiteralVal(zng.NewTypeType(typ)), nil
 }
 
-func compileRegexpMatch(zctx *resolver.Context, scope *Scope, match *ast.RegexpMatch) (expr.Evaluator, error) {
+func compileRegexpMatch(zctx *zson.Context, scope *Scope, match *ast.RegexpMatch) (expr.Evaluator, error) {
 	e, err := compileExpr(zctx, scope, match.Expr)
 	if err != nil {
 		return nil, err
@@ -498,7 +497,7 @@ func compileRegexpMatch(zctx *resolver.Context, scope *Scope, match *ast.RegexpM
 	return expr.NewRegexpMatch(re, e), nil
 }
 
-func compileRegexpSearch(zctx *resolver.Context, scope *Scope, search *ast.RegexpSearch) (expr.Evaluator, error) {
+func compileRegexpSearch(zctx *zson.Context, scope *Scope, search *ast.RegexpSearch) (expr.Evaluator, error) {
 	re, err := expr.CompileRegexp(search.Pattern)
 	if err != nil {
 		return nil, err
@@ -506,7 +505,7 @@ func compileRegexpSearch(zctx *resolver.Context, scope *Scope, search *ast.Regex
 	return expr.NewRegexpSearch(re), nil
 }
 
-func compileRecordExpr(zctx *resolver.Context, scope *Scope, record *ast.RecordExpr) (expr.Evaluator, error) {
+func compileRecordExpr(zctx *zson.Context, scope *Scope, record *ast.RecordExpr) (expr.Evaluator, error) {
 	var names []string
 	var exprs []expr.Evaluator
 	for _, f := range record.Fields {
@@ -517,26 +516,26 @@ func compileRecordExpr(zctx *resolver.Context, scope *Scope, record *ast.RecordE
 		names = append(names, f.Name)
 		exprs = append(exprs, e)
 	}
-	return expr.NewRecordExpr(zctx.Context, names, exprs), nil
+	return expr.NewRecordExpr(zctx, names, exprs), nil
 }
 
-func compileArrayExpr(zctx *resolver.Context, scope *Scope, array *ast.ArrayExpr) (expr.Evaluator, error) {
+func compileArrayExpr(zctx *zson.Context, scope *Scope, array *ast.ArrayExpr) (expr.Evaluator, error) {
 	exprs, err := compileExprs(zctx, scope, array.Exprs)
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewArrayExpr(zctx.Context, exprs), nil
+	return expr.NewArrayExpr(zctx, exprs), nil
 }
 
-func compileSetExpr(zctx *resolver.Context, scope *Scope, set *ast.SetExpr) (expr.Evaluator, error) {
+func compileSetExpr(zctx *zson.Context, scope *Scope, set *ast.SetExpr) (expr.Evaluator, error) {
 	exprs, err := compileExprs(zctx, scope, set.Exprs)
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewSetExpr(zctx.Context, exprs), nil
+	return expr.NewSetExpr(zctx, exprs), nil
 }
 
-func compileMapExpr(zctx *resolver.Context, scope *Scope, m *ast.MapExpr) (expr.Evaluator, error) {
+func compileMapExpr(zctx *zson.Context, scope *Scope, m *ast.MapExpr) (expr.Evaluator, error) {
 	var entries []expr.Entry
 	for _, f := range m.Entries {
 		key, err := compileExpr(zctx, scope, f.Key)
@@ -549,5 +548,5 @@ func compileMapExpr(zctx *resolver.Context, scope *Scope, m *ast.MapExpr) (expr.
 		}
 		entries = append(entries, expr.Entry{key, val})
 	}
-	return expr.NewMapExpr(zctx.Context, entries), nil
+	return expr.NewMapExpr(zctx, entries), nil
 }

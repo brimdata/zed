@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed/anymath"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 // A Pattern is a template for creating instances of aggregator functions.
@@ -27,8 +27,8 @@ var (
 type Function interface {
 	Consume(zng.Value) error
 	ConsumeAsPartial(zng.Value) error
-	Result(*resolver.Context) (zng.Value, error)
-	ResultAsPartial(*resolver.Context) (zng.Value, error)
+	Result(*zson.Context) (zng.Value, error)
+	ResultAsPartial(*zson.Context) (zng.Value, error)
 }
 
 func NewPattern(op string) (Pattern, error) {

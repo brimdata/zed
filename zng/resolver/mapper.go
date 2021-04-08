@@ -2,14 +2,15 @@ package resolver
 
 import (
 	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 )
 
 type Mapper struct {
 	Slice
-	outputCtx *Context
+	outputCtx *zson.Context
 }
 
-func NewMapper(out *Context) *Mapper {
+func NewMapper(out *zson.Context) *Mapper {
 	return &Mapper{outputCtx: out}
 }
 

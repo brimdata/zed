@@ -10,7 +10,7 @@ import (
 	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst"
 )
 
@@ -66,7 +66,7 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	path := args[0]
-	cutter, err := zst.NewCutterFromPath(ctx, resolver.NewContext(), path, fields)
+	cutter, err := zst.NewCutterFromPath(ctx, zson.NewContext(), path, fields)
 	if err != nil {
 		return err
 	}

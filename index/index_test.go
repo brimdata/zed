@@ -16,7 +16,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -48,7 +48,7 @@ func TestMicroIndex(t *testing.T) {
 	path := filepath.Join(dir, "test2.zng")
 	stream, err := newReader(N)
 	require.NoError(t, err)
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	writer, err := index.NewWriter(zctx, path)
 	require.NoError(t, err)
 	err = zbuf.Copy(writer, stream)
@@ -131,7 +131,7 @@ func TestCompare(t *testing.T) {
 			runtest(t, desc, "==", c.value, c.eql)
 		}
 	})
-	r, err := driver.NewReader(context.Background(), compiler.MustParseProc("sort ts"), resolver.NewContext(), reader(records))
+	r, err := driver.NewReader(context.Background(), compiler.MustParseProc("sort ts"), zson.NewContext(), reader(records))
 	require.NoError(t, err)
 	asc := buildAndOpen(t, r, index.Keys("ts"), index.Order(zbuf.OrderAsc))
 	t.Run("Ascending", func(t *testing.T) {
@@ -150,7 +150,7 @@ func buildAndOpen(t *testing.T, r zbuf.Reader, opts ...index.Option) *index.Find
 func openFinder(t *testing.T, path string) *index.Finder {
 	uri, err := iosrc.ParseURI(path)
 	require.NoError(t, err)
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	finder, err := index.NewFinder(context.Background(), zctx, uri)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, finder.Close()) })
@@ -159,7 +159,7 @@ func openFinder(t *testing.T, path string) *index.Finder {
 
 func build(t *testing.T, r zbuf.Reader, opts ...index.Option) string {
 	path := filepath.Join(tempDir(t), "test.zng")
-	writer, err := index.NewWriter(resolver.NewContext(), path, opts...)
+	writer, err := index.NewWriter(zson.NewContext(), path, opts...)
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(writer, r))
 	require.NoError(t, writer.Close())
@@ -167,7 +167,7 @@ func build(t *testing.T, r zbuf.Reader, opts ...index.Option) string {
 }
 
 func reader(logs string) *tzngio.Reader {
-	return tzngio.NewReader(strings.NewReader(logs), resolver.NewContext())
+	return tzngio.NewReader(strings.NewReader(logs), zson.NewContext())
 }
 
 func newReader(size int) (*tzngio.Reader, error) {

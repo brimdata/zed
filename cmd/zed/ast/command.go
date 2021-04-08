@@ -17,7 +17,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zfmt"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/peterh/liner"
 )
 
@@ -238,10 +238,10 @@ func (c *Command) compile(z string) (*compiler.Runtime, error) {
 		return nil, err
 	}
 	if c.sortKey == "" {
-		return compiler.New(resolver.NewContext(), proc)
+		return compiler.New(zson.NewContext(), proc)
 	}
 	sortKey := field.Dotted(c.sortKey)
-	return compiler.NewWithSortedInput(resolver.NewContext(), proc, sortKey, c.sortRev)
+	return compiler.NewWithSortedInput(zson.NewContext(), proc, sortKey, c.sortRev)
 }
 
 const nodeProblem = `

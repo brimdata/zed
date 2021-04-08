@@ -13,7 +13,7 @@ import (
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/flattener"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/buger/jsonparser"
 )
 
@@ -26,7 +26,7 @@ type typeStats struct {
 
 type typeParser struct {
 	lineNo        int
-	zctx          *resolver.Context
+	zctx          *zson.Context
 	tr            typeRules
 	defaultPath   string
 	stats         *typeStats
@@ -52,7 +52,7 @@ type typeInfo struct {
 	path        []byte
 	typedVals   []typedVal
 	untypedVals []untypedVal
-	zctx        *resolver.Context
+	zctx        *zson.Context
 }
 type typedVal struct {
 	val []byte
@@ -77,7 +77,7 @@ func getUnsafeDefault(data []byte, defaultValue string, key string) (string, err
 	return val, nil
 }
 
-func newTypeInfo(zctx *resolver.Context, desc *zng.TypeRecord, path string) (*typeInfo, error) {
+func newTypeInfo(zctx *zson.Context, desc *zng.TypeRecord, path string) (*typeInfo, error) {
 	flatCols := flattener.FlattenColumns(desc.Columns)
 	flatDesc, err := zctx.LookupTypeRecord(flatCols)
 	if err != nil {
@@ -229,7 +229,7 @@ func (info *typeInfo) newRawFromJSON(data []byte) (zcode.Bytes, []untypedVal, er
 // is not empty, it is used as the default _path if the object has no
 // such field. (we could at some point make this a bit more generic by
 // passing in a "defaultFieldValues" map... but not needed now).
-func (p *typeParser) findTypeInfo(zctx *resolver.Context, jobj []byte, tr typeRules, defaultPath string) (*typeInfo, error) {
+func (p *typeParser) findTypeInfo(zctx *zson.Context, jobj []byte, tr typeRules, defaultPath string) (*typeInfo, error) {
 	var fieldName, fieldVal, path string
 	for _, r := range tr.rules {
 		// we keep track of the last field value we extracted

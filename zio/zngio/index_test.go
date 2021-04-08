@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/require"
 )
 
@@ -80,7 +80,7 @@ func TestZngIndex(t *testing.T) {
 
 	dotest := func(zngData, fname string, expected []int) {
 		// create a test zng file
-		reader := tzngio.NewReader(strings.NewReader(zngData), resolver.NewContext())
+		reader := tzngio.NewReader(strings.NewReader(zngData), zson.NewContext())
 		fp, err := os.Create(fname)
 		require.NoError(t, err)
 		defer func() {
@@ -108,7 +108,7 @@ func TestZngIndex(t *testing.T) {
 		// from the span.
 		fp, err = fs.Open(fname)
 		require.NoError(t, err)
-		ireader, err := index.NewReader(fp, resolver.NewContext(), span)
+		ireader, err := index.NewReader(fp, zson.NewContext(), span)
 		require.NoError(t, err)
 
 		checkReader(t, ireader, expected, false)
@@ -119,7 +119,7 @@ func TestZngIndex(t *testing.T) {
 		// verify that we didn't read the whole file.
 		fp, err = fs.Open(fname)
 		require.NoError(t, err)
-		ireader, err = index.NewReader(fp, resolver.NewContext(), span)
+		ireader, err = index.NewReader(fp, zson.NewContext(), span)
 		require.NoError(t, err)
 
 		checkReader(t, ireader, expected, true)

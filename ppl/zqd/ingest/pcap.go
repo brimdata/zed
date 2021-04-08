@@ -26,7 +26,7 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type PcapOp interface {
@@ -300,7 +300,7 @@ func (p *legacyPcapOp) createSnapshot(ctx context.Context) error {
 		return nil
 	}
 	// convert logs into sorted zng
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	readers, err := detector.OpenFiles(ctx, zctx, files...)
 	if err != nil {
 		return err
@@ -318,7 +318,7 @@ func (p *legacyPcapOp) createSnapshot(ctx context.Context) error {
 }
 
 func (p *legacyPcapOp) convertSuricataLog(ctx context.Context) error {
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	path := filepath.Join(p.logdir, "eve.json")
 	zr, err := detector.OpenFile(zctx, path, zio.ReaderOpts{})
 	if err != nil {

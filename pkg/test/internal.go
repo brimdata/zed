@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Internal struct {
@@ -29,7 +29,7 @@ func Trim(s string) string {
 	return strings.TrimSpace(s) + "\n"
 }
 
-func stringReader(input string, ifmt string, zctx *resolver.Context) (zbuf.Reader, error) {
+func stringReader(input string, ifmt string, zctx *zson.Context) (zbuf.Reader, error) {
 	opts := zio.ReaderOpts{
 		Format: ifmt,
 	}
@@ -51,7 +51,7 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("parse error: %s (%s)", err, i.Query)
 	}
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	reader, err := stringReader(i.Input, i.InputFormat, zctx)
 	if err != nil {
 		return "", err

@@ -2,7 +2,7 @@ package agg
 
 import (
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type And struct {
@@ -25,7 +25,7 @@ func (a *And) Consume(v zng.Value) error {
 	return nil
 }
 
-func (a *And) Result(*resolver.Context) (zng.Value, error) {
+func (a *And) Result(*zson.Context) (zng.Value, error) {
 	if a.val == nil {
 		return zng.Value{Type: zng.TypeBool}, nil
 	}
@@ -39,7 +39,7 @@ func (a *And) ConsumeAsPartial(v zng.Value) error {
 	return a.Consume(v)
 }
 
-func (a *And) ResultAsPartial(*resolver.Context) (zng.Value, error) {
+func (a *And) ResultAsPartial(*zson.Context) (zng.Value, error) {
 	return a.Result(nil)
 }
 
@@ -63,7 +63,7 @@ func (o *Or) Consume(v zng.Value) error {
 	return nil
 }
 
-func (o *Or) Result(*resolver.Context) (zng.Value, error) {
+func (o *Or) Result(*zson.Context) (zng.Value, error) {
 	if o.val == nil {
 		return zng.Value{Type: zng.TypeBool}, nil
 	}
@@ -77,6 +77,6 @@ func (o *Or) ConsumeAsPartial(v zng.Value) error {
 	return o.Consume(v)
 }
 
-func (o *Or) ResultAsPartial(*resolver.Context) (zng.Value, error) {
+func (o *Or) ResultAsPartial(*zson.Context) (zng.Value, error) {
 	return o.Result(nil)
 }

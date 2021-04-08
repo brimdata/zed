@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -66,7 +66,7 @@ func TestNDJSONWriter(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
 			w := NewWriter(NopCloser(&out))
-			r := tzngio.NewReader(strings.NewReader(c.input), resolver.NewContext())
+			r := tzngio.NewReader(strings.NewReader(c.input), zson.NewContext())
 			require.NoError(t, zbuf.Copy(w, r))
 			NDJSONEq(t, c.output, out.String())
 		})
@@ -146,7 +146,7 @@ func TestNDJSON(t *testing.T) {
 func runtestcase(t *testing.T, input, output string) {
 	var out bytes.Buffer
 	w := NewWriter(NopCloser(&out))
-	r, err := NewReader(strings.NewReader(input), resolver.NewContext(), ReaderOpts{}, "")
+	r, err := NewReader(strings.NewReader(input), zson.NewContext(), ReaderOpts{}, "")
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(w, r))
 	NDJSONEq(t, output, out.String())
@@ -243,7 +243,7 @@ func TestNewRawFromJSON(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			r := tzngio.NewReader(strings.NewReader(c.tzng), resolver.NewContext())
+			r := tzngio.NewReader(strings.NewReader(c.tzng), zson.NewContext())
 			expected, err := r.Read()
 			require.NoError(t, err)
 			typ := zng.TypeRecordOf(expected.Type)
@@ -371,7 +371,7 @@ func TestNDJSONTypeErrors(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
 			w := NewWriter(NopCloser(&out))
-			r, err := NewReader(strings.NewReader(c.input), resolver.NewContext(), ReaderOpts{}, "")
+			r, err := NewReader(strings.NewReader(c.input), zson.NewContext(), ReaderOpts{}, "")
 			require.NoError(t, err)
 			err = r.configureTypes(typeConfig, c.defaultPath, nil)
 			require.NoError(t, err)

@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Ordering int
@@ -45,7 +45,7 @@ func NewTimeIndex() *TimeIndex {
 // Create a new reader for the given zng file.  Only records with timestamps
 // that fall within the time range indicated by span will be emitted by
 // the returned Reader object.
-func (ti *TimeIndex) NewReader(f *os.File, zctx *resolver.Context, span nano.Span) (zbuf.ReadCloser, error) {
+func (ti *TimeIndex) NewReader(f *os.File, zctx *zson.Context, span nano.Span) (zbuf.ReadCloser, error) {
 	ti.mu.Lock()
 	defer ti.mu.Unlock()
 
@@ -159,7 +159,7 @@ type rangeReader struct {
 	nread uint64
 }
 
-func newRangeReader(f *os.File, zctx *resolver.Context, order Ordering, index []mark, span nano.Span) (*rangeReader, error) {
+func newRangeReader(f *os.File, zctx *zson.Context, order Ordering, index []mark, span nano.Span) (*rangeReader, error) {
 	var off int64
 
 	if order == OrderAscending || order == OrderDescending {

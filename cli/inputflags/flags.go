@@ -16,7 +16,7 @@ import (
 	"github.com/brimdata/zed/zio/detector"
 	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Flags struct {
@@ -82,7 +82,7 @@ func LoadJSONConfig(path string) (*ndjsonio.TypeConfig, error) {
 	return &tc, nil
 }
 
-func (f *Flags) Open(zctx *resolver.Context, paths []string, stopOnErr bool) ([]zbuf.Reader, error) {
+func (f *Flags) Open(zctx *zson.Context, paths []string, stopOnErr bool) ([]zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
 		if path == "-" {

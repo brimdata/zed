@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type InfoKey struct {
@@ -24,7 +24,7 @@ func Stat(ctx context.Context, uri iosrc.URI) (*Info, error) {
 		return nil, err
 	}
 	size := si.Size()
-	r, err := NewReaderFromURI(ctx, resolver.NewContext(), uri)
+	r, err := NewReaderFromURI(ctx, zson.NewContext(), uri)
 	if err != nil {
 		return nil, err
 	}

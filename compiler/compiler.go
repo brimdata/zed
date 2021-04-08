@@ -9,23 +9,23 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var _ zbuf.Filter = (*Runtime)(nil)
 
 type Runtime struct {
-	zctx    *resolver.Context
+	zctx    *zson.Context
 	scope   *kernel.Scope
 	sem     *semantic.AST
 	outputs []proc.Interface
 }
 
-func New(zctx *resolver.Context, parserAST ast.Proc) (*Runtime, error) {
+func New(zctx *zson.Context, parserAST ast.Proc) (*Runtime, error) {
 	return NewWithSortedInput(zctx, parserAST, nil, false)
 }
 
-func NewWithZ(zctx *resolver.Context, z string) (*Runtime, error) {
+func NewWithZ(zctx *zson.Context, z string) (*Runtime, error) {
 	p, err := ParseProc(z)
 	if err != nil {
 		return nil, err
@@ -33,7 +33,7 @@ func NewWithZ(zctx *resolver.Context, z string) (*Runtime, error) {
 	return New(zctx, p)
 }
 
-func NewWithSortedInput(zctx *resolver.Context, parserAST ast.Proc, sortKey field.Static, sortRev bool) (*Runtime, error) {
+func NewWithSortedInput(zctx *zson.Context, parserAST ast.Proc, sortKey field.Static, sortRev bool) (*Runtime, error) {
 	sem := semantic.New(parserAST)
 	if err := sem.Analyze(); err != nil {
 		return nil, err

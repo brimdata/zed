@@ -36,7 +36,7 @@ import (
 
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 const MaxSegmentThresh = 20 * 1024 * 1024
@@ -51,7 +51,7 @@ type Writer interface {
 	Flush(bool) error
 	// MarshalZNG is called after all data is flushed to build the reassembly
 	// record for this column.
-	MarshalZNG(*resolver.Context, *zcode.Builder) (zng.Type, error)
+	MarshalZNG(*zson.Context, *zcode.Builder) (zng.Type, error)
 }
 
 func NewWriter(typ zng.Type, spiller *Spiller) Writer {

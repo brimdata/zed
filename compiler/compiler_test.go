@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -29,7 +29,7 @@ func TestCompileParents(t *testing.T) {
 0:[1;]
 0:[1;]
 `
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 	var sources []proc.Interface
 	for i := 0; i < 2; i++ {
@@ -69,7 +69,7 @@ func TestCompileMergeDone(t *testing.T) {
 0:[3;]
 0:[4;]
 `
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 	r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
 	src := proc.NopDone(zbuf.NewPuller(r, 10))

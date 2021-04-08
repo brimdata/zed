@@ -10,7 +10,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/skim"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var (
@@ -43,13 +43,13 @@ type ReadStats struct {
 type Reader struct {
 	scanner *skim.Scanner
 	stats   ReadStats
-	zctx    *resolver.Context
+	zctx    *zson.Context
 	mapper  map[string]zng.Type
 	parser  *Parser
 	types   *TypeParser
 }
 
-func NewReader(reader io.Reader, zctx *resolver.Context) *Reader {
+func NewReader(reader io.Reader, zctx *zson.Context) *Reader {
 	buffer := make([]byte, ReadSize)
 	scanner := skim.NewScanner(reader, buffer, MaxLineSize)
 	return &Reader{

@@ -3,10 +3,10 @@ package fuse
 import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
-func WriteCloser(wc zbuf.WriteCloser, zctx *resolver.Context) zbuf.WriteCloser {
+func WriteCloser(wc zbuf.WriteCloser, zctx *zson.Context) zbuf.WriteCloser {
 	return &writeCloser{wc, NewFuser(zctx, MemMaxBytes)}
 }
 

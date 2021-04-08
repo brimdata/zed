@@ -6,11 +6,11 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type IndexSearcher interface {
-	IndexSearch(context.Context, *resolver.Context, index.Query) (zbuf.ReadCloser, error)
+	IndexSearch(context.Context, *zson.Context, index.Query) (zbuf.ReadCloser, error)
 }
 
 type IndexSearchOp struct {
@@ -22,7 +22,7 @@ func NewIndexSearchOp(ctx context.Context, s IndexSearcher, req api.IndexSearchR
 	if err != nil {
 		return nil, err
 	}
-	rc, err := s.IndexSearch(ctx, resolver.NewContext(), query)
+	rc, err := s.IndexSearch(ctx, zson.NewContext(), query)
 	if err != nil {
 		return nil, err
 	}

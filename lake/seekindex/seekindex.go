@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type SeekIndex struct {
@@ -19,7 +19,7 @@ type SeekIndex struct {
 }
 
 func Open(ctx context.Context, uri iosrc.URI) (*SeekIndex, error) {
-	finder, err := index.NewFinder(ctx, resolver.NewContext(), uri)
+	finder, err := index.NewFinder(ctx, zson.NewContext(), uri)
 	if err != nil {
 		return nil, err
 	}

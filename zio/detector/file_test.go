@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -58,7 +58,7 @@ func TestMultiFileScanner(t *testing.T) {
 	f2 := writeTemp(t, []byte(input[1]))
 	defer os.Remove(f2)
 
-	mfr := MultiFileReader(resolver.NewContext(), []string{f1, f2}, zio.ReaderOpts{})
+	mfr := MultiFileReader(zson.NewContext(), []string{f1, f2}, zio.ReaderOpts{})
 	sn, err := zbuf.NewScanner(context.Background(), mfr, nil, nano.MaxSpan)
 	require.NoError(t, err)
 	_, ok := sn.(*multiFileScanner)

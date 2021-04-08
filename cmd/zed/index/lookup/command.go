@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 var Lookup = &charm.Spec{
@@ -66,7 +66,7 @@ func (c *LookupCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	finder, err := index.NewFinder(context.TODO(), resolver.NewContext(), uri)
+	finder, err := index.NewFinder(context.TODO(), zson.NewContext(), uri)
 	if err != nil {
 		return err
 	}

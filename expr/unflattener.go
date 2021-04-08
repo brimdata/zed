@@ -4,11 +4,11 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/builder"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type Unflattener struct {
-	zctx        *resolver.Context
+	zctx        *zson.Context
 	builders    map[int]*builder.ColumnBuilder
 	recordTypes map[int]*zng.TypeRecord
 	fieldExpr   Evaluator
@@ -21,7 +21,7 @@ type Unflattener struct {
 // to arbitrary-depth dotted names, it is not applied to dotted names
 // that start at lower levels (for example {a:{"a.a":1}} is
 // unchanged).
-func NewUnflattener(zctx *resolver.Context) *Unflattener {
+func NewUnflattener(zctx *zson.Context) *Unflattener {
 	return &Unflattener{
 		zctx:        zctx,
 		builders:    make(map[int]*builder.ColumnBuilder),

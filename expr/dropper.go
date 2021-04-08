@@ -4,7 +4,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/builder"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 type dropper struct {
@@ -31,13 +31,13 @@ func (d *dropper) drop(in *zng.Record) (*zng.Record, error) {
 }
 
 type Dropper struct {
-	zctx      *resolver.Context
+	zctx      *zson.Context
 	fields    []field.Static
 	resolvers []Evaluator
 	droppers  map[int]*dropper
 }
 
-func NewDropper(zctx *resolver.Context, fields []field.Static) *Dropper {
+func NewDropper(zctx *zson.Context, fields []field.Static) *Dropper {
 	return &Dropper{
 		zctx:     zctx,
 		fields:   fields,

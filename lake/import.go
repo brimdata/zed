@@ -17,7 +17,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"go.uber.org/multierr"
 	"golang.org/x/sync/errgroup"
 )
@@ -34,7 +34,7 @@ var (
 
 const importDefaultStaleDuration = time.Second * 5
 
-func Import(ctx context.Context, lk *Lake, zctx *resolver.Context, r zbuf.Reader) error {
+func Import(ctx context.Context, lk *Lake, zctx *zson.Context, r zbuf.Reader) error {
 	w, err := NewWriter(ctx, lk)
 	if err != nil {
 		return err

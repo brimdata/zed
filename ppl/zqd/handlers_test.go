@@ -28,7 +28,6 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
@@ -859,8 +858,8 @@ func searchZson(t *testing.T, conn *client.Connection, space api.SpaceID, prog s
 }
 
 func zsonCopy(t *testing.T, prog string, in string) string {
-	zctx := resolver.NewContext()
-	r := zson.NewReader(strings.NewReader(in), zctx.Context)
+	zctx := zson.NewContext()
+	r := zson.NewReader(strings.NewReader(in), zctx)
 	var buf bytes.Buffer
 	w := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
 	p := compiler.MustParseProc(prog)

@@ -9,7 +9,7 @@ import (
 
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -37,7 +37,7 @@ func testImportStaleDuration(t *testing.T, stale time.Duration, expected uint64)
 	require.NoError(t, err)
 	defer w.Close()
 	w.SetStaleDuration(stale)
-	r := tzngio.NewReader(strings.NewReader(data), resolver.NewContext())
+	r := tzngio.NewReader(strings.NewReader(data), zson.NewContext())
 	require.NoError(t, zbuf.Copy(w, r))
 
 	// flush stale writers and ensure data has been written to archive

@@ -21,7 +21,7 @@ import (
 	"github.com/brimdata/zed/zio/detector"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -370,7 +370,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		proc, err := compiler.ParseProc("every 1s count() by ip")
 		assert.NoError(t, err)
 
-		zctx := resolver.NewContext()
+		zctx := zson.NewContext()
 		zr := tzngio.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
 		cr := &countReader{r: zr}
 		var outbuf bytes.Buffer

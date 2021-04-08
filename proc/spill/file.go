@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 // File provides a means to write a sequence of zng records to temporary
@@ -40,7 +40,7 @@ func NewTempFile() (*File, error) {
 	return NewFile(f), nil
 }
 
-func NewFileWithPath(path string, zctx *resolver.Context) (*File, error) {
+func NewFileWithPath(path string, zctx *zson.Context) (*File, error) {
 	f, err := fs.Create(path)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func NewFileWithPath(path string, zctx *resolver.Context) (*File, error) {
 	return NewFile(f), nil
 }
 
-func (f *File) Rewind(zctx *resolver.Context) error {
+func (f *File) Rewind(zctx *zson.Context) error {
 	// Close the writer to flush any pending output but since we
 	// wrapped the file in a zio.NopCloser, the file will stay open.
 	if err := f.Writer.Close(); err != nil {

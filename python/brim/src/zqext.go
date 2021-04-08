@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/emitter"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
-	"github.com/brimdata/zed/zng/resolver"
+	"github.com/brimdata/zed/zson"
 )
 
 // result converts an error into response structure expected
@@ -52,7 +52,7 @@ func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err er
 		return err
 	}
 
-	zctx := resolver.NewContext()
+	zctx := zson.NewContext()
 	rc, err := detector.OpenFile(zctx, inpath, zio.ReaderOpts{
 		Format: informat,
 	})
