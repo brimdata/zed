@@ -1,3 +1,5 @@
+skip: issue 2508
+
 script: |
   zq -f zjson in.zson | zq -z -
 

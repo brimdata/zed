@@ -1,15 +1,16 @@
 zed: '*'
 
 input: !!binary |
-  H4sIAJQPfV8AA52T3W4bIRCF7/sYc72iy/44tu9c14pbNTdxpKqKIoQxzhKtF8SAlcjKuw
-  fTxCFKS6pKq92Fc74ZYIYDqA1Mq1EBKDq54zA9gN7C9PoAA99JmAIz3HVQgHswxyE6q4Zb
-  eCxOBoevqlNhKtF8iJ5Bo/o2nbbqliX5lEmBqJpX1WjrUt1KNH+no/qOvjmNrRTablJiLy
-  0qPeT2IJTppM06vN3LnAFlMFgWRxlbWL7fyeRA11r3qaHn6BjvZdhVJswg7x0zVjstAp4x
-  SnR83SvscjlFyMZEx9XAtqHa+FzQl3AnjlvLH96AvZJDQP+XR7++kyK7U4XoPyjN70X8Q6
-  xn58ch97xXG+5C17Bwfs7je/MfOg4CxVFiehVie56sXg2OjiIcUvhoBcRjBWkzKetx245q
-  UrZ1UzVhbr5dfNGm6tbb77/M3Xm7DDW8BlqS8JyRSRksLZ3Q+vhtSFWXZHxGItk0NYQkVz
-  9We1pB/GGL+dflgl2uZuznt6slmy1WjFZjdj6/YKvlrGpHUAy+7wsQnVZCInHWo5NE6N0x
-  wovaOWc+U0KTuezr5vHTE6LshnChBAAA
+  H4sIAJfdcWAAA7WV226bQBCG7/sYe21Rjo7tO9e14lbNTR2piiJrtV6WMCmwqz1YiSLevQ
+  NxHCy7EcWqhAAN8/3/DDsLL8TwXJSMzEg4JiNin5UwZHb/Qn5DlWK0CaQiw0cVK0U3jcwO
+  SVpwqVOMZyCK9JXfp1PFbH5KKA0lWNiJd2FjNVQPpK5HB9iaXqQFvHQ5B+lQy3PkB+1JDQ
+  +0X3+gjoxaUp2SJy9cSW17GTiobDBGk46LFkYNq68l/1Jfm3JcYF1vuvROaAOyGroKHFQu
+  9GDa6TZjEGwEwpruWxwkga/OlaLfCG6lLI7gghlLWSF6LvoZ+0o8Waq0tJKj9kARYSzbFm
+  DyoX1w7IDynEFFM9yPZ3Yy05o9/1t9Xf0CRIUO/9nGuO2j4IPXAoxxFwzya48X1rBXuayU
+  HSsgZRb3NMXJsK7fl/kghB+HzagRce3vhRjTTGYQT/1okiTjyPOTKA5jjC2y5Repwnybfb
+  9Tj9fJCufvngS+h8eVN/UxJQmmQdRcYy+MfG9y5bVkHEcETW5/rHdBSNobulx8XS3pz/Wc
+  /vp2u6Lz5ZoG4YReL27oejUPE/yZVa4oRoTnErgwntXOWOFxWTYKb09za9XnwAs6sQ9Pm/
+  rTH0el3WVaBwAA
 
 output: |
   {_path:"ssl",ts:2017-03-24T19:59:23.053424Z,uid:"CfEBop2hbfJYpjG5Hd",id:{orig_h:10.10.7.90,orig_p:51913 (port=(uint16)),resp_h:54.230.87.24,resp_p:443 (port)} (=0),version:"TLSv12",cipher:"TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",curve:null (string),server_name:"choices.truste.com",resumed:true,last_alert:null (string),next_protocol:"http/1.1",established:true,cert_chain_fuids:null (1=([string])),client_cert_chain_fuids:null (1),subject:null (string),issuer:null (string),client_subject:null (string),client_issuer:null (string),validation_status:null (string)} (=2)

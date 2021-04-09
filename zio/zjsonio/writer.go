@@ -2,22 +2,46 @@ package zjsonio
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/pkg/joe"
+	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 )
 
-type Alias struct {
-	Name string      `json:"name"`
-	Type interface{} `json:"type"`
+type Object struct {
+	Schema string        `json:"schema"`
+	Types  []ast.Type    `json:"types,omitempty"`
+	Values []interface{} `json:"values"`
 }
 
-type Record struct {
-	Id      int           `json:"id"`
-	Type    joe.Object    `json:"schema,omitempty"`
-	Aliases []Alias       `json:"aliases,omitempty"`
-	Values  []interface{} `json:"values"`
+func unmarshal(b []byte) (*Object, error) {
+	var template struct {
+		Schema string        `json:"schema"`
+		Types  []interface{} `json:"types,omitempty"`
+		Values []interface{} `json:"values"`
+	}
+	if err := json.Unmarshal(b, &template); err != nil {
+		return nil, err
+	}
+	var types []ast.Type
+	for _, t := range template.Types {
+		object, err := unpacker.UnpackMap(t)
+		if object == nil || err != nil {
+			return nil, err
+		}
+		typ, ok := object.(ast.Type)
+		if !ok {
+			return nil, fmt.Errorf("zjson: types object is not a type: %s", string(b))
+		}
+		types = append(types, typ)
+	}
+	return &Object{
+		Schema: template.Schema,
+		Types:  types,
+		Values: template.Values,
+	}, nil
 }
 
 type Writer struct {
@@ -25,10 +49,10 @@ type Writer struct {
 	stream *Stream
 }
 
-func NewWriter(w io.WriteCloser) *Writer {
+func NewWriter(w io.WriteCloser, zctx *zson.Context) *Writer {
 	return &Writer{
 		writer: w,
-		stream: NewStream(),
+		stream: NewStream(zctx),
 	}
 }
 
@@ -55,13 +79,4 @@ func (w *Writer) Write(r *zng.Record) error {
 func (w *Writer) write(s string) error {
 	_, err := w.writer.Write([]byte(s))
 	return err
-}
-
-func (a *Alias) UnmarshalJSON(b []byte) error {
-	type alias Alias
-	if err := json.Unmarshal(b, (*alias)(a)); err != nil {
-		return err
-	}
-	a.Type = joe.Convert(a.Type)
-	return nil
 }

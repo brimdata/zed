@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 )
 
 // ZJSON implements the Output interface.
@@ -18,23 +19,23 @@ type ZJSON struct {
 	ctrl   bool
 }
 
-func NewZJSONOutput(resp http.ResponseWriter, mtu int, ctrl bool) *ZJSON {
+func NewZJSONOutput(resp http.ResponseWriter, mtu int, ctrl bool, zctx *zson.Context) *ZJSON {
 	return &ZJSON{
 		pipe:   jsonpipe.New(resp),
-		stream: zjsonio.NewStream(),
+		stream: zjsonio.NewStream(zctx),
 		mtu:    mtu,
 		ctrl:   ctrl,
 	}
 }
 
-func formatRecords(stream *zjsonio.Stream, records []*zng.Record) ([]zjsonio.Record, error) {
-	var res = make([]zjsonio.Record, len(records))
+func formatRecords(stream *zjsonio.Stream, records []*zng.Record) ([]zjsonio.Object, error) {
+	var res = make([]zjsonio.Object, len(records))
 	for i, in := range records {
 		out, err := stream.Transform(in)
 		if err != nil {
 			return nil, err
 		}
-		res[i] = *out
+		res[i] = out
 	}
 	return res, nil
 }

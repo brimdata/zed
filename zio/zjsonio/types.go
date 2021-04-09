@@ -2,154 +2,148 @@ package zjsonio
 
 import (
 	"errors"
+	"fmt"
 
-	"github.com/brimdata/zed/pkg/joe"
-	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
-func encodeTypeAny(in zng.Type) joe.Interface {
-	if !zng.IsContainerType(in) {
-		return joe.String(tzngio.TypeString(in))
-	}
-	return encodeTypeObj(in)
-}
+type encoder map[zng.Type]string
 
-func encodeTypeObj(in zng.Type) joe.Object {
-	object := joe.NewObject()
-	typ, any := encodeType(in)
-	object["type"] = typ
-	if any != nil {
-		object["of"] = any
-	}
-	return object
-}
-
-func encodeType(typ zng.Type) (joe.String, joe.Interface) {
-	switch typ := typ.(type) {
-	case *zng.TypeRecord:
-		return joe.String("record"), encodeTypeColumns(typ.Columns)
-	case *zng.TypeArray:
-		return joe.String("array"), encodeTypeAny(typ.Type)
-	case *zng.TypeSet:
-		return joe.String("set"), encodeTypeAny(typ.Type)
-	case *zng.TypeUnion:
-		return joe.String("union"), encodeTypes(typ.Types)
-	case *zng.TypeEnum:
-		return joe.String("enum"), encodeTypeEnum(typ)
-	case *zng.TypeMap:
-		types := []zng.Type{typ.KeyType, typ.ValType}
-		return joe.String("map"), encodeTypes(types)
-	default:
-		return joe.String(tzngio.TypeString(typ)), nil
-	}
-}
-
-// Encode a type as a recursive set of JSON objects.  We could simply encode
-// the top level type string, but then a javascript client would need to have
-// a type parser.  Instead, we encode recursive record types as a nested set
-// of objects so a javascript client can easily call JSON.parse() and have
-// the record structure present in an easy-to-navigate nested object.  See the
-// zjson spec for details.
-func encodeTypeColumns(columns []zng.Column) joe.Array {
-	var cols joe.Array
-	for _, c := range columns {
-		object := encodeTypeObj(c.Type)
-		object["name"] = joe.String(c.Name)
-		cols = append(cols, object)
-	}
-	return cols
-}
-
-func encodeTypeEnum(typ *zng.TypeEnum) joe.Array {
-	var out joe.Array
-	out = append(out, encodeTypeObj(typ.Type))
-	for _, elem := range typ.Elements {
-		object := joe.NewObject()
-		object["name"] = joe.String(elem.Name)
-		var val interface{}
-		if zng.IsContainerType(typ) {
-			val, _ = encodeContainer(typ.Type, elem.Value)
-		} else {
-			val, _ = encodePrimitive(typ.Type, elem.Value)
+func (e encoder) encodeType(zctx *zson.Context, typ zng.Type) ast.Type {
+	if name, ok := e[typ]; ok {
+		return &ast.TypeName{
+			Kind: "typename",
+			Name: name,
 		}
-		object["value"] = joe.Convert(val)
-		out = append(out, object)
 	}
-	return out
+	switch typ := typ.(type) {
+	case *zng.TypeAlias:
+		name := typ.Name
+		t := e.encodeType(zctx, typ.Type)
+		e[typ] = name
+		return &ast.TypeDef{
+			Kind: "typedef",
+			Name: name,
+			Type: t,
+		}
+	case *zng.TypeRecord:
+		return e.encodeTypeRecord(zctx, typ)
+	case *zng.TypeArray:
+		return &ast.TypeArray{
+			Kind: "array",
+			Type: e.encodeType(zctx, typ.Type),
+		}
+	case *zng.TypeSet:
+		return &ast.TypeSet{
+			Kind: "set",
+			Type: e.encodeType(zctx, typ.Type),
+		}
+	case *zng.TypeUnion:
+		return e.encodeTypeUnion(zctx, typ)
+	case *zng.TypeEnum:
+		return e.encodeTypeEnum(zctx, typ)
+	case *zng.TypeMap:
+		return &ast.TypeMap{
+			Kind:    "map",
+			KeyType: e.encodeType(zctx, typ.KeyType),
+			ValType: e.encodeType(zctx, typ.ValType),
+		}
+	default:
+		return &ast.TypePrimitive{
+			Kind: "primitive",
+			Name: typ.ZSON(),
+		}
+	}
 }
 
-// the record structure present in an easy-to-navigate nested object.
-func encodeTypes(in []zng.Type) joe.Array {
-	var types joe.Array
-	for _, t := range in {
-		types = append(types, encodeTypeAny(t))
+func (e encoder) encodeTypeRecord(zctx *zson.Context, typ *zng.TypeRecord) *ast.TypeRecord {
+	var fields []ast.TypeField
+	for _, c := range typ.Columns {
+		typ := e.encodeType(zctx, c.Type)
+		fields = append(fields, ast.TypeField{c.Name, typ})
 	}
-	return types
+	return &ast.TypeRecord{
+		Kind:   "record",
+		Fields: fields,
+	}
 }
 
-func decodeType(zctx *zson.Context, typ joe.String, of joe.Interface) (zng.Type, error) {
-	switch typ {
-	case "record":
-		return decodeTypeColumns(zctx, of)
-	case "set", "array":
-		inner, err := decodeTypeAny(zctx, of)
+func (e encoder) encodeTypeEnum(zctx *zson.Context, typ *zng.TypeEnum) *ast.TypeEnum {
+	panic("issue 2508")
+}
+
+func (e encoder) encodeTypeUnion(zctx *zson.Context, union *zng.TypeUnion) *ast.TypeUnion {
+	var types []ast.Type
+	for _, t := range union.Types {
+		types = append(types, e.encodeType(zctx, t))
+	}
+	return &ast.TypeUnion{
+		Kind:  "union",
+		Types: types,
+	}
+}
+
+type decoder map[string]zng.Type
+
+func (d decoder) decodeType(zctx *zson.Context, typ ast.Type) (zng.Type, error) {
+	switch typ := typ.(type) {
+	case *ast.TypeRecord:
+		return d.decodeTypeRecord(zctx, typ)
+	case *ast.TypeArray:
+		t, err := d.decodeType(zctx, typ.Type)
 		if err != nil {
 			return nil, err
 		}
-		if typ == "array" {
-			return zctx.LookupTypeArray(inner), nil
-		}
-		return zctx.LookupTypeSet(inner), nil
-	case "union":
-		return decodeTypeUnion(zctx, of)
-	case "enum":
-		return decodeTypeEnum(zctx, of)
-	case "map":
-		return decodeTypeMap(zctx, of)
-	default:
-		t, err := zctx.LookupByName(string(typ))
+		return zctx.LookupTypeArray(t), nil
+	case *ast.TypeSet:
+		t, err := d.decodeType(zctx, typ.Type)
 		if err != nil {
-			return nil, errors.New("zjson unknown type: " + string(typ))
+			return nil, err
+		}
+		return zctx.LookupTypeSet(t), nil
+	case *ast.TypeUnion:
+		return d.decodeTypeUnion(zctx, typ)
+	case *ast.TypeEnum:
+		return d.decodeTypeEnum(zctx, typ)
+	case *ast.TypeMap:
+		return d.decodeTypeMap(zctx, typ)
+	case *ast.TypeName:
+		t := zctx.LookupTypeDef(typ.Name)
+		if typ == nil {
+			return nil, fmt.Errorf("zjson decoder: no such type name: %s", typ.Name)
+		}
+		return t, nil
+	case *ast.TypeDef:
+		t, err := d.decodeType(zctx, typ.Type)
+		if err != nil {
+			return nil, err
+		}
+		d[typ.Name] = t
+		if !zng.IsIdentifier(typ.Name) {
+			return t, nil
+		}
+		return zctx.LookupTypeAlias(typ.Name, t)
+	case *ast.TypePrimitive:
+		t, err := zctx.LookupByName(typ.Name)
+		if err != nil {
+			return nil, errors.New("zjson unknown type: " + typ.Name)
 		}
 		return t, nil
 	}
+	return nil, fmt.Errorf("zjson unknown type: %T", typ)
 }
 
-func decodeTypeRecord(zctx *zson.Context, v joe.Interface) (*zng.TypeRecord, error) {
-	typ, err := decodeTypeAny(zctx, v)
-	if err != nil {
-		return nil, err
-	}
-	if typ, ok := typ.(*zng.TypeRecord); ok {
-		return typ, nil
-	}
-	return nil, errors.New("not a record type")
-}
-
-func decodeTypeColumns(zctx *zson.Context, of joe.Interface) (*zng.TypeRecord, error) {
-	cols, ok := of.(joe.Array)
-	if !ok {
-		return nil, errors.New("zjson record columns not an array")
-	}
-	var columns []zng.Column
-	for _, col := range cols {
-		object, ok := col.(joe.Object)
-		if !ok {
-			return nil, errors.New("zjson record column not an object")
-		}
-		typ, err := decodeTypeAny(zctx, object)
-		if err != nil {
-			return nil, err
-		}
-		name, err := object.GetString("name")
+func (d decoder) decodeTypeRecord(zctx *zson.Context, typ *ast.TypeRecord) (*zng.TypeRecord, error) {
+	columns := make([]zng.Column, 0, len(typ.Fields))
+	for _, field := range typ.Fields {
+		typ, err := d.decodeType(zctx, field.Type)
 		if err != nil {
 			return nil, err
 		}
 		column := zng.Column{
-			Name: name,
+			Name: field.Name,
 			Type: typ,
 		}
 		columns = append(columns, column)
@@ -157,14 +151,10 @@ func decodeTypeColumns(zctx *zson.Context, of joe.Interface) (*zng.TypeRecord, e
 	return zctx.LookupTypeRecord(columns)
 }
 
-func decodeTypeUnion(zctx *zson.Context, of joe.Interface) (*zng.TypeUnion, error) {
-	cols, ok := of.(joe.Array)
-	if !ok {
-		return nil, errors.New("zjson union type not an array")
-	}
+func (d decoder) decodeTypeUnion(zctx *zson.Context, union *ast.TypeUnion) (*zng.TypeUnion, error) {
 	var types []zng.Type
-	for _, col := range cols {
-		typ, err := decodeTypeAny(zctx, col)
+	for _, t := range union.Types {
+		typ, err := d.decodeType(zctx, t)
 		if err != nil {
 			return nil, err
 		}
@@ -173,100 +163,18 @@ func decodeTypeUnion(zctx *zson.Context, of joe.Interface) (*zng.TypeUnion, erro
 	return zctx.LookupTypeUnion(types), nil
 }
 
-func decodeTypeMap(zctx *zson.Context, of joe.Interface) (*zng.TypeMap, error) {
-	items, ok := of.(joe.Array)
-	if !ok {
-		return nil, errors.New("zjson map type not an array")
-	}
-	if len(items) != 2 {
-		return nil, errors.New("zjson map type not an array of length 2")
-	}
-	keyType, err := decodeTypeAny(zctx, items[0])
+func (d decoder) decodeTypeMap(zctx *zson.Context, m *ast.TypeMap) (*zng.TypeMap, error) {
+	keyType, err := d.decodeType(zctx, m.KeyType)
 	if err != nil {
 		return nil, err
 	}
-	valType, err := decodeTypeAny(zctx, items[1])
+	valType, err := d.decodeType(zctx, m.ValType)
 	if err != nil {
 		return nil, err
 	}
 	return zctx.LookupTypeMap(keyType, valType), nil
 }
 
-func decodeTypeEnum(zctx *zson.Context, of joe.Interface) (*zng.TypeEnum, error) {
-	items, ok := of.(joe.Array)
-	if !ok {
-		return nil, errors.New("zjson enum type not an array")
-	}
-	if len(items) < 2 {
-		return nil, errors.New("zjson enum type array too small")
-	}
-	typ, err := decodeTypeAny(zctx, items[0])
-	if err != nil {
-		return nil, err
-	}
-	var elems []zng.Element
-	for _, item := range items[1:] {
-		obj, ok := item.(joe.Object)
-		if !ok {
-			return nil, errors.New("zjson enum element is not a JSON object")
-		}
-		elem, err := decodeEnumElement(typ, obj)
-		if err != nil {
-			return nil, err
-		}
-		elems = append(elems, elem)
-	}
-	return zctx.LookupTypeEnum(typ, elems), nil
-}
-
-func decodeEnumElement(typ zng.Type, object joe.Object) (zng.Element, error) {
-	name, ok := object["name"]
-	if !ok {
-		return zng.Element{}, errors.New("zjson enum object has no name field")
-	}
-	sname, err := name.String()
-	if err != nil {
-		return zng.Element{}, errors.New("zjson enum object name field is not a string")
-	}
-	val, ok := object["value"]
-	if !ok {
-		return zng.Element{}, errors.New("zjson enum object has no value field")
-	}
-	var b zcode.Builder
-	if err := decodeAny(&b, typ, joe.Unpack(val)); err != nil {
-		return zng.Element{}, err
-	}
-	it := b.Bytes().Iter()
-	zv, _, _ := it.Next()
-	return zng.Element{sname, zv}, nil
-}
-
-func decodeTypeObj(zctx *zson.Context, in joe.Object) (zng.Type, error) {
-	typ, err := in.GetString("type")
-	if err != nil {
-		return nil, err
-	}
-	of, _ := in.Get("of")
-	return decodeType(zctx, joe.String(typ), of)
-}
-
-func decodeTypeAny(zctx *zson.Context, in joe.Interface) (zng.Type, error) {
-	s, ok := in.(joe.String)
-	if ok {
-		t, err := zctx.LookupByName(string(s))
-		if err != nil {
-			return nil, errors.New("zjson unknown type: " + string(s))
-		}
-		return t, nil
-	}
-	object, ok := in.(joe.Object)
-	if !ok {
-		return nil, errors.New("zjson type not a string or object")
-	}
-	typ, err := object.GetString("type")
-	if err != nil {
-		return nil, errors.New("zson type field inside of type object is not a string")
-	}
-	of, _ := in.Get("of")
-	return decodeType(zctx, joe.String(typ), of)
+func (d decoder) decodeTypeEnum(zctx *zson.Context, enum *ast.TypeEnum) (*zng.TypeEnum, error) {
+	return nil, errors.New("TBD: issue #2508")
 }

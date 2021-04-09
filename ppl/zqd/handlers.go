@@ -109,7 +109,8 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	out, err := getSearchOutput(w, r)
+	zctx := zson.NewContext()
+	out, err := getSearchOutput(w, r, zctx)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -122,12 +123,12 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(r.Context(), store, out, 0, c.conf.Worker); err != nil {
+	if err := srch.Run(r.Context(), store, out, 0, c.conf.Worker, zctx); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
 
-func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, error) {
+func getSearchOutput(w http.ResponseWriter, r *http.Request, zctx *zson.Context) (search.Output, error) {
 	ctrl := true
 	if r.URL.Query().Get("noctrl") != "" {
 		ctrl = false
@@ -137,11 +138,11 @@ func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, err
 	case "csv":
 		return search.NewCSVOutput(w, ctrl), nil
 	case "json":
-		return search.NewJSONOutput(w, search.DefaultMTU, ctrl), nil
+		return search.NewJSONOutput(w, search.DefaultMTU, ctrl, zctx), nil
 	case "ndjson":
 		return search.NewNDJSONOutput(w), nil
 	case "zjson":
-		return search.NewZJSONOutput(w, search.DefaultMTU, ctrl), nil
+		return search.NewZJSONOutput(w, search.DefaultMTU, ctrl, zctx), nil
 	case "zng":
 		return search.NewZngOutput(w, ctrl), nil
 	default:
@@ -519,7 +520,7 @@ func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer srch.Close()
 
-	out, err := getSearchOutput(w, r)
+	out, err := getSearchOutput(w, r, zson.NewContext())
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -551,14 +552,15 @@ func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	rc, err := as.ArchiveStat(r.Context(), zson.NewContext())
+	zctx := zson.NewContext()
+	rc, err := as.ArchiveStat(r.Context(), zctx)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
 	}
 	defer rc.Close()
 
-	out, err := getSearchOutput(w, r)
+	out, err := getSearchOutput(w, r, zctx)
 	if err != nil {
 		respondError(c, w, r, err)
 		return

@@ -65,7 +65,7 @@ func NewSearchOp(req api.SearchRequest, logger *zap.Logger) (*SearchOp, error) {
 	}, nil
 }
 
-func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output, parallelism int, wc worker.WorkerConfig) (err error) {
+func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output, parallelism int, wc worker.WorkerConfig, zctx *zson.Context) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -81,7 +81,6 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 
 	statsTicker := time.NewTicker(StatsInterval)
 	defer statsTicker.Stop()
-	zctx := zson.NewContext()
 
 	switch st := store.(type) {
 	case *archivestore.Storage:

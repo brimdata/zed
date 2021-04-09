@@ -1,11 +1,10 @@
 package zjsonio
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/pkg/joe"
+	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/pkg/skim"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
@@ -20,7 +19,7 @@ const (
 type Reader struct {
 	scanner *skim.Scanner
 	zctx    *zson.Context
-	mapper  map[int]*zng.TypeRecord
+	decoder decoder
 	builder *zcode.Builder
 }
 
@@ -29,7 +28,7 @@ func NewReader(reader io.Reader, zctx *zson.Context) *Reader {
 	return &Reader{
 		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
 		zctx:    zctx,
-		mapper:  make(map[int]*zng.TypeRecord),
+		decoder: make(decoder),
 		builder: zcode.NewBuilder(),
 	}
 }
@@ -46,50 +45,37 @@ func (r *Reader) Read() (*zng.Record, error) {
 	if line == nil {
 		return nil, e(err)
 	}
-	var v Record
-	if err := json.Unmarshal(line, &v); err != nil {
-		return nil, e(err)
-	}
-	var recType *zng.TypeRecord
-	if v.Type == nil {
-		var ok bool
-		recType, ok = r.mapper[v.Id]
-		if !ok {
-			return nil, fmt.Errorf("undefined type ID: %d", v.Id)
-		}
-	} else {
-		if v.Aliases != nil {
-			if err := r.parseAliases(v.Aliases); err != nil {
-				return nil, err
-			}
-		}
-		recType, err = decodeTypeRecord(r.zctx, v.Type)
-		if err != nil {
-			return nil, err
-		}
-		r.mapper[v.Id] = recType
-	}
-	r.builder.Reset()
-	if err := decodeRecord(r.builder, recType, v.Values); err != nil {
-		return nil, e(err)
-	}
-	zv, err := r.builder.Bytes().ContainerBody()
+	rec, err := unmarshal(line)
 	if err != nil {
 		return nil, e(err)
 	}
-	return zng.NewRecordCheck(recType, zv)
+	if rec.Types != nil {
+		if err := r.decodeTypes(rec.Types); err != nil {
+			return nil, err
+		}
+	}
+	typ, ok := r.decoder[rec.Schema]
+	if !ok {
+		return nil, fmt.Errorf("undefined schema ID: %s", rec.Schema)
+	}
+	if !zng.IsRecordType(typ) {
+		return nil, fmt.Errorf("zjson outer type is not a record: %s", zson.FormatType(typ))
+	}
+	r.builder.Reset()
+	if err := decodeValue(r.builder, typ, rec.Values); err != nil {
+		return nil, e(err)
+	}
+	bytes, err := r.builder.Bytes().ContainerBody()
+	if err != nil {
+		return nil, e(err)
+	}
+	return zng.NewRecordCheck(typ, bytes)
 }
 
-func (r *Reader) parseAliases(aliases []Alias) error {
-	for _, alias := range aliases {
-		typ, err := decodeTypeAny(r.zctx, alias.Type.(joe.Interface))
-		if err != nil {
-			return fmt.Errorf("error decoding alias type: \"%s\"", err)
-		}
-		_, err = r.zctx.LookupTypeAlias(alias.Name, typ)
-		if err != nil {
-			return err
-		}
+func (r *Reader) decodeTypes(types []ast.Type) error {
+	d := r.decoder
+	for _, t := range types {
+		d.decodeType(r.zctx, t)
 	}
 	return nil
 }

@@ -1,8 +1,8 @@
 zed: '*'
 
 input: |
-  {"id":23,"schema":{"type":"record","of":[{"name":"ja3s","type":"int32"}]},"values":[null]}
+  {"schema":"23","types":[{"kind":"typedef","name":"23","type":{"kind":"record","fields":[{"name":"ja3s","type":{"kind":"primitive","name":"int32"}}]}}],"values":[null]}
 
 output-flags: -f zjson
 output: |
-  {"id":23,"schema":{"of":[{"name":"ja3s","type":"int32"}],"type":"record"},"values":[null]}
+  {"schema":"23","types":[{"kind":"typedef","name":"23","type":{"kind":"record","fields":[{"name":"ja3s","type":{"kind":"primitive","name":"int32"}}]}}],"values":[null]}
