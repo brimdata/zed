@@ -227,21 +227,12 @@ func stringToEnum(val *ast.Primitive, cast zng.Type) Value {
 }
 
 func castType(typ, cast zng.Type) (zng.Type, error) {
-	if typ == cast || typ == zng.TypeNull {
+	typID, castID := typ.ID(), cast.ID()
+	if typID == castID || typID == zng.IdNull ||
+		zng.IsInteger(typID) && zng.IsInteger(castID) ||
+		zng.IsFloat(typID) && zng.IsFloat(castID) ||
+		zng.IsStringy(typID) && zng.IsStringy(castID) {
 		return cast, nil
-	}
-	if zng.IsStringy(typ.ID()) {
-		if zng.IsStringy(cast.ID()) {
-			return cast, nil
-		}
-	} else if zng.IsInteger(typ.ID()) {
-		if zng.IsInteger(cast.ID()) {
-			return cast, nil
-		}
-	} else if zng.IsFloat(typ.ID()) {
-		if zng.IsFloat(cast.ID()) {
-			return cast, nil
-		}
 	}
 	return nil, fmt.Errorf("type mismatch: %q cannot be used as %q", typ.ZSON(), cast.ZSON())
 }
