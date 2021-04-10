@@ -1,8 +1,8 @@
 package compiler_test
 
 import (
-	"bytes"
 	"context"
+	"io"
 	"strings"
 	"testing"
 
@@ -13,27 +13,23 @@ import (
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestCompileParents(t *testing.T) {
-	input := `
-#0:record[ts:time]
-0:[1;]
-`
-	exp := `
-#0:record[ts:time]
-0:[1;]
-0:[1;]
+	const input = "{ts:1970-01-01T00:00:01Z}"
+	const exp = `
+{ts:1970-01-01T00:00:01Z}
+{ts:1970-01-01T00:00:01Z}
 `
 	zctx := zson.NewContext()
 	pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 	var sources []proc.Interface
 	for i := 0; i < 2; i++ {
-		r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
+		r := zson.NewReader(strings.NewReader(input), zctx)
 		sources = append(sources, proc.NopDone(zbuf.NewPuller(r, 10)))
 	}
 	t.Run("read two sources", func(t *testing.T) {
@@ -41,7 +37,7 @@ func TestCompileParents(t *testing.T) {
 		require.NoError(t, err)
 
 		var sb strings.Builder
-		err = zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), leaves[0])
+		err = zbuf.CopyPuller(zsonio.NewWriter(zio.NopCloser(&sb), zsonio.WriterOpts{}), leaves[0])
 		require.NoError(t, err)
 		assert.Equal(t, test.Trim(exp), sb.String())
 	})
@@ -62,16 +58,15 @@ func TestCompileParents(t *testing.T) {
 // need to be updated and can be moved to ztest using the "merge" zql operator
 // that will be available then.
 func TestCompileMergeDone(t *testing.T) {
-	input := `
-#0:record[k:int32]
-0:[1;]
-0:[2;]
-0:[3;]
-0:[4;]
+	const input = `
+{k:1 (int32)} (=0)
+{k:2} (0)
+{k:3} (0)
+{k:4} (0)
 `
 	zctx := zson.NewContext()
 	pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
-	r := tzngio.NewReader(bytes.NewReader([]byte(input)), zctx)
+	r := zson.NewReader(strings.NewReader(input), zctx)
 	src := proc.NopDone(zbuf.NewPuller(r, 10))
 	query, err := compiler.ParseProc("split(=>filter * =>head 1) | head 3")
 	require.NoError(t, err)
@@ -86,7 +81,6 @@ func TestCompileMergeDone(t *testing.T) {
 	runtime, err := compiler.CompileProc(query, pctx, []proc.Interface{src})
 	require.NoError(t, err)
 
-	var sb strings.Builder
-	err = zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), runtime.Outputs()[0])
+	err = zbuf.CopyPuller(zsonio.NewWriter(zio.NopCloser(io.Discard), zsonio.WriterOpts{}), runtime.Outputs()[0])
 	require.NoError(t, err)
 }

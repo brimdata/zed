@@ -4,13 +4,14 @@ package zio_test
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -25,172 +26,131 @@ func (o *Output) Close() error {
 	return nil
 }
 
-// Send logs to tzng reader -> zng writer -> zng reader -> tzng writer
+// Send logs to ZSON reader -> ZNG writer -> ZNG reader -> ZSON writer.
 func boomerang(t *testing.T, logs string, compress bool) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
-	tzngSrc := tzngio.NewReader(bytes.NewReader(in), zson.NewContext())
+	zsonSrc := zson.NewReader(bytes.NewReader(in), zson.NewContext())
 	var rawzng Output
 	var zngLZ4BlockSize int
 	if compress {
 		zngLZ4BlockSize = zngio.DefaultLZ4BlockSize
 	}
 	rawDst := zngio.NewWriter(&rawzng, zngio.WriterOpts{LZ4BlockSize: zngLZ4BlockSize})
-	require.NoError(t, zbuf.Copy(rawDst, tzngSrc))
+	require.NoError(t, zbuf.Copy(rawDst, zsonSrc))
 	require.NoError(t, rawDst.Close())
 
 	var out Output
 	rawSrc := zngio.NewReader(bytes.NewReader(rawzng.Bytes()), zson.NewContext())
-	tzngDst := tzngio.NewWriter(&out)
-	err := zbuf.Copy(tzngDst, rawSrc)
+	zsonDst := zsonio.NewWriter(&out, zsonio.WriterOpts{})
+	err := zbuf.Copy(zsonDst, rawSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())
 	}
 }
 
 func boomerangZJSON(t *testing.T, logs string) {
-	tzngSrc := tzngio.NewReader(strings.NewReader(logs), zson.NewContext())
+	zsonSrc := zson.NewReader(strings.NewReader(logs), zson.NewContext())
 	var zjsonOutput Output
 	zjsonDst := zjsonio.NewWriter(&zjsonOutput)
-	err := zbuf.Copy(zjsonDst, tzngSrc)
+	err := zbuf.Copy(zjsonDst, zsonSrc)
 	require.NoError(t, err)
 
 	var out Output
 	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), zson.NewContext())
-	tzngDst := tzngio.NewWriter(&out)
-	err = zbuf.Copy(tzngDst, zjsonSrc)
+	zsonDst := zsonio.NewWriter(&out, zsonio.WriterOpts{})
+	err = zbuf.Copy(zsonDst, zjsonSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, strings.TrimSpace(logs), strings.TrimSpace(out.String()))
 	}
 }
 
-const tzng1 = `
-#0:record[foo:set[string]]
-0:[["test";]]
-0:[["testtest";]]`
+const zson1 = `
+{foo:|["\"test\""]|}
+{foo:|["\"testtest\""]|}
+`
 
-const tzng2 = `
-#0:record[foo:record[bar:string]]
-0:[[test;]]`
+const zson2 = `{foo:{bar:"test"}}`
 
-const tzng3 = `
-#0:record[foo:set[string]]
-0:[[-;]]`
+const zson3 = "{foo:|[null (string)]|}"
 
-// String \x2d is "-".
-const tzng4 = `
-#0:record[foo:bstring]
-0:[\x2d;]`
+const zson4 = `{foo:"-" (bstring)} (=0)`
 
-// String \x5b is "[", second string is "[-]" and should pass through.
-const tzng5 = `
-#0:record[foo:bstring,bar:bstring]
-0:[\x5b;\x5b-];]`
+const zson5 = `{foo:"[" (bstring),bar:"[-]" (bstring)} (=0)`
 
 // Make sure we handle unset fields and empty sets.
-const tzng6 = `
-#0:record[id:record[a:string,s:set[string]]]
-0:[[-;[]]]`
+const zson6 = "{id:{a:null (string),s:|[]| (0=(|[string]|))}}"
 
 // Make sure we handle unset sets.
-const tzng7 = `
-#0:record[a:string,b:set[string],c:set[string]]
-0:[foo;[]-;]`
+const zson7 = `{a:"foo",b:|[]| (0=(|[string]|)),c:null (0)}`
 
 // recursive record with unset set and empty set
-const tzng8 = `
-#0:record[id:record[a:string,s:set[string]]]
-0:[-;]
-0:[[-;[]]]
-0:[[-;-;]]`
-
-func repeat(c byte, n int) string {
-	b := make([]byte, n)
-	for k := 0; k < n; k++ {
-		b[k] = c
-	}
-	return string(b)
-}
+const zson8 = `
+{id:{a:null (string),s:|[]| (0=(|[string]|))}}
+{id:{a:null (string),s:null (0)}}
+{id:null (1=({a:string,s:0}))}
+`
 
 // generate some really big strings
-func tzngBig() string {
-	s := "#0:record[f0:string,f1:string,f2:string,f3:string]\n"
-	s += "0:["
-	s += repeat('a', 4) + ";"
-	s += repeat('b', 400) + ";"
-	s += repeat('c', 30000) + ";"
-	s += repeat('d', 2) + ";]\n"
-	return s
+func zsonBig() string {
+	return fmt.Sprintf(`{f0:"%s",f1:"%s",f2:"%s",f3:"%s"}`,
+		"aaaa", strings.Repeat("b", 400), strings.Repeat("c", 30000), "dd")
 }
 
 func TestRaw(t *testing.T) {
-	boomerang(t, tzng1, false)
-	boomerang(t, tzng2, false)
-	boomerang(t, tzng3, false)
-	boomerang(t, tzng4, false)
-	boomerang(t, tzng5, false)
-	boomerang(t, tzng6, false)
-	boomerang(t, tzng7, false)
-	boomerang(t, tzng8, false)
-	boomerang(t, tzngBig(), false)
+	boomerang(t, zson1, false)
+	boomerang(t, zson2, false)
+	boomerang(t, zson3, false)
+	boomerang(t, zson4, false)
+	boomerang(t, zson5, false)
+	boomerang(t, zson6, false)
+	boomerang(t, zson7, false)
+	boomerang(t, zson8, false)
+	boomerang(t, zsonBig(), false)
 }
 
 func TestRawCompressed(t *testing.T) {
-	boomerang(t, tzng1, true)
-	boomerang(t, tzng2, true)
-	boomerang(t, tzng3, true)
-	boomerang(t, tzng4, true)
-	boomerang(t, tzng5, true)
-	boomerang(t, tzng6, true)
-	boomerang(t, tzng7, true)
-	boomerang(t, tzng8, true)
-	boomerang(t, tzngBig(), true)
+	boomerang(t, zson1, true)
+	boomerang(t, zson2, true)
+	boomerang(t, zson3, true)
+	boomerang(t, zson4, true)
+	boomerang(t, zson5, true)
+	boomerang(t, zson6, true)
+	boomerang(t, zson7, true)
+	boomerang(t, zson8, true)
+	boomerang(t, zsonBig(), true)
 }
 
 func TestZjson(t *testing.T) {
-	boomerangZJSON(t, tzng1)
-	boomerangZJSON(t, tzng2)
+	boomerangZJSON(t, zson1)
+	boomerangZJSON(t, zson2)
 	// XXX this one doesn't work right now but it's sort of ok becaue
 	// it's a little odd to have an unset string value inside of a set.
 	// semantically this would mean the value shouldn't be in the set,
 	// but right now this turns into an empty string, which is somewhat reasonable.
-	//boomerangZJSON(t, tzng3)
-	boomerangZJSON(t, tzng4)
-	boomerangZJSON(t, tzng5)
-	boomerangZJSON(t, tzng6)
-	boomerangZJSON(t, tzng7)
+	//boomerangZJSON(t, zson3)
+	boomerangZJSON(t, zson4)
+	boomerangZJSON(t, zson5)
+	boomerangZJSON(t, zson6)
+	boomerangZJSON(t, zson7)
 	// XXX need to fix bug in json reader where it always uses a primitive null
 	// even within a container type (like json array)
-	//boomerangZJSON(t, tzng8)
-	boomerangZJSON(t, tzngBig())
+	//boomerangZJSON(t, zson8)
+	boomerangZJSON(t, zsonBig())
 }
 
 func TestAlias(t *testing.T) {
-	const simple = `#ipaddr=ip
-#0:record[foo:string,orig_h:ipaddr]
-0:[bar;127.0.0.1;]`
-
-	const wrapped = `#alias1=ip
-#alias2=alias1
-#alias3=alias2
-#0:record[foo:string,orig_h:alias3]
-0:[bar;127.0.0.1;]`
-
-	const multipleRecords = `#ipaddr=ip
-#0:record[foo:string,orig_h:ipaddr]
-0:[bar;127.0.0.1;]
-#1:record[foo:string,resp_h:ipaddr]
-1:[bro;127.0.0.1;]`
-	const recordAlias = `#myrec=record[host:ip]
-#0:record[foo:myrec]
-0:[[127.0.0.2;]]
-0:[-;]`
-
+	const simple = `{foo:"bar",orig_h:127.0.0.1 (=ipaddr)} (=0)`
+	const multipleRecords = `
+{foo:"bar",orig_h:127.0.0.1 (=ipaddr)} (=0)
+{foo:"bro",resp_h:127.0.0.1 (ipaddr)} (=1)
+`
+	const recordAlias = `
+{foo:{host:127.0.0.2} (=myrec)} (=0)
+{foo:null} (0)
+`
 	t.Run("Zng", func(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {
 			boomerang(t, simple, true)
-		})
-		t.Run("wrapped-aliases", func(t *testing.T) {
-			boomerang(t, wrapped, true)
 		})
 		t.Run("alias-in-different-records", func(t *testing.T) {
 			boomerang(t, multipleRecords, true)
@@ -203,9 +163,6 @@ func TestAlias(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {
 			boomerangZJSON(t, simple)
 		})
-		t.Run("wrapped-aliases", func(t *testing.T) {
-			boomerangZJSON(t, wrapped)
-		})
 		t.Run("alias-in-different-records", func(t *testing.T) {
 			boomerangZJSON(t, multipleRecords)
 		})
@@ -217,14 +174,14 @@ func TestAlias(t *testing.T) {
 
 func TestStreams(t *testing.T) {
 	const in = `
-#0:record[key:ip]
-0:[1.2.3.4;]
-0:[::;]
-0:[1.39.61.22;]
-0:[1.149.119.73;]
-0:[1.160.203.191;]
-0:[2.12.27.251;]`
-	tr := tzngio.NewReader(bytes.NewReader([]byte(in)), zson.NewContext())
+{key:1.2.3.4}
+{key:::}
+{key:1.39.61.22}
+{key:1.149.119.73}
+{key:1.160.203.191}
+{key:2.12.27.251}
+`
+	r := zson.NewReader(strings.NewReader(in), zson.NewContext())
 	var out Output
 	zw := zngio.NewWriter(&out, zngio.WriterOpts{
 		StreamRecordsMax: 2,
@@ -233,7 +190,7 @@ func TestStreams(t *testing.T) {
 
 	var recs []*zng.Record
 	for {
-		rec, err := tr.Read()
+		rec, err := r.Read()
 		require.NoError(t, err)
 		if rec == nil {
 			break

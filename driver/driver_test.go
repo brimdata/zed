@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -23,16 +22,14 @@ func (c *counter) Write(*zng.Record) error {
 }
 
 func TestMuxDriver(t *testing.T) {
-	input := `
-#0:record[_path:string,ts:time]
-0:[conn;1425565514.419939;]`
+	const input = `{_path:"conn",ts:2015-03-05T14:25:14.419939Z}`
 
 	query, err := compiler.ParseProc("split (=>tail 1 =>tail 1)")
 	assert.NoError(t, err)
 
 	t.Run("muxed into one writer", func(t *testing.T) {
 		zctx := zson.NewContext()
-		reader := tzngio.NewReader(strings.NewReader(input), zctx)
+		reader := zson.NewReader(strings.NewReader(input), zctx)
 		assert.NoError(t, err)
 		c := counter{}
 		d := NewCLI(&c)
@@ -43,7 +40,7 @@ func TestMuxDriver(t *testing.T) {
 
 	t.Run("muxed into individual writers", func(t *testing.T) {
 		zctx := zson.NewContext()
-		reader := tzngio.NewReader(strings.NewReader(input), zctx)
+		reader := zson.NewReader(strings.NewReader(input), zctx)
 		assert.NoError(t, err)
 		cs := []zbuf.Writer{&counter{}, &counter{}}
 		d := NewCLI(cs...)

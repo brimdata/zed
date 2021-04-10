@@ -1,14 +1,12 @@
 package zng_test
 
 import (
-	"fmt"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -76,15 +74,9 @@ func TestRecordTypeCheck(t *testing.T) {
 
 }
 
-const in = `
-#zfile=string
-#zbool=bool
-#0:record[foo:zfile,bar:zbool]
-0:[hello;true;]
-`
-
 func TestRecordAccessAlias(t *testing.T) {
-	reader := tzngio.NewReader(strings.NewReader(in), zson.NewContext())
+	const input = `{foo:"hello" (=zfile),bar:true (=zbool)} (=0)`
+	reader := zson.NewReader(strings.NewReader(input), zson.NewContext())
 	rec, err := reader.Read()
 	require.NoError(t, err)
 	s, err := rec.AccessString("foo")
@@ -97,20 +89,19 @@ func TestRecordAccessAlias(t *testing.T) {
 
 func TestRecordTs(t *testing.T) {
 	cases := []struct {
-		typ, val string
+		input    string
 		expected nano.Ts
 	}{
-		{"record[ts:time]", "[1;]", nano.Ts(time.Second)},
-		{"record[notts:time]", "[1;]", nano.MinTs}, // No ts field.
-		{"record[ts:time]", "[-;]", nano.MinTs},    // Null ts field.
-		{"record[ts:int64]", "[1;]", nano.MinTs},   // Type of ts field is not TypeOfTime.
+		{"{ts:1970-01-01T00:00:01Z}", nano.Ts(time.Second)},
+		{"{notts:1970-01-01T00:00:01Z}", nano.MinTs}, // No ts field.
+		{"{ts:null (time)}", nano.MinTs},             // Null ts field.
+		{"{ts:1}", nano.MinTs},                       // Type of ts field is not TypeOfTime.
 	}
 	for _, c := range cases {
-		input := fmt.Sprintf("#0:%s\n0:%s\n", c.typ, c.val)
-		zr := tzngio.NewReader(strings.NewReader(input), zson.NewContext())
+		zr := zson.NewReader(strings.NewReader(c.input), zson.NewContext())
 		rec, err := zr.Read()
 		assert.NoError(t, err)
 		require.NotNil(t, rec)
-		assert.Exactly(t, c.expected, rec.Ts(), "input: %q", input)
+		assert.Exactly(t, c.expected, rec.Ts(), "input: %q", c.input)
 	}
 }

@@ -11,35 +11,35 @@ import (
 
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/suite"
 )
 
 var sortTs = compiler.MustParseProc("sort ts")
 
-const expected = `#0:record[ts:time]
-0:[0;]
-0:[1;]
-0:[2;]
-0:[3;]
-0:[4;]
-0:[5;]
-0:[6;]
-0:[7;]
-0:[8;]
-0:[9;]
-0:[10;]
-0:[11;]
-0:[12;]
-0:[13;]
-0:[14;]
-0:[15;]
-0:[16;]
-0:[17;]
-0:[18;]
-0:[19;]
+const expected = `{ts:1970-01-01T00:00:00Z}
+{ts:1970-01-01T00:00:01Z}
+{ts:1970-01-01T00:00:02Z}
+{ts:1970-01-01T00:00:03Z}
+{ts:1970-01-01T00:00:04Z}
+{ts:1970-01-01T00:00:05Z}
+{ts:1970-01-01T00:00:06Z}
+{ts:1970-01-01T00:00:07Z}
+{ts:1970-01-01T00:00:08Z}
+{ts:1970-01-01T00:00:09Z}
+{ts:1970-01-01T00:00:10Z}
+{ts:1970-01-01T00:00:11Z}
+{ts:1970-01-01T00:00:12Z}
+{ts:1970-01-01T00:00:13Z}
+{ts:1970-01-01T00:00:14Z}
+{ts:1970-01-01T00:00:15Z}
+{ts:1970-01-01T00:00:16Z}
+{ts:1970-01-01T00:00:17Z}
+{ts:1970-01-01T00:00:18Z}
+{ts:1970-01-01T00:00:19Z}
 `
 
 type logTailerTSuite struct {
@@ -59,14 +59,14 @@ func (s *logTailerTSuite) SetupTest() {
 	s.dir = dir
 	s.T().Cleanup(func() { os.RemoveAll(s.dir) })
 	s.zctx = zson.NewContext()
-	s.dr, err = newLogTailer(s.zctx, s.dir, zio.ReaderOpts{Format: "tzng"})
+	s.dr, err = newLogTailer(s.zctx, s.dir, zio.ReaderOpts{Format: "zson"})
 	s.Require().NoError(err)
 }
 
 func (s *logTailerTSuite) TestCreatedFiles() {
 	result, errCh := s.read()
-	f1 := s.createFile("test1.tzng")
-	f2 := s.createFile("test2.tzng")
+	f1 := s.createFile("test1")
+	f2 := s.createFile("test2")
 	s.write(f1, f2)
 	s.Require().NoError(<-errCh)
 	s.Equal(expected, <-result)
@@ -74,8 +74,8 @@ func (s *logTailerTSuite) TestCreatedFiles() {
 
 func (s *logTailerTSuite) TestIgnoreDir() {
 	result, errCh := s.read()
-	f1 := s.createFile("test1.tzng")
-	f2 := s.createFile("test2.tzng")
+	f1 := s.createFile("test1")
+	f2 := s.createFile("test2")
 	err := os.Mkdir(filepath.Join(s.dir, "testdir"), 0755)
 	s.Require().NoError(err)
 	s.write(f1, f2)
@@ -84,8 +84,8 @@ func (s *logTailerTSuite) TestIgnoreDir() {
 }
 
 func (s *logTailerTSuite) TestExistingFiles() {
-	f1 := s.createFile("test1.tzng")
-	f2 := s.createFile("test2.tzng")
+	f1 := s.createFile("test1")
+	f2 := s.createFile("test2")
 	result, errCh := s.read()
 	s.write(f1, f2)
 	s.Require().NoError(<-errCh)
@@ -94,20 +94,18 @@ func (s *logTailerTSuite) TestExistingFiles() {
 
 func (s *logTailerTSuite) TestInvalidFile() {
 	_, errCh := s.read()
-	f1 := s.createFile("test1.tzng")
-	_, err := f1.WriteString("#0:record[ts:time]\n")
-	s.Require().NoError(err)
-	_, err = f1.WriteString("this is an invalid line\n")
+	f1 := s.createFile("test1")
+	_, err := f1.WriteString("this is an invalid line\n")
 	s.Require().NoError(err)
 	s.Require().NoError(f1.Sync())
-	s.EqualError(<-errCh, "line 2: bad format")
+	s.EqualError(<-errCh, `identifier "this" must be enum and requires decorator`)
 	s.NoError(s.dr.Stop())
 }
 
 func (s *logTailerTSuite) TestEmptyFile() {
 	result, errCh := s.read()
-	f1 := s.createFile("test1.tzng")
-	_ = s.createFile("test2.tzng")
+	f1 := s.createFile("test1")
+	_ = s.createFile("test2")
 	s.write(f1)
 	s.Require().NoError(<-errCh)
 	s.Equal(expected, <-result)
@@ -125,7 +123,7 @@ func (s *logTailerTSuite) read() (<-chan string, <-chan error) {
 	result := make(chan string)
 	errCh := make(chan error)
 	buf := bytes.NewBuffer(nil)
-	w := tzngio.NewWriter(zio.NopCloser(buf))
+	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
 	go func() {
 		err := driver.Copy(context.Background(), w, sortTs, s.zctx, s.dr, driver.Config{})
 		if err != nil {
@@ -140,13 +138,9 @@ func (s *logTailerTSuite) read() (<-chan string, <-chan error) {
 }
 
 func (s *logTailerTSuite) write(files ...*os.File) {
-	for _, f := range files {
-		_, err := f.WriteString("#0:record[ts:time]\n")
-		s.Require().NoError(err)
-	}
 	for i := 0; i < 20; {
 		for _, f := range files {
-			_, err := f.WriteString(fmt.Sprintf("0:[%d;]\n", i))
+			_, err := f.WriteString(fmt.Sprintf("{ts:%s}\n", nano.Unix(int64(i), 0)))
 			s.Require().NoError(err)
 			i++
 		}
