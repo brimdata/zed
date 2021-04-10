@@ -8,9 +8,9 @@ import (
 
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/emitter"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/emitter"
 	"github.com/brimdata/zed/zson"
 )
 

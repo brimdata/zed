@@ -6,10 +6,10 @@ import (
 	"flag"
 	"os"
 
-	"github.com/brimdata/zed/emitter"
 	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/emitter"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zstio"
 )
