@@ -26,7 +26,7 @@ type WriterOpts struct {
 	UTF8 bool
 }
 
-func NewWriter(w io.WriteCloser, zctx *zson.Context, opts WriterOpts) *Writer {
+func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	format := tzngio.OutFormatZeekAscii
 	if opts.UTF8 {
 		format = tzngio.OutFormatZeek

@@ -374,7 +374,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		zr := tzngio.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
 		cr := &countReader{r: zr}
 		var outbuf bytes.Buffer
-		zw, _ := detector.LookupWriter(&nopCloser{&outbuf}, zctx, zio.WriterOpts{})
+		zw, _ := detector.LookupWriter(&nopCloser{&outbuf}, zio.WriterOpts{})
 		d := &testGroupByDriver{
 			writer: zw,
 			cb: func(n int) {
