@@ -35,7 +35,7 @@ A straightforward translation to JSON might look like this:
   "ts": 1521911721.926018012,
   "a": "hello, world",
   "b": {
-    "x": 4611686018427388000,
+    "x": 4611686018427387904,
     "y": "127.0.0.1"
   }
 }
