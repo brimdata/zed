@@ -8417,7 +8417,7 @@ var g = &grammar{
 										exprs: []interface{}{
 											&ruleRefExpr{
 												pos:  position{line: 1111, col: 7, offset: 31912},
-												name: "IdGuard",
+												name: "IDGuard",
 											},
 											&notExpr{
 												pos: position{line: 1111, col: 15, offset: 31920},
@@ -8468,7 +8468,7 @@ var g = &grammar{
 									label: "id",
 									expr: &ruleRefExpr{
 										pos:  position{line: 1113, col: 13, offset: 32052},
-										name: "IdGuard",
+										name: "IDGuard",
 									},
 								},
 							},
@@ -8521,7 +8521,7 @@ var g = &grammar{
 			},
 		},
 		{
-			name: "IdGuard",
+			name: "IDGuard",
 			pos:  position{line: 1118, col: 1, offset: 32236},
 			expr: &choiceExpr{
 				pos: position{line: 1119, col: 5, offset: 32248},

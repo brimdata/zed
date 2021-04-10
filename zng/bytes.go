@@ -21,7 +21,7 @@ func DecodeBytes(zv zcode.Bytes) ([]byte, error) {
 }
 
 func (t *TypeOfBytes) ID() int {
-	return IdBytes
+	return IDBytes
 }
 
 func (t *TypeOfBytes) String() string {

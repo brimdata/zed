@@ -467,13 +467,13 @@ func TestArithmetic(t *testing.T) {
 
 	width := func(id int) int {
 		switch id {
-		case zng.IdInt8, zng.IdUint8:
+		case zng.IDInt8, zng.IDUint8:
 			return 8
-		case zng.IdInt16, zng.IdUint16:
+		case zng.IDInt16, zng.IDUint16:
 			return 16
-		case zng.IdInt32, zng.IdUint32:
+		case zng.IDInt32, zng.IDUint32:
 			return 32
-		case zng.IdInt64, zng.IdUint64:
+		case zng.IDInt64, zng.IDUint64:
 			return 64
 		}
 		panic("width")

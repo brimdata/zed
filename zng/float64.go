@@ -35,7 +35,7 @@ func DecodeFloat64(zv zcode.Bytes) (float64, error) {
 }
 
 func (t *TypeOfFloat64) ID() int {
-	return IdFloat64
+	return IDFloat64
 }
 
 func (t *TypeOfFloat64) String() string {

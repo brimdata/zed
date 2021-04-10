@@ -1063,14 +1063,14 @@ Identifier
   = id:IdentifierName { RETURN(MAP("kind": "Id", "name": id)) }
 
 IdentifierName
-  = !(IdGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }
+  = !(IDGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }
   / "$" { RETURN(TEXT) }
-  / "\\" id:IdGuard { RETURN(id) }
+  / "\\" id:IDGuard { RETURN(id) }
   // "type" is a search guard but should not be an id guard
   / "type" { RETURN(TEXT) }
   / id:SQLTokenSentinels &(__ "(") { RETURN(id) }
 
-IdGuard
+IDGuard
   = BooleanLiteral
   / NullLiteral
   / TypeExternal

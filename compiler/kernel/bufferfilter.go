@@ -79,7 +79,7 @@ func CompileBufferFilter(e ast.Expr) (*expr.BufferFilter, error) {
 	}
 }
 
-func isIdOrRoot(e ast.Expr) bool {
+func isIDOrRoot(e ast.Expr) bool {
 	if _, ok := e.(*ast.Id); ok {
 		return true
 	}
@@ -88,7 +88,7 @@ func isIdOrRoot(e ast.Expr) bool {
 }
 
 func isRootField(e ast.Expr) bool {
-	if isIdOrRoot(e) {
+	if isIDOrRoot(e) {
 		return true
 	}
 	b, ok := e.(*ast.BinaryExpr)

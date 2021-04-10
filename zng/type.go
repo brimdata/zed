@@ -70,48 +70,48 @@ var (
 )
 
 const (
-	IdUint8    = 0
-	IdUint16   = 1
-	IdUint32   = 2
-	IdUint64   = 3
-	IdInt8     = 4
-	IdInt16    = 5
-	IdInt32    = 6
-	IdInt64    = 7
-	IdDuration = 8
-	IdTime     = 9
-	IdFloat16  = 10
-	IdFloat32  = 11
-	IdFloat64  = 12
-	IdDecimal  = 13
-	IdBool     = 14
-	IdBytes    = 15
-	IdString   = 16
-	IdBstring  = 17
-	IdIP       = 18
-	IdNet      = 19
-	IdType     = 20
-	IdError    = 21
-	IdNull     = 22
+	IDUint8    = 0
+	IDUint16   = 1
+	IDUint32   = 2
+	IDUint64   = 3
+	IDInt8     = 4
+	IDInt16    = 5
+	IDInt32    = 6
+	IDInt64    = 7
+	IDDuration = 8
+	IDTime     = 9
+	IDFloat16  = 10
+	IDFloat32  = 11
+	IDFloat64  = 12
+	IDDecimal  = 13
+	IDBool     = 14
+	IDBytes    = 15
+	IDString   = 16
+	IDBstring  = 17
+	IDIP       = 18
+	IDNet      = 19
+	IDType     = 20
+	IDError    = 21
+	IDNull     = 22
 
-	IdTypeDef = 23
+	IDTypeDef = 23
 )
 
 var promote = []int{
-	IdInt8,    // IdUint8    = 0
-	IdInt16,   // IdUint16   = 1
-	IdInt32,   // IdUint32   = 2
-	IdInt64,   // IdUint64   = 3
-	IdInt8,    // IdInt8     = 4
-	IdInt16,   // IdInt16    = 5
-	IdInt32,   // IdInt32    = 6
-	IdInt64,   // IdInt64    = 7
-	IdInt64,   // IdDuration = 8
-	IdInt64,   // IdTime     = 9
-	IdFloat16, // IdFloat32  = 10
-	IdFloat32, // IdFloat32  = 11
-	IdFloat64, // IdFloat64  = 12
-	IdDecimal, // IdDecimal  = 13
+	IDInt8,    // IDUint8    = 0
+	IDInt16,   // IDUint16   = 1
+	IDInt32,   // IDUint32   = 2
+	IDInt64,   // IDUint64   = 3
+	IDInt8,    // IDInt8     = 4
+	IDInt16,   // IDInt16    = 5
+	IDInt32,   // IDInt32    = 6
+	IDInt64,   // IDInt64    = 7
+	IDInt64,   // IDDuration = 8
+	IDInt64,   // IDTime     = 9
+	IDFloat16, // IDFloat32  = 10
+	IDFloat32, // IDFloat32  = 11
+	IDFloat64, // IDFloat64  = 12
+	IDDecimal, // IDDecimal  = 13
 }
 
 // Promote type to the largest signed type where the IDs must both
@@ -126,29 +126,29 @@ func PromoteInt(aid, bid int) int {
 
 // True iff the type id is encoded as a zng signed or unsigened integer zcode.Bytes.
 func IsInteger(id int) bool {
-	return id <= IdInt64
+	return id <= IDInt64
 }
 
 // True iff the type id is encoded as a zng signed or unsigned integer zcode.Bytes,
 // float32 zcode.Bytes, or float64 zcode.Bytes.
 func IsNumber(id int) bool {
-	return id <= IdDecimal
+	return id <= IDDecimal
 }
 
 // True iff the type id is encoded as a float encoding.
-// XXX add IdDecimal here when we implement coercible math with it.
+// XXX add IDDecimal here when we implement coercible math with it.
 func IsFloat(id int) bool {
-	return id >= IdFloat16 && id <= IdFloat64
+	return id >= IDFloat16 && id <= IDFloat64
 }
 
 // True iff the type id is encoded as a number encoding and is signed.
 func IsSigned(id int) bool {
-	return id >= IdInt8 && id <= IdTime
+	return id >= IDInt8 && id <= IDTime
 }
 
 // True iff the type id is encoded as a string zcode.Bytes.
 func IsStringy(id int) bool {
-	return id == IdString || id == IdBstring || id == IdError || id == IdType
+	return id == IDString || id == IDBstring || id == IDError || id == IDType
 }
 
 const (
@@ -222,43 +222,43 @@ func LookupPrimitive(name string) Type {
 
 func LookupPrimitiveById(id int) Type {
 	switch id {
-	case IdBool:
+	case IDBool:
 		return TypeBool
-	case IdInt8:
+	case IDInt8:
 		return TypeInt8
-	case IdUint8:
+	case IDUint8:
 		return TypeUint8
-	case IdInt16:
+	case IDInt16:
 		return TypeInt16
-	case IdUint16:
+	case IDUint16:
 		return TypeUint16
-	case IdInt32:
+	case IDInt32:
 		return TypeInt32
-	case IdUint32:
+	case IDUint32:
 		return TypeUint32
-	case IdInt64:
+	case IDInt64:
 		return TypeInt64
-	case IdUint64:
+	case IDUint64:
 		return TypeUint64
-	case IdFloat64:
+	case IDFloat64:
 		return TypeFloat64
-	case IdString:
+	case IDString:
 		return TypeString
-	case IdBstring:
+	case IDBstring:
 		return TypeBstring
-	case IdIP:
+	case IDIP:
 		return TypeIP
-	case IdNet:
+	case IDNet:
 		return TypeNet
-	case IdTime:
+	case IDTime:
 		return TypeTime
-	case IdDuration:
+	case IDDuration:
 		return TypeDuration
-	case IdType:
+	case IDType:
 		return TypeType
-	case IdError:
+	case IDError:
 		return TypeError
-	case IdNull:
+	case IDNull:
 		return TypeNull
 	}
 	return nil

@@ -159,7 +159,7 @@ func castToTime(zv zng.Value) (zng.Value, error) {
 func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
 	return func(zv zng.Value) (zng.Value, error) {
 		id := zv.Type.ID()
-		if id == zng.IdBytes || id == zng.IdBstring {
+		if id == zng.IDBytes || id == zng.IDBstring {
 			if !utf8.Valid(zv.Bytes) {
 				return zng.NewErrorf("non-UTF-8 bytes cannot be cast to string"), nil
 			}

@@ -222,7 +222,7 @@ func LookupCompare(typ zng.Type) comparefn {
 		}
 	}
 	switch typ.ID() {
-	case zng.IdBool:
+	case zng.IDBool:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeBool(a)
 			if err != nil {
@@ -241,12 +241,12 @@ func LookupCompare(typ zng.Type) comparefn {
 			return -1
 		}
 
-	case zng.IdString:
+	case zng.IDString:
 		return func(a, b zcode.Bytes) int {
 			return bytes.Compare(a, b)
 		}
 
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+	case zng.IDInt16, zng.IDInt32, zng.IDInt64:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeInt(a)
 			if err != nil {
@@ -264,7 +264,7 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
+	case zng.IDUint16, zng.IDUint32, zng.IDUint64:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeUint(a)
 			if err != nil {
@@ -282,7 +282,7 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IdFloat64:
+	case zng.IDFloat64:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeFloat64(a)
 			if err != nil {
@@ -300,7 +300,7 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IdTime:
+	case zng.IDTime:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeTime(a)
 			if err != nil {
@@ -318,7 +318,7 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IdDuration:
+	case zng.IDDuration:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeDuration(a)
 			if err != nil {
@@ -336,7 +336,7 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IdIP:
+	case zng.IDIP:
 		return func(a, b zcode.Bytes) int {
 			va, err := zng.DecodeIP(a)
 			if err != nil {

@@ -228,7 +228,7 @@ func stringToEnum(val *ast.Primitive, cast zng.Type) Value {
 
 func castType(typ, cast zng.Type) (zng.Type, error) {
 	typID, castID := typ.ID(), cast.ID()
-	if typID == castID || typID == zng.IdNull ||
+	if typID == castID || typID == zng.IDNull ||
 		zng.IsInteger(typID) && zng.IsInteger(castID) ||
 		zng.IsFloat(typID) && zng.IsFloat(castID) ||
 		zng.IsStringy(typID) && zng.IsStringy(castID) {

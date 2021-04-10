@@ -121,50 +121,50 @@ func (b *builder) appendPrimitive(typ zng.Type, val []byte) error {
 		return nil
 	}
 	switch typ.ID() {
-	case zng.IdInt64:
+	case zng.IDInt64:
 		v, err := byteconv.ParseInt64(val)
 		if err != nil {
 			return err
 		}
 		b.buf = zng.AppendInt(b.buf[:0], v)
-	case zng.IdUint16:
+	case zng.IDUint16:
 		// Zeek's port type is aliased to uint16.
 		v, err := byteconv.ParseUint16(val)
 		if err != nil {
 			return err
 		}
 		b.buf = zng.AppendUint(b.buf[:0], uint64(v))
-	case zng.IdUint64:
+	case zng.IDUint64:
 		v, err := byteconv.ParseUint64(val)
 		if err != nil {
 			return err
 		}
 		b.buf = zng.AppendUint(b.buf[:0], v)
-	case zng.IdDuration:
+	case zng.IDDuration:
 		v, err := nano.Parse(val) // zeek-style fractional ts
 		if err != nil {
 			return err
 		}
 		b.buf = zng.AppendDuration(b.buf[:0], nano.Duration(v))
-	case zng.IdTime:
+	case zng.IDTime:
 		v, err := nano.Parse(val)
 		if err != nil {
 			return err
 		}
 		b.buf = zng.AppendTime(b.buf[:0], v)
-	case zng.IdFloat64:
+	case zng.IDFloat64:
 		v, err := byteconv.ParseFloat64(val)
 		if err != nil {
 			return err
 		}
 		b.buf = zng.AppendFloat64(b.buf[:0], v)
-	case zng.IdBool:
+	case zng.IDBool:
 		v, err := byteconv.ParseBool(val)
 		if err != nil {
 			return err
 		}
 		b.buf = zng.AppendBool(b.buf[:0], v)
-	case zng.IdString:
+	case zng.IDString:
 		// Zeek's enum type is aliased to string.
 		zb, err := tzngio.ParseString(val)
 		if err != nil {
@@ -172,20 +172,20 @@ func (b *builder) appendPrimitive(typ zng.Type, val []byte) error {
 		}
 		b.AppendPrimitive(zb)
 		return nil
-	case zng.IdBstring:
+	case zng.IDBstring:
 		zb, err := tzngio.ParseBstring(val)
 		if err != nil {
 			return err
 		}
 		b.AppendPrimitive(zb)
 		return nil
-	case zng.IdIP:
+	case zng.IDIP:
 		v, err := byteconv.ParseIP(val)
 		if err != nil {
 			return err
 		}
 		b.buf = zng.AppendIP(b.buf[:0], v)
-	case zng.IdNet:
+	case zng.IDNet:
 		_, v, err := net.ParseCIDR(string(val))
 		if err != nil {
 			return err

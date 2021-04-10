@@ -54,15 +54,15 @@ func (m *mathReducer) consumeVal(val zng.Value) {
 	}
 	if m.math == nil {
 		switch val.Type.ID() {
-		case zng.IdInt8, zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		case zng.IDInt8, zng.IDInt16, zng.IDInt32, zng.IDInt64:
 			m.math = NewInt64(m.function)
-		case zng.IdUint8, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		case zng.IDUint8, zng.IDUint16, zng.IDUint32, zng.IDUint64:
 			m.math = NewUint64(m.function)
-		case zng.IdFloat64:
+		case zng.IDFloat64:
 			m.math = NewFloat64(m.function)
-		case zng.IdDuration:
+		case zng.IDDuration:
 			m.math = NewDuration(m.function)
-		case zng.IdTime:
+		case zng.IDTime:
 			m.math = NewTime(m.function)
 		default:
 			//m.TypeMismatch++

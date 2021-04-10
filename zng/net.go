@@ -53,7 +53,7 @@ func DecodeNet(zv zcode.Bytes) (*net.IPNet, error) {
 }
 
 func (t *TypeOfNet) ID() int {
-	return IdNet
+	return IDNet
 }
 
 func (t *TypeOfNet) String() string {

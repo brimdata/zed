@@ -10963,7 +10963,7 @@ function peg$parse(input, options) {
     s1 = peg$currPos;
     peg$silentFails++;
     s2 = peg$currPos;
-    s3 = peg$parseIdGuard();
+    s3 = peg$parseIDGuard();
     if (s3 !== peg$FAILED) {
       s4 = peg$currPos;
       peg$silentFails++;
@@ -11042,7 +11042,7 @@ function peg$parse(input, options) {
           if (peg$silentFails === 0) { peg$fail(peg$c376); }
         }
         if (s1 !== peg$FAILED) {
-          s2 = peg$parseIdGuard();
+          s2 = peg$parseIDGuard();
           if (s2 !== peg$FAILED) {
             peg$savedPos = s0;
             s1 = peg$c254(s2);
@@ -11123,7 +11123,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseIdGuard() {
+  function peg$parseIDGuard() {
     var s0;
 
     s0 = peg$parseBooleanLiteral();

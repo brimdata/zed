@@ -709,7 +709,7 @@ func (c *Conditional) Eval(rec *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	if val.Type.ID() != zng.IdBool {
+	if val.Type.ID() != zng.IDBool {
 		return zng.Value{}, ErrIncompatibleTypes
 	}
 	if zng.IsTrue(val.Bytes) {

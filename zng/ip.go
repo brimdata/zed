@@ -37,7 +37,7 @@ func DecodeIP(zv zcode.Bytes) (net.IP, error) {
 }
 
 func (t *TypeOfIP) ID() int {
-	return IdIP
+	return IDIP
 }
 
 func (t *TypeOfIP) String() string {

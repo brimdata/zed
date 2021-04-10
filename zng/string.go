@@ -19,7 +19,7 @@ func DecodeString(zv zcode.Bytes) (string, error) {
 }
 
 func (t *TypeOfString) ID() int {
-	return IdString
+	return IDString
 }
 
 func (t *TypeOfString) String() string {

@@ -31,7 +31,7 @@ func DecodeTime(zv zcode.Bytes) (nano.Ts, error) {
 }
 
 func (t *TypeOfTime) ID() int {
-	return IdTime
+	return IDTime
 }
 
 func (t *TypeOfTime) String() string {

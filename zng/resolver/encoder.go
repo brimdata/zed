@@ -66,7 +66,7 @@ func (e *Encoder) Encode(dst []byte, external zng.Type) ([]byte, zng.Type, error
 
 func (e *Encoder) encodeType(dst []byte, ext zng.Type) ([]byte, zng.Type, error) {
 	id := ext.ID()
-	if _, alias := ext.(*zng.TypeAlias); id < zng.IdTypeDef && !alias {
+	if _, alias := ext.(*zng.TypeAlias); id < zng.IDTypeDef && !alias {
 		return dst, ext, nil
 	}
 	switch ext := ext.(type) {

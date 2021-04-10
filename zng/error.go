@@ -46,7 +46,7 @@ func DecodeError(zv zcode.Bytes) (error, error) {
 }
 
 func (t *TypeOfError) ID() int {
-	return IdError
+	return IDError
 }
 
 func (t *TypeOfError) String() string {
