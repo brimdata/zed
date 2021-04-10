@@ -1,6 +1,7 @@
 package search
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/brimdata/zed/zbuf"
@@ -13,16 +14,13 @@ import (
 // directly to the client as text/csv.
 type CSVOutput struct {
 	response http.ResponseWriter
-	wc       zbuf.WriteCloser
+	writer   *csvio.Writer
 }
 
 func NewCSVOutput(response http.ResponseWriter, ctrl bool) *CSVOutput {
 	return &CSVOutput{
 		response: response,
-		wc: csvio.NewWriter(zio.NopCloser(response), zson.NewContext(), csvio.WriterOpts{
-			Fuse: true,
-			UTF8: true,
-		}),
+		writer:   csvio.NewWriter(zio.NopCloser(response), zson.NewContext(), csvio.WriterOpts{UTF8: true}),
 	}
 }
 
@@ -32,16 +30,30 @@ func (r *CSVOutput) Collect() interface{} {
 
 func (r *CSVOutput) SendBatch(cid int, batch zbuf.Batch) error {
 	for _, rec := range batch.Records() {
-		if err := r.wc.Write(rec); err != nil {
+		if err := r.writer.Write(rec); err != nil {
+			r.error(err)
 			return err
 		}
 	}
 	batch.Unref()
-	return nil
+	err := r.writer.Flush()
+	if err != nil {
+		r.error(err)
+	}
+	if f, ok := r.response.(http.Flusher); ok {
+		f.Flush()
+	}
+	return err
+}
+
+// error embeds an error in the CSV output.  We can't report an HTTP error
+// because we already started successfully streaming records.
+func (r *CSVOutput) error(err error) {
+	fmt.Fprintf(r.response, "query error: %s\n", err)
 }
 
 func (r *CSVOutput) End(ctrl interface{}) error {
-	return r.wc.Close()
+	return r.writer.Close()
 }
 
 func (r *CSVOutput) SendControl(ctrl interface{}) error {

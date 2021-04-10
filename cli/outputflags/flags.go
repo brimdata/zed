@@ -30,7 +30,6 @@ func (f *Flags) Options() zio.WriterOpts {
 
 func (f *Flags) setFlags(fs *flag.FlagSet) {
 	// zio stuff
-	fs.BoolVar(&f.CSVFuse, "csvfuse", true, "fuse records for csv output")
 	fs.BoolVar(&f.UTF8, "U", false, "display zeek strings as UTF-8")
 	fs.BoolVar(&f.Text.ShowTypes, "T", false, "display field types in text output")
 	fs.BoolVar(&f.Text.ShowFields, "F", false, "display field names in text output")
