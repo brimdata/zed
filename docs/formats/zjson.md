@@ -116,9 +116,9 @@ or meaning.
 Objects in a ZJSON stream have the following JSON structure:
 ```
 {
-        "schema": <id>,
-        "values": [ <val>, ... [ <val>, ... ] ... ]
-        "types": [ <type>, <type>, ... ]
+  "schema": <id>,
+  "values": [ <val>, ... [ <val>, ... ] ... ]
+  "types": [ <type>, <type>, ... ]
 }
 ```
 
@@ -161,15 +161,15 @@ A type string may also contain a type name previously defined by a type definiti
 More formally, a Zed record type is a JSON object of the form
 ```
 {
-        "kind": "record",
-        "fields": [ <field>, <field>, ... ]
+  "kind": "record",
+  "fields": [ <field>, <field>, ... ]
 }
 ```
 where each of the fields has the form
 ```
 {
-        "name": <name>,
-        "type": <type>,
+  "name": <name>,
+  "type": <type>,
 }
 ```
 and `<name>` is a string defining the column name and `<type>` is a
@@ -180,8 +180,8 @@ recursively encoded type.
 A Zed array type is defined by a JSON object having the form
 ```
 {
-        "kind": "array",
-        "type": <type>
+  "kind": "array",
+  "type": <type>
 }
 ```
 where `<type>` is a recursively encoded type.
@@ -191,8 +191,8 @@ where `<type>` is a recursively encoded type.
 A Zed set type is defined by a JSON object having the form
 ```
 {
-        "kind": "set",
-        "type": <type>
+  "kind": "set",
+  "type": <type>
 }
 ```
 where `<type>` is a recursively encoded type.
@@ -202,8 +202,8 @@ where `<type>` is a recursively encoded type.
 A Zed union type is defined by a JSON object having the form
 ```
 {
-        "kind": "union",
-        "types": [ <type>, <type>, ... ]
+  "kind": "union",
+  "types": [ <type>, <type>, ... ]
 }
 ```
 where the list of types comprise the types of the union and
@@ -214,8 +214,8 @@ and each `<type>`is a recursively encoded type.
 A Zed enum type is a JSON object of the form
 ```
 {
-        "kind": "enum",
-        "symbols": [ <string>, <string>, ... ]
+  "kind": "enum",
+  "symbols": [ <string>, <string>, ... ]
 }
 ```
 
@@ -225,9 +225,9 @@ A type definitions is encoded as a binding between a name and a Zed type
 and represents a new type so named.  A type definition type has the form:
 ```
 {
-        "kind": "typedef",
-        "name": <id>,
-        "type": <type>,
+  "kind": "typedef",
+  "name": <id>,
+  "type": <type>,
 }
 ```
 where `<id>` is a JSON string representing the newly defined type name
@@ -243,8 +243,8 @@ A type reference is encoded as refer to a previously defined type definition.
 and has the form:
 ```
 {
-        "kind": "typename",
-        "name": <id>,
+  "kind": "typename",
+  "name": <id>,
 }
 ```
 where `<id>` is a JSON string representing a previously defined type name.
