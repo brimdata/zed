@@ -449,6 +449,9 @@ func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zng.Type, error
 func (m *MarshalZNGContext) lookupType(typ reflect.Type) (zng.Type, error) {
 	switch typ.Kind() {
 	case reflect.Array, reflect.Slice:
+		if typ.Elem().Kind() == reflect.Uint8 {
+			return zng.TypeBytes, nil
+		}
 		typ, err := m.lookupType(typ.Elem())
 		if err != nil {
 			return nil, err

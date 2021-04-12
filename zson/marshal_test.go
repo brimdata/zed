@@ -104,6 +104,12 @@ type IDRecord struct {
 	B ID
 }
 
+type IDSlice []byte
+
+type SliceRecord struct {
+	S []IDSlice
+}
+
 func recToZSON(t *testing.T, rec *zng.Record) string {
 	var b strings.Builder
 	w := zsonio.NewWriter(zio.NopCloser(&b), zsonio.WriterOpts{})
@@ -152,4 +158,27 @@ func TestBytes(t *testing.T) {
 	err = zson.UnmarshalZNGRecord(rec, &id2)
 	require.NoError(t, err)
 	assert.Equal(t, id, id2)
+
+	b2 := BytesRecord{B: nil}
+	m = zson.NewZNGMarshaler()
+	rec, err = m.MarshalRecord(b2)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+
+	exp = `
+{B:null (bytes)}
+`
+	assert.Equal(t, trim(exp), recToZSON(t, rec))
+
+	s := SliceRecord{S: nil}
+	m = zson.NewZNGMarshaler()
+	rec, err = m.MarshalRecord(s)
+	require.NoError(t, err)
+	require.NotNil(t, rec)
+
+	exp = `
+	{S:null (bytes)}
+	`
+	assert.Equal(t, trim(exp), recToZSON(t, rec))
+
 }
