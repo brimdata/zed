@@ -157,15 +157,14 @@ func (m *MarshalZNGContext) MarshalRecord(v interface{}) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	recType, ok := typ.(*zng.TypeRecord)
-	if !ok {
+	if !zng.IsRecordType(typ) {
 		return nil, errors.New("not a record")
 	}
 	body, err := m.Builder.Bytes().ContainerBody()
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(recType, body), nil
+	return zng.NewRecord(typ, body), nil
 }
 
 func (m *MarshalZNGContext) MarshalCustom(names []string, fields []interface{}) (*zng.Record, error) {
@@ -320,10 +319,16 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zng.Type, error) {
 	}
 	switch v.Kind() {
 	case reflect.Array:
+		if v.Type().Elem().Kind() == reflect.Uint8 {
+			return m.encodeArrayBytes(v)
+		}
 		return m.encodeArray(v)
 	case reflect.Slice:
 		if v.IsNil() {
 			return m.encodeNil(v.Type())
+		}
+		if v.Type().Elem().Kind() == reflect.Uint8 {
+			return m.encodeSliceBytes(v)
 		}
 		return m.encodeArray(v)
 	case reflect.Struct:
@@ -395,6 +400,22 @@ func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zng.Type, error) {
 	}
 	m.Builder.EndContainer()
 	return m.Context.LookupTypeRecord(columns)
+}
+
+func (m *MarshalZNGContext) encodeSliceBytes(sliceVal reflect.Value) (zng.Type, error) {
+	m.Builder.AppendPrimitive(sliceVal.Bytes())
+	return zng.TypeBytes, nil
+}
+
+func (m *MarshalZNGContext) encodeArrayBytes(arrayVal reflect.Value) (zng.Type, error) {
+	n := arrayVal.Len()
+	bytes := make([]byte, 0, n)
+	for k := 0; k < n; k++ {
+		v := arrayVal.Index(k)
+		bytes = append(bytes, v.Interface().(uint8))
+	}
+	m.Builder.AppendPrimitive(bytes)
+	return zng.TypeBytes, nil
 }
 
 func isIP(typ reflect.Type) bool {
@@ -730,6 +751,16 @@ func (u *UnmarshalZNGContext) decodeRecord(zv zng.Value, sval reflect.Value) err
 }
 
 func (u *UnmarshalZNGContext) decodeArray(zv zng.Value, arrVal reflect.Value) error {
+	typ := zng.AliasOf(zv.Type)
+	if typ == zng.TypeBytes && arrVal.Type().Elem().Kind() == reflect.Uint8 {
+		if zv.Bytes == nil {
+			return nil
+		}
+		if arrVal.Kind() == reflect.Array {
+			return u.decodeArrayBytes(zv, arrVal)
+		}
+		return u.decodeSliceBytes(zv, arrVal)
+	}
 	arrType, ok := zng.AliasOf(zv.Type).(*zng.TypeArray)
 	if !ok {
 		return errors.New("not an array")
@@ -764,6 +795,23 @@ func (u *UnmarshalZNGContext) decodeArray(zv zng.Value, arrVal reflect.Value) er
 		arrVal.Set(reflect.MakeSlice(arrVal.Type(), 0, 0))
 	case i < arrVal.Len():
 		arrVal.SetLen(i)
+	}
+	return nil
+}
+
+func (u *UnmarshalZNGContext) decodeSliceBytes(zv zng.Value, sliceVal reflect.Value) error {
+	sliceVal.Set(reflect.ValueOf([]uint8(zv.Bytes)))
+	return nil
+}
+
+func (u *UnmarshalZNGContext) decodeArrayBytes(zv zng.Value, arrayVal reflect.Value) error {
+	n := len(zv.Bytes)
+	if n != arrayVal.Len() {
+		return errors.New("ZNG bytes value length differs from Go array")
+	}
+	for k := 0; k < n; k++ {
+		b := uint8(zv.Bytes[k])
+		arrayVal.Index(k).Set(reflect.ValueOf(b))
 	}
 	return nil
 }
