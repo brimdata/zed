@@ -177,7 +177,7 @@ func TestBytes(t *testing.T) {
 	require.NotNil(t, rec)
 
 	exp = `
-	{S:null (bytes)}
+{S:null (0=([bytes]))}
 	`
 	assert.Equal(t, trim(exp), recToZSON(t, rec))
 
