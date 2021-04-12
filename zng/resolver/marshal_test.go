@@ -309,7 +309,7 @@ func TestMarshalArray(t *testing.T) {
 	require.NotNil(t, rec)
 
 	exp := `
-#0:record[A1:array[int8],A2:array[string],A3:array[array[uint8]]]
+#0:record[A1:array[int8],A2:array[string],A3:array[bytes]]
 0:[[1;2;][foo;bar;]-;]
 `
 	assert.Equal(t, trim(exp), rectzng(t, rec))
