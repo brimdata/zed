@@ -1,7 +1,6 @@
 package merge_test
 
 import (
-	"bytes"
 	"context"
 	"strconv"
 	"strings"
@@ -13,7 +12,7 @@ import (
 	"github.com/brimdata/zed/proc/merge"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,29 +20,27 @@ import (
 
 var omTestInputs = []string{
 	`
-#0:record[v:int32,ts:time]
-0:[10;1;]
-0:[20;2;]
-0:[30;3;]`,
+{v:10 (int32),ts:1970-01-01T00:00:01Z} (=0)
+{v:20,ts:1970-01-01T00:00:02Z} (0)
+{v:30,ts:1970-01-01T00:00:03Z} (0)
+`,
 	`
-#0:record[v:int32,ts:time]
-0:[15;4;]
-0:[25;5;]
-0:[35;6;]`,
+{v:15 (int32),ts:1970-01-01T00:00:04Z} (=0)
+{v:25,ts:1970-01-01T00:00:05Z} (0)
+{v:35,ts:1970-01-01T00:00:06Z} (0)
+`,
 }
 
 var omTestInputRev = []string{
 	`
-#0:record[v:int32,ts:time]
-0:[30;3;]
-0:[20;2;]
-0:[10;1;]
+{v:30 (int32),ts:1970-01-01T00:00:03Z} (=0)
+{v:20,ts:1970-01-01T00:00:02Z} (0)
+{v:10,ts:1970-01-01T00:00:01Z} (0)
 `,
 	`
-#0:record[v:int32,ts:time]
-0:[35;6;]
-0:[25;5;]
-0:[15;4;]
+{v:35 (int32),ts:1970-01-01T00:00:06Z} (=0)
+{v:25,ts:1970-01-01T00:00:05Z} (0)
+{v:15,ts:1970-01-01T00:00:04Z} (0)
 `,
 }
 
@@ -59,27 +56,26 @@ func TestParallelOrder(t *testing.T) {
 			reversed: false,
 			inputs:   omTestInputs,
 			exp: `
-#0:record[v:int32,ts:time]
-0:[10;1;]
-0:[20;2;]
-0:[30;3;]
-0:[15;4;]
-0:[25;5;]
-0:[35;6;]
+{v:10 (int32),ts:1970-01-01T00:00:01Z} (=0)
+{v:20,ts:1970-01-01T00:00:02Z} (0)
+{v:30,ts:1970-01-01T00:00:03Z} (0)
+{v:15,ts:1970-01-01T00:00:04Z} (0)
+{v:25,ts:1970-01-01T00:00:05Z} (0)
+{v:35,ts:1970-01-01T00:00:06Z} (0)
 `,
 		},
 		{
+
 			field:    "v",
 			reversed: false,
 			inputs:   omTestInputs,
 			exp: `
-#0:record[v:int32,ts:time]
-0:[10;1;]
-0:[15;4;]
-0:[20;2;]
-0:[25;5;]
-0:[30;3;]
-0:[35;6;]
+{v:10 (int32),ts:1970-01-01T00:00:01Z} (=0)
+{v:15,ts:1970-01-01T00:00:04Z} (0)
+{v:20,ts:1970-01-01T00:00:02Z} (0)
+{v:25,ts:1970-01-01T00:00:05Z} (0)
+{v:30,ts:1970-01-01T00:00:03Z} (0)
+{v:35,ts:1970-01-01T00:00:06Z} (0)
 `,
 		},
 		{
@@ -87,13 +83,12 @@ func TestParallelOrder(t *testing.T) {
 			reversed: true,
 			inputs:   omTestInputRev,
 			exp: `
-#0:record[v:int32,ts:time]
-0:[35;6;]
-0:[25;5;]
-0:[15;4;]
-0:[30;3;]
-0:[20;2;]
-0:[10;1;]
+{v:35 (int32),ts:1970-01-01T00:00:06Z} (=0)
+{v:25,ts:1970-01-01T00:00:05Z} (0)
+{v:15,ts:1970-01-01T00:00:04Z} (0)
+{v:30,ts:1970-01-01T00:00:03Z} (0)
+{v:20,ts:1970-01-01T00:00:02Z} (0)
+{v:10,ts:1970-01-01T00:00:01Z} (0)
 `,
 		},
 	}
@@ -103,15 +98,15 @@ func TestParallelOrder(t *testing.T) {
 			zctx := zson.NewContext()
 			pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 			var parents []proc.Interface
-			for _, s := range c.inputs {
-				r := tzngio.NewReader(bytes.NewReader([]byte(s)), zctx)
+			for _, input := range c.inputs {
+				r := zson.NewReader(strings.NewReader(input), zctx)
 				parents = append(parents, proc.NopDone(zbuf.NewPuller(r, 10)))
 			}
 			cmp := zbuf.NewCompareFn(field.New(c.field), c.reversed)
 			om := merge.New(pctx.Context, parents, cmp)
 
 			var sb strings.Builder
-			err := zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), om)
+			err := zbuf.CopyPuller(zsonio.NewWriter(zio.NopCloser(&sb), zsonio.WriterOpts{}), om)
 			require.NoError(t, err)
 			assert.Equal(t, test.Trim(c.exp), sb.String())
 		})

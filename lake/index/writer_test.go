@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -33,17 +32,13 @@ func TestWriterWriteAfterClose(t *testing.T) {
 }
 
 func TestWriterError(t *testing.T) {
-	const r1 = `
-#0:record[ts:time,id:string]
-0:[1;id1;]`
-	const r2 = `
-#0:record[ts:time,id:int64]
-0:[2;2;]`
+	const r1 = `{ts:1970-01-01T00:00:01Z,id:"id1"}`
+	const r2 = "{ts:1970-01-01T00:00:02Z,id:2}"
 	w := testWriter(t, NewFieldRule("id"))
 	zctx := zson.NewContext()
-	arr1, err := zbuf.ReadAll(tzngio.NewReader(strings.NewReader(r1), zctx))
+	arr1, err := zbuf.ReadAll(zson.NewReader(strings.NewReader(r1), zctx))
 	require.NoError(t, err)
-	arr2, err := zbuf.ReadAll(tzngio.NewReader(strings.NewReader(r2), zctx))
+	arr2, err := zbuf.ReadAll(zson.NewReader(strings.NewReader(r2), zctx))
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(w, arr1.NewReader()))
 	require.NoError(t, zbuf.Copy(w, arr2.NewReader()))

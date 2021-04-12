@@ -446,13 +446,10 @@ func TestPostZsonLogs(t *testing.T) {
 	}, info)
 }
 
-// Skipped trying to convert this one to ZSON for now.
-// See https://github.com/brimdata/zed/issues/2057#issuecomment-803187964
 func TestPostZngLogWarning(t *testing.T) {
 	const src1 = `undetectableformat`
 	const src2 = `
-#0:record[_path:string,ts:time,uid:bstring]
-0:[conn;1;CBrzd94qfowOqJwCHa;]
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
 detectablebutbadline`
 
 	_, conn := newCore(t)
@@ -465,7 +462,7 @@ detectablebutbadline`
 	)
 	require.NoError(t, err)
 	assert.Regexp(t, ": format detection error.*", res.Warnings[0])
-	assert.Regexp(t, ": line 4: bad format$", res.Warnings[1])
+	assert.Exactly(t, `data2: identifier "detectablebutbadline" must be enum and requires decorator`, res.Warnings[1])
 }
 
 func TestPostNDJSONLogs(t *testing.T) {

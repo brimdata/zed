@@ -10,24 +10,21 @@ import (
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/require"
 )
 
-const zngHeader = "#0:record[ts:time,value:int32]"
-
-var zngRecords = []string{
-	"0:[1586886160;0;]",
-	"0:[1586886161;1;]",
-	"0:[1586886162;2;]",
-	"0:[1586886163;3;]",
-	"0:[1586886164;4;]",
-	"0:[1586886165;5;]",
-	"0:[1586886166;6;]",
-	"0:[1586886167;7;]",
-	"0:[1586886168;8;]",
-	"0:[1586886169;9;]",
+var records = []string{
+	"{ts:2020-04-14T17:42:40Z,value:0}",
+	"{ts:2020-04-14T17:42:41Z,value:1}",
+	"{ts:2020-04-14T17:42:42Z,value:2}",
+	"{ts:2020-04-14T17:42:43Z,value:3}",
+	"{ts:2020-04-14T17:42:44Z,value:4}",
+	"{ts:2020-04-14T17:42:45Z,value:5}",
+	"{ts:2020-04-14T17:42:46Z,value:6}",
+	"{ts:2020-04-14T17:42:47Z,value:7}",
+	"{ts:2020-04-14T17:42:48Z,value:8}",
+	"{ts:2020-04-14T17:42:49Z,value:9}",
 }
 
 // Parameters used for testing.  Note that in the zng data above,
@@ -78,9 +75,9 @@ func TestZngIndex(t *testing.T) {
 	require.NoError(t, err)
 	span := nano.NewSpanTs(start, end)
 
-	dotest := func(zngData, fname string, expected []int) {
+	dotest := func(input, fname string, expected []int) {
 		// create a test zng file
-		reader := tzngio.NewReader(strings.NewReader(zngData), zson.NewContext())
+		reader := zson.NewReader(strings.NewReader(input), zson.NewContext())
 		fp, err := os.Create(fname)
 		require.NoError(t, err)
 		defer func() {
@@ -134,18 +131,18 @@ func TestZngIndex(t *testing.T) {
 
 	// Test once with ascending timestamps
 	t.Run("IndexAscending", func(t *testing.T) {
-		fname := filepath.Join(dir, "ascend.zng")
-		zngsrc := zngHeader + "\n" + strings.Join(zngRecords, "\n")
-		dotest(zngsrc, fname, []int{3, 4, 5, 6})
+		fname := filepath.Join(dir, "ascend")
+		input := strings.Join(records, "\n")
+		dotest(input, fname, []int{3, 4, 5, 6})
 	})
 
 	// And test again with descending timestamps
 	t.Run("IndexDescending", func(t *testing.T) {
-		fname := filepath.Join(dir, "descend.zng")
-		zngsrc := zngHeader + "\n"
-		for i := len(zngRecords) - 1; i >= 0; i-- {
-			zngsrc += zngRecords[i] + "\n"
+		fname := filepath.Join(dir, "descend")
+		var buf strings.Builder
+		for i := len(records) - 1; i >= 0; i-- {
+			buf.WriteString(records[i])
 		}
-		dotest(zngsrc, fname, []int{6, 5, 4, 3})
+		dotest(buf.String(), fname, []int{6, 5, 4, 3})
 	})
 }

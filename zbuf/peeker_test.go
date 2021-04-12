@@ -6,26 +6,19 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zson"
 )
 
-func newTextReader(logs string) *tzngio.Reader {
-	logs = strings.TrimSpace(logs) + "\n"
-	return tzngio.NewReader(strings.NewReader(logs), zson.NewContext())
-}
-
-const input = `
-#0:record[key:string,value:string]
-0:[key1;value1;]
-0:[key2;value2;]
-0:[key3;value3;]
-0:[key4;value4;]
-0:[key5;value5;]
-0:[key6;value6;]`
-
 func TestPeeker(t *testing.T) {
-	stream := newTextReader(input)
+	const input = `
+{key:"key1",value:"value1"}
+{key:"key2",value:"value2"}
+{key:"key3",value:"value3"}
+{key:"key4",value:"value4"}
+{key:"key5",value:"value5"}
+{key:"key6",value:"value6"}
+`
+	stream := zson.NewReader(strings.NewReader(input), zson.NewContext())
 	peeker := zbuf.NewPeeker(stream)
 	rec1, err := peeker.Peek()
 	if err != nil {

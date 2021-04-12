@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/lake/chunk"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
@@ -25,9 +24,9 @@ func kid(s string) ksuid.KSUID {
 	return k
 }
 
-func importTzng(t *testing.T, lk *Lake, s string) {
+func importZSON(t *testing.T, lk *Lake, s string) {
 	zctx := zson.NewContext()
-	reader := tzngio.NewReader(strings.NewReader(s), zctx)
+	reader := zson.NewReader(strings.NewReader(s), zctx)
 	err := Import(context.Background(), lk, zctx, reader)
 	require.NoError(t, err)
 }
@@ -197,25 +196,22 @@ func TestOverlapWalking(t *testing.T) {
 	lk, err := CreateOrOpenLake(datapath, &CreateOptions{}, nil)
 	require.NoError(t, err)
 
-	data1 := `
-#0:record[ts:time,v:int64]
-0:[0;0;]
-0:[.000000005;5;]
+	const data1 = `
+{ts:1970-01-01T00:00:00Z,v:0}
+{ts:1970-01-01T00:00:00.000000005Z,v:5}
 `
-	data2 := `
-#0:record[ts:time,v:int64]
-0:[.000000010;10;]
-0:[.000000020;20;]
+	const data2 = `
+{ts:1970-01-01T00:00:00.00000001Z,v:10}
+{ts:1970-01-01T00:00:00.00000002Z,v:20}
 `
-	data3 := `
-#0:record[ts:time,v:int64]
-0:[.000000015;15;]
-0:[.000000025;25;]
+	const data3 = `
+{ts:1970-01-01T00:00:00.000000015Z,v:15}
+{ts:1970-01-01T00:00:00.000000025Z,v:25}
 `
 	dataChunkSpans := []nano.Span{{Ts: 15, Dur: 11}, {Ts: 10, Dur: 11}, {Ts: 0, Dur: 6}}
-	importTzng(t, lk, data2)
-	importTzng(t, lk, data1)
-	importTzng(t, lk, data3)
+	importZSON(t, lk, data2)
+	importZSON(t, lk, data1)
+	importZSON(t, lk, data3)
 
 	{
 		var chunks []chunk.Chunk

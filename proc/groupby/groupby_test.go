@@ -14,12 +14,11 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/proc/groupby"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
-	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -28,155 +27,126 @@ import (
 
 // Data sets for tests:
 const in = `
-#0:record[key1:string,key2:string,n:int32]
-0:[a;x;1;]
-0:[a;y;2;]
-0:[b;z;1;]
+{key1:"a",key2:"x",n:1 (int32)} (=0)
+{key1:"a",key2:"y",n:2} (0)
+{key1:"b",key2:"z",n:1} (0)
 `
 
 const groupSingleOut = `
-#0:record[key1:string,count:uint64]
-0:[a;2;]
-0:[b;1;]
+{key1:"a",count:2 (uint64)} (=0)
+{key1:"b",count:1} (0)
 `
 
 const groupMultiOut = `
-#0:record[key1:string,key2:string,count:uint64]
-0:[a;x;1;]
-0:[a;y;1;]
-0:[b;z;1;]
+{key1:"a",key2:"x",count:1 (uint64)} (=0)
+{key1:"a",key2:"y",count:1} (0)
+{key1:"b",key2:"z",count:1} (0)
 `
 
 const unsetKeyIn = `
-#1:record[key1:string,key2:string,n:int32]
-1:[-;-;3;]
-1:[-;-;4;]
+{key1:null (string),key2:null (string),n:3 (int32)} (=0)
+{key1:null,key2:null,n:4} (0)
 `
 
 const groupSingleOut_unsetOut = `
-#0:record[key1:string,count:uint64]
-0:[a;2;]
-0:[b;1;]
-0:[-;2;]
+{key1:"a",count:2 (uint64)} (=0)
+{key1:"b",count:1} (0)
+{key1:null,count:2} (0)
 `
 
 const missingField = `
-#1:record[key3:string,n:int32]
-1:[a;1;]
-1:[b;2;]
+{key3:"a",n:1 (int32)} (=0)
+{key3:"b",n:2} (0)
 `
 
 const differentTypeIn = `
-#1:record[key1:ip,n:int32]
-1:[10.0.0.1;1;]
-1:[10.0.0.2;1;]
-1:[10.0.0.1;1;]
+{key1:10.0.0.1,n:1 (int32)} (=0)
+{key1:10.0.0.2,n:1} (0)
+{key1:10.0.0.1,n:1} (0)
 `
 
 const differentTypeOut = `
-#0:record[key1:ip,count:uint64]
-0:[10.0.0.1;2;]
-0:[10.0.0.2;1;]
-#1:record[key1:string,count:uint64]
-1:[a;2;]
-1:[b;1;]
+{key1:10.0.0.1,count:2 (uint64)} (=0)
+{key1:10.0.0.2,count:1} (0)
+{key1:"a",count:2 (uint64)} (=1)
+{key1:"b",count:1} (1)
 `
 
 const reducersOut = `
-#0:record[key1:string,any:int32,sum:int64,avg:float64,min:int64,max:int64]
-0:[a;1;3;1.5;1;2;]
-0:[b;1;1;1;1;1;]
+{key1:"a",any:1 (int32),sum:3,avg:1.5,min:1,max:2} (=0)
+{key1:"b",any:1,sum:1,avg:1.,min:1,max:1} (0)
 `
 
 const arrayKeyIn = `
-#0:record[arr:array[int32],val:int32]
-0:[-;2;]
-0:[[1;2;]2;]
-0:[[1;2;]3;]
+{arr:null (0=([int32])),val:2 (int32)} (=1)
+{arr:[1,2],val:2} (1)
+{arr:[1,2],val:3} (1)
 `
 
 const arrayKeyOut = `
-#0:record[arr:array[int32],count:uint64]
-0:[-;1;]
-0:[[1;2;]2;]
+{arr:null (0=([int32])),count:1 (uint64)} (=1)
+{arr:[1,2],count:2} (1)
 `
 
 const nestedKeyIn = `
-#0:record[rec:record[i:int32,s:string],val:int64]
-0:[[1;bleah;]1;]
-0:[[1;bleah;]2;]
-0:[[2;bleah;]3;]
+{rec:{i:1 (int32),s:"bleah"} (=0),val:1} (=1)
+{rec:{i:1,s:"bleah"},val:2} (1)
+{rec:{i:2,s:"bleah"},val:3} (1)
 `
 
 const nestedKeyOut = `
-#0:record[rec:record[i:int32],count:uint64]
-0:[[1;]2;]
-0:[[2;]1;]
+{rec:{i:1 (int32)} (=0),count:2 (uint64)} (=1)
+{rec:{i:2},count:1} (1)
 `
 const nestedKeyAssignedOut = `
-#0:record[newkey:int32,count:uint64]
-0:[1;2;]
-0:[2;1;]
+{newkey:1 (int32),count:2 (uint64)} (=0)
+{newkey:2,count:1} (0)
 `
 
 const unsetIn = `
-#0:record[key:string,val:int64]
-0:[key1;5;]
-0:[key2;-;]
+{key:"key1",val:5}
+{key:"key2",val:null (int64)}
 `
 
 const unsetOut = `
-#0:record[key:string,sum:int64]
-0:[key1;5;]
-0:[key2;-;]
+{key:"key1",sum:5}
+{key:"key2",sum:null (int64)}
 `
 
 const notPresentIn = `
-#0:record[key:string]
-0:[key1;]
+{key:"key1"}
 `
 
 const notPresentOut = `
-#0:record[key:string,max:null]
-0:[key1;-;]
+{key:"key1",max:null (null)} (=0)
 `
 
 const mixedIn = `
-#0:record[key:string,f:int32]
-0:[k;5;]
-#1:record[key:string,f:string]
-1:[k;bleah;]
+{key:"k",f:5 (int32)} (=0)
+{key:"k",f:"bleah"}
 `
 
 const mixedOut = `
-#0:record[key:string,first:int32,last:string]
-0:[k;5;bleah;]
+{key:"k",first:5 (int32),last:"bleah"} (=0)
 `
 
 const aliasIn = `
-#ipaddr=ip
-#0:record[host:ipaddr]
-0:[127.0.0.1;]
-#1:record[host:ip]
-1:[127.0.0.2;]
+{host:127.0.0.1 (=ipaddr)} (=0)
+{host:127.0.0.2}
 `
 
 const aliasOut = `
-#ipaddr=ip
-#0:record[host:ipaddr,count:uint64]
-0:[127.0.0.1;1;]
-#1:record[host:ip,count:uint64]
-1:[127.0.0.2;1;]
+{host:127.0.0.1 (=ipaddr),count:1 (uint64)} (=0)
+{host:127.0.0.2,count:1 (uint64)} (=1)
 `
 
 const computedKeyIn = `
-#0:record[s:string,i:uint64,j:uint64]
-0:[foo;2;2;]
-0:[FOO;2;2;]
+{s:"foo",i:2 (uint64),j:2 (uint64)} (=0)
+{s:"FOO",i:2,j:2} (0)
 `
+
 const computedKeyOut = `
-#0:record[s:string,ij:uint64,count:uint64]
-0:[foo;4;2;]
+{s:"foo",ij:4 (uint64),count:2 (uint64)} (=0)
 `
 
 //XXX this should go in a shared package
@@ -202,7 +172,7 @@ func New(name, input, output, cmd string) test.Internal {
 		Name:         name,
 		Query:        "* | " + cmd,
 		Input:        input,
-		OutputFormat: "tzng",
+		OutputFormat: "zson",
 		Expected:     test.Trim(output),
 	}
 }
@@ -360,10 +330,10 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 	const recsPerTs = 9
 	const uniqueIpsPerTs = 3
 
-	data := []string{"#0:record[ts:time,ip:ip]"}
+	var data []string
 	for i := 0; i < totRecs; i++ {
 		t := i / recsPerTs
-		data = append(data, fmt.Sprintf("0:[%d;1.1.1.%d;]", t, i%uniqueIpsPerTs))
+		data = append(data, fmt.Sprintf("{ts:%s,ip:1.1.1.%d}", nano.Unix(int64(t), 0), i%uniqueIpsPerTs))
 	}
 
 	runOne := func(inputSortKey string) []string {
@@ -371,10 +341,10 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		assert.NoError(t, err)
 
 		zctx := zson.NewContext()
-		zr := tzngio.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
+		zr := zson.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
 		cr := &countReader{r: zr}
 		var outbuf bytes.Buffer
-		zw, _ := detector.LookupWriter(&nopCloser{&outbuf}, zctx, zio.WriterOpts{})
+		zw := zsonio.NewWriter(&nopCloser{&outbuf}, zsonio.WriterOpts{})
 		d := &testGroupByDriver{
 			writer: zw,
 			cb: func(n int) {
