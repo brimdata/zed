@@ -6,10 +6,10 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/cli/outputflags"
 	apicmd "github.com/brimdata/zed/cmd/zed/api"
-	"github.com/brimdata/zed/emitter"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio/emitter"
 )
 
 var Find = &charm.Spec{

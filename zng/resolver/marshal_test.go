@@ -268,7 +268,7 @@ func TestMarshalArray(t *testing.T) {
 	rec, err := resolver.NewMarshaler().MarshalRecord(r1)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-	const expected = `{A1:[1 (int8),2 (int8)] (=0),A2:["foo","bar"],A3:null (1=([2=([uint8])]))} (=3)`
+	const expected = `{A1:[1 (int8),2 (int8)] (=0),A2:["foo","bar"],A3:null (1=([bytes]))} (=2)`
 	assert.Equal(t, expected, toZSON(t, rec))
 
 	var r2 rectype
