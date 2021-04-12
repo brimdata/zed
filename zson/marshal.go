@@ -762,7 +762,9 @@ func (u *UnmarshalZNGContext) decodeArray(zv zng.Value, arrVal reflect.Value) er
 		if arrVal.Kind() == reflect.Array {
 			return u.decodeArrayBytes(zv, arrVal)
 		}
-		return u.decodeSliceBytes(zv, arrVal)
+		// arrVal is a slice here.
+		arrVal.SetBytes(zv.Bytes)
+		return nil
 	}
 	arrType, ok := zng.AliasOf(zv.Type).(*zng.TypeArray)
 	if !ok {
@@ -802,18 +804,11 @@ func (u *UnmarshalZNGContext) decodeArray(zv zng.Value, arrVal reflect.Value) er
 	return nil
 }
 
-func (u *UnmarshalZNGContext) decodeSliceBytes(zv zng.Value, sliceVal reflect.Value) error {
-	sliceVal.Set(reflect.ValueOf([]uint8(zv.Bytes)))
-	return nil
-}
-
 func (u *UnmarshalZNGContext) decodeArrayBytes(zv zng.Value, arrayVal reflect.Value) error {
-	n := len(zv.Bytes)
-	if n != arrayVal.Len() {
+	if len(zv.Bytes) != arrayVal.Len() {
 		return errors.New("ZNG bytes value length differs from Go array")
 	}
-	for k := 0; k < n; k++ {
-		b := uint8(zv.Bytes[k])
+	for k, b := range zv.Bytes {
 		arrayVal.Index(k).Set(reflect.ValueOf(b))
 	}
 	return nil
