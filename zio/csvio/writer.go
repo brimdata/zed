@@ -6,15 +6,13 @@ import (
 	"io"
 	"time"
 
-	"github.com/brimdata/zed/proc/fuse"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/flattener"
 	"github.com/brimdata/zed/zson"
 )
 
-var ErrNotDataFrame = errors.New("csv output requires uniform records but different types encountered")
+var ErrNotDataFrame = errors.New("CSV output requires uniform records but multiple types encountered (consider 'fuse')")
 
 type Writer struct {
 	writer    io.WriteCloser
@@ -25,25 +23,20 @@ type Writer struct {
 }
 
 type WriterOpts struct {
-	Fuse bool
 	UTF8 bool
 }
 
-func NewWriter(w io.WriteCloser, zctx *zson.Context, opts WriterOpts) zbuf.WriteCloser {
+func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	format := tzngio.OutFormatZeekAscii
 	if opts.UTF8 {
 		format = tzngio.OutFormatZeek
 	}
-	zw := &Writer{
+	return &Writer{
 		writer:    w,
 		encoder:   csv.NewWriter(w),
 		flattener: flattener.New(zson.NewContext()),
 		format:    format,
 	}
-	if opts.Fuse {
-		return fuse.WriteCloser(zw, zctx)
-	}
-	return zw
 }
 
 func (w *Writer) Close() error {

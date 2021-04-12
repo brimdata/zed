@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
-	"github.com/brimdata/zed/zson"
 )
 
 func NewFile(ctx context.Context, path string, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
@@ -57,7 +56,7 @@ func NewFileWithSource(ctx context.Context, path iosrc.URI, opts zio.WriterOpts,
 	// On close, zbuf.WriteCloser.Close() will close and flush the
 	// downstream writer, which will flush the bufwriter here and,
 	// in turn, close its underlying writer.
-	w, err := detector.LookupWriter(wc, zson.NewContext(), opts)
+	w, err := detector.LookupWriter(wc, opts)
 	if err != nil {
 		return nil, err
 	}
