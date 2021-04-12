@@ -327,6 +327,10 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zng.Type, error) {
 		if v.IsNil() {
 			return m.encodeNil(v.Type())
 		}
+		if isIP(v.Type()) {
+			m.Builder.AppendPrimitive(zng.EncodeIP(v.Bytes()))
+			return zng.TypeIP, nil
+		}
 		if v.Type().Elem().Kind() == reflect.Uint8 {
 			return m.encodeSliceBytes(v)
 		}
@@ -418,15 +422,7 @@ func (m *MarshalZNGContext) encodeArrayBytes(arrayVal reflect.Value) (zng.Type, 
 	return zng.TypeBytes, nil
 }
 
-func isIP(typ reflect.Type) bool {
-	return typ.Name() == "IP" && typ.PkgPath() == "net"
-}
-
 func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zng.Type, error) {
-	if isIP(arrayVal.Type()) {
-		m.Builder.AppendPrimitive(zng.EncodeIP(arrayVal.Bytes()))
-		return zng.TypeIP, nil
-	}
 	len := arrayVal.Len()
 	m.Builder.BeginContainer()
 	var innerType zng.Type
@@ -704,6 +700,10 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 	default:
 		return fmt.Errorf("unsupported type: %v", v.Kind())
 	}
+}
+
+func isIP(typ reflect.Type) bool {
+	return typ.Name() == "IP" && typ.PkgPath() == "net"
 }
 
 func (u *UnmarshalZNGContext) decodeIP(zv zng.Value, v reflect.Value) error {
