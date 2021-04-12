@@ -19,9 +19,7 @@ class Client():
         return r.json()
 
     def search(self, space_name, zql):
-        raw = self.search_raw(space_name, zql)
-        zjson = take_zjson(raw)
-        return decode_zjson(zjson)
+        return decode_raw(self.search_raw(space_name, zql))
 
     def search_raw(self, space_name, zql):
         body = {
@@ -42,63 +40,101 @@ class Client():
         return {s['name']: s for s in r.json()}
 
 
-def take_zjson(raw):
-    for obj in raw:
-        if obj['type'] == 'SearchRecords':
-            for zjson in obj['records']:
-                yield zjson
+def decode_raw(raw):
+    types = {}
+    for msg in raw:
+        if msg['type'] != 'SearchRecords':
+            continue
+        for rec in msg['records']:
+            if 'types' in rec:
+                for typ in rec['types']:
+                    _decode_type(types, typ)
+            yield _decode_value(types[rec['schema']], rec['values'])
 
 
-def decode_zjson(zjson):
-    aliases, schemas = {}, {}
-    for obj in zjson:
-        if 'aliases' in obj:
-            for a in obj['aliases']:
-                aliases[a['name']] = a['type']
-        if 'schema' in obj:
-            schemas[obj['id']] = obj['schema']
-        yield _to_native(aliases, schemas[obj['id']], obj['values'])
+def _decode_type(types, typ):
+    kind = typ['kind']
+    if kind == 'typedef':
+        t = _decode_type(types, typ['type'])
+        types[typ['name']] = t
+        return t
+    if kind == 'typename':
+        return types[typ['name']]
+    if kind == 'primitive':
+        return typ
+    if kind == 'record':
+        for f in typ['fields']:
+            f['type'] = _decode_type(types, f['type'])
+        return typ
+    if kind in ['array', 'set']:
+        typ['type'] = _decode_type(types, typ['type'])
+        return typ
+    if kind == 'enum':
+        raise 'unimplemented'
+    if kind == 'map':
+        typ['key_type'] = _decode_type(types, typ['key_type'])
+        typ['val_type'] = _decode_type(types, typ['val_type'])
+        return typ
+    if kind == 'union':
+        typ['types'] = [_decode_type(types, t) for t in typ['types']]
+        return typ
+    raise Exception(f'unknown type kind {kind}')
 
 
-def _to_native(aliases, schema, value):
+def _decode_value(typ, value):
     if value is None:
         return None
-    typ = schema['type']
-    typ = aliases.get(typ, typ)
-    if typ == 'record':
-        return {of['name']: _to_native(aliases, of, v)
-                for of, v in zip(schema['of'], value)}
-    if typ in ['array', 'set']:
-        of = schema['of']
-        if type(of) is str:
-            of = {'type': of}
-        return [_to_native(aliases, of, v) for v in value]
-    if typ in ['enum', 'union']:
+    kind = typ['kind']
+    if kind == 'primitive':
+        name = typ['name']
+        if name in ['uint8', 'uint16', 'uint32', 'uint64',
+                    'int8', 'int16', 'int32', 'int64']:
+            return int(value)
+        if name == 'duration':
+            return datetime.timedelta(seconds=float(value))
+        if name == 'time':
+            return datetime.datetime.utcfromtimestamp(float(value))
+        if name in ['float16', 'float32', 'float64']:
+            return float(value)
+        if name == 'decimal':
+            return decimal.Decimal(value)
+        if name == 'bool':
+            return value == 'T'
+        if name == 'bytes':
+            if value[0:2] != "0x":
+                raise Exception(f'malformed bytes value {value}')
+            return bytes.fromhex(value[2:])
+        if name in ['string', 'bstring']:
+            return value
+        if name == 'ip':
+            return ipaddress.ip_address(value)
+        if name == 'net':
+            return ipaddress.ip_network(value)
+        if name in ['type', 'error']:
+            return value
+        if name == 'null':
+            return None
+        raise Exception(f'unknown primitive name {name}')
+    if kind == 'record':
+        return {f['name']: _decode_value(f['type'], v)
+                for f, v in zip(typ['fields'], value)}
+    if kind == 'array':
+        return [_decode_value(typ['type'], v) for v in value]
+    if kind == 'enum':
         raise 'unimplemented'
-    if typ in ['uint8', 'uint16', 'uint32', 'uint64',
-               'int8', 'int16', 'int32', 'int64']:
-        return int(value)
-    if typ == 'duration':
-        return datetime.timedelta(seconds=float(value))
-    if typ == 'time':
-        return datetime.datetime.utcfromtimestamp(float(value))
-    if typ in ['float16', 'float32', 'float64']:
-        return float(value)
-    if typ == 'decimal':
-        return decimal.Decimal(value)
-    if typ == 'bool':
-        return value == 'T'
-    if typ in ['string', 'bstring']:
-        return str(value)
-    if typ == 'ip':
-        return ipaddress.ip_address(value)
-    if typ == 'net':
-        return ipaddress.ip_network(value)
-    if typ == ['type', 'error']:
-        return str(value)
-    if typ == 'null':
-        return None
-    raise Exception('type {} is unknown'.format(typ))
+    if kind == 'map':
+        d = {}
+        while value:
+            val = _decode_value(typ['val_type'], value.pop())
+            key = _decode_value(typ['key_type'], value.pop())
+            d[key] = val
+        return d
+    if kind == 'set':
+        return {_decode_value(typ['type'], v) for v in value}
+    if kind == 'union':
+        type_index, val = value
+        return _decode_value(typ['types'][int(type_index)], val)
+    raise Exception(f'unknown type kind {kind}')
 
 
 if __name__ == '__main__':
