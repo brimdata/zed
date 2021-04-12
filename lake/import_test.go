@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -24,9 +23,7 @@ func TestImportStaleDuration(t *testing.T) {
 }
 
 func testImportStaleDuration(t *testing.T, stale time.Duration, expected uint64) {
-	const data = `
-#0:record[ts:time,offset:int64]
-0:[1587508850.06466032;202;]`
+	const data = "{ts:2020-04-21T22:40:50.06466032Z,offset:202}"
 
 	// create archive with a 1 ns ImportFlushTimeout
 	lk, err := CreateOrOpenLake(t.TempDir(), nil, nil)
@@ -37,7 +34,7 @@ func testImportStaleDuration(t *testing.T, stale time.Duration, expected uint64)
 	require.NoError(t, err)
 	defer w.Close()
 	w.SetStaleDuration(stale)
-	r := tzngio.NewReader(strings.NewReader(data), zson.NewContext())
+	r := zson.NewReader(strings.NewReader(data), zson.NewContext())
 	require.NoError(t, zbuf.Copy(w, r))
 
 	// flush stale writers and ensure data has been written to archive

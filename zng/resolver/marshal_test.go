@@ -10,8 +10,8 @@ import (
 
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
@@ -19,23 +19,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func trim(s string) string {
-	return strings.TrimSpace(s) + "\n"
-}
-
-func rectzng(t *testing.T, rec *zng.Record) string {
-	var b strings.Builder
-	w := tzngio.NewWriter(zio.NopCloser(&b))
-	err := w.Write(rec)
-	require.NoError(t, err)
-	return b.String()
-}
-
-func tzngToRec(t *testing.T, zctx *zson.Context, tzng string) *zng.Record {
-	r := tzngio.NewReader(strings.NewReader(tzng), zctx)
-	rec, err := r.Read()
-	require.NoError(t, err)
-	return rec
+func toZSON(t *testing.T, rec *zng.Record) string {
+	var buf strings.Builder
+	require.NoError(t, zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}).Write(rec))
+	return strings.TrimRight(buf.String(), "\n")
 }
 
 func boomerang(t *testing.T, in interface{}, out interface{}) {
@@ -72,12 +59,7 @@ func TestMarshal(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-
-	exp := `
-#0:record[Field1:string,Sub1:record[f2:string,Field3:int64],PField1:bool]
-0:[value1;[value2;-1;]-;]
-`
-	assert.Equal(t, trim(exp), rectzng(t, rec))
+	assert.Equal(t, `{Field1:"value1",Sub1:{f2:"value2",Field3:-1},PField1:null (bool)}`, toZSON(t, rec))
 }
 
 type Thing struct {
@@ -96,24 +78,14 @@ func TestMarshalSlice(t *testing.T) {
 	rec, err := m.MarshalRecord(r)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-
-	exp := `
-#0:record[Things:array[record[a:string,B:int64]]]
-0:[[[hello;123;][world;0;]]]
-`
-	assert.Equal(t, trim(exp), rectzng(t, rec))
+	assert.Equal(t, `{Things:[{a:"hello",B:123},{a:"world",B:0}]}`, toZSON(t, rec))
 
 	empty := []Thing{}
 	r2 := Things{empty}
 	rec2, err := m.MarshalRecord(r2)
 	require.NoError(t, err)
 	require.NotNil(t, rec2)
-
-	exp2 := `
-#0:record[Things:array[record[a:string,B:int64]]]
-0:[[]]
-`
-	assert.Equal(t, trim(exp2), rectzng(t, rec2))
+	assert.Equal(t, "{Things:[] (0=([1=({a:string,B:int64})]))}", toZSON(t, rec2))
 }
 
 func TestMarshalNilSlice(t *testing.T) {
@@ -162,11 +134,7 @@ func TestIPType(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 
-	exp := `
-#0:record[Addr:ip]
-0:[192.168.1.1;]
-`
-	assert.Equal(t, trim(exp), rectzng(t, rec))
+	assert.Equal(t, "{Addr:192.168.1.1}", toZSON(t, rec))
 
 	var tip TestIP
 	err = resolver.UnmarshalRecord(rec, &tip)
@@ -193,14 +161,12 @@ func TestUnmarshalRecord(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 
-	exp := `
-#0:record[top:record[T2f1:record[T3f1:int32,T3f2:float64],T2f2:string]]
-0:[[[1;1;]t2f2-string1;]]
-`
-	require.Equal(t, trim(exp), rectzng(t, rec))
+	const expected = `{top:{T2f1:{T3f1:1 (int32),T3f2:1.} (=0),T2f2:"t2f2-string1"} (=1)} (=2)`
+	require.Equal(t, expected, toZSON(t, rec))
 
 	zctx := zson.NewContext()
-	rec = tzngToRec(t, zctx, exp)
+	rec, err = zson.NewReader(strings.NewReader(expected), zctx).Read()
+	require.NoError(t, err)
 
 	var v2 T1
 	err = resolver.UnmarshalRecord(rec, &v2)
@@ -282,12 +248,7 @@ func TestMarshalInterface(t *testing.T) {
 	rec, err := resolver.NewMarshaler().MarshalRecord(r1)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-
-	exp := `
-#0:record[M1:string,M2:string]
-0:[marshal-m1;marshal-m2;]
-`
-	assert.Equal(t, trim(exp), rectzng(t, rec))
+	assert.Equal(t, `{M1:"marshal-m1",M2:"marshal-m2"}`, toZSON(t, rec))
 
 	var r2 rectype
 	err = resolver.UnmarshalRecord(rec, &r2)
@@ -307,12 +268,8 @@ func TestMarshalArray(t *testing.T) {
 	rec, err := resolver.NewMarshaler().MarshalRecord(r1)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-
-	exp := `
-#0:record[A1:array[int8],A2:array[string],A3:array[array[uint8]]]
-0:[[1;2;][foo;bar;]-;]
-`
-	assert.Equal(t, trim(exp), rectzng(t, rec))
+	const expected = `{A1:[1 (int8),2 (int8)] (=0),A2:["foo","bar"],A3:null (1=([bytes]))} (=2)`
+	assert.Equal(t, expected, toZSON(t, rec))
 
 	var r2 rectype
 	err = resolver.UnmarshalRecord(rec, &r2)
@@ -350,12 +307,8 @@ func TestIntsAndUints(t *testing.T) {
 	rec, err := resolver.NewMarshaler().MarshalRecord(r1)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-
-	exp := `
-#0:record[I:int64,I8:int8,I16:int16,I32:int32,I64:int64,U:uint64,UI8:uint8,UI16:uint16,UI32:uint32,UI64:uint64]
-0:[-9223372036854775808;-128;-32768;-2147483648;-9223372036854775808;18446744073709551615;255;65535;4294967295;18446744073709551615;]
-`
-	assert.Equal(t, trim(exp), rectzng(t, rec))
+	const expected = "{I:-9223372036854775808,I8:-128 (int8),I16:-32768 (int16),I32:-2147483648 (int32),I64:-9223372036854775808,U:18446744073709551615 (uint64),UI8:255 (uint8),UI16:65535 (uint16),UI32:4294967295 (uint32),UI64:18446744073709551615 (uint64)} (=0)"
+	assert.Equal(t, expected, toZSON(t, rec))
 
 	var r2 rectype
 	err = resolver.UnmarshalRecord(rec, &r2)
@@ -371,21 +324,15 @@ func TestCustomRecord(t *testing.T) {
 	m := resolver.NewMarshaler()
 	rec, err := m.MarshalCustom([]string{"foo", "bar"}, vals)
 	require.NoError(t, err)
-	exp := `
-#0:record[foo:record[a:string,B:int64],bar:int64]
-0:[[hello;123;]99;]`
-	assert.Equal(t, trim(exp), rectzng(t, rec))
+	assert.Equal(t, `{foo:{a:"hello",B:123},bar:99}`, toZSON(t, rec))
 
 	vals = []interface{}{
 		Thing{"hello", 123},
 		nil,
 	}
-	exp = `
-#0:record[foo:record[a:string,B:int64],bar:null]
-0:[[hello;123;]-;]`
 	rec, err = m.MarshalCustom([]string{"foo", "bar"}, vals)
 	require.NoError(t, err)
-	assert.Equal(t, trim(exp), rectzng(t, rec))
+	assert.Equal(t, `{foo:{a:"hello",B:123},bar:null (null)} (=0)`, toZSON(t, rec))
 }
 
 type ThingTwo struct {

@@ -14,7 +14,6 @@ import (
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -23,13 +22,13 @@ import (
 
 func TestSearch(t *testing.T) {
 	const data = `
-#0:record[key:string,value:string]
-0:[key1;value1;]
-0:[key2;value2;]
-0:[key3;value3;]
-0:[key4;value4;]
-0:[key5;value5;]
-0:[key6;value6;]`
+{key:"key1",value:"value1"}
+{key:"key2",value:"value2"}
+{key:"key3",value:"value3"}
+{key:"key4",value:"value4"}
+{key:"key5",value:"value5"}
+{key:"key6",value:"value6"}
+`
 	finder := buildAndOpen(t, reader(data))
 	keyRec, err := finder.ParseKeys("key2")
 	require.NoError(t, err)
@@ -74,17 +73,16 @@ func TestMicroIndex(t *testing.T) {
 
 func TestCompare(t *testing.T) {
 	const records = `
-#0:record[ts:int64,offset:int64]
-0:[20;10;]
-0:[18;9;]
-0:[16;8;]
-0:[14;7;]
-0:[12;6;]
-0:[10;5;]
-0:[8;4;]
-0:[6;3;]
-0:[4;2;]
-0:[2;1;]
+{ts:20,offset:10}
+{ts:18,offset:9}
+{ts:16,offset:8}
+{ts:14,offset:7}
+{ts:12,offset:6}
+{ts:10,offset:5}
+{ts:8,offset:4}
+{ts:6,offset:3}
+{ts:4,offset:2}
+{ts:2,offset:1}
 `
 	type testcase struct {
 		value         int64
@@ -166,15 +164,14 @@ func build(t *testing.T, r zbuf.Reader, opts ...index.Option) string {
 	return path
 }
 
-func reader(logs string) *tzngio.Reader {
-	return tzngio.NewReader(strings.NewReader(logs), zson.NewContext())
+func reader(logs string) zbuf.Reader {
+	return zson.NewReader(strings.NewReader(logs), zson.NewContext())
 }
 
-func newReader(size int) (*tzngio.Reader, error) {
+func newReader(size int) (zbuf.Reader, error) {
 	var lines []string
-	lines = append(lines, "#0:record[key:string,value:int32]")
 	for i := 0; i < size; i++ {
-		line := fmt.Sprintf("0:[port:port:%d;%d;]", i, i)
+		line := fmt.Sprintf(`{key:"port:port:%d",value:%d (int32)}`, i, i)
 		lines = append(lines, line)
 	}
 	return reader(strings.Join(lines, "\n")), nil

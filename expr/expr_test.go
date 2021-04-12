@@ -99,9 +99,7 @@ func znet(t *testing.T, s string) zng.Value {
 }
 
 func TestPrimitives(t *testing.T) {
-	record := `
-#0:record[x:int32,f:float64,s:string]
-0:[10;2.5;hello;]`
+	const record = `{x:10 (int32),f:2.5,s:"hello"} (=0)`
 
 	// Test simple literals
 	testSuccessful(t, "50", record, zint64(50))
@@ -115,9 +113,7 @@ func TestPrimitives(t *testing.T) {
 }
 
 func TestLogical(t *testing.T) {
-	record := `
-#0:record[t:bool,f:bool]
-0:[T;F;]`
+	const record = "{t:true,f:false}"
 
 	testSuccessful(t, "t AND t", record, zbool(true))
 	testSuccessful(t, "t AND f", record, zbool(false))
@@ -141,10 +137,13 @@ func TestCompareNumbers(t *testing.T) {
 	for _, typ := range numericTypes {
 		// Make a test point with this type in a field called x plus
 		// one field of each other integer type
-		record := fmt.Sprintf(`
-#0:record[x:%s,u8:uint8,i16:int16,u16:uint16,i32:int32,u32:uint32,i64:int64,u64:uint16]
-0:[1;0;0;0;0;0;0;0;]`, typ)
-
+		one := "1"
+		if typ == "float64" {
+			one = "1."
+		}
+		record := fmt.Sprintf(
+			"{x:%s (%s),u8:0 (uint8),i16:0 (int16),u16:0 (uint16),i32:0 (int32),u32:0 (uint32),i64:0,u64:0 (uint64)} (=0)",
+			one, typ)
 		// Test the 6 comparison operators against a constant
 		testSuccessful(t, "x = 1", record, zbool(true))
 		testSuccessful(t, "x = 0", record, zbool(false))
@@ -186,10 +185,8 @@ func TestCompareNumbers(t *testing.T) {
 		// For integer types, test this type against other
 		// number-ish types: port, time, duration
 		if typ != "float64" {
-			record := fmt.Sprintf(`
-#port=uint16
-#0:record[x:%s,p:port,t:time,d:duration]
-0:[1;80;1583794452;1000;]`, typ)
+			record := fmt.Sprintf(
+				"{x:%s (%s),p:80 (port=(uint16)),t:2020-03-09T22:54:12Z,d:16m40s} (=0)", one, typ)
 
 			// port
 			testSuccessful(t, "x = p", record, zbool(false))
@@ -235,9 +232,8 @@ func TestCompareNumbers(t *testing.T) {
 		}
 
 		// Test this type against non-numeric types
-		record = fmt.Sprintf(`
-#0:record[x:%s,s:string,bs:bstring,i:ip,n:net]
-0:[1;hello;world;10.1.1.1;10.1.0.0/16;]`, typ)
+		record = fmt.Sprintf(
+			`{x:%s (%s),s:"hello",bs:"world" (bstring),i:10.1.1.1,n:10.1.0.0/16} (=0)`, one, typ)
 
 		testWarning(t, "x = s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
 		testWarning(t, "x != s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
@@ -270,9 +266,8 @@ func TestCompareNumbers(t *testing.T) {
 
 	// Test comparison between signed and unsigned and also
 	// floats that cast to different integers.
-	rec2 := `
-#0:record[i:int64,u:uint64,f:float64]
-0:[-1;18446744073709551615;-1.0;]`
+	const rec2 = "{i:-1,u:18446744073709551615 (uint64),f:-1.} (=0)"
+
 	testSuccessful(t, "i = u", rec2, zbool(false))
 	testSuccessful(t, "i != u", rec2, zbool(true))
 	testSuccessful(t, "i < u", rec2, zbool(true))
@@ -304,9 +299,17 @@ func TestCompareNumbers(t *testing.T) {
 
 func TestCompareNonNumbers(t *testing.T) {
 	record := `
-#port=uint16
-#0:record[b:bool,s:string,bs:bstring,i:ip,p:port,net:net,t:time,d:duration]
-0:[t;hello;world;10.1.1.1;443;10.1.0.0/16;1583794452;1000;]`
+{
+    b: true,
+    s: "hello",
+    bs: "world" (bstring),
+    i: 10.1.1.1,
+    p: 443 (port=(uint16)),
+    net: 10.1.0.0/16,
+    t: 2020-03-09T22:54:12Z,
+    d: 16m40s
+} (=0)
+`
 
 	// bool
 	testSuccessful(t, "b = true", record, zbool(true))
@@ -372,9 +375,7 @@ func TestCompareNonNumbers(t *testing.T) {
 	}
 
 	// relative comparisons on strings
-	record = `
-#0:record[s:string,bs:bstring]
-0:[abc;def;]`
+	record = `{s:"abc",bs:"def" (bstring)} (=0)`
 
 	testSuccessful(t, `s < "brim"`, record, zbool(true))
 	testSuccessful(t, `s < "aaa"`, record, zbool(false))
@@ -419,9 +420,7 @@ func TestPattern(t *testing.T) {
 }
 
 func TestIn(t *testing.T) {
-	record := `
-#0:record[a:array[int32],s:set[int32]]
-0:[[1;2;3;][4;5;6;]]`
+	const record = "{a:[1 (int32),2 (int32),3 (int32)] (=0),s:|[4 (int32),5 (int32),6 (int32)]| (=1)} (=2)"
 
 	testSuccessful(t, "1 in a", record, zbool(true))
 	testSuccessful(t, "0 in a", record, zbool(false))
@@ -435,9 +434,7 @@ func TestIn(t *testing.T) {
 }
 
 func TestArithmetic(t *testing.T) {
-	record := `
-#0:record[x:int32,f:float64]
-0:[10;2.5;]`
+	record := "{x:10 (int32),f:2.5} (=0)"
 
 	// Test integer arithmetic
 	testSuccessful(t, "100 + 23", record, zint64(123))
@@ -529,9 +526,7 @@ func TestArithmetic(t *testing.T) {
 	var intTypes = []string{"int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"}
 	for _, t1 := range intTypes {
 		for _, t2 := range intTypes {
-			record := fmt.Sprintf(`
-#0:record[a:%s,b:%s]
-0:[4;2;]`, t1, t2)
+			record := fmt.Sprintf("{a:4 (%s),b:2 (%s)} (=0)", t1, t2)
 			testSuccessful(t, "a + b", record, iresult(t1, t2, 6))
 			testSuccessful(t, "b + a", record, iresult(t1, t2, 6))
 			testSuccessful(t, "a - b", record, iresult(t1, t2, 2))
@@ -542,10 +537,7 @@ func TestArithmetic(t *testing.T) {
 		}
 
 		// Test arithmetic mixing float + int
-		record = fmt.Sprintf(`
-#0:record[x:%s,f:float64]
-0:[10;2.5;]`, t1)
-
+		record = fmt.Sprintf("{x:10 (%s),f:2.5} (=0)", t1)
 		testSuccessful(t, "f + 5", record, zfloat64(7.5))
 		testSuccessful(t, "5 + f", record, zfloat64(7.5))
 		testSuccessful(t, "f + x", record, zfloat64(12.5))
@@ -572,9 +564,7 @@ func TestArithmetic(t *testing.T) {
 }
 
 func TestArrayIndex(t *testing.T) {
-	record := `
-#0:record[x:array[int64],i:uint16]
-0:[[1;2;3;]1;]`
+	const record = `{x:[1,2,3],i:1 (uint16)} (=0)`
 
 	testSuccessful(t, "x[0]", record, zint64(1))
 	testSuccessful(t, "x[1]", record, zint64(2))
@@ -585,9 +575,7 @@ func TestArrayIndex(t *testing.T) {
 }
 
 func TestFieldReference(t *testing.T) {
-	record := `
-#0:record[rec:record[i:int32,s:string,f:float64]]
-0:[[5;boo;6.1;]]`
+	const record = `{rec:{i:5 (int32),s:"boo",f:6.1} (=0)} (=1)`
 
 	testSuccessful(t, "rec.i", record, zint32(5))
 	testSuccessful(t, "rec.s", record, zstring("boo"))
@@ -595,9 +583,7 @@ func TestFieldReference(t *testing.T) {
 }
 
 func TestConditional(t *testing.T) {
-	record := `
-#0:record[x:int64]
-0:[1;]`
+	const record = "{x:1}"
 
 	testSuccessful(t, `x = 0 ? "zero" : "not zero"`, record, zstring("not zero"))
 	testSuccessful(t, `x = 1 ? "one" : "not one"`, record, zstring("one"))

@@ -4,25 +4,18 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 
 	"github.com/stretchr/testify/require"
 )
 
-func parseZng(s string) (*zng.Record, error) {
-	reader := tzngio.NewReader(strings.NewReader(s), zson.NewContext())
-	return reader.Read()
-}
-
 func TestRecordIter(t *testing.T) {
 	// Test a few edge cases: record with another record as the first
 	// field, record with another record as the last field, non-record
 	// container types inside records...
-	rec, err := parseZng(`
-#0:record[r1:record[r2:record[s:string],a:array[int64],r3:record[i:ip]]]
-0:[[[hello;][1;2;3;][1.2.3.4;]]]`)
+	const input = `{r1:{r2:{s:"hello"},a:[1,2,3],r3:{i:1.2.3.4}}}`
+	rec, err := zson.NewReader(strings.NewReader(input), zson.NewContext()).Read()
 	require.NoError(t, err)
 
 	it := rec.FieldIter()
