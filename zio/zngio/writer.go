@@ -20,12 +20,12 @@ type Writer struct {
 	closer io.Closer
 	ow     *offsetWriter // offset never points inside a compressed value message block
 	cw     *compressionWriter
+	opts   WriterOpts
 
-	encoder          *resolver.Encoder
-	buffer           []byte
-	lastSOS          int64
-	streamRecords    int
-	streamRecordsMax int
+	encoder       *resolver.Encoder
+	buffer        []byte
+	lastSOS       int64
+	streamRecords int
 }
 
 type WriterOpts struct {
@@ -37,15 +37,15 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	ow := &offsetWriter{w: w}
 	var cw *compressionWriter
 	if opts.LZ4BlockSize > 0 {
-		cw = &compressionWriter{w: ow, blockSize: opts.LZ4BlockSize}
+		cw = &compressionWriter{w: ow}
 	}
 	return &Writer{
-		closer:           w,
-		ow:               ow,
-		cw:               cw,
-		encoder:          resolver.NewEncoder(),
-		buffer:           make([]byte, 0, 128),
-		streamRecordsMax: opts.StreamRecordsMax,
+		closer:  w,
+		ow:      ow,
+		cw:      cw,
+		opts:    opts,
+		encoder: resolver.NewEncoder(),
+		buffer:  make([]byte, 0, 128),
 	}
 }
 
@@ -137,15 +137,20 @@ func (w *Writer) Write(r *zng.Record) error {
 		dst = zcode.AppendUvarint(dst, uint64(id-zng.CtrlValueEscape))
 	}
 	dst = zcode.AppendUvarint(dst, uint64(len(r.Bytes)))
-	// XXX instead of copying write we should do two writes... so we don't
-	// copy the bulk of the data an extra time here when we don't need to.
-	dst = append(dst, r.Bytes...)
 	w.buffer = dst
+	if w.cw != nil && w.cw.buffered()+len(dst)+len(r.Bytes) > w.opts.LZ4BlockSize {
+		if err := w.cw.Flush(); err != nil {
+			return err
+		}
+	}
 	if err := w.write(dst); err != nil {
 		return err
 	}
+	if err := w.write(r.Bytes); err != nil {
+		return err
+	}
 	w.streamRecords++
-	if w.streamRecordsMax > 0 && w.streamRecords >= w.streamRecordsMax {
+	if max := w.opts.StreamRecordsMax; max > 0 && w.streamRecords >= max {
 		if err := w.EndStream(); err != nil {
 			return err
 		}
@@ -201,6 +206,8 @@ type compressionWriter struct {
 	zbuf       []byte
 }
 
+func (c *compressionWriter) buffered() int { return len(c.ubuf) }
+
 func (c *compressionWriter) Flush() error {
 	if len(c.ubuf) == 0 {
 		return nil
@@ -242,11 +249,6 @@ func (c *compressionWriter) Flush() error {
 }
 
 func (c *compressionWriter) Write(p []byte) (int, error) {
-	if len(c.ubuf)+len(p) > c.blockSize {
-		if err := c.Flush(); err != nil {
-			return 0, err
-		}
-	}
 	c.ubuf = append(c.ubuf, p...)
 	return len(p), nil
 }
