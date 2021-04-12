@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -34,23 +34,20 @@ func trim(s string) string {
 func TestMultiFileScanner(t *testing.T) {
 	input := []string{
 		`
-#0:record[v:int32,ts:time]
-0:[10;1;]
-0:[20;2;]
+{v:10 (int32),ts:1970-01-01T00:00:01Z} (=0)
+{v:20,ts:1970-01-01T00:00:02Z} (0)
 `,
 		`
-#0:record[v:int32,ts:time]
-0:[15;4;]
-0:[25;5;]
+{v:15 (int32),ts:1970-01-01T00:00:04Z} (=0)
+{v:25,ts:1970-01-01T00:00:05Z} (0)
 `,
 	}
 
 	const exp = `
-#0:record[v:int32,ts:time]
-0:[10;1;]
-0:[20;2;]
-0:[15;4;]
-0:[25;5;]
+{v:10 (int32),ts:1970-01-01T00:00:01Z} (=0)
+{v:20,ts:1970-01-01T00:00:02Z} (0)
+{v:15,ts:1970-01-01T00:00:04Z} (0)
+{v:25,ts:1970-01-01T00:00:05Z} (0)
 `
 
 	f1 := writeTemp(t, []byte(input[0]))
@@ -65,7 +62,7 @@ func TestMultiFileScanner(t *testing.T) {
 	assert.True(t, ok)
 
 	var sb strings.Builder
-	err = zbuf.CopyPuller(tzngio.NewWriter(zio.NopCloser(&sb)), sn)
+	err = zbuf.CopyPuller(zsonio.NewWriter(zio.NopCloser(&sb), zsonio.WriterOpts{}), sn)
 	require.NoError(t, err)
 	require.Equal(t, trim(exp), trim(sb.String()))
 

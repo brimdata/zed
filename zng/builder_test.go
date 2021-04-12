@@ -6,27 +6,28 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-const builder = `
-#0:record[key:ip]
-#1:record[a:int64,b:int64,c:int64]
-#2:record[a:int64,r:record[x:int64]]
-0:[1.2.3.4;]
-1:[1;2;3;]
-2:[7;[3;]]
-2:[7;-;]`
-
 func TestBuilder(t *testing.T) {
-	r := tzngio.NewReader(strings.NewReader(builder), zson.NewContext())
-	r0, _ := r.Read()
-	r1, _ := r.Read()
-	r2, _ := r.Read()
-	//r3, _ := r.Read()
+	const input = `
+{key:1.2.3.4}
+{a:1,b:2,c:3}
+{a:7,r:{x:3}}
+{a:7,r:null (0=({x:int64}))}
+`
+	r := zson.NewReader(strings.NewReader(input), zson.NewContext())
+	r0, err := r.Read()
+	require.NoError(t, err)
+	r1, err := r.Read()
+	require.NoError(t, err)
+	r2, err := r.Read()
+	require.NoError(t, err)
+	r3, err := r.Read()
+	require.NoError(t, err)
 
 	zctx := zson.NewContext()
 
@@ -77,4 +78,5 @@ func TestBuilder(t *testing.T) {
 	//rec, err = b2.Parse("7")
 	//assert.Equal(t, err, zng.ErrIncomplete)
 	//assert.Equal(t, r3.Bytes, rec.Bytes)
+	_ = r3
 }

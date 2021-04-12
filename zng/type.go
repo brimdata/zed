@@ -242,6 +242,8 @@ func LookupPrimitiveById(id int) Type {
 		return TypeUint64
 	case IDFloat64:
 		return TypeFloat64
+	case IDBytes:
+		return TypeBytes
 	case IDString:
 		return TypeString
 	case IDBstring:

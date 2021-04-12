@@ -2,12 +2,12 @@ package chunk
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
@@ -17,12 +17,12 @@ import (
 
 func TestWriterIndex(t *testing.T) {
 	const data = `
-#0:record[ts:time,v:int64]
-0:[5;100;]
-0:[4;101;]
-0:[3;104;]
-0:[2;109;]
-0:[1;100;]`
+{ts:1970-01-01T00:00:05Z,v:100}
+{ts:1970-01-01T00:00:04Z,v:101}
+{ts:1970-01-01T00:00:03Z,v:104}
+{ts:1970-01-01T00:00:02Z,v:109}
+{ts:1970-01-01T00:00:01Z,v:100}
+`
 	def := index.MustNewDefinition(index.NewTypeRule(zng.TypeInt64))
 	chunk := testWriteWithDef(t, data, def)
 	reader, err := index.Find(context.Background(), zson.NewContext(), chunk.ZarDir(), def.ID, "100")
@@ -37,9 +37,7 @@ func TestWriterIndex(t *testing.T) {
 }
 
 func TestWriterSkipsInputPath(t *testing.T) {
-	const data = `
-#0:record[ts:time,v:int64,s:string]
-0:[5;100;test;]`
+	const data = `{ts:1970-01-01T00:00:05Z,v:100,s:"test"}`
 	sdef := index.MustNewDefinition(index.NewFieldRule("s"))
 	inputdef := index.MustNewDefinition(index.NewTypeRule(zng.TypeInt64))
 	inputdef.Input = "input_path"
@@ -55,11 +53,11 @@ func TestWriterSkipsInputPath(t *testing.T) {
 	assert.Truef(t, zqe.IsNotFound(err), "expected err to be zqe.IsNotFound, got: %v", err)
 }
 
-func testWriteWithDef(t *testing.T, tzng string, defs ...*index.Definition) Chunk {
+func testWriteWithDef(t *testing.T, input string, defs ...*index.Definition) Chunk {
 	dir := iosrc.MustParseURI(t.TempDir())
 	w, err := NewWriter(context.Background(), dir, WriterOpts{Order: zbuf.OrderDesc, Definitions: defs})
 	require.NoError(t, err)
-	require.NoError(t, tzngio.WriteString(w, tzng))
+	require.NoError(t, zbuf.Copy(w, zson.NewReader(strings.NewReader(input), zson.NewContext())))
 	require.NoError(t, w.Close(context.Background()))
 	return w.Chunk()
 }

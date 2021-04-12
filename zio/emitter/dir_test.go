@@ -11,7 +11,6 @@ import (
 	iosrcmock "github.com/brimdata/zed/pkg/iosrc/mock"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/require"
@@ -19,25 +18,24 @@ import (
 
 func TestDirS3Source(t *testing.T) {
 	path := "s3://testbucket/dir"
-	tzng := `
-#0:record[_path:string,foo:string]
-0:[conn;1;]
-#1:record[_path:string,bar:string]
-1:[http;2;]`
+	const input = `
+{_path:"conn",foo:"1"}
+{_path:"http",bar:"2"}
+`
 	uri, err := iosrc.ParseURI(path)
 	require.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 	src := iosrcmock.NewMockSource(ctrl)
 
-	src.EXPECT().NewWriter(context.Background(), uri.AppendPath("conn.tzng")).
+	src.EXPECT().NewWriter(context.Background(), uri.AppendPath("conn.zson")).
 		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
-	src.EXPECT().NewWriter(context.Background(), uri.AppendPath("http.tzng")).
+	src.EXPECT().NewWriter(context.Background(), uri.AppendPath("http.zson")).
 		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
 
-	r := tzngio.NewReader(strings.NewReader(tzng), zson.NewContext())
+	r := zson.NewReader(strings.NewReader(input), zson.NewContext())
 	require.NoError(t, err)
-	w, err := NewDirWithSource(context.Background(), uri, "", os.Stderr, zio.WriterOpts{Format: "tzng"}, src)
+	w, err := NewDirWithSource(context.Background(), uri, "", os.Stderr, zio.WriterOpts{Format: "zson"}, src)
 	require.NoError(t, err)
 	require.NoError(t, zbuf.Copy(w, r))
 }

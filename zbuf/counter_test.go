@@ -1,11 +1,13 @@
 package zbuf_test
 
 import (
+	"strings"
 	"sync"
 	"testing"
 
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -17,13 +19,21 @@ func (n *Sink) Write(rec *zng.Record) error {
 }
 
 func TestCounter(t *testing.T) {
+	const input = `
+{key:"key1",value:"value1"}
+{key:"key2",value:"value2"}
+{key:"key3",value:"value3"}
+{key:"key4",value:"value4"}
+{key:"key5",value:"value5"}
+{key:"key6",value:"value6"}
+`
 	var count int64
 	var wg sync.WaitGroup
 	var sink Sink
 	wg.Add(2)
 	go func() {
 		for i := 0; i < 22; i++ {
-			stream := newTextReader(input)
+			stream := zson.NewReader(strings.NewReader(input), zson.NewContext())
 			counter := zbuf.NewCounter(stream, &count)
 			require.NoError(t, zbuf.Copy(&sink, counter))
 		}
@@ -31,7 +41,7 @@ func TestCounter(t *testing.T) {
 	}()
 	go func() {
 		for i := 0; i < 17; i++ {
-			stream := newTextReader(input)
+			stream := zson.NewReader(strings.NewReader(input), zson.NewContext())
 			counter := zbuf.NewCounter(stream, &count)
 			require.NoError(t, zbuf.Copy(&sink, counter))
 		}

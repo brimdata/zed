@@ -24,9 +24,7 @@ func TestBadFunction(t *testing.T) {
 }
 
 func TestAbs(t *testing.T) {
-	record := `
-#0:record[u:uint64]
-0:[50;]`
+	const record = "{u:50 (uint64)} (=0)"
 
 	testSuccessful(t, "abs(-5)", record, zint64(5))
 	testSuccessful(t, "abs(5)", record, zint64(5))
@@ -40,9 +38,7 @@ func TestAbs(t *testing.T) {
 }
 
 func TestSqrt(t *testing.T) {
-	record := `
-#0:record[f:float64,i:int32]
-0:[6.25;9;]`
+	const record = "{f:6.25,i:9 (int32)} (=0)"
 
 	testSuccessful(t, "sqrt(4.0)", record, zfloat64(2.0))
 	testSuccessful(t, "sqrt(f)", record, zfloat64(2.5))
@@ -54,9 +50,7 @@ func TestSqrt(t *testing.T) {
 }
 
 func TestMinMax(t *testing.T) {
-	record := `
-#0:record[i:uint64,f:float64]
-0:[1;2;]`
+	const record = "{i:1 (uint64),f:2.} (=0)"
 
 	// Simple cases
 	testSuccessful(t, "min(1)", record, zint64(1))
@@ -126,9 +120,7 @@ func TestLogPow(t *testing.T) {
 }
 
 func TestMod(t *testing.T) {
-	record := `
-#0:record[u:uint64]
-0:[5;]`
+	const record = "{u:5 (uint64)} (=0)"
 
 	testSuccessful(t, "mod(5, 3)", record, zint64(2))
 	testSuccessful(t, "mod(u, 3)", record, zuint64(2))
@@ -160,9 +152,7 @@ func TestOtherStrFuncs(t *testing.T) {
 }
 
 func TestLen(t *testing.T) {
-	record := `
-#0:record[s:set[int32],a:array[int32]]
-0:[[1;2;3;][4;5;6;]]`
+	record := "{s:|[1 (int32),2 (int32),3 (int32)]| (=0),a:[4 (int32),5 (int32),6 (int32)] (=1)} (=2)"
 
 	testSuccessful(t, "len(s)", record, zint64(3))
 	testSuccessful(t, "len(a)", record, zint64(3))
@@ -171,9 +161,7 @@ func TestLen(t *testing.T) {
 	testError(t, `len("foo", "bar")`, function.ErrTooManyArgs, "len() with too many args")
 	testWarning(t, "len(5)", record, namedErrBadArgument("len"), "len() with non-container arg")
 
-	record = `
-#0:record[s:string,bs:bstring,bs2:bstring]
-0:[🍺;\xf0\x9f\x8d\xba;\xba\x8d\x9f\xf0;]`
+	record = `{s:"🍺",bs:"\xf0\x9f\x8d\xba" (bstring),bs2:"\xba\x8d\x9f\xf0" (bstring)} (=0)`
 
 	testSuccessful(t, `len("foo")`, record, zint64(3))
 	testSuccessful(t, `len(s)`, record, zint64(4))

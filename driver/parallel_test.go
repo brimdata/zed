@@ -15,7 +15,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -49,22 +49,12 @@ func (s *testSource) ToRequest(*api.WorkerChunkRequest) error {
 	return errors.New("ToRequest called on testSource")
 }
 
-var parallelTestInputs []string = []string{
-	`
-#0:record[v:int32,ts:time]
-0:[0;0;]`,
-	`
-#0:record[v:int32,ts:time]
-0:[1;1;]`,
-	`
-#0:record[v:int32,ts:time]
-0:[2;2;]`,
-	`
-#0:record[v:int32,ts:time]
-0:[3;3;]`,
-	`
-#0:record[v:int32,ts:time]
-0:[4;4;]`,
+var parallelTestInputs = []string{
+	"{v:0 (int32),ts:1970-01-01T00:00:00Z} (=0)",
+	"{v:1 (int32),ts:1970-01-01T00:00:01Z} (=0)",
+	"{v:2 (int32),ts:1970-01-01T00:00:02Z} (=0)",
+	"{v:3 (int32),ts:1970-01-01T00:00:03Z} (=0)",
+	"{v:4 (int32),ts:1970-01-01T00:00:04Z} (=0)",
 }
 
 type orderedmsrc struct{}
@@ -83,7 +73,7 @@ func (m *orderedmsrc) SendSources(ctx context.Context, span nano.Span, srcChan c
 	for i := range parallelTestInputs {
 		i := i
 		opener := func(zctx *zson.Context, sf SourceFilter) (ScannerCloser, error) {
-			rdr := tzngio.NewReader(strings.NewReader(parallelTestInputs[i]), zctx)
+			rdr := zson.NewReader(strings.NewReader(parallelTestInputs[i]), zctx)
 			sn, err := zbuf.NewScanner(ctx, rdr, sf.Filter, sf.Span)
 			if err != nil {
 				return nil, err
@@ -120,19 +110,18 @@ func TestParallelOrder(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	d := NewCLI(tzngio.NewWriter(zio.NopCloser(&buf)))
+	d := NewCLI(zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}))
 	zctx := zson.NewContext()
 	err = MultiRun(context.Background(), d, query, zctx, &orderedmsrc{}, MultiConfig{
 		Parallelism: len(parallelTestInputs),
 	})
 	require.NoError(t, err)
 
-	exp := `
-#0:record[v:int32,ts:time]
-0:[0;0;]
-0:[1;1;]
-0:[2;2;]
-0:[4;4;]
+	const exp = `
+{v:0 (int32),ts:1970-01-01T00:00:00Z} (=0)
+{v:1,ts:1970-01-01T00:00:01Z} (0)
+{v:2,ts:1970-01-01T00:00:02Z} (0)
+{v:4,ts:1970-01-01T00:00:04Z} (0)
 `
 	assert.Equal(t, trim(exp), buf.String())
 }
@@ -144,7 +133,7 @@ type noEndScanner struct {
 }
 
 func (rp *noEndScanner) Pull() (zbuf.Batch, error) {
-	r := tzngio.NewReader(strings.NewReader(rp.input), rp.zctx)
+	r := zson.NewReader(strings.NewReader(rp.input), rp.zctx)
 	return zbuf.NewPuller(r, 1).Pull()
 }
 
@@ -189,13 +178,10 @@ func TestScannerClose(t *testing.T) {
 	require.NoError(t, err)
 
 	var buf bytes.Buffer
-	d := NewCLI(tzngio.NewWriter(zio.NopCloser(&buf)))
+	d := NewCLI(zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}))
 	zctx := zson.NewContext()
 	ms := &scannerCloseMS{
-		input: `
-#0:record[v:int32,ts:time]
-0:[1;1;]
-`,
+		input:  "{v:1 (int32),ts:1970-01-01T00:00:01Z} (=0)",
 		closed: make(chan struct{}),
 	}
 	err = MultiRun(context.Background(), d, query, zctx, ms, MultiConfig{})

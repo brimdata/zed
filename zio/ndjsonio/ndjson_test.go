@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -34,30 +33,24 @@ func TestNDJSONWriter(t *testing.T) {
 	}
 	cases := []testcase{
 		{
-			name: "null containers",
-			input: `#0:record[dns:array[string],uri:array[string],email:set[string],ip:array[ip]]
-0:[[google.com;]-;-;-;]
-`,
+			name:   "null containers",
+			input:  `{dns:["google.com"],uri:null (0=([string])),email:null (1=(|[string]|)),ip:null (2=([ip]))}`,
 			output: `{"dns":["google.com"],"email":null,"ip":null,"uri":null}`,
 		},
 		{
-			name: "nested nulls",
-			input: `#0:record[san:record[dns:array[string],uri:array[string],email:set[string],ip:array[ip]]]
-0:[[[google.com;]-;-;-;]]
-`,
+			name:   "nested nulls",
+			input:  `{san:{dns:["google.com"],uri:null (0=([string])),email:null (1=(|[string]|)),ip:null (2=([ip]))}}`,
 			output: `{"san":{"dns":["google.com"],"email":null,"ip":null,"uri":null}}`,
 		},
 		{
 			name: "empty containers",
-			input: `#0:record[dns:array[string],uri:array[string],email:set[string],ip:array[ip]]
-0:[[google.com;][][]-;]
+			input: `{dns:["google.com"],uri:[] (0=([string])),email:|[]| (1=(|[string]|)),ip:null (2=([ip]))}
 `,
 			output: `{"dns":["google.com"],"uri":[], "email":[],"ip":null}`,
 		},
 		{
 			name: "nested empties",
-			input: `#0:record[san:record[dns:array[string],uri:array[string],email:set[string],ip:array[ip]]]
-0:[[[google.com;][][]-;]]
+			input: `{san:{dns:["google.com"],uri:[] (0=([string])),email:|[]| (1=(|[string]|)),ip:null (2=([ip]))}}
 `,
 			output: `{"san":{"dns":["google.com"],"uri":[], "email":[],"ip":null}}`,
 		},
@@ -66,7 +59,7 @@ func TestNDJSONWriter(t *testing.T) {
 		t.Run(c.name, func(t *testing.T) {
 			var out bytes.Buffer
 			w := NewWriter(NopCloser(&out))
-			r := tzngio.NewReader(strings.NewReader(c.input), zson.NewContext())
+			r := zson.NewReader(strings.NewReader(c.input), zson.NewContext())
 			require.NoError(t, zbuf.Copy(w, r))
 			NDJSONEq(t, c.output, out.String())
 		})
@@ -178,64 +171,55 @@ func NDJSONEq(t *testing.T, expected string, actual string) {
 
 func TestNewRawFromJSON(t *testing.T) {
 	type testcase struct {
-		name, tzng, json, defaultPath string
+		name, expected, json, defaultPath string
 	}
 	cases := []testcase{
 		{
-			name: "LongDuration",
-			tzng: `#0:record[_path:string,ts:time,span:duration]
-0:[test;1573860644.637486;0.123456134;]`,
-			json: `{"_path": "test", "ts": "2019-11-15T23:30:44.637486Z", "span": 0.1234561341234234}`,
+			name:     "LongDuration",
+			expected: `{_path:"test",ts:2019-11-15T23:30:44.637486Z,span:123.456134ms}`,
+			json:     `{"_path": "test", "ts": "2019-11-15T23:30:44.637486Z", "span": 0.1234561341234234}`,
 		},
 		{
-			name: "TsISO8601",
-			tzng: `#0:record[_path:string,b:bool,i:int64,s:set[bool],ts:time,v:array[int64]]
-0:[test;-;-;-;1573860644.637486;-;]`,
-			json: `{"_path": "test", "ts":"2019-11-15T23:30:44.637486Z"}`,
+			name:     "TsISO8601",
+			expected: `{_path:"test",b:null (bool),i:null (int64),s:null (0=(|[bool]|)),ts:2019-11-15T23:30:44.637486Z,v:null (1=([int64]))}`,
+			json:     `{"_path": "test", "ts":"2019-11-15T23:30:44.637486Z"}`,
 		},
 		{
-			name: "TsISO8601-0100",
-			tzng: `#0:record[_path:string,b:bool,i:int64,s:set[bool],ts:time,v:array[int64]]
-0:[test;-;-;-;1573864244.637486;-;]`,
-			json: `{"_path": "test", "ts":"2019-11-15T23:30:44.637486-0100"}`,
+			name:     "TsISO8601-0100",
+			expected: `{_path:"test",b:null (bool),i:null (int64),s:null (0=(|[bool]|)),ts:2019-11-16T00:30:44.637486Z,v:null (1=([int64]))}`,
+			json:     `{"_path": "test", "ts":"2019-11-15T23:30:44.637486-0100"}`,
 		},
 		{
-			name: "TsEpoch",
-			tzng: `#0:record[_path:string,ts:time]
-0:[test;1573860644.637486;]`,
-			json: `{"_path": "test", "ts":1573860644.637486}`,
+			name:     "TsEpoch",
+			expected: `{_path:"test",ts:2019-11-15T23:30:44.637486Z}`,
+			json:     `{"_path": "test", "ts":1573860644.637486}`,
 		},
 		{
-			name: "TsMillis",
-			tzng: `#0:record[_path:string,ts:time]
-0:[test;1573860644.637000;]`,
-			json: `{"_path": "test", "ts":1573860644637}`,
+			name:     "TsMillis",
+			expected: `{_path:"test",ts:2019-11-15T23:30:44.637Z}`,
+			json:     `{"_path": "test", "ts":1573860644637}`,
 		},
 		{
-			name: "defaultPath",
-			tzng: `#0:record[_path:string,ts:time]
-0:[inferred;1573860644.637000;]`,
+			name:        "defaultPath",
+			expected:    `{_path:"inferred",ts:2019-11-15T23:30:44.637Z}`,
 			json:        `{"ts":1573860644637}`,
 			defaultPath: "inferred",
 		},
 		{
-			name: "defaultPath (unused)",
-			tzng: `#0:record[_path:string,ts:time]
-0:[test;1573860644.637000;]`,
+			name:        "defaultPath (unused)",
+			expected:    `{_path:"test",ts:2019-11-15T23:30:44.637Z}`,
 			json:        `{"_path": "test", "ts":1573860644637}`,
 			defaultPath: "inferred",
 		},
 		{
-			name: "uint64 in scientific notation",
-			tzng: `#0:record[_path:string,datetime:uint64]
-0:[test;1521835103;]`,
+			name:        "uint64 in scientific notation",
+			expected:    `{_path:"test",datetime:1521835103 (uint64)} (=0)`,
 			json:        `{"_path": "test", "datetime":1.521835103E9}`,
 			defaultPath: "inferred",
 		},
 		{
-			name: "int64 in scientific notation",
-			tzng: `#0:record[_path:string,datetime:int64]
-0:[test;-1521835103;]`,
+			name:        "int64 in scientific notation",
+			expected:    `{_path:"test",datetime:-1521835103}`,
 			json:        `{"_path": "test", "datetime":-1.521835103E9}`,
 			defaultPath: "inferred",
 		},
@@ -243,7 +227,7 @@ func TestNewRawFromJSON(t *testing.T) {
 
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {
-			r := tzngio.NewReader(strings.NewReader(c.tzng), zson.NewContext())
+			r := zson.NewReader(strings.NewReader(c.expected), zson.NewContext())
 			expected, err := r.Read()
 			require.NoError(t, err)
 			typ := zng.TypeRecordOf(expected.Type)
