@@ -13,9 +13,8 @@ jobs:
   build:
     runs-on: ubuntu-18.04
     strategy:
-      include:
-        - repo: brim
-        - repo: brimcap
+      matrix:
+        repo: [brim, brimcap]
     steps:
     - name: Populate "merged" variable
       run: |
