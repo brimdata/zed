@@ -119,7 +119,7 @@ func (c *Command) Run(args []string) error {
 	}
 	if !c.lakeFlags.Quiet {
 		fmt.Printf("commit %s in staging:\n", commit)
-		for _, action := range txn {
+		for _, action := range txn.Actions {
 			if add, ok := action.(*actions.Add); ok {
 				fmt.Printf(" segment %s\n", add.Segment)
 			}

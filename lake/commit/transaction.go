@@ -12,10 +12,20 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-type Transaction []actions.Interface
+type Transaction struct {
+	ID      ksuid.KSUID
+	Actions []actions.Interface
+}
+
+func newTransaction(id ksuid.KSUID, capacity int) Transaction {
+	return Transaction{
+		ID:      id,
+		Actions: make([]actions.Interface, 0, capacity),
+	}
+}
 
 func NewCommitTxn(id ksuid.KSUID, date nano.Ts, author, message string, segments []segment.Reference) Transaction {
-	txn := make(Transaction, 0, len(segments)+1)
+	txn := newTransaction(id, len(segments)+1)
 	if date == 0 {
 		date = nano.Now()
 	}
@@ -25,13 +35,13 @@ func NewCommitTxn(id ksuid.KSUID, date nano.Ts, author, message string, segments
 }
 
 func NewAddsTxn(id ksuid.KSUID, segments []segment.Reference) Transaction {
-	txn := make(Transaction, 0, len(segments))
+	txn := newTransaction(id, len(segments))
 	txn.appendAdds(segments, id)
 	return txn
 }
 
 func (t *Transaction) Append(action actions.Interface) {
-	*t = append(*t, action)
+	t.Actions = append(t.Actions, action)
 }
 
 func (t *Transaction) AppendCommitMessage(id ksuid.KSUID, date nano.Ts, author, message string) {
@@ -51,7 +61,7 @@ func (t *Transaction) appendAdds(segments []segment.Reference, id ksuid.KSUID) {
 
 func (t Transaction) Serialize() ([]byte, error) {
 	writer := actions.NewSerializer()
-	for _, action := range t {
+	for _, action := range t.Actions {
 		if err := writer.Write(action); err != nil {
 			return nil, err
 		}
@@ -81,17 +91,17 @@ func (t *Transaction) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func LoadTransaction(ctx context.Context, uri iosrc.URI) (Transaction, error) {
+func LoadTransaction(ctx context.Context, id ksuid.KSUID, uri iosrc.URI) (Transaction, error) {
 	r, err := iosrc.NewReader(ctx, uri)
 	if err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
-	var t Transaction
+	t := newTransaction(id, 0)
 	if err := t.Deserialize(r); err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 	if err := r.Close(); err != nil {
-		return nil, err
+		return Transaction{}, err
 	}
 	return t, nil
 }

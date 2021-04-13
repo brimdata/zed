@@ -159,7 +159,7 @@ func (p *Pool) Log() *commit.Log {
 }
 
 func (p *Pool) LoadFromStaging(ctx context.Context, id ksuid.KSUID) (commit.Transaction, error) {
-	return commit.LoadTransaction(ctx, p.StagingObject(id))
+	return commit.LoadTransaction(ctx, id, p.StagingObject(id))
 }
 
 func (p *Pool) StoreInStaging(ctx context.Context, id ksuid.KSUID, txn commit.Transaction) error {

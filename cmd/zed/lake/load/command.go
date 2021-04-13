@@ -99,8 +99,8 @@ func (c *Command) Run(args []string) error {
 	}
 	if !c.lakeFlags.Quiet {
 		fmt.Println("commit successful", commitID)
-		for _, action := range txn {
-			//XXX clean this up and allow -f output
+		for _, action := range txn.Actions {
+			//XXX clean this up and allow -f output; see zed lake status
 			fmt.Printf("  %s\n", action)
 		}
 	}
