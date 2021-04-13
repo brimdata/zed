@@ -38,9 +38,9 @@ func (s *Snapshot) DeleteSegment(id ksuid.KSUID) {
 func (s *Snapshot) Scan(ctx context.Context, ch chan segment.Reference) error {
 	for _, seg := range s.segments {
 		select {
+		case ch <- seg:
 		case <-ctx.Done():
 			return ctx.Err()
-		case ch <- seg:
 		}
 	}
 	return nil
@@ -50,9 +50,9 @@ func (s *Snapshot) ScanSpan(ctx context.Context, ch chan<- segment.Reference, sp
 	for _, seg := range s.segments {
 		if span.Overlaps(seg.Span()) {
 			select {
+			case ch <- seg:
 			case <-ctx.Done():
 				return ctx.Err()
-			case ch <- seg:
 			}
 		}
 	}
@@ -62,9 +62,9 @@ func (s *Snapshot) ScanSpan(ctx context.Context, ch chan<- segment.Reference, sp
 func (s *Snapshot) ScanSpanInOrder(ctx context.Context, ch chan<- segment.Reference, span nano.Span) error {
 	for _, seg := range s.sortedSegments(span) {
 		select {
+		case ch <- *seg:
 		case <-ctx.Done():
 			return ctx.Err()
-		case ch <- *seg:
 		}
 	}
 	return nil
@@ -75,12 +75,12 @@ func (s *Snapshot) ScanSpanInOrder(ctx context.Context, ch chan<- segment.Refere
 // partitions over the given channel sorted by the pool key in the
 // pool's order.
 func (s *Snapshot) ScanPartitions(ctx context.Context, ch chan<- segment.Partition, span nano.Span) error {
-	segments := s.sortedSegments(span)
 	first := span.Ts
 	last := span.End()
 	if s.order == zbuf.OrderDesc {
 		first, last = last, first
 	}
+	segments := s.sortedSegments(span)
 	for _, p := range segment.PartitionSegments(segments, s.order) {
 		// XXX this is clunky mixing spans and key ranges.
 		// When we get rid of the ts assumption, we will fix this.
@@ -101,9 +101,9 @@ func (s *Snapshot) ScanPartitions(ctx context.Context, ch chan<- segment.Partiti
 			}
 		}
 		select {
+		case ch <- p:
 		case <-ctx.Done():
 			return ctx.Err()
-		case ch <- p:
 		}
 	}
 	return nil

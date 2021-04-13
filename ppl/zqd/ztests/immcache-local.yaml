@@ -1,4 +1,4 @@
-skip: disabled until we get the cache working againa
+skip: disabled until we get the cache working again
 
 script: |
   ZQD_EXTRA_FLAGS=-immcache.kind=local source services.sh

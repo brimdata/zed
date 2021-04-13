@@ -18,8 +18,7 @@ func DefaultRoot() string {
 	return os.Getenv(RootEnv)
 }
 
-// Common flags used by all "zed lake" commands.
-
+// Flags implements flags used by all "zed lake" commands.
 type Flags struct {
 	Root     string
 	PoolName string

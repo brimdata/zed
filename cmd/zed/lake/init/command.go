@@ -55,13 +55,12 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zed lake create lake: requires a single lake path argument")
 	}
 	c.lakeFlags.Root = path
-	_, err := c.lakeFlags.Create(ctx)
-	if err != nil {
+	if _, err := c.lakeFlags.Create(ctx); err != nil {
 		return err
 	}
-	name, _ := c.lakeFlags.RootPath()
 	if !c.quiet {
+		name, _ := c.lakeFlags.RootPath()
 		fmt.Printf("lake created: %s\n", name)
 	}
-	return err
+	return nil
 }

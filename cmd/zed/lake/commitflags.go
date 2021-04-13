@@ -5,8 +5,7 @@ import (
 	"os"
 )
 
-// Common flags used by all "zed lake" commands that need commit info.
-
+// CommitFlags implements flags used by all "zed lake" commands that need commit info.
 type CommitFlags struct {
 	Date    Date
 	User    string

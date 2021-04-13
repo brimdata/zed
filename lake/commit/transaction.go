@@ -63,6 +63,7 @@ func (t Transaction) Serialize() ([]byte, error) {
 	writer := actions.NewSerializer()
 	for _, action := range t.Actions {
 		if err := writer.Write(action); err != nil {
+			writer.Close()
 			return nil, err
 		}
 	}
@@ -97,10 +98,11 @@ func LoadTransaction(ctx context.Context, id ksuid.KSUID, uri iosrc.URI) (Transa
 		return Transaction{}, err
 	}
 	t := newTransaction(id, 0)
-	if err := t.Deserialize(r); err != nil {
-		return Transaction{}, err
+	err = t.Deserialize(r)
+	if closeErr := r.Close(); err == nil {
+		err = closeErr
 	}
-	if err := r.Close(); err != nil {
+	if err != nil {
 		return Transaction{}, err
 	}
 	return t, nil

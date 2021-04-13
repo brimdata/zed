@@ -3,7 +3,6 @@ package query
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -117,7 +116,7 @@ func (i *Includes) Set(value string) error {
 func (i Includes) Read() ([]string, error) {
 	var srcs []string
 	for _, path := range i {
-		b, err := ioutil.ReadFile(path)
+		b, err := os.ReadFile(path)
 		if err != nil {
 			return nil, err
 		}

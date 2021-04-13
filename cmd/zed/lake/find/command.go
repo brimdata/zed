@@ -59,7 +59,6 @@ type Command struct {
 	root          string
 	skipMissing   bool
 	indexFile     string
-	pathField     string
 	relativePaths bool
 	outputFlags   outputflags.Flags
 }
@@ -69,7 +68,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
-	//f.StringVar(&c.pathField, "l", lake.DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 
 	c.outputFlags.SetFlags(f)

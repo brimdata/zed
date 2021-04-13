@@ -15,7 +15,7 @@ var Stat = &charm.Spec{
 	Short: "zed lake statistics",
 	Long: `
 "zar lake stat" generates a ZNG stream with information about the data in
-a zed lake.
+a Zed lake.
 `,
 	New: New,
 }

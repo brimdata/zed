@@ -63,16 +63,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	keys := field.DottedList(c.keys)
-	if err != nil {
-		return err
-	}
-	_, err = c.lakeFlags.CreatePool(ctx, keys, order, int64(c.thresh))
-
-	if err != nil {
+	if _, err := c.lakeFlags.CreatePool(ctx, keys, order, int64(c.thresh)); err != nil {
 		return err
 	}
 	if !c.lakeFlags.Quiet {
 		fmt.Printf("pool created: %s\n", c.lakeFlags.PoolName)
 	}
-	return err
+	return nil
 }

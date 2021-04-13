@@ -47,8 +47,7 @@ func ParseKeys(s string) ([]field.Static, bool) {
 	if s == "" {
 		return nil, false
 	}
-	fields := field.DottedList(s)
-	return fields, true
+	return field.DottedList(s), true
 }
 
 func ParseOrder(s string) (zbuf.Order, error) {

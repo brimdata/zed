@@ -38,7 +38,7 @@ the pool key, such data is instead organized around its "." value.
 
 The semantics of a Zed lake loosely follows the nomenclature and
 design patterns of `git`.  In this approach,
-* a _lake_ is like a `github` organization,
+* a _lake_ is like a GitHub organization,
 * a _pool_ is like a `git` repository,
 * a _load_ operation is like a `git add` followed by a `git commit`,
 * and a pool _snapshot_ is like a `git checkout`.
@@ -71,13 +71,13 @@ zed lake new -p logs -k ts
 Note that there may be multiple pool keys, where subsequent keys act as the secondary,
 tertiary, and so forth sort key.
 
-In all these examples, the lake identity is implied by its path (e.g., an s3 URI
+In all these examples, the lake identity is implied by its path (e.g., an S3 URI
 or a file system path) and may be specified by the ZED_LAKE_ROOT environment variable
-when running the `zed lake` tooling on a local host.  In a cloud deployment
+when running `zed lake` commands on a local host.  In a cloud deployment
 or running queries through an application, the lake path is determined by
 an authenticated connection to the Zed lake service, which explicitly denotes
-the lake name (analagous to how a github user authenticates access to
-a named github organization).
+the lake name (analagous to how a GitHub user authenticates access to
+a named GitHub organization).
 
 ### Load
 
@@ -150,7 +150,7 @@ zed lake add -p logs sample.json
 (commit <tag> printed to stdout)
 zed lake commit -p logs <tag>
 ```
-A commit `<tag>` refers to one or more data objects that is stored in the
+A commit `<tag>` refers to one or more data objects stored in the
 data pool.  Genreally speaking, a list of commit tags is simply a shortcut
 for the set of object tags that comprise the commits.  Both commit and object
 tags are named using the same globally unique allocation of
@@ -199,8 +199,9 @@ before these new writes occur.
 Alternatively, a reader can scan a specific set of commits by enumerating
 the commit tags in the scan/search API.
 
-Also, arbitrary meta-data can be committed to the log as described below,
-e.g., to associate index objects or derived analytics to specific in
+Also, arbitrary metadata can be committed to the log as described below,
+e.g., to associate index objects or derived analytics to a specific
+journal commit point potentially across different data pools in
 a transactionally consistent fashion.
 
 #### Data Segmentation
@@ -232,7 +233,7 @@ from potentially a large number of different segments.
 
 To solve this problem, the Zed lake design follows the
 the [LSM](https://en.wikipedia.org/wiki/Log-structured_merge-tree) design pattern.
-Since each segment is stored in sorted order, a total order over a collection
+Since records in each segment are stored in sorted order, a total order over a collection
 of segment (e.g., the collection coming from a specific set of commits)
 can be produced by executing a sorted scan and rewriting the results back to the pool
 in a new commit.  In addition, the segments comprising the total order
@@ -264,9 +265,9 @@ across non-overlapping segments, but they are not yet committed.
 To avoid consistency issues here, the old commits need
 to be deleted while simultaneously adding the new commit.
 
-This can be done automicall
+This can be done automically
 by performing a merge, staging the deletes, then
-commit the add and merge together:
+committing the merge and delete together:
 ```
 zed lake merge -p logs <tag-1> <tag-2> <tag-3>
 (merged commit <merge-tag> printed to stdout)
@@ -278,7 +279,7 @@ Note that the data in commits `<tag-1>`, `<tag-2>`, and `<tag-3>` remains
 in the pool and scans can be performed on older snapshots of the pool
 as long as the data is not deleted.
 
-Data can be delted with the DANGER-ZONE command `zed lake purge`.
+Data can be deleted with the DANGER-ZONE command `zed lake purge`.
 The commits still appear in the log but scans will fail.
 
 Alternatively, old data can be removed from the system using a safer
@@ -360,7 +361,7 @@ resulting object is immutable, there is no possible write concurrency to manage.
 
 A segment is comprised of
 * one or two data objects (for row and/or column layout),
-* a meta-data object,
+* a metadata object,
 * an optional seek index, and
 * zero or more search indexes.
 
@@ -417,7 +418,7 @@ the scan schedule can be quickly computed in a small number of round-trips
 ### Mutable Objects
 
 Mutable objects are built upon a journal of arbitrary set updates
-to a one ore more key-value entities stored within a commit journal.
+to sets of one ore more key-value entities stored within a commit journal.
 
 #### Commit Journal
 

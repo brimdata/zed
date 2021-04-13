@@ -13,10 +13,6 @@ inputs:
   - name: babble.zson
     source: ../../testdata/babble.zson
 
-# Note: compared to the previous zar model, we do not have aritificial
-# partitions into days so in this sample data, we read a whole seek index
-# which is larger compared to the day.
-
 outputs:
   - name: stdout
     data: |

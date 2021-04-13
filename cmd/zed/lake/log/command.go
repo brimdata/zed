@@ -60,8 +60,9 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := zbuf.Copy(writer, reader); err != nil {
-		return err
+	err = zbuf.Copy(writer, reader)
+	if closeErr := writer.Close(); err == nil {
+		err = closeErr
 	}
-	return writer.Close()
+	return err
 }

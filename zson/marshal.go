@@ -274,6 +274,8 @@ func (m *MarshalZNGContext) NamedBindings(bindings []Binding) error {
 	return nil
 }
 
+var nanoTsType = reflect.TypeOf(nano.Ts(0))
+
 func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zng.Type, error) {
 	typ, err := m.encodeAny(v)
 	if err != nil {
@@ -289,12 +291,12 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zng.Type, error) {
 		name := v.Type().Name()
 		kind := v.Kind().String()
 		if name != "" && name != kind {
-			path := v.Type().PkgPath()
 			// We do not want to further decorate nano.Ts as
 			// it's already been converted to a Zed time.
-			if strings.HasSuffix(path, "/nano") && name == "Ts" {
+			if v.Type() == nanoTsType {
 				return typ, nil
 			}
+			path := v.Type().PkgPath()
 			var alias string
 			if m.bindings != nil {
 				alias = m.bindings[typeFull(name, path)]
