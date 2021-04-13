@@ -13,8 +13,8 @@ import (
 )
 
 type Transaction struct {
-	ID      ksuid.KSUID
-	Actions []actions.Interface
+	ID      ksuid.KSUID         `zng:"id"`
+	Actions []actions.Interface `zng:"actions"`
 }
 
 func newTransaction(id ksuid.KSUID, capacity int) Transaction {

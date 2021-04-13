@@ -1,6 +1,7 @@
 package lake
 
 import (
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"strings"
@@ -63,9 +64,24 @@ func ParseOrder(s string) (zbuf.Order, error) {
 func ParseIDs(args []string) ([]ksuid.KSUID, error) {
 	ids := make([]ksuid.KSUID, 0, len(args))
 	for _, s := range args {
-		id, err := ksuid.Parse(s)
-		if err != nil {
-			return nil, fmt.Errorf("%s: invalid commit ID", s)
+		// Check if this is a cut-and-paste from ZNG, which encodes
+		// the 20-byte KSUID as a 40 character hex string with 0x prefix.
+		var id ksuid.KSUID
+		if len(s) == 42 && s[0:2] == "0x" {
+			b, err := hex.DecodeString(s[2:])
+			if err != nil {
+				return nil, fmt.Errorf("illegal hex tag: %s", s)
+			}
+			id, err = ksuid.FromBytes(b)
+			if err != nil {
+				return nil, fmt.Errorf("illegal hex tag: %s", s)
+			}
+		} else {
+			var err error
+			id, err = ksuid.Parse(s)
+			if err != nil {
+				return nil, fmt.Errorf("%s: invalid commit ID", s)
+			}
 		}
 		ids = append(ids, id)
 	}
