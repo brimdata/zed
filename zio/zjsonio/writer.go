@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 )
 
 type Object struct {
@@ -49,10 +48,10 @@ type Writer struct {
 	stream *Stream
 }
 
-func NewWriter(w io.WriteCloser, zctx *zson.Context) *Writer {
+func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{
 		writer: w,
-		stream: NewStream(zctx),
+		stream: NewStream(),
 	}
 }
 

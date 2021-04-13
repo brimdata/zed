@@ -29,7 +29,7 @@ func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	zctx := zson.NewContext()
-	out, err := getSearchOutput(w, r, zctx)
+	out, err := getSearchOutput(w, r)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -63,14 +63,13 @@ func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Reque
 		respondError(c, w, httpReq, err)
 		return
 	}
-	zctx := zson.NewContext()
-	out, err := getSearchOutput(w, httpReq, zctx)
+	out, err := getSearchOutput(w, httpReq)
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return
 	}
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := work.Run(ctx, out, zctx); err != nil {
+	if err := work.Run(ctx, out, zson.NewContext()); err != nil {
 		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
 }

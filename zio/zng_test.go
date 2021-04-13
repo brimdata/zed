@@ -49,15 +49,14 @@ func boomerang(t *testing.T, logs string, compress bool) {
 }
 
 func boomerangZJSON(t *testing.T, logs string) {
-        zctx := zson.NewContext()                                                      
-	zsonSrc := zson.NewReader(strings.NewReader(logs), zctx)
+	zsonSrc := zson.NewReader(strings.NewReader(logs), zson.NewContext())
 	var zjsonOutput Output
-	zjsonDst := zjsonio.NewWriter(&zjsonOutput, zctx)
+	zjsonDst := zjsonio.NewWriter(&zjsonOutput)
 	err := zbuf.Copy(zjsonDst, zsonSrc)
 	require.NoError(t, err)
 
 	var out Output
-	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), zctx)
+	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), zson.NewContext())
 	zsonDst := zsonio.NewWriter(&out, zsonio.WriterOpts{})
 	err = zbuf.Copy(zsonDst, zjsonSrc)
 	if assert.NoError(t, err) {

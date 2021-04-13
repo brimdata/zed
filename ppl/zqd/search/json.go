@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zjsonio"
-	"github.com/brimdata/zed/zson"
 )
 
 const MaxJSONRecords = 25000
@@ -23,9 +22,9 @@ type JSON struct {
 	stat     interface{}
 }
 
-func NewJSONOutput(resp http.ResponseWriter, mtu int, ctrl bool, zctx *zson.Context) *JSON {
+func NewJSONOutput(resp http.ResponseWriter, mtu int, ctrl bool) *JSON {
 	return &JSON{
-		stream:   zjsonio.NewStream(zctx),
+		stream:   zjsonio.NewStream(),
 		response: resp,
 		mtu:      mtu,
 		ctrl:     ctrl,

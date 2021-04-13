@@ -47,7 +47,7 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, erro
 	case "ndjson":
 		return ndjsonio.NewWriter(w), nil
 	case "zjson":
-		return zjsonio.NewWriter(w, zctx), nil
+		return zjsonio.NewWriter(w), nil
 	case "zson":
 		return zsonio.NewWriter(w, opts.ZSON), nil
 	case "zst":

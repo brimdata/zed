@@ -109,8 +109,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	zctx := zson.NewContext()
-	out, err := getSearchOutput(w, r, zctx)
+	out, err := getSearchOutput(w, r)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -123,12 +122,12 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(r.Context(), store, out, 0, c.conf.Worker, zctx); err != nil {
+	if err := srch.Run(r.Context(), store, out, 0, c.conf.Worker, zson.NewContext()); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
 
-func getSearchOutput(w http.ResponseWriter, r *http.Request, zctx *zson.Context) (search.Output, error) {
+func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, error) {
 	ctrl := true
 	if r.URL.Query().Get("noctrl") != "" {
 		ctrl = false
@@ -138,11 +137,11 @@ func getSearchOutput(w http.ResponseWriter, r *http.Request, zctx *zson.Context)
 	case "csv":
 		return search.NewCSVOutput(w, ctrl), nil
 	case "json":
-		return search.NewJSONOutput(w, search.DefaultMTU, ctrl, zctx), nil
+		return search.NewJSONOutput(w, search.DefaultMTU, ctrl), nil
 	case "ndjson":
 		return search.NewNDJSONOutput(w), nil
 	case "zjson":
-		return search.NewZJSONOutput(w, search.DefaultMTU, ctrl, zctx), nil
+		return search.NewZJSONOutput(w, search.DefaultMTU, ctrl), nil
 	case "zng":
 		return search.NewZngOutput(w, ctrl), nil
 	default:
@@ -520,7 +519,7 @@ func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer srch.Close()
 
-	out, err := getSearchOutput(w, r, zson.NewContext())
+	out, err := getSearchOutput(w, r)
 	if err != nil {
 		respondError(c, w, r, err)
 		return
@@ -560,7 +559,7 @@ func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	defer rc.Close()
 
-	out, err := getSearchOutput(w, r, zctx)
+	out, err := getSearchOutput(w, r)
 	if err != nil {
 		respondError(c, w, r, err)
 		return

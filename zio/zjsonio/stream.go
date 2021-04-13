@@ -16,24 +16,28 @@ type Stream struct {
 	typetype map[zng.Type]bool
 }
 
-func NewStream(zctx *zson.Context) *Stream {
+func NewStream() *Stream {
 	return &Stream{
-		zctx:     zctx,
+		zctx:     zson.NewContext(),
 		encoder:  make(encoder),
 		typetype: make(map[zng.Type]bool),
 	}
 }
 
 func (s *Stream) Transform(r *zng.Record) (Object, error) {
+	typ, err := s.zctx.TranslateType(r.Type)
+	if err != nil {
+		return Object{}, err
+	}
 	var types []ast.Type
-	id, t := s.typeID(r.Type)
+	id, t := s.typeID(typ)
 	if t != nil {
 		types = append(types, t)
 	}
-	if s.hasTypeType(r.Type) {
+	if s.hasTypeType(typ) {
 		types = s.appendTypeValues(types, r.Value)
 	}
-	v, err := encodeValue(s.zctx, r.Type, r.Bytes)
+	v, err := encodeValue(s.zctx, typ, r.Bytes)
 	if err != nil {
 		return Object{}, err
 	}
