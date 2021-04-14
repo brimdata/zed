@@ -1008,7 +1008,7 @@ func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zng.Type) (reflect.Type, e
 
 // MarshalReader provides a means to turn a sequence of Go values into
 // zng-marshaled records.  MarshalReader implements zbuf.Reader.  So, in
-// on goroutine, pull records from the zbuf.Reader with Read() and in
+// one goroutine, pull records from the zbuf.Reader with Read() and in
 // another supply values to the MarshalReader via the Supply() method.
 type MarshalReader struct {
 	ch        chan *zng.Record
@@ -1044,10 +1044,10 @@ func (m *MarshalReader) Supply(v interface{}) bool {
 	return true
 }
 
-func (p *MarshalReader) Read() (*zng.Record, error) {
-	rec := <-p.ch
+func (m *MarshalReader) Read() (*zng.Record, error) {
+	rec := <-m.ch
 	if rec == nil {
-		return nil, <-p.done
+		return nil, <-m.done
 	}
 	return rec, nil
 }

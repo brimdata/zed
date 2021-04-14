@@ -13,20 +13,13 @@ func NewPoolConfigReader(pools []PoolConfig) *zson.MarshalReader {
 	reader := zson.NewMarshalReader(zson.StyleSimple)
 	go func() {
 		for k := range pools {
-			if ok := reader.Supply(&pools[k]); !ok {
+			if !reader.Supply(&pools[k]) {
 				return
 			}
 		}
 		reader.Close(nil)
 	}()
 	return reader
-}
-
-// PartitionReader implements zbuf.Reader
-type PartitionReader struct {
-	ch        <-chan segment.Partition
-	done      <-chan error
-	marshaler *zson.MarshalZNGContext
 }
 
 func NewPartionReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalReader {

@@ -26,7 +26,7 @@ const (
 type PoolConfig struct {
 	Version  int            `zng:"version"`
 	Name     string         `zng:"name"`
-	Id       ksuid.KSUID    `zng:"id"`
+	ID       ksuid.KSUID    `zng:"id"`
 	Keys     []field.Static `zng:"keys"`
 	Order    zbuf.Order     `zng:"order"`
 	Treshold int64          `zng:"threshold"`
@@ -47,7 +47,7 @@ func NewPoolConfig(name string, id ksuid.KSUID, keys []field.Static, order zbuf.
 	return &PoolConfig{
 		Version:  0,
 		Name:     name,
-		Id:       id,
+		ID:       id,
 		Keys:     keys,
 		Order:    order,
 		Treshold: thresh,
@@ -55,7 +55,7 @@ func NewPoolConfig(name string, id ksuid.KSUID, keys []field.Static, order zbuf.
 }
 
 func (p *PoolConfig) Path(root iosrc.URI) iosrc.URI {
-	return root.AppendPath(p.Id.String())
+	return root.AppendPath(p.ID.String())
 }
 
 func (p *PoolConfig) Create(ctx context.Context, root iosrc.URI) error {

@@ -164,7 +164,7 @@ func Less(order zbuf.Order, a, b *Reference) bool {
 	case a.Count != b.Count:
 		return a.Count < b.Count
 	}
-	// XXX shoulf we look at segID when Id's the same?
+	// XXX should we look at segID when ID's the same?
 	// this happens when all the keys are the same and this shouldn't matter
 	return ksuid.Compare(a.ID, b.ID) < 0
 }

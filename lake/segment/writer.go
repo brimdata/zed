@@ -64,9 +64,9 @@ type indexWriter interface {
 
 type nopIndexWriter struct{}
 
-func (n nopIndexWriter) Write(*zng.Record) error { return nil }
-func (n nopIndexWriter) Close() error            { return nil }
-func (n nopIndexWriter) Abort()                  {}
+func (nopIndexWriter) Write(*zng.Record) error { return nil }
+func (nopIndexWriter) Close() error            { return nil }
+func (nopIndexWriter) Abort()                  {}
 
 func (w *Writer) Position() (int64, nano.Ts, nano.Ts) {
 	return w.rowObject.Position(), w.firstTs, w.lastTs

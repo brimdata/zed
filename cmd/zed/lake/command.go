@@ -16,7 +16,7 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "lake",
 	Usage: "lake [global options] command [options] [arguments...]",
-	Short: "create, manage, and search zed lakes",
+	Short: "create, manage, and search Zed lakes",
 	Long: `
 The "zed lake" command
 operates on collections of Zed data files partitioned by and organized

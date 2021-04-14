@@ -57,7 +57,7 @@ func Open(ctx context.Context, path iosrc.URI) (*Root, error) {
 func Create(ctx context.Context, path iosrc.URI) (*Root, error) {
 	r := newRoot(path)
 	if r.LoadConfig(ctx) == nil {
-		return nil, fmt.Errorf("%s: lake already exists", path.String())
+		return nil, fmt.Errorf("%s: lake already exists", path)
 	}
 	if err := iosrc.MkdirAll(path, 0700); err != nil {
 		return nil, err

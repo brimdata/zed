@@ -39,19 +39,19 @@ func (q *Queue) ReadHead(ctx context.Context) (ID, error) {
 	//XXX The head file can be wrong due to races but it will always be
 	// close so we should probe for the next slot(s) and update the HEAD
 	// object if we find a hit.  See issue #XXX.
-	return readId(ctx, q.headPath)
+	return readID(ctx, q.headPath)
 }
 
 func (q *Queue) writeHead(ctx context.Context, id ID) error {
-	return writeId(ctx, q.headPath, id)
+	return writeID(ctx, q.headPath, id)
 }
 
 func (q *Queue) ReadTail(ctx context.Context) (ID, error) {
-	return readId(ctx, q.tailPath)
+	return readID(ctx, q.tailPath)
 }
 
 func (q *Queue) writeTail(ctx context.Context, id ID) error {
-	return writeId(ctx, q.tailPath, id)
+	return writeID(ctx, q.tailPath, id)
 }
 
 func (q *Queue) Boundaries(ctx context.Context) (ID, ID, error) {
@@ -99,11 +99,11 @@ func (q *Queue) Load(ctx context.Context, id ID) ([]byte, error) {
 	return iosrc.ReadFile(ctx, q.uri(id))
 }
 
-func writeId(ctx context.Context, path iosrc.URI, id ID) error {
+func writeID(ctx context.Context, path iosrc.URI, id ID) error {
 	return iosrc.WriteFile(ctx, path, []byte(strconv.FormatUint(uint64(id), 10)))
 }
 
-func readId(ctx context.Context, path iosrc.URI) (ID, error) {
+func readID(ctx context.Context, path iosrc.URI) (ID, error) {
 	b, err := iosrc.ReadFile(ctx, path)
 	if err != nil {
 		return Nil, err
@@ -132,7 +132,7 @@ func Create(ctx context.Context, path iosrc.URI) (*Queue, error) {
 func Open(ctx context.Context, path iosrc.URI) (*Queue, error) {
 	q := New(path)
 	if _, err := q.ReadHead(ctx); err != nil {
-		return nil, fmt.Errorf("%s: no such journal", path.String())
+		return nil, fmt.Errorf("%s: no such journal", path)
 	}
 	return q, nil
 }

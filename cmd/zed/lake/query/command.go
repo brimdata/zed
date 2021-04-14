@@ -24,7 +24,7 @@ var Query = &charm.Spec{
 	Usage: "query [options] zql [path...]",
 	Short: "run a Zed program over a data lake",
 	Long: `
-"zed lake query" executes a zed query against data in a data lake.
+"zed lake query" executes a Zed query against data in a data lake.
 `,
 	New: New,
 }

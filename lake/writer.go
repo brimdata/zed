@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/segment"
-	"github.com/brimdata/zed/proc/sort"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
@@ -16,9 +15,6 @@ import (
 )
 
 var (
-	// ImportBufSize specifies the max size of the records buffered during import
-	// before they are flushed to disk.
-	ImportBufSize          = int64(sort.MemMaxBytes)
 	ImportStreamRecordsMax = zngio.DefaultStreamRecordsMax
 
 	// For unit testing.
@@ -27,18 +23,10 @@ var (
 
 const defaultCommitTimeout = time.Second * 5
 
-// Writer is a zbuf.Writer that partitions records by day into the
-// appropriate tsDirWriter. Writer keeps track of the overall memory
-// footprint of the collection of tsDirWriter and instructs the tsDirWriter
-// with the largest footprint to spill its records to a temporary file on disk.
-//
-// TODO issue 1432 Writer does not currently keep track of size of records
-// written to temporary files. At some point this should have a maxTempFileSize
-// to ensure the Writer does not exceed the size of a provisioned tmpfs.
-//
-// XXX When the expected size of writing the records is greater than
-// lk.LogSizeThreshold, they are written to a chunk file in
-// the archive.
+// Writer is a zbuf.Writer that consumes records into memory according to
+// the pools segment threshold, sorts each resulting buffer, and writes
+// it as an immutable object to the storage system.  The presumption is that
+// each buffer's worth of data fits into memory.
 type Writer struct {
 	pool        *Pool
 	segments    []segment.Reference
@@ -74,13 +62,12 @@ func NewWriter(ctx context.Context, pool *Pool) (*Writer, error) {
 	g, ctx := errgroup.WithContext(ctx)
 	ch := make(chan []*zng.Record, 1)
 	ch <- nil
-	w := &Writer{
+	return &Writer{
 		pool:     pool,
 		ctx:      ctx,
 		errgroup: g,
 		buffer:   ch,
-	}
-	return w, nil
+	}, nil
 }
 
 func (w *Writer) Segments() []segment.Reference {
@@ -119,9 +106,8 @@ func (w *Writer) flipBuffers() {
 	recs := w.records
 	w.records = oldrecs[:0]
 	w.memBuffered = 0
-	seg := w.newSegment()
 	w.errgroup.Go(func() error {
-		err := w.writeObject(seg, recs)
+		err := w.writeObject(w.newSegment(), recs)
 		w.buffer <- recs
 		return err
 	})
@@ -134,11 +120,7 @@ func (w *Writer) Close() error {
 		w.flipBuffers()
 	}
 	// Wait for any pending write to finish.
-	err := w.errgroup.Wait()
-	if err != nil {
-		return err
-	}
-	return err
+	return w.errgroup.Wait()
 }
 
 func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
@@ -148,7 +130,6 @@ func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
 	// Set first and last key values after the sort.
 	seg.First = recs[0].Ts()
 	seg.Last = recs[len(recs)-1].Ts()
-	r := zbuf.Array(recs).NewReader()
 	writer, err := seg.NewWriter(w.ctx, w.pool.DataPath, segment.WriterOpts{
 		Order: w.pool.Order,
 		Zng: zngio.WriterOpts{
@@ -159,6 +140,7 @@ func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
 	if err != nil {
 		return err
 	}
+	r := zbuf.Array(recs).NewReader()
 	if err := zbuf.CopyWithContext(w.ctx, writer, r); err != nil {
 		writer.Abort()
 		return err
@@ -167,7 +149,7 @@ func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
 		return err
 	}
 	w.stats.Accumulate(ImportStats{
-		DataChunksWritten:  1,
+		SegmentsWritten:    1,
 		RecordBytesWritten: writer.BytesWritten(),
 		RecordsWritten:     int64(writer.RecordsWritten()),
 	})
@@ -179,20 +161,20 @@ func (w *Writer) Stats() ImportStats {
 }
 
 type ImportStats struct {
-	DataChunksWritten  int64
+	SegmentsWritten    int64
 	RecordBytesWritten int64
 	RecordsWritten     int64
 }
 
 func (s *ImportStats) Accumulate(b ImportStats) {
-	atomic.AddInt64(&s.DataChunksWritten, b.DataChunksWritten)
+	atomic.AddInt64(&s.SegmentsWritten, b.SegmentsWritten)
 	atomic.AddInt64(&s.RecordBytesWritten, b.RecordBytesWritten)
 	atomic.AddInt64(&s.RecordsWritten, b.RecordsWritten)
 }
 
 func (s *ImportStats) Copy() ImportStats {
 	return ImportStats{
-		DataChunksWritten:  atomic.LoadInt64(&s.DataChunksWritten),
+		SegmentsWritten:    atomic.LoadInt64(&s.SegmentsWritten),
 		RecordBytesWritten: atomic.LoadInt64(&s.RecordBytesWritten),
 		RecordsWritten:     atomic.LoadInt64(&s.RecordsWritten),
 	}

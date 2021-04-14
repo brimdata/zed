@@ -2,7 +2,7 @@ package commit
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"io"
 
 	"github.com/brimdata/zed/lake/commit/actions"
@@ -72,7 +72,7 @@ func (t Transaction) Serialize() ([]byte, error) {
 	}
 	b := writer.Bytes()
 	if len(b) == 0 {
-		return nil, fmt.Errorf("empty transaction")
+		return nil, errors.New("empty transaction")
 	}
 	return b, nil
 }
