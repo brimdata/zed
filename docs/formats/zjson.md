@@ -210,6 +210,17 @@ A Zed union type is defined by a JSON object having the form
 where the list of types comprise the types of the union and
 and each `<type>`is a recursively encoded type.
 
+#### Map Type
+
+A Zed map type is defined by a JSON object of the form
+```
+{
+  "kind": "map",
+  "key_type": <type>,
+  "val_type": <type>
+}
+```
+
 #### Enum Type
 
 A Zed enum type is a JSON object of the form
