@@ -551,8 +551,7 @@ func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	zctx := zson.NewContext()
-	rc, err := as.ArchiveStat(r.Context(), zctx)
+	rc, err := as.ArchiveStat(r.Context(), zson.NewContext())
 	if err != nil {
 		respondError(c, w, r, err)
 		return

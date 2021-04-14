@@ -81,8 +81,8 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 
 	statsTicker := time.NewTicker(StatsInterval)
 	defer statsTicker.Stop()
-
 	zctx := zson.NewContext()
+
 	switch st := store.(type) {
 	case *archivestore.Storage:
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
