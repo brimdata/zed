@@ -6,7 +6,6 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/cli/outputflags"
 	apicmd "github.com/brimdata/zed/cmd/zed/api"
-	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/emitter"
@@ -58,10 +57,12 @@ type FindCmd struct {
 	outputFlags   outputflags.Flags
 }
 
+const DefaultAddPathField = "_path"
+
 func NewFind(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &FindCmd{Command: parent.(*Command).Command}
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
-	f.StringVar(&c.pathField, "l", lake.DefaultAddPathField, "zng field name for path name of log file")
+	f.StringVar(&c.pathField, "l", DefaultAddPathField, "zng field name for path name of log file")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
 
 	c.outputFlags.SetFlags(f)

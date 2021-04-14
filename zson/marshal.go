@@ -274,6 +274,8 @@ func (m *MarshalZNGContext) NamedBindings(bindings []Binding) error {
 	return nil
 }
 
+var nanoTsType = reflect.TypeOf(nano.Ts(0))
+
 func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zng.Type, error) {
 	typ, err := m.encodeAny(v)
 	if err != nil {
@@ -289,6 +291,11 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zng.Type, error) {
 		name := v.Type().Name()
 		kind := v.Kind().String()
 		if name != "" && name != kind {
+			// We do not want to further decorate nano.Ts as
+			// it's already been converted to a Zed time.
+			if v.Type() == nanoTsType {
+				return typ, nil
+			}
 			path := v.Type().PkgPath()
 			var alias string
 			if m.bindings != nil {
@@ -997,4 +1004,50 @@ func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zng.Type) (reflect.Type, e
 		return nil, fmt.Errorf("unknown zng type: %v", typ)
 	}
 	return reflect.TypeOf(v), nil
+}
+
+// MarshalReader provides a means to turn a sequence of Go values into
+// zng-marshaled records.  MarshalReader implements zbuf.Reader.  So, in
+// one goroutine, pull records from the zbuf.Reader with Read() and in
+// another supply values to the MarshalReader via the Supply() method.
+type MarshalReader struct {
+	ch        chan *zng.Record
+	done      chan error
+	marshaler *MarshalZNGContext
+}
+
+func NewMarshalReader(style TypeStyle) *MarshalReader {
+	m := NewZNGMarshaler()
+	m.Decorate(style)
+	return &MarshalReader{
+		ch:        make(chan *zng.Record),
+		done:      make(chan error),
+		marshaler: m,
+	}
+}
+
+func (m *MarshalReader) Close(err error) {
+	close(m.ch)
+	if err != nil {
+		m.done <- err
+	}
+	close(m.done)
+}
+
+func (m *MarshalReader) Supply(v interface{}) bool {
+	rec, err := m.marshaler.MarshalRecord(v)
+	if rec == nil || err != nil {
+		m.Close(err)
+		return false
+	}
+	m.ch <- rec
+	return true
+}
+
+func (m *MarshalReader) Read() (*zng.Record, error) {
+	rec := <-m.ch
+	if rec == nil {
+		return nil, <-m.done
+	}
+	return rec, nil
 }

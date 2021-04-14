@@ -1,21 +1,13 @@
 package index
 
 import (
-	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"os"
-	"sync"
 
 	"github.com/brimdata/zed/cli/procflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/rlimit"
-	"github.com/brimdata/zed/pkg/signalctx"
 )
 
 var Create = &charm.Spec{
@@ -23,6 +15,8 @@ var Create = &charm.Spec{
 	Usage: "create [-R root] [options] [-z zql] [ pattern [ pattern ...]]",
 	Short: "create index rule for archive chunk files",
 	Long: `
+TBD: update this help: Issue #2532
+
 "zar index create" creates index files in a zar archive using one or more indexing
 rules.
 
@@ -44,7 +38,7 @@ requires specifying the key and output file name. For example:
 
 type CreateCommand struct {
 	*zedlake.Command
-	displayer  displayer
+	//displayer  displayer
 	framesize  int
 	inputFile  string
 	keys       string
@@ -65,57 +59,61 @@ func NewCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.inputFile, "i", "_", "input file relative to each zar directory ('_' means archive log file in the parent of the zar directory)")
 	f.BoolVar(&c.noapply, "noapply", false, "create index rules but do not apply them to the archive")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of microindex output file (for custom indexes)")
-	f.BoolVar(&c.displayer.quiet, "q", false, "don't print progress on stdout")
+	//f.BoolVar(&c.displayer.quiet, "q", false, "don't print progress on stdout")
 	f.StringVar(&c.zql, "z", "", "zql for custom indexes")
 	c.procFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *CreateCommand) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(&c.procFlags); err != nil {
-		return err
-	}
-	if len(args) == 0 && c.zql == "" && !c.ensure {
-		return errors.New("unless -ensure is specified, one or more indexing patterns must be specified")
-	}
-	if c.root == "" {
-		return errors.New("a directory must be specified with -R or ZED_LAKE_ROOT")
-	}
-	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return err
-	}
+	return errors.New("issue #2532")
+	/*
+		defer c.Cleanup()
+		if err := c.Init(&c.procFlags); err != nil {
+			return err
+		}
+		if len(args) == 0 && c.zql == "" && !c.ensure {
+			return errors.New("unless -ensure is specified, one or more indexing patterns must be specified")
+		}
+		if c.root == "" {
+			return errors.New("a directory must be specified with -R or ZED_LAKE_ROOT")
+		}
+		if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
+			return err
+		}
 
-	lk, err := lake.OpenLake(c.root, nil)
-	if err != nil {
-		return err
-	}
-
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
-
-	defs, err := c.addRules(ctx, lk, args)
-	if err != nil {
-		return err
-	}
-
-	if c.noapply {
-		return nil
-	}
-
-	if c.ensure {
-		defs, err = lk.ReadDefinitions(ctx)
+		lk, err := lake.OpenLake(c.root, nil)
 		if err != nil {
 			return err
 		}
-	}
 
-	c.displayer.run()
-	defer c.displayer.close()
+		ctx, cancel := signalctx.New(os.Interrupt)
+		defer cancel()
 
-	return lake.WriteIndices(ctx, lk, c.displayer.ch, defs...)
+		defs, err := c.addRules(ctx, lk, args)
+		if err != nil {
+			return err
+		}
+
+		if c.noapply {
+			return nil
+		}
+
+		if c.ensure {
+			defs, err = lk.ReadDefinitions(ctx)
+			if err != nil {
+				return err
+			}
+		}
+
+		c.displayer.run()
+		defer c.displayer.close()
+
+		return lake.WriteIndices(ctx, lk, c.displayer.ch, defs...)
+	*/
 }
 
+/* NOT YET
 func (c *CreateCommand) addRules(ctx context.Context, lk *lake.Lake, args []string) ([]*index.Definition, error) {
 	if len(args) == 0 && c.zql == "" {
 		return nil, nil
@@ -171,3 +169,4 @@ func (d *displayer) close() {
 	close(d.ch)
 	d.wg.Wait()
 }
+*/

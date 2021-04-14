@@ -10,7 +10,7 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
-	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/glob"
 	"github.com/brimdata/zed/pkg/units"
 )
@@ -27,7 +27,7 @@ type SpaceCreateFlags struct {
 }
 
 func (f *SpaceCreateFlags) SetFlags(fs *flag.FlagSet) {
-	f.thresh = lake.DefaultLogSizeThreshold
+	f.thresh = segment.DefaultThreshold
 	fs.Var(&f.kind, "k", "kind of storage for this space")
 	fs.StringVar(&f.datapath, "d", "", "specific directory for storage data")
 	fs.Var(&f.thresh, "thresh", "target size of chopped files, as '10MB', '4GiB', etc.")

@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/ppl/zqd/search"
 	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
 	"github.com/brimdata/zed/zqe"
@@ -51,12 +52,23 @@ func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Reque
 		return
 	}
 	ctx := httpReq.Context()
-	lk, err := lake.OpenLakeWithContext(ctx, req.DataPath, &lake.OpenOptions{})
+	//XXX we need root path here and lake name etc
+	root, err := iosrc.ParseURI(req.DataPath)
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return
 	}
-	work, err := search.NewWorkerOp(ctx, req, archivestore.NewStorage(lk), c.requestLogger(httpReq))
+	lk, err := lake.Open(ctx, root) //XXX
+	if err != nil {
+		respondError(c, w, httpReq, err)
+		return
+	}
+	pool, err := lk.OpenPool(ctx, "BUG") //XXX
+	if err != nil {
+		respondError(c, w, httpReq, err)
+		return
+	}
+	work, err := search.NewWorkerOp(ctx, req, archivestore.NewStorage(pool), c.requestLogger(httpReq))
 	if err != nil {
 		respondError(c, w, httpReq, err)
 		return

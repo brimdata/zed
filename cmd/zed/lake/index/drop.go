@@ -1,17 +1,12 @@
 package index
 
 import (
-	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"os"
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/segmentio/ksuid"
 )
 
 var Drop = &charm.Spec{
@@ -19,6 +14,8 @@ var Drop = &charm.Spec{
 	Usage: "drop [-R root] [options] id... ",
 	Short: "drop index defintion(s) from archive",
 	Long: `
+TBD: update this help: Issue #2532
+
 "zar index drop" removes an index definition from the archive then walks through
 the tree removing referenced index files.
 
@@ -47,9 +44,11 @@ func NewDrop(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *DropCommand) Run(args []string) error {
-	return c.run(args)
+	return errors.New("issue #2532")
+	//	return c.run(args)
 }
 
+/* NOT YET
 func (c *DropCommand) run(args []string) error {
 	defer c.Cleanup()
 	if err := c.Init(); err != nil {
@@ -110,3 +109,4 @@ func (c *DropCommand) displayProgress() {
 		fmt.Println(line)
 	}
 }
+*/

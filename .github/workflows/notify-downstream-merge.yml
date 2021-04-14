@@ -1,0 +1,41 @@
+name: Notify Downstream
+
+# https://help.github.com/en/actions/reference/events-that-trigger-workflows#pull-request-event-pull_request
+# Use pull_request because it contains more interesting metadata than a
+# push event.
+on:
+  pull_request:
+    branches:
+      - main
+    types: closed
+
+jobs:
+  build:
+    runs-on: ubuntu-18.04
+    strategy:
+      matrix:
+        repo: [brim, brimcap]
+    steps:
+    - name: Populate "merged" variable
+      run: |
+        # GITHUB_EVENT_PATH
+        # https://help.github.com/en/actions/configuring-and-managing-workflows/using-environment-variables
+        # The path of the file with the complete webhook event payload. For example, /github/workflow/event.json
+        #
+        # Pull request event
+        # https://developer.github.com/v3/activity/events/types/#pullrequestevent
+        # Pull request
+        # https://developer.github.com/v3/pulls/
+        merged=$(jq .pull_request.merged "${GITHUB_EVENT_PATH}")
+        echo "::set-output name=merged::$merged"
+      id: vars
+    - name: Post PR closed event, if the close was a merge
+      if: steps.vars.outputs.merged == 'true'
+      run: |
+        jq '.' "${GITHUB_EVENT_PATH}"
+        # Get what we want from the pull request event, craft a
+        # repository dispatch event, and send it.
+        # https://help.github.com/en/actions/reference/events-that-trigger-workflows#external-events-repository_dispatch
+        # https://developer.github.com/v3/repos/#create-a-repository-dispatch-event
+        jq '.pull_request | { "event_type": "zed-pr-merged", "client_payload": {body, "branch": .head.ref, merge_commit_sha, number, title, "url": .html_url, "user": .user.login}}' "${GITHUB_EVENT_PATH}" > payload.json
+        curl -XPOST -u "${{ secrets.PAT_USERNAME }}:${{ secrets.PAT_TOKEN }}" -H "Accept: application/vnd.github.v3+json"  -H "Content-Type: application/json" https://api.github.com/repos/brimdata/${{ matrix.repo }}/dispatches --data @payload.json

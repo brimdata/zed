@@ -1,50 +1,44 @@
-package lake
+package lake_test
 
 import (
-	"bytes"
 	"context"
-	"os"
-	"path"
-	"path/filepath"
 	"testing"
 
-	zedindex "github.com/brimdata/zed/index"
-	"github.com/brimdata/zed/lake/chunk"
-	"github.com/brimdata/zed/lake/immcache"
-	"github.com/brimdata/zed/lake/index"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/pkg/promtest"
-	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
-	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 const babble = "../testdata/babble.zson"
 
-func createArchiveSpace(t *testing.T, datapath string, srcfile string, co *CreateOptions) {
-	lk, err := CreateOrOpenLake(datapath, co, nil)
+func createLake(t *testing.T, rootPath iosrc.URI, srcfile string) {
+	ctx := context.Background()
+	lk, err := lake.Create(ctx, rootPath)
 	require.NoError(t, err)
-
-	importTestFile(t, lk, srcfile)
+	pool, err := lk.CreatePool(ctx, "test", field.DottedList("ts"), zbuf.OrderAsc, 0)
+	require.NoError(t, err)
+	importTestFile(t, pool, srcfile)
 }
 
-func importTestFile(t *testing.T, lk *Lake, srcfile string) {
+func importTestFile(t *testing.T, pool *lake.Pool, srcfile string) {
 	zctx := zson.NewContext()
 	reader, err := detector.OpenFile(zctx, srcfile, zio.ReaderOpts{})
 	require.NoError(t, err)
 	defer reader.Close()
 
-	err = Import(context.Background(), lk, zctx, reader)
+	ctx := context.Background()
+	stagingID, err := pool.Add(ctx, zctx, reader)
+	require.NoError(t, err)
+	err = pool.Commit(ctx, stagingID, 0, "", "")
 	require.NoError(t, err)
 }
 
+/* NOT YET
 func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 	rule, err := index.NewRule(ruledef)
 	require.NoError(t, err)
@@ -55,11 +49,13 @@ func indexArchiveSpace(t *testing.T, datapath string, ruledef string) {
 	err = ApplyRules(context.Background(), lk, nil, rule)
 	require.NoError(t, err)
 }
+*/
 
-func indexQuery(t *testing.T, lk *Lake, patterns []string, opts ...FindOption) string {
+/* NOT YET
+func indexQuery(t *testing.T, pool *Pool, patterns []string, opts ...FindOption) string {
 	q, err := index.ParseQuery("", patterns)
 	require.NoError(t, err)
-	rc, err := FindReadCloser(context.Background(), zson.NewContext(), lk, q, opts...)
+	rc, err := FindReadCloser(context.Background(), zson.NewContext(), pool, q, opts...)
 	require.NoError(t, err)
 	defer rc.Close()
 
@@ -69,10 +65,13 @@ func indexQuery(t *testing.T, lk *Lake, patterns []string, opts ...FindOption) s
 
 	return buf.String()
 }
+*/
 
+/* NOT YET
 func TestMetadataCache(t *testing.T) {
-	datapath := t.TempDir()
-	createArchiveSpace(t, datapath, babble, nil)
+	rootpath := t.TempDir()
+	testName := "test-" + ksuid.New()
+	createlake(t, rootpath, babble, nil)
 	reg := prometheus.NewRegistry()
 	icache, err := immcache.NewLocalCache(128, reg)
 	require.NoError(t, err)
@@ -95,7 +94,9 @@ func TestMetadataCache(t *testing.T) {
 	assert.EqualValues(t, 2, misses)
 	assert.EqualValues(t, 6, hits)
 }
+*/
 
+/* NOT YET
 func TestSeekIndex(t *testing.T) {
 	datapath := t.TempDir()
 
@@ -104,7 +105,7 @@ func TestSeekIndex(t *testing.T) {
 	defer func() {
 		ImportStreamRecordsMax = orig
 	}()
-	createArchiveSpace(t, datapath, babble, nil)
+	createLake(t, datapath, babble, nil)
 	_, err := OpenLake(datapath, &OpenOptions{})
 	require.NoError(t, err)
 
@@ -114,13 +115,13 @@ func TestSeekIndex(t *testing.T) {
 		if err != nil {
 			return err
 		}
-		if k, id, ok := chunk.FileMatch(fi.Name()); ok && k == chunk.FileKindMetadata {
+		if k, id, ok := segment.FileMatch(fi.Name()); ok && k == segment.FileKindMetadata {
 			uri, err := iosrc.ParseURI(p)
 			if err != nil {
 				return err
 			}
 			uri.Path = path.Dir(uri.Path)
-			chunk, err := chunk.Open(context.Background(), uri, id, zbuf.OrderDesc)
+			chunk, err := segment.Open(context.Background(), uri, id, zbuf.OrderDesc)
 			if err != nil {
 				return err
 			}
@@ -148,3 +149,4 @@ func TestSeekIndex(t *testing.T) {
 `
 	require.Equal(t, test.Trim(exp), buf.String())
 }
+*/

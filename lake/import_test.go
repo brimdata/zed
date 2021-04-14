@@ -1,18 +1,6 @@
 package lake
 
-import (
-	"context"
-	"math"
-	"strings"
-	"testing"
-	"time"
-
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zson"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-)
-
+/*
 func TestImportStaleDuration(t *testing.T) {
 	t.Run("Stale", func(t *testing.T) {
 		testImportStaleDuration(t, 0, 1)
@@ -44,3 +32,4 @@ func testImportStaleDuration(t *testing.T, stale time.Duration, expected uint64)
 	require.NoError(t, err)
 	assert.EqualValues(t, expected, count)
 }
+*/

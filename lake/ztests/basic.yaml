@@ -1,5 +1,8 @@
+skip: issue 2532
+
 script: |
-  mkdir logs
+  zed lake new -R lake
+  zed lake new -R lake -p test
   zed lake import -R logs babble.zson
   echo ===
   zed lake index create -R logs -q v

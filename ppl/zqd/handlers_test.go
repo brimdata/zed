@@ -623,6 +623,7 @@ func TestSpaceDataDir(t *testing.T) {
 }
 
 func TestCreateArchiveSpace(t *testing.T) {
+	t.Skip("issue #2535")
 	thresh := int64(1000)
 	_, conn := newCore(t)
 
@@ -665,6 +666,7 @@ func TestCreateArchiveSpace(t *testing.T) {
 }
 
 func TestArchiveInProcessCache(t *testing.T) {
+	t.Skip("issue #2536")
 	const expcount = `
 {count:1000 (uint64)} (=0)
 `
@@ -718,6 +720,7 @@ func TestBlankNameSpace(t *testing.T) {
 }
 
 func TestIndexSearch(t *testing.T) {
+	t.Skip("issue #2532")
 	thresh := int64(1000)
 	root := createTempDir(t)
 
@@ -759,6 +762,7 @@ func TestIndexSearch(t *testing.T) {
 }
 
 func TestArchiveStat(t *testing.T) {
+	t.Skip("issue #2534")
 	thresh := int64(20 * 1024)
 	root := createTempDir(t)
 	_, conn := newCoreAtDir(t, root)

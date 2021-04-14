@@ -22,7 +22,7 @@ outputs:
         name:         testsp
         storage_kind: archivestore
         span:         2020-04-21T22:40:30Z+2h43m9.993714061s
-        size:         34.20KB
+        size:         34.33KB
         pcap_support: false
         pcap_size:    0B
       ===

@@ -1,3 +1,5 @@
+skip: issue 2540... need to delete by key range
+
 script: |
   mkdir logs
   source minio.sh

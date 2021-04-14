@@ -1,10 +1,10 @@
 script: |
-  mkdir logs
   source minio.sh
-  zed lake import -R logs -data s3://bucket/lake_test babble.zson
-  zed lake map -R logs -o count.zng "count()"
-  echo ===
-  zed lake ls -R logs -ranges -l
+  export ZED_LAKE_ROOT=s3://bucket/lake_test
+  zed lake init -q
+  zed lake create -q -p logs
+  zed lake load -q -p logs  babble.zson
+  zed lake query -p logs -z "count()"
 
 inputs:
   - name: babble.zson
@@ -15,6 +15,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      ===
-      [1587518620062237300-1587513611063914690]/count.zng
-      [1587513592062544400-1587508830068523240]/count.zng
+      {count:1000 (uint64)} (=0)
