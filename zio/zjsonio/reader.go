@@ -59,7 +59,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 		return nil, fmt.Errorf("undefined schema ID: %s", rec.Schema)
 	}
 	if !zng.IsRecordType(typ) {
-		return nil, fmt.Errorf("zjson outer type is not a record: %s", zson.FormatType(typ))
+		return nil, fmt.Errorf("ZJSON outer type is not a record: %s", zson.FormatType(typ))
 	}
 	r.builder.Reset()
 	if err := decodeValue(r.builder, typ, rec.Values); err != nil {

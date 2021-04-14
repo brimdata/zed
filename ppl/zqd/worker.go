@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/search"
 	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
 	"github.com/brimdata/zed/zqe"
-	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
 )
 
@@ -28,7 +27,6 @@ func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		respondError(c, w, r, err)
 		return
 	}
-	zctx := zson.NewContext()
 	out, err := getSearchOutput(w, r)
 	if err != nil {
 		respondError(c, w, r, err)
@@ -40,7 +38,7 @@ func handleWorkerRootSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(r.Context(), store, out, req.MaxWorkers, c.conf.Worker, zctx); err != nil {
+	if err := srch.Run(r.Context(), store, out, req.MaxWorkers, c.conf.Worker); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
@@ -69,7 +67,7 @@ func handleWorkerChunkSearch(c *Core, w http.ResponseWriter, httpReq *http.Reque
 		return
 	}
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := work.Run(ctx, out, zson.NewContext()); err != nil {
+	if err := work.Run(ctx, out); err != nil {
 		c.requestLogger(httpReq).Warn("Error writing response", zap.Error(err))
 	}
 }

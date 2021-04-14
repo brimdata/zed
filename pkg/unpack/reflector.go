@@ -21,15 +21,11 @@ func New(templates ...interface{}) Reflector {
 }
 
 func (r Reflector) Add(template interface{}) Reflector {
-	return r.addAs(template, "")
+	return r.AddAs(template, "")
 }
 
 // Override the unpack value tag with the as argument.
 func (r Reflector) AddAs(template interface{}, as string) Reflector {
-	return r.addAs(template, as)
-}
-
-func (r Reflector) addAs(template interface{}, as string) Reflector {
 	typ := reflect.TypeOf(template)
 	unpackKey, unpackVal, skip, err := structToUnpackRule(typ)
 	if err != nil {

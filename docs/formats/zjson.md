@@ -7,12 +7,13 @@
     - [Set Type](#set-type)
     - [Union type](#union-type)
     - [Enum Type](#enum-type)
-  + [Alias Encoding](#alias-encoding)
+    - [Type Definition](#type-definition)
+    - [Type Name](#type-name)
   + [Value Encoding](#value-encoding)
 * [Framing ZJSON objects](#framing-zjson-objects)
 * [Example](#example)
 
-The Zed data model is based on richly typed records and a deterministic column order,
+The Zed data model is based on richly typed records with a deterministic column order,
 as is implemented by the ZSON, ZNG, and ZST formats.
 Given the ubiquity of JSON, it is desirable to also be able to serialize
 Zed data into the JSON format.   However, encoding Zed data values
@@ -68,9 +69,9 @@ While JSON is well suited for data exchange of generic information, it is not
 so appropriate for a structured data model like Zed.
 That said, JSON can be used as an encoding format for Zed by mapping Zed data
 onto a JSON-based protocol.  This allows clients like web apps or
-electron apps to receive and understand Zed and, with the help of client
+Electron apps to receive and understand Zed and, with the help of client
 libraries like [zealot](https://github.com/brimdata/brim/tree/master/zealot),
-to be enabled with rich, structured Zed types that are implemented on top of
+to manipulate the rich, structured Zed types that are implemented on top of
 the basic JavaScript types.
 
 In other words,
@@ -97,7 +98,7 @@ ZJSON format.
 A ZJSON stream is defined as a sequence of JSON objects where each object
 represents a Zed value.  Each object includes an identifier that denotes
 its type, or _schema_.  A schema generically refers to the type of the
-Zed record that is defined by a given JSON object.
+Zed value that is defined by a given JSON object.
 
 Each object contains the following fields:
 * `schema` a name encoded as a JSON string indicating the type that
@@ -124,7 +125,7 @@ Objects in a ZJSON stream have the following JSON structure:
 
 ### Type Encoding
 
-The type format follows the terminology in the ZSON spec, where primitive types
+The type format follows the terminology in the [ZSON spec](zson.md), where primitive types
 represent concrete values like strings, integers, times, and so forth, while
 complex types are composed of primitive types and/or other complex types, e.g.,
 records, sets, arrays, and unions.
@@ -221,8 +222,8 @@ A Zed enum type is a JSON object of the form
 
 #### Type Definition
 
-A type definitions is encoded as a binding between a name and a Zed type
-and represents a new type so named.  A type definition type has the form:
+A type definition is encoded as a binding between a name and a Zed type
+and represents a new type so named.  A type definition type has the form
 ```
 {
   "kind": "typedef",
@@ -232,15 +233,15 @@ and represents a new type so named.  A type definition type has the form:
 ```
 where `<id>` is a JSON string representing the newly defined type name
 and `<type>` is a recursively encoded type.
-If `<id>` is a non-integer string, then it is a "type name" that is a user visible
-type name.  If it is an integer, then it is is not user visible and is used  
-exclusively to collate firt-class Zed type values in the value array with
+If `<id>` is a non-integer string, then it is a user-visible
+type name.  If it is an integer string, then it is not user-visible and is used  
+exclusively to correlate first-class Zed type values in a values array with
 their corresponding type.
 
 #### Type Name
 
-A type reference is encoded as refer to a previously defined type definition.
-and has the form:
+A type reference is encoded as a reference to a previously defined type definition
+and has the form
 ```
 {
   "kind": "typename",
@@ -255,10 +256,12 @@ The primitive values comprising an arbitrarily complex Zed data value are encode
 as a JSON array of strings mixed with nested JSON arrays whose structure
 conforms to the nested structure of the value's schema as follows:
 * each record, array, and set is encoded as a JSON array of its composite values,
-* a union is encoded as a string of the form '<selector:<value>>' where `selector`
+* a union is encoded as a string of the form `<selector:<value>>` where `selector`
 is an integer string representing the positional index in the union's list of
 types that specifies the type of `<value>`, which is a JSON string or array
 as described recursively herein,
+* a map is encoded as a list of keys of values where each the key and the value
+alternate in sequence as elements of an array that are recursively encoded,
 * a type value is encoded as its integer type identifier represented as a string, and
 * each primitive that is not a type value
 is encoded as a string conforming to its ZSON representation, as described in the
@@ -274,16 +277,16 @@ and an array of union of string, and float64 --- might have a value that looks l
 
 A sequence of ZJSON objects may be framed in two primary ways.
 
-First, they can simply be a sequence of newline delimited JSON where
+First, they can simply be [newline delimited JSON (NDJSON)](http://ndjson.org/), where
 each object is transmitted as a single line terminated with a newline character,
-e.g., the [zq](https://github.com/brimdata/zed) CLI command writes its
+e.g., the [zq](https://github.com/brimdata/zed/tree/main/cmd/zq) CLI command writes its
 ZJSON output as lines of NDJSON.
 
 Second, the objects may be encoded in a JSON array embedded in some other
 JSON-framed protocol, e.g., embedded in the the search results messages
 of the [zqd REST API](../../api/api.go).
 
-It is up to an implementation to determine how the ZJSON
+It is up to an implementation to determine how ZJSON
 objects are framed according to its particular use case.
 
 ## Example
@@ -299,7 +302,7 @@ nesting, records, array, and union:
 {s:"gracie",r:{x:{u:12 (int32)}}} (8)
 ```
 
-This data is represented in ZJSON as follows;
+This data is represented in ZJSON as follows:
 
 ```
 {

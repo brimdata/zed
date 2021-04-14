@@ -123,8 +123,7 @@ func (s *Stream) appendTypeValues(types []ast.Type, zv zng.Value) []ast.Type {
 				// this shouldn't happen
 				return nil
 			}
-			_, t := s.typeID(typ)
-			if t != nil {
+			if _, t := s.typeID(typ); t != nil {
 				types = append(types, t)
 			}
 		}

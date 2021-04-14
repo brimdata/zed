@@ -53,7 +53,7 @@ func NewWorkerOp(ctx context.Context, req api.WorkerChunkRequest, st storage.Sto
 	}, nil
 }
 
-func (w *WorkerOp) Run(ctx context.Context, output Output, zctx *zson.Context) (err error) {
+func (w *WorkerOp) Run(ctx context.Context, output Output) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -70,7 +70,7 @@ func (w *WorkerOp) Run(ctx context.Context, output Output, zctx *zson.Context) (
 	statsTicker := time.NewTicker(StatsInterval)
 	defer statsTicker.Stop()
 
-	return driver.MultiRun(ctx, d, w.proc, zctx, w.store.StaticSource(w.src), driver.MultiConfig{
+	return driver.MultiRun(ctx, d, w.proc, zson.NewContext(), w.store.StaticSource(w.src), driver.MultiConfig{
 		Logger:    w.logger,
 		Span:      w.span,
 		StatsTick: statsTicker.C,

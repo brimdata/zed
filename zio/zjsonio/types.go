@@ -112,7 +112,7 @@ func (d decoder) decodeType(zctx *zson.Context, typ ast.Type) (zng.Type, error) 
 	case *ast.TypeName:
 		t := zctx.LookupTypeDef(typ.Name)
 		if typ == nil {
-			return nil, fmt.Errorf("zjson decoder: no such type name: %s", typ.Name)
+			return nil, fmt.Errorf("ZJSON decoder: no such type name: %s", typ.Name)
 		}
 		return t, nil
 	case *ast.TypeDef:
@@ -128,11 +128,11 @@ func (d decoder) decodeType(zctx *zson.Context, typ ast.Type) (zng.Type, error) 
 	case *ast.TypePrimitive:
 		t, err := zctx.LookupByName(typ.Name)
 		if err != nil {
-			return nil, errors.New("zjson unknown type: " + typ.Name)
+			return nil, errors.New("ZJSON unknown type: " + typ.Name)
 		}
 		return t, nil
 	}
-	return nil, fmt.Errorf("zjson unknown type: %T", typ)
+	return nil, fmt.Errorf("ZJSON unknown type: %T", typ)
 }
 
 func (d decoder) decodeTypeRecord(zctx *zson.Context, typ *ast.TypeRecord) (*zng.TypeRecord, error) {

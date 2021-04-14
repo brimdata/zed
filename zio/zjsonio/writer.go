@@ -32,7 +32,7 @@ func unmarshal(b []byte) (*Object, error) {
 		}
 		typ, ok := object.(ast.Type)
 		if !ok {
-			return nil, fmt.Errorf("zjson: types object is not a type: %s", string(b))
+			return nil, fmt.Errorf("ZJSON types object is not a type: %s", string(b))
 		}
 		types = append(types, typ)
 	}
