@@ -371,7 +371,7 @@ conn  2018-03-24T17:35:07.721609Z CCbNQn22j5UPZ4tute 10.47.26.25 59095     208.7
 
 ### Comparisons
 
-In addition to testing for equality and pattern matching via `=`, other common comparison operators `!=`, `<`, `>`, `<=`, and `=>` are also available.
+In addition to testing for equality and pattern matching via `=`, other common comparison operators `!=`, `<`, `>`, `<=`, and `>=` are also available.
 
 For example, the following search finds connections that have transferred many bytes.
 
