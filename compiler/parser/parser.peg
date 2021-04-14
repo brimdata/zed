@@ -162,7 +162,7 @@ ShortCut
               "methods": ARRAY(
                 MAP("kind": "Call", "name": "map",
                     "args": ARRAY(MAP("kind": "BinaryExpr", "op": "=",
-                                      "lhs": MAP("kind": "Id", "name": "$"),
+                                      "lhs": MAP("kind": "ID", "name": "$"),
                                       "rhs": v))))))))
     }
   / match:PatternMatch !ExprGuard { RETURN(match) }
@@ -177,7 +177,7 @@ ShortCut
               "methods": ARRAY(
                 MAP("kind": "Call", "name": "map",
                     "args": ARRAY(MAP("kind": "BinaryExpr", "op": "in",
-                                      "rhs": MAP("kind": "Id", "name": "$"),
+                                      "rhs": MAP("kind": "ID", "name": "$"),
                                       "lhs": v))))))))
     }
   / !(SearchGuard EOT) search:PatternSearch { RETURN(search) }
@@ -488,11 +488,11 @@ TasteProc
       RETURN(MAP("kind": "Sequential", "procs": ARRAY(
         MAP("kind": "Summarize",
           "keys": ARRAY(MAP("kind": "Assignment",
-                   "lhs": MAP("kind": "Id", "name": "shape"),
+                   "lhs": MAP("kind": "ID", "name": "shape"),
                    "rhs": MAP("kind": "Call", "name": "typeof",
                               "args": ARRAY(e)))),
           "aggs": ARRAY(MAP("kind": "Assignment",
-                              "lhs": MAP("kind": "Id", "name": "taste"),
+                              "lhs": MAP("kind": "ID", "name": "taste"),
                               "rhs": MAP("kind": "Agg",
                                          "name": "any",
                                          "expr": e,
@@ -501,7 +501,7 @@ TasteProc
         MAP("kind": "Cut",
             "args": ARRAY(MAP("kind": "Assignment",
                                 "lhs": NULL,
-                                "rhs": MAP("kind": "Id", "name": "taste")))))))
+                                "rhs": MAP("kind": "ID", "name": "taste")))))))
     }
 
 TasteExpr
@@ -651,7 +651,7 @@ Exprs
     }
 
 DerefExpr
-  = first:DotId rest:(Deref)* {
+  = first:DotID rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
     }
   / first:Identifier rest:(Deref)* {
@@ -661,7 +661,7 @@ DerefExpr
       RETURN(MAP("kind":"Root"))
     }
 
-DotId
+DotID
   = "." field:Identifier {
       RETURN(MAP("kind": "BinaryExpr", "op":".",
                      "lhs":MAP("kind":"Root"),
@@ -1060,7 +1060,7 @@ IdentifierStart = [A-Za-z_$]
 IdentifierRest = IdentifierStart / [0-9]
 
 Identifier
-  = id:IdentifierName { RETURN(MAP("kind": "Id", "name": id)) }
+  = id:IdentifierName { RETURN(MAP("kind": "ID", "name": id)) }
 
 IdentifierName
   = !(IDGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }

@@ -476,7 +476,7 @@ func (a *Add) Eval(rec *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	typ := zng.LookupPrimitiveById(id)
+	typ := zng.LookupPrimitiveByID(id)
 	switch {
 	case zng.IsFloat(id):
 		v1, _ := zng.DecodeFloat64(a.vals.A)
@@ -504,7 +504,7 @@ func (s *Subtract) Eval(rec *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	typ := zng.LookupPrimitiveById(id)
+	typ := zng.LookupPrimitiveByID(id)
 	switch {
 	case zng.IsFloat(id):
 		v1, _ := zng.DecodeFloat64(s.vals.A)
@@ -527,7 +527,7 @@ func (m *Multiply) Eval(rec *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	typ := zng.LookupPrimitiveById(id)
+	typ := zng.LookupPrimitiveByID(id)
 	switch {
 	case zng.IsFloat(id):
 		v1, _ := zng.DecodeFloat64(m.vals.A)
@@ -550,7 +550,7 @@ func (d *Divide) Eval(rec *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	typ := zng.LookupPrimitiveById(id)
+	typ := zng.LookupPrimitiveByID(id)
 	switch {
 	case zng.IsFloat(id):
 		v1, _ := zng.DecodeFloat64(d.vals.A)

@@ -220,7 +220,7 @@ func LookupPrimitive(name string) Type {
 	return nil
 }
 
-func LookupPrimitiveById(id int) Type {
+func LookupPrimitiveByID(id int) Type {
 	switch id {
 	case IDBool:
 		return TypeBool

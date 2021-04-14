@@ -80,7 +80,7 @@ func CompileBufferFilter(e ast.Expr) (*expr.BufferFilter, error) {
 }
 
 func isIDOrRoot(e ast.Expr) bool {
-	if _, ok := e.(*ast.Id); ok {
+	if _, ok := e.(*ast.ID); ok {
 		return true
 	}
 	_, ok := e.(*ast.Root)
@@ -98,7 +98,7 @@ func isRootField(e ast.Expr) bool {
 	if _, ok := b.LHS.(*ast.Root); !ok {
 		return false
 	}
-	_, ok = b.RHS.(*ast.Id)
+	_, ok = b.RHS.(*ast.ID)
 	return ok
 }
 

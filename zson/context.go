@@ -51,7 +51,7 @@ func (c *Context) LookupType(id int) (zng.Type, error) {
 		return nil, fmt.Errorf("type id (%d) cannot be negative", id)
 	}
 	if id < zng.IDTypeDef {
-		typ := zng.LookupPrimitiveById(id)
+		typ := zng.LookupPrimitiveByID(id)
 		return typ, nil
 	}
 	c.mu.RLock()

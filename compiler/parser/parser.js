@@ -253,7 +253,7 @@ function peg$parse(input, options) {
                           
             "args": [{"kind": "BinaryExpr", "op": "=",
                                             
-            "lhs": {"kind": "Id", "name": "$"},
+            "lhs": {"kind": "ID", "name": "$"},
                                             
             "rhs": v}]}]}]}
           
@@ -284,7 +284,7 @@ function peg$parse(input, options) {
                           
             "args": [{"kind": "BinaryExpr", "op": "in",
                                             
-            "rhs": {"kind": "Id", "name": "$"},
+            "rhs": {"kind": "ID", "name": "$"},
                                             
             "lhs": v}]}]}]}
           
@@ -529,7 +529,7 @@ function peg$parse(input, options) {
                 
             "keys": [{"kind": "Assignment",
                          
-            "lhs": {"kind": "Id", "name": "shape"},
+            "lhs": {"kind": "ID", "name": "shape"},
                          
             "rhs": {"kind": "Call", "name": "typeof",
                                     
@@ -537,7 +537,7 @@ function peg$parse(input, options) {
                 
             "aggs": [{"kind": "Assignment",
                                     
-            "lhs": {"kind": "Id", "name": "taste"},
+            "lhs": {"kind": "ID", "name": "taste"},
                                     
             "rhs": {"kind": "Agg",
                                                
@@ -555,7 +555,7 @@ function peg$parse(input, options) {
                                       
             "lhs": null,
                                       
-            "rhs": {"kind": "Id", "name": "taste"}}]}]}
+            "rhs": {"kind": "ID", "name": "taste"}}]}]}
           
           },
       peg$c194 = function(lval) { return lval},
@@ -870,7 +870,7 @@ function peg$parse(input, options) {
       peg$c368 = peg$classExpectation([["A", "Z"], ["a", "z"], "_", "$"], false, false),
       peg$c369 = /^[0-9]/,
       peg$c370 = peg$classExpectation([["0", "9"]], false, false),
-      peg$c371 = function(id) { return {"kind": "Id", "name": id} },
+      peg$c371 = function(id) { return {"kind": "ID", "name": id} },
       peg$c372 = function() {  return text() },
       peg$c373 = "$",
       peg$c374 = peg$literalExpectation("$", false),
@@ -6966,7 +6966,7 @@ function peg$parse(input, options) {
     var s0, s1, s2, s3;
 
     s0 = peg$currPos;
-    s1 = peg$parseDotId();
+    s1 = peg$parseDotID();
     if (s1 !== peg$FAILED) {
       s2 = [];
       s3 = peg$parseDeref();
@@ -7028,7 +7028,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseDotId() {
+  function peg$parseDotID() {
     var s0, s1, s2, s3, s4;
 
     s0 = peg$currPos;

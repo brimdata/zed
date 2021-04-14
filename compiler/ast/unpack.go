@@ -24,7 +24,7 @@ var unpacker = unpack.New(
 	Fuse{},
 	Summarize{},
 	Head{},
-	Id{},
+	ID{},
 	ImpliedValue{},
 	Join{},
 	Map{},
