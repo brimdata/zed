@@ -14,7 +14,6 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/signalctx"
-	"github.com/brimdata/zed/pkg/units"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
@@ -50,7 +49,6 @@ func init() {
 
 type Command struct {
 	*zedlake.Command
-	importBufSize         units.Bytes
 	importStreamRecordMax int
 	commit                bool
 	lakeFlags             zedlake.Flags
@@ -62,8 +60,6 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
-	c.importBufSize = units.Bytes(lake.ImportBufSize)
-	f.Var(&c.importBufSize, "bufsize", "maximum size of data read into memory before flushing to disk, as '99MB', '4GiB', etc.")
 	f.BoolVar(&c.commit, "commit", false, "commit added data if successfully written")
 	f.IntVar(&c.importStreamRecordMax, "streammax", lake.ImportStreamRecordsMax, "limit for number of records in each ZNG stream (0 for no limit)")
 	c.lakeFlags.SetFlags(f)
@@ -81,7 +77,6 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zed lake add: at least one input file must be specified (- for stdin)")
 	}
-	lake.ImportBufSize = int64(c.importBufSize)
 	lake.ImportStreamRecordsMax = c.importStreamRecordMax
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
