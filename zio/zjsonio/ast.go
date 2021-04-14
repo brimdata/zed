@@ -5,7 +5,7 @@ import (
 	"github.com/brimdata/zed/pkg/unpack"
 )
 
-var unpacker unpack.Reflector
+var unpacker = make(unpack.Reflector)
 
 func init() {
 	unpacker.AddAs(ast.TypeArray{}, "array")
