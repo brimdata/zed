@@ -1,3 +1,5 @@
+skip: issue 2532
+
 script: |
   source minio.sh
   zed lake import -R s3://bucket/lake_test babble.zson

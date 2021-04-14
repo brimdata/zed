@@ -1,18 +1,6 @@
 package lake
 
-import (
-	"context"
-	"fmt"
-	"runtime"
-
-	"github.com/brimdata/zed/lake/chunk"
-	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
-	"golang.org/x/sync/errgroup"
-	"golang.org/x/sync/semaphore"
-)
+/*
 
 // EnsureIndices walks through the entirety of an Achive's chunks ensuring that
 // all chunk indices are up-to-date with an Lake's IndexDefs. If the progress
@@ -129,3 +117,4 @@ func (p progress) update(ctx context.Context, status string, indices []index.Ind
 	}
 	return nil
 }
+*/

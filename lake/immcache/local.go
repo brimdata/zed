@@ -4,7 +4,7 @@ import (
 	"context"
 	"path"
 
-	"github.com/brimdata/zed/lake/chunk"
+	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/iosrc"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/prometheus/client_golang/prometheus"
@@ -30,7 +30,7 @@ func NewLocalCache(size int, registerer prometheus.Registerer) (*LocalCache, err
 }
 
 func (c *LocalCache) ReadFile(ctx context.Context, u iosrc.URI) ([]byte, error) {
-	kind, _, _ := chunk.FileMatch(path.Base(u.Path))
+	kind, _, _ := segment.FileMatch(path.Base(u.Path))
 	if v, ok := c.lru.Get(u.String()); ok {
 		c.hits.WithLabelValues(kind.Description()).Inc()
 		return v.([]byte), nil

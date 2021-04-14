@@ -71,7 +71,7 @@ func (f *Flags) SetFormatFlags(fs *flag.FlagSet) {
 
 func (f *Flags) Init() error {
 	if f.zsonShortcut || f.zsonPretty {
-		if f.Format != "zng" {
+		if f.Format != f.DefaultFormat {
 			return errors.New("cannot use -z or -Z with -f")
 		}
 		f.Format = "zson"

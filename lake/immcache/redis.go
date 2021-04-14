@@ -6,7 +6,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/brimdata/zed/lake/chunk"
+	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/go-redis/redis/v8"
 	"github.com/prometheus/client_golang/prometheus"
@@ -27,7 +27,7 @@ func NewRedisCache(client *redis.Client, conf Config, reg prometheus.Registerer)
 }
 
 func (c *RedisCache) ReadFile(ctx context.Context, u iosrc.URI) ([]byte, error) {
-	kind, _, _ := chunk.FileMatch(path.Base(u.Path))
+	kind, _, _ := segment.FileMatch(path.Base(u.Path))
 	res := c.client.Get(ctx, u.String())
 	if err := res.Err(); err == nil {
 		c.hits.WithLabelValues(kind.Description()).Inc()

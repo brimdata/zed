@@ -1,14 +1,10 @@
 script: |
-  mkdir logs
-  zed lake import -R logs babble-split1.zson
-  zed lake import -R logs babble-split2.zson
-  zed lake ls -R logs -spaninfos -ranges
-  echo ===
-  zed lake stat -R logs -f zng | zq -z "drop log_id" -
-  echo ===
-  zed lake query -R logs -z "*" > t1
-  zq -z "sort -r ts" babble.zson > t2
-  test -s t1 && test -s t2 && diff t1 t2 && echo t1 t2 equal
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -p logs -q
+  zed lake load -q -p logs babble-split1.zson
+  zed lake load -q -p logs babble-split2.zson
+  zed lake log -p logs -f zng | zq -Z "cut segment.meta" -
 
 inputs:
   - name: babble.zson
@@ -21,20 +17,25 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      [1587518620062237300-1587518601066320341]:
-          [1587518620062237300-1587513632069307230]
-      [1587518601066320340-1587513611063914690]:
-          [1587518620062237300-1587513632069307230]
-          [1587518601066320340-1587513611063914690]
-      [1587513592062544400-1587513582066687741]:
-          [1587513592062544400-1587508849063583900]
-      [1587513582066687740-1587508830068523240]:
-          [1587513592062544400-1587508849063583900]
-          [1587513582066687740-1587508830068523240]
-      ===
-      {type:"chunk",first:2020-04-22T01:23:40.0622373Z,last:2020-04-22T00:00:32.06930723Z,size:8460 (uint64),record_count:245 (uint64)} (=0)
-      {type:"chunk",first:2020-04-22T01:23:21.06632034Z,last:2020-04-22T00:00:11.06391469Z,size:8752,record_count:251} (0)
-      {type:"chunk",first:2020-04-21T23:59:52.0625444Z,last:2020-04-21T22:40:49.0635839Z,size:8527,record_count:249} (0)
-      {type:"chunk",first:2020-04-21T23:59:42.06668774Z,last:2020-04-21T22:40:30.06852324Z,size:8863,record_count:255} (0)
-      ===
-      t1 t2 equal
+      {
+          segment: {
+              meta: {
+                  first: 2020-04-22T01:23:40.0622373Z,
+                  last: 2020-04-21T22:40:30.06852324Z,
+                  count: 500 (uint64),
+                  size: 16412,
+                  row_size: 17102
+              } (=Metadata)
+          } (=0)
+      } (=1)
+      {
+          segment: {
+              meta: {
+                  first: 2020-04-22T01:23:21.06632034Z,
+                  last: 2020-04-21T22:40:49.0635839Z,
+                  count: 500,
+                  size: 16477,
+                  row_size: 17084
+              }
+          }
+      } (1)

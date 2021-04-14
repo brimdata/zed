@@ -1,3 +1,5 @@
+skip: issue 2532
+
 script: |
   mkdir logs
   zed lake import -R logs data.zson

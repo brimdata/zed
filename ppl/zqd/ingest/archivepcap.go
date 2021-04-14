@@ -194,12 +194,12 @@ func (p *archivePcapOp) Status() api.PcapPostStatus {
 		UpdateTime:         nano.Now(),
 		PcapSize:           p.pcapBytesTotal,
 		PcapReadSize:       p.pcapCounter.Bytes(),
-		DataChunksWritten:  importStats.DataChunksWritten,
+		DataChunksWritten:  importStats.SegmentsWritten,
 		RecordBytesWritten: importStats.RecordBytesWritten,
 		RecordsWritten:     importStats.RecordsWritten,
 		// The Brim UI uses the SnapshotCount field to determine
 		// if any data has been created in the space.
-		SnapshotCount: int(importStats.DataChunksWritten),
+		SnapshotCount: int(importStats.SegmentsWritten),
 	}
 }
 

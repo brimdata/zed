@@ -1,12 +1,9 @@
 script: |
-  mkdir logs
-  zed lake import -R logs babble.zson
-  zed lake query -R logs "count()" | zq -z -
-  echo ===
-  zed lake map -R logs -o count.zng "count()"
-  zed lake query -R logs "* | sort -r count" count.zng | zq -z -
-  echo ===
-  zed lake query -R logs "sum(count)" count.zng | zq -z -
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -p logs -q
+  zed lake load -q -p logs babble.zson
+  zed lake query -p logs "count()" | zq -z -
 
 inputs:
   - name: babble.zson
@@ -16,8 +13,3 @@ outputs:
   - name: stdout
     data: |
       {count:1000 (uint64)} (=0)
-      ===
-      {count:504 (uint64)} (=0)
-      {count:496} (0)
-      ===
-      {sum:1000 (uint64)} (=0)

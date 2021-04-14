@@ -1,20 +1,13 @@
 package index
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"os"
-	"sort"
-	"strings"
 
 	"github.com/brimdata/zed/cli/outputflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/zng/resolver"
-	"github.com/segmentio/ksuid"
 )
 
 var Ls = &charm.Spec{
@@ -58,6 +51,8 @@ type DefStatLine struct {
 }
 
 func (c *LsCommand) Run(args []string) error {
+	return errors.New("issue #2532")
+	/* NOT YET
 	defer c.Cleanup()
 	if err := c.Init(&c.output); err != nil {
 		return err
@@ -133,8 +128,10 @@ func (c *LsCommand) Run(args []string) error {
 		}
 	}
 	return nil
+	*/
 }
 
+/* NOT YET
 func (c *LsCommand) getStats(lk *lake.Lake, defs []*index.Definition) (map[ksuid.KSUID]lake.IndexInfo, error) {
 	stats, err := lake.IndexStat(context.TODO(), lk, defs)
 	if err != nil {
@@ -146,3 +143,4 @@ func (c *LsCommand) getStats(lk *lake.Lake, defs []*index.Definition) (map[ksuid
 	}
 	return m, nil
 }
+*/
