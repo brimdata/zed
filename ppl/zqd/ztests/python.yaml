@@ -55,8 +55,7 @@ inputs:
         tim:1970-01-01T00:00:00Z,
         f64:0.,
         boo:false,
-        // Uncomment next line after https://github.com/brimdata/zed/issues/2533 is fixed.
-        // byt:0x00,
+        byt:0x00,
         str:"",
         bst:"",
         ip:0.0.0.0,
