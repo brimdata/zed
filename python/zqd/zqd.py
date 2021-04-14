@@ -1,3 +1,4 @@
+import base64
 import datetime
 import decimal
 import ipaddress
@@ -101,9 +102,7 @@ def _decode_value(typ, value):
         if name == 'bool':
             return value == 'T'
         if name == 'bytes':
-            if value[0:2] != "0x":
-                raise Exception(f'malformed bytes value {value}')
-            return bytes.fromhex(value[2:])
+            return base64.b64decode(value, validate=True)
         if name in ['string', 'bstring']:
             return value
         if name == 'ip':
