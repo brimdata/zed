@@ -37,7 +37,7 @@ func (s *Stream) Transform(r *zng.Record) (*Record, error) {
 		return nil, errors.New("internal error: zng record body must be a container")
 	}
 	return &Record{
-		Id:      id,
+		ID:      id,
 		Type:    typ,
 		Aliases: aliases,
 		Values:  values,

@@ -53,9 +53,9 @@ func (r *Reader) Read() (*zng.Record, error) {
 	var recType *zng.TypeRecord
 	if v.Type == nil {
 		var ok bool
-		recType, ok = r.mapper[v.Id]
+		recType, ok = r.mapper[v.ID]
 		if !ok {
-			return nil, fmt.Errorf("undefined type ID: %d", v.Id)
+			return nil, fmt.Errorf("undefined type ID: %d", v.ID)
 		}
 	} else {
 		if v.Aliases != nil {
@@ -67,7 +67,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 		if err != nil {
 			return nil, err
 		}
-		r.mapper[v.Id] = recType
+		r.mapper[v.ID] = recType
 	}
 	r.builder.Reset()
 	if err := decodeRecord(r.builder, recType, v.Values); err != nil {

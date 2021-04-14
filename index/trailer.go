@@ -94,7 +94,7 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, int, error) {
 		// look for end of stream followed by an array[int64] typedef then
 		// a record typedef indicating the possible presence of the trailer,
 		// which we then try to decode.
-		if bytes.Equal(buf[off:(off+3)], []byte{zng.TypeDefArray, zng.IdInt64, zng.TypeDefRecord}) {
+		if bytes.Equal(buf[off:(off+3)], []byte{zng.TypeDefArray, zng.IDInt64, zng.TypeDefRecord}) {
 			if off > 0 && buf[off-1] != zng.CtrlEOS {
 				// If this isn't right after an end-of-stream
 				// (and we're not at the start of index), then

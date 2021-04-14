@@ -26,7 +26,7 @@ type Context struct {
 
 func NewContext() *Context {
 	return &Context{
-		byID:     make([]zng.Type, zng.IdTypeDef, 2*zng.IdTypeDef),
+		byID:     make([]zng.Type, zng.IDTypeDef, 2*zng.IDTypeDef),
 		toType:   make(map[string]zng.Type),
 		toBytes:  make(map[zng.Type]zcode.Bytes),
 		typedefs: make(map[string]*zng.TypeAlias),
@@ -36,7 +36,7 @@ func NewContext() *Context {
 func (c *Context) Reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	c.byID = c.byID[:zng.IdTypeDef]
+	c.byID = c.byID[:zng.IDTypeDef]
 	c.toType = make(map[string]zng.Type)
 	c.toBytes = make(map[zng.Type]zcode.Bytes)
 	c.typedefs = make(map[string]*zng.TypeAlias)
@@ -50,8 +50,8 @@ func (c *Context) LookupType(id int) (zng.Type, error) {
 	if id < 0 {
 		return nil, fmt.Errorf("type id (%d) cannot be negative", id)
 	}
-	if id < zng.IdTypeDef {
-		typ := zng.LookupPrimitiveById(id)
+	if id < zng.IDTypeDef {
+		typ := zng.LookupPrimitiveByID(id)
 		return typ, nil
 	}
 	c.mu.RLock()

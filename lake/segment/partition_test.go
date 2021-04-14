@@ -60,126 +60,126 @@ func TestPartitionSegments(t *testing.T) {
 		},
 		{
 			chunks: []segment.Segment{
-				{Id: kid("a"), First: 0, Last: 1},
-				{Id: kid("b"), First: 1, Last: 2},
+				{ID: kid("a"), First: 0, Last: 1},
+				{ID: kid("b"), First: 1, Last: 2},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []segment.Segment{{Id: kid("a"), First: 0, Last: 1}}},
-				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []segment.Segment{{Id: kid("a"), First: 0, Last: 1}, {Id: kid("b"), First: 1, Last: 2}}},
-				{Span: nano.Span{Ts: 2, Dur: 1}, Chunks: []segment.Segment{{Id: kid("b"), First: 1, Last: 2}}},
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []segment.Segment{{ID: kid("a"), First: 0, Last: 1}}},
+				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []segment.Segment{{ID: kid("a"), First: 0, Last: 1}, {ID: kid("b"), First: 1, Last: 2}}},
+				{Span: nano.Span{Ts: 2, Dur: 1}, Chunks: []segment.Segment{{ID: kid("b"), First: 1, Last: 2}}},
 			},
 		},
 		{
 			chunks: []segment.Segment{
-				{Id: kid("a"), First: 0, Last: 3},
-				{Id: kid("b"), First: 1, Last: 2},
+				{ID: kid("a"), First: 0, Last: 3},
+				{ID: kid("b"), First: 1, Last: 2},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []segment.Segment{{Id: kid("a"), First: 0, Last: 3}}},
-				{Span: nano.Span{Ts: 1, Dur: 2}, Chunks: []segment.Segment{{Id: kid("a"), First: 0, Last: 3}, {Id: kid("b"), First: 1, Last: 2}}},
-				{Span: nano.Span{Ts: 3, Dur: 1}, Chunks: []segment.Segment{{Id: kid("a"), First: 0, Last: 3}}},
+				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []segment.Segment{{ID: kid("a"), First: 0, Last: 3}}},
+				{Span: nano.Span{Ts: 1, Dur: 2}, Chunks: []segment.Segment{{ID: kid("a"), First: 0, Last: 3}, {ID: kid("b"), First: 1, Last: 2}}},
+				{Span: nano.Span{Ts: 3, Dur: 1}, Chunks: []segment.Segment{{ID: kid("a"), First: 0, Last: 3}}},
 			},
 		},
 		{
 			chunks: []segment.Segment{
-				{Id: kid("a"), First: 0, Last: 3},
-				{Id: kid("b"), First: 1, Last: 2},
+				{ID: kid("a"), First: 0, Last: 3},
+				{ID: kid("b"), First: 1, Last: 2},
 			},
 			filter: nano.Span{Ts: 1, Dur: 2},
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 1, Dur: 2}, Chunks: []segment.Segment{{Id: kid("a"), First: 0, Last: 3}, {Id: kid("b"), First: 1, Last: 2}}},
+				{Span: nano.Span{Ts: 1, Dur: 2}, Chunks: []segment.Segment{{ID: kid("a"), First: 0, Last: 3}, {ID: kid("b"), First: 1, Last: 2}}},
 			},
 		},
 		{
 			chunks: []segment.Segment{
-				{Id: kid("a"), First: 9, Last: 7},
-				{Id: kid("b"), First: 5, Last: 3},
+				{ID: kid("a"), First: 9, Last: 7},
+				{ID: kid("b"), First: 5, Last: 3},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderDesc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 7, Dur: 3}, Chunks: []segment.Segment{{Id: kid("a"), First: 9, Last: 7}}},
-				{Span: nano.Span{Ts: 3, Dur: 3}, Chunks: []segment.Segment{{Id: kid("b"), First: 5, Last: 3}}},
+				{Span: nano.Span{Ts: 7, Dur: 3}, Chunks: []segment.Segment{{ID: kid("a"), First: 9, Last: 7}}},
+				{Span: nano.Span{Ts: 3, Dur: 3}, Chunks: []segment.Segment{{ID: kid("b"), First: 5, Last: 3}}},
 			},
 		},
 		{
 			chunks: []segment.Segment{
-				{Id: kid("a"), First: 9, Last: 5},
-				{Id: kid("b"), First: 7, Last: 3},
+				{ID: kid("a"), First: 9, Last: 5},
+				{ID: kid("b"), First: 7, Last: 3},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderDesc,
 			exp: []SpanInfo{
-				{Span: nano.Span{Ts: 8, Dur: 2}, Chunks: []segment.Segment{{Id: kid("a"), First: 9, Last: 5}}},
-				{Span: nano.Span{Ts: 5, Dur: 3}, Chunks: []segment.Segment{{Id: kid("a"), First: 9, Last: 5}, {Id: kid("b"), First: 7, Last: 3}}},
-				{Span: nano.Span{Ts: 3, Dur: 2}, Chunks: []segment.Segment{{Id: kid("b"), First: 7, Last: 3}}},
+				{Span: nano.Span{Ts: 8, Dur: 2}, Chunks: []segment.Segment{{ID: kid("a"), First: 9, Last: 5}}},
+				{Span: nano.Span{Ts: 5, Dur: 3}, Chunks: []segment.Segment{{ID: kid("a"), First: 9, Last: 5}, {ID: kid("b"), First: 7, Last: 3}}},
+				{Span: nano.Span{Ts: 3, Dur: 2}, Chunks: []segment.Segment{{ID: kid("b"), First: 7, Last: 3}}},
 			},
 		},
 		{
 			chunks: []segment.Segment{
-				{Id: kid("b"), First: 0, Last: 0},
-				{Id: kid("a"), First: 0, Last: 0},
-				{Id: kid("d"), First: 0, Last: 0},
-				{Id: kid("c"), First: 0, Last: 0},
+				{ID: kid("b"), First: 0, Last: 0},
+				{ID: kid("a"), First: 0, Last: 0},
+				{ID: kid("d"), First: 0, Last: 0},
+				{ID: kid("c"), First: 0, Last: 0},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
 				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []segment.Segment{
-					{Id: kid("a"), First: 0, Last: 0},
-					{Id: kid("b"), First: 0, Last: 0},
-					{Id: kid("c"), First: 0, Last: 0},
-					{Id: kid("d"), First: 0, Last: 0}}},
+					{ID: kid("a"), First: 0, Last: 0},
+					{ID: kid("b"), First: 0, Last: 0},
+					{ID: kid("c"), First: 0, Last: 0},
+					{ID: kid("d"), First: 0, Last: 0}}},
 			},
 		},
 		{
 			chunks: []segment.Segment{
-				{Id: kid("a"), First: 0, Last: 5},
-				{Id: kid("b"), First: 1, Last: 8},
-				{Id: kid("c"), First: 6, Last: 6},
-				{Id: kid("d"), First: 7, Last: 10},
+				{ID: kid("a"), First: 0, Last: 5},
+				{ID: kid("b"), First: 1, Last: 8},
+				{ID: kid("c"), First: 6, Last: 6},
+				{ID: kid("d"), First: 7, Last: 10},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
 				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []segment.Segment{
-					{Id: kid("a"), First: 0, Last: 5}}},
+					{ID: kid("a"), First: 0, Last: 5}}},
 				{Span: nano.Span{Ts: 1, Dur: 5}, Chunks: []segment.Segment{
-					{Id: kid("a"), First: 0, Last: 5},
-					{Id: kid("b"), First: 1, Last: 8}}},
+					{ID: kid("a"), First: 0, Last: 5},
+					{ID: kid("b"), First: 1, Last: 8}}},
 				{Span: nano.Span{Ts: 6, Dur: 1}, Chunks: []segment.Segment{
-					{Id: kid("b"), First: 1, Last: 8},
-					{Id: kid("c"), First: 6, Last: 6}}},
+					{ID: kid("b"), First: 1, Last: 8},
+					{ID: kid("c"), First: 6, Last: 6}}},
 				{Span: nano.Span{Ts: 7, Dur: 2}, Chunks: []segment.Segment{
-					{Id: kid("b"), First: 1, Last: 8},
-					{Id: kid("d"), First: 7, Last: 10}}},
+					{ID: kid("b"), First: 1, Last: 8},
+					{ID: kid("d"), First: 7, Last: 10}}},
 				{Span: nano.Span{Ts: 9, Dur: 2}, Chunks: []segment.Segment{
-					{Id: kid("d"), First: 7, Last: 10}}},
+					{ID: kid("d"), First: 7, Last: 10}}},
 			},
 		},
 		{
 			chunks: []segment.Segment{
-				{Id: kid("a"), First: 0, Last: 10},
-				{Id: kid("b"), First: 1, Last: 10},
-				{Id: kid("c"), First: 2, Last: 10},
+				{ID: kid("a"), First: 0, Last: 10},
+				{ID: kid("b"), First: 1, Last: 10},
+				{ID: kid("c"), First: 2, Last: 10},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
 				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []segment.Segment{
-					{Id: kid("a"), First: 0, Last: 10}}},
+					{ID: kid("a"), First: 0, Last: 10}}},
 				{Span: nano.Span{Ts: 1, Dur: 1}, Chunks: []segment.Segment{
-					{Id: kid("a"), First: 0, Last: 10},
-					{Id: kid("b"), First: 1, Last: 10}}},
+					{ID: kid("a"), First: 0, Last: 10},
+					{ID: kid("b"), First: 1, Last: 10}}},
 				{Span: nano.Span{Ts: 2, Dur: 9}, Chunks: []segment.Segment{
-					{Id: kid("a"), First: 0, Last: 10},
-					{Id: kid("b"), First: 1, Last: 10},
-					{Id: kid("c"), First: 2, Last: 10}}},
+					{ID: kid("a"), First: 0, Last: 10},
+					{ID: kid("b"), First: 1, Last: 10},
+					{ID: kid("c"), First: 2, Last: 10}}},
 			},
 		},
 		{
@@ -298,45 +298,45 @@ func TestMergeChunksToSpans(t *testing.T) {
 	}{
 		{
 			in: []segment.Segment{
-				{Id: kid("a"), First: 0, Last: 3, RecordCount: 10},
-				{Id: kid("b"), First: 1, Last: 3, RecordCount: 20},
+				{ID: kid("a"), First: 0, Last: 3, RecordCount: 10},
+				{ID: kid("b"), First: 1, Last: 3, RecordCount: 20},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
 				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []segment.Segment{
-					{Id: kid("a"), First: 0, Last: 3, RecordCount: 10}}},
+					{ID: kid("a"), First: 0, Last: 3, RecordCount: 10}}},
 				{Span: nano.Span{Ts: 1, Dur: 3}, Chunks: []segment.Segment{
-					{Id: kid("a"), First: 0, Last: 3, RecordCount: 10},
-					{Id: kid("b"), First: 1, Last: 3, RecordCount: 20}}},
+					{ID: kid("a"), First: 0, Last: 3, RecordCount: 10},
+					{ID: kid("b"), First: 1, Last: 3, RecordCount: 20}}},
 			},
 		},
 		{
 			in: []segment.Segment{
-				{Id: kid("a"), First: 0, Last: 3, RecordCount: 20},
-				{Id: kid("b"), First: 2, Last: 5, RecordCount: 10},
+				{ID: kid("a"), First: 0, Last: 3, RecordCount: 20},
+				{ID: kid("b"), First: 2, Last: 5, RecordCount: 10},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
 				{Span: nano.Span{Ts: 0, Dur: 4}, Chunks: []segment.Segment{
-					{Id: kid("a"), First: 0, Last: 3, RecordCount: 20},
-					{Id: kid("b"), First: 2, Last: 5, RecordCount: 10}}},
+					{ID: kid("a"), First: 0, Last: 3, RecordCount: 20},
+					{ID: kid("b"), First: 2, Last: 5, RecordCount: 10}}},
 				{Span: nano.Span{Ts: 4, Dur: 2}, Chunks: []segment.Segment{
-					{Id: kid("b"), First: 2, Last: 5, RecordCount: 10}}},
+					{ID: kid("b"), First: 2, Last: 5, RecordCount: 10}}},
 			},
 		},
 		{
 			in: []segment.Segment{
-				{Id: kid("b"), First: 0, Last: 0, RecordCount: 10},
-				{Id: kid("a"), First: 0, Last: 0, RecordCount: 10},
+				{ID: kid("b"), First: 0, Last: 0, RecordCount: 10},
+				{ID: kid("a"), First: 0, Last: 0, RecordCount: 10},
 			},
 			filter: nano.MaxSpan,
 			order:  zbuf.OrderAsc,
 			exp: []SpanInfo{
 				{Span: nano.Span{Ts: 0, Dur: 1}, Chunks: []segment.Segment{
-					{Id: kid("a"), First: 0, Last: 0, RecordCount: 10},
-					{Id: kid("b"), First: 0, Last: 0, RecordCount: 10}}},
+					{ID: kid("a"), First: 0, Last: 0, RecordCount: 10},
+					{ID: kid("b"), First: 0, Last: 0, RecordCount: 10}}},
 			},
 		},
 		{

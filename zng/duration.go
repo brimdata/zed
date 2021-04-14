@@ -25,7 +25,7 @@ func DecodeDuration(zv zcode.Bytes) (nano.Duration, error) {
 }
 
 func (t *TypeOfDuration) ID() int {
-	return IdDuration
+	return IDDuration
 }
 
 func (t *TypeOfDuration) String() string {

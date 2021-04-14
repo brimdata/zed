@@ -38,8 +38,8 @@ func (w *Writer) WriteControl(b []byte) error {
 }
 
 func (w *Writer) Write(r *zng.Record) error {
-	inId := r.Type.ID()
-	name, ok := w.tracker[inId]
+	inID := r.Type.ID()
+	name, ok := w.tracker[inID]
 	if !ok {
 		if err := w.writeAliases(r.Type); err != nil {
 			return err
@@ -54,7 +54,7 @@ func (w *Writer) Write(r *zng.Record) error {
 			name = strconv.Itoa(id)
 			op = ":"
 		}
-		w.tracker[inId] = name
+		w.tracker[inID] = name
 		_, err := fmt.Fprintf(w.writer, "#%s%s%s\n", name, op, TypeString(r.Type))
 		if err != nil {
 			return err

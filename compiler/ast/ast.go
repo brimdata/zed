@@ -18,8 +18,8 @@ type Proc interface {
 	ProcNode()
 }
 
-// Id refers to a syntax element analogous to a programming language identifier.
-type Id struct {
+// ID refers to a syntax element analogous to a programming language identifier.
+type ID struct {
 	Kind string `json:"kind" unpack:""`
 	Name string `json:"name"`
 }
@@ -155,7 +155,7 @@ func (*Search) exprNode()      {}
 func (*Call) exprNode()        {}
 func (*Cast) exprNode()        {}
 func (*Primitive) exprNode()   {}
-func (*Id) exprNode()          {}
+func (*ID) exprNode()          {}
 func (*Path) exprNode()        {}
 func (*Ref) exprNode()         {}
 func (*Root) exprNode()        {}
@@ -450,7 +450,7 @@ func DotExprToFieldPath(e Expr) *Path {
 			if lhs == nil {
 				return nil
 			}
-			id, ok := e.RHS.(*Id)
+			id, ok := e.RHS.(*ID)
 			if !ok {
 				return nil
 			}
@@ -469,7 +469,7 @@ func DotExprToFieldPath(e Expr) *Path {
 			lhs.Name = append(lhs.Name, id.Text)
 			return lhs
 		}
-	case *Id:
+	case *ID:
 		return &Path{Kind: "Path", Name: []string{e.Name}}
 	case *Root:
 		return &Path{Kind: "Path", Name: []string{}}
@@ -500,8 +500,8 @@ func FieldsOf(e Expr) []field.Static {
 func NewDotExpr(f field.Static) Expr {
 	lhs := Expr(&Root{Kind: "Root"})
 	for _, name := range f {
-		rhs := &Id{
-			Kind: "Id",
+		rhs := &ID{
+			Kind: "ID",
 			Name: name,
 		}
 		lhs = &BinaryExpr{

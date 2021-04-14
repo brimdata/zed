@@ -33,7 +33,7 @@ func semExpr(scope *Scope, e ast.Expr) (ast.Expr, error) {
 		}, nil
 	case *ast.Primitive:
 		return e, nil
-	case *ast.Id:
+	case *ast.ID:
 		// We use static scoping here to see if an identifier is
 		// a "var" reference to the name or a field access
 		// and transform the ast node appropriately.  The semantic AST
@@ -423,7 +423,7 @@ func semField(scope *Scope, e ast.Expr) (ast.Expr, error) {
 			if err != nil {
 				return nil, err
 			}
-			id, ok := e.RHS.(*ast.Id)
+			id, ok := e.RHS.(*ast.ID)
 			if !ok {
 				return nil, errors.New("RHS of dot operator is not an identifier")
 			}
@@ -457,7 +457,7 @@ func semField(scope *Scope, e ast.Expr) (ast.Expr, error) {
 				RHS:  rhs,
 			}, nil
 		}
-	case *ast.Id:
+	case *ast.ID:
 		if scope.Lookup(e.Name) != nil {
 			// For now, this could only be a literal but
 			// it may refer to other data types down the

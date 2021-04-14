@@ -44,7 +44,7 @@ func CompareBool(op string, pattern bool) (Boolean, error) {
 		return nil, fmt.Errorf("unknown bool comparator: %s", op)
 	}
 	return func(v zng.Value) bool {
-		if v.Type.ID() != zng.IdBool {
+		if v.Type.ID() != zng.IDBool {
 			return false
 		}
 		b, err := zng.DecodeBool(v.Bytes)
@@ -84,27 +84,27 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 	return func(val zng.Value) bool {
 		zv := val.Bytes
 		switch val.Type.ID() {
-		case zng.IdInt8, zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		case zng.IDInt8, zng.IDInt16, zng.IDInt32, zng.IDInt64:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(v, pattern)
 			}
-		case zng.IdUint8, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		case zng.IDUint8, zng.IDUint16, zng.IDUint32, zng.IDUint64:
 			v, err := zng.DecodeUint(zv)
 			if err == nil && v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
 			}
-		case zng.IdFloat64:
+		case zng.IDFloat64:
 			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
 				return CompareFloat(v, float64(pattern))
 			}
-		case zng.IdTime:
+		case zng.IDTime:
 			ts, err := zng.DecodeTime(zv)
 			if err == nil {
 				return CompareInt(int64(ts), pattern*1e9)
 			}
-		case zng.IdDuration:
+		case zng.IDDuration:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(int64(v), pattern*1e9)
@@ -124,27 +124,27 @@ func CompareTime(op string, pattern int64) (Boolean, error) {
 	return func(val zng.Value) bool {
 		zv := val.Bytes
 		switch val.Type.ID() {
-		case zng.IdInt8, zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		case zng.IDInt8, zng.IDInt16, zng.IDInt32, zng.IDInt64:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(v, pattern)
 			}
-		case zng.IdUint8, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		case zng.IDUint8, zng.IDUint16, zng.IDUint32, zng.IDUint64:
 			v, err := zng.DecodeUint(zv)
 			if err == nil && v <= math.MaxInt64 {
 				return CompareInt(int64(v), pattern)
 			}
-		case zng.IdFloat64:
+		case zng.IDFloat64:
 			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
 				return CompareFloat(v, float64(pattern))
 			}
-		case zng.IdTime:
+		case zng.IDTime:
 			ts, err := zng.DecodeTime(zv)
 			if err == nil {
 				return CompareInt(int64(ts), pattern)
 			}
-		case zng.IdDuration:
+		case zng.IDDuration:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return CompareInt(int64(v), pattern)
@@ -174,7 +174,7 @@ func CompareIP(op string, pattern net.IP) (Boolean, error) {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
 	}
 	return func(v zng.Value) bool {
-		if v.Type.ID() != zng.IdIP {
+		if v.Type.ID() != zng.IDIP {
 			return false
 		}
 		ip, err := zng.DecodeIP(v.Bytes)
@@ -203,27 +203,27 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 		// integers that cause float64 overflow?  user can always
 		// use an integer constant instead of a float constant to
 		// compare with the integer-y field.
-		case zng.IdFloat64:
+		case zng.IDFloat64:
 			v, err := zng.DecodeFloat64(zv)
 			if err == nil {
 				return compare(v, pattern)
 			}
-		case zng.IdInt8, zng.IdInt16, zng.IdInt32, zng.IdInt64:
+		case zng.IDInt8, zng.IDInt16, zng.IDInt32, zng.IDInt64:
 			v, err := zng.DecodeInt(zv)
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
-		case zng.IdUint8, zng.IdUint16, zng.IdUint32, zng.IdUint64:
+		case zng.IDUint8, zng.IDUint16, zng.IDUint32, zng.IDUint64:
 			v, err := zng.DecodeUint(zv)
 			if err == nil {
 				return compare(float64(v), pattern)
 			}
-		case zng.IdTime:
+		case zng.IDTime:
 			ts, err := zng.DecodeTime(zv)
 			if err == nil {
 				return compare(float64(ts)/1e9, pattern)
 			}
-		case zng.IdDuration:
+		case zng.IDDuration:
 			v, err := zng.DecodeDuration(zv)
 			if err == nil {
 				return compare(float64(v)/1e9, pattern)
@@ -250,7 +250,7 @@ func CompareBstring(op string, pattern []byte) (Boolean, error) {
 	s := string(pattern)
 	return func(v zng.Value) bool {
 		switch v.Type.ID() {
-		case zng.IdBstring, zng.IdString:
+		case zng.IDBstring, zng.IDString:
 			return compare(byteconv.UnsafeString(v.Bytes), s)
 		}
 		return false
@@ -347,12 +347,12 @@ func CompareSubnet(op string, pattern *net.IPNet) (Boolean, error) {
 	return func(v zng.Value) bool {
 		val := v.Bytes
 		switch v.Type.ID() {
-		case zng.IdIP:
+		case zng.IDIP:
 			ip, err := zng.DecodeIP(val)
 			if err == nil {
 				return match(ip, pattern)
 			}
-		case zng.IdNet:
+		case zng.IDNet:
 			subnet, err := zng.DecodeNet(val)
 			if err == nil {
 				return compare(subnet, pattern)

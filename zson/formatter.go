@@ -296,7 +296,7 @@ func (f *Formatter) formatType(typ zng.Type) {
 		f.build(")")
 		return
 	}
-	if typ.ID() < zng.IdTypeDef {
+	if typ.ID() < zng.IDTypeDef {
 		name := typ.ZSON()
 		f.typedefs[typ] = name
 		f.build(name)
@@ -420,7 +420,7 @@ func (t typemap) known(typ zng.Type) bool {
 	if _, ok := typ.(*zng.TypeAlias); ok {
 		return false
 	}
-	return typ.ID() < zng.IdTypeDef
+	return typ.ID() < zng.IDTypeDef
 }
 
 // FormatType formats a type in canonical form to represent type values

@@ -5,18 +5,18 @@ import (
 	"unicode"
 )
 
-func IdChar(c rune) bool {
+func IDChar(c rune) bool {
 	return unicode.IsLetter(c) || c == '_' || c == '$'
 }
 
 func TypeChar(c rune) bool {
-	return IdChar(c) || unicode.IsDigit(c) || c == '/' || c == '.'
+	return IDChar(c) || unicode.IsDigit(c) || c == '/' || c == '.'
 }
 
 func IsIdentifier(s string) bool {
 	first := true
 	for _, c := range s {
-		if !IdChar(c) && (first || !unicode.IsDigit(c)) {
+		if !IDChar(c) && (first || !unicode.IsDigit(c)) {
 			return false
 		}
 		first = false

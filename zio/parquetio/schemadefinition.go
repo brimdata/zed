@@ -91,35 +91,35 @@ func newColumnDefinition(name string, typ zng.Type) (*parquetschema.ColumnDefini
 	switch typ := typ.(type) {
 	case *zng.TypeAlias:
 		switch id := typ.Type.ID(); {
-		case typ.Name == "date" && id == zng.IdInt32:
+		case typ.Name == "date" && id == zng.IDInt32:
 			return newPrimitiveColumnDefinition(name, parquet.Type_INT32, convertedDate, logicalDate)
-		case typ.Name == "bson" && id == zng.IdBytes:
+		case typ.Name == "bson" && id == zng.IDBytes:
 			return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedBSON, logicalBSON)
-		case typ.Name == "interval" && id == zng.IdBytes:
+		case typ.Name == "interval" && id == zng.IDBytes:
 			return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedInterval, nil)
-		case typ.Name == "json" && id == zng.IdString:
+		case typ.Name == "json" && id == zng.IDString:
 			return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedJSON, logicalJSON)
-		case typ.Name == "enum" && id == zng.IdString:
+		case typ.Name == "enum" && id == zng.IDString:
 			return newColumnDefinition(name, &zng.TypeEnum{})
-		case typ.Name == "float" && id == zng.IdFloat64:
+		case typ.Name == "float" && id == zng.IDFloat64:
 			return newPrimitiveColumnDefinition(name, parquet.Type_FLOAT, nil, nil)
-		case typ.Name == "int96" && id == zng.IdBytes:
+		case typ.Name == "int96" && id == zng.IDBytes:
 			return newPrimitiveColumnDefinition(name, parquet.Type_INT96, nil, nil)
-		case typ.Name == "time_millis" && id == zng.IdInt32:
+		case typ.Name == "time_millis" && id == zng.IDInt32:
 			return newPrimitiveColumnDefinition(
 				name, parquet.Type_INT32, convertedTimeMillis, logicalTimeMillis)
-		case name == "time_micros" && id == zng.IdInt64:
+		case name == "time_micros" && id == zng.IDInt64:
 			return newPrimitiveColumnDefinition(
 				name, parquet.Type_INT64, convertedTimeMicros, logicalTimeMicros)
-		case name == "time_nanos" && id == zng.IdInt64:
+		case name == "time_nanos" && id == zng.IDInt64:
 			return newPrimitiveColumnDefinition(name, parquet.Type_INT64, nil, logicalTimeNanos)
-		case name == "timestamp_millis" && id == zng.IdInt64:
+		case name == "timestamp_millis" && id == zng.IDInt64:
 			return newPrimitiveColumnDefinition(
 				name, parquet.Type_INT64, convertedTimestampMillis, logicalTimestampMillis)
-		case name == "timestamp_micros" && id == zng.IdInt64:
+		case name == "timestamp_micros" && id == zng.IDInt64:
 			return newPrimitiveColumnDefinition(
 				name, parquet.Type_INT64, convertedTimestampMicros, logicalTimestampMicros)
-		case name == "uuid" && id == zng.IdBytes:
+		case name == "uuid" && id == zng.IDBytes:
 			return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, nil, logicalUUID)
 		}
 		return newColumnDefinition(name, typ.Type)

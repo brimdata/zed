@@ -73,13 +73,13 @@ func (w *Writer) Write(rec *zng.Record) error {
 		value := rec.ValueByColumn(k)
 		if !value.IsUnsetOrNil() {
 			switch col.Type.ID() {
-			case zng.IdTime:
+			case zng.IDTime:
 				ts, err := zng.DecodeTime(value.Bytes)
 				if err != nil {
 					return err
 				}
 				v = ts.Time().UTC().Format(time.RFC3339Nano)
-			case zng.IdString, zng.IdBstring, zng.IdType, zng.IdError:
+			case zng.IDString, zng.IDBstring, zng.IDType, zng.IDError:
 				v = string(value.Bytes)
 			default:
 				v = tzngio.FormatValue(value, w.format)
