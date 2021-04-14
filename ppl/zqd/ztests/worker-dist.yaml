@@ -1,3 +1,5 @@
+skip: disabled for new Zed lake until we get around to making workers work again
+
 script: |
   # This starts both a zqd root process and worker processes
   # then runs the same queries.

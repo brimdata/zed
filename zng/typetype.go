@@ -13,7 +13,7 @@ func NewTypeType(t Type) Value {
 }
 
 func (t *TypeOfType) ID() int {
-	return IdType
+	return IDType
 }
 
 func (t *TypeOfType) String() string {

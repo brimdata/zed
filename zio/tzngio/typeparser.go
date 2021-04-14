@@ -21,7 +21,7 @@ func NewTypeParser(zctx *zson.Context) *TypeParser {
 	}
 }
 
-func isIdChar(c byte) bool {
+func isIDChar(c byte) bool {
 	return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_' || c == '.'
 }
 
@@ -29,7 +29,7 @@ func parseWord(in string) (string, string) {
 	in = strings.TrimSpace(in)
 	var off int
 	for ; off < len(in); off++ {
-		if !isIdChar(in[off]) {
+		if !isIDChar(in[off]) {
 			break
 		}
 	}

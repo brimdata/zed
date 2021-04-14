@@ -14,7 +14,7 @@ type networkOf struct {
 
 func (n *networkOf) Call(args []zng.Value) (zng.Value, error) {
 	id := args[0].Type.ID()
-	if id != zng.IdIP {
+	if id != zng.IDIP {
 		return zng.NewErrorf("not an IP"), nil
 	}
 	// XXX GC
@@ -32,7 +32,7 @@ func (n *networkOf) Call(args []zng.Value) (zng.Value, error) {
 		// two args
 		id := args[1].Type.ID()
 		body := args[1].Bytes
-		if id == zng.IdNet {
+		if id == zng.IDNet {
 			var err error
 			cidrMask, err := zng.DecodeNet(body)
 			if err != nil {

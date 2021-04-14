@@ -106,24 +106,24 @@ func convertSQLProc(scope *Scope, sql *ast.SQLExpr) (ast.Proc, error) {
 	return wrap(procs), nil
 }
 
-func isId(e ast.Expr) (string, bool) {
-	if id, ok := e.(*ast.Id); ok {
+func isID(e ast.Expr) (string, bool) {
+	if id, ok := e.(*ast.ID); ok {
 		return id.Name, true
 	}
 	return "", false
 }
 
 func liftWhereFilter(alias, where ast.Expr, joins []ast.SQLJoin) *ast.Filter {
-	aliasId, ok := isId(alias)
+	aliasID, ok := isID(alias)
 	if !ok {
 		return nil
 	}
 	for _, join := range joins {
-		if _, ok := isId(join.Alias); !ok {
+		if _, ok := isID(join.Alias); !ok {
 			return nil
 		}
 	}
-	eligible := eligiblePred(aliasId, where)
+	eligible := eligiblePred(aliasID, where)
 	if eligible == nil {
 		return nil
 	}
@@ -133,10 +133,10 @@ func liftWhereFilter(alias, where ast.Expr, joins []ast.SQLJoin) *ast.Filter {
 	}
 }
 
-func eligiblePred(aliasId string, e ast.Expr) ast.Expr {
+func eligiblePred(aliasID string, e ast.Expr) ast.Expr {
 	switch e := e.(type) {
 	case *ast.UnaryExpr:
-		if operand := eligiblePred(aliasId, e.Operand); operand != nil {
+		if operand := eligiblePred(aliasID, e.Operand); operand != nil {
 			return &ast.UnaryExpr{
 				Kind:    "UnaryExpr",
 				Op:      "!",
@@ -147,10 +147,10 @@ func eligiblePred(aliasId string, e ast.Expr) ast.Expr {
 		return e
 	case *ast.BinaryExpr:
 		if e.Op == "." {
-			return eligibleId(aliasId, e)
+			return eligibleID(aliasID, e)
 		}
-		lhs := eligiblePred(aliasId, e.LHS)
-		rhs := eligiblePred(aliasId, e.RHS)
+		lhs := eligiblePred(aliasID, e.LHS)
+		rhs := eligiblePred(aliasID, e.RHS)
 		if e.Op == "or" {
 			if lhs != nil && rhs != nil {
 				return e
@@ -178,8 +178,8 @@ func eligiblePred(aliasId string, e ast.Expr) ast.Expr {
 	return nil
 }
 
-func eligibleId(aliasId string, e *ast.BinaryExpr) ast.Expr {
-	if id, ok := e.LHS.(*ast.Id); ok && id.Name == aliasId {
+func eligibleID(aliasID string, e *ast.BinaryExpr) ast.Expr {
+	if id, ok := e.LHS.(*ast.ID); ok && id.Name == aliasID {
 		return e.RHS
 	}
 	return nil
@@ -189,7 +189,7 @@ func convertSQLTableRef(scope *Scope, e ast.Expr) (ast.Proc, error) {
 	// If an identifier name is given with no definition for that name,
 	// then convert it to a type name as it is otherwise expected that
 	// the type name will be defined by the data stream.
-	if id, ok := e.(*ast.Id); ok && scope.Lookup(id.Name) == nil {
+	if id, ok := e.(*ast.ID); ok && scope.Lookup(id.Name) == nil {
 		e = &ast.TypeValue{
 			Kind: "TypeValue",
 			Value: &ast.TypeName{

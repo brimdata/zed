@@ -1,3 +1,5 @@
+skip: issue 2537
+
 script: |
   mkdir logs
   zed lake import -R logs babble-norm-shuf-1.zson

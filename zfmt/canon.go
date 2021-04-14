@@ -66,7 +66,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		}
 	case *ast.Primitive:
 		c.literal(*e)
-	case *ast.Id:
+	case *ast.ID:
 		// If the identifier refers to a named variable in scope (like "$"),
 		// then return a Var expression referring to the pointer to the value.
 		// Note that constants may be accessed this way too by entering their

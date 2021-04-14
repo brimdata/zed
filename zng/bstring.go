@@ -11,7 +11,7 @@ func NewBstring(s string) Value {
 }
 
 func (t *TypeOfBstring) ID() int {
-	return IdBstring
+	return IDBstring
 }
 
 func (t *TypeOfBstring) String() string {

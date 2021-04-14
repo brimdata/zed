@@ -18,7 +18,7 @@ type stringFormatFloat struct{}
 
 func (s *stringFormatFloat) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
-	if zv.Type.ID() != zng.IdFloat64 {
+	if zv.Type.ID() != zng.IDFloat64 {
 		return badarg("string.floatToString")
 	}
 	if zv.Bytes == nil {
@@ -58,7 +58,7 @@ type stringFormatIp struct{}
 
 func (s *stringFormatIp) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
-	if zv.Type.ID() != zng.IdIP {
+	if zv.Type.ID() != zng.IDIP {
 		return badarg("string.ipToString")
 	}
 	if zv.Bytes == nil {

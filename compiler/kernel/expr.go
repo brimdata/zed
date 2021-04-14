@@ -52,7 +52,7 @@ func compileExpr(zctx *zson.Context, scope *Scope, e ast.Expr) (expr.Evaluator, 
 	switch e := e.(type) {
 	case *ast.Primitive:
 		return expr.NewLiteral(*e)
-	case *ast.Id:
+	case *ast.ID:
 		// This should be converted in the semantic pass but it can come
 		// over the network from a worker, so we check again.
 		return nil, fmt.Errorf("Z kernel compiler: encountered AST identifier for '%s'", e.Name)
@@ -135,7 +135,7 @@ func compileBinary(zctx *zson.Context, scope *Scope, e *ast.BinaryExpr) (expr.Ev
 	}
 	if e.Op == "." {
 		// We should change this to DotExpr.  See issue #2255.
-		id, ok := e.RHS.(*ast.Id)
+		id, ok := e.RHS.(*ast.ID)
 		if !ok {
 			return nil, fmt.Errorf("Z kernel: RHS of dot operator is not a name")
 		}
@@ -274,7 +274,7 @@ func compileConditional(zctx *zson.Context, scope *Scope, node ast.Conditional) 
 }
 
 func compileDotExpr(zctx *zson.Context, scope *Scope, lhs, rhs ast.Expr) (expr.Evaluator, error) {
-	id, ok := rhs.(*ast.Id)
+	id, ok := rhs.(*ast.ID)
 	if !ok {
 		return nil, errors.New("rhs of dot expression is not an identifier")
 	}

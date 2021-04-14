@@ -63,7 +63,7 @@ func (a *anchor) mixIn(cols []zng.Column) {
 
 func (i *integer) check(zv zng.Value) {
 	id := zv.Type.ID()
-	if zng.IsInteger(id) || id == zng.IdNull {
+	if zng.IsInteger(id) || id == zng.IDNull {
 		return
 	}
 	if !zng.IsFloat(id) {

@@ -7,7 +7,7 @@ import (
 type TypeOfNull struct{}
 
 func (t *TypeOfNull) ID() int {
-	return IdNull
+	return IDNull
 }
 
 func (t *TypeOfNull) String() string {

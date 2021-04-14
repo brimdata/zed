@@ -1,17 +1,9 @@
 package lake
 
-import (
-	"context"
+// THIS INFO IS ALL THE LOG NOW.  We can use "zed lake log" to get at it
+// even in ZNG format.
 
-	zedindex "github.com/brimdata/zed/index"
-	"github.com/brimdata/zed/lake/chunk"
-	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
-	"github.com/segmentio/ksuid"
-)
+/*
 
 // statReadCloser implements zbuf.ReadCloser.
 type statReadCloser struct {
@@ -215,3 +207,4 @@ func Stat(ctx context.Context, zctx *zson.Context, lk *Lake) (zbuf.ReadCloser, e
 	go s.run()
 	return s, nil
 }
+*/

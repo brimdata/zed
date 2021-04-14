@@ -65,14 +65,14 @@ func (c *Pair) Coerce(a, b zng.Value) (int, error) {
 		// Promote to bstring if they are different
 		id := aid
 		if id != bid {
-			id = zng.IdBstring
+			id = zng.IDBstring
 		}
 		return id, nil
 	}
-	if aid == zng.IdNull {
+	if aid == zng.IDNull {
 		return bid, nil
 	}
-	if bid == zng.IdNull {
+	if bid == zng.IDNull {
 		return aid, nil
 	}
 	return 0, ErrIncompatibleTypes
@@ -150,7 +150,7 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, error) {
 		} else {
 			c.B, err = c.promoteToUnsigned(c.B)
 		}
-		id = zng.IdUint64
+		id = zng.IDUint64
 	}
 	return id, err
 }
@@ -170,7 +170,7 @@ func ToFloat(zv zng.Value) (float64, bool) {
 			return float64(v), true
 		}
 	}
-	if id == zng.IdDuration {
+	if id == zng.IDDuration {
 		v, _ := zng.DecodeInt(zv.Bytes)
 		return 1e-9 * float64(v), true
 	}
@@ -199,7 +199,7 @@ func ToUint(zv zng.Value) (uint64, bool) {
 			return uint64(v), true
 		}
 	}
-	if id == zng.IdDuration {
+	if id == zng.IDDuration {
 		v, _ := zng.DecodeInt(zv.Bytes)
 		return uint64(v / 1_000_000_000), true
 	}
@@ -226,7 +226,7 @@ func ToInt(zv zng.Value) (int64, bool) {
 			return int64(v), true
 		}
 	}
-	if id == zng.IdDuration {
+	if id == zng.IDDuration {
 		v, _ := zng.DecodeInt(zv.Bytes)
 		return int64(v / 1_000_000_000), true
 	}
@@ -239,7 +239,7 @@ func ToInt(zv zng.Value) (int64, bool) {
 
 func ToTime(zv zng.Value) (nano.Ts, bool) {
 	id := zv.Type.ID()
-	if id == zng.IdTime {
+	if id == zng.IDTime {
 		ts, _ := zng.DecodeTime(zv.Bytes)
 		return ts, true
 	}
@@ -270,9 +270,9 @@ func ToDuration(in zng.Value) (nano.Duration, bool) {
 	var out nano.Duration
 	var err error
 	switch in.Type.ID() {
-	case zng.IdDuration:
+	case zng.IDDuration:
 		out, err = zng.DecodeDuration(in.Bytes)
-	case zng.IdUint16, zng.IdUint32, zng.IdUint64:
+	case zng.IDUint16, zng.IDUint32, zng.IDUint64:
 		var v uint64
 		v, err = zng.DecodeUint(in.Bytes)
 		// check for overflow
@@ -280,12 +280,12 @@ func ToDuration(in zng.Value) (nano.Duration, bool) {
 			return 0, false
 		}
 		out = nano.Duration(v) * nano.Second
-	case zng.IdInt16, zng.IdInt32, zng.IdInt64:
+	case zng.IDInt16, zng.IDInt32, zng.IDInt64:
 		var v int64
 		v, err = zng.DecodeInt(in.Bytes)
 		//XXX check for overflow here
 		out = nano.Duration(v) * nano.Second
-	case zng.IdFloat64:
+	case zng.IDFloat64:
 		var v float64
 		v, err = zng.DecodeFloat64(in.Bytes)
 		out = nano.DurationFromFloat(v)

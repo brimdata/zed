@@ -101,6 +101,10 @@ func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
 		f = &toBase64{}
 	case "from_base64":
 		f = &fromBase64{}
+	case "to_hex":
+		f = &toHex{}
+	case "from_hex":
+		f = &fromHex{}
 	case "network_of":
 		argmax = 2
 		f = &networkOf{}

@@ -1,16 +1,11 @@
 script: |
-  mkdir logs
-  zed lake import -R logs babble.zson
-  zed lake ls -R logs -ranges
-  echo ===
-  zed lake ls -R logs -relative | sort > t1
-  (cd ./logs; find zd -type d -regex ".*\.zar$" | sort) > t2
-  test -s t1 && test -s t2 && diff t1 t2 && echo ls matches
-  echo ===
-  zed lake rmdirs -R logs
-  (cd logs; find zd -type d -regex ".*\.zar" -print) > t3
-  test -z $(cat t3) && echo dirs removed
-  echo ===
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p logs
+  zed lake load -q -p logs babble.zson
+  zed lake log -p logs | zq -z "cut first=segment.meta.first,last=segment.meta.last" -
+  zed lake drop -q -p logs
+  zed lake log -p logs
 
 inputs:
   - name: babble.zson
@@ -19,10 +14,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      [1587518620062237300-1587513611063914690]
-      [1587513592062544400-1587508830068523240]
-      ===
-      ls matches
-      ===
-      dirs removed
-      ===
+      {first:2020-04-22T01:23:40.0622373Z,last:2020-04-21T22:40:30.06852324Z}
+  - name: stderr
+    data: |
+      logs: pool not found

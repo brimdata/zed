@@ -1,3 +1,5 @@
+skip: issue 2532
+
 script: |
   zed lake import -R logs -empty
   zed lake index create -R logs -o countbypath -k _path -z "count() by _path" _path:string :ip

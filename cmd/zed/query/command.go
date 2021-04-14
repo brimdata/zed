@@ -3,7 +3,6 @@ package query
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -82,7 +81,7 @@ type Command struct {
 	stats       bool
 	quiet       bool
 	stopErr     bool
-	includes    includes
+	includes    Includes
 	inputFlags  inputflags.Flags
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
@@ -91,33 +90,39 @@ type Command struct {
 
 func New(f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
-
 	c.outputFlags.SetFlags(f)
-
-	// Flags added for readers are -i, etc
 	c.inputFlags.SetFlags(f)
-
 	c.procFlags.SetFlags(f)
-
 	c.cli.SetFlags(f)
-
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
-	f.Var(&c.includes, "I", "source file containing Z query text (may be used multiple times)")
+	f.Var(&c.includes, "I", "source file containing Zed query text (may be used multiple times)")
 	return c, nil
 }
 
-type includes []string
+type Includes []string
 
-func (i includes) String() string {
+func (i Includes) String() string {
 	return strings.Join(i, ",")
 }
 
-func (i *includes) Set(value string) error {
+func (i *Includes) Set(value string) error {
 	*i = append(*i, value)
 	return nil
+}
+
+func (i Includes) Read() ([]string, error) {
+	var srcs []string
+	for _, path := range i {
+		b, err := os.ReadFile(path)
+		if err != nil {
+			return nil, err
+		}
+		srcs = append(srcs, string(b))
+	}
+	return srcs, nil
 }
 
 func (c *Command) Run(args []string) error {
@@ -129,31 +134,9 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	var srcs []string
-	for _, path := range c.includes {
-		b, err := ioutil.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		srcs = append(srcs, string(b))
-	}
-	paths := args
-	if !cli.FileExists(paths[0]) && !s3io.IsS3Path(paths[0]) {
-		if len(paths) == 1 {
-			// We don't interpret the first arg as a query if there
-			// are no additional args.
-			return fmt.Errorf("zq: no such file: %s", paths[0])
-		}
-		srcs = append(srcs, paths[0])
-		paths = paths[1:]
-	}
-	zqlSrc := strings.Join(srcs, "\n")
-	if zqlSrc == "" {
-		zqlSrc = "*"
-	}
-	query, err := compiler.ParseProc(zqlSrc)
+	paths, query, err := ParseSourcesAndInputs(args, c.includes)
 	if err != nil {
-		return fmt.Errorf("zq: parse error: %w", err)
+		return fmt.Errorf("zq: %w", err)
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
@@ -163,10 +146,8 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
-
 	writer, err := c.outputFlags.Open(ctx)
 	if err != nil {
 		return err
@@ -181,9 +162,7 @@ func (c *Command) Run(args []string) error {
 		}
 	}
 	defer zbuf.CloseReaders(readers)
-
 	if ast.FanIn(query) > 1 {
-
 		if err := driver.RunParallel(ctx, d, query, zctx, readers, driver.Config{}); err != nil {
 			writer.Close()
 			return err
@@ -196,4 +175,45 @@ func (c *Command) Run(args []string) error {
 		}
 	}
 	return writer.Close()
+}
+
+func ParseSourcesAndInputs(paths, includes Includes) ([]string, ast.Proc, error) {
+	srcs, err := includes.Read()
+	if err != nil {
+		return nil, nil, err
+	}
+	if len(paths) != 0 && !cli.FileExists(paths[0]) && !s3io.IsS3Path(paths[0]) {
+		if len(paths) == 1 {
+			// We don't interpret the first arg as a query if there
+			// are no additional args.
+			return nil, nil, fmt.Errorf("no such file: %s", paths[0])
+		}
+		srcs = append(srcs, paths[0])
+		paths = paths[1:]
+	}
+	query, err := parseZed(srcs)
+	if err != nil {
+		return nil, nil, err
+	}
+	return paths, query, nil
+}
+
+func ParseSources(args, includes Includes) (ast.Proc, error) {
+	srcs, err := includes.Read()
+	if err != nil {
+		return nil, err
+	}
+	return parseZed(append(srcs, args...))
+}
+
+func parseZed(srcs []string) (ast.Proc, error) {
+	zedSrc := strings.Join(srcs, "\n")
+	if zedSrc == "" {
+		zedSrc = "*"
+	}
+	query, err := compiler.ParseProc(zedSrc)
+	if err != nil {
+		return nil, fmt.Errorf("parse error: %w", err)
+	}
+	return query, nil
 }

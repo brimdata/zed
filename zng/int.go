@@ -55,7 +55,7 @@ func DecodeUint(zv zcode.Bytes) (uint64, error) {
 type TypeOfInt8 struct{}
 
 func (t *TypeOfInt8) ID() int {
-	return IdInt8
+	return IDInt8
 }
 
 func (t *TypeOfInt8) String() string {
@@ -81,7 +81,7 @@ func (t *TypeOfInt8) ZSONOf(zv zcode.Bytes) string {
 type TypeOfUint8 struct{}
 
 func (t *TypeOfUint8) ID() int {
-	return IdUint8
+	return IDUint8
 }
 
 func (t *TypeOfUint8) String() string {
@@ -107,7 +107,7 @@ func (t *TypeOfUint8) ZSONOf(zv zcode.Bytes) string {
 type TypeOfInt16 struct{}
 
 func (t *TypeOfInt16) ID() int {
-	return IdInt16
+	return IDInt16
 }
 
 func (t *TypeOfInt16) String() string {
@@ -133,7 +133,7 @@ func (t *TypeOfInt16) ZSONOf(zv zcode.Bytes) string {
 type TypeOfUint16 struct{}
 
 func (t *TypeOfUint16) ID() int {
-	return IdUint16
+	return IDUint16
 }
 
 func (t *TypeOfUint16) String() string {
@@ -159,7 +159,7 @@ func (t *TypeOfUint16) ZSONOf(zv zcode.Bytes) string {
 type TypeOfInt32 struct{}
 
 func (t *TypeOfInt32) ID() int {
-	return IdInt32
+	return IDInt32
 }
 
 func (t *TypeOfInt32) String() string {
@@ -185,7 +185,7 @@ func (t *TypeOfInt32) ZSONOf(zv zcode.Bytes) string {
 type TypeOfUint32 struct{}
 
 func (t *TypeOfUint32) ID() int {
-	return IdUint32
+	return IDUint32
 }
 
 func (t *TypeOfUint32) String() string {
@@ -211,7 +211,7 @@ func (t *TypeOfUint32) ZSONOf(zv zcode.Bytes) string {
 type TypeOfInt64 struct{}
 
 func (t *TypeOfInt64) ID() int {
-	return IdInt64
+	return IDInt64
 }
 
 func (t *TypeOfInt64) String() string {
@@ -237,7 +237,7 @@ func (t *TypeOfInt64) ZSONOf(zv zcode.Bytes) string {
 type TypeOfUint64 struct{}
 
 func (t *TypeOfUint64) ID() int {
-	return IdUint64
+	return IDUint64
 }
 
 func (t *TypeOfUint64) String() string {

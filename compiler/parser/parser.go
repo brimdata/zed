@@ -4930,7 +4930,7 @@ var g = &grammar{
 									label: "first",
 									expr: &ruleRefExpr{
 										pos:  position{line: 665, col: 11, offset: 19566},
-										name: "DotId",
+										name: "DotID",
 									},
 								},
 								&labeledExpr{
@@ -4988,14 +4988,14 @@ var g = &grammar{
 			},
 		},
 		{
-			name: "DotId",
+			name: "DotID",
 			pos:  position{line: 675, col: 1, offset: 19812},
 			expr: &choiceExpr{
 				pos: position{line: 676, col: 5, offset: 19822},
 				alternatives: []interface{}{
 					&actionExpr{
 						pos: position{line: 676, col: 5, offset: 19822},
-						run: (*parser).callonDotId2,
+						run: (*parser).callonDotID2,
 						expr: &seqExpr{
 							pos: position{line: 676, col: 5, offset: 19822},
 							exprs: []interface{}{
@@ -5017,7 +5017,7 @@ var g = &grammar{
 					},
 					&actionExpr{
 						pos: position{line: 685, col: 5, offset: 20048},
-						run: (*parser).callonDotId7,
+						run: (*parser).callonDotID7,
 						expr: &seqExpr{
 							pos: position{line: 685, col: 5, offset: 20048},
 							exprs: []interface{}{
@@ -8417,7 +8417,7 @@ var g = &grammar{
 										exprs: []interface{}{
 											&ruleRefExpr{
 												pos:  position{line: 1111, col: 7, offset: 31912},
-												name: "IdGuard",
+												name: "IDGuard",
 											},
 											&notExpr{
 												pos: position{line: 1111, col: 15, offset: 31920},
@@ -8468,7 +8468,7 @@ var g = &grammar{
 									label: "id",
 									expr: &ruleRefExpr{
 										pos:  position{line: 1113, col: 13, offset: 32052},
-										name: "IdGuard",
+										name: "IDGuard",
 									},
 								},
 							},
@@ -8521,7 +8521,7 @@ var g = &grammar{
 			},
 		},
 		{
-			name: "IdGuard",
+			name: "IDGuard",
 			pos:  position{line: 1118, col: 1, offset: 32236},
 			expr: &choiceExpr{
 				pos: position{line: 1119, col: 5, offset: 32248},
@@ -10946,7 +10946,7 @@ func (c *current) onShortCut2(compareOp, v interface{}) (interface{}, error) {
 
 						"args": []interface{}{map[string]interface{}{"kind": "BinaryExpr", "op": "=",
 
-							"lhs": map[string]interface{}{"kind": "Id", "name": "$"},
+							"lhs": map[string]interface{}{"kind": "ID", "name": "$"},
 
 							"rhs": v}}}}}}}, nil
 
@@ -10994,7 +10994,7 @@ func (c *current) onShortCut29(v interface{}) (interface{}, error) {
 
 						"args": []interface{}{map[string]interface{}{"kind": "BinaryExpr", "op": "in",
 
-							"rhs": map[string]interface{}{"kind": "Id", "name": "$"},
+							"rhs": map[string]interface{}{"kind": "ID", "name": "$"},
 
 							"lhs": v}}}}}}}, nil
 
@@ -11728,7 +11728,7 @@ func (c *current) onTasteProc1(e interface{}) (interface{}, error) {
 
 			"keys": []interface{}{map[string]interface{}{"kind": "Assignment",
 
-				"lhs": map[string]interface{}{"kind": "Id", "name": "shape"},
+				"lhs": map[string]interface{}{"kind": "ID", "name": "shape"},
 
 				"rhs": map[string]interface{}{"kind": "Call", "name": "typeof",
 
@@ -11736,7 +11736,7 @@ func (c *current) onTasteProc1(e interface{}) (interface{}, error) {
 
 			"aggs": []interface{}{map[string]interface{}{"kind": "Assignment",
 
-				"lhs": map[string]interface{}{"kind": "Id", "name": "taste"},
+				"lhs": map[string]interface{}{"kind": "ID", "name": "taste"},
 
 				"rhs": map[string]interface{}{"kind": "Agg",
 
@@ -11754,7 +11754,7 @@ func (c *current) onTasteProc1(e interface{}) (interface{}, error) {
 
 				"lhs": nil,
 
-				"rhs": map[string]interface{}{"kind": "Id", "name": "taste"}}}}}}, nil
+				"rhs": map[string]interface{}{"kind": "ID", "name": "taste"}}}}}}, nil
 
 }
 
@@ -12178,7 +12178,7 @@ func (p *parser) callonDerefExpr16() (interface{}, error) {
 	return p.cur.onDerefExpr16()
 }
 
-func (c *current) onDotId2(field interface{}) (interface{}, error) {
+func (c *current) onDotID2(field interface{}) (interface{}, error) {
 	return map[string]interface{}{"kind": "BinaryExpr", "op": ".",
 
 		"lhs": map[string]interface{}{"kind": "Root"},
@@ -12187,13 +12187,13 @@ func (c *current) onDotId2(field interface{}) (interface{}, error) {
 
 }
 
-func (p *parser) callonDotId2() (interface{}, error) {
+func (p *parser) callonDotID2() (interface{}, error) {
 	stack := p.vstack[len(p.vstack)-1]
 	_ = stack
-	return p.cur.onDotId2(stack["field"])
+	return p.cur.onDotID2(stack["field"])
 }
 
-func (c *current) onDotId7(expr interface{}) (interface{}, error) {
+func (c *current) onDotID7(expr interface{}) (interface{}, error) {
 	return map[string]interface{}{"kind": "BinaryExpr", "op": "[",
 
 		"lhs": map[string]interface{}{"kind": "Root"},
@@ -12202,10 +12202,10 @@ func (c *current) onDotId7(expr interface{}) (interface{}, error) {
 
 }
 
-func (p *parser) callonDotId7() (interface{}, error) {
+func (p *parser) callonDotID7() (interface{}, error) {
 	stack := p.vstack[len(p.vstack)-1]
 	_ = stack
-	return p.cur.onDotId7(stack["expr"])
+	return p.cur.onDotID7(stack["expr"])
 }
 
 func (c *current) onDeref2(from, to interface{}) (interface{}, error) {
@@ -13326,7 +13326,7 @@ func (p *parser) callonByToken1() (interface{}, error) {
 }
 
 func (c *current) onIdentifier1(id interface{}) (interface{}, error) {
-	return map[string]interface{}{"kind": "Id", "name": id}, nil
+	return map[string]interface{}{"kind": "ID", "name": id}, nil
 }
 
 func (p *parser) callonIdentifier1() (interface{}, error) {

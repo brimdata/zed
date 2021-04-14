@@ -39,7 +39,7 @@ func DecodeBool(zv zcode.Bytes) (bool, error) {
 }
 
 func (t *TypeOfBool) ID() int {
-	return IdBool
+	return IDBool
 }
 
 func (t *TypeOfBool) String() string {
