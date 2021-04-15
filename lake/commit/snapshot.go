@@ -1,8 +1,6 @@
 package commit
 
 import (
-	"context"
-
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/nano"
@@ -27,6 +25,10 @@ func newSnapshot(at journal.ID, order zbuf.Order) *Snapshot {
 	return &Snapshot{at: at, order: order}
 }
 
+func (s *Snapshot) Segments() []segment.Reference {
+	return s.segments
+}
+
 func (s *Snapshot) AddSegment(seg segment.Reference) {
 	s.segments = append(s.segments, seg)
 }
@@ -35,87 +37,12 @@ func (s *Snapshot) DeleteSegment(id ksuid.KSUID) {
 	panic("TBD")
 }
 
-func (s *Snapshot) Scan(ctx context.Context, ch chan segment.Reference) error {
-	for _, seg := range s.segments {
-		select {
-		case ch <- seg:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	return nil
-}
-
-func (s *Snapshot) ScanSpan(ctx context.Context, ch chan<- segment.Reference, span nano.Span) error {
-	for _, seg := range s.segments {
-		if span.Overlaps(seg.Span()) {
-			select {
-			case ch <- seg:
-			case <-ctx.Done():
-				return ctx.Err()
-			}
-		}
-	}
-	return nil
-}
-
-func (s *Snapshot) ScanSpanInOrder(ctx context.Context, ch chan<- segment.Reference, span nano.Span) error {
-	for _, seg := range s.sortedSegments(span) {
-		select {
-		case ch <- *seg:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	return nil
-}
-
-// ScanPartitions partitions all segments in the snapshot overlapping
-// with the given span into non-overlapping partitions and sends the
-// partitions over the given channel sorted by the pool key in the
-// pool's order.
-func (s *Snapshot) ScanPartitions(ctx context.Context, ch chan<- segment.Partition, span nano.Span) error {
-	first := span.Ts
-	last := span.End()
-	if s.order == zbuf.OrderDesc {
-		first, last = last, first
-	}
-	segments := s.sortedSegments(span)
-	for _, p := range segment.PartitionSegments(segments, s.order) {
-		// XXX this is clunky mixing spans and key ranges.
-		// When we get rid of the ts assumption, we will fix this.
-		// See issue #2482.
-		if s.order == zbuf.OrderAsc {
-			if p.First < first {
-				p.First = first
-			}
-			if p.Last > last {
-				p.Last = last
-			}
-		} else {
-			if p.First > first {
-				p.First = first
-			}
-			if p.Last < last {
-				p.Last = last
-			}
-		}
-		select {
-		case ch <- p:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	return nil
-}
-
-func (s *Snapshot) sortedSegments(span nano.Span) []*segment.Reference {
-	var sorted []*segment.Reference
+func (s *Snapshot) Select(span nano.Span) []*segment.Reference {
+	var segments []*segment.Reference
 	for k, seg := range s.segments {
 		if span.Overlaps(seg.Span()) {
-			sorted = append(sorted, &s.segments[k])
+			segments = append(segments, &s.segments[k])
 		}
 	}
-	segment.Sort(s.order, sorted)
-	return sorted
+	return segments
 }

@@ -170,6 +170,59 @@ func (p *Pool) StoreInStaging(ctx context.Context, id ksuid.KSUID, txn commit.Tr
 	return iosrc.WriteFile(ctx, p.StagingObject(id), b)
 }
 
+func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.Reference) error {
+	for _, seg := range snap.Select(nano.MaxSpan) {
+		select {
+		case ch <- *seg:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
+}
+
+func (p *Pool) NewPartionReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalReader {
+	reader := zson.NewMarshalReader(zson.StyleSimple)
+	go func() {
+		ch := make(chan Partition, 10)
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		var err error
+		go func() {
+			err = ScanPartitions(ctx, snap, span, p.Order, ch)
+			close(ch)
+		}()
+		for p := range ch {
+			if !reader.Supply(p) {
+				return
+			}
+		}
+		reader.Close(err)
+	}()
+	return reader
+}
+
+func (p *Pool) NewSegmentReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalReader {
+	reader := zson.NewMarshalReader(zson.StyleSimple)
+	go func() {
+		ch := make(chan segment.Reference)
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		var err error
+		go func() {
+			err = ScanSpan(ctx, snap, span, p.Order, ch)
+			close(ch)
+		}()
+		for p := range ch {
+			if !reader.Supply(p) {
+				return
+			}
+		}
+		reader.Close(err)
+	}()
+	return reader
+}
+
 func DataPath(poolPath iosrc.URI) iosrc.URI {
 	return poolPath.AppendPath(DataTag)
 }

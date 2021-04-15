@@ -87,7 +87,7 @@ func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 	}
 	ch := make(chan segment.Reference, 10)
 	go func() {
-		err = head.Scan(ctx, ch)
+		err = s.pool.Scan(ctx, head, ch)
 		close(ch)
 	}()
 	for seg := range ch {

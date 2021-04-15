@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
@@ -40,7 +39,7 @@ type pullerCloser struct {
 	io.Closer
 }
 
-func newRangeScanner(ctx context.Context, pool *Pool, zctx *zson.Context, sf driver.SourceFilter, scan segment.Partition) (sc *pullerCloser, stats ScanStats, err error) {
+func newRangeScanner(ctx context.Context, pool *Pool, zctx *zson.Context, sf driver.SourceFilter, scan Partition) (sc *pullerCloser, stats ScanStats, err error) {
 	closers := make(multiCloser, 0, len(scan.Segments))
 	pullers := make([]zbuf.Puller, 0, len(scan.Segments))
 	scanners := make([]zbuf.Scanner, 0, len(scan.Segments))
@@ -94,7 +93,7 @@ func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcCh
 	// We keep a channel of []SpanInfos filled to reduce the time
 	// query workers are waiting for the next driver.Source.
 	const scanPreFetch = 10
-	paritionCh := make(chan segment.Partition, scanPreFetch)
+	paritionCh := make(chan Partition, scanPreFetch)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
 		head, err := m.pool.log.Head(ctx)
@@ -102,7 +101,7 @@ func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcCh
 			close(paritionCh)
 			return err
 		}
-		err = head.ScanPartitions(ctx, paritionCh, span)
+		err = ScanPartitions(ctx, head, span, m.pool.Order, paritionCh)
 		close(paritionCh)
 		return err
 	})
@@ -129,7 +128,7 @@ func (m *spanMultiSource) Stats() ScanStats {
 
 type rangeSource struct {
 	pool      *Pool
-	partition segment.Partition
+	partition Partition
 	stats     *ScanStats
 }
 
