@@ -4,7 +4,8 @@ script: |
 
   mkdir zqd
   mv setup.py zqd.py zqd
-  pip install -q ./zqd
+  # -qq supresses warnings about availability of newer pip versions.
+  pip install -qq ./zqd
 
   source services.sh
   zapi -h $ZQD_HOST new test >/dev/null
