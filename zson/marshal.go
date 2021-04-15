@@ -1009,7 +1009,7 @@ func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zng.Type) (reflect.Type, e
 // MarshalStream provides a means to turn a sequence of Go values into
 // zng-marshaled records.  MarshalStream implements zbuf.Reader: in one
 // goroutine, records are pulled from the zbuf.Reader with Read() and
-// in another, Go values as empty-interface are supplied to the MarshalStream
+// in another, Go values as interface{} are supplied to the MarshalStream
 // via its Supply() method.
 type MarshalStream struct {
 	ch        chan *zng.Record
