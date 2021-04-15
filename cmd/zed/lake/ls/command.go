@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed/cli/outputflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
@@ -74,9 +73,9 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 		if c.partition {
-			r = lake.NewPartionReader(ctx, head, nano.MaxSpan)
+			r = pool.NewPartionReader(ctx, head, nano.MaxSpan)
 		} else {
-			r = lake.NewSegmentReader(ctx, head, nano.MaxSpan)
+			r = pool.NewSegmentReader(ctx, head, nano.MaxSpan)
 		}
 	}
 	err = zbuf.Copy(w, r)
