@@ -181,8 +181,8 @@ func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.
 	return nil
 }
 
-func (p *Pool) NewPartionReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalReader {
-	reader := zson.NewMarshalReader(zson.StyleSimple)
+func (p *Pool) NewPartionReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalStream {
+	reader := zson.NewMarshalStream(zson.StyleSimple)
 	go func() {
 		ch := make(chan Partition, 10)
 		ctx, cancel := context.WithCancel(ctx)
@@ -202,8 +202,8 @@ func (p *Pool) NewPartionReader(ctx context.Context, snap *commit.Snapshot, span
 	return reader
 }
 
-func (p *Pool) NewSegmentReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalReader {
-	reader := zson.NewMarshalReader(zson.StyleSimple)
+func (p *Pool) NewSegmentReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalStream {
+	reader := zson.NewMarshalStream(zson.StyleSimple)
 	go func() {
 		ch := make(chan segment.Reference)
 		ctx, cancel := context.WithCancel(ctx)
