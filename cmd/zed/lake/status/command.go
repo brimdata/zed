@@ -86,7 +86,7 @@ func (c *Command) Run(args []string) error {
 	if c.drop {
 		return errors.New("TBD: issue #2541")
 	}
-	txns := make([]commit.Transaction, 0, len(ids))
+	txns := make([]*commit.Transaction, 0, len(ids))
 	for _, id := range ids {
 		txn, err := pool.LoadFromStaging(ctx, id)
 		if err != nil {
@@ -114,7 +114,7 @@ func (c *Command) Run(args []string) error {
 	return err
 }
 
-func printCommits(txns []commit.Transaction) {
+func printCommits(txns []*commit.Transaction) {
 	for _, txn := range txns {
 		fmt.Printf("commit %s\n", txn.ID)
 		for _, action := range txn.Actions {
@@ -124,7 +124,7 @@ func printCommits(txns []commit.Transaction) {
 	}
 }
 
-func marshalCommits(txns []commit.Transaction, w zbuf.Writer) error {
+func marshalCommits(txns []*commit.Transaction, w zbuf.Writer) error {
 	m := zson.NewZNGMarshaler()
 	for _, txn := range txns {
 		rec, err := m.MarshalRecord(txn)

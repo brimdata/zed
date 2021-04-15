@@ -9,14 +9,21 @@ import (
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/signalctx"
+	"github.com/segmentio/ksuid"
 )
 
 var Commit = &charm.Spec{
 	Name:  "commit",
 	Usage: "commit [options] tag [tag ...]",
-	Short: "transactionally commit data from staging into data pool",
+	Short: "transactionally commit data from staging into pool",
 	Long: `
-The commit command...
+The commit command takes one or more pending commits in a pool's staging area
+and transactionally commits them to the pool.  If a write conflict
+occurs (e.g., because a pending commit deletes data that no longer exists),
+the commit is aborted and an error reported.
+
+If multiple commit tags are specified, they are combined into a single new
+commit as if a "zed lake squash" command were executed prior to the commit.
 `,
 	New: New,
 }
@@ -43,7 +50,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 func (c *Command) Run(args []string) error {
 	defer c.Cleanup()
 	if len(args) == 0 {
-		return errors.New("zed lake add: at least one input file must be specified (- for stdin)")
+		return errors.New("zed lake commit: at least one pending commit tag must be specified")
 	}
 	ctx, cancel := signalctx.New(os.Interrupt)
 	defer cancel()
@@ -55,15 +62,23 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if len(ids) == 0 {
+	var commitID ksuid.KSUID
+	switch len(ids) {
+	case 0:
 		return errors.New("no commit tags specified")
+	case 1:
+		commitID = ids[0]
+	default:
+		commitID, err = pool.Squash(ctx, ids, c.Date.Ts(), c.User, c.Message)
+		if err != nil {
+			return err
+		}
 	}
-	if len(ids) > 1 {
-		return errors.New("issue #2543: squash on commit not yet implemented")
-	}
-	if err := pool.Commit(ctx, ids[0], c.Date.Ts(), c.User, c.Message); err != nil {
+	if err := pool.Commit(ctx, commitID, c.Date.Ts(), c.User, c.Message); err != nil {
 		return err
 	}
-	fmt.Println("commit successful")
+	if !c.lakeFlags.Quiet {
+		fmt.Println("commit successful")
+	}
 	return nil
 }

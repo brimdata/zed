@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/commit"
+	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
@@ -104,7 +105,7 @@ func (p *Pool) Add(ctx context.Context, zctx *zson.Context, r zbuf.Reader) (ksui
 	}
 	id := ksuid.New()
 	txn := commit.NewAddsTxn(id, w.Segments())
-	if err := p.StoreInStaging(ctx, id, txn); err != nil {
+	if err := p.StoreInStaging(ctx, txn); err != nil {
 		return ksuid.Nil, err
 	}
 	return id, nil
@@ -114,19 +115,48 @@ func (p *Pool) Commit(ctx context.Context, id ksuid.KSUID, date nano.Ts, author,
 	if date == 0 {
 		date = nano.Now()
 	}
-	commit, err := p.LoadFromStaging(ctx, id)
+	txn, err := p.LoadFromStaging(ctx, id)
 	if err != nil {
 		if !zqe.IsNotFound(err) {
 			return err
 		}
 		return fmt.Errorf("commit ID not staged: %s", id)
 	}
-	commit.AppendCommitMessage(id, date, author, message)
-	if err := p.log.Commit(ctx, commit); err != nil {
+	txn.AppendCommitMessage(id, date, author, message)
+	if err := p.log.Commit(ctx, txn); err != nil {
 		return err
 	}
 	// Commit succeeded.  Delete the staging entry.
 	return p.ClearFromStaging(ctx, id)
+}
+
+func (p *Pool) Squash(ctx context.Context, ids []ksuid.KSUID, date nano.Ts, author, message string) (ksuid.KSUID, error) {
+	if date == 0 {
+		date = nano.Now()
+	}
+	head, err := p.log.Head(ctx)
+	if err != nil {
+		if err != journal.ErrEmpty {
+			return ksuid.Nil, err
+		}
+		head = commit.NewSnapshot()
+	}
+	patch := commit.NewPatch(head)
+	for _, id := range ids {
+		txn, err := p.LoadFromStaging(ctx, id)
+		if err != nil {
+			if !zqe.IsNotFound(err) {
+				return ksuid.Nil, err
+			}
+			return ksuid.Nil, fmt.Errorf("commit ID not staged: %s", id)
+		}
+		commit.Play(patch, txn)
+	}
+	txn := patch.NewTransaction()
+	if err := p.StoreInStaging(ctx, txn); err != nil {
+		return ksuid.KSUID{}, err
+	}
+	return txn.ID, nil
 }
 
 func (p *Pool) ClearFromStaging(ctx context.Context, id ksuid.KSUID) error {
@@ -158,16 +188,16 @@ func (p *Pool) Log() *commit.Log {
 	return p.log
 }
 
-func (p *Pool) LoadFromStaging(ctx context.Context, id ksuid.KSUID) (commit.Transaction, error) {
+func (p *Pool) LoadFromStaging(ctx context.Context, id ksuid.KSUID) (*commit.Transaction, error) {
 	return commit.LoadTransaction(ctx, id, p.StagingObject(id))
 }
 
-func (p *Pool) StoreInStaging(ctx context.Context, id ksuid.KSUID, txn commit.Transaction) error {
+func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) error {
 	b, err := txn.Serialize()
 	if err != nil {
 		return fmt.Errorf("pool %q: internal error: serialize transaction: %w", p.Name, err)
 	}
-	return iosrc.WriteFile(ctx, p.StagingObject(id), b)
+	return iosrc.WriteFile(ctx, p.StagingObject(txn.ID), b)
 }
 
 func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.Reference) error {
