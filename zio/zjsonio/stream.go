@@ -113,7 +113,11 @@ func (s *Stream) hasTypeType(typ zng.Type) bool {
 }
 
 func (s *Stream) appendTypeValues(types []ast.Type, zv zng.Value) []ast.Type {
-	zng.Walk(zv.Type, zv.Bytes, func(typ zng.Type, bytes zcode.Bytes) error {
+	zng.Walk(zv.Type, zv.Bytes, func(t zng.Type, bytes zcode.Bytes) error {
+		typ, err := s.zctx.TranslateType(t)
+		if err != nil {
+			return err
+		}
 		if !s.typetype[typ] {
 			return zng.SkipContainer
 		}

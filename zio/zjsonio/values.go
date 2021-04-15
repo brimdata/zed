@@ -71,6 +71,9 @@ func encodePrimitive(zctx *zson.Context, typ zng.Type, v zcode.Bytes) (interface
 		if err != nil {
 			return nil, err
 		}
+		if alias, ok := typ.(*zng.TypeAlias); ok {
+			return alias.Name, nil
+		}
 		return strconv.Itoa(zng.TypeID(typ)), nil
 	}
 	// This should use ZSON primitive syntax.  See issue #2525.
