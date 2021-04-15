@@ -111,7 +111,7 @@ func (r *Root) StoreConfig(ctx context.Context) error {
 	return nil
 }
 
-func (r *Root) List() *zson.MarshalReader {
+func (r *Root) List() *zson.MarshalStream {
 	return NewPoolConfigReader(r.Pools)
 }
 

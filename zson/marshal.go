@@ -1006,27 +1006,28 @@ func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zng.Type) (reflect.Type, e
 	return reflect.TypeOf(v), nil
 }
 
-// MarshalReader provides a means to turn a sequence of Go values into
-// zng-marshaled records.  MarshalReader implements zbuf.Reader.  So, in
-// one goroutine, pull records from the zbuf.Reader with Read() and in
-// another supply values to the MarshalReader via the Supply() method.
-type MarshalReader struct {
+// MarshalStream provides a means to turn a sequence of Go values into
+// zng-marshaled records.  MarshalStream implements zbuf.Reader: in one
+// goroutine, records are pulled from the zbuf.Reader with Read() and
+// in another, Go values as empty-interface are supplied to the MarshalStream
+// via its Supply() method.
+type MarshalStream struct {
 	ch        chan *zng.Record
 	done      chan error
 	marshaler *MarshalZNGContext
 }
 
-func NewMarshalReader(style TypeStyle) *MarshalReader {
+func NewMarshalStream(style TypeStyle) *MarshalStream {
 	m := NewZNGMarshaler()
 	m.Decorate(style)
-	return &MarshalReader{
+	return &MarshalStream{
 		ch:        make(chan *zng.Record),
 		done:      make(chan error),
 		marshaler: m,
 	}
 }
 
-func (m *MarshalReader) Close(err error) {
+func (m *MarshalStream) Close(err error) {
 	close(m.ch)
 	if err != nil {
 		m.done <- err
@@ -1034,7 +1035,7 @@ func (m *MarshalReader) Close(err error) {
 	close(m.done)
 }
 
-func (m *MarshalReader) Supply(v interface{}) bool {
+func (m *MarshalStream) Supply(v interface{}) bool {
 	rec, err := m.marshaler.MarshalRecord(v)
 	if rec == nil || err != nil {
 		m.Close(err)
@@ -1044,7 +1045,7 @@ func (m *MarshalReader) Supply(v interface{}) bool {
 	return true
 }
 
-func (m *MarshalReader) Read() (*zng.Record, error) {
+func (m *MarshalStream) Read() (*zng.Record, error) {
 	rec := <-m.ch
 	if rec == nil {
 		return nil, <-m.done

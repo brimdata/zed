@@ -9,8 +9,8 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func NewPoolConfigReader(pools []PoolConfig) *zson.MarshalReader {
-	reader := zson.NewMarshalReader(zson.StyleSimple)
+func NewPoolConfigReader(pools []PoolConfig) *zson.MarshalStream {
+	reader := zson.NewMarshalStream(zson.StyleSimple)
 	go func() {
 		for k := range pools {
 			if !reader.Supply(&pools[k]) {
@@ -22,8 +22,8 @@ func NewPoolConfigReader(pools []PoolConfig) *zson.MarshalReader {
 	return reader
 }
 
-func NewPartionReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalReader {
-	reader := zson.NewMarshalReader(zson.StyleSimple)
+func NewPartionReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalStream {
+	reader := zson.NewMarshalStream(zson.StyleSimple)
 	go func() {
 		ch := make(chan segment.Partition, 10)
 		ctx, cancel := context.WithCancel(ctx)
@@ -43,8 +43,8 @@ func NewPartionReader(ctx context.Context, snap *commit.Snapshot, span nano.Span
 	return reader
 }
 
-func NewSegmentReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalReader {
-	reader := zson.NewMarshalReader(zson.StyleSimple)
+func NewSegmentReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalStream {
+	reader := zson.NewMarshalStream(zson.StyleSimple)
 	go func() {
 		ch := make(chan segment.Reference)
 		ctx, cancel := context.WithCancel(ctx)
