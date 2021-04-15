@@ -1,4 +1,4 @@
-package semantic
+package optimizer
 
 import (
 	"encoding/json"
