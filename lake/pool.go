@@ -210,7 +210,7 @@ func (p *Pool) NewSegmentReader(ctx context.Context, snap *commit.Snapshot, span
 		defer cancel()
 		var err error
 		go func() {
-			err = ScanSpan(ctx, snap, span, p.Order, ch)
+			err = ScanSpan(ctx, snap, span, ch)
 			close(ch)
 		}()
 		for p := range ch {

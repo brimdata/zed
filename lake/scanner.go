@@ -25,7 +25,7 @@ func (s *Scanner) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segme
 	return nil
 }
 
-func ScanSpan(ctx context.Context, snap *commit.Snapshot, span nano.Span, order zbuf.Order, ch chan<- segment.Reference) error {
+func ScanSpan(ctx context.Context, snap *commit.Snapshot, span nano.Span, ch chan<- segment.Reference) error {
 	for _, seg := range snap.Select(span) {
 		if span.Overlaps(seg.Span()) {
 			select {
@@ -51,10 +51,9 @@ func ScanSpanInOrder(ctx context.Context, snap *commit.Snapshot, span nano.Span,
 	return nil
 }
 
-// ScanPartitions partitions all segments in the snapshot overlapping
-// with the given span into non-overlapping partitions and sends the
-// partitions over the given channel sorted by the pool key in the
-// pool's order.
+// ScanPartitions partitions all segments in snap overlapping
+// span into non-overlapping partitions, sorts them by pool key and order,
+// and sends them to ch.
 func ScanPartitions(ctx context.Context, snap *commit.Snapshot, span nano.Span, order zbuf.Order, ch chan<- Partition) error {
 	first := span.Ts
 	last := span.End()
