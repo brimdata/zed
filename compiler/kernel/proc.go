@@ -32,11 +32,9 @@ var ErrJoinParents = errors.New("join requires two upstream parallel query paths
 
 type Hook func(dag.Op, *proc.Context, proc.Interface) (proc.Interface, error)
 
-func isContainerOp(node dag.Op) bool {
-	if _, ok := node.(*dag.Sequential); ok {
-		return true
-	}
-	if _, ok := node.(*dag.Parallel); ok {
+func isContainerOp(op dag.Op) bool {
+	switch op.(type) {
+	case *dag.Sequential, *dag.Parallel:
 		return true
 	}
 	return false

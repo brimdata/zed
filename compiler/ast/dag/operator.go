@@ -1,6 +1,6 @@
 package dag
 
-// This module is derived from the GO ast design pattern
+// This module is derived from the GO AST design pattern in
 // https://golang.org/pkg/go/ast/
 //
 // Copyright 2009 The Go Authors. All rights reserved.

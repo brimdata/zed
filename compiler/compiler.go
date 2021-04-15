@@ -89,7 +89,7 @@ func (r *Runtime) AsBufferFilter() (*expr.BufferFilter, error) {
 // AsProc returns the lifted filter and any consts if present as a proc so that,
 // for instance, the root worker (or a sub-worker) can push the filter over the
 // net to the source scanner.
-func (r *Runtime) AsProc() dag.Op {
+func (r *Runtime) AsOp() dag.Op {
 	if r == nil {
 		return nil
 	}
@@ -97,19 +97,19 @@ func (r *Runtime) AsProc() dag.Op {
 	if f == nil {
 		return nil
 	}
-	p := &dag.Filter{
+	filterOp := &dag.Filter{
 		Kind: "Filter",
 		Expr: f,
 	}
 	consts := r.sem.Consts()
 	if len(consts) == 0 {
-		return p
+		return filterOp
 	}
 	var ops []dag.Op
-	for _, p := range consts {
-		ops = append(ops, p)
+	for _, op := range consts {
+		ops = append(ops, op)
 	}
-	ops = append(ops, p)
+	ops = append(ops, filterOp)
 	return &dag.Sequential{
 		Kind: "Sequential",
 		Ops:  ops,

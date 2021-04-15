@@ -108,7 +108,7 @@ func UnpackMapAsExpr(m interface{}) (Expr, error) {
 	}
 	e, ok := object.(Expr)
 	if !ok {
-		return nil, errors.New("dag.UnpackMapAsExpr: not an expression")
+		return nil, errors.New("dag.UnpackMapAsExpr: not an Expr")
 	}
 	return e, nil
 }

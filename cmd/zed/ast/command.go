@@ -194,7 +194,7 @@ func (c *Command) parse(z string) error {
 			return err
 		}
 		c.header("lifted filter")
-		c.writeOp(runtime.AsProc())
+		c.writeOp(runtime.AsOp())
 	}
 	if c.optimize {
 		runtime, err := c.compile(z)
