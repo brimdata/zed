@@ -89,5 +89,3 @@ outputs:
       {'union': [1, 2]}
       {'union': ['a', 'b']}
       {'union': 123}
-  - name: stderr
-    data: ''
