@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 
-	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -18,7 +17,6 @@ const MaxReadBuffer = 25 * 1024 * 1024
 type Reader struct {
 	zctx    *zson.Context
 	reader  io.Reader
-	parser  *ndjsonio.InferParser
 	objects []interface{}
 }
 
@@ -26,7 +24,6 @@ func NewReader(r io.Reader, zctx *zson.Context) (*Reader, error) {
 	return &Reader{
 		zctx:   zctx,
 		reader: r,
-		parser: ndjsonio.NewInferParser(zctx),
 	}, nil
 }
 

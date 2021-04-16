@@ -657,7 +657,7 @@ func handleIntakePostData(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	zctx := zson.NewContext()
-	zr, err := detector.NewReaderWithOpts(r.Body, zctx, "", zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}})
+	zr, err := detector.NewReaderWithOpts(r.Body, zctx, zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}})
 	if err != nil {
 		respondError(c, w, r, err)
 		return

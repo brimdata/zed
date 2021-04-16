@@ -2,7 +2,6 @@ package ingest
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -14,7 +13,6 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
-	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zqe"
@@ -82,13 +80,6 @@ next:
 			m.mr, err = nil, nil
 		}
 		return nil, err
-	}
-	if part.FormName() == "json_config" {
-		if err := json.NewDecoder(part).Decode(&m.opts.JSON.TypeConfig); err != nil {
-			return nil, zqe.ErrInvalid("bad typing config: %v", err)
-		}
-		m.opts.JSON.PathRegexp = ndjsonio.DefaultPathRegexp
-		goto next
 	}
 	if part.FormName() == "shaper_ast" {
 		raw, err := ioutil.ReadAll(io.LimitReader(part, maxShaperAstBytes))

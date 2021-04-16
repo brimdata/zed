@@ -12,7 +12,6 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zio/ndjsonio"
 )
 
 type MultipartWriter struct {
@@ -25,7 +24,6 @@ type MultipartWriter struct {
 	start     sync.Once
 	readers   []io.Reader
 	uris      []iosrc.URI
-	json      *ndjsonio.TypeConfig
 	shaper    ast.Proc
 }
 
@@ -60,10 +58,6 @@ func MultipartDataWriter(readers ...io.Reader) (*MultipartWriter, error) {
 	return m, nil
 }
 
-func (m *MultipartWriter) SetJSONConfig(config *ndjsonio.TypeConfig) {
-	m.json = config
-}
-
 func (m *MultipartWriter) SetShaper(shaper ast.Proc) {
 	m.shaper = shaper
 }
@@ -84,10 +78,6 @@ func (m *MultipartWriter) Read(b []byte) (int, error) {
 }
 
 func (m *MultipartWriter) run() {
-	if err := m.sendJSONConfig(); err != nil {
-		m.pw.CloseWithError(err)
-		return
-	}
 	if err := m.sendShaperAST(); err != nil {
 		m.pw.CloseWithError(err)
 		return
@@ -124,17 +114,6 @@ func (m *MultipartWriter) write(name string, r io.Reader) error {
 	c := &counter{reader: bufio.NewReader(r), nread: &m.bytesRead}
 	_, err = io.Copy(w, c)
 	return err
-}
-
-func (m *MultipartWriter) sendJSONConfig() error {
-	if m.json == nil {
-		return nil
-	}
-	w, err := m.form.CreateFormField("json_config")
-	if err != nil {
-		return err
-	}
-	return json.NewEncoder(w).Encode(m.json)
 }
 
 func (m *MultipartWriter) sendShaperAST() error {
