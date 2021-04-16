@@ -143,7 +143,7 @@ func (l *Log) SnapshotOfCommit(ctx context.Context, at journal.ID, commit ksuid.
 			return nil, false, err
 		}
 		if action == nil {
-			break
+			return snapshot, ok, nil
 		}
 		if action.CommitID() == commit {
 			ok = true
@@ -154,5 +154,4 @@ func (l *Log) SnapshotOfCommit(ctx context.Context, at journal.ID, commit ksuid.
 			PlayAction(snapshot, action)
 		}
 	}
-	return snapshot, ok, nil
 }

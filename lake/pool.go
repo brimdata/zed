@@ -113,7 +113,7 @@ func (p *Pool) Add(ctx context.Context, zctx *zson.Context, r zbuf.Reader) (ksui
 
 func (p *Pool) Delete(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, error) {
 	id := ksuid.New()
-	// IDs aren't vetted here and will fail at commit time if prolematic.
+	// IDs aren't vetted here and will fail at commit time if problematic.
 	txn := commit.NewDeletesTxn(id, ids)
 	if err := p.StoreInStaging(ctx, txn); err != nil {
 		return ksuid.Nil, err

@@ -78,6 +78,9 @@ func (c *Command) Run(args []string) error {
 		return errors.New("no data or commit tags specified")
 	}
 	ids, err := pool.LookupTags(ctx, tags)
+	if err != nil {
+		return err
+	}
 	commitID, err := pool.Delete(ctx, ids)
 	if err != nil {
 		return err
