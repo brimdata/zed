@@ -15,9 +15,9 @@ type Scanner struct {
 }
 
 func (s *Scanner) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.Reference) error {
-	for _, seg := range snap.Segments() {
+	for _, seg := range snap.Select(nano.MaxSpan) {
 		select {
-		case ch <- seg:
+		case ch <- *seg:
 		case <-ctx.Done():
 			return ctx.Err()
 		}

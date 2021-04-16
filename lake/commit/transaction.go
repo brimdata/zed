@@ -17,26 +17,26 @@ type Transaction struct {
 	Actions []actions.Interface `zng:"actions"`
 }
 
-func newTransaction(id ksuid.KSUID, capacity int) Transaction {
-	return Transaction{
+func newTransaction(id ksuid.KSUID, capacity int) *Transaction {
+	return &Transaction{
 		ID:      id,
 		Actions: make([]actions.Interface, 0, capacity),
 	}
 }
 
-func NewCommitTxn(id ksuid.KSUID, date nano.Ts, author, message string, segments []segment.Reference) Transaction {
+func NewCommitTxn(id ksuid.KSUID, date nano.Ts, author, message string, segments []segment.Reference) *Transaction {
 	txn := newTransaction(id, len(segments)+1)
 	if date == 0 {
 		date = nano.Now()
 	}
-	txn.appendAdds(segments, id)
+	txn.appendAdds(segments)
 	txn.AppendCommitMessage(id, date, author, message)
 	return txn
 }
 
-func NewAddsTxn(id ksuid.KSUID, segments []segment.Reference) Transaction {
+func NewAddsTxn(id ksuid.KSUID, segments []segment.Reference) *Transaction {
 	txn := newTransaction(id, len(segments))
-	txn.appendAdds(segments, id)
+	txn.appendAdds(segments)
 	return txn
 }
 
@@ -53,10 +53,14 @@ func (t *Transaction) AppendCommitMessage(id ksuid.KSUID, date nano.Ts, author, 
 	})
 }
 
-func (t *Transaction) appendAdds(segments []segment.Reference, id ksuid.KSUID) {
+func (t *Transaction) appendAdds(segments []segment.Reference) {
 	for _, s := range segments {
-		t.Append(&actions.Add{Commit: id, Segment: s})
+		t.Append(&actions.Add{Commit: t.ID, Segment: s})
 	}
+}
+
+func (t *Transaction) appendAdd(s *segment.Reference) {
+	t.Append(&actions.Add{Commit: t.ID, Segment: *s})
 }
 
 func (t Transaction) Serialize() ([]byte, error) {
@@ -92,10 +96,10 @@ func (t *Transaction) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func LoadTransaction(ctx context.Context, id ksuid.KSUID, uri iosrc.URI) (Transaction, error) {
+func LoadTransaction(ctx context.Context, id ksuid.KSUID, uri iosrc.URI) (*Transaction, error) {
 	r, err := iosrc.NewReader(ctx, uri)
 	if err != nil {
-		return Transaction{}, err
+		return nil, err
 	}
 	t := newTransaction(id, 0)
 	err = t.Deserialize(r)
@@ -103,7 +107,7 @@ func LoadTransaction(ctx context.Context, id ksuid.KSUID, uri iosrc.URI) (Transa
 		err = closeErr
 	}
 	if err != nil {
-		return Transaction{}, err
+		return nil, err
 	}
 	return t, nil
 }

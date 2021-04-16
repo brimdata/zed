@@ -37,6 +37,7 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/lake/ls"
 	_ "github.com/brimdata/zed/cmd/zed/lake/merge"
 	_ "github.com/brimdata/zed/cmd/zed/lake/query"
+	_ "github.com/brimdata/zed/cmd/zed/lake/squash"
 	_ "github.com/brimdata/zed/cmd/zed/lake/stat"
 	_ "github.com/brimdata/zed/cmd/zed/lake/status"
 	_ "github.com/brimdata/zed/cmd/zed/lake/vacate"

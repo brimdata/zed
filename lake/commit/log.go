@@ -49,7 +49,7 @@ func Create(ctx context.Context, path iosrc.URI, order zbuf.Order) (*Log, error)
 	return l, nil
 }
 
-func (l *Log) Commit(ctx context.Context, commit Transaction) error {
+func (l *Log) Commit(ctx context.Context, commit *Transaction) error {
 	b, err := commit.Serialize()
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func (l *Log) Snapshot(ctx context.Context, at journal.ID) (*Snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	snapshot := newSnapshot(at, l.order)
+	snapshot := newSnapshotAt(at)
 	reader := actions.NewDeserializer(r)
 	for {
 		action, err := reader.Read()
@@ -115,13 +115,7 @@ func (l *Log) Snapshot(ctx context.Context, at journal.ID) (*Snapshot, error) {
 		if action == nil {
 			break
 		}
-		//XXX other cases like actions.AddIndex etc coming soon...
-		switch action := action.(type) {
-		case *actions.Add:
-			snapshot.AddSegment(action.Segment)
-		case *actions.Delete:
-			snapshot.DeleteSegment(action.ID)
-		}
+		PlayAction(snapshot, action)
 	}
 	l.snapshots[at] = snapshot
 	return snapshot, nil
