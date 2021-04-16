@@ -1,6 +1,7 @@
 package commit
 
 import (
+	"bytes"
 	"context"
 	"io"
 
@@ -48,6 +49,10 @@ func Create(ctx context.Context, path iosrc.URI, order zbuf.Order) (*Log, error)
 	}
 	l.journal = j
 	return l, nil
+}
+
+func (l *Log) Boundaries(ctx context.Context) (journal.ID, journal.ID, error) {
+	return l.journal.Boundaries(ctx)
 }
 
 func (l *Log) Commit(ctx context.Context, commit *Transaction) error {
@@ -154,4 +159,36 @@ func (l *Log) SnapshotOfCommit(ctx context.Context, at journal.ID, commit ksuid.
 			PlayAction(snapshot, action)
 		}
 	}
+}
+
+func (l *Log) JournalIDOfCommit(ctx context.Context, at journal.ID, commit ksuid.KSUID) (journal.ID, error) {
+	if at == journal.Nil {
+		var err error
+		at, err = l.journal.ReadHead(ctx)
+		if err != nil {
+			return journal.Nil, err
+		}
+	}
+	tail, err := l.journal.ReadTail(ctx)
+	if err != nil {
+		return journal.Nil, err
+	}
+	for cursor := at; cursor >= tail; cursor-- {
+		b, err := l.journal.Load(ctx, cursor)
+		if err != nil {
+			return journal.Nil, err
+		}
+		reader := actions.NewDeserializer(bytes.NewReader(b))
+		action, err := reader.Read()
+		if err != nil {
+			return journal.Nil, err
+		}
+		if action == nil {
+			break
+		}
+		if action.CommitID() == commit {
+			return cursor, nil
+		}
+	}
+	return journal.Nil, ErrNotFound
 }

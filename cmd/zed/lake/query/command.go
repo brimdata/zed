@@ -4,6 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
 	"text/tabwriter"
 
 	"github.com/brimdata/zed/cli/outputflags"
@@ -13,6 +14,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/query"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/signalctx"
@@ -37,6 +39,7 @@ type Command struct {
 	*zedlake.Command
 	stats       bool
 	stopErr     bool
+	at          string
 	includes    query.Includes
 	lakeFlags   zedlake.Flags
 	outputFlags outputflags.Flags
@@ -46,6 +49,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
+	f.StringVar(&c.at, "at", "", "commit or journal ID at which to read pool")
 	f.BoolVar(&c.stats, "s", false, "print search stats to stderr on successful completion")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.Var(&c.includes, "I", "source file containing Zed query text (may be used multiple times)")
@@ -74,7 +78,29 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	msrc := lake.NewMultiSource(pool)
+	var id journal.ID
+	if c.at != "" {
+		if num, err := strconv.Atoi(c.at); err == nil {
+			ok, err := pool.IsJournalID(ctx, journal.ID(num))
+			if err != nil {
+				return err
+			}
+			if ok {
+				id = journal.ID(num)
+			}
+		}
+		if id == 0 {
+			commitID, err := zedlake.ParseID(c.at)
+			if err != nil {
+				return fmt.Errorf("zed lake query: -at argument is not a valid journal number or a commit tag: %s", c.at)
+			}
+			id, err = pool.Log().JournalIDOfCommit(ctx, 0, commitID)
+			if err != nil {
+				return fmt.Errorf("zed lake query: -at argument is not a valid journal number or a commit tag: %s", c.at)
+			}
+		}
+	}
+	msrc := lake.NewMultiSourceAt(pool, id)
 	writer, err := c.outputFlags.Open(ctx)
 	if err != nil {
 		return err

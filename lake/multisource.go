@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
@@ -76,13 +77,14 @@ func newRangeScanner(ctx context.Context, pool *Pool, zctx *zson.Context, sf dri
 // Otherwise, the sources come from localizing the given alternative paths to
 // each chunk in the archive, recognizing "_" as the chunk file itself, with no
 // defined ordering.
-func NewMultiSource(pool *Pool) MultiSource {
-	return &spanMultiSource{pool, &ScanStats{}}
+func NewMultiSourceAt(pool *Pool, at journal.ID) MultiSource {
+	return &spanMultiSource{pool, &ScanStats{}, at}
 }
 
 type spanMultiSource struct {
 	pool  *Pool
 	stats *ScanStats
+	at    journal.ID
 }
 
 func (m *spanMultiSource) OrderInfo() (field.Static, bool) {
@@ -96,7 +98,7 @@ func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcCh
 	paritionCh := make(chan Partition, scanPreFetch)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		head, err := m.pool.log.Head(ctx)
+		head, err := m.pool.log.Snapshot(ctx, m.at)
 		if err != nil {
 			close(paritionCh)
 			return err
