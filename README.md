@@ -21,8 +21,8 @@ and store Zed data, including:
 * The [Zed language](docs/language/README.md) documentation
 * The [Zed formats](docs/formats/README.md) specifications and documentation
 
-The previously released `zq` tool is now a command-line shortcut
-for the `zed query` command.
+The previously released [`zq`](cmd/zed/README.md#zq) tool is now
+a command-line shortcut for the `zed query` command.
 
 ## Installation
 
