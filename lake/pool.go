@@ -292,6 +292,14 @@ func (p *Pool) NewSegmentReader(ctx context.Context, snap *commit.Snapshot, span
 	return reader
 }
 
+func (p *Pool) IsJournalID(ctx context.Context, id journal.ID) (bool, error) {
+	head, tail, err := p.log.Boundaries(ctx)
+	if err != nil {
+		return false, err
+	}
+	return id >= tail && id <= head, nil
+}
+
 func DataPath(poolPath iosrc.URI) iosrc.URI {
 	return poolPath.AppendPath(DataTag)
 }

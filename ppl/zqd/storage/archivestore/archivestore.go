@@ -71,7 +71,7 @@ func (s *Storage) NativeOrder() zbuf.Order {
 }
 
 func (s *Storage) MultiSource() driver.MultiSource {
-	return lake.NewMultiSource(s.pool)
+	return lake.NewMultiSourceAt(s.pool, 0)
 }
 
 func (s *Storage) StaticSource(src driver.Source) driver.MultiSource {
