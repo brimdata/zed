@@ -40,7 +40,7 @@ func isContainerOp(op dag.Op) bool {
 	return false
 }
 
-func compileProc(custom Hook, node dag.Op, pctx *proc.Context, scope *Scope, parent proc.Interface) (proc.Interface, error) {
+func compileLeaf(custom Hook, node dag.Op, pctx *proc.Context, scope *Scope, parent proc.Interface) (proc.Interface, error) {
 	if custom != nil {
 		// XXX custom should take scope
 		p, err := custom(node, pctx, parent)
@@ -219,46 +219,15 @@ func splitAssignments(assignments []expr.Assignment) ([]field.Static, []expr.Eva
 	return lhs, rhs
 }
 
-func enteringJoin(ops []dag.Op) bool {
-	var ok bool
-	if len(ops) > 0 {
-		_, ok = ops[0].(*dag.Join)
-	}
-	return ok
-}
-
-func mergeInfo(op dag.Op) (field.Static, bool) {
-	if par, ok := op.(*dag.Parallel); ok {
-		return par.MergeBy, par.MergeReverse
-	}
-	swi := op.(*dag.Switch)
-	return swi.MergeBy, swi.MergeReverse
-}
-
 func compileSequential(custom Hook, nodes []dag.Op, pctx *proc.Context, scope *Scope, parents []proc.Interface) ([]proc.Interface, error) {
-	node := nodes[0]
-	parents, err := Compile(custom, node, pctx, scope, parents)
-	if err != nil {
-		return nil, err
-	}
-	// merge unless we're at the end of the chain,
-	// in which case the output layer will mux
-	// into channels.
-	if len(nodes) == 1 {
-		return parents, nil
-	}
-	if len(parents) > 1 && !enteringJoin(nodes[1:]) {
-		var parent proc.Interface
-		orderField, orderReverse := mergeInfo(node)
-		if orderField != nil {
-			cmp := zbuf.NewCompareFn(orderField, orderReverse)
-			parent = merge.New(pctx, parents, cmp)
-		} else {
-			parent = combine.New(pctx, parents)
+	for _, node := range nodes {
+		var err error
+		parents, err = Compile(custom, node, pctx, scope, parents)
+		if err != nil {
+			return nil, err
 		}
-		parents = []proc.Interface{parent}
 	}
-	return compileSequential(custom, nodes[1:], pctx, scope, parents)
+	return parents, nil
 }
 
 func compileParallel(custom Hook, parallel *dag.Parallel, c *proc.Context, scope *Scope, parents []proc.Interface) ([]proc.Interface, error) {
@@ -273,7 +242,7 @@ func compileParallel(custom Hook, parallel *dag.Parallel, c *proc.Context, scope
 		}
 	}
 	if len(parents) != n {
-		return nil, fmt.Errorf("proc.CompileProc: %d parents for parallel proc with %d branches", len(parents), len(parallel.Ops))
+		return nil, fmt.Errorf("parallel input mismatch: %d parents with %d flowgraph paths", len(parents), len(parallel.Ops))
 	}
 	var procs []proc.Interface
 	for k := 0; k < n; k++ {
@@ -315,7 +284,7 @@ func compileSwitch(custom Hook, swtch *dag.Switch, pctx *proc.Context, scope *Sc
 	return procs, nil
 }
 
-// Compile compiles an AST into a graph of Procs, and returns
+// Compile compiles a DAG into a graph of runtime operators, and returns
 // the leaves.  A custom compiler hook can be included and it will be tried first
 // for each node encountered during the compilation.
 func Compile(custom Hook, op dag.Op, pctx *proc.Context, scope *Scope, parents []proc.Interface) ([]proc.Interface, error) {
@@ -372,12 +341,22 @@ func Compile(custom Hook, op dag.Op, pctx *proc.Context, scope *Scope, parents [
 		}
 		return []proc.Interface{join}, nil
 
+	case *dag.Merge:
+		cmp := zbuf.NewCompareFn(op.Key, op.Reverse)
+		return []proc.Interface{merge.New(pctx, parents, cmp)}, nil
+
 	default:
-		if len(parents) > 1 {
-			return nil, fmt.Errorf("ast type %v cannot have multiple parents", op)
+		var parent proc.Interface
+		if len(parents) == 1 {
+			parent = parents[0]
+		} else {
+			parent = combine.New(pctx, parents)
 		}
-		p, err := compileProc(custom, op, pctx, scope, parents[0])
-		return []proc.Interface{p}, err
+		p, err := compileLeaf(custom, op, pctx, scope, parent)
+		if err != nil {
+			return nil, err
+		}
+		return []proc.Interface{p}, nil
 	}
 }
 

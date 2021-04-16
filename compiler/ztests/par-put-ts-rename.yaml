@@ -8,6 +8,7 @@ outputs:
           filter *
         =>
           filter *
-      ) merge-by ts
+      )
+      | merge ts
       | put ts=foo
       | rename foo=boo
