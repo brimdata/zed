@@ -7,7 +7,7 @@ Zed lakes utilize a superset of the relational and JSON document data models,
 but you do not need to create tables or schemas ahead of time to add data.
 
 At Zed's foundation lies a new family of self-describing data formats based on the
-[Zed data model](https://github.com/brimdata/zed/blob/main/docs/formats/zson.md#1-introduction),
+[Zed data model](docs/formats/zson.md#1-introduction),
 which unifies the highly structured approach of dataframes and relational tables
 with the loosely structured document model of JSON.
 

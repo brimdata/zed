@@ -1,7 +1,7 @@
 # `zed`
 
 `zed` is a command-line tool to manage, search, query, and transform
-data in individual files or, with `zed lake ...`, data in a Zed lake.
+data in Zed lakes and files.
 
 ## Under construction
 
@@ -11,7 +11,7 @@ This documentation is under construction.
 
 The `zq` command is a command-line shortcut for `zed query`.
 
-`zq` evaluates [ZQL ](../../docs/language/README.md) queries against input log
+`zq` evaluates [Zed queries ](../../docs/language/README.md) against input log
   files, producing an output log stream in the [ZNG](../../docs/formats/zng.md)
   format by default.
 
