@@ -9,6 +9,7 @@ import (
 )
 
 type Interface interface {
+	CommitID() ksuid.KSUID
 	fmt.Stringer
 }
 
@@ -23,6 +24,10 @@ type Add struct {
 	Segment segment.Reference `zng:"segment"`
 }
 
+func (a *Add) CommitID() ksuid.KSUID {
+	return a.Commit
+}
+
 func (a *Add) String() string {
 	return fmt.Sprintf("ADD %s", a.Segment)
 }
@@ -34,12 +39,21 @@ type CommitMessage struct {
 	Message string      `zng:"message"`
 }
 
+func (c *CommitMessage) CommitID() ksuid.KSUID {
+	return c.ID
+}
+
 func (c *CommitMessage) String() string {
 	return fmt.Sprintf("COMMIT %s %s %s %s", c.ID, c.Date, c.Author, c.Message)
 }
 
 type Delete struct {
-	ID ksuid.KSUID `zng:"id"`
+	Commit ksuid.KSUID `zng:"commit"`
+	ID     ksuid.KSUID `zng:"id"`
+}
+
+func (d *Delete) CommitID() ksuid.KSUID {
+	return d.Commit
 }
 
 func (d *Delete) String() string {

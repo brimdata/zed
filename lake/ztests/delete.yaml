@@ -1,0 +1,33 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p POOL
+  a=$(zed lake load -p POOL a.zson | head -1 | awk '{print $3}')
+  b=$(zed lake load -p POOL b.zson | head -1 | awk '{print $3}')
+  zed lake query -p POOL -z "sort ."
+  id=$(zed lake delete -p POOL $a | head -1 | awk '{print $2}')
+  zed lake commit -p POOL -q $id
+  echo ===
+  zed lake query -p POOL -z "sort ."
+  id=$(zed lake delete -p POOL $b | head -1 | awk '{print $2}')
+  zed lake commit -p POOL -q $id
+  echo ===
+  zed lake query -p POOL -z "sort ."
+
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+  - name: b.zson
+    data: |
+      {b:1}
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
+      {b:1}
+      ===
+      {b:1}
+      ===
