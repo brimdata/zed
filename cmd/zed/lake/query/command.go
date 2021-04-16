@@ -80,8 +80,7 @@ func (c *Command) Run(args []string) error {
 	}
 	var id journal.ID
 	if c.at != "" {
-		num, err := strconv.Atoi(c.at)
-		if err == nil {
+		if num, err := strconv.Atoi(c.at); err == nil {
 			ok, err := pool.IsJournalID(ctx, journal.ID(num))
 			if err != nil {
 				return err
