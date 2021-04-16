@@ -4,6 +4,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/kernel"
+	"github.com/brimdata/zed/compiler/optimizer"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/compiler/semantic"
 	"github.com/brimdata/zed/expr"
@@ -16,10 +17,11 @@ import (
 var _ zbuf.Filter = (*Runtime)(nil)
 
 type Runtime struct {
-	zctx    *zson.Context
-	scope   *kernel.Scope
-	sem     *semantic.AST
-	outputs []proc.Interface
+	zctx      *zson.Context
+	scope     *kernel.Scope
+	optimizer *optimizer.Optimizer
+	consts    []dag.Op
+	outputs   []proc.Interface
 }
 
 func New(zctx *zson.Context, parserAST ast.Proc) (*Runtime, error) {
@@ -35,23 +37,25 @@ func NewWithZ(zctx *zson.Context, z string) (*Runtime, error) {
 }
 
 func NewWithSortedInput(zctx *zson.Context, parserAST ast.Proc, sortKey field.Static, sortRev bool) (*Runtime, error) {
-	sem := semantic.New(parserAST)
-	if err := sem.Analyze(); err != nil {
+	op, consts, err := semantic.Analyze(parserAST)
+	if err != nil {
 		return nil, err
 	}
+	opt := optimizer.New(op)
 	if sortKey != nil {
-		sem.SetInputOrder(sortKey, sortRev)
+		opt.SetInputOrder(sortKey, sortRev)
 	}
 	scope := kernel.NewScope()
 	// enter the global scope
 	scope.Enter()
-	if err := kernel.LoadConsts(zctx, scope, sem.Consts()); err != nil {
+	if err := kernel.LoadConsts(zctx, scope, consts); err != nil {
 		return nil, err
 	}
 	return &Runtime{
-		zctx:  zctx,
-		scope: scope,
-		sem:   sem,
+		zctx:      zctx,
+		scope:     scope,
+		optimizer: opt,
+		consts:    consts,
 	}, nil
 }
 
@@ -61,14 +65,14 @@ func (r *Runtime) Outputs() []proc.Interface {
 
 func (r *Runtime) Entry() dag.Op {
 	//XXX need to prepend consts depending on context
-	return r.sem.Entry()
+	return r.optimizer.Entry()
 }
 
 func (r *Runtime) AsFilter() (expr.Filter, error) {
 	if r == nil {
 		return nil, nil
 	}
-	f := r.sem.Filter()
+	f := r.optimizer.Filter()
 	if f == nil {
 		return nil, nil
 	}
@@ -79,7 +83,7 @@ func (r *Runtime) AsBufferFilter() (*expr.BufferFilter, error) {
 	if r == nil {
 		return nil, nil
 	}
-	f := r.sem.Filter()
+	f := r.optimizer.Filter()
 	if f == nil {
 		return nil, nil
 	}
@@ -93,7 +97,7 @@ func (r *Runtime) AsOp() dag.Op {
 	if r == nil {
 		return nil
 	}
-	f := r.sem.Filter()
+	f := r.optimizer.Filter()
 	if f == nil {
 		return nil
 	}
@@ -101,14 +105,12 @@ func (r *Runtime) AsOp() dag.Op {
 		Kind: "Filter",
 		Expr: f,
 	}
-	consts := r.sem.Consts()
+	consts := r.consts
 	if len(consts) == 0 {
 		return filterOp
 	}
-	var ops []dag.Op
-	for _, op := range consts {
-		ops = append(ops, op)
-	}
+	ops := make([]dag.Op, 0, len(consts)+1)
+	ops = append(ops, consts...)
 	ops = append(ops, filterOp)
 	return &dag.Sequential{
 		Kind: "Sequential",
@@ -118,15 +120,15 @@ func (r *Runtime) AsOp() dag.Op {
 
 // This must be called before the zbuf.Filter interface will work.
 func (r *Runtime) Optimize() error {
-	return r.sem.Optimize()
+	return r.optimizer.Optimize()
 }
 
 func (r *Runtime) IsParallelizable() bool {
-	return r.sem.IsParallelizable()
+	return r.optimizer.IsParallelizable()
 }
 
 func (r *Runtime) Parallelize(n int) bool {
-	return r.sem.Parallelize(n)
+	return r.optimizer.Parallelize(n)
 }
 
 // ParseProc() is an entry point for use from external go code,
@@ -159,7 +161,7 @@ func MustParseProc(query string) ast.Proc {
 
 func (r *Runtime) Compile(custom kernel.Hook, pctx *proc.Context, inputs []proc.Interface) error {
 	var err error
-	r.outputs, err = kernel.Compile(custom, r.sem.Entry(), pctx, r.scope, inputs)
+	r.outputs, err = kernel.Compile(custom, r.optimizer.Entry(), pctx, r.scope, inputs)
 	return err
 }
 

@@ -1,4 +1,4 @@
-package semantic
+package optimizer
 
 import (
 	"encoding/json"
@@ -7,8 +7,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/field"
 )
-
-var passProc = &dag.Pass{Kind: "Pass"}
 
 //XXX
 func zbufDirInt(reversed bool) int {
@@ -46,7 +44,7 @@ func countConsts(ops []dag.Op) int {
 // returns nil and the unmodified flowgraph.
 func liftFilter(p dag.Op) (dag.Expr, dag.Op) {
 	if fp, ok := p.(*dag.Filter); ok {
-		return fp.Expr, passProc
+		return fp.Expr, dag.PassOp
 	}
 	seq, ok := p.(*dag.Sequential)
 	if ok && len(seq.Ops) > 0 {
@@ -55,7 +53,7 @@ func liftFilter(p dag.Op) (dag.Expr, dag.Op) {
 			panic("internal error: consts should have been removed from AST")
 		}
 		if fp, ok := seq.Ops[0].(*dag.Filter); ok {
-			rest := dag.Op(passProc)
+			rest := dag.Op(dag.PassOp)
 			if len(seq.Ops) > 1 {
 				rest = &dag.Sequential{
 					Kind: "Sequential",
@@ -196,27 +194,30 @@ func buildSplitFlowgraph(branch, tail []dag.Op, mergeField field.Static, reverse
 			Ops:  tail,
 		}, false
 	}
-	if len(tail) == 0 && mergeField != nil {
-		// Insert a pass tail in order to force a merge of the
-		// parallel branches when compiling. (Trailing parallel branches are wired to
-		// a mux output).
-		tail = []dag.Op{passProc}
-	}
-	pp := &dag.Parallel{
-		Kind:         "Parallel",
-		Ops:          []dag.Op{},
-		MergeBy:      mergeField,
-		MergeReverse: reverse,
-	}
+	branches := make([]dag.Op, 0, N)
 	for i := 0; i < N; i++ {
-		pp.Ops = append(pp.Ops, &dag.Sequential{
+		branches = append(branches, &dag.Sequential{
 			Kind: "Sequential",
 			Ops:  copyOps(branch),
 		})
 	}
+	sequence := []dag.Op{
+		&dag.Parallel{
+			Kind: "Parallel",
+			Ops:  branches,
+		},
+	}
+	if mergeField != nil {
+		sequence = append(sequence,
+			&dag.Merge{
+				Kind:    "Merge",
+				Key:     mergeField,
+				Reverse: reverse,
+			})
+	}
 	return &dag.Sequential{
 		Kind: "Sequential",
-		Ops:  append([]dag.Op{pp}, tail...),
+		Ops:  append(sequence, tail...),
 	}, true
 }
 

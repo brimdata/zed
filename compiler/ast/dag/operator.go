@@ -16,6 +16,8 @@ type Op interface {
 	opNode()
 }
 
+var PassOp = &Pass{Kind: "Pass"}
+
 // Ops
 
 type (
@@ -45,13 +47,14 @@ type (
 		RightKey Expr         `json:"right_key"`
 		Args     []Assignment `json:"args"`
 	}
+	Merge struct {
+		Kind    string       `json:"kind" unpack:""`
+		Key     field.Static `json:"key"`
+		Reverse bool         `json:"reverse"`
+	}
 	Parallel struct {
 		Kind string `json:"kind" unpack:""`
 		Ops  []Op   `json:"ops"`
-		// XXX move mergeby to a downstream proc.  the optimizatoin
-		// can bookkeep this info outside of the dag.
-		MergeBy      field.Static `json:"merge_by,omitempty"`
-		MergeReverse bool         `json:"merge_reverse,omitempty"`
 	}
 	Pass struct {
 		Kind string `json:"kind" unpack:""`
@@ -94,10 +97,6 @@ type (
 	Switch struct {
 		Kind  string `json:"kind" unpack:""`
 		Cases []Case `json:"cases"`
-		// XXX move mergeby to a downstream proc.  the optimizatoin
-		// can bookkeep this info outside of the dag.
-		MergeBy      field.Static `json:"merge_by,omitempty"`
-		MergeReverse bool         `json:"merge_reverse,omitempty"`
 	}
 	Tail struct {
 		Kind  string `json:"kind" unpack:""`
@@ -162,6 +161,7 @@ func (*TypeProc) opNode()     {}
 func (*Shape) opNode()        {}
 func (*FieldCutter) opNode()  {}
 func (*TypeSplitter) opNode() {}
+func (*Merge) opNode()        {}
 
 func FanIn(op Op) int {
 	switch op := op.(type) {
