@@ -1,6 +1,6 @@
 # Zed [![Tests][tests-img]][tests]
 
-Zed is an open-source, cloud-native, and searchable data lake for
+The Zed system provides an open-source, cloud-native, and searchable data lake for
 semi-structured data.
 
 Zed lakes utilize a superset of the relational and JSON document data models,
