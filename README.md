@@ -17,13 +17,16 @@ interoperable with popular data formats like CSV, (ND)JSON, and Parquet.
 This repository contains tools and components used to organize, search, analyze,
 and store Zed data, including:
 
-* The [zed](cmd/zed/README.md) command line tool managing, searching, and querying a Zed lake
+* The [`zed`](cmd/zed/README.md) command line tool for managing, searching, and querying a Zed lake
 * The [Zed language](docs/language/README.md) documentation
 * The [Zed formats](docs/formats/README.md) specifications and documentation
 
+The previously released `zq` tool is now a command-line shortcut
+for the `zed query` command.
+
 ## Installation
 
-To install `zq` or any other tool from this repo, you can either clone the repo
+To install `zed` or any other tool from this repo, you can either clone the repo
  and compile from source, or use a pre-compiled
  [release](https://github.com/brimdata/zed/releases), available for Windows, macOS, and Linux.
 
