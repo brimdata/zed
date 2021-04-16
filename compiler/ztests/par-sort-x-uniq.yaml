@@ -10,5 +10,6 @@ outputs:
         =>
           filter *
           | sort x
-      ) merge-by x
+      )
+      | merge x
       | uniq

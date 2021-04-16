@@ -187,12 +187,12 @@ func (c *canonDAG) op(p dag.Op) {
 		c.ret()
 		c.flush()
 		c.write(")")
-		if p.MergeBy != nil {
-			c.write(" merge-by ")
-			c.fieldpath(p.MergeBy)
-		}
-		if p.MergeReverse {
-			c.write(" rev")
+	case *dag.Merge:
+		c.next()
+		c.write("merge ")
+		c.fieldpath(p.Key)
+		if p.Reverse {
+			c.write(" (reverse)")
 		}
 	case *dag.Const:
 		c.write("const %s=", p.Name)

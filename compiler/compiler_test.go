@@ -46,11 +46,6 @@ func TestCompileParents(t *testing.T) {
 		_, err := compiler.CompileZ("split (=>filter * =>filter * =>filter *) | filter *", pctx, sources)
 		require.Error(t, err)
 	})
-
-	t.Run("too many parents", func(t *testing.T) {
-		_, err := compiler.CompileZ("* | split(=>filter * =>filter *) | filter *", pctx, sources)
-		require.Error(t, err)
-	})
 }
 
 // TestCompileMergeDone exercises the bug reported in issue #1635.

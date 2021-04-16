@@ -12,5 +12,6 @@ outputs:
           filter *
           | put a=1
           | tail 1
-      ) merge-by ts
+      )
+      | merge ts
       | tail 1

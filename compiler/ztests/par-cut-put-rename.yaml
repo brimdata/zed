@@ -14,5 +14,5 @@ outputs:
           | cut ts=ts,y=y,z=z
           | put x=y
           | rename y=z
-      ) merge-by ts
-      | pass
+      )
+      | merge ts

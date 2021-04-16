@@ -94,10 +94,8 @@ func semProc(scope *Scope, p ast.Proc) (dag.Op, error) {
 			ops = append(ops, converted)
 		}
 		return &dag.Parallel{
-			Kind:         "Parallel",
-			MergeBy:      p.MergeBy,
-			MergeReverse: p.MergeReverse,
-			Ops:          ops,
+			Kind: "Parallel",
+			Ops:  ops,
 		}, nil
 	case *ast.Sequential:
 		var ops []dag.Op
