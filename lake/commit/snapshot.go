@@ -101,7 +101,7 @@ func PlayAction(w Writeable, action actions.Interface) error {
 	return nil
 }
 
-// Play "plays" a recorded transaction into a whiteable snapshot.
+// Play "plays" a recorded transaction into a writeable snapshot.
 func Play(w Writeable, txn *Transaction) error {
 	for _, a := range txn.Actions {
 		if err := PlayAction(w, a); err != nil {
