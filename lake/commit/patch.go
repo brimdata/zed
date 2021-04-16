@@ -11,8 +11,9 @@ import (
 // can be traversed in the same manner.  Furthermore, patches can be easily
 // chained to implement a sequence of patches to a base snapshot.
 type Patch struct {
-	base *Snapshot
-	diff *Snapshot
+	base    *Snapshot
+	diff    *Snapshot
+	deletes []ksuid.KSUID
 }
 
 func NewPatch(base *Snapshot) *Patch {
@@ -46,13 +47,22 @@ func (p *Patch) DeleteSegment(id ksuid.KSUID) error {
 	if p.diff.Exists(id) {
 		return p.diff.DeleteSegment(id)
 	}
-	return p.base.DeleteSegment(id)
+	if !p.base.Exists(id) {
+		return ErrNotFound
+	}
+	// Keep track of the deletions from the base so we can add the
+	// needed delete Actions when building the transaction patch.
+	p.deletes = append(p.deletes, id)
+	return nil
 }
 
 func (p *Patch) NewTransaction() *Transaction {
-	segments := p.diff.segments
-	txn := newTransaction(ksuid.New(), len(segments))
-	for _, s := range segments {
+	adds := p.diff.segments
+	txn := newTransaction(ksuid.New(), len(adds)+len(p.deletes))
+	for _, id := range p.deletes {
+		txn.appendDelete(id)
+	}
+	for _, s := range adds {
 		txn.appendAdd(s)
 	}
 	return txn

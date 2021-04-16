@@ -84,6 +84,14 @@ func (s *Snapshot) Select(span nano.Span) Segments {
 	return segments
 }
 
+func (s *Snapshot) SelectAll() Segments {
+	var segments Segments
+	for _, seg := range s.segments {
+		segments = append(segments, seg)
+	}
+	return segments
+}
+
 type Segments []*segment.Reference
 
 func (s *Segments) Append(segments Segments) {

@@ -40,6 +40,14 @@ func NewAddsTxn(id ksuid.KSUID, segments []segment.Reference) *Transaction {
 	return txn
 }
 
+func NewDeletesTxn(id ksuid.KSUID, ids []ksuid.KSUID) *Transaction {
+	txn := newTransaction(id, len(ids))
+	for _, id := range ids {
+		txn.appendDelete(id)
+	}
+	return txn
+}
+
 func (t *Transaction) Append(action actions.Interface) {
 	t.Actions = append(t.Actions, action)
 }
@@ -61,6 +69,10 @@ func (t *Transaction) appendAdds(segments []segment.Reference) {
 
 func (t *Transaction) appendAdd(s *segment.Reference) {
 	t.Append(&actions.Add{Commit: t.ID, Segment: *s})
+}
+
+func (t *Transaction) appendDelete(id ksuid.KSUID) {
+	t.Append(&actions.Delete{Commit: t.ID, ID: id})
 }
 
 func (t Transaction) Serialize() ([]byte, error) {

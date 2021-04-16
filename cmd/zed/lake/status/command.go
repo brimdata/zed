@@ -24,10 +24,6 @@ var Status = &charm.Spec{
 "zed lake status" shows a data pool's pending commits from its staging area.
 If a staged commit tag (e.g., as output by "zed lake add") is given,
 then details for that pending commit are displayed.
-
-If -drop is specified, then one or more commits are required and the commit
-is deleted from staging along with the underlying data that was written
-into the lake.
 `,
 	New: New,
 }
@@ -38,14 +34,12 @@ func init() {
 
 type Command struct {
 	*zedlake.Command
-	drop        bool
 	lakeFlags   zedlake.Flags
 	outputFlags outputflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
-	f.BoolVar(&c.drop, "drop", false, "delete specified commits from staging")
 	c.lakeFlags.SetFlags(f)
 	c.outputFlags.SetFlags(f)
 	return c, nil
@@ -71,9 +65,6 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	} else {
-		if c.drop {
-			return errors.New("no commits specified for deletion")
-		}
 		ids, err = pool.GetStagedCommits(ctx)
 		if err != nil {
 			return err
@@ -82,9 +73,6 @@ func (c *Command) Run(args []string) error {
 			fmt.Println("no commits in staging")
 			return nil
 		}
-	}
-	if c.drop {
-		return errors.New("TBD: issue #2541")
 	}
 	txns := make([]*commit.Transaction, 0, len(ids))
 	for _, id := range ids {

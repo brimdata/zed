@@ -111,6 +111,16 @@ func (p *Pool) Add(ctx context.Context, zctx *zson.Context, r zbuf.Reader) (ksui
 	return id, nil
 }
 
+func (p *Pool) Delete(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, error) {
+	id := ksuid.New()
+	// IDs aren't vetted here and will fail at commit time if prolematic.
+	txn := commit.NewDeletesTxn(id, ids)
+	if err := p.StoreInStaging(ctx, txn); err != nil {
+		return ksuid.Nil, err
+	}
+	return id, nil
+}
+
 func (p *Pool) Commit(ctx context.Context, id ksuid.KSUID, date nano.Ts, author, message string) error {
 	if date == 0 {
 		date = nano.Now()
@@ -157,6 +167,35 @@ func (p *Pool) Squash(ctx context.Context, ids []ksuid.KSUID, date nano.Ts, auth
 		return ksuid.KSUID{}, err
 	}
 	return txn.ID, nil
+}
+
+func (p *Pool) LookupTags(ctx context.Context, tags []ksuid.KSUID) ([]ksuid.KSUID, error) {
+	var ids []ksuid.KSUID
+	for _, tag := range tags {
+		ok, err := p.SegmentExists(ctx, tag)
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			ids = append(ids, tag)
+			continue
+		}
+		snap, ok, err := p.log.SnapshotOfCommit(ctx, 0, tag)
+		if err != nil {
+			return nil, fmt.Errorf("tag does not exist: %s", tag)
+		}
+		if !ok {
+			return nil, fmt.Errorf("commit tag was previously deleted: %s", tag)
+		}
+		for _, seg := range snap.SelectAll() {
+			ids = append(ids, seg.ID)
+		}
+	}
+	return ids, nil
+}
+
+func (p *Pool) SegmentExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
+	return iosrc.Exists(ctx, segment.RowObjectPath(p.DataPath, id))
 }
 
 func (p *Pool) ClearFromStaging(ctx context.Context, id ksuid.KSUID) error {

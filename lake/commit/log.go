@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
+	"github.com/segmentio/ksuid"
 )
 
 type Log struct {
@@ -119,4 +120,39 @@ func (l *Log) Snapshot(ctx context.Context, at journal.ID) (*Snapshot, error) {
 	}
 	l.snapshots[at] = snapshot
 	return snapshot, nil
+}
+
+func (l *Log) SnapshotOfCommit(ctx context.Context, at journal.ID, commit ksuid.KSUID) (*Snapshot, bool, error) {
+	if at == journal.Nil {
+		var err error
+		at, err = l.journal.ReadHead(ctx)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	r, err := l.Open(ctx, at, journal.Nil)
+	if err != nil {
+		return nil, false, err
+	}
+	var ok bool
+	snapshot := newSnapshotAt(at)
+	reader := actions.NewDeserializer(r)
+	for {
+		action, err := reader.Read()
+		if err != nil {
+			return nil, false, err
+		}
+		if action == nil {
+			break
+		}
+		if action.CommitID() == commit {
+			ok = true
+			PlayAction(snapshot, action)
+			continue
+		}
+		if del, ok := action.(*actions.Delete); ok && snapshot.Exists(del.ID) {
+			PlayAction(snapshot, action)
+		}
+	}
+	return snapshot, ok, nil
 }
