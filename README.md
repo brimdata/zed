@@ -4,9 +4,9 @@ The Zed system provides an open-source, cloud-native, and searchable data lake f
 semi-structured data.
 
 Zed lakes utilize a superset of the relational and JSON document data models
-yet require no up-front schema definitions to insert data.  Zed lakes also provide
+yet require no up-front schema definitions to insert data.  They also provide
 transactional views and time travel with a `git`-like design pattern
-based on a journal of commits.  Using this mechanism, a lake's (optional) search indexes
+based on a commit journal.  Using this mechanism, a lake's (optional) search indexes
 are transactionally consistent with its data.
 
 At Zed's foundation lies a new family of self-describing data formats based on the
