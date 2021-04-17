@@ -5,7 +5,7 @@ semi-structured data.
 
 Zed lakes utilize a superset of the relational and JSON document data models
 yet require no up-front schema definitions to insert data.  They also provide
-transactional views and time travel with a `git`-like design pattern
+transactional views and time travel by leveraging a `git`-like design pattern
 based on a commit journal.  Using this mechanism, a lake's (optional) search indexes
 are transactionally consistent with its data.
 
