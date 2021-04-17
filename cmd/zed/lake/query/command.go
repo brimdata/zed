@@ -4,7 +4,6 @@ import (
 	"flag"
 	"fmt"
 	"os"
-	"strconv"
 	"text/tabwriter"
 
 	"github.com/brimdata/zed/cli/outputflags"
@@ -17,7 +16,6 @@ import (
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
-	"github.com/brimdata/zed/pkg/signalctx"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -49,7 +47,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
-	f.StringVar(&c.at, "at", "", "commit or journal ID at which to read pool")
+	f.StringVar(&c.at, "at", "", "commit tag or journal ID for time travel")
 	f.BoolVar(&c.stats, "s", false, "print search stats to stderr on successful completion")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.Var(&c.includes, "I", "source file containing Zed query text (may be used multiple times)")
@@ -61,10 +59,11 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(&c.outputFlags, &c.procFlags, &c.searchFlags); err != nil {
+	ctx, cleanup, err := c.Init(&c.outputFlags, &c.procFlags, &c.searchFlags)
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	query, err := query.ParseSources(args, c.includes)
 	if err != nil {
 		return fmt.Errorf("zed lake query: %w", err)
@@ -72,32 +71,15 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
 	pool, err := c.lakeFlags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
 	var id journal.ID
 	if c.at != "" {
-		if num, err := strconv.Atoi(c.at); err == nil {
-			ok, err := pool.IsJournalID(ctx, journal.ID(num))
-			if err != nil {
-				return err
-			}
-			if ok {
-				id = journal.ID(num)
-			}
-		}
-		if id == 0 {
-			commitID, err := zedlake.ParseID(c.at)
-			if err != nil {
-				return fmt.Errorf("zed lake query: -at argument is not a valid journal number or a commit tag: %s", c.at)
-			}
-			id, err = pool.Log().JournalIDOfCommit(ctx, 0, commitID)
-			if err != nil {
-				return fmt.Errorf("zed lake query: -at argument is not a valid journal number or a commit tag: %s", c.at)
-			}
+		id, err = zedlake.ParseJournalID(ctx, pool, c.at)
+		if err != nil {
+			return fmt.Errorf("zed lake query: %w", err)
 		}
 	}
 	msrc := lake.NewMultiSourceAt(pool, id)

@@ -111,8 +111,20 @@ func (r *Root) StoreConfig(ctx context.Context) error {
 	return nil
 }
 
-func (r *Root) List() *zson.MarshalStream {
-	return NewPoolConfigReader(r.Pools)
+func (r *Root) ScanPools(ctx context.Context, w zbuf.Writer) error {
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+	pools := r.Config.Pools
+	for k := range r.Config.Pools {
+		rec, err := m.MarshalRecord(&pools[k])
+		if err != nil {
+			return err
+		}
+		if err := w.Write(rec); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *Root) LookupPool(_ context.Context, name string) *PoolConfig {

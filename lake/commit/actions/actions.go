@@ -33,18 +33,30 @@ func (a *Add) String() string {
 }
 
 type CommitMessage struct {
-	ID      ksuid.KSUID `zng:"id"`
+	Commit  ksuid.KSUID `zng:"commit"`
 	Author  string      `zng:"author"`
 	Date    nano.Ts     `zng:"date"`
 	Message string      `zng:"message"`
 }
 
 func (c *CommitMessage) CommitID() ksuid.KSUID {
-	return c.ID
+	return c.Commit
 }
 
 func (c *CommitMessage) String() string {
-	return fmt.Sprintf("COMMIT %s %s %s %s", c.ID, c.Date, c.Author, c.Message)
+	return fmt.Sprintf("COMMIT %s %s %s %s", c.Commit, c.Date, c.Author, c.Message)
+}
+
+type StagedCommit struct {
+	Commit ksuid.KSUID `zng:"commit"`
+}
+
+func (s *StagedCommit) CommitID() ksuid.KSUID {
+	return s.Commit
+}
+
+func (s *StagedCommit) String() string {
+	return fmt.Sprintf("STAGED %s", s.Commit)
 }
 
 type Delete struct {

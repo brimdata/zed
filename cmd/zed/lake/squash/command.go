@@ -4,11 +4,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"os"
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/signalctx"
 )
 
 var Squash = &charm.Spec{
@@ -27,9 +25,6 @@ of any underlying add/delete operations.  If a delete operation
 encounters a tag that is not present in the implied commit,
 the squash will fail.  This integrity check is performed with
 respect to the head of the pool's commit journal at the time it is run.
-
-Currently, the previous commit messages are lost and a new message can be
-applied here with -message.  This will be addressed in issue #2561.
 `,
 	New: New,
 }
@@ -52,9 +47,11 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
+	ctx, cleanup, err := c.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	pool, err := c.lakeFlags.OpenPool(ctx)
 	if err != nil {
 		return err

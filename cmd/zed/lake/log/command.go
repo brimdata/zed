@@ -1,14 +1,12 @@
 package log
 
 import (
-	"context"
 	"flag"
 
 	"github.com/brimdata/zed/cli/outputflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/zbuf"
 )
 
 var Log = &charm.Spec{
@@ -37,32 +35,24 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
 	c.lakeFlags.SetFlags(f)
-	c.outputFlags.DefaultFormat = "zson"
+	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(&c.outputFlags); err != nil {
+	ctx, cleanup, err := c.Init(&c.outputFlags)
+	if err != nil {
 		return err
 	}
-	ctx := context.TODO()
+	defer cleanup()
 	pool, err := c.lakeFlags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
-	reader, err := pool.Log().OpenAsZNG(ctx, 0, 0)
+	r, err := pool.Log().OpenAsZNG(ctx, 0, 0)
 	if err != nil {
 		return err
 	}
-	writer, err := c.outputFlags.Open(ctx)
-	if err != nil {
-		return err
-	}
-	err = zbuf.Copy(writer, reader)
-	if closeErr := writer.Close(); err == nil {
-		err = closeErr
-	}
-	return err
+	return zedlake.CopyToOutput(ctx, c.outputFlags, r)
 }

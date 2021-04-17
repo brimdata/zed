@@ -4,11 +4,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"os"
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/signalctx"
 	"github.com/segmentio/ksuid"
 )
 
@@ -48,12 +46,14 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
 	if len(args) == 0 {
 		return errors.New("zed lake commit: at least one pending commit tag must be specified")
 	}
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
+	ctx, cleanup, err := c.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	pool, err := c.lakeFlags.OpenPool(ctx)
 	if err != nil {
 		return err
@@ -78,7 +78,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	if !c.lakeFlags.Quiet {
-		fmt.Println("commit successful")
+		fmt.Printf("%s committed\n", commitID)
 	}
 	return nil
 }

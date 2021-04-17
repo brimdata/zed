@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/jsonio"
+	"github.com/brimdata/zed/zio/lakeio"
 	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zio/parquetio"
 	"github.com/brimdata/zed/zio/tableio"
@@ -63,6 +64,8 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, erro
 		return csvio.NewWriter(w, csvio.WriterOpts{UTF8: opts.UTF8}), nil
 	case "parquet":
 		return parquetio.NewWriter(w), nil
+	case "lake":
+		return lakeio.NewWriter(w), nil
 	default:
 		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	}

@@ -4,7 +4,6 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/procflags"
@@ -12,7 +11,6 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
-	"github.com/brimdata/zed/pkg/signalctx"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
@@ -53,10 +51,11 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(&c.inputFlags, &c.procFlags); err != nil {
+	ctx, cleanup, err := c.Init(&c.inputFlags, &c.procFlags)
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if len(args) == 0 {
 		return errors.New("zed lake load: at least one input file must be specified (- for stdin)")
 	}
@@ -64,15 +63,12 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
 	pool, err := c.lakeFlags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
 	paths := args
-	zctx := zson.NewContext()
-	readers, err := c.inputFlags.Open(zctx, paths, false)
+	readers, err := c.inputFlags.Open(zson.NewContext(), paths, false)
 	if err != nil {
 		return err
 	}
@@ -81,7 +77,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	commitID, err := pool.Add(ctx, zctx, reader)
+	commitID, err := pool.Add(ctx, reader)
 	if err != nil {
 		return err
 	}
@@ -93,11 +89,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	if !c.lakeFlags.Quiet {
-		fmt.Println("commit successful", commitID)
-		for _, action := range txn.Actions {
-			//XXX clean this up and allow -f output; see zed lake status
-			fmt.Printf("  %s\n", action)
-		}
+		fmt.Printf("%s committed %d segments\n", commitID, len(txn.Actions))
 	}
 	return nil
 }

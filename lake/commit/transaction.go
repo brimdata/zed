@@ -54,7 +54,7 @@ func (t *Transaction) Append(action actions.Interface) {
 
 func (t *Transaction) AppendCommitMessage(id ksuid.KSUID, date nano.Ts, author, message string) {
 	t.Append(&actions.CommitMessage{
-		ID:      id,
+		Commit:  id,
 		Date:    date,
 		Author:  author,
 		Message: message,

@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/commit"
+	"github.com/brimdata/zed/lake/commit/actions"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/iosrc"
@@ -19,9 +20,9 @@ import (
 )
 
 const (
-	DataTag  = "data"
-	LogTag   = "log"
-	StageTag = "staging"
+	DataTag  = "D"
+	LogTag   = "L"
+	StageTag = "S"
 )
 
 type PoolConfig struct {
@@ -73,7 +74,7 @@ func (p *PoolConfig) Create(ctx context.Context, root iosrc.URI) error {
 
 func (p *PoolConfig) Open(ctx context.Context, root iosrc.URI) (*Pool, error) {
 	path := p.Path(root)
-	log, err := commit.Open(ctx, path.AppendPath("log"), p.Order)
+	log, err := commit.Open(ctx, path.AppendPath(LogTag), p.Order)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +92,7 @@ func (p *PoolConfig) Delete(ctx context.Context, root iosrc.URI) error {
 	return iosrc.RemoveAll(ctx, p.Path(root))
 }
 
-func (p *Pool) Add(ctx context.Context, zctx *zson.Context, r zbuf.Reader) (ksuid.KSUID, error) {
+func (p *Pool) Add(ctx context.Context, r zbuf.Reader) (ksuid.KSUID, error) {
 	w, err := NewWriter(ctx, p)
 	if err != nil {
 		return ksuid.Nil, err
@@ -202,7 +203,7 @@ func (p *Pool) ClearFromStaging(ctx context.Context, id ksuid.KSUID) error {
 	return iosrc.Remove(ctx, p.StagingObject(id))
 }
 
-func (p *Pool) GetStagedCommits(ctx context.Context) ([]ksuid.KSUID, error) {
+func (p *Pool) ListStagedCommits(ctx context.Context) ([]ksuid.KSUID, error) {
 	infos, err := iosrc.ReadDir(ctx, p.StagePath)
 	if err != nil {
 		return nil, err
@@ -239,6 +240,49 @@ func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) erro
 	return iosrc.WriteFile(ctx, p.StagingObject(txn.ID), b)
 }
 
+func (p *Pool) ScanStaging(ctx context.Context, w zbuf.Writer, ids []ksuid.KSUID) error {
+	ch := make(chan actions.Interface, 10)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var err error
+	go func() {
+		for _, id := range ids {
+			var txn *commit.Transaction
+			txn, err = p.LoadFromStaging(ctx, id)
+			if err != nil {
+				break
+			}
+			for _, action := range txn.Actions {
+				select {
+				case ch <- action:
+				case <-ctx.Done():
+					close(ch)
+					return
+				}
+			}
+			select {
+			case ch <- &actions.StagedCommit{Commit: id}:
+			case <-ctx.Done():
+				close(ch)
+				return
+			}
+		}
+		close(ch)
+	}()
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+	for p := range ch {
+		rec, err := m.MarshalRecord(p)
+		if err != nil {
+			return err
+		}
+		if err := w.Write(rec); err != nil {
+			return err
+		}
+	}
+	return err
+}
+
 func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.Reference) error {
 	for _, seg := range snap.Select(nano.MaxSpan) {
 		select {
@@ -250,46 +294,50 @@ func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.
 	return nil
 }
 
-func (p *Pool) NewPartionReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalStream {
-	reader := zson.NewMarshalStream(zson.StyleSimple)
+func (p *Pool) ScanPartitions(ctx context.Context, w zbuf.Writer, snap *commit.Snapshot, span nano.Span) error {
+	ch := make(chan Partition, 10)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var err error
 	go func() {
-		ch := make(chan Partition, 10)
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-		var err error
-		go func() {
-			err = ScanPartitions(ctx, snap, span, p.Order, ch)
-			close(ch)
-		}()
-		for p := range ch {
-			if !reader.Supply(p) {
-				return
-			}
-		}
-		reader.Close(err)
+		err = ScanPartitions(ctx, snap, span, p.Order, ch)
+		close(ch)
 	}()
-	return reader
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+	for p := range ch {
+		rec, err := m.MarshalRecord(p)
+		if err != nil {
+			return err
+		}
+		if err := w.Write(rec); err != nil {
+			return err
+		}
+	}
+	return err
 }
 
-func (p *Pool) NewSegmentReader(ctx context.Context, snap *commit.Snapshot, span nano.Span) *zson.MarshalStream {
-	reader := zson.NewMarshalStream(zson.StyleSimple)
+func (p *Pool) ScanSegments(ctx context.Context, w zbuf.Writer, snap *commit.Snapshot, span nano.Span) error {
+	ch := make(chan segment.Reference)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	var err error
 	go func() {
-		ch := make(chan segment.Reference)
-		ctx, cancel := context.WithCancel(ctx)
-		defer cancel()
-		var err error
-		go func() {
-			err = ScanSpan(ctx, snap, span, ch)
-			close(ch)
-		}()
-		for p := range ch {
-			if !reader.Supply(p) {
-				return
-			}
-		}
-		reader.Close(err)
+		err = ScanSpan(ctx, snap, span, ch)
+		close(ch)
 	}()
-	return reader
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+	for p := range ch {
+		rec, err := m.MarshalRecord(p)
+		if err != nil {
+			return err
+		}
+		if err := w.Write(rec); err != nil {
+			return err
+		}
+	}
+	return err
 }
 
 func (p *Pool) IsJournalID(ctx context.Context, id journal.ID) (bool, error) {

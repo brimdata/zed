@@ -1,13 +1,18 @@
 package lake
 
 import (
+	"context"
 	"encoding/hex"
 	"flag"
 	"fmt"
+	"strconv"
 	"strings"
 
+	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/segmentio/ksuid"
@@ -93,4 +98,37 @@ func ParseID(s string) (ksuid.KSUID, error) {
 		}
 	}
 	return id, nil
+}
+
+func ParseJournalID(ctx context.Context, pool *lake.Pool, at string) (journal.ID, error) {
+	if num, err := strconv.Atoi(at); err == nil {
+		ok, err := pool.IsJournalID(ctx, journal.ID(num))
+		if err != nil {
+			return journal.Nil, err
+		}
+		if ok {
+			return journal.ID(num), nil
+		}
+	}
+	commitID, err := ParseID(at)
+	if err != nil {
+		return journal.Nil, fmt.Errorf("not a valid journal number or a commit tag: %s", at)
+	}
+	id, err := pool.Log().JournalIDOfCommit(ctx, 0, commitID)
+	if err != nil {
+		return journal.Nil, fmt.Errorf("not a valid journal number or a commit tag: %s", at)
+	}
+	return id, nil
+}
+
+func CopyToOutput(ctx context.Context, flags outputflags.Flags, r zbuf.Reader) error {
+	w, err := flags.Open(ctx)
+	if err != nil {
+		return err
+	}
+	err = zbuf.Copy(w, r)
+	if closeErr := w.Close(); err == nil {
+		err = closeErr
+	}
+	return err
 }
