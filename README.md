@@ -3,8 +3,11 @@
 The Zed system provides an open-source, cloud-native, and searchable data lake for
 semi-structured data.
 
-Zed lakes utilize a superset of the relational and JSON document data models,
-but you do not need to create tables or schemas ahead of time to add data.
+Zed lakes utilize a superset of the relational and JSON document data models
+yet require no up-front schema definitions to insert data.  They also provide
+transactional views and time travel by leveraging a `git`-like design pattern
+based on a commit journal.  Using this mechanism, a lake's (optional) search indexes
+are transactionally consistent with its data.
 
 At Zed's foundation lies a new family of self-describing data formats based on the
 [Zed data model](docs/formats/zson.md#1-introduction),
@@ -21,7 +24,7 @@ and store Zed data, including:
 * The [Zed language](docs/language/README.md) documentation
 * The [Zed formats](docs/formats/README.md) specifications and documentation
 
-The previously released [`zq`](cmd/zed/README.md#zq) tool is now
+The previously released [`zq`](cmd/zed/README.md#zq) tool is now packaged as
 a command-line shortcut for the `zed query` command.
 
 ## Installation
