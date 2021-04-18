@@ -1,6 +1,7 @@
 package jsonio
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -40,7 +41,6 @@ func (r *Reader) Read() (*zng.Record, error) {
 		}
 		if len(b) == MaxReadBuffer {
 			return nil, fmt.Errorf("JSON input buffer size exceeded: %d", MaxReadBuffer)
-
 		}
 		var v interface{}
 		if err := json.Unmarshal(b, &v); err != nil {
@@ -52,7 +52,6 @@ func (r *Reader) Read() (*zng.Record, error) {
 		}
 		a, ok := v.([]interface{})
 		if !ok {
-			fmt.Printf("%T\n", v)
 			return nil, errors.New("JSON input is neither an object or array")
 		}
 		r.objects = a
@@ -75,13 +74,5 @@ func (r *Reader) parse(v interface{}) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	zv, err := r.parser.ParseObject(b)
-	if err != nil {
-		return nil, fmt.Errorf("cannot parse JSON object: %q", string(b))
-	}
-	outType, err := r.zctx.LookupTypeRecord(zv.Type.(*zng.TypeRecord).Columns)
-	if err != nil {
-		return nil, err
-	}
-	return zng.NewRecordCheck(outType, zv.Bytes)
+	return zson.NewReader(bytes.NewReader(b), r.zctx).Read()
 }
