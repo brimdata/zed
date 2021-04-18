@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/csvio"
+	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zio/parquetio"
 	"github.com/brimdata/zed/zio/tableio"
@@ -46,6 +47,8 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, erro
 		return zeekio.NewWriter(w, opts.UTF8), nil
 	case "ndjson":
 		return ndjsonio.NewWriter(w), nil
+	case "json":
+		return jsonio.NewWriter(w), nil
 	case "zjson":
 		return zjsonio.NewWriter(w), nil
 	case "zson":
@@ -75,6 +78,8 @@ func lookupReader(r io.Reader, zctx *zson.Context, path string, opts zio.ReaderO
 		return zeekio.NewReader(r, zctx)
 	case "ndjson":
 		return ndjsonio.NewReader(r, zctx, opts.JSON, path)
+	case "json":
+		return jsonio.NewReader(r, zctx)
 	case "zjson":
 		return zjsonio.NewReader(r, zctx), nil
 	case "zng":

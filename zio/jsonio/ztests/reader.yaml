@@ -1,0 +1,44 @@
+script: |
+  zq -Z -i json object.json
+  echo ===
+  zq -z -i json array.json
+  echo ===
+  zq -z -i json array2.json
+
+inputs:
+  - name: object.json
+    data: |
+      {
+        "ts": 1521911721.926018012,
+        "a": "hello, world",
+        "b": {
+          "x": 4611686018427387904,
+          "y": "127.0.0.1"
+        }
+      }
+  - name: array.json
+    data: |
+      [ {"a":1}, {"b":"hello"}, {"c":true} ]
+  - name: array2.json
+    data: |
+      [ "foo", 1, {"a":1} ]
+
+outputs:
+  - name: stdout
+    data: |
+      {
+          a: "hello, world",
+          b: {
+              x: 4611686018427387904.,
+              y: "127.0.0.1"
+          },
+          ts: 1.521911721926018e+09
+      }
+      ===
+      {a:1.}
+      {b:"hello"}
+      {c:true}
+      ===
+      {value:"foo"}
+      {value:1.}
+      {a:1.}

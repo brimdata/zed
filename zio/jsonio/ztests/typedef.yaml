@@ -1,0 +1,9 @@
+zed: '*'
+
+input: |
+  {a:1} (=custom)
+  {b:2}
+
+output-flags: -f json
+output: |
+  [{"kind":"custom","value":{"a":1}},{"b":2}]
