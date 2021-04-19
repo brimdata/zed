@@ -584,22 +584,20 @@ system and such round trips can be 10s of milliseconds, another approach
 is to simply run a lock service as part of a cloud deployment that manages
 a mutex lock for each pool's journal.
 
-### Mutable Objects
+#### Configuration State
 
-Configuration state describing a lake or pool is stored in mutable objects.
-
-Mutable objects can be modified by any writer and are stored in a directory
-named after the configuration object.  Here, each entry represents the entire
-mutable object as a ZNG file numbered from 0 upward, i.e., `0.zng`, `1.zng`,
-and so forth.  The `HEAD` file points at the last and valid object in the sequence.
-Once the HEAD has been atomically advanced, the previous mutable object can be deleted
-(or the mutable objects can be preserved to keep a history of the configuration changes).
+Configuration state describing a lake or pool is also stored in mutable objects.
+Zed lakes simply use a commit journal to store configuration like the
+list of pools and pool attributes, indexing rules used across pools,
+etc.  Here, a generic interface to a commit journal manages any configuration
+state simply as a key-value store of snapshots providing time travel over
+the configuration history.
 
 ### Object Naming
 
 ```
 <lake-path>/
-  config/
+  R/
     HEAD
     TAIL
     1.zng
