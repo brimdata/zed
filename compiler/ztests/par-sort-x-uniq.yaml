@@ -1,15 +1,13 @@
-script: zed compile -C -P 2 -sortKey ts "* | sort x | uniq"
+script: zed compile -C -P 2 "from 'pool-ts' | sort x | uniq"
 
 outputs:
   - name: stdout
     data: |
-      split (
-        =>
-          filter *
-          | sort x
-        =>
-          filter *
-          | sort x
+      from (
+        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          sort x;
+        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          sort x;
       )
-      | merge x
+      | merge x:asc
       | uniq

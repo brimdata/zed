@@ -7,6 +7,9 @@ import (
 
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/lake/mock"
+	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
@@ -38,23 +41,29 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 	require.Exactly(t, 1, batch.Length(), "record: %q", record)
 	rec := batch.Index(0)
 
+	lk := mock.NewLake()
 	for _, c := range cases {
 		t.Run(c.filter, func(t *testing.T) {
 			t.Helper()
-
 			p, err := compiler.ParseProc(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
-			runtime, err := compiler.New(zson.NewContext(), p)
+			runtime, err := compiler.New(proc.InitContext(), p, lk)
 			require.NoError(t, err, "filter: %q", c.filter)
-
-			f, err := runtime.AsFilter()
+			err = runtime.Build()
+			require.NoError(t, err, "filter: %q", c.filter)
+			seq := runtime.Entry().(*dag.Sequential)
+			from := seq.Ops[0].(*dag.From)
+			require.Exactly(t, 1, len(from.Trunks), "filter DAG is not a single trunk")
+			trunk := &from.Trunks[0]
+			filterMaker, err := runtime.Builder().PushdownOf(trunk)
+			require.NoError(t, err, "filter: %q", c.filter)
+			f, err := filterMaker.AsFilter()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
 				assert.Equal(t, c.expected, f(rec),
 					"filter: %q\nrecord:\n%s", c.filter, hex.Dump(rec.Bytes))
 			}
-
-			bf, err := runtime.AsBufferFilter()
+			bf, err := filterMaker.AsBufferFilter()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if bf != nil {
 				expected := c.expected
@@ -425,8 +434,8 @@ func filterProc(p ast.Proc) *ast.Filter {
 
 func TestBadFilter(t *testing.T) {
 	t.Parallel()
-	proc, err := compiler.ParseProc(`s = \xa8*`)
+	p, err := compiler.ParseProc(`s = \xa8*`)
 	require.NoError(t, err)
-	_, err = compiler.New(zson.NewContext(), proc)
+	_, err = compiler.New(proc.InitContext(), p, mock.NewLake())
 	assert.Error(t, err, "error parsing regexp: invalid UTF-8: `^\xa8.*$`")
 }

@@ -72,5 +72,5 @@ func TestMultiFileScanner(t *testing.T) {
 		RecordsRead:    4,
 		RecordsMatched: 4,
 	}
-	require.Equal(t, expStats, *sn.Stats())
+	require.Equal(t, expStats, sn.Stats())
 }

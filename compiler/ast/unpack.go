@@ -1,6 +1,7 @@
 package ast
 
 import (
+	"encoding/json"
 	"errors"
 
 	"github.com/brimdata/zed/compiler/ast/zed"
@@ -21,21 +22,30 @@ var unpacker = unpack.New(
 	zed.DefValue{},
 	Drop{},
 	zed.Enum{},
+	FieldCutter{},
+	File{},
 	Filter{},
+	From{},
 	Fuse{},
 	Summarize{},
 	Head{},
+	HTTP{},
 	ID{},
 	zed.ImpliedValue{},
 	Join{},
+	Layout{},
+	Trunk{},
 	zed.Map{},
 	MapExpr{},
 	Shape{},
+	TypeSplitter{},
 	Parallel{},
 	Pass{},
 	Pick{},
+	Pool{},
 	zed.Primitive{},
 	Put{},
+	Range{},
 	zed.Record{},
 	Agg{},
 	RegexpMatch{},
@@ -113,4 +123,16 @@ func UnpackMapAsExpr(m interface{}) (Expr, error) {
 		return nil, errors.New("ast.UnpackMapAsExpr: not an expression")
 	}
 	return e, nil
+}
+
+func Copy(in Proc) Proc {
+	b, err := json.MarshalIndent(in, "", "   ")
+	if err != nil {
+		panic(err)
+	}
+	out, err := UnpackJSONAsProc(b)
+	if err != nil {
+		panic(err)
+	}
+	return out
 }

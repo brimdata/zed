@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -132,7 +133,7 @@ func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
 	seg.First = recs[0].Ts()
 	seg.Last = recs[len(recs)-1].Ts()
 	writer, err := seg.NewWriter(w.ctx, w.pool.DataPath, segment.WriterOpts{
-		Order: w.pool.Order,
+		Order: w.pool.Layout.Order,
 		Zng: zngio.WriterOpts{
 			StreamRecordsMax: ImportStreamRecordsMax,
 			LZ4BlockSize:     importLZ4BlockSize,
@@ -182,5 +183,5 @@ func (s *ImportStats) Copy() ImportStats {
 }
 
 func importCompareFn(pool *Pool) expr.CompareFn {
-	return zbuf.NewCompareFn(field.New("ts"), pool.Order == zbuf.OrderDesc)
+	return zbuf.NewCompareFn(field.New("ts"), pool.Layout.Order == order.Desc)
 }

@@ -1,0 +1,38 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p fruit
+  zed lake create -q -p person
+  zed lake load -q -p fruit fruit.zson
+  zed lake load -q -p person person.zson
+  zed lake query -z -I join.zed
+
+inputs:
+  - name: fruit.zson
+    data: |
+      {name:"apple", color:"red", flavor: "tart"} (=fruit)
+      {name:"banana", color:"yellow", flavor: "sweet"} (fruit)
+      {name:"strawberry", color:"red", flavor: "sweet"} (fruit)
+      {name:"dates", color:"brown", flavor: "sweet" } (fruit)
+      {name:"figs", color:"brown", flavor: "plain" } (fruit)
+      {name:"pomegranate", color:"red", flavor: "tart" } (fruit)
+  - name: person.zson
+    data: |
+      {name:"bob", likes: "tart", age:61} (=person)
+      {name:"joe", likes: "sweet", age:14} (person)
+      {name:"jim", likes: "plain", age:30} (person)
+  - name: join.zed
+    data: |
+      from (
+        fruit => cut f=. | sort f.flavor ;
+        person => cut p=. | sort p.likes ;
+      )
+      | join f.flavor=p.likes p=p
+      | summarize likes=union(f.name) by name=p.name | sort name
+
+outputs:
+  - name: stdout
+    data: |
+      {name:"bob",likes:|["apple","pomegranate"]|}
+      {name:"jim",likes:|["figs"]|}
+      {name:"joe",likes:|["dates","banana","strawberry"]|}

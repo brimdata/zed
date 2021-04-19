@@ -1,6 +1,8 @@
 package zbuf
 
 import (
+	"io"
+
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 )
@@ -58,6 +60,11 @@ func readBatch(zr zio.Reader, n int) (Batch, error) {
 // a nil Batch and nil error.
 type Puller interface {
 	Pull() (Batch, error)
+}
+
+type PullerCloser interface {
+	Puller
+	io.Closer
 }
 
 // NewPuller returns a Puller for zr that returns Batches of up to n records.

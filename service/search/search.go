@@ -5,14 +5,17 @@ package search
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
@@ -63,7 +66,7 @@ func NewSearchOp(req api.SearchRequest, logger *zap.Logger) (*SearchOp, error) {
 	}, nil
 }
 
-func (s *SearchOp) Run(ctx context.Context, pool *lake.Pool, output Output, parallelism int) (err error) {
+func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, pool *lake.Pool, output Output, parallelism int) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -76,18 +79,57 @@ func (s *SearchOp) Run(ctx context.Context, pool *lake.Pool, output Output, para
 		}
 		d.end(0)
 	}()
-	msrc := lake.NewMultiSourceAt(pool, journal.Nil)
+	// This big gunky thing is here to support the current Search API.
+	// We will bring up a run API soon that supports either Zed text
+	// as a string or a DAG.  The AST will not appear in the API after
+	// that point.
+	seq := &ast.Sequential{Kind: "Sequential"}
+	if s.query.Proc != nil {
+		var ok bool
+		seq, ok = s.query.Proc.(*ast.Sequential)
+		if !ok {
+			return zqe.ErrInvalid(fmt.Sprintf("deprecated search API: Zed program does not begin with ast.Sequential: %T", s.query.Proc))
+		}
+	}
+	scanOrder := ""
+	if s.query.Dir > 0 {
+		scanOrder = "asc"
+	} else if s.query.Dir < 0 {
+		scanOrder = "desc"
+	}
+	var scanRange *ast.Range
+	if s.query.Span.Dur != 0 {
+		scanRange = &ast.Range{
+			Kind: "Range",
+			Lower: zed.Primitive{
+				Kind: "Primitive",
+				Type: "time",
+				Text: s.query.Span.Ts.Time().Format(time.RFC3339Nano),
+			},
+			Upper: zed.Primitive{
+				Kind: "Primitive",
+				Type: "time",
+				Text: s.query.Span.End().Time().Format(time.RFC3339Nano),
+			},
+		}
+	}
+	trunk := ast.Trunk{
+		Kind: "Trunk",
+		Source: &ast.Pool{
+			Kind:      "Pool",
+			Name:      pool.Name,
+			Range:     scanRange,
+			ScanOrder: scanOrder,
+		},
+	}
+	seq.Prepend(&ast.From{
+		Kind:   "From",
+		Trunks: []ast.Trunk{trunk},
+	})
 	statsTicker := time.NewTicker(StatsInterval)
 	defer statsTicker.Stop()
 	zctx := zson.NewContext()
-
-	return driver.MultiRun(ctx, d, s.query.Proc, zctx, msrc, driver.MultiConfig{
-		Logger:      s.logger,
-		Order:       zbuf.OrderDesc,
-		Parallelism: parallelism,
-		Span:        s.query.Span,
-		StatsTick:   statsTicker.C,
-	})
+	return driver.RunWithLakeAndStats(ctx, d, seq, zctx, adaptor, statsTicker.C, s.logger, parallelism)
 }
 
 // A Query is the internal representation of search query describing a source

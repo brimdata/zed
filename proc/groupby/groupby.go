@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/spill"
 	"github.com/brimdata/zed/zbuf"
@@ -56,7 +57,7 @@ type Aggregator struct {
 	keysCompare  expr.CompareFn      // compare all keys
 	maxTableKey  *zng.Value
 	maxSpillKey  *zng.Value
-	inputSortDir int
+	inputOrder   order.Direction
 	spiller      *spill.MergeSort
 	partialsIn   bool
 	partialsOut  bool
@@ -68,7 +69,7 @@ type Row struct {
 	reducers valRow
 }
 
-func NewAggregator(zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *builder.ColumnBuilder, limit, inputSortDir int, partialsIn, partialsOut bool) (*Aggregator, error) {
+func NewAggregator(zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *builder.ColumnBuilder, limit int, inputOrder order.Direction, partialsIn, partialsOut bool) (*Aggregator, error) {
 	if limit == 0 {
 		limit = DefaultLimit
 	}
@@ -76,35 +77,35 @@ func NewAggregator(zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluat
 	var keyCompare, keysCompare expr.CompareFn
 
 	nkeys := len(keyExprs)
-	if nkeys > 0 && inputSortDir != 0 {
+	if nkeys > 0 && inputOrder != 0 {
 		// As the default sort behavior, nullsMax=true for ascending order and
 		// nullsMax=false for descending order is also expected for streaming
 		// groupby.
-		nullsMax := inputSortDir > 0
+		nullsMax := inputOrder > 0
 
 		vs := expr.NewValueCompareFn(nullsMax)
-		if inputSortDir < 0 {
+		if inputOrder < 0 {
 			valueCompare = func(a, b zng.Value) int { return vs(b, a) }
 		} else {
 			valueCompare = vs
 		}
 
 		rs := expr.NewCompareFn(true, keyRefs[0])
-		if inputSortDir < 0 {
+		if inputOrder < 0 {
 			keyCompare = func(a, b *zng.Record) int { return rs(b, a) }
 		} else {
 			keyCompare = rs
 		}
 	}
 	rs := expr.NewCompareFn(true, keyRefs...)
-	if inputSortDir < 0 {
+	if inputOrder < 0 {
 		keysCompare = func(a, b *zng.Record) int { return rs(b, a) }
 	} else {
 		keysCompare = rs
 	}
 	return &Aggregator{
 		zctx:         zctx,
-		inputSortDir: inputSortDir,
+		inputOrder:   inputOrder,
 		limit:        limit,
 		keyTypes:     typevector.NewTable(),
 		outTypes:     typevector.NewTable(),
@@ -126,7 +127,7 @@ func NewAggregator(zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluat
 	}, nil
 }
 
-func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggNames []field.Static, aggs []*expr.Aggregator, limit, inputSortDir int, partialsIn, partialsOut bool) (*Proc, error) {
+func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggNames []field.Static, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Proc, error) {
 	names := make([]field.Static, 0, len(keys)+len(aggNames))
 	for _, e := range keys {
 		names = append(names, e.LHS)
@@ -195,7 +196,7 @@ func (p *Proc) run() {
 			}
 		}
 		batch.Unref()
-		if p.agg.inputSortDir == 0 {
+		if p.agg.inputOrder == 0 {
 			continue
 		}
 		// sorted input: see if we have any completed keys we can emit.
@@ -274,7 +275,7 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 			}
 			return nil
 		}
-		if i == 0 && a.inputSortDir != 0 {
+		if i == 0 && a.inputOrder != 0 {
 			prim = a.updateMaxTableKey(zv)
 		}
 		types = append(types, zv.Type)
@@ -325,7 +326,7 @@ func (a *Aggregator) spillTable(eof bool) error {
 	if err := a.spiller.Spill(recs); err != nil {
 		return err
 	}
-	if !eof && a.inputSortDir != 0 {
+	if !eof && a.inputOrder != 0 {
 		v, err := a.keyExprs[0].Eval(recs[len(recs)-1])
 		if err != nil {
 			return err
@@ -373,11 +374,11 @@ func (a *Aggregator) Results(eof bool) (zbuf.Batch, error) {
 
 func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 	recs := make([]*zng.Record, 0, proc.BatchLen)
-	if !eof && a.inputSortDir == 0 {
+	if !eof && a.inputOrder == 0 {
 		return nil, nil
 	}
 	for len(recs) < proc.BatchLen {
-		if !eof && a.inputSortDir != 0 {
+		if !eof && a.inputOrder != 0 {
 			rec, err := a.spiller.Peek()
 			if err != nil {
 				return nil, err

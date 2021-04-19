@@ -6,14 +6,22 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"sync"
 	"time"
 
 	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/kernel"
+	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
+	"go.uber.org/zap"
 )
 
 type Driver interface {
@@ -23,77 +31,164 @@ type Driver interface {
 	Stats(api.ScannerStats) error
 }
 
-func Run(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zio.Reader, cfg Config) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	mux, err := compile(ctx, program, zctx, []zio.Reader{reader}, cfg)
-	if err != nil {
-		return err
-	}
-	return runMux(mux, d, cfg.StatsTick)
+type Config struct {
+	Custom    kernel.Hook
+	Logger    *zap.Logger
+	Span      nano.Span
+	StatsTick <-chan time.Time
 }
 
-func RunParallel(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, readers []zio.Reader, cfg Config) error {
-	if len(readers) != ast.FanIn(program) {
-		return errors.New("number of input sources must match number of parallel inputs in zql query")
-	}
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	mux, err := compile(ctx, program, zctx, readers, cfg)
+func RunWithReader(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zio.Reader, cfg Config) error {
+	pctx := proc.NewContext(ctx, zctx, cfg.Logger)
+	runtime, err := compiler.CompileForInternal(pctx, program, reader, cfg.Custom)
 	if err != nil {
+		pctx.Cancel()
 		return err
 	}
-	return runMux(mux, d, cfg.StatsTick)
+	return run(pctx, d, runtime, nil)
 }
 
-func MultiRun(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, msrc MultiSource, mcfg MultiConfig) error {
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-
-	mux, err := compileMulti(ctx, program, zctx, msrc, mcfg)
+func RunWithOrderedReader(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zio.Reader, layout order.Layout, logger *zap.Logger) error {
+	pctx := proc.NewContext(ctx, zctx, logger)
+	runtime, err := compiler.CompileForInternalWithOrder(pctx, program, reader, layout)
 	if err != nil {
+		pctx.Cancel()
 		return err
 	}
-	return runMux(mux, d, mcfg.StatsTick)
+	return run(pctx, d, runtime, nil)
 }
 
-func runMux(out *muxOutput, d Driver, statsTickCh <-chan time.Time) error {
-	for !out.Complete() {
-		chunk := out.Pull(statsTickCh)
-		if chunk.Err != nil {
-			if chunk.Err == errTimeout {
-				if err := d.Stats(out.Stats()); err != nil {
-					return err
+func RunWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zio.Reader, adaptor proc.DataAdaptor) (zbuf.ScannerStats, error) {
+	pctx := proc.NewContext(ctx, zctx, nil)
+	runtime, err := compiler.CompileForFileSystem(pctx, program, reader, adaptor)
+	if err != nil {
+		pctx.Cancel()
+		return zbuf.ScannerStats{}, err
+	}
+	err = run(pctx, d, runtime, nil)
+	return runtime.Statser().Stats(), err
+}
+
+func RunJoinWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, readers []zio.Reader, adaptor proc.DataAdaptor) (zbuf.ScannerStats, error) {
+	pctx := proc.NewContext(ctx, zctx, nil)
+	runtime, err := compiler.CompileJoinForFileSystem(pctx, program, readers, adaptor)
+	if err != nil {
+		pctx.Cancel()
+		return zbuf.ScannerStats{}, err
+	}
+	err = run(pctx, d, runtime, nil)
+	return runtime.Statser().Stats(), err
+}
+
+func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor) (zbuf.ScannerStats, error) {
+	pctx := proc.NewContext(ctx, zctx, nil)
+	runtime, err := compiler.CompileForLake(pctx, program, lake, 0)
+	if err != nil {
+		pctx.Cancel()
+		return zbuf.ScannerStats{}, err
+	}
+	err = run(pctx, d, runtime, nil)
+	return runtime.Statser().Stats(), err
+}
+
+func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor, ticker <-chan time.Time, logger *zap.Logger, parallelism int) error {
+	pctx := proc.NewContext(ctx, zctx, logger)
+	runtime, err := compiler.CompileForLake(pctx, program, lake, parallelism)
+	if err != nil {
+		pctx.Cancel()
+		return err
+	}
+	return run(pctx, d, runtime, ticker)
+}
+
+func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-chan time.Time) error {
+	puller := runtime.AsPuller()
+	if puller == nil {
+		pctx.Cancel()
+		return errors.New("internal error: driver called with unprepared runtime")
+	}
+	statser := runtime.Statser()
+	if statser == nil && statsTicker != nil {
+		pctx.Cancel()
+		return errors.New("internal error: driver wants live stats but runtime has no statser")
+	}
+	pullerCh := make(chan zbuf.Batch)
+	done := make(chan error)
+	defer func() {
+		pctx.Cancel()
+		<-pullerCh
+		<-done
+	}()
+	go func() {
+		for {
+			// We can simply call Pull here knowing it will return
+			// when pctx.Cancel() is called on exit from our
+			// parent goroutine and we won't block because pullerCh
+			// and done are always read on exit.
+			batch, err := safePull(puller)
+			if batch == nil || err != nil {
+				close(pullerCh)
+				if err != nil {
+					done <- err
 				}
-				continue
+				close(done)
+				return
 			}
-			if chunk.Err == context.Canceled {
-				out.Drain()
-			}
-			return chunk.Err
+			pullerCh <- batch
 		}
-		if chunk.Warning != "" {
-			if err := d.Warn(chunk.Warning); err != nil {
+	}()
+	for {
+		select {
+		case <-statsTicker:
+			if err := d.Stats(api.ScannerStats(statser.Stats())); err != nil {
 				return err
 			}
-		}
-		if chunk.Batch == nil {
-			// One of the flowgraph tails is done.
-			if err := d.ChannelEnd(chunk.ID); err != nil {
+		case batch := <-pullerCh:
+			if batch == nil {
+				err := <-done
+				if endErr := d.ChannelEnd(0); err == nil {
+					err = endErr
+				}
+				if err == nil && statser != nil {
+					err = d.Stats(api.ScannerStats(statser.Stats()))
+				}
+				// Now that we're done, drain the warnings.
+				// This is a little goofy and we should clean
+				// up the warnings model with its own package.
+				// See issue #2600.
+				go func() {
+					close(pctx.Warnings)
+				}()
+				for warning := range pctx.Warnings {
+					if warnErr := d.Warn(warning); err == nil {
+						err = warnErr
+					}
+				}
 				return err
 			}
-		} else {
-			if err := d.Write(chunk.ID, chunk.Batch); err != nil {
+			// We will get rid of channel ID... client SearchReults
+			// protocol currently uses it.  See issue #2652.
+			if err := d.Write(0, batch); err != nil {
+				return err
+			}
+		case warning := <-pctx.Warnings:
+			if err := d.Warn(warning); err != nil {
 				return err
 			}
 		}
 	}
-	if statsTickCh != nil {
-		return d.Stats(out.Stats())
-	}
-	return nil
+}
+
+func safePull(puller zbuf.Puller) (b zbuf.Batch, err error) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		err = zqe.RecoverError(r)
+	}()
+	b, err = puller.Pull()
+	return
 }
 
 // CLI implements Driver.
@@ -162,69 +257,79 @@ func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
 // single zbuf.Writer. The proc must have a single tail.
 func Copy(ctx context.Context, w zio.Writer, prog ast.Proc, zctx *zson.Context, r zio.Reader, cfg Config) error {
 	d := &transformDriver{w: w}
-	return Run(ctx, d, prog, zctx, r, cfg)
+	return RunWithReader(ctx, d, prog, zctx, r, cfg)
 }
 
-type muxReader struct {
-	*muxOutput
-	batch       zbuf.Batch
-	cancel      context.CancelFunc
-	index       int
-	statsTickCh <-chan time.Time
-	zr          io.Closer
+// Reader implements zio.ReaderCloser and Driver.
+type Reader struct {
+	io.Closer
+	runtime *compiler.Runtime
+	once    sync.Once
+	batch   zbuf.Batch
+	index   int
+	batchCh chan zbuf.Batch
+	// err protected by batchCh
+	err error
 }
 
-func (mr *muxReader) Read() (*zng.Record, error) {
-read:
-	if mr.batch == nil {
-		chunk := mr.Pull(mr.statsTickCh)
-		if chunk.ID != 0 {
-			return nil, errors.New("transform proc with multiple tails")
-		}
-		if chunk.Batch != nil {
-			mr.batch = chunk.Batch
-		} else if chunk.Err != nil {
-			return nil, chunk.Err
-		} else if chunk.Warning != "" {
-			goto read
-		} else {
-			return nil, nil
+func (*Reader) Warn(warning string) error          { return nil }
+func (*Reader) Stats(stats api.ScannerStats) error { return nil }
+func (*Reader) ChannelEnd(cid int) error           { return nil }
+
+func (r *Reader) Write(_ int, batch zbuf.Batch) error {
+	if batch != nil {
+		r.batchCh <- batch
+	}
+	return nil
+}
+
+func (r *Reader) Read() (*zng.Record, error) {
+	r.once.Do(func() {
+		go func() {
+			r.err = run(r.runtime.Context(), r, r.runtime, nil)
+			close(r.batchCh)
+		}()
+	})
+next:
+	if r.batch == nil {
+		r.batch = <-r.batchCh
+		if r.batch == nil {
+			return nil, r.err
 		}
 	}
-	if mr.index >= mr.batch.Length() {
-		mr.batch.Unref()
-		mr.batch, mr.index = nil, 0
-		goto read
+	if r.index >= r.batch.Length() {
+		r.batch.Unref()
+		r.batch, r.index = nil, 0
+		goto next
 	}
-	rec := mr.batch.Index(mr.index)
-	mr.index++
+	rec := r.batch.Index(r.index)
+	r.index++
 	return rec, nil
 }
 
-func (mr *muxReader) Close() error {
-	mr.cancel()
-	return mr.zr.Close()
+func (r *Reader) Close() error {
+	r.runtime.Context().Cancel()
+	return r.Closer.Close()
 }
 
-func NewReader(ctx context.Context, program ast.Proc, zctx *zson.Context, reader zio.Reader) (zio.ReadCloser, error) {
+func NewReader(ctx context.Context, program ast.Proc, zctx *zson.Context, reader zio.Reader) (*Reader, error) {
 	return NewReaderWithConfig(ctx, Config{}, program, zctx, reader)
 }
 
-func NewReaderWithConfig(ctx context.Context, conf Config, program ast.Proc, zctx *zson.Context, reader zio.Reader) (zio.ReadCloser, error) {
-	ctx, cancel := context.WithCancel(ctx)
-	mux, err := compile(ctx, program, zctx, []zio.Reader{reader}, conf)
+func NewReaderWithConfig(ctx context.Context, conf Config, program ast.Proc, zctx *zson.Context, reader zio.Reader) (*Reader, error) {
+	pctx := proc.NewContext(ctx, zctx, conf.Logger)
+	runtime, err := compiler.CompileForInternal(pctx, program, reader, conf.Custom)
 	if err != nil {
-		cancel()
+		pctx.Cancel()
 		return nil, err
 	}
-	mr := &muxReader{
-		cancel:      cancel,
-		muxOutput:   mux,
-		statsTickCh: make(chan time.Time),
-		zr:          ioutil.NopCloser(nil),
+	r := &Reader{
+		runtime: runtime,
+		Closer:  ioutil.NopCloser(nil),
+		batchCh: make(chan zbuf.Batch),
 	}
 	if _, ok := reader.(io.Closer); ok {
-		mr.zr = reader.(io.Closer)
+		r.Closer = reader.(io.Closer)
 	}
-	return mr, nil
+	return r, nil
 }

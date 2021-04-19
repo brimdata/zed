@@ -55,6 +55,7 @@ func (t *TypeOfTime) ZSONOf(zv zcode.Bytes) string {
 	if err != nil {
 		return badZng(err, t, zv)
 	}
+	//XXX shouldn't this be UTC?
 	b := ts.Time().Format(time.RFC3339Nano)
 	return string(b)
 }

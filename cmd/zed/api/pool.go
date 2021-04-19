@@ -9,9 +9,9 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
-	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/glob"
 	"github.com/brimdata/zed/pkg/units"
 	"github.com/segmentio/ksuid"
@@ -36,7 +36,7 @@ func (f *PoolCreateFlags) SetFlags(fs *flag.FlagSet) {
 }
 
 func (p *PoolCreateFlags) Create(ctx context.Context, conn *client.Connection, name string) (*api.Pool, error) {
-	order, err := zedlake.ParseOrder(p.Order)
+	order, err := order.Parse(p.Order)
 	if err != nil {
 		return nil, err
 	}

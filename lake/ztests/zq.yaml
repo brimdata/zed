@@ -3,7 +3,7 @@ script: |
   zed lake init -q
   zed lake create -p logs -q
   zed lake load -q -p logs babble.zson
-  zed lake query -p logs "count()" | zq -z -
+  zed lake query "from logs | count()" | zq -z -
 
 inputs:
   - name: babble.zson

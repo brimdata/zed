@@ -3,7 +3,7 @@ script: |
   zed lake init -q
   zed lake create -q -p logs
   zed lake load -q -p logs babble.zson
-  zed lake ls -f zng| zq -Z "drop id" -
+  zed lake ls -f zng | zq -Z "drop id" -
   echo ===
   zed lake ls -p logs -Z | zq -Z "cut meta" -
 
@@ -20,12 +20,14 @@ outputs:
       {
           version: 0,
           name: "logs",
-          keys: [
-              [
-                  "ts"
-              ]
-          ],
-          order: "desc" (=Order),
+          layout: {
+              Order: "desc" (=Which),
+              Keys: [
+                  [
+                      "ts"
+                  ]
+              ] (=List)
+          } (=Layout),
           threshold: 524288000
       } (=0)
       ===

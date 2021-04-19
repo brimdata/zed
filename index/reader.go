@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
@@ -135,7 +135,7 @@ func (r *Reader) Path() string {
 	return r.path.String()
 }
 
-func (r *Reader) Order() zbuf.Order {
+func (r *Reader) Order() order.Which {
 	return r.trailer.Order
 }
 

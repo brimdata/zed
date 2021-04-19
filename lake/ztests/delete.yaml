@@ -4,15 +4,15 @@ script: |
   zed lake create -q -p POOL
   a=$(zed lake load -p POOL a.zson | head -1 | awk '{print $1}')
   b=$(zed lake load -p POOL b.zson | head -1 | awk '{print $1}')
-  zed lake query -p POOL -z "sort ."
+  zed lake query -z "from POOL | sort ."
   id=$(zed lake delete -p POOL $a | head -1 | awk '{print $1}')
   zed lake commit -p POOL -q $id
   echo ===
-  zed lake query -p POOL -z "sort ."
+  zed lake query -z "from POOL | sort ."
   id=$(zed lake delete -p POOL $b | head -1 | awk '{print $1}')
   zed lake commit -p POOL -q $id
   echo ===
-  zed lake query -p POOL -z "sort ."
+  zed lake query -z "from POOL | sort ."
 
 
 inputs:

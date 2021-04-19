@@ -4,10 +4,10 @@ import (
 	"context"
 	"testing"
 
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
+
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/require"
@@ -19,7 +19,9 @@ func createLake(t *testing.T, rootPath iosrc.URI, srcfile string) {
 	ctx := context.Background()
 	lk, err := lake.Create(ctx, rootPath)
 	require.NoError(t, err)
-	pool, err := lk.CreatePool(ctx, "test", field.DottedList("ts"), zbuf.OrderAsc, 0)
+	layout, err := order.ParseLayout("ts:asc")
+	require.NoError(t, err)
+	pool, err := lk.CreatePool(ctx, "test", layout, 0)
 	require.NoError(t, err)
 	importTestFile(t, pool, srcfile)
 }

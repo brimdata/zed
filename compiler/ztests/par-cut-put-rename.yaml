@@ -1,18 +1,16 @@
-script: zed compile -C -P 2 -sortKey ts "* | cut ts, y, z | put x=y | rename y=z"
+script: zed compile -C -P 2  "from 'pool-ts' | cut ts, y, z | put x=y | rename y=z"
 
 outputs:
   - name: stdout
     data: |
-      split (
-        =>
-          filter *
-          | cut ts=ts,y=y,z=z
+      from (
+        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          cut ts=ts,y=y,z=z
           | put x=y
-          | rename y=z
-        =>
-          filter *
-          | cut ts=ts,y=y,z=z
+          | rename y=z;
+        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          cut ts=ts,y=y,z=z
           | put x=y
-          | rename y=z
+          | rename y=z;
       )
-      | merge ts
+      | merge ts:asc

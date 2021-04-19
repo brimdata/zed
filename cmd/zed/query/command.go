@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"text/tabwriter"
 
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/inputflags"
@@ -17,6 +18,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/s3io"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
@@ -146,6 +148,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	defer zio.CloseReaders(readers)
 	writer, err := c.outputFlags.Open(ctx)
 	if err != nil {
 		return err
@@ -159,20 +162,30 @@ func (c *Command) Run(args []string) error {
 			readers[i] = zio.NewWarningReader(r, d)
 		}
 	}
-	defer zio.CloseReaders(readers)
-	if ast.FanIn(query) > 1 {
-		if err := driver.RunParallel(ctx, d, query, zctx, readers, driver.Config{}); err != nil {
-			writer.Close()
-			return err
-		}
+	adaptor := cli.NewFileAdaptor(ctx, zctx)
+	var stats zbuf.ScannerStats
+	if isJoin(query) {
+		stats, err = driver.RunJoinWithFileSystem(ctx, d, query, zctx, readers, adaptor)
 	} else {
 		reader := zio.ConcatReader(readers...)
-		if err := driver.Run(ctx, d, query, zctx, reader, driver.Config{}); err != nil {
-			writer.Close()
-			return err
-		}
+		stats, err = driver.RunWithFileSystem(ctx, d, query, zctx, reader, adaptor)
 	}
-	return writer.Close()
+	if closeErr := writer.Close(); err == nil {
+		err = closeErr
+	}
+	if c.stats {
+		PrintStats(stats)
+	}
+	return err
+}
+
+func isJoin(p ast.Proc) bool {
+	seq, ok := p.(*ast.Sequential)
+	if !ok || len(seq.Procs) == 0 {
+		return false
+	}
+	_, ok = seq.Procs[0].(*ast.Join)
+	return ok
 }
 
 func ParseSourcesAndInputs(paths, includes Includes) ([]string, ast.Proc, error) {
@@ -214,4 +227,11 @@ func parseZed(srcs []string) (ast.Proc, error) {
 		return nil, fmt.Errorf("parse error: %w", err)
 	}
 	return query, nil
+}
+
+func PrintStats(stats zbuf.ScannerStats) {
+	w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
+	fmt.Fprintf(w, "data opened:\t%d\n", stats.BytesRead)
+	fmt.Fprintf(w, "data read:\t%d\n", stats.BytesMatched)
+	w.Flush()
 }

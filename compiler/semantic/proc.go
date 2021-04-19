@@ -1,23 +1,192 @@
 package semantic
 
 import (
+	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/proc"
+	"github.com/segmentio/ksuid"
 )
+
+func semFrom(ctx context.Context, scope *Scope, from *ast.From, adaptor proc.DataAdaptor) (*dag.From, error) {
+	var trunks []dag.Trunk
+	for _, in := range from.Trunks {
+		converted, err := semTrunk(ctx, scope, in, adaptor)
+		if err != nil {
+			return nil, err
+		}
+		trunks = append(trunks, converted)
+	}
+	return &dag.From{
+		Kind:   "From",
+		Trunks: trunks,
+	}, nil
+}
+
+func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, adaptor proc.DataAdaptor) (dag.Trunk, error) {
+	source, err := semSource(ctx, scope, trunk.Source, adaptor)
+	if err != nil {
+		return dag.Trunk{}, err
+	}
+	seq, err := semSequential(ctx, scope, trunk.Seq, adaptor)
+	if err != nil {
+		return dag.Trunk{}, err
+	}
+	return dag.Trunk{
+		Kind:   "Trunk",
+		Source: source,
+		Seq:    seq,
+	}, nil
+}
+
+func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor proc.DataAdaptor) (dag.Source, error) {
+	switch p := source.(type) {
+	case *ast.File:
+		layout, err := semLayout(p.Layout)
+		if err != nil {
+			return nil, err
+		}
+		return &dag.File{
+			Kind:   "File",
+			Path:   p.Path,
+			Format: p.Format,
+			Layout: layout,
+		}, nil
+	case *ast.HTTP:
+		layout, err := semLayout(p.Layout)
+		if err != nil {
+			return nil, err
+		}
+		return &dag.HTTP{
+			Kind:   "HTTP",
+			URL:    p.URL,
+			Format: p.Format,
+			Layout: layout,
+		}, nil
+	case *ast.Pool:
+		id, err := ParseID(p.Name)
+		if err != nil {
+			id, err = adaptor.Lookup(ctx, p.Name)
+			if err != nil {
+				return nil, err
+			}
+		}
+		var at ksuid.KSUID
+		if p.At != "" {
+			at, err = ParseID(p.At)
+			if err != nil {
+				return nil, err
+			}
+		}
+		// XXX For now, we translate from/to zed.Primitive's to a nano.Span.
+		// When we add arbitrary pool keys, we'll need to carry the
+		// zson values into the DAG.  Also, we should generalize these
+		// values beyond primitives.  See issue #2657.
+		var from, to nano.Ts
+		if p.Range != nil {
+			if p.Range.Lower.Type != "time" {
+				return nil, errors.New("only time types supported in from over clause")
+			}
+			t, err := time.Parse(time.RFC3339Nano, p.Range.Lower.Text)
+			if err != nil {
+				return nil, fmt.Errorf("invalid ISO time: %s", p.Range.Lower.Text)
+			}
+			from = nano.TimeToTs(t)
+			if p.Range.Upper.Type != "time" {
+				return nil, errors.New("only time types supported in from over clause")
+			}
+			t, err = time.Parse(time.RFC3339Nano, p.Range.Upper.Text)
+			if err != nil {
+				return nil, fmt.Errorf("invalid ISO time: %s", p.Range.Upper.Text)
+			}
+			to = nano.TimeToTs(t)
+		}
+		span := nano.MaxSpan
+		if from != 0 || to != 0 {
+			if from > to {
+				from, to = to, from
+			}
+			if to == 0 {
+				to = nano.MaxTs
+			}
+			span = nano.NewSpanTs(from, to)
+		}
+		return &dag.Pool{
+			Kind: "Pool",
+			ID:   id,
+			Span: span,
+			//From:  p.From,
+			//To:    p.To,
+			ScanOrder: p.ScanOrder,
+			At:        at,
+		}, nil
+	case *kernel.Reader:
+		// kernel.Reader implements both ast.Source and dag.Source
+		return p, nil
+	default:
+		return nil, fmt.Errorf("semSource: unknown type %T", p)
+	}
+}
+
+func semLayout(p *ast.Layout) (order.Layout, error) {
+	if p == nil || p.Keys == nil {
+		return order.Nil, nil
+	}
+	var keys []field.Static
+	for _, key := range p.Keys {
+		path := DotExprToFieldPath(key)
+		if path == nil {
+			return order.Nil, fmt.Errorf("bad key expr of type %T in file operator", key)
+		}
+		keys = append(keys, path.Name)
+	}
+	which, err := order.Parse(p.Order)
+	if err != nil {
+		return order.Nil, err
+	}
+	return order.NewLayout(which, keys), nil
+}
+
+func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adaptor proc.DataAdaptor) (*dag.Sequential, error) {
+	if seq == nil {
+		return nil, nil
+	}
+	var ops []dag.Op
+	for _, p := range seq.Procs {
+		if isConst(p) {
+			continue
+		}
+		converted, err := semProc(ctx, scope, p, adaptor)
+		if err != nil {
+			return nil, err
+		}
+		ops = append(ops, converted)
+	}
+	return &dag.Sequential{
+		Kind: "Sequential",
+		Ops:  ops,
+	}, nil
+}
 
 // semProc does a semantic analysis on a flowgraph to an
 // intermediate representation that can be compiled into the runtime
 // object.  Currently, it only replaces the group-by duration with
 // a truncation call on the ts and replaces FunctionCall's in proc context
 // with either a group-by or filter-proc based on the function's name.
-func semProc(scope *Scope, p ast.Proc) (dag.Op, error) {
+func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAdaptor) (dag.Op, error) {
 	switch p := p.(type) {
+	case *ast.From:
+		return semFrom(ctx, scope, p, adaptor)
 	case *ast.Summarize:
 		keys, err := semAssignments(scope, p.Keys)
 		if err != nil {
@@ -87,7 +256,7 @@ func semProc(scope *Scope, p ast.Proc) (dag.Op, error) {
 			if isConst(p) {
 				continue
 			}
-			converted, err := semProc(scope, p)
+			converted, err := semProc(ctx, scope, p, adaptor)
 			if err != nil {
 				return nil, err
 			}
@@ -98,26 +267,12 @@ func semProc(scope *Scope, p ast.Proc) (dag.Op, error) {
 			Ops:  ops,
 		}, nil
 	case *ast.Sequential:
-		var ops []dag.Op
-		for _, p := range p.Procs {
-			if isConst(p) {
-				continue
-			}
-			converted, err := semProc(scope, p)
-			if err != nil {
-				return nil, err
-			}
-			ops = append(ops, converted)
-		}
-		return &dag.Sequential{
-			Kind: "Sequential",
-			Ops:  ops,
-		}, nil
+		return semSequential(ctx, scope, p, adaptor)
 	case *ast.Switch:
 		var cases []dag.Case
 		for k := range p.Cases {
 			var err error
-			tr, err := semProc(scope, p.Cases[k].Proc)
+			tr, err := semProc(ctx, scope, p.Cases[k].Proc, adaptor)
 			if err != nil {
 				return nil, err
 			}
@@ -319,6 +474,17 @@ func semProc(scope *Scope, p ast.Proc) (dag.Op, error) {
 
 func semConsts(consts []dag.Op, scope *Scope, p ast.Proc) ([]dag.Op, error) {
 	switch p := p.(type) {
+	case *ast.From:
+		for _, trunk := range p.Trunks {
+			if trunk.Seq == nil {
+				continue
+			}
+			var err error
+			consts, err = semConsts(consts, scope, trunk.Seq)
+			if err != nil {
+				return nil, err
+			}
+		}
 	case *ast.Sequential:
 		for _, p := range p.Procs {
 			var err error
@@ -369,4 +535,28 @@ func isConst(p ast.Proc) bool {
 		return true
 	}
 	return false
+}
+
+//XXX this needs to find a common home that doesn't import lake
+func ParseID(s string) (ksuid.KSUID, error) {
+	// Check if this is a cut-and-paste from ZNG, which encodes
+	// the 20-byte KSUID as a 40 character hex string with 0x prefix.
+	var id ksuid.KSUID
+	if len(s) == 42 && s[0:2] == "0x" {
+		b, err := hex.DecodeString(s[2:])
+		if err != nil {
+			return ksuid.Nil, fmt.Errorf("illegal hex tag: %s", s)
+		}
+		id, err = ksuid.FromBytes(b)
+		if err != nil {
+			return ksuid.Nil, fmt.Errorf("illegal hex tag: %s", s)
+		}
+	} else {
+		var err error
+		id, err = ksuid.Parse(s)
+		if err != nil {
+			return ksuid.Nil, fmt.Errorf("%s: invalid commit ID", s)
+		}
+	}
+	return id, nil
 }

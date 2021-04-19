@@ -169,7 +169,7 @@ func (s *multiFileScanner) Pull() (zbuf.Batch, error) {
 		}
 		batch, err := s.scanner.Pull()
 		if err == nil && batch == nil {
-			s.stats.Accumulate(s.scanner.Stats())
+			s.stats.Add(s.scanner.Stats())
 			s.scanner = nil
 			s.reader.Close()
 			s.reader = nil
@@ -179,12 +179,9 @@ func (s *multiFileScanner) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (s *multiFileScanner) Stats() *zbuf.ScannerStats {
-	s.mu.Lock()
-	st := s.stats
+func (s *multiFileScanner) Stats() zbuf.ScannerStats {
 	if s.scanner != nil {
-		st.Accumulate(s.scanner.Stats())
+		s.stats.Add(s.scanner.Stats())
 	}
-	s.mu.Unlock()
-	return &st
+	return s.stats.Atomic()
 }

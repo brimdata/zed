@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
@@ -32,7 +32,7 @@ const (
 type Trailer struct {
 	Magic            string
 	Version          int
-	Order            zbuf.Order
+	Order            order.Which
 	ChildOffsetField string
 	FrameThresh      int
 	KeyType          *zng.TypeRecord
@@ -41,7 +41,7 @@ type Trailer struct {
 
 var ErrNotIndex = errors.New("not a zed index")
 
-func newTrailerRecord(zctx *zson.Context, childField string, frameThresh int, sections []int64, keyType *zng.TypeRecord, order zbuf.Order) (*zng.Record, error) {
+func newTrailerRecord(zctx *zson.Context, childField string, frameThresh int, sections []int64, keyType *zng.TypeRecord, o order.Which) (*zng.Record, error) {
 	sectionsType := zctx.LookupTypeArray(zng.TypeInt64)
 	cols := []zng.Column{
 		{MagicField, zng.TypeString},
@@ -57,7 +57,7 @@ func newTrailerRecord(zctx *zson.Context, childField string, frameThresh int, se
 		return nil, err
 	}
 	var desc bool
-	if order == zbuf.OrderDesc {
+	if o == order.Desc {
 		desc = true
 	}
 	builder := zng.NewBuilder(typ)
@@ -146,7 +146,7 @@ func recordToTrailer(rec *zng.Record) (*Trailer, error) {
 		return nil, err
 	}
 	if desc {
-		trailer.Order = zbuf.OrderDesc
+		trailer.Order = order.Desc
 	}
 
 	trailer.ChildOffsetField, err = rec.AccessString(ChildField)

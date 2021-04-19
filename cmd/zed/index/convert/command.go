@@ -8,9 +8,9 @@ import (
 	zedindex "github.com/brimdata/zed/cmd/zed/index"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/index"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
@@ -39,7 +39,7 @@ func init() {
 type Command struct {
 	*zedindex.Command
 	frameThresh int
-	desc        bool
+	order       string
 	outputFile  string
 	keys        string
 	inputFlags  inputflags.Flags
@@ -48,7 +48,7 @@ type Command struct {
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedindex.Command)}
 	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in zed index file")
-	f.BoolVar(&c.desc, "desc", false, "specify data is in descending order")
+	f.StringVar(&c.order, "order", "asc", "specify data in ascending (asc) or descending (desc) order")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
 	c.inputFlags.SetFlags(f)
@@ -78,11 +78,15 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	o, err := order.Parse(c.order)
+	if err != nil {
+		return err
+	}
 	defer file.Close()
 	writer, err := index.NewWriter(zctx, c.outputFile,
 		index.KeyFields(field.DottedList(c.keys)...),
 		index.FrameThresh(c.frameThresh),
-		index.Order(zbuf.Order(c.desc)),
+		index.Order(o),
 	)
 	if err != nil {
 		return err

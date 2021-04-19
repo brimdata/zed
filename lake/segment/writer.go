@@ -5,10 +5,10 @@ import (
 	"io"
 
 	"github.com/brimdata/zed/lake/seekindex"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
@@ -25,13 +25,13 @@ type Writer struct {
 	firstTs       nano.Ts
 	lastTs        nano.Ts
 	needSeekWrite bool
-	order         zbuf.Order
+	order         order.Which
 	seekIndex     *seekindex.Builder
 	wroteFirst    bool
 }
 
 type WriterOpts struct {
-	Order zbuf.Order
+	Order order.Which
 	Zng   zngio.WriterOpts
 }
 

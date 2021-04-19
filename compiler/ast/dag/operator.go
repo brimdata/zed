@@ -10,10 +10,13 @@ package dag
 import (
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/nano"
+	"github.com/segmentio/ksuid"
 )
 
 type Op interface {
-	opNode()
+	OpNode()
 }
 
 var PassOp = &Pass{Kind: "Pass"}
@@ -114,6 +117,73 @@ type (
 	}
 )
 
+// Input structure
+
+type (
+	From struct {
+		Kind   string  `json:"kind" unpack:""`
+		Trunks []Trunk `json:"trunks"`
+	}
+
+	// A Trunk is the path into a DAG for any input source.  It contains
+	// the source to scan as well as the sequential operators to apply
+	// to the scan before being joined, merged, or output.  A DAG can be
+	// just one Trunk or an assembly of different Trunks mixed in using
+	// the From Op.  The Trunk is the one place where the optimizer places
+	// pushed down predicates so the runtime can move the pushed down
+	// operators into each scan scheduler for each source when the runtime
+	// is built.  When computation is distribtued over the network, the
+	// optimized pushdown is naturally carried in the serialized DAG via
+	// each Trunk.
+	Trunk struct {
+		Kind     string      `json:"kind" unpack:""`
+		Source   Source      `json:"source"`
+		Seq      *Sequential `json:"seq"`
+		Pushdown Op          `json:"pushdown"`
+	}
+
+	// Leaf sources
+
+	File struct {
+		Kind   string       `json:"kind" unpack:""`
+		Path   string       `json:"path"`
+		Format string       `json:"format"`
+		Layout order.Layout `json:"layout"`
+	}
+	HTTP struct {
+		Kind   string       `json:"kind" unpack:""`
+		URL    string       `json:"url"`
+		Format string       `json:"format"`
+		Layout order.Layout `json:"layout"`
+	}
+	Pool struct {
+		Kind string      `json:"kind" unpack:""`
+		ID   ksuid.KSUID `json:"id"`
+		At   ksuid.KSUID `json:"at"`
+		// Span needs to be replaced with Upper/Lower.  See #2482.
+		//Upper  zed.Any `json:"upper"`
+		//Lower    zed.Any `json:"lower"`
+		Span      nano.Span `json:"span"`
+		ScanOrder string    `json:"scan_order"`
+		Group     int       `json:"group"`
+	}
+)
+
+type Source interface {
+	Source()
+}
+
+func (*File) Source() {}
+func (*HTTP) Source() {}
+func (*Pool) Source() {}
+func (*Pass) Source() {}
+
+// A From node can be a DAG entrypoint or an operator.  When it appears
+// as an operator it mixes its single parent in with other Trunks to
+// form a parallel structure whose output must be joined or merged.
+
+func (*From) OpNode() {}
+
 // Various Op fields
 
 type (
@@ -138,30 +208,50 @@ type (
 	}
 )
 
-func (*Sequential) opNode()   {}
-func (*Parallel) opNode()     {}
-func (*Switch) opNode()       {}
-func (*Sort) opNode()         {}
-func (*Cut) opNode()          {}
-func (*Pick) opNode()         {}
-func (*Drop) opNode()         {}
-func (*Head) opNode()         {}
-func (*Tail) opNode()         {}
-func (*Pass) opNode()         {}
-func (*Filter) opNode()       {}
-func (*Uniq) opNode()         {}
-func (*Summarize) opNode()    {}
-func (*Top) opNode()          {}
-func (*Put) opNode()          {}
-func (*Rename) opNode()       {}
-func (*Fuse) opNode()         {}
-func (*Join) opNode()         {}
-func (*Const) opNode()        {}
-func (*TypeProc) opNode()     {}
-func (*Shape) opNode()        {}
-func (*FieldCutter) opNode()  {}
-func (*TypeSplitter) opNode() {}
-func (*Merge) opNode()        {}
+func (*Sequential) OpNode()   {}
+func (*Parallel) OpNode()     {}
+func (*Switch) OpNode()       {}
+func (*Sort) OpNode()         {}
+func (*Cut) OpNode()          {}
+func (*Pick) OpNode()         {}
+func (*Drop) OpNode()         {}
+func (*Head) OpNode()         {}
+func (*Tail) OpNode()         {}
+func (*Pass) OpNode()         {}
+func (*Filter) OpNode()       {}
+func (*Uniq) OpNode()         {}
+func (*Summarize) OpNode()    {}
+func (*Top) OpNode()          {}
+func (*Put) OpNode()          {}
+func (*Rename) OpNode()       {}
+func (*Fuse) OpNode()         {}
+func (*Join) OpNode()         {}
+func (*Const) OpNode()        {}
+func (*TypeProc) OpNode()     {}
+func (*Shape) OpNode()        {}
+func (*FieldCutter) OpNode()  {}
+func (*TypeSplitter) OpNode() {}
+func (*Merge) OpNode()        {}
+
+func (seq *Sequential) IsEntry() bool {
+	if len(seq.Ops) == 0 {
+		return false
+	}
+	_, ok := seq.Ops[0].(*From)
+	return ok
+}
+
+func (seq *Sequential) Prepend(front Op) {
+	seq.Ops = append([]Op{front}, seq.Ops...)
+}
+
+func (seq *Sequential) Append(op Op) {
+	seq.Ops = append(seq.Ops, op)
+}
+
+func (seq *Sequential) Delete(at, length int) {
+	seq.Ops = append(seq.Ops[0:at], seq.Ops[at+length:]...)
+}
 
 func FanIn(op Op) int {
 	switch op := op.(type) {
@@ -209,4 +299,46 @@ type TypeProc struct {
 	Kind string   `json:"kind" unpack:""`
 	Name string   `json:"name"`
 	Type zed.Type `json:"type"`
+}
+
+func WalkTrunks(from *From, visit func(trunk *Trunk) error) error {
+	for k := range from.Trunks {
+		if err := visitTrunk(&from.Trunks[k], visit); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func visitTrunk(trunk *Trunk, visit func(trunk *Trunk) error) error {
+	err := WalkOps(trunk.Seq, func(op Op) error {
+		if from, ok := op.(*From); ok {
+			return WalkTrunks(from, visit)
+		}
+		return nil
+	})
+	if err != nil {
+		return err
+	}
+	return visit(trunk)
+}
+
+func WalkOps(op Op, visit func(op Op) error) error {
+	switch op := op.(type) {
+	case *Sequential:
+		for _, op := range op.Ops {
+			if err := WalkOps(op, visit); err != nil {
+				return err
+			}
+		}
+	case *Parallel:
+		for _, op := range op.Ops {
+			if err := WalkOps(op, visit); err != nil {
+				return err
+			}
+		}
+	default:
+		return visit(op)
+	}
+	return nil
 }

@@ -18,10 +18,11 @@ import (
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/service"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
@@ -52,7 +53,7 @@ func TestSearch(t *testing.T) {
 `
 	_, conn := newCore(t)
 	ctx := context.Background()
-	pool, err := conn.PoolPost(ctx, api.PoolPostRequest{Name: "test", Order: zbuf.OrderDesc})
+	pool, err := conn.PoolPost(ctx, api.PoolPostRequest{Name: "test", Order: order.Desc})
 	require.NoError(t, err)
 	_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
@@ -67,7 +68,7 @@ func TestSearchNoCtrl(t *testing.T) {
 {_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
 `
 	_, conn := newCore(t)
-	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Order: zbuf.OrderDesc})
+	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Order: order.Desc})
 	require.NoError(t, err)
 	_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
@@ -126,16 +127,17 @@ func TestSearchStats(t *testing.T) {
 
 func TestGroupByReverse(t *testing.T) {
 	src := `
-{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
-{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
-{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
+{ts:1970-01-01T00:00:01Z,uid:"A"} (=0)
+{ts:1970-01-01T00:00:01Z,uid:"B"} (0)
+{ts:1970-01-01T00:00:02Z,uid:"B"} (0)
 `
 	counts := `
 {ts:1970-01-01T00:00:02Z,count:1 (uint64)} (=0)
 {ts:1970-01-01T00:00:01Z,count:2} (0)
 `
 	_, conn := newCore(t)
-	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Order: zbuf.OrderDesc})
+	keys := field.List{field.New("ts")}
+	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Keys: keys, Order: order.Desc})
 	require.NoError(t, err)
 	_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
@@ -205,7 +207,7 @@ func TestPoolInfo(t *testing.T) {
 `
 	ctx := context.Background()
 	_, conn := newCore(t)
-	pool, err := conn.PoolPost(ctx, api.PoolPostRequest{Name: "test", Order: zbuf.OrderDesc})
+	pool, err := conn.PoolPost(ctx, api.PoolPostRequest{Name: "test", Order: order.Desc})
 	require.NoError(t, err)
 	_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
@@ -353,7 +355,7 @@ func TestPostZsonLogs(t *testing.T) {
 `
 
 	_, conn := newCore(t)
-	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Order: zbuf.OrderDesc})
+	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Order: order.Desc})
 	require.NoError(t, err)
 
 	postResp, err := conn.LogPostReaders(context.Background(), pool.ID, nil,
@@ -407,7 +409,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 	test := func(input string) {
 		_, conn := newCore(t)
 
-		pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Order: zbuf.OrderDesc})
+		pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Order: order.Desc})
 		require.NoError(t, err)
 
 		_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))

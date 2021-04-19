@@ -156,7 +156,7 @@ func (p *LogOp) start(ctx context.Context, pool *lake.Pool) {
 	p.warnings = nil
 
 	defer zio.CloseReaders(p.readers)
-	reader, _ := zbuf.MergeReadersByTsAsReader(ctx, p.readers, pool.Order)
+	reader, _ := zbuf.MergeReadersByTsAsReader(ctx, p.readers, pool.Layout.Order)
 	p.commit, p.err = pool.Add(ctx, reader)
 	if err := p.closeFiles(); err != nil && p.err != nil {
 		p.err = err

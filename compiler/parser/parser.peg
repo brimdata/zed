@@ -111,12 +111,41 @@ Switch
 CaseToken = "case"i
 DefaultToken = "default"i
 
+FromTrunks
+  = first:FromTrunk rest:FromTrunkTail+ {
+      RETURN(PREPEND(first, rest))
+    }
+  / first:FromTrunk {
+      RETURN(ARRAY(first))
+    }
+
+FromTrunk
+  = source:FromSource seq:FromTrunkSeq {
+      RETURN(MAP("kind": "Trunk", "source": source, "seq":seq ))
+    }
+
+FromTrunkSeq
+  = __ "=>" __ seq:Sequential { RETURN(seq) }
+  / "" { RETURN(NULL)}
+
+FromTrunkTail
+  = (__ ";" __ ) trunk:FromTrunk { RETURN(trunk) }
+
+FromSource
+  = FileProc
+  / HTTPProc
+  / PassProc
+  / PoolBody
+
 Operation
   = "split" __ "(" __ "=>" __ procArray:Parallel __ ")" {
       RETURN(MAP("kind": "Parallel", "procs": procArray))
     }
   / "switch" __ "(" __ caseArray:Switch __ ")" {
       RETURN(MAP("kind": "Switch", "cases": caseArray))
+    }
+  / "from" __ "(" __ trunks:FromTrunks __ ";"? __ ")" {
+      RETURN(MAP("kind": "From", "trunks": trunks))
     }
   / Operator
   / f:Function &EndOfOp { RETURN(f) }
@@ -355,6 +384,8 @@ Operator
   / JoinProc
   / SampleProc
   / SQLProc
+  / FromProc
+  / PassProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
@@ -508,9 +539,94 @@ SampleExpr
   = _ lval:Lval { RETURN(lval)}
   / "" { RETURN(MAP("kind":"Root")) }
 
+FromProc
+  = source:FromAny {
+      RETURN(MAP("kind":"From", "trunks": ARRAY(MAP("kind": "Trunk","source": source))))
+    }
+
+FromAny
+  = FileProc
+  / HTTPProc
+  / PoolProc
+
+FileProc
+  = "file"i _ path:Path format:FormatArg layout:LayoutArg  {
+      RETURN(MAP("kind": "File", "path": path, "format": format, "layout": layout ))
+    }
+
+PoolProc
+  = "from"i _ body:PoolBody { RETURN(body) }
+
+PoolBody
+  = name:PoolName at:PoolAt over:PoolRange order:OrderArg {
+      RETURN(MAP("kind": "Pool", "name": name, "at": at, "range": over, "scan_order": order))
+    }
+
+HTTPProc
+  = "get"i _ url:URL format:FormatArg layout:LayoutArg {
+      RETURN(MAP("kind": "HTTP", "url": url, "format": format, "layout": layout ))
+    }
+
+URL = ("http:" / "https:") Path { RETURN(TEXT) }
+
+Path
+  = v:QuotedString { RETURN(v) }
+  / [0-9a-zA-Z!@$%^&*()_=<>,./?;:[\]{}~|+-]+ &EOT { RETURN(TEXT) }
+
+PoolAt
+  = _ "at"i _ id:KSUID { RETURN(id) }
+  / "" { RETURN(NULL) }
+
+KSUID = ([0-9a-zA-Z])+ { RETURN(TEXT) }
+
+PoolRange
+  = _ "over"i _ lower:Literal _ "to"i _ upper:Literal {
+      RETURN(MAP("kind":"Range","lower": lower, "upper": upper))
+    }
+  / "" { RETURN(NULL) }
+
+PoolTo
+  = _ "to"i _ val:Literal { RETURN(val) }
+  / "" { RETURN(NULL) }
+
+PoolName
+  = name:IdentifierName { RETURN(name) }
+  / id:KSUID { RETURN(id) }
+  / s:QuotedString { RETURN(s) }
+
+LayoutArg
+  = _ "order"i _ keys:FieldExprs order:OrderSuffix {
+      RETURN(MAP("kind": "Layout", "keys": keys, "order": order))
+    }
+  / "" { RETURN(NULL) }
+
+FormatArg
+  = _ "format"i _ val:IdentifierName { RETURN(val) }
+  / "" { RETURN("") }
+
+OrderSuffix
+  = ":asc"i  { RETURN("asc") }
+  / ":desc"i  { RETURN("desc") }
+  / "" { RETURN("asc") }
+
+OrderArg
+  = _ "order"i _ "asc"i  { RETURN("asc") }
+  / _ "order"i _ "desc"i  { RETURN("desc") }
+  / "" { RETURN("") }
+
+PassProc
+  = "pass"i {
+      RETURN(MAP("kind":"Pass"))
+    }
+
 /// === Expressions ===
 
 Lval = DerefExpr
+
+Lvals
+  = first:Lval rest:(__ "," __ lval:Lval { RETURN(lval) })* {
+      RETURN(PREPEND(first, rest))
+    }
 
 FieldExpr = Lval
 

@@ -10,9 +10,9 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -58,7 +58,7 @@ type Writer struct {
 	iow         io.WriteCloser
 	childField  string
 	nlevel      int
-	order       zbuf.Order
+	order       order.Which
 }
 
 type indexWriter struct {
@@ -142,9 +142,9 @@ func FrameThresh(frameThresh int) Option {
 	})
 }
 
-func Order(order zbuf.Order) Option {
+func Order(o order.Which) Option {
 	return optionFunc(func(w *Writer) {
-		w.order = order
+		w.order = o
 	})
 }
 
@@ -281,9 +281,9 @@ func (w *Writer) writeEmptyTrailer() error {
 	return writeTrailer(zw, w.zctx, "", w.frameThresh, nil, typ, w.order)
 }
 
-func writeTrailer(w *zngio.Writer, zctx *zson.Context, childField string, frameThresh int, sizes []int64, keyType *zng.TypeRecord, order zbuf.Order) error {
+func writeTrailer(w *zngio.Writer, zctx *zson.Context, childField string, frameThresh int, sizes []int64, keyType *zng.TypeRecord, o order.Which) error {
 	// Finally, write the size records as the trailer of the index.
-	rec, err := newTrailerRecord(zctx, childField, frameThresh, sizes, keyType, order)
+	rec, err := newTrailerRecord(zctx, childField, frameThresh, sizes, keyType, o)
 	if err != nil {
 		return err
 	}

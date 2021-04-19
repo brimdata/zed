@@ -135,8 +135,8 @@ func (s *scanner) scanOne(rec *zng.Record) (*zng.Record, error) {
 }
 
 // Stats implements zbuf.Scanner.Stats.
-func (s *scanner) Stats() *zbuf.ScannerStats {
-	return &zbuf.ScannerStats{
+func (s *scanner) Stats() zbuf.ScannerStats {
+	return zbuf.ScannerStats{
 		BytesRead:      atomic.LoadInt64(&s.stats.BytesRead),
 		BytesMatched:   atomic.LoadInt64(&s.stats.BytesMatched),
 		RecordsRead:    atomic.LoadInt64(&s.stats.RecordsRead),

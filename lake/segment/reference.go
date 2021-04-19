@@ -6,9 +6,9 @@ import (
 	"regexp"
 	"sort"
 
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zqe"
 	"github.com/segmentio/ksuid"
 )
@@ -159,8 +159,8 @@ func (r Reference) Remove(ctx context.Context, path iosrc.URI) error {
 	return nil
 }
 
-func Less(order zbuf.Order, a, b *Reference) bool {
-	if order == zbuf.OrderDesc {
+func Less(o order.Which, a, b *Reference) bool {
+	if o == order.Desc {
 		a, b = b, a
 	}
 	//XXX need to handle arbitrary key type
@@ -177,8 +177,8 @@ func Less(order zbuf.Order, a, b *Reference) bool {
 	return ksuid.Compare(a.ID, b.ID) < 0
 }
 
-func Sort(order zbuf.Order, r []*Reference) {
+func Sort(o order.Which, r []*Reference) {
 	sort.Slice(r, func(i, j int) bool {
-		return Less(order, r[i], r[j])
+		return Less(o, r[i], r[j])
 	})
 }
