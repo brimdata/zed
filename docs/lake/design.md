@@ -61,14 +61,14 @@ with `zed lake`.
 
 A new pool is created with
 ```
-zed lake new -p <name> -k <key>[,<key>...] [-o asc|desc]
+zed lake new -p <name> -k <key>[,<key>...] [-order asc|desc]
 ```
 where `<name>` is the name of the pool within the implied lake instance,
 `<key>` is the Zed language representation of the pool key, and `asc` or `desc`
 indicate that the natural scan order by the pool key should be ascending
 or descending, respectively, e.g.,
 ```
-zed lake new -p logs -k ts -o desc
+zed lake new -p logs -k ts -order desc
 ```
 Note that there may be multiple pool keys, where subsequent keys act as the secondary,
 tertiary, and so forth sort key.
