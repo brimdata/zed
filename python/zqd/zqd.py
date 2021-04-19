@@ -122,12 +122,9 @@ def _decode_value(typ, value):
     if kind == 'enum':
         raise 'unimplemented'
     if kind == 'map':
-        d = {}
-        while value:
-            val = _decode_value(typ['val_type'], value.pop())
-            key = _decode_value(typ['key_type'], value.pop())
-            d[key] = val
-        return d
+        key_type, val_type = typ['key_type'], typ['val_type']
+        return {_decode_value(key_type, v[0]): _decode_value(val_type, v[1])
+                for v in value}
     if kind == 'set':
         return {_decode_value(typ['type'], v) for v in value}
     if kind == 'union':
