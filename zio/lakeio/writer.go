@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/alecthomas/units"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commit"
@@ -13,6 +12,7 @@ import (
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/terminal/color"
+	"github.com/brimdata/zed/pkg/units"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -116,8 +116,8 @@ func formatSegment(b *bytes.Buffer, seg *segment.Reference, prefix string, inden
 		b.WriteByte(' ')
 	}
 	b.WriteString(seg.ID.String())
-	dataSize := units.MetricBytes(seg.Size)
-	fileSize := units.MetricBytes(seg.RowSize)
+	dataSize := units.Bytes(seg.Size).Abbrev()
+	fileSize := units.Bytes(seg.RowSize).Abbrev()
 	b.WriteString(fmt.Sprintf(" %s data %s file %d records", dataSize, fileSize, seg.Count))
 	b.WriteString("\n  ")
 	tab(b, indent)
