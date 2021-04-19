@@ -172,7 +172,7 @@ func CompileFilter(zctx *zson.Context, scope *Scope, node dag.Expr) (expr.Filter
 		return compileExprPredicate(zctx, scope, v)
 
 	default:
-		return nil, fmt.Errorf("Filter AST unknown type: %v", v)
+		return nil, fmt.Errorf("unknown filter DAG type: %T", v)
 	}
 }
 
