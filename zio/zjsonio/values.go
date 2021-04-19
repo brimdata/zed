@@ -41,20 +41,20 @@ func encodeMap(zctx *zson.Context, typ *zng.TypeMap, v zcode.Bytes) (interface{}
 		if err != nil {
 			return nil, err
 		}
-		v, err := encodeValue(zctx, typ.KeyType, key)
+		pair := make([]interface{}, 2)
+		pair[0], err = encodeValue(zctx, typ.KeyType, key)
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, v)
 		val, _, err := it.Next()
 		if err != nil {
 			return nil, err
 		}
-		v, err = encodeValue(zctx, typ.ValType, val)
+		pair[1], err = encodeValue(zctx, typ.ValType, val)
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, v)
+		out = append(out, pair)
 	}
 	return out, nil
 }
@@ -252,15 +252,16 @@ func decodeMap(b *zcode.Builder, typ *zng.TypeMap, body interface{}) error {
 	if !ok {
 		return errors.New("bad json for ZJSON union value")
 	}
-	if len(items)&1 != 0 {
-		return errors.New("ZJSON map value does not have an even number of elements")
-	}
 	b.BeginContainer()
-	for k := 0; k < len(items); k += 2 {
-		if err := decodeValue(b, typ.KeyType, items[k]); err != nil {
+	for _, item := range items {
+		pair, ok := item.([]interface{})
+		if !ok || len(pair) != 2 {
+			return errors.New("ZJSON map value must be an array of two-element arrays")
+		}
+		if err := decodeValue(b, typ.KeyType, pair[0]); err != nil {
 			return err
 		}
-		if err := decodeValue(b, typ.ValType, items[k+1]); err != nil {
+		if err := decodeValue(b, typ.ValType, pair[1]); err != nil {
 			return err
 		}
 	}
