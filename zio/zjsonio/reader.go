@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/skim"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
@@ -72,7 +72,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 	return zng.NewRecordCheck(typ, bytes)
 }
 
-func (r *Reader) decodeTypes(types []ast.Type) error {
+func (r *Reader) decodeTypes(types []zed.Type) error {
 	d := r.decoder
 	for _, t := range types {
 		d.decodeType(r.zctx, t)

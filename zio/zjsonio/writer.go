@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/zng"
 )
 
 type Object struct {
 	Schema string        `json:"schema"`
-	Types  []ast.Type    `json:"types,omitempty"`
+	Types  []zed.Type    `json:"types,omitempty"`
 	Values []interface{} `json:"values"`
 }
 
@@ -24,13 +24,13 @@ func unmarshal(b []byte) (*Object, error) {
 	if err := json.Unmarshal(b, &template); err != nil {
 		return nil, err
 	}
-	var types []ast.Type
+	var types []zed.Type
 	for _, t := range template.Types {
 		object, err := unpacker.UnpackMap(t)
 		if object == nil || err != nil {
 			return nil, err
 		}
-		typ, ok := object.(ast.Type)
+		typ, ok := object.(zed.Type)
 		if !ok {
 			return nil, fmt.Errorf("ZJSON types object is not a type: %s", string(b))
 		}
