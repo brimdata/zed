@@ -71,7 +71,7 @@ func (s *Storage) NativeOrder() zbuf.Order {
 }
 
 func (s *Storage) MultiSource() driver.MultiSource {
-	return lake.NewMultiSource(s.pool)
+	return lake.NewMultiSourceAt(s.pool, 0)
 }
 
 func (s *Storage) StaticSource(src driver.Source) driver.MultiSource {
@@ -87,7 +87,7 @@ func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 	}
 	ch := make(chan segment.Reference, 10)
 	go func() {
-		err = head.Scan(ctx, ch)
+		err = s.pool.Scan(ctx, head, ch)
 		close(ch)
 	}()
 	for seg := range ch {
@@ -108,7 +108,7 @@ func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 }
 
 func (s *Storage) Write(ctx context.Context, zctx *zson.Context, zr zbuf.Reader) error {
-	commits, err := s.pool.Add(ctx, zctx, zr)
+	commits, err := s.pool.Add(ctx, zr)
 	if s.notifier != nil {
 		s.notifier.WriteNotify()
 	}

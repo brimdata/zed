@@ -1,8 +1,9 @@
-package segment
+package lake
 
 import (
 	"fmt"
 
+	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 )
@@ -15,7 +16,7 @@ import (
 type Partition struct {
 	First    nano.Ts //XXX should be key range
 	Last     nano.Ts
-	Segments []*Reference
+	Segments []*segment.Reference
 }
 
 func (p Partition) IsZero() bool {
@@ -46,7 +47,7 @@ func (p Partition) FormatRange() string {
 // XXX this algorithm doesn't quite do what we want because it continues
 // to merge *anything* that overlaps.  It's easy to fix though.
 // Issue #2538
-func PartitionSegments(segments []*Reference, order zbuf.Order) []Partition {
+func PartitionSegments(segments []*segment.Reference, order zbuf.Order) []Partition {
 	if len(segments) == 0 {
 		return nil
 	}
@@ -81,11 +82,11 @@ func PartitionSegments(segments []*Reference, order zbuf.Order) []Partition {
 
 type stack []Partition
 
-func (s *stack) pushSegment(seg *Reference) {
+func (s *stack) pushSegment(seg *segment.Reference) {
 	s.push(Partition{
 		First:    seg.First,
 		Last:     seg.Last,
-		Segments: []*Reference{seg},
+		Segments: []*segment.Reference{seg},
 	})
 }
 

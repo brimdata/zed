@@ -12,5 +12,6 @@ outputs:
           filter *
           | put x=foo
           | rename foo=boo
-      ) merge-by ts
+      )
+      | merge ts
       | uniq

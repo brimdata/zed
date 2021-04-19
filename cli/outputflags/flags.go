@@ -7,6 +7,7 @@ import (
 	"os"
 
 	"github.com/brimdata/zed/pkg/terminal"
+	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/emitter"
@@ -63,7 +64,7 @@ func (f *Flags) SetFormatFlags(fs *flag.FlagSet) {
 	if f.DefaultFormat == "" {
 		f.DefaultFormat = "zng"
 	}
-	fs.StringVar(&f.Format, "f", f.DefaultFormat, "format for output data [zng,zst,ndjson,parquet,table,text,csv,zeek,zjson,zson,tzng]")
+	fs.StringVar(&f.Format, "f", f.DefaultFormat, "format for output data [zng,zst,json,ndjson,parquet,table,text,csv,lake,zeek,zjson,zson,tzng]")
 	fs.BoolVar(&f.zsonShortcut, "z", false, "use line-oriented zson output independent of -f option")
 	fs.BoolVar(&f.zsonPretty, "Z", false, "use formatted zson output independent of -f option")
 	fs.BoolVar(&f.forceBinary, "B", false, "allow binary zng be sent to a terminal output")
@@ -109,6 +110,9 @@ func (f *Flags) Open(ctx context.Context) (zbuf.WriteCloser, error) {
 			return nil, err
 		}
 		return d, nil
+	}
+	if f.outputFile == "" && terminal.IsTerminalFile(os.Stdout) {
+		color.Enabled = true
 	}
 	w, err := emitter.NewFile(ctx, f.outputFile, f.WriterOpts)
 	if err != nil {

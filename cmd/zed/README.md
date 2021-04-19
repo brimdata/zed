@@ -1,7 +1,17 @@
-# `zq`
+# `zed`
 
-`zq` is a command-line tool to search, analyze, and transform structured logs.
- It evaluates [ZQL ](../../docs/language/README.md) queries against input log
+`zed` is a command-line tool to manage, search, query, and transform
+data in Zed lakes and files.
+
+## Under construction
+
+This documentation is under construction.
+
+## `zq`
+
+The `zq` command is a command-line shortcut for `zed query`.
+
+`zq` evaluates [Zed queries](../../docs/language/README.md) against input log
   files, producing an output log stream in the [ZNG](../../docs/formats/zng.md)
   format by default.
 
@@ -11,7 +21,7 @@ For all `zq` options, use the help subcommand:
 zq help
 ```
 
-## Examples
+### Examples
 
 Here are a few examples using a small Zeek formatted log file, `conn.log`,
 located in this directory. See the
@@ -87,6 +97,33 @@ jq -c '. | { ts, "id.orig_h", "id.orig_p" }' conn.ndjson
 Comparisons of other simple operations and their relative performance are described
 at the [performance](../../performance/README.md) page.
 
+## `zqd`
+
+The `zqd` command is a command-line shortcut for `zed serve`.
+
+`zqd` serves a REST API used to manage and query a Zed data lake.
+It is used as the backend service for the [Brim](https://github.com/brimdata/brim)
+application.
+
+For all `zqd` options, see the built-in help by running:
+
+```
+zqd help
+```
+
+## `zapi`
+
+The `zapi` command is a command-line shortcut for `zed api`.
+
+`zapi` is command-line utility for interacting with the API provided by the
+`zqd`. It can be used to create data pools, import data, list info about
+Zed lakes and pools, and more.
+
+For all `zapi` options, use the help subcommand:
+
+```
+zapi help
+```
 
 ## Formats
 

@@ -1,10 +1,13 @@
 package root
 
 import (
+	"context"
 	"flag"
+	"os"
 
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/signalctx"
 )
 
 var Zed = &charm.Spec{
@@ -28,12 +31,16 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	return c, nil
 }
 
-func (c *Command) Cleanup() {
-	c.cli.Cleanup()
-}
-
-func (c *Command) Init(all ...cli.Initializer) error {
-	return c.cli.Init(all...)
+func (c *Command) Init(all ...cli.Initializer) (context.Context, func(), error) {
+	if err := c.cli.Init(all...); err != nil {
+		return nil, nil, err
+	}
+	ctx, cancel := signalctx.New(os.Interrupt)
+	var cleanup = func() {
+		cancel()
+		c.cli.Cleanup()
+	}
+	return ctx, cleanup, nil
 }
 
 func (c *Command) Run(args []string) error {

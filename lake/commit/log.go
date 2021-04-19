@@ -1,6 +1,7 @@
 package commit
 
 import (
+	"bytes"
 	"context"
 	"io"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
+	"github.com/segmentio/ksuid"
 )
 
 type Log struct {
@@ -49,7 +51,11 @@ func Create(ctx context.Context, path iosrc.URI, order zbuf.Order) (*Log, error)
 	return l, nil
 }
 
-func (l *Log) Commit(ctx context.Context, commit Transaction) error {
+func (l *Log) Boundaries(ctx context.Context) (journal.ID, journal.ID, error) {
+	return l.journal.Boundaries(ctx)
+}
+
+func (l *Log) Commit(ctx context.Context, commit *Transaction) error {
 	b, err := commit.Serialize()
 	if err != nil {
 		return err
@@ -105,7 +111,7 @@ func (l *Log) Snapshot(ctx context.Context, at journal.ID) (*Snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	snapshot := newSnapshot(at, l.order)
+	snapshot := newSnapshotAt(at)
 	reader := actions.NewDeserializer(r)
 	for {
 		action, err := reader.Read()
@@ -115,14 +121,74 @@ func (l *Log) Snapshot(ctx context.Context, at journal.ID) (*Snapshot, error) {
 		if action == nil {
 			break
 		}
-		//XXX other cases like actions.AddIndex etc coming soon...
-		switch action := action.(type) {
-		case *actions.Add:
-			snapshot.AddSegment(action.Segment)
-		case *actions.Delete:
-			snapshot.DeleteSegment(action.ID)
-		}
+		PlayAction(snapshot, action)
 	}
 	l.snapshots[at] = snapshot
 	return snapshot, nil
+}
+
+func (l *Log) SnapshotOfCommit(ctx context.Context, at journal.ID, commit ksuid.KSUID) (*Snapshot, bool, error) {
+	if at == journal.Nil {
+		var err error
+		at, err = l.journal.ReadHead(ctx)
+		if err != nil {
+			return nil, false, err
+		}
+	}
+	r, err := l.Open(ctx, at, journal.Nil)
+	if err != nil {
+		return nil, false, err
+	}
+	var ok bool
+	snapshot := newSnapshotAt(at)
+	reader := actions.NewDeserializer(r)
+	for {
+		action, err := reader.Read()
+		if err != nil {
+			return nil, false, err
+		}
+		if action == nil {
+			return snapshot, ok, nil
+		}
+		if action.CommitID() == commit {
+			ok = true
+			PlayAction(snapshot, action)
+			continue
+		}
+		if del, ok := action.(*actions.Delete); ok && snapshot.Exists(del.ID) {
+			PlayAction(snapshot, action)
+		}
+	}
+}
+
+func (l *Log) JournalIDOfCommit(ctx context.Context, at journal.ID, commit ksuid.KSUID) (journal.ID, error) {
+	if at == journal.Nil {
+		var err error
+		at, err = l.journal.ReadHead(ctx)
+		if err != nil {
+			return journal.Nil, err
+		}
+	}
+	tail, err := l.journal.ReadTail(ctx)
+	if err != nil {
+		return journal.Nil, err
+	}
+	for cursor := at; cursor >= tail; cursor-- {
+		b, err := l.journal.Load(ctx, cursor)
+		if err != nil {
+			return journal.Nil, err
+		}
+		reader := actions.NewDeserializer(bytes.NewReader(b))
+		action, err := reader.Read()
+		if err != nil {
+			return journal.Nil, err
+		}
+		if action == nil {
+			break
+		}
+		if action.CommitID() == commit {
+			return cursor, nil
+		}
+	}
+	return journal.Nil, ErrNotFound
 }

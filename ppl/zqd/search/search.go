@@ -92,7 +92,7 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 			Parallelism: parallelism,
 			Span:        s.query.Span,
 			StatsTick:   statsTicker.C,
-			Worker:      wc,
+			//XXX Worker:      wc,
 		})
 	case *filestore.Storage:
 		if parallelism > 1 {

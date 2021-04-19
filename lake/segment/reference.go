@@ -116,11 +116,19 @@ func (r Reference) Span() nano.Span {
 }
 
 func (r Reference) RowObjectName() string {
-	return fmt.Sprintf("%s.zng", r.ID)
+	return RowObjectName(r.ID)
+}
+
+func RowObjectName(id ksuid.KSUID) string {
+	return fmt.Sprintf("%s.zng", id)
 }
 
 func (r Reference) RowObjectPath(path iosrc.URI) iosrc.URI {
-	return path.AppendPath(r.RowObjectName())
+	return RowObjectPath(path, r.ID)
+}
+
+func RowObjectPath(path iosrc.URI, id ksuid.KSUID) iosrc.URI {
+	return path.AppendPath(RowObjectName(id))
 }
 
 func (r Reference) SeekObjectName() string {

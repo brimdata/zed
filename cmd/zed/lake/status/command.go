@@ -1,33 +1,25 @@
 package status
 
 import (
-	"context"
-	"errors"
 	"flag"
 	"fmt"
+	"io"
 
 	"github.com/brimdata/zed/cli/outputflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zqe"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
-	"github.com/segmentio/ksuid"
 )
 
 var Status = &charm.Spec{
 	Name:  "status",
-	Usage: "status [-R root] [options] [staging-tag]",
+	Usage: "status [options] [ <tag> ... ]",
 	Short: "list commits in staging",
 	Long: `
 "zed lake status" shows a data pool's pending commits from its staging area.
 If a staged commit tag (e.g., as output by "zed lake add") is given,
 then details for that pending commit are displayed.
-
-If -drop is specified, then one or more commits are required and the commit
-is deleted from staging along with the underlying data that was written
-into the lake.
 `,
 	New: New,
 }
@@ -38,102 +30,51 @@ func init() {
 
 type Command struct {
 	*zedlake.Command
-	drop        bool
 	lakeFlags   zedlake.Flags
 	outputFlags outputflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
-	f.BoolVar(&c.drop, "drop", false, "delete specified commits from staging")
-	c.lakeFlags.SetFlags(f)
+	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
+	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx := context.TODO()
-	defer c.Cleanup()
-	if err := c.Init(&c.outputFlags); err != nil {
+	ctx, cleanup, err := c.Init(&c.outputFlags)
+	if err != nil {
 		return err
 	}
-	if len(args) > 1 {
-		return errors.New("zed lake status: too many arguments")
-	}
+	defer cleanup()
 	pool, err := c.lakeFlags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
-	var ids []ksuid.KSUID
-	if len(args) > 0 {
-		ids, err = zedlake.ParseIDs(args)
-		if err != nil {
-			return err
-		}
-	} else {
-		if c.drop {
-			return errors.New("no commits specified for deletion")
-		}
-		ids, err = pool.GetStagedCommits(ctx)
+	ids, err := zedlake.ParseIDs(args)
+	if err != nil {
+		return err
+	}
+	if len(ids) == 0 {
+		// Show all of staging.
+		ids, err = pool.ListStagedCommits(ctx)
 		if err != nil {
 			return err
 		}
 		if len(ids) == 0 {
-			fmt.Println("no commits in staging")
+			if !c.lakeFlags.Quiet {
+				fmt.Println("staging area empty")
+			}
 			return nil
 		}
 	}
-	if c.drop {
-		return errors.New("TBD: issue #2541")
-	}
-	txns := make([]commit.Transaction, 0, len(ids))
-	for _, id := range ids {
-		txn, err := pool.LoadFromStaging(ctx, id)
-		if err != nil {
-			if zqe.IsNotFound(err) {
-				err = fmt.Errorf("%s: not found", id)
-			}
-			return err
-		}
-		txns = append(txns, txn)
-	}
-	if c.outputFlags.Format == "text" {
-		printCommits(txns)
-		return nil
-	}
-	w, err := c.outputFlags.Open(ctx)
-	if err != nil {
-		return err
-	}
-	if err := marshalCommits(txns, w); err != nil {
-		return err
-	}
-	if closeErr := w.Close(); err == nil {
-		err = closeErr
-	}
-	return err
-}
-
-func printCommits(txns []commit.Transaction) {
-	for _, txn := range txns {
-		fmt.Printf("commit %s\n", txn.ID)
-		for _, action := range txn.Actions {
-			//XXX
-			fmt.Printf("  segment %s\n", action)
-		}
-	}
-}
-
-func marshalCommits(txns []commit.Transaction, w zbuf.Writer) error {
-	m := zson.NewZNGMarshaler()
-	for _, txn := range txns {
-		rec, err := m.MarshalRecord(txn)
-		if err != nil {
-			return err
-		}
-		if err := w.Write(rec); err != nil {
-			return err
-		}
-	}
-	return nil
+	pipeReader, pipeWriter := io.Pipe()
+	go func() {
+		w := zngio.NewWriter(pipeWriter, zngio.WriterOpts{})
+		pool.ScanStaging(ctx, w, ids)
+		w.Close()
+	}()
+	r := zngio.NewReader(pipeReader, zson.NewContext())
+	return zedlake.CopyToOutput(ctx, c.outputFlags, r)
 }

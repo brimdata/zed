@@ -15,6 +15,16 @@ import (
 	"github.com/buger/jsonparser"
 )
 
+type InferParser inferParser
+
+func NewInferParser(zctx *zson.Context) *InferParser {
+	return &InferParser{zctx}
+}
+
+func (p *InferParser) ParseObject(b []byte) (zng.Value, error) {
+	return (*inferParser)(p).parseObject(b)
+}
+
 type inferParser struct {
 	zctx *zson.Context
 }

@@ -3,7 +3,7 @@ script: |
   zed lake init -q
   zed lake create -q -p logs
   zed lake load -q -p logs -streammax 2 -
-  zed index section -s 0 -z test/*/data/*-seek.zng
+  zed index section -s 0 -z test/*/D/*-seek.zng
 
 inputs:
   - name: stdin

@@ -1,7 +1,6 @@
 package create
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -46,11 +45,11 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	ctx := context.TODO()
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	name := c.lakeFlags.PoolName
 	if len(args) != 0 && name != "" {
 		return errors.New("zed lake create pool: does not take arguments")

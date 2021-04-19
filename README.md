@@ -1,10 +1,18 @@
 # Zed [![Tests][tests-img]][tests]
 
-The Zed project is a new, clean-slate design for a data engineering stack.
-At Zed's foundation lies a new family of self-describing
-data formats based on the "Zed data model", which blends the highly structured
-approach of dataframes and relational tables with the loosely structured
-document model of JSON.
+The Zed system provides an open-source, cloud-native, and searchable data lake for
+semi-structured data.
+
+Zed lakes utilize a superset of the relational and JSON document data models
+yet require no up-front schema definitions to insert data.  They also provide
+transactional views and time travel by leveraging a `git`-like design pattern
+based on a commit journal.  Using this mechanism, a lake's (optional) search indexes
+are transactionally consistent with its data.
+
+At Zed's foundation lies a new family of self-describing data formats based on the
+[Zed data model](docs/formats/zson.md#1-introduction),
+which unifies the highly structured approach of dataframes and relational tables
+with the loosely structured document model of JSON.
 
 While the Zed system is built around its family of data formats, it is also
 interoperable with popular data formats like CSV, (ND)JSON, and Parquet.
@@ -12,22 +20,16 @@ interoperable with popular data formats like CSV, (ND)JSON, and Parquet.
 This repository contains tools and components used to organize, search, analyze,
 and store Zed data, including:
 
-* The [zq](cmd/zq/README.md) command line tool for searching and analyzing data
-* The [zqd](ppl/cmd/zqd/README.md) daemon, which serves a REST API to manage
- and query Zed data lakes, and is the backend for the [Brim](https://github.com/brimdata/brim)
- application
-* The [zapi](cmd/zapi/README.md) command line tool, for interacting with the
-API provided by zqd
+* The [`zed`](cmd/zed/README.md) command line tool for managing, searching, and querying a Zed lake
 * The [Zed language](docs/language/README.md) documentation
 * The [Zed formats](docs/formats/README.md) specifications and documentation
 
-We believe the Zed data architecture provides a powerful foundation for the
-modern data lake and are actively developing tools and software components
-for the emerging "Zed data lake".
+The previously released [`zq`](cmd/zed/README.md#zq) tool is now packaged as
+a command-line shortcut for the `zed query` command.
 
 ## Installation
 
-To install `zq` or any other tool from this repo, you can either clone the repo
+To install `zed` or any other tool from this repo, you can either clone the repo
  and compile from source, or use a pre-compiled
  [release](https://github.com/brimdata/zed/releases), available for Windows, macOS, and Linux.
 

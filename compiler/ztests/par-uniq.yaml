@@ -8,5 +8,6 @@ outputs:
           filter *
         =>
           filter *
-      ) merge-by ts
+      )
+      | merge ts
       | uniq

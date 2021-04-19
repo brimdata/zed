@@ -4,16 +4,13 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"os"
 
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/procflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/commit/actions"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
-	"github.com/brimdata/zed/pkg/signalctx"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
@@ -70,26 +67,24 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(&c.inputFlags, &c.procFlags); err != nil {
-		return err
-	}
 	if len(args) == 0 {
 		return errors.New("zed lake add: at least one input file must be specified (- for stdin)")
 	}
+	ctx, cleanup, err := c.Init(&c.inputFlags, &c.procFlags)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	lake.ImportStreamRecordsMax = c.importStreamRecordMax
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
 	pool, err := c.lakeFlags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
 	paths := args
-	zctx := zson.NewContext()
-	readers, err := c.inputFlags.Open(zctx, paths, false)
+	readers, err := c.inputFlags.Open(zson.NewContext(), paths, false)
 	if err != nil {
 		return err
 	}
@@ -98,7 +93,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	commit, err := pool.Add(ctx, zctx, reader)
+	commit, err := pool.Add(ctx, reader)
 	if err != nil {
 		return err
 	}
@@ -106,19 +101,13 @@ func (c *Command) Run(args []string) error {
 		if err := pool.Commit(ctx, commit, c.Date.Ts(), c.User, c.Message); err != nil {
 			return err
 		}
+		if !c.lakeFlags.Quiet {
+			fmt.Printf("%s committed\n", commit)
+		}
 		return nil
 	}
-	txn, err := pool.LoadFromStaging(ctx, commit)
-	if err != nil {
-		return err
-	}
 	if !c.lakeFlags.Quiet {
-		fmt.Printf("commit %s in staging:\n", commit)
-		for _, action := range txn.Actions {
-			if add, ok := action.(*actions.Add); ok {
-				fmt.Printf(" segment %s\n", add.Segment)
-			}
-		}
+		fmt.Printf("%s staged\n", commit)
 	}
 	return nil
 }

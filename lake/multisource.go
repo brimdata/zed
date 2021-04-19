@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
@@ -40,7 +40,7 @@ type pullerCloser struct {
 	io.Closer
 }
 
-func newRangeScanner(ctx context.Context, pool *Pool, zctx *zson.Context, sf driver.SourceFilter, scan segment.Partition) (sc *pullerCloser, stats ScanStats, err error) {
+func newRangeScanner(ctx context.Context, pool *Pool, zctx *zson.Context, sf driver.SourceFilter, scan Partition) (sc *pullerCloser, stats ScanStats, err error) {
 	closers := make(multiCloser, 0, len(scan.Segments))
 	pullers := make([]zbuf.Puller, 0, len(scan.Segments))
 	scanners := make([]zbuf.Scanner, 0, len(scan.Segments))
@@ -77,13 +77,14 @@ func newRangeScanner(ctx context.Context, pool *Pool, zctx *zson.Context, sf dri
 // Otherwise, the sources come from localizing the given alternative paths to
 // each chunk in the archive, recognizing "_" as the chunk file itself, with no
 // defined ordering.
-func NewMultiSource(pool *Pool) MultiSource {
-	return &spanMultiSource{pool, &ScanStats{}}
+func NewMultiSourceAt(pool *Pool, at journal.ID) *spanMultiSource {
+	return &spanMultiSource{pool, &ScanStats{}, at}
 }
 
 type spanMultiSource struct {
 	pool  *Pool
 	stats *ScanStats
+	at    journal.ID
 }
 
 func (m *spanMultiSource) OrderInfo() (field.Static, bool) {
@@ -94,15 +95,15 @@ func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcCh
 	// We keep a channel of []SpanInfos filled to reduce the time
 	// query workers are waiting for the next driver.Source.
 	const scanPreFetch = 10
-	paritionCh := make(chan segment.Partition, scanPreFetch)
+	paritionCh := make(chan Partition, scanPreFetch)
 	g, ctx := errgroup.WithContext(ctx)
 	g.Go(func() error {
-		head, err := m.pool.log.Head(ctx)
+		head, err := m.pool.log.Snapshot(ctx, m.at)
 		if err != nil {
 			close(paritionCh)
 			return err
 		}
-		err = head.ScanPartitions(ctx, paritionCh, span)
+		err = ScanPartitions(ctx, head, span, m.pool.Order, paritionCh)
 		close(paritionCh)
 		return err
 	})
@@ -129,7 +130,7 @@ func (m *spanMultiSource) Stats() ScanStats {
 
 type rangeSource struct {
 	pool      *Pool
-	partition segment.Partition
+	partition Partition
 	stats     *ScanStats
 }
 

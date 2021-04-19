@@ -56,6 +56,11 @@ func (f *Formatter) FormatRecord(rec *zng.Record) (string, error) {
 	return f.builder.String(), nil
 }
 
+func FormatValue(zv zng.Value) (string, error) {
+	f := NewFormatter(0)
+	return f.Format(zv)
+}
+
 func (f *Formatter) Format(zv zng.Value) (string, error) {
 	f.builder.Reset()
 	if err := f.formatValueAndDecorate(zv.Type, zv.Bytes); err != nil {

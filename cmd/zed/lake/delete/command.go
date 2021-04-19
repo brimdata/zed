@@ -3,6 +3,7 @@ package del
 import (
 	"errors"
 	"flag"
+	"fmt"
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
@@ -43,19 +44,58 @@ func init() {
 
 type Command struct {
 	*zedlake.Command
+	commit    bool
 	lakeFlags zedlake.Flags
+	zedlake.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedlake.Command)}
+	f.BoolVar(&c.commit, "commit", false, "commit added data if successfully written")
 	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
-	return errors.New("issue #2544")
+	defer cleanup()
+	pool, err := c.lakeFlags.OpenPool(ctx)
+	if err != nil {
+		return err
+	}
+	tags, err := zedlake.ParseIDs(args)
+	if err != nil {
+		return err
+	}
+	if len(tags) == 0 {
+		return errors.New("no data or commit tags specified")
+	}
+	ids, err := pool.LookupTags(ctx, tags)
+	if err != nil {
+		return err
+	}
+	commitID, err := pool.Delete(ctx, ids)
+	if err != nil {
+		return err
+	}
+	if c.commit {
+		if err := pool.Commit(ctx, commitID, c.Date.Ts(), c.User, c.Message); err != nil {
+			return err
+		}
+		if !c.lakeFlags.Quiet {
+			fmt.Println("deletion successful")
+		}
+		return nil
+	}
+	if !c.lakeFlags.Quiet {
+		txn, err := pool.LoadFromStaging(ctx, commitID)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("%s staged to delete %d segments\n", commitID, len(txn.Actions))
+	}
+	return nil
 }
