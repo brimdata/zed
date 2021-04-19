@@ -24,16 +24,17 @@ func NewRm(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *RmCommand) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
-		return err
-	}
-	if len(args) != 1 {
-		return fmt.Errorf("expected one argument")
-	}
-	intake, err := c.lookupIntake(args[0])
+	ctx, cleanup, err := c.Init()
 	if err != nil {
 		return err
 	}
-	return c.Connection().IntakeDelete(c.Context(), intake.ID)
+	defer cleanup()
+	if len(args) != 1 {
+		return fmt.Errorf("expected one argument")
+	}
+	intake, err := c.lookupIntake(ctx, args[0])
+	if err != nil {
+		return err
+	}
+	return c.Connection().IntakeDelete(ctx, intake.ID)
 }

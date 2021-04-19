@@ -1,17 +1,17 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST -s testsp postpcap -f ng.pcap >/dev/null
+  zapi -service $ZQD_HOST -s testsp postpcap -f ng.pcap >/dev/null
   echo ===
-  zapi -h $ZQD_HOST -s testsp info | egrep -v 'data_path|id|pcap_path|size|storage_kind'
+  zapi -service $ZQD_HOST -s testsp info | egrep -v 'data_path|id|pcap_path|size|storage_kind'
   echo ===
   rm ng.pcap
-  zapi -h $ZQD_HOST -s testsp info | egrep -v 'data_path|id|pcap_path|size|storage_kind'
+  zapi -service $ZQD_HOST -s testsp info | egrep -v 'data_path|id|pcap_path|size|storage_kind'
   echo ===
-  zapi -h $ZQD_HOST ls
+  zapi -service $ZQD_HOST ls
   echo ===
-  zapi -h $ZQD_HOST -s testsp get -z "_path=conn | count()"
+  zapi -service $ZQD_HOST -s testsp get -z "_path=conn | count()"
   echo ===
-  zapi -h $ZQD_HOST rm testsp
+  zapi -service $ZQD_HOST rm testsp
 
 inputs:
   - name: ng.pcap

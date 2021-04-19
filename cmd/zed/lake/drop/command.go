@@ -31,34 +31,31 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
-	lakeFlags zedlake.Flags
+	lake *zedlake.Command
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
-	c.lakeFlags.SetFlags(f)
-	return c, nil
+	return &Command{lake: parent.(*zedlake.Command)}, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init()
+	ctx, cleanup, err := c.lake.Init()
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	name := c.lakeFlags.PoolName
+	name := c.lake.Flags.PoolName
 	if name == "" {
 		return errors.New("name of pool must be supplied with -p option")
 	}
-	lk, err := c.lakeFlags.Open(ctx)
+	lk, err := c.lake.Flags.Open(ctx)
 	if err != nil {
 		return err
 	}
 	if err := lk.RemovePool(ctx, name); err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.lake.Flags.Quiet {
 		fmt.Printf("pool deleted: %s\n", name)
 	}
 	return nil

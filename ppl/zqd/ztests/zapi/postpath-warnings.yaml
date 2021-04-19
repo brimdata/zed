@@ -1,8 +1,8 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new test
-  zapi -h $ZQD_HOST -s test postpath bad.zson | grep warning > warn.txt
-  zapi -h $ZQD_HOST -s test get -f zson "count()" > out.zson
+  zapi -service $ZQD_HOST new test
+  zapi -service $ZQD_HOST -s test postpath bad.zson | grep warning > warn.txt
+  zapi -service $ZQD_HOST -s test get -f zson "count()" > out.zson
 
 inputs:
   - name: services.sh

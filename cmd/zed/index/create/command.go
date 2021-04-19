@@ -44,9 +44,7 @@ type Command struct {
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{
-		Command: parent.(*zedindex.Command),
-	}
+	c := &Command{Command: parent.(*zedindex.Command)}
 	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in index file")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
 	f.StringVar(&c.keyField, "k", "", "field name of search keys")
@@ -58,10 +56,11 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(&c.inputFlags); err != nil {
+	_, cleanup, err := c.Init(&c.inputFlags)
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if c.keyField == "" {
 		return errors.New("must specify at least one key field with -k")
 	}

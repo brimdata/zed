@@ -1,17 +1,17 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new -k archivestore sp1
-  zapi -h $ZQD_HOST new -k archivestore sp2
+  zapi -service $ZQD_HOST new -k archivestore sp1
+  zapi -service $ZQD_HOST new -k archivestore sp2
   echo ===
 
   # Verify that the default output format is text of names only.
-  zapi -h $ZQD_HOST ls
+  zapi -service $ZQD_HOST ls
   echo ===
 
   # Verify that output flags are honored.
-  zapi -h $ZQD_HOST ls -l -f zson | zq -i zson -f zson "pick name,storage_kind" -
+  zapi -service $ZQD_HOST ls -l -f zson | zq -i zson -f zson "pick name,storage_kind" -
   echo ===
-  zapi -h $ZQD_HOST ls -l -f zng | zq -i zng -f table "pick name,storage_kind" -
+  zapi -service $ZQD_HOST ls -l -f zng | zq -i zng -f table "pick name,storage_kind" -
   echo ===
 
 inputs:

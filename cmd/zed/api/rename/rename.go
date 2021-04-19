@@ -29,24 +29,23 @@ type Command struct {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
-
-	var err error
+	defer cleanup()
 	var id api.SpaceID
 	var newname string
 	switch len(args) {
 	case 2:
 		newname = args[1]
-		id, err = apicmd.GetSpaceID(c.Context(), c.Connection(), args[0])
+		id, err = apicmd.GetSpaceID(ctx, c.Connection(), args[0])
 		if err != nil {
 			return err
 		}
 	case 1:
 		newname = args[0]
-		id, err = c.SpaceID()
+		id, err = c.SpaceID(ctx)
 		if err != nil {
 			return err
 		}
@@ -54,7 +53,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("rename takes 1 or 2 arguments")
 	}
 
-	if err := c.Connection().SpacePut(c.Context(), id, api.SpacePutRequest{Name: newname}); err != nil {
+	if err := c.Connection().SpacePut(ctx, id, api.SpacePutRequest{Name: newname}); err != nil {
 		return err
 	}
 	fmt.Printf("space renamed to %s\n", newname)

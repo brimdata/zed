@@ -2,12 +2,12 @@ tag: services
 
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new -k archivestore -thresh 20KiB testsp
-  zapi -h $ZQD_HOST -s testsp post babble.zson >/dev/null
+  zapi -service $ZQD_HOST new -k archivestore -thresh 20KiB testsp
+  zapi -service $ZQD_HOST -s testsp post babble.zson >/dev/null
   echo ===
-  zapi -h $ZQD_HOST -s testsp get -f text "count()"
+  zapi -service $ZQD_HOST -s testsp get -f text "count()"
   echo ===
-  zapi -h $ZQD_HOST -s testsp get -f text "count()"
+  zapi -service $ZQD_HOST -s testsp get -f text "count()"
   echo ===
   curl $ZQD_HOST/metrics | grep archive_cache
 

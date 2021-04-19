@@ -5,9 +5,9 @@ env:
 
 script: |
   source startup.sh
-  zapi -h $ZQD_HOST new -k archivestore testsp >/dev/null
-  zapi -h $ZQD_HOST -s testsp post babble.zson >/dev/null
-  zapi -h $ZQD_HOST -s testsp get -z "count()"
+  zapi -service $ZQD_HOST new -k archivestore testsp >/dev/null
+  zapi -service $ZQD_HOST -s testsp post babble.zson >/dev/null
+  zapi -service $ZQD_HOST -s testsp get -z "count()"
 
 inputs:
   - name: startup.sh

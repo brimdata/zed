@@ -5,11 +5,11 @@ env:
 
 script: |
   source startup.sh
-  zapi -h $ZQD_HOST new testsp >/dev/null
-  zapi -h $ZQD_HOST ls -f zng | zq -f text "pick name" -
-  zapi -h $ZQD_HOST rm testsp
+  zapi -service $ZQD_HOST new testsp >/dev/null
+  zapi -service $ZQD_HOST ls -f zng | zq -f text "pick name" -
+  zapi -service $ZQD_HOST rm testsp
   echo ===
-  zapi -h $ZQD_HOST ls
+  zapi -service $ZQD_HOST ls
 
 inputs:
   - name: startup.sh

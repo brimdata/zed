@@ -1,6 +1,6 @@
 script: |
   source services.sh
-  zapi="zapi -h $ZQD_HOST"
+  zapi="zapi -service $ZQD_HOST"
   $zapi new sp1
   $zapi intake new -target sp1 -shaper foo -f zng in1 | zq -z "pick name,shaper" -
   echo ===

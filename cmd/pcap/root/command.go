@@ -29,10 +29,6 @@ type Command struct {
 	cli cli.Flags
 }
 
-func init() {
-	Pcap.Add(charm.Help)
-}
-
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
 	log.SetPrefix("pcap") // XXX switch to zapper

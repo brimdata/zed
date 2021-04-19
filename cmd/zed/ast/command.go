@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
@@ -43,12 +44,11 @@ The -O flag is handy for turning on and off the compiler, which lets you see
 how the parsed AST is transformed into a runtime object comprised of the
 Z kernel operators.
 `,
-	New: func(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
-		return New(flags)
-	},
+	New: New,
 }
 
 type Command struct {
+	*root.Command
 	repl     bool
 	js       bool
 	pigeon   bool
@@ -64,8 +64,8 @@ type Command struct {
 	includes includes
 }
 
-func New(f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{}
+func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	c := &Command{Command: parent.(*root.Command)}
 	f.BoolVar(&c.repl, "repl", false, "enter repl")
 	f.BoolVar(&c.js, "js", false, "run javascript version of peg parser")
 	f.BoolVar(&c.pigeon, "pigeon", false, "run pigeon version of peg parser")
@@ -93,6 +93,11 @@ func (i *includes) Set(value string) error {
 }
 
 func (c *Command) Run(args []string) error {
+	_, cleanup, err := c.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) == 0 && len(c.includes) == 0 {
 		return charm.NeedHelp
 	}

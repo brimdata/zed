@@ -41,14 +41,15 @@ func New(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 // Run lists all spaces in the current zqd host or if a parameter
 // is provided (in glob style) lists the info about that space.
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	conn := c.Connection()
 	var ids []api.SpaceID
 	if len(args) > 0 {
-		matches, err := apicmd.SpaceGlob(c.Context(), conn, args...)
+		matches, err := apicmd.SpaceGlob(ctx, conn, args...)
 		if err != nil {
 			return err
 		}
@@ -56,7 +57,7 @@ func (c *Command) Run(args []string) error {
 			ids = append(ids, m.ID)
 		}
 	} else {
-		id, err := c.SpaceID()
+		id, err := c.SpaceID(ctx)
 		if err == apicmd.ErrSpaceNotSpecified {
 			return errors.New("no space provided")
 		}
@@ -66,7 +67,7 @@ func (c *Command) Run(args []string) error {
 		ids = []api.SpaceID{id}
 	}
 	for _, id := range ids {
-		info, err := conn.SpaceInfo(c.Context(), id)
+		info, err := conn.SpaceInfo(ctx, id)
 		if err != nil {
 			return err
 		}

@@ -34,25 +34,23 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
-	lakeFlags zedlake.Flags
+	lake *zedlake.Command
 	zedlake.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
-	c.lakeFlags.SetFlags(f)
+	c := &Command{lake: parent.(*zedlake.Command)}
 	c.CommitFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init()
+	ctx, cleanup, err := c.lake.Init()
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	pool, err := c.lakeFlags.OpenPool(ctx)
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
@@ -67,7 +65,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.lake.Flags.Quiet {
 		fmt.Printf("squashed commit in staging: %s\n", commit)
 	}
 	return nil

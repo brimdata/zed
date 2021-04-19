@@ -47,9 +47,7 @@ type Command struct {
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{
-		Command: parent.(*zedindex.Command),
-	}
+	c := &Command{Command: parent.(*zedindex.Command)}
 	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in index file")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
 	f.StringVar(&c.keyField, "k", "", "name of search key field")
@@ -58,10 +56,11 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	_, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	//XXX no reason to limit this... fix later
 	if len(args) != 1 {
 		return errors.New("must specify a single zng input file containing keys and optional values")

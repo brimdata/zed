@@ -13,7 +13,6 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/api/new"
 	_ "github.com/brimdata/zed/cmd/zed/api/post"
 	_ "github.com/brimdata/zed/cmd/zed/api/rename"
-	_ "github.com/brimdata/zed/cmd/zed/api/repl"
 	_ "github.com/brimdata/zed/cmd/zed/api/rm"
 	_ "github.com/brimdata/zed/cmd/zed/api/version"
 	"github.com/brimdata/zed/cmd/zed/ast"
@@ -47,19 +46,17 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/zst/cut"
 	_ "github.com/brimdata/zed/cmd/zed/zst/inspect"
 	_ "github.com/brimdata/zed/cmd/zed/zst/read"
-	"github.com/brimdata/zed/pkg/charm"
 )
 
 func main() {
 	zed := root.Zed
-	zed.Add(charm.Help)
 	zed.Add(api.Cmd)
 	zed.Add(ast.Cmd)
 	zed.Add(query.Cmd)
 	zed.Add(zst.Cmd)
 	zed.Add(lake.Cmd)
 	zed.Add(index.Cmd)
-	if _, err := zed.ExecRoot(os.Args[1:]); err != nil {
+	if err := zed.ExecRoot(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}

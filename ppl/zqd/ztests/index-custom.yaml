@@ -2,10 +2,10 @@ skip: issue 2532
 
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new -k archivestore testsp >/dev/null
-  zapi -h $ZQD_HOST -s testsp post babble.zson >/dev/null
-  zapi -h $ZQD_HOST -s testsp index create -k key -o index.zng -z "sum(v) by s | put key=s | sort key"
-  zapi -h $ZQD_HOST -s testsp index find -x index.zng glycerite-oligoprothesy | zq -z "drop _log" -
+  zapi -service $ZQD_HOST new -k archivestore testsp >/dev/null
+  zapi -service $ZQD_HOST -s testsp post babble.zson >/dev/null
+  zapi -service $ZQD_HOST -s testsp index create -k key -o index.zng -z "sum(v) by s | put key=s | sort key"
+  zapi -service $ZQD_HOST -s testsp index find -x index.zng glycerite-oligoprothesy | zq -z "drop _log" -
 
 inputs:
   - name: services.sh

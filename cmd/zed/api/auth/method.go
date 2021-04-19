@@ -26,15 +26,16 @@ func NewMethod(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *MethodCommand) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if len(args) > 0 {
 		return errors.New("method command takes no arguments")
 	}
 	conn := c.Connection()
-	res, err := conn.AuthMethod(c.Context())
+	res, err := conn.AuthMethod(ctx)
 	if err != nil {
 		return err
 	}

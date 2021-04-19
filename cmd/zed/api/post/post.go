@@ -41,12 +41,13 @@ func NewPost(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *PostCommand) Run(args []string) (err error) {
+	ctx, cleanup, err := c.Init(&c.postFlags)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) == 0 {
 		return errors.New("path arg(s) required")
-	}
-	defer c.Cleanup()
-	if err := c.Init(&c.postFlags); err != nil {
-		return err
 	}
 	paths, err := abspaths(args)
 	if err != nil {
@@ -65,16 +66,16 @@ func (c *PostCommand) Run(args []string) (err error) {
 	} else {
 		out = os.Stdout
 	}
-	id, err := c.SpaceID()
+	id, err := c.SpaceID(ctx)
 	if err != nil {
 		return err
 	}
 	c.start = time.Now()
 	conn := c.Connection()
 	opts := &client.LogPostOpts{Shaper: c.postFlags.shaperAST}
-	res, err := conn.LogPostWriter(c.Context(), id, opts, c.logwriter)
+	res, err := conn.LogPostWriter(ctx, id, opts, c.logwriter)
 	if err != nil {
-		if c.Context().Err() != nil {
+		if ctx.Err() != nil {
 			fmt.Println("post aborted")
 			os.Exit(1)
 		}

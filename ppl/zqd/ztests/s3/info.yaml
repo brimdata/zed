@@ -1,9 +1,9 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new -d ./root -k archivestore -thresh 20KiB testsp
-  zapi -h $ZQD_HOST -s testsp post babble.zson >/dev/null
+  zapi -service $ZQD_HOST new -d ./root -k archivestore -thresh 20KiB testsp
+  zapi -service $ZQD_HOST -s testsp post babble.zson >/dev/null
   echo ===
-  zapi -h $ZQD_HOST info testsp | egrep -v 'data_path|id|pcap_path'
+  zapi -service $ZQD_HOST info testsp | egrep -v 'data_path|id|pcap_path'
 
 inputs:
   - name: babble.zson
