@@ -2,6 +2,7 @@ package zson_test
 
 import (
 	"bytes"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -222,4 +223,62 @@ func TestBug2575(t *testing.T) {
 	actual, err := zson.FormatValue(recActual.Value)
 	require.NoError(t, err)
 	assert.Equal(t, trim(exp), actual)
+}
+
+type Order bool
+
+const (
+	OrderAsc  = Order(false)
+	OrderDesc = Order(true)
+)
+
+func (o Order) MarshalText() ([]byte, error) {
+	if o {
+		return []byte("desc"), nil
+	}
+	return []byte("asc"), nil
+}
+
+func (o *Order) UnmarshalText(text []byte) error {
+	switch string(text) {
+	case "asc":
+		*o = false
+	case "desc":
+		*o = true
+	default:
+		return fmt.Errorf("bad serialization of zbuf.Order: %s", string(text))
+	}
+	return nil
+}
+
+type Nothing struct{}
+
+func (*Nothing) MarshalText() ([]byte, error) {
+	return []byte("NULL"), nil
+}
+
+func (p *Plant) UnmarshalText(text []byte) error {
+	return nil
+}
+
+func TestTextMarshaling(t *testing.T) {
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+
+	o := OrderDesc
+	zv, err := m.Marshal(o)
+	require.NoError(t, err)
+	exp := `"desc" (=Order)`
+	actual, err := zson.FormatValue(zv)
+	fmt.Println("ZSON", zv.Type.ZSONOf(zv.Bytes))
+	require.NoError(t, err)
+	assert.Equal(t, exp, actual)
+
+	u := zson.NewZNGUnmarshaler()
+	u.Bind(Order(false))
+
+	var o2 Order
+	err = u.Unmarshal(zv, &o2)
+	require.NoError(t, err)
+	assert.Equal(t, o, o2)
 }

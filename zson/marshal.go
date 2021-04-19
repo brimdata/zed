@@ -1,6 +1,7 @@
 package zson
 
 import (
+	"encoding"
 	"errors"
 	"fmt"
 	"net"
@@ -18,6 +19,9 @@ var (
 
 	marshalerTypeZNG   = reflect.TypeOf((*ZNGMarshaler)(nil)).Elem()
 	unmarshalerTypeZNG = reflect.TypeOf((*ZNGUnmarshaler)(nil)).Elem()
+
+	textMarshalerType   = reflect.TypeOf((*encoding.TextMarshaler)(nil)).Elem()
+	textUnmarshalerType = reflect.TypeOf((*encoding.TextUnmarshaler)(nil)).Elem()
 )
 
 func Marshal(v interface{}) (string, error) {
@@ -320,6 +324,14 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zng.Type, error) {
 	if v.Type().Implements(marshalerTypeZNG) {
 		return v.Interface().(ZNGMarshaler).MarshalZNG(m)
 	}
+	if v.Type().Implements(textMarshalerType) {
+		b, err := v.Interface().(encoding.TextMarshaler).MarshalText()
+		if err != nil {
+			return nil, err
+		}
+		m.Builder.AppendPrimitive(b)
+		return zng.TypeString, nil
+	}
 	if v, ok := v.Interface().(nano.Ts); ok {
 		m.Builder.AppendPrimitive(zng.EncodeTime(v))
 		return zng.TypeTime, nil
@@ -573,6 +585,12 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 			v.Set(reflect.New(v.Type().Elem()))
 		}
 		return v.Interface().(ZNGUnmarshaler).UnmarshalZNG(u, zv)
+	}
+	if v.Type().Implements(textUnmarshalerType) {
+		if v.IsNil() {
+			v.Set(reflect.New(v.Type().Elem()))
+		}
+		return v.Interface().(encoding.TextUnmarshaler).UnmarshalText(zv.Bytes)
 	}
 	if v.CanAddr() {
 		pv := v.Addr()
