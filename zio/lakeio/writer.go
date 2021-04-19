@@ -70,7 +70,7 @@ func (w *Writer) WriteZSON(rec *zng.Record) error {
 	if _, err := io.WriteString(w.writer, s); err != nil {
 		return err
 	}
-	_, err = w.writer.Write([]byte("\n"))
+	_, err = io.WriteString(w.writer, "\n")
 	return err
 }
 

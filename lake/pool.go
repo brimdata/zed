@@ -246,28 +246,26 @@ func (p *Pool) ScanStaging(ctx context.Context, w zbuf.Writer, ids []ksuid.KSUID
 	defer cancel()
 	var err error
 	go func() {
+		defer close(ch)
 		for _, id := range ids {
 			var txn *commit.Transaction
 			txn, err = p.LoadFromStaging(ctx, id)
 			if err != nil {
-				break
+				return
 			}
 			for _, action := range txn.Actions {
 				select {
 				case ch <- action:
 				case <-ctx.Done():
-					close(ch)
 					return
 				}
 			}
 			select {
 			case ch <- &actions.StagedCommit{Commit: id}:
 			case <-ctx.Done():
-				close(ch)
 				return
 			}
 		}
-		close(ch)
 	}()
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)

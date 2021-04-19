@@ -13,4 +13,4 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      .* committed
+       \w{27} committed

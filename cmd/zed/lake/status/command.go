@@ -57,7 +57,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	if len(ids) == 0 {
-		// Show all of staing.
+		// Show all of staging.
 		ids, err = pool.ListStagedCommits(ctx)
 		if err != nil {
 			return err

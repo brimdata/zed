@@ -31,10 +31,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	return c, nil
 }
 
-func (c *Command) cleanup() {
-	c.cli.Cleanup()
-}
-
 func (c *Command) Init(all ...cli.Initializer) (context.Context, func(), error) {
 	if err := c.cli.Init(all...); err != nil {
 		return nil, nil, err
@@ -42,7 +38,7 @@ func (c *Command) Init(all ...cli.Initializer) (context.Context, func(), error) 
 	ctx, cancel := signalctx.New(os.Interrupt)
 	var cleanup = func() {
 		cancel()
-		c.cleanup()
+		c.cli.Cleanup()
 	}
 	return ctx, cleanup, nil
 }

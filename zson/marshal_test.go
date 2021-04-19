@@ -2,7 +2,6 @@ package zson_test
 
 import (
 	"bytes"
-	"io"
 	"strings"
 	"testing"
 
@@ -186,14 +185,6 @@ func TestBytes(t *testing.T) {
 
 }
 
-type nopCloser struct {
-	io.Writer
-}
-
-func (*nopCloser) Close() error {
-	return nil
-}
-
 type RecordWithInterfaceSlice struct {
 	X string
 	S []Thing
@@ -218,7 +209,7 @@ func TestBug2575(t *testing.T) {
 	require.NoError(t, err)
 
 	var buffer bytes.Buffer
-	writer := zngio.NewWriter(&nopCloser{&buffer}, zngio.WriterOpts{})
+	writer := zngio.NewWriter(zio.NopCloser(&buffer), zngio.WriterOpts{})
 	recExpected := zng.NewRecord(zv.Type, zv.Bytes)
 	writer.Write(recExpected)
 	writer.Close()
@@ -226,7 +217,9 @@ func TestBug2575(t *testing.T) {
 	r := bytes.NewReader(buffer.Bytes())
 	reader := zngio.NewReader(r, zson.NewContext())
 	recActual, err := reader.Read()
-	exp, _ := zson.FormatValue(recExpected.Value)
-	actual, _ := zson.FormatValue(recActual.Value)
+	exp, err := zson.FormatValue(recExpected.Value)
+	require.NoError(t, err)
+	actual, err := zson.FormatValue(recActual.Value)
+	require.NoError(t, err)
 	assert.Equal(t, trim(exp), actual)
 }

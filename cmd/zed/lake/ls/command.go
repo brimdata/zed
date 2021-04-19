@@ -77,7 +77,7 @@ func (c *Command) Run(args []string) error {
 		if c.at != "" {
 			at, err = zedlake.ParseJournalID(ctx, pool, c.at)
 			if err != nil {
-				return fmt.Errorf("zed lake query: %w", err)
+				return fmt.Errorf("zed lake ls: %w", err)
 			}
 		}
 		snap, err := pool.Log().Snapshot(ctx, at)
