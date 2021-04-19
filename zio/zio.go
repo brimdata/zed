@@ -4,7 +4,6 @@ import (
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zio/textio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
@@ -14,7 +13,6 @@ import (
 type ReaderOpts struct {
 	Format string
 	Zng    zngio.ReaderOpts
-	JSON   ndjsonio.ReaderOpts
 	AwsCfg *aws.Config
 }
 

@@ -12,7 +12,6 @@ import (
 
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zio/zjsonio"
 )
 
@@ -162,10 +161,9 @@ type PcapPostStatus struct {
 }
 
 type LogPostRequest struct {
-	Paths          []string             `json:"paths"`
-	StopErr        bool                 `json:"stop_err"`
-	JSONTypeConfig *ndjsonio.TypeConfig `json:"json_type_config"`
-	Shaper         json.RawMessage      `json:"shaper,omitempty"`
+	Paths   []string        `json:"paths"`
+	StopErr bool            `json:"stop_err"`
+	Shaper  json.RawMessage `json:"shaper,omitempty"`
 }
 
 type LogPostWarning struct {

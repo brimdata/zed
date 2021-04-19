@@ -41,9 +41,9 @@ func OpenFromNamedReadCloser(zctx *zson.Context, rc io.ReadCloser, path string, 
 	}
 	var zr zbuf.Reader
 	if opts.Format == "" || opts.Format == "auto" {
-		zr, err = NewReaderWithOpts(r, zctx, path, opts)
+		zr, err = NewReaderWithOpts(r, zctx, opts)
 	} else {
-		zr, err = lookupReader(r, zctx, path, opts)
+		zr, err = lookupReader(r, zctx, opts)
 	}
 	if err != nil {
 		return nil, err

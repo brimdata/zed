@@ -14,7 +14,7 @@
 
 # Summary
 
-The file [`types.json`](types.json) in this directory contains configuration
+The file `types.json` in this directory contains configuration
 that can be used to restore Zeek-compatible rich data types to events that
 have been output in JSON format by Zeek. The definitions in the current
 revision of `types.json` reflect the default set of logs output by

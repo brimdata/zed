@@ -69,8 +69,6 @@ github.com/bkaradzic/go-lz4 v1.0.0/go.mod h1:0YdlkowM3VswSROI7qDxhRvJ3sLhlFrRRwj
 github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869/go.mod h1:Ekp36dRnpXw/yCqJaO+ZrUyxD+3VXMFFr56k5XYrpB4=
 github.com/brimdata/parquet-go v0.3.1 h1:px/EuItj2/lWMJDcx9H412f4Fl1CNdZSHEtdvniOYq4=
 github.com/brimdata/parquet-go v0.3.1/go.mod h1:qIL8Wm6AK06QHCj9OBFW6PyS+7ukZxc20K/acSeGUas=
-github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e h1:oJCXMss/3rg5F6Poy9wG3JQusc58Mzk5B9Z6wSnssNE=
-github.com/buger/jsonparser v0.0.0-20191004114745-ee4c978eae7e/go.mod h1:errmMKH8tTB49UR2A8C8DPYkyudelsYJwJFaZHQ6ik8=
 github.com/cenkalti/backoff/v4 v4.0.2/go.mod h1:eEew/i+1Q6OrCDZh3WiXYv3+nJwBASZ8Bog/87DQnVg=
 github.com/census-instrumentation/opencensus-proto v0.2.1/go.mod h1:f6KPmirojxKA12rnyqOA5BBL4O983OfeGPqjHWSTneU=
 github.com/cespare/xxhash v1.1.0 h1:a6HrQnmkObjyL+Gs60czilIUGqrzKutQD6XZog3p+ko=
