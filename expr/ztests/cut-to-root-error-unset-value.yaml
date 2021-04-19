@@ -1,0 +1,8 @@
+zed: 'cut .=a'
+
+input: |
+  {a:null (0=({b:int32}))} (=0)
+
+warnings: |
+  cut: cannot cut an unset value to .
+  cut: no record found with columns a
