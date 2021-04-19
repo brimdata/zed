@@ -19,37 +19,25 @@ import (
 )
 
 type Writer struct {
-	writer    io.WriteCloser
-	unmarshal *zson.UnmarshalZNGContext
-	zson      *zson.Formatter
-	commits   table
-	width     int
-	colors    color.Stack
+	writer  io.WriteCloser
+	zson    *zson.Formatter
+	commits table
+	width   int
+	colors  color.Stack
 }
 
 func NewWriter(w io.WriteCloser) *Writer {
-	u := zson.NewZNGUnmarshaler()
-	u.Bind(
-		lake.PoolConfig{},
-		segment.Reference{},
-		lake.Partition{},
-		field.Static{},
-		actions.Add{},
-		actions.Delete{},
-		actions.CommitMessage{},
-		actions.StagedCommit{})
 	return &Writer{
-		writer:    w,
-		unmarshal: u,
-		zson:      zson.NewFormatter(0),
-		commits:   make(table),
-		width:     80, //XXX
+		writer:  w,
+		zson:    zson.NewFormatter(0),
+		commits: make(table),
+		width:   80, //XXX
 	}
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
 	var v interface{}
-	if err := w.unmarshal.Unmarshal(rec.Value, &v); err != nil {
+	if err := unmarshaler.Unmarshal(rec.Value, &v); err != nil {
 		return w.WriteZSON(rec)
 	}
 	var b bytes.Buffer
