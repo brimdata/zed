@@ -1,10 +1,12 @@
 package zson_test
 
 import (
+	"bytes"
 	"strings"
 	"testing"
 
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -181,4 +183,43 @@ func TestBytes(t *testing.T) {
 	`
 	assert.Equal(t, trim(exp), recToZSON(t, rec))
 
+}
+
+type RecordWithInterfaceSlice struct {
+	X string
+	S []Thing
+}
+
+func TestBug2575(t *testing.T) {
+	// Bug #2575 is preventing "-f lake" from working on transactions that
+	// have arrays of actions.Interface.  This test repros the problem.
+	// Skipping until #2575 is addressed.
+	t.Skip()
+	x := &RecordWithInterfaceSlice{
+		X: "hello",
+		S: []Thing{
+			&Plant{"red"},
+			&Animal{"blue"},
+		},
+	}
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+
+	zv, err := m.Marshal(x)
+	require.NoError(t, err)
+
+	var buffer bytes.Buffer
+	writer := zngio.NewWriter(zio.NopCloser(&buffer), zngio.WriterOpts{})
+	recExpected := zng.NewRecord(zv.Type, zv.Bytes)
+	writer.Write(recExpected)
+	writer.Close()
+
+	r := bytes.NewReader(buffer.Bytes())
+	reader := zngio.NewReader(r, zson.NewContext())
+	recActual, err := reader.Read()
+	exp, err := zson.FormatValue(recExpected.Value)
+	require.NoError(t, err)
+	actual, err := zson.FormatValue(recActual.Value)
+	require.NoError(t, err)
+	assert.Equal(t, trim(exp), actual)
 }

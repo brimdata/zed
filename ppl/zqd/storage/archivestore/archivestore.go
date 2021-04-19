@@ -108,7 +108,7 @@ func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 }
 
 func (s *Storage) Write(ctx context.Context, zctx *zson.Context, zr zbuf.Reader) error {
-	commits, err := s.pool.Add(ctx, zctx, zr)
+	commits, err := s.pool.Add(ctx, zr)
 	if s.notifier != nil {
 		s.notifier.WriteNotify()
 	}

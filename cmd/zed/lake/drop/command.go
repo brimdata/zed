@@ -1,7 +1,6 @@
 package drop
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -43,15 +42,15 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	name := c.lakeFlags.PoolName
 	if name == "" {
 		return errors.New("name of pool must be supplied with -p option")
 	}
-	ctx := context.TODO()
 	lk, err := c.lakeFlags.Open(ctx)
 	if err != nil {
 		return err

@@ -77,7 +77,7 @@ func newRangeScanner(ctx context.Context, pool *Pool, zctx *zson.Context, sf dri
 // Otherwise, the sources come from localizing the given alternative paths to
 // each chunk in the archive, recognizing "_" as the chunk file itself, with no
 // defined ordering.
-func NewMultiSourceAt(pool *Pool, at journal.ID) MultiSource {
+func NewMultiSourceAt(pool *Pool, at journal.ID) *spanMultiSource {
 	return &spanMultiSource{pool, &ScanStats{}, at}
 }
 

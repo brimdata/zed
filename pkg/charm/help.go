@@ -95,7 +95,7 @@ func (c *HelpCommand) Run(args []string) error {
 	return nil
 }
 
-func formatParagraph(body, tab string, lineWidth int) string {
+func FormatParagraph(body, tab string, lineWidth int) string {
 	paragraphs := strings.Split(body, "\n\n")
 	var chunks []string
 	for _, paragraph := range paragraphs {
@@ -135,7 +135,7 @@ func helpDesc(heading, body string) {
 	w := terminal.Width()
 	lineWidth := w - len(tab) - 5
 	if len(body) > lineWidth {
-		body = formatParagraph(body, tab, lineWidth)
+		body = FormatParagraph(body, tab, lineWidth)
 	}
 	fmt.Fprint(os.Stderr, hdr+"\n"+body)
 }

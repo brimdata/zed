@@ -9,22 +9,6 @@ import (
 	"github.com/brimdata/zed/zbuf"
 )
 
-type Scanner struct {
-	order    zbuf.Order
-	segments *[]segment.Reference
-}
-
-func (s *Scanner) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.Reference) error {
-	for _, seg := range snap.Select(nano.MaxSpan) {
-		select {
-		case ch <- *seg:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	return nil
-}
-
 func ScanSpan(ctx context.Context, snap *commit.Snapshot, span nano.Span, ch chan<- segment.Reference) error {
 	for _, seg := range snap.Select(span) {
 		if span.Overlaps(seg.Span()) {

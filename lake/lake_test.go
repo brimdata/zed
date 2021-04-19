@@ -32,7 +32,7 @@ func importTestFile(t *testing.T, pool *lake.Pool, srcfile string) {
 	defer reader.Close()
 
 	ctx := context.Background()
-	stagingID, err := pool.Add(ctx, zctx, reader)
+	stagingID, err := pool.Add(ctx, reader)
 	require.NoError(t, err)
 	err = pool.Commit(ctx, stagingID, 0, "", "")
 	require.NoError(t, err)

@@ -1,16 +1,9 @@
 package driver
 
 import (
-	"context"
-	"encoding/json"
-	"io"
 	"sync"
-	"time"
 
-	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/ppl/zqd/recruiter"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"go.uber.org/zap"
@@ -28,7 +21,9 @@ type parallelHead struct {
 	// workerConn is connection to a worker zqd process
 	// that is only used for distributed zqd.
 	// Thread (goroutine) parallelism is used when workerConn is nil.
-	workerConn *client.Connection
+
+	// XXX workerConn *client.Connection
+	workerConn interface{}
 }
 
 func (ph *parallelHead) closeOnDone() {
@@ -64,7 +59,7 @@ func (ph *parallelHead) Pull() (zbuf.Batch, error) {
 
 			} else {
 				// Worker process parallelism uses nextSourceForConn
-				sc, err = ph.pg.nextSourceForConn(ph.workerConn)
+				// XXX sc, err = ph.pg.nextSourceForConn(ph.workerConn)
 			}
 			if sc == nil || err != nil {
 				return nil, err
@@ -133,6 +128,8 @@ func (pg *parallelGroup) nextSource() (ScannerCloser, error) {
 	}
 }
 
+/* XXX this will be done differently
+
 // nextSourceForConn is similar to nextSource, but instead of returning the scannerCloser
 // for an open file (i.e. the stream for the open file),
 // nextSourceForConn sends a request to a remote zqd worker process, and returns
@@ -168,6 +165,7 @@ func (pg *parallelGroup) nextSourceForConn(conn *client.Connection) (ScannerClos
 		return nil, pg.pctx.Err()
 	}
 }
+*/
 
 func (pg *parallelGroup) doneSource(sc ScannerCloser) {
 	pg.mu.Lock()
@@ -176,6 +174,7 @@ func (pg *parallelGroup) doneSource(sc ScannerCloser) {
 	delete(pg.scanners, sc)
 }
 
+/* XXX
 // sourceToRequest takes a Source and converts it into a WorkerChunkRequest.
 func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerChunkRequest, error) {
 	var req api.WorkerChunkRequest
@@ -192,6 +191,7 @@ func (pg *parallelGroup) sourceToRequest(src Source) (*api.WorkerChunkRequest, e
 	req.Dir = pg.mcfg.Order.Int()
 	return &req, nil
 }
+*/
 
 func (pg *parallelGroup) Stats() *zbuf.ScannerStats {
 	pg.mu.Lock()
@@ -222,26 +222,28 @@ func createParallelGroup(pctx *proc.Context, filter *compiler.Runtime, msrc Mult
 		sourceChan: make(chan Source),
 	}
 	parallelism := mcfg.Parallelism
-	if mcfg.Distributed {
-		workers, err := recruiter.RecruitWorkers(pctx, parallelism, mcfg.Worker, mcfg.Logger)
-		if err != nil {
-			return nil, nil, err
-		}
-		if len(workers) > 0 {
-			var conns []*client.Connection
-			var sources []proc.Interface
-			for _, w := range workers {
-				conn := client.NewConnectionTo("http://" + w)
-				conns = append(conns, conn)
-				sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: conn})
+	/*
+		if mcfg.Distributed {
+			workers, err := recruiter.RecruitWorkers(pctx, parallelism, mcfg.Worker, mcfg.Logger)
+			if err != nil {
+				return nil, nil, err
 			}
-			go pg.releaseWorkersOnDone(conns)
-			return sources, pg, nil
+			if len(workers) > 0 {
+				var conns []*client.Connection
+				var sources []proc.Interface
+				for _, w := range workers {
+					conn := client.NewConnectionTo("http://" + w)
+					conns = append(conns, conn)
+					sources = append(sources, &parallelHead{pctx: pctx, pg: pg, workerConn: conn})
+				}
+				go pg.releaseWorkersOnDone(conns)
+				return sources, pg, nil
+			}
+			// If no workers are available for distributed exec,
+			// fall back to using the root process at parallelism=1.
+			parallelism = 1
 		}
-		// If no workers are available for distributed exec,
-		// fall back to using the root process at parallelism=1.
-		parallelism = 1
-	}
+	*/
 	// This is the code path used by the zqd daemon for Brim.
 	var sources []proc.Interface
 	for i := 0; i < parallelism; i++ {
@@ -249,6 +251,8 @@ func createParallelGroup(pctx *proc.Context, filter *compiler.Runtime, msrc Mult
 	}
 	return sources, pg, nil
 }
+
+/*
 
 func (pg *parallelGroup) releaseWorkersOnDone(conns []*client.Connection) {
 	<-pg.pctx.Done()
@@ -260,3 +264,4 @@ func (pg *parallelGroup) releaseWorkersOnDone(conns []*client.Connection) {
 		recruiter.ReleaseWorker(ctx, conn, pg.mcfg.Logger)
 	}
 }
+*/

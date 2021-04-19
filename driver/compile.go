@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/ppl/zqd/worker"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
@@ -98,7 +97,7 @@ type MultiConfig struct {
 	Parallelism int
 	Span        nano.Span
 	StatsTick   <-chan time.Time
-	Worker      worker.WorkerConfig
+	//Worker      worker.WorkerConfig
 }
 
 func compileMulti(ctx context.Context, program ast.Proc, zctx *zson.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {

@@ -2,14 +2,14 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -q -p POOL
-  a=$(zed lake load -p POOL a.zson | head -1 | awk '{print $3}')
-  b=$(zed lake load -p POOL b.zson | head -1 | awk '{print $3}')
+  a=$(zed lake load -p POOL a.zson | head -1 | awk '{print $1}')
+  b=$(zed lake load -p POOL b.zson | head -1 | awk '{print $1}')
   zed lake query -p POOL -z "sort ."
   echo === AT a
   zed lake query -p POOL -at $a -z "sort ."
   echo === AT b
   zed lake query -p POOL -at $b -z "sort ."
-  id=$(zed lake delete -p POOL $a | head -1 | awk '{print $2}')
+  id=$(zed lake delete -p POOL $a | head -1 | awk '{print $1}')
   zed lake commit -p POOL -q $id
   echo === with A deleted
   zed lake query -p POOL -z "sort ."

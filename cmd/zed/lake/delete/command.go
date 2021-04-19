@@ -4,12 +4,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"os"
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/lake/commit/actions"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/signalctx"
 )
 
 var Delete = &charm.Spec{
@@ -60,12 +57,11 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
+	defer cleanup()
 	pool, err := c.lakeFlags.OpenPool(ctx)
 	if err != nil {
 		return err
@@ -99,12 +95,7 @@ func (c *Command) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("commit %s in staging:\n", commitID)
-		for _, action := range txn.Actions {
-			if del, ok := action.(*actions.Delete); ok {
-				fmt.Printf(" delete segment %s\n", del.ID)
-			}
-		}
+		fmt.Printf("%s staged to delete %d segments\n", commitID, len(txn.Actions))
 	}
 	return nil
 }

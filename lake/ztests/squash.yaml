@@ -2,8 +2,8 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -q -p POOL
-  a=$(zed lake add -p POOL a.zson | head -1 | awk '{print $2}')
-  b=$(zed lake add -p POOL b.zson | head -1 | awk '{print $2}')
+  a=$(zed lake add -p POOL a.zson | head -1 | awk '{print $1}')
+  b=$(zed lake add -p POOL b.zson | head -1 | awk '{print $1}')
   id=$(zed lake squash -p POOL $a $b | head -1 | awk '{print $NF}')
   zed lake commit -q -p POOL $id
   zed lake query -p POOL -z "sort ."

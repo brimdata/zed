@@ -439,6 +439,7 @@ func (m *MarshalZNGContext) encodeArray(arrayVal reflect.Value) (zng.Type, error
 		if err != nil {
 			return nil, err
 		}
+		// XXX See bug #2575
 		innerType = typ
 	}
 	m.Builder.EndContainer()
@@ -1004,51 +1005,4 @@ func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zng.Type) (reflect.Type, e
 		return nil, fmt.Errorf("unknown zng type: %v", typ)
 	}
 	return reflect.TypeOf(v), nil
-}
-
-// MarshalStream provides a means to turn a sequence of Go values into
-// zng-marshaled records.  MarshalStream implements zbuf.Reader: in one
-// goroutine, records are pulled from the zbuf.Reader with Read() and
-// in another, Go values as interface{} are supplied to the MarshalStream
-// via its Supply() method.
-type MarshalStream struct {
-	ch        chan *zng.Record
-	done      chan error
-	marshaler *MarshalZNGContext
-}
-
-func NewMarshalStream(style TypeStyle) *MarshalStream {
-	m := NewZNGMarshaler()
-	m.Decorate(style)
-	return &MarshalStream{
-		ch:        make(chan *zng.Record),
-		done:      make(chan error),
-		marshaler: m,
-	}
-}
-
-func (m *MarshalStream) Close(err error) {
-	close(m.ch)
-	if err != nil {
-		m.done <- err
-	}
-	close(m.done)
-}
-
-func (m *MarshalStream) Supply(v interface{}) bool {
-	rec, err := m.marshaler.MarshalRecord(v)
-	if rec == nil || err != nil {
-		m.Close(err)
-		return false
-	}
-	m.ch <- rec
-	return true
-}
-
-func (m *MarshalStream) Read() (*zng.Record, error) {
-	rec := <-m.ch
-	if rec == nil {
-		return nil, <-m.done
-	}
-	return rec, nil
 }

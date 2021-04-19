@@ -85,3 +85,11 @@ func DottedList(s string) []Static {
 	}
 	return fields
 }
+
+func List(fields []Static) string {
+	names := make([]string, 0, len(fields))
+	for _, f := range fields {
+		names = append(names, f.String())
+	}
+	return strings.Join(names, ",")
+}
