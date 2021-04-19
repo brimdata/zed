@@ -401,6 +401,12 @@ func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zng.Type, error) {
 	var columns []zng.Column
 	stype := sval.Type()
 	for i := 0; i < stype.NumField(); i++ {
+		if !sval.Field(i).CanInterface() {
+			// If we can't access this field, silently ignore it
+			// like the json marshaler does.  This occurs when
+			// struct fields are not exported.
+			continue
+		}
 		field := stype.Field(i)
 		name := fieldName(field)
 		typ, err := m.encodeValue(sval.Field(i))
