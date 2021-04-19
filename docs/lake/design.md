@@ -91,12 +91,12 @@ Data is then loaded into a lake with the `load` command, .e.g.,
 zed lake load -p logs sample.ndjson
 ```
 where `sample.ndjson` contains logs in NDJSON format.  Any supported format
-(i.e., CSV, NDJSON, Parquet, ZNG, and ZST) as well multiple files can be used
+(i.e., CSV, JSON, NDJSON, Parquet, ZNG, and ZST) as well multiple files can be used
 here, e.g.,
 ```
-zed lake load -p logs sample1.csv sample2.zng sample3.ndjson
+zed lake load -p logs sample1.csv sample2.ndjson sample3.zng
 ```
-Parquet and ZST formats are not auto-detected so you must currently specify
+JSON, Parquet, and ZST formats are not auto-detected so you must currently specify
 `-i` with these formats, e.g.,
 ```
 zed lake load -p logs -i parquet sample4.parquet
@@ -121,16 +121,16 @@ from time `2020-1-1T12:00` and sends the results as ZSON to stdout.
 zed lake query -p logs -f zson -from 2020-1-1T12:00
 ```
 A much more efficient format for transporting query results is the
-row-oriented, compressed, and binary format ZNG.  Because ZNG
-streams are easily merged and composed, a query in ZNG format
+row-oriented, compressed binary format ZNG.  Because ZNG
+streams are easily merged and composed, query results in ZNG format
 from a pool can be can be piped to another `zed query` instance, e.g.,
 ```
-zed lake query -p logs -f zng -from 2020-1-1T12:00 | zed query -f table "count() by query"
+zed lake query -p logs -f zng -from 2020-1-1T12:00 | zed query -f table "count() by field"
 ```
 Of course, it's even more efficient to run the query inside of the pool traversal
 like this:
 ```
-zed lake query -p logs -f table -from 2020-1-1T12:00 "count() by query"
+zed lake query -p logs -f table -from 2020-1-1T12:00 "count() by field"
 ```
 By default, the `query` command scans pool data in pool-key order though
 the Zed optimizer may, in general, reorder the scan to optimize searches,
@@ -151,7 +151,7 @@ decomposed into two steps: an `add` operation and a `commit` operation.
 These steps can be explicitly run in stages, e.g.,
 ```
 zed lake add -p logs sample.json
-(commit <tag> etc printed to stdout)
+(commit <tag> etc. printed to stdout)
 zed lake commit -p logs <tag>
 ```
 A commit `<tag>` refers to one or more data segments stored in the
@@ -173,11 +173,11 @@ before they are merged.
 Likewise, you can stack multiple adds and commit them all at once, e.g.,
 ```
 zed lake add -p logs sample1.json
-(<tag-1> etc printed to stdout)
+(<tag-1> etc. printed to stdout)
 zed lake add -p logs sample2.parquet
-(<tag-2> etc printed to stdout)
+(<tag-2> etc. printed to stdout)
 zed lake add -p logs sample3.zng
-(<tag-3> etc printed to stdout)
+(<tag-3> etc. printed to stdout)
 zed lake commit -p logs <tag-1> <tag-2> <tag-3>
 ```
 The commit command also takes an optional title and message that is stored
@@ -317,11 +317,13 @@ or individual segments at any time.  This is handy when importing data by
 mistake:
 ```
 zed lake load -p logs oops.ndjson
-(commit <tag> etc printed to stdout)
-zed lake delete -p <tag>
+(commit <tag> etc. printed to stdout)
+zed lake delete -p logs -commit <tag>
 ```
 In this case, the data will be deleted from any subsequent scans but still
-exists in the lake and can be accessed via time travel.
+exists in the lake and can be accessed via time travel.  Here, we used the
+`-commit` flag on `delete` to automatically commit the delete operation to the
+commit journal without having to run an explicit `commit` command.
 
 ### Purge and Vacate
 
@@ -378,7 +380,7 @@ However, the log represents the definitive record of a pool's present
 and historical content, and accessing its complete detail can provide
 insights about data layout, provenance, history, and so forth.  Thus,
 Zed lake provides a means to query a pool's entire journal in all its
-detail   To do so, simply query a pool's journal by referring to
+detail.  To do so, simply query a pool's journal by referring to
 the special sub-pool name `<pool>:journal`.
 
 For example, to aggregate a count of each journal entry type of the pool
@@ -646,7 +648,7 @@ to scale to arbitrarily large footprints as described earlier.
 ## Lake Introspection
 
 Commit history, meta data about segments, segment key spaces,
-etc can all be queried and
+etc. can all be queried and
 returned as Zed data, which in turn, can be fed into Zed analytics.
 This allows a very powerful approach to introspecting the structure of a
 lake making it easy to measure, tune, and adjust lake parameters to
