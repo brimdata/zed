@@ -180,7 +180,7 @@ func StringOfBstring(data zcode.Bytes, fmt OutFmt, inContainer bool) string {
 			i += l
 		}
 	}
-	return string(append(out, data[start:len(data)]...))
+	return string(append(out, data[start:]...))
 }
 
 func StringOfDuration(t *zng.TypeOfDuration, zv zcode.Bytes, _ OutFmt, _ bool) string {
@@ -335,7 +335,7 @@ func StringOfString(t *zng.TypeOfString, zv zcode.Bytes, fmt OutFmt, inContainer
 			i += l
 		}
 	}
-	return string(append(out, zv[start:len(zv)]...))
+	return string(append(out, zv[start:]...))
 }
 
 func uescape(r rune) []byte {

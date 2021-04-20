@@ -77,7 +77,7 @@ func (r *Record) ZvalIter() zcode.Iter {
 // FieldIter returns a fieldIter iterator over the receiver's values.
 func (r *Record) FieldIter() fieldIter {
 	return fieldIter{
-		stack: []iterInfo{iterInfo{
+		stack: []iterInfo{{
 			iter: r.ZvalIter(),
 			typ:  TypeRecordOf(r.Type),
 		}},

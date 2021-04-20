@@ -18,7 +18,7 @@ type markdownunittest struct {
 func TestCollectExamples(t *testing.T) {
 	t.Parallel()
 	tests := []markdownunittest{
-		markdownunittest{
+		{
 			name: "zq-command only",
 			markdown: `
 ~~~zq-command only
@@ -29,7 +29,7 @@ other code block
 ~~~
 `,
 			strerror: "zq-command without a following zq-output"},
-		markdownunittest{
+		{
 			name: "zq-output only",
 			markdown: `
 ~~~zq-output only
@@ -40,7 +40,7 @@ other code block
 ~~~
 `,
 			strerror: "zq-output without a preceeding zq-command"},
-		markdownunittest{
+		{
 			name: "two commands",
 			markdown: `
 ~~~zq-command 1
@@ -54,7 +54,7 @@ block 3
 ~~~
 `,
 			strerror: "subsequent zq-command after another zq-command"},
-		markdownunittest{
+		{
 			name: "two items",
 			markdown: `
 ~~~zq-command 1
@@ -71,7 +71,7 @@ block 4
 ~~~
 `,
 			items: 2},
-		markdownunittest{
+		{
 			name: "headed output",
 			markdown: `
 ~~~zq-command
