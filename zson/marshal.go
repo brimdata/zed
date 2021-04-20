@@ -401,10 +401,21 @@ func (m *MarshalZNGContext) encodeRecord(sval reflect.Value) (zng.Type, error) {
 	var columns []zng.Column
 	stype := sval.Type()
 	for i := 0; i < stype.NumField(); i++ {
-		if !sval.Field(i).CanInterface() {
-			// If we can't access this field, silently ignore it
-			// like the json marshaler does.  This occurs when
-			// struct fields are not exported.
+		sf := stype.Field(i)
+		isUnexported := sf.PkgPath != ""
+		if sf.Anonymous {
+			t := sf.Type
+			if t.Kind() == reflect.Ptr {
+				t = t.Elem()
+			}
+			if isUnexported && t.Kind() != reflect.Struct {
+				// Ignore embedded fields of unexported non-struct types.
+				continue
+			}
+			// Do not ignore embedded fields of unexported struct types
+			// since they may have exported fields.
+		} else if isUnexported {
+			// Ignore unexported non-embedded fields.
 			continue
 		}
 		field := stype.Field(i)
