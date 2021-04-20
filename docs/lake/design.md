@@ -1,4 +1,34 @@
-# Zed Lake Design Doc
+# Zed Lake Design
+
+  * [Data Pools](#data-pools)
+  * [Lake Semantics](#lake-semantics)
+    + [New](#new)
+    + [Load](#load)
+    + [Query](#query)
+    + [Add and Commit](#add-and-commit)
+      - [Transactional Semantics](#transactional-semantics)
+      - [Data Segmentation](#data-segmentation)
+    + [Merge](#merge)
+    + [Squash and Delete](#squash-and-delete)
+    + [Purge and Vacate](#purge-and-vacate)
+    + [Log](#log)
+  * [Cloud Object Naming](#cloud-object-naming)
+    + [Immutable Objects](#immutable-objects)
+      - [Segments](#segments)
+      - [Search Indexes](#search-indexes)
+    + [Mutable Objects](#mutable-objects)
+      - [Commit Journal](#commit-journal)
+      - [Scaling a Journal](#scaling-a-journal)
+      - [Journal Concurrency Control](#journal-concurrency-control)
+      - [Configuration State](#configuration-state)
+    + [Object Naming](#object-naming)
+  * [Continuous Ingest](#continuous-ingest)
+  * [Lake Introspection](#lake-introspection)
+  * [Derived Analytics](#derived-analytics)
+  * [Keyless Data](#keyless-data)
+  * [Relational Model](#relational-model)
+  * [Current Status](#current-status)
+
 
 A Zed lake is a cloud-native arrangement of data,
 optimized for search, analytics, ETL, and data discovery
@@ -7,7 +37,7 @@ with the [Zed data model](../formats).
 
 ## Data Pools
 
-A lake is comprised of _data pools_.  Each data pool is organized
+A lake is composed of _data pools_.  Each data pool is organized
 according to its configured _pool key_.  Different data pools can have
 different pool keys but all of the data in a pool must have the same
 pool key.
@@ -16,7 +46,7 @@ The pool key is often a timestamp.  In this case, retention policies
 and storage hierarchy decisions can be efficiently associated with
 ranges of data over the pool key.
 
-Data can be efficiently accessed via range scans comprised of a
+Data can be efficiently accessed via range scans composed of a
 range of values conforming to the pool key.
 
 A lake has a configured sort order, either ascending or descending
@@ -31,7 +61,7 @@ If data loaded into a pool lacks the pool key, that data is still
 imported but is not available to pool-key range scans.  Since it lacks
 the pool key, such data is instead organized around its "." value.
 
-> TBD: What is the interface for access non-keyed data?  Should this
+> TBD: What is the interface for accessing non-keyed data?  Should this
 > show up in the Zed language somehow?
 
 ## Lake Semantics
@@ -61,14 +91,14 @@ with `zed lake`.
 
 A new pool is created with
 ```
-zed lake new -p <name> -k <key>[,<key>...] [-order asc|desc]
+zed lake create -p <name> -k <key>[,<key>...] [-order asc|desc]
 ```
 where `<name>` is the name of the pool within the implied lake instance,
 `<key>` is the Zed language representation of the pool key, and `asc` or `desc`
 indicate that the natural scan order by the pool key should be ascending
 or descending, respectively, e.g.,
 ```
-zed lake new -p logs -k ts -order desc
+zed lake create -p logs -k ts -order desc
 ```
 Note that there may be multiple pool keys, where subsequent keys act as the secondary,
 tertiary, and so forth sort key.
@@ -81,7 +111,7 @@ or a file system path) and may be specified by the ZED_LAKE_ROOT environment var
 when running `zed lake` commands on a local host.  In a cloud deployment
 or running queries through an application, the lake path is determined by
 an authenticated connection to the Zed lake service, which explicitly denotes
-the lake name (analagous to how a GitHub user authenticates access to
+the lake name (analogous to how a GitHub user authenticates access to
 a named GitHub organization).
 
 ### Load
@@ -201,7 +231,7 @@ and/or end application.  Any ZSON/ZNG data can be stored in the `Data` field
 allowing external applications to implement arbitrary data provenance and audit
 capabilities by embedding custom metadata in the commit journal.
 
-#### Transactional Semantitcs
+#### Transactional Semantics
 
 The `commit` operation is _transactional_.  This means that a query scanning
 a pool sees its entire data scan as a fixed "snapshot" with respect to the
@@ -250,9 +280,9 @@ fragmented and less efficient to scan, requiring a scan to merge data
 from a potentially large number of different segments.
 
 To solve this problem, the Zed lake design follows the
-the [LSM](https://en.wikipedia.org/wiki/Log-structured_merge-tree) design pattern.
+[LSM](https://en.wikipedia.org/wiki/Log-structured_merge-tree) design pattern.
 Since records in each segment are stored in sorted order, a total order over a collection
-of segment (e.g., the collection coming from a specific set of commits)
+of segments (e.g., the collection coming from a specific set of commits)
 can be produced by executing a sorted scan and rewriting the results back to the pool
 in a new commit.  In addition, the segments comprising the total order
 do not overlap.  This is just the basic LSM algorithm at work.
@@ -297,7 +327,7 @@ in the pool and scans can be performed on older snapshots of the pool
 as long as the data is not deleted.
 
 When multiple commits are given to commit, they are automatically squashed
-into a new commit.  The old messsage fields are lost and must be replaced
+into a new commit.  The old message fields are lost and must be replaced
 by a new message.  Since this is typically driven with automation
 we do not yet have an edit cycle like `git commit` offers to merge squashed
 commit messages into the new messages via an editor.
@@ -386,7 +416,7 @@ the special sub-pool name `<pool>:journal`.
 For example, to aggregate a count of each journal entry type of the pool
 called `logs`, you can simply say:
 ```
-zed query -p logs:journal "count() by typeof(.)"
+zed lake query -p logs:journal "count() by typeof(.)"
 ```
 Since the Zed system "typedefs" each journal record with a named type,
 this kind of query gives intuitive results.  There is no need to implement
@@ -407,7 +437,7 @@ Every data element in a Zed lake is either of two fundamental object types:
 
 ### Immutable Objects
 
-All imported data in a data pool is comprised of immutable objects, which are organized
+All imported data in a data pool is composed of immutable objects, which are organized
 into data _segments_.  Each segment is composed of one or more immutable objects
 all of which share a common, globally unique identifier,
 which is referred to below as `<tag>`.
@@ -440,7 +470,7 @@ trivially cached as its name or content never changes.
 Since the object's name is globally unique and the
 resulting object is immutable, there is no possible write concurrency to manage.
 
-A segment is comprised of
+A segment is composed of
 * one or two data objects (for row and/or column layout),
 * a metadata object,
 * an optional seek index, and
@@ -449,7 +479,7 @@ A segment is comprised of
 Data objects may be either in row form (i.e., ZNG) or column form (i.e., ZST),
 or both forms may be present as a query optimizer may choose to use whatever
 representation is more efficient.
-When both row and column data objects are present, they must contains the same
+When both row and column data objects are present, they must contain the same
 underlying Zed data.
 
 Immutable objects are named as follows:
@@ -500,7 +530,7 @@ the scan schedule can be quickly computed in a small number of round-trips
 ### Mutable Objects
 
 Mutable objects are built upon a journal of arbitrary set updates
-to sets of one ore more key-value entities stored within a commit journal.
+to sets of one or more key-value entities stored within a commit journal.
 
 #### Commit Journal
 
@@ -511,7 +541,8 @@ for efficient, pool-key range scans.
 Each journal entry is identified with its `journal ID`,
 a 64-bit, unsigned integer that begins at 0.
 The journal may be updated concurrently by multiple writers so concurrency
-controls are included (see below) to provide atomic updates.
+controls are included (see [Journal Concurrency Control](#journal-concurrency-control)
+below) to provide atomic updates.
 
 A journal entry simply contains one or more ADD and DROP directives,
 which refer to a commit tag and its key range, which in turn, implies
@@ -534,13 +565,13 @@ never again allocated.
 Each journal entry implies a snapshot of the data in a pool.  A snapshot
 is computed by applying the ADD/DROP directives in sequence from entry TAIL to
 the journal entry in question, up to HEAD.  This gives the set of commit tags
-that comprise a snapshot.  A snapshot may then be scanned by scanning,
+that comprise a snapshot.  A snapshot may then be assembled by scanning,
 in key order, the segments that comprise all of the commits while merging
 records from overlapping segments.  The snapshot is sorted by its pool key
 range, where key-range values are sorted by the beginning key as the primary key
 and the ending key is the secondary key.
 
-For efficiency, a journal entry's snapshot may be stored as "cached snapshot"
+For efficiency, a journal entry's snapshot may be stored as a "cached snapshot"
 alongside the journal entry.  This way, the snapshot at HEAD may be
 efficiently computed by locating the most recent cached snapshot and scanning
 forward to HEAD.
@@ -577,7 +608,7 @@ the HEAD of the journal is accessed.
 > a file for exclusive access and checking that it has zero length after
 > a successful open.
 
-Second, strong read/writer ordering semantics (as exists in Amazon S3)
+Second, strong read/write ordering semantics (as exists in Amazon S3)
 can be used to implement transactional journal updates as follows:
 * _TBD: this is worked out but needs to be written up_
 
@@ -647,7 +678,7 @@ to scale to arbitrarily large footprints as described earlier.
 
 ## Lake Introspection
 
-Commit history, meta data about segments, segment key spaces,
+Commit history, metadata about segments, segment key spaces,
 etc. can all be queried and
 returned as Zed data, which in turn, can be fed into Zed analytics.
 This allows a very powerful approach to introspecting the structure of a
@@ -682,8 +713,8 @@ the relationship between the raw data and the derived data.
 ## Keyless Data
 
 This is TBD.  Data without a key should be accepted some way or another.
-One approach could be to simply assign the "zero-value" as the pool key.
-Or a configured default value could be used.  This would make key-based
+One approach could be to simply assign the "zero-value" as the pool key,
+or a configured default value could be used.  This would make key-based
 retention policies more complicated.
 
 Another approach would be to create a sub-pool on demand when the first
@@ -701,8 +732,8 @@ emulation of row-based updates and deletes.
 
 If the pool-key is chosen to be "." for such a use case, then unique
 rows can be maintained by trivially detected duplicates (because any
-duplicate row will be adjacent when sorted by ".").
-so that dups are trivially detected.
+duplicate row will be adjacent when sorted by ".") so that duplicates are
+trivially detected.
 
 Efficient upserts can be accomplished because each segment is sorted by the
 pool key.  Thus, an upsert can be sorted then merge-joined with each
@@ -710,12 +741,12 @@ overlapping segment.  Where segments produce changes and additions, they can
 be forwarded to a streaming add operator and the list of modified segments
 accumulated.  At the end of the operation, then new commit(s) along with
 the to-be-deleted segments can be added to the journal in a single atomic
-operation.  A write conflict occurs if there are any another deletes to
+operation.  A write conflict occurs if there are any other deletes added to
 the list of to-be-deleted segments.  When this occurs, the transaction can
 simply be restarted.  To avoid inefficiency of many restarts, an upsert can
 be partitioned into smaller segments if the use case allows for it.
 
-> TBD finish working through this use case, its requirements, and the
+> TBD: Finish working through this use case, its requirements, and the
 > mechanisms needed to implement it.  Write conflicts will need to be
 > managed at a layer above the journal or the journal extended with the
 > needed functionality.
