@@ -713,8 +713,8 @@ the relationship between the raw data and the derived data.
 ## Keyless Data
 
 This is TBD.  Data without a key should be accepted some way or another.
-One approach could be to simply assign the "zero-value" as the pool key,
-or a configured default value could be used.  This would make key-based
+One approach is to simply assign the "zero-value" as the pool key; another
+is to use a configured default value.  This would make key-based
 retention policies more complicated.
 
 Another approach would be to create a sub-pool on demand when the first
