@@ -223,3 +223,15 @@ func TestBug2575(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, trim(exp), actual)
 }
+
+type Foo struct {
+	A int
+	a int
+}
+
+func TestUnexported(t *testing.T) {
+	f := &Foo{1, 2}
+	m := zson.NewZNGMarshaler()
+	_, err := m.Marshal(f)
+	require.NoError(t, err)
+}
