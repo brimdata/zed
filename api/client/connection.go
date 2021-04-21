@@ -16,7 +16,6 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/pcap/pcapio"
-	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/go-resty/resty/v2"
 )
@@ -398,7 +397,6 @@ type PcapReadCloser struct {
 }
 
 type LogPostOpts struct {
-	JSON      *ndjsonio.TypeConfig
 	StopError bool
 	Shaper    ast.Proc
 }
@@ -417,9 +415,8 @@ func (c *Connection) LogPostPath(ctx context.Context, space api.SpaceID, opts *L
 
 func (c *Connection) LogPostPathStream(ctx context.Context, space api.SpaceID, opts *LogPostOpts, paths ...string) (*Stream, error) {
 	body := api.LogPostRequest{
-		Paths:          paths,
-		JSONTypeConfig: opts.JSON,
-		StopErr:        opts.StopError,
+		Paths:   paths,
+		StopErr: opts.StopError,
 	}
 	if opts != nil && opts.Shaper != nil {
 		raw, err := json.Marshal(opts.Shaper)
@@ -467,9 +464,6 @@ func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts 
 		}
 		if opts.StopError {
 			req.SetQueryParam("stop_err", "true")
-		}
-		if opts.JSON != nil {
-			writer.SetJSONConfig(opts.JSON)
 		}
 	}
 	u := path.Join("/space", url.PathEscape(string(space)), "log")

@@ -43,26 +43,24 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
-	commit    bool
-	lakeFlags zedlake.Flags
+	lake   *zedlake.Command
+	commit bool
 	zedlake.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(*zedlake.Command)}
 	f.BoolVar(&c.commit, "commit", false, "commit added data if successfully written")
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init()
+	ctx, cleanup, err := c.lake.Init()
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	pool, err := c.lakeFlags.OpenPool(ctx)
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
@@ -85,12 +83,12 @@ func (c *Command) Run(args []string) error {
 		if err := pool.Commit(ctx, commitID, c.Date.Ts(), c.User, c.Message); err != nil {
 			return err
 		}
-		if !c.lakeFlags.Quiet {
+		if !c.lake.Flags.Quiet {
 			fmt.Println("deletion successful")
 		}
 		return nil
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.lake.Flags.Quiet {
 		txn, err := pool.LoadFromStaging(ctx, commitID)
 		if err != nil {
 			return err

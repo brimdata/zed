@@ -26,7 +26,6 @@ import (
 	"github.com/brimdata/zed/ppl/zqd"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/prometheus/client_golang/prometheus"
@@ -468,29 +467,8 @@ detectablebutbadline`
 func TestPostNDJSONLogs(t *testing.T) {
 	const src = `{"ts":"1000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}
 {"ts":"2000","uid":"CXY9a54W2dLZwzPXf1","_path":"http"}`
-	const expected = `{_path:"http",ts:1970-01-01T00:00:02Z,uid:"CXY9a54W2dLZwzPXf1" (bstring)} (=0)
-{_path:"http",ts:1970-01-01T00:00:01Z,uid:"CXY9a54W2dLZwzPXf1"} (0)`
-	tc := ndjsonio.TypeConfig{
-		Descriptors: map[string][]interface{}{
-			"http_log": []interface{}{
-				map[string]interface{}{
-					"name": "_path",
-					"type": "string",
-				},
-				map[string]interface{}{
-					"name": "ts",
-					"type": "time",
-				},
-				map[string]interface{}{
-					"name": "uid",
-					"type": "bstring",
-				},
-			},
-		},
-		Rules: []ndjsonio.Rule{
-			ndjsonio.Rule{"_path", "http", "http_log"},
-		},
-	}
+	const expected = `{ts:"2000",uid:"CXY9a54W2dLZwzPXf1",_path:"http"}
+{ts:"1000",uid:"CXY9a54W2dLZwzPXf1",_path:"http"}`
 
 	test := func(input string) {
 		_, conn := newCore(t)
@@ -498,14 +476,12 @@ func TestPostNDJSONLogs(t *testing.T) {
 		sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
 		require.NoError(t, err)
 
-		opts := &client.LogPostOpts{JSON: &tc}
-		_, err = conn.LogPostReaders(context.Background(), sp.ID, opts, strings.NewReader(src))
+		_, err = conn.LogPostReaders(context.Background(), sp.ID, nil, strings.NewReader(src))
 		require.NoError(t, err)
 
 		res := searchZson(t, conn, sp.ID, "*")
 		require.Equal(t, expected, strings.TrimSpace(res))
 
-		span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 		info, err := conn.SpaceInfo(context.Background(), sp.ID)
 		require.NoError(t, err)
 		require.Equal(t, &api.SpaceInfo{
@@ -515,8 +491,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 				DataPath:    sp.DataPath,
 				StorageKind: api.DefaultStorageKind(),
 			},
-			Span:        &span,
-			Size:        79,
+			Size:        81,
 			PcapSupport: false,
 		}, info)
 	}
@@ -531,41 +506,6 @@ func TestPostNDJSONLogs(t *testing.T) {
 		require.NoError(t, w.Close())
 		test(b.String())
 	})
-}
-
-func TestPostNDJSONLogWarning(t *testing.T) {
-	src1 := strings.NewReader(`{"ts":"1000","_path":"http"}
-{"ts":"2000","_path":"nosuchpath"}`)
-	src2 := strings.NewReader(`{"ts":"1000","_path":"http"}
-{"ts":"1000","_path":"http","extra":"foo"}`)
-	tc := ndjsonio.TypeConfig{
-		Descriptors: map[string][]interface{}{
-			"http_log": []interface{}{
-				map[string]interface{}{
-					"name": "_path",
-					"type": "string",
-				},
-				map[string]interface{}{
-					"name": "ts",
-					"type": "time",
-				},
-			},
-		},
-		Rules: []ndjsonio.Rule{
-			ndjsonio.Rule{"_path", "http", "http_log"},
-		},
-	}
-	_, conn := newCore(t)
-	sp, err := conn.SpacePost(context.Background(), api.SpacePostRequest{Name: "test"})
-	require.NoError(t, err)
-
-	opts := &client.LogPostOpts{JSON: &tc}
-	res, err := conn.LogPostReaders(context.Background(), sp.ID, opts, src1, src2)
-	require.NoError(t, err)
-	require.Len(t, res.Warnings, 2)
-	assert.Regexp(t, ": line 2: descriptor not found", res.Warnings[0])
-	assert.Regexp(t, ": line 2: incomplete descriptor", res.Warnings[1])
-	assert.EqualValues(t, 134, res.BytesRead)
 }
 
 // Other attempts at malformed ZSON closer to the original are not yet flagged

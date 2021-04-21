@@ -31,7 +31,7 @@ func wrapError(err error, name, stderr string) error {
 	}
 	var pathErr *os.PathError
 	if errors.As(err, &pathErr) {
-		return fmt.Errorf("error executing %s: %s: %v", name, pathErr.Path, pathErr.Err)
+		return fmt.Errorf("error executing %s: %s: %w", name, pathErr.Path, pathErr.Err)
 	}
 	return err
 }

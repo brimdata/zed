@@ -28,21 +28,22 @@ type Command struct {
 }
 
 func (c *Command) Run(args []string) error {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) > 1 {
 		return errors.New("too many arguments")
 	}
 	if len(args) == 1 {
 		c.Spacename = args[0]
 	}
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
-		return err
-	}
-	id, err := c.SpaceID()
+	id, err := c.SpaceID(ctx)
 	if err != nil {
 		return err
 	}
-	if err := c.Connection().SpaceDelete(c.Context(), id); err != nil {
+	if err := c.Connection().SpaceDelete(ctx, id); err != nil {
 		return err
 	}
 	name := c.Spacename

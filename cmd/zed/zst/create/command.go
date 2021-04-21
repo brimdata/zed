@@ -52,19 +52,18 @@ func MibToBytes(mib float64) int {
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{
-		Command: parent.(*zst.Command),
-	}
+	c := &Command{Command: parent.(*zst.Command)}
 	c.inputFlags.SetFlags(f)
 	c.outputFlags.SetFlagsWithFormat(f, "zst")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(&c.inputFlags, &c.outputFlags); err != nil {
+	_, cleanup, err := c.Init(&c.inputFlags, &c.outputFlags)
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if len(args) == 0 {
 		return errors.New("must specify one or more input files")
 	}

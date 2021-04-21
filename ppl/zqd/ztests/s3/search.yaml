@@ -1,9 +1,9 @@
 script: |
   source services.sh s3://bucket/zqdroot
-  zapi -h $ZQD_HOST new -d s3://bucket/zartest -k archivestore -thresh 20KiB testsp
-  zapi -h $ZQD_HOST -s testsp post babble.zson >/dev/null
+  zapi -host $ZQD_HOST new -d s3://bucket/zartest -k archivestore -thresh 20KiB testsp
+  zapi -host $ZQD_HOST -s testsp post babble.zson >/dev/null
   echo ===
-  zapi -h $ZQD_HOST -s testsp get -z 's="harefoot-raucous"'
+  zapi -host $ZQD_HOST -s testsp get -z 's="harefoot-raucous"'
 
 inputs:
   - name: babble.zson

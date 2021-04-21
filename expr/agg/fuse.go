@@ -42,7 +42,7 @@ func (f *fuse) Result(zctx *zson.Context) (zng.Value, error) {
 	for _, p := range f.partials {
 		typ, err := zctx.LookupByName(string(p.Bytes))
 		if err != nil {
-			return zng.Value{}, fmt.Errorf("invalid partial value: %s", err)
+			return zng.Value{}, fmt.Errorf("invalid partial value: %w", err)
 		}
 		recType, ok := typ.(*zng.TypeRecord)
 		if !ok {

@@ -26,14 +26,14 @@ func NewLogoutCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 }
 
 func (c *LogoutCommand) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	_, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if len(args) > 0 {
 		return errors.New("logout command takes no arguments")
 	}
-
 	creds, err := c.LocalConfig.LoadCredentials()
 	if err != nil {
 		return fmt.Errorf("failed to load credentials file: %w", err)

@@ -1,9 +1,0 @@
-script: |
-  zapi -id invalid-id info
-
-outputs:
-- name: stderr
-  data: |
-    invalid value "invalid-id" for flag -id: all characters in a SpaceID must be [a-zA-Z0-9_]
-    unknown flag: "-id invalid-id info"
-

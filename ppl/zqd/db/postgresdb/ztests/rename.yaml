@@ -5,12 +5,12 @@ env:
 
 script: |
   source startup.sh
-  zapi -h $ZQD_HOST new testsp
+  zapi -host $ZQD_HOST new testsp
   echo ===
-  zapi -h $ZQD_HOST rename testsp newname
+  zapi -host $ZQD_HOST rename testsp newname
   echo ===
-  zapi -h $ZQD_HOST new newname 
-  zapi -h $ZQD_HOST ls
+  zapi -host $ZQD_HOST new newname 
+  zapi -host $ZQD_HOST ls
 
 inputs:
   - name: startup.sh

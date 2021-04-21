@@ -1,10 +1,10 @@
 script: |
   tar zxf zqd-v0.27.1-zqdroot.tgz
   ZQD_EXTRA_FLAGS=-filestorereadonly=true source services.sh ./zqdroot
-  zapi -h $ZQD_HOST new -k filestore testsp
-  zapi -h $ZQD_HOST -s s1 post babble.zson
-  zapi -h $ZQD_HOST -s s1 postpath babble.zson
-  zapi -h $ZQD_HOST -s s1 postpcap ng.pcap
+  zapi -host $ZQD_HOST new -k filestore testsp
+  zapi -host $ZQD_HOST -s s1 post babble.zson
+  zapi -host $ZQD_HOST -s s1 postpath babble.zson
+  zapi -host $ZQD_HOST -s s1 postpcap ng.pcap
 
 inputs:
   - name: services.sh

@@ -1,9 +1,9 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST -s testsp postpcap -f ng.pcap >/dev/null
-  zapi -h $ZQD_HOST -s testsp get -z "_path != stats | drop uid,geo | sort -r ts, _path"
+  zapi -host $ZQD_HOST -s testsp postpcap -f ng.pcap >/dev/null
+  zapi -host $ZQD_HOST -s testsp get -z "_path != stats | drop uid,geo | sort -r ts, _path"
   echo ===
-  zapi -h $ZQD_HOST -s testsp get -z "count()"
+  zapi -host $ZQD_HOST -s testsp get -z "count()"
 
 inputs:
   - name: ng.pcap

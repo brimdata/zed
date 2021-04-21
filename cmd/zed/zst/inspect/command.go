@@ -50,10 +50,11 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(&c.outputFlags); err != nil {
+	_, cleanup, err := c.Init(&c.outputFlags)
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if len(args) != 1 {
 		return errors.New("zst inspect: must be run with a single file argument")
 	}

@@ -4,11 +4,12 @@ package charm
 import (
 	"errors"
 	"flag"
-	"fmt"
-	"strings"
 )
 
-var ErrNoRun = errors.New("no run method")
+var (
+	NeedHelp = errors.New("help")
+	ErrNoRun = errors.New("no run method")
+)
 
 type Constructor func(Command, *flag.FlagSet) (Command, error)
 
@@ -17,15 +18,19 @@ type Command interface {
 }
 
 type Spec struct {
-	Name          string
-	Usage         string
-	Short         string
-	Long          string
-	New           Constructor
-	Hidden        bool
-	HiddenFlags   string
+	Name  string
+	Usage string
+	Short string
+	Long  string
+	New   Constructor
+	// Hidden hides this command from help.
+	Hidden bool
+	// Hidden flags (comma-separated) marks these flags as hidden.
+	HiddenFlags string
+	// Redacted flags (comma-separated) marks these flags as redacted,
+	// where a flag is shown (if not hidden) but its default value is hidden,
+	// e.g., as is useful for a password flag.
 	RedactedFlags string
-	Empty         *Spec
 	children      []*Spec
 	parent        *Spec
 }
@@ -44,64 +49,26 @@ func (c *Spec) lookupSub(name string) *Spec {
 	return nil
 }
 
-func parseFlags(flags *flag.FlagSet, args []string) ([]string, error) {
-	var usage bool
-	flags.Usage = func() {
-		usage = true
-	}
-	if err := flags.Parse(args); err != nil {
-		if usage {
-			s := strings.Join(args, " ")
-			err = fmt.Errorf("unknown flag: \"%s\"", s)
-		}
-		return nil, err
-	}
-	return flags.Args(), nil
-}
-
 func (s *Spec) Exec(parent Command, args []string) error {
-	cmd, err := newInstance(parent, s)
-	if err != nil {
+	path, args, _, err := parse(s, args, parent)
+	if path == nil || err != nil {
 		return err
 	}
-	return cmd.run(args)
+	return path.run(args)
 }
 
-// ExecRoot execute this command spec, which must be a root spec.
-// It returns the root command that was created.
-func (s *Spec) ExecRoot(args []string) (Command, error) {
-	cmd, err := newInstance(nil, s)
+func (s *Spec) ExecRoot(args []string) error {
+	path, rest, showHidden, err := parse(s, args, nil)
 	if err != nil {
-		return nil, err
-	}
-	if err := cmd.run(args); err != nil {
-		if err != NeedHelp {
-			return nil, err
-		}
-		// Look for a help subcommand first in the subcommand that
-		// asked for help, and if none, then in the root command.
-		help := cmd.spec.lookupSub("help")
-		if help == nil {
-			help = s.lookupSub("help")
-			if help == nil {
-				return nil, errors.New("charm error: sub-command asked for help but no charm help registered")
+		if err == NeedHelp {
+			path, err := parseHelp(s, args)
+			if err != nil {
+				return err
 			}
+			displayHelp(path, showHidden)
+			return nil
 		}
-		help.Exec(nil, nil)
-		return nil, nil
+		return err
 	}
-	return cmd.command, nil
-}
-
-//XXX
-func (c *Spec) Prefix() string {
-	return c.Name + ": "
-}
-
-func (c *Spec) Root() *Spec {
-	p := c
-	for p.parent != nil {
-		p = p.parent
-	}
-	return p
+	return path.run(rest)
 }

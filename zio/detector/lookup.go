@@ -71,7 +71,7 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, erro
 	}
 }
 
-func lookupReader(r io.Reader, zctx *zson.Context, path string, opts zio.ReaderOpts) (zbuf.Reader, error) {
+func lookupReader(r io.Reader, zctx *zson.Context, opts zio.ReaderOpts) (zbuf.Reader, error) {
 	switch opts.Format {
 	case "csv":
 		return csvio.NewReader(r, zctx), nil
@@ -79,15 +79,13 @@ func lookupReader(r io.Reader, zctx *zson.Context, path string, opts zio.ReaderO
 		return tzngio.NewReader(r, zctx), nil
 	case "zeek":
 		return zeekio.NewReader(r, zctx)
-	case "ndjson":
-		return ndjsonio.NewReader(r, zctx, opts.JSON, path)
 	case "json":
 		return jsonio.NewReader(r, zctx)
 	case "zjson":
 		return zjsonio.NewReader(r, zctx), nil
 	case "zng":
 		return zngio.NewReaderWithOpts(r, zctx, opts.Zng), nil
-	case "zson":
+	case "ndjson", "zson":
 		return zson.NewReader(r, zctx), nil
 	case "zst":
 		return zstio.NewReader(r, zctx)

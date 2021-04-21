@@ -1,8 +1,6 @@
 package charm
 
 import (
-	"errors"
-	"flag"
 	"fmt"
 	"os"
 	"strings"
@@ -10,29 +8,6 @@ import (
 	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/kr/text"
 )
-
-var NeedHelp = errors.New("help")
-
-var Help = &Spec{
-	Name:  "help",
-	Usage: "help [command]",
-	Short: "display help for a command",
-	Long: `
-For help on the top-level command just type "help".
-For help on a subcommand, type "help command" where command is the name of
-the command.  For help on command nested further, type "help cmd1 cmd2" and
-so forth.`,
-	HiddenFlags: "v",
-	New: func(parent Command, f *flag.FlagSet) (Command, error) {
-		c := &HelpCommand{}
-		f.BoolVar(&c.vflag, "v", false, "show hidden commands and flags")
-		return c, nil
-	},
-}
-
-type HelpCommand struct {
-	vflag bool
-}
 
 // splitFlags is like strings.Split with a comma and also trims whitespace
 func splitFlags(flags string) []string {
@@ -55,60 +30,14 @@ func flagMap(flags string) map[string]bool {
 	return hidden
 }
 
-func (c *HelpCommand) search(args []string) ([]*instance, error) {
-	//XXX parent of root can be custom...
-	parent, err := newInstance(nil, Help.Root())
-	if err != nil {
-		return nil, err
-	}
-	sequence := ""
-	var instances []*instance
-	instances = append(instances, parent)
-	for _, arg := range args {
-		sequence = sequence + " " + arg
-		subcmd := parent.spec.lookupSub(arg)
-		if subcmd == nil {
-			if len(args) == 1 {
-				return nil, fmt.Errorf("no such command: %s", arg)
-			} else {
-				return nil, fmt.Errorf("no such command:%s", sequence)
-			}
-		}
-		child, err := newInstance(parent.command, subcmd)
-		if err != nil {
-			return nil, err
-		}
-		instances = append(instances, child)
-		parent = child
-	}
-	return instances, nil
-}
-
-func (c *HelpCommand) Prepare(f *flag.FlagSet) {}
-
-func (c *HelpCommand) Run(args []string) error {
-	inst, err := c.search(args)
-	if err != nil {
-		return err
-	}
-	c.help(inst)
-	return nil
-}
-
 func FormatParagraph(body, tab string, lineWidth int) string {
 	paragraphs := strings.Split(body, "\n\n")
 	var chunks []string
 	for _, paragraph := range paragraphs {
-		var chunk string
-		if len(paragraph) < lineWidth {
-			chunk = strings.TrimRight(paragraph, " \t\n")
-		} else {
-			paragraph = strings.TrimSpace(paragraph)
-			paragraph = text.Wrap(paragraph, lineWidth)
-			lines := strings.Split(paragraph, "\n")
-			chunk = strings.Join(lines, "\n"+tab)
-		}
-		chunks = append(chunks, chunk)
+		paragraph = strings.TrimSpace(paragraph)
+		paragraph = text.Wrap(paragraph, lineWidth)
+		paragraph = strings.ReplaceAll(paragraph, "\n", "\n"+tab)
+		chunks = append(chunks, paragraph)
 	}
 	body = strings.Join(chunks, "\n\n"+tab)
 	body = strings.TrimRight(body, " \t\n")
@@ -149,12 +78,12 @@ func helpList(heading string, lines []string) {
 
 func optionSection(body []string) []string {
 	if len(body) == 0 {
-		return []string{"no flags for this command"}
+		return []string{""}
 	}
 	return body
 }
 
-func (c *HelpCommand) getCommands(target *Spec, vflag bool) []string {
+func getCommands(target *Spec, vflag bool) []string {
 	var lines []string
 	for _, cmd := range target.children {
 		name := cmd.Name
@@ -171,21 +100,17 @@ func (c *HelpCommand) getCommands(target *Spec, vflag bool) []string {
 	return lines
 }
 
-func buildOptions(path []*instance, parentCmd string, vflag bool) []string {
+func buildOptions(path path, parentCmd string, showHidden bool) []string {
 	n := len(path)
 	if n == 1 {
-		options := path[0].options(vflag)
-		if len(options) == 0 {
-			options = []string{"no flags for this command"}
-		}
-		return options
+		return path[0].options(showHidden)
 	}
 	pathCmd := path[0].spec.Name
 	if parentCmd != "" {
 		pathCmd = parentCmd + " " + pathCmd
 	}
-	childOptions := buildOptions(path[1:], parentCmd, vflag)
-	options := path[0].options(vflag)
+	childOptions := buildOptions(path[1:], parentCmd, showHidden)
+	options := path[0].options(showHidden)
 	if len(options) == 0 {
 		return childOptions
 	}
@@ -203,14 +128,13 @@ func optionsSection(path []*instance, vflag bool) []string {
 	return buildOptions(path, "", vflag)
 }
 
-func (c *HelpCommand) help(path []*instance) {
-	spec := path[len(path)-1].spec
-	name := spec.Name + " - " + spec.Short
-	helpItem("NAME", name)
+func displayHelp(path path, showHidden bool) {
+	spec := path.last().spec
+	helpItem("NAME", path.pathname()+" - "+spec.Short)
 	helpDesc("USAGE", spec.Usage)
-	helpList("OPTIONS", optionsSection(path, c.vflag))
+	helpList("OPTIONS", optionsSection(path, showHidden))
 	if len(spec.children) > 0 {
-		helpList("COMMANDS", c.getCommands(spec, c.vflag))
+		helpList("COMMANDS", getCommands(spec, showHidden))
 	}
 	helpDesc("DESCRIPTION", spec.Long)
 }

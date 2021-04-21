@@ -20,7 +20,7 @@ import (
 
 var Cmd = &charm.Spec{
 	Name:  "lake",
-	Usage: "lake [global options] command [options] [arguments...]",
+	Usage: "lake [options] sub-command",
 	Short: "create, manage, and search Zed lakes",
 	Long: `
 The "zed lake" command
@@ -34,14 +34,22 @@ https://github.com/brimdata/zed/blob/main/docs/lake/README.md
 }
 
 type Command struct {
-	root.Command
+	*root.Command
+	Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	return &Command{}, nil
+	c := &Command{Command: parent.(*root.Command)}
+	c.Flags.SetFlags(f)
+	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
+	_, cleanup, err := c.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) == 0 {
 		return charm.NeedHelp
 	}

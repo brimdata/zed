@@ -27,30 +27,28 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
-	keys      string
-	order     string
-	thresh    units.Bytes
-	lakeFlags zedlake.Flags
+	lake   *zedlake.Command
+	keys   string
+	order  string
+	thresh units.Bytes
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(*zedlake.Command)}
 	c.thresh = segment.DefaultThreshold
 	f.Var(&c.thresh, "S", "target size of pool data objects, as '10MB' or '4GiB', etc.")
 	f.StringVar(&c.keys, "k", "ts", "one or more pool keys to organize data in pool (cannot be changed)")
 	f.StringVar(&c.order, "order", "desc", "sort order of newly created pool (cannot be changed)")
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init()
+	ctx, cleanup, err := c.lake.Init()
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	name := c.lakeFlags.PoolName
+	name := c.lake.Flags.PoolName
 	if len(args) != 0 && name != "" {
 		return errors.New("zed lake create pool: does not take arguments")
 	}
@@ -62,11 +60,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	keys := field.DottedList(c.keys)
-	if _, err := c.lakeFlags.CreatePool(ctx, keys, order, int64(c.thresh)); err != nil {
+	if _, err := c.lake.Flags.CreatePool(ctx, keys, order, int64(c.thresh)); err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
-		fmt.Printf("pool created: %s\n", c.lakeFlags.PoolName)
+	if !c.lake.Flags.Quiet {
+		fmt.Printf("pool created: %s\n", c.lake.Flags.PoolName)
 	}
 	return nil
 }

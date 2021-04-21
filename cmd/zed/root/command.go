@@ -44,6 +44,10 @@ func (c *Command) Init(all ...cli.Initializer) (context.Context, func(), error) 
 }
 
 func (c *Command) Run(args []string) error {
+	defer c.cli.Cleanup()
+	if err := c.cli.Init(); err != nil {
+		return err
+	}
 	if len(args) == 0 {
 		return charm.NeedHelp
 	}

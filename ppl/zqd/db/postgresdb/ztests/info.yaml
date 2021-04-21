@@ -5,8 +5,8 @@ env:
 
 script: |
   source startup.sh
-  zapi -h $ZQD_HOST new -k archivestore testsp >/dev/null
-  zapi -h $ZQD_HOST info testsp | egrep -v 'data_path|id'
+  zapi -host $ZQD_HOST new -k archivestore testsp >/dev/null
+  zapi -host $ZQD_HOST info testsp | egrep -v 'data_path|id'
 
 inputs:
   - name: startup.sh

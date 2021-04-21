@@ -5,10 +5,10 @@ env:
 
 script: |
   source startup.sh
-  zapi -h $ZQD_HOST new testsp1 >/dev/null
-  zapi -h $ZQD_HOST new -k archivestore testsp2 >/dev/null
-  zapi -h $ZQD_HOST new testsp3 >/dev/null
-  zapi -h $ZQD_HOST ls
+  zapi -host $ZQD_HOST new testsp1 >/dev/null
+  zapi -host $ZQD_HOST new -k archivestore testsp2 >/dev/null
+  zapi -host $ZQD_HOST new testsp3 >/dev/null
+  zapi -host $ZQD_HOST ls
 
 inputs:
   - name: startup.sh

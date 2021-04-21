@@ -26,10 +26,11 @@ func NewVerify(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *VerifyCommand) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if len(args) > 0 {
 		return errors.New("verify command takes no arguments")
 	}
@@ -45,7 +46,7 @@ func (c *VerifyCommand) Run(args []string) error {
 	}
 	conn.SetAuthToken(tokens.Access)
 
-	res, err := conn.AuthIdentity(c.Context())
+	res, err := conn.AuthIdentity(ctx)
 	if err != nil {
 		return err
 	}

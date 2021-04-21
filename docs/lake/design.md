@@ -1,4 +1,34 @@
-# Zed Lake Design Doc
+# Zed Lake Design
+
+  * [Data Pools](#data-pools)
+  * [Lake Semantics](#lake-semantics)
+    + [New](#new)
+    + [Load](#load)
+    + [Query](#query)
+    + [Add and Commit](#add-and-commit)
+      - [Transactional Semantics](#transactional-semantics)
+      - [Data Segmentation](#data-segmentation)
+    + [Merge](#merge)
+    + [Squash and Delete](#squash-and-delete)
+    + [Purge and Vacate](#purge-and-vacate)
+    + [Log](#log)
+  * [Cloud Object Naming](#cloud-object-naming)
+    + [Immutable Objects](#immutable-objects)
+      - [Segments](#segments)
+      - [Search Indexes](#search-indexes)
+    + [Mutable Objects](#mutable-objects)
+      - [Commit Journal](#commit-journal)
+      - [Scaling a Journal](#scaling-a-journal)
+      - [Journal Concurrency Control](#journal-concurrency-control)
+      - [Configuration State](#configuration-state)
+    + [Object Naming](#object-naming)
+  * [Continuous Ingest](#continuous-ingest)
+  * [Lake Introspection](#lake-introspection)
+  * [Derived Analytics](#derived-analytics)
+  * [Keyless Data](#keyless-data)
+  * [Relational Model](#relational-model)
+  * [Current Status](#current-status)
+
 
 A Zed lake is a cloud-native arrangement of data,
 optimized for search, analytics, ETL, and data discovery
@@ -7,7 +37,7 @@ with the [Zed data model](../formats).
 
 ## Data Pools
 
-A lake is comprised of _data pools_.  Each data pool is organized
+A lake is composed of _data pools_.  Each data pool is organized
 according to its configured _pool key_.  Different data pools can have
 different pool keys but all of the data in a pool must have the same
 pool key.
@@ -16,7 +46,7 @@ The pool key is often a timestamp.  In this case, retention policies
 and storage hierarchy decisions can be efficiently associated with
 ranges of data over the pool key.
 
-Data can be efficiently accessed via range scans comprised of a
+Data can be efficiently accessed via range scans composed of a
 range of values conforming to the pool key.
 
 A lake has a configured sort order, either ascending or descending
@@ -31,7 +61,7 @@ If data loaded into a pool lacks the pool key, that data is still
 imported but is not available to pool-key range scans.  Since it lacks
 the pool key, such data is instead organized around its "." value.
 
-> TBD: What is the interface for access non-keyed data?  Should this
+> TBD: What is the interface for accessing non-keyed data?  Should this
 > show up in the Zed language somehow?
 
 ## Lake Semantics
@@ -48,7 +78,7 @@ our goal here is that the Zed lake tooling be as easy and familiar as git is
 to a technical user.
 
 While this design document is independent of any particular implementation,
-we will illustrate examples of `zed lake` commands that are under development.
+we will illustrate the design concepts here with examples of `zed lake` commands.
 Note that while this CLI-first approach provides an ergonomic way to experiment with
 and learn the Zed lake building blocks, all of this functionality is also
 exposed through an API to a cloud-based service.  Most interactions between
@@ -61,22 +91,27 @@ with `zed lake`.
 
 A new pool is created with
 ```
-zed lake new -p <name> -k <key>[,<key>...]
+zed lake create -p <name> -k <key>[,<key>...] [-order asc|desc]
 ```
-where `<name>` is the name of the pool within the implied lake instance and
-`<key>` is the Zed language representation of the pool key, e.g.,
+where `<name>` is the name of the pool within the implied lake instance,
+`<key>` is the Zed language representation of the pool key, and `asc` or `desc`
+indicate that the natural scan order by the pool key should be ascending
+or descending, respectively, e.g.,
 ```
-zed lake new -p logs -k ts
+zed lake create -p logs -k ts -order desc
 ```
 Note that there may be multiple pool keys, where subsequent keys act as the secondary,
 tertiary, and so forth sort key.
+
+If a pool key is not specified, then it defaults to the whole record, which
+in the Zed language is referred to as ".".
 
 In all these examples, the lake identity is implied by its path (e.g., an S3 URI
 or a file system path) and may be specified by the ZED_LAKE_ROOT environment variable
 when running `zed lake` commands on a local host.  In a cloud deployment
 or running queries through an application, the lake path is determined by
 an authenticated connection to the Zed lake service, which explicitly denotes
-the lake name (analagous to how a GitHub user authenticates access to
+the lake name (analogous to how a GitHub user authenticates access to
 a named GitHub organization).
 
 ### Load
@@ -86,12 +121,12 @@ Data is then loaded into a lake with the `load` command, .e.g.,
 zed lake load -p logs sample.ndjson
 ```
 where `sample.ndjson` contains logs in NDJSON format.  Any supported format
-(i.e., CSV, NDJSON, Parquet, ZNG, and ZST) as well multiple files can be used
+(i.e., CSV, JSON, NDJSON, Parquet, ZNG, and ZST) as well multiple files can be used
 here, e.g.,
 ```
-zed lake load -p logs sample1.csv sample2.zng sample3.zng
+zed lake load -p logs sample1.csv sample2.ndjson sample3.zng
 ```
-Parquet and ZST formats are not auto-detected so you must currently specify
+JSON, Parquet, and ZST formats are not auto-detected so you must currently specify
 `-i` with these formats, e.g.,
 ```
 zed lake load -p logs -i parquet sample4.parquet
@@ -103,37 +138,36 @@ a "table" as all Zed data is _self describing_ and can be queried in a
 schema-agnostic fashion.  Data of any _shape_ can be stored in any pool
 and arbitrary data _shapes_ can coexist side by side.
 
-### Scan
-
-Data is read from a pool with the `scan` command.  By default, `scan`
-generates sorted output of all of the pool data in the configured key order.
-The order can be overridden with `-order asc` or `-order desc`.
-
-A range can be specified with `-from` or `-to`.
-
-The default output format is ZNG though it can be overridden with the various
-supported output formats.
-
-This example reads every record from the `logs` pool starting
-from time `2020-1-1T12:00`, in ascending order,
-sends the  results as ZNG to stdout, then pipes the output to `zq` to count the records:
-```
-zed lake scan -p logs -from 2020-1-1T12:00 -order asc | zq -z "count()" -
-```
-
 ### Query
 
-Of course, the example is an inefficient way to count records.  Instead of
-reading the records out of the lake and processing them, a better approach
-is to push the query into the lake.
+Data is read from a pool with the `query` command.
+A range can be specified with `-from` and/or `-to`.
+The default output format is ZNG though this can be overridden with `-f`
+to specify one of the various supported output formats.
 
-The `query` command lets you do this, e.g.,
+This example reads every record from the `logs` pool starting
+from time `2020-1-1T12:00` and sends the results as ZSON to stdout.
 ```
-zed lake query -p logs -from 2020-1-1T12:00 -order asc "count()" -
+zed lake query -p logs -f zson -from 2020-1-1T12:00
 ```
-Here, the query planner and optimizer can notice that the query is just
-counting records and implement the query by mostly reading metadata from
-the lake.
+A much more efficient format for transporting query results is the
+row-oriented, compressed binary format ZNG.  Because ZNG
+streams are easily merged and composed, query results in ZNG format
+from a pool can be can be piped to another `zed query` instance, e.g.,
+```
+zed lake query -p logs -f zng -from 2020-1-1T12:00 | zed query -f table "count() by field"
+```
+Of course, it's even more efficient to run the query inside of the pool traversal
+like this:
+```
+zed lake query -p logs -f table -from 2020-1-1T12:00 "count() by field"
+```
+By default, the `query` command scans pool data in pool-key order though
+the Zed optimizer may, in general, reorder the scan to optimize searches,
+aggregations, and joins.
+An order hint can be supplied to the `query` command to indicate to
+the optimizer the desired processing order, but in general, `sort` operators
+should be used to guarantee any particular sort order.
 
 Arbitrarily complex Zed queries can be executed over the lake in this fashion
 and the planner can utilize cloud resources to parallelize and scale the
@@ -147,33 +181,42 @@ decomposed into two steps: an `add` operation and a `commit` operation.
 These steps can be explicitly run in stages, e.g.,
 ```
 zed lake add -p logs sample.json
-(commit <tag> printed to stdout)
+(commit <tag> etc. printed to stdout)
 zed lake commit -p logs <tag>
 ```
-A commit `<tag>` refers to one or more data objects stored in the
-data pool.  Genreally speaking, a list of commit tags is simply a shortcut
-for the set of object tags that comprise the commits.  Both commit and object
-tags are named using the same globally unique allocation of
-[KSUIDs](https://github.com/segmentio/ksuid).
+A commit `<tag>` refers to one or more data segments stored in the
+data pool.  In general, a commit tag is simply a shortcut
+for the set of object tags that comprise the commit and otherwise
+has no meaningful semantics to the Zed execution engine.
+Both commit and data tags are named using the same globally unique
+allocation of [KSUIDs](https://github.com/segmentio/ksuid).
 
-After an add operation, the commits are stored in a staging area and the
-`zed lake stage` command can be used to inspect, squash, and/or delete
-commits from staging before they are merged.
+After an add operation, all pending commits are stored in a staging area
+and the `zed lake status` command can be used to inspect the status of
+all of the staged data.  The `zed lake squash` command may be used to
+combine multiple staged commits into a single entity with a new
+commit tag.  
 
-Likewise, you can stack multiple adds and commit them all at once, e.g., ,
+The `zed lake clear` command removes commits from staging
+before they are merged.
+
+Likewise, you can stack multiple adds and commit them all at once, e.g.,
 ```
 zed lake add -p logs sample1.json
-(<tag-1> printed to stdout)
+(<tag-1> etc. printed to stdout)
 zed lake add -p logs sample2.parquet
-(<tag-2> printed to stdout)
+(<tag-2> etc. printed to stdout)
 zed lake add -p logs sample3.zng
-(<tag-3> printed to stdout)
+(<tag-3> etc. printed to stdout)
 zed lake commit -p logs <tag-1> <tag-2> <tag-3>
 ```
 The commit command also takes an optional title and message that is stored
-in the commit journal for reference.  These messages are carried in
-a description record attached to every journal entry, which has a Zed
-type signature as follows:
+in the commit journal for reference.  For example,
+```
+zed lake commit -p logs -u user@example.com -m "new version of prod dataset" <tag>
+```
+This metadata is carried in a description record attached to
+every journal entry, which has a Zed type signature as follows:
 ```
 {
     Author: string,
@@ -182,15 +225,21 @@ type signature as follows:
     Data: <any>
 }
 ```
-None of fields is used by the Zed lake system for any purpose
+None of the fields are used by the Zed lake system for any purpose
 except to provide information about the journal commit to the end user
-and/or end application.
+and/or end application.  Any ZSON/ZNG data can be stored in the `Data` field
+allowing external applications to implement arbitrary data provenance and audit
+capabilities by embedding custom metadata in the commit journal.
 
-#### Transactional Semantitcs
+#### Transactional Semantics
 
-The `commit` operation is _transactional_.  This means that a reader scanning
+The `commit` operation is _transactional_.  This means that a query scanning
 a pool sees its entire data scan as a fixed "snapshot" with respect to the
-commit history.
+commit history.  In fact, `zed lake query` has an `-at` flag, which allows you
+to specify a commit ID or commit journal position from which to query.
+In this way, a query can time-travel through the journal.  As long as the
+underlying data has not been deleted, arbitrarily old snapshots of the
+Zed lake can be easily queried.
 
 If a writer commits data after a reader starts scanning, then the reader
 does not see the new data since it's scanning the snapshot that existed
@@ -223,18 +272,17 @@ data from overlapping segments is read in parallel and merged in sorted order.
 
 However, if many overlapping segments arise, merging the scan in this fashion
 on every read can be inefficient.
-
-This can arise when when
+This can arise when
 many random data `load` operations involving perhaps "late" data
 (i.e., the pool key is `ts` and records with old `ts` values regularly
 show up and need to be inserted into the past).  The data layout can become
 fragmented and less efficient to scan, requiring a scan to merge data
-from potentially a large number of different segments.
+from a potentially large number of different segments.
 
 To solve this problem, the Zed lake design follows the
-the [LSM](https://en.wikipedia.org/wiki/Log-structured_merge-tree) design pattern.
+[LSM](https://en.wikipedia.org/wiki/Log-structured_merge-tree) design pattern.
 Since records in each segment are stored in sorted order, a total order over a collection
-of segment (e.g., the collection coming from a specific set of commits)
+of segments (e.g., the collection coming from a specific set of commits)
 can be produced by executing a sorted scan and rewriting the results back to the pool
 in a new commit.  In addition, the segments comprising the total order
 do not overlap.  This is just the basic LSM algorithm at work.
@@ -258,16 +306,15 @@ zed lake merge -p logs <tag-1> <tag-2> <tag-3>
 (merged commit <tag> printed to stdout)
 ```
 
-### Squash
+### Squash and Delete
 
 After the merge phase, we have a new commit that combines the old commits
 across non-overlapping segments, but they are not yet committed.
 To avoid consistency issues here, the old commits need
 to be deleted while simultaneously adding the new commit.
 
-This can be done automically
-by performing a merge, staging the deletes, then
-committing the merge and delete together:
+This can be done automatically by performing a merge, staging the deletes,
+then committing the merge and delete together:
 ```
 zed lake merge -p logs <tag-1> <tag-2> <tag-3>
 (merged commit <merge-tag> printed to stdout)
@@ -279,8 +326,40 @@ Note that the data in commits `<tag-1>`, `<tag-2>`, and `<tag-3>` remains
 in the pool and scans can be performed on older snapshots of the pool
 as long as the data is not deleted.
 
+When multiple commits are given to commit, they are automatically squashed
+into a new commit.  The old message fields are lost and must be replaced
+by a new message.  Since this is typically driven with automation
+we do not yet have an edit cycle like `git commit` offers to merge squashed
+commit messages into the new messages via an editor.
+
+A squash may be separately executed without a journal commit using the
+`zed lake squash` command, e.g.,
+```
+zed lake squash -p logs <tag-1> <tag-2> <tag-3>
+(merged commit <squash-tag> printed to stdout)
+zed lake delete -p logs <tag-1> <tag-2> <tag-3>
+(delete commit <del-tag> printed to stdout)
+zed lake commit -p logs <squash-tag> <del-tag>
+```
+
+Note that delete can be used separately from squash to delete entire commits
+or individual segments at any time.  This is handy when importing data by
+mistake:
+```
+zed lake load -p logs oops.ndjson
+(commit <tag> etc. printed to stdout)
+zed lake delete -p logs -commit <tag>
+```
+In this case, the data will be deleted from any subsequent scans but still
+exists in the lake and can be accessed via time travel.  Here, we used the
+`-commit` flag on `delete` to automatically commit the delete operation to the
+commit journal without having to run an explicit `commit` command.
+
+### Purge and Vacate
+
 Data can be deleted with the DANGER-ZONE command `zed lake purge`.
-The commits still appear in the log but scans will fail.
+The commits still appear in the log but scans at any time-travel point
+where the commit is present will fail to scan the deleted data.
 
 Alternatively, old data can be removed from the system using a safer
 command (but still in the DANGER-ZONE), `zed lake vacate`, which moves
@@ -310,15 +389,47 @@ segments during any key-range scan.
 Like `git log`, the command `zed lake log` prints the journal of commit
 operations.
 
-> TBD: define format of this output.  The info record context should be
-> displayed along with the adds/drops of each commit tag.
-> For now, we output the ZNG form of the journal and can work out
-> a human-readable form later.
+The journal represents the entire history of the lake.  Each entry contains
+an action:
+
+* `Add` and `Delete` for data segments,
+* `AddIndexRule` and `DeleteIndexRule` to define indexing rules,
+* `AddIndex` and `DeleteIndex` for index objects, and
+* `CommitMessage` for providing metadata about each commit.
+
+The actions are not grouped directly by their commit tag but instead each
+action embeds the KSUID of its commit tag.
+
+Note that indexing of data segments is performed in a transactionally-consistent
+fashion by including index operations in the commit journal.
+
+By default, `zed lake log` outputs an abbreviated form of the log as text to
+stdout, similar to the output of `git log`.
+
+However, the log represents the definitive record of a pool's present
+and historical content, and accessing its complete detail can provide
+insights about data layout, provenance, history, and so forth.  Thus,
+Zed lake provides a means to query a pool's entire journal in all its
+detail.  To do so, simply query a pool's journal by referring to
+the special sub-pool name `<pool>:journal`.
+
+For example, to aggregate a count of each journal entry type of the pool
+called `logs`, you can simply say:
+```
+zed lake query -p logs:journal "count() by typeof(.)"
+```
+Since the Zed system "typedefs" each journal record with a named type,
+this kind of query gives intuitive results.  There is no need to implement
+a long list of features for journal introspection since the data in its entirety
+can be simply and efficiently processed as a ZNG stream.
+
+> Note that :journal sub-pools are not yet implemented but the `zed lake log`
+> command is implemented and can provide a complete journal snapshot.
 
 ## Cloud Object Naming
 
 The Zed lake semantics defined above are achieved by mapping the
-lake abstractions onto a key-value cloud object store.
+lake and pool abstractions onto a key-value cloud object store.
 
 Every data element in a Zed lake is either of two fundamental object types:
 * a single-writer _immutable object_, or
@@ -326,10 +437,10 @@ Every data element in a Zed lake is either of two fundamental object types:
 
 ### Immutable Objects
 
-All data in a data pool is comprised of immutable objects, which are organized
+All imported data in a data pool is composed of immutable objects, which are organized
 into data _segments_.  Each segment is composed of one or more immutable objects
 all of which share a common, globally unique identifier,
-which refer to below as `<tag>`.
+which is referred to below as `<tag>`.
 
 These identifiers are [KSUIDs](https://github.com/segmentio/ksuid).
 The KSUID allocation scheme
@@ -345,7 +456,7 @@ are maintained in a commit journal described below.
 
 > While a Zed lake is defined in terms of a cloud object store, it may also
 > be realized on top of a file system, which provides a convenient means for
-> local, small-scale deployments or test/debug workflows.  Thus, for simple use cases,
+> local, small-scale deployments for test/debug workflows.  Thus, for simple use cases,
 > the complexity of running an object-store service may be avoided.
 
 #### Segments
@@ -359,7 +470,7 @@ trivially cached as its name or content never changes.
 Since the object's name is globally unique and the
 resulting object is immutable, there is no possible write concurrency to manage.
 
-A segment is comprised of
+A segment is composed of
 * one or two data objects (for row and/or column layout),
 * a metadata object,
 * an optional seek index, and
@@ -368,7 +479,7 @@ A segment is comprised of
 Data objects may be either in row form (i.e., ZNG) or column form (i.e., ZST),
 or both forms may be present as a query optimizer may choose to use whatever
 representation is more efficient.
-When both row and column data objects are present, they must contains the same
+When both row and column data objects are present, they must contain the same
 underlying Zed data.
 
 Immutable objects are named as follows:
@@ -388,7 +499,8 @@ a subset of data.
 
 > Note the ZST format will have seekable checkpoints based on the sort key that
 > are encoded into its metadata section so there is no need to have a separate
-> seek index for the columnar object.
+> seek index for the columnar object, though we are considering adding columnar
+> meta-data outside of the ZST object as an optional configuration of the format.
 
 #### Search Indexes
 
@@ -418,7 +530,7 @@ the scan schedule can be quickly computed in a small number of round-trips
 ### Mutable Objects
 
 Mutable objects are built upon a journal of arbitrary set updates
-to sets of one ore more key-value entities stored within a commit journal.
+to sets of one or more key-value entities stored within a commit journal.
 
 #### Commit Journal
 
@@ -429,7 +541,8 @@ for efficient, pool-key range scans.
 Each journal entry is identified with its `journal ID`,
 a 64-bit, unsigned integer that begins at 0.
 The journal may be updated concurrently by multiple writers so concurrency
-controls are included (see below) to provide atomic updates.
+controls are included (see [Journal Concurrency Control](#journal-concurrency-control)
+below) to provide atomic updates.
 
 A journal entry simply contains one or more ADD and DROP directives,
 which refer to a commit tag and its key range, which in turn, implies
@@ -452,13 +565,13 @@ never again allocated.
 Each journal entry implies a snapshot of the data in a pool.  A snapshot
 is computed by applying the ADD/DROP directives in sequence from entry TAIL to
 the journal entry in question, up to HEAD.  This gives the set of commit tags
-that comprise a snapshot.  A snapshot may then be scanned by scanning,
+that comprise a snapshot.  A snapshot may then be assembled by scanning,
 in key order, the segments that comprise all of the commits while merging
 records from overlapping segments.  The snapshot is sorted by its pool key
 range, where key-range values are sorted by the beginning key as the primary key
 and the ending key is the secondary key.
 
-For efficiency, a journal entry's snapshot may be stored as "cached snapshot"
+For efficiency, a journal entry's snapshot may be stored as a "cached snapshot"
 alongside the journal entry.  This way, the snapshot at HEAD may be
 efficiently computed by locating the most recent cached snapshot and scanning
 forward to HEAD.
@@ -495,7 +608,7 @@ the HEAD of the journal is accessed.
 > a file for exclusive access and checking that it has zero length after
 > a successful open.
 
-Second, strong read/writer ordering semantics (as exists in Amazon S3)
+Second, strong read/write ordering semantics (as exists in Amazon S3)
 can be used to implement transactional journal updates as follows:
 * _TBD: this is worked out but needs to be written up_
 
@@ -504,34 +617,27 @@ system and such round trips can be 10s of milliseconds, another approach
 is to simply run a lock service as part of a cloud deployment that manages
 a mutex lock for each pool's journal.
 
-### Mutable Objects
+#### Configuration State
 
-Configuration state describing a lake or pool is stored in mutable objects.
-
-Mutable objects can be modified by any writer and are stored in a directory
-named after the configuration object.  Here, each entry represents the entire
-mutable object as a ZNG file numbered from 0 upward, i.e., `0.zng`, `1.zng`,
-and so forth.  The `HEAD` file points at the last and valid object in the sequence.
-Once the HEAD has been atomically advanced, the previous mutable object can be deleted
-(or the mutable objects can be preserved to keep a history of the configuration changes).
+Configuration state describing a lake or pool is also stored in mutable objects.
+Zed lakes simply use a commit journal to store configuration like the
+list of pools and pool attributes, indexing rules used across pools,
+etc.  Here, a generic interface to a commit journal manages any configuration
+state simply as a key-value store of snapshots providing time travel over
+the configuration history.
 
 ### Object Naming
 
 ```
 <lake-path>/
-  config/
+  R/
     HEAD
     TAIL
     1.zng
     2.zng
     ...
   <pool-tag-1>/
-    config/
-      HEAD
-      TAIL
-      1.zng
-      ...
-    journal/
+    J/
       HEAD
       TAIL
       1.zng
@@ -542,17 +648,19 @@ Once the HEAD has been atomically advanced, the previous mutable object can be d
       20-seek.zng
       21.zng
       ...
-    data/
+    D/
       <tag1>.{zng,zst}
       <tag2>.{zng,zst}
       ...
-    <index-tag-1>/
-      <tag2>.zng
-      <tag23>.zng
-      <tag101>.zng
-    <index-tag-2>/
-      <tag77>.zng
-      <tag89>.zng
+    X/
+      <rule-tag-1>/
+        <tag2>.zng
+        <tag23>.zng
+        <tag101>.zng
+      <rule-tag-2>/
+        <tag77>.zng
+        <tag89>.zng
+        ...
       ...
   <pool-tag-2>/
   ...
@@ -570,8 +678,8 @@ to scale to arbitrarily large footprints as described earlier.
 
 ## Lake Introspection
 
-Commit history, meta data about segments, segment key spaces,
-etc can all be queried and
+Commit history, metadata about segments, segment key spaces,
+etc. can all be queried and
 returned as Zed data, which in turn, can be fed into Zed analytics.
 This allows a very powerful approach to introspecting the structure of a
 lake making it easy to measure, tune, and adjust lake parameters to
@@ -605,8 +713,8 @@ the relationship between the raw data and the derived data.
 ## Keyless Data
 
 This is TBD.  Data without a key should be accepted some way or another.
-One approach could be to simply assign the "zero-value" as the pool key.
-Or a configured default value could be used.  This would make key-based
+One approach is to simply assign the "zero-value" as the pool key; another
+is to use a configured default value.  This would make key-based
 retention policies more complicated.
 
 Another approach would be to create a sub-pool on demand when the first
@@ -624,8 +732,8 @@ emulation of row-based updates and deletes.
 
 If the pool-key is chosen to be "." for such a use case, then unique
 rows can be maintained by trivially detected duplicates (because any
-duplicate row will be adjacent when sorted by ".").
-so that dups are trivially detected.
+duplicate row will be adjacent when sorted by ".") so that duplicates are
+trivially detected.
 
 Efficient upserts can be accomplished because each segment is sorted by the
 pool key.  Thus, an upsert can be sorted then merge-joined with each
@@ -633,52 +741,21 @@ overlapping segment.  Where segments produce changes and additions, they can
 be forwarded to a streaming add operator and the list of modified segments
 accumulated.  At the end of the operation, then new commit(s) along with
 the to-be-deleted segments can be added to the journal in a single atomic
-operation.  A write conflict occurs if there are any another deletes to
+operation.  A write conflict occurs if there are any other deletes added to
 the list of to-be-deleted segments.  When this occurs, the transaction can
 simply be restarted.  To avoid inefficiency of many restarts, an upsert can
 be partitioned into smaller segments if the use case allows for it.
 
-> TBD finish working through this use case, its requirements, and the
+> TBD: Finish working through this use case, its requirements, and the
 > mechanisms needed to implement it.  Write conflicts will need to be
 > managed at a layer above the journal or the journal extended with the
 > needed functionality.
 
-## Thoughts on Version 2
+## Current Status
 
-Ref counted segments stored outside of a pool.
-A global ref-count pool can record all the adjustments so we
-transactionally know what data becomes unreachable.
-This may or may not be better than mark-and-sweep garbage collection
-(where mark and sweep can be done with scalable merge joins).
-
-Copy-on-write semantics so massive pools can be instantaneously copied then
-changed/updated under the new pool.
-
-## Next steps...
-
-To get going, we will simplify the above design then create issues
-to incrementally add support for each needed area.  In this way, we can
-leverage the current code base to get up and running quickly.
-
-The initial prototype will be simplified as follows:
-* no transactions, as we will presume a single writer
-    * config/meta files stored as single ZNG files
-* journal stored as sequence of complete snapshots with HEAD pointing to
-most recent entry (HEAD written after update)
+The initial prototype has been simplified as follows:
+* transaction journal incomplete (single writer only initially)
 * no recursive journal pool
 * no columnar support
 * pool-key sorted scans only
 * no keyless intake
-
-As we work through the `zed lake` command set and API,
-we should strive to make the Zed lake CLI-first commands one-to-one
-with the cloud API end points when appropriate, i.e., any `zed lake`
-command should automatically work with `zed api`, e.g.,
-```
-zed lake new foo
-```
-is analagous to
-```
-zed api lake new foo
-```
-etc.  That said, not all of the commands will be exposed through the API.

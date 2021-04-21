@@ -31,30 +31,28 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
-	user      string
-	message   string
-	lakeFlags zedlake.Flags
+	lake    *zedlake.Command
+	user    string
+	message string
 	zedlake.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
-	c.lakeFlags.SetFlags(f)
+	c := &Command{lake: parent.(*zedlake.Command)}
 	c.CommitFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) == 0 {
-		return errors.New("zed lake commit: at least one pending commit tag must be specified")
-	}
-	ctx, cleanup, err := c.Init()
+	ctx, cleanup, err := c.lake.Init()
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	pool, err := c.lakeFlags.OpenPool(ctx)
+	if len(args) == 0 {
+		return errors.New("zed lake commit: at least one pending commit tag must be specified")
+	}
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
@@ -77,7 +75,7 @@ func (c *Command) Run(args []string) error {
 	if err := pool.Commit(ctx, commitID, c.Date.Ts(), c.User, c.Message); err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.lake.Flags.Quiet {
 		fmt.Printf("%s committed\n", commitID)
 	}
 	return nil

@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/cli/inputflags"
-	"github.com/brimdata/zed/cli/procflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
@@ -17,11 +16,10 @@ import (
 
 var Add = &charm.Spec{
 	Name:  "add",
-	Usage: "add [-R root] [-p pool] [options] path [path ...]",
+	Usage: "add [options] path [path ...]",
 	Short: "add data to a pool",
 	Long: `
-The add command adds data to a pool
-from an existing file, S3 location, or stdin.
+The add command adds data to a pool from an existing file, S3 location, or stdin.
 
 One or more data sources may be specified by path.
 The path may be a file on the local file system, an S3 URI,
@@ -45,41 +43,36 @@ func init() {
 // TBD: add option to apply Zed program on add path?
 
 type Command struct {
-	*zedlake.Command
+	lake                  *zedlake.Command
 	importStreamRecordMax int
 	commit                bool
-	lakeFlags             zedlake.Flags
 	inputFlags            inputflags.Flags
-	//XXX proc flags?
-	procFlags procflags.Flags
 	zedlake.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(*zedlake.Command)}
 	f.BoolVar(&c.commit, "commit", false, "commit added data if successfully written")
 	f.IntVar(&c.importStreamRecordMax, "streammax", lake.ImportStreamRecordsMax, "limit for number of records in each ZNG stream (0 for no limit)")
-	c.lakeFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f)
-	c.procFlags.SetFlags(f)
 	c.CommitFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) == 0 {
-		return errors.New("zed lake add: at least one input file must be specified (- for stdin)")
-	}
-	ctx, cleanup, err := c.Init(&c.inputFlags, &c.procFlags)
+	ctx, cleanup, err := c.lake.Init(&c.inputFlags)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
+	if len(args) == 0 {
+		return errors.New("zed lake add: at least one input file must be specified (- for stdin)")
+	}
 	lake.ImportStreamRecordsMax = c.importStreamRecordMax
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	pool, err := c.lakeFlags.OpenPool(ctx)
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
@@ -101,12 +94,12 @@ func (c *Command) Run(args []string) error {
 		if err := pool.Commit(ctx, commit, c.Date.Ts(), c.User, c.Message); err != nil {
 			return err
 		}
-		if !c.lakeFlags.Quiet {
+		if !c.lake.Flags.Quiet {
 			fmt.Printf("%s committed\n", commit)
 		}
 		return nil
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.lake.Flags.Quiet {
 		fmt.Printf("%s staged\n", commit)
 	}
 	return nil

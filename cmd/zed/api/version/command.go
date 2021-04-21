@@ -34,15 +34,16 @@ func New(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 // Run lists all spaces in the current zqd host or if a parameter
 // is provided (in glob style) lists the info about that space.
 func (c *Command) Run(args []string) error {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) > 0 {
 		return errors.New("version command takes no arguments")
 	}
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
-		return err
-	}
 	conn := c.Connection()
-	version, err := conn.Version(c.Context())
+	version, err := conn.Version(ctx)
 	if err != nil {
 		return err
 	}

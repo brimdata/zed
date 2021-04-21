@@ -3,7 +3,7 @@ package index
 import (
 	"flag"
 
-	"github.com/brimdata/zed/cli"
+	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 )
 
@@ -18,25 +18,19 @@ var Cmd = &charm.Spec{
 }
 
 type Command struct {
-	charm.Command
-	cli cli.Flags
+	*root.Command
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{}
-	c.cli.SetFlags(f)
-	return c, nil
-}
-
-func (c *Command) Cleanup() {
-	c.cli.Cleanup()
-}
-
-func (c *Command) Init(all ...cli.Initializer) error {
-	return c.cli.Init(all...)
+	return &Command{Command: parent.(*root.Command)}, nil
 }
 
 func (c *Command) Run(args []string) error {
+	_, cleanup, err := c.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) == 0 {
 		return charm.NeedHelp
 	}

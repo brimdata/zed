@@ -29,26 +29,24 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
-	lakeFlags   zedlake.Flags
+	lake        *zedlake.Command
 	outputFlags outputflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(*zedlake.Command)}
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init(&c.outputFlags)
+	ctx, cleanup, err := c.lake.Init(&c.outputFlags)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	pool, err := c.lakeFlags.OpenPool(ctx)
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
@@ -63,7 +61,7 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 		if len(ids) == 0 {
-			if !c.lakeFlags.Quiet {
+			if !c.lake.Flags.Quiet {
 				fmt.Println("staging area empty")
 			}
 			return nil

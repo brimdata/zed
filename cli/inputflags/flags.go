@@ -1,20 +1,16 @@
 package inputflags
 
 import (
-	"encoding/json"
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
-	"regexp"
 
 	"github.com/brimdata/zed/cli/auto"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/detector"
-	"github.com/brimdata/zed/zio/ndjsonio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )
@@ -23,8 +19,6 @@ type Flags struct {
 	zio.ReaderOpts
 	ReadMax  auto.Bytes
 	ReadSize auto.Bytes
-	// The JSON type config is loaded from the types filie when Init is called.
-	jsonTypesFile string
 }
 
 func (f *Flags) Options() zio.ReaderOpts {
@@ -34,9 +28,6 @@ func (f *Flags) Options() zio.ReaderOpts {
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
 	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,zst,json,ndjson,zeek,zjson,csv,tzng,parquet]")
 	fs.BoolVar(&f.Zng.Validate, "validate", true, "validate the input format when reading ZNG streams")
-	fs.StringVar(&f.jsonTypesFile, "j", "", "path to json types file")
-	fs.StringVar(&f.JSON.PathRegexp, "pathregexp", ndjsonio.DefaultPathRegexp,
-		"regexp for extracting _path from json log name (when -inferpath=true)")
 	f.ReadMax = auto.NewBytes(zngio.MaxSize)
 	fs.Var(&f.ReadMax, "readmax", "maximum memory used read buffers in MiB, MB, etc")
 	f.ReadSize = auto.NewBytes(zngio.ReadSize)
@@ -45,17 +36,6 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 
 // Init is called after flags have been parsed.
 func (f *Flags) Init() error {
-	// Catch errors early ... ?! XXX
-	if _, err := regexp.Compile(f.JSON.PathRegexp); err != nil {
-		return err
-	}
-	if f.jsonTypesFile != "" {
-		c, err := LoadJSONConfig(f.jsonTypesFile)
-		if err != nil {
-			return err
-		}
-		f.JSON.TypeConfig = c
-	}
 	f.Zng.Max = int(f.ReadMax.Bytes)
 	if f.Zng.Max < 0 {
 		return errors.New("max read buffer size must be greater than zero")
@@ -65,21 +45,6 @@ func (f *Flags) Init() error {
 		return errors.New("target read buffer size must be greater than zero")
 	}
 	return nil
-}
-
-func LoadJSONConfig(path string) (*ndjsonio.TypeConfig, error) {
-	data, err := ioutil.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var tc ndjsonio.TypeConfig
-	if err := json.Unmarshal(data, &tc); err != nil {
-		return nil, fmt.Errorf("%s: unmarshaling error: %s", path, err)
-	}
-	if err := tc.Validate(); err != nil {
-		return nil, fmt.Errorf("%s: %s", path, err)
-	}
-	return &tc, nil
 }
 
 func (f *Flags) Open(zctx *zson.Context, paths []string, stopOnErr bool) ([]zbuf.Reader, error) {

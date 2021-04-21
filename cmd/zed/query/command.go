@@ -10,13 +10,13 @@ import (
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
+	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/s3io"
-	"github.com/brimdata/zed/pkg/signalctx"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
@@ -41,11 +41,11 @@ standard output unless a -o or -d argument is provided, in which case output is
 sent to the indicated file comforming to the type implied by the extension (unless
 -f explicitly indicates the output type).
 
-Supported input formats include CSV, NDJSON, Parquet,
+Supported input formats include CSV, JSON, NDJSON, Parquet,
 ZSON, ZNG, ZST, and Zeek TSV.  Supported output formats include
 all the input formats along with text and tabular formats.
 
-The input file format is inferred from the data.  If multiple files are
+For most formats, the input file format is inferred from the data.  If multiple files are
 specified, each file format is determined independently so you can mix and
 match input types.  If multiple files are concatenated into a stream and
 presented as standard input, the files must all be of the same type as the
@@ -71,12 +71,11 @@ See the zed source repository for more information:
 
 https://github.com/brimdata/zed
 `,
-	New: func(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
-		return New(flags)
-	},
+	New: New,
 }
 
 type Command struct {
+	*root.Command
 	verbose     bool
 	stats       bool
 	quiet       bool
@@ -85,15 +84,13 @@ type Command struct {
 	inputFlags  inputflags.Flags
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
-	cli         cli.Flags
 }
 
-func New(f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{}
+func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	c := &Command{Command: parent.(*root.Command)}
 	c.outputFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
-	c.cli.SetFlags(f)
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
 	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
@@ -126,8 +123,11 @@ func (i Includes) Read() ([]string, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.cli.Cleanup()
-	err := c.cli.Init(&c.outputFlags, &c.inputFlags, &c.procFlags)
+	ctx, cleanup, err := c.Init(&c.outputFlags, &c.inputFlags, &c.procFlags)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) == 0 {
 		return charm.NeedHelp
 	}
@@ -146,8 +146,6 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := signalctx.New(os.Interrupt)
-	defer cancel()
 	writer, err := c.outputFlags.Open(ctx)
 	if err != nil {
 		return err

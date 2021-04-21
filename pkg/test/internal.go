@@ -49,7 +49,7 @@ func newEmitter(ofmt string) (*emitter.Bytes, error) {
 func (i *Internal) Run() (string, error) {
 	program, err := compiler.ParseProc(i.Query)
 	if err != nil {
-		return "", fmt.Errorf("parse error: %s (%s)", err, i.Query)
+		return "", fmt.Errorf("parse error: %w (%s)", err, i.Query)
 	}
 	zctx := zson.NewContext()
 	reader, err := stringReader(i.Input, i.InputFormat, zctx)

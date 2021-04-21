@@ -2,10 +2,10 @@ skip: Flaky.
 
 script: |
   source services.sh
-  zapi -h $ZQD_HOST -s testsp postpcap -k archivestore -f alerts.pcap >/dev/null
-  zapi -h $ZQD_HOST -s testsp get -z "event_type = alert | every 1s count()"
+  zapi -host $ZQD_HOST -s testsp postpcap -k archivestore -f alerts.pcap >/dev/null
+  zapi -host $ZQD_HOST -s testsp get -z "event_type = alert | every 1s count()"
   echo ===
-  zapi -h $ZQD_HOST -s testsp get -z "_path != null | count()"
+  zapi -host $ZQD_HOST -s testsp get -z "_path != null | count()"
 
 inputs:
   - name: alerts.pcap

@@ -85,6 +85,9 @@ func (c *Cutter) Apply(in *zng.Record) (*zng.Record, error) {
 		if !ok {
 			return nil, errors.New("cannot cut a non-record to .")
 		}
+		if zv.IsUnset() {
+			return nil, errors.New("cannot cut an unset value to .")
+		}
 		c.dirty = true
 		return zng.NewRecord(recType, append(zcode.Bytes{}, zv.Bytes...)), nil
 	}
