@@ -41,11 +41,11 @@ standard output unless a -o or -d argument is provided, in which case output is
 sent to the indicated file comforming to the type implied by the extension (unless
 -f explicitly indicates the output type).
 
-Supported input formats include CSV, NDJSON, Parquet,
+Supported input formats include CSV, JSON, NDJSON, Parquet,
 ZSON, ZNG, ZST, and Zeek TSV.  Supported output formats include
 all the input formats along with text and tabular formats.
 
-The input file format is inferred from the data.  If multiple files are
+For most formats, the input file format is inferred from the data.  If multiple files are
 specified, each file format is determined independently so you can mix and
 match input types.  If multiple files are concatenated into a stream and
 presented as standard input, the files must all be of the same type as the
