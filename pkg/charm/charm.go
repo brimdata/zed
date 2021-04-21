@@ -25,7 +25,7 @@ type Spec struct {
 	New   Constructor
 	// Hidden hides this command from help.
 	Hidden bool
-	// Hidden flags (comma-separated) markes these flags as hidden.
+	// Hidden flags (comma-separated) marks these flags as hidden.
 	HiddenFlags string
 	// Redacted flags (comma-separated) marks these flags as redacted,
 	// where a flag is shown (if not hidden) but its default value is hidden,
@@ -59,16 +59,16 @@ func (s *Spec) Exec(parent Command, args []string) error {
 
 func (s *Spec) ExecRoot(args []string) error {
 	path, rest, showHidden, err := parse(s, args, nil)
-	if err == nil {
-		err = path.run(rest)
-	}
-	if err == NeedHelp {
-		path, err := parseHelp(s, args)
-		if err != nil {
-			return err
+	if err != nil {
+		if err == NeedHelp {
+			path, err := parseHelp(s, args)
+			if err != nil {
+				return err
+			}
+			displayHelp(path, showHidden)
+			return nil
 		}
-		displayHelp(path, showHidden)
-		return nil
+		return err
 	}
-	return err
+	return path.run(rest)
 }

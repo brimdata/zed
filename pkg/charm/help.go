@@ -36,8 +36,8 @@ func FormatParagraph(body, tab string, lineWidth int) string {
 	for _, paragraph := range paragraphs {
 		paragraph = strings.TrimSpace(paragraph)
 		paragraph = text.Wrap(paragraph, lineWidth)
-		lines := strings.Split(paragraph, "\n")
-		chunks = append(chunks, strings.Join(lines, "\n"+tab))
+		paragraph = strings.ReplaceAll(paragraph, "\n", "\n"+tab)
+		chunks = append(chunks, paragraph)
 	}
 	body = strings.Join(chunks, "\n\n"+tab)
 	body = strings.TrimRight(body, " \t\n")
@@ -100,7 +100,7 @@ func getCommands(target *Spec, vflag bool) []string {
 	return lines
 }
 
-func buildOptions(path Path, parentCmd string, showHidden bool) []string {
+func buildOptions(path path, parentCmd string, showHidden bool) []string {
 	n := len(path)
 	if n == 1 {
 		return path[0].options(showHidden)
@@ -128,7 +128,7 @@ func optionsSection(path []*instance, vflag bool) []string {
 	return buildOptions(path, "", vflag)
 }
 
-func displayHelp(path Path, showHidden bool) {
+func displayHelp(path path, showHidden bool) {
 	spec := path.last().spec
 	helpItem("NAME", path.pathname()+" - "+spec.Short)
 	helpDesc("USAGE", spec.Usage)

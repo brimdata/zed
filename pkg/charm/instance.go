@@ -47,8 +47,8 @@ func (i *instance) options(showHidden bool) []string {
 	return body
 }
 
-func parse(spec *Spec, args []string, parent Command) (Path, []string, bool, error) {
-	var path Path
+func parse(spec *Spec, args []string, parent Command) (path, []string, bool, error) {
+	var path path
 	var help, hidden, usage bool
 	flags := flag.NewFlagSet(spec.Name, flag.ContinueOnError)
 	flags.BoolVar(&help, HelpFlag, false, "display help")
@@ -101,8 +101,7 @@ func diff(flags *flag.FlagSet, all map[string]*flag.Flag) map[string]*flag.Flag 
 	return difference
 }
 
-func parseHelp(spec *Spec, args []string) (Path, error) {
-	var path Path
+func parseHelp(spec *Spec, args []string) (path, error) {
 	flags := flag.NewFlagSet(spec.Name, flag.ContinueOnError)
 	var b bool
 	flags.BoolVar(&b, HelpFlag, false, "display help")
@@ -110,6 +109,7 @@ func parseHelp(spec *Spec, args []string) (Path, error) {
 	flags.Usage = func() {}
 	var parent Command
 	all := make(map[string]*flag.Flag)
+	var path path
 	for {
 		cmd, err := spec.New(parent, flags)
 		if err != nil {
