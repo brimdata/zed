@@ -1,8 +1,10 @@
 import base64
-import datetime
 import decimal
 import ipaddress
 import json
+
+import dateutil.parser
+import durationpy
 import requests
 
 
@@ -92,9 +94,9 @@ def _decode_value(typ, value):
                     'int8', 'int16', 'int32', 'int64']:
             return int(value)
         if name == 'duration':
-            return datetime.timedelta(seconds=float(value))
+            return durationpy.from_str(value)
         if name == 'time':
-            return datetime.datetime.utcfromtimestamp(float(value))
+            return dateutil.parser.isoparse(value)
         if name in ['float16', 'float32', 'float64']:
             return float(value)
         if name == 'decimal':
