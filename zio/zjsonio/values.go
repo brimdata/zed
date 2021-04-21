@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -79,8 +78,10 @@ func encodePrimitive(zctx *zson.Context, typ zng.Type, v zcode.Bytes) (interface
 		}
 		return strconv.Itoa(zng.TypeID(typ)), nil
 	}
-	// This should use ZSON primitive syntax.  See issue #2525.
-	return tzngio.StringOf(zng.Value{typ, v}, tzngio.OutFormatUnescaped, false), nil
+	if zng.IsStringy(typ.ID()) {
+		return string(v), nil
+	}
+	return typ.ZSONOf(v), nil
 }
 
 func encodeValue(zctx *zson.Context, typ zng.Type, val zcode.Bytes) (interface{}, error) {
@@ -173,20 +174,19 @@ func decodeRecord(b *zcode.Builder, typ *zng.TypeRecord, v interface{}) error {
 }
 
 func decodePrimitive(builder *zcode.Builder, typ zng.Type, v interface{}) error {
-	s, ok := v.(string)
-	if !ok {
-		return errors.New("ZJSON primitive value is not a JSON string")
-	}
 	if zng.IsContainerType(typ) && !zng.IsUnionType(typ) {
 		return zng.ErrNotPrimitive
 	}
-	// This should use ZSON primitive syntax.  See issue #2525.
-	zv, err := tzngio.ParseValue(typ, []byte(s))
-	if err != nil {
-		return err
+	text, ok := v.(string)
+	if !ok {
+		return errors.New("ZJSON primitive value is not a JSON string")
 	}
-	builder.AppendPrimitive(zv)
-	return nil
+	val := zson.Primitive{
+		Type: typ,
+		Text: text,
+	}
+	err := zson.BuildPrimitive(builder, val)
+	return err
 }
 
 func decodeContainerBody(b *zcode.Builder, typ zng.Type, body interface{}, which string) error {

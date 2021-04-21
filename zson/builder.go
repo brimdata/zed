@@ -14,19 +14,9 @@ import (
 	"github.com/brimdata/zed/zng"
 )
 
-// A Builder transforms a fully-typed Value produced by an Analyzer
-// into a zng.Value.
-type Builder struct {
-	zcode.Builder
-}
-
-func NewBuilder() *Builder {
-	return &Builder{}
-}
-
-func (b *Builder) Build(val Value) (zng.Value, error) {
+func Build(b *zcode.Builder, val Value) (zng.Value, error) {
 	b.Reset()
-	if err := b.buildValue(val); err != nil {
+	if err := buildValue(b, val); err != nil {
 		return zng.Value{}, err
 	}
 	it := b.Bytes().Iter()
@@ -37,24 +27,24 @@ func (b *Builder) Build(val Value) (zng.Value, error) {
 	return zng.Value{val.TypeOf(), bytes}, nil
 }
 
-func (b *Builder) buildValue(val Value) error {
+func buildValue(b *zcode.Builder, val Value) error {
 	switch val := val.(type) {
 	case *Primitive:
-		return b.BuildPrimitive(val)
+		return BuildPrimitive(b, *val)
 	case *Record:
-		return b.buildRecord(val)
+		return buildRecord(b, val)
 	case *Array:
-		return b.buildArray(val)
+		return buildArray(b, val)
 	case *Set:
-		return b.buildSet(val)
+		return buildSet(b, val)
 	case *Union:
-		return b.buildUnion(val)
+		return buildUnion(b, val)
 	case *Map:
-		return b.buildMap(val)
+		return buildMap(b, val)
 	case *Enum:
-		return b.buildEnum(val)
+		return buildEnum(b, val)
 	case *TypeValue:
-		return b.buildTypeValue(val)
+		return buildTypeValue(b, val)
 	case *Null:
 		b.AppendNull()
 		return nil
@@ -62,7 +52,7 @@ func (b *Builder) buildValue(val Value) error {
 	return fmt.Errorf("unknown ast type: %T", val)
 }
 
-func (b *Builder) BuildPrimitive(val *Primitive) error {
+func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 	switch zng.AliasOf(val.Type).(type) {
 	case *zng.TypeOfUint8, *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
 		v, err := strconv.ParseUint(val.Text, 10, 64)
@@ -182,10 +172,10 @@ func unescapeHex(in []byte) []byte {
 	return b
 }
 
-func (b *Builder) buildRecord(val *Record) error {
+func buildRecord(b *zcode.Builder, val *Record) error {
 	b.BeginContainer()
 	for _, v := range val.Fields {
-		if err := b.buildValue(v); err != nil {
+		if err := buildValue(b, v); err != nil {
 			return err
 		}
 	}
@@ -193,10 +183,10 @@ func (b *Builder) buildRecord(val *Record) error {
 	return nil
 }
 
-func (b *Builder) buildArray(array *Array) error {
+func buildArray(b *zcode.Builder, array *Array) error {
 	b.BeginContainer()
 	for _, v := range array.Elements {
-		if err := b.buildValue(v); err != nil {
+		if err := buildValue(b, v); err != nil {
 			return err
 		}
 	}
@@ -204,10 +194,10 @@ func (b *Builder) buildArray(array *Array) error {
 	return nil
 }
 
-func (b *Builder) buildSet(set *Set) error {
+func buildSet(b *zcode.Builder, set *Set) error {
 	b.BeginContainer()
 	for _, v := range set.Elements {
-		if err := b.buildValue(v); err != nil {
+		if err := buildValue(b, v); err != nil {
 			return err
 		}
 	}
@@ -215,13 +205,13 @@ func (b *Builder) buildSet(set *Set) error {
 	return nil
 }
 
-func (b *Builder) buildMap(m *Map) error {
+func buildMap(b *zcode.Builder, m *Map) error {
 	b.BeginContainer()
 	for _, entry := range m.Entries {
-		if err := b.buildValue(entry.Key); err != nil {
+		if err := buildValue(b, entry.Key); err != nil {
 			return err
 		}
-		if err := b.buildValue(entry.Value); err != nil {
+		if err := buildValue(b, entry.Value); err != nil {
 			return err
 		}
 	}
@@ -229,11 +219,11 @@ func (b *Builder) buildMap(m *Map) error {
 	return nil
 }
 
-func (b *Builder) buildUnion(union *Union) error {
+func buildUnion(b *zcode.Builder, union *Union) error {
 	if selector := union.Selector; selector >= 0 {
 		b.BeginContainer()
 		b.AppendPrimitive(zng.EncodeInt(int64(union.Selector)))
-		if err := b.buildValue(union.Value); err != nil {
+		if err := buildValue(b, union.Value); err != nil {
 			return err
 		}
 		b.EndContainer()
@@ -243,12 +233,12 @@ func (b *Builder) buildUnion(union *Union) error {
 	return nil
 }
 
-func (b *Builder) buildEnum(enum *Enum) error {
+func buildEnum(b *zcode.Builder, enum *Enum) error {
 	b.AppendPrimitive(zng.EncodeUint(uint64(enum.Selector)))
 	return nil
 }
 
-func (b *Builder) buildTypeValue(tv *TypeValue) error {
+func buildTypeValue(b *zcode.Builder, tv *TypeValue) error {
 	b.AppendPrimitive(zcode.Bytes(FormatType(tv.Value)))
 	return nil
 }

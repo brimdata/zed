@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed/anymath"
 	"github.com/brimdata/zed/expr/result"
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -239,5 +240,5 @@ func (p *zsonParse) Call(args []zng.Value) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	return zson.NewBuilder().Build(val)
+	return zson.Build(zcode.NewBuilder(), val)
 }

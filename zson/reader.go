@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -12,7 +13,7 @@ type Reader struct {
 	zctx     *Context
 	parser   *Parser
 	analyzer Analyzer
-	builder  *Builder
+	builder  *zcode.Builder
 }
 
 func NewReader(r io.Reader, zctx *Context) *Reader {
@@ -20,7 +21,7 @@ func NewReader(r io.Reader, zctx *Context) *Reader {
 		reader:   r,
 		zctx:     zctx,
 		analyzer: NewAnalyzer(),
-		builder:  NewBuilder(),
+		builder:  zcode.NewBuilder(),
 	}
 }
 
@@ -40,7 +41,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	zv, err := r.builder.Build(val)
+	zv, err := Build(r.builder, val)
 	if err != nil {
 		return nil, err
 	}
