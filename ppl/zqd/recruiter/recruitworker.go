@@ -39,7 +39,7 @@ func RecruitWorkers(ctx *proc.Context, workerCount int, conf worker.WorkerConfig
 	recreq := api.RecruitRequest{NumberRequested: workerCount, Label: conf.Host}
 	resp, err := conn.Recruit(ctx, recreq)
 	if err != nil {
-		return nil, fmt.Errorf("error on recruit for recruiter at %s : %v", conf.Recruiter, err)
+		return nil, fmt.Errorf("error on recruit for recruiter at %s : %w", conf.Recruiter, err)
 	}
 	var workers []string
 	for _, w := range resp.Workers {

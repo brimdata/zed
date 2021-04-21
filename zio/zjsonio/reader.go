@@ -84,7 +84,7 @@ func (r *Reader) parseAliases(aliases []Alias) error {
 	for _, alias := range aliases {
 		typ, err := decodeTypeAny(r.zctx, alias.Type.(joe.Interface))
 		if err != nil {
-			return fmt.Errorf("error decoding alias type: \"%s\"", err)
+			return fmt.Errorf("error decoding alias type: \"%w\"", err)
 		}
 		_, err = r.zctx.LookupTypeAlias(alias.Name, typ)
 		if err != nil {

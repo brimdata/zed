@@ -477,7 +477,7 @@ func checkPatterns(patterns map[string]*regexp.Regexp, dir *Dir, stdout, stderr 
 			var err error
 			body, err = dir.Read(name)
 			if err != nil {
-				return fmt.Errorf("%s: %s", name, err)
+				return fmt.Errorf("%s: %w", name, err)
 			}
 		}
 		if !re.Match(body) {
@@ -499,7 +499,7 @@ func checkData(files map[string][]byte, dir *Dir, stdout, stderr string) error {
 			var err error
 			actual, err = dir.Read(name)
 			if err != nil {
-				return fmt.Errorf("%s: %s", name, err)
+				return fmt.Errorf("%s: %w", name, err)
 			}
 		}
 		if !bytes.Equal(expected, actual) {
