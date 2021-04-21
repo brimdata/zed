@@ -1,6 +1,7 @@
 package log
 
 import (
+	"errors"
 	"flag"
 
 	"github.com/brimdata/zed/cli/outputflags"
@@ -11,7 +12,7 @@ import (
 
 var Log = &charm.Spec{
 	Name:  "log",
-	Usage: "log [-R root] [options] [pattern]",
+	Usage: "log [options] [pattern]",
 	Short: "show a data pool's commit log",
 	Long: `
 "zed lake log" outputs a data pool's commit log in the format desired.
@@ -26,27 +27,28 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
+	lake        *zedlake.Command
 	lk          *lake.Root
-	lakeFlags   zedlake.Flags
 	outputFlags outputflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
-	c.lakeFlags.SetFlags(f)
+	c := &Command{lake: parent.(*zedlake.Command)}
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init(&c.outputFlags)
+	ctx, cleanup, err := c.lake.Init(&c.outputFlags)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	pool, err := c.lakeFlags.OpenPool(ctx)
+	if len(args) != 0 {
+		return errors.New("zed lake load: no arguments allowed")
+	}
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}

@@ -3,6 +3,13 @@ package charm
 import (
 	"flag"
 	"fmt"
+	"sort"
+	"strings"
+)
+
+var (
+	HelpFlag   = "h"
+	HiddenFlag = "hidden"
 )
 
 // instance represents a command that has been created but not run.
@@ -11,70 +18,20 @@ import (
 type instance struct {
 	spec    *Spec
 	command Command
-	flags   *flag.FlagSet
-}
-
-func newInstance(parent Command, spec *Spec) (*instance, error) {
-	if spec.New == nil {
-		return nil, fmt.Errorf("command '%s': New function is nil", spec.Name)
-	}
-	flags := flag.NewFlagSet(spec.Name, flag.ContinueOnError)
-	cmd, err := spec.New(parent, flags)
-	if err != nil {
-		return nil, err
-	}
-	return &instance{spec, cmd, flags}, nil
-}
-
-// run runs this instance of the command.
-func (i *instance) run(args []string) error {
-	// set up the flags even if there aren't any args to parse
-	// since we need to establish default state in the command objects
-	rest, err := parseFlags(i.flags, args)
-	if err != nil {
-		return err
-	}
-	if len(rest) == 0 {
-		empty := i.spec.Empty
-		if empty == nil {
-			// call current command with no args
-			err = i.command.Run(rest)
-			if err == ErrNoRun {
-				err = fmt.Errorf("%s: no sub-command supplied", i.spec.Name)
-			}
-			return err
-		}
-		// Otherwise, this is an empty sub-command that has an empty spec,
-		// so invoke the spec with the current command as the parent.
-		return empty.Exec(i.command, rest)
-	}
-	// otherwise there are more stuff after the flags so
-	// look for a subcommand
-	child := i.spec.lookupSub(rest[0])
-	if child == nil {
-		// no command found so call the current command with the args
-		err = i.command.Run(rest)
-		if err == ErrNoRun {
-			err = fmt.Errorf("%s: no such sub-command: %s", i.spec.Name, rest[0])
-		}
-		return err
-	}
-	// we found a subcommand so execute it recursively and
-	// drop the cmd name from the args
-	return child.Exec(i.command, rest[1:])
+	flags   map[string]*flag.Flag
 }
 
 // options returns a formatted slice of strings ready for printing as
 // help for this instance of a command.
-func (i *instance) options(vflag bool) []string {
+func (i *instance) options(showHidden bool) []string {
 	hidden := flagMap(i.spec.HiddenFlags)
 	redacted := flagMap(i.spec.RedactedFlags)
 	var body []string
-	i.flags.VisitAll(func(f *flag.Flag) {
+	for _, f := range i.flags {
 		name := "-" + f.Name
 		if hidden[f.Name] {
-			if !vflag {
-				return
+			if !showHidden {
+				continue
 			}
 			name = "[" + name + "]"
 		}
@@ -83,6 +40,100 @@ func (i *instance) options(vflag bool) []string {
 			line = fmt.Sprintf("%s (default \"%s\")", line, f.DefValue)
 		}
 		body = append(body, line)
+	}
+	sort.Slice(body, func(i, j int) bool {
+		return strings.ToLower(body[i]) < strings.ToLower(body[j])
 	})
 	return body
+}
+
+func parse(spec *Spec, args []string, parent Command) (path, []string, bool, error) {
+	var path path
+	var help, hidden, usage bool
+	flags := flag.NewFlagSet(spec.Name, flag.ContinueOnError)
+	flags.BoolVar(&help, HelpFlag, false, "display help")
+	flags.BoolVar(&hidden, HiddenFlag, false, "show hidden options")
+	flags.Usage = func() {
+		usage = true
+	}
+	for {
+		cmd, err := spec.New(parent, flags)
+		if err != nil {
+			return nil, nil, false, err
+		}
+		component := &instance{
+			spec:    spec,
+			command: cmd,
+		}
+		path = append(path, component)
+		parent = cmd
+		if err := flags.Parse(args); err != nil {
+			if usage {
+				s := strings.Join(args, " ")
+				err = fmt.Errorf("at flag: %q: %w", s, err)
+			}
+			return path, nil, false, err
+		}
+		if help {
+			return path, nil, hidden, NeedHelp
+		}
+		rest := flags.Args()
+		if len(rest) != 0 {
+			spec = component.spec.lookupSub(rest[0])
+			if spec != nil {
+				// We found a subcommand, so continue building the chain.
+				args = rest[1:]
+				continue
+			}
+		}
+		return path, rest, false, nil
+	}
+}
+
+func diff(flags *flag.FlagSet, all map[string]*flag.Flag) map[string]*flag.Flag {
+	difference := make(map[string]*flag.Flag)
+	flags.VisitAll(func(f *flag.Flag) {
+		if _, ok := all[f.Name]; !ok {
+			all[f.Name] = f
+			difference[f.Name] = f
+		}
+	})
+	return difference
+}
+
+func parseHelp(spec *Spec, args []string) (path, error) {
+	flags := flag.NewFlagSet(spec.Name, flag.ContinueOnError)
+	var b bool
+	flags.BoolVar(&b, HelpFlag, false, "display help")
+	flags.BoolVar(&b, HiddenFlag, false, "show hidden options")
+	flags.Usage = func() {}
+	var parent Command
+	all := make(map[string]*flag.Flag)
+	var path path
+	for {
+		cmd, err := spec.New(parent, flags)
+		if err != nil {
+			return nil, err
+		}
+		component := &instance{
+			spec:    spec,
+			command: cmd,
+			flags:   diff(flags, all),
+		}
+		path = append(path, component)
+		parent = cmd
+		if err := flags.Parse(args); err != nil {
+			return nil, err
+		}
+		rest := flags.Args()
+		if len(rest) != 0 {
+			spec = component.spec.lookupSub(rest[0])
+			if spec != nil {
+				// We found a subcommand, so continue building the chain.
+				args = rest[1:]
+				continue
+			}
+		}
+		return path, nil
+	}
 }

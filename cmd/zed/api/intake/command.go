@@ -1,6 +1,7 @@
 package intake
 
 import (
+	"context"
 	"flag"
 
 	"github.com/brimdata/zed/api"
@@ -43,15 +44,20 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	_, cleanup, err := c.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) == 0 {
-		return apicmd.Cmd.Exec(c.Command, []string{"help", "intake"})
+		return charm.NeedHelp
 	}
 	return charm.ErrNoRun
 }
 
-func (c *Command) lookupIntake(nameOrID string) (api.Intake, error) {
+func (c *Command) lookupIntake(ctx context.Context, nameOrID string) (api.Intake, error) {
 	conn := c.Connection()
-	intakes, err := conn.IntakeList(c.Context())
+	intakes, err := conn.IntakeList(ctx)
 	if err != nil {
 		return api.Intake{}, err
 	}
@@ -63,9 +69,9 @@ func (c *Command) lookupIntake(nameOrID string) (api.Intake, error) {
 	return api.Intake{}, zqe.ErrNotFound()
 }
 
-func (c *Command) lookupSpace(nameOrID string) (api.Space, error) {
+func (c *Command) lookupSpace(ctx context.Context, nameOrID string) (api.Space, error) {
 	conn := c.Connection()
-	spaces, err := conn.SpaceList(c.Context())
+	spaces, err := conn.SpaceList(ctx)
 	if err != nil {
 		return api.Space{}, err
 	}

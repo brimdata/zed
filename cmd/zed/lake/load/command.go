@@ -17,7 +17,7 @@ import (
 
 var Load = &charm.Spec{
 	Name:  "load",
-	Usage: "load [-R root] [-p pool] [options] file|S3-object|- ...",
+	Usage: "load [options] file|S3-object|- ...",
 	Short: "add and commit data to a pool",
 	Long: `
 The load command adds data to a pool and commits it in one automatic operation.
@@ -31,19 +31,17 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
+	lake                  *zedlake.Command
 	importStreamRecordMax int
 	commit                bool
-	lakeFlags             zedlake.Flags
 	zedlake.CommitFlags
 	procFlags  procflags.Flags
 	inputFlags inputflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(*zedlake.Command)}
 	f.IntVar(&c.importStreamRecordMax, "streammax", lake.ImportStreamRecordsMax, "limit for number of records in each ZNG stream (0 for no limit)")
-	c.lakeFlags.SetFlags(f)
 	c.CommitFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
@@ -51,7 +49,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init(&c.inputFlags, &c.procFlags)
+	ctx, cleanup, err := c.lake.Init(&c.inputFlags, &c.procFlags)
 	if err != nil {
 		return err
 	}
@@ -63,7 +61,7 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	pool, err := c.lakeFlags.OpenPool(ctx)
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
@@ -88,7 +86,7 @@ func (c *Command) Run(args []string) error {
 	if err := pool.Commit(ctx, commitID, c.Date.Ts(), c.User, c.Message); err != nil {
 		return err
 	}
-	if !c.lakeFlags.Quiet {
+	if !c.lake.Flags.Quiet {
 		fmt.Printf("%s committed %d segments\n", commitID, len(txn.Actions))
 	}
 	return nil

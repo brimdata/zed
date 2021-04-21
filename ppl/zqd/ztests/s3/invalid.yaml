@@ -1,8 +1,8 @@
 script: |
   source services.sh s3://bucket/zqdroot
-  zapi -h $ZQD_HOST new -k filestore testsp
-  zapi -h $ZQD_HOST -s testsp post -k filestore -f babble.zson
-  zapi -h $ZQD_HOST -s testsp postpcap -k filestore -f babble.zson
+  zapi -host $ZQD_HOST new -k filestore testsp
+  zapi -host $ZQD_HOST -s testsp post -k filestore -f babble.zson
+  zapi -host $ZQD_HOST -s testsp postpcap -k filestore -f babble.zson
 
 inputs:
   - name: services.sh

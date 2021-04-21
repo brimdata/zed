@@ -33,14 +33,15 @@ func NewPost(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *PostCommand) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if len(args) != 2 {
 		return fmt.Errorf("expected arguments: <intake name or id> <file or '-'>")
 	}
-	intake, err := c.lookupIntake(args[0])
+	intake, err := c.lookupIntake(ctx, args[0])
 	if err != nil {
 		return err
 	}
@@ -53,11 +54,11 @@ func (c *PostCommand) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		rc, err = iosrc.NewReader(c.Context(), uri)
+		rc, err = iosrc.NewReader(ctx, uri)
 		if err != nil {
 			return err
 		}
 	}
 	defer rc.Close()
-	return c.Connection().IntakePostData(c.Context(), intake.ID, rc)
+	return c.Connection().IntakePostData(ctx, intake.ID, rc)
 }

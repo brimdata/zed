@@ -37,10 +37,11 @@ func NewNew(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *NewCommand) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	conn := c.Connection()
 	var req api.IntakePostRequest
 
@@ -50,15 +51,15 @@ func (c *NewCommand) Run(args []string) error {
 	req.Name = args[0]
 	req.Shaper = c.shaper
 	if c.targetSpace != "" {
-		targetSpace, err := c.lookupSpace(c.targetSpace)
+		targetSpace, err := c.lookupSpace(ctx, c.targetSpace)
 		if err != nil {
 			return err
 		}
 		req.TargetSpaceID = targetSpace.ID
 	}
-	intake, err := conn.IntakeCreate(c.Context(), req)
+	intake, err := conn.IntakeCreate(ctx, req)
 	if err != nil {
 		return err
 	}
-	return apicmd.WriteOutput(c.Context(), c.outputFlags, newIntakeReader([]api.Intake{intake}))
+	return apicmd.WriteOutput(ctx, c.outputFlags, newIntakeReader([]api.Intake{intake}))
 }

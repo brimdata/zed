@@ -57,14 +57,15 @@ func NewCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *CreateCmd) Run(args []string) error {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) == 0 && c.zql == "" {
 		return errors.New("zapi index create: one or more indexing patterns must be specified")
 	}
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
-		return err
-	}
-	id, err := c.SpaceID()
+	id, err := c.SpaceID(ctx)
 	if err != nil {
 		return err
 	}
@@ -84,7 +85,7 @@ func (c *CreateCmd) Run(args []string) error {
 		}
 		req.Keys = c.keys
 	}
-	return c.Connection().IndexPost(c.Context(), id, req)
+	return c.Connection().IndexPost(ctx, id, req)
 }
 
 type arrayFlag []string

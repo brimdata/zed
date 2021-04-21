@@ -24,19 +24,16 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
-	quiet     bool
-	lakeFlags zedlake.Flags
+	lake *zedlake.Command
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
-	f.BoolVar(&c.quiet, "q", false, "quiet mode")
+	c := &Command{lake: parent.(*zedlake.Command)}
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init()
+	ctx, cleanup, err := c.lake.Init()
 	if err != nil {
 		return err
 	}
@@ -44,7 +41,7 @@ func (c *Command) Run(args []string) error {
 	var path string
 	if len(args) == 0 {
 		path = zedlake.DefaultRoot()
-		if path != "" && !c.quiet {
+		if path != "" && !c.lake.Flags.Quiet {
 			fmt.Printf("using environment variable %s\n", zedlake.RootEnv)
 		}
 	} else if len(args) == 1 {
@@ -53,12 +50,12 @@ func (c *Command) Run(args []string) error {
 	if path == "" {
 		return errors.New("zed lake create lake: requires a single lake path argument")
 	}
-	c.lakeFlags.Root = path
-	if _, err := c.lakeFlags.Create(ctx); err != nil {
+	c.lake.Flags.Root = path
+	if _, err := c.lake.Flags.Create(ctx); err != nil {
 		return err
 	}
-	if !c.quiet {
-		name, _ := c.lakeFlags.RootPath()
+	if !c.lake.Flags.Quiet {
+		name, _ := c.lake.Flags.RootPath()
 		fmt.Printf("lake created: %s\n", name)
 	}
 	return nil

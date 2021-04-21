@@ -45,14 +45,15 @@ func NewUpdate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *UpdateCommand) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if len(args) != 1 {
 		return fmt.Errorf("expected one argument of intake id or name")
 	}
-	intake, err := c.lookupIntake(args[0])
+	intake, err := c.lookupIntake(ctx, args[0])
 	if err != nil {
 		return err
 	}
@@ -68,7 +69,7 @@ func (c *UpdateCommand) Run(args []string) error {
 		case "shaper":
 			req.Shaper = c.shaper
 		case "target":
-			space, err := c.lookupSpace(c.targetSpace)
+			space, err := c.lookupSpace(ctx, c.targetSpace)
 			if err != nil {
 				return err
 			}
@@ -79,11 +80,11 @@ func (c *UpdateCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	intake, err = c.Connection().IntakeUpdate(c.Context(), intake.ID, req)
+	intake, err = c.Connection().IntakeUpdate(ctx, intake.ID, req)
 	if err != nil {
 		return err
 	}
-	return apicmd.WriteOutput(c.Context(), c.outputFlags, newIntakeReader([]api.Intake{intake}))
+	return apicmd.WriteOutput(ctx, c.outputFlags, newIntakeReader([]api.Intake{intake}))
 }
 
 func flagVisit(fs *flag.FlagSet, fn func(*flag.Flag) error) error {

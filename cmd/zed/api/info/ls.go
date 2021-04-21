@@ -39,12 +39,13 @@ func NewLs(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 // Run lists all spaces in the current zqd host or if a parameter
 // is provided (in glob style) lists the info about that space.
 func (c *LsCommand) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init(&c.outputFlags)
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	conn := c.Connection()
-	matches, err := apicmd.SpaceGlob(c.Context(), conn, args...)
+	matches, err := apicmd.SpaceGlob(ctx, conn, args...)
 	if err != nil {
 		if err == apicmd.ErrNoSpacesExist {
 			return nil
@@ -55,13 +56,13 @@ func (c *LsCommand) Run(args []string) error {
 		return apicmd.ErrNoMatch
 	}
 	if c.lflag {
-		return apicmd.WriteOutput(c.Context(), c.outputFlags, newSpaceReader(matches))
+		return apicmd.WriteOutput(ctx, c.outputFlags, newSpaceReader(matches))
 	}
 	names := make([]string, 0, len(matches))
 	for _, m := range matches {
 		names = append(names, m.Name)
 	}
-	return apicmd.WriteOutput(c.Context(), c.outputFlags, apicmd.NewNameReader(names))
+	return apicmd.WriteOutput(ctx, c.outputFlags, apicmd.NewNameReader(names))
 }
 
 type spaceReader struct {

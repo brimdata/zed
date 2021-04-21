@@ -32,16 +32,17 @@ func NewLoginCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, erro
 }
 
 func (c *LoginCommand) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.Init()
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if len(args) > 0 {
 		return errors.New("login command takes no arguments")
 	}
 	conn := c.Connection()
 
-	method, err := conn.AuthMethod(c.Context())
+	method, err := conn.AuthMethod(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to obtain supported auth method: %w", err)
 	}
@@ -53,7 +54,7 @@ func (c *LoginCommand) Run(args []string) error {
 		return fmt.Errorf("zqd service at %v supports unhandled authentication method: %v", c.Host, method.Kind)
 	}
 
-	dar, err := devauth.DeviceAuthorizationFlow(c.Context(), devauth.Config{
+	dar, err := devauth.DeviceAuthorizationFlow(ctx, devauth.Config{
 		Audience: method.Auth0.Audience,
 		Domain:   method.Auth0.Domain,
 		ClientID: method.Auth0.ClientID,

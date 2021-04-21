@@ -25,10 +25,6 @@ type Command struct {
 	procFlags procflags.Flags
 }
 
-func init() {
-	Zqd.Add(charm.Help)
-}
-
 func Servers(s string) []string {
 	return strings.Split(s, ",")
 }

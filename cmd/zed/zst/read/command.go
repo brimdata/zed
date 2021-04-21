@@ -1,7 +1,6 @@
 package inspect
 
 import (
-	"context"
 	"errors"
 	"flag"
 
@@ -44,15 +43,14 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(&c.outputFlags); err != nil {
+	ctx, cleanup, err := c.Init(&c.outputFlags)
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if len(args) != 1 {
 		return errors.New("zst read: must be run with a single path argument")
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	path := args[0]
 	reader, err := zst.NewReaderFromPath(ctx, zson.NewContext(), path)
 	if err != nil {

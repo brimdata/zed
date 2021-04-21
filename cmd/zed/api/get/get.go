@@ -91,10 +91,11 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(&c.outputFlags); err != nil {
+	ctx, cleanup, err := c.Init(&c.outputFlags)
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	expr := "*"
 	if len(args) > 0 {
 		expr = strings.Join(args, " ")
@@ -103,7 +104,7 @@ func (c *Command) Run(args []string) error {
 
 	var r io.ReadCloser
 	if c.chunkInfo == "" {
-		id, err := c.SpaceID()
+		id, err := c.SpaceID(ctx)
 		if err != nil {
 			return err
 		}
@@ -118,9 +119,9 @@ func (c *Command) Run(args []string) error {
 				SearchRequest: *req,
 				MaxWorkers:    c.workers,
 			}
-			r, err = conn.WorkerRootSearch(c.Context(), *rootWorkerReq, params)
+			r, err = conn.WorkerRootSearch(ctx, *rootWorkerReq, params)
 		} else {
-			r, err = conn.SearchRaw(c.Context(), *req, params)
+			r, err = conn.SearchRaw(ctx, *req, params)
 		}
 		if err != nil {
 			return fmt.Errorf("search error: %w", err)
@@ -135,7 +136,7 @@ func (c *Command) Run(args []string) error {
 		if err != nil {
 			return fmt.Errorf("parse plus chunk error: %s", err)
 		}
-		r, err = conn.WorkerChunkSearch(c.Context(), *req, params)
+		r, err = conn.WorkerChunkSearch(ctx, *req, params)
 		if err != nil {
 			return fmt.Errorf("worker error: %w", err)
 		}
@@ -152,7 +153,7 @@ func (c *Command) Run(args []string) error {
 		}
 		return c.runRawSearch(r)
 	}
-	writer, err := c.outputFlags.Open(c.Context())
+	writer, err := c.outputFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -160,7 +161,7 @@ func (c *Command) Run(args []string) error {
 	stream.SetOnCtrl(c.handleControl)
 	if err := zbuf.Copy(writer, stream); err != nil {
 		writer.Close()
-		if c.Context().Err() != nil {
+		if ctx.Err() != nil {
 			return errors.New("search aborted")
 		}
 		return err

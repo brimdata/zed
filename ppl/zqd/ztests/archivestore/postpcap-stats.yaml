@@ -2,7 +2,7 @@ skip: obsolete
 
 script: |
   source services.sh
-  zapi -h $ZQD_HOST -s testsp postpcap -f -k archivestore -stats ng.pcap
+  zapi -host $ZQD_HOST -s testsp postpcap -f -k archivestore -stats ng.pcap
 
 inputs:
   - name: ng.pcap

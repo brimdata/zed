@@ -34,24 +34,22 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
+	lake        *zedlake.Command
 	stats       bool
 	stopErr     bool
 	at          string
 	includes    query.Includes
-	lakeFlags   zedlake.Flags
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
 	searchFlags searchflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(*zedlake.Command)}
 	f.StringVar(&c.at, "at", "", "commit tag or journal ID for time travel")
 	f.BoolVar(&c.stats, "s", false, "print search stats to stderr on successful completion")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.Var(&c.includes, "I", "source file containing Zed query text (may be used multiple times)")
-	c.lakeFlags.SetFlags(f)
 	c.outputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
 	c.searchFlags.SetFlags(f)
@@ -59,7 +57,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init(&c.outputFlags, &c.procFlags, &c.searchFlags)
+	ctx, cleanup, err := c.lake.Init(&c.outputFlags, &c.procFlags, &c.searchFlags)
 	if err != nil {
 		return err
 	}
@@ -71,7 +69,7 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	pool, err := c.lakeFlags.OpenPool(ctx)
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
@@ -88,7 +86,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	d := driver.NewCLI(writer)
-	if !c.lakeFlags.Quiet {
+	if !c.lake.Flags.Quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
 	err = driver.MultiRun(ctx, d, query, zson.NewContext(), msrc, driver.MultiConfig{

@@ -2,12 +2,12 @@ skip: issue 2532
 
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new -k archivestore -thresh 1B testsp >/dev/null
-  zapi -h $ZQD_HOST -s testsp post data.zson >/dev/null
-  zapi -h $ZQD_HOST -s testsp index create :ip
-  zapi -h $ZQD_HOST -s testsp index find :ip=192.168.1.102 | zq -z "drop _log" -
+  zapi -host $ZQD_HOST new -k archivestore -thresh 1B testsp >/dev/null
+  zapi -host $ZQD_HOST -s testsp post data.zson >/dev/null
+  zapi -host $ZQD_HOST -s testsp index create :ip
+  zapi -host $ZQD_HOST -s testsp index find :ip=192.168.1.102 | zq -z "drop _log" -
   echo ===
-  zapi -h $ZQD_HOST -s testsp index find :ip=192.168.1.103 | zq -z "drop _log" -
+  zapi -host $ZQD_HOST -s testsp index find :ip=192.168.1.103 | zq -z "drop _log" -
 
 inputs:
   - name: services.sh

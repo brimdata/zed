@@ -1,8 +1,8 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST new test
-  zapi -h $ZQD_HOST -s test post in.zson
-  zapi -h $ZQD_HOST -s test get -e csv > out.csv
+  zapi -host $ZQD_HOST new test
+  zapi -host $ZQD_HOST -s test post in.zson
+  zapi -host $ZQD_HOST -s test get -e csv > out.csv
 
 inputs:
   - name: services.sh

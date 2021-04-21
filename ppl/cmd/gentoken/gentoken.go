@@ -56,9 +56,7 @@ func (c *Command) Run(args []string) error {
 }
 
 func main() {
-	CLI.Add(charm.Help)
-	_, err := CLI.ExecRoot(os.Args[1:])
-	if err != nil {
+	if err := CLI.ExecRoot(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}

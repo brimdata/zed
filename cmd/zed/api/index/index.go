@@ -30,5 +30,10 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	_, cleanup, err := c.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	return charm.ErrNoRun
 }

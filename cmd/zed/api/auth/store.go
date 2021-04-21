@@ -30,14 +30,14 @@ func NewStore(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *StoreCommand) Run(args []string) error {
+	_, cleanup, err := c.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) > 0 {
 		return errors.New("store command takes no arguments")
 	}
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
-		return err
-	}
-
 	creds, err := c.LocalConfig.LoadCredentials()
 	if err != nil {
 		return fmt.Errorf("failed to load credentials file: %w", err)

@@ -19,10 +19,6 @@ type Command struct {
 	cli cli.Flags
 }
 
-func init() {
-	CLI.Add(charm.Help)
-}
-
 func New(_ charm.Command, _ *flag.FlagSet) (charm.Command, error) {
 	c := &Command{}
 	return c, nil

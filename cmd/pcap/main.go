@@ -18,7 +18,7 @@ var version = "unknown"
 func main() {
 	//XXX
 	//root.Version = version
-	if _, err := root.Pcap.ExecRoot(os.Args[1:]); err != nil {
+	if err := root.Pcap.ExecRoot(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}

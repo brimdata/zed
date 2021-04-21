@@ -1,6 +1,6 @@
 script: |
   source services.sh
-  zapi -h $ZQD_HOST version
+  zapi -host $ZQD_HOST version
 
 inputs:
   - name: services.sh

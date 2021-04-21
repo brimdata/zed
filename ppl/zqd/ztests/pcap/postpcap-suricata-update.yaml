@@ -28,8 +28,8 @@ script: |
     sleep 1
   done
 
-  zapi -h $ZQD_HOST -s testsp postpcap -f alerts.pcap >/dev/null
-  zapi -h $ZQD_HOST -s testsp get -z "event_type = alert | count()"
+  zapi -host $ZQD_HOST -s testsp postpcap -f alerts.pcap >/dev/null
+  zapi -host $ZQD_HOST -s testsp get -z "event_type = alert | count()"
 
 inputs:
   - name: alerts.pcap

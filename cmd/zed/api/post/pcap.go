@@ -51,12 +51,13 @@ func NewPostPcap(parent charm.Command, fs *flag.FlagSet) (charm.Command, error) 
 }
 
 func (c *PostPcapCommand) Run(args []string) (err error) {
+	ctx, cleanup, err := c.Init(&c.postFlags)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) == 0 {
 		return errors.New("path arg required")
-	}
-	defer c.Cleanup()
-	if err := c.Init(&c.postFlags); err != nil {
-		return err
 	}
 	var dp *display.Display
 	if !c.NoFancy {
@@ -68,12 +69,12 @@ func (c *PostPcapCommand) Run(args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	id, err := c.SpaceID()
+	id, err := c.SpaceID(ctx)
 	if err != nil {
 		return err
 	}
 	conn := c.Connection()
-	stream, err := conn.PcapPostStream(c.Context(), id, api.PcapPostRequest{Path: file})
+	stream, err := conn.PcapPostStream(ctx, id, api.PcapPostRequest{Path: file})
 	if err != nil {
 		return err
 	}
@@ -99,7 +100,7 @@ loop:
 	if dp != nil {
 		dp.Close()
 	}
-	if err != nil && c.Context().Err() != nil {
+	if err != nil && ctx.Err() != nil {
 		fmt.Printf("%s: pcap post aborted\n", file)
 		return nil
 	}

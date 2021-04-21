@@ -34,20 +34,20 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	ctx, cleanup, err := c.Init(&c.createFlags)
+	if err != nil {
+		return err
+	}
+	defer cleanup()
 	if len(args) > 1 {
 		return errors.New("too many arguments")
 	}
 	if len(args) != 1 {
 		return errors.New("must specify a space name")
 	}
-	defer c.Cleanup()
-	if err := c.Init(&c.createFlags); err != nil {
-		return err
-	}
-
 	name := args[0]
 	conn := c.Connection()
-	sp, err := c.createFlags.Create(c.Context(), conn, name)
+	sp, err := c.createFlags.Create(ctx, conn, name)
 	if err != nil {
 		return fmt.Errorf("couldn't create new space %s: %w", name, err)
 	}

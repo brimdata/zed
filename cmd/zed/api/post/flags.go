@@ -26,9 +26,11 @@ func (f *postFlags) SetFlags(fs *flag.FlagSet) {
 
 func (f *postFlags) Init() error {
 	c := f.cmd
-	if err := c.Init(&f.SpaceCreateFlags); err != nil {
+	ctx, cleanup, err := c.Init(&f.SpaceCreateFlags)
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	if f.shaper != "" {
 		ast, err := compiler.ParseProc(f.shaper)
 		if err != nil {
@@ -41,11 +43,11 @@ func (f *postFlags) Init() error {
 	} else if c.Spacename == "" {
 		return errors.New("if -f flag is enabled, a space name must specified")
 	}
-	sp, err := f.SpaceCreateFlags.Create(c.Context(), c.Connection(), c.Spacename)
+	sp, err := f.SpaceCreateFlags.Create(ctx, c.Connection(), c.Spacename)
 	if err != nil {
 		if err == client.ErrSpaceExists {
 			// Fetch space ID.
-			_, err = c.SpaceID()
+			_, err = c.SpaceID(ctx)
 		}
 		return err
 	}

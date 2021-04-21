@@ -71,20 +71,21 @@ func NewFind(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *FindCmd) Run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(&c.outputFlags); err != nil {
+	ctx, cleanup, err := c.Init(&c.outputFlags)
+	if err != nil {
 		return err
 	}
+	defer cleanup()
 	req := api.IndexSearchRequest{IndexName: c.indexFile, Patterns: args}
-	id, err := c.SpaceID()
+	id, err := c.SpaceID(ctx)
 	if err != nil {
 		return err
 	}
-	stream, err := c.Connection().IndexSearch(c.Context(), id, req, nil)
+	stream, err := c.Connection().IndexSearch(ctx, id, req, nil)
 	if err != nil {
 		return err
 	}
-	writer, err := emitter.NewFile(c.Context(), c.outputFlags.FileName(), c.outputFlags.Options())
+	writer, err := emitter.NewFile(ctx, c.outputFlags.FileName(), c.outputFlags.Options())
 	if err != nil {
 		return err
 	}

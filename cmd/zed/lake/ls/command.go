@@ -31,20 +31,18 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
+	lake        *zedlake.Command
 	partition   bool
 	at          string
-	lakeFlags   zedlake.Flags
 	outputFlags outputflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(*zedlake.Command)}
 	f.StringVar(&c.at, "at", "", "commit tag or journal ID for time travel")
 	f.BoolVar(&c.partition, "partition", false, "display partitions as determined by scan logic")
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
@@ -52,15 +50,15 @@ func (c *Command) Run(args []string) error {
 	if len(args) > 0 {
 		return errors.New("zed lake ls: too many arguments")
 	}
-	ctx, cleanup, err := c.Init(&c.outputFlags)
+	ctx, cleanup, err := c.lake.Init(&c.outputFlags)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
 	pipeReader, pipeWriter := io.Pipe()
 	w := zngio.NewWriter(pipeWriter, zngio.WriterOpts{})
-	if c.lakeFlags.PoolName == "" {
-		lk, err := c.lakeFlags.Open(ctx)
+	if c.lake.Flags.PoolName == "" {
+		lk, err := c.lake.Flags.Open(ctx)
 		if err != nil {
 			return err
 		}
@@ -69,7 +67,7 @@ func (c *Command) Run(args []string) error {
 			w.Close()
 		}()
 	} else {
-		pool, err := c.lakeFlags.OpenPool(ctx)
+		pool, err := c.lake.Flags.OpenPool(ctx)
 		if err != nil {
 			return err
 		}
