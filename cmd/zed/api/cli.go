@@ -48,7 +48,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	// If not a terminal make nofancy on by default.
 	c.NoFancy = !terminal.IsTerminalFile(os.Stdout)
 	defaultHost := "localhost:9867"
-	f.StringVar(&c.Host, "service", defaultHost, "<host[:port]>")
+	f.StringVar(&c.Host, "host", defaultHost, "<host[:port]>")
 	f.StringVar(&c.Spacename, "s", c.Spacename, "<space>")
 	f.Var(&c.spaceID, "id", "<space_id>")
 	f.BoolVar(&c.NoFancy, "nofancy", c.NoFancy, "disable fancy CLI output (true if stdout is not a tty)")

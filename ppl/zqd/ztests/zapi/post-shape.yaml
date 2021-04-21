@@ -1,8 +1,8 @@
 script: |
   source services.sh
-  zapi -service $ZQD_HOST new test
-  zapi -service $ZQD_HOST -s test post -z "put ip=ip(ip)" in.zson in.zson
-  zapi -service $ZQD_HOST -s test get -f zson > out.zson
+  zapi -host $ZQD_HOST new test
+  zapi -host $ZQD_HOST -s test post -z "put ip=ip(ip)" in.zson in.zson
+  zapi -host $ZQD_HOST -s test get -f zson > out.zson
 
 inputs:
   - name: services.sh

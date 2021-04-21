@@ -6,24 +6,24 @@ script: |
   # This creates a space with a small threshold in order to produce
   # three or more "chunks" in the space
   #
-  zapi -service $ZQD_HOST new -k archivestore -d spacedir -thresh 15KB testsp > /dev/null
+  zapi -host $ZQD_HOST new -k archivestore -d spacedir -thresh 15KB testsp > /dev/null
   #
   # This is the same smtp.log from zed-sample-data
   #
-  zapi -service $ZQD_HOST -s testsp post smtp.log.gz > /dev/null
+  zapi -host $ZQD_HOST -s testsp post smtp.log.gz > /dev/null
 
   zq -t "count()" smtp.log.gz > zqcount.zson
-  zapi -service $ZQD_HOST -s testsp get -workers 2 -t "count()" > zapicount.zson
+  zapi -host $ZQD_HOST -s testsp get -workers 2 -t "count()" > zapicount.zson
   echo ===
   diff -s zqcount.zson zapicount.zson
 
   zq -t "39161" smtp.log.gz > zqfilter.zson
-  zapi -service $ZQD_HOST -s testsp get -workers 2 -t "39161" > zapifilter.zson
+  zapi -host $ZQD_HOST -s testsp get -workers 2 -t "39161" > zapifilter.zson
   echo ===
   diff -s zqfilter.zson zapifilter.zson
 
   zq -t "sort -r ts | tail 5" smtp.log.gz > zqtail.zson
-  zapi -service $ZQD_HOST -s testsp get -workers 2 -t "tail 5" > zapitail.zson
+  zapi -host $ZQD_HOST -s testsp get -workers 2 -t "tail 5" > zapitail.zson
   echo ===
   diff -s zqtail.zson zapitail.zson
   # cat zqd-root.log

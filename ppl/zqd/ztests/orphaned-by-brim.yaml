@@ -1,6 +1,6 @@
 script: |
   source mockbrim.sh
-  zapi -service $ZQD_HOST new testsp 
+  zapi -host $ZQD_HOST new testsp 
   echo "==="
   kill -9 $MOCKBRIM_PID 2>/dev/null
   awaitdeadzqd

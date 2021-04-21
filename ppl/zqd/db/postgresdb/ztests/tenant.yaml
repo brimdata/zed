@@ -4,9 +4,9 @@ script: |
   # Start an authentication enabled zqd, and create 2 separate access tokens
   # representing different users in different tenants.
   ZQD_EXTRA_FLAGS="-auth.enabled=true -auth.clientid=testclient -auth.domain=https://testdomain -auth.jwkspath=./auth-public-jwks.json" source startup.sh
-  zapi -service $ZQD_HOST -configpath ./user1 auth store -access \
+  zapi -host $ZQD_HOST -configpath ./user1 auth store -access \
     $(gentoken -domain https://testdomain -privatekeyfile ./auth-private-key -keyid testkey -tenantid tenant1 -userid user1)
-  zapi -service $ZQD_HOST -configpath ./user2 auth store -access \
+  zapi -host $ZQD_HOST -configpath ./user2 auth store -access \
     $(gentoken -domain https://testdomain -privatekeyfile ./auth-private-key -keyid testkey -tenantid tenant2 -userid user2)
   zapi -configpath ./user1 -h $ZQD_HOST auth verify
   zapi -configpath ./user2 -h $ZQD_HOST auth verify

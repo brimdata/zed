@@ -1,10 +1,10 @@
 script: |
   source services.sh s3://bucket/zqdroot
-  zapi -service $ZQD_HOST new -k archivestore testsp1
-  zapi -service $ZQD_HOST new -k archivestore testsp2
-  zapi -service $ZQD_HOST new -k archivestore testsp3
+  zapi -host $ZQD_HOST new -k archivestore testsp1
+  zapi -host $ZQD_HOST new -k archivestore testsp2
+  zapi -host $ZQD_HOST new -k archivestore testsp3
   echo ===
-  zapi -service $ZQD_HOST ls
+  zapi -host $ZQD_HOST ls
 
 inputs:
   - name: services.sh

@@ -5,8 +5,8 @@ env:
 
 script: |
   source startup.sh
-  zapi -service $ZQD_HOST new -k archivestore testsp >/dev/null
-  zapi -service $ZQD_HOST new testsp
+  zapi -host $ZQD_HOST new -k archivestore testsp >/dev/null
+  zapi -host $ZQD_HOST new testsp
 
 inputs:
   - name: startup.sh
