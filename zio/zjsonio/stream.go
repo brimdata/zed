@@ -56,6 +56,11 @@ func (s *Stream) typeID(typ zng.Type) (string, zed.Type) {
 	if id, ok := s.encoder[typ]; ok {
 		return id, nil
 	}
+	if zng.TypeID(typ) < zng.IDTypeDef {
+		id := typ.ZSON()
+		s.encoder[typ] = id
+		return id, nil
+	}
 	t := s.encoder.encodeType(s.zctx, typ)
 	id, ok := s.encoder[typ]
 	if !ok {

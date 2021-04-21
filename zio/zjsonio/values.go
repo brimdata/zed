@@ -71,6 +71,9 @@ func encodePrimitive(zctx *zson.Context, typ zng.Type, v zcode.Bytes) (interface
 		if err != nil {
 			return nil, err
 		}
+		if zng.TypeID(typ) < zng.IDTypeDef {
+			return typ.ZSON(), nil
+		}
 		if alias, ok := typ.(*zng.TypeAlias); ok {
 			return alias.Name, nil
 		}
