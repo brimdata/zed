@@ -273,7 +273,10 @@ types that specifies the type of `<value>`, which is a JSON string or array
 as described recursively herein,
 * a map is encoded as a list of keys of values where each the key and the value
 alternate in sequence as elements of an array that are recursively encoded,
-* a type value is encoded as its integer type identifier represented as a string, and
+* a type value is encoded as:
+    * its primitive type name for primitive types, or
+    * its typedef name as defined in a present or previous types array  in
+      the top-level object stream,
 * each primitive that is not a type value
 is encoded as a string conforming to its ZSON representation, as described in the
 [corresponding section of the ZSON specification](zson.md#33-primitive-values).
