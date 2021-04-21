@@ -15,7 +15,6 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/pcap/pcapio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/go-resty/resty/v2"
 )
@@ -31,8 +30,6 @@ var (
 	ErrSpaceNotFound = errors.New("space not found")
 	// ErrSpaceExists returns when specified the space already exists.
 	ErrSpaceExists = errors.New("space exists")
-	// ErrNoPcapResultsFound returns when a pcap search yields no results
-	ErrNoPcapResultsFound = errors.New("no pcap results found for search")
 )
 
 type Connection struct {
@@ -345,55 +342,6 @@ func (c *Connection) ArchiveStat(ctx context.Context, space api.SpaceID, params 
 		return nil, err
 	}
 	return NewZngSearch(r), nil
-}
-
-func (c *Connection) PcapPostStream(ctx context.Context, space api.SpaceID, payload api.PcapPostRequest) (*Stream, error) {
-	req := c.Request(ctx).
-		SetBody(payload)
-	req.Method = http.MethodPost
-	req.URL = path.Join("/space", string(space), "pcap")
-	r, err := c.stream(req)
-	if err != nil {
-		return nil, err
-	}
-	jsonpipe := NewJSONPipeScanner(r)
-	return NewStream(jsonpipe), nil
-}
-
-func (c *Connection) PcapPost(ctx context.Context, space api.SpaceID, payload api.PcapPostRequest) (Payloads, error) {
-	stream, err := c.PcapPostStream(ctx, space, payload)
-	if err != nil {
-		return nil, err
-	}
-	payloads, err := stream.ReadAll()
-	if err != nil {
-		return nil, err
-	}
-	return payloads, payloads.Error()
-}
-
-func (c *Connection) PcapSearch(ctx context.Context, space api.SpaceID, payload api.PcapSearch) (*PcapReadCloser, error) {
-	req := c.Request(ctx).
-		SetQueryParamsFromValues(payload.ToQuery())
-	req.Method = http.MethodGet
-	req.URL = path.Join("/space", string(space), "pcap")
-	r, err := c.stream(req)
-	if err != nil {
-		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusNotFound {
-			return nil, ErrNoPcapResultsFound
-		}
-		return nil, err
-	}
-	pr, err := pcapio.NewReader(r)
-	if err != nil {
-		return nil, err
-	}
-	return &PcapReadCloser{pr, r}, nil
-}
-
-type PcapReadCloser struct {
-	pcapio.Reader
-	io.Closer
 }
 
 type LogPostOpts struct {

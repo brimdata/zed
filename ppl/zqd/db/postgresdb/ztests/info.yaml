@@ -22,6 +22,3 @@ outputs:
         storage_kind: archivestore
         span:         <nil>
         size:         0B
-        pcap_support: false
-        pcap_size:    0B
-        pcap_path:    

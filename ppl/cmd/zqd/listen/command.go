@@ -9,7 +9,6 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
-	"os/exec"
 	"os/signal"
 	"runtime"
 
@@ -22,7 +21,6 @@ import (
 	"github.com/brimdata/zed/ppl/cmd/zqd/logger"
 	"github.com/brimdata/zed/ppl/cmd/zqd/root"
 	"github.com/brimdata/zed/ppl/zqd"
-	"github.com/brimdata/zed/ppl/zqd/pcapanalyzer"
 	"github.com/brimdata/zed/proc/sort"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -46,24 +44,20 @@ func init() {
 
 type Command struct {
 	*root.Command
-	conf            zqd.Config
-	logger          *zap.Logger
-	loggerConf      *logger.Config
-	suricataUpdater pcapanalyzer.Launcher
+	conf       zqd.Config
+	logger     *zap.Logger
+	loggerConf *logger.Config
 
 	// Flags
 
 	// brimfd is a file descriptor passed through by brim desktop. If set zqd
 	// will exit if the fd is closed.
-	brimfd              int
-	configfile          string
-	devMode             bool
-	listenAddr          string
-	logLevel            zapcore.Level
-	portFile            string
-	suricataRunnerPath  string
-	suricataUpdaterPath string
-	zeekRunnerPath      string
+	brimfd     int
+	configfile string
+	devMode    bool
+	listenAddr string
+	logLevel   zapcore.Level
+	portFile   string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -82,9 +76,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.Var(&c.logLevel, "loglevel", "logging level")
 	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, recruiter, or worker)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
-	f.StringVar(&c.suricataRunnerPath, "suricatarunner", "", "command to generate Suricata eve.json from pcap data")
-	f.StringVar(&c.suricataUpdaterPath, "suricataupdater", "", "command to update Suricata rules (run once at startup)")
-	f.StringVar(&c.zeekRunnerPath, "zeekrunner", "", "command to generate Zeek logs from pcap data")
 
 	// Hidden flag while we transition to using archive store by default.
 	// See issue 1085
@@ -121,9 +112,6 @@ func (c *Command) Run(args []string) error {
 	}
 	defer core.Shutdown()
 
-	if c.suricataUpdater != nil {
-		c.launchSuricataUpdate(ctx)
-	}
 	ch := make(chan os.Signal, 1)
 	signal.Notify(ch, os.Interrupt)
 	go func() {
@@ -155,32 +143,7 @@ func (c *Command) init() error {
 	if err := c.loadConfigFile(); err != nil {
 		return err
 	}
-	if err := c.initLogger(); err != nil {
-		return err
-	}
-	var err error
-	c.conf.Suricata, err = getLauncher(c.suricataRunnerPath, "suricatarunner", false)
-	if err != nil {
-		return err
-	}
-	c.suricataUpdater, err = getLauncher(c.suricataUpdaterPath, "suricataupdater", true)
-	if err != nil {
-		return err
-	}
-	if c.conf.Zeek, err = getLauncher(c.zeekRunnerPath, "zeekrunner", false); err != nil {
-		return err
-	}
-	return nil
-}
-
-func getLauncher(path, defaultFile string, stdout bool) (pcapanalyzer.Launcher, error) {
-	if path == "" {
-		var err error
-		if path, err = exec.LookPath(defaultFile); err != nil {
-			return nil, nil
-		}
-	}
-	return pcapanalyzer.LauncherFromPath(path, stdout)
+	return c.initLogger()
 }
 
 func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
@@ -227,25 +190,6 @@ func (c *Command) loadConfigFile() error {
 	}
 
 	return err
-}
-
-func (c *Command) launchSuricataUpdate(ctx context.Context) {
-	c.logger.Info("Launching suricata updater")
-	go func() {
-		sproc, err := c.suricataUpdater(ctx, nil, "")
-		if err != nil {
-			c.logger.Error("Launching suricata updater", zap.Error(err))
-			return
-		}
-		err = sproc.Wait()
-		c.logger.Info("Suricata updater completed")
-		if err != nil {
-			c.logger.Error("Running suricata updater", zap.Error(err))
-			return
-		}
-		stdout := sproc.Stdout()
-		c.logger.Info("Suricata updater stdout", zap.String("stdout", stdout))
-	}()
 }
 
 // defaultLogger ignores output from the access logger.

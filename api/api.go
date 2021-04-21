@@ -5,10 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net"
-	"net/url"
 	"regexp"
-	"strconv"
 
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
@@ -117,11 +114,8 @@ type Space struct {
 
 type SpaceInfo struct {
 	Space
-	Span        *nano.Span `json:"span,omitempty"`
-	Size        int64      `json:"size" unit:"bytes"`
-	PcapSupport bool       `json:"pcap_support"`
-	PcapSize    int64      `json:"pcap_size" unit:"bytes"`
-	PcapPath    iosrc.URI  `json:"pcap_path"`
+	Span *nano.Span `json:"span,omitempty"`
+	Size int64      `json:"size" unit:"bytes"`
 }
 
 type VersionResponse struct {
@@ -136,28 +130,6 @@ type SpacePostRequest struct {
 
 type SpacePutRequest struct {
 	Name string `json:"name"`
-}
-
-type PcapPostRequest struct {
-	Path string `json:"path"`
-}
-
-type PcapPostWarning struct {
-	Type    string `json:"type"`
-	Warning string `json:"warning"`
-}
-
-type PcapPostStatus struct {
-	Type               string     `json:"type"`
-	StartTime          nano.Ts    `json:"start_time"`
-	UpdateTime         nano.Ts    `json:"update_time"`
-	PcapSize           int64      `json:"pcap_total_size" unit:"bytes"`
-	PcapReadSize       int64      `json:"pcap_read_size" unit:"bytes"`
-	DataChunksWritten  int64      `json:"data_chunks_written,omitempty" unit:"bytes"`
-	RecordBytesWritten int64      `json:"record_bytes_written,omitempty" unit:"bytes"`
-	RecordsWritten     int64      `json:"records_written,omitempty"`
-	SnapshotCount      int        `json:"snapshot_count,omitempty"`
-	Span               *nano.Span `json:"span,omitempty"`
 }
 
 type LogPostRequest struct {
@@ -181,89 +153,6 @@ type LogPostResponse struct {
 	Type      string   `json:"type"`
 	BytesRead int64    `json:"bytes_read" unit:"bytes"`
 	Warnings  []string `json:"warnings"`
-}
-
-// PcapSearch are the query string args to the packet endpoint when searching
-// for packets within a connection 5-tuple.
-type PcapSearch struct {
-	Span    nano.Span
-	Proto   string `validate:"required"`
-	SrcHost net.IP `validate:"required"`
-	SrcPort uint16
-	DstHost net.IP `validate:"required"`
-	DstPort uint16
-}
-
-// ToQuery transforms a packet search into a url.Values.
-func (ps *PcapSearch) ToQuery() url.Values {
-	tssec, tsns := ps.Span.Ts.Split()
-	dursec := int(ps.Span.Dur / 1000000000)
-	durns := int(int64(ps.Span.Dur) - int64(dursec)*1000000000)
-	q := url.Values{}
-	q.Add("ts_sec", strconv.Itoa(int(tssec)))
-	q.Add("ts_ns", strconv.Itoa(int(tsns)))
-	q.Add("duration_sec", strconv.Itoa(dursec))
-	q.Add("duration_ns", strconv.Itoa(durns))
-	q.Add("proto", ps.Proto)
-	q.Add("src_host", ps.SrcHost.String())
-	q.Add("dst_host", ps.DstHost.String())
-	if ps.SrcPort != 0 {
-		q.Add("src_port", strconv.Itoa(int(ps.SrcPort)))
-	}
-	if ps.DstPort != 0 {
-		q.Add("dst_port", strconv.Itoa(int(ps.DstPort)))
-	}
-	return q
-}
-
-// FromQuery parses a query string and populates the receiver's values.
-func (ps *PcapSearch) FromQuery(v url.Values) error {
-	var err error
-	var tsSec, tsNs, durSec, durNs int64
-	if tsSec, err = strconv.ParseInt(v.Get("ts_sec"), 10, 64); err != nil {
-		return err
-	}
-	if tsNs, err = strconv.ParseInt(v.Get("ts_ns"), 10, 64); err != nil {
-		return err
-	}
-	if durSec, err = strconv.ParseInt(v.Get("duration_sec"), 10, 64); err != nil {
-		return err
-	}
-	if durNs, err = strconv.ParseInt(v.Get("duration_ns"), 10, 64); err != nil {
-		return err
-	}
-	if v.Get("src_port") != "" {
-		p, err := strconv.ParseUint(v.Get("src_port"), 10, 16)
-		if err != nil {
-			return err
-		}
-		ps.SrcPort = uint16(p)
-	}
-	if v.Get("dst_port") != "" {
-		p, err := strconv.ParseUint(v.Get("dst_port"), 10, 16)
-		if err != nil {
-			return err
-		}
-		ps.DstPort = uint16(p)
-	}
-	span := nano.Span{
-		Ts:  nano.Unix(tsSec, tsNs),
-		Dur: nano.DurationFromParts(durSec, durNs),
-	}
-	ps.Span = span
-	ps.Proto = v.Get("proto")
-	switch ps.Proto {
-	case "tcp", "udp", "icmp":
-	default:
-		return fmt.Errorf("unsupported proto: %s", ps.Proto)
-	}
-	if ps.SrcHost = net.ParseIP(v.Get("src_host")); ps.SrcHost == nil {
-		return fmt.Errorf("invalid ip: %s", ps.SrcHost)
-	}
-	if ps.DstHost = net.ParseIP(v.Get("dst_host")); ps.DstHost == nil {
-		return fmt.Errorf("invalid ip: %s", ps.DstHost)
-	}
-	return nil
 }
 
 type IndexSearchRequest struct {
@@ -315,7 +204,7 @@ type ArchiveCreateOptions struct {
 
 // FileStoreReadOnly controls if new spaces may be created using the
 // FileStore storage kind, and if existing FileStore spaces may have new
-// data (either pcap or logs) added to them.
+// data added to them.
 // This intended to be temporary until we transition to only allowing archive
 // stores for new spaces; see issue 1085.
 var FileStoreReadOnly bool

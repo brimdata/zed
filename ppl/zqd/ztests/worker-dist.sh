@@ -2,10 +2,10 @@
 
 # start two zqd workers and a zqd root process
 mkdir -p worker_root_1
-zqd listen -l=localhost:0 -portfile=$portdir/zqd-w1 -data=worker_root_1 -loglevel=warn -suricataupdater=true &> zqd-w1.log &
+zqd listen -l=localhost:0 -portfile=$portdir/zqd-w1 -data=worker_root_1 -loglevel=warn &> zqd-w1.log &
 zqdw1pid=$!
 mkdir -p worker_root_2
-zqd listen -l=localhost:0 -portfile=$portdir/zqd-w2 -data=worker_root_2 -loglevel=warn -suricataupdater=true &> zqd-w2.log &
+zqd listen -l=localhost:0 -portfile=$portdir/zqd-w2 -data=worker_root_2 -loglevel=warn &> zqd-w2.log &
 zqdw2pid=$!
 
 awaitfile $portdir/zqd-w1
@@ -15,8 +15,7 @@ awaitfile $portdir/zqd-w2
 portw2=$(cat $portdir/zqd-w2)
 
 test_workers=127.0.0.1:$portw1,127.0.0.1:$portw2
-zqd listen -l=localhost:0 -portfile=$portdir/zqd -data=$zqdroot \
-  -loglevel=warn -suricataupdater=true \
+zqd listen -l=localhost:0 -portfile=$portdir/zqd -data=$zqdroot -loglevel=warn \
   -worker.bound=$test_workers -worker.fallback=false &> zqd-root.log &
 zqdpid=$!
 awaitfile $portdir/zqd

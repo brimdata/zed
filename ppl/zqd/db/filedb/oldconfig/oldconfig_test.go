@@ -10,7 +10,6 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/pcap"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/ppl/zqd/apiserver"
@@ -22,14 +21,13 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestV3MigrationNoPcap(t *testing.T) {
+func TestV3Migration(t *testing.T) {
 	tm := newTestMigration(t)
 
 	id := tm.initSpace(oldconfig.ConfigV2{
-		Version:  2,
-		Name:     "test",
-		DataURI:  iosrc.URI{},
-		PcapPath: "",
+		Version: 2,
+		Name:    "test",
+		DataURI: iosrc.URI{},
 		Storage: api.StorageConfig{
 			Kind: api.FileStore,
 		},
@@ -37,54 +35,22 @@ func TestV3MigrationNoPcap(t *testing.T) {
 	conf := tm.spaceInfo(id)
 
 	assert.Equal(t, "test", conf.Name)
-	assert.Equal(t, "", conf.PcapPath.String())
-	assert.Equal(t, false, conf.PcapSupport)
-}
-
-func TestV3MigrationPcap(t *testing.T) {
-	tm := newTestMigration(t)
-	pcapuri := tm.root.AppendPath("test.pcap")
-
-	id := tm.initSpace(oldconfig.ConfigV2{
-		Version:  2,
-		Name:     "test",
-		DataURI:  iosrc.URI{},
-		PcapPath: pcapuri.Filepath(),
-		Storage: api.StorageConfig{
-			Kind: api.FileStore,
-		},
-	})
-	err := iosrc.WriteFile(context.Background(), pcapuri, nil)
-	require.NoError(t, err)
-	tm.writeSpaceJSONFile(id, "packets.idx.json", pcap.Index{})
-
-	info := tm.spaceInfo(id)
-
-	assert.Equal(t, "test", info.Name)
-	assert.Equal(t, pcapuri, info.PcapPath)
-	assert.Equal(t, true, info.PcapSupport)
 }
 
 func TestV2Migration(t *testing.T) {
 	tm := newTestMigration(t)
-	pcapuri := tm.root.AppendPath("test.pcap")
 
 	id := tm.initSpace(oldconfig.ConfigV1{
 		Version:  1,
 		Name:     "test",
 		DataPath: ".",
-		PcapPath: pcapuri.Filepath(),
 		Storage: api.StorageConfig{
 			Kind: api.FileStore,
 		},
 	})
-	err := iosrc.WriteFile(context.Background(), pcapuri, nil)
-	require.NoError(t, err)
-	tm.writeSpaceJSONFile(id, "packets.idx.json", pcap.Index{})
 
 	info := tm.spaceInfo(id)
 	assert.Equal(t, "test", info.Name)
-	assert.Equal(t, pcapuri, info.PcapPath)
 }
 
 func TestV1Migration(t *testing.T) {

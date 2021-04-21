@@ -4,15 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/pcap"
-	"github.com/brimdata/zed/pkg/ctxio"
 	"github.com/brimdata/zed/ppl/zqd/auth"
 	"github.com/brimdata/zed/ppl/zqd/ingest"
 	"github.com/brimdata/zed/ppl/zqd/jsonpipe"
@@ -148,43 +145,6 @@ func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, err
 	}
 }
 
-func handlePcapSearch(c *Core, w http.ResponseWriter, r *http.Request) {
-	var req api.PcapSearch
-	if err := req.FromQuery(r.URL.Query()); err != nil {
-		respondError(c, w, r, zqe.E(zqe.Invalid, err))
-		return
-	}
-	id, ok := extractSpaceID(c, w, r)
-	if !ok {
-		return
-	}
-	pcapstore, err := c.mgr.GetPcapStorage(r.Context(), id)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	if pcapstore.Empty() {
-		respondError(c, w, r, zqe.E(zqe.NotFound, "no pcap in this space"))
-		return
-	}
-	reader, err := pcapstore.NewSearch(r.Context(), req)
-	if err == pcap.ErrNoPcapsFound {
-		respondError(c, w, r, zqe.E(zqe.NotFound, err))
-		return
-	}
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	defer reader.Close()
-	w.Header().Set("Content-Type", "application/vnd.tcpdump.pcap")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("inline; filename=%s.pcap", reader.ID()))
-	_, err = ctxio.Copy(r.Context(), w, reader)
-	if err != nil {
-		c.requestLogger(r).Error("Error writing packet response", zap.Error(err))
-	}
-}
-
 func handleSpaceList(c *Core, w http.ResponseWriter, r *http.Request) {
 	spaces, err := c.mgr.ListSpaces(r.Context())
 	if err != nil {
@@ -250,105 +210,6 @@ func handleSpaceDelete(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
-}
-
-func handlePcapPost(c *Core, w http.ResponseWriter, r *http.Request) {
-	if !c.HasZeek() {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "pcap post not supported: Zeek not found"))
-		return
-	}
-	logger := c.requestLogger(r)
-
-	var req api.PcapPostRequest
-	if !request(c, w, r, &req) {
-		return
-	}
-
-	ctx := r.Context()
-	id, ok := extractSpaceID(c, w, r)
-	if !ok {
-		return
-	}
-	store, err := c.mgr.GetStorage(ctx, id)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	if store.Kind() == api.FileStore && api.FileStoreReadOnly {
-		respondError(c, w, r, errFileStoreReadOnly)
-		return
-	}
-	pcapstore, err := c.mgr.GetPcapStorage(ctx, id)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-
-	op, err := ingest.NewPcapOp(ctx, store, pcapstore, req.Path, c.conf.Suricata, c.conf.Zeek)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	w.Header().Set("Content-Type", "application/ndjson")
-	w.WriteHeader(http.StatusAccepted)
-	pipe := jsonpipe.New(w)
-	taskID := c.nextTaskID()
-	taskStart := api.TaskStart{Type: "TaskStart", TaskID: taskID}
-	if err := pipe.Send(taskStart); err != nil {
-		logger.Warn("Error sending payload", zap.Error(err))
-		return
-	}
-	ticker := time.NewTicker(time.Second * 2)
-	defer ticker.Stop()
-	for {
-		var done bool
-		select {
-		case <-op.Done():
-			done = true
-		case <-op.Snap():
-		case warning := <-op.Warn():
-			err := pipe.Send(api.PcapPostWarning{
-				Type:    "PcapPostWarning",
-				Warning: warning,
-			})
-			if err != nil {
-				logger.Warn("error sending payload", zap.Error(err))
-				return
-			}
-		case <-ticker.C:
-		}
-
-		sum, err := store.Summary(ctx)
-		if err != nil {
-			logger.Warn("Error reading storage summary", zap.Error(err))
-			return
-		}
-
-		status := op.Status()
-		status.Span = &sum.Span
-		if err := pipe.Send(status); err != nil {
-			logger.Warn("Error sending payload", zap.Error(err))
-			return
-		}
-		if done {
-			break
-		}
-	}
-	taskEnd := api.TaskEnd{Type: "TaskEnd", TaskID: taskID}
-
-	if ctx.Err() != nil {
-		taskEnd.Error = &api.Error{Type: "Error", Message: "pcap post operation canceled"}
-	} else if operr := op.Err(); operr != nil {
-		var ok bool
-		taskEnd.Error, ok = operr.(*api.Error)
-		if !ok {
-			taskEnd.Error = &api.Error{Type: "Error", Message: operr.Error()}
-		}
-	}
-	if err := pipe.SendFinal(taskEnd); err != nil {
-		logger.Warn("Error sending payload", zap.Error(err))
-		return
-	}
 }
 
 func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {

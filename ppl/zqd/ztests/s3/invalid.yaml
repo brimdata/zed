@@ -2,19 +2,15 @@ script: |
   source services.sh s3://bucket/zqdroot
   zapi -host $ZQD_HOST new -k filestore testsp
   zapi -host $ZQD_HOST -s testsp post -k filestore -f babble.zson
-  zapi -host $ZQD_HOST -s testsp postpcap -k filestore -f babble.zson
 
 inputs:
   - name: services.sh
     source: ../services.sh
   - name: babble.zson
     source: ../../../../testdata/babble.zson
-  - name: ng.pcap
-    source: ../../../../pcap/ztests/ng.pcap
 
 outputs:
   - name: stderr
     data: |
       couldn't create new space testsp: status code 400: cannot create file storage space on non-file backed data path
-      status code 400: cannot create file storage space on non-file backed data path
       status code 400: cannot create file storage space on non-file backed data path
