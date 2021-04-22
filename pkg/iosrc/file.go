@@ -38,6 +38,18 @@ func (s *FileSource) WriteFile(_ context.Context, d []byte, uri URI) error {
 	return wrapfileError(uri, err)
 }
 
+func (s *FileSource) WriteFileIfNotExists(_ context.Context, b []byte, uri URI) error {
+	f, err := os.OpenFile(uri.Filepath(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC|os.O_EXCL, 0600)
+	if err == nil {
+		return wrapfileError(uri, err)
+	}
+	_, err = f.Write(b)
+	if closeErr := f.Close(); err == nil {
+		err = closeErr
+	}
+	return wrapfileError(uri, err)
+}
+
 func (s *FileSource) MkdirAll(uri URI, perm os.FileMode) error {
 	return wrapfileError(uri, os.MkdirAll(uri.Filepath(), perm))
 }

@@ -6,10 +6,11 @@ package mock
 
 import (
 	context "context"
-	iosrc "github.com/brimdata/zed/pkg/iosrc"
-	gomock "github.com/golang/mock/gomock"
 	io "io"
 	reflect "reflect"
+
+	iosrc "github.com/brimdata/zed/pkg/iosrc"
+	gomock "github.com/golang/mock/gomock"
 )
 
 // MockSource is a mock of Source interface
@@ -157,6 +158,14 @@ func (mr *MockSourceMockRecorder) Stat(arg0, arg1 interface{}) *gomock.Call {
 func (m *MockSource) WriteFile(arg0 context.Context, arg1 []byte, arg2 iosrc.URI) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WriteFile", arg0, arg1, arg2)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// WriteFile mocks base method
+func (m *MockSource) WriteFileIfNotExists(arg0 context.Context, arg1 []byte, arg2 iosrc.URI) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "WriteFileIfNotExists", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }

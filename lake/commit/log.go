@@ -3,7 +3,10 @@ package commit
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"os"
+	"time"
 
 	"github.com/brimdata/zed/lake/commit/actions"
 	"github.com/brimdata/zed/lake/journal"
@@ -21,7 +24,12 @@ type Log struct {
 	snapshots map[journal.ID]*Snapshot
 }
 
-const journalHandle = "J"
+const (
+	journalHandle = "J"
+	MaxRetries    = 10
+)
+
+var ErrRetriesExceeded = fmt.Errorf("commit journal unavailable after %d attempts", MaxRetries)
 
 func newLog(path iosrc.URI, order zbuf.Order) *Log {
 	return &Log{
@@ -60,7 +68,18 @@ func (l *Log) Commit(ctx context.Context, commit *Transaction) error {
 	if err != nil {
 		return err
 	}
-	return l.journal.Commit(ctx, b)
+	for attempts := 0; attempts < MaxRetries; attempts++ {
+		err := l.journal.Commit(ctx, b)
+		if err != nil {
+			if os.IsExist(err) {
+				time.Sleep(time.Millisecond)
+				continue
+			}
+			return err
+		}
+		return nil
+	}
+	return ErrRetriesExceeded
 }
 
 func (l *Log) Open(ctx context.Context, head, tail journal.ID) (io.Reader, error) {
