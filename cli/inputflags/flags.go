@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )
@@ -53,7 +53,7 @@ func (f *Flags) Open(zctx *zson.Context, paths []string, stopOnErr bool) ([]zbuf
 		if path == "-" {
 			path = iosrc.Stdin
 		}
-		file, err := detector.OpenFile(zctx, path, f.ReaderOpts)
+		file, err := anyio.OpenFile(zctx, path, f.ReaderOpts)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
 			if stopOnErr {

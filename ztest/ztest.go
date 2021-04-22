@@ -134,7 +134,7 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/pmezard/go-difflib/difflib"
@@ -618,7 +618,7 @@ func runzq(path, zed string, outputFlags []string, inputs ...string) (string, st
 	if err := flags.Parse(outputFlags); err != nil {
 		return "", "", err
 	}
-	zw, err := detector.LookupWriter(&nopCloser{&outbuf}, zflags.Options())
+	zw, err := anyio.LookupWriter(&nopCloser{&outbuf}, zflags.Options())
 	if err != nil {
 		return "", "", err
 	}
@@ -650,7 +650,7 @@ func lookupzq(path string) (string, error) {
 func loadInputs(inputs []string, zctx *zson.Context) (zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, input := range inputs {
-		zr, err := detector.NewReader(detector.GzipReader(strings.NewReader(input)), zctx)
+		zr, err := anyio.NewReader(anyio.GzipReader(strings.NewReader(input)), zctx)
 		if err != nil {
 			return nil, err
 		}

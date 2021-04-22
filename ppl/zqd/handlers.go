@@ -20,7 +20,7 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
@@ -657,7 +657,7 @@ func handleIntakePostData(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	zctx := zson.NewContext()
-	zr, err := detector.NewReaderWithOpts(r.Body, zctx, zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}})
+	zr, err := anyio.NewReaderWithOpts(r.Body, zctx, zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}})
 	if err != nil {
 		respondError(c, w, r, err)
 		return

@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
 	"github.com/brimdata/zed/zson"
 )
@@ -35,7 +35,7 @@ func stringReader(input string, ifmt string, zctx *zson.Context) (zbuf.Reader, e
 	}
 	rc := ioutil.NopCloser(strings.NewReader(input))
 
-	return detector.OpenFromNamedReadCloser(zctx, rc, "test", opts)
+	return anyio.OpenFromNamedReadCloser(zctx, rc, "test", opts)
 }
 
 func newEmitter(ofmt string) (*emitter.Bytes, error) {

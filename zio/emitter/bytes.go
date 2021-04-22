@@ -5,7 +5,7 @@ import (
 
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 )
 
 type Bytes struct {
@@ -19,7 +19,7 @@ func (b *Bytes) Bytes() []byte {
 
 func NewBytes(opts zio.WriterOpts) (*Bytes, error) {
 	b := &Bytes{}
-	w, err := detector.LookupWriter(zio.NopCloser(&b.buf), opts)
+	w, err := anyio.LookupWriter(zio.NopCloser(&b.buf), opts)
 	if err != nil {
 		return nil, err
 	}

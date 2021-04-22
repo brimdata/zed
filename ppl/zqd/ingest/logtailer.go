@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -106,7 +106,7 @@ func (d *logTailer) tailFile(file string) error {
 	d.readers[file] = f
 	d.wg.Add(1)
 	go func() {
-		zr, err := detector.OpenFromNamedReadCloser(d.zctx, f, file, d.opts)
+		zr, err := anyio.OpenFromNamedReadCloser(d.zctx, f, file, d.opts)
 		if err != nil {
 			d.results <- result{err: err}
 			return

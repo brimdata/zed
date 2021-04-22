@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
 	"github.com/brimdata/zed/zson"
 )
@@ -53,7 +53,7 @@ func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err er
 	}
 
 	zctx := zson.NewContext()
-	rc, err := detector.OpenFile(zctx, inpath, zio.ReaderOpts{
+	rc, err := anyio.OpenFile(zctx, inpath, zio.ReaderOpts{
 		Format: informat,
 	})
 	if err != nil {
