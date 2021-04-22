@@ -6,11 +6,10 @@ package mock
 
 import (
 	context "context"
-	io "io"
-	reflect "reflect"
-
 	iosrc "github.com/brimdata/zed/pkg/iosrc"
 	gomock "github.com/golang/mock/gomock"
+	io "io"
+	reflect "reflect"
 )
 
 // MockSource is a mock of Source interface
@@ -162,7 +161,13 @@ func (m *MockSource) WriteFile(arg0 context.Context, arg1 []byte, arg2 iosrc.URI
 	return ret0
 }
 
-// WriteFile mocks base method
+// WriteFile indicates an expected call of WriteFile
+func (mr *MockSourceMockRecorder) WriteFile(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteFile", reflect.TypeOf((*MockSource)(nil).WriteFile), arg0, arg1, arg2)
+}
+
+// WriteFileIfNotExists mocks base method
 func (m *MockSource) WriteFileIfNotExists(arg0 context.Context, arg1 []byte, arg2 iosrc.URI) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WriteFileIfNotExists", arg0, arg1, arg2)
@@ -170,8 +175,8 @@ func (m *MockSource) WriteFileIfNotExists(arg0 context.Context, arg1 []byte, arg
 	return ret0
 }
 
-// WriteFile indicates an expected call of WriteFile
-func (mr *MockSourceMockRecorder) WriteFile(arg0, arg1, arg2 interface{}) *gomock.Call {
+// WriteFileIfNotExists indicates an expected call of WriteFileIfNotExists
+func (mr *MockSourceMockRecorder) WriteFileIfNotExists(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteFile", reflect.TypeOf((*MockSource)(nil).WriteFile), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteFileIfNotExists", reflect.TypeOf((*MockSource)(nil).WriteFileIfNotExists), arg0, arg1, arg2)
 }
