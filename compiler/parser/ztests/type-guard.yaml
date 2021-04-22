@@ -1,8 +1,8 @@
 script: |
-  zq -I bug.zed -z in.zson
+  zq -I bug.zed -z -
 
 inputs:
-  - name: in.zson
+  - name: stdin
     data: |
       {x:1}
   - name: bug.zed
