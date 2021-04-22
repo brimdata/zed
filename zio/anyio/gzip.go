@@ -1,4 +1,4 @@
-package detector
+package anyio
 
 import (
 	"compress/gzip"

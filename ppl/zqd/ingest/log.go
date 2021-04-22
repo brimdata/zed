@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
@@ -54,7 +54,7 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 			p.closeFiles()
 			return nil, err
 		}
-		sf, err := detector.OpenFromNamedReadCloser(p.zctx, rc, path, opts)
+		sf, err := anyio.OpenFromNamedReadCloser(p.zctx, rc, path, opts)
 		if err != nil {
 			rc.Close()
 			if req.StopErr {

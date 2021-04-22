@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/google/gopacket/layers"
 	"go.uber.org/multierr"
 )
@@ -42,8 +42,8 @@ func NewReader(r io.Reader) (Reader, error) {
 // pcap implementations can have out-of-spec peculiarities that can be tolerated
 // so we send warnings and try to keep going.
 func NewReaderWithWarnings(r io.Reader, warningCh chan<- string) (Reader, error) {
-	recorder := detector.NewRecorder(r)
-	track := detector.NewTrack(recorder)
+	recorder := anyio.NewRecorder(r)
+	track := anyio.NewTrack(recorder)
 	_, err1 := NewPcapReader(track)
 	if err1 == nil {
 		return NewPcapReader(recorder)

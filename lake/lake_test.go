@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/require"
 )
@@ -27,7 +27,7 @@ func createLake(t *testing.T, rootPath iosrc.URI, srcfile string) {
 
 func importTestFile(t *testing.T, pool *lake.Pool, srcfile string) {
 	zctx := zson.NewContext()
-	reader, err := detector.OpenFile(zctx, srcfile, zio.ReaderOpts{})
+	reader, err := anyio.OpenFile(zctx, srcfile, zio.ReaderOpts{})
 	require.NoError(t, err)
 	defer reader.Close()
 

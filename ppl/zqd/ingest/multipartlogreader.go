@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zqe"
@@ -96,7 +96,7 @@ next:
 	name := part.FileName()
 	counter := &mpcounter{part, &m.nread}
 	var zr zbuf.ReadCloser
-	zr, err = detector.OpenFromNamedReadCloser(m.zctx, counter, name, m.opts)
+	zr, err = anyio.OpenFromNamedReadCloser(m.zctx, counter, name, m.opts)
 	if err != nil {
 		part.Close()
 		if m.stopErr {
