@@ -39,7 +39,7 @@ func (s *FileSource) WriteFile(_ context.Context, d []byte, uri URI) error {
 }
 
 func (s *FileSource) WriteFileIfNotExists(_ context.Context, b []byte, uri URI) error {
-	f, err := os.OpenFile(uri.Filepath(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC|os.O_EXCL, 0600)
+	f, err := os.OpenFile(uri.Filepath(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC|os.O_EXCL, s.Perm)
 	if err != nil {
 		return wrapfileError(uri, err)
 	}
