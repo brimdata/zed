@@ -27,8 +27,8 @@ func NewCombiner(ctx context.Context, path iosrc.URI, rules []Rule, segmentID ks
 	return writers, nil
 }
 
-func (ws Combiner) Write(rec *zng.Record) error {
-	for _, w := range ws {
+func (c Combiner) Write(rec *zng.Record) error {
+	for _, w := range c {
 		if err := w.Write(rec); err != nil {
 			return err
 		}
@@ -36,8 +36,8 @@ func (ws Combiner) Write(rec *zng.Record) error {
 	return nil
 }
 
-func (ws Combiner) Close() (merr error) {
-	for _, w := range ws {
+func (c Combiner) Close() (merr error) {
+	for _, w := range c {
 		if err := w.Close(); err != nil {
 			merr = multierr.Append(merr, err)
 		}
@@ -45,16 +45,16 @@ func (ws Combiner) Close() (merr error) {
 	return
 }
 
-func (ws Combiner) References() []Reference {
-	references := make([]Reference, len(ws))
-	for i, w := range ws {
+func (c Combiner) References() []Reference {
+	references := make([]Reference, len(c))
+	for i, w := range c {
 		references[i] = w.Reference
 	}
 	return references
 }
 
-func (ws Combiner) Abort() {
-	for _, w := range ws {
+func (c Combiner) Abort() {
+	for _, w := range c {
 		w.Abort()
 	}
 }
