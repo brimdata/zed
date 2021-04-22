@@ -59,16 +59,16 @@ func (s *Spec) Exec(parent Command, args []string) error {
 
 func (s *Spec) ExecRoot(args []string) error {
 	path, rest, showHidden, err := parse(s, args, nil)
-	if err != nil {
-		if err == NeedHelp {
-			path, err := parseHelp(s, args)
-			if err != nil {
-				return err
-			}
-			displayHelp(path, showHidden)
-			return nil
-		}
-		return err
+	if err == nil {
+		err = path.run(rest)
 	}
-	return path.run(rest)
+	if err == NeedHelp {
+		path, err := parseHelp(s, args)
+		if err != nil {
+			return err
+		}
+		displayHelp(path, showHidden)
+		return nil
+	}
+	return err
 }

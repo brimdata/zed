@@ -1,0 +1,7 @@
+script: |
+  zed
+
+outputs:
+  - name: stderr
+    regexp: |
+      run zed commands
