@@ -67,7 +67,7 @@ func (m *orderedmsrc) SendSources(ctx context.Context, span nano.Span, srcChan c
 	// Create SourceOpeners that await a signal before returning, then
 	// signal them in reverse of expected order.
 	var releaseChs []chan struct{}
-	for _ = range parallelTestInputs {
+	for range parallelTestInputs {
 		releaseChs = append(releaseChs, make(chan struct{}))
 	}
 	for i := range parallelTestInputs {

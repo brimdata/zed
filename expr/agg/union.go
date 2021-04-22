@@ -61,7 +61,7 @@ func (u *Union) Result(zctx *zson.Context) (zng.Value, error) {
 	}
 	var b zcode.Builder
 	container := zng.IsContainerType(u.typ)
-	for s, _ := range u.val {
+	for s := range u.val {
 		if container {
 			b.AppendContainer([]byte(s))
 		} else {
