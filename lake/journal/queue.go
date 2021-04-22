@@ -73,7 +73,7 @@ func (q *Queue) Commit(ctx context.Context, b []byte) error {
 		return err
 	}
 	uri := q.uri(head + 1)
-	if err := iosrc.WriteFile(ctx, uri, b); err != nil {
+	if err := iosrc.WriteFileIfNotExists(ctx, uri, b); err != nil {
 		return err
 	}
 	if head == 0 {

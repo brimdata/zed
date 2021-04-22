@@ -68,6 +68,10 @@ func (l *Log) Commit(ctx context.Context, commit *Transaction) error {
 	if err != nil {
 		return err
 	}
+	//XXX It's a bug to do this loop here as the committer above should
+	// recompute its commit and check for a write-conflict.  Right now,
+	// we are just demo-ing concurrent loads so it's not a problem,
+	// but it will eventually become one.  This is all addressed in #2546.
 	for attempts := 0; attempts < MaxRetries; attempts++ {
 		err := l.journal.Commit(ctx, b)
 		if err != nil {
