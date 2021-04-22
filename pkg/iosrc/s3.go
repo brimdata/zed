@@ -52,7 +52,7 @@ func (s *s3Source) WriteFile(ctx context.Context, d []byte, u URI) error {
 }
 
 func (s *s3Source) WriteFileIfNotExists(ctx context.Context, d []byte, u URI) error {
-	return errors.New("s3Source.WriteFileIfNotExists not yet implemented.  Issue #XXX")
+	return errors.New("s3Source.WriteFileIfNotExists not yet implemented.  Issue #2615")
 }
 
 func (s *s3Source) Remove(ctx context.Context, u URI) error {
