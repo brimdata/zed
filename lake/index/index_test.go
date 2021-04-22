@@ -1,20 +1,15 @@
 package index
 
 import (
-	"context"
-	"fmt"
 	"os"
-	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
+/* Not yet
 func TestWriteIndices(t *testing.T) {
 	const data = `
 {ts:1970-01-01T00:00:01Z,orig_h:127.0.0.1,proto:"conn"}
@@ -98,7 +93,7 @@ func TestFindTypeRule(t *testing.T) {
 }
 
 func TestZQLRule(t *testing.T) {
-	r, err := NewZqlRule("sum(v) by s | put key=s | sort key", "custom", nil)
+	r, err := NewZedRule("sum(v) by s | put key=s | sort key", "custom", nil)
 	require.NoError(t, err)
 	w := testWriter(t, r)
 	err = zbuf.Copy(w, babbleReader(t))
@@ -118,10 +113,12 @@ func TestZQLRule(t *testing.T) {
 	assert.EqualValues(t, "kartometer-trifocal", key)
 	assert.EqualValues(t, 397, count)
 }
+*/
 
 func babbleReader(t *testing.T) zbuf.Reader {
 	t.Helper()
 	r, err := os.Open("../../testdata/babble-sorted.zson")
 	require.NoError(t, err)
+	t.Cleanup(func() { r.Close() })
 	return zson.NewReader(r, zson.NewContext())
 }

@@ -4,11 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/commit/actions"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/terminal/color"
@@ -76,6 +78,8 @@ func formatValue(t table, b *bytes.Buffer, v interface{}, width int, colors *col
 		t.formatCommit(b, v, width, colors)
 	case *actions.StagedCommit:
 		t.formatStaged(b, v, colors)
+	case *index.Rule:
+		formatXRule(b, v, 0)
 	default:
 		if action, ok := v.(actions.Interface); ok {
 			t.append(action)
@@ -178,6 +182,8 @@ func (t table) formatActions(b *bytes.Buffer, id ksuid.KSUID) {
 		switch action := action.(type) {
 		case *actions.Add:
 			formatAdd(b, 4, action)
+		case *actions.AddX:
+			formatAddX(b, 4, action)
 		case *actions.Delete:
 			formatDelete(b, 4, action)
 		}
@@ -194,4 +200,44 @@ func formatDelete(b *bytes.Buffer, indent int, delete *actions.Delete) {
 
 func formatAdd(b *bytes.Buffer, indent int, add *actions.Add) {
 	formatSegment(b, &add.Segment, "Add", indent)
+}
+
+func formatAddX(b *bytes.Buffer, indent int, addx *actions.AddX) {
+	formatIndex(b, &addx.Index, "AddX", indent)
+}
+
+func formatIndex(b *bytes.Buffer, index *index.Reference, prefix string, indent int) {
+	tab(b, indent)
+	if prefix != "" {
+		b.WriteString(prefix)
+		b.WriteByte(' ')
+	}
+	b.WriteString(fmt.Sprintf("%s xrule %s segment", index.Rule.ID, index.SegmentID))
+	b.WriteByte('\n')
+}
+
+func formatXRule(b *bytes.Buffer, xrule *index.Rule, indent int) {
+	tab(b, indent)
+	b.WriteString("XRule ")
+	b.WriteString(xrule.ID.String() + " ")
+	switch xrule.Kind {
+	case index.RuleType:
+		b.WriteString("type ")
+		b.WriteString(xrule.Value)
+	case index.RuleField:
+		b.WriteString("field ")
+		b.WriteString(xrule.Value)
+	case index.RuleZed:
+		keys := make([]string, len(xrule.Keys))
+		for i, k := range xrule.Keys {
+			keys[i] = k.String()
+		}
+
+		b.WriteString("field(s) ")
+		b.WriteString(strings.Join(keys, ", "))
+		b.WriteString(" from zed script:\n  ")
+		tab(b, indent)
+		b.WriteString(xrule.Value)
+	}
+	b.WriteByte('\n')
 }

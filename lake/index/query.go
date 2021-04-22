@@ -57,12 +57,12 @@ func ParseQuery(name string, patterns []string) (Query, error) {
 
 func (q Query) Matches(r Rule) bool {
 	switch r.Kind {
-	case RuleZQL:
+	case RuleZed:
 		return q.Name == r.Name
 	case RuleType:
-		return q.Type == r.Type
+		return q.Type == r.Value
 	case RuleField:
-		return q.Field == r.Field
+		return q.Field == r.Value
 	}
 	return false
 }

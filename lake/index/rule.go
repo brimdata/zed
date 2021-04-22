@@ -7,12 +7,12 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
+	"github.com/segmentio/ksuid"
 )
 
 type RuleKind string
@@ -20,22 +20,20 @@ type RuleKind string
 const (
 	RuleType  RuleKind = "type"
 	RuleField RuleKind = "field"
-	RuleZQL   RuleKind = "zql"
+	RuleZed   RuleKind = "zed"
 )
 
 // Rule contains the runtime configuration for an indexing rule.
 type Rule struct {
+	Framesize int            `zng:"framesize,omitempty"`
+	ID        ksuid.KSUID    `zng:"id"`
+	Name      string         `zng:"name,omitempty"`
+	Keys      []field.Static `zng:"keys,omitempty"`
 	Kind      RuleKind       `zng:"kind"`
-	Type      string         `zng:"type"`
-	Name      string         `zng:"name"`
-	Field     string         `zng:"field"`
-	Framesize int            `zng:"framesize"`
-	Input     string         `zng:"input_path"`
-	Keys      []field.Static `zng:"keys"`
-	ZQL       string         `zng:"zql"`
+	Value     string         `zng:"type"`
 }
 
-func NewRule(pattern string) (Rule, error) {
+func ParseRule(pattern string) (Rule, error) {
 	if pattern[0] == ':' {
 		typ, err := zson.NewContext().LookupByName(pattern[1:])
 		if err != nil {
@@ -48,8 +46,9 @@ func NewRule(pattern string) (Rule, error) {
 
 func NewTypeRule(typ zng.Type) Rule {
 	return Rule{
-		Kind: RuleType,
-		Type: tzngio.TypeString(typ),
+		ID:    ksuid.New(),
+		Kind:  RuleType,
+		Value: tzngio.TypeString(typ),
 	}
 }
 
@@ -57,8 +56,9 @@ func NewTypeRule(typ zng.Type) Rule {
 // It is currently an error to try to index a field name that appears as different types.
 func NewFieldRule(fieldName string) Rule {
 	return Rule{
+		ID:    ksuid.New(),
 		Kind:  RuleField,
-		Field: fieldName,
+		Value: fieldName,
 	}
 }
 
@@ -73,35 +73,30 @@ func UnmarshalRule(b []byte) (Rule, error) {
 	return r, resolver.UnmarshalRecord(rec, &r)
 }
 
-func NewZqlRule(prog, name string, keys []field.Static) (Rule, error) {
+func NewZedRule(prog, name string, keys []field.Static) (Rule, error) {
 	// make sure it compiles
 	if _, err := compiler.ParseProc(prog); err != nil {
 		return Rule{}, err
 	}
 	return Rule{
-		Kind: RuleZQL,
-		ZQL:  prog,
-		Name: name,
-		Keys: keys,
+		ID:    ksuid.New(),
+		Keys:  keys,
+		Kind:  RuleZed,
+		Name:  name,
+		Value: prog,
 	}, nil
 }
 
 // Equivalent determine if the provided Rule is equivalent to the receiver. It
 // should used to check if a Definition already contains and equivalent rule.
 func (r Rule) Equivalent(r2 Rule) bool {
-	if r.Kind != r2.Kind || r.Input != r2.Input {
+	if r.Kind != r2.Kind || r.Value != r2.Value {
 		return false
 	}
-	switch r.Kind {
-	case RuleType:
-		return r.Type == r2.Type
-	case RuleField:
-		return r.Field == r2.Field
-	case RuleZQL:
-		return r.Name == r2.Name && r.ZQL == r2.ZQL
-	default:
-		return false
+	if r.Kind == RuleZed {
+		return r.Name == r2.Name
 	}
+	return true
 }
 
 func (r Rule) Proc() (ast.Proc, error) {
@@ -110,7 +105,7 @@ func (r Rule) Proc() (ast.Proc, error) {
 		return r.typeProc()
 	case RuleField:
 		return r.fieldProc()
-	case RuleZQL:
+	case RuleZed:
 		return r.zqlProc()
 	default:
 		return nil, fmt.Errorf("unknown rule kind: %s", r.Kind)
@@ -133,7 +128,7 @@ func (r Rule) typeProc() (ast.Proc, error) {
 		Procs: []ast.Proc{
 			&ast.TypeSplitter{
 				Key:      keyName,
-				TypeName: r.Type,
+				TypeName: r.Value,
 			},
 			&ast.Summarize{
 				Kind: "Summarize",
@@ -153,7 +148,7 @@ func (r Rule) fieldProc() (ast.Proc, error) {
 		Kind: "Sequential",
 		Procs: []ast.Proc{
 			&ast.FieldCutter{
-				Field: field.Dotted(r.Field),
+				Field: field.Dotted(r.Value),
 				Out:   keyName,
 			},
 			&ast.Summarize{
@@ -170,33 +165,55 @@ func (r Rule) fieldProc() (ast.Proc, error) {
 }
 
 func (r Rule) zqlProc() (ast.Proc, error) {
-	return compiler.ParseProc(r.ZQL)
+	return compiler.ParseProc(r.Value)
 }
 
 func (r Rule) String() string {
-	var name string
-	switch r.Kind {
-	case RuleType:
-		name = r.Type
-	case RuleField:
-		name = r.Field
-	case RuleZQL:
+	name := r.Value
+	if r.Kind == RuleZed {
 		name = r.Name
-	default:
-		return fmt.Sprintf("unknown type: %s", r.Kind)
 	}
-	return fmt.Sprintf("%s-%s", r.Kind, name)
+	return fmt.Sprintf("%s->%s", r.Kind, name)
 }
 
-func (r Rule) Marshal() ([]byte, error) {
-	rec, err := resolver.NewMarshaler().MarshalRecord(r)
-	if err != nil {
-		return nil, err
+type Rules []Rule
+
+func (rules Rules) Lookup(id ksuid.KSUID) *Rule {
+	if i := rules.indexOf(id); i >= 0 {
+		return &rules[i]
 	}
-	var buf bytes.Buffer
-	zw := zngio.NewWriter(zio.NopCloser(&buf), zngio.WriterOpts{})
-	if err := zw.Write(rec); err != nil {
-		return nil, err
-	}
-	return buf.Bytes(), nil
+	return nil
 }
+
+// Add checks if Rules already has an equivalent Rule and if it does not
+// returns Rules with the Rule appended to it. Returns a non-nil Rule pointer if
+// an equivalent Rule is found.
+func (rules Rules) Add(rule Rule) (Rules, *Rule) {
+	for _, r := range rules {
+		if r.Equivalent(rule) {
+			return rules, &r
+		}
+	}
+	return append(rules, rule), nil
+}
+
+// LookupDelete checks the Rules list for a rule matching the provided ID and
+// returns the deleted Rule if found.
+func (rules Rules) LookupDelete(id ksuid.KSUID) (Rules, *Rule) {
+	if i := rules.indexOf(id); i >= 0 {
+		rule := rules[i]
+		return append(rules[:i], rules[i+1:]...), &rule
+	}
+	return rules, nil
+}
+
+func (rules Rules) indexOf(id ksuid.KSUID) int {
+	for i, rule := range rules {
+		if rule.ID == id {
+			return i
+		}
+	}
+	return -1
+}
+
+// func (rules) Rules

@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/segmentio/ksuid"
@@ -15,6 +16,7 @@ type Interface interface {
 
 var actions = []interface{}{
 	Add{},
+	AddX{},
 	Delete{},
 	CommitMessage{},
 }
@@ -70,4 +72,17 @@ func (d *Delete) CommitID() ksuid.KSUID {
 
 func (d *Delete) String() string {
 	return "DEL " + d.ID.String()
+}
+
+type AddX struct {
+	Commit ksuid.KSUID     `zng:"commit"`
+	Index  index.Reference `zng:"index"`
+}
+
+func (a *AddX) String() string {
+	return fmt.Sprintf("ADDX %s", a.Index)
+}
+
+func (a *AddX) CommitID() ksuid.KSUID {
+	return a.Commit
 }

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
@@ -31,6 +32,7 @@ type Root struct {
 type Config struct {
 	Version int          `zng:"version"`
 	Pools   []PoolConfig `zng:"pools"`
+	XRules  index.Rules  `zng:"xrules"`
 }
 
 func newRoot(path iosrc.URI) *Root {
@@ -193,4 +195,61 @@ func (r *Root) RemovePool(ctx context.Context, name string) error {
 	}
 	r.Pools = append(r.Pools[:hit], r.Pools[hit+1:]...)
 	return r.StoreConfig(ctx)
+}
+
+func (r *Root) AddXRules(ctx context.Context, xrules []index.Rule) error {
+	updated := r.XRules
+	for _, xrule := range xrules {
+		var existing *index.Rule
+		if updated, existing = updated.Add(xrule); existing != nil {
+			return fmt.Errorf("xrule %s is duplicate of xrule %s", xrule.ID, existing.ID)
+		}
+	}
+	r.XRules = updated
+	return r.StoreConfig(ctx)
+}
+
+func (r *Root) DeleteXRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
+	updated := r.XRules
+	deleted := make([]index.Rule, len(ids))
+
+	for i, id := range ids {
+		var d *index.Rule
+		updated, d = updated.LookupDelete(id)
+		if d == nil {
+			return nil, fmt.Errorf("xrule %s not found", id)
+		}
+
+		deleted[i] = *d
+	}
+
+	return deleted, nil
+}
+
+func (r *Root) LookupXRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
+	xrules := make([]index.Rule, len(ids))
+	for i, id := range ids {
+		rule := r.XRules.Lookup(id)
+		if rule == nil {
+			return nil, fmt.Errorf("could not find rule: %s", id)
+		}
+		xrules[i] = *rule
+	}
+
+	return xrules, nil
+}
+
+func (r *Root) ScanXRules(ctx context.Context, w zbuf.Writer) error {
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+	for k := range r.XRules {
+		rec, err := m.MarshalRecord(&r.XRules[k])
+		if err != nil {
+			return err
+		}
+		if err := w.Write(rec); err != nil {
+			return err
+		}
+	}
+	return nil
 }

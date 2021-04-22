@@ -3,49 +3,66 @@ package index
 import (
 	"errors"
 	"flag"
-	"os"
+	"fmt"
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/rlimit"
 )
 
 var Drop = &charm.Spec{
 	Name:  "drop",
 	Usage: "drop [-R root] [options] id... ",
-	Short: "drop index defintion(s) from archive",
-	Long: `
-TBD: update this help: Issue #2532
-
-"zar index drop" removes an index definition from the archive then walks through
-the tree removing referenced index files.
-
-If the -noapply option is enabled the command will only removed the index
-definition. The individual index files will still exist but they will no longer
-be queryable.
-`,
-	New: NewDrop,
+	Short: "drop index rule(s) from a lake",
+	New:   NewDrop,
 }
 
 type DropCommand struct {
-	*zedlake.Command
-	root     string
-	noapply  bool
-	progress chan string
-	quiet    bool
+	lake *zedlake.Command
 }
 
 func NewDrop(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &DropCommand{Command: parent.(*Command).Command}
-	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
-	f.BoolVar(&c.noapply, "noapply", false, "remove index definition only")
-	f.BoolVar(&c.quiet, "q", false, "do not display progress updates will deleting indices")
-
+	c := &DropCommand{lake: parent.(*Command).Command}
 	return c, nil
 }
 
 func (c *DropCommand) Run(args []string) error {
-	return errors.New("issue #2532")
-	//	return c.run(args)
+	ctx, cleanup, err := c.lake.Init()
+	if err != nil {
+		return err
+	}
+	defer cleanup()
+
+	if len(args) == 0 {
+		return errors.New("must specify one or more xrule tags")
+	}
+
+	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
+		return err
+	}
+
+	ids, err := zedlake.ParseIDs(args)
+	if err != nil {
+		return err
+	}
+
+	root, err := c.lake.Open(ctx)
+	if err != nil {
+		return err
+	}
+
+	xrules, err := root.DeleteXRules(ctx, ids)
+	if err != nil {
+		return err
+	}
+
+	if !c.lake.Quiet {
+		for _, xrule := range xrules {
+			fmt.Printf("%s dropped\n", xrule.ID)
+		}
+	}
+
+	return nil
 }
 
 /* NOT YET

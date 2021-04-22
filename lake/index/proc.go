@@ -71,7 +71,7 @@ func (f *FieldCutter) Pull() (zbuf.Batch, error) {
 				return nil, err
 			}
 			if f.builder == nil {
-				cols := []zng.Column{{f.out.Leaf(), val.Type}}
+				cols := []zng.Column{{Name: f.out.Leaf(), Type: val.Type}}
 				rectyp := f.pctx.Zctx.MustLookupTypeRecord(cols)
 				f.builder = zng.NewBuilder(rectyp)
 			}
@@ -100,7 +100,7 @@ type TypeSplitter struct {
 // NewTypeSplitter creates a TypeSplitter for type typ, where the
 // output records' single column is named colName.
 func NewTypeSplitter(pctx *proc.Context, parent proc.Interface, typ zng.Type, colName string) (proc.Interface, error) {
-	cols := []zng.Column{{colName, typ}}
+	cols := []zng.Column{{Name: colName, Type: typ}}
 	rectyp := pctx.Zctx.MustLookupTypeRecord(cols)
 	builder := zng.NewBuilder(rectyp)
 

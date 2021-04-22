@@ -14,18 +14,19 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 )
 
-func NewWriter(ctx context.Context, u iosrc.URI, def *Definition) (*Writer, error) {
+func NewWriter(ctx context.Context, path iosrc.URI, ref Reference) (*Writer, error) {
 	rwCh := make(rwChan)
-	indexer, err := newIndexer(ctx, u, def, rwCh)
+	indexer, err := newIndexer(ctx, path, ref, rwCh)
 	if err != nil {
 		return nil, err
 	}
 	w := &Writer{
-		URI:        u,
-		Definition: def,
+		Reference: ref,
+		URI:       ref.ObjectPath(path),
 
 		done:    make(chan struct{}),
 		indexer: indexer,
@@ -35,8 +36,8 @@ func NewWriter(ctx context.Context, u iosrc.URI, def *Definition) (*Writer, erro
 }
 
 type Writer struct {
-	Definition *Definition
-	URI        iosrc.URI
+	Reference Reference
+	URI       iosrc.URI
 
 	done    chan struct{}
 	indexer *indexer
@@ -109,36 +110,64 @@ type indexer struct {
 	wg      sync.WaitGroup
 }
 
-func newIndexer(ctx context.Context, u iosrc.URI, def *Definition, r zbuf.Reader) (*indexer, error) {
-	zctx := zson.NewContext()
-	conf := driver.Config{Custom: compile}
-	fgr, err := driver.NewReaderWithConfig(ctx, conf, def.Proc, zctx, r)
+func newIndexer(ctx context.Context, path iosrc.URI, ref Reference, r zbuf.Reader) (*indexer, error) {
+	rule := ref.Rule
+	proc, err := rule.Proc()
 	if err != nil {
 		return nil, err
 	}
-	keys := def.Keys
+
+	zctx := zson.NewContext()
+	conf := driver.Config{Custom: compile}
+	fgr, err := driver.NewReaderWithConfig(ctx, conf, proc, zctx, r)
+	if err != nil {
+		return nil, err
+	}
+
+	keys := rule.Keys
 	if len(keys) == 0 {
 		keys = []field.Static{keyName}
 	}
+
 	opts := []index.Option{index.KeyFields(keys...)}
-	if def.Framesize > 0 {
-		opts = append(opts, index.FrameThresh(def.Framesize))
+	if rule.Framesize > 0 {
+		opts = append(opts, index.FrameThresh(rule.Framesize))
 	}
-	writer, err := index.NewWriterWithContext(ctx, zctx, u.String(), opts...)
+
+	writer, err := newIndexWriter(ctx, zctx, path, ref)
 	if err != nil {
 		return nil, err
 	}
+
 	fields, resolvers := compiler.CompileAssignments(keys, keys)
 	cutter, err := expr.NewCutter(zctx, fields, resolvers)
 	if err != nil {
 		return nil, err
 	}
-	d := &indexer{
+
+	return &indexer{
 		fgr:    fgr,
 		cutter: cutter,
 		index:  writer,
+	}, nil
+}
+
+func newIndexWriter(ctx context.Context, zctx *zson.Context, path iosrc.URI, ref Reference, opts ...index.Option) (w *index.Writer, err error) {
+	for tried := false; ; {
+		spath := ref.ObjectPath(path).String()
+		w, err = index.NewWriterWithContext(ctx, zctx, spath, opts...)
+		if err != nil {
+			if zqe.IsNotFound(err) && !tried {
+				// If a not found is return this is probably because the rule
+				// path has not been created. Create the dir and try once more.
+				if err = iosrc.MkdirAll(ref.ObjectDir(path), 0700); err == nil {
+					tried = true
+					continue
+				}
+			}
+		}
+		return w, err
 	}
-	return d, nil
 }
 
 func (d *indexer) start() {

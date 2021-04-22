@@ -10,12 +10,13 @@ import (
 var Index = &charm.Spec{
 	Name:  "index",
 	Usage: "index [subcommand]",
-	Short: "perform index related tasks on an archive",
+	Short: "create and drop index rules, index data",
 	New:   New,
 }
 
 func init() {
 	Index.Add(Create)
+	Index.Add(Add)
 	Index.Add(Drop)
 	Index.Add(Ls)
 	zedlake.Cmd.Add(Index)

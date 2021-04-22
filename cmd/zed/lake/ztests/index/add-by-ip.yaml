@@ -1,0 +1,26 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p POOL
+  id=$(zed lake add -p POOL -commit in.zson | head -1 | awk '{print $1}')
+  echo $id
+  ruleid=$(zed lake index create -f zng :ip | zq -f text "cut s='0x'+to_hex(id)" -)
+
+  zed lake index add -p POOL -rule $ruleid $id
+  echo ===
+  zed lake status -p POOL
+
+inputs:
+  - name: in.zson
+    data: |
+      {x:127.0.0.1}
+      {x:127.0.0.2}
+
+outputs:
+  - name: stdout
+    regexp: |
+      \w{27} staged
+      ===
+      staged \w{27}
+
+          AddX \w{27} xrule \w{27} segment

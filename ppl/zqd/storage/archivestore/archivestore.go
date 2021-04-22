@@ -151,19 +151,17 @@ func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) err
 		for _, key := range req.Keys {
 			fields = append(fields, field.Dotted(key))
 		}
-		rule, err := index.NewZqlRule(req.ZQL, req.OutputFile, fields)
+		rule, err := index.NewZedRule(req.ZQL, req.OutputFile, fields)
 		if err != nil {
 			return zqe.E(zqe.Invalid, err)
 		}
-		rule.Input = req.InputFile
 		rules = append(rules, rule)
 	}
 	for _, pattern := range req.Patterns {
-		rule, err := index.NewRule(pattern)
+		rule, err := index.ParseRule(pattern)
 		if err != nil {
 			return zqe.E(zqe.Invalid, err)
 		}
-		rule.Input = req.InputFile
 		rules = append(rules, rule)
 	}
 	return errors.New("TBD")
