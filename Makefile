@@ -26,11 +26,8 @@ vet:
 	@go vet -composites=false -stdmethods=false ./...
 
 fmt:
-	@res=$$(go fmt ./...); \
-	if [ -n "$${res}" ]; then \
-		echo "go fmt failed on these files:"; echo "$${res}"; echo; \
-		exit 1; \
-	fi
+	gofmt -s -w .
+	git diff --exit-code -- '*.go'
 
 tidy:
 	go mod tidy
