@@ -110,7 +110,7 @@ type indexer struct {
 	wg      sync.WaitGroup
 }
 
-func newIndexer(ctx context.Context, path iosrc.URI, ref Reference, r zbuf.Reader) (*indexer, error) {
+func newIndexer(ctx context.Context, path iosrc.URI, ref *Reference, r zbuf.Reader) (*indexer, error) {
 	rule := ref.Rule
 	proc, err := rule.Proc()
 	if err != nil {
