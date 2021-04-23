@@ -1,4 +1,4 @@
-script: zed ast -C -P 2 -sortKey ts "* | put x=y | countdistinct(x) by y | uniq"
+script: zed compile -C -P 2 -sortKey ts "* | put x=y | countdistinct(x) by y | uniq"
 
 outputs:
   - name: stdout

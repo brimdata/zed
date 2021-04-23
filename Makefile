@@ -165,7 +165,7 @@ $(PEG_GEN): compiler/parser/Makefile compiler/parser/parser-support.js compiler/
 peg: $(PEG_GEN)
 
 peg-run: $(PEG_GEN)
-	go run ./cmd/ast -repl
+	go run ./cmd/zc -repl
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.

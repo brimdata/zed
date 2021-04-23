@@ -1,4 +1,4 @@
-package ast
+package compile
 
 import (
 	"encoding/json"
@@ -24,15 +24,15 @@ import (
 )
 
 var Cmd = &charm.Spec{
-	Name:  "ast",
-	Usage: "ast [ options ] zed",
-	Short: "inspect zed language abstract syntax trees",
+	Name:  "compile",
+	Usage: "compile [ options ] zed",
+	Short: "inspect Zed language abstract syntax trees and compiler stages",
 	Long: `
-The "zed ast" command parses a Zed expression and prints the resulting abstract syntax
+The "zed compile" command parses a Zed expression and prints the resulting abstract syntax
 tree as JSON object to standard output.  If you have istalled the
-shortcuts, "zast" is a short cut for the "zed ast" command.
+shortcuts, "zc" is a short cut for the "zed compile" command.
 
-"zed ast" is a tool for dev and test,
+"zed compile" is a tool for dev and test,
 and is also useful to advanced users for understanding how Zed syntax is
 translated into an analytics requests sent to the "zed server" search endpoint.
 
@@ -261,7 +261,7 @@ func (c *Command) compile(z string) (*compiler.Runtime, error) {
 
 const nodeProblem = `
 Failed to run node on ./compiler/parser/run.js.  The "-js" flag is for PEG
-development and should only be used when running ast in the root
+development and should only be used when running "zed compile" in the root
 directory of the zed repository.`
 
 func (c *Command) interactive() {

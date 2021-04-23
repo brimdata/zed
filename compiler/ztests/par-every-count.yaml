@@ -1,4 +1,4 @@
-script: zed ast -C -P 2 -sortKey ts "* | every 1h count() by y"
+script: zed compile -C -P 2 -sortKey ts "* | every 1h count() by y"
 
 outputs:
   - name: stdout
