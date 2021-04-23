@@ -28,7 +28,11 @@ type AddCommand struct {
 func NewAdd(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &AddCommand{lake: parent.(*Command).Command}
 	f.BoolVar(&c.commit, "commit", false, "commit added index rule if successfully written")
-	f.Var(&c.rids, "rule", "id of rule(s) to index (can be specified multiple times")
+	f.Func("rule", "id of rule to index (can be specified multiple times", func(s string error {
+		id, err := zedlake.ParseID(s)
+		c.rids = append(c.rids, id)
+		return err
+	})
 	c.CommitFlags.SetFlags(f)
 	return c, nil
 }
