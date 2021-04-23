@@ -148,20 +148,20 @@ func (t table) append(a actions.Interface) {
 
 func (t table) formatStaged(b *bytes.Buffer, commit *actions.StagedCommit, colors *color.Stack) {
 	id := commit.CommitID()
-	colors.ColorStartBytes(b, color.GrayYellow)
+	colors.Start(b, color.GrayYellow)
 	b.WriteString("staged ")
 	b.WriteString(id.String())
-	colors.ColorEndBytes(b)
+	colors.End(b)
 	b.WriteString("\n\n")
 	t.formatActions(b, id)
 }
 
 func (t table) formatCommit(b *bytes.Buffer, commit *actions.CommitMessage, width int, colors *color.Stack) {
 	id := commit.CommitID()
-	colors.ColorStartBytes(b, color.GrayYellow)
+	colors.Start(b, color.GrayYellow)
 	b.WriteString("commit ")
 	b.WriteString(id.String())
-	colors.ColorEndBytes(b)
+	colors.End(b)
 	b.WriteString("\nAuthor: ")
 	b.WriteString(commit.Author)
 	b.WriteString("\nDate:   ")

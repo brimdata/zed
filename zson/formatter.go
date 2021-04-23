@@ -6,6 +6,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 )
@@ -21,6 +22,7 @@ type Formatter struct {
 	builder     strings.Builder
 	stack       []strings.Builder
 	implied     map[zng.Type]bool
+	colors      color.Stack
 }
 
 func NewFormatter(pretty int) *Formatter {
@@ -93,7 +95,9 @@ func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, par
 	var null bool
 	switch t := typ.(type) {
 	default:
+		f.startColorPrimitive(typ)
 		f.build(typ.ZSONOf(bytes))
+		f.endColor()
 	case *zng.TypeAlias:
 		err = f.formatValue(indent, t.Type, bytes, known, parentImplied, false)
 	case *zng.TypeRecord:
@@ -109,7 +113,9 @@ func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, par
 	case *zng.TypeEnum:
 		f.build(t.ZSONOf(bytes))
 	case *zng.TypeOfType:
+		f.startColorPrimitive(zng.TypeType)
 		f.buildf("(%s)", string(bytes))
+		f.endColor()
 	}
 	if err == nil && decorate {
 		f.decorate(typ, parentKnown, null)
@@ -127,6 +133,8 @@ func (f *Formatter) decorate(typ zng.Type, known, null bool) {
 	if known || (!null && f.isImplied(typ)) {
 		return
 	}
+	f.startColor(color.Gray(200))
+	defer f.endColor()
 	if name, ok := f.typedefs[typ]; ok {
 		f.buildf(" (%s)", name)
 		return
@@ -165,7 +173,9 @@ func (f *Formatter) formatRecord(indent int, typ *zng.TypeRecord, bytes zcode.By
 			return err
 		}
 		f.build(sep)
+		f.startColor(color.Blue)
 		f.indent(indent, zng.QuotedName(field.Name))
+		f.endColor()
 		f.build(":")
 		if f.tab > 0 {
 			f.build(" ")
@@ -397,6 +407,35 @@ func (f *Formatter) formatTypeEnum(typ *zng.TypeEnum) error {
 	}
 	f.build(">")
 	return nil
+}
+
+var colors = map[zng.Type]color.Code{
+	zng.TypeString:  color.Green,
+	zng.TypeBstring: color.Green,
+	zng.TypeError:   color.Red,
+	zng.TypeType:    color.Orange,
+}
+
+func (f *Formatter) startColorPrimitive(typ zng.Type) {
+	if f.tab > 0 {
+		c, ok := colors[zng.AliasOf(typ)]
+		if !ok {
+			c = color.Reset
+		}
+		f.startColor(c)
+	}
+}
+
+func (f *Formatter) startColor(code color.Code) {
+	if f.tab > 0 {
+		f.colors.Start(&f.builder, code)
+	}
+}
+
+func (f *Formatter) endColor() {
+	if f.tab > 0 {
+		f.colors.End(&f.builder)
+	}
 }
 
 func (f *Formatter) isImplied(typ zng.Type) bool {
