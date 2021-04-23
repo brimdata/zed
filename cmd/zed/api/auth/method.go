@@ -34,8 +34,7 @@ func (c *MethodCommand) Run(args []string) error {
 	if len(args) > 0 {
 		return errors.New("method command takes no arguments")
 	}
-	conn := c.Connection()
-	res, err := conn.AuthMethod(ctx)
+	res, err := c.Conn.AuthMethod(ctx)
 	if err != nil {
 		return err
 	}

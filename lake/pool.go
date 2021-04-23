@@ -396,6 +396,42 @@ func (p *Pool) indexSegment(ctx context.Context, rules []index.Index, id ksuid.K
 	return w.References(), err
 }
 
+type PoolInfo struct {
+	Size int64
+	// XXX (nibs) - This shouldn't be a span because keys don't have to be time.
+	Span *nano.Span
+}
+
+func (p *Pool) Info(ctx context.Context, snap *commit.Snapshot) (info PoolInfo, err error) {
+	ch := make(chan segment.Reference)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		err = ScanSpan(ctx, snap, nano.MaxSpan, ch)
+		close(ch)
+	}()
+	min := nano.MaxTs
+	max := nano.Ts(0)
+	for segment := range ch {
+		info.Size += segment.Size
+		span := segment.Span()
+		if span.Dur == 0 {
+			continue
+		}
+		if span.Ts < min {
+			min = span.Ts
+		}
+		if span.End() > max {
+			max = span.End()
+		}
+	}
+	if min != nano.MaxTs {
+		span := nano.NewSpanTs(min, max)
+		info.Span = &span
+	}
+	return info, err
+}
+
 func DataPath(poolPath iosrc.URI) iosrc.URI {
 	return poolPath.AppendPath(DataTag)
 }

@@ -3,13 +3,12 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"regexp"
 
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zjsonio"
+	"github.com/segmentio/ksuid"
 )
 
 const RequestIDHeader = "X-Request-ID"
@@ -48,10 +47,11 @@ type TaskEnd struct {
 }
 
 type SearchRequest struct {
-	Space SpaceID         `json:"space" validate:"required"`
-	Proc  json.RawMessage `json:"proc,omitempty"`
-	Span  nano.Span       `json:"span"`
-	Dir   int             `json:"dir" validate:"required"`
+	JournalID uint64          `json:"journal_id"`
+	Pool      ksuid.KSUID     `json:"pool"`
+	Proc      json.RawMessage `json:"proc,omitempty"`
+	Span      nano.Span       `json:"span"`
+	Dir       int             `json:"dir"`
 }
 
 type SearchRecords struct {
@@ -85,35 +85,13 @@ type ScannerStats struct {
 	RecordsMatched int64 `json:"records_matched"`
 }
 
-var spaceIDRegexp = regexp.MustCompile("^[a-zA-Z0-9_]+$")
-
-type SpaceID string
-
-// String is part of the flag.Value interface allowing a SpaceID value to be
-// used as a command line flag.
-func (s SpaceID) String() string {
-	return string(s)
+type Pool struct {
+	ID   ksuid.KSUID `json:"id" zng:"id"`
+	Name string      `json:"name" zng:"name"`
 }
 
-// Set is part of the flag.Value interface allowing a SpaceID value to be
-// used as a command line flag.
-func (s *SpaceID) Set(str string) error {
-	if !spaceIDRegexp.MatchString(str) {
-		return errors.New("all characters in a SpaceID must be [a-zA-Z0-9_]")
-	}
-	*s = SpaceID(str)
-	return nil
-}
-
-type Space struct {
-	ID          SpaceID     `json:"id" zng:"id"`
-	Name        string      `json:"name" zng:"name"`
-	DataPath    iosrc.URI   `json:"data_path" zng:"data_path"`
-	StorageKind StorageKind `json:"storage_kind" zng:"storage_kind"`
-}
-
-type SpaceInfo struct {
-	Space
+type PoolInfo struct {
+	Pool
 	Span *nano.Span `json:"span,omitempty"`
 	Size int64      `json:"size" unit:"bytes"`
 }
@@ -122,14 +100,21 @@ type VersionResponse struct {
 	Version string `json:"version"`
 }
 
-type SpacePostRequest struct {
-	Name     string         `json:"name"`
-	DataPath string         `json:"data_path"`
-	Storage  *StorageConfig `json:"storage,omitempty"`
+type PoolPostRequest struct {
+	Name   string         `json:"name"`
+	Keys   []field.Static `json:"keys"`
+	Order  zbuf.Order     `json:"order"`
+	Thresh int64          `json:"thresh"`
 }
 
-type SpacePutRequest struct {
+type PoolPutRequest struct {
 	Name string `json:"name"`
+}
+
+type CommitRequest struct {
+	Commit  string `json:"commit"`
+	User    string `json:"user"`
+	Message string `json:"message"`
 }
 
 type LogPostRequest struct {
@@ -150,9 +135,10 @@ type LogPostStatus struct {
 }
 
 type LogPostResponse struct {
-	Type      string   `json:"type"`
-	BytesRead int64    `json:"bytes_read" unit:"bytes"`
-	Warnings  []string `json:"warnings"`
+	Type      string      `json:"type"`
+	BytesRead int64       `json:"bytes_read" unit:"bytes"`
+	Commit    ksuid.KSUID `json:"commit"`
+	Warnings  []string    `json:"warnings"`
 }
 
 type IndexSearchRequest struct {
@@ -161,57 +147,8 @@ type IndexSearchRequest struct {
 }
 
 type IndexPostRequest struct {
-	Patterns   []string `json:"patterns"`
-	ZQL        string   `json:"zql,omitempty"`
-	Keys       []string `json:"keys"`
-	InputFile  string   `json:"input_file"`
-	OutputFile string   `json:"output_file"`
-}
-
-type StorageKind string
-
-const (
-	UnknownStore StorageKind = ""
-	ArchiveStore StorageKind = "archivestore"
-	FileStore    StorageKind = "filestore"
-)
-
-func (k StorageKind) String() string {
-	return string(k)
-}
-
-func (k *StorageKind) Set(s string) error {
-	switch s := StorageKind(s); s {
-	case ArchiveStore, FileStore:
-		*k = s
-		return nil
-	}
-	return fmt.Errorf("unknown storage kind: %s", s)
-}
-
-type StorageConfig struct {
-	Kind    StorageKind    `json:"kind"`
-	Archive *ArchiveConfig `json:"archive,omitempty"`
-}
-
-type ArchiveConfig struct {
-	CreateOptions *ArchiveCreateOptions `json:"create_options,omitempty"`
-}
-
-type ArchiveCreateOptions struct {
-	LogSizeThreshold *int64 `json:"log_size_threshold,omitempty"`
-}
-
-// FileStoreReadOnly controls if new spaces may be created using the
-// FileStore storage kind, and if existing FileStore spaces may have new
-// data added to them.
-// This intended to be temporary until we transition to only allowing archive
-// stores for new spaces; see issue 1085.
-var FileStoreReadOnly bool
-
-func DefaultStorageKind() StorageKind {
-	if FileStoreReadOnly {
-		return ArchiveStore
-	}
-	return FileStore
+	Keys     []string `json:"keys"`
+	Name     string   `json:"name"`
+	Patterns []string `json:"patterns"`
+	Zed      string   `json:"zed,omitempty"`
 }

@@ -1,0 +1,18 @@
+script: |
+  source services.sh
+  zapi -host $LAKE_HOST new test
+  zapi -host $LAKE_HOST -p test post in.zson
+  zapi -host $LAKE_HOST -p test get -e csv > out.csv
+
+inputs:
+  - name: services.sh
+    source: services.sh
+  - name: in.zson
+    data: |
+      {a:"hello",b:{c:"world",d:"goodbye"}}
+
+outputs:
+  - name: out.csv
+    data: |
+      a,b.c,b.d
+      hello,world,goodbye

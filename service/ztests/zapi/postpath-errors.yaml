@@ -1,0 +1,21 @@
+script: |
+  source services.sh
+  zapi -host $LAKE_HOST new test
+  zapi -host $LAKE_HOST -p test postpath bad.zson
+  zapi -host $LAKE_HOST -p test get -f zson "count()" > out.zson
+
+inputs:
+  - name: services.sh
+    source: ../services.sh
+  - name: bad.zson
+    data: |
+      {ip:"1.1.1.1"}
+      {ip:"1.1.1.1"
+      {ip:"1.1.1.1"}
+
+outputs:
+  - name: out.zson
+    data: |
+      {
+          count: 1 (uint64)
+      } (=0)

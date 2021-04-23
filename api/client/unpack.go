@@ -19,6 +19,10 @@ func unpack(b []byte) (interface{}, error) {
 	}
 	var out interface{}
 	switch v.Type {
+	case "LogPostStatus":
+		out = &api.LogPostStatus{}
+	case "LogPostWarning":
+		out = &api.LogPostWarning{}
 	case "TaskStart":
 		out = &api.TaskStart{}
 	case "TaskEnd":
@@ -31,10 +35,6 @@ func unpack(b []byte) (interface{}, error) {
 		out = &api.SearchStats{}
 	case "SearchEnd":
 		out = &api.SearchEnd{}
-	case "LogPostStatus":
-		out = &api.LogPostStatus{}
-	case "LogPostWarning":
-		out = &api.LogPostWarning{}
 	case "":
 		return nil, fmt.Errorf("no type field in search result: %s", string(b))
 	default:

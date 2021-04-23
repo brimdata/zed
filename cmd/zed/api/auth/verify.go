@@ -34,8 +34,6 @@ func (c *VerifyCommand) Run(args []string) error {
 	if len(args) > 0 {
 		return errors.New("verify command takes no arguments")
 	}
-	conn := c.Connection()
-
 	creds, err := c.LocalConfig.LoadCredentials()
 	if err != nil {
 		return err
@@ -44,9 +42,9 @@ func (c *VerifyCommand) Run(args []string) error {
 	if !ok {
 		return fmt.Errorf("no stored credentials for %v", c.Host)
 	}
-	conn.SetAuthToken(tokens.Access)
+	c.Conn.SetAuthToken(tokens.Access)
 
-	res, err := conn.AuthIdentity(ctx)
+	res, err := c.Conn.AuthIdentity(ctx)
 	if err != nil {
 		return err
 	}

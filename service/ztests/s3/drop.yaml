@@ -1,0 +1,21 @@
+script: |
+  source services.sh s3://bucket/zedlake
+  zapi -host $LAKE_HOST new test
+  echo ===
+  zapi -host $LAKE_HOST drop -p test
+  echo ===
+  zapi -host $LAKE_HOST ls
+  echo ===
+
+inputs:
+  - name: services.sh
+    source: ../services.sh
+
+outputs:
+  - name: stdout
+    data: |
+      test: pool created
+      ===
+      test: pool dropped
+      ===
+      ===

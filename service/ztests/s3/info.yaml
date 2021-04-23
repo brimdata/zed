@@ -1,0 +1,22 @@
+script: |
+  source services.sh
+  zapi -host $LAKE_HOST new -S 20KiB test
+  zapi -host $LAKE_HOST -p test post babble.zson >/dev/null
+  echo ===
+  zapi -host $LAKE_HOST info -p test | egrep -v 'id'
+
+inputs:
+  - name: babble.zson
+    source: ../../../testdata/babble.zson
+  - name: services.sh
+    source: ../services.sh
+
+outputs:
+  - name: stdout
+    data: |
+      test: pool created
+      ===
+      test
+        name: test
+        span: 2020-04-21T22:40:30Z+2h43m9.993714061s
+        size: 32.89KB

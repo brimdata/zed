@@ -7,7 +7,7 @@ const getVersion = () => {
   const GIT_COMMAND = "git describe --tags --dirty --always"
   let cmdOut = "prepack-unknown"
   try {
-    cmdOut = child_process.execSync(GIT_COMMAND, {stdio: "pipe"})
+    cmdOut = child_process.execSync(GIT_COMMAND, { stdio: "pipe" })
   } catch (e) {
     console.log(`unable to run "${GIT_COMMAND}": ${e.toString().trim()}`)
   }
@@ -18,7 +18,7 @@ const getLdflags = (version) => `-s -X github.com/brimdata/zed/cli.Version=${ver
 
 const getBuildCommand = (options) =>
   // Double-quotes work both in Windows and *nix shells
-  `go build -ldflags="${options.ldflags}" -o dist ./cmd/... ./ppl/cmd/...`
+  `go build -ldflags="${options.ldflags}" -o dist ./cmd/...`
 
 const mkdir_p = (path) => {
   if (!fs.existsSync(path)) {
@@ -29,7 +29,7 @@ const mkdir_p = (path) => {
 const build = () => {
   let version = getVersion()
   let ldflags = getLdflags(version)
-  let buildCommand = getBuildCommand({ldflags: ldflags})
+  let buildCommand = getBuildCommand({ ldflags: ldflags })
   mkdir_p("dist")
   console.log(buildCommand)
   // Just let any failure here bubble up.

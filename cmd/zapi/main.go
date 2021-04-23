@@ -6,13 +6,13 @@ import (
 
 	"github.com/brimdata/zed/cmd/zed/api"
 	_ "github.com/brimdata/zed/cmd/zed/api/auth"
+	_ "github.com/brimdata/zed/cmd/zed/api/drop"
 	_ "github.com/brimdata/zed/cmd/zed/api/get"
 	_ "github.com/brimdata/zed/cmd/zed/api/index"
 	_ "github.com/brimdata/zed/cmd/zed/api/info"
 	_ "github.com/brimdata/zed/cmd/zed/api/new"
 	_ "github.com/brimdata/zed/cmd/zed/api/post"
 	_ "github.com/brimdata/zed/cmd/zed/api/rename"
-	_ "github.com/brimdata/zed/cmd/zed/api/rm"
 	_ "github.com/brimdata/zed/cmd/zed/api/version"
 	"github.com/brimdata/zed/cmd/zed/root"
 )
