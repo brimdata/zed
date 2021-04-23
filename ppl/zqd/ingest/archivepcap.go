@@ -16,7 +16,7 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/pcapstorage"
 	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
 	"golang.org/x/sync/errgroup"
 )
@@ -169,7 +169,7 @@ func (p *archivePcapOp) runAnalyzer(ctx context.Context, group *errgroup.Group, 
 	if err != nil {
 		return nil, nil, err
 	}
-	dr, err := newLogTailer(p.zctx, logdir, zio.ReaderOpts{})
+	dr, err := newLogTailer(p.zctx, logdir, anyio.ReaderOpts{})
 	if err != nil {
 		return nil, nil, err
 	}

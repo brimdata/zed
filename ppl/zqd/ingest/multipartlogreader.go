@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
@@ -23,7 +22,7 @@ const maxShaperAstBytes = 1000 * 1000
 
 type MultipartLogReader struct {
 	mr        *multipart.Reader
-	opts      zio.ReaderOpts
+	opts      anyio.ReaderOpts
 	stopErr   bool
 	shaperAST ast.Proc
 	warnings  []string
@@ -35,7 +34,7 @@ type MultipartLogReader struct {
 func NewMultipartLogReader(mr *multipart.Reader, zctx *zson.Context) *MultipartLogReader {
 	return &MultipartLogReader{
 		mr:   mr,
-		opts: zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}},
+		opts: anyio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}},
 		zctx: zctx,
 	}
 }

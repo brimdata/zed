@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/aws/aws-sdk-go/aws"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
@@ -15,7 +15,13 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts zio.ReaderOpts) (zbuf.Reader, error) {
+type ReaderOpts struct {
+	Format string
+	Zng    zngio.ReaderOpts
+	AwsCfg *aws.Config
+}
+
+func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zbuf.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
@@ -70,7 +76,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts zio.ReaderOpts) (zb
 }
 
 func NewReader(r io.Reader, zctx *zson.Context) (zbuf.Reader, error) {
-	return NewReaderWithOpts(r, zctx, zio.ReaderOpts{})
+	return NewReaderWithOpts(r, zctx, ReaderOpts{})
 }
 
 func joinErrs(errs []error) error {

@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -17,11 +16,11 @@ import (
 // which can be a local file path, a local directory path, or an S3
 // URL. If the path is neither of these or can't otherwise be opened,
 // an error is returned.
-func OpenFile(zctx *zson.Context, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
+func OpenFile(zctx *zson.Context, path string, opts ReaderOpts) (*zbuf.File, error) {
 	return OpenFileWithContext(context.Background(), zctx, path, opts)
 }
 
-func OpenFileWithContext(ctx context.Context, zctx *zson.Context, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
+func OpenFileWithContext(ctx context.Context, zctx *zson.Context, path string, opts ReaderOpts) (*zbuf.File, error) {
 	uri, err := iosrc.ParseURI(path)
 	if err != nil {
 		return nil, err
@@ -33,7 +32,7 @@ func OpenFileWithContext(ctx context.Context, zctx *zson.Context, path string, o
 	return OpenFromNamedReadCloser(zctx, f, path, opts)
 }
 
-func OpenFromNamedReadCloser(zctx *zson.Context, rc io.ReadCloser, path string, opts zio.ReaderOpts) (*zbuf.File, error) {
+func OpenFromNamedReadCloser(zctx *zson.Context, rc io.ReadCloser, path string, opts ReaderOpts) (*zbuf.File, error) {
 	var err error
 	r := io.Reader(rc)
 	if opts.Format != "parquet" && opts.Format != "zst" {
@@ -55,7 +54,7 @@ func OpenFromNamedReadCloser(zctx *zson.Context, rc io.ReadCloser, path string, 
 func OpenFiles(ctx context.Context, zctx *zson.Context, paths ...string) ([]zbuf.Reader, error) {
 	var readers []zbuf.Reader
 	for _, path := range paths {
-		reader, err := OpenFileWithContext(ctx, zctx, path, zio.ReaderOpts{})
+		reader, err := OpenFileWithContext(ctx, zctx, path, ReaderOpts{})
 		if err != nil {
 			return nil, err
 		}
@@ -69,7 +68,7 @@ type multiFileReader struct {
 	ctx    context.Context
 	zctx   *zson.Context
 	paths  []string
-	opts   zio.ReaderOpts
+	opts   ReaderOpts
 }
 
 var _ zbuf.ReadCloser = (*multiFileReader)(nil)
@@ -79,11 +78,11 @@ var _ zbuf.ScannerAble = (*multiFileReader)(nil)
 // of the provided input paths. They're read sequentially. Once all inputs have
 // reached end of stream, Read will return end of stream. If any of the readers
 // return a non-nil error, Read will return that error.
-func MultiFileReader(zctx *zson.Context, paths []string, opts zio.ReaderOpts) zbuf.ReadCloser {
+func MultiFileReader(zctx *zson.Context, paths []string, opts ReaderOpts) zbuf.ReadCloser {
 	return MultiFileReaderWithContext(context.Background(), zctx, paths, opts)
 }
 
-func MultiFileReaderWithContext(ctx context.Context, zctx *zson.Context, paths []string, opts zio.ReaderOpts) zbuf.ReadCloser {
+func MultiFileReaderWithContext(ctx context.Context, zctx *zson.Context, paths []string, opts ReaderOpts) zbuf.ReadCloser {
 	return &multiFileReader{
 		ctx:   ctx,
 		zctx:  zctx,

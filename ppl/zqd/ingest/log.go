@@ -13,7 +13,6 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/ppl/zqd/storage"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zqe"
@@ -43,7 +42,7 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 		warnings:  make([]string, 0, 5),
 		zctx:      zson.NewContext(),
 	}
-	opts := zio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}}
+	opts := anyio.ReaderOpts{Zng: zngio.ReaderOpts{Validate: true}}
 	proc, err := ast.UnpackJSONAsProc(req.Shaper)
 	if err != nil {
 		return nil, err

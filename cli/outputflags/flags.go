@@ -9,14 +9,14 @@ import (
 	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zstio"
 )
 
 type Flags struct {
-	zio.WriterOpts
+	anyio.WriterOpts
 	DefaultFormat string
 	dir           string
 	outputFile    string
@@ -25,7 +25,7 @@ type Flags struct {
 	zsonPretty    bool
 }
 
-func (f *Flags) Options() zio.WriterOpts {
+func (f *Flags) Options() anyio.WriterOpts {
 	return f.WriterOpts
 }
 

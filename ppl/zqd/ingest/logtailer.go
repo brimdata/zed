@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/pkg/fs"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -21,7 +20,7 @@ type result struct {
 // written log data are transformed into *zng.Records and returned on a
 // first-come-first serve basis.
 type logTailer struct {
-	opts    zio.ReaderOpts
+	opts    anyio.ReaderOpts
 	readers map[string]*fs.TFile
 	watcher *fs.DirWatcher
 	zctx    *zson.Context
@@ -32,7 +31,7 @@ type logTailer struct {
 	wg      sync.WaitGroup
 }
 
-func newLogTailer(zctx *zson.Context, dir string, opts zio.ReaderOpts) (*logTailer, error) {
+func newLogTailer(zctx *zson.Context, dir string, opts anyio.ReaderOpts) (*logTailer, error) {
 	dir = filepath.Clean(dir)
 	watcher, err := fs.NewDirWatcher(dir)
 	if err != nil {

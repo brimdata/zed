@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -28,13 +29,13 @@ type Dir struct {
 	prefix  string
 	ext     string
 	stderr  io.Writer // XXX use warnings channel
-	opts    zio.WriterOpts
+	opts    anyio.WriterOpts
 	writers map[zng.Type]zbuf.WriteCloser
 	paths   map[string]zbuf.WriteCloser
 	source  iosrc.Source
 }
 
-func NewDir(ctx context.Context, dir, prefix string, stderr io.Writer, opts zio.WriterOpts) (*Dir, error) {
+func NewDir(ctx context.Context, dir, prefix string, stderr io.Writer, opts anyio.WriterOpts) (*Dir, error) {
 	uri, err := iosrc.ParseURI(dir)
 	if err != nil {
 		return nil, err
@@ -46,7 +47,7 @@ func NewDir(ctx context.Context, dir, prefix string, stderr io.Writer, opts zio.
 	return NewDirWithSource(ctx, uri, prefix, stderr, opts, src)
 }
 
-func NewDirWithSource(ctx context.Context, dir iosrc.URI, prefix string, stderr io.Writer, opts zio.WriterOpts, source iosrc.Source) (*Dir, error) {
+func NewDirWithSource(ctx context.Context, dir iosrc.URI, prefix string, stderr io.Writer, opts anyio.WriterOpts, source iosrc.Source) (*Dir, error) {
 	if err := iosrc.MkdirAll(dir, 0755); err != nil {
 		return nil, err
 	}
