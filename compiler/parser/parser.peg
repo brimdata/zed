@@ -937,7 +937,7 @@ ExplicitType
   / "type" __ "(" __ typ:TypeUnion __ ")" { RETURN(typ) }
 
 AmbiguousType
-  = name:PrimitiveType
+  = name:PrimitiveType !IdentifierRest { RETURN(name) }
   / name:IdentifierName __ '=' __ "(" __ typ:Type __ ")" {
       RETURN(MAP("kind": "TypeDef", "name": name, "type": typ))
   }
