@@ -29,6 +29,7 @@ type Source interface {
 	NewWriter(context.Context, URI) (io.WriteCloser, error)
 	ReadFile(context.Context, URI) ([]byte, error)
 	WriteFile(context.Context, []byte, URI) error
+	WriteFileIfNotExists(context.Context, []byte, URI) error
 	Remove(context.Context, URI) error
 	RemoveAll(context.Context, URI) error
 	// Exists returns true if the specified uri exists and an error is there
@@ -73,6 +74,10 @@ func ReadFile(ctx context.Context, uri URI) ([]byte, error) {
 
 func WriteFile(ctx context.Context, uri URI, d []byte) error {
 	return DefaultMuxSource.WriteFile(ctx, uri, d)
+}
+
+func WriteFileIfNotExists(ctx context.Context, uri URI, d []byte) error {
+	return DefaultMuxSource.WriteFileIfNotExists(ctx, uri, d)
 }
 
 func Exists(ctx context.Context, uri URI) (bool, error) {

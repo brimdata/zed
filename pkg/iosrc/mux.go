@@ -70,6 +70,14 @@ func (m *MuxSource) WriteFile(ctx context.Context, uri URI, d []byte) error {
 	return source.WriteFile(ctx, d, uri)
 }
 
+func (m *MuxSource) WriteFileIfNotExists(ctx context.Context, uri URI, d []byte) error {
+	source, err := m.GetSource(uri)
+	if err != nil {
+		return err
+	}
+	return source.WriteFileIfNotExists(ctx, d, uri)
+}
+
 func (m *MuxSource) Exists(ctx context.Context, uri URI) (bool, error) {
 	source, err := m.GetSource(uri)
 	if err != nil {

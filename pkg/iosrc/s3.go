@@ -51,6 +51,10 @@ func (s *s3Source) WriteFile(ctx context.Context, d []byte, u URI) error {
 	return err
 }
 
+func (s *s3Source) WriteFileIfNotExists(ctx context.Context, d []byte, u URI) error {
+	return s.WriteFile(ctx, d, u)
+}
+
 func (s *s3Source) Remove(ctx context.Context, u URI) error {
 	return wrapErr(s3io.Remove(ctx, u.String(), s.Client))
 }

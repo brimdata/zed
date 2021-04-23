@@ -30,6 +30,10 @@ func (s *StdioSource) WriteFile(_ context.Context, _ []byte, _ URI) error {
 	return errStdioNotSupport
 }
 
+func (s *StdioSource) WriteFileIfNotExists(_ context.Context, _ []byte, _ URI) error {
+	return errStdioNotSupport
+}
+
 func (s *StdioSource) Remove(_ context.Context, uri URI) error {
 	return errStdioNotSupport
 }
