@@ -2,28 +2,7 @@ package zio
 
 import (
 	"io"
-
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/brimdata/zed/zio/textio"
-	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zio/zstio"
 )
-
-type ReaderOpts struct {
-	Format string
-	Zng    zngio.ReaderOpts
-	AwsCfg *aws.Config
-}
-
-type WriterOpts struct {
-	Format string
-	UTF8   bool
-	Text   textio.WriterOpts
-	Zng    zngio.WriterOpts
-	ZSON   zsonio.WriterOpts
-	Zst    zstio.WriterOpts
-}
 
 func Extension(format string) string {
 	switch format {

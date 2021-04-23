@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zio/lakeio"
@@ -33,7 +32,7 @@ func (*nullWriter) Close() error {
 	return nil
 }
 
-func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, error) {
+func LookupWriter(w io.WriteCloser, opts WriterOpts) (zbuf.WriteCloser, error) {
 	if opts.Format == "" {
 		opts.Format = "tzng"
 	}
@@ -71,7 +70,7 @@ func LookupWriter(w io.WriteCloser, opts zio.WriterOpts) (zbuf.WriteCloser, erro
 	}
 }
 
-func lookupReader(r io.Reader, zctx *zson.Context, opts zio.ReaderOpts) (zbuf.Reader, error) {
+func lookupReader(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zbuf.Reader, error) {
 	switch opts.Format {
 	case "csv":
 		return csvio.NewReader(r, zctx), nil

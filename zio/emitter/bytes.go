@@ -17,7 +17,7 @@ func (b *Bytes) Bytes() []byte {
 	return b.buf.Bytes()
 }
 
-func NewBytes(opts zio.WriterOpts) (*Bytes, error) {
+func NewBytes(opts anyio.WriterOpts) (*Bytes, error) {
 	b := &Bytes{}
 	w, err := anyio.LookupWriter(zio.NopCloser(&b.buf), opts)
 	if err != nil {

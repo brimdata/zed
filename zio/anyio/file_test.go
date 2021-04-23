@@ -55,7 +55,7 @@ func TestMultiFileScanner(t *testing.T) {
 	f2 := writeTemp(t, []byte(input[1]))
 	defer os.Remove(f2)
 
-	mfr := MultiFileReader(zson.NewContext(), []string{f1, f2}, zio.ReaderOpts{})
+	mfr := MultiFileReader(zson.NewContext(), []string{f1, f2}, ReaderOpts{})
 	sn, err := zbuf.NewScanner(context.Background(), mfr, nil, nano.MaxSpan)
 	require.NoError(t, err)
 	_, ok := sn.(*multiFileScanner)

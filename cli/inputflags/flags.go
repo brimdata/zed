@@ -9,19 +9,18 @@ import (
 	"github.com/brimdata/zed/cli/auto"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )
 
 type Flags struct {
-	zio.ReaderOpts
+	anyio.ReaderOpts
 	ReadMax  auto.Bytes
 	ReadSize auto.Bytes
 }
 
-func (f *Flags) Options() zio.ReaderOpts {
+func (f *Flags) Options() anyio.ReaderOpts {
 	return f.ReaderOpts
 }
 

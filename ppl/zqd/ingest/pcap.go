@@ -320,7 +320,7 @@ func (p *legacyPcapOp) createSnapshot(ctx context.Context) error {
 func (p *legacyPcapOp) convertSuricataLog(ctx context.Context) error {
 	zctx := zson.NewContext()
 	path := filepath.Join(p.logdir, "eve.json")
-	zr, err := anyio.OpenFile(zctx, path, zio.ReaderOpts{})
+	zr, err := anyio.OpenFile(zctx, path, anyio.ReaderOpts{})
 	if err != nil {
 		return err
 	}
