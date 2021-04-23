@@ -36,7 +36,7 @@ func NewWriter(ctx context.Context, path iosrc.URI, ref Reference) (*Writer, err
 }
 
 type Writer struct {
-	Reference Reference
+	Reference *Reference
 	URI       iosrc.URI
 
 	done    chan struct{}
