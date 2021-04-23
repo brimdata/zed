@@ -232,9 +232,7 @@ func formatIndex(b *bytes.Buffer, idx *index.Index, indent int) {
 			if i > 0 {
 				b.WriteString(", ")
 			}
-
 			b.WriteString(k.String())
-
 		}
 		b.WriteString(" from zed script:\n  ")
 		tab(b, indent)
