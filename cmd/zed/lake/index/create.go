@@ -35,9 +35,9 @@ type CreateCommand struct {
 func NewCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &CreateCommand{lake: parent.(*Command).Command}
 	f.IntVar(&c.framesize, "framesize", 32*1024, "minimum frame size used in microindex file")
-	f.StringVar(&c.keys, "k", "key", "one or more comma-separated key fields (for zed script indices only)")
-	f.StringVar(&c.name, "n", "", "name of index (for zed script indices only)")
-	f.StringVar(&c.zed, "zed", "", "zed script for index")
+	f.StringVar(&c.keys, "k", "key", "one or more comma-separated key fields (for Zed script indices only)")
+	f.StringVar(&c.name, "n", "", "name of index (for Zed script indices only)")
+	f.StringVar(&c.zed, "zed", "", "Zed script for index")
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
