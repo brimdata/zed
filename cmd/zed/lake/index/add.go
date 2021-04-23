@@ -13,7 +13,7 @@ import (
 
 var Add = &charm.Spec{
 	Name:  "add",
-	Usage: "add [options] [ -index indexid ] tag [tag ...]",
+	Usage: "add [options] [-index indexid] tag [tag ...]",
 	Short: "index one or more tags",
 	New:   NewAdd,
 }
