@@ -13,7 +13,7 @@ import (
 
 var Add = &charm.Spec{
 	Name:  "add",
-	Usage: "add [options] [ -rule ruleid ] tag [tag ...]",
+	Usage: "add [options] [ -index indexid ] tag [tag ...]",
 	Short: "index one or more tags",
 	New:   NewAdd,
 }
@@ -21,16 +21,16 @@ var Add = &charm.Spec{
 type AddCommand struct {
 	lake   *zedlake.Command
 	commit bool
-	rids   idArray
+	ids    []ksuid.KSUID
 	zedlake.CommitFlags
 }
 
 func NewAdd(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &AddCommand{lake: parent.(*Command).Command}
-	f.BoolVar(&c.commit, "commit", false, "commit added index rule if successfully written")
-	f.Func("rule", "id of rule to index (can be specified multiple times", func(s string error {
+	f.BoolVar(&c.commit, "commit", false, "commit added index objects if successfully written")
+	f.Func("index", "id of index to apply (can be specified multiple times", func(s string) error {
 		id, err := zedlake.ParseID(s)
-		c.rids = append(c.rids, id)
+		c.ids = append(c.ids, id)
 		return err
 	})
 	c.CommitFlags.SetFlags(f)
@@ -47,77 +47,43 @@ func (c *AddCommand) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-
 	root, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-
-	rules, err := root.LookupXRules(ctx, c.rids.IDs())
+	indices, err := root.LookupIndices(ctx, c.ids)
 	if err != nil {
 		return err
 	}
-
 	tags, err := zedlake.ParseIDs(args)
 	if err != nil {
 		return err
 	} else if len(tags) == 0 {
 		return errors.New("no data or commit tags specified")
 	}
-
 	pool, err := c.lake.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
-
 	tags, err = pool.LookupTags(ctx, tags)
 	if err != nil {
 		return err
 	}
-
-	commit, err := pool.Index(ctx, rules, tags)
+	commit, err := pool.Index(ctx, indices, tags)
 	if err != nil {
 		return err
 	}
-
 	if c.commit {
 		if err := pool.Commit(ctx, commit, c.Date.Ts(), c.User, c.Message); err != nil {
 			return err
 		}
-
 		if !c.lake.Quiet {
 			fmt.Printf("%s committed\n", commit)
 		}
-
 		return nil
 	}
-
 	if !c.lake.Quiet {
 		fmt.Printf("%s staged\n", commit)
 	}
-
 	return nil
-}
-
-type idArray []ksuid.KSUID
-
-func (ids *idArray) Set(s string) error {
-	id, err := zedlake.ParseID(s)
-	if err != nil {
-		return err
-	}
-	*ids = append(*ids, id)
-	return nil
-}
-
-func (ids *idArray) String() string {
-	return ""
-}
-
-func (ids idArray) IDs() []ksuid.KSUID {
-	kids := make([]ksuid.KSUID, len(ids))
-	for i, id := range ids {
-		kids[i] = id
-	}
-	return kids
 }

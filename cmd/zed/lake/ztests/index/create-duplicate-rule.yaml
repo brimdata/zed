@@ -7,4 +7,4 @@ script: |
 outputs:
   - name: stderr
     regexp: |
-      xrule \w{27} is duplicate of xrule \w{27}
+      index \w{27} is a duplicate of index \w{27}

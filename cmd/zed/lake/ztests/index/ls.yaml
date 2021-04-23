@@ -8,7 +8,7 @@ script: |
 outputs:
   - name: stdout
     regexp: |
-      XRule \w{27} type ip
-      XRule \w{27} field field.foo
-      XRule \w{27} field\(s\) bar from zed script:
+      Index \w{27} type ip
+      Index \w{27} field field.foo
+      Index \w{27} field\(s\) bar from zed script:
         cut bar

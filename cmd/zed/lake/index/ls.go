@@ -34,21 +34,17 @@ func (c *LsCommand) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-
 	root, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-
 	w, err := c.outputFlags.Open(ctx)
 	if err != nil {
 		return err
 	}
 	defer w.Close()
-
-	return root.ScanXRules(ctx, w)
+	return root.ScanIndex(ctx, w, root.ListIndexIDs())
 }

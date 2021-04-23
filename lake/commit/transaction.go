@@ -49,10 +49,10 @@ func NewDeletesTxn(id ksuid.KSUID, ids []ksuid.KSUID) *Transaction {
 	return txn
 }
 
-func NewAddXsTxn(id ksuid.KSUID, indices []index.Reference) *Transaction {
+func NewAddIndicesTxn(id ksuid.KSUID, indices []*index.Reference) *Transaction {
 	txn := newTransaction(id, len(indices))
 	for _, index := range indices {
-		txn.appendAddX(index)
+		txn.appendAddIndex(index)
 	}
 	return txn
 }
@@ -84,8 +84,8 @@ func (t *Transaction) appendDelete(id ksuid.KSUID) {
 	t.Append(&actions.Delete{Commit: t.ID, ID: id})
 }
 
-func (t *Transaction) appendAddX(i index.Reference) {
-	t.Append(&actions.AddX{Commit: t.ID, Index: i})
+func (t *Transaction) appendAddIndex(i *index.Reference) {
+	t.Append(&actions.AddIndex{Commit: t.ID, Index: *i})
 }
 
 func (t Transaction) Serialize() ([]byte, error) {

@@ -4,10 +4,43 @@ import (
 	"os"
 	"testing"
 
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+func boomerang(t *testing.T, r1 Index) (r2 Index) {
+	t.Helper()
+	v, err := zson.MarshalZNG(r1)
+	require.NoError(t, err)
+	require.NoError(t, zson.UnmarshalZNG(v, &r2))
+	return r2
+}
+
+func TestTypeIndexMarshal(t *testing.T) {
+	r1 := NewTypeIndex(zng.TypeIP)
+	r2 := boomerang(t, r1)
+	assert.Equal(t, r1, r2)
+}
+
+func TestZedIndexMarshal(t *testing.T) {
+	keys := []field.Static{field.Dotted("id.orig_h")}
+	r1, err := NewZedIndex("count() by id.orig_h", "id.orig_h.count", keys)
+	require.NoError(t, err)
+	r2 := boomerang(t, r1)
+	assert.Equal(t, r1, r2)
+}
+
+func babbleReader(t *testing.T) zbuf.Reader {
+	t.Helper()
+	r, err := os.Open("../../testdata/babble-sorted.zson")
+	require.NoError(t, err)
+	t.Cleanup(func() { r.Close() })
+	return zson.NewReader(r, zson.NewContext())
+}
 
 /* Not yet
 func TestWriteIndices(t *testing.T) {
@@ -114,11 +147,3 @@ func TestZQLRule(t *testing.T) {
 	assert.EqualValues(t, 397, count)
 }
 */
-
-func babbleReader(t *testing.T) zbuf.Reader {
-	t.Helper()
-	r, err := os.Open("../../testdata/babble-sorted.zson")
-	require.NoError(t, err)
-	t.Cleanup(func() { r.Close() })
-	return zson.NewReader(r, zson.NewContext())
-}

@@ -141,7 +141,7 @@ func (s *Storage) NewWriter(ctx context.Context) (*Writer, error) {
 }
 
 func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) error {
-	var rules []index.Rule
+	var rules []index.Index
 	if req.ZQL != "" {
 		// XXX
 		// XXX IndexPostRequest.Keys hould take a []field.Static or
@@ -151,14 +151,14 @@ func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) err
 		for _, key := range req.Keys {
 			fields = append(fields, field.Dotted(key))
 		}
-		rule, err := index.NewZedRule(req.ZQL, req.OutputFile, fields)
+		rule, err := index.NewZedIndex(req.ZQL, req.OutputFile, fields)
 		if err != nil {
 			return zqe.E(zqe.Invalid, err)
 		}
 		rules = append(rules, rule)
 	}
 	for _, pattern := range req.Patterns {
-		rule, err := index.ParseRule(pattern)
+		rule, err := index.ParseIndex(pattern)
 		if err != nil {
 			return zqe.E(zqe.Invalid, err)
 		}

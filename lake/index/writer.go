@@ -111,40 +111,34 @@ type indexer struct {
 }
 
 func newIndexer(ctx context.Context, path iosrc.URI, ref *Reference, r zbuf.Reader) (*indexer, error) {
-	rule := ref.Rule
-	proc, err := rule.Proc()
+	idx := ref.Index
+	proc, err := idx.Proc()
 	if err != nil {
 		return nil, err
 	}
-
 	zctx := zson.NewContext()
 	conf := driver.Config{Custom: compile}
 	fgr, err := driver.NewReaderWithConfig(ctx, conf, proc, zctx, r)
 	if err != nil {
 		return nil, err
 	}
-
-	keys := rule.Keys
+	keys := idx.Keys
 	if len(keys) == 0 {
 		keys = []field.Static{keyName}
 	}
-
 	opts := []index.Option{index.KeyFields(keys...)}
-	if rule.Framesize > 0 {
-		opts = append(opts, index.FrameThresh(rule.Framesize))
+	if idx.Framesize > 0 {
+		opts = append(opts, index.FrameThresh(idx.Framesize))
 	}
-
 	writer, err := newIndexWriter(ctx, zctx, path, ref)
 	if err != nil {
 		return nil, err
 	}
-
 	fields, resolvers := compiler.CompileAssignments(keys, keys)
 	cutter, err := expr.NewCutter(zctx, fields, resolvers)
 	if err != nil {
 		return nil, err
 	}
-
 	return &indexer{
 		fgr:    fgr,
 		cutter: cutter,
@@ -152,22 +146,16 @@ func newIndexer(ctx context.Context, path iosrc.URI, ref *Reference, r zbuf.Read
 	}, nil
 }
 
-func newIndexWriter(ctx context.Context, zctx *zson.Context, path iosrc.URI, ref Reference, opts ...index.Option) (w *index.Writer, err error) {
-	for tried := false; ; {
-		spath := ref.ObjectPath(path).String()
-		w, err = index.NewWriterWithContext(ctx, zctx, spath, opts...)
-		if err != nil {
-			if zqe.IsNotFound(err) && !tried {
-				// If a not found is return this is probably because the rule
-				// path has not been created. Create the dir and try once more.
-				if err = iosrc.MkdirAll(ref.ObjectDir(path), 0700); err == nil {
-					tried = true
-					continue
-				}
-			}
+func newIndexWriter(ctx context.Context, zctx *zson.Context, path iosrc.URI, ref *Reference, opts ...index.Option) (w *index.Writer, err error) {
+	op := ref.ObjectPath(path).String()
+	w, err = index.NewWriterWithContext(ctx, zctx, op, opts...)
+	if zqe.IsNotFound(err) {
+		if err = iosrc.MkdirAll(ref.ObjectDir(path), 0700); err != nil {
+			return nil, err
 		}
-		return w, err
+		return index.NewWriterWithContext(ctx, zctx, op, opts...)
 	}
+	return w, err
 }
 
 func (d *indexer) start() {

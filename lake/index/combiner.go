@@ -11,19 +11,17 @@ import (
 
 type Combiner []*Writer
 
-func NewCombiner(ctx context.Context, path iosrc.URI, rules []Rule, segmentID ksuid.KSUID) (Combiner, error) {
+func NewCombiner(ctx context.Context, path iosrc.URI, rules []Index, segmentID ksuid.KSUID) (Combiner, error) {
 	writers := make(Combiner, 0, len(rules))
 	for _, rule := range rules {
-		ref := Reference{Rule: rule, SegmentID: segmentID}
+		ref := &Reference{Index: rule, SegmentID: segmentID}
 		w, err := NewWriter(ctx, path, ref)
 		if err != nil {
 			writers.Abort()
 			return nil, err
 		}
-
 		writers = append(writers, w)
 	}
-
 	return writers, nil
 }
 
@@ -45,8 +43,8 @@ func (c Combiner) Close() (merr error) {
 	return
 }
 
-func (c Combiner) References() []Reference {
-	references := make([]Reference, len(c))
+func (c Combiner) References() []*Reference {
+	references := make([]*Reference, len(c))
 	for i, w := range c {
 		references[i] = w.Reference
 	}

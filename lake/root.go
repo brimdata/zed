@@ -30,9 +30,9 @@ type Root struct {
 }
 
 type Config struct {
-	Version int          `zng:"version"`
-	Pools   []PoolConfig `zng:"pools"`
-	XRules  index.Rules  `zng:"xrules"`
+	Version int           `zng:"version"`
+	Pools   []PoolConfig  `zng:"pools"`
+	Indices index.Indices `zng:"indices"`
 }
 
 func newRoot(path iosrc.URI) *Root {
@@ -197,53 +197,57 @@ func (r *Root) RemovePool(ctx context.Context, name string) error {
 	return r.StoreConfig(ctx)
 }
 
-func (r *Root) AddXRules(ctx context.Context, xrules []index.Rule) error {
-	updated := r.XRules
-	for _, xrule := range xrules {
-		var existing *index.Rule
-		if updated, existing = updated.Add(xrule); existing != nil {
-			return fmt.Errorf("xrule %s is duplicate of xrule %s", xrule.ID, existing.ID)
+func (r *Root) AddIndex(ctx context.Context, indices []index.Index) error {
+	updated := r.Indices
+	for _, idx := range indices {
+		var existing *index.Index
+		if updated, existing = updated.Add(idx); existing != nil {
+			return fmt.Errorf("index %s is a duplicate of index %s", idx.ID, existing.ID)
 		}
 	}
-	r.XRules = updated
+	r.Indices = updated
 	return r.StoreConfig(ctx)
 }
 
-func (r *Root) DeleteXRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
-	updated := r.XRules
-	deleted := make([]index.Rule, len(ids))
-
+func (r *Root) DeleteIndices(ctx context.Context, ids []ksuid.KSUID) ([]index.Index, error) {
+	updated := r.Indices
+	deleted := make([]index.Index, len(ids))
 	for i, id := range ids {
-		var d *index.Rule
+		var d *index.Index
 		updated, d = updated.LookupDelete(id)
 		if d == nil {
-			return nil, fmt.Errorf("xrule %s not found", id)
+			return nil, fmt.Errorf("index %s not found", id)
 		}
-
 		deleted[i] = *d
 	}
-
 	return deleted, nil
 }
 
-func (r *Root) LookupXRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
-	xrules := make([]index.Rule, len(ids))
+func (r *Root) LookupIndices(ctx context.Context, ids []ksuid.KSUID) ([]index.Index, error) {
+	indices := make([]index.Index, len(ids))
 	for i, id := range ids {
-		rule := r.XRules.Lookup(id)
-		if rule == nil {
-			return nil, fmt.Errorf("could not find rule: %s", id)
+		index := r.Indices.Lookup(id)
+		if index == nil {
+			return nil, fmt.Errorf("could not find index: %s", id)
 		}
-		xrules[i] = *rule
+		indices[i] = *index
 	}
-
-	return xrules, nil
+	return indices, nil
 }
 
-func (r *Root) ScanXRules(ctx context.Context, w zbuf.Writer) error {
+func (r *Root) ListIndexIDs() []ksuid.KSUID {
+	return r.Indices.IDs()
+}
+
+func (r *Root) ScanIndex(ctx context.Context, w zbuf.Writer, ids []ksuid.KSUID) error {
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
-	for k := range r.XRules {
-		rec, err := m.MarshalRecord(&r.XRules[k])
+	for _, id := range ids {
+		index := r.Indices.Lookup(id)
+		if index == nil {
+			continue
+		}
+		rec, err := m.MarshalRecord(index)
 		if err != nil {
 			return err
 		}

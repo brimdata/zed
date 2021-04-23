@@ -10,7 +10,7 @@ import (
 var Index = &charm.Spec{
 	Name:  "index",
 	Usage: "index [subcommand]",
-	Short: "create and drop index rules, index data",
+	Short: "create and drop indices, index data",
 	New:   New,
 }
 

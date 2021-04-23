@@ -15,13 +15,13 @@ func init() {
 	unmarshaler = zson.NewZNGUnmarshaler()
 	unmarshaler.Bind(
 		actions.Add{},
-		actions.AddX{},
+		actions.AddIndex{},
 		actions.CommitMessage{},
 		actions.Delete{},
 		actions.StagedCommit{},
 		field.Static{},
+		index.Index{},
 		index.Reference{},
-		index.Rule{},
 		lake.Partition{},
 		lake.PoolConfig{},
 		segment.Reference{},

@@ -354,50 +354,44 @@ func (p *Pool) IsJournalID(ctx context.Context, id journal.ID) (bool, error) {
 	return id >= tail && id <= head, nil
 }
 
-func (p *Pool) Index(ctx context.Context, rules []index.Rule, ids []ksuid.KSUID) (ksuid.KSUID, error) {
-	idxrefs := make([]index.Reference, 0, len(rules)*len(ids))
+func (p *Pool) Index(ctx context.Context, rules []index.Index, ids []ksuid.KSUID) (ksuid.KSUID, error) {
+	idxrefs := make([]*index.Reference, 0, len(rules)*len(ids))
 	for _, id := range ids {
 		// This could be easily parallized with errgroup.
 		refs, err := p.indexSegment(ctx, rules, id)
 		if err != nil {
 			return ksuid.Nil, err
 		}
-
 		idxrefs = append(idxrefs, refs...)
 	}
-
 	id := ksuid.New()
-	txn := commit.NewAddXsTxn(id, idxrefs)
+	txn := commit.NewAddIndicesTxn(id, idxrefs)
 	if err := p.StoreInStaging(ctx, txn); err != nil {
 		return ksuid.Nil, err
 	}
 	return id, nil
 }
 
-func (p *Pool) indexSegment(ctx context.Context, rules []index.Rule, id ksuid.KSUID) ([]index.Reference, error) {
+func (p *Pool) indexSegment(ctx context.Context, rules []index.Index, id ksuid.KSUID) ([]*index.Reference, error) {
 	r, err := iosrc.NewReader(ctx, segment.RowObjectPath(p.DataPath, id))
 	if err != nil {
 		return nil, err
 	}
 	reader := zngio.NewReader(r, zson.NewContext())
-
 	w, err := index.NewCombiner(ctx, p.IndexPath, rules, id)
 	if err != nil {
 		r.Close()
 		return nil, err
 	}
-
 	err = zbuf.CopyWithContext(ctx, w, reader)
 	if err != nil {
 		w.Abort()
 	} else {
 		err = w.Close()
 	}
-
 	if rerr := r.Close(); err == nil {
 		err = rerr
 	}
-
 	return w.References(), err
 }
 

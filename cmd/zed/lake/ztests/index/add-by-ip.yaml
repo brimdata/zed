@@ -4,9 +4,9 @@ script: |
   zed lake create -q -p POOL
   id=$(zed lake add -p POOL -commit in.zson | head -1 | awk '{print $1}')
   echo $id
-  ruleid=$(zed lake index create -f zng :ip | zq -f text "cut s='0x'+to_hex(id)" -)
+  indexid=$(zed lake index create -f zng :ip | zq -f text "cut s='0x'+to_hex(id)" -)
 
-  zed lake index add -p POOL -rule $ruleid $id
+  zed lake index add -p POOL -index $indexid $id
   echo ===
   zed lake status -p POOL
 
@@ -23,4 +23,4 @@ outputs:
       ===
       staged \w{27}
 
-          AddX \w{27} xrule \w{27} segment
+          AddIndex \w{27} index \w{27} segment

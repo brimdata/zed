@@ -16,7 +16,7 @@ type Interface interface {
 
 var actions = []interface{}{
 	Add{},
-	AddX{},
+	AddIndex{},
 	Delete{},
 	CommitMessage{},
 }
@@ -74,15 +74,15 @@ func (d *Delete) String() string {
 	return "DEL " + d.ID.String()
 }
 
-type AddX struct {
+type AddIndex struct {
 	Commit ksuid.KSUID     `zng:"commit"`
 	Index  index.Reference `zng:"index"`
 }
 
-func (a *AddX) String() string {
+func (a *AddIndex) String() string {
 	return fmt.Sprintf("ADDX %s", a.Index)
 }
 
-func (a *AddX) CommitID() ksuid.KSUID {
+func (a *AddIndex) CommitID() ksuid.KSUID {
 	return a.Commit
 }

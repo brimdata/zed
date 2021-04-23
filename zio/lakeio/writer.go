@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
@@ -78,8 +77,8 @@ func formatValue(t table, b *bytes.Buffer, v interface{}, width int, colors *col
 		t.formatCommit(b, v, width, colors)
 	case *actions.StagedCommit:
 		t.formatStaged(b, v, colors)
-	case *index.Rule:
-		formatXRule(b, v, 0)
+	case *index.Index:
+		formatIndex(b, v, 0)
 	default:
 		if action, ok := v.(actions.Interface); ok {
 			t.append(action)
@@ -182,8 +181,8 @@ func (t table) formatActions(b *bytes.Buffer, id ksuid.KSUID) {
 		switch action := action.(type) {
 		case *actions.Add:
 			formatAdd(b, 4, action)
-		case *actions.AddX:
-			formatAddX(b, 4, action)
+		case *actions.AddIndex:
+			formatAddIndex(b, 4, action)
 		case *actions.Delete:
 			formatDelete(b, 4, action)
 		}
@@ -202,41 +201,44 @@ func formatAdd(b *bytes.Buffer, indent int, add *actions.Add) {
 	formatSegment(b, &add.Segment, "Add", indent)
 }
 
-func formatAddX(b *bytes.Buffer, indent int, addx *actions.AddX) {
-	formatIndex(b, &addx.Index, "AddX", indent)
+func formatAddIndex(b *bytes.Buffer, indent int, addx *actions.AddIndex) {
+	formatIndexObject(b, &addx.Index, "AddIndex", indent)
 }
 
-func formatIndex(b *bytes.Buffer, index *index.Reference, prefix string, indent int) {
+func formatIndexObject(b *bytes.Buffer, index *index.Reference, prefix string, indent int) {
 	tab(b, indent)
 	if prefix != "" {
 		b.WriteString(prefix)
 		b.WriteByte(' ')
 	}
-	b.WriteString(fmt.Sprintf("%s xrule %s segment", index.Rule.ID, index.SegmentID))
+	b.WriteString(fmt.Sprintf("%s index %s segment", index.Index.ID, index.SegmentID))
 	b.WriteByte('\n')
 }
 
-func formatXRule(b *bytes.Buffer, xrule *index.Rule, indent int) {
+func formatIndex(b *bytes.Buffer, idx *index.Index, indent int) {
 	tab(b, indent)
-	b.WriteString("XRule ")
-	b.WriteString(xrule.ID.String() + " ")
-	switch xrule.Kind {
-	case index.RuleType:
+	b.WriteString("Index ")
+	b.WriteString(idx.ID.String() + " ")
+	switch idx.Kind {
+	case index.IndexType:
 		b.WriteString("type ")
-		b.WriteString(xrule.Value)
-	case index.RuleField:
+		b.WriteString(idx.Value)
+	case index.IndexField:
 		b.WriteString("field ")
-		b.WriteString(xrule.Value)
-	case index.RuleZed:
+		b.WriteString(idx.Value)
+	case index.IndexZed:
 		b.WriteString("field(s) ")
-		for i, k := range xrule.Keys {
+		for i, k := range idx.Keys {
 			if i > 0 {
 				b.WriteString(", ")
 			}
-		}	b.WriteString(k.String())
+
+			b.WriteString(k.String())
+
+		}
 		b.WriteString(" from zed script:\n  ")
 		tab(b, indent)
-		b.WriteString(xrule.Value)
+		b.WriteString(idx.Value)
 	}
 	b.WriteByte('\n')
 }
