@@ -80,7 +80,7 @@ type AddIndex struct {
 }
 
 func (a *AddIndex) String() string {
-	return fmt.Sprintf("ADDX %s", a.Index)
+	return fmt.Sprintf("ADD_INDEX %s", a.Index)
 }
 
 func (a *AddIndex) CommitID() ksuid.KSUID {
