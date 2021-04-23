@@ -69,10 +69,10 @@ func (p *PoolConfig) Create(ctx context.Context, root iosrc.URI) error {
 	if err := iosrc.MkdirAll(DataPath(path), 0700); err != nil {
 		return err
 	}
-	if err := iosrc.MkdirAll(StagePath(path), 0700); err != nil {
+	if err := iosrc.MkdirAll(IndexPath(path), 0700); err != nil {
 		return err
 	}
-	if err := iosrc.MkdirAll(IndexPath(path), 0700); err != nil {
+	if err := iosrc.MkdirAll(StagePath(path), 0700); err != nil {
 		return err
 	}
 	_, err := commit.Create(ctx, LogPath(path), p.Order)
