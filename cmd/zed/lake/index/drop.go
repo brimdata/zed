@@ -46,13 +46,13 @@ func (c *DropCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	xrules, err := root.DeleteIndices(ctx, ids)
+	indices, err := root.DeleteIndices(ctx, ids)
 	if err != nil {
 		return err
 	}
 	if !c.lake.Quiet {
-		for _, xrule := range xrules {
-			fmt.Printf("%s dropped\n", xrule.ID)
+		for _, index := range indices {
+			fmt.Printf("%s dropped\n", index.ID)
 		}
 	}
 	return nil
