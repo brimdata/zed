@@ -15,8 +15,8 @@ var Index = &charm.Spec{
 }
 
 func init() {
-	Index.Add(Create)
 	Index.Add(Add)
+	Index.Add(Create)
 	Index.Add(Drop)
 	Index.Add(Ls)
 	zedlake.Cmd.Add(Index)
