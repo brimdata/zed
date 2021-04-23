@@ -10,12 +10,10 @@ type path []*instance
 func (p path) run(args []string) error {
 	err := p.last().command.Run(args)
 	if err == ErrNoRun {
-		var subcmd string
 		if len(args) == 0 {
 			err = fmt.Errorf("%q: requires a sub-command: %s", p.pathname(), p.subCommands())
 		} else {
-			subcmd = args[0]
-			err = fmt.Errorf("%q: no such sub-command %q: options are: %s", p.pathname(), subcmd, p.subCommands())
+			err = fmt.Errorf("%q: no such sub-command %q: options are: %s", p.pathname(), args[0], p.subCommands())
 		}
 	}
 	return err
