@@ -26,7 +26,7 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "compile",
 	Usage: "compile [ options ] zed",
-	Short: "inspect zed language abstract syntax trees and compiler stages",
+	Short: "inspect Zed language abstract syntax trees and compiler stages",
 	Long: `
 The "zed compile" command parses a Zed expression and prints the resulting abstract syntax
 tree as JSON object to standard output.  If you have istalled the
