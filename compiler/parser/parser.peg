@@ -353,7 +353,7 @@ Operator
   / FuseProc
   / ShapeProc
   / JoinProc
-  / TasteProc
+  / SampleProc
   / SQLProc
 
 SortProc
@@ -483,8 +483,8 @@ JoinKey
   = Lval
   / "(" expr:Expr ")" { RETURN(expr) }
 
-TasteProc
-  = "taste"i e:TasteExpr {
+SampleProc
+  = "sample"i e:SampleExpr {
       RETURN(MAP("kind": "Sequential", "procs": ARRAY(
         MAP("kind": "Summarize",
           "keys": ARRAY(MAP("kind": "Assignment",
@@ -492,7 +492,7 @@ TasteProc
                    "rhs": MAP("kind": "Call", "name": "typeof",
                               "args": ARRAY(e)))),
           "aggs": ARRAY(MAP("kind": "Assignment",
-                              "lhs": MAP("kind": "ID", "name": "taste"),
+                              "lhs": MAP("kind": "ID", "name": "sample"),
                               "rhs": MAP("kind": "Agg",
                                          "name": "any",
                                          "expr": e,
@@ -501,10 +501,10 @@ TasteProc
         MAP("kind": "Cut",
             "args": ARRAY(MAP("kind": "Assignment",
                                 "lhs": NULL,
-                                "rhs": MAP("kind": "ID", "name": "taste")))))))
+                                "rhs": MAP("kind": "ID", "name": "sample")))))))
     }
 
-TasteExpr
+SampleExpr
   = _ lval:Lval { RETURN(lval)}
   / "" { RETURN(MAP("kind":"Root")) }
 

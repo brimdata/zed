@@ -1,4 +1,4 @@
-zed: taste s2 | sort
+zed: sample | sort
 
 input: |
   {s1:"a",s2:"b"}
@@ -8,5 +8,5 @@ input: |
   {s1:"b",s2:"a"}
 
 output: |
-  {taste:0}
-  {taste:"b"}
+  {sample:{s1:"a",s2:0}}
+  {sample:{s1:"a",s2:"b"}}
