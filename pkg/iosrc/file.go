@@ -38,12 +38,12 @@ func (s *FileSource) WriteFile(_ context.Context, d []byte, uri URI) error {
 	return wrapfileError(uri, err)
 }
 
-func (s *FileSource) WriteFileIfNotExists(_ context.Context, b []byte, uri URI) error {
+func (s *FileSource) WriteFileIfNotExists(_ context.Context, d []byte, uri URI) error {
 	f, err := os.OpenFile(uri.Filepath(), os.O_WRONLY|os.O_CREATE|os.O_TRUNC|os.O_EXCL, s.Perm)
 	if err != nil {
 		return wrapfileError(uri, err)
 	}
-	_, err = f.Write(b)
+	_, err = f.Write(d)
 	if closeErr := f.Close(); err == nil {
 		err = closeErr
 	}

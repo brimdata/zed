@@ -26,10 +26,10 @@ type Log struct {
 
 const (
 	journalHandle = "J"
-	MaxRetries    = 10
+	maxRetries    = 10
 )
 
-var ErrRetriesExceeded = fmt.Errorf("commit journal unavailable after %d attempts", MaxRetries)
+var ErrRetriesExceeded = fmt.Errorf("commit journal unavailable after %d attempts", maxRetries)
 
 func newLog(path iosrc.URI, order zbuf.Order) *Log {
 	return &Log{
@@ -72,7 +72,7 @@ func (l *Log) Commit(ctx context.Context, commit *Transaction) error {
 	// recompute its commit and check for a write-conflict.  Right now,
 	// we are just demo-ing concurrent loads so it's not a problem,
 	// but it will eventually become one.  This is all addressed in #2546.
-	for attempts := 0; attempts < MaxRetries; attempts++ {
+	for attempts := 0; attempts < maxRetries; attempts++ {
 		err := l.journal.Commit(ctx, b)
 		if err != nil {
 			if os.IsExist(err) {
