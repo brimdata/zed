@@ -33,7 +33,7 @@ func (c *DropCommand) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) == 0 {
-		return errors.New("must specify one or more xrule tags")
+		return errors.New("must specify one or more index tags")
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
