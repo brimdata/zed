@@ -1,4 +1,4 @@
-script: zed ast -C -P 2 -sortKey ts "* | sort x | uniq"
+script: zed compile -C -P 2 -sortKey ts "* | sort x | uniq"
 
 outputs:
   - name: stdout
