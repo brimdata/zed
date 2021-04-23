@@ -18,7 +18,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func NewWriter(ctx context.Context, path iosrc.URI, ref Reference) (*Writer, error) {
+func NewWriter(ctx context.Context, path iosrc.URI, ref *Reference) (*Writer, error) {
 	rwCh := make(rwChan)
 	indexer, err := newIndexer(ctx, path, ref, rwCh)
 	if err != nil {
