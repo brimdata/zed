@@ -520,8 +520,8 @@ function peg$parse(input, options) {
       peg$c188 = "right",
       peg$c189 = peg$literalExpectation("right", true),
       peg$c190 = function() { return "right" },
-      peg$c191 = "taste",
-      peg$c192 = peg$literalExpectation("taste", true),
+      peg$c191 = "sample",
+      peg$c192 = peg$literalExpectation("sample", true),
       peg$c193 = function(e) {
             return {"kind": "Sequential", "procs": [
               
@@ -537,7 +537,7 @@ function peg$parse(input, options) {
                 
             "aggs": [{"kind": "Assignment",
                                     
-            "lhs": {"kind": "ID", "name": "taste"},
+            "lhs": {"kind": "ID", "name": "sample"},
                                     
             "rhs": {"kind": "Agg",
                                                
@@ -555,7 +555,7 @@ function peg$parse(input, options) {
                                       
             "lhs": null,
                                       
-            "rhs": {"kind": "ID", "name": "taste"}}]}]}
+            "rhs": {"kind": "ID", "name": "sample"}}]}]}
           
           },
       peg$c194 = function(lval) { return lval},
@@ -4225,7 +4225,7 @@ function peg$parse(input, options) {
                             if (s0 === peg$FAILED) {
                               s0 = peg$parseJoinProc();
                               if (s0 === peg$FAILED) {
-                                s0 = peg$parseTasteProc();
+                                s0 = peg$parseSampleProc();
                                 if (s0 === peg$FAILED) {
                                   s0 = peg$parseSQLProc();
                                 }
@@ -5338,19 +5338,19 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseTasteProc() {
+  function peg$parseSampleProc() {
     var s0, s1, s2;
 
     s0 = peg$currPos;
-    if (input.substr(peg$currPos, 5).toLowerCase() === peg$c191) {
-      s1 = input.substr(peg$currPos, 5);
-      peg$currPos += 5;
+    if (input.substr(peg$currPos, 6).toLowerCase() === peg$c191) {
+      s1 = input.substr(peg$currPos, 6);
+      peg$currPos += 6;
     } else {
       s1 = peg$FAILED;
       if (peg$silentFails === 0) { peg$fail(peg$c192); }
     }
     if (s1 !== peg$FAILED) {
-      s2 = peg$parseTasteExpr();
+      s2 = peg$parseSampleExpr();
       if (s2 !== peg$FAILED) {
         peg$savedPos = s0;
         s1 = peg$c193(s2);
@@ -5367,7 +5367,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseTasteExpr() {
+  function peg$parseSampleExpr() {
     var s0, s1, s2;
 
     s0 = peg$currPos;
