@@ -11,9 +11,9 @@ func (p path) run(args []string) error {
 	err := p.last().command.Run(args)
 	if err == ErrNoRun {
 		if len(args) == 0 {
-			err = fmt.Errorf("%q: requires a sub-command: %s", p.pathname(), p.subCommands())
+			return fmt.Errorf("%q: requires a sub-command: %s", p.pathname(), p.subCommands())
 		} else {
-			err = fmt.Errorf("%q: no such sub-command %q: options are: %s", p.pathname(), args[0], p.subCommands())
+			return fmt.Errorf("%q: no such sub-command %q: options are: %s", p.pathname(), args[0], p.subCommands())
 		}
 	}
 	return err
