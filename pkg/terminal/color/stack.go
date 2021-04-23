@@ -1,8 +1,7 @@
 package color
 
 import (
-	"bytes"
-	"strings"
+	"io"
 )
 
 type Stack []Code
@@ -37,56 +36,22 @@ func (s Stack) Top() Code {
 	return s[len(s)-1]
 }
 
-func (s *Stack) ColorStart(b *strings.Builder, code Code) {
+func (s *Stack) Start(w io.Writer, code Code) error {
 	if !Enabled {
-		return
+		return nil
 	}
 	s.Push(code)
-	b.WriteString(code.String())
+	_, err := io.WriteString(w, code.String())
+	return err
 }
 
-func (s *Stack) ColorEnd(b *strings.Builder) {
+func (s *Stack) End(w io.Writer) error {
 	if !Enabled {
-		return
+		return nil
 	}
-	op := s.Pop()
-	if op != "" {
-		b.WriteString(op)
+	var err error
+	if op := s.Pop(); op != "" {
+		_, err = io.WriteString(w, op)
 	}
-}
-
-func (s *Stack) StartInBytes(b *bytes.Buffer, code Code) {
-	if !Enabled {
-		return
-	}
-	s.Push(code)
-	b.WriteString(code.String())
-}
-
-func (s *Stack) EndInBytes(b *bytes.Buffer) {
-	if !Enabled {
-		return
-	}
-	op := s.Pop()
-	if op != "" {
-		b.WriteString(op)
-	}
-}
-
-func (s *Stack) StartInString(b *strings.Builder, code Code) {
-	if !Enabled {
-		return
-	}
-	s.Push(code)
-	b.WriteString(code.String())
-}
-
-func (s *Stack) EndInString(b *strings.Builder) {
-	if !Enabled {
-		return
-	}
-	op := s.Pop()
-	if op != "" {
-		b.WriteString(op)
-	}
+	return err
 }

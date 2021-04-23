@@ -428,13 +428,13 @@ func (f *Formatter) startColorPrimitive(typ zng.Type) {
 
 func (f *Formatter) startColor(code color.Code) {
 	if f.tab > 0 {
-		f.colors.StartInString(&f.builder, code)
+		f.colors.Start(&f.builder, code)
 	}
 }
 
 func (f *Formatter) endColor() {
 	if f.tab > 0 {
-		f.colors.EndInString(&f.builder)
+		f.colors.End(&f.builder)
 	}
 }
 
