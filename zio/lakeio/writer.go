@@ -228,13 +228,12 @@ func formatXRule(b *bytes.Buffer, xrule *index.Rule, indent int) {
 		b.WriteString("field ")
 		b.WriteString(xrule.Value)
 	case index.RuleZed:
-		keys := make([]string, len(xrule.Keys))
-		for i, k := range xrule.Keys {
-			keys[i] = k.String()
-		}
-
 		b.WriteString("field(s) ")
-		b.WriteString(strings.Join(keys, ", "))
+		for i, k := range xrule.Keys {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+		}	b.WriteString(k.String())
 		b.WriteString(" from zed script:\n  ")
 		tab(b, indent)
 		b.WriteString(xrule.Value)
