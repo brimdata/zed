@@ -229,7 +229,7 @@ Next we'll walk through an example where we handle each of these exceptions.
 ## Sample data
 
 First we'll regenerate our Zeek JSON logs from the same subset of
-[wrccdc 2018 pcaps](https://https://wrccdc.org/) described in
+[wrccdc 2018 pcaps](https://wrccdc.org/) described in
 the [zed-sample-data README](https://github.com/brimdata/zed-sample-data/blob/main/README.md),
 but with a customized Zeek v3.1.2 that has the following additional packages
 installed:
