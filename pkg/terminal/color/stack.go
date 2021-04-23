@@ -55,7 +55,7 @@ func (s *Stack) ColorEnd(b *strings.Builder) {
 	}
 }
 
-func (s *Stack) ColorStartBytes(b *bytes.Buffer, code Code) {
+func (s *Stack) StartInBytes(b *bytes.Buffer, code Code) {
 	if !Enabled {
 		return
 	}
@@ -63,7 +63,25 @@ func (s *Stack) ColorStartBytes(b *bytes.Buffer, code Code) {
 	b.WriteString(code.String())
 }
 
-func (s *Stack) ColorEndBytes(b *bytes.Buffer) {
+func (s *Stack) EndInBytes(b *bytes.Buffer) {
+	if !Enabled {
+		return
+	}
+	op := s.Pop()
+	if op != "" {
+		b.WriteString(op)
+	}
+}
+
+func (s *Stack) StartInString(b *strings.Builder, code Code) {
+	if !Enabled {
+		return
+	}
+	s.Push(code)
+	b.WriteString(code.String())
+}
+
+func (s *Stack) EndInString(b *strings.Builder) {
 	if !Enabled {
 		return
 	}

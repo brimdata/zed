@@ -40,10 +40,12 @@ func (code Code) Colorize(s string) string {
 func Gray(level int) Code {
 	if level < 0 {
 		level = 0
-	} else if level > 23 {
-		level = 23
+	} else if level > 255 {
+		level = 24
+	} else {
+		level = (level * 24) / 255
 	}
-	return Code(255 - level)
+	return Code(255 - 24 + level)
 }
 
 func Palette() string {
