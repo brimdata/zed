@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/brimdata/zed/lake/commit/actions"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
@@ -48,6 +49,14 @@ func NewDeletesTxn(id ksuid.KSUID, ids []ksuid.KSUID) *Transaction {
 	return txn
 }
 
+func NewAddIndicesTxn(id ksuid.KSUID, indices []*index.Reference) *Transaction {
+	txn := newTransaction(id, len(indices))
+	for _, index := range indices {
+		txn.appendAddIndex(index)
+	}
+	return txn
+}
+
 func (t *Transaction) Append(action actions.Interface) {
 	t.Actions = append(t.Actions, action)
 }
@@ -73,6 +82,10 @@ func (t *Transaction) appendAdd(s *segment.Reference) {
 
 func (t *Transaction) appendDelete(id ksuid.KSUID) {
 	t.Append(&actions.Delete{Commit: t.ID, ID: id})
+}
+
+func (t *Transaction) appendAddIndex(i *index.Reference) {
+	t.Append(&actions.AddIndex{Commit: t.ID, Index: *i})
 }
 
 func (t Transaction) Serialize() ([]byte, error) {

@@ -1,17 +1,5 @@
 package segment
 
-import (
-	"context"
-	"strings"
-	"testing"
-
-	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zson"
-	"github.com/stretchr/testify/require"
-)
-
 /* NOT YET
 func TestWriterIndex(t *testing.T) {
 	const data = `
@@ -52,7 +40,6 @@ func TestWriterSkipsInputPath(t *testing.T) {
 	_, err = index.Find(context.Background(), zctx, chunk.ZarDir(), inputdef.ID, "100")
 	assert.Truef(t, zqe.IsNotFound(err), "expected err to be zqe.IsNotFound, got: %v", err)
 }
-*/
 
 func testWriteWithDef(t *testing.T, input string, defs ...*index.Definition) *Reference {
 	dir := iosrc.MustParseURI(t.TempDir())
@@ -63,3 +50,4 @@ func testWriteWithDef(t *testing.T, input string, defs ...*index.Definition) *Re
 	require.NoError(t, w.Close(context.Background()))
 	return w.Segment()
 }
+*/

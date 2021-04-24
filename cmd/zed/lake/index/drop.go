@@ -3,110 +3,57 @@ package index
 import (
 	"errors"
 	"flag"
-	"os"
+	"fmt"
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/rlimit"
 )
 
 var Drop = &charm.Spec{
 	Name:  "drop",
 	Usage: "drop [-R root] [options] id... ",
-	Short: "drop index defintion(s) from archive",
-	Long: `
-TBD: update this help: Issue #2532
-
-"zar index drop" removes an index definition from the archive then walks through
-the tree removing referenced index files.
-
-If the -noapply option is enabled the command will only removed the index
-definition. The individual index files will still exist but they will no longer
-be queryable.
-`,
-	New: NewDrop,
+	Short: "drop indicies from a lake",
+	New:   NewDrop,
 }
 
 type DropCommand struct {
-	*zedlake.Command
-	root     string
-	noapply  bool
-	progress chan string
-	quiet    bool
+	lake *zedlake.Command
 }
 
 func NewDrop(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &DropCommand{Command: parent.(*Command).Command}
-	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
-	f.BoolVar(&c.noapply, "noapply", false, "remove index definition only")
-	f.BoolVar(&c.quiet, "q", false, "do not display progress updates will deleting indices")
-
+	c := &DropCommand{lake: parent.(*Command).Command}
 	return c, nil
 }
 
 func (c *DropCommand) Run(args []string) error {
-	return errors.New("issue #2532")
-	//	return c.run(args)
-}
-
-/* NOT YET
-func (c *DropCommand) run(args []string) error {
-	defer c.Cleanup()
-	if err := c.Init(); err != nil {
+	ctx, cleanup, err := c.lake.Init()
+	if err != nil {
 		return err
 	}
-
+	defer cleanup()
 	if len(args) == 0 {
-		return errors.New("no index definition specified")
+		return errors.New("must specify one or more index tags")
 	}
-
-	lk, err := lake.OpenLake(c.root, nil)
+	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
+		return err
+	}
+	ids, err := zedlake.ParseIDs(args)
 	if err != nil {
 		return err
 	}
-
-	alldefs, err := lk.ReadDefinitions(context.TODO())
+	root, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-
-	defs := make([]*index.Definition, 0, len(args))
-	for _, arg := range args {
-		id, err := ksuid.Parse(arg)
-		if err != nil {
-			return err
-		}
-		def := alldefs.Lookup(id)
-		if def == nil {
-			fmt.Fprintf(os.Stderr, "defintion for id '%s' not found\n", arg)
-			continue
-		}
-		defs = append(defs, def)
-	}
-
-	if len(defs) == 0 {
-		return errors.New("no definitions deleted")
-	}
-
-	if err := lake.RemoveDefinitions(context.TODO(), lk, defs...); err != nil {
+	indices, err := root.DeleteIndices(ctx, ids)
+	if err != nil {
 		return err
 	}
-
-	if !c.noapply {
-		if !c.quiet {
-			c.progress = make(chan string)
-			go c.displayProgress()
-		}
-		if err := lake.RemoveIndices(context.TODO(), lk, c.progress, defs...); err != nil {
-			return err
+	if !c.lake.Quiet {
+		for _, index := range indices {
+			fmt.Printf("%s dropped\n", index.ID)
 		}
 	}
-	fmt.Printf("%d index definitions removed\n", len(defs))
 	return nil
 }
-
-func (c *DropCommand) displayProgress() {
-	for line := range c.progress {
-		fmt.Println(line)
-	}
-}
-*/

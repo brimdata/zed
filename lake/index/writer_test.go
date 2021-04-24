@@ -9,21 +9,24 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
+	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWriter(t *testing.T) {
-	r := NewTypeRule(zng.TypeInt64)
-	w := testWriter(t, r)
+	r := NewTypeIndex(zng.TypeInt64)
+	ref := Reference{Index: r, SegmentID: ksuid.New()}
+	w := testWriter(t, ref)
 	err := zbuf.Copy(w, babbleReader(t))
 	require.NoError(t, err, "copy error")
 	require.NoError(t, w.Close())
 }
 
 func TestWriterWriteAfterClose(t *testing.T) {
-	r := NewTypeRule(zng.TypeInt64)
-	w := testWriter(t, r)
+	r := NewTypeIndex(zng.TypeInt64)
+	ref := Reference{Index: r, SegmentID: ksuid.New()}
+	w := testWriter(t, ref)
 	require.NoError(t, w.Close())
 	err := w.Write(nil)
 	assert.EqualError(t, err, "index writer closed")
@@ -34,7 +37,8 @@ func TestWriterWriteAfterClose(t *testing.T) {
 func TestWriterError(t *testing.T) {
 	const r1 = `{ts:1970-01-01T00:00:01Z,id:"id1"}`
 	const r2 = "{ts:1970-01-01T00:00:02Z,id:2}"
-	w := testWriter(t, NewFieldRule("id"))
+	ref := Reference{Index: NewFieldIndex("id"), SegmentID: ksuid.New()}
+	w := testWriter(t, ref)
 	zctx := zson.NewContext()
 	arr1, err := zbuf.ReadAll(zson.NewReader(strings.NewReader(r1), zctx))
 	require.NoError(t, err)
@@ -50,11 +54,9 @@ func TestWriterError(t *testing.T) {
 	assert.NoFileExists(t, w.URI.Filepath())
 }
 
-func testWriter(t *testing.T, rule Rule) *Writer {
-	def, err := NewDefinition(rule)
-	require.NoError(t, err)
-	u := iosrc.MustParseURI(t.TempDir()).AppendPath("zng.idx")
-	w, err := NewWriter(context.Background(), u, def)
+func testWriter(t *testing.T, ref Reference) *Writer {
+	path := iosrc.MustParseURI(t.TempDir())
+	w, err := NewWriter(context.Background(), path, &ref)
 	require.NoError(t, err)
 	return w
 }

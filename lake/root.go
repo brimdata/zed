@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
@@ -29,8 +30,9 @@ type Root struct {
 }
 
 type Config struct {
-	Version int          `zng:"version"`
-	Pools   []PoolConfig `zng:"pools"`
+	Version int           `zng:"version"`
+	Pools   []PoolConfig  `zng:"pools"`
+	Indices index.Indices `zng:"indices"`
 }
 
 func newRoot(path iosrc.URI) *Root {
@@ -193,4 +195,65 @@ func (r *Root) RemovePool(ctx context.Context, name string) error {
 	}
 	r.Pools = append(r.Pools[:hit], r.Pools[hit+1:]...)
 	return r.StoreConfig(ctx)
+}
+
+func (r *Root) AddIndex(ctx context.Context, indices []index.Index) error {
+	updated := r.Indices
+	for _, idx := range indices {
+		var existing *index.Index
+		if updated, existing = updated.Add(idx); existing != nil {
+			return fmt.Errorf("index %s is a duplicate of index %s", idx.ID, existing.ID)
+		}
+	}
+	r.Indices = updated
+	return r.StoreConfig(ctx)
+}
+
+func (r *Root) DeleteIndices(ctx context.Context, ids []ksuid.KSUID) ([]index.Index, error) {
+	updated := r.Indices
+	deleted := make([]index.Index, len(ids))
+	for i, id := range ids {
+		var d *index.Index
+		updated, d = updated.LookupDelete(id)
+		if d == nil {
+			return nil, fmt.Errorf("index %s not found", id)
+		}
+		deleted[i] = *d
+	}
+	return deleted, nil
+}
+
+func (r *Root) LookupIndices(ctx context.Context, ids []ksuid.KSUID) ([]index.Index, error) {
+	indices := make([]index.Index, len(ids))
+	for i, id := range ids {
+		index := r.Indices.Lookup(id)
+		if index == nil {
+			return nil, fmt.Errorf("could not find index: %s", id)
+		}
+		indices[i] = *index
+	}
+	return indices, nil
+}
+
+func (r *Root) ListIndexIDs() []ksuid.KSUID {
+	return r.Indices.IDs()
+}
+
+func (r *Root) ScanIndex(ctx context.Context, w zbuf.Writer, ids []ksuid.KSUID) error {
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+	for _, id := range ids {
+		index := r.Indices.Lookup(id)
+		if index == nil {
+			continue
+		}
+		rec, err := m.MarshalRecord(index)
+		if err != nil {
+			return err
+		}
+		if err := w.Write(rec); err != nil {
+			return err
+		}
+	}
+	return nil
 }

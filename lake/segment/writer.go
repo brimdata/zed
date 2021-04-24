@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/iosrc"
@@ -31,9 +30,8 @@ type Writer struct {
 }
 
 type WriterOpts struct {
-	Definitions index.Definitions
-	Order       zbuf.Order
-	Zng         zngio.WriterOpts
+	Order zbuf.Order
+	Zng   zngio.WriterOpts
 }
 
 func (r *Reference) NewWriter(ctx context.Context, path iosrc.URI, opts WriterOpts) (*Writer, error) {

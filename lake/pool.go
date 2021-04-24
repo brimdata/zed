@@ -9,11 +9,13 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/commit/actions"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -21,6 +23,7 @@ import (
 
 const (
 	DataTag  = "D"
+	IndexTag = "I"
 	LogTag   = "L"
 	StageTag = "S"
 )
@@ -38,6 +41,7 @@ type Pool struct {
 	PoolConfig
 	Path      iosrc.URI
 	DataPath  iosrc.URI
+	IndexPath iosrc.URI
 	StagePath iosrc.URI
 	log       *commit.Log
 }
@@ -65,6 +69,9 @@ func (p *PoolConfig) Create(ctx context.Context, root iosrc.URI) error {
 	if err := iosrc.MkdirAll(DataPath(path), 0700); err != nil {
 		return err
 	}
+	if err := iosrc.MkdirAll(IndexPath(path), 0700); err != nil {
+		return err
+	}
 	if err := iosrc.MkdirAll(StagePath(path), 0700); err != nil {
 		return err
 	}
@@ -82,6 +89,7 @@ func (p *PoolConfig) Open(ctx context.Context, root iosrc.URI) (*Pool, error) {
 		PoolConfig: *p,
 		Path:       path,
 		DataPath:   DataPath(path),
+		IndexPath:  IndexPath(path),
 		StagePath:  StagePath(path),
 		log:        log,
 	}
@@ -346,6 +354,47 @@ func (p *Pool) IsJournalID(ctx context.Context, id journal.ID) (bool, error) {
 	return id >= tail && id <= head, nil
 }
 
+func (p *Pool) Index(ctx context.Context, rules []index.Index, ids []ksuid.KSUID) (ksuid.KSUID, error) {
+	idxrefs := make([]*index.Reference, 0, len(rules)*len(ids))
+	for _, id := range ids {
+		// This could be easily parallized with errgroup.
+		refs, err := p.indexSegment(ctx, rules, id)
+		if err != nil {
+			return ksuid.Nil, err
+		}
+		idxrefs = append(idxrefs, refs...)
+	}
+	id := ksuid.New()
+	txn := commit.NewAddIndicesTxn(id, idxrefs)
+	if err := p.StoreInStaging(ctx, txn); err != nil {
+		return ksuid.Nil, err
+	}
+	return id, nil
+}
+
+func (p *Pool) indexSegment(ctx context.Context, rules []index.Index, id ksuid.KSUID) ([]*index.Reference, error) {
+	r, err := iosrc.NewReader(ctx, segment.RowObjectPath(p.DataPath, id))
+	if err != nil {
+		return nil, err
+	}
+	reader := zngio.NewReader(r, zson.NewContext())
+	w, err := index.NewCombiner(ctx, p.IndexPath, rules, id)
+	if err != nil {
+		r.Close()
+		return nil, err
+	}
+	err = zbuf.CopyWithContext(ctx, w, reader)
+	if err != nil {
+		w.Abort()
+	} else {
+		err = w.Close()
+	}
+	if rerr := r.Close(); err == nil {
+		err = rerr
+	}
+	return w.References(), err
+}
+
 func DataPath(poolPath iosrc.URI) iosrc.URI {
 	return poolPath.AppendPath(DataTag)
 }
@@ -356,4 +405,8 @@ func StagePath(poolPath iosrc.URI) iosrc.URI {
 
 func LogPath(poolPath iosrc.URI) iosrc.URI {
 	return poolPath.AppendPath(LogTag)
+}
+
+func IndexPath(poolPath iosrc.URI) iosrc.URI {
+	return poolPath.AppendPath(IndexTag)
 }
