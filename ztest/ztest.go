@@ -133,7 +133,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
@@ -647,8 +647,8 @@ func lookupzq(path string) (string, error) {
 	return "", zqe.E(zqe.NotFound)
 }
 
-func loadInputs(inputs []string, zctx *zson.Context) (zbuf.Reader, error) {
-	var readers []zbuf.Reader
+func loadInputs(inputs []string, zctx *zson.Context) (zio.Reader, error) {
+	var readers []zio.Reader
 	for _, input := range inputs {
 		zr, err := anyio.NewReader(anyio.GzipReader(strings.NewReader(input)), zctx)
 		if err != nil {
@@ -656,7 +656,7 @@ func loadInputs(inputs []string, zctx *zson.Context) (zbuf.Reader, error) {
 		}
 		readers = append(readers, zr)
 	}
-	return zbuf.ConcatReader(readers...), nil
+	return zio.ConcatReader(readers...), nil
 }
 
 func tmpInputFiles(inputs []string) (string, []string, error) {

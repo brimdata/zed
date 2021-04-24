@@ -3,6 +3,7 @@ package search
 import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 )
 
 type Output interface {
@@ -12,7 +13,7 @@ type Output interface {
 	ContentType() string
 }
 
-func SendFromReader(out Output, r zbuf.Reader) (err error) {
+func SendFromReader(out Output, r zio.Reader) (err error) {
 	if err := out.SendControl(&api.TaskStart{"TaskStart", 0}); err != nil {
 		return err
 	}

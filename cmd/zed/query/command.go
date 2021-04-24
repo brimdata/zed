@@ -17,7 +17,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/s3io"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -156,17 +156,17 @@ func (c *Command) Run(args []string) error {
 	}
 	if !c.stopErr {
 		for i, r := range readers {
-			readers[i] = zbuf.NewWarningReader(r, d)
+			readers[i] = zio.NewWarningReader(r, d)
 		}
 	}
-	defer zbuf.CloseReaders(readers)
+	defer zio.CloseReaders(readers)
 	if ast.FanIn(query) > 1 {
 		if err := driver.RunParallel(ctx, d, query, zctx, readers, driver.Config{}); err != nil {
 			writer.Close()
 			return err
 		}
 	} else {
-		reader := zbuf.ConcatReader(readers...)
+		reader := zio.ConcatReader(readers...)
 		if err := driver.Run(ctx, d, query, zctx, reader, driver.Config{}); err != nil {
 			writer.Close()
 			return err

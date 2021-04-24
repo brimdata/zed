@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zson"
@@ -69,7 +68,7 @@ func identity(t *testing.T, logs string) {
 	dst := tzngio.NewWriter(zio.NopCloser(&out))
 	in := strings.TrimSpace(logs) + "\n"
 	src := tzngio.NewReader(strings.NewReader(in), zson.NewContext())
-	err := zbuf.Copy(dst, src)
+	err := zio.Copy(dst, src)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.String())
 	}

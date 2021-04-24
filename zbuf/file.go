@@ -2,15 +2,17 @@ package zbuf
 
 import (
 	"io"
+
+	"github.com/brimdata/zed/zio"
 )
 
 type File struct {
-	Reader
+	zio.Reader
 	c    io.Closer
 	name string
 }
 
-func NewFile(r Reader, c io.Closer, name string) *File {
+func NewFile(r zio.Reader, c io.Closer, name string) *File {
 	return &File{r, c, name}
 }
 

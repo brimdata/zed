@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -70,7 +71,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	defer zbuf.CloseReaders(readers)
+	defer zio.CloseReaders(readers)
 	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Order)
 	if err != nil {
 		return err

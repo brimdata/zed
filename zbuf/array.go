@@ -1,6 +1,7 @@
 package zbuf
 
 import (
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -52,6 +53,6 @@ func (a *Array) Read() (*zng.Record, error) {
 	return rec, nil
 }
 
-func (a Array) NewReader() Reader {
+func (a Array) NewReader() zio.Reader {
 	return &a
 }

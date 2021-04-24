@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
@@ -21,7 +21,7 @@ type ReaderOpts struct {
 	AwsCfg *aws.Config
 }
 
-func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zbuf.Reader, error) {
+func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zio.Reader, error) {
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
@@ -75,7 +75,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zbuf.R
 	return nil, joinErrs([]error{tzngErr, zeekErr, zjsonErr, zsonErr, zngErr, parquetErr, zstErr})
 }
 
-func NewReader(r io.Reader, zctx *zson.Context) (zbuf.Reader, error) {
+func NewReader(r io.Reader, zctx *zson.Context) (zio.Reader, error) {
 	return NewReaderWithOpts(r, zctx, ReaderOpts{})
 }
 
@@ -86,7 +86,7 @@ func joinErrs(errs []error) error {
 	}
 	return zqe.E(s)
 }
-func match(r zbuf.Reader, name string) error {
+func match(r zio.Reader, name string) error {
 	_, err := r.Read()
 	if err != nil {
 		return fmt.Errorf("%s: %w", name, err)

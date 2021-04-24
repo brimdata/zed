@@ -15,7 +15,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/terminal"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
@@ -128,12 +128,12 @@ func Errorf(spec string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, Cmd.Name+": "+spec, args...)
 }
 
-func WriteOutput(ctx context.Context, flags outputflags.Flags, r zbuf.Reader) error {
+func WriteOutput(ctx context.Context, flags outputflags.Flags, r zio.Reader) error {
 	wc, err := flags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	err = zbuf.CopyWithContext(ctx, wc, r)
+	err = zio.CopyWithContext(ctx, wc, r)
 	if closeErr := wc.Close(); err == nil {
 		err = closeErr
 	}
@@ -146,7 +146,7 @@ type nameReader struct {
 	mc    *zson.MarshalZNGContext
 }
 
-func NewNameReader(names []string) zbuf.Reader {
+func NewNameReader(names []string) zio.Reader {
 	return &nameReader{
 		names: names,
 		mc:    resolver.NewMarshaler(),

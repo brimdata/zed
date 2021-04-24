@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimdata/zed/cli/auto"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -46,8 +46,8 @@ func (f *Flags) Init() error {
 	return nil
 }
 
-func (f *Flags) Open(zctx *zson.Context, paths []string, stopOnErr bool) ([]zbuf.Reader, error) {
-	var readers []zbuf.Reader
+func (f *Flags) Open(zctx *zson.Context, paths []string, stopOnErr bool) ([]zio.Reader, error) {
+	var readers []zio.Reader
 	for _, path := range paths {
 		if path == "-" {
 			path = iosrc.Stdin

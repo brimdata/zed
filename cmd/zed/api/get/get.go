@@ -19,7 +19,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 )
 
 var Get = &charm.Spec{
@@ -159,7 +159,7 @@ func (c *Command) Run(args []string) error {
 	}
 	stream := client.NewZngSearch(r)
 	stream.SetOnCtrl(c.handleControl)
-	if err := zbuf.Copy(writer, stream); err != nil {
+	if err := zio.Copy(writer, stream); err != nil {
 		writer.Close()
 		if ctx.Err() != nil {
 			return errors.New("search aborted")

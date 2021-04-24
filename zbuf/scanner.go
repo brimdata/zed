@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -48,7 +49,7 @@ func (s *ScannerStats) Accumulate(ss *ScannerStats) {
 	s.RecordsMatched += ss.RecordsMatched
 }
 
-func ReadersToScanners(ctx context.Context, readers []Reader) ([]Scanner, error) {
+func ReadersToScanners(ctx context.Context, readers []zio.Reader) ([]Scanner, error) {
 	scanners := make([]Scanner, 0, len(readers))
 	for _, reader := range readers {
 		s, err := NewScanner(ctx, reader, nil, nano.MaxSpan)
@@ -65,7 +66,7 @@ func ReadersToScanners(ctx context.Context, readers []Reader) ([]Scanner, error)
 // a scanner will be created from the underlying Scannerable so that the
 // pulled Batches are more efficient, i.e., the zng scanner will arrange
 // for each Batch to be returned to a pool instead of being GC'd.
-func ReadersToPullers(ctx context.Context, readers []Reader) ([]Puller, error) {
+func ReadersToPullers(ctx context.Context, readers []zio.Reader) ([]Puller, error) {
 	scanners, err := ReadersToScanners(ctx, readers)
 	if err != nil {
 		return nil, err
@@ -80,7 +81,7 @@ func ReadersToPullers(ctx context.Context, readers []Reader) ([]Puller, error) {
 var ScannerBatchSize = 100
 
 // NewScanner returns a Scanner for r that filters records by filterExpr and s.
-func NewScanner(ctx context.Context, r Reader, filterExpr Filter, s nano.Span) (Scanner, error) {
+func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter, s nano.Span) (Scanner, error) {
 	var sa ScannerAble
 	if zf, ok := r.(*File); ok {
 		sa, _ = zf.Reader.(ScannerAble)
@@ -104,7 +105,7 @@ func NewScanner(ctx context.Context, r Reader, filterExpr Filter, s nano.Span) (
 
 type scanner struct {
 	Puller
-	reader Reader
+	reader zio.Reader
 	filter expr.Filter
 	span   nano.Span
 	ctx    context.Context

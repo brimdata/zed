@@ -9,7 +9,7 @@ import (
 	zedindex "github.com/brimdata/zed/cmd/zed/index"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -75,7 +75,7 @@ func (c *Command) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		if err := zbuf.Copy(writer, r); err != nil {
+		if err := zio.Copy(writer, r); err != nil {
 			return err
 		}
 	}
@@ -84,7 +84,7 @@ func (c *Command) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		if err := zbuf.Copy(writer, r); err != nil {
+		if err := zio.Copy(writer, r); err != nil {
 			return err
 		}
 	}

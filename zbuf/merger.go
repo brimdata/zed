@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -70,14 +71,14 @@ func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merge
 	return m
 }
 
-func MergeReadersByTsAsReader(ctx context.Context, readers []Reader, order Order) (Reader, error) {
+func MergeReadersByTsAsReader(ctx context.Context, readers []zio.Reader, order Order) (zio.Reader, error) {
 	if len(readers) == 1 {
 		return readers[0], nil
 	}
 	return MergeReadersByTs(ctx, readers, order)
 }
 
-func MergeReadersByTs(ctx context.Context, readers []Reader, order Order) (*Merger, error) {
+func MergeReadersByTs(ctx context.Context, readers []zio.Reader, order Order) (*Merger, error) {
 	pullers, err := ReadersToPullers(ctx, readers)
 	if err != nil {
 		return nil, err

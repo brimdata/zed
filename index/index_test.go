@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -50,7 +51,7 @@ func TestMicroIndex(t *testing.T) {
 	zctx := zson.NewContext()
 	writer, err := index.NewWriter(zctx, path)
 	require.NoError(t, err)
-	err = zbuf.Copy(writer, stream)
+	err = zio.Copy(writer, stream)
 	require.NoError(t, err)
 	err = writer.Close()
 	require.NoError(t, err)
@@ -141,7 +142,7 @@ func TestCompare(t *testing.T) {
 	})
 }
 
-func buildAndOpen(t *testing.T, r zbuf.Reader, opts ...index.Option) *index.Finder {
+func buildAndOpen(t *testing.T, r zio.Reader, opts ...index.Option) *index.Finder {
 	return openFinder(t, build(t, r, opts...))
 }
 
@@ -155,20 +156,20 @@ func openFinder(t *testing.T, path string) *index.Finder {
 	return finder
 }
 
-func build(t *testing.T, r zbuf.Reader, opts ...index.Option) string {
+func build(t *testing.T, r zio.Reader, opts ...index.Option) string {
 	path := filepath.Join(tempDir(t), "test.zng")
 	writer, err := index.NewWriter(zson.NewContext(), path, opts...)
 	require.NoError(t, err)
-	require.NoError(t, zbuf.Copy(writer, r))
+	require.NoError(t, zio.Copy(writer, r))
 	require.NoError(t, writer.Close())
 	return path
 }
 
-func reader(logs string) zbuf.Reader {
+func reader(logs string) zio.Reader {
 	return zson.NewReader(strings.NewReader(logs), zson.NewContext())
 }
 
-func newReader(size int) (zbuf.Reader, error) {
+func newReader(size int) (zio.Reader, error) {
 	var lines []string
 	for i := 0; i < size; i++ {
 		line := fmt.Sprintf(`{key:"port:port:%d",value:%d (int32)}`, i, i)

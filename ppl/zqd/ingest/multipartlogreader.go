@@ -10,7 +10,7 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
@@ -26,7 +26,7 @@ type MultipartLogReader struct {
 	stopErr   bool
 	shaperAST ast.Proc
 	warnings  []string
-	zreader   zbuf.ReadCloser
+	zreader   zio.ReadCloser
 	zctx      *zson.Context
 	nread     int64
 }
@@ -68,7 +68,7 @@ read:
 	return rec, err
 }
 
-func (m *MultipartLogReader) next() (zbuf.ReadCloser, error) {
+func (m *MultipartLogReader) next() (zio.ReadCloser, error) {
 next:
 	if m.mr == nil {
 		return nil, nil
@@ -94,7 +94,7 @@ next:
 	}
 	name := part.FileName()
 	counter := &mpcounter{part, &m.nread}
-	var zr zbuf.ReadCloser
+	var zr zio.ReadCloser
 	zr, err = anyio.OpenFromNamedReadCloser(m.zctx, counter, name, m.opts)
 	if err != nil {
 		part.Close()
@@ -113,7 +113,7 @@ next:
 	return zr, err
 }
 
-func (m *MultipartLogReader) appendWarning(zr zbuf.Reader, err error) {
+func (m *MultipartLogReader) appendWarning(zr zio.Reader, err error) {
 	m.warnings = append(m.warnings, fmt.Sprintf("%s: %s", zr, err))
 }
 

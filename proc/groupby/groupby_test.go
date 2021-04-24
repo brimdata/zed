@@ -18,6 +18,7 @@ import (
 	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/proc/groupby"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -250,7 +251,7 @@ func compileGroupBy(code string) (*ast.Summarize, error) {
 type countReader struct {
 	mu sync.Mutex
 	n  int
-	r  zbuf.Reader
+	r  zio.Reader
 }
 
 func (cr *countReader) records() int {
@@ -271,7 +272,7 @@ func (cr *countReader) Read() (*zng.Record, error) {
 
 type testGroupByDriver struct {
 	n      int
-	writer zbuf.Writer
+	writer zio.Writer
 	cb     func(n int)
 }
 

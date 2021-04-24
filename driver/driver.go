@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -22,18 +23,18 @@ type Driver interface {
 	Stats(api.ScannerStats) error
 }
 
-func Run(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zbuf.Reader, cfg Config) error {
+func Run(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zio.Reader, cfg Config) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	mux, err := compile(ctx, program, zctx, []zbuf.Reader{reader}, cfg)
+	mux, err := compile(ctx, program, zctx, []zio.Reader{reader}, cfg)
 	if err != nil {
 		return err
 	}
 	return runMux(mux, d, cfg.StatsTick)
 }
 
-func RunParallel(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, readers []zbuf.Reader, cfg Config) error {
+func RunParallel(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, readers []zio.Reader, cfg Config) error {
 	if len(readers) != ast.FanIn(program) {
 		return errors.New("number of input sources must match number of parallel inputs in zql query")
 	}
@@ -97,11 +98,11 @@ func runMux(out *muxOutput, d Driver, statsTickCh <-chan time.Time) error {
 
 // CLI implements Driver.
 type CLI struct {
-	writers  []zbuf.Writer
+	writers  []zio.Writer
 	warnings io.Writer
 }
 
-func NewCLI(w ...zbuf.Writer) *CLI {
+func NewCLI(w ...zio.Writer) *CLI {
 	return &CLI{
 		writers: w,
 	}
@@ -137,7 +138,7 @@ func (d *CLI) ChannelEnd(int) error         { return nil }
 func (d *CLI) Stats(api.ScannerStats) error { return nil }
 
 type transformDriver struct {
-	w zbuf.Writer
+	w zio.Writer
 }
 
 func (d *transformDriver) Write(cid int, batch zbuf.Batch) error {
@@ -159,7 +160,7 @@ func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
 
 // Copy applies a proc to all records from a zbuf.Reader, writing to a
 // single zbuf.Writer. The proc must have a single tail.
-func Copy(ctx context.Context, w zbuf.Writer, prog ast.Proc, zctx *zson.Context, r zbuf.Reader, cfg Config) error {
+func Copy(ctx context.Context, w zio.Writer, prog ast.Proc, zctx *zson.Context, r zio.Reader, cfg Config) error {
 	d := &transformDriver{w: w}
 	return Run(ctx, d, prog, zctx, r, cfg)
 }
@@ -205,13 +206,13 @@ func (mr *muxReader) Close() error {
 	return mr.zr.Close()
 }
 
-func NewReader(ctx context.Context, program ast.Proc, zctx *zson.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
+func NewReader(ctx context.Context, program ast.Proc, zctx *zson.Context, reader zio.Reader) (zio.ReadCloser, error) {
 	return NewReaderWithConfig(ctx, Config{}, program, zctx, reader)
 }
 
-func NewReaderWithConfig(ctx context.Context, conf Config, program ast.Proc, zctx *zson.Context, reader zbuf.Reader) (zbuf.ReadCloser, error) {
+func NewReaderWithConfig(ctx context.Context, conf Config, program ast.Proc, zctx *zson.Context, reader zio.Reader) (zio.ReadCloser, error) {
 	ctx, cancel := context.WithCancel(ctx)
-	mux, err := compile(ctx, program, zctx, []zbuf.Reader{reader}, conf)
+	mux, err := compile(ctx, program, zctx, []zio.Reader{reader}, conf)
 	if err != nil {
 		cancel()
 		return nil, err

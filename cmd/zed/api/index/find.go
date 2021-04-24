@@ -7,7 +7,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	apicmd "github.com/brimdata/zed/cmd/zed/api"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/emitter"
 )
 
@@ -90,5 +90,5 @@ func (c *FindCmd) Run(args []string) error {
 		return err
 	}
 	defer writer.Close()
-	return zbuf.Copy(writer, stream)
+	return zio.Copy(writer, stream)
 }

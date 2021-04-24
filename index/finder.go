@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -51,14 +52,14 @@ const (
 // key values in the records read from the reader.  If the op argument is eql
 // then only exact matches are returned.  Otherwise, the record with the
 // largest key smaller (or larger) than the key argument is returned.
-func lookup(reader zbuf.Reader, compare expr.KeyCompareFn, order zbuf.Order, op operator) (*zng.Record, error) {
+func lookup(reader zio.Reader, compare expr.KeyCompareFn, order zbuf.Order, op operator) (*zng.Record, error) {
 	if order == zbuf.OrderAsc {
 		return lookupAsc(reader, compare, op)
 	}
 	return lookupDesc(reader, compare, op)
 }
 
-func lookupAsc(reader zbuf.Reader, fn expr.KeyCompareFn, op operator) (*zng.Record, error) {
+func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zng.Record, error) {
 	var prev *zng.Record
 	for {
 		rec, err := reader.Read()
@@ -84,7 +85,7 @@ func lookupAsc(reader zbuf.Reader, fn expr.KeyCompareFn, op operator) (*zng.Reco
 	}
 }
 
-func lookupDesc(reader zbuf.Reader, fn expr.KeyCompareFn, op operator) (*zng.Record, error) {
+func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zng.Record, error) {
 	var prev *zng.Record
 	for {
 		rec, err := reader.Read()
@@ -110,7 +111,7 @@ func lookupDesc(reader zbuf.Reader, fn expr.KeyCompareFn, op operator) (*zng.Rec
 	}
 }
 
-func (f *Finder) search(compare expr.KeyCompareFn) (zbuf.Reader, error) {
+func (f *Finder) search(compare expr.KeyCompareFn) (zio.Reader, error) {
 	if f.reader == nil {
 		panic("finder hasn't been opened")
 	}

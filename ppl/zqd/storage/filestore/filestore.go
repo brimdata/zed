@@ -77,14 +77,14 @@ func (s *Storage) join(args ...string) string {
 	return filepath.Join(args...)
 }
 
-func (s *Storage) Open(ctx context.Context, zctx *zson.Context, span nano.Span) (zbuf.ReadCloser, error) {
+func (s *Storage) Open(ctx context.Context, zctx *zson.Context, span nano.Span) (zio.ReadCloser, error) {
 	f, err := fs.Open(s.join(allZngFile))
 	if err != nil {
 		if !os.IsNotExist(err) {
 			return nil, err
 		}
 		r := zngio.NewReader(strings.NewReader(""), zctx)
-		return zbuf.NopReadCloser(r), nil
+		return zio.NopReadCloser(r), nil
 	}
 	return s.index.NewReader(f, zctx, span)
 }
@@ -109,7 +109,7 @@ func (w *spanWriter) Write(rec *zng.Record) error {
 	return nil
 }
 
-func (s *Storage) Write(ctx context.Context, zctx *zson.Context, zr zbuf.Reader) error {
+func (s *Storage) Write(ctx context.Context, zctx *zson.Context, zr zio.Reader) error {
 	if !s.wsem.TryAcquire(1) {
 		return zqe.E(zqe.Conflict, ErrWriteInProgress)
 	}
@@ -121,7 +121,7 @@ func (s *Storage) Write(ctx context.Context, zctx *zson.Context, zr zbuf.Reader)
 			StreamRecordsMax: s.streamsize,
 			LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
 		})
-		zw := zbuf.MultiWriter(fileWriter, spanWriter)
+		zw := zio.MultiWriter(fileWriter, spanWriter)
 		if err := driver.Copy(ctx, zw, zngWriteProc, zctx, zr, driver.Config{}); err != nil {
 			return err
 		}

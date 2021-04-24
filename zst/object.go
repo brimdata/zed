@@ -32,8 +32,8 @@ import (
 	"io"
 
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -177,7 +177,7 @@ func (o *Object) section(level int) (int64, int64) {
 	return off, o.trailer.Sections[level]
 }
 
-func (o *Object) newSectionReader(level int, sectionOff int64) zbuf.Reader {
+func (o *Object) newSectionReader(level int, sectionOff int64) zio.Reader {
 	off, len := o.section(level)
 	off += sectionOff
 	len -= sectionOff
@@ -185,11 +185,11 @@ func (o *Object) newSectionReader(level int, sectionOff int64) zbuf.Reader {
 	return zngio.NewReader(reader, o.zctx)
 }
 
-func (o *Object) NewReassemblyReader() zbuf.Reader {
+func (o *Object) NewReassemblyReader() zio.Reader {
 	return o.newSectionReader(1, 0)
 }
 
-func (o *Object) NewTrailerReader() zbuf.Reader {
+func (o *Object) NewTrailerReader() zio.Reader {
 	len := o.trailer.Length
 	off := o.size - int64(len)
 	reader := io.NewSectionReader(o.seeker, off, int64(len))

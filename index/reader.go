@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -104,7 +105,7 @@ func (r *Reader) section(level int) (int64, int64) {
 	return off, r.trailer.Sections[level]
 }
 
-func (r *Reader) newSectionReader(level int, sectionOff int64) (zbuf.Reader, error) {
+func (r *Reader) newSectionReader(level int, sectionOff int64) (zio.Reader, error) {
 	off, len := r.section(level)
 	off += sectionOff
 	len -= sectionOff
@@ -112,7 +113,7 @@ func (r *Reader) newSectionReader(level int, sectionOff int64) (zbuf.Reader, err
 	return zngio.NewReaderWithOpts(reader, r.zctx, zngio.ReaderOpts{Size: FrameBufSize}), nil
 }
 
-func (r *Reader) NewSectionReader(section int) (zbuf.Reader, error) {
+func (r *Reader) NewSectionReader(section int) (zio.Reader, error) {
 	n := len(r.trailer.Sections)
 	if section < 0 || section >= n {
 		return nil, fmt.Errorf("section %d out of range (index has %d sections)", section, n)
@@ -120,7 +121,7 @@ func (r *Reader) NewSectionReader(section int) (zbuf.Reader, error) {
 	return r.newSectionReader(section, 0)
 }
 
-func (r *Reader) NewTrailerReader() (zbuf.Reader, error) {
+func (r *Reader) NewTrailerReader() (zio.Reader, error) {
 	off := r.size - int64(r.trailerLen)
 	reader := io.NewSectionReader(r.reader, off, int64(r.trailerLen))
 	return zngio.NewReaderWithOpts(reader, r.zctx, zngio.ReaderOpts{Size: r.trailerLen}), nil

@@ -1,11 +1,10 @@
-package zbuf_test
+package zio
 
 import (
 	"bytes"
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -19,7 +18,7 @@ func TestPeeker(t *testing.T) {
 {key:"key6",value:"value6"}
 `
 	stream := zson.NewReader(strings.NewReader(input), zson.NewContext())
-	peeker := zbuf.NewPeeker(stream)
+	peeker := NewPeeker(stream)
 	rec1, err := peeker.Peek()
 	if err != nil {
 		t.Error(err)

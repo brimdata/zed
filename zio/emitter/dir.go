@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zng"
@@ -30,8 +29,8 @@ type Dir struct {
 	ext     string
 	stderr  io.Writer // XXX use warnings channel
 	opts    anyio.WriterOpts
-	writers map[zng.Type]zbuf.WriteCloser
-	paths   map[string]zbuf.WriteCloser
+	writers map[zng.Type]zio.WriteCloser
+	paths   map[string]zio.WriteCloser
 	source  iosrc.Source
 }
 
@@ -62,8 +61,8 @@ func NewDirWithSource(ctx context.Context, dir iosrc.URI, prefix string, stderr 
 		ext:     e,
 		stderr:  stderr,
 		opts:    opts,
-		writers: make(map[zng.Type]zbuf.WriteCloser),
-		paths:   make(map[string]zbuf.WriteCloser),
+		writers: make(map[zng.Type]zio.WriteCloser),
+		paths:   make(map[string]zio.WriteCloser),
 		source:  source,
 	}, nil
 }
@@ -76,7 +75,7 @@ func (d *Dir) Write(r *zng.Record) error {
 	return out.Write(r)
 }
 
-func (d *Dir) lookupOutput(rec *zng.Record) (zbuf.WriteCloser, error) {
+func (d *Dir) lookupOutput(rec *zng.Record) (zio.WriteCloser, error) {
 	typ := rec.Type
 	w, ok := d.writers[typ]
 	if ok {
@@ -105,7 +104,7 @@ func (d *Dir) filename(r *zng.Record) (iosrc.URI, string) {
 	return d.dir.AppendPath(name), _path
 }
 
-func (d *Dir) newFile(rec *zng.Record) (zbuf.WriteCloser, error) {
+func (d *Dir) newFile(rec *zng.Record) (zio.WriteCloser, error) {
 	filename, path := d.filename(rec)
 	if w, ok := d.paths[path]; ok {
 		return w, nil
