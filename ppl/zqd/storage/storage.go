@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -20,5 +21,5 @@ type Storage interface {
 	Kind() api.StorageKind
 	NativeOrder() zbuf.Order
 	Summary(ctx context.Context) (Summary, error)
-	Write(ctx context.Context, zctx *zson.Context, zr zbuf.Reader) error
+	Write(ctx context.Context, zctx *zson.Context, zr zio.Reader) error
 }

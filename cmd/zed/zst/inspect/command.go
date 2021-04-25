@@ -9,7 +9,7 @@ import (
 	zedzst "github.com/brimdata/zed/cmd/zed/zst"
 	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst"
 )
@@ -77,13 +77,13 @@ func (c *Command) Run(args []string) error {
 	}()
 	if c.reassembly {
 		r := reader.NewReassemblyReader()
-		if err := zbuf.Copy(writer, r); err != nil {
+		if err := zio.Copy(writer, r); err != nil {
 			return err
 		}
 	}
 	if c.trailer {
 		r := reader.NewTrailerReader()
-		if err := zbuf.Copy(writer, r); err != nil {
+		if err := zio.Copy(writer, r); err != nil {
 			return err
 		}
 	}

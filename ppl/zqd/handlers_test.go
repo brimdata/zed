@@ -24,7 +24,6 @@ import (
 	"github.com/brimdata/zed/pkg/promtest"
 	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/ppl/zqd"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
@@ -96,7 +95,7 @@ func TestSearchNoCtrl(t *testing.T) {
 	})
 	buf := bytes.NewBuffer(nil)
 	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
-	require.NoError(t, zbuf.Copy(w, r))
+	require.NoError(t, zio.Copy(w, r))
 	require.Equal(t, test.Trim(src), buf.String())
 	require.Equal(t, 0, len(msgs))
 }
@@ -741,7 +740,7 @@ func archiveStat(t *testing.T, conn *client.Connection, space api.SpaceID) strin
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
 	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
-	require.NoError(t, zbuf.Copy(w, r))
+	require.NoError(t, zio.Copy(w, r))
 	return buf.String()
 }
 
@@ -758,7 +757,7 @@ func indexSearch(t *testing.T, conn *client.Connection, space api.SpaceID, index
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
 	})
-	require.NoError(t, zbuf.Copy(w, r))
+	require.NoError(t, zio.Copy(w, r))
 	return buf.String(), msgs
 }
 
@@ -785,7 +784,7 @@ func search(t *testing.T, conn *client.Connection, space api.SpaceID, prog strin
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
 	})
-	require.NoError(t, zbuf.Copy(w, r))
+	require.NoError(t, zio.Copy(w, r))
 	return buf.String(), msgs
 }
 
@@ -794,7 +793,7 @@ func searchZson(t *testing.T, conn *client.Connection, space api.SpaceID, prog s
 	require.NoError(t, err)
 	buf := bytes.NewBuffer(nil)
 	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
-	require.NoError(t, zbuf.Copy(w, res))
+	require.NoError(t, zio.Copy(w, res))
 	return buf.String()
 }
 

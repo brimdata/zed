@@ -11,7 +11,7 @@ import (
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
 )
@@ -93,14 +93,14 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := zbuf.Copy(writer, reader); err != nil {
+	if err := zio.Copy(writer, reader); err != nil {
 		return err
 	}
 	close = false
 	return writer.Close()
 }
 
-func (c *Command) buildTable(zctx *zson.Context, reader zbuf.Reader) (*index.MemTable, error) {
+func (c *Command) buildTable(zctx *zson.Context, reader zio.Reader) (*index.MemTable, error) {
 	readKey := expr.NewDotExpr(field.Dotted(c.keyField))
 	table := index.NewMemTable(zctx)
 	for {

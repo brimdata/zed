@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -34,7 +34,7 @@ func TestZedIndexMarshal(t *testing.T) {
 	assert.Equal(t, r1, r2)
 }
 
-func babbleReader(t *testing.T) zbuf.Reader {
+func babbleReader(t *testing.T) zio.Reader {
 	t.Helper()
 	r, err := os.Open("../../testdata/babble-sorted.zson")
 	require.NoError(t, err)

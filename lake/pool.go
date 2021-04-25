@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
@@ -100,12 +101,12 @@ func (p *PoolConfig) Delete(ctx context.Context, root iosrc.URI) error {
 	return iosrc.RemoveAll(ctx, p.Path(root))
 }
 
-func (p *Pool) Add(ctx context.Context, r zbuf.Reader) (ksuid.KSUID, error) {
+func (p *Pool) Add(ctx context.Context, r zio.Reader) (ksuid.KSUID, error) {
 	w, err := NewWriter(ctx, p)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	err = zbuf.CopyWithContext(ctx, w, r)
+	err = zio.CopyWithContext(ctx, w, r)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}
@@ -248,7 +249,7 @@ func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) erro
 	return iosrc.WriteFile(ctx, p.StagingObject(txn.ID), b)
 }
 
-func (p *Pool) ScanStaging(ctx context.Context, w zbuf.Writer, ids []ksuid.KSUID) error {
+func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
 	ch := make(chan actions.Interface, 10)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -300,7 +301,7 @@ func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.
 	return nil
 }
 
-func (p *Pool) ScanPartitions(ctx context.Context, w zbuf.Writer, snap *commit.Snapshot, span nano.Span) error {
+func (p *Pool) ScanPartitions(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span nano.Span) error {
 	ch := make(chan Partition, 10)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -323,7 +324,7 @@ func (p *Pool) ScanPartitions(ctx context.Context, w zbuf.Writer, snap *commit.S
 	return err
 }
 
-func (p *Pool) ScanSegments(ctx context.Context, w zbuf.Writer, snap *commit.Snapshot, span nano.Span) error {
+func (p *Pool) ScanSegments(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span nano.Span) error {
 	ch := make(chan segment.Reference)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -383,7 +384,7 @@ func (p *Pool) indexSegment(ctx context.Context, rules []index.Index, id ksuid.K
 		r.Close()
 		return nil, err
 	}
-	err = zbuf.CopyWithContext(ctx, w, reader)
+	err = zio.CopyWithContext(ctx, w, reader)
 	if err != nil {
 		w.Abort()
 	} else {

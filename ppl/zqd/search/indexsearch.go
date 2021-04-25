@@ -5,16 +5,16 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
 
 type IndexSearcher interface {
-	IndexSearch(context.Context, *zson.Context, index.Query) (zbuf.ReadCloser, error)
+	IndexSearch(context.Context, *zson.Context, index.Query) (zio.ReadCloser, error)
 }
 
 type IndexSearchOp struct {
-	zbuf.ReadCloser
+	zio.ReadCloser
 }
 
 func NewIndexSearchOp(ctx context.Context, s IndexSearcher, req api.IndexSearchRequest) (*IndexSearchOp, error) {

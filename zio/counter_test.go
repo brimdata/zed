@@ -1,11 +1,10 @@
-package zbuf_test
+package zio
 
 import (
 	"strings"
 	"sync"
 	"testing"
 
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -34,16 +33,16 @@ func TestCounter(t *testing.T) {
 	go func() {
 		for i := 0; i < 22; i++ {
 			stream := zson.NewReader(strings.NewReader(input), zson.NewContext())
-			counter := zbuf.NewCounter(stream, &count)
-			require.NoError(t, zbuf.Copy(&sink, counter))
+			counter := NewCounter(stream, &count)
+			require.NoError(t, Copy(&sink, counter))
 		}
 		wg.Done()
 	}()
 	go func() {
 		for i := 0; i < 17; i++ {
 			stream := zson.NewReader(strings.NewReader(input), zson.NewContext())
-			counter := zbuf.NewCounter(stream, &count)
-			require.NoError(t, zbuf.Copy(&sink, counter))
+			counter := NewCounter(stream, &count)
+			require.NoError(t, Copy(&sink, counter))
 		}
 		wg.Done()
 	}()

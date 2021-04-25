@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/ppl/zqd/storage"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
@@ -107,7 +108,7 @@ func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 	return sum, err
 }
 
-func (s *Storage) Write(ctx context.Context, zctx *zson.Context, zr zbuf.Reader) error {
+func (s *Storage) Write(ctx context.Context, zctx *zson.Context, zr zio.Reader) error {
 	commits, err := s.pool.Add(ctx, zr)
 	if s.notifier != nil {
 		s.notifier.WriteNotify()
@@ -169,12 +170,12 @@ func (s *Storage) IndexCreate(ctx context.Context, req api.IndexPostRequest) err
 	//return lake.ApplyRules(ctx, s.lk, nil, rules...)
 }
 
-func (s *Storage) IndexSearch(ctx context.Context, zctx *zson.Context, query index.Query) (zbuf.ReadCloser, error) {
+func (s *Storage) IndexSearch(ctx context.Context, zctx *zson.Context, query index.Query) (zio.ReadCloser, error) {
 	return nil, errors.New("TBD")
 	//return lake.FindReadCloser(ctx, zctx, s.lk, query, lake.AddPath(lake.DefaultAddPathField, false))
 }
 
-func (s *Storage) ArchiveStat(ctx context.Context, zctx *zson.Context) (zbuf.ReadCloser, error) {
+func (s *Storage) ArchiveStat(ctx context.Context, zctx *zson.Context) (zio.ReadCloser, error) {
 	return nil, errors.New("TBD")
 	//return lake.Stat(ctx, zctx, s.lk)
 }

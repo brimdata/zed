@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -113,7 +114,7 @@ func (r *Root) StoreConfig(ctx context.Context) error {
 	return nil
 }
 
-func (r *Root) ScanPools(ctx context.Context, w zbuf.Writer) error {
+func (r *Root) ScanPools(ctx context.Context, w zio.Writer) error {
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
 	pools := r.Config.Pools
@@ -239,7 +240,7 @@ func (r *Root) ListIndexIDs() []ksuid.KSUID {
 	return r.Indices.IDs()
 }
 
-func (r *Root) ScanIndex(ctx context.Context, w zbuf.Writer, ids []ksuid.KSUID) error {
+func (r *Root) ScanIndex(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
 	for _, id := range ids {

@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"golang.org/x/sync/errgroup"
@@ -141,7 +142,7 @@ func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
 		return err
 	}
 	r := zbuf.Array(recs).NewReader()
-	if err := zbuf.CopyWithContext(w.ctx, writer, r); err != nil {
+	if err := zio.CopyWithContext(w.ctx, writer, r); err != nil {
 		writer.Abort()
 		return err
 	}

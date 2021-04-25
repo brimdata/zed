@@ -3,7 +3,7 @@ package zst
 import (
 	"context"
 
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -12,7 +12,7 @@ import (
 // to read metainformation for test and debugging.
 type Reader struct {
 	*Object
-	zbuf.Reader
+	zio.Reader
 }
 
 // NewReader returns a Reader ready to read a zst object as zng.Records.

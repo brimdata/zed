@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
@@ -104,13 +104,13 @@ func (a *onceError) Load() error {
 type indexer struct {
 	err     onceError
 	cutter  *expr.Cutter
-	fgr     zbuf.ReadCloser
+	fgr     zio.ReadCloser
 	index   *index.Writer
 	keyType zng.Type
 	wg      sync.WaitGroup
 }
 
-func newIndexer(ctx context.Context, path iosrc.URI, ref *Reference, r zbuf.Reader) (*indexer, error) {
+func newIndexer(ctx context.Context, path iosrc.URI, ref *Reference, r zio.Reader) (*indexer, error) {
 	idx := ref.Index
 	proc, err := idx.Proc()
 	if err != nil {
@@ -161,7 +161,7 @@ func newIndexWriter(ctx context.Context, zctx *zson.Context, path iosrc.URI, ref
 func (d *indexer) start() {
 	d.wg.Add(1)
 	go func() {
-		if err := zbuf.Copy(d, d.fgr); err != nil {
+		if err := zio.Copy(d, d.fgr); err != nil {
 			d.index.Abort()
 			d.err.Store(err)
 		}

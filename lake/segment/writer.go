@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 )
@@ -56,7 +57,7 @@ func (r *Reference) NewWriter(ctx context.Context, path iosrc.URI, opts WriterOp
 }
 
 type indexWriter interface {
-	zbuf.WriteCloser
+	zio.WriteCloser
 	Abort()
 }
 

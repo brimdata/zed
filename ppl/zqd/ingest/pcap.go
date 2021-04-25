@@ -305,7 +305,7 @@ func (p *legacyPcapOp) createSnapshot(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer zbuf.CloseReaders(readers)
+	defer zio.CloseReaders(readers)
 	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, p.store.NativeOrder())
 	if err != nil {
 		return err

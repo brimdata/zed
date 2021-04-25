@@ -1,8 +1,6 @@
-package zbuf
+package zio
 
-import (
-	"github.com/brimdata/zed/zng"
-)
+import "github.com/brimdata/zed/zng"
 
 // Peeker wraps a Stream while adding a Peek method, which allows inspection
 // of the next item to be read without actually reading it.

@@ -1,4 +1,4 @@
-package zbuf
+package zio
 
 import (
 	"github.com/brimdata/zed/zng"

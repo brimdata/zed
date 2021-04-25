@@ -8,12 +8,11 @@ import (
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/terminal"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 )
 
-func NewFile(ctx context.Context, path string, opts anyio.WriterOpts) (zbuf.WriteCloser, error) {
+func NewFile(ctx context.Context, path string, opts anyio.WriterOpts) (zio.WriteCloser, error) {
 	if path == "" {
 		path = "stdout"
 	}
@@ -35,7 +34,7 @@ func IsTerminal(w io.Writer) bool {
 	return false
 }
 
-func NewFileWithSource(ctx context.Context, path iosrc.URI, opts anyio.WriterOpts, source iosrc.Source) (zbuf.WriteCloser, error) {
+func NewFileWithSource(ctx context.Context, path iosrc.URI, opts anyio.WriterOpts, source iosrc.Source) (zio.WriteCloser, error) {
 	f, err := source.NewWriter(ctx, path)
 	if err != nil {
 		return nil, err

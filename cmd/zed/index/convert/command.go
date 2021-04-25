@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
 )
@@ -86,7 +87,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := zbuf.Copy(writer, zbuf.Reader(file)); err != nil {
+	if err := zio.Copy(writer, zio.Reader(file)); err != nil {
 		writer.Close()
 		return err
 	}

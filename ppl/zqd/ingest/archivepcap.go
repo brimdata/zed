@@ -15,7 +15,7 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/pcapanalyzer"
 	"github.com/brimdata/zed/ppl/zqd/pcapstorage"
 	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
 	"golang.org/x/sync/errgroup"
@@ -108,9 +108,9 @@ func (p *archivePcapOp) run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		defer zbuf.CloseReaders(zreaders)
-		combiner := zbuf.NewCombiner(ctx, zreaders)
-		if err := zbuf.CopyWithContext(ctx, p.writer, combiner); err != nil {
+		defer zio.CloseReaders(zreaders)
+		combiner := zio.NewCombiner(ctx, zreaders)
+		if err := zio.CopyWithContext(ctx, p.writer, combiner); err != nil {
 			p.writer.Close()
 			return err
 		}
@@ -119,9 +119,9 @@ func (p *archivePcapOp) run(ctx context.Context) error {
 	return group.Wait()
 }
 
-func (p *archivePcapOp) runAnalyzers(ctx context.Context, group *errgroup.Group, pcapstream io.Reader) ([]zbuf.Reader, error) {
+func (p *archivePcapOp) runAnalyzers(ctx context.Context, group *errgroup.Group, pcapstream io.Reader) ([]zio.Reader, error) {
 	var pipes []*io.PipeWriter
-	var zreaders []zbuf.Reader
+	var zreaders []zio.Reader
 	if p.zeek != nil {
 		pw, dr, err := p.runAnalyzer(ctx, group, p.zeek)
 		if err != nil {
@@ -158,7 +158,7 @@ func (p *archivePcapOp) runAnalyzers(ctx context.Context, group *errgroup.Group,
 	return zreaders, nil
 }
 
-func (p *archivePcapOp) runAnalyzer(ctx context.Context, group *errgroup.Group, ln pcapanalyzer.Launcher) (*io.PipeWriter, zbuf.Reader, error) {
+func (p *archivePcapOp) runAnalyzer(ctx context.Context, group *errgroup.Group, ln pcapanalyzer.Launcher) (*io.PipeWriter, zio.Reader, error) {
 	logdir, err := ioutil.TempDir("", "zqd-pcap-ingest-")
 	if err != nil {
 		return nil, nil, err

@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/ppl/zqd/storage"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zqe"
@@ -26,7 +27,7 @@ var (
 type LogOp struct {
 	bytesTotal   int64
 	warnings     []string
-	readers      []zbuf.Reader
+	readers      []zio.Reader
 	readCounters []*readCounter
 	err          error
 
@@ -63,7 +64,7 @@ func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest
 			p.openWarning(path, err)
 			continue
 		}
-		zr := zbuf.NewWarningReader(sf, p)
+		zr := zio.NewWarningReader(sf, p)
 
 		p.bytesTotal += size
 		p.readCounters = append(p.readCounters, rc)
@@ -159,7 +160,7 @@ func (p *LogOp) start(ctx context.Context, store storage.Storage) {
 	}
 	p.warnings = nil
 
-	defer zbuf.CloseReaders(p.readers)
+	defer zio.CloseReaders(p.readers)
 	reader, _ := zbuf.MergeReadersByTsAsReader(ctx, p.readers, store.NativeOrder())
 	p.err = store.Write(ctx, p.zctx, reader)
 	if err := p.closeFiles(); err != nil && p.err != nil {

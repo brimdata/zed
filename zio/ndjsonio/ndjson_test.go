@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/require"
 )
@@ -58,7 +58,7 @@ func TestNDJSONWriter(t *testing.T) {
 			var out bytes.Buffer
 			w := NewWriter(NopCloser(&out))
 			r := zson.NewReader(strings.NewReader(c.input), zson.NewContext())
-			require.NoError(t, zbuf.Copy(w, r))
+			require.NoError(t, zio.Copy(w, r))
 			NDJSONEq(t, c.output, out.String())
 		})
 	}

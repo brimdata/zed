@@ -3,13 +3,12 @@ package emitter
 import (
 	"bytes"
 
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 )
 
 type Bytes struct {
-	zbuf.Writer
+	zio.Writer
 	buf bytes.Buffer
 }
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/iosrc"
 	iosrcmock "github.com/brimdata/zed/pkg/iosrc/mock"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
 	"github.com/golang/mock/gomock"
@@ -37,7 +37,7 @@ func TestDirS3Source(t *testing.T) {
 	require.NoError(t, err)
 	w, err := NewDirWithSource(context.Background(), uri, "", os.Stderr, anyio.WriterOpts{Format: "zson"}, src)
 	require.NoError(t, err)
-	require.NoError(t, zbuf.Copy(w, r))
+	require.NoError(t, zio.Copy(w, r))
 }
 
 type nopCloser struct{ *bytes.Buffer }

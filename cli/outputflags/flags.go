@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/brimdata/zed/pkg/terminal/color"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
 	"github.com/brimdata/zed/zio/zngio"
@@ -105,7 +105,7 @@ func (f *Flags) FileName() string {
 	return f.outputFile
 }
 
-func (f *Flags) Open(ctx context.Context) (zbuf.WriteCloser, error) {
+func (f *Flags) Open(ctx context.Context) (zio.WriteCloser, error) {
 	if f.dir != "" {
 		d, err := emitter.NewDir(ctx, f.dir, f.outputFile, os.Stderr, f.WriterOpts)
 		if err != nil {

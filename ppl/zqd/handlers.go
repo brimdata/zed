@@ -18,7 +18,7 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/jsonpipe"
 	"github.com/brimdata/zed/ppl/zqd/search"
 	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zqe"
@@ -531,7 +531,7 @@ func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 type ArchiveStater interface {
-	ArchiveStat(context.Context, *zson.Context) (zbuf.ReadCloser, error)
+	ArchiveStat(context.Context, *zson.Context) (zio.ReadCloser, error)
 }
 
 func handleArchiveStat(c *Core, w http.ResponseWriter, r *http.Request) {

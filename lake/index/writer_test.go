@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -18,7 +19,7 @@ func TestWriter(t *testing.T) {
 	r := NewTypeIndex(zng.TypeInt64)
 	ref := Reference{Index: r, SegmentID: ksuid.New()}
 	w := testWriter(t, ref)
-	err := zbuf.Copy(w, babbleReader(t))
+	err := zio.Copy(w, babbleReader(t))
 	require.NoError(t, err, "copy error")
 	require.NoError(t, w.Close())
 }
@@ -44,8 +45,8 @@ func TestWriterError(t *testing.T) {
 	require.NoError(t, err)
 	arr2, err := zbuf.ReadAll(zson.NewReader(strings.NewReader(r2), zctx))
 	require.NoError(t, err)
-	require.NoError(t, zbuf.Copy(w, arr1.NewReader()))
-	require.NoError(t, zbuf.Copy(w, arr2.NewReader()))
+	require.NoError(t, zio.Copy(w, arr1.NewReader()))
+	require.NoError(t, zio.Copy(w, arr2.NewReader()))
 
 	err = w.Close()
 	assert.EqualError(t, err, "type of id field changed from string to int64")

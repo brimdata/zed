@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
 )
 
@@ -129,12 +130,12 @@ func ParseJournalID(ctx context.Context, pool *lake.Pool, at string) (journal.ID
 	return id, nil
 }
 
-func CopyToOutput(ctx context.Context, flags outputflags.Flags, r zbuf.Reader) error {
+func CopyToOutput(ctx context.Context, flags outputflags.Flags, r zio.Reader) error {
 	w, err := flags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	err = zbuf.Copy(w, r)
+	err = zio.Copy(w, r)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}
