@@ -21,54 +21,55 @@
 
 ## Search all events
 
-The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a dump of all events. The default `zq` output is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll sometimes make use of the `-z` option to output the text-based [ZSON](../../formats/zson.md) format, which is readable at the command line.
+The simplest possible Zed search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a dump of all events. The default `zq` output is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll often make use of the `-z` and `-Z` options to output the text-based [ZSON](../../formats/zson.md) format, which is readable at the command line.
 
 #### Example:
 ```zq-command
-zq -z '*' conn.log.gz
+zq -z '*' people.zson
 ```
 
 #### Output:
-```zq-output head:4
-{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl" (bstring),id:{orig_h:10.164.94.120,orig_p:39681 (port=(uint16)),resp_h:10.47.3.155,resp_p:3389 (port)} (=0),proto:"tcp" (=zenum),service:null (bstring),duration:4.266ms,orig_bytes:97 (uint64),resp_bytes:19 (uint64),conn_state:"RSTR" (bstring),local_orig:null (bool),local_resp:null (bool),missed_bytes:0 (uint64),history:"ShADTdtr" (bstring),orig_pkts:10 (uint64),orig_ip_bytes:730 (uint64),resp_pkts:6 (uint64),resp_ip_bytes:342 (uint64),tunnel_parents:null (1=(|[bstring]|))} (=2)
-{_path:"conn",ts:2018-03-24T17:15:21.411148Z,uid:"CXWfTK3LRdiuQxBbM6",id:{orig_h:10.47.25.80,orig_p:50817,resp_h:10.128.0.218,resp_p:23189},proto:"tcp",service:null,duration:486us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
-{_path:"conn",ts:2018-03-24T17:15:21.926018Z,uid:"CM59GGQhNEoKONb5i",id:{orig_h:10.47.25.80,orig_p:50817,resp_h:10.128.0.218,resp_p:23189},proto:"tcp",service:null,duration:538us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
-{_path:"conn",ts:2018-03-24T17:15:22.690601Z,uid:"CuKFds250kxFgkhh8f",id:{orig_h:10.47.25.80,orig_p:50813,resp_h:10.128.0.218,resp_p:27765},proto:"tcp",service:null,duration:546us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
-...
+```zq-output
+{name:"morgan",likes:"tart",age:61} (=person)
+{name:"quinn",likes:"sweet",age:14} (person)
+{name:"jessie",likes:"plain",age:30} (person)
 ```
 
-If the ZQL argument is left out entirely, this wildcard is the default search. The following shorthand command line would produce the same output shown above.
+If the Zed query argument is left out entirely, this wildcard is the default search. The following shorthand command line would produce the same output shown above.
 
 ```
-zq -z conn.log.gz
+zq -z people.zson
 ```
 
-To start a ZQL pipeline with this default search, you can similarly leave out the leading `* |` before invoking your first [processor](#../processors/README.md) or [aggregate function](#../aggregate-functions/README.md).
+To start a Zed pipeline with this default search, you can similarly leave out the leading `* |` before invoking your first [processor](#../processors/README.md) or [aggregate function](#../aggregate-functions/README.md).
 
 #### Example #1:
+
+The following is shorthand for `zq -z '* | cut name'`:
+
 ```zq-command
-zq -z 'cut server_tree_name' ntlm.log.gz  # Shorthand for: zq -z '* | cut server_tree_name' ntlm.log.gz
+zq -z 'cut name' people.zson
 ```
 
 #### Output:
-```zq-output head:3
-{server_tree_name:"factory.oompa.loompa" (bstring)} (=0)
-{server_tree_name:"factory.oompa.loompa"} (0)
-{server_tree_name:"jerry.land"} (0)
-...
+```zq-output
+{name:"morgan"}
+{name:"quinn"}
+{name:"jessie"}
 ```
 
 #### Example #2:
+
+The following is shorthand for `zq -z '* | count() by flavor'`:
 ```zq-command
-zq -z 'count() by _path | sort' *.log.gz  # Shorthand for: zq -z '* | count() by _path | sort' *.log.gz
+zq -z 'count() by flavor' fruit.zson
 ```
 
 #### Output:
-```zq-output head:3
-{_path:"capture_loss",count:2 (uint64)} (=0)
-{_path:"rfb",count:3} (0)
-{_path:"stats",count:5} (0)
-...
+```zq-output
+{flavor:"tart",count:2 (uint64)} (=0)
+{flavor:"sweet",count:3} (0)
+{flavor:"plain",count:1} (0)
 ```
 
 ## Value Match
@@ -79,28 +80,17 @@ The search result can be narrowed to include only events that contain certain va
 
 The simplest form of such a search is a "bare" word (not wrapped in quotes), which will match against any field that contains the word, whether it's an exact match to the data type and value of a field or the word appears as a substring in a field.
 
-For example, searching across all our logs for `10.150.0.85` matches against events that contain `addr`-type fields containing this precise value (fields such as `tx_hosts` and `id.resp_h` in our sample data) and also where it appears within `string`-type fields (such as the field `certificate.subject` in `x509` events.)
-
-* **Note**: In this and many following examples, we'll use the `zq -f table` output format for human readability. Due to the width of the Zeek events used as sample data, you may need to "scroll right" in the output to see some matching field values.
+For example, searching across all our logs for `14` matches against records that contain fields of numeric types that contain this precise value (such as the `age` field for our `person` records) and also where it appears within string-type fields (such as in our `notes` records.)
 
 #### Example:
 ```zq-command
-zq -f table '10.150.0.85' *.log.gz
+zq -z 14 *
 ```
 
 #### Output:
-```zq-output head:10
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P PROTO SERVICE DURATION  ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY         ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
-conn  2018-03-24T17:15:22.18798Z  CFis4J1xm9BOgtib34 10.47.8.10   56800     10.150.0.85 443       tcp   -       1.000534  31         77         SF         -          -          0            ^dtAfDTFr       8         382           10        554           -
-conn  2018-03-24T17:15:25.527535Z CnvVUp1zg3fnDKrlFk 10.47.27.186 58665     10.150.0.85 443       tcp   -       1.000958  31         77         SF         -          -          0            ^dtAfDFTr       8         478           10        626           -
-conn  2018-03-24T17:15:27.167552Z CsSFJyH4ucFtpmhqa  10.10.18.2   57331     10.150.0.85 443       tcp   -       1.000978  31         77         SF         -          -          0            ^dtAfDFTr       8         478           10        626           -
-conn  2018-03-24T17:15:30.540003Z CLevxl1MBUbcgovw49 10.10.18.2   57332     10.150.0.85 443       tcp   -       1.000998  31         77         SF         -          -          0            ^dtAfDTFrr      8         478           10        626           -
-conn  2018-03-24T17:15:32.512521Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       tcp   ssl     11.012647 4819       6021       SF         -          -          0            ShADTadttTfFr   42        11838         44        14298         -
-conn  2018-03-24T17:15:42.62808Z  CqwJmZ2Lzd42fuvg4k 10.47.8.10   56802     10.150.0.85 443       tcp   ssl     11.013735 4819       6021       SF         -          -          0            ShADTadtTtfFr   44        11422         44        13826         -
-conn  2018-03-24T17:15:46.541346Z CvTTHG2M6xPqDMDLB7 10.47.27.186 58666     10.150.0.85 443       tcp   ssl     11.01268  4819       6021       SF         -          -          0            ShADTadttTfFr   40        11734         46        14402         -
-conn  2018-03-24T17:15:47.486612Z ChpfSB4FWhg3xHI3yb 10.10.18.2   57334     10.150.0.85 443       tcp   ssl     11.014858 4819       6021       SF         -          -          0            ShADTadttTfFr   44        11942         44        14298         -
-conn  2018-03-24T17:15:50.685818Z CCTYYh2Y0IAt4cJpV6 10.10.18.2   57335     10.150.0.85 443       tcp   ssl     11.014914 4819       6021       SF         -          -          0            ShADTadttTfFr   44        11942         44        14298         -
-...
+```zq-output
+{time:"2021-04-27T00:10:33Z",note:"morgan ate 14 apples"}
+{name:"quinn",likes:"sweet",age:14} (=person)
 ```
 
 By comparison, the section below on [Field/Value Match](#fieldvalue-match) describes ways to perform searches against only fields of a specific [data type](../data-types/README.md).
@@ -109,81 +99,59 @@ By comparison, the section below on [Field/Value Match](#fieldvalue-match) descr
 
 Sometimes you may need to search for sequences of multiple words or words that contain special characters. To achieve this, wrap your search term in quotes.
 
-Let's say we want to isolate the events containing the text `O=Internet Widgits` that we saw in the response to the previous example search. If typed "bare" as our ZQL, we'd experience two problems:
+Let's say we want to find the `note` record that contains the text `basket empty-handed`. If typed  "bare" as our Zed query, we'd experience two problems:
 
-   1. The leading `O=` would be interpreted as the start of an attempted [field/value match](#fieldvalue-match) for a field named `O`.
+   1. `empty-handed` would be interpreted as a mathematical expression to subtract the value in a field called `handed` from the value in a field called `empty`, then search for the computed result.
    2. The space character would cause the input to be interpreted as two separate words and hence the search would not be as strict.
 
 However, wrapping in quotes gives the desired result.
 
 #### Example:
 ```zq-command
-zq -f table '"O=Internet Widgits"' *.log.gz
+zq -Z '"basket empty-handed"' *
 ```
 
 #### Output:
-```zq-output head:10
-_PATH  TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P FUID               FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                              SUB                                                          SRC          DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
-notice 2018-03-24T17:15:32.521729Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P VERSION CIPHER                                CURVE  SERVER_NAME RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS   CLIENT_CERT_CHAIN_FUIDS SUBJECT                                                      ISSUER                                                       CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
-ssl   2018-03-24T17:15:32.513518Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FZW30y2Nwc9i0qmdvg (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:15:42.629228Z CqwJmZ2Lzd42fuvg4k 10.47.8.10   56802     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           Fo9ltu1O8DGE0KAgC  (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:15:46.542733Z CvTTHG2M6xPqDMDLB7 10.47.27.186 58666     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           F7oQQK1qo9HfmlN048 (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:15:47.487765Z ChpfSB4FWhg3xHI3yb 10.10.18.2   57334     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FdBWBA3eODh6nHFt82 (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:15:50.686807Z CCTYYh2Y0IAt4cJpV6 10.10.18.2   57335     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           F3tqPSHF7DQTGzvb8  (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:16:03.420427Z CgYVkl18broGgMeXAj 10.47.24.186 55783     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FIAk2w1WyVWGpBdYfa (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:16:14.520854Z CltIsl1XqvnZNN46y5 10.47.8.10   56805     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FqSNvesbyWVAzlM9l  (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-...
+```zq-output
+{
+    time: 2021-04-27T00:19:02Z,
+    note: "quinn returrned to the fig basket empty-handed"
+}
 ```
 
 ### Glob Wildcards
 
 To find values that may contain arbitrary substrings between or alongside the desired word(s), one or more [glob](https://en.wikipedia.org/wiki/Glob_(programming))-style wildcards can be used.
 
-For example, the following search finds events that contain web server hostnames that include the letters `cdn` in the middle of them, such as `www.cdn.amazon.com` or `www.herokucdn.com`.
+For example, the following search finds the references to `banana` as well as the reference to the fig-producer `alanar`.
 
 #### Example:
 ```zq-command
-zq -f table 'www.*cdn*.com' *.log.gz
+zq -z '*a*ana*' *
 ```
 
 #### Output:
-```zq-output head:10
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY              QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                                                                                                                                                                                                                                                                                      TTLS                                REJECTED
-dns   2018-03-24T17:16:24.038839Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   11089    0.000785 www.amazon.com     1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                              578,57,57                           F
-dns   2018-03-24T17:16:24.038843Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   11089    0.000784 www.amazon.com     1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                              578,57,57                           F
-dns   2018-03-24T17:16:24.038845Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   15749    0.001037 www.amazon.com     1      C_INTERNET  28    AAAA       0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net                                                                                                                                                                                                                                                                                             578,57                              F
-dns   2018-03-24T17:16:24.038847Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   15749    0.001039 www.amazon.com     1      C_INTERNET  28    AAAA       0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net                                                                                                                                                                                                                                                                                             578,57                              F
-dns   2018-03-24T17:17:09.930694Z Cfah1k4TTqKPt2tUNa 10.47.1.10  54657     10.0.0.100 53        udp   50394    0.001135 www.cdn.amazon.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                                                 12,12                               F
-dns   2018-03-24T17:17:09.930698Z Cfah1k4TTqKPt2tUNa 10.47.1.10  54657     10.0.0.100 53        udp   50394    0.001133 www.cdn.amazon.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                                                 12,12                               F
-dns   2018-03-24T17:22:57.049941Z CiCGyr4RPOcBLVyh33 10.47.2.100 39482     10.0.0.100 53        udp   27845    0.014268 www.herokucdn.com  1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 d3v17f49c4gdd3.cloudfront.net,52.85.83.228,52.85.83.238,52.85.83.247,52.85.83.110,52.85.83.12,52.85.83.97,52.85.83.135,52.85.83.215                                                                                                                                                                                                          300,60,60,60,60,60,60,60,60         F
-dns   2018-03-24T17:22:57.049944Z CiCGyr4RPOcBLVyh33 10.47.2.100 39482     10.0.0.100 53        udp   27845    0.014269 www.herokucdn.com  1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 d3v17f49c4gdd3.cloudfront.net,52.85.83.228,52.85.83.238,52.85.83.247,52.85.83.110,52.85.83.12,52.85.83.97,52.85.83.135,52.85.83.215                                                                                                                                                                                                          300,60,60,60,60,60,60,60,60         F
-dns   2018-03-24T17:22:57.049945Z CiCGyr4RPOcBLVyh33 10.47.2.100 39482     10.0.0.100 53        udp   13966    0.017272 www.herokucdn.com  1      C_INTERNET  28    AAAA       0     NOERROR    F  F  T  T  0 d3v17f49c4gdd3.cloudfront.net,2600:9000:201d:8a00:15:5f5a:e9c0:93a1,2600:9000:201d:3600:15:5f5a:e9c0:93a1,2600:9000:201d:b400:15:5f5a:e9c0:93a1,2600:9000:201d:2400:15:5f5a:e9c0:93a1,2600:9000:201d:a00:15:5f5a:e9c0:93a1,2600:9000:201d:ba00:15:5f5a:e9c0:93a1,2600:9000:201d:f200:15:5f5a:e9c0:93a1,2600:9000:201d:1800:15:5f5a:e9c0:93a1 300,60,60,60,60,60,60,60,60         F
-...
+```zq-output
+{name:"banana",color:"yellow",flavor:"sweet"} (=fruit)
+{name:"chiquita",fruit:"banana",website:"www.chiquita.com",siteaddr:104.124.1.147} (=producer)
+{name:"alanar",fruit:"fig",website:"www.alanar.com.tr",siteaddr:85.95.231.46} (producer)
 ```
 
    * **Note:** Our use of `*` to [search all events](#search-all-events) as shown previously is the simplest example of using a glob wildcard.
 
-Glob wildcards only have effect when used with [bare word](#bare-word) searches. An asterisk in a [quoted word](#quoted-word) search will match explicitly against an asterisk character. For example, the following search matches events that contain the substring `CN=*` as is often found in the start of certificate subjects.
+Glob wildcards only have effect when used with [bare word](#bare-word) searches. An asterisk in a [quoted word](#quoted-word) search will match explicitly against an asterisk character. For example, the following search matches our activity log entry regarding date theft.
 
 #### Example:
 ```zq-command
-zq -f table '"CN=*"' *.log.gz
+zq -Z '"*actually stole*"' *
 ```
 
 #### Output:
-```zq-output head:10
-_PATH  TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H   ID.RESP_P FUID              FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                                             SUB                                                                                          SRC        DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
-notice 2018-03-24T17:16:58.268179Z CVkrLo2Wjo4r51ZDZ7 10.47.8.10 56808     64.4.54.254 443       FYwv52OzGGIJPop3l -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (unable to get local issuer certificate) CN=*.vortex-win.data.microsoft.com,OU=Microsoft,O=Microsoft Corporation,L=Redmond,ST=WA,C=US 10.47.8.10 64.4.54.254 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H       ID.RESP_P VERSION CIPHER                                        CURVE     SERVER_NAME                                             RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS                                                            CLIENT_CERT_CHAIN_FUIDS                                  SUBJECT                                                                                                                                                  ISSUER                                                                                                                                   CLIENT_SUBJECT                                             CLIENT_ISSUER                                            VALIDATION_STATUS
-ssl   2018-03-24T17:15:23.363645Z Ck6KyHTvFSs6ilQ43  10.47.26.160 49161     216.58.193.195  443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    fonts.gstatic.com                                       F       -          h2            T           FPxVI11Qp4XsZx8MIf,F287wP3LNxC1jQJZsb                                       (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
-ssl   2018-03-24T17:15:23.363999Z CdREh1wNA3vUhNI1f  10.47.26.160 49162     216.58.193.195  443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    fonts.gstatic.com                                       F       -          h2            T           FWz7sY1pnCwl9NvQe,FJ469V1AfRW24KDwBc                                        (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
-ssl   2018-03-24T17:15:23.37596Z  CYVobu3DR0JyyP1m3g 10.47.26.160 49163     216.58.193.195  443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    ssl.gstatic.com                                         F       -          h2            T           F8iNVI29EYGgwvRa6j,FADPVCnp9r9OThjk9                                        (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
-ssl   2018-03-24T17:15:23.139892Z CmkwsI9pQSw1nyclk  10.47.1.208  50083     52.40.133.43    443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256         secp256r1 tiles.services.mozilla.com                              F       -          -             T           FQ290u35UG0B05Zky9,Fx8Cg11p5utkG9q2G7                                       (empty)                                                  CN=*.services.mozilla.com,OU=Cloud Services,O=Mozilla Corporation,L=Mountain View,ST=California,C=US                                                     CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                    -                                                          -                                                        ok
-ssl   2018-03-24T17:15:24.307Z    CfWXSt1sUgIscA3xjb 10.47.1.208  50089     52.85.83.85     443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256         secp256r1 tiles-cloudfront.cdn.mozilla.net                        F       -          http/1.1      T           FqCBqN3kyEWCK3vylf,FfQ1q84bNdxP2QYns9                                       (empty)                                                  CN=*.cdn.mozilla.net,O=Mozilla Corporation,L=Mountain View,ST=California,C=US                                                                            CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                    -                                                          -                                                        ok
-ssl   2018-03-24T17:15:24.316682Z CQ3rFR3YYB9AQ0bKce 10.47.26.160 49164     172.217.5.67    443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    www.gstatic.com                                         F       -          h2            T           Fn2IUp17fUwd39fek,FHIX3R22CuFDL2n8Ji                                        (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
-ssl   2018-03-24T17:15:24.642826Z CUWctp1qQGAroHInB7 10.47.26.160 49166     172.217.4.130   443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    adservice.google.com                                    F       -          h2            T           FzhmnON3YiRWTsJDh,FROnPf4jueKCUmjDC2                                        (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
-...
+```zq-output
+{
+    time: 2021-04-27T00:43:23Z,
+    note: "someone *actually stole* some dates!"
+} (=activity)
 ```
 
 ### Regular Expressions
