@@ -10,7 +10,6 @@ ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))
 ZEEKPATH = zeek-$(ZEEKTAG)
 SURICATATAG := $(shell python -c 'import json; print(json.load(open("package.json"))["brimDependencies"]["suricataTag"])')
 SURICATAPATH = suricata-$(SURICATATAG)
-PG_PERSIST = true
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
 #  make TEST=TestZed/ztests/suite/cut/cut
@@ -89,9 +88,6 @@ test-pcapingest: bin/$(ZEEKPATH)
 
 .PHONY: test-services
 test-services: build
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
-		ZTEST_TAG=services \
-		go test -run TestZed/ppl/zqd/db/postgresdb/ztests .
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
 		go test -run TestZed/ppl/zqd/ztests/redis .

@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/ppl/zqd/auth"
 	"github.com/brimdata/zed/ppl/zqd/db/filedb"
-	"github.com/brimdata/zed/ppl/zqd/db/postgresdb"
 	"github.com/brimdata/zed/ppl/zqd/db/schema"
 	"go.uber.org/zap"
 )
@@ -34,7 +33,7 @@ type DBKind string
 // command line flag.
 func (k *DBKind) Set(s string) error {
 	switch s {
-	case string(DBUnspecified), string(DBFile), string(DBPostgres):
+	case string(DBUnspecified), string(DBFile):
 		*k = DBKind(s)
 		return nil
 	}
@@ -53,22 +52,19 @@ func (k DBKind) String() string {
 const (
 	DBUnspecified DBKind = ""
 	DBFile        DBKind = "file"
-	DBPostgres    DBKind = "postgres"
 )
 
 type Config struct {
-	Kind     DBKind
-	Postgres postgresdb.Config
+	Kind DBKind
 }
 
 // Init is called after flags have been parsed.
 func (d *Config) Init() error {
-	return d.Postgres.Init()
+	return nil
 }
 
 func (d *Config) SetFlags(fs *flag.FlagSet) {
-	fs.Var(&d.Kind, "db.kind", "the kind of database backing space data (values: file, postgres)")
-	d.Postgres.SetFlagsWithPrefix("db.postgres.", fs)
+	fs.Var(&d.Kind, "db.kind", "the kind of database backing space data (values: file)")
 }
 
 func Open(ctx context.Context, logger *zap.Logger, conf Config, root iosrc.URI) (DB, error) {
@@ -76,9 +72,6 @@ func Open(ctx context.Context, logger *zap.Logger, conf Config, root iosrc.URI) 
 	switch conf.Kind {
 	case DBFile, DBUnspecified:
 		return filedb.Open(ctx, logger, root)
-
-	case DBPostgres:
-		return postgresdb.Open(ctx, logger, conf.Postgres)
 
 	default:
 		return nil, fmt.Errorf("db.Open: unknown DBKind %q", conf.Kind)

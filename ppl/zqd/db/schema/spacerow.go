@@ -12,12 +12,11 @@ import (
 )
 
 type SpaceRow struct {
-	tableName struct{}          `pg:"space"` // This is needed so the postgres orm knows the correct table name
-	ID        api.SpaceID       `json:"id"`
-	DataURI   iosrc.URI         `json:"data_uri"`
-	Name      string            `json:"name"`
-	Storage   api.StorageConfig `json:"storage"`
-	TenantID  auth.TenantID     `json:"tenant_id"`
+	ID       api.SpaceID       `json:"id"`
+	DataURI  iosrc.URI         `json:"data_uri"`
+	Name     string            `json:"name"`
+	Storage  api.StorageConfig `json:"storage"`
+	TenantID auth.TenantID     `json:"tenant_id"`
 }
 
 func NewSpaceID() api.SpaceID {
