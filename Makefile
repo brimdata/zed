@@ -96,14 +96,6 @@ test-services: build
 		ZTEST_TAG=services \
 		go test -run TestZed/ppl/zqd/ztests/redis .
 
-.PHONY: test-services-docker
-test-services-docker:
-	@docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
-	$(MAKE) test-services; \
-		status=$$?; \
-		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
-		exit $$status
-
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
 
@@ -117,18 +109,6 @@ build: $(PEG_DEP)
 
 install:
 	@go install -ldflags='$(LDFLAGS)' ./cmd/... ./ppl/cmd/...
-
-docker:
-	DOCKER_BUILDKIT=1 docker build --pull --rm \
-		--build-arg LDFLAGS='$(LDFLAGS)' \
-		-t zqd:latest \
-		.
-
-docker-push-local: docker
-	docker tag zqd localhost:5000/zqd:latest
-	docker push localhost:5000/zqd:latest
-	docker tag zqd localhost:5000/zqd:$(VERSION)
-	docker push localhost:5000/zqd:$(VERSION)
 
 create-release-assets:
 	for os in darwin linux windows; do \
