@@ -6,7 +6,6 @@ ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X github.com/brimdata/zed/cli.Version=$(VERSION)
 MINIO_VERSION := 0.0.0-20201211152140-453ab257caf5
-PG_PERSIST = true
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
 #  make TEST=TestZed/ztests/suite/cut/cut
@@ -70,18 +69,7 @@ test-heavy: build $(SAMPLEDATA)
 test-services: build
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
-		go test -run TestZed/ppl/zqd/db/postgresdb/ztests .
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
-		ZTEST_TAG=services \
 		go test -run TestZed/ppl/zqd/ztests/redis .
-
-.PHONY: test-services-docker
-test-services-docker:
-	@docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
-	$(MAKE) test-services; \
-		status=$$?; \
-		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
-		exit $$status
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
@@ -96,18 +84,6 @@ build: $(PEG_DEP)
 
 install:
 	@go install -ldflags='$(LDFLAGS)' ./cmd/... ./ppl/cmd/...
-
-docker:
-	DOCKER_BUILDKIT=1 docker build --pull --rm \
-		--build-arg LDFLAGS='$(LDFLAGS)' \
-		-t zqd:latest \
-		.
-
-docker-push-local: docker
-	docker tag zqd localhost:5000/zqd:latest
-	docker push localhost:5000/zqd:latest
-	docker tag zqd localhost:5000/zqd:$(VERSION)
-	docker push localhost:5000/zqd:$(VERSION)
 
 create-release-assets:
 	for os in darwin linux windows; do \

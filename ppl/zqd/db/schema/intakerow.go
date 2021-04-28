@@ -9,7 +9,6 @@ import (
 )
 
 type IntakeRow struct {
-	tableName     struct{}      `pg:"intake"` // This is needed so the postgres orm knows the correct table name
 	ID            api.IntakeID  `json:"id"`
 	Name          string        `json:"name"`
 	Shaper        string        `json:"shaper"`
