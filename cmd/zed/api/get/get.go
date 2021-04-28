@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"strings"
 	"time"
 
@@ -23,10 +22,9 @@ import (
 )
 
 var Get = &charm.Spec{
-	Name:        "get",
-	Usage:       "get [options] <search>",
-	Short:       "perform zql searches",
-	HiddenFlags: "chunk,workers",
+	Name:  "get",
+	Usage: "get [options] <search>",
+	Short: "perform zql searches",
 	Long: `
 zapi get issues search requests to the zqd search service.
 
@@ -69,8 +67,6 @@ type Command struct {
 	warnings    bool
 	debug       bool
 	final       *api.SearchStats
-	chunkInfo   string
-	workers     int
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -84,8 +80,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.debug, "debug", false, "dump raw HTTP response straight to output")
 	f.Var(&c.from, "from", "search from timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
 	f.Var(&c.to, "to", "search to timestamp in RFC3339Nano format (e.g. 2006-01-02T15:04:05.999999999Z07:00)")
-	f.StringVar(&c.chunkInfo, "chunk", "", "chunk to fetch in chunk file name format")
-	f.IntVar(&c.workers, "workers", 0, "number of remote worker zqd processes requested")
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }
@@ -102,44 +96,19 @@ func (c *Command) Run(args []string) error {
 	}
 	conn := c.Connection()
 
-	var r io.ReadCloser
-	if c.chunkInfo == "" {
-		id, err := c.SpaceID(ctx)
-		if err != nil {
-			return err
-		}
-		req, err := parseExpr(id, expr)
-		if err != nil {
-			return fmt.Errorf("parse error: %w", err)
-		}
-		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
-		params := map[string]string{"format": c.encoding}
-		if c.workers > 0 {
-			rootWorkerReq := &api.WorkerRootRequest{
-				SearchRequest: *req,
-				MaxWorkers:    c.workers,
-			}
-			r, err = conn.WorkerRootSearch(ctx, *rootWorkerReq, params)
-		} else {
-			r, err = conn.SearchRaw(ctx, *req, params)
-		}
-		if err != nil {
-			return fmt.Errorf("search error: %w", err)
-		}
-	} else {
-		// This branch is used only with the -chunk flag.
-		// It allows Ztest of conn.WorkerChunkSearch which is used internally
-		// for distributed queries.
-		req, err := parseExprWithChunk(expr, c.chunkInfo)
-		req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
-		params := map[string]string{"format": c.encoding}
-		if err != nil {
-			return fmt.Errorf("parse plus chunk error: %w", err)
-		}
-		r, err = conn.WorkerChunkSearch(ctx, *req, params)
-		if err != nil {
-			return fmt.Errorf("worker error: %w", err)
-		}
+	id, err := c.SpaceID(ctx)
+	if err != nil {
+		return err
+	}
+	req, err := parseExpr(id, expr)
+	if err != nil {
+		return fmt.Errorf("parse error: %w", err)
+	}
+	req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
+	params := map[string]string{"format": c.encoding}
+	r, err := conn.SearchRaw(ctx, *req, params)
+	if err != nil {
+		return fmt.Errorf("search error: %w", err)
 	}
 
 	defer r.Close()
@@ -183,27 +152,6 @@ func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
 		Space: spaceID,
 		Proc:  proc,
 		Dir:   -1,
-	}, nil
-}
-
-// parseExprWithChunk creates an api.WorkerChunkRequest to be used with the client.
-func parseExprWithChunk(expr string, chunkPath string) (*api.WorkerChunkRequest, error) {
-	// This is only for testing using the -chunk flag
-	search, err := compiler.ParseProc(expr)
-	if err != nil {
-		return nil, err
-	}
-	proc, err := json.Marshal(search)
-	if err != nil {
-		return nil, err
-	}
-	return &api.WorkerChunkRequest{
-		SearchRequest: api.SearchRequest{
-			Proc: proc,
-			Dir:  -1,
-		},
-		DataPath:   path.Join(path.Dir(chunkPath), "../.."),
-		ChunkPaths: []string{chunkPath},
 	}, nil
 }
 

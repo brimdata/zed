@@ -75,10 +75,6 @@ func (s *Storage) MultiSource() driver.MultiSource {
 	return lake.NewMultiSourceAt(s.pool, 0)
 }
 
-func (s *Storage) StaticSource(src driver.Source) driver.MultiSource {
-	return lake.NewStaticSource(s.pool, src)
-}
-
 func (s *Storage) Summary(ctx context.Context) (storage.Summary, error) {
 	var sum storage.Summary
 	sum.Kind = api.ArchiveStore

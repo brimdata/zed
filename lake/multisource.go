@@ -2,11 +2,9 @@ package lake
 
 import (
 	"context"
-	"errors"
 	"io"
 	"sync/atomic"
 
-	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/journal"
@@ -120,10 +118,6 @@ func (m *spanMultiSource) SendSources(ctx context.Context, span nano.Span, srcCh
 	return g.Wait()
 }
 
-func (m *spanMultiSource) SourceFromRequest(ctx context.Context, req *api.WorkerChunkRequest) (driver.Source, error) {
-	return nil, errors.New("TBD: refactor multi-source and how worker requests are created")
-}
-
 func (m *spanMultiSource) Stats() ScanStats {
 	return m.stats.Copy()
 }
@@ -138,10 +132,6 @@ func (s *rangeSource) Open(ctx context.Context, zctx *zson.Context, sf driver.So
 	scn, stats, err := newRangeScanner(ctx, s.pool, zctx, sf, s.partition)
 	s.stats.Accumulate(stats)
 	return scn, err
-}
-
-func (s *rangeSource) ToRequest(req *api.WorkerChunkRequest) error {
-	return errors.New("issue #XXX")
 }
 
 type ScanStats struct {

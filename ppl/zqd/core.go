@@ -3,10 +3,7 @@ package zqd
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"io"
-	"net"
 	"net/http"
 	"net/http/pprof"
 	"sync/atomic"
@@ -17,8 +14,6 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/apiserver"
 	"github.com/brimdata/zed/ppl/zqd/db"
 	"github.com/brimdata/zed/ppl/zqd/pcapanalyzer"
-	"github.com/brimdata/zed/ppl/zqd/recruiter"
-	"github.com/brimdata/zed/ppl/zqd/worker"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -42,36 +37,29 @@ type Config struct {
 	DB             db.Config
 	ImmutableCache immcache.Config
 	Logger         *zap.Logger
-	Personality    string
 	Redis          RedisConfig
 	Root           string
 	Version        string
-	Worker         worker.WorkerConfig
 
 	Suricata pcapanalyzer.Launcher
 	Zeek     pcapanalyzer.Launcher
 }
 
 type Core struct {
-	auth       *Auth0Authenticator
-	conf       Config
-	logger     *zap.Logger
-	mgr        *apiserver.Manager
-	registry   *prometheus.Registry
-	root       iosrc.URI
-	routerAPI  *mux.Router
-	routerAux  *mux.Router
-	taskCount  int64
-	workerPool *recruiter.WorkerPool     // state for personality=recruiter
-	workerReg  *worker.RegistrationState // state for personality=worker
+	auth      *Auth0Authenticator
+	conf      Config
+	logger    *zap.Logger
+	mgr       *apiserver.Manager
+	registry  *prometheus.Registry
+	root      iosrc.URI
+	routerAPI *mux.Router
+	routerAux *mux.Router
+	taskCount int64
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	if conf.Logger == nil {
 		conf.Logger = zap.NewNop()
-	}
-	if conf.Personality == "" {
-		conf.Personality = "all"
 	}
 	if conf.Version == "" {
 		conf.Version = "unknown"
@@ -117,40 +105,20 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	c := &Core{
 		auth:      authenticator,
 		conf:      conf,
-		logger:    conf.Logger.Named("core").With(zap.String("personality", conf.Personality)),
+		logger:    conf.Logger.Named("core"),
 		registry:  registry,
 		routerAPI: routerAPI,
 		routerAux: routerAux,
 	}
-
-	switch conf.Personality {
-	case "all", "apiserver", "root":
-		if err := c.initManager(ctx); err != nil {
-			c.Shutdown()
-			return nil, err
-		}
-	}
-	var startFields []zap.Field
-	switch conf.Personality {
-	case "all", "apiserver", "root":
-		c.addAPIServerRoutes()
-		if conf.Personality == "all" || conf.Personality == "root" {
-			c.addWorkerRoutes()
-		}
-		startFields = []zap.Field{
-			zap.Bool("suricata_supported", c.HasSuricata()),
-			zap.Bool("zeek_supported", c.HasZeek()),
-		}
-	case "recruiter":
-		c.workerPool = recruiter.NewWorkerPool()
-		c.addRecruiterRoutes()
-	case "worker":
-		c.addWorkerRoutes()
-	default:
+	if err := c.initManager(ctx); err != nil {
 		c.Shutdown()
-		return nil, fmt.Errorf("unknown personality %s", conf.Personality)
+		return nil, err
 	}
-
+	c.addAPIServerRoutes()
+	startFields := []zap.Field{
+		zap.Bool("suricata_supported", c.HasSuricata()),
+		zap.Bool("zeek_supported", c.HasZeek()),
+	}
 	c.logger.Info("Started", startFields...)
 	return c, nil
 }
@@ -173,19 +141,6 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/space/{space}/log/paths", handleLogPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapPost).Methods("POST")
 	c.authhandle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
-}
-
-func (c *Core) addRecruiterRoutes() {
-	c.routerAPI.Handle("/recruiter/listfree", c.handler(handleListFree)).Methods("GET")
-	c.routerAPI.Handle("/recruiter/recruit", c.handler(handleRecruit)).Methods("POST")
-	c.routerAPI.Handle("/recruiter/register", c.handler(handleRegister)).Methods("POST")
-	c.routerAPI.Handle("/recruiter/stats", c.handler(handleRecruiterStats)).Methods("GET")
-}
-
-func (c *Core) addWorkerRoutes() {
-	c.routerAPI.Handle("/worker/chunksearch", c.handler(handleWorkerChunkSearch)).Methods("POST")
-	c.routerAPI.Handle("/worker/release", c.handler(handleWorkerRelease)).Methods("GET")
-	c.routerAPI.Handle("/worker/rootsearch", c.handler(handleWorkerRootSearch)).Methods("POST")
 }
 
 func (c *Core) initManager(ctx context.Context) (err error) {
@@ -263,20 +218,4 @@ func (c *Core) nextTaskID() int64 {
 
 func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 	return c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
-}
-
-func (c *Core) WorkerRegistration(ctx context.Context, srvAddr string, conf worker.WorkerConfig) error {
-	if _, _, err := net.SplitHostPort(conf.Recruiter); err != nil {
-		return errors.New("flag -worker.recruiter=host:port must be provided for -personality=worker")
-	}
-	if conf.Node == "" {
-		return errors.New("flag -worker.node must be provided for -personality=worker")
-	}
-	var err error
-	c.workerReg, err = worker.NewRegistrationState(ctx, srvAddr, conf, c.logger)
-	if err != nil {
-		return err
-	}
-	go c.workerReg.RegisterWithRecruiter()
-	return nil
 }
