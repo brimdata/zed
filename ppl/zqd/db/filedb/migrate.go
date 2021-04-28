@@ -18,9 +18,8 @@ import (
 const currentVersion = 6
 
 type dbdata struct {
-	Version    int                `json:"version"`
-	SpaceRows  []schema.SpaceRow  `json:"space_rows"`
-	IntakeRows []schema.IntakeRow `json:"intake_rows"`
+	Version   int               `json:"version"`
+	SpaceRows []schema.SpaceRow `json:"space_rows"`
 }
 
 func migrateOldConfig(ctx context.Context, logger *zap.Logger, root iosrc.URI) error {
