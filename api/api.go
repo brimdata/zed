@@ -326,18 +326,3 @@ func DefaultStorageKind() StorageKind {
 	}
 	return FileStore
 }
-
-type IntakeID string
-
-type Intake struct {
-	ID            IntakeID `json:"id" zng:"id"`
-	Name          string   `json:"name" zng:"name"`
-	Shaper        string   `json:"shaper" zng:"shaper"`
-	TargetSpaceID SpaceID  `json:"target_space_id" zng:"target_space_id"`
-}
-
-type IntakePostRequest struct {
-	Name          string  `json:"name"`
-	Shaper        string  `json:"shaper"`
-	TargetSpaceID SpaceID `json:"target_space_id"`
-}
