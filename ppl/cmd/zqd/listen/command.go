@@ -34,7 +34,7 @@ var Listen = &charm.Spec{
 	Long: `
 The listen command launches a process to listen on the provided interface and
 `,
-	HiddenFlags: "brimfd,filestorereadonly,nodename,podip,recruiter,workers",
+	HiddenFlags: "brimfd,filestorereadonly",
 	New:         New,
 }
 
@@ -67,14 +67,12 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.conf.ImmutableCache.SetFlags(f)
 	c.conf.Redis.SetFlags(f)
 	c.conf.Version = cli.Version
-	c.conf.Worker.SetFlags(f)
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
 	f.StringVar(&c.configfile, "config", "", "path to zqd config file")
 	f.StringVar(&c.conf.Root, "data", ".", "data location")
 	f.BoolVar(&c.devMode, "dev", false, "run in development mode")
 	f.StringVar(&c.listenAddr, "l", ":9867", "[addr]:port to listen on")
 	f.Var(&c.logLevel, "loglevel", "logging level")
-	f.StringVar(&c.conf.Personality, "personality", "all", "server personality (all, apiserver, recruiter, or worker)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
 
 	// Hidden flag while we transition to using archive store by default.
@@ -123,13 +121,6 @@ func (c *Command) Run(args []string) error {
 	srv.SetLogger(c.logger.Named("httpd"))
 	if err := srv.Start(ctx); err != nil {
 		return err
-	}
-	// Workers should registerWithRecruiter as late as possible,
-	// just before writing Port file for tests.
-	if c.conf.Personality == "worker" {
-		if err := core.WorkerRegistration(ctx, srv.Addr(), c.conf.Worker); err != nil {
-			return err
-		}
 	}
 	if c.portFile != "" {
 		if err := c.writePortFile(srv.Addr()); err != nil {

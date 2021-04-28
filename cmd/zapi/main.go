@@ -9,7 +9,6 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/api/get"
 	_ "github.com/brimdata/zed/cmd/zed/api/index"
 	_ "github.com/brimdata/zed/cmd/zed/api/info"
-	_ "github.com/brimdata/zed/cmd/zed/api/intake"
 	_ "github.com/brimdata/zed/cmd/zed/api/new"
 	_ "github.com/brimdata/zed/cmd/zed/api/post"
 	_ "github.com/brimdata/zed/cmd/zed/api/rename"

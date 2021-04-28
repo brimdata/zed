@@ -248,33 +248,6 @@ func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, pa
 	return c.stream(req)
 }
 
-func (c *Connection) WorkerRootSearch(ctx context.Context, search api.WorkerRootRequest, params map[string]string) (io.ReadCloser, error) {
-	req := c.Request(ctx).
-		SetBody(search).
-		SetQueryParam("format", "zng")
-	req.SetQueryParams(params)
-	req.Method = http.MethodPost
-	req.URL = "/worker/rootsearch"
-	return c.stream(req)
-}
-
-func (c *Connection) WorkerChunkSearch(ctx context.Context, search api.WorkerChunkRequest, params map[string]string) (io.ReadCloser, error) {
-	req := c.Request(ctx).
-		SetBody(search).
-		SetQueryParam("format", "zng")
-	req.SetQueryParams(params)
-	req.Method = http.MethodPost
-	req.URL = "/worker/chunksearch"
-	return c.stream(req)
-}
-
-// WorkerRelease is a message sent from the zqd root to workers in the parallel group
-// when the root process is done and will not be sending additional /worker/chunksearch requests.
-func (c *Connection) WorkerRelease(ctx context.Context) error {
-	_, err := c.Request(ctx).Get("/worker/release")
-	return err
-}
-
 // Search sends a search request to the server and returns a ZngSearch
 // that the caller uses to stream back results via the Read method.
 // Example usage:
@@ -423,60 +396,6 @@ func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts 
 	return *v, nil
 }
 
-func (c *Connection) Recruit(ctx context.Context, req api.RecruitRequest) (*api.RecruitResponse, error) {
-	resp, err := c.Request(ctx).
-		SetBody(req).
-		SetResult(&api.RecruitResponse{}).
-		Post("/recruiter/recruit")
-	if err != nil {
-		return nil, err
-	}
-	return resp.Result().(*api.RecruitResponse), nil
-}
-
-func (c *Connection) Register(ctx context.Context, req api.RegisterRequest) (*api.RegisterResponse, error) {
-	resp, err := c.Request(ctx).
-		SetBody(req).
-		SetResult(&api.RegisterResponse{}).
-		Post("/recruiter/register")
-	if err != nil {
-		return nil, err
-	}
-	return resp.Result().(*api.RegisterResponse), nil
-}
-
-func (c *Connection) Deregister(ctx context.Context, req api.DeregisterRequest) (*api.RegisterResponse, error) {
-	resp, err := c.Request(ctx).
-		SetBody(req).
-		SetResult(&api.RegisterResponse{}).
-		Post("/recruiter/deregister")
-	if err != nil {
-		return nil, err
-	}
-	return resp.Result().(*api.RegisterResponse), nil
-}
-
-func (c *Connection) Unreserve(ctx context.Context, req api.UnreserveRequest) (*api.UnreserveResponse, error) {
-	resp, err := c.Request(ctx).
-		SetBody(req).
-		SetResult(&api.UnreserveResponse{}).
-		Post("/recruiter/unreserve")
-	if err != nil {
-		return nil, err
-	}
-	return resp.Result().(*api.UnreserveResponse), nil
-}
-
-func (c *Connection) RecruiterStats(ctx context.Context) (*api.RecruiterStatsResponse, error) {
-	resp, err := c.Request(ctx).
-		SetResult(&api.RecruiterStatsResponse{}).
-		Get("/recruiter/stats")
-	if err != nil {
-		return nil, err
-	}
-	return resp.Result().(*api.RecruiterStatsResponse), nil
-}
-
 func (c *Connection) AuthMethod(ctx context.Context) (*api.AuthMethodResponse, error) {
 	resp, err := c.Request(ctx).
 		SetResult(&api.AuthMethodResponse{}).
@@ -508,60 +427,4 @@ func (e *ErrorResponse) Unwrap() error {
 
 func (e *ErrorResponse) Error() string {
 	return fmt.Sprintf("status code %d: %v", e.StatusCode(), e.Err)
-}
-
-func (c *Connection) IntakeList(ctx context.Context) ([]api.Intake, error) {
-	var res []api.Intake
-	_, err := c.Request(ctx).
-		SetResult(&res).
-		Get("/intake")
-	return res, err
-}
-
-func (c *Connection) IntakeCreate(ctx context.Context, req api.IntakePostRequest) (api.Intake, error) {
-	resp, err := c.Request(ctx).
-		SetBody(req).
-		SetResult(&api.Intake{}).
-		Post("/intake")
-	if err != nil {
-		return api.Intake{}, err
-	}
-	return *resp.Result().(*api.Intake), nil
-}
-
-func (c *Connection) IntakeInfo(ctx context.Context, id api.IntakeID) (api.Intake, error) {
-	path := path.Join("/intake", string(id))
-	resp, err := c.Request(ctx).
-		SetResult(&api.Intake{}).
-		Get(path)
-	if err != nil {
-		return api.Intake{}, err
-	}
-	return *resp.Result().(*api.Intake), nil
-}
-
-func (c *Connection) IntakeUpdate(ctx context.Context, id api.IntakeID, req api.IntakePostRequest) (api.Intake, error) {
-	path := path.Join("/intake", string(id))
-	resp, err := c.Request(ctx).
-		SetBody(req).
-		SetResult(&api.Intake{}).
-		Post(path)
-	if err != nil {
-		return api.Intake{}, err
-	}
-	return *resp.Result().(*api.Intake), nil
-}
-
-func (c *Connection) IntakeDelete(ctx context.Context, id api.IntakeID) error {
-	path := path.Join("/intake", string(id))
-	_, err := c.Request(ctx).Delete(path)
-	return err
-}
-
-func (c *Connection) IntakePostData(ctx context.Context, id api.IntakeID, r io.Reader) error {
-	path := path.Join("/intake", string(id), "/data")
-	_, err := c.Request(ctx).
-		SetBody(r).
-		Post(path)
-	return err
 }
