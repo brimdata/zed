@@ -92,13 +92,11 @@ func compile(ctx context.Context, program ast.Proc, zctx *zson.Context, readers 
 
 type MultiConfig struct {
 	Custom      kernel.Hook
-	Distributed bool // true if remote request specified worker count
 	Order       zbuf.Order
 	Logger      *zap.Logger
 	Parallelism int
 	Span        nano.Span
 	StatsTick   <-chan time.Time
-	//Worker      worker.WorkerConfig
 }
 
 func compileMulti(ctx context.Context, program ast.Proc, zctx *zson.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {

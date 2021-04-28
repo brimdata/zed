@@ -14,7 +14,6 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/storage"
 	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
 	"github.com/brimdata/zed/ppl/zqd/storage/filestore"
-	"github.com/brimdata/zed/ppl/zqd/worker"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
@@ -65,7 +64,7 @@ func NewSearchOp(req api.SearchRequest, logger *zap.Logger) (*SearchOp, error) {
 	}, nil
 }
 
-func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output, parallelism int, wc worker.WorkerConfig) (err error) {
+func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output, parallelism int) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -86,13 +85,11 @@ func (s *SearchOp) Run(ctx context.Context, store storage.Storage, output Output
 	switch st := store.(type) {
 	case *archivestore.Storage:
 		return driver.MultiRun(ctx, d, s.query.Proc, zctx, st.MultiSource(), driver.MultiConfig{
-			Distributed: parallelism > 0,
 			Logger:      s.logger,
 			Order:       zbuf.OrderDesc,
 			Parallelism: parallelism,
 			Span:        s.query.Span,
 			StatsTick:   statsTicker.C,
-			//XXX Worker:      wc,
 		})
 	case *filestore.Storage:
 		if parallelism > 1 {

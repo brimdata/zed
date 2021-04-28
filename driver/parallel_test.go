@@ -3,13 +3,11 @@ package driver
 import (
 	"bytes"
 	"context"
-	"errors"
 	"io"
 	"strings"
 	"testing"
 	"time"
 
-	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
@@ -43,10 +41,6 @@ type testSource struct {
 
 func (s *testSource) Open(ctx context.Context, zctx *zson.Context, sf SourceFilter) (ScannerCloser, error) {
 	return s.opener(zctx, sf)
-}
-
-func (s *testSource) ToRequest(*api.WorkerChunkRequest) error {
-	return errors.New("ToRequest called on testSource")
 }
 
 var parallelTestInputs = []string{
@@ -92,10 +86,6 @@ func (m *orderedmsrc) SendSources(ctx context.Context, span nano.Span, srcChan c
 		close(releaseChs[i])
 	}
 	return nil
-}
-
-func (m *orderedmsrc) SourceFromRequest(context.Context, *api.WorkerChunkRequest) (Source, error) {
-	return nil, errors.New("SourceFromRequest called on orderedmsrc")
 }
 
 func trim(s string) string {
@@ -166,10 +156,6 @@ func (m *scannerCloseMS) SendSources(ctx context.Context, span nano.Span, srcCha
 	}
 	srcChan <- &testSource{opener: opener}
 	return nil
-}
-
-func (m *scannerCloseMS) SourceFromRequest(context.Context, *api.WorkerChunkRequest) (Source, error) {
-	return nil, errors.New("SourceFromRequest called on scannerCloseMS")
 }
 
 // TestScannerClose verifies that any open ScannerCloser's will be closed soon

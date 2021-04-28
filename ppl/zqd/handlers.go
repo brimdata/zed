@@ -118,7 +118,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(r.Context(), store, out, 0, c.conf.Worker); err != nil {
+	if err := srch.Run(r.Context(), store, out, 0); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }

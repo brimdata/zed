@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 
-	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
@@ -30,12 +29,10 @@ type MultiSource interface {
 	// little or no i/o, and let the returned ScannerCloser perform more intensive
 	// filtering (e.g., reading a micro-index to check for filter matching).
 	SendSources(context.Context, nano.Span, chan Source) error
-	SourceFromRequest(context.Context, *api.WorkerChunkRequest) (Source, error)
 }
 
 type Source interface {
 	Open(context.Context, *zson.Context, SourceFilter) (ScannerCloser, error)
-	ToRequest(*api.WorkerChunkRequest) error
 }
 
 type ScannerCloser interface {
