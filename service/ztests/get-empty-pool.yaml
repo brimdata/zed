@@ -12,4 +12,3 @@ inputs:
 outputs:
   - name: stderr
     data: ""
-
