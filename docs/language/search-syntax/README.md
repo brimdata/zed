@@ -80,7 +80,7 @@ The search result can be narrowed to include only events that contain certain va
 
 The simplest form of such a search is a "bare" word (not wrapped in quotes), which will match against any field that contains the word, whether it's an exact match to the data type and value of a field or the word appears as a substring in a field.
 
-For example, searching across all our logs for `14` matches against records that contain fields of numeric types that contain this precise value (such as the `age` field for our `person` records) and also where it appears within string-type fields (such as in our `notes` records.)
+For example, searching across all our logs for `14` matches against records that contain fields of numeric types that contain this precise value (such as the `age` field for our `person` records) and also where it appears within string-type fields (such as in our activity `note` records.)
 
 #### Example:
 ```zq-command
