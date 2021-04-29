@@ -4,7 +4,6 @@ go 1.16
 
 require (
 	github.com/alecthomas/units v0.0.0-20190717042225-c3de453c63f4
-	github.com/alexbrainman/ps v0.0.0-20171229230509-b3e1b4a15894
 	github.com/araddon/dateparse v0.0.0-20210207001429-0eec95c9db7e
 	github.com/aws/aws-sdk-go v1.36.17
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
@@ -16,7 +15,6 @@ require (
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/golang/snappy v0.0.2 // indirect
-	github.com/google/gopacket v1.1.17
 	github.com/gorilla/mux v1.7.5-0.20200711200521-98cb6bf42e08
 	github.com/gosuri/uilive v0.0.4
 	github.com/hashicorp/golang-lru v0.5.4

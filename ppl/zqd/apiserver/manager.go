@@ -14,7 +14,6 @@ import (
 	"github.com/brimdata/zed/ppl/zqd/auth"
 	"github.com/brimdata/zed/ppl/zqd/db"
 	"github.com/brimdata/zed/ppl/zqd/db/schema"
-	"github.com/brimdata/zed/ppl/zqd/pcapstorage"
 	"github.com/brimdata/zed/ppl/zqd/storage"
 	"github.com/brimdata/zed/ppl/zqd/storage/archivestore"
 	"github.com/brimdata/zed/ppl/zqd/storage/filestore"
@@ -161,14 +160,6 @@ func (m *Manager) GetStorage(ctx context.Context, id api.SpaceID) (storage.Stora
 	return m.getStorage(ctx, id, sr.DataURI, sr.Storage)
 }
 
-func (m *Manager) GetPcapStorage(ctx context.Context, id api.SpaceID) (*pcapstorage.Store, error) {
-	sr, err := m.getSpacePermCheck(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-	return m.getPcapStorage(ctx, sr.DataURI)
-}
-
 type writeNotifier struct {
 	ctx      context.Context // XXX We should pass a context to WriteNotify instead.
 	id       api.SpaceID
@@ -202,17 +193,6 @@ func (m *Manager) getStorage(ctx context.Context, id api.SpaceID, daturi iosrc.U
 	}
 }
 
-func (m *Manager) getPcapStorage(ctx context.Context, datauri iosrc.URI) (*pcapstorage.Store, error) {
-	p, err := pcapstorage.Load(ctx, datauri)
-	if err != nil {
-		if zqe.IsNotFound(err) {
-			return pcapstorage.New(datauri), nil
-		}
-		return nil, err
-	}
-	return p, err
-}
-
 func rowToSpace(row schema.SpaceRow) api.Space {
 	return api.Space{
 		ID:          row.ID,
@@ -223,8 +203,6 @@ func rowToSpace(row schema.SpaceRow) api.Space {
 }
 
 func (m *Manager) rowToSpaceInfo(ctx context.Context, sr schema.SpaceRow) (api.SpaceInfo, error) {
-	spaceInfo := api.SpaceInfo{Space: rowToSpace(sr)}
-
 	store, err := m.getStorage(ctx, sr.ID, sr.DataURI, sr.Storage)
 	if err != nil {
 		return api.SpaceInfo{}, err
@@ -237,35 +215,13 @@ func (m *Manager) rowToSpaceInfo(ctx context.Context, sr schema.SpaceRow) (api.S
 	if sum.Span.Dur > 0 {
 		span = &sum.Span
 	}
-	spaceInfo.Span = span
-	spaceInfo.StorageKind = sum.Kind
-	spaceInfo.Size = sum.DataBytes
-
-	pcapstore, err := m.getPcapStorage(ctx, sr.DataURI)
-	if err != nil {
-		return api.SpaceInfo{}, err
-	}
-	if !pcapstore.Empty() {
-		pcapinfo, err := pcapstore.Info(ctx)
-		if err != nil {
-			if !zqe.IsNotFound(err) {
-				return api.SpaceInfo{}, err
-			}
-		} else {
-			spaceInfo.PcapSize = pcapinfo.PcapSize
-			spaceInfo.PcapSupport = true
-			spaceInfo.PcapPath = pcapinfo.PcapURI
-			if span == nil {
-				span = &pcapinfo.Span
-			} else {
-				union := span.Union(pcapinfo.Span)
-				span = &union
-			}
-			spaceInfo.Span = span
-		}
-	}
-
-	return spaceInfo, nil
+	space := rowToSpace(sr)
+	space.StorageKind = sum.Kind
+	return api.SpaceInfo{
+		Space: space,
+		Span:  span,
+		Size:  sum.DataBytes,
+	}, nil
 }
 
 func (m *Manager) getSpacePermCheck(ctx context.Context, id api.SpaceID) (schema.SpaceRow, error) {

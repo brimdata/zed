@@ -6,7 +6,6 @@ import (
 
 	_ "github.com/brimdata/zed/ppl/cmd/zqd/listen"
 	"github.com/brimdata/zed/ppl/cmd/zqd/root"
-	_ "github.com/brimdata/zed/ppl/cmd/zqd/winexec"
 )
 
 func main() {

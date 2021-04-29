@@ -242,9 +242,8 @@ func TestSpaceInfo(t *testing.T) {
 			DataPath:    sp.DataPath,
 			StorageKind: api.DefaultStorageKind(),
 		},
-		Span:        &span,
-		Size:        81,
-		PcapSupport: false,
+		Span: &span,
+		Size: 81,
 	}
 	info, err := conn.SpaceInfo(ctx, sp.ID)
 	require.NoError(t, err)
@@ -265,8 +264,7 @@ func TestSpaceInfoNoData(t *testing.T) {
 			DataPath:    sp.DataPath,
 			StorageKind: api.DefaultStorageKind(),
 		},
-		Size:        0,
-		PcapSupport: false,
+		Size: 0,
 	}
 	require.Equal(t, expected, info)
 }
@@ -321,11 +319,11 @@ func TestSpacePutDuplicateName(t *testing.T) {
 func TestSpacePostDataPath(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
-	datapath := filepath.Join(tmp, "mypcap.brim")
+	datapath := filepath.Join(tmp, "my.brim")
 	_, conn := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
 	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{DataPath: datapath})
 	require.NoError(t, err)
-	assert.Equal(t, "mypcap.brim", sp.Name)
+	assert.Equal(t, "my.brim", sp.Name)
 	assert.Equal(t, datapath, sp.DataPath.Filepath())
 }
 
@@ -360,7 +358,7 @@ func TestSpaceDeleteDataDir(t *testing.T) {
 	ctx := context.Background()
 	tmp := createTempDir(t)
 	_, conn := newCoreAtDir(t, filepath.Join(tmp, "spaces"))
-	datadir := filepath.Join(tmp, "mypcap.brim")
+	datadir := filepath.Join(tmp, "my.brim")
 	sp, err := conn.SpacePost(ctx, api.SpacePostRequest{Name: "test"})
 	require.NoError(t, err)
 	err = conn.SpaceDelete(ctx, sp.ID)
@@ -438,9 +436,8 @@ func TestPostZsonLogs(t *testing.T) {
 			DataPath:    sp.DataPath,
 			StorageKind: api.DefaultStorageKind(),
 		},
-		Span:        &nano.Span{Ts: nano.Ts(nano.Second), Dur: nano.Second + 1},
-		Size:        79,
-		PcapSupport: false,
+		Span: &nano.Span{Ts: nano.Ts(nano.Second), Dur: nano.Second + 1},
+		Size: 79,
 	}, info)
 }
 
@@ -490,8 +487,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 				DataPath:    sp.DataPath,
 				StorageKind: api.DefaultStorageKind(),
 			},
-			Size:        81,
-			PcapSupport: false,
+			Size: 81,
 		}, info)
 	}
 	t.Run("plain", func(t *testing.T) {

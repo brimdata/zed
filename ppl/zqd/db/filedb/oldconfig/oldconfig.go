@@ -12,7 +12,6 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/ppl/zqd/db/schema"
-	"github.com/brimdata/zed/ppl/zqd/pcapstorage"
 	"github.com/brimdata/zed/zqe"
 	"go.uber.org/zap"
 )
@@ -31,20 +30,16 @@ type ConfigV3 struct {
 }
 
 type ConfigV2 struct {
-	Version  int               `json:"version"`
-	Name     string            `json:"name"`
-	DataURI  iosrc.URI         `json:"data_uri"`
-	PcapPath string            `json:"pcap_path"`
-	Storage  api.StorageConfig `json:"storage"`
+	Version int               `json:"version"`
+	Name    string            `json:"name"`
+	DataURI iosrc.URI         `json:"data_uri"`
+	Storage api.StorageConfig `json:"storage"`
 }
 
 type ConfigV1 struct {
-	Version  int    `json:"version"`
-	Name     string `json:"name"`
-	DataPath string `json:"data_path"`
-	// XXX PcapPath should be named pcap_path in json land. To avoid having to
-	// do a migration we'll keep this as-is for now.
-	PcapPath string            `json:"packet_path"`
+	Version  int               `json:"version"`
+	Name     string            `json:"name"`
+	DataPath string            `json:"data_path"`
 	Storage  api.StorageConfig `json:"storage"`
 }
 
@@ -139,19 +134,6 @@ func migrateConfigV3(data []byte, spaceuri iosrc.URI) (int, []byte, error) {
 	if err := json.Unmarshal(data, &v2); err != nil {
 		return 0, nil, err
 	}
-	if v2.PcapPath != "" {
-		pcapuri, err := iosrc.ParseURI(v2.PcapPath)
-		if err != nil {
-			return 0, nil, err
-		}
-		du := v2.DataURI
-		if du.IsZero() {
-			du = spaceuri
-		}
-		if err := pcapstorage.MigrateV3(du, pcapuri); err != nil {
-			return 0, nil, err
-		}
-	}
 	c := ConfigV3{
 		Version: 3,
 		Name:    v2.Name,
@@ -175,11 +157,10 @@ func migrateConfigV2(data []byte, _ iosrc.URI) (int, []byte, error) {
 		return 0, nil, err
 	}
 	c := ConfigV2{
-		Version:  2,
-		Name:     v1.Name,
-		DataURI:  du,
-		PcapPath: v1.PcapPath,
-		Storage:  v1.Storage,
+		Version: 2,
+		Name:    v1.Name,
+		DataURI: du,
+		Storage: v1.Storage,
 	}
 	d, err := json.Marshal(c)
 	return 2, d, err

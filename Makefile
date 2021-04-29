@@ -6,10 +6,6 @@ ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X github.com/brimdata/zed/cli.Version=$(VERSION)
 MINIO_VERSION := 0.0.0-20201211152140-453ab257caf5
-ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))["brimDependencies"]["zeekTag"])')
-ZEEKPATH = zeek-$(ZEEKTAG)
-SURICATATAG := $(shell python -c 'import json; print(json.load(open("package.json"))["brimDependencies"]["suricataTag"])')
-SURICATAPATH = suricata-$(SURICATATAG)
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
 #  make TEST=TestZed/ztests/suite/cut/cut
@@ -39,20 +35,6 @@ $(SAMPLEDATA):
 
 sampledata: $(SAMPLEDATA)
 
-bin/$(ZEEKPATH):
-	@mkdir -p bin
-	@curl -L -o bin/$(ZEEKPATH).zip \
-		https://github.com/brimdata/zeek/releases/download/$(ZEEKTAG)/zeek-$(ZEEKTAG).$$(go env GOOS)-$(ARCH).zip
-	@unzip -q bin/$(ZEEKPATH).zip -d bin \
-		&& mv bin/zeek bin/$(ZEEKPATH)
-
-bin/$(SURICATAPATH):
-	@mkdir -p bin
-	curl -L -o bin/$(SURICATAPATH).zip \
-		https://github.com/brimdata/build-suricata/releases/download/$(SURICATATAG)/suricata-$(SURICATATAG).$$(go env GOOS)-$(ARCH).zip
-	unzip -q bin/$(SURICATAPATH).zip -d bin \
-		&& mv bin/suricata bin/$(SURICATAPATH)
-
 .PHONY: bin/minio
 bin/minio: bin/minio-$(MINIO_VERSION)
 	ln -fs $(<F) $@
@@ -74,17 +56,14 @@ test-generate: generate
 test-unit:
 	@go test -short ./...
 
-test-system: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH)" go test .
+test-system: build bin/minio
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" go test .
 
-test-run: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH)" go test . -run $(TEST)
+test-run: build bin/minio
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" go test . -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -tags=heavy ./tests
-
-test-pcapingest: bin/$(ZEEKPATH)
-	@ZEEK="$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner" go test -run=PcapPost -tags=pcapingest ./ppl/zqd
 
 .PHONY: test-services
 test-services: build
@@ -145,7 +124,7 @@ peg-run: $(PEG_GEN)
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
-test-ci: fmt tidy vet test-generate test-unit test-system test-pcapingest test-heavy
+test-ci: fmt tidy vet test-generate test-unit test-system test-heavy
 
 clean: clean-python
 	@rm -rf dist

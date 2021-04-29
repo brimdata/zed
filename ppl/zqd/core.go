@@ -13,7 +13,6 @@ import (
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/ppl/zqd/apiserver"
 	"github.com/brimdata/zed/ppl/zqd/db"
-	"github.com/brimdata/zed/ppl/zqd/pcapanalyzer"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -40,9 +39,6 @@ type Config struct {
 	Redis          RedisConfig
 	Root           string
 	Version        string
-
-	Suricata pcapanalyzer.Launcher
-	Zeek     pcapanalyzer.Launcher
 }
 
 type Core struct {
@@ -115,11 +111,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		return nil, err
 	}
 	c.addAPIServerRoutes()
-	startFields := []zap.Field{
-		zap.Bool("suricata_supported", c.HasSuricata()),
-		zap.Bool("zeek_supported", c.HasZeek()),
-	}
-	c.logger.Info("Started", startFields...)
+	c.logger.Info("Started")
 	return c, nil
 }
 
@@ -139,8 +131,6 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/space/{space}/indexsearch", handleIndexSearch).Methods("POST")
 	c.authhandle("/space/{space}/log", handleLogStream).Methods("POST")
 	c.authhandle("/space/{space}/log/paths", handleLogPost).Methods("POST")
-	c.authhandle("/space/{space}/pcap", handlePcapPost).Methods("POST")
-	c.authhandle("/space/{space}/pcap", handlePcapSearch).Methods("GET")
 }
 
 func (c *Core) initManager(ctx context.Context) (err error) {
@@ -178,14 +168,6 @@ func (c *Core) authhandle(path string, f func(*Core, http.ResponseWriter, *http.
 		h = c.handler(f)
 	}
 	return c.routerAPI.Handle(path, h)
-}
-
-func (c *Core) HasSuricata() bool {
-	return c.conf.Suricata != nil
-}
-
-func (c *Core) HasZeek() bool {
-	return c.conf.Zeek != nil
 }
 
 func (c *Core) Registry() *prometheus.Registry {

@@ -31,10 +31,6 @@ func unpack(b []byte) (interface{}, error) {
 		out = &api.SearchStats{}
 	case "SearchEnd":
 		out = &api.SearchEnd{}
-	case "PcapPostStatus":
-		out = &api.PcapPostStatus{}
-	case "PcapPostWarning":
-		out = &api.PcapPostWarning{}
 	case "LogPostStatus":
 		out = &api.LogPostStatus{}
 	case "LogPostWarning":

@@ -3,7 +3,7 @@ script: |
   zapi -host $ZQD_HOST new -d ./root -k archivestore -thresh 20KiB testsp
   zapi -host $ZQD_HOST -s testsp post babble.zson >/dev/null
   echo ===
-  zapi -host $ZQD_HOST info testsp | egrep -v 'data_path|id|pcap_path'
+  zapi -host $ZQD_HOST info testsp | egrep -v 'data_path|id'
 
 inputs:
   - name: babble.zson
@@ -21,5 +21,3 @@ outputs:
         storage_kind: archivestore
         span:         2020-04-21T22:40:30Z+2h43m9.993714061s
         size:         34.33KB
-        pcap_support: false
-        pcap_size:    0B

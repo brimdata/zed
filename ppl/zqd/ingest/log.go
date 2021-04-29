@@ -36,7 +36,7 @@ type LogOp struct {
 }
 
 // Logs ingests the provided list of files into the provided space.
-// Like ingest.Pcap, this overwrites any existing data in the space.
+// Tthis overwrites any existing data in the space.
 func NewLogOp(ctx context.Context, store storage.Storage, req api.LogPostRequest) (*LogOp, error) {
 	p := &LogOp{
 		warningCh: make(chan string, 5),
