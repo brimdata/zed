@@ -9,19 +9,19 @@ import (
 	"reflect"
 	"text/tabwriter"
 
-	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/cmd/zapi/format"
 	apicmd "github.com/brimdata/zed/cmd/zed/api"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/segmentio/ksuid"
 )
 
 var Info = &charm.Spec{
 	Name:  "info",
-	Usage: "info [spacename]",
-	Short: "show information about a space",
+	Usage: "info [pool]",
+	Short: "show information about a pool",
 	Long: `The info command displays the configuration settings and other information
-about the currently selected space.`,
+about the currently selected pool.`,
 	New: New,
 }
 
@@ -38,40 +38,38 @@ func New(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 	return &Command{Command: parent.(*apicmd.Command)}, nil
 }
 
-// Run lists all spaces in the current zqd host or if a parameter
-// is provided (in glob style) lists the info about that space.
+// Run lists all pools in the current zqd host or if a parameter
+// is provided (in glob style) lists the info about that pool.
 func (c *Command) Run(args []string) error {
 	ctx, cleanup, err := c.Init()
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	conn := c.Connection()
-	var ids []api.SpaceID
+	var pools []ksuid.KSUID
 	if len(args) > 0 {
-		matches, err := apicmd.SpaceGlob(ctx, conn, args...)
+		matches, err := apicmd.PoolGlob(ctx, c.Conn, args...)
 		if err != nil {
 			return err
 		}
 		for _, m := range matches {
-			ids = append(ids, m.ID)
+			pools = append(pools, m.ID)
 		}
 	} else {
-		id, err := c.SpaceID(ctx)
-		if err == apicmd.ErrSpaceNotSpecified {
-			return errors.New("no space provided")
+		if c.PoolName == "" {
+			return errors.New("no pool provided")
 		}
 		if err != nil {
 			return err
 		}
-		ids = []api.SpaceID{id}
+		pools = []ksuid.KSUID{c.PoolID}
 	}
-	for _, id := range ids {
-		info, err := conn.SpaceInfo(ctx, id)
+	for _, id := range pools {
+		info, err := c.Conn.PoolInfo(ctx, id)
 		if err != nil {
 			return err
 		}
-		if err := printSpace(info.Name, *info); err != nil {
+		if err := printPool(info.Name, *info); err != nil {
 			return err
 		}
 	}
@@ -106,7 +104,7 @@ func printIface(w io.Writer, iface interface{}) {
 	}
 }
 
-func printSpace(name string, iface interface{}) error {
+func printPool(name string, iface interface{}) error {
 	fmt.Println(name)
 	w := tabwriter.NewWriter(os.Stdout, 0, 2, 1, ' ', 0)
 	printIface(w, iface)

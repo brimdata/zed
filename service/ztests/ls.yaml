@@ -1,0 +1,40 @@
+script: |
+  source services.sh
+  zapi -host $LAKE_HOST new p1
+  zapi -host $LAKE_HOST new p2
+  echo ===
+
+  # Verify that the default output format is text of names only.
+  zapi -host $LAKE_HOST ls
+  echo ===
+
+  # Verify that output flags are honored.
+  zapi -host $LAKE_HOST ls -l -f zson | zq -i zson -f zson "pick name" -
+  echo ===
+  zapi -host $LAKE_HOST ls -l -f zng | zq -i zng -f table "pick name" -
+  echo ===
+
+inputs:
+  - name: services.sh
+    source: services.sh
+
+outputs:
+  - name: stdout
+    data: |
+      p1: pool created
+      p2: pool created
+      ===
+      p1
+      p2
+      ===
+      {
+          name: "p1"
+      }
+      {
+          name: "p2"
+      }
+      ===
+      NAME
+      p1
+      p2
+      ===

@@ -80,10 +80,10 @@ z-output-check: build $(SAMPLEDATA)
 # If the build recipe changes, please also change npm/build.
 build: $(PEG_DEP)
 	@mkdir -p dist
-	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/... ./ppl/cmd/...
+	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/...
 
 install:
-	@go install -ldflags='$(LDFLAGS)' ./cmd/... ./ppl/cmd/...
+	@go install -ldflags='$(LDFLAGS)' ./cmd/...
 
 create-release-assets:
 	for os in darwin linux windows; do \
@@ -91,7 +91,7 @@ create-release-assets:
 		rm -rf dist/$${zqdir} ; \
 		mkdir -p dist/$${zqdir} ; \
 		cp LICENSE.txt acknowledgments.txt dist/$${zqdir} ; \
-		GOOS=$${os} GOARCH=$(ARCH) go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ./ppl/cmd/... ; \
+		GOOS=$${os} GOARCH=$(ARCH) go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ; \
 	done
 	rm -rf dist/release && mkdir -p dist/release
 	cd dist && for d in zq-$(VERSION)* ; do \

@@ -8,15 +8,14 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"net/url"
 	"path"
 	"strconv"
 	"time"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/zqe"
 	"github.com/go-resty/resty/v2"
+	"github.com/segmentio/ksuid"
 )
 
 const (
@@ -26,10 +25,10 @@ const (
 )
 
 var (
-	// ErrSpaceNotFound returns when specified space does not exist.
-	ErrSpaceNotFound = errors.New("space not found")
-	// ErrSpaceExists returns when specified the space already exists.
-	ErrSpaceExists = errors.New("space exists")
+	// ErrPoolNotFound returns when specified pool does not exist.
+	ErrPoolNotFound = errors.New("pool not found")
+	// ErrPoolExists returns when specified the pool already exists.
+	ErrPoolExists = errors.New("pool exists")
 )
 
 type Connection struct {
@@ -172,68 +171,55 @@ func (c *Connection) ZtoAST(ctx context.Context, zprog string) ([]byte, error) {
 	return resp.Body(), nil
 }
 
-// SpaceInfo retrieves information about the specified space.
-func (c *Connection) SpaceInfo(ctx context.Context, id api.SpaceID) (*api.SpaceInfo, error) {
-	path := path.Join("/space", url.PathEscape(string(id)))
+// PoolInfo retrieves information about the specified pool.
+func (c *Connection) PoolInfo(ctx context.Context, id ksuid.KSUID) (*api.PoolInfo, error) {
+	path := path.Join("/pool", id.String())
 	resp, err := c.Request(ctx).
-		SetResult(&api.SpaceInfo{}).
+		SetResult(&api.PoolInfo{}).
 		Get(path)
 	if err != nil {
 		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusNotFound {
-			return nil, ErrSpaceNotFound
+			return nil, ErrPoolNotFound
 		}
 		return nil, err
 	}
-	return resp.Result().(*api.SpaceInfo), nil
+	return resp.Result().(*api.PoolInfo), nil
 }
 
-func (c *Connection) SpacePost(ctx context.Context, req api.SpacePostRequest) (*api.Space, error) {
+func (c *Connection) PoolPost(ctx context.Context, req api.PoolPostRequest) (*api.Pool, error) {
 	resp, err := c.Request(ctx).
 		SetBody(req).
-		SetResult(&api.Space{}).
-		Post("/space")
+		SetResult(&api.Pool{}).
+		Post("/pool")
 	if err != nil {
 		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusConflict {
-			return nil, ErrSpaceExists
+			return nil, ErrPoolExists
 		}
 		return nil, err
 	}
-	return resp.Result().(*api.Space), nil
+	return resp.Result().(*api.Pool), nil
 }
 
-func (c *Connection) SpacePut(ctx context.Context, id api.SpaceID, req api.SpacePutRequest) error {
+func (c *Connection) PoolPut(ctx context.Context, id ksuid.KSUID, req api.PoolPutRequest) error {
 	_, err := c.Request(ctx).
 		SetBody(req).
-		Put(path.Join("/space", string(id)))
+		Put(path.Join("/pool", id.String()))
 	return err
 }
 
-func (c *Connection) SpaceList(ctx context.Context) ([]api.Space, error) {
-	var res []api.Space
+func (c *Connection) PoolList(ctx context.Context) ([]api.Pool, error) {
+	var res []api.Pool
 	_, err := c.Request(ctx).
 		SetResult(&res).
-		Get("/space")
+		Get("/pool")
 	return res, err
 }
 
-func (c *Connection) SpaceLookup(ctx context.Context, name string) (api.SpaceID, error) {
-	spaces, err := c.SpaceList(ctx)
-	if err != nil {
-		return "", err
-	}
-	for _, s := range spaces {
-		if s.Name == name {
-			return s.ID, nil
-		}
-	}
-	return "", zqe.ErrNotFound()
-}
-
-func (c *Connection) SpaceDelete(ctx context.Context, id api.SpaceID) (err error) {
-	path := path.Join("/space", url.PathEscape(string(id)))
+func (c *Connection) PoolDelete(ctx context.Context, id ksuid.KSUID) (err error) {
+	path := path.Join("/pool", id.String())
 	_, err = c.Request(ctx).Delete(path)
 	if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusNotFound {
-		return ErrSpaceNotFound
+		return ErrPoolNotFound
 	}
 	return err
 }
@@ -253,9 +239,9 @@ func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, pa
 // Example usage:
 //
 //	conn := client.NewConnectionTo("http://localhost:9867")
-//	spaceID, err := conn.SpaceLookup(ctx, "spaceName")
+//	poolID, err := conn.PoolLookup(ctx, "poolName")
 //	if err != nil { return err }
-//	search, err := conn.Search(ctx, spaceID, "_path=conn | count()")
+//	search, err := conn.Search(ctx, poolID, "_path=conn | count()")
 //	if err != nil { return err }
 //	for {
 //		rec, err := search.Read()
@@ -267,15 +253,15 @@ func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, pa
 //		fmt.Println(rec)
 //	}
 //
-func (c *Connection) Search(ctx context.Context, spaceID api.SpaceID, query string) (*ZngSearch, error) {
+func (c *Connection) Search(ctx context.Context, id ksuid.KSUID, query string) (*ZngSearch, error) {
 	procBytes, err := c.ZtoAST(ctx, query)
 	if err != nil {
 		return nil, err
 	}
 	r, err := c.SearchRaw(ctx, api.SearchRequest{
-		Space: spaceID,
-		Proc:  procBytes,
-		Dir:   -1,
+		Pool: id,
+		Proc: procBytes,
+		Dir:  -1,
 	}, nil)
 	if err != nil {
 		return nil, err
@@ -283,13 +269,13 @@ func (c *Connection) Search(ctx context.Context, spaceID api.SpaceID, query stri
 	return NewZngSearch(r), nil
 }
 
-func (c *Connection) IndexSearch(ctx context.Context, space api.SpaceID, search api.IndexSearchRequest, params map[string]string) (*ZngSearch, error) {
+func (c *Connection) IndexSearch(ctx context.Context, id ksuid.KSUID, search api.IndexSearchRequest, params map[string]string) (*ZngSearch, error) {
 	req := c.Request(ctx).
 		SetBody(search).
 		SetQueryParam("format", "zng")
 	req.SetQueryParams(params)
 	req.Method = http.MethodPost
-	req.URL = path.Join("/space", string(space), "indexsearch")
+	req.URL = path.Join("/pool", id.String(), "indexsearch")
 	r, err := c.stream(req)
 	if err != nil {
 		return nil, err
@@ -297,24 +283,11 @@ func (c *Connection) IndexSearch(ctx context.Context, space api.SpaceID, search 
 	return NewZngSearch(r), nil
 }
 
-func (c *Connection) IndexPost(ctx context.Context, space api.SpaceID, post api.IndexPostRequest) error {
+func (c *Connection) IndexPost(ctx context.Context, id ksuid.KSUID, post api.IndexPostRequest) error {
 	_, err := c.Request(ctx).
 		SetBody(post).
-		Post(path.Join("/space", string(space), "index"))
+		Post(path.Join("/pool", id.String(), "index"))
 	return err
-}
-
-func (c *Connection) ArchiveStat(ctx context.Context, space api.SpaceID, params map[string]string) (*ZngSearch, error) {
-	req := c.Request(ctx).
-		SetQueryParam("format", "zng")
-	req.SetQueryParams(params)
-	req.Method = http.MethodGet
-	req.URL = path.Join("/space", string(space), "archivestat")
-	r, err := c.stream(req)
-	if err != nil {
-		return nil, err
-	}
-	return NewZngSearch(r), nil
 }
 
 type LogPostOpts struct {
@@ -322,19 +295,7 @@ type LogPostOpts struct {
 	Shaper    ast.Proc
 }
 
-func (c *Connection) LogPostPath(ctx context.Context, space api.SpaceID, opts *LogPostOpts, paths ...string) error {
-	stream, err := c.LogPostPathStream(ctx, space, opts, paths...)
-	if err != nil {
-		return err
-	}
-	payloads, err := stream.ReadAll()
-	if err != nil {
-		return err
-	}
-	return payloads.Error()
-}
-
-func (c *Connection) LogPostPathStream(ctx context.Context, space api.SpaceID, opts *LogPostOpts, paths ...string) (*Stream, error) {
+func (c *Connection) LogPostPath(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, paths ...string) (*Stream, error) {
 	body := api.LogPostRequest{
 		Paths:   paths,
 		StopErr: opts.StopError,
@@ -349,7 +310,7 @@ func (c *Connection) LogPostPathStream(ctx context.Context, space api.SpaceID, o
 	req := c.Request(ctx).
 		SetBody(body)
 	req.Method = http.MethodPost
-	req.URL = path.Join("/space", url.PathEscape(string(space)), "log/paths")
+	req.URL = path.Join("/pool", id.String(), "log/paths")
 	r, err := c.stream(req)
 	if err != nil {
 		return nil, err
@@ -358,23 +319,23 @@ func (c *Connection) LogPostPathStream(ctx context.Context, space api.SpaceID, o
 	return NewStream(jsonpipe), nil
 }
 
-func (c *Connection) LogPost(ctx context.Context, space api.SpaceID, opts *LogPostOpts, paths ...string) (api.LogPostResponse, error) {
+func (c *Connection) LogPost(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, paths ...string) (api.LogPostResponse, error) {
 	w, err := MultipartFileWriter(paths...)
 	if err != nil {
 		return api.LogPostResponse{}, err
 	}
-	return c.LogPostWriter(ctx, space, opts, w)
+	return c.LogPostWriter(ctx, id, opts, w)
 }
 
-func (c *Connection) LogPostReaders(ctx context.Context, space api.SpaceID, opts *LogPostOpts, readers ...io.Reader) (api.LogPostResponse, error) {
+func (c *Connection) LogPostReaders(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, readers ...io.Reader) (api.LogPostResponse, error) {
 	w, err := MultipartDataWriter(readers...)
 	if err != nil {
 		return api.LogPostResponse{}, err
 	}
-	return c.LogPostWriter(ctx, space, opts, w)
+	return c.LogPostWriter(ctx, id, opts, w)
 }
 
-func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts *LogPostOpts, writer *MultipartWriter) (api.LogPostResponse, error) {
+func (c *Connection) LogPostWriter(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, writer *MultipartWriter) (api.LogPostResponse, error) {
 	req := c.Request(ctx).
 		SetBody(writer).
 		SetResult(&api.LogPostResponse{}).
@@ -387,7 +348,7 @@ func (c *Connection) LogPostWriter(ctx context.Context, space api.SpaceID, opts 
 			req.SetQueryParam("stop_err", "true")
 		}
 	}
-	u := path.Join("/space", url.PathEscape(string(space)), "log")
+	u := path.Join("/pool", id.String(), "log")
 	resp, err := req.Post(u)
 	if err != nil {
 		return api.LogPostResponse{}, err

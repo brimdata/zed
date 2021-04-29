@@ -14,7 +14,7 @@ import (
 var Create = &charm.Spec{
 	Name:  "create",
 	Usage: "create [options] [-z zql] [ pattern [ pattern ...]]",
-	Short: "create index on a space",
+	Short: "create index on a pool",
 	Long: `
 "zapi index create" creates index files in a zar archive using one or more indexing
 rules.
@@ -65,27 +65,21 @@ func (c *CreateCmd) Run(args []string) error {
 	if len(args) == 0 && c.zql == "" {
 		return errors.New("zapi index create: one or more indexing patterns must be specified")
 	}
-	id, err := c.SpaceID(ctx)
-	if err != nil {
-		return err
-	}
 	req := api.IndexPostRequest{
-		Patterns:   args,
-		InputFile:  c.inputFile,
-		OutputFile: c.outputFile,
+		Patterns: args,
 	}
 	if c.zql != "" {
 		_, err := compiler.ParseProc(c.zql)
 		if err != nil {
 			return err
 		}
-		req.ZQL = c.zql
+		req.Zed = c.zql
 		if err != nil {
 			return err
 		}
 		req.Keys = c.keys
 	}
-	return c.Connection().IndexPost(ctx, id, req)
+	return c.Conn.IndexPost(ctx, c.PoolID, req)
 }
 
 type arrayFlag []string

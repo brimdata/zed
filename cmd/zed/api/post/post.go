@@ -18,7 +18,7 @@ import (
 var Post = &charm.Spec{
 	Name:  "post",
 	Usage: "post [options] path...",
-	Short: "stream log data to a space",
+	Short: "stream log data to a pool",
 	New:   NewPost,
 }
 
@@ -66,14 +66,9 @@ func (c *PostCommand) Run(args []string) (err error) {
 	} else {
 		out = os.Stdout
 	}
-	id, err := c.SpaceID(ctx)
-	if err != nil {
-		return err
-	}
 	c.start = time.Now()
-	conn := c.Connection()
 	opts := &client.LogPostOpts{Shaper: c.postFlags.shaperAST}
-	res, err := conn.LogPostWriter(ctx, id, opts, c.logwriter)
+	res, err := c.Conn.LogPostWriter(ctx, c.PoolID, opts, c.logwriter)
 	if err != nil {
 		if ctx.Err() != nil {
 			fmt.Println("post aborted")

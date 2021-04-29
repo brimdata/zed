@@ -18,16 +18,16 @@ class Client():
         r.raise_for_status()
         return r.json()
 
-    def search(self, space_name, zql):
-        raw = self.search_raw(space_name, zql)
+    def search(self, pool_name, zql):
+        raw = self.search_raw(pool_name, zql)
         zjson = take_zjson(raw)
         return decode_zjson(zjson)
 
-    def search_raw(self, space_name, zql):
+    def search_raw(self, pool_name, zql):
         body = {
             'dir': -1,
             'proc': self.ast(zql),
-            'space': self.spaces()[space_name]['id'],
+            'pool': self.pools()[pool_name]['id'],
         }
         params = {'format': 'zjson'}
         r = self.session.post(self.base_url + "/search", json=body,
@@ -36,8 +36,8 @@ class Client():
         # Return rather than yield to raise exceptions earlier.
         return (json.loads(line) for line in r.iter_lines() if line)
 
-    def spaces(self):
-        r = self.session.get(self.base_url + "/space")
+    def pools(self):
+        r = self.session.get(self.base_url + "/pool")
         r.raise_for_status()
         return {s['name']: s for s in r.json()}
 
@@ -110,10 +110,10 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-u', dest='base_url', default=DEFAULT_BASE_URL,
                         help='zqd base URL')
-    parser.add_argument('space_name')
+    parser.add_argument('pool_name')
     parser.add_argument('zql')
     args = parser.parse_args()
 
     c = Client(args.base_url)
-    for record in c.search(args.space_name, args.zql):
+    for record in c.search(args.pool_name, args.zql):
         pprint.pprint(record)

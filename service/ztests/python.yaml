@@ -1,0 +1,35 @@
+script: |
+  python3 -m venv v
+  . v/bin/activate
+
+  mkdir zqd
+  mv setup.py zqd.py zqd
+  pip install -q ./zqd
+
+  source services.sh
+  zapi -host $LAKE_HOST -p test post -f in.zson >/dev/null
+
+  python <<EOF
+  import zqd
+  c = zqd.Client('http://$LAKE_HOST')
+  for rec in c.search('test', '*'):
+    print(rec['s'])
+  EOF
+
+inputs:
+  - name: in.zson
+    data: |
+      {ts:1970-01-01T00:00:01Z,s:"world"}
+      {ts:1970-01-01T00:00:02Z,s:"hello"}
+  - name: services.sh
+    source: services.sh
+  - name: setup.py
+    source: ../../python/zqd/setup.py
+  - name: zqd.py
+    source: ../../python/zqd/zqd.py
+
+outputs:
+  - name: stdout
+    data: |
+      hello
+      world

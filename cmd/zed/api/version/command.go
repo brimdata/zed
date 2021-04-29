@@ -31,8 +31,8 @@ func New(parent charm.Command, flags *flag.FlagSet) (charm.Command, error) {
 	return &Command{Command: parent.(*apicmd.Command)}, nil
 }
 
-// Run lists all spaces in the current zqd host or if a parameter
-// is provided (in glob style) lists the info about that space.
+// Run lists all pools in the current zqd host or if a parameter
+// is provided (in glob style) lists the info about that pool.
 func (c *Command) Run(args []string) error {
 	ctx, cleanup, err := c.Init()
 	if err != nil {
@@ -42,8 +42,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) > 0 {
 		return errors.New("version command takes no arguments")
 	}
-	conn := c.Connection()
-	version, err := conn.Version(ctx)
+	version, err := c.Conn.Version(ctx)
 	if err != nil {
 		return err
 	}

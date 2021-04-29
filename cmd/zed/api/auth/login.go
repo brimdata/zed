@@ -40,9 +40,7 @@ func (c *LoginCommand) Run(args []string) error {
 	if len(args) > 0 {
 		return errors.New("login command takes no arguments")
 	}
-	conn := c.Connection()
-
-	method, err := conn.AuthMethod(ctx)
+	method, err := c.Conn.AuthMethod(ctx)
 	if err != nil {
 		return fmt.Errorf("failed to obtain supported auth method: %w", err)
 	}

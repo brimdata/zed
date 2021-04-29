@@ -1,0 +1,22 @@
+script: |
+  source services.sh s3://bucket/zedlake
+  zapi -host $LAKE_HOST new p1 
+  zapi -host $LAKE_HOST new p2
+  zapi -host $LAKE_HOST new p3
+  echo ===
+  zapi -host $LAKE_HOST ls
+
+inputs:
+  - name: services.sh
+    source: ../services.sh
+
+outputs:
+  - name: stdout
+    data: |
+      p1: pool created
+      p2: pool created
+      p3: pool created
+      ===
+      p1
+      p2
+      p3

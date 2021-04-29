@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 
 	"github.com/brimdata/zed/field"
@@ -59,7 +60,11 @@ func (f *Flags) OpenPool(ctx context.Context) (*lake.Pool, error) {
 	if err != nil {
 		return nil, err
 	}
-	return lk.OpenPool(ctx, f.PoolName)
+	pool := lk.LookupPoolByName(ctx, f.PoolName)
+	if pool == nil {
+		return nil, fmt.Errorf("%s: pool not found", f.PoolName)
+	}
+	return lk.OpenPool(ctx, pool.ID)
 }
 
 func (f *Flags) CreatePool(ctx context.Context, keys []field.Static, order zbuf.Order, thresh int64) (*lake.Pool, error) {

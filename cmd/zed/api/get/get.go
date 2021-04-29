@@ -19,6 +19,7 @@ import (
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio"
+	"github.com/segmentio/ksuid"
 )
 
 var Get = &charm.Spec{
@@ -29,7 +30,7 @@ var Get = &charm.Spec{
 zapi get issues search requests to the zqd search service.
 
 The -from and -to options specify a time range.  If not provided, the entire
-space is searched.
+pool is searched.
 
 By default, the service streams results in native zng and the zapi client
 converts the results to the format specified by -f.
@@ -94,19 +95,13 @@ func (c *Command) Run(args []string) error {
 	if len(args) > 0 {
 		expr = strings.Join(args, " ")
 	}
-	conn := c.Connection()
-
-	id, err := c.SpaceID(ctx)
-	if err != nil {
-		return err
-	}
-	req, err := parseExpr(id, expr)
+	req, err := parseExpr(c.PoolID, expr)
 	if err != nil {
 		return fmt.Errorf("parse error: %w", err)
 	}
 	req.Span = nano.NewSpanTs(nano.Ts(c.from), nano.Ts(c.to))
 	params := map[string]string{"format": c.encoding}
-	r, err := conn.SearchRaw(ctx, *req, params)
+	r, err := c.Conn.SearchRaw(ctx, *req, params)
 	if err != nil {
 		return fmt.Errorf("search error: %w", err)
 	}
@@ -139,7 +134,7 @@ func (c *Command) Run(args []string) error {
 }
 
 // parseExpr creates an api.SearchRequest to be used with the client.
-func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
+func parseExpr(pool ksuid.KSUID, expr string) (*api.SearchRequest, error) {
 	search, err := compiler.ParseProc(expr)
 	if err != nil {
 		return nil, err
@@ -149,9 +144,9 @@ func parseExpr(spaceID api.SpaceID, expr string) (*api.SearchRequest, error) {
 		return nil, err
 	}
 	return &api.SearchRequest{
-		Space: spaceID,
-		Proc:  proc,
-		Dir:   -1,
+		Dir:  -1,
+		Pool: pool,
+		Proc: proc,
 	}, nil
 }
 

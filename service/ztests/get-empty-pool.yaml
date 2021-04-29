@@ -1,0 +1,14 @@
+script: |
+  source services.sh
+  zapi -host $LAKE_HOST new test
+  zapi -host $LAKE_HOST info test
+  zapi -host $LAKE_HOST get -p test "*"
+
+
+inputs:
+  - name: services.sh
+    source: services.sh
+
+outputs:
+  - name: stderr
+    data: ""
