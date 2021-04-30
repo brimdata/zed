@@ -425,7 +425,7 @@ func extractPoolID(c *Core, w http.ResponseWriter, r *http.Request) (ksuid.KSUID
 		respondError(c, w, r, zqe.ErrInvalid("no pool id in path"))
 		return ksuid.Nil, false
 	}
-	id, err := lake.ParseID(s)
+	id, err := ksuid.Parse(s)
 	if err != nil {
 		respondError(c, w, r, zqe.ErrInvalid(err))
 		return ksuid.Nil, false
