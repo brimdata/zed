@@ -69,7 +69,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 	case *ast.ID:
 		c.write(e.Name)
 	case *ast.Root:
-		c.write(".")
+		c.write("this")
 	case *ast.UnaryExpr:
 		c.space()
 		c.write(e.Op)
@@ -119,7 +119,7 @@ func (c *canon) binary(e *ast.BinaryExpr) {
 		c.expr(e.RHS, false)
 	case "[":
 		if isRoot(e.LHS) {
-			c.write(".")
+			c.write("this")
 		} else {
 			c.expr(e.LHS, false)
 		}
