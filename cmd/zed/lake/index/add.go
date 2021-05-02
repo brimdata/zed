@@ -6,7 +6,6 @@ import (
 	"fmt"
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/segmentio/ksuid"
@@ -30,7 +29,7 @@ func NewAdd(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &AddCommand{lake: parent.(*Command).Command}
 	f.BoolVar(&c.commit, "commit", false, "commit added index objects if successfully written")
 	f.Func("index", "id of index to apply (can be specified multiple times", func(s string) error {
-		id, err := lake.ParseID(s)
+		id, err := zedlake.ParseID(s)
 		c.ids = append(c.ids, id)
 		return err
 	})

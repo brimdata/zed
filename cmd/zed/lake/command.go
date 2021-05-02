@@ -2,6 +2,7 @@ package lake
 
 import (
 	"context"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"strconv"
@@ -73,10 +74,33 @@ func ParseOrder(s string) (zbuf.Order, error) {
 	return zbuf.OrderDesc, fmt.Errorf("unknown order parameter: %q", s)
 }
 
+func ParseID(s string) (ksuid.KSUID, error) {
+	// Check if this is a cut-and-paste from ZNG, which encodes
+	// the 20-byte KSUID as a 40 character hex string with 0x prefix.
+	var id ksuid.KSUID
+	if len(s) == 42 && s[0:2] == "0x" {
+		b, err := hex.DecodeString(s[2:])
+		if err != nil {
+			return ksuid.Nil, fmt.Errorf("illegal hex tag: %s", s)
+		}
+		id, err = ksuid.FromBytes(b)
+		if err != nil {
+			return ksuid.Nil, fmt.Errorf("illegal hex tag: %s", s)
+		}
+	} else {
+		var err error
+		id, err = ksuid.Parse(s)
+		if err != nil {
+			return ksuid.Nil, fmt.Errorf("%s: invalid commit ID", s)
+		}
+	}
+	return id, nil
+}
+
 func ParseIDs(args []string) ([]ksuid.KSUID, error) {
 	ids := make([]ksuid.KSUID, 0, len(args))
 	for _, s := range args {
-		id, err := lake.ParseID(s)
+		id, err := ParseID(s)
 		if err != nil {
 			return nil, err
 		}
@@ -95,7 +119,7 @@ func ParseJournalID(ctx context.Context, pool *lake.Pool, at string) (journal.ID
 			return journal.ID(num), nil
 		}
 	}
-	commitID, err := lake.ParseID(at)
+	commitID, err := ParseID(at)
 	if err != nil {
 		return journal.Nil, fmt.Errorf("not a valid journal number or a commit tag: %s", at)
 	}
