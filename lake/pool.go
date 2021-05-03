@@ -30,12 +30,12 @@ const (
 )
 
 type PoolConfig struct {
-	Version  int            `zng:"version"`
-	Name     string         `zng:"name"`
-	ID       ksuid.KSUID    `zng:"id"`
-	Keys     []field.Static `zng:"keys"`
-	Order    zbuf.Order     `zng:"order"`
-	Treshold int64          `zng:"threshold"`
+	Version   int            `zng:"version"`
+	Name      string         `zng:"name"`
+	ID        ksuid.KSUID    `zng:"id"`
+	Keys      []field.Static `zng:"keys"`
+	Order     zbuf.Order     `zng:"order"`
+	Threshold int64          `zng:"threshold"`
 }
 
 type Pool struct {
@@ -52,12 +52,12 @@ func NewPoolConfig(name string, id ksuid.KSUID, keys []field.Static, order zbuf.
 		thresh = segment.DefaultThreshold
 	}
 	return &PoolConfig{
-		Version:  0,
-		Name:     name,
-		ID:       id,
-		Keys:     keys,
-		Order:    order,
-		Treshold: thresh,
+		Version:   0,
+		Name:      name,
+		ID:        id,
+		Keys:      keys,
+		Order:     order,
+		Threshold: thresh,
 	}
 }
 
