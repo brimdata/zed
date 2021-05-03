@@ -50,7 +50,7 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor) (*Runtime
 	case *ast.From:
 		// Already have an entry point with From.  Do nothing.
 	case *ast.Join:
-		readers = []*kernel.Reader{&kernel.Reader{}, &kernel.Reader{}}
+		readers = []*kernel.Reader{{}, {}}
 		trunk0 := ast.Trunk{
 			Kind:   "Trunk",
 			Source: readers[0],
@@ -78,7 +78,7 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor) (*Runtime
 			Trunks: trunks,
 		}
 	default:
-		readers = []*kernel.Reader{&kernel.Reader{}}
+		readers = []*kernel.Reader{{}}
 		trunk := ast.Trunk{
 			Kind:   "Trunk",
 			Source: readers[0],
