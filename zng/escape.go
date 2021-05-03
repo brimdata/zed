@@ -39,7 +39,7 @@ func QuotedString(data []byte, bstr bool) string {
 			i += l
 		}
 	}
-	out = append(out, data[start:len(data)]...)
+	out = append(out, data[start:]...)
 	out = append(out, '"')
 	return string(out)
 }

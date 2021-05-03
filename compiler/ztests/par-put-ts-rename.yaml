@@ -1,4 +1,4 @@
-script: zed ast -C -P 2 -sortKey ts "* | put ts=foo | rename foo=boo"
+script: zed compile -C -P 2 -sortKey ts "* | put ts=foo | rename foo=boo"
 
 outputs:
   - name: stdout

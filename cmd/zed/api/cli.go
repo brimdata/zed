@@ -2,28 +2,25 @@ package api
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"net"
 	"os"
 
-	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/terminal"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
+	"github.com/segmentio/ksuid"
 )
 
 var Get *charm.Spec
-
-var ErrSpaceNotSpecified = errors.New("either space name (-s) or id (-id) must be specified")
 
 var Cmd = &charm.Spec{
 	Name:  "api",
@@ -35,7 +32,7 @@ This service could be "zed server" running on your laptop or in the cloud.
 If you have installed the shortcuts,
 "zapi" (prounounced "zappy") is a shortcut for the "zed api" command.
 
-With "zed api" you can create spaces, list spaces, post data to spaces, and run queries.
+With "zed api" you can create pools, list pools, post data to pools, and run queries.
 
 The Brim application and the "zed api" client use the same REST API
 for interacting with a zed lake.
@@ -48,9 +45,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	// If not a terminal make nofancy on by default.
 	c.NoFancy = !terminal.IsTerminalFile(os.Stdout)
 	defaultHost := "localhost:9867"
-	f.StringVar(&c.Host, "host", defaultHost, "<host[:port]>")
-	f.StringVar(&c.Spacename, "s", c.Spacename, "<space>")
-	f.Var(&c.spaceID, "id", "<space_id>")
+	f.StringVar(&c.Host, "host", defaultHost, "host[:port]")
+	f.StringVar(&c.PoolName, "p", c.PoolName, "pool")
 	f.BoolVar(&c.NoFancy, "nofancy", c.NoFancy, "disable fancy CLI output (true if stdout is not a tty)")
 	c.LocalConfig.SetFlags(f)
 	return c, nil
@@ -58,37 +54,29 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 
 type Command struct {
 	*root.Command
+	Conn        *client.Connection
 	Host        string
 	LocalConfig LocalConfigFlags
 	NoFancy     bool
-	Spacename   string
+	PoolName    string
+	PoolID      ksuid.KSUID
 	cli         cli.Flags
-	conn        *client.Connection
-	spaceID     api.SpaceID
 }
 
-// Connection returns a central client.Connection instance.
-func (c *Command) Connection() *client.Connection {
-	if c.conn == nil {
-		if err := c.Login(); err != nil {
-			panic(err)
-		}
+func (c *Command) Init(all ...cli.Initializer) (context.Context, func(), error) {
+	ctx, cleanup, err := c.Command.Init(all...)
+	if err != nil {
+		return nil, nil, err
 	}
-	return c.conn
-}
-
-func (c *Command) SetSpaceID(id api.SpaceID) {
-	c.spaceID = id
-}
-
-func (c *Command) SpaceID(ctx context.Context) (api.SpaceID, error) {
-	if c.spaceID != "" {
-		return c.spaceID, nil
+	if err := c.Login(); err != nil {
+		return nil, nil, err
 	}
-	if c.Spacename == "" {
-		return "", ErrSpaceNotSpecified
+	// XXX This will go away once we do the work to make zapi and zed lake use
+	// the same charm commands.
+	if c.PoolName != "" {
+		c.PoolID, err = LookupPoolID(ctx, c.Conn, c.PoolName)
 	}
-	return GetSpaceID(ctx, c.Connection(), c.Spacename)
+	return ctx, cleanup, nil
 }
 
 // Run is called by charm when there are no sub-commands on the main
@@ -109,31 +97,31 @@ func (c *Command) Login() error {
 	if _, _, err := net.SplitHostPort(c.Host); err == nil {
 		c.Host = "http://" + c.Host
 	}
-	c.conn = client.NewConnectionTo(c.Host)
+	c.Conn = client.NewConnectionTo(c.Host)
 	creds, err := c.LocalConfig.LoadCredentials()
 	if err != nil {
 		return err
 	}
 	if tokens, ok := creds.ServiceTokens(c.Host); ok {
-		c.conn.SetAuthToken(tokens.Access)
+		c.Conn.SetAuthToken(tokens.Access)
 	}
 	return nil
 }
 
 func (c *Command) Prompt() string {
-	return c.Spacename + "> "
+	return c.PoolName + "> "
 }
 
 func Errorf(spec string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, Cmd.Name+": "+spec, args...)
 }
 
-func WriteOutput(ctx context.Context, flags outputflags.Flags, r zbuf.Reader) error {
+func WriteOutput(ctx context.Context, flags outputflags.Flags, r zio.Reader) error {
 	wc, err := flags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	err = zbuf.CopyWithContext(ctx, wc, r)
+	err = zio.CopyWithContext(ctx, wc, r)
 	if closeErr := wc.Close(); err == nil {
 		err = closeErr
 	}
@@ -146,7 +134,7 @@ type nameReader struct {
 	mc    *zson.MarshalZNGContext
 }
 
-func NewNameReader(names []string) zbuf.Reader {
+func NewNameReader(names []string) zio.Reader {
 	return &nameReader{
 		names: names,
 		mc:    resolver.NewMarshaler(),

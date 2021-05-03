@@ -8,20 +8,19 @@ import (
 
 	"github.com/brimdata/zed/cli/auto"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )
 
 type Flags struct {
-	zio.ReaderOpts
+	anyio.ReaderOpts
 	ReadMax  auto.Bytes
 	ReadSize auto.Bytes
 }
 
-func (f *Flags) Options() zio.ReaderOpts {
+func (f *Flags) Options() anyio.ReaderOpts {
 	return f.ReaderOpts
 }
 
@@ -47,13 +46,13 @@ func (f *Flags) Init() error {
 	return nil
 }
 
-func (f *Flags) Open(zctx *zson.Context, paths []string, stopOnErr bool) ([]zbuf.Reader, error) {
-	var readers []zbuf.Reader
+func (f *Flags) Open(zctx *zson.Context, paths []string, stopOnErr bool) ([]zio.Reader, error) {
+	var readers []zio.Reader
 	for _, path := range paths {
 		if path == "-" {
 			path = iosrc.Stdin
 		}
-		file, err := detector.OpenFile(zctx, path, f.ReaderOpts)
+		file, err := anyio.OpenFile(zctx, path, f.ReaderOpts)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
 			if stopOnErr {

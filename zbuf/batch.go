@@ -1,6 +1,7 @@
 package zbuf
 
 import (
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -32,7 +33,7 @@ type Batch interface {
 // it returns a nil or short (fewer than n records) Batch and nil error.  If an
 // error is encoutered, it returns a nil Batch and the error.  Otherwise,
 // readBatch returns a full Batch of n records and nil error.
-func readBatch(zr Reader, n int) (Batch, error) {
+func readBatch(zr zio.Reader, n int) (Batch, error) {
 	recs := make([]*zng.Record, 0, n)
 	for len(recs) < n {
 		rec, err := zr.Read()
@@ -60,12 +61,12 @@ type Puller interface {
 }
 
 // NewPuller returns a Puller for zr that returns Batches of up to n records.
-func NewPuller(zr Reader, n int) Puller {
+func NewPuller(zr zio.Reader, n int) Puller {
 	return &puller{zr: zr, n: n}
 }
 
 type puller struct {
-	zr Reader
+	zr zio.Reader
 	n  int
 
 	eos bool
@@ -82,7 +83,7 @@ func (p *puller) Pull() (Batch, error) {
 	return batch, err
 }
 
-func CopyPuller(w Writer, p Puller) error {
+func CopyPuller(w zio.Writer, p Puller) error {
 	for {
 		b, err := p.Pull()
 		if b == nil || err != nil {
@@ -97,7 +98,7 @@ func CopyPuller(w Writer, p Puller) error {
 	}
 }
 
-func PullerReader(p Puller) Reader {
+func PullerReader(p Puller) zio.Reader {
 	return &pullerReader{p: p}
 }
 

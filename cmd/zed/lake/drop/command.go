@@ -52,7 +52,11 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := lk.RemovePool(ctx, name); err != nil {
+	pool := lk.LookupPoolByName(ctx, name)
+	if pool == nil {
+		return fmt.Errorf("%s: no such pool", name)
+	}
+	if err := lk.RemovePool(ctx, pool.ID); err != nil {
 		return err
 	}
 	if !c.lake.Flags.Quiet {

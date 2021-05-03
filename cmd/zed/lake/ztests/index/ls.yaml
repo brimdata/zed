@@ -1,0 +1,14 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake index create -q :ip field.foo
+  zed lake index create -q -zed 'cut bar' -k bar -n cutbar
+  zed lake index ls
+
+outputs:
+  - name: stdout
+    regexp: |
+      Index \w{27} type ip
+      Index \w{27} field field.foo
+      Index \w{27} field\(s\) bar from zed script:
+        cut bar

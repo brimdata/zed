@@ -8,24 +8,25 @@ import (
 
 	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/brimdata/zed/pkg/terminal/color"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zstio"
 )
 
 type Flags struct {
-	zio.WriterOpts
+	anyio.WriterOpts
 	DefaultFormat string
 	dir           string
 	outputFile    string
 	forceBinary   bool
 	zsonShortcut  bool
 	zsonPretty    bool
+	color         bool
 }
 
-func (f *Flags) Options() zio.WriterOpts {
+func (f *Flags) Options() anyio.WriterOpts {
 	return f.WriterOpts
 }
 
@@ -34,6 +35,7 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&f.UTF8, "U", false, "display zeek strings as UTF-8")
 	fs.BoolVar(&f.Text.ShowTypes, "T", false, "display field types in text output")
 	fs.BoolVar(&f.Text.ShowFields, "F", false, "display field names in text output")
+	fs.BoolVar(&f.color, "color", true, "enable/disable color formatting for -Z and lake text output")
 	fs.IntVar(&f.Zng.StreamRecordsMax, "b", 0, "limit for number of records in each ZNG stream (0 for no limit)")
 	fs.IntVar(&f.Zng.LZ4BlockSize, "znglz4blocksize", zngio.DefaultLZ4BlockSize,
 		"LZ4 block size in bytes for ZNG compression (nonpositive to disable)")
@@ -103,7 +105,7 @@ func (f *Flags) FileName() string {
 	return f.outputFile
 }
 
-func (f *Flags) Open(ctx context.Context) (zbuf.WriteCloser, error) {
+func (f *Flags) Open(ctx context.Context) (zio.WriteCloser, error) {
 	if f.dir != "" {
 		d, err := emitter.NewDir(ctx, f.dir, f.outputFile, os.Stderr, f.WriterOpts)
 		if err != nil {
@@ -111,7 +113,7 @@ func (f *Flags) Open(ctx context.Context) (zbuf.WriteCloser, error) {
 		}
 		return d, nil
 	}
-	if f.outputFile == "" && terminal.IsTerminalFile(os.Stdout) {
+	if f.outputFile == "" && f.color && terminal.IsTerminalFile(os.Stdout) {
 		color.Enabled = true
 	}
 	w, err := emitter.NewFile(ctx, f.outputFile, f.WriterOpts)

@@ -11,9 +11,9 @@ import (
 
 var NewSpec = &charm.Spec{
 	Name:  "new",
-	Usage: "new [spacename]",
-	Short: "create a new space",
-	Long: `The new command takes a single argument and creates a new, empty space
+	Usage: "new [poolname]",
+	Short: "create a new pool",
+	Long: `The new command takes a single argument and creates a new, empty pool
 named as specified.`,
 	New: New,
 }
@@ -24,7 +24,7 @@ func init() {
 
 type Command struct {
 	*apicmd.Command
-	createFlags apicmd.SpaceCreateFlags
+	createFlags apicmd.PoolCreateFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -34,7 +34,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.Init(&c.createFlags)
+	ctx, cleanup, err := c.Init()
 	if err != nil {
 		return err
 	}
@@ -42,15 +42,14 @@ func (c *Command) Run(args []string) error {
 	if len(args) > 1 {
 		return errors.New("too many arguments")
 	}
-	if len(args) != 1 {
-		return errors.New("must specify a space name")
+	if len(args) != 1 && c.PoolName == "" {
+		return errors.New("must specify a pool name")
 	}
 	name := args[0]
-	conn := c.Connection()
-	sp, err := c.createFlags.Create(ctx, conn, name)
+	sp, err := c.createFlags.Create(ctx, c.Conn, name)
 	if err != nil {
-		return fmt.Errorf("couldn't create new space %s: %w", name, err)
+		return fmt.Errorf("couldn't create new pool %s: %w", name, err)
 	}
-	fmt.Printf("%s: space created\n", sp.Name)
+	fmt.Printf("%s: pool created\n", sp.Name)
 	return nil
 }

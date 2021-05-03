@@ -21,9 +21,9 @@ import (
 var PostPath = &charm.Spec{
 	Name:  "postpath",
 	Usage: "postpath [options] path...",
-	Short: "post log paths to a space",
-	Long: `Post log paths to a space. Zqd will open the paths and
-write the data into the space, so paths must be accessible by
+	Short: "post log paths to a pool",
+	Long: `Post log paths to a pool. Zqd will open the paths and
+write the data into the pool, so paths must be accessible by
 zqd. Paths can be S3 URIs.`,
 	New: NewPostPath,
 }
@@ -69,13 +69,9 @@ func (c *PostPathCommand) Run(args []string) (err error) {
 	} else {
 		out = os.Stdout
 	}
-	id, err := c.SpaceID(ctx)
-	if err != nil {
-		return err
-	}
 	c.start = time.Now()
 	opts := &client.LogPostOpts{Shaper: c.postFlags.shaperAST}
-	stream, err := c.Connection().LogPostPathStream(ctx, id, opts, paths...)
+	stream, err := c.Conn.LogPostPath(ctx, c.PoolID, opts, paths...)
 	if err != nil {
 		return err
 	}

@@ -8,9 +8,8 @@ import (
 
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/detector"
+	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
 	"github.com/brimdata/zed/zson"
 )
@@ -29,13 +28,13 @@ func Trim(s string) string {
 	return strings.TrimSpace(s) + "\n"
 }
 
-func stringReader(input string, ifmt string, zctx *zson.Context) (zbuf.Reader, error) {
-	opts := zio.ReaderOpts{
+func stringReader(input string, ifmt string, zctx *zson.Context) (zio.Reader, error) {
+	opts := anyio.ReaderOpts{
 		Format: ifmt,
 	}
 	rc := ioutil.NopCloser(strings.NewReader(input))
 
-	return detector.OpenFromNamedReadCloser(zctx, rc, "test", opts)
+	return anyio.OpenFromNamedReadCloser(zctx, rc, "test", opts)
 }
 
 func newEmitter(ofmt string) (*emitter.Bytes, error) {
@@ -43,7 +42,7 @@ func newEmitter(ofmt string) (*emitter.Bytes, error) {
 		ofmt = "tzng"
 	}
 	// XXX text format options not supported
-	return emitter.NewBytes(zio.WriterOpts{Format: ofmt})
+	return emitter.NewBytes(anyio.WriterOpts{Format: ofmt})
 }
 
 func (i *Internal) Run() (string, error) {

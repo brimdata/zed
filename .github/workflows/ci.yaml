@@ -23,7 +23,6 @@ jobs:
       - run: make test-generate
       - run: make test-unit
       - run: make test-system
-      - run: make test-pcapingest
       - run: make test-heavy
   test-windows:
     runs-on: windows-latest
@@ -36,7 +35,6 @@ jobs:
       - run: mkdir dist -ea 0
       - run: go build -o dist ./cmd/...
       - run: go test -v ./tests
-      - run: make test-pcapingest
   z-output-check:
     runs-on: ubuntu-latest
     steps:

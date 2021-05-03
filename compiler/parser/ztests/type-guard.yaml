@@ -1,0 +1,17 @@
+script: |
+  zq -I bug.zed -z -
+
+inputs:
+  - name: stdin
+    data: |
+      {x:1}
+  - name: bug.zed
+    data: |
+      type netx=uint16 ;
+      type foo={bar:netx} ;
+      *
+
+outputs:
+  - name: stdout
+    data: |
+      {x:1}

@@ -9,11 +9,14 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/commit/actions"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -21,6 +24,7 @@ import (
 
 const (
 	DataTag  = "D"
+	IndexTag = "I"
 	LogTag   = "L"
 	StageTag = "S"
 )
@@ -38,6 +42,7 @@ type Pool struct {
 	PoolConfig
 	Path      iosrc.URI
 	DataPath  iosrc.URI
+	IndexPath iosrc.URI
 	StagePath iosrc.URI
 	log       *commit.Log
 }
@@ -65,6 +70,9 @@ func (p *PoolConfig) Create(ctx context.Context, root iosrc.URI) error {
 	if err := iosrc.MkdirAll(DataPath(path), 0700); err != nil {
 		return err
 	}
+	if err := iosrc.MkdirAll(IndexPath(path), 0700); err != nil {
+		return err
+	}
 	if err := iosrc.MkdirAll(StagePath(path), 0700); err != nil {
 		return err
 	}
@@ -82,6 +90,7 @@ func (p *PoolConfig) Open(ctx context.Context, root iosrc.URI) (*Pool, error) {
 		PoolConfig: *p,
 		Path:       path,
 		DataPath:   DataPath(path),
+		IndexPath:  IndexPath(path),
 		StagePath:  StagePath(path),
 		log:        log,
 	}
@@ -92,12 +101,12 @@ func (p *PoolConfig) Delete(ctx context.Context, root iosrc.URI) error {
 	return iosrc.RemoveAll(ctx, p.Path(root))
 }
 
-func (p *Pool) Add(ctx context.Context, r zbuf.Reader) (ksuid.KSUID, error) {
+func (p *Pool) Add(ctx context.Context, r zio.Reader) (ksuid.KSUID, error) {
 	w, err := NewWriter(ctx, p)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	err = zbuf.CopyWithContext(ctx, w, r)
+	err = zio.CopyWithContext(ctx, w, r)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}
@@ -240,7 +249,7 @@ func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) erro
 	return iosrc.WriteFile(ctx, p.StagingObject(txn.ID), b)
 }
 
-func (p *Pool) ScanStaging(ctx context.Context, w zbuf.Writer, ids []ksuid.KSUID) error {
+func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
 	ch := make(chan actions.Interface, 10)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -292,7 +301,7 @@ func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.
 	return nil
 }
 
-func (p *Pool) ScanPartitions(ctx context.Context, w zbuf.Writer, snap *commit.Snapshot, span nano.Span) error {
+func (p *Pool) ScanPartitions(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span nano.Span) error {
 	ch := make(chan Partition, 10)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -315,7 +324,7 @@ func (p *Pool) ScanPartitions(ctx context.Context, w zbuf.Writer, snap *commit.S
 	return err
 }
 
-func (p *Pool) ScanSegments(ctx context.Context, w zbuf.Writer, snap *commit.Snapshot, span nano.Span) error {
+func (p *Pool) ScanSegments(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span nano.Span) error {
 	ch := make(chan segment.Reference)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -346,6 +355,83 @@ func (p *Pool) IsJournalID(ctx context.Context, id journal.ID) (bool, error) {
 	return id >= tail && id <= head, nil
 }
 
+func (p *Pool) Index(ctx context.Context, rules []index.Index, ids []ksuid.KSUID) (ksuid.KSUID, error) {
+	idxrefs := make([]*index.Reference, 0, len(rules)*len(ids))
+	for _, id := range ids {
+		// This could be easily parallized with errgroup.
+		refs, err := p.indexSegment(ctx, rules, id)
+		if err != nil {
+			return ksuid.Nil, err
+		}
+		idxrefs = append(idxrefs, refs...)
+	}
+	id := ksuid.New()
+	txn := commit.NewAddIndicesTxn(id, idxrefs)
+	if err := p.StoreInStaging(ctx, txn); err != nil {
+		return ksuid.Nil, err
+	}
+	return id, nil
+}
+
+func (p *Pool) indexSegment(ctx context.Context, rules []index.Index, id ksuid.KSUID) ([]*index.Reference, error) {
+	r, err := iosrc.NewReader(ctx, segment.RowObjectPath(p.DataPath, id))
+	if err != nil {
+		return nil, err
+	}
+	reader := zngio.NewReader(r, zson.NewContext())
+	w, err := index.NewCombiner(ctx, p.IndexPath, rules, id)
+	if err != nil {
+		r.Close()
+		return nil, err
+	}
+	err = zio.CopyWithContext(ctx, w, reader)
+	if err != nil {
+		w.Abort()
+	} else {
+		err = w.Close()
+	}
+	if rerr := r.Close(); err == nil {
+		err = rerr
+	}
+	return w.References(), err
+}
+
+type PoolInfo struct {
+	Size int64
+	// XXX (nibs) - This shouldn't be a span because keys don't have to be time.
+	Span *nano.Span
+}
+
+func (p *Pool) Info(ctx context.Context, snap *commit.Snapshot) (info PoolInfo, err error) {
+	ch := make(chan segment.Reference)
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	go func() {
+		err = ScanSpan(ctx, snap, nano.MaxSpan, ch)
+		close(ch)
+	}()
+	min := nano.MaxTs
+	max := nano.Ts(0)
+	for segment := range ch {
+		info.Size += segment.Size
+		span := segment.Span()
+		if span.Dur == 0 {
+			continue
+		}
+		if span.Ts < min {
+			min = span.Ts
+		}
+		if span.End() > max {
+			max = span.End()
+		}
+	}
+	if min != nano.MaxTs {
+		span := nano.NewSpanTs(min, max)
+		info.Span = &span
+	}
+	return info, err
+}
+
 func DataPath(poolPath iosrc.URI) iosrc.URI {
 	return poolPath.AppendPath(DataTag)
 }
@@ -356,4 +442,8 @@ func StagePath(poolPath iosrc.URI) iosrc.URI {
 
 func LogPath(poolPath iosrc.URI) iosrc.URI {
 	return poolPath.AppendPath(LogTag)
+}
+
+func IndexPath(poolPath iosrc.URI) iosrc.URI {
+	return poolPath.AppendPath(IndexTag)
 }

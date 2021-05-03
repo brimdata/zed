@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -45,7 +45,7 @@ func NewTimeIndex() *TimeIndex {
 // Create a new reader for the given zng file.  Only records with timestamps
 // that fall within the time range indicated by span will be emitted by
 // the returned Reader object.
-func (ti *TimeIndex) NewReader(f *os.File, zctx *zson.Context, span nano.Span) (zbuf.ReadCloser, error) {
+func (ti *TimeIndex) NewReader(f *os.File, zctx *zson.Context, span nano.Span) (zio.ReadCloser, error) {
 	ti.mu.Lock()
 	defer ti.mu.Unlock()
 

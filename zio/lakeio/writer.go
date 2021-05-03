@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/commit/actions"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/terminal/color"
@@ -76,6 +77,8 @@ func formatValue(t table, b *bytes.Buffer, v interface{}, width int, colors *col
 		t.formatCommit(b, v, width, colors)
 	case *actions.StagedCommit:
 		t.formatStaged(b, v, colors)
+	case *index.Index:
+		formatIndex(b, v, 0)
 	default:
 		if action, ok := v.(actions.Interface); ok {
 			t.append(action)
@@ -148,20 +151,20 @@ func (t table) append(a actions.Interface) {
 
 func (t table) formatStaged(b *bytes.Buffer, commit *actions.StagedCommit, colors *color.Stack) {
 	id := commit.CommitID()
-	colors.ColorStartBytes(b, color.GrayYellow)
+	colors.Start(b, color.GrayYellow)
 	b.WriteString("staged ")
 	b.WriteString(id.String())
-	colors.ColorEndBytes(b)
+	colors.End(b)
 	b.WriteString("\n\n")
 	t.formatActions(b, id)
 }
 
 func (t table) formatCommit(b *bytes.Buffer, commit *actions.CommitMessage, width int, colors *color.Stack) {
 	id := commit.CommitID()
-	colors.ColorStartBytes(b, color.GrayYellow)
+	colors.Start(b, color.GrayYellow)
 	b.WriteString("commit ")
 	b.WriteString(id.String())
-	colors.ColorEndBytes(b)
+	colors.End(b)
 	b.WriteString("\nAuthor: ")
 	b.WriteString(commit.Author)
 	b.WriteString("\nDate:   ")
@@ -178,6 +181,8 @@ func (t table) formatActions(b *bytes.Buffer, id ksuid.KSUID) {
 		switch action := action.(type) {
 		case *actions.Add:
 			formatAdd(b, 4, action)
+		case *actions.AddIndex:
+			formatAddIndex(b, 4, action)
 		case *actions.Delete:
 			formatDelete(b, 4, action)
 		}
@@ -194,4 +199,44 @@ func formatDelete(b *bytes.Buffer, indent int, delete *actions.Delete) {
 
 func formatAdd(b *bytes.Buffer, indent int, add *actions.Add) {
 	formatSegment(b, &add.Segment, "Add", indent)
+}
+
+func formatAddIndex(b *bytes.Buffer, indent int, addx *actions.AddIndex) {
+	formatIndexObject(b, &addx.Index, "AddIndex", indent)
+}
+
+func formatIndexObject(b *bytes.Buffer, index *index.Reference, prefix string, indent int) {
+	tab(b, indent)
+	if prefix != "" {
+		b.WriteString(prefix)
+		b.WriteByte(' ')
+	}
+	b.WriteString(fmt.Sprintf("%s index %s segment", index.Index.ID, index.SegmentID))
+	b.WriteByte('\n')
+}
+
+func formatIndex(b *bytes.Buffer, idx *index.Index, indent int) {
+	tab(b, indent)
+	b.WriteString("Index ")
+	b.WriteString(idx.ID.String() + " ")
+	switch idx.Kind {
+	case index.IndexType:
+		b.WriteString("type ")
+		b.WriteString(idx.Value)
+	case index.IndexField:
+		b.WriteString("field ")
+		b.WriteString(idx.Value)
+	case index.IndexZed:
+		b.WriteString("field(s) ")
+		for i, k := range idx.Keys {
+			if i > 0 {
+				b.WriteString(", ")
+			}
+			b.WriteString(k.String())
+		}
+		b.WriteString(" from zed script:\n  ")
+		tab(b, indent)
+		b.WriteString(idx.Value)
+	}
+	b.WriteByte('\n')
 }

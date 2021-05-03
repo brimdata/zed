@@ -5,7 +5,7 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -16,7 +16,7 @@ type FinderReader struct {
 	compare expr.KeyCompareFn
 	finder  *Finder
 	inputs  []string
-	reader  zbuf.Reader
+	reader  zio.Reader
 }
 
 func NewFinderReader(ctx context.Context, zctx *zson.Context, uri iosrc.URI, inputs ...string) (*FinderReader, error) {

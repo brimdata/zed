@@ -1,5 +1,5 @@
 script: |
-  zed ast -s -C 'foo | split (=> count() by x=.["@foo"] => sum(x) => put a=b*c ) | cut cake | sort -r x'
+  zed compile -s -C 'foo | split (=> count() by x=.["@foo"] => sum(x) => put a=b*c ) | cut cake | sort -r x'
 
 outputs:
   - name: stdout

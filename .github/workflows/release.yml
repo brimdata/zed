@@ -23,7 +23,6 @@ jobs:
     - run: make test-generate
     - run: make test-unit
     - run: make test-system
-    - run: make test-pcapingest
     - run: make test-heavy
     - run: make create-release-assets
     - name: upload release assets

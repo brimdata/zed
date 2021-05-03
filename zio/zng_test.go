@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
@@ -36,13 +36,13 @@ func boomerang(t *testing.T, logs string, compress bool) {
 		zngLZ4BlockSize = zngio.DefaultLZ4BlockSize
 	}
 	rawDst := zngio.NewWriter(&rawzng, zngio.WriterOpts{LZ4BlockSize: zngLZ4BlockSize})
-	require.NoError(t, zbuf.Copy(rawDst, zsonSrc))
+	require.NoError(t, zio.Copy(rawDst, zsonSrc))
 	require.NoError(t, rawDst.Close())
 
 	var out Output
 	rawSrc := zngio.NewReader(bytes.NewReader(rawzng.Bytes()), zson.NewContext())
 	zsonDst := zsonio.NewWriter(&out, zsonio.WriterOpts{})
-	err := zbuf.Copy(zsonDst, rawSrc)
+	err := zio.Copy(zsonDst, rawSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.Bytes())
 	}
@@ -52,13 +52,13 @@ func boomerangZJSON(t *testing.T, logs string) {
 	zsonSrc := zson.NewReader(strings.NewReader(logs), zson.NewContext())
 	var zjsonOutput Output
 	zjsonDst := zjsonio.NewWriter(&zjsonOutput)
-	err := zbuf.Copy(zjsonDst, zsonSrc)
+	err := zio.Copy(zjsonDst, zsonSrc)
 	require.NoError(t, err)
 
 	var out Output
 	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), zson.NewContext())
 	zsonDst := zsonio.NewWriter(&out, zsonio.WriterOpts{})
-	err = zbuf.Copy(zsonDst, zjsonSrc)
+	err = zio.Copy(zsonDst, zjsonSrc)
 	if assert.NoError(t, err) {
 		assert.Equal(t, strings.TrimSpace(logs), strings.TrimSpace(out.String()))
 	}

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -42,7 +42,7 @@ func TestMuxDriver(t *testing.T) {
 		zctx := zson.NewContext()
 		reader := zson.NewReader(strings.NewReader(input), zctx)
 		assert.NoError(t, err)
-		cs := []zbuf.Writer{&counter{}, &counter{}}
+		cs := []zio.Writer{&counter{}, &counter{}}
 		d := NewCLI(cs...)
 		err = Run(context.Background(), d, query, zctx, reader, Config{})
 		assert.NoError(t, err)

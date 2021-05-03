@@ -1,0 +1,19 @@
+script: |
+  source services.sh s3://bucket/zqdroot
+  zapi -host $LAKE_HOST new -S 20KiB test
+  zapi -host $LAKE_HOST -p test post babble.zson >/dev/null
+  echo ===
+  zapi -host $LAKE_HOST -p test get -z 's="harefoot-raucous"'
+
+inputs:
+  - name: babble.zson
+    source: ../../../testdata/babble.zson
+  - name: services.sh
+    source: ../services.sh
+
+outputs:
+  - name: stdout
+    data: |
+      test: pool created
+      ===
+      {ts:2020-04-21T22:41:21.0613914Z,s:"harefoot-raucous",v:137}

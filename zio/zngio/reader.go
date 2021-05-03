@@ -527,5 +527,5 @@ func (r *Reader) NewScanner(ctx context.Context, pruner zbuf.Filter, s nano.Span
 			return nil, err
 		}
 	}
-	return &zngScanner{ctx: ctx, reader: r, bufferFilter: bf, filter: f, span: s}, nil
+	return &scanner{ctx: ctx, reader: r, bufferFilter: bf, filter: f, span: s}, nil
 }

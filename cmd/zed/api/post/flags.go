@@ -11,7 +11,7 @@ import (
 )
 
 type postFlags struct {
-	apicmd.SpaceCreateFlags
+	apicmd.PoolCreateFlags
 	force     bool
 	shaper    string
 	shaperAST ast.Proc
@@ -19,14 +19,14 @@ type postFlags struct {
 }
 
 func (f *postFlags) SetFlags(fs *flag.FlagSet) {
-	fs.BoolVar(&f.force, "f", false, "create space if specified space does not exist")
+	fs.BoolVar(&f.force, "f", false, "create pool if specified pool does not exist")
 	fs.StringVar(&f.shaper, "z", "", "Z shaper script to apply to data before storing")
-	f.SpaceCreateFlags.SetFlags(fs)
+	f.PoolCreateFlags.SetFlags(fs)
 }
 
 func (f *postFlags) Init() error {
 	c := f.cmd
-	ctx, cleanup, err := c.Init(&f.SpaceCreateFlags)
+	ctx, cleanup, err := c.Init()
 	if err != nil {
 		return err
 	}
@@ -40,17 +40,12 @@ func (f *postFlags) Init() error {
 	}
 	if !f.force {
 		return nil
-	} else if c.Spacename == "" {
-		return errors.New("if -f flag is enabled, a space name must specified")
+	} else if c.PoolName == "" {
+		return errors.New("if -f flag is enabled, a pool must specified")
 	}
-	sp, err := f.SpaceCreateFlags.Create(ctx, c.Connection(), c.Spacename)
-	if err != nil {
-		if err == client.ErrSpaceExists {
-			// Fetch space ID.
-			_, err = c.SpaceID(ctx)
-		}
+	_, err = f.PoolCreateFlags.Create(ctx, c.Conn, c.PoolName)
+	if err != nil && !errors.Is(err, client.ErrPoolExists) {
 		return err
 	}
-	c.SetSpaceID(sp.ID)
 	return nil
 }

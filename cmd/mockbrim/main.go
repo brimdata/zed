@@ -22,13 +22,13 @@ func die(err error) {
 var (
 	pidfile  string
 	portfile string
-	zqddata  string
+	lakeroot string
 )
 
 func init() {
-	flag.StringVar(&portfile, "portfile", "", "location to write zqd port")
-	flag.StringVar(&pidfile, "pidfile", "", "location to write zqd pid")
-	flag.StringVar(&zqddata, "zqddata", "", "location to write zqd data")
+	flag.StringVar(&portfile, "portfile", "", "location to write zed lake serve port")
+	flag.StringVar(&pidfile, "pidfile", "", "location to write zed lake serve pid")
+	flag.StringVar(&lakeroot, "R", "", "location of ZED_LAKE_ROOT")
 	flag.Parse()
 }
 
@@ -45,15 +45,16 @@ func main() {
 		os.Exit(1)
 	}
 	args := []string{
-		"listen",
+		"lake",
+		"serve",
 		"-l=localhost:0",
-		"-loglevel=warn",
+		"-log.level=warn",
 		"-portfile=" + portfile,
-		"-data=" + zqddata,
+		"-R=" + lakeroot,
 		fmt.Sprintf("-brimfd=%d", r.Fd()),
 	}
 	stderr := bytes.NewBuffer(nil)
-	cmd := exec.Command("zqd", args...)
+	cmd := exec.Command("zed", args...)
 	cmd.Stderr = stderr
 	cmd.ExtraFiles = []*os.File{r}
 

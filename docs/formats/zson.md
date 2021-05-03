@@ -424,7 +424,7 @@ value in a record, as an element in an array, etc).
 #### 3.3.1 String Escape Rules
 
 Double-quoted `string` syntax is the same as that of JSON as described
-[RFC 8529](https://tools.ietf.org/html/rfc8529), specifically:
+[RFC 8259](https://tools.ietf.org/html/rfc8259#section-7), specifically:
 
 * The sequence `\uhhhh` where each `h` is a hexadecimal digit represents
   the Unicode code point corresponding to the given

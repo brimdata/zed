@@ -9,7 +9,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/require"
 )
@@ -42,7 +42,7 @@ const endTime = "1586886166"
 // from disk is just enough to cover the time span, and not the entire
 // file (with streams of 2 records each and parts of 3 streams being
 // inside the time span, a total of 6 records should be read).
-func checkReader(t *testing.T, r zbuf.Reader, expected []int, checkReads bool) {
+func checkReader(t *testing.T, r zio.Reader, expected []int, checkReads bool) {
 	for _, expect := range expected {
 		rec, err := r.Read()
 		require.NoError(t, err)

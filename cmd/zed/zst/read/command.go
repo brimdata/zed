@@ -7,7 +7,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst"
 )
@@ -61,7 +61,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if err := zbuf.Copy(writer, reader); err != nil {
+	if err := zio.Copy(writer, reader); err != nil {
 		writer.Close()
 		return err
 	}

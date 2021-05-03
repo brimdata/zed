@@ -224,11 +224,11 @@ const pairListJSON = `
 var pairListExpected = &PairList{
 	Op: "PairList",
 	Pairs: []Pair{
-		Pair{
+		{
 			A: &Terminal{"Terminal", "a1"},
 			B: &Terminal{"Terminal", "b1"},
 		},
-		Pair{
+		{
 			A: &Terminal{"Terminal", "a2"},
 			B: &Terminal{"Terminal", "b2"},
 		},
@@ -294,14 +294,14 @@ const cutJSON = `
 var cutExpected = &CutProc{
 	Op: "CutProc",
 	Fields: []Assignment{
-		Assignment{
+		{
 			Op: "Assignment",
 			RHS: &Identifier{
 				Op:   "Identifier",
 				Name: "ts",
 			},
 		},
-		Assignment{
+		{
 			Op: "Assignment",
 			LHS: &Identifier{
 				Op:   "Identifier",

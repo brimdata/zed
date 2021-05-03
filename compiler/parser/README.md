@@ -1,11 +1,11 @@
-# zql
+# Zed parser
 
-This directory contains the zql parser implemented in PEG.
+This directory contains the Zed parser implemented in PEG.
 
 There is a single PEG input file that works with both
 [pigeon](https://github.com/mna/pigeon), which is Go based, and
 [pegjs](https://pegjs.org/), which is JavaScript based.  This allows us
-to embed a zql compiler into either JavaScript or Go.
+to embed a Zed compiler into either JavaScript or Go.
 
 The single parser file is run through the C pre-processor allowing
 macro and ifdef logic to create the two variants of PEG.
@@ -31,8 +31,8 @@ pigeon and pegjs to create the two parsers.
 
 ## Testing
 
-The [ast command](../../cmd/zast) can be used for easiliy testing the output of
-the zql parser.
+The [zed compile command](../../cmd/zc) can be used for easily testing the output of
+the Zed parser.
 
 ## Development
 
@@ -42,5 +42,6 @@ is with this `make` command at the root of this repository:
 make peg
 ```
 This will ensure the PEG-generated javascript and Go parsers are up to date
-with `zql.peg` and will launch the `ast -repl` so you can type zql queries
-and see the AST output during development.
+with `parser.peg`
+
+To update the parser and launch the `zc -repl`, your can run `make peg-run`.

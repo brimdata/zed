@@ -302,13 +302,14 @@ TS                   COUNT
 2018-03-24T17:15:00Z 441229
 ```
 
-Events that are stored and retrieved via [`zqd`](../../../ppl/cmd/zqd) (that is,
-using the [Brim application](https://github.com/brimdata/brim) and/or
+Events that are stored and retrieved via [`zed lake
+serve`](../../../cmd/zed/lake) (that is, using the [Brim
+application](https://github.com/brimdata/brim) and/or
 [`zapi`](../../../cmd/zapi)) are by default automatically sorted in rerverse
-order by timestamp (`ts`). Therefore for the particular case of a
-[time grouping](#time-grouping---every) query entered via Brim or `zapi`,
-if the same reverse time ordering is desired in the output of the aggregation
-result, an explicit `| sort -r ts` is _not_ necessary on your ZQL pipeline.
+order by timestamp (`ts`). Therefore for the particular case of a [time
+grouping](#time-grouping---every) query entered via Brim or `zapi`, if the same
+reverse time ordering is desired in the output of the aggregation result, an
+explicit `| sort -r ts` is _not_ necessary on your ZQL pipeline.
 
 #### Output:
 

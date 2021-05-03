@@ -1,0 +1,22 @@
+script: |
+  source services.sh
+  zapi -host $LAKE_HOST new test
+  zapi -host $LAKE_HOST -p test post -z "put ip=ip(ip)" in.zson in.zson
+  zapi -host $LAKE_HOST -p test get -f zson > out.zson
+
+inputs:
+  - name: services.sh
+    source: ../services.sh
+  - name: in.zson
+    data: |
+      {ip:"1.1.1.1"}
+
+outputs:
+  - name: out.zson
+    data: |
+      {
+          ip: 1.1.1.1
+      }
+      {
+          ip: 1.1.1.1
+      }

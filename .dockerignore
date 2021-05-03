@@ -1,8 +1,0 @@
-/bin/
-/compiler/parser/deps/
-/dist/
-/python/brim/build/
-/zed-sample-data/
-
-.idea
-.DS_Store

@@ -4,12 +4,12 @@ import (
 	"context"
 	"io"
 
-	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 )
@@ -31,9 +31,8 @@ type Writer struct {
 }
 
 type WriterOpts struct {
-	Definitions index.Definitions
-	Order       zbuf.Order
-	Zng         zngio.WriterOpts
+	Order zbuf.Order
+	Zng   zngio.WriterOpts
 }
 
 func (r *Reference) NewWriter(ctx context.Context, path iosrc.URI, opts WriterOpts) (*Writer, error) {
@@ -58,7 +57,7 @@ func (r *Reference) NewWriter(ctx context.Context, path iosrc.URI, opts WriterOp
 }
 
 type indexWriter interface {
-	zbuf.WriteCloser
+	zio.WriteCloser
 	Abort()
 }
 

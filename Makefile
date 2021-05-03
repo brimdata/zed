@@ -6,11 +6,6 @@ ARCH = "amd64"
 VERSION = $(shell git describe --tags --dirty --always)
 LDFLAGS = -s -X github.com/brimdata/zed/cli.Version=$(VERSION)
 MINIO_VERSION := 0.0.0-20201211152140-453ab257caf5
-ZEEKTAG := $(shell python -c 'import json ;print(json.load(open("package.json"))["brimDependencies"]["zeekTag"])')
-ZEEKPATH = zeek-$(ZEEKTAG)
-SURICATATAG := $(shell python -c 'import json; print(json.load(open("package.json"))["brimDependencies"]["suricataTag"])')
-SURICATAPATH = suricata-$(SURICATATAG)
-PG_PERSIST = true
 
 # This enables a shortcut to run a single test from the ./ztests suite, e.g.:
 #  make TEST=TestZed/ztests/suite/cut/cut
@@ -26,11 +21,8 @@ vet:
 	@go vet -composites=false -stdmethods=false ./...
 
 fmt:
-	@res=$$(go fmt ./...); \
-	if [ -n "$${res}" ]; then \
-		echo "go fmt failed on these files:"; echo "$${res}"; echo; \
-		exit 1; \
-	fi
+	gofmt -s -w .
+	git diff --exit-code -- '*.go'
 
 tidy:
 	go mod tidy
@@ -42,20 +34,6 @@ $(SAMPLEDATA):
 	git clone --depth=1 https://github.com/brimdata/zed-sample-data $(@D)
 
 sampledata: $(SAMPLEDATA)
-
-bin/$(ZEEKPATH):
-	@mkdir -p bin
-	@curl -L -o bin/$(ZEEKPATH).zip \
-		https://github.com/brimdata/zeek/releases/download/$(ZEEKTAG)/zeek-$(ZEEKTAG).$$(go env GOOS)-$(ARCH).zip
-	@unzip -q bin/$(ZEEKPATH).zip -d bin \
-		&& mv bin/zeek bin/$(ZEEKPATH)
-
-bin/$(SURICATAPATH):
-	@mkdir -p bin
-	curl -L -o bin/$(SURICATAPATH).zip \
-		https://github.com/brimdata/build-suricata/releases/download/$(SURICATATAG)/suricata-$(SURICATATAG).$$(go env GOOS)-$(ARCH).zip
-	unzip -q bin/$(SURICATAPATH).zip -d bin \
-		&& mv bin/suricata bin/$(SURICATAPATH)
 
 .PHONY: bin/minio
 bin/minio: bin/minio-$(MINIO_VERSION)
@@ -78,34 +56,20 @@ test-generate: generate
 test-unit:
 	@go test -short ./...
 
-test-system: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH)" go test .
+test-system: build bin/minio
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" go test .
 
-test-run: build bin/minio bin/$(ZEEKPATH) bin/$(SURICATAPATH)
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin:$(CURDIR)/bin/$(ZEEKPATH):$(CURDIR)/bin/$(SURICATAPATH)" go test . -run $(TEST)
+test-run: build bin/minio
+	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" go test . -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
 	@go test -tags=heavy ./tests
-
-test-pcapingest: bin/$(ZEEKPATH)
-	@ZEEK="$(CURDIR)/bin/$(ZEEKPATH)/zeekrunner" go test -run=PcapPost -tags=pcapingest ./ppl/zqd
 
 .PHONY: test-services
 test-services: build
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
 		ZTEST_TAG=services \
-		go test -run TestZed/ppl/zqd/db/postgresdb/ztests .
-	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" \
-		ZTEST_TAG=services \
 		go test -run TestZed/ppl/zqd/ztests/redis .
-
-.PHONY: test-services-docker
-test-services-docker:
-	@docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml up -d
-	$(MAKE) test-services; \
-		status=$$?; \
-		docker-compose -f $(CURDIR)/ppl/zqd/scripts/dkc-services.yaml down || exit; \
-		exit $$status
 
 perf-compare: build $(SAMPLEDATA)
 	scripts/comparison-test.sh
@@ -116,22 +80,10 @@ z-output-check: build $(SAMPLEDATA)
 # If the build recipe changes, please also change npm/build.
 build: $(PEG_DEP)
 	@mkdir -p dist
-	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/... ./ppl/cmd/...
+	@go build -ldflags='$(LDFLAGS)' -o dist ./cmd/...
 
 install:
-	@go install -ldflags='$(LDFLAGS)' ./cmd/... ./ppl/cmd/...
-
-docker:
-	DOCKER_BUILDKIT=1 docker build --pull --rm \
-		--build-arg LDFLAGS='$(LDFLAGS)' \
-		-t zqd:latest \
-		.
-
-docker-push-local: docker
-	docker tag zqd localhost:5000/zqd:latest
-	docker push localhost:5000/zqd:latest
-	docker tag zqd localhost:5000/zqd:$(VERSION)
-	docker push localhost:5000/zqd:$(VERSION)
+	@go install -ldflags='$(LDFLAGS)' ./cmd/...
 
 create-release-assets:
 	for os in darwin linux windows; do \
@@ -139,7 +91,7 @@ create-release-assets:
 		rm -rf dist/$${zqdir} ; \
 		mkdir -p dist/$${zqdir} ; \
 		cp LICENSE.txt acknowledgments.txt dist/$${zqdir} ; \
-		GOOS=$${os} GOARCH=$(ARCH) go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ./ppl/cmd/... ; \
+		GOOS=$${os} GOARCH=$(ARCH) go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ; \
 	done
 	rm -rf dist/release && mkdir -p dist/release
 	cd dist && for d in zq-$(VERSION)* ; do \
@@ -168,11 +120,11 @@ $(PEG_GEN): compiler/parser/Makefile compiler/parser/parser-support.js compiler/
 peg: $(PEG_GEN)
 
 peg-run: $(PEG_GEN)
-	go run ./cmd/ast -repl
+	go run ./cmd/zc -repl
 
 # CI performs these actions individually since that looks nicer in the UI;
 # this is a shortcut so that a local dev can easily run everything.
-test-ci: fmt tidy vet test-generate test-unit test-system test-pcapingest test-heavy
+test-ci: fmt tidy vet test-generate test-unit test-system test-heavy
 
 clean: clean-python
 	@rm -rf dist

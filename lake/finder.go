@@ -27,7 +27,7 @@ func AddPath(pathField string, absolutePath bool) FindOption {
 	}
 	// Create a type alias called "zfile" that the client will
 	// understand as the pathname of a zng file, e.g., available
-	// as a new space via zqd.
+	// as a new pool via zqd.
 	return func(opt *findOptions) error {
 		typ, err := opt.zctx.LookupTypeAlias("zfile", zng.TypeString)
 		if err != nil {

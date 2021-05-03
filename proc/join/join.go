@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -18,7 +19,7 @@ type Proc struct {
 	cancel      context.CancelFunc
 	once        sync.Once
 	left        *puller
-	right       *zbuf.Peeker
+	right       *zio.Peeker
 	getLeftKey  expr.Evaluator
 	getRightKey expr.Evaluator
 	compare     expr.ValueCompareFn
@@ -42,7 +43,7 @@ func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, ri
 		getLeftKey:  leftKey,
 		getRightKey: rightKey,
 		left:        newPuller(left, ctx),
-		right:       zbuf.NewPeeker(newPuller(right, ctx)),
+		right:       zio.NewPeeker(newPuller(right, ctx)),
 		// XXX need to make sure nullsmax agrees with inbound merge
 		compare: expr.NewValueCompareFn(false),
 		cutter:  cutter,

@@ -12,20 +12,21 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 )
 
-func NewWriter(ctx context.Context, u iosrc.URI, def *Definition) (*Writer, error) {
+func NewWriter(ctx context.Context, path iosrc.URI, ref *Reference) (*Writer, error) {
 	rwCh := make(rwChan)
-	indexer, err := newIndexer(ctx, u, def, rwCh)
+	indexer, err := newIndexer(ctx, path, ref, rwCh)
 	if err != nil {
 		return nil, err
 	}
 	w := &Writer{
-		URI:        u,
-		Definition: def,
+		Reference: ref,
+		URI:       ref.ObjectPath(path),
 
 		done:    make(chan struct{}),
 		indexer: indexer,
@@ -35,8 +36,8 @@ func NewWriter(ctx context.Context, u iosrc.URI, def *Definition) (*Writer, erro
 }
 
 type Writer struct {
-	Definition *Definition
-	URI        iosrc.URI
+	Reference *Reference
+	URI       iosrc.URI
 
 	done    chan struct{}
 	indexer *indexer
@@ -103,28 +104,33 @@ func (a *onceError) Load() error {
 type indexer struct {
 	err     onceError
 	cutter  *expr.Cutter
-	fgr     zbuf.ReadCloser
+	fgr     zio.ReadCloser
 	index   *index.Writer
 	keyType zng.Type
 	wg      sync.WaitGroup
 }
 
-func newIndexer(ctx context.Context, u iosrc.URI, def *Definition, r zbuf.Reader) (*indexer, error) {
-	zctx := zson.NewContext()
-	conf := driver.Config{Custom: compile}
-	fgr, err := driver.NewReaderWithConfig(ctx, conf, def.Proc, zctx, r)
+func newIndexer(ctx context.Context, path iosrc.URI, ref *Reference, r zio.Reader) (*indexer, error) {
+	idx := ref.Index
+	proc, err := idx.Proc()
 	if err != nil {
 		return nil, err
 	}
-	keys := def.Keys
+	zctx := zson.NewContext()
+	conf := driver.Config{Custom: compile}
+	fgr, err := driver.NewReaderWithConfig(ctx, conf, proc, zctx, r)
+	if err != nil {
+		return nil, err
+	}
+	keys := idx.Keys
 	if len(keys) == 0 {
 		keys = []field.Static{keyName}
 	}
 	opts := []index.Option{index.KeyFields(keys...)}
-	if def.Framesize > 0 {
-		opts = append(opts, index.FrameThresh(def.Framesize))
+	if idx.Framesize > 0 {
+		opts = append(opts, index.FrameThresh(idx.Framesize))
 	}
-	writer, err := index.NewWriterWithContext(ctx, zctx, u.String(), opts...)
+	writer, err := newIndexWriter(ctx, zctx, path, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -133,18 +139,29 @@ func newIndexer(ctx context.Context, u iosrc.URI, def *Definition, r zbuf.Reader
 	if err != nil {
 		return nil, err
 	}
-	d := &indexer{
+	return &indexer{
 		fgr:    fgr,
 		cutter: cutter,
 		index:  writer,
+	}, nil
+}
+
+func newIndexWriter(ctx context.Context, zctx *zson.Context, path iosrc.URI, ref *Reference, opts ...index.Option) (w *index.Writer, err error) {
+	op := ref.ObjectPath(path).String()
+	w, err = index.NewWriterWithContext(ctx, zctx, op, opts...)
+	if zqe.IsNotFound(err) {
+		if err = iosrc.MkdirAll(ref.ObjectDir(path), 0700); err != nil {
+			return nil, err
+		}
+		return index.NewWriterWithContext(ctx, zctx, op, opts...)
 	}
-	return d, nil
+	return w, err
 }
 
 func (d *indexer) start() {
 	d.wg.Add(1)
 	go func() {
-		if err := zbuf.Copy(d, d.fgr); err != nil {
+		if err := zio.Copy(d, d.fgr); err != nil {
 			d.index.Abort()
 			d.err.Store(err)
 		}

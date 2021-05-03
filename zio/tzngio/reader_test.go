@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -213,7 +213,7 @@ func boomerangErr(t *testing.T, name, logs, errorMsg string, errorArgs ...interf
 		in := []byte(strings.TrimSpace(logs) + "\n")
 		zngSrc := tzngio.NewReader(bytes.NewReader(in), zson.NewContext())
 		zngDst := tzngio.NewWriter(&output{})
-		err := zbuf.Copy(zngDst, zngSrc)
+		err := zio.Copy(zngDst, zngSrc)
 		assert.Errorf(t, err, errorMsg, errorArgs...)
 	})
 }
@@ -225,7 +225,7 @@ func boomerang(t *testing.T, name, logs string) {
 		in := []byte(strings.TrimSpace(logs) + "\n")
 		zngSrc := tzngio.NewReader(bytes.NewReader(in), zson.NewContext())
 		zngDst := tzngio.NewWriter(&out)
-		err := zbuf.Copy(zngDst, zngSrc)
+		err := zio.Copy(zngDst, zngSrc)
 		require.NoError(t, err)
 		assert.Equal(t, string(in), out.String())
 	})

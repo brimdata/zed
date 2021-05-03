@@ -1,0 +1,90 @@
+script: |
+  python3 -m venv v
+  . v/bin/activate
+
+  mkdir zqd
+  mv setup.py zqd.py zqd
+  # -qq supresses warnings about availability of newer pip versions.
+  pip install -qq ./zqd
+
+  source services.sh
+  zapi -host $LAKE_HOST -p test post -f in.zson >/dev/null
+
+  python <<EOF
+  import zqd
+  c = zqd.Client('http://$LAKE_HOST')
+  for rec in c.search('test', '*'):
+    print(rec)
+  EOF
+
+inputs:
+  - name: in.zson
+    data: |
+      {
+        u8:0 (myuint8=(uint8)),
+        u16:0 (myuint16=(uint16)),
+        u32:0 (myuint32=(uint32)),
+        u64:0 (myuint64=(uint64)),
+        i8:0 (myint8=(int8)),
+        i16:0 (myint16=(int16)),
+        i32:0 (myint32=(int32)),
+        i64:0 (myint64=(int64)),
+        dur:0m (myduration=(duration)),
+        tim:1970-01-01T00:00:00Z (mytime=(time)),
+        f64:0. (myfloat64=(float64)),
+        boo:false (mybool=(bool)),
+        byt:0x00 (mybytes=(bytes)),
+        str:"" (mystring=(string)),
+        bst:"" (mybstring=(bstring)),
+        ip:0.0.0.0 (myip=(ip)),
+        net:0.0.0.0/0 (mynet=(net)),
+        err:"" (myerror=(error)),
+        nul:null (mynull=(null))
+      } (=primitives)
+      {
+        u8:0,
+        u16:0,
+        u32:0,
+        u64:0,
+        i8:0,
+        i16:0,
+        i32:0,
+        i64:0,
+        dur:0m,
+        tim:1970-01-01T00:00:00Z,
+        f64:0.,
+        boo:false,
+        byt:0x00,
+        str:"",
+        bst:"",
+        ip:0.0.0.0,
+        net:0.0.0.0/0,
+        err:"",
+        nul:null,
+      } (primitives)
+      {array:[{a:1},{a:2}]}
+      {map:|{{"a",{a:1 (int32),b:2 (int32)} (=0)},{"b",{a:2,b:3} (0)},{"c",{a:3,b:4} (0)}}| (=1)} (=2)
+      {set:|[1,2,3,4]|}
+      {union:"hello" (3=((string,4=([int32]),5=([string]),6=((string,int32)))))} (=7)
+      {union:[1,2] (4)} (7)
+      {union:["a","b"]} (7)
+      {union:123 (int32) (6)} (7)
+  - name: services.sh
+    source: services.sh
+  - name: setup.py
+    source: ../../python/zqd/setup.py
+  - name: zqd.py
+    source: ../../python/zqd/zqd.py
+
+outputs:
+  - name: stdout
+    data: |
+      {'u8': 0, 'u16': 0, 'u32': 0, 'u64': 0, 'i8': 0, 'i16': 0, 'i32': 0, 'i64': 0, 'dur': datetime.timedelta(0), 'tim': datetime.datetime(1970, 1, 1, 0, 0, tzinfo=tzutc()), 'f64': 0.0, 'boo': False, 'byt': b'\xd3\x1d4', 'str': '', 'bst': '', 'ip': IPv4Address('0.0.0.0'), 'net': IPv4Network('0.0.0.0/0'), 'err': '', 'nul': None}
+      {'u8': 0, 'u16': 0, 'u32': 0, 'u64': 0, 'i8': 0, 'i16': 0, 'i32': 0, 'i64': 0, 'dur': datetime.timedelta(0), 'tim': datetime.datetime(1970, 1, 1, 0, 0, tzinfo=tzutc()), 'f64': 0.0, 'boo': False, 'byt': b'\xd3\x1d4', 'str': '', 'bst': '', 'ip': IPv4Address('0.0.0.0'), 'net': IPv4Network('0.0.0.0/0'), 'err': '', 'nul': None}
+      {'array': [{'a': 1}, {'a': 2}]}
+      {'map': {'a': {'a': 1, 'b': 2}, 'b': {'a': 2, 'b': 3}, 'c': {'a': 3, 'b': 4}}}
+      {'set': {1, 2, 3, 4}}
+      {'union': 'hello'}
+      {'union': [1, 2]}
+      {'union': ['a', 'b']}
+      {'union': 123}

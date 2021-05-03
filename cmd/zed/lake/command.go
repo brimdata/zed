@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
 )
 
@@ -73,18 +74,6 @@ func ParseOrder(s string) (zbuf.Order, error) {
 	return zbuf.OrderDesc, fmt.Errorf("unknown order parameter: %q", s)
 }
 
-func ParseIDs(args []string) ([]ksuid.KSUID, error) {
-	ids := make([]ksuid.KSUID, 0, len(args))
-	for _, s := range args {
-		id, err := ParseID(s)
-		if err != nil {
-			return nil, err
-		}
-		ids = append(ids, id)
-	}
-	return ids, nil
-}
-
 func ParseID(s string) (ksuid.KSUID, error) {
 	// Check if this is a cut-and-paste from ZNG, which encodes
 	// the 20-byte KSUID as a 40 character hex string with 0x prefix.
@@ -108,6 +97,18 @@ func ParseID(s string) (ksuid.KSUID, error) {
 	return id, nil
 }
 
+func ParseIDs(args []string) ([]ksuid.KSUID, error) {
+	ids := make([]ksuid.KSUID, 0, len(args))
+	for _, s := range args {
+		id, err := ParseID(s)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
+}
+
 func ParseJournalID(ctx context.Context, pool *lake.Pool, at string) (journal.ID, error) {
 	if num, err := strconv.Atoi(at); err == nil {
 		ok, err := pool.IsJournalID(ctx, journal.ID(num))
@@ -129,12 +130,12 @@ func ParseJournalID(ctx context.Context, pool *lake.Pool, at string) (journal.ID
 	return id, nil
 }
 
-func CopyToOutput(ctx context.Context, flags outputflags.Flags, r zbuf.Reader) error {
+func CopyToOutput(ctx context.Context, flags outputflags.Flags, r zio.Reader) error {
 	w, err := flags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	err = zbuf.Copy(w, r)
+	err = zio.Copy(w, r)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}

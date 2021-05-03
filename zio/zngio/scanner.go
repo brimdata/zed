@@ -11,8 +11,7 @@ import (
 	"github.com/brimdata/zed/zng"
 )
 
-// zngScanner implements scanner.Scanner.
-type zngScanner struct {
+type scanner struct {
 	ctx          context.Context
 	reader       *Reader
 	bufferFilter *expr.BufferFilter
@@ -25,7 +24,7 @@ type zngScanner struct {
 var _ zbuf.ScannerAble = (*Reader)(nil)
 
 // Pull implements zbuf.Scanner.Pull.
-func (s *zngScanner) Pull() (zbuf.Batch, error) {
+func (s *scanner) Pull() (zbuf.Batch, error) {
 	for {
 		if err := s.ctx.Err(); err != nil {
 			return nil, err
@@ -80,7 +79,7 @@ func (s *zngScanner) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (s *zngScanner) scanBatch() (zbuf.Batch, error) {
+func (s *scanner) scanBatch() (zbuf.Batch, error) {
 	ubuf := s.reader.uncompressedBuf
 	// If s.bufferFilter evaluates to false, we know ubuf cannot
 	// contain records matching s.filter.
@@ -123,7 +122,7 @@ func (s *zngScanner) scanBatch() (zbuf.Batch, error) {
 	}
 }
 
-func (s *zngScanner) scanOne(rec *zng.Record) (*zng.Record, error) {
+func (s *scanner) scanOne(rec *zng.Record) (*zng.Record, error) {
 	atomic.AddInt64(&s.stats.BytesRead, int64(len(rec.Bytes)))
 	atomic.AddInt64(&s.stats.RecordsRead, 1)
 	if s.span != nano.MaxSpan && !s.span.Contains(rec.Ts()) ||
@@ -136,7 +135,7 @@ func (s *zngScanner) scanOne(rec *zng.Record) (*zng.Record, error) {
 }
 
 // Stats implements zbuf.Scanner.Stats.
-func (s *zngScanner) Stats() *zbuf.ScannerStats {
+func (s *scanner) Stats() *zbuf.ScannerStats {
 	return &zbuf.ScannerStats{
 		BytesRead:      atomic.LoadInt64(&s.stats.BytesRead),
 		BytesMatched:   atomic.LoadInt64(&s.stats.BytesMatched),

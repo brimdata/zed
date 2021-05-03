@@ -7,7 +7,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	apicmd "github.com/brimdata/zed/cmd/zed/api"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/emitter"
 )
 
@@ -16,7 +16,7 @@ var Find = &charm.Spec{
 	Usage: "find [options] pattern [pattern...]",
 	Short: "look through zar index files and displays matches",
 	Long: `
-"zapi index find" searches an archive-backed space
+"zapi index find" searches an archive-backed pool
 looking for zng files that have been indexed and performs a search on
 each such index file in accordance with the specified search pattern.
 Indexes are created by "zapi index create".
@@ -77,11 +77,7 @@ func (c *FindCmd) Run(args []string) error {
 	}
 	defer cleanup()
 	req := api.IndexSearchRequest{IndexName: c.indexFile, Patterns: args}
-	id, err := c.SpaceID(ctx)
-	if err != nil {
-		return err
-	}
-	stream, err := c.Connection().IndexSearch(ctx, id, req, nil)
+	stream, err := c.Conn.IndexSearch(ctx, c.PoolID, req, nil)
 	if err != nil {
 		return err
 	}
@@ -90,5 +86,5 @@ func (c *FindCmd) Run(args []string) error {
 		return err
 	}
 	defer writer.Close()
-	return zbuf.Copy(writer, stream)
+	return zio.Copy(writer, stream)
 }

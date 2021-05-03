@@ -1,0 +1,17 @@
+script: |
+  source services.sh
+  zapi -host $LAKE_HOST new test
+  zapi -host $LAKE_HOST -p test post in.zson
+  zapi -host $LAKE_HOST -p test get -e json > out.json
+
+inputs:
+  - name: services.sh
+    source: services.sh
+  - name: in.zson
+    data: |
+      {a:"hello",b:{c:"world",d:"goodbye"}}
+
+outputs:
+  - name: out.json
+    regexp: |
+      .*"type":"TaskStart","task_id":0.*"type":\{"kind":"record","fields":\[\{"name":"a".*"values":\["hello",\["world".*

@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
 )
@@ -46,7 +47,7 @@ func (n *namedScanner) Pull() (zbuf.Batch, error) {
 	return b, err
 }
 
-func compile(ctx context.Context, program ast.Proc, zctx *zson.Context, readers []zbuf.Reader, cfg Config) (*muxOutput, error) {
+func compile(ctx context.Context, program ast.Proc, zctx *zson.Context, readers []zio.Reader, cfg Config) (*muxOutput, error) {
 	if cfg.Logger == nil {
 		cfg.Logger = zap.NewNop()
 	}
@@ -91,13 +92,11 @@ func compile(ctx context.Context, program ast.Proc, zctx *zson.Context, readers 
 
 type MultiConfig struct {
 	Custom      kernel.Hook
-	Distributed bool // true if remote request specified worker count
 	Order       zbuf.Order
 	Logger      *zap.Logger
 	Parallelism int
 	Span        nano.Span
 	StatsTick   <-chan time.Time
-	//Worker      worker.WorkerConfig
 }
 
 func compileMulti(ctx context.Context, program ast.Proc, zctx *zson.Context, msrc MultiSource, mcfg MultiConfig) (*muxOutput, error) {

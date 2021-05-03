@@ -3,16 +3,12 @@ package api
 import (
 	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
-	"net"
-	"net/url"
-	"regexp"
-	"strconv"
 
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zjsonio"
+	"github.com/segmentio/ksuid"
 )
 
 const RequestIDHeader = "X-Request-ID"
@@ -51,10 +47,11 @@ type TaskEnd struct {
 }
 
 type SearchRequest struct {
-	Space SpaceID         `json:"space" validate:"required"`
-	Proc  json.RawMessage `json:"proc,omitempty"`
-	Span  nano.Span       `json:"span"`
-	Dir   int             `json:"dir" validate:"required"`
+	JournalID uint64          `json:"journal_id"`
+	Pool      ksuid.KSUID     `json:"pool"`
+	Proc      json.RawMessage `json:"proc,omitempty"`
+	Span      nano.Span       `json:"span"`
+	Dir       int             `json:"dir"`
 }
 
 type SearchRecords struct {
@@ -88,76 +85,36 @@ type ScannerStats struct {
 	RecordsMatched int64 `json:"records_matched"`
 }
 
-var spaceIDRegexp = regexp.MustCompile("^[a-zA-Z0-9_]+$")
-
-type SpaceID string
-
-// String is part of the flag.Value interface allowing a SpaceID value to be
-// used as a command line flag.
-func (s SpaceID) String() string {
-	return string(s)
+type Pool struct {
+	ID   ksuid.KSUID `json:"id" zng:"id"`
+	Name string      `json:"name" zng:"name"`
 }
 
-// Set is part of the flag.Value interface allowing a SpaceID value to be
-// used as a command line flag.
-func (s *SpaceID) Set(str string) error {
-	if !spaceIDRegexp.MatchString(str) {
-		return errors.New("all characters in a SpaceID must be [a-zA-Z0-9_]")
-	}
-	*s = SpaceID(str)
-	return nil
-}
-
-type Space struct {
-	ID          SpaceID     `json:"id" zng:"id"`
-	Name        string      `json:"name" zng:"name"`
-	DataPath    iosrc.URI   `json:"data_path" zng:"data_path"`
-	StorageKind StorageKind `json:"storage_kind" zng:"storage_kind"`
-}
-
-type SpaceInfo struct {
-	Space
-	Span        *nano.Span `json:"span,omitempty"`
-	Size        int64      `json:"size" unit:"bytes"`
-	PcapSupport bool       `json:"pcap_support"`
-	PcapSize    int64      `json:"pcap_size" unit:"bytes"`
-	PcapPath    iosrc.URI  `json:"pcap_path"`
+type PoolInfo struct {
+	Pool
+	Span *nano.Span `json:"span,omitempty"`
+	Size int64      `json:"size" unit:"bytes"`
 }
 
 type VersionResponse struct {
 	Version string `json:"version"`
 }
 
-type SpacePostRequest struct {
-	Name     string         `json:"name"`
-	DataPath string         `json:"data_path"`
-	Storage  *StorageConfig `json:"storage,omitempty"`
+type PoolPostRequest struct {
+	Name   string         `json:"name"`
+	Keys   []field.Static `json:"keys"`
+	Order  zbuf.Order     `json:"order"`
+	Thresh int64          `json:"thresh"`
 }
 
-type SpacePutRequest struct {
+type PoolPutRequest struct {
 	Name string `json:"name"`
 }
 
-type PcapPostRequest struct {
-	Path string `json:"path"`
-}
-
-type PcapPostWarning struct {
-	Type    string `json:"type"`
-	Warning string `json:"warning"`
-}
-
-type PcapPostStatus struct {
-	Type               string     `json:"type"`
-	StartTime          nano.Ts    `json:"start_time"`
-	UpdateTime         nano.Ts    `json:"update_time"`
-	PcapSize           int64      `json:"pcap_total_size" unit:"bytes"`
-	PcapReadSize       int64      `json:"pcap_read_size" unit:"bytes"`
-	DataChunksWritten  int64      `json:"data_chunks_written,omitempty" unit:"bytes"`
-	RecordBytesWritten int64      `json:"record_bytes_written,omitempty" unit:"bytes"`
-	RecordsWritten     int64      `json:"records_written,omitempty"`
-	SnapshotCount      int        `json:"snapshot_count,omitempty"`
-	Span               *nano.Span `json:"span,omitempty"`
+type CommitRequest struct {
+	Commit  string `json:"commit"`
+	User    string `json:"user"`
+	Message string `json:"message"`
 }
 
 type LogPostRequest struct {
@@ -178,92 +135,10 @@ type LogPostStatus struct {
 }
 
 type LogPostResponse struct {
-	Type      string   `json:"type"`
-	BytesRead int64    `json:"bytes_read" unit:"bytes"`
-	Warnings  []string `json:"warnings"`
-}
-
-// PcapSearch are the query string args to the packet endpoint when searching
-// for packets within a connection 5-tuple.
-type PcapSearch struct {
-	Span    nano.Span
-	Proto   string `validate:"required"`
-	SrcHost net.IP `validate:"required"`
-	SrcPort uint16
-	DstHost net.IP `validate:"required"`
-	DstPort uint16
-}
-
-// ToQuery transforms a packet search into a url.Values.
-func (ps *PcapSearch) ToQuery() url.Values {
-	tssec, tsns := ps.Span.Ts.Split()
-	dursec := int(ps.Span.Dur / 1000000000)
-	durns := int(int64(ps.Span.Dur) - int64(dursec)*1000000000)
-	q := url.Values{}
-	q.Add("ts_sec", strconv.Itoa(int(tssec)))
-	q.Add("ts_ns", strconv.Itoa(int(tsns)))
-	q.Add("duration_sec", strconv.Itoa(dursec))
-	q.Add("duration_ns", strconv.Itoa(durns))
-	q.Add("proto", ps.Proto)
-	q.Add("src_host", ps.SrcHost.String())
-	q.Add("dst_host", ps.DstHost.String())
-	if ps.SrcPort != 0 {
-		q.Add("src_port", strconv.Itoa(int(ps.SrcPort)))
-	}
-	if ps.DstPort != 0 {
-		q.Add("dst_port", strconv.Itoa(int(ps.DstPort)))
-	}
-	return q
-}
-
-// FromQuery parses a query string and populates the receiver's values.
-func (ps *PcapSearch) FromQuery(v url.Values) error {
-	var err error
-	var tsSec, tsNs, durSec, durNs int64
-	if tsSec, err = strconv.ParseInt(v.Get("ts_sec"), 10, 64); err != nil {
-		return err
-	}
-	if tsNs, err = strconv.ParseInt(v.Get("ts_ns"), 10, 64); err != nil {
-		return err
-	}
-	if durSec, err = strconv.ParseInt(v.Get("duration_sec"), 10, 64); err != nil {
-		return err
-	}
-	if durNs, err = strconv.ParseInt(v.Get("duration_ns"), 10, 64); err != nil {
-		return err
-	}
-	if v.Get("src_port") != "" {
-		p, err := strconv.ParseUint(v.Get("src_port"), 10, 16)
-		if err != nil {
-			return err
-		}
-		ps.SrcPort = uint16(p)
-	}
-	if v.Get("dst_port") != "" {
-		p, err := strconv.ParseUint(v.Get("dst_port"), 10, 16)
-		if err != nil {
-			return err
-		}
-		ps.DstPort = uint16(p)
-	}
-	span := nano.Span{
-		Ts:  nano.Unix(tsSec, tsNs),
-		Dur: nano.DurationFromParts(durSec, durNs),
-	}
-	ps.Span = span
-	ps.Proto = v.Get("proto")
-	switch ps.Proto {
-	case "tcp", "udp", "icmp":
-	default:
-		return fmt.Errorf("unsupported proto: %s", ps.Proto)
-	}
-	if ps.SrcHost = net.ParseIP(v.Get("src_host")); ps.SrcHost == nil {
-		return fmt.Errorf("invalid ip: %s", ps.SrcHost)
-	}
-	if ps.DstHost = net.ParseIP(v.Get("dst_host")); ps.DstHost == nil {
-		return fmt.Errorf("invalid ip: %s", ps.DstHost)
-	}
-	return nil
+	Type      string      `json:"type"`
+	BytesRead int64       `json:"bytes_read" unit:"bytes"`
+	Commit    ksuid.KSUID `json:"commit"`
+	Warnings  []string    `json:"warnings"`
 }
 
 type IndexSearchRequest struct {
@@ -272,72 +147,8 @@ type IndexSearchRequest struct {
 }
 
 type IndexPostRequest struct {
-	Patterns   []string `json:"patterns"`
-	ZQL        string   `json:"zql,omitempty"`
-	Keys       []string `json:"keys"`
-	InputFile  string   `json:"input_file"`
-	OutputFile string   `json:"output_file"`
-}
-
-type StorageKind string
-
-const (
-	UnknownStore StorageKind = ""
-	ArchiveStore StorageKind = "archivestore"
-	FileStore    StorageKind = "filestore"
-)
-
-func (k StorageKind) String() string {
-	return string(k)
-}
-
-func (k *StorageKind) Set(s string) error {
-	switch s := StorageKind(s); s {
-	case ArchiveStore, FileStore:
-		*k = s
-		return nil
-	}
-	return fmt.Errorf("unknown storage kind: %s", s)
-}
-
-type StorageConfig struct {
-	Kind    StorageKind    `json:"kind"`
-	Archive *ArchiveConfig `json:"archive,omitempty"`
-}
-
-type ArchiveConfig struct {
-	CreateOptions *ArchiveCreateOptions `json:"create_options,omitempty"`
-}
-
-type ArchiveCreateOptions struct {
-	LogSizeThreshold *int64 `json:"log_size_threshold,omitempty"`
-}
-
-// FileStoreReadOnly controls if new spaces may be created using the
-// FileStore storage kind, and if existing FileStore spaces may have new
-// data (either pcap or logs) added to them.
-// This intended to be temporary until we transition to only allowing archive
-// stores for new spaces; see issue 1085.
-var FileStoreReadOnly bool
-
-func DefaultStorageKind() StorageKind {
-	if FileStoreReadOnly {
-		return ArchiveStore
-	}
-	return FileStore
-}
-
-type IntakeID string
-
-type Intake struct {
-	ID            IntakeID `json:"id" zng:"id"`
-	Name          string   `json:"name" zng:"name"`
-	Shaper        string   `json:"shaper" zng:"shaper"`
-	TargetSpaceID SpaceID  `json:"target_space_id" zng:"target_space_id"`
-}
-
-type IntakePostRequest struct {
-	Name          string  `json:"name"`
-	Shaper        string  `json:"shaper"`
-	TargetSpaceID SpaceID `json:"target_space_id"`
+	Keys     []string `json:"keys"`
+	Name     string   `json:"name"`
+	Patterns []string `json:"patterns"`
+	Zed      string   `json:"zed,omitempty"`
 }

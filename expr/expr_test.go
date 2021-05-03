@@ -19,7 +19,7 @@ func testSuccessful(t *testing.T, e string, record string, expect zng.Value) {
 		record = "{}"
 	}
 	zctx := zson.NewContext()
-	typ, _ := zctx.LookupTypeRecord([]zng.Column{zng.Column{"result", expect.Type}})
+	typ, _ := zctx.LookupTypeRecord([]zng.Column{{"result", expect.Type}})
 	bytes := zcode.AppendPrimitive(nil, expect.Bytes)
 	rec := zng.NewRecord(typ, bytes)
 	formatter := zson.NewFormatter(0)

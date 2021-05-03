@@ -6,16 +6,15 @@ import (
 
 	"github.com/brimdata/zed/cmd/zed/api"
 	_ "github.com/brimdata/zed/cmd/zed/api/auth"
+	_ "github.com/brimdata/zed/cmd/zed/api/drop"
 	_ "github.com/brimdata/zed/cmd/zed/api/get"
 	_ "github.com/brimdata/zed/cmd/zed/api/index"
 	_ "github.com/brimdata/zed/cmd/zed/api/info"
-	_ "github.com/brimdata/zed/cmd/zed/api/intake"
 	_ "github.com/brimdata/zed/cmd/zed/api/new"
 	_ "github.com/brimdata/zed/cmd/zed/api/post"
 	_ "github.com/brimdata/zed/cmd/zed/api/rename"
-	_ "github.com/brimdata/zed/cmd/zed/api/rm"
 	_ "github.com/brimdata/zed/cmd/zed/api/version"
-	"github.com/brimdata/zed/cmd/zed/ast"
+	"github.com/brimdata/zed/cmd/zed/compile"
 	"github.com/brimdata/zed/cmd/zed/index"
 	_ "github.com/brimdata/zed/cmd/zed/index/convert"
 	_ "github.com/brimdata/zed/cmd/zed/index/create"
@@ -36,6 +35,7 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/lake/ls"
 	_ "github.com/brimdata/zed/cmd/zed/lake/merge"
 	_ "github.com/brimdata/zed/cmd/zed/lake/query"
+	_ "github.com/brimdata/zed/cmd/zed/lake/serve"
 	_ "github.com/brimdata/zed/cmd/zed/lake/squash"
 	_ "github.com/brimdata/zed/cmd/zed/lake/status"
 	_ "github.com/brimdata/zed/cmd/zed/lake/vacate"
@@ -51,7 +51,7 @@ import (
 func main() {
 	zed := root.Zed
 	zed.Add(api.Cmd)
-	zed.Add(ast.Cmd)
+	zed.Add(compile.Cmd)
 	zed.Add(query.Cmd)
 	zed.Add(zst.Cmd)
 	zed.Add(lake.Cmd)
