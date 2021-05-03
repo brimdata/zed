@@ -3,7 +3,7 @@ script: |
   zed index create -o index.zng -k b in.zson
   zq -z index.zng
   echo ===
-  zed index lookup iz -k 0 index.zng
+  zed index lookup -z -k hello index.zng
   echo ===
 
 inputs:
