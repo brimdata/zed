@@ -1,4 +1,6 @@
 script: |
+  # Undo -e since we expect all subsequent commands to fail.
+  set +e
   zq -z "cut rec,other,rec" in.zson
   zq -z "cut rec.sub1,rec.sub1" in.zson
   zq -z "cut rec.sub,rec.sub.sub" in.zson
