@@ -135,7 +135,7 @@ zapi help
 | tzng | yes | yes | yes | Alternate text-based ZNG format |
 | ndjson | yes | yes | yes | Newline delimited JSON records |
 | zeek  | yes | yes | yes | [Zeek compatible](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs) tab separated values |
-| zjson | yes | yes | yes | [ZNG over JSON](../../docs/formats/zng-over-json.md) |
+| zjson | yes | yes | yes | [ZNG over JSON](../../docs/formats/zjson.md) |
 | parquet | yes | no | no | [Parquet file format](https://github.com/apache/parquet-format#file-format)
 | table | no | no | yes | table output, with column headers |
 | text | no | no | yes | space separated output |

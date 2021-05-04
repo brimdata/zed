@@ -1,10 +1,10 @@
 zed: '*'
 
 input: |
-  {"id":27,"schema":{"of":[{"name":"a","of":["string",{"of":"int32","type":"array"},{"of":"string","type":"array"},{"of":["string","int32"],"type":"union"}],"type":"union"}],"type":"record"},"values":[["0","\"hello\""]]}
-  {"id":27,"values":[["1",["1","2"]]]}
-  {"id":27,"values":[["2",["\"a\"","\"b\""]]]}
-  {"id":27,"values":[["3",["1","123"]]]}
+  {"schema":"27","types":[{"kind":"typedef","name":"27","type":{"kind":"record","fields":[{"name":"a","type":{"kind":"union","types":[{"kind":"primitive","name":"string"},{"kind":"array","type":{"kind":"primitive","name":"int32"}},{"kind":"array","type":{"kind":"primitive","name":"string"}},{"kind":"union","types":[{"kind":"primitive","name":"string"},{"kind":"primitive","name":"int32"}]}]}}]}}],"values":[["0","\"hello\""]]}
+  {"schema":"27","values":[["1",["1","2"]]]}
+  {"schema":"27","values":[["2",["\"a\"","\"b\""]]]}
+  {"schema":"27","values":[["3",["1","123"]]]}
 
 output: |
   {a:"\"hello\"" (0=((string,1=([int32]),2=([string]),3=((string,int32)))))} (=4)

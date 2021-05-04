@@ -57,7 +57,7 @@ type SearchRequest struct {
 type SearchRecords struct {
 	Type      string           `json:"type"`
 	ChannelID int              `json:"channel_id"`
-	Records   []zjsonio.Record `json:"records"`
+	Records   []zjsonio.Object `json:"records"`
 }
 
 type SearchWarning struct {

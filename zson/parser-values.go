@@ -11,6 +11,7 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -588,8 +589,8 @@ func ParsePrimitive(typeText, valText string) (zng.Value, error) {
 	if typ == nil {
 		return zng.Value{}, fmt.Errorf("no such type: %s", typeText)
 	}
-	var b Builder
-	if err := b.BuildPrimitive(&Primitive{Type: typ, Text: valText}); err != nil {
+	var b zcode.Builder
+	if err := BuildPrimitive(&b, Primitive{Type: typ, Text: valText}); err != nil {
 		return zng.Value{}, err
 	}
 	it := b.Bytes().Iter()

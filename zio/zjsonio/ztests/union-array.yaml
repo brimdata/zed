@@ -1,8 +1,8 @@
 zed: '*'
 
 input: |
-  {"id":25,"schema":{"of":[{"name":"a","of":{"of":["int32","string"],"type":"union"},"type":"array"}],"type":"record"},"values":[[["1","asdfasdf"],null,["0","100"]]]}
-  {"id":25,"values":[null]}
+  {"schema":"25","types":[{"kind":"typedef","name":"25","type":{"kind":"record","fields":[{"name":"a","type":{"kind":"array","type":{"kind":"union","types":[{"kind":"primitive","name":"int32"},{"kind":"primitive","name":"string"}]}}}]}}],"values":[[["1","asdfasdf"],null,["0","100"]]]}
+  {"schema":"25","values":[null]}
 
 output: |
   {a:["asdfasdf" (0=((int32,string))),null (0),100 (int32) (0)] (=1)} (=2)

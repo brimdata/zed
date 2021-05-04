@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/fs"
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -54,8 +55,8 @@ func TestZsonBuilder(t *testing.T) {
 	zctx := zson.NewContext()
 	val, err := analyze(zctx, testFile)
 	require.NoError(t, err)
-	b := zson.NewBuilder()
-	zv, err := b.Build(val)
+	b := zcode.NewBuilder()
+	zv, err := zson.Build(b, val)
 	require.NoError(t, err)
 	rec := zng.NewRecord(zv.Type.(*zng.TypeRecord), zv.Bytes)
 	zv, err = rec.Access("a")

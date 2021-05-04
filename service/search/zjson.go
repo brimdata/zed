@@ -27,14 +27,14 @@ func NewZJSONOutput(resp http.ResponseWriter, mtu int, ctrl bool) *ZJSON {
 	}
 }
 
-func formatRecords(stream *zjsonio.Stream, records []*zng.Record) ([]zjsonio.Record, error) {
-	var res = make([]zjsonio.Record, len(records))
+func formatRecords(stream *zjsonio.Stream, records []*zng.Record) ([]zjsonio.Object, error) {
+	var res = make([]zjsonio.Object, len(records))
 	for i, in := range records {
 		out, err := stream.Transform(in)
 		if err != nil {
 			return nil, err
 		}
-		res[i] = *out
+		res[i] = out
 	}
 	return res, nil
 }

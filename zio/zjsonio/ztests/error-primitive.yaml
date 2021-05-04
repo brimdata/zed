@@ -3,9 +3,9 @@ script: zq -i zjson in.zjson
 inputs:
   - name: in.zjson
     data: |
-        {"id":0,"schema":{"type":"record","of":[{"name":"a","type":"string"}]},"values":[["1"]]}
+      {"schema":"23","types":[{"kind":"typedef","name":"23","type":{"kind":"record","fields":[{"name":"a","type":{"kind":"primitive","name":"string"}}]}}],"values":[["1"]]}
 
 outputs:
   - name: stderr
     regexp: |
-      zjson primitive value is not a JSON string
+      ZJSON primitive value is not a JSON string
