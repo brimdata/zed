@@ -38,6 +38,8 @@ type Root struct {
 	Config
 }
 
+var _ proc.DataAdaptor = (*Root)(nil)
+
 type Config struct {
 	Version int           `zng:"version"`
 	Pools   []PoolConfig  `zng:"pools"`

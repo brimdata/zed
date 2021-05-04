@@ -27,6 +27,17 @@ func Parse(s string) (Which, error) {
 	}
 }
 
+func (w Which) String() string {
+	if w == Desc {
+		return "desc"
+	}
+	return "asc"
+}
+
+func (w Which) MarshalJSON() ([]byte, error) {
+	return json.Marshal(w.String())
+}
+
 func (w *Which) UnmarshalJSON(b []byte) error {
 	var s string
 	if err := json.Unmarshal(b, &s); err != nil {
@@ -41,10 +52,6 @@ func (w *Which) UnmarshalJSON(b []byte) error {
 		return fmt.Errorf("unknown order: %s", s)
 	}
 	return nil
-}
-
-func (w Which) MarshalJSON() ([]byte, error) {
-	return json.Marshal(w.String())
 }
 
 func (w Which) MarshalZNG(m *zson.MarshalZNGContext) (zng.Type, error) {

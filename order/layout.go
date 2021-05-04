@@ -34,13 +34,6 @@ func (l Layout) String() string {
 	return fmt.Sprintf("%s:%s", field.List(l.Keys), l.Order)
 }
 
-func (w Which) String() string {
-	if w == Desc {
-		return "desc"
-	}
-	return "asc"
-}
-
 func NewLayout(order Which, keys []field.Static) Layout {
 	return Layout{order, keys}
 }

@@ -91,7 +91,7 @@ func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, pool *lake
 			return zqe.ErrInvalid(fmt.Sprintf("deprecated search API: Zed program does not begin with ast.Sequential: %T", s.query.Proc))
 		}
 	}
-	scanOrder := ""
+	var scanOrder string
 	if s.query.Dir > 0 {
 		scanOrder = "asc"
 	} else if s.query.Dir < 0 {

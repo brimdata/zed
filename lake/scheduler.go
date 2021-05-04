@@ -39,7 +39,7 @@ func NewSortedScheduler(ctx context.Context, zctx *zson.Context, pool *Pool, sna
 }
 
 func (s *Scheduler) Stats() zbuf.ScannerStats {
-	return s.stats.Atomic()
+	return s.stats.Copy()
 }
 
 func (s *Scheduler) AddStats(stats zbuf.ScannerStats) {

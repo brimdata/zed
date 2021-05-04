@@ -56,7 +56,7 @@ func (s *ScannerStats) Add(in ScannerStats) {
 	atomic.AddInt64(&s.RecordsMatched, in.RecordsMatched)
 }
 
-func (s *ScannerStats) Atomic() ScannerStats {
+func (s *ScannerStats) Copy() ScannerStats {
 	return ScannerStats{
 		BytesRead:      atomic.LoadInt64(&s.BytesRead),
 		BytesMatched:   atomic.LoadInt64(&s.BytesMatched),
@@ -130,7 +130,7 @@ type scanner struct {
 }
 
 func (s *scanner) Stats() ScannerStats {
-	return s.stats.Atomic()
+	return s.stats.Copy()
 }
 
 // Read implements Reader.Read.

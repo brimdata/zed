@@ -43,7 +43,7 @@ func (t *TypeOfTime) Marshal(zv zcode.Bytes) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
-	return ts.Time().UTC().Format(time.RFC3339Nano), nil
+	return ts.Time().Format(time.RFC3339Nano), nil
 }
 
 func (t *TypeOfTime) ZSON() string {
@@ -55,7 +55,6 @@ func (t *TypeOfTime) ZSONOf(zv zcode.Bytes) string {
 	if err != nil {
 		return badZng(err, t, zv)
 	}
-	//XXX shouldn't this be UTC?
 	b := ts.Time().Format(time.RFC3339Nano)
 	return string(b)
 }

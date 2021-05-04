@@ -53,7 +53,7 @@ func NewPool(s string) (Pool, error) {
 // check test results rather than emulating ksuid.New().
 func fakeID(name string) ksuid.KSUID {
 	var id ksuid.KSUID
-	copy(id[:], []byte(name))
+	copy(id[:], name)
 	return id
 }
 

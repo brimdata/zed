@@ -183,5 +183,5 @@ func (s *multiFileScanner) Stats() zbuf.ScannerStats {
 	if s.scanner != nil {
 		s.stats.Add(s.scanner.Stats())
 	}
-	return s.stats.Atomic()
+	return s.stats.Copy()
 }

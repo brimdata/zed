@@ -57,7 +57,7 @@ type Aggregator struct {
 	keysCompare  expr.CompareFn      // compare all keys
 	maxTableKey  *zng.Value
 	maxSpillKey  *zng.Value
-	inputOrder   order.Direction
+	inputDir     order.Direction
 	spiller      *spill.MergeSort
 	partialsIn   bool
 	partialsOut  bool
@@ -69,7 +69,7 @@ type Row struct {
 	reducers valRow
 }
 
-func NewAggregator(zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *builder.ColumnBuilder, limit int, inputOrder order.Direction, partialsIn, partialsOut bool) (*Aggregator, error) {
+func NewAggregator(zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *builder.ColumnBuilder, limit int, inputDir order.Direction, partialsIn, partialsOut bool) (*Aggregator, error) {
 	if limit == 0 {
 		limit = DefaultLimit
 	}
@@ -77,35 +77,35 @@ func NewAggregator(zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluat
 	var keyCompare, keysCompare expr.CompareFn
 
 	nkeys := len(keyExprs)
-	if nkeys > 0 && inputOrder != 0 {
+	if nkeys > 0 && inputDir != 0 {
 		// As the default sort behavior, nullsMax=true for ascending order and
 		// nullsMax=false for descending order is also expected for streaming
 		// groupby.
-		nullsMax := inputOrder > 0
+		nullsMax := inputDir > 0
 
 		vs := expr.NewValueCompareFn(nullsMax)
-		if inputOrder < 0 {
+		if inputDir < 0 {
 			valueCompare = func(a, b zng.Value) int { return vs(b, a) }
 		} else {
 			valueCompare = vs
 		}
 
 		rs := expr.NewCompareFn(true, keyRefs[0])
-		if inputOrder < 0 {
+		if inputDir < 0 {
 			keyCompare = func(a, b *zng.Record) int { return rs(b, a) }
 		} else {
 			keyCompare = rs
 		}
 	}
 	rs := expr.NewCompareFn(true, keyRefs...)
-	if inputOrder < 0 {
+	if inputDir < 0 {
 		keysCompare = func(a, b *zng.Record) int { return rs(b, a) }
 	} else {
 		keysCompare = rs
 	}
 	return &Aggregator{
 		zctx:         zctx,
-		inputOrder:   inputOrder,
+		inputDir:     inputDir,
 		limit:        limit,
 		keyTypes:     typevector.NewTable(),
 		outTypes:     typevector.NewTable(),
@@ -196,7 +196,7 @@ func (p *Proc) run() {
 			}
 		}
 		batch.Unref()
-		if p.agg.inputOrder == 0 {
+		if p.agg.inputDir == 0 {
 			continue
 		}
 		// sorted input: see if we have any completed keys we can emit.
@@ -275,7 +275,7 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 			}
 			return nil
 		}
-		if i == 0 && a.inputOrder != 0 {
+		if i == 0 && a.inputDir != 0 {
 			prim = a.updateMaxTableKey(zv)
 		}
 		types = append(types, zv.Type)
@@ -326,7 +326,7 @@ func (a *Aggregator) spillTable(eof bool) error {
 	if err := a.spiller.Spill(recs); err != nil {
 		return err
 	}
-	if !eof && a.inputOrder != 0 {
+	if !eof && a.inputDir != 0 {
 		v, err := a.keyExprs[0].Eval(recs[len(recs)-1])
 		if err != nil {
 			return err
@@ -374,11 +374,11 @@ func (a *Aggregator) Results(eof bool) (zbuf.Batch, error) {
 
 func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 	recs := make([]*zng.Record, 0, proc.BatchLen)
-	if !eof && a.inputOrder == 0 {
+	if !eof && a.inputDir == 0 {
 		return nil, nil
 	}
 	for len(recs) < proc.BatchLen {
-		if !eof && a.inputOrder != 0 {
+		if !eof && a.inputDir != 0 {
 			rec, err := a.spiller.Peek()
 			if err != nil {
 				return nil, err
