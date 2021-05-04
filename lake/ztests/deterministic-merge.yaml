@@ -3,8 +3,8 @@ script: |
   zed lake init -q
   zed lake create -p logs -q -S 32B
   zed lake load -p logs -q -
-  zed lake query -p logs -z "*" > 1.zson
-  zed lake query -p logs -z "*" > 2.zson
+  zed lake query -z "from logs | *" > 1.zson
+  zed lake query -z "from logs | *" > 2.zson
 
 inputs:
   - name: stdin
