@@ -12,7 +12,7 @@ data stores.
 Avro but with Zed's more general model for hetereogeneous and self-describing schemas.
 * [ZST](zst.md) is a columnar version of ZNG like Parquet or ORC but also
 embodies Zed's more general model for hetereogeneous and self-describing schemas.
-* [ZNG over JSON](zng-over-json.md) defines a JSON format for encapsulating Zed data
+* [Zed over JSON](zjson.md) defines a JSON format for encapsulating Zed data
 in JSON for easy transmission and decoding to JSON-based clients as is
 implemented by the
 [zealot javascript library](https://github.com/brimdata/brim/tree/master/zealot)

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -644,7 +645,7 @@ func (a Analyzer) convertTypeEnum(zctx *Context, enum *zed.TypeEnum) (*zng.TypeE
 	}
 	var typ zng.Type
 	elements := make([]zng.Element, 0, n)
-	b := NewBuilder()
+	b := zcode.NewBuilder()
 	for _, f := range enum.Elements {
 		b.Reset()
 		v, err := a.convertValue(zctx, f.Value, typ)
@@ -659,7 +660,7 @@ func (a Analyzer) convertTypeEnum(zctx *Context, enum *zed.TypeEnum) (*zng.TypeE
 		} else {
 			v.SetType(typ)
 		}
-		zv, err := b.Build(v)
+		zv, err := Build(b, v)
 		if err != nil {
 			return nil, err
 		}

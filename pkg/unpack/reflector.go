@@ -13,7 +13,7 @@ var zero reflect.Value
 type Reflector map[string]map[string]reflect.Type
 
 func New(templates ...interface{}) Reflector {
-	r := Reflector(make(map[string]map[string]reflect.Type))
+	r := make(Reflector)
 	for _, t := range templates {
 		r.Add(t)
 	}
@@ -28,6 +28,12 @@ func (r Reflector) mixIn(other Reflector) Reflector {
 }
 
 func (r Reflector) Add(template interface{}) Reflector {
+	return r.AddAs(template, "")
+}
+
+// AddAs is like Add but as overrides any name stored under the "unpack" key in
+// template's field tags.
+func (r Reflector) AddAs(template interface{}, as string) Reflector {
 	if another, ok := template.(Reflector); ok {
 		return r.mixIn(another)
 	}
@@ -35,6 +41,9 @@ func (r Reflector) Add(template interface{}) Reflector {
 	unpackKey, unpackVal, skip, err := structToUnpackRule(typ)
 	if err != nil {
 		panic(err)
+	}
+	if as != "" {
+		unpackVal = as
 	}
 	if unpackKey == "" {
 		panic(fmt.Sprintf("unpack tag not found for Go type %q", typ.String()))

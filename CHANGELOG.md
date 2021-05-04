@@ -153,7 +153,7 @@ questions.
 * zql: Point links for developer docs at [pkg.go.dev](https://pkg.go.dev/) instead of [godoc.org](https://godoc.org/) (#1401)
 * zq: Add support for timestamps with signed timezone offsets (#1389)
 * zq: Add a [JSON type definition](zeek/README.md) for alert events in [Suricata EVE logs](https://suricata.readthedocs.io/en/suricata-5.0.2/output/eve/eve-json-output.html) (#1400)
-* zq: Update the [ZNG over JSON (ZJSON)](docs/formats/zng-over-json.md) spec and implementation (#1299)
+* zq: Update the [ZNG over JSON (ZJSON)](docs/formats/zjson.md) spec and implementation (#1299)
 * zar: Use buffered streaming for archive import (#1397)
 * zq: Add an `ast` command that prints parsed ZQL as its underlying JSON object (#1416)
 * zar: Fix an issue where `zar` would SEGV when attempting to query a non-existent index (#1449)

@@ -66,7 +66,7 @@ type UnmarshalContext struct {
 	*UnmarshalZNGContext
 	zctx     *Context
 	analyzer Analyzer
-	builder  *Builder
+	builder  *zcode.Builder
 }
 
 func NewUnmarshaler() *UnmarshalContext {
@@ -74,7 +74,7 @@ func NewUnmarshaler() *UnmarshalContext {
 		UnmarshalZNGContext: NewZNGUnmarshaler(),
 		zctx:                NewContext(),
 		analyzer:            NewAnalyzer(),
-		builder:             NewBuilder(),
+		builder:             zcode.NewBuilder(),
 	}
 }
 
@@ -95,7 +95,7 @@ func (u *UnmarshalContext) Unmarshal(zson string, v interface{}) error {
 	if err != nil {
 		return err
 	}
-	zv, err := u.builder.Build(val)
+	zv, err := Build(u.builder, val)
 	if err != nil {
 		return nil
 	}

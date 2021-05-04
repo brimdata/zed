@@ -14,4 +14,4 @@ inputs:
 outputs:
   - name: out.json
     regexp: |
-      .*"type":"TaskStart","task_id":0.*"of":\[\{"name":"a","type":"string"\}.*"values":\["hello",\["world".*
+      .*"type":"TaskStart","task_id":0.*"type":\{"kind":"record","fields":\[\{"name":"a".*"values":\["hello",\["world".*
