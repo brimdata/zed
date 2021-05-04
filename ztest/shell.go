@@ -14,7 +14,9 @@ func RunShell(dir *Dir, bindir, script string, stdin io.Reader, useenvs []string
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd.exe", "/c", script)
 	} else {
-		cmd = exec.Command("bash", "-c", script)
+		// "-e -o pipefile" ensures a test will fail if any command
+		// fails unexpectedly.
+		cmd = exec.Command("bash", "-e", "-o", "pipefail", "-c", script)
 	}
 
 	for _, env := range useenvs {
