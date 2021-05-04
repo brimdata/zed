@@ -17,11 +17,12 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-// FileAdaptor implement proc.DataAdaptor
 type FileAdaptor struct {
 	ctx  context.Context
 	zctx *zson.Context
 }
+
+var _ proc.DataAdaptor = (*FileAdaptor)(nil)
 
 func NewFileAdaptor(ctx context.Context, zctx *zson.Context) *FileAdaptor {
 	return &FileAdaptor{

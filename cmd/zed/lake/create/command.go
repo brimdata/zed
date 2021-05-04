@@ -14,7 +14,7 @@ import (
 
 var Create = &charm.Spec{
 	Name:  "create",
-	Usage: "create [-orderby key:[asc|desc]] -p name",
+	Usage: "create [-orderby key[,key...][:asc|:desc]] -p name",
 	Short: "create a new data pool",
 	Long: `
 "zed create" ...
@@ -36,7 +36,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{lake: parent.(*zedlake.Command)}
 	c.thresh = segment.DefaultThreshold
 	f.Var(&c.thresh, "S", "target size of pool data objects, as '10MB' or '4GiB', etc.")
-	f.StringVar(&c.layout, "orderby", "ts:desc", "one or more pool keys to organize data in pool (cannot be changed)")
+	f.StringVar(&c.layout, "orderby", "ts:desc", "comma-separated pool keys with optional :asc or :desc suffix to organize data in pool (cannot be changed)")
 	return c, nil
 }
 

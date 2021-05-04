@@ -131,8 +131,7 @@ func (r *Runtime) Statser() zbuf.Statser {
 
 // This must be called before the zbuf.Filter interface will work.
 func (r *Runtime) Optimize() error {
-	r.optimizer.OptimizeScan()
-	return nil
+	return r.optimizer.OptimizeScan()
 }
 
 func (r *Runtime) Parallelize(n int) error {
