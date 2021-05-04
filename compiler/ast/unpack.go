@@ -21,6 +21,7 @@ var unpacker = unpack.New(
 	Cut{},
 	zed.DefValue{},
 	Drop{},
+	Explode{},
 	zed.Enum{},
 	FieldCutter{},
 	File{},

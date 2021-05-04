@@ -32,6 +32,12 @@ type (
 		Kind string `json:"kind" unpack:""`
 		Args []Expr `json:"args"`
 	}
+	Explode struct {
+		Kind string   `json:"kind" unpack:""`
+		Args []Expr   `json:"args"`
+		Type zed.Type `json:"type"`
+		As   Expr     `json:"as"`
+	}
 	Filter struct {
 		Kind string `json:"kind" unpack:""`
 		Expr Expr   `json:"expr"`
@@ -208,30 +214,29 @@ type (
 	}
 )
 
-func (*Sequential) OpNode()   {}
-func (*Parallel) OpNode()     {}
-func (*Switch) OpNode()       {}
-func (*Sort) OpNode()         {}
-func (*Cut) OpNode()          {}
-func (*Pick) OpNode()         {}
-func (*Drop) OpNode()         {}
-func (*Head) OpNode()         {}
-func (*Tail) OpNode()         {}
-func (*Pass) OpNode()         {}
-func (*Filter) OpNode()       {}
-func (*Uniq) OpNode()         {}
-func (*Summarize) OpNode()    {}
-func (*Top) OpNode()          {}
-func (*Put) OpNode()          {}
-func (*Rename) OpNode()       {}
-func (*Fuse) OpNode()         {}
-func (*Join) OpNode()         {}
-func (*Const) OpNode()        {}
-func (*TypeProc) OpNode()     {}
-func (*Shape) OpNode()        {}
-func (*FieldCutter) OpNode()  {}
-func (*TypeSplitter) OpNode() {}
-func (*Merge) OpNode()        {}
+func (*Sequential) OpNode() {}
+func (*Parallel) OpNode()   {}
+func (*Switch) OpNode()     {}
+func (*Sort) OpNode()       {}
+func (*Cut) OpNode()        {}
+func (*Pick) OpNode()       {}
+func (*Drop) OpNode()       {}
+func (*Head) OpNode()       {}
+func (*Tail) OpNode()       {}
+func (*Pass) OpNode()       {}
+func (*Filter) OpNode()     {}
+func (*Uniq) OpNode()       {}
+func (*Summarize) OpNode()  {}
+func (*Top) OpNode()        {}
+func (*Put) OpNode()        {}
+func (*Rename) OpNode()     {}
+func (*Fuse) OpNode()       {}
+func (*Join) OpNode()       {}
+func (*Const) OpNode()      {}
+func (*TypeProc) OpNode()   {}
+func (*Shape) OpNode()      {}
+func (*Explode) OpNode()    {}
+func (*Merge) OpNode()      {}
 
 func (seq *Sequential) IsEntry() bool {
 	if len(seq.Ops) == 0 {
@@ -272,20 +277,6 @@ func FilterToOp(e Expr) *Filter {
 
 func (p *Path) String() string {
 	return field.Path(p.Name).String()
-}
-
-// === THESE SHOULD BE RENAMED AND MADE PART OF THE LANGUAGE ===
-
-type FieldCutter struct {
-	Kind  string     `json:"kind" unpack:""`
-	Field field.Path `json:"field"`
-	Out   field.Path `json:"out"`
-}
-
-type TypeSplitter struct {
-	Kind     string     `json:"kind" unpack:""`
-	Key      field.Path `json:"key"`
-	TypeName string     `json:"type_name"`
 }
 
 // === THESE WILL BE DEPRECATED ===

@@ -374,6 +374,12 @@ type (
 		Range     *Range `json:"range"`
 		ScanOrder string `json:"scan_order"` // asc, desc, or unknown
 	}
+	Explode struct {
+		Kind string   `json:"kind" unpack:""`
+		Args []Expr   `json:"args"`
+		Type zed.Type `json:"type"`
+		As   Expr     `json:"as"`
+	}
 )
 
 type Range struct {
@@ -460,6 +466,7 @@ func (*TypeProc) ProcAST()   {}
 func (*Call) ProcAST()       {}
 func (*Shape) ProcAST()      {}
 func (*From) ProcAST()       {}
+func (*Explode) ProcAST()    {}
 
 func (*SQLExpr) ProcAST() {}
 

@@ -49,7 +49,7 @@ func TestWriterError(t *testing.T) {
 	require.NoError(t, zio.Copy(w, arr2.NewReader()))
 
 	err = w.Close()
-	assert.EqualError(t, err, "type of id field changed from string to int64")
+	assert.EqualError(t, err, `key type changed from "{key:int64}" to "{key:string}"`)
 
 	// if an on close, the writer should have removed the index
 	assert.NoFileExists(t, w.URI.Filepath())

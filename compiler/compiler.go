@@ -171,11 +171,6 @@ func (r *Runtime) Builder() *kernel.Builder {
 }
 
 func (r *Runtime) Build() error {
-	return r.BuildCustom(nil)
-}
-
-func (r *Runtime) BuildCustom(custom kernel.Hook) error {
-	r.builder.Custom = custom //XXX
 	outputs, err := r.builder.Build(r.optimizer.Entry())
 	if err != nil {
 		return err

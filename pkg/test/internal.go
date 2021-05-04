@@ -60,7 +60,7 @@ func (i *Internal) Run() (string, error) {
 		return "", err
 	}
 	d := driver.NewCLI(output)
-	if err := driver.RunWithReader(context.Background(), d, program, zctx, reader, driver.Config{}); err != nil {
+	if err := driver.RunWithReader(context.Background(), d, program, zctx, reader, nil); err != nil {
 		return "", err
 	}
 	return string(output.Bytes()), nil

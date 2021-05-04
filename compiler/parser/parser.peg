@@ -386,6 +386,7 @@ Operator
   / SQLProc
   / FromProc
   / PassProc
+  / ExplodeProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
@@ -618,6 +619,20 @@ PassProc
   = "pass"i {
       RETURN(MAP("kind":"Pass"))
     }
+
+// Currently we support only "explode by type" but this will be generalized
+// to explode arbitrary arrays, records, etc.
+ExplodeProc
+  = "explode"i _ args:Exprs typ:TypeArg as:AsArg {
+      RETURN(MAP("kind":"Explode", "args": args, "as": as, "type": typ))
+    }
+
+TypeArg
+  = _ BY _ typ:Type { RETURN(typ)}
+
+AsArg
+  = _ AS _ lhs:Lval { RETURN(lhs) }
+  / "" { RETURN(NULL)}
 
 /// === Expressions ===
 

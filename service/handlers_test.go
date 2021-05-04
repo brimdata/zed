@@ -555,7 +555,7 @@ func zsonCopy(t *testing.T, prog string, in string) string {
 	var buf bytes.Buffer
 	w := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
 	p := compiler.MustParseProc(prog)
-	err := driver.Copy(context.Background(), w, p, zctx, r, driver.Config{})
+	err := driver.Copy(context.Background(), w, p, zctx, r, nil)
 	require.NoError(t, err)
 	return buf.String()
 }
