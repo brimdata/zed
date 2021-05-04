@@ -126,7 +126,7 @@ func (r *Runtime) Entry() dag.Op {
 }
 
 func (r *Runtime) Statser() zbuf.Statser {
-	return newStatser(r.builder.Schedulers())
+	return &statser{r.builder.Schedulers()}
 }
 
 // This must be called before the zbuf.Filter interface will work.
@@ -184,7 +184,7 @@ func (r *Runtime) BuildCustom(custom kernel.Hook) error {
 	return nil
 }
 
-func (r *Runtime) AsPuller() zbuf.Puller {
+func (r *Runtime) Puller() zbuf.Puller {
 	outputs := r.Outputs()
 	switch len(outputs) {
 	case 0:
@@ -202,10 +202,6 @@ func CompileAssignments(dsts []field.Static, srcs []field.Static) ([]field.Stati
 
 type statser struct {
 	schedulers []proc.Scheduler
-}
-
-func newStatser(schedulers []proc.Scheduler) *statser {
-	return &statser{schedulers}
 }
 
 func (s *statser) Stats() zbuf.ScannerStats {

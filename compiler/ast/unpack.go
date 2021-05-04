@@ -126,7 +126,7 @@ func UnpackMapAsExpr(m interface{}) (Expr, error) {
 }
 
 func Copy(in Proc) Proc {
-	b, err := json.MarshalIndent(in, "", "   ")
+	b, err := json.Marshal(in)
 	if err != nil {
 		panic(err)
 	}

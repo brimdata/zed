@@ -35,7 +35,7 @@ func (f *FileAdaptor) Lookup(_ context.Context, _ string) (ksuid.KSUID, error) {
 	return ksuid.Nil, nil
 }
 
-func (f *FileAdaptor) LayoutOf(_ context.Context, _ ksuid.KSUID) (order.Layout, error) {
+func (f *FileAdaptor) Layout(_ context.Context, _ ksuid.KSUID) (order.Layout, error) {
 	return order.Nil, errors.New("pool scan not available when running on local file system")
 }
 

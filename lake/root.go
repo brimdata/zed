@@ -195,7 +195,7 @@ func (r *Root) Lookup(ctx context.Context, nameOrID string) (ksuid.KSUID, error)
 	return id, nil
 }
 
-func (r *Root) LayoutOf(ctx context.Context, id ksuid.KSUID) (order.Layout, error) {
+func (r *Root) Layout(ctx context.Context, id ksuid.KSUID) (order.Layout, error) {
 	p := r.LookupPool(ctx, id)
 	if p == nil {
 		return order.Nil, fmt.Errorf("no such pool ID: %s", id)

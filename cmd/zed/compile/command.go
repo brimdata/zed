@@ -234,7 +234,7 @@ func (c *Command) compile(z string) (*compiler.Runtime, error) {
 	if err != nil {
 		return nil, err
 	}
-	return compiler.New(proc.InitContext(), p, mock.NewLake())
+	return compiler.New(proc.DefaultContext(), p, mock.NewLake())
 }
 
 func keys(s string) []ast.Expr {

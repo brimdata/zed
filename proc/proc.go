@@ -31,7 +31,7 @@ type Interface interface {
 
 type DataAdaptor interface {
 	Lookup(context.Context, string) (ksuid.KSUID, error)
-	LayoutOf(context.Context, ksuid.KSUID) (order.Layout, error)
+	Layout(context.Context, ksuid.KSUID) (order.Layout, error)
 	NewScheduler(context.Context, *zson.Context, *dag.Pool, zbuf.Filter) (Scheduler, error)
 	Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error)
 	Get(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error)
@@ -53,10 +53,10 @@ type Result struct {
 // in which they are running.
 type Context struct {
 	context.Context
-	cancel   context.CancelFunc
 	Logger   *zap.Logger
 	Warnings chan string
 	Zctx     *zson.Context
+	cancel   context.CancelFunc
 }
 
 func NewContext(ctx context.Context, zctx *zson.Context, logger *zap.Logger) *Context {
@@ -73,7 +73,7 @@ func NewContext(ctx context.Context, zctx *zson.Context, logger *zap.Logger) *Co
 	}
 }
 
-func InitContext() *Context {
+func DefaultContext() *Context {
 	return NewContext(context.Background(), zson.NewContext(), nil)
 }
 
@@ -94,13 +94,3 @@ type done struct {
 }
 
 func (*done) Done() {}
-
-func ScannerProc(s zbuf.Scanner) *scanner {
-	return &scanner{s}
-}
-
-type scanner struct {
-	zbuf.Scanner
-}
-
-func (*scanner) Done() {}

@@ -12,12 +12,12 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-var _ zbuf.Filter = (*Filter)(nil)
-
 type Filter struct {
 	builder  *Builder
 	pushdown dag.Expr
 }
+
+var _ zbuf.Filter = (*Filter)(nil)
 
 func (f *Filter) AsFilter() (expr.Filter, error) {
 	if f == nil {

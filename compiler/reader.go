@@ -75,7 +75,7 @@ func (f *internalAdaptor) Lookup(_ context.Context, _ string) (ksuid.KSUID, erro
 	return ksuid.Nil, nil
 }
 
-func (*internalAdaptor) LayoutOf(_ context.Context, _ ksuid.KSUID) (order.Layout, error) {
+func (*internalAdaptor) Layout(_ context.Context, _ ksuid.KSUID) (order.Layout, error) {
 	return order.Nil, errors.New("invalid pool scan specified for internally streamed Zed query")
 }
 

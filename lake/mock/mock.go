@@ -70,7 +70,7 @@ func (l *Lake) Lookup(_ context.Context, name string) (ksuid.KSUID, error) {
 	return pool.id, nil
 }
 
-func (l *Lake) LayoutOf(_ context.Context, id ksuid.KSUID) (order.Layout, error) {
+func (l *Lake) Layout(_ context.Context, id ksuid.KSUID) (order.Layout, error) {
 	for _, pool := range l.pools {
 		if pool.id == id {
 			return pool.layout, nil

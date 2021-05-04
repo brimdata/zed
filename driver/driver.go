@@ -103,7 +103,7 @@ func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *
 }
 
 func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-chan time.Time) error {
-	puller := runtime.AsPuller()
+	puller := runtime.Puller()
 	if puller == nil {
 		pctx.Cancel()
 		return errors.New("internal error: driver called with unprepared runtime")

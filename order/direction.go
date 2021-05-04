@@ -12,9 +12,9 @@ import (
 type Direction int
 
 const (
-	Down    = -1
-	Up      = 1
-	Unknown = 0
+	Down    Direction = -1
+	Up      Direction = 1
+	Unknown Direction = 0
 )
 
 func ParseDirection(s string) (Direction, error) {

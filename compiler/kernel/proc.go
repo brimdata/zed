@@ -59,8 +59,9 @@ type Reader struct {
 	Layout order.Layout
 }
 
-// Reader implements dag.Source
 func (*Reader) Source() {}
+
+var _ dag.Source = (*Reader)(nil)
 
 type Hook func(dag.Op, *proc.Context, proc.Interface) (proc.Interface, error)
 
@@ -91,9 +92,9 @@ func (b *Builder) CompileFilter(e dag.Expr) (expr.Filter, error) {
 	return CompileFilter(b.pctx.Zctx, b.scope, e)
 }
 
-func (b *Builder) compileLeaf(node dag.Op, parent proc.Interface) (proc.Interface, error) {
+func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface, error) {
 	if b.Custom != nil {
-		p, err := b.Custom(node, b.pctx, parent)
+		p, err := b.Custom(op, b.pctx, parent)
 		if err != nil {
 			return nil, err
 		}
@@ -101,7 +102,7 @@ func (b *Builder) compileLeaf(node dag.Op, parent proc.Interface) (proc.Interfac
 			return p, err
 		}
 	}
-	switch v := node.(type) {
+	switch v := op.(type) {
 	case *dag.Summarize:
 		return compileGroupBy(b.pctx, b.scope, parent, v)
 	case *dag.Cut:
@@ -270,9 +271,9 @@ func splitAssignments(assignments []expr.Assignment) ([]field.Static, []expr.Eva
 }
 
 func (b *Builder) compileSequential(seq *dag.Sequential, parents []proc.Interface) ([]proc.Interface, error) {
-	for _, node := range seq.Ops {
+	for _, op := range seq.Ops {
 		var err error
-		parents, err = b.compile(node, parents)
+		parents, err = b.compile(op, parents)
 		if err != nil {
 			return nil, err
 		}
@@ -336,7 +337,7 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []proc.Interface) ([]
 
 // compile compiles a DAG into a graph of runtime operators, and returns
 // the leaves.  A custom compiler hook can be included and it will be tried first
-// for each node encountered during the compilation.
+// for each op encountered during the compilation.
 func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface, error) {
 	switch op := op.(type) {
 	case *dag.Sequential:
