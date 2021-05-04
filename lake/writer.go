@@ -96,7 +96,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 	w.memBuffered += int64(len(rec.Bytes))
 	//XXX change name LogSizeThreshold
 	// XXX the previous logic estimated the segment size with divide by 2...?!
-	if w.memBuffered >= w.pool.Treshold {
+	if w.memBuffered >= w.pool.Threshold {
 		w.flipBuffers()
 	}
 	return nil
