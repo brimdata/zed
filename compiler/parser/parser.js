@@ -6991,7 +6991,7 @@ function peg$parse(input, options) {
     }
     if (s0 === peg$FAILED) {
       s0 = peg$currPos;
-      s1 = peg$parseThis();
+      s1 = peg$parseRootRecord();
       if (s1 !== peg$FAILED) {
         s2 = [];
         s3 = peg$parseDeref();
@@ -7054,7 +7054,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseThis() {
+  function peg$parseRootRecord() {
     var s0, s1;
 
     s0 = peg$currPos;
