@@ -31,7 +31,8 @@ func (r Reflector) Add(template interface{}) Reflector {
 	return r.AddAs(template, "")
 }
 
-// Override the unpack value tag with the as argument.
+// AddAs is like Add but as overrides any name stored under the "unpack" key in
+// template's field tags.
 func (r Reflector) AddAs(template interface{}, as string) Reflector {
 	if another, ok := template.(Reflector); ok {
 		return r.mixIn(another)

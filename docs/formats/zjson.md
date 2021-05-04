@@ -267,12 +267,12 @@ The primitive values comprising an arbitrarily complex Zed data value are encode
 as a JSON array of strings mixed with nested JSON arrays whose structure
 conforms to the nested structure of the value's schema as follows:
 * each record, array, and set is encoded as a JSON array of its composite values,
-* a union is encoded as a string of the form `<selector:<value>>` where `selector`
+* a union is encoded as a string of the form `<selector>:<value>>` where `selector`
 is an integer string representing the positional index in the union's list of
 types that specifies the type of `<value>`, which is a JSON string or array
 as described recursively herein,
-* a map is encoded as a list of keys of values where each the key and the value
-alternate in sequence as elements of an array that are recursively encoded,
+a map is encoded as a JSON array of two-element arrays of the form
+`[ <key>, <value> ]` where `key` and `value` are recursively encoded,
 * a type value is encoded as:
     * its primitive type name for primitive types, or
     * its typedef name as defined in a present or previous types array  in
