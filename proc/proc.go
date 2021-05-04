@@ -38,7 +38,7 @@ type DataAdaptor interface {
 }
 
 type Scheduler interface {
-	Pull() (zbuf.PullerCloser, error)
+	PullScanTask() (zbuf.PullerCloser, error)
 	Stats() zbuf.ScannerStats
 }
 

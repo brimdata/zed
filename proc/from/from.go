@@ -35,7 +35,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 				p.close(nil)
 				return nil, nil
 			}
-			puller, err := p.sched.Pull()
+			puller, err := p.sched.PullScanTask()
 			if puller == nil || err != nil {
 				p.close(err)
 				return nil, err

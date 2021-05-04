@@ -46,7 +46,7 @@ func (s *Scheduler) AddStats(stats zbuf.ScannerStats) {
 	s.stats.Add(stats)
 }
 
-func (s *Scheduler) Pull() (zbuf.PullerCloser, error) {
+func (s *Scheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	s.once.Do(func() {
 		go s.run()
 	})
@@ -69,10 +69,10 @@ func (s *Scheduler) run() {
 	close(s.done)
 }
 
-// PullPartition returns the next span in the schedule.  This is useful for a
+// PullScanWork returns the next span in the schedule.  This is useful for a
 // worker proc that pulls spans from teh scheduler, sends them to a remote
 // worker, and streams the results into the runtime DAG.
-func (s *Scheduler) PullPartition() (Partition, error) {
+func (s *Scheduler) PullScanWork() (Partition, error) {
 	s.once.Do(func() {
 		go s.run()
 	})
