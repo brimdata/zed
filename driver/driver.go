@@ -16,6 +16,7 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/proc/mux"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
@@ -143,12 +144,9 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 			if err := d.Stats(api.ScannerStats(statser.Stats())); err != nil {
 				return err
 			}
-		case batch := <-pullerCh:
-			if batch == nil {
+		case p := <-pullerCh:
+			if p == nil {
 				err := <-done
-				if endErr := d.ChannelEnd(0); err == nil {
-					err = endErr
-				}
 				if err == nil && statser != nil {
 					err = d.Stats(api.ScannerStats(statser.Stats()))
 				}
@@ -166,10 +164,15 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 				}
 				return err
 			}
-			// We will get rid of channel ID... client SearchReults
-			// protocol currently uses it.  See issue #2652.
-			if err := d.Write(0, batch); err != nil {
-				return err
+			batch, cid := extractLabel(p)
+			if batch == nil {
+				if err := d.ChannelEnd(cid); err != nil {
+					return err
+				}
+			} else {
+				if err := d.Write(cid, batch); err != nil {
+					return err
+				}
 			}
 		case warning := <-pctx.Warnings:
 			if err := d.Warn(warning); err != nil {
@@ -177,6 +180,15 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 			}
 		}
 	}
+}
+
+func extractLabel(p zbuf.Batch) (zbuf.Batch, int) {
+	var label int
+	if labeled, ok := p.(*mux.Batch); ok {
+		label = labeled.Label
+		p = labeled.Batch
+	}
+	return p, label
 }
 
 func safePull(puller zbuf.Puller) (b zbuf.Batch, err error) {

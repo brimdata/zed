@@ -13,7 +13,7 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/proc"
-	"github.com/brimdata/zed/proc/combine"
+	"github.com/brimdata/zed/proc/mux"
 	"github.com/brimdata/zed/zbuf"
 )
 
@@ -193,7 +193,7 @@ func (r *Runtime) AsPuller() zbuf.Puller {
 	case 1:
 		return outputs[0]
 	default:
-		return combine.New(r.pctx, outputs)
+		return mux.New(r.pctx, outputs)
 	}
 }
 
