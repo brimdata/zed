@@ -72,7 +72,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Order)
+	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Layout.Order)
 	if err != nil {
 		return err
 	}

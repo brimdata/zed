@@ -10,10 +10,13 @@ import (
 	"sync"
 	"time"
 
-	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zqe"
@@ -34,6 +37,8 @@ type Root struct {
 	configMu sync.Mutex
 	Config
 }
+
+var _ proc.DataAdaptor = (*Root)(nil)
 
 type Config struct {
 	Version int           `zng:"version"`
@@ -181,6 +186,25 @@ func (r *Root) lookupPoolByName(_ context.Context, name string) *PoolConfig {
 	return nil
 }
 
+func (r *Root) Lookup(ctx context.Context, nameOrID string) (ksuid.KSUID, error) {
+	if pool := r.LookupPoolByName(ctx, nameOrID); pool != nil {
+		return pool.ID, nil
+	}
+	id, err := ksuid.Parse(nameOrID)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return id, nil
+}
+
+func (r *Root) Layout(ctx context.Context, id ksuid.KSUID) (order.Layout, error) {
+	p := r.LookupPool(ctx, id)
+	if p == nil {
+		return order.Nil, fmt.Errorf("no such pool ID: %s", id)
+	}
+	return p.Layout, nil
+}
+
 func (r *Root) OpenPool(ctx context.Context, id ksuid.KSUID) (*Pool, error) {
 	poolRef := r.LookupPool(ctx, id)
 	if poolRef == nil {
@@ -204,7 +228,7 @@ func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newname string) e
 	return fmt.Errorf("%s: %w", id, ErrPoolNotFound)
 }
 
-func (r *Root) CreatePool(ctx context.Context, name string, keys []field.Static, order zbuf.Order, thresh int64) (*Pool, error) {
+func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64) (*Pool, error) {
 	r.configMu.Lock()
 	defer r.configMu.Unlock()
 	// Pool creation can be a race so it's possible that two different
@@ -220,7 +244,7 @@ func (r *Root) CreatePool(ctx context.Context, name string, keys []field.Static,
 	if thresh == 0 {
 		thresh = segment.DefaultThreshold
 	}
-	poolRef := NewPoolConfig(name, ksuid.New(), keys, order, thresh)
+	poolRef := NewPoolConfig(name, ksuid.New(), layout, thresh)
 	if err := poolRef.Create(ctx, r.path); err != nil {
 		return nil, err
 	}
@@ -327,4 +351,34 @@ func (r *Root) ScanIndex(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) e
 		}
 	}
 	return nil
+}
+
+func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, p *dag.Pool, filter zbuf.Filter) (proc.Scheduler, error) {
+	pool, err := r.OpenPool(ctx, p.ID)
+	if err != nil {
+		return nil, err
+	}
+	var snap *commit.Snapshot
+	if p.At != ksuid.Nil {
+		id, err := pool.Log().JournalIDOfCommit(ctx, 0, p.At)
+		if err != nil {
+			return nil, err
+		}
+		snap, err = pool.log.Snapshot(ctx, id)
+	} else {
+		snap, err = pool.log.Head(ctx)
+	}
+	if err != nil {
+		return nil, err
+	}
+	span := p.Span //XXX
+	return NewSortedScheduler(ctx, zctx, pool, snap, span, filter), nil
+}
+
+func (r *Root) Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
+	return nil, errors.New("cannot use 'file' source in a lake query")
+}
+
+func (r *Root) Get(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
+	return nil, errors.New("'http' data source in a lake query is currently not supported")
 }

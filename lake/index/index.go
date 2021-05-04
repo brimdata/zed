@@ -115,8 +115,9 @@ func (i Index) Proc() (ast.Proc, error) {
 var keyName = field.New("key")
 
 var keyAst = ast.Assignment{
-	LHS: ast.NewDotExpr(keyName),
-	RHS: ast.NewDotExpr(keyName),
+	Kind: "Assignment",
+	LHS:  ast.NewDotExpr(keyName),
+	RHS:  ast.NewDotExpr(keyName),
 }
 var countAst = ast.NewAggAssignment("count", nil, nil)
 
@@ -127,6 +128,7 @@ func (i Index) typeProc() (ast.Proc, error) {
 		Kind: "Sequential",
 		Procs: []ast.Proc{
 			&ast.TypeSplitter{
+				Kind:     "TypeSplitter",
 				Key:      keyName,
 				TypeName: i.Value,
 			},
@@ -148,6 +150,7 @@ func (i Index) fieldProc() (ast.Proc, error) {
 		Kind: "Sequential",
 		Procs: []ast.Proc{
 			&ast.FieldCutter{
+				Kind:  "FieldCutter",
 				Field: field.Dotted(i.Value),
 				Out:   keyName,
 			},

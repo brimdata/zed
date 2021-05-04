@@ -6,15 +6,15 @@ import (
 	"fmt"
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/units"
 )
 
 var Create = &charm.Spec{
 	Name:  "create",
-	Usage: "create [-k pool-key] [-order asc|desc] -p name",
+	Usage: "create [-orderby key[,key...][:asc|:desc]] -p name",
 	Short: "create a new data pool",
 	Long: `
 "zed create" ...
@@ -28,8 +28,7 @@ func init() {
 
 type Command struct {
 	lake   *zedlake.Command
-	keys   string
-	order  string
+	layout string
 	thresh units.Bytes
 }
 
@@ -37,8 +36,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{lake: parent.(*zedlake.Command)}
 	c.thresh = segment.DefaultThreshold
 	f.Var(&c.thresh, "S", "target size of pool data objects, as '10MB' or '4GiB', etc.")
-	f.StringVar(&c.keys, "k", "ts", "one or more pool keys to organize data in pool (cannot be changed)")
-	f.StringVar(&c.order, "order", "desc", "sort order of newly created pool (cannot be changed)")
+	f.StringVar(&c.layout, "orderby", "ts:desc", "comma-separated pool keys with optional :asc or :desc suffix to organize data in pool (cannot be changed)")
 	return c, nil
 }
 
@@ -55,12 +53,11 @@ func (c *Command) Run(args []string) error {
 	if name == "" {
 		return errors.New("zed lake create pool: -p required")
 	}
-	order, err := zedlake.ParseOrder(c.order)
+	layout, err := order.ParseLayout(c.layout)
 	if err != nil {
 		return err
 	}
-	keys := field.DottedList(c.keys)
-	if _, err := c.lake.Flags.CreatePool(ctx, keys, order, int64(c.thresh)); err != nil {
+	if _, err := c.lake.Flags.CreatePool(ctx, layout, int64(c.thresh)); err != nil {
 		return err
 	}
 	if !c.lake.Flags.Quiet {

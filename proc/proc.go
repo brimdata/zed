@@ -3,8 +3,11 @@ package proc
 import (
 	"context"
 
+	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
+	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 )
 
@@ -26,6 +29,19 @@ type Interface interface {
 	Done()
 }
 
+type DataAdaptor interface {
+	Lookup(context.Context, string) (ksuid.KSUID, error)
+	Layout(context.Context, ksuid.KSUID) (order.Layout, error)
+	NewScheduler(context.Context, *zson.Context, *dag.Pool, zbuf.Filter) (Scheduler, error)
+	Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error)
+	Get(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error)
+}
+
+type Scheduler interface {
+	PullScanTask() (zbuf.PullerCloser, error)
+	Stats() zbuf.ScannerStats
+}
+
 // Result is a convenient way to bundle the result of Proc.Pull() to
 // send over channels.
 type Result struct {
@@ -40,6 +56,29 @@ type Context struct {
 	Logger   *zap.Logger
 	Warnings chan string
 	Zctx     *zson.Context
+	cancel   context.CancelFunc
+}
+
+func NewContext(ctx context.Context, zctx *zson.Context, logger *zap.Logger) *Context {
+	ctx, cancel := context.WithCancel(ctx)
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+	return &Context{
+		Context:  ctx,
+		cancel:   cancel,
+		Logger:   logger,
+		Warnings: make(chan string, 5),
+		Zctx:     zctx,
+	}
+}
+
+func DefaultContext() *Context {
+	return NewContext(context.Background(), zson.NewContext(), nil)
+}
+
+func (c *Context) Cancel() {
+	c.cancel()
 }
 
 func EOS(batch zbuf.Batch, err error) bool {

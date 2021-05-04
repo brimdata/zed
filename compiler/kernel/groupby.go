@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/groupby"
 	"github.com/brimdata/zed/zson"
@@ -21,7 +22,8 @@ func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, sum
 	if err != nil {
 		return nil, err
 	}
-	return groupby.New(pctx, parent, keys, names, reducers, summarize.Limit, summarize.InputSortDir, summarize.PartialsIn, summarize.PartialsOut)
+	dir := order.Direction(summarize.InputSortDir)
+	return groupby.New(pctx, parent, keys, names, reducers, summarize.Limit, dir, summarize.PartialsIn, summarize.PartialsOut)
 }
 
 func compileAggs(assignments []dag.Assignment, scope *Scope, zctx *zson.Context) ([]field.Static, []*expr.Aggregator, error) {

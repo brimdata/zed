@@ -6,8 +6,8 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
@@ -52,8 +52,8 @@ const (
 // key values in the records read from the reader.  If the op argument is eql
 // then only exact matches are returned.  Otherwise, the record with the
 // largest key smaller (or larger) than the key argument is returned.
-func lookup(reader zio.Reader, compare expr.KeyCompareFn, order zbuf.Order, op operator) (*zng.Record, error) {
-	if order == zbuf.OrderAsc {
+func lookup(reader zio.Reader, compare expr.KeyCompareFn, o order.Which, op operator) (*zng.Record, error) {
+	if o == order.Asc {
 		return lookupAsc(reader, compare, op)
 	}
 	return lookupDesc(reader, compare, op)
@@ -128,7 +128,7 @@ func (f *Finder) search(compare expr.KeyCompareFn) (zio.Reader, error) {
 			return nil, err
 		}
 		op := lte
-		if f.trailer.Order == zbuf.OrderDesc {
+		if f.trailer.Order == order.Desc {
 			op = gte
 		}
 		rec, err := lookup(reader, compare, f.trailer.Order, op)

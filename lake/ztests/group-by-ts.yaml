@@ -7,15 +7,15 @@ script: |
   # causes parition to have several chunk files.
   zed lake load -q -p logs group-by-ts.zson
   echo ===
-  zed lake query -p logs -z 'head 1'
+  zed lake query -z 'from logs | head 1'
   echo ===
-  zed lake query -p logs -z 'tail 1'
+  zed lake query -z 'from logs | tail 1'
   echo ===
-  zed lake query -p logs -z 'avg(g)'
+  zed lake query -z 'from logs | avg(g)'
   echo ===
-  zed lake query -p logs -z 'count() by g | sort g'
+  zed lake query -z 'from logs | count() by g | sort g'
   echo ===
-  zed lake query -p logs -z 'every 3600s count() by g | sort ts, g'
+  zed lake query -z 'from logs | every 3600s count() by g | sort ts, g'
 
 inputs:
   - name: group-by-ts.zson

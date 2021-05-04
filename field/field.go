@@ -56,13 +56,8 @@ func (f Static) HasPrefix(prefix Static) bool {
 	return len(f) >= len(prefix) && prefix.Equal(f[:len(prefix)])
 }
 
-func (f Static) In(set []Static) bool {
-	for _, item := range set {
-		if f.Equal(item) {
-			return true
-		}
-	}
-	return false
+func (f Static) In(list List) bool {
+	return list.Has(f)
 }
 
 func (f Static) HasPrefixIn(set []Static) bool {
@@ -78,18 +73,41 @@ func Dotted(s string) Static {
 	return strings.Split(s, ".")
 }
 
-func DottedList(s string) []Static {
-	var fields []Static
+func DottedList(s string) List {
+	var fields List
 	for _, name := range strings.Split(s, ",") {
 		fields = append(fields, Dotted(name))
 	}
 	return fields
 }
 
-func List(fields []Static) string {
-	names := make([]string, 0, len(fields))
-	for _, f := range fields {
+type List []Static
+
+func (l List) String() string {
+	names := make([]string, 0, len(l))
+	for _, f := range l {
 		names = append(names, f.String())
 	}
 	return strings.Join(names, ",")
+}
+
+func (l List) Has(in Static) bool {
+	for _, f := range l {
+		if f.Equal(in) {
+			return true
+		}
+	}
+	return false
+}
+
+func (l List) Equal(to List) bool {
+	if len(l) != len(to) {
+		return false
+	}
+	for k, f := range l {
+		if !f.Equal(to[k]) {
+			return false
+		}
+	}
+	return true
 }

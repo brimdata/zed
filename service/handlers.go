@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/journal"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/service/jsonpipe"
@@ -113,7 +114,7 @@ func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(r.Context(), pool, out, 0); err != nil {
+	if err := srch.Run(r.Context(), c.root, pool, out, 0); err != nil {
 		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
 	}
 }
@@ -199,7 +200,8 @@ func handlePoolPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	if !request(c, w, r, &req) {
 		return
 	}
-	pool, err := c.root.CreatePool(r.Context(), req.Name, req.Keys, req.Order, req.Thresh)
+	layout := order.NewLayout(req.Order, req.Keys)
+	pool, err := c.root.CreatePool(r.Context(), req.Name, layout, req.Thresh)
 	if err != nil {
 		if errors.Is(err, lake.ErrPoolExists) {
 			err = zqe.ErrConflict(err)

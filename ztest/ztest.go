@@ -624,7 +624,7 @@ func runzq(path, zed string, outputFlags []string, inputs ...string) (string, st
 	}
 	d := driver.NewCLI(zw)
 	d.SetWarningsWriter(&errbuf)
-	err = driver.Run(ctx, d, proc, zctx, rc, driver.Config{})
+	err = driver.RunWithReader(ctx, d, proc, zctx, rc, driver.Config{})
 	if err2 := zw.Close(); err == nil {
 		err = err2
 	}

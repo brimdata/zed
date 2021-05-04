@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 )
@@ -71,24 +72,24 @@ func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merge
 	return m
 }
 
-func MergeReadersByTsAsReader(ctx context.Context, readers []zio.Reader, order Order) (zio.Reader, error) {
+func MergeReadersByTsAsReader(ctx context.Context, readers []zio.Reader, o order.Which) (zio.Reader, error) {
 	if len(readers) == 1 {
 		return readers[0], nil
 	}
-	return MergeReadersByTs(ctx, readers, order)
+	return MergeReadersByTs(ctx, readers, o)
 }
 
-func MergeReadersByTs(ctx context.Context, readers []zio.Reader, order Order) (*Merger, error) {
+func MergeReadersByTs(ctx context.Context, readers []zio.Reader, o order.Which) (*Merger, error) {
 	pullers, err := ReadersToPullers(ctx, readers)
 	if err != nil {
 		return nil, err
 	}
-	return MergeByTs(ctx, pullers, order), nil
+	return MergeByTs(ctx, pullers, o), nil
 }
 
-func MergeByTs(ctx context.Context, pullers []Puller, order Order) *Merger {
+func MergeByTs(ctx context.Context, pullers []Puller, o order.Which) *Merger {
 	cmp := func(a, b *zng.Record) int {
-		if order == OrderDesc {
+		if o == order.Desc {
 			a, b = b, a
 		}
 		aTs, bTs := a.Ts(), b.Ts()

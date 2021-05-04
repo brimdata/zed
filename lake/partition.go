@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
 )
 
 // A Partition is a logical view of the records within a time span, stored
@@ -47,7 +47,7 @@ func (p Partition) FormatRange() string {
 // XXX this algorithm doesn't quite do what we want because it continues
 // to merge *anything* that overlaps.  It's easy to fix though.
 // Issue #2538
-func PartitionSegments(segments []*segment.Reference, order zbuf.Order) []Partition {
+func PartitionSegments(segments []*segment.Reference, o order.Which) []Partition {
 	if len(segments) == 0 {
 		return nil
 	}
@@ -55,7 +55,7 @@ func PartitionSegments(segments []*segment.Reference, order zbuf.Order) []Partit
 	s.pushSegment(segments[0])
 	for _, seg := range segments[1:] {
 		tos := s.tos()
-		if order == zbuf.OrderAsc {
+		if o == order.Asc {
 			if tos.Last < seg.First {
 				s.pushSegment(seg)
 			} else {

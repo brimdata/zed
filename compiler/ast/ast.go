@@ -5,6 +5,7 @@ package ast
 import (
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 )
 
 // This module is derived from the GO AST design pattern in
@@ -345,7 +346,61 @@ type (
 	Shape struct {
 		Kind string `json:"kind" unpack:""`
 	}
+	From struct {
+		Kind   string  `json:"kind" unpack:""`
+		Trunks []Trunk `json:"trunks"`
+	}
 )
+
+// Source structure
+
+type (
+	File struct {
+		Kind   string  `json:"kind" unpack:""`
+		Path   string  `json:"path"`
+		Format string  `json:"format"`
+		Layout *Layout `json:"layout"`
+	}
+	HTTP struct {
+		Kind   string  `json:"kind" unpack:""`
+		URL    string  `json:"url"`
+		Format string  `json:"format"`
+		Layout *Layout `json:"layout"`
+	}
+	Pool struct {
+		Kind      string `json:"kind" unpack:""`
+		Name      string `json:"name"`
+		At        string `json:"at"`
+		Range     *Range `json:"range"`
+		ScanOrder string `json:"scan_order"` // asc, desc, or unknown
+	}
+)
+
+type Range struct {
+	Kind  string        `json:"kind" unpack:""`
+	Lower zed.Primitive `json:"lower"`
+	Upper zed.Primitive `json:"upper"`
+}
+
+type Source interface {
+	Source()
+}
+
+func (*Pool) Source() {}
+func (*File) Source() {}
+func (*HTTP) Source() {}
+
+type Layout struct {
+	Kind  string `json:"kind" unpack:""`
+	Keys  []Expr `json:"keys"`
+	Order string `json:"order"`
+}
+
+type Trunk struct {
+	Kind   string      `json:"kind" unpack:""`
+	Source Source      `json:"source"`
+	Seq    *Sequential `json:"seq"`
+}
 
 type Method struct {
 	Name string `json:"name"`
@@ -404,8 +459,13 @@ func (*Const) ProcAST()      {}
 func (*TypeProc) ProcAST()   {}
 func (*Call) ProcAST()       {}
 func (*Shape) ProcAST()      {}
+func (*From) ProcAST()       {}
 
 func (*SQLExpr) ProcAST() {}
+
+func (seq *Sequential) Prepend(front Proc) {
+	seq.Procs = append([]Proc{front}, seq.Procs...)
+}
 
 // An Agg is an AST node that represents a aggregate function.  The Name
 // field indicates the aggregation method while the Expr field indicates
@@ -437,6 +497,17 @@ func NewDotExpr(f field.Static) Expr {
 	return lhs
 }
 
+func NewLayout(layout order.Layout) *Layout {
+	var keys []Expr
+	for _, key := range layout.Keys {
+		keys = append(keys, NewDotExpr(key))
+	}
+	return &Layout{
+		Keys:  keys,
+		Order: layout.Order.String(),
+	}
+}
+
 func NewAggAssignment(kind string, lval field.Static, arg field.Static) Assignment {
 	agg := &Agg{Kind: "Agg", Name: kind}
 	if arg != nil {
@@ -451,16 +522,6 @@ func NewAggAssignment(kind string, lval field.Static, arg field.Static) Assignme
 		LHS:  NewDotExpr(lhs),
 		RHS:  agg,
 	}
-}
-
-func FanIn(p Proc) int {
-	switch p := p.(type) {
-	case *Sequential:
-		return FanIn(p.Procs[0])
-	case *Join:
-		return 2
-	}
-	return 1
 }
 
 func FilterToProc(e Expr) *Filter {

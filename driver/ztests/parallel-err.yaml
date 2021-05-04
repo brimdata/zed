@@ -11,4 +11,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      number of input sources must match number of parallel inputs in zql query
+      join operaetor requires two inputs

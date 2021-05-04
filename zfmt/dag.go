@@ -1,8 +1,11 @@
 package zfmt
 
 import (
+	"fmt"
+
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/zed/compiler/kernel"
 )
 
 func DAG(op dag.Op) string {
@@ -169,6 +172,9 @@ func (c *canonDAG) next() {
 func (c *canonDAG) op(p dag.Op) {
 	switch p := p.(type) {
 	case *dag.Sequential:
+		if p == nil {
+			return
+		}
 		for _, p := range p.Ops {
 			c.op(p)
 		}
@@ -192,7 +198,9 @@ func (c *canonDAG) op(p dag.Op) {
 		c.write("merge ")
 		c.fieldpath(p.Key)
 		if p.Reverse {
-			c.write(" (reverse)")
+			c.write(":desc")
+		} else {
+			c.write(":asc")
 		}
 	case *dag.Const:
 		c.write("const %s=", p.Name)
@@ -307,10 +315,59 @@ func (c *canonDAG) op(p dag.Op) {
 		c.assignments(p.Args)
 		c.close()
 		c.close()
-
+	case *dag.From:
+		// XXX cleanup for single trunk
+		c.next()
+		c.open("from (")
+		for _, trunk := range p.Trunks {
+			c.ret()
+			if trunk.Pushdown != nil {
+				c.open("(pushdown ")
+				c.head = true
+				c.op(trunk.Pushdown)
+				c.write(")")
+				c.close()
+				c.ret()
+			}
+			c.write("%s", source(trunk.Source))
+			if trunk.Seq != nil && len(trunk.Seq.Ops) != 0 {
+				c.open()
+				c.head = true
+				c.write(" =>")
+				c.op(trunk.Seq)
+				c.close()
+			}
+			c.write(";")
+		}
+		c.ret()
+		c.close()
+		c.write(")")
 	default:
 		c.open("unknown proc: %T", p)
 		c.close()
+	}
+}
+
+func source(src dag.Source) string {
+	switch p := src.(type) {
+	case *dag.File:
+		s := fmt.Sprintf("file %s", p.Path)
+		if p.Format != "" {
+			s += fmt.Sprintf(" format %s", p.Format)
+		}
+		if !p.Layout.IsNil() {
+			s += fmt.Sprintf(" order %s", p.Layout)
+		}
+		return s
+	case *dag.HTTP:
+		return fmt.Sprintf("get %s", p.URL)
+	case *dag.Pool:
+		return fmt.Sprintf("%s", p.ID)
+		//XXX from, to, order
+	case *kernel.Reader:
+		return "(internal reader)"
+	default:
+		return fmt.Sprintf("unknown source %T", p)
 	}
 }
 

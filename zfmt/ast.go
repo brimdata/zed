@@ -201,6 +201,26 @@ func (c *canon) proc(p ast.Proc) {
 		if p.MergeReverse {
 			c.write(" rev")
 		}
+	case *ast.From:
+		//XXX cleanup for len(Trunks) = 1
+		c.next()
+		c.open("from (")
+		c.open()
+		for _, trunk := range p.Trunks {
+			c.ret()
+			c.source(trunk.Source)
+			c.write(" => ")
+			c.open()
+			c.head = true
+			c.proc(trunk.Seq)
+			c.write(";")
+			c.close()
+		}
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
+		c.close()
 	case *ast.Const:
 		c.write("const %s=", p.Name)
 		c.expr(p.Expr, false)
@@ -381,6 +401,34 @@ func (c *canon) proc(p ast.Proc) {
 	default:
 		c.open("unknown proc: %T", p)
 		c.close()
+	}
+}
+
+func (c *canon) pool(p *ast.Pool) {
+	//XXX TBD name, from, to, id etc
+	c.write("%s", p.Name)
+}
+
+func (c *canon) http(p *ast.HTTP) {
+	//XXX TBD other stuff
+	c.write("get %s", p.URL)
+}
+
+func (c *canon) file(p *ast.File) {
+	//XXX TBD other stuff
+	c.write("file %s", p.Path)
+}
+
+func (c *canon) source(src ast.Source) {
+	switch src := src.(type) {
+	case *ast.Pool:
+		c.pool(src)
+	case *ast.HTTP:
+		c.http(src)
+	case *ast.File:
+		c.file(src)
+	default:
+		c.write("unknown source type: %T", src)
 	}
 }
 

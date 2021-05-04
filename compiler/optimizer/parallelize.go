@@ -1,11 +1,11 @@
 package optimizer
 
 import (
-	"encoding/json"
-	"fmt"
+	"errors"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 )
 
 //XXX
@@ -16,348 +16,307 @@ func zbufDirInt(reversed bool) int {
 	return 1
 }
 
-func ensureSequentialProc(p dag.Op) *dag.Sequential {
-	if p, ok := p.(*dag.Sequential); ok {
-		return p
+func orderAsDirection(which order.Which) int {
+	if which == order.Asc {
+		return 1
 	}
-	return &dag.Sequential{
-		Kind: "Sequential",
-		Ops:  []dag.Op{p},
-	}
+	return -1
 }
 
-func countConsts(ops []dag.Op) int {
-	for k, p := range ops {
-		switch p.(type) {
-		case *dag.Const, *dag.TypeProc:
-			continue
-		default:
-			return k
-		}
-	}
-	return 0
-}
-
-// liftFilter removes the filter at the head of the flowgraph AST, if
-// one is present, and returns its ast.Expression and the modified
-// flowgraph AST. If the flowgraph does not start with a filter, it
-// returns nil and the unmodified flowgraph.
-func liftFilter(p dag.Op) (dag.Expr, dag.Op) {
-	if fp, ok := p.(*dag.Filter); ok {
-		return fp.Expr, dag.PassOp
-	}
-	seq, ok := p.(*dag.Sequential)
-	if ok && len(seq.Ops) > 0 {
-		nc := countConsts(seq.Ops)
-		if nc != 0 {
-			panic("internal error: consts should have been removed from AST")
-		}
-		if fp, ok := seq.Ops[0].(*dag.Filter); ok {
-			rest := dag.Op(dag.PassOp)
-			if len(seq.Ops) > 1 {
-				rest = &dag.Sequential{
-					Kind: "Sequential",
-					Ops:  seq.Ops[1:],
-				}
-			}
-			return fp.Expr, rest
-		}
-	}
-	return nil, p
-}
-
-// all fields should be turned into field paths by initial semantic pass
-
-func exprToField(e dag.Expr) field.Static {
-	f, ok := e.(*dag.Path)
+//XXX assume the trunk is from a from op at seq.Ops[0] and we will
+// possible insert an operator at seq.Op[1]
+func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, replicas int) error {
+	from, ok := seq.Ops[0].(*dag.From)
 	if !ok {
+		return errors.New("internal error: parallelizeTrunk: entry is not a From")
+	}
+	if len(from.Trunks) > 1 {
+		// No support for multi-trunk from's yet, which only arise for
+		// joins and other peculaliar mixins of different sources.
+		// We need to handle join parallelization differently, though
+		// the logic is not very far from what's here.
 		return nil
 	}
-	return f.Name
-}
-
-func eq(e dag.Expr, b field.Static) bool {
-	a := exprToField(e)
-	if a == nil {
-		return false
+	if len(from.Trunks) == 0 {
+		return errors.New("internal error: no trunks in dag.From")
 	}
-	return a.Equal(b)
-}
-
-// SetGroupByProcInputSortDir examines p under the assumption that its input is
-// sorted according to inputSortField and inputSortDir.  If p is an
-// ast.GroupByProc and SetGroupByProcInputSortDir can determine that its first
-// grouping key is inputSortField or an order-preserving function of
-// inputSortField, SetGroupByProcInputSortDir sets ast.GroupByProc.InputSortDir
-// to inputSortDir.  SetGroupByProcInputSortDir returns true if it determines
-// that p's output will remain sorted according to inputSortField and
-// inputSortDir; otherwise, it returns false.
-func SetGroupByProcInputSortDir(p dag.Op, inputSortField field.Static, inputSortDir int) bool {
-	switch p := p.(type) {
-	case *dag.Cut:
-		// Return true if the output record contains inputSortField.
-		for _, f := range p.Args {
-			if eq(f.RHS, inputSortField) {
-				return true
-			}
+	layout, err := o.layoutOfTrunk(trunk)
+	if err != nil {
+		return err
+	}
+	if len(layout.Keys) > 1 {
+		// XXX don't yet support multi-key ordering
+		return nil
+	}
+	// Check that the path consisting of the original from
+	// sequence and any lifted sequence is still parallelizable.
+	if trunk.Seq != nil && len(trunk.Seq.Ops) > 0 {
+		layout, err := o.layoutOfFrom(from)
+		if err != nil {
+			return err
 		}
-		return false
-	case *dag.Pick:
-		// Return true if the output record contains inputSortField.
-		for _, f := range p.Args {
-			if eq(f.RHS, inputSortField) {
-				return true
-			}
+		n, _, err := o.splittablePath(trunk.Seq.Ops, layout)
+		if err != nil {
+			return err
 		}
-		return false
-	case *dag.Drop:
-		// Return true if the output record contains inputSortField.
-		for _, e := range p.Args {
-			if eq(e, inputSortField) {
-				return false
-			}
+		if n != len(trunk.Seq.Ops) {
+			return nil
 		}
-		return true
+	}
+	if len(seq.Ops) < 2 {
+		// There are no operators past the trunk.  Just parallelize
+		// and merge the trunk here.
+		if err := insertMerge(seq, layout); err != nil {
+			return err
+		}
+		replicateTrunk(from, trunk, replicas)
+		return nil
+	}
+	switch ingress := seq.Ops[1].(type) {
+	case *dag.Join, *dag.Parallel, *dag.Sequential:
+		return nil
 	case *dag.Summarize:
-		// Set p.InputSortDir and return true if the first grouping key
-		// is inputSortField or an order-preserving function of it.
-		if len(p.Keys) > 0 && eq(p.Keys[0].LHS, inputSortField) {
-			rhs := exprToField(p.Keys[0].RHS)
-			if rhs != nil && rhs.Equal(inputSortField) {
-				p.InputSortDir = inputSortDir
-				return true
+		// To decompose the groupby, we split the flowgraph into branches that run up to and including a groupby,
+		// followed by a post-merge groupby that composes the results.
+		// Copy the aggregator into the tail of the trunk and arrange
+		// for partials to flow between them.
+		egress := copyOp(ingress).(*dag.Summarize)
+		egress.PartialsOut = true
+		ingress.PartialsIn = true
+		extend(trunk, egress)
+		seq.Ops[1] = ingress
+		//
+		// Add a merge-by if this a streaming every aggregator.
+		//
+		if ingress.Duration != nil {
+			// We insert a mergeby ts in front of the partialsIn aggregator.
+			// If the inbound layout doesn't match up here then the
+			// every operator won't work right so we flag
+			// a compilation error..., e.g., it's like saying
+			//   * | sort x | every 1h count() by _path
+			// Actually, this could work it just can't stream the
+			// every's as they finish.  We should work out this logic.
+			// Otherwise, the runtime builder will insert a simple combiner.
+			// Note: combiner has a nice flow-control feature in that it
+			// allows a fast upstream send to complete without HOL blocking
+			// while the slow guys continue on.  See Issue #2662.
+			if !layout.Primary().Equal(field.New("ts")) {
+				return errors.New("aggregation requiring 'every' semantics requires input sorted by 'ts'")
 			}
-			if call, ok := p.Keys[0].RHS.(*dag.Call); ok {
-				switch call.Name {
-				case "ceil", "floor", "round", "trunc":
-					if len(call.Args) == 0 {
-						return false
-					}
-					arg0 := exprToField(call.Args[0])
-					if arg0 != nil && arg0.Equal(inputSortField) {
-						p.InputSortDir = inputSortDir
-						return true
-					}
-				}
-			}
-		}
-		return false
-	case *dag.Put:
-		for _, c := range p.Args {
-			lhs := exprToField(c.LHS)
-			if lhs != nil && lhs.Equal(inputSortField) {
-				return false
-			}
-		}
-		return true
-	case *dag.Sequential:
-		for _, pp := range p.Ops {
-			if !SetGroupByProcInputSortDir(pp, inputSortField, inputSortDir) {
-				return false
+			if err := insertMerge(seq, layout); err != nil {
+				return err
 			}
 		}
-		return true
-	case *dag.Filter, *dag.Head, *dag.Pass, *dag.Uniq, *dag.Tail, *dag.Fuse, *dag.Const, *dag.TypeProc:
-		return true
+		replicateTrunk(from, trunk, replicas)
+		return nil
+	case *dag.Sort:
+		if len(ingress.Args) > 1 {
+			// Unknown or multiple sort fields: we sort after
+			// the merge, which can be unordered.
+			replicateTrunk(from, trunk, replicas)
+			return nil
+		}
+		// Single sort field: we can sort in each parallel branch,
+		// and then do an ordered merge.
+		var mergeKey field.Static
+		if len(ingress.Args) > 0 {
+			mergeKey = fieldOf(ingress.Args[0])
+			if mergeKey == nil {
+				// Sort key is an expression instead of a
+				// field.  Don't try to sort.
+				// XXX This would be parallelizable if we
+				// did on merge on the same expression.
+				return nil
+			}
+		}
+		if mergeKey == nil {
+			// No sort key.  We can parallelize the trunk
+			// but we don't lift the heuristic sort into the
+			// trunk since we don't know what to merge on since
+			// merge does not have the sort key heuristic.
+			// Also, we don't pass a merge order here since the
+			// ingress sort doesn't care.
+			return replicateAndMerge(seq, order.Nil, from, trunk, replicas)
+		}
+		// Lift sort into trunk for replication, delete the sort from
+		// the main sequence, then add back a merge to effect a merge sort.
+		extend(trunk, ingress)
+		seq.Delete(1, 1)
+		mergeOrder := order.Desc
+		if ingress.SortDir > 0 {
+			mergeOrder = order.Asc
+		}
+		sortOrder := order.NewLayout(mergeOrder, field.List{mergeKey})
+		return replicateAndMerge(seq, sortOrder, from, trunk, replicas)
+	case *dag.Head, *dag.Tail:
+		if layout.IsNil() {
+			// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
+			return nil
+		}
+		// Copy a head/tail into the trunk and leave the original in
+		// place which will apply another head/tail after the merge.
+		egress := copyOp(ingress)
+		extend(trunk, egress)
+		return replicateAndMerge(seq, layout, from, trunk, replicas)
+	case *dag.Cut, *dag.Pick, *dag.Drop, *dag.Put, *dag.Rename:
+		//XXX shouldn't these check for mergeKey = nil?
+		return replicateAndMerge(seq, layout, from, trunk, replicas)
 	default:
-		return false
+		// If we're here, we reached the end of the flowgraph without
+		// coming across a merge-forcing proc. If inputs are sorted,
+		// we can parallelize the entire chain and do an ordered
+		// merge. Otherwise, no parallelization.
+		if layout.IsNil() {
+			// Unknown order: we can't parallelize because
+			// we can't maintain this unknown order at the merge point,
+			// but we shouldn't care if the client doesn't care
+			// so this goes back to whether the scan order was
+			// specified in the source. See Issue #2661.
+			return nil
+		}
+		return replicateAndMerge(seq, layout, from, trunk, replicas)
+	}
+
+}
+
+func replicateAndMerge(seq *dag.Sequential, layout order.Layout, from *dag.From, trunk *dag.Trunk, replicas int) error {
+	if err := insertMerge(seq, layout); err != nil {
+		return err
+	}
+	replicateTrunk(from, trunk, replicas)
+	return nil
+}
+
+func insertMerge(seq *dag.Sequential, layout order.Layout) error {
+	// layout represents the order we need to preserve at exit from the
+	// parallel paths within the trunk.  It is nil if the order implied
+	// by the DAG is unknown, meaning we do not need to preserve it and
+	// thus do not need to insert a merge operator (resulting in the runtime
+	// building a more efficient combine operator).
+	if layout.IsNil() {
+		return nil
+	}
+	var reverse bool
+	if layout.Order == order.Desc {
+		reverse = true
+	}
+	// XXX Fix this to handle multi-key merge; change dag.Merge.Reverse.
+	// See Issue #2657.
+	head := []dag.Op{seq.Ops[0], &dag.Merge{
+		Kind:    "Merge",
+		Key:     layout.Primary(),
+		Reverse: reverse,
+	}}
+	seq.Ops = append(head, seq.Ops[1:]...)
+	return nil
+}
+
+func replicateTrunk(from *dag.From, trunk *dag.Trunk, replicas int) {
+	// We use the same source pointer across the replicas.  This is very
+	// important as the runtime uses pointer equivalence here to determine
+	// that multiple trunks are sharing the same scan so that scan concurrency
+	// will be correctly realized.
+	src := trunk.Source
+	seq := trunk.Seq
+	if seq != nil && len(seq.Ops) == 0 {
+		seq = nil
+	}
+	for k := 0; k < replicas; k++ {
+		var newSeq *dag.Sequential
+		if seq != nil {
+			newSeq = &dag.Sequential{
+				Kind: "Sequential",
+				Ops:  copyOps(seq.Ops),
+			}
+		}
+		replica := dag.Trunk{
+			Kind:   "Trunk",
+			Source: src,
+			Seq:    newSeq,
+		}
+		from.Trunks = append(from.Trunks, replica)
 	}
 }
 
-func copyOps(ops []dag.Op) []dag.Op {
-	var copies []dag.Op
-	for _, p := range ops {
-		copies = append(copies, copyOp(p))
-	}
-	return copies
-}
-
-func copyOp(p dag.Op) dag.Op {
-	if p == nil {
-		panic("copyOp nil")
-	}
-	b, err := json.Marshal(p)
+func (o *Optimizer) layoutOfFrom(from *dag.From) (order.Layout, error) {
+	layout, err := o.layoutOfTrunk(&from.Trunks[0])
 	if err != nil {
-		panic(err)
+		return order.Nil, err
 	}
-	copy, err := dag.UnpackJSONAsOp(b)
-	if err != nil {
-		panic(err)
-	}
-	return copy
-}
-
-func buildSplitFlowgraph(branch, tail []dag.Op, mergeField field.Static, reverse bool, N int) (*dag.Sequential, bool) {
-	if len(branch) == 0 {
-		return &dag.Sequential{
-			Kind: "Sequential",
-			Ops:  tail,
-		}, false
-	}
-	branches := make([]dag.Op, 0, N)
-	for i := 0; i < N; i++ {
-		branches = append(branches, &dag.Sequential{
-			Kind: "Sequential",
-			Ops:  copyOps(branch),
-		})
-	}
-	sequence := []dag.Op{
-		&dag.Parallel{
-			Kind: "Parallel",
-			Ops:  branches,
-		},
-	}
-	if mergeField != nil {
-		sequence = append(sequence,
-			&dag.Merge{
-				Kind:    "Merge",
-				Key:     mergeField,
-				Reverse: reverse,
-			})
-	}
-	return &dag.Sequential{
-		Kind: "Sequential",
-		Ops:  append(sequence, tail...),
-	}, true
-}
-
-func parallelize(p dag.Op, N int, inputSortField field.Static, inputSortReversed bool) (*dag.Sequential, bool) {
-	if p == nil {
-		panic("parallelize nil")
-	}
-
-	seq := ensureSequentialProc(p)
-	orderSensitiveTail := true
-loop:
-	for i := range seq.Ops {
-		switch seq.Ops[i].(type) {
-		case *dag.Sort, *dag.Summarize:
-			orderSensitiveTail = false
-			break loop
-		default:
-			continue
+	for k := range from.Trunks[1:] {
+		next, err := o.layoutOfTrunk(&from.Trunks[k])
+		if err != nil || !next.Equal(layout) {
+			return order.Nil, err
 		}
 	}
-	for i := range seq.Ops {
-		switch p := seq.Ops[i].(type) {
-		case *dag.Filter, *dag.Pass, *dag.Const, *dag.TypeProc:
-			// Stateless procs: continue until we reach one of the procs below at
-			// which point we'll either split the flowgraph or see we can't and return it as-is.
-			continue
-		case *dag.Cut, *dag.Pick:
-			if inputSortField == nil || !orderSensitiveTail {
-				continue
-			}
-			var fields []dag.Assignment
-			if cut, ok := p.(*dag.Cut); ok {
-				fields = cut.Args
-			} else {
-				fields = p.(*dag.Pick).Args
-			}
-			var found bool
-			for _, f := range fields {
-				fieldName := exprToField(f.RHS)
-				lhs := exprToField(f.LHS)
-				if fieldName != nil && !fieldName.Equal(inputSortField) && lhs.Equal(inputSortField) {
-					return buildSplitFlowgraph(seq.Ops[0:i], seq.Ops[i:], inputSortField, inputSortReversed, N)
-				}
-				if fieldName != nil && fieldName.Equal(inputSortField) && (lhs == nil || lhs.Equal(inputSortField)) {
-					found = true
-				}
-			}
-			if !found {
-				return buildSplitFlowgraph(seq.Ops[0:i], seq.Ops[i:], inputSortField, inputSortReversed, N)
-			}
-		case *dag.Drop:
-			if inputSortField == nil || !orderSensitiveTail {
-				continue
-			}
-			for _, e := range p.Args {
-				if eq(e, inputSortField) {
-					return buildSplitFlowgraph(seq.Ops[0:i], seq.Ops[i:], inputSortField, inputSortReversed, N)
-				}
-			}
-			continue
-		case *dag.Put:
-			if inputSortField == nil || !orderSensitiveTail {
-				continue
-			}
-			for _, c := range p.Args {
-				if eq(c.LHS, inputSortField) {
-					return buildSplitFlowgraph(seq.Ops[0:i], seq.Ops[i:], inputSortField, inputSortReversed, N)
-				}
-			}
-			continue
-		case *dag.Rename:
-			if inputSortField == nil || !orderSensitiveTail {
-				continue
-			}
-			for _, f := range p.Args {
-				if eq(f.LHS, inputSortField) {
-					return buildSplitFlowgraph(seq.Ops[0:i], seq.Ops[i:], inputSortField, inputSortReversed, N)
-				}
-			}
-		case *dag.Summarize:
-			// To decompose the groupby, we split the flowgraph into branches that run up to and including a groupby,
-			// followed by a post-merge groupby that composes the results.
-			var mergeField field.Static
-			if p.Duration != nil {
-				// Group by time requires a time-ordered merge, irrespective of any upstream ordering.
-				mergeField = field.New("ts")
-			}
-			branch := copyOps(seq.Ops[0 : i+1])
-			branch[len(branch)-1].(*dag.Summarize).PartialsOut = true
+	return layout, nil
+}
 
-			composerGroupBy := copyOps([]dag.Op{p})[0].(*dag.Summarize)
-			composerGroupBy.PartialsIn = true
-
-			return buildSplitFlowgraph(branch, append([]dag.Op{composerGroupBy}, seq.Ops[i+1:]...), mergeField, inputSortReversed, N)
-		case *dag.Sort:
-			dir := map[int]bool{-1: true, 1: false}[p.SortDir]
-			if len(p.Args) == 1 {
-				// Single sort field: we can sort in each parallel branch, and then do an ordered merge.
-				mergeField := exprToField(p.Args[0])
-				if mergeField == nil {
-					return seq, false
-				}
-				return buildSplitFlowgraph(seq.Ops[0:i+1], seq.Ops[i+1:], mergeField, dir, N)
-			} else {
-				// Unknown or multiple sort fields: we sort after the merge point, which can be unordered.
-				return buildSplitFlowgraph(seq.Ops[0:i], seq.Ops[i:], nil, dir, N)
-			}
-		case *dag.Parallel:
-			return seq, false
-		case *dag.Head, *dag.Tail:
-			if inputSortField == nil {
-				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
-				return seq, false
-			}
-			// put one head/tail on each parallel branch and one after the merge.
-			return buildSplitFlowgraph(seq.Ops[0:i+1], seq.Ops[i:], inputSortField, inputSortReversed, N)
-		case *dag.Uniq, *dag.Fuse:
-			if inputSortField == nil {
-				// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.
-				return seq, false
-			}
-			// Split all the upstream procs into parallel branches, then merge and continue with this and any remaining procs.
-			return buildSplitFlowgraph(seq.Ops[0:i], seq.Ops[i:], inputSortField, inputSortReversed, N)
-		case *dag.Sequential:
-			return seq, false
-			// XXX Joins can be parallelized but we need to write
-			// the code to parallelize the flow graph, which is a bit
-			// different from how group-bys are parallelized.
-		case *dag.Join:
-			return seq, false
-		default:
-			panic(fmt.Sprintf("proc type not handled: %T", p))
+func (o *Optimizer) layoutOfTrunk(trunk *dag.Trunk) (order.Layout, error) {
+	layout, err := o.layoutOfSource(trunk.Source, order.Nil)
+	if err != nil {
+		return order.Nil, err
+	}
+	if trunk.Seq == nil {
+		return layout, nil
+	}
+	if trunk.Pushdown != nil {
+		layout, err = o.analyzeOp(trunk.Pushdown, layout)
+		if err != nil {
+			return order.Nil, err
 		}
 	}
-	// If we're here, we reached the end of the flowgraph without
-	// coming across a merge-forcing proc. If inputs are sorted,
-	// we can parallelize the entire chain and do an ordered
-	// merge. Otherwise, no parallelization.
-	if inputSortField == nil {
-		return seq, false
+	return o.analyzeOp(trunk.Seq, layout)
+}
+
+// splittablePath returns the largest path within ops from front to end that is splittable.
+// The length of the splittablePath path is returned and the stream order at
+// exit from that path is returned.  If orderAgnostic is true, then the
+// splittable path is allowed to include operators that do not guarantee
+// a stream order.  The property of the returned path is that it may be
+// executed in parallel with some way to merge of the the parallel results
+// as determined by mergePaths().
+// The layout parameter defines the desired layout of the path on exit from
+// that path unless:
+// (1) there is a sort in path, in which case the order becomes the sorted order,
+// (2) there is a summarize by every, in which case we assume the order of the
+//     every must be preserved into the summarize if it is defined in the
+//     initial layout order (and in this case the inputSortDir on the summmarize
+//     op is set accordingly and we rely on this being done prior),
+// (3) there is a summarize (not by every), in which case the input order does
+//     not matter and a pool scan need not be ordered.
+func (o *Optimizer) splittablePath(ops []dag.Op, layout order.Layout) (int, order.Layout, error) {
+	requireOrder := false
+	if !layout.IsNil() {
+		// If the input stream is ordered, then we attempt to preserve
+		// the order unless we don't have to because an operator changes it.
+		// Note we could be smarter here by taking into account what is
+		// in the upstream trunk, but for now, we keep it simple.  Later
+		// we will back propagate the output order desired (e.g., by noting
+		// when the user requests a sort at the output stage) and use
+		// this information to inform the scan decision (i.e., doing a more
+		// efficient unordered scan when the scan order isn't necessary).
+		// See issue #2661.
+		requireOrder = orderSensitive(ops)
 	}
-	return buildSplitFlowgraph(seq.Ops, nil, inputSortField, inputSortReversed, N)
+	for k := range ops {
+		switch op := ops[k].(type) {
+		// This should be a boolean in op.go that defines whether
+		// function can be parallelized... need to think through
+		// what the meaning is here exactly.  This is all still a bit
+		// of a heuristic.  See #2660 and #2661.
+		case *dag.Summarize, *dag.Sort, *dag.Parallel, *dag.Head, *dag.Tail, *dag.Uniq, *dag.Fuse, *dag.Sequential, *dag.Join:
+			return k, layout, nil
+		default:
+			next, err := o.analyzeOp(op, layout)
+			if err != nil {
+				return 0, order.Nil, err
+			}
+			if requireOrder && next.IsNil() {
+				return k, layout, nil
+			}
+			layout = next
+		}
+	}
+	return len(ops), layout, nil
 }

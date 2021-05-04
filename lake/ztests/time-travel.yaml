@@ -4,17 +4,17 @@ script: |
   zed lake create -q -p POOL
   a=$(zed lake load -p POOL a.zson | head -1 | awk '{print $1}')
   b=$(zed lake load -p POOL b.zson | head -1 | awk '{print $1}')
-  zed lake query -p POOL -z "sort ."
+  zed lake query -z "from POOL | sort ."
   echo === AT a
-  zed lake query -p POOL -at $a -z "sort ."
+  zed lake query -z "from POOL at $a | sort ."
   echo === AT b
-  zed lake query -p POOL -at $b -z "sort ."
+  zed lake query -z "from POOL at $b | sort ."
   id=$(zed lake delete -p POOL $a | head -1 | awk '{print $1}')
   zed lake commit -p POOL -q $id
   echo === with A deleted
-  zed lake query -p POOL -z "sort ."
+  zed lake query -z "from POOL | sort ."
   echo === at B before A deleted
-  zed lake query -p POOL -at $b -z "sort ."
+  zed lake query -z "from POOL at $b | sort ."
 
 inputs:
   - name: a.zson

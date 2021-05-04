@@ -17,9 +17,10 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/lake/mock"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zfmt"
-	"github.com/brimdata/zed/zson"
 	"github.com/peterh/liner"
 )
 
@@ -54,12 +55,10 @@ type Command struct {
 	pigeon   bool
 	proc     bool
 	canon    bool
-	filter   bool
 	semantic bool
 	optimize bool
 	parallel int
-	sortKey  string
-	sortRev  bool
+	layout   string
 	n        int
 	includes includes
 }
@@ -72,10 +71,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.proc, "proc", false, "run pigeon version of peg parser and marshal into ast.Proc")
 	f.BoolVar(&c.semantic, "s", false, "display semantically analyzed AST (implies -proc)")
 	f.BoolVar(&c.optimize, "O", false, "display optimized, non-filter AST (implies -proc)")
-	f.BoolVar(&c.filter, "f", false, "display AST of lifted filter (implies -proc)")
 	f.IntVar(&c.parallel, "P", 0, "display parallelized AST (implies -proc)")
-	f.StringVar(&c.sortKey, "sortKey", "", "input field for expected sorted data")
-	f.BoolVar(&c.sortRev, "sortRev", false, "true if input is expected in reverse order")
 	f.BoolVar(&c.canon, "C", false, "display AST in Z canonical format (implies -proc)")
 	f.Var(&c.includes, "I", "source file containing Z query text (may be repeated)")
 	return c, nil
@@ -115,9 +111,6 @@ func (c *Command) Run(args []string) error {
 		c.n++
 	}
 	if c.optimize {
-		c.n++
-	}
-	if c.filter {
 		c.n++
 	}
 	if c.parallel > 0 {
@@ -190,17 +183,6 @@ func (c *Command) parse(z string) error {
 		c.header("semantic")
 		c.writeOp(runtime.Entry())
 	}
-	if c.filter {
-		runtime, err := c.compile(z)
-		if err != nil {
-			return err
-		}
-		if err := runtime.Optimize(); err != nil {
-			return err
-		}
-		c.header("lifted filter")
-		c.writeOp(runtime.AsOp())
-	}
 	if c.optimize {
 		runtime, err := c.compile(z)
 		if err != nil {
@@ -220,8 +202,8 @@ func (c *Command) parse(z string) error {
 		if err := runtime.Optimize(); err != nil {
 			return err
 		}
-		if ok := runtime.Parallelize(c.parallel); !ok {
-			return errors.New("parallellize failed")
+		if err := runtime.Parallelize(c.parallel); err != nil {
+			return err
 		}
 		c.header("parallelized")
 		c.writeOp(runtime.Entry())
@@ -248,15 +230,19 @@ func (c *Command) writeOp(op dag.Op) {
 }
 
 func (c *Command) compile(z string) (*compiler.Runtime, error) {
-	proc, err := compiler.ParseProc(z)
+	p, err := compiler.ParseProc(z)
 	if err != nil {
 		return nil, err
 	}
-	if c.sortKey == "" {
-		return compiler.New(zson.NewContext(), proc)
+	return compiler.New(proc.DefaultContext(), p, mock.NewLake())
+}
+
+func keys(s string) []ast.Expr {
+	var exprs []ast.Expr
+	for _, f := range field.DottedList(s) {
+		exprs = append(exprs, ast.NewDotExpr(f))
 	}
-	sortKey := field.Dotted(c.sortKey)
-	return compiler.NewWithSortedInput(zson.NewContext(), proc, sortKey, c.sortRev)
+	return exprs
 }
 
 const nodeProblem = `

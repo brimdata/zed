@@ -6,7 +6,6 @@ import (
 	"flag"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/root"
@@ -14,7 +13,6 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
 )
@@ -62,16 +60,6 @@ func ParseKeys(s string) ([]field.Static, bool) {
 		return nil, false
 	}
 	return field.DottedList(s), true
-}
-
-func ParseOrder(s string) (zbuf.Order, error) {
-	switch strings.ToLower(s) {
-	case "desc":
-		return zbuf.OrderDesc, nil
-	case "asc":
-		return zbuf.OrderAsc, nil
-	}
-	return zbuf.OrderDesc, fmt.Errorf("unknown order parameter: %q", s)
 }
 
 func ParseID(s string) (ksuid.KSUID, error) {

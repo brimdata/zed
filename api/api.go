@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/segmentio/ksuid"
 )
@@ -100,10 +100,11 @@ type VersionResponse struct {
 	Version string `json:"version"`
 }
 
+// XXX This should use order.Layout.  See #2654.
 type PoolPostRequest struct {
 	Name   string         `json:"name"`
 	Keys   []field.Static `json:"keys"`
-	Order  zbuf.Order     `json:"order"`
+	Order  order.Which    `json:"order"`
 	Thresh int64          `json:"thresh"`
 }
 

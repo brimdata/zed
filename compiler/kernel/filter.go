@@ -6,10 +6,32 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
+
+type Filter struct {
+	builder  *Builder
+	pushdown dag.Expr
+}
+
+var _ zbuf.Filter = (*Filter)(nil)
+
+func (f *Filter) AsFilter() (expr.Filter, error) {
+	if f == nil {
+		return nil, nil
+	}
+	return f.builder.CompileFilter(f.pushdown)
+}
+
+func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
+	if f == nil {
+		return nil, nil
+	}
+	return CompileBufferFilter(f.pushdown)
+}
 
 func compileCompareField(zctx *zson.Context, scope *Scope, e *dag.BinaryExpr) (expr.Filter, error) {
 	if e.Op == "in" {

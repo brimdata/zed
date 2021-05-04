@@ -8,9 +8,9 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -62,11 +62,11 @@ type entry struct {
 
 type entries []entry
 
-func (e entries) Order() zbuf.Order {
+func (e entries) Order() order.Which {
 	if len(e) < 2 || e[0].ts < e[1].ts {
-		return zbuf.OrderAsc
+		return order.Asc
 	}
-	return zbuf.OrderDesc
+	return order.Desc
 }
 
 type testSeekIndex struct {

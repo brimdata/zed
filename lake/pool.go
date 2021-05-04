@@ -6,15 +6,14 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/commit/actions"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zqe"
@@ -30,12 +29,11 @@ const (
 )
 
 type PoolConfig struct {
-	Version   int            `zng:"version"`
-	Name      string         `zng:"name"`
-	ID        ksuid.KSUID    `zng:"id"`
-	Keys      []field.Static `zng:"keys"`
-	Order     zbuf.Order     `zng:"order"`
-	Threshold int64          `zng:"threshold"`
+	Version   int          `zng:"version"`
+	Name      string       `zng:"name"`
+	ID        ksuid.KSUID  `zng:"id"`
+	Layout    order.Layout `zng:"layout"`
+	Threshold int64        `zng:"threshold"`
 }
 
 type Pool struct {
@@ -47,7 +45,7 @@ type Pool struct {
 	log       *commit.Log
 }
 
-func NewPoolConfig(name string, id ksuid.KSUID, keys []field.Static, order zbuf.Order, thresh int64) *PoolConfig {
+func NewPoolConfig(name string, id ksuid.KSUID, layout order.Layout, thresh int64) *PoolConfig {
 	if thresh == 0 {
 		thresh = segment.DefaultThreshold
 	}
@@ -55,8 +53,7 @@ func NewPoolConfig(name string, id ksuid.KSUID, keys []field.Static, order zbuf.
 		Version:   0,
 		Name:      name,
 		ID:        id,
-		Keys:      keys,
-		Order:     order,
+		Layout:    layout,
 		Threshold: thresh,
 	}
 }
@@ -76,13 +73,13 @@ func (p *PoolConfig) Create(ctx context.Context, root iosrc.URI) error {
 	if err := iosrc.MkdirAll(StagePath(path), 0700); err != nil {
 		return err
 	}
-	_, err := commit.Create(ctx, LogPath(path), p.Order)
+	_, err := commit.Create(ctx, LogPath(path), p.Layout.Order)
 	return err
 }
 
 func (p *PoolConfig) Open(ctx context.Context, root iosrc.URI) (*Pool, error) {
 	path := p.Path(root)
-	log, err := commit.Open(ctx, path.AppendPath(LogTag), p.Order)
+	log, err := commit.Open(ctx, path.AppendPath(LogTag), p.Layout.Order)
 	if err != nil {
 		return nil, err
 	}
@@ -307,7 +304,7 @@ func (p *Pool) ScanPartitions(ctx context.Context, w zio.Writer, snap *commit.Sn
 	defer cancel()
 	var err error
 	go func() {
-		err = ScanPartitions(ctx, snap, span, p.Order, ch)
+		err = ScanPartitions(ctx, snap, span, p.Layout.Order, ch)
 		close(ch)
 	}()
 	m := zson.NewZNGMarshaler()

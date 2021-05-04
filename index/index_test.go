@@ -12,8 +12,8 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/index"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -122,7 +122,7 @@ func TestCompare(t *testing.T) {
 		})
 
 	}
-	desc := buildAndOpen(t, reader(records), index.Keys("ts"), index.Order(zbuf.OrderDesc))
+	desc := buildAndOpen(t, reader(records), index.Keys("ts"), index.Order(order.Desc))
 	t.Run("Descending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, desc, ">=", c.value, c.gte)
@@ -132,7 +132,7 @@ func TestCompare(t *testing.T) {
 	})
 	r, err := driver.NewReader(context.Background(), compiler.MustParseProc("sort ts"), zson.NewContext(), reader(records))
 	require.NoError(t, err)
-	asc := buildAndOpen(t, r, index.Keys("ts"), index.Order(zbuf.OrderAsc))
+	asc := buildAndOpen(t, r, index.Keys("ts"), index.Order(order.Asc))
 	t.Run("Ascending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, asc, ">=", c.value, c.gte)

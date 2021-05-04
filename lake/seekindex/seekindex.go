@@ -6,9 +6,9 @@ import (
 	"math"
 
 	"github.com/brimdata/zed/index"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -27,7 +27,7 @@ func Open(ctx context.Context, uri iosrc.URI) (*SeekIndex, error) {
 }
 
 func (s *SeekIndex) Lookup(ctx context.Context, span nano.Span) (rg Range, err error) {
-	if s.finder.Order() == zbuf.OrderDesc {
+	if s.finder.Order() == order.Desc {
 		rg, err = s.lookupDesc(ctx, span)
 	} else {
 		rg, err = s.lookupAsc(ctx, span)

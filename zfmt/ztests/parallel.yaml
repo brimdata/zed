@@ -1,10 +1,13 @@
 script: |
-  zed compile -s -C 'foo | split (=> count() by x=.["@foo"] => sum(x) => put a=b*c ) | cut cake | sort -r x'
+  zed compile -s -C 'file bar | foo | split (=> count() by x=.["@foo"] => sum(x) => put a=b*c ) | cut cake | sort -r x'
 
 outputs:
   - name: stdout
     data: |
-      filter match("foo")
+      from (
+        file bar;
+      )
+      | filter match("foo")
       | split (
         =>
           summarize

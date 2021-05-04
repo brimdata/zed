@@ -14,6 +14,8 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/proc/groupby"
@@ -346,9 +348,8 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 				}
 			},
 		}
-		err = driver.Run(context.Background(), d, proc, zctx, cr, driver.Config{
-			ReaderSortKey: inputSortKey,
-		})
+		layout := order.NewLayout(order.Asc, field.List{field.New(inputSortKey)})
+		err = driver.RunWithOrderedReader(context.Background(), d, proc, zctx, cr, layout, nil)
 		require.NoError(t, err)
 		outData := strings.Split(outbuf.String(), "\n")
 		sort.Strings(outData)

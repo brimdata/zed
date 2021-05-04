@@ -2,6 +2,8 @@ package zbuf
 
 import (
 	"context"
+	"fmt"
+	"io"
 	"sync/atomic"
 
 	"github.com/brimdata/zed/expr"
@@ -23,13 +25,18 @@ type ScannerAble interface {
 
 // A Statser produces scanner statistics.
 type Statser interface {
-	Stats() *ScannerStats
+	Stats() ScannerStats
 }
 
 // A Scanner is a Batch source that also provides statistics.
 type Scanner interface {
 	Statser
 	Puller
+}
+
+type ScannerCloser interface {
+	Scanner
+	io.Closer
 }
 
 // ScannerStats holds Scanner statistics. It should be identical to
@@ -41,12 +48,21 @@ type ScannerStats struct {
 	RecordsMatched int64
 }
 
-// Accumulate updates its receiver by adding to it the values in ss.
-func (s *ScannerStats) Accumulate(ss *ScannerStats) {
-	s.BytesRead += ss.BytesRead
-	s.BytesMatched += ss.BytesMatched
-	s.RecordsRead += ss.RecordsRead
-	s.RecordsMatched += ss.RecordsMatched
+// Add updates its receiver by adding to it the values in ss.
+func (s *ScannerStats) Add(in ScannerStats) {
+	atomic.AddInt64(&s.BytesRead, in.BytesRead)
+	atomic.AddInt64(&s.BytesMatched, in.BytesMatched)
+	atomic.AddInt64(&s.RecordsRead, in.RecordsRead)
+	atomic.AddInt64(&s.RecordsMatched, in.RecordsMatched)
+}
+
+func (s *ScannerStats) Copy() ScannerStats {
+	return ScannerStats{
+		BytesRead:      atomic.LoadInt64(&s.BytesRead),
+		BytesMatched:   atomic.LoadInt64(&s.BytesMatched),
+		RecordsRead:    atomic.LoadInt64(&s.RecordsRead),
+		RecordsMatched: atomic.LoadInt64(&s.RecordsMatched),
+	}
 }
 
 func ReadersToScanners(ctx context.Context, readers []zio.Reader) ([]Scanner, error) {
@@ -113,13 +129,8 @@ type scanner struct {
 	stats ScannerStats
 }
 
-func (s *scanner) Stats() *ScannerStats {
-	return &ScannerStats{
-		BytesRead:      atomic.LoadInt64(&s.stats.BytesRead),
-		BytesMatched:   atomic.LoadInt64(&s.stats.BytesMatched),
-		RecordsRead:    atomic.LoadInt64(&s.stats.RecordsRead),
-		RecordsMatched: atomic.LoadInt64(&s.stats.RecordsMatched),
-	}
+func (s *scanner) Stats() ScannerStats {
+	return s.stats.Copy()
 }
 
 // Read implements Reader.Read.
@@ -149,10 +160,42 @@ func (s *scanner) Read() (*zng.Record, error) {
 
 type MultiStats []Scanner
 
-func (m MultiStats) Stats() *ScannerStats {
+func (m MultiStats) Stats() ScannerStats {
 	var ss ScannerStats
 	for _, s := range m {
-		ss.Accumulate(s.Stats())
+		ss.Add(s.Stats())
 	}
-	return &ss
+	return ss
+}
+
+func NamedScanner(s Scanner, name string) *namedScanner {
+	return &namedScanner{
+		Scanner: s,
+		name:    name,
+	}
+}
+
+type namedScanner struct {
+	Scanner
+	name string
+}
+
+func (n *namedScanner) Pull() (Batch, error) {
+	b, err := n.Scanner.Pull()
+	if err != nil {
+		err = fmt.Errorf("%s: %w", n.name, err)
+	}
+	return b, err
+}
+
+func ScannerNopCloser(s Scanner) *nopCloser {
+	return &nopCloser{s}
+}
+
+type nopCloser struct {
+	Scanner
+}
+
+func (n *nopCloser) Close() error {
+	return nil
 }

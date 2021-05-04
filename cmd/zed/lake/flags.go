@@ -7,10 +7,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/iosrc"
-	"github.com/brimdata/zed/zbuf"
 )
 
 const RootEnv = "ZED_LAKE_ROOT"
@@ -67,7 +66,7 @@ func (f *Flags) OpenPool(ctx context.Context) (*lake.Pool, error) {
 	return lk.OpenPool(ctx, pool.ID)
 }
 
-func (f *Flags) CreatePool(ctx context.Context, keys []field.Static, order zbuf.Order, thresh int64) (*lake.Pool, error) {
+func (f *Flags) CreatePool(ctx context.Context, layout order.Layout, thresh int64) (*lake.Pool, error) {
 	if f.PoolName == "" {
 		return nil, errors.New("no pool name provided")
 	}
@@ -75,5 +74,5 @@ func (f *Flags) CreatePool(ctx context.Context, keys []field.Static, order zbuf.
 	if err != nil {
 		return nil, err
 	}
-	return lk.CreatePool(ctx, f.PoolName, keys, order, thresh)
+	return lk.CreatePool(ctx, f.PoolName, layout, thresh)
 }
