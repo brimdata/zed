@@ -70,7 +70,7 @@ func (s *Scheduler) run() {
 }
 
 // PullPartition returns the next span in the schedule.  This is useful for a
-// worker proc that pulls spans from teh scheddule, sends them to a remote
+// worker proc that pulls spans from teh scheduler, sends them to a remote
 // worker, and streams the results into the runtime DAG.
 func (s *Scheduler) PullPartition() (Partition, error) {
 	s.once.Do(func() {

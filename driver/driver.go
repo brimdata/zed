@@ -14,7 +14,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/mux"
 	"github.com/brimdata/zed/zbuf"
@@ -35,7 +34,6 @@ type Driver interface {
 type Config struct {
 	Custom    kernel.Hook
 	Logger    *zap.Logger
-	Span      nano.Span
 	StatsTick <-chan time.Time
 }
 

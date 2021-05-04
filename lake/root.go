@@ -211,14 +211,6 @@ func (r *Root) OpenPool(ctx context.Context, id ksuid.KSUID) (*Pool, error) {
 	return poolRef.Open(ctx, r.path)
 }
 
-func (r *Root) OpenPoolByID(ctx context.Context, id ksuid.KSUID) (*Pool, error) {
-	poolRef := r.LookupPool(ctx, id)
-	if poolRef == nil {
-		return nil, fmt.Errorf("%s: pool not found", id)
-	}
-	return poolRef.Open(ctx, r.path)
-}
-
 func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newname string) error {
 	r.configMu.Lock()
 	defer r.configMu.Unlock()
@@ -360,7 +352,7 @@ func (r *Root) ScanIndex(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) e
 }
 
 func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, p *dag.Pool, filter zbuf.Filter) (proc.Scheduler, error) {
-	pool, err := r.OpenPoolByID(ctx, p.ID)
+	pool, err := r.OpenPool(ctx, p.ID)
 	if err != nil {
 		return nil, err
 	}
