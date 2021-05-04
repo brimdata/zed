@@ -1,0 +1,7 @@
+zed: 'put this={yodawg:this,b:this=.}'
+
+input: |
+  {a:1}
+
+output: |
+  {yodawg:{a:1},b:true}

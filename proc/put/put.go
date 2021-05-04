@@ -216,7 +216,7 @@ func (p *Proc) deriveSteps(inType *zng.TypeRecord, vals []zng.Value) (step, zng.
 	if p.clauses[0].LHS.IsRoot() {
 		typ := vals[0].Type
 		if zng.TypeRecordOf(typ) == nil {
-			return step{}, nil, fmt.Errorf("put .=x: cannot put a non-record to .")
+			return step{}, nil, fmt.Errorf("put this=x: cannot put a non-record to this")
 		}
 		return step{op: root, index: 0}, typ, nil
 	}

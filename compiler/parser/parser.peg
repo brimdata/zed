@@ -654,12 +654,17 @@ DerefExpr
   = first:DotID rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
     }
+  / first:RootRecord rest:(Deref)* {
+      RETURN(makeBinaryExprChain(first, rest))
+    }
   / first:Identifier rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
     }
   / "." {
       RETURN(MAP("kind":"Root"))
     }
+
+RootRecord = "this" { RETURN(MAP("kind":"Root")) }
 
 DotID
   = "." field:Identifier {

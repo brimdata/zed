@@ -2,5 +2,5 @@ zed: 'put .=a'
 
 input: |
   {a:1 (int32)} (=0)
-  
-errorRE: cannot put a non-record to \.
+
+errorRE: cannot put a non-record to this

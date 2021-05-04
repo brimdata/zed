@@ -17,7 +17,7 @@ func NewRoot() Static {
 
 func (f Static) String() string {
 	if len(f) == 0 {
-		return "."
+		return "this"
 	}
 	return strings.Join(f, ".")
 }
