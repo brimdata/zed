@@ -160,6 +160,11 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 						err = warnErr
 					}
 				}
+				if len(runtime.Outputs()) == 1 {
+					if endErr := d.ChannelEnd(0); err == nil {
+						err = endErr
+					}
+				}
 				return err
 			}
 			batch, cid := extractLabel(p)
