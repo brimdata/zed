@@ -71,7 +71,7 @@ func compileExpr(zctx *zson.Context, scope *Scope, e dag.Expr) (expr.Evaluator, 
 		}
 		return expr.FilterEvaluator(f), nil
 	case *dag.Path:
-		return expr.NewDotExpr(field.Static(e.Name)), nil
+		return expr.NewDotExpr(field.Path(e.Name)), nil
 	case *dag.Dot:
 		return compileDotExpr(zctx, scope, e)
 	case *dag.UnaryExpr:
@@ -285,9 +285,9 @@ func compileCast(zctx *zson.Context, scope *Scope, node dag.Cast) (expr.Evaluato
 	return expr.NewCast(e, typ)
 }
 
-func compileLval(e dag.Expr) (field.Static, error) {
+func compileLval(e dag.Expr) (field.Path, error) {
 	if e, ok := e.(*dag.Path); ok {
-		return field.Static(e.Name), nil
+		return field.Path(e.Name), nil
 	}
 	return nil, errors.New("invalid expression on lhs of assignment")
 }
@@ -304,12 +304,12 @@ func CompileAssignment(zctx *zson.Context, scope *Scope, node *dag.Assignment) (
 	return expr.Assignment{lhs, rhs}, err
 }
 
-func CompileAssignments(dsts []field.Static, srcs []field.Static) ([]field.Static, []expr.Evaluator) {
+func CompileAssignments(dsts field.List, srcs field.List) (field.List, []expr.Evaluator) {
 	if len(srcs) != len(dsts) {
 		panic("CompileAssignments: argument mismatch")
 	}
 	var resolvers []expr.Evaluator
-	var fields []field.Static
+	var fields field.List
 	for k, dst := range dsts {
 		fields = append(fields, dst)
 		resolvers = append(resolvers, expr.NewDotExpr(srcs[k]))
@@ -318,7 +318,7 @@ func CompileAssignments(dsts []field.Static, srcs []field.Static) ([]field.Stati
 }
 
 func compileCutter(zctx *zson.Context, scope *Scope, node dag.Call) (*expr.Cutter, error) {
-	var lhs []field.Static
+	var lhs field.List
 	var rhs []expr.Evaluator
 	for _, expr := range node.Args {
 		// This is a bit of a hack and could be cleaed up by re-factoring

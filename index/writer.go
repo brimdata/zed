@@ -48,7 +48,7 @@ import (
 // instead of Close().
 type Writer struct {
 	uri         iosrc.URI
-	keyFields   []field.Static
+	keyFields   field.List
 	zctx        *zson.Context
 	writer      *indexWriter
 	cutter      *expr.Cutter
@@ -88,7 +88,7 @@ func NewWriterWithContext(ctx context.Context, zctx *zson.Context, path string, 
 		opt.apply(w)
 	}
 	if w.keyFields == nil {
-		w.keyFields = []field.Static{field.New("key")}
+		w.keyFields = field.List{field.New("key")}
 	}
 	if w.frameThresh == 0 {
 		w.frameThresh = frameThresh
@@ -122,7 +122,7 @@ type optionFunc func(*Writer)
 
 func (f optionFunc) apply(w *Writer) { f(w) }
 
-func KeyFields(keys ...field.Static) Option {
+func KeyFields(keys ...field.Path) Option {
 	return optionFunc(func(w *Writer) {
 		w.keyFields = keys
 	})

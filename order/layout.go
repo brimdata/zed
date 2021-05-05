@@ -15,7 +15,7 @@ type Layout struct {
 	Keys  field.List `json:"keys"`
 }
 
-func (l Layout) Primary() field.Static {
+func (l Layout) Primary() field.Path {
 	if len(l.Keys) != 0 {
 		return l.Keys[0]
 	}
@@ -34,7 +34,7 @@ func (l Layout) String() string {
 	return fmt.Sprintf("%s:%s", field.List(l.Keys), l.Order)
 }
 
-func NewLayout(order Which, keys []field.Static) Layout {
+func NewLayout(order Which, keys field.List) Layout {
 	return Layout{order, keys}
 }
 

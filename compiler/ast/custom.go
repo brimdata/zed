@@ -12,17 +12,17 @@ import (
 // the semantic pass to handle them properly.  See issue #2258.
 
 type FieldCutter struct {
-	Kind  string       `json:"kind" unpack:""`
-	Field field.Static `json:"field"`
-	Out   field.Static `json:"out"`
+	Kind  string     `json:"kind" unpack:""`
+	Field field.Path `json:"field"`
+	Out   field.Path `json:"out"`
 }
 
 func (*FieldCutter) ProcAST() {}
 
 type TypeSplitter struct {
-	Kind     string       `json:"kind" unpack:""`
-	Key      field.Static `json:"key"`
-	TypeName string       `json:"type_name"`
+	Kind     string     `json:"kind" unpack:""`
+	Key      field.Path `json:"key"`
+	TypeName string     `json:"type_name"`
 }
 
 func (t *TypeSplitter) ProcAST() {}

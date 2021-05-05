@@ -118,7 +118,7 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		}
 		// Single sort field: we can sort in each parallel branch,
 		// and then do an ordered merge.
-		var mergeKey field.Static
+		var mergeKey field.Path
 		if len(ingress.Args) > 0 {
 			mergeKey = fieldOf(ingress.Args[0])
 			if mergeKey == nil {

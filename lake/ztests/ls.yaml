@@ -11,7 +11,7 @@ inputs:
   - name: babble.zson
     source: ../../testdata/babble.zson
 
-# The keys field should be labeled with (field.)Static.
+# The keys field should be labeled with (field.)Path.
 # See bug #2576
 
 outputs:

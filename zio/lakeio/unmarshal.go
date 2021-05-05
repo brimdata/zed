@@ -19,7 +19,7 @@ func init() {
 		actions.CommitMessage{},
 		actions.Delete{},
 		actions.StagedCommit{},
-		field.Static{},
+		field.Path{},
 		index.Index{},
 		index.Reference{},
 		lake.Partition{},

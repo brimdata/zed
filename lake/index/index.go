@@ -25,12 +25,12 @@ const (
 
 // Index contains the runtime configuration for an index.
 type Index struct {
-	Framesize int            `zng:"framesize,omitempty"`
-	ID        ksuid.KSUID    `zng:"id"`
-	Name      string         `zng:"name"`
-	Keys      []field.Static `zng:"keys,omitempty"`
-	Kind      IndexKind      `zng:"kind"`
-	Value     string         `zng:"type"`
+	Framesize int         `zng:"framesize,omitempty"`
+	ID        ksuid.KSUID `zng:"id"`
+	Name      string      `zng:"name"`
+	Keys      field.List  `zng:"keys,omitempty"`
+	Kind      IndexKind   `zng:"kind"`
+	Value     string      `zng:"type"`
 }
 
 func ParseIndex(pattern string) (Index, error) {
@@ -73,7 +73,7 @@ func UnmarshalIndex(b []byte) (Index, error) {
 	return r, resolver.UnmarshalRecord(rec, &r)
 }
 
-func NewZedIndex(prog, name string, keys []field.Static) (Index, error) {
+func NewZedIndex(prog, name string, keys field.List) (Index, error) {
 	// make sure it compiles
 	if _, err := compiler.ParseProc(prog); err != nil {
 		return Index{}, err

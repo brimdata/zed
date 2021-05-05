@@ -4,94 +4,94 @@ import (
 	"strings"
 )
 
-type Static []string
+type Path []string
 
-func New(name string) Static {
-	return Static{name}
+func New(name string) Path {
+	return Path{name}
 }
 
 // A root is an empty slice (not nil).
-func NewRoot() Static {
-	return Static{}
+func NewRoot() Path {
+	return Path{}
 }
 
-func (f Static) String() string {
-	if len(f) == 0 {
+func (p Path) String() string {
+	if len(p) == 0 {
 		return "this"
 	}
-	return strings.Join(f, ".")
+	return strings.Join(p, ".")
 }
 
-func (f Static) Leaf() string {
-	return f[len(f)-1]
+func (p Path) Leaf() string {
+	return p[len(p)-1]
 }
 
-func (f Static) Equal(to Static) bool {
-	if f == nil {
+func (p Path) Equal(to Path) bool {
+	if p == nil {
 		return to == nil
 	}
 	if to == nil {
 		return false
 	}
-	if len(f) != len(to) {
+	if len(p) != len(to) {
 		return false
 	}
-	for k := range f {
-		if f[k] != to[k] {
+	for k := range p {
+		if p[k] != to[k] {
 			return false
 		}
 	}
 	return true
 }
 
-func (f Static) IsRoot() bool {
-	return len(f) == 0
+func (p Path) IsRoot() bool {
+	return len(p) == 0
 }
 
-func (f Static) HasStrictPrefix(prefix Static) bool {
-	return len(f) > len(prefix) && prefix.Equal(f[:len(prefix)])
+func (p Path) HasStrictPrefix(prefix Path) bool {
+	return len(p) > len(prefix) && prefix.Equal(p[:len(prefix)])
 }
 
-func (f Static) HasPrefix(prefix Static) bool {
-	return len(f) >= len(prefix) && prefix.Equal(f[:len(prefix)])
+func (p Path) HasPrefix(prefix Path) bool {
+	return len(p) >= len(prefix) && prefix.Equal(p[:len(prefix)])
 }
 
-func (f Static) In(list List) bool {
-	return list.Has(f)
+func (p Path) In(list List) bool {
+	return list.Has(p)
 }
 
-func (f Static) HasPrefixIn(set []Static) bool {
+func (p Path) HasPrefixIn(set []Path) bool {
 	for _, item := range set {
-		if f.HasPrefix(item) {
+		if p.HasPrefix(item) {
 			return true
 		}
 	}
 	return false
 }
 
-func Dotted(s string) Static {
+func Dotted(s string) Path {
 	return strings.Split(s, ".")
 }
 
 func DottedList(s string) List {
 	var fields List
-	for _, name := range strings.Split(s, ",") {
-		fields = append(fields, Dotted(name))
+	for _, path := range strings.Split(s, ",") {
+		fields = append(fields, Dotted(path))
 	}
 	return fields
 }
 
-type List []Static
+type List []Path
 
 func (l List) String() string {
-	names := make([]string, 0, len(l))
+	paths := make([]string, 0, len(l))
 	for _, f := range l {
-		names = append(names, f.String())
+		paths = append(paths, f.String())
 	}
-	return strings.Join(names, ",")
+	return strings.Join(paths, ",")
 }
 
-func (l List) Has(in Static) bool {
+func (l List) Has(in Path) bool {
 	for _, f := range l {
 		if f.Equal(in) {
 			return true

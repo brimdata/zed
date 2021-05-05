@@ -487,7 +487,7 @@ This could be `fields()`.
 
 `has()` should be a boolean operator on a record that says whether a record
 has the given name (and it can be recursive with "." or with string array
-like field.Static).  More generally, it can operate on an expression and
+like field.Path).  More generally, it can operate on an expression and
 return true iff the expression is not equal to `error("missing")`.
 Perhaps `missing` could be a reserved word like `null` that is the
 same as `error("missing")`.

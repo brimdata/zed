@@ -202,7 +202,7 @@ func (ig *getter) nth(n int) (zcode.Bytes, error) {
 	return nil, fmt.Errorf("getter.nth: array index %d out of bounds", n)
 }
 
-func findOverwriteClause(path field.Static, clauses []expr.Assignment) (int, field.Static, bool) {
+func findOverwriteClause(path field.Path, clauses []expr.Assignment) (int, field.Path, bool) {
 	for i, cand := range clauses {
 		if path.Equal(cand.LHS) || cand.LHS.HasStrictPrefix(path) {
 			return i, cand.LHS, true
@@ -223,7 +223,7 @@ func (p *Proc) deriveSteps(inType *zng.TypeRecord, vals []zng.Value) (step, zng.
 	return p.deriveRecordSteps(field.NewRoot(), inType.Columns, vals)
 }
 
-func (p *Proc) deriveRecordSteps(parentPath field.Static, inCols []zng.Column, vals []zng.Value) (step, *zng.TypeRecord, error) {
+func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zng.Column, vals []zng.Value) (step, *zng.TypeRecord, error) {
 	s := step{op: record}
 	cols := make([]zng.Column, 0)
 

@@ -132,7 +132,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 		if len(v.Args) == 0 {
 			return nil, errors.New("drop: no fields given")
 		}
-		fields := make([]field.Static, 0, len(v.Args))
+		fields := make(field.List, 0, len(v.Args))
 		for _, e := range v.Args {
 			field, ok := e.(*dag.Path)
 			if !ok {
@@ -191,7 +191,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 		}
 		return put, nil
 	case *dag.Rename:
-		var srcs, dsts []field.Static
+		var srcs, dsts field.List
 		for _, fa := range v.Args {
 			dst, err := compileLval(fa.LHS)
 			if err != nil {
@@ -259,9 +259,9 @@ func compileAssignments(assignments []dag.Assignment, zctx *zson.Context, scope 
 	return keys, nil
 }
 
-func splitAssignments(assignments []expr.Assignment) ([]field.Static, []expr.Evaluator) {
+func splitAssignments(assignments []expr.Assignment) (field.List, []expr.Evaluator) {
 	n := len(assignments)
-	lhs := make([]field.Static, 0, n)
+	lhs := make(field.List, 0, n)
 	rhs := make([]expr.Evaluator, 0, n)
 	for _, a := range assignments {
 		lhs = append(lhs, a.LHS)

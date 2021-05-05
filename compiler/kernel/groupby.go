@@ -26,8 +26,8 @@ func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, sum
 	return groupby.New(pctx, parent, keys, names, reducers, summarize.Limit, dir, summarize.PartialsIn, summarize.PartialsOut)
 }
 
-func compileAggs(assignments []dag.Assignment, scope *Scope, zctx *zson.Context) ([]field.Static, []*expr.Aggregator, error) {
-	names := make([]field.Static, 0, len(assignments))
+func compileAggs(assignments []dag.Assignment, scope *Scope, zctx *zson.Context) (field.List, []*expr.Aggregator, error) {
+	names := make(field.List, 0, len(assignments))
 	aggs := make([]*expr.Aggregator, 0, len(assignments))
 	for _, assignment := range assignments {
 		name, agg, err := compileAgg(zctx, scope, assignment)
@@ -40,7 +40,7 @@ func compileAggs(assignments []dag.Assignment, scope *Scope, zctx *zson.Context)
 	return names, aggs, nil
 }
 
-func compileAgg(zctx *zson.Context, scope *Scope, assignment dag.Assignment) (field.Static, *expr.Aggregator, error) {
+func compileAgg(zctx *zson.Context, scope *Scope, assignment dag.Assignment) (field.Path, *expr.Aggregator, error) {
 	aggAST, ok := assignment.RHS.(*dag.Agg)
 	if !ok {
 		return nil, nil, errors.New("aggregator is not an aggregation expression")
@@ -57,7 +57,7 @@ func compileAgg(zctx *zson.Context, scope *Scope, assignment dag.Assignment) (fi
 	// If there is a reducer assignment, the LHS is non-nil and we
 	// compile.  Otherwise, we infer an LHS top-level field name from
 	// the name of reducer function.
-	var lhs field.Static
+	var lhs field.Path
 	if assignment.LHS == nil {
 		lhs = field.New(aggName)
 	} else {

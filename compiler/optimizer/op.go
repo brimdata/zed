@@ -124,7 +124,7 @@ func analyzeOpSummarize(summarize *dag.Summarize, layout order.Layout) order.Lay
 	return order.Nil
 }
 
-func orderPreservingCall(e dag.Expr, key field.Static) bool {
+func orderPreservingCall(e dag.Expr, key field.Path) bool {
 	if call, ok := e.(*dag.Call); ok {
 		switch call.Name {
 		// There are probably other functions we could cover.
@@ -162,7 +162,7 @@ func analyzeCuts(assignments []dag.Assignment, layout order.Layout) order.Layout
 	return order.Nil
 }
 
-func fieldOf(e dag.Expr) field.Static {
+func fieldOf(e dag.Expr) field.Path {
 	f, ok := e.(*dag.Path)
 	if !ok {
 		return nil

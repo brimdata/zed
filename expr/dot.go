@@ -22,7 +22,7 @@ func NewDotAccess(record Evaluator, field string) *DotExpr {
 	return &DotExpr{record, field}
 }
 
-func NewDotExpr(f field.Static) Evaluator {
+func NewDotExpr(f field.Path) Evaluator {
 	ret := Evaluator(&RootRecord{})
 	for _, name := range f {
 		ret = &DotExpr{ret, name}
@@ -69,7 +69,7 @@ func DotExprToString(e Evaluator) (string, error) {
 	return f.String(), nil
 }
 
-func DotExprToField(e Evaluator) (field.Static, error) {
+func DotExprToField(e Evaluator) (field.Path, error) {
 	switch e := e.(type) {
 	case *RootRecord:
 		return field.NewRoot(), nil

@@ -67,7 +67,7 @@ func (e errDuplicateFields) Unwrap() error {
 //  {name: "d", fullname: "b.d", containerBegins: [], containerEnds: 1     }    // steps 4-5
 //  {name: "z", fullname: "x.y.z", containerBegins: ["x", "y"], containerEnds: 2} // steps 6-10
 type fieldInfo struct {
-	field           field.Static
+	field           field.Path
 	containerBegins []string
 	containerEnds   int
 }
@@ -80,11 +80,11 @@ type ColumnBuilder struct {
 }
 
 // NewColumnBuilder constructs the zcode.Bytes representation for columns
-// built from an array of input field selectors expressed as field.Static.
+// built from an array of input field selectors expressed as field.Path.
 // Append should be called to enter field values in the left to right order
 // of the provided fields and Encode is called to retrieve the nested zcode.Bytes
 // value.  Reset should be called before encoding the next record.
-func NewColumnBuilder(zctx *zson.Context, fields []field.Static) (*ColumnBuilder, error) {
+func NewColumnBuilder(zctx *zson.Context, fields field.List) (*ColumnBuilder, error) {
 	seenRecords := make(map[string]bool)
 	fieldInfos := make([]fieldInfo, 0, len(fields))
 	var currentRecord []string
@@ -155,7 +155,7 @@ func NewColumnBuilder(zctx *zson.Context, fields []field.Static) (*ColumnBuilder
 
 // check if fieldname is "in" one of the fields in fis, or if
 // one of fis is "in" fieldname, where "in" means "equal or is a suffix of".
-func isIn(fieldname field.Static, fis []fieldInfo) bool {
+func isIn(fieldname field.Path, fis []fieldInfo) bool {
 	// check if fieldname of splits is "in" one of fis
 	for i := range fieldname {
 		sub := fieldname[:i+1]
