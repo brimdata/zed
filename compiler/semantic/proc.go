@@ -465,9 +465,17 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		if err != nil {
 			return nil, err
 		}
-		as, err := semExpr(scope, p.As)
-		if err != nil {
-			return nil, err
+		var as dag.Expr
+		if p.As == nil {
+			as = &dag.Path{
+				Kind: "Path",
+				Name: field.New("value"),
+			}
+		} else {
+			as, err = semExpr(scope, p.As)
+			if err != nil {
+				return nil, err
+			}
 		}
 		return &dag.Explode{
 			Kind: "Explode",
