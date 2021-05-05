@@ -102,10 +102,10 @@ type VersionResponse struct {
 
 // XXX This should use order.Layout.  See #2654.
 type PoolPostRequest struct {
-	Name   string         `json:"name"`
-	Keys   []field.Static `json:"keys"`
-	Order  order.Which    `json:"order"`
-	Thresh int64          `json:"thresh"`
+	Name   string      `json:"name"`
+	Keys   field.List  `json:"keys"`
+	Order  order.Which `json:"order"`
+	Thresh int64       `json:"thresh"`
 }
 
 type PoolPutRequest struct {

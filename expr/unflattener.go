@@ -34,7 +34,7 @@ func (u *Unflattener) lookupBuilderAndType(in *zng.TypeRecord) (*builder.ColumnB
 		return b, u.recordTypes[in.ID()], nil
 	}
 	var foundDotted bool
-	var fields []field.Static
+	var fields field.List
 	var types []zng.Type
 	for _, c := range in.Columns {
 		dotted := field.Dotted(c.Name)

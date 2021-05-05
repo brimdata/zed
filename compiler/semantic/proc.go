@@ -142,7 +142,7 @@ func semLayout(p *ast.Layout) (order.Layout, error) {
 	if p == nil || p.Keys == nil {
 		return order.Nil, nil
 	}
-	var keys []field.Static
+	var keys field.List
 	for _, key := range p.Keys {
 		path := DotExprToFieldPath(key)
 		if path == nil {

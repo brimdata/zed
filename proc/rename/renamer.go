@@ -17,16 +17,16 @@ type Function struct {
 	zctx *zson.Context
 	// For the dst field name, we just store the leaf name since the
 	// src path and the dst path are the same and only differ in the leaf name.
-	srcs    []field.Static
-	dsts    []field.Static
+	srcs    field.List
+	dsts    field.List
 	typeMap map[int]*zng.TypeRecord
 }
 
-func NewFunction(zctx *zson.Context, srcs, dsts []field.Static) *Function {
+func NewFunction(zctx *zson.Context, srcs, dsts field.List) *Function {
 	return &Function{zctx, srcs, dsts, make(map[int]*zng.TypeRecord)}
 }
 
-func (r *Function) dstType(typ *zng.TypeRecord, src, dst field.Static) (*zng.TypeRecord, error) {
+func (r *Function) dstType(typ *zng.TypeRecord, src, dst field.Path) (*zng.TypeRecord, error) {
 	c, ok := typ.ColumnOfField(src[0])
 	if !ok {
 		return typ, nil

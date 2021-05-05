@@ -55,7 +55,7 @@ func (c *Command) Run(args []string) error {
 	return charm.ErrNoRun
 }
 
-func ParseKeys(s string) ([]field.Static, bool) {
+func ParseKeys(s string) (field.List, bool) {
 	if s == "" {
 		return nil, false
 	}

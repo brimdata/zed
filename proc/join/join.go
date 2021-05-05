@@ -30,7 +30,7 @@ type Proc struct {
 	inner       bool
 }
 
-func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, rightKey expr.Evaluator, lhs []field.Static, rhs []expr.Evaluator) (*Proc, error) {
+func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Proc, error) {
 	cutter, err := expr.NewCutter(pctx.Zctx, lhs, rhs)
 	if err != nil {
 		return nil, err

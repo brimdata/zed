@@ -127,8 +127,8 @@ func NewAggregator(zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluat
 	}, nil
 }
 
-func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggNames []field.Static, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Proc, error) {
-	names := make([]field.Static, 0, len(keys)+len(aggNames))
+func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggNames field.List, aggs []*expr.Aggregator, limit int, inputSortDir order.Direction, partialsIn, partialsOut bool) (*Proc, error) {
+	names := make(field.List, 0, len(keys)+len(aggNames))
 	for _, e := range keys {
 		names = append(names, e.LHS)
 	}

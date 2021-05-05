@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-type Renames struct{ Srcs, Dsts []field.Static }
+type Renames struct{ Srcs, Dsts field.List }
 
 // A fuse schema holds the fused type as well as a per-input-type
 // rename specification. The latter is needed when input types have
@@ -96,7 +96,7 @@ func unify(zctx *zson.Context, t, u zng.Type) zng.Type {
 	return nil
 }
 
-func (s *Schema) fuseRecordTypes(a, b *zng.TypeRecord, path field.Static, renames Renames) (*zng.TypeRecord, Renames, error) {
+func (s *Schema) fuseRecordTypes(a, b *zng.TypeRecord, path field.Path, renames Renames) (*zng.TypeRecord, Renames, error) {
 	fused := make([]zng.Column, len(a.Columns))
 	copy(fused, a.Columns)
 	for _, bcol := range b.Columns {

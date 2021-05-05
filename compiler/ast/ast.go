@@ -184,9 +184,9 @@ type (
 		// which the branches of this parallel proc should be
 		// merged in the order indicated by MergeReverse.
 		// XXX merge_by should be a list of expressions
-		MergeBy      field.Static `json:"merge_by,omitempty"`
-		MergeReverse bool         `json:"merge_reverse,omitempty"`
-		Procs        []Proc       `json:"procs"`
+		MergeBy      field.Path `json:"merge_by,omitempty"`
+		MergeReverse bool       `json:"merge_reverse,omitempty"`
+		Procs        []Proc     `json:"procs"`
 	}
 	// A Switch proc represents a set of procs that each get
 	// a stream of records from their parent.
@@ -480,7 +480,7 @@ type Agg struct {
 	Where Expr   `json:"where"`
 }
 
-func NewDotExpr(f field.Static) Expr {
+func NewDotExpr(f field.Path) Expr {
 	lhs := Expr(&Root{Kind: "Root"})
 	for _, name := range f {
 		rhs := &ID{
@@ -508,7 +508,7 @@ func NewLayout(layout order.Layout) *Layout {
 	}
 }
 
-func NewAggAssignment(kind string, lval field.Static, arg field.Static) Assignment {
+func NewAggAssignment(kind string, lval field.Path, arg field.Path) Assignment {
 	agg := &Agg{Kind: "Agg", Name: kind}
 	if arg != nil {
 		agg.Expr = NewDotExpr(arg)

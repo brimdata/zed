@@ -27,7 +27,7 @@ func TestTypeIndexMarshal(t *testing.T) {
 }
 
 func TestZedIndexMarshal(t *testing.T) {
-	keys := []field.Static{field.Dotted("id.orig_h")}
+	keys := field.List{field.Dotted("id.orig_h")}
 	r1, err := NewZedIndex("count() by id.orig_h", "id.orig_h.count", keys)
 	require.NoError(t, err)
 	r2 := boomerang(t, r1)

@@ -124,7 +124,7 @@ func newIndexer(ctx context.Context, path iosrc.URI, ref *Reference, r zio.Reade
 	}
 	keys := idx.Keys
 	if len(keys) == 0 {
-		keys = []field.Static{keyName}
+		keys = field.List{keyName}
 	}
 	opts := []index.Option{index.KeyFields(keys...)}
 	if idx.Framesize > 0 {

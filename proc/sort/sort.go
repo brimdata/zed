@@ -202,7 +202,7 @@ var intTypes = []zng.Type{
 	zng.TypeUint64,
 }
 
-func GuessSortKey(rec *zng.Record) field.Static {
+func GuessSortKey(rec *zng.Record) field.Path {
 	typ := zng.TypeRecordOf(rec.Type)
 	if fld := firstOf(typ, intTypes); fld != "" {
 		return field.New(fld)

@@ -576,17 +576,17 @@ func DotExprToFieldPath(e ast.Expr) *dag.Path {
 	return nil
 }
 
-func FieldsOf(e ast.Expr) []field.Static {
+func FieldsOf(e ast.Expr) field.List {
 	switch e := e.(type) {
 	default:
 		if f := DotExprToFieldPath(e); f != nil {
-			return []field.Static{f.Name}
+			return field.List{f.Name}
 		}
 		return nil
 	case *ast.Assignment:
 		return append(FieldsOf(e.LHS), FieldsOf(e.RHS)...)
 	case *ast.SelectExpr:
-		var fields []field.Static
+		var fields field.List
 		for _, selector := range e.Selectors {
 			fields = append(fields, FieldsOf(selector)...)
 		}

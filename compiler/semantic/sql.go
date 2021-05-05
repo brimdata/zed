@@ -388,7 +388,7 @@ func convertSQLSelect(selection sqlSelection) (dag.Op, error) {
 }
 
 func convertSQLGroupBy(scope *Scope, groupByKeys []ast.Expr, selection sqlSelection) (dag.Op, error) {
-	var keys []field.Static
+	var keys field.List
 	for _, key := range groupByKeys {
 		name, err := sqlField(scope, key)
 		if err != nil {
@@ -443,7 +443,7 @@ func convertSQLGroupBy(scope *Scope, groupByKeys []ast.Expr, selection sqlSelect
 // names so we can do SQL error checking relating the selections to the group-by
 // keys, something that is not needed in Z.
 type sqlPick struct {
-	name       field.Static
+	name       field.Path
 	agg        *dag.Agg
 	assignment dag.Assignment
 }
@@ -475,8 +475,8 @@ func newSQLSelection(scope *Scope, assignments []ast.Assignment) (sqlSelection, 
 	return s, nil
 }
 
-func (s sqlSelection) fields() []field.Static {
-	var fields []field.Static
+func (s sqlSelection) fields() field.List {
+	var fields field.List
 	for _, p := range s {
 		fields = append(fields, p.name)
 	}
@@ -547,7 +547,7 @@ func isAgg(scope *Scope, e ast.Expr) (*dag.Agg, error) {
 	}, nil
 }
 
-func deriveAs(scope *Scope, a ast.Assignment) (field.Static, error) {
+func deriveAs(scope *Scope, a ast.Assignment) (field.Path, error) {
 	sa, err := semAssignment(scope, a)
 	if err != nil {
 		return nil, fmt.Errorf("AS clause of SELECT: %w", err)
@@ -559,7 +559,7 @@ func deriveAs(scope *Scope, a ast.Assignment) (field.Static, error) {
 	return f.Name, nil
 }
 
-func sqlField(scope *Scope, e ast.Expr) (field.Static, error) {
+func sqlField(scope *Scope, e ast.Expr) (field.Path, error) {
 	name, err := semField(scope, e)
 	if err != nil {
 		return nil, err

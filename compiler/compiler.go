@@ -196,7 +196,7 @@ func (r *Runtime) Puller() zbuf.Puller {
 	}
 }
 
-func CompileAssignments(dsts []field.Static, srcs []field.Static) ([]field.Static, []expr.Evaluator) {
+func CompileAssignments(dsts field.List, srcs field.List) (field.List, []expr.Evaluator) {
 	return kernel.CompileAssignments(dsts, srcs)
 }
 

@@ -16,7 +16,7 @@ import (
 type Cutter struct {
 	zctx        *zson.Context
 	builder     *builder.ColumnBuilder
-	fieldRefs   []field.Static
+	fieldRefs   field.List
 	fieldExprs  []Evaluator
 	typeCache   []zng.Type
 	outTypes    *typevector.Table
@@ -31,7 +31,7 @@ type Cutter struct {
 // the Cutter copies fields that are not in fieldnames. If complement
 // is false, the Cutter copies any fields in fieldnames, where targets
 // specifies the copied field names.
-func NewCutter(zctx *zson.Context, fieldRefs []field.Static, fieldExprs []Evaluator) (*Cutter, error) {
+func NewCutter(zctx *zson.Context, fieldRefs field.List, fieldExprs []Evaluator) (*Cutter, error) {
 	if len(fieldRefs) > 1 {
 		for _, f := range fieldRefs {
 			if f.IsRoot() {

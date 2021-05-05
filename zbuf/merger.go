@@ -38,7 +38,7 @@ type batch struct {
 	err error
 }
 
-func NewCompareFn(mergeField field.Static, reversed bool) expr.CompareFn {
+func NewCompareFn(mergeField field.Path, reversed bool) expr.CompareFn {
 	nullsMax := !reversed
 	fn := expr.NewCompareFn(nullsMax, expr.NewDotExpr(mergeField))
 	fn = totalOrderCompare(fn)

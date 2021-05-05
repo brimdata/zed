@@ -51,9 +51,9 @@ type (
 		Args     []Assignment `json:"args"`
 	}
 	Merge struct {
-		Kind    string       `json:"kind" unpack:""`
-		Key     field.Static `json:"key"`
-		Reverse bool         `json:"reverse"`
+		Kind    string     `json:"kind" unpack:""`
+		Key     field.Path `json:"key"`
+		Reverse bool       `json:"reverse"`
 	}
 	Parallel struct {
 		Kind string `json:"kind" unpack:""`
@@ -271,21 +271,21 @@ func FilterToOp(e Expr) *Filter {
 }
 
 func (p *Path) String() string {
-	return field.Static(p.Name).String()
+	return field.Path(p.Name).String()
 }
 
 // === THESE SHOULD BE RENAMED AND MADE PART OF THE LANGUAGE ===
 
 type FieldCutter struct {
-	Kind  string       `json:"kind" unpack:""`
-	Field field.Static `json:"field"`
-	Out   field.Static `json:"out"`
+	Kind  string     `json:"kind" unpack:""`
+	Field field.Path `json:"field"`
+	Out   field.Path `json:"out"`
 }
 
 type TypeSplitter struct {
-	Kind     string       `json:"kind" unpack:""`
-	Key      field.Static `json:"key"`
-	TypeName string       `json:"type_name"`
+	Kind     string     `json:"kind" unpack:""`
+	Key      field.Path `json:"key"`
+	TypeName string     `json:"type_name"`
 }
 
 // === THESE WILL BE DEPRECATED ===

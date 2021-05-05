@@ -32,12 +32,12 @@ func (d *dropper) drop(in *zng.Record) (*zng.Record, error) {
 
 type Dropper struct {
 	zctx      *zson.Context
-	fields    []field.Static
+	fields    field.List
 	resolvers []Evaluator
 	droppers  map[int]*dropper
 }
 
-func NewDropper(zctx *zson.Context, fields []field.Static) *Dropper {
+func NewDropper(zctx *zson.Context, fields field.List) *Dropper {
 	return &Dropper{
 		zctx:     zctx,
 		fields:   fields,
@@ -71,8 +71,8 @@ func (d *Dropper) newDropper(r *zng.Record) (*dropper, error) {
 
 // complementFields returns the slice of fields and associated types
 // that make up the complement of the set of fields in drops.
-func complementFields(drops []field.Static, prefix field.Static, typ *zng.TypeRecord) ([]field.Static, []zng.Type) {
-	var fields []field.Static
+func complementFields(drops field.List, prefix field.Path, typ *zng.TypeRecord) (field.List, []zng.Type) {
+	var fields field.List
 	var types []zng.Type
 	for _, c := range typ.Columns {
 		if contains(drops, append(prefix, c.Name)) {
@@ -90,7 +90,7 @@ func complementFields(drops []field.Static, prefix field.Static, typ *zng.TypeRe
 	return fields, types
 }
 
-func contains(ss []field.Static, el field.Static) bool {
+func contains(ss field.List, el field.Path) bool {
 	for _, s := range ss {
 		if s.Equal(el) {
 			return true

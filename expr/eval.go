@@ -870,6 +870,6 @@ func NewRootField(name string) Evaluator {
 }
 
 type Assignment struct {
-	LHS field.Static
+	LHS field.Path
 	RHS Evaluator
 }

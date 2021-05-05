@@ -23,14 +23,14 @@ type FieldCutter struct {
 	parent   proc.Interface
 	builder  *zng.Builder
 	accessor expr.Evaluator
-	field    field.Static
-	out      field.Static
+	field    field.Path
+	out      field.Path
 	typ      zng.Type
 }
 
 // NewFieldCutter creates a FieldCutter for field fieldName, where the
 // output records' single column is named out.
-func NewFieldCutter(pctx *proc.Context, parent proc.Interface, fieldName, out field.Static) (proc.Interface, error) {
+func NewFieldCutter(pctx *proc.Context, parent proc.Interface, fieldName, out field.Path) (proc.Interface, error) {
 	accessor := expr.NewDotExpr(fieldName)
 	if accessor == nil {
 		return nil, fmt.Errorf("bad field syntax: %s", fieldName)
