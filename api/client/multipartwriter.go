@@ -11,49 +11,49 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 type MultipartWriter struct {
 	BytesTotal int64
-
-	bytesRead int64
-	form      *multipart.Writer
-	pr        *io.PipeReader
-	pw        *io.PipeWriter
-	start     sync.Once
-	readers   []io.Reader
-	uris      []iosrc.URI
-	shaper    ast.Proc
+	engine     storage.Engine
+	bytesRead  int64
+	form       *multipart.Writer
+	pr         *io.PipeReader
+	pw         *io.PipeWriter
+	start      sync.Once
+	readers    []io.Reader
+	uris       []*storage.URI
+	shaper     ast.Proc
 }
 
-func newMultipartWriter() *MultipartWriter {
+func newMultipartWriter(engine storage.Engine) *MultipartWriter {
 	pr, pw := io.Pipe()
 	form := multipart.NewWriter(pw)
-	return &MultipartWriter{form: form, pr: pr, pw: pw}
+	return &MultipartWriter{engine: engine, form: form, pr: pr, pw: pw}
 }
 
-func MultipartFileWriter(files ...string) (*MultipartWriter, error) {
-	m := newMultipartWriter()
+func NewMultipartWriter(engine storage.Engine, files ...string) (*MultipartWriter, error) {
+	m := newMultipartWriter(engine)
 	for _, f := range files {
-		u, err := iosrc.ParseURI(f)
+		u, err := storage.ParseURI(f)
 		if err != nil {
 			return nil, err
 		}
 		if u.Scheme != "stdio" {
-			info, err := iosrc.Stat(context.Background(), u)
+			size, err := engine.Size(context.Background(), u)
 			if err != nil {
 				return nil, err
 			}
-			m.BytesTotal += info.Size()
+			m.BytesTotal += size
 		}
 		m.uris = append(m.uris, u)
 	}
 	return m, nil
 }
 
-func MultipartDataWriter(readers ...io.Reader) (*MultipartWriter, error) {
-	m := newMultipartWriter()
+func MultipartDataWriter(engine storage.Engine, readers ...io.Reader) (*MultipartWriter, error) {
+	m := newMultipartWriter(engine)
 	m.readers = readers
 	return m, nil
 }
@@ -97,8 +97,8 @@ func (m *MultipartWriter) run() {
 	m.pw.CloseWithError(m.form.Close())
 }
 
-func (m *MultipartWriter) writeFile(u iosrc.URI) error {
-	r, err := iosrc.NewReader(context.Background(), u)
+func (m *MultipartWriter) writeFile(u *storage.URI) error {
+	r, err := m.engine.Get(context.Background(), u)
 	if err != nil {
 		return err
 	}

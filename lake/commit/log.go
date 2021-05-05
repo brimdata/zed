@@ -11,14 +11,14 @@ import (
 	"github.com/brimdata/zed/lake/commit/actions"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
 type Log struct {
-	path      iosrc.URI
+	path      *storage.URI
 	order     order.Which
 	journal   *journal.Queue
 	snapshots map[journal.ID]*Snapshot
@@ -31,7 +31,7 @@ const (
 
 var ErrRetriesExceeded = fmt.Errorf("commit journal unavailable after %d attempts", maxRetries)
 
-func newLog(path iosrc.URI, o order.Which) *Log {
+func newLog(path *storage.URI, o order.Which) *Log {
 	return &Log{
 		path:      path,
 		order:     o,
@@ -39,19 +39,19 @@ func newLog(path iosrc.URI, o order.Which) *Log {
 	}
 }
 
-func Open(ctx context.Context, path iosrc.URI, o order.Which) (*Log, error) {
+func Open(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which) (*Log, error) {
 	l := newLog(path, o)
 	var err error
-	l.journal, err = journal.Open(ctx, l.path.AppendPath(journalHandle))
+	l.journal, err = journal.Open(ctx, engine, l.path.AppendPath(journalHandle))
 	if err != nil {
 		return nil, err
 	}
 	return l, nil
 }
 
-func Create(ctx context.Context, path iosrc.URI, o order.Which) (*Log, error) {
+func Create(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which) (*Log, error) {
 	l := newLog(path, o)
-	j, err := journal.Create(ctx, l.path.AppendPath(journalHandle))
+	j, err := journal.Create(ctx, engine, l.path.AppendPath(journalHandle))
 	if err != nil {
 		return nil, err
 	}

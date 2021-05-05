@@ -7,6 +7,7 @@ import (
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 var Init = &charm.Spec{
@@ -51,7 +52,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zed lake create lake: requires a single lake path argument")
 	}
 	c.lake.Flags.Root = path
-	if _, err := c.lake.Flags.Create(ctx); err != nil {
+	if _, err := c.lake.Flags.Create(ctx, storage.NewLocalEngine()); err != nil {
 		return err
 	}
 	if !c.lake.Flags.Quiet {

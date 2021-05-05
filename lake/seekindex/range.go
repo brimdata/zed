@@ -17,11 +17,6 @@ func (r Range) Size() int64 {
 	return r.End - r.Start
 }
 
-func (r Range) LimitReader(reader io.ReadSeeker) (io.Reader, error) {
-	if r.Start > 0 {
-		if _, err := reader.Seek(r.Start, io.SeekStart); err != nil {
-			return nil, err
-		}
-	}
-	return io.LimitReader(reader, r.Size()), nil
+func (r Range) Reader(reader io.ReaderAt) (io.Reader, error) {
+	return io.NewSectionReader(reader, r.Start, r.Size()), nil
 }

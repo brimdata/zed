@@ -1,11 +1,11 @@
 package lake
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"os"
 	"sync"
 	"time"
@@ -15,7 +15,7 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -32,8 +32,9 @@ var ErrPoolNotFound = errors.New("pool not found")
 // pool configs in a json file without concurrency control.  We should
 // make this use a journal and check for update conflicts.
 type Root struct {
-	path     iosrc.URI
-	poolPath iosrc.URI
+	engine   storage.Engine
+	path     *storage.URI
+	poolPath *storage.URI
 	configMu sync.Mutex
 	Config
 }
@@ -46,9 +47,10 @@ type Config struct {
 	Indices index.Indices `zng:"indices"`
 }
 
-func newRoot(path iosrc.URI) *Root {
+func newRoot(engine storage.Engine, path *storage.URI) *Root {
 	return &Root{
-		path: path,
+		engine: engine,
+		path:   path,
 		//XXX For now this is just a json file with races,
 		// but we'll eventually put this in a mutable journal.
 		// See issue #2547.
@@ -56,8 +58,8 @@ func newRoot(path iosrc.URI) *Root {
 	}
 }
 
-func Open(ctx context.Context, path iosrc.URI) (*Root, error) {
-	r := newRoot(path)
+func Open(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root, error) {
+	r := newRoot(engine, path)
 	if err := r.LoadConfig(ctx); err != nil {
 		if zqe.IsNotFound(err) {
 			err = fmt.Errorf("%s: no such lake", path)
@@ -67,16 +69,17 @@ func Open(ctx context.Context, path iosrc.URI) (*Root, error) {
 	return r, nil
 }
 
-func Create(ctx context.Context, path iosrc.URI) (*Root, error) {
-	r := newRoot(path)
+func Create(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root, error) {
+	r := newRoot(engine, path)
 	if r.LoadConfig(ctx) == nil {
 		return nil, fmt.Errorf("%s: lake already exists", path)
 	}
-	if err := iosrc.MkdirAll(path, 0700); err != nil {
-		return nil, err
-	}
-	// Write an empty config file since StoreConfig uses iosrc.Replace()
-	if err := iosrc.WriteFile(ctx, r.poolPath, nil); err != nil {
+	//XXX For now, we write an empty config file to indicate that the
+	// lake exists.  This will soon change to a lake config journal to
+	// allow for write-concurrent atomic updates to config saved in
+	// a shared cloud store.
+	empty := storage.NewBytesReader(nil)
+	if err := storage.Put(ctx, engine, r.poolPath, empty); err != nil {
 		return nil, err
 	}
 	if err := r.StoreConfig(ctx); err != nil {
@@ -85,23 +88,29 @@ func Create(ctx context.Context, path iosrc.URI) (*Root, error) {
 	return r, nil
 }
 
-func CreateOrOpen(ctx context.Context, path iosrc.URI) (*Root, error) {
-	r, err := Open(ctx, path)
+func CreateOrOpen(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root, error) {
+	r, err := Open(ctx, engine, path)
 	if err == nil {
 		return r, err
 	}
-	return Create(ctx, path)
+	return Create(ctx, engine, path)
 }
 
 func (r *Root) LoadConfig(ctx context.Context) error {
 	r.configMu.Lock()
 	defer r.configMu.Unlock()
-	rc, err := iosrc.NewReader(ctx, r.poolPath)
+	// XXX currently, we are storing the lake config using a file URL but
+	// cloud instances will write the lake config to the cloud and generally
+	// do not write to the file system (except for logs, /tmp, etc in which
+	// case the storage engine isn't used).  For now, we just create a temp
+	// local storage engine to deal with lake config.  We will fix this soon
+	// when we switch the lake to config to use a key-value journal.
+	local := storage.NewLocalEngine()
+	b, err := storage.Get(ctx, local, r.poolPath)
 	if err != nil {
 		return err
 	}
-	defer rc.Close()
-	if err := json.NewDecoder(rc).Decode(&r.Config); err != nil {
+	if err := json.Unmarshal(b, &r.Config); err != nil {
 		return err
 	}
 	return nil
@@ -115,10 +124,15 @@ func (r *Root) StoreConfig(ctx context.Context) error {
 
 func (r *Root) storeConfig(ctx context.Context) error {
 	uri := r.poolPath
-	err := iosrc.Replace(ctx, uri, func(w io.Writer) error {
-		return json.NewEncoder(w).Encode(r.Config)
-	})
+	//XXX this will soon change to a key-value journal.  for now we write
+	// the new config in its entirety and hope there is no error.
+	b, err := json.Marshal(r.Config)
 	if err != nil {
+		return err
+	}
+	// XXX
+	local := storage.NewLocalEngine()
+	if err := storage.Put(ctx, local, uri, bytes.NewReader(b)); err != nil {
 		return err
 	}
 	if uri.Scheme == "file" {
@@ -210,7 +224,7 @@ func (r *Root) OpenPool(ctx context.Context, id ksuid.KSUID) (*Pool, error) {
 	if poolRef == nil {
 		return nil, ErrPoolNotFound
 	}
-	return poolRef.Open(ctx, r.path)
+	return poolRef.Open(ctx, r.engine, r.path)
 }
 
 func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newname string) error {
@@ -245,10 +259,10 @@ func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout,
 		thresh = segment.DefaultThreshold
 	}
 	poolRef := NewPoolConfig(name, ksuid.New(), layout, thresh)
-	if err := poolRef.Create(ctx, r.path); err != nil {
+	if err := poolRef.Create(ctx, r.engine, r.path); err != nil {
 		return nil, err
 	}
-	pool, err := poolRef.Open(ctx, r.path)
+	pool, err := poolRef.Open(ctx, r.engine, r.path)
 	if err != nil {
 		return nil, err
 	}
@@ -274,7 +288,7 @@ func (r *Root) RemovePool(ctx context.Context, id ksuid.KSUID) error {
 	if hit < 0 {
 		return fmt.Errorf("%s: %w", id, ErrPoolNotFound)
 	}
-	if err := r.Pools[hit].Delete(ctx, r.path); err != nil {
+	if err := r.Pools[hit].Delete(ctx, r.engine, r.path); err != nil {
 		return err
 	}
 	r.Pools = append(r.Pools[:hit], r.Pools[hit+1:]...)

@@ -11,16 +11,15 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/index"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 )
 
-func NewWriter(ctx context.Context, path iosrc.URI, ref *Reference) (*Writer, error) {
+func NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, ref *Reference) (*Writer, error) {
 	rwCh := make(rwChan)
-	indexer, err := newIndexer(ctx, path, ref, rwCh)
+	indexer, err := newIndexer(ctx, engine, path, ref, rwCh)
 	if err != nil {
 		return nil, err
 	}
@@ -37,7 +36,7 @@ func NewWriter(ctx context.Context, path iosrc.URI, ref *Reference) (*Writer, er
 
 type Writer struct {
 	Reference *Reference
-	URI       iosrc.URI
+	URI       *storage.URI
 
 	done    chan struct{}
 	indexer *indexer
@@ -110,7 +109,7 @@ type indexer struct {
 	wg      sync.WaitGroup
 }
 
-func newIndexer(ctx context.Context, path iosrc.URI, ref *Reference, r zio.Reader) (*indexer, error) {
+func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, ref *Reference, r zio.Reader) (*indexer, error) {
 	idx := ref.Index
 	zedQuery, err := idx.zedQuery()
 	if err != nil {
@@ -133,7 +132,7 @@ func newIndexer(ctx context.Context, path iosrc.URI, ref *Reference, r zio.Reade
 	if idx.Framesize > 0 {
 		opts = append(opts, index.FrameThresh(idx.Framesize))
 	}
-	writer, err := newIndexWriter(ctx, zctx, path, ref)
+	writer, err := newIndexWriter(ctx, zctx, engine, path, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -149,16 +148,9 @@ func newIndexer(ctx context.Context, path iosrc.URI, ref *Reference, r zio.Reade
 	}, nil
 }
 
-func newIndexWriter(ctx context.Context, zctx *zson.Context, path iosrc.URI, ref *Reference, opts ...index.Option) (w *index.Writer, err error) {
-	op := ref.ObjectPath(path).String()
-	w, err = index.NewWriterWithContext(ctx, zctx, op, opts...)
-	if zqe.IsNotFound(err) {
-		if err = iosrc.MkdirAll(ref.ObjectDir(path), 0700); err != nil {
-			return nil, err
-		}
-		return index.NewWriterWithContext(ctx, zctx, op, opts...)
-	}
-	return w, err
+func newIndexWriter(ctx context.Context, zctx *zson.Context, engine storage.Engine, path *storage.URI, ref *Reference, opts ...index.Option) (w *index.Writer, err error) {
+	op := ref.ObjectPath(path)
+	return index.NewWriterWithContext(ctx, zctx, engine, op.String(), opts...)
 }
 
 func (d *indexer) start() {

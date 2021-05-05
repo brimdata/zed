@@ -10,7 +10,7 @@ import (
 	zedindex "github.com/brimdata/zed/cmd/zed/index"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -63,11 +63,12 @@ func (c *LookupCommand) Run(args []string) error {
 	if c.keys == "" {
 		return errors.New("must specify one or more comma-separated keys")
 	}
-	uri, err := iosrc.ParseURI(path)
+	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return err
 	}
-	finder, err := index.NewFinder(context.TODO(), zson.NewContext(), uri)
+	local := storage.NewLocalEngine()
+	finder, err := index.NewFinder(context.TODO(), zson.NewContext(), local, uri)
 	if err != nil {
 		return err
 	}
@@ -92,7 +93,7 @@ func (c *LookupCommand) Run(args []string) error {
 		}
 		close(hits)
 	}()
-	writer, err := c.outputFlags.Open(ctx)
+	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}

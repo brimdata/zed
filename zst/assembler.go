@@ -4,6 +4,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zst/column"
@@ -17,7 +18,7 @@ type Assembly struct {
 	columns []*zng.Record
 }
 
-func NewAssembler(a *Assembly, seeker Seeker) (*Assembler, error) {
+func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 	assembler := &Assembler{
 		root:    &column.Int{},
 		schemas: a.schemas,

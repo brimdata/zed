@@ -18,12 +18,15 @@ type Reader struct {
 	bucket string
 	key    string
 	size   int64
-
 	offset int64
 	body   io.ReadCloser
 }
 
 func NewReader(ctx context.Context, path string, client s3iface.S3API) (*Reader, error) {
+	// XXX This stat creates an extra round-trip for every Get().  We should
+	// do it only when we need to.  The object size can be cached on the first
+	// read response, but better it will be in the metadata in the common case
+	// when it's needed a we won't need a stat at all.  See issue #2687.
 	info, err := Stat(ctx, path, client)
 	if err != nil {
 		return nil, err
@@ -40,6 +43,11 @@ func NewReader(ctx context.Context, path string, client s3iface.S3API) (*Reader,
 		size:   info.Size,
 	}, nil
 }
+
+// XXX This seek emulation can be removed since package storage trivially
+// converts an io.ReaderAt inteface (which is also implemented here) using
+// io.NewSectionBuilder(r, 0, length of object).  This can be removed as
+// part of the work in #2687.
 
 func (r *Reader) Seek(offset int64, whence int) (int64, error) {
 	switch whence {
@@ -138,4 +146,8 @@ func (r *Reader) makeRequest(off int64, count int64) (io.ReadCloser, error) {
 		return nil, err
 	}
 	return res.Body, nil
+}
+
+func (r *Reader) Size() (int64, error) {
+	return r.size, nil
 }

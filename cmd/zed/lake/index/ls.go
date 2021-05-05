@@ -7,6 +7,7 @@ import (
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 var Ls = &charm.Spec{
@@ -37,11 +38,12 @@ func (c *LsCommand) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	root, err := c.lake.Open(ctx)
+	local := storage.NewLocalEngine()
+	root, err := c.lake.Open(ctx, local)
 	if err != nil {
 		return err
 	}
-	w, err := c.outputFlags.Open(ctx)
+	w, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}

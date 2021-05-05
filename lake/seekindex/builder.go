@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -20,9 +21,9 @@ type Builder struct {
 	writer  *index.Writer
 }
 
-func NewBuilder(ctx context.Context, path string, o order.Which) (*Builder, error) {
+func NewBuilder(ctx context.Context, engine storage.Engine, path string, o order.Which) (*Builder, error) {
 	zctx := zson.NewContext()
-	writer, err := index.NewWriterWithContext(ctx, zctx, path, index.Order(o), index.Keys("ts"))
+	writer, err := index.NewWriterWithContext(ctx, zctx, engine, path, index.Order(o), index.Keys("ts"))
 	if err != nil {
 		return nil, err
 	}

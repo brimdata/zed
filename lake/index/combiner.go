@@ -3,7 +3,7 @@ package index
 import (
 	"context"
 
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zng"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/multierr"
@@ -11,11 +11,11 @@ import (
 
 type Combiner []*Writer
 
-func NewCombiner(ctx context.Context, path iosrc.URI, rules []Index, segmentID ksuid.KSUID) (Combiner, error) {
+func NewCombiner(ctx context.Context, engine storage.Engine, path *storage.URI, rules []Index, segmentID ksuid.KSUID) (Combiner, error) {
 	writers := make(Combiner, 0, len(rules))
 	for _, rule := range rules {
 		ref := &Reference{Index: rule, SegmentID: segmentID}
-		w, err := NewWriter(ctx, path, ref)
+		w, err := NewWriter(ctx, engine, path, ref)
 		if err != nil {
 			writers.Abort()
 			return nil, err

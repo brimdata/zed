@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
@@ -68,15 +68,16 @@ func (w *Writer) Close() error {
 
 type WriterURI struct {
 	Writer
-	uri iosrc.URI
+	engine storage.Engine
+	uri    *storage.URI
 }
 
-func NewWriterFromPath(ctx context.Context, path string, skewThresh, segThresh int) (*WriterURI, error) {
-	uri, err := iosrc.ParseURI(path)
+func NewWriterFromPath(ctx context.Context, engine storage.Engine, path string, skewThresh, segThresh int) (*WriterURI, error) {
+	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, err
 	}
-	w, err := iosrc.NewWriter(ctx, uri)
+	w, err := engine.Put(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +85,11 @@ func NewWriterFromPath(ctx context.Context, path string, skewThresh, segThresh i
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", uri, err)
 	}
-	return &WriterURI{*writer, uri}, nil
+	return &WriterURI{
+		Writer: *writer,
+		engine: engine,
+		uri:    uri,
+	}, nil
 }
 
 func checkThresh(which string, max, thresh int) error {
@@ -129,7 +134,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 // with it.
 func (w *WriterURI) Abort(ctx context.Context) error {
 	firstErr := w.writer.Close()
-	if err := iosrc.Remove(ctx, w.uri); firstErr == nil {
+	if err := w.engine.DeleteByPrefix(ctx, w.uri); firstErr == nil {
 		firstErr = err
 	}
 	return firstErr

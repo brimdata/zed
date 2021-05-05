@@ -1,21 +1,23 @@
-package immcache
+package cache
 
 import (
 	"context"
 	"path"
 
 	"github.com/brimdata/zed/lake/segment"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/prometheus/client_golang/prometheus"
 )
 
 type LocalCache struct {
+	storage.Engine
 	metrics
-	lru *lru.ARCCache
+	lru       *lru.ARCCache
+	cacheable Cacheable
 }
 
-func NewLocalCache(size int, registerer prometheus.Registerer) (*LocalCache, error) {
+func NewLocalCache(engine storage.Engine, cacheable Cacheable, size int, registerer prometheus.Registerer) (*LocalCache, error) {
 	lru, err := lru.NewARC(size)
 	if err != nil {
 		return nil, err
@@ -24,18 +26,23 @@ func NewLocalCache(size int, registerer prometheus.Registerer) (*LocalCache, err
 		registerer = prometheus.NewRegistry()
 	}
 	return &LocalCache{
-		metrics: newMetrics(registerer),
-		lru:     lru,
+		Engine:    engine,
+		metrics:   newMetrics(registerer),
+		cacheable: cacheable,
+		lru:       lru,
 	}, nil
 }
 
-func (c *LocalCache) ReadFile(ctx context.Context, u iosrc.URI) ([]byte, error) {
+func (c *LocalCache) Get(ctx context.Context, u *storage.URI) (storage.Reader, error) {
+	if !c.cacheable(u) {
+		return c.Engine.Get(ctx, u)
+	}
 	kind, _, _ := segment.FileMatch(path.Base(u.Path))
 	if v, ok := c.lru.Get(u.String()); ok {
 		c.hits.WithLabelValues(kind.Description()).Inc()
-		return v.([]byte), nil
+		return storage.NewBytesReader(v.([]byte)), nil
 	}
-	b, err := iosrc.ReadFile(ctx, u)
+	b, err := c.Engine.Get(ctx, u)
 	if err != nil {
 		return nil, err
 	}

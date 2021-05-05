@@ -1,6 +1,7 @@
-package iosrc
+package storage
 
 import (
+	"net/url"
 	"path/filepath"
 )
 
@@ -13,7 +14,12 @@ func parseBarePath(path string) (URI, error) {
 		// Add leading '/' to paths beginning with a drive letter.
 		path = "/" + path
 	}
-	return URI{Scheme: FileScheme, Path: filepath.ToSlash(path)}, nil
+	path = filepath.ToSlash(path)
+	u, err := url.Parse("file://" + path)
+	if err != nil {
+		return URI{}, err
+	}
+	return URI{u}, nil
 }
 
 func (p URI) Filepath() string {

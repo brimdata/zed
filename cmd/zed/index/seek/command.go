@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/fs"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -78,7 +79,7 @@ func (c *Command) Run(args []string) error {
 	zctx := zson.NewContext()
 	reader := zngio.NewReader(file, zctx)
 	keys := field.DottedList(c.keyField)
-	writer, err := index.NewWriter(zctx, c.outputFile, index.KeyFields(keys...), index.FrameThresh(c.frameThresh))
+	writer, err := index.NewWriter(zctx, storage.NewLocalEngine(), c.outputFile, index.KeyFields(keys...), index.FrameThresh(c.frameThresh))
 	if err != nil {
 		return err
 	}

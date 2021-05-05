@@ -6,25 +6,21 @@ import (
 	"os"
 
 	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 )
 
-func NewFile(ctx context.Context, path string, opts anyio.WriterOpts) (zio.WriteCloser, error) {
+func NewFileFromPath(ctx context.Context, engine storage.Engine, path string, opts anyio.WriterOpts) (zio.WriteCloser, error) {
 	if path == "" {
-		path = "stdout"
+		path = "stdio:stdout"
 	}
-	uri, err := iosrc.ParseURI(path)
+	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, err
 	}
-	src, err := iosrc.GetSource(uri)
-	if err != nil {
-		return nil, err
-	}
-	return NewFileWithSource(ctx, uri, opts, src)
+	return NewFileFromURI(ctx, engine, uri, opts)
 }
 
 func IsTerminal(w io.Writer) bool {
@@ -34,8 +30,8 @@ func IsTerminal(w io.Writer) bool {
 	return false
 }
 
-func NewFileWithSource(ctx context.Context, path iosrc.URI, opts anyio.WriterOpts, source iosrc.Source) (zio.WriteCloser, error) {
-	f, err := source.NewWriter(ctx, path)
+func NewFileFromURI(ctx context.Context, engine storage.Engine, path *storage.URI, opts anyio.WriterOpts) (zio.WriteCloser, error) {
+	f, err := engine.Put(ctx, path)
 	if err != nil {
 		return nil, err
 	}

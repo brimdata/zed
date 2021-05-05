@@ -3,6 +3,7 @@ package zst
 import (
 	"context"
 
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
@@ -29,8 +30,8 @@ func NewReader(object *Object) (*Reader, error) {
 
 }
 
-func NewReaderFromPath(ctx context.Context, zctx *zson.Context, path string) (*Reader, error) {
-	object, err := NewObjectFromPath(ctx, zctx, path)
+func NewReaderFromPath(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string) (*Reader, error) {
+	object, err := NewObjectFromPath(ctx, zctx, engine, path)
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +43,7 @@ func NewReaderFromPath(ctx context.Context, zctx *zson.Context, path string) (*R
 	return reader, nil
 }
 
-func NewReaderFromSeeker(zctx *zson.Context, seeker Seeker) (*Reader, error) {
+func NewReaderFromSeeker(zctx *zson.Context, seeker *storage.Seeker) (*Reader, error) {
 	object, err := NewObjectFromSeeker(zctx, seeker)
 	if err != nil {
 		return nil, err

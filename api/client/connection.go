@@ -14,6 +14,7 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/go-resty/resty/v2"
 	"github.com/segmentio/ksuid"
 )
@@ -32,13 +33,17 @@ var (
 )
 
 type Connection struct {
-	client *resty.Client
+	client  *resty.Client
+	storage storage.Engine
 }
 
 func newConnection(client *resty.Client) *Connection {
 	client.SetError(api.Error{})
 	client.OnAfterResponse(checkError)
-	c := &Connection{client: client}
+	c := &Connection{
+		client:  client,
+		storage: storage.NewLocalEngine(),
+	}
 	c.SetUserAgent(DefaultUserAgent)
 	return c
 }
@@ -320,15 +325,15 @@ func (c *Connection) LogPostPath(ctx context.Context, id ksuid.KSUID, opts *LogP
 }
 
 func (c *Connection) LogPost(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, paths ...string) (api.LogPostResponse, error) {
-	w, err := MultipartFileWriter(paths...)
+	w, err := NewMultipartWriter(c.storage, paths...)
 	if err != nil {
 		return api.LogPostResponse{}, err
 	}
 	return c.LogPostWriter(ctx, id, opts, w)
 }
 
-func (c *Connection) LogPostReaders(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, readers ...io.Reader) (api.LogPostResponse, error) {
-	w, err := MultipartDataWriter(readers...)
+func (c *Connection) LogPostReaders(ctx context.Context, engine storage.Engine, id ksuid.KSUID, opts *LogPostOpts, readers ...io.Reader) (api.LogPostResponse, error) {
+	w, err := MultipartDataWriter(engine, readers...)
 	if err != nil {
 		return api.LogPostResponse{}, err
 	}

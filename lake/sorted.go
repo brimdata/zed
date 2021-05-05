@@ -51,7 +51,7 @@ func newSortedScanner(ctx context.Context, pool *Pool, zctx *zson.Context, filte
 	pullers := make([]zbuf.Puller, 0, len(scan.Segments))
 	span := scan.Span()
 	for _, segref := range scan.Segments {
-		rc, err := segref.NewReader(ctx, pool.DataPath, span)
+		rc, err := segref.NewReader(ctx, pool.engine, pool.DataPath, span)
 		if err != nil {
 			closers.Close()
 			return nil, err

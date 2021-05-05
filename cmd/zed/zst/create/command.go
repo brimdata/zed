@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -70,7 +71,8 @@ func (c *Command) Run(args []string) error {
 		return errors.New("must specify one or more input files")
 	}
 	zctx := zson.NewContext()
-	readers, err := c.inputFlags.Open(zctx, args, true)
+	local := storage.NewLocalEngine()
+	readers, err := c.inputFlags.Open(zctx, local, args, true)
 	if err != nil {
 		return err
 	}
@@ -79,7 +81,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	writer, err := c.outputFlags.Open(context.TODO())
+	writer, err := c.outputFlags.Open(context.TODO(), local)
 	if err != nil {
 		return err
 	}

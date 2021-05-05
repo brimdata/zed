@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
 	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 // result converts an error into response structure expected
@@ -52,7 +53,8 @@ func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err er
 	}
 
 	zctx := zson.NewContext()
-	rc, err := anyio.OpenFile(zctx, inpath, anyio.ReaderOpts{
+	local := storage.NewLocalEngine()
+	rc, err := anyio.OpenFile(zctx, local, inpath, anyio.ReaderOpts{
 		Format: informat,
 	})
 	if err != nil {
@@ -60,7 +62,7 @@ func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err er
 	}
 	defer rc.Close()
 
-	w, err := emitter.NewFile(context.Background(), outpath, anyio.WriterOpts{
+	w, err := emitter.NewFileFromPath(context.Background(), local, outpath, anyio.WriterOpts{
 		Format: outformat,
 	})
 	if err != nil {

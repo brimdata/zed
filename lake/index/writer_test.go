@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
@@ -56,8 +56,8 @@ func TestWriterError(t *testing.T) {
 }
 
 func testWriter(t *testing.T, ref Reference) *Writer {
-	path := iosrc.MustParseURI(t.TempDir())
-	w, err := NewWriter(context.Background(), path, &ref)
+	path := storage.MustParseURI(t.TempDir())
+	w, err := NewWriter(context.Background(), storage.NewLocalEngine(), path, &ref)
 	require.NoError(t, err)
 	return w
 }

@@ -9,6 +9,7 @@ import (
 	zedindex "github.com/brimdata/zed/cmd/zed/index"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
@@ -56,12 +57,13 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zed index section: must be run with a single path argument")
 	}
 	path := args[0]
-	reader, err := index.NewReader(zson.NewContext(), path)
+	local := storage.NewLocalEngine()
+	reader, err := index.NewReader(zson.NewContext(), local, path)
 	if err != nil {
 		return err
 	}
 	defer reader.Close()
-	writer, err := c.outputFlags.Open(context.TODO())
+	writer, err := c.outputFlags.Open(context.TODO(), local)
 	if err != nil {
 		return err
 	}
