@@ -223,7 +223,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 			return nil, err
 		}
 		as, err := compileLval(v.As)
-		if len(as) > 1 || len(as) == 0 {
+		if len(as) != 1 {
 			return nil, errors.New("explode field must be a top-level field")
 		}
 		return explode.New(b.pctx.Zctx, parent, args, typ, as.Leaf())
