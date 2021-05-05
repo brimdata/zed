@@ -15,54 +15,54 @@ func NewRoot() Path {
 	return Path{}
 }
 
-func (f Path) String() string {
-	if len(f) == 0 {
+func (p Path) String() string {
+	if len(p) == 0 {
 		return "this"
 	}
-	return strings.Join(f, ".")
+	return strings.Join(p, ".")
 }
 
-func (f Path) Leaf() string {
-	return f[len(f)-1]
+func (p Path) Leaf() string {
+	return p[len(p)-1]
 }
 
-func (f Path) Equal(to Path) bool {
-	if f == nil {
+func (p Path) Equal(to Path) bool {
+	if p == nil {
 		return to == nil
 	}
 	if to == nil {
 		return false
 	}
-	if len(f) != len(to) {
+	if len(p) != len(to) {
 		return false
 	}
-	for k := range f {
-		if f[k] != to[k] {
+	for k := range p {
+		if p[k] != to[k] {
 			return false
 		}
 	}
 	return true
 }
 
-func (f Path) IsRoot() bool {
-	return len(f) == 0
+func (p Path) IsRoot() bool {
+	return len(p) == 0
 }
 
-func (f Path) HasStrictPrefix(prefix Path) bool {
-	return len(f) > len(prefix) && prefix.Equal(f[:len(prefix)])
+func (p Path) HasStrictPrefix(prefix Path) bool {
+	return len(p) > len(prefix) && prefix.Equal(p[:len(prefix)])
 }
 
-func (f Path) HasPrefix(prefix Path) bool {
-	return len(f) >= len(prefix) && prefix.Equal(f[:len(prefix)])
+func (p Path) HasPrefix(prefix Path) bool {
+	return len(p) >= len(prefix) && prefix.Equal(p[:len(prefix)])
 }
 
-func (f Path) In(list List) bool {
-	return list.Has(f)
+func (p Path) In(list List) bool {
+	return list.Has(p)
 }
 
-func (f Path) HasPrefixIn(set []Path) bool {
+func (p Path) HasPrefixIn(set []Path) bool {
 	for _, item := range set {
-		if f.HasPrefix(item) {
+		if p.HasPrefix(item) {
 			return true
 		}
 	}
