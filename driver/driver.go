@@ -316,11 +316,7 @@ func (r *Reader) Close() error {
 }
 
 func NewReader(ctx context.Context, program ast.Proc, zctx *zson.Context, reader zio.Reader) (*Reader, error) {
-	return NewReaderWithLogger(ctx, nil, program, zctx, reader)
-}
-
-func NewReaderWithLogger(ctx context.Context, logger *zap.Logger, program ast.Proc, zctx *zson.Context, reader zio.Reader) (*Reader, error) {
-	pctx := proc.NewContext(ctx, zctx, logger)
+	pctx := proc.NewContext(ctx, zctx, nil)
 	runtime, err := compiler.CompileForInternal(pctx, program, reader)
 	if err != nil {
 		pctx.Cancel()

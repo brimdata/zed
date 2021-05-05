@@ -98,33 +98,19 @@ func (i Index) Equivalent(r2 Index) bool {
 	return true
 }
 
+const keyName = "key"
+
 func (i Index) zedQuery() (string, error) {
 	switch i.Kind {
 	case IndexType:
-		return i.typeProc()
+		return fmt.Sprintf("explode this by %s as %s | count() by %s | sort %s", i.Value, keyName, keyName, keyName), nil
 	case IndexField:
-		return i.fieldProc()
+		return fmt.Sprintf("cut %s=%s | count() by %s | sort %s", keyName, i.Value, keyName, keyName), nil
 	case IndexZed:
-		return i.zqlProc()
+		return i.Value, nil
 	default:
 		return "", fmt.Errorf("unknown index kind: %s", i.Kind)
 	}
-}
-
-const keyName = "key"
-
-// NewFieldRule creates an index that will index all fields of
-// the type passed in as argument.
-func (i Index) typeProc() (string, error) {
-	return fmt.Sprintf("explode this by %s as %s | count() by %s | sort %s", i.Value, keyName, keyName, keyName), nil
-}
-
-func (i Index) fieldProc() (string, error) {
-	return fmt.Sprintf("cut %s=%s | count() by %s | sort %s", keyName, i.Value, keyName, keyName), nil
-}
-
-func (i Index) zqlProc() (string, error) {
-	return i.Value, nil
 }
 
 func (i Index) String() string {
