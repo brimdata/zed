@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -99,76 +98,19 @@ func (i Index) Equivalent(r2 Index) bool {
 	return true
 }
 
-func (i Index) Proc() (ast.Proc, error) {
+const keyName = "key"
+
+func (i Index) zedQuery() (string, error) {
 	switch i.Kind {
 	case IndexType:
-		return i.typeProc()
+		return fmt.Sprintf("explode this by %s as %s | count() by %s | sort %s", i.Value, keyName, keyName, keyName), nil
 	case IndexField:
-		return i.fieldProc()
+		return fmt.Sprintf("cut %s=%s | count() by %s | sort %s", keyName, i.Value, keyName, keyName), nil
 	case IndexZed:
-		return i.zqlProc()
+		return i.Value, nil
 	default:
-		return nil, fmt.Errorf("unknown index kind: %s", i.Kind)
+		return "", fmt.Errorf("unknown index kind: %s", i.Kind)
 	}
-}
-
-var keyName = field.New("key")
-
-var keyAst = ast.Assignment{
-	Kind: "Assignment",
-	LHS:  ast.NewDotExpr(keyName),
-	RHS:  ast.NewDotExpr(keyName),
-}
-var countAst = ast.NewAggAssignment("count", nil, nil)
-
-// NewFieldRule creates an index that will index all fields of
-// the type passed in as argument.
-func (i Index) typeProc() (ast.Proc, error) {
-	return &ast.Sequential{
-		Kind: "Sequential",
-		Procs: []ast.Proc{
-			&ast.TypeSplitter{
-				Kind:     "TypeSplitter",
-				Key:      keyName,
-				TypeName: i.Value,
-			},
-			&ast.Summarize{
-				Kind: "Summarize",
-				Keys: []ast.Assignment{keyAst},
-				Aggs: []ast.Assignment{countAst},
-			},
-			&ast.Sort{
-				Kind: "Sort",
-				Args: []ast.Expr{ast.NewDotExpr(keyName)},
-			},
-		},
-	}, nil
-}
-
-func (i Index) fieldProc() (ast.Proc, error) {
-	return &ast.Sequential{
-		Kind: "Sequential",
-		Procs: []ast.Proc{
-			&ast.FieldCutter{
-				Kind:  "FieldCutter",
-				Field: field.Dotted(i.Value),
-				Out:   keyName,
-			},
-			&ast.Summarize{
-				Kind: "Summarize",
-				Keys: []ast.Assignment{keyAst},
-				Aggs: []ast.Assignment{countAst},
-			},
-			&ast.Sort{
-				Kind: "Sort",
-				Args: []ast.Expr{ast.NewDotExpr(keyName)},
-			},
-		},
-	}, nil
-}
-
-func (i Index) zqlProc() (ast.Proc, error) {
-	return compiler.ParseProc(i.Value)
 }
 
 func (i Index) String() string {

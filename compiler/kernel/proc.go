@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/combine"
+	"github.com/brimdata/zed/proc/explode"
 	"github.com/brimdata/zed/proc/from"
 	"github.com/brimdata/zed/proc/fuse"
 	"github.com/brimdata/zed/proc/head"
@@ -39,7 +40,6 @@ type Builder struct {
 	scope      *Scope
 	adaptor    proc.DataAdaptor
 	schedulers map[*dag.Pool]proc.Scheduler
-	Custom     Hook //XXX
 }
 
 func NewBuilder(pctx *proc.Context, adaptor proc.DataAdaptor) *Builder {
@@ -62,8 +62,6 @@ type Reader struct {
 func (*Reader) Source() {}
 
 var _ dag.Source = (*Reader)(nil)
-
-type Hook func(dag.Op, *proc.Context, proc.Interface) (proc.Interface, error)
 
 func isContainerOp(op dag.Op) bool {
 	switch op.(type) {
@@ -93,15 +91,6 @@ func (b *Builder) CompileFilter(e dag.Expr) (expr.Filter, error) {
 }
 
 func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface, error) {
-	if b.Custom != nil {
-		p, err := b.Custom(op, b.pctx, parent)
-		if err != nil {
-			return nil, err
-		}
-		if p != nil {
-			return p, err
-		}
-	}
 	switch v := op.(type) {
 	case *dag.Summarize:
 		return compileGroupBy(b.pctx, b.scope, parent, v)
@@ -224,6 +213,20 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 		return shape.New(b.pctx, parent)
 	case *dag.Join:
 		return nil, ErrJoinParents
+	case *dag.Explode:
+		typ, err := zson.TranslateType(b.pctx.Zctx, v.Type)
+		if err != nil {
+			return nil, err
+		}
+		args, err := compileExprs(b.pctx.Zctx, b.scope, v.Args)
+		if err != nil {
+			return nil, err
+		}
+		as, err := compileLval(v.As)
+		if len(as) != 1 {
+			return nil, errors.New("explode field must be a top-level field")
+		}
+		return explode.New(b.pctx.Zctx, parent, args, typ, as.Leaf())
 	default:
 		return nil, fmt.Errorf("unknown AST proc type: %v", v)
 
@@ -336,8 +339,7 @@ func (b *Builder) compileSwitch(swtch *dag.Switch, parents []proc.Interface) ([]
 }
 
 // compile compiles a DAG into a graph of runtime operators, and returns
-// the leaves.  A custom compiler hook can be included and it will be tried first
-// for each op encountered during the compilation.
+// the leaves.
 func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface, error) {
 	switch op := op.(type) {
 	case *dag.Sequential:

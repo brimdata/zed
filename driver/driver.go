@@ -12,7 +12,6 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/mux"
@@ -31,15 +30,9 @@ type Driver interface {
 	Stats(api.ScannerStats) error
 }
 
-type Config struct {
-	Custom    kernel.Hook
-	Logger    *zap.Logger
-	StatsTick <-chan time.Time
-}
-
-func RunWithReader(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zio.Reader, cfg Config) error {
-	pctx := proc.NewContext(ctx, zctx, cfg.Logger)
-	runtime, err := compiler.CompileForInternal(pctx, program, reader, cfg.Custom)
+func RunWithReader(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zio.Reader, logger *zap.Logger) error {
+	pctx := proc.NewContext(ctx, zctx, logger)
+	runtime, err := compiler.CompileForInternal(pctx, program, reader)
 	if err != nil {
 		pctx.Cancel()
 		return err
@@ -270,9 +263,9 @@ func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
 
 // Copy applies a proc to all records from a zbuf.Reader, writing to a
 // single zbuf.Writer. The proc must have a single tail.
-func Copy(ctx context.Context, w zio.Writer, prog ast.Proc, zctx *zson.Context, r zio.Reader, cfg Config) error {
+func Copy(ctx context.Context, w zio.Writer, prog ast.Proc, zctx *zson.Context, r zio.Reader, logger *zap.Logger) error {
 	d := &transformDriver{w: w}
-	return RunWithReader(ctx, d, prog, zctx, r, cfg)
+	return RunWithReader(ctx, d, prog, zctx, r, logger)
 }
 
 // Reader implements zio.ReaderCloser and Driver.
@@ -328,12 +321,8 @@ func (r *Reader) Close() error {
 }
 
 func NewReader(ctx context.Context, program ast.Proc, zctx *zson.Context, reader zio.Reader) (*Reader, error) {
-	return NewReaderWithConfig(ctx, Config{}, program, zctx, reader)
-}
-
-func NewReaderWithConfig(ctx context.Context, conf Config, program ast.Proc, zctx *zson.Context, reader zio.Reader) (*Reader, error) {
-	pctx := proc.NewContext(ctx, zctx, conf.Logger)
-	runtime, err := compiler.CompileForInternal(pctx, program, reader, conf.Custom)
+	pctx := proc.NewContext(ctx, zctx, nil)
+	runtime, err := compiler.CompileForInternal(pctx, program, reader)
 	if err != nil {
 		pctx.Cancel()
 		return nil, err

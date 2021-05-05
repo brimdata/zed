@@ -456,17 +456,32 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			return nil, errors.New("unable to covert SQL expression to Z")
 		}
 		return converted, nil
-	case *ast.FieldCutter:
-		return &dag.FieldCutter{
-			Kind:  "FieldCutter",
-			Field: p.Field,
-			Out:   p.Out,
-		}, nil
-	case *ast.TypeSplitter:
-		return &dag.TypeSplitter{
-			Kind:     "TypeSplitter",
-			Key:      p.Key,
-			TypeName: p.TypeName,
+	case *ast.Explode:
+		typ, err := semType(scope, p.Type)
+		if err != nil {
+			return nil, err
+		}
+		args, err := semExprs(scope, p.Args)
+		if err != nil {
+			return nil, err
+		}
+		var as dag.Expr
+		if p.As == nil {
+			as = &dag.Path{
+				Kind: "Path",
+				Name: field.New("value"),
+			}
+		} else {
+			as, err = semExpr(scope, p.As)
+			if err != nil {
+				return nil, err
+			}
+		}
+		return &dag.Explode{
+			Kind: "Explode",
+			Args: args,
+			Type: typ,
+			As:   as,
 		}, nil
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST type: %v", p)

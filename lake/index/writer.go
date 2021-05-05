@@ -112,19 +112,22 @@ type indexer struct {
 
 func newIndexer(ctx context.Context, path iosrc.URI, ref *Reference, r zio.Reader) (*indexer, error) {
 	idx := ref.Index
-	proc, err := idx.Proc()
+	zedQuery, err := idx.zedQuery()
+	if err != nil {
+		return nil, err
+	}
+	p, err := compiler.ParseProc(zedQuery)
 	if err != nil {
 		return nil, err
 	}
 	zctx := zson.NewContext()
-	conf := driver.Config{Custom: compile}
-	fgr, err := driver.NewReaderWithConfig(ctx, conf, proc, zctx, r)
+	fgr, err := driver.NewReader(ctx, p, zctx, r)
 	if err != nil {
 		return nil, err
 	}
 	keys := idx.Keys
 	if len(keys) == 0 {
-		keys = field.List{keyName}
+		keys = field.List{field.Dotted(keyName)}
 	}
 	opts := []index.Option{index.KeyFields(keys...)}
 	if idx.Framesize > 0 {

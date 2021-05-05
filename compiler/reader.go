@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
@@ -16,7 +15,7 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-func CompileForInternal(pctx *proc.Context, p ast.Proc, r zio.Reader, custom kernel.Hook) (*Runtime, error) {
+func CompileForInternal(pctx *proc.Context, p ast.Proc, r zio.Reader) (*Runtime, error) {
 	adaptor := &internalAdaptor{}
 	runtime, err := New(pctx, p, adaptor)
 	if err != nil {
@@ -36,7 +35,7 @@ func CompileForInternal(pctx *proc.Context, p ast.Proc, r zio.Reader, custom ker
 	// any parallelization right now though this could be potentially
 	// beneficial depending on where the bottleneck is for a given shaper.
 	// See issue #2641.
-	if err := runtime.BuildCustom(custom); err != nil {
+	if err := runtime.Build(); err != nil {
 		return nil, err
 	}
 	return runtime, nil
@@ -63,7 +62,7 @@ func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, l
 	// any parallelization right now though this could be potentially
 	// beneficial depending on where the bottleneck is for a given shaper.
 	// See issue #2641.
-	if err := runtime.BuildCustom(nil); err != nil {
+	if err := runtime.Build(); err != nil {
 		return nil, err
 	}
 	return runtime, nil

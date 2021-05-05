@@ -74,7 +74,7 @@ func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err er
 	}()
 
 	d := driver.NewCLI(w)
-	return driver.RunWithReader(context.Background(), d, query, zctx, rc, driver.Config{})
+	return driver.RunWithReader(context.Background(), d, query, zctx, rc, nil)
 }
 
 func main() {}
