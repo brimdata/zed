@@ -138,9 +138,6 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 		case p := <-pullerCh:
 			if p == nil {
 				err := <-done
-				if err == nil && statser != nil {
-					err = d.Stats(api.ScannerStats(statser.Stats()))
-				}
 				// Now that we're done, drain the warnings.
 				// This is a little goofy and we should clean
 				// up the warnings model with its own package.
@@ -156,6 +153,11 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 				if len(runtime.Outputs()) == 1 {
 					if endErr := d.ChannelEnd(0); err == nil {
 						err = endErr
+					}
+				}
+				if statser != nil {
+					if statsErr := d.Stats(api.ScannerStats(statser.Stats())); err == nil {
+						err = statsErr
 					}
 				}
 				return err
