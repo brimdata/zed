@@ -1,12 +1,15 @@
 package resolver
 
 import (
+	"sync"
+
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
 type Mapper struct {
 	Slice
+	mu        sync.RWMutex
 	outputCtx *zson.Context
 }
 
@@ -19,6 +22,8 @@ func NewMapper(out *zson.Context) *Mapper {
 // the type mapping is unknown to it.  The output side is assumed to be shared
 // while the input side owned by one thread of control.
 func (m *Mapper) Map(td int) zng.Type {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
 	return m.Lookup(td)
 }
 
@@ -29,7 +34,7 @@ func (m *Mapper) Enter(id int, ext zng.Type) (zng.Type, error) {
 		return nil, err
 	}
 	if typ != nil {
-		m.Slice.Enter(id, typ)
+		m.EnterType(id, typ)
 		return typ, nil
 	}
 	return nil, nil
@@ -37,11 +42,17 @@ func (m *Mapper) Enter(id int, ext zng.Type) (zng.Type, error) {
 
 func (m *Mapper) Translate(foreign zng.Type) (zng.Type, error) {
 	id := foreign.ID()
-	if local := m.Map(id); local != nil {
+	m.mu.RLock()
+	local := m.Map(id)
+	m.mu.RUnlock()
+	if local != nil {
 		return local, nil
 	}
 	return m.Enter(id, foreign)
 }
+
 func (m *Mapper) EnterType(td int, typ zng.Type) {
+	m.mu.Lock()
 	m.Slice.Enter(td, typ)
+	m.mu.Unlock()
 }
