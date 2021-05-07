@@ -67,11 +67,8 @@ func (r *Reader) Read() (*zng.Record, error) {
 }
 
 func (r *Reader) init(hdr []string) {
-	h := make([]string, 0, len(hdr))
-	for _, s := range hdr {
-		h = append(h, s)
-	}
-	r.hdr = h
+	r.hdr = make([]string, len(hdr))
+	copy(r.hdr, hdr)
 	r.vals = make([]interface{}, len(hdr))
 }
 
