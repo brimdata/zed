@@ -86,7 +86,7 @@ func (b *builder) parseRecord(typ *zng.TypeRecord, in []string) ([]string, error
 }
 
 func (b *builder) parseArray(typ *zng.TypeArray, in string) error {
-	inner := zng.InnerType(zng.AliasOf(typ))
+	inner := zng.InnerType(typ)
 	if len(in) == 0 {
 		return nil
 	}
@@ -126,7 +126,7 @@ func (b *builder) parseArray(typ *zng.TypeArray, in string) error {
 }
 
 func (b *builder) parseSet(typ *zng.TypeSet, in string) error {
-	inner := zng.InnerType(zng.AliasOf(typ))
+	inner := zng.InnerType(typ)
 	if len(in) == 0 {
 		return nil
 	}
