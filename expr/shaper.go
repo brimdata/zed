@@ -104,20 +104,6 @@ func isCollectionType(t zng.Type) bool {
 	return false
 }
 
-// This is similar to zng.InnerType except it handles aliases. Should
-// be unified, see #2270.
-func innerType(t zng.Type) zng.Type {
-	switch t := t.(type) {
-	case *zng.TypeAlias:
-		return innerType(t.Type)
-	case *zng.TypeArray:
-		return t.Type
-	case *zng.TypeSet:
-		return t.Type
-	}
-	return nil
-}
-
 func createStep(in, out zng.Type) (step, error) {
 	switch {
 	case in.ID() == out.ID():
@@ -132,10 +118,10 @@ func createStep(in, out zng.Type) (step, error) {
 		return step{op: castPrimitive, castTypes: struct{ from, to zng.Type }{in, out}}, nil
 	case isCollectionType(in):
 		if _, ok := out.(*zng.TypeArray); ok {
-			return createStepArray(innerType(in), innerType(out))
+			return createStepArray(zng.InnerType(in), zng.InnerType(out))
 		}
 		if _, ok := out.(*zng.TypeSet); ok {
-			return createStepSet(innerType(in), innerType(out))
+			return createStepSet(zng.InnerType(in), zng.InnerType(out))
 		}
 		fallthrough
 	default:
@@ -450,9 +436,11 @@ func orderRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.Type
 				}
 				continue
 			}
-			if isCollectionType(inCol.Type) && isCollectionType(specCol.Type) && zng.IsRecordType(innerType(inCol.Type)) && zng.IsRecordType(innerType(specCol.Type)) {
-				inInner := zng.AliasOf(innerType(inCol.Type))
-				specInner := zng.AliasOf(innerType(specCol.Type))
+			if isCollectionType(inCol.Type) && isCollectionType(specCol.Type) &&
+				zng.IsRecordType(zng.InnerType(inCol.Type)) &&
+				zng.IsRecordType(zng.InnerType(specCol.Type)) {
+				inInner := zng.AliasOf(zng.InnerType(inCol.Type))
+				specInner := zng.AliasOf(zng.InnerType(specCol.Type))
 				if inner, err := orderRecordType(zctx, inInner.(*zng.TypeRecord), specInner.(*zng.TypeRecord)); err != nil {
 					return nil, err
 				} else {
@@ -506,8 +494,8 @@ func fillRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeR
 				continue
 			}
 			if isCollectionType(inType) && isCollectionType(specType) {
-				inInner := zng.AliasOf(innerType(inCol.Type))
-				specInner := zng.AliasOf(innerType(specCol.Type))
+				inInner := zng.AliasOf(zng.InnerType(inCol.Type))
+				specInner := zng.AliasOf(zng.InnerType(specCol.Type))
 				if zng.IsRecordType(inInner) && zng.IsRecordType(specInner) {
 					if inner, err := fillRecordType(zctx, inInner.(*zng.TypeRecord), specInner.(*zng.TypeRecord)); err != nil {
 						return nil, err
@@ -578,7 +566,7 @@ func castType(zctx *zson.Context, inType, specType zng.Type) (zng.Type, error) {
 		}
 		return specType, nil
 	case isCollectionType(inType) && isCollectionType(specType):
-		out, err := castType(zctx, innerType(inType), innerType(specType))
+		out, err := castType(zctx, zng.InnerType(inType), zng.InnerType(specType))
 		if err != nil {
 			return nil, err
 		}

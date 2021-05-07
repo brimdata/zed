@@ -277,10 +277,10 @@ func SameType(t1, t2 Type) bool {
 
 // Utilities shared by complex types (ie, set and array)
 
-// InnerType returns the element type for set and array types
-// or nil if the type is not a set or array.
+// InnerType returns the element type for the underlying set or array type or
+// nil if the underlying type is not a set or array.
 func InnerType(typ Type) Type {
-	switch typ := typ.(type) {
+	switch typ := AliasOf(typ).(type) {
 	case *TypeSet:
 		return typ.Type
 	case *TypeArray:
