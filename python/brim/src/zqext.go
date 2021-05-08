@@ -8,10 +8,10 @@ import (
 
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
 	"github.com/brimdata/zed/zson"
-	"github.com/brimdata/zed/pkg/storage"
 )
 
 // result converts an error into response structure expected
