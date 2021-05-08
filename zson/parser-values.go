@@ -319,6 +319,7 @@ func (p *Parser) matchRecord() (*zed.Record, error) {
 func (p *Parser) matchFields() ([]zed.Field, error) {
 	l := p.lexer
 	var fields []zed.Field
+	seen := make(map[string]struct{})
 	for {
 		field, err := p.matchField()
 		if err != nil {
@@ -327,7 +328,10 @@ func (p *Parser) matchFields() ([]zed.Field, error) {
 		if field == nil {
 			break
 		}
-		fields = append(fields, *field)
+		if _, ok := seen[field.Name]; !ok {
+			fields = append(fields, *field)
+		}
+		seen[field.Name] = struct{}{}
 		ok, err := l.match(',')
 		if err != nil {
 			return nil, err
