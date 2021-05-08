@@ -51,10 +51,11 @@ func (f *FileSystem) PutIfNotExists(_ context.Context, u *URI, b []byte) error {
 	}
 	_, err = io.Copy(file, bytes.NewReader(b))
 	if err != nil {
+		file.Close()
 		f.Delete(nil, u)
 		return err
 	}
-	return nil
+	return file.Close()
 }
 
 func (f *FileSystem) Delete(_ context.Context, u *URI) error {

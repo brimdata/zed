@@ -91,6 +91,7 @@ func (q *Queue) Commit(ctx context.Context, b []byte) error {
 		}
 		_, err = io.Copy(w, bytes.NewReader(b))
 		if err != nil {
+			w.Close()
 			return err
 		}
 		if err := w.Close(); err != nil {
