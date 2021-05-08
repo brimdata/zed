@@ -13,7 +13,7 @@ func parseBarePath(path string) (*URI, error) {
 		// Add leading '/' to paths beginning with a drive letter.
 		path = "/" + path
 	}
-	return &URI{Scheme: FileScheme, Path: filepath.ToSlash(path)}, nil
+	return &URI{Scheme: string(FileScheme), Path: filepath.ToSlash(path)}, nil
 }
 
 func (p *URI) Filepath() string {
