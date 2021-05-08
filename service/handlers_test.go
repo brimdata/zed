@@ -108,7 +108,7 @@ func TestSearchStats(t *testing.T) {
 	require.NoError(t, err)
 	_, err = conn.LogPostReaders(context.Background(), storage.NewLocalEngine(), pool.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
-	_, msgs := search(t, conn, pool.ID, "_path != b")
+	_, msgs := search(t, conn, pool.ID, "_path != 'b'")
 	var stats *api.SearchStats
 	for i := len(msgs) - 1; i >= 0; i-- {
 		if s, ok := msgs[i].(*api.SearchStats); ok {

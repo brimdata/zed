@@ -1,5 +1,157 @@
 # expression syntax and searches
 
+> Here is a proposal for a simpler approach to a hybrid keyword-search and
+> expression language.  In the previous approach, we tried to keep all of the
+> syntactic shortcuts in the previous version of the Zed language but extend
+> the language beyond its limited form, e.g., allowing mathematical comparisons
+> to be mixed with keyword-search predicates.
+
+(THIS IS VERY ROUGH TO JUST GET SOME AGREEMENT ON WHETHER TO HEAD IN THIS DIRECTION.)
+
+A search expression is boolean-filter that filters results.  The Zed language
+mixes traditional keyword search syntax with a comparison operators that
+may contain arbitrary arithmetic operations.
+
+A search term is one of:
+* a keyword consisting of the alphabetic and numeric characters along with
+most characters and the keyboard except quotation marks (single, double, and backtick),
+`(`,
+`)`, and
+`*`,
+* a Zed value (including numbers, IPs, networks, strings, etc),
+* a Zed type,
+* a glob string,
+* a regular expression inclosed in matching `/`,
+* any boolean function, e.g., `is()` or `has()`, or
+* a comparison expression.
+
+Search terms may be combined into boolean expressions using logical operators
+`and`, `or` and `not`.  `and` may be elided; i.e., concatenation of search terms
+is a logical `and`.
+
+The matching model is based on a stream of records.  Any record containing the
+search terms (in accordance with the boolean logic) is copied to the output,
+while non-matching records are dropped.
+
+What it means for a record to "contain a search term" is based on the type of
+the term:
+* For string terms, any string-y field (string, bstring, error) that contains
+the string is matched.
+* For integer terms, any integer field exactly matching the term is matched.
+* For floating point terms, any floating point field exactly matching the term is matched.
+* For Zed types, any record with any field of the indicated type is matched.
+* For globs, any record with a string-y field or element that matches the glob
+pattern is matched.
+* For a regular expression, any record with a string-y field or element that
+matches the regular expression is matched.
+* For IP addresses, any record with an IP field that exactly matches or
+a string-y field or element that matches the string representation of
+the IP address is matched.
+* etc
+
+In addition, the above rules apply to any sub-fields of complex values, e.g.,
+elements of an array or set, values of records, etc.
+
+For example, the search expression `hello` matches the record `{s:"hello,world"}`.
+
+A keyword as defined above is treated as a string with regard to the matching
+semantics.  However, a keyword does not need to be quoted, e.g., just as you
+would search the web or your email.  That said, you can always quote a string
+when you want to include characters like spaces that are not part of the
+keyword pattern.
+
+A Zed value is a primitive type including:
+* quoted strings,
+* integers,
+* floating point numbers,
+* time values,
+* durations,
+* IPs,
+* networks,
+* bytes,
+* etc.
+(see the ZSON spec for syntax details).
+A Zed value may also be a complex type:
+* record,
+* set,
+* array, and
+* map.
+
+A value may also be from a union type or an enum type.
+TBD: syntax of these in the Zed language.
+
+A Zed type is a primitive type like `int64` or `ip` or a complex type
+like `{a:int64}` or `[float64]`.  A type may also be a named type,
+e.g., `{p:port}` where `port` may be defined with a `type` directive or
+may be defined within the self-describing Zed data being operated upon.
+To disambiguate a type name from a field reference you can use the `type()`
+function, e.g., `type(port)`.
+
+A comparison expression is any valid Zed expression compared to any other
+valid Zed expression using a comparison operator:
+`=`, `!=`, `in`, `<`, `<=`, `>`, `>=`.
+Note that expressions do not include the keyword syntax described above,
+but they do include any Zed value, various functions, arithmetic operations,
+references to fields of the current record, array references, record references,
+map references, and so forth.
+
+The current record is referred to as `this` and fields of the record may be
+accessed via the dot operator, e,g,. `this.x`.  The reference to `this` is optional,
+e.g., `x` is the same as `this.x`, but there are times when it's useful to
+refer to this, e.g., to refer to the entire top-level record as in `cast(this, foo)`
+or `put this={x:1}`.  Also when field names have non identifier they can be
+accessed using `this` and an array-style reference, e.g., `this["field with spaces"]`.
+
+### What this means
+
+The big change here is once you go do a comparison expression, you enter the
+expression world and strings and globs need to be explicit.
+
+So,
+```
+example.com
+```
+is a string search for "example.com".  The email examples from below would
+be natural, e.g.,
+```
+"John Smith" (acme.com OR gmail.com)
+```
+But for a field match, you need to apply quotes to get a string not a field:
+```
+query="example.com"
+```
+Also, in this proposal,
+```
+b*c
+```
+is a glob match for any field, but
+```
+a=b*c
+```
+is a comparison between `a` and `b` times `c`.
+
+In this query you need to quote "http" but not finance or sales.
+```
+const MB = 1000000
+_path="http" AND (finance OR sales) request_body_len >= 10*MB
+```
+
+If you want to glob match a field, perhaps we introduce a function like this:
+```
+glob_match(query, "web.*.com")
+```
+We could also have globs and regular expressions in the expression syntax where
+you could match with `=` and `!=`, e.g.,
+```
+query = g"web.*.com"
+```
+or
+```
+query != /web\..*\.com/
+```
+
+## Old Document
+
 > This document describes recent work on unifying the search syntax with
 > the expression syntax.  We are checking this markdown file here with a bunch
 > of thoughts and notes into main for now with the
