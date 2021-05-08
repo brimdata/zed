@@ -19,6 +19,6 @@ func parseBarePath(path string) (*URI, error) {
 	return (*URI)(u), nil
 }
 
-func (p URI) Filepath() string {
+func (p *URI) Filepath() string {
 	return filepath.FromSlash(p.Path)
 }
