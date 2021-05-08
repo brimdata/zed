@@ -257,7 +257,7 @@ func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 		return b, nil, err
 	}
 	if f.Re != "" {
-		re, err := regexp.Compile(f.Re)
+		re, err := regexp.Compile(strings.TrimSpace(f.Re))
 		return nil, re, err
 	}
 	if f.Symlink != "" {
@@ -316,7 +316,7 @@ func (z *ZTest) check() error {
 	}
 	if z.ErrorRE != "" {
 		var err error
-		z.errRegex, err = regexp.Compile(z.ErrorRE)
+		z.errRegex, err = regexp.Compile(strings.TrimSpace(z.ErrorRE))
 		return err
 	}
 	return nil
@@ -481,7 +481,7 @@ func checkPatterns(patterns map[string]*regexp.Regexp, dir *Dir, stdout, stderr 
 			}
 		}
 		if !re.Match(body) {
-			return fmt.Errorf("%s: regex %s does not match %s'", name, re, body)
+			return fmt.Errorf("%s: regex %s does not match %s", name, re, body)
 		}
 	}
 	return nil
