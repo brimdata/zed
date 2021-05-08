@@ -160,7 +160,6 @@ func TestFilters(t *testing.T) {
 		{"nested.field = test", true},
 		{"bogus.field = test", false},
 		{"nested.bogus = test", false},
-		{"* = test", false},
 	})
 
 	// Test array of records
