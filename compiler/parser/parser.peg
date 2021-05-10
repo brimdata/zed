@@ -490,14 +490,14 @@ ShapeProc
     }
 
 JoinProc
-  = style:JoinStyle "join"i _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
+  = style:JoinStyle "join"i _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
       VAR(proc) = MAP("kind": "Join", "style": style, "left_key": leftKey, "right_key": rightKey, "args": NULL)
       if ISNOTNULL(columns) {
         proc["args"] = ASSERT_ARRAY(columns)[1]
       }
       RETURN(proc)
     }
-  / style:JoinStyle  "join"i _ key:JoinKey columns:(_ FlexAssignments)? {
+  / style:JoinStyle  "join"i _ ON _ key:JoinKey columns:(_ FlexAssignments)? {
       VAR(proc) = MAP("kind": "Join", "style": style, "left_key": key, "right_key": key, "args": NULL)
       if ISNOTNULL(columns) {
         proc["args"] = ASSERT_ARRAY(columns)[1]

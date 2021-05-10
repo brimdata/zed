@@ -1,11 +1,11 @@
 script: |
-  zq -z 'left join s b' A.zson B.zson
+  zq -z 'left join on s b' A.zson B.zson
   echo ===
-  zq -z 'left join s=(to_lower(s)) b' A.zson B.zson
+  zq -z 'left join on s=(to_lower(s)) b' A.zson B.zson
   echo ===
-  zq -z 'left join (to_lower(s))=(to_lower(s)) b' A.zson B.zson
+  zq -z 'left join on (to_lower(s))=(to_lower(s)) b' A.zson B.zson
   echo ===
-  zq -z 'left join s' A.zson B.zson
+  zq -z 'left join on s' A.zson B.zson
 
 inputs:
   - name: A.zson

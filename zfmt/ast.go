@@ -389,8 +389,6 @@ func (c *canon) proc(p ast.Proc) {
 		c.expr(p.LeftKey, false)
 		c.write("=")
 		c.expr(p.RightKey, false)
-		c.ret()
-		c.open("join-cut ")
 		c.assignments(p.Args)
 		c.close()
 		c.close()
