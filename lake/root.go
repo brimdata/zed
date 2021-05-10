@@ -130,9 +130,7 @@ func (r *Root) storeConfig(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	// XXX
-	local := storage.NewLocalEngine()
-	if err := storage.Put(ctx, local, uri, bytes.NewReader(b)); err != nil {
+	if err := storage.Put(ctx, r.engine, uri, bytes.NewReader(b)); err != nil {
 		return err
 	}
 	if uri.Scheme == "file" {
