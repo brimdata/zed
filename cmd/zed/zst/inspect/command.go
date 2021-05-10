@@ -9,6 +9,7 @@ import (
 	zedzst "github.com/brimdata/zed/cmd/zed/zst"
 	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst"
@@ -61,12 +62,13 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	path := args[0]
-	reader, err := zst.NewReaderFromPath(ctx, zson.NewContext(), path)
+	local := storage.NewLocalEngine()
+	reader, err := zst.NewReaderFromPath(ctx, zson.NewContext(), local, path)
 	if err != nil {
 		return err
 	}
 	defer reader.Close()
-	writer, err := c.outputFlags.Open(ctx)
+	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}

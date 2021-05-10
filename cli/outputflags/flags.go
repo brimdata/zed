@@ -6,6 +6,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/zio"
@@ -105,9 +106,9 @@ func (f *Flags) FileName() string {
 	return f.outputFile
 }
 
-func (f *Flags) Open(ctx context.Context) (zio.WriteCloser, error) {
+func (f *Flags) Open(ctx context.Context, engine storage.Engine) (zio.WriteCloser, error) {
 	if f.dir != "" {
-		d, err := emitter.NewDir(ctx, f.dir, f.outputFile, os.Stderr, f.WriterOpts)
+		d, err := emitter.NewDir(ctx, engine, f.dir, f.outputFile, os.Stderr, f.WriterOpts)
 		if err != nil {
 			return nil, err
 		}
@@ -116,7 +117,7 @@ func (f *Flags) Open(ctx context.Context) (zio.WriteCloser, error) {
 	if f.outputFile == "" && f.color && terminal.IsTerminalFile(os.Stdout) {
 		color.Enabled = true
 	}
-	w, err := emitter.NewFile(ctx, f.outputFile, f.WriterOpts)
+	w, err := emitter.NewFileFromPath(ctx, engine, f.outputFile, f.WriterOpts)
 	if err != nil {
 		return nil, err
 	}

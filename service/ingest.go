@@ -10,12 +10,11 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -112,22 +111,23 @@ func (rc *readCounter) Close() error {
 }
 
 func openIncomingLog(ctx context.Context, path string) (*readCounter, int64, error) {
-	uri, err := iosrc.ParseURI(path)
+	//XXX We will deprecate reading ingesting a file on the file system
+	// from an API call.  For now, we create a storage.NewLocalEngine() to
+	// be able to (incorrectly) read a file this way in the service endpoint.
+	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, 0, err
 	}
-	info, err := iosrc.Stat(ctx, uri)
+	engine := storage.NewLocalEngine()
+	rc, err := engine.Get(ctx, uri)
 	if err != nil {
 		return nil, 0, err
 	}
-	if info.IsDir() {
-		return nil, 0, zqe.E(zqe.Invalid, "path is a directory")
-	}
-	rc, err := iosrc.NewReader(ctx, uri)
+	size, err := storage.Size(rc)
 	if err != nil {
 		return nil, 0, err
 	}
-	return &readCounter{readCloser: rc}, info.Size(), nil
+	return &readCounter{readCloser: rc}, size, nil
 }
 
 func (p *LogOp) closeFiles() error {

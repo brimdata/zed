@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/brimdata/zed/cli/auto"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -46,13 +46,13 @@ func (f *Flags) Init() error {
 	return nil
 }
 
-func (f *Flags) Open(zctx *zson.Context, paths []string, stopOnErr bool) ([]zio.Reader, error) {
+func (f *Flags) Open(zctx *zson.Context, engine storage.Engine, paths []string, stopOnErr bool) ([]zio.Reader, error) {
 	var readers []zio.Reader
 	for _, path := range paths {
 		if path == "-" {
-			path = iosrc.Stdin
+			path = "stdio:stdin"
 		}
-		file, err := anyio.OpenFile(zctx, path, f.ReaderOpts)
+		file, err := anyio.OpenFile(zctx, engine, path, f.ReaderOpts)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
 			if stopOnErr {

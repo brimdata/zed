@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
@@ -20,7 +20,7 @@ var ErrNotFound = errors.New("key not found")
 type Finder struct {
 	*Reader
 	zctx *zson.Context
-	uri  iosrc.URI
+	uri  *storage.URI
 }
 
 // NewFinder returns an object that is used to lookup keys in a microindex.
@@ -28,8 +28,8 @@ type Finder struct {
 // corrupt, doesn't exist, or has an invalid trailer.  If the microindex exists
 // but is empty, zero values are returned for any lookups. If the microindex
 // does not exist, a wrapped zqe.NotFound error is returned.
-func NewFinder(ctx context.Context, zctx *zson.Context, uri iosrc.URI) (*Finder, error) {
-	reader, err := NewReaderFromURI(ctx, zctx, uri)
+func NewFinder(ctx context.Context, zctx *zson.Context, engine storage.Engine, uri *storage.URI) (*Finder, error) {
+	reader, err := NewReaderFromURI(ctx, zctx, engine, uri)
 	if err != nil {
 		return nil, err
 	}

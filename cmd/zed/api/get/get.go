@@ -18,6 +18,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
 )
@@ -117,7 +118,7 @@ func (c *Command) Run(args []string) error {
 		}
 		return c.runRawSearch(r)
 	}
-	writer, err := c.outputFlags.Open(ctx)
+	writer, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}

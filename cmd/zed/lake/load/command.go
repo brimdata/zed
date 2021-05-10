@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -62,12 +63,13 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	pool, err := c.lake.Flags.OpenPool(ctx)
+	local := storage.NewLocalEngine()
+	pool, err := c.lake.Flags.OpenPool(ctx, local)
 	if err != nil {
 		return err
 	}
 	paths := args
-	readers, err := c.inputFlags.Open(zson.NewContext(), paths, false)
+	readers, err := c.inputFlags.Open(zson.NewContext(), local, paths, false)
 	if err != nil {
 		return err
 	}

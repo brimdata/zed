@@ -9,7 +9,7 @@ import (
 
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 const RootEnv = "ZED_LAKE_ROOT"
@@ -31,31 +31,31 @@ func (f *Flags) SetFlags(set *flag.FlagSet) {
 	set.BoolVar(&f.Quiet, "q", false, "quiet mode")
 }
 
-func (f *Flags) RootPath() (iosrc.URI, error) {
-	return iosrc.ParseURI(f.Root)
+func (f *Flags) RootPath() (*storage.URI, error) {
+	return storage.ParseURI(f.Root)
 }
 
-func (f *Flags) Create(ctx context.Context) (*lake.Root, error) {
+func (f *Flags) Create(ctx context.Context, engine storage.Engine) (*lake.Root, error) {
 	root, err := f.RootPath()
 	if err != nil {
 		return nil, err
 	}
-	return lake.Create(ctx, root)
+	return lake.Create(ctx, engine, root)
 }
 
-func (f *Flags) Open(ctx context.Context) (*lake.Root, error) {
+func (f *Flags) Open(ctx context.Context, engine storage.Engine) (*lake.Root, error) {
 	root, err := f.RootPath()
 	if err != nil {
 		return nil, err
 	}
-	return lake.Open(ctx, root)
+	return lake.Open(ctx, engine, root)
 }
 
-func (f *Flags) OpenPool(ctx context.Context) (*lake.Pool, error) {
+func (f *Flags) OpenPool(ctx context.Context, engine storage.Engine) (*lake.Pool, error) {
 	if f.PoolName == "" {
 		return nil, errors.New("no pool name provided")
 	}
-	lk, err := f.Open(ctx)
+	lk, err := f.Open(ctx, engine)
 	if err != nil {
 		return nil, err
 	}
@@ -66,11 +66,11 @@ func (f *Flags) OpenPool(ctx context.Context) (*lake.Pool, error) {
 	return lk.OpenPool(ctx, pool.ID)
 }
 
-func (f *Flags) CreatePool(ctx context.Context, layout order.Layout, thresh int64) (*lake.Pool, error) {
+func (f *Flags) CreatePool(ctx context.Context, engine storage.Engine, layout order.Layout, thresh int64) (*lake.Pool, error) {
 	if f.PoolName == "" {
 		return nil, errors.New("no pool name provided")
 	}
-	lk, err := f.Open(ctx)
+	lk, err := f.Open(ctx, engine)
 	if err != nil {
 		return nil, err
 	}

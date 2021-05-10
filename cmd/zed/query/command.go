@@ -18,6 +18,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/s3io"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -144,12 +145,13 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	zctx := zson.NewContext()
-	readers, err := c.inputFlags.Open(zctx, paths, c.stopErr)
+	local := storage.NewLocalEngine()
+	readers, err := c.inputFlags.Open(zctx, local, paths, c.stopErr)
 	if err != nil {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	writer, err := c.outputFlags.Open(ctx)
+	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}
@@ -162,7 +164,7 @@ func (c *Command) Run(args []string) error {
 			readers[i] = zio.NewWarningReader(r, d)
 		}
 	}
-	adaptor := cli.NewFileAdaptor(ctx, zctx)
+	adaptor := cli.NewFileAdaptor(ctx, zctx, local)
 	var stats zbuf.ScannerStats
 	if isJoin(query) {
 		stats, err = driver.RunJoinWithFileSystem(ctx, d, query, zctx, readers, adaptor)

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/pkg/iosrc"
-	iosrcmock "github.com/brimdata/zed/pkg/iosrc/mock"
+	"github.com/brimdata/zed/pkg/storage"
+	storagemock "github.com/brimdata/zed/pkg/storage/mock"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
@@ -22,20 +22,20 @@ func TestDirS3Source(t *testing.T) {
 {_path:"conn",foo:"1"}
 {_path:"http",bar:"2"}
 `
-	uri, err := iosrc.ParseURI(path)
+	uri, err := storage.ParseURI(path)
 	require.NoError(t, err)
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
-	src := iosrcmock.NewMockSource(ctrl)
+	engine := storagemock.NewMockEngine(ctrl)
 
-	src.EXPECT().NewWriter(context.Background(), uri.AppendPath("conn.zson")).
+	engine.EXPECT().Put(context.Background(), uri.AppendPath("conn.zson")).
 		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
-	src.EXPECT().NewWriter(context.Background(), uri.AppendPath("http.zson")).
+	engine.EXPECT().Put(context.Background(), uri.AppendPath("http.zson")).
 		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
 
 	r := zson.NewReader(strings.NewReader(input), zson.NewContext())
 	require.NoError(t, err)
-	w, err := NewDirWithSource(context.Background(), uri, "", os.Stderr, anyio.WriterOpts{Format: "zson"}, src)
+	w, err := NewDirWithEngine(context.Background(), engine, uri, "", os.Stderr, anyio.WriterOpts{Format: "zson"})
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(w, r))
 }

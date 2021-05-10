@@ -5,6 +5,7 @@ package zio_test
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"strings"
 	"testing"
 
@@ -209,23 +210,24 @@ func TestStreams(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, recs[4].Bytes, rec.Bytes)
 
-	zs := zngio.NewSeeker(bytes.NewReader(out.Buffer.Bytes()), zson.NewContext())
+	b := out.Buffer.Bytes()
+	len := int64(len(b))
 
-	_, err = zs.Seek(rec4Off)
-	require.NoError(t, err)
-	rec, err = zs.Read()
+	sr := io.NewSectionReader(bytes.NewReader(b), rec4Off, len-rec4Off)
+	reader := zngio.NewReader(sr, zson.NewContext())
+	rec, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, recs[4].Bytes, rec.Bytes)
 
-	_, err = zs.Seek(rec2Off)
-	require.NoError(t, err)
-	rec, err = zs.Read()
+	sr = io.NewSectionReader(bytes.NewReader(b), rec2Off, len-rec2Off)
+	reader = zngio.NewReader(sr, zson.NewContext())
+	rec, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, recs[2].Bytes, rec.Bytes)
 
-	_, err = zs.Seek(0)
-	require.NoError(t, err)
-	rec, err = zs.Read()
+	sr = io.NewSectionReader(bytes.NewReader(b), 0, len)
+	reader = zngio.NewReader(sr, zson.NewContext())
+	rec, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, recs[0].Bytes, rec.Bytes)
 }

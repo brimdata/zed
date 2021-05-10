@@ -8,8 +8,8 @@ import (
 	"github.com/brimdata/zed/lake/commit/actions"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/segment"
-	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/segmentio/ksuid"
 )
 
@@ -121,8 +121,8 @@ func (t *Transaction) Deserialize(r io.Reader) error {
 	return nil
 }
 
-func LoadTransaction(ctx context.Context, id ksuid.KSUID, uri iosrc.URI) (*Transaction, error) {
-	r, err := iosrc.NewReader(ctx, uri)
+func LoadTransaction(ctx context.Context, engine storage.Engine, id ksuid.KSUID, uri *storage.URI) (*Transaction, error) {
+	r, err := engine.Get(ctx, uri)
 	if err != nil {
 		return nil, err
 	}

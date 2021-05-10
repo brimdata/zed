@@ -8,6 +8,7 @@ import (
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 var Drop = &charm.Spec{
@@ -42,7 +43,7 @@ func (c *DropCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	root, err := c.lake.Open(ctx)
+	root, err := c.lake.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}

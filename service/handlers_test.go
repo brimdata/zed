@@ -21,6 +21,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/service"
 	"github.com/brimdata/zed/zio"
@@ -55,7 +56,7 @@ func TestSearch(t *testing.T) {
 	ctx := context.Background()
 	pool, err := conn.PoolPost(ctx, api.PoolPostRequest{Name: "test", Order: order.Desc})
 	require.NoError(t, err)
-	_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))
+	_, err = conn.LogPostReaders(context.Background(), storage.NewLocalEngine(), pool.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
 
 	res := searchZson(t, conn, pool.ID, "*")
@@ -70,7 +71,7 @@ func TestSearchNoCtrl(t *testing.T) {
 	_, conn := newCore(t)
 	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Order: order.Desc})
 	require.NoError(t, err)
-	_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))
+	_, err = conn.LogPostReaders(context.Background(), storage.NewLocalEngine(), pool.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
 
 	parsed, err := compiler.ParseProc("*")
@@ -105,7 +106,7 @@ func TestSearchStats(t *testing.T) {
 	_, conn := newCore(t)
 	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test"})
 	require.NoError(t, err)
-	_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))
+	_, err = conn.LogPostReaders(context.Background(), storage.NewLocalEngine(), pool.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
 	_, msgs := search(t, conn, pool.ID, "_path != b")
 	var stats *api.SearchStats
@@ -139,7 +140,7 @@ func TestGroupByReverse(t *testing.T) {
 	keys := field.List{field.New("ts")}
 	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Keys: keys, Order: order.Desc})
 	require.NoError(t, err)
-	_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))
+	_, err = conn.LogPostReaders(context.Background(), storage.NewLocalEngine(), pool.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
 	res := searchZson(t, conn, pool.ID, "every 1s count()")
 	require.Equal(t, test.Trim(counts), res)
@@ -165,7 +166,7 @@ func TestSearchError(t *testing.T) {
 	_, conn := newCore(t)
 	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test"})
 	require.NoError(t, err)
-	_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))
+	_, err = conn.LogPostReaders(context.Background(), storage.NewLocalEngine(), pool.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
 
 	parsed, err := compiler.ParseProc("*")
@@ -209,7 +210,7 @@ func TestPoolInfo(t *testing.T) {
 	_, conn := newCore(t)
 	pool, err := conn.PoolPost(ctx, api.PoolPostRequest{Name: "test", Order: order.Desc})
 	require.NoError(t, err)
-	_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))
+	_, err = conn.LogPostReaders(context.Background(), storage.NewLocalEngine(), pool.ID, nil, strings.NewReader(src))
 	require.NoError(t, err)
 
 	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
@@ -358,7 +359,7 @@ func TestPostZsonLogs(t *testing.T) {
 	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Order: order.Desc})
 	require.NoError(t, err)
 
-	postResp, err := conn.LogPostReaders(context.Background(), pool.ID, nil,
+	postResp, err := conn.LogPostReaders(context.Background(), storage.NewLocalEngine(), pool.ID, nil,
 		strings.NewReader(src1),
 		strings.NewReader(src2),
 	)
@@ -391,7 +392,7 @@ detectablebutbadline`
 	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test"})
 	require.NoError(t, err)
 
-	res, err := conn.LogPostReaders(context.Background(), pool.ID, nil,
+	res, err := conn.LogPostReaders(context.Background(), storage.NewLocalEngine(), pool.ID, nil,
 		strings.NewReader(src1),
 		strings.NewReader(src2),
 	)
@@ -412,7 +413,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 		pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test", Order: order.Desc})
 		require.NoError(t, err)
 
-		_, err = conn.LogPostReaders(context.Background(), pool.ID, nil, strings.NewReader(src))
+		_, err = conn.LogPostReaders(context.Background(), storage.NewLocalEngine(), pool.ID, nil, strings.NewReader(src))
 		require.NoError(t, err)
 
 		res := searchZson(t, conn, pool.ID, "*")
@@ -455,7 +456,7 @@ func TestPostLogStopErr(t *testing.T) {
 	require.NoError(t, err)
 
 	opts := &client.LogPostOpts{StopError: true}
-	_, err = conn.LogPostReaders(context.Background(), pool.ID, opts, strings.NewReader(src))
+	_, err = conn.LogPostReaders(context.Background(), storage.NewLocalEngine(), pool.ID, opts, strings.NewReader(src))
 	require.Error(t, err)
 	assert.Regexp(t, ": format detection error.*", err.Error())
 }

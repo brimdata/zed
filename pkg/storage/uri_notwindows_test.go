@@ -1,6 +1,6 @@
 // +build !windows
 
-package iosrc
+package storage
 
 import (
 	"path"
@@ -13,6 +13,6 @@ import (
 func TestIssue2234(t *testing.T) {
 	u, err := ParseURI("http.06:28:42-07:00:00.log.gz")
 	require.NoError(t, err)
-	assert.Equal(t, FileScheme, u.Scheme)
+	assert.Equal(t, FileScheme, Scheme(u.Scheme))
 	assert.Equal(t, "http.06:28:42-07:00:00.log.gz", path.Base(u.Path))
 }

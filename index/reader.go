@@ -6,7 +6,7 @@ import (
 	"io"
 
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
@@ -20,53 +20,52 @@ const (
 	FrameMaxSize = 20 * 1024 * 1024
 )
 
-// Reader implements zbuf.Reader, io.ReadSeeker, and io.Closer.
 type Reader struct {
-	zngio.Seeker
-	reader     iosrc.Reader
-	path       iosrc.URI
+	reader     storage.Reader
+	uri        *storage.URI
 	zctx       *zson.Context
 	size       int64
 	trailer    *Trailer
 	trailerLen int
 }
 
+var _ io.Closer = (*Reader)(nil)
+
 // NewReader returns a Reader ready to read a microindex.
 // Close() should be called when done.  This embeds a zngio.Seeker so
 // Seek() may be called on this Reader.  Any call to Seek() must be to
 // an offset that begins a new zng stream (e.g., beginning of file or
 // the data immediately following an end-of-stream code)
-func NewReader(zctx *zson.Context, path string) (*Reader, error) {
-	uri, err := iosrc.ParseURI(path)
+func NewReader(zctx *zson.Context, engine storage.Engine, path string) (*Reader, error) {
+	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, err
 	}
-	return NewReaderFromURI(context.Background(), zctx, uri)
+	return NewReaderFromURI(context.Background(), zctx, engine, uri)
 }
 
-func NewReaderWithContext(ctx context.Context, zctx *zson.Context, path string) (*Reader, error) {
-	uri, err := iosrc.ParseURI(path)
+func NewReaderWithContext(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string) (*Reader, error) {
+	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, err
 	}
-	return NewReaderFromURI(ctx, zctx, uri)
+	return NewReaderFromURI(ctx, zctx, engine, uri)
 }
 
-func NewReaderFromURI(ctx context.Context, zctx *zson.Context, uri iosrc.URI) (*Reader, error) {
-	r, err := iosrc.NewReader(ctx, uri)
+func NewReaderFromURI(ctx context.Context, zctx *zson.Context, engine storage.Engine, uri *storage.URI) (*Reader, error) {
+	r, err := engine.Get(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
 	// Grab the size so we don't seek past the front of the file and
 	// cause an error.  XXX this causes an extra synchronous round-trip
 	// in the inner loop of a microindex scan, so we might want to do this
-	// in parallel with the open either by extending the iosrc interface
+	// in parallel with the open either by extending the storage interface
 	// or running this call here in its own goroutine (before the open)
-	si, err := iosrc.Stat(ctx, uri)
+	size, err := engine.Size(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
-	size := si.Size()
 	trailer, trailerLen, err := readTrailer(r, size)
 	if err != nil {
 		r.Close()
@@ -75,13 +74,9 @@ func NewReaderFromURI(ctx context.Context, zctx *zson.Context, uri iosrc.URI) (*
 	if trailer.FrameThresh > FrameMaxSize {
 		return nil, fmt.Errorf("%s: frame threshold too large (%d)", uri, trailer.FrameThresh)
 	}
-	// We add a bit to the seeker buffer so to accommodate the usual
-	// overflow size.
-	seeker := zngio.NewSeekerWithSize(r, zctx, trailer.FrameThresh+FrameFudge)
 	reader := &Reader{
-		Seeker:     *seeker,
 		reader:     r,
-		path:       uri,
+		uri:        uri,
 		zctx:       zctx,
 		size:       size,
 		trailer:    trailer,
@@ -109,8 +104,8 @@ func (r *Reader) newSectionReader(level int, sectionOff int64) (zio.Reader, erro
 	off, len := r.section(level)
 	off += sectionOff
 	len -= sectionOff
-	reader := io.NewSectionReader(r.reader, off, len)
-	return zngio.NewReaderWithOpts(reader, r.zctx, zngio.ReaderOpts{Size: FrameBufSize}), nil
+	sectionReader := io.NewSectionReader(r.reader, off, len)
+	return zngio.NewReaderWithOpts(sectionReader, r.zctx, zngio.ReaderOpts{Size: FrameBufSize}), nil
 }
 
 func (r *Reader) NewSectionReader(section int) (zio.Reader, error) {
@@ -132,7 +127,7 @@ func (r *Reader) Close() error {
 }
 
 func (r *Reader) Path() string {
-	return r.path.String()
+	return r.uri.String()
 }
 
 func (r *Reader) Order() order.Which {

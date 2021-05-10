@@ -7,7 +7,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zng"
@@ -24,32 +24,25 @@ var (
 // can map to the same output file.
 type Dir struct {
 	ctx     context.Context
-	dir     iosrc.URI
+	dir     *storage.URI
 	prefix  string
 	ext     string
 	stderr  io.Writer // XXX use warnings channel
 	opts    anyio.WriterOpts
 	writers map[zng.Type]zio.WriteCloser
 	paths   map[string]zio.WriteCloser
-	source  iosrc.Source
+	engine  storage.Engine
 }
 
-func NewDir(ctx context.Context, dir, prefix string, stderr io.Writer, opts anyio.WriterOpts) (*Dir, error) {
-	uri, err := iosrc.ParseURI(dir)
+func NewDir(ctx context.Context, engine storage.Engine, dir, prefix string, stderr io.Writer, opts anyio.WriterOpts) (*Dir, error) {
+	uri, err := storage.ParseURI(dir)
 	if err != nil {
 		return nil, err
 	}
-	src, err := iosrc.GetSource(uri)
-	if err != nil {
-		return nil, err
-	}
-	return NewDirWithSource(ctx, uri, prefix, stderr, opts, src)
+	return NewDirWithEngine(ctx, engine, uri, prefix, stderr, opts)
 }
 
-func NewDirWithSource(ctx context.Context, dir iosrc.URI, prefix string, stderr io.Writer, opts anyio.WriterOpts, source iosrc.Source) (*Dir, error) {
-	if err := iosrc.MkdirAll(dir, 0755); err != nil {
-		return nil, err
-	}
+func NewDirWithEngine(ctx context.Context, engine storage.Engine, dir *storage.URI, prefix string, stderr io.Writer, opts anyio.WriterOpts) (*Dir, error) {
 	e := zio.Extension(opts.Format)
 	if e == "" {
 		return nil, fmt.Errorf("unknown format: %s", opts.Format)
@@ -63,7 +56,7 @@ func NewDirWithSource(ctx context.Context, dir iosrc.URI, prefix string, stderr 
 		opts:    opts,
 		writers: make(map[zng.Type]zio.WriteCloser),
 		paths:   make(map[string]zio.WriteCloser),
-		source:  source,
+		engine:  engine,
 	}, nil
 }
 
@@ -92,7 +85,7 @@ func (d *Dir) lookupOutput(rec *zng.Record) (zio.WriteCloser, error) {
 // filename returns the name of the file for the specified path. This handles
 // the case of two tds one _path, adding a # in the filename for every _path that
 // has more than one td.
-func (d *Dir) filename(r *zng.Record) (iosrc.URI, string) {
+func (d *Dir) filename(r *zng.Record) (*storage.URI, string) {
 	var _path string
 	base, err := r.AccessString("_path")
 	if err == nil {
@@ -109,7 +102,7 @@ func (d *Dir) newFile(rec *zng.Record) (zio.WriteCloser, error) {
 	if w, ok := d.paths[path]; ok {
 		return w, nil
 	}
-	w, err := NewFileWithSource(d.ctx, filename, d.opts, d.source)
+	w, err := NewFileFromURI(d.ctx, d.engine, filename, d.opts)
 	if err != nil {
 		return nil, err
 	}

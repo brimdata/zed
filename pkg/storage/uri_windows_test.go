@@ -1,4 +1,4 @@
-package iosrc
+package storage
 
 import (
 	"os"

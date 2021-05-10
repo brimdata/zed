@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
@@ -15,20 +15,21 @@ import (
 
 const babble = "../testdata/babble.zson"
 
-func createLake(t *testing.T, rootPath iosrc.URI, srcfile string) {
+func createLake(t *testing.T, rootPath *storage.URI, srcfile string) {
 	ctx := context.Background()
-	lk, err := lake.Create(ctx, rootPath)
+	engine := storage.NewLocalEngine()
+	lk, err := lake.Create(ctx, engine, rootPath)
 	require.NoError(t, err)
 	layout, err := order.ParseLayout("ts:asc")
 	require.NoError(t, err)
 	pool, err := lk.CreatePool(ctx, "test", layout, 0)
 	require.NoError(t, err)
-	importTestFile(t, pool, srcfile)
+	importTestFile(t, engine, pool, srcfile)
 }
 
-func importTestFile(t *testing.T, pool *lake.Pool, srcfile string) {
+func importTestFile(t *testing.T, engine storage.Engine, pool *lake.Pool, srcfile string) {
 	zctx := zson.NewContext()
-	reader, err := anyio.OpenFile(zctx, srcfile, anyio.ReaderOpts{})
+	reader, err := anyio.OpenFile(zctx, engine, srcfile, anyio.ReaderOpts{})
 	require.NoError(t, err)
 	defer reader.Close()
 

@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -65,11 +66,12 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	lk, err := c.lake.Flags.Open(ctx)
+	local := storage.NewLocalEngine()
+	lk, err := c.lake.Flags.Open(ctx, local)
 	if err != nil {
 		return err
 	}
-	writer, err := c.outputFlags.Open(ctx)
+	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}

@@ -8,8 +8,8 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/anyio"
@@ -18,16 +18,18 @@ import (
 )
 
 type FileAdaptor struct {
-	ctx  context.Context
-	zctx *zson.Context
+	ctx    context.Context
+	zctx   *zson.Context
+	engine storage.Engine
 }
 
 var _ proc.DataAdaptor = (*FileAdaptor)(nil)
 
-func NewFileAdaptor(ctx context.Context, zctx *zson.Context) *FileAdaptor {
+func NewFileAdaptor(ctx context.Context, zctx *zson.Context, engine storage.Engine) *FileAdaptor {
 	return &FileAdaptor{
-		ctx:  ctx,
-		zctx: zctx,
+		ctx:    ctx,
+		zctx:   zctx,
+		engine: engine,
 	}
 }
 
@@ -45,9 +47,9 @@ func (f *FileAdaptor) NewScheduler(_ context.Context, _ *zson.Context, _ *dag.Po
 
 func (f *FileAdaptor) Open(_ context.Context, _ *zson.Context, path string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
 	if path == "-" {
-		path = iosrc.Stdin
+		path = "stdio:stdin"
 	}
-	file, err := anyio.OpenFile(f.zctx, path, anyio.ReaderOpts{})
+	file, err := anyio.OpenFile(f.zctx, f.engine, path, anyio.ReaderOpts{})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", path, err)
 		fmt.Fprintln(os.Stderr, err)

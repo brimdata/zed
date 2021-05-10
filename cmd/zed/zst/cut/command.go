@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst"
@@ -67,12 +68,13 @@ func (c *Command) Run(args []string) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	path := args[0]
-	cutter, err := zst.NewCutterFromPath(ctx, zson.NewContext(), path, fields)
+	local := storage.NewLocalEngine()
+	cutter, err := zst.NewCutterFromPath(ctx, zson.NewContext(), local, path, fields)
 	if err != nil {
 		return err
 	}
 	defer cutter.Close()
-	writer, err := c.outputFlags.Open(ctx)
+	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}

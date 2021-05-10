@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zson"
@@ -71,10 +71,11 @@ func (c *Command) Run(args []string) error {
 	}
 	path := args[0]
 	if path == "-" {
-		path = iosrc.Stdin
+		path = "stdio:stdin"
 	}
 	zctx := zson.NewContext()
-	file, err := anyio.OpenFile(zctx, path, c.inputFlags.Options())
+	local := storage.NewLocalEngine()
+	file, err := anyio.OpenFile(zctx, local, path, c.inputFlags.Options())
 	if err != nil {
 		return err
 	}
@@ -83,7 +84,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer file.Close()
-	writer, err := index.NewWriter(zctx, c.outputFile,
+	writer, err := index.NewWriter(zctx, local, c.outputFile,
 		index.KeyFields(field.DottedList(c.keys)...),
 		index.FrameThresh(c.frameThresh),
 		index.Order(o),

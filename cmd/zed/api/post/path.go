@@ -15,7 +15,7 @@ import (
 	apicmd "github.com/brimdata/zed/cmd/zed/api"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/display"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 var PostPath = &charm.Spec{
@@ -114,10 +114,10 @@ func abspaths(paths []string) ([]string, error) {
 	out := make([]string, len(paths))
 	for i, path := range paths {
 		if path == "-" {
-			out[i] = iosrc.Stdin
+			out[i] = "stdio:stdin"
 			continue
 		}
-		uri, err := iosrc.ParseURI(path)
+		uri, err := storage.ParseURI(path)
 		if err != nil {
 			return nil, err
 		}

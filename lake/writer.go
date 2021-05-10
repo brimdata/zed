@@ -132,7 +132,7 @@ func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
 	// Set first and last key values after the sort.
 	seg.First = recs[0].Ts()
 	seg.Last = recs[len(recs)-1].Ts()
-	writer, err := seg.NewWriter(w.ctx, w.pool.DataPath, segment.WriterOpts{
+	writer, err := seg.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, segment.WriterOpts{
 		Order: w.pool.Layout.Order,
 		Zng: zngio.WriterOpts{
 			StreamRecordsMax: ImportStreamRecordsMax,
