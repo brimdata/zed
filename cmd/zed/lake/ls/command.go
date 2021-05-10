@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )
@@ -57,8 +58,9 @@ func (c *Command) Run(args []string) error {
 	defer cleanup()
 	pipeReader, pipeWriter := io.Pipe()
 	w := zngio.NewWriter(pipeWriter, zngio.WriterOpts{})
+	local := storage.NewLocalEngine()
 	if c.lake.Flags.PoolName == "" {
-		lk, err := c.lake.Flags.Open(ctx)
+		lk, err := c.lake.Flags.Open(ctx, local)
 		if err != nil {
 			return err
 		}
@@ -67,7 +69,7 @@ func (c *Command) Run(args []string) error {
 			w.Close()
 		}()
 	} else {
-		pool, err := c.lake.Flags.OpenPool(ctx)
+		pool, err := c.lake.Flags.OpenPool(ctx, local)
 		if err != nil {
 			return err
 		}
@@ -95,5 +97,5 @@ func (c *Command) Run(args []string) error {
 		}
 	}
 	r := zngio.NewReader(pipeReader, zson.NewContext())
-	return zedlake.CopyToOutput(ctx, c.outputFlags, r)
+	return zedlake.CopyToOutput(ctx, local, c.outputFlags, r)
 }

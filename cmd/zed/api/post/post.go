@@ -13,6 +13,7 @@ import (
 	apicmd "github.com/brimdata/zed/cmd/zed/api"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/display"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 var Post = &charm.Spec{
@@ -53,7 +54,7 @@ func (c *PostCommand) Run(args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	c.logwriter, err = client.MultipartFileWriter(paths...)
+	c.logwriter, err = client.NewMultipartWriter(storage.NewLocalEngine(), paths...)
 	if err != nil {
 		return err
 	}

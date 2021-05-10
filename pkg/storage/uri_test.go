@@ -1,4 +1,4 @@
-package iosrc
+package storage
 
 import (
 	"encoding/json"
@@ -14,9 +14,9 @@ import (
 )
 
 func TestURIStdio(t *testing.T) {
-	u, err := ParseURI("stdout")
+	u, err := ParseURI("stdio:stdout")
 	require.NoError(t, err)
-	assert.Equal(t, "stdio:///stdout", u.String())
+	assert.Equal(t, "stdio:stdout", u.String())
 	u2, err := ParseURI(u.String())
 	require.NoError(t, err)
 	assert.Equal(t, u, u2)
@@ -37,7 +37,7 @@ func TestURIRelative(t *testing.T) {
 	assert.Equal(t, expected, u1.String())
 }
 
-type jsonStruct struct{ Test URI }
+type jsonStruct struct{ Test *URI }
 
 func TestURIJSON(t *testing.T) {
 	expected := "s3://test-bucket/test/key"
@@ -53,7 +53,7 @@ func TestURIJSON(t *testing.T) {
 func TestURIParseEmpty(t *testing.T) {
 	u, err := ParseURI("")
 	require.NoError(t, err)
-	assert.Equal(t, u, URI{})
+	assert.Equal(t, u, &URI{})
 	assert.True(t, u.IsZero())
 }
 
@@ -68,7 +68,7 @@ func TestPathWithEncodedChars(t *testing.T) {
 	tdir, err := ioutil.TempDir("", "")
 	require.NoError(t, err)
 	defer os.RemoveAll(tdir)
-	p := filepath.Join(tdir, "file%20with%20spaces")
+	p := filepath.Join(tdir, "file with spaces")
 
 	u, err := ParseURI(p)
 	require.NoError(t, err)

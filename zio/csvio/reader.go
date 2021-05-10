@@ -11,7 +11,6 @@ import (
 )
 
 type Reader struct {
-	zctx      *zson.Context
 	reader    *csv.Reader
 	marshaler *zson.MarshalZNGContext
 	strings   bool
@@ -33,9 +32,8 @@ func NewReader(r io.Reader, zctx *zson.Context) *Reader {
 	reader := csv.NewReader(r)
 	reader.ReuseRecord = true
 	return &Reader{
-		zctx:      zctx,
 		reader:    reader,
-		marshaler: zson.NewZNGMarshaler(),
+		marshaler: zson.NewZNGMarshalerWithContext(zctx),
 		//strings:   opts.StringsOnly,
 	}
 }
@@ -67,11 +65,8 @@ func (r *Reader) Read() (*zng.Record, error) {
 }
 
 func (r *Reader) init(hdr []string) {
-	h := make([]string, 0, len(hdr))
-	for _, s := range hdr {
-		h = append(h, s)
-	}
-	r.hdr = h
+	r.hdr = make([]string, len(hdr))
+	copy(r.hdr, hdr)
 	r.vals = make([]interface{}, len(hdr))
 }
 

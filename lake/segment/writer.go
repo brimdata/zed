@@ -7,8 +7,8 @@ import (
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
@@ -35,15 +35,15 @@ type WriterOpts struct {
 	Zng   zngio.WriterOpts
 }
 
-func (r *Reference) NewWriter(ctx context.Context, path iosrc.URI, opts WriterOpts) (*Writer, error) {
-	out, err := iosrc.NewWriter(ctx, r.RowObjectPath(path))
+func (r *Reference) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, opts WriterOpts) (*Writer, error) {
+	out, err := engine.Put(ctx, r.RowObjectPath(path))
 	if err != nil {
 		return nil, err
 	}
 	counter := &writeCounter{bufwriter.New(out), 0}
 	writer := zngio.NewWriter(counter, opts.Zng)
 	seekObjectPath := r.SeekObjectPath(path)
-	seekIndex, err := seekindex.NewBuilder(ctx, seekObjectPath.String(), opts.Order)
+	seekIndex, err := seekindex.NewBuilder(ctx, engine, seekObjectPath.String(), opts.Order)
 	if err != nil {
 		return nil, err
 	}

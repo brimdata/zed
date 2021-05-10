@@ -7,19 +7,19 @@ import (
 
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
 type SeekIndex struct {
 	finder *index.Finder
-	uri    iosrc.URI
+	uri    *storage.URI
 }
 
-func Open(ctx context.Context, uri iosrc.URI) (*SeekIndex, error) {
-	finder, err := index.NewFinder(ctx, zson.NewContext(), uri)
+func Open(ctx context.Context, engine storage.Engine, uri *storage.URI) (*SeekIndex, error) {
+	finder, err := index.NewFinder(ctx, zson.NewContext(), engine, uri)
 	if err != nil {
 		return nil, err
 	}

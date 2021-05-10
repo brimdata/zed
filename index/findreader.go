@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -19,8 +19,8 @@ type FinderReader struct {
 	reader  zio.Reader
 }
 
-func NewFinderReader(ctx context.Context, zctx *zson.Context, uri iosrc.URI, inputs ...string) (*FinderReader, error) {
-	finder, err := NewFinder(ctx, zctx, uri)
+func NewFinderReader(ctx context.Context, zctx *zson.Context, engine storage.Engine, uri *storage.URI, inputs ...string) (*FinderReader, error) {
+	finder, err := NewFinder(ctx, zctx, engine, uri)
 	if err != nil {
 		return nil, err
 	}

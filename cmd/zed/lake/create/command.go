@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/units"
 )
 
@@ -57,7 +58,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if _, err := c.lake.Flags.CreatePool(ctx, layout, int64(c.thresh)); err != nil {
+	if _, err := c.lake.Flags.CreatePool(ctx, storage.NewLocalEngine(), layout, int64(c.thresh)); err != nil {
 		return err
 	}
 	if !c.lake.Flags.Quiet {

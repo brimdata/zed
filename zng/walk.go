@@ -85,7 +85,7 @@ func walkArray(typ *TypeArray, body zcode.Bytes, visit Visitor) error {
 	if body == nil {
 		return nil
 	}
-	inner := InnerType(AliasOf(typ))
+	inner := InnerType(typ)
 	it := body.Iter()
 	for !it.Done() {
 		body, container, err := it.Next()

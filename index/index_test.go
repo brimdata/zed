@@ -13,7 +13,7 @@ import (
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -30,7 +30,7 @@ func TestSearch(t *testing.T) {
 {key:"key5",value:"value5"}
 {key:"key6",value:"value6"}
 `
-	finder := buildAndOpen(t, reader(data))
+	finder := buildAndOpen(t, storage.NewLocalEngine(), reader(data))
 	keyRec, err := finder.ParseKeys("key2")
 	require.NoError(t, err)
 	rec, err := finder.Lookup(keyRec)
@@ -49,13 +49,14 @@ func TestMicroIndex(t *testing.T) {
 	stream, err := newReader(N)
 	require.NoError(t, err)
 	zctx := zson.NewContext()
-	writer, err := index.NewWriter(zctx, path)
+	engine := storage.NewLocalEngine()
+	writer, err := index.NewWriter(zctx, engine, path)
 	require.NoError(t, err)
 	err = zio.Copy(writer, stream)
 	require.NoError(t, err)
 	err = writer.Close()
 	require.NoError(t, err)
-	reader, err := index.NewReader(zctx, path)
+	reader, err := index.NewReader(zctx, engine, path)
 	require.NoError(t, err)
 	defer reader.Close() //nolint:errcheck
 	r, err := reader.NewSectionReader(0)
@@ -122,7 +123,8 @@ func TestCompare(t *testing.T) {
 		})
 
 	}
-	desc := buildAndOpen(t, reader(records), index.Keys("ts"), index.Order(order.Desc))
+	engine := storage.NewLocalEngine()
+	desc := buildAndOpen(t, engine, reader(records), index.Keys("ts"), index.Order(order.Desc))
 	t.Run("Descending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, desc, ">=", c.value, c.gte)
@@ -132,7 +134,7 @@ func TestCompare(t *testing.T) {
 	})
 	r, err := driver.NewReader(context.Background(), compiler.MustParseProc("sort ts"), zson.NewContext(), reader(records))
 	require.NoError(t, err)
-	asc := buildAndOpen(t, r, index.Keys("ts"), index.Order(order.Asc))
+	asc := buildAndOpen(t, engine, r, index.Keys("ts"), index.Order(order.Asc))
 	t.Run("Ascending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, asc, ">=", c.value, c.gte)
@@ -142,23 +144,23 @@ func TestCompare(t *testing.T) {
 	})
 }
 
-func buildAndOpen(t *testing.T, r zio.Reader, opts ...index.Option) *index.Finder {
-	return openFinder(t, build(t, r, opts...))
+func buildAndOpen(t *testing.T, engine storage.Engine, r zio.Reader, opts ...index.Option) *index.Finder {
+	return openFinder(t, build(t, engine, r, opts...))
 }
 
 func openFinder(t *testing.T, path string) *index.Finder {
-	uri, err := iosrc.ParseURI(path)
+	uri, err := storage.ParseURI(path)
 	require.NoError(t, err)
 	zctx := zson.NewContext()
-	finder, err := index.NewFinder(context.Background(), zctx, uri)
+	finder, err := index.NewFinder(context.Background(), zctx, storage.NewLocalEngine(), uri)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, finder.Close()) })
 	return finder
 }
 
-func build(t *testing.T, r zio.Reader, opts ...index.Option) string {
+func build(t *testing.T, engine storage.Engine, r zio.Reader, opts ...index.Option) string {
 	path := filepath.Join(tempDir(t), "test.zng")
-	writer, err := index.NewWriter(zson.NewContext(), path, opts...)
+	writer, err := index.NewWriter(zson.NewContext(), engine, path, opts...)
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(writer, r))
 	require.NoError(t, writer.Close())

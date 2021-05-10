@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	apicmd "github.com/brimdata/zed/cmd/zed/api"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/emitter"
 )
@@ -81,7 +82,7 @@ func (c *FindCmd) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	writer, err := emitter.NewFile(ctx, c.outputFlags.FileName(), c.outputFlags.Options())
+	writer, err := emitter.NewFileFromPath(ctx, storage.NewLocalEngine(), c.outputFlags.FileName(), c.outputFlags.Options())
 	if err != nil {
 		return err
 	}

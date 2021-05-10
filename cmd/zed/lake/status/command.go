@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )
@@ -46,7 +47,8 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	pool, err := c.lake.Flags.OpenPool(ctx)
+	local := storage.NewLocalEngine()
+	pool, err := c.lake.Flags.OpenPool(ctx, local)
 	if err != nil {
 		return err
 	}
@@ -74,5 +76,5 @@ func (c *Command) Run(args []string) error {
 		w.Close()
 	}()
 	r := zngio.NewReader(pipeReader, zson.NewContext())
-	return zedlake.CopyToOutput(ctx, c.outputFlags, r)
+	return zedlake.CopyToOutput(ctx, local, c.outputFlags, r)
 }

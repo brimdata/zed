@@ -79,15 +79,13 @@ func encodeSections(sections []int64) zcode.Bytes {
 	return b.Bytes()
 }
 
-func readTrailer(r io.ReadSeeker, n int64) (*Trailer, int, error) {
+func readTrailer(r io.ReaderAt, size int64) (*Trailer, int, error) {
+	n := size
 	if n > TrailerMaxSize {
 		n = TrailerMaxSize
 	}
-	if _, err := r.Seek(-n, io.SeekEnd); err != nil {
-		return nil, 0, err
-	}
 	buf := make([]byte, n)
-	if _, err := io.ReadFull(r, buf); err != nil {
+	if _, err := r.ReadAt(buf, size-n); err != nil {
 		return nil, 0, err
 	}
 	for off := int(n) - 3; off >= 0; off-- {

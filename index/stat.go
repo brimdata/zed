@@ -3,7 +3,7 @@ package index
 import (
 	"context"
 
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -18,13 +18,12 @@ type Info struct {
 }
 
 // Stat returns summary information about the microindex at uri.
-func Stat(ctx context.Context, uri iosrc.URI) (*Info, error) {
-	si, err := iosrc.Stat(ctx, uri)
+func Stat(ctx context.Context, engine storage.Engine, uri *storage.URI) (*Info, error) {
+	size, err := engine.Size(ctx, uri)
 	if err != nil {
 		return nil, err
 	}
-	size := si.Size()
-	r, err := NewReaderFromURI(ctx, zson.NewContext(), uri)
+	r, err := NewReaderFromURI(ctx, zson.NewContext(), engine, uri)
 	if err != nil {
 		return nil, err
 	}

@@ -1,6 +1,7 @@
 package lake
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"path/filepath"
@@ -12,8 +13,8 @@ import (
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zqe"
@@ -38,10 +39,11 @@ type PoolConfig struct {
 
 type Pool struct {
 	PoolConfig
-	Path      iosrc.URI
-	DataPath  iosrc.URI
-	IndexPath iosrc.URI
-	StagePath iosrc.URI
+	engine    storage.Engine
+	Path      *storage.URI
+	DataPath  *storage.URI
+	IndexPath *storage.URI
+	StagePath *storage.URI
 	log       *commit.Log
 }
 
@@ -58,33 +60,25 @@ func NewPoolConfig(name string, id ksuid.KSUID, layout order.Layout, thresh int6
 	}
 }
 
-func (p *PoolConfig) Path(root iosrc.URI) iosrc.URI {
+func (p *PoolConfig) Path(root *storage.URI) *storage.URI {
 	return root.AppendPath(p.ID.String())
 }
 
-func (p *PoolConfig) Create(ctx context.Context, root iosrc.URI) error {
+func (p *PoolConfig) Create(ctx context.Context, engine storage.Engine, root *storage.URI) error {
 	path := p.Path(root)
-	if err := iosrc.MkdirAll(DataPath(path), 0700); err != nil {
-		return err
-	}
-	if err := iosrc.MkdirAll(IndexPath(path), 0700); err != nil {
-		return err
-	}
-	if err := iosrc.MkdirAll(StagePath(path), 0700); err != nil {
-		return err
-	}
-	_, err := commit.Create(ctx, LogPath(path), p.Layout.Order)
+	_, err := commit.Create(ctx, engine, LogPath(path), p.Layout.Order)
 	return err
 }
 
-func (p *PoolConfig) Open(ctx context.Context, root iosrc.URI) (*Pool, error) {
+func (p *PoolConfig) Open(ctx context.Context, engine storage.Engine, root *storage.URI) (*Pool, error) {
 	path := p.Path(root)
-	log, err := commit.Open(ctx, path.AppendPath(LogTag), p.Layout.Order)
+	log, err := commit.Open(ctx, engine, path.AppendPath(LogTag), p.Layout.Order)
 	if err != nil {
 		return nil, err
 	}
 	pool := &Pool{
 		PoolConfig: *p,
+		engine:     engine,
 		Path:       path,
 		DataPath:   DataPath(path),
 		IndexPath:  IndexPath(path),
@@ -94,8 +88,8 @@ func (p *PoolConfig) Open(ctx context.Context, root iosrc.URI) (*Pool, error) {
 	return pool, nil
 }
 
-func (p *PoolConfig) Delete(ctx context.Context, root iosrc.URI) error {
-	return iosrc.RemoveAll(ctx, p.Path(root))
+func (p *PoolConfig) Delete(ctx context.Context, engine storage.Engine, root *storage.URI) error {
+	return engine.DeleteByPrefix(ctx, p.Path(root))
 }
 
 func (p *Pool) Add(ctx context.Context, r zio.Reader) (ksuid.KSUID, error) {
@@ -202,21 +196,21 @@ func (p *Pool) LookupTags(ctx context.Context, tags []ksuid.KSUID) ([]ksuid.KSUI
 }
 
 func (p *Pool) SegmentExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
-	return iosrc.Exists(ctx, segment.RowObjectPath(p.DataPath, id))
+	return p.engine.Exists(ctx, segment.RowObjectPath(p.DataPath, id))
 }
 
 func (p *Pool) ClearFromStaging(ctx context.Context, id ksuid.KSUID) error {
-	return iosrc.Remove(ctx, p.StagingObject(id))
+	return p.engine.Delete(ctx, p.StagingObject(id))
 }
 
 func (p *Pool) ListStagedCommits(ctx context.Context) ([]ksuid.KSUID, error) {
-	infos, err := iosrc.ReadDir(ctx, p.StagePath)
+	infos, err := p.engine.List(ctx, p.StagePath)
 	if err != nil {
 		return nil, err
 	}
 	ids := make([]ksuid.KSUID, 0, len(infos))
 	for _, info := range infos {
-		_, name := filepath.Split(info.Name())
+		_, name := filepath.Split(info.Name)
 		base := strings.TrimSuffix(name, ".zng")
 		id, err := ksuid.Parse(base)
 		if err == nil {
@@ -226,7 +220,7 @@ func (p *Pool) ListStagedCommits(ctx context.Context) ([]ksuid.KSUID, error) {
 	return ids, nil
 }
 
-func (p *Pool) StagingObject(id ksuid.KSUID) iosrc.URI {
+func (p *Pool) StagingObject(id ksuid.KSUID) *storage.URI {
 	return p.StagePath.AppendPath(id.String() + ".zng")
 }
 
@@ -235,7 +229,7 @@ func (p *Pool) Log() *commit.Log {
 }
 
 func (p *Pool) LoadFromStaging(ctx context.Context, id ksuid.KSUID) (*commit.Transaction, error) {
-	return commit.LoadTransaction(ctx, id, p.StagingObject(id))
+	return commit.LoadTransaction(ctx, p.engine, id, p.StagingObject(id))
 }
 
 func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) error {
@@ -243,7 +237,7 @@ func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) erro
 	if err != nil {
 		return fmt.Errorf("pool %q: internal error: serialize transaction: %w", p.Name, err)
 	}
-	return iosrc.WriteFile(ctx, p.StagingObject(txn.ID), b)
+	return storage.Put(ctx, p.engine, p.StagingObject(txn.ID), bytes.NewReader(b))
 }
 
 func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
@@ -371,12 +365,12 @@ func (p *Pool) Index(ctx context.Context, rules []index.Index, ids []ksuid.KSUID
 }
 
 func (p *Pool) indexSegment(ctx context.Context, rules []index.Index, id ksuid.KSUID) ([]*index.Reference, error) {
-	r, err := iosrc.NewReader(ctx, segment.RowObjectPath(p.DataPath, id))
+	r, err := p.engine.Get(ctx, segment.RowObjectPath(p.DataPath, id))
 	if err != nil {
 		return nil, err
 	}
 	reader := zngio.NewReader(r, zson.NewContext())
-	w, err := index.NewCombiner(ctx, p.IndexPath, rules, id)
+	w, err := index.NewCombiner(ctx, p.engine, p.IndexPath, rules, id)
 	if err != nil {
 		r.Close()
 		return nil, err
@@ -429,18 +423,18 @@ func (p *Pool) Info(ctx context.Context, snap *commit.Snapshot) (info PoolInfo, 
 	return info, err
 }
 
-func DataPath(poolPath iosrc.URI) iosrc.URI {
+func DataPath(poolPath *storage.URI) *storage.URI {
 	return poolPath.AppendPath(DataTag)
 }
 
-func StagePath(poolPath iosrc.URI) iosrc.URI {
+func StagePath(poolPath *storage.URI) *storage.URI {
 	return poolPath.AppendPath(StageTag)
 }
 
-func LogPath(poolPath iosrc.URI) iosrc.URI {
+func LogPath(poolPath *storage.URI) *storage.URI {
 	return poolPath.AppendPath(LogTag)
 }
 
-func IndexPath(poolPath iosrc.URI) iosrc.URI {
+func IndexPath(poolPath *storage.URI) *storage.URI {
 	return poolPath.AppendPath(IndexTag)
 }

@@ -7,6 +7,7 @@ import (
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/segmentio/ksuid"
 )
 
@@ -52,7 +53,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zed lake commit: at least one pending commit tag must be specified")
 	}
-	pool, err := c.lake.Flags.OpenPool(ctx)
+	pool, err := c.lake.Flags.OpenPool(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}

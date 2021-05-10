@@ -9,8 +9,8 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -82,7 +82,7 @@ func (t *testSeekIndex) Lookup(span nano.Span, expected Range) {
 
 func newTestSeekIndex(t *testing.T, entries []entry) *testSeekIndex {
 	path := build(t, entries)
-	s, err := Open(context.Background(), iosrc.MustParseURI(path))
+	s, err := Open(context.Background(), storage.NewLocalEngine(), storage.MustParseURI(path))
 	t.Cleanup(func() { require.NoError(t, s.Close()) })
 	require.NoError(t, err)
 	return &testSeekIndex{s, t}
@@ -93,7 +93,7 @@ func build(t *testing.T, entries entries) string {
 	require.NoError(t, err)
 	t.Cleanup(func() { os.Remove(dir) })
 	path := filepath.Join(dir, "seekindex.zng")
-	builder, err := NewBuilder(context.Background(), path, entries.Order())
+	builder, err := NewBuilder(context.Background(), storage.NewLocalEngine(), path, entries.Order())
 	require.NoError(t, err)
 	for _, entry := range entries {
 		err = builder.Enter(entry.ts, entry.offset)

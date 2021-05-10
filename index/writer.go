@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -47,9 +47,10 @@ import (
 // key changes), then you generally want to abort and cleanup by calling Abort()
 // instead of Close().
 type Writer struct {
-	uri         iosrc.URI
+	uri         *storage.URI
 	keyFields   field.List
 	zctx        *zson.Context
+	engine      storage.Engine
 	writer      *indexWriter
 	cutter      *expr.Cutter
 	tmpdir      string
@@ -78,12 +79,15 @@ type indexWriter struct {
 // provide keys in increasing lexicographic order.  Duplicate keys are not
 // allowed but will not be detected.  Close() or Abort() must be called when
 // done writing.
-func NewWriter(zctx *zson.Context, path string, options ...Option) (*Writer, error) {
-	return NewWriterWithContext(context.Background(), zctx, path, options...)
+func NewWriter(zctx *zson.Context, engine storage.Engine, path string, options ...Option) (*Writer, error) {
+	return NewWriterWithContext(context.Background(), zctx, engine, path, options...)
 }
 
-func NewWriterWithContext(ctx context.Context, zctx *zson.Context, path string, options ...Option) (*Writer, error) {
-	w := &Writer{zctx: zctx}
+func NewWriterWithContext(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string, options ...Option) (*Writer, error) {
+	w := &Writer{
+		zctx:   zctx,
+		engine: engine,
+	}
 	for _, opt := range options {
 		opt.apply(w)
 	}
@@ -97,11 +101,11 @@ func NewWriterWithContext(ctx context.Context, zctx *zson.Context, path string, 
 		return nil, fmt.Errorf("frame threshold too large (%d)", w.frameThresh)
 	}
 	var err error
-	w.uri, err = iosrc.ParseURI(path)
+	w.uri, err = storage.ParseURI(path)
 	if err != nil {
 		return nil, err
 	}
-	w.iow, err = iosrc.NewWriter(ctx, w.uri)
+	w.iow, err = engine.Put(ctx, w.uri)
 	if err != nil {
 		return nil, err
 	}
@@ -175,7 +179,7 @@ func (w *Writer) Abort() error {
 		err = closeErr
 	}
 	// Ignore context here in the event that context is the reson for the abort.
-	if rmErr := iosrc.Remove(context.Background(), w.uri); err == nil {
+	if rmErr := w.engine.Delete(context.Background(), w.uri); err == nil {
 		err = rmErr
 	}
 	return err

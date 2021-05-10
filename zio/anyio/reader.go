@@ -70,9 +70,11 @@ func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zio.Re
 	//}
 	//track.Reset()
 
+	csvErr := errors.New("csv: auto-detection not supported")
+	jsonErr := errors.New("json: auto-detection not supported")
 	parquetErr := errors.New("parquet: auto-detection not supported")
 	zstErr := errors.New("zst: auto-detection not supported")
-	return nil, joinErrs([]error{tzngErr, zeekErr, zjsonErr, zsonErr, zngErr, parquetErr, zstErr})
+	return nil, joinErrs([]error{tzngErr, zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, zstErr})
 }
 
 func NewReader(r io.Reader, zctx *zson.Context) (zio.Reader, error) {

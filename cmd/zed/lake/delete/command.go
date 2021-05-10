@@ -7,6 +7,7 @@ import (
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 var Delete = &charm.Spec{
@@ -60,7 +61,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	pool, err := c.lake.Flags.OpenPool(ctx)
+	pool, err := c.lake.Flags.OpenPool(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}

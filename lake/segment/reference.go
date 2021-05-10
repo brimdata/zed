@@ -7,8 +7,8 @@ import (
 	"sort"
 
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/iosrc"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zqe"
 	"github.com/segmentio/ksuid"
 )
@@ -115,6 +115,13 @@ func (r Reference) Span() nano.Span {
 	return nano.Span{Ts: r.First, Dur: 1}.Union(nano.Span{Ts: r.Last, Dur: 1})
 }
 
+// ObjectPrefix returns a prefix for the various objects that comprise
+// a data object so they can all be deleted with the storage engine's
+// DeleteByPrefix method.
+func (r Reference) ObjectPrefix(path *storage.URI) *storage.URI {
+	return path.AppendPath(r.ID.String())
+}
+
 func (r Reference) RowObjectName() string {
 	return RowObjectName(r.ID)
 }
@@ -123,11 +130,11 @@ func RowObjectName(id ksuid.KSUID) string {
 	return fmt.Sprintf("%s.zng", id)
 }
 
-func (r Reference) RowObjectPath(path iosrc.URI) iosrc.URI {
+func (r Reference) RowObjectPath(path *storage.URI) *storage.URI {
 	return RowObjectPath(path, r.ID)
 }
 
-func RowObjectPath(path iosrc.URI, id ksuid.KSUID) iosrc.URI {
+func RowObjectPath(path *storage.URI, id ksuid.KSUID) *storage.URI {
 	return path.AppendPath(RowObjectName(id))
 }
 
@@ -135,7 +142,7 @@ func (r Reference) SeekObjectName() string {
 	return fmt.Sprintf("%s-seek.zng", r.ID)
 }
 
-func (r Reference) SeekObjectPath(path iosrc.URI) iosrc.URI {
+func (r Reference) SeekObjectPath(path *storage.URI) *storage.URI {
 	return path.AppendPath(r.SeekObjectName())
 }
 
@@ -146,15 +153,9 @@ func (r Reference) Range() string {
 
 // Remove deletes the row object and its seek index.
 // Any 'not found' errors are ignored.
-func (r Reference) Remove(ctx context.Context, path iosrc.URI) error {
-	uris := []iosrc.URI{
-		r.RowObjectPath(path), //XXX need ZNG and ZST
-		r.SeekObjectPath(path),
-	}
-	for _, u := range uris {
-		if err := iosrc.RemoveAll(ctx, u); err != nil && !zqe.IsNotFound(err) {
-			return err
-		}
+func (r Reference) Remove(ctx context.Context, engine storage.Engine, path *storage.URI) error {
+	if err := engine.DeleteByPrefix(ctx, r.ObjectPrefix(path)); err != nil && !zqe.IsNotFound(err) {
+		return err
 	}
 	return nil
 }

@@ -8,6 +8,7 @@ import (
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 var Log = &charm.Spec{
@@ -48,7 +49,8 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 0 {
 		return errors.New("zed lake load: no arguments allowed")
 	}
-	pool, err := c.lake.Flags.OpenPool(ctx)
+	local := storage.NewLocalEngine()
+	pool, err := c.lake.Flags.OpenPool(ctx, local)
 	if err != nil {
 		return err
 	}
@@ -56,5 +58,5 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	return zedlake.CopyToOutput(ctx, c.outputFlags, r)
+	return zedlake.CopyToOutput(ctx, local, c.outputFlags, r)
 }

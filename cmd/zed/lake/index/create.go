@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 var Create = &charm.Spec{
@@ -56,7 +57,8 @@ func (c *CreateCommand) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	root, err := c.lake.Open(ctx)
+	local := storage.NewLocalEngine()
+	root, err := c.lake.Open(ctx, local)
 	if err != nil {
 		return err
 	}
@@ -65,7 +67,7 @@ func (c *CreateCommand) Run(args []string) error {
 		return err
 	}
 	if !c.lake.Quiet {
-		w, err := c.outputFlags.Open(ctx)
+		w, err := c.outputFlags.Open(ctx, local)
 		if err != nil {
 			return err
 		}

@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
@@ -117,7 +118,7 @@ func Errorf(spec string, args ...interface{}) {
 }
 
 func WriteOutput(ctx context.Context, flags outputflags.Flags, r zio.Reader) error {
-	wc, err := flags.Open(ctx)
+	wc, err := flags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}

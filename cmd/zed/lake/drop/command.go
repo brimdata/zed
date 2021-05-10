@@ -7,6 +7,7 @@ import (
 
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/brimdata/zed/pkg/storage"
 )
 
 //XXX TBD: add drop by pool ID
@@ -48,7 +49,7 @@ func (c *Command) Run(args []string) error {
 	if name == "" {
 		return errors.New("name of pool must be supplied with -p option")
 	}
-	lk, err := c.lake.Flags.Open(ctx)
+	lk, err := c.lake.Flags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}

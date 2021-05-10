@@ -8,6 +8,7 @@ import (
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/segmentio/ksuid"
 )
 
@@ -47,7 +48,7 @@ func (c *AddCommand) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	root, err := c.lake.Open(ctx)
+	root, err := c.lake.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}
@@ -61,7 +62,7 @@ func (c *AddCommand) Run(args []string) error {
 	} else if len(tags) == 0 {
 		return errors.New("no data or commit tags specified")
 	}
-	pool, err := c.lake.OpenPool(ctx)
+	pool, err := c.lake.OpenPool(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}

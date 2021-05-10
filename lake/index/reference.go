@@ -3,7 +3,7 @@ package index
 import (
 	"fmt"
 
-	"github.com/brimdata/zed/pkg/iosrc"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/segmentio/ksuid"
 )
 
@@ -24,18 +24,18 @@ func ObjectName(id ksuid.KSUID) string {
 	return fmt.Sprintf("%s.zng", id)
 }
 
-func (r Reference) ObjectDir(path iosrc.URI) iosrc.URI {
+func (r Reference) ObjectDir(path *storage.URI) *storage.URI {
 	return ObjectDir(path, r.Index)
 }
 
-func ObjectDir(path iosrc.URI, rule Index) iosrc.URI {
+func ObjectDir(path *storage.URI, rule Index) *storage.URI {
 	return path.AppendPath(rule.ID.String())
 }
 
-func (r Reference) ObjectPath(path iosrc.URI) iosrc.URI {
+func (r Reference) ObjectPath(path *storage.URI) *storage.URI {
 	return ObjectPath(path, r.Index, r.SegmentID)
 }
 
-func ObjectPath(path iosrc.URI, rule Index, id ksuid.KSUID) iosrc.URI {
+func ObjectPath(path *storage.URI, rule Index, id ksuid.KSUID) *storage.URI {
 	return ObjectDir(path, rule).AppendPath(ObjectName(id))
 }

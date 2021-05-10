@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -23,8 +24,8 @@ func NewCutter(object *Object, fields []string) (*Reader, error) {
 
 }
 
-func NewCutterFromPath(ctx context.Context, zctx *zson.Context, path string, fields []string) (*Reader, error) {
-	object, err := NewObjectFromPath(ctx, zctx, path)
+func NewCutterFromPath(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string, fields []string) (*Reader, error) {
+	object, err := NewObjectFromPath(ctx, zctx, engine, path)
 	if err != nil {
 		return nil, err
 	}

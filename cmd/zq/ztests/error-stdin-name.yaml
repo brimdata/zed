@@ -10,4 +10,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      stdio:///stdin: no such type name: "1"
+      stdio:stdin: no such type name: "1"
