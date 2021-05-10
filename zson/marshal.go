@@ -625,8 +625,8 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		return err
 	}
 	if _, ok := v.Interface().(zng.Value); ok {
-		// For embedded zng.Values we simply set the
-		// reflect value to the zng.Value that has been decoded.
+		// For zng.Values we simply set the reflect value to the
+		// zng.Value that has been decoded.
 		v.Set(reflect.ValueOf(zv))
 		return nil
 	}

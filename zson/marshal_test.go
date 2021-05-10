@@ -242,7 +242,7 @@ type ZNGValueField struct {
 }
 
 func TestZNGValueField(t *testing.T) {
-	// Embed a Zed int64 inside a go struct as a zng.Value
+	// Include a Zed int64 inside a Go struct as a zng.Value field.
 	zngValueField := &ZNGValueField{
 		Name:  "test1",
 		Field: zng.Value{zng.TypeInt64, zng.EncodeInt(123)},
@@ -260,7 +260,7 @@ func TestZNGValueField(t *testing.T) {
 	err = u.Unmarshal(zv, &out)
 	require.NoError(t, err)
 	assert.Equal(t, *zngValueField, out)
-	// Embed a Zed record inside a go struct as a zng.Value
+	// Include a Zed record inside a Go struct in a zng.Value field.
 	z := `{s:"foo",a:[1,2,3]}`
 	zv2, err := zson.ParseValue(zson.NewContext(), z)
 	require.NoError(t, err)
