@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
+	"github.com/brimdata/zed/order"
 )
 
 func DAG(op dag.Op) string {
@@ -255,7 +256,7 @@ func (c *canonDAG) op(p dag.Op) {
 	case *dag.Sort:
 		c.next()
 		c.write("sort")
-		if p.SortDir < 0 {
+		if p.Order == order.Desc {
 			c.write(" -r")
 		}
 		if p.NullsFirst {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/spill"
 	"github.com/brimdata/zed/zbuf"
@@ -19,7 +20,7 @@ var MemMaxBytes = 128 * 1024 * 1024
 type Proc struct {
 	pctx       *proc.Context
 	parent     proc.Interface
-	dir        int
+	order      order.Which
 	nullsFirst bool
 
 	fieldResolvers     []expr.Evaluator
@@ -29,11 +30,11 @@ type Proc struct {
 	unseenFieldTracker *unseenFieldTracker
 }
 
-func New(pctx *proc.Context, parent proc.Interface, fields []expr.Evaluator, sortDir int, nullsFirst bool) (*Proc, error) {
+func New(pctx *proc.Context, parent proc.Interface, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Proc, error) {
 	return &Proc{
 		pctx:               pctx,
 		parent:             parent,
-		dir:                sortDir,
+		order:              order,
 		nullsFirst:         nullsFirst,
 		fieldResolvers:     fields,
 		resultCh:           make(chan proc.Result),
@@ -162,11 +163,11 @@ func (p *Proc) setCompareFn(r *zng.Record) {
 		resolvers = []expr.Evaluator{resolver}
 	}
 	nullsMax := !p.nullsFirst
-	if p.dir < 0 {
+	if p.order == order.Desc {
 		nullsMax = !nullsMax
 	}
 	compareFn := expr.NewCompareFn(nullsMax, resolvers...)
-	if p.dir < 0 {
+	if p.order == order.Desc {
 		p.compareFn = func(a, b *zng.Record) int { return compareFn(b, a) }
 	} else {
 		p.compareFn = compareFn

@@ -328,7 +328,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		return &dag.Sort{
 			Kind:       "Sort",
 			Args:       exprs,
-			SortDir:    p.SortDir,
+			Order:      p.Order,
 			NullsFirst: p.NullsFirst,
 		}, nil
 	case *ast.Head:
