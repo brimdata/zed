@@ -235,3 +235,50 @@ func TestUnexported(t *testing.T) {
 	_, err := m.Marshal(f)
 	require.NoError(t, err)
 }
+
+type ZNGValueField struct {
+	Name  string
+	Field zng.Value `zng:"field"`
+}
+
+func TestZNGValueField(t *testing.T) {
+	// Include a Zed int64 inside a Go struct as a zng.Value field.
+	zngValueField := &ZNGValueField{
+		Name:  "test1",
+		Field: zng.Value{zng.TypeInt64, zng.EncodeInt(123)},
+	}
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+	zv, err := m.Marshal(zngValueField)
+	require.NoError(t, err)
+	expected := `{Name:"test1",field:123} (=ZNGValueField)`
+	actual, err := zson.FormatValue(zv)
+	require.NoError(t, err)
+	assert.Equal(t, trim(expected), trim(actual))
+	u := zson.NewZNGUnmarshaler()
+	var out ZNGValueField
+	err = u.Unmarshal(zv, &out)
+	require.NoError(t, err)
+	assert.Equal(t, *zngValueField, out)
+	// Include a Zed record inside a Go struct in a zng.Value field.
+	z := `{s:"foo",a:[1,2,3]}`
+	zv2, err := zson.ParseValue(zson.NewContext(), z)
+	require.NoError(t, err)
+	zngValueField2 := &ZNGValueField{
+		Name:  "test2",
+		Field: zv2,
+	}
+	m2 := zson.NewZNGMarshaler()
+	m2.Decorate(zson.StyleSimple)
+	zv3, err := m2.Marshal(zngValueField2)
+	require.NoError(t, err)
+	expected2 := `{Name:"test2",field:{s:"foo",a:[1,2,3]}} (=ZNGValueField)`
+	actual2, err := zson.FormatValue(zv3)
+	require.NoError(t, err)
+	assert.Equal(t, trim(expected2), trim(actual2))
+	u2 := zson.NewZNGUnmarshaler()
+	var out2 ZNGValueField
+	err = u2.Unmarshal(zv3, &out2)
+	require.NoError(t, err)
+	assert.Equal(t, *zngValueField2, out2)
+}

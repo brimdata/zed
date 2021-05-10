@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -66,6 +67,22 @@ func ParseType(zctx *Context, zson string) (zng.Type, error) {
 		return nil, err
 	}
 	return NewAnalyzer().convertType(zctx, ast)
+}
+
+func ParseValue(zctx *Context, zson string) (zng.Value, error) {
+	zp, err := NewParser(strings.NewReader(zson))
+	if err != nil {
+		return zng.Value{}, err
+	}
+	ast, err := zp.ParseValue()
+	if err != nil {
+		return zng.Value{}, err
+	}
+	val, err := NewAnalyzer().ConvertValue(zctx, ast)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	return Build(zcode.NewBuilder(), val)
 }
 
 func TranslateType(zctx *Context, astType zed.Type) (zng.Type, error) {
