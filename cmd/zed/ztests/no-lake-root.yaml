@@ -1,0 +1,7 @@
+script: |
+  zed lake ls
+
+outputs:
+  - name: stderr
+    data: |
+      no lake path specied: use -R or ZED_LAKE_ROOT environment

@@ -75,6 +75,10 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
+	lakeRoot, err := c.lake.RootPath()
+	if err != nil {
+		return err
+	}
 	if err := c.initLogger(); err != nil {
 		return err
 	}
@@ -90,7 +94,7 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	}
-	c.conf.Root = c.lake.Root
+	c.conf.Root = lakeRoot
 	core, err := service.NewCore(ctx, c.conf)
 	if err != nil {
 		return err
