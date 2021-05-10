@@ -424,7 +424,8 @@ value in a record, as an element in an array, etc).
 #### 3.3.1 String Escape Rules
 
 Double-quoted `string` syntax is the same as that of JSON as described
-[RFC 8259](https://tools.ietf.org/html/rfc8259#section-7), specifically:
+[RFC 8259](https://tools.ietf.org/html/rfc8259#section-7), except for
+the special case `\/`, specifically:
 
 * The sequence `\uhhhh` where each `h` is a hexadecimal digit represents
   the Unicode code point corresponding to the given
@@ -432,6 +433,10 @@ Double-quoted `string` syntax is the same as that of JSON as described
 * `\u{h*}` where there are from 1 to 6 hexadecimal digits inside the
   brackets represents the Unicode code point corresponding to the given
   hexadecimal number.
+
+Unlike in the JSON specification, `\/` represents the
+forward slash character (U+2B) though slash may appear without being
+escaped in this fashion.
 
 `\u` followed by anything that does not conform to the above syntax
 is not a valid escape sequence.  The behavior of an implementation
