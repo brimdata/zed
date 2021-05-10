@@ -236,49 +236,49 @@ func TestUnexported(t *testing.T) {
 	require.NoError(t, err)
 }
 
-type EmbeddedZNG struct {
-	Name string
-	Dawg zng.Value `zng:"yo"`
+type ZNGValueField struct {
+	Name  string
+	Field zng.Value `zng:"field"`
 }
 
-func TestZNGValue(t *testing.T) {
+func TestZNGValueField(t *testing.T) {
 	// Embed a Zed int64 inside a go struct as a zng.Value
-	embedded := &EmbeddedZNG{
-		Name: "test1",
-		Dawg: zng.Value{zng.TypeInt64, zng.EncodeInt(123)},
+	zngValueField := &ZNGValueField{
+		Name:  "test1",
+		Field: zng.Value{zng.TypeInt64, zng.EncodeInt(123)},
 	}
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
-	zv, err := m.Marshal(embedded)
+	zv, err := m.Marshal(zngValueField)
 	require.NoError(t, err)
-	expected := `{Name:"test1",yo:123} (=EmbeddedZNG)`
+	expected := `{Name:"test1",field:123} (=ZNGValueField)`
 	actual, err := zson.FormatValue(zv)
 	require.NoError(t, err)
 	assert.Equal(t, trim(expected), trim(actual))
 	u := zson.NewZNGUnmarshaler()
-	var out EmbeddedZNG
+	var out ZNGValueField
 	err = u.Unmarshal(zv, &out)
 	require.NoError(t, err)
-	assert.Equal(t, *embedded, out)
+	assert.Equal(t, *zngValueField, out)
 	// Embed a Zed record inside a go struct as a zng.Value
 	z := `{s:"foo",a:[1,2,3]}`
 	zv2, err := zson.ParseValue(zson.NewContext(), z)
 	require.NoError(t, err)
-	embedded2 := &EmbeddedZNG{
-		Name: "test2",
-		Dawg: zv2,
+	zngValueField2 := &ZNGValueField{
+		Name:  "test2",
+		Field: zv2,
 	}
 	m2 := zson.NewZNGMarshaler()
 	m2.Decorate(zson.StyleSimple)
-	zv3, err := m2.Marshal(embedded2)
+	zv3, err := m2.Marshal(zngValueField2)
 	require.NoError(t, err)
-	expected2 := `{Name:"test2",yo:{s:"foo",a:[1,2,3]}} (=EmbeddedZNG)`
+	expected2 := `{Name:"test2",field:{s:"foo",a:[1,2,3]}} (=ZNGValueField)`
 	actual2, err := zson.FormatValue(zv3)
 	require.NoError(t, err)
 	assert.Equal(t, trim(expected2), trim(actual2))
 	u2 := zson.NewZNGUnmarshaler()
-	var out2 EmbeddedZNG
+	var out2 ZNGValueField
 	err = u2.Unmarshal(zv3, &out2)
 	require.NoError(t, err)
-	assert.Equal(t, *embedded2, out2)
+	assert.Equal(t, *zngValueField2, out2)
 }

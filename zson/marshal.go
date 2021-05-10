@@ -296,7 +296,7 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zng.Type, error) {
 			// it's already been converted to a Zed time;
 			// likewise for zng.Value, which gets encoded as
 			// itself and its own alias type if it has one.
-			if v.Type() == nanoTsType || v.Type() == zngValueType {
+			if t := v.Type(); t == nanoTsType || t == zngValueType {
 				return typ, nil
 			}
 			path := v.Type().PkgPath()
@@ -612,12 +612,6 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 			return pv.Interface().(ZNGUnmarshaler).UnmarshalZNG(u, zv)
 		}
 	}
-	if _, ok := v.Interface().(zng.Value); ok {
-		// For embedded zng.Values we simply set the
-		// reflect value to the zng.Value that has been decoded.
-		v.Set(reflect.ValueOf(zv))
-		return nil
-	}
 	if _, ok := v.Interface().(nano.Ts); ok {
 		if zv.Type != zng.TypeTime {
 			return incompatTypeError(zv.Type, v)
@@ -629,6 +623,12 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		x, err := zng.DecodeTime(zv.Bytes)
 		v.Set(reflect.ValueOf(x))
 		return err
+	}
+	if _, ok := v.Interface().(zng.Value); ok {
+		// For embedded zng.Values we simply set the
+		// reflect value to the zng.Value that has been decoded.
+		v.Set(reflect.ValueOf(zv))
+		return nil
 	}
 	switch v.Kind() {
 	case reflect.Array:
