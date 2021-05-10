@@ -1,0 +1,12 @@
+script: |
+  zq -z in.csv
+
+inputs:
+  - name: in.csv
+    data: |
+      a,b
+      1,2
+
+outputs:
+  - name: stderr
+    regexp: 'csv:(.|\s)+json:(.|\s)+parquet:(.|\s)+zst:'
