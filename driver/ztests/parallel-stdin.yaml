@@ -1,5 +1,5 @@
 script: |
-  zq -z 'join a=b b=b' - B.zson
+  zq -z 'join on a=b b=b' - B.zson
 
 inputs:
   - name: stdin

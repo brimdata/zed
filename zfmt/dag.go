@@ -310,10 +310,10 @@ func (c *canonDAG) op(p dag.Op) {
 		c.expr(p.LeftKey, false)
 		c.write("=")
 		c.expr(p.RightKey, false)
-		c.ret()
-		c.open("join-cut ")
-		c.assignments(p.Args)
-		c.close()
+		if len(p.Args) != 0 {
+			c.write(" ")
+			c.assignments(p.Args)
+		}
 		c.close()
 	case *dag.From:
 		// XXX cleanup for single trunk

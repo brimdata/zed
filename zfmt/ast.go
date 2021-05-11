@@ -389,10 +389,10 @@ func (c *canon) proc(p ast.Proc) {
 		c.expr(p.LeftKey, false)
 		c.write("=")
 		c.expr(p.RightKey, false)
-		c.ret()
-		c.open("join-cut ")
-		c.assignments(p.Args)
-		c.close()
+		if p.Args != nil {
+			c.write(" ")
+			c.assignments(p.Args)
+		}
 		c.close()
 	//case *ast.SqlExpression:
 	//	//XXX TBD
