@@ -133,7 +133,7 @@ type fileSizer struct {
 var _ Sizer = (*fileSizer)(nil)
 
 func (f *fileSizer) Size() (int64, error) {
-	info, err := os.Stat(f.uri.Path)
+	info, err := os.Stat(f.uri.Filepath())
 	if err != nil {
 		return 0, wrapfileError(f.uri, err)
 	}
