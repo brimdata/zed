@@ -51,7 +51,7 @@ func TestUnpackBinaryExpr(t *testing.T) {
 		Terminal{},
 		List{},
 	)
-	actual, err := reflector.Unpack(binaryExprJSON)
+	actual, err := reflector.UnmarshalString(binaryExprJSON)
 	require.NoError(t, err)
 	assert.Equal(t, binaryExprExpected, actual)
 }
@@ -80,7 +80,7 @@ func TestUnpackTypeTag(t *testing.T) {
 		BinaryExpr2{},
 		Terminal{},
 	)
-	actual, err := reflector.Unpack(typeTagJSON)
+	actual, err := reflector.UnmarshalString(typeTagJSON)
 	require.NoError(t, err)
 	assert.Equal(t, typeTagExpected, actual)
 }
@@ -119,7 +119,7 @@ func TestUnpackNested(t *testing.T) {
 		Terminal{},
 		List{},
 	)
-	actual, err := reflector.Unpack(nestedJSON)
+	actual, err := reflector.UnmarshalString(nestedJSON)
 	require.NoError(t, err)
 	assert.Equal(t, nestedExpected, actual)
 }
@@ -172,7 +172,7 @@ func TestUnpackEmbedded(t *testing.T) {
 		List{},
 		Embedded{},
 	)
-	actual, err := reflector.Unpack(embeddedJSON)
+	actual, err := reflector.UnmarshalString(embeddedJSON)
 	require.NoError(t, err)
 	assert.Equal(t, embeddedExpected, actual)
 }
@@ -197,7 +197,7 @@ func TestUnpackList(t *testing.T) {
 		Terminal{},
 		List{},
 	)
-	actual, err := reflector.Unpack(listJSON)
+	actual, err := reflector.UnmarshalString(listJSON)
 	require.NoError(t, err)
 	assert.Equal(t, listExpected, actual)
 }
@@ -242,7 +242,7 @@ func TestUnpackPairList(t *testing.T) {
 		Terminal{},
 		PairList{},
 	)
-	actual, err := reflector.Unpack(pairListJSON)
+	actual, err := reflector.UnmarshalString(pairListJSON)
 	require.NoError(t, err)
 	assert.Equal(t, pairListExpected, actual)
 }
@@ -321,7 +321,7 @@ func TestUnpackCut(t *testing.T) {
 		Identifier{},
 		Assignment{},
 	)
-	actual, err := reflector.Unpack(cutJSON)
+	actual, err := reflector.UnmarshalString(cutJSON)
 	require.NoError(t, err)
 	assert.Equal(t, cutExpected, actual)
 }
@@ -352,7 +352,7 @@ func TestUnpackSkip(t *testing.T) {
 		BinaryExpr3{},
 		Terminal{},
 	)
-	actual, err := reflector.Unpack(skipJSON)
+	actual, err := reflector.UnmarshalString(skipJSON)
 	require.NoError(t, err)
 	assert.Equal(t, skipExpected, actual)
 }

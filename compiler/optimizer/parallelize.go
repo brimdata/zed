@@ -142,12 +142,8 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		// the main sequence, then add back a merge to effect a merge sort.
 		extend(trunk, ingress)
 		seq.Delete(1, 1)
-		mergeOrder := order.Desc
-		if ingress.SortDir > 0 {
-			mergeOrder = order.Asc
-		}
-		sortOrder := order.NewLayout(mergeOrder, field.List{mergeKey})
-		return replicateAndMerge(seq, sortOrder, from, trunk, replicas)
+		layout := order.NewLayout(ingress.Order, field.List{mergeKey})
+		return replicateAndMerge(seq, layout, from, trunk, replicas)
 	case *dag.Head, *dag.Tail:
 		if layout.IsNil() {
 			// Unknown order: we can't parallelize because we can't maintain this unknown order at the merge point.

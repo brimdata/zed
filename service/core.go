@@ -33,7 +33,7 @@ const indexPage = `
 type Config struct {
 	Auth    AuthConfig
 	Logger  *zap.Logger
-	Root    string
+	Root    *storage.URI
 	Version string
 }
 
@@ -67,10 +67,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 			return nil, err
 		}
 	}
-	path, err := storage.ParseURI(conf.Root)
-	if err != nil {
-		return nil, err
-	}
+	path := conf.Root
 	var engine storage.Engine
 	switch storage.Scheme(path.Scheme) {
 	case storage.FileScheme:

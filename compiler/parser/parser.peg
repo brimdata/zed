@@ -391,9 +391,9 @@ Operator
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
       VAR(argm) = ASSERT_MAP(args)
-      VAR(proc) = MAP("kind": "Sort", "args": list, "sortdir": 1, "nullsfirst": false)
+      VAR(proc) = MAP("kind": "Sort", "args": list, "order": "asc", "nullsfirst": false)
       if HAS(argm, "r") {
-        proc["sortdir"] = -1
+        proc["order"] = "desc"
       }
       if HAS(argm, "nulls") {
         if (argm["nulls"] == "first") {
@@ -490,14 +490,14 @@ ShapeProc
     }
 
 JoinProc
-  = style:JoinStyle "join"i _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
+  = style:JoinStyle "join"i _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey columns:(_ FlexAssignments)? {
       VAR(proc) = MAP("kind": "Join", "style": style, "left_key": leftKey, "right_key": rightKey, "args": NULL)
       if ISNOTNULL(columns) {
         proc["args"] = ASSERT_ARRAY(columns)[1]
       }
       RETURN(proc)
     }
-  / style:JoinStyle  "join"i _ key:JoinKey columns:(_ FlexAssignments)? {
+  / style:JoinStyle  "join"i _ ON _ key:JoinKey columns:(_ FlexAssignments)? {
       VAR(proc) = MAP("kind": "Join", "style": style, "left_key": key, "right_key": key, "args": NULL)
       if ISNOTNULL(columns) {
         proc["args"] = ASSERT_ARRAY(columns)[1]

@@ -275,6 +275,7 @@ func (m *MarshalZNGContext) NamedBindings(bindings []Binding) error {
 }
 
 var nanoTsType = reflect.TypeOf(nano.Ts(0))
+var zngValueType = reflect.TypeOf(zng.Value{})
 
 func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zng.Type, error) {
 	typ, err := m.encodeAny(v)
@@ -292,8 +293,10 @@ func (m *MarshalZNGContext) encodeValue(v reflect.Value) (zng.Type, error) {
 		kind := v.Kind().String()
 		if name != "" && name != kind {
 			// We do not want to further decorate nano.Ts as
-			// it's already been converted to a Zed time.
-			if v.Type() == nanoTsType {
+			// it's already been converted to a Zed time;
+			// likewise for zng.Value, which gets encoded as
+			// itself and its own alias type if it has one.
+			if t := v.Type(); t == nanoTsType || t == zngValueType {
 				return typ, nil
 			}
 			path := v.Type().PkgPath()
@@ -320,9 +323,21 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zng.Type, error) {
 	if v.Type().Implements(marshalerTypeZNG) {
 		return v.Interface().(ZNGMarshaler).MarshalZNG(m)
 	}
-	if v, ok := v.Interface().(nano.Ts); ok {
-		m.Builder.AppendPrimitive(zng.EncodeTime(v))
+	if ts, ok := v.Interface().(nano.Ts); ok {
+		m.Builder.AppendPrimitive(zng.EncodeTime(ts))
 		return zng.TypeTime, nil
+	}
+	if zv, ok := v.Interface().(zng.Value); ok {
+		typ, err := m.TranslateType(zv.Type)
+		if err != nil {
+			return nil, err
+		}
+		if zng.IsContainerType(typ) {
+			m.Builder.AppendContainer(zv.Bytes)
+		} else {
+			m.Builder.AppendPrimitive(zv.Bytes)
+		}
+		return typ, nil
 	}
 	switch v.Kind() {
 	case reflect.Array:
@@ -609,6 +624,12 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 		v.Set(reflect.ValueOf(x))
 		return err
 	}
+	if _, ok := v.Interface().(zng.Value); ok {
+		// For zng.Values we simply set the reflect value to the
+		// zng.Value that has been decoded.
+		v.Set(reflect.ValueOf(zv))
+		return nil
+	}
 	switch v.Kind() {
 	case reflect.Array:
 		return u.decodeArray(zv, v)
@@ -750,7 +771,7 @@ func (u *UnmarshalZNGContext) decodeIP(zv zng.Value, v reflect.Value) error {
 func (u *UnmarshalZNGContext) decodeRecord(zv zng.Value, sval reflect.Value) error {
 	recType, ok := zng.AliasOf(zv.Type).(*zng.TypeRecord)
 	if !ok {
-		return errors.New("not a record")
+		return fmt.Errorf("cannot unmarshal Zed type %q into Go struct", FormatType(zv.Type))
 	}
 	nameToField := make(map[string]int)
 	stype := sval.Type()

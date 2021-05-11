@@ -1,10 +1,10 @@
 script: |
   echo === LEFT ===
-  zq -z 'left join a=b hit=sb | sort a' A.zson B.zson
+  zq -z 'left join on a=b hit=sb | sort a' A.zson B.zson
   echo === INNER ===
-  zq -z 'inner join a=b hit=sb | sort a' A.zson B.zson
+  zq -z 'inner join on a=b hit=sb | sort a' A.zson B.zson
   echo === RIGHT ===
-  zq -z 'right join b=c hit=sb | sort c' B.zson C.zson
+  zq -z 'right join on b=c hit=sb | sort c' B.zson C.zson
 
 inputs:
   - name: A.zson

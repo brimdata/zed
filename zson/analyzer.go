@@ -534,7 +534,7 @@ func (a Analyzer) convertTypeValue(zctx *Context, tv *zed.TypeValue, cast zng.Ty
 		return nil, err
 	}
 	if cast == nil {
-		cast = typ
+		cast = zng.TypeType
 	}
 	return &TypeValue{
 		Type:  cast,

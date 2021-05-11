@@ -72,11 +72,7 @@ func (o *Optimizer) analyzeOp(op dag.Op, layout order.Layout) (order.Layout, err
 			// Not a field
 			return order.Nil, nil
 		}
-		o := order.Asc
-		if op.SortDir < 0 { // Issue #2659 change SortDir to use order.Which
-			o = order.Desc
-		}
-		return order.NewLayout(o, field.List{key}), nil
+		return order.NewLayout(op.Order, field.List{key}), nil
 	case *dag.From:
 		var egress order.Layout
 		for k := range op.Trunks {

@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr/agg"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 )
 
 func convertSQLProc(scope *Scope, sql *ast.SQLExpr) (dag.Op, error) {
@@ -332,21 +333,14 @@ func convertSQLJoin(scope *Scope, leftPath []dag.Op, sqlJoin ast.SQLJoin) ([]dag
 }
 
 func sortBy(e dag.Expr) *dag.Sort {
-	return sortByMulti([]dag.Expr{e}, "asc")
+	return sortByMulti([]dag.Expr{e}, order.Asc)
 }
 
-func sortByMulti(keys []dag.Expr, order string) *dag.Sort {
-	// XXX ast.Sort should take a zbuf.Order instead of an in direction
-	// (and probably this constant should move out of zbuf and into ast)
-	// See issue #2397
-	direction := 1
-	if order == "desc" {
-		direction = -1
-	}
+func sortByMulti(keys []dag.Expr, order order.Which) *dag.Sort {
 	return &dag.Sort{
-		Kind:    "Sort",
-		Args:    keys,
-		SortDir: direction,
+		Kind:  "Sort",
+		Args:  keys,
+		Order: order,
 	}
 }
 
