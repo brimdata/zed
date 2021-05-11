@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/zcode"
 )
 
@@ -67,5 +66,5 @@ func (t *TypeOfError) ZSONOf(zv zcode.Bytes) string {
 }
 
 func IsMissing(zv Value) bool {
-	return zv.Type == TypeError && byteconv.UnsafeString(zv.Bytes) == missing
+	return zv.Type == TypeError && string(zv.Bytes) == missing
 }
