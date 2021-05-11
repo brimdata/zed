@@ -280,7 +280,7 @@ func (l *Lexer) scanString() (string, error) {
 			}
 			//XXX what about \u{}
 			switch c {
-			case '"', '\\': // nothing
+			case '"', '\\', '/': // nothing
 
 			case 'b':
 				c = '\b'
