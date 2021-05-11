@@ -196,10 +196,10 @@ type (
 	}
 	// A Sort proc represents a proc that sorts records.
 	Sort struct {
-		Kind       string `json:"kind" unpack:""`
-		Args       []Expr `json:"args"`
-		SortDir    int    `json:"sortdir"`
-		NullsFirst bool   `json:"nullsfirst"`
+		Kind       string      `json:"kind" unpack:""`
+		Args       []Expr      `json:"args"`
+		Order      order.Which `json:"order"`
+		NullsFirst bool        `json:"nullsfirst"`
 	}
 	// A Cut proc represents a proc that removes fields from each
 	// input record where each removed field matches one of the named fields
@@ -424,9 +424,9 @@ type SQLFrom struct {
 }
 
 type SQLOrderBy struct {
-	Kind  string `json:"kind" unpack:""`
-	Keys  []Expr `json:"keys"`
-	Order string `json:"order"`
+	Kind  string      `json:"kind" unpack:""`
+	Keys  []Expr      `json:"keys"`
+	Order order.Which `json:"order"`
 }
 
 type SQLJoin struct {

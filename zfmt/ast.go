@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/zed/order"
 )
 
 func AST(p ast.Proc) string {
@@ -286,10 +287,8 @@ func (c *canon) proc(p ast.Proc) {
 			c.ret()
 			c.write("ORDER BY ")
 			c.exprs(p.OrderBy.Keys)
-			if p.OrderBy.Order != "" {
-				c.write(" ")
-				c.write(strings.ToUpper(p.OrderBy.Order))
-			}
+			c.write(" ")
+			c.write(strings.ToUpper(p.OrderBy.Order.String()))
 		}
 		if p.Limit != 0 {
 			c.ret()
@@ -329,7 +328,7 @@ func (c *canon) proc(p ast.Proc) {
 	case *ast.Sort:
 		c.next()
 		c.write("sort")
-		if p.SortDir < 0 {
+		if p.Order == order.Desc {
 			c.write(" -r")
 		}
 		if p.NullsFirst {

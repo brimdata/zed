@@ -88,10 +88,10 @@ type (
 		Kind string `json:"kind" unpack:""`
 	}
 	Sort struct {
-		Kind       string `json:"kind" unpack:""`
-		Args       []Expr `json:"args"`
-		SortDir    int    `json:"sortdir"`
-		NullsFirst bool   `json:"nullsfirst"`
+		Kind       string      `json:"kind" unpack:""`
+		Args       []Expr      `json:"args"`
+		Order      order.Which `json:"order"`
+		NullsFirst bool        `json:"nullsfirst"`
 	}
 	Summarize struct {
 		Kind         string         `json:"kind" unpack:""`

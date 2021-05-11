@@ -550,9 +550,9 @@ function peg$parse(input, options) {
       peg$c126 = function(args, l) { return l },
       peg$c127 = function(args, list) {
             let argm = args;
-            let proc = {"kind": "Sort", "args": list, "sortdir": 1, "nullsfirst": false};
+            let proc = {"kind": "Sort", "args": list, "order": "asc", "nullsfirst": false};
             if ( "r" in argm) {
-              proc["sortdir"] = -1;
+              proc["order"] = "desc";
             }
             if ( "nulls" in argm) {
               if (argm["nulls"] == "first") {

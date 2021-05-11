@@ -136,7 +136,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 		if err != nil {
 			return nil, err
 		}
-		sort, err := sort.New(b.pctx, parent, fields, v.SortDir, v.NullsFirst)
+		sort, err := sort.New(b.pctx, parent, fields, v.Order, v.NullsFirst)
 		if err != nil {
 			return nil, fmt.Errorf("compiling sort: %w", err)
 		}
