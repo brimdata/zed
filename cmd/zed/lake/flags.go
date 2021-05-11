@@ -49,7 +49,7 @@ func (f *Flags) Open(ctx context.Context, engine storage.Engine) (*lake.Root, er
 		return nil, err
 	}
 	if root.Path == "" {
-		return nil, errors.New("no lake path specied: use -R or ZED_LAKE_ROOT environment")
+		return nil, errors.New("no lake path specied: use -R or set ZED_LAKE_ROOT")
 	}
 	return lake.Open(ctx, engine, root)
 }
