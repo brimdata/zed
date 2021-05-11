@@ -1,0 +1,6 @@
+zed: "*"
+
+input: &input |
+  {typ:(int64)}
+
+output: *input
