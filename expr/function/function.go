@@ -86,6 +86,8 @@ func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
 		f = &trunc{}
 	case "typeof":
 		f = &typeOf{zctx}
+	case "typeunder":
+		f = &typeUnder{zctx}
 	case "nameof":
 		f = &nameOf{}
 	case "fields":
@@ -161,6 +163,15 @@ type typeOf struct {
 
 func (t *typeOf) Call(args []zng.Value) (zng.Value, error) {
 	typ := args[0].Type
+	return t.zctx.LookupTypeValue(typ), nil
+}
+
+type typeUnder struct {
+	zctx *zson.Context
+}
+
+func (t *typeUnder) Call(args []zng.Value) (zng.Value, error) {
+	typ := zng.AliasOf(args[0].Type)
 	return t.zctx.LookupTypeValue(typ), nil
 }
 
