@@ -19,7 +19,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-isatty v0.0.12 // indirect
-	github.com/mitchellh/mapstructure v1.3.3
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect
 	github.com/pbnjay/memory v0.0.0-20190104145345-974d429e7ae4
 	github.com/peterh/liner v1.1.0

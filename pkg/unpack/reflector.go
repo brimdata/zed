@@ -4,8 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-
-	"github.com/mitchellh/mapstructure"
 )
 
 var zero reflect.Value
@@ -69,19 +67,15 @@ func (r Reflector) get(unpackKey string, create bool) map[string]reflect.Type {
 	return types
 }
 
-func (r Reflector) Unpack(s string) (interface{}, error) {
-	return r.UnpackBytes([]byte(s))
+func (r Reflector) UnmarshalString(s string) (interface{}, error) {
+	return r.Unmarshal([]byte(s))
 }
 
-func (r Reflector) UnpackBytes(b []byte) (interface{}, error) {
-	var jsonMap interface{}
-	if err := json.Unmarshal(b, &jsonMap); err != nil {
+func (r Reflector) Unmarshal(b []byte) (interface{}, error) {
+	var m interface{}
+	if err := json.Unmarshal(b, &m); err != nil {
 		return nil, fmt.Errorf("unpacker error parsing JSON: %w", err)
 	}
-	return r.UnpackMap(jsonMap)
-}
-
-func (r Reflector) UnpackMap(m interface{}) (interface{}, error) {
 	object, ok := m.(map[string]interface{})
 	if !ok {
 		return nil, fmt.Errorf("cannot unpack non-object JSON value")
@@ -93,22 +87,18 @@ func (r Reflector) UnpackMap(m interface{}) (interface{}, error) {
 	if rv, ok := skeleton.(reflect.Value); ok {
 		skeleton = rv.Interface()
 	}
-	v := skeleton
-	if _, ok := v.(map[string]interface{}); ok {
-		// If the root record wasn't decoded to a struct ptr,
-		// we pass a pointer to mapstructure as it requires
-		// a pointer val.
-		v = &skeleton
+	if err := json.Unmarshal(b, &skeleton); err != nil {
+		return nil, err
 	}
-	c := &mapstructure.DecoderConfig{
-		TagName: "json",
-		Result:  v,
-	}
-	dec, err := mapstructure.NewDecoder(c)
+	return skeleton, err
+}
+
+func (r Reflector) UnmarshalObject(v interface{}) (interface{}, error) {
+	b, err := json.Marshal(v)
 	if err != nil {
-		return nil, fmt.Errorf("unpack (mapstructure): %w", err)
+		return nil, err
 	}
-	return skeleton, dec.Decode(m)
+	return r.Unmarshal(b)
 }
 
 func (r Reflector) lookup(object map[string]interface{}) (reflect.Value, error) {

@@ -80,7 +80,7 @@ func UnpackJSON(buf []byte) (interface{}, error) {
 	if len(buf) == 0 {
 		return nil, nil
 	}
-	return unpacker.UnpackBytes(buf)
+	return unpacker.Unmarshal(buf)
 }
 
 // UnpackJSONAsOp transforms a JSON representation of an operator into an dag.Op.
@@ -97,7 +97,7 @@ func UnpackJSONAsOp(buf []byte) (Op, error) {
 }
 
 func UnpackMapAsOp(m interface{}) (Op, error) {
-	object, err := unpacker.UnpackMap(m)
+	object, err := unpacker.UnmarshalObject(m)
 	if object == nil || err != nil {
 		return nil, err
 	}
@@ -109,7 +109,7 @@ func UnpackMapAsOp(m interface{}) (Op, error) {
 }
 
 func UnpackMapAsExpr(m interface{}) (Expr, error) {
-	object, err := unpacker.UnpackMap(m)
+	object, err := unpacker.UnmarshalObject(m)
 	if object == nil || err != nil {
 		return nil, err
 	}
