@@ -172,7 +172,7 @@ func (*nameOf) Call(args []zng.Value) (zng.Value, error) {
 		// XXX GC
 		return zng.Value{zng.TypeString, zng.EncodeString(alias.Name)}, nil
 	}
-	return zng.Value{}, zng.ErrMissing
+	return zng.Missing, nil
 }
 
 type isErr struct{}

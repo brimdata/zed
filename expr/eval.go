@@ -804,10 +804,11 @@ func NewMissing(exprs []Evaluator) *Missing {
 
 func (m *Missing) Eval(rec *zng.Record) (zng.Value, error) {
 	for _, e := range m.exprs {
-		if _, err := e.Eval(rec); err != nil {
-			if err == zng.ErrMissing {
-				return zng.True, nil
-			}
+		zv, err := e.Eval(rec)
+		if err == zng.ErrMissing || zng.IsMissing(zv) {
+			return zng.True, nil
+		}
+		if err != nil {
 			return zng.Value{}, err
 		}
 	}
