@@ -126,7 +126,6 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
-	"runtime"
 	"strings"
 	"testing"
 	"unicode/utf8"
@@ -342,11 +341,6 @@ func FromYAMLFile(filename string) (*ZTest, error) {
 
 func (z *ZTest) ShouldSkip(path string) string {
 	switch {
-	case z.Script != "" && runtime.GOOS == "windows":
-		// XXX skip in windows until we figure out the best
-		// way to support script-driven tests across
-		// environments
-		return "script test on Windows"
 	case z.Script != "" && path == "":
 		return "script test on in-process run"
 	case z.Skip != "":

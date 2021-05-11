@@ -1,5 +1,9 @@
 script: |
-  ! zq -i zst /dev/null
+  ! zq -i zst empty
+
+inputs:
+  - name: empty
+    data: ''
 
 outputs:
   - name: stderr
