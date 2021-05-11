@@ -64,3 +64,7 @@ func (t *TypeOfError) ZSON() string {
 func (t *TypeOfError) ZSONOf(zv zcode.Bytes) string {
 	return QuotedString(zv, false)
 }
+
+func IsMissing(zv Value) bool {
+	return zv.Type == TypeError && string(zv.Bytes) == missing
+}
