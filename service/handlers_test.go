@@ -579,12 +579,13 @@ func newCore(t *testing.T) (*service.Core, *client.Connection) {
 
 func newCoreAtDir(t *testing.T, dir string) (*service.Core, *client.Connection) {
 	t.Cleanup(func() { os.RemoveAll(dir) })
-	return newCoreWithConfig(t, service.Config{Root: dir})
+	u := storage.MustParseURI(dir)
+	return newCoreWithConfig(t, service.Config{Root: u})
 }
 
 func newCoreWithConfig(t *testing.T, conf service.Config) (*service.Core, *client.Connection) {
-	if conf.Root == "" {
-		conf.Root = t.TempDir()
+	if conf.Root == nil {
+		conf.Root = storage.MustParseURI(t.TempDir())
 	}
 	if conf.Logger == nil {
 		conf.Logger = zaptest.NewLogger(t, zaptest.Level(zap.WarnLevel))
