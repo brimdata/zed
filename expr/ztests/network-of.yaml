@@ -1,4 +1,4 @@
-zed: put n1=network_of(a,mask),n2=network_of(a,24)
+zed: put n1:=network_of(a,mask),n2:=network_of(a,24)
 
 input: |
   {a:10.1.2.129,mask:255.255.255.128/25}

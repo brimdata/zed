@@ -1,5 +1,5 @@
 zed: |
-  put . = cast({a:[ip],b:[{b:ip}]})
+  put this := cast({a:[ip],b:[{b:ip}]})
 
 input: |
   {a:null (0=([string])),b:null (1=([2=({b:string})]))}

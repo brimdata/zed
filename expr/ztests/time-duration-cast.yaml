@@ -1,4 +1,4 @@
-zed: cut t=time(t),d=duration(d)
+zed: cut t:=time(t),d:=duration(d)
 
 input: |
   {t:"1",d:"1"}

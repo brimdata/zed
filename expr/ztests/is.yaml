@@ -1,4 +1,4 @@
-zed: cut isRecType=is(r, {a:int32}), isString=is(s, type(string))
+zed: cut isRecType:=is(r, {a:int32}), isString:=is(s, type(string))
 
 input: |
   {r:{a:1 (int32)} (=0),s:123 (int32)} (=1)

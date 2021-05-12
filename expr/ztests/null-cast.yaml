@@ -1,4 +1,4 @@
-zed: cut s=string(null),a=ip(null)
+zed: cut s:=string(null),a:=ip(null)
 
 input: |
   {x:"foo"}

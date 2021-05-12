@@ -1,4 +1,4 @@
-zed: cut n1=len(addr),n2=len(n)
+zed: cut n1:=len(addr),n2:=len(n)
 
 input: |
   {addr:10.0.0.1,n:10.0.0.0/8}

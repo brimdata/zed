@@ -5,7 +5,7 @@ zed: |
     "conn": conn,
     "dns": dns
   }|
-  put . = cast(.,schemas[_path])
+  put this := cast(.,schemas[_path])
 
 input: |
   {_path:"conn", id:{src:"192.168.1.1",dst:"192.168.1.2"}, etc:"foo"}

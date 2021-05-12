@@ -1,5 +1,5 @@
 zed: |
-  by a=a[0], b=b.c
+  by a:=a[0], b:=b.c
 
 input: |
    {a: "a", b: "b"}

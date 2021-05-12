@@ -1,4 +1,4 @@
-zed: cut v=a.f
+zed: cut v:=a.f
 
 input: |
   {a:{f:1 (int8)} (=foo)} (=0)

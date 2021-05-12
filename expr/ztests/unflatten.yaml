@@ -1,4 +1,4 @@
-zed: 'put .=unflatten()'
+zed: 'put this:=unflatten()'
 
 input: |
   {a:1,"b.a":2,"b.b":3,"b.c.a":4,c:5}

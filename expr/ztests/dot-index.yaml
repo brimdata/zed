@@ -1,4 +1,4 @@
-zed: put s1=.["yodawg"],s2=.[yodawg],k=.["..."]+1
+zed: put s1:=this["yodawg"],s2:=this[yodawg],k:=this["..."]+1
 
 input: |
   {foo:"yodawg",bar:"a","...":1 (int32),yodawg:"foo"} (=0)

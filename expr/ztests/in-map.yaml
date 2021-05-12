@@ -1,6 +1,6 @@
 zed: |
   const m = |{"a": 1, "b": 2}|
-  cut b1=match(x in m),b2=match("a" in a)
+  cut b1:=match(x in m),b2:=match("a" in a)
 
 input: |
   {x:"a"}

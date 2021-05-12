@@ -1,5 +1,5 @@
 zed: |
-  type port=int64; type prec={p: port, q: port}; type parr=[prec]; put .=shape({c: port, b:parr, a:prec})
+  type port=int64; type prec={p: port, q: port}; type parr=[prec]; put this:=shape({c: port, b:parr, a:prec})
 
 input: |
   {a:{q:1(myport=(int16)), p: 2 (myport)}, b:[{q:1}],c:3 }

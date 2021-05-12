@@ -1,4 +1,4 @@
-zed: put b=missing(a[2])
+zed: put b:=missing(a[2])
 
 input: |
   {a:[1,2,3]}

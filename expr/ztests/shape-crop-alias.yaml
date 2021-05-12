@@ -1,5 +1,5 @@
 zed: |
-  type port=int64; type prec={p: port}; type parr=[prec]; put .=crop({a:prec, b:parr})
+  type port=int64; type prec={p: port}; type parr=[prec]; put this:=crop({a:prec, b:parr})
 
 input: |
   {a:{p:1 (port=(int64)), q: null (port)} (=0),b:[{p:1,q:2 (port)} (=1)] (=2),c:3 (port)} (=3)

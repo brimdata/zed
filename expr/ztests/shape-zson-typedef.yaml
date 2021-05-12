@@ -1,4 +1,4 @@
-zed: name=steve | put .=shape(.,type(person))
+zed: name=='steve' | put this:=shape(this,type(person))
 
 input: |
   {name:"jim", likes: "plain", age:30} (=person)
