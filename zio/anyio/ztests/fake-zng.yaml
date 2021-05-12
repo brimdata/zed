@@ -7,4 +7,14 @@ inputs:
 
 outputs:
   - name: stderr
-    regexp: .*non-record, top-level zng values are not supported
+    data: |
+      stdio:stdin: format detection error
+      	tzng: line 1: bad format
+      	zeek: line 1: bad types/fields definition in zeek header
+      	zjson: line 1: invalid character '\x00' looking for beginning of value
+      	zson: zson syntax error
+      	zng: zng type ID out of range
+      	csv: auto-detection not supported
+      	json: auto-detection not supported
+      	parquet: auto-detection not supported
+      	zst: auto-detection not supported

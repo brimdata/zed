@@ -40,13 +40,18 @@ func (b *buffer) length() int {
 	return len(b.data) - b.off
 }
 
-func (b *buffer) next(n int) []byte {
-	if l := b.length(); n > l {
-		n = l
+func (b *buffer) read(n int) ([]byte, error) {
+	var err error
+	if avail := b.length(); n > avail {
+		if avail == 0 {
+			return nil, io.EOF
+		}
+		err = io.ErrUnexpectedEOF
+		n = avail
 	}
 	off := b.off
 	b.off += n
-	return b.data[off:b.off]
+	return b.data[off:b.off], err
 }
 
 func (b *buffer) ReadByte() (byte, error) {
