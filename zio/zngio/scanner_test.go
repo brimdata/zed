@@ -39,7 +39,7 @@ func TestScannerContext(t *testing.T) {
 	}
 	// Create a validating ZNG reader that repeatedly reads the streams in bufs.
 	var readers []io.Reader
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 20; i++ {
 		for j := 0; j < count; j++ {
 			readers = append(readers, bytes.NewReader(bufs[j]))
 		}

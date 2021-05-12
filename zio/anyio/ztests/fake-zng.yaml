@@ -8,7 +8,7 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      stdio:///stdin: format detection error
+      stdio:stdin: format detection error
       	tzng: line 1: bad format
       	zeek: line 1: bad types/fields definition in zeek header
       	zjson: line 1: invalid character '\x00' looking for beginning of value
