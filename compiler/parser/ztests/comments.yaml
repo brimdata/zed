@@ -4,7 +4,7 @@ script: |
 inputs:
   - name: count.zql
     data: |
-      2 | c  = count() //,
+      2 | c  := count() //,
           , sum(v) // moon
 
   - name: in.zson

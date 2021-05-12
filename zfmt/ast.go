@@ -103,6 +103,9 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.write("type(")
 		c.typ(e.Value)
 		c.write(")")
+	case *ast.RegexpMatch:
+		c.expr(e.Expr, false)
+		c.write(" matches /%s/", e.Pattern)
 	default:
 		c.open("(unknown expr %T)", e)
 		c.close()

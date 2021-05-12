@@ -1,4 +1,4 @@
-zed: summarize count() where _path=conn
+zed: summarize count() where _path == 'conn'
 
 input: |
   {_path:"conn"}
