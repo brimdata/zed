@@ -36,7 +36,7 @@ func (c *canon) assignments(assignments []ast.Assignment) {
 		}
 		if a.LHS != nil {
 			c.expr(a.LHS, false)
-			c.write("=")
+			c.write(":=")
 		}
 		c.expr(a.RHS, false)
 	}

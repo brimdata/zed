@@ -1,4 +1,4 @@
-zed: 'const x="y" ; put .[x]=to_lower(.[x])'
+zed: 'const x="y" ; put this[x]:=to_lower(this[x])'
 
 input: |
   {y:"Hello, World"}
