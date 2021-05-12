@@ -157,7 +157,7 @@ Operation
 EndOfOp = __ (Pipe / "=>" / ")" / EOF)
 Pipe = "|" !("{" / "[")
 
-ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "matches")
+ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "[" / "matches")
 
 Comparator = ("==" / "!=" / "in" / "<=" / "<" / ">=" / ">") { RETURN(TEXT) }
 

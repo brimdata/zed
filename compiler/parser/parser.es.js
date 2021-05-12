@@ -2564,12 +2564,21 @@ function peg$parse(input, options) {
                 if (peg$silentFails === 0) { peg$fail(peg$c35); }
               }
               if (s2 === peg$FAILED) {
-                if (input.substr(peg$currPos, 7) === peg$c56) {
-                  s2 = peg$c56;
-                  peg$currPos += 7;
+                if (input.charCodeAt(peg$currPos) === 91) {
+                  s2 = peg$c52;
+                  peg$currPos++;
                 } else {
                   s2 = peg$FAILED;
-                  if (peg$silentFails === 0) { peg$fail(peg$c57); }
+                  if (peg$silentFails === 0) { peg$fail(peg$c53); }
+                }
+                if (s2 === peg$FAILED) {
+                  if (input.substr(peg$currPos, 7) === peg$c56) {
+                    s2 = peg$c56;
+                    peg$currPos += 7;
+                  } else {
+                    s2 = peg$FAILED;
+                    if (peg$silentFails === 0) { peg$fail(peg$c57); }
+                  }
                 }
               }
             }

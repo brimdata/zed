@@ -143,8 +143,8 @@ func TestFilters(t *testing.T) {
 	runCases(t, "{addrvec:[1.1.1.1,2.2.2.2]}", []testcase{
 		{"1.1.1.1 in addrvec", true},
 		{"3.3.3.3 in addrvec", false},
-		{"len(addrvec) = 2", true},
-		{"len(addrvec) = 3", false},
+		{"len(addrvec) == 2", true},
+		{"len(addrvec) == 3", false},
 		{"len(addrvec) > 1", true},
 		{"len(addrvec) >= 2", true},
 		{"len(addrvec) < 5", true},
@@ -157,19 +157,19 @@ func TestFilters(t *testing.T) {
 	// values without regard to field name, returning true as long as some
 	// field matches the literal to the right of the equal sign.
 	runCasesExpectBufferFilterFalsePositives(t, `{nested:{field:"test"}}`, []testcase{
-		{"nested.field = test", true},
-		{"bogus.field = test", false},
-		{"nested.bogus = test", false},
-		{"* = test", false},
+		{"nested.field == test", true},
+		{"bogus.field == test", false},
+		{"nested.bogus == test", false},
+		//{"* = test", false},
 	})
 
 	// Test array of records
 	runCases(t, "{nested:[{field:1 (int32)} (=0),{field:2} (0)] (=1)} (=2)", []testcase{
-		{"nested[0].field = 1", true},
-		{"nested[1].field = 2", true},
-		{"nested[0].field = 2", false},
-		{"nested[2].field = 2", false},
-		{"nested.field = 2", false},
+		{"nested[0].field == 1", true},
+		{"nested[1].field == 2", true},
+		{"nested[0].field == 2", false},
+		{"nested[2].field == 2", false},
+		{"nested.field == 2", false},
 	})
 
 	// Test array inside a record
@@ -177,8 +177,8 @@ func TestFilters(t *testing.T) {
 		{"1 in nested.vec", true},
 		{"2 in nested.vec", true},
 		{"4 in nested.vec", false},
-		{"nested.vec[0] = 1", true},
-		{"nested.vec[1] = 1", false},
+		{"nested.vec[0] == 1", true},
+		{"nested.vec[1] == 1", false},
 		{"1 in nested", false},
 		{"1", true},
 	})
@@ -186,10 +186,10 @@ func TestFilters(t *testing.T) {
 	// Test escaped chars in a bstring
 	runCases(t, `{s:"begin\x01\x02\xffend" (bstring)} (=0)`, []testcase{
 		{"begin", true},
-		{"s=begin", false},
+		{"s=='begin'", false},
 		{"begin\\x01\\x02\\xffend", true},
-		{"s=begin\\x01\\x02\\xffend", true},
-		{"s=*\\x01\\x02*", true},
+		{"s=='begin\\x01\\x02\\xffend'", true},
+		{"s matches *\\x01\\x02*", true},
 	})
 
 	// Test unicode string comparison.  The following two records
@@ -198,12 +198,12 @@ func TestFilters(t *testing.T) {
 	// tilde) and the other uses composed characters.  Test both
 	// strings against queries written with both formats.
 	runCases(t, `{s:"Buenos di\xcc\x81as sen\xcc\x83or" (bstring)} (=0)`, []testcase{
-		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, true},
-		{`s = "Buenos d\u{ed}as se\u{f1}or"`, true},
+		{`s == "Buenos di\u{0301}as sen\u{0303}or"`, true},
+		{`s == "Buenos d\u{ed}as se\u{f1}or"`, true},
 	})
 	runCases(t, `{s:"Buenos d\xc3\xadas se\xc3\xb1or" (bstring)} (=0)`, []testcase{
-		{`s = "Buenos di\u{0301}as sen\u{0303}or"`, true},
-		{`s = "Buenos d\u{ed}as se\u{f1}or"`, true},
+		{`s == "Buenos di\u{0301}as sen\u{0303}or"`, true},
+		{`s == "Buenos d\u{ed}as se\u{f1}or"`, true},
 	})
 
 	// There are two Unicode code points with a multibyte UTF-8 encoding
@@ -214,9 +214,9 @@ func TestFilters(t *testing.T) {
 
 	// Test U+017F LATIN SMALL LETTER LONG S.
 	runCases(t, `{a:"\u{017f}"}`, []testcase{
-		{`a = \u017F`, true},
-		{`a = S`, false},
-		{`a = s`, false},
+		{`a == '\u017F'`, true},
+		{`a == S`, false},
+		{`a == s`, false},
 		{`\u017F`, true},
 		{`S`, false}, // Should be true; see https://github.com/brimdata/zed/issues/1207.
 		{`s`, false}, // Should be true; see https://github.com/brimdata/zed/issues/1207.
@@ -224,9 +224,9 @@ func TestFilters(t *testing.T) {
 
 	// Test U+212A KELVIN SIGN.
 	runCases(t, `{a:"\u{212a}"}`, []testcase{
-		{`a = '\u212A'`, true},
-		{`a = K`, true}, // True because Unicode NFC replaces U+212A with U+004B.
-		{`a = k`, false},
+		{`a == '\u212A'`, true},
+		{`a == K`, true}, // True because Unicode NFC replaces U+212A with U+004B.
+		{`a == k`, false},
 		{`\u212A`, true},
 		{`K`, true},
 		{`k`, true},
@@ -276,11 +276,11 @@ func TestFilters(t *testing.T) {
 	// Test time coercion
 	runCases(t, "{ts:1970-01-01T00:00:01.001Z,ts2:2020-01-07T15:38:52Z,ts3:2020-01-07T15:38:53.01Z}", []testcase{
 		{"ts<2", true},
-		{"ts=1.001", true},
+		{"ts==1.001", true},
 		{"ts<1.002", true},
 		{"ts<2.0", true},
-		{"ts2=1578411532", true},
-		{"ts3=1578411533", false},
+		{"ts2==1578411532", true},
+		{"ts3==1578411533", false},
 	})
 
 	// Test that string search doesn't match non-string types:
@@ -299,60 +299,60 @@ func TestFilters(t *testing.T) {
 	record := "{b:0 (uint8),i16:-32768 (int16),u16:0 (uint16),i32:-2147483648 (int32),u32:0 (uint32),i64:-9223372036854775808,u64:0 (uint64)} (=0)"
 	runCases(t, record, []testcase{
 		{"b > -1", true},
-		{"b = 0", true},
+		{"b == 0", true},
 		{"b < 1", true},
 		{"b > 1", false},
-		{"b = 0.0", true},
+		{"b == 0.0", true},
 		{"b < 0.5", true},
 
-		{"i16 = -32768", true},
+		{"i16 == -32768", true},
 		{"i16 < 0", true},
 		{"i16 > 0", false},
-		{"i16 = -32768.0", true},
+		{"i16 == -32768.0", true},
 		{"i16 < 0.0", true},
 
 		{"u16 > -1", true},
-		{"u16 = 0", true},
+		{"u16 == 0", true},
 		{"u16 < 1", true},
 		{"u16 > 1", false},
-		{"u16 = 0.0", true},
+		{"u16 == 0.0", true},
 		{"u16 < 0.5", true},
 
-		{"i32 = -2147483648", true},
+		{"i32 == -2147483648", true},
 		{"i32 < 0", true},
 		{"i32 > 0", false},
-		{"i32 = -2147483648.0", true},
+		{"i32 == -2147483648.0", true},
 		{"i32 < 0.5", true},
 
 		{"u32 > -1", true},
-		{"u32 = 0", true},
+		{"u32 == 0", true},
 		{"u32 < 1", true},
 		{"u32 > 1", false},
-		{"u32 = 0.0", true},
+		{"u32 == 0.0", true},
 		{"u32 < 0.5", true},
 
-		{"i64 = -9223372036854775808", true},
+		{"i64 == -9223372036854775808", true},
 		{"i64 < 0", true},
 		{"i64 > 0", false},
 		{"i64 < 0.0", true},
 		// MinInt64 can't be represented precisely as a float64
 
 		{"u64 > -1", true},
-		{"u64 = 0", true},
+		{"u64 == 0", true},
 		{"u64 < 1", true},
 		{"u64 > 1", false},
-		{"u64 = 0.0", true},
+		{"u64 == 0.0", true},
 		{"u64 < 0.5", true},
 	})
 
 	record = "{b:255 (uint8),i16:32767 (int16),u16:65535 (uint16),i32:2147483647 (int32),u32:4294967295 (uint32),i64:9223372036854775807,u64:18446744073709551615 (uint64)} (=0)"
 	runCases(t, record, []testcase{
-		{"b = 255", true},
-		{"i16 = 32767", true},
-		{"u16 = 65535", true},
-		{"i32 = 2147483647", true},
-		{"u32 = 4294967295", true},
-		{"i64 = 9223372036854775807", true},
+		{"b == 255", true},
+		{"i16 == 32767", true},
+		{"u16 == 65535", true},
+		{"i32 == 2147483647", true},
+		{"u32 == 4294967295", true},
+		{"i64 == 9223372036854775807", true},
 		// can't represent large unsigned 64 bit values in zql...
 		// {"u64 = 18446744073709551615", true},
 	})
@@ -360,36 +360,36 @@ func TestFilters(t *testing.T) {
 	// Test comparisons with field of type port (can compare with
 	// a port literal or an integer literal)
 	runCases(t, "{p:443 (port=(uint16))} (=0)", []testcase{
-		{"p = 443", true},
-		{"p = 80", false},
+		{"p == 443", true},
+		{"p == 80", false},
 	})
 
 	// Test coercion from string to bstring
 	runCases(t, `{s:"hello" (bstring)} (=0)`, []testcase{
-		{"s = hello", true},
-		{"s != hello", false},
+		{"s == 'hello'", true},
+		{"s != 'hello'", false},
 
 		// Also smoke test that globs work...
-		{"s = hell*", true},
-		{"s = ell*", false},
-		{"s != hell*", false},
-		{"s != ell*", true},
+		{"s matches hell*", true},
+		{"s matches ell*", false},
+		{"!(s matches hell*)", false},
+		{"!(s matches ell*)", true},
 	})
 
 	// Test ip comparisons
 	runCases(t, "{a:192.168.1.50}", []testcase{
-		{"a = 192.168.1.50", true},
-		{"a = 50.1.168.192", false},
+		{"a == 192.168.1.50", true},
+		{"a == 50.1.168.192", false},
 		{"a != 50.1.168.192", true},
 		{"a in 192.168.0.0/16", true},
-		{"a = 10.0.0.0/16", false},
+		{"a == 10.0.0.0/16", false},
 		{"a != 192.168.0.0/16", false},
 		{"a != 10.0.0.0/16", true},
 	})
 
 	// Test comparisons with an aliased type
 	runCases(t, "{i:100 (myint=(int32))} (=0)", []testcase{
-		{"i = 100", true},
+		{"i == 100", true},
 		{"i > 0", true},
 		{"i < 50", false},
 	})
@@ -434,7 +434,7 @@ func filterProc(p ast.Proc) *ast.Filter {
 
 func TestBadFilter(t *testing.T) {
 	t.Parallel()
-	p, err := compiler.ParseProc(`s = \xa8*`)
+	p, err := compiler.ParseProc(`s matches \xa8*`)
 	require.NoError(t, err)
 	_, err = compiler.New(proc.DefaultContext(), p, mock.NewLake())
 	assert.Error(t, err, "error parsing regexp: invalid UTF-8: `^\xa8.*$`")
