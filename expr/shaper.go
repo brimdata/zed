@@ -129,42 +129,54 @@ func createStep(in, out zng.Type) (step, error) {
 	}
 }
 
-func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) {
+func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) *zng.Value {
 	if in == nil {
 		b.AppendNull()
-		return
+		return nil
 	}
-	pc := LookupPrimitiveCaster(zng.AliasOf(s.castTypes.to))
+	toType := zng.AliasOf(s.castTypes.to)
+	pc := LookupPrimitiveCaster(toType)
 	v, err := pc(zng.Value{s.castTypes.from, in})
 	if err != nil {
 		b.AppendNull()
-		return
+		return nil
+	}
+	if v.Type != toType {
+		// v isn't the "to" type, so we can't safely append v.Bytes to
+		// the builder. See https://github.com/brimdata/zed/issues/2710.
+		if v.Type == zng.TypeError {
+			return &v
+		}
+		panic(fmt.Sprintf("expr: got %T from primitive caster, expected %T", v.Type, toType))
 	}
 	b.AppendPrimitive(v.Bytes)
+	return nil
 }
 
-func (s *step) build(in zcode.Bytes, b *zcode.Builder) {
+func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zng.Value {
 	switch s.op {
 	case copyPrimitive:
 		b.AppendPrimitive(in)
 	case copyContainer:
 		b.AppendContainer(in)
 	case castPrimitive:
-		s.castPrimitive(in, b)
+		if zerr := s.castPrimitive(in, b); zerr != nil {
+			return zerr
+		}
 	case record:
 		if in == nil {
 			b.AppendNull()
-			return
+			return nil
 		}
 		b.BeginContainer()
-		s.buildRecord(in, b)
+		if zerr := s.buildRecord(in, b); zerr != nil {
+			return zerr
+		}
 		b.EndContainer()
-	case array:
-		fallthrough
-	case set:
+	case array, set:
 		if in == nil {
 			b.AppendNull()
-			return
+			return nil
 		}
 		b.BeginContainer()
 		iter := in.Iter()
@@ -173,16 +185,19 @@ func (s *step) build(in zcode.Bytes, b *zcode.Builder) {
 			if err != nil {
 				panic(err)
 			}
-			s.children[0].build(zv, b)
+			if zerr := s.children[0].build(zv, b); zerr != nil {
+				return zerr
+			}
 		}
 		if s.op == set {
 			b.TransformContainer(zng.NormalizeSet)
 		}
 		b.EndContainer()
 	}
+	return nil
 }
 
-func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) {
+func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) *zng.Value {
 	for _, step := range s.children {
 		switch step.op {
 		case null:
@@ -199,8 +214,11 @@ func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) {
 		if err != nil {
 			panic(err)
 		}
-		step.build(bytes, b)
+		if zerr := step.build(bytes, b); zerr != nil {
+			return zerr
+		}
 	}
+	return nil
 }
 
 // A shaper is a per-input type ID "spec" that contains the output
@@ -304,7 +322,14 @@ func (c *ConstShaper) Eval(in *zng.Record) (zng.Value, error) {
 		return zng.Value{s.typ, inVal.Bytes}, nil
 	}
 	c.b.Reset()
-	s.step.buildRecord(inVal.Bytes, &c.b)
+	if zerr := s.step.buildRecord(inVal.Bytes, &c.b); zerr != nil {
+		typ, err := c.zctx.LookupTypeRecord([]zng.Column{{Name: "error", Type: zerr.Type}})
+		if err != nil {
+			return zng.Value{}, err
+		}
+		c.b.AppendPrimitive(zerr.Bytes)
+		return zng.Value{typ, c.b.Bytes()}, nil
+	}
 	return zng.Value{s.typ, c.b.Bytes()}, nil
 }
 
