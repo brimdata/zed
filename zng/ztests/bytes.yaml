@@ -1,4 +1,4 @@
-zed: put c=string(b) | put d=to_base64(c),f=bytes(to_base64(c)) | put e=string(from_base64(d))
+zed: put c:=string(b) | put d:=to_base64(c),f:=bytes(to_base64(c)) | put e:=string(from_base64(d))
 
 input: |
   {b:0x68692c20776f726c64}

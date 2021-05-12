@@ -1,5 +1,5 @@
 # Tests overwriting a primitive value with a record
-zed: put x = r
+zed: put x := r
 
 input: |
   {x:1 (int32),r:{s:"hello"}} (=0)

@@ -1,5 +1,5 @@
 # Tests a simple expression written into a new field
-zed: put y = x + 1
+zed: put y := x + 1
 
 input: |
   {x:1 (int32)} (=0)

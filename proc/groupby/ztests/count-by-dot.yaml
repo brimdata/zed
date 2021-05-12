@@ -1,4 +1,4 @@
-zed: 'count() by . | sort .'
+zed: 'count() by this | sort this'
 
 input: |
   {x:1 (int32),s:"foo"} (=0)

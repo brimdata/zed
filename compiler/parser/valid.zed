@@ -3,9 +3,9 @@ foo | count()
 * | count() with -limit 10
 * | count() by _path with -limit 10
 * | every 1h count() by _path with -limit 10
-* | filter x=1
-_path=conn
-_path=conn id.resp_p=80
+* | filter x==1
+_path=='conn'
+_path=='conn' id.resp_p==80
 * | count(), sum(foo)
 * | split (=>count() by _path =>count() by addr)
 * | count() by _path | count() by addr
@@ -21,9 +21,9 @@ foo\x11bar
 foo\x11\bar
 *
 *abc*
-field=null
+field==null
 every 3600s count() by _path
-s="harefoot-raucous"
-s=/a/b
-match(_path=http and windows)
+s=="harefoot-raucous"
+s=='/a/b'
+match(_path=='http' and windows)
 f(1) and g(2) or h(3)

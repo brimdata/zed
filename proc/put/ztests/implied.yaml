@@ -1,4 +1,4 @@
-zed: 'put y=x+1,to_lower(s),typeof(s)'
+zed: 'put y:=x+1,to_lower(s),typeof(s)'
 
 input: |
   {a:[] (0=([int32])),x:1 (int32),s:"foo",b:0x68656c6c6f0a} (=1)

@@ -1,5 +1,5 @@
 # tests that a rename isn't visible to other procs operating on same records.
-zed: '* | split (=>rename id2=id =>cut id.orig_h) | sort id'
+zed: '* | split (=>rename id2:=id =>cut id.orig_h) | sort id'
 
 input: |
   {id:{orig_h:39681 (port=(uint16)),resp_h:3389 (port)} (=0)} (=1)
