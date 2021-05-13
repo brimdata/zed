@@ -209,7 +209,6 @@ TBD
                                       "lhs": v))))))))
     }
 
-
 SearchExpr
   = !(SearchGuard EOT) search:PatternSearch { RETURN(search) }
   / !(SearchGuard EOT) v:SearchValue !ExprGuard {
