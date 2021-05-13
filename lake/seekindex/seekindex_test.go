@@ -2,9 +2,7 @@ package seekindex
 
 import (
 	"context"
-	"io/ioutil"
 	"math"
-	"os"
 	"path/filepath"
 	"testing"
 
@@ -89,10 +87,7 @@ func newTestSeekIndex(t *testing.T, entries []entry) *testSeekIndex {
 }
 
 func build(t *testing.T, entries entries) string {
-	dir, err := ioutil.TempDir("", t.Name())
-	require.NoError(t, err)
-	t.Cleanup(func() { os.Remove(dir) })
-	path := filepath.Join(dir, "seekindex.zng")
+	path := filepath.Join(t.TempDir(), "seekindex.zng")
 	builder, err := NewBuilder(context.Background(), storage.NewLocalEngine(), path, entries.Order())
 	require.NoError(t, err)
 	for _, entry := range entries {

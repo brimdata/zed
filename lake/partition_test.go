@@ -197,11 +197,7 @@ func TestPartitionSegments(t *testing.T) {
 }
 
 func TestOverlapWalking(t *testing.T) {
-	datapath, err := ioutil.TempDir("", "")
-	require.NoError(t, err)
-	defer os.RemoveAll(datapath)
-
-	lk, err := CreateOrOpenLake(datapath, &CreateOptions{}, nil)
+	lk, err := CreateOrOpenLake(t.TempDir(), &CreateOptions{}, nil)
 	require.NoError(t, err)
 
 	const data1 = `

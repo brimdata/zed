@@ -464,10 +464,8 @@ func TestPostLogStopErr(t *testing.T) {
 func TestIndexSearch(t *testing.T) {
 	t.Skip("issue #2532")
 	thresh := int64(1000)
-	root := t.TempDir()
 
-	_, conn := newCoreAtDir(t, root)
-
+	_, conn := newCore(t)
 	pool, err := conn.PoolPost(context.Background(), api.PoolPostRequest{
 		Name:   "TestIndexSearch",
 		Thresh: thresh,
@@ -573,13 +571,7 @@ func writeTempFile(t *testing.T, data string) string {
 }
 
 func newCore(t *testing.T) (*service.Core, *client.Connection) {
-	root := t.TempDir()
-	return newCoreAtDir(t, root)
-}
-
-func newCoreAtDir(t *testing.T, dir string) (*service.Core, *client.Connection) {
-	t.Cleanup(func() { os.RemoveAll(dir) })
-	u := storage.MustParseURI(dir)
+	u := storage.MustParseURI(t.TempDir())
 	return newCoreWithConfig(t, service.Config{Root: u})
 }
 
