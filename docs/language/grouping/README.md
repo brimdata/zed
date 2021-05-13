@@ -166,7 +166,7 @@ both `id.resp_h` and an expression that evaluates the length of `answers`
 arrays.
 
 ```zq-command
-zq -f table 'len(answers) > 0 | count() by id.resp_h,num_answers=len(answers) | sort -r num_answers,count' dns.log.gz
+zq -f table 'len(answers) > 0 | count() by id.resp_h,num_answers:=len(answers) | sort -r num_answers,count' dns.log.gz
 ```
 
 #### Output:
