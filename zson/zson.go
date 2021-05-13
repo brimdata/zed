@@ -88,3 +88,7 @@ func ParseValue(zctx *Context, zson string) (zng.Value, error) {
 func TranslateType(zctx *Context, astType zed.Type) (zng.Type, error) {
 	return NewAnalyzer().convertType(zctx, astType)
 }
+
+func NewTypeType(t zng.Type) zng.Value {
+	return zng.Value{zng.TypeType, zcode.Bytes(FormatType(t))}
+}

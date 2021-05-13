@@ -548,7 +548,7 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 			if err != nil {
 				return err
 			}
-			zv := zng.NewTypeType(alias)
+			zv := zson.NewTypeType(alias)
 			scope.Bind(name, &zv)
 
 		default:

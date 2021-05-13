@@ -8,10 +8,6 @@ import (
 
 type TypeOfType struct{}
 
-func NewTypeType(t Type) Value {
-	return Value{TypeType, zcode.Bytes(t.ZSON())}
-}
-
 func (t *TypeOfType) ID() int {
 	return IDType
 }
