@@ -51,9 +51,5 @@ func NewFileFromURI(ctx context.Context, engine storage.Engine, path *storage.UR
 	// On close, zbuf.WriteCloser.Close() will close and flush the
 	// downstream writer, which will flush the bufwriter here and,
 	// in turn, close its underlying writer.
-	w, err := anyio.LookupWriter(wc, opts)
-	if err != nil {
-		return nil, err
-	}
-	return w, nil
+	return anyio.NewWriter(wc, opts)
 }
