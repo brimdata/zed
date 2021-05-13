@@ -164,7 +164,7 @@ func (c *Command) Run(args []string) error {
 			readers[i] = zio.NewWarningReader(r, d)
 		}
 	}
-	adaptor := cli.NewFileAdaptor(ctx, zctx, local)
+	adaptor := cli.NewFileAdaptor(local)
 	var stats zbuf.ScannerStats
 	if isJoin(query) {
 		stats, err = driver.RunJoinWithFileSystem(ctx, d, query, zctx, readers, adaptor)
