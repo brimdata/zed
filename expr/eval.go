@@ -767,7 +767,7 @@ func (t *TypeFunc) Eval(rec *zng.Record) (zng.Value, error) {
 		if typ == nil {
 			return zng.Missing, nil
 		}
-		t.zv = zng.NewTypeType(typ)
+		t.zv = zson.NewTypeType(typ)
 	}
 	return t.zv, nil
 }
