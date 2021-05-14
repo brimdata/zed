@@ -231,8 +231,12 @@ func (w *worker) scanBatch(buf *buffer, mapper *resolver.Mapper, streamZctx *zso
 func (w *worker) wantRecord(rec *zng.Record, stats *zbuf.ScannerStats) bool {
 	stats.BytesRead += int64(len(rec.Bytes))
 	stats.RecordsRead++
+	// It's tempting to call w.bufferFilter.Eval on rec.Bytes here, but that
+	// might call FieldNameFinder.Find, which could explode or return false
+	// negatives because it expects a buffer of ZNG value messages, and
+	// rec.Bytes is just a ZNG value.  (A ZNG value message is a header
+	// indicating a type ID followed by a value of that type.)
 	if s := w.scanner; (s.span == nano.MaxSpan || s.span.Contains(rec.Ts())) &&
-		(w.bufferFilter == nil || w.bufferFilter.Eval(s.reader.sctx, rec.Bytes)) &&
 		(w.filter == nil || w.filter(rec)) {
 		stats.BytesMatched += int64(len(rec.Bytes))
 		stats.RecordsMatched++
