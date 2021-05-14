@@ -618,7 +618,7 @@ func runzq(path, zed string, outputFlags []string, inputs ...string) (string, st
 	if err := flags.Parse(outputFlags); err != nil {
 		return "", "", err
 	}
-	zw, err := anyio.LookupWriter(&nopCloser{&outbuf}, zflags.Options())
+	zw, err := anyio.NewWriter(&nopCloser{&outbuf}, zflags.Options())
 	if err != nil {
 		return "", "", err
 	}
