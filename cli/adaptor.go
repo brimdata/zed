@@ -18,17 +18,13 @@ import (
 )
 
 type FileAdaptor struct {
-	ctx    context.Context
-	zctx   *zson.Context
 	engine storage.Engine
 }
 
 var _ proc.DataAdaptor = (*FileAdaptor)(nil)
 
-func NewFileAdaptor(ctx context.Context, zctx *zson.Context, engine storage.Engine) *FileAdaptor {
+func NewFileAdaptor(engine storage.Engine) *FileAdaptor {
 	return &FileAdaptor{
-		ctx:    ctx,
-		zctx:   zctx,
 		engine: engine,
 	}
 }
@@ -45,16 +41,16 @@ func (f *FileAdaptor) NewScheduler(_ context.Context, _ *zson.Context, _ *dag.Po
 	return nil, errors.New("pool scan not available when running on local file system")
 }
 
-func (f *FileAdaptor) Open(_ context.Context, _ *zson.Context, path string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
+func (f *FileAdaptor) Open(ctx context.Context, zctx *zson.Context, path string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
 	if path == "-" {
 		path = "stdio:stdin"
 	}
-	file, err := anyio.OpenFile(f.zctx, f.engine, path, anyio.ReaderOpts{})
+	file, err := anyio.OpenFile(zctx, f.engine, path, anyio.ReaderOpts{})
 	if err != nil {
 		err = fmt.Errorf("%s: %w", path, err)
 		fmt.Fprintln(os.Stderr, err)
 	}
-	scanner, err := zbuf.NewScanner(f.ctx, file, pushdown, nano.MaxSpan)
+	scanner, err := zbuf.NewScanner(ctx, file, pushdown, nano.MaxSpan)
 	if err != nil {
 		return nil, err
 	}
