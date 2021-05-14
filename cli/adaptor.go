@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
@@ -55,7 +56,10 @@ func (f *FileAdaptor) Open(ctx context.Context, zctx *zson.Context, path string,
 		return nil, err
 	}
 	sn := zbuf.NamedScanner(scanner, path)
-	return zbuf.ScannerNopCloser(sn), nil
+	return &struct {
+		zbuf.Scanner
+		io.Closer
+	}{sn, file}, nil
 }
 
 func (*FileAdaptor) Get(_ context.Context, _ *zson.Context, url string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
