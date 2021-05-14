@@ -1,0 +1,18 @@
+script: |
+  . http.bash
+  zq -z "sort ts" $http_base_url/log1.zson $http_base_url/log2.zson
+
+inputs:
+  - name: http.bash
+  - name: log1.zson
+    data: |
+      {ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl" (bstring)} (=0)
+  - name: log2.zson
+    data: |
+      {ts:2018-03-24T17:15:21.411148Z,uid:"CXWfTK3LRdiuQxBbM6" (bstring)} (=0)
+
+outputs:
+  - name: stdout
+    data: |
+      {ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl" (bstring)} (=0)
+      {ts:2018-03-24T17:15:21.411148Z,uid:"CXWfTK3LRdiuQxBbM6"} (0)

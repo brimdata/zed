@@ -3,6 +3,7 @@ package query
 import (
 	"flag"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"text/tabwriter"
@@ -17,7 +18,6 @@ import (
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
-	"github.com/brimdata/zed/pkg/s3io"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -38,11 +38,11 @@ If you have istalled the shortcuts, "zq" is a shortcut for the "zed query" comma
 to filter each input value, optionally computes analytics and transformations,
 and writes its output to one or more files or standard output.
 
-"zed query" must be run with at least one input file specified.  As with awk, standard input
-can be specified with a "-" in the place of the file name.  Output is sent to
-standard output unless a -o or -d argument is provided, in which case output is
-sent to the indicated file comforming to the type implied by the extension (unless
--f explicitly indicates the output type).
+"zed query" must be run with at least one input file specified.  Input files can
+be file system paths; "-" for standard input; or HTTP, HTTPS, or S3 URLs.
+Output is sent to standard output unless a -o or -d argument is provided, in
+which case output is sent to the indicated file comforming to the type implied
+by the extension (unless -f explicitly indicates the output type).
 
 Supported input formats include CSV, JSON, NDJSON, Parquet,
 ZSON, ZNG, ZST, and Zeek TSV.  Supported output formats include
@@ -195,7 +195,7 @@ func ParseSourcesAndInputs(paths, includes Includes) ([]string, ast.Proc, error)
 	if err != nil {
 		return nil, nil, err
 	}
-	if len(paths) != 0 && !cli.FileExists(paths[0]) && !s3io.IsS3Path(paths[0]) {
+	if len(paths) != 0 && !cli.FileExists(paths[0]) && !isURLWithKnownScheme(paths[0], "http", "https", "s3") {
 		if len(paths) == 1 {
 			// We don't interpret the first arg as a query if there
 			// are no additional args.
@@ -209,6 +209,19 @@ func ParseSourcesAndInputs(paths, includes Includes) ([]string, ast.Proc, error)
 		return nil, nil, err
 	}
 	return paths, query, nil
+}
+
+func isURLWithKnownScheme(path string, schemes ...string) bool {
+	u, err := url.Parse(path)
+	if err != nil {
+		return false
+	}
+	for _, s := range schemes {
+		if u.Scheme == s {
+			return true
+		}
+	}
+	return false
 }
 
 func ParseSources(args, includes Includes) (ast.Proc, error) {
