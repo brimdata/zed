@@ -132,7 +132,7 @@ func getScheme(u *URI) Scheme {
 
 func knownScheme(s Scheme) bool {
 	switch s {
-	case FileScheme, StdioScheme, HTTPScheme, S3Scheme:
+	case FileScheme, StdioScheme, HTTPScheme, HTTPSScheme, S3Scheme:
 		return true
 	default:
 		return false
