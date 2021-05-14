@@ -1,9 +1,8 @@
 zed: |
-  put . = shape({f1:time})
+  put this := shape({f1:time})
 
 input: |
   {f1:"WellWhatDoYouThinkOfThis",f2:"NotMuch"}
 
 output: |
   {error:"Could not find format for \"WellWhatDoYouThinkOfThis\"" (error)} (=0)
-

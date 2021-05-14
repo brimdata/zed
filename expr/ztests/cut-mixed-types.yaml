@@ -1,4 +1,4 @@
-zed: 'cut x=network_of(addr)'
+zed: 'cut x:=network_of(addr)'
 
 input: |
   {addr:fe80::215:17ff:fe84:c13f}

@@ -1,4 +1,4 @@
-zed: s=null
+zed: s==null
 
 input: |
   {s:"A=B"}

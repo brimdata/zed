@@ -6,10 +6,10 @@ outputs:
       from (
         G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
           summarize partials-out
-              count=count() by y=y;
+              count:=count() by y:=y;
         G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
           summarize partials-out
-              count=count() by y=y;
+              count:=count() by y:=y;
       )
       | summarize partials-in
-          count=count() by y=y
+          count:=count() by y:=y

@@ -1,4 +1,4 @@
-script: zed compile -C -P 2  "from 'pool-ts' | put ts=foo | rename foo=boo"
+script: zed compile -C -P 2  "from 'pool-ts' | put ts:=foo | rename foo:=boo"
 
 outputs:
   - name: stdout
@@ -8,5 +8,5 @@ outputs:
         G2eDzBUfU6IEmUSGCa5kHyXMhoO;
       )
       | merge ts:asc
-      | put ts=foo
-      | rename foo=boo
+      | put ts:=foo
+      | rename foo:=boo

@@ -157,7 +157,9 @@ Operation
 EndOfOp = __ (Pipe / "=>" / ")" / EOF)
 Pipe = "|" !("{" / "[")
 
-ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(")
+ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "[" / "matches")
+
+Comparator = ("==" / "!=" / "in" / "<=" / "<" / ">=" / ">") { RETURN(TEXT) }
 
 AggGuard = (_ (ByToken / "-with") EOT) / (__ ",")
 
@@ -170,7 +172,7 @@ SearchOrTerm = _ OrToken _ t:SearchAnd { RETURN(ARRAY("or", t)) }
 
 SearchAnd
   = first:SearchFactor
-    rest:(__ (AndToken _)? __ expr:SearchFactor{ RETURN(ARRAY("and", expr)) })* {
+    rest:((_ AndToken)? _ expr:SearchFactor{ RETURN(ARRAY("and", expr)) })* {
       RETURN(makeBinaryExprChain(first,rest))
     }
 
@@ -178,12 +180,12 @@ SearchFactor
   = (NotToken _ / "!" __) e:SearchFactor {
       RETURN(MAP("kind": "UnaryExpr", "op": "!", "operand": e))
     }
-  / ShortCut
   / SearchExpr
   / "(" __ expr:SearchBoolean __ ")" { RETURN(expr) }
 
-ShortCut
-  = "*" __ compareOp:EqualityToken __ v:SearchValue {
+
+TBD
+  = "*" __ compareOp:EqualityToken __ v:Expr {
       RETURN(MAP("kind": "Call", "name": "or",
         "args": ARRAY(
           MAP("kind": "SelectExpr",
@@ -195,9 +197,6 @@ ShortCut
                                       "rhs": v))))))))
     }
   / match:PatternMatch !ExprGuard { RETURN(match) }
-  / f:Lval __ comp:EqualityToken __ v:SearchValue !ExprGuard {
-      RETURN(MAP("kind": "BinaryExpr", "op":comp, "lhs":f, "rhs":v))
-    }
   / v:SearchValue _ InToken _ "*" {
       RETURN(MAP("kind": "Call", "name": "or",
         "args": ARRAY(
@@ -209,13 +208,16 @@ ShortCut
                                       "rhs": MAP("kind": "ID", "name": "$"),
                                       "lhs": v))))))))
     }
-  / !(SearchGuard EOT) search:PatternSearch { RETURN(search) }
+
+SearchExpr
+  = !(SearchGuard EOT) search:PatternSearch { RETURN(search) }
   / !(SearchGuard EOT) v:SearchValue !ExprGuard {
       RETURN(MAP("kind": "Search", "text": TEXT, "value": v))
     }
   / "*" !ExprGuard {
       RETURN(MAP("kind": "Primitive", "type": "bool", "text": "true"))
     }
+  / EqualityCompareExpr
 
 SearchValue
   = Literal
@@ -229,12 +231,8 @@ PatternSearch
     }
 
 PatternMatch
-  = f:Lval ((__ "=" __) / (_ "in" _))  pattern:Pattern {
+  = f:Lval _ "matches"i _  pattern:Pattern {
       RETURN(MAP("kind": "RegexpMatch", "pattern": pattern, "expr": f))
-    }
-  / f:Lval __ "!=" __  pattern:Pattern {
-      RETURN(MAP("kind": "UnaryExpr", "op": "!",
-                  "operand": MAP("kind": "RegexpMatch", "pattern": pattern, "expr": f)))
     }
 
 Pattern = Regexp / Glob
@@ -249,49 +247,7 @@ SearchGuard
   / CaseToken
   / DefaultToken
   / "type("
-
-/// === Search-embedded Expression Context ===
-
-SearchExpr = SearchExprRelative
-
-Comparator = ("=" / "!=" / "in" / "<=" / "<" / ">=" / ">") { RETURN(TEXT) }
-
-SearchExprRelative
-  = first:SearchExprAdd
-    rest:(__ op:Comparator __ expr:SearchExprAdd{ RETURN(ARRAY(op, expr)) })* {
-        RETURN(makeBinaryExprChain(first, rest))
-    }
-
-SearchExprAdd
-  = first:SearchExprMul
-    rest:(__ op:AdditiveOperator __ expr:SearchExprMul{ RETURN(ARRAY(op, expr)) })* {
-        RETURN(makeBinaryExprChain(first, rest))
-    }
-
-SearchExprMul
-  = first:SearchExprCast
-    rest:(__ op:MultiplicativeOperator __ expr:SearchExprCast{ RETURN(ARRAY(op, expr)) })* {
-        RETURN(makeBinaryExprChain(first, rest))
-    }
-
-SearchExprCast
-  = e:SearchExprFunc __ ":" __ typ:CastType {
-      RETURN(MAP("kind": "Cast", "expr": e, "type": typ))
-    }
-  / SearchExprFunc
-
-SearchExprFunc
-  = MatchExpr
-  / TypeLiteral
-  / first:Function rest:(Deref)*  {
-      RETURN(makeBinaryExprChain(first, rest))
-    }
-  / Literal
-  / Record
-  / Array
-  / Set
-  / Map
-  / DerefExpr
+  / "matches"i
 
 /// === Aggregations ===
 
@@ -333,7 +289,7 @@ FlexAssignments
     }
 
 AggAssignment
-  = lval:Lval __ "=" __ agg:Agg {
+  = lval:Lval __ ":=" __ agg:Agg {
       RETURN(MAP("kind": "Assignment", "lhs": lval, "rhs": agg))
     }
   / agg:Agg {
@@ -657,7 +613,7 @@ FieldExprs
     }
 
 Assignment
-  = lhs:Lval __ "=" __ rhs:Expr { RETURN(MAP("kind": "Assignment", "lhs": lhs, "rhs": rhs)) }
+  = lhs:Lval __ ":=" __ rhs:Expr { RETURN(MAP("kind": "Assignment", "lhs": lhs, "rhs": rhs)) }
 
 Expr = ConditionalExpr
 
@@ -680,13 +636,15 @@ LogicalAndExpr
     }
 
 EqualityCompareExpr
-  = first:RelativeExpr
+  = PatternMatch
+  / first:RelativeExpr
     rest:(__ comp:EqualityComparator __ expr:RelativeExpr{ RETURN(ARRAY(comp, expr)) })* {
         RETURN(makeBinaryExprChain(first, rest))
     }
 
 EqualityOperator
-  = ("=" / "!=") { RETURN(TEXT) }
+  = "=="  { RETURN("=")}
+  / "!=" { RETURN(TEXT) }
 
 EqualityComparator
   = EqualityOperator
@@ -781,7 +739,9 @@ Exprs
       RETURN(PREPEND(first, rest))
     }
 
-DerefExpr
+DerefExpr = !IP6 e:DerefExprPattern { RETURN(e) }
+
+DerefExprPattern
   = first:DotID rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
     }

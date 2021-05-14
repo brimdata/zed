@@ -3,7 +3,7 @@ script: |
   zapi -host $LAKE_HOST new -S 20KiB test
   zapi -host $LAKE_HOST -p test post babble.zson >/dev/null
   echo ===
-  zapi -host $LAKE_HOST -p test get -z 's="harefoot-raucous"'
+  zapi -host $LAKE_HOST -p test get -z 's=="harefoot-raucous"'
 
 inputs:
   - name: babble.zson

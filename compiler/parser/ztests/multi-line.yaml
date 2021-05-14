@@ -6,7 +6,7 @@ inputs:
     data: |
 
       c
-        =
+        :=
           count()
 
   - name: in.zson

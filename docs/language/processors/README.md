@@ -86,7 +86,7 @@ cut: no record found with columns nothere,alsoabsent
 To return only the `ts` and `uid` columns of `conn` events, with `ts` renamed to `time`:
 
 ```zq-command
-zq -f table 'cut time=ts,uid' conn.log.gz
+zq -f table 'cut time:=ts,uid' conn.log.gz
 ```
 
 #### Output:
@@ -141,7 +141,7 @@ TS                          UID                NAME                             
 To further trim the data returned in our [`cut`](#cut) example:
 
 ```zq-command
-zq -f table 'cut ts,uid | filter uid=CXWfTK3LRdiuQxBbM6' conn.log.gz
+zq -f table 'cut ts,uid | filter uid=="CXWfTK3LRdiuQxBbM6"' conn.log.gz
 ```
 
 #### Output:
@@ -155,7 +155,7 @@ TS                          UID
 An alternative syntax for our [`and` operator example](../search-syntax/README.md#and):
 
 ```zq-command
-zq -f table 'filter www.*cdn*.com _path=ssl' *.log.gz
+zq -f table 'filter www.*cdn*.com _path=="ssl"' *.log.gz
 ```
 
 #### Output:
@@ -256,7 +256,7 @@ dns   2018-03-24T17:15:20.865716Z C2zK5f13SbCtKcyiW5 10.47.1.100 41772     10.0.
 To see the first five `conn` events with activity on port `80`:
 
 ```zq-command
-zq -f table 'id.resp_p=80 | head 5' conn.log.gz
+zq -f table 'id.resp_p==80 | head 5' conn.log.gz
 ```
 
 #### Output:
@@ -333,7 +333,7 @@ pick: no record found with columns nothere,alsoabsent
 To return only the `ts` and `uid` columns of `conn` events, with `ts` renamed to `time`:
 
 ```zq-command
-zq -f table 'pick time=ts,uid' conn.log.gz
+zq -f table 'pick time:=ts,uid' conn.log.gz
 ```
 
 #### Output:
@@ -362,7 +362,7 @@ TIME                        UID
 Compute a `total_bytes` field in `conn` records:
 
 ```zq-command
-zq -q -f table 'put total_bytes = orig_bytes + resp_bytes | sort -r total_bytes | cut id, orig_bytes, resp_bytes, total_bytes' conn.log.gz
+zq -q -f table 'put total_bytes := orig_bytes + resp_bytes | sort -r total_bytes | cut id, orig_bytes, resp_bytes, total_bytes' conn.log.gz
 ```
 
 #### Output:
@@ -393,7 +393,7 @@ ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P ORIG_BYTES RESP_BYTES TOTAL_BY
 Rename `ts` to `time`, rename one of the inner fields of `id`, and rename the `id` record itself to `conntuple`:
 
 ```zq-command
- zq -f table 'rename time=ts, id.src=id.orig_h, conntuple=id' conn.log.gz
+ zq -f table 'rename time:=ts, id.src:=id.orig_h, conntuple:=id' conn.log.gz
 ```
 
 #### Output:
@@ -531,7 +531,7 @@ dns   2018-03-24T17:36:30.151237Z C0ybvu4HG3yWv6H5cb 172.31.255.5 60878     10.0
 To see the last five `conn` events with activity on port `80`:
 
 ```zq-command
-zq -f table 'id.resp_p=80 | tail 5' conn.log.gz
+zq -f table 'id.resp_p==80 | tail 5' conn.log.gz
 ```
 
 #### Output:

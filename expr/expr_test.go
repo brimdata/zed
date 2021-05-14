@@ -26,7 +26,7 @@ func testSuccessful(t *testing.T, e string, record string, expect zng.Value) {
 	val, err := formatter.Format(rec.Value)
 	require.NoError(t, err)
 	runZTest(t, e, &ztest.ZTest{
-		Zed:    fmt.Sprintf("cut result = %s", e),
+		Zed:    fmt.Sprintf("cut result := %s", e),
 		Input:  record,
 		Output: val + "\n",
 	})
@@ -34,7 +34,7 @@ func testSuccessful(t *testing.T, e string, record string, expect zng.Value) {
 
 func testError(t *testing.T, e string, expectErr error, description string) {
 	runZTest(t, e, &ztest.ZTest{
-		Zed:     fmt.Sprintf("cut result = %s", e),
+		Zed:     fmt.Sprintf("cut result := %s", e),
 		ErrorRE: expectErr.Error(),
 	})
 }
@@ -44,7 +44,7 @@ func testWarning(t *testing.T, e string, record string, expectErr error, descrip
 		record = "{}"
 	}
 	runZTest(t, e, &ztest.ZTest{
-		Zed:      fmt.Sprintf("cut result = %s", e),
+		Zed:      fmt.Sprintf("cut result := %s", e),
 		Input:    record,
 		Warnings: fmt.Sprintf("cut: %s\ncut: no record found with columns <not a field>\n", expectErr),
 	})
@@ -145,8 +145,8 @@ func TestCompareNumbers(t *testing.T) {
 			"{x:%s (%s),u8:0 (uint8),i16:0 (int16),u16:0 (uint16),i32:0 (int32),u32:0 (uint32),i64:0,u64:0 (uint64)} (=0)",
 			one, typ)
 		// Test the 6 comparison operators against a constant
-		testSuccessful(t, "x = 1", record, zbool(true))
-		testSuccessful(t, "x = 0", record, zbool(false))
+		testSuccessful(t, "x == 1", record, zbool(true))
+		testSuccessful(t, "x == 0", record, zbool(false))
 		testSuccessful(t, "x != 0", record, zbool(true))
 		testSuccessful(t, "x != 1", record, zbool(false))
 		testSuccessful(t, "x < 2", record, zbool(true))
@@ -163,7 +163,7 @@ func TestCompareNumbers(t *testing.T) {
 		// Test the full matrix of comparisons between all
 		// the integer types
 		for _, other := range intFields {
-			exp := fmt.Sprintf("x = %s", other)
+			exp := fmt.Sprintf("x == %s", other)
 			testSuccessful(t, exp, record, zbool(false))
 
 			exp = fmt.Sprintf("x != %s", other)
@@ -189,8 +189,8 @@ func TestCompareNumbers(t *testing.T) {
 				"{x:%s (%s),p:80 (port=(uint16)),t:2020-03-09T22:54:12Z,d:16m40s} (=0)", one, typ)
 
 			// port
-			testSuccessful(t, "x = p", record, zbool(false))
-			testSuccessful(t, "p = x", record, zbool(false))
+			testSuccessful(t, "x == p", record, zbool(false))
+			testSuccessful(t, "p == x", record, zbool(false))
 			testSuccessful(t, "x != p", record, zbool(true))
 			testSuccessful(t, "p != x", record, zbool(true))
 			testSuccessful(t, "x < p", record, zbool(true))
@@ -203,8 +203,8 @@ func TestCompareNumbers(t *testing.T) {
 			testSuccessful(t, "p >= x", record, zbool(true))
 
 			// time
-			testSuccessful(t, "x = t", record, zbool(false))
-			testSuccessful(t, "t = x", record, zbool(false))
+			testSuccessful(t, "x == t", record, zbool(false))
+			testSuccessful(t, "t == x", record, zbool(false))
 			testSuccessful(t, "x != t", record, zbool(true))
 			testSuccessful(t, "t != x", record, zbool(true))
 			testSuccessful(t, "x < t", record, zbool(true))
@@ -217,8 +217,8 @@ func TestCompareNumbers(t *testing.T) {
 			testSuccessful(t, "t >= x", record, zbool(true))
 
 			// duration
-			testSuccessful(t, "x = d", record, zbool(false))
-			testSuccessful(t, "d = x", record, zbool(false))
+			testSuccessful(t, "x == d", record, zbool(false))
+			testSuccessful(t, "d == x", record, zbool(false))
 			testSuccessful(t, "x != d", record, zbool(true))
 			testSuccessful(t, "d != x", record, zbool(true))
 			testSuccessful(t, "x < d", record, zbool(true))
@@ -235,28 +235,28 @@ func TestCompareNumbers(t *testing.T) {
 		record = fmt.Sprintf(
 			`{x:%s (%s),s:"hello",bs:"world" (bstring),i:10.1.1.1,n:10.1.0.0/16} (=0)`, one, typ)
 
-		testWarning(t, "x = s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		testWarning(t, "x == s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
 		testWarning(t, "x != s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
 		testWarning(t, "x < s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
 		testWarning(t, "x <= s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
 		testWarning(t, "x > s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
 		testWarning(t, "x >= s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
 
-		testWarning(t, "x = bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
+		testWarning(t, "x == bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
 		testWarning(t, "x != bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
 		testWarning(t, "x < bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
 		testWarning(t, "x <= bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
 		testWarning(t, "x > bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
 		testWarning(t, "x >= bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
 
-		testWarning(t, "x = i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
+		testWarning(t, "x == i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
 		testWarning(t, "x != i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
 		testWarning(t, "x < i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
 		testWarning(t, "x <= i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
 		testWarning(t, "x > i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
 		testWarning(t, "x >= i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
 
-		testWarning(t, "x = n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
+		testWarning(t, "x == n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
 		testWarning(t, "x != n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
 		testWarning(t, "x < n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
 		testWarning(t, "x <= n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
@@ -268,28 +268,28 @@ func TestCompareNumbers(t *testing.T) {
 	// floats that cast to different integers.
 	const rec2 = "{i:-1,u:18446744073709551615 (uint64),f:-1.} (=0)"
 
-	testSuccessful(t, "i = u", rec2, zbool(false))
+	testSuccessful(t, "i == u", rec2, zbool(false))
 	testSuccessful(t, "i != u", rec2, zbool(true))
 	testSuccessful(t, "i < u", rec2, zbool(true))
 	testSuccessful(t, "i <= u", rec2, zbool(true))
 	testSuccessful(t, "i > u", rec2, zbool(false))
 	testSuccessful(t, "i >= u", rec2, zbool(false))
 
-	testSuccessful(t, "u = i", rec2, zbool(false))
+	testSuccessful(t, "u == i", rec2, zbool(false))
 	testSuccessful(t, "u != i", rec2, zbool(true))
 	testSuccessful(t, "u < i", rec2, zbool(false))
 	testSuccessful(t, "u <= i", rec2, zbool(false))
 	testSuccessful(t, "u > i", rec2, zbool(true))
 	testSuccessful(t, "u >= i", rec2, zbool(true))
 
-	testSuccessful(t, "f = u", rec2, zbool(false))
+	testSuccessful(t, "f == u", rec2, zbool(false))
 	testSuccessful(t, "f != u", rec2, zbool(true))
 	testSuccessful(t, "f < u", rec2, zbool(true))
 	testSuccessful(t, "f <= u", rec2, zbool(true))
 	testSuccessful(t, "f > u", rec2, zbool(false))
 	testSuccessful(t, "f >= u", rec2, zbool(false))
 
-	testSuccessful(t, "u = f", rec2, zbool(false))
+	testSuccessful(t, "u == f", rec2, zbool(false))
 	testSuccessful(t, "u != f", rec2, zbool(true))
 	testSuccessful(t, "u < f", rec2, zbool(false))
 	testSuccessful(t, "u <= f", rec2, zbool(false))
@@ -312,38 +312,38 @@ func TestCompareNonNumbers(t *testing.T) {
 `
 
 	// bool
-	testSuccessful(t, "b = true", record, zbool(true))
-	testSuccessful(t, "b = false", record, zbool(false))
+	testSuccessful(t, "b == true", record, zbool(true))
+	testSuccessful(t, "b == false", record, zbool(false))
 	testSuccessful(t, "b != true", record, zbool(false))
 	testSuccessful(t, "b != false", record, zbool(true))
 
 	// string
-	testSuccessful(t, `s = "hello"`, record, zbool(true))
+	testSuccessful(t, `s == "hello"`, record, zbool(true))
 	testSuccessful(t, `s != "hello"`, record, zbool(false))
-	testSuccessful(t, `s = "world"`, record, zbool(false))
+	testSuccessful(t, `s == "world"`, record, zbool(false))
 	testSuccessful(t, `s != "world"`, record, zbool(true))
-	testSuccessful(t, `bs = "world"`, record, zbool(true))
+	testSuccessful(t, `bs == "world"`, record, zbool(true))
 	testSuccessful(t, `bs != "world"`, record, zbool(false))
-	testSuccessful(t, `bs = "hello"`, record, zbool(false))
+	testSuccessful(t, `bs == "hello"`, record, zbool(false))
 	testSuccessful(t, `bs != "hello"`, record, zbool(true))
-	testSuccessful(t, "s = bs", record, zbool(false))
+	testSuccessful(t, "s == bs", record, zbool(false))
 	testSuccessful(t, "s != bs", record, zbool(true))
 
 	// ip
-	testSuccessful(t, "i = 10.1.1.1", record, zbool(true))
+	testSuccessful(t, "i == 10.1.1.1", record, zbool(true))
 	testSuccessful(t, "i != 10.1.1.1", record, zbool(false))
-	testSuccessful(t, "i = 1.1.1.10", record, zbool(false))
+	testSuccessful(t, "i == 1.1.1.10", record, zbool(false))
 	testSuccessful(t, "i != 1.1.1.10", record, zbool(true))
-	testSuccessful(t, "i = i", record, zbool(true))
+	testSuccessful(t, "i == i", record, zbool(true))
 
 	// port
-	testSuccessful(t, "p = 443", record, zbool(true))
+	testSuccessful(t, "p == 443", record, zbool(true))
 	testSuccessful(t, "p != 443", record, zbool(false))
 
 	// net
-	testSuccessful(t, "net = 10.1.0.0/16", record, zbool(true))
+	testSuccessful(t, "net == 10.1.0.0/16", record, zbool(true))
 	testSuccessful(t, "net != 10.1.0.0/16", record, zbool(false))
-	testSuccessful(t, "net = 10.1.0.0/24", record, zbool(false))
+	testSuccessful(t, "net == 10.1.0.0/24", record, zbool(false))
 	testSuccessful(t, "net != 10.1.0.0/24", record, zbool(true))
 
 	// Test comparisons between incompatible types
@@ -359,7 +359,7 @@ func TestCompareNonNumbers(t *testing.T) {
 		{"net", "net"},
 	}
 
-	allOperators := []string{"=", "!=", "<", "<=", ">", ">="}
+	allOperators := []string{"==", "!=", "<", "<=", ">", ">="}
 
 	for _, t1 := range allTypes {
 		for _, t2 := range allTypes {
@@ -367,7 +367,7 @@ func TestCompareNonNumbers(t *testing.T) {
 				continue
 			}
 			for _, op := range allOperators {
-				exp := fmt.Sprintf("%s = %s", t1.field, t2.field)
+				exp := fmt.Sprintf("%s == %s", t1.field, t2.field)
 				desc := fmt.Sprintf("compare %s %s %s", t1.typ, op, t2.typ)
 				testWarning(t, exp, record, expr.ErrIncompatibleTypes, desc)
 			}
@@ -411,7 +411,7 @@ func TestCompareNonNumbers(t *testing.T) {
 }
 
 func TestPattern(t *testing.T) {
-	testSuccessful(t, `"abc" = "abc"`, "", zbool(true))
+	testSuccessful(t, `"abc" == "abc"`, "", zbool(true))
 	testSuccessful(t, `"abc" != "abc"`, "", zbool(false))
 	testSuccessful(t, "10.1.1.1 in 10.0.0.0/8", "", zbool(true))
 	testSuccessful(t, "10.1.1.1 in 192.168.0.0/16", "", zbool(false))
@@ -585,13 +585,13 @@ func TestFieldReference(t *testing.T) {
 func TestConditional(t *testing.T) {
 	const record = "{x:1}"
 
-	testSuccessful(t, `x = 0 ? "zero" : "not zero"`, record, zstring("not zero"))
-	testSuccessful(t, `x = 1 ? "one" : "not one"`, record, zstring("one"))
+	testSuccessful(t, `x == 0 ? "zero" : "not zero"`, record, zstring("not zero"))
+	testSuccessful(t, `x == 1 ? "one" : "not one"`, record, zstring("one"))
 	testWarning(t, `x ? "x" : "not x"`, record, expr.ErrIncompatibleTypes, "conditional with non-boolean condition")
 
 	// Ensure that the unevaluated clause doesn't generate errors
 	// (field y doesn't exist but it shouldn't be evaluated)
-	testSuccessful(t, "x = 0 ? y : x", record, zint64(1))
+	testSuccessful(t, "x == 0 ? y : x", record, zint64(1))
 	testSuccessful(t, "x != 0 ? x : y", record, zint64(1))
 }
 

@@ -5,7 +5,7 @@ script: |
   echo ===
   zapi -host $LAKE_HOST -p test info | egrep -v 'id'
   echo ===
-  zapi -host $LAKE_HOST -p test get -z 's="harefoot-raucous"'
+  zapi -host $LAKE_HOST -p test get -z 's=="harefoot-raucous"'
 
 inputs:
   - name: babble.zson

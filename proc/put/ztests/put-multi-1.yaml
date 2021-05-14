@@ -1,5 +1,5 @@
 # Tests multiple output expressions
-zed: put a=1, b=2
+zed: put a:=1, b:=2
 
 input: |
   {x:1 (int32)} (=0)

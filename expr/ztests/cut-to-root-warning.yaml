@@ -1,4 +1,4 @@
-zed: 'cut .=c'
+zed: 'cut this:=c'
 
 input: |
   {a:null (0=({b:int32}))} (=1)

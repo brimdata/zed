@@ -1,4 +1,4 @@
-zed: typeof(this)=type(bar)
+zed: typeof(this)==type(bar)
 
 input: &input |
   {x:{a:1} (=foo),y:{a:2} (foo)} (=bar)

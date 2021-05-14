@@ -1,4 +1,4 @@
-zed: "put s=string(e), v=e+1"
+zed: "put s:=string(e), v:=e+1"
 
 input: |
   {e:foo (0=(<foo:1 (int32),bar:2,baz:4>))} (=1)

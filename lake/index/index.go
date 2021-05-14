@@ -105,7 +105,7 @@ func (i Index) zedQuery() (string, error) {
 	case IndexType:
 		return fmt.Sprintf("explode this by %s as %s | count() by %s | sort %s", i.Value, keyName, keyName, keyName), nil
 	case IndexField:
-		return fmt.Sprintf("cut %s=%s | count() by %s | sort %s", keyName, i.Value, keyName, keyName), nil
+		return fmt.Sprintf("cut %s:=%s | count() by %s | sort %s", keyName, i.Value, keyName, keyName), nil
 	case IndexZed:
 		return i.Value, nil
 	default:

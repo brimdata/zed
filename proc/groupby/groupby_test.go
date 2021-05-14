@@ -185,7 +185,7 @@ func tests() suite {
 
 	// Test a simple groupby
 	s.add(New("simple", in, groupSingleOut, "count() by key1 | sort key1"))
-	s.add(New("simple-assign", in, groupSingleOut, "count() by key1=key1 | sort key1"))
+	s.add(New("simple-assign", in, groupSingleOut, "count() by key1:=key1 | sort key1"))
 
 	// Test that unset key values work correctly
 	s.add(New("unset-keys", in+unsetKeyIn, groupSingleOut_unsetOut, "count() by key1 | sort key1"))
@@ -218,12 +218,12 @@ func tests() suite {
 	s.add(New("aliases", aliasIn, aliasOut, "count() by host | sort host"))
 
 	// Tests with assignments and computed keys
-	s.add(New("unset-keys-computed", in+unsetKeyIn, groupSingleOut_unsetOut, "count() by key1=to_lower(to_upper(key1)) | sort key1"))
-	s.add(New("unset-keys-assign", in+unsetKeyIn, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey=key1 | sort newkey"))
-	s.add(New("unset-keys-at-start-assign", unsetKeyIn+in, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey=key1 | sort newkey"))
-	s.add(New("multiple-fields-assign", in, strings.ReplaceAll(groupMultiOut, "key2", "newkey"), "count() by key1,newkey=key2 | sort key1, newkey"))
-	s.add(New("key-in-record-assign", nestedKeyIn, nestedKeyAssignedOut, "count() by newkey=rec.i | sort newkey"))
-	s.add(New("computed-key", computedKeyIn, computedKeyOut, "count() by s=to_lower(s), ij=i+j | sort"))
+	s.add(New("unset-keys-computed", in+unsetKeyIn, groupSingleOut_unsetOut, "count() by key1:=to_lower(to_upper(key1)) | sort key1"))
+	s.add(New("unset-keys-assign", in+unsetKeyIn, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"))
+	s.add(New("unset-keys-at-start-assign", unsetKeyIn+in, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"))
+	s.add(New("multiple-fields-assign", in, strings.ReplaceAll(groupMultiOut, "key2", "newkey"), "count() by key1,newkey:=key2 | sort key1, newkey"))
+	s.add(New("key-in-record-assign", nestedKeyIn, nestedKeyAssignedOut, "count() by newkey:=rec.i | sort newkey"))
+	s.add(New("computed-key", computedKeyIn, computedKeyOut, "count() by s:=to_lower(s), ij:=i+j | sort"))
 	return s
 }
 

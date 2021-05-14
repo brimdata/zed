@@ -232,7 +232,7 @@ The search result can be narrowed to include only events that contain a certain 
 
 #### Example:
 ```zq-command
-zq -f table 'uid=ChhAfsfyuz4n2hFMe' *.log.gz
+zq -f table 'uid=="ChhAfsfyuz4n2hFMe"' *.log.gz
 ```
 
 #### Output:
@@ -272,7 +272,7 @@ An important distinction is that a "bare" field/value match is treated as an _ex
 
 #### Example:
 ```zq-command
-zq -f table 'certificate.subject=Widgits' *.log.gz         # Produces no output
+zq -f table 'certificate.subject=="Widgits"' *.log.gz         # Produces no output
 ```
 
 #### Output:
@@ -283,7 +283,7 @@ To achieve this with a field/value match, we can use [glob wildcards](#glob-wild
 
 #### Example:
 ```zq-command
-zq -f table 'certificate.subject=*Widgits*' *.log.gz
+zq -f table 'certificate.subject matches *Widgits*' *.log.gz
 ```
 
 #### Output:
@@ -297,11 +297,12 @@ x509  2018-03-24T17:15:47.493786Z FdBWBA3eODh6nHFt82 3                   C5F8CDF
 ...
 ```
 
-[Regular expressions](#regular-expressions) can also be used in field/value matches.
+[Regular expressions](#regular-expressions) can also be used with the
+`matches` keyword.
 
 #### Example:
 ```zq-command
-zq -f table 'uri=/scripts\/waE8_BuNCEKM.(pl|sh)/' http.log.gz
+zq -f table 'uri matches /scripts\/waE8_BuNCEKM.(pl|sh)/' http.log.gz
 ```
 
 #### Output:
@@ -394,7 +395,7 @@ The same operators also work when comparing characters in `string`-type values, 
 
 #### Example:
 ```zq-command
-zq -f table 'query > zippy' *.log.gz
+zq -f table 'query > "zippy"' *.log.gz
 ```
 
 #### Output:
@@ -413,12 +414,12 @@ It's possible to search across _all_ top-level fields of a value's data type by 
 In the following search for the `addr`-type value `10.150.0.85`, we match only a single `notice` event, as this is the only event in our data with a matching top-level field of the `addr` type (the `dst` field).
 
 #### Example:
-```zq-command
+```zq-command-disable
 zq -f table '*=10.150.0.85' *.log.gz
 ```
 
 #### Output:
-```zq-output
+```zq-output-disable
 _PATH  TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P FUID               FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                              SUB                                                          SRC          DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
 notice 2018-03-24T17:15:32.521729Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
 ```
@@ -428,12 +429,12 @@ This same address `10.150.0.85` appears in other IP address fields in our data s
 The `*` wildcard can also be used to match when the value appears in a complex top-level field. Searching again for our `addr`-type value `10.150.0.85`, here we'll match in complex fields of type `set[addr]` or `array[addr]`, such as `tx_hosts` in this case.
 
 #### Example:
-```zq-command
+```zq-command-disable
 zq -f table '10.150.0.85 in *' *.log.gz
 ```
 
 #### Output:
-```zq-output head:5
+```zq-output-disable head:5
 _PATH TS                          FUID               TX_HOSTS    RX_HOSTS     CONN_UIDS          SOURCE DEPTH ANALYZERS     MIME_TYPE                    FILENAME DURATION LOCAL_ORIG IS_ORIG SEEN_BYTES TOTAL_BYTES MISSING_BYTES OVERFLOW_BYTES TIMEDOUT PARENT_FUID MD5                              SHA1                                     SHA256 EXTRACTED EXTRACTED_CUTOFF EXTRACTED_SIZE
 files 2018-03-24T17:15:32.519299Z FZW30y2Nwc9i0qmdvg 10.150.0.85 10.47.24.186 Ckwqsn2ZSiVGtyiFO5 SSL    0     MD5,SHA1,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
 files 2018-03-24T17:15:42.635094Z Fo9ltu1O8DGE0KAgC  10.150.0.85 10.47.8.10   CqwJmZ2Lzd42fuvg4k SSL    0     MD5,SHA1,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
@@ -462,7 +463,7 @@ For example, when introducing [glob wildcard](#glob-wildcards), we performed a s
 
 #### Example:
 ```zq-command
-zq -f table 'www.*cdn*.com _path=ssl' *.log.gz
+zq -f table 'www.*cdn*.com _path=="ssl"' *.log.gz
 ```
 
 #### Output:
@@ -484,7 +485,7 @@ For example, we can revisit two of our previous example searches that each only 
 
 #### Example:
 ```zq-command
-zq -f table 'orig_bytes > 1000000 or query > zippy' *.log.gz
+zq -f table 'orig_bytes > 1000000 or query > "zippy"' *.log.gz
 ```
 
 #### Output:
@@ -511,7 +512,7 @@ For example, suppose you've noticed that the vast majority of the sample Zeek ev
 
 #### Example:
 ```zq-command
-zq -f table 'not _path=/conn|dns|files|ssl|x509|http|weird/' *.log.gz
+zq -f table 'not _path matches /conn|dns|files|ssl|x509|http|weird/' *.log.gz
 ```
 
 #### Output:
@@ -542,7 +543,7 @@ For example, the following search leverages the implicit boolean `and` to find a
 
 #### Example:
 ```zq-command
-zq -f table 'not share_type=DISK _path=smb_mapping' *.log.gz
+zq -f table 'not share_type=="DISK" _path=="smb_mapping"' *.log.gz
 ```
 
 #### Output:
@@ -559,7 +560,7 @@ Terms wrapped in parentheses along with their operators will be evaluated _first
 
 #### Example:
 ```zq-command
-zq -f table 'not (share_type=DISK _path=smb_mapping)' *.log.gz
+zq -f table 'not (share_type=="DISK" _path=="smb_mapping")' *.log.gz
 ```
 
 #### Output:
@@ -580,7 +581,7 @@ Parentheses can also be nested.
 
 #### Example:
 ```zq-command
-zq -f table '((not share_type=DISK) and (service=IPC)) _path=smb_mapping' *.log.gz
+zq -f table '((not share_type=="DISK") and (service=="IPC")) _path=="smb_mapping"' *.log.gz
 ```
 
 #### Output:

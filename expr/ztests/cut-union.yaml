@@ -1,4 +1,4 @@
-zed: a=union(cut(x)),b=union(cut(x,s))
+zed: a:=union(cut(x)),b:=union(cut(x,s))
 
 input: |
   {x:1 (int32),s:"a"} (=0)
