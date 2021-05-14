@@ -24,7 +24,7 @@ const indexPage = `
   <title>ZQD daemon</title>
   <body style="padding:10px">
     <h2>zed lake serve</h2>
-    <p>A <a href="https://github.com/brimdata/zed/tree/main/cmd/zed/lake/serve">zed lake serve</a> process is listening on this host/port.</p>
+    <p>A <a href="https://github.com/brimdata/zed/tree/main/cmd/zed/lake/serve">zed lake service</a> is listening on this host/port.</p>
     <p>If you're a <a href="https://www.brimsecurity.com/">Brim</a> user, connect to this host/port from the <a href="https://github.com/brimdata/brim">Brim application</a> in the graphical desktop interface in your operating system (not a web browser).</p>
     <p>If your goal is to perform command line operations against this Zed lake, use the <a href="https://github.com/brimdata/zed/tree/main/cmd/zapi">zapi</a> client.</p>
   </body>
