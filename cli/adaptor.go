@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/order"
@@ -47,11 +46,11 @@ func (f *FileAdaptor) Open(ctx context.Context, zctx *zson.Context, path string,
 	}
 	file, err := anyio.OpenFile(zctx, f.engine, path, anyio.ReaderOpts{})
 	if err != nil {
-		err = fmt.Errorf("%s: %w", path, err)
-		fmt.Fprintln(os.Stderr, err)
+		return nil, fmt.Errorf("%s: %w", path, err)
 	}
 	scanner, err := zbuf.NewScanner(ctx, file, pushdown, nano.MaxSpan)
 	if err != nil {
+		file.Close()
 		return nil, err
 	}
 	sn := zbuf.NamedScanner(scanner, path)
