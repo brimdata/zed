@@ -28,7 +28,11 @@ func NewWriter(w io.WriteCloser) *Writer {
 }
 
 func (w *Writer) Close() error {
-	err := json.NewEncoder(w.writer).Encode(w.recs)
+	var body interface{} = w.recs
+	if len(w.recs) == 1 {
+		body = w.recs[0]
+	}
+	err := json.NewEncoder(w.writer).Encode(body)
 	if closeErr := w.writer.Close(); err == nil {
 		err = closeErr
 	}
