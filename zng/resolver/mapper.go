@@ -8,9 +8,9 @@ import (
 )
 
 type Mapper struct {
-	types     []zng.Type
-	mu        sync.RWMutex
 	outputCtx *zson.Context
+	mu        sync.RWMutex
+	types     []zng.Type
 }
 
 func NewMapper(out *zson.Context) *Mapper {
@@ -53,17 +53,21 @@ func (m *Mapper) Translate(foreign zng.Type) (zng.Type, error) {
 
 func (m *Mapper) EnterType(td int, typ zng.Type) {
 	m.mu.Lock()
-	if td >= len(m.types) {
+	if td >= cap(m.types) {
 		new := make([]zng.Type, td+1, td*2)
 		copy(new, m.types)
 		m.types = new
+	} else if td >= len(m.types) {
+		m.types = m.types[:td+1]
 	}
 	m.types[td] = typ
 	m.mu.Unlock()
 }
 
 func (m *Mapper) Lookup(td int) zng.Type {
-	if td >= 0 && td < len(m.types) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	if td < len(m.types) {
 		return m.types[td]
 	}
 	return nil
