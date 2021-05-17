@@ -1,5 +1,5 @@
 zed: |
-   cut s1=join(a1,"."),s2=join(a1,"."),s3=join(a3,"."),s4=join(a4,"."),s5=join(oo)
+   cut s1:=join(a1,"."),s2:=join(a1,"."),s3:=join(a3,"."),s4:=join(a4,"."),s5:=join(oo)
 
 input: |
   {a1:["foo","bar","com"],a2:["foo"],a3:null (0=([string])),a4:[""],oo:["f",".bar.com"]}

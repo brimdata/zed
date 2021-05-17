@@ -1,24 +1,24 @@
 script: |
   echo === forward-sorted ===
-  zq -z "count() by ts | sort ." in.zson
+  zq -z "count() by ts | sort this" in.zson
   echo === forward-sorted-with-unset ===
-  zq -z "count() by ts | sort ." in-with-unset.zson
+  zq -z "count() by ts | sort this" in-with-unset.zson
   echo === forward-sorted-every ===
-  zq -z "every 1s count() | sort ." in.zson
+  zq -z "every 1s count() | sort this" in.zson
   echo === forward-sorted-every-unset ===
-  zq -z "every 1s count() | sort ." in-with-unset.zson
+  zq -z "every 1s count() | sort this" in-with-unset.zson
   echo === forward-sorted-record-key ===
-  zq -z "count() by foo | sort ." in-record-key.zson
+  zq -z "count() by foo | sort this" in-record-key.zson
   echo === forward-sorted-nested-key ===
-  zq -z "count() by foo.a | sort ." in-record-key.zson
+  zq -z "count() by foo.a | sort this" in-record-key.zson
   echo === forward-sorted-record-key-unset ===
-  zq -z "count() by foo | sort ." in-record-key-unset.zson
+  zq -z "count() by foo | sort this" in-record-key-unset.zson
   echo === forward-sorted-nested-key-unset ===
-  zq -z "count() by foo | sort ." in-record-key-unset.zson
+  zq -z "count() by foo | sort this" in-record-key-unset.zson
   echo === reverse-sorted ===
-  zq -z "count() by ts | sort ." in-rev.zson
+  zq -z "count() by ts | sort this" in-rev.zson
   echo === reverse-sorted-null ===
-  zq -z "every 1s count() | sort ." in-rev.zson
+  zq -z "every 1s count() | sort this" in-rev.zson
 
 inputs:
   - name: in.zson

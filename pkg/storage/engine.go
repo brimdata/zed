@@ -38,15 +38,14 @@ type Info struct {
 
 func NewRemoteEngine() *Router {
 	router := NewRouter()
-	router.Enable(S3Scheme)
 	router.Enable(HTTPScheme)
+	router.Enable(HTTPSScheme)
+	router.Enable(S3Scheme)
 	return router
 }
 
 func NewLocalEngine() *Router {
-	router := NewRouter()
-	router.Enable(S3Scheme)
-	router.Enable(HTTPScheme)
+	router := NewRemoteEngine()
 	router.Enable(FileScheme)
 	router.Enable(StdioScheme)
 	return router

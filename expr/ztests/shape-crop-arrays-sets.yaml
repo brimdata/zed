@@ -1,5 +1,5 @@
 zed: |
-  put . = crop({set:|[{b:string}]|,arr:[{a:string}]})
+  put this := crop({set:|[{b:string}]|,arr:[{a:string}]})
 
 input: |
   {arr:[{a:"one",b:"two"},{a:"three",b:"four"}],set:|[{a:"one",b:"two"},{a:"three",b:"four"}]|}

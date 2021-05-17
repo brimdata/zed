@@ -109,4 +109,4 @@ const schemas = |{
   x509
 }|
 
-put .=unflatten(.) | put . = shape(schemas[_path])
+put this := unflatten(this) | put this := shape(schemas[_path])

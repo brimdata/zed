@@ -36,7 +36,7 @@ func (c *canon) assignments(assignments []ast.Assignment) {
 		}
 		if a.LHS != nil {
 			c.expr(a.LHS, false)
-			c.write("=")
+			c.write(":=")
 		}
 		c.expr(a.RHS, false)
 	}
@@ -103,6 +103,9 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.write("type(")
 		c.typ(e.Value)
 		c.write(")")
+	case *ast.RegexpMatch:
+		c.expr(e.Expr, false)
+		c.write(" matches /%s/", e.Pattern)
 	default:
 		c.open("(unknown expr %T)", e)
 		c.close()

@@ -1,7 +1,7 @@
 # Send zson into zng and back out to make sure binary encoding of typevals works.
 
 script: |
-  zq -Z "put t=typeof(.)" in.zson
+  zq -Z "put t:=typeof(.)" in.zson
 
 inputs:
   - name: in.zson

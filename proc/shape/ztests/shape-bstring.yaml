@@ -1,6 +1,6 @@
 zed: |
   type custom = {bstring: bstring}
-  put . = shape(custom)
+  put this := shape(custom)
 
 input: |
   { bstring:"this is a bstring" }

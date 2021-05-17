@@ -1,9 +1,9 @@
 script: |
-  zq -z "put x=p1+1" in.zson
+  zq -z "put x:=p1+1" in.zson
   echo ===
-  zq -z "put x=p1>p2" in.zson
+  zq -z "put x:=p1>p2" in.zson
   echo ===
-  zq -z "put x=a+p1+p2" in.zson
+  zq -z "put x:=a+p1+p2" in.zson
 
 inputs:
   - name: in.zson

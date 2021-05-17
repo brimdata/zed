@@ -1,4 +1,4 @@
-zed: rename f=foo, b=bar
+zed: rename f:=foo, b:=bar
 
 input: |
   {foo:"foo0"}

@@ -1,3 +1,5 @@
+skip: disabled until we add "over/into"-style predicates
+
 zed: 2 in *
 
 input: |

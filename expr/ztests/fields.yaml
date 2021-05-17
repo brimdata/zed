@@ -1,4 +1,4 @@
-zed: cut fields(.), fields2=fields(r)
+zed: cut fields(this), fields2:=fields(r)
 
 input: |
   {r:{a:1 (int32)} (=0),s:123 (int32)} (=1)

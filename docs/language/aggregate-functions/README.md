@@ -56,7 +56,7 @@ instead use `=` to specify an explicit name for the generated field.
 #### Example:
 
 ```zq-command
-zq -f table 'quickest=min(duration),longest=max(duration),typical=avg(duration)' conn.log.gz
+zq -f table 'quickest:=min(duration),longest:=max(duration),typical:=avg(duration)' conn.log.gz
 ```
 
 #### Output:
@@ -83,7 +83,7 @@ To check whether we've seen higher DNS round-trip times when servers return
 longer lists of `answers`:
 
 ```zq-command
-zq -f table 'answers != null | every 5m short_rtt=avg(rtt) where len(answers)<=2, short_count=count() where len(answers)<=2, long_rtt=avg(rtt) where len(answers)>2, long_count=count() where len(answers)>2 | sort ts' dns.log.gz
+zq -f table 'answers != null | every 5m short_rtt:=avg(rtt) where len(answers)<=2, short_count:=count() where len(answers)<=2, long_rtt:=avg(rtt) where len(answers)>2, long_count:=count() where len(answers)>2 | sort ts' dns.log.gz
 ```
 
 #### Output:
@@ -132,7 +132,7 @@ To count the number of connections for which this was the _only_ category of
 `weird` event observed:
 
 ```zq-command
-zq -f table 'only_bads=and(name="bad_HTTP_request") by uid | count() where only_bads=true' weird.log.gz
+zq -f table 'only_bads:=and(name=="bad_HTTP_request") by uid | count() where only_bads==true' weird.log.gz
 ```
 
 #### Output:
@@ -183,7 +183,7 @@ To assemble the sequence of HTTP methods invoked in each interaction with the
 Bing search engine:
 
 ```zq-command
-zq -f table 'host=www.bing.com | methods=collect(method) by uid | sort uid' http.log.gz
+zq -f table 'host=="www.bing.com" | methods:=collect(method) by uid | sort uid' http.log.gz
 ```
 
 #### Output:
@@ -395,7 +395,7 @@ The following query confirms this high-port traffic is present, but that none of
 those ports are higher than what TCP allows.
 
 ```zq-command
-zq -f table 'some_highports=or(id.resp_p>80),impossible_ports=or(id.resp_p>65535)' http.log.gz
+zq -f table 'some_highports:=or(id.resp_p>80),impossible_ports:=or(id.resp_p>65535)' http.log.gz
 ```
 
 #### Output:
@@ -448,7 +448,7 @@ To observe which HTTP methods were invoked in each interaction with the Bing
 search engine:
 
 ```zq-command
-zq -f table 'host=www.bing.com | methods=union(method) by uid | sort uid' http.log.gz
+zq -f table 'host=="www.bing.com" | methods:=union(method) by uid | sort uid' http.log.gz
 ```
 
 #### Output:

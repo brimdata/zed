@@ -1,4 +1,4 @@
-zed: cut n=len(.)
+zed: cut n:=len(.)
 
 input: |
   {}

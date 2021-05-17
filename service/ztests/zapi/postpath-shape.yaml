@@ -1,7 +1,7 @@
 script: |
   source services.sh
   zapi -host $LAKE_HOST new test
-  zapi -host $LAKE_HOST -p test postpath -z "put ip=ip(ip)" in.zson in.zson
+  zapi -host $LAKE_HOST -p test postpath -z "put ip:=ip(ip)" in.zson in.zson
   zapi -host $LAKE_HOST -p test get -f zson > out.zson
 
 inputs:

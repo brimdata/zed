@@ -1,15 +1,15 @@
 script: |
-  zc -C "join on x=x p=a"
+  zc -C "join on x=x p:=a"
   echo ===
-  zc -C -s "join on x=x p=a"
+  zc -C -s "join on x=x p:=a"
 
 outputs:
   - name: stdout
     data: |
-      join on x=x p=a
+      join on x=x p:=a
       ===
       from (
         (internal reader);
         (internal reader);
       )
-      | join on x=x p=a
+      | join on x=x p:=a

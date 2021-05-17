@@ -1,7 +1,7 @@
 script: |
-  zq -z "_path=conn | count()" in.zson
+  zq -z "_path == 'conn' | count()" in.zson
   echo ===
-  zq -z "count() where _path=conn" in.zson
+  zq -z "count() where _path == 'conn'" in.zson
 
 inputs:
   - name: in.zson

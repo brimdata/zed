@@ -1,4 +1,4 @@
-zed: 'cut .=a,x=b'
+zed: 'cut this:=a,x:=b'
 
 input: |
   {a:1 (int32),b:2 (int32)} (=0)

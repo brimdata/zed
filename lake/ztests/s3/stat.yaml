@@ -4,7 +4,7 @@ script: |
   zed lake init -q
   zed lake create -q -p logs
   zed lake load -q -p logs babble.zson
-  zed lake log -p logs -f zng | zq -Z "cut m=segment.meta" -
+  zed lake log -p logs -f zng | zq -Z "cut m:=segment.meta" -
 
 inputs:
   - name: babble.zson

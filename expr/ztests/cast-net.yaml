@@ -1,4 +1,4 @@
-zed: put n=net(n)
+zed: put n:=net(n)
 
 input: |
   {n:"74.53.140.153/32"}

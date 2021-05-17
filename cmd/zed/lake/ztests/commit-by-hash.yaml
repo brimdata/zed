@@ -3,7 +3,7 @@ script: |
   zed lake init -q
   zed lake create -q -p POOL
   zed lake add -q -p POOL in.zson
-  hex=$(zed lake status -p POOL -f zng | zq -f text "typeof(.)=type(StagedCommit) | cut s='0x'+to_hex(commit)" -)
+  hex=$(zed lake status -p POOL -f zng | zq -f text "typeof(.)==type(StagedCommit) | cut s:='0x'+to_hex(commit)" -)
   zed lake commit -p POOL $hex
 
 inputs:

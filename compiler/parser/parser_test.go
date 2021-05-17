@@ -119,7 +119,7 @@ func TestInvalid(t *testing.T) {
 // given string in a simple zql query, parses it, and extracts the parsed
 // string from inside the AST.
 func parseString(in string) (string, error) {
-	code := fmt.Sprintf("s = \"%s\"", in)
+	code := fmt.Sprintf("s == \"%s\"", in)
 	tree, err := compiler.ParseProc(code)
 	if err != nil {
 		return "", err

@@ -1,5 +1,5 @@
 zed: |
-  type port=int64; type prec={p: port, q: port}; type parr=[prec]; put .=order({c: port, b:parr, a:prec})
+  type port=int64; type prec={p: port, q: port}; type parr=[prec]; put this:=order({c: port, b:parr, a:prec})
 
 input: |
   {a:{q:1 (port=(int64)), p: 2 (port)} (=0),b:[{q:1,p:2 (port)} (=1)] (=2),c:3 (port)} (=3)
