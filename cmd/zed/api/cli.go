@@ -16,7 +16,6 @@ import (
 	"github.com/brimdata/zed/pkg/terminal"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -138,7 +137,7 @@ type nameReader struct {
 func NewNameReader(names []string) zio.Reader {
 	return &nameReader{
 		names: names,
-		mc:    resolver.NewMarshaler(),
+		mc:    zson.NewZNGMarshaler(),
 	}
 }
 
