@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
@@ -78,7 +78,7 @@ func (*internalAdaptor) Layout(_ context.Context, _ ksuid.KSUID) (order.Layout, 
 	return order.Nil, errors.New("invalid pool scan specified for internally streamed Zed query")
 }
 
-func (*internalAdaptor) NewScheduler(context.Context, *zson.Context, *dag.Pool, zbuf.Filter) (proc.Scheduler, error) {
+func (*internalAdaptor) NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, errors.New("invalid pool or file scan specified for internally streamed Zed query")
 }
 

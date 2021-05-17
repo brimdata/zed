@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
@@ -16,6 +16,8 @@ import (
 type Lake struct {
 	pools map[string]Pool
 }
+
+var _ proc.DataAdaptor = (*Lake)(nil)
 
 type Pool struct {
 	name   string
@@ -79,7 +81,7 @@ func (l *Lake) Layout(_ context.Context, id ksuid.KSUID) (order.Layout, error) {
 	return order.Nil, fmt.Errorf("%s: no such pool", id)
 }
 
-func (*Lake) NewScheduler(_ context.Context, _ *zson.Context, _ *dag.Pool, _ zbuf.Filter) (proc.Scheduler, error) {
+func (*Lake) NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, fmt.Errorf("mock.Lake.NewScheduler() should not be called")
 }
 

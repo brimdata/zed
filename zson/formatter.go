@@ -63,6 +63,14 @@ func FormatValue(zv zng.Value) (string, error) {
 	return f.Format(zv)
 }
 
+func String(zv zng.Value) string {
+	s, err := FormatValue(zv)
+	if err != nil {
+		s = fmt.Sprintf("<zng parse err: %s>", err)
+	}
+	return s
+}
+
 func (f *Formatter) Format(zv zng.Value) (string, error) {
 	f.builder.Reset()
 	if err := f.formatValueAndDecorate(zv.Type, zv.Bytes); err != nil {

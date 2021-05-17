@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/segment"
@@ -365,14 +365,14 @@ func (r *Root) ScanIndex(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) e
 	return nil
 }
 
-func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, p *dag.Pool, filter zbuf.Filter) (proc.Scheduler, error) {
-	pool, err := r.OpenPool(ctx, p.ID)
+func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, id, at ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+	pool, err := r.OpenPool(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 	var snap *commit.Snapshot
-	if p.At != ksuid.Nil {
-		id, err := pool.Log().JournalIDOfCommit(ctx, 0, p.At)
+	if at != ksuid.Nil {
+		id, err := pool.Log().JournalIDOfCommit(ctx, 0, at)
 		if err != nil {
 			return nil, err
 		}
@@ -383,7 +383,6 @@ func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, p *dag.Pool
 	if err != nil {
 		return nil, err
 	}
-	span := p.Span //XXX
 	return NewSortedScheduler(ctx, zctx, pool, snap, span, filter), nil
 }
 

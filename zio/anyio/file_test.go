@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -57,7 +56,7 @@ func TestMultiFileScanner(t *testing.T) {
 	defer os.Remove(f2)
 
 	mfr := MultiFileReader(zson.NewContext(), storage.NewLocalEngine(), []string{f1, f2}, ReaderOpts{})
-	sn, err := zbuf.NewScanner(context.Background(), mfr, nil, nano.MaxSpan)
+	sn, err := zbuf.NewScanner(context.Background(), mfr, nil)
 	require.NoError(t, err)
 	_, ok := sn.(*multiFileScanner)
 	assert.True(t, ok)

@@ -17,4 +17,4 @@ outputs:
       test
         name: test
         span: 1970-01-01T00:00:01Z+43824h0m1.000000001s
-        size: 22B
+        size: 36B

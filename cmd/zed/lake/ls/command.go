@@ -10,7 +10,6 @@ import (
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
@@ -86,12 +85,12 @@ func (c *Command) Run(args []string) error {
 		}
 		if c.partition {
 			go func() {
-				pool.ScanPartitions(ctx, w, snap, nano.MaxSpan)
+				pool.ScanPartitions(ctx, w, snap, nil)
 				w.Close()
 			}()
 		} else {
 			go func() {
-				pool.ScanSegments(ctx, w, snap, nano.MaxSpan)
+				pool.ScanSegments(ctx, w, snap, nil)
 				w.Close()
 			}()
 		}

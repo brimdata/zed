@@ -5,9 +5,9 @@ script: |
   # 50 not in index
   zed index section -z -s 1 index.zng
   echo ===
-  zed index lookup -z -k wailer-strick index.zng
+  zed index lookup -z -k \"wailer-strick\" index.zng
   echo ===
-  zed index lookup -z -k Anatinacea-bestrew index.zng
+  zed index lookup -z -k \"Anatinacea-bestrew\" index.zng
 
 inputs:
   - name: babble.zson

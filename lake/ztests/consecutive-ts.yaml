@@ -3,7 +3,7 @@ script: |
   zed lake init -q
   zed lake create -q -p logs
   zed lake load -q -p logs -streammax 2 -
-  zed index section -s 0 -z test/*/D/*-seek.zng
+  zq -z test/*/D/*-seek.zng
 
 inputs:
   - name: stdin
@@ -27,7 +27,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {ts:1970-01-01T00:00:08Z,offset:0}
-      {ts:1970-01-01T00:00:06Z,offset:23}
-      {ts:1970-01-01T00:00:02Z,offset:69}
-      {ts:1970-01-01T00:00:00Z,offset:90}
+      {key:1970-01-01T00:00:08Z,offset:0}
+      {key:1970-01-01T00:00:06Z,offset:23}
+      {key:1970-01-01T00:00:02Z,offset:69}
+      {key:1970-01-01T00:00:00Z,offset:90}

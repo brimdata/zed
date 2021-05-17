@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
@@ -88,45 +87,26 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor pro
 				return nil, err
 			}
 		}
-		// XXX For now, we translate from/to zed.Primitive's to a nano.Span.
-		// When we add arbitrary pool keys, we'll need to carry the
-		// zson values into the DAG.  Also, we should generalize these
-		// values beyond primitives.  See issue #2657.
-		var from, to nano.Ts
-		if p.Range != nil {
-			if p.Range.Lower.Type != "time" {
-				return nil, errors.New("only time types supported in from over clause")
+		var upper, lower dag.Expr
+		if r := p.Range; r != nil {
+			if r.Lower != nil {
+				lower, err = semExpr(scope, r.Lower)
+				if err != nil {
+					return nil, err
+				}
 			}
-			t, err := time.Parse(time.RFC3339Nano, p.Range.Lower.Text)
-			if err != nil {
-				return nil, fmt.Errorf("invalid ISO time: %s", p.Range.Lower.Text)
+			if r.Upper != nil {
+				upper, err = semExpr(scope, r.Upper)
+				if err != nil {
+					return nil, err
+				}
 			}
-			from = nano.TimeToTs(t)
-			if p.Range.Upper.Type != "time" {
-				return nil, errors.New("only time types supported in from over clause")
-			}
-			t, err = time.Parse(time.RFC3339Nano, p.Range.Upper.Text)
-			if err != nil {
-				return nil, fmt.Errorf("invalid ISO time: %s", p.Range.Upper.Text)
-			}
-			to = nano.TimeToTs(t)
-		}
-		span := nano.MaxSpan
-		if from != 0 || to != 0 {
-			if from > to {
-				from, to = to, from
-			}
-			if to == 0 {
-				to = nano.MaxTs
-			}
-			span = nano.NewSpanTs(from, to)
 		}
 		return &dag.Pool{
-			Kind: "Pool",
-			ID:   id,
-			Span: span,
-			//From:  p.From,
-			//To:    p.To,
+			Kind:      "Pool",
+			ID:        id,
+			ScanLower: lower,
+			ScanUpper: upper,
 			ScanOrder: p.ScanOrder,
 			At:        at,
 		}, nil

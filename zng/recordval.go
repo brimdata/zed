@@ -6,6 +6,7 @@ import (
 	"math"
 	"net"
 
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 )
@@ -233,6 +234,18 @@ func (r *Record) Access(field string) (Value, error) {
 		return Value{}, ErrMissing
 	}
 	return r.ValueByColumn(col), nil
+}
+
+func (r *Record) Deref(path field.Path) (Value, error) {
+	var v Value
+	for _, f := range path {
+		var err error
+		v, err = r.Access(f)
+		if err != nil {
+			return Value{}, err
+		}
+	}
+	return v, nil
 }
 
 func (r *Record) AccessString(field string) (string, error) {

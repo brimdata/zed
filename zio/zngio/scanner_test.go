@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/require"
@@ -50,7 +49,7 @@ func TestScannerContext(t *testing.T) {
 	// Create a scanner and scan, validating each record.
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	s, err := r.NewScanner(ctx, nil, nano.MaxSpan)
+	s, err := r.NewScanner(ctx, nil)
 	require.NoError(t, err)
 	for {
 		batch, err := s.Pull()

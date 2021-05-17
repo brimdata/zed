@@ -3,10 +3,11 @@ package commit
 import (
 	"errors"
 
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commit/actions"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
-	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/order"
 	"github.com/segmentio/ksuid"
 )
 
@@ -16,8 +17,8 @@ var (
 )
 
 type View interface {
-	Lookup(id ksuid.KSUID) (*segment.Reference, error)
-	Select(span nano.Span) Segments
+	Lookup(ksuid.KSUID) (*segment.Reference, error)
+	Select(extent.Span, order.Which) Segments
 }
 
 type Writeable interface {
@@ -74,10 +75,11 @@ func (s *Snapshot) Lookup(id ksuid.KSUID) (*segment.Reference, error) {
 	return seg, nil
 }
 
-func (s *Snapshot) Select(span nano.Span) Segments {
+func (s *Snapshot) Select(scan extent.Span, o order.Which) Segments {
 	var segments Segments
 	for _, seg := range s.segments {
-		if span.Overlaps(seg.Span()) {
+		segspan := seg.Span(o)
+		if scan == nil || segspan == nil || extent.Overlaps(scan, segspan) {
 			segments = append(segments, seg)
 		}
 	}

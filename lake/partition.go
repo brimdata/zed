@@ -1,21 +1,25 @@
 package lake
 
 import (
+	"bytes"
 	"fmt"
+	"sort"
 
+	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zson"
+	"github.com/segmentio/ksuid"
 )
 
 // A Partition is a logical view of the records within a time span, stored
 // in one or more Segments.  This provides a way to return the list of
 // Segments that should be scanned along with a span to limit the scan
 // to only the span involved.
-// XXX need to change Span to key range.
 type Partition struct {
-	First    nano.Ts //XXX should be key range
-	Last     nano.Ts
+	extent.Span
+	compare  expr.ValueCompareFn
 	Segments []*segment.Reference
 }
 
@@ -23,19 +27,13 @@ func (p Partition) IsZero() bool {
 	return p.Segments == nil
 }
 
-// Span returns a span that includes the ranges First and Last values
-// independent of order.
-func (p Partition) Span() nano.Span {
-	return nano.Span{Ts: p.First, Dur: 1}.Union(nano.Span{Ts: p.Last, Dur: 1})
-}
-
 func (p Partition) FormatRangeOf(segno int) string {
 	seg := p.Segments[segno]
-	return fmt.Sprintf("[%d-%d,%d-%d]", p.First, p.Last, seg.First, seg.Last)
+	return fmt.Sprintf("[%s-%s,%s-%s]", zson.String(p.First()), zson.String(p.Last()), zson.String(seg.First), zson.String(seg.Last))
 }
 
 func (p Partition) FormatRange() string {
-	return fmt.Sprintf("[%d-%d]", p.First, p.Last)
+	return fmt.Sprintf("[%s-%s]", zson.String(p.First()), zson.String(p.Last()))
 }
 
 // partitionSegments takes a sorted set of segments with possibly overlapping
@@ -51,28 +49,17 @@ func PartitionSegments(segments []*segment.Reference, o order.Which) []Partition
 	if len(segments) == 0 {
 		return nil
 	}
+	cmp := extent.CompareFunc(o)
+	segspans := sortedSegmentSpans(segments, cmp)
 	var s stack
-	s.pushSegment(segments[0])
-	for _, seg := range segments[1:] {
+	s.pushSegmentSpan(segspans[0], cmp)
+	for _, segspan := range segspans[1:] {
 		tos := s.tos()
-		if o == order.Asc {
-			if tos.Last < seg.First {
-				s.pushSegment(seg)
-			} else {
-				tos.Segments = append(tos.Segments, seg)
-				if tos.Last < seg.Last {
-					tos.Last = seg.Last
-				}
-			}
+		if segspan.Before(tos.Last()) {
+			s.pushSegmentSpan(segspan, cmp)
 		} else {
-			if tos.Last > seg.First {
-				s.pushSegment(seg)
-			} else {
-				tos.Segments = append(tos.Segments, seg)
-				if tos.Last > seg.Last {
-					tos.Last = seg.Last
-				}
-			}
+			tos.Segments = append(tos.Segments, segspan.seg)
+			tos.Extend(segspan.Last())
 		}
 	}
 	// On exit, the ranges in the stack are properly sorted so
@@ -82,11 +69,11 @@ func PartitionSegments(segments []*segment.Reference, o order.Which) []Partition
 
 type stack []Partition
 
-func (s *stack) pushSegment(seg *segment.Reference) {
+func (s *stack) pushSegmentSpan(segspan segmentSpan, cmp expr.ValueCompareFn) {
 	s.push(Partition{
-		First:    seg.First,
-		Last:     seg.Last,
-		Segments: []*segment.Reference{seg},
+		Span:     segspan.Span,
+		compare:  cmp,
+		Segments: []*segment.Reference{segspan.seg},
 	})
 }
 
@@ -103,4 +90,45 @@ func (s *stack) pop() Partition {
 
 func (s *stack) tos() *Partition {
 	return &(*s)[len(*s)-1]
+}
+
+type segmentSpan struct {
+	extent.Span
+	seg *segment.Reference
+}
+
+func sortedSegmentSpans(segments []*segment.Reference, cmp expr.ValueCompareFn) []segmentSpan {
+	segspans := make([]segmentSpan, 0, len(segments))
+	for _, s := range segments {
+		segspans = append(segspans, segmentSpan{
+			Span: extent.NewGeneric(s.First, s.Last, cmp),
+			seg:  s,
+		})
+	}
+	sort.Slice(segspans, func(i, j int) bool {
+		return segmentSpanLess(segspans[i], segspans[j])
+	})
+	return segspans
+}
+
+func segmentSpanLess(a, b segmentSpan) bool {
+	if b.Before(a.First()) {
+		return true
+	}
+	if !bytes.Equal(a.First().Bytes, b.First().Bytes) {
+		return false
+	}
+	if bytes.Equal(a.Last().Bytes, b.Last().Bytes) {
+		if a.seg.Count != b.seg.Count {
+			return a.seg.Count < b.seg.Count
+		}
+		return ksuid.Compare(a.seg.ID, b.seg.ID) < 0
+	}
+	return a.After(b.Last())
+}
+
+func sortSegments(o order.Which, r []*segment.Reference) {
+	for k, segSpan := range sortedSegmentSpans(r, extent.CompareFunc(o)) {
+		r[k] = segSpan.seg
+	}
 }

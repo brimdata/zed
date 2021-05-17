@@ -29,7 +29,7 @@ func TestSearch(t *testing.T) {
 {key:"key6",value:"value6"}
 `
 	finder := buildAndOpen(t, storage.NewLocalEngine(), reader(data))
-	keyRec, err := finder.ParseKeys("key2")
+	keyRec, err := finder.ParseKeys(`"key2"`)
 	require.NoError(t, err)
 	rec, err := finder.Lookup(keyRec)
 	require.NoError(t, err)

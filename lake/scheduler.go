@@ -4,10 +4,10 @@ import (
 	"context"
 	"sync"
 
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
@@ -17,7 +17,7 @@ type Scheduler struct {
 	zctx   *zson.Context
 	pool   *Pool
 	snap   *commit.Snapshot
-	span   nano.Span
+	span   extent.Span
 	filter zbuf.Filter
 	once   sync.Once
 	ch     chan Partition
@@ -25,7 +25,7 @@ type Scheduler struct {
 	stats  zbuf.ScannerStats
 }
 
-func NewSortedScheduler(ctx context.Context, zctx *zson.Context, pool *Pool, snap *commit.Snapshot, span nano.Span, filter zbuf.Filter) *Scheduler {
+func NewSortedScheduler(ctx context.Context, zctx *zson.Context, pool *Pool, snap *commit.Snapshot, span extent.Span, filter zbuf.Filter) *Scheduler {
 	return &Scheduler{
 		ctx:    ctx,
 		zctx:   zctx,
@@ -88,9 +88,9 @@ func (s *Scheduler) newSortedScanner(p Partition) (zbuf.PullerCloser, error) {
 	return newSortedScanner(s.ctx, s.pool, s.zctx, s.filter, p, s)
 }
 
-func ScanSpan(ctx context.Context, snap *commit.Snapshot, span nano.Span, ch chan<- segment.Reference) error {
-	for _, seg := range snap.Select(span) {
-		if span.Overlaps(seg.Span()) {
+func ScanSpan(ctx context.Context, snap *commit.Snapshot, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
+	for _, seg := range snap.Select(span, o) {
+		if span == nil || span.Overlaps(seg.First, seg.Last) {
 			select {
 			case ch <- *seg:
 			case <-ctx.Done():
@@ -101,9 +101,9 @@ func ScanSpan(ctx context.Context, snap *commit.Snapshot, span nano.Span, ch cha
 	return nil
 }
 
-func ScanSpanInOrder(ctx context.Context, snap *commit.Snapshot, span nano.Span, o order.Which, ch chan<- segment.Reference) error {
-	segments := snap.Select(span)
-	segment.Sort(o, segments)
+func ScanSpanInOrder(ctx context.Context, snap *commit.Snapshot, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
+	segments := snap.Select(span, o)
+	sortSegments(o, segments)
 	for _, seg := range segments {
 		select {
 		case ch <- *seg:
@@ -117,32 +117,11 @@ func ScanSpanInOrder(ctx context.Context, snap *commit.Snapshot, span nano.Span,
 // ScanPartitions partitions all segments in snap overlapping
 // span into non-overlapping partitions, sorts them by pool key and order,
 // and sends them to ch.
-func ScanPartitions(ctx context.Context, snap *commit.Snapshot, span nano.Span, o order.Which, ch chan<- Partition) error {
-	first := span.Ts
-	last := span.End()
-	if o == order.Desc {
-		first, last = last, first
-	}
-	segments := snap.Select(span)
-	segment.Sort(o, segments)
+func ScanPartitions(ctx context.Context, snap *commit.Snapshot, span extent.Span, o order.Which, ch chan<- Partition) error {
+	segments := snap.Select(span, o)
 	for _, p := range PartitionSegments(segments, o) {
-		// XXX this is clunky mixing spans and key ranges.
-		// When we get rid of the ts assumption, we will fix this.
-		// See issue #2482.
-		if o == order.Asc {
-			if p.First < first {
-				p.First = first
-			}
-			if p.Last > last {
-				p.Last = last
-			}
-		} else {
-			if p.First > first {
-				p.First = first
-			}
-			if p.Last < last {
-				p.Last = last
-			}
+		if span != nil {
+			p.Span.Crop(span)
 		}
 		select {
 		case ch <- p:

@@ -1,15 +1,15 @@
 package segment
 
 import (
+	"bytes"
 	"context"
 	"io"
 
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/bufwriter"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 )
@@ -17,58 +17,49 @@ import (
 // Writer is a zbuf.Writer that writes a stream of sorted records into a
 // data segment.
 type Writer struct {
-	ref           *Reference
-	byteCounter   *writeCounter
-	count         uint64
-	size          int64
-	rowObject     *zngio.Writer
-	firstTs       nano.Ts
-	lastTs        nano.Ts
-	needSeekWrite bool
-	order         order.Which
-	seekIndex     *seekindex.Builder
-	wroteFirst    bool
+	ref             *Reference
+	byteCounter     *writeCounter
+	count           uint64
+	rowObject       *zngio.Writer
+	firstKey        zng.Value
+	lastKey         zng.Value
+	needSeekWrite   bool
+	order           order.Which
+	seekIndex       *seekindex.Writer
+	seekIndexCloser io.Closer
+	first           bool
+	poolKey         field.Path
 }
 
-type WriterOpts struct {
-	Order order.Which
-	Zng   zngio.WriterOpts
-}
-
-func (r *Reference) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, opts WriterOpts) (*Writer, error) {
+func (r *Reference) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which, seekIndexFactor int, poolKey field.Path) (*Writer, error) {
 	out, err := engine.Put(ctx, r.RowObjectPath(path))
 	if err != nil {
 		return nil, err
 	}
 	counter := &writeCounter{bufwriter.New(out), 0}
-	writer := zngio.NewWriter(counter, opts.Zng)
-	seekObjectPath := r.SeekObjectPath(path)
-	seekIndex, err := seekindex.NewBuilder(ctx, engine, seekObjectPath.String(), opts.Order)
+	opts := zngio.WriterOpts{
+		StreamRecordsMax: seekIndexFactor,
+		LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
+	}
+	writer := zngio.NewWriter(counter, opts)
+	seekOut, err := engine.Put(ctx, r.SeekObjectPath(path))
 	if err != nil {
 		return nil, err
 	}
+	opts = zngio.WriterOpts{
+		//LZ4BlockSize: zngio.DefaultLZ4BlockSize,
+	}
+	seekWriter := zngio.NewWriter(bufwriter.New(seekOut), opts)
 	return &Writer{
-		ref:         r,
-		byteCounter: counter,
-		rowObject:   writer,
-		seekIndex:   seekIndex,
-		order:       opts.Order,
+		ref:             r,
+		byteCounter:     counter,
+		rowObject:       writer,
+		seekIndex:       seekindex.NewWriter(seekWriter),
+		seekIndexCloser: seekWriter,
+		order:           o,
+		first:           true,
+		poolKey:         poolKey,
 	}, nil
-}
-
-type indexWriter interface {
-	zio.WriteCloser
-	Abort()
-}
-
-type nopIndexWriter struct{}
-
-func (nopIndexWriter) Write(*zng.Record) error { return nil }
-func (nopIndexWriter) Close() error            { return nil }
-func (nopIndexWriter) Abort()                  {}
-
-func (w *Writer) Position() (int64, nano.Ts, nano.Ts) {
-	return w.rowObject.Position(), w.firstTs, w.lastTs
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
@@ -79,12 +70,18 @@ func (w *Writer) Write(rec *zng.Record) error {
 	if err := w.rowObject.Write(rec); err != nil {
 		return err
 	}
-	//XXX this is a complicated way to avoid splitting zng frames in the middle of
-	// the same key.  we should call EndStream explicitly instead of setting
-	// the number-of-records trigger.  See issue #XXX.
-	ts := rec.Ts()
-	if !w.wroteFirst || (w.needSeekWrite && ts != w.lastTs) {
-		if err := w.seekIndex.Enter(ts, sos); err != nil {
+	key, err := rec.Deref(w.poolKey)
+	if err != nil {
+		key = zng.Value{zng.TypeNull, nil}
+	}
+	if w.first {
+		w.first = false
+		w.firstKey = key
+		if err := w.seekIndex.Write(key, sos); err != nil {
+			return err
+		}
+	} else if w.needSeekWrite && (w.lastKey.Bytes == nil || !bytes.Equal(key.Bytes, w.lastKey.Bytes)) {
+		if err := w.seekIndex.Write(key, sos); err != nil {
 			return err
 		}
 		w.needSeekWrite = false
@@ -92,13 +89,8 @@ func (w *Writer) Write(rec *zng.Record) error {
 	if w.rowObject.LastSOS() != sos {
 		w.needSeekWrite = true
 	}
-	if !w.wroteFirst {
-		w.firstTs = ts
-		w.wroteFirst = true
-	}
-	w.lastTs = ts
+	w.lastKey = key
 	w.count++
-	w.size += int64(len(rec.Bytes))
 	return nil
 }
 
@@ -106,7 +98,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 // because the write error will be more informative and should be returned.
 func (w *Writer) Abort() {
 	w.rowObject.Close()
-	w.seekIndex.Abort()
+	w.seekIndexCloser.Close()
 }
 
 func (w *Writer) Close(ctx context.Context) error {
@@ -115,12 +107,11 @@ func (w *Writer) Close(ctx context.Context) error {
 		w.Abort()
 		return err
 	}
-	if err := w.seekIndex.Close(); err != nil {
+	if err := w.seekIndexCloser.Close(); err != nil {
 		w.Abort()
 		return err
 	}
 	w.ref.Count = w.count
-	w.ref.Size = w.size
 	w.ref.RowSize = w.rowObject.Position()
 	return nil
 }

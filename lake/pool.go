@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/commit/actions"
 	"github.com/brimdata/zed/lake/index"
@@ -17,6 +18,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -282,7 +284,7 @@ func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID)
 }
 
 func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.Reference) error {
-	for _, seg := range snap.Select(nano.MaxSpan) {
+	for _, seg := range snap.SelectAll() {
 		select {
 		case ch <- *seg:
 		case <-ctx.Done():
@@ -292,7 +294,7 @@ func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.
 	return nil
 }
 
-func (p *Pool) ScanPartitions(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span nano.Span) error {
+func (p *Pool) ScanPartitions(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span extent.Span) error {
 	ch := make(chan Partition, 10)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -315,13 +317,13 @@ func (p *Pool) ScanPartitions(ctx context.Context, w zio.Writer, snap *commit.Sn
 	return err
 }
 
-func (p *Pool) ScanSegments(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span nano.Span) error {
+func (p *Pool) ScanSegments(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span extent.Span) error {
 	ch := make(chan segment.Reference)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	var err error
 	go func() {
-		err = ScanSpan(ctx, snap, span, ch)
+		err = ScanSpan(ctx, snap, span, p.Layout.Order, ch)
 		close(ch)
 	}()
 	m := zson.NewZNGMarshaler()
@@ -398,27 +400,33 @@ func (p *Pool) Info(ctx context.Context, snap *commit.Snapshot) (info PoolInfo, 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
-		err = ScanSpan(ctx, snap, nano.MaxSpan, ch)
+		err = ScanSpan(ctx, snap, nil, p.Layout.Order, ch)
 		close(ch)
 	}()
-	min := nano.MaxTs
-	max := nano.Ts(0)
+	// XXX this doesn't scale... it should be stored in the snapshot and is
+	// not easy to compute in the face of deletes...
+	var poolSpan *extent.Generic
 	for segment := range ch {
-		info.Size += segment.Size
-		span := segment.Span()
-		if span.Dur == 0 {
-			continue
-		}
-		if span.Ts < min {
-			min = span.Ts
-		}
-		if span.End() > max {
-			max = span.End()
+		info.Size += segment.RowSize
+		if poolSpan == nil {
+			poolSpan = extent.NewGenericFromOrder(segment.First, segment.Last, p.Layout.Order)
+		} else {
+			poolSpan.Extend(segment.First)
+			poolSpan.Extend(segment.Last)
 		}
 	}
-	if min != nano.MaxTs {
-		span := nano.NewSpanTs(min, max)
-		info.Span = &span
+	//XXX need to change API to take return key range
+	if poolSpan != nil {
+		min := poolSpan.First()
+		if min.Type == zng.TypeTime {
+			firstTs, _ := zng.DecodeTime(min.Bytes)
+			lastTs, _ := zng.DecodeTime(poolSpan.Last().Bytes)
+			if lastTs < firstTs {
+				firstTs, lastTs = lastTs, firstTs
+			}
+			span := nano.NewSpanTs(firstTs, lastTs+1)
+			info.Span = &span
+		}
 	}
 	return info, err
 }
