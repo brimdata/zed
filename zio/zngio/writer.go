@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/pierrec/lz4/v4"
 )
 
@@ -22,7 +21,7 @@ type Writer struct {
 	cw     *compressionWriter
 	opts   WriterOpts
 
-	encoder       *resolver.Encoder
+	encoder       *Encoder
 	buffer        []byte
 	lastSOS       int64
 	streamRecords int
@@ -44,7 +43,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 		ow:      ow,
 		cw:      cw,
 		opts:    opts,
-		encoder: resolver.NewEncoder(),
+		encoder: NewEncoder(),
 		buffer:  make([]byte, 0, 128),
 	}
 }
