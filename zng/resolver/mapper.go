@@ -8,7 +8,7 @@ import (
 )
 
 type Mapper struct {
-	Slice
+	types     []zng.Type
 	mu        sync.RWMutex
 	outputCtx *zson.Context
 }
@@ -53,6 +53,18 @@ func (m *Mapper) Translate(foreign zng.Type) (zng.Type, error) {
 
 func (m *Mapper) EnterType(td int, typ zng.Type) {
 	m.mu.Lock()
-	m.Slice.Enter(td, typ)
+	if td >= len(m.types) {
+		new := make([]zng.Type, td+1)
+		copy(new, m.types)
+		m.types = new
+	}
+	m.types[td] = typ
 	m.mu.Unlock()
+}
+
+func (m *Mapper) Lookup(td int) zng.Type {
+	if td >= 0 && td < len(m.types) {
+		return m.types[td]
+	}
+	return nil
 }
