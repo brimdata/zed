@@ -1,14 +1,17 @@
 package seekindex
 
 import (
-	"context"
+	"bytes"
 	"math"
-	"path/filepath"
 	"testing"
 
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,10 +30,10 @@ func TestAscending(t *testing.T) {
 		{1000, 1992947},
 	}
 	s := newTestSeekIndex(t, entries)
-	s.Lookup(nano.Span{Ts: 100, Dur: 1}, Range{0, 215367})
-	s.Lookup(nano.Span{Ts: 99, Dur: 1}, Range{0, 0})
-	s.Lookup(nano.Span{Ts: 600, Dur: 1}, Range{1139588, 1355498})
-	s.Lookup(nano.Span{Ts: 1000, Dur: 1}, Range{1992947, math.MaxInt64})
+	s.Lookup(nano.Span{Ts: 100, Dur: 1}, Range{0, 215367}, order.Asc)
+	s.Lookup(nano.Span{Ts: 99, Dur: 1}, Range{0, 0}, order.Asc)
+	s.Lookup(nano.Span{Ts: 600, Dur: 1}, Range{1139588, 1355498}, order.Asc)
+	s.Lookup(nano.Span{Ts: 1000, Dur: 1}, Range{1992947, math.MaxInt64}, order.Asc)
 }
 
 func TestDescending(t *testing.T) {
@@ -46,10 +49,10 @@ func TestDescending(t *testing.T) {
 		{100, 1776965},
 	}
 	s := newTestSeekIndex(t, entries)
-	s.Lookup(nano.Span{Ts: 900, Dur: 1}, Range{0, 215367})
-	s.Lookup(nano.Span{Ts: 700, Dur: 1}, Range{438514, 680477})
-	s.Lookup(nano.Span{Ts: 750, Dur: 100}, Range{0, 438514})
-	s.Lookup(nano.Span{Ts: 100, Dur: 1}, Range{1776965, math.MaxInt64})
+	s.Lookup(nano.Span{Ts: 900, Dur: 1}, Range{0, 215367}, order.Desc)
+	s.Lookup(nano.Span{Ts: 700, Dur: 1}, Range{438514, 680477}, order.Desc)
+	s.Lookup(nano.Span{Ts: 750, Dur: 100}, Range{0, 438514}, order.Desc)
+	s.Lookup(nano.Span{Ts: 100, Dur: 1}, Range{1776965, math.MaxInt64}, order.Desc)
 
 }
 
@@ -68,32 +71,38 @@ func (e entries) Order() order.Which {
 }
 
 type testSeekIndex struct {
-	*SeekIndex
 	*testing.T
+	buffer *bytes.Buffer
 }
 
-func (t *testSeekIndex) Lookup(span nano.Span, expected Range) {
-	rg, err := t.SeekIndex.Lookup(context.Background(), span)
+func (t *testSeekIndex) Lookup(s nano.Span, expected Range, o order.Which) {
+	r := zngio.NewReader(bytes.NewReader(t.buffer.Bytes()), zson.NewContext())
+	cmp := extent.CompareFunc(o)
+	var first, last zng.Value
+	if o == order.Asc {
+		first = zng.NewTime(s.Ts)
+		last = zng.NewTime(s.End() - 1)
+	} else {
+		first = zng.NewTime(s.End() - 1)
+		last = zng.NewTime(s.Ts)
+	}
+	rg, err := Lookup(r, first, last, cmp)
 	require.NoError(t, err)
 	assert.Equal(t, expected, rg)
 }
 
 func newTestSeekIndex(t *testing.T, entries []entry) *testSeekIndex {
-	path := build(t, entries)
-	s, err := Open(context.Background(), storage.NewLocalEngine(), storage.MustParseURI(path))
-	t.Cleanup(func() { require.NoError(t, s.Close()) })
-	require.NoError(t, err)
-	return &testSeekIndex{s, t}
+	b := build(t, entries)
+	return &testSeekIndex{T: t, buffer: b}
 }
 
-func build(t *testing.T, entries entries) string {
-	path := filepath.Join(t.TempDir(), "seekindex.zng")
-	builder, err := NewBuilder(context.Background(), storage.NewLocalEngine(), path, entries.Order())
-	require.NoError(t, err)
+func build(t *testing.T, entries entries) *bytes.Buffer {
+	var buffer bytes.Buffer
+	w := NewWriter(zngio.NewWriter(zio.NopCloser(&buffer), zngio.WriterOpts{}))
 	for _, entry := range entries {
-		err = builder.Enter(entry.ts, entry.offset)
+		zv := zng.Value{zng.TypeTime, zng.EncodeTime(entry.ts)}
+		err := w.Write(zv, entry.offset)
 		require.NoError(t, err)
 	}
-	require.NoError(t, builder.Close())
-	return path
+	return &buffer
 }

@@ -6,6 +6,7 @@ import (
 	"math"
 	"net"
 
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 )
@@ -233,6 +234,22 @@ func (r *Record) Access(field string) (Value, error) {
 		return Value{}, ErrMissing
 	}
 	return r.ValueByColumn(col), nil
+}
+
+func (r *Record) Deref(path field.Path) (Value, error) {
+	v := r.Value
+	for _, f := range path {
+		typ := TypeRecordOf(v.Type)
+		if typ == nil {
+			return Value{}, errors.New("field access on non-record value")
+		}
+		var err error
+		v, err = NewVolatileRecord(typ, v.Bytes).Access(f)
+		if err != nil {
+			return Value{}, err
+		}
+	}
+	return v, nil
 }
 
 func (r *Record) AccessString(field string) (string, error) {

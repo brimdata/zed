@@ -8,7 +8,7 @@ script: |
   zed index section -z -s 1 index.zng
   echo ===
   # exact lookup of the one record
-  zed index lookup -z -k 149,wailer-strick index.zng
+  zed index lookup -z -k 149,\"wailer-strick\" index.zng
   echo ===
   # don't cares for secondary key... returns multiple matches
   zed index lookup --z -k 100 index.zng

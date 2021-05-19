@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"regexp"
-	"sort"
 
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zqe"
 	"github.com/segmentio/ksuid"
 )
@@ -67,11 +67,10 @@ func FileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 }
 
 type Metadata struct {
-	First   nano.Ts `zng:"first"`
-	Last    nano.Ts `zng:"last"`
-	Count   uint64  `zng:"count"`
-	Size    int64   `zng:"size"`
-	RowSize int64   `zng:"row_size"`
+	First   zng.Value `zng:"first"`
+	Last    zng.Value `zng:"last"`
+	Count   uint64    `zng:"count"`
+	RowSize int64     `zng:"row_size"`
 }
 
 //XXX
@@ -95,7 +94,7 @@ func (r Reference) IsZero() bool {
 }
 
 func (r Reference) String() string {
-	return fmt.Sprintf("%s %d records in %d data bytes (%d byte object)", r.ID, r.Count, r.Size, r.RowSize)
+	return fmt.Sprintf("%s %d records in %d data bytes", r.ID, r.Count, r.RowSize)
 }
 
 func (r Reference) StringRange() string {
@@ -110,9 +109,12 @@ func New() Reference {
 	return Reference{ID: ksuid.New()}
 }
 
-//XXX should be pool-key range
-func (r Reference) Span() nano.Span {
-	return nano.Span{Ts: r.First, Dur: 1}.Union(nano.Span{Ts: r.Last, Dur: 1})
+func (r Reference) Span(o order.Which) *extent.Generic {
+	if r.First.Bytes == nil || r.Last.Bytes == nil {
+		//XXX
+		return nil
+	}
+	return extent.NewGenericFromOrder(r.First, r.Last, o)
 }
 
 // ObjectPrefix returns a prefix for the various objects that comprise
@@ -158,28 +160,4 @@ func (r Reference) Remove(ctx context.Context, engine storage.Engine, path *stor
 		return err
 	}
 	return nil
-}
-
-func Less(o order.Which, a, b *Reference) bool {
-	if o == order.Desc {
-		a, b = b, a
-	}
-	//XXX need to handle arbitrary key type
-	switch {
-	case a.First != b.First:
-		return a.First < b.First
-	case a.Last != b.Last:
-		return a.Last < b.Last
-	case a.Count != b.Count:
-		return a.Count < b.Count
-	}
-	// XXX should we look at segID when ID's the same?
-	// this happens when all the keys are the same and this shouldn't matter
-	return ksuid.Compare(a.ID, b.ID) < 0
-}
-
-func Sort(o order.Which, r []*Reference) {
-	sort.Slice(r, func(i, j int) bool {
-		return Less(o, r[i], r[j])
-	})
 }

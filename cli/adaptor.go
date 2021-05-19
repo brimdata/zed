@@ -6,9 +6,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
@@ -37,7 +36,7 @@ func (f *FileAdaptor) Layout(_ context.Context, _ ksuid.KSUID) (order.Layout, er
 	return order.Nil, errors.New("pool scan not available when running on local file system")
 }
 
-func (f *FileAdaptor) NewScheduler(_ context.Context, _ *zson.Context, _ *dag.Pool, pushdown zbuf.Filter) (proc.Scheduler, error) {
+func (f *FileAdaptor) NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, errors.New("pool scan not available when running on local file system")
 }
 
@@ -49,7 +48,7 @@ func (f *FileAdaptor) Open(ctx context.Context, zctx *zson.Context, path string,
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}
-	scanner, err := zbuf.NewScanner(ctx, file, pushdown, nano.MaxSpan)
+	scanner, err := zbuf.NewScanner(ctx, file, pushdown)
 	if err != nil {
 		file.Close()
 		return nil, err

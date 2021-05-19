@@ -135,12 +135,11 @@ func (r *multiFileReader) Close() (err error) {
 	return
 }
 
-func (r *multiFileReader) NewScanner(ctx context.Context, filter zbuf.Filter, s nano.Span) (zbuf.Scanner, error) {
+func (r *multiFileReader) NewScanner(ctx context.Context, filter zbuf.Filter) (zbuf.Scanner, error) {
 	return &multiFileScanner{
 		multiFileReader: r,
 		ctx:             ctx,
 		filter:          filter,
-		span:            s,
 	}, nil
 }
 
@@ -163,7 +162,7 @@ func (s *multiFileScanner) Pull() (zbuf.Batch, error) {
 			return nil, err
 		}
 		if s.scanner == nil {
-			sn, err := zbuf.NewScanner(s.ctx, s.reader, s.filter, s.span)
+			sn, err := zbuf.NewScanner(s.ctx, s.reader, s.filter)
 			if err != nil {
 				return nil, err
 			}

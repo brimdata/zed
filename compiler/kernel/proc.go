@@ -6,9 +6,9 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/combine"
 	"github.com/brimdata/zed/proc/explode"
@@ -456,7 +456,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 	var source proc.Interface
 	switch src := trunk.Source.(type) {
 	case *Reader:
-		scanner, err := zbuf.NewScanner(b.pctx.Context, src.Reader, pushdown, nano.MaxSpan)
+		scanner, err := zbuf.NewScanner(b.pctx.Context, src.Reader, pushdown)
 		if err != nil {
 			return nil, err
 		}
@@ -474,7 +474,29 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 		// of proc.From operators.
 		sched, ok := b.schedulers[src]
 		if !ok {
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, pushdown)
+			lower := zng.Value{zng.TypeNull, nil}
+			upper := zng.Value{zng.TypeNull, nil}
+			if src.ScanLower != nil {
+				lower, err = evalAtCompileTime(b.pctx.Zctx, b.scope, src.ScanLower)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if src.ScanUpper != nil {
+				upper, err = evalAtCompileTime(b.pctx.Zctx, b.scope, src.ScanUpper)
+				if err != nil {
+					return nil, err
+				}
+			}
+			var span extent.Span
+			if lower.Bytes != nil || upper.Bytes != nil {
+				layout, err := b.adaptor.Layout(b.pctx.Context, src.ID)
+				if err != nil {
+					return nil, err
+				}
+				span = extent.NewGenericFromOrder(lower, upper, layout.Order)
+			}
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src.ID, src.At, span, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -520,16 +542,7 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 	for _, p := range ops {
 		switch p := p.(type) {
 		case *dag.Const:
-			e, err := compileExpr(zctx, scope, p.Expr)
-			if err != nil {
-				return err
-			}
-			typ, err := zctx.LookupTypeRecord([]zng.Column{})
-			if err != nil {
-				return err
-			}
-			rec := zng.NewRecord(typ, nil)
-			zv, err := e.Eval(rec)
+			zv, err := evalAtCompileTime(zctx, scope, p.Expr)
 			if err != nil {
 				if err == zng.ErrMissing {
 					err = fmt.Errorf("cannot resolve const '%s' at compile time", p.Name)
@@ -556,4 +569,20 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 		}
 	}
 	return nil
+}
+
+func evalAtCompileTime(zctx *zson.Context, scope *Scope, in dag.Expr) (zng.Value, error) {
+	if in == nil {
+		return zng.Value{zng.TypeNull, nil}, nil
+	}
+	typ, err := zctx.LookupTypeRecord([]zng.Column{})
+	if err != nil {
+		return zng.Value{}, err
+	}
+	e, err := compileExpr(zctx, scope, in)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	rec := zng.NewRecord(typ, nil)
+	return e.Eval(rec)
 }

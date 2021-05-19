@@ -1,8 +1,9 @@
 package commit
 
 import (
+	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/segment"
-	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/order"
 	"github.com/segmentio/ksuid"
 )
 
@@ -30,9 +31,9 @@ func (p *Patch) Lookup(id ksuid.KSUID) (*segment.Reference, error) {
 	return p.base.Lookup(id)
 }
 
-func (p *Patch) Select(span nano.Span) Segments {
-	segments := p.base.Select(span)
-	segments.Append(p.diff.Select(span))
+func (p *Patch) Select(span extent.Span, o order.Which) Segments {
+	segments := p.base.Select(span, o)
+	segments.Append(p.diff.Select(span, o))
 	return segments
 }
 

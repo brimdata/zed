@@ -8,8 +8,8 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -235,12 +235,32 @@ func (f *Finder) ParseKeys(inputs ...string) (*zng.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
-	// XXX this should parse a ZSON literal and try to cast it
-	// to the key type.  For now, we let tzngio handle this as
-	// Z literal syntax is coming soon.
-	rec, err := tzngio.ParseKeys(f.trailer.KeyType, inputs...)
-	if err == zng.ErrIncomplete {
-		err = nil
+	cols := f.trailer.KeyType.Columns
+	if len(inputs) > len(cols) {
+		return nil, fmt.Errorf("too many keys: expected at most %d but got %d", len(cols), len(inputs))
 	}
-	return rec, err
+	var b zcode.Builder
+	for k, col := range cols {
+		typ := col.Type
+		var zv zng.Value
+		if k < len(inputs) {
+			s := inputs[k]
+			var err error
+			zv, err = zson.ParseValue(f.zctx, s)
+			if err != nil {
+				return nil, fmt.Errorf("could not parse %q: %w", s, err)
+			}
+			if typ != zv.Type {
+				return nil, fmt.Errorf("type mismatch for %q: expected type %s", s, typ.ZSON())
+			}
+		} else {
+			zv = zng.Value{typ, nil}
+		}
+		if zng.IsContainerType(typ) {
+			b.AppendContainer(zv.Bytes)
+		} else {
+			b.AppendPrimitive(zv.Bytes)
+		}
+	}
+	return zng.NewRecord(f.trailer.KeyType, b.Bytes()), nil
 }

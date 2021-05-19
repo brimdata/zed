@@ -7,7 +7,6 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 )
@@ -20,7 +19,7 @@ type Filter interface {
 // ScannerAble is implemented by Readers that provide an optimized
 // implementation of the Scanner interface.
 type ScannerAble interface {
-	NewScanner(ctx context.Context, filterExpr Filter, s nano.Span) (Scanner, error)
+	NewScanner(ctx context.Context, filterExpr Filter) (Scanner, error)
 }
 
 // A Statser produces scanner statistics.
@@ -68,7 +67,7 @@ func (s *ScannerStats) Copy() ScannerStats {
 func ReadersToScanners(ctx context.Context, readers []zio.Reader) ([]Scanner, error) {
 	scanners := make([]Scanner, 0, len(readers))
 	for _, reader := range readers {
-		s, err := NewScanner(ctx, reader, nil, nano.MaxSpan)
+		s, err := NewScanner(ctx, reader, nil)
 		if err != nil {
 			return nil, err
 		}
@@ -97,7 +96,7 @@ func ReadersToPullers(ctx context.Context, readers []zio.Reader) ([]Puller, erro
 var ScannerBatchSize = 100
 
 // NewScanner returns a Scanner for r that filters records by filterExpr and s.
-func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter, s nano.Span) (Scanner, error) {
+func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter) (Scanner, error) {
 	var sa ScannerAble
 	if zf, ok := r.(*File); ok {
 		sa, _ = zf.Reader.(ScannerAble)
@@ -105,7 +104,7 @@ func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter, s nano.Spa
 		sa, _ = r.(ScannerAble)
 	}
 	if sa != nil {
-		return sa.NewScanner(ctx, filterExpr, s)
+		return sa.NewScanner(ctx, filterExpr)
 	}
 	var f expr.Filter
 	if filterExpr != nil {
@@ -114,7 +113,7 @@ func NewScanner(ctx context.Context, r zio.Reader, filterExpr Filter, s nano.Spa
 			return nil, err
 		}
 	}
-	sc := &scanner{reader: r, filter: f, span: s, ctx: ctx}
+	sc := &scanner{reader: r, filter: f, ctx: ctx}
 	sc.Puller = NewPuller(sc, ScannerBatchSize)
 	return sc, nil
 }
@@ -123,7 +122,6 @@ type scanner struct {
 	Puller
 	reader zio.Reader
 	filter expr.Filter
-	span   nano.Span
 	ctx    context.Context
 
 	stats ScannerStats
@@ -145,8 +143,7 @@ func (s *scanner) Read() (*zng.Record, error) {
 		}
 		atomic.AddInt64(&s.stats.BytesRead, int64(len(rec.Bytes)))
 		atomic.AddInt64(&s.stats.RecordsRead, 1)
-		if s.span != nano.MaxSpan && !s.span.Contains(rec.Ts()) ||
-			s.filter != nil && !s.filter(rec) {
+		if s.filter != nil && !s.filter(rec) {
 			continue
 		}
 		atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Bytes)))

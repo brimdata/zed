@@ -119,9 +119,8 @@ func formatSegment(b *bytes.Buffer, seg *segment.Reference, prefix string, inden
 		b.WriteByte(' ')
 	}
 	b.WriteString(seg.ID.String())
-	dataSize := units.Bytes(seg.Size).Abbrev()
-	fileSize := units.Bytes(seg.RowSize).Abbrev()
-	b.WriteString(fmt.Sprintf(" %s data %s file %d records", dataSize, fileSize, seg.Count))
+	objectSize := units.Bytes(seg.RowSize).Abbrev()
+	b.WriteString(fmt.Sprintf(" %s bytes %d records", objectSize, seg.Count))
 	b.WriteString("\n  ")
 	tab(b, indent)
 	b.WriteString(" from ")
@@ -133,9 +132,9 @@ func formatSegment(b *bytes.Buffer, seg *segment.Reference, prefix string, inden
 
 func formatPartition(b *bytes.Buffer, p lake.Partition) {
 	b.WriteString("from ")
-	b.WriteString(p.First.String())
+	b.WriteString(zson.String(p.First()))
 	b.WriteString(" to ")
-	b.WriteString(p.Last.String())
+	b.WriteString(zson.String(p.Last()))
 	b.WriteByte('\n')
 	for _, seg := range p.Segments {
 		formatSegment(b, seg, "", 2)

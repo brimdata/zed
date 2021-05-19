@@ -3,31 +3,11 @@ package resolver_test
 import (
 	"testing"
 
-	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
-
-func TestContextAddColumns(t *testing.T) {
-	ctx := zson.NewContext()
-	d, err := ctx.LookupTypeRecord([]zng.Column{zng.NewColumn("s1", zng.TypeString)})
-	require.NoError(t, err)
-	r, err := tzngio.ParseKeys(d, "S1")
-	require.NoError(t, err)
-	cols := []zng.Column{zng.NewColumn("ts", zng.TypeTime), zng.NewColumn("s2", zng.TypeString)}
-	ts, _ := nano.Parse([]byte("123.456"))
-	r, err = ctx.AddColumns(r, cols, []zng.Value{zng.NewTime(ts), zng.NewString("S2")})
-	require.NoError(t, err)
-	assert.EqualValues(t, 123456000000, r.Ts())
-	assert.EqualValues(t, zng.NewString("S1"), r.ValueByColumn(0))
-	assert.EqualValues(t, zng.NewTime(ts), r.ValueByColumn(1))
-	assert.EqualValues(t, zng.NewString("S2"), r.ValueByColumn(2))
-	zv, _ := r.Slice(4)
-	assert.Nil(t, zv)
-}
 
 func TestDuplicates(t *testing.T) {
 	ctx := zson.NewContext()

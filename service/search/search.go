@@ -101,12 +101,12 @@ func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, pool *lake
 	if s.query.Span.Dur != 0 {
 		scanRange = &ast.Range{
 			Kind: "Range",
-			Lower: zed.Primitive{
+			Lower: &zed.Primitive{
 				Kind: "Primitive",
 				Type: "time",
 				Text: s.query.Span.Ts.Time().Format(time.RFC3339Nano),
 			},
-			Upper: zed.Primitive{
+			Upper: &zed.Primitive{
 				Kind: "Primitive",
 				Type: "time",
 				Text: s.query.Span.End().Time().Format(time.RFC3339Nano),

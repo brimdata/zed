@@ -383,9 +383,9 @@ type (
 )
 
 type Range struct {
-	Kind  string        `json:"kind" unpack:""`
-	Lower zed.Primitive `json:"lower"`
-	Upper zed.Primitive `json:"upper"`
+	Kind  string `json:"kind" unpack:""`
+	Lower Expr   `json:"lower"`
+	Upper Expr   `json:"upper"`
 }
 
 type Source interface {

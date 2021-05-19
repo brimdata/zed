@@ -130,15 +130,17 @@ func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
 		expr.SortStable(recs, importCompareFn(w.pool))
 	}
 	// Set first and last key values after the sort.
-	seg.First = recs[0].Ts()
-	seg.Last = recs[len(recs)-1].Ts()
-	writer, err := seg.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, segment.WriterOpts{
-		Order: w.pool.Layout.Order,
-		Zng: zngio.WriterOpts{
-			StreamRecordsMax: ImportStreamRecordsMax,
-			LZ4BlockSize:     importLZ4BlockSize,
-		},
-	})
+	key := poolKey(w.pool.Layout)
+	var err error
+	seg.First, err = recs[0].Deref(key)
+	if err != nil {
+		seg.First = zng.Value{zng.TypeNull, nil}
+	}
+	seg.Last, err = recs[len(recs)-1].Deref(key)
+	if err != nil {
+		seg.Last = zng.Value{zng.TypeNull, nil}
+	}
+	writer, err := seg.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, key, ImportStreamRecordsMax)
 	if err != nil {
 		return err
 	}
@@ -183,5 +185,13 @@ func (s *ImportStats) Copy() ImportStats {
 }
 
 func importCompareFn(pool *Pool) expr.CompareFn {
-	return zbuf.NewCompareFn(field.New("ts"), pool.Layout.Order == order.Desc)
+	return zbuf.NewCompareFn(poolKey(pool.Layout), pool.Layout.Order == order.Desc)
+}
+
+func poolKey(layout order.Layout) field.Path {
+	if len(layout.Keys) != 0 {
+		// XXX We don't yet handle multiple pool keys.
+		return layout.Keys[0]
+	}
+	return field.New("ts")
 }

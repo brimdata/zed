@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/segmentio/ksuid"
 )
 
@@ -163,15 +162,12 @@ type (
 		Layout order.Layout `json:"layout"`
 	}
 	Pool struct {
-		Kind string      `json:"kind" unpack:""`
-		ID   ksuid.KSUID `json:"id"`
-		At   ksuid.KSUID `json:"at"`
-		// Span needs to be replaced with Upper/Lower.  See #2482.
-		//Upper  zed.Any `json:"upper"`
-		//Lower    zed.Any `json:"lower"`
-		Span      nano.Span `json:"span"`
-		ScanOrder string    `json:"scan_order"`
-		Group     int       `json:"group"`
+		Kind      string      `json:"kind" unpack:""`
+		ID        ksuid.KSUID `json:"id"`
+		At        ksuid.KSUID `json:"at"`
+		ScanLower Expr        `json:"scan_lower"`
+		ScanUpper Expr        `json:"scan_upper"`
+		ScanOrder string      `json:"scan_order"`
 	}
 )
 

@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
@@ -18,7 +17,6 @@ import (
 
 type scanner struct {
 	ctx   context.Context
-	span  nano.Span
 	stats zbuf.ScannerStats
 
 	once    sync.Once
@@ -31,11 +29,10 @@ type scanner struct {
 	err error // Read protected by close of batchChCh.
 }
 
-func (r *Reader) NewScanner(ctx context.Context, filter zbuf.Filter, span nano.Span) (zbuf.Scanner, error) {
+func (r *Reader) NewScanner(ctx context.Context, filter zbuf.Filter) (zbuf.Scanner, error) {
 	n := runtime.GOMAXPROCS(0)
 	s := &scanner{
 		ctx:       ctx,
-		span:      span,
 		batchChCh: make(chan chan zbuf.Batch, n),
 		reader:    r,
 	}
@@ -236,8 +233,7 @@ func (w *worker) wantRecord(rec *zng.Record, stats *zbuf.ScannerStats) bool {
 	// negatives because it expects a buffer of ZNG value messages, and
 	// rec.Bytes is just a ZNG value.  (A ZNG value message is a header
 	// indicating a type ID followed by a value of that type.)
-	if s := w.scanner; (s.span == nano.MaxSpan || s.span.Contains(rec.Ts())) &&
-		(w.filter == nil || w.filter(rec)) {
+	if w.filter == nil || w.filter(rec) {
 		stats.BytesMatched += int64(len(rec.Bytes))
 		stats.RecordsMatched++
 		return true

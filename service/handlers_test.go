@@ -220,7 +220,7 @@ func TestPoolInfo(t *testing.T) {
 			Name: pool.Name,
 		},
 		Span: &span,
-		Size: 58,
+		Size: 81,
 	}
 	info, err := conn.PoolInfo(ctx, pool.ID)
 	require.NoError(t, err)
@@ -378,7 +378,7 @@ func TestPostZsonLogs(t *testing.T) {
 			Name: pool.Name,
 		},
 		Span: &nano.Span{Ts: nano.Ts(nano.Second), Dur: nano.Second + 1},
-		Size: 58,
+		Size: 79,
 	}, info)
 }
 
@@ -421,14 +421,12 @@ func TestPostNDJSONLogs(t *testing.T) {
 
 		info, err := conn.PoolInfo(context.Background(), pool.ID)
 		require.NoError(t, err)
-		span := nano.Span{Ts: 0, Dur: 1}
 		require.Equal(t, &api.PoolInfo{
 			Pool: api.Pool{
 				ID:   pool.ID,
 				Name: pool.Name,
 			},
-			Size: 58,
-			Span: &span,
+			Size: 81,
 		}, info)
 	}
 	t.Run("plain", func(t *testing.T) {
