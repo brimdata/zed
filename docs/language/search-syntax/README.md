@@ -271,7 +271,7 @@ the library that Zed uses to provide regexp support.
 The search result can be narrowed to include only records that contain a
 certain value in a particular named field. For example, the following search
 will only match records containing the field called `uid` where it is set to
-the precise value `ChhAfsfyuz4n2hFMe`.
+the precise string value `ChhAfsfyuz4n2hFMe`.
 
 #### Example:
 ```zq-command
@@ -285,12 +285,35 @@ _PATH TS                          UID               ID.ORIG_H    ID.ORIG_P ID.RE
 conn  2018-03-24T17:36:30.158539Z ChhAfsfyuz4n2hFMe 10.239.34.35 56602     10.47.6.51 873       tcp   -       0.000004 0          0          S0         -          -          0            S       2         88            0         0             -
  ```
 
+Because the right-hand-side value we were comparing to the `uid` field  was a
+string, it was necessary to wrap it in quotes. If we'd left it bare, it would
+have been interpreted as a field name.
+
+For example, the bare reference to `id.resp_p` in the following search ensures
+we match records in which the values in the fields for originating and
+responding ports are the same.
+
+#### Example:
+```zq-command
+zq -f table 'id.orig_p==id.resp_p' conn.log.gz
+```
+
+#### Output:
+
+```zq-output head 4
+_PATH TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P PROTO SERVICE DURATION   ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+conn  2018-03-24T17:15:22.942327Z C6QN8gJLaOXw0GiA6  10.47.24.81   60004     10.128.0.238    60004     tcp   -       0.003538   0          0          SF         -          -          0            ShAafF  8         344           8         344           -
+conn  2018-03-24T17:15:38.523165Z CzFhMc47JPCOG4Z9E9 10.47.3.142   137       10.164.94.120   137       udp   dns     2.99937    300        0          S0         -          -          0            D       6         468           0         0             -
+conn  2018-03-24T17:15:31.711351Z C6TwvE4hg1RN9WxuI4 10.47.3.150   137       10.164.94.120   137       udp   dns     19.920781  1200       0          S0         -          -          0            D       24        1872          0         0             -
+...
+```
+
 ### Role of Data Types
 
 When working with named fields, the data type of the field becomes significant
 in two ways.
 
-1. To match successfully, the value entered must be comparable to the data type
+1. To match successfully, the value must be comparable to the data type
    of the named field. For instance, the `host` field of the `http` records in
    our sample data are of `string` type, since it logs an HTTP header that is
    often a hostname or an IP address.
