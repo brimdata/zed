@@ -83,9 +83,5 @@ func (*internalAdaptor) NewScheduler(context.Context, *zson.Context, ksuid.KSUID
 }
 
 func (*internalAdaptor) Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
-	return nil, errors.New("invalid file access for internally streamed Zed query")
-}
-
-func (*internalAdaptor) Get(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
-	return nil, errors.New("invalid HTTP access for internally streamed Zed query")
+	return nil, errors.New("invalid file or URL access for internally streamed Zed query")
 }

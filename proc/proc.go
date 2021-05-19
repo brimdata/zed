@@ -34,7 +34,6 @@ type DataAdaptor interface {
 	Layout(context.Context, ksuid.KSUID) (order.Layout, error)
 	NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (Scheduler, error)
 	Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error)
-	Get(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error)
 }
 
 type Scheduler interface {
