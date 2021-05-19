@@ -68,12 +68,12 @@ A list of [pool configs](#pool-config).
     "value": {
       "id": "1sOfdIOF6UvYxbbOrKvokilZKvT",
       "layout": {
-        "Keys": [
+        "keys": [
           [
             "ts"
           ]
         ],
-        "Order": "desc"
+        "order": "desc"
       },
       "name": "test",
       "threshold": 524288000,
@@ -110,12 +110,12 @@ A [pool config](#pool-config).
   "value": {
     "id": "1sOfdIOF6UvYxbbOrKvokilZKvT",
     "layout": {
-      "Keys": [
+      "keys": [
         [
           "ts"
         ]
       ],
-      "Order": "desc"
+      "order": "desc"
     },
     "name": "test",
     "threshold": 524288000,
@@ -149,12 +149,12 @@ A [pool config](#pool-config).
   "value": {
     "id": "1sOfdIOF6UvYxbbOrKvokilZKvT",
     "layout": {
-      "Keys": [
+      "keys": [
         [
           "ts"
         ]
       ],
-      "Order": "desc"
+      "order": "desc"
     },
     "name": "test",
     "threshold": 524288000,
@@ -189,12 +189,12 @@ A list of [Pool Configs](#pool-config).
     "value": {
       "id": "1sOfdIOF6UvYxbbOrKvokilZKvT",
       "layout": {
-        "Keys": [
+        "keys": [
           [
             "ts"
           ]
         ],
-        "Order": "desc"
+        "order": "desc"
       },
       "name": "test",
       "threshold": 524288000,
