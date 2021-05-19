@@ -236,7 +236,8 @@ POST /query
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| zed | string | body | Zed query to execute. |
+| query | array<string> | body | Zed query to execute. |
+| includes | array<string> | body | XXX |
 
 #### Response
 
