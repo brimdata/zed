@@ -1,8 +1,11 @@
-# Processors
+# Operators
 
-A pipeline may contain one or more _processors_ to filter or transform event data. You can imagine the data flowing left-to-right through a processor, with its functionality further determined by arguments you may set. Processor names are case-insensitive.
+A pipeline may contain one or more _operators_ to transform or filter records.
+You can imagine the data flowing left-to-right through an operator, with its
+functionality further determined by arguments you may set. Operator names are
+case-insensitive.
 
-The following available processors are documented in detail below:
+The following available operators are documented in detail below:
 
 * [`cut`](#cut)
 * [`drop`](#drop)
@@ -16,13 +19,17 @@ The following available processors are documented in detail below:
 * [`tail`](#tail)
 * [`uniq`](#uniq)
 
-**Note**: In the examples below, we'll use the `zq -f table` output format for human readability. Due to the width of the Zeek events used as sample data, you may need to "scroll right" in the output to see some field values.
+> **Note:** In the examples below, we'll use the `zq -f table` output format
+> for human readability. Due to the width of the Zeek records used as sample
+> data, you may need to "scroll right" in the output to see some field values.
 
-**Note**: Per ZQL [search syntax](../search-syntax/README.md), many examples below use shorthand that leaves off the explicit leading `* |`, matching all events before invoking the first element in a pipeline.
+> **Note:** Per Zed [search syntax](../search-syntax/README.md), many examples
+> below use shorthand that leaves off the explicit leading `* |`, matching all
+> records before invoking the first element in a pipeline.
 
 ---
 
-# Available Processors
+# Available Operators
 
 ## `cut`
 
@@ -34,7 +41,7 @@ The following available processors are documented in detail below:
 
 #### Example #1:
 
-To return only the `ts` and `uid` columns of `conn` events:
+To return only the `ts` and `uid` columns of `conn` records:
 
 ```zq-command
 zq -f table 'cut ts,uid' conn.log.gz
@@ -51,7 +58,11 @@ TS                          UID
 
 #### Example #2:
 
-As long as some of the named fields are present, these will be returned. No warning is generated regarding absent fields. For instance, even though only the Zeek `smb_mapping` logs in our sample data contain the field named `share_type`, the following query returns records for many other log types that contain the `_path` and/or `ts` that we included in our field list.
+As long as some of the named fields are present, these will be returned. No
+warning is generated regarding absent fields. For instance, even though only
+the Zeek `smb_mapping` logs in our sample data contain the field named
+`share_type`, the following query returns records for many other log types that
+contain the `_path` and/or `ts` that we included in our field list.
 
 ```zq-command
 zq -f table 'cut _path,ts,share_type' *
@@ -66,11 +77,13 @@ conn         2018-03-24T17:15:21.255387Z
 ...
 ```
 
-Contrast this with a [similar example](#example-2-3) that shows how [`pick`](#pick)'s stricter behavior would have returned no results here.
+Contrast this with a [similar example](#example-2-3) that shows how
+[`pick`](#pick)'s stricter behavior would have returned no results here.
 
 #### Example #3:
 
-If no records are found that contain any of the named fields, `cut` returns a warning.
+If no records are found that contain any of the named fields, `cut` returns a
+warning.
 
 ```zq-command
 zq -f table 'cut nothere,alsoabsent' weird.log.gz
@@ -83,7 +96,8 @@ cut: no record found with columns nothere,alsoabsent
 
 #### Example #4:
 
-To return only the `ts` and `uid` columns of `conn` events, with `ts` renamed to `time`:
+To return only the `ts` and `uid` columns of `conn` records, with `ts` renamed
+to `time`:
 
 ```zq-command
 zq -f table 'cut time:=ts,uid' conn.log.gz
@@ -105,12 +119,13 @@ TIME                        UID
 |                           |                                                             |
 | ------------------------- | ----------------------------------------------------------- |
 | **Description**           | Return the data from all but the specified named fields.    |
-| **Syntax**                | `drop <field-list>`                   |
+| **Syntax**                | `drop <field-list>`                                         |
 | **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names or assignments.  |
 
 #### Example #1:
 
-To return all fields _other than_ the `_path` field and `id` record of `weird` events:
+To return all fields _other than_ the `_path` field and `id` record of `weird`
+records:
 
 ```zq-command
 zq -f table 'drop _path,id' weird.log.gz
@@ -131,10 +146,15 @@ TS                          UID                NAME                             
 
 |                           |                                                                       |
 | ------------------------- | --------------------------------------------------------------------- |
-| **Description**           | Apply a search expression to potentially trim data from the pipeline. |
-| **Syntax**                | `filter <search-expression>`                                          |
-| **Required<br>arguments** | `<search-expression>`<br>Any valid expression in ZQL [search syntax](../search-syntax/README.md) |
+| **Description**           | Apply a search to potentially trim data from the pipeline.            |
+| **Syntax**                | `filter <search>`                                                     |
+| **Required<br>arguments** | `<search>`<br>Any valid Zed [search syntax](../search-syntax/README.md) |
 | **Optional<br>arguments** | None                                                                  |
+
+> **Note:** As searches can appear anywhere in a Zed pipeline, it is not
+> strictly necessary to enter the explicit `filter` operator name before your
+> search. However, you may find it useful to include it to help express the
+> intent of your query.
 
 #### Example #1:
 
@@ -152,7 +172,7 @@ TS                          UID
 
 #### Example #2:
 
-An alternative syntax for our [`and` operator example](../search-syntax/README.md#and):
+An alternative syntax for our [`and` example](../search-syntax/README.md#and):
 
 ```zq-command
 zq -f table 'filter www.*cdn*.com _path=="ssl"' *.log.gz
@@ -175,11 +195,11 @@ ssl   2018-03-24T17:24:00.189735Z CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85
 | **Syntax**                | `fuse`                                            |
 | **Required<br>arguments** | None                                              |
 | **Optional<br>arguments** | None                                              |
-| **Limitations**           | Because `fuse` must make a first pass through the data to assemble the unified schema, results from queries that use `fuse` will not begin streaming back immediately. |
+| **Limitations**           | Because `fuse` must make a first pass through the data to assemble a unified schema, results from queries that use `fuse` will not begin streaming back immediately. |
 
 #### Example:
 
-Let's say you'd started with table-formatted output of both `stats` and `weird` events:
+Let's say you'd started with table-formatted output of both `stats` and `weird` records:
 
 ```zq-command
 zq -f table 'ts < 1521911721' stats.log.gz weird.log.gz
@@ -196,7 +216,13 @@ weird 2018-03-24T17:15:20.610033Z C45Ff03lESjMQQQej1 10.47.5.155 40712     91.18
 weird 2018-03-24T17:15:20.742818Z Cs7J9j2xFQcazrg7Nc 10.47.8.100 5900      10.129.53.65   58485     connection_originator_SYN_ack    -    F      zeek
 ```
 
-Here a `stats` event was the first record type to be printed in the results stream, so the preceding header row describes the names of its fields. Then a `weird` event came next in the results stream, so a header row describing its fields was printed. This presentation accurately conveys the heterogeneous nature of the data, but changing schemas mid-stream is not allowed in formats such as CSV or other downstream tooling such as SQL. Indeed, `zq` halts its output in this case.
+Here a `stats` record was the first record type to be printed in the results
+stream, so the preceding header row describes the names of its fields. Then a
+`weird` record came next in the results stream, so a header row describing its
+fields was printed. This presentation accurately conveys the heterogeneous
+nature of the data, but changing schemas mid-stream is not allowed in formats
+such as CSV or other downstream tooling such as SQL. Indeed, `zq` halts its
+output in this case.
 
 ```
 zq -f csv 'ts < 1521911721' stats.log.gz weird.log.gz
@@ -208,7 +234,10 @@ _path,ts,peer,mem,pkts_proc,bytes_recv,pkts_dropped,pkts_link,pkt_lag,events_pro
 csv output requires uniform records but different types encountered
 ```
 
-By using `fuse`, the unified schema of fields and types across all records is assembled in a first pass through the data stream, which enables the presentation of the results under a single, wider header row with no further interruptions between the subsequent data rows.
+By using `fuse`, the unified schema of field names and types across all records
+is assembled in a first pass through the data stream, which enables the
+presentation of the results under a single, wider header row with no further
+interruptions between the subsequent data rows.
 
 ```zq-command
 zq -f csv 'ts < 1521911721 | fuse' stats.log.gz weird.log.gz
@@ -224,7 +253,8 @@ weird,2018-03-24T17:15:20.610033Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,C45Ff03lESjMQQQej
 weird,2018-03-24T17:15:20.742818Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,Cs7J9j2xFQcazrg7Nc,10.47.8.100,5900,10.129.53.65,58485,connection_originator_SYN_ack,,F
 ```
 
-Other output formats invoked via `zq -f` that benefit greatly from the use of `fuse` include `table` and `zeek`.
+Other output formats invoked via `zq -f` that benefit greatly from the use of
+`fuse` include `table` and `zeek`.
 
 ---
 
@@ -232,14 +262,14 @@ Other output formats invoked via `zq -f` that benefit greatly from the use of `f
 
 |                           |                                                                       |
 | ------------------------- | --------------------------------------------------------------------- |
-| **Description**           | Return only the first N events.                                       |
+| **Description**           | Return only the first N records.                                      |
 | **Syntax**                | `head [N]`                                                            |
-| **Required<br>arguments** | None. If no arguments are specified, only the first event is returned.|
-| **Optional<br>arguments** | `[N]`<br>An integer specifying the number of results to return. If not specified, defaults to `1`. |
+| **Required<br>arguments** | None. If no arguments are specified, only the first record is returned.|
+| **Optional<br>arguments** | `[N]`<br>An integer specifying the number of records to return. If not specified, defaults to `1`. |
 
 #### Example #1:
 
-To see the first `dns` event:
+To see the first `dns` record:
 
 ```zq-command
 zq -f table 'head' dns.log.gz
@@ -253,7 +283,7 @@ dns   2018-03-24T17:15:20.865716Z C2zK5f13SbCtKcyiW5 10.47.1.100 41772     10.0.
 
 #### Example #2:
 
-To see the first five `conn` events with activity on port `80`:
+To see the first five `conn` records with activity on port `80`:
 
 ```zq-command
 zq -f table 'id.resp_p==80 | head 5' conn.log.gz
@@ -281,7 +311,7 @@ conn  2018-03-24T17:15:20.607695Z CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.
 
 #### Example #1:
 
-To return only the `ts` and `uid` columns of `conn` events:
+To return only the `ts` and `uid` columns of `conn` records:
 
 ```zq-command
 zq -f table 'pick ts,uid' conn.log.gz
@@ -298,7 +328,11 @@ TS                          UID
 
 #### Example #2:
 
-All of the named fields must be present in a record for `pick` to return a result for it. For instance, since only the Zeek `smb_mapping` in our sample data contains the field named `share_type`, the following query returns columns for only that log type. Records from the many other Zeek log types that also include `_path` and/or `ts` fields are not returned.
+All of the named fields must be present in a record for `pick` to return a
+result for it. For instance, since only the Zeek `smb_mapping` in our sample
+data contains the field named `share_type`, the following query returns columns
+for only that record type. The many other Zeek record types that also include
+`_path` and/or `ts` fields are not returned.
 
 ```zq-command
 zq -f table 'pick _path,ts,share_type' *
@@ -313,11 +347,13 @@ smb_mapping 2018-03-24T17:15:22.021668Z PIPE
 ...
 ```
 
-Contrast this with a [similar example](#example-2) that shows how [`cut`](#cut)'s relaxed behavior would produce a partial result here.
+Contrast this with a [similar example](#example-2) that shows how
+[`cut`](#cut)'s relaxed behavior would produce a partial result here.
 
 #### Example #3:
 
-If no records are found that contain any of the named fields, `pick` returns a warning.
+If no records are found that contain any of the named fields, `pick` returns a
+warning.
 
 ```zq-command
 zq -f table 'pick nothere,alsoabsent' weird.log.gz
@@ -330,7 +366,8 @@ pick: no record found with columns nothere,alsoabsent
 
 #### Example #4:
 
-To return only the `ts` and `uid` columns of `conn` events, with `ts` renamed to `time`:
+To return only the `ts` and `uid` columns of `conn` records, with `ts` renamed
+to `time`:
 
 ```zq-command
 zq -f table 'pick time:=ts,uid' conn.log.gz
@@ -351,11 +388,11 @@ TIME                        UID
 
 |                           |                                                 |
 | ------------------------- | ----------------------------------------------- |
-| **Description**           | Add/update fields based on the results of a computed expression |
-| **Syntax**                | `put <field> = <expression> [, <field> = <expression> ...]`     |
-| **Required arguments**    | `<field>`<br>Field into which the computed value will be stored.<br><br>`<expression>`<br>A valid ZQL [expression](../expressions/README.md). If evaluation of any expression fails, a warning is emitted and the original record is passed through unchanged. |
+| **Description**           | Add/update fields based on the results of an expression         |
+| **Syntax**                | `put <field> := <expression> [, <field> := <expression> ...]`   |
+| **Required arguments**    | `<field>`<br>Field into which the result of the expression will be stored.<br><br>`<expression>`<br>A valid Zed [expression](../expressions/README.md). If evaluation of any expression fails, a warning is emitted and the original record is passed through unchanged. |
 | **Optional arguments**    | None |
-| **Limitations**           | If multiple fields are written in a single `put`, all the new field values are computed first and then they are all written simultaneously.  As a result, a computed value cannot be referenced in another expression.  If you need to re-use a computed result, this can be done by chaining multiple `put` processors.  For example, this will not work:<br>`put N=len(somelist), isbig=N>10`<br>But it could be written instead as:<br>`put N=len(somelist) \| put isbig=N>10` |
+| **Limitations**           | If multiple fields are written in a single `put`, all the new field values are computed first and then they are all written simultaneously.  As a result, a computed value cannot be referenced in another expression.  If you need to re-use a computed result, this can be done by chaining multiple `put` operators.  For example, this will not work:<br>`put N:=len(somelist), isbig:=N>10`<br>But it could be written instead as:<br>`put N:=len(somelist) \| put isbig:=N>10` |
 
 #### Example #1:
 
@@ -381,8 +418,8 @@ ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P ORIG_BYTES RESP_BYTES TOTAL_BY
 
 |                           |                                                 |
 | ------------------------- | ----------------------------------------------- |
-| **Description**           | Rename fields in a record. |
-| **Syntax**                | `rename <newname> = <oldname> [, <newname> = <oldname> ...]`     |
+| **Description**           | Rename fields in a record.                      |
+| **Syntax**                | `rename <newname> := <oldname> [, <newname> := <oldname> ...]`     |
 | **Required arguments**    | One or more field assignment expressions. Renames are applied left to right; each rename observes the effect of all renames that preceded it. |
 | **Optional arguments**    | None |
 | **Limitations**           | A field can only be renamed within its own record. For example `id.orig_h` can be renamed to `id.src`, but it cannot be renamed to `src`. |
@@ -412,14 +449,14 @@ conn  2018-03-24T17:15:22.690601Z CuKFds250kxFgkhh8f 10.47.25.80    50813       
 
 |                           |                                                                           |
 | ------------------------- | ------------------------------------------------------------------------- |
-| **Description**           | Sort events based on the order of values in the specified named field(s). |
-| **Syntax**                | `sort [-r] [-nulls first\|last] [field-list]`                 |
+| **Description**           | Sort records based on the order of values in the specified named field(s).|
+| **Syntax**                | `sort [-r] [-nulls first\|last] [field-list]`                             |
 | **Required<br>arguments** | None                                                                      |
-| **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-nulls first\|last]`<br>Specifies where null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, sort will automatically pick a field by which to sort. The pick is done by examining the first result returned and finding the first field in left-to-right that is of one of the integer ZNG [data types](../data-types/README.md) (`int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`) and if no integer fields are found, the first `float64` field is used. If no fields of these numeric types are found, sorting will be performed on the first field found in left-to-right order that is _not_ of the `time` data type. |
+| **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-nulls first\|last]`<br>Specifies where null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, sort will automatically pick a field by which to sort. The pick is done by examining the first result returned and finding the first field in left-to-right that is of one of the integer Zed [data types](../data-types/README.md) (`int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`) and if no integer fields are found, the first `float64` field is used. If no fields of these numeric types are found, sorting will be performed on the first field found in left-to-right order that is _not_ of the `time` data type. |
 
 #### Example #1:
 
-To sort `x509` events by `certificate.subject`:
+To sort `x509` records by `certificate.subject`:
 
 ```zq-command
 zq -f table 'sort certificate.subject' x509.log.gz
@@ -442,7 +479,9 @@ x509  2018-03-24T17:29:41.351155Z FQNOg4tbfGapYl4A7  3                   068D408
 
 #### Example #2:
 
-Now we'll sort `x509` events first by `certificate.subject`, then by the `id`. Compared to the previous example, note how this changes the order of some events that had the same `certificate.subject` value.
+Now we'll sort `x509` records first by `certificate.subject`, then by the `id`.
+Compared to the previous example, note how this changes the order of some
+records that had the same `certificate.subject` value.
 
 ```zq-command
 zq -f table 'sort certificate.subject,id' x509.log.gz
@@ -465,7 +504,12 @@ x509  2018-03-24T17:29:51.317347Z FMITm2OyLT3OYnfq3  3                   068D408
 
 #### Example #3:
 
-Here we'll find which originating IP addresses generated the most `conn` events using the `count()` [aggregate function](../aggregate-functions/README.md) and piping its output to a `sort` in reverse order. Note that even though we didn't list a field name as an explicit argument, the `sort` processor did what we wanted because it found a field of the `uint64` [data type](../data-types/README.md).
+Here we'll find which originating IP addresses generated the most `conn`
+records using the `count()`
+[aggregate function](../aggregate-functions/README.md) and piping its output to
+a `sort` in reverse order. Note that even though we didn't list a field name as
+an explicit argument, the `sort` operator did what we wanted because it found a
+field of the `uint64` [data type](../data-types/README.md).
 
 ```zq-command
 zq -f table 'count() by id.orig_h | sort -r' conn.log.gz
@@ -483,7 +527,9 @@ ID.ORIG_H                COUNT
 
 #### Example #4:
 
-In this example we count the number of times each distinct username appears in `http` records, but deliberately put the unset username at the front of the list:
+In this example we count the number of times each distinct username appears in
+`http` records, but deliberately put the unset username at the front of the
+list:
 
 ```zq-command
 zq -f table 'count() by username | sort -nulls first username' http.log.gz
@@ -507,14 +553,14 @@ wwonka       1
 
 |                           |                                                                       |
 | ------------------------- | --------------------------------------------------------------------- |
-| **Description**           | Return only the last N events.                                        |
+| **Description**           | Return only the last N records.                                       |
 | **Syntax**                | `tail [N]`                                                            |
-| **Required<br>arguments** | None. If no arguments are specified, only the last event is returned. |
-| **Optional<br>arguments** | `[N]`<br>An integer specifying the number of results to return. If not specified, defaults to `1`. |
+| **Required<br>arguments** | None. If no arguments are specified, only the last record is returned.|
+| **Optional<br>arguments** | `[N]`<br>An integer specifying the number of records to return. If not specified, defaults to `1`. |
 
 #### Example #1:
 
-To see the last `dns` event:
+To see the last `dns` record:
 
 ```zq-command
 zq -f table 'tail' dns.log.gz
@@ -528,7 +574,7 @@ dns   2018-03-24T17:36:30.151237Z C0ybvu4HG3yWv6H5cb 172.31.255.5 60878     10.0
 
 #### Example #2:
 
-To see the last five `conn` events with activity on port `80`:
+To see the last five `conn` records with activity on port `80`:
 
 ```zq-command
 zq -f table 'id.resp_p==80 | tail 5' conn.log.gz
@@ -550,7 +596,7 @@ conn  2018-03-24T17:36:28.752765Z COICgc1FXHKteyFy67 10.0.0.227     61314     10
 
 |                           |                                                                       |
 | ------------------------- | --------------------------------------------------------------------- |
-| **Description**           | Remove adjacent duplicate events from the output, leaving only unique results.<br><br>Note that due to the large number of fields in typical events, and many fields whose values change often in subtle ways between events (e.g. timestamps), this processor will most often apply to the trimmed output from the [`cut`](#cut) processor. Furthermore, since duplicate field values may not often be adjacent to one another, upstream use of [`sort`](#sort) may also often be appropriate.
+| **Description**           | Remove adjacent duplicate records from the output, leaving only unique results.<br><br>Note that due to the large number of fields in typical records, and many fields whose values change often in subtle ways between records (e.g. timestamps), this operator will most often apply to the trimmed output from [`cut`](#cut). Furthermore, since duplicate field values may not often be adjacent to one another, upstream use of [`sort`](#sort) may also often be appropriate.
 | **Syntax**                | `uniq [-c]`                                                           |
 | **Required<br>arguments** | None                                                                  |
 | **Optional<br>arguments** | `[-c]`<br>For each unique value shown, include a numeric count of how many times it appeared. |
