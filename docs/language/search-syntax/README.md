@@ -1,6 +1,6 @@
 # Search Syntax
 
-  * [Search all events](#search-all-events)
+  * [Search all records](#search-all-records)
   * [Value Match](#value-match)
     + [Bare Word](#bare-word)
     + [Quoted Word](#quoted-word)
@@ -8,20 +8,25 @@
     + [Regular Expressions](#regular-expressions)
   * [Field/Value Match](#fieldvalue-match)
     + [Role of Data Types](#role-of-data-types)
-    + [Pattern Matches](#pattern-matches)
+    + [Finding Patterns with `matches`](#finding-patterns-with-matches)
     + [Containment](#containment)
     + [Comparisons](#comparisons)
     + [Wildcard Field Names](#wildcard-field-names)
     + [Other Examples](#other-examples)
-  * [Boolean Operators](#boolean-operators)
+  * [Boolean Logic](#boolean-logic)
     + [`and`](#and)
     + [`or`](#or)
     + [`not`](#not)
     + [Parentheses & Order of Evaluation](#parentheses--order-of-evaluation)
 
-## Search all events
+## Search all records
 
-The simplest possible ZQL search is a match against all events. This search is expressed in `zq` with the wildcard `*`. The response will be a dump of all events. The default `zq` output is binary ZNG, a compact format that's ideal for working in pipelines. However, in these docs we'll sometimes make use of the `-z` option to output the text-based [ZSON](../../formats/zson.md) format, which is readable at the command line.
+The simplest possible Zed search is a match of all records. This search is
+expressed in `zq` with the wildcard `*`. The response will be a dump of all
+records. The default `zq` output is binary [ZNG](../../formats/zng.md), a
+compact format that's ideal for working in pipelines. However, in these docs
+we'll sometimes make use of the `-z` option to output the text-based
+[ZSON](../../formats/zson.md) format, which is readable at the command line.
 
 #### Example:
 ```zq-command
@@ -37,17 +42,28 @@ zq -z '*' conn.log.gz
 ...
 ```
 
-If the ZQL argument is left out entirely, this wildcard is the default search. The following shorthand command line would produce the same output shown above.
+If the query argument is left out entirely, this wildcard is the default
+search. The following shorthand command line would produce the same output
+shown above.
 
 ```
 zq -z conn.log.gz
 ```
 
-To start a ZQL pipeline with this default search, you can similarly leave out the leading `* |` before invoking your first [processor](#../processors/README.md) or [aggregate function](#../aggregate-functions/README.md).
+To start a Zed pipeline with this default search, you can similarly leave out
+the leading `* |` before invoking your first
+[operator](#../operators/README.md) or
+[aggregate function](#../aggregate-functions/README.md). The following example
+is shorthand for:
 
-#### Example #1:
+```
+zq -z '* | cut server_tree_name' ntlm.log.gz
+```
+
+#### Example:
+
 ```zq-command
-zq -z 'cut server_tree_name' ntlm.log.gz  # Shorthand for: zq -z '* | cut server_tree_name' ntlm.log.gz
+zq -z 'cut server_tree_name' ntlm.log.gz
 ```
 
 #### Output:
@@ -58,30 +74,28 @@ zq -z 'cut server_tree_name' ntlm.log.gz  # Shorthand for: zq -z '* | cut server
 ...
 ```
 
-#### Example #2:
-```zq-command
-zq -z 'count() by _path | sort' *.log.gz  # Shorthand for: zq -z '* | count() by _path | sort' *.log.gz
-```
-
-#### Output:
-```zq-output head:3
-{_path:"capture_loss",count:2 (uint64)} (=0)
-{_path:"rfb",count:3} (0)
-{_path:"stats",count:5} (0)
-...
-```
-
 ## Value Match
 
-The search result can be narrowed to include only events that contain certain values in any field(s).
+The search result can be narrowed to include only records that contain certain
+values in any field(s).
 
 ### Bare Word
 
-The simplest form of such a search is a "bare" word (not wrapped in quotes), which will match against any field that contains the word, whether it's an exact match to the data type and value of a field or the word appears as a substring in a field.
+The simplest form of such a search is a _bare_ word (not wrapped in quotes),
+which will match against any field that contains the word, whether it's an
+exact match to the data type and value of a field or the word appears as a
+substring in a field.
 
-For example, searching across all our logs for `10.150.0.85` matches against events that contain `addr`-type fields containing this precise value (fields such as `tx_hosts` and `id.resp_h` in our sample data) and also where it appears within `string`-type fields (such as the field `certificate.subject` in `x509` events.)
+For example, searching across all our logs for `10.150.0.85` matches against
+records that contain `ip`-type fields containing this precise value (fields
+such as `tx_hosts` and `id.resp_h` in our sample data) and also where it
+appears within `string`-type fields (such as the field `certificate.subject` in
+`x509` records.)
 
-* **Note**: In this and many following examples, we'll use the `zq -f table` output format for human readability. Due to the width of the Zeek events used as sample data, you may need to "scroll right" in the output to see some matching field values.
+> **Note:** In this and many following examples, we'll use the `zq -f table`
+> output format for human readability. Due to the width of the Zeek records used
+> as sample data, you may need to "scroll right" in the output to see some
+> matching field values.
 
 #### Example:
 ```zq-command
@@ -103,16 +117,24 @@ conn  2018-03-24T17:15:50.685818Z CCTYYh2Y0IAt4cJpV6 10.10.18.2   57335     10.1
 ...
 ```
 
-By comparison, the section below on [Field/Value Match](#fieldvalue-match) describes ways to perform searches against only fields of a specific [data type](../data-types/README.md).
+By comparison, the section below on [Field/Value Match](#fieldvalue-match)
+describes ways to perform searches against only fields of a specific
+[data type](../data-types/README.md).
 
 ### Quoted Word
 
-Sometimes you may need to search for sequences of multiple words or words that contain special characters. To achieve this, wrap your search term in quotes.
+Sometimes you may need to search for sequences of multiple words or words that
+contain special characters. To achieve this, wrap your search term in quotes.
 
-Let's say we want to isolate the events containing the text `O=Internet Widgits` that we saw in the response to the previous example search. If typed "bare" as our ZQL, we'd experience two problems:
+Let's say we want to isolate the records containing the text
+`O=Internet Widgits` that we saw in the response to the previous example
+search. If typed bare as our Zed query, we'd experience two problems:
 
-   1. The leading `O=` would be interpreted as the start of an attempted [field/value match](#fieldvalue-match) for a field named `O`.
-   2. The space character would cause the input to be interpreted as two separate words and hence the search would not be as strict.
+1. The leading `O=` would be interpreted as the start of an attempted
+   [field/value match](#fieldvalue-match) for a field named `O`.
+
+2. The space character would cause the input to be interpreted as two separate
+   words and hence the search would not be as strict.
 
 However, wrapping in quotes gives the desired result.
 
@@ -138,9 +160,14 @@ ssl   2018-03-24T17:16:14.520854Z CltIsl1XqvnZNN46y5 10.47.8.10   56805     10.1
 
 ### Glob Wildcards
 
-To find values that may contain arbitrary substrings between or alongside the desired word(s), one or more [glob](https://en.wikipedia.org/wiki/Glob_(programming))-style wildcards can be used.
+To find values that may contain arbitrary substrings between or alongside the
+desired word(s), one or more
+[glob](https://en.wikipedia.org/wiki/Glob_(programming))-style wildcards can be
+used.
 
-For example, the following search finds events that contain web server hostnames that include the letters `cdn` in the middle of them, such as `www.cdn.amazon.com` or `www.herokucdn.com`.
+For example, the following search finds records that contain web server
+hostnames that include the letters `cdn` in the middle of them, such as
+`www.cdn.amazon.com` or `www.herokucdn.com`.
 
 #### Example:
 ```zq-command
@@ -162,9 +189,14 @@ dns   2018-03-24T17:22:57.049945Z CiCGyr4RPOcBLVyh33 10.47.2.100 39482     10.0.
 ...
 ```
 
-   * **Note:** Our use of `*` to [search all events](#search-all-events) as shown previously is the simplest example of using a glob wildcard.
+> **Note:** Our use of `*` to [search all records](#search-all-records) as
+> shown previously is the simplest example of using a glob wildcard.
 
-Glob wildcards only have effect when used with [bare word](#bare-word) searches. An asterisk in a [quoted word](#quoted-word) search will match explicitly against an asterisk character. For example, the following search matches events that contain the substring `CN=*` as is often found in the start of certificate subjects.
+Glob wildcards only have effect when used with [bare word](#bare-word)
+searches. An asterisk in a [quoted word](#quoted-word) search will match
+explicitly against an asterisk character. For example, the following search
+matches records that contain the substring `CN=*` as is often found in the
+start of certificate subjects.
 
 #### Example:
 ```zq-command
@@ -188,9 +220,14 @@ ssl   2018-03-24T17:15:24.642826Z CUWctp1qQGAroHInB7 10.47.26.160 49166     172.
 
 ### Regular Expressions
 
-For matching that requires more precision than can be achieved with [glob wildcards](#glob-wildcards), regular expressions (regexps) are also available. To use them, simply place a `/` character before and after the regexp.
+For matching that requires more precision than can be achieved with
+[glob wildcards](#glob-wildcards), regular expressions (regexps) are also
+available. To use them, simply place a `/` character before and after the
+regexp.
 
-For example, let's say you'd already done a [glob wildcard](#glob-wildcard) search for `www.*google*.com` and found events that reference the following hostnames:
+For example, let's say you'd already done a [glob wildcard](#glob-wildcard)
+search for `www.*google*.com` and found records that reference the following
+hostnames:
 
 ```
 www.google-analytics.com
@@ -202,7 +239,8 @@ www.googletagmanager.com
 www.googletagservices.com
 ```
 
-But if you're only interested in events having to do with "ad" or "tag" services, the following regexp search can accomplish this.
+But if you're only interested in records having to do with "ad" or "tag"
+services, the following regexp search can accomplish this.
 
 #### Example:
 ```zq-command
@@ -224,11 +262,16 @@ dns   2018-03-24T17:16:17.181981Z CfofM11rhswW1NDNS  10.47.7.10  52373     10.0.
 ...
 ```
 
-Regexps are a detailed topic all their own. For details, reference the [documentation for re2](https://github.com/google/re2/wiki/Syntax), which is the library that `zq` uses to provide regexp support.
+Regexps are a detailed topic all their own. For details, reference the
+[documentation for re2](https://github.com/google/re2/wiki/Syntax), which is
+the library that Zed uses to provide regexp support.
 
 ## Field/Value Match
 
-The search result can be narrowed to include only events that contain a certain value in a particular named field. For example, the following search will only match events containing the field called `uid` where it is set to the precise value `ChhAfsfyuz4n2hFMe`.
+The search result can be narrowed to include only records that contain a
+certain value in a particular named field. For example, the following search
+will only match records containing the field called `uid` where it is set to
+the precise value `ChhAfsfyuz4n2hFMe`.
 
 #### Example:
 ```zq-command
@@ -244,9 +287,13 @@ conn  2018-03-24T17:36:30.158539Z ChhAfsfyuz4n2hFMe 10.239.34.35 56602     10.47
 
 ### Role of Data Types
 
-When working with named fields, the data type of the field becomes significant in two ways.
+When working with named fields, the data type of the field becomes significant
+in two ways.
 
-1. To match successfully, the value entered must be comparable to the data type of the named field. For instance, the `host` field of the `http` events in our sample data are of `string` type, since it logs an HTTP header that is often a hostname or an IP address.
+1. To match successfully, the value entered must be comparable to the data type
+   of the named field. For instance, the `host` field of the `http` records in
+   our sample data are of `string` type, since it logs an HTTP header that is
+   often a hostname or an IP address.
 
    ```zq-command
    zq -z 'count() by host | sort count,host' http.log.gz
@@ -260,26 +307,45 @@ When working with named fields, the data type of the field becomes significant i
    ...
    ```
 
-   An attempted field/value match `host=10.47.21.1` would not match the event counted in the middle row of this table, since ZQL recognizes the bare value `10.47.21.1` as an IP address before comparing it to all the fields named `host` that it sees in the input stream. However, `host="10.47.21.1"` would match, since the quotes cause ZQL to treat the value as a string.
+   An attempted field/value match `host==10.47.21.1` would not match the
+   record counted in the middle row of this table, since Zed recognizes the
+   bare value `10.47.21.1` as an IP address before comparing it to all the
+   fields named `host` that it sees in the input stream. However,
+   `host=="10.47.21.1"` would match, since the quotes cause Zed to treat the
+   value as a string.
 
-2.  The correct operator must be chosen based on whether the field type is primitive or complex.  For example, `id.resp_h=10.150.0.85` will match in our sample data because `id.resp_h` is a primitive type, `addr`. However, to check if the same IP had been a transmitting host in a `files` event, the syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a complex type, `set[addr]`. See the section below on [Containment](#containment) for details regarding the `in` operator.
+2. The correct syntax must be chosen based on whether the field type is
+   primitive or complex.  For example, `id.resp_h==10.150.0.85` will match in
+   our sample data because `id.resp_h` is a primitive type, `ip`. However, to
+   check if the same IP had been a transmitting host in a `files` record, the
+   syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a
+   complex type, `set[ip]`. See the section below on
+   [Containment](#containment) for details regarding the use of `in`.
 
-See the [Data Types](../data-types/README.md) page for more details on types and the operators for working with them.
+See the [Data Types](../data-types/README.md) page for more details.
 
-### Pattern Matches
+### Finding Patterns with `matches`
 
-An important distinction is that a "bare" field/value match is treated as an _exact_ match. If we take one of the results from our [bare word value match](#bare-word) example and attempt to look for `Widgits`, but only on a field named `certificate.subject`, there will be no matches. This is because `Widgits` only happens to appear as a _substring_ of `certificate.subject` fields in our sample data.
+An important distinction is that a bare field/value match with `==` is treated
+as an _exact_ match. If we take one of the results from our
+[bare word value match](#bare-word) example and attempt to look for `Widgits`,
+but only on a field named `certificate.subject`, there will be no matches.
+This is because `Widgits` only happens to appear as a _substring_ of
+`certificate.subject` values in our sample data. Because of this, the
+following example produces no output.
 
 #### Example:
+
 ```zq-command
-zq -f table 'certificate.subject=="Widgits"' *.log.gz         # Produces no output
+zq -f table 'certificate.subject=="Widgits"' *.log.gz
 ```
 
 #### Output:
 ```zq-output
 ```
 
-To achieve this with a field/value match, we can use [glob wildcards](#glob-wildcards).
+To achieve this with a field/value match, we enter `matches` before specifying
+a [glob wildcard](#glob-wildcards).
 
 #### Example:
 ```zq-command
@@ -297,8 +363,7 @@ x509  2018-03-24T17:15:47.493786Z FdBWBA3eODh6nHFt82 3                   C5F8CDF
 ...
 ```
 
-[Regular expressions](#regular-expressions) can also be used with the
-`matches` keyword.
+[Regular expressions](#regular-expressions) can also be used with `matches`.
 
 #### Example:
 ```zq-command
@@ -318,9 +383,13 @@ http  2018-03-24T17:17:47.57066Z  CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.
 
 ### Containment
 
-Rather than testing for strict equality or pattern matches, you may want to determine if a value is among the many possible elements of a complex field. This is performed with the `in` operator.
+Rather than testing for strict equality or pattern matches, you may want to
+determine if a value is among the many possible elements of a complex field.
+This is performed with `in`.
 
-Our Zeek `dns` events include the `answers` field, which is an array of the multiple responses that may have been returned for a query. To determine which responses included hostname `e5803.b.akamaiedge.net`, we'll use `in`.
+Our Zeek `dns` records include the `answers` field, which is an array of the
+multiple responses that may have been returned for a query. To determine which
+responses included hostname `e5803.b.akamaiedge.net`, we'll use `in`.
 
 #### Example:
 ```zq-command
@@ -338,7 +407,13 @@ dns   2018-03-24T17:30:24.694336Z CG5CeD4zyD41L4yt0d 10.47.6.10 55135     10.0.0
 dns   2018-03-24T17:30:24.694339Z CG5CeD4zyD41L4yt0d 10.47.6.10 55135     10.0.0.100 53        udp   2542     0.032113 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17337,20 F
 ```
 
-Notice that we wrapped the hostname in quotes. If we'd left it "bare", it would have been interpreted as an attempt to find records with a field called `e5803.b.akamaiedge.net` whose value is contained in the `answers` array of the same record. Since there's no field called `e5803.b.akamaiedge.net` in our data, this would have returning nothing. However, the `query` field does exist in our `dns` events, so the following example does return matches.
+Notice that we wrapped the hostname in quotes. If we'd left it bare, it would
+have been interpreted as an attempt to find records in which the value of a
+nested field called `e5803.b.akamaiedge.net` is contained in the `answers`
+array of the same record. Since there's no field called
+`e5803.b.akamaiedge.net` in our data, this would have returned nothing.
+However, the `query` field does exist in our `dns` records, so the following
+example does return matches.
 
 #### Example:
 ```zq-command
@@ -354,7 +429,8 @@ dns   2018-03-24T17:30:43.213667Z CV4T3j1mb4LbxNNgBl 10.47.7.10 53647     10.0.0
 dns   2018-03-24T17:30:43.213671Z CV4T3j1mb4LbxNNgBl 10.47.7.10 53647     10.0.0.100 53        udp   45561    0.001053 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
 ```
 
-Determining whether the value of a Zeek `addr`-type field is contained within a subnet also uses `in`.
+Determining whether the value of a Zeek `ip`-type field is contained within a
+subnet also uses `in`.
 
 #### Example:
 ```zq-command
@@ -372,7 +448,9 @@ conn  2018-03-24T17:35:07.721609Z CCbNQn22j5UPZ4tute 10.47.26.25 59095     208.7
 
 ### Comparisons
 
-In addition to testing for equality and pattern matching via `=`, other common comparison operators `!=`, `<`, `>`, `<=`, and `>=` are also available.
+In addition to testing for equality via `==` and finding patterns via
+`matches`, the other common methods of comparison `!=`, `<`, `>`, `<=`, and
+`>=` are also available.
 
 For example, the following search finds connections that have transferred many bytes.
 
@@ -391,7 +469,9 @@ conn  2018-03-24T17:15:20.705347Z CWtQuI2IMNyE1pX47j 10.47.6.161  52121     134.
 conn  2018-03-24T17:33:05.415532Z Cy3R5w2pfv8oSEpa2j 10.47.8.19   49376     10.128.0.214 443       tcp   -       202.457994  4862366    1614249    S1         -          -          0            ShAdtttDTaTTTt   7280      10015980      6077      3453020       -
 ```
 
-The same operators also work when comparing characters in `string`-type values, such as this search that finds DNS requests that were issued for hostnames at the high end of the alphabet.
+The same approach can be used to compare characters in `string`-type values,
+such as this search that finds DNS requests that were issued for hostnames at
+the high end of the alphabet.
 
 #### Example:
 ```zq-command
@@ -409,9 +489,12 @@ dns   2018-03-24T17:34:52.637238Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.
 
 ### Wildcard Field Names
 
-It's possible to search across _all_ top-level fields of a value's data type by entering a wildcard where you'd normally enter the field name.
+It's possible to search across _all_ top-level fields of a value's data type by
+entering a wildcard where you'd normally enter the field name.
 
-In the following search for the `addr`-type value `10.150.0.85`, we match only a single `notice` event, as this is the only event in our data with a matching top-level field of the `addr` type (the `dst` field).
+In the following search for the `ip`-type value `10.150.0.85`, we match only a
+single `notice` record, as this is the only record in our data with a matching
+top-level field of the `ip` type (the `dst` field).
 
 #### Example:
 ```zq-command-disable
@@ -424,9 +507,21 @@ _PATH  TS                          UID                ID.ORIG_H    ID.ORIG_P ID.
 notice 2018-03-24T17:15:32.521729Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
 ```
 
-This same address `10.150.0.85` appears in other IP address fields in our data such as `id.resp_h`, but these were not matched because these happend to be _nested_ fields (e.g. `resp_h` is a field nested inside the record called `id`). An enhancement with an alternate syntax is planned to allow type-specific searches to reach into nested records when desired (see [#2250](https://github.com/brimdata/zed/issues/2250) and [#1428](https://github.com/brimdata/zed/issues/1428)). Compare this with the [bare word](#bare-word) searches we showed previously that perform type-independent matches for values in all locations, including in nested records and complex fields.
+This same address `10.150.0.85` appears in other IP address fields in our data
+such as `id.resp_h`, but these were not matched because these happened to be
+_nested_ fields (e.g. `resp_h` is a field nested inside the record called
+`id`). An enhancement with an alternate syntax is planned to allow
+type-specific searches to reach into nested records when desired
+(see [#2250](https://github.com/brimdata/zed/issues/2250) and
+[#1428](https://github.com/brimdata/zed/issues/1428)). Compare this with the
+[bare word](#bare-word) searches we showed previously that perform
+type-independent matches for values in all locations, including in nested
+records and complex fields.
 
-The `*` wildcard can also be used to match when the value appears in a complex top-level field. Searching again for our `addr`-type value `10.150.0.85`, here we'll match in complex fields of type `set[addr]` or `array[addr]`, such as `tx_hosts` in this case.
+The `*` wildcard can also be used to match when the value appears in a complex
+top-level field. Searching again for our `ip`-type value `10.150.0.85`, here
+we'll match in complex fields of type `set[ip]` or `array[ip]`, such as
+`tx_hosts` in this case.
 
 #### Example:
 ```zq-command-disable
@@ -445,21 +540,46 @@ files 2018-03-24T17:15:47.493786Z FdBWBA3eODh6nHFt82 10.150.0.85 10.10.18.2   Ch
 
 ### Other Examples
 
-The other behaviors we described previously for general [value matching](#value-match) still apply the same for field/value matches. Below are some exercises you can try to observe this with the sample data. Search with `zq` against `*.log.gz` in all cases.
+The other behaviors we described previously for general
+[value matching](#value-match) still apply the same for field/value matches.
+Below are some exercises you can try to observe this with the sample data.
+Search with `zq` against `*.log.gz` in all cases.
 
-1. Compare the result of our previous [quoted word](#quoted-word) value search for `"O=Internet Widgits"` with a field/value search for `certificate.subject=*Widgits*`. Note how the former showed many types of Zeek events while the latter shows _only_ `x509` events, since only these events contain the field named `certificate.subject`.
-2. Compare the result of our previous [glob wildcard](#glob-wildcards) value search for `www.*cdn*.com` with a field/value search for `server_name=www.*cdn*.com`. Note how the former showed mostly Zeek `dns` events and a couple `ssl` events, while the latter shows _only_ `ssl` events, since only these events contain the field named `server_name`.
-3. Compare the result of our previous [regexp](#regular-expressions) value search for `/www.google(ad|tag)services.com/` with a field/value search for `query=/www.google(ad|tag)services.com/`. Note how the former showed a mix of Zeek `dns` and `ssl` events, while the latter shows _only_ `dns` events, since only these events contain the field named `query`.
+1. Compare the result of our previous [quoted word](#quoted-word) value search
+   for `"O=Internet Widgits"` with a field/value search for
+   `certificate.subject=*Widgits*`. Note how the former showed many types of
+   Zeek records while the latter shows _only_ `x509` records, since only these
+   records contain the field named `certificate.subject`.
 
-## Boolean Operators
+2. Compare the result of our previous [glob wildcard](#glob-wildcards) value
+   search for `www.*cdn*.com` with a field/value search for
+   `server_name=www.*cdn*.com`. Note how the former showed mostly Zeek `dns`
+   records and a couple `ssl` records, while the latter shows _only_ `ssl`
+   records, since only these records contain the field named `server_name`.
 
-Your searches can be further refined by using boolean operators `and`, `or`, and `not`. These operators are case-insensitive, so `AND`, `OR`, and `NOT` can also be used.
+3. Compare the result of our previous [regexp](#regular-expressions) value
+   search for `/www.google(ad|tag)services.com/` with a field/value search for
+   `query=/www.google(ad|tag)services.com/`. Note how the former showed a mix
+   of Zeek `dns` and `ssl` records, while the latter shows _only_ `dns`
+   records, since only these records contain the field named `query`.
+
+## Boolean Logic
+
+Your searches can be further refined by using boolean keywords `and`, `or`,
+and `not`. These are case-insensitive, so `AND`, `OR`, and `NOT` can also be
+used.
 
 ### `and`
 
-If you enter multiple [value match](#value-match) or [field/value match](#fieldvalue-match) terms separated by blank space, ZQL implicitly applies a boolean `and` between them, such that events are only returned if they match on _all_ terms.
+If you enter multiple [value match](#value-match) or
+[field/value match](#fieldvalue-match) terms separated by blank space, Zed
+implicitly applies a boolean `and` between them, such that records are only
+returned if they match on _all_ terms.
 
-For example, when introducing [glob wildcard](#glob-wildcards), we performed a search for `www.*cdn*.com` that returned mostly `dns` events along with a couple `ssl` events. You could quickly isolate just the the SSL events by leveraging this implicit `and`.
+For example, when introducing [glob wildcards](#glob-wildcards), we performed a
+search for `www.*cdn*.com` that returned mostly `dns` records along with a
+couple `ssl` records. You could quickly isolate just the SSL records by
+leveraging this implicit `and`.
 
 #### Example:
 ```zq-command
@@ -473,15 +593,16 @@ ssl   2018-03-24T17:23:00.244457Z CUG0fiQAzL4rNWxai  10.47.2.100 36150     52.85
 ssl   2018-03-24T17:24:00.189735Z CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FuW2cZ3leE606wXSia,Fu5kzi1BUwnF0bSCsd,FyTViI32zPvCmNXgSi,FwV6ff3JGj4NZcVPE4 (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
 ```
 
-* **Note**: You may also include the `and` operator explicitly if you wish:
+> **Note:** You may also include `and` explicitly if you wish:
 
         www.*cdn*.com and _path=ssl
 
 ### `or`
 
-The `or` operator returns the union of the matches from multiple terms.
+`or` returns the union of the matches from multiple terms.
 
-For example, we can revisit two of our previous example searches that each only returned a few events, searching now with `or` to see them all at once.
+For example, we can revisit two of our previous example searches that each only
+returned a few records, searching now with `or` to see them all at once.
 
 #### Example:
 ```zq-command
@@ -506,9 +627,13 @@ dns   2018-03-24T17:34:52.637234Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.
 
 ### `not`
 
-Use the `not` operator to invert the matching logic in the term that comes to the right of it in your search.
+Use `not` to invert the matching logic in the term that comes to the right of
+it in your search.
 
-For example, suppose you've noticed that the vast majority of the sample Zeek events are of log types like `conn`, `dns`, `files`, etc. You could review some of the less-common Zeek event types by inverting the logic of a [regexp match](#regular-expressions).
+For example, suppose you've noticed that the vast majority of the sample Zeek
+records are of log types like `conn`, `dns`, `files`, etc. You could review
+some of the less-common Zeek record types by inverting the logic of a
+[regexp match](#regular-expressions).
 
 #### Example:
 ```zq-command
@@ -531,15 +656,17 @@ dce_rpc 2018-03-24T17:15:54.711445Z CWyKrz4YlSyPGoE8Bf 10.128.0.214  41717     1
 ...
 ```
 
-* **Note**: The `!` operator can also be used as alternative shorthand:
+> **Note:** `!` can also be used as alternative shorthand for `not`.
 
-        zq -f table '! _path=/conn|dns|files|ssl|x509|http|weird/' *.log.gz
+        zq -f table '! _path matches /conn|dns|files|ssl|x509|http|weird/' *.log.gz
 
 ### Parentheses & Order of Evaluation
 
-Unless wrapped in parentheses, a search expression is evaluated in _left-to-right order_.
+Unless wrapped in parentheses, a search is evaluated in _left-to-right order_.
 
-For example, the following search leverages the implicit boolean `and` to find all `smb_mapping` events in which the `share_type` field is set to a value other than `DISK`.
+For example, the following search leverages the implicit boolean `and` to find
+all `smb_mapping` records in which the `share_type` field is set to a value
+other than `DISK`.
 
 #### Example:
 ```zq-command
@@ -556,7 +683,12 @@ smb_mapping 2018-03-24T17:15:25.562072Z C3kUnM2kEJZnvZmSp7 10.164.94.120 45903  
 ...
 ```
 
-Terms wrapped in parentheses along with their operators will be evaluated _first_, overriding the default left-to-right evaluation. If we wrap the search terms as shown below, now we match almost every event we have. This is because the `not` is now inverting the logic of everything in the parentheses, hence giving us all stored events _other than_ `smb_mapping` events that have the value of their `share_type` field set to `DISK`.
+Terms wrapped in parentheses will be evaluated _first_, overriding the default
+left-to-right evaluation. If we wrap the search terms as shown below, now we
+match almost every record we have. This is because the `not` is now inverting
+the logic of everything in the parentheses, hence giving us all stored records
+_other than_ `smb_mapping` records that have the value of their `share_type`
+field set to `DISK`.
 
 #### Example:
 ```zq-command
@@ -594,4 +726,7 @@ smb_mapping 2018-03-24T17:15:36.306275Z CsZ7Be4NlqaJSNNie4 10.164.94.120 33921  
 ...
 ```
 
-Except when writing the most common searches that leverage only the implicit `and`, it's generally good practice to use parentheses even when not strictly necessary, just to make sure your queries clearly communicate their intended logic.
+Except when writing the most common searches that leverage only the implicit
+`and`, it's generally good practice to use parentheses even when not strictly
+necessary, just to make sure your queries clearly communicate their intended
+logic.
