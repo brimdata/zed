@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -68,6 +69,9 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		}
 	}
 	path := conf.Root
+	if path == nil {
+		return nil, errors.New("no lake root")
+	}
 	var engine storage.Engine
 	switch storage.Scheme(path.Scheme) {
 	case storage.FileScheme:
