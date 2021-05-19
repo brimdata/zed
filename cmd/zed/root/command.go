@@ -3,7 +3,7 @@ package root
 import (
 	"context"
 	"flag"
-	"os"
+	"syscall"
 
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/pkg/charm"
@@ -35,7 +35,7 @@ func (c *Command) Init(all ...cli.Initializer) (context.Context, func(), error) 
 	if err := c.cli.Init(all...); err != nil {
 		return nil, nil, err
 	}
-	ctx, cancel := signalctx.New(os.Interrupt)
+	ctx, cancel := signalctx.New(syscall.SIGINT, syscall.SIGTERM)
 	var cleanup = func() {
 		cancel()
 		c.cli.Cleanup()
