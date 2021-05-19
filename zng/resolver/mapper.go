@@ -18,7 +18,7 @@ func NewMapper(out *zson.Context) *Mapper {
 }
 
 // Lookup tranlates Zed types by type ID from one context to another.
-// The first context is implied by the argument to Map() and the output
+// The first context is implied by the argument to Lookup() and the output
 // type context is explicitly determined by the argument to NewMapper().
 // If a binding has not yet been entered, nil is returned and Enter()
 // should be called to create the binding.  There is a race here when two
