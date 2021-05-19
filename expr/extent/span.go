@@ -14,6 +14,8 @@ import (
 // to create a Time range that embeds nano.Span instead of Lower/Upper
 // and implements Range.
 
+// Span represents the closed interval [first, last] where first is "less than"
+// last with respect to the Span's order.Which.
 type Span interface {
 	First() zng.Value
 	Last() zng.Value
@@ -37,25 +39,24 @@ type Generic struct {
 // then the first value is larger than the last value and Before is true
 // for larger values while After is true for smaller values, etc.
 func CompareFunc(o order.Which) expr.ValueCompareFn {
-	// Treat nullsmax as zero by passing false to NewValueCompareFn().
+	//  Treat null as the minimum value.
 	cmp := expr.NewValueCompareFn(false)
-	//cmp = totalOrderCompare(cmp)
 	if o == order.Asc {
 		return cmp
 	}
 	return func(a, b zng.Value) int { return cmp(b, a) }
 }
 
-// Create a new Range from generic zng.Values.  If first is greater
-// than last according to cmp, then the values are reversed so that
-// first comes first.
-func NewGeneric(first, last zng.Value, cmp expr.ValueCompareFn) *Generic {
-	if cmp(first, last) > 0 {
-		first, last = last, first
+// Create a new Range from generic range of zng.Values according
+// to lower and upper.  The range is not sensitive to the absolute order
+// of lower and upper.
+func NewGeneric(lower, upper zng.Value, cmp expr.ValueCompareFn) *Generic {
+	if cmp(lower, upper) > 0 {
+		lower, upper = upper, lower
 	}
 	return &Generic{
-		first: first,
-		last:  last,
+		first: lower,
+		last:  upper,
 		cmp:   cmp,
 	}
 }
@@ -126,11 +127,5 @@ func Format(s Span) string {
 }
 
 func Overlaps(a, b Span) bool {
-	if b.Before(a.Last()) {
-		return false
-	}
-	if b.After(a.First()) {
-		return false
-	}
-	return true
+	return !b.Before(a.Last()) && !b.After(a.First())
 }

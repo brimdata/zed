@@ -31,7 +31,10 @@ func Lookup(r zio.Reader, from, to zng.Value, cmp expr.ValueCompareFn) (Range, e
 		if err != nil {
 			return Range{}, err
 		}
-		rg.Start, _ = zng.DecodeInt(off.Bytes)
+		rg.Start, err = zng.DecodeInt(off.Bytes)
+		if err != nil {
+			return Range{}, err
+		}
 		if cmp(key, from) == 0 {
 			break
 		}
@@ -47,6 +50,9 @@ func Lookup(r zio.Reader, from, to zng.Value, cmp expr.ValueCompareFn) (Range, e
 				return Range{}, err
 			}
 			rg.End, err = zng.DecodeInt(off.Bytes)
+			if err != nil {
+				return Range{}, err
+			}
 			break
 		}
 		rec, err = r.Read()

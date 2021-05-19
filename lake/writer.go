@@ -140,7 +140,7 @@ func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
 	if err != nil {
 		seg.Last = zng.Value{zng.TypeNull, nil}
 	}
-	writer, err := seg.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, ImportStreamRecordsMax, key)
+	writer, err := seg.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, key, ImportStreamRecordsMax)
 	if err != nil {
 		return err
 	}

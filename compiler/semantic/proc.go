@@ -87,7 +87,7 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor pro
 				return nil, err
 			}
 		}
-		var upper, lower dag.Expr
+		var lower, upper dag.Expr
 		if r := p.Range; r != nil {
 			if r.Lower != nil {
 				lower, err = semExpr(scope, r.Lower)

@@ -44,7 +44,7 @@ func (r *Reference) NewReader(ctx context.Context, engine storage.Engine, path *
 		return sr, nil
 	}
 	segspan := extent.NewGeneric(r.First, r.Last, cmp)
-	if ok := segspan.Crop(scanRange); !ok {
+	if !segspan.Crop(scanRange) {
 		return nil, fmt.Errorf("segment reader: segment does not intersect provided span: %s (segment range %s) (scan range %s)", path, segspan, scanRange)
 	}
 	if bytes.Equal(r.First.Bytes, segspan.First().Bytes) && bytes.Equal(r.Last.Bytes, segspan.Last().Bytes) {

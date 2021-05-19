@@ -85,18 +85,18 @@ func ParseValue(zctx *Context, zson string) (zng.Value, error) {
 	return Build(zcode.NewBuilder(), val)
 }
 
-func TranslateType(zctx *Context, astType zed.Type) (zng.Type, error) {
-	return NewAnalyzer().convertType(zctx, astType)
-}
-
-func NewTypeType(t zng.Type) zng.Value {
-	return zng.Value{zng.TypeType, zcode.Bytes(FormatType(t))}
-}
-
 func ParseValueFromAST(zctx *Context, ast zed.Value) (zng.Value, error) {
 	val, err := NewAnalyzer().ConvertValue(zctx, ast)
 	if err != nil {
 		return zng.Value{}, err
 	}
 	return Build(zcode.NewBuilder(), val)
+}
+
+func TranslateType(zctx *Context, astType zed.Type) (zng.Type, error) {
+	return NewAnalyzer().convertType(zctx, astType)
+}
+
+func NewTypeType(t zng.Type) zng.Value {
+	return zng.Value{zng.TypeType, zcode.Bytes(FormatType(t))}
 }

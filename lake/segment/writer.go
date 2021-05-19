@@ -31,22 +31,21 @@ type Writer struct {
 	poolKey         field.Path
 }
 
-func (r *Reference) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which, seekIndexFactor int, poolKey field.Path) (*Writer, error) {
+func (r *Reference) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which, poolKey field.Path, seekIndexFactor int) (*Writer, error) {
 	out, err := engine.Put(ctx, r.RowObjectPath(path))
 	if err != nil {
 		return nil, err
 	}
 	counter := &writeCounter{bufwriter.New(out), 0}
-	opts := zngio.WriterOpts{
+	writer := zngio.NewWriter(counter, zngio.WriterOpts{
 		StreamRecordsMax: seekIndexFactor,
 		LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
-	}
-	writer := zngio.NewWriter(counter, opts)
+	})
 	seekOut, err := engine.Put(ctx, r.SeekObjectPath(path))
 	if err != nil {
 		return nil, err
 	}
-	opts = zngio.WriterOpts{
+	opts := zngio.WriterOpts{
 		//LZ4BlockSize: zngio.DefaultLZ4BlockSize,
 	}
 	seekWriter := zngio.NewWriter(bufwriter.New(seekOut), opts)

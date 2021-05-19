@@ -237,10 +237,14 @@ func (r *Record) Access(field string) (Value, error) {
 }
 
 func (r *Record) Deref(path field.Path) (Value, error) {
-	var v Value
+	v := r.Value
 	for _, f := range path {
+		typ := TypeRecordOf(v.Type)
+		if typ == nil {
+			return Value{}, errors.New("field access on non-record value")
+		}
 		var err error
-		v, err = r.Access(f)
+		v, err = NewVolatileRecord(typ, v.Bytes).Access(f)
 		if err != nil {
 			return Value{}, err
 		}

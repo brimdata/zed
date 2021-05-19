@@ -2,13 +2,13 @@ package seekindex
 
 import (
 	"bytes"
-	"io"
 	"math"
 	"testing"
 
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -96,17 +96,9 @@ func newTestSeekIndex(t *testing.T, entries []entry) *testSeekIndex {
 	return &testSeekIndex{T: t, buffer: b}
 }
 
-type nopCloser struct {
-	io.Writer
-}
-
-func (*nopCloser) Close() error {
-	return nil
-}
-
 func build(t *testing.T, entries entries) *bytes.Buffer {
 	var buffer bytes.Buffer
-	w := NewWriter(zngio.NewWriter(&nopCloser{&buffer}, zngio.WriterOpts{}))
+	w := NewWriter(zngio.NewWriter(zio.NopCloser(&buffer), zngio.WriterOpts{}))
 	for _, entry := range entries {
 		zv := zng.Value{zng.TypeTime, zng.EncodeTime(entry.ts)}
 		err := w.Write(zv, entry.offset)

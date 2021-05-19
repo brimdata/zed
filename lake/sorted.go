@@ -50,6 +50,40 @@ func (s *statScanner) Pull() (zbuf.Batch, error) {
 	return batch, err
 }
 
+func newSortedScanner(ctx context.Context, pool *Pool, zctx *zson.Context, filter zbuf.Filter, scan Partition, sched *Scheduler) (*sortedPuller, error) {
+	closers := make(multiCloser, 0, len(scan.Segments))
+	pullers := make([]zbuf.Puller, 0, len(scan.Segments))
+	for _, segref := range scan.Segments {
+		rc, err := segref.NewReader(ctx, pool.engine, pool.DataPath, scan.Span, scan.compare)
+		if err != nil {
+			closers.Close()
+			return nil, err
+		}
+		closers = append(closers, rc)
+		reader := zngio.NewReader(rc, zctx)
+		f := filter
+		if len(pool.Layout.Keys) != 0 {
+			// If the scan span does not wholly contain the segment, then
+			// we must filter out records that fall outside the range.
+			f = wrapRangeFilter(f, scan.Span, scan.compare, segref.First, segref.Last, pool.Layout.Keys[0])
+		}
+		scanner, err := reader.NewScanner(ctx, f)
+		if err != nil {
+			closers.Close()
+			return nil, err
+		}
+		pullers = append(pullers, &statScanner{
+			Scanner: scanner,
+			puller:  scanner,
+			sched:   sched,
+		})
+	}
+	return &sortedPuller{
+		Puller: zbuf.MergeByTs(ctx, pullers, pool.Layout.Order),
+		Closer: closers,
+	}, nil
+}
+
 type rangeWrapper struct {
 	zbuf.Filter
 	first   zng.Value
@@ -92,38 +126,4 @@ func wrapRangeFilter(f zbuf.Filter, scan extent.Span, cmp expr.ValueCompareFn, f
 		key:     key,
 		compare: cmp,
 	}
-}
-
-func newSortedScanner(ctx context.Context, pool *Pool, zctx *zson.Context, filter zbuf.Filter, scan Partition, sched *Scheduler) (*sortedPuller, error) {
-	closers := make(multiCloser, 0, len(scan.Segments))
-	pullers := make([]zbuf.Puller, 0, len(scan.Segments))
-	for _, segref := range scan.Segments {
-		rc, err := segref.NewReader(ctx, pool.engine, pool.DataPath, scan.Span, scan.compare)
-		if err != nil {
-			closers.Close()
-			return nil, err
-		}
-		closers = append(closers, rc)
-		reader := zngio.NewReader(rc, zctx)
-		f := filter
-		if len(pool.Layout.Keys) != 0 {
-			// If the scan span does not wholly contain the segment, then
-			// we must filter out records that fall outside the range.
-			f = wrapRangeFilter(f, scan.Span, scan.compare, segref.First, segref.Last, pool.Layout.Keys[0])
-		}
-		scanner, err := reader.NewScanner(ctx, f)
-		if err != nil {
-			closers.Close()
-			return nil, err
-		}
-		pullers = append(pullers, &statScanner{
-			Scanner: scanner,
-			puller:  scanner,
-			sched:   sched,
-		})
-	}
-	return &sortedPuller{
-		Puller: zbuf.MergeByTs(ctx, pullers, pool.Layout.Order),
-		Closer: closers,
-	}, nil
 }
