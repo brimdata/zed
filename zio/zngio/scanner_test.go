@@ -30,9 +30,10 @@ func TestScannerContext(t *testing.T) {
 		require.NoError(t, err)
 		var buf bytes.Buffer
 		w := NewWriter(zio.NopCloser(&buf), WriterOpts{})
-		for j := 0; j < DefaultStreamRecordsMax; j++ {
+		for j := 0; j < 100; j++ {
 			require.NoError(t, w.Write(rec))
 		}
+		require.NoError(t, w.EndStream())
 		require.NoError(t, w.Close())
 		bufs = append(bufs, buf.Bytes())
 	}

@@ -2,11 +2,11 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -p asc -orderby ts:asc -q
-  zed lake load -q -streammax=100 -p asc babble.zson
+  zed lake load -q -seekstride=2KB -p asc babble.zson
   zed lake query -z -s "from asc over 2020-04-21T23:59:26.063Z to 2020-04-21T23:59:38.069Z"
   echo === | tee /dev/stderr
   zed lake create -p desc -orderby ts:desc -q
-  zed lake load -q -streammax=100 -p desc babble.zson
+  zed lake load -q -seekstride=2KB -p desc babble.zson
   zed lake query -z -s "from desc over 2020-04-21T23:59:26.063Z to 2020-04-21T23:59:38.069Z"
 
 inputs:
@@ -25,8 +25,8 @@ outputs:
       {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
   - name: stderr
     data: |
-      data opened: 6547
+      data opened: 16401
       data read:   87
       ===
-      data opened: 6547
+      data opened: 16404
       data read:   87

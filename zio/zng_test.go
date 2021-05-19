@@ -185,8 +185,7 @@ func TestStreams(t *testing.T) {
 	r := zson.NewReader(strings.NewReader(in), zson.NewContext())
 	var out Output
 	zw := zngio.NewWriter(&out, zngio.WriterOpts{
-		StreamRecordsMax: 2,
-		LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
+		LZ4BlockSize: zngio.DefaultLZ4BlockSize,
 	})
 
 	var recs []*zng.Record
@@ -198,6 +197,9 @@ func TestStreams(t *testing.T) {
 		}
 		require.NoError(t, zw.Write(rec))
 		recs = append(recs, rec.Keep())
+		if len(recs)%2 == 0 {
+			require.NoError(t, zw.EndStream())
+		}
 	}
 
 	zr := zngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), zson.NewContext())

@@ -17,7 +17,7 @@ import (
 )
 
 var (
-	ImportStreamRecordsMax = zngio.DefaultStreamRecordsMax
+	SeekIndexStride = 64 * 1024
 
 	// For unit testing.
 	importLZ4BlockSize = zngio.DefaultLZ4BlockSize
@@ -140,7 +140,7 @@ func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
 	if err != nil {
 		seg.Last = zng.Value{zng.TypeNull, nil}
 	}
-	writer, err := seg.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, key, ImportStreamRecordsMax)
+	writer, err := seg.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, key, SeekIndexStride)
 	if err != nil {
 		return err
 	}

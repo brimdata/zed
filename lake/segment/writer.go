@@ -17,79 +17,97 @@ import (
 // Writer is a zbuf.Writer that writes a stream of sorted records into a
 // data segment.
 type Writer struct {
-	ref             *Reference
-	byteCounter     *writeCounter
-	count           uint64
-	rowObject       *zngio.Writer
-	firstKey        zng.Value
-	lastKey         zng.Value
-	needSeekWrite   bool
-	order           order.Which
-	seekIndex       *seekindex.Writer
-	seekIndexCloser io.Closer
-	first           bool
-	poolKey         field.Path
+	ref              *Reference
+	byteCounter      *writeCounter
+	count            uint64
+	rowObject        *zngio.Writer
+	firstKey         zng.Value
+	lastKey          zng.Value
+	lastSOS          int64
+	order            order.Which
+	seekIndex        *seekindex.Writer
+	seekIndexCloser  io.Closer
+	seekIndexStride  int
+	seekIndexTrigger int
+	first            bool
+	poolKey          field.Path
 }
 
-func (r *Reference) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which, poolKey field.Path, seekIndexFactor int) (*Writer, error) {
+// NewWriter returns a writer for writing the data of a zng-row storage object as
+// well as optionally creating a seek index for the row object when the
+// seekIndexStride is non-zero.  We assume all records are non-volatile until
+// Close as zng.Values from the various record bodies are referenced across
+// calls to Write.
+func (r *Reference) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which, poolKey field.Path, seekIndexStride int) (*Writer, error) {
 	out, err := engine.Put(ctx, r.RowObjectPath(path))
 	if err != nil {
 		return nil, err
 	}
 	counter := &writeCounter{bufwriter.New(out), 0}
 	writer := zngio.NewWriter(counter, zngio.WriterOpts{
-		StreamRecordsMax: seekIndexFactor,
-		LZ4BlockSize:     zngio.DefaultLZ4BlockSize,
+		LZ4BlockSize: zngio.DefaultLZ4BlockSize,
 	})
-	seekOut, err := engine.Put(ctx, r.SeekObjectPath(path))
-	if err != nil {
-		return nil, err
+	w := &Writer{
+		ref:         r,
+		byteCounter: counter,
+		rowObject:   writer,
+		order:       o,
+		first:       true,
+		poolKey:     poolKey,
 	}
-	opts := zngio.WriterOpts{
-		//LZ4BlockSize: zngio.DefaultLZ4BlockSize,
+	if seekIndexStride != 0 {
+		w.seekIndexStride = seekIndexStride
+		seekOut, err := engine.Put(ctx, r.SeekObjectPath(path))
+		if err != nil {
+			return nil, err
+		}
+		opts := zngio.WriterOpts{
+			//LZ4BlockSize: zngio.DefaultLZ4BlockSize,
+		}
+		seekWriter := zngio.NewWriter(bufwriter.New(seekOut), opts)
+		w.seekIndex = seekindex.NewWriter(seekWriter)
+		w.seekIndexCloser = seekWriter
 	}
-	seekWriter := zngio.NewWriter(bufwriter.New(seekOut), opts)
-	return &Writer{
-		ref:             r,
-		byteCounter:     counter,
-		rowObject:       writer,
-		seekIndex:       seekindex.NewWriter(seekWriter),
-		seekIndexCloser: seekWriter,
-		order:           o,
-		first:           true,
-		poolKey:         poolKey,
-	}, nil
+	return w, nil
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
-	// We want to index the start of stream (SOS) position of the data file by
-	// record timestamps; we don't know when we've started a new stream until
-	// after we have written the first record in the stream.
-	sos := w.rowObject.LastSOS()
-	if err := w.rowObject.Write(rec); err != nil {
-		return err
-	}
 	key, err := rec.Deref(w.poolKey)
 	if err != nil {
 		key = zng.Value{zng.TypeNull, nil}
 	}
-	if w.first {
-		w.first = false
-		w.firstKey = key
-		if err := w.seekIndex.Write(key, sos); err != nil {
+	if w.seekIndex != nil {
+		if err := w.writeIndex(key); err != nil {
 			return err
 		}
-	} else if w.needSeekWrite && (w.lastKey.Bytes == nil || !bytes.Equal(key.Bytes, w.lastKey.Bytes)) {
-		if err := w.seekIndex.Write(key, sos); err != nil {
-			return err
-		}
-		w.needSeekWrite = false
 	}
-	if w.rowObject.LastSOS() != sos {
-		w.needSeekWrite = true
+	if err := w.rowObject.Write(rec); err != nil {
+		return err
 	}
 	w.lastKey = key
 	w.count++
+	return nil
+}
+
+func (w *Writer) writeIndex(key zng.Value) error {
+	w.seekIndexTrigger += len(key.Bytes)
+	if w.first {
+		w.first = false
+		w.firstKey = key
+		w.lastKey = key
+		return w.seekIndex.Write(key, 0)
+	}
+	if w.seekIndexTrigger < w.seekIndexStride || bytes.Equal(key.Bytes, w.lastKey.Bytes) {
+		return nil
+	}
+	if err := w.rowObject.EndStream(); err != nil {
+		return err
+	}
+	pos := w.rowObject.Position()
+	if err := w.seekIndex.Write(key, pos); err != nil {
+		return err
+	}
+	w.seekIndexTrigger = 0
 	return nil
 }
 
