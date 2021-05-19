@@ -48,7 +48,6 @@ func (m *Mapper) Enter(id int, ext zng.Type) (zng.Type, error) {
 
 func (m *Mapper) EnterType(td int, typ zng.Type) {
 	m.mu.Lock()
-	defer m.mu.Lock()
 	if td >= cap(m.types) {
 		new := make([]zng.Type, td+1, td*2)
 		copy(new, m.types)
@@ -57,4 +56,5 @@ func (m *Mapper) EnterType(td int, typ zng.Type) {
 		m.types = m.types[:td+1]
 	}
 	m.types[td] = typ
+	m.mu.Unlock()
 }
