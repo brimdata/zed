@@ -1,12 +1,16 @@
-# `zed` log query language (ZQL)
+# Zed language
 
-ZQL is a powerful query language for searching and analyzing event data. It is in many ways optimal for working with [Zeek](https://www.zeek.org/) data, though it can be used to query any data in in [ZNG](../formats/zng.md) or [NDJSON](http://ndjson.org/) format.
+The Zed platform includes a powerful language for searching, analyzing, and
+shaping data. The language embraces a _pipeline_ syntax that should be familiar
+to those who have worked with UNIX/Linux shells. Here's a simple example query:
 
-The language embraces a syntax that should be familiar to those who have worked with UNIX/Linux shells. At a high level, each query consists of a _[search](search-syntax/README.md)_ portion and an optional _pipeline_. Here's a simple example query:
+![Simple Example Zed](images/simple-example-zed.png)
 
-![Simple Example Query](images/simple-example-query.png)
-
-As is typical with pipelines, you can imagine the data flowing left-to-right through this chain of processing elements, such that the output of each element is the input to the next. The search portion first isolates a set of the stored event data, then each element of the pipeline performs additional operations on the data.
+As is typical with pipelines, you can imagine the data flowing left-to-right
+through this chain of processing elements, such that the output of each element
+is the input to the next. In this example, the search portion first isolates a
+set of the stored data, then each element of the pipeline performs additional
+operations on the data.
 
 The available pipeline elements are broadly categorized into:
 
