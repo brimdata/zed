@@ -211,7 +211,7 @@ func readValue(r reader, code byte, m *resolver.Mapper, validate bool, rec *zng.
 		}
 		return nil, zng.ErrBadFormat
 	}
-	typ := m.Map(id)
+	typ := m.Lookup(id)
 	if typ == nil {
 		return nil, zng.ErrTypeIDInvalid
 	}

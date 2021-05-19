@@ -27,7 +27,7 @@ func (m *Mapper) Read() (*zng.Record, error) {
 		return nil, nil
 	}
 	id := zng.TypeID(rec.Type)
-	sharedType := m.mapper.Map(id)
+	sharedType := m.mapper.Lookup(id)
 	if sharedType == nil {
 		sharedType, err = m.mapper.Enter(id, rec.Type)
 		if err != nil {
