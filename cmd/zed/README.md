@@ -30,7 +30,7 @@ data, which is used in the examples in the
 [query language documentation](../../docs/language/README.md).
 
 To cut the columns of a Zeek "conn" log like `zeek-cut`, and output to the
- terminal, use [`cut`](../../docs/language/processors/README.md#cut):
+ terminal, use [`cut`](../../docs/language/operators/README.md#cut):
 
 ```
 zq -z "* | cut ts,id.orig_h,id.orig_p" conn.log
@@ -38,7 +38,7 @@ zq -z "* | cut ts,id.orig_h,id.orig_p" conn.log
 
 The `-z` tells `zq` to use human-readable [ZSON](../../docs/formats/zson.md)
 for its output format. The "`*`"
-tells `zq` to match every line, which is sent to the `cut` processor
+tells `zq` to match every line, which is sent to the `cut` operator
 using the UNIX-like pipe syntax.
 
 When looking over everything like this, you can omit the search pattern

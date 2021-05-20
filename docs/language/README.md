@@ -18,7 +18,7 @@ pipeline.
 
 The available pipeline elements are broadly categorized into:
 
-* _[Searches](search/README.md)_ that isolate subsets of your data,
+* _[Searches](search-syntax/README.md)_ that isolate subsets of your data,
 * _[Operators](operators/README.md)_ that transform or filter records,
 * _[Expressions](expressions/README.md)_ for invoking functions or performing math and string processing on values,
 * _[Aggregate Functions](aggregate-functions/README.md)_ that carry out running computations based on the values of fields in successive events, and,
