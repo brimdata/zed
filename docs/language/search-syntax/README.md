@@ -300,7 +300,7 @@ zq -f table 'id.orig_p==id.resp_p' conn.log.gz
 
 #### Output:
 
-```zq-output head 4
+```zq-output head:4
 _PATH TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P PROTO SERVICE DURATION   ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  2018-03-24T17:15:22.942327Z C6QN8gJLaOXw0GiA6  10.47.24.81   60004     10.128.0.238    60004     tcp   -       0.003538   0          0          SF         -          -          0            ShAafF  8         344           8         344           -
 conn  2018-03-24T17:15:38.523165Z CzFhMc47JPCOG4Z9E9 10.47.3.142   137       10.164.94.120   137       udp   dns     2.99937    300        0          S0         -          -          0            D       6         468           0         0             -
