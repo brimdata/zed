@@ -96,7 +96,7 @@ questions.
 * zar: Fix an issue where a `couldn't read trailer` failure was observed during a `zar zq` query (#1748)
 * zar: Fix an issue where `zar import` of a 14 GB data set triggered a SEGV (#1766)
 * zql: Add a new [`drop`](docs/language/operators#drop) operator, which replaces `cut -c` (#1773)
-* zql: Add a new [`pick`](docs/language/operators#pick) operator, which acts like a stricter [`cut`](docs/language/operator#cut) (#1773, #1788)
+* zql: Add a new [`pick`](docs/language/operators#pick) operator, which acts like a stricter [`cut`](docs/language/operators#cut) (#1773, #1788)
 * zqd: Improve performance when listing Spaces via the API (#1779, #1786)
 
 ## v0.24.0
