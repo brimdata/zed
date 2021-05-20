@@ -43,8 +43,10 @@ type Command struct {
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{lake: parent.(*zedlake.Command)}
-	c.seekStride = units.Bytes(lake.SeekIndexStride)
+	c := &Command{
+		lake:       parent.(*zedlake.Command),
+		seekStride: units.Bytes(lake.SeekIndexStride),
+	}
 	f.Var(&c.seekStride, "seekstride", "size of seek-index unit for ZNG data, as '32KB', '1MB', etc.")
 	c.CommitFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f)
