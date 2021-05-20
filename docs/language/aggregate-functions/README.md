@@ -1,6 +1,6 @@
 # Aggregate Functions
 
-A pipeline may contain one or more _aggregate functions_, which operate on
+A pipeline may contain one or more _aggregate functions_ that operate on
 batches of records to carry out a running computation over the values they
 contain.
 
@@ -11,11 +11,11 @@ contain.
      + [`where` filtering](#where-filtering)
    * [Available Aggregate Functions](#available-aggregate-functions)
      + [`and`](#and)
+     + [`any`](#any)
      + [`avg`](#avg)
      + [`collect`](#collect)
      + [`count`](#count)
      + [`countdistinct`](#countdistinct)
-     + [`any`](#any)
      + [`max`](#max)
      + [`min`](#min)
      + [`or`](#or)
@@ -142,6 +142,36 @@ COUNT
 ```
 
 ---
+
+### `any`
+
+|                           |                                                                |
+| ------------------------- | -------------------------------------------------------------- |
+| **Description**           | Return any value observed for a specified field.               |
+| **Syntax**                | `any(<field-name>)`                                            |
+| **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
+| **Optional<br>arguments** | None                                                           |
+
+#### Example:
+
+To see the `name` of a Zeek `weird` record in our sample data:
+
+```zq-command
+zq -f table 'any(name)' weird.log.gz
+```
+
+For small inputs that fit in memory, this will typically be the first such
+field in the stream, but in general you should not rely upon this.  In this
+case, the output is:
+
+#### Output:
+```zq-output
+ANY
+TCP_ack_underflow_or_misorder
+```
+
+---
+
 ### `avg`
 
 |                           |                                                                |
@@ -202,10 +232,10 @@ CI0SCN14gWpY087KA3 GET,POST,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the number of records.                                   |
+| **Description**           | Return the number of records.                                  |
 | **Syntax**                | `count([field-name])`                                          |
 | **Required<br>arguments** | None                                                           |
-| **Optional<br>arguments** | `[field-name]`<br>The name a field. If specified, only records that contain this field will be counted. |
+| **Optional<br>arguments** | `[field-name]`<br>The name of a field. If specified, only records that contain this field will be counted. |
 
 #### Example #1:
 
@@ -225,7 +255,7 @@ COUNT
 
 Let's say we wanted to know how many records contain a field called `mime_type`.
 The following example shows us that count and that the field is present in
-in our Zeek `ftp` and `files` records.
+our Zeek `ftp` and `files` records.
 
 ```zq-command
 zq -f table 'count(mime_type) by _path | filter count > 0 | sort -r count' *.log.gz
@@ -243,14 +273,11 @@ ftp   93
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return a quick approximation of the number of unique values of a field. |
+| **Description**           | Return a quick approximation of the number of unique values of a field.|
 | **Syntax**                | `countdistinct(<field-name>)`                                  |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field containing values to be counted. |
 | **Optional<br>arguments** | None                                                           |
-| **Limitations**           | The potential inaccuracy of the calculated result is described in detail in the code and research linked from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog). |
-
-> **Note:** Partial aggregations are not yet implemented for `countdistinct` so
-> this might not work yet from Brim or zq.
+| **Limitations**           | The potential inaccuracy of the calculated result is described in detail in the code and research linked from the [HyperLogLog repository](https://github.com/axiomhq/hyperloglog).<br><br>Also, partial aggregations are not yet implemented for `countdistinct` ([zed/2743](https://github.com/brimdata/zed/issues/2743)), so it may not work correctly in all circumstances. |
 
 #### Example:
 
@@ -279,35 +306,7 @@ COUNT
 ```
 
 Here we saw the approximation was "off" by 0.75%. On the system that was used
-to perform this test, the ZQL using `countdistinct()` executed almost 3x faster.
-
----
-
-### `any`
-
-|                           |                                                                |
-| ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return any value observed for a specified field.               |
-| **Syntax**                | `any(<field-name>)`                                          |
-| **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
-| **Optional<br>arguments** | None                                                           |
-
-#### Example:
-
-To see the `name` of a Zeek `weird` event in our sample data:
-
-```zq-command
-zq -f table 'any(name)' weird.log.gz
-```
-
-For small inputs that fit in memory, this will typically be the first such
-field in the stream, but in general you should not rely upon this.  In this case,
-the output is:
-#### Output:
-```zq-output
-ANY
-TCP_ack_underflow_or_misorder
-```
+to perform this test, the Zed using `countdistinct()` executed almost 3x faster.
 
 ---
 
@@ -369,7 +368,7 @@ MIN
 | ------------------------- | -------------------------------------------------------------- |
 | **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for one or more inputs. Contrast with [`and`](#and). |
 | **Syntax**                | `or(<expression>)`                                             |
-| **Required<br>arguments** | `<expression>`<br>A valid ZQL [expression](../expressions/README.md). |
+| **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](../expressions/README.md). |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
@@ -391,8 +390,8 @@ ID.RESP_P COUNT
 ...
 ```
 
-The following query confirms this high-port traffic is present, but that none of
-those ports are higher than what TCP allows.
+The following query confirms this high-port traffic is present, but that none
+of those ports are higher than what TCP allows.
 
 ```zq-command
 zq -f table 'some_highports:=or(id.resp_p>80),impossible_ports:=or(id.resp_p>65535)' http.log.gz
