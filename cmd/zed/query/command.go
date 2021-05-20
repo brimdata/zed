@@ -131,6 +131,9 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
+	if len(args) == 0 && len(c.includes) == 0 {
+		return charm.NeedHelp
+	}
 	paths, query, err := ParseSourcesAndInputs(args, c.includes)
 	if err != nil {
 		return fmt.Errorf("zq: %w", err)
