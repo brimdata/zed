@@ -11,8 +11,6 @@ import (
 const (
 	// DefaultLZ4BlockSize is a reasonable default for WriterOpts.LZ4BlockSize.
 	DefaultLZ4BlockSize = 16 * 1024
-	// DefaultStreamRecordsMax is a reasonable default for WriterOpts.StreamRecordsMax.
-	DefaultStreamRecordsMax = 5000
 )
 
 type Writer struct {
@@ -23,13 +21,11 @@ type Writer struct {
 
 	encoder       *Encoder
 	buffer        []byte
-	lastSOS       int64
 	streamRecords int
 }
 
 type WriterOpts struct {
-	StreamRecordsMax int
-	LZ4BlockSize     int
+	LZ4BlockSize int
 }
 
 func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
@@ -93,12 +89,7 @@ func (w *Writer) EndStream() error {
 	if err := w.writeUncompressed([]byte{zng.CtrlEOS}); err != nil {
 		return err
 	}
-	w.lastSOS = w.Position()
 	return nil
-}
-
-func (w *Writer) LastSOS() int64 {
-	return w.lastSOS
 }
 
 func (w *Writer) Write(r *zng.Record) error {
@@ -149,11 +140,6 @@ func (w *Writer) Write(r *zng.Record) error {
 		return err
 	}
 	w.streamRecords++
-	if max := w.opts.StreamRecordsMax; max > 0 && w.streamRecords >= max {
-		if err := w.EndStream(); err != nil {
-			return err
-		}
-	}
 	return nil
 }
 

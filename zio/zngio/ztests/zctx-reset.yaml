@@ -1,11 +1,12 @@
 # Test that type contexts are properly reset and reusable after stream boundaries
 
 script: |
-  zq -b 1 - > s.zng
+  zq in.zson > s.zng
+  zq in.zson >> s.zng
   zq -z s.zng
 
 inputs:
-  - name: stdin
+  - name: in.zson
     data: |
       {a:"hello"}
       {b:10}
@@ -13,5 +14,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
+      {a:"hello"}
+      {b:10}
       {a:"hello"}
       {b:10}

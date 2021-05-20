@@ -20,7 +20,6 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/index/create"
 	_ "github.com/brimdata/zed/cmd/zed/index/lookup"
 	_ "github.com/brimdata/zed/cmd/zed/index/section"
-	_ "github.com/brimdata/zed/cmd/zed/index/seek"
 	"github.com/brimdata/zed/cmd/zed/lake"
 	_ "github.com/brimdata/zed/cmd/zed/lake/add"
 	_ "github.com/brimdata/zed/cmd/zed/lake/commit"

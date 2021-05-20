@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/pkg/units"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
@@ -33,17 +34,20 @@ func init() {
 }
 
 type Command struct {
-	lake                  *zedlake.Command
-	importStreamRecordMax int
-	commit                bool
+	lake       *zedlake.Command
+	seekStride units.Bytes
+	commit     bool
 	zedlake.CommitFlags
 	procFlags  procflags.Flags
 	inputFlags inputflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{lake: parent.(*zedlake.Command)}
-	f.IntVar(&c.importStreamRecordMax, "streammax", lake.ImportStreamRecordsMax, "limit for number of records in each ZNG stream (0 for no limit)")
+	c := &Command{
+		lake:       parent.(*zedlake.Command),
+		seekStride: units.Bytes(lake.SeekIndexStride),
+	}
+	f.Var(&c.seekStride, "seekstride", "size of seek-index unit for ZNG data, as '32KB', '1MB', etc.")
 	c.CommitFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
@@ -59,7 +63,7 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zed lake load: at least one input file must be specified (- for stdin)")
 	}
-	lake.ImportStreamRecordsMax = c.importStreamRecordMax
+	lake.SeekIndexStride = int(c.seekStride)
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
