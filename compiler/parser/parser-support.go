@@ -134,7 +134,7 @@ func ImproveError(src string, e error) error {
 	if len(lines) == 1 {
 		b.WriteString(fmt.Sprintf("error parsing Z at column %d:\n", colNo))
 	} else {
-		b.WriteString(fmt.Sprintf("error parsing Z at line %d, col %d:", lineNo+1, colNo))
+		b.WriteString(fmt.Sprintf("error parsing Z at line %d, col %d:\n", lineNo+1, colNo))
 	}
 	b.WriteString(strings.Join(lines[:lineNo+1], "\n"))
 	b.WriteByte('\n')
