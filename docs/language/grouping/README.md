@@ -1,9 +1,9 @@
 # Grouping
 
-ZQL includes _grouping_ options that partition the input stream into batches
+Zed includes _grouping_ options that partition the input stream into batches
 that are aggregated separately based on field values. Grouping is most often
 used with [aggregate functions](../aggregate-functions/README.md). If explicit
-grouping is not used, an aggregate function will operate over all events in the
+grouping is not used, an aggregate function will operate over all records in the
 input stream.
 
 Below you will find details regarding the available grouping mechanisms and
@@ -15,7 +15,7 @@ tips for their effective use.
 
 # Time Grouping - `every`
 
-To create batches of events that are close together in time, specify
+To create batches of records that are close together in time, specify
 `every <duration>` before invoking your aggregate function(s).
 
 The `<duration>` may be expressed as a combination of one or more of the
@@ -34,7 +34,8 @@ specification of each unit.
 | week        | `w`        |
 | year        | `y`        |
 
-* **Note**: The year (`y`) duration assumes a year is always precisely 365 days. It does not account for leap years/seconds.
+> **Note:**: The year (`y`) duration assumes a year is always precisely 365
+> days. It does not account for leap years/seconds.
 
 #### Example #1:
 
@@ -57,7 +58,7 @@ TS                   SUM
 
 #### Example #2:
 
-To see which 30-second intervals contained the most events, expressing the
+To see which 30-second intervals contained the most records, expressing the
 duration as a half-minute:
 
 ```zq-command
@@ -93,16 +94,16 @@ TS                   MAX
 
 # Value Grouping - `by`
 
-To create batches of events based on the values of fields or the results of
+To create batches of records based on the values of fields or the results of
 [expressions](../expressions/README.md), specify
-`by <field-name | name=expression> [, <field-name | name=expression> ...]`
+`by <field-name | name:=expression> [, <field-name | name:=expression> ...]`
 after invoking your aggregate function(s).
 
 #### Example #1:
 
 The simplest example summarizes the unique values of the named field(s), which
 requires no aggregate function. To see which protocols were observed in our
-Zeek `conn` events:
+Zeek `conn` records:
 
 ```zq-command
 zq -f table 'by proto | sort' conn.log.gz
@@ -117,11 +118,11 @@ udp
 ```
 
 If you work a lot at the UNIX/Linux shell, you might have sought to accomplish
-the same via a familiar, verbose idiom. This works in ZQL, but the `by`
+the same via a familiar, verbose idiom. This works in Zed, but the `by`
 shorthand is preferable.
 
 ```zq-command
-zq -f table 'cut proto | sort | uniq' conn.log.gz # Not advised - "by" is more succinct
+zq -f table 'cut proto | sort | uniq' conn.log.gz
 ```
 
 #### Output:
@@ -157,9 +158,9 @@ ID.RESP_H       ID.RESP_P SUM
 Instead of a simple field name, any of the comma-separated `by` groupings could
 be based on the result of an [expression](../expressions/README.md). The
 expression must be preceded by the name that will hold the expression result
-for further processing/presentation downstream in your ZQL pipeline.
+for further processing/presentation downstream in your Zed pipeline.
 
-In our sample data, the `answers` field of Zeek `dns` events is an array
+In our sample data, the `answers` field of Zeek `dns` records is an array
 that may hold multiple responses returned for a DNS query. To see which
 responding DNS servers generated the longest answers, we can group by
 both `id.resp_h` and an expression that evaluates the length of `answers`
@@ -185,7 +186,7 @@ All fields referenced in a `by` grouping must be present in a given record for
 the grouping to have effect.
 
 Let's say we've performed separate aggregations for fields present in different
-Zeek events. First we count the unique `host` values in `http` events.
+Zeek records. First we count the unique `host` values in `http` records.
 
 ```zq-command
 zq -f table 'count() by host | sort -r | head 3' http.log.gz
@@ -199,7 +200,7 @@ HOST       COUNT
 10.47.6.58 15180
 ```
 
-Next we count the unique `query` values in `dns` events.
+Next we count the unique `query` values in `dns` records.
 
 ```zq-command
 zq -f table 'count() by query | sort -r | head 3' dns.log.gz
@@ -244,8 +245,8 @@ zq -f zson 'count() by _path,typeof(.) | sort _path' http.log.gz dns.log.gz
 ```
 
 A way to achieve this would be to use the
-[`fuse` processor](../processors/README.md#fuse) to unite the `http` and `dns`
-events under a single schema. This has the effect of populating missing
+[`fuse` operator](../operators/README.md#fuse) to unite the `http` and `dns`
+records under a single schema. This has the effect of populating missing
 fields with null values. Now that the named fields are present in
 all records, the `by` grouping has the desired effect.
 
@@ -264,12 +265,12 @@ HOST       QUERY          COUNT
 # Note: Undefined Order
 
 The order of results from a grouped aggregation are undefined. If you want to
-ensure a specific order, a [`sort` processor](../processors/README.md#sort)
-should be used downstream of the aggregate function(s) in the ZQL pipeline.
+ensure a specific order, a [`sort` operator](../operators/README.md#sort)
+should be used downstream of the aggregate function(s) in the Zed pipeline.
 
 #### Example:
 
-If we were counting events into 5-minute batches and wanted to see these
+If we were counting records into 5-minute batches and wanted to see these
 results ordered by incrementing timestamp of each batch:
 
 ```zq-command
@@ -286,7 +287,7 @@ TS                   COUNT
 2018-03-24T17:35:00Z 98755
 ```
 
-If we'd wanted to see them ordered from lowest to highest event count:
+If we'd wanted to see them ordered from lowest to highest record count:
 
 ```zq-command
 zq -f table 'every 5m count() | sort count' *.log.gz
@@ -302,15 +303,15 @@ TS                   COUNT
 2018-03-24T17:15:00Z 441229
 ```
 
-Events that are stored and retrieved via [`zed lake
-serve`](../../../cmd/zed/lake) (that is, using the [Brim
-application](https://github.com/brimdata/brim) and/or
-[`zapi`](../../../cmd/zapi)) are by default automatically sorted in rerverse
+Records that are stored and retrieved via
+[`zed lake serve`](../../../cmd/zed/lake) (that is, using the
+[Brim application](https://github.com/brimdata/brim) and/or
+[`zapi`](../../../cmd/zapi)) are by default automatically sorted in reverse
 order by timestamp (`ts`). Therefore for the particular case of a [time
 grouping](#time-grouping---every) query entered via Brim or `zapi`, if the same
 reverse time ordering is desired in the output of the aggregation result, an
-explicit `| sort -r ts` is _not_ necessary on your ZQL pipeline.
+explicit `| sort -r ts` is _not_ necessary on your Zed pipeline.
 
 #### Output:
 
-![ZQL "every" in Brim](media/Brim-ZQL-every.png)
+![Zed "every" in Brim](media/Brim-Zed-every.png)
