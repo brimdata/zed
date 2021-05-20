@@ -1,0 +1,14 @@
+script: |
+  source services.sh
+  zapi -host $LAKE_HOST -p test post -f -
+  zapi -host $LAKE_HOST -p test get -z > out.zson
+
+inputs:
+  - name: services.sh
+  - name: stdin
+    data: &stdin |
+      {ts:"A field named ts usually has type time, but this one does not."}
+
+outputs:
+  - name: out.zson
+    data: *stdin
