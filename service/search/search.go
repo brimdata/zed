@@ -98,7 +98,7 @@ func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, pool *lake
 		scanOrder = "desc"
 	}
 	var scanRange *ast.Range
-	if s.query.Span.Dur != 0 {
+	if s.query.Span.Dur != 0 && poolHasSpan(ctx, pool) {
 		scanRange = &ast.Range{
 			Kind: "Range",
 			Lower: &zed.Primitive{
@@ -130,6 +130,18 @@ func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, pool *lake
 	defer statsTicker.Stop()
 	zctx := zson.NewContext()
 	return driver.RunWithLakeAndStats(ctx, d, seq, zctx, adaptor, statsTicker.C, s.logger, parallelism)
+}
+
+func poolHasSpan(ctx context.Context, pool *lake.Pool) bool {
+	snap, err := pool.Log().Head(ctx)
+	if err != nil {
+		return false
+	}
+	info, err := pool.Info(ctx, snap)
+	if err != nil {
+		return false
+	}
+	return info.Span != nil
 }
 
 // A Query is the internal representation of search query describing a source
