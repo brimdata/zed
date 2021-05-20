@@ -88,7 +88,3 @@ func (*Lake) NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSU
 func (*Lake) Open(_ context.Context, _ *zson.Context, _ string, _ zbuf.Filter) (zbuf.PullerCloser, error) {
 	return nil, fmt.Errorf("mock.Lake.Open() should not be called")
 }
-
-func (*Lake) Get(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
-	return nil, fmt.Errorf("mock.Lake Get() should not be called")
-}

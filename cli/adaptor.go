@@ -59,7 +59,3 @@ func (f *FileAdaptor) Open(ctx context.Context, zctx *zson.Context, path string,
 		io.Closer
 	}{sn, file}, nil
 }
-
-func (f *FileAdaptor) Get(ctx context.Context, zctx *zson.Context, url string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
-	return f.Open(ctx, zctx, url, pushdown)
-}

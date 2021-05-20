@@ -387,9 +387,5 @@ func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, id, at ksui
 }
 
 func (r *Root) Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
-	return nil, errors.New("cannot use 'file' source in a lake query")
-}
-
-func (r *Root) Get(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
-	return nil, errors.New("'http' data source in a lake query is currently not supported")
+	return nil, errors.New("cannot use 'file' or 'http' source in a lake query")
 }

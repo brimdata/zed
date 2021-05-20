@@ -504,7 +504,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 		}
 		source = from.NewScheduler(b.pctx, sched)
 	case *dag.HTTP:
-		puller, err := b.adaptor.Get(b.pctx.Context, b.pctx.Zctx, src.URL, pushdown)
+		puller, err := b.adaptor.Open(b.pctx.Context, b.pctx.Zctx, src.URL, pushdown)
 		if err != nil {
 			return nil, err
 		}
