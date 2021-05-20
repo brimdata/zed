@@ -60,6 +60,6 @@ func (f *FileAdaptor) Open(ctx context.Context, zctx *zson.Context, path string,
 	}{sn, file}, nil
 }
 
-func (*FileAdaptor) Get(_ context.Context, _ *zson.Context, url string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
-	return nil, errors.New("http source not yet implemented")
+func (f *FileAdaptor) Get(ctx context.Context, zctx *zson.Context, url string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
+	return f.Open(ctx, zctx, url, pushdown)
 }

@@ -4,6 +4,9 @@ import (
 	"context"
 	"errors"
 	"io"
+	"net/http"
+
+	"github.com/brimdata/zed/zqe"
 )
 
 type HTTPEngine struct{}
@@ -14,9 +17,28 @@ func NewHTTP() *HTTPEngine {
 	return &HTTPEngine{}
 }
 
-func (*HTTPEngine) Get(_ context.Context, u *URI) (Reader, error) {
-	return nil, errors.New("see issue #734")
+func (*HTTPEngine) Get(ctx context.Context, u *URI) (Reader, error) {
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		resp.Body.Close()
+		if resp.StatusCode == http.StatusNotFound {
+			return nil, zqe.ErrNotFound()
+		}
+		return nil, errors.New(resp.Status)
+	}
+	return &notSupportedReaderAt{resp.Body}, nil
 }
+
+type notSupportedReaderAt struct{ io.ReadCloser }
+
+func (*notSupportedReaderAt) ReadAt(_ []byte, _ int64) (int, error) { return 0, ErrNotSupported }
 
 func (*HTTPEngine) Put(_ context.Context, u *URI) (io.WriteCloser, error) {
 	return nil, ErrNotSupported

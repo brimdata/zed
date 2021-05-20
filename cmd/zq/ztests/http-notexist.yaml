@@ -1,0 +1,11 @@
+script: |
+  . http.bash
+  zq -z $http_base_url/does/not/exist
+
+inputs:
+  - name: http.bash
+
+outputs:
+  - name: stderr
+    regexp: |
+      http://127.0.0.1:\d+/does/not/exist: item does not exist
