@@ -1,0 +1,18 @@
+script: zq -z -I badshaper.zed -
+
+inputs:
+  - name: stdin
+    data: |
+      {"_path": "bar", "testfield": null}
+  - name: badshaper.zed
+    data: |
+      type foo={_path:string,testfield:"null"}
+      put . = shape(foo)
+
+outputs:
+  - name: stderr
+    data: |
+      zq: parse error: error parsing Z at line 1, col 34:
+      type foo={_path:string,testfield:"null"}
+                                   === ^ ===
+      put . = shape(foo)
