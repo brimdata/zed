@@ -1,0 +1,12 @@
+script: |
+  zq -I query.zed
+
+inputs:
+  - name: query.zed
+    data: |
+      from ( file a.zson )
+
+outputs:
+  - name: stderr
+    regexp: |
+      a.zson: item does not exist: file:///.*/a.zson

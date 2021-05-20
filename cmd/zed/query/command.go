@@ -131,12 +131,6 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if len(args) == 0 {
-		return charm.NeedHelp
-	}
-	if err != nil {
-		return err
-	}
 	paths, query, err := ParseSourcesAndInputs(args, c.includes)
 	if err != nil {
 		return fmt.Errorf("zq: %w", err)
@@ -169,8 +163,11 @@ func (c *Command) Run(args []string) error {
 	if isJoin(query) {
 		stats, err = driver.RunJoinWithFileSystem(ctx, d, query, zctx, readers, adaptor)
 	} else {
-		reader := zio.ConcatReader(readers...)
-		stats, err = driver.RunWithFileSystem(ctx, d, query, zctx, reader, adaptor)
+		var zr zio.Reader
+		if len(readers) > 0 {
+			zr = zio.ConcatReader(readers...)
+		}
+		stats, err = driver.RunWithFileSystem(ctx, d, query, zctx, zr, adaptor)
 	}
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
