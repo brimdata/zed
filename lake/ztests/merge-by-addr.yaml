@@ -1,0 +1,54 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -S 75B -p logs -orderby addr:asc
+  zed lake load -q -p logs in.zson
+  zed lake query -z 'from logs | cut addr'
+
+inputs:
+  - name: in.zson
+    data: |
+      {ts:2018-03-24T17:16:15.624089Z,addr:10.128.0.241,uid:"CzJyWf4UbQbYGKPUKl"}
+      {ts:2018-03-24T17:15:32.124366Z,addr:10.128.0.248,uid:"CzMQei2GoNVRxPPeGa"}
+      {ts:2018-03-24T17:16:18.196163Z,addr:10.128.0.241,uid:"CzNWmr24TkNjgiqZrj"}
+      {ts:2018-03-24T17:16:19.296543Z,addr:10.128.0.241,uid:"CzPcfx16mAtMJ8cobl"}
+      {ts:2018-03-24T17:15:30.829612Z,addr:10.128.0.248,uid:"CzSVzs15FHBuzD849l"}
+      {ts:2018-03-24T17:15:49.212749Z,addr:10.174.251.215,uid:"CzUF5T1E9rGyFlVpUj"}
+      {ts:2018-03-24T17:15:43.820748Z,addr:10.47.1.10,uid:"CzVIzI28Lv7h63ygtk"}
+      {ts:2018-03-24T17:16:15.204827Z,addr:10.128.0.241,uid:"CzX38EuDhrdMCAry"}
+      {ts:2018-03-24T17:15:59.246551Z,addr:10.128.0.248,uid:"CzZyLD2vB5NSfav0l6"}
+      {ts:2018-03-24T17:15:37.161368Z,addr:10.224.110.133,uid:"CzaCxT2532474LLLU6"}
+      {ts:2018-03-24T17:16:09.025779Z,addr:10.47.7.10,uid:"CzatK01nVTMr13XNg8"}
+      {ts:2018-03-24T17:16:18.194559Z,addr:10.128.0.241,uid:"CzcoU9nOnSmtCMqnj"}
+      {ts:2018-03-24T17:16:16.762659Z,addr:10.128.0.241,uid:"CzcswW3cTVbkkhxu62"}
+      {ts:2018-03-24T17:15:33.284901Z,addr:10.224.110.133,uid:"CzeOmZxRd4CShWLR5"}
+      {ts:2018-03-24T17:15:49.790699Z,addr:10.47.5.100,uid:"CzkWyj3ANVuSANwQT8"}
+      {ts:2018-03-24T17:16:19.270496Z,addr:10.128.0.241,uid:"Czm7ey4b2kDXx89kw5"}
+      {ts:2018-03-24T17:16:15.625193Z,addr:10.128.0.241,uid:"CzngVe10knDMmjcf12"}
+      {ts:2018-03-24T17:15:46.091461Z,addr:10.47.6.154,uid:"Czqhh93DQVJjU5Igr5"}
+      {ts:2018-03-24T17:15:23.461005Z,addr:10.47.2.153,uid:"Czrzs74DZscCd8oMn7"}
+      {ts:2018-03-24T17:16:16.958922Z,addr:10.128.0.241,uid:"Czs9Fm3TxKlTX3LTPh"}
+
+outputs:
+  - name: stdout
+    data: |
+      {addr:10.47.1.10}
+      {addr:10.47.2.153}
+      {addr:10.47.5.100}
+      {addr:10.47.6.154}
+      {addr:10.47.7.10}
+      {addr:10.128.0.241}
+      {addr:10.128.0.241}
+      {addr:10.128.0.241}
+      {addr:10.128.0.241}
+      {addr:10.128.0.241}
+      {addr:10.128.0.241}
+      {addr:10.128.0.241}
+      {addr:10.128.0.241}
+      {addr:10.128.0.241}
+      {addr:10.128.0.248}
+      {addr:10.128.0.248}
+      {addr:10.128.0.248}
+      {addr:10.174.251.215}
+      {addr:10.224.110.133}
+      {addr:10.224.110.133}
