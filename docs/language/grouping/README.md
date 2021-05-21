@@ -35,7 +35,7 @@ specification of each unit.
 | year        | `y`        |
 
 > **Note:**: The year (`y`) duration assumes a year is always precisely 365
-> days. It does not account for leap years/seconds.
+> days. It does not account for leap years or leap seconds.
 
 #### Example #1:
 
