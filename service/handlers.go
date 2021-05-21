@@ -11,115 +11,70 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/journal"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/service/jsonpipe"
 	"github.com/brimdata/zed/service/search"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
-	"github.com/gorilla/mux"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 )
 
-func errorResponse(e error) (status int, ae *api.Error) {
-	status = http.StatusInternalServerError
-	ae = &api.Error{Type: "Error"}
-
-	var ze *zqe.Error
-	if !errors.As(e, &ze) {
-		ae.Message = e.Error()
+func handleASTPost(c *Core, w *ResponseWriter, r *Request) {
+	var req api.ASTRequest
+	if accept := r.Header.Get("Accept"); accept != "" && accept != api.MediaTypeJSON {
+		w.Error(zqe.ErrInvalid("unsupported accept header: %s", accept))
 		return
 	}
-
-	switch ze.Kind {
-	case zqe.Invalid:
-		status = http.StatusBadRequest
-	case zqe.NotFound:
-		status = http.StatusNotFound
-	case zqe.Exists:
-		status = http.StatusBadRequest
-	case zqe.Conflict:
-		status = http.StatusConflict
-	case zqe.NoCredentials:
-		status = http.StatusUnauthorized
-	case zqe.Forbidden:
-		status = http.StatusForbidden
-	}
-
-	ae.Kind = ze.Kind.String()
-	ae.Message = ze.Message()
-	return
-}
-
-func respond(c *Core, w http.ResponseWriter, r *http.Request, status int, body interface{}) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(body); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
-	}
-}
-
-func respondError(c *Core, w http.ResponseWriter, r *http.Request, err error) {
-	status, ae := errorResponse(err)
-	if status >= 500 {
-		c.requestLogger(r).Warn("error", zap.Int("status", status), zap.Error(err))
-	}
-	respond(c, w, r, status, ae)
-}
-
-func request(c *Core, w http.ResponseWriter, r *http.Request, apiobj interface{}) bool {
-	if err := json.NewDecoder(r.Body).Decode(apiobj); err != nil {
-		respondError(c, w, r, zqe.E(zqe.Invalid, err))
-		return false
-	}
-	return true
-}
-
-func handleASTPost(c *Core, w http.ResponseWriter, r *http.Request) {
-	var req api.ASTRequest
-	if !request(c, w, r, &req) {
+	if !r.Unmarshal(w, &req) {
 		return
 	}
 	proc, err := compiler.ParseProc(req.ZQL)
 	if err != nil {
-		respondError(c, w, r, zqe.ErrInvalid(err))
+		w.Error(err)
 		return
 	}
-	respond(c, w, r, http.StatusOK, proc)
+	w.WriteHeader(http.StatusOK)
+	if err := json.NewEncoder(w).Encode(proc); err != nil {
+		w.Error(err)
+		return
+	}
 }
 
-func handleSearch(c *Core, w http.ResponseWriter, r *http.Request) {
+func handleSearch(c *Core, w *ResponseWriter, r *Request) {
 	var req api.SearchRequest
-	if !request(c, w, r, &req) {
+	if !r.Unmarshal(w, &req) {
 		return
 	}
-	pool, err := c.root.OpenPool(r.Context(), req.Pool)
+	pool, err := c.root.OpenPool(r.Context(), ksuid.KSUID(req.Pool))
 	if err != nil {
 		if errors.Is(err, lake.ErrPoolNotFound) {
 			err = zqe.ErrNotFound(err)
 		}
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
-	srch, err := search.NewSearchOp(req, c.requestLogger(r))
+	srch, err := search.NewSearchOp(req, r.Logger)
 	if err != nil {
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
-	out, err := getSearchOutput(w, r)
+	out, err := getSearchOutput(w.ResponseWriter, r)
 	if err != nil {
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
 	w.Header().Set("Content-Type", out.ContentType())
 	if err := srch.Run(r.Context(), c.root, pool, out, 0); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
+		r.Logger.Warn("Error writing response", zap.Error(err))
 	}
 }
 
-func getSearchOutput(w http.ResponseWriter, r *http.Request) (search.Output, error) {
+func getSearchOutput(w http.ResponseWriter, r *Request) (search.Output, error) {
 	ctrl := true
 	if r.URL.Query().Get("noctrl") != "" {
 		ctrl = false
@@ -147,77 +102,90 @@ type nopWriteCloser struct {
 
 func (nopWriteCloser) Close() error { return nil }
 
-func handlePoolList(c *Core, w http.ResponseWriter, r *http.Request) {
-	var pools []api.Pool
-	// XXX (nibs) This should run ScanPools but needs to be serialized as a json
-	// array of pool. Revisit.
-	for _, pool := range c.root.ListPools() {
-		pools = append(pools, api.Pool{
-			ID:   pool.ID,
-			Name: pool.Name,
-		})
+func handlePoolList(c *Core, w *ResponseWriter, r *Request) {
+	zw := w.ZioWriterWithOpts(anyio.WriterOpts{JSON: jsonio.WriterOpts{ForceArray: true}})
+	if zw == nil {
+		return
 	}
-	respond(c, w, r, http.StatusOK, pools)
+	if err := c.root.ScanPools(r.Context(), zw); err != nil {
+		r.Logger.Warn("Error scanning pools", zap.Error(err))
+		return
+	}
+	zw.Close()
 }
 
-func handlePoolGet(c *Core, w http.ResponseWriter, r *http.Request) {
-	id, ok := extractPoolID(c, w, r)
+func handlePoolGet(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
 	if !ok {
 		return
 	}
 	pool, err := c.root.OpenPool(r.Context(), id)
 	if errors.Is(err, lake.ErrPoolNotFound) {
-		respondError(c, w, r, zqe.ErrNotFound("pool %q not found", id))
-		return
+		err = zqe.ErrNotFound("pool %q not found", id)
 	}
 	if err != nil {
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
-	snap, err := pool.Log().Head(r.Context())
-	if errors.Is(err, journal.ErrEmpty) {
-		respond(c, w, r, http.StatusOK, api.Pool{ID: pool.ID, Name: pool.Name})
-		return
-	}
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	info, err := pool.Info(r.Context(), snap)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-	respond(c, w, r, http.StatusOK, api.PoolInfo{
-		Pool: api.Pool{ID: pool.ID, Name: pool.Name},
-		Size: info.Size,
-		Span: info.Span,
-	})
+	w.Respond(http.StatusOK, pool.PoolConfig)
 }
 
-func handlePoolPost(c *Core, w http.ResponseWriter, r *http.Request) {
-	var req api.PoolPostRequest
-	if !request(c, w, r, &req) {
+func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
+	if !ok {
 		return
 	}
-	layout := order.NewLayout(req.Order, req.Keys)
-	pool, err := c.root.CreatePool(r.Context(), req.Name, layout, req.Thresh)
+	at, ok := r.JournalIDFromQuery("at", w)
+	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if errors.Is(err, lake.ErrPoolNotFound) {
+		err = zqe.ErrNotFound("pool %q not found", id)
+	}
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	snap, err := pool.Log().Snapshot(r.Context(), at)
+	if err != nil {
+		if errors.Is(err, journal.ErrEmpty) {
+			w.Respond(http.StatusOK, lake.PoolStats{})
+			return
+		}
+		w.Error(err)
+		return
+	}
+	info, err := pool.Stats(r.Context(), snap)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	w.Respond(http.StatusOK, info)
+}
+
+func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
+	var req api.PoolPostRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	pool, err := c.root.CreatePool(r.Context(), req.Name, req.Layout, req.Thresh)
 	if err != nil {
 		if errors.Is(err, lake.ErrPoolExists) {
 			err = zqe.ErrConflict(err)
 		}
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
-	respond(c, w, r, http.StatusOK, api.Pool{Name: pool.Name, ID: pool.ID})
+	w.Respond(http.StatusOK, pool.PoolConfig)
 }
 
-func handlePoolPut(c *Core, w http.ResponseWriter, r *http.Request) {
+func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 	var req api.PoolPutRequest
-	if !request(c, w, r, &req) {
+	if !r.Unmarshal(w, &req) {
 		return
 	}
-	id, ok := extractPoolID(c, w, r)
+	id, ok := r.PoolID(w)
 	if !ok {
 		return
 	}
@@ -228,55 +196,141 @@ func handlePoolPut(c *Core, w http.ResponseWriter, r *http.Request) {
 		} else if errors.Is(err, lake.ErrPoolNotFound) {
 			err = zqe.ErrNotFound(err)
 		}
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handlePoolDelete(c *Core, w http.ResponseWriter, r *http.Request) {
-	id, ok := extractPoolID(c, w, r)
+func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
 	if !ok {
 		return
 	}
 	if err := c.root.RemovePool(r.Context(), id); err != nil {
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handleLogPost(c *Core, w http.ResponseWriter, r *http.Request) {
-	var req api.LogPostRequest
-	if !request(c, w, r, &req) {
-		return
-	}
-	if len(req.Paths) == 0 {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "empty paths"))
-		return
-	}
-	id, ok := extractPoolID(c, w, r)
+type warningCollector []string
+
+func (w *warningCollector) Warn(msg string) error {
+	*w = append(*w, msg)
+	return nil
+}
+
+func handleAdd(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
 	if !ok {
 		return
 	}
-
 	pool, err := c.root.OpenPool(r.Context(), id)
 	if err != nil {
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
+	zr, err := anyio.NewReader(r.Body, zson.NewContext())
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	warnings := warningCollector{}
+	zr = zio.NewWarningReader(zr, &warnings)
+	commit, err := pool.Add(r.Context(), zr)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	w.Respond(http.StatusOK, api.AddResponse{
+		Warnings: warnings,
+		Commit:   commit,
+	})
+}
 
+func handleCommit(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	var commit api.CommitRequest
+	if !r.Unmarshal(w, &commit) {
+		return
+	}
+	commitID, ok := r.TagFromPath("commit", w)
+	if !ok {
+		return
+	}
+	err = pool.Commit(r.Context(), commitID, commit.Date, commit.Author, commit.Message)
+	if err != nil {
+		w.Error(err)
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
+func handleScanStaging(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	ids, err := pool.ListStagedCommits(r.Context())
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	if len(ids) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
+	}
+	zw := w.ZioWriter()
+	defer zw.Close()
+	if err := pool.ScanStaging(r.Context(), zw, ids); err != nil {
+		w.Error(err)
+		return
+	}
+}
+
+func handleLogPostPaths(c *Core, w *ResponseWriter, r *Request) {
+	var req api.LogPostRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	if len(req.Paths) == 0 {
+		w.Error(zqe.E(zqe.Invalid, "empty paths"))
+		return
+	}
+	id, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if err != nil {
+		w.Error(err)
+		return
+	}
 	op, err := NewLogOp(r.Context(), pool, req)
 	if err != nil {
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
-	w.Header().Set("Content-Type", "application/ndjson")
+	if w.ContentType() == api.MediaTypeJSON {
+		w.SetContentType(api.MediaTypeNDJSON)
+	}
 	w.WriteHeader(http.StatusAccepted)
-	logger := c.requestLogger(r)
-	pipe := jsonpipe.New(w)
+	pipe := jsonpipe.New(w.ResponseWriter)
 	if err := pipe.SendStart(0); err != nil {
-		logger.Warn("error sending payload", zap.Error(err))
+		w.Logger.Warn("error sending payload", zap.Error(err))
 		return
 	}
 	ticker := time.NewTicker(time.Second)
@@ -293,19 +347,19 @@ loop:
 				Warning: warning,
 			})
 			if err != nil {
-				logger.Warn("error sending payload", zap.Error(err))
+				w.Logger.Warn("error sending payload", zap.Error(err))
 				return
 			}
 		case <-ticker.C:
 			if err := pipe.Send(op.Stats()); err != nil {
-				logger.Warn("error sending payload", zap.Error(err))
+				w.Logger.Warn("error sending payload", zap.Error(err))
 				return
 			}
 		}
 	}
 	// send final status
 	if err := pipe.Send(op.Stats()); err != nil {
-		logger.Warn("error sending payload", zap.Error(err))
+		w.Logger.Warn("error sending payload", zap.Error(err))
 		return
 	}
 	err = op.Error()
@@ -316,29 +370,30 @@ loop:
 	if err == nil {
 		res := api.LogPostResponse{Type: "LogPostResponse", Commit: op.Commit()}
 		if err := pipe.Send(res); err != nil {
-			logger.Warn("error sending payload", zap.Error(err))
+			w.Logger.Warn("error sending payload", zap.Error(err))
 			return
 		}
 	}
 	if err := pipe.SendEnd(0, err); err != nil {
-		logger.Warn("error sending payload", zap.Error(err))
+		w.Logger.Warn("error sending payload", zap.Error(err))
 		return
 	}
 }
 
-func handleLogStream(c *Core, w http.ResponseWriter, r *http.Request) {
+// Deprecated. Use handlePoolAdd instead.
+func handleLogPost(c *Core, w *ResponseWriter, r *Request) {
 	form, err := r.MultipartReader()
 	if err != nil {
-		respondError(c, w, r, zqe.ErrInvalid(err))
+		w.Error(zqe.ErrInvalid(err))
 		return
 	}
-	id, ok := extractPoolID(c, w, r)
+	id, ok := r.PoolID(w)
 	if !ok {
 		return
 	}
 	pool, err := c.root.OpenPool(r.Context(), id)
 	if err != nil {
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
 	zctx := zson.NewContext()
@@ -348,17 +403,17 @@ func handleLogStream(c *Core, w http.ResponseWriter, r *http.Request) {
 	}
 	commit, err := pool.Add(r.Context(), zr)
 	if err != nil {
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
 	// XXX Figure out some mechanism for propagating user and message.
 	if err := pool.Commit(r.Context(), commit, nano.Now(), "", ""); err != nil {
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
 
 	// XXX add a separate commit hook
-	respond(c, w, r, http.StatusOK, api.LogPostResponse{
+	w.Respond(http.StatusOK, api.LogPostResponse{
 		Type:      "LogPostResponse",
 		BytesRead: zr.BytesRead(),
 		Commit:    commit,
@@ -367,7 +422,7 @@ func handleLogStream(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 
 /* XXX Not yet
-func handleIndexPost(c *Core, w http.ResponseWriter, r *http.Request) {
+func handleIndexPost(c *Core, w *Response, r *Request) {
 	var req api.IndexPostRequest
 	if !request(c, w, r, &req) {
 		return
@@ -380,7 +435,7 @@ func handleIndexPost(c *Core, w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
+func handleIndexSearch(c *Core, w *Response, r *Request) {
 	var req api.IndexSearchRequest
 	if !request(c, w, r, &req) {
 		return
@@ -420,33 +475,18 @@ func handleIndexSearch(c *Core, w http.ResponseWriter, r *http.Request) {
 }
 */
 
-func extractPoolID(c *Core, w http.ResponseWriter, r *http.Request) (ksuid.KSUID, bool) {
-	v := mux.Vars(r)
-	s, ok := v["pool"]
-	if !ok {
-		respondError(c, w, r, zqe.ErrInvalid("no pool id in path"))
-		return ksuid.Nil, false
-	}
-	id, err := ksuid.Parse(s)
-	if err != nil {
-		respondError(c, w, r, zqe.ErrInvalid(err))
-		return ksuid.Nil, false
-	}
-	return id, true
-}
-
-func handleAuthIdentityGet(c *Core, w http.ResponseWriter, r *http.Request) {
+func handleAuthIdentityGet(c *Core, w *ResponseWriter, r *Request) {
 	ident := auth.IdentityFromContext(r.Context())
-	respond(c, w, r, http.StatusOK, api.AuthIdentityResponse{
+	w.Respond(http.StatusOK, api.AuthIdentityResponse{
 		TenantID: string(ident.TenantID),
 		UserID:   string(ident.UserID),
 	})
 }
 
-func handleAuthMethodGet(c *Core, w http.ResponseWriter, r *http.Request) {
+func handleAuthMethodGet(c *Core, w *ResponseWriter, r *Request) {
 	if c.auth == nil {
-		respond(c, w, r, http.StatusOK, api.AuthMethodResponse{Kind: api.AuthMethodNone})
+		w.Respond(http.StatusOK, api.AuthMethodResponse{Kind: api.AuthMethodNone})
 		return
 	}
-	respond(c, w, r, http.StatusOK, c.auth.MethodResponse())
+	w.Respond(http.StatusOK, c.auth.MethodResponse())
 }

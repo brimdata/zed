@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio/zjsonio"
@@ -47,11 +46,14 @@ type TaskEnd struct {
 }
 
 type SearchRequest struct {
-	JournalID uint64          `json:"journal_id"`
-	Pool      ksuid.KSUID     `json:"pool"`
-	Proc      json.RawMessage `json:"proc,omitempty"`
-	Span      nano.Span       `json:"span"`
-	Dir       int             `json:"dir"`
+	JournalID uint64 `json:"journal_id"`
+	// Pool has to have wrapped type because KSUID in request body can be either
+	// hex or base62 and the regular ksuid.KSUID does not handle hex. This will
+	// go away once the search endpoint is deprecated.
+	Pool KSUID           `json:"pool"`
+	Proc json.RawMessage `json:"proc,omitempty"`
+	Span nano.Span       `json:"span"`
+	Dir  int             `json:"dir"`
 }
 
 type SearchRecords struct {
@@ -85,27 +87,14 @@ type ScannerStats struct {
 	RecordsMatched int64 `json:"records_matched"`
 }
 
-type Pool struct {
-	ID   ksuid.KSUID `json:"id" zng:"id"`
-	Name string      `json:"name" zng:"name"`
-}
-
-type PoolInfo struct {
-	Pool
-	Span *nano.Span `json:"span,omitempty"`
-	Size int64      `json:"size" unit:"bytes"`
-}
-
 type VersionResponse struct {
 	Version string `json:"version"`
 }
 
-// XXX This should use order.Layout.  See #2654.
 type PoolPostRequest struct {
-	Name   string      `json:"name"`
-	Keys   field.List  `json:"keys"`
-	Order  order.Which `json:"order"`
-	Thresh int64       `json:"thresh"`
+	Name   string       `json:"name"`
+	Layout order.Layout `json:"layout"`
+	Thresh int64        `json:"thresh"`
 }
 
 type PoolPutRequest struct {
@@ -113,9 +102,9 @@ type PoolPutRequest struct {
 }
 
 type CommitRequest struct {
-	Commit  string `json:"commit"`
-	User    string `json:"user"`
-	Message string `json:"message"`
+	Author  string  `zng:"author"`
+	Date    nano.Ts `zng:"date"`
+	Message string  `zng:"message"`
 }
 
 type LogPostRequest struct {
@@ -140,6 +129,11 @@ type LogPostResponse struct {
 	BytesRead int64       `json:"bytes_read" unit:"bytes"`
 	Commit    ksuid.KSUID `json:"commit"`
 	Warnings  []string    `json:"warnings"`
+}
+
+type AddResponse struct {
+	Commit   ksuid.KSUID `zng:"commit"`
+	Warnings []string    `zng:"warnings"`
 }
 
 type IndexSearchRequest struct {

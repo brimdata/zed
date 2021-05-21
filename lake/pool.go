@@ -389,13 +389,13 @@ func (p *Pool) indexSegment(ctx context.Context, rules []index.Index, id ksuid.K
 	return w.References(), err
 }
 
-type PoolInfo struct {
-	Size int64
+type PoolStats struct {
+	Size int64 `zng:"size"`
 	// XXX (nibs) - This shouldn't be a span because keys don't have to be time.
-	Span *nano.Span
+	Span *nano.Span `zng:"span"`
 }
 
-func (p *Pool) Info(ctx context.Context, snap *commit.Snapshot) (info PoolInfo, err error) {
+func (p *Pool) Stats(ctx context.Context, snap *commit.Snapshot) (info PoolStats, err error) {
 	ch := make(chan segment.Reference)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

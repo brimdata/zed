@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime"
 	"net/http"
 	"path"
 	"strconv"
@@ -31,6 +32,11 @@ var (
 	// ErrPoolExists returns when specified the pool already exists.
 	ErrPoolExists = errors.New("pool exists")
 )
+
+type ReadCloser struct {
+	io.ReadCloser
+	ContentType string
+}
 
 type Connection struct {
 	client  *resty.Client
@@ -60,6 +66,8 @@ func NewConnection() *Connection {
 func NewConnectionTo(hostURL string) *Connection {
 	client := resty.New()
 	client.HostURL = hostURL
+	// For now connection only accepts zng responses.
+	client.SetHeader("Accept", api.MediaTypeZNG)
 	return newConnection(client)
 }
 
@@ -78,6 +86,7 @@ func (c *Connection) SetUserAgent(useragent string) {
 
 func (c *Connection) Do(ctx context.Context, method, url string, body interface{}) (*resty.Response, error) {
 	req := c.Request(ctx).SetBody(body)
+	req.Header.Set("Accept", api.MediaTypeJSON)
 	return req.Execute(method, url)
 }
 
@@ -94,14 +103,18 @@ func checkError(client *resty.Client, resp *resty.Response) error {
 	return resErr
 }
 
-func (c *Connection) stream(req *resty.Request) (io.ReadCloser, error) {
+func (c *Connection) stream(req *resty.Request) (*ReadCloser, error) {
 	resp, err := req.SetDoNotParseResponse(true).Send() // disables middleware
 	if err != nil {
 		return nil, err
 	}
 	r := resp.RawBody()
 	if resp.IsSuccess() {
-		return r, nil
+		typ, _, err := mime.ParseMediaType(resp.Header().Get("Content-Type"))
+		if err != nil {
+			return nil, err
+		}
+		return &ReadCloser{r, typ}, err
 	}
 	defer r.Close()
 	body, err := ioutil.ReadAll(r)
@@ -169,6 +182,7 @@ func (c *Connection) Version(ctx context.Context) (string, error) {
 func (c *Connection) ZtoAST(ctx context.Context, zprog string) ([]byte, error) {
 	resp, err := c.Request(ctx).
 		SetBody(api.ASTRequest{ZQL: zprog}).
+		SetHeader("Accept", api.MediaTypeJSON).
 		Post("/ast")
 	if err != nil {
 		return nil, err
@@ -176,33 +190,42 @@ func (c *Connection) ZtoAST(ctx context.Context, zprog string) ([]byte, error) {
 	return resp.Body(), nil
 }
 
-// PoolInfo retrieves information about the specified pool.
-func (c *Connection) PoolInfo(ctx context.Context, id ksuid.KSUID) (*api.PoolInfo, error) {
-	path := path.Join("/pool", id.String())
-	resp, err := c.Request(ctx).
-		SetResult(&api.PoolInfo{}).
-		Get(path)
-	if err != nil {
-		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusNotFound {
-			return nil, ErrPoolNotFound
-		}
-		return nil, err
+// PoolGet retrieves information about the specified pool.
+func (c *Connection) PoolGet(ctx context.Context, id ksuid.KSUID) (*ReadCloser, error) {
+	req := c.Request(ctx)
+	req.Method = http.MethodGet
+	req.URL = path.Join("/pool", id.String())
+	r, err := c.stream(req)
+	var errRes *ErrorResponse
+	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
+		return nil, ErrPoolNotFound
 	}
-	return resp.Result().(*api.PoolInfo), nil
+	return r, err
 }
 
-func (c *Connection) PoolPost(ctx context.Context, req api.PoolPostRequest) (*api.Pool, error) {
-	resp, err := c.Request(ctx).
-		SetBody(req).
-		SetResult(&api.Pool{}).
-		Post("/pool")
-	if err != nil {
-		if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusConflict {
-			return nil, ErrPoolExists
-		}
-		return nil, err
+func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*ReadCloser, error) {
+	req := c.Request(ctx)
+	req.Method = http.MethodGet
+	req.URL = path.Join("/pool", id.String(), "stats")
+	r, err := c.stream(req)
+	var errRes *ErrorResponse
+	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
+		return nil, ErrPoolNotFound
 	}
-	return resp.Result().(*api.Pool), nil
+	return r, err
+}
+
+func (c *Connection) PoolPost(ctx context.Context, payload api.PoolPostRequest) (*ReadCloser, error) {
+	req := c.Request(ctx).
+		SetBody(payload)
+	req.Method = http.MethodPost
+	req.URL = "/pool"
+	resp, err := c.stream(req)
+	var errRes *ErrorResponse
+	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusConflict {
+		return nil, ErrPoolExists
+	}
+	return resp, err
 }
 
 func (c *Connection) PoolPut(ctx context.Context, id ksuid.KSUID, req api.PoolPutRequest) error {
@@ -212,24 +235,23 @@ func (c *Connection) PoolPut(ctx context.Context, id ksuid.KSUID, req api.PoolPu
 	return err
 }
 
-func (c *Connection) PoolList(ctx context.Context) ([]api.Pool, error) {
-	var res []api.Pool
-	_, err := c.Request(ctx).
-		SetResult(&res).
-		Get("/pool")
-	return res, err
+func (c *Connection) PoolScan(ctx context.Context) (*ReadCloser, error) {
+	req := c.Request(ctx)
+	req.Method = http.MethodGet
+	req.URL = "/pool"
+	return c.stream(req)
 }
 
-func (c *Connection) PoolDelete(ctx context.Context, id ksuid.KSUID) (err error) {
+func (c *Connection) PoolDelete(ctx context.Context, id ksuid.KSUID) error {
 	path := path.Join("/pool", id.String())
-	_, err = c.Request(ctx).Delete(path)
+	_, err := c.Request(ctx).Delete(path)
 	if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusNotFound {
 		return ErrPoolNotFound
 	}
 	return err
 }
 
-func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, params map[string]string) (io.ReadCloser, error) {
+func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, params map[string]string) (*ReadCloser, error) {
 	req := c.Request(ctx).
 		SetBody(search).
 		SetQueryParam("format", "zng")
@@ -258,34 +280,16 @@ func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, pa
 //		fmt.Println(rec)
 //	}
 //
-func (c *Connection) Search(ctx context.Context, id ksuid.KSUID, query string) (*ZngSearch, error) {
+func (c *Connection) Search(ctx context.Context, id ksuid.KSUID, query string) (*ReadCloser, error) {
 	procBytes, err := c.ZtoAST(ctx, query)
 	if err != nil {
 		return nil, err
 	}
-	r, err := c.SearchRaw(ctx, api.SearchRequest{
-		Pool: id,
+	return c.SearchRaw(ctx, api.SearchRequest{
+		Pool: api.KSUID(id),
 		Proc: procBytes,
 		Dir:  -1,
 	}, nil)
-	if err != nil {
-		return nil, err
-	}
-	return NewZngSearch(r), nil
-}
-
-func (c *Connection) IndexSearch(ctx context.Context, id ksuid.KSUID, search api.IndexSearchRequest, params map[string]string) (*ZngSearch, error) {
-	req := c.Request(ctx).
-		SetBody(search).
-		SetQueryParam("format", "zng")
-	req.SetQueryParams(params)
-	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", id.String(), "indexsearch")
-	r, err := c.stream(req)
-	if err != nil {
-		return nil, err
-	}
-	return NewZngSearch(r), nil
 }
 
 func (c *Connection) IndexPost(ctx context.Context, id ksuid.KSUID, post api.IndexPostRequest) error {
@@ -300,51 +304,51 @@ type LogPostOpts struct {
 	Shaper    ast.Proc
 }
 
-func (c *Connection) LogPostPath(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, paths ...string) (*Stream, error) {
-	body := api.LogPostRequest{
-		Paths:   paths,
-		StopErr: opts.StopError,
-	}
-	if opts != nil && opts.Shaper != nil {
-		raw, err := json.Marshal(opts.Shaper)
-		if err != nil {
-			return nil, err
-		}
-		body.Shaper = raw
-	}
+func (c *Connection) Add(ctx context.Context, pool ksuid.KSUID, r io.Reader) (*ReadCloser, error) {
 	req := c.Request(ctx).
-		SetBody(body)
+		SetBody(r)
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", id.String(), "log/paths")
-	r, err := c.stream(req)
+	req.URL = path.Join("/pool", pool.String(), "add")
+	return c.stream(req)
+}
+
+func (c *Connection) Commit(ctx context.Context, pool, commitID ksuid.KSUID, commit api.CommitRequest) error {
+	_, err := c.Request(ctx).
+		SetBody(commit).
+		Post(path.Join("/pool", pool.String(), "staging", commitID.String()))
+	return err
+}
+
+func (c *Connection) LogPostPath(ctx context.Context, id ksuid.KSUID, payload api.LogPostRequest) (*ReadCloser, error) {
+	req := c.Request(ctx).
+		SetBody(payload)
+	req.URL = path.Join("/pool", id.String(), "log", "paths")
+	req.Method = http.MethodPost
+	return c.stream(req)
+}
+
+func (c *Connection) LogPost(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, paths []string) (*ReadCloser, error) {
+	mw, err := NewMultipartWriter(c.storage, paths...)
 	if err != nil {
 		return nil, err
 	}
-	jsonpipe := NewJSONPipeScanner(r)
-	return NewStream(jsonpipe), nil
+	return c.LogPostWriter(ctx, id, opts, mw)
 }
 
-func (c *Connection) LogPost(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, paths ...string) (api.LogPostResponse, error) {
-	w, err := NewMultipartWriter(c.storage, paths...)
-	if err != nil {
-		return api.LogPostResponse{}, err
-	}
-	return c.LogPostWriter(ctx, id, opts, w)
-}
-
-func (c *Connection) LogPostReaders(ctx context.Context, engine storage.Engine, id ksuid.KSUID, opts *LogPostOpts, readers ...io.Reader) (api.LogPostResponse, error) {
+func (c *Connection) LogPostReaders(ctx context.Context, engine storage.Engine, id ksuid.KSUID, opts *LogPostOpts, readers ...io.Reader) (*ReadCloser, error) {
 	w, err := MultipartDataWriter(engine, readers...)
 	if err != nil {
-		return api.LogPostResponse{}, err
+		return nil, err
 	}
 	return c.LogPostWriter(ctx, id, opts, w)
 }
 
-func (c *Connection) LogPostWriter(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, writer *MultipartWriter) (api.LogPostResponse, error) {
+func (c *Connection) LogPostWriter(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, writer *MultipartWriter) (*ReadCloser, error) {
 	req := c.Request(ctx).
 		SetBody(writer).
-		SetResult(&api.LogPostResponse{}).
 		SetHeader("Content-Type", writer.ContentType())
+	req.Method = http.MethodPost
+	req.URL = path.Join("/pool", id.String(), "log")
 	if opts != nil {
 		if opts.Shaper != nil {
 			writer.SetShaper(opts.Shaper)
@@ -353,33 +357,21 @@ func (c *Connection) LogPostWriter(ctx context.Context, id ksuid.KSUID, opts *Lo
 			req.SetQueryParam("stop_err", "true")
 		}
 	}
-	u := path.Join("/pool", id.String(), "log")
-	resp, err := req.Post(u)
-	if err != nil {
-		return api.LogPostResponse{}, err
-	}
-	v := resp.Result().(*api.LogPostResponse)
-	return *v, nil
+	return c.stream(req)
 }
 
-func (c *Connection) AuthMethod(ctx context.Context) (*api.AuthMethodResponse, error) {
-	resp, err := c.Request(ctx).
-		SetResult(&api.AuthMethodResponse{}).
-		Get("/auth/method")
-	if err != nil {
-		return nil, err
-	}
-	return resp.Result().(*api.AuthMethodResponse), nil
+func (c *Connection) AuthMethod(ctx context.Context) (*ReadCloser, error) {
+	req := c.Request(ctx)
+	req.Method = http.MethodGet
+	req.URL = "/auth/method"
+	return c.stream(req)
 }
 
-func (c *Connection) AuthIdentity(ctx context.Context) (*api.AuthIdentityResponse, error) {
-	resp, err := c.Request(ctx).
-		SetResult(&api.AuthIdentityResponse{}).
-		Get("/auth/identity")
-	if err != nil {
-		return nil, err
-	}
-	return resp.Result().(*api.AuthIdentityResponse), nil
+func (c *Connection) AuthIdentity(ctx context.Context) (*ReadCloser, error) {
+	req := c.Request(ctx)
+	req.Method = http.MethodGet
+	req.URL = "/auth/identity"
+	return c.stream(req)
 }
 
 type ErrorResponse struct {

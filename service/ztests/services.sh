@@ -37,10 +37,10 @@ export AWS_ACCESS_KEY_ID=minioadmin
 export AWS_SECRET_ACCESS_KEY=minioadmin
 export AWS_S3_ENDPOINT=http://localhost:$(cat $portdir/minio)
 
-zed lake serve -l=localhost:0 -R $lakeroot -portfile=$portdir/lake -log.level=warn $LAKE_EXTRA_FLAGS &> lake.log &
+zed lake serve -l=localhost:0 -R $lakeroot -portfile=$portdir/lake -log.level=info $LAKE_EXTRA_FLAGS &> lake.log &
 lakepid=$!
 awaitfile $portdir/lake
 
-trap "rm -rf $portdir; kill -9 $miniopid $lakepid" EXIT
+trap "rm -rf $portdir; kill -9 $miniopid $lakepid;" EXIT
 
 export LAKE_HOST=localhost:$(cat $portdir/lake)
