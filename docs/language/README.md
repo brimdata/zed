@@ -2,7 +2,7 @@
 
 The Zed system includes a powerful language for searching, analyzing, and
 shaping data. The language embraces a _pipeline_ syntax that should be familiar
-to those who have worked with UNIX/Linux shells. Here's a simple example query:
+to those who have worked with UNIX shells. Here's a simple example query:
 
 ![Example Zed 1](images/example-zed.png)
 
