@@ -377,7 +377,7 @@ Let's say you've noticed there's lots of HTTP traffic happening on ports higher
 than the standard port `80`.
 
 ```zq-command
-zq -f table 'count() by id.resp_p | sort -r' http.log.gz
+zq -f table 'count() by id.resp_p | sort -r count' http.log.gz
 ```
 
 #### Output:
