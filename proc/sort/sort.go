@@ -174,45 +174,31 @@ func (p *Proc) setCompareFn(r *zng.Record) {
 	}
 }
 
-func firstOf(typ *zng.TypeRecord, which []zng.Type) string {
+func GuessSortKey(rec *zng.Record) field.Path {
+	typ := zng.TypeRecordOf(rec.Type)
+	if f := firstMatchingField(typ, zng.IsInteger); f != nil {
+		return f
+	}
+	if f := firstMatchingField(typ, zng.IsFloat); f != nil {
+		return f
+	}
+	isNotTime := func(id int) bool { return id != zng.IDTime }
+	if f := firstMatchingField(typ, isNotTime); f != nil {
+		return f
+	}
+	return field.New("ts")
+}
+
+func firstMatchingField(typ *zng.TypeRecord, pred func(id int) bool) field.Path {
 	for _, col := range typ.Columns {
-		for _, t := range which {
-			if zng.SameType(col.Type, t) {
-				return col.Name
+		if pred(col.Type.ID()) {
+			return field.New(col.Name)
+		}
+		if typ := zng.TypeRecordOf(col.Type); typ != nil {
+			if f := firstMatchingField(typ, pred); f != nil {
+				return append(field.New(col.Name), f...)
 			}
 		}
 	}
-	return ""
-}
-
-func firstNot(typ *zng.TypeRecord, which zng.Type) string {
-	for _, col := range typ.Columns {
-		if !zng.SameType(col.Type, which) {
-			return col.Name
-		}
-	}
-	return ""
-}
-
-var intTypes = []zng.Type{
-	zng.TypeInt16,
-	zng.TypeUint16,
-	zng.TypeInt32,
-	zng.TypeUint32,
-	zng.TypeInt64,
-	zng.TypeUint64,
-}
-
-func GuessSortKey(rec *zng.Record) field.Path {
-	typ := zng.TypeRecordOf(rec.Type)
-	if fld := firstOf(typ, intTypes); fld != "" {
-		return field.New(fld)
-	}
-	if fld := firstOf(typ, []zng.Type{zng.TypeFloat64}); fld != "" {
-		return field.New(fld)
-	}
-	if fld := firstNot(typ, zng.TypeTime); fld != "" {
-		return field.New(fld)
-	}
-	return field.New("ts")
+	return nil
 }

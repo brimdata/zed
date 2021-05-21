@@ -1,0 +1,9 @@
+zed: sort
+
+input: |
+  {a:"1",b:2 (=alias)} (=0)
+  {a:"2",b:1} (0)
+
+output: |
+  {a:"2",b:1 (=alias)} (=0)
+  {a:"1",b:2} (0)
