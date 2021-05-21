@@ -125,7 +125,7 @@ appeared in the TSV header:
 Therefore, an operation such as a CIDR match would not work as expected
 if the JSON event were read _without_ using `-j` to specify the data type
 definition. In the following ZQL pipeline, the
-[`cut` processor](../docs/language/processors#cut)
+[`cut` operator](../docs/language/operators#cut)
 emits a warning because no events were returned from the attempted CIDR
 match.
 

@@ -9,11 +9,11 @@ this repository, check the git log.
 * zson: Tighten whitespace in ZSON `-pretty=0` output (#2030)
 * zql: Change parallel graph syntax to use `split` and `=>` (#2037)
 * zson: Add `duration` to the implied type list (#2039)
-* zq: Fix an issue with [`rename`](docs/language/processors#rename) where a subsequent `count()` would return no results (#2046)
+* zq: Fix an issue with [`rename`](docs/language/operators#rename) where a subsequent `count()` would return no results (#2046)
 * zq: Fix an issue where multiple alias typedefs were generated for the same type, causing a TZNG read failure (#2047)
 * zson: Fix an issue with string scanning in the ZSON parser that caused the failure `parse error: parsing string literal` (#2048)
 * zq: Fix an issue on Windows where `-` was not being treated as a way to read from stdin (#2061)
-* zq: Add support in [`put`](docs/language/processors#put) for assigning to `.` and to nested fields (#2018)
+* zq: Add support in [`put`](docs/language/operators#put) for assigning to `.` and to nested fields (#2018)
 * zson: Fix an issue where reading ZSON caused the failure `parse error: mismatched braces while parsing record type` (#2058)
 * zson: Fix an issue where casting `null` values to string types caused invalid output (#2077)
 
@@ -49,7 +49,7 @@ questions.
 * zqd: Update Zeek pointer to [v3.2.1-brim9](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim9) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#2010)
 * zqd: Update Suricata pointer to [v5.0.3-brim1](https://github.com/brimdata/build-suricata/releases/tag/v5.0.3-brim1) which disables checksum checks, allowing for alert creation on more types of pcaps (#1975)
 * zson: Update [Zeek Interoperability doc](docs/formats/zeek-compat.md) to include current ZSON syntax (#1956)
-* zq: Ensure the output from the [`fuse`](docs/language/processors#fuse) processor is deterministic (#1958)
+* zq: Ensure the output from the [`fuse`](docs/language/operators#fuse) operator is deterministic (#1958)
 * zq: Fix an issue where the presence of the Greek µ character caused a ZSON read parsing error (#1967)
 * zqd: Fix an issue where Zeek events generated during pcap import and written to an archivestore were only visible after ingest completion (#1973)
 * zqd: Change the logger configuration to output stacktraces on messages of level "warn" and higher (#1990)
@@ -65,8 +65,8 @@ questions.
 * zq: Add the `source` field to the JSON typing config to prepare for Zeek v4.x `weird` events (#1884)
 * zq: Add initial Z "shaper" for performing ETL on logs at import time (#1870)
 * zq: Make all aggregators decomposable (#1893)
-* zq/zqd: Invoke [`fuse`](docs/language/processors#fuse) automatically when CSV output is requested (#1908)
-* zq: Fix an issue where [`fuse`](docs/language/processors#fuse) was not preserving record order (#1909)
+* zq/zqd: Invoke [`fuse`](docs/language/operators#fuse) automatically when CSV output is requested (#1908)
+* zq: Fix an issue where [`fuse`](docs/language/operators#fuse) was not preserving record order (#1909)
 * zar: Create indices when data is imported or chunks are compacted (#1794)
 * zqd: Fix an issue where warnings returned from the `/log/path` endpoint were being dropped (#1903)
 * zq: Fix an issue where an attempted search of an empty record caused a panic (#1911)
@@ -95,8 +95,8 @@ questions.
 * zng: Add support for marshaling of `time` values (#1743)
 * zar: Fix an issue where a `couldn't read trailer` failure was observed during a `zar zq` query (#1748)
 * zar: Fix an issue where `zar import` of a 14 GB data set triggered a SEGV (#1766)
-* zql: Add a new [`drop`](docs/language/processors#drop) processor, which replaces `cut -c` (#1773)
-* zql: Add a new [`pick`](docs/language/processors#pick) processor, which acts like a stricter [`cut`](docs/language/processors#cut) (#1773, #1788)
+* zql: Add a new [`drop`](docs/language/operators#drop) operator, which replaces `cut -c` (#1773)
+* zql: Add a new [`pick`](docs/language/operators#pick) operator, which acts like a stricter [`cut`](docs/language/operators#cut) (#1773, #1788)
 * zqd: Improve performance when listing Spaces via the API (#1779, #1786)
 
 ## v0.24.0
@@ -116,7 +116,7 @@ questions.
 * zqd: Add example Prometheus metrics (#1627)
 * zq: Fix an issue where doing `put` of a null value caused a crash (#1631)
 * zq: Add `-P` flag to connect two or more inputs to a ZQL query that begins with a parallel flow graph (#1628, #1618)
-* zql: Add an initial `join` processor (#1632, #1642)
+* zql: Add an initial `join` operator (#1632, #1642)
 * zar: Fix an issue where consecutive timestamps caused seek index misses (#1634)
 * zar: Fix an issue where time grouping was not working correctly for zar archives (#1650)
 * zq/zql: Add support for ZQL comments, multi-line queries, and a `-z` flag for reading ZQL from a file (#1654)
@@ -147,7 +147,7 @@ questions.
 * zq: Add backward compatibility for reading the alpha ZNG storage format (#1386, #1392, #1393, #1441)
 * zqd: Check and convert alpha ZNG filestores to beta ZNG (#1574, #1576)
 * zq: Fix an issue where spill-to-disk file names could collide (#1391)
-* zq: Allow the [`fuse` processor](docs/language/processors#fuse) to spill-to-disk to avoid memory limitations (#1355, #1402)
+* zq: Allow the [`fuse` operator](docs/language/operators#fuse) to spill-to-disk to avoid memory limitations (#1355, #1402)
 * zq: No longer require `_path` as a first column in a [JSON type definition](zeek/README.md) (#1370)
 * zql: Improve ZQL docs for [aggregate functions](docs/language/aggregate-functions) and [grouping](docs/language/grouping) (#1385)
 * zql: Point links for developer docs at [pkg.go.dev](https://pkg.go.dev/) instead of [godoc.org](https://godoc.org/) (#1401)
@@ -195,7 +195,7 @@ questions.
 * pcap: Mention ICMP protocol filtering (`-p icmp`) in help text (#1281)
 * zq: Point to new Slack community URL https://www.brimsecurity.com/join-slack/ in docs (#1304)
 * zqd: Fix an issue where starting `zqd listen` created excess error messages when subdirectories were present (#1303)
-* zql: Add the [`fuse` processor](docs/language/processors#fuse) for unifying records under a single schema (#1310, #1319, #1324)
+* zql: Add the [`fuse` operator](docs/language/operators#fuse) for unifying records under a single schema (#1310, #1319, #1324)
 * zql: Fix broken links in documentation (#1321, #1339)
 * zst: Introduce the [ZST format](docs/formats/zst.md) for columnar data based on ZNG (#1268, #1338)
 * pcap: Fix an issue where certain pcapng files could fail import with a `bad option length` error (#1341)
@@ -260,7 +260,7 @@ questions.
 
 ## v0.18.0
 * zql: Fix an issue where data type casting was not working in Brim (#1008)
-* zql: Add a new [`rename` processor](docs/language/processors#rename) to rename fields in a record (#998, #1038)
+* zql: Add a new [`rename` operator](docs/language/operators#rename) to rename fields in a record (#998, #1038)
 * zqd: Fix an issue where API responses were being blocked in Brim due to commas in Content-Disposition headers (#1014)
 * zq: Improve error messaging on S3 object-not-found (#1019)
 * zapi: Fix an issue where `pcappost` run with `-f` and an existing Space name caused a panic (#1042)
@@ -274,9 +274,9 @@ questions.
 * zql: Fix an issue where attempts to `tail` too much caused a panic (#958)
 * zng: Readability improvements in the [ZNG specification](docs/formats/zng.md) (#935)
 * zql: Fix an issue where use of `cut`, `put`, and `cut` in the same pipeline caused a panic (#980)
-* zql: Fix an issue that was preventing the `uniq` processor from  working in the Brim app (#984)
+* zql: Fix an issue that was preventing the `uniq` operator from  working in the Brim app (#984)
 * zq: Fix an issue where spurious type IDs were being created (#964)
-* zql: Support renaming a field via the `cut` processor (#969)
+* zql: Support renaming a field via the `cut` operator (#969)
 
 ## v0.16.0
 * zng: Readability improvements in the [ZNG specification](docs/formats/zng.md) (#897, #910, #917)
@@ -285,7 +285,7 @@ questions.
 * zqd: Revise constraints on Space names (#853, #926, #944, #945)
 * zqd: Fix an issue where a file replacement race could cause an "access is denied" error in Brim during pcap import (#925)
 * zng: Revise [Zeek compatibility](docs/formats/zeek-compat.md) doc (#919)
-* zql: Clarify [`cut` processor documentation](docs/language/processors#cut) (#924)
+* zql: Clarify [`cut` operator documentation](docs/language/operators#cut) (#924)
 * zqd: Fix an issue where an invalid 1970 Space start time could be created in Brim during pcap inport (#938)
 
 ## v0.15.0
@@ -294,7 +294,7 @@ questions.
 * zql: Support grouping by computed keys (#860)
 * zq: Change implementation of `every X` to use a computed groupby key (#893)
 * zql: Clean up the [ZQL docs](docs/language) (#884)
-* zql: Change `cut` processor to emit any matching fields (#899)
+* zql: Change `cut` operator to emit any matching fields (#899)
 * zq: Allow output to an S3 bucket (#889)
 
 ## v0.14.0
@@ -320,7 +320,7 @@ questions.
 
 ## v0.13.1
 * zq: Fix an issue with stream reset that was preventing the pcap button in Brim from activating (#725)
-* zql: Allow multiple fields to be written from `put` processor (#697)
+* zql: Allow multiple fields to be written from `put` operator (#697)
 
 ## v0.13.0
 * zqd: Enable time indexing to provide faster query response in narrower time ranges (#647)
@@ -357,7 +357,7 @@ questions.
 
 ## v0.9.0
 
-* zql: Emit warnings from `put` processor (#477)
+* zql: Emit warnings from `put` operator (#477)
 * zql: Add string functions (#475)
 * zql: Narrow the use of `len()` to only sets/vectors, introduce new functions for string length (#485)
 * zql: Add ternary conditional operator (#484)
@@ -367,7 +367,7 @@ questions.
 
 ## v0.8.0
 
-* zql: add the `put` processor that adds or updates fields using a computed
+* zql: add the `put` operator that adds or updates fields using a computed
   expression. (#437)
 * zql: add functions for use with put, like `Math.min`, `Math.max`, and others.
   (#453, #459, #461, #472)
