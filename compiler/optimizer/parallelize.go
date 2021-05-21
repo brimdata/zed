@@ -83,6 +83,13 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		egress := copyOp(ingress).(*dag.Summarize)
 		egress.PartialsOut = true
 		ingress.PartialsIn = true
+		// The upstream aggregators will compute any key expressions
+		// so the ingress aggregator should simply reference the key
+		// by its name.  This loop updates the ingress to do so.
+		keys := ingress.Keys
+		for k := range keys {
+			keys[k].RHS = keys[k].LHS
+		}
 		extend(trunk, egress)
 		seq.Ops[1] = ingress
 		//

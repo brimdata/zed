@@ -1,0 +1,22 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p data -orderby s:asc
+  head -2 in.zson | zed lake load -q -p data -
+  tail -3 in.zson | zed lake load -q -p data -
+  zed lake query -z 'from data | union(s) by len(s) | sort this'
+
+inputs:
+  - name: in.zson
+    data: |
+      {s:"a"}
+      {s:"ab"}
+      {s:"bc"}
+      {s:"d"}
+      {s:"e"}
+
+outputs:
+  - name: stdout
+    data: |
+      {len:1,union:|["a","d","e"]|}
+      {len:2,union:|["ab","bc"]|}

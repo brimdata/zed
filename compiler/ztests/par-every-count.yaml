@@ -13,4 +13,4 @@ outputs:
       )
       | merge ts:asc
       | summarize every 1h partials-in sort-dir 1
-          count:=count() by ts:=trunc(ts, 1h),y:=y
+          count:=count() by ts:=ts,y:=y
