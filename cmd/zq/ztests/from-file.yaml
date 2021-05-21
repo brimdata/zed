@@ -1,0 +1,14 @@
+script: |
+  zq -z -I query.zed
+
+inputs:
+  - name: query.zed
+    data: |
+      from ( file a.zson )
+  - name: a.zson
+    data: &a_zson |
+      {f:1}
+
+outputs:
+  - name: stdout
+    data: *a_zson
