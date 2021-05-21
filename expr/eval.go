@@ -396,6 +396,8 @@ func (c *Compare) Eval(rec *zng.Record) (zng.Value, error) {
 	var result int
 	if !c.vals.Equal() {
 		switch {
+		case c.vals.A == nil || c.vals.B == nil:
+			return zng.False, nil
 		case zng.IsFloat(id):
 			v1, _ := zng.DecodeFloat64(c.vals.A)
 			v2, _ := zng.DecodeFloat64(c.vals.B)

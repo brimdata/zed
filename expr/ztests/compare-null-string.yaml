@@ -1,0 +1,9 @@
+zed: put eq := (a == b), ne := (a != b)
+
+input: |
+  {a:"s",b:null (string)}
+  {a:"s",b:null (null)}
+
+output: |
+  {a:"s",b:null (string),eq:false,ne:true}
+  {a:"s",b:null (null),eq:false,ne:true} (=0)

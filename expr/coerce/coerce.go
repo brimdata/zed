@@ -55,6 +55,12 @@ func (c *Pair) Coerce(a, b zng.Value) (int, error) {
 	if aid == bid {
 		return aid, nil
 	}
+	if aid == zng.IDNull {
+		return bid, nil
+	}
+	if bid == zng.IDNull {
+		return aid, nil
+	}
 	if zng.IsNumber(aid) {
 		if !zng.IsNumber(bid) {
 			return 0, ErrIncompatibleTypes
@@ -68,12 +74,6 @@ func (c *Pair) Coerce(a, b zng.Value) (int, error) {
 			id = zng.IDBstring
 		}
 		return id, nil
-	}
-	if aid == zng.IDNull {
-		return bid, nil
-	}
-	if bid == zng.IDNull {
-		return aid, nil
 	}
 	return 0, ErrIncompatibleTypes
 }
