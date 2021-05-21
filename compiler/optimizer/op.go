@@ -166,7 +166,7 @@ func analyzeCuts(assignments []dag.Assignment, layout order.Layout) order.Layout
 		lhsKey := fieldKey(lhs)
 		if rhs == nil {
 			// If the RHS depends on a well-defined set of fields
-			// (non of which are unambiguous like this.foo[this.bar]),
+			// (none of which are unambiguous like this.foo[this.bar]),
 			// and if all of such dependencies do not have an order
 			// to preserve, then we can continue along by clearing
 			// the LHS from the scoreboard knowing that is being set
@@ -214,7 +214,7 @@ func analyzeCuts(assignments []dag.Assignment, layout order.Layout) order.Layout
 func fieldKey(f field.Path) string {
 	var b []byte
 	for _, s := range f {
-		b = append(b, []byte(s)...)
+		b = append(b, s...)
 		b = append(b, 0)
 	}
 	return string(b)
