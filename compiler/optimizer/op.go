@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 )
@@ -140,22 +141,83 @@ func analyzeCuts(assignments []dag.Assignment, layout order.Layout) order.Layout
 	if key == nil {
 		return order.Nil
 	}
+	// This loop implements a very simple data flow analysis where we
+	// track the known order through the scoreboard.  If on exit, there
+	// is more than one field of known order, the current optimization
+	// framework cannot handle this so we return unknown (order.Nil)
+	// as a conservative stance to prevent any problematic optimizations.
+	// If there is precisely one field of known order, then that is the
+	// layout we return.  In a future version of the optimizer, we will
+	// generalize this scoreboard concept across the flowgraph for a
+	// comprehensive approach to dataflow analysis.  See issue #2756.
+	scoreboard := make(map[string]field.Path)
+	scoreboard[fieldKey(key)] = key
 	for _, a := range assignments {
-		// XXX This logic (from the original parallelize code)
-		// seems to have a bug.  See issue #2663.
-		if !fieldOf(a.RHS).Equal(key) {
-			continue
-		}
 		lhs := fieldOf(a.LHS)
+		rhs := fieldOf(a.RHS)
 		if lhs == nil {
+			// If we cannot statically determine the data flow,
+			// we give up and return unknown.  This is overly
+			// conservative in general and will miss optimization
+			// opportunities, e.g., we could do dependency
+			// analysis of a complex RHS expression.
 			return order.Nil
 		}
-		if lhs.Equal(key) {
-			return layout
+		lhsKey := fieldKey(lhs)
+		if rhs == nil {
+			// If the RHS depends on a well-defined set of fields
+			// (non of which are unambiguous like this.foo[this.bar]),
+			// and if all of such dependencies do not have an order
+			// to preserve, then we can continue along by clearing
+			// the LHS from the scoreboard knowing that is being set
+			// to something that does not have a defined order.
+			dependencies, ok := fieldsOf(a.RHS)
+			if !ok {
+				return order.Nil
+			}
+			for _, d := range dependencies {
+				key := fieldKey(d)
+				if _, ok := scoreboard[key]; ok {
+					// There's a dependency on an ordered
+					// field but we're not sophisticated
+					// enough here to know if this preserves
+					// its order...
+					return order.Nil
+				}
+			}
+			// There are no RHS dependencies on an ordered input.
+			// Clobber the LHS if present from the scoreboard and continue.
+			delete(scoreboard, lhsKey)
+			continue
 		}
-		return order.Layout{Keys: field.List{key}, Order: layout.Order}
+		rhsKey := fieldKey(rhs)
+		if _, ok := scoreboard[rhsKey]; ok {
+			scoreboard[lhsKey] = lhs
+			continue
+		}
+		if _, ok := scoreboard[lhsKey]; ok {
+			// LHS is in the scoreboard and the RHS isn't, so
+			// we know for sure there is no ordering guarantee
+			// on the LHS field.  So clobber it and continue.
+			delete(scoreboard, lhsKey)
+		}
 	}
-	return order.Nil
+	if len(scoreboard) != 1 {
+		return order.Nil
+	}
+	for _, f := range scoreboard {
+		return order.Layout{Keys: field.List{f}, Order: layout.Order}
+	}
+	panic("unreachable")
+}
+
+func fieldKey(f field.Path) string {
+	var b []byte
+	for _, s := range f {
+		b = append(b, []byte(s)...)
+		b = append(b, 0)
+	}
+	return string(b)
 }
 
 func fieldOf(e dag.Expr) field.Path {
@@ -200,4 +262,60 @@ func orderSensitive(ops []dag.Op) bool {
 		}
 	}
 	return true
+}
+
+func fieldsOf(e dag.Expr) (field.List, bool) {
+	if e == nil {
+		return nil, false
+	}
+	switch e := e.(type) {
+	case *zed.Primitive, *zed.TypeValue, *dag.Search:
+		return nil, true
+	case *dag.Ref:
+		// finish with issue #2756
+		return nil, false
+	case *dag.Path:
+		return field.List{e.Name}, true
+	case *dag.UnaryExpr:
+		return fieldsOf(e.Operand)
+	case *dag.SelectExpr:
+		// finish with issue #2756
+		return nil, false
+	case *dag.BinaryExpr:
+		lhs, ok := fieldsOf(e.LHS)
+		if !ok {
+			return nil, false
+		}
+		rhs, ok := fieldsOf(e.RHS)
+		if !ok {
+			return nil, false
+		}
+		return append(lhs, rhs...), true
+	case *dag.Conditional:
+		// finish with issue #2756
+		return nil, false
+	case *dag.Call:
+		// finish with issue #2756
+		return nil, false
+	case *dag.Cast:
+		return fieldsOf(e.Expr)
+	case *dag.SeqExpr:
+		return nil, false
+	case *dag.RegexpMatch:
+		return fieldsOf(e.Expr)
+	case *dag.RecordExpr:
+		// finish with issue #2756
+		return nil, false
+	case *dag.ArrayExpr:
+		// finish with issue #2756
+		return nil, false
+	case *dag.SetExpr:
+		// finish with issue #2756
+		return nil, false
+	case *dag.MapExpr:
+		// finish with issue #2756
+		return nil, false
+	default:
+		return nil, false
+	}
 }

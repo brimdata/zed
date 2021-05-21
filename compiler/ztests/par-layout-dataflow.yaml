@@ -1,0 +1,24 @@
+script: |
+  zc -C -P 2 "from 'pool-ts:asc' | cut x:=ts,ts:=1"
+  echo ===
+  zc -C -P 2 "from 'pool-ts:desc' | cut x:=ts,ts:=1"
+
+
+outputs:
+  - name: stdout
+    data: |
+      from (
+        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          cut x:=ts,ts:=1;
+        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          cut x:=ts,ts:=1;
+      )
+      | merge x:asc
+      ===
+      from (
+        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          cut x:=ts,ts:=1;
+        G2eDzBUfU6IEmUSGCa5kHyXMhoO =>
+          cut x:=ts,ts:=1;
+      )
+      | merge x:desc
