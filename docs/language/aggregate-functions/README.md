@@ -147,7 +147,7 @@ COUNT
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return any value observed for a specified field.               |
+| **Description**           | Return one value observed for a specified field.               |
 | **Syntax**                | `any(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
