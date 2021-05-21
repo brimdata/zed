@@ -16,29 +16,7 @@ import (
 )
 
 func CompileForInternal(pctx *proc.Context, p ast.Proc, r zio.Reader) (*Runtime, error) {
-	adaptor := &internalAdaptor{}
-	runtime, err := New(pctx, p, adaptor)
-	if err != nil {
-		return nil, err
-	}
-	readers := runtime.readers
-	if len(readers) != 1 {
-		return nil, fmt.Errorf("CompileForInternal: Zed program expected %d readers", len(readers))
-	}
-	readers[0].Reader = r
-	// Call optimize to possible push down a filter predicate into the
-	// kernel.Reader so that the zng scanner can do boyer-moore.
-	if err := runtime.Optimize(); err != nil {
-		return nil, err
-	}
-	// For an internal reader (like a shaper on intake), we don't do
-	// any parallelization right now though this could be potentially
-	// beneficial depending on where the bottleneck is for a given shaper.
-	// See issue #2641.
-	if err := runtime.Build(); err != nil {
-		return nil, err
-	}
-	return runtime, nil
+	return CompileForInternalWithOrder(pctx, p, r, order.Layout{})
 }
 
 func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, layout order.Layout) (*Runtime, error) {
@@ -53,19 +31,7 @@ func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, l
 	}
 	readers[0].Reader = r
 	readers[0].Layout = layout
-	// Call optimize to possible push down a filter predicate into the
-	// kernel.Reader so that the zng scanner can do boyer-moore.
-	if err := runtime.Optimize(); err != nil {
-		return nil, err
-	}
-	// For an internal reader (like a shaper on intake), we don't do
-	// any parallelization right now though this could be potentially
-	// beneficial depending on where the bottleneck is for a given shaper.
-	// See issue #2641.
-	if err := runtime.Build(); err != nil {
-		return nil, err
-	}
-	return runtime, nil
+	return optimizeAndBuild(runtime)
 }
 
 type internalAdaptor struct{}

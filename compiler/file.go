@@ -54,9 +54,15 @@ func CompileJoinForFileSystem(pctx *proc.Context, p ast.Proc, readers []zio.Read
 }
 
 func optimizeAndBuild(runtime *Runtime) (*Runtime, error) {
+	// Call optimize to possible push down a filter predicate into the
+	// kernel.Reader so that the zng scanner can do boyer-moore.
 	if err := runtime.Optimize(); err != nil {
 		return nil, err
 	}
+	// For an internal reader (like a shaper on intake), we don't do
+	// any parallelization right now though this could be potentially
+	// beneficial depending on where the bottleneck is for a given shaper.
+	// See issue #2641.
 	if err := runtime.Build(); err != nil {
 		return nil, err
 	}
