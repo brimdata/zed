@@ -7,7 +7,7 @@ The `zqd` Python package provides a client for the REST API served by
 
 Install the latest version like this:
 ```sh
-pip install 'git+https://github.com/brimdata/zed#subdirectory=python/zqd'
+pip install "git+https://github.com/brimdata/zed#subdirectory=python/zqd"
 ```
 
 Install the version compatible with a local `zqd` like this:
