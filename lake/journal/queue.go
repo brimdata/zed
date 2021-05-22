@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"math/rand"
 	"strconv"
 	"strings"
 	"time"
@@ -141,14 +142,12 @@ func readID(ctx context.Context, engine storage.Engine, path *storage.URI) (ID, 
 			return ID(id), nil
 		}
 		retry++
-		if retry > MaxReadRetry {
+		if retry > MaxReadRetry || timeout > 5*time.Second {
 			return Nil, fmt.Errorf("can read but not parse contents of journal HEAD: %s", string(b))
 		}
 		time.Sleep(timeout)
-		timeout *= 2
-		if timeout > time.Second {
-			timeout = time.Second
-		}
+		t := 2 * int(timeout)
+		timeout = time.Duration(t + rand.Intn(t))
 	}
 }
 
