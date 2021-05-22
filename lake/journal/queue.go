@@ -142,7 +142,7 @@ func readID(ctx context.Context, engine storage.Engine, path *storage.URI) (ID, 
 		}
 		retry++
 		if retry > MaxReadRetry {
-			return Nil, errors.New("can read but not parse contents of journal HEAD")
+			return Nil, fmt.Errorf("can read but not parse contents of journal HEAD: %s", string(b))
 		}
 		time.Sleep(timeout)
 		timeout *= 2
