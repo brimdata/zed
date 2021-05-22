@@ -40,28 +40,33 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 	if len(from.Trunks) == 0 {
 		return errors.New("internal error: no trunks in dag.From")
 	}
-	layout, err := o.layoutOfTrunk(trunk)
+	egressLayout, err := o.layoutOfTrunk(trunk)
 	if err != nil {
 		return err
 	}
-	if len(layout.Keys) > 1 {
+	if len(egressLayout.Keys) > 1 {
 		// XXX don't yet support multi-key ordering
 		return nil
+	}
+	// This logic requires that there is only one trunk in the From,
+	// as checked above.
+	layout, err := o.layoutOfSource(trunk.Source, order.Nil)
+	if err != nil {
+		return err
 	}
 	// Check that the path consisting of the original from
 	// sequence and any lifted sequence is still parallelizable.
 	if trunk.Seq != nil && len(trunk.Seq.Ops) > 0 {
-		layout, err := o.layoutOfFrom(from)
-		if err != nil {
-			return err
-		}
-		n, _, err := o.splittablePath(trunk.Seq.Ops, layout)
+		n, newLayout, err := o.splittablePath(trunk.Seq.Ops, layout)
 		if err != nil {
 			return err
 		}
 		if n != len(trunk.Seq.Ops) {
 			return nil
 		}
+		// If the trunk operators affect the scan layout, then update
+		// it here so the merge will properly happen below...
+		layout = newLayout
 	}
 	if len(seq.Ops) < 2 {
 		// There are no operators past the trunk.  Just parallelize
@@ -179,7 +184,6 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 		}
 		return replicateAndMerge(seq, layout, from, trunk, replicas)
 	}
-
 }
 
 func replicateAndMerge(seq *dag.Sequential, layout order.Layout, from *dag.From, trunk *dag.Trunk, replicas int) error {
@@ -274,25 +278,16 @@ func (o *Optimizer) layoutOfTrunk(trunk *dag.Trunk) (order.Layout, error) {
 
 // splittablePath returns the largest path within ops from front to end that is splittable.
 // The length of the splittablePath path is returned and the stream order at
-// exit from that path is returned.  If orderAgnostic is true, then the
+// exit from that path is returned.  If layout is zero, then the
 // splittable path is allowed to include operators that do not guarantee
 // a stream order.  The property of the returned path is that it may be
-// executed in parallel with some way to merge of the the parallel results
-// as determined by mergePaths().
-// The layout parameter defines the desired layout of the path on exit from
-// that path unless:
-// (1) there is a sort in path, in which case the order becomes the sorted order,
-// (2) there is a summarize by every, in which case we assume the order of the
-//     every must be preserved into the summarize if it is defined in the
-//     initial layout order (and in this case the inputSortDir on the summmarize
-//     op is set accordingly and we rely on this being done prior),
-// (3) there is a summarize (not by every), in which case the input order does
-//     not matter and a pool scan need not be ordered.
+// executed in parallel with some way to merge of the the parallel results.
+// The layout parameter defines the input layout.
 func (o *Optimizer) splittablePath(ops []dag.Op, layout order.Layout) (int, order.Layout, error) {
-	requireOrder := false
-	if !layout.IsNil() {
-		// If the input stream is ordered, then we attempt to preserve
-		// the order unless we don't have to because an operator changes it.
+	requireOrder := !layout.IsNil()
+	if requireOrder {
+		// If the input stream is ordered, then we will preserve order,
+		// but only if we have to because there are nor order-destructive ops.
 		// Note we could be smarter here by taking into account what is
 		// in the upstream trunk, but for now, we keep it simple.  Later
 		// we will back propagate the output order desired (e.g., by noting
