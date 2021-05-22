@@ -131,6 +131,7 @@ func writeID(ctx context.Context, engine storage.Engine, u *storage.URI, id ID) 
 
 func readID(ctx context.Context, engine storage.Engine, path *storage.URI) (ID, error) {
 	var retry int
+	timeout := time.Millisecond
 	for {
 		b, err := storage.Get(ctx, engine, path)
 		if err != nil {
@@ -143,7 +144,11 @@ func readID(ctx context.Context, engine storage.Engine, path *storage.URI) (ID, 
 		if retry > MaxReadRetry {
 			return Nil, errors.New("can read but not parse contents of journal HEAD")
 		}
-		time.Sleep(time.Millisecond)
+		time.Sleep(timeout)
+		timeout *= 2
+		if timeout > time.Second {
+			timeout = time.Second
+		}
 	}
 }
 
