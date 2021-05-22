@@ -8,6 +8,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/storage"
@@ -23,6 +24,8 @@ var (
 type ID uint64
 
 const Nil ID = 0
+
+const MaxReadRetry = 10
 
 type Queue struct {
 	engine   storage.Engine
@@ -127,15 +130,21 @@ func writeID(ctx context.Context, engine storage.Engine, u *storage.URI, id ID) 
 }
 
 func readID(ctx context.Context, engine storage.Engine, path *storage.URI) (ID, error) {
-	b, err := storage.Get(ctx, engine, path)
-	if err != nil {
-		return Nil, err
+	var retry int
+	for {
+		b, err := storage.Get(ctx, engine, path)
+		if err != nil {
+			return Nil, err
+		}
+		if id, err := byteconv.ParseUint64(b); err == nil {
+			return ID(id), nil
+		}
+		retry++
+		if retry > MaxReadRetry {
+			return Nil, errors.New("can read but not parse contents of journal HEAD")
+		}
+		time.Sleep(time.Millisecond)
 	}
-	id, err := byteconv.ParseUint64(b)
-	if err != nil {
-		return Nil, err
-	}
-	return ID(id), nil
 }
 
 func Create(ctx context.Context, engine storage.Engine, path *storage.URI) (*Queue, error) {
