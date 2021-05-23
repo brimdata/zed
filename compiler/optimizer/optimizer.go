@@ -215,11 +215,23 @@ func (o *Optimizer) Parallelize(n int) error {
 	from := seq.Ops[0].(*dag.From)
 	trunks := poolTrunks(from)
 	if len(trunks) == 1 {
+		quietCuts(trunks[0])
 		if err := o.parallelizeTrunk(seq, trunks[0], replicas); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func quietCuts(trunk *dag.Trunk) {
+	if trunk.Seq == nil {
+		return
+	}
+	for _, op := range trunk.Seq.Ops {
+		if cut, ok := op.(*dag.Cut); ok {
+			cut.Quiet = true
+		}
+	}
 }
 
 func poolTrunks(from *dag.From) []*dag.Trunk {

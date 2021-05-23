@@ -25,6 +25,7 @@ type Cutter struct {
 	droppers     []*Dropper
 	dropperCache []*Dropper
 	dirty        bool
+	quiet        bool
 }
 
 // NewCutter returns a Cutter for fieldnames. If complement is true,
@@ -63,6 +64,10 @@ func (c *Cutter) AllowPartialCuts() {
 	n := len(c.fieldRefs)
 	c.droppers = make([]*Dropper, n)
 	c.dropperCache = make([]*Dropper, n)
+}
+
+func (c *Cutter) Quiet() {
+	c.quiet = true
 }
 
 func (c *Cutter) FoundCut() bool {
@@ -168,7 +173,7 @@ func fieldList(fields []Evaluator) string {
 func (_ *Cutter) String() string { return "cut" }
 
 func (c *Cutter) Warning() string {
-	if c.FoundCut() {
+	if c.quiet || c.FoundCut() {
 		return ""
 	}
 	return fmt.Sprintf("no record found with columns %s", fieldList(c.fieldExprs))
