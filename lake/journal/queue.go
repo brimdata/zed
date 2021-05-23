@@ -143,7 +143,7 @@ func readID(ctx context.Context, engine storage.Engine, path *storage.URI) (ID, 
 		}
 		retry++
 		if retry > MaxReadRetry || timeout > 5*time.Second {
-			return Nil, fmt.Errorf("can read but not parse contents of journal HEAD: %s", string(b))
+			return Nil, fmt.Errorf("can read but not parse contents of journal HEAD: %s", b)
 		}
 		select {
 		case <-time.After(timeout):
