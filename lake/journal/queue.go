@@ -148,7 +148,7 @@ func readID(ctx context.Context, engine storage.Engine, path *storage.URI) (ID, 
 		select {
 		case <-time.After(timeout):
 		case <-ctx.Done():
-			return nil, ctx.Err()
+			return Nil, ctx.Err()
 		}
 		t := 2 * int(timeout)
 		timeout = time.Duration(t + rand.Intn(t))
