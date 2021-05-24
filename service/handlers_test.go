@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -558,7 +557,7 @@ func zsonCopy(t *testing.T, prog string, in string) string {
 }
 
 func writeTempFile(t *testing.T, data string) string {
-	f, err := ioutil.TempFile("", t.Name())
+	f, err := os.CreateTemp("", t.Name())
 	require.NoError(t, err)
 	name := f.Name()
 	t.Cleanup(func() { os.Remove(name) })

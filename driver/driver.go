@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"sync"
 	"time"
 
@@ -331,7 +330,7 @@ func NewReader(ctx context.Context, program ast.Proc, zctx *zson.Context, reader
 	}
 	r := &Reader{
 		runtime: runtime,
-		Closer:  ioutil.NopCloser(nil),
+		Closer:  io.NopCloser(nil),
 		batchCh: make(chan zbuf.Batch),
 	}
 	if _, ok := reader.(io.Closer); ok {

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"flag"
 	"io"
-	"io/ioutil"
 	"net"
 	"os"
 	"os/signal"
@@ -126,7 +125,7 @@ func (c *Command) watchBrimFd(ctx context.Context) (context.Context, error) {
 	c.logger.Info("Listening to brim process pipe", zap.String("fd", f.Name()))
 	ctx, cancel := context.WithCancel(ctx)
 	go func() {
-		io.Copy(ioutil.Discard, f)
+		io.Copy(io.Discard, f)
 		c.logger.Info("Brim fd closed, shutting down")
 		cancel()
 	}()

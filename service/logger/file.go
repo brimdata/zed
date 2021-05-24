@@ -2,7 +2,7 @@ package logger
 
 import (
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 
@@ -53,7 +53,7 @@ func OpenFile(path string, mode FileMode) (zapcore.WriteSyncer, error) {
 	case "stderr":
 		return zapcore.Lock(os.Stderr), nil
 	case "/dev/null":
-		return zapcore.AddSync(ioutil.Discard), nil
+		return zapcore.AddSync(io.Discard), nil
 	}
 	switch mode {
 	case FileModeRotate:

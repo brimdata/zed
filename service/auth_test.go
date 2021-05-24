@@ -3,8 +3,8 @@ package service_test
 import (
 	"context"
 	"errors"
-	"io/ioutil"
 	"net/http"
+	"os"
 	"testing"
 	"time"
 
@@ -35,7 +35,7 @@ func genToken(t *testing.T, tenantID auth.TenantID, userID auth.UserID) string {
 }
 
 func makeToken(t *testing.T, kid string, c jwt.MapClaims) string {
-	b, err := ioutil.ReadFile("testdata/auth-private-key")
+	b, err := os.ReadFile("testdata/auth-private-key")
 	require.NoError(t, err)
 	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(b)
 	require.NoError(t, err)

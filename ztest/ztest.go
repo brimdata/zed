@@ -120,7 +120,6 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -158,7 +157,7 @@ func (b *Bundle) RunScript(shellPath, workingDir string) error {
 
 func Load(dirname string) ([]Bundle, error) {
 	var bundles []Bundle
-	fileinfos, err := ioutil.ReadDir(dirname)
+	fileinfos, err := os.ReadDir(dirname)
 	if err != nil {
 		return nil, err
 	}
@@ -253,7 +252,7 @@ func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 		return []byte(s), nil, err
 	}
 	if f.Source != "" {
-		b, err := ioutil.ReadFile(filepath.Join(dir, f.Source))
+		b, err := os.ReadFile(filepath.Join(dir, f.Source))
 		return b, nil, err
 	}
 	if f.Re != "" {
@@ -264,7 +263,7 @@ func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 		f.Symlink = filepath.Join(dir, f.Symlink)
 		return nil, nil, nil
 	}
-	b, err := ioutil.ReadFile(filepath.Join(dir, f.Name))
+	b, err := os.ReadFile(filepath.Join(dir, f.Name))
 	if err == nil {
 		return b, nil, nil
 	}
@@ -358,7 +357,7 @@ func (z *ZTest) getOutput() (string, error) {
 
 // FromYAMLFile loads a ZTest from the YAML file named filename.
 func FromYAMLFile(filename string) (*ZTest, error) {
-	buf, err := ioutil.ReadFile(filename)
+	buf, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -660,7 +659,7 @@ func loadInputs(inputs []string, zctx *zson.Context) (zio.Reader, error) {
 }
 
 func tmpInputFiles(inputs []string) (string, []string, error) {
-	dir, err := ioutil.TempDir("", "")
+	dir, err := os.MkdirTemp("", "")
 	if err != nil {
 		return "", nil, err
 	}
@@ -668,7 +667,7 @@ func tmpInputFiles(inputs []string) (string, []string, error) {
 	for i, input := range inputs {
 		name := fmt.Sprintf("input%d", i+1)
 		file := filepath.Join(dir, name)
-		if err := ioutil.WriteFile(file, []byte(input), 0644); err != nil {
+		if err := os.WriteFile(file, []byte(input), 0644); err != nil {
 			os.RemoveAll(dir)
 			return "", nil, err
 		}

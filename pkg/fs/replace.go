@@ -3,7 +3,6 @@ package fs
 import (
 	"errors"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -24,7 +23,7 @@ func NewFileReplacer(filename string, perm os.FileMode) (*Replacer, error) {
 	if err != nil {
 		return nil, err
 	}
-	f, err := ioutil.TempFile(filepath.Dir(filename), ".tmp-"+filepath.Base(filename))
+	f, err := os.CreateTemp(filepath.Dir(filename), ".tmp-"+filepath.Base(filename))
 	if err != nil {
 		return nil, err
 	}

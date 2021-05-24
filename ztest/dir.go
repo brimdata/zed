@@ -1,7 +1,6 @@
 package ztest
 
 import (
-	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -10,7 +9,7 @@ import (
 type Dir string
 
 func NewDir(name string) (*Dir, error) {
-	path, err := ioutil.TempDir("", name)
+	path, err := os.MkdirTemp("", name)
 	if err != nil {
 		return nil, err
 	}
@@ -31,7 +30,7 @@ func (d Dir) Join(name string) string {
 }
 
 func (d Dir) Write(name string, data []byte) error {
-	return ioutil.WriteFile(d.Join(name), data, 0644)
+	return os.WriteFile(d.Join(name), data, 0644)
 }
 
 func (d Dir) Symlink(oldname, newname string) error {
@@ -39,5 +38,5 @@ func (d Dir) Symlink(oldname, newname string) error {
 }
 
 func (d Dir) Read(name string) ([]byte, error) {
-	return ioutil.ReadFile(d.Join(name))
+	return os.ReadFile(d.Join(name))
 }

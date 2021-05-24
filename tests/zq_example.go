@@ -76,7 +76,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -270,7 +269,7 @@ func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 	if err != nil {
 		return nil, err
 	}
-	source, err := ioutil.ReadFile(absfilename)
+	source, err := os.ReadFile(absfilename)
 	if err != nil {
 		return nil, err
 	}

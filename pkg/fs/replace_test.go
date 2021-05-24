@@ -3,7 +3,7 @@ package fs
 import (
 	"errors"
 	"io"
-	"io/ioutil"
+	"os"
 	"path"
 	"testing"
 
@@ -13,7 +13,7 @@ import (
 func TestReplaceFileAbort(t *testing.T) {
 	fname := path.Join(t.TempDir(), "file1")
 	data1 := "data1"
-	err := ioutil.WriteFile(fname, []byte(data1), 0666)
+	err := os.WriteFile(fname, []byte(data1), 0666)
 	require.NoError(t, err)
 
 	fakeErr := errors.New("fake error")
@@ -27,7 +27,7 @@ func TestReplaceFileAbort(t *testing.T) {
 	require.Error(t, err)
 	require.Equal(t, fakeErr.Error(), err.Error())
 
-	b, err := ioutil.ReadFile(fname)
+	b, err := os.ReadFile(fname)
 	require.NoError(t, err)
 	require.Equal(t, data1, string(b))
 }
