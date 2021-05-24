@@ -24,8 +24,9 @@ var PassOp = &Pass{Kind: "Pass"}
 
 type (
 	Cut struct {
-		Kind string       `json:"kind" unpack:""`
-		Args []Assignment `json:"args"`
+		Kind  string       `json:"kind" unpack:""`
+		Args  []Assignment `json:"args"`
+		Quiet bool         `json:"quiet"`
 	}
 	Drop struct {
 		Kind string `json:"kind" unpack:""`

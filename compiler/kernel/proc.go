@@ -105,6 +105,9 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 			return nil, err
 		}
 		cutter.AllowPartialCuts()
+		if v.Quiet {
+			cutter.Quiet()
+		}
 		return proc.FromFunction(b.pctx, parent, cutter), nil
 	case *dag.Pick:
 		assignments, err := compileAssignments(v.Args, b.pctx.Zctx, b.scope)
