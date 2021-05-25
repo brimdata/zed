@@ -1,45 +1,47 @@
-# ZSON Interoperability with Zeek Logs
-
-> NOTE: this should be movted to brimcap.  See issue #2458.
+# Zed Interoperability with Zeek Logs
 
 - [Introduction](#introduction)
 - [Equivalent Types](#equivalent-types)
 - [Example](#example)
 - [Type-Specific Details](#type-specific-details)
   * [`double`](#double)
-  * [`set`](#set)
   * [`enum`](#enum)
+  * [`port`](#port)
+  * [`set`](#set)
   * [`string`](#string)
   * [`record`](#record)
 
 ## Introduction
 
-As the ZSON data model was inspired by the [Zeek TSV log format](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs),
-the ZSON/ZNG formats maintain comprehensive interoperability with Zeek.
-In comparison, when Zeek is configured to output its logs in JSON format, much of the
-rich type information is lost in translation.  On the other hand, Zeek TSV
-can be converted to ZSON/ZNG and back to Zeek TSV without any loss of information.
+As the Zed data model was in many ways inspired by the
+[Zeek TSV log format](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs),
+the rich Zed storage formats ([ZSON](../docs/formats/ZSON.md),
+[ZNG](../docs/foramts/ZNG.md), etc.) maintain comprehensive interoperability
+with Zeek. However, when Zeek is configured to output its logs in JSON or
+NDJSON formats, much of the rich type information is lost in translation. On
+the other hand, Zeek TSV can be converted to Zed storage formats and back to
+Zeek TSV without any loss of information.
 
-This document describes how the ZSON type system
-is able to represent each of the types that may appear in Zeek logs.
+This document describes how the Zed type system is able to represent each of
+the types that may appear in Zeek logs.
 
 Tools like [`zq`](https://github.com/brimdata/zed) and [Brim](https://github.com/brimdata/brim)
-maintain an internal ZNG representation of any Zeek data that is read or
+maintain an internal Zed-typed representation of any Zeek data that is read or
 imported. Therefore, knowing the equivalent types will prove useful when
-performing [ZQL](../language/README.md) operations such as
-[type casting](../language/data-types#example) or looking at the
-data when output as [ZSON](zson.md).
+performing operations in the [Zed language](../docs/language/README.md) such
+as [type casting](../docs/language/data-types#example) or looking at the data
+when output as ZSON.
 
 ## Equivalent Types
 
-The following table summarizes which ZSON data type corresponds to each
+The following table summarizes which Zed data type corresponds to each
 [Zeek data type](https://docs.zeek.org/en/current/script-reference/types.html)
-that may appear in a Zeek log. While most types have a simple 1-to-1 mapping
-from Zeek to ZSON and back to Zeek again, the sections linked from the
+that may appear in a Zeek TSV log. While most types have a simple 1-to-1
+mapping from Zeek to Zed and back to Zeek again, the sections linked from the
 **Additional Detail** column describe cosmetic differences and other subtleties
 applicable to handling certain types.
 
-| Zeek Type  | ZSON Type   | Additional Detail |
+| Zeek Type  | Zed Type   | Additional Detail |
 |------------|------------|-------------------|
 | [`bool`](https://docs.zeek.org/en/current/script-reference/types.html#type-bool)         | [`bool`](zson.md#33-primitive-values)     | |
 | [`count`](https://docs.zeek.org/en/current/script-reference/types.html#type-count)       | [`uint64`](zson.md#33-primitive-values)   | |
@@ -56,17 +58,17 @@ applicable to handling certain types.
 | [`vector`](https://docs.zeek.org/en/current/script-reference/types.html#type-vector)     | [`array`](zson.md#342-array-value)   | |
 | [`record`](https://docs.zeek.org/en/current/script-reference/types.html#type-record)     | [`record`](zson.md#341-record-value) | See [`record` details](#record) |
 
-* **Note**: The [Zeek data type](https://docs.zeek.org/en/current/script-reference/types.html)
-page describes the types in the context of the
-[Zeek scripting language](https://docs.zeek.org/en/master/scripting/index.html).
-The Zeek types available in scripting are a superset of the data types that may
-appear in Zeek log files. The encodings of the types also differ in some ways
-between the two contexts. However, we link to this reference because there is
-no authoritative specification of the Zeek log format.
+> **Note:** The [Zeek data type](https://docs.zeek.org/en/current/script-reference/types.html)
+> page describes the types in the context of the
+> [Zeek scripting language](https://docs.zeek.org/en/master/scripting/index.html).
+> The Zeek types available in scripting are a superset of the data types that
+> may appear in Zeek log files. The encodings of the types also differ in some
+> ways between the two contexts. However, we link to this reference because
+> there is no authoritative specification of the Zeek TSV log format.
 
 ## Example
 
-The following example shows an input log that includes each Zeek data type,
+The following example shows an input TSV log that includes each Zeek data type,
 how it's output as ZSON by `zq`, then how it's written back out again as a Zeek
 log. You may find it helpful to refer to this example when reading the
 [Type-Specific Details](#type-specific-details) sections.
@@ -80,15 +82,17 @@ $ cat zeek_types.log
 #fields	my_bool	my_count	my_int	my_double	my_time	my_interval	my_printable_string	my_bytes_string	my_port	my_addr	my_subnet	my_enum	my_set	my_vector	my_record.name	my_record.age
 #types	bool	count	int	double	time	interval	string	string	port	addr	subnet	enum	set[string]	vector[string]	string	count
 T	123	456	123.4560	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\x04	80	127.0.0.1	10.0.0.0/8	tcp	things,in,a,set	order,is,important	Jeanne	122
+```
 
-$ zq -f zson zeek_types.log | tee zeek_types.zson
+```
+$ zq -Z zeek_types.log | tee zeek_types.zson
 {
     my_bool: true,
     my_count: 123 (uint64),
     my_int: 456,
-    my_double: 1.23456e+02,
+    my_double: 123.456,
     my_time: 2020-06-18T17:42:31.123456Z,
-    my_interval: 2m3.456s (duration),
+    my_interval: 2m3.456s,
     my_printable_string: "smile😁smile" (bstring),
     my_bytes_string: "\t\x07\x04" (bstring),
     my_port: 80 (port=(uint16)),
@@ -111,8 +115,10 @@ $ zq -f zson zeek_types.log | tee zeek_types.zson
         age: 122 (uint64)
     } (=2)
 } (=3)
+```
 
-$ zq -i zson -f zeek zeek_types.zson
+``` 
+$ zq -f zeek zeek_types.zson
 #separator \x09
 #set_separator	,
 #empty_field	(empty)
@@ -124,19 +130,20 @@ T	123	456	123.456	1592502151.123456	123.456	smile\xf0\x9f\x98\x81smile	\x09\x07\
 
 ## Type-Specific Details
 
-As `zq` acts as a reference implementation for ZSON/ZNG, it's helpful to understand
-how it reads the following Zeek data types into ZSON equivalents and writes
-them back out again in Zeek log format. Other ZSON implementations (should they
-exist) may handle these differently.
+As `zq` acts as a reference implementation for Zed storage formats such as
+ZSON and ZNG, it's helpful to understand how it reads the following Zeek data
+types into readable text equivalents in the ZSON format, then writes them back
+out again in the Zeek TSV log format. Other implementations of the Zed storage
+formats (should they exist) may handle these differently.
 
 Multiple Zeek types discussed below are represented via a
-[type definition](zson.md#25-type-definitions) to one of ZSON's
-[primitive types](zson.md#33-primitive-values). The use of the ZSON type names maintains
-the history of the field's original Zeek type such that `zq` may restore it
-if/when the field may be later output again in Zeek format. Knowledge of its
-original Zeek type may also enable special operations in ZQL that are unique to
-values known to have originated as a specific Zeek type, though no such
-operations are currently implemented in `zq`.
+[type definition](zson.md#25-type-definitions) to one of Zed's
+[primitive types](zson.md#33-primitive-values). The use of the Zed type names
+maintains the history of the field's original Zeek type name such that `zq` may
+restore it if/when the field may be later output again in Zeek format.
+Knowledge of its original Zeek type may also enable special operations in Zed
+that are unique to values known to have originated as a specific Zeek type,
+though no such operations are currently implemented in `zq`.
 
 ### `double`
 
@@ -145,46 +152,6 @@ values will _not_ be preserved when they are formatted into a string, such as
 via the ZSON/Zeek/table output options in `zq` (e.g. `123.4560` becomes
 `123.456`).
 
-### `string`
-
-Zeek's `string` data type is complicated by its ability to hold printable ASCII
-and UTF-8 as well as arbitrary unprintable bytes represented as `\x` escapes.
-Because such binary data may need to legitimately be captured (e.g. to record
-the symptoms of DNS exfiltration), it's helpful that Zeek has a mechanism to
-log it. Unfortunately, Zeek's use of the single `string` type for these
-multiple uses leaves out important detail about the intended interpretation and
-presentation of the bytes that make up the value. For instance, one Zeek
-`string` field may hold arbitrary network data that _coincidentally_ sometimes
-form byte sequences that could be interpreted as prinable UTF-8, but they are
-_not_ intended to be read or presented as such. Meanwhile, another Zeek
-`string` field may be populated such that it will _only_ ever contain printable
-UTF-8. These details are currently only captured within the Zeek source code
-itself that defines how these values are generated.
-
-ZSON includes a [primitive type](zson.md#33-primitive-values) called `bytes` that's
-suited to storing the former "always binary" case and a `string` type for the
-latter "always printable" case. However, Zeek logs do not currently communicate
-detail that would allow a ZSON/ZNG implementation to know which Zeek `string` fields
-to store as which of these two ZSON data types. Therefore the ZSON
-`bstring` type is typically used to hold values that are read from Zeek
-`string`-type fields.
-
-One exception to this is Zeek's `_path` field. As it's a standard field that's
-known to be populated by Zeek's logging system (or populated by `zq` when reading some
-[Zeek JSON data](../../zeek#type-definition-structure--importance-of-_path))
-`zq` currently handles `_path` using ZSON's `string` type.
-
-If Zeek were to provide an option to generate logs directly in ZSON/ZNG format, this
-would create an opportunity to assign the appropriate ZSON `bytes` or `string`
-type at the point of origin, depending on what's known about how the field's
-value is intended to be populated and used.
-
-### `port`
-
-The numeric values that appear in Zeek logs under this type are represented
-with a ZSON type name bound to the `uint16` type. See the text above regarding
-[type names](#type-specific-details) for more details.
-
 ### `enum`
 
 As they're encountered in common programming languages, enum variables
@@ -192,36 +159,80 @@ typically hold one of a set of predefined values. While this is
 how Zeek's `enum` type behaves inside the Zeek scripting language,
 when the `enum` type is output in a Zeek log, the log does not communicate
 any such set of "allowed" values as they were originally defined. Therefore,
-these values are represented with an ZSON type name bound to the `string` type. See the
-text above regarding [type definitions](#type-specific-details) for more details.
+these values are represented with a ZSON type name bound to the `string`
+type. See the text above regarding [type definitions](#type-specific-details)
+for more details.
+
+
+### `port`
+
+The numeric values that appear in Zeek logs under this type are represented
+in ZSON with a type name of `port` bound to the `uint16` type. See the text
+above regarding [type names](#type-specific-details) for more details.
 
 ### `set`
 
 Because order within sets is not significant, no attempt is made by `zq` to
 maintain the order of `set` elements as they originally appeared in a Zeek log.
 
+### `string`
+
+Zeek's `string` data type is complicated by its ability to hold printable ASCII
+and UTF-8 as well as arbitrary unprintable bytes represented as `\x` escapes.
+Because such binary data may need to legitimately be captured (e.g. to record
+the symptoms of DNS exfiltration), it's helpful that Zeek has a mechanism to
+log it. Unfortunately, Zeek's use of the single `string` type for these
+multiple uses leaves out important details about the intended interpretation
+and presentation of the bytes that make up the value. For instance, one Zeek
+`string` field may hold arbitrary network data that _coincidentally_ sometimes
+form byte sequences that could be interpreted as printable UTF-8, but they are
+_not_ intended to be read or presented as such. Meanwhile, another Zeek
+`string` field may be populated such that it will _only_ ever contain printable
+UTF-8. These details are currently only captured within the Zeek source code
+itself that defines how these values are generated.
+
+Zed includes a [primitive type](zson.md#33-primitive-values) called `bytes`
+that's suited to storing the former "always binary" case and a `string` type
+for the latter "always printable" case. However, Zeek logs do not currently
+communicate details that would allow an implementation to know which Zeek
+`string` fields to store as which of these two Zed data types. Therefore the
+Zed `bstring` type is typically used to hold values that are read from Zeek
+`string`-type fields.
+
+One exception to this is Zeek's `_path` field. As it's a standard field that's
+known to be populated by Zeek's logging system (or populated by `zq` when
+reading some [Zeek JSON data](README#type-definition-structure--importance-of-_path))
+`zq` currently stores the `_path` field using Zed's `string` type.
+
+If Zeek were to provide an option to output logs directly in one or more of
+Zed's richer storage storage formats, this would create an opportunity to
+assign the appropriate Zed `bytes` or `string` type at the point of origin,
+depending on what's known about how the field's value is intended to be
+populated and used.
+
 ### `record`
 
 Zeek's `record` type is unique in that every Zeek log line effectively _is_ a
 record, with its schema defined via the `#fields` and `#types` directives in
-the headers of each log file. Unlike what we saw in the
-[example ZSON output](#example), the word "record" never appears
-explicitly in the schema definition in Zeek logs.
+the headers of each log file. The word "record" never appears explicitly in
+the schema definition in Zeek logs.
 
 Embedded records also subtly appear within Zeek log lines in the form of
 dot-separated field names. A common example in Zeek is the
-[`id`](https://docs.zeek.org/en/current/scripts/base/init-bare.zeek.html#type-conn_id),
-record which captures the source/destination IP & port combination for a
+[`id`](https://docs.zeek.org/en/current/scripts/base/init-bare.zeek.html#type-conn_id)
+record, which captures the source/destination IP & port combination for a
 network connection as fields `id.orig_h`, `id.orig_p`, `id.resp_h`, and
-`id.resp_p`. When reading such fields into their ZNG equivalent, `zq` restores
+`id.resp_p`. When reading such fields into their Zed equivalent, `zq` restores
 the hierarchical nature of the record as it originally existed inside of Zeek
 itself before it was output by its logging system. This enables operations in
-ZQL that refer to the record at a higher level but affect all values lower
-down in the record hierarchy. Revisiting the data from our
-example:
+Zed that refer to the record at a higher level but affect all values lower
+down in the record hierarchy.
+
+Revisiting the data from our example, we can output all fields within
+`my records` via the Zed:
 
 ```
-$ zq -i zson -f zeek 'cut my_record' zeek_types.zson
+$ zq -f zeek 'cut my_record' zeek_types.zson
 #separator \x09
 #set_separator	,
 #empty_field	(empty)
