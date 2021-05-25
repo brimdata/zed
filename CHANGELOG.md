@@ -48,7 +48,7 @@ questions.
 
 * zqd: Update Zeek pointer to [v3.2.1-brim9](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim9) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#2010)
 * zqd: Update Suricata pointer to [v5.0.3-brim1](https://github.com/brimdata/build-suricata/releases/tag/v5.0.3-brim1) which disables checksum checks, allowing for alert creation on more types of pcaps (#1975)
-* zson: Update [Zeek Interoperability doc](docs/formats/zeek-compat.md) to include current ZSON syntax (#1956)
+* zson: Update [Zeek Interoperability doc](zeek/type-compat.md) to include current ZSON syntax (#1956)
 * zq: Ensure the output from the [`fuse`](docs/language/operators#fuse) operator is deterministic (#1958)
 * zq: Fix an issue where the presence of the Greek µ character caused a ZSON read parsing error (#1967)
 * zqd: Fix an issue where Zeek events generated during pcap import and written to an archivestore were only visible after ingest completion (#1973)
@@ -284,7 +284,7 @@ questions.
 * zql: Group-by no longer emits records in "deterministic but undefined" order (#914)
 * zqd: Revise constraints on Space names (#853, #926, #944, #945)
 * zqd: Fix an issue where a file replacement race could cause an "access is denied" error in Brim during pcap import (#925)
-* zng: Revise [Zeek compatibility](docs/formats/zeek-compat.md) doc (#919)
+* zng: Revise [Zeek compatibility](zeek/zeek-compat.md) doc (#919)
 * zql: Clarify [`cut` operator documentation](docs/language/operators#cut) (#924)
 * zqd: Fix an issue where an invalid 1970 Space start time could be created in Brim during pcap inport (#938)
 
