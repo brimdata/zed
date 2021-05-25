@@ -161,7 +161,7 @@ typically hold one of a set of predefined values. While this is
 how Zeek's `enum` type behaves inside the Zeek scripting language,
 when the `enum` type is output in a Zeek log, the log does not communicate
 any such set of "allowed" values as they were originally defined. Therefore,
-these values are represented with a ZSON type name bound to the `string`
+these values are represented with a ZSON type name bound to the Zed `string`
 type. See the text above regarding [type definitions](#type-specific-details)
 for more details.
 
