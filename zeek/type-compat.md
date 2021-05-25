@@ -174,8 +174,8 @@ above regarding [type names](#type-specific-details) for more details.
 
 ### `set`
 
-Because order within sets is not significant, no attempt is made by `zq` to
-maintain the order of `set` elements as they originally appeared in a Zeek log.
+Because order within sets is not significant, no attempt is made to maintain
+the order of `set` elements as they originally appeared in a Zeek log.
 
 ### `string`
 
