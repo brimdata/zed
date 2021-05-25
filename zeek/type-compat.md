@@ -139,8 +139,8 @@ formats (should they exist) may handle these differently.
 
 Multiple Zeek types discussed below are represented via a
 [type definition](../docs/formats/zson.md#25-type-definitions) to one of Zed's
-[primitive types](../docs/formats/zson.md#33-primitive-values). The use of the
-Zed type names maintains the history of the field's original Zeek type name
+[primitive types](../docs/formats/zson.md#33-primitive-values). The Zed type
+definitions maintain the history of the field's original Zeek type name
 such that `zq` may restore it if/when the field may be later output again in
 Zeek format. Knowledge of its original Zeek type may also enable special 
 operations in Zed that are unique to values known to have originated as a
@@ -203,7 +203,7 @@ read from Zeek `string`-type fields.
 
 One exception to this is Zeek's `_path` field. As it's a standard field that's
 known to be populated by Zeek's logging system (or populated by `zq` when
-reading some [Zeek JSON data](README#type-definition-structure--importance-of-_path))
+reading some [Zeek JSON data](README.md#type-definition-structure--importance-of-_path))
 `zq` currently stores the `_path` field using Zed's `string` type.
 
 If Zeek were to provide an option to output logs directly in one or more of
