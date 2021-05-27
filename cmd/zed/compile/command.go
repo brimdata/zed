@@ -6,8 +6,8 @@ import (
 	"flag"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -130,7 +130,7 @@ func (c *Command) Run(args []string) error {
 	var src string
 	if len(c.includes) > 0 {
 		for _, path := range c.includes {
-			b, err := ioutil.ReadFile(path)
+			b, err := os.ReadFile(path)
 			if err != nil {
 				return err
 			}

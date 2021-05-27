@@ -3,7 +3,6 @@
 package fs
 
 import (
-	"io/ioutil"
 	"os"
 )
 
@@ -20,5 +19,5 @@ func Create(name string) (*os.File, error) {
 }
 
 func ReadFile(name string) ([]byte, error) {
-	return ioutil.ReadFile(name)
+	return os.ReadFile(name)
 }

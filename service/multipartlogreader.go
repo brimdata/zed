@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime/multipart"
 	"sync/atomic"
 
@@ -81,7 +80,7 @@ next:
 		return nil, err
 	}
 	if part.FormName() == "shaper_ast" {
-		raw, err := ioutil.ReadAll(io.LimitReader(part, maxShaperAstBytes))
+		raw, err := io.ReadAll(io.LimitReader(part, maxShaperAstBytes))
 		if err != nil {
 			return nil, zqe.ErrInvalid("shaper_ast too big")
 		}

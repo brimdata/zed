@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"mime"
 	"net/http"
 	"path"
@@ -117,7 +116,7 @@ func (c *Connection) stream(req *resty.Request) (*ReadCloser, error) {
 		return &ReadCloser{r, typ}, err
 	}
 	defer r.Close()
-	body, err := ioutil.ReadAll(r)
+	body, err := io.ReadAll(r)
 	if err != nil {
 		return nil, err
 	}

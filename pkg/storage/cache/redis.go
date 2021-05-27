@@ -3,7 +3,7 @@ package cache
 import (
 	"context"
 	"errors"
-	"io/ioutil"
+	"io"
 	"path"
 	"time"
 
@@ -54,7 +54,7 @@ func (c *RedisCache) Get(ctx context.Context, u *storage.URI) (storage.Reader, e
 	// Redis values are read in the their entitety and not streamed but
 	// that's okay since we only use this for smallish items like metadata
 	// and small search indexes from low-cardinality sources.
-	b, err := ioutil.ReadAll(reader)
+	b, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, err
 	}

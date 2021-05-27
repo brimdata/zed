@@ -3,7 +3,6 @@ package test
 import (
 	"bytes"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -55,7 +54,7 @@ func (s *ShellTest) Setup(dir, pwd string) error {
 	script += s.Script
 
 	s.scriptName = filepath.Join(s.subdir, s.Name+".sh")
-	if err := ioutil.WriteFile(s.scriptName, []byte(script), 0644); err != nil {
+	if err := os.WriteFile(s.scriptName, []byte(script), 0644); err != nil {
 		return err
 	}
 	return nil
@@ -70,7 +69,7 @@ func (s *ShellTest) Cleanup() {
 func (s *ShellTest) createInputFiles() error {
 	for _, file := range s.Input {
 		path := filepath.Join(s.subdir, file.Name)
-		if err := ioutil.WriteFile(path, []byte(file.Data), 0644); err != nil {
+		if err := os.WriteFile(path, []byte(file.Data), 0644); err != nil {
 			return err
 		}
 	}
@@ -79,7 +78,7 @@ func (s *ShellTest) createInputFiles() error {
 
 func (s *ShellTest) Read(name string) (string, error) {
 	path := filepath.Join(s.subdir, name)
-	b, err := ioutil.ReadFile(path)
+	b, err := os.ReadFile(path)
 	return string(b), err
 }
 

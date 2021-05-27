@@ -3,7 +3,7 @@ package test
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"strings"
 
 	"github.com/brimdata/zed/compiler"
@@ -32,7 +32,7 @@ func stringReader(input string, ifmt string, zctx *zson.Context) (zio.Reader, er
 	opts := anyio.ReaderOpts{
 		Format: ifmt,
 	}
-	rc := ioutil.NopCloser(strings.NewReader(input))
+	rc := io.NopCloser(strings.NewReader(input))
 
 	return anyio.OpenFromNamedReadCloser(zctx, rc, "test", opts)
 }

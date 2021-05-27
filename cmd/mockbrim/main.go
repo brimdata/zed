@@ -8,7 +8,6 @@ import (
 	"bytes"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 )
@@ -61,7 +60,7 @@ func main() {
 	err = cmd.Start()
 	die(err)
 	pid := fmt.Sprintf("%d", cmd.Process.Pid)
-	err = ioutil.WriteFile(pidfile, []byte(pid), 0644)
+	err = os.WriteFile(pidfile, []byte(pid), 0644)
 	die(err)
 	cmd.Wait()
 }

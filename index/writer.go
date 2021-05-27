@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 
 	"github.com/brimdata/zed/compiler"
@@ -109,7 +108,7 @@ func NewWriterWithContext(ctx context.Context, zctx *zson.Context, engine storag
 	if err != nil {
 		return nil, err
 	}
-	w.tmpdir, err = ioutil.TempDir("", "zed-index-*")
+	w.tmpdir, err = os.MkdirTemp("", "zed-index-*")
 	if err != nil {
 		return nil, err
 	}
@@ -313,7 +312,7 @@ func newIndexWriter(base *Writer, w io.WriteCloser, name string) (*indexWriter, 
 }
 
 func (w *indexWriter) newParent() (*indexWriter, error) {
-	file, err := ioutil.TempFile(w.base.tmpdir, "")
+	file, err := os.CreateTemp(w.base.tmpdir, "")
 	if err != nil {
 		return nil, err
 	}

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"io/ioutil"
 
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -29,7 +28,7 @@ func NewReader(r io.Reader, zctx *zson.Context) (*Reader, error) {
 
 func (r *Reader) Read() (*zng.Record, error) {
 	if r.objects == nil {
-		b, err := ioutil.ReadAll(io.LimitReader(r.reader, MaxReadBuffer))
+		b, err := io.ReadAll(io.LimitReader(r.reader, MaxReadBuffer))
 		if err != nil {
 			if err == io.EOF {
 				err = nil

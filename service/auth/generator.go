@@ -3,15 +3,15 @@ package auth
 import (
 	"crypto/rsa"
 	"fmt"
-	"io/ioutil"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
 )
 
 func loadPrivateKey(keyFile string) (*rsa.PrivateKey, error) {
-	b, err := ioutil.ReadFile(keyFile)
+	b, err := os.ReadFile(keyFile)
 	if err != nil {
 		return nil, err
 	}

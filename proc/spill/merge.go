@@ -2,7 +2,6 @@ package spill
 
 import (
 	"container/heap"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -27,11 +26,11 @@ type MergeSort struct {
 const TempPrefix = "zq-spill-"
 
 func TempDir() (string, error) {
-	return ioutil.TempDir("", TempPrefix)
+	return os.MkdirTemp("", TempPrefix)
 }
 
 func TempFile() (*os.File, error) {
-	return ioutil.TempFile("", TempPrefix)
+	return os.CreateTemp("", TempPrefix)
 }
 
 // NewMergeSort returns a MergeSort to implement external merge sorts of a large

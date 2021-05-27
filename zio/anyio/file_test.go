@@ -2,7 +2,6 @@ package anyio
 
 import (
 	"context"
-	"io/ioutil"
 	"os"
 	"strings"
 	"testing"
@@ -18,7 +17,7 @@ import (
 
 // writeTemp writes the data to a temporary file, and returns its path.
 func writeTemp(t *testing.T, data []byte) string {
-	f, err := ioutil.TempFile("", "")
+	f, err := os.CreateTemp("", "")
 	require.NoError(t, err)
 	_, err = f.Write(data)
 	require.NoError(t, err)

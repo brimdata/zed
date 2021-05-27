@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -86,15 +85,19 @@ func (f *FileSystem) Exists(_ context.Context, u *URI) (bool, error) {
 }
 
 func (f *FileSystem) List(ctx context.Context, u *URI) ([]Info, error) {
-	entries, err := ioutil.ReadDir(u.Filepath())
+	entries, err := os.ReadDir(u.Filepath())
 	if err != nil {
 		return nil, wrapfileError(u, err)
 	}
 	infos := make([]Info, len(entries))
 	for i, e := range entries {
+		info, err := e.Info()
+		if err != nil {
+			return nil, err
+		}
 		infos[i] = Info{
 			Name: e.Name(),
-			Size: e.Size(),
+			Size: info.Size(),
 		}
 	}
 	return infos, nil
