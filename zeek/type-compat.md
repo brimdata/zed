@@ -222,7 +222,7 @@ the schema definition in Zeek logs.
 Embedded records also subtly appear within Zeek log lines in the form of
 dot-separated field names. A common example in Zeek is the
 [`id`](https://docs.zeek.org/en/current/scripts/base/init-bare.zeek.html#type-conn_id)
-record, which captures the source/destination IP & port combination for a
+record, which captures the source and destination IP addresses and ports for a
 network connection as fields `id.orig_h`, `id.orig_p`, `id.resp_h`, and
 `id.resp_p`. When reading such fields into their Zed equivalent, `zq` restores
 the hierarchical nature of the record as it originally existed inside of Zeek
