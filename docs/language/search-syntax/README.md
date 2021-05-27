@@ -11,7 +11,6 @@
     + [Finding Patterns with `matches`](#finding-patterns-with-matches)
     + [Containment](#containment)
     + [Comparisons](#comparisons)
-    + [Wildcard Field Names](#wildcard-field-names)
     + [Other Examples](#other-examples)
   * [Boolean Logic](#boolean-logic)
     + [`and`](#and)
@@ -508,57 +507,6 @@ dns   2018-03-24T17:30:09.84174Z  Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1
 dns   2018-03-24T17:30:09.841742Z Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001697 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
 dns   2018-03-24T17:34:52.637234Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53        udp   43239    0.019491 zn_0pxrmhobblncaad-hpsupport.siteintercept.qualtrics.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 cloud.qualtrics.com.edgekey.net,e3672.ksd.akamaiedge.net,23.55.215.198 3600,17,20 F
 dns   2018-03-24T17:34:52.637238Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53        udp   43239    0.019493 zn_0pxrmhobblncaad-hpsupport.siteintercept.qualtrics.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 cloud.qualtrics.com.edgekey.net,e3672.ksd.akamaiedge.net,23.55.215.198 3600,17,20 F
-```
-
-### Wildcard Field Names
-
-It's possible to search across _all_ top-level fields of a value's data type by
-entering a wildcard where you'd normally enter the field name.
-
-In the following search for the `ip`-type value `10.150.0.85`, we match only a
-single `notice` record, as this is the only record in our data with a matching
-top-level field of the `ip` type (the `dst` field).
-
-#### Example:
-```zq-command-disable
-zq -f table '*=10.150.0.85' *.log.gz
-```
-
-#### Output:
-```zq-output-disable
-_PATH  TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P FUID               FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                              SUB                                                          SRC          DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
-notice 2018-03-24T17:15:32.521729Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
-```
-
-This same address `10.150.0.85` appears in other IP address fields in our data
-such as `id.resp_h`, but these were not matched because these happened to be
-_nested_ fields (e.g. `resp_h` is a field nested inside the record called
-`id`). An enhancement with an alternate syntax is planned to allow
-type-specific searches to reach into nested records when desired
-(see [#2250](https://github.com/brimdata/zed/issues/2250) and
-[#1428](https://github.com/brimdata/zed/issues/1428)). Compare this with the
-[bare word](#bare-word) searches we showed previously that perform
-type-independent matches for values in all locations, including in nested
-records and complex fields.
-
-The `*` wildcard can also be used to match when the value appears in a complex
-top-level field. Searching again for our `ip`-type value `10.150.0.85`, here
-we'll match in complex fields of type `set[ip]` or `array[ip]`, such as
-`tx_hosts` in this case.
-
-#### Example:
-```zq-command-disable
-zq -f table '10.150.0.85 in *' *.log.gz
-```
-
-#### Output:
-```zq-output-disable head:5
-_PATH TS                          FUID               TX_HOSTS    RX_HOSTS     CONN_UIDS          SOURCE DEPTH ANALYZERS     MIME_TYPE                    FILENAME DURATION LOCAL_ORIG IS_ORIG SEEN_BYTES TOTAL_BYTES MISSING_BYTES OVERFLOW_BYTES TIMEDOUT PARENT_FUID MD5                              SHA1                                     SHA256 EXTRACTED EXTRACTED_CUTOFF EXTRACTED_SIZE
-files 2018-03-24T17:15:32.519299Z FZW30y2Nwc9i0qmdvg 10.150.0.85 10.47.24.186 Ckwqsn2ZSiVGtyiFO5 SSL    0     MD5,SHA1,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
-files 2018-03-24T17:15:42.635094Z Fo9ltu1O8DGE0KAgC  10.150.0.85 10.47.8.10   CqwJmZ2Lzd42fuvg4k SSL    0     MD5,SHA1,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
-files 2018-03-24T17:15:46.548292Z F7oQQK1qo9HfmlN048 10.150.0.85 10.47.27.186 CvTTHG2M6xPqDMDLB7 SSL    0     MD5,SHA1,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
-files 2018-03-24T17:15:47.493786Z FdBWBA3eODh6nHFt82 10.150.0.85 10.10.18.2   ChpfSB4FWhg3xHI3yb SSL    0     MD5,SHA1,X509 application/x-x509-user-cert -        0        -          F       909        -           0             0              F        -           9fb39c2b34d22a7ba507dedb4e155101 d95fcbd453c842d6b432e5ec74a720c700c50393 -      -         -                -
-...
 ```
 
 ### Other Examples
