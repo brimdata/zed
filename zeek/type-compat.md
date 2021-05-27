@@ -151,7 +151,7 @@ specific Zeek type, though no such operations are currently implemented in
 
 As they do not affect accuracy, "trailing zero" decimal digits on Zeek `double`
 values will _not_ be preserved when they are formatted into a string, such as
-via the ZSON/Zeek/table output options in `zq` (e.g. `123.4560` becomes
+via the ZSON/Zeek/table output options in `zq` (e.g., `123.4560` becomes
 `123.456`).
 
 ### `enum`
