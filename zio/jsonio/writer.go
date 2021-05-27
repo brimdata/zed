@@ -10,8 +10,13 @@ import (
 
 const MaxWriteBuffer = 25 * 1024 * 1024
 
+type WriterOpts struct {
+	ForceArray bool
+}
+
 type Writer struct {
 	writer io.WriteCloser
+	opts   WriterOpts
 	recs   []interface{}
 	size   int
 }
@@ -21,15 +26,16 @@ type describe struct {
 	Value *zng.Record `json:"value"`
 }
 
-func NewWriter(w io.WriteCloser) *Writer {
+func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	return &Writer{
 		writer: w,
+		opts:   opts,
 	}
 }
 
 func (w *Writer) Close() error {
 	var body interface{} = w.recs
-	if len(w.recs) == 1 {
+	if len(w.recs) == 1 && !w.opts.ForceArray {
 		body = w.recs[0]
 	}
 	err := json.NewEncoder(w.writer).Encode(body)

@@ -1,3 +1,5 @@
+skip: "issue #2651"
+
 script: |
   source services.sh s3://bucket/zedlake
   zapi -host $LAKE_HOST new test

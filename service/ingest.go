@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -53,7 +54,7 @@ func NewLogOp(ctx context.Context, pool *lake.Pool, req api.LogPostRequest) (*Lo
 			rc.Close()
 			if req.StopErr {
 				p.closeFiles()
-				return nil, err
+				return nil, zqe.ErrInvalid(err)
 			}
 			p.openWarning(path, err)
 			continue

@@ -133,25 +133,31 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/auth/identity", handleAuthIdentityGet).Methods("GET")
 	// /auth/method intentionally requires no authentication
 	c.routerAPI.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
-	c.authhandle("/search", handleSearch).Methods("POST")
 	c.authhandle("/pool", handlePoolList).Methods("GET")
 	c.authhandle("/pool", handlePoolPost).Methods("POST")
 	c.authhandle("/pool/{pool}", handlePoolDelete).Methods("DELETE")
 	c.authhandle("/pool/{pool}", handlePoolGet).Methods("GET")
 	c.authhandle("/pool/{pool}", handlePoolPut).Methods("PUT")
-	// c.authhandle("/pool/{pool}/indexsearch", handleIndexSearch).Methods("POST")
-	c.authhandle("/pool/{pool}/log", handleLogStream).Methods("POST")
-	c.authhandle("/pool/{pool}/log/paths", handleLogPost).Methods("POST")
+	c.authhandle("/pool/{pool}/add", handleAdd).Methods("POST")
+	c.authhandle("/pool/{pool}/staging", handleScanStaging).Methods("GET")
+	c.authhandle("/pool/{pool}/staging/{commit}", handleCommit).Methods("POST")
+	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
+
+	// Deprecated endpoints
+	c.authhandle("/search", handleSearch).Methods("POST")
+	c.authhandle("/pool/{pool}/log", handleLogPost).Methods("POST")
+	c.authhandle("/pool/{pool}/log/paths", handleLogPostPaths).Methods("POST")
 	// c.authhandle("/index", handleIndexPost).Methods("POST")
 }
 
-func (c *Core) handler(f func(*Core, http.ResponseWriter, *http.Request)) http.Handler {
+func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		f(c, w, r)
+		res, req := newRequest(w, r, c.logger)
+		f(c, res, req)
 	})
 }
 
-func (c *Core) authhandle(path string, f func(*Core, http.ResponseWriter, *http.Request)) *mux.Route {
+func (c *Core) authhandle(path string, f func(*Core, *ResponseWriter, *Request)) *mux.Route {
 	var h http.Handler
 	if c.auth != nil {
 		h = c.auth.Middleware(c.handler(f))

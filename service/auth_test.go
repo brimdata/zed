@@ -53,7 +53,7 @@ func TestAuthIdentity(t *testing.T) {
 		Auth:   authConfig,
 		Logger: zap.NewNop(),
 	})
-	_, err := conn.PoolList(context.Background())
+	_, err := conn.PoolScan(context.Background())
 	require.Error(t, err)
 	require.Equal(t, 1.0, promCounterValue(core.Registry(), "request_errors_unauthorized_total"))
 
@@ -69,14 +69,13 @@ func TestAuthIdentity(t *testing.T) {
 
 	token := genToken(t, "test_tenant_id", "test_user_id")
 	conn.SetAuthToken(token)
-	res, err := conn.AuthIdentity(context.Background())
-	require.NoError(t, err)
-	require.Equal(t, &api.AuthIdentityResponse{
+	res := conn.TestAuthIdentity()
+	require.Equal(t, api.AuthIdentityResponse{
 		TenantID: "test_tenant_id",
 		UserID:   "test_user_id",
 	}, res)
 
-	_, err = conn.PoolList(context.Background())
+	_, err = conn.PoolScan(context.Background())
 	require.NoError(t, err)
 }
 
@@ -85,9 +84,8 @@ func TestAuthMethodGet(t *testing.T) {
 		_, connNoAuth := newCoreWithConfig(t, service.Config{
 			Logger: zap.NewNop(),
 		})
-		resp, err := connNoAuth.AuthMethod(context.Background())
-		require.NoError(t, err)
-		require.Equal(t, &api.AuthMethodResponse{
+		resp := connNoAuth.TestAuthMethod()
+		require.Equal(t, api.AuthMethodResponse{
 			Kind: api.AuthMethodNone,
 		}, resp)
 	})
@@ -98,9 +96,8 @@ func TestAuthMethodGet(t *testing.T) {
 			Auth:   authConfig,
 			Logger: zap.NewNop(),
 		})
-		resp, err := connWithAuth.AuthMethod(context.Background())
-		require.NoError(t, err)
-		require.Equal(t, &api.AuthMethodResponse{
+		resp := connWithAuth.TestAuthMethod()
+		require.Equal(t, api.AuthMethodResponse{
 			Kind: "auth0",
 			Auth0: &api.AuthMethodAuth0Details{
 				Audience: auth.AudienceClaimValue,

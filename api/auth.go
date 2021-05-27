@@ -1,8 +1,8 @@
 package api
 
 type AuthIdentityResponse struct {
-	TenantID string `json:"tenant_id"`
-	UserID   string `json:"user_id"`
+	TenantID string `json:"tenant_id" zng:"tenant_id"`
+	UserID   string `json:"user_id" zng:"user_id"`
 }
 
 type AuthMethod string
@@ -13,8 +13,8 @@ const (
 )
 
 type AuthMethodResponse struct {
-	Kind  AuthMethod              `json:"kind"`
-	Auth0 *AuthMethodAuth0Details `json:"auth0,omitempty"`
+	Kind  AuthMethod              `json:"kind" zng:"kind"`
+	Auth0 *AuthMethodAuth0Details `json:"auth0,omitempty" zng:"auth0,omitempty"`
 }
 
 type AuthMethodAuth0Details struct {

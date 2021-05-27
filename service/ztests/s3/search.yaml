@@ -1,3 +1,5 @@
+skip: "issue #2651"
+
 script: |
   source services.sh s3://bucket/zqdroot
   zapi -host $LAKE_HOST new -S 20KiB test

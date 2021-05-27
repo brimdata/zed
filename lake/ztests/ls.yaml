@@ -21,8 +21,8 @@ outputs:
           version: 0,
           name: "logs",
           layout: {
-              Order: "desc" (=Which),
-              Keys: [
+              order: "desc" (=Which),
+              keys: [
                   [
                       "ts"
                   ]

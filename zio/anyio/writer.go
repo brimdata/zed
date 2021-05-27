@@ -24,6 +24,7 @@ import (
 type WriterOpts struct {
 	Format string
 	UTF8   bool
+	JSON   jsonio.WriterOpts
 	Text   textio.WriterOpts
 	Zng    zngio.WriterOpts
 	ZSON   zsonio.WriterOpts
@@ -46,7 +47,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "ndjson":
 		return ndjsonio.NewWriter(w), nil
 	case "json":
-		return jsonio.NewWriter(w), nil
+		return jsonio.NewWriter(w, opts.JSON), nil
 	case "zjson":
 		return zjsonio.NewWriter(w), nil
 	case "zson":
