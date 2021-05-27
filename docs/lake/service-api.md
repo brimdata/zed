@@ -124,9 +124,9 @@ A [pool config](#pool-config).
 }
 ```
 
-### Get pool
+### Get Pool
 
-Get info about a pool.
+Get a pool's configuration.
 
 ```
 GET /pool/{pool}
@@ -163,6 +163,48 @@ A [pool config](#pool-config).
 }
 ```
 
+### Get Pool Info
+
+```
+GET /pool/{pool}/info
+```
+
+Get a pool's configuration as well as stats about the pool.
+
+#### Params
+
+| Name | Type | In | Description |
+| ---- | ---- | -- | ----------- |
+| pool | string | path | ID of the requested pool. |
+| at | string | query | Commit or journal ID for time travel. |
+
+#### Response
+
+A [pool info object](#pool-config).
+
+```
+{
+  "kind": "PoolConfig",
+  "value": {
+    "config": {
+      "id": "1sOfdIOF6UvYxbbOrKvokilZKvT",
+      "layout": {
+        "keys": [
+          [
+            "ts"
+          ]
+        ],
+        "order": "desc"
+      },
+      "name": "test",
+      "threshold": 524288000,
+      "version": 0
+	},
+	"size": "1024", // in bytes
+	"span": {} // XXX
+  }
+}
+```
 ### Rename pool
 
 Changes a pool's name.

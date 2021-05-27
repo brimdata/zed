@@ -1,3 +1,5 @@
+skip: "issue #2651"
+
 script: |
   source services.sh
   cat in.zson | zapi -host $LAKE_HOST -p test post -f - >/dev/null

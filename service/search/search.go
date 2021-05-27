@@ -137,7 +137,7 @@ func poolHasSpan(ctx context.Context, pool *lake.Pool) bool {
 	if err != nil {
 		return false
 	}
-	info, err := pool.Info(ctx, snap)
+	info, err := pool.Stats(ctx, snap)
 	if err != nil {
 		return false
 	}

@@ -280,17 +280,10 @@ func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 	if err != nil {
 		return nil, err
 	}
-	for i, example := range examples {
-		// Convert strings like
-		// /home/user/zql/docs/processors/README.md to
-		// /zql/docs/processors/README.md . RepoAbsPath() does not
-		// include a trailing filepath.Separator in its return.
-		testname := strings.TrimPrefix(absfilename, repopath)
-		// Now convert strings like /zql/docs/processors/README.md to
-		// zql/docs/processors/README.md1 go test will call such a test
-		// something like
-		// TestMarkdownExamples/zql/docs/processors/README.md1
-		testname = strings.TrimPrefix(testname, string(filepath.Separator)) + strconv.Itoa(i+1)
+	repopath += string(filepath.Separator)
+	for _, example := range examples {
+		linenum := bytes.Count(source[:example.command.Info.Segment.Start], []byte("\n")) + 2
+		testname := strings.TrimPrefix(absfilename, repopath) + ":" + strconv.Itoa(linenum)
 
 		command, err := QualifyCommand(BlockString(example.command, source))
 		if err != nil {

@@ -1,3 +1,5 @@
+skip: "issue #2651"
+
 script: |
   python3 -m venv v
   . v/bin/activate

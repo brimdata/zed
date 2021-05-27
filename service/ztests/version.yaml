@@ -1,3 +1,5 @@
+skip: "issue #2651"
+
 script: |
   source services.sh
   zapi -host $LAKE_HOST version

@@ -11,8 +11,8 @@ import (
 var Nil = Layout{}
 
 type Layout struct {
-	Order Which      `json:"order"`
-	Keys  field.List `json:"keys"`
+	Order Which      `json:"order" zng:"order"`
+	Keys  field.List `json:"keys" zng:"keys"`
 }
 
 func (l Layout) Primary() field.Path {
