@@ -71,7 +71,7 @@ more than performance.
 
 The ZSON design was inspired by the
 [Zeek TSV log format](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs)
-and [is semantically consistent with it](./zeek-compat.md).
+and [is semantically consistent with it](../../zeek/type-compat.md).
 As far as we know, the Zeek log format pioneered the concept of
 embedding the schemas of log lines as metadata within the log files themselves
 and ZSON modernizes this original approach with a JSON-like syntax and
