@@ -70,7 +70,7 @@ applicable to handling certain types.
 ## Example
 
 The following example shows an input TSV log that includes each Zeek data type,
-how it's output as ZSON by `zq`, then how it's written back out again as a Zeek
+how it's output as ZSON by `zq`, and then how it's written back out again as a Zeek
 log. You may find it helpful to refer to this example when reading the
 [Type-Specific Details](#type-specific-details) sections.
 
