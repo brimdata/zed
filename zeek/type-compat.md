@@ -141,7 +141,7 @@ Multiple Zeek types discussed below are represented via a
 [type definition](../docs/formats/zson.md#25-type-definitions) to one of Zed's
 [primitive types](../docs/formats/zson.md#33-primitive-values). The Zed type
 definitions maintain the history of the field's original Zeek type name
-such that `zq` may restore it if/when the field may be later output again in
+such that `zq` may restore it if the field is later output in
 Zeek format. Knowledge of its original Zeek type may also enable special 
 operations in Zed that are unique to values known to have originated as a
 specific Zeek type, though no such operations are currently implemented in
