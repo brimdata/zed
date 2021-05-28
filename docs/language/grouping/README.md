@@ -42,7 +42,7 @@ specification of each unit.
 To see the total number of bytes originated across all connections during each
 minute:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'every 1m sum(orig_bytes) | sort -r ts' conn.log.gz
 ```
 
@@ -61,7 +61,7 @@ TS                   SUM
 To see which 30-second intervals contained the most records, expressing the
 duration as a half-minute:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'every 0.5m count() | sort -r count' *.log.gz
 ```
 
@@ -79,7 +79,7 @@ TS                   COUNT
 To see the highest-numbered responding network port during each 90-second
 interval, expressing the duration as a mix of minutes and seconds:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'every 1m30s max(id.resp_p) | sort -r ts' conn.log.gz
 ```
 
@@ -105,7 +105,7 @@ The simplest example summarizes the unique values of the named field(s), which
 requires no aggregate function. To see which protocols were observed in our
 Zeek `conn` records:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'by proto | sort' conn.log.gz
 ```
 
@@ -121,7 +121,7 @@ If you work a lot at the UNIX/Linux shell, you might have sought to accomplish
 the same via a familiar, verbose idiom. This works in Zed, but the `by`
 shorthand is preferable.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'cut proto | sort | uniq' conn.log.gz
 ```
 
@@ -139,7 +139,7 @@ By specifying multiple comma-separated field names, one batch is formed for each
 unique combination of values found in those fields. To see which responding
 IP+port combinations generated the most traffic:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'sum(resp_bytes) by id.resp_h,id.resp_p  | sort -r sum' conn.log.gz
 ```
 
@@ -166,7 +166,7 @@ responding DNS servers generated the longest answers, we can group by
 both `id.resp_h` and an expression that evaluates the length of `answers`
 arrays.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'len(answers) > 0 | count() by id.resp_h,num_answers:=len(answers) | sort -r num_answers,count' dns.log.gz
 ```
 
@@ -188,7 +188,7 @@ the grouping to have effect.
 Let's say we've performed separate aggregations for fields present in different
 Zeek records. First we count the unique `host` values in `http` records.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'count() by host | sort -r | head 3' http.log.gz
 ```
 
@@ -202,7 +202,7 @@ HOST       COUNT
 
 Next we count the unique `query` values in `dns` records.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'count() by query | sort -r | head 3' dns.log.gz
 ```
 
@@ -226,7 +226,7 @@ and the `host` field not being present in any of the `dns` records. This can
 be observed by looking at the [ZSON](../../formats/zson.md)
 representation of the type definitions for each record type.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f zson 'count() by _path,typeof(.) | sort _path' http.log.gz dns.log.gz
 ```
 
@@ -250,7 +250,7 @@ records under a single schema. This has the effect of populating missing
 fields with null values. Now that the named fields are present in
 all records, the `by` grouping has the desired effect.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'fuse | count() by host,query | sort -r | head 3' http.log.gz dns.log.gz
 ```
 
@@ -273,7 +273,7 @@ should be used downstream of the aggregate function(s) in the Zed pipeline.
 If we were counting records into 5-minute batches and wanted to see these
 results ordered by incrementing timestamp of each batch:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'every 5m count() | sort ts' *.log.gz
 ```
 
@@ -289,7 +289,7 @@ TS                   COUNT
 
 If we'd wanted to see them ordered from lowest to highest record count:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'every 5m count() | sort count' *.log.gz
 ```
 

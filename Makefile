@@ -63,7 +63,7 @@ test-run: build bin/minio
 	@ZTEST_PATH="$(CURDIR)/dist:$(CURDIR)/bin" go test . -run $(TEST)
 
 test-heavy: build $(SAMPLEDATA)
-	@go test -tags=heavy ./tests
+	@PATH="$(CURDIR)/dist:$(PATH)" go test -tags=heavy ./tests
 
 .PHONY: test-services
 test-services: build

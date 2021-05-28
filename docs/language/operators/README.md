@@ -43,7 +43,7 @@ The following available operators are documented in detail below:
 
 To return only the `ts` and `uid` columns of `conn` records:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'cut ts,uid' conn.log.gz
 ```
 
@@ -64,7 +64,7 @@ the Zeek `smb_mapping` logs in our sample data contain the field named
 `share_type`, the following query returns records for many other log types that
 contain the `_path` and/or `ts` that we included in our field list.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'cut _path,ts,share_type' *
 ```
 
@@ -85,7 +85,7 @@ Contrast this with a [similar example](#example-2-3) that shows how
 If no records are found that contain any of the named fields, `cut` returns a
 warning.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'cut nothere,alsoabsent' weird.log.gz
 ```
 
@@ -99,7 +99,7 @@ cut: no record found with columns nothere,alsoabsent
 To return only the `ts` and `uid` columns of `conn` records, with `ts` renamed
 to `time`:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'cut time:=ts,uid' conn.log.gz
 ```
 
@@ -127,7 +127,7 @@ TIME                        UID
 To return all fields _other than_ the `_path` field and `id` record of `weird`
 records:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'drop _path,id' weird.log.gz
 ```
 
@@ -160,7 +160,7 @@ TS                          UID                NAME                             
 
 To further trim the data returned in our [`cut`](#cut) example:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'cut ts,uid | filter uid=="CXWfTK3LRdiuQxBbM6"' conn.log.gz
 ```
 
@@ -174,7 +174,7 @@ TS                          UID
 
 An alternative syntax for our [`and` example](../search-syntax/README.md#and):
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'filter www.*cdn*.com _path=="ssl"' *.log.gz
 ```
 
@@ -201,7 +201,7 @@ ssl   2018-03-24T17:24:00.189735Z CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85
 
 Let's say you'd started with table-formatted output of both `stats` and `weird` records:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'ts < 1521911721' stats.log.gz weird.log.gz
 ```
 
@@ -239,7 +239,7 @@ is assembled in a first pass through the data stream, which enables the
 presentation of the results under a single, wider header row with no further
 interruptions between the subsequent data rows.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f csv 'ts < 1521911721 | fuse' stats.log.gz weird.log.gz
 ```
 
@@ -271,7 +271,7 @@ Other output formats invoked via `zq -f` that benefit greatly from the use of
 
 To see the first `dns` record:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'head' dns.log.gz
 ```
 
@@ -285,7 +285,7 @@ dns   2018-03-24T17:15:20.865716Z C2zK5f13SbCtKcyiW5 10.47.1.100 41772     10.0.
 
 To see the first five `conn` records with activity on port `80`:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'id.resp_p==80 | head 5' conn.log.gz
 ```
 
@@ -313,7 +313,7 @@ conn  2018-03-24T17:15:20.607695Z CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.
 
 To return only the `ts` and `uid` columns of `conn` records:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'pick ts,uid' conn.log.gz
 ```
 
@@ -334,7 +334,7 @@ data contains the field named `share_type`, the following query returns columns
 for only that record type. The many other Zeek record types that also include
 `_path` and/or `ts` fields are not returned.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'pick _path,ts,share_type' *
 ```
 
@@ -355,7 +355,7 @@ Contrast this with a [similar example](#example-2) that shows how
 If no records are found that contain any of the named fields, `pick` returns a
 warning.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'pick nothere,alsoabsent' weird.log.gz
 ```
 
@@ -369,7 +369,7 @@ pick: no record found with columns nothere,alsoabsent
 To return only the `ts` and `uid` columns of `conn` records, with `ts` renamed
 to `time`:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'pick time:=ts,uid' conn.log.gz
 ```
 
@@ -398,7 +398,7 @@ TIME                        UID
 
 Compute a `total_bytes` field in `conn` records:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -q -f table 'put total_bytes := orig_bytes + resp_bytes | sort -r total_bytes | cut id, orig_bytes, resp_bytes, total_bytes' conn.log.gz
 ```
 
@@ -429,7 +429,7 @@ ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P ORIG_BYTES RESP_BYTES TOTAL_BY
 
 Rename `ts` to `time`, rename one of the inner fields of `id`, and rename the `id` record itself to `conntuple`:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
  zq -f table 'rename time:=ts, id.src:=id.orig_h, conntuple:=id' conn.log.gz
 ```
 
@@ -458,7 +458,7 @@ conn  2018-03-24T17:15:22.690601Z CuKFds250kxFgkhh8f 10.47.25.80    50813       
 
 To sort `x509` records by `certificate.subject`:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'sort certificate.subject' x509.log.gz
 ```
 
@@ -483,7 +483,7 @@ Now we'll sort `x509` records first by `certificate.subject`, then by the `id`.
 Compared to the previous example, note how this changes the order of some
 records that had the same `certificate.subject` value.
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'sort certificate.subject,id' x509.log.gz
 ```
 
@@ -511,7 +511,7 @@ a `sort` in reverse order. Note that even though we didn't list a field name as
 an explicit argument, the `sort` operator did what we wanted because it found a
 field of the `uint64` [data type](../data-types/README.md).
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'count() by id.orig_h | sort -r' conn.log.gz
 ```
 
@@ -531,7 +531,7 @@ In this example we count the number of times each distinct username appears in
 `http` records, but deliberately put the unset username at the front of the
 list:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'count() by username | sort -nulls first username' http.log.gz
 ```
 
@@ -562,7 +562,7 @@ wwonka       1
 
 To see the last `dns` record:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'tail' dns.log.gz
 ```
 
@@ -576,7 +576,7 @@ dns   2018-03-24T17:36:30.151237Z C0ybvu4HG3yWv6H5cb 172.31.255.5 60878     10.0
 
 To see the last five `conn` records with activity on port `80`:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'id.resp_p==80 | tail 5' conn.log.gz
 ```
 
@@ -605,7 +605,7 @@ conn  2018-03-24T17:36:28.752765Z COICgc1FXHKteyFy67 10.0.0.227     61314     10
 
 To see a count of the top issuers of X.509 certificates:
 
-```zq-command
+```zq-command zed-sample-data/zeek-default
 zq -f table 'cut certificate.issuer | sort | uniq -c | sort -r' x509.log.gz
 ```
 
