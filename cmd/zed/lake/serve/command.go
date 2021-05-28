@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"io"
 	"net"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"runtime"
 
 	"github.com/brimdata/zed/cli"
+	"github.com/brimdata/zed/cli/lakecli"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/fs"
@@ -43,8 +45,6 @@ type Command struct {
 	logger  *zap.Logger
 	logconf logger.Config
 
-	// Flags
-
 	// brimfd is a file descriptor passed through by brim desktop. If set the
 	// command will exit if the fd is closed.
 	brimfd     int
@@ -74,7 +74,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	c.conf.Root, err = c.lake.RootPath()
+	localflags, ok := c.lake.Flags.(*lakecli.LocalFlags)
+	if !ok {
+		return errors.New("cannot run lake serve on non-local lake")
+	}
+	c.conf.Root, err = localflags.RootPath()
 	if err != nil {
 		return err
 	}
@@ -94,6 +98,7 @@ func (c *Command) Run(args []string) error {
 		}
 	}
 	core, err := service.NewCore(ctx, c.conf)
+	fmt.Println("running", err)
 	if err != nil {
 		return err
 	}

@@ -29,7 +29,9 @@ func (c *testClient) unmarshal(r *client.ReadCloser, i interface{}) {
 	zw := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
 	require.NoError(c, zio.Copy(zw, zr))
 	require.NoError(c, zw.Close())
-	require.NoError(c, zson.Unmarshal(buf.String(), i))
+	if s := buf.String(); s != "" {
+		require.NoError(c, zson.Unmarshal(s, i))
+	}
 }
 
 func (c *testClient) TestPoolStats(id ksuid.KSUID) (info lake.PoolStats) {
@@ -55,7 +57,7 @@ func (c *testClient) zioreader(rc *client.ReadCloser) zio.Reader {
 }
 
 func (c *testClient) TestPoolList() []lake.PoolConfig {
-	r, err := c.PoolScan(context.Background())
+	r, err := c.ScanPools(context.Background())
 	require.NoError(c, err)
 	var confs []lake.PoolConfig
 	zr := c.zioreader(r)

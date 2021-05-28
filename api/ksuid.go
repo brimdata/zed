@@ -38,3 +38,13 @@ func ParseKSUID(s string) (ksuid.KSUID, error) {
 	}
 	return id, nil
 }
+
+func ParseKSUIDs(in []string) (ids []ksuid.KSUID, err error) {
+	ids = make([]ksuid.KSUID, len(in))
+	for i, s := range in {
+		if ids[i], err = ParseKSUID(s); err != nil {
+			return nil, err
+		}
+	}
+	return ids, nil
+}

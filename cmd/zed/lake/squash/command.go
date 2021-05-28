@@ -5,9 +5,9 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimdata/zed/cli/lakecli"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/storage"
 )
 
 var Squash = &charm.Spec{
@@ -51,22 +51,22 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	pool, err := c.lake.Flags.OpenPool(ctx, storage.NewLocalEngine())
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
-	ids, err := zedlake.ParseIDs(args)
+	ids, err := lakecli.ParseIDs(args)
 	if err != nil {
 		return err
 	}
 	if len(ids) == 0 {
 		return errors.New("no commit tags specified")
 	}
-	commit, err := pool.Squash(ctx, ids, c.Date.Ts(), c.User, c.Message)
+	commit, err := pool.Squash(ctx, ids, *c.CommitRequest())
 	if err != nil {
 		return err
 	}
-	if !c.lake.Flags.Quiet {
+	if !c.lake.Flags.Quiet() {
 		fmt.Printf("squashed commit in staging: %s\n", commit)
 	}
 	return nil

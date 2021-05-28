@@ -1,0 +1,18 @@
+script: |
+  source service.sh
+  zed api create -q -p test
+  id=$(zed api add -p test in.zson | head -1 | awk '{print $1}')
+  zed api commit -p test $id
+
+inputs:
+  - name: in.zson
+    data: |
+      {x:1}
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stdout
+    regexp: |
+       \w{27} committed
+

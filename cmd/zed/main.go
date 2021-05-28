@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/brimdata/zed/cmd/zed/api"
 	"github.com/brimdata/zed/cmd/zed/compile"
 	"github.com/brimdata/zed/cmd/zed/index"
 	_ "github.com/brimdata/zed/cmd/zed/index/convert"
@@ -39,6 +40,7 @@ import (
 
 func main() {
 	zed := root.Zed
+	zed.Add(api.Cmd)
 	zed.Add(compile.Cmd)
 	zed.Add(query.Cmd)
 	zed.Add(zst.Cmd)
