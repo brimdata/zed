@@ -207,7 +207,7 @@ func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 	for _, e := range examples {
 		linenum := bytes.Count(source[:e.command.Info.Segment.Start], []byte("\n")) + 2
 		var commandDir string
-		if infoWords := strings.Fields(string(e.command.Info.Segment.Value(source))); len(infoWords) > 0 {
+		if infoWords := strings.Fields(string(e.command.Info.Segment.Value(source))); len(infoWords) > 1 {
 			commandDir = infoWords[1]
 		}
 		tests = append(tests, ZQExampleTest{
