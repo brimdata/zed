@@ -163,8 +163,8 @@ func (r *RemoteRoot) CreatePool(ctx context.Context, name string, layout order.L
 	return newRemotePool(r.conn, config), nil
 }
 
-func (r *RemoteRoot) RemovePool(context.Context, ksuid.KSUID) error {
-	return errors.New("unsupported")
+func (r *RemoteRoot) RemovePool(ctx context.Context, pool ksuid.KSUID) error {
+	return r.conn.PoolRemove(ctx, pool)
 }
 
 func (r *RemoteRoot) AddIndex(context.Context, []index.Index) error {

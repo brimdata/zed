@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 )
@@ -28,6 +29,7 @@ Once the pool is delted, its data is gone.
 
 func init() {
 	zedlake.Cmd.Add(Cmd)
+	zedapi.Cmd.Add(Cmd)
 }
 
 type Command struct {
