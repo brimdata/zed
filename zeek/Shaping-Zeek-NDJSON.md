@@ -99,7 +99,7 @@ Picking this apart, it transforms reach record as it's being read, in two
 steps:
 
 1. `unflatten()` reverses the Zeek NDJSON logger's "flattening" of nested
-   records, e.g., how it populatesa field named `id.orig_h` rather than
+   records, e.g., how it populates a field named `id.orig_h` rather than
    creating a field `id` with sub-field `orig_h` inside it. Restoring the
    original nesting now gives us the option to reference the record named `id`
    in the Zed language and access the entire 4-tuple of values, but still
