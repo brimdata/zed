@@ -424,7 +424,7 @@ the special sub-pool name `<pool>:journal`.
 For example, to aggregate a count of each journal entry type of the pool
 called `logs`, you can simply say:
 ```
-zed lake query -p logs:journal "count() by typeof(.)"
+zed lake query -p logs:journal "count() by typeof(this)"
 ```
 Since the Zed system "typedefs" each journal record with a named type,
 this kind of query gives intuitive results.  There is no need to implement
@@ -727,7 +727,7 @@ retention policies more complicated.
 
 Another approach would be to create a sub-pool on demand when the first
 keyless data is encountered, e.g., `pool-name.$nokey` where the pool key
-is configured to be ".".  This way, an app or user could query this pool
+is configured to be "this".  This way, an app or user could query this pool
 by this name to scan keyless data.
 
 ## Relational Model
@@ -738,9 +738,9 @@ in place.  Such updates involve creating new commits from the old data
 where the new data is a modified form of the old data.  This provides
 emulation of row-based updates and deletes.
 
-If the pool-key is chosen to be "." for such a use case, then unique
+If the pool-key is chosen to be "this" for such a use case, then unique
 rows can be maintained by trivially detected duplicates (because any
-duplicate row will be adjacent when sorted by ".") so that duplicates are
+duplicate row will be adjacent when sorted by "this") so that duplicates are
 trivially detected.
 
 Efficient upserts can be accomplished because each segment is sorted by the
