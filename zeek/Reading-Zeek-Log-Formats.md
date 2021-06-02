@@ -85,12 +85,12 @@ which was generated using the JSON Streaming Logs package.
 
 #### Example:
 
-```zq-command
+```
 zq -Z 'head 1' conn.ndjson.gz
 ```
 
 #### Output:
-```zq-output
+```
 {
     _path: "conn",
     _write_ts: "2018-03-24T17:15:21.400275Z",
