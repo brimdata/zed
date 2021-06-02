@@ -95,7 +95,8 @@ so far.
 put this := unflatten(this) | put this := shape(schemas[_path])
 ```
 
-Picking this apart, it transforms reach record as it's being read in two steps:
+Picking this apart, it transforms reach record as it's being read, in two
+steps:
 
 1. `unflatten()` reverses the Zeek NDJSON logger's "flattening" of nested
    records, e.g., populating a field named `id.orig_h` rather than creating a
