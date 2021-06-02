@@ -128,7 +128,7 @@ steps:
    Zed pipeline, e.g.:
 
       ```
-      put this := unflatten(this) | put this := shape(schemas[_path]) | | put this := crop(schemas[_path])
+      put this := unflatten(this) | put this := shape(schemas[_path]) | put this := crop(schemas[_path])
       ```
 
    Open issues [zed/2585](https://github.com/brimdata/zed/issues/2585) and
