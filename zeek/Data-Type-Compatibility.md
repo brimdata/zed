@@ -17,9 +17,10 @@ As the Zed data model was in many ways inspired by the
 [Zeek TSV log format](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs),
 the rich Zed storage formats ([ZSON](../docs/formats/zson.md),
 [ZNG](../docs/formats/zng.md), etc.) maintain comprehensive interoperability
-with Zeek. However, when Zeek is configured to output its logs in JSON or
-NDJSON formats, much of the rich type information is lost in translation. On
-the other hand, Zeek TSV can be converted to Zed storage formats and back to
+with Zeek. When Zeek is configured to output its logs in JSON or
+NDJSON formats, much of the rich type information is lost in translation, but
+this can be restored by following the guidance for [Shaping Zeek NDJSON](Shaping-Zeek-NDJSON.md).
+On the other hand, Zeek TSV can be converted to Zed storage formats and back to
 Zeek TSV without any loss of information.
 
 This document describes how the Zed type system is able to represent each of
