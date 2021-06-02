@@ -99,11 +99,12 @@ Picking this apart, it transforms reach record as it's being read, in two
 steps:
 
 1. `unflatten()` reverses the Zeek NDJSON logger's "flattening" of nested
-   records, e.g., populating a field named `id.orig_h` rather than creating a
-   field `id` with sub-field `orig_h` inside it. Restoring the original nesting
-   now gives us the option to reference the record named `id` in the Zed
-   language and access the entire 4-tuple of values, but still access the
-   individual values using the same dotted syntax like `id.orig_h` when needed.
+   records, e.g., how it populatesa field named `id.orig_h` rather than
+   creating a field `id` with sub-field `orig_h` inside it. Restoring the
+   original nesting now gives us the option to reference the record named `id`
+   in the Zed language and access the entire 4-tuple of values, but still
+   access the individual values using the same dotted syntax like `id.orig_h`
+   when needed.
 
 2. `shape()` applies the type definition based on the value found in the
    incoming record's `_path` field. This includes:
