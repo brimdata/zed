@@ -2,6 +2,7 @@
 
   * [Data Pools](#data-pools)
   * [Lake Semantics](#lake-semantics)
+    + [Initialization](#initialization)
     + [New](#new)
     + [Load](#load)
     + [Query](#query)
@@ -87,32 +88,39 @@ a user and a Zed lake would be via an application like
 programming environment like Python/Pandas rather than via direct interaction
 with `zed lake`.
 
+### Initialization
+
+A new lake is initialized with
+```
+zed lake init [path]
+```
+
+In all these examples, the lake identity is implied by its path (e.g., an S3
+URI or a file system path) and may be specified by the `ZED_LAKE_ROOT`
+environment variable when running `zed lake` commands on a local host.  In a
+cloud deployment or running queries through an application, the lake path is
+determined by an authenticated connection to the Zed lake service, which
+explicitly denotes the lake name (analogous to how a GitHub user authenticates
+access to a named GitHub organization).
+
 ### New
 
 A new pool is created with
 ```
-zed lake create -p <name> -k <key>[,<key>...] [-order asc|desc]
+zed lake create -p <name> [-orderby key[,key...][:asc|:desc]]
 ```
 where `<name>` is the name of the pool within the implied lake instance,
 `<key>` is the Zed language representation of the pool key, and `asc` or `desc`
 indicate that the natural scan order by the pool key should be ascending
 or descending, respectively, e.g.,
 ```
-zed lake create -p logs -k ts -order desc
+zed lake create -p logs -orderby ts:desc
 ```
 Note that there may be multiple pool keys, where subsequent keys act as the secondary,
 tertiary, and so forth sort key.
 
 If a pool key is not specified, then it defaults to the whole record, which
-in the Zed language is referred to as ".".
-
-In all these examples, the lake identity is implied by its path (e.g., an S3 URI
-or a file system path) and may be specified by the ZED_LAKE_ROOT environment variable
-when running `zed lake` commands on a local host.  In a cloud deployment
-or running queries through an application, the lake path is determined by
-an authenticated connection to the Zed lake service, which explicitly denotes
-the lake name (analogous to how a GitHub user authenticates access to
-a named GitHub organization).
+in the Zed language is referred to as "this".
 
 ### Load
 
