@@ -71,7 +71,7 @@ As an alternative to the default TSV format, there are two common ways that
 Zeek may instead generate logs in [NDJSON](http://ndjson.org/) format.
 
 1. Using the [JSON Streaming Logs](https://github.com/corelight/json-streaming-logs)
-   package
+   package (recommended for use with Zed)
 2. Using the built-in [ASCII logger](https://docs.zeek.org/en/current/scripts/base/frameworks/logging/writers/ascii.zeek.html)
    configured with `redef LogAscii::use_json = T;`
 
