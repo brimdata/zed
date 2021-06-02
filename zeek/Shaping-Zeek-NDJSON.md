@@ -27,8 +27,8 @@ shaper configuration, such as the reference example [`shaper.zed`](shaper.zed)
 that can be found in this directory of the repository.
 
 A full description of all that's possible with shaping configurations is beyond
-the scope of this doc. However, this configuration is quite simple and is
-described below.
+the scope of this doc. However, this example configuration is quite simple and
+is described below.
 
 # Reference Shaper Contents
 
