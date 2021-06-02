@@ -46,16 +46,16 @@ type zenum=string;
 type conn_id={orig_h:ip,orig_p:port,resp_h:ip,resp_p:port};
 ```
 The `port` and `zenum` types are described further in the [Zed/Zeek Data Type Compatibility](Data-Type-Compatibility.md)
-doc. The `conn_id` type will just save us from having to repeatedly these
-fields individually in the many Zeek record types that contain an embedded
-`id` record.
+doc. The `conn_id` type will just save us from having to repeat these fields
+individually in the many Zeek record types that contain an embedded `id`
+record.
 
 ## Type Definitions Per Zeek Log `_path`
 
 The bulk of the configuration consists of detailed per-field data type
 definitions for each record in the default set of NDJSON logs output by Zeek.
 These type definitions reference the types we defined above, such as `port`
-and `conn_id`. The syntax for defining primitve and complex types follows the
+and `conn_id`. The syntax for defining primitive and complex types follows the
 relevant sections of the [ZSON Format](../docs/formats/zson.md#3-the-zson-format)
 specification.
 
