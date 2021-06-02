@@ -1,4 +1,4 @@
-# Zed Interoperability with Zeek Logs
+# Zed/Zeek Data Type Compatibility
 
 - [Introduction](#introduction)
 - [Equivalent Types](#equivalent-types)
