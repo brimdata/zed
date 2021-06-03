@@ -3,16 +3,12 @@ package ls
 import (
 	"errors"
 	"flag"
-	"fmt"
-	"io"
 
 	"github.com/brimdata/zed/cli/outputflags"
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Ls = &charm.Spec{
@@ -28,6 +24,7 @@ The the pool flag "-p" is not given, then the lake's pools are listed.
 
 func init() {
 	zedlake.Cmd.Add(Ls)
+	zedapi.Cmd.Add(Ls)
 }
 
 type Command struct {
@@ -55,46 +52,27 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	pipeReader, pipeWriter := io.Pipe()
-	w := zngio.NewWriter(pipeWriter, zngio.WriterOpts{})
 	local := storage.NewLocalEngine()
-	if c.lake.Flags.PoolName == "" {
-		lk, err := c.lake.Flags.Open(ctx, local)
+	if c.lake.Flags.PoolName() == "" {
+		lk, err := c.lake.Flags.Open(ctx)
 		if err != nil {
 			return err
 		}
-		go func() {
-			lk.ScanPools(ctx, w)
-			w.Close()
-		}()
-	} else {
-		pool, err := c.lake.Flags.OpenPool(ctx, local)
+		zw, err := c.outputFlags.Open(ctx, local)
 		if err != nil {
 			return err
 		}
-		var at journal.ID
-		if c.at != "" {
-			at, err = zedlake.ParseJournalID(ctx, pool, c.at)
-			if err != nil {
-				return fmt.Errorf("zed lake ls: %w", err)
-			}
-		}
-		snap, err := pool.Log().Snapshot(ctx, at)
-		if err != nil {
-			return err
-		}
-		if c.partition {
-			go func() {
-				pool.ScanPartitions(ctx, w, snap, nil)
-				w.Close()
-			}()
-		} else {
-			go func() {
-				pool.ScanSegments(ctx, w, snap, nil)
-				w.Close()
-			}()
-		}
+		defer zw.Close()
+		return lk.ScanPools(ctx, zw)
 	}
-	r := zngio.NewReader(pipeReader, zson.NewContext())
-	return zedlake.CopyToOutput(ctx, local, c.outputFlags, r)
+	pool, err := c.lake.Flags.OpenPool(ctx)
+	if err != nil {
+		return err
+	}
+	zw, err := c.outputFlags.Open(ctx, local)
+	if err != nil {
+		return err
+	}
+	defer zw.Close()
+	return pool.ScanSegments(ctx, zw, c.at, c.partition, nil)
 }

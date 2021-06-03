@@ -1,0 +1,24 @@
+script: |
+  source service.sh
+  zapi create -q -p test
+  zapi load -q -p test 1.zson
+  zapi load -q -p test 2.zson
+  zapi ls -p test
+
+inputs:
+  - name: service.sh
+    source: service.sh
+  - name: 1.zson
+    data: |
+      {x:1}
+  - name: 2.zson
+    data: |
+      {x:2}
+
+outputs:
+  - name: stdout
+    regexp: |
+      \w{27} \d+B bytes 1 records
+         from null: \(\) to null: \(\)
+      \w{27} \d+B bytes 1 records
+         from null: \(\) to null: \(\)

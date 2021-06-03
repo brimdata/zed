@@ -5,9 +5,9 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimdata/zed/cli/lakecli"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/storage"
 )
 
 var Delete = &charm.Spec{
@@ -61,40 +61,32 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	pool, err := c.lake.Flags.OpenPool(ctx, storage.NewLocalEngine())
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
-	tags, err := zedlake.ParseIDs(args)
+	tags, err := lakecli.ParseIDs(args)
 	if err != nil {
 		return err
 	}
 	if len(tags) == 0 {
 		return errors.New("no data or commit tags specified")
 	}
-	ids, err := pool.LookupTags(ctx, tags)
-	if err != nil {
-		return err
-	}
-	commitID, err := pool.Delete(ctx, ids)
-	if err != nil {
-		return err
-	}
 	if c.commit {
-		if err := pool.Commit(ctx, commitID, c.Date.Ts(), c.User, c.Message); err != nil {
+		if _, err := pool.Delete(ctx, tags, c.CommitRequest()); err != nil {
 			return err
 		}
-		if !c.lake.Flags.Quiet {
+		if !c.lake.Flags.Quiet() {
 			fmt.Println("deletion successful")
 		}
 		return nil
 	}
-	if !c.lake.Flags.Quiet {
-		txn, err := pool.LoadFromStaging(ctx, commitID)
-		if err != nil {
-			return err
-		}
-		fmt.Printf("%s staged to delete %d segments\n", commitID, len(txn.Actions))
+	commitID, err := pool.Delete(ctx, tags, nil)
+	if err != nil {
+		return err
+	}
+	if !c.lake.Flags.Quiet() {
+		fmt.Printf("%s staged to delete\n", commitID)
 	}
 	return nil
 }

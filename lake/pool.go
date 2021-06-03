@@ -327,7 +327,7 @@ func (p *Pool) ScanSegments(ctx context.Context, w zio.Writer, snap *commit.Snap
 		close(ch)
 	}()
 	m := zson.NewZNGMarshaler()
-	m.Decorate(zson.StyleSimple)
+	m.Decorate(zson.StylePackage)
 	for p := range ch {
 		rec, err := m.MarshalRecord(p)
 		if err != nil {

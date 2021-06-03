@@ -5,10 +5,10 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimdata/zed/cli/lakecli"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
-	"github.com/brimdata/zed/pkg/storage"
 	"github.com/segmentio/ksuid"
 )
 
@@ -30,7 +30,7 @@ func NewAdd(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &AddCommand{lake: parent.(*Command).Command}
 	f.BoolVar(&c.commit, "commit", false, "commit added index objects if successfully written")
 	f.Func("index", "id of index to apply (can be specified multiple times", func(s string) error {
-		id, err := zedlake.ParseID(s)
+		id, err := lakecli.ParseID(s)
 		c.ids = append(c.ids, id)
 		return err
 	})
@@ -48,7 +48,7 @@ func (c *AddCommand) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	root, err := c.lake.Open(ctx, storage.NewLocalEngine())
+	root, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -56,17 +56,13 @@ func (c *AddCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	tags, err := zedlake.ParseIDs(args)
+	tags, err := lakecli.ParseIDs(args)
 	if err != nil {
 		return err
 	} else if len(tags) == 0 {
 		return errors.New("no data or commit tags specified")
 	}
-	pool, err := c.lake.OpenPool(ctx, storage.NewLocalEngine())
-	if err != nil {
-		return err
-	}
-	tags, err = pool.LookupTags(ctx, tags)
+	pool, err := c.lake.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
@@ -75,15 +71,15 @@ func (c *AddCommand) Run(args []string) error {
 		return err
 	}
 	if c.commit {
-		if err := pool.Commit(ctx, commit, c.Date.Ts(), c.User, c.Message); err != nil {
+		if err := pool.Commit(ctx, commit, *c.CommitRequest()); err != nil {
 			return err
 		}
-		if !c.lake.Quiet {
+		if !c.lake.Quiet() {
 			fmt.Printf("%s committed\n", commit)
 		}
 		return nil
 	}
-	if !c.lake.Quiet {
+	if !c.lake.Quiet() {
 		fmt.Printf("%s staged\n", commit)
 	}
 	return nil

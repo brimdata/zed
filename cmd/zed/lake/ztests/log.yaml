@@ -1,0 +1,32 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p test
+  zed lake load -q -p test -date 2021-05-28T15:13:42Z -user testuser 1.zson
+  zed lake load -q -p test -date 2021-05-28T15:13:43Z -user testuser 2.zson
+  zed lake log -p test
+
+inputs:
+  - name: 1.zson
+    data: |
+      {x:1}
+  - name: 2.zson
+    data: |
+      {x:2}
+
+outputs:
+  - name: stdout
+    regexp: |
+      commit \w{27}
+      Author: testuser
+      Date:   2021-05-28T15:13:42Z
+
+          Add \w{27} \d+\w+ bytes 1 records
+             from null: \(\) to null: \(\)
+      
+      commit \w{27}
+      Author: testuser
+      Date:   2021-05-28T15:13:43Z
+      
+          Add \w{27} \d+\w+ bytes 1 records
+             from null: \(\) to null: \(\)

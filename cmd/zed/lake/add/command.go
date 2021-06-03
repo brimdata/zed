@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/cli/inputflags"
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
@@ -41,6 +43,7 @@ all data has been sucessfully written.
 
 func init() {
 	zedlake.Cmd.Add(Add)
+	zedapi.Cmd.Add(Add)
 }
 
 // TBD: add option to apply Zed program on add path?
@@ -78,36 +81,33 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	local := storage.NewLocalEngine()
-	pool, err := c.lake.Flags.OpenPool(ctx, local)
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
 	paths := args
+	local := storage.NewLocalEngine()
 	readers, err := c.inputFlags.Open(zson.NewContext(), local, paths, false)
 	if err != nil {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Layout.Order)
+	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Config().Layout.Order)
 	if err != nil {
 		return err
 	}
-	commit, err := pool.Add(ctx, reader)
-	if err != nil {
-		return err
-	}
+	action := "staged"
+	var commit *api.CommitRequest
 	if c.commit {
-		if err := pool.Commit(ctx, commit, c.Date.Ts(), c.User, c.Message); err != nil {
-			return err
-		}
-		if !c.lake.Flags.Quiet {
-			fmt.Printf("%s committed\n", commit)
-		}
-		return nil
+		commit = c.CommitRequest()
+		action = "committed"
 	}
-	if !c.lake.Flags.Quiet {
-		fmt.Printf("%s staged\n", commit)
+	id, err := pool.Add(ctx, reader, commit)
+	if err != nil {
+		return err
+	}
+	if !c.lake.Flags.Quiet() {
+		fmt.Printf("%s %s\n", id, action)
 	}
 	return nil
 }

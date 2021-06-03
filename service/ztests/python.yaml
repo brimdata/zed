@@ -1,5 +1,3 @@
-skip: "issue #2651"
-
 script: |
   python3 -m venv v
   . v/bin/activate
@@ -9,12 +7,13 @@ script: |
   # -qq supresses warnings about availability of newer pip versions.
   pip install -qq ./zqd
 
-  source services.sh
-  zapi -host $LAKE_HOST -p test post -f in.zson >/dev/null
+  source service.sh
+  zapi create -q -p test
+  zapi load -q -p test in.zson
 
   python <<EOF
   import zqd
-  c = zqd.Client('http://$LAKE_HOST')
+  c = zqd.Client('http://$ZED_LAKE_HOST')
   for rec in c.search('test', '*'):
     print(rec)
   EOF
@@ -71,8 +70,8 @@ inputs:
       {union:[1,2] (4)} (7)
       {union:["a","b"]} (7)
       {union:123 (int32) (6)} (7)
-  - name: services.sh
-    source: services.sh
+  - name: service.sh
+    source: service.sh
   - name: setup.py
     source: ../../python/zqd/setup.py
   - name: zqd.py

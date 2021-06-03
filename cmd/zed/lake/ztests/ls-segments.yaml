@@ -1,0 +1,23 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p test
+  zed lake load -q -p test 1.zson
+  zed lake load -q -p test 2.zson
+  zed lake ls -p test
+
+inputs:
+  - name: 1.zson
+    data: |
+      {x:1}
+  - name: 2.zson
+    data: |
+      {x:2}
+
+outputs:
+  - name: stdout
+    regexp: |
+      \w{27} \d+B bytes 1 records
+         from null: \(\) to null: \(\)
+      \w{27} \d+B bytes 1 records
+         from null: \(\) to null: \(\)

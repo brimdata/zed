@@ -1,15 +1,18 @@
 package service
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/service/auth"
@@ -26,8 +29,9 @@ import (
 
 func handleASTPost(c *Core, w *ResponseWriter, r *Request) {
 	var req api.ASTRequest
-	if accept := r.Header.Get("Accept"); accept != "" && accept != api.MediaTypeJSON {
-		w.Error(zqe.ErrInvalid("unsupported accept header: %s", accept))
+	accept := r.Header.Get("Accept")
+	if accept != api.MediaTypeJSON && !api.IsAmbiguousMediaType(accept) {
+		w.Error(zqe.ErrInvalid("unsupported accept header: %s", w.ContentType()))
 		return
 	}
 	if !r.Unmarshal(w, &req) {
@@ -135,10 +139,6 @@ func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	at, ok := r.JournalIDFromQuery("at", w)
-	if !ok {
-		return
-	}
 	pool, err := c.root.OpenPool(r.Context(), id)
 	if errors.Is(err, lake.ErrPoolNotFound) {
 		err = zqe.ErrNotFound("pool %q not found", id)
@@ -147,10 +147,10 @@ func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	snap, err := pool.Log().Snapshot(r.Context(), at)
+	snap, err := snapshotAt(r.Context(), pool, r.URL.Query().Get("at"))
 	if err != nil {
 		if errors.Is(err, journal.ErrEmpty) {
-			w.Respond(http.StatusOK, lake.PoolStats{})
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		w.Error(err)
@@ -284,20 +284,85 @@ func handleScanStaging(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	ids, err := pool.ListStagedCommits(r.Context())
-	if err != nil {
-		w.Error(err)
-		return
+	var ids []ksuid.KSUID
+	if tags := r.URL.Query()["tag"]; tags != nil {
+		if ids, err = api.ParseKSUIDs(tags); err != nil {
+			w.Error(zqe.ErrInvalid(err))
+			return
+		}
 	}
 	if len(ids) == 0 {
-		w.WriteHeader(http.StatusNoContent)
-		return
+		ids, err = pool.ListStagedCommits(r.Context())
+		if err != nil {
+			w.Error(err)
+			return
+		}
+		if len(ids) == 0 {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 	}
 	zw := w.ZioWriter()
 	defer zw.Close()
 	if err := pool.ScanStaging(r.Context(), zw, ids); err != nil {
 		w.Error(err)
 		return
+	}
+}
+
+func handleScanSegments(c *Core, w *ResponseWriter, r *Request) {
+	poolID, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), poolID)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	snap, err := snapshotAt(r.Context(), pool, r.URL.Query().Get("at"))
+	if err != nil {
+		if errors.Is(err, journal.ErrEmpty) {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		w.Error(err)
+		return
+	}
+	zw := w.ZioWriter()
+	defer zw.Close()
+	if r.URL.Query().Get("partition") == "T" {
+		if err := pool.ScanPartitions(r.Context(), zw, snap, nil); err != nil {
+			w.Error(err)
+		}
+		return
+	}
+	if err := pool.ScanSegments(r.Context(), zw, snap, nil); err != nil {
+		w.Error(err)
+		return
+	}
+}
+
+func handleScanLog(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	zw := w.ZioWriter()
+	defer zw.Close()
+	// XXX Support head/tail references in api.
+	zr, err := pool.Log().OpenAsZNG(r.Context(), 0, 0)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	if err := zio.CopyWithContext(r.Context(), zw, zr); err != nil {
+		w.Error(err)
 	}
 }
 
@@ -489,4 +554,37 @@ func handleAuthMethodGet(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	w.Respond(http.StatusOK, c.auth.MethodResponse())
+}
+
+func snapshotAt(ctx context.Context, pool *lake.Pool, at string) (*commit.Snapshot, error) {
+	var id journal.ID
+	if at != "" {
+		var err error
+		id, err = parseJournalID(ctx, pool, at)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return pool.Log().Snapshot(ctx, id)
+}
+
+func parseJournalID(ctx context.Context, pool *lake.Pool, at string) (journal.ID, error) {
+	if num, err := strconv.Atoi(at); err == nil {
+		ok, err := pool.IsJournalID(ctx, journal.ID(num))
+		if err != nil {
+			return journal.Nil, err
+		}
+		if ok {
+			return journal.ID(num), nil
+		}
+	}
+	commitID, err := api.ParseKSUID(at)
+	if err != nil {
+		return journal.Nil, zqe.ErrInvalid("not a valid journal number or a commit tag: %s", at)
+	}
+	id, err := pool.Log().JournalIDOfCommit(ctx, 0, commitID)
+	if err != nil {
+		return journal.Nil, zqe.ErrInvalid("not a valid journal number or a commit tag: %s", at)
+	}
+	return id, nil
 }

@@ -38,15 +38,14 @@ func (c *LsCommand) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	local := storage.NewLocalEngine()
-	root, err := c.lake.Open(ctx, local)
+	root, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-	w, err := c.outputFlags.Open(ctx, local)
+	w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}
 	defer w.Close()
-	return root.ScanIndex(ctx, w, root.ListIndexIDs())
+	return root.ScanIndex(ctx, w, nil)
 }

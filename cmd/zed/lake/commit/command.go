@@ -5,9 +5,10 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimdata/zed/cli/lakecli"
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/storage"
 	"github.com/segmentio/ksuid"
 )
 
@@ -29,6 +30,7 @@ commit as if a "zed lake squash" command were executed prior to the commit.
 
 func init() {
 	zedlake.Cmd.Add(Commit)
+	zedapi.Cmd.Add(Commit)
 }
 
 type Command struct {
@@ -53,11 +55,11 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zed lake commit: at least one pending commit tag must be specified")
 	}
-	pool, err := c.lake.Flags.OpenPool(ctx, storage.NewLocalEngine())
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
-	ids, err := zedlake.ParseIDs(args)
+	ids, err := lakecli.ParseIDs(args)
 	if err != nil {
 		return err
 	}
@@ -68,15 +70,15 @@ func (c *Command) Run(args []string) error {
 	case 1:
 		commitID = ids[0]
 	default:
-		commitID, err = pool.Squash(ctx, ids, c.Date.Ts(), c.User, c.Message)
+		commitID, err = pool.Squash(ctx, ids, *c.CommitRequest())
 		if err != nil {
 			return err
 		}
 	}
-	if err := pool.Commit(ctx, commitID, c.Date.Ts(), c.User, c.Message); err != nil {
+	if err := pool.Commit(ctx, commitID, *c.CommitRequest()); err != nil {
 		return err
 	}
-	if !c.lake.Flags.Quiet {
+	if !c.lake.Flags.Quiet() {
 		fmt.Printf("%s committed\n", commitID)
 	}
 	return nil

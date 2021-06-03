@@ -2,15 +2,13 @@ package status
 
 import (
 	"flag"
-	"fmt"
-	"io"
 
+	"github.com/brimdata/zed/cli/lakecli"
 	"github.com/brimdata/zed/cli/outputflags"
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Status = &charm.Spec{
@@ -27,6 +25,7 @@ then details for that pending commit are displayed.
 
 func init() {
 	zedlake.Cmd.Add(Status)
+	zedapi.Cmd.Add(Status)
 }
 
 type Command struct {
@@ -47,34 +46,18 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	local := storage.NewLocalEngine()
-	pool, err := c.lake.Flags.OpenPool(ctx, local)
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
-	ids, err := zedlake.ParseIDs(args)
+	ids, err := lakecli.ParseIDs(args)
 	if err != nil {
 		return err
 	}
-	if len(ids) == 0 {
-		// Show all of staging.
-		ids, err = pool.ListStagedCommits(ctx)
-		if err != nil {
-			return err
-		}
-		if len(ids) == 0 {
-			if !c.lake.Flags.Quiet {
-				fmt.Println("staging area empty")
-			}
-			return nil
-		}
+	w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
+	if err != nil {
+		return err
 	}
-	pipeReader, pipeWriter := io.Pipe()
-	go func() {
-		w := zngio.NewWriter(pipeWriter, zngio.WriterOpts{})
-		pool.ScanStaging(ctx, w, ids)
-		w.Close()
-	}()
-	r := zngio.NewReader(pipeReader, zson.NewContext())
-	return zedlake.CopyToOutput(ctx, local, c.outputFlags, r)
+	defer w.Close()
+	return pool.ScanStaging(ctx, w, ids)
 }

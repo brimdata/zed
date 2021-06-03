@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"time"
@@ -189,6 +190,13 @@ func (c *Connection) ZtoAST(ctx context.Context, zprog string) ([]byte, error) {
 	return resp.Body(), nil
 }
 
+func (c *Connection) ScanPools(ctx context.Context) (*ReadCloser, error) {
+	req := c.Request(ctx)
+	req.Method = http.MethodGet
+	req.URL = "/pool"
+	return c.stream(req)
+}
+
 // PoolGet retrieves information about the specified pool.
 func (c *Connection) PoolGet(ctx context.Context, id ksuid.KSUID) (*ReadCloser, error) {
 	req := c.Request(ctx)
@@ -234,13 +242,6 @@ func (c *Connection) PoolPut(ctx context.Context, id ksuid.KSUID, req api.PoolPu
 	return err
 }
 
-func (c *Connection) PoolScan(ctx context.Context) (*ReadCloser, error) {
-	req := c.Request(ctx)
-	req.Method = http.MethodGet
-	req.URL = "/pool"
-	return c.stream(req)
-}
-
 func (c *Connection) PoolDelete(ctx context.Context, id ksuid.KSUID) error {
 	path := path.Join("/pool", id.String())
 	_, err := c.Request(ctx).Delete(path)
@@ -248,6 +249,38 @@ func (c *Connection) PoolDelete(ctx context.Context, id ksuid.KSUID) error {
 		return ErrPoolNotFound
 	}
 	return err
+}
+
+func (c *Connection) ScanStaging(ctx context.Context, pool ksuid.KSUID, tags []ksuid.KSUID) (*ReadCloser, error) {
+	t := make([]string, len(tags))
+	for i, tag := range tags {
+		t[i] = tag.String()
+	}
+	req := c.Request(ctx).
+		SetQueryParamsFromValues(url.Values{"tag": t})
+	req.Method = http.MethodGet
+	req.URL = path.Join("/pool", pool.String(), "staging")
+	return c.stream(req)
+}
+
+func (c *Connection) ScanSegments(ctx context.Context, pool ksuid.KSUID, at string, partitions bool) (*ReadCloser, error) {
+	req := c.Request(ctx)
+	if at != "" {
+		req.SetQueryParam("at", at)
+	}
+	if partitions {
+		req.SetQueryParam("partition", "T")
+	}
+	req.Method = http.MethodGet
+	req.URL = path.Join("/pool", pool.String(), "segments")
+	return c.stream(req)
+}
+
+func (c *Connection) ScanLog(ctx context.Context, pool ksuid.KSUID) (*ReadCloser, error) {
+	req := c.Request(ctx)
+	req.Method = http.MethodGet
+	req.URL = path.Join("/pool", pool.String(), "log")
+	return c.stream(req)
 }
 
 func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, params map[string]string) (*ReadCloser, error) {
