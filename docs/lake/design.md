@@ -80,6 +80,8 @@ to a technical user.
 
 While this design document is independent of any particular implementation,
 we will illustrate the design concepts here with examples of `zed lake` commands.
+Where the example commands shown are known to not yet be fully implemented in
+the current Zed code, links are provided to open GitHub Issues.
 Note that while this CLI-first approach provides an ergonomic way to experiment with
 and learn the Zed lake building blocks, all of this functionality is also
 exposed through an API to a cloud-based service.  Most interactions between
@@ -87,6 +89,7 @@ a user and a Zed lake would be via an application like
 [Brim](https://github.com/brimdata/brim) or a
 programming environment like Python/Pandas rather than via direct interaction
 with `zed lake`.
+
 
 ### Initialization
 
@@ -384,7 +387,8 @@ The commits still appear in the log but scans at any time-travel point
 where the commit is present will fail to scan the deleted data.
 
 Alternatively, old data can be removed from the system using a safer
-command (but still in the DANGER-ZONE), `zed lake vacate`, which moves
+command (but still in the DANGER-ZONE), `zed lake vacate` (implementation
+tracked in [zed/2545](https://github.com/brimdata/zed/issues/2545)) which moves
 the tail of the commit journal forward and removes any data no longer
 accessible through the modified commit journal.
 
