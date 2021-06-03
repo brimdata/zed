@@ -60,7 +60,7 @@ Scans may also be range-limited but unordered.
 
 If data loaded into a pool lacks the pool key, that data is still
 imported but is not available to pool-key range scans.  Since it lacks
-the pool key, such data is instead organized around its "." value.
+the pool key, such data is instead organized around its "this" value.
 
 > TBD: What is the interface for accessing non-keyed data?  Should this
 > show up in the Zed language somehow?
