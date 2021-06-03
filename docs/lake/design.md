@@ -148,27 +148,35 @@ and arbitrary data _shapes_ can coexist side by side.
 
 ### Query
 
-Data is read from a pool with the `query` command.
-A range can be specified with `-from` and/or `-to`.
-The default output format is ZNG though this can be overridden with `-f`
-to specify one of the various supported output formats.
+Data is read from one or more pools with the `query` command.  The pool names
+are specified with `from` at the beginning the Zed query along with an optional
+time range using `over` and `to`.  The default output format is ZNG though this
+can be overridden with `-f` to specify one of the various supported output
+formats.
 
-This example reads every record from the `logs` pool starting
-from time `2020-1-1T12:00` and sends the results as ZSON to stdout.
+This example reads every record from the full time range of the `logs` pool
+and sends the results as ZSON to stdout.
+
 ```
-zed lake query -p logs -f zson -from 2020-1-1T12:00
+zed lake query -f zson 'from logs'
 ```
+
+Or we can narrow the span of the query by specifying the key range.
+```
+zed lake query -z 'from logs over 2018-03-24T17:36:30.090766Z to 2018-03-24T17:36:30.090758Z'
+```
+
 A much more efficient format for transporting query results is the
 row-oriented, compressed binary format ZNG.  Because ZNG
 streams are easily merged and composed, query results in ZNG format
 from a pool can be can be piped to another `zed query` instance, e.g.,
 ```
-zed lake query -p logs -f zng -from 2020-1-1T12:00 | zed query -f table "count() by field"
+zed lake query -f zng 'from logs' | zed query -f table 'count() by field' -
 ```
 Of course, it's even more efficient to run the query inside of the pool traversal
 like this:
 ```
-zed lake query -p logs -f table -from 2020-1-1T12:00 "count() by field"
+zed lake query 'from logs | count() by field'
 ```
 By default, the `query` command scans pool data in pool-key order though
 the Zed optimizer may, in general, reorder the scan to optimize searches,
