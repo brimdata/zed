@@ -129,13 +129,12 @@ Data is then loaded into a lake with the `load` command, .e.g.,
 zed lake load -p logs sample.ndjson
 ```
 where `sample.ndjson` contains logs in NDJSON format.  Any supported format
-(i.e., CSV, JSON, NDJSON, Parquet, ZNG, and ZST) as well multiple files can be used
-here, e.g.,
+(NDJSON, ZNG, ZSON, etc.) as well multiple files can be used here, e.g.,
 ```
-zed lake load -p logs sample1.csv sample2.ndjson sample3.zng
+zed lake load -p logs sample1.ndjson sample2.zng sample3.zson
 ```
-JSON, Parquet, and ZST formats are not auto-detected so you must currently specify
-`-i` with these formats, e.g.,
+CSV, JSON, Parquet, and ZST formats are not auto-detected so you must currently
+specify `-i` with these formats, e.g.,
 ```
 zed lake load -p logs -i parquet sample4.parquet
 zed lake load -p logs -i zst sample5.zst
