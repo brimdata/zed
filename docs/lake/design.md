@@ -229,7 +229,7 @@ zed lake commit -p logs <tag-1> <tag-2> <tag-3>
 The commit command also takes an optional title and message that is stored
 in the commit journal for reference.  For example,
 ```
-zed lake commit -p logs -u user@example.com -m "new version of prod dataset" <tag>
+zed lake commit -p logs -user user@example.com -message "new version of prod dataset" <tag>
 ```
 This metadata is carried in a description record attached to
 every journal entry, which has a Zed type signature as follows:
