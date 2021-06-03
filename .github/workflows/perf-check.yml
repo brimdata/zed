@@ -10,11 +10,20 @@ on:
 
 jobs:
   perf-check:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
+    - uses: actions/setup-go@v2
+      with:
+        go-version: '1.16'
     - uses: actions/checkout@v2
+    - name: Install Zeek (so we have zeek-cut)
+      run: |
+        echo 'deb http://download.opensuse.org/repositories/security:/zeek/xUbuntu_18.04/ /' | sudo tee /etc/apt/sources.list.d/security:zeek.list
+        curl -fsSL https://download.opensuse.org/repositories/security:zeek/xUbuntu_18.04/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/security:zeek.gpg > /dev/null
+        sudo apt update
+        sudo apt -y install zeek
     - name: Run the perf testing script
-      run: make perf-compare
+      run: PATH="$(pwd)/dist:/opt/zeek/bin:$PATH" make perf-compare
     - name: Notify Brim HQ of failure
       uses: tiloio/slack-webhook-action@v1.1.2
       if: ${{ failure() }}
@@ -23,5 +32,5 @@ jobs:
         slack_json: |
             {
               "username": "github-actions",
-              "text": "Workflow \"${{ github.event.workflow_run.name }}\" failed on main.\n${{ github.event.workflow_run.html_url }}"
+              "text": "Perf check failed: https://github.com/{{GITHUB_REPOSITORY}}/actions/runs/{{GITHUB_RUN_ID}}"
             }  
