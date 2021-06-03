@@ -212,8 +212,9 @@ all of the staged data.  The `zed lake squash` command may be used to
 combine multiple staged commits into a single entity with a new
 commit tag.  
 
-The `zed lake clear` command removes commits from staging
-before they are merged.
+The `zed lake clear` command removes commits from staging before they are
+merged (planned implementation of this is tracked in
+[zed/2579](https://github.com/brimdata/zed/issues/2579)).
 
 Likewise, you can stack multiple adds and commit them all at once, e.g.,
 ```
