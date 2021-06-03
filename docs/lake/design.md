@@ -256,7 +256,7 @@ can be used to specify a commit ID or commit journal position from which to
 query.
 
 ```
-zed lake query -z 'from logs at 1tRxi7zjT7oKxCBwwZ0rbaiLRxb | count() by _path'
+zed lake query -z 'from logs at 1tRxi7zjT7oKxCBwwZ0rbaiLRxb | count() by field'
 ```
 
 In this way, a query can time-travel through the journal.  As long as the
