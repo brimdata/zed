@@ -442,7 +442,7 @@ the special sub-pool name `<pool>:journal`.
 For example, to aggregate a count of each journal entry type of the pool
 called `logs`, you can simply say:
 ```
-zed lake query -p logs:journal "count() by typeof(this)"
+zed lake query "from logs:journal | count() by typeof(this)"
 ```
 Since the Zed system "typedefs" each journal record with a named type,
 this kind of query gives intuitive results.  There is no need to implement
