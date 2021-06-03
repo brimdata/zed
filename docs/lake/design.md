@@ -309,7 +309,7 @@ can be produced by executing a sorted scan and rewriting the results back to the
 in a new commit.  In addition, the segments comprising the total order
 do not overlap.  This is just the basic LSM algorithm at work.
 
-Continuing the `git` metaphor, the `merge` command
+Continuing the `git` metaphor, the `merge` command (implementation tracked via [zed/2537](https://github.com/brimdata/zed/issues/2537))
 is like a "squash" and performs the LSM-like compaction function, e.g.,
 ```
 zed lake merge -p logs <tag>
