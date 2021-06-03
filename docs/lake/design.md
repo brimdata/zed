@@ -251,11 +251,17 @@ capabilities by embedding custom metadata in the commit journal.
 
 The `commit` operation is _transactional_.  This means that a query scanning
 a pool sees its entire data scan as a fixed "snapshot" with respect to the
-commit history.  In fact, `zed lake query` has an `-at` flag, which allows you
-to specify a commit ID or commit journal position from which to query.
+commit history.  In fact, the Zed language includes an `at` specification that
+can be used to specify a commit ID or commit journal position from which to
+query.
+
+```
+zed lake query -z 'from logs at 1tRxi7zjT7oKxCBwwZ0rbaiLRxb | count() by _path'
+```
+
 In this way, a query can time-travel through the journal.  As long as the
-underlying data has not been deleted, arbitrarily old snapshots of the
-Zed lake can be easily queried.
+underlying data has not been deleted, arbitrarily old snapshots of the Zed
+lake can be easily queried.
 
 If a writer commits data after a reader starts scanning, then the reader
 does not see the new data since it's scanning the snapshot that existed
