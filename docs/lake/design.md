@@ -154,7 +154,7 @@ time range using `over` and `to`.  The default output format is ZNG though this
 can be overridden with `-f` to specify one of the various supported output
 formats.
 
-This example reads every record from the full time range of the `logs` pool
+This example reads every record from the full key range of the `logs` pool
 and sends the results as ZSON to stdout.
 
 ```
