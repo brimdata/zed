@@ -437,8 +437,7 @@ and historical content, and accessing its complete detail can provide
 insights about data layout, provenance, history, and so forth.  Thus,
 Zed lake provides a means to query a pool's entire journal in all its
 detail.  To do so, simply query a pool's journal by referring to
-the special sub-pool name `<pool>:journal` (planned implementation tracked in
-[zed/2787](https://github.com/brimdata/zed/issues/2787)):
+the special sub-pool name `<pool>:journal`.
 
 For example, to aggregate a count of each journal entry type of the pool
 called `logs`, you can simply say:
