@@ -2,6 +2,7 @@
 
   * [Data Pools](#data-pools)
   * [Lake Semantics](#lake-semantics)
+    + [Initialization](#initialization)
     + [New](#new)
     + [Load](#load)
     + [Query](#query)
@@ -59,7 +60,7 @@ Scans may also be range-limited but unordered.
 
 If data loaded into a pool lacks the pool key, that data is still
 imported but is not available to pool-key range scans.  Since it lacks
-the pool key, such data is instead organized around its "." value.
+the pool key, such data is instead organized around its "this" value.
 
 > TBD: What is the interface for accessing non-keyed data?  Should this
 > show up in the Zed language somehow?
@@ -79,6 +80,8 @@ to a technical user.
 
 While this design document is independent of any particular implementation,
 we will illustrate the design concepts here with examples of `zed lake` commands.
+Where the example commands shown are known to not yet be fully implemented in
+the current Zed code, links are provided to open GitHub Issues.
 Note that while this CLI-first approach provides an ergonomic way to experiment with
 and learn the Zed lake building blocks, all of this functionality is also
 exposed through an API to a cloud-based service.  Most interactions between
@@ -87,32 +90,40 @@ a user and a Zed lake would be via an application like
 programming environment like Python/Pandas rather than via direct interaction
 with `zed lake`.
 
+
+### Initialization
+
+A new lake is initialized with
+```
+zed lake init [path]
+```
+
+In all these examples, the lake identity is implied by its path (e.g., an S3
+URI or a file system path) and may be specified by the `ZED_LAKE_ROOT`
+environment variable when running `zed lake` commands on a local host.  In a
+cloud deployment or running queries through an application, the lake path is
+determined by an authenticated connection to the Zed lake service, which
+explicitly denotes the lake name (analogous to how a GitHub user authenticates
+access to a named GitHub organization).
+
 ### New
 
 A new pool is created with
 ```
-zed lake create -p <name> -k <key>[,<key>...] [-order asc|desc]
+zed lake create -p <name> [-orderby key[,key...][:asc|:desc]]
 ```
 where `<name>` is the name of the pool within the implied lake instance,
 `<key>` is the Zed language representation of the pool key, and `asc` or `desc`
 indicate that the natural scan order by the pool key should be ascending
 or descending, respectively, e.g.,
 ```
-zed lake create -p logs -k ts -order desc
+zed lake create -p logs -orderby ts:desc
 ```
 Note that there may be multiple pool keys, where subsequent keys act as the secondary,
 tertiary, and so forth sort key.
 
 If a pool key is not specified, then it defaults to the whole record, which
-in the Zed language is referred to as ".".
-
-In all these examples, the lake identity is implied by its path (e.g., an S3 URI
-or a file system path) and may be specified by the ZED_LAKE_ROOT environment variable
-when running `zed lake` commands on a local host.  In a cloud deployment
-or running queries through an application, the lake path is determined by
-an authenticated connection to the Zed lake service, which explicitly denotes
-the lake name (analogous to how a GitHub user authenticates access to
-a named GitHub organization).
+in the Zed language is referred to as "this".
 
 ### Load
 
@@ -121,13 +132,12 @@ Data is then loaded into a lake with the `load` command, .e.g.,
 zed lake load -p logs sample.ndjson
 ```
 where `sample.ndjson` contains logs in NDJSON format.  Any supported format
-(i.e., CSV, JSON, NDJSON, Parquet, ZNG, and ZST) as well multiple files can be used
-here, e.g.,
+(NDJSON, ZNG, ZSON, etc.) as well multiple files can be used here, e.g.,
 ```
-zed lake load -p logs sample1.csv sample2.ndjson sample3.zng
+zed lake load -p logs sample1.ndjson sample2.zng sample3.zson
 ```
-JSON, Parquet, and ZST formats are not auto-detected so you must currently specify
-`-i` with these formats, e.g.,
+CSV, JSON, Parquet, and ZST formats are not auto-detected so you must currently
+specify `-i` with these formats, e.g.,
 ```
 zed lake load -p logs -i parquet sample4.parquet
 zed lake load -p logs -i zst sample5.zst
@@ -140,27 +150,35 @@ and arbitrary data _shapes_ can coexist side by side.
 
 ### Query
 
-Data is read from a pool with the `query` command.
-A range can be specified with `-from` and/or `-to`.
-The default output format is ZNG though this can be overridden with `-f`
-to specify one of the various supported output formats.
+Data is read from one or more pools with the `query` command.  The pool names
+are specified with `from` at the beginning the Zed query along with an optional
+time range using `over` and `to`.  The default output format is ZNG though this
+can be overridden with `-f` to specify one of the various supported output
+formats.
 
-This example reads every record from the `logs` pool starting
-from time `2020-1-1T12:00` and sends the results as ZSON to stdout.
+This example reads every record from the full key range of the `logs` pool
+and sends the results as ZSON to stdout.
+
 ```
-zed lake query -p logs -f zson -from 2020-1-1T12:00
+zed lake query -f zson 'from logs'
 ```
+
+Or we can narrow the span of the query by specifying the key range.
+```
+zed lake query -z 'from logs over 2018-03-24T17:36:30.090766Z to 2018-03-24T17:36:30.090758Z'
+```
+
 A much more efficient format for transporting query results is the
 row-oriented, compressed binary format ZNG.  Because ZNG
 streams are easily merged and composed, query results in ZNG format
 from a pool can be can be piped to another `zed query` instance, e.g.,
 ```
-zed lake query -p logs -f zng -from 2020-1-1T12:00 | zed query -f table "count() by field"
+zed lake query -f zng 'from logs' | zed query -f table 'count() by field' -
 ```
 Of course, it's even more efficient to run the query inside of the pool traversal
 like this:
 ```
-zed lake query -p logs -f table -from 2020-1-1T12:00 "count() by field"
+zed lake query 'from logs | count() by field'
 ```
 By default, the `query` command scans pool data in pool-key order though
 the Zed optimizer may, in general, reorder the scan to optimize searches,
@@ -197,8 +215,9 @@ all of the staged data.  The `zed lake squash` command may be used to
 combine multiple staged commits into a single entity with a new
 commit tag.  
 
-The `zed lake clear` command removes commits from staging
-before they are merged.
+The `zed lake clear` command removes commits from staging before they are
+merged (planned implementation of this is tracked in
+[zed/2579](https://github.com/brimdata/zed/issues/2579)).
 
 Likewise, you can stack multiple adds and commit them all at once, e.g.,
 ```
@@ -213,7 +232,7 @@ zed lake commit -p logs <tag-1> <tag-2> <tag-3>
 The commit command also takes an optional title and message that is stored
 in the commit journal for reference.  For example,
 ```
-zed lake commit -p logs -u user@example.com -m "new version of prod dataset" <tag>
+zed lake commit -p logs -user user@example.com -message "new version of prod dataset" <tag>
 ```
 This metadata is carried in a description record attached to
 every journal entry, which has a Zed type signature as follows:
@@ -235,11 +254,17 @@ capabilities by embedding custom metadata in the commit journal.
 
 The `commit` operation is _transactional_.  This means that a query scanning
 a pool sees its entire data scan as a fixed "snapshot" with respect to the
-commit history.  In fact, `zed lake query` has an `-at` flag, which allows you
-to specify a commit ID or commit journal position from which to query.
+commit history.  In fact, the Zed language includes an `at` specification that
+can be used to specify a commit ID or commit journal position from which to
+query.
+
+```
+zed lake query -z 'from logs at 1tRxi7zjT7oKxCBwwZ0rbaiLRxb | count() by field'
+```
+
 In this way, a query can time-travel through the journal.  As long as the
-underlying data has not been deleted, arbitrarily old snapshots of the
-Zed lake can be easily queried.
+underlying data has not been deleted, arbitrarily old snapshots of the Zed
+lake can be easily queried.
 
 If a writer commits data after a reader starts scanning, then the reader
 does not see the new data since it's scanning the snapshot that existed
@@ -287,7 +312,7 @@ can be produced by executing a sorted scan and rewriting the results back to the
 in a new commit.  In addition, the segments comprising the total order
 do not overlap.  This is just the basic LSM algorithm at work.
 
-Continuing the `git` metaphor, the `merge` command
+Continuing the `git` metaphor, the `merge` command (implementation tracked via [zed/2537](https://github.com/brimdata/zed/issues/2537))
 is like a "squash" and performs the LSM-like compaction function, e.g.,
 ```
 zed lake merge -p logs <tag>
@@ -357,12 +382,14 @@ commit journal without having to run an explicit `commit` command.
 
 ### Purge and Vacate
 
-Data can be deleted with the DANGER-ZONE command `zed lake purge`.
+Data can be deleted with the DANGER-ZONE command `zed lake purge`
+(implementation tracked in [zed/2545](https://github.com/brimdata/zed/issues/2545)).
 The commits still appear in the log but scans at any time-travel point
 where the commit is present will fail to scan the deleted data.
 
 Alternatively, old data can be removed from the system using a safer
-command (but still in the DANGER-ZONE), `zed lake vacate`, which moves
+command (but still in the DANGER-ZONE), `zed lake vacate` (also
+[zed/2545](https://github.com/brimdata/zed/issues/2545)) which moves
 the tail of the commit journal forward and removes any data no longer
 accessible through the modified commit journal.
 
@@ -416,15 +443,17 @@ the special sub-pool name `<pool>:journal`.
 For example, to aggregate a count of each journal entry type of the pool
 called `logs`, you can simply say:
 ```
-zed lake query -p logs:journal "count() by typeof(.)"
+zed lake query "from logs:journal | count() by typeof(this)"
 ```
 Since the Zed system "typedefs" each journal record with a named type,
 this kind of query gives intuitive results.  There is no need to implement
 a long list of features for journal introspection since the data in its entirety
 can be simply and efficiently processed as a ZNG stream.
 
-> Note that :journal sub-pools are not yet implemented but the `zed lake log`
-> command is implemented and can provide a complete journal snapshot.
+> Note that `:journal` sub-pools are not yet implemented
+> ([zed/2787](https://github.com/brimdata/zed/issues/2787)) but the
+> `zed lake log` command is implemented and can provide a complete journal
+> snapshot.
 
 ## Cloud Object Naming
 
@@ -719,7 +748,7 @@ retention policies more complicated.
 
 Another approach would be to create a sub-pool on demand when the first
 keyless data is encountered, e.g., `pool-name.$nokey` where the pool key
-is configured to be ".".  This way, an app or user could query this pool
+is configured to be "this".  This way, an app or user could query this pool
 by this name to scan keyless data.
 
 ## Relational Model
@@ -730,9 +759,9 @@ in place.  Such updates involve creating new commits from the old data
 where the new data is a modified form of the old data.  This provides
 emulation of row-based updates and deletes.
 
-If the pool-key is chosen to be "." for such a use case, then unique
+If the pool-key is chosen to be "this" for such a use case, then unique
 rows can be maintained by trivially detected duplicates (because any
-duplicate row will be adjacent when sorted by ".") so that duplicates are
+duplicate row will be adjacent when sorted by "this") so that duplicates are
 trivially detected.
 
 Efficient upserts can be accomplished because each segment is sorted by the
