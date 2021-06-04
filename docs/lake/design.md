@@ -449,8 +449,10 @@ this kind of query gives intuitive results.  There is no need to implement
 a long list of features for journal introspection since the data in its entirety
 can be simply and efficiently processed as a ZNG stream.
 
-> Note that :journal sub-pools are not yet implemented but the `zed lake log`
-> command is implemented and can provide a complete journal snapshot.
+> Note that `:journal` sub-pools are not yet implemented
+> ([zed/2787](https://github.com/brimdata/zed/issues/2787)) but the
+> `zed lake log` command is implemented and can provide a complete journal
+> snapshot.
 
 ## Cloud Object Naming
 
