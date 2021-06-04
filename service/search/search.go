@@ -220,8 +220,5 @@ func (d *searchdriver) ChannelEnd(cid int) error {
 		ChannelID: cid,
 		Reason:    "eof",
 	}
-	if err := d.output.SendControl(v); err != nil {
-		return err
-	}
-	return d.end(0)
+	return d.output.SendControl(v)
 }
