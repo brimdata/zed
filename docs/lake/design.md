@@ -382,13 +382,14 @@ commit journal without having to run an explicit `commit` command.
 
 ### Purge and Vacate
 
-Data can be deleted with the DANGER-ZONE command `zed lake purge`.
+Data can be deleted with the DANGER-ZONE command `zed lake purge`
+(implementation tracked in [zed/2545](https://github.com/brimdata/zed/issues/2545)).
 The commits still appear in the log but scans at any time-travel point
 where the commit is present will fail to scan the deleted data.
 
 Alternatively, old data can be removed from the system using a safer
-command (but still in the DANGER-ZONE), `zed lake vacate` (implementation
-tracked in [zed/2545](https://github.com/brimdata/zed/issues/2545)) which moves
+command (but still in the DANGER-ZONE), `zed lake vacate` (also
+[zed/2545](https://github.com/brimdata/zed/issues/2545)) which moves
 the tail of the commit journal forward and removes any data no longer
 accessible through the modified commit journal.
 
