@@ -232,7 +232,7 @@ Zed that refer to the record at a higher level but affect all values lower
 down in the record hierarchy.
 
 Revisiting the data from our example, we can output all fields within
-`my records` via this Zed operation:
+`my_record` via this Zed operation:
 
 ```
 $ zq -f zeek 'cut my_record' zeek_types.zson
