@@ -24,8 +24,8 @@ being read via `zq` and output as [ZSON](../docs/formats/zson.md).
 
 #### Example:
 
-```zq-command
-zq -Z 'head 1' conn.log.gz
+```zq-command 
+zq -Z 'head 1' conn.log.gz zed-sample-data/zeek-default
 ```
 
 #### Output:
@@ -85,12 +85,12 @@ which was generated using the JSON Streaming Logs package.
 
 #### Example:
 
-```
+```zq-command zed-sample-data/zeek-ndjson
 zq -Z 'head 1' conn.ndjson.gz
 ```
 
 #### Output:
-```
+```zq-output
 {
     _path: "conn",
     _write_ts: "2018-03-24T17:15:21.400275Z",
