@@ -177,6 +177,8 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
+
+	c.publishEvent("new-pool", pool.ID.String())
 	w.Respond(http.StatusOK, pool.PoolConfig)
 }
 
@@ -271,6 +273,18 @@ func handleCommit(c *Core, w *ResponseWriter, r *Request) {
 	if err != nil {
 		w.Error(err)
 	}
+
+	b, err := json.Marshal(struct{
+		CommitID string `json:"commit_id"`
+		PoolID string `json:"pool_id"`}{
+		CommitID: commitID.String(),
+		PoolID: pool.ID.String(),
+	})
+	if err != nil {
+		w.Error(err)
+	}
+
+	c.publishEvent("pool-new-commit", string(b))
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -587,4 +601,30 @@ func parseJournalID(ctx context.Context, pool *lake.Pool, at string) (journal.ID
 		return journal.Nil, zqe.ErrInvalid("not a valid journal number or a commit tag: %s", at)
 	}
 	return id, nil
+}
+
+func handleSubscribe(c *Core, w *ResponseWriter, r *Request) {
+	w.Header().Set("Connection", "keep-alive")
+	w.Header().Set("Content-Type", "text/event-stream")
+
+	subscription := make(chan []byte)
+	c.subscriptionsMu.Lock()
+	c.subscriptions[subscription] = struct{}{}
+	c.subscriptionsMu.Unlock()
+
+	for {
+		select {
+		case msg := <-subscription:
+			if _, err := w.Write(msg); err != nil {
+				w.Error(err)
+				continue
+			}
+			if f, ok := w.ResponseWriter.(http.Flusher); ok {
+				f.Flush()
+			}
+		case <-r.Context().Done():
+			delete(c.subscriptions, subscription)
+			return
+		}
+	}
 }

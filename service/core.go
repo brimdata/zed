@@ -8,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"net/http/pprof"
+	"strings"
+	"sync"
 	"sync/atomic"
 
 	"github.com/brimdata/zed/api"
@@ -48,6 +50,8 @@ type Core struct {
 	routerAPI *mux.Router
 	routerAux *mux.Router
 	taskCount int64
+	subscriptions map[chan []byte]struct{}
+	subscriptionsMu sync.RWMutex
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
@@ -121,6 +125,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		registry:  registry,
 		routerAPI: routerAPI,
 		routerAux: routerAux,
+		subscriptions: make(map[chan []byte]struct{}),
 	}
 
 	c.addAPIServerRoutes()
@@ -144,6 +149,7 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/staging", handleScanStaging).Methods("GET")
 	c.authhandle("/pool/{pool}/staging/{commit}", handleCommit).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
+	c.authhandle("/subscribe", handleSubscribe).Methods("GET")
 
 	// Deprecated endpoints
 	c.authhandle("/search", handleSearch).Methods("POST")
@@ -192,4 +198,22 @@ func (c *Core) nextTaskID() int64 {
 
 func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 	return c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
+}
+
+func (c *Core) publishEvent(event string, data string) {
+	eventPayload := fmt.Sprintf("event: %s\n", event)
+	dataLines := strings.Split(data, "\n")
+
+	for _, line := range dataLines {
+		eventPayload += fmt.Sprintf("data: %s\n", line)
+	}
+
+	go func() {
+		c.subscriptionsMu.RLock()
+		defer c.subscriptionsMu.RUnlock()
+
+		for sub := range c.subscriptions {
+			sub <- []byte(eventPayload + "\n")
+		}
+	}()
 }
