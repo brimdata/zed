@@ -24,8 +24,8 @@ being read via `zq` and output as [ZSON](../docs/formats/zson.md).
 
 #### Example:
 
-```zq-command 
-zq -Z 'head 1' conn.log.gz zed-sample-data/zeek-default
+```zq-command zed-sample-data/zeek-default
+zq -Z 'head 1' conn.log.gz
 ```
 
 #### Output:
