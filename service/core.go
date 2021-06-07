@@ -41,16 +41,16 @@ type Config struct {
 }
 
 type Core struct {
-	auth      *Auth0Authenticator
-	conf      Config
-	engine    storage.Engine
-	logger    *zap.Logger
-	registry  *prometheus.Registry
-	root      *lake.Root
-	routerAPI *mux.Router
-	routerAux *mux.Router
-	taskCount int64
-	subscriptions map[chan []byte]struct{}
+	auth            *Auth0Authenticator
+	conf            Config
+	engine          storage.Engine
+	logger          *zap.Logger
+	registry        *prometheus.Registry
+	root            *lake.Root
+	routerAPI       *mux.Router
+	routerAux       *mux.Router
+	taskCount       int64
+	subscriptions   map[chan []byte]struct{}
 	subscriptionsMu sync.RWMutex
 }
 
@@ -117,14 +117,14 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	routerAPI.Use(panicCatchMiddleware(conf.Logger))
 
 	c := &Core{
-		auth:      authenticator,
-		conf:      conf,
-		engine:    engine,
-		logger:    conf.Logger.Named("core"),
-		root:      root,
-		registry:  registry,
-		routerAPI: routerAPI,
-		routerAux: routerAux,
+		auth:          authenticator,
+		conf:          conf,
+		engine:        engine,
+		logger:        conf.Logger.Named("core"),
+		root:          root,
+		registry:      registry,
+		routerAPI:     routerAPI,
+		routerAux:     routerAux,
 		subscriptions: make(map[chan []byte]struct{}),
 	}
 

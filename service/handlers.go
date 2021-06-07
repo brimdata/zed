@@ -274,11 +274,12 @@ func handleCommit(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 	}
 
-	b, err := json.Marshal(struct{
+	b, err := json.Marshal(struct {
 		CommitID string `json:"commit_id"`
-		PoolID string `json:"pool_id"`}{
+		PoolID   string `json:"pool_id"`
+	}{
 		CommitID: commitID.String(),
-		PoolID: pool.ID.String(),
+		PoolID:   pool.ID.String(),
 	})
 	if err != nil {
 		w.Error(err)
