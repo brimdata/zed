@@ -275,7 +275,7 @@ func TestPoolDelete(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	err := conn.PoolDelete(ctx, pool.ID)
+	err := conn.PoolRemove(ctx, pool.ID)
 	require.NoError(t, err)
 	list := conn.TestPoolList()
 	require.Len(t, list, 0)

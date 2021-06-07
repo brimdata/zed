@@ -242,7 +242,7 @@ func (c *Connection) PoolPut(ctx context.Context, id ksuid.KSUID, req api.PoolPu
 	return err
 }
 
-func (c *Connection) PoolDelete(ctx context.Context, id ksuid.KSUID) error {
+func (c *Connection) PoolRemove(ctx context.Context, id ksuid.KSUID) error {
 	path := path.Join("/pool", id.String())
 	_, err := c.Request(ctx).Delete(path)
 	if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusNotFound {
