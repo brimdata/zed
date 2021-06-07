@@ -28,8 +28,8 @@ Once the pool is delted, its data is gone.
 }
 
 func init() {
-	zedlake.Cmd.Add(Cmd)
 	zedapi.Cmd.Add(Cmd)
+	zedlake.Cmd.Add(Cmd)
 }
 
 type Command struct {
