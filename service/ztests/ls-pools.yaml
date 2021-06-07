@@ -1,0 +1,40 @@
+script: |
+  source service.sh
+  zapi create -p p1
+  zapi create -p p2
+  echo ===
+
+  # Verify that the default output format is text of names only.
+  zapi ls
+  echo ===
+
+  # Verify that output flags are honored.
+  zapi ls -f zson | zq -i zson -f zson "pick name" -
+  echo ===
+  zapi ls -f zng | zq -i zng -f table "pick name" -
+  echo ===
+
+inputs:
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stdout
+    regexp: |
+      pool created: p1
+      pool created: p2
+      ===
+      p1 \w{27} key ts order desc
+      p2 \w{27} key ts order desc
+      ===
+      {
+          name: "p1"
+      }
+      {
+          name: "p2"
+      }
+      ===
+      NAME
+      p1
+      p2
+      ===

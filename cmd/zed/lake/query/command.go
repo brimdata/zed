@@ -1,20 +1,15 @@
-package zed
+package query
 
 import (
 	"errors"
 	"flag"
-	"fmt"
-	"os"
 
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/cmd/zed/query"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zson"
 )
 
 var Query = &charm.Spec{
@@ -56,30 +51,18 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if c.lake.Flags.PoolName != "" {
+	if c.lake.Flags.PoolName() != "" {
 		return errors.New("zed lake query: use from operator instead of -p")
 	}
-	zedQuery, err := query.ParseSources(args, c.includes)
-	if err != nil {
-		return fmt.Errorf("zed lake query: %w", err)
-	}
-	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
-		return err
-	}
-	local := storage.NewLocalEngine()
-	lk, err := c.lake.Flags.Open(ctx, local)
+	lk, err := c.lake.Flags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	writer, err := c.outputFlags.Open(ctx, local)
+	writer, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}
-	d := driver.NewCLI(writer)
-	if !c.lake.Flags.Quiet {
-		d.SetWarningsWriter(os.Stderr)
-	}
-	stats, err := driver.RunWithLake(ctx, d, zedQuery, zson.NewContext(), lk)
+	stats, err := lk.Query(ctx, writer, args, c.includes)
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}

@@ -15,6 +15,14 @@ const (
 	MediaTypeZSON   = "application/x-zson"
 )
 
+func IsAmbiguousMediaType(s string) bool {
+	typ, _, err := mime.ParseMediaType(s)
+	if err != nil && !errors.Is(err, mime.ErrInvalidMediaParameter) {
+		return false
+	}
+	return typ == "" || typ == "*/*"
+}
+
 func MediaTypeToFormat(s string) (string, error) {
 	typ, _, err := mime.ParseMediaType(s)
 	if err != nil && !errors.Is(err, mime.ErrInvalidMediaParameter) {

@@ -5,6 +5,7 @@ import (
 	"flag"
 
 	"github.com/brimdata/zed/cli/outputflags"
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
@@ -25,6 +26,7 @@ to zq or other tooling for analysis.
 
 func init() {
 	zedlake.Cmd.Add(Log)
+	zedapi.Cmd.Add(Log)
 }
 
 type Command struct {
@@ -49,14 +51,14 @@ func (c *Command) Run(args []string) error {
 	if len(args) != 0 {
 		return errors.New("zed lake load: no arguments allowed")
 	}
-	local := storage.NewLocalEngine()
-	pool, err := c.lake.Flags.OpenPool(ctx, local)
+	pool, err := c.lake.Flags.OpenPool(ctx)
 	if err != nil {
 		return err
 	}
-	r, err := pool.Log().OpenAsZNG(ctx, 0, 0)
+	w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}
-	return zedlake.CopyToOutput(ctx, local, c.outputFlags, r)
+	defer w.Close()
+	return pool.ScanLog(ctx, w, 0, 0)
 }

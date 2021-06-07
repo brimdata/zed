@@ -559,7 +559,7 @@ GET /pool/{pool}/segment
 | ---- | ---- | -- | ----------- |
 | pool | string | path | ID of the pool. |
 | at | string | query | Commit or journal ID for time travel. |
-| partition | boolean | query | Kisplay partitions as determined by scan logic. |
+| partition | string | query | Display partitions as determined by scan logic. Accepts "T" for true and "F" for false. (Default: false) |
 
 #### Response
 

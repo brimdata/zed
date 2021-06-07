@@ -5,9 +5,9 @@ import (
 	"flag"
 	"fmt"
 
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/storage"
 )
 
 //XXX TBD: add drop by pool ID
@@ -28,6 +28,7 @@ Once the pool is delted, its data is gone.
 }
 
 func init() {
+	zedapi.Cmd.Add(Cmd)
 	zedlake.Cmd.Add(Cmd)
 }
 
@@ -45,22 +46,25 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	name := c.lake.Flags.PoolName
+	name := c.lake.Flags.PoolName()
 	if name == "" {
 		return errors.New("name of pool must be supplied with -p option")
 	}
-	lk, err := c.lake.Flags.Open(ctx, storage.NewLocalEngine())
+	lk, err := c.lake.Flags.Open(ctx)
 	if err != nil {
 		return err
 	}
-	pool := lk.LookupPoolByName(ctx, name)
+	pool, err := lk.LookupPoolByName(ctx, name)
+	if err != nil {
+		return nil
+	}
 	if pool == nil {
 		return fmt.Errorf("%s: no such pool", name)
 	}
 	if err := lk.RemovePool(ctx, pool.ID); err != nil {
 		return err
 	}
-	if !c.lake.Flags.Quiet {
+	if !c.lake.Flags.Quiet() {
 		fmt.Printf("pool deleted: %s\n", name)
 	}
 	return nil

@@ -5,9 +5,9 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimdata/zed/cli/lakecli"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/storage"
 )
 
 var Init = &charm.Spec{
@@ -41,9 +41,9 @@ func (c *Command) Run(args []string) error {
 	defer cleanup()
 	var path string
 	if len(args) == 0 {
-		path = zedlake.DefaultRoot()
-		if path != "" && !c.lake.Flags.Quiet {
-			fmt.Printf("using environment variable %s\n", zedlake.RootEnv)
+		path = lakecli.DefaultRoot()
+		if path != "" && !c.lake.Flags.Quiet() {
+			fmt.Printf("using environment variable %s\n", lakecli.RootEnv)
 		}
 	} else if len(args) == 1 {
 		path = args[0]
@@ -51,13 +51,12 @@ func (c *Command) Run(args []string) error {
 	if path == "" {
 		return errors.New("zed lake create lake: requires a single lake path argument")
 	}
-	c.lake.Flags.Root = path
-	if _, err := c.lake.Flags.Create(ctx, storage.NewLocalEngine()); err != nil {
+	c.lake.Flags.(*lakecli.LocalFlags).SetRoot(path)
+	if _, err := c.lake.Flags.Create(ctx); err != nil {
 		return err
 	}
-	if !c.lake.Flags.Quiet {
-		name, _ := c.lake.Flags.RootPath()
-		fmt.Printf("lake created: %s\n", name)
+	if !c.lake.Flags.Quiet() {
+		fmt.Printf("lake created: %s\n", path)
 	}
 	return nil
 }

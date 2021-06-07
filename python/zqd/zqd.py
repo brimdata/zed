@@ -40,7 +40,7 @@ class Client():
     def pools(self):
         r = self.session.get(self.base_url + "/pool")
         r.raise_for_status()
-        return {s['name']: s for s in r.json()}
+        return {s['value']['name']: s['value'] for s in r.json()}
 
 
 def decode_raw(raw):

@@ -1,0 +1,24 @@
+script: |
+  source service.sh
+  zapi create -q -p p1
+  zapi create -q -p p2
+  zapi create -q -p p3
+  zapi drop -p p3
+  echo ===
+  zapi ls -f zng | zq -f zson "pick name" -
+
+inputs:
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      pool deleted: p3
+      ===
+      {
+          name: "p1"
+      }
+      {
+          name: "p2"
+      }

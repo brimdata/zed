@@ -5,11 +5,11 @@ import (
 	"errors"
 	"flag"
 
+	"github.com/brimdata/zed/cli/lakecli"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
@@ -57,8 +57,7 @@ func (c *CreateCommand) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	local := storage.NewLocalEngine()
-	root, err := c.lake.Open(ctx, local)
+	root, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -66,8 +65,8 @@ func (c *CreateCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if !c.lake.Quiet {
-		w, err := c.outputFlags.Open(ctx, local)
+	if !c.lake.Quiet() {
+		w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 		if err != nil {
 			return err
 		}
@@ -79,7 +78,7 @@ func (c *CreateCommand) Run(args []string) error {
 	return err
 }
 
-func (c *CreateCommand) createIndices(ctx context.Context, root *lake.Root, args []string) (index.Indices, error) {
+func (c *CreateCommand) createIndices(ctx context.Context, root lakecli.Root, args []string) (index.Indices, error) {
 	var rules []index.Index
 	if c.zed != "" {
 		rule, err := index.NewZedIndex(c.zed, c.name, field.DottedList(c.keys))

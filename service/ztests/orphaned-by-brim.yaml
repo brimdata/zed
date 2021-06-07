@@ -1,8 +1,6 @@
-skip: "issue #2651"
-
 script: |
   source mockbrim.sh
-  zapi -host $LAKE_HOST new test
+  zapi create -p test
   echo ===
   kill -9 $MOCKBRIM_PID 2>/dev/null
   awaitdeadservice
@@ -14,5 +12,5 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      test: pool created
+      pool created: test
       ===

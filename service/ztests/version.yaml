@@ -1,12 +1,10 @@
-skip: "issue #2651"
-
 script: |
-  source services.sh
-  zapi -host $LAKE_HOST version
+  source service.sh
+  zapi -version
 
 inputs:
-  - name: services.sh
-    source: services.sh
+  - name: service.sh
+    source: service.sh
 
 outputs:
   - name: stdout

@@ -4,6 +4,8 @@ import (
 	"flag"
 	"os"
 	"os/user"
+
+	"github.com/brimdata/zed/api"
 )
 
 func username() string {
@@ -40,4 +42,12 @@ func (c *CommitFlags) SetFlags(f *flag.FlagSet) {
 	f.Var(&c.Date, "date", "date string for commit message")
 	f.StringVar(&c.User, "user", username(), "user name for commit message")
 	f.StringVar(&c.Message, "message", "", "commit message")
+}
+
+func (c *CommitFlags) CommitRequest() *api.CommitRequest {
+	return &api.CommitRequest{
+		Date:    c.Date.Ts(),
+		Author:  c.User,
+		Message: c.Message,
+	}
 }

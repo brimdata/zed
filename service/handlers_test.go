@@ -195,7 +195,7 @@ func TestSearchError(t *testing.T) {
 	})
 }
 
-func TestPoolInfo(t *testing.T) {
+func TestPoolStats(t *testing.T) {
 	src := `
 {_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
 {_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
@@ -212,7 +212,7 @@ func TestPoolInfo(t *testing.T) {
 	require.Equal(t, expected, conn.TestPoolStats(pool.ID))
 }
 
-func TestPoolInfoNoData(t *testing.T) {
+func TestPoolStatsNoData(t *testing.T) {
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
 	info := conn.TestPoolStats(pool.ID)
@@ -275,7 +275,7 @@ func TestPoolDelete(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	err := conn.PoolDelete(ctx, pool.ID)
+	err := conn.PoolRemove(ctx, pool.ID)
 	require.NoError(t, err)
 	list := conn.TestPoolList()
 	require.Len(t, list, 0)

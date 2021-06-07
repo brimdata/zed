@@ -184,8 +184,8 @@ func (d *searchdriver) end(id int64) error {
 
 func (d *searchdriver) abort(id int64, err error) error {
 	if errors.Is(err, journal.ErrEmpty) {
-		// XXX (nibs) - A search on an empty space should return an error. This
-		// check should be in the driver though.
+		// XXX (nibs) - A search on an empty space should not return an error.
+		// This check should not be in the driver though.
 		return d.end(id)
 	}
 	verr := &api.Error{Type: "INTERNAL", Message: err.Error()}
