@@ -60,7 +60,7 @@ zq -Z 'head 1' conn.log.gz
 
 Other than Zed, Zeek provides one of the richest data typing systems available
 and therefore such records typically need no adjustment to their data types
-once they've been read in as-is. The
+once they've been read in as is. The
 [Zed/Zeek Data Type Compatibility](Data-Type-Compatibility.md) document
 provides further detail on how the rich data types in Zeek TSV map to the
 equivalent [rich types in Zed](../docs/formats/zson.md#33-primitive-values).
