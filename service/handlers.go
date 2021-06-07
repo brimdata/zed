@@ -624,7 +624,10 @@ func handleSubscribe(c *Core, w *ResponseWriter, r *Request) {
 				f.Flush()
 			}
 		case <-r.Context().Done():
+			c.subscriptionsMu.Lock()
 			delete(c.subscriptions, subscription)
+			c.subscriptionsMu.Unlock()
+
 			return
 		}
 	}
