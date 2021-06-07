@@ -82,6 +82,16 @@ func (c *testClient) TestPoolPost(payload api.PoolPostRequest) lake.PoolConfig {
 	return conf
 }
 
+func (c *testClient) TestQuery(query string) string {
+	r, err := c.Connection.Query(context.Background(), query)
+	require.NoError(c, err)
+	zr := c.zioreader(r)
+	var buf bytes.Buffer
+	zw := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
+	require.NoError(c, zio.Copy(zw, zr))
+	return buf.String()
+}
+
 func (c *testClient) TestLogPostReaders(id ksuid.KSUID, opts *client.LogPostOpts, readers ...io.Reader) (res api.LogPostResponse) {
 	r, err := c.Connection.LogPostReaders(context.Background(), storage.NewLocalEngine(), id, opts, readers...)
 	require.NoError(c, err)

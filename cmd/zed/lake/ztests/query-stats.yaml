@@ -1,0 +1,20 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p test
+  zed lake load -q -p test babble.zson
+  zed lake query -s -Z "from test | count()"
+inputs:
+  - name: babble.zson
+    source: ../../../../testdata/babble.zson
+
+outputs:
+  - name: stdout
+    data: |
+      {
+          count: 1000 (uint64)
+      } (=0)
+  - name: stderr
+    data: |
+      data opened: 32889
+      data read:   32889

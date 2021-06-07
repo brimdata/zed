@@ -12,7 +12,8 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
-	"github.com/brimdata/zed/cmd/zed/query"
+	"github.com/brimdata/zed/api/queryio"
+	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
@@ -183,8 +184,13 @@ func (r *RemoteRoot) ScanIndex(ctx context.Context, w zio.Writer, ids []ksuid.KS
 	return errors.New("unsupported")
 }
 
-func (r *RemoteRoot) Query(ctx context.Context, w zio.Writer, args, includes query.Includes) (zbuf.ScannerStats, error) {
-	return zbuf.ScannerStats{}, errors.New("unsupported")
+func (r *RemoteRoot) Query(ctx context.Context, d driver.Driver, query string) (zbuf.ScannerStats, error) {
+	res, err := r.conn.Query(ctx, query)
+	if err != nil {
+		return zbuf.ScannerStats{}, err
+	}
+	defer res.Close()
+	return queryio.RunClientResponse(ctx, d, res)
 }
 
 type RemotePool struct {

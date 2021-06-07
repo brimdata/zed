@@ -293,6 +293,14 @@ func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, pa
 	return c.stream(req)
 }
 
+func (c *Connection) Query(ctx context.Context, query string) (*ReadCloser, error) {
+	req := c.Request(ctx).
+		SetBody(api.QueryRequest{Query: query})
+	req.Method = http.MethodPost
+	req.URL = "/query"
+	return c.stream(req)
+}
+
 // Search sends a search request to the server and returns a ZngSearch
 // that the caller uses to stream back results via the Read method.
 // Example usage:

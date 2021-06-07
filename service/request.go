@@ -76,6 +76,19 @@ func (r *Request) JournalIDFromQuery(param string, w *ResponseWriter) (journal.I
 	return journal.ID(id), true
 }
 
+func (r *Request) BoolFromQuery(param string, w *ResponseWriter) (bool, bool) {
+	s := r.URL.Query().Get(param)
+	if s == "" {
+		return false, true
+	}
+	b, err := strconv.ParseBool(s)
+	if err != nil {
+		w.Error(zqe.ErrInvalid("invalid query param %q: %w", s, err))
+		return false, false
+	}
+	return b, true
+}
+
 func (r *Request) Unmarshal(w *ResponseWriter, body interface{}) bool {
 	if err := json.NewDecoder(r.Body).Decode(body); err != nil {
 		w.Error(err)

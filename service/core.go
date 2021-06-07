@@ -149,6 +149,7 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/staging", handleScanStaging).Methods("GET")
 	c.authhandle("/pool/{pool}/staging/{commit}", handleCommit).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
+	c.authhandle("/query", handleQuery).Methods("POST")
 
 	// Deprecated endpoints
 	c.authhandle("/search", handleSearch).Methods("POST")

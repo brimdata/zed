@@ -156,3 +156,29 @@ type EventPoolCommit struct {
 type EventPool struct {
 	PoolID string `json:"pool_id"`
 }
+
+type QueryRequest struct {
+	Query string `json:"query"`
+}
+
+type QueryChannelSet struct {
+	ChannelID int `json:"channel_id" zng:"channel_id"`
+}
+
+type QueryChannelEnd struct {
+	ChannelID int `json:"channel_id" zng:"channel_id"`
+}
+
+type QueryError struct {
+	Error string `json:"error" zng:"error"`
+}
+
+type QueryStats struct {
+	StartTime  nano.Ts `json:"start_time" zng:"start_time"`
+	UpdateTime nano.Ts `json:"update_time" zng:"update_time"`
+	ScannerStats
+}
+
+type QueryWarning struct {
+	Warning string `zng:"warning"`
+}

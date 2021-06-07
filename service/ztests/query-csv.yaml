@@ -1,0 +1,18 @@
+script: |
+  source service.sh
+  zapi create -q -p test
+  zapi load -q -p test in.zson
+  zapi query -f csv "from test"
+
+inputs:
+  - name: service.sh
+    source: service.sh
+  - name: in.zson
+    data: |
+      {a:"hello",b:{c:"world",d:"goodbye"}}
+
+outputs:
+  - name: stdout
+    data: |
+      a,b.c,b.d
+      hello,world,goodbye

@@ -8,7 +8,7 @@ import (
 	"os"
 
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/cmd/zed/query"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake"
@@ -59,7 +59,7 @@ func (l *LocalFlags) Create(ctx context.Context) (Root, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newLocal(root, l.baseFlags), nil
+	return newLocal(root), nil
 }
 
 func (l *LocalFlags) Open(ctx context.Context) (Root, error) {
@@ -71,7 +71,7 @@ func (l *LocalFlags) Open(ctx context.Context) (Root, error) {
 	if err != nil {
 		return nil, err
 	}
-	return newLocal(root, l.baseFlags), nil
+	return newLocal(root), nil
 }
 
 func (l LocalFlags) OpenPool(ctx context.Context) (Pool, error) {
@@ -112,11 +112,10 @@ func (l *LocalFlags) SetRoot(s string) {
 
 type LocalRoot struct {
 	*lake.Root
-	flags baseFlags
 }
 
-func newLocal(r *lake.Root, flags baseFlags) Root {
-	return &LocalRoot{r, flags}
+func newLocal(r *lake.Root) Root {
+	return &LocalRoot{r}
 }
 
 func (r *LocalRoot) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64) (Pool, error) {
@@ -142,19 +141,15 @@ func (r *LocalRoot) ScanIndex(ctx context.Context, w zio.Writer, ids []ksuid.KSU
 	return r.Root.ScanIndex(ctx, w, ids)
 }
 
-func (r *LocalRoot) Query(ctx context.Context, w zio.Writer, args, includes query.Includes) (zbuf.ScannerStats, error) {
-	zedQuery, err := query.ParseSources(args, includes)
+func (r *LocalRoot) Query(ctx context.Context, d driver.Driver, zedSrc string) (zbuf.ScannerStats, error) {
+	query, err := compiler.ParseProc(zedSrc)
 	if err != nil {
-		return zbuf.ScannerStats{}, fmt.Errorf("zed lake query: %w", err)
+		return zbuf.ScannerStats{}, fmt.Errorf("parse error: %w", err)
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return zbuf.ScannerStats{}, err
 	}
-	d := driver.NewCLI(w)
-	if !r.flags.Quiet() {
-		d.SetWarningsWriter(os.Stderr)
-	}
-	return driver.RunWithLake(ctx, d, zedQuery, zson.NewContext(), r.Root)
+	return driver.RunWithLake(ctx, d, query, zson.NewContext(), r.Root)
 }
 
 func (r *LocalRoot) LookupPool(ctx context.Context, id ksuid.KSUID) (*lake.PoolConfig, error) {

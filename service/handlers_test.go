@@ -125,6 +125,29 @@ func TestSearchStats(t *testing.T) {
 	})
 }
 
+func TestQuery(t *testing.T) {
+	src := `
+{_path:"b",ts:1970-01-01T00:00:01Z}
+{_path:"a",ts:1970-01-01T00:00:01Z}
+`
+	expected := `{_path:"b",ts:1970-01-01T00:00:01Z}
+`
+	_, conn := newCore(t)
+	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	conn.TestLoad(pool.ID, strings.NewReader(src))
+	assert.Equal(t, expected, conn.TestQuery("from test | _path == 'b'"))
+}
+
+func TestQueryEmptyPool(t *testing.T) {
+	_, conn := newCore(t)
+	conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	rc, err := conn.Query(context.Background(), "from test")
+	require.NoError(t, err)
+	b, err := io.ReadAll(rc)
+	require.NoError(t, err)
+	assert.Equal(t, "", string(b))
+}
+
 func TestGroupByReverse(t *testing.T) {
 	src := `
 {ts:1970-01-01T00:00:01Z,uid:"A"} (=0)
