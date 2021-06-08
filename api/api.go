@@ -107,6 +107,10 @@ type CommitRequest struct {
 	Message string  `zng:"message"`
 }
 
+type SquashRequest struct {
+	Commits []ksuid.KSUID `json:"commits"`
+}
+
 type LogPostRequest struct {
 	Paths   []string        `json:"paths"`
 	StopErr bool            `json:"stop_err"`

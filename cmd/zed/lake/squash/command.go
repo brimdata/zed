@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/cli/lakecli"
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 )
@@ -32,6 +33,7 @@ respect to the head of the pool's commit journal at the time it is run.
 
 func init() {
 	zedlake.Cmd.Add(Squash)
+	zedapi.Cmd.Add(Squash)
 }
 
 type Command struct {
@@ -62,7 +64,7 @@ func (c *Command) Run(args []string) error {
 	if len(ids) == 0 {
 		return errors.New("no commit tags specified")
 	}
-	commit, err := pool.Squash(ctx, ids, *c.CommitRequest())
+	commit, err := pool.Squash(ctx, ids)
 	if err != nil {
 		return err
 	}

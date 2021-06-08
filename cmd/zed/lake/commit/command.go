@@ -70,7 +70,7 @@ func (c *Command) Run(args []string) error {
 	case 1:
 		commitID = ids[0]
 	default:
-		commitID, err = pool.Squash(ctx, ids, *c.CommitRequest())
+		commitID, err = pool.Squash(ctx, ids)
 		if err != nil {
 			return err
 		}

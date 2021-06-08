@@ -253,6 +253,7 @@ func (p *RemotePool) Delete(ctx context.Context, ids []ksuid.KSUID, commit *api.
 	if err != nil {
 		return ksuid.Nil, err
 	}
+	defer rc.Close()
 	var res api.StagedCommit
 	if err := unmarshal(rc, &res); err != nil {
 		return ksuid.Nil, err
@@ -267,8 +268,17 @@ func (p *RemotePool) Commit(ctx context.Context, id ksuid.KSUID, commit api.Comm
 	return p.conn.Commit(ctx, p.ID, id, commit)
 }
 
-func (p *RemotePool) Squash(ctx context.Context, ids []ksuid.KSUID, commit api.CommitRequest) (ksuid.KSUID, error) {
-	return ksuid.Nil, errors.New("unsupported")
+func (p *RemotePool) Squash(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, error) {
+	rc, err := p.conn.Squash(ctx, p.ID, ids)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	defer rc.Close()
+	var res api.StagedCommit
+	if err := unmarshal(rc, &res); err != nil {
+		return ksuid.Nil, err
+	}
+	return res.Commit, nil
 }
 
 func (p *RemotePool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
