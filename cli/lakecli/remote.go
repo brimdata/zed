@@ -249,7 +249,18 @@ func (p *RemotePool) Add(ctx context.Context, r zio.Reader, commit *api.CommitRe
 }
 
 func (p *RemotePool) Delete(ctx context.Context, ids []ksuid.KSUID, commit *api.CommitRequest) (ksuid.KSUID, error) {
-	return ksuid.Nil, errors.New("unsupported")
+	rc, err := p.conn.Delete(ctx, p.ID, ids)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	var res api.StagedCommit
+	if err := unmarshal(rc, &res); err != nil {
+		return ksuid.Nil, err
+	}
+	if commit != nil {
+		err = p.Commit(ctx, res.Commit, *commit)
+	}
+	return res.Commit, err
 }
 
 func (p *RemotePool) Commit(ctx context.Context, id ksuid.KSUID, commit api.CommitRequest) error {

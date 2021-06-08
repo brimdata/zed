@@ -1,0 +1,33 @@
+script: |
+  source service.sh
+  zapi create -q -p test
+  a=$(zapi load -p test a.zson | head -1 | awk '{print $1}')
+  b=$(zapi load -p test b.zson | head -1 | awk '{print $1}')
+  zapi query -z "from test | sort ."
+  zapi delete -q -p test -commit $a
+  echo ===
+  zapi query -z "from test | sort ."
+  id=$(zapi delete -p test $b | head -1 | awk '{print $1}')
+  zapi commit -p test -q $id
+  echo ===
+  zapi query -z "from test | sort ."
+
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+  - name: b.zson
+    data: |
+      {b:1}
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
+      {b:1}
+      ===
+      {b:1}
+      ===
