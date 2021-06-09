@@ -42,6 +42,9 @@ The supported mime types are as follows:
   - [List Segments](#list-segments)
   - [List Log](#list-log)
 
+### Events subscription:
+  - [Events](#events)
+
 <!-- XXX: Index revamp -->
 <!-- - [Create Index](#create-index) -->
 <!-- - [List Indices](#list-indices) -->
@@ -630,6 +633,33 @@ A list of [actions](#actions).
     }
   }
 ]
+```
+
+### Events
+
+Subscribe to an events feed.
+
+```
+GET /events
+```
+
+#### Response
+
+An event-stream in the format of [Server-sent events](https://html.spec.whatwg.org/multipage/server-sent-events.html).
+
+```
+event: pool-new
+data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
+
+event: pool-update
+data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
+
+event: pool-commit
+data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz", "commit_id": "1tisISpHoWI7MAZdFBiMERXeA2X"}
+
+event: pool-delete
+data: {"pool_id": "1sMDXpVwqxm36Rc2vfrmgizc3jz"}
+
 ```
 
 ## Object Reference

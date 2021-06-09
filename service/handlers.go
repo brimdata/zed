@@ -178,7 +178,13 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 
-	c.publishEvent("new-pool", pool.ID.String())
+	b, err := json.Marshal(api.EventPool{
+		PoolID: pool.ID.String(),
+	})
+	if err != nil {
+		w.Error(err)
+	}
+	c.publishEvent("pool-new", b)
 	w.Respond(http.StatusOK, pool.PoolConfig)
 }
 
@@ -201,6 +207,13 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
+	b, err := json.Marshal(api.EventPool{
+		PoolID: id.String(),
+	})
+	if err != nil {
+		w.Error(err)
+	}
+	c.publishEvent("pool-update", b)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -213,6 +226,13 @@ func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
+	b, err := json.Marshal(api.EventPool{
+		PoolID: id.String(),
+	})
+	if err != nil {
+		w.Error(err)
+	}
+	c.publishEvent("pool-delete", b)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -273,19 +293,14 @@ func handleCommit(c *Core, w *ResponseWriter, r *Request) {
 	if err != nil {
 		w.Error(err)
 	}
-
-	b, err := json.Marshal(struct {
-		CommitID string `json:"commit_id"`
-		PoolID   string `json:"pool_id"`
-	}{
+	b, err := json.Marshal(api.EventPoolCommit{
 		CommitID: commitID.String(),
 		PoolID:   pool.ID.String(),
 	})
 	if err != nil {
 		w.Error(err)
 	}
-
-	c.publishEvent("pool-new-commit", string(b))
+	c.publishEvent("pool-commit", b)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -604,15 +619,13 @@ func parseJournalID(ctx context.Context, pool *lake.Pool, at string) (journal.ID
 	return id, nil
 }
 
-func handleSubscribe(c *Core, w *ResponseWriter, r *Request) {
+func handleEvents(c *Core, w *ResponseWriter, r *Request) {
 	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Content-Type", "text/event-stream")
-
 	subscription := make(chan []byte)
 	c.subscriptionsMu.Lock()
 	c.subscriptions[subscription] = struct{}{}
 	c.subscriptionsMu.Unlock()
-
 	for {
 		select {
 		case msg := <-subscription:

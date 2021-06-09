@@ -8,7 +8,6 @@ import (
 	"io"
 	"net/http"
 	"net/http/pprof"
-	"strings"
 	"sync"
 	"sync/atomic"
 
@@ -149,7 +148,7 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/staging", handleScanStaging).Methods("GET")
 	c.authhandle("/pool/{pool}/staging/{commit}", handleCommit).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
-	c.authhandle("/subscribe", handleSubscribe).Methods("GET")
+	c.authhandle("/events", handleEvents).Methods("GET")
 
 	// Deprecated endpoints
 	c.authhandle("/search", handleSearch).Methods("POST")
@@ -200,20 +199,13 @@ func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 	return c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
 }
 
-func (c *Core) publishEvent(event string, data string) {
-	eventPayload := fmt.Sprintf("event: %s\n", event)
-	dataLines := strings.Split(data, "\n")
-
-	for _, line := range dataLines {
-		eventPayload += fmt.Sprintf("data: %s\n", line)
-	}
-
+func (c *Core) publishEvent(event string, data []byte) {
+	payload := fmt.Sprintf("event: %s\ndata: %s\n\n", event, string(data))
 	go func() {
 		c.subscriptionsMu.RLock()
-		defer c.subscriptionsMu.RUnlock()
-
 		for sub := range c.subscriptions {
-			sub <- []byte(eventPayload + "\n")
+			sub <- []byte(payload)
 		}
+		c.subscriptionsMu.RUnlock()
 	}()
 }
