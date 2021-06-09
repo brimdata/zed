@@ -22,8 +22,8 @@ jobs:
         curl -fsSL https://download.opensuse.org/repositories/security:zeek/xUbuntu_18.04/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/security:zeek.gpg > /dev/null
         sudo apt update
         sudo apt -y install zeek
-    - name: Run the perf testing script
-      run: PATH="$(pwd)/dist:/opt/zeek/bin:$PATH" make perf-compare
+        echo /opt/zeek/bin >> $GITHUB_PATH
+    - run: PATH="$PWD/dist:$PATH" make perf-compare
     - name: Notify Brim HQ of failure
       uses: tiloio/slack-webhook-action@v1.1.2
       if: ${{ failure() }}
