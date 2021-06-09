@@ -137,6 +137,7 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/auth/identity", handleAuthIdentityGet).Methods("GET")
 	// /auth/method intentionally requires no authentication
 	c.routerAPI.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
+	c.authhandle("/events", handleEvents).Methods("GET")
 	c.authhandle("/pool", handlePoolList).Methods("GET")
 	c.authhandle("/pool", handlePoolPost).Methods("POST")
 	c.authhandle("/pool/{pool}", handlePoolDelete).Methods("DELETE")
@@ -148,7 +149,6 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/staging", handleScanStaging).Methods("GET")
 	c.authhandle("/pool/{pool}/staging/{commit}", handleCommit).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
-	c.authhandle("/events", handleEvents).Methods("GET")
 
 	// Deprecated endpoints
 	c.authhandle("/search", handleSearch).Methods("POST")
@@ -199,12 +199,17 @@ func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 	return c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
 }
 
-func (c *Core) publishEvent(event string, data []byte) {
-	payload := fmt.Sprintf("event: %s\ndata: %s\n\n", event, string(data))
+func (c *Core) publishEvent(event string, data interface{}) {
 	go func() {
+		b, err := json.Marshal(data)
+		if err != nil {
+			c.logger.Error("Marshal error", zap.Error(err))
+			return
+		}
+		payload := []byte(fmt.Sprintf("event: %s\ndata: %s\n\n", event, b))
 		c.subscriptionsMu.RLock()
 		for sub := range c.subscriptions {
-			sub <- []byte(payload)
+			sub <- payload
 		}
 		c.subscriptionsMu.RUnlock()
 	}()

@@ -177,14 +177,9 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-
-	b, err := json.Marshal(api.EventPool{
+	c.publishEvent("pool-new", api.EventPool{
 		PoolID: pool.ID.String(),
 	})
-	if err != nil {
-		w.Error(err)
-	}
-	c.publishEvent("pool-new", b)
 	w.Respond(http.StatusOK, pool.PoolConfig)
 }
 
@@ -197,7 +192,6 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-
 	if err := c.root.RenamePool(r.Context(), id, req.Name); err != nil {
 		if errors.Is(err, lake.ErrPoolExists) {
 			err = zqe.ErrConflict(err)
@@ -207,13 +201,9 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	b, err := json.Marshal(api.EventPool{
+	c.publishEvent("pool-update", api.EventPool{
 		PoolID: id.String(),
 	})
-	if err != nil {
-		w.Error(err)
-	}
-	c.publishEvent("pool-update", b)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -226,13 +216,9 @@ func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	b, err := json.Marshal(api.EventPool{
+	c.publishEvent("pool-delete", api.EventPool{
 		PoolID: id.String(),
 	})
-	if err != nil {
-		w.Error(err)
-	}
-	c.publishEvent("pool-delete", b)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -293,14 +279,10 @@ func handleCommit(c *Core, w *ResponseWriter, r *Request) {
 	if err != nil {
 		w.Error(err)
 	}
-	b, err := json.Marshal(api.EventPoolCommit{
+	c.publishEvent("pool-commit", api.EventPoolCommit{
 		CommitID: commitID.String(),
 		PoolID:   pool.ID.String(),
 	})
-	if err != nil {
-		w.Error(err)
-	}
-	c.publishEvent("pool-commit", b)
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -620,7 +602,6 @@ func parseJournalID(ctx context.Context, pool *lake.Pool, at string) (journal.ID
 }
 
 func handleEvents(c *Core, w *ResponseWriter, r *Request) {
-	w.Header().Set("Connection", "keep-alive")
 	w.Header().Set("Content-Type", "text/event-stream")
 	subscription := make(chan []byte)
 	c.subscriptionsMu.Lock()
@@ -640,7 +621,6 @@ func handleEvents(c *Core, w *ResponseWriter, r *Request) {
 			c.subscriptionsMu.Lock()
 			delete(c.subscriptions, subscription)
 			c.subscriptionsMu.Unlock()
-
 			return
 		}
 	}
