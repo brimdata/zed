@@ -32,5 +32,5 @@ jobs:
         slack_json: |
             {
               "username": "github-actions",
-              "text": "Perf check failed: https://github.com/{{GITHUB_REPOSITORY}}/actions/runs/{{GITHUB_RUN_ID}}"
+              "text": "${{ github.workflow }} failed: https://github.com/{{GITHUB_REPOSITORY}}/actions/runs/{{GITHUB_RUN_ID}}"
             }  
