@@ -123,7 +123,7 @@ all follow from the records having been previously output as JSON.
    rather than the ZSON `ip` type
 3. The connection `duration` is printed as a floating point number rather than
    the ZSON `duration` type
-4. The keys for the fields that were present-but-null in the record read from
+4. The keys for the null-valued fields in the record read from
    TSV are not present in the record read from NDJSON
 
 If you're familiar with the limitations of the JSON data types, it makes sense
