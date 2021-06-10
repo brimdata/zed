@@ -88,7 +88,7 @@ const schemas = |{
 
 ## Zed Pipeline
 
-The Zed ends with a pipeline that stitches together everything we've defined
+The Zed shaper ends with a pipeline that stitches together everything we've defined
 so far.
 
 ```
