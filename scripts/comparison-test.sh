@@ -47,7 +47,7 @@ declare -a ZQL_QUERIES=(
     'cut ts'
     'count()'
     'count() by id.orig_h'
-    'id.resp_h=52.85.83.116'
+    'id.resp_h==52.85.83.116'
 )
 
 declare -a JQ_FILTERS=(
