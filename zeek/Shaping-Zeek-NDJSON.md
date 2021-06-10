@@ -38,7 +38,7 @@ fairly simple pattern that repeats across the many [Zeek log types](https://docs
 ## Leading Type Definitions
 
 The top three lines define types that are referenced further below in the main
-portion of the Zed.
+portion of the Zed shaper.
 
 ```
 type port=uint16;
