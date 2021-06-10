@@ -66,8 +66,8 @@ type dce_rpc={_path:string,ts:time,uid:bstring,id:conn_id,rtt:duration,named_pip
 ...
 ```
 
-> **Note:** See [the role of `_path`](Reading-Zeek-Log-Formats.md#the-role-of-_path)
-> doc for important details if you're using Zeek's built-in [ASCII logger](https://docs.zeek.org/en/current/scripts/base/frameworks/logging/writers/ascii.zeek.html)
+> **Note:** See [the role of `_path` ](Reading-Zeek-Log-Formats.md#the-role-of-_path)
+> for important details if you're using Zeek's built-in [ASCII logger](https://docs.zeek.org/en/current/scripts/base/frameworks/logging/writers/ascii.zeek.html)
 > to generate NDJSON rather than the [JSON Streaming Logs](https://github.com/corelight/json-streaming-logs) package.
 
 ## Mapping From `_path` Values to Types
