@@ -147,3 +147,12 @@ type IndexPostRequest struct {
 	Patterns []string `json:"patterns"`
 	Zed      string   `json:"zed,omitempty"`
 }
+
+type EventPoolCommit struct {
+	CommitID string `json:"commit_id"`
+	PoolID   string `json:"pool_id"`
+}
+
+type EventPool struct {
+	PoolID string `json:"pool_id"`
+}

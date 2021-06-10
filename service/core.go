@@ -8,6 +8,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/pprof"
+	"sync"
 	"sync/atomic"
 
 	"github.com/brimdata/zed/api"
@@ -39,15 +40,17 @@ type Config struct {
 }
 
 type Core struct {
-	auth      *Auth0Authenticator
-	conf      Config
-	engine    storage.Engine
-	logger    *zap.Logger
-	registry  *prometheus.Registry
-	root      *lake.Root
-	routerAPI *mux.Router
-	routerAux *mux.Router
-	taskCount int64
+	auth            *Auth0Authenticator
+	conf            Config
+	engine          storage.Engine
+	logger          *zap.Logger
+	registry        *prometheus.Registry
+	root            *lake.Root
+	routerAPI       *mux.Router
+	routerAux       *mux.Router
+	taskCount       int64
+	subscriptions   map[chan []byte]struct{}
+	subscriptionsMu sync.RWMutex
 }
 
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
@@ -113,14 +116,15 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	routerAPI.Use(panicCatchMiddleware(conf.Logger))
 
 	c := &Core{
-		auth:      authenticator,
-		conf:      conf,
-		engine:    engine,
-		logger:    conf.Logger.Named("core"),
-		root:      root,
-		registry:  registry,
-		routerAPI: routerAPI,
-		routerAux: routerAux,
+		auth:          authenticator,
+		conf:          conf,
+		engine:        engine,
+		logger:        conf.Logger.Named("core"),
+		root:          root,
+		registry:      registry,
+		routerAPI:     routerAPI,
+		routerAux:     routerAux,
+		subscriptions: make(map[chan []byte]struct{}),
 	}
 
 	c.addAPIServerRoutes()
@@ -133,6 +137,7 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/auth/identity", handleAuthIdentityGet).Methods("GET")
 	// /auth/method intentionally requires no authentication
 	c.routerAPI.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
+	c.authhandle("/events", handleEvents).Methods("GET")
 	c.authhandle("/pool", handlePoolList).Methods("GET")
 	c.authhandle("/pool", handlePoolPost).Methods("POST")
 	c.authhandle("/pool/{pool}", handlePoolDelete).Methods("DELETE")
@@ -192,4 +197,20 @@ func (c *Core) nextTaskID() int64 {
 
 func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 	return c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
+}
+
+func (c *Core) publishEvent(event string, data interface{}) {
+	go func() {
+		b, err := json.Marshal(data)
+		if err != nil {
+			c.logger.Error("Marshal error", zap.Error(err))
+			return
+		}
+		payload := []byte(fmt.Sprintf("event: %s\ndata: %s\n\n", event, b))
+		c.subscriptionsMu.RLock()
+		for sub := range c.subscriptions {
+			sub <- payload
+		}
+		c.subscriptionsMu.RUnlock()
+	}()
 }

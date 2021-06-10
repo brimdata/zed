@@ -177,6 +177,9 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
+	c.publishEvent("pool-new", api.EventPool{
+		PoolID: pool.ID.String(),
+	})
 	w.Respond(http.StatusOK, pool.PoolConfig)
 }
 
@@ -189,7 +192,6 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-
 	if err := c.root.RenamePool(r.Context(), id, req.Name); err != nil {
 		if errors.Is(err, lake.ErrPoolExists) {
 			err = zqe.ErrConflict(err)
@@ -199,6 +201,9 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
+	c.publishEvent("pool-update", api.EventPool{
+		PoolID: id.String(),
+	})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -211,6 +216,9 @@ func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
+	c.publishEvent("pool-delete", api.EventPool{
+		PoolID: id.String(),
+	})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -271,6 +279,10 @@ func handleCommit(c *Core, w *ResponseWriter, r *Request) {
 	if err != nil {
 		w.Error(err)
 	}
+	c.publishEvent("pool-commit", api.EventPoolCommit{
+		CommitID: commitID.String(),
+		PoolID:   pool.ID.String(),
+	})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -587,4 +599,29 @@ func parseJournalID(ctx context.Context, pool *lake.Pool, at string) (journal.ID
 		return journal.Nil, zqe.ErrInvalid("not a valid journal number or a commit tag: %s", at)
 	}
 	return id, nil
+}
+
+func handleEvents(c *Core, w *ResponseWriter, r *Request) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	subscription := make(chan []byte)
+	c.subscriptionsMu.Lock()
+	c.subscriptions[subscription] = struct{}{}
+	c.subscriptionsMu.Unlock()
+	for {
+		select {
+		case msg := <-subscription:
+			if _, err := w.Write(msg); err != nil {
+				w.Error(err)
+				continue
+			}
+			if f, ok := w.ResponseWriter.(http.Flusher); ok {
+				f.Flush()
+			}
+		case <-r.Context().Done():
+			c.subscriptionsMu.Lock()
+			delete(c.subscriptions, subscription)
+			c.subscriptionsMu.Unlock()
+			return
+		}
+	}
 }
