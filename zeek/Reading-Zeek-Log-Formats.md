@@ -76,7 +76,7 @@ Zeek may instead generate logs in [NDJSON](http://ndjson.org/) format.
    configured with `redef LogAscii::use_json = T;`
 
 In both cases, Zed tools such as `zq` can read these NDJSON logs automatically
-as-is, but with caveats.
+as is, but with caveats.
 
 Let's revisit the same `conn` record we just examined from the Zeek TSV log,
 but now using the
