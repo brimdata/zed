@@ -20,7 +20,7 @@
 
 # Summary
 
-As described in the doc about [Reading Zeek Log Formats](Reading-Zeek-Log-Formats.md),
+As described in [Reading Zeek Log Formats](Reading-Zeek-Log-Formats.md),
 logs output by Zeek in NDJSON format lose much of their rich data typing that
 was originally present inside Zeek. This detail can be restored using a Zed
 shaper configuration, such as the reference example [`shaper.zed`](shaper.zed)
