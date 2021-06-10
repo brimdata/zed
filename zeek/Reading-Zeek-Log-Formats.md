@@ -118,13 +118,13 @@ When we compare this to the TSV example, we notice a few things right away that
 all follow from the records having been previously output as JSON.
 
 1. The timestamps like `_write_ts` and `ts` are printed as strings rather than
-   the ZSON `time` type
+   the ZSON `time` type.
 2. The IP addresses such as `id.orig_h` and `id.resp_h` are printed as strings
-   rather than the ZSON `ip` type
+   rather than the ZSON `ip` type.
 3. The connection `duration` is printed as a floating point number rather than
-   the ZSON `duration` type
+   the ZSON `duration` type.
 4. The keys for the null-valued fields in the record read from
-   TSV are not present in the record read from NDJSON
+   TSV are not present in the record read from NDJSON.
 
 If you're familiar with the limitations of the JSON data types, it makes sense
 that Zeek chose to output these values in NDJSON as it did. Furthermore, if
