@@ -32,7 +32,7 @@ is described below.
 
 # Reference Shaper Contents
 
-The example `shaper.zed` may seem large, but ultimately it follows a
+The reference `shaper.zed` may seem large, but ultimately it follows a
 fairly simple pattern that repeats across the many [Zeek log types](https://docs.zeek.org/en/master/script-reference/log-files.html).
 
 ## Leading Type Definitions
