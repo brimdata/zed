@@ -5,7 +5,7 @@
   * [Leading Type Definitions](#leading-type-definitions)
   * [Type Definitions Per Zeek Log `_path`](#type-definitions-per-zeek-log-_path)
   * [Mapping From `_path` Values to Types](#mapping-from-_path-values-to-types)
-  * [Zed Pipeline Config](#zed-pipeline-config)
+  * [Zed Pipeline](#zed-pipeline)
 - [Invoking the Shaper From `zq`](#invoking-the-shaper-from-zq)
 - [Zeek Version/Configuration](#zeek-versionconfiguration)
 - [Importing Shaped Data Into Brim](#importing-shaped-data-into-brim)
@@ -23,22 +23,22 @@
 As described in [Reading Zeek Log Formats](Reading-Zeek-Log-Formats.md),
 logs output by Zeek in NDJSON format lose much of their rich data typing that
 was originally present inside Zeek. This detail can be restored using a Zed
-shaper configuration, such as the reference example [`shaper.zed`](shaper.zed)
+shaper, such as the reference example [`shaper.zed`](shaper.zed)
 that can be found in this directory of the repository.
 
-A full description of all that's possible with shaping configurations is beyond
-the scope of this doc. However, this example configuration is quite simple and
+A full description of all that's possible with shapers is beyond the scope of
+this doc. However, this example for shaping Zeek NDJSON is quite simple and
 is described below.
 
 # Reference Shaper Contents
 
-The example `shaper.zed` may seem large, but ultimately its config follows a
+The example `shaper.zed` may seem large, but ultimately it follows a
 fairly simple pattern that repeats across the many [Zeek log types](https://docs.zeek.org/en/master/script-reference/log-files.html).
 
 ## Leading Type Definitions
 
 The top three lines define types that are referenced further below in the main
-portion of the config.
+portion of the Zed.
 
 ```
 type port=uint16;
@@ -52,7 +52,7 @@ record.
 
 ## Type Definitions Per Zeek Log `_path`
 
-The bulk of the configuration consists of detailed per-field data type
+The bulk of this Zed shaper consists of detailed per-field data type
 definitions for each record in the default set of NDJSON logs output by Zeek.
 These type definitions reference the types we defined above, such as `port`
 and `conn_id`. The syntax for defining primitive and complex types follows the
@@ -86,9 +86,9 @@ const schemas = |{
 ...
 ```
 
-## Zed Pipeline Config
+## Zed Pipeline
 
-The config ends with a pipeline that stitches together everything we've defined
+The Zed ends with a pipeline that stitches together everything we've defined
 so far.
 
 ```
@@ -133,7 +133,7 @@ steps:
 
    Open issues [zed/2585](https://github.com/brimdata/zed/issues/2585) and
    [zed/2776](https://github.com/brimdata/zed/issues/2776) both track planned
-   future improvements to this part of the configuration.
+   future improvements to this part of Zed shapers.
 
 # Invoking the Shaper From `zq`
 
@@ -186,7 +186,7 @@ However, if you have modified your Zeek installation with [packages](https://pac
 or other customizations, or if you are using a [Corelight Sensor](https://corelight.com/products/appliance-sensors/)
 that produces Zeek logs with many fields and logs beyond those found in open
 source Zeek, the reference shaper will not cover all the fields in your logs.
-[As described above](#zed-pipeline-config), the reference shaper will assign
+[As described above](#zed-pipeline), the reference shaper will assign
 inferred types to such additional fields. By exploring your data, you can then
 iteratively enhance your shaper to match your environment. If you need
 assistance, please speak up on our [public Slack](https://www.brimsecurity.com/join-slack/).
