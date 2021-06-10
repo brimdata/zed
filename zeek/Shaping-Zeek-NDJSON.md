@@ -174,10 +174,10 @@ than relying on external mechanisms such as shell aliases.
 
 The fields and data types in the reference `shaper.zed` reflect the default
 NDJSON-format logs output by the Zeek version referenced in the comments at the
-top of that file. This configuration has been revisited periodically as new
+top of that file. They have been revisited periodically as new
 Zeek versions have been released and in that time we've only seen a couple new
 fields appear and none have been removed. Because of this, we expect the
-shaper configuration should be usable as-is for Zeek releases older than the
+shaper should be usable as-is for Zeek releases older than the
 one most recently tested, since fields in the shaper not present in your
 environment would just be filled in with `null` values. All attempts will be
 made to update it in a timely manner as new Zeek versions are released.
