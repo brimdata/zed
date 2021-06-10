@@ -1,5 +1,5 @@
-// This reference Zed shaper configuration was most recently tested with
-// Zeek v4.0.1. The fields and data types reflect the default NDJSON-format
+// This reference Zed shaper for Zeek NDJSON logs was most recently tested with
+// Zeek v4.0.1. The fields and data types reflect the default NDJSON
 // logs output by that Zeek version when using the JSON Streaming Logs package.
 
 type port=uint16;
