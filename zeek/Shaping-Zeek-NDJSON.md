@@ -140,7 +140,7 @@ steps:
 A shaper is typically invoked via the `-I` option of `zq`.
 
 For example, if working in a directory containing many NDJSON logs, the
-reference shaper config can be applied to all the records they contain and
+reference shaper can be applied to all the records they contain and
 output them all in a single binary [ZNG](../docs/formats/zng.md) file as
 follows:
 
