@@ -197,7 +197,7 @@ If you wish to browse your shaped data with [Brim](https://github.com/brimdata/b
 the best way to accomplish this at the moment would be to use `zq` to convert
 it to ZNG [as shown above](#invoking-the-shaper-from-zq), then drag the ZNG
 into Brim as you would any other log. An enhancement [zed/2695](https://github.com/brimdata/zed/issues/2695)
-is planned that will soon make it possible to attach your shaper config to a
+is planned that will soon make it possible to attach your shaper to a
 Pool. This will allow you to drag the original NDJSON logs directly into the
 Pool in Brim and have the shaping applied as the records are being committed to
 the Pool.
