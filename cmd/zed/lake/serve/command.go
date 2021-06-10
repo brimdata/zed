@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
 	"net"
 	"os"
@@ -98,7 +97,6 @@ func (c *Command) Run(args []string) error {
 		}
 	}
 	core, err := service.NewCore(ctx, c.conf)
-	fmt.Println("running", err)
 	if err != nil {
 		return err
 	}
