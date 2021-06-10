@@ -18,19 +18,9 @@ jobs:
     - uses: actions/checkout@v2
     - name: Add zeek-cut to PATH
       run: |
-        echo 'deb http://download.opensuse.org/repositories/security:/zeek/xUbuntu_18.04/ /' | sudo tee /etc/apt/sources.list.d/security:zeek.list
-        curl -fsSL https://download.opensuse.org/repositories/security:zeek/xUbuntu_18.04/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/security:zeek.gpg > /dev/null
+        echo 'deb http://download.opensuse.org/repositories/security:/zeek/xUbuntu_20.04/ /' | sudo tee /etc/apt/sources.list.d/security:zeek.list
+        curl -fsSL https://download.opensuse.org/repositories/security:zeek/xUbuntu_20.04/Release.key | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/security_zeek.gpg > /dev/null
         sudo apt update
         sudo apt -y install zeek
         echo /opt/zeek/bin >> $GITHUB_PATH
     - run: PATH="$PWD/dist:$PATH" make perf-compare
-    - name: Notify Brim HQ of failure
-      uses: tiloio/slack-webhook-action@v1.1.2
-      if: ${{ failure() }}
-      with:
-        slack_web_hook_url: ${{ secrets.SLACK_WEBHOOK_BRIMLABS_TEST }}
-        slack_json: |
-            {
-              "username": "github-actions",
-              "text": "${{ github.workflow }} failed: https://github.com/{{GITHUB_REPOSITORY}}/actions/runs/{{GITHUB_RUN_ID}}"
-            }  
