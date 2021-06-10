@@ -106,8 +106,8 @@ func (l *Lexer) match(b byte) (bool, error) {
 }
 
 func (l *Lexer) matchTight(b byte) (bool, error) {
-	if len(l.cursor) == 0 {
-		return false, io.EOF
+	if err := l.check(1); err != nil {
+		return false, err
 	}
 	if b == l.cursor[0] {
 		if err := l.skip(1); err != nil {
