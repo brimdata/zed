@@ -148,7 +148,7 @@ follows:
 zq -I shaper.zed *.log > /tmp/all.zng
 ```
 
-If you wish to apply the shaping configuration and then perform additional
+If you wish to apply the shaper and then perform additional
 operations on the richly-typed records, the Zed query on the command line
 should begin with a `|`, as this appends it to the pipeline at the bottom of
 the shaper from the included file.
