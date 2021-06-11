@@ -51,21 +51,7 @@ type runner struct {
 }
 
 func (r *runner) Write(rec *zng.Record) error {
-	r.recs = append(r.recs, rec)
-	if len(r.recs) > maxBatchSize {
-		return r.flush()
-	}
-	return nil
-}
-
-func (r *runner) flush() error {
-	if len(r.recs) > 0 {
-		recs := make([]*zng.Record, len(r.recs))
-		copy(recs, r.recs)
-		r.recs = r.recs[:0]
-		return r.driver.Write(r.cid, zbuf.Array(recs))
-	}
-	return nil
+	return r.driver.Write(r.cid, &zbuf.Array{rec})
 }
 
 func (r *runner) handleCtrl(ctrl interface{}) error {
