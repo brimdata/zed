@@ -1,23 +1,30 @@
 // Package tests finds example shell commands in Markdown files and runs them,
 // checking for expected output.
 //
-// Example commands and outputs are specified in fenced code blocks whose info
-// string (https://spec.commonmark.org/0.29/#info-string) has zq-command or
-// zq-output as the first word.  These blocks must be paired.
+// Example inputs, commands, and outputs are specified in fenced code blocks
+// whose info string (https://spec.commonmark.org/0.29/#info-string) has
+// zq-input, zq-command, or zq-output as the first word.  The zq-command and
+// zq-output blocks must be paired.
 //
+//    ```zq-input file.txt
+//    hello
+//    ```
 //    ```zq-command [path]
-//    echo hello
+//    cat file.txt
 //    ```
 //    ```zq-output
 //    hello
 //    ```
 //
 // The content of each zq-command block is fed to "bash -e -o pipefail" on
-// standard input.  The shell's working directory is the repository root unless
-// the block's info string contains a second word, which then specifies the
-// working directory as a path relative to the repository root.  The shell's
-// combined standard output and standard error must exactly match the content of
-// the following zq-output block except as described below.
+// standard input.  The shell's working directory is a temporary directory
+// populated with files described by any zq-input blocks in the same Markdown
+// file.  Alternatively, if the zq-command block's info string contains a second
+// word, it specifies the shell's working directory as a path relative to the
+// repository root, and files desribed by zq-input blocks are not available.  In
+// either case, the shell's combined standard output and standard error must
+// exactly match the content of the following zq-output block except as
+// described below.
 //
 // If head:N appears as the second word in a zq-output block's info string,
 // where N is a non-negative interger, then only the first N lines of shell
@@ -38,12 +45,14 @@ package tests
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
 	"strings"
+	"testing"
 
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/ast"
@@ -72,13 +81,22 @@ type ZQExampleTest struct {
 	Command         string
 	Dir             string
 	Expected        string
+	Inputs          map[string]string
 	OutputLineCount int
 }
 
 // Run runs a zq command and returns its output.
-func (t *ZQExampleTest) Run() (string, error) {
+func (t *ZQExampleTest) Run(tt *testing.T) (string, error) {
 	c := exec.Command("bash", "-e", "-o", "pipefail")
 	c.Dir = t.Dir
+	if c.Dir == "" {
+		c.Dir = tt.TempDir()
+		for k, v := range t.Inputs {
+			if err := os.WriteFile(filepath.Join(c.Dir, k), []byte(v), 0600); err != nil {
+				return "", err
+			}
+		}
+	}
 	c.Stdin = strings.NewReader(t.Command)
 	var b bytes.Buffer
 	c.Stdout = &b
@@ -122,10 +140,10 @@ func ZQOutputLineCount(fcb *ast.FencedCodeBlock, source []byte) int {
 
 // CollectExamples returns zq-command / zq-output pairs from a single
 // markdown source after parsing it as a goldmark AST.
-func CollectExamples(node ast.Node, source []byte) ([]ZQExampleInfo, error) {
+func CollectExamples(node ast.Node, source []byte) ([]ZQExampleInfo, map[string]string, error) {
 	var examples []ZQExampleInfo
 	var command *ast.FencedCodeBlock
-
+	inputs := map[string]string{}
 	err := ast.Walk(node, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		// Walk() calls its walker func twice. Once when entering and
 		// once before exiting, after walking any children. We need
@@ -142,6 +160,13 @@ func CollectExamples(node ast.Node, source []byte) ([]ZQExampleInfo, error) {
 		}
 		bt := ZQExampleBlockType(fcb.Language(source))
 		switch bt {
+		case ZQExampleBlockType("zq-input"):
+			infoWords := strings.Fields(string(fcb.Info.Segment.Value(source)))
+			if len(infoWords) < 2 {
+				return ast.WalkStop, errors.New("zq-input without file name")
+			}
+			filename := infoWords[1]
+			inputs[filename] = BlockString(fcb, source)
 		case ZQCommand:
 			if command != nil {
 				return ast.WalkStop,
@@ -166,7 +191,7 @@ func CollectExamples(node ast.Node, source []byte) ([]ZQExampleInfo, error) {
 	if command != nil && err == nil {
 		err = fmt.Errorf("%s without a following %s", ZQCommand, ZQOutput)
 	}
-	return examples, err
+	return examples, inputs, err
 }
 
 // BlockString returns the text of a ast.FencedCodeBlock as a string.
@@ -183,7 +208,6 @@ func BlockString(fcb *ast.FencedCodeBlock, source []byte) string {
 // in a file.
 func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 	var tests []ZQExampleTest
-	var examples []ZQExampleInfo
 	absfilename, err := filepath.Abs(filename)
 	if err != nil {
 		return nil, err
@@ -199,7 +223,7 @@ func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 	reader := text.NewReader(source)
 	parser := goldmark.DefaultParser()
 	doc := parser.Parse(reader)
-	examples, err = CollectExamples(doc, source)
+	examples, inputs, err := CollectExamples(doc, source)
 	if err != nil {
 		return nil, err
 	}
@@ -208,13 +232,14 @@ func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 		linenum := bytes.Count(source[:e.command.Info.Segment.Start], []byte("\n")) + 2
 		var commandDir string
 		if infoWords := strings.Fields(string(e.command.Info.Segment.Value(source))); len(infoWords) > 1 {
-			commandDir = infoWords[1]
+			commandDir = filepath.Join(repopath, infoWords[1])
 		}
 		tests = append(tests, ZQExampleTest{
 			Name:            strings.TrimPrefix(absfilename, repopath) + ":" + strconv.Itoa(linenum),
 			Command:         BlockString(e.command, source),
-			Dir:             filepath.Join(repopath, commandDir),
+			Dir:             commandDir,
 			Expected:        strings.TrimSuffix(BlockString(e.output, source), "...\n"),
+			Inputs:          inputs,
 			OutputLineCount: e.outputLineCount,
 		})
 	}

@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/yuin/goldmark"
 	"github.com/yuin/goldmark/text"
 )
@@ -13,11 +14,29 @@ type markdownunittest struct {
 	markdown string
 	strerror string
 	items    int
+	inputs   int
 }
 
 func TestCollectExamples(t *testing.T) {
 	t.Parallel()
 	tests := []markdownunittest{
+		{
+			name: "zq-input",
+			markdown: `
+~~~zq-input filename
+1234
+~~~
+`,
+			inputs: 1},
+
+		{
+			name: "zq-input without file name",
+			markdown: `
+~~~zq-input
+1234
+~~~
+`,
+			strerror: "zq-input without file name"},
 		{
 			name: "zq-command only",
 			markdown: `
@@ -91,13 +110,30 @@ block 2 continued
 			reader := text.NewReader(source)
 			parser := goldmark.DefaultParser()
 			doc := parser.Parse(reader)
-			examples, err := CollectExamples(doc, source)
+			examples, inputs, err := CollectExamples(doc, source)
 			if testcase.strerror != "" {
 				assert.EqualError(t, err, testcase.strerror)
 			}
 			if testcase.items != 0 {
-				assert.Equal(t, len(examples), testcase.items)
+				assert.Len(t, examples, testcase.items)
+			}
+			if testcase.inputs != 0 {
+				assert.Len(t, inputs, testcase.inputs)
 			}
 		})
 	}
+}
+
+func TestInputs(t *testing.T) {
+	t.Parallel()
+	out, err := (&ZQExampleTest{
+		Command: "cat one two",
+		Inputs: map[string]string{
+			"one": "1\n",
+			"two": "2\n",
+		},
+		OutputLineCount: 2,
+	}).Run(t)
+	require.NoError(t, err)
+	assert.Equal(t, "1\n2\n", out)
 }
