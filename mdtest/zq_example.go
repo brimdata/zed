@@ -19,24 +19,21 @@
 // combined standard output and standard error must exactly match the content of
 // the following mdtest-output block except as described below.
 //
-// If head:N appears as the second word in a mdtest-output block's info string,
-// where N is a non-negative interger, then only the first N lines of shell
-// output are examined, and any "...\n" suffix of the block content is ignored.
+// If head appears as the second word in an mdtest-output block's info string,
+// then any "...\n" suffix of the block content is ignored, and what remains
+// must be a prefix of the shell output.
 //
 //    ```mdtest-command
 //    echo hello
 //    echo goodbye
 //    ```
-//    ```mdtest-output head:1
+//    ```mdtest-output head
 //    hello
 //    ...
 //    ```
-//
-// If head is malformed or N is invalid, the word is ignored.
 package mdtest
 
 import (
-	"bufio"
 	"bytes"
 	"fmt"
 	"os"
@@ -53,26 +50,24 @@ import (
 type ZQExampleBlockType string
 
 const (
-	ZQCommand    ZQExampleBlockType = "mdtest-command"
-	ZQOutput     ZQExampleBlockType = "mdtest-output"
-	ZQOutputHead string             = "head:"
+	ZQCommand ZQExampleBlockType = "mdtest-command"
+	ZQOutput  ZQExampleBlockType = "mdtest-output"
 )
 
 // ZQExampleInfo holds a ZQ example as found in markdown.
 type ZQExampleInfo struct {
-	command         *ast.FencedCodeBlock
-	output          *ast.FencedCodeBlock
-	outputLineCount int
+	command *ast.FencedCodeBlock
+	output  *ast.FencedCodeBlock
 }
 
 // ZQExampleTest holds a ZQ example as a testcase found from mardown, derived
 // from a ZQExampleInfo.
 type ZQExampleTest struct {
-	Name            string
-	Command         string
-	Dir             string
-	Expected        string
-	OutputLineCount int
+	Name     string
+	Command  string
+	Dir      string
+	Expected string
+	Head     bool
 }
 
 // Run runs a zq command and returns its output.
@@ -83,41 +78,12 @@ func (t *ZQExampleTest) Run() (string, error) {
 	var b bytes.Buffer
 	c.Stdout = &b
 	c.Stderr = &b
-	if err := c.Run(); err != nil {
-		return string(b.Bytes()), err
+	err := c.Run()
+	out := b.String()
+	if t.Head && len(out) > len(t.Expected) {
+		out = out[:len(t.Expected)]
 	}
-	scanner := bufio.NewScanner(&b)
-	i := 0
-	var s string
-	for scanner.Scan() {
-		if i == t.OutputLineCount {
-			break
-		}
-		s += scanner.Text() + "\n"
-		i++
-	}
-	if err := scanner.Err(); err != nil {
-		return s, err
-	}
-	return s, nil
-}
-
-// ZQOutputLineCount returns the number of lines against which mdtest-output should
-// be verified.
-func ZQOutputLineCount(fcb *ast.FencedCodeBlock, source []byte) int {
-	count := fcb.Lines().Len()
-	if fcb.Info == nil {
-		return count
-	}
-	info := strings.Split(string(fcb.Info.Segment.Value(source)), ZQOutputHead)
-	if len(info) != 2 {
-		return count
-	}
-	customCount, err := strconv.Atoi(info[1])
-	if err != nil || customCount < 0 {
-		return count
-	}
-	return customCount
+	return out, err
 }
 
 // CollectExamples returns mdtest-command / zq-output pairs from a single
@@ -153,8 +119,7 @@ func CollectExamples(node ast.Node, source []byte) ([]ZQExampleInfo, error) {
 				return ast.WalkStop,
 					fmt.Errorf("%s without a preceeding %s", bt, ZQCommand)
 			}
-			outputLineCount := ZQOutputLineCount(fcb, source)
-			examples = append(examples, ZQExampleInfo{command, fcb, outputLineCount})
+			examples = append(examples, ZQExampleInfo{command, fcb})
 			command = nil
 			// A fenced code block need not specify an info string, or it
 			// could be arbitrary. The default case is to ignore everything
@@ -207,18 +172,26 @@ func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 	for _, e := range examples {
 		linenum := bytes.Count(source[:e.command.Info.Segment.Start], []byte("\n")) + 2
 		var commandDir string
-		if infoWords := strings.Fields(string(e.command.Info.Segment.Value(source))); len(infoWords) > 1 {
-			commandDir = infoWords[1]
+		if words := fcbInfoWords(e.command, source); len(words) > 1 {
+			commandDir = words[1]
+		}
+		var head bool
+		if words := fcbInfoWords(e.output, source); len(words) > 1 && words[1] == "head" {
+			head = true
 		}
 		tests = append(tests, ZQExampleTest{
-			Name:            strings.TrimPrefix(absfilename, repopath) + ":" + strconv.Itoa(linenum),
-			Command:         BlockString(e.command, source),
-			Dir:             filepath.Join(repopath, commandDir),
-			Expected:        strings.TrimSuffix(BlockString(e.output, source), "...\n"),
-			OutputLineCount: e.outputLineCount,
+			Name:     strings.TrimPrefix(absfilename, repopath) + ":" + strconv.Itoa(linenum),
+			Command:  BlockString(e.command, source),
+			Dir:      filepath.Join(repopath, commandDir),
+			Expected: strings.TrimSuffix(BlockString(e.output, source), "...\n"),
+			Head:     head,
 		})
 	}
 	return tests, nil
+}
+
+func fcbInfoWords(fcb *ast.FencedCodeBlock, source []byte) []string {
+	return strings.Fields(string(fcb.Info.Segment.Value(source)))
 }
 
 // DocMarkdownFiles returns markdown files to inspect.

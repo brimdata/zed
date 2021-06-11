@@ -8,7 +8,7 @@ zq -f table 'duration > 100 | put total_bytes:=orig_bytes+resp_bytes | cut orig_
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 ORIG_BYTES RESP_BYTES TOTAL_BYTES
 32         0          32
 32         0          32

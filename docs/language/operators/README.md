@@ -48,7 +48,7 @@ zq -f table 'cut ts,uid' conn.log.gz
 ```
 
 #### Output:
-```mdtest-output head:4
+```mdtest-output head
 TS                          UID
 2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
 2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
@@ -69,7 +69,7 @@ zq -f table 'cut _path,ts,share_type' *
 ```
 
 #### Output:
-```mdtest-output head:4
+```mdtest-output head
 _PATH        TS
 capture_loss 2018-03-24T17:30:20.600852Z
 capture_loss 2018-03-24T17:36:30.158766Z
@@ -104,7 +104,7 @@ zq -f table 'cut time:=ts,uid' conn.log.gz
 ```
 
 #### Output:
-```mdtest-output head:4
+```mdtest-output head
 TIME                        UID
 2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
 2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
@@ -132,7 +132,7 @@ zq -f table 'drop _path,id' weird.log.gz
 ```
 
 #### Output:
-```mdtest-output head:4
+```mdtest-output head
 TS                          UID                NAME                             ADDL             NOTICE PEER
 2018-03-24T17:15:20.600843Z C1zOivgBT6dBmknqk  TCP_ack_underflow_or_misorder    -                F      zeek
 2018-03-24T17:15:20.608108Z -                  truncated_header                 -                F      zeek
@@ -318,7 +318,7 @@ zq -f table 'pick ts,uid' conn.log.gz
 ```
 
 #### Output:
-```mdtest-output head:4
+```mdtest-output head
 TS                          UID
 2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
 2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
@@ -339,7 +339,7 @@ zq -f table 'pick _path,ts,share_type' *
 ```
 
 #### Output:
-```mdtest-output head:4
+```mdtest-output head
 _PATH       TS                          SHARE_TYPE
 smb_mapping 2018-03-24T17:15:21.382822Z DISK
 smb_mapping 2018-03-24T17:15:21.625534Z PIPE
@@ -374,7 +374,7 @@ zq -f table 'pick time:=ts,uid' conn.log.gz
 ```
 
 #### Output:
-```mdtest-output head:4
+```mdtest-output head
 TIME                        UID
 2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
 2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
@@ -403,7 +403,7 @@ zq -q -f table 'put total_bytes := orig_bytes + resp_bytes | sort -r total_bytes
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P ORIG_BYTES RESP_BYTES TOTAL_BYTES
 10.47.7.154   27300     52.216.132.61   443       859        1781771107 1781771966
 10.164.94.120 33691     10.47.3.200     80        355        1543916493 1543916848
@@ -434,7 +434,7 @@ Rename `ts` to `time`, rename one of the inner fields of `id`, and rename the `i
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 _PATH TIME                        UID                CONNTUPLE.SRC  CONNTUPLE.ORIG_P CONNTUPLE.RESP_H CONNTUPLE.RESP_P PROTO SERVICE  DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY     ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl 10.164.94.120  39681            10.47.3.155      3389             tcp   -        0.004266 97         19         RSTR       -          -          0            ShADTdtr    10        730           6         342           -
 conn  2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6 10.47.25.80    50817            10.128.0.218     23189            tcp   -        0.000486 0          0          REJ        -          -          0            Sr          2         104           2         80            -
@@ -463,7 +463,7 @@ zq -f table 'sort certificate.subject' x509.log.gz
 ```
 
 #### Output:
-```mdtest-output head:10
+```mdtest-output head
 _PATH TS                          ID                 CERTIFICATE.VERSION CERTIFICATE.SERIAL                     CERTIFICATE.SUBJECT                                                                               CERTIFICATE.ISSUER                                                                                                                                       CERTIFICATE.NOT_VALID_BEFORE CERTIFICATE.NOT_VALID_AFTER CERTIFICATE.KEY_ALG CERTIFICATE.SIG_ALG     CERTIFICATE.KEY_TYPE CERTIFICATE.KEY_LENGTH CERTIFICATE.EXPONENT CERTIFICATE.CURVE SAN.DNS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      SAN.URI SAN.EMAIL SAN.IP BASIC_CONSTRAINTS.CA BASIC_CONSTRAINTS.PATH_LEN
 x509  2018-03-24T17:29:38.233315Z Fn2Gkp2Qd434JylJX9 3                   CB11D05B561B4BB1                       C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net                                                        2016-05-09T10:09:02Z         2018-05-09T10:09:02Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            -       -         -      T                    -
 x509  2018-03-24T17:18:48.524223Z Fxq7P31K2FS3v7CBSh 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     2018-01-25T08:00:00Z         2019-01-25T20:00:00Z        id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
@@ -488,7 +488,7 @@ zq -f table 'sort certificate.subject,id' x509.log.gz
 ```
 
 #### Output:
-```mdtest-output head:10
+```mdtest-output head
 _PATH TS                          ID                 CERTIFICATE.VERSION CERTIFICATE.SERIAL                     CERTIFICATE.SUBJECT                                                                               CERTIFICATE.ISSUER                                                                                                                                       CERTIFICATE.NOT_VALID_BEFORE CERTIFICATE.NOT_VALID_AFTER CERTIFICATE.KEY_ALG CERTIFICATE.SIG_ALG     CERTIFICATE.KEY_TYPE CERTIFICATE.KEY_LENGTH CERTIFICATE.EXPONENT CERTIFICATE.CURVE SAN.DNS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      SAN.URI SAN.EMAIL SAN.IP BASIC_CONSTRAINTS.CA BASIC_CONSTRAINTS.PATH_LEN
 x509  2018-03-24T17:29:38.233315Z Fn2Gkp2Qd434JylJX9 3                   CB11D05B561B4BB1                       C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net                                                        2016-05-09T10:09:02Z         2018-05-09T10:09:02Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            -       -         -      T                    -
 x509  2018-03-24T17:18:48.524679Z F6WWPk3ajsHLrmNFdb 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     2018-01-25T08:00:00Z         2019-01-25T20:00:00Z        id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
@@ -516,7 +516,7 @@ zq -f table 'count() by id.orig_h | sort -r' conn.log.gz
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 ID.ORIG_H                COUNT
 10.174.251.215           279014
 10.47.24.81              162237
@@ -610,7 +610,7 @@ zq -f table 'cut certificate.issuer | sort | uniq -c | sort -r' x509.log.gz
 ```
 
 #### Output:
-```mdtest-output head:3
+```mdtest-output head
 CERTIFICATE.ISSUER                                                                                                                                       _UNIQ
 O=VMware Installer                                                                                                                                       1761
 CN=Snozberry                                                                                                                                             1108
