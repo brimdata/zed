@@ -27,8 +27,8 @@ does not (yet) include the full set of mathematical/other operations available
 in `jq`. If there's glaring functional omissions that are limiting your use of
 `zq`, we welcome [contributions](../README.md#contributing).
 
-* For the permutations of `ndjson` input and `zeek` output, the approach
-described for [shaping Zeek NDJSON](https://github.com/brimdata/zed/blob/main/zeek/Shaping-Zeek-NDJSON.md)
+* For the permutations of `ndjson` input and `zeek` output, the recommended
+approach for [shaping Zeek NDJSON](https://github.com/brimdata/zed/blob/main/zeek/Shaping-Zeek-NDJSON.md)
 was followed as the input data was being read. In addition to conforming to the
 best practices as described in that article, this also avoids a problem
 described in [a comment in zed/2123](https://github.com/brimdata/zed/pull/2123#issuecomment-859164320).
