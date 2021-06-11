@@ -72,7 +72,7 @@ test-services: build
 		go test -run TestZed/ppl/zqd/ztests/redis .
 
 perf-compare: build $(SAMPLEDATA)
-	scripts/comparison-test.sh
+	scripts/perf-compare.sh
 
 z-output-check: build $(SAMPLEDATA)
 	scripts/z-output-check.sh
