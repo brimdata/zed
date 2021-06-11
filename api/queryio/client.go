@@ -77,10 +77,7 @@ func (r *runner) handleCtrl(ctrl interface{}) error {
 	case *api.QueryChannelEnd:
 		err = r.driver.ChannelEnd(ctrl.ChannelID)
 	case *api.QueryStats:
-		r.stats.BytesRead = ctrl.ScannerStats.BytesRead
-		r.stats.BytesMatched = ctrl.ScannerStats.BytesMatched
-		r.stats.RecordsRead = ctrl.ScannerStats.RecordsRead
-		r.stats.RecordsMatched = ctrl.ScannerStats.RecordsMatched
+		r.stats = zbuf.ScannerStats(ctrl.ScannerStats)
 		err = r.driver.Stats(ctrl.ScannerStats)
 	case *api.QueryWarning:
 		err = r.driver.Warn(ctrl.Warning)
