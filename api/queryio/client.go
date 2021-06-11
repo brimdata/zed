@@ -35,10 +35,12 @@ func RunClientResponse(ctx context.Context, d driver.Driver, res *client.ReadClo
 			continue
 		}
 		if rec != nil {
-			run.Write(rec)
+			if err := run.Write(rec); err != nil {
+				return run.stats, err
+			}
 			continue
 		}
-		return run.stats, run.flush()
+		return run.stats, nil
 	}
 	return run.stats, ctx.Err()
 }
@@ -58,7 +60,6 @@ func (r *runner) handleCtrl(ctrl interface{}) error {
 	var err error
 	switch ctrl := ctrl.(type) {
 	case *api.QueryChannelSet:
-		err = r.flush()
 		r.cid = ctrl.ChannelID
 	case *api.QueryChannelEnd:
 		err = r.driver.ChannelEnd(ctrl.ChannelID)
