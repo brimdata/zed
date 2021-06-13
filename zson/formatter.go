@@ -104,7 +104,7 @@ func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, par
 	switch t := typ.(type) {
 	default:
 		f.startColorPrimitive(typ)
-		f.build(typ.ZSONOf(bytes))
+		f.build(typ.Format(bytes))
 		f.endColor()
 	case *zng.TypeAlias:
 		err = f.formatValue(indent, t.Type, bytes, known, parentImplied, false)
@@ -119,7 +119,7 @@ func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, par
 	case *zng.TypeMap:
 		null, err = f.formatMap(indent, t, bytes, known, parentImplied)
 	case *zng.TypeEnum:
-		f.build(t.ZSONOf(bytes))
+		f.build(t.Format(bytes))
 	case *zng.TypeOfType:
 		f.startColorPrimitive(zng.TypeType)
 		f.buildf("(%s)", string(bytes))
@@ -174,7 +174,7 @@ func (f *Formatter) formatRecord(indent int, typ *zng.TypeRecord, bytes zcode.By
 	it := bytes.Iter()
 	for _, field := range typ.Columns {
 		if it.Done() {
-			return &zng.RecordTypeError{Name: string(field.Name), Type: field.Type.ZSON(), Err: zng.ErrMissingField}
+			return &zng.RecordTypeError{Name: string(field.Name), Type: field.Type.String(), Err: zng.ErrMissingField}
 		}
 		bytes, _, err := it.Next()
 		if err != nil {
@@ -320,7 +320,7 @@ func (f *Formatter) formatType(typ zng.Type) {
 		return
 	}
 	if typ.ID() < zng.IDTypeDef {
-		name := typ.ZSON()
+		name := typ.String()
 		f.typedefs[typ] = name
 		f.build(name)
 		return
@@ -370,7 +370,7 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 	case *zng.TypeOfType:
 		formatType(&f.builder, make(typemap), typ)
 	default:
-		panic("unknown case in formatTypeBody(): " + typ.ZSON())
+		panic("unknown case in formatTypeBody(): " + typ.String())
 	}
 	return nil
 }
@@ -542,6 +542,6 @@ func formatType(b *strings.Builder, typedefs typemap, typ zng.Type) {
 		}
 		b.WriteByte('>')
 	default:
-		b.WriteString(typ.ZSON())
+		b.WriteString(typ.String())
 	}
 }

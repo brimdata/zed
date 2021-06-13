@@ -83,7 +83,7 @@ func compareValues(a, b zng.Value, comparefns map[zng.Type]comparefn, nullsMax b
 	// XXX This is heavyweight and should probably just comapred
 	// the zcode.Bytes.  See issue #2354.
 	if a.Type.ID() != b.Type.ID() {
-		return bytes.Compare([]byte(a.Type.ZSON()), []byte(b.Type.ZSON()))
+		return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
 	}
 
 	cfn, ok := comparefns[a.Type]

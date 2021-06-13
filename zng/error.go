@@ -54,14 +54,10 @@ func (t *TypeOfError) String() string {
 }
 
 func (t *TypeOfError) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.ZSONOf(zv), nil
+	return t.Format(zv), nil
 }
 
-func (t *TypeOfError) ZSON() string {
-	return "error"
-}
-
-func (t *TypeOfError) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfError) Format(zv zcode.Bytes) string {
 	return QuotedString(zv, false)
 }
 

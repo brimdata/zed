@@ -87,7 +87,7 @@ func (p *Parser) ParseContainer(typ zng.Type, b []byte) ([]byte, error) {
 		}
 		if columns != nil {
 			if k >= len(columns) {
-				return nil, &zng.RecordTypeError{Name: "<record>", Type: typ.ZSON(), Err: zng.ErrExtraField}
+				return nil, &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
 			}
 			childType = columns[k].Type
 			k++
@@ -283,7 +283,7 @@ func ParseValue(typ zng.Type, in []byte) (zcode.Bytes, error) {
 	default:
 		primitive := zed.Primitive{
 			Kind: "Primitive",
-			Type: typ.ZSON(),
+			Type: typ.String(),
 			Text: string(in),
 		}
 		zv, err := zson.ParsePrimitive(primitive.Type, primitive.Text)

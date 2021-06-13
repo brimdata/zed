@@ -251,7 +251,7 @@ func (f *Finder) ParseKeys(inputs ...string) (*zng.Record, error) {
 				return nil, fmt.Errorf("could not parse %q: %w", s, err)
 			}
 			if typ != zv.Type {
-				return nil, fmt.Errorf("type mismatch for %q: expected type %s", s, typ.ZSON())
+				return nil, fmt.Errorf("type mismatch for %q: expected type %s", s, typ)
 			}
 		} else {
 			zv = zng.Value{typ, nil}

@@ -34,7 +34,7 @@ func Stat(ctx context.Context, engine storage.Engine, uri *storage.URI) (*Info, 
 	for i, c := range columns {
 		keys[i] = InfoKey{
 			Name:     c.Name,
-			TypeName: c.Type.ZSON(),
+			TypeName: c.Type.String(),
 		}
 	}
 	return &Info{

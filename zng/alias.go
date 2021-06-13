@@ -32,12 +32,12 @@ func (t *TypeAlias) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return t.Type.Marshal(zv)
 }
 
-func (t *TypeAlias) ZSON() string {
-	return fmt.Sprintf("%s=(%s)", t.Name, t.Type.ZSON())
+func (t *TypeAlias) String() string {
+	return fmt.Sprintf("%s=(%s)", t.Name, t.Type)
 }
 
-func (t *TypeAlias) ZSONOf(zv zcode.Bytes) string {
-	return t.Type.ZSONOf(zv)
+func (t *TypeAlias) Format(zv zcode.Bytes) string {
+	return t.Type.Format(zv)
 }
 
 func AliasOf(typ Type) Type {

@@ -144,7 +144,7 @@ func (a Analyzer) typeCheck(cast, parent zng.Type) error {
 		// as any union incompability will be caught in convertAnyValue().
 		return nil
 	}
-	return fmt.Errorf("decorator conflict enclosing context %q and decorator cast %q", parent.ZSON(), cast.ZSON())
+	return fmt.Errorf("decorator conflict enclosing context %q and decorator cast %q", parent, cast)
 }
 
 func (a Analyzer) enterTypeDef(zctx *Context, name string, typ zng.Type) (*zng.TypeAlias, error) {
@@ -235,7 +235,7 @@ func castType(typ, cast zng.Type) (zng.Type, error) {
 		zng.IsStringy(typID) && zng.IsStringy(castID) {
 		return cast, nil
 	}
-	return nil, fmt.Errorf("type mismatch: %q cannot be used as %q", typ.ZSON(), cast.ZSON())
+	return nil, fmt.Errorf("type mismatch: %q cannot be used as %q", typ, cast)
 }
 
 func (a Analyzer) convertRecord(zctx *Context, val *zed.Record, cast zng.Type) (Value, error) {
@@ -459,7 +459,7 @@ func (a Analyzer) convertUnion(zctx *Context, v Value, union *zng.TypeUnion, cas
 			}, nil
 		}
 	}
-	return nil, fmt.Errorf("type %q is not in union type %q", valType.ZSON(), union.ZSON())
+	return nil, fmt.Errorf("type %q is not in union type %q", valType, union)
 }
 
 func (a Analyzer) convertEnum(zctx *Context, val *zed.Enum, cast zng.Type) (Value, error) {
@@ -468,7 +468,7 @@ func (a Analyzer) convertEnum(zctx *Context, val *zed.Enum, cast zng.Type) (Valu
 	}
 	enum, ok := zng.AliasOf(cast).(*zng.TypeEnum)
 	if !ok {
-		return nil, fmt.Errorf("identifier %q is enum and incompatible with type %q", val.Name, cast.ZSON())
+		return nil, fmt.Errorf("identifier %q is enum and incompatible with type %q", val.Name, cast)
 	}
 	for k, elem := range enum.Elements {
 		if elem.Name == val.Name {
@@ -479,7 +479,7 @@ func (a Analyzer) convertEnum(zctx *Context, val *zed.Enum, cast zng.Type) (Valu
 			}, nil
 		}
 	}
-	return nil, fmt.Errorf("identifier %q not a member of enum type %q", val.Name, enum.ZSON())
+	return nil, fmt.Errorf("identifier %q not a member of enum type %q", val.Name, enum)
 }
 
 func (a Analyzer) convertMap(zctx *Context, m *zed.Map, cast zng.Type) (Value, error) {
@@ -526,7 +526,7 @@ func (a Analyzer) convertMap(zctx *Context, m *zed.Map, cast zng.Type) (Value, e
 func (a Analyzer) convertTypeValue(zctx *Context, tv *zed.TypeValue, cast zng.Type) (Value, error) {
 	if cast != nil {
 		if _, ok := zng.AliasOf(cast).(*zng.TypeOfType); !ok {
-			return nil, fmt.Errorf("cannot apply decorator (%q) to a type value", cast.ZSON())
+			return nil, fmt.Errorf("cannot apply decorator (%q) to a type value", cast)
 		}
 	}
 	typ, err := a.convertType(zctx, tv.Value)
@@ -656,7 +656,7 @@ func (a Analyzer) convertTypeEnum(zctx *Context, enum *zed.TypeEnum) (*zng.TypeE
 		if typ == nil {
 			typ = other
 		} else if typ != other {
-			return nil, fmt.Errorf("mixed type enum values: %q and %q", typ.ZSON(), other.ZSON())
+			return nil, fmt.Errorf("mixed type enum values: %q and %q", typ, other)
 		} else {
 			v.SetType(typ)
 		}
@@ -665,7 +665,7 @@ func (a Analyzer) convertTypeEnum(zctx *Context, enum *zed.TypeEnum) (*zng.TypeE
 			return nil, err
 		}
 		if zv.Type != typ {
-			return nil, fmt.Errorf("internal error built type (%q) does not match semantic type (%q)", zv.Type.ZSON(), typ.ZSON())
+			return nil, fmt.Errorf("internal error built type (%q) does not match semantic type (%q)", zv.Type, typ)
 		}
 		e := zng.Element{
 			Name:  f.Name,

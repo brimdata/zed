@@ -93,6 +93,6 @@ func TypeString(typ zng.Type) string {
 	case *zng.TypeMap:
 		return fmt.Sprintf("map[%s,%s]", TypeString(typ.KeyType), TypeString(typ.ValType))
 	default:
-		return typ.ZSON()
+		return typ.String()
 	}
 }

@@ -50,11 +50,7 @@ func (t *TypeOfBool) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return DecodeBool(zv)
 }
 
-func (t *TypeOfBool) ZSON() string {
-	return "bool"
-}
-
-func (t *TypeOfBool) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfBool) Format(zv zcode.Bytes) string {
 	b, err := DecodeBool(zv)
 	if err != nil {
 		return badZng(err, t, zv)

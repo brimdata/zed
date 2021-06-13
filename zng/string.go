@@ -30,10 +30,6 @@ func (t *TypeOfString) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return string(zv), nil
 }
 
-func (t *TypeOfString) ZSON() string {
-	return "string"
-}
-
-func (t *TypeOfString) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfString) Format(zv zcode.Bytes) string {
 	return QuotedString(zv, false)
 }

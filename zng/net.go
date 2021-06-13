@@ -68,11 +68,7 @@ func (t *TypeOfNet) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return (*s).String(), nil
 }
 
-func (t *TypeOfNet) ZSON() string {
-	return "net"
-}
-
-func (t *TypeOfNet) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfNet) Format(zv zcode.Bytes) string {
 	s, err := DecodeNet(zv)
 	if err != nil {
 		return badZng(err, t, zv)
