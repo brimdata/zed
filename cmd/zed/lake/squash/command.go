@@ -32,8 +32,8 @@ respect to the head of the pool's commit journal at the time it is run.
 }
 
 func init() {
-	zedlake.Cmd.Add(Squash)
 	zedapi.Cmd.Add(Squash)
+	zedlake.Cmd.Add(Squash)
 }
 
 type Command struct {
