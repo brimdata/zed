@@ -37,7 +37,7 @@ func (t *TypeEnum) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return TypeUint64.Marshal(zv)
 }
 
-func (t *TypeEnum) ZSON() string {
+func (t *TypeEnum) String() string {
 	var b strings.Builder
 	typ := t.Type
 	b.WriteByte('<')
@@ -46,14 +46,14 @@ func (t *TypeEnum) ZSON() string {
 		b.WriteString(sep)
 		b.WriteString(QuotedName(e.Name))
 		b.WriteByte(':')
-		b.WriteString(typ.ZSONOf(e.Value))
+		b.WriteString(typ.Format(e.Value))
 		sep = ","
 	}
 	b.WriteByte('>')
 	return b.String()
 }
 
-func (t *TypeEnum) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeEnum) Format(zv zcode.Bytes) string {
 	id, err := DecodeUint(zv)
 	if id >= uint64(len(t.Elements)) || err != nil {
 		if err == nil {

@@ -353,7 +353,7 @@ func (w *indexWriter) write(rec *zng.Record) error {
 		// present to build a proper index.
 		// XXX We also need to check that they are in order.
 		if key == nil {
-			return fmt.Errorf("no key field present in record of type: %s", rec.Type.ZSON())
+			return fmt.Errorf("no key field present in record of type: %s", rec.Type)
 		}
 		w.frameKey = key
 	}

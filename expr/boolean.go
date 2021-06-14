@@ -447,6 +447,6 @@ func Comparison(op string, primitive zed.Primitive) (Boolean, error) {
 		}
 		return CompareTime(op, v)
 	default:
-		return nil, fmt.Errorf("literal comparison of type %q unsupported", zv.Type.ZSON())
+		return nil, fmt.Errorf("literal comparison of type %q unsupported", zv.Type)
 	}
 }

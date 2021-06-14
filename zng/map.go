@@ -24,7 +24,7 @@ func (t *TypeMap) ID() int {
 }
 
 func (t *TypeMap) String() string {
-	return fmt.Sprintf("map[%s,%s]", t.KeyType, t.ValType)
+	return fmt.Sprintf("|{%s,%s|}", t.KeyType, t.ValType)
 }
 
 func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {
@@ -110,11 +110,7 @@ func NormalizeMap(zv zcode.Bytes) zcode.Bytes {
 	return norm
 }
 
-func (t *TypeMap) ZSON() string {
-	return fmt.Sprintf("|{%s,%s}|", t.KeyType.ZSON(), t.ValType.ZSON())
-}
-
-func (t *TypeMap) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeMap) Format(zv zcode.Bytes) string {
 	var b strings.Builder
 	it := zv.Iter()
 	b.WriteString("|{")
@@ -126,13 +122,13 @@ func (t *TypeMap) ZSONOf(zv zcode.Bytes) string {
 		}
 		b.WriteString(sep)
 		b.WriteByte('{')
-		b.WriteString(t.KeyType.ZSONOf(val))
+		b.WriteString(t.KeyType.Format(val))
 		b.WriteByte(',')
 		val, _, err = it.Next()
 		if err != nil {
 			return badZng(err, t, zv)
 		}
-		b.WriteString(t.ValType.ZSONOf(val))
+		b.WriteString(t.ValType.Format(val))
 		b.WriteByte('}')
 		b.WriteString(sep)
 		sep = ","

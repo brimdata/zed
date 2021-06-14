@@ -33,14 +33,10 @@ func (t *TypeOfDuration) String() string {
 }
 
 func (t *TypeOfDuration) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.ZSONOf(zv), nil
+	return t.Format(zv), nil
 }
 
-func (t *TypeOfDuration) ZSON() string {
-	return "duration"
-}
-
-func (t *TypeOfDuration) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfDuration) Format(zv zcode.Bytes) string {
 	d, err := DecodeDuration(zv)
 	if err != nil {
 		return badZng(err, t, zv)

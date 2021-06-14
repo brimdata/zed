@@ -71,7 +71,7 @@ func encodePrimitive(zctx *zson.Context, typ zng.Type, v zcode.Bytes) (interface
 			return nil, err
 		}
 		if zng.TypeID(typ) < zng.IDTypeDef {
-			return typ.ZSON(), nil
+			return typ.String(), nil
 		}
 		if alias, ok := typ.(*zng.TypeAlias); ok {
 			return alias.Name, nil
@@ -81,7 +81,7 @@ func encodePrimitive(zctx *zson.Context, typ zng.Type, v zcode.Bytes) (interface
 	if zng.IsStringy(typ.ID()) {
 		return string(v), nil
 	}
-	return typ.ZSONOf(v), nil
+	return typ.Format(v), nil
 }
 
 func encodeValue(zctx *zson.Context, typ zng.Type, val zcode.Bytes) (interface{}, error) {
@@ -157,7 +157,7 @@ func decodeRecord(b *zcode.Builder, typ *zng.TypeRecord, v interface{}) error {
 	b.BeginContainer()
 	for k, val := range values {
 		if k >= len(cols) {
-			return &zng.RecordTypeError{Name: "<record>", Type: typ.ZSON(), Err: zng.ErrExtraField}
+			return &zng.RecordTypeError{Name: "<record>", Type: typ.String(), Err: zng.ErrExtraField}
 		}
 		// each column either a string value or an array of string values
 		if val == nil {

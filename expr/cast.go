@@ -180,7 +180,7 @@ func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
 		}
 		// Otherwise, we'll use a canonical ZSON value for the string rep
 		// of an arbitrary value cast to a string.
-		result := zv.Type.ZSONOf(zv.Bytes)
+		result := zv.Type.Format(zv.Bytes)
 		return zng.Value{typ, zng.EncodeString(result)}, nil
 	}
 }

@@ -284,7 +284,7 @@ func (s *Shaper) Eval(rec *zng.Record) (zng.Value, error) {
 	shaper, ok := s.shapers[shapeTo]
 	if !ok {
 		if zng.TypeRecordOf(shapeTo) == nil {
-			return zng.NewErrorf("shaper function type argument is not a record type: %q", shapeTo.ZSON()), nil
+			return zng.NewErrorf("shaper function type argument is not a record type: %q", shapeTo), nil
 		}
 		shaper = NewConstShaper(s.zctx, s.expr, shapeTo, s.transforms)
 		s.shapers[shapeTo] = shaper

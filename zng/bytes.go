@@ -29,13 +29,9 @@ func (t *TypeOfBytes) String() string {
 }
 
 func (t *TypeOfBytes) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.ZSONOf(zv), nil
+	return t.Format(zv), nil
 }
 
-func (t *TypeOfBytes) ZSON() string {
-	return "bytes"
-}
-
-func (t *TypeOfBytes) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfBytes) Format(zv zcode.Bytes) string {
 	return "0x" + hex.EncodeToString(zv)
 }

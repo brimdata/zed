@@ -66,11 +66,7 @@ func (t *TypeOfInt8) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return DecodeInt(zv)
 }
 
-func (t *TypeOfInt8) ZSON() string {
-	return "int8"
-}
-
-func (t *TypeOfInt8) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfInt8) Format(zv zcode.Bytes) string {
 	b, err := DecodeInt(zv)
 	if err != nil {
 		return badZng(err, t, zv)
@@ -92,11 +88,7 @@ func (t *TypeOfUint8) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return DecodeUint(zv)
 }
 
-func (t *TypeOfUint8) ZSON() string {
-	return "uint8"
-}
-
-func (t *TypeOfUint8) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfUint8) Format(zv zcode.Bytes) string {
 	b, err := DecodeUint(zv)
 	if err != nil {
 		return badZng(err, t, zv)
@@ -118,11 +110,7 @@ func (t *TypeOfInt16) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return DecodeInt(zv)
 }
 
-func (t *TypeOfInt16) ZSON() string {
-	return "int16"
-}
-
-func (t *TypeOfInt16) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfInt16) Format(zv zcode.Bytes) string {
 	b, err := DecodeInt(zv)
 	if err != nil {
 		return badZng(err, t, zv)
@@ -144,11 +132,7 @@ func (t *TypeOfUint16) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return DecodeUint(zv)
 }
 
-func (t *TypeOfUint16) ZSON() string {
-	return "uint16"
-}
-
-func (t *TypeOfUint16) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfUint16) Format(zv zcode.Bytes) string {
 	b, err := DecodeUint(zv)
 	if err != nil {
 		return badZng(err, t, zv)
@@ -170,11 +154,7 @@ func (t *TypeOfInt32) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return DecodeInt(zv)
 }
 
-func (t *TypeOfInt32) ZSON() string {
-	return "int32"
-}
-
-func (t *TypeOfInt32) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfInt32) Format(zv zcode.Bytes) string {
 	b, err := DecodeInt(zv)
 	if err != nil {
 		return badZng(err, t, zv)
@@ -196,11 +176,7 @@ func (t *TypeOfUint32) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return DecodeUint(zv)
 }
 
-func (t *TypeOfUint32) ZSON() string {
-	return "uint32"
-}
-
-func (t *TypeOfUint32) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfUint32) Format(zv zcode.Bytes) string {
 	b, err := DecodeUint(zv)
 	if err != nil {
 		return badZng(err, t, zv)
@@ -222,11 +198,7 @@ func (t *TypeOfInt64) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return DecodeInt(zv)
 }
 
-func (t *TypeOfInt64) ZSON() string {
-	return "int64"
-}
-
-func (t *TypeOfInt64) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfInt64) Format(zv zcode.Bytes) string {
 	b, err := DecodeInt(zv)
 	if err != nil {
 		return badZng(err, t, zv)
@@ -248,11 +220,7 @@ func (t *TypeOfUint64) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return DecodeUint(zv)
 }
 
-func (t *TypeOfUint64) ZSON() string {
-	return "uint64"
-}
-
-func (t *TypeOfUint64) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfUint64) Format(zv zcode.Bytes) string {
 	b, err := DecodeUint(zv)
 	if err != nil {
 		return badZng(err, t, zv)

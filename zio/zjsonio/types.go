@@ -53,7 +53,7 @@ func (e encoder) encodeType(zctx *zson.Context, typ zng.Type) zed.Type {
 	default:
 		return &zed.TypePrimitive{
 			Kind: "primitive",
-			Name: typ.ZSON(),
+			Name: typ.String(),
 		}
 	}
 }

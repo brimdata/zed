@@ -86,18 +86,18 @@ func (t *TypeUnion) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return Value{inner, zv}, nil
 }
 
-func (t *TypeUnion) ZSON() string {
+func (t *TypeUnion) String() string {
 	var ss []string
 	for _, typ := range t.Types {
-		ss = append(ss, typ.ZSON())
+		ss = append(ss, typ.String())
 	}
 	return fmt.Sprintf("(%s)", strings.Join(ss, ","))
 }
 
-func (t *TypeUnion) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeUnion) Format(zv zcode.Bytes) string {
 	typ, _, iv, err := t.SplitZng(zv)
 	if err != nil {
 		return badZng(err, t, zv)
 	}
-	return fmt.Sprintf("%s (%s) %s", typ.ZSONOf(iv), typ.ZSON(), t.ZSON())
+	return fmt.Sprintf("%s (%s) %s", typ.Format(iv), typ, t)
 }

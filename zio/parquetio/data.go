@@ -62,7 +62,7 @@ func newData(typ zng.Type, zb zcode.Bytes) (interface{}, error) {
 	case *zng.TypeUnion:
 		return nil, ErrUnionType
 	case *zng.TypeEnum:
-		return []byte(typ.ZSONOf(zb)), nil
+		return []byte(typ.Format(zb)), nil
 	case *zng.TypeMap:
 		return newMapData(typ.KeyType, typ.ValType, zb)
 	}

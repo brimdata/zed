@@ -23,7 +23,7 @@ func (t *TypeSet) ID() int {
 }
 
 func (t *TypeSet) String() string {
-	return fmt.Sprintf("set[%s]", t.Type)
+	return fmt.Sprintf("|[%s]|", t.Type)
 }
 
 func (t *TypeSet) Marshal(zv zcode.Bytes) (interface{}, error) {
@@ -40,11 +40,7 @@ func (t *TypeSet) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return vals, nil
 }
 
-func (t *TypeSet) ZSON() string {
-	return fmt.Sprintf("|[%s]|", t.Type.ZSON())
-}
-
-func (t *TypeSet) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeSet) Format(zv zcode.Bytes) string {
 	var b strings.Builder
 	b.WriteString("|[")
 	sep := ""
@@ -58,7 +54,7 @@ func (t *TypeSet) ZSONOf(zv zcode.Bytes) string {
 		if val == nil {
 			b.WriteString("null")
 		} else {
-			b.WriteString(t.Type.ZSONOf(val))
+			b.WriteString(t.Type.Format(val))
 		}
 		sep = ","
 	}

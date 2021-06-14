@@ -844,7 +844,7 @@ func NewCast(expr Evaluator, typ zng.Type) (Evaluator, error) {
 	c := LookupPrimitiveCaster(typ)
 	if c == nil {
 		// XXX See issue #1572.   To implement aliascast here.
-		return nil, fmt.Errorf("cast to '%s' not implemented", typ.ZSON())
+		return nil, fmt.Errorf("cast to '%s' not implemented", typ)
 	}
 	return &evalCast{expr, c, typ}, nil
 }
