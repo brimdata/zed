@@ -282,3 +282,16 @@ func TestZNGValueField(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, *zngValueField2, out2)
 }
+
+func TestJSONFieldTag(t *testing.T) {
+	const expected = `{value:"test"}`
+	type jsonTag struct {
+		Value string `json:"value"`
+	}
+	s, err := zson.Marshal(jsonTag{Value: "test"})
+	require.NoError(t, err)
+	assert.Equal(t, expected, s)
+	var j jsonTag
+	require.NoError(t, zson.Unmarshal(s, &j))
+	assert.Equal(t, jsonTag{Value: "test"}, j)
+}
