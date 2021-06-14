@@ -359,6 +359,14 @@ func (c *Connection) Commit(ctx context.Context, pool, commitID ksuid.KSUID, com
 	return err
 }
 
+func (c *Connection) Delete(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (*ReadCloser, error) {
+	req := c.Request(ctx).
+		SetBody(ids)
+	req.Method = http.MethodPost
+	req.URL = path.Join("/pool", pool.String(), "delete")
+	return c.stream(req)
+}
+
 func (c *Connection) LogPostPath(ctx context.Context, id ksuid.KSUID, payload api.LogPostRequest) (*ReadCloser, error) {
 	req := c.Request(ctx).
 		SetBody(payload)

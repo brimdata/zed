@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/cli/lakecli"
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 )
@@ -41,6 +42,7 @@ To delete commits in staging, use the "zed lake stage" command.
 
 func init() {
 	zedlake.Cmd.Add(Delete)
+	zedapi.Cmd.Add(Delete)
 }
 
 type Command struct {

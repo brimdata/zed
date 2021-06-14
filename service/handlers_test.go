@@ -294,7 +294,7 @@ func TestPoolPut(t *testing.T) {
 	assert.Equal(t, "new_name", info.Name)
 }
 
-func TestPoolDelete(t *testing.T) {
+func TestPoolRemote(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})

@@ -321,6 +321,37 @@ func handleCommit(c *Core, w *ResponseWriter, r *Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func handleDelete(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	var args []string
+	if !r.Unmarshal(w, &args) {
+		return
+	}
+	tags, err := api.ParseKSUIDs(args)
+	if err != nil {
+		w.Error(zqe.ErrInvalid(err))
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	ids, err := pool.LookupTags(r.Context(), tags)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	commit, err := pool.Delete(r.Context(), ids)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	w.Marshal(api.StagedCommit{commit})
+}
+
 func handleScanStaging(c *Core, w *ResponseWriter, r *Request) {
 	id, ok := r.PoolID(w)
 	if !ok {

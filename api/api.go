@@ -136,6 +136,10 @@ type AddResponse struct {
 	Warnings []string    `zng:"warnings"`
 }
 
+type StagedCommit struct {
+	Commit ksuid.KSUID `zng:"commit"`
+}
+
 type IndexSearchRequest struct {
 	IndexName string   `json:"index_name"`
 	Patterns  []string `json:"patterns"`
