@@ -367,6 +367,14 @@ func (c *Connection) Delete(ctx context.Context, pool ksuid.KSUID, ids []ksuid.K
 	return c.stream(req)
 }
 
+func (c *Connection) Squash(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (*ReadCloser, error) {
+	req := c.Request(ctx).
+		SetBody(api.SquashRequest{ids})
+	req.Method = http.MethodPost
+	req.URL = path.Join("/pool", pool.String(), "squash")
+	return c.stream(req)
+}
+
 func (c *Connection) LogPostPath(ctx context.Context, id ksuid.KSUID, payload api.LogPostRequest) (*ReadCloser, error) {
 	req := c.Request(ctx).
 		SetBody(payload)

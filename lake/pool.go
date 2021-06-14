@@ -143,10 +143,7 @@ func (p *Pool) Commit(ctx context.Context, id ksuid.KSUID, date nano.Ts, author,
 	return p.ClearFromStaging(ctx, id)
 }
 
-func (p *Pool) Squash(ctx context.Context, ids []ksuid.KSUID, date nano.Ts, author, message string) (ksuid.KSUID, error) {
-	if date == 0 {
-		date = nano.Now()
-	}
+func (p *Pool) Squash(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, error) {
 	head, err := p.log.Head(ctx)
 	if err != nil {
 		if err != journal.ErrEmpty {

@@ -352,6 +352,27 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	w.Marshal(api.StagedCommit{commit})
 }
 
+func handleSquash(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	var req api.SquashRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	commit, err := pool.Squash(r.Context(), req.Commits)
+	if err != nil {
+		w.Error(err)
+	}
+	w.Marshal(api.StagedCommit{commit})
+}
+
 func handleScanStaging(c *Core, w *ResponseWriter, r *Request) {
 	id, ok := r.PoolID(w)
 	if !ok {

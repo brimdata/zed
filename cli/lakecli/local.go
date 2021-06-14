@@ -217,8 +217,8 @@ func (p *LocalPool) Index(ctx context.Context, indices []index.Index, tags []ksu
 	return commit, nil
 }
 
-func (p *LocalPool) Squash(ctx context.Context, ids []ksuid.KSUID, commit api.CommitRequest) (ksuid.KSUID, error) {
-	return p.pool.Squash(ctx, ids, commit.Date, commit.Author, commit.Message)
+func (p *LocalPool) Squash(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, error) {
+	return p.pool.Squash(ctx, ids)
 }
 
 func (p *LocalPool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {

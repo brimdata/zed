@@ -52,7 +52,7 @@ type Pool interface {
 	ScanLog(ctx context.Context, w zio.Writer, head, tail journal.ID) error
 	ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error
 	ScanSegments(ctx context.Context, w zio.Writer, at string, partitions bool, span extent.Span) error
-	Squash(ctx context.Context, ids []ksuid.KSUID, commit api.CommitRequest) (ksuid.KSUID, error)
+	Squash(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, error)
 	Index(ctx context.Context, rules []index.Index, ids []ksuid.KSUID) (ksuid.KSUID, error)
 }
 
