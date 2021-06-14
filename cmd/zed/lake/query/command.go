@@ -3,11 +3,14 @@ package query
 import (
 	"errors"
 	"flag"
+	"os"
 
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/cmd/zed/query"
+	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 )
@@ -23,6 +26,7 @@ var Query = &charm.Spec{
 }
 
 func init() {
+	zedapi.Cmd.Add(Query)
 	zedlake.Cmd.Add(Query)
 }
 
@@ -62,7 +66,15 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	stats, err := lk.Query(ctx, writer, args, c.includes)
+	d := driver.NewCLI(writer)
+	if !c.lake.Flags.Quiet() {
+		d.SetWarningsWriter(os.Stderr)
+	}
+	zedSrc, err := query.CombineSources(args, c.includes)
+	if err != nil {
+		return err
+	}
+	stats, err := lk.Query(ctx, d, zedSrc)
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}

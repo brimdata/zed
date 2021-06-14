@@ -1,0 +1,11 @@
+script: |
+  source service.sh
+  zapi create -q -p test
+  zapi query "from test"
+inputs:
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stderr
+    data: ""

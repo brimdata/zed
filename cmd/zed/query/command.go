@@ -224,12 +224,28 @@ func isURLWithKnownScheme(path string, schemes ...string) bool {
 	return false
 }
 
-func ParseSources(args, includes Includes) (ast.Proc, error) {
+func CombineSources(args, includes Includes) (string, error) {
 	srcs, err := includes.Read()
+	if err != nil {
+		return "", err
+	}
+	zedSrc := strings.Join(append(srcs, args...), "\n")
+	if zedSrc == "" {
+		zedSrc = "*"
+	}
+	return zedSrc, nil
+}
+
+func ParseSources(args, includes Includes) (ast.Proc, error) {
+	zedSrc, err := CombineSources(args, includes)
 	if err != nil {
 		return nil, err
 	}
-	return parseZed(append(srcs, args...))
+	query, err := compiler.ParseProc(zedSrc)
+	if err != nil {
+		return nil, fmt.Errorf("parse error: %w", err)
+	}
+	return query, nil
 }
 
 func parseZed(srcs []string) (ast.Proc, error) {

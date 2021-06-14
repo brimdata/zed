@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/journal"
@@ -26,6 +28,39 @@ import (
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 )
+
+func handleQuery(c *Core, w *ResponseWriter, r *Request) {
+	var req api.QueryRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	query, err := compiler.ParseProc(req.Query)
+	if err != nil {
+		w.Error(zqe.ErrInvalid(err))
+		return
+	}
+	noctrl, ok := r.BoolFromQuery("noctrl", w)
+	if !ok {
+		return
+	}
+	format, err := api.MediaTypeToFormat(r.Header.Get("Accept"))
+	if err != nil {
+		if !errors.Is(err, api.ErrMediaTypeUnspecified) {
+			w.Error(zqe.ErrInvalid(err))
+			return
+		}
+		format = "zjson"
+	}
+	d, err := queryio.NewDriver(zio.NopCloser(w), format, !noctrl)
+	if err != nil {
+		w.Error(err)
+	}
+	defer d.Close()
+	err = driver.RunWithLakeAndStats(r.Context(), d, query, zson.NewContext(), c.root, nil, r.Logger, 0)
+	if err != nil && !errors.Is(err, journal.ErrEmpty) {
+		d.Error(err)
+	}
+}
 
 func handleASTPost(c *Core, w *ResponseWriter, r *Request) {
 	var req api.ASTRequest
