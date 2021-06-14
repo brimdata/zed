@@ -291,4 +291,7 @@ func TestJSONFieldTag(t *testing.T) {
 	s, err := zson.Marshal(jsonTag{Value: "test"})
 	require.NoError(t, err)
 	assert.Equal(t, expected, s)
+	var j jsonTag
+	require.NoError(t, zson.Unmarshal(s, &j))
+	assert.Equal(t, jsonTag{Value: "test"}, j)
 }
