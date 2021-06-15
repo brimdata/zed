@@ -206,14 +206,13 @@ func (i *is) Call(args []zng.Value) (zng.Value, error) {
 		zvSubject = args[1]
 		zvTypeVal = args[2]
 	}
-	if !zvTypeVal.IsStringy() {
-		return zng.False, nil
+	var typ zng.Type
+	var err error
+	if zvTypeVal.IsStringy() {
+		typ, err = zson.ParseType(i.zctx, string(zvTypeVal.Bytes))
+	} else {
+		typ, err = i.zctx.LookupByValue(zvTypeVal.Bytes)
 	}
-	s, err := zng.DecodeString(zvTypeVal.Bytes)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	typ, err := i.zctx.LookupByName(s)
 	if err == nil && typ == zvSubject.Type {
 		return zng.True, nil
 	}

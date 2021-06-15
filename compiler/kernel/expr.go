@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/expr/agg"
 	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -468,7 +469,7 @@ func compileTypeValue(zctx *zson.Context, scope *Scope, t *zed.TypeValue) (expr.
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewLiteral(zson.NewTypeType(typ)), nil
+	return expr.NewLiteral(zng.NewTypeValue(typ)), nil
 }
 
 func compileRegexpMatch(zctx *zson.Context, scope *Scope, match *dag.RegexpMatch) (expr.Evaluator, error) {
