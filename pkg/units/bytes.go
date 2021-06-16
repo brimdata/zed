@@ -49,6 +49,6 @@ func (b Bytes) Abbrev() string {
 	case v >= 10*units.KB:
 		return format(v, "KB", units.KB)
 	default:
-		return b.String()
+		return format(v, "B", 1)
 	}
 }
