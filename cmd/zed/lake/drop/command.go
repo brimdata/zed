@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"strings"
 
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
@@ -33,11 +34,14 @@ func init() {
 }
 
 type Command struct {
-	lake *zedlake.Command
+	lake  *zedlake.Command
+	force bool
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	return &Command{lake: parent.(*zedlake.Command)}, nil
+	c := &Command{lake: parent.(*zedlake.Command)}
+	f.BoolVar(&c.force, "f", false, "do not confirm pool deletion")
+	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
@@ -61,6 +65,9 @@ func (c *Command) Run(args []string) error {
 	if pool == nil {
 		return fmt.Errorf("%s: no such pool", name)
 	}
+	if err := c.confirm(); err != nil {
+		return err
+	}
 	if err := lk.RemovePool(ctx, pool.ID); err != nil {
 		return err
 	}
@@ -68,4 +75,22 @@ func (c *Command) Run(args []string) error {
 		fmt.Printf("pool deleted: %s\n", name)
 	}
 	return nil
+}
+
+func (c *Command) confirm() error {
+	if c.force {
+		return nil
+	}
+	name := c.lake.Flags.PoolName()
+	fmt.Printf("Are you sure you want to delete pool %q? There is no going back... [y|n]\n", name)
+	var input string
+	_, err := fmt.Scanln(&input)
+	if err != nil {
+		return err
+	}
+	input = strings.ToLower(input)
+	if input == "y" || input == "yes" {
+		return nil
+	}
+	return errors.New("operation canceled")
 }

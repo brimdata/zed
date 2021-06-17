@@ -3,7 +3,7 @@ script: |
   zapi create -q -p p1
   zapi create -q -p p2
   zapi create -q -p p3
-  zapi drop -p p3
+  zapi drop -f -p p3
   echo ===
   zapi ls -f zng | zq -f zson "pick name" -
 
