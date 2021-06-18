@@ -3,6 +3,7 @@ package lake
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -30,6 +31,8 @@ const (
 	LogTag   = "L"
 	StageTag = "S"
 )
+
+var ErrStagingEmpty = errors.New("staging area empty")
 
 type PoolConfig struct {
 	Version   int          `zng:"version"`
@@ -239,11 +242,22 @@ func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) erro
 	return storage.Put(ctx, p.engine, p.StagingObject(txn.ID), bytes.NewReader(b))
 }
 
-func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
+// ScanStaging writes the provided commits in staging to the provided
+// zio.Writer.  If not commit tags are passed, all commits in staging are
+// written.
+func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) (err error) {
+	if len(ids) == 0 {
+		ids, err = p.ListStagedCommits(ctx)
+		if err != nil {
+			return err
+		}
+		if len(ids) == 0 {
+			return ErrStagingEmpty
+		}
+	}
 	ch := make(chan actions.Interface, 10)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	var err error
 	go func() {
 		defer close(ch)
 		for _, id := range ids {
