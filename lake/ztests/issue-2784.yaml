@@ -1,0 +1,33 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p test
+  a=$(zed lake add -p test a.zson | head -1 | awk '{print $1}')
+  b=$(zed lake add -p test b.zson | head -1 | awk '{print $1}')
+  zed lake commit -q -p test -user testuser -date 2021-06-18T14:29:28Z $a $b
+  zed lake status -p test
+  echo ===
+  zed lake log -p test
+
+inputs:
+  - name: a.zson
+    data: |
+      {ts:1}
+  - name: b.zson
+    data: |
+      {ts:2}
+
+outputs:
+  - name: stderr
+    data: |
+      staging area is empty
+  - name: stdout
+    regexp: |
+      commit \w{27}
+      Author: testuser
+      Date:   2021-06-18T14:29:28Z
+
+          Add \w{27} \d+B bytes 1 records
+             from int64: \(02\) to int64: \(02\)
+          Add \w{27} \d+B bytes 1 records
+             from int64: \(04\) to int64: \(04\)

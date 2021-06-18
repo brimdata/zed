@@ -33,9 +33,10 @@ var (
 	ErrPoolExists = errors.New("pool exists")
 )
 
-type ReadCloser struct {
+type Response struct {
 	io.ReadCloser
 	ContentType string
+	StatusCode  int
 }
 
 type Connection struct {
@@ -103,7 +104,7 @@ func checkError(client *resty.Client, resp *resty.Response) error {
 	return resErr
 }
 
-func (c *Connection) stream(req *resty.Request) (*ReadCloser, error) {
+func (c *Connection) stream(req *resty.Request) (*Response, error) {
 	resp, err := req.SetDoNotParseResponse(true).Send() // disables middleware
 	if err != nil {
 		return nil, err
@@ -114,7 +115,11 @@ func (c *Connection) stream(req *resty.Request) (*ReadCloser, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &ReadCloser{r, typ}, err
+		return &Response{
+			ReadCloser:  r,
+			ContentType: typ,
+			StatusCode:  resp.StatusCode(),
+		}, err
 	}
 	defer r.Close()
 	body, err := io.ReadAll(r)
@@ -190,7 +195,7 @@ func (c *Connection) ZtoAST(ctx context.Context, zprog string) ([]byte, error) {
 	return resp.Body(), nil
 }
 
-func (c *Connection) ScanPools(ctx context.Context) (*ReadCloser, error) {
+func (c *Connection) ScanPools(ctx context.Context) (*Response, error) {
 	req := c.Request(ctx)
 	req.Method = http.MethodGet
 	req.URL = "/pool"
@@ -198,7 +203,7 @@ func (c *Connection) ScanPools(ctx context.Context) (*ReadCloser, error) {
 }
 
 // PoolGet retrieves information about the specified pool.
-func (c *Connection) PoolGet(ctx context.Context, id ksuid.KSUID) (*ReadCloser, error) {
+func (c *Connection) PoolGet(ctx context.Context, id ksuid.KSUID) (*Response, error) {
 	req := c.Request(ctx)
 	req.Method = http.MethodGet
 	req.URL = path.Join("/pool", id.String())
@@ -210,7 +215,7 @@ func (c *Connection) PoolGet(ctx context.Context, id ksuid.KSUID) (*ReadCloser, 
 	return r, err
 }
 
-func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*ReadCloser, error) {
+func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*Response, error) {
 	req := c.Request(ctx)
 	req.Method = http.MethodGet
 	req.URL = path.Join("/pool", id.String(), "stats")
@@ -222,7 +227,7 @@ func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*ReadCloser
 	return r, err
 }
 
-func (c *Connection) PoolPost(ctx context.Context, payload api.PoolPostRequest) (*ReadCloser, error) {
+func (c *Connection) PoolPost(ctx context.Context, payload api.PoolPostRequest) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(payload)
 	req.Method = http.MethodPost
@@ -251,7 +256,7 @@ func (c *Connection) PoolRemove(ctx context.Context, id ksuid.KSUID) error {
 	return err
 }
 
-func (c *Connection) ScanStaging(ctx context.Context, pool ksuid.KSUID, tags []ksuid.KSUID) (*ReadCloser, error) {
+func (c *Connection) ScanStaging(ctx context.Context, pool ksuid.KSUID, tags []ksuid.KSUID) (*Response, error) {
 	t := make([]string, len(tags))
 	for i, tag := range tags {
 		t[i] = tag.String()
@@ -263,7 +268,7 @@ func (c *Connection) ScanStaging(ctx context.Context, pool ksuid.KSUID, tags []k
 	return c.stream(req)
 }
 
-func (c *Connection) ScanSegments(ctx context.Context, pool ksuid.KSUID, at string, partitions bool) (*ReadCloser, error) {
+func (c *Connection) ScanSegments(ctx context.Context, pool ksuid.KSUID, at string, partitions bool) (*Response, error) {
 	req := c.Request(ctx)
 	if at != "" {
 		req.SetQueryParam("at", at)
@@ -276,14 +281,14 @@ func (c *Connection) ScanSegments(ctx context.Context, pool ksuid.KSUID, at stri
 	return c.stream(req)
 }
 
-func (c *Connection) ScanLog(ctx context.Context, pool ksuid.KSUID) (*ReadCloser, error) {
+func (c *Connection) ScanLog(ctx context.Context, pool ksuid.KSUID) (*Response, error) {
 	req := c.Request(ctx)
 	req.Method = http.MethodGet
 	req.URL = path.Join("/pool", pool.String(), "log")
 	return c.stream(req)
 }
 
-func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, params map[string]string) (*ReadCloser, error) {
+func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, params map[string]string) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(search).
 		SetQueryParam("format", "zng")
@@ -293,7 +298,7 @@ func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, pa
 	return c.stream(req)
 }
 
-func (c *Connection) Query(ctx context.Context, query string) (*ReadCloser, error) {
+func (c *Connection) Query(ctx context.Context, query string) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(api.QueryRequest{Query: query})
 	req.Method = http.MethodPost
@@ -320,7 +325,7 @@ func (c *Connection) Query(ctx context.Context, query string) (*ReadCloser, erro
 //		fmt.Println(rec)
 //	}
 //
-func (c *Connection) Search(ctx context.Context, id ksuid.KSUID, query string) (*ReadCloser, error) {
+func (c *Connection) Search(ctx context.Context, id ksuid.KSUID, query string) (*Response, error) {
 	procBytes, err := c.ZtoAST(ctx, query)
 	if err != nil {
 		return nil, err
@@ -344,7 +349,7 @@ type LogPostOpts struct {
 	Shaper    ast.Proc
 }
 
-func (c *Connection) Add(ctx context.Context, pool ksuid.KSUID, r io.Reader) (*ReadCloser, error) {
+func (c *Connection) Add(ctx context.Context, pool ksuid.KSUID, r io.Reader) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(r)
 	req.Method = http.MethodPost
@@ -359,7 +364,7 @@ func (c *Connection) Commit(ctx context.Context, pool, commitID ksuid.KSUID, com
 	return err
 }
 
-func (c *Connection) Delete(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (*ReadCloser, error) {
+func (c *Connection) Delete(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(ids)
 	req.Method = http.MethodPost
@@ -367,7 +372,7 @@ func (c *Connection) Delete(ctx context.Context, pool ksuid.KSUID, ids []ksuid.K
 	return c.stream(req)
 }
 
-func (c *Connection) Squash(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (*ReadCloser, error) {
+func (c *Connection) Squash(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(api.SquashRequest{ids})
 	req.Method = http.MethodPost
@@ -375,7 +380,7 @@ func (c *Connection) Squash(ctx context.Context, pool ksuid.KSUID, ids []ksuid.K
 	return c.stream(req)
 }
 
-func (c *Connection) LogPostPath(ctx context.Context, id ksuid.KSUID, payload api.LogPostRequest) (*ReadCloser, error) {
+func (c *Connection) LogPostPath(ctx context.Context, id ksuid.KSUID, payload api.LogPostRequest) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(payload)
 	req.URL = path.Join("/pool", id.String(), "log", "paths")
@@ -383,7 +388,7 @@ func (c *Connection) LogPostPath(ctx context.Context, id ksuid.KSUID, payload ap
 	return c.stream(req)
 }
 
-func (c *Connection) LogPost(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, paths []string) (*ReadCloser, error) {
+func (c *Connection) LogPost(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, paths []string) (*Response, error) {
 	mw, err := NewMultipartWriter(c.storage, paths...)
 	if err != nil {
 		return nil, err
@@ -391,7 +396,7 @@ func (c *Connection) LogPost(ctx context.Context, id ksuid.KSUID, opts *LogPostO
 	return c.LogPostWriter(ctx, id, opts, mw)
 }
 
-func (c *Connection) LogPostReaders(ctx context.Context, engine storage.Engine, id ksuid.KSUID, opts *LogPostOpts, readers ...io.Reader) (*ReadCloser, error) {
+func (c *Connection) LogPostReaders(ctx context.Context, engine storage.Engine, id ksuid.KSUID, opts *LogPostOpts, readers ...io.Reader) (*Response, error) {
 	w, err := MultipartDataWriter(engine, readers...)
 	if err != nil {
 		return nil, err
@@ -399,7 +404,7 @@ func (c *Connection) LogPostReaders(ctx context.Context, engine storage.Engine, 
 	return c.LogPostWriter(ctx, id, opts, w)
 }
 
-func (c *Connection) LogPostWriter(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, writer *MultipartWriter) (*ReadCloser, error) {
+func (c *Connection) LogPostWriter(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, writer *MultipartWriter) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(writer).
 		SetHeader("Content-Type", writer.ContentType())
@@ -416,14 +421,14 @@ func (c *Connection) LogPostWriter(ctx context.Context, id ksuid.KSUID, opts *Lo
 	return c.stream(req)
 }
 
-func (c *Connection) AuthMethod(ctx context.Context) (*ReadCloser, error) {
+func (c *Connection) AuthMethod(ctx context.Context) (*Response, error) {
 	req := c.Request(ctx)
 	req.Method = http.MethodGet
 	req.URL = "/auth/method"
 	return c.stream(req)
 }
 
-func (c *Connection) AuthIdentity(ctx context.Context) (*ReadCloser, error) {
+func (c *Connection) AuthIdentity(ctx context.Context) (*Response, error) {
 	req := c.Request(ctx)
 	req.Method = http.MethodGet
 	req.URL = "/auth/identity"

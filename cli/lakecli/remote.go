@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -202,7 +203,7 @@ func newRemotePool(conn *client.Connection, conf lake.PoolConfig) *RemotePool {
 	return &RemotePool{PoolConfig: conf, conn: conn}
 }
 
-func unmarshal(r *client.ReadCloser, i interface{}) error {
+func unmarshal(r *client.Response, i interface{}) error {
 	format, err := api.MediaTypeToFormat(r.ContentType)
 	if err != nil {
 		return err
@@ -287,6 +288,9 @@ func (p *RemotePool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.
 		return err
 	}
 	defer res.Close()
+	if res.StatusCode == http.StatusNoContent {
+		return lake.ErrStagingEmpty
+	}
 	zr := zngio.NewReader(res, zson.NewContext())
 	return zio.CopyWithContext(ctx, w, zr)
 

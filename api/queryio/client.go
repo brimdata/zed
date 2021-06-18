@@ -15,7 +15,7 @@ import (
 
 const maxBatchSize = 100
 
-func RunClientResponse(ctx context.Context, d driver.Driver, res *client.ReadCloser) (zbuf.ScannerStats, error) {
+func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Response) (zbuf.ScannerStats, error) {
 	format, err := api.MediaTypeToFormat(res.ContentType)
 	if err != nil {
 		return zbuf.ScannerStats{}, err
