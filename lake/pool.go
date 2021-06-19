@@ -244,8 +244,9 @@ func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) erro
 
 // ScanStaging writes the staging commits in ids to w.
 // If ids is empty, all staging commits are written.
-func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) (err error) {
+func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
 	if len(ids) == 0 {
+		var err error
 		ids, err = p.ListStagedCommits(ctx)
 		if err != nil {
 			return err
@@ -260,8 +261,7 @@ func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID)
 	go func() {
 		defer close(ch)
 		for _, id := range ids {
-			var txn *commit.Transaction
-			txn, err = p.LoadFromStaging(ctx, id)
+			txn, err := p.LoadFromStaging(ctx, id)
 			if err != nil {
 				return
 			}
@@ -290,7 +290,7 @@ func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID)
 			return err
 		}
 	}
-	return err
+	return nil
 }
 
 func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.Reference) error {
