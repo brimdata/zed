@@ -3,6 +3,7 @@ package lake
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"path/filepath"
 	"strings"
@@ -30,6 +31,8 @@ const (
 	LogTag   = "L"
 	StageTag = "S"
 )
+
+var ErrStagingEmpty = errors.New("staging area empty")
 
 type PoolConfig struct {
 	Version   int          `zng:"version"`
@@ -239,16 +242,26 @@ func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) erro
 	return storage.Put(ctx, p.engine, p.StagingObject(txn.ID), bytes.NewReader(b))
 }
 
+// ScanStaging writes the staging commits in ids to w.
+// If ids is empty, all staging commits are written.
 func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
+	if len(ids) == 0 {
+		var err error
+		ids, err = p.ListStagedCommits(ctx)
+		if err != nil {
+			return err
+		}
+		if len(ids) == 0 {
+			return ErrStagingEmpty
+		}
+	}
 	ch := make(chan actions.Interface, 10)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	var err error
 	go func() {
 		defer close(ch)
 		for _, id := range ids {
-			var txn *commit.Transaction
-			txn, err = p.LoadFromStaging(ctx, id)
+			txn, err := p.LoadFromStaging(ctx, id)
 			if err != nil {
 				return
 			}
@@ -277,7 +290,7 @@ func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID)
 			return err
 		}
 	}
-	return err
+	return nil
 }
 
 func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.Reference) error {

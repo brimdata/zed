@@ -390,20 +390,13 @@ func handleScanStaging(c *Core, w *ResponseWriter, r *Request) {
 			return
 		}
 	}
-	if len(ids) == 0 {
-		ids, err = pool.ListStagedCommits(r.Context())
-		if err != nil {
-			w.Error(err)
-			return
-		}
-		if len(ids) == 0 {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-	}
 	zw := w.ZioWriter()
 	defer zw.Close()
 	if err := pool.ScanStaging(r.Context(), zw, ids); err != nil {
+		if errors.Is(err, lake.ErrStagingEmpty) {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		w.Error(err)
 		return
 	}

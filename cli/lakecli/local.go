@@ -222,17 +222,6 @@ func (p *LocalPool) Squash(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID,
 }
 
 func (p *LocalPool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
-	if len(ids) == 0 {
-		// Show all of staging.
-		var err error
-		ids, err = p.pool.ListStagedCommits(ctx)
-		if err != nil {
-			return err
-		}
-		if len(ids) == 0 {
-			return errors.New("staging area empty")
-		}
-	}
 	return p.pool.ScanStaging(ctx, w, ids)
 }
 
