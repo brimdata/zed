@@ -4,7 +4,7 @@ script: |
   zed lake create -q -p logs
   zed lake load -q -p logs babble.zson
   zed lake log -p logs -f zng | zq -z "cut first:=segment.meta.first,last:=segment.meta.last" -
-  zed lake drop -q -p logs
+  zed lake drop -q -f -p logs
   zed lake log -p logs
 
 inputs:
