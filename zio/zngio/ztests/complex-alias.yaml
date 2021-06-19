@@ -1,0 +1,13 @@
+# do a round-trip into serialized ZNG to make sure alias encoded properly
+
+script: zq in.zson | zq -z -
+
+inputs:
+  - name: in.zson
+    data: |
+      {a:["hello" (=bar), "world" (bar)]}
+
+outputs:
+  - name: stdout
+    data: |
+      {a:["hello" (=bar),"world" (bar)] (=0)} (=1)
