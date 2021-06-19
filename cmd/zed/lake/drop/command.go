@@ -84,8 +84,7 @@ func (c *Command) confirm() error {
 	name := c.lake.Flags.PoolName()
 	fmt.Printf("Are you sure you want to delete pool %q? There is no going back... [y|n]\n", name)
 	var input string
-	_, err := fmt.Scanln(&input)
-	if err != nil {
+	if _, err := fmt.Scanln(&input); err != nil {
 		return err
 	}
 	input = strings.ToLower(input)
