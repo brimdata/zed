@@ -40,7 +40,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{lake: parent.(*zedlake.Command)}
-	f.BoolVar(&c.force, "f", false, "do not confirm pool deletion")
+	f.BoolVar(&c.force, "f", false, "do not prompt for confirmation")
 	return c, nil
 }
 
