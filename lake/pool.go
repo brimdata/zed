@@ -242,9 +242,8 @@ func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) erro
 	return storage.Put(ctx, p.engine, p.StagingObject(txn.ID), bytes.NewReader(b))
 }
 
-// ScanStaging writes the provided commits in staging to the provided
-// zio.Writer.  If not commit tags are passed, all commits in staging are
-// written.
+// ScanStaging writes the staging commits in ids to w.
+// If ids is empty, all staging commits are written.
 func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) (err error) {
 	if len(ids) == 0 {
 		ids, err = p.ListStagedCommits(ctx)
