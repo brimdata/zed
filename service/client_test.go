@@ -51,7 +51,7 @@ func (c *testClient) TestPoolGet(id ksuid.KSUID) (config lake.PoolConfig) {
 func (c *testClient) zioreader(r *client.Response) zio.Reader {
 	format, err := api.MediaTypeToFormat(r.ContentType)
 	require.NoError(c, err)
-	zr, err := anyio.NewReaderWithOpts(r, zson.NewContext(), anyio.ReaderOpts{Format: format})
+	zr, err := anyio.NewReaderWithOpts(r.Body, zson.NewContext(), anyio.ReaderOpts{Format: format})
 	require.NoError(c, err)
 	return zr
 }

@@ -24,7 +24,7 @@ func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Respons
 		return zbuf.ScannerStats{}, fmt.Errorf("unsupported format: %s", format)
 	}
 	run := &runner{driver: d}
-	r := NewZNGReader(zngio.NewReader(res, zson.NewContext()))
+	r := NewZNGReader(zngio.NewReader(res.Body, zson.NewContext()))
 	for ctx.Err() == nil {
 		rec, ctrl, err := r.ReadPayload()
 		if err != nil {

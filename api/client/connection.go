@@ -34,7 +34,7 @@ var (
 )
 
 type Response struct {
-	io.ReadCloser
+	Body        io.ReadCloser
 	ContentType string
 	StatusCode  int
 }
@@ -116,7 +116,7 @@ func (c *Connection) stream(req *resty.Request) (*Response, error) {
 			return nil, err
 		}
 		return &Response{
-			ReadCloser:  r,
+			Body:        r,
 			ContentType: typ,
 			StatusCode:  resp.StatusCode(),
 		}, err
