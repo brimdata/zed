@@ -34,7 +34,7 @@ jobs:
       - run: go test -short ./...
       - run: mkdir dist -ea 0
       - run: go build -o dist ./cmd/...
-      - run: go test -v ./tests
+      - run: go test -v ./mdtest
   z-output-check:
     runs-on: ubuntu-latest
     steps:

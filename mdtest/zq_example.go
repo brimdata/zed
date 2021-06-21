@@ -1,4 +1,4 @@
-// Package tests finds example shell commands in Markdown files and runs them,
+// Package mdtest finds example shell commands in Markdown files and runs them,
 // checking for expected output.
 //
 // Example commands and outputs are specified in fenced code blocks whose info
@@ -33,7 +33,7 @@
 //    ```
 //
 // If head is malformed or N is invalid, the word is ignored.
-package tests
+package mdtest
 
 import (
 	"bufio"
