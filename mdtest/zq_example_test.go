@@ -19,54 +19,54 @@ func TestCollectExamples(t *testing.T) {
 	t.Parallel()
 	tests := []markdownunittest{
 		{
-			name: "zq-command only",
+			name: "mdtest-command only",
 			markdown: `
-~~~zq-command only
+~~~mdtest-command only
 1234
 ~~~
 ~~~
 other code block
 ~~~
 `,
-			strerror: "zq-command without a following zq-output"},
+			strerror: "mdtest-command without a following mdtest-output"},
 		{
-			name: "zq-output only",
+			name: "mdtest-output only",
 			markdown: `
-~~~zq-output only
+~~~mdtest-output only
 1234
 ~~~
 ~~~
 other code block
 ~~~
 `,
-			strerror: "zq-output without a preceeding zq-command"},
+			strerror: "mdtest-output without a preceeding mdtest-command"},
 		{
 			name: "two commands",
 			markdown: `
-~~~zq-command 1
+~~~mdtest-command 1
 block 1
 ~~~
-~~~zq-command 2
+~~~mdtest-command 2
 block 2
 ~~~
-~~~zq-output 2
+~~~mdtest-output 2
 block 3
 ~~~
 `,
-			strerror: "subsequent zq-command after another zq-command"},
+			strerror: "subsequent mdtest-command after another mdtest-command"},
 		{
 			name: "two items",
 			markdown: `
-~~~zq-command 1
+~~~mdtest-command 1
 block 1
 ~~~
-~~~zq-output 1
+~~~mdtest-output 1
 block 2
 ~~~
-~~~zq-command 2
+~~~mdtest-command 2
 block 3
 ~~~
-~~~zq-output 2
+~~~mdtest-output 2
 block 4
 ~~~
 `,
@@ -74,10 +74,10 @@ block 4
 		{
 			name: "headed output",
 			markdown: `
-~~~zq-command
+~~~mdtest-command
 block 1
 ~~~
-~~~zq-output head:1
+~~~mdtest-output head:1
 block 2
 block 2 continued
 ~~~

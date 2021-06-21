@@ -2,32 +2,32 @@
 // checking for expected output.
 //
 // Example commands and outputs are specified in fenced code blocks whose info
-// string (https://spec.commonmark.org/0.29/#info-string) has zq-command or
-// zq-output as the first word.  These blocks must be paired.
+// string (https://spec.commonmark.org/0.29/#info-string) has mdtest-command or
+// mdtest-output as the first word.  These blocks must be paired.
 //
-//    ```zq-command [path]
+//    ```mdtest-command [path]
 //    echo hello
 //    ```
-//    ```zq-output
+//    ```mdtest-output
 //    hello
 //    ```
 //
-// The content of each zq-command block is fed to "bash -e -o pipefail" on
+// The content of each mdtest-command block is fed to "bash -e -o pipefail" on
 // standard input.  The shell's working directory is the repository root unless
 // the block's info string contains a second word, which then specifies the
 // working directory as a path relative to the repository root.  The shell's
 // combined standard output and standard error must exactly match the content of
-// the following zq-output block except as described below.
+// the following mdtest-output block except as described below.
 //
-// If head:N appears as the second word in a zq-output block's info string,
+// If head:N appears as the second word in a mdtest-output block's info string,
 // where N is a non-negative interger, then only the first N lines of shell
 // output are examined, and any "...\n" suffix of the block content is ignored.
 //
-//    ```zq-command
+//    ```mdtest-command
 //    echo hello
 //    echo goodbye
 //    ```
-//    ```zq-output head:1
+//    ```mdtest-output head:1
 //    hello
 //    ...
 //    ```
@@ -53,8 +53,8 @@ import (
 type ZQExampleBlockType string
 
 const (
-	ZQCommand    ZQExampleBlockType = "zq-command"
-	ZQOutput     ZQExampleBlockType = "zq-output"
+	ZQCommand    ZQExampleBlockType = "mdtest-command"
+	ZQOutput     ZQExampleBlockType = "mdtest-output"
 	ZQOutputHead string             = "head:"
 )
 
@@ -102,7 +102,7 @@ func (t *ZQExampleTest) Run() (string, error) {
 	return s, nil
 }
 
-// ZQOutputLineCount returns the number of lines against which zq-output should
+// ZQOutputLineCount returns the number of lines against which mdtest-output should
 // be verified.
 func ZQOutputLineCount(fcb *ast.FencedCodeBlock, source []byte) int {
 	count := fcb.Lines().Len()
@@ -120,7 +120,7 @@ func ZQOutputLineCount(fcb *ast.FencedCodeBlock, source []byte) int {
 	return customCount
 }
 
-// CollectExamples returns zq-command / zq-output pairs from a single
+// CollectExamples returns mdtest-command / zq-output pairs from a single
 // markdown source after parsing it as a goldmark AST.
 func CollectExamples(node ast.Node, source []byte) ([]ZQExampleInfo, error) {
 	var examples []ZQExampleInfo

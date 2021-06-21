@@ -30,12 +30,12 @@ However, if we cast it to an `ip` type, now the CIDR match is successful. The
 `bad cast` warning on stderr tells us that some of the values for `ref_id`
 could _not_ be successfully cast to `ip`.
 
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'put ref_id:=ip(ref_id)| filter ref_id in 83.162.0.0/16 | count()' ntp.log.gz
 ```
 
 #### Output:
-```zq-output
+```mdtest-output
 bad cast
 COUNT
 28
