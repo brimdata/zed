@@ -246,22 +246,13 @@ func (t *TypeParser) parseEnumTypeBody(in string) (string, *zng.TypeEnum, error)
 	if !ok {
 		return "", nil, zng.ErrTypeSyntax
 	}
-	var typ zng.Type
+	var symbols []string
 	var err error
-	rest, typ, err = t.parseType(rest)
+	rest, symbols, err = t.parseSymbols(rest)
 	if err != nil {
 		return "", nil, err
 	}
-	rest, ok = match(rest, ",")
-	if !ok {
-		return "", nil, zng.ErrTypeSyntax
-	}
-	var elements []zng.Element
-	rest, elements, err = t.parseElements(typ, rest)
-	if err != nil {
-		return "", nil, err
-	}
-	return rest, t.zctx.LookupTypeEnum(typ, elements), nil
+	return rest, t.zctx.LookupTypeEnum(symbols), nil
 }
 
 // Parses a name up to the colon of the form "<id>:" or "[<tzng-strinig>]:"
@@ -291,17 +282,17 @@ func (c *TypeParser) parseName(in string) (string, string, error) {
 	return in[colon+1:], name, nil
 }
 
-func (c *TypeParser) parseElements(typ zng.Type, in string) (string, []zng.Element, error) {
-	var elems []zng.Element
+func (c *TypeParser) parseSymbols(in string) (string, []string, error) {
+	var symbols []string
 	for {
 		// at top of loop, we have to have a element def either because
 		// this is the first def or we found a comma and are expecting
 		// another one.
-		rest, elem, err := c.parseElement(typ, in)
+		rest, name, err := c.parseName(in)
 		if err != nil {
 			return "", nil, err
 		}
-		elems = append(elems, elem)
+		symbols = append(symbols, name)
 		var ok bool
 		rest, ok = match(rest, ",")
 		if ok {
@@ -312,28 +303,6 @@ func (c *TypeParser) parseElements(typ zng.Type, in string) (string, []zng.Eleme
 		if !ok {
 			return "", nil, zng.ErrTypeSyntax
 		}
-		return rest, elems, nil
+		return rest, symbols, nil
 	}
-}
-
-func (c *TypeParser) parseElement(typ zng.Type, in string) (string, zng.Element, error) {
-	rest, name, err := c.parseName(in)
-	if err != nil {
-		return "", zng.Element{}, err
-	}
-	rest, ok := match(rest, "[")
-	if !ok {
-		return "", zng.Element{}, err
-	}
-	rbracket := strings.IndexByte(rest, byte(']'))
-	if rbracket < 0 {
-		return "", zng.Element{}, zng.ErrTypeSyntax
-	}
-	val := rest[:rbracket]
-	zv, err := ParseValue(typ, []byte(val))
-	if err != nil {
-		return "", zng.Element{}, zng.ErrTypeSyntax
-	}
-	rest = rest[rbracket+1:]
-	return rest, zng.Element{name, zv}, nil
 }

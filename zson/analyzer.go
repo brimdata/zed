@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -40,9 +39,8 @@ type (
 		Value    Value
 	}
 	Enum struct {
-		Type     zng.Type
-		Selector int
-		Name     string
+		Type zng.Type
+		Name string
 	}
 	Map struct {
 		Type    zng.Type
@@ -470,12 +468,11 @@ func (a Analyzer) convertEnum(zctx *Context, val *zed.Enum, cast zng.Type) (Valu
 	if !ok {
 		return nil, fmt.Errorf("identifier %q is enum and incompatible with type %q", val.Name, cast)
 	}
-	for k, elem := range enum.Elements {
-		if elem.Name == val.Name {
+	for _, s := range enum.Symbols {
+		if s == val.Name {
 			return &Enum{
-				Name:     elem.Name,
-				Selector: k,
-				Type:     cast,
+				Name: val.Name,
+				Type: cast,
 			}, nil
 		}
 	}
@@ -639,39 +636,8 @@ func (a Analyzer) convertTypeUnion(zctx *Context, union *zed.TypeUnion) (*zng.Ty
 }
 
 func (a Analyzer) convertTypeEnum(zctx *Context, enum *zed.TypeEnum) (*zng.TypeEnum, error) {
-	n := len(enum.Elements)
-	if n == 0 {
+	if len(enum.Symbols) == 0 {
 		return nil, errors.New("enum body is empty")
 	}
-	var typ zng.Type
-	elements := make([]zng.Element, 0, n)
-	b := zcode.NewBuilder()
-	for _, f := range enum.Elements {
-		b.Reset()
-		v, err := a.convertValue(zctx, f.Value, typ)
-		if err != nil {
-			return nil, err
-		}
-		other := v.TypeOf()
-		if typ == nil {
-			typ = other
-		} else if typ != other {
-			return nil, fmt.Errorf("mixed type enum values: %q and %q", typ, other)
-		} else {
-			v.SetType(typ)
-		}
-		zv, err := Build(b, v)
-		if err != nil {
-			return nil, err
-		}
-		if zv.Type != typ {
-			return nil, fmt.Errorf("internal error built type (%q) does not match semantic type (%q)", zv.Type, typ)
-		}
-		e := zng.Element{
-			Name:  f.Name,
-			Value: zv.Bytes,
-		}
-		elements = append(elements, e)
-	}
-	return zctx.LookupTypeEnum(typ, elements), nil
+	return zctx.LookupTypeEnum(enum.Symbols), nil
 }

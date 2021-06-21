@@ -401,17 +401,11 @@ func (f *Formatter) formatTypeUnion(typ *zng.TypeUnion) {
 
 func (f *Formatter) formatTypeEnum(typ *zng.TypeEnum) error {
 	f.build("<")
-	inner := typ.Type
-	for k, elem := range typ.Elements {
+	for k, s := range typ.Symbols {
 		if k > 0 {
 			f.build(",")
 		}
-		f.buildf("%s:", zng.QuotedName(elem.Name))
-		known := k != 0
-		const parentImplied = true
-		if err := f.formatValue(0, inner, elem.Value, known, parentImplied, true); err != nil {
-			return err
-		}
+		f.buildf("%s", zng.QuotedName(s))
 	}
 	f.build(">")
 	return nil
@@ -534,11 +528,11 @@ func formatType(b *strings.Builder, typedefs typemap, typ zng.Type) {
 		b.WriteByte(')')
 	case *zng.TypeEnum:
 		b.WriteByte('<')
-		for k, elem := range t.Elements {
+		for k, s := range t.Symbols {
 			if k > 0 {
 				b.WriteByte(',')
 			}
-			b.WriteString(zng.QuotedName(elem.Name))
+			b.WriteString(zng.QuotedName(s))
 		}
 		b.WriteByte('>')
 	default:

@@ -191,8 +191,7 @@ and include
 * _array_ - an ordered sequence of zero or more values called elements,
 * _set_ - a set of zero or more unique values called elements,
 * _union_ - a type representing values whose type is any of a specified collection of two or more types,
-* _enum_ - a type representing values taken from a specified collection of one or more uniformly
-typed values, which can be either primitive or complex, and
+* _enum_ - a type representing a finite set of symbols typically representing categories, and
 * _map_ - a collection of zero or more key/value pairs where the keys are of a
 uniform type called the key type and the values are of a uniform type called
 the value type.
@@ -268,7 +267,7 @@ If a ZSON input includes data that is not valid UTF-8, the input is invalid.
 
 ZSON identifiers are used in several contexts, as names of:
 * unquoted fields,
-* unquoted enum elements, and
+* unquoted enum symbols, and
 * external type definitions.
 
 Identifiers are case-sensitive and can contain Unicode letters, `$`, `_`,
@@ -322,7 +321,7 @@ _self describing_ in the sense that its type name can be entirely derived
 from its value, e.g., a record type can be derived from a record value
 because all of the field names and type names are present in the value, but
 an enum type cannot be derived from an enum value because not all the enumerated
-names are present in the value.  In the the latter case, the long form
+symbols are present in the value.  In the the latter case, the long form
 `(<type-name>=(<type>))` must be used.
 
 It is an error for an external type to be defined to a different type
@@ -545,21 +544,19 @@ needed to resolve the ambiguity, e.g.,
 
 #### 3.4.5 Enum Value
 
-An enum type represents a named set of values where enum values are
-referenced by name.  The simple form of an
-enum is a list of names, where the values are of type `int64` but
-enums may be defined as set of values of an arbitrary type.
+An enum type represents a symbol from a finite set of symbols
+referenced by name.
 
 An enum value has the form
 ```
 <name>
 ```
 where the name is either an identifier or a quoted string and it uniquely
-names one of the enum elements.
+corresponds to one of the enum symbols.
 
-Such a value must appear in a context where the enum type is known, i.e.,
+Such a enum value must appear in a context where the enum type is known, i.e.,
 with an explicit enum type decorator or within a complex type where the
-contained enum type is defined by the complex type.
+contained enum type is defined by the complex type's decorator.
 
 When an enum name is `true`, `false`, or `null`, it must be quoted.
 
@@ -651,16 +648,12 @@ where there are at least two types in the list.
 
 #### 3.5.5 Enum Type
 
-An _enum type_ has two forms.  The simple form is:
+An _enum type_ has the form:
 ```
 < <identifier>, <identifier>, ... >
 ```
-and the complex form is:
-```
-< <identifier>:<value>, <identifier>=<value>, ... >
-```
-In the same form, the underlying enum value is equal to its positional
-index in the list of identifiers as an uint64 type.
+The positional index of the each enum symbol is significant, e.g., two enum types
+with the same set of symbols but in different order are distinct.
 
 #### 3.5.6 Map Type
 

@@ -106,8 +106,6 @@ func (s *Stream) hasTypeType(typ zng.Type) bool {
 				break
 			}
 		}
-	case *zng.TypeEnum:
-		b = s.hasTypeType(t.Type)
 	case *zng.TypeOfType:
 		b = true
 	default:

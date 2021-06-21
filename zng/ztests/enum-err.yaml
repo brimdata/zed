@@ -4,9 +4,9 @@ script: |
 inputs:
   - name: stdin
     data: |
-      {e:bang (0=(<foo:1 (int32),bar:2,baz:4>))} (=1)
+      {e:bang (0=(<foo,bar,baz>))} (=1)
 
 outputs:
   - name: stderr
     regexp: |
-      zson: identifier "bang" not a member of enum type "<foo:1,bar:2,baz:4>"
+      zson: identifier "bang" not a member of enum type "<foo,bar,baz>"

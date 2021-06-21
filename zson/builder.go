@@ -3,6 +3,7 @@ package zson
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -234,7 +235,13 @@ func buildUnion(b *zcode.Builder, union *Union) error {
 }
 
 func buildEnum(b *zcode.Builder, enum *Enum) error {
-	b.AppendPrimitive(zng.EncodeUint(uint64(enum.Selector)))
+	typ, ok := enum.Type.(*zng.TypeEnum)
+	if !ok {
+		// This shouldn't happen.
+		return errors.New("enum value is not of type enum")
+	}
+	selector := typ.Lookup(enum.Name)
+	b.AppendPrimitive(zng.EncodeUint(uint64(selector)))
 	return nil
 }
 

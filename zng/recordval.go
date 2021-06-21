@@ -174,7 +174,7 @@ func checkEnum(typ *TypeEnum, body zcode.Bytes) error {
 	if err != nil {
 		return err
 	}
-	if int(selector) >= len(typ.Elements) {
+	if int(selector) >= len(typ.Symbols) {
 		return errors.New("enum selector out of range")
 	}
 	return nil

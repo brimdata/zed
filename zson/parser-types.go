@@ -299,7 +299,7 @@ func (p *Parser) matchTypeEnum() (*zed.TypeEnum, error) {
 	if ok, err := l.match('<'); !ok || err != nil {
 		return nil, err
 	}
-	fields, err := p.matchEnumFields()
+	fields, err := p.matchEnumSymbols()
 	if err != nil {
 		return nil, err
 	}
@@ -311,24 +311,24 @@ func (p *Parser) matchTypeEnum() (*zed.TypeEnum, error) {
 		return nil, p.error("mismatched brackets while parsing enum type")
 	}
 	return &zed.TypeEnum{
-		Kind:     "TypeEnum",
-		Elements: fields,
+		Kind:    "TypeEnum",
+		Symbols: fields,
 	}, nil
 }
 
-func (p *Parser) matchEnumFields() ([]zed.Field, error) {
+func (p *Parser) matchEnumSymbols() ([]string, error) {
 	l := p.lexer
-	var fields []zed.Field
+	var symbols []string
 	for {
-		field, err := p.matchEnumField()
+		name, ok, err := p.matchSymbol()
 		if err != nil {
 			return nil, err
 		}
-		if field == nil {
-			break
+		if !ok {
+			return nil, nil
 		}
-		fields = append(fields, *field)
-		ok, err := l.match(',')
+		symbols = append(symbols, name)
+		ok, err = l.match(',')
 		if err != nil {
 			return nil, err
 		}
@@ -336,32 +336,5 @@ func (p *Parser) matchEnumFields() ([]zed.Field, error) {
 			break
 		}
 	}
-	return fields, nil
-}
-
-func (p *Parser) matchEnumField() (*zed.Field, error) {
-	l := p.lexer
-	name, ok, err := p.matchSymbol()
-	if err != nil {
-		return nil, err
-	}
-	if !ok {
-		return nil, nil
-	}
-	ok, err = l.match(':')
-	if err != nil {
-		return nil, err
-	}
-	var val zed.Value
-	if ok {
-		v, err := p.ParseValue()
-		if err != nil {
-			return nil, err
-		}
-		val = v
-	}
-	return &zed.Field{
-		Name:  name,
-		Value: val,
-	}, nil
+	return symbols, nil
 }
