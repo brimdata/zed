@@ -85,10 +85,10 @@ func TestSearchNoCtrl(t *testing.T) {
 		Span: nano.MaxSpan,
 		Dir:  -1,
 	}
-	body, err := conn.SearchRaw(context.Background(), req, map[string]string{"noctrl": "true"})
+	res, err := conn.SearchRaw(context.Background(), req, map[string]string{"noctrl": "true"})
 	require.NoError(t, err)
 	var msgs []interface{}
-	r := client.NewZngSearch(body)
+	r := client.NewZngSearch(res.Body)
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
 	})
@@ -141,9 +141,9 @@ func TestQuery(t *testing.T) {
 func TestQueryEmptyPool(t *testing.T) {
 	_, conn := newCore(t)
 	conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
-	rc, err := conn.Query(context.Background(), "from test")
+	res, err := conn.Query(context.Background(), "from test")
 	require.NoError(t, err)
-	b, err := io.ReadAll(rc)
+	b, err := io.ReadAll(res.Body)
 	require.NoError(t, err)
 	assert.Equal(t, "", string(b))
 }
@@ -439,7 +439,7 @@ func TestLogPostPath(t *testing.T) {
 		Paths: []string{log1, log2},
 	})
 	require.NoError(t, err)
-	_, err = io.Copy(io.Discard, r)
+	_, err = io.Copy(io.Discard, r.Body)
 	require.NoError(t, err)
 	const expected = `
 {ts:1970-01-01T00:00:02Z,uid:"uid2" (bstring)} (=0)
@@ -523,9 +523,9 @@ func search(t *testing.T, conn *testClient, pool ksuid.KSUID, prog string) (stri
 		Span: nano.MaxSpan,
 		Dir:  -1,
 	}
-	body, err := conn.SearchRaw(context.Background(), req, nil)
+	res, err := conn.SearchRaw(context.Background(), req, nil)
 	require.NoError(t, err)
-	r := client.NewZngSearch(body)
+	r := client.NewZngSearch(res.Body)
 	buf := bytes.NewBuffer(nil)
 	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
 	var msgs []interface{}

@@ -167,7 +167,12 @@ func (p *Pool) Squash(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, erro
 	}
 	txn := patch.NewTransaction()
 	if err := p.StoreInStaging(ctx, txn); err != nil {
-		return ksuid.KSUID{}, err
+		return ksuid.Nil, err
+	}
+	for _, id := range ids {
+		if err := p.ClearFromStaging(ctx, id); err != nil {
+			return ksuid.Nil, err
+		}
 	}
 	return txn.ID, nil
 }

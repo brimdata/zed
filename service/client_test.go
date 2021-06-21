@@ -23,7 +23,7 @@ type testClient struct {
 	*client.Connection
 }
 
-func (c *testClient) unmarshal(r *client.ReadCloser, i interface{}) {
+func (c *testClient) unmarshal(r *client.Response, i interface{}) {
 	zr := c.zioreader(r)
 	var buf bytes.Buffer
 	zw := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
@@ -48,10 +48,10 @@ func (c *testClient) TestPoolGet(id ksuid.KSUID) (config lake.PoolConfig) {
 	return config
 }
 
-func (c *testClient) zioreader(rc *client.ReadCloser) zio.Reader {
-	format, err := api.MediaTypeToFormat(rc.ContentType)
+func (c *testClient) zioreader(r *client.Response) zio.Reader {
+	format, err := api.MediaTypeToFormat(r.ContentType)
 	require.NoError(c, err)
-	zr, err := anyio.NewReaderWithOpts(rc, zson.NewContext(), anyio.ReaderOpts{Format: format})
+	zr, err := anyio.NewReaderWithOpts(r.Body, zson.NewContext(), anyio.ReaderOpts{Format: format})
 	require.NoError(c, err)
 	return zr
 }
@@ -100,10 +100,10 @@ func (c *testClient) TestLogPostReaders(id ksuid.KSUID, opts *client.LogPostOpts
 }
 
 func (c *testClient) TestLoad(id ksuid.KSUID, r io.Reader) {
-	rc, err := c.Connection.Add(context.Background(), id, r)
+	res, err := c.Connection.Add(context.Background(), id, r)
 	require.NoError(c, err)
 	var add api.AddResponse
-	c.unmarshal(rc, &add)
+	c.unmarshal(res, &add)
 	err = c.Connection.Commit(context.Background(), id, add.Commit, api.CommitRequest{})
 	require.NoError(c, err)
 }

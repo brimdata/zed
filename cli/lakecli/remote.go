@@ -7,6 +7,7 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"strings"
 
@@ -104,8 +105,8 @@ func (r *RemoteRoot) ScanPools(ctx context.Context, zw zio.Writer) error {
 	if err != nil {
 		return err
 	}
-	defer res.Close()
-	zr := zngio.NewReader(res, zson.NewContext())
+	defer res.Body.Close()
+	zr := zngio.NewReader(res.Body, zson.NewContext())
 	return zio.CopyWithContext(ctx, zw, zr)
 }
 
@@ -114,12 +115,12 @@ func (r *RemoteRoot) LookupPoolByName(ctx context.Context, name string) (*lake.P
 	if err != nil {
 		return nil, nil
 	}
-	defer res.Close()
+	defer res.Body.Close()
 	format, err := api.MediaTypeToFormat(res.ContentType)
 	if err != nil {
 		return nil, err
 	}
-	zr, err := anyio.NewReaderWithOpts(res, zson.NewContext(), anyio.ReaderOpts{Format: format})
+	zr, err := anyio.NewReaderWithOpts(res.Body, zson.NewContext(), anyio.ReaderOpts{Format: format})
 	if err != nil {
 		return nil, nil
 	}
@@ -189,7 +190,7 @@ func (r *RemoteRoot) Query(ctx context.Context, d driver.Driver, query string) (
 	if err != nil {
 		return zbuf.ScannerStats{}, err
 	}
-	defer res.Close()
+	defer res.Body.Close()
 	return queryio.RunClientResponse(ctx, d, res)
 }
 
@@ -202,12 +203,12 @@ func newRemotePool(conn *client.Connection, conf lake.PoolConfig) *RemotePool {
 	return &RemotePool{PoolConfig: conf, conn: conn}
 }
 
-func unmarshal(r *client.ReadCloser, i interface{}) error {
-	format, err := api.MediaTypeToFormat(r.ContentType)
+func unmarshal(res *client.Response, i interface{}) error {
+	format, err := api.MediaTypeToFormat(res.ContentType)
 	if err != nil {
 		return err
 	}
-	zr, err := anyio.NewReaderWithOpts(r, zson.NewContext(), anyio.ReaderOpts{Format: format})
+	zr, err := anyio.NewReaderWithOpts(res.Body, zson.NewContext(), anyio.ReaderOpts{Format: format})
 	if err != nil {
 		return nil
 	}
@@ -249,19 +250,19 @@ func (p *RemotePool) Add(ctx context.Context, r zio.Reader, commit *api.CommitRe
 }
 
 func (p *RemotePool) Delete(ctx context.Context, ids []ksuid.KSUID, commit *api.CommitRequest) (ksuid.KSUID, error) {
-	rc, err := p.conn.Delete(ctx, p.ID, ids)
+	res, err := p.conn.Delete(ctx, p.ID, ids)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	defer rc.Close()
-	var res api.StagedCommit
-	if err := unmarshal(rc, &res); err != nil {
+	defer res.Body.Close()
+	var staged api.StagedCommit
+	if err := unmarshal(res, &staged); err != nil {
 		return ksuid.Nil, err
 	}
 	if commit != nil {
-		err = p.Commit(ctx, res.Commit, *commit)
+		err = p.Commit(ctx, staged.Commit, *commit)
 	}
-	return res.Commit, err
+	return staged.Commit, err
 }
 
 func (p *RemotePool) Commit(ctx context.Context, id ksuid.KSUID, commit api.CommitRequest) error {
@@ -269,16 +270,16 @@ func (p *RemotePool) Commit(ctx context.Context, id ksuid.KSUID, commit api.Comm
 }
 
 func (p *RemotePool) Squash(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, error) {
-	rc, err := p.conn.Squash(ctx, p.ID, ids)
+	res, err := p.conn.Squash(ctx, p.ID, ids)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	defer rc.Close()
-	var res api.StagedCommit
-	if err := unmarshal(rc, &res); err != nil {
+	defer res.Body.Close()
+	var staged api.StagedCommit
+	if err := unmarshal(res, &staged); err != nil {
 		return ksuid.Nil, err
 	}
-	return res.Commit, nil
+	return staged.Commit, nil
 }
 
 func (p *RemotePool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
@@ -286,8 +287,11 @@ func (p *RemotePool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.
 	if err != nil {
 		return err
 	}
-	defer res.Close()
-	zr := zngio.NewReader(res, zson.NewContext())
+	defer res.Body.Close()
+	if res.StatusCode == http.StatusNoContent {
+		return lake.ErrStagingEmpty
+	}
+	zr := zngio.NewReader(res.Body, zson.NewContext())
 	return zio.CopyWithContext(ctx, w, zr)
 
 }
@@ -297,8 +301,8 @@ func (p *RemotePool) ScanLog(ctx context.Context, w zio.Writer, head, tail journ
 	if err != nil {
 		return err
 	}
-	defer res.Close()
-	zr := zngio.NewReader(res, zson.NewContext())
+	defer res.Body.Close()
+	zr := zngio.NewReader(res.Body, zson.NewContext())
 	return zio.CopyWithContext(ctx, w, zr)
 }
 
@@ -308,8 +312,8 @@ func (p *RemotePool) ScanSegments(ctx context.Context, w zio.Writer, at string, 
 	if err != nil {
 		return err
 	}
-	defer res.Close()
-	zr := zngio.NewReader(res, zson.NewContext())
+	defer res.Body.Close()
+	zr := zngio.NewReader(res.Body, zson.NewContext())
 	return zio.CopyWithContext(ctx, w, zr)
 }
 
