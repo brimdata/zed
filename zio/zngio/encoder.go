@@ -133,23 +133,13 @@ func (e *Encoder) encodeTypeArray(dst []byte, ext *zng.TypeArray) ([]byte, zng.T
 }
 
 func (e *Encoder) encodeTypeEnum(dst []byte, ext *zng.TypeEnum) ([]byte, zng.Type, error) {
-	var elemType zng.Type
-	var err error
-	dst, elemType, err = e.Encode(dst, ext.Type)
-	if err != nil {
-		return nil, nil, err
-	}
-	elems := ext.Elements
-	typ := e.zctx.LookupTypeEnum(elemType, elems)
+	symbols := ext.Symbols
+	typ := e.zctx.LookupTypeEnum(symbols)
 	dst = append(dst, zng.TypeDefEnum)
-	dst = zcode.AppendUvarint(dst, uint64(zng.TypeID(typ)))
-	dst = zcode.AppendUvarint(dst, uint64(len(elems)))
-	container := zng.IsContainerType(typ)
-	for _, elem := range elems {
-		name := []byte(elem.Name)
-		dst = zcode.AppendUvarint(dst, uint64(len(name)))
-		dst = append(dst, name...)
-		dst = zcode.AppendAs(dst, container, elem.Value)
+	dst = zcode.AppendUvarint(dst, uint64(len(symbols)))
+	for _, s := range symbols {
+		dst = zcode.AppendUvarint(dst, uint64(len(s)))
+		dst = append(dst, s...)
 	}
 	return dst, typ, nil
 }

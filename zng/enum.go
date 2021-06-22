@@ -8,29 +8,32 @@ import (
 )
 
 type TypeEnum struct {
-	id       int
-	Type     Type
-	Elements []Element
+	id      int
+	Symbols []string
 }
 
-type Element struct {
-	Name  string
-	Value zcode.Bytes
-}
-
-func NewTypeEnum(id int, typ Type, elements []Element) *TypeEnum {
-	return &TypeEnum{id, typ, elements}
+func NewTypeEnum(id int, symbols []string) *TypeEnum {
+	return &TypeEnum{id, symbols}
 }
 
 func (t *TypeEnum) ID() int {
 	return t.id
 }
 
-func (t *TypeEnum) Element(index int) (*Element, error) {
-	if index < 0 || index >= len(t.Elements) {
-		return nil, ErrEnumIndex
+func (t *TypeEnum) Symbol(index int) (string, error) {
+	if index < 0 || index >= len(t.Symbols) {
+		return "", ErrEnumIndex
 	}
-	return &t.Elements[index], nil
+	return t.Symbols[index], nil
+}
+
+func (t *TypeEnum) Lookup(symbol string) int {
+	for k, s := range t.Symbols {
+		if s == symbol {
+			return k
+		}
+	}
+	return -1
 }
 
 func (t *TypeEnum) Marshal(zv zcode.Bytes) (interface{}, error) {
@@ -39,15 +42,12 @@ func (t *TypeEnum) Marshal(zv zcode.Bytes) (interface{}, error) {
 
 func (t *TypeEnum) String() string {
 	var b strings.Builder
-	typ := t.Type
 	b.WriteByte('<')
-	sep := ""
-	for _, e := range t.Elements {
-		b.WriteString(sep)
-		b.WriteString(QuotedName(e.Name))
-		b.WriteByte(':')
-		b.WriteString(typ.Format(e.Value))
-		sep = ","
+	for k, s := range t.Symbols {
+		if k > 0 {
+			b.WriteByte(',')
+		}
+		b.WriteString(QuotedName(s))
 	}
 	b.WriteByte('>')
 	return b.String()
@@ -55,11 +55,11 @@ func (t *TypeEnum) String() string {
 
 func (t *TypeEnum) Format(zv zcode.Bytes) string {
 	id, err := DecodeUint(zv)
-	if id >= uint64(len(t.Elements)) || err != nil {
+	if id >= uint64(len(t.Symbols)) || err != nil {
 		if err == nil {
 			err = errors.New("enum index out of range")
 		}
 		return badZng(err, t, zv)
 	}
-	return t.Elements[id].Name
+	return t.Symbols[id]
 }

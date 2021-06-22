@@ -8,7 +8,6 @@ import (
 
 	"github.com/brimdata/zed/pkg/peeker"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
@@ -420,47 +419,34 @@ func (r *Reader) readTypeSet() error {
 }
 
 func (r *Reader) readTypeEnum() error {
-	id, err := r.readUvarint()
+	nsym, err := r.readUvarint()
 	if err != nil {
 		return zng.ErrBadFormat
 	}
-	innerType, err := r.zctx.LookupType(int(id))
-	if err != nil {
-		return err
-	}
-	nelem, err := r.readUvarint()
-	if err != nil {
-		return zng.ErrBadFormat
-	}
-	var elems []zng.Element
-	for k := 0; k < int(nelem); k++ {
-		elem, err := r.readElement()
+	var symbols []string
+	for k := 0; k < int(nsym); k++ {
+		s, err := r.readSymbol()
 		if err != nil {
 			return err
 		}
-		elems = append(elems, elem)
+		symbols = append(symbols, s)
 	}
-	typ := r.zctx.LookupTypeEnum(innerType, elems)
+	typ := r.zctx.LookupTypeEnum(symbols)
 	_, err = r.mapper.Enter(zng.TypeID(typ), typ)
 	return err
 }
 
-func (r *Reader) readElement() (zng.Element, error) {
+func (r *Reader) readSymbol() (string, error) {
 	n, err := r.readUvarint()
 	if err != nil {
-		return zng.Element{}, zng.ErrBadFormat
+		return "", zng.ErrBadFormat
 	}
 	b, err := r.read(n)
 	if err != nil {
-		return zng.Element{}, zng.ErrBadFormat
+		return "", zng.ErrBadFormat
 	}
 	// pull the name out before the next read which might overwrite the buffer
-	name := string(b)
-	zv, _, err := zcode.Read(r)
-	if err != nil {
-		return zng.Element{}, zng.ErrBadFormat
-	}
-	return zng.Element{name, zv}, nil
+	return string(b), nil
 }
 
 func (r *Reader) readTypeMap() error {

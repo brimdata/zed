@@ -303,17 +303,9 @@ func newNumeric(lhs, rhs Evaluator) numeric {
 }
 
 func enumify(v zng.Value) (zng.Value, error) {
-	// automatically convert an enum to its value when coercing
-	if typ, ok := v.Type.(*zng.TypeEnum); ok {
-		selector, err := zng.DecodeUint(v.Bytes)
-		if err != nil {
-			return zng.Value{}, err
-		}
-		elem, err := typ.Element(int(selector))
-		if err != nil {
-			return zng.Value{}, err
-		}
-		return zng.Value{typ.Type, elem.Value}, nil
+	// automatically convert an enum to its index value when coercing
+	if _, ok := v.Type.(*zng.TypeEnum); ok {
+		return zng.Value{zng.TypeUint64, v.Bytes}, nil
 	}
 	return v, nil
 }

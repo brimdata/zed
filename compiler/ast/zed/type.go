@@ -29,11 +29,9 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Types []Type `json:"types"`
 	}
-	// Enum has just the elements and relies on the semantic checker
-	// to determine a type from the decorator either within or from above.
 	TypeEnum struct {
-		Kind     string  `json:"kind" unpack:""`
-		Elements []Field `json:"elements"`
+		Kind    string   `json:"kind" unpack:""`
+		Symbols []string `json:"symbols"`
 	}
 	TypeMap struct {
 		Kind    string `json:"kind" unpack:""`

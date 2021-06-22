@@ -237,19 +237,16 @@ The `<ntypes>` and the type IDs are all encoded as `uvarint`.
 
 #### 2.1.1.5 Enum Typedef
 
-An enum type is encoded as the type code of the enum values as a `uvarint`
-followed by a count of the number of elements in the enum, and in turn,
-followed by the names and values of each element.
+An enum type is encoded as a `uvarint` representing the number of symbols
+in the enumeration followed by the names of each symbol.
 ```
---------------------------------------------------------
-|0xfa|<type-id>|<nelem>|<name1><val-1><name2><val-2>...|
---------------------------------------------------------
+--------------------------------
+|0xfa|<nelem>|<name1><name2>...|
+--------------------------------
 ```
-`<type-id>` and `<nelem>` are encoded as `uvarint`.
+`<nelem>` is encoded as `uvarint`.
 The names have the same UTF-8 format as record field names and are encoded
-as tag-encoded primitive strings.  Each value is encoded as
-a tag-encoded value in accordance with the type indicated
-by `<type-id>`.
+as counted strings following the same convention as record field names.
 
 #### 2.1.1.6 Map Typedef
 
@@ -496,8 +493,8 @@ the type of the value in reference to the union's list of defined types,
 and the second element is the value encoded according to that type.
 
 An enumeration value is represented as the `uvarint` encoding of the
-positional index determining the value in reference to the enum's
-list of defined elements.
+positional index of that value's symbol in reference to the enum's
+list of defined symbols.
 
 A map value is encoded as a container as a sequence of alternating tag-encoded
 key and value encoded as keys and values of the underlying key and value types.

@@ -3,13 +3,13 @@ zed: "*"
 output-flags: -f zson -pretty=4
 
 input: |
-  {flip:HEADS (0=(<HEADS:0 (uint8),TAILS:1>))} (=1)
+  {flip:HEADS (0=(<HEADS,TAILS>))} (=1)
   {flip:TAILS} (1)
   {flip:HEADS} (1)
 
 output: |
   {
-      flip: HEADS (0=(<HEADS:0 (uint8),TAILS:1>))
+      flip: HEADS (0=(<HEADS,TAILS>))
   } (=1)
   {
       flip: TAILS

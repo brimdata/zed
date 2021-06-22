@@ -167,11 +167,11 @@ func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
 		}
 		if enum, ok := zv.Type.(*zng.TypeEnum); ok {
 			selector, _ := zng.DecodeUint(zv.Bytes)
-			element, err := enum.Element(int(selector))
+			symbol, err := enum.Symbol(int(selector))
 			if err != nil {
 				return zng.NewError(err), nil
 			}
-			return zng.Value{typ, zng.EncodeString(element.Name)}, nil
+			return zng.Value{typ, zng.EncodeString(symbol)}, nil
 		}
 		if zng.IsStringy(id) {
 			// If it's already stringy, then the z encoding can stay
