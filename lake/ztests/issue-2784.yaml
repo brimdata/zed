@@ -6,8 +6,7 @@ script: |
   b=$(zed lake add -p test b.zson | head -1 | awk '{print $1}')
   zed lake commit -q -p test -user testuser -date 2021-06-18T14:29:28Z $a $b
   zed lake status -p test
-  echo ===
-  zed lake log -p test
+  zed lake log -p test -f zng | zq -z "sort segment.meta.first | cut first:=segment.meta.first,last:=segment.meta.last" -
 
 inputs:
   - name: a.zson
@@ -22,12 +21,6 @@ outputs:
     data: |
       staging area is empty
   - name: stdout
-    regexp: |
-      commit \w{27}
-      Author: testuser
-      Date:   2021-06-18T14:29:28Z
-
-          Add \w{27} \d+B bytes 1 records
-             from int64: \(02\) to int64: \(02\)
-          Add \w{27} \d+B bytes 1 records
-             from int64: \(04\) to int64: \(04\)
+    data: |
+      {first:1,last:1}
+      {first:2,last:2}
