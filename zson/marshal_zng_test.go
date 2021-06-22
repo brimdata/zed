@@ -331,7 +331,7 @@ func TestCustomRecord(t *testing.T) {
 	}
 	rec, err = m.MarshalCustom([]string{"foo", "bar"}, vals)
 	require.NoError(t, err)
-	assert.Equal(t, `{foo:{a:"hello",B:123},bar:null (null)} (=0)`, toZSON(t, rec))
+	assert.Equal(t, `{foo:{a:"hello",B:123},bar:null}`, toZSON(t, rec))
 }
 
 type ThingTwo struct {

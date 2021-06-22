@@ -138,7 +138,7 @@ func (f *Formatter) nextInternalType() string {
 }
 
 func (f *Formatter) decorate(typ zng.Type, known, null bool) {
-	if known || (!null && f.isImplied(typ)) {
+	if known || (!(null && typ != zng.TypeNull) && f.isImplied(typ)) {
 		return
 	}
 	f.startColor(color.Gray(200))

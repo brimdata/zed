@@ -4,4 +4,4 @@ input: |
   {a:1 (int32)} (=0)
 
 output: |
-  {a:1 (int32),b:null (null)} (=0)
+  {a:1 (int32),b:null} (=0)
