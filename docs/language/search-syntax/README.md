@@ -33,7 +33,7 @@ zq -z '*' conn.log.gz
 ```
 
 #### Output:
-```mdtest-output head:4
+```mdtest-output head
 {_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl" (bstring),id:{orig_h:10.164.94.120,orig_p:39681 (port=(uint16)),resp_h:10.47.3.155,resp_p:3389 (port)} (=0),proto:"tcp" (=zenum),service:null (bstring),duration:4.266ms,orig_bytes:97 (uint64),resp_bytes:19 (uint64),conn_state:"RSTR" (bstring),local_orig:null (bool),local_resp:null (bool),missed_bytes:0 (uint64),history:"ShADTdtr" (bstring),orig_pkts:10 (uint64),orig_ip_bytes:730 (uint64),resp_pkts:6 (uint64),resp_ip_bytes:342 (uint64),tunnel_parents:null (1=(|[bstring]|))} (=2)
 {_path:"conn",ts:2018-03-24T17:15:21.411148Z,uid:"CXWfTK3LRdiuQxBbM6",id:{orig_h:10.47.25.80,orig_p:50817,resp_h:10.128.0.218,resp_p:23189},proto:"tcp",service:null,duration:486us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
 {_path:"conn",ts:2018-03-24T17:15:21.926018Z,uid:"CM59GGQhNEoKONb5i",id:{orig_h:10.47.25.80,orig_p:50817,resp_h:10.128.0.218,resp_p:23189},proto:"tcp",service:null,duration:538us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
@@ -66,7 +66,7 @@ zq -z 'cut server_tree_name' ntlm.log.gz
 ```
 
 #### Output:
-```mdtest-output head:3
+```mdtest-output head
 {server_tree_name:"factory.oompa.loompa" (bstring)} (=0)
 {server_tree_name:"factory.oompa.loompa"} (0)
 {server_tree_name:"jerry.land"} (0)
@@ -102,7 +102,7 @@ zq -f table '10.150.0.85' *.log.gz
 ```
 
 #### Output:
-```mdtest-output head:10
+```mdtest-output head
 _PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P PROTO SERVICE DURATION  ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY         ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  2018-03-24T17:15:22.18798Z  CFis4J1xm9BOgtib34 10.47.8.10   56800     10.150.0.85 443       tcp   -       1.000534  31         77         SF         -          -          0            ^dtAfDTFr       8         382           10        554           -
 conn  2018-03-24T17:15:25.527535Z CnvVUp1zg3fnDKrlFk 10.47.27.186 58665     10.150.0.85 443       tcp   -       1.000958  31         77         SF         -          -          0            ^dtAfDFTr       8         478           10        626           -
@@ -143,7 +143,7 @@ zq -f table '"O=Internet Widgits"' *.log.gz
 ```
 
 #### Output:
-```mdtest-output head:10
+```mdtest-output head
 _PATH  TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P FUID               FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                              SUB                                                          SRC          DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
 notice 2018-03-24T17:15:32.521729Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
 _PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P VERSION CIPHER                                CURVE  SERVER_NAME RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS   CLIENT_CERT_CHAIN_FUIDS SUBJECT                                                      ISSUER                                                       CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
@@ -174,7 +174,7 @@ zq -f table 'www.*cdn*.com' *.log.gz
 ```
 
 #### Output:
-```mdtest-output head:10
+```mdtest-output head
 _PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY              QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                                                                                                                                                                                                                                                                                      TTLS                                REJECTED
 dns   2018-03-24T17:16:24.038839Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   11089    0.000785 www.amazon.com     1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                              578,57,57                           F
 dns   2018-03-24T17:16:24.038843Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   11089    0.000784 www.amazon.com     1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                              578,57,57                           F
@@ -203,7 +203,7 @@ zq -f table '"CN=*"' *.log.gz
 ```
 
 #### Output:
-```mdtest-output head:10
+```mdtest-output head
 _PATH  TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H   ID.RESP_P FUID              FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                                             SUB                                                                                          SRC        DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
 notice 2018-03-24T17:16:58.268179Z CVkrLo2Wjo4r51ZDZ7 10.47.8.10 56808     64.4.54.254 443       FYwv52OzGGIJPop3l -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (unable to get local issuer certificate) CN=*.vortex-win.data.microsoft.com,OU=Microsoft,O=Microsoft Corporation,L=Redmond,ST=WA,C=US 10.47.8.10 64.4.54.254 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
 _PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H       ID.RESP_P VERSION CIPHER                                        CURVE     SERVER_NAME                                             RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS                                                            CLIENT_CERT_CHAIN_FUIDS                                  SUBJECT                                                                                                                                                  ISSUER                                                                                                                                   CLIENT_SUBJECT                                             CLIENT_ISSUER                                            VALIDATION_STATUS
@@ -247,7 +247,7 @@ zq -f table '/www.google(ad|tag)services.com/' *.log.gz
 ```
 
 #### Output:
-```mdtest-output head:10
+```mdtest-output head
 _PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                     QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                             TTLS      REJECTED
 dns   2018-03-24T17:15:46.07484Z  CYjLXM1Yp1ZuuVJQV1 10.47.6.154 12478     10.10.6.1  53        udp   49089    0.001342 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                             0         F
 dns   2018-03-24T17:15:46.074842Z CYjLXM1Yp1ZuuVJQV1 10.47.6.154 12478     10.10.6.1  53        udp   49089    0.001375 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                             0         F
@@ -299,7 +299,7 @@ zq -f table 'id.orig_p==id.resp_p' conn.log.gz
 
 #### Output:
 
-```mdtest-output head:4
+```mdtest-output head
 _PATH TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P PROTO SERVICE DURATION   ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  2018-03-24T17:15:22.942327Z C6QN8gJLaOXw0GiA6  10.47.24.81   60004     10.128.0.238    60004     tcp   -       0.003538   0          0          SF         -          -          0            ShAafF  8         344           8         344           -
 conn  2018-03-24T17:15:38.523165Z CzFhMc47JPCOG4Z9E9 10.47.3.142   137       10.164.94.120   137       udp   dns     2.99937    300        0          S0         -          -          0            D       6         468           0         0             -
@@ -322,7 +322,7 @@ in two ways.
    ```
 
    #### Output:
-   ```mdtest-output head:3
+   ```mdtest-output head
    {host:"0988253c66242502070643933dd49e88.clo.footprintdns.com" (bstring),count:1 (uint64)} (=0)
    {host:"10.47.21.1",count:1} (0)
    {host:"10.47.21.80/..",count:1} (0)
@@ -376,7 +376,7 @@ zq -f table 'certificate.subject matches *Widgits*' *.log.gz
 
 #### Output:
 
-```mdtest-output head:5
+```mdtest-output head
 _PATH TS                          ID                 CERTIFICATE.VERSION CERTIFICATE.SERIAL CERTIFICATE.SUBJECT                                          CERTIFICATE.ISSUER                                           CERTIFICATE.NOT_VALID_BEFORE CERTIFICATE.NOT_VALID_AFTER CERTIFICATE.KEY_ALG CERTIFICATE.SIG_ALG     CERTIFICATE.KEY_TYPE CERTIFICATE.KEY_LENGTH CERTIFICATE.EXPONENT CERTIFICATE.CURVE SAN.DNS SAN.URI SAN.EMAIL SAN.IP BASIC_CONSTRAINTS.CA BASIC_CONSTRAINTS.PATH_LEN
 x509  2018-03-24T17:15:32.519299Z FZW30y2Nwc9i0qmdvg 3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 2018-03-22T14:22:37Z         2045-08-06T14:20:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
 x509  2018-03-24T17:15:42.635094Z Fo9ltu1O8DGE0KAgC  3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 2018-03-22T14:22:37Z         2045-08-06T14:20:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
@@ -582,7 +582,7 @@ zq -f table 'orig_bytes > 1000000 or query > "zippy"' *.log.gz
 
 #### Output:
 
-```mdtest-output head:10
+```mdtest-output head
 _PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H    ID.RESP_P PROTO SERVICE DURATION    ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY          ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  2018-03-24T17:25:15.208232Z CVimRo24ubbKqFvNu7 172.30.255.1 11        10.128.0.207 0         icmp  -       100.721937  1647088    0          OTH        -          -          0            -                44136     2882896       0         0             -
 conn  2018-03-24T17:15:20.630818Z CO0MhB2NCc08xWaly8 10.47.1.154  49814     134.71.3.17  443       tcp   -       1269.512465 1618740    12880888   OTH        -          -          0            ^dtADTatTtTtTtT  110169    7594230       111445    29872050      -
@@ -613,7 +613,7 @@ zq -f table 'not _path matches /conn|dns|files|ssl|x509|http|weird/' *.log.gz
 
 #### Output:
 
-```mdtest-output head:10
+```mdtest-output head
 _PATH        TS                          TS_DELTA   PEER GAPS ACKS    PERCENT_LOST
 capture_loss 2018-03-24T17:30:20.600852Z 900.000127 zeek 1400 1414346 0.098986
 capture_loss 2018-03-24T17:36:30.158766Z 369.557914 zeek 919  663314  0.138547
@@ -645,7 +645,7 @@ zq -f table 'not share_type=="DISK" _path=="smb_mapping"' *.log.gz
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 _PATH       TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H    ID.RESP_P PATH                     SERVICE NATIVE_FILE_SYSTEM SHARE_TYPE
 smb_mapping 2018-03-24T17:15:21.625534Z ChZRry3Z4kv3i25TJf 10.164.94.120 36315     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
 smb_mapping 2018-03-24T17:15:22.021668Z C0jyse1JYc82Acu4xl 10.164.94.120 34691     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
@@ -667,7 +667,7 @@ zq -f table 'not (share_type=="DISK" _path=="smb_mapping")' *.log.gz
 ```
 
 #### Output:
-```mdtest-output head:9
+```mdtest-output head
 _PATH        TS                          TS_DELTA   PEER GAPS ACKS    PERCENT_LOST
 capture_loss 2018-03-24T17:30:20.600852Z 900.000127 zeek 1400 1414346 0.098986
 capture_loss 2018-03-24T17:36:30.158766Z 369.557914 zeek 919  663314  0.138547
@@ -688,7 +688,7 @@ zq -f table '((not share_type=="DISK") and (service=="IPC")) _path=="smb_mapping
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 _PATH       TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H    ID.RESP_P PATH                     SERVICE NATIVE_FILE_SYSTEM SHARE_TYPE
 smb_mapping 2018-03-24T17:15:21.625534Z ChZRry3Z4kv3i25TJf 10.164.94.120 36315     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
 smb_mapping 2018-03-24T17:15:22.021668Z C0jyse1JYc82Acu4xl 10.164.94.120 34691     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE

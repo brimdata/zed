@@ -119,7 +119,7 @@ zq -f table 'count() by name | sort -r count' weird.log.gz
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 NAME                                        COUNT
 bad_HTTP_request                            11777
 line_terminated_with_single_CR              11734
@@ -217,7 +217,7 @@ zq -f table 'host=="www.bing.com" | methods:=collect(method) by uid | sort uid' 
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 UID                METHODS
 C1iilt2FG8PnyEl0bb GET,GET,POST,GET,GET,POST
 C31wi6XQB8h9igoa5  GET,GET,POST,POST,POST
@@ -381,7 +381,7 @@ zq -f table 'count() by id.resp_p | sort -r count' http.log.gz
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 ID.RESP_P COUNT
 80        134496
 8080      5204
@@ -451,7 +451,7 @@ zq -f table 'host=="www.bing.com" | methods:=union(method) by uid | sort uid' ht
 ```
 
 #### Output:
-```mdtest-output head:9
+```mdtest-output head
 UID                METHODS
 C1iilt2FG8PnyEl0bb GET,POST
 C31wi6XQB8h9igoa5  GET,POST

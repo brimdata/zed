@@ -77,7 +77,7 @@ block 4
 ~~~mdtest-command
 block 1
 ~~~
-~~~mdtest-output head:1
+~~~mdtest-output head
 block 2
 block 2 continued
 ~~~

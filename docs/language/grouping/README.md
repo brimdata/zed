@@ -47,7 +47,7 @@ zq -f table 'every 1m sum(orig_bytes) | sort -r ts' conn.log.gz
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 TS                   SUM
 2018-03-24T17:36:00Z 1443272
 2018-03-24T17:35:00Z 3851308
@@ -66,7 +66,7 @@ zq -f table 'every 0.5m count() | sort -r count' *.log.gz
 ```
 
 #### Output:
-```mdtest-output head:4
+```mdtest-output head
 TS                   COUNT
 2018-03-24T17:19:00Z 73512
 2018-03-24T17:16:30Z 59701
@@ -84,7 +84,7 @@ zq -f table 'every 1m30s max(id.resp_p) | sort -r ts' conn.log.gz
 ```
 
 #### Output:
-```mdtest-output head:4
+```mdtest-output head
 TS                   MAX
 2018-03-24T17:36:00Z 60008
 2018-03-24T17:34:30Z 60008
@@ -144,7 +144,7 @@ zq -f table 'sum(resp_bytes) by id.resp_h,id.resp_p  | sort -r sum' conn.log.gz
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 ID.RESP_H       ID.RESP_P SUM
 52.216.132.61   443       1781778597
 10.47.3.200     80        1544111786
@@ -171,7 +171,7 @@ zq -f table 'len(answers) > 0 | count() by id.resp_h,num_answers:=len(answers) |
 ```
 
 #### Output:
-```mdtest-output head:5
+```mdtest-output head
 ID.RESP_H       NUM_ANSWERS COUNT
 10.0.0.100      16          4
 216.239.34.10   16          2
