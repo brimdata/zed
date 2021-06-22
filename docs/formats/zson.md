@@ -554,7 +554,7 @@ An enum value has the form
 where the name is either an identifier or a quoted string and it uniquely
 corresponds to one of the enum symbols.
 
-Such a enum value must appear in a context where the enum type is known, i.e.,
+Such an enum value must appear in a context where the enum type is known, i.e.,
 with an explicit enum type decorator or within a complex type where the
 contained enum type is defined by the complex type's decorator.
 

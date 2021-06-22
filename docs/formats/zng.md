@@ -246,7 +246,7 @@ in the enumeration followed by the names of each symbol.
 ```
 `<nelem>` is encoded as `uvarint`.
 The names have the same UTF-8 format as record field names and are encoded
-as counted strings following the same convention as record fields.
+as counted strings following the same convention as record field names.
 
 #### 2.1.1.6 Map Typedef
 
