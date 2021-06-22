@@ -121,7 +121,7 @@ const notPresentIn = `
 `
 
 const notPresentOut = `
-{key:"key1",max:null (null)} (=0)
+{key:"key1",max:null}
 `
 
 const mixedIn = `

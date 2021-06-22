@@ -14,5 +14,5 @@ outputs:
     data: |
       {version:[1,null (int64)]}
       {version:[null (int64),2]}
-      {version:[null (null),null (null)] (=0)} (=1)
-      {version:[null (2=((null,string,int64))),"foo" (2),3 (2)] (=3)} (=4)
+      {version:[null,null]}
+      {version:[null (0=((null,string,int64))),"foo" (0),3 (0)] (=1)} (=2)

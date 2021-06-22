@@ -2,9 +2,8 @@ zed: put eq := (a == b), ne := (a != b), lt := (a < b), lte := (a <= b), gt := (
 
 input: |
   {a:1,b:null (int64)}
-  {a:1,b:null (null)}
+  {a:1,b:null}
 
 output: |
   {a:1,b:null (int64),eq:false,ne:true,lt:false,lte:false,gt:false,gte:false}
-  {a:1,b:null (null),eq:false,ne:true,lt:false,lte:false,gt:false,gte:false} (=0)
-
+  {a:1,b:null,eq:false,ne:true,lt:false,lte:false,gt:false,gte:false}

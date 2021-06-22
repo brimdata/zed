@@ -6,4 +6,4 @@ input: |
 
 output: |
   {a:"s",b:null (string),eq:false,ne:true}
-  {a:"s",b:null (null),eq:false,ne:true} (=0)
+  {a:"s",b:null,eq:false,ne:true}
