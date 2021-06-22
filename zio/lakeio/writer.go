@@ -124,9 +124,9 @@ func formatSegment(b *bytes.Buffer, seg *segment.Reference, prefix string, inden
 	b.WriteString("\n  ")
 	tab(b, indent)
 	b.WriteString(" from ")
-	b.WriteString(seg.First.String())
+	b.WriteString(zson.String(seg.First))
 	b.WriteString(" to ")
-	b.WriteString(seg.Last.String())
+	b.WriteString(zson.String(seg.Last))
 	b.WriteByte('\n')
 }
 
