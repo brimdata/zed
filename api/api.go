@@ -107,6 +107,10 @@ type CommitRequest struct {
 	Message string  `zng:"message"`
 }
 
+type SquashRequest struct {
+	Commits []ksuid.KSUID `json:"commits"`
+}
+
 type LogPostRequest struct {
 	Paths   []string        `json:"paths"`
 	StopErr bool            `json:"stop_err"`
@@ -136,6 +140,10 @@ type AddResponse struct {
 	Warnings []string    `zng:"warnings"`
 }
 
+type StagedCommit struct {
+	Commit ksuid.KSUID `zng:"commit"`
+}
+
 type IndexSearchRequest struct {
 	IndexName string   `json:"index_name"`
 	Patterns  []string `json:"patterns"`
@@ -155,4 +163,30 @@ type EventPoolCommit struct {
 
 type EventPool struct {
 	PoolID string `json:"pool_id"`
+}
+
+type QueryRequest struct {
+	Query string `json:"query"`
+}
+
+type QueryChannelSet struct {
+	ChannelID int `json:"channel_id" zng:"channel_id"`
+}
+
+type QueryChannelEnd struct {
+	ChannelID int `json:"channel_id" zng:"channel_id"`
+}
+
+type QueryError struct {
+	Error string `json:"error" zng:"error"`
+}
+
+type QueryStats struct {
+	StartTime  nano.Ts `json:"start_time" zng:"start_time"`
+	UpdateTime nano.Ts `json:"update_time" zng:"update_time"`
+	ScannerStats
+}
+
+type QueryWarning struct {
+	Warning string `zng:"warning"`
 }

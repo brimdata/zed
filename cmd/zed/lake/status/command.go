@@ -1,12 +1,16 @@
 package status
 
 import (
+	"errors"
 	"flag"
+	"fmt"
+	"os"
 
 	"github.com/brimdata/zed/cli/lakecli"
 	"github.com/brimdata/zed/cli/outputflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 )
@@ -59,5 +63,10 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer w.Close()
-	return pool.ScanStaging(ctx, w, ids)
+	err = pool.ScanStaging(ctx, w, ids)
+	if errors.Is(err, lake.ErrStagingEmpty) {
+		fmt.Fprintln(os.Stderr, "staging area is empty")
+		err = nil
+	}
+	return err
 }

@@ -1,4 +1,4 @@
-package tests
+package mdtest
 
 import (
 	"path/filepath"

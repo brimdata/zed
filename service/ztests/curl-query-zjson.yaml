@@ -1,0 +1,25 @@
+script: |
+  source service.sh
+  zapi create -q -p test
+  zapi load -q -p test data.zson
+  curl -X POST \
+    -H "Accept: application/x-zjson" \
+    -d '{"query": "from test"}' \
+    http://$ZED_LAKE_HOST/query \
+    | zq -f ndjson 'kind != "QueryStats"' -
+
+inputs:
+  - name: service.sh
+    source: service.sh
+  - name: data.zson
+    data: |
+      {ts: 1}
+      {ts: 2}
+
+outputs:
+  - name: stdout
+    data: |
+      {"kind":"QueryChannelSet","value":{"channel_id":0}}
+      {"kind":"Object","value":{"schema":"23","types":[{"kind":"typedef","name":"23","type":{"fields":[{"name":"ts","type":{"kind":"primitive","name":"int64"}}],"kind":"record"}}],"values":["2"]}}
+      {"kind":"Object","value":{"schema":"23","values":["1"]}}
+      {"kind":"QueryChannelEnd","value":{"channel_id":0}}

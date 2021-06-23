@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -p logs -q
-  zed lake drop -p logs -q
+  zed lake drop -f -p logs -q
   zed lake log -p logs
 
 inputs:

@@ -104,7 +104,7 @@ func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, par
 	switch t := typ.(type) {
 	default:
 		f.startColorPrimitive(typ)
-		f.build(typ.ZSONOf(bytes))
+		f.build(typ.Format(bytes))
 		f.endColor()
 	case *zng.TypeAlias:
 		err = f.formatValue(indent, t.Type, bytes, known, parentImplied, false)
@@ -119,7 +119,7 @@ func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, par
 	case *zng.TypeMap:
 		null, err = f.formatMap(indent, t, bytes, known, parentImplied)
 	case *zng.TypeEnum:
-		f.build(t.ZSONOf(bytes))
+		f.build(t.Format(bytes))
 	case *zng.TypeOfType:
 		f.startColorPrimitive(zng.TypeType)
 		f.buildf("(%s)", string(bytes))
@@ -138,7 +138,7 @@ func (f *Formatter) nextInternalType() string {
 }
 
 func (f *Formatter) decorate(typ zng.Type, known, null bool) {
-	if known || (!null && f.isImplied(typ)) {
+	if known || (!(null && typ != zng.TypeNull) && f.isImplied(typ)) {
 		return
 	}
 	f.startColor(color.Gray(200))
@@ -174,7 +174,7 @@ func (f *Formatter) formatRecord(indent int, typ *zng.TypeRecord, bytes zcode.By
 	it := bytes.Iter()
 	for _, field := range typ.Columns {
 		if it.Done() {
-			return &zng.RecordTypeError{Name: string(field.Name), Type: field.Type.ZSON(), Err: zng.ErrMissingField}
+			return &zng.RecordTypeError{Name: string(field.Name), Type: field.Type.String(), Err: zng.ErrMissingField}
 		}
 		bytes, _, err := it.Next()
 		if err != nil {
@@ -320,7 +320,7 @@ func (f *Formatter) formatType(typ zng.Type) {
 		return
 	}
 	if typ.ID() < zng.IDTypeDef {
-		name := typ.ZSON()
+		name := typ.String()
 		f.typedefs[typ] = name
 		f.build(name)
 		return
@@ -370,7 +370,7 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 	case *zng.TypeOfType:
 		formatType(&f.builder, make(typemap), typ)
 	default:
-		panic("unknown case in formatTypeBody(): " + typ.ZSON())
+		panic("unknown case in formatTypeBody(): " + typ.String())
 	}
 	return nil
 }
@@ -401,17 +401,11 @@ func (f *Formatter) formatTypeUnion(typ *zng.TypeUnion) {
 
 func (f *Formatter) formatTypeEnum(typ *zng.TypeEnum) error {
 	f.build("<")
-	inner := typ.Type
-	for k, elem := range typ.Elements {
+	for k, s := range typ.Symbols {
 		if k > 0 {
 			f.build(",")
 		}
-		f.buildf("%s:", zng.QuotedName(elem.Name))
-		known := k != 0
-		const parentImplied = true
-		if err := f.formatValue(0, inner, elem.Value, known, parentImplied, true); err != nil {
-			return err
-		}
+		f.buildf("%s", zng.QuotedName(s))
 	}
 	f.build(">")
 	return nil
@@ -534,14 +528,14 @@ func formatType(b *strings.Builder, typedefs typemap, typ zng.Type) {
 		b.WriteByte(')')
 	case *zng.TypeEnum:
 		b.WriteByte('<')
-		for k, elem := range t.Elements {
+		for k, s := range t.Symbols {
 			if k > 0 {
 				b.WriteByte(',')
 			}
-			b.WriteString(zng.QuotedName(elem.Name))
+			b.WriteString(zng.QuotedName(s))
 		}
 		b.WriteByte('>')
 	default:
-		b.WriteString(typ.ZSON())
+		b.WriteString(typ.String())
 	}
 }

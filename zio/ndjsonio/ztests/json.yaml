@@ -9,4 +9,4 @@ input: |
 output: |
   {string1:"value1",string2:"value1",int1:4,bool1:true}
   {int1:4,bool1:true,string2:"value2",string1:"value2"}
-  {obj1:{null1:null (null)} (=0)} (=1)
+  {obj1:{null1:null}}

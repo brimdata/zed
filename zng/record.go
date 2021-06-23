@@ -87,7 +87,7 @@ func (t *TypeRecord) createLUT() {
 	}
 }
 
-func (t *TypeRecord) ZSON() string {
+func (t *TypeRecord) String() string {
 	var b strings.Builder
 	b.WriteString("{")
 	sep := ""
@@ -95,14 +95,14 @@ func (t *TypeRecord) ZSON() string {
 		b.WriteString(sep)
 		b.WriteString(QuotedName(c.Name))
 		b.WriteByte(':')
-		b.WriteString(c.Type.ZSON())
+		b.WriteString(c.Type.String())
 		sep = ","
 	}
 	b.WriteString("}")
 	return b.String()
 }
 
-func (t *TypeRecord) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeRecord) Format(zv zcode.Bytes) string {
 	var b strings.Builder
 	b.WriteString("{")
 	sep := ""
@@ -118,7 +118,7 @@ func (t *TypeRecord) ZSONOf(zv zcode.Bytes) string {
 		if val == nil {
 			b.WriteString("null")
 		} else {
-			b.WriteString(c.Type.ZSONOf(val))
+			b.WriteString(c.Type.Format(val))
 		}
 		sep = ","
 	}

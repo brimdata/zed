@@ -21,7 +21,7 @@ func (t *TypeArray) ID() int {
 }
 
 func (t *TypeArray) String() string {
-	return fmt.Sprintf("array[%s]", t.Type)
+	return fmt.Sprintf("[%s]", t.Type)
 }
 
 func (t *TypeArray) Marshal(zv zcode.Bytes) (interface{}, error) {
@@ -38,11 +38,7 @@ func (t *TypeArray) Marshal(zv zcode.Bytes) (interface{}, error) {
 	return vals, nil
 }
 
-func (t *TypeArray) ZSON() string {
-	return fmt.Sprintf("[%s]", t.Type.ZSON())
-}
-
-func (t *TypeArray) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeArray) Format(zv zcode.Bytes) string {
 	var b strings.Builder
 	sep := ""
 	b.WriteByte('[')
@@ -56,7 +52,7 @@ func (t *TypeArray) ZSONOf(zv zcode.Bytes) string {
 		if val == nil {
 			b.WriteString("null")
 		} else {
-			b.WriteString(t.Type.ZSONOf(val))
+			b.WriteString(t.Type.Format(val))
 		}
 		sep = ","
 	}

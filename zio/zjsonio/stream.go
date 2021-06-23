@@ -57,7 +57,7 @@ func (s *Stream) typeID(typ zng.Type) (string, zed.Type) {
 		return id, nil
 	}
 	if zng.TypeID(typ) < zng.IDTypeDef {
-		id := typ.ZSON()
+		id := typ.String()
 		s.encoder[typ] = id
 		return id, nil
 	}
@@ -106,8 +106,6 @@ func (s *Stream) hasTypeType(typ zng.Type) bool {
 				break
 			}
 		}
-	case *zng.TypeEnum:
-		b = s.hasTypeType(t.Type)
 	case *zng.TypeOfType:
 		b = true
 	default:

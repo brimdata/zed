@@ -27,7 +27,7 @@ func TestRecordTypeCheck(t *testing.T) {
 		// Don't normalize.
 		b.EndContainer()
 		r.Bytes = b.Bytes()
-		assert.EqualError(t, r.TypeCheck(), "<set element> (set[string]): duplicate element")
+		assert.EqualError(t, r.TypeCheck(), "<set element> (|[string]|): duplicate element")
 	})
 	t.Run("set/error/unsorted-elements", func(t *testing.T) {
 		var b zcode.Builder
@@ -38,7 +38,7 @@ func TestRecordTypeCheck(t *testing.T) {
 		// Don't normalize.
 		b.EndContainer()
 		r.Bytes = b.Bytes()
-		assert.EqualError(t, r.TypeCheck(), "<set element> (set[string]): elements not sorted")
+		assert.EqualError(t, r.TypeCheck(), "<set element> (|[string]|): elements not sorted")
 	})
 	t.Run("set/primitive-elements", func(t *testing.T) {
 		var b zcode.Builder

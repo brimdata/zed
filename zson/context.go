@@ -164,14 +164,14 @@ func (c *Context) LookupTypeUnion(types []zng.Type) *zng.TypeUnion {
 	return typ
 }
 
-func (c *Context) LookupTypeEnum(elemType zng.Type, elements []zng.Element) *zng.TypeEnum {
-	key := FormatType(&zng.TypeEnum{Type: elemType, Elements: elements})
+func (c *Context) LookupTypeEnum(symbols []string) *zng.TypeEnum {
+	key := FormatType(&zng.TypeEnum{Symbols: symbols})
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	if typ, ok := c.toType[key]; ok {
 		return typ.(*zng.TypeEnum)
 	}
-	typ := zng.NewTypeEnum(c.nextIDWithLock(), elemType, elements)
+	typ := zng.NewTypeEnum(c.nextIDWithLock(), symbols)
 	c.enterWithLock(typ)
 	return typ
 }

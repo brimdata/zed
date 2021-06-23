@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
+	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/journal"
@@ -26,6 +28,39 @@ import (
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 )
+
+func handleQuery(c *Core, w *ResponseWriter, r *Request) {
+	var req api.QueryRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	query, err := compiler.ParseProc(req.Query)
+	if err != nil {
+		w.Error(zqe.ErrInvalid(err))
+		return
+	}
+	noctrl, ok := r.BoolFromQuery("noctrl", w)
+	if !ok {
+		return
+	}
+	format, err := api.MediaTypeToFormat(r.Header.Get("Accept"))
+	if err != nil {
+		if !errors.Is(err, api.ErrMediaTypeUnspecified) {
+			w.Error(zqe.ErrInvalid(err))
+			return
+		}
+		format = "zjson"
+	}
+	d, err := queryio.NewDriver(zio.NopCloser(w), format, !noctrl)
+	if err != nil {
+		w.Error(err)
+	}
+	defer d.Close()
+	err = driver.RunWithLakeAndStats(r.Context(), d, query, zson.NewContext(), c.root, nil, r.Logger, 0)
+	if err != nil && !errors.Is(err, journal.ErrEmpty) {
+		d.Error(err)
+	}
+}
 
 func handleASTPost(c *Core, w *ResponseWriter, r *Request) {
 	var req api.ASTRequest
@@ -286,6 +321,58 @@ func handleCommit(c *Core, w *ResponseWriter, r *Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
+func handleDelete(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	var args []string
+	if !r.Unmarshal(w, &args) {
+		return
+	}
+	tags, err := api.ParseKSUIDs(args)
+	if err != nil {
+		w.Error(zqe.ErrInvalid(err))
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	ids, err := pool.LookupTags(r.Context(), tags)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	commit, err := pool.Delete(r.Context(), ids)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	w.Marshal(api.StagedCommit{commit})
+}
+
+func handleSquash(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	var req api.SquashRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	commit, err := pool.Squash(r.Context(), req.Commits)
+	if err != nil {
+		w.Error(err)
+	}
+	w.Marshal(api.StagedCommit{commit})
+}
+
 func handleScanStaging(c *Core, w *ResponseWriter, r *Request) {
 	id, ok := r.PoolID(w)
 	if !ok {
@@ -303,20 +390,13 @@ func handleScanStaging(c *Core, w *ResponseWriter, r *Request) {
 			return
 		}
 	}
-	if len(ids) == 0 {
-		ids, err = pool.ListStagedCommits(r.Context())
-		if err != nil {
-			w.Error(err)
-			return
-		}
-		if len(ids) == 0 {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-	}
 	zw := w.ZioWriter()
 	defer zw.Close()
 	if err := pool.ScanStaging(r.Context(), zw, ids); err != nil {
+		if errors.Is(err, lake.ErrStagingEmpty) {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		w.Error(err)
 		return
 	}

@@ -1,18 +1,18 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -p POOL
-  a=$(zed lake load -p POOL a.zson | head -1 | awk '{print $1}')
-  b=$(zed lake load -p POOL b.zson | head -1 | awk '{print $1}')
-  zed lake query -z "from POOL | sort ."
-  id=$(zed lake delete -p POOL $a | head -1 | awk '{print $1}')
-  zed lake commit -p POOL -q $id
+  zed lake create -q -p test
+  a=$(zed lake load -p test a.zson | head -1 | awk '{print $1}')
+  b=$(zed lake load -p test b.zson | head -1 | awk '{print $1}')
+  zed lake query -z "from test | sort ."
+  id=$(zed lake delete -p test $a | head -1 | awk '{print $1}')
+  zed lake commit -p test -q $id
   echo ===
-  zed lake query -z "from POOL | sort ."
-  id=$(zed lake delete -p POOL $b | head -1 | awk '{print $1}')
-  zed lake commit -p POOL -q $id
+  zed lake query -z "from test | sort ."
+  id=$(zed lake delete -p test $b | head -1 | awk '{print $1}')
+  zed lake commit -p test -q $id
   echo ===
-  zed lake query -z "from POOL | sort ."
+  zed lake query -z "from test | sort ."
 
 
 inputs:

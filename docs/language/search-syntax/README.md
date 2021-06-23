@@ -28,12 +28,12 @@ we'll sometimes make use of the `-z` option to output the text-based
 [ZSON](../../formats/zson.md) format, which is readable at the command line.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -z '*' conn.log.gz
 ```
 
 #### Output:
-```zq-output head:4
+```mdtest-output head
 {_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl" (bstring),id:{orig_h:10.164.94.120,orig_p:39681 (port=(uint16)),resp_h:10.47.3.155,resp_p:3389 (port)} (=0),proto:"tcp" (=zenum),service:null (bstring),duration:4.266ms,orig_bytes:97 (uint64),resp_bytes:19 (uint64),conn_state:"RSTR" (bstring),local_orig:null (bool),local_resp:null (bool),missed_bytes:0 (uint64),history:"ShADTdtr" (bstring),orig_pkts:10 (uint64),orig_ip_bytes:730 (uint64),resp_pkts:6 (uint64),resp_ip_bytes:342 (uint64),tunnel_parents:null (1=(|[bstring]|))} (=2)
 {_path:"conn",ts:2018-03-24T17:15:21.411148Z,uid:"CXWfTK3LRdiuQxBbM6",id:{orig_h:10.47.25.80,orig_p:50817,resp_h:10.128.0.218,resp_p:23189},proto:"tcp",service:null,duration:486us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
 {_path:"conn",ts:2018-03-24T17:15:21.926018Z,uid:"CM59GGQhNEoKONb5i",id:{orig_h:10.47.25.80,orig_p:50817,resp_h:10.128.0.218,resp_p:23189},proto:"tcp",service:null,duration:538us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
@@ -61,12 +61,12 @@ zq -z '* | cut server_tree_name' ntlm.log.gz
 
 #### Example:
 
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -z 'cut server_tree_name' ntlm.log.gz
 ```
 
 #### Output:
-```zq-output head:3
+```mdtest-output head
 {server_tree_name:"factory.oompa.loompa" (bstring)} (=0)
 {server_tree_name:"factory.oompa.loompa"} (0)
 {server_tree_name:"jerry.land"} (0)
@@ -97,12 +97,12 @@ appears within `string`-type fields (such as the field `certificate.subject` in
 > matching field values.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table '10.150.0.85' *.log.gz
 ```
 
 #### Output:
-```zq-output head:10
+```mdtest-output head
 _PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P PROTO SERVICE DURATION  ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY         ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  2018-03-24T17:15:22.18798Z  CFis4J1xm9BOgtib34 10.47.8.10   56800     10.150.0.85 443       tcp   -       1.000534  31         77         SF         -          -          0            ^dtAfDTFr       8         382           10        554           -
 conn  2018-03-24T17:15:25.527535Z CnvVUp1zg3fnDKrlFk 10.47.27.186 58665     10.150.0.85 443       tcp   -       1.000958  31         77         SF         -          -          0            ^dtAfDFTr       8         478           10        626           -
@@ -138,12 +138,12 @@ search. If typed bare as our Zed query, we'd experience two problems:
 However, wrapping in quotes gives the desired result.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table '"O=Internet Widgits"' *.log.gz
 ```
 
 #### Output:
-```zq-output head:10
+```mdtest-output head
 _PATH  TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P FUID               FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                              SUB                                                          SRC          DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
 notice 2018-03-24T17:15:32.521729Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
 _PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P VERSION CIPHER                                CURVE  SERVER_NAME RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS   CLIENT_CERT_CHAIN_FUIDS SUBJECT                                                      ISSUER                                                       CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
@@ -169,12 +169,12 @@ hostnames that include the letters `cdn` in the middle of them, such as
 `www.cdn.amazon.com` or `www.herokucdn.com`.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'www.*cdn*.com' *.log.gz
 ```
 
 #### Output:
-```zq-output head:10
+```mdtest-output head
 _PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY              QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                                                                                                                                                                                                                                                                                      TTLS                                REJECTED
 dns   2018-03-24T17:16:24.038839Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   11089    0.000785 www.amazon.com     1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                              578,57,57                           F
 dns   2018-03-24T17:16:24.038843Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   11089    0.000784 www.amazon.com     1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                              578,57,57                           F
@@ -198,12 +198,12 @@ matches records that contain the substring `CN=*` as is often found in the
 start of certificate subjects.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table '"CN=*"' *.log.gz
 ```
 
 #### Output:
-```zq-output head:10
+```mdtest-output head
 _PATH  TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H   ID.RESP_P FUID              FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                                             SUB                                                                                          SRC        DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
 notice 2018-03-24T17:16:58.268179Z CVkrLo2Wjo4r51ZDZ7 10.47.8.10 56808     64.4.54.254 443       FYwv52OzGGIJPop3l -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (unable to get local issuer certificate) CN=*.vortex-win.data.microsoft.com,OU=Microsoft,O=Microsoft Corporation,L=Redmond,ST=WA,C=US 10.47.8.10 64.4.54.254 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
 _PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H       ID.RESP_P VERSION CIPHER                                        CURVE     SERVER_NAME                                             RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS                                                            CLIENT_CERT_CHAIN_FUIDS                                  SUBJECT                                                                                                                                                  ISSUER                                                                                                                                   CLIENT_SUBJECT                                             CLIENT_ISSUER                                            VALIDATION_STATUS
@@ -242,12 +242,12 @@ But if you're only interested in records having to do with "ad" or "tag"
 services, the following regexp search can accomplish this.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table '/www.google(ad|tag)services.com/' *.log.gz
 ```
 
 #### Output:
-```zq-output head:10
+```mdtest-output head
 _PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                     QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                             TTLS      REJECTED
 dns   2018-03-24T17:15:46.07484Z  CYjLXM1Yp1ZuuVJQV1 10.47.6.154 12478     10.10.6.1  53        udp   49089    0.001342 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                             0         F
 dns   2018-03-24T17:15:46.074842Z CYjLXM1Yp1ZuuVJQV1 10.47.6.154 12478     10.10.6.1  53        udp   49089    0.001375 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                             0         F
@@ -273,13 +273,13 @@ will only match records containing the field called `uid` where it is set to
 the precise string value `ChhAfsfyuz4n2hFMe`.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'uid=="ChhAfsfyuz4n2hFMe"' *.log.gz
 ```
 
 #### Output:
 
-```zq-output
+```mdtest-output
 _PATH TS                          UID               ID.ORIG_H    ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  2018-03-24T17:36:30.158539Z ChhAfsfyuz4n2hFMe 10.239.34.35 56602     10.47.6.51 873       tcp   -       0.000004 0          0          S0         -          -          0            S       2         88            0         0             -
  ```
@@ -293,13 +293,13 @@ we match records in which the values in the fields for originating and
 responding ports are the same.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'id.orig_p==id.resp_p' conn.log.gz
 ```
 
 #### Output:
 
-```zq-output head:4
+```mdtest-output head
 _PATH TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P PROTO SERVICE DURATION   ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  2018-03-24T17:15:22.942327Z C6QN8gJLaOXw0GiA6  10.47.24.81   60004     10.128.0.238    60004     tcp   -       0.003538   0          0          SF         -          -          0            ShAafF  8         344           8         344           -
 conn  2018-03-24T17:15:38.523165Z CzFhMc47JPCOG4Z9E9 10.47.3.142   137       10.164.94.120   137       udp   dns     2.99937    300        0          S0         -          -          0            D       6         468           0         0             -
@@ -317,12 +317,12 @@ in two ways.
    our sample data are of `string` type, since it logs an HTTP header that is
    often a hostname or an IP address.
 
-   ```zq-command zed-sample-data/zeek-default
+   ```mdtest-command zed-sample-data/zeek-default
    zq -z 'count() by host | sort count,host' http.log.gz
    ```
 
    #### Output:
-   ```zq-output head:3
+   ```mdtest-output head
    {host:"0988253c66242502070643933dd49e88.clo.footprintdns.com" (bstring),count:1 (uint64)} (=0)
    {host:"10.47.21.1",count:1} (0)
    {host:"10.47.21.80/..",count:1} (0)
@@ -358,25 +358,25 @@ following example produces no output.
 
 #### Example:
 
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'certificate.subject=="Widgits"' *.log.gz
 ```
 
 #### Output:
-```zq-output
+```mdtest-output
 ```
 
 To achieve this with a field/value match, we enter `matches` before specifying
 a [glob wildcard](#glob-wildcards).
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'certificate.subject matches *Widgits*' *.log.gz
 ```
 
 #### Output:
 
-```zq-output head:5
+```mdtest-output head
 _PATH TS                          ID                 CERTIFICATE.VERSION CERTIFICATE.SERIAL CERTIFICATE.SUBJECT                                          CERTIFICATE.ISSUER                                           CERTIFICATE.NOT_VALID_BEFORE CERTIFICATE.NOT_VALID_AFTER CERTIFICATE.KEY_ALG CERTIFICATE.SIG_ALG     CERTIFICATE.KEY_TYPE CERTIFICATE.KEY_LENGTH CERTIFICATE.EXPONENT CERTIFICATE.CURVE SAN.DNS SAN.URI SAN.EMAIL SAN.IP BASIC_CONSTRAINTS.CA BASIC_CONSTRAINTS.PATH_LEN
 x509  2018-03-24T17:15:32.519299Z FZW30y2Nwc9i0qmdvg 3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 2018-03-22T14:22:37Z         2045-08-06T14:20:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
 x509  2018-03-24T17:15:42.635094Z Fo9ltu1O8DGE0KAgC  3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 2018-03-22T14:22:37Z         2045-08-06T14:20:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
@@ -388,12 +388,12 @@ x509  2018-03-24T17:15:47.493786Z FdBWBA3eODh6nHFt82 3                   C5F8CDF
 [Regular expressions](#regular-expressions) can also be used with `matches`.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'uri matches /scripts\/waE8_BuNCEKM.(pl|sh)/' http.log.gz
 ```
 
 #### Output:
-```zq-output
+```mdtest-output
 _PATH TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H   ID.RESP_P TRANS_DEPTH METHOD HOST        URI                         REFERRER VERSION USER_AGENT                                                      ORIGIN REQUEST_BODY_LEN RESPONSE_BODY_LEN STATUS_CODE STATUS_MSG INFO_CODE INFO_MSG TAGS    USERNAME PASSWORD PROXIED ORIG_FUIDS ORIG_FILENAMES ORIG_MIME_TYPES RESP_FUIDS         RESP_FILENAMES RESP_MIME_TYPES
 http  2018-03-24T17:17:41.67439Z  Cq3Knz2CEXSJB8ktj  10.164.94.120 40913     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.sh    -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               F8Jbkj1K2qm2xUR1Bj -              text/html
 http  2018-03-24T17:17:42.427215Z C5yUcM3CEFl86YIfY7 10.164.94.120 34369     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.pl    -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               F5M3Jc4B8xeR13JrP3 -              text/html
@@ -414,12 +414,12 @@ multiple responses that may have been returned for a query. To determine which
 responses included hostname `e5803.b.akamaiedge.net`, we'll use `in`.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table '"e5803.b.akamaiedge.net" in answers' dns.log.gz
 ```
 
 #### Output:
-```zq-output
+```mdtest-output
 _PATH TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                               TTLS         REJECTED
 dns   2018-03-24T17:20:25.827504Z CATruWimwi1KR0gec  10.47.3.10 63576     10.0.0.100 53        udp   16678    0.072468 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17936,20 F
 dns   2018-03-24T17:20:25.827506Z CATruWimwi1KR0gec  10.47.3.10 63576     10.0.0.100 53        udp   16678    0.072468 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17936,20 F
@@ -438,12 +438,12 @@ However, the `query` field does exist in our `dns` records, so the following
 example does return matches.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'query in answers' dns.log.gz
 ```
 
 #### Output:
-```zq-output
+```mdtest-output
 _PATH TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY      QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS    TTLS REJECTED
 dns   2018-03-24T17:24:06.142423Z CCd3Uu1nPHikbjizuc 10.47.7.10 53280     10.0.0.100 53        udp   25252    0.000868 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
 dns   2018-03-24T17:24:06.142426Z CCd3Uu1nPHikbjizuc 10.47.7.10 53280     10.0.0.100 53        udp   25252    0.000869 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
@@ -455,12 +455,12 @@ Determining whether the value of a Zeek `ip`-type field is contained within a
 subnet also uses `in`.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'id.resp_h in 208.78.0.0/16' conn.log.gz
 ```
 
 #### Output:
-```zq-output
+```mdtest-output
 _PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H     ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  2018-03-24T17:32:44.212387Z CngWP41W7wzyQtMG4k 10.47.26.25 59095     208.78.71.136 53        udp   dns     0.003241 72         402        SF         -          -          0            Dd      2         128           2         458           -
 conn  2018-03-24T17:32:52.32455Z  CgZ2D84oSTX0Xw2fEl 10.47.26.25 59095     208.78.70.136 53        udp   dns     0.004167 144        804        SF         -          -          0            Dd      4         256           4         916           -
@@ -477,12 +477,12 @@ In addition to testing for equality via `==` and finding patterns via
 For example, the following search finds connections that have transferred many bytes.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'orig_bytes > 1000000' *.log.gz
 ```
 
 #### Output:
-```zq-output
+```mdtest-output
 _PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H    ID.RESP_P PROTO SERVICE DURATION    ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY          ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  2018-03-24T17:25:15.208232Z CVimRo24ubbKqFvNu7 172.30.255.1 11        10.128.0.207 0         icmp  -       100.721937  1647088    0          OTH        -          -          0            -                44136     2882896       0         0             -
 conn  2018-03-24T17:15:20.630818Z CO0MhB2NCc08xWaly8 10.47.1.154  49814     134.71.3.17  443       tcp   -       1269.512465 1618740    12880888   OTH        -          -          0            ^dtADTatTtTtTtT  110169    7594230       111445    29872050      -
@@ -496,12 +496,12 @@ such as this search that finds DNS requests that were issued for hostnames at
 the high end of the alphabet.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'query > "zippy"' *.log.gz
 ```
 
 #### Output:
-```zq-output
+```mdtest-output
 _PATH TS                          UID               ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                                                    QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                TTLS       REJECTED
 dns   2018-03-24T17:30:09.84174Z  Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001694 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
 dns   2018-03-24T17:30:09.841742Z Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001697 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
@@ -553,12 +553,12 @@ couple `ssl` records. You could quickly isolate just the SSL records by
 leveraging this implicit `and`.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'www.*cdn*.com _path=="ssl"' *.log.gz
 ```
 
 #### Output:
-```zq-output
+```mdtest-output
 _PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H    ID.RESP_P VERSION CIPHER                                CURVE     SERVER_NAME       RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS                                                            CLIENT_CERT_CHAIN_FUIDS SUBJECT            ISSUER                                  CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
 ssl   2018-03-24T17:23:00.244457Z CUG0fiQAzL4rNWxai  10.47.2.100 36150     52.85.83.228 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FXKmyTbr7HlvyL1h8,FADhCTvkq1ILFnD3j,FoVjYR16c3UIuXj4xk,FmiRYe1P53KOolQeVi   (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
 ssl   2018-03-24T17:24:00.189735Z CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FuW2cZ3leE606wXSia,Fu5kzi1BUwnF0bSCsd,FyTViI32zPvCmNXgSi,FwV6ff3JGj4NZcVPE4 (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
@@ -576,13 +576,13 @@ For example, we can revisit two of our previous example searches that each only
 returned a few records, searching now with `or` to see them all at once.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'orig_bytes > 1000000 or query > "zippy"' *.log.gz
 ```
 
 #### Output:
 
-```zq-output head:10
+```mdtest-output head
 _PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H    ID.RESP_P PROTO SERVICE DURATION    ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY          ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
 conn  2018-03-24T17:25:15.208232Z CVimRo24ubbKqFvNu7 172.30.255.1 11        10.128.0.207 0         icmp  -       100.721937  1647088    0          OTH        -          -          0            -                44136     2882896       0         0             -
 conn  2018-03-24T17:15:20.630818Z CO0MhB2NCc08xWaly8 10.47.1.154  49814     134.71.3.17  443       tcp   -       1269.512465 1618740    12880888   OTH        -          -          0            ^dtADTatTtTtTtT  110169    7594230       111445    29872050      -
@@ -607,13 +607,13 @@ some of the less-common Zeek record types by inverting the logic of a
 [regexp match](#regular-expressions).
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'not _path matches /conn|dns|files|ssl|x509|http|weird/' *.log.gz
 ```
 
 #### Output:
 
-```zq-output head:10
+```mdtest-output head
 _PATH        TS                          TS_DELTA   PEER GAPS ACKS    PERCENT_LOST
 capture_loss 2018-03-24T17:30:20.600852Z 900.000127 zeek 1400 1414346 0.098986
 capture_loss 2018-03-24T17:36:30.158766Z 369.557914 zeek 919  663314  0.138547
@@ -640,12 +640,12 @@ all `smb_mapping` records in which the `share_type` field is set to a value
 other than `DISK`.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'not share_type=="DISK" _path=="smb_mapping"' *.log.gz
 ```
 
 #### Output:
-```zq-output head:5
+```mdtest-output head
 _PATH       TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H    ID.RESP_P PATH                     SERVICE NATIVE_FILE_SYSTEM SHARE_TYPE
 smb_mapping 2018-03-24T17:15:21.625534Z ChZRry3Z4kv3i25TJf 10.164.94.120 36315     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
 smb_mapping 2018-03-24T17:15:22.021668Z C0jyse1JYc82Acu4xl 10.164.94.120 34691     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
@@ -662,12 +662,12 @@ _other than_ `smb_mapping` records that have the value of their `share_type`
 field set to `DISK`.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table 'not (share_type=="DISK" _path=="smb_mapping")' *.log.gz
 ```
 
 #### Output:
-```zq-output head:9
+```mdtest-output head
 _PATH        TS                          TS_DELTA   PEER GAPS ACKS    PERCENT_LOST
 capture_loss 2018-03-24T17:30:20.600852Z 900.000127 zeek 1400 1414346 0.098986
 capture_loss 2018-03-24T17:36:30.158766Z 369.557914 zeek 919  663314  0.138547
@@ -683,12 +683,12 @@ conn  2018-03-24T17:15:23.205187Z CBrzd94qfowOqJwCHa 10.47.25.80    50813     10
 Parentheses can also be nested.
 
 #### Example:
-```zq-command zed-sample-data/zeek-default
+```mdtest-command zed-sample-data/zeek-default
 zq -f table '((not share_type=="DISK") and (service=="IPC")) _path=="smb_mapping"' *.log.gz
 ```
 
 #### Output:
-```zq-output head:5
+```mdtest-output head
 _PATH       TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H    ID.RESP_P PATH                     SERVICE NATIVE_FILE_SYSTEM SHARE_TYPE
 smb_mapping 2018-03-24T17:15:21.625534Z ChZRry3Z4kv3i25TJf 10.164.94.120 36315     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
 smb_mapping 2018-03-24T17:15:22.021668Z C0jyse1JYc82Acu4xl 10.164.94.120 34691     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE

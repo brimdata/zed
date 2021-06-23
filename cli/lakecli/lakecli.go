@@ -8,7 +8,7 @@ import (
 	"strconv"
 
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/cmd/zed/query"
+	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
@@ -39,7 +39,7 @@ type Root interface {
 	DeleteIndices(context.Context, []ksuid.KSUID) ([]index.Index, error)
 	LookupIndices(context.Context, []ksuid.KSUID) ([]index.Index, error)
 	ScanIndex(context.Context, zio.Writer, []ksuid.KSUID) error
-	Query(context.Context, zio.Writer, query.Includes, query.Includes) (zbuf.ScannerStats, error)
+	Query(context.Context, driver.Driver, string) (zbuf.ScannerStats, error)
 }
 
 type Pool interface {
@@ -52,7 +52,7 @@ type Pool interface {
 	ScanLog(ctx context.Context, w zio.Writer, head, tail journal.ID) error
 	ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error
 	ScanSegments(ctx context.Context, w zio.Writer, at string, partitions bool, span extent.Span) error
-	Squash(ctx context.Context, ids []ksuid.KSUID, commit api.CommitRequest) (ksuid.KSUID, error)
+	Squash(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, error)
 	Index(ctx context.Context, rules []index.Index, ids []ksuid.KSUID) (ksuid.KSUID, error)
 }
 

@@ -85,10 +85,10 @@ func TestSearchNoCtrl(t *testing.T) {
 		Span: nano.MaxSpan,
 		Dir:  -1,
 	}
-	body, err := conn.SearchRaw(context.Background(), req, map[string]string{"noctrl": "true"})
+	res, err := conn.SearchRaw(context.Background(), req, map[string]string{"noctrl": "true"})
 	require.NoError(t, err)
 	var msgs []interface{}
-	r := client.NewZngSearch(body)
+	r := client.NewZngSearch(res.Body)
 	r.SetOnCtrl(func(i interface{}) {
 		msgs = append(msgs, i)
 	})
@@ -123,6 +123,29 @@ func TestSearchStats(t *testing.T) {
 		RecordsRead:    2,
 		RecordsMatched: 1,
 	})
+}
+
+func TestQuery(t *testing.T) {
+	src := `
+{_path:"b",ts:1970-01-01T00:00:01Z}
+{_path:"a",ts:1970-01-01T00:00:01Z}
+`
+	expected := `{_path:"b",ts:1970-01-01T00:00:01Z}
+`
+	_, conn := newCore(t)
+	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	conn.TestLoad(pool.ID, strings.NewReader(src))
+	assert.Equal(t, expected, conn.TestQuery("from test | _path == 'b'"))
+}
+
+func TestQueryEmptyPool(t *testing.T) {
+	_, conn := newCore(t)
+	conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	res, err := conn.Query(context.Background(), "from test")
+	require.NoError(t, err)
+	b, err := io.ReadAll(res.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "", string(b))
 }
 
 func TestGroupByReverse(t *testing.T) {
@@ -271,7 +294,7 @@ func TestPoolPut(t *testing.T) {
 	assert.Equal(t, "new_name", info.Name)
 }
 
-func TestPoolDelete(t *testing.T) {
+func TestPoolRemote(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
@@ -416,7 +439,7 @@ func TestLogPostPath(t *testing.T) {
 		Paths: []string{log1, log2},
 	})
 	require.NoError(t, err)
-	_, err = io.Copy(io.Discard, r)
+	_, err = io.Copy(io.Discard, r.Body)
 	require.NoError(t, err)
 	const expected = `
 {ts:1970-01-01T00:00:02Z,uid:"uid2" (bstring)} (=0)
@@ -500,9 +523,9 @@ func search(t *testing.T, conn *testClient, pool ksuid.KSUID, prog string) (stri
 		Span: nano.MaxSpan,
 		Dir:  -1,
 	}
-	body, err := conn.SearchRaw(context.Background(), req, nil)
+	res, err := conn.SearchRaw(context.Background(), req, nil)
 	require.NoError(t, err)
-	r := client.NewZngSearch(body)
+	r := client.NewZngSearch(res.Body)
 	buf := bytes.NewBuffer(nil)
 	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
 	var msgs []interface{}

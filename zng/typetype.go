@@ -17,13 +17,9 @@ func (t *TypeOfType) String() string {
 }
 
 func (t *TypeOfType) Marshal(zv zcode.Bytes) (interface{}, error) {
-	return t.ZSONOf(zv), nil
+	return t.Format(zv), nil
 }
 
-func (t *TypeOfType) ZSON() string {
-	return "type"
-}
-
-func (t *TypeOfType) ZSONOf(zv zcode.Bytes) string {
+func (t *TypeOfType) Format(zv zcode.Bytes) string {
 	return fmt.Sprintf("(%s)", string(zv))
 }

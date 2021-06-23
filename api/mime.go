@@ -7,6 +7,7 @@ import (
 )
 
 const (
+	MediaTypeAny    = "*/*"
 	MediaTypeCSV    = "text/csv"
 	MediaTypeJSON   = "application/json"
 	MediaTypeNDJSON = "application/x-ndjson"
@@ -14,6 +15,8 @@ const (
 	MediaTypeZNG    = "application/x-zng"
 	MediaTypeZSON   = "application/x-zson"
 )
+
+var ErrMediaTypeUnspecified = errors.New("media type unspecified")
 
 func IsAmbiguousMediaType(s string) bool {
 	typ, _, err := mime.ParseMediaType(s)
@@ -29,6 +32,8 @@ func MediaTypeToFormat(s string) (string, error) {
 		return "", err
 	}
 	switch typ {
+	case MediaTypeAny, "":
+		return "", ErrMediaTypeUnspecified
 	case MediaTypeCSV:
 		return "csv", nil
 	case MediaTypeJSON:

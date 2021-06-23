@@ -200,6 +200,9 @@ const (
 
 func fieldName(f reflect.StructField) string {
 	tag := f.Tag.Get(tagName)
+	if tag == "" {
+		tag = f.Tag.Get("json")
+	}
 	if tag != "" {
 		s := strings.SplitN(tag, tagSep, 2)
 		if len(s) > 0 && s[0] != "" {

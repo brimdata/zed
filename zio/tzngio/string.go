@@ -28,14 +28,11 @@ func ColumnString(prefix string, columns []zng.Column, suffix string) string {
 }
 
 func StringTypeEnum(t *zng.TypeEnum) string {
-	typ := t.Type
 	var out []string
-	for _, e := range t.Elements {
-		name := FormatName(e.Name)
-		val := StringOf(zng.Value{typ, e.Value}, OutFormatZNG, false)
-		out = append(out, fmt.Sprintf("%s:[%s]", name, val))
+	for _, s := range t.Symbols {
+		out = append(out, FormatName(s))
 	}
-	return fmt.Sprintf("enum[%s,%s]", typ, strings.Join(out, ","))
+	return fmt.Sprintf("enum[%s]", strings.Join(out, ","))
 }
 
 func FormatName(name string) string {
@@ -93,6 +90,6 @@ func TypeString(typ zng.Type) string {
 	case *zng.TypeMap:
 		return fmt.Sprintf("map[%s,%s]", TypeString(typ.KeyType), TypeString(typ.ValType))
 	default:
-		return typ.ZSON()
+		return typ.String()
 	}
 }

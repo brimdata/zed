@@ -22,11 +22,11 @@ outputs:
       Date:   2021-05-28T15:13:42Z
 
           Add \w{27} \d+\w+ bytes 1 records
-             from null: \(\) to null: \(\)
-      
+             from null to null
+
       commit \w{27}
       Author: testuser
       Date:   2021-05-28T15:13:43Z
-      
+
           Add \w{27} \d+\w+ bytes 1 records
-             from null: \(\) to null: \(\)
+             from null to null

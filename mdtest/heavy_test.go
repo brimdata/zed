@@ -1,6 +1,6 @@
 // +build heavy
 
-package tests
+package mdtest
 
 import (
 	"testing"

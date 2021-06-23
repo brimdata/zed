@@ -42,7 +42,7 @@ func badZng(err error, t Type, zv zcode.Bytes) string {
 // debugging, etc.  Any caller that requires a specific output format should use
 // FormatAs() instead.
 func (v Value) String() string {
-	return fmt.Sprintf("%s: %s", v.Type.ZSON(), v.Encode(nil))
+	return fmt.Sprintf("%s: %s", v.Type, v.Encode(nil))
 }
 
 // Encode appends the ZNG representation of this value to the passed in

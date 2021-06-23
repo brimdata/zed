@@ -1,0 +1,17 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p POOL -orderby a
+  zed lake load -q -p POOL in.zson
+  zed lake log -p POOL
+
+inputs:
+  - name: in.zson
+    data: |
+      {a:1}
+      {a:2}
+      {a:3}
+
+outputs:
+  - name: stdout
+    regexp: from 1 to 3

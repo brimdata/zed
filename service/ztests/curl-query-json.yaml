@@ -1,0 +1,20 @@
+script: |
+  source service.sh
+  zapi create -q -p test
+  zapi load -q -p test in.zson
+  curl -X POST \
+    -H "Accept: application/json" \
+    -d '{"query": "from test"}' \
+    http://${ZED_LAKE_HOST}/query
+
+inputs:
+  - name: service.sh
+    source: service.sh
+  - name: in.zson
+    data: |
+      {a:"hello",b:{c:"world",d:"goodbye"}}
+
+outputs:
+  - name: stdout
+    data: |
+      {"a":"hello","b":{"c":"world","d":"goodbye"}}

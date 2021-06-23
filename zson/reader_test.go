@@ -34,7 +34,7 @@ func TestReadOneLineNoEOF(t *testing.T) {
 	case res := <-done:
 		require.NoError(t, res.err)
 		rec := res.rec
-		assert.Equal(t, expected, rec.Type.ZSONOf(rec.Bytes))
+		assert.Equal(t, expected, rec.Type.Format(rec.Bytes))
 	}
 }
 

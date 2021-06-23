@@ -147,7 +147,7 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 			}
 			if columns != nil {
 				if k >= len(columns) {
-					return &zng.RecordTypeError{Name: "<record>", Type: parent.Type.ZSON(), Err: zng.ErrExtraField}
+					return &zng.RecordTypeError{Name: "<record>", Type: parent.Type.String(), Err: zng.ErrExtraField}
 				}
 				childType = columns[k].Type
 				k++
