@@ -127,11 +127,14 @@ func CollectExamples(node ast.Node, source []byte) ([]ZQExampleInfo, map[string]
 		bt := ZQExampleBlockType(fcb.Language(source))
 		switch bt {
 		case ZQExampleBlockType("zq-input"):
-			infoWords := strings.Fields(string(fcb.Info.Segment.Value(source)))
-			if len(infoWords) < 2 {
+			words := fcbInfoWords(fcb, source)
+			if len(words) < 2 {
 				return ast.WalkStop, errors.New("zq-input without file name")
 			}
-			filename := infoWords[1]
+			filename := words[1]
+			if _, ok := inputs[filename]; ok {
+				return ast.WalkStop, errors.New("zq-input with duplicate file name")
+			}
 			inputs[filename] = BlockString(fcb, source)
 		case ZQCommand:
 			if command != nil {

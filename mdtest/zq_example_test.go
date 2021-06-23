@@ -38,6 +38,17 @@ func TestCollectExamples(t *testing.T) {
 `,
 			strerror: "zq-input without file name"},
 		{
+			name: "zq-input with duplicate file name",
+			markdown: `
+~~~zq-input filenaame
+1234
+~~~
+~~~zq-input filenaame
+1234
+~~~
+`,
+			strerror: "zq-input with duplicate file name"},
+		{
 			name: "mdtest-command only",
 			markdown: `
 ~~~mdtest-command only
