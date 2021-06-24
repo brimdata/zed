@@ -621,7 +621,7 @@ An enum type value has the form:
 |0x23|<nelem>|<name1><name2>...|
 --------------------------------
 ```
-where `<nelem>` and each symbol name are encoded as in an enum typedef.
+where `<nelem>` and each symbol name is encoded as in an enum typedef.
 
 #### 4.6 Map Type Value
 
