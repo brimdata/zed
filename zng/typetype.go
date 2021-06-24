@@ -31,20 +31,21 @@ func NewTypeValue(t Type) Value {
 }
 
 func EncodeTypeValue(t Type) zcode.Bytes {
-	return appendTypeValue(nil, t, nil)
+	var typedefs map[string]Type
+	return appendTypeValue(nil, t, &typedefs)
 }
 
-func appendTypeValue(b zcode.Bytes, t Type, typedefs map[string]Type) zcode.Bytes {
+func appendTypeValue(b zcode.Bytes, t Type, typedefs *map[string]Type) zcode.Bytes {
 	switch t := t.(type) {
 	case *TypeAlias:
-		if typedefs == nil {
-			typedefs = make(map[string]Type)
+		if *typedefs == nil {
+			*typedefs = make(map[string]Type)
 		}
 		id := byte(IDTypeDef)
-		if previous := typedefs[t.Name]; previous == t {
+		if previous := (*typedefs)[t.Name]; previous == t.Type {
 			id = IDTypeName
 		} else {
-			typedefs[t.Name] = t
+			(*typedefs)[t.Name] = t.Type
 		}
 		b = append(b, id)
 		b = zcode.AppendUvarint(b, uint64(len(t.Name)))
