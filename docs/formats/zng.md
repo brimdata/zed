@@ -558,8 +558,8 @@ representing machine words are serialized in little-endian format.
 
 ## 4. Type Values
 
-As the ZSON data model support first-class types and because the ZNG designs
-goals require that values need not be translated between type contexts, type values
+As the ZSON data model support first-class types and because the ZNG design goals
+require that value serializations cannot change across type contexts, type values
 must be encoded in a fashion that is independent of the type context.
 Thus, a serialized type value encodes the entire type in a canonical form
 according to the recursive definition in this section.
@@ -570,7 +570,6 @@ serialized as a single byte.
 The type value of a complex type is serialized recursively according to the
 complex type it represents as described below.
 
-
 #### 4.1 Record Type Value
 
 A record type value has the form:
@@ -580,8 +579,8 @@ A record type value has the form:
 -----------------------------------------------------
 ```
 where `<ncolumns>` is the number of columns in the record encoded as a `uvarint`,
-`<name1>`, `<name2>`, etc. are the field names encoded as in the
-record typedef and each `<typeval>` is a recursive encoding of a type value.
+`<name1>` etc. are the field names encoded as in the
+record typedef, and each `<typeval>` is a recursive encoding of a type value.
 
 #### 4.2 Array Type Value
 
@@ -602,7 +601,6 @@ An set type value has the form:
 ----------------
 ```
 where `<typeval>` is a recursive encoding of a type value.
-
 
 #### 4.4 Union Type Value
 
@@ -634,7 +632,6 @@ A map type value has the form:
 ----------------------------
 ```
 where `<key-type>` and `<val-type>` are recursive encodings of type values.
-
 
 #### 4.7 Alias Type Value
 
