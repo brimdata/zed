@@ -122,7 +122,7 @@ func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, par
 		f.build(t.Format(bytes))
 	case *zng.TypeOfType:
 		f.startColorPrimitive(zng.TypeType)
-		f.buildf("(%s)", string(bytes))
+		f.buildf("(%s)", zng.FormatTypeValue(bytes))
 		f.endColor()
 	}
 	if err == nil && decorate {

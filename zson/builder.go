@@ -117,7 +117,7 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		}
 		b.AppendPrimitive(zcode.Bytes(bytes))
 		return nil
-	case *zng.TypeOfString, *zng.TypeOfType, *zng.TypeOfError:
+	case *zng.TypeOfString, *zng.TypeOfError:
 		body := zng.EncodeString(val.Text)
 		if !utf8.Valid(body) {
 			return fmt.Errorf("invalid utf8 string: %q", val.Text)
@@ -147,6 +147,8 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		}
 		b.AppendPrimitive(nil)
 		return nil
+	case *zng.TypeOfType:
+		return fmt.Errorf("type values should not be encoded as primitives: %q", val.Text)
 	}
 	return fmt.Errorf("unknown primitive: %T", val.Type)
 }
@@ -246,6 +248,6 @@ func buildEnum(b *zcode.Builder, enum *Enum) error {
 }
 
 func buildTypeValue(b *zcode.Builder, tv *TypeValue) error {
-	b.AppendPrimitive(zcode.Bytes(FormatType(tv.Value)))
+	b.AppendPrimitive(zng.EncodeTypeValue(tv.Value))
 	return nil
 }
