@@ -75,7 +75,7 @@ func (w *Writer) Write(r *zng.Record) error {
 }
 
 func (w *Writer) writeAliases(typ zng.Type) error {
-	aliases := zng.AliasTypes(typ)
+	aliases := findAliases(typ)
 	for _, alias := range aliases {
 		id := alias.AliasID()
 		if _, ok := w.aliases[id]; !ok {
@@ -87,6 +87,32 @@ func (w *Writer) writeAliases(typ zng.Type) error {
 		}
 	}
 	return nil
+}
+
+func findAliases(typ zng.Type) []*zng.TypeAlias {
+	var aliases []*zng.TypeAlias
+	switch typ := typ.(type) {
+	case *zng.TypeSet:
+		aliases = findAliases(typ.Type)
+	case *zng.TypeArray:
+		aliases = findAliases(typ.Type)
+	case *zng.TypeRecord:
+		for _, col := range typ.Columns {
+			aliases = append(aliases, findAliases(col.Type)...)
+		}
+	case *zng.TypeUnion:
+		for _, typ := range typ.Types {
+			aliases = append(aliases, findAliases(typ)...)
+		}
+	case *zng.TypeMap:
+		keyAliases := findAliases(typ.KeyType)
+		valAliases := findAliases(typ.KeyType)
+		aliases = append(keyAliases, valAliases...)
+	case *zng.TypeAlias:
+		aliases = append(aliases, findAliases(typ.Type)...)
+		aliases = append(aliases, typ)
+	}
+	return aliases
 }
 
 func (w *Writer) write(s string) error {

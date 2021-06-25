@@ -334,32 +334,6 @@ func IsPrimitiveType(typ Type) bool {
 	return !IsContainerType(typ)
 }
 
-func AliasTypes(typ Type) []*TypeAlias {
-	var aliases []*TypeAlias
-	switch typ := typ.(type) {
-	case *TypeSet:
-		aliases = AliasTypes(typ.Type)
-	case *TypeArray:
-		aliases = AliasTypes(typ.Type)
-	case *TypeRecord:
-		for _, col := range typ.Columns {
-			aliases = append(aliases, AliasTypes(col.Type)...)
-		}
-	case *TypeUnion:
-		for _, typ := range typ.Types {
-			aliases = append(aliases, AliasTypes(typ)...)
-		}
-	case *TypeMap:
-		keyAliases := AliasTypes(typ.KeyType)
-		valAliases := AliasTypes(typ.KeyType)
-		aliases = append(keyAliases, valAliases...)
-	case *TypeAlias:
-		aliases = append(aliases, AliasTypes(typ.Type)...)
-		aliases = append(aliases, typ)
-	}
-	return aliases
-}
-
 func trimInnerTypes(typ string, raw string) string {
 	// XXX handle white space, "set [..."... ?
 	innerTypes := strings.TrimPrefix(raw, typ+"[")
