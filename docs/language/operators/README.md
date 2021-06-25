@@ -12,6 +12,7 @@ The following available operators are documented in detail below:
 * [`filter`](#filter)
 * [`fuse`](#fuse)
 * [`head`](#head)
+* [`join`](#join)
 * [`pick`](#pick)
 * [`put`](#put)
 * [`rename`](#rename)
@@ -298,6 +299,115 @@ conn  2018-03-24T17:15:20.604325Z C65IMkEAWNlE1f6L8  10.164.94.120 45941     10.
 conn  2018-03-24T17:15:20.607031Z CpQfkTi8xytq87HW2  10.164.94.120 36729     10.47.3.200 80        tcp   http    0.006238 325        263        RSTO       -          -          0            ShADTdftR 10        1186          6         854           -
 conn  2018-03-24T17:15:20.607695Z CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 80        tcp   http    0.007139 315        241        RSTO       -          -          0            ShADTdtfR 10        1166          6         810           -
 ```
+
+---
+
+## `join`
+
+|                           |                                               |
+| ------------------------- | --------------------------------------------- |
+| **Description**           | Return records based on two inputs when particular values match between them.<br><br>The inputs must be sorted in the same order by the respective join keys. |
+| **Syntax**                | `[inner\|left\|right] join on <left-key>=<right-key> [field-list]`          |
+| **Required<br>arguments** | `<left-key>`<br>A field in the left-hand input whose contents will be checked for equality against the `<right-key>`<br><br>`<right-key>`<br>A field in the right-hand input whose contents will be checked for equality against the `<left-key>` |
+| **Optional<br>arguments** | `[inner\|left\|right]`<br>The type of join that should be performed.<br>• `inner` - Return records that have matching values in both inputs (default)<br>• `left` - Return all records from the left-hand input, and matched records from the right-hand input<br>• `right` - Return all records from the right-hand input, and matched records from the left-hand input<br><br>`[field-list]`<br>One or more comma-separated field names or assignments. The values in the field(s) specified will be copied from the _opposite_ input (right-hand side for a `left` or `inner` join, left-hand side for a `right` join) into the joined results. If no field list is provided, no fields from the opposite input will appear in the joined results (see [zed/2815](https://github.com/brimdata/zed/issues/2815) regarding expected enhancements in this area). |
+| **Limitations**           | • The order of the left/right key names in the equality test must follow the left/right order of the input sources that precede the `join` ([zed/2228](https://github.com/brimdata/zed/issues/2228))<br>• The Zed data types of the respective key fields must match precisely ([zed/2779](https://github.com/brimdata/zed/issues/2779))<br>• Only a simple equality test (not an arbitrary expression) is currently possible ([zed/2766](https://github.com/brimdata/zed/issues/2766)) |
+
+The first input data source for our examples is `fruit.ndjson`, which describes
+the characteristics of some fresh produce.
+
+```mdtest-input fruit.ndjson
+{"name":"apple","color":"red","flavor":"tart"}
+{"name":"banana","color":"yellow","flavor":"sweet"}
+{"name":"avocado","color":"green","flavor":"savory"}
+{"name":"strawberry","color":"red","flavor":"sweet"}
+{"name":"dates","color":"brown","flavor":"sweet","note":"in season"}
+{"name":"figs","color":"brown","flavor":"plain"}
+```
+
+The other input data source is `people.ndjson`, which describes the traits and
+preferences of some potential fruit-eaters.
+
+```mdtest-input people.ndjson
+{"name":"morgan","age":61,"likes":"tart"}
+{"name":"quinn","age":14,"likes":"sweet","note":"many kids enjoy sweets"}
+{"name":"jessie","age":30,"likes":"plain"}
+{"name":"chris","age":47,"likes":"tart"}
+
+```
+
+#### Example #1 - Inner join
+
+We'll start by outputting only the fruit for which we have one or more matching
+person that likes it. The name of the matching person is copied into a field
+of a different name in the joined results. Because we're performing an inner
+join (the default), the inclusion of the explicit `inner` is not strictly
+necessary, but may be included to help make the Zed self-documenting.
+
+The Zed script `inner-join.zed`:
+
+```mdtest-input inner-join.zed
+from (
+  file fruit.ndjson => sort flavor;
+  file people.ndjson => sort likes;
+) | inner join on flavor=likes eater:=name
+```
+
+Executing the Zed script:
+
+```mdtest-command
+zq -z -I inner-join.zed
+```
+
+#### Output:
+```
+{name:"figs",color:"brown",flavor:"plain",eater:"jessie"}
+{name:"banana",color:"yellow",flavor:"sweet",eater:"quinn"}
+{name:"strawberry",color:"red",flavor:"sweet",eater:"quinn"}
+{name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn"}
+{name:"apple",color:"red",flavor:"tart",eater:"morgan"}
+{name:"apple",color:"red",flavor:"tart",eater:"chris"}
+```
+
+#### Example #2 - Left join
+
+Performing a left join that targets the same key fields, now all of our fruits
+will be listed even if no one likes them (note the inclusion of "avocado").
+Here we'll also copy over the age of the matching person. By not including a
+field assignment with `:=`, the field in the result uses the same name as it
+appeared in the input.
+
+The Zed script `left-join.zed`:
+
+```mdtest-input left-join.zed
+from (
+  file fruit.ndjson => sort flavor;
+  file people.ndjson => sort likes;
+) | left join on flavor=likes eater:=name,age
+```
+
+Executing the Zed script:
+
+```mdtest-command
+zq -z -I left-join.zed
+```
+
+#### Output:
+```mdtest-output
+{name:"figs",color:"brown",flavor:"plain",eater:"jessie",age:30}
+{name:"avocado",color:"green",flavor:"savory"}
+{name:"banana",color:"yellow",flavor:"sweet",eater:"quinn",age:14}
+{name:"strawberry",color:"red",flavor:"sweet",eater:"quinn",age:14}
+{name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn",age:14}
+{name:"apple",color:"red",flavor:"tart",eater:"morgan",age:61}
+{name:"apple",color:"red",flavor:"tart",eater:"chris",age:47}
+```
+
+#### Example #3 - Right join
+
+Next we'll reverse the order of our join, finding 
+
+
+
 
 ---
 
