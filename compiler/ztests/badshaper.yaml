@@ -12,7 +12,7 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      zq: parse error: error parsing Zed at line 1, col 34:
+      zq: error parsing Zed at line 1, col 34:
       type foo={_path:string,testfield:"null"}
                                    === ^ ===
       put . = shape(foo)

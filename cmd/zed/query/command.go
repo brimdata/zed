@@ -241,11 +241,7 @@ func ParseSources(args, includes Includes) (ast.Proc, error) {
 	if err != nil {
 		return nil, err
 	}
-	query, err := compiler.ParseProc(zedSrc)
-	if err != nil {
-		return nil, fmt.Errorf("parse error: %w", err)
-	}
-	return query, nil
+	return compiler.ParseProc(zedSrc)
 }
 
 func parseZed(srcs []string) (ast.Proc, error) {
@@ -253,11 +249,7 @@ func parseZed(srcs []string) (ast.Proc, error) {
 	if zedSrc == "" {
 		zedSrc = "*"
 	}
-	query, err := compiler.ParseProc(zedSrc)
-	if err != nil {
-		return nil, fmt.Errorf("parse error: %w", err)
-	}
-	return query, nil
+	return compiler.ParseProc(zedSrc)
 }
 
 func PrintStats(stats zbuf.ScannerStats) {
