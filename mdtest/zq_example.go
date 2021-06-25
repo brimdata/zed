@@ -176,15 +176,7 @@ func BlockString(fcb *ast.FencedCodeBlock, source []byte) string {
 // in a file.
 func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 	var tests []ZQExampleTest
-	absfilename, err := filepath.Abs(filename)
-	if err != nil {
-		return nil, err
-	}
-	repopath, err := RepoAbsPath()
-	if err != nil {
-		return nil, err
-	}
-	source, err := os.ReadFile(absfilename)
+	source, err := os.ReadFile(filename)
 	if err != nil {
 		return nil, err
 	}
@@ -195,7 +187,6 @@ func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 	if err != nil {
 		return nil, err
 	}
-	repopath += string(filepath.Separator)
 	for _, e := range examples {
 		linenum := bytes.Count(source[:e.command.Info.Segment.Start], []byte("\n")) + 2
 		var commandDir string
@@ -207,9 +198,9 @@ func TestcasesFromFile(filename string) ([]ZQExampleTest, error) {
 			head = true
 		}
 		tests = append(tests, ZQExampleTest{
-			Name:     strings.TrimPrefix(absfilename, repopath) + ":" + strconv.Itoa(linenum),
+			Name:     filename + ":" + strconv.Itoa(linenum),
 			Command:  BlockString(e.command, source),
-			Dir:      filepath.Join(repopath, commandDir),
+			Dir:      commandDir,
 			Expected: strings.TrimSuffix(BlockString(e.output, source), "...\n"),
 			Head:     head,
 			Inputs:   inputs,
@@ -224,12 +215,8 @@ func fcbInfoWords(fcb *ast.FencedCodeBlock, source []byte) []string {
 
 // DocMarkdownFiles returns markdown files to inspect.
 func DocMarkdownFiles() ([]string, error) {
-	repopath, err := RepoAbsPath()
-	if err != nil {
-		return nil, err
-	}
 	var files []string
-	err = filepath.Walk(repopath, func(path string, info os.FileInfo, err error) error {
+	err := filepath.Walk(".", func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
