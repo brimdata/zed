@@ -435,7 +435,7 @@ func convertSQLGroupBy(scope *Scope, groupByKeys []ast.Expr, selection sqlSelect
 // a column is a scalar expression or an aggregation by looking up the function
 // name and seeing if it's an aggregator or not.  We also infer the column
 // names so we can do SQL error checking relating the selections to the group-by
-// keys, something that is not needed in Z.
+// keys, something that is not needed in Zed.
 type sqlPick struct {
 	name       field.Path
 	agg        *dag.Agg

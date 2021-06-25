@@ -64,7 +64,7 @@ func (c *canonZed) typ(t zed.Type) {
 		c.types(t.Types)
 		c.write(")")
 	case *zed.TypeEnum:
-		//XXX need to figure out Z syntax for enum literal which may
+		//XXX need to figure out Zed syntax for enum literal which may
 		// be different than zson, requiring some ast adjustments.
 		c.write("TBD:ENUM")
 	case *zed.TypeMap:

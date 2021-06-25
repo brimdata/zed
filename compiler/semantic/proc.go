@@ -433,7 +433,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		// The conversion may be a group-by so we recursively
 		// invoke the transformation here...
 		if converted == nil {
-			return nil, errors.New("unable to covert SQL expression to Z")
+			return nil, errors.New("unable to covert SQL expression to Zed")
 		}
 		return converted, nil
 	case *ast.Explode:

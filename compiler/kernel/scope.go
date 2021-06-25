@@ -4,7 +4,7 @@ import "github.com/brimdata/zed/zng"
 
 // A Scope is a stack of bindings that map identifiers to literals,
 // generator variables, functions etc.  Currently, we only handle iterators
-// but this will change soone as we add support for richer Z script semantics.
+// but this will change soone as we add support for richer Zed script semantics.
 type Scope struct {
 	stack []Binder
 }

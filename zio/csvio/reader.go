@@ -21,7 +21,7 @@ type Reader struct {
 
 // XXX This is a placeholder for an option that will allow one to convert
 // all csv fields to strings and defer any type coercion presumably to
-// Z shapers.  Currently, this causes an import cycle because the csvio
+// Zed shapers.  Currently, this causes an import cycle because the csvio
 // Writer depends on fuse.  We should refactor this so whatever logic wants
 // to tack on a fuse operator happens outside of zio.  See issue #2315
 //type ReaderOpts struct {

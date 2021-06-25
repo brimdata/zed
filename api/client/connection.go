@@ -182,9 +182,9 @@ func (c *Connection) Version(ctx context.Context) (string, error) {
 	return resp.Result().(*api.VersionResponse).Version, nil
 }
 
-// ZtoAST sends a request to the server to translate a Z program into its
+// ZedToAST sends a request to the server to translate a Zed program into its
 // AST form.
-func (c *Connection) ZtoAST(ctx context.Context, zprog string) ([]byte, error) {
+func (c *Connection) ZedToAST(ctx context.Context, zprog string) ([]byte, error) {
 	resp, err := c.Request(ctx).
 		SetBody(api.ASTRequest{ZQL: zprog}).
 		SetHeader("Accept", api.MediaTypeJSON).
@@ -326,7 +326,7 @@ func (c *Connection) Query(ctx context.Context, query string) (*Response, error)
 //	}
 //
 func (c *Connection) Search(ctx context.Context, id ksuid.KSUID, query string) (*Response, error) {
-	procBytes, err := c.ZtoAST(ctx, query)
+	procBytes, err := c.ZedToAST(ctx, query)
 	if err != nil {
 		return nil, err
 	}

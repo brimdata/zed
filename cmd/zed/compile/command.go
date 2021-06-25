@@ -43,7 +43,7 @@ by execing node in the currrent directory running the javascript in ./compiler/p
 
 The -O flag is handy for turning on and off the compiler, which lets you see
 how the parsed AST is transformed into a runtime object comprised of the
-Z kernel operators.
+Zed kernel operators.
 `,
 	New: New,
 }
@@ -72,8 +72,8 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.BoolVar(&c.semantic, "s", false, "display semantically analyzed AST (implies -proc)")
 	f.BoolVar(&c.optimize, "O", false, "display optimized, non-filter AST (implies -proc)")
 	f.IntVar(&c.parallel, "P", 0, "display parallelized AST (implies -proc)")
-	f.BoolVar(&c.canon, "C", false, "display AST in Z canonical format (implies -proc)")
-	f.Var(&c.includes, "I", "source file containing Z query text (may be repeated)")
+	f.BoolVar(&c.canon, "C", false, "display AST in Zed canonical format (implies -proc)")
+	f.Var(&c.includes, "I", "source file containing Zed query text (may be repeated)")
 	return c, nil
 }
 

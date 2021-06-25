@@ -458,7 +458,7 @@ func compileTypeValue(zctx *zson.Context, scope *Scope, t *zed.TypeValue) (expr.
 	if typ, ok := t.Value.(*zed.TypeName); ok {
 		// We currently support dynamic type names only for
 		// top-level type names.  By dynamic, we mean typedefs that
-		// come from the data instead of the Z.  For dynamic type
+		// come from the data instead of the Zed.  For dynamic type
 		// names that are embedded lower down in a complex type,
 		// we need to implement some type of tracker objec that
 		// can resolve the type when all the dependent types are found.

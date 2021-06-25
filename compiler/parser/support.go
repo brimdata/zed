@@ -132,9 +132,9 @@ func ImproveError(src string, e error) error {
 	}
 	var b strings.Builder
 	if len(lines) == 1 {
-		b.WriteString(fmt.Sprintf("error parsing Z at column %d:\n", colNo))
+		b.WriteString(fmt.Sprintf("error parsing Zed at column %d:\n", colNo))
 	} else {
-		b.WriteString(fmt.Sprintf("error parsing Z at line %d, col %d:\n", lineNo+1, colNo))
+		b.WriteString(fmt.Sprintf("error parsing Zed at line %d, col %d:\n", lineNo+1, colNo))
 	}
 	b.WriteString(strings.Join(lines[:lineNo+1], "\n"))
 	b.WriteByte('\n')
@@ -155,7 +155,7 @@ func ImproveError(src string, e error) error {
 	return errors.New(strings.TrimRight(b.String(), "\n"))
 }
 
-func ParseZ(src string) (interface{}, error) {
+func ParseZed(src string) (interface{}, error) {
 	p, err := Parse("", []byte(src))
 	if err != nil {
 		return nil, ImproveError(src, err)
@@ -163,7 +163,7 @@ func ParseZ(src string) (interface{}, error) {
 	return p, nil
 }
 
-func ParseZByRule(rule, src string) (interface{}, error) {
+func ParseZedByRule(rule, src string) (interface{}, error) {
 	p, err := Parse("", []byte(src), Entrypoint(rule))
 	if err != nil {
 		return nil, ImproveError(src, err)

@@ -389,11 +389,11 @@ SQL++ has N1QL have
 [collection operators](https://docs.couchbase.com/server/current/n1ql/n1ql-language-reference/collectionops.html).
 
 While we were motivated by the approach in these systems, they are very
-SQL-oriented and don't match the flow-based programming model of Z.
-(It is future work to put a SQL interface onto the Z analytics engine and
+SQL-oriented and don't match the flow-based programming model of Zed.
+(It is future work to put a SQL interface onto the Zed analytics engine and
 perhaps these SQL++ style idioms will come into play here.)
 
-The field wildcard search is a specific-case in the current Z implementation
+The field wildcard search is a specific-case in the current Zed implementation
 of operating over semi-structured data, e.g.,
 ```
 *=foo
@@ -455,7 +455,7 @@ arguments so you can select a sequence of values.
 #### Syntactic Sugar
 
 Once we play around with these generator concepts, we may decide upon syntactic
-sugar for common use cases and Z patterns.
+sugar for common use cases and Zed patterns.
 
 We may want to build `any` and `all` boolean expressions from SQL++,
 e.g., for addr and nets you could say
@@ -646,7 +646,7 @@ same as `error("missing")`.
 
 `is()` could be shorthand for a type boolean, e.g., `id.is(socket)`
 where once we have constants you could put a definition for `conn`
-in the Z:
+in the Zed:
 ```
 let port = uint16
 let socket = {orig_h:ip,orig_p:port,resp_h:ip,resp_p:port}
@@ -685,7 +685,7 @@ differentiated from `or (<expr>)`.
 
 An operator is applied to a generator using BinaryExpr with operator `@`
 (i.e,. this is what appears in the binary expression ast node).
-We could have this in the Z language but we know when a generator is on
+We could have this in the Zed language but we know when a generator is on
 the left-hand side so we can overload "." and it will look cleaner.
 
 With @-notation,

@@ -74,8 +74,8 @@ test-services: build
 perf-compare: build $(SAMPLEDATA)
 	scripts/perf-compare.sh
 
-z-output-check: build $(SAMPLEDATA)
-	scripts/z-output-check.sh
+output-check: build $(SAMPLEDATA)
+	scripts/output-check.sh
 
 # If the build recipe changes, please also change npm/build.
 build: $(PEG_DEP)

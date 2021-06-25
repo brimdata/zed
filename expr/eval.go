@@ -741,7 +741,7 @@ func (c *Call) Eval(rec *zng.Record) (zng.Value, error) {
 }
 
 // A TyepFunc returns a type value of the named type (where the name is
-// a Z typedef).  It returns MISSING if the name doesn't exist.
+// a Zed typedef).  It returns MISSING if the name doesn't exist.
 type TypeFunc struct {
 	name string
 	zctx *zson.Context
