@@ -3,7 +3,7 @@
 > ### Note: This specification is in BETA development.
 > We hope that no backward incompatible changes will be made during
 > the BETA phase.  We plan to
-> declare the specification stable and finalized in spring 2021.
+> declare the specification stable in the near future.
 >
 > [Zed](../../README.md)'s
 > implementation of ZNG is tracking this spec and as it changes,
@@ -32,6 +32,7 @@
     - [2.1.4 End-of-Stream Markers](#214-end-of-stream-markers)
   + [2.2 Value Messages](#22-value-messages)
 * [3. Primitive Types](#3-primitive-types)
+* [4. Type Values](#4-type-values)
 * [Appendix A. Related Links](#appendix-a-related-links)
 * [Appendix B. Recommended Type Coercion Rules](#appendix-b-recommended-type-coercion-rules)
 
@@ -58,11 +59,20 @@ data value a simple integer identifier to reference its type.
 
 ZNG requires no external schema definitions as its type system
 constructs schemas on the fly from within the stream using composable,
-dynamic type definitions.  Given this, there is no need for
+dynamic type definitions.  The state comprising the dynamically constructed
+types is called the "type context".
+Given a type context, there is no need for
 a schema registry service, though ZNG can be readily adapted to systems like
 [Apache Kafka](https://kafka.apache.org/) which utilize such registries,
 by having a connector translate the schemas implied in the
 ZNG stream into registered schemas and vice versa.
+
+Multiple ZNG streams with different type contexts are easily merged because the
+serialization of values does not depend on the details of
+the type context.  One or more streams can be merged by simply merging the
+input contexts into an output context and adjusting the type reference of
+each value in the output ZNG sequence.  The values need not be traversed
+or otherwise rewritten to be merged in this fashion.
 
 ZNG is more expressive than JSON in that any JSON input
 can be mapped onto ZNG and recovered by decoding
@@ -287,8 +297,8 @@ is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 
 It is an error to define an alias that has the same name as a primitive type.
-It is also an error to redefine a previously defined alias with a
-type that differs from the original definition.
+It is permissible to redefine a previously defined alias with a
+type that differs from the previous definition.
 
 ### 2.1.2 Compressed Value Message Block
 
@@ -539,12 +549,118 @@ representing machine words are serialized in little-endian format.
 | `bstring`  | 17 | variable | UTF-8 byte sequence defined by ZSON           |
 | `ip`       | 18 | 4 or 16  | 4 or 16 bytes of IP address                    |
 | `net`      | 19 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     |
-| `type`     | 20 | variable | UTF-8 byte sequence ZSON type value [zson type value](zson.md#35-type-value)  |
+| `type`     | 20 | variable | type value byte sequence [as defined below](#4-type-values) |
 | `error`    | 21 | variable | UTF-8 byte sequence of string of error message |
 | `null`     | 22 |    0     | No value, always represents an undefined value |
 
 > TBD: For decimal, ZSON assumes decimal128 and there's not a way to specify
 > different widths.  This should be okay since a 128 will hold the others.
+
+## 4. Type Values
+
+As the ZSON data model support first-class types and because the ZNG design goals
+require that value serializations cannot change across type contexts, type values
+must be encoded in a fashion that is independent of the type context.
+Thus, a serialized type value encodes the entire type in a canonical form
+according to the recursive definition in this section.
+
+The type value of a primitive type (include type `type`) is its primitive ID,
+serialized as a single byte.
+
+The type value of a complex type is serialized recursively according to the
+complex type it represents as described below.
+
+#### 4.1 Record Type Value
+
+A record type value has the form:
+```
+-----------------------------------------------------
+|0x19|<ncolumns>|<name1><typeval><name2><typeval>...|
+-----------------------------------------------------
+```
+where `<ncolumns>` is the number of columns in the record encoded as a `uvarint`,
+`<name1>` etc. are the field names encoded as in the
+record typedef, and each `<typeval>` is a recursive encoding of a type value.
+
+#### 4.2 Array Type Value
+
+An array type value has the form:
+```
+----------------
+|0x20|<typeval>|
+----------------
+```
+where `<typeval>` is a recursive encoding of a type value.
+
+#### 4.3 Set Type Value
+
+An set type value has the form:
+```
+----------------
+|0x21|<typeval>|
+----------------
+```
+where `<typeval>` is a recursive encoding of a type value.
+
+#### 4.4 Union Type Value
+
+A union type value has the form:
+```
+-------------------------------------
+|0x22|<ntypes>|<typeval><typeval>...|
+-------------------------------------
+```
+where `<ntypes>` is the number of types in the union encoded as a `uvarint`
+and each `<typeval>` is a recursive definition of a type value.
+
+#### 4.5 Enum Type Value
+
+An enum type value has the form:
+```
+--------------------------------
+|0x23|<nelem>|<name1><name2>...|
+--------------------------------
+```
+where `<nelem>` and each symbol name is encoded as in an enum typedef.
+
+#### 4.6 Map Type Value
+
+A map type value has the form:
+```
+----------------------------
+|0x23|<key-type>|<val-type>|
+----------------------------
+```
+where `<key-type>` and `<val-type>` are recursive encodings of type values.
+
+#### 4.7 Alias Type Value
+
+An alias type value may appear either as a definition or a reference.
+When an alias appears in reference form, it must have been previously
+defined in the type value in accordance with a left-to-right depth-first-search (DFS)
+traversal of the type.
+
+An alias type value definition has the form:
+```
+----------------------
+|0x17|<name><typeval>|
+----------------------
+```
+where `<name>` is encoded as in an alias typedef
+and `<typeval>` is a recursive encoding of a type value.  This creates
+a binding between the given name and the indicated type value only within the
+scope of the encoded value and does not affect the type context.
+This binding may be changed by another type alias
+definition of the same name in the same type value according to the DFS order.
+
+An alias type value reference has the form:
+```
+-------------
+|0x18|<name>|
+-------------
+```
+It is an error for an alias reference to appear in a type value with a name
+that has not been previously defined according to the DFS order.
 
 ## Appendix A. Related Links
 

@@ -22,7 +22,7 @@
 #define VAR(x) var x
 #else
 {
-#include "parser-support.js"
+#include "support.js"
 }
 #define APPEND(arr, value) arr.push(value)
 #define ARRAY(...) [__VA_ARGS__]

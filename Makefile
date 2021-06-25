@@ -109,7 +109,7 @@ clean-python:
 	@rm -rf python/brim/build
 
 PEG_GEN := $(addprefix compiler/parser/parser., go js es.js)
-$(PEG_GEN): compiler/parser/Makefile compiler/parser/parser-support.js compiler/parser/parser.peg
+$(PEG_GEN): compiler/parser/Makefile compiler/parser/support.js compiler/parser/parser.peg
 	$(MAKE) -C compiler/parser
 
 # This rule is best for edit-compile-debug cycle of peg development.  It should

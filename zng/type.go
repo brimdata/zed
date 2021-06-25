@@ -91,7 +91,15 @@ const (
 	IDError    = 21
 	IDNull     = 22
 
-	IDTypeDef = 23
+	IDTypeDef = 23 // 0x17
+
+	IDTypeName   = 24 // 0x18
+	IDTypeRecord = 25 // 0x19
+	IDTypeArray  = 26 // 0x20
+	IDTypeSet    = 27 // 0x21
+	IDTypeUnion  = 28 // 0x22
+	IDTypeEnum   = 29 // 0x23
+	IDTypeMap    = 30 // 0x24
 )
 
 var promote = []int{
@@ -145,7 +153,7 @@ func IsSigned(id int) bool {
 
 // True iff the type id is encoded as a string zcode.Bytes.
 func IsStringy(id int) bool {
-	return id == IDString || id == IDBstring || id == IDError || id == IDType
+	return id == IDString || id == IDBstring || id == IDError
 }
 
 const (
@@ -261,15 +269,6 @@ func LookupPrimitiveByID(id int) Type {
 		return TypeNull
 	}
 	return nil
-}
-
-// SameType returns true if the two types are equal in that each interface
-// points to the same underlying type object.  Because the zeek library
-// creates each unique type only once, this pointer comparison works.  If types
-// are created outside of the zeek package, then SameType will not work in general
-// for them.
-func SameType(t1, t2 Type) bool {
-	return t1 == t2
 }
 
 // Utilities shared by complex types (ie, set and array)
