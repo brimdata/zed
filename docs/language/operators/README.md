@@ -306,11 +306,11 @@ conn  2018-03-24T17:15:20.607695Z CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.
 
 |                           |                                               |
 | ------------------------- | --------------------------------------------- |
-| **Description**           | Return records based on two inputs when particular values match between them.<br><br>The inputs must be sorted in the same order by the respective join keys. |
+| **Description**           | Return records derived from two inputs when particular values match between them.<br><br>The inputs must be sorted in the same order by their respective join keys. If an input source is already known to be sorted appropriately (either in an input file/object/stream, or if the data is pulled from a [Zed Lake](../../lake/design.md) in that's ordered by this key) an explicit [`sort`](https://github.com/brimdata/zed/tree/main/docs/language/operators#sort) is not required. ||
 | **Syntax**                | `[inner\|left\|right] join on <left-key>=<right-key> [field-list]`          |
 | **Required<br>arguments** | `<left-key>`<br>A field in the left-hand input whose contents will be checked for equality against the `<right-key>`<br><br>`<right-key>`<br>A field in the right-hand input whose contents will be checked for equality against the `<left-key>` |
 | **Optional<br>arguments** | `[inner\|left\|right]`<br>The type of join that should be performed.<br>• `inner` - Return records that have matching values in both inputs (default)<br>• `left` - Return all records from the left-hand input, and matched records from the right-hand input<br>• `right` - Return all records from the right-hand input, and matched records from the left-hand input<br><br>`[field-list]`<br>One or more comma-separated field names or assignments. The values in the field(s) specified will be copied from the _opposite_ input (right-hand side for a `left` or `inner` join, left-hand side for a `right` join) into the joined results. If no field list is provided, no fields from the opposite input will appear in the joined results (see [zed/2815](https://github.com/brimdata/zed/issues/2815) regarding expected enhancements in this area). |
-| **Limitations**           | • The order of the left/right key names in the equality test must follow the left/right order of the input sources that precede the `join` ([zed/2228](https://github.com/brimdata/zed/issues/2228))<br>• The Zed data types of the respective key fields must match precisely ([zed/2779](https://github.com/brimdata/zed/issues/2779))<br>• Only a simple equality test (not an arbitrary expression) is currently possible ([zed/2766](https://github.com/brimdata/zed/issues/2766)) |
+| **Limitations**           | • The order of the left/right key names in the equality test must follow the left/right order of the input sources that precede the `join` ([zed/2228](https://github.com/brimdata/zed/issues/2228))<br>• The Zed data types of the respective key fields must match precisely ([zed/2779](https://github.com/brimdata/zed/issues/2779))<br>• Only a simple equality test (not an arbitrary expression) is currently possible ([zed/2766](https://github.com/brimdata/zed/issues/2766))<br>• All fields included in the `[field-list]` must be present in a record of the opposite input for any of them to appear in the joined result ([zed/2833](https://github.com/brimdata/zed/issues/2833)) |
 
 The first input data source for our examples is `fruit.ndjson`, which describes
 the characteristics of some fresh produce.
@@ -343,7 +343,8 @@ of a different name in the joined results. Because we're performing an inner
 join (the default), the inclusion of the explicit `inner` is not strictly
 necessary, but may be included to help make the Zed self-documenting.
 
-The Zed script `inner-join.zed`:
+Notice how each input is specified separately within the parenthese-wrapped
+`from()` block before the `join` appears in our Zed pipeline.
 
 ```mdtest-input inner-join.zed
 from (
@@ -359,7 +360,7 @@ zq -z -I inner-join.zed
 ```
 
 #### Output:
-```
+```mdtest-output
 {name:"figs",color:"brown",flavor:"plain",eater:"jessie"}
 {name:"banana",color:"yellow",flavor:"sweet",eater:"quinn"}
 {name:"strawberry",color:"red",flavor:"sweet",eater:"quinn"}
@@ -371,10 +372,14 @@ zq -z -I inner-join.zed
 #### Example #2 - Left join
 
 Performing a left join that targets the same key fields, now all of our fruits
-will be listed even if no one likes them (note the inclusion of "avocado").
-Here we'll also copy over the age of the matching person. By not including a
-field assignment with `:=`, the field in the result uses the same name as it
-appeared in the input.
+will be shown even if no one likes them (note the inclusion of "avocado").
+
+Here we'll also copy over the age of the matching person. By indicating only
+the field name rather than a `:=` assignment, the original field name `age
+from the opposite input is maintained.
+
+The results include the `note` field frrom the left-hand input, since this was
+a left join.
 
 The Zed script `left-join.zed`:
 
@@ -404,10 +409,112 @@ zq -z -I left-join.zed
 
 #### Example #3 - Right join
 
-Next we'll reverse the order of our join, finding 
+Next we'll reverse the order of our join. The results include the `note` field
+from the right-hand input, since this was a right join.
 
+The Zed script `right-join.zed`:
 
+```mdtest-input right-join.zed
+from (
+  file fruit.ndjson => sort flavor;
+  file people.ndjson => sort likes;
+) | right join on flavor=likes fruit:=name
+```
 
+Executing the Zed script:
+
+```mdtest-command
+zq -z -I right-join.zed
+```
+
+#### Output:
+```mdtest-output
+{name:"jessie",age:30,likes:"plain",fruit:"figs"}
+{name:"quinn",age:14,likes:"sweet",note:"many kids enjoy sweets",fruit:"banana"}
+{name:"quinn",age:14,likes:"sweet",note:"many kids enjoy sweets",fruit:"strawberry"}
+{name:"quinn",age:14,likes:"sweet",note:"many kids enjoy sweets",fruit:"dates"}
+{name:"morgan",age:61,likes:"tart",fruit:"apple"}
+{name:"chris",age:47,likes:"tart",fruit:"apple"}
+```
+
+#### Example #4 - Inputs from Pools
+
+As our prior examples all used `zq` at the shell, we used `file` in our `from()`
+block to pull our respective inputs from named file sources. However, if the
+inputs are stored in Pools in a Zed lake, the Pool names would be specified in
+the `from()` block.
+
+Here we'll load our data inputs to Pools in a temporary Zed Lake, then execute
+our inner join using `zed lake query`. If the Zed Lake had been fronted by a
+`zed lake serve` process, the equivalent operations would be performed via
+`zapi`.
+
+Notice that becasue we happened to use `-orderby` to sort our Pools by the same
+keys that we reference in our `join`, we did not need to use any explicit
+sort`.
+
+The Zed script `inner-join-pools.zed`:
+
+```mdtest-input inner-join-pools.zed
+from (
+  fruit => sort flavor;
+  people => sort likes;
+) | inner join on flavor=likes eater:=name
+```
+
+Populating the Pools, then executing the Zed script:
+
+```mdtest-command
+ZED_LAKE_ROOT=`mktemp -d`
+zed lake init -q
+zed lake create -q -p fruit -orderby flavor:asc
+zed lake create -q -p people -orderby likes:asc
+zed lake load -q -p fruit fruit.ndjson
+zed lake load -q -p people people.ndjson
+zed lake query -z -I inner-join-pools.zed
+```
+
+#### Output:
+```mdtest-output
+{name:"figs",color:"brown",flavor:"plain",eater:"jessie"}
+{name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn"}
+{name:"banana",color:"yellow",flavor:"sweet",eater:"quinn"}
+{name:"strawberry",color:"red",flavor:"sweet",eater:"quinn"}
+{name:"apple",color:"red",flavor:"tart",eater:"chris"}
+{name:"apple",color:"red",flavor:"tart",eater:"morgan"}
+```
+
+#### Example #5 - Streamed input
+
+In addition to named files and Pools as we've used in the prior exampls, Zed is
+also intended to work on streams of data. Here we'll combine our file sources
+into a stream that we'll pipe into `zq` via stdin. To separate and sort the
+respective inputs, we use `has()` to uniquely identify the left and right
+sides.
+
+The Zed script `inner-join-streamed.zed`:
+
+```mdtest-input inner-join-streamed.zed
+* | split (
+  => has(color) | sort flavor
+  => has(age) | sort likes
+) | inner join on flavor=likes eater:=name
+```
+
+Executing the Zed script:
+```mdtest-command
+cat fruit.ndjson people.ndjson | zq -z -I inner-join-streamed.zed -
+```
+
+#### Output:
+```mdtest-output
+{name:"figs",color:"brown",flavor:"plain",eater:"jessie"}
+{name:"banana",color:"yellow",flavor:"sweet",eater:"quinn"}
+{name:"strawberry",color:"red",flavor:"sweet",eater:"quinn"}
+{name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn"}
+{name:"apple",color:"red",flavor:"tart",eater:"morgan"}
+{name:"apple",color:"red",flavor:"tart",eater:"chris"}
+```
 
 ---
 
