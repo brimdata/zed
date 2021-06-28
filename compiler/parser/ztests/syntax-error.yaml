@@ -8,6 +8,6 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      zq: parse error: error parsing Zed at column 12:
+      zq: error parsing Zed at column 12:
       count() by ,x,y
              === ^ ===
