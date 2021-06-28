@@ -306,7 +306,7 @@ conn  2018-03-24T17:15:20.607695Z CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.
 
 |                           |                                               |
 | ------------------------- | --------------------------------------------- |
-| **Description**           | Return records derived from two inputs when particular values match between them.<br><br>The inputs must be sorted in the same order by their respective join keys. If an input source is already known to be sorted appropriately (either in an input file/object/stream, or if the data is pulled from a [Zed Lake](../../lake/design.md) in that's ordered by this key) an explicit upstream [`sort`](https://github.com/brimdata/zed/tree/main/docs/language/operators#sort) is not required. ||
+| **Description**           | Return records derived from two inputs when particular values match between them.<br><br>The inputs must be sorted in the same order by their respective join keys. If an input source is already known to be sorted appropriately (either in an input file/object/stream, or if the data is pulled from a [Zed Lake](../../lake/design.md) that's ordered by this key) an explicit upstream [`sort`](https://github.com/brimdata/zed/tree/main/docs/language/operators#sort) is not required. ||
 | **Syntax**                | `[inner\|left\|right] join on <left-key>=<right-key> [field-list]`          |
 | **Required<br>arguments** | `<left-key>`<br>A field in the left-hand input whose contents will be checked for equality against the `<right-key>`<br><br>`<right-key>`<br>A field in the right-hand input whose contents will be checked for equality against the `<left-key>` |
 | **Optional<br>arguments** | `[inner\|left\|right]`<br>The type of join that should be performed.<br>• `inner` - Return only records that have matching key values in both inputs (default)<br>• `left` - Return all records from the left-hand input, and matched records from the right-hand input<br>• `right` - Return all records from the right-hand input, and matched records from the left-hand input<br><br>`[field-list]`<br>One or more comma-separated field names or assignments. The values in the field(s) specified will be copied from the _opposite_ input (right-hand side for a `left` or `inner` join, left-hand side for a `right` join) into the joined results. If no field list is provided, no fields from the opposite input will appear in the joined results (see [zed/2815](https://github.com/brimdata/zed/issues/2815) regarding expected enhancements in this area). |
@@ -376,7 +376,7 @@ zq -z -I inner-join.zed
 By performing a left join that targets the same key fields, now all of our
 fruits will be shown in the results even if no one likes them (e.g., `avocado`).
 
-As another variatino, we'll also copy over the age of the matching person. By
+As another variation, we'll also copy over the age of the matching person. By
 referencing only the field name rather than using `:=` for assignment, the
 original field name `age` from the opposite input is maintained in the results.
 
@@ -408,7 +408,7 @@ zq -z -I left-join.zed
 
 #### Example #3 - Right join
 
-Next we'll reverse the order of our join. Notice that this casues the `note`
+Next we'll reverse the order of our join. Notice that this causes the `note`
 field from the right-hand input to appear in the joined results.
 
 The Zed script `right-join.zed`:
@@ -513,6 +513,111 @@ cat fruit.ndjson people.ndjson | zq -z -I inner-join-streamed.zed -
 {name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn"}
 {name:"apple",color:"red",flavor:"tart",eater:"morgan"}
 {name:"apple",color:"red",flavor:"tart",eater:"chris"}
+```
+
+#### Example #6 - Multi-value join
+
+The equality test in a Zed join accepts only one named key from each input.
+However, joins on multiple matching values can still be performed by making the
+values available in comparable complex types, such as embedded records.
+
+To illustrate this, we'll introduce some new input data `inventory.ndjson`
+that represents a vendor's available quantity of fruit for sale. As the colors
+indicate, they separately offer both ripe and unripe fruit.
+
+```mdtest-input inventory.ndjson
+{"name":"banana","color":"yellow","quantity":1000}
+{"name":"banana","color":"green","quantity":5000}
+{"name":"strawberry","color":"red","quantity":3000}
+{"name":"strawberry","color":"white","quantity":6000}
+```
+
+Let's assume we're interested in seeing the available quantities of only the
+immediately-edible fruit/color combinations shown in our `fruit.ndjson`
+records. In the Zed script `multi-value-join.zed`, we create the keys as
+embedded records inside each input record, using the same field names and data
+types in each. We'll leave the created `fruitkey` records intact to show what
+they look like, but since it represents redundant data, in practice we'd
+typically [`drop`](#drop) it after the `join` in our Zed pipeline.
+
+```mdtest-input multi-value-join.zed
+from (
+  file fruit.ndjson => put fruitkey:={name:string(name),color:string(color)} | sort fruitkey;
+  file inventory.ndjson => put invkey:={name:string(name),color:string(color)} | sort invkey;
+) | inner join on fruitkey=invkey quantity
+```
+
+Executing the Zed script:
+```mdtest-command
+zq -z -I multi-value-join.zed
+```
+
+#### Output:
+```mdtest-output
+{name:"banana",color:"yellow",flavor:"sweet",fruitkey:{name:"banana",color:"yellow"},quantity:1000}
+{name:"strawberry",color:"red",flavor:"sweet",fruitkey:{name:"strawberry",color:"red"},quantity:3000}
+```
+
+#### Example #7 - Embedding the entire opposite record
+
+Because of the previously-cited [zed/2833](https://github.com/brimdata/zed/issues/2833)
+limitation, attempting to include multiple fields from the opposite input in
+the results can cause undesirable behaviors if one or more of the fields is not
+always present. For instance, let's say we wanted to see the `note` field from
+our records about people. We attempt this in the following Zed script
+`peoplenote-attempt.zed`.
+
+```mdtest-input peoplenote-attempt.zed
+from (
+  file fruit.ndjson => sort flavor;
+  file people.ndjson => sort likes;
+) | inner join on flavor=likes eater:=name,peoplenote:=note
+```
+
+Executing the Zed script, we see this has the effect of including the note
+where it's present, but where it isn't, the `eater` field is now absent.
+
+```mdtest-command
+zq -z -I peoplenote-attempt.zed
+```
+
+#### Output (probably undesirable):
+```mdtest-output
+{name:"figs",color:"brown",flavor:"plain"}
+{name:"banana",color:"yellow",flavor:"sweet",eater:"quinn",peoplenote:"many kids enjoy sweets"}
+{name:"strawberry",color:"red",flavor:"sweet",eater:"quinn",peoplenote:"many kids enjoy sweets"}
+{name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn",peoplenote:"many kids enjoy sweets"}
+{name:"apple",color:"red",flavor:"tart"}
+{name:"apple",color:"red",flavor:"tart"}
+```
+
+Until zed/2833 is addressed, one way to work around this limitation is to
+specify `this` in the field list to copy the contents of the _entire_ opposite
+record into an embedded record in the result.
+
+The improved Zed script `embed-opposite.zed`:
+
+```mdtest-input embed-opposite.zed
+from (
+  file fruit.ndjson => sort flavor;
+  file people.ndjson => sort likes;
+) | inner join on flavor=likes eaterinfo:=this
+```
+
+Executing the Zed script:
+
+```mdtest-command
+zq -z -I embed-opposite.zed
+```
+
+#### Output:
+```mdtest-output
+{name:"figs",color:"brown",flavor:"plain",eaterinfo:{name:"jessie",age:30,likes:"plain"}}
+{name:"banana",color:"yellow",flavor:"sweet",eaterinfo:{name:"quinn",age:14,likes:"sweet",note:"many kids enjoy sweets"}}
+{name:"strawberry",color:"red",flavor:"sweet",eaterinfo:{name:"quinn",age:14,likes:"sweet",note:"many kids enjoy sweets"}}
+{name:"dates",color:"brown",flavor:"sweet",note:"in season",eaterinfo:{name:"quinn",age:14,likes:"sweet",note:"many kids enjoy sweets"}}
+{name:"apple",color:"red",flavor:"tart",eaterinfo:{name:"morgan",age:61,likes:"tart"}}
+{name:"apple",color:"red",flavor:"tart",eaterinfo:{name:"chris",age:47,likes:"tart"}}
 ```
 
 ---
