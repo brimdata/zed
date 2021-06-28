@@ -306,13 +306,13 @@ conn  2018-03-24T17:15:20.607695Z CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.
 
 |                           |                                               |
 | ------------------------- | --------------------------------------------- |
-| **Description**           | Return records derived from two inputs when particular values match between them.<br><br>The inputs must be sorted in the same order by their respective join keys. If an input source is already known to be sorted appropriately (either in an input file/object/stream, or if the data is pulled from a [Zed Lake](../../lake/design.md) in that's ordered by this key) an explicit [`sort`](https://github.com/brimdata/zed/tree/main/docs/language/operators#sort) is not required. ||
+| **Description**           | Return records derived from two inputs when particular values match between them.<br><br>The inputs must be sorted in the same order by their respective join keys. If an input source is already known to be sorted appropriately (either in an input file/object/stream, or if the data is pulled from a [Zed Lake](../../lake/design.md) in that's ordered by this key) an explicit upstream [`sort`](https://github.com/brimdata/zed/tree/main/docs/language/operators#sort) is not required. ||
 | **Syntax**                | `[inner\|left\|right] join on <left-key>=<right-key> [field-list]`          |
 | **Required<br>arguments** | `<left-key>`<br>A field in the left-hand input whose contents will be checked for equality against the `<right-key>`<br><br>`<right-key>`<br>A field in the right-hand input whose contents will be checked for equality against the `<left-key>` |
 | **Optional<br>arguments** | `[inner\|left\|right]`<br>The type of join that should be performed.<br>• `inner` - Return only records that have matching key values in both inputs (default)<br>• `left` - Return all records from the left-hand input, and matched records from the right-hand input<br>• `right` - Return all records from the right-hand input, and matched records from the left-hand input<br><br>`[field-list]`<br>One or more comma-separated field names or assignments. The values in the field(s) specified will be copied from the _opposite_ input (right-hand side for a `left` or `inner` join, left-hand side for a `right` join) into the joined results. If no field list is provided, no fields from the opposite input will appear in the joined results (see [zed/2815](https://github.com/brimdata/zed/issues/2815) regarding expected enhancements in this area). |
 | **Limitations**           | • The order of the left/right key names in the equality test must follow the left/right order of the input sources that precede the `join` ([zed/2228](https://github.com/brimdata/zed/issues/2228))<br>• The Zed data types of the respective key fields must match precisely ([zed/2779](https://github.com/brimdata/zed/issues/2779))<br>• Only a simple equality test (not an arbitrary expression) is currently possible ([zed/2766](https://github.com/brimdata/zed/issues/2766))<br>• All fields included in the `[field-list]` must be present in the record of the opposite input for any of them to appear in the joined result ([zed/2833](https://github.com/brimdata/zed/issues/2833)) |
 
-The first input data source for our examples is `fruit.ndjson`, which describes
+The first input data source for our usage examples is `fruit.ndjson`, which describes
 the characteristics of some fresh produce.
 
 ```mdtest-input fruit.ndjson
@@ -325,7 +325,7 @@ the characteristics of some fresh produce.
 ```
 
 The other input data source is `people.ndjson`, which describes the traits
-and preferences of some potential fruit-eaters.
+and preferences of some potential eaters of fruit.
 
 ```mdtest-input people.ndjson
 {"name":"morgan","age":61,"likes":"tart"}
@@ -374,11 +374,11 @@ zq -z -I inner-join.zed
 #### Example #2 - Left join
 
 By performing a left join that targets the same key fields, now all of our
-fruits will be shown even if no one likes them (e.g., `avocado`).
+fruits will be shown in the results even if no one likes them (e.g., `avocado`).
 
-Here we'll also copy over the age of the matching person. By referencing only
-the field name rather than using `:=` for assignment, the original field name
-`age` from the opposite input is maintained.
+As another variatino, we'll also copy over the age of the matching person. By
+referencing only the field name rather than using `:=` for assignment, the
+original field name `age` from the opposite input is maintained in the results.
 
 The Zed script `left-join.zed`:
 
@@ -408,8 +408,8 @@ zq -z -I left-join.zed
 
 #### Example #3 - Right join
 
-Next we'll reverse the order of our join, which causes the `note` field from
-the right-hand input to appear in the joined results.
+Next we'll reverse the order of our join. Notice that this casues the `note`
+field from the right-hand input to appear in the joined results.
 
 The Zed script `right-join.zed`:
 
@@ -440,17 +440,17 @@ zq -z -I right-join.zed
 
 As our prior examples all used `zq`, we used `file` in our `from()` block to
 pull our respective inputs from named file sources. However, if the inputs are
-stored in Pools in a Zed lake, the Pool names would be specified in the
+stored in Pools in a Zed lake, the Pool names would instead be specified in the
 `from()` block.
 
-Here we'll load our data inputs to Pools in a temporary Zed Lake, then execute
+Here we'll load our input data to Pools in a temporary Zed Lake, then execute
 our inner join using `zed lake query`. If the Zed Lake had been fronted by a
 `zed lake serve` process, the equivalent operations would be performed over the
-network via `zapi`.
+network via `zed api`.
 
 Notice that because we happened to use `-orderby` to sort our Pools by the same
 keys that we reference in our `join`, we did not need to use any explicit
-`sort`.
+upstream `sort`.
 
 The Zed script `inner-join-pools.zed`:
 
@@ -485,10 +485,11 @@ zed lake query -z -I inner-join-pools.zed
 
 #### Example #5 - Streamed input
 
-In addition to named files and Pools as we've used in the prior example, Zed is
-also intended to work on streams of data. Here we'll combine our file sources
-into a stream that we'll pipe into `zq` via stdin. To separate the respective
-inputs before sorting, we use `has()` to identify the left and right sides.
+In addition to the named files and Pools like we've used in the prior examples,
+Zed is also intended to work on streams of data. Here we'll combine our file
+sources into a stream that we'll pipe into `zq` via stdin. Because join requires
+two separate inputs, here we'll use the `has()` function to identify the
+records in the stream that will be treated as the left and right sides.
 
 The Zed script `inner-join-streamed.zed`:
 
