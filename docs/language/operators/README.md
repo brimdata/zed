@@ -337,7 +337,7 @@ and preferences of some potential fruit-eaters.
 #### Example #1 - Inner join
 
 We'll start by outputting only the fruits for which we have one or more
-matching person that likes it. The name of the matching person is copied
+matching people that like it. The name of the matching person is copied
 into a field of a different name in the joined results.
 
 Because we're performing an inner join (the default), the inclusion of the
@@ -485,7 +485,7 @@ zed lake query -z -I inner-join-pools.zed
 
 #### Example #5 - Streamed input
 
-In addition to named files and Pools as we've used in the prior exampls, Zed is
+In addition to named files and Pools as we've used in the prior example, Zed is
 also intended to work on streams of data. Here we'll combine our file sources
 into a stream that we'll pipe into `zq` via stdin. To separate the respective
 inputs before sorting, we use `has()` to identify the left and right sides.
