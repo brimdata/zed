@@ -1,3 +1,5 @@
+platform: '!windows'
+
 script: |
   source mockbrim.sh
   zed create test
