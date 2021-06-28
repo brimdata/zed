@@ -12,17 +12,15 @@ import (
 )
 
 type Formatter struct {
-	typedefs    typemap
-	tab         int
-	newline     string
-	whitespace  string
-	typeTab     int
-	typeNewline string
-	nid         int
-	builder     strings.Builder
-	stack       []strings.Builder
-	implied     map[zng.Type]bool
-	colors      color.Stack
+	typedefs typemap
+	tab      int
+	newline  string
+	typeTab  int
+	nid      int
+	builder  strings.Builder
+	stack    []strings.Builder
+	implied  map[zng.Type]bool
+	colors   color.Stack
 }
 
 func NewFormatter(pretty int) *Formatter {
@@ -31,11 +29,10 @@ func NewFormatter(pretty int) *Formatter {
 		newline = "\n"
 	}
 	return &Formatter{
-		typedefs:   make(typemap),
-		tab:        pretty,
-		newline:    newline,
-		whitespace: strings.Repeat(" ", 80),
-		implied:    make(map[zng.Type]bool),
+		typedefs: make(typemap),
+		tab:      pretty,
+		newline:  newline,
+		implied:  make(map[zng.Type]bool),
 	}
 }
 
