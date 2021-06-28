@@ -46,7 +46,7 @@
 
 start = __ ast:Z __ EOF { RETURN(ast) }
 
-// A Z script can be either a single operation or a chain of operations.
+// A Zed script can be either a single operation or a chain of operations.
 // For a single operation, we do not need to wrap operator in a SequentialProc,
 // but we do for everything but FilterProc because the zed runtime is fragile
 // to this difference right now.  See issue #1809.

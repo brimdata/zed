@@ -139,7 +139,7 @@ func CompileFilter(zctx *zson.Context, scope *Scope, node dag.Expr) (expr.Filter
 
 	case *zed.Primitive:
 		// This literal translation should happen elsewhere will
-		// be fixed when we add ZSON literals to Z, e.g.,
+		// be fixed when we add ZSON literals to Zed, e.g.,
 		// dag.Literal.AsBool() etc methods.
 		if v.Type != "bool" {
 			return nil, fmt.Errorf("bad literal type in filter compiler: %s", v.Type)

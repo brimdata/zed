@@ -11,7 +11,7 @@ import (
 // was missing or because an argument to the entity had a missing value.
 // This is used at sites in the code where it is unknown whether the outcome
 // should result in a runtime exit or in continued execution with a
-// Missing value embedded in the Z results.
+// Missing value embedded in the Zed results.
 var ErrMissing = errors.New(missing)
 
 const missing = "missing"

@@ -311,7 +311,7 @@ type (
 		Args     []Assignment `json:"args"`
 	}
 
-	// XXX This is a quick and dirty way to get constants into Z.  They are
+	// XXX This is a quick and dirty way to get constants into Zed.  They are
 	// smuggled in as fake procs.  When we refactor this AST into a parser AST
 	// proper and a separate kernel DSL, we will clean this up.
 	Const struct {
@@ -326,7 +326,7 @@ type (
 		Type zed.Type `json:"type"`
 	}
 	// A SQLExpr can be a proc, an expression inside of a SQL FROM clause,
-	// or an expression used as a Z value generator.  Currenly, the "select"
+	// or an expression used as a Zed value generator.  Currenly, the "select"
 	// keyword collides with the select() generator function (it can be parsed
 	// unambiguosly because of the parens but this is not user friendly
 	// so we need a new name for select()... see issue #2133).

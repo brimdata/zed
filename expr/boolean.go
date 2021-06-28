@@ -80,7 +80,7 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 	if !ok1 || !ok2 {
 		return nil, fmt.Errorf("unknown int comparator: %s", op)
 	}
-	// many different Z data types can be compared with integers
+	// many different Zed data types can be compared with integers
 	return func(val zng.Value) bool {
 		zv := val.Bytes
 		switch val.Type.ID() {
@@ -120,7 +120,7 @@ func CompareTime(op string, pattern int64) (Boolean, error) {
 	if !ok1 || !ok2 {
 		return nil, fmt.Errorf("unknown int comparator: %s", op)
 	}
-	// many different Z data types can be compared with integers
+	// many different Zed data types can be compared with integers
 	return func(val zng.Value) bool {
 		zv := val.Bytes
 		switch val.Type.ID() {

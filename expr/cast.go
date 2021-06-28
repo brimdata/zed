@@ -174,7 +174,7 @@ func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
 			return zng.Value{typ, zng.EncodeString(symbol)}, nil
 		}
 		if zng.IsStringy(id) {
-			// If it's already stringy, then the z encoding can stay
+			// If it's already stringy, then the Zeed encoding can stay
 			// the same and we just update the stringy type.
 			return zng.Value{typ, zv.Bytes}, nil
 		}

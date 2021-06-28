@@ -36,7 +36,7 @@ type Pair struct {
 
 func (c *Pair) Equal() bool {
 	// bytes.Equal() returns true for nil compared to an empty-slice,
-	// which doesn't work for Z null comparisons, so we explicitly check
+	// which doesn't work for Zed null comparisons, so we explicitly check
 	// for the nil condition here.
 	if c.A == nil {
 		return c.B == nil

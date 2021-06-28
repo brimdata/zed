@@ -496,7 +496,7 @@ func semField(scope *Scope, e ast.Expr) (dag.Expr, error) {
 
 // convertFunctionProc converts a FunctionCall ast node at proc level
 // to a group-by or a filter-proc based on the name of the function.
-// This way, Z of the form `... | exists(...) | ...` can be distinguished
+// This way, Zed of the form `... | exists(...) | ...` can be distinguished
 // from `count()` by the name lookup here at compile time.
 func convertFunctionProc(scope *Scope, call *ast.Call) (dag.Op, error) {
 	if _, err := agg.NewPattern(call.Name); err != nil {
