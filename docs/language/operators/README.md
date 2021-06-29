@@ -337,8 +337,8 @@ and preferences of some potential eaters of fruit.
 #### Example #1 - Inner join
 
 We'll start by outputting only the fruits liked by at least one person.
-The name of the matching person is copied
-into a field of a different name in the joined results.
+The name of the matching person is copied into a field of a different name in
+the joined results.
 
 Because we're performing an inner join (the default), the inclusion of the
 explicit `inner` is not strictly necessary, but may be included to help make
@@ -408,8 +408,8 @@ zq -z -I left-join.zed
 
 #### Example #3 - Right join
 
-Next we'll change the join type from `left` to `right`. Notice that this causes the `note`
-field from the right-hand input to appear in the joined results.
+Next we'll change the join type from `left` to `right`. Notice that this causes
+the `note` field from the right-hand input to appear in the joined results.
 
 The Zed script `right-join.zed`:
 
