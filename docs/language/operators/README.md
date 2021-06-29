@@ -336,8 +336,8 @@ and preferences of some potential eaters of fruit.
 
 #### Example #1 - Inner join
 
-We'll start by outputting only the fruits for which we have one or more
-matching people that like it. The name of the matching person is copied
+We'll start by outputting only the fruits liked by at least one person.
+The name of the matching person is copied
 into a field of a different name in the joined results.
 
 Because we're performing an inner join (the default), the inclusion of the
@@ -378,7 +378,7 @@ fruits will be shown in the results even if no one likes them (e.g., `avocado`).
 
 As another variation, we'll also copy over the age of the matching person. By
 referencing only the field name rather than using `:=` for assignment, the
-original field name `age` from the opposite input is maintained in the results.
+original field name `age` is maintained in the results.
 
 The Zed script `left-join.zed`:
 
@@ -408,7 +408,7 @@ zq -z -I left-join.zed
 
 #### Example #3 - Right join
 
-Next we'll reverse the order of our join. Notice that this causes the `note`
+Next we'll change the join type from `left` to `right`. Notice that this causes the `note`
 field from the right-hand input to appear in the joined results.
 
 The Zed script `right-join.zed`:
@@ -456,15 +456,16 @@ The Zed script `inner-join-pools.zed`:
 
 ```mdtest-input inner-join-pools.zed
 from (
-  fruit => sort flavor;
-  people => sort likes;
+  fruit => pass;
+  people => pass;
 ) | inner join on flavor=likes eater:=name
 ```
 
 Populating the Pools, then executing the Zed script:
 
 ```mdtest-command
-export ZED_LAKE_ROOT=`mktemp -d`
+mkdir lake
+export ZED_LAKE_ROOT=lake
 zed lake init -q
 zed lake create -q -p fruit -orderby flavor:asc
 zed lake create -q -p people -orderby likes:asc
