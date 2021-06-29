@@ -494,9 +494,9 @@ records in the stream that will be treated as the left and right sides.
 The Zed script `inner-join-streamed.zed`:
 
 ```mdtest-input inner-join-streamed.zed
-* | split (
-  => has(color) | sort flavor
-  => has(age) | sort likes
+switch (
+  case has(color) => sort flavor
+  case has(age) => sort likes
 ) | inner join on flavor=likes eater:=name
 ```
 
