@@ -464,7 +464,7 @@ from (
 Populating the Pools, then executing the Zed script:
 
 ```mdtest-command
-ZED_LAKE_ROOT=`mktemp -d`
+export ZED_LAKE_ROOT=`mktemp -d`
 zed lake init -q
 zed lake create -q -p fruit -orderby flavor:asc
 zed lake create -q -p people -orderby likes:asc
