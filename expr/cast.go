@@ -16,6 +16,8 @@ type PrimitiveCaster func(zv zng.Value) (zng.Value, error)
 
 func LookupPrimitiveCaster(typ zng.Type) PrimitiveCaster {
 	switch typ {
+	case zng.TypeBool:
+		return castToBool
 	case zng.TypeInt8:
 		return castToInt8
 	case zng.TypeInt16:
@@ -85,6 +87,14 @@ func castToUintN(typ zng.Type, max uint64) func(zng.Value) (zng.Value, error) {
 		// XXX GC
 		return zng.Value{typ, zng.EncodeUint(v)}, nil
 	}
+}
+
+func castToBool(zv zng.Value) (zng.Value, error) {
+	b, ok := coerce.ToBool(zv)
+	if !ok {
+		return zng.Value{}, ErrBadCast
+	}
+	return zng.Value{zng.TypeBool, zng.EncodeBool(b)}, nil
 }
 
 func castToFloat64(zv zng.Value) (zng.Value, error) {
