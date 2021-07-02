@@ -198,6 +198,7 @@ func readValue(r reader, code byte, m *resolver.Mapper, validate bool, rec *zng.
 		if err != nil {
 			return nil, err
 		}
+		id += zng.CtrlValueEscape
 	}
 	n, err := readUvarintAsInt(r)
 	if err != nil {
