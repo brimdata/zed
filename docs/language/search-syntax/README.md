@@ -422,65 +422,36 @@ In addition to testing for equality via `==` and finding patterns via
 `matches`, the other common methods of comparison `!=`, `<`, `>`, `<=`, and
 `>=` are also available.
 
-For example, the following search finds connections that have transferred many bytes.
+For example, the following search finds the schools that reported the highest
+SAT math scores.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'orig_bytes > 1000000' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'AvgScrMath > 690' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H    ID.RESP_P PROTO SERVICE DURATION    ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY          ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
-conn  2018-03-24T17:25:15.208232Z CVimRo24ubbKqFvNu7 172.30.255.1 11        10.128.0.207 0         icmp  -       100.721937  1647088    0          OTH        -          -          0            -                44136     2882896       0         0             -
-conn  2018-03-24T17:15:20.630818Z CO0MhB2NCc08xWaly8 10.47.1.154  49814     134.71.3.17  443       tcp   -       1269.512465 1618740    12880888   OTH        -          -          0            ^dtADTatTtTtTtT  110169    7594230       111445    29872050      -
-conn  2018-03-24T17:15:20.637761Z Cmgywj2O8KZAHHjddb 10.47.1.154  49582     134.71.3.17  443       tcp   -       1266.367457 1594682    53255700   OTH        -          -          0            ^dtADTatTtTtTtTW 131516    8407458       142488    110641641     -
-conn  2018-03-24T17:15:20.705347Z CWtQuI2IMNyE1pX47j 10.47.6.161  52121     134.71.3.17  443       tcp   -       1269.320626 2267243    54791018   OTH        -          -          0            DTadtATttTtTtT   152819    10575303      158738    113518994     -
-conn  2018-03-24T17:33:05.415532Z Cy3R5w2pfv8oSEpa2j 10.47.8.19   49376     10.128.0.214 443       tcp   -       202.457994  4862366    1614249    S1         -          -          0            ShAdtttDTaTTTt   7280      10015980      6077      3453020       -
+{AvgScrMath:698 (uint16),AvgScrRead:639 (uint16),AvgScrWrite:664 (uint16),cname:"Santa Clara",dname:"Fremont Union High",sname:"Lynbrook High"} (=satscore)
+{AvgScrMath:699,AvgScrRead:653,AvgScrWrite:671,cname:"Alameda",dname:"Fremont Unified",sname:"Mission San Jose High"} (satscore)
+{AvgScrMath:691,AvgScrRead:638,AvgScrWrite:657,cname:"Santa Clara",dname:"Fremont Union High",sname:"Monta Vista High"} (satscore)
 ```
 
 The same approach can be used to compare characters in `string`-type values,
-such as this search that finds DNS requests that were issued for hostnames at
-the high end of the alphabet.
+such as this search that finds school names at the high end of the alphabet.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'query > "zippy"' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'School > "Z"
 ```
 
 #### Output:
-```mdtest-output
-_PATH TS                          UID               ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                                                    QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                TTLS       REJECTED
-dns   2018-03-24T17:30:09.84174Z  Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001694 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
-dns   2018-03-24T17:30:09.841742Z Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001697 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
-dns   2018-03-24T17:34:52.637234Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53        udp   43239    0.019491 zn_0pxrmhobblncaad-hpsupport.siteintercept.qualtrics.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 cloud.qualtrics.com.edgekey.net,e3672.ksd.akamaiedge.net,23.55.215.198 3600,17,20 F
-dns   2018-03-24T17:34:52.637238Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53        udp   43239    0.019493 zn_0pxrmhobblncaad-hpsupport.siteintercept.qualtrics.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 cloud.qualtrics.com.edgekey.net,e3672.ksd.akamaiedge.net,23.55.215.198 3600,17,20 F
+```mdtest-output head
+{School:"Zamora Elementary"}
+{School:"Zamorano Elementary"}
+{School:"Zane (Catherine L.) Junior High"}
+...
 ```
-
-### Other Examples
-
-The other behaviors we described previously for general
-[value matching](#value-match) still apply the same for field/value matches.
-Below are some exercises you can try to observe this with the sample data.
-Search with `zq` against `*.log.gz` in all cases.
-
-1. Compare the result of our previous [quoted word](#quoted-word) value search
-   for `"O=Internet Widgits"` with a field/value search for
-   `certificate.subject=*Widgits*`. Note how the former showed many types of
-   Zeek records while the latter shows _only_ `x509` records, since only these
-   records contain the field named `certificate.subject`.
-
-2. Compare the result of our previous [glob wildcard](#glob-wildcards) value
-   search for `www.*cdn*.com` with a field/value search for
-   `server_name=www.*cdn*.com`. Note how the former showed mostly Zeek `dns`
-   records and a couple `ssl` records, while the latter shows _only_ `ssl`
-   records, since only these records contain the field named `server_name`.
-
-3. Compare the result of our previous [regexp](#regular-expressions) value
-   search for `/www.google(ad|tag)services.com/` with a field/value search for
-   `query=/www.google(ad|tag)services.com/`. Note how the former showed a mix
-   of Zeek `dns` and `ssl` records, while the latter shows _only_ `dns`
-   records, since only these records contain the field named `query`.
 
 ## Boolean Logic
 
