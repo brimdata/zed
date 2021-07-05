@@ -28,16 +28,16 @@ we'll sometimes make use of the `-z` option to output the text-based
 [ZSON](../../formats/zson.md) format, which is readable at the command line.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -z '*' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z '*' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl" (bstring),id:{orig_h:10.164.94.120,orig_p:39681 (port=(uint16)),resp_h:10.47.3.155,resp_p:3389 (port)} (=0),proto:"tcp" (=zenum),service:null (bstring),duration:4.266ms,orig_bytes:97 (uint64),resp_bytes:19 (uint64),conn_state:"RSTR" (bstring),local_orig:null (bool),local_resp:null (bool),missed_bytes:0 (uint64),history:"ShADTdtr" (bstring),orig_pkts:10 (uint64),orig_ip_bytes:730 (uint64),resp_pkts:6 (uint64),resp_ip_bytes:342 (uint64),tunnel_parents:null (1=(|[bstring]|))} (=2)
-{_path:"conn",ts:2018-03-24T17:15:21.411148Z,uid:"CXWfTK3LRdiuQxBbM6",id:{orig_h:10.47.25.80,orig_p:50817,resp_h:10.128.0.218,resp_p:23189},proto:"tcp",service:null,duration:486us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
-{_path:"conn",ts:2018-03-24T17:15:21.926018Z,uid:"CM59GGQhNEoKONb5i",id:{orig_h:10.47.25.80,orig_p:50817,resp_h:10.128.0.218,resp_p:23189},proto:"tcp",service:null,duration:538us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
-{_path:"conn",ts:2018-03-24T17:15:22.690601Z,uid:"CuKFds250kxFgkhh8f",id:{orig_h:10.47.25.80,orig_p:50813,resp_h:10.128.0.218,resp_p:27765},proto:"tcp",service:null,duration:546us,orig_bytes:0,resp_bytes:0,conn_state:"REJ",local_orig:null,local_resp:null,missed_bytes:0,history:"Sr",orig_pkts:2,orig_ip_bytes:104,resp_pkts:2,resp_ip_bytes:80,tunnel_parents:null} (2)
+{School:"'3R' Middle",District:"Nevada County Office of Education",City:"Nevada City",County:"Nevada",Zip:"95959",Latitude:null (float64),Longitude:null (float64),Magnet:null (bool),OpenDate:1995-10-30T00:00:00Z,ClosedDate:1996-06-28T00:00:00Z,Phone:null (string),StatusType:"Merged",Website:null (string)} (=school)
+{School:"100 Black Men of the Bay Area Community",District:"Oakland Unified",City:"Oakland",County:"Alameda",Zip:"94607-1404",Latitude:37.745418,Longitude:-122.14067,Magnet:null,OpenDate:2012-08-06T00:00:00Z,ClosedDate:2014-10-28T00:00:00Z,Phone:null,StatusType:"Closed",Website:"www.100school.org"} (school)
+{School:"101 Elementary",District:"Victor Elementary",City:"Victorville",County:"San Bernardino",Zip:"92395-3360",Latitude:null,Longitude:null,Magnet:null,OpenDate:1996-02-07T00:00:00Z,ClosedDate:2005-06-30T00:00:00Z,Phone:null,StatusType:"Closed",Website:"www.charter101.org"} (school)
+{School:"180 Program",District:"Novato Unified",City:"Novato",County:"Marin",Zip:"94947-4004",Latitude:38.097792,Longitude:-122.57617,Magnet:null,OpenDate:2012-08-22T00:00:00Z,ClosedDate:2014-06-13T00:00:00Z,Phone:null,StatusType:"Closed",Website:null} (school)
 ...
 ```
 
@@ -46,7 +46,7 @@ search. The following shorthand command line would produce the same output
 shown above.
 
 ```
-zq -z conn.log.gz
+zq -z schools.zson
 ```
 
 To start a Zed pipeline with this default search, you can similarly leave out
@@ -56,20 +56,20 @@ the leading `* |` before invoking your first
 is shorthand for:
 
 ```
-zq -z '* | cut server_tree_name' ntlm.log.gz
+zq -z '* | cut School,City' schools.zson
 ```
 
 #### Example:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -z 'cut server_tree_name' ntlm.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'cut School,City' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-{server_tree_name:"factory.oompa.loompa" (bstring)} (=0)
-{server_tree_name:"factory.oompa.loompa"} (0)
-{server_tree_name:"jerry.land"} (0)
+{School:"'3R' Middle",City:"Nevada City"}
+{School:"100 Black Men of the Bay Area Community",City:"Oakland"}
+{School:"101 Elementary",City:"Victorville"}
 ...
 ```
 
@@ -85,34 +85,23 @@ which will match against any field that contains the word, whether it's an
 exact match to the data type and value of a field or the word appears as a
 substring in a field.
 
-For example, searching across all our logs for `10.150.0.85` matches against
-records that contain `ip`-type fields containing this precise value (fields
-such as `tx_hosts` and `id.resp_h` in our sample data) and also where it
-appears within `string`-type fields (such as the field `certificate.subject` in
-`x509` records.)
-
-> **Note:** In this and many following examples, we'll use the `zq -f table`
-> output format for human readability. Due to the width of the Zeek records used
-> as sample data, you may need to "scroll right" in the output to see some
-> matching field values.
+For example, searching across all our logs for `596` matches records that
+contain numeric fields of this precise value (such as from the SAT test scores
+in our sample data) and also where it appears within string-typed fields (such
+as the zip code and phone number fields.)
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table '10.150.0.85' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z '596' *.zson
 ```
 
 #### Output:
 ```mdtest-output head
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P PROTO SERVICE DURATION  ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY         ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
-conn  2018-03-24T17:15:22.18798Z  CFis4J1xm9BOgtib34 10.47.8.10   56800     10.150.0.85 443       tcp   -       1.000534  31         77         SF         -          -          0            ^dtAfDTFr       8         382           10        554           -
-conn  2018-03-24T17:15:25.527535Z CnvVUp1zg3fnDKrlFk 10.47.27.186 58665     10.150.0.85 443       tcp   -       1.000958  31         77         SF         -          -          0            ^dtAfDFTr       8         478           10        626           -
-conn  2018-03-24T17:15:27.167552Z CsSFJyH4ucFtpmhqa  10.10.18.2   57331     10.150.0.85 443       tcp   -       1.000978  31         77         SF         -          -          0            ^dtAfDFTr       8         478           10        626           -
-conn  2018-03-24T17:15:30.540003Z CLevxl1MBUbcgovw49 10.10.18.2   57332     10.150.0.85 443       tcp   -       1.000998  31         77         SF         -          -          0            ^dtAfDTFrr      8         478           10        626           -
-conn  2018-03-24T17:15:32.512521Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       tcp   ssl     11.012647 4819       6021       SF         -          -          0            ShADTadttTfFr   42        11838         44        14298         -
-conn  2018-03-24T17:15:42.62808Z  CqwJmZ2Lzd42fuvg4k 10.47.8.10   56802     10.150.0.85 443       tcp   ssl     11.013735 4819       6021       SF         -          -          0            ShADTadtTtfFr   44        11422         44        13826         -
-conn  2018-03-24T17:15:46.541346Z CvTTHG2M6xPqDMDLB7 10.47.27.186 58666     10.150.0.85 443       tcp   ssl     11.01268  4819       6021       SF         -          -          0            ShADTadttTfFr   40        11734         46        14402         -
-conn  2018-03-24T17:15:47.486612Z ChpfSB4FWhg3xHI3yb 10.10.18.2   57334     10.150.0.85 443       tcp   ssl     11.014858 4819       6021       SF         -          -          0            ShADTadttTfFr   44        11942         44        14298         -
-conn  2018-03-24T17:15:50.685818Z CCTYYh2Y0IAt4cJpV6 10.10.18.2   57335     10.150.0.85 443       tcp   ssl     11.014914 4819       6021       SF         -          -          0            ShADTadttTfFr   44        11942         44        14298         -
+{AvgScrMath:591 (uint16),AvgScrRead:610 (uint16),AvgScrWrite:596 (uint16),cname:"Los Angeles",dname:"William S. Hart Union High",sname:"Academy of the Canyons"} (=satscore)
+{AvgScrMath:614,AvgScrRead:596,AvgScrWrite:592,cname:"Alameda",dname:"Pleasanton Unified",sname:"Amador Valley High"} (satscore)
+{AvgScrMath:620,AvgScrRead:596,AvgScrWrite:590,cname:"Yolo",dname:"Davis Joint Unified",sname:"Davis Senior High"} (satscore)
+{School:"Achieve Charter School of Paradise Inc.",District:"Paradise Unified",City:"Paradise",County:"Butte",Zip:"95969-3913",Latitude:39.760323,Longitude:-121.62078,Magnet:false,OpenDate:2005-09-12T00:00:00Z,ClosedDate:null (time),Phone:"(530) 872-4100",StatusType:"Active",Website:"www.achievecharter.org"} (=school)
+{School:"Alliance Ouchi-O'Donovan 6-12 Complex",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90043-2622",Latitude:33.993484,Longitude:-118.32246,Magnet:false,OpenDate:2006-09-05T00:00:00Z,ClosedDate:null,Phone:"(323) 596-2290",StatusType:"Active",Website:"http://ouchihs.org"} (school)
 ...
 ```
 
@@ -125,36 +114,73 @@ describes ways to perform searches against only fields of a specific
 Sometimes you may need to search for sequences of multiple words or words that
 contain special characters. To achieve this, wrap your search term in quotes.
 
-Let's say we want to isolate the records containing the text
-`O=Internet Widgits` that we saw in the response to the previous example
-search. If typed bare as our Zed query, we'd experience two problems:
+Let's say we've noticed that a couple of the school names in our sample data
+include the string `Defunct=`. An attempt to enter this as a bare word search
+causes an error because the language parser interpreted this as the start of
+an attempted [field/value match](#fieldvalue-match) for a field named
+`Defunct`.
 
-1. The leading `O=` would be interpreted as the start of an attempted
-   [field/value match](#fieldvalue-match) for a field named `O`.
+#### Example:
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'Defunct=' *.zson || true
+```
 
-2. The space character would cause the input to be interpreted as two separate
-   words and hence the search would not be as strict.
+#### Output:
+```mdtest-output
+zq: error parsing Zed at column 8:
+Defunct=
+   === ^ ===
+```
 
 However, wrapping in quotes gives the desired result.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table '"O=Internet Widgits"' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z '"Defunct="' schools.zson
+```
+
+#### Output:
+```mdtest-output
+{School:"Lincoln Elem 'Defunct=",District:"Modesto City Elementary",City:null (string),County:"Stanislaus",Zip:null (string),Latitude:null (float64),Longitude:null (float64),Magnet:null (bool),OpenDate:1980-07-01T00:00:00Z,ClosedDate:1989-06-30T00:00:00Z,Phone:null (string),StatusType:"Closed",Website:null (string)} (=school)
+{School:"Lovell Elem 'Defunct=",District:"Cutler-Orosi Joint Unified",City:null,County:"Tulare",Zip:null,Latitude:null,Longitude:null,Magnet:null,OpenDate:1980-07-01T00:00:00Z,ClosedDate:1989-06-30T00:00:00Z,Phone:null,StatusType:"Closed",Website:null} (school)
+```
+
+Wrapping in quotes is particularly handy when you're looking for long, specific
+strings that may have several special characters in them. For example, let's
+say we're looking for information on the Union Hill Elementary district.
+Entered without quotes, we up matching way more records than we intended since
+each space character between words is treated as a [boolean `and`](#and) .
+
+#### Example:
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'Union Hill Elementary' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-_PATH  TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P FUID               FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                              SUB                                                          SRC          DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
-notice 2018-03-24T17:15:32.521729Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P VERSION CIPHER                                CURVE  SERVER_NAME RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS   CLIENT_CERT_CHAIN_FUIDS SUBJECT                                                      ISSUER                                                       CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
-ssl   2018-03-24T17:15:32.513518Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FZW30y2Nwc9i0qmdvg (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:15:42.629228Z CqwJmZ2Lzd42fuvg4k 10.47.8.10   56802     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           Fo9ltu1O8DGE0KAgC  (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:15:46.542733Z CvTTHG2M6xPqDMDLB7 10.47.27.186 58666     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           F7oQQK1qo9HfmlN048 (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:15:47.487765Z ChpfSB4FWhg3xHI3yb 10.10.18.2   57334     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FdBWBA3eODh6nHFt82 (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:15:50.686807Z CCTYYh2Y0IAt4cJpV6 10.10.18.2   57335     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           F3tqPSHF7DQTGzvb8  (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:16:03.420427Z CgYVkl18broGgMeXAj 10.47.24.186 55783     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FIAk2w1WyVWGpBdYfa (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
-ssl   2018-03-24T17:16:14.520854Z CltIsl1XqvnZNN46y5 10.47.8.10   56805     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FqSNvesbyWVAzlM9l  (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
+{School:"A. M. Thomas Middle",District:"Lost Hills Union Elementary",City:"Lost Hills",County:"Kern",Zip:"93249-0158",Latitude:35.615269,Longitude:-119.69955,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null (time),Phone:"(661) 797-2626",StatusType:"Active",Website:null (string)} (=school)
+{School:"Alview Elementary",District:"Alview-Dairyland Union Elementary",City:"Chowchilla",County:"Madera",Zip:"93610-9225",Latitude:37.050632,Longitude:-120.4734,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null,Phone:"(559) 665-2275",StatusType:"Active",Website:null} (school)
+{School:"Anaverde Hills",District:"Westside Union Elementary",City:"Palmdale",County:"Los Angeles",Zip:"93551-5518",Latitude:34.564651,Longitude:-118.18012,Magnet:false,OpenDate:2005-08-15T00:00:00Z,ClosedDate:null,Phone:"(661) 575-9923",StatusType:"Active",Website:null} (school)
+{School:"Apple Blossom",District:"Twin Hills Union Elementary",City:"Sebastopol",County:"Sonoma",Zip:"95472-3917",Latitude:38.387396,Longitude:-122.84954,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null,Phone:"(707) 823-1041",StatusType:"Active",Website:null} (school)
 ...
+```
+
+However, wrapping the entire term in quotes allows us to search for the
+complete string, spaces included.
+
+#### Example:
+```mdtest-command zed-sample-data/edu/zson
+zq -z '"Union Hill Elementary"' schools.zson
+```
+
+#### Output:
+```mdtest-output
+{School:"Highland Oaks Elementary",District:"Union Hill Elementary",City:"Grass Valley",County:"Nevada",Zip:"95945",Latitude:null (float64),Longitude:null (float64),Magnet:null (bool),OpenDate:1997-09-02T00:00:00Z,ClosedDate:2003-07-02T00:00:00Z,Phone:null (string),StatusType:"Closed",Website:null (string)} (=school)
+{School:"Union Hill 3R Community Day",District:"Union Hill Elementary",City:"Grass Valley",County:"Nevada",Zip:"95945",Latitude:39.229055,Longitude:-121.07127,Magnet:null,OpenDate:2003-08-20T00:00:00Z,ClosedDate:2011-06-30T00:00:00Z,Phone:null,StatusType:"Closed",Website:"www.uhsd.k12.ca.us"} (school)
+{School:"Union Hill Charter Home",District:"Union Hill Elementary",City:"Grass Valley",County:"Nevada",Zip:"95945-8805",Latitude:39.204457,Longitude:-121.03829,Magnet:false,OpenDate:1995-07-14T00:00:00Z,ClosedDate:2015-06-30T00:00:00Z,Phone:null,StatusType:"Closed",Website:"www.uhsd.k12.ca.us"} (school)
+{School:"Union Hill Elementary",District:"Union Hill Elementary",City:"Grass Valley",County:"Nevada",Zip:"95945-8805",Latitude:39.204457,Longitude:-121.03829,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null,Phone:"(530) 273-8456",StatusType:"Active",Website:"www.uhsd.k12.ca.us"} (school)
+{School:"Union Hill Middle",District:"Union Hill Elementary",City:"Grass Valley",County:"Nevada",Zip:"94945-8805",Latitude:39.205006,Longitude:-121.03778,Magnet:false,OpenDate:2013-08-14T00:00:00Z,ClosedDate:null,Phone:"(530) 273-8456",StatusType:"Active",Website:"www.uhsd.k12.ca.us"} (school)
+{School:null,District:"Union Hill Elementary",City:"Grass Valley",County:"Nevada",Zip:"95945-8730",Latitude:39.208869,Longitude:-121.03551,Magnet:null,OpenDate:null,ClosedDate:null,Phone:"(530) 273-0647",StatusType:"Active",Website:"www.uhsd.k12.ca.us"} (school)
 ```
 
 ### Glob Wildcards
@@ -164,28 +190,18 @@ desired word(s), one or more
 [glob](https://en.wikipedia.org/wiki/Glob_(programming))-style wildcards can be
 used.
 
-For example, the following search finds records that contain web server
-hostnames that include the letters `cdn` in the middle of them, such as
-`www.cdn.amazon.com` or `www.herokucdn.com`.
+For example, the following search finds records that contain school names
+that have some additional text between `ACE` and `Academy`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'www.*cdn*.com' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'ACE*Academy' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY              QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                                                                                                                                                                                                                                                                                      TTLS                                REJECTED
-dns   2018-03-24T17:16:24.038839Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   11089    0.000785 www.amazon.com     1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                              578,57,57                           F
-dns   2018-03-24T17:16:24.038843Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   11089    0.000784 www.amazon.com     1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                              578,57,57                           F
-dns   2018-03-24T17:16:24.038845Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   15749    0.001037 www.amazon.com     1      C_INTERNET  28    AAAA       0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net                                                                                                                                                                                                                                                                                             578,57                              F
-dns   2018-03-24T17:16:24.038847Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   15749    0.001039 www.amazon.com     1      C_INTERNET  28    AAAA       0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net                                                                                                                                                                                                                                                                                             578,57                              F
-dns   2018-03-24T17:17:09.930694Z Cfah1k4TTqKPt2tUNa 10.47.1.10  54657     10.0.0.100 53        udp   50394    0.001135 www.cdn.amazon.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                                                 12,12                               F
-dns   2018-03-24T17:17:09.930698Z Cfah1k4TTqKPt2tUNa 10.47.1.10  54657     10.0.0.100 53        udp   50394    0.001133 www.cdn.amazon.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                                                 12,12                               F
-dns   2018-03-24T17:22:57.049941Z CiCGyr4RPOcBLVyh33 10.47.2.100 39482     10.0.0.100 53        udp   27845    0.014268 www.herokucdn.com  1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 d3v17f49c4gdd3.cloudfront.net,52.85.83.228,52.85.83.238,52.85.83.247,52.85.83.110,52.85.83.12,52.85.83.97,52.85.83.135,52.85.83.215                                                                                                                                                                                                          300,60,60,60,60,60,60,60,60         F
-dns   2018-03-24T17:22:57.049944Z CiCGyr4RPOcBLVyh33 10.47.2.100 39482     10.0.0.100 53        udp   27845    0.014269 www.herokucdn.com  1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 d3v17f49c4gdd3.cloudfront.net,52.85.83.228,52.85.83.238,52.85.83.247,52.85.83.110,52.85.83.12,52.85.83.97,52.85.83.135,52.85.83.215                                                                                                                                                                                                          300,60,60,60,60,60,60,60,60         F
-dns   2018-03-24T17:22:57.049945Z CiCGyr4RPOcBLVyh33 10.47.2.100 39482     10.0.0.100 53        udp   13966    0.017272 www.herokucdn.com  1      C_INTERNET  28    AAAA       0     NOERROR    F  F  T  T  0 d3v17f49c4gdd3.cloudfront.net,2600:9000:201d:8a00:15:5f5a:e9c0:93a1,2600:9000:201d:3600:15:5f5a:e9c0:93a1,2600:9000:201d:b400:15:5f5a:e9c0:93a1,2600:9000:201d:2400:15:5f5a:e9c0:93a1,2600:9000:201d:a00:15:5f5a:e9c0:93a1,2600:9000:201d:ba00:15:5f5a:e9c0:93a1,2600:9000:201d:f200:15:5f5a:e9c0:93a1,2600:9000:201d:1800:15:5f5a:e9c0:93a1 300,60,60,60,60,60,60,60,60         F
-...
+{School:"ACE Empower Academy",District:"Santa Clara County Office of Education",City:"San Jose",County:"Santa Clara",Zip:"95116-3423",Latitude:37.348601,Longitude:-121.8446,Magnet:false,OpenDate:2008-08-26T00:00:00Z,ClosedDate:null (time),Phone:"(408) 729-3920",StatusType:"Active",Website:"www.acecharter.org"} (=school)
+{School:"ACE Inspire Academy",District:"San Jose Unified",City:"San Jose",County:"Santa Clara",Zip:"95112-6334",Latitude:37.350981,Longitude:-121.87205,Magnet:false,OpenDate:2015-08-03T00:00:00Z,ClosedDate:null,Phone:"(408) 295-6008",StatusType:"Active",Website:"www.acecharter.org"} (school)
 ```
 
 > **Note:** Our use of `*` to [search all records](#search-all-records) as
@@ -193,29 +209,7 @@ dns   2018-03-24T17:22:57.049945Z CiCGyr4RPOcBLVyh33 10.47.2.100 39482     10.0.
 
 Glob wildcards only have effect when used with [bare word](#bare-word)
 searches. An asterisk in a [quoted word](#quoted-word) search will match
-explicitly against an asterisk character. For example, the following search
-matches records that contain the substring `CN=*` as is often found in the
-start of certificate subjects.
-
-#### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table '"CN=*"' *.log.gz
-```
-
-#### Output:
-```mdtest-output head
-_PATH  TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H   ID.RESP_P FUID              FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                                             SUB                                                                                          SRC        DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
-notice 2018-03-24T17:16:58.268179Z CVkrLo2Wjo4r51ZDZ7 10.47.8.10 56808     64.4.54.254 443       FYwv52OzGGIJPop3l -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (unable to get local issuer certificate) CN=*.vortex-win.data.microsoft.com,OU=Microsoft,O=Microsoft Corporation,L=Redmond,ST=WA,C=US 10.47.8.10 64.4.54.254 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H       ID.RESP_P VERSION CIPHER                                        CURVE     SERVER_NAME                                             RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS                                                            CLIENT_CERT_CHAIN_FUIDS                                  SUBJECT                                                                                                                                                  ISSUER                                                                                                                                   CLIENT_SUBJECT                                             CLIENT_ISSUER                                            VALIDATION_STATUS
-ssl   2018-03-24T17:15:23.363645Z Ck6KyHTvFSs6ilQ43  10.47.26.160 49161     216.58.193.195  443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    fonts.gstatic.com                                       F       -          h2            T           FPxVI11Qp4XsZx8MIf,F287wP3LNxC1jQJZsb                                       (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
-ssl   2018-03-24T17:15:23.363999Z CdREh1wNA3vUhNI1f  10.47.26.160 49162     216.58.193.195  443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    fonts.gstatic.com                                       F       -          h2            T           FWz7sY1pnCwl9NvQe,FJ469V1AfRW24KDwBc                                        (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
-ssl   2018-03-24T17:15:23.37596Z  CYVobu3DR0JyyP1m3g 10.47.26.160 49163     216.58.193.195  443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    ssl.gstatic.com                                         F       -          h2            T           F8iNVI29EYGgwvRa6j,FADPVCnp9r9OThjk9                                        (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
-ssl   2018-03-24T17:15:23.139892Z CmkwsI9pQSw1nyclk  10.47.1.208  50083     52.40.133.43    443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256         secp256r1 tiles.services.mozilla.com                              F       -          -             T           FQ290u35UG0B05Zky9,Fx8Cg11p5utkG9q2G7                                       (empty)                                                  CN=*.services.mozilla.com,OU=Cloud Services,O=Mozilla Corporation,L=Mountain View,ST=California,C=US                                                     CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                    -                                                          -                                                        ok
-ssl   2018-03-24T17:15:24.307Z    CfWXSt1sUgIscA3xjb 10.47.1.208  50089     52.85.83.85     443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256         secp256r1 tiles-cloudfront.cdn.mozilla.net                        F       -          http/1.1      T           FqCBqN3kyEWCK3vylf,FfQ1q84bNdxP2QYns9                                       (empty)                                                  CN=*.cdn.mozilla.net,O=Mozilla Corporation,L=Mountain View,ST=California,C=US                                                                            CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                    -                                                          -                                                        ok
-ssl   2018-03-24T17:15:24.316682Z CQ3rFR3YYB9AQ0bKce 10.47.26.160 49164     172.217.5.67    443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    www.gstatic.com                                         F       -          h2            T           Fn2IUp17fUwd39fek,FHIX3R22CuFDL2n8Ji                                        (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
-ssl   2018-03-24T17:15:24.642826Z CUWctp1qQGAroHInB7 10.47.26.160 49166     172.217.4.130   443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    adservice.google.com                                    F       -          h2            T           FzhmnON3YiRWTsJDh,FROnPf4jueKCUmjDC2                                        (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
-...
-```
+explicitly against an asterisk character.
 
 ### Regular Expressions
 
@@ -224,40 +218,20 @@ For matching that requires more precision than can be achieved with
 available. To use them, simply place a `/` character before and after the
 regexp.
 
-For example, let's say you'd already done a [glob wildcard](#glob-wildcard)
-search for `www.*google*.com` and found records that reference the following
-hostnames:
-
-```
-www.google-analytics.com
-www.google.com
-www.googleadservices.com
-www.googleapis.com
-www.googlecommerce.com
-www.googletagmanager.com
-www.googletagservices.com
-```
-
-But if you're only interested in records having to do with "ad" or "tag"
-services, the following regexp search can accomplish this.
+For example, since there's so many high schools in our sample data, to find
+only records containing strings that _begin_ with the word `High`:
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table '/www.google(ad|tag)services.com/' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z '/^High /' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                     QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                             TTLS      REJECTED
-dns   2018-03-24T17:15:46.07484Z  CYjLXM1Yp1ZuuVJQV1 10.47.6.154 12478     10.10.6.1  53        udp   49089    0.001342 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                             0         F
-dns   2018-03-24T17:15:46.074842Z CYjLXM1Yp1ZuuVJQV1 10.47.6.154 12478     10.10.6.1  53        udp   49089    0.001375 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                             0         F
-dns   2018-03-24T17:15:46.07805Z  Cn1BpA2bKVzWn7IvVe 10.47.6.154 38992     10.10.6.1  53        udp   14171    0.000262 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                             0         F
-dns   2018-03-24T17:15:46.078051Z Cn1BpA2bKVzWn7IvVe 10.47.6.154 38992     10.10.6.1  53        udp   14171    0.000265 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                             0         F
-dns   2018-03-24T17:15:46.078071Z CtUHnV2nyFWejoYQ23 10.47.6.154 48071     10.10.6.1  53        udp   64736    0.009286 www.googletagservices.com 1      C_INTERNET  28    AAAA       0     NOERROR    F  F  T  F  0 pagead46.l.doubleclick.net,2607:f8b0:4007:804::2002 44266,53  F
-dns   2018-03-24T17:15:46.078072Z CtUHnV2nyFWejoYQ23 10.47.6.154 48071     10.10.6.1  53        udp   64736    0.009287 www.googletagservices.com 1      C_INTERNET  28    AAAA       0     NOERROR    F  F  T  F  0 pagead46.l.doubleclick.net,2607:f8b0:4007:804::2002 44266,53  F
-dns   2018-03-24T17:16:09.132486Z CUsIaD4CHJDv2dMpp  10.47.7.10  51674     10.0.0.100 53        udp   12049    0.00132  www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 0.0.0.0                                             0         F
-dns   2018-03-24T17:16:09.132491Z CUsIaD4CHJDv2dMpp  10.47.7.10  51674     10.0.0.100 53        udp   12049    0.001316 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 0.0.0.0                                             0         F
-dns   2018-03-24T17:16:17.181981Z CfofM11rhswW1NDNS  10.47.7.10  52373     10.0.0.100 53        udp   61544    0.000881 www.googleadservices.com  1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 0.0.0.0                                             0         F
+{School:"High Desert",District:"Soledad-Agua Dulce Union Eleme",City:"Acton",County:"Los Angeles",Zip:"93510",Latitude:34.490977,Longitude:-118.19646,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:1993-06-30T00:00:00Z,Phone:null (string),StatusType:"Merged",Website:null (string)} (=school)
+{School:"High Desert",District:"Acton-Agua Dulce Unified",City:"Acton",County:"Los Angeles",Zip:"93510-1757",Latitude:34.492578,Longitude:-118.19039,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null,Phone:"(661) 269-0310",StatusType:"Active",Website:null} (school)
+{School:"High Desert Academy",District:"Eastern Sierra Unified",City:"Benton",County:"Mono",Zip:"93512-0956",Latitude:37.818597,Longitude:-118.47712,Magnet:null,OpenDate:1996-09-03T00:00:00Z,ClosedDate:2012-06-30T00:00:00Z,Phone:null,StatusType:"Closed",Website:"www.esusd.org"} (school)
+{School:"High Desert Academy of Applied Arts and Sciences",District:"Victor Valley Union High",City:"Victorville",County:"San Bernardino",Zip:"92394",Latitude:34.531144,Longitude:-117.31697,Magnet:null,OpenDate:2004-09-07T00:00:00Z,ClosedDate:2011-06-30T00:00:00Z,Phone:null,StatusType:"Closed",Website:"www.hdaaas.org"} (school)
 ...
 ```
 
@@ -269,97 +243,88 @@ the library that Zed uses to provide regexp support.
 
 The search result can be narrowed to include only records that contain a
 certain value in a particular named field. For example, the following search
-will only match records containing the field called `uid` where it is set to
-the precise string value `ChhAfsfyuz4n2hFMe`.
+will only match records containing the field called `District` where it is set
+to the precise string value `Marin County ROP`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'uid=="ChhAfsfyuz4n2hFMe"' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'District=="Winton"' schools.zson
 ```
 
 #### Output:
 
 ```mdtest-output
-_PATH TS                          UID               ID.ORIG_H    ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
-conn  2018-03-24T17:36:30.158539Z ChhAfsfyuz4n2hFMe 10.239.34.35 56602     10.47.6.51 873       tcp   -       0.000004 0          0          S0         -          -          0            S       2         88            0         0             -
- ```
+{School:"Frank Sparkes Elementary",District:"Winton",City:"Winton",County:"Merced",Zip:"95388-0008",Latitude:37.382084,Longitude:-120.61847,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null (time),Phone:"(209) 357-6180",StatusType:"Active",Website:null (string)} (=school)
+{School:"Sybil N. Crookham Elementary",District:"Winton",City:"Winton",County:"Merced",Zip:"95388-0130",Latitude:37.389501,Longitude:-120.61636,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null,Phone:"(209) 357-6182",StatusType:"Active",Website:null} (school)
+{School:"Winfield Elementary",District:"Winton",City:"Winton",County:"Merced",Zip:"95388",Latitude:37.389121,Longitude:-120.60442,Magnet:false,OpenDate:2007-08-13T00:00:00Z,ClosedDate:null,Phone:"(209) 357-6891",StatusType:"Active",Website:null} (school)
+{School:"Winton Middle",District:"Winton",City:"Winton",County:"Merced",Zip:"95388-1477",Latitude:37.379938,Longitude:-120.62263,Magnet:false,OpenDate:1990-07-20T00:00:00Z,ClosedDate:null,Phone:"(209) 357-6189",StatusType:"Active",Website:null} (school)
+{School:null,District:"Winton",City:"Winton",County:"Merced",Zip:"95388-0008",Latitude:37.389467,Longitude:-120.6147,Magnet:null,OpenDate:null,ClosedDate:null,Phone:"(209) 357-6175",StatusType:"Active",Website:"www.winton.k12.ca.us"} (school)
+```
 
-Because the right-hand-side value we were comparing to the `uid` field  was a
-string, it was necessary to wrap it in quotes. If we'd left it bare, it would
-have been interpreted as a field name.
+Because the right-hand-side value we were comparing to the `District` field
+was a string, it was necessary to wrap it in quotes. If we'd left it bare, it
+would have been interpreted as a field name.
 
-For example, the bare reference to `id.resp_p` in the following search ensures
-we match records in which the values in the fields for originating and
-responding ports are the same.
+For example, to see the records in which the school and district name are the
+same:
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'id.orig_p==id.resp_p' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'School==District' schools.zson
 ```
 
 #### Output:
 
 ```mdtest-output head
-_PATH TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P PROTO SERVICE DURATION   ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
-conn  2018-03-24T17:15:22.942327Z C6QN8gJLaOXw0GiA6  10.47.24.81   60004     10.128.0.238    60004     tcp   -       0.003538   0          0          SF         -          -          0            ShAafF  8         344           8         344           -
-conn  2018-03-24T17:15:38.523165Z CzFhMc47JPCOG4Z9E9 10.47.3.142   137       10.164.94.120   137       udp   dns     2.99937    300        0          S0         -          -          0            D       6         468           0         0             -
-conn  2018-03-24T17:15:31.711351Z C6TwvE4hg1RN9WxuI4 10.47.3.150   137       10.164.94.120   137       udp   dns     19.920781  1200       0          S0         -          -          0            D       24        1872          0         0             -
+{School:"Adelanto Elementary",District:"Adelanto Elementary",City:"Adelanto",County:"San Bernardino",Zip:"92301-1734",Latitude:34.576166,Longitude:-117.40944,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null (time),Phone:"(760) 246-5892",StatusType:"Active",Website:null (string)} (=school)
+{School:"Allensworth Elementary",District:"Allensworth Elementary",City:"Allensworth",County:"Tulare",Zip:"93219-9709",Latitude:35.864487,Longitude:-119.39068,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null,Phone:"(661) 849-2401",StatusType:"Active",Website:null} (school)
+{School:"Alta Loma Elementary",District:"Alta Loma Elementary",City:"Alta Loma",County:"San Bernardino",Zip:"91701-5007",Latitude:34.12597,Longitude:-117.59744,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null,Phone:"(909) 484-5000",StatusType:"Active",Website:null} (school)
 ...
 ```
 
 ### Role of Data Types
 
-When working with named fields, the data type of the field becomes significant
-in two ways.
+To match successfully when working with named fields, the value must be
+comparable to the data type of the field.
 
-1. To match successfully, the value must be comparable to the data type
-   of the named field. For instance, the `host` field of the `http` records in
-   our sample data are of `string` type, since it logs an HTTP header that is
-   often a hostname or an IP address.
+For instance, the 'Zip' field in our schools data is of `string` type because
+several values are of the extended format that includes a hyphen and four
+additional digits.
 
-   ```mdtest-command zed-sample-data/zeek-default
-   zq -z 'count() by host | sort count,host' http.log.gz
-   ```
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'cut Zip' schools.zson
+```
 
-   #### Output:
-   ```mdtest-output head
-   {host:"0988253c66242502070643933dd49e88.clo.footprintdns.com" (bstring),count:1 (uint64)} (=0)
-   {host:"10.47.21.1",count:1} (0)
-   {host:"10.47.21.80/..",count:1} (0)
-   ...
-   ```
+#### Output:
+```mdtest-output head
+{Zip:"95959"}
+{Zip:"94607-1404"}
+{Zip:"92395-3360"}
+...
+```
 
-   An attempted field/value match `host==10.47.21.1` would not match the
-   record counted in the middle row of this table, since Zed recognizes the
-   bare value `10.47.21.1` as an IP address before comparing it to all the
-   fields named `host` that it sees in the input stream. However,
-   `host=="10.47.21.1"` would match, since the quotes cause Zed to treat the
-   value as a string.
-
-2. The correct syntax must be chosen based on whether the field type is
-   primitive or complex.  For example, `id.resp_h==10.150.0.85` will match in
-   our sample data because `id.resp_h` is a primitive type, `ip`. However, to
-   check if the same IP had been a transmitting host in a `files` record, the
-   syntax `10.150.0.85 in tx_hosts` would be used because `tx_hosts` is a
-   complex type, `set[ip]`. See the section below on
-   [Containment](#containment) for details regarding the use of `in`.
+An attempted field/value match `Zip==95959` would _not_ match the top record
+shown, since Zed recognizes the bare value `95959` as a number before
+comparing it to all the fields named `Zip` that it sees in the input stream.
+However, `Zip=="95959"` _would_ match, since the quotes cause Zed to treat the
+value as a string.
 
 See the [Data Types](../data-types/README.md) page for more details.
 
 ### Finding Patterns with `matches`
 
-An important distinction is that a bare field/value match with `==` is treated
-as an _exact_ match. If we take one of the results from our
-[bare word value match](#bare-word) example and attempt to look for `Widgits`,
-but only on a field named `certificate.subject`, there will be no matches.
-This is because `Widgits` only happens to appear as a _substring_ of
-`certificate.subject` values in our sample data. Because of this, the
-following example produces no output.
+When comparing a named field to a quoted value, the quoted value is treated as
+an _exact_ match.
+
+For example, let's say we know there's several schools that start with
+`Luther`, but only a couple districts do. Because `Luther` only appears as a
+_substring_ of the district names in our sample data, the following example
+produces no output.
 
 #### Example:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'certificate.subject=="Widgits"' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'District=="Luther"' schools.zson
 ```
 
 #### Output:
@@ -370,37 +335,28 @@ To achieve this with a field/value match, we enter `matches` before specifying
 a [glob wildcard](#glob-wildcards).
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'certificate.subject matches *Widgits*' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'District matches Luther*' schools.zson
 ```
 
 #### Output:
 
 ```mdtest-output head
-_PATH TS                          ID                 CERTIFICATE.VERSION CERTIFICATE.SERIAL CERTIFICATE.SUBJECT                                          CERTIFICATE.ISSUER                                           CERTIFICATE.NOT_VALID_BEFORE CERTIFICATE.NOT_VALID_AFTER CERTIFICATE.KEY_ALG CERTIFICATE.SIG_ALG     CERTIFICATE.KEY_TYPE CERTIFICATE.KEY_LENGTH CERTIFICATE.EXPONENT CERTIFICATE.CURVE SAN.DNS SAN.URI SAN.EMAIL SAN.IP BASIC_CONSTRAINTS.CA BASIC_CONSTRAINTS.PATH_LEN
-x509  2018-03-24T17:15:32.519299Z FZW30y2Nwc9i0qmdvg 3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 2018-03-22T14:22:37Z         2045-08-06T14:20:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
-x509  2018-03-24T17:15:42.635094Z Fo9ltu1O8DGE0KAgC  3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 2018-03-22T14:22:37Z         2045-08-06T14:20:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
-x509  2018-03-24T17:15:46.548292Z F7oQQK1qo9HfmlN048 3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 2018-03-22T14:22:37Z         2045-08-06T14:20:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
-x509  2018-03-24T17:15:47.493786Z FdBWBA3eODh6nHFt82 3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 2018-03-22T14:22:37Z         2045-08-06T14:20:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
-...
+{School:"Luther Burbank Elementary",District:"Luther Burbank",City:"San Jose",County:"Santa Clara",Zip:"95128-1931",Latitude:37.323556,Longitude:-121.9267,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null (time),Phone:"(408) 295-1814",StatusType:"Active",Website:null (string)} (=school)
+{School:null,District:"Luther Burbank",City:"San Jose",County:"Santa Clara",Zip:"95128-1931",Latitude:37.323556,Longitude:-121.9267,Magnet:null,OpenDate:null,ClosedDate:null,Phone:"(408) 295-2450",StatusType:"Active",Website:"www.lbsd.k12.ca.us"} (school)
 ```
 
 [Regular expressions](#regular-expressions) can also be used with `matches`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'uri matches /scripts\/waE8_BuNCEKM.(pl|sh)/' http.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'School matches /^Sunset (Ranch|Ridge) Elementary/' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H   ID.RESP_P TRANS_DEPTH METHOD HOST        URI                         REFERRER VERSION USER_AGENT                                                      ORIGIN REQUEST_BODY_LEN RESPONSE_BODY_LEN STATUS_CODE STATUS_MSG INFO_CODE INFO_MSG TAGS    USERNAME PASSWORD PROXIED ORIG_FUIDS ORIG_FILENAMES ORIG_MIME_TYPES RESP_FUIDS         RESP_FILENAMES RESP_MIME_TYPES
-http  2018-03-24T17:17:41.67439Z  Cq3Knz2CEXSJB8ktj  10.164.94.120 40913     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.sh    -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               F8Jbkj1K2qm2xUR1Bj -              text/html
-http  2018-03-24T17:17:42.427215Z C5yUcM3CEFl86YIfY7 10.164.94.120 34369     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.pl    -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               F5M3Jc4B8xeR13JrP3 -              text/html
-http  2018-03-24T17:17:43.933983Z CxJhWB3aN4LcZP59S1 10.164.94.120 37999     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.shtml -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               Fq7wId3B4sZn24Jrf6 -              text/html
-http  2018-03-24T17:17:47.556312Z CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8080      23          GET    10.47.3.142 /scripts/waE8_BuNCEKM.sh    -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                1635              404         Not Found  -         -        (empty) -        -        -       -          -              -               FRErxf1PYkI30aUNCh -              text/html
-http  2018-03-24T17:17:47.561097Z CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8080      24          GET    10.47.3.142 /scripts/waE8_BuNCEKM.pl    -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                1635              404         Not Found  -         -        (empty) -        -        -       -          -              -               F0fseM1cd8JVpXcnK9 -              text/html
-http  2018-03-24T17:17:47.57066Z  CgbtuX3gXoYFmEF82l 10.164.94.120 37311     10.47.3.142 8080      26          GET    10.47.3.142 /scripts/waE8_BuNCEKM.shtml -        1.1     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                1635              404         Not Found  -         -        (empty) -        -        -       -          -              -               FdKLBd3fhPSqFIDFWc -              text/html
+{School:"Sunset Ranch Elementary",District:"Rocklin Unified",City:"Rocklin",County:"Placer",Zip:"95765-5441",Latitude:38.826425,Longitude:-121.2864,Magnet:false,OpenDate:2010-08-17T00:00:00Z,ClosedDate:null (time),Phone:"(916) 624-2048",StatusType:"Active",Website:"www.rocklin.k12.ca.us"} (=school)
+{School:"Sunset Ridge Elementary",District:"Pacifica",City:"Pacifica",County:"San Mateo",Zip:"94044-2029",Latitude:37.653836,Longitude:-122.47919,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null,Phone:"(650) 738-6687",StatusType:"Active",Website:null} (school)
 ```
 
 ### Containment
@@ -409,63 +365,55 @@ Rather than testing for strict equality or pattern matches, you may want to
 determine if a value is among the many possible elements of a complex field.
 This is performed with `in`.
 
-Our Zeek `dns` records include the `answers` field, which is an array of the
-multiple responses that may have been returned for a query. To determine which
-responses included hostname `e5803.b.akamaiedge.net`, we'll use `in`.
+Since our sample data doesn't contain complex fields, we'll make one by
+using the [`union`](../aggregate-functions/#union) aggregate functions to
+create a set-typed field called `Schools` that contains the unique school names
+per district. From these we'll attempt to observe each set that contains a
+school named `Lincoln Elementary`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table '"e5803.b.akamaiedge.net" in answers' dns.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'Schools:=union(School) by District | sort | "Lincoln Elementary" in Schools' schools.zson
 ```
 
 #### Output:
-```mdtest-output
-_PATH TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                               TTLS         REJECTED
-dns   2018-03-24T17:20:25.827504Z CATruWimwi1KR0gec  10.47.3.10 63576     10.0.0.100 53        udp   16678    0.072468 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17936,20 F
-dns   2018-03-24T17:20:25.827506Z CATruWimwi1KR0gec  10.47.3.10 63576     10.0.0.100 53        udp   16678    0.072468 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17936,20 F
-dns   2018-03-24T17:25:29.650694Z CHx5jo2qosRtQOZs1  10.47.6.10 55186     10.0.0.100 53        udp   30327    0.095174 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17632,20 F
-dns   2018-03-24T17:25:29.650698Z CHx5jo2qosRtQOZs1  10.47.6.10 55186     10.0.0.100 53        udp   30327    0.095173 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17632,20 F
-dns   2018-03-24T17:30:24.694336Z CG5CeD4zyD41L4yt0d 10.47.6.10 55135     10.0.0.100 53        udp   2542     0.032114 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17337,20 F
-dns   2018-03-24T17:30:24.694339Z CG5CeD4zyD41L4yt0d 10.47.6.10 55135     10.0.0.100 53        udp   2542     0.032113 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17337,20 F
+```mdtest-output head
+{
+    District: "Alpine County Unified",
+    Schools: |[
+        "",
+        "Woodfords High",
+        "Clay Elementary",
+        "Bear Valley High",
+        "Lincoln Elementary",
+        "Jmms Satellite Campus",
+        "Bear Valley Elementary",
+        "Diamond Valley Elementary",
+        "Kirkwood Meadows Elementary",
+        "Alpine County Special Education",
+        "Diamond Valley Independent Study",
+        "Alpine County Secondary Community Day",
+        "Alpine County Elementary Community Day"
+    ]|
+}
+...
 ```
 
-Notice that we wrapped the hostname in quotes. If we'd left it bare, it would
-have been interpreted as an attempt to find records in which the value of a
-nested field called `e5803.b.akamaiedge.net` is contained in the `answers`
-array of the same record. Since there's no field called
-`e5803.b.akamaiedge.net` in our data, this would have returned nothing.
-However, the `query` field does exist in our `dns` records, so the following
-example does return matches.
-
-#### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'query in answers' dns.log.gz
-```
-
-#### Output:
-```mdtest-output
-_PATH TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY      QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS    TTLS REJECTED
-dns   2018-03-24T17:24:06.142423Z CCd3Uu1nPHikbjizuc 10.47.7.10 53280     10.0.0.100 53        udp   25252    0.000868 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
-dns   2018-03-24T17:24:06.142426Z CCd3Uu1nPHikbjizuc 10.47.7.10 53280     10.0.0.100 53        udp   25252    0.000869 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
-dns   2018-03-24T17:30:43.213667Z CV4T3j1mb4LbxNNgBl 10.47.7.10 53647     10.0.0.100 53        udp   45561    0.001054 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
-dns   2018-03-24T17:30:43.213671Z CV4T3j1mb4LbxNNgBl 10.47.7.10 53647     10.0.0.100 53        udp   45561    0.001053 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
-```
-
-Determining whether the value of a Zeek `ip`-type field is contained within a
+Determining whether the value of an `ip`-type field is contained within a
 subnet also uses `in`.
 
+The following example locates all schools whose web sites are hosted in an
+IP address in the class A `38`.
+
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'id.resp_h in 208.78.0.0/16' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'addr in 38.0.0.0/8' webaddrs.zson
 ```
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H     ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
-conn  2018-03-24T17:32:44.212387Z CngWP41W7wzyQtMG4k 10.47.26.25 59095     208.78.71.136 53        udp   dns     0.003241 72         402        SF         -          -          0            Dd      2         128           2         458           -
-conn  2018-03-24T17:32:52.32455Z  CgZ2D84oSTX0Xw2fEl 10.47.26.25 59095     208.78.70.136 53        udp   dns     0.004167 144        804        SF         -          -          0            Dd      4         256           4         916           -
-conn  2018-03-24T17:33:07.538564Z CGfWHn2Y6IDSBra1K4 10.47.26.25 59095     208.78.71.31  53        udp   dns     3.044438 276        1188       SF         -          -          0            Dd      6         444           6         1356          -
-conn  2018-03-24T17:35:07.721609Z CCbNQn22j5UPZ4tute 10.47.26.25 59095     208.78.70.136 53        udp   dns     0.1326   176        870        SF         -          -          0            Dd      4         288           4         982           -
+{Website:"www.learningchoice.org",addr:38.95.129.245}
+{Website:"www.mpcsd.org",addr:38.102.147.181}
 ```
 
 ### Comparisons
