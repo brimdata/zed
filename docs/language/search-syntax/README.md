@@ -442,14 +442,14 @@ such as this search that finds school names at the high end of the alphabet.
 
 #### Example:
 ```mdtest-command zed-sample-data/edu/zson
-zq -z 'School > "Z"
+zq -z 'School > "Z"' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-{School:"Zamora Elementary"}
-{School:"Zamorano Elementary"}
-{School:"Zane (Catherine L.) Junior High"}
+{School:"Zamora Elementary",District:"Woodland Joint Unified",City:"Woodland",County:"Yolo",Zip:"95695-5137",Latitude:38.658609,Longitude:-121.79355,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null (time),Phone:"(530) 666-3641",StatusType:"Active",Website:null (string)} (=school)
+{School:"Zamorano Elementary",District:"San Diego Unified",City:"San Diego",County:"San Diego",Zip:"92139-2989",Latitude:32.680338,Longitude:-117.03864,Magnet:true,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null,Phone:"(619) 430-1400",StatusType:"Active",Website:"http://new.sandi.net/schools/zamorano"} (school)
+{School:"Zane (Catherine L.) Junior High",District:"Eureka City High",City:"Eureka",County:"Humboldt",Zip:"95501-3140",Latitude:40.788118,Longitude:-124.14903,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:1998-06-30T00:00:00Z,Phone:null,StatusType:"Merged",Website:null} (school)
 ...
 ```
 
@@ -466,53 +466,46 @@ If you enter multiple [value match](#value-match) or
 implicitly applies a boolean `and` between them, such that records are only
 returned if they match on _all_ terms.
 
-For example, when introducing [glob wildcards](#glob-wildcards), we performed a
-search for `www.*cdn*.com` that returned mostly `dns` records along with a
-couple `ssl` records. You could quickly isolate just the SSL records by
-leveraging this implicit `and`.
+For example, let's say we're searching for info about academies that are
+flagged as being in a `Pending` status.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'www.*cdn*.com _path=="ssl"' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'StatusType=="Pending" academy' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H    ID.RESP_P VERSION CIPHER                                CURVE     SERVER_NAME       RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS                                                            CLIENT_CERT_CHAIN_FUIDS SUBJECT            ISSUER                                  CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
-ssl   2018-03-24T17:23:00.244457Z CUG0fiQAzL4rNWxai  10.47.2.100 36150     52.85.83.228 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FXKmyTbr7HlvyL1h8,FADhCTvkq1ILFnD3j,FoVjYR16c3UIuXj4xk,FmiRYe1P53KOolQeVi   (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
-ssl   2018-03-24T17:24:00.189735Z CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FuW2cZ3leE606wXSia,Fu5kzi1BUwnF0bSCsd,FyTViI32zPvCmNXgSi,FwV6ff3JGj4NZcVPE4 (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
+{School:"Equitas Academy 4",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90015-2412",Latitude:34.044837,Longitude:-118.27844,Magnet:false,OpenDate:2017-09-01T00:00:00Z,ClosedDate:null (time),Phone:"(213) 201-0440",StatusType:"Pending",Website:"http://equitasacademy.org"} (=school)
+{School:"Pinnacle Academy Charter - Independent Study",District:"South Monterey County Joint Union High",City:"King City",County:"Monterey",Zip:"93930-3311",Latitude:36.208934,Longitude:-121.13286,Magnet:false,OpenDate:2016-08-08T00:00:00Z,ClosedDate:null,Phone:"(831) 385-4661",StatusType:"Pending",Website:"www.smcjuhsd.org"} (school)
+{School:"Rocketship Futuro Academy",District:"SBE - Rocketship Futuro Academy",City:"Concord",County:"Contra Costa",Zip:"94521-1522",Latitude:37.965658,Longitude:-121.96106,Magnet:false,OpenDate:2016-08-15T00:00:00Z,ClosedDate:null,Phone:"(301) 789-5469",StatusType:"Pending",Website:"www.rsed.org"} (school)
+{School:"Sherman Thomas STEM Academy",District:"Madera Unified",City:"Madera",County:"Madera",Zip:"93638",Latitude:36.982843,Longitude:-120.06665,Magnet:false,OpenDate:2017-08-09T00:00:00Z,ClosedDate:null,Phone:"(559) 674-1192",StatusType:"Pending",Website:"www.stcs.k12.ca.us"} (school)
+{School:null,District:"SBE - Rocketship Futuro Academy",City:"Concord",County:"Contra Costa",Zip:"94521-1522",Latitude:37.965658,Longitude:-121.96106,Magnet:null,OpenDate:null,ClosedDate:null,Phone:"(301) 789-5469",StatusType:"Pending",Website:"www.rsed.org"} (school)
 ```
 
 > **Note:** You may also include `and` explicitly if you wish:
 
-        www.*cdn*.com and _path=ssl
+        StatusType=="Pending" and academy
 
 ### `or`
 
 `or` returns the union of the matches from multiple terms.
 
 For example, we can revisit two of our previous example searches that each only
-returned a few records, searching now with `or` to see them all at once.
+returned a couple records, searching now with `or` to see them all at once.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'orig_bytes > 1000000 or query > "zippy"' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z '"Defunct=" or ACE*Academy' schools.zson
 ```
 
 #### Output:
 
-```mdtest-output head
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H    ID.RESP_P PROTO SERVICE DURATION    ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY          ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
-conn  2018-03-24T17:25:15.208232Z CVimRo24ubbKqFvNu7 172.30.255.1 11        10.128.0.207 0         icmp  -       100.721937  1647088    0          OTH        -          -          0            -                44136     2882896       0         0             -
-conn  2018-03-24T17:15:20.630818Z CO0MhB2NCc08xWaly8 10.47.1.154  49814     134.71.3.17  443       tcp   -       1269.512465 1618740    12880888   OTH        -          -          0            ^dtADTatTtTtTtT  110169    7594230       111445    29872050      -
-conn  2018-03-24T17:15:20.637761Z Cmgywj2O8KZAHHjddb 10.47.1.154  49582     134.71.3.17  443       tcp   -       1266.367457 1594682    53255700   OTH        -          -          0            ^dtADTatTtTtTtTW 131516    8407458       142488    110641641     -
-conn  2018-03-24T17:15:20.705347Z CWtQuI2IMNyE1pX47j 10.47.6.161  52121     134.71.3.17  443       tcp   -       1269.320626 2267243    54791018   OTH        -          -          0            DTadtATttTtTtT   152819    10575303      158738    113518994     -
-conn  2018-03-24T17:33:05.415532Z Cy3R5w2pfv8oSEpa2j 10.47.8.19   49376     10.128.0.214 443       tcp   -       202.457994  4862366    1614249    S1         -          -          0            ShAdtttDTaTTTt   7280      10015980      6077      3453020       -
-_PATH TS                          UID               ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                                                    QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                TTLS       REJECTED
-dns   2018-03-24T17:30:09.84174Z  Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001694 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
-dns   2018-03-24T17:30:09.841742Z Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001697 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
-dns   2018-03-24T17:34:52.637234Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53        udp   43239    0.019491 zn_0pxrmhobblncaad-hpsupport.siteintercept.qualtrics.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 cloud.qualtrics.com.edgekey.net,e3672.ksd.akamaiedge.net,23.55.215.198 3600,17,20 F
-...
+```mdtest-output
+{School:"ACE Empower Academy",District:"Santa Clara County Office of Education",City:"San Jose",County:"Santa Clara",Zip:"95116-3423",Latitude:37.348601,Longitude:-121.8446,Magnet:false,OpenDate:2008-08-26T00:00:00Z,ClosedDate:null (time),Phone:"(408) 729-3920",StatusType:"Active",Website:"www.acecharter.org"} (=school)
+{School:"ACE Inspire Academy",District:"San Jose Unified",City:"San Jose",County:"Santa Clara",Zip:"95112-6334",Latitude:37.350981,Longitude:-121.87205,Magnet:false,OpenDate:2015-08-03T00:00:00Z,ClosedDate:null,Phone:"(408) 295-6008",StatusType:"Active",Website:"www.acecharter.org"} (school)
+{School:"Lincoln Elem 'Defunct=",District:"Modesto City Elementary",City:null,County:"Stanislaus",Zip:null,Latitude:null,Longitude:null,Magnet:null,OpenDate:1980-07-01T00:00:00Z,ClosedDate:1989-06-30T00:00:00Z,Phone:null,StatusType:"Closed",Website:null} (school)
+{School:"Lovell Elem 'Defunct=",District:"Cutler-Orosi Joint Unified",City:null,County:"Tulare",Zip:null,Latitude:null,Longitude:null,Magnet:null,OpenDate:1980-07-01T00:00:00Z,ClosedDate:1989-06-30T00:00:00Z,Phone:null,StatusType:"Closed",Website:null} (school)
 ```
 
 ### `not`
@@ -520,56 +513,63 @@ dns   2018-03-24T17:34:52.637234Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.
 Use `not` to invert the matching logic in the term that comes to the right of
 it in your search.
 
-For example, suppose you've noticed that the vast majority of the sample Zeek
-records are of log types like `conn`, `dns`, `files`, etc. You could review
-some of the less-common Zeek record types by inverting the logic of a
-[regexp match](#regular-expressions).
+For example, to find schools in the `Dixon Unified` district _other than_
+elementary schools, we invert the logic of a search term.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'not _path matches /conn|dns|files|ssl|x509|http|weird/' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'not elementary District=="Dixon Unified"' schools.zson
 ```
 
 #### Output:
 
 ```mdtest-output head
-_PATH        TS                          TS_DELTA   PEER GAPS ACKS    PERCENT_LOST
-capture_loss 2018-03-24T17:30:20.600852Z 900.000127 zeek 1400 1414346 0.098986
-capture_loss 2018-03-24T17:36:30.158766Z 369.557914 zeek 919  663314  0.138547
-_PATH   TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H   ID.RESP_P RTT      NAMED_PIPE     ENDPOINT              OPERATION
-dce_rpc 2018-03-24T17:15:25.396014Z CgxsNA1p2d0BurXd7c 10.164.94.120 36643     10.47.3.151 1030      0.000431 1030           samr                  SamrConnect2
-dce_rpc 2018-03-24T17:15:41.35659Z  CveQB24ujSZ3l34LRi 10.128.0.233  33692     10.47.21.25 135       0.000684 135            IObjectExporter       ComplexPing
-dce_rpc 2018-03-24T17:15:54.621588Z CWyKrz4YlSyPGoE8Bf 10.128.0.214  41717     10.47.8.142 445       0.002721 \\pipe\\ntsvcs svcctl                OpenSCManagerW
-dce_rpc 2018-03-24T17:15:54.63042Z  CWyKrz4YlSyPGoE8Bf 10.128.0.214  41717     10.47.8.142 445       0.054631 \\pipe\\ntsvcs svcctl                CreateServiceW
-dce_rpc 2018-03-24T17:15:54.69324Z  CWyKrz4YlSyPGoE8Bf 10.128.0.214  41717     10.47.8.142 445       0.008842 \\pipe\\ntsvcs svcctl                StartServiceW
-dce_rpc 2018-03-24T17:15:54.711445Z CWyKrz4YlSyPGoE8Bf 10.128.0.214  41717     10.47.8.142 445       0.068546 \\pipe\\ntsvcs svcctl                DeleteService
-...
+{School:"C. A. Jacobs Intermediate",District:"Dixon Unified",City:"Dixon",County:"Solano",Zip:"95620-3209",Latitude:38.446472,Longitude:-121.83631,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null (time),Phone:"(707) 693-6350",StatusType:"Active",Website:"www.dixonusd.org"} (=school)
+{School:"Dixon Adult",District:"Dixon Unified",City:"Dixon",County:"Solano",Zip:"95620",Latitude:38.444818,Longitude:-121.82287,Magnet:null,OpenDate:1996-09-09T00:00:00Z,ClosedDate:2016-06-30T00:00:00Z,Phone:null,StatusType:"Closed",Website:null} (school)
+{School:"Dixon Community Day",District:"Dixon Unified",City:"Dixon",County:"Solano",Zip:"95620",Latitude:38.44755,Longitude:-121.82001,Magnet:false,OpenDate:2003-08-23T00:00:00Z,ClosedDate:null,Phone:"(707) 693-6340",StatusType:"Active",Website:"www.dixonusd.org"} (school)
+{School:"Dixon High",District:"Dixon Unified",City:"Dixon",County:"Solano",Zip:"95620-9301",Latitude:38.436088,Longitude:-121.81672,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null,Phone:"(707) 693-6330",StatusType:"Active",Website:null} (school)
+{School:"Dixon Montessori Charter",District:"Dixon Unified",City:"Dixon",County:"Solano",Zip:"95620-2702",Latitude:38.447984,Longitude:-121.83186,Magnet:false,OpenDate:2010-08-11T00:00:00Z,ClosedDate:null,Phone:"(707) 678-8953",StatusType:"Active",Website:"www.dixonmontessori.org"} (school)
+{School:"Dixon Unified Alter. Educ.",District:"Dixon Unified",City:"Dixon",County:"Solano",Zip:"95620",Latitude:null,Longitude:null,Magnet:null,OpenDate:1993-08-26T00:00:00Z,ClosedDate:1994-06-30T00:00:00Z,Phone:null,StatusType:"Closed",Website:null} (school)
+{School:"Maine Prairie High (Continuation)",District:"Dixon Unified",City:"Dixon",County:"Solano",Zip:"95620-3019",Latitude:38.447549,Longitude:-121.81986,Magnet:false,OpenDate:1980-07-01T00:00:00Z,ClosedDate:null,Phone:"(707) 693-6340",StatusType:"Active",Website:null} (school)
+{School:null,District:"Dixon Unified",City:"Dixon",County:"Solano",Zip:"95620-3447",Latitude:38.44468,Longitude:-121.82249,Magnet:null,OpenDate:null,ClosedDate:null,Phone:"(707) 693-6300",StatusType:"Active",Website:"www.dixonusd.org"} (school)
 ```
 
 > **Note:** `!` can also be used as alternative shorthand for `not`.
 
-        zq -f table '! _path matches /conn|dns|files|ssl|x509|http|weird/' *.log.gz
+        zq -z '! elementary District=="Dixon Unified"' schools.zson
 
 ### Parentheses & Order of Evaluation
 
 Unless wrapped in parentheses, a search is evaluated in _left-to-right order_.
 
-For example, the following search leverages the implicit boolean `and` to find
-all `smb_mapping` records in which the `share_type` field is set to a value
-other than `DISK`.
+Let's say we've noticed there's some test score records that have `null` values
+for all three test scores.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'not share_type=="DISK" _path=="smb_mapping"' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z satscores.zson
 ```
 
 #### Output:
 ```mdtest-output head
-_PATH       TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H    ID.RESP_P PATH                     SERVICE NATIVE_FILE_SYSTEM SHARE_TYPE
-smb_mapping 2018-03-24T17:15:21.625534Z ChZRry3Z4kv3i25TJf 10.164.94.120 36315     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
-smb_mapping 2018-03-24T17:15:22.021668Z C0jyse1JYc82Acu4xl 10.164.94.120 34691     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
-smb_mapping 2018-03-24T17:15:24.619169Z C2byFA2Y10G1GLUXgb 10.164.94.120 35337     10.47.27.80  445       \\\\PC-NEWMAN\\IPC$      -       -                  PIPE
-smb_mapping 2018-03-24T17:15:25.562072Z C3kUnM2kEJZnvZmSp7 10.164.94.120 45903     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      -       -                  PIPE
+{AvgScrMath:null (uint16),AvgScrRead:null (uint16),AvgScrWrite:null (uint16),cname:"Riverside",dname:"Beaumont Unified",sname:"21st Century Learning Institute"} (=satscore)
+{AvgScrMath:null,AvgScrRead:null,AvgScrWrite:null,cname:"Los Angeles",dname:"ABC Unified",sname:"ABC Secondary (Alternative)"} (satscore)
+...
+```
+
+We can easily filter these out by negating a search for these records.
+
+
+#### Example:
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null)' satscores.zson
+```
+
+#### Output:
+```mdtest-output head
+{AvgScrMath:371 (uint16),AvgScrRead:376 (uint16),AvgScrWrite:368 (uint16),cname:"Los Angeles",dname:"Los Angeles Unified",sname:"APEX Academy"} (=satscore)
+{AvgScrMath:367,AvgScrRead:359,AvgScrWrite:369,cname:"Alameda",dname:"Oakland Unified",sname:"ARISE High"} (satscore)
+{AvgScrMath:491,AvgScrRead:489,AvgScrWrite:484,cname:"Santa Clara",dname:"San Jose Unified",sname:"Abraham Lincoln High"} (satscore)
 ...
 ```
 
