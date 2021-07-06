@@ -24,7 +24,7 @@ The simplest possible Zed search is a match of all records. This search is
 expressed in `zq` with the wildcard `*`. The response will be a dump of all
 records. The default `zq` output is binary [ZNG](../../formats/zng.md), a
 compact format that's ideal for working in pipelines. However, in these docs
-we'll sometimes make use of the `-z` option to output the text-based
+we'll often make use of the `-z` or `-Z` options to output the text-based
 [ZSON](../../formats/zson.md) format, which is readable at the command line.
 
 #### Example:
@@ -115,9 +115,9 @@ Sometimes you may need to search for sequences of multiple words or words that
 contain special characters. To achieve this, wrap your search term in quotes.
 
 Let's say we've noticed that a couple of the school names in our sample data
-include the string `Defunct=`. An attempt to enter this as a bare word search
-causes an error because the language parser interpreted this as the start of
-an attempted [field/value match](#fieldvalue-match) for a field named
+include the string `Defunct=`. An attempt to enter this as a [bare word](#bare-word)
+search causes an error because the language parser interpreted this as the
+start of an attempted [field/value match](#fieldvalue-match) for a field named
 `Defunct`.
 
 #### Example:
@@ -148,8 +148,8 @@ zq -z '"Defunct="' schools.zson
 Wrapping in quotes is particularly handy when you're looking for long, specific
 strings that may have several special characters in them. For example, let's
 say we're looking for information on the Union Hill Elementary district.
-Entered without quotes, we up matching way more records than we intended since
-each space character between words is treated as a [boolean `and`](#and) .
+Entered without quotes, we end up matching way more records than we intended
+since each space character between words is treated as a [boolean `and`](#and).
 
 #### Example:
 ```mdtest-command zed-sample-data/edu/zson
@@ -166,7 +166,7 @@ zq -z 'Union Hill Elementary' schools.zson
 ```
 
 However, wrapping the entire term in quotes allows us to search for the
-complete string, spaces included.
+complete string, including the spaces.
 
 #### Example:
 ```mdtest-command zed-sample-data/edu/zson
@@ -244,7 +244,7 @@ the library that Zed uses to provide regexp support.
 The search result can be narrowed to include only records that contain a
 certain value in a particular named field. For example, the following search
 will only match records containing the field called `District` where it is set
-to the precise string value `Marin County ROP`.
+to the precise string value `Winton`.
 
 #### Example:
 ```mdtest-command zed-sample-data/edu/zson
@@ -261,9 +261,9 @@ zq -z 'District=="Winton"' schools.zson
 {School:null,District:"Winton",City:"Winton",County:"Merced",Zip:"95388-0008",Latitude:37.389467,Longitude:-120.6147,Magnet:null,OpenDate:null,ClosedDate:null,Phone:"(209) 357-6175",StatusType:"Active",Website:"www.winton.k12.ca.us"} (school)
 ```
 
-Because the right-hand-side value we were comparing to the `District` field
-was a string, it was necessary to wrap it in quotes. If we'd left it bare, it
-would have been interpreted as a field name.
+Because the right-hand-side value to which we were comparing was a string, it
+was necessary to wrap it in quotes. If we'd left it bare, it would have been
+interpreted as a field name.
 
 For example, to see the records in which the school and district name are the
 same:
@@ -284,12 +284,12 @@ zq -z 'School==District' schools.zson
 
 ### Role of Data Types
 
-To match successfully when working with named fields, the value must be
-comparable to the data type of the field.
+To match successfully when comparing values to the contents of named fields,
+the value must be comparable to the _data type_ of the field.
 
 For instance, the 'Zip' field in our schools data is of `string` type because
 several values are of the extended format that includes a hyphen and four
-additional digits.
+additional digits and hence could not be represented in a numeric type.
 
 ```mdtest-command zed-sample-data/edu/zson
 zq -z 'cut Zip' schools.zson
@@ -303,11 +303,11 @@ zq -z 'cut Zip' schools.zson
 ...
 ```
 
-An attempted field/value match `Zip==95959` would _not_ match the top record
-shown, since Zed recognizes the bare value `95959` as a number before
-comparing it to all the fields named `Zip` that it sees in the input stream.
-However, `Zip=="95959"` _would_ match, since the quotes cause Zed to treat the
-value as a string.
+An attempted [field/value match](#fieldvalue-match) `Zip==95959` would _not_
+match the top record shown, since Zed recognizes the bare value `95959` as a
+number before comparing it to all the fields named `Zip` that it sees in the
+input stream. However, `Zip=="95959"` _would_ match, since the quotes cause Zed
+to treat the value as a string.
 
 See the [Data Types](../data-types/README.md) page for more details.
 
@@ -366,10 +366,10 @@ determine if a value is among the many possible elements of a complex field.
 This is performed with `in`.
 
 Since our sample data doesn't contain complex fields, we'll make one by
-using the [`union`](../aggregate-functions/#union) aggregate functions to
-create a set-typed field called `Schools` that contains the unique school names
-per district. From these we'll attempt to observe each set that contains a
-school named `Lincoln Elementary`.
+using the [`union`](../aggregate-functions/#union) aggregate function to
+create a [`set`](https://github.com/brimdata/zed/blob/main/docs/formats/zson.md#343-set-value)-typed
+field called `Schools` that contains all unique school names per district. From
+these we'll find each set that contains a school named `Lincoln Elementary`.
 
 #### Example:
 ```mdtest-command zed-sample-data/edu/zson
@@ -484,8 +484,9 @@ zq -z 'StatusType=="Pending" academy' schools.zson
 ```
 
 > **Note:** You may also include `and` explicitly if you wish:
-
-        StatusType=="Pending" and academy
+> ```
+> StatusType=="Pending" and academy
+> ```
 
 ### `or`
 
@@ -535,19 +536,22 @@ zq -z 'not elementary District=="Dixon Unified"' schools.zson
 ```
 
 > **Note:** `!` can also be used as alternative shorthand for `not`.
-
-        zq -z '! elementary District=="Dixon Unified"' schools.zson
+> ```
+> ! elementary District=="Dixon Unified"
+> ```
 
 ### Parentheses & Order of Evaluation
 
 Unless wrapped in parentheses, a search is evaluated in _left-to-right order_.
+Terms wrapped in parentheses will be evaluated _first_, overriding the default
+left-to-right evaluation.
 
-Let's say we've noticed there's some test score records that have `null` values
-for all three test scores.
+For example, we've noticed there's some test score records that have `null`
+values for all three test scores.
 
 #### Example:
 ```mdtest-command zed-sample-data/edu/zson
-zq -z satscores.zson
+zq -z 'AvgScrMath==null AvgScrRead==null AvgScrWrite==null' satscores.zson
 ```
 
 #### Output:
@@ -557,7 +561,7 @@ zq -z satscores.zson
 ...
 ```
 
-We can easily filter these out by negating a search for these records.
+We can easily filter these out by negating the search for these records.
 
 
 #### Example:
@@ -573,46 +577,18 @@ zq -z 'not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null)' satscores.zson
 ...
 ```
 
-Terms wrapped in parentheses will be evaluated _first_, overriding the default
-left-to-right evaluation. If we wrap the search terms as shown below, now we
-match almost every record we have. This is because the `not` is now inverting
-the logic of everything in the parentheses, hence giving us all stored records
-_other than_ `smb_mapping` records that have the value of their `share_type`
-field set to `DISK`.
-
-#### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'not (share_type=="DISK" _path=="smb_mapping")' *.log.gz
-```
-
-#### Output:
-```mdtest-output head
-_PATH        TS                          TS_DELTA   PEER GAPS ACKS    PERCENT_LOST
-capture_loss 2018-03-24T17:30:20.600852Z 900.000127 zeek 1400 1414346 0.098986
-capture_loss 2018-03-24T17:36:30.158766Z 369.557914 zeek 919  663314  0.138547
-_PATH TS                          UID                ID.ORIG_H      ID.ORIG_P ID.RESP_H     ID.RESP_P PROTO SERVICE  DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY     ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
-conn  2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl 10.164.94.120  39681     10.47.3.155   3389      tcp   -        0.004266 97         19         RSTR       -          -          0            ShADTdtr    10        730           6         342           -
-conn  2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6 10.47.25.80    50817     10.128.0.218  23189     tcp   -        0.000486 0          0          REJ        -          -          0            Sr          2         104           2         80            -
-conn  2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i  10.47.25.80    50817     10.128.0.218  23189     tcp   -        0.000538 0          0          REJ        -          -          0            Sr          2         104           2         80            -
-conn  2018-03-24T17:15:22.690601Z CuKFds250kxFgkhh8f 10.47.25.80    50813     10.128.0.218  27765     tcp   -        0.000546 0          0          REJ        -          -          0            Sr          2         104           2         80            -
-conn  2018-03-24T17:15:23.205187Z CBrzd94qfowOqJwCHa 10.47.25.80    50813     10.128.0.218  27765     tcp   -        0.000605 0          0          REJ        -          -          0            Sr          2         104           2         80            -
-...
-```
-
 Parentheses can also be nested.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
-zq -f table '((not share_type=="DISK") and (service=="IPC")) _path=="smb_mapping"' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z '(sname matches *High*) and (not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null) and dname=="San Francisco Unified")' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output head
-_PATH       TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H    ID.RESP_P PATH                     SERVICE NATIVE_FILE_SYSTEM SHARE_TYPE
-smb_mapping 2018-03-24T17:15:21.625534Z ChZRry3Z4kv3i25TJf 10.164.94.120 36315     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
-smb_mapping 2018-03-24T17:15:22.021668Z C0jyse1JYc82Acu4xl 10.164.94.120 34691     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
-smb_mapping 2018-03-24T17:15:31.475945Z Cvaqhu3VhuXlDOMgXg 10.164.94.120 37127     10.47.3.151  445       \\\\COTTONCANDY4\\IPC$   IPC     -                  PIPE
-smb_mapping 2018-03-24T17:15:36.306275Z CsZ7Be4NlqaJSNNie4 10.164.94.120 33921     10.47.23.166 445       \\\\PARKINGGARAGE\\IPC$  IPC     -                  PIPE
+{AvgScrMath:504 (uint16),AvgScrRead:467 (uint16),AvgScrWrite:467 (uint16),cname:"San Francisco",dname:"San Francisco Unified",sname:"Balboa High"} (=satscore)
+{AvgScrMath:480,AvgScrRead:443,AvgScrWrite:431,cname:"San Francisco",dname:"San Francisco Unified",sname:"Burton (Phillip and Sala) Academic High"} (satscore)
+{AvgScrMath:413,AvgScrRead:410,AvgScrWrite:395,cname:"San Francisco",dname:"San Francisco Unified",sname:"City Arts and Tech High"} (satscore)
 ...
 ```
 
