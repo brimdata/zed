@@ -237,6 +237,15 @@ func ToInt(zv zng.Value) (int64, bool) {
 	return 0, false
 }
 
+func ToBool(zv zng.Value) (bool, bool) {
+	if zv.IsStringy() {
+		v, err := strconv.ParseBool(string(zv.Bytes))
+		return v, err == nil
+	}
+	v, ok := ToInt(zv)
+	return v != 0, ok
+}
+
 func ToTime(zv zng.Value) (nano.Ts, bool) {
 	id := zv.Type.ID()
 	if id == zng.IDTime {
