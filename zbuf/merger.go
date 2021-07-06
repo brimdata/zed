@@ -24,6 +24,7 @@ type Merger struct {
 	cmp     expr.CompareFn
 	once    sync.Once
 	pullers []*mergerPuller
+	wg      sync.WaitGroup
 }
 
 type mergerPuller struct {
@@ -106,8 +107,10 @@ func MergeByTs(ctx context.Context, pullers []Puller, o order.Which) *Merger {
 
 func (m *Merger) run() {
 	for _, p := range m.pullers {
+		m.wg.Add(1)
 		puller := p
 		go func() {
+			defer m.wg.Done()
 			for {
 				b, err := puller.Pull()
 				select {
@@ -131,6 +134,7 @@ func (m *Merger) Read() (*zng.Record, error) {
 	leader, err := m.findLeader()
 	if leader < 0 || err != nil {
 		m.Cancel()
+		m.wg.Wait()
 		return nil, err
 	}
 	return m.pullers[leader].next(), nil
@@ -198,6 +202,7 @@ func (m *Merger) Pull() (Batch, error) {
 	leader, err := m.findLeader()
 	if leader < 0 || err != nil {
 		m.Cancel()
+		m.wg.Wait()
 		return nil, err
 	}
 	if !m.overlaps(leader) {
