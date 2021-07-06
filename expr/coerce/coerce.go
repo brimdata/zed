@@ -243,7 +243,7 @@ func ToBool(zv zng.Value) (bool, bool) {
 		return v, err == nil
 	}
 	v, ok := ToInt(zv)
-	return v == 1, ok
+	return v != 0, ok
 }
 
 func ToTime(zv zng.Value) (nano.Ts, bool) {
