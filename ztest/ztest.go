@@ -73,8 +73,8 @@
 //         #0:record[count:uint64]
 //         0:[2;]
 //
-// Each input and output has a name.  For inputs, a file (source),
-// inlined data (data), or hexadecimal data (hex) may be specified.
+// Each input and output has a name.  For inputs, a file (source)
+// or inline data (data) may be specified.
 // If no data is specified, then a file of the same name as the
 // name field is looked for in the same directory as the yaml file.
 // The source spec is a file path relative to the directory of the
@@ -208,12 +208,11 @@ type File struct {
 	// the yaml test file, which is copied to the test script directory.
 	// Name can also be stdio (for inputs) or stdout or stderr (for outputs).
 	Name string `yaml:"name"`
-	// Data, Hex, and Source represents the different ways file data can
+	// Data and Source represent the different ways file data can
 	// be defined for this file.  Data is a string turned into the contents
-	// of the file, Hex is hex decoded, and Source is a string representing
+	// of the file. Source is a string representing
 	// the pathname of a file the repo that is read to comprise the data.
 	Data   *string `yaml:"data,omitempty"`
-	Hex    string  `yaml:"hex,omitempty"`
 	Source string  `yaml:"source,omitempty"`
 	// Re is a regular expression describing the contents of the file,
 	// which is only applicable to output files.
@@ -228,9 +227,6 @@ func (f *File) check() error {
 	if f.Data != nil {
 		cnt++
 	}
-	if f.Hex != "" {
-		cnt++
-	}
 	if f.Source != "" {
 		cnt++
 	}
@@ -238,7 +234,7 @@ func (f *File) check() error {
 		cnt++
 	}
 	if cnt > 1 {
-		return fmt.Errorf("%s: must at most one of data, hex, or source", f.Name)
+		return fmt.Errorf("%s: must specify at most one of data or source", f.Name)
 	}
 	return nil
 }
@@ -246,10 +242,6 @@ func (f *File) check() error {
 func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 	if f.Data != nil {
 		return []byte(*f.Data), nil, nil
-	}
-	if f.Hex != "" {
-		s, err := decodeHex(f.Hex)
-		return []byte(s), nil, err
 	}
 	if f.Source != "" {
 		b, err := os.ReadFile(filepath.Join(dir, f.Source))
@@ -282,7 +274,6 @@ type ZTest struct {
 	Zed         string `yaml:"zed,omitempty"`
 	Input       string `yaml:"input,omitempty"`
 	Output      string `yaml:"output,omitempty"`
-	OutputHex   string `yaml:"outputHex,omitempty"`
 	OutputFlags string `yaml:"output-flags,omitempty"`
 	ErrorRE     string `yaml:"errorRE"`
 	errRegex    *regexp.Regexp
@@ -319,40 +310,6 @@ func (z *ZTest) check() error {
 		return err
 	}
 	return nil
-}
-
-// Try to decode a yaml-friendly way of representing binary data in hex:
-// each line is either a comment explaining the contents (denoted with
-// a leading # character), or a sequence of hex digits.
-func decodeHex(in string) (string, error) {
-	var raw string
-	for _, line := range strings.Split(in, "\n") {
-		if len(line) == 0 || line[0] == '#' {
-			continue
-		}
-		raw += strings.ReplaceAll(line, " ", "")
-	}
-	out := make([]byte, hex.DecodedLen(len(raw)))
-	_, err := hex.Decode(out, []byte(raw))
-	if err != nil {
-		return "", err
-	}
-	return string(out), nil
-}
-
-func (z *ZTest) getOutput() (string, error) {
-	outlen := len(z.Output)
-	hexlen := len(z.OutputHex)
-	if outlen > 0 && hexlen > 0 {
-		return "", errors.New("Cannot specify both output and outputHex")
-	}
-	if outlen == 0 && hexlen == 0 {
-		return "", nil
-	}
-	if outlen > 0 {
-		return z.Output, nil
-	}
-	return decodeHex(z.OutputHex)
 }
 
 // FromYAMLFile loads a ZTest from the YAML file named filename.
@@ -421,12 +378,8 @@ func (z *ZTest) RunInternal(path string) error {
 	} else if z.Warnings != errout {
 		return diffErr("warnings", z.Warnings, errout)
 	}
-	expectedOut, err := z.getOutput()
-	if err != nil {
-		return fmt.Errorf("getting test output: %w", err)
-	}
-	if expectedOut != out {
-		return diffErr("output", expectedOut, out)
+	if z.Output != out {
+		return diffErr("output", z.Output, out)
 	}
 	return nil
 }
