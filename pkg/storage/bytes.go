@@ -9,6 +9,7 @@ type bytesReader struct {
 }
 
 var _ Reader = (*bytesReader)(nil)
+var _ Sizer = (*bytesReader)(nil)
 
 func NewBytesReader(b []byte) *bytesReader {
 	return &bytesReader{bytes.NewReader(b)}
@@ -16,4 +17,8 @@ func NewBytesReader(b []byte) *bytesReader {
 
 func (*bytesReader) Close() error {
 	return nil
+}
+
+func (b *bytesReader) Size() (int64, error) {
+	return b.Reader.Size(), nil
 }

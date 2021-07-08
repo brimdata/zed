@@ -4,4 +4,4 @@ script: |
 outputs:
   - name: stderr
     regexp: |
-      .*: zst trailer not found
+      .*: EOF
