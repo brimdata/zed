@@ -1,0 +1,12 @@
+script: |
+  source service.sh
+  zapi query "from doesnotexit"
+
+inputs:
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stderr
+    data: |
+      doesnotexit: pool not found

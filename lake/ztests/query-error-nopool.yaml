@@ -1,0 +1,9 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake query "from doesnotexit"
+
+outputs:
+  - name: stderr
+    data: |
+      doesnotexit: pool not found
