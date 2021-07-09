@@ -204,7 +204,7 @@ func (r *Root) Lookup(ctx context.Context, nameOrID string) (ksuid.KSUID, error)
 	}
 	id, err := ksuid.Parse(nameOrID)
 	if err != nil {
-		return ksuid.Nil, err
+		return ksuid.Nil, fmt.Errorf("%s: %w", nameOrID, ErrPoolNotFound)
 	}
 	return id, nil
 }
