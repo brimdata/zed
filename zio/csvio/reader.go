@@ -31,6 +31,7 @@ type Reader struct {
 func NewReader(r io.Reader, zctx *zson.Context) *Reader {
 	reader := csv.NewReader(r)
 	reader.ReuseRecord = true
+	reader.TrimLeadingSpace = true
 	return &Reader{
 		reader:    reader,
 		marshaler: zson.NewZNGMarshalerWithContext(zctx),
