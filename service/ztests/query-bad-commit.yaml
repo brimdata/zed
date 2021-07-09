@@ -1,0 +1,13 @@
+script: |
+  source service.sh
+  zapi create -p test
+  zapi query "from test at doesnotexist"
+
+inputs:
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stderr
+    data: |
+      doesnotexist: invalid commit ID
