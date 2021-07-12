@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
@@ -184,6 +185,11 @@ func (w *ResponseWriter) Marshal(body interface{}) bool {
 func errorResponse(e error) (status int, ae *api.Error) {
 	status = http.StatusInternalServerError
 	ae = &api.Error{Type: "Error"}
+
+	var pe *parser.Error
+	if errors.As(e, &pe) {
+		ae.Info = map[string]int{"parse_error_offset": pe.Offset}
+	}
 
 	var ze *zqe.Error
 	if !errors.As(e, &ze) {

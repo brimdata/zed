@@ -140,8 +140,8 @@ func (r *Runtime) Parallelize(n int) error {
 
 // ParseProc() is an entry point for use from external go code,
 // mostly just a wrapper around Parse() that casts the return value.
-func ParseProc(z string) (ast.Proc, error) {
-	parsed, err := parser.ParseZed(z)
+func ParseProc(src string, filenames ...string) (ast.Proc, error) {
+	parsed, err := parser.ParseZed(filenames, src)
 	if err != nil {
 		return nil, err
 	}

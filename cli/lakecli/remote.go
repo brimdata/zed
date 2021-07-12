@@ -185,8 +185,8 @@ func (r *RemoteRoot) ScanIndex(ctx context.Context, w zio.Writer, ids []ksuid.KS
 	return errors.New("unsupported")
 }
 
-func (r *RemoteRoot) Query(ctx context.Context, d driver.Driver, query string) (zbuf.ScannerStats, error) {
-	res, err := r.conn.Query(ctx, query)
+func (r *RemoteRoot) Query(ctx context.Context, d driver.Driver, src string, filenames ...string) (zbuf.ScannerStats, error) {
+	res, err := r.conn.Query(ctx, src, filenames...)
 	if err != nil {
 		return zbuf.ScannerStats{}, err
 	}

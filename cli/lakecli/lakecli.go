@@ -39,7 +39,7 @@ type Root interface {
 	DeleteIndices(context.Context, []ksuid.KSUID) ([]index.Index, error)
 	LookupIndices(context.Context, []ksuid.KSUID) ([]index.Index, error)
 	ScanIndex(context.Context, zio.Writer, []ksuid.KSUID) error
-	Query(context.Context, driver.Driver, string) (zbuf.ScannerStats, error)
+	Query(ctx context.Context, d driver.Driver, src string, filenames ...string) (zbuf.ScannerStats, error)
 }
 
 type Pool interface {

@@ -191,20 +191,17 @@ func isJoin(p ast.Proc) bool {
 }
 
 func ParseSourcesAndInputs(paths, includes Includes) ([]string, ast.Proc, error) {
-	srcs, err := includes.Read()
-	if err != nil {
-		return nil, nil, err
-	}
+	var src string
 	if len(paths) != 0 && !cli.FileExists(paths[0]) && !isURLWithKnownScheme(paths[0], "http", "https", "s3") {
 		if len(paths) == 1 {
 			// We don't interpret the first arg as a query if there
 			// are no additional args.
 			return nil, nil, fmt.Errorf("no such file: %s", paths[0])
 		}
-		srcs = append(srcs, paths[0])
+		src = paths[0]
 		paths = paths[1:]
 	}
-	query, err := parseZed(srcs)
+	query, err := compiler.ParseProc(src, includes...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -222,34 +219,6 @@ func isURLWithKnownScheme(path string, schemes ...string) bool {
 		}
 	}
 	return false
-}
-
-func CombineSources(args, includes Includes) (string, error) {
-	srcs, err := includes.Read()
-	if err != nil {
-		return "", err
-	}
-	zedSrc := strings.Join(append(srcs, args...), "\n")
-	if zedSrc == "" {
-		zedSrc = "*"
-	}
-	return zedSrc, nil
-}
-
-func ParseSources(args, includes Includes) (ast.Proc, error) {
-	zedSrc, err := CombineSources(args, includes)
-	if err != nil {
-		return nil, err
-	}
-	return compiler.ParseProc(zedSrc)
-}
-
-func parseZed(srcs []string) (ast.Proc, error) {
-	zedSrc := strings.Join(srcs, "\n")
-	if zedSrc == "" {
-		zedSrc = "*"
-	}
-	return compiler.ParseProc(zedSrc)
 }
 
 func PrintStats(stats zbuf.ScannerStats) {
