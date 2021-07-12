@@ -223,8 +223,7 @@ func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newname string) e
 	if err != nil {
 		return err
 	}
-	exists := lookupPool(config.Pools, func(p PoolConfig) bool { return p.Name == newname })
-	if exists != nil {
+	if lookupPoolByName(config.Pools, newname) != nil {
 		return ErrPoolExists
 	}
 	for i, p := range config.Pools {
