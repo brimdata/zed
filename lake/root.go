@@ -188,9 +188,7 @@ func (r *Root) LookupPoolByName(ctx context.Context, name string) *PoolConfig {
 	if err != nil {
 		return nil
 	}
-	return lookupPool(pools, func(p PoolConfig) bool {
-		return p.Name == name
-	})
+	return lookupPoolByName(pools, name)
 }
 
 func (r *Root) Lookup(ctx context.Context, nameOrID string) (ksuid.KSUID, error) {
