@@ -141,8 +141,8 @@ func (r *Root) ScanPools(ctx context.Context, w zio.Writer) error {
 	if err != nil {
 		return err
 	}
-	for k := range config.Pools {
-		rec, err := m.MarshalRecord(&config.Pools[k])
+	for _, p := range config.Pools {
+		rec, err := m.MarshalRecord(&p)
 		if err != nil {
 			return err
 		}
