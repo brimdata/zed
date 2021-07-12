@@ -136,7 +136,7 @@ func (r *LocalRoot) OpenPool(ctx context.Context, id ksuid.KSUID) (Pool, error) 
 
 func (r *LocalRoot) ScanIndex(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
 	if ids == nil {
-		ids = r.Root.ListIndexIDs()
+		ids = r.Root.ListIndexIDs(ctx)
 	}
 	return r.Root.ScanIndex(ctx, w, ids)
 }
