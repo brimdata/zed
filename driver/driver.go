@@ -17,7 +17,6 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
 )
@@ -116,7 +115,7 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 			// when pctx.Cancel() is called on exit from our
 			// parent goroutine and we won't block because pullerCh
 			// and done are always read on exit.
-			batch, err := safePull(puller)
+			batch, err := puller.Pull()
 			if batch == nil || err != nil {
 				close(pullerCh)
 				if err != nil {
@@ -186,18 +185,6 @@ func extractLabel(p zbuf.Batch) (zbuf.Batch, int) {
 		p = labeled.Batch
 	}
 	return p, label
-}
-
-func safePull(puller zbuf.Puller) (b zbuf.Batch, err error) {
-	defer func() {
-		r := recover()
-		if r == nil {
-			return
-		}
-		err = zqe.RecoverError(r)
-	}()
-	b, err = puller.Pull()
-	return
 }
 
 // CLI implements Driver.
