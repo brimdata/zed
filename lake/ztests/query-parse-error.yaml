@@ -1,0 +1,67 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  echo =1= >&2
+  ! zed lake query -z "$(cat bad-single-line.zed)"
+  echo =2= >&2
+  ! zed lake query -z "$(cat bad-multiple-lines.zed)"
+  echo =3= >&2
+  ! zed lake query -z -I good.zed "$(cat bad-single-line.zed)"
+  echo =4= >&2
+  ! zed lake query -z -I good.zed "$(cat bad-multiple-lines.zed)"
+  echo =5= >&2
+  ! zed lake query -z -I bad-single-line.zed
+  echo =6= >&2
+  ! zed lake query -z -I bad-multiple-lines.zed
+  echo =7= >&2
+  ! zed lake query -z -I good.zed -I bad-single-line.zed
+  echo =8= >&2
+  ! zed lake query -z -I good.zed -I bad-multiple-lines.zed
+
+inputs:
+  - name: bad-single-line.zed
+    data: |
+      from test \ count()
+  - name: bad-multiple-lines.zed
+    data: |
+      from
+      test \ count()
+  - name: good.zed
+    data: |
+      type mystring=string
+
+outputs:
+  - name: stderr
+    data: |
+      =1=
+      error parsing Zed at column 11:
+      from test \ count()
+            === ^ ===
+      =2=
+      error parsing Zed at line 2, column 6:
+      test \ count()
+       === ^ ===
+      =3=
+      error parsing Zed at column 11:
+      from test \ count()
+            === ^ ===
+      =4=
+      error parsing Zed at line 2, column 6:
+      test \ count()
+       === ^ ===
+      =5=
+      error parsing Zed in bad-single-line.zed at line 1, column 11:
+      from test \ count()
+            === ^ ===
+      =6=
+      error parsing Zed in bad-multiple-lines.zed at line 2, column 6:
+      test \ count()
+       === ^ ===
+      =7=
+      error parsing Zed in bad-single-line.zed at line 1, column 11:
+      from test \ count()
+            === ^ ===
+      =8=
+      error parsing Zed in bad-multiple-lines.zed at line 2, column 6:
+      test \ count()
+       === ^ ===

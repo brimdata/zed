@@ -17,10 +17,10 @@ import (
 
 var Query = &charm.Spec{
 	Name:  "query",
-	Usage: "query [options] zql [path...]",
-	Short: "run a Zed program over a data lake",
+	Usage: "query [options] [zed-query]",
+	Short: "run a Zed query against a data lake",
 	Long: `
-"zed lake query" executes a Zed query against data in a data lake.
+"zed lake query" runs a Zed query against a data lake.
 `,
 	New: New,
 }
@@ -55,6 +55,13 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
+	if len(args) > 1 || len(args) == 0 && len(c.includes) == 0 {
+		return charm.NeedHelp
+	}
+	var src string
+	if len(args) == 1 {
+		src = args[0]
+	}
 	if c.lake.Flags.PoolName() != "" {
 		return errors.New("zed lake query: use from operator instead of -p")
 	}
@@ -70,11 +77,7 @@ func (c *Command) Run(args []string) error {
 	if !c.lake.Flags.Quiet() {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	zedSrc, err := query.CombineSources(args, c.includes)
-	if err != nil {
-		return err
-	}
-	stats, err := lk.Query(ctx, d, zedSrc)
+	stats, err := lk.Query(ctx, d, src, c.includes...)
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}

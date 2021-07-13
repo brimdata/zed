@@ -15,6 +15,7 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/go-resty/resty/v2"
 	"github.com/segmentio/ksuid"
@@ -298,12 +299,25 @@ func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, pa
 	return c.stream(req)
 }
 
-func (c *Connection) Query(ctx context.Context, query string) (*Response, error) {
+func (c *Connection) Query(ctx context.Context, src string, filenames ...string) (*Response, error) {
+	src, srcInfo, err := parser.ConcatSource(filenames, src)
+	if err != nil {
+		return nil, err
+	}
 	req := c.Request(ctx).
-		SetBody(api.QueryRequest{Query: query})
+		SetBody(api.QueryRequest{Query: src})
 	req.Method = http.MethodPost
 	req.URL = "/query"
-	return c.stream(req)
+	res, err := c.stream(req)
+	var ae *api.Error
+	if errors.As(err, &ae) {
+		if m, ok := ae.Info.(map[string]interface{}); ok {
+			if offset, ok := m["parse_error_offset"].(float64); ok {
+				return res, parser.NewError(src, srcInfo, int(offset))
+			}
+		}
+	}
+	return res, err
 }
 
 // Search sends a search request to the server and returns a ZngSearch

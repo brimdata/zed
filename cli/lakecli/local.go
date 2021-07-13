@@ -141,10 +141,10 @@ func (r *LocalRoot) ScanIndex(ctx context.Context, w zio.Writer, ids []ksuid.KSU
 	return r.Root.ScanIndex(ctx, w, ids)
 }
 
-func (r *LocalRoot) Query(ctx context.Context, d driver.Driver, zedSrc string) (zbuf.ScannerStats, error) {
-	query, err := compiler.ParseProc(zedSrc)
+func (r *LocalRoot) Query(ctx context.Context, d driver.Driver, src string, filenames ...string) (zbuf.ScannerStats, error) {
+	query, err := compiler.ParseProc(src, filenames...)
 	if err != nil {
-		return zbuf.ScannerStats{}, fmt.Errorf("parse error: %w", err)
+		return zbuf.ScannerStats{}, err
 	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return zbuf.ScannerStats{}, err
