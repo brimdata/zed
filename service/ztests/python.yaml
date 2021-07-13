@@ -14,7 +14,7 @@ script: |
   python <<EOF
   import zqd
   c = zqd.Client('http://$ZED_LAKE_HOST')
-  for rec in c.search('test', '*'):
+  for rec in c.query('from test'):
     print(rec)
   EOF
 
