@@ -16,43 +16,26 @@ class Client():
         self.base_url = base_url
         self.session = requests.Session()
 
-    def ast(self, zql):
-        r = self.session.post(self.base_url + "/ast", json={'zql': zql})
-        r.raise_for_status()
-        return r.json()
+    def query(self, query):
+        return decode_raw(self.query_raw(query))
 
-    def search(self, pool_name, zql):
-        return decode_raw(self.search_raw(pool_name, zql))
-
-    def search_raw(self, pool_name, zql):
-        body = {
-            'dir': -1,
-            'proc': self.ast(zql),
-            'pool': self.pools()[pool_name]['id'],
-        }
-        params = {'format': 'zjson'}
-        r = self.session.post(self.base_url + "/search", json=body,
-                              params=params, stream=True)
+    def query_raw(self, query):
+        body = {'query': query}
+        r = self.session.post(self.base_url + '/query', json=body, stream=True)
         r.raise_for_status()
-        # Return rather than yield to raise exceptions earlier.
         return (json.loads(line) for line in r.iter_lines() if line)
-
-    def pools(self):
-        r = self.session.get(self.base_url + "/pool")
-        r.raise_for_status()
-        return {s['value']['name']: s['value'] for s in r.json()}
 
 
 def decode_raw(raw):
     types = {}
     for msg in raw:
-        if msg['type'] != 'SearchRecords':
+        if msg['kind'] != 'Object':
             continue
-        for rec in msg['records']:
-            if 'types' in rec:
-                for typ in rec['types']:
-                    _decode_type(types, typ)
-            yield _decode_value(types[rec['schema']], rec['values'])
+        value = msg['value']
+        if 'types' in value:
+            for typ in value['types']:
+                _decode_type(types, typ)
+        yield _decode_value(types[value['schema']], value['values'])
 
 
 def _decode_type(types, typ):
@@ -144,10 +127,9 @@ if __name__ == '__main__':
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-u', dest='base_url', default=DEFAULT_BASE_URL,
                         help='zqd base URL')
-    parser.add_argument('pool_name')
-    parser.add_argument('zql')
+    parser.add_argument('query')
     args = parser.parse_args()
 
     c = Client(args.base_url)
-    for record in c.search(args.pool_name, args.zql):
+    for record in c.search(args.query):
         pprint.pprint(record)

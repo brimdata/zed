@@ -25,9 +25,9 @@ import zqd
 # To use a different base URL, supply it as an argument.
 client = zqd.Client()
 
-# Begin executing a Zed query for all records, "*", in the space named
-# "your_space".  This returns an iterator, not a container.
-records = client.search('your_space', '*'):
+# Begin executing a Zed query for all records in the pool named
+# "your_pool".  This returns an iterator, not a container.
+records = client.search('from your_pool'):
 
 # Stream records from the server.
 for record in records:
