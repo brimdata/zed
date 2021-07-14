@@ -116,7 +116,7 @@ contain special characters. To achieve this, wrap your search term in quotes.
 
 Let's say we've noticed that a couple of the school names in our sample data
 include the string `Defunct=`. An attempt to enter this as a [bare word](#bare-word)
-search causes an error because the language parser interpreted this as the
+search causes an error because the language parser interprets this as the
 start of an attempted [field/value match](#fieldvalue-match) for a field named
 `Defunct`.
 
