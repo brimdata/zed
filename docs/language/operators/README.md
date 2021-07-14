@@ -564,7 +564,7 @@ zq -z -I multi-value-join.zed
 As previously noted, until [zed/2815](https://github.com/brimdata/zed/issues/2815)
 is addressed, explicit entries must be provided in the `[field-list]` in order
 to copy values from the opposite input into the joined results. This can be
-cumbersome if your goal is to copy over many fields and/or you don't know the
+cumbersome if your goal is to copy over many fields or you don't know the
 names of all desired fields.
 
 One way to work around this limitation is to specify `this` in the field list
