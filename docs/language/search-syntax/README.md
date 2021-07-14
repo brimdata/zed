@@ -546,7 +546,7 @@ Unless wrapped in parentheses, a search is evaluated in _left-to-right order_.
 Terms wrapped in parentheses will be evaluated _first_, overriding the default
 left-to-right evaluation.
 
-For example, we've noticed there's some test score records that have `null`
+For example, we've noticed there are some test score records that have `null`
 values for all three test scores.
 
 #### Example:
