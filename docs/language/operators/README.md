@@ -310,7 +310,7 @@ conn  2018-03-24T17:15:20.607695Z CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.
 | **Syntax**                | `[inner\|left\|right] join on <left-key>=<right-key> [field-list]`          |
 | **Required<br>arguments** | `<left-key>`<br>A field in the left-hand input whose contents will be checked for equality against the `<right-key>`<br><br>`<right-key>`<br>A field in the right-hand input whose contents will be checked for equality against the `<left-key>` |
 | **Optional<br>arguments** | `[inner\|left\|right]`<br>The type of join that should be performed.<br>• `inner` - Return only records that have matching key values in both inputs (default)<br>• `left` - Return all records from the left-hand input, and matched records from the right-hand input<br>• `right` - Return all records from the right-hand input, and matched records from the left-hand input<br><br>`[field-list]`<br>One or more comma-separated field names or assignments. The values in the field(s) specified will be copied from the _opposite_ input (right-hand side for a `left` or `inner` join, left-hand side for a `right` join) into the joined results. If no field list is provided, no fields from the opposite input will appear in the joined results (see [zed/2815](https://github.com/brimdata/zed/issues/2815) regarding expected enhancements in this area). |
-| **Limitations**           | • The order of the left/right key names in the equality test must follow the left/right order of the input sources that precede the `join` ([zed/2228](https://github.com/brimdata/zed/issues/2228))<br>• The Zed data types of the respective key fields must match precisely ([zed/2779](https://github.com/brimdata/zed/issues/2779))<br>• Only a simple equality test (not an arbitrary expression) is currently possible ([zed/2766](https://github.com/brimdata/zed/issues/2766))<br>• All fields included in the `[field-list]` must be present in the record of the opposite input for any of them to appear in the joined result ([zed/2833](https://github.com/brimdata/zed/issues/2833)) |
+| **Limitations**           | • The order of the left/right key names in the equality test must follow the left/right order of the input sources that precede the `join` ([zed/2228](https://github.com/brimdata/zed/issues/2228))<br>• The Zed data types of the respective key fields must match precisely ([zed/2779](https://github.com/brimdata/zed/issues/2779))<br>• Only a simple equality test (not an arbitrary expression) is currently possible ([zed/2766](https://github.com/brimdata/zed/issues/2766)) |
 
 The first input data source for our usage examples is `fruit.ndjson`, which describes
 the characteristics of some fresh produce.
@@ -561,42 +561,17 @@ zq -z -I multi-value-join.zed
 
 #### Example #7 - Embedding the entire opposite record
 
-Because of the previously-cited [zed/2833](https://github.com/brimdata/zed/issues/2833)
-limitation, attempting to include multiple fields from the opposite input in
-the results can cause undesirable behaviors if one or more of the fields is not
-always present. For instance, let's say we wanted to see the `note` field from
-our records about people. We attempt this in the following Zed script
-`peoplenote-attempt.zed`.
+As previously noted, until [zed/2815](https://github.com/brimdata/zed/issues/2815)
+is addressed, explicit entries must be provided in the `[field-list]` in order
+to copy values from the opposite input into the joined results. This can be
+cumbersome if your goal is to copy over many fields and/or you don't know the
+names of all desired fields.
 
-```mdtest-input peoplenote-attempt.zed
-from (
-  file fruit.ndjson => sort flavor;
-  file people.ndjson => sort likes;
-) | inner join on flavor=likes eater:=name,peoplenote:=note
-```
+One way to work around this limitation is to specify `this` in the field list
+to copy the contents of the _entire_ opposite record into an embedded record
+in the result.
 
-Executing the Zed script, we see this has the effect of including the note
-where it's present, but where it isn't, the `eater` field is now absent.
-
-```mdtest-command
-zq -z -I peoplenote-attempt.zed
-```
-
-#### Output (probably undesirable):
-```mdtest-output
-{name:"figs",color:"brown",flavor:"plain"}
-{name:"banana",color:"yellow",flavor:"sweet",eater:"quinn",peoplenote:"many kids enjoy sweets"}
-{name:"strawberry",color:"red",flavor:"sweet",eater:"quinn",peoplenote:"many kids enjoy sweets"}
-{name:"dates",color:"brown",flavor:"sweet",note:"in season",eater:"quinn",peoplenote:"many kids enjoy sweets"}
-{name:"apple",color:"red",flavor:"tart"}
-{name:"apple",color:"red",flavor:"tart"}
-```
-
-Until zed/2833 is addressed, one way to work around this limitation is to
-specify `this` in the field list to copy the contents of the _entire_ opposite
-record into an embedded record in the result.
-
-The improved Zed script `embed-opposite.zed`:
+The Zed script `embed-opposite.zed`:
 
 ```mdtest-input embed-opposite.zed
 from (
