@@ -111,14 +111,11 @@ func (f *FileSystem) checkPath(path string) error {
 	if _, ok := f.exists[dir]; ok {
 		return nil
 	}
-	err := os.MkdirAll(dir, 0755)
-	if os.IsExist(err) {
-		err = nil
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return err
 	}
-	if err == nil {
-		f.exists[dir] = struct{}{}
-	}
-	return err
+	f.exists[dir] = struct{}{}
+	return nil
 }
 
 func wrapfileError(uri *URI, err error) error {
