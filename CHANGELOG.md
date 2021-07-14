@@ -1,6 +1,22 @@
-These entries focus on changes we think are relevant to users of Brim,
-zq, or pcap.  For all changes to zqd, its API, or other components in the
-this repository, check the git log.
+## v0.30.0
+* Revise Zed language to unify search and expressions (#2072, #2152)
+* Add functions for joining and splitting of strings (#2098)
+* Add array slice expressions (#2100)
+* Fix an issue with connection resets after several minutes when posting data to S3 (#2106)
+* Fix an issue with parsing IPv6 literals (#2112)
+* Fix [`fuse`](https://github.com/brimdata/zed/tree/main/docs/language/operators#fuse) operator to work on nested records (#2052)
+* Fix an issue where `cut(.)` could cause a `slice bounds out of range` panic (#2107)
+* Add `is()`, `fields()`, and `exists()` functions (#2131)
+* Add auto-detection of ZSON format (#2123)
+* Fix an issue where [`cut`](https://github.com/brimdata/zed/tree/main/docs/language/operators#cut) to the root would exit if the referneced column was missing from a record (#2121)
+* Fix an issue where [`put`](https://github.com/brimdata/zed/tree/main/docs/language/operators#put) to the root would panic on a non-record field (#2136)
+* Add support for parsing map types in ZSON (#2142)
+* Add a `fuse()` aggregate function (#2115)
+* Remove backward compatibility with alpha ZNG format (#2158)
+* Simplify ZSON by dropping type decorators when a complex value is fully implied (#2160)
+* Add a `switch` operator (#2087)
+* Add constants and type literals to the Zed language (#2181)
+* The `-I` option in `zq` is now used for file includes (and allows multiple files), with `-z` now used for compact ZSON output (#2180)
 
 ## v0.29.0
 * zqd: Update Zeek pointer to [v3.2.1-brim10](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim10) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#2081)
