@@ -143,11 +143,7 @@ func (o *Optimizer) propagateScanOrder(op dag.Op, parent order.Layout) (order.La
 		}
 		return egress, nil
 	case *dag.Merge:
-		o := order.Asc
-		if op.Reverse {
-			o = order.Desc
-		}
-		layout := order.NewLayout(o, field.List{op.Key})
+		layout := order.NewLayout(op.Order, field.List{op.Key})
 		if !layout.Equal(parent) {
 			layout = order.Nil
 		}

@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/merge"
@@ -46,15 +47,15 @@ var omTestInputRev = []string{
 
 func TestParallelOrder(t *testing.T) {
 	cases := []struct {
-		field    string
-		reversed bool
-		inputs   []string
-		exp      string
+		field  string
+		order  order.Which
+		inputs []string
+		exp    string
 	}{
 		{
-			field:    "ts",
-			reversed: false,
-			inputs:   omTestInputs,
+			field:  "ts",
+			order:  order.Asc,
+			inputs: omTestInputs,
 			exp: `
 {v:10 (int32),ts:1970-01-01T00:00:01Z} (=0)
 {v:20,ts:1970-01-01T00:00:02Z} (0)
@@ -66,9 +67,9 @@ func TestParallelOrder(t *testing.T) {
 		},
 		{
 
-			field:    "v",
-			reversed: false,
-			inputs:   omTestInputs,
+			field:  "v",
+			order:  order.Asc,
+			inputs: omTestInputs,
 			exp: `
 {v:10 (int32),ts:1970-01-01T00:00:01Z} (=0)
 {v:15,ts:1970-01-01T00:00:04Z} (0)
@@ -79,9 +80,9 @@ func TestParallelOrder(t *testing.T) {
 `,
 		},
 		{
-			field:    "ts",
-			reversed: true,
-			inputs:   omTestInputRev,
+			field:  "ts",
+			order:  order.Desc,
+			inputs: omTestInputRev,
 			exp: `
 {v:35 (int32),ts:1970-01-01T00:00:06Z} (=0)
 {v:25,ts:1970-01-01T00:00:05Z} (0)
@@ -102,7 +103,8 @@ func TestParallelOrder(t *testing.T) {
 				r := zson.NewReader(strings.NewReader(input), zctx)
 				parents = append(parents, proc.NopDone(zbuf.NewPuller(r, 10)))
 			}
-			cmp := zbuf.NewCompareFn(field.New(c.field), c.reversed)
+			layout := order.NewLayout(c.order, field.DottedList(c.field))
+			cmp := zbuf.NewCompareFn(layout)
 			om := merge.New(pctx.Context, parents, cmp)
 
 			var sb strings.Builder

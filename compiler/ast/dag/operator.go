@@ -57,9 +57,9 @@ type (
 		Args     []Assignment `json:"args"`
 	}
 	Merge struct {
-		Kind    string     `json:"kind" unpack:""`
-		Key     field.Path `json:"key"`
-		Reverse bool       `json:"reverse"`
+		Kind  string      `json:"kind" unpack:""`
+		Key   field.Path  `json:"key"`
+		Order order.Which `json:"reverse"`
 	}
 	Parallel struct {
 		Kind string `json:"kind" unpack:""`

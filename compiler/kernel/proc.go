@@ -400,7 +400,8 @@ func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface
 		}
 		return []proc.Interface{join}, nil
 	case *dag.Merge:
-		cmp := zbuf.NewCompareFn(op.Key, op.Reverse)
+		layout := order.NewLayout(op.Order, field.List{op.Key})
+		cmp := zbuf.NewCompareFn(layout)
 		return []proc.Interface{merge.New(b.pctx, parents, cmp)}, nil
 	default:
 		var parent proc.Interface

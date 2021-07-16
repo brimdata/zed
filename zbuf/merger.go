@@ -6,7 +6,6 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
@@ -39,11 +38,15 @@ type batch struct {
 	err error
 }
 
-func NewCompareFn(mergeField field.Path, reversed bool) expr.CompareFn {
-	nullsMax := !reversed
-	fn := expr.NewCompareFn(nullsMax, expr.NewDotExpr(mergeField))
+func NewCompareFn(layout order.Layout) expr.CompareFn {
+	nullsMax := layout.Order == order.Asc
+	exprs := make([]expr.Evaluator, len(layout.Keys))
+	for i := range layout.Keys {
+		exprs[i] = expr.NewDotExpr(layout.Keys[i])
+	}
+	fn := expr.NewCompareFn(nullsMax, exprs...)
 	fn = totalOrderCompare(fn)
-	if !reversed {
+	if layout.Order == order.Asc {
 		return fn
 	}
 	return func(a, b *zng.Record) int { return fn(b, a) }
