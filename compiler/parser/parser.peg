@@ -82,54 +82,26 @@ Sequential
 SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
 
 Parallel
-  = first:Sequential rest:ParallelTail+ {
-      RETURN(PREPEND(first, rest))
-    }
-  / first:Sequential {
-      RETURN(ARRAY(first))
-    }
-
-ParallelTail
-  = __ "=>" __ ch:Sequential { RETURN(ch) }
+  = __ "=>" __ s:Sequential __ ";" { RETURN(s) }
 
 SwitchBranch
-  = __ CaseToken _ e:SearchBoolean __ "=>" __ proc:Sequential {
+  = __ e:SearchBoolean __ "=>" __ proc:Sequential __ ";" {
       RETURN(MAP("expr": e, "proc": proc))
     }
-  / __ DefaultToken __ "=>" __ proc:Sequential {
+  / __ DefaultToken __ "=>" __ proc:Sequential __ ";" {
       RETURN(MAP("expr": MAP("kind": "Primitive", "type": "bool", "text": "true"), "proc": proc))
     }
 
-Switch
-  = first:SwitchBranch rest:SwitchBranch+ {
-      RETURN(PREPEND(first, rest))
-    }
-  / first:SwitchBranch {
-      RETURN(ARRAY(first))
-    }
-
-CaseToken = "case"i
 DefaultToken = "default"i
 
-FromTrunks
-  = first:FromTrunk rest:FromTrunkTail+ {
-      RETURN(PREPEND(first, rest))
-    }
-  / first:FromTrunk {
-      RETURN(ARRAY(first))
-    }
-
 FromTrunk
-  = source:FromSource seq:FromTrunkSeq {
-      RETURN(MAP("kind": "Trunk", "source": source, "seq":seq ))
+  = __ source:FromSource  seq:FromTrunkSeq? __ ";" {
+      RETURN(MAP("kind": "Trunk", "source": source, "seq": seq))
     }
 
 FromTrunkSeq
   = __ "=>" __ seq:Sequential { RETURN(seq) }
   / "" { RETURN(NULL)}
-
-FromTrunkTail
-  = (__ ";" __ ) trunk:FromTrunk { RETURN(trunk) }
 
 FromSource
   = FileProc
@@ -138,13 +110,13 @@ FromSource
   / PoolBody
 
 Operation
-  = "split" __ "(" __ "=>" __ procArray:Parallel __ ")" {
+  = "split" __ "(" procArray:Parallel+ __ ")" {
       RETURN(MAP("kind": "Parallel", "procs": procArray))
     }
-  / "switch" __ "(" __ caseArray:Switch __ ")" {
+  / "switch" __ "(" caseArray:SwitchBranch+ __ ")" {
       RETURN(MAP("kind": "Switch", "cases": caseArray))
     }
-  / "from" __ "(" __ trunks:FromTrunks __ ";"? __ ")" {
+  / "from" __ "(" trunks:FromTrunk+ __ ")" {
       RETURN(MAP("kind": "From", "trunks": trunks))
     }
   / Operator
@@ -154,7 +126,7 @@ Operation
       RETURN(MAP("kind": "Filter", "expr": expr))
     }
 
-EndOfOp = __ (Pipe / "=>" / ")" / EOF)
+EndOfOp = __ (Pipe / "=>" / [);] / EOF)
 Pipe = "|" !("{" / "[")
 
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "[" / "matches")
@@ -244,7 +216,6 @@ SearchGuard
   / NotToken
   / InToken
   / ByToken
-  / CaseToken
   / DefaultToken
   / "type("
   / "matches"i
@@ -528,7 +499,7 @@ URL = ("http:" / "https:") Path { RETURN(TEXT) }
 
 Path
   = v:QuotedString { RETURN(v) }
-  / [0-9a-zA-Z!@$%^&*()_=<>,./?;:[\]{}~|+-]+ &EOT { RETURN(TEXT) }
+  / [0-9a-zA-Z!@$%^&*()_=<>,./?:[\]{}~|+-]+ { RETURN(TEXT) }
 
 PoolAt
   = _ "at"i _ id:KSUID { RETURN(id) }

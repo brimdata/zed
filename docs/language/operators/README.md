@@ -496,8 +496,8 @@ The Zed script `inner-join-streamed.zed`:
 
 ```mdtest-input inner-join-streamed.zed
 switch (
-  case has(color) => sort flavor
-  case has(age) => sort likes
+  has(color) => sort flavor;
+  has(age) => sort likes;
 ) | inner join on flavor=likes eater:=name
 ```
 
