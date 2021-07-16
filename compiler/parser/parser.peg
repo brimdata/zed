@@ -82,42 +82,21 @@ Sequential
 SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
 
 Parallel
-  = "=>" __ first:Sequential __ ";" __ rest:Parallel+ {
-      RETURN(PREPEND(first, ASSERT_ARRAY(rest)[0]))
-    }
-  / "=>" __ first:Sequential __ ";" {
-      RETURN(ARRAY(first))
-    }
+  = __ "=>" __ s:Sequential __ ";" { RETURN(s) }
 
 SwitchBranch
-  =  DefaultToken __ "=>" __ proc:Sequential __ ";" {
-      RETURN(MAP("expr": MAP("kind": "Primitive", "type": "bool", "text": "true"), "proc": proc))
-    }
-  / e:SearchBoolean __ "=>" __ proc:Sequential __ ";" {
+  = __ e:SearchBoolean __ "=>" __ proc:Sequential __ ";" {
       RETURN(MAP("expr": e, "proc": proc))
     }
-
-Switch
-  = first:SwitchBranch __ rest:Switch+ {
-      RETURN(PREPEND(first, ASSERT_ARRAY(rest)[0]))
-    }
-  / first:SwitchBranch {
-      RETURN(ARRAY(first))
+  / __ DefaultToken __ "=>" __ proc:Sequential __ ";" {
+      RETURN(MAP("expr": MAP("kind": "Primitive", "type": "bool", "text": "true"), "proc": proc))
     }
 
 DefaultToken = "default"i
 
-FromTrunks
-  = first:FromTrunk __ rest:FromTrunks+ {
-      RETURN(PREPEND(first, ASSERT_ARRAY(rest)[0]))
-    }
-  / first:FromTrunk {
-      RETURN(ARRAY(first))
-    }
-
 FromTrunk
-  = source:FromSource seq:FromTrunkSeq __ ";" {
-      RETURN(MAP("kind": "Trunk", "source": source, "seq":seq ))
+  = __ source:FromSource  seq:FromTrunkSeq? __ ";" {
+      RETURN(MAP("kind": "Trunk", "source": source, "seq": seq))
     }
 
 FromTrunkSeq
@@ -131,13 +110,13 @@ FromSource
   / PoolBody
 
 Operation
-  = "split" __ "(" __ procArray:Parallel __ ")" {
+  = "split" __ "(" procArray:Parallel+ __ ")" {
       RETURN(MAP("kind": "Parallel", "procs": procArray))
     }
-  / "switch" __ "(" __ caseArray:Switch __ ")" {
+  / "switch" __ "(" caseArray:SwitchBranch+ __ ")" {
       RETURN(MAP("kind": "Switch", "cases": caseArray))
     }
-  / "from" __ "(" __ trunks:FromTrunks __ ")" {
+  / "from" __ "(" trunks:FromTrunk+ __ ")" {
       RETURN(MAP("kind": "From", "trunks": trunks))
     }
   / Operator
