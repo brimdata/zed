@@ -2,7 +2,7 @@
 
 The `summarize` operator performs zero or more aggregations with
 zero or more [grouping expressions](../grouping/README.md).
-Each aggregation is perform by an
+Each aggregation is performed by an
 _aggregate function_ that operates on
 batches of records to carry out a running computation over the values they
 contain.  The `summarize` keyword is optional.
