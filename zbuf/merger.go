@@ -41,8 +41,8 @@ type batch struct {
 func NewCompareFn(layout order.Layout) expr.CompareFn {
 	nullsMax := layout.Order == order.Asc
 	exprs := make([]expr.Evaluator, len(layout.Keys))
-	for i := range layout.Keys {
-		exprs[i] = expr.NewDotExpr(layout.Keys[i])
+	for i, key := range layout.Keys {
+		exprs[i] = expr.NewDotExpr(keys)
 	}
 	fn := expr.NewCompareFn(nullsMax, exprs...)
 	fn = totalOrderCompare(fn)
