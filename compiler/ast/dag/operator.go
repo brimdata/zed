@@ -59,7 +59,7 @@ type (
 	Merge struct {
 		Kind  string      `json:"kind" unpack:""`
 		Key   field.Path  `json:"key"`
-		Order order.Which `json:"reverse"`
+		Order order.Which `json:"order"`
 	}
 	Parallel struct {
 		Kind string `json:"kind" unpack:""`
