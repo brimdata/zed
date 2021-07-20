@@ -198,11 +198,7 @@ func (c *canonDAG) op(p dag.Op) {
 		c.next()
 		c.write("merge ")
 		c.fieldpath(p.Key)
-		if p.Reverse {
-			c.write(":desc")
-		} else {
-			c.write(":asc")
-		}
+		c.write(":" + p.Order.String())
 	case *dag.Const:
 		c.write("const %s=", p.Name)
 		c.expr(p.Expr, false)

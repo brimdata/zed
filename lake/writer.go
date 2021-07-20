@@ -185,7 +185,9 @@ func (s *ImportStats) Copy() ImportStats {
 }
 
 func importCompareFn(pool *Pool) expr.CompareFn {
-	return zbuf.NewCompareFn(poolKey(pool.Layout), pool.Layout.Order == order.Desc)
+	layout := pool.Layout
+	layout.Keys = field.List{poolKey(layout)}
+	return zbuf.NewCompareFn(layout)
 }
 
 func poolKey(layout order.Layout) field.Path {

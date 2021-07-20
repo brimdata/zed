@@ -203,16 +203,11 @@ func insertMerge(seq *dag.Sequential, layout order.Layout) error {
 	if layout.IsNil() {
 		return nil
 	}
-	var reverse bool
-	if layout.Order == order.Desc {
-		reverse = true
-	}
-	// XXX Fix this to handle multi-key merge; change dag.Merge.Reverse.
-	// See Issue #2657.
+	// XXX Fix this to handle multi-key merge. See Issue #2657.
 	head := []dag.Op{seq.Ops[0], &dag.Merge{
-		Kind:    "Merge",
-		Key:     layout.Primary(),
-		Reverse: reverse,
+		Kind:  "Merge",
+		Key:   layout.Primary(),
+		Order: layout.Order,
 	}}
 	seq.Ops = append(head, seq.Ops[1:]...)
 	return nil
