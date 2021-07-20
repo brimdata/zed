@@ -205,6 +205,31 @@ func (c *canon) proc(p ast.Proc) {
 		if p.MergeReverse {
 			c.write(" rev")
 		}
+	case *ast.Switch:
+		c.next()
+		c.write("switch ")
+		if p.Expr != nil {
+			c.expr(p.Expr, false)
+			c.write(" ")
+		}
+		c.open("(")
+		for _, k := range p.Cases {
+			c.ret()
+			if k.Expr != nil {
+				c.expr(k.Expr, false)
+			} else {
+				c.write("default")
+			}
+			c.write(" =>")
+			c.open()
+			c.head = true
+			c.proc(k.Proc)
+			c.close()
+		}
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
 	case *ast.From:
 		//XXX cleanup for len(Trunks) = 1
 		c.next()

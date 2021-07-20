@@ -84,16 +84,6 @@ SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
 Parallel
   = __ "=>" __ s:Sequential __ ";" { RETURN(s) }
 
-SwitchBranch
-  = __ e:SearchBoolean __ "=>" __ proc:Sequential __ ";" {
-      RETURN(MAP("expr": e, "proc": proc))
-    }
-  / __ DefaultToken __ "=>" __ proc:Sequential __ ";" {
-      RETURN(MAP("expr": MAP("kind": "Primitive", "type": "bool", "text": "true"), "proc": proc))
-    }
-
-DefaultToken = "default"i
-
 FromTrunk
   = __ source:FromSource  seq:FromTrunkSeq? __ ";" {
       RETURN(MAP("kind": "Trunk", "source": source, "seq": seq))
@@ -113,8 +103,11 @@ Operation
   = "split" __ "(" procArray:Parallel+ __ ")" {
       RETURN(MAP("kind": "Parallel", "procs": procArray))
     }
-  / "switch" __ "(" caseArray:SwitchBranch+ __ ")" {
-      RETURN(MAP("kind": "Switch", "cases": caseArray))
+  / "switch" _ expr:Expr _ "(" cases:SwitchLiteralClause+ __ ")" {
+      RETURN(MAP("kind": "Switch", "expr": expr, "cases": cases))
+    }
+  / "switch" __ "(" cases:SwitchSearchBooleanClause+ __ ")" {
+      RETURN(MAP("kind": "Switch", "expr": NULL, "cases": cases))
     }
   / "from" __ "(" trunks:FromTrunk+ __ ")" {
       RETURN(MAP("kind": "From", "trunks": trunks))
@@ -125,6 +118,18 @@ Operation
   / expr:SearchBoolean !AggGuard {
       RETURN(MAP("kind": "Filter", "expr": expr))
     }
+
+SwitchLiteralClause
+  = __ expr:(DefaultToken / Literal) __ "=>" __ proc:Sequential __ ";" {
+      RETURN(MAP("expr": expr, "proc": proc))
+    }
+
+SwitchSearchBooleanClause
+  = __ expr:(DefaultToken / SearchBoolean) __ "=>" __ proc:Sequential __ ";" {
+      RETURN(MAP("expr": expr, "proc": proc))
+    }
+
+DefaultToken = "default"i { RETURN(NULL) }
 
 EndOfOp = __ (Pipe / "=>" / [);] / EOF)
 Pipe = "|" !("{" / "[")

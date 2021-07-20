@@ -249,21 +249,40 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 	case *ast.Sequential:
 		return semSequential(ctx, scope, p, adaptor)
 	case *ast.Switch:
-		var cases []dag.Case
-		for k := range p.Cases {
+		var expr dag.Expr
+		if p.Expr != nil {
 			var err error
-			tr, err := semProc(ctx, scope, p.Cases[k].Proc, adaptor)
+			expr, err = semExpr(scope, p.Expr)
 			if err != nil {
 				return nil, err
 			}
-			e, err := semExpr(scope, p.Cases[k].Expr)
+		}
+		var cases []dag.Case
+		for _, c := range p.Cases {
+			var e dag.Expr
+			if c.Expr != nil {
+				var err error
+				e, err = semExpr(scope, c.Expr)
+				if err != nil {
+					return nil, err
+				}
+			} else if p.Expr == nil {
+				// A nil expression indicates the default case.
+				e = &zed.Primitive{
+					Kind: "Primitive",
+					Type: "bool",
+					Text: "true",
+				}
+			}
+			op, err := semProc(ctx, scope, c.Proc, adaptor)
 			if err != nil {
 				return nil, err
 			}
-			cases = append(cases, dag.Case{Expr: e, Op: tr})
+			cases = append(cases, dag.Case{Expr: e, Op: op})
 		}
 		return &dag.Switch{
 			Kind:  "Switch",
+			Expr:  expr,
 			Cases: cases,
 		}, nil
 	case *ast.Call:

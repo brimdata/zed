@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/combine"
 	"github.com/brimdata/zed/proc/explode"
+	"github.com/brimdata/zed/proc/exprswitch"
 	"github.com/brimdata/zed/proc/from"
 	"github.com/brimdata/zed/proc/fuse"
 	"github.com/brimdata/zed/proc/head"
@@ -312,6 +313,34 @@ func (b *Builder) compileParallel(parallel *dag.Parallel, parents []proc.Interfa
 	return procs, nil
 }
 
+func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface) ([]proc.Interface, error) {
+	if len(parents) != 1 {
+		return nil, errors.New("expression switch has multiple parents")
+	}
+	e, err := compileExpr(b.pctx.Zctx, b.scope, swtch.Expr)
+	if err != nil {
+		return nil, err
+	}
+	s := exprswitch.New(parents[0], e)
+	var procs []proc.Interface
+	for _, c := range swtch.Cases {
+		// A nil (rather than null) zng.Value indicates the default case.
+		var zv zng.Value
+		if c.Expr != nil {
+			zv, err = evalAtCompileTime(b.pctx.Zctx, b.scope, c.Expr)
+			if err != nil {
+				return nil, err
+			}
+		}
+		proc, err := b.compile(c.Op, []proc.Interface{s.NewProc(zv)})
+		if err != nil {
+			return nil, err
+		}
+		procs = append(procs, proc...)
+	}
+	return procs, nil
+}
+
 func (b *Builder) compileSwitch(swtch *dag.Switch, parents []proc.Interface) ([]proc.Interface, error) {
 	n := len(swtch.Cases)
 	if len(parents) == 1 {
@@ -353,6 +382,9 @@ func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface
 	case *dag.Parallel:
 		return b.compileParallel(op, parents)
 	case *dag.Switch:
+		if op.Expr != nil {
+			return b.compileExprSwitch(op, parents)
+		}
 		return b.compileSwitch(op, parents)
 	case *dag.From:
 		if len(parents) > 1 {

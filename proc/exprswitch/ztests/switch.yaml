@@ -1,0 +1,16 @@
+zed: |
+  switch a (
+     2 => put v:='two';
+     1 => put v:='one';
+     3 => filter null;
+  ) | sort a
+
+input: |
+  {a:1 (int32),s:"a"} (=0)
+  {a:2,s:"B"} (0)
+  {a:3,s:"c"} (0)
+  {a:4,s:"c"} (0)
+
+output: |
+  {a:1 (int32),s:"a",v:"one"} (=0)
+  {a:2,s:"B",v:"two"} (0)
