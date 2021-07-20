@@ -9,6 +9,8 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
+// get rid of this
+
 type DefLookup struct {
 	DefID  ksuid.KSUID
 	Values []string
@@ -53,16 +55,4 @@ func ParseQuery(name string, patterns []string) (Query, error) {
 		q.Field = path
 	}
 	return q, nil
-}
-
-func (q Query) Matches(r Index) bool {
-	switch r.Kind {
-	case IndexZed:
-		return q.Name == r.Name
-	case IndexType:
-		return q.Type == r.Value
-	case IndexField:
-		return q.Field == r.Value
-	}
-	return false
 }

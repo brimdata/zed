@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
@@ -31,26 +32,28 @@ func init() {
 }
 
 type Command struct {
-	lake        *zedlake.Command
+	lake        zedlake.Command
 	stats       bool
 	stopErr     bool
 	includes    query.Includes
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
+	lakeFlags   lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{lake: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(zedlake.Command)}
 	f.BoolVar(&c.stats, "s", false, "print search stats to stderr on successful completion")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.Var(&c.includes, "I", "source file containing Zed query text (may be used multiple times)")
 	c.outputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
+	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init(&c.outputFlags, &c.procFlags)
+	ctx, cleanup, err := c.lake.Root().Init(&c.outputFlags, &c.procFlags)
 	if err != nil {
 		return err
 	}
@@ -62,10 +65,10 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 1 {
 		src = args[0]
 	}
-	if c.lake.Flags.PoolName() != "" {
+	if c.lakeFlags.PoolName != "" {
 		return errors.New("zed lake query: use from operator instead of -p")
 	}
-	lk, err := c.lake.Flags.Open(ctx)
+	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -74,10 +77,10 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	d := driver.NewCLI(writer)
-	if !c.lake.Flags.Quiet() {
+	if !c.lakeFlags.Quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	stats, err := lk.Query(ctx, d, src, c.includes...)
+	stats, err := lake.Query(ctx, d, src, c.includes...)
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}

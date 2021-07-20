@@ -4,9 +4,8 @@ script: |
   zed lake create -q -p test
   id=$(zed lake add -p test -commit in.zson | head -1 | awk '{print $1}')
   echo $id
-  indexid=$(zed lake index create -f zng :ip | zq -f text "cut s:='0x'+to_hex(id)" -)
-
-  zed lake index add -p test -index $indexid $id
+  zed lake index create -q IPs type ip
+  zed lake index apply -p test IPs $id
   echo ===
   zed lake status -p test
 

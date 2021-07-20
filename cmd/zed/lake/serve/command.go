@@ -11,12 +11,12 @@ import (
 	"runtime"
 
 	"github.com/brimdata/zed/cli"
-	"github.com/brimdata/zed/cli/lakecli"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/pkg/httpd"
 	"github.com/brimdata/zed/pkg/rlimit"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/service"
 	"github.com/brimdata/zed/service/logger"
 	"go.uber.org/zap"
@@ -39,7 +39,7 @@ func init() {
 }
 
 type Command struct {
-	lake    *zedlake.Command
+	lake    *zedlake.LocalCommand
 	conf    service.Config
 	logger  *zap.Logger
 	logconf logger.Config
@@ -53,7 +53,7 @@ type Command struct {
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{lake: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(*zedlake.LocalCommand)}
 	c.conf.Auth.SetFlags(f)
 	c.conf.Version = cli.Version
 	f.IntVar(&c.brimfd, "brimfd", -1, "pipe read fd passed by brim to signal brim closure")
@@ -68,19 +68,16 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init()
+	ctx, cleanup, err := c.lake.Root().Init()
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	localflags, ok := c.lake.Flags.(*lakecli.LocalFlags)
-	if !ok {
-		return errors.New("cannot run lake serve on non-local lake")
-	}
-	c.conf.Root, err = localflags.RootPath()
+	path, err := storage.ParseURI(c.lake.Path)
 	if err != nil {
 		return err
 	}
+	c.conf.Root = path
 	if err := c.initLogger(); err != nil {
 		return err
 	}

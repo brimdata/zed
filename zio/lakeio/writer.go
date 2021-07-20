@@ -20,11 +20,12 @@ import (
 )
 
 type Writer struct {
-	writer  io.WriteCloser
-	zson    *zson.Formatter
-	commits table
-	width   int
-	colors  color.Stack
+	writer   io.WriteCloser
+	zson     *zson.Formatter
+	commits  table
+	rulename string
+	width    int
+	colors   color.Stack
 }
 
 func NewWriter(w io.WriteCloser) *Writer {
@@ -42,7 +43,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 		return w.WriteZSON(rec)
 	}
 	var b bytes.Buffer
-	formatValue(w.commits, &b, v, w.width, &w.colors)
+	w.formatValue(w.commits, &b, v, w.width, &w.colors)
 	_, err := w.writer.Write(b.Bytes())
 	return err
 }
@@ -63,7 +64,7 @@ func (w *Writer) WriteZSON(rec *zng.Record) error {
 	return err
 }
 
-func formatValue(t table, b *bytes.Buffer, v interface{}, width int, colors *color.Stack) {
+func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int, colors *color.Stack) {
 	switch v := v.(type) {
 	case *lake.PoolConfig:
 		formatPoolConfig(b, v)
@@ -77,8 +78,16 @@ func formatValue(t table, b *bytes.Buffer, v interface{}, width int, colors *col
 		t.formatCommit(b, v, width, colors)
 	case *actions.StagedCommit:
 		t.formatStaged(b, v, colors)
-	case *index.Index:
-		formatIndex(b, v, 0)
+	case index.Rule:
+		name := v.RuleName()
+		if name != w.rulename {
+			w.rulename = name
+			b.WriteString(name)
+			b.WriteByte('\n')
+		}
+		tab(b, 4)
+		b.WriteString(v.String())
+		b.WriteByte('\n')
 	default:
 		if action, ok := v.(actions.Interface); ok {
 			t.append(action)
@@ -210,32 +219,6 @@ func formatIndexObject(b *bytes.Buffer, index *index.Reference, prefix string, i
 		b.WriteString(prefix)
 		b.WriteByte(' ')
 	}
-	b.WriteString(fmt.Sprintf("%s index %s segment", index.Index.ID, index.SegmentID))
-	b.WriteByte('\n')
-}
-
-func formatIndex(b *bytes.Buffer, idx *index.Index, indent int) {
-	tab(b, indent)
-	b.WriteString("Index ")
-	b.WriteString(idx.ID.String() + " ")
-	switch idx.Kind {
-	case index.IndexType:
-		b.WriteString("type ")
-		b.WriteString(idx.Value)
-	case index.IndexField:
-		b.WriteString("field ")
-		b.WriteString(idx.Value)
-	case index.IndexZed:
-		b.WriteString("field(s) ")
-		for i, k := range idx.Keys {
-			if i > 0 {
-				b.WriteString(", ")
-			}
-			b.WriteString(k.String())
-		}
-		b.WriteString(" from zed script:\n  ")
-		tab(b, indent)
-		b.WriteString(idx.Value)
-	}
+	b.WriteString(fmt.Sprintf("%s index %s segment", index.Rule.RuleID(), index.SegmentID))
 	b.WriteByte('\n')
 }

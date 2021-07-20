@@ -13,6 +13,8 @@ import (
 
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zson"
 )
 
 const ext = "zng"
@@ -42,6 +44,10 @@ func New(engine storage.Engine, path *storage.URI) *Queue {
 		headPath: path.AppendPath("HEAD"),
 		tailPath: path.AppendPath("TAIL"),
 	}
+}
+
+func (q *Queue) Path() *storage.URI {
+	return q.path
 }
 
 func (q *Queue) ReadHead(ctx context.Context) (ID, error) {
@@ -81,7 +87,15 @@ func (q *Queue) Commit(ctx context.Context, b []byte) error {
 	if err != nil {
 		return err
 	}
-	uri := q.uri(head + 1)
+	return q.CommitAt(ctx, head, b)
+}
+
+// CommitAt commits a new serialized ZNG sequence to the journal presuming
+// the previous state conformed to the journal position "at".  The entry is
+// written at the next position in the log if possible.  Otherwise, a write
+// conflict occurs and an error is returned.
+func (q *Queue) CommitAt(ctx context.Context, at ID, b []byte) error {
+	uri := q.uri(at + 1)
 	if err := q.engine.PutIfNotExists(ctx, uri, b); err != nil {
 		if err != storage.ErrNotSupported {
 			return err
@@ -102,12 +116,12 @@ func (q *Queue) Commit(ctx context.Context, b []byte) error {
 			return err
 		}
 	}
-	if head == 0 {
+	if at == 0 {
 		if err := q.writeTail(ctx, 1); err != nil {
 			return nil
 		}
 	}
-	return q.writeHead(ctx, head+1)
+	return q.writeHead(ctx, at+1)
 }
 
 // NewReader returns a zngio.Reader that concatenates the journal files
@@ -123,6 +137,35 @@ func (q *Queue) uri(id ID) *storage.URI {
 
 func (q *Queue) Load(ctx context.Context, id ID) ([]byte, error) {
 	return storage.Get(ctx, q.engine, q.uri(id))
+}
+
+func (q *Queue) Open(ctx context.Context, head, tail ID) (io.Reader, error) {
+	if head == Nil {
+		var err error
+		head, err = q.ReadHead(ctx)
+		if err != nil {
+			return nil, err
+		}
+		if head == Nil {
+			return nil, ErrEmpty
+		}
+	}
+	if tail == Nil {
+		var err error
+		tail, err = q.ReadTail(ctx)
+		if err != nil {
+			return nil, err
+		}
+	}
+	return q.NewReader(ctx, head, tail), nil
+}
+
+func (q *Queue) OpenAsZNG(ctx context.Context, head, tail ID) (*zngio.Reader, error) {
+	r, err := q.Open(ctx, head, tail)
+	if err != nil {
+		return nil, err
+	}
+	return zngio.NewReader(r, zson.NewContext()), nil
 }
 
 func writeID(ctx context.Context, engine storage.Engine, u *storage.URI, id ID) error {

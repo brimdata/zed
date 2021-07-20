@@ -120,11 +120,6 @@ type StagedCommit struct {
 	Commit ksuid.KSUID `zng:"commit"`
 }
 
-type IndexSearchRequest struct {
-	IndexName string   `json:"index_name"`
-	Patterns  []string `json:"patterns"`
-}
-
 type IndexPostRequest struct {
 	Keys     []string `json:"keys"`
 	Name     string   `json:"name"`

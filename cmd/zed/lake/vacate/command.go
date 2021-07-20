@@ -13,7 +13,7 @@ var Vacate = &charm.Spec{
 	Usage: "vacate [options] journal-id",
 	Short: "advance the tail of a pool's commit journal and delete old data",
 	Long: `
-The vacate advance the tail of a pool's commit journal so that any commits
+The vacate command advances the tail of a pool's commit journal so that any commits
 before the new tail cannot be accessed and thus "time travel" to previous
 such commits can no longer be accomplished.  Data segments that are no
 longer accessible after the tail has been advanced are removed from the
@@ -35,11 +35,11 @@ func init() {
 }
 
 type Command struct {
-	lake *zedlake.Command
+	lake zedlake.Command
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{lake: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(zedlake.Command)}
 	return c, nil
 }
 

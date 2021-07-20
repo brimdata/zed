@@ -2,12 +2,14 @@ package lake
 
 import (
 	"context"
+	"errors"
 	"flag"
+	"os"
 
-	"github.com/brimdata/zed/cli/lakecli"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
@@ -28,18 +30,46 @@ https://github.com/brimdata/zed/blob/main/docs/lake/README.md
 	New: New,
 }
 
-type Command struct {
+type Command interface {
+	Open(context.Context) (api.Interface, error)
+	Root() *root.Command
+}
+
+var _ Command = (*LocalCommand)(nil)
+
+type LocalCommand struct {
 	*root.Command
-	lakecli.Flags
+	Path string
+}
+
+const RootEnv = "ZED_LAKE_ROOT"
+
+func DefaultRoot() string {
+	return os.Getenv(RootEnv)
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*root.Command)}
-	c.Flags = lakecli.NewLocalFlags(f)
+	c := &LocalCommand{Command: parent.(*root.Command)}
+	f.StringVar(&c.Path, "R", DefaultRoot(), "URI of path to Zed lake store")
 	return c, nil
 }
 
-func (c *Command) Run(args []string) error {
+func (c *LocalCommand) Root() *root.Command {
+	return c.Command
+}
+
+func (c *LocalCommand) Open(ctx context.Context) (api.Interface, error) {
+	if c.Path == "" {
+		return nil, errors.New("no lake path specied: use -R or set ZED_LAKE_ROOT")
+	}
+	path, err := storage.ParseURI(c.Path)
+	if err != nil {
+		return nil, err
+	}
+	return api.OpenLocalLake(ctx, path)
+}
+
+func (c *LocalCommand) Run(args []string) error {
 	_, cleanup, err := c.Init()
 	if err != nil {
 		return err
