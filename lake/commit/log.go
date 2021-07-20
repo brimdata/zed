@@ -13,7 +13,6 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -87,36 +86,21 @@ func (l *Log) Commit(ctx context.Context, commit *Transaction) error {
 }
 
 func (l *Log) Open(ctx context.Context, head, tail journal.ID) (io.Reader, error) {
-	if head == journal.Nil {
-		var err error
-		head, err = l.journal.ReadHead(ctx)
-		if err != nil {
-			return nil, err
-		}
-		if head == journal.Nil {
-			return nil, journal.ErrEmpty
-		}
-	}
-	if tail == journal.Nil {
-		var err error
-		tail, err = l.journal.ReadTail(ctx)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return l.journal.NewReader(ctx, head, tail), nil
+	//XXX embed journal?
+	return l.journal.Open(ctx, head, tail)
 }
 
 func (l *Log) OpenAsZNG(ctx context.Context, head, tail journal.ID) (*zngio.Reader, error) {
-	r, err := l.Open(ctx, head, tail)
-	if err != nil {
-		return nil, err
-	}
-	return zngio.NewReader(r, zson.NewContext()), nil
+	//XXX embed journal?
+	return l.journal.OpenAsZNG(ctx, head, tail)
 }
 
 func (l *Log) Head(ctx context.Context) (*Snapshot, error) {
 	return l.Snapshot(ctx, 0)
+}
+
+func badEntry(entry interface{}) error {
+	return fmt.Errorf("internal error: corrupt journal has unknown entry type %T", entry)
 }
 
 func (l *Log) Snapshot(ctx context.Context, at journal.ID) (*Snapshot, error) {
@@ -135,14 +119,18 @@ func (l *Log) Snapshot(ctx context.Context, at journal.ID) (*Snapshot, error) {
 		return nil, err
 	}
 	snapshot := newSnapshotAt(at)
-	reader := actions.NewDeserializer(r)
+	reader := journal.NewDeserializer(r, actions.JournalTypes)
 	for {
-		action, err := reader.Read()
+		entry, err := reader.Read()
 		if err != nil {
 			return nil, err
 		}
-		if action == nil {
+		if entry == nil {
 			break
+		}
+		action, ok := entry.(actions.Interface)
+		if !ok {
+			return nil, badEntry(entry)
 		}
 		PlayAction(snapshot, action)
 	}
@@ -162,19 +150,23 @@ func (l *Log) SnapshotOfCommit(ctx context.Context, at journal.ID, commit ksuid.
 	if err != nil {
 		return nil, false, err
 	}
-	var ok bool
+	var valid bool
 	snapshot := newSnapshotAt(at)
-	reader := actions.NewDeserializer(r)
+	reader := journal.NewDeserializer(r, actions.JournalTypes)
 	for {
-		action, err := reader.Read()
+		entry, err := reader.Read()
 		if err != nil {
 			return nil, false, err
 		}
-		if action == nil {
-			return snapshot, ok, nil
+		if entry == nil {
+			return snapshot, valid, nil
+		}
+		action, ok := entry.(actions.Interface)
+		if !ok {
+			return nil, false, badEntry(entry)
 		}
 		if action.CommitID() == commit {
-			ok = true
+			valid = true
 			PlayAction(snapshot, action)
 			continue
 		}
@@ -201,13 +193,17 @@ func (l *Log) JournalIDOfCommit(ctx context.Context, at journal.ID, commit ksuid
 		if err != nil {
 			return journal.Nil, err
 		}
-		reader := actions.NewDeserializer(bytes.NewReader(b))
-		action, err := reader.Read()
+		reader := journal.NewDeserializer(bytes.NewReader(b), actions.JournalTypes)
+		entry, err := reader.Read()
 		if err != nil {
 			return journal.Nil, err
 		}
-		if action == nil {
+		if entry == nil {
 			break
+		}
+		action, ok := entry.(actions.Interface)
+		if !ok {
+			return journal.Nil, badEntry(entry)
 		}
 		if action.CommitID() == commit {
 			return cursor, nil

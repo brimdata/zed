@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli/lakecli"
+	"github.com/brimdata/zed/cli/lakeflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
@@ -34,20 +34,22 @@ func init() {
 }
 
 type Command struct {
-	lake    *zedlake.Command
-	user    string
-	message string
+	lake      zedlake.Command
+	lakeFlags lakeflags.Flags
+	user      string
+	message   string
 	zedlake.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{lake: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(zedlake.Command)}
+	c.lakeFlags.SetFlags(f)
 	c.CommitFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init()
+	ctx, cleanup, err := c.lake.Root().Init()
 	if err != nil {
 		return err
 	}
@@ -55,11 +57,15 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zed lake commit: at least one pending commit tag must be specified")
 	}
-	pool, err := c.lake.Flags.OpenPool(ctx)
+	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-	ids, err := lakecli.ParseIDs(args)
+	pool, err := lake.LookupPoolByName(ctx, c.lakeFlags.PoolName)
+	if err != nil {
+		return err
+	}
+	ids, err := lakeflags.ParseIDs(args)
 	if err != nil {
 		return err
 	}
@@ -70,15 +76,15 @@ func (c *Command) Run(args []string) error {
 	case 1:
 		commitID = ids[0]
 	default:
-		commitID, err = pool.Squash(ctx, ids)
+		commitID, err = lake.Squash(ctx, pool.ID, ids)
 		if err != nil {
 			return err
 		}
 	}
-	if err := pool.Commit(ctx, commitID, *c.CommitRequest()); err != nil {
+	if err := lake.Commit(ctx, commitID, pool.ID, *c.CommitRequest()); err != nil {
 		return err
 	}
-	if !c.lake.Flags.Quiet() {
+	if !c.lakeFlags.Quiet {
 		fmt.Printf("%s committed\n", commitID)
 	}
 	return nil

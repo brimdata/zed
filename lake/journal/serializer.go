@@ -1,4 +1,4 @@
-package actions
+package journal
 
 import (
 	"bytes"
@@ -24,8 +24,8 @@ func NewSerializer() *Serializer {
 	return s
 }
 
-func (s *Serializer) Write(action Interface) error {
-	rec, err := s.marshaler.MarshalRecord(action)
+func (s *Serializer) Write(v interface{}) error {
+	rec, err := s.marshaler.MarshalRecord(v)
 	if err != nil {
 		return err
 	}

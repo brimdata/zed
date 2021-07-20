@@ -363,9 +363,10 @@ func (p *Pool) IsJournalID(ctx context.Context, id journal.ID) (bool, error) {
 	return id >= tail && id <= head, nil
 }
 
-func (p *Pool) Index(ctx context.Context, rules []index.Index, ids []ksuid.KSUID) (ksuid.KSUID, error) {
+func (p *Pool) ApplyIndexRules(ctx context.Context, rules []index.Rule, ids []ksuid.KSUID) (ksuid.KSUID, error) {
 	idxrefs := make([]*index.Reference, 0, len(rules)*len(ids))
 	for _, id := range ids {
+		//XXX make issue for this.
 		// This could be easily parallized with errgroup.
 		refs, err := p.indexSegment(ctx, rules, id)
 		if err != nil {
@@ -381,7 +382,7 @@ func (p *Pool) Index(ctx context.Context, rules []index.Index, ids []ksuid.KSUID
 	return id, nil
 }
 
-func (p *Pool) indexSegment(ctx context.Context, rules []index.Index, id ksuid.KSUID) ([]*index.Reference, error) {
+func (p *Pool) indexSegment(ctx context.Context, rules []index.Rule, id ksuid.KSUID) ([]*index.Reference, error) {
 	r, err := p.engine.Get(ctx, segment.RowObjectPath(p.DataPath, id))
 	if err != nil {
 		return nil, err

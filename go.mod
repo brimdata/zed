@@ -17,6 +17,7 @@ require (
 	github.com/gorilla/mux v1.7.5-0.20200711200521-98cb6bf42e08
 	github.com/gosuri/uilive v0.0.4
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0
 	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/niemeyer/pretty v0.0.0-20200227124842-a10e7caefd8e // indirect

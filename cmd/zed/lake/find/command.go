@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
@@ -55,23 +56,23 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
+	lake          zedlake.Command
 	root          string
 	skipMissing   bool
 	indexFile     string
 	relativePaths bool
 	outputFlags   outputflags.Flags
+	lakeFlags     lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(zedlake.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
-
 	c.outputFlags.SetFlags(f)
-
+	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 

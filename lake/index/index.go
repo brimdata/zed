@@ -11,69 +11,88 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-type IndexKind string
-
-const (
-	IndexType  IndexKind = "type"
-	IndexField IndexKind = "field"
-	IndexZed   IndexKind = "zed"
-)
-
-// Index contains the runtime configuration for an index.
-type Index struct {
-	Framesize int         `zng:"framesize,omitempty"`
-	ID        ksuid.KSUID `zng:"id"`
-	Name      string      `zng:"name"`
-	Keys      field.List  `zng:"keys,omitempty"`
-	Kind      IndexKind   `zng:"kind"`
-	Value     string      `zng:"type"`
+type Rule interface {
+	RuleName() string
+	RuleID() ksuid.KSUID
+	RuleKeys() field.List
+	Zed() string
+	String() string
 }
 
-func ParseIndex(pattern string) (Index, error) {
+//XXX move Framesize into lake config.
+
+// Index contains the runtime configuration for an index.
+//XXX have rules with multiple fields, or multiple rules with one field each?
+type FieldRule struct {
+	ID     ksuid.KSUID `zng:"id"`
+	Name   string      `zng:"name"`
+	Fields field.List  `zng:"fields,omitempty"`
+}
+
+type TypeRule struct {
+	ID    ksuid.KSUID `zng:"id"`
+	Name  string      `zng:"name"`
+	Value string      `zng:"type"`
+}
+
+type ZedRule struct {
+	ID    ksuid.KSUID `zng:"id"`
+	Name  string      `zng:"name"`
+	Value string      `zng:"type"`
+	Keys  field.List  `zng:"keys,omitempty"`
+}
+
+func ParseRule(name, pattern string) (Rule, error) {
 	if pattern[0] == ':' {
 		typ, err := zson.ParseType(zson.NewContext(), pattern[1:])
 		if err != nil {
-			return Index{}, err
+			return nil, err
 		}
-		return NewTypeIndex(typ), nil
+		return NewTypeRule(name, typ), nil
 	}
-	return NewFieldIndex(pattern), nil
+	return NewFieldRule(name, pattern), nil
 }
 
-func NewTypeIndex(typ zng.Type) Index {
-	return Index{
-		ID:    ksuid.New(),
-		Kind:  IndexType,
+func NewTypeRule(name string, typ zng.Type) *TypeRule {
+	return &TypeRule{
+		Name: name,
+		ID:   ksuid.New(),
+		//XXX should store type as Zed type-value
 		Value: tzngio.TypeString(typ),
 	}
 }
 
 // NewFieldIndex creates an index that will index the field passed in as argument.
 // It is currently an error to try to index a field name that appears as different types.
-func NewFieldIndex(fieldName string) Index {
-	return Index{
-		ID:    ksuid.New(),
-		Kind:  IndexField,
-		Value: fieldName,
+func NewFieldRule(name, keys string) *FieldRule {
+	fields := field.DottedList(keys)
+	if len(fields) != 1 {
+		//XXX fix this
+		panic("NewFieldRule: only one key supported")
+	}
+	return &FieldRule{
+		Name:   name,
+		ID:     ksuid.New(),
+		Fields: fields,
 	}
 }
 
-func NewZedIndex(prog, name string, keys field.List) (Index, error) {
+func NewZedRule(name, prog string, keys field.List) (*ZedRule, error) {
 	// make sure it compiles
 	if _, err := compiler.ParseProc(prog); err != nil {
-		return Index{}, err
+		return nil, err
 	}
-	return Index{
+	return &ZedRule{
+		Name:  name,
 		ID:    ksuid.New(),
 		Keys:  keys,
-		Kind:  IndexZed,
-		Name:  name,
 		Value: prog,
 	}, nil
 }
 
 // Equivalent determine if the provided Index is equivalent to the receiver. It
 // should used to check if a Definition already contains and equivalent index.
+/*
 func (i Index) Equivalent(r2 Index) bool {
 	if i.Kind != r2.Kind || i.Value != r2.Value {
 		return false
@@ -83,74 +102,78 @@ func (i Index) Equivalent(r2 Index) bool {
 	}
 	return true
 }
+*/
 
+//XXX get rid of this
 const keyName = "key"
 
-func (i Index) zedQuery() (string, error) {
-	switch i.Kind {
-	case IndexType:
-		return fmt.Sprintf("explode this by %s as %s | count() by %s | sort %s", i.Value, keyName, keyName, keyName), nil
-	case IndexField:
-		return fmt.Sprintf("cut %s:=%s | count() by %s | sort %s", keyName, i.Value, keyName, keyName), nil
-	case IndexZed:
-		return i.Value, nil
-	default:
-		return "", fmt.Errorf("unknown index kind: %s", i.Kind)
+func (f *FieldRule) Zed() string {
+	if len(f.Fields) != 1 {
+		//XXX multiple field keys not supported
+		// The code below does a cut assignment presuming one key.
+		// This is problematic.  We should change the index files
+		// to presume the original names of the keys and just do
+		// a non-assignmnet cut on all of the fields.
+		panic("")
 	}
+	return fmt.Sprintf("cut %s:=%s | count() by %s | sort %s", keyName, f.Fields[0], keyName, keyName)
 }
 
-func (i Index) String() string {
-	name := i.Value
-	if i.Kind == IndexZed {
-		name = i.Name
-	}
-	return fmt.Sprintf("%s->%s", i.Kind, name)
+func (t *TypeRule) Zed() string {
+	return fmt.Sprintf("explode this by %s as %s | count() by %s | sort %s", t.Value, keyName, keyName, keyName)
 }
 
-type Indices []Index
+func (z *ZedRule) Zed() string {
+	return z.Value
+}
 
-func (indices Indices) Lookup(id ksuid.KSUID) *Index {
-	if i := indices.indexOf(id); i >= 0 {
-		return &indices[i]
-	}
+//XXX these don't make sense
+
+func (f *FieldRule) String() string {
+	return fmt.Sprintf("field->%s", f.Fields)
+}
+
+func (t *TypeRule) String() string {
+	return fmt.Sprintf("type->%s", t.Value)
+}
+
+func (z *ZedRule) String() string {
+	return fmt.Sprintf("zed->%s", z.Value)
+}
+
+func (f *FieldRule) RuleName() string {
+	return f.Name
+}
+
+func (t *TypeRule) RuleName() string {
+	return t.Name
+}
+
+func (z *ZedRule) RuleName() string {
+	return z.Name
+}
+
+func (f *FieldRule) RuleID() ksuid.KSUID {
+	return f.ID
+}
+
+func (t *TypeRule) RuleID() ksuid.KSUID {
+	return t.ID
+}
+
+func (z *ZedRule) RuleID() ksuid.KSUID {
+	return z.ID
+}
+
+func (f *FieldRule) RuleKeys() field.List {
+	//fmt.Println("FIELD RULE RuleKeys", f.Fields)
+	return field.DottedList(keyName)
+}
+
+func (t *TypeRule) RuleKeys() field.List {
 	return nil
 }
 
-// Add checks if Indices already has an equivalent Index and if it does not
-// returns Indices with the Index appended to it. Returns a non-nil Index pointer
-// if an equivalent Index is found.
-func (indices Indices) Add(index Index) (Indices, *Index) {
-	for _, i := range indices {
-		if i.Equivalent(index) {
-			return indices, &i
-		}
-	}
-	return append(indices, index), nil
-}
-
-// LookupDelete checks the Indices list for a index matching the provided ID
-// returning the deleted index if found.
-func (indices Indices) LookupDelete(id ksuid.KSUID) (Indices, *Index) {
-	if i := indices.indexOf(id); i >= 0 {
-		index := indices[i]
-		return append(indices[:i], indices[i+1:]...), &index
-	}
-	return indices, nil
-}
-
-func (indices Indices) indexOf(id ksuid.KSUID) int {
-	for i, index := range indices {
-		if index.ID == id {
-			return i
-		}
-	}
-	return -1
-}
-
-func (indices Indices) IDs() []ksuid.KSUID {
-	ids := make([]ksuid.KSUID, len(indices))
-	for k, index := range indices {
-		ids[k] = index.ID
-	}
-	return ids
+func (z *ZedRule) RuleKeys() field.List {
+	return z.Keys
 }

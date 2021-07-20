@@ -77,7 +77,7 @@ func formatValue(t table, b *bytes.Buffer, v interface{}, width int, colors *col
 		t.formatCommit(b, v, width, colors)
 	case *actions.StagedCommit:
 		t.formatStaged(b, v, colors)
-	case *index.Index:
+	case index.Rule:
 		formatIndex(b, v, 0)
 	default:
 		if action, ok := v.(actions.Interface); ok {
@@ -210,32 +210,27 @@ func formatIndexObject(b *bytes.Buffer, index *index.Reference, prefix string, i
 		b.WriteString(prefix)
 		b.WriteByte(' ')
 	}
-	b.WriteString(fmt.Sprintf("%s index %s segment", index.Index.ID, index.SegmentID))
+	b.WriteString(fmt.Sprintf("%s index %s segment", index.Rule.RuleID(), index.SegmentID))
 	b.WriteByte('\n')
 }
 
-func formatIndex(b *bytes.Buffer, idx *index.Index, indent int) {
+func formatIndex(b *bytes.Buffer, rule index.Rule, indent int) {
 	tab(b, indent)
 	b.WriteString("Index ")
-	b.WriteString(idx.ID.String() + " ")
-	switch idx.Kind {
-	case index.IndexType:
+	b.WriteString(rule.RuleID().String() + " ")
+	switch rule := rule.(type) {
+	case *index.TypeRule:
 		b.WriteString("type ")
-		b.WriteString(idx.Value)
-	case index.IndexField:
+		b.WriteString(rule.Value)
+	case *index.FieldRule:
 		b.WriteString("field ")
-		b.WriteString(idx.Value)
-	case index.IndexZed:
+		b.WriteString(rule.Fields.String())
+	case *index.ZedRule:
 		b.WriteString("field(s) ")
-		for i, k := range idx.Keys {
-			if i > 0 {
-				b.WriteString(", ")
-			}
-			b.WriteString(k.String())
-		}
+		b.WriteString(rule.Keys.String())
 		b.WriteString(" from zed script:\n  ")
 		tab(b, indent)
-		b.WriteString(idx.Value)
+		b.WriteString(rule.Value)
 	}
 	b.WriteByte('\n')
 }

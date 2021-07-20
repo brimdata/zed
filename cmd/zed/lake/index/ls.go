@@ -4,7 +4,6 @@ import (
 	"flag"
 
 	"github.com/brimdata/zed/cli/outputflags"
-	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
@@ -18,19 +17,19 @@ var Ls = &charm.Spec{
 }
 
 type LsCommand struct {
-	lake        *zedlake.Command
+	*Command
 	outputFlags outputflags.Flags
 }
 
 func NewLs(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &LsCommand{lake: parent.(*Command).Command}
+	c := &LsCommand{Command: parent.(*Command)}
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *LsCommand) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init(&c.outputFlags)
+	ctx, cleanup, err := c.lake.Root().Init(&c.outputFlags)
 	if err != nil {
 		return err
 	}
@@ -38,7 +37,7 @@ func (c *LsCommand) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	root, err := c.lake.Open(ctx)
+	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -47,5 +46,5 @@ func (c *LsCommand) Run(args []string) error {
 		return err
 	}
 	defer w.Close()
-	return root.ScanIndex(ctx, w, nil)
+	return lake.ScanIndexRules(ctx, w, nil)
 }

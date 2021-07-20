@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed/lake/commit/actions"
 	"github.com/brimdata/zed/lake/index"
+	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
@@ -89,7 +90,7 @@ func (t *Transaction) appendAddIndex(i *index.Reference) {
 }
 
 func (t Transaction) Serialize() ([]byte, error) {
-	writer := actions.NewSerializer()
+	writer := journal.NewSerializer()
 	for _, action := range t.Actions {
 		if err := writer.Write(action); err != nil {
 			writer.Close()
@@ -107,14 +108,18 @@ func (t Transaction) Serialize() ([]byte, error) {
 }
 
 func (t *Transaction) Deserialize(r io.Reader) error {
-	reader := actions.NewDeserializer(r)
+	reader := journal.NewDeserializer(r, actions.JournalTypes)
 	for {
-		action, err := reader.Read()
+		entry, err := reader.Read()
 		if err != nil {
 			return err
 		}
-		if action == nil {
+		if entry == nil {
 			break
+		}
+		action, ok := entry.(actions.Interface)
+		if !ok {
+			return badEntry(entry)
 		}
 		t.Append(action)
 	}

@@ -14,7 +14,7 @@ type Interface interface {
 	fmt.Stringer
 }
 
-var actions = []interface{}{
+var JournalTypes = []interface{}{
 	Add{},
 	AddIndex{},
 	Delete{},

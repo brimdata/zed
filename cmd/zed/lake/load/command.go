@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/cli/inputflags"
+	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/procflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
@@ -36,28 +37,30 @@ func init() {
 }
 
 type Command struct {
-	lake       *zedlake.Command
+	lake       zedlake.Command
 	seekStride units.Bytes
 	commit     bool
 	zedlake.CommitFlags
 	procFlags  procflags.Flags
 	inputFlags inputflags.Flags
+	lakeFlags  lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
-		lake:       parent.(*zedlake.Command),
+		lake:       parent.(zedlake.Command),
 		seekStride: units.Bytes(lake.SeekIndexStride),
 	}
 	f.Var(&c.seekStride, "seekstride", "size of seek-index unit for ZNG data, as '32KB', '1MB', etc.")
 	c.CommitFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
+	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init(&c.inputFlags, &c.procFlags)
+	ctx, cleanup, err := c.lake.Root().Init(&c.inputFlags, &c.procFlags)
 	if err != nil {
 		return err
 	}
@@ -69,7 +72,7 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	pool, err := c.lake.Flags.OpenPool(ctx)
+	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -80,15 +83,19 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Config().Layout.Order)
+	pool, err := lake.LookupPoolByName(ctx, c.lakeFlags.PoolName)
 	if err != nil {
 		return err
 	}
-	commitID, err := pool.Add(ctx, reader, c.CommitRequest())
+	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Layout.Order)
 	if err != nil {
 		return err
 	}
-	if !c.lake.Flags.Quiet() {
+	commitID, err := lake.Add(ctx, pool.ID, reader, c.CommitRequest())
+	if err != nil {
+		return err
+	}
+	if !c.lakeFlags.Quiet {
 		fmt.Printf("%s committed\n", commitID)
 		// XXX fmt.Printf("%s committed %d segments\n", commitID, len(txn.Actions))
 	}

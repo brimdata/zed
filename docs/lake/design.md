@@ -420,8 +420,7 @@ The journal represents the entire history of the lake.  Each entry contains
 an action:
 
 * `Add` and `Delete` for data segments,
-* `AddIndexRule` and `DeleteIndexRule` to define indexing rules,
-* `AddIndex` and `DeleteIndex` for index objects, and
+* `AddIndex` and `DeleteIndex` to bind (or delete) an index to a data object, and
 * `CommitMessage` for providing metadata about each commit.
 
 The actions are not grouped directly by their commit tag but instead each
@@ -454,6 +453,39 @@ can be simply and efficiently processed as a ZNG stream.
 > ([zed/2787](https://github.com/brimdata/zed/issues/2787)) but the
 > `zed lake log` command is implemented and can provide a complete journal
 > snapshot.
+
+## Search Indexes
+
+unlike traditional indexing systems based on an inverted-keyword index,
+indexing in Zed is decentralized and incremental...
+
+To optimize pool scans, the lake design includes the well-known pruning
+concept, where segments of data can be skipped when it can be determined
+(either at "compile time" or "run time") that a segment of data is not
+needed by a scan, e.g., because a filter predicate would otherwise filter
+all of the data in that object.
+
+In addition to standard techniques for pruning a cloud scan (e.g., summary stats
+that can determine when a predicate would be false for every record, etc),
+search indexes can be built and attached to any data segment using the
+`zed lake index` command.
+
+XXX the indexing rules are organized into named sets of rules.
+A named set is applied to a data object with the `zed lake index apply`
+command, which deposits the newly created index objects into staging.
+
+XXX not an integer rule number
+The indexing rules are defined at the lake level and assigned an integer
+rule number.  Index objects for each segment are created at some
+point of the segment's life cycle and the query system can use the information
+in the indexes to prune eligible segments from a scan based on the predicates
+present in the query.
+
+While an individual search lookup involves latency to cloud storage to lookup
+a key in each index, each lookup is cheap and involves a small amount of data
+and the lookups can all be run in parallel, even from a single node, so
+the scan schedule can be quickly computed in a small number of round-trips
+(that navigate very wide B-trees) to cloud object storage.
 
 ## Cloud Object Naming
 
@@ -533,28 +565,9 @@ a subset of data.
 
 #### Search Indexes
 
-To optimize pool scans, the lake design includes the well-known pruning
-concept, where segments of data can be skipped when it can be determined
-(either at "compile time" or "run time") that a segment of data is not
-needed by a scan, e.g., because a filter predicate would otherwise filter
-all of the data in that object.
+XXX layout of indexes
 
-In addition to standard techniques for pruning a cloud scan (e.g., summary stats
-that can determine when a predicate would be false for every record, etc),
-search indexes can be built and attached to any data segment using the
-`zed lake index` command.
 
-The indexing rules are defined at the lake level and assigned an integer
-rule number.  Index objects for each segment are created at some
-point of the segment's life cycle and the query system can use the information
-in the indexes to prune eligible segments from a scan based on the predicates
-present in the query.
-
-While an individual search lookup involves latency to cloud storage to lookup
-a key in each index, each lookup is cheap and involves a small amount of data
-and the lookups can all be run in parallel, even from a single node, so
-the scan schedule can be quickly computed in a small number of round-trips
-(that navigate very wide B-trees) to cloud object storage.
 
 ### Mutable Objects
 

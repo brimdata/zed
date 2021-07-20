@@ -269,10 +269,10 @@ func (c *Connection) ScanStaging(ctx context.Context, pool ksuid.KSUID, tags []k
 	return c.stream(req)
 }
 
-func (c *Connection) ScanSegments(ctx context.Context, pool ksuid.KSUID, at string, partitions bool) (*Response, error) {
+func (c *Connection) ScanSegments(ctx context.Context, pool, at ksuid.KSUID, partitions bool) (*Response, error) {
 	req := c.Request(ctx)
-	if at != "" {
-		req.SetQueryParam("at", at)
+	if at != ksuid.Nil {
+		req.SetQueryParam("at", at.String())
 	}
 	if partitions {
 		req.SetQueryParam("partition", "T")

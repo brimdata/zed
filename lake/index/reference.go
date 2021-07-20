@@ -8,12 +8,12 @@ import (
 )
 
 type Reference struct {
-	Index     Index
+	Rule      Rule
 	SegmentID ksuid.KSUID
 }
 
 func (r Reference) String() string {
-	return fmt.Sprintf("%s/%s", r.Index.ID, r.SegmentID)
+	return fmt.Sprintf("%s/%s", r.Rule.RuleID(), r.SegmentID)
 }
 
 func (r Reference) ObjectName() string {
@@ -25,17 +25,17 @@ func ObjectName(id ksuid.KSUID) string {
 }
 
 func (r Reference) ObjectDir(path *storage.URI) *storage.URI {
-	return ObjectDir(path, r.Index)
+	return ObjectDir(path, r.Rule)
 }
 
-func ObjectDir(path *storage.URI, rule Index) *storage.URI {
-	return path.AppendPath(rule.ID.String())
+func ObjectDir(path *storage.URI, rule Rule) *storage.URI {
+	return path.AppendPath(rule.RuleID().String())
 }
 
 func (r Reference) ObjectPath(path *storage.URI) *storage.URI {
-	return ObjectPath(path, r.Index, r.SegmentID)
+	return ObjectPath(path, r.Rule, r.SegmentID)
 }
 
-func ObjectPath(path *storage.URI, rule Index, id ksuid.KSUID) *storage.URI {
+func ObjectPath(path *storage.URI, rule Rule, id ksuid.KSUID) *storage.URI {
 	return ObjectDir(path, rule).AppendPath(ObjectName(id))
 }

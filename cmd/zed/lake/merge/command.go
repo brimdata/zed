@@ -22,11 +22,11 @@ func init() {
 }
 
 type Command struct {
-	lake *zedlake.Command
+	lake zedlake.Command
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{lake: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(zedlake.Command)}
 	return c, nil
 }
 

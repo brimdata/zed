@@ -55,7 +55,8 @@ func ParseQuery(name string, patterns []string) (Query, error) {
 	return q, nil
 }
 
-func (q Query) Matches(r Index) bool {
+/*
+func (q Query) Matches(r Rule) bool {
 	switch r.Kind {
 	case IndexZed:
 		return q.Name == r.Name
@@ -66,3 +67,4 @@ func (q Query) Matches(r Index) bool {
 	}
 	return false
 }
+*/

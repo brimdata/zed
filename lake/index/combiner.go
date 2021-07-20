@@ -11,10 +11,10 @@ import (
 
 type Combiner []*Writer
 
-func NewCombiner(ctx context.Context, engine storage.Engine, path *storage.URI, rules []Index, segmentID ksuid.KSUID) (Combiner, error) {
+func NewCombiner(ctx context.Context, engine storage.Engine, path *storage.URI, rules []Rule, segmentID ksuid.KSUID) (Combiner, error) {
 	writers := make(Combiner, 0, len(rules))
 	for _, rule := range rules {
-		ref := &Reference{Index: rule, SegmentID: segmentID}
+		ref := &Reference{Rule: rule, SegmentID: segmentID}
 		w, err := NewWriter(ctx, engine, path, ref)
 		if err != nil {
 			writers.Abort()
