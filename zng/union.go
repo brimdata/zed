@@ -1,9 +1,7 @@
 package zng
 
 import (
-	"bytes"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/brimdata/zed/zcode"
@@ -57,25 +55,6 @@ func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 		return nil, -1, nil, ErrBadValue
 	}
 	return inner, int64(index), v, nil
-}
-
-// SplitTzng takes a tzng encoding of a value of the receiver's type and returns the
-// concrete type of the value, its index into the union type, and the value
-// encoding.
-func (t *TypeUnion) SplitTzng(in []byte) (Type, int, []byte, error) {
-	c := bytes.Index(in, []byte{':'})
-	if c < 0 {
-		return nil, -1, nil, ErrBadValue
-	}
-	index, err := strconv.Atoi(string(in[0:c]))
-	if err != nil {
-		return nil, -1, nil, err
-	}
-	typ, err := t.TypeIndex(index)
-	if err != nil {
-		return nil, -1, nil, err
-	}
-	return typ, index, in[c+1:], nil
 }
 
 func (t *TypeUnion) Marshal(zv zcode.Bytes) (interface{}, error) {

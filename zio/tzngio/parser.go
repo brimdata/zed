@@ -1,9 +1,11 @@
 package tzngio
 
 import (
+	"bytes"
 	"encoding/base64"
 	"errors"
 	"net"
+	"strconv"
 
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
@@ -124,7 +126,7 @@ func (p *Parser) ParseField(typ zng.Type, b []byte) ([]byte, error) {
 	}
 	if utyp, ok := realType.(*zng.TypeUnion); ok {
 		var childType zng.Type
-		childType, index, b, err = utyp.SplitTzng(b)
+		childType, index, b, err = parseUnion(utyp, b)
 		if err != nil {
 			return nil, err
 		}
@@ -165,6 +167,25 @@ func (p *Parser) ParseField(typ zng.Type, b []byte) ([]byte, error) {
 	}
 	p.AppendPrimitive(zv)
 	return b[i+1:], nil
+}
+
+// parseUnion takes a union type and a tzng encoding of a value of that type
+// and returns the concrete type of the value, its index into the union
+// type, and the value encoding.
+func parseUnion(u *zng.TypeUnion, in []byte) (zng.Type, int, []byte, error) {
+	c := bytes.IndexByte(in, ':')
+	if c < 0 {
+		return nil, -1, nil, ErrBadValue
+	}
+	index, err := strconv.Atoi(string(in[0:c]))
+	if err != nil {
+		return nil, -1, nil, err
+	}
+	typ, err := u.TypeIndex(index)
+	if err != nil {
+		return nil, -1, nil, err
+	}
+	return typ, index, in[c+1:], nil
 }
 
 func ParseContainer(typ zng.Type, in []byte) (zcode.Bytes, error) {
