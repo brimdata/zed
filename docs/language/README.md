@@ -32,7 +32,7 @@ An ambitious goal of the Zed project is to offer a language
 that provides an easy learning curve and a gentle slope from simple keyword search
 to log-search-style processing and ultimately to sophisticated,
 warehouse-scale queries.  The language also embraces a rich set of type operators
-based on the [Zed data model](../formats/zson.md) for data shaping
+based on the [Zed data model](../formats/zson.md#2-the-zson-data-model) for data shaping
 to provide flexible and easy ETL.
 
 The simplest Zed program is perhaps a single word search, e.g.,
@@ -42,7 +42,12 @@ widget
 This program searches the implied input for Zed records that
 contain the string "widget".
 
-> NOTE: we should clarify keyword search vs substring match.
+> **Note:** The [string-searching algorithm](https://en.wikipedia.org/wiki/String-searching_algorithm)
+> implemented in the Zed tools is currently a brute force search based on
+> [Boyer-Moore](https://en.wikipedia.org/wiki/Boyer%E2%80%93Moore_string-search_algorithm)
+> substring match. In the future, Zed will also offer an approach for locating
+> delimited words within text-based fields, which allows for accelerated
+> searches with the benefit of an index.
 
 As with the Unix shell and legacy log search systems,
 the Zed language embraces a _pipeline_ model where a source of data
@@ -75,11 +80,11 @@ To facilitate both a programming-like model as well as an ad hoc search
 experience, Zed has a canonical, long form that can be abbreviated
 using syntax that supports an agile, interactive query workflow.
 For example, the canonical form of an aggregation uses the `summarize`
-keyword, as in
+reserved word, as in
 ```
 summarize count() by color
 ```
-but this can be abbreviated by dropping the keyword whereby the compiler then
+but this can be abbreviated by dropping `summarize` whereby the compiler then
 uses the name of the aggregation function to resolve the ambiguity, e.g.,
 as in the shorter form
 ```
@@ -152,7 +157,7 @@ have a `duration` field, and yet other records have
 you can intermix a bunch of related data of different types into a "data pool"
 without having to define any upfront schemas
 &mdash; let alone a schema per table &mdash;
-thereby enabling easy-to-write queries over heterogenous pools of data.
+thereby enabling easy-to-write queries over heterogeneous pools of data.
 Writing an equivalent SQL query for the different record types implied above
 would require complicated table references, nested selects, and multi-way joins.
 
@@ -211,9 +216,12 @@ using `switch`:
 from ... | switch color (
   "red" => op1 | op2 | ... ;
   "blue" => op1 | op2 | ... ;
-  default => op1 | op2 | ...
+  default => op1 | op2 | ... ;
 ) | ...
 ```
+
+> **Note:** The syntax shown here for `switch` is still being
+> implemented ([zed/2849](https://github.com/brimdata/zed/issues/2849)).
 
 ## Operators
 
@@ -242,6 +250,9 @@ widget | count() by color | COLOR := to_upper(color)
 as the compiler can tell from syntax and context that the three operators
 are `filter`, `summarize`, and `put`.
 
+> **Note:** Making `put` optional is still a work in progress
+> ([zed/2850](https://github.com/brimdata/zed/issues/2850)).
+
 All other operators are explicitly named.
 
 * [`cut`](operators/README.md#cut)
@@ -258,12 +269,12 @@ All other operators are explicitly named.
 * [`tail`](operators/README.md#tail)
 * [`uniq`](operators/README.md#uniq)
 
-### TODO
+### Operators not yet fully documented
 
-* merge
-* split
-* switch
-* from
+* `from`
+* `merge`
+* `split`
+* `switch`
 
 ## Conventions
 
