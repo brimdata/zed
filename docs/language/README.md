@@ -271,10 +271,10 @@ All other operators are explicitly named.
 
 ### Operators not yet fully documented
 
+* `from`
 * `merge`
 * `split`
 * `switch`
-* `from`
 
 ## Conventions
 
