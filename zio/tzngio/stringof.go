@@ -362,12 +362,12 @@ func StringOfTime(t *zng.TypeOfTime, zv zcode.Bytes, _ OutFmt, _ bool) string {
 }
 
 func StringOfUnion(t *zng.TypeUnion, zv zcode.Bytes, ofmt OutFmt, _ bool) string {
-	typ, index, iv, err := t.SplitZng(zv)
+	typ, selector, iv, err := t.SplitZng(zv)
 	if err != nil {
 		// this follows set and record StringOfs. Like there, XXX.
 		return "ERR"
 	}
 
-	s := strconv.FormatInt(index, 10) + ":"
+	s := strconv.FormatInt(selector, 10) + ":"
 	return s + StringOf(zng.Value{typ, iv}, ofmt, false)
 }

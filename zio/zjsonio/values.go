@@ -16,7 +16,7 @@ func encodeUnion(zctx *zson.Context, union *zng.TypeUnion, bytes zcode.Bytes) (i
 	if bytes == nil {
 		return nil, nil
 	}
-	inner, index, b, err := union.SplitZng(bytes)
+	inner, selector, b, err := union.SplitZng(bytes)
 	if err != nil {
 		return nil, err
 	}
@@ -24,7 +24,7 @@ func encodeUnion(zctx *zson.Context, union *zng.TypeUnion, bytes zcode.Bytes) (i
 	if err != nil {
 		return nil, err
 	}
-	return []interface{}{strconv.Itoa(int(index)), val}, nil
+	return []interface{}{strconv.Itoa(int(selector)), val}, nil
 }
 
 func encodeMap(zctx *zson.Context, typ *zng.TypeMap, v zcode.Bytes) (interface{}, error) {
@@ -225,20 +225,20 @@ func decodeUnion(builder *zcode.Builder, typ *zng.TypeUnion, body interface{}) e
 	if len(tuple) != 2 {
 		return errors.New("ZJSON union value not an array of two elements")
 	}
-	istr, ok := tuple[0].(string)
+	selectorStr, ok := tuple[0].(string)
 	if !ok {
-		return errors.New("bad type index for ZJSON union value ")
+		return errors.New("bad selector for ZJSON union value")
 	}
-	index, err := strconv.Atoi(istr)
+	selector, err := strconv.Atoi(selectorStr)
 	if err != nil {
-		return fmt.Errorf("bad type index for ZJSON union value: %w", err)
+		return fmt.Errorf("bad selector for ZJSON union value: %w", err)
 	}
-	inner, err := typ.TypeIndex(index)
+	inner, err := typ.Type(selector)
 	if err != nil {
-		return fmt.Errorf("bad type index for ZJSON union value: %w", err)
+		return fmt.Errorf("bad selector for ZJSON union value: %w", err)
 	}
 	builder.BeginContainer()
-	builder.AppendPrimitive(zng.EncodeInt(int64(index)))
+	builder.AppendPrimitive(zng.EncodeInt(int64(selector)))
 	if err := decodeValue(builder, inner, tuple[1]); err != nil {
 		return err
 	}

@@ -177,15 +177,15 @@ func parseUnion(u *zng.TypeUnion, in []byte) (zng.Type, int, []byte, error) {
 	if c < 0 {
 		return nil, -1, nil, ErrBadValue
 	}
-	index, err := strconv.Atoi(string(in[0:c]))
+	selector, err := strconv.Atoi(string(in[0:c]))
 	if err != nil {
 		return nil, -1, nil, err
 	}
-	typ, err := u.TypeIndex(index)
+	typ, err := u.Type(selector)
 	if err != nil {
 		return nil, -1, nil, err
 	}
-	return typ, index, in[c+1:], nil
+	return typ, selector, in[c+1:], nil
 }
 
 func ParseContainer(typ zng.Type, in []byte) (zcode.Bytes, error) {

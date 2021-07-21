@@ -118,11 +118,11 @@ func walkUnion(typ *TypeUnion, body zcode.Bytes, visit Visitor) error {
 	if container {
 		return ErrBadValue
 	}
-	index, err := DecodeInt(v)
+	selector, err := DecodeInt(v)
 	if err != nil {
 		return err
 	}
-	inner, err := typ.TypeIndex(int(index))
+	inner, err := typ.Type(int(selector))
 	if err != nil {
 		return err
 	}

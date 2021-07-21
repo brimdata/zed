@@ -122,11 +122,11 @@ func (w *Writer) write(s string) error {
 
 func (w *Writer) writeUnion(parent zng.Value) error {
 	utyp := zng.AliasOf(parent.Type).(*zng.TypeUnion)
-	inner, index, v, err := utyp.SplitZng(parent.Bytes)
+	inner, selector, v, err := utyp.SplitZng(parent.Bytes)
 	if err != nil {
 		return err
 	}
-	s := strconv.FormatInt(index, 10) + ":"
+	s := strconv.FormatInt(selector, 10) + ":"
 	if err := w.write(s); err != nil {
 		return err
 	}

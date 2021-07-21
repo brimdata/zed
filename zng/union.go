@@ -20,16 +20,16 @@ func (t *TypeUnion) ID() int {
 	return t.id
 }
 
-func (t *TypeUnion) TypeIndex(index int) (Type, error) {
-	if index < 0 || index >= len(t.Types) {
-		return nil, ErrUnionIndex
+// Type returns the type corresponding to selector.
+func (t *TypeUnion) Type(selector int) (Type, error) {
+	if selector < 0 || selector >= len(t.Types) {
+		return nil, ErrUnionSelector
 	}
-	return t.Types[index], nil
+	return t.Types[selector], nil
 }
 
 // SplitZng takes a zng encoding of a value of the receiver's union type and
-// returns the concrete type of the value, its index into the union
-// type, and the value encoding.
+// returns the concrete type of the value, its selector, and the value encoding.
 func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	it := zv.Iter()
 	v, container, err := it.Next()
@@ -39,11 +39,11 @@ func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	if container {
 		return nil, -1, nil, ErrBadValue
 	}
-	index, err := DecodeInt(v)
+	selector, err := DecodeInt(v)
 	if err != nil {
 		return nil, -1, nil, err
 	}
-	inner, err := t.TypeIndex(int(index))
+	inner, err := t.Type(int(selector))
 	if err != nil {
 		return nil, -1, nil, err
 	}
@@ -54,7 +54,7 @@ func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	if !it.Done() {
 		return nil, -1, nil, ErrBadValue
 	}
-	return inner, int64(index), v, nil
+	return inner, int64(selector), v, nil
 }
 
 func (t *TypeUnion) Marshal(zv zcode.Bytes) (interface{}, error) {
