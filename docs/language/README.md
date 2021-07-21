@@ -220,7 +220,7 @@ from ... | switch color (
 ) | ...
 ```
 
-> **Note:** The syntax shown here for `switch` is still in the process of being
+> **Note:** The syntax shown here for `switch` is still being
 > implemented ([zed/2849](https://github.com/brimdata/zed/issues/2849)).
 
 ## Operators
