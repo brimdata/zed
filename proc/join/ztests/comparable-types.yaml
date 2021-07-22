@@ -15,7 +15,6 @@ inputs:
       {b:"hello" (bstring),vb:"value b"}
 
 outputs:
-  - name: results.zson 
+  - name: stdout
     data: |
       {a:"hello",va:"value a",vb:"value b"}
-
