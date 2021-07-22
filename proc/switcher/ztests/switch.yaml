@@ -13,6 +13,6 @@ input: |
   {a:4,s:"c"} (0)
 
 output: |
-  {a:1 (int32),s:"a",v:"one"} (=0)
-  {a:2,s:"B",v:"two"} (0)
-  {count:1 (uint64),a:-1} (=1)
+  {count:1 (uint64),a:-1} (=0)
+  {a:1 (int32),s:"a",v:"one"} (=1)
+  {a:2,s:"B",v:"two"} (1)

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"sort"
 
+	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 )
@@ -30,13 +31,14 @@ func isNull(val zng.Value) bool {
 // a record with a null value is considered larger than a record with any
 // other value, and vice versa.
 func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
+	var pair coerce.Pair
 	comparefns := make(map[zng.Type]comparefn)
 	return func(ra *zng.Record, rb *zng.Record) int {
 		for _, resolver := range fields {
 			// XXX return errors?
 			a, _ := resolver.Eval(ra)
 			b, _ := resolver.Eval(rb)
-			v := compareValues(a, b, comparefns, nullsMax)
+			v := compareValues(a, b, comparefns, &pair, nullsMax)
 			// If the events don't match, then return the sort
 			// info.  Otherwise, they match and we continue on
 			// on in the loop to the secondary key, etc.
@@ -50,13 +52,14 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 }
 
 func NewValueCompareFn(nullsMax bool) ValueCompareFn {
+	var pair coerce.Pair
 	comparefns := make(map[zng.Type]comparefn)
 	return func(a, b zng.Value) int {
-		return compareValues(a, b, comparefns, nullsMax)
+		return compareValues(a, b, comparefns, &pair, nullsMax)
 	}
 }
 
-func compareValues(a, b zng.Value, comparefns map[zng.Type]comparefn, nullsMax bool) int {
+func compareValues(a, b zng.Value, comparefns map[zng.Type]comparefn, pair *coerce.Pair, nullsMax bool) int {
 	// Handle nulls according to nullsMax
 	nullA := isNull(a)
 	nullB := isNull(b)
@@ -78,21 +81,28 @@ func compareValues(a, b zng.Value, comparefns map[zng.Type]comparefn, nullsMax b
 		}
 	}
 
-	// If values are of different types, just compare
-	// the native representation of the type.
-	// XXX This is heavyweight and should probably just comapred
-	// the zcode.Bytes.  See issue #2354.
+	typ := a.Type
+	abytes, bbytes := a.Bytes, b.Bytes
 	if a.Type.ID() != b.Type.ID() {
-		return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
+		id, err := pair.Coerce(a, b)
+		typ = zng.LookupPrimitiveByID(id)
+		if err != nil || typ == nil {
+			// If values cannot be coerced, just compare the native
+			// representation of the type.
+			// XXX This is heavyweight and should probably just compare
+			// the zcode.Bytes.  See issue #2354.
+			return bytes.Compare([]byte(a.Type.String()), []byte(b.Type.String()))
+		}
+		abytes, bbytes = pair.A, pair.B
 	}
 
-	cfn, ok := comparefns[a.Type]
+	cfn, ok := comparefns[typ]
 	if !ok {
-		cfn = LookupCompare(a.Type)
-		comparefns[a.Type] = cfn
+		cfn = LookupCompare(typ)
+		comparefns[typ] = cfn
 	}
 
-	return cfn(a.Bytes, b.Bytes)
+	return cfn(abytes, bbytes)
 }
 
 func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
