@@ -1,0 +1,21 @@
+script: zq -z -I test.zed -o results.zson 
+
+inputs:
+  - name: test.zed
+    data: |
+      from (
+        file a.zson;
+        file b.zson;
+      ) | left join on a=b vb:=vb
+  - name: a.zson
+    data: |
+      {a:"hello",va:"value a"}
+  - name: b.zson
+    data: |
+      {b:"hello" (bstring),vb:"value b"}
+
+outputs:
+  - name: results.zson 
+    data: |
+      {a:"hello",va:"value a",vb:"value b"}
+
