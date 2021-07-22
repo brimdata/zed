@@ -1,4 +1,4 @@
-script: zq -z -I test.zed -o results.zson 
+script: zq -z -I test.zed
 
 inputs:
   - name: test.zed
