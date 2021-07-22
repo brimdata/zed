@@ -106,6 +106,8 @@ func isCollectionType(t zng.Type) bool {
 
 func createStep(in, out zng.Type) (step, error) {
 	switch {
+	case in.ID() == zng.IDNull:
+		return step{op: null}, nil
 	case in.ID() == out.ID():
 		if zng.IsContainerType(in) {
 			return step{op: copyContainer}, nil
@@ -579,6 +581,8 @@ func castRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeR
 
 func castType(zctx *zson.Context, inType, specType zng.Type) (zng.Type, error) {
 	switch {
+	case inType.ID() == zng.IDNull:
+		return specType, nil
 	case zng.IsRecordType(inType) && zng.IsRecordType(specType):
 		// Matching field is a record: recurse.
 		inRec := zng.AliasOf(inType).(*zng.TypeRecord)
