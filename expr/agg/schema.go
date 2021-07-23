@@ -33,44 +33,6 @@ func (s *Schema) Mixin(mix *zng.TypeRecord) error {
 	return nil
 }
 
-func unify(zctx *zson.Context, t, u zng.Type) zng.Type {
-	tIsUnion := zng.IsUnionType(t)
-	uIsUnion := zng.IsUnionType(u)
-	switch {
-	case tIsUnion && !uIsUnion:
-		found := false
-		list := t.(*zng.TypeUnion).Types
-		for _, t := range list {
-			if u == t {
-				found = true
-			}
-		}
-		if !found {
-			list = append(list, u)
-		}
-		return zctx.LookupTypeUnion(list)
-	case !tIsUnion && !uIsUnion:
-		return zctx.LookupTypeUnion([]zng.Type{t, u})
-	case tIsUnion && uIsUnion:
-		list := t.(*zng.TypeUnion).Types
-		for _, u := range u.(*zng.TypeUnion).Types {
-			found := false
-			for _, t := range list {
-				if u == t {
-					found = true
-				}
-			}
-			if !found {
-				list = append(list, u)
-			}
-		}
-		return zctx.LookupTypeUnion(list)
-	case !tIsUnion && uIsUnion:
-		return unify(zctx, u, t)
-	}
-	return nil
-}
-
 func (s *Schema) fuseRecordTypes(a, b *zng.TypeRecord) (*zng.TypeRecord, error) {
 	fused := make([]zng.Column, len(a.Columns))
 	copy(fused, a.Columns)
@@ -95,4 +57,31 @@ func (s *Schema) fuseRecordTypes(a, b *zng.TypeRecord) (*zng.TypeRecord, error) 
 		}
 	}
 	return s.zctx.LookupTypeRecord(fused)
+}
+
+func unify(zctx *zson.Context, a, b zng.Type) zng.Type {
+	if ua, ok := zng.AliasOf(a).(*zng.TypeUnion); ok {
+		types := ua.Types
+		if ub, ok := zng.AliasOf(b).(*zng.TypeUnion); ok {
+			for _, t := range ub.Types {
+				types = appendIfAbsent(types, t)
+			}
+		} else {
+			types = appendIfAbsent(types, b)
+		}
+		return zctx.LookupTypeUnion(types)
+	}
+	if _, ok := zng.AliasOf(b).(*zng.TypeUnion); ok {
+		return unify(zctx, b, a)
+	}
+	return zctx.LookupTypeUnion([]zng.Type{a, b})
+}
+
+func appendIfAbsent(types []zng.Type, typ zng.Type) []zng.Type {
+	for _, t := range types {
+		if t == typ {
+			return types
+		}
+	}
+	return append(types, typ)
 }
