@@ -12,22 +12,22 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-var Add = &charm.Spec{
-	Name:  "add",
-	Usage: "add [options] [-index indexid] tag [tag ...]",
-	Short: "index one or more tags",
-	New:   NewAdd,
+var Apply = &charm.Spec{
+	Name:  "apply",
+	Usage: "apply [options] [-index indexid] tag [tag ...]",
+	Short: "apply index rule to one or more data objects",
+	New:   NewApply,
 }
 
-type AddCommand struct {
+type ApplyCommand struct {
 	lake   *zedlake.Command
 	commit bool
 	ids    []ksuid.KSUID
 	zedlake.CommitFlags
 }
 
-func NewAdd(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &AddCommand{lake: parent.(*Command).Command}
+func NewApply(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	c := &ApplyCommand{lake: parent.(*Command).Command}
 	f.BoolVar(&c.commit, "commit", false, "commit added index objects if successfully written")
 	f.Func("index", "id of index to apply (can be specified multiple times", func(s string) error {
 		id, err := lakecli.ParseID(s)
@@ -38,7 +38,7 @@ func NewAdd(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	return c, nil
 }
 
-func (c *AddCommand) Run(args []string) error {
+func (c *ApplyCommand) Run(args []string) error {
 	ctx, cleanup, err := c.lake.Init()
 	if err != nil {
 		return err

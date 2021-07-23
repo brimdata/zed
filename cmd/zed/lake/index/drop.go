@@ -14,7 +14,7 @@ import (
 var Drop = &charm.Spec{
 	Name:  "drop",
 	Usage: "drop [-R root] [options] id... ",
-	Short: "drop indicies from a lake",
+	Short: "drop rule from a lake index",
 	New:   NewDrop,
 }
 
