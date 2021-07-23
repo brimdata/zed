@@ -37,8 +37,6 @@ func (f *fuse) Result(zctx *zson.Context) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	schema.unify = true
-
 	for _, p := range f.partials {
 		typ, err := zctx.LookupByValue(p.Bytes)
 		if err != nil {

@@ -1,24 +1,16 @@
 package agg
 
 import (
-	"fmt"
-	"regexp"
-
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
-type Renames struct{ Srcs, Dsts field.List }
-
-// A fuse schema holds the fused type as well as a per-input-type
-// rename specification. The latter is needed when input types have
-// name collisions on fields of different types.
+// Schema constructs a fused record type in its Type field for the record types
+// passed to Mixin.  Records of any mixed-in type can be shaped to the fused
+// type without loss of information.
 type Schema struct {
-	zctx    *zson.Context
-	Type    *zng.TypeRecord
-	Renames map[int]Renames
-	unify   bool
+	Type *zng.TypeRecord
+	zctx *zson.Context
 }
 
 func NewSchema(zctx *zson.Context) (*Schema, error) {
@@ -27,35 +19,18 @@ func NewSchema(zctx *zson.Context) (*Schema, error) {
 		return nil, err
 	}
 	return &Schema{
-		zctx:    zctx,
-		Type:    empty,
-		Renames: make(map[int]Renames),
+		Type: empty,
+		zctx: zctx,
 	}, nil
 }
 
 func (s *Schema) Mixin(mix *zng.TypeRecord) error {
-	fused, renames, err := s.fuseRecordTypes(s.Type, mix, field.NewRoot(), Renames{})
+	fused, err := s.fuseRecordTypes(s.Type, mix)
 	if err != nil {
 		return err
 	}
-
 	s.Type = fused
-	s.Renames[mix.ID()] = renames
 	return nil
-}
-
-func disambiguate(cols []zng.Column, name string) string {
-	n := 1
-	re := regexp.MustCompile(name + `_(\d+)$`)
-	for _, col := range cols {
-		if col.Name == name || re.MatchString(col.Name) {
-			n++
-		}
-	}
-	if n == 1 {
-		return name
-	}
-	return fmt.Sprintf("%s_%d", name, n)
 }
 
 func unify(zctx *zson.Context, t, u zng.Type) zng.Type {
@@ -96,7 +71,7 @@ func unify(zctx *zson.Context, t, u zng.Type) zng.Type {
 	return nil
 }
 
-func (s *Schema) fuseRecordTypes(a, b *zng.TypeRecord, path field.Path, renames Renames) (*zng.TypeRecord, Renames, error) {
+func (s *Schema) fuseRecordTypes(a, b *zng.TypeRecord) (*zng.TypeRecord, error) {
 	fused := make([]zng.Column, len(a.Columns))
 	copy(fused, a.Columns)
 	for _, bcol := range b.Columns {
@@ -110,23 +85,14 @@ func (s *Schema) fuseRecordTypes(a, b *zng.TypeRecord, path field.Path, renames 
 		case acol == bcol:
 			continue
 		case zng.IsRecordType(acol.Type) && zng.IsRecordType(bcol.Type):
-			var err error
-			var nest *zng.TypeRecord
-			nest, renames, err = s.fuseRecordTypes(acol.Type.(*zng.TypeRecord), bcol.Type.(*zng.TypeRecord), append(path, bcol.Name), renames)
+			nested, err := s.fuseRecordTypes(zng.TypeRecordOf(acol.Type), zng.TypeRecordOf(bcol.Type))
 			if err != nil {
-				return nil, renames, err
+				return nil, err
 			}
-			fused[i] = zng.Column{acol.Name, nest}
-		case s.unify:
-			fused[i] = zng.Column{acol.Name, unify(s.zctx, acol.Type, bcol.Type)}
-
+			fused[i].Type = nested
 		default:
-			dis := disambiguate(fused, acol.Name)
-			renames.Srcs = append(renames.Srcs, append(path, acol.Name))
-			renames.Dsts = append(renames.Dsts, append(path, dis))
-			fused = append(fused, zng.Column{dis, bcol.Type})
+			fused[i].Type = unify(s.zctx, acol.Type, bcol.Type)
 		}
 	}
-	rec, err := s.zctx.LookupTypeRecord(fused)
-	return rec, renames, err
+	return s.zctx.LookupTypeRecord(fused)
 }
