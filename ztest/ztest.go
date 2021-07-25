@@ -132,7 +132,6 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
@@ -361,7 +360,7 @@ func (z *ZTest) RunInternal(path string) error {
 		return fmt.Errorf("bad yaml format: %w", err)
 	}
 	outputFlags := append([]string{"-f", "zson", "-pretty=0"}, strings.Fields(z.OutputFlags)...)
-	out, errout, err := runzq(path, z.Zed, outputFlags, z.Input)
+	out, errout, err := runzq(path, z.Zed, z.Input, outputFlags)
 	if err != nil {
 		if z.errRegex != nil {
 			if !z.errRegex.MatchString(errout) {
@@ -527,25 +526,21 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 	return checkData(expectedData, dir, stdout, stderr)
 }
 
-// runzq runs the Zed program in zed over inputs and returns the output.  inputs
+// runzq runs the Zed program in zed over input and returns the output.  input
 // may be in any format recognized by "zq -i auto" and may be gzip-compressed.
 // outputFlags may contain any flags accepted by cli/outputflags.Flags.  If path
 // is empty, the program runs in the current process.  If path is not empty, it
 // specifies a command search path used to find a zq executable to run the
 // program.
-func runzq(path, zed string, outputFlags []string, inputs ...string) (string, string, error) {
+func runzq(path, zed, input string, outputFlags []string) (string, string, error) {
 	var errbuf, outbuf bytes.Buffer
 	if path != "" {
 		zq, err := lookupzq(path)
 		if err != nil {
 			return "", "", err
 		}
-		tmpdir, files, err := tmpInputFiles(inputs)
-		if err != nil {
-			return "", "", err
-		}
-		defer os.RemoveAll(tmpdir)
-		cmd := exec.Command(zq, append(append(outputFlags, zed), files...)...)
+		cmd := exec.Command(zq, append(outputFlags, zed, "-")...)
+		cmd.Stdin = strings.NewReader(input)
 		cmd.Stdout = &outbuf
 		cmd.Stderr = &errbuf
 		err = cmd.Run()
@@ -558,9 +553,8 @@ func runzq(path, zed string, outputFlags []string, inputs ...string) (string, st
 	if err != nil {
 		return "", "", err
 	}
-	ctx := context.Background()
 	zctx := zson.NewContext()
-	rc, err := loadInputs(inputs, zctx)
+	zr, err := anyio.NewReader(anyio.GzipReader(strings.NewReader(input)), zctx)
 	if err != nil {
 		return "", err.Error(), err
 	}
@@ -576,7 +570,7 @@ func runzq(path, zed string, outputFlags []string, inputs ...string) (string, st
 	}
 	d := driver.NewCLI(zw)
 	d.SetWarningsWriter(&errbuf)
-	err = driver.RunWithReader(ctx, d, proc, zctx, rc, nil)
+	err = driver.RunWithReader(context.Background(), d, proc, zctx, zr, nil)
 	if err2 := zw.Close(); err == nil {
 		err = err2
 	}
@@ -597,36 +591,6 @@ func lookupzq(path string) (string, error) {
 		}
 	}
 	return "", zqe.E(zqe.NotFound)
-}
-
-func loadInputs(inputs []string, zctx *zson.Context) (zio.Reader, error) {
-	var readers []zio.Reader
-	for _, input := range inputs {
-		zr, err := anyio.NewReader(anyio.GzipReader(strings.NewReader(input)), zctx)
-		if err != nil {
-			return nil, err
-		}
-		readers = append(readers, zr)
-	}
-	return zio.ConcatReader(readers...), nil
-}
-
-func tmpInputFiles(inputs []string) (string, []string, error) {
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
-		return "", nil, err
-	}
-	var files []string
-	for i, input := range inputs {
-		name := fmt.Sprintf("input%d", i+1)
-		file := filepath.Join(dir, name)
-		if err := os.WriteFile(file, []byte(input), 0644); err != nil {
-			os.RemoveAll(dir)
-			return "", nil, err
-		}
-		files = append(files, file)
-	}
-	return dir, files, nil
 }
 
 type nopCloser struct{ io.Writer }
