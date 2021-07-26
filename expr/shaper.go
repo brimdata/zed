@@ -28,7 +28,7 @@ type op int
 const (
 	copyPrimitive op = iota // copy field fromIndex from input record
 	copyContainer
-	castPrimitive // cast field fromIndex from input record
+	castPrimitive // cast field fromIndex from fromType to toType
 	null          // write null
 	array         // build array
 	set           // build set
@@ -40,7 +40,8 @@ const (
 type step struct {
 	op        op
 	fromIndex int
-	castTypes struct{ from, to zng.Type } // for op == castPrimitive
+	fromType  zng.Type // for castPrimitive
+	toType    zng.Type // for castPrimitive
 	// if op == record, contains one op for each column.
 	// if op == array, contains one op for all array elements.
 	children []step
@@ -117,7 +118,7 @@ func createStep(in, out zng.Type) (step, error) {
 	case zng.IsRecordType(in) && zng.IsRecordType(out):
 		return createStepRecord(in.(*zng.TypeRecord), out.(*zng.TypeRecord))
 	case zng.IsPrimitiveType(in) && zng.IsPrimitiveType(out):
-		return step{op: castPrimitive, castTypes: struct{ from, to zng.Type }{in, out}}, nil
+		return step{op: castPrimitive, fromType: in, toType: out}, nil
 	case isCollectionType(in):
 		if _, ok := out.(*zng.TypeArray); ok {
 			return createStepArray(zng.InnerType(in), zng.InnerType(out))
@@ -136,9 +137,9 @@ func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) *zng.Value {
 		b.AppendNull()
 		return nil
 	}
-	toType := zng.AliasOf(s.castTypes.to)
+	toType := zng.AliasOf(s.toType)
 	pc := LookupPrimitiveCaster(toType)
-	v, err := pc(zng.Value{s.castTypes.from, in})
+	v, err := pc(zng.Value{s.fromType, in})
 	if err != nil {
 		b.AppendNull()
 		return nil
