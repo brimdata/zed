@@ -23,235 +23,6 @@ const (
 	Order
 )
 
-type op int
-
-const (
-	copyPrimitive op = iota // copy field fromIndex from input record
-	copyContainer
-	castPrimitive // cast field fromIndex from fromType to toType
-	null          // write null
-	array         // build array
-	set           // build set
-	record        // build record
-)
-
-// A step is a recursive data structure encoding a series of
-// copy/cast steps to be carried out over an input record.
-type step struct {
-	op        op
-	fromIndex int
-	fromType  zng.Type // for castPrimitive
-	toType    zng.Type // for castPrimitive
-	// if op == record, contains one op for each column.
-	// if op == array, contains one op for all array elements.
-	children []step
-}
-
-func (s *step) append(step step) {
-	s.children = append(s.children, step)
-}
-
-// create the step needed to build a record of type out from a
-// record of type in. The two types must be compatible, meaning that
-// the input type must be an unordered subset of the input type
-// (where 'unordered' means that if the output type has record fields
-// [a b] and the input type has fields [b a] that is ok). It is also
-// ok for leaf primitive types to be different; if they are a casting
-// step is inserted.
-func createStepRecord(in, out *zng.TypeRecord) (step, error) {
-	s := step{op: record}
-	for _, outCol := range out.Columns {
-		ind, ok := in.ColumnOfField(outCol.Name)
-		if !ok {
-			s.append(step{op: null})
-			continue
-		}
-		inCol := in.Columns[ind]
-		child, err := createStep(inCol.Type, outCol.Type)
-		if err != nil {
-			return step{}, err
-		}
-		child.fromIndex = ind
-		s.append(child)
-	}
-	return s, nil
-}
-
-func createStepArray(in, out zng.Type) (step, error) {
-	s := step{op: array}
-	innerOp, err := createStep(in, out)
-	if err != nil {
-		return step{}, nil
-	}
-	s.append(innerOp)
-	return s, nil
-}
-
-func createStepSet(in, out zng.Type) (step, error) {
-	s := step{op: set}
-	innerOp, err := createStep(in, out)
-	if err != nil {
-		return step{}, nil
-	}
-	s.append(innerOp)
-	return s, nil
-}
-
-func isCollectionType(t zng.Type) bool {
-	switch zng.AliasOf(t).(type) {
-	case *zng.TypeArray, *zng.TypeSet:
-		return true
-	}
-	return false
-}
-
-func createStep(in, out zng.Type) (step, error) {
-	switch {
-	case in.ID() == zng.IDNull:
-		return step{op: null}, nil
-	case in.ID() == out.ID():
-		if zng.IsContainerType(in) {
-			return step{op: copyContainer}, nil
-		} else {
-			return step{op: copyPrimitive}, nil
-		}
-	case zng.IsRecordType(in) && zng.IsRecordType(out):
-		return createStepRecord(in.(*zng.TypeRecord), out.(*zng.TypeRecord))
-	case zng.IsPrimitiveType(in) && zng.IsPrimitiveType(out):
-		return step{op: castPrimitive, fromType: in, toType: out}, nil
-	case isCollectionType(in):
-		if _, ok := out.(*zng.TypeArray); ok {
-			return createStepArray(zng.InnerType(in), zng.InnerType(out))
-		}
-		if _, ok := out.(*zng.TypeSet); ok {
-			return createStepSet(zng.InnerType(in), zng.InnerType(out))
-		}
-		fallthrough
-	default:
-		return step{}, fmt.Errorf("createStep incompatible column types %s and %s\n", in, out)
-	}
-}
-
-func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) *zng.Value {
-	if in == nil {
-		b.AppendNull()
-		return nil
-	}
-	toType := zng.AliasOf(s.toType)
-	pc := LookupPrimitiveCaster(toType)
-	v, err := pc(zng.Value{s.fromType, in})
-	if err != nil {
-		b.AppendNull()
-		return nil
-	}
-	if v.Type != toType {
-		// v isn't the "to" type, so we can't safely append v.Bytes to
-		// the builder. See https://github.com/brimdata/zed/issues/2710.
-		if v.Type == zng.TypeError {
-			return &v
-		}
-		panic(fmt.Sprintf("expr: got %T from primitive caster, expected %T", v.Type, toType))
-	}
-	b.AppendPrimitive(v.Bytes)
-	return nil
-}
-
-func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zng.Value {
-	switch s.op {
-	case copyPrimitive:
-		b.AppendPrimitive(in)
-	case copyContainer:
-		b.AppendContainer(in)
-	case castPrimitive:
-		if zerr := s.castPrimitive(in, b); zerr != nil {
-			return zerr
-		}
-	case record:
-		if in == nil {
-			b.AppendNull()
-			return nil
-		}
-		b.BeginContainer()
-		if zerr := s.buildRecord(in, b); zerr != nil {
-			return zerr
-		}
-		b.EndContainer()
-	case array, set:
-		if in == nil {
-			b.AppendNull()
-			return nil
-		}
-		b.BeginContainer()
-		iter := in.Iter()
-		for !iter.Done() {
-			zv, _, err := iter.Next()
-			if err != nil {
-				panic(err)
-			}
-			if zerr := s.children[0].build(zv, b); zerr != nil {
-				return zerr
-			}
-		}
-		if s.op == set {
-			b.TransformContainer(zng.NormalizeSet)
-		}
-		b.EndContainer()
-	}
-	return nil
-}
-
-func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) *zng.Value {
-	for _, step := range s.children {
-		switch step.op {
-		case null:
-			b.AppendNull()
-			continue
-		}
-		// Using getNthFromContainer means we iterate from the
-		// beginning of the record for each field. An
-		// optimization (for shapes that don't require field
-		// reordering) would be make direct use of a
-		// zcode.Iter along with keeping track of our
-		// position.
-		bytes, err := getNthFromContainer(in, uint(step.fromIndex))
-		if err != nil {
-			panic(err)
-		}
-		if zerr := step.build(bytes, b); zerr != nil {
-			return zerr
-		}
-	}
-	return nil
-}
-
-// A shaper is a per-input type ID "spec" that contains the output
-// type and the op to create an output record.
-type shaper struct {
-	typ  zng.Type
-	step step
-}
-
-type ConstShaper struct {
-	zctx       *zson.Context
-	b          zcode.Builder
-	expr       Evaluator
-	shapeTo    zng.Type
-	shapers    map[int]*shaper // map from input type ID to shaper
-	transforms ShaperTransform
-}
-
-// NewConstShaper returns a shaper that will shape the result of expr
-// to the provided shapeTo type.
-func NewConstShaper(zctx *zson.Context, expr Evaluator, shapeTo zng.Type, tf ShaperTransform) *ConstShaper {
-	return &ConstShaper{
-		zctx:       zctx,
-		expr:       expr,
-		shapeTo:    shapeTo,
-		shapers:    make(map[int]*shaper),
-		transforms: tf,
-	}
-}
-
 type Shaper struct {
 	zctx       *zson.Context
 	typExpr    Evaluator
@@ -295,6 +66,27 @@ func (s *Shaper) Eval(rec *zng.Record) (zng.Value, error) {
 	return shaper.Eval(rec)
 }
 
+type ConstShaper struct {
+	zctx       *zson.Context
+	b          zcode.Builder
+	expr       Evaluator
+	shapeTo    zng.Type
+	shapers    map[int]*shaper // map from input type ID to shaper
+	transforms ShaperTransform
+}
+
+// NewConstShaper returns a shaper that will shape the result of expr
+// to the provided shapeTo type.
+func NewConstShaper(zctx *zson.Context, expr Evaluator, shapeTo zng.Type, tf ShaperTransform) *ConstShaper {
+	return &ConstShaper{
+		zctx:       zctx,
+		expr:       expr,
+		shapeTo:    shapeTo,
+		shapers:    make(map[int]*shaper),
+		transforms: tf,
+	}
+}
+
 func (s *ConstShaper) Apply(in *zng.Record) (*zng.Record, error) {
 	v, err := s.Eval(in)
 	if err != nil {
@@ -336,6 +128,13 @@ func (c *ConstShaper) Eval(in *zng.Record) (zng.Value, error) {
 	return zng.Value{s.typ, c.b.Bytes()}, nil
 }
 
+// A shaper is a per-input type ID "spec" that contains the output
+// type and the op to create an output record.
+type shaper struct {
+	typ  zng.Type
+	step step
+}
+
 func createShaper(zctx *zson.Context, transforms ShaperTransform, shapeTo zng.Type, inType *zng.TypeRecord) (*shaper, error) {
 	var err error
 	spec := zng.TypeRecordOf(shapeTo)
@@ -375,6 +174,77 @@ func createShaper(zctx *zson.Context, transforms ShaperTransform, shapeTo zng.Ty
 		final = typ
 	}
 	return &shaper{final, step}, err
+}
+
+// castRecordType applies a cast (as specified by the record type 'spec')
+// to a record type and returns the resulting record type.
+func castRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeRecord, error) {
+	cols := make([]zng.Column, 0)
+	for _, inCol := range input.Columns {
+		// For each input column, check if we have a matching
+		// name in the cast spec.
+		ind, ok := spec.ColumnOfField(inCol.Name)
+		if !ok {
+			// 1. No match: output type unmodified.
+			cols = append(cols, inCol)
+			continue
+		}
+		specCol := spec.Columns[ind]
+		if _, ok := specCol.Type.(*zng.TypeMap); ok {
+			return nil, fmt.Errorf("cannot yet use maps in shaping functions")
+		}
+		if inCol.Type.ID() == specCol.Type.ID() {
+			// Field has same type in cast: output type unmodified.
+			cols = append(cols, specCol)
+			continue
+		}
+		castType, err := castType(zctx, inCol.Type, specCol.Type)
+		if err != nil {
+			return nil, err
+		}
+		cols = append(cols, zng.Column{inCol.Name, castType})
+	}
+	return zctx.LookupTypeRecord(cols)
+}
+
+func castType(zctx *zson.Context, inType, specType zng.Type) (zng.Type, error) {
+	switch {
+	case inType.ID() == zng.IDNull:
+		return specType, nil
+	case zng.IsRecordType(inType) && zng.IsRecordType(specType):
+		// Matching field is a record: recurse.
+		inRec := zng.AliasOf(inType).(*zng.TypeRecord)
+		castRec := zng.AliasOf(specType).(*zng.TypeRecord)
+		return castRecordType(zctx, inRec, castRec)
+	case zng.IsPrimitiveType(inType) && zng.IsPrimitiveType(specType):
+		// Matching field is a primitive: output type is cast type.
+		if LookupPrimitiveCaster(zng.AliasOf(specType)) == nil {
+			return nil, fmt.Errorf("cast to %s not implemented", specType)
+		}
+		return specType, nil
+	case isCollectionType(inType) && isCollectionType(specType):
+		out, err := castType(zctx, zng.InnerType(inType), zng.InnerType(specType))
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := zng.AliasOf(specType).(*zng.TypeArray); ok {
+			return zctx.LookupTypeArray(out), nil
+		}
+		return zctx.LookupTypeSet(out), nil
+	default:
+		// Non-castable type pair with at least one
+		// (non-record) container: output column is left
+		// unchanged.
+		return inType, nil
+	}
+}
+
+func isCollectionType(t zng.Type) bool {
+	switch zng.AliasOf(t).(type) {
+	case *zng.TypeArray, *zng.TypeSet:
+		return true
+	}
+	return false
 }
 
 // cropRecordType applies a crop (as specified by the record type 'spec')
@@ -427,6 +297,58 @@ func cropRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeR
 			// 5. container input but non-container in crop: keep crop
 			cols = append(cols, specCol)
 
+		}
+	}
+	return zctx.LookupTypeRecord(cols)
+}
+
+// fillRecordType applies a fill (as specified by the record type 'spec')
+// to a record type and returns the resulting record type.
+func fillRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeRecord, error) {
+	cols := make([]zng.Column, len(input.Columns), len(input.Columns)+len(spec.Columns))
+	copy(cols, input.Columns)
+	for _, specCol := range spec.Columns {
+		if i, ok := input.ColumnOfField(specCol.Name); ok {
+			specType := zng.AliasOf(specCol.Type)
+			inCol := input.Columns[i]
+			inType := zng.AliasOf(inCol.Type)
+			// Field is present both in input and spec: recurse if
+			// both records, or select appropriate type if not.
+			if specRecType, ok := specType.(*zng.TypeRecord); ok {
+				if inRecType, ok := inType.(*zng.TypeRecord); ok {
+					filled, err := fillRecordType(zctx, inRecType, specRecType)
+					if err != nil {
+						return nil, err
+					}
+					cols[i] = zng.Column{specCol.Name, filled}
+				} else {
+					cols[i] = specCol
+				}
+				continue
+			}
+			if isCollectionType(inType) && isCollectionType(specType) {
+				inInner := zng.AliasOf(zng.InnerType(inCol.Type))
+				specInner := zng.AliasOf(zng.InnerType(specCol.Type))
+				if zng.IsRecordType(inInner) && zng.IsRecordType(specInner) {
+					if inner, err := fillRecordType(zctx, inInner.(*zng.TypeRecord), specInner.(*zng.TypeRecord)); err != nil {
+						return nil, err
+					} else {
+						var err error
+						var t zng.Type
+						if _, ok := inCol.Type.(*zng.TypeArray); ok {
+							t, err = zctx.LookupTypeArray(inner), nil
+						} else {
+							t, err = zctx.LookupTypeSet(inner), nil
+						}
+						if err != nil {
+							return nil, err
+						}
+						cols[i] = zng.Column{specCol.Name, t}
+					}
+				}
+			}
+		} else {
+			cols = append(cols, specCol)
 		}
 	}
 	return zctx.LookupTypeRecord(cols)
@@ -497,117 +419,195 @@ func orderRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.Type
 	return zctx.LookupTypeRecord(cols)
 }
 
-// fillRecordType applies a fill (as specified by the record type 'spec')
-// to a record type and returns the resulting record type.
-func fillRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeRecord, error) {
-	cols := make([]zng.Column, len(input.Columns), len(input.Columns)+len(spec.Columns))
-	copy(cols, input.Columns)
-	for _, specCol := range spec.Columns {
-		if i, ok := input.ColumnOfField(specCol.Name); ok {
-			specType := zng.AliasOf(specCol.Type)
-			inCol := input.Columns[i]
-			inType := zng.AliasOf(inCol.Type)
-			// Field is present both in input and spec: recurse if
-			// both records, or select appropriate type if not.
-			if specRecType, ok := specType.(*zng.TypeRecord); ok {
-				if inRecType, ok := inType.(*zng.TypeRecord); ok {
-					filled, err := fillRecordType(zctx, inRecType, specRecType)
-					if err != nil {
-						return nil, err
-					}
-					cols[i] = zng.Column{specCol.Name, filled}
-				} else {
-					cols[i] = specCol
-				}
-				continue
-			}
-			if isCollectionType(inType) && isCollectionType(specType) {
-				inInner := zng.AliasOf(zng.InnerType(inCol.Type))
-				specInner := zng.AliasOf(zng.InnerType(specCol.Type))
-				if zng.IsRecordType(inInner) && zng.IsRecordType(specInner) {
-					if inner, err := fillRecordType(zctx, inInner.(*zng.TypeRecord), specInner.(*zng.TypeRecord)); err != nil {
-						return nil, err
-					} else {
-						var err error
-						var t zng.Type
-						if _, ok := inCol.Type.(*zng.TypeArray); ok {
-							t, err = zctx.LookupTypeArray(inner), nil
-						} else {
-							t, err = zctx.LookupTypeSet(inner), nil
-						}
-						if err != nil {
-							return nil, err
-						}
-						cols[i] = zng.Column{specCol.Name, t}
-					}
-				}
-			}
-		} else {
-			cols = append(cols, specCol)
-		}
-	}
-	return zctx.LookupTypeRecord(cols)
+type op int
+
+const (
+	copyPrimitive op = iota // copy field fromIndex from input record
+	copyContainer
+	castPrimitive // cast field fromIndex from fromType to toType
+	null          // write null
+	array         // build array
+	set           // build set
+	record        // build record
+)
+
+// A step is a recursive data structure encoding a series of
+// copy/cast steps to be carried out over an input record.
+type step struct {
+	op        op
+	fromIndex int
+	fromType  zng.Type // for castPrimitive
+	toType    zng.Type // for castPrimitive
+	// if op == record, contains one op for each column.
+	// if op == array, contains one op for all array elements.
+	children []step
 }
 
-// castRecordType applies a cast (as specified by the record type 'spec')
-// to a record type and returns the resulting record type.
-func castRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeRecord, error) {
-	cols := make([]zng.Column, 0)
-	for _, inCol := range input.Columns {
-		// For each input column, check if we have a matching
-		// name in the cast spec.
-		ind, ok := spec.ColumnOfField(inCol.Name)
+// create the step needed to build a record of type out from a
+// record of type in. The two types must be compatible, meaning that
+// the input type must be an unordered subset of the input type
+// (where 'unordered' means that if the output type has record fields
+// [a b] and the input type has fields [b a] that is ok). It is also
+// ok for leaf primitive types to be different; if they are a casting
+// step is inserted.
+func createStepRecord(in, out *zng.TypeRecord) (step, error) {
+	s := step{op: record}
+	for _, outCol := range out.Columns {
+		ind, ok := in.ColumnOfField(outCol.Name)
 		if !ok {
-			// 1. No match: output type unmodified.
-			cols = append(cols, inCol)
+			s.append(step{op: null})
 			continue
 		}
-		specCol := spec.Columns[ind]
-		if _, ok := specCol.Type.(*zng.TypeMap); ok {
-			return nil, fmt.Errorf("cannot yet use maps in shaping functions")
-		}
-		if inCol.Type.ID() == specCol.Type.ID() {
-			// Field has same type in cast: output type unmodified.
-			cols = append(cols, specCol)
-			continue
-		}
-		castType, err := castType(zctx, inCol.Type, specCol.Type)
+		inCol := in.Columns[ind]
+		child, err := createStep(inCol.Type, outCol.Type)
 		if err != nil {
-			return nil, err
+			return step{}, err
 		}
-		cols = append(cols, zng.Column{inCol.Name, castType})
+		child.fromIndex = ind
+		s.append(child)
 	}
-	return zctx.LookupTypeRecord(cols)
+	return s, nil
 }
 
-func castType(zctx *zson.Context, inType, specType zng.Type) (zng.Type, error) {
+func createStep(in, out zng.Type) (step, error) {
 	switch {
-	case inType.ID() == zng.IDNull:
-		return specType, nil
-	case zng.IsRecordType(inType) && zng.IsRecordType(specType):
-		// Matching field is a record: recurse.
-		inRec := zng.AliasOf(inType).(*zng.TypeRecord)
-		castRec := zng.AliasOf(specType).(*zng.TypeRecord)
-		return castRecordType(zctx, inRec, castRec)
-	case zng.IsPrimitiveType(inType) && zng.IsPrimitiveType(specType):
-		// Matching field is a primitive: output type is cast type.
-		if LookupPrimitiveCaster(zng.AliasOf(specType)) == nil {
-			return nil, fmt.Errorf("cast to %s not implemented", specType)
+	case in.ID() == zng.IDNull:
+		return step{op: null}, nil
+	case in.ID() == out.ID():
+		if zng.IsContainerType(in) {
+			return step{op: copyContainer}, nil
+		} else {
+			return step{op: copyPrimitive}, nil
 		}
-		return specType, nil
-	case isCollectionType(inType) && isCollectionType(specType):
-		out, err := castType(zctx, zng.InnerType(inType), zng.InnerType(specType))
-		if err != nil {
-			return nil, err
+	case zng.IsRecordType(in) && zng.IsRecordType(out):
+		return createStepRecord(in.(*zng.TypeRecord), out.(*zng.TypeRecord))
+	case zng.IsPrimitiveType(in) && zng.IsPrimitiveType(out):
+		return step{op: castPrimitive, fromType: in, toType: out}, nil
+	case isCollectionType(in):
+		if _, ok := out.(*zng.TypeArray); ok {
+			return createStepArray(zng.InnerType(in), zng.InnerType(out))
 		}
-		if _, ok := zng.AliasOf(specType).(*zng.TypeArray); ok {
-			return zctx.LookupTypeArray(out), nil
+		if _, ok := out.(*zng.TypeSet); ok {
+			return createStepSet(zng.InnerType(in), zng.InnerType(out))
 		}
-		return zctx.LookupTypeSet(out), nil
+		fallthrough
 	default:
-		// Non-castable type pair with at least one
-		// (non-record) container: output column is left
-		// unchanged.
-		return inType, nil
+		return step{}, fmt.Errorf("createStep incompatible column types %s and %s\n", in, out)
 	}
+}
+
+func createStepArray(in, out zng.Type) (step, error) {
+	s := step{op: array}
+	innerOp, err := createStep(in, out)
+	if err != nil {
+		return step{}, nil
+	}
+	s.append(innerOp)
+	return s, nil
+}
+
+func createStepSet(in, out zng.Type) (step, error) {
+	s := step{op: set}
+	innerOp, err := createStep(in, out)
+	if err != nil {
+		return step{}, nil
+	}
+	s.append(innerOp)
+	return s, nil
+}
+
+func (s *step) append(step step) {
+	s.children = append(s.children, step)
+}
+
+func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) *zng.Value {
+	for _, step := range s.children {
+		switch step.op {
+		case null:
+			b.AppendNull()
+			continue
+		}
+		// Using getNthFromContainer means we iterate from the
+		// beginning of the record for each field. An
+		// optimization (for shapes that don't require field
+		// reordering) would be make direct use of a
+		// zcode.Iter along with keeping track of our
+		// position.
+		bytes, err := getNthFromContainer(in, uint(step.fromIndex))
+		if err != nil {
+			panic(err)
+		}
+		if zerr := step.build(bytes, b); zerr != nil {
+			return zerr
+		}
+	}
+	return nil
+}
+
+func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zng.Value {
+	switch s.op {
+	case copyPrimitive:
+		b.AppendPrimitive(in)
+	case copyContainer:
+		b.AppendContainer(in)
+	case castPrimitive:
+		if zerr := s.castPrimitive(in, b); zerr != nil {
+			return zerr
+		}
+	case record:
+		if in == nil {
+			b.AppendNull()
+			return nil
+		}
+		b.BeginContainer()
+		if zerr := s.buildRecord(in, b); zerr != nil {
+			return zerr
+		}
+		b.EndContainer()
+	case array, set:
+		if in == nil {
+			b.AppendNull()
+			return nil
+		}
+		b.BeginContainer()
+		iter := in.Iter()
+		for !iter.Done() {
+			zv, _, err := iter.Next()
+			if err != nil {
+				panic(err)
+			}
+			if zerr := s.children[0].build(zv, b); zerr != nil {
+				return zerr
+			}
+		}
+		if s.op == set {
+			b.TransformContainer(zng.NormalizeSet)
+		}
+		b.EndContainer()
+	}
+	return nil
+}
+
+func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) *zng.Value {
+	if in == nil {
+		b.AppendNull()
+		return nil
+	}
+	toType := zng.AliasOf(s.toType)
+	pc := LookupPrimitiveCaster(toType)
+	v, err := pc(zng.Value{s.fromType, in})
+	if err != nil {
+		b.AppendNull()
+		return nil
+	}
+	if v.Type != toType {
+		// v isn't the "to" type, so we can't safely append v.Bytes to
+		// the builder. See https://github.com/brimdata/zed/issues/2710.
+		if v.Type == zng.TypeError {
+			return &v
+		}
+		panic(fmt.Sprintf("expr: got %T from primitive caster, expected %T", v.Type, toType))
+	}
+	b.AppendPrimitive(v.Bytes)
+	return nil
 }
