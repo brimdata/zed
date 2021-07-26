@@ -205,13 +205,7 @@ func compileExprPredicate(zctx *zson.Context, scope *Scope, e dag.Expr) (expr.Fi
 	}
 	return func(rec *zng.Record) bool {
 		zv, err := predicate.Eval(rec)
-		if err != nil {
-			return false
-		}
-		if zv.Type == zng.TypeBool && zng.IsTrue(zv.Bytes) {
-			return true
-		}
-		return false
+		return err == nil && zv.Type == zng.TypeBool && zng.IsTrue(zv.Bytes)
 	}, nil
 }
 
