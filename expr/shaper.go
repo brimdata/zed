@@ -92,7 +92,10 @@ func (s *ConstShaper) Apply(in *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(v.Type.(*zng.TypeRecord), v.Bytes), nil
+	if !zng.IsRecordType(v.Type) {
+		return nil, fmt.Errorf("shaper returned non-record value %s", zson.String(v))
+	}
+	return zng.NewRecord(v.Type, v.Bytes), nil
 }
 
 func (c *ConstShaper) Eval(in *zng.Record) (zng.Value, error) {
@@ -100,10 +103,7 @@ func (c *ConstShaper) Eval(in *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	inType, ok := inVal.Type.(*zng.TypeRecord)
-	if !ok {
-		return inVal, nil
-	}
+	inType := zng.AliasOf(inVal.Type).(*zng.TypeRecord)
 	id := in.Type.ID()
 	s, ok := c.shapers[id]
 	if !ok {
@@ -190,9 +190,6 @@ func castRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeR
 			continue
 		}
 		specCol := spec.Columns[ind]
-		if _, ok := specCol.Type.(*zng.TypeMap); ok {
-			return nil, fmt.Errorf("cannot yet use maps in shaping functions")
-		}
 		if inCol.Type.ID() == specCol.Type.ID() {
 			// Field has same type in cast: output type unmodified.
 			cols = append(cols, specCol)
@@ -208,6 +205,9 @@ func castRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeR
 }
 
 func castType(zctx *zson.Context, inType, specType zng.Type) (zng.Type, error) {
+	if _, ok := specType.(*zng.TypeMap); ok {
+		return nil, fmt.Errorf("cannot yet use maps in shaping functions (issue #2894)")
+	}
 	switch {
 	case inType.ID() == zng.IDNull:
 		return specType, nil

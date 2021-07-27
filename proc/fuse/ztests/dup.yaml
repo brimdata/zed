@@ -5,5 +5,5 @@ input: |
   {a:"goodnight",b:123 (int32)} (=0)
 
 output: |
-  {a:"hello",b:"world",b_2:null (int32)} (=0)
-  {a:"goodnight",b:null,b_2:123} (0)
+  {a:"hello",b:"world" (0=((string,int32)))} (=1)
+  {a:"goodnight",b:123 (int32)} (1)
