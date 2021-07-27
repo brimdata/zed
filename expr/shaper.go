@@ -206,7 +206,7 @@ func castRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeR
 
 func castType(zctx *zson.Context, inType, specType zng.Type) (zng.Type, error) {
 	if _, ok := specType.(*zng.TypeMap); ok {
-		return nil, fmt.Errorf("cannot yet use maps in shaping functions")
+		return nil, fmt.Errorf("cannot yet use maps in shaping functions (issue #2894)")
 	}
 	switch {
 	case inType.ID() == zng.IDNull:
