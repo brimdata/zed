@@ -114,8 +114,6 @@ func (p *Parser) ParseContainer(typ zng.Type, b []byte) ([]byte, error) {
 // in the zng format.
 func (p *Parser) ParseField(typ zng.Type, b []byte) ([]byte, error) {
 	realType := zng.AliasOf(typ)
-	var err error
-	var index int
 	if len(b) >= 2 && b[0] == '-' && b[1] == ';' {
 		if zng.IsContainerType(realType) {
 			p.AppendContainer(nil)
@@ -125,14 +123,14 @@ func (p *Parser) ParseField(typ zng.Type, b []byte) ([]byte, error) {
 		return b[2:], nil
 	}
 	if utyp, ok := realType.(*zng.TypeUnion); ok {
-		var childType zng.Type
-		childType, index, b, err = parseUnion(utyp, b)
+		childType, selector, bb, err := parseUnion(utyp, b)
 		if err != nil {
 			return nil, err
 		}
+		b = bb
 		p.BeginContainer()
 		defer p.EndContainer()
-		p.AppendPrimitive(zng.EncodeInt(int64(index)))
+		p.AppendPrimitive(zng.EncodeInt(int64(selector)))
 		return p.ParseField(childType, b)
 	}
 	if b[0] == leftbracket {
@@ -170,8 +168,7 @@ func (p *Parser) ParseField(typ zng.Type, b []byte) ([]byte, error) {
 }
 
 // parseUnion takes a union type and a tzng encoding of a value of that type
-// and returns the concrete type of the value, its index into the union
-// type, and the value encoding.
+// and returns the concrete type of the value, its selector, and the value encoding.
 func parseUnion(u *zng.TypeUnion, in []byte) (zng.Type, int, []byte, error) {
 	c := bytes.IndexByte(in, ':')
 	if c < 0 {
