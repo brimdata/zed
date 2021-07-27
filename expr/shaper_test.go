@@ -25,7 +25,7 @@ func TestBestUnionSelector(t *testing.T) {
 	test := func(expected, needle zng.Type, haystack []zng.Type) {
 		t.Helper()
 		union := zctx.LookupTypeUnion(haystack)
-		typ, err := union.TypeIndex(bestUnionSelector(needle, union))
+		typ, err := union.Type(bestUnionSelector(needle, union))
 		if assert.NoError(t, err) {
 			assert.Equal(t, expected, typ)
 		}
