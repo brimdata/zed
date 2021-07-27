@@ -122,6 +122,7 @@ Operation
   / Operator
   / f:Function &EndOfOp { RETURN(f) }
   / a:Aggregation &EndOfOp  { RETURN(a) }
+  / p:ImpliedPutProc { RETURN(p) }
   / expr:SearchBoolean !AggGuard {
       RETURN(MAP("kind": "Filter", "expr": expr))
     }
@@ -395,6 +396,11 @@ UniqProc
 PutProc
   = "put"i _ args:FlexAssignments {
       RETURN(MAP("kind": "Put", "args": args))
+    }
+
+ImpliedPutProc
+  = first:Assignment rest:(__ "," __ expr:FlexAssignment { RETURN(expr) })* {
+      RETURN(MAP("kind": "Put", "args": PREPEND(first, rest)))
     }
 
 RenameProc

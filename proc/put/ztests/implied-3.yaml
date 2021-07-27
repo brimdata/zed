@@ -1,0 +1,9 @@
+zed: y:='addY',to_lower(x)
+
+input: |
+  {x:"VALUE1"} (=0)
+  {x:"VALUE2"} (0)
+
+output: |
+   {x:"VALUE1",y:"addY",to_lower:"value1"}
+   {x:"VALUE2",y:"addY",to_lower:"value2"}
