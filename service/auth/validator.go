@@ -11,7 +11,7 @@ import (
 
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/zqe"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 )
 
 const (
