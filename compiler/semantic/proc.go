@@ -267,7 +267,8 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 					return nil, err
 				}
 			} else if p.Expr == nil {
-				// A nil expression indicates the default case.
+				// c.Expr == nil indicates the default case,
+				// whose handling depends on p.Expr.
 				e = &zed.Primitive{
 					Kind: "Primitive",
 					Type: "bool",
