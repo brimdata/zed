@@ -12,7 +12,7 @@ import (
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/service"
 	"github.com/brimdata/zed/service/auth"
-	"github.com/dgrijalva/jwt-go"
+	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
