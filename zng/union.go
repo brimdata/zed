@@ -80,3 +80,19 @@ func (t *TypeUnion) Format(zv zcode.Bytes) string {
 	}
 	return fmt.Sprintf("%s (%s) %s", typ.Format(iv), typ, t)
 }
+
+// BuildUnion appends to b a union described by selector, val, and container.
+func BuildUnion(b *zcode.Builder, selector int, val zcode.Bytes, container bool) {
+	if val == nil {
+		b.AppendNull()
+		return
+	}
+	b.BeginContainer()
+	b.AppendPrimitive(EncodeInt(int64(selector)))
+	if container {
+		b.AppendContainer(val)
+	} else {
+		b.AppendPrimitive(val)
+	}
+	b.EndContainer()
+}

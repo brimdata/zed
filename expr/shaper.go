@@ -92,7 +92,10 @@ func (s *ConstShaper) Apply(in *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(v.Type.(*zng.TypeRecord), v.Bytes), nil
+	if !zng.IsRecordType(v.Type) {
+		return nil, fmt.Errorf("shaper returned non-record value %s", zson.String(v))
+	}
+	return zng.NewRecord(v.Type, v.Bytes), nil
 }
 
 func (c *ConstShaper) Eval(in *zng.Record) (zng.Value, error) {
@@ -100,10 +103,7 @@ func (c *ConstShaper) Eval(in *zng.Record) (zng.Value, error) {
 	if err != nil {
 		return zng.Value{}, err
 	}
-	inType, ok := inVal.Type.(*zng.TypeRecord)
-	if !ok {
-		return inVal, nil
-	}
+	inType := zng.AliasOf(inVal.Type).(*zng.TypeRecord)
 	id := in.Type.ID()
 	s, ok := c.shapers[id]
 	if !ok {
@@ -190,9 +190,6 @@ func castRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeR
 			continue
 		}
 		specCol := spec.Columns[ind]
-		if _, ok := specCol.Type.(*zng.TypeMap); ok {
-			return nil, fmt.Errorf("cannot yet use maps in shaping functions")
-		}
 		if inCol.Type.ID() == specCol.Type.ID() {
 			// Field has same type in cast: output type unmodified.
 			cols = append(cols, specCol)
@@ -208,6 +205,9 @@ func castRecordType(zctx *zson.Context, input, spec *zng.TypeRecord) (*zng.TypeR
 }
 
 func castType(zctx *zson.Context, inType, specType zng.Type) (zng.Type, error) {
+	if _, ok := specType.(*zng.TypeMap); ok {
+		return nil, fmt.Errorf("cannot yet use maps in shaping functions (issue #2894)")
+	}
 	switch {
 	case inType.ID() == zng.IDNull:
 		return specType, nil
@@ -231,12 +231,14 @@ func castType(zctx *zson.Context, inType, specType zng.Type) (zng.Type, error) {
 			return zctx.LookupTypeArray(out), nil
 		}
 		return zctx.LookupTypeSet(out), nil
-	default:
-		// Non-castable type pair with at least one
-		// (non-record) container: output column is left
-		// unchanged.
-		return inType, nil
 	}
+	if bestUnionSelector(inType, specType) > -1 {
+		return specType, nil
+	}
+	// Non-castable type pair with at least one
+	// (non-record) container: output column is left
+	// unchanged.
+	return inType, nil
 }
 
 func isCollectionType(t zng.Type) bool {
@@ -245,6 +247,38 @@ func isCollectionType(t zng.Type) bool {
 		return true
 	}
 	return false
+}
+
+// bestUnionSelector tries to return the most specific union selector for in
+// within spec.  It returns -1 if spec is not a union or contains no type
+// compatible with in.  (Types are compatible if they have the same underlying
+// type.)  If spec contains in, bestUnionSelector returns its selector.
+// Otherwise, if spec contains in's underlying type, bestUnionSelector returns
+// its selector.  Finally, bestUnionSelector returns the smallest selector in
+// spec whose type is compatible with in.
+func bestUnionSelector(in, spec zng.Type) int {
+	specUnion, ok := zng.AliasOf(spec).(*zng.TypeUnion)
+	if !ok {
+		return -1
+	}
+	aliasOfIn := zng.AliasOf(in)
+	underlying := -1
+	compatible := -1
+	for i, t := range specUnion.Types {
+		if t == in {
+			return i
+		}
+		if t == aliasOfIn && underlying == -1 {
+			underlying = i
+		}
+		if zng.AliasOf(t) == aliasOfIn && compatible == -1 {
+			compatible = i
+		}
+	}
+	if underlying != -1 {
+		return underlying
+	}
+	return compatible
 }
 
 // cropRecordType applies a crop (as specified by the record type 'spec')
@@ -425,6 +459,7 @@ const (
 	copyPrimitive op = iota // copy field fromIndex from input record
 	copyContainer
 	castPrimitive // cast field fromIndex from fromType to toType
+	castUnion     // cast field fromIndex from fromType to union with selector toSelector
 	null          // write null
 	array         // build array
 	set           // build set
@@ -434,10 +469,11 @@ const (
 // A step is a recursive data structure encoding a series of
 // copy/cast steps to be carried out over an input record.
 type step struct {
-	op        op
-	fromIndex int
-	fromType  zng.Type // for castPrimitive
-	toType    zng.Type // for castPrimitive
+	op         op
+	fromIndex  int
+	fromType   zng.Type // for castPrimitive and castUnion
+	toSelector int      // for castUnion
+	toType     zng.Type // for castPrimitive
 	// if op == record, contains one op for each column.
 	// if op == array, contains one op for all array elements.
 	children []step
@@ -490,10 +526,11 @@ func createStep(in, out zng.Type) (step, error) {
 		if _, ok := out.(*zng.TypeSet); ok {
 			return createStepSet(zng.InnerType(in), zng.InnerType(out))
 		}
-		fallthrough
-	default:
-		return step{}, fmt.Errorf("createStep incompatible column types %s and %s\n", in, out)
 	}
+	if s := bestUnionSelector(in, out); s != -1 {
+		return step{op: castUnion, fromType: in, toSelector: s}, nil
+	}
+	return step{}, fmt.Errorf("createStep: incompatible types %s and %s", in, out)
 }
 
 func createStepArray(in, out zng.Type) (step, error) {
@@ -554,6 +591,8 @@ func (s *step) build(in zcode.Bytes, b *zcode.Builder) *zng.Value {
 		if zerr := s.castPrimitive(in, b); zerr != nil {
 			return zerr
 		}
+	case castUnion:
+		zng.BuildUnion(b, s.toSelector, in, zng.IsContainerType(s.fromType))
 	case record:
 		if in == nil {
 			b.AppendNull()

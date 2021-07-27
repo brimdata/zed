@@ -105,6 +105,7 @@ type (
 	}
 	Switch struct {
 		Kind  string `json:"kind" unpack:""`
+		Expr  Expr   `json:"expr"`
 		Cases []Case `json:"cases"`
 	}
 	Tail struct {

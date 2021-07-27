@@ -192,6 +192,7 @@ type (
 	// a stream of records from their parent.
 	Switch struct {
 		Kind  string `json:"kind" unpack:""`
+		Expr  Expr   `json:"expr"`
 		Cases []Case `json:"cases"`
 	}
 	// A Sort proc represents a proc that sorts records.
