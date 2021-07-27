@@ -194,6 +194,31 @@ func (c *canonDAG) op(p dag.Op) {
 		c.ret()
 		c.flush()
 		c.write(")")
+	case *dag.Switch:
+		c.next()
+		c.open("switch ")
+		if p.Expr != nil {
+			c.expr(p.Expr, false)
+			c.write(" ")
+		}
+		c.open("(")
+		for _, k := range p.Cases {
+			c.ret()
+			if k.Expr != nil {
+				c.expr(k.Expr, false)
+			} else {
+				c.write("default")
+			}
+			c.write(" =>")
+			c.open()
+			c.head = true
+			c.op(k.Op)
+			c.close()
+		}
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
 	case *dag.Merge:
 		c.next()
 		c.write("merge ")
