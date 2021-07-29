@@ -220,9 +220,6 @@ from ... | switch color (
 ) | ...
 ```
 
-> **Note:** The syntax shown here for `switch` is still being
-> implemented ([zed/2849](https://github.com/brimdata/zed/issues/2849)).
-
 ## Operators
 
 Each operator is identified by name and performs a specific operation
