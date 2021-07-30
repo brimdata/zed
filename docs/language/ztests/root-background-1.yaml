@@ -1,0 +1,21 @@
+# ============================================================================
+# NOTE: This is a test to protect an example shown in the Zed language
+# docs. If you need to make changes to the Zed below to make the tests pass
+# again after a change, the docs likely need to be updated as well.
+#
+# See https://github.com/brimdata/zed/pull/xxxx for details
+# ============================================================================
+
+zed: |
+  widget
+
+input: |
+  {"text": "this is a sentence with the word widget in it"}
+  {"text": "this search for WiDgEt is case insensitive"}
+  {"text": "it also looks for substrings so superwidgetythings will match"}
+  {"text": "whereas stuff without the word surely will not"}
+
+output: |
+  {text:"this is a sentence with the word widget in it"}
+  {text:"this search for WiDgEt is case insensitive"}
+  {text:"it also looks for substrings so superwidgetythings will match"}
