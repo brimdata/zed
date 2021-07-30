@@ -20,11 +20,11 @@ outputs:
               orig_p: 49562 (port=(uint16)),
               resp_h: 23.217.103.245,
               resp_p: 80 (port)
-          } (=0),
+          } (=conn_id),
           name: "TCP_ack_underflow_or_misorder" (bstring),
           addl: null (bstring),
           notice: false,
           peer: "zeek" (bstring),
           source: null (bstring),
           _write_ts: 2018-03-24T17:15:20.600843Z
-      } (=1)
+      } (=weird)
