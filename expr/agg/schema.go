@@ -5,58 +5,69 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-// Schema constructs a fused record type in its Type field for the record types
-// passed to Mixin.  Records of any mixed-in type can be shaped to the fused
-// type without loss of information.
+// Schema constructs a fused record type for the record types passed to Mixin.
+// Records of any mixed-in type can be shaped to the fused type without loss of
+// information.
 type Schema struct {
-	Type *zng.TypeRecord
 	zctx *zson.Context
+
+	cols []zng.Column
 }
 
-func NewSchema(zctx *zson.Context) (*Schema, error) {
-	empty, err := zctx.LookupTypeRecord([]zng.Column{})
-	if err != nil {
-		return nil, err
-	}
-	return &Schema{
-		Type: empty,
-		zctx: zctx,
-	}, nil
+func NewSchema(zctx *zson.Context) *Schema {
+	return &Schema{zctx: zctx}
 }
 
-func (s *Schema) Mixin(mix *zng.TypeRecord) error {
-	fused, err := s.fuseRecordTypes(s.Type, mix)
+// Mixin mixes t's columns into the fused record type.
+func (s *Schema) Mixin(t *zng.TypeRecord) error {
+	cols, err := s.fuseColumns(s.cols, t.Columns)
 	if err != nil {
 		return err
 	}
-	s.Type = fused
+	s.cols = cols
 	return nil
 }
 
-func (s *Schema) fuseRecordTypes(a, b *zng.TypeRecord) (*zng.TypeRecord, error) {
-	fused := make([]zng.Column, len(a.Columns))
-	copy(fused, a.Columns)
-	for _, bcol := range b.Columns {
-		i, ok := a.ColumnOfField(bcol.Name)
-		if !ok {
-			fused = append(fused, bcol)
-			continue
-		}
-		acol := a.Columns[i]
+// Type returns the fused record type.
+func (s *Schema) Type() (*zng.TypeRecord, error) {
+	return s.zctx.LookupTypeRecord(s.cols)
+}
+
+func (s *Schema) fuseColumns(fused, cols []zng.Column) ([]zng.Column, error) {
+	for _, c := range cols {
+		i, ok := columnOfField(fused, c.Name)
 		switch {
-		case acol == bcol:
+		case !ok:
+			fused = append(fused, c)
+		case fused[i] == c:
 			continue
-		case zng.IsRecordType(acol.Type) && zng.IsRecordType(bcol.Type):
-			nested, err := s.fuseRecordTypes(zng.TypeRecordOf(acol.Type), zng.TypeRecordOf(bcol.Type))
+		case zng.IsRecordType(fused[i].Type) && zng.IsRecordType(c.Type):
+			nestedCols := zng.TypeRecordOf(fused[i].Type).Columns
+			nestedColsCopy := make([]zng.Column, len(nestedCols))
+			copy(nestedColsCopy, nestedCols)
+			nestedFused, err := s.fuseColumns(nestedColsCopy, zng.TypeRecordOf(c.Type).Columns)
 			if err != nil {
 				return nil, err
 			}
-			fused[i].Type = nested
+			t, err := s.zctx.LookupTypeRecord(nestedFused)
+			if err != nil {
+				return nil, err
+			}
+			fused[i].Type = t
 		default:
-			fused[i].Type = unify(s.zctx, acol.Type, bcol.Type)
+			fused[i].Type = unify(s.zctx, fused[i].Type, c.Type)
 		}
 	}
-	return s.zctx.LookupTypeRecord(fused)
+	return fused, nil
+}
+
+func columnOfField(cols []zng.Column, name string) (int, bool) {
+	for i, c := range cols {
+		if c.Name == name {
+			return i, true
+		}
+	}
+	return -1, false
 }
 
 func unify(zctx *zson.Context, a, b zng.Type) zng.Type {
