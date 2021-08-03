@@ -201,7 +201,7 @@ A data path can be split with the `split` operator as in
 from PoolOne | split (
   => op1 | op2 | ... ;
   => op1 | op2 | ... ;
-) | merge ts | ...
+) | sort ts | ...
 ```
 Or multiple pools can be accessed and, for example, joined:
 ```

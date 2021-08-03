@@ -6,8 +6,9 @@
 # See https://github.com/brimdata/zed/pull/xxxx for details
 # ============================================================================
 
-# The "sort" is not part of the example shown in the docs, but is necessary
-# because the output from the aggregation has no guaranteed sort order.
+# The Zed being tested below has been modified from the way it appears in
+# docs/language/README.md, as the "sort" is needed to produce deterministic
+# test output from the aggregation.
 
 zed: |
   color=="brown" | put characters:=len(name) | count() by flavor,characters | sort

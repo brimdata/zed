@@ -6,8 +6,9 @@
 # See https://github.com/brimdata/zed/pull/xxxx for details
 # ============================================================================
 
-# The "sort" is not part of the example shown in the docs, but is necessary
-# because the output from the aggregation has no guaranteed sort order.
+# The Zed being tested below has been modified from the way it appears in
+# docs/language/README.md, as the "sort" is needed to produce deterministic
+# test output from the aggregation. 
 
 zed: |
   not srcip in 192.168.0.0/16
@@ -16,7 +17,7 @@ zed: |
       maxdur := max(duration),
       valid := and(status == "ok")
         by srcip, dstip
-  | sort
+  | sort srcip, dstip
 
 input: |
   {srcip:10.0.0.1,dstip:5.6.7.8,src_bytes:20,dst_bytes:40,status:"ok"}

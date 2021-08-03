@@ -6,6 +6,9 @@
 # See https://github.com/brimdata/zed/pull/xxxx for details
 # ============================================================================
 
+# The Zed being tested below is exactly as it appears in the top-level
+# docs/language/README.md.
+
 zed: |
   SELECT count(), color
   WHERE widget AND price > 1000
