@@ -6,18 +6,18 @@
 # See https://github.com/brimdata/zed/pull/xxxx for details
 # ============================================================================
 
-# The Zed being tested below has been modified from the way it appears in
-# docs/language/README.md, as the "sort" is needed to produce deterministic
-# test output from the aggregation.
+# The Zed being tested below is exactly as it appears in the top-level
+# docs/language/README.md.
 
 zed: |
-  count() by color | sort
+  filter match("widget") and price > 1000
 
 input: |
-  {"color":"brown","name":"kiwi","flavor":"sweet"}
-  {"color":"red","name":"apple","flavor":"tart"}
-  {"color":"brown","name":"coconut","flavor":"nutty"}
+  {"text": "this is a sentence with the word widget in it", "price":999}
+  {"text": "this search for WiDgEt is case insensitive", "price":1001}
+  {"text": "it also looks for substrings so superwidgetythings will match","price": 1000.1}
+  {"text": "whereas stuff without the word surely will not", "price":1000.1}
 
 output: |
-  {color:"red",count:1 (uint64)} (=0)
-  {color:"brown",count:2} (0)
+  {text:"this search for WiDgEt is case insensitive",price:1001}
+  {text:"it also looks for substrings so superwidgetythings will match",price:1000.1}

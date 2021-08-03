@@ -10,7 +10,10 @@
 # docs/language/README.md.
 
 zed: |
-  widget price > 1000 | count() by color | count >= 10 | sort count
+  filter widget and price > 1000
+  | summarize count() by color
+  | filter count >= 10
+  | sort count
 
 input: |
   {"color":"brown","widget":"kiwi","flavor":"sweet","price":1001}

@@ -90,11 +90,12 @@ as in the shorter form
 ```
 count() by color
 ```
-Similarly, the canonical form of a search expression is a `filter` operator
-(and the "AND" operator is explicit in canonical form),
-so the example from above would be written canonically as
+Similarly, the canonical form of a search expression includes a `filter`
+operator and the target word enclosed in a `match()` function (and the "AND"
+operator is explicit in canonical form). Therefore the example from above would
+be written canonically as
 ```
-filter widget and price > 1000
+filter match("widget") and price > 1000
 ```
 Unlike typical log search systems, the Zed language operators are uniform:
 you can specify an operator including keyword search terms, Boolean predicates,
@@ -107,7 +108,7 @@ widget price > 1000 | count() by color | count >= 10 | sort count
 ```
 The canonical form of this more complex query is:
 ```
-filter widget and price > 1000
+filter match("widget") and price > 1000
 | summarize count() by color
 | filter count >= 10
 | sort count
@@ -236,7 +237,7 @@ for these common use cases.  They include:
 
 For example, the canonical form of
 ```
-filter widget
+filter match("widget")
 | summarize count() by color
 | put COLOR := to_upper(color)
 ```
@@ -269,7 +270,6 @@ All other operators are explicitly named.
 ### Operators not yet fully documented
 
 * `from`
-* `merge`
 * `split`
 * `switch`
 

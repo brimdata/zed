@@ -10,14 +10,20 @@
 # docs/language/README.md.
 
 zed: |
-  filter widget and price > 1000
+  widget price > 1000 | count() by color | count >= 10 | sort count
 
 input: |
-  {"text": "this is a sentence with the word widget in it", "price":999}
-  {"text": "this search for WiDgEt is case insensitive", "price":1001}
-  {"text": "it also looks for substrings so superwidgetythings will match","price": 1000.1}
-  {"text": "whereas stuff without the word surely will not", "price":1000.1}
+  {"color":"brown","widget":"kiwi","flavor":"sweet","price":1001}
+  {"color":"red","widget":"apple","flavor":"tart","price":1002}
+  {"color":"brown","widget":"coconut","flavor":"nutty","price":1003}
+  {"color":"brown","widget":"one","price":1004}
+  {"color":"brown","widget":"two","price":1005}
+  {"color":"brown","widget":"three","price":1006}
+  {"color":"brown","widget":"four","price":1007}
+  {"color":"brown","widget":"five","price":1008}
+  {"color":"brown","widget":"six","price":1009}
+  {"color":"brown","widget":"seven","price":1010}
+  {"color":"brown","widget":"eight","price":1011}
 
 output: |
-  {text:"this search for WiDgEt is case insensitive",price:1001}
-  {text:"it also looks for substrings so superwidgetythings will match",price:1000.1}
+  {color:"brown",count:10 (uint64)} (=0)
