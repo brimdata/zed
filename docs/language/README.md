@@ -91,7 +91,7 @@ as in the shorter form
 count() by color
 ```
 Similarly, the canonical form of a search expression includes a `filter`
-operator and the target word enclosed in a `match()` function (and the "AND"
+operator and the searched word enclosed in a `match()` function (also, the "AND"
 operator is explicit in canonical form). Therefore the example from above would
 be written canonically as
 ```
