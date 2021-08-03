@@ -3,7 +3,7 @@
 # docs. If you need to make changes to the Zed below to make the tests pass
 # again after a change, the docs likely need to be updated as well.
 #
-# See https://github.com/brimdata/zed/pull/xxxx for details
+# See https://github.com/brimdata/zed/pull/2901 for details
 # ============================================================================
 
 # The Zed being tested below is exactly as it appears in the top-level 
