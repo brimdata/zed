@@ -19,5 +19,5 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {_path:"conn",orig_p:80 (port=(uint16))} (=0)
-      {src_port:81 (port)} (=1)
+      {_path:"conn",orig_p:80(port=(uint16))}(=0)
+      {src_port:81(port)}(=1)

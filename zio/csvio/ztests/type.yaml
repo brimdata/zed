@@ -1,7 +1,7 @@
 zed: '*'
 
 input: |
-  {type:null (type)}
+  {type:null(type)}
 
 output-flags: -f csv
 

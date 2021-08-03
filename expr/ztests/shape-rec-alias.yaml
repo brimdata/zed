@@ -6,4 +6,4 @@ input: |
   {name:"steve",likes:"spicy",age:"52"}
 
 output: |
-  {name:"steve",likes:"spicy",age:52} (=person)
+  {name:"steve",likes:"spicy",age:52}(=person)

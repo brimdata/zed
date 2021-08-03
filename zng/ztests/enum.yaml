@@ -1,11 +1,11 @@
 zed: "put s:=string(e), v:=e+1"
 
 input: |
-  {e:foo (0=(<foo,bar,baz>))} (=1)
-  {e:bar} (1)
-  {e:baz} (1)
+  {e:foo(0=(<foo,bar,baz>))}(=1)
+  {e:bar}(1)
+  {e:baz}(1)
 
 output: |
-  {e:foo (0=(<foo,bar,baz>)),s:"foo",v:1} (=1)
-  {e:bar,s:"bar",v:2} (1)
-  {e:baz,s:"baz",v:3} (1)
+  {e:foo(0=(<foo,bar,baz>)),s:"foo",v:1}(=1)
+  {e:bar,s:"bar",v:2}(1)
+  {e:baz,s:"baz",v:3}(1)

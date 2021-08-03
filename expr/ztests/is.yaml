@@ -1,8 +1,8 @@
 zed: cut isRecType:=is(r, {a:int32}), isString:=is(s, type(string))
 
 input: |
-  {r:{a:1 (int32)} (=0),s:123 (int32)} (=1)
-  {r:{a:1 (int8)} (=2),s:"a"} (=3)
+  {r:{a:1(int32)}(=0),s:123(int32)}(=1)
+  {r:{a:1(int8)}(=2),s:"a"}(=3)
 
 output: |
   {isRecType:true,isString:false}

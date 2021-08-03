@@ -1,7 +1,7 @@
 zed: count() by typeof(.)
 
 input: |
-  {a:100} (=myrecord)
+  {a:100}(=myrecord)
 
 output-flags: -f zjson
 

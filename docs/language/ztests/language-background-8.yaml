@@ -26,4 +26,4 @@ input: |
   {"color":"brown","widget":"eight","price":1011}
 
 output: |
-  {color:"brown",count:10 (uint64)} (=0)
+  {color:"brown",count:10(uint64)}(=0)

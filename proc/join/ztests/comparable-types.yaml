@@ -12,7 +12,7 @@ inputs:
       {a:"hello",va:"value a"}
   - name: b.zson
     data: |
-      {b:"hello" (bstring),vb:"value b"}
+      {b:"hello"(bstring),vb:"value b"}(=0)
 
 outputs:
   - name: stdout

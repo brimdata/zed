@@ -16,4 +16,4 @@ outputs:
     data: ''
   - name: stdout
     data: |
-      {magic:"zed_index",version:2 (int32),descending:false,child_field:"_child_0",frame_thresh:50 (int32),sections:[33],keys:null (0=({_child:int64}))} (=1)
+      {magic:"zed_index",version:2(int32),descending:false,child_field:"_child_0",frame_thresh:50(int32),sections:[33],keys:null(0=({_child:int64}))}(=1)

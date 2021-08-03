@@ -1,10 +1,10 @@
 zed: '*'
 
 input: |
-  {duration:null (duration)}
+  {duration:null(duration)}
   {duration:0s}
-  {duration:-2562047h47m16.854775808s}
-  {duration:2562047h47m16.854775807s}
+  {duration:-292y171d23h47m16.854775808s}
+  {duration:292y171d23h47m16.854775807s}
 
 output-flags: -f csv
 

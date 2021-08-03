@@ -140,8 +140,11 @@ func (f *Formatter) decorate(typ zng.Type, known, null bool) {
 	}
 	f.startColor(color.Gray(200))
 	defer f.endColor()
+	if f.tab > 0 {
+		f.build(" ")
+	}
 	if name, ok := f.typedefs[typ]; ok {
-		f.buildf(" (%s)", name)
+		f.buildf("(%s)", name)
 		return
 	}
 	if SelfDescribing(typ) && !null {
@@ -152,10 +155,10 @@ func (f *Formatter) decorate(typ zng.Type, known, null bool) {
 			name = f.nextInternalType()
 		}
 		f.typedefs[typ] = name
-		f.buildf(" (=%s)", name)
+		f.buildf("(=%s)", name)
 		return
 	}
-	f.build(" (")
+	f.build("(")
 	f.formatType(typ)
 	f.build(")")
 }

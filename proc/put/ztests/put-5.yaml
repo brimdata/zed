@@ -2,9 +2,9 @@
 zed: put r := x
 
 input: |
-  {x:1 (int32),r:{s:"hello"}} (=0)
-  {x:2,r:{s:"world"}} (0)
+  {x:1(int32),r:{s:"hello"}}(=0)
+  {x:2,r:{s:"world"}}(0)
 
 output: |
-  {x:1 (int32),r:1 (int32)} (=0)
-  {x:2,r:2} (0)
+  {x:1(int32),r:1(int32)}(=0)
+  {x:2,r:2}(0)

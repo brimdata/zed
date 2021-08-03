@@ -14,4 +14,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {count:2 (uint64)} (=0)
+      {count:2(uint64)}(=0)

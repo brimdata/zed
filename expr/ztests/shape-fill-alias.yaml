@@ -2,9 +2,9 @@ zed: |
   type port=int64; type prec={p: port, q: port}; type parr=[prec]; put this:=fill({a:prec, b:parr, c:port})
 
 input: |
-  {a: {q: 1}, b: [{p: 1}]}
-  {a: {q: 1 (myport=(int16))}, b:[{p: 1 (myport)}]}
+  {a:{q:1},b:[{p:1}]}
+  {a:{q:1(myport=(int16))}(=0),b:[{p:1(myport)}(=1)](=2)}(=3)
 
 output: |
-  {a:{q:1,p:null (port=(int64))} (=0),b:[{p:1,q:null (port)} (=1)] (=2),c:null (port)} (=3)
-  {a:{q:1 (myport=(int16)),p:null (port)} (=4),b:[{p:1 (myport),q:null (port)} (=5)] (=6),c:null (port)} (=7)
+  {a:{q:1,p:null(port=(int64))}(=0),b:[{p:1,q:null(port)}(=1)](=2),c:null(port)}(=3)
+  {a:{q:1(myport=(int16)),p:null(port)}(=4),b:[{p:1(myport),q:null(port)}(=5)](=6),c:null(port)}(=7)

@@ -3,7 +3,7 @@ zed: A\=*
 input: |
   {s:"A=B"}
   {s:"A=*"}
-  {s:null (string)}
+  {s:null(string)}
   {s:""}
 
 output: |

@@ -6,12 +6,12 @@ inputs:
   - name: stdin
     data: |
       {a:"hello",b:[{a:"a",b:"b"},{a:"c",b:"d"},{a:"e",b:"f"}]}
-      {a:"world",b:null (0=([1=({a:string,b:string})]))}
-      {a:"goodnight",b:[{a:"a",b:"b"},{a:"c",b:null (string)},{a:"e",b:"f"}]}
+      {a:"world",b:null(0=([1=({a:string,b:string})]))}
+      {a:"goodnight",b:[{a:"a",b:"b"},{a:"c",b:null(string)},{a:"e",b:"f"}]}
 
 outputs:
   - name: stdout
     data: |
       {a:"hello",b:[{a:"a",b:"b"},{a:"c",b:"d"},{a:"e",b:"f"}]}
-      {a:"world",b:null (0=([1=({a:string,b:string})]))}
-      {a:"goodnight",b:[{a:"a",b:"b"},{a:"c",b:null (string)},{a:"e",b:"f"}]}
+      {a:"world",b:null(0=([1=({a:string,b:string})]))}
+      {a:"goodnight",b:[{a:"a",b:"b"},{a:"c",b:null(string)},{a:"e",b:"f"}]}

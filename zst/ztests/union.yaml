@@ -5,11 +5,11 @@ script: |
 inputs:
   - name: stdin
     data: |
-      {a:"hello",b:"foo" (0=((string,float64)))} (=1)
-      {a:"world",b:1.} (1)
+      {a:"hello",b:"foo"(0=((string,float64)))}(=1)
+      {a:"world",b:1.}(1)
 
 outputs:
   - name: stdout
     data: |
-      {a:"hello",b:"foo" (0=((string,float64)))} (=1)
-      {a:"world",b:1.} (1)
+      {a:"hello",b:"foo"(0=((string,float64)))}(=1)
+      {a:"world",b:1.}(1)

@@ -12,4 +12,4 @@ input: |
   1521932484.182433	C8Yyb34kUAKDIM5ff1	10.199.194.15	39041	10.47.8.251	7777	5	-	-	connection not allowed by ruleset	-	-	-	-	google.com	0
 
 output: |
-  {_path:"socks",ts:2018-03-24T23:01:24.182433Z,uid:"C8Yyb34kUAKDIM5ff1" (bstring),id:{orig_h:10.199.194.15,orig_p:39041 (port=(uint16)),resp_h:10.47.8.251,resp_p:7777 (port)} (=0),version:5 (uint64),user:null (bstring),password:null (bstring),status:"connection not allowed by ruleset" (bstring),request:{host:null (ip),name:null (bstring)} (=1),request_p:null (port),bound:{host:null,name:"google.com"} (1),bound_p:0 (port)} (=2)
+  {_path:"socks",ts:2018-03-24T23:01:24.182433Z,uid:"C8Yyb34kUAKDIM5ff1"(bstring),id:{orig_h:10.199.194.15,orig_p:39041(port=(uint16)),resp_h:10.47.8.251,resp_p:7777(port)}(=0),version:5(uint64),user:null(bstring),password:null(bstring),status:"connection not allowed by ruleset"(bstring),request:{host:null(ip),name:null(bstring)}(=1),request_p:null(port),bound:{host:null,name:"google.com"}(1),bound_p:0(port)}(=2)

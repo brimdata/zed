@@ -1,12 +1,12 @@
 zed: '*'
 
 input: |
-  {error:null (error)} (=0)
-  {error:""} (0)
-  {error:"\""} (0)
-  {error:","} (0)
-  {error:"\\u002d"} (0)
-  {error:"\\u005c"} (0)
+  {error:null(error)}(=0)
+  {error:""}(0)
+  {error:"\""}(0)
+  {error:","}(0)
+  {error:"\\u002d"}(0)
+  {error:"\\u005c"}(0)
 
 output-flags: -f csv
 

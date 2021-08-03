@@ -6,6 +6,6 @@ input: |
   {"schema":"24","values":[null]}
 
 output: |
-  {a:"asdfasdf" (0=((int32,string)))} (=1)
-  {a:1 (int32)} (1)
-  {a:null} (1)
+  {a:"asdfasdf"(0=((int32,string)))}(=1)
+  {a:1(int32)}(1)
+  {a:null}(1)

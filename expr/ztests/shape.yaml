@@ -4,7 +4,7 @@ zed: |
   put this:=shape(rec)
 
 input: |
-  {id:{orig_h:"1.2.3.4",resp_h:"5.6.7.8",orig_p:1234 (port=(uint16)),resp_p:53 (port),tag:0 (uint16)} (=0)} (=1)
+  {id:{orig_h:"1.2.3.4",resp_h:"5.6.7.8",orig_p:1234(port=(uint16)),resp_p:53(port),tag:0(uint16)}(=0)}(=1)
 
 output: |
-  {id:{orig_h:1.2.3.4,orig_p:1234 (port=(uint16)),vlan:null (uint16),resp_h:5.6.7.8,resp_p:53 (port),tag:0 (uint16)} (=0)} (=1)
+  {id:{orig_h:1.2.3.4,orig_p:1234(port=(uint16)),vlan:null(uint16),resp_h:5.6.7.8,resp_p:53(port),tag:0(uint16)}(=0)}(=1)
