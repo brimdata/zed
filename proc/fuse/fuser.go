@@ -28,15 +28,11 @@ type Fuser struct {
 // their cumulative size (measured in zcode.Bytes length) exceeds memMaxBytes,
 // at which point it buffers them in a temporary file.
 func NewFuser(zctx *zson.Context, memMaxBytes int) *Fuser {
-	s, err := agg.NewSchema(zctx)
-	if err != nil {
-		panic(err)
-	}
 	return &Fuser{
 		zctx:        zctx,
 		memMaxBytes: memMaxBytes,
 		types:       make(map[zng.Type]struct{}),
-		uberSchema:  s,
+		uberSchema:  agg.NewSchema(zctx),
 	}
 }
 
@@ -90,7 +86,11 @@ func (f *Fuser) stash(rec *zng.Record) error {
 // schema.
 func (f *Fuser) Read() (*zng.Record, error) {
 	if f.shaper == nil {
-		f.shaper = expr.NewConstShaper(f.zctx, &expr.RootRecord{}, f.uberSchema.Type, expr.Cast|expr.Fill|expr.Order)
+		t, err := f.uberSchema.Type()
+		if err != nil {
+			return nil, err
+		}
+		f.shaper = expr.NewConstShaper(f.zctx, &expr.RootRecord{}, t, expr.Cast|expr.Fill|expr.Order)
 		if f.spiller != nil {
 			if err := f.spiller.Rewind(f.zctx); err != nil {
 				return nil, err

@@ -33,10 +33,7 @@ func (f *fuse) Result(zctx *zson.Context) (zng.Value, error) {
 		// empty input
 		return zng.Value{zng.TypeNull, nil}, nil
 	}
-	schema, err := NewSchema(zctx)
-	if err != nil {
-		return zng.Value{}, err
-	}
+	schema := NewSchema(zctx)
 	for _, p := range f.partials {
 		typ, err := zctx.LookupByValue(p.Bytes)
 		if err != nil {
@@ -51,7 +48,11 @@ func (f *fuse) Result(zctx *zson.Context) (zng.Value, error) {
 	for typ := range f.shapes {
 		schema.Mixin(typ)
 	}
-	return zctx.LookupTypeValue(schema.Type), nil
+	typ, err := schema.Type()
+	if err != nil {
+		return zng.Value{}, err
+	}
+	return zctx.LookupTypeValue(typ), nil
 }
 
 func (f *fuse) ConsumeAsPartial(p zng.Value) error {
