@@ -43,8 +43,8 @@ inputs:
   - name: join.zed
     data: |
       from (
-        PoolOne => put color:=to_upper(color) | put namelen:=len(key) | sort key ;
-        PoolTwo => put price:=price+0.5 | put tag:="mytag" | sort key ;
+        PoolOne => put color:=to_upper(color) | put namelen:=len(key) | sort key;
+        PoolTwo => put price:=price+0.5 | put tag:="mytag" | sort key;
       ) | join on key=key priceinfo:=this | drop priceinfo.key
 
 outputs:
