@@ -202,8 +202,12 @@ A data path can be split with the `split` operator as in
 from PoolOne | split (
   => op1 | op2 | ... ;
   => op1 | op2 | ... ;
-) | sort ts | ...
+) | merge ts | ...
 ```
+
+> **Note:** Adding `merge` to the Zed language is still a work in progress
+> ([zed/2906](https://github.com/brimdata/zed/issues/2906)).
+
 Or multiple pools can be accessed and, for example, joined:
 ```
 from (
@@ -270,6 +274,7 @@ All other operators are explicitly named.
 ### Operators not yet fully documented
 
 * `from`
+* `merge`
 * `split`
 * `switch`
 

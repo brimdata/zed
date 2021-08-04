@@ -12,10 +12,12 @@
 #   from PoolOne | split (
 #     => op1 | op2 | ... ;
 #     => op1 | op2 | ... ;
-#   ) | sort ts | ...
+#   ) | merge ts | ...
 #
 # Specifically, the "op1", "op2", and "..." have been filled in with real
-# operations.
+# operations, and the "merge" has been replaced with a "sort" for now since
+# merge has not yet been fully implemented
+# (https://github.com/brimdata/zed/issues/2906).
 
 script: |
   export ZED_LAKE_ROOT=test
