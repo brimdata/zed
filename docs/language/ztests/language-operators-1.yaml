@@ -11,12 +11,7 @@
 # (https://github.com/brimdata/zed/issues/2850).
 
 script: |
-  zc -C -I input.zed
-
-inputs:
-  - name: input.zed
-    data: |
-      widget | count() by color | put COLOR := to_upper(color)
+  zc -C 'widget | count() by color | put COLOR := to_upper(color)'
 
 outputs:
   - name: stdout
