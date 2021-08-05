@@ -121,6 +121,21 @@ block 2
 				{Command: "block 1\n", Expected: "block 2\n", Line: 2, Head: true},
 			},
 		},
+		{
+			name: "non-headed output with trailing ellipsis",
+			markdown: `
+~~~mdtest-command
+block 1
+~~~
+~~~mdtest-output
+block 2
+...
+~~~
+`,
+			tests: []*Test{
+				{Command: "block 1\n", Expected: "block 2\n...\n", Line: 2},
+			},
+		},
 	}
 	for _, tc := range tests {
 		tc := tc

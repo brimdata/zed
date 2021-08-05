@@ -162,14 +162,16 @@ func parseMarkdown(source []byte) (map[string]string, []*Test, error) {
 			if words := fcbInfoWords(commandFCB, source); len(words) > 1 {
 				dir = words[1]
 			}
+			expected := fcbLines(fcb, source)
 			var head bool
 			if words := fcbInfoWords(fcb, source); len(words) > 1 && words[1] == "head" {
+				expected = strings.TrimSuffix(expected, "...\n")
 				head = true
 			}
 			tests = append(tests, &Test{
 				Command:  fcbLines(commandFCB, source),
 				Dir:      dir,
-				Expected: strings.TrimSuffix(fcbLines(fcb, source), "...\n"),
+				Expected: expected,
 				Head:     head,
 				Line:     fcbLineNumber(commandFCB, source),
 			})
