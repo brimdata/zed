@@ -1,7 +1,7 @@
 skip: "issue #2651"
 
 script: |
-  source services.sh 
+  source services.sh
   mkdir -p s3/bucket
   mv babble.zson s3/bucket
   zapi -host $LAKE_HOST -p test postpath -f s3://bucket/babble.zson >/dev/null
