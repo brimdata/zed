@@ -12,7 +12,6 @@ script: |
   echo ===
   zapi query -z "from test | sort ."
 
-
 inputs:
   - name: a.zson
     data: |

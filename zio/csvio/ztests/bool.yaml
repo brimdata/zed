@@ -9,6 +9,6 @@ output-flags: -f csv
 
 output: |
   bool
-  
+
   F
   T

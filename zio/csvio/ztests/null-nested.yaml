@@ -6,7 +6,7 @@ input: |
 
 output-flags: -f csv
 
-output: |+
+output: |
   a.b.a1,a.b.a2,s
   ,,
   ,,x

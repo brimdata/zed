@@ -6,7 +6,6 @@ inputs:
     data: |
       2 | c  := count() //,
           , sum(v) // moon
-
   - name: in.zson
     data: |
       {v:1}

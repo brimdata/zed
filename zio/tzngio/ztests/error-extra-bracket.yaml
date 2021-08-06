@@ -5,10 +5,10 @@ script: |
 inputs:
   - name: in.tzng
     data: |
-        #0:record[s:string]]
-        0:[-;]
+      #0:record[s:string]]
+      0:[-;]
 
 outputs:
   - name: stderr
     regexp: |
-         .*: line 1: syntax error parsing type string
+      .*: line 1: syntax error parsing type string

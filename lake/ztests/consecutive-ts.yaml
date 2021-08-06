@@ -30,7 +30,6 @@ inputs:
 # keys of the same value as that would cause relevant keys to be
 # otherwise skipped over.
 #
-
 outputs:
   - name: stdout
     data: |

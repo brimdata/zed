@@ -10,7 +10,7 @@ output-flags: -f csv
 
 output: |
   duration
-  
+
   0
   -9223372036.854775808
   9223372036.854775807
