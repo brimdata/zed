@@ -7,6 +7,6 @@ input: |
 output-flags: -f csv
 
 output: |
- ip
- 
- 1.2.3.4
+  ip
+
+  1.2.3.4

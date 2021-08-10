@@ -2,7 +2,7 @@ script: zq in.tzng | zq -f tzng -
 
 inputs:
   - name: in.tzng
-    data:   |
+    data: |
       #0:record[]
       0:[]
       #1:record[a:record[],b:array[record[]],d:string]

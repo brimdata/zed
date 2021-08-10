@@ -3,6 +3,7 @@ script: |
   zapi create -q -p test
   zapi load -q -p test babble.zson
   zapi query -s -Z "from test | count()"
+
 inputs:
   - name: service.sh
     source: service.sh

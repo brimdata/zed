@@ -4,5 +4,6 @@ input: |
   {"schema":"23","types":[{"kind":"typedef","name":"23","type":{"kind":"record","fields":[{"name":"ja3s","type":{"kind":"primitive","name":"int32"}}]}}],"values":[null]}
 
 output-flags: -f zjson
+
 output: |
   {"schema":"23","types":[{"kind":"typedef","name":"23","type":{"kind":"record","fields":[{"name":"ja3s","type":{"kind":"primitive","name":"int32"}}]}}],"values":[null]}

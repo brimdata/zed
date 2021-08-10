@@ -8,5 +8,5 @@ output-flags: -f csv
 
 output: |
   net
-  
+
   1.2.3.4/32

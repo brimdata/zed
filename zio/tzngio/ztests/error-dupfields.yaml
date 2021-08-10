@@ -5,10 +5,10 @@ script: |
 inputs:
   - name: in.tzng
     data: |
-        #0:record[foo:record[foo:string,bar:string]]
-        0:[["1";"2";]]
-        #1:record[foo:record[foo:string,foo:string]]
-        1:[["1";"2";]]
+      #0:record[foo:record[foo:string,bar:string]]
+      0:[["1";"2";]]
+      #1:record[foo:record[foo:string,foo:string]]
+      1:[["1";"2";]]
 
 outputs:
   - name: stderr

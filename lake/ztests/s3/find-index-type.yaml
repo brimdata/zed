@@ -23,7 +23,6 @@ inputs:
   - name: minio.sh
     source: ../../../testdata/minio.sh
 
-
 outputs:
   - name: stdout
     data: |

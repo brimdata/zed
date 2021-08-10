@@ -4,6 +4,7 @@ script: |
   zed lake create -q -p test
   zed lake load -q -p test babble.zson
   zed lake query -s -Z "from test | count()"
+
 inputs:
   - name: babble.zson
     source: ../../../../testdata/babble.zson

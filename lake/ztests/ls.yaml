@@ -13,7 +13,6 @@ inputs:
 
 # The keys field should be labeled with (field.)Path.
 # See bug #2576
-
 outputs:
   - name: stdout
     data: |

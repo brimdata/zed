@@ -4,8 +4,8 @@ script: |
 inputs:
   - name: null.tzng
     data: |
-        #0:record[foo:null]
-        0:[bleah;]
+      #0:record[foo:null]
+      0:[bleah;]
 
 outputs:
   - name: stderr

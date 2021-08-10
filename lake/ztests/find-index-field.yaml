@@ -10,7 +10,6 @@ script: |
   echo ===
   zq -z "count(key)" $(find . -name idx-*) # check unset not indexed
 
-
 inputs:
   - name: log.zson
     data: |
