@@ -6,9 +6,9 @@ zed: |
   id2:=cast(id, {resp_h:ip,resp_p:port=(uint16),orig_h:ip,orig_p:port})
 
 input: |
-  {id:{orig_h:ff02::fb,orig_p:5353 (port=(uint16)),resp_p:5353 (port),resp_h:"1.2.3.4"} (=0),other:123.} (=1)
-  {id:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:"notanip"},other:123.} (1)
+  {id:{orig_h:ff02::fb,orig_p:5353(port=(uint16)),resp_p:5353(port),resp_h:"1.2.3.4"}(=0),other:123.}(=1)
+  {id:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:"notanip"},other:123.}(1)
 
 output: |
-  {id:{orig_h:ff02::fb,orig_p:5353 (port=(uint16)),resp_p:5353 (port),resp_h:1.2.3.4} (=0),other:123.,id2:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:1.2.3.4} (0)} (=1)
-  {id:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:null},other:123.,id2:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:null}} (1)
+  {id:{orig_h:ff02::fb,orig_p:5353(port=(uint16)),resp_p:5353(port),resp_h:1.2.3.4}(=0),other:123.,id2:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:1.2.3.4}(0)}(=1)
+  {id:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:null},other:123.,id2:{orig_h:ff02::fb,orig_p:5353,resp_p:5353,resp_h:null}}(1)

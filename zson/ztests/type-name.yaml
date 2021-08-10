@@ -4,11 +4,11 @@ script: |
 inputs:
   - name: in.zson
     data: |
-      {s:"hello, world"} (=github.com/acme/foo.Bar)
-      {s:"goodnight, gracie"} (github.com/acme/foo.Bar)
+      {s:"hello, world"}(=github.com/acme/foo.Bar)
+      {s:"goodnight, gracie"}(github.com/acme/foo.Bar)
 
 outputs:
   - name: stdout
     data: |
-      {s:"hello, world"} (=github.com/acme/foo.Bar)
-      {s:"goodnight, gracie"} (github.com/acme/foo.Bar)
+      {s:"hello, world"}(=github.com/acme/foo.Bar)
+      {s:"goodnight, gracie"}(github.com/acme/foo.Bar)

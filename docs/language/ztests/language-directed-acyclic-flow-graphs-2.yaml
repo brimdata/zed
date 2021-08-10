@@ -38,7 +38,7 @@ inputs:
     data: |
       {key:"apple",price:1.5}
       {key:"banana",price:2.1}
-      {key:"avocado",price:3.0}
+      {key:"avocado",price:3.}
       {key:"strawberry",price:0.5}
   - name: join.zed
     data: |

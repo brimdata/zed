@@ -1,7 +1,7 @@
 zed: drop id
 
 input: |
-  {id:null (0=({ip:ip})),id2:{ip:1.1.1.1}}
+  {id:null(0=({ip:ip})),id2:{ip:1.1.1.1}}
 
 output: |
   {id2:{ip:1.1.1.1}}

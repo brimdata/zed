@@ -1,7 +1,7 @@
 zed: typeof(this)==type(bar)
 
 input: &input |
-  {x:{a:1} (=foo),y:{a:2} (foo)} (=bar)
-  {x:{a:3},y:{a:4}} (bar)
+  {x:{a:1}(=foo),y:{a:2}(foo)}(=bar)
+  {x:{a:3},y:{a:4}}(bar)
 
 output: *input

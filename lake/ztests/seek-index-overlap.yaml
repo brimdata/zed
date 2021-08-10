@@ -18,9 +18,9 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {count:1150 (uint64)} (=0)
+      {count:1150(uint64)}(=0)
       ===
-      {count:1150 (uint64)} (=0)
+      {count:1150(uint64)}(=0)
   - name: stderr
     data: |
       data opened: 37833

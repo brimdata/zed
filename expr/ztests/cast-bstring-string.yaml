@@ -1,7 +1,7 @@
 zed: 'cut s:=string(b)'
 
 input: |
-  {b:"\x30\x31\x32"(bstring)}
+  {b:"012"(bstring)}(=0)
 
 output: |
   {s:"012"}

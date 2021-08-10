@@ -4,4 +4,4 @@ input: |
   {b:0xc328}
 
 output: |
-  {b:0xc328,s:"non-UTF-8 bytes cannot be cast to string" (error)} (=0)
+  {b:0xc328,s:"non-UTF-8 bytes cannot be cast to string"(error)}(=0)

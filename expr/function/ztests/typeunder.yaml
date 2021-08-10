@@ -3,7 +3,7 @@ zed: cut typeunder(this), typeof(this)
 input: |
   {}
   {x:1}
-  {x:1} (=foo)
+  {x:1}(=foo)
 
 output: |
   {typeunder:({}),typeof:({})}

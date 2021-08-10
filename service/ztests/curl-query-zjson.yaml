@@ -13,8 +13,8 @@ inputs:
     source: service.sh
   - name: data.zson
     data: |
-      {ts: 1}
-      {ts: 2}
+      {ts:1}
+      {ts:2}
 
 outputs:
   - name: stdout

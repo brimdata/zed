@@ -3,9 +3,9 @@ zed: "*"
 output-flags: -f zson -pretty=4
 
 input: |
-  {flip:HEADS (0=(<HEADS,TAILS>))} (=1)
-  {flip:TAILS} (1)
-  {flip:HEADS} (1)
+  {flip:HEADS(0=(<HEADS,TAILS>))}(=1)
+  {flip:TAILS}(1)
+  {flip:HEADS}(1)
 
 output: |
   {

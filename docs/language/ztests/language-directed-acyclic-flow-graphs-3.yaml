@@ -28,9 +28,9 @@ script: |
 inputs:
   - name: fruit.zson
     data: |
-      {name:"apple","color":"red",price:1.5}
-      {name:"banana","color":"yellow",price:2.1}
-      {name:"blueberry","color":"blue",price:0.1}
+      {name:"apple",color:"red",price:1.5}
+      {name:"banana",color:"yellow",price:2.1}
+      {name:"blueberry",color:"blue",price:0.1}
   - name: switch.zed
     data: |
       from fruit | switch color (

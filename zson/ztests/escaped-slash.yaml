@@ -1,7 +1,7 @@
 zed: "*"
 
 input: |
-  {s:"1:foo\/bar"}
+  {s:"1:foo/bar"}
 
 output: |
   {s:"1:foo/bar"}

@@ -1,9 +1,9 @@
 zed: put eq := (a == b), ne := (a != b)
 
 input: |
-  {a:"s",b:null (string)}
-  {a:"s",b:null (null)}
+  {a:"s",b:null(string)}
+  {a:"s",b:null}
 
 output: |
-  {a:"s",b:null (string),eq:false,ne:true}
+  {a:"s",b:null(string),eq:false,ne:true}
   {a:"s",b:null,eq:false,ne:true}

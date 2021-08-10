@@ -4,7 +4,7 @@ zed: fuse(.)
 
 input: |
   {a:"hello",b:"world"}
-  {a:"goodnight",b:123 (int32)} (=0)
+  {a:"goodnight",b:123(int32)}(=0)
 
 output: |
   {fuse:({a:string,b:(string,int32)})}

@@ -1,9 +1,9 @@
 zed: 'cut this:=a'
 
 input: |
-  {a:{b:null (int32)} (=0)} (=1)
-  {a:{b:1}} (1)
+  {a:{b:null(int32)}(=0)}(=1)
+  {a:{b:1}}(1)
 
 output: |
-  {b:null (int32)} (=0)
-  {b:1} (0)
+  {b:null(int32)}(=0)
+  {b:1}(0)

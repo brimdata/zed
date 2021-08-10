@@ -8,12 +8,12 @@ script: |
 inputs:
   - name: in.zson
     data: |
-      {key:"a",x:1 (int32)} (=0)
-      {key:"a",x:-1} (0)
-      {key:"b",x:2} (0)
-      {key:"b",x:1} (0)
-      {key:"a",x:8} (0)
-      {key:"b",x:1} (0)
+      {key:"a",x:1(int32)}(=0)
+      {key:"a",x:-1}(0)
+      {key:"b",x:2}(0)
+      {key:"b",x:1}(0)
+      {key:"a",x:8}(0)
+      {key:"b",x:1}(0)
       {key:"a"}
       {key:"a"}
       {key:"a"}
@@ -21,9 +21,9 @@ inputs:
 outputs:
   - name: union.zson
     data: |
-      {key:"a",union:|[1 (int32),-1 (int32),8 (int32)]| (=0)} (=1)
-      {key:"b",union:|[1,2]|} (1)
+      {key:"a",union:|[1(int32),-1(int32),8(int32)]|(=0)}(=1)
+      {key:"b",union:|[1,2]|}(1)
   - name: collect.zson
     data: |
-      {key:"a",collect:[1 (int32),-1 (int32),8 (int32)] (=0)} (=1)
-      {key:"b",collect:[2,1,1]} (1)
+      {key:"a",collect:[1(int32),-1(int32),8(int32)](=0)}(=1)
+      {key:"b",collect:[2,1,1]}(1)

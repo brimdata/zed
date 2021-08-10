@@ -8,9 +8,9 @@ script: |
 inputs:
   - name: in.zson
     data: |
-      {n:0 (int32)} (=0)
-      {n:5} (0)
-      {n:10} (0)
+      {n:0(int32)}(=0)
+      {n:5}(0)
+      {n:10}(0)
 
 outputs:
   - name: avg.zson
@@ -18,11 +18,11 @@ outputs:
       {avg:5.}
   - name: count.zson
     data: |
-      {count:3 (uint64)} (=0)
+      {count:3(uint64)}(=0)
   # Note: min/max shouldn't be int64 (especially for uint)  Issue #1506.
   - name: any.zson
     data: |
-      {any:0 (int32)} (=0)
+      {any:0(int32)}(=0)
   - name: min.zson
     data: |
       {min:0}

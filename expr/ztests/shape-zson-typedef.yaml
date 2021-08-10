@@ -1,8 +1,8 @@
 zed: name=='steve' | put this:=shape(this,type(person))
 
 input: |
-  {name:"jim", likes: "plain", age:30} (=person)
+  {name:"jim",likes:"plain",age:30}(=person)
   {name:"steve",likes:"spicy",age:"52"}
 
 output: |
-  {name:"steve",likes:"spicy",age:52} (=person)
+  {name:"steve",likes:"spicy",age:52}(=person)

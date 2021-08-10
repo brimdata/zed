@@ -10,9 +10,9 @@ script: |
 inputs:
   - name: in.zson
     data: |
-      {key:"a",n:0 (int32)} (=0)
-      {key:"a",n:5} (0)
-      {key:"b",n:10} (0)
+      {key:"a",n:0(int32)}(=0)
+      {key:"a",n:5}(0)
+      {key:"b",n:10}(0)
       {key:"a"}
 
 outputs:
@@ -22,8 +22,8 @@ outputs:
       {key:"b",avg:10.}
   - name: count.zson
     data: |
-      {key:"a",count:3 (uint64)} (=0)
-      {key:"b",count:1} (0)
+      {key:"a",count:3(uint64)}(=0)
+      {key:"b",count:1}(0)
   - name: min.zson
     data: |
       {key:"a",min:0}

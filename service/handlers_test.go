@@ -54,22 +54,22 @@ func TestASTPost(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	const src = `
-{_path:"a",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
-{_path:"b",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
+{_path:"a",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
+{_path:"b",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
 `
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
 	conn.TestLogPostReaders(pool.ID, nil, strings.NewReader(src))
 
 	res := searchZson(t, conn, pool.ID, `_path == "a"`)
-	const expected = `{_path:"a",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)` + "\n"
+	const expected = `{_path:"a",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)` + "\n"
 	require.Equal(t, expected, res)
 }
 
 func TestSearchNoCtrl(t *testing.T) {
 	src := `
-{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
-{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
+{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
+{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
 `
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
@@ -150,13 +150,13 @@ func TestQueryEmptyPool(t *testing.T) {
 
 func TestGroupByReverse(t *testing.T) {
 	src := `
-{ts:1970-01-01T00:00:01Z,uid:"A"} (=0)
-{ts:1970-01-01T00:00:01Z,uid:"B"} (0)
-{ts:1970-01-01T00:00:02Z,uid:"B"} (0)
+{ts:1970-01-01T00:00:01Z,uid:"A"}(=0)
+{ts:1970-01-01T00:00:01Z,uid:"B"}(0)
+{ts:1970-01-01T00:00:02Z,uid:"B"}(0)
 `
 	counts := `
-{ts:1970-01-01T00:00:02Z,count:1 (uint64)} (=0)
-{ts:1970-01-01T00:00:01Z,count:2} (0)
+{ts:1970-01-01T00:00:02Z,count:1(uint64)}(=0)
+{ts:1970-01-01T00:00:01Z,count:2}(0)
 `
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
@@ -179,8 +179,8 @@ func TestSearchEmptyPool(t *testing.T) {
 
 func TestSearchError(t *testing.T) {
 	src := `
-{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
-{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
+{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
+{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
 `
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
@@ -220,8 +220,8 @@ func TestSearchError(t *testing.T) {
 
 func TestPoolStats(t *testing.T) {
 	src := `
-{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
-{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"} (0)
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
+{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
 `
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
@@ -335,14 +335,14 @@ func TestRequestID(t *testing.T) {
 
 func TestPostZSONLogs(t *testing.T) {
 	const src1 = `
-{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
 `
 	const src2 = `
-{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
 `
 	const expected = `
-{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
-{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"} (0)
+{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"}(0)
 `
 
 	_, conn := newCore(t)
@@ -352,7 +352,7 @@ func TestPostZSONLogs(t *testing.T) {
 		strings.NewReader(src2),
 	)
 	assert.Equal(t, "LogPostResponse", postResp.Type)
-	assert.EqualValues(t, 160, postResp.BytesRead)
+	assert.EqualValues(t, 156, postResp.BytesRead)
 
 	res := searchZson(t, conn, pool.ID, "*")
 	require.EqualValues(t, test.Trim(expected), res)
@@ -367,7 +367,7 @@ func TestPostZSONLogs(t *testing.T) {
 func TestPostZngLogWarning(t *testing.T) {
 	const src1 = `undetectableformat`
 	const src2 = `
-{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring)} (=0)
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
 detectablebutbadline`
 
 	_, conn := newCore(t)
@@ -420,7 +420,7 @@ func TestPostNDJSONLogs(t *testing.T) {
 // as errors. See https://github.com/brimdata/zed/issues/2057#issuecomment-803148819
 func TestPostLogStopErr(t *testing.T) {
 	const src = `
-{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring} (=0)
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"(bstring}(=0)
 `
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
@@ -431,8 +431,8 @@ func TestPostLogStopErr(t *testing.T) {
 }
 
 func TestLogPostPath(t *testing.T) {
-	log1 := writeTempFile(t, `{ts:1970-01-01T00:00:01Z,uid:"uid1" (bstring)} (=0)`)
-	log2 := writeTempFile(t, `{ts:1970-01-01T00:00:02Z,uid:"uid2" (bstring)} (=0)`)
+	log1 := writeTempFile(t, `{ts:1970-01-01T00:00:01Z,uid:"uid1"(bstring)}(=0)`)
+	log2 := writeTempFile(t, `{ts:1970-01-01T00:00:02Z,uid:"uid2"(bstring)}(=0)`)
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
 	r, err := conn.LogPostPath(context.Background(), pool.ID, api.LogPostRequest{
@@ -442,13 +442,13 @@ func TestLogPostPath(t *testing.T) {
 	_, err = io.Copy(io.Discard, r.Body)
 	require.NoError(t, err)
 	const expected = `
-{ts:1970-01-01T00:00:02Z,uid:"uid2" (bstring)} (=0)
-{ts:1970-01-01T00:00:01Z,uid:"uid1"} (0)`
+{ts:1970-01-01T00:00:02Z,uid:"uid2"(bstring)}(=0)
+{ts:1970-01-01T00:00:01Z,uid:"uid1"}(0)`
 	assert.Equal(t, test.Trim(expected), searchZson(t, conn, pool.ID, "*"))
 }
 
 func TestLogPostPathStopError(t *testing.T) {
-	invalid := writeTempFile(t, `{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa" (bstring} (=0)`)
+	invalid := writeTempFile(t, `{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"(bstring}(=0)`)
 	_, conn := newCore(t)
 	pool := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
 	_, err := conn.LogPostPath(context.Background(), pool.ID, api.LogPostRequest{
@@ -480,12 +480,12 @@ func TestIndexSearch(t *testing.T) {
 	require.NoError(t, err)
 
 	exp := `
-{key:257,count:1 (uint64),first:2020-04-22T01:23:02.06699522Z,last:2020-04-22T01:13:34.06491752Z} (=0)
-{key:257,count:1,first:2020-04-22T00:52:28.0632538Z,last:2020-04-22T00:43:20.06892251Z} (0)
-{key:257,count:1,first:2020-04-21T23:37:25.0693411Z,last:2020-04-21T23:28:29.06845389Z} (0)
-{key:257,count:1,first:2020-04-21T23:28:23.06774599Z,last:2020-04-21T23:19:42.064686Z} (0)
-{key:257,count:1,first:2020-04-21T23:11:06.06396109Z,last:2020-04-21T23:01:02.069881Z} (0)
-{key:257,count:1,first:2020-04-21T22:51:17.06450528Z,last:2020-04-21T22:40:30.06852324Z} (0)
+{key:257,count:1(uint64),first:2020-04-22T01:23:02.06699522Z,last:2020-04-22T01:13:34.06491752Z}(=0)
+{key:257,count:1,first:2020-04-22T00:52:28.0632538Z,last:2020-04-22T00:43:20.06892251Z}(0)
+{key:257,count:1,first:2020-04-21T23:37:25.0693411Z,last:2020-04-21T23:28:29.06845389Z}(0)
+{key:257,count:1,first:2020-04-21T23:28:23.06774599Z,last:2020-04-21T23:19:42.064686Z}(0)
+{key:257,count:1,first:2020-04-21T23:11:06.06396109Z,last:2020-04-21T23:01:02.069881Z}(0)
+{key:257,count:1,first:2020-04-21T22:51:17.06450528Z,last:2020-04-21T22:40:30.06852324Z}(0)
 `
 	res, _ := indexSearch(t, conn, pool.ID, "", []string{"v=257"})
 	assert.Equal(t, test.Trim(exp), zsonCopy(t, "drop _log", res))

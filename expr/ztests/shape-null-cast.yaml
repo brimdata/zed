@@ -2,7 +2,7 @@ zed: |
   put this := shape({a:string,b:string})
 
 input: |
-  {a:null (null),b:null (int64)} (=0)
+  {a:null,b:null(int64)}
 
 output: |
-  {a:null (string),b:null (string)}
+  {a:null(string),b:null(string)}

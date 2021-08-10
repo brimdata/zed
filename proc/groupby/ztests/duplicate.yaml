@@ -1,7 +1,7 @@
 zed: count(), count()
 
 input: |
-  {x:1 (int32)} (=0)
-  {x:2} (0)
+  {x:1(int32)}(=0)
+  {x:2}(0)
 
 errorRE: field count is repeated
