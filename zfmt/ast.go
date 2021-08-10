@@ -234,22 +234,22 @@ func (c *canon) proc(p ast.Proc) {
 		//XXX cleanup for len(Trunks) = 1
 		c.next()
 		c.open("from (")
-		c.open()
 		for _, trunk := range p.Trunks {
 			c.ret()
 			c.source(trunk.Source)
-			c.write(" => ")
-			c.open()
-			c.head = true
-			c.proc(trunk.Seq)
+			if trunk.Seq != nil {
+				c.write(" =>")
+				c.open()
+				c.head = true
+				c.proc(trunk.Seq)
+				c.close()
+			}
 			c.write(";")
-			c.close()
 		}
 		c.close()
 		c.ret()
 		c.flush()
 		c.write(")")
-		c.close()
 	case *ast.Const:
 		c.write("const %s=", p.Name)
 		c.expr(p.Expr, false)

@@ -1,0 +1,40 @@
+script: |
+  zc -C 'file path'
+  echo ===
+  zc -C 'get http://host/path'
+  echo ===
+  zc -C 'from pool'
+  echo ===
+  zc -C 'from ( file path; get http://host/path; pool; )'
+  echo ===
+  zc -C 'from ( file path => head; get http://host/path => head; pool => head; )'
+
+outputs:
+  - name: stdout
+    data: |
+      from (
+        file path;
+      )
+      ===
+      from (
+        get http://host/path;
+      )
+      ===
+      from (
+        pool;
+      )
+      ===
+      from (
+        file path;
+        get http://host/path;
+        pool;
+      )
+      ===
+      from (
+        file path =>
+          head 1;
+        get http://host/path =>
+          head 1;
+        pool =>
+          head 1;
+      )
