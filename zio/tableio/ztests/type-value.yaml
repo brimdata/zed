@@ -1,0 +1,10 @@
+zed: 'cut typeof(this)'
+
+input: |
+  {a:1}
+
+output-flags: -f table
+
+output: |
+  TYPEOF
+  ({a:int64})
