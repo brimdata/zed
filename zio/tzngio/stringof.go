@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed/zson"
 )
 
 // The fmt paramter passed to Type.StringOf() must be one of the following
@@ -91,7 +92,8 @@ func StringOf(zv zng.Value, out OutFmt, b bool) string {
 	case *zng.TypeOfTime:
 		return StringOfTime(t, zv.Bytes, out, b)
 	case *zng.TypeOfType:
-		return StringOfString(zng.TypeString, zv.Bytes, out, b)
+		s, _ := zson.FormatValue(zv)
+		return s
 	case *zng.TypeUnion:
 		return StringOfUnion(t, zv.Bytes, out, b)
 	default:
