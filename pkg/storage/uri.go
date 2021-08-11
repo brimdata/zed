@@ -18,17 +18,11 @@ func ParseURI(path string) (*URI, error) {
 	if path == "" {
 		return &URI{}, nil
 	}
-	u, err := url.Parse(path)
-	if err != nil {
-		return nil, err
-	}
-	if !knownScheme(Scheme(u.Scheme)) {
-		// If we don't know the scheme, either it's empty string,
-		// implying a file, or it's a file path with a colon embedded,
-		// so we parse it either way as a file.
+	if i := strings.IndexByte(path, ':'); i < 0 || !knownScheme(Scheme(path[:i])) {
 		return parseBarePath(path)
 	}
-	return (*URI)(u), nil
+	u, err := url.Parse(path)
+	return (*URI)(u), err
 }
 
 func MustParseURI(path string) *URI {

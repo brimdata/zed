@@ -3,7 +3,6 @@
 package storage
 
 import (
-	"net/url"
 	"path/filepath"
 )
 
@@ -12,11 +11,7 @@ func parseBarePath(path string) (*URI, error) {
 	if err != nil {
 		return nil, err
 	}
-	u, err := url.Parse("file://" + path)
-	if err != nil {
-		return nil, err
-	}
-	return (*URI)(u), nil
+	return &URI{Scheme: string(FileScheme), Path: filepath.ToSlash(path)}, nil
 }
 
 func (p *URI) Filepath() string {
