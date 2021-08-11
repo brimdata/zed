@@ -1,0 +1,10 @@
+zed: '*'
+
+input: |
+  {a:{b:1}(=record_alias)}(=0)
+
+output-flags: -f table
+
+output: |
+  A.B
+  1

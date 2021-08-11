@@ -1,0 +1,15 @@
+zed: '*'
+
+input: |
+  {a:{b:1}(=record_alias)}(=0)
+
+output-flags: -f zeek
+
+output: |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #fields	a.b
+  #types	int
+  1
