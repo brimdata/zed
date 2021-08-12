@@ -150,8 +150,8 @@ type Bundle struct {
 	Error    error
 }
 
-func (b *Bundle) RunScript(shellPath, workingDir string) error {
-	return b.Test.RunScript(b.TestName, shellPath, workingDir, b.FileName)
+func (b *Bundle) RunScript(shellPath, tempDir string) error {
+	return b.Test.RunScript(shellPath, filepath.Dir(b.FileName), tempDir)
 }
 
 func Load(dirname string) ([]Bundle, error) {
@@ -195,7 +195,7 @@ func Run(t *testing.T, dirname string) {
 			if b.Error != nil {
 				t.Fatalf("%s: %s", b.FileName, b.Error)
 			}
-			b.Test.Run(t, b.TestName, shellPath, dirname, b.FileName)
+			b.Test.Run(t, shellPath, b.FileName)
 		})
 	}
 }
@@ -347,12 +347,11 @@ func (z *ZTest) ShouldSkip(path string) string {
 	return ""
 }
 
-func (z *ZTest) RunScript(testname, shellPath, workingDir, filename string) error {
+func (z *ZTest) RunScript(shellPath, testDir, tempDir string) error {
 	if err := z.check(); err != nil {
-		return fmt.Errorf("%s: bad yaml format: %w", filename, err)
+		return fmt.Errorf("bad yaml format: %w", err)
 	}
-	adir, _ := filepath.Abs(workingDir)
-	return runsh(testname, shellPath, adir, z)
+	return runsh(shellPath, testDir, tempDir, z)
 }
 
 func (z *ZTest) RunInternal(path string) error {
@@ -383,13 +382,13 @@ func (z *ZTest) RunInternal(path string) error {
 	return nil
 }
 
-func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
+func (z *ZTest) Run(t *testing.T, path, filename string) {
 	if msg := z.ShouldSkip(path); msg != "" {
 		t.Skip("skipping test:", msg)
 	}
 	var err error
 	if z.Script != "" {
-		err = z.RunScript(testname, path, dirname, filename)
+		err = z.RunScript(path, filepath.Dir(filename), t.TempDir())
 	} else {
 		err = z.RunInternal(path)
 	}
@@ -416,7 +415,7 @@ func diffErr(name, expected, actual string) error {
 	return fmt.Errorf("expected and actual %s differ:\n%s", name, diff)
 }
 
-func checkPatterns(patterns map[string]*regexp.Regexp, dir *Dir, stdout, stderr string) error {
+func checkPatterns(patterns map[string]*regexp.Regexp, dir Dir, stdout, stderr string) error {
 	for name, re := range patterns {
 		var body []byte
 		switch name {
@@ -438,7 +437,7 @@ func checkPatterns(patterns map[string]*regexp.Regexp, dir *Dir, stdout, stderr 
 	return nil
 }
 
-func checkData(files map[string][]byte, dir *Dir, stdout, stderr string) error {
+func checkData(files map[string][]byte, dir Dir, stdout, stderr string) error {
 	for name, expected := range files {
 		var actual []byte
 		switch name {
@@ -460,15 +459,11 @@ func checkData(files map[string][]byte, dir *Dir, stdout, stderr string) error {
 	return nil
 }
 
-func runsh(testname, path, dirname string, zt *ZTest) error {
-	dir, err := NewDir(testname)
-	if err != nil {
-		return fmt.Errorf("creating ztest scratch dir: \"%s\": %w", testname, err)
-	}
+func runsh(path, testDir, tempDir string, zt *ZTest) error {
+	dir := Dir(tempDir)
 	var stdin io.Reader
-	defer dir.RemoveAll()
 	for _, f := range zt.Inputs {
-		b, re, err := f.load(dirname)
+		b, re, err := f.load(testDir)
 		if err != nil {
 			return err
 		}
@@ -492,7 +487,7 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 	expectedData := make(map[string][]byte)
 	expectedPattern := make(map[string]*regexp.Regexp)
 	for _, f := range zt.Outputs {
-		b, re, err := f.load(dirname)
+		b, re, err := f.load(testDir)
 		if err != nil {
 			return err
 		}

@@ -135,7 +135,7 @@ func runTest(t *testing.T, cmd, input, output string) {
 		Zed:    cmd,
 		Input:  input,
 		Output: trim(output),
-	}).Run(t, "", "", "", "")
+	}).Run(t, "", "")
 }
 
 func TestSort(t *testing.T) {

@@ -66,7 +66,7 @@ diff baseline.zson boomerang.zson
 		b := b
 		t.Run(b.TestName, func(t *testing.T) {
 			t.Parallel()
-			err := b.RunScript(shellPath, ".")
+			err := b.RunScript(shellPath, t.TempDir())
 			if err != nil {
 				err = &BoomerangError{
 					*b.Test.Inputs[0].Data,
@@ -159,7 +159,7 @@ diff baseline.parquet boomerang.parquet
 		b := b
 		t.Run(b.TestName, func(t *testing.T) {
 			t.Parallel()
-			err := b.RunScript(shellPath, ".")
+			err := b.RunScript(shellPath, t.TempDir())
 			if err != nil {
 				if s := err.Error(); strings.Contains(s, parquetio.ErrEmptyRecordType.Error()) ||
 					strings.Contains(s, parquetio.ErrNullType.Error()) ||

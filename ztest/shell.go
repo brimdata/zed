@@ -9,7 +9,7 @@ import (
 	"runtime"
 )
 
-func RunShell(dir *Dir, bindir, script string, stdin io.Reader, useenvs []string) (string, string, error) {
+func RunShell(dir Dir, bindir, script string, stdin io.Reader, useenvs []string) (string, string, error) {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd.exe", "/c", script)
