@@ -1,7 +1,6 @@
 package create
 
 import (
-	"context"
 	"errors"
 	"flag"
 
@@ -62,7 +61,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	_, cleanup, err := c.Init(&c.inputFlags, &c.outputFlags)
+	ctx, cleanup, err := c.Init(&c.inputFlags, &c.outputFlags)
 	if err != nil {
 		return err
 	}
@@ -77,11 +76,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	reader, err := zbuf.MergeReadersByTsAsReader(context.Background(), readers, order.Asc)
+	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, order.Asc)
 	if err != nil {
 		return err
 	}
-	writer, err := c.outputFlags.Open(context.TODO(), local)
+	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}

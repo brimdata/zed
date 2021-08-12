@@ -1,7 +1,6 @@
 package inspect
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"strings"
@@ -53,7 +52,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	_, cleanup, err := c.Init(&c.outputFlags)
+	ctx, cleanup, err := c.Init(&c.outputFlags)
 	if err != nil {
 		return err
 	}
@@ -65,8 +64,6 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zst cut: must specify field to cut with -k")
 	}
 	fields := strings.Split(c.fieldExpr, ".")
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	path := args[0]
 	local := storage.NewLocalEngine()
 	cutter, err := zst.NewCutterFromPath(ctx, zson.NewContext(), local, path, fields)

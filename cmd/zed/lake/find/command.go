@@ -78,11 +78,11 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 func (c *Command) Run(args []string) error {
 	return errors.New("issue #2532")
 	/* NOT YET
-	defer c.Cleanup()
-	if err := c.Init(&c.outputFlags); err != nil {
+	ctx, cleanup, err := c.Init(&c.outputFlags)
+ 	if err != nil {
 		return err
 	}
-
+	defer cleanup()
 	lk, err := lake.OpenLake(c.root, nil)
 	if err != nil {
 		return err
@@ -100,9 +100,6 @@ func (c *Command) Run(args []string) error {
 	if c.skipMissing {
 		findOptions = append(findOptions, lake.SkipMissing())
 	}
-
-	ctx, cancel := context.WithCancel(context.TODO())
-	defer cancel()
 	outputFile := c.outputFlags.FileName()
 	if outputFile == "-" {
 		outputFile = ""
