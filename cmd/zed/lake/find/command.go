@@ -78,61 +78,58 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 func (c *Command) Run(args []string) error {
 	return errors.New("issue #2532")
 	/* NOT YET
-	defer c.Cleanup()
-	if err := c.Init(&c.outputFlags); err != nil {
-		return err
-	}
-
-	lk, err := lake.OpenLake(c.root, nil)
-	if err != nil {
-		return err
-	}
-
-	query, err := index.ParseQuery(c.indexFile, args)
-	if err != nil {
-		return err
-	}
-
-	var findOptions []lake.FindOption
-	if c.pathField != "" {
-		findOptions = append(findOptions, lake.AddPath(c.pathField, !c.relativePaths))
-	}
-	if c.skipMissing {
-		findOptions = append(findOptions, lake.SkipMissing())
-	}
-
-	ctx, cancel := context.WithCancel(context.TODO())
-	defer cancel()
-	outputFile := c.outputFlags.FileName()
-	if outputFile == "-" {
-		outputFile = ""
-	}
-	writer, err := emitter.NewFile(ctx, outputFile, c.outputFlags.Options())
-	if err != nil {
-		return err
-	}
-	defer writer.Close()
-	hits := make(chan *zng.Record)
-	var searchErr error
-	go func() {
-		searchErr = lake.Find(ctx, zson.NewContext(), lk, query, hits, findOptions...)
-		close(hits)
-	}()
-	for hit := range hits {
-		var err error
-		if writer != nil {
-			err = writer.Write(hit)
-		} else {
-			var path string
-			path, err = hit.AccessString(c.pathField)
-			if err == nil {
-				fmt.Println(path)
-			}
+		ctx, cleanup, err := c.Init(&c.outputFlags)
+	 	if err != nil {
+			return err
 		}
+		defer cleanup()
+		lk, err := lake.OpenLake(c.root, nil)
 		if err != nil {
 			return err
 		}
-	}
-	return searchErr
+
+		query, err := index.ParseQuery(c.indexFile, args)
+		if err != nil {
+			return err
+		}
+
+		var findOptions []lake.FindOption
+		if c.pathField != "" {
+			findOptions = append(findOptions, lake.AddPath(c.pathField, !c.relativePaths))
+		}
+		if c.skipMissing {
+			findOptions = append(findOptions, lake.SkipMissing())
+		}
+		outputFile := c.outputFlags.FileName()
+		if outputFile == "-" {
+			outputFile = ""
+		}
+		writer, err := emitter.NewFile(ctx, outputFile, c.outputFlags.Options())
+		if err != nil {
+			return err
+		}
+		defer writer.Close()
+		hits := make(chan *zng.Record)
+		var searchErr error
+		go func() {
+			searchErr = lake.Find(ctx, zson.NewContext(), lk, query, hits, findOptions...)
+			close(hits)
+		}()
+		for hit := range hits {
+			var err error
+			if writer != nil {
+				err = writer.Write(hit)
+			} else {
+				var path string
+				path, err = hit.AccessString(c.pathField)
+				if err == nil {
+					fmt.Println(path)
+				}
+			}
+			if err != nil {
+				return err
+			}
+		}
+		return searchErr
 	*/
 }
