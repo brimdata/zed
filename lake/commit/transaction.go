@@ -13,6 +13,10 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
+// ErrEmptyTransaction is the error returned by Transaction.Serialize when
+// Transaction.Actions is empty.
+var ErrEmptyTransaction = errors.New("empty transaction")
+
 type Transaction struct {
 	ID      ksuid.KSUID         `zng:"id"`
 	Actions []actions.Interface `zng:"actions"`
@@ -101,7 +105,7 @@ func (t Transaction) Serialize() ([]byte, error) {
 	}
 	b := writer.Bytes()
 	if len(b) == 0 {
-		return nil, errors.New("empty transaction")
+		return nil, ErrEmptyTransaction
 	}
 	return b, nil
 }
