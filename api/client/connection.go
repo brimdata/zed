@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/go-resty/resty/v2"
@@ -358,11 +357,6 @@ func (c *Connection) IndexPost(ctx context.Context, id ksuid.KSUID, post api.Ind
 	return err
 }
 
-type LogPostOpts struct {
-	StopError bool
-	Shaper    ast.Proc
-}
-
 func (c *Connection) Add(ctx context.Context, pool ksuid.KSUID, r io.Reader) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(r)
@@ -391,47 +385,6 @@ func (c *Connection) Squash(ctx context.Context, pool ksuid.KSUID, ids []ksuid.K
 		SetBody(api.SquashRequest{ids})
 	req.Method = http.MethodPost
 	req.URL = path.Join("/pool", pool.String(), "squash")
-	return c.stream(req)
-}
-
-func (c *Connection) LogPostPath(ctx context.Context, id ksuid.KSUID, payload api.LogPostRequest) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(payload)
-	req.URL = path.Join("/pool", id.String(), "log", "paths")
-	req.Method = http.MethodPost
-	return c.stream(req)
-}
-
-func (c *Connection) LogPost(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, paths []string) (*Response, error) {
-	mw, err := NewMultipartWriter(c.storage, paths...)
-	if err != nil {
-		return nil, err
-	}
-	return c.LogPostWriter(ctx, id, opts, mw)
-}
-
-func (c *Connection) LogPostReaders(ctx context.Context, engine storage.Engine, id ksuid.KSUID, opts *LogPostOpts, readers ...io.Reader) (*Response, error) {
-	w, err := MultipartDataWriter(engine, readers...)
-	if err != nil {
-		return nil, err
-	}
-	return c.LogPostWriter(ctx, id, opts, w)
-}
-
-func (c *Connection) LogPostWriter(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, writer *MultipartWriter) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(writer).
-		SetHeader("Content-Type", writer.ContentType())
-	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", id.String(), "log")
-	if opts != nil {
-		if opts.Shaper != nil {
-			writer.SetShaper(opts.Shaper)
-		}
-		if opts.StopError {
-			req.SetQueryParam("stop_err", "true")
-		}
-	}
 	return c.stream(req)
 }
 

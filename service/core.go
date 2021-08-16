@@ -155,8 +155,6 @@ func (c *Core) addAPIServerRoutes() {
 
 	// Deprecated endpoints
 	c.authhandle("/search", handleSearch).Methods("POST")
-	c.authhandle("/pool/{pool}/log", handleLogPost).Methods("POST")
-	c.authhandle("/pool/{pool}/log/paths", handleLogPostPaths).Methods("POST")
 	// c.authhandle("/index", handleIndexPost).Methods("POST")
 }
 

@@ -19,12 +19,6 @@ func unpack(b []byte) (interface{}, error) {
 	}
 	var out interface{}
 	switch v.Type {
-	case "LogPostResponse":
-		out = &api.LogPostResponse{}
-	case "LogPostStatus":
-		out = &api.LogPostStatus{}
-	case "LogPostWarning":
-		out = &api.LogPostWarning{}
 	case "TaskStart":
 		out = &api.TaskStart{}
 	case "TaskEnd":

@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zsonio"
@@ -90,13 +89,6 @@ func (c *testClient) TestQuery(query string) string {
 	zw := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
 	require.NoError(c, zio.Copy(zw, zr))
 	return buf.String()
-}
-
-func (c *testClient) TestLogPostReaders(id ksuid.KSUID, opts *client.LogPostOpts, readers ...io.Reader) (res api.LogPostResponse) {
-	r, err := c.Connection.LogPostReaders(context.Background(), storage.NewLocalEngine(), id, opts, readers...)
-	require.NoError(c, err)
-	c.unmarshal(r, &res)
-	return res
 }
 
 func (c *testClient) TestLoad(id ksuid.KSUID, r io.Reader) {

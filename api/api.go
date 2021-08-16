@@ -111,30 +111,6 @@ type SquashRequest struct {
 	Commits []ksuid.KSUID `json:"commits"`
 }
 
-type LogPostRequest struct {
-	Paths   []string        `json:"paths"`
-	StopErr bool            `json:"stop_err"`
-	Shaper  json.RawMessage `json:"shaper,omitempty"`
-}
-
-type LogPostWarning struct {
-	Type    string `json:"type"`
-	Warning string `json:"warning"`
-}
-
-type LogPostStatus struct {
-	Type         string `json:"type"`
-	LogTotalSize int64  `json:"log_total_size" unit:"bytes"`
-	LogReadSize  int64  `json:"log_read_size" unit:"bytes"`
-}
-
-type LogPostResponse struct {
-	Type      string      `json:"type"`
-	BytesRead int64       `json:"bytes_read" unit:"bytes"`
-	Commit    ksuid.KSUID `json:"commit"`
-	Warnings  []string    `json:"warnings"`
-}
-
 type AddResponse struct {
 	Commit   ksuid.KSUID `zng:"commit"`
 	Warnings []string    `zng:"warnings"`
