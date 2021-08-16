@@ -274,7 +274,7 @@ func handleAdd(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	zr, err := anyio.NewReader(r.Body, zson.NewContext())
+	zr, err := anyio.NewReader(anyio.GzipReader(r.Body), zson.NewContext())
 	if err != nil {
 		w.Error(err)
 		return
