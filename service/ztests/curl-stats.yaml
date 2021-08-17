@@ -1,32 +1,18 @@
 script: |
   source service.sh
-  curl -X POST \
-    -H "Accept: application/json" \
-    -d @test-pool.json \
-    http://$ZED_LAKE_HOST/pool > pool.json
-  poolID=$(zq -f text "cut value.id" pool.json)
-  curl -X POST \
-    -F babble.zson=@babble.zson \
-    http://$ZED_LAKE_HOST/pool/$poolID/log >/dev/null
-  curl -H "Accept: application/json" \
-    http://$ZED_LAKE_HOST/pool/$poolID/stats
+  curl -X POST -d '{"name":"test"}' http://$ZED_LAKE_HOST/pool > pool.json
+  poolID=$(zq -f text 'cut value.id' pool.json)
+  curl -X POST -d @- http://$ZED_LAKE_HOST/pool/$poolID/add > add.json
+  commitID=$(zq -f text 'cut value.commit' add.json)
+  curl -X POST -d '{}' http://$ZED_LAKE_HOST/pool/$poolID/staging/$commitID
+  curl http://$ZED_LAKE_HOST/pool/$poolID/stats
 
 inputs:
-  - name: service.sh
-    source: service.sh
-  - name: test-pool.json
-    data: |
-      {
-        "name": "test",
-        "layout": {
-          "order": "desc",
-          "keys": [["ts"]]
-        }
-      }
-  - name: babble.zson
+  - name: stdin
     source: ../../testdata/babble.zson
+  - name: service.sh
 
 outputs:
   - name: stdout
     data: |
-      {"kind":"PoolStats","value":{"size":34325,"span":{"dur":9789993714061,"ts":"2020-04-21T22:40:30.06852324Z"}}}
+      {"kind":"PoolStats","value":{"size":34374,"span":{"dur":9789993714061,"ts":"2020-04-21T22:40:30.06852324Z"}}}

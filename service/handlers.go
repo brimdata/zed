@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
@@ -16,9 +15,7 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/journal"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/service/auth"
-	"github.com/brimdata/zed/service/jsonpipe"
 	"github.com/brimdata/zed/service/search"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
@@ -459,126 +456,6 @@ func handleScanLog(c *Core, w *ResponseWriter, r *Request) {
 	if err := zio.CopyWithContext(r.Context(), zw, zr); err != nil {
 		w.Error(err)
 	}
-}
-
-func handleLogPostPaths(c *Core, w *ResponseWriter, r *Request) {
-	var req api.LogPostRequest
-	if !r.Unmarshal(w, &req) {
-		return
-	}
-	if len(req.Paths) == 0 {
-		w.Error(zqe.E(zqe.Invalid, "empty paths"))
-		return
-	}
-	id, ok := r.PoolID(w)
-	if !ok {
-		return
-	}
-	pool, err := c.root.OpenPool(r.Context(), id)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	op, err := NewLogOp(r.Context(), pool, req)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	if w.ContentType() == api.MediaTypeJSON {
-		w.SetContentType(api.MediaTypeNDJSON)
-	}
-	w.WriteHeader(http.StatusAccepted)
-	pipe := jsonpipe.New(w.ResponseWriter)
-	if err := pipe.SendStart(0); err != nil {
-		w.Logger.Warn("error sending payload", zap.Error(err))
-		return
-	}
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-loop:
-	for {
-		select {
-		case warning, ok := <-op.Status():
-			if !ok {
-				break loop
-			}
-			err := pipe.Send(api.LogPostWarning{
-				Type:    "LogPostWarning",
-				Warning: warning,
-			})
-			if err != nil {
-				w.Logger.Warn("error sending payload", zap.Error(err))
-				return
-			}
-		case <-ticker.C:
-			if err := pipe.Send(op.Stats()); err != nil {
-				w.Logger.Warn("error sending payload", zap.Error(err))
-				return
-			}
-		}
-	}
-	// send final status
-	if err := pipe.Send(op.Stats()); err != nil {
-		w.Logger.Warn("error sending payload", zap.Error(err))
-		return
-	}
-	err = op.Error()
-	if err == nil {
-		// XXX Figure out some mechanism for propagating user and message.
-		err = pool.Commit(r.Context(), op.Commit(), nano.Now(), "", "")
-	}
-	if err == nil {
-		res := api.LogPostResponse{Type: "LogPostResponse", Commit: op.Commit()}
-		if err := pipe.Send(res); err != nil {
-			w.Logger.Warn("error sending payload", zap.Error(err))
-			return
-		}
-	}
-	if err := pipe.SendEnd(0, err); err != nil {
-		w.Logger.Warn("error sending payload", zap.Error(err))
-		return
-	}
-}
-
-// Deprecated. Use handlePoolAdd instead.
-func handleLogPost(c *Core, w *ResponseWriter, r *Request) {
-	form, err := r.MultipartReader()
-	if err != nil {
-		w.Error(zqe.ErrInvalid(err))
-		return
-	}
-	id, ok := r.PoolID(w)
-	if !ok {
-		return
-	}
-	pool, err := c.root.OpenPool(r.Context(), id)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	zctx := zson.NewContext()
-	zr := NewMultipartLogReader(form, zctx)
-	if r.URL.Query().Get("stop_err") != "" {
-		zr.SetStopOnError()
-	}
-	commit, err := pool.Add(r.Context(), zr)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	// XXX Figure out some mechanism for propagating user and message.
-	if err := pool.Commit(r.Context(), commit, nano.Now(), "", ""); err != nil {
-		w.Error(err)
-		return
-	}
-
-	// XXX add a separate commit hook
-	w.Respond(http.StatusOK, api.LogPostResponse{
-		Type:      "LogPostResponse",
-		BytesRead: zr.BytesRead(),
-		Commit:    commit,
-		Warnings:  zr.Warnings(),
-	})
 }
 
 /* XXX Not yet
