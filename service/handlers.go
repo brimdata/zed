@@ -281,14 +281,17 @@ func handleAdd(c *Core, w *ResponseWriter, r *Request) {
 	}
 	warnings := warningCollector{}
 	zr = zio.NewWarningReader(zr, &warnings)
-	commit, err := pool.Add(r.Context(), zr)
+	kommit, err := pool.Add(r.Context(), zr)
 	if err != nil {
+		if errors.Is(err, commit.ErrEmptyTransaction) {
+			err = zqe.ErrInvalid("no records in request")
+		}
 		w.Error(err)
 		return
 	}
 	w.Respond(http.StatusOK, api.AddResponse{
 		Warnings: warnings,
-		Commit:   commit,
+		Commit:   kommit,
 	})
 }
 
