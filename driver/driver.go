@@ -93,39 +93,27 @@ func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *
 }
 
 func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-chan time.Time) error {
+	defer pctx.Cancel()
 	puller := runtime.Puller()
 	if puller == nil {
-		pctx.Cancel()
 		return errors.New("internal error: driver called with unprepared runtime")
 	}
 	statser := runtime.Statser()
 	if statser == nil && statsTicker != nil {
-		pctx.Cancel()
 		return errors.New("internal error: driver wants live stats but runtime has no statser")
 	}
-	pullerCh := make(chan zbuf.Batch)
-	done := make(chan error)
-	defer func() {
-		pctx.Cancel()
-		<-pullerCh
-		<-done
-	}()
+	resultCh := make(chan proc.Result)
 	go func() {
 		for {
-			// We can simply call Pull here knowing it will return
-			// when pctx.Cancel() is called on exit from our
-			// parent goroutine and we won't block because pullerCh
-			// and done are always read on exit.
 			batch, err := safePull(puller)
-			if batch == nil || err != nil {
-				close(pullerCh)
-				if err != nil {
-					done <- err
+			select {
+			case resultCh <- proc.Result{Batch: batch, Err: err}:
+				if batch == nil || err != nil {
+					return
 				}
-				close(done)
+			case <-pctx.Done():
 				return
 			}
-			pullerCh <- batch
 		}
 	}()
 	for {
@@ -134,9 +122,9 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 			if err := d.Stats(api.ScannerStats(statser.Stats())); err != nil {
 				return err
 			}
-		case p := <-pullerCh:
-			if p == nil {
-				err := <-done
+		case result := <-resultCh:
+			if result.Batch == nil || result.Err != nil {
+				err := result.Err
 				// Now that we're done, drain the warnings.
 				// This is a little goofy and we should clean
 				// up the warnings model with its own package.
@@ -161,7 +149,7 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 				}
 				return err
 			}
-			batch, cid := extractLabel(p)
+			batch, cid := extractLabel(result.Batch)
 			if batch == nil {
 				if err := d.ChannelEnd(cid); err != nil {
 					return err
@@ -175,6 +163,8 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 			if err := d.Warn(warning); err != nil {
 				return err
 			}
+		case <-pctx.Done():
+			return pctx.Err()
 		}
 	}
 }
