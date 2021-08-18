@@ -24,9 +24,10 @@ type ZngOutput struct {
 func NewZngOutput(response http.ResponseWriter, ctrl bool) *ZngOutput {
 	return &ZngOutput{
 		response: response,
-		//XXX seems like we should compress by default
-		writer: zngio.NewWriter(zio.NopCloser(response), zngio.WriterOpts{}),
-		ctrl:   ctrl,
+		writer: zngio.NewWriter(zio.NopCloser(response), zngio.WriterOpts{
+			LZ4BlockSize: zngio.DefaultLZ4BlockSize,
+		}),
+		ctrl: ctrl,
 	}
 }
 
@@ -51,7 +52,10 @@ func (r *ZngOutput) SendBatch(cid int, batch zbuf.Batch) error {
 }
 
 func (r *ZngOutput) End(ctrl interface{}) error {
-	return r.SendControl(ctrl)
+	if err := r.SendControl(ctrl); err != nil {
+		return err
+	}
+	return r.writer.Close()
 }
 
 func (r *ZngOutput) SendControl(ctrl interface{}) error {
