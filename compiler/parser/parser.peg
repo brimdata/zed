@@ -489,8 +489,8 @@ PoolProc
   = "from"i _ body:PoolBody { RETURN(body) }
 
 PoolBody
-  = name:PoolName at:PoolAt? over:PoolRange? order:OrderArg? {
-      RETURN(MAP("kind": "Pool", "name": name, "at": at, "range": over, "scan_order": order))
+  = spec:PoolSpec at:PoolAt? over:PoolRange? order:OrderArg? {
+      RETURN(MAP("kind": "Pool", "spec": spec, "at": at, "range": over, "scan_order": order))
     }
 
 HTTPProc
@@ -514,10 +514,29 @@ PoolRange
       RETURN(MAP("kind":"Range","lower": lower, "upper": upper))
     }
 
+PoolSpec
+  = pool:PoolName "/" branch:PoolName "[" meta:IdentifierName "]" {
+      RETURN(MAP("pool": pool, "branch": branch, "meta": meta))
+    }
+  / pool:PoolName "[" meta:IdentifierName "]" {
+      RETURN(MAP("pool": pool, "branch": NULL, "meta": meta))
+    }
+  / "[" meta:IdentifierName "]" {
+      RETURN(MAP("pool": NULL, "branch": NULL, "meta": meta))
+    }
+  / pool:PoolName "/" branch:PoolName {
+      RETURN(MAP("pool": pool, "branch": branch, "meta": NULL))
+    }
+  / pool:PoolName {
+      RETURN(MAP("pool": pool, "branch": NULL, "meta": NULL))
+    }
+
 PoolName
   = name:IdentifierName { RETURN(name) }
   / id:KSUID { RETURN(id) }
   / s:QuotedString { RETURN(s) }
+
+PoolNameChar = [A-Za-z0-9_$.[\]]
 
 LayoutArg
   = _ "order"i _ keys:FieldExprs order:OrderSuffix {

@@ -35,7 +35,6 @@ const (
 var ErrStagingEmpty = errors.New("staging area empty")
 
 type PoolConfig struct {
-	Version   int          `zng:"version"`
 	Name      string       `zng:"name"`
 	ID        ksuid.KSUID  `zng:"id"`
 	Layout    order.Layout `zng:"layout"`
@@ -57,7 +56,6 @@ func NewPoolConfig(name string, id ksuid.KSUID, layout order.Layout, thresh int6
 		thresh = segment.DefaultThreshold
 	}
 	return &PoolConfig{
-		Version:   0,
 		Name:      name,
 		ID:        id,
 		Layout:    layout,
@@ -202,6 +200,20 @@ func (p *Pool) LookupTags(ctx context.Context, tags []ksuid.KSUID) ([]ksuid.KSUI
 	return ids, nil
 }
 
+func (p *Pool) SnapshotOf(ctx context.Context, tag ksuid.KSUID) (*commit.Snapshot, error) {
+	if tag == ksuid.Nil {
+		return p.log.Head(ctx)
+	}
+	snap, ok, err := p.log.SnapshotOfCommit(ctx, 0, tag)
+	if err != nil {
+		return nil, fmt.Errorf("tag does not exist: %s", tag)
+	}
+	if !ok {
+		return nil, fmt.Errorf("commit tag was previously deleted: %s", tag)
+	}
+	return snap, nil
+}
+
 func (p *Pool) SegmentExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
 	return p.engine.Exists(ctx, segment.RowObjectPath(p.DataPath, id))
 }
@@ -247,6 +259,7 @@ func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) erro
 	return storage.Put(ctx, p.engine, p.StagingObject(txn.ID), bytes.NewReader(b))
 }
 
+// XXX ScanStaging will go away with issue #2626
 // ScanStaging writes the staging commits in ids to w.
 // If ids is empty, all staging commits are written.
 func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
@@ -311,61 +324,74 @@ func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID)
 	return <-done
 }
 
-func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.Reference) error {
-	for _, seg := range snap.SelectAll() {
-		select {
-		case ch <- *seg:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	return nil
-}
-
-func (p *Pool) ScanPartitions(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span extent.Span) error {
-	ch := make(chan Partition, 10)
+func (p *Pool) readerOfPartitions(ctx context.Context, zctx *zson.Context, snap *commit.Snapshot, span extent.Span) (zio.Reader, error) {
+	ch := make(chan Partition)
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	var err error
+	var scanErr error
 	go func() {
-		err = ScanPartitions(ctx, snap, span, p.Layout.Order, ch)
+		scanErr = ScanPartitions(ctx, snap, span, p.Layout.Order, ch)
 		close(ch)
 	}()
-	m := zson.NewZNGMarshaler()
-	m.Decorate(zson.StyleSimple)
-	for p := range ch {
-		rec, err := m.MarshalRecord(p)
-		if err != nil {
-			return err
-		}
-		if err := w.Write(rec); err != nil {
-			return err
-		}
-	}
-	return err
+	m := zson.NewZNGMarshalerWithContext(zctx)
+	m.Decorate(zson.StylePackage)
+	return &readerFunc{
+		get: func() (*zng.Record, error) {
+			select {
+			case p := <-ch:
+				if p.Segments == nil {
+					cancel()
+					return nil, scanErr
+				}
+				rec, err := m.MarshalRecord(p)
+				if err != nil {
+					cancel()
+					return nil, err
+				}
+				return rec, nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		},
+	}, nil
 }
 
-func (p *Pool) ScanSegments(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span extent.Span) error {
+func (p *Pool) readerOfObjects(ctx context.Context, zctx *zson.Context, snap *commit.Snapshot, span extent.Span) (zio.Reader, error) {
 	ch := make(chan segment.Reference)
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	var err error
+	var scanErr error
 	go func() {
-		err = ScanSpan(ctx, snap, span, p.Layout.Order, ch)
+		scanErr = ScanSpan(ctx, snap, span, p.Layout.Order, ch)
 		close(ch)
 	}()
-	m := zson.NewZNGMarshaler()
+	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	for p := range ch {
-		rec, err := m.MarshalRecord(p)
-		if err != nil {
-			return err
-		}
-		if err := w.Write(rec); err != nil {
-			return err
-		}
-	}
-	return err
+	return &readerFunc{
+		get: func() (*zng.Record, error) {
+			select {
+			case p := <-ch:
+				if p.ID == ksuid.Nil {
+					cancel()
+					return nil, scanErr
+				}
+				rec, err := m.MarshalRecord(p)
+				if err != nil {
+					cancel()
+					return nil, err
+				}
+				return rec, nil
+			case <-ctx.Done():
+				return nil, ctx.Err()
+			}
+		},
+	}, nil
+}
+
+type readerFunc struct {
+	get func() (*zng.Record, error)
+}
+
+func (r *readerFunc) Read() (*zng.Record, error) {
+	return r.get()
 }
 
 func (p *Pool) IsJournalID(ctx context.Context, id journal.ID) (bool, error) {

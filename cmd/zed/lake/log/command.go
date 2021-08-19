@@ -3,11 +3,13 @@ package log
 import (
 	"errors"
 	"flag"
+	"fmt"
 
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
+	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 )
@@ -44,6 +46,9 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
+	if c.lakeFlags.PoolName == "" {
+		return errors.New("pool must be specified")
+	}
 	ctx, cleanup, err := c.lake.Root().Init(&c.outputFlags)
 	if err != nil {
 		return err
@@ -56,14 +61,15 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	pool, err := lake.LookupPool(ctx, c.lakeFlags.PoolName)
-	if err != nil {
-		return err
-	}
+	query := fmt.Sprintf("from '%s'[log]", c.lakeFlags.PoolName)
 	w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}
 	defer w.Close()
-	return lake.ScanLog(ctx, pool.ID, w, 0, 0)
+	_, err = lake.Query(ctx, driver.NewCLI(w), query)
+	if closeErr := w.Close(); err == nil {
+		err = closeErr
+	}
+	return err
 }

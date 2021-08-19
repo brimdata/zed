@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zngbytes"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -89,8 +90,8 @@ func (l *Log) Open(ctx context.Context, head, tail journal.ID) (io.Reader, error
 	return l.journal.Open(ctx, head, tail)
 }
 
-func (l *Log) OpenAsZNG(ctx context.Context, head, tail journal.ID) (*zngio.Reader, error) {
-	return l.journal.OpenAsZNG(ctx, head, tail)
+func (l *Log) OpenAsZNG(ctx context.Context, zctx *zson.Context, head, tail journal.ID) (*zngio.Reader, error) {
+	return l.journal.OpenAsZNG(ctx, zctx, head, tail)
 }
 
 func (l *Log) Head(ctx context.Context) (*Snapshot, error) {

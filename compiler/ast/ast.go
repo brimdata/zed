@@ -369,11 +369,11 @@ type (
 		Layout *Layout `json:"layout"`
 	}
 	Pool struct {
-		Kind      string `json:"kind" unpack:""`
-		Name      string `json:"name"`
-		At        string `json:"at"`
-		Range     *Range `json:"range"`
-		ScanOrder string `json:"scan_order"` // asc, desc, or unknown
+		Kind      string   `json:"kind" unpack:""`
+		Spec      PoolSpec `json:"spec"`
+		At        string   `json:"at"`
+		Range     *Range   `json:"range"`
+		ScanOrder string   `json:"scan_order"` // asc, desc, or unknown
 	}
 	Explode struct {
 		Kind string   `json:"kind" unpack:""`
@@ -382,6 +382,12 @@ type (
 		As   Expr     `json:"as"`
 	}
 )
+
+type PoolSpec struct {
+	Pool   string `json:"pool"`
+	Branch string `json:"branch"`
+	Meta   string `json:"meta"`
+}
 
 type Range struct {
 	Kind  string `json:"kind" unpack:""`

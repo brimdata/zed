@@ -117,7 +117,7 @@ func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, pool *lake
 		Kind: "Trunk",
 		Source: &ast.Pool{
 			Kind:      "Pool",
-			Name:      pool.Name,
+			Spec:      ast.PoolSpec{Pool: pool.Name},
 			Range:     scanRange,
 			ScanOrder: scanOrder,
 		},

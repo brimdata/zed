@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
@@ -36,15 +37,15 @@ func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, l
 
 type internalAdaptor struct{}
 
-func (f *internalAdaptor) Lookup(_ context.Context, _ string) (ksuid.KSUID, error) {
-	return ksuid.Nil, nil
+func (f *internalAdaptor) LookupIDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error) {
+	return ksuid.Nil, ksuid.Nil, nil
 }
 
-func (*internalAdaptor) Layout(_ context.Context, _ ksuid.KSUID) (order.Layout, error) {
-	return order.Nil, errors.New("invalid pool scan specified for internally streamed Zed query")
+func (f *internalAdaptor) Layout(context.Context, dag.Source) order.Layout {
+	return order.Nil
 }
 
-func (*internalAdaptor) NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
+func (*internalAdaptor) NewScheduler(context.Context, *zson.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, errors.New("invalid pool or file scan specified for internally streamed Zed query")
 }
 

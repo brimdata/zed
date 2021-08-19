@@ -5,8 +5,8 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli/lakeflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/segmentio/ksuid"
@@ -50,7 +50,7 @@ func (c *ApplyCommand) Run(args []string) error {
 		return errors.New("index apply command requires rule name and one or more object IDs")
 	}
 	ruleName := args[0]
-	tags, err := lakeflags.ParseIDs(args[1:])
+	tags, err := parser.ParseIDs(args[1:])
 	if err != nil {
 		return err
 	}

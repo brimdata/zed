@@ -385,6 +385,12 @@ func source(src dag.Source) string {
 		return fmt.Sprintf("get %s", p.URL)
 	case *dag.Pool:
 		return fmt.Sprintf("%s", p.ID)
+	case *dag.PoolMeta:
+		return fmt.Sprintf("%s.$%s", p.ID, p.Meta)
+	case *dag.BranchMeta:
+		return fmt.Sprintf("%s/%s.$%s", p.ID, p.Branch, p.Meta)
+	case *dag.LakeMeta:
+		return fmt.Sprintf("$%s", p.Meta)
 		//XXX from, to, order
 	case *kernel.Reader:
 		return "(internal reader)"

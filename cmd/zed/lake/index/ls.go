@@ -4,6 +4,8 @@ import (
 	"flag"
 
 	"github.com/brimdata/zed/cli/outputflags"
+	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
@@ -46,5 +48,5 @@ func (c *LsCommand) Run(args []string) error {
 		return err
 	}
 	defer w.Close()
-	return lake.ScanIndexRules(ctx, w, args)
+	return api.ScanIndexRules(ctx, lake, driver.NewCLI(w))
 }

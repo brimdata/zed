@@ -17,7 +17,6 @@ outputs:
   - name: stdout
     data: |
       {
-          version: 0,
           name: "logs",
           layout: {
               order: "desc" (=Which),
