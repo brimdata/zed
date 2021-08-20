@@ -53,8 +53,6 @@ func (c *ApplyCommand) Run(args []string) error {
 	tags, err := lakeflags.ParseIDs(args[1:])
 	if err != nil {
 		return err
-	} else if len(tags) == 0 {
-		return errors.New("no data or commit tags specified")
 	}
 	pool, err := lake.LookupPool(ctx, c.lakeFlags.PoolName)
 	if err != nil {

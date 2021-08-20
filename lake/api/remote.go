@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"io"
@@ -21,7 +20,6 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -94,8 +92,8 @@ func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout orde
 		return nil, err
 	}
 	var config lake.PoolConfig
-	unmarshal(res, &config)
-	return &config, nil
+	err = unmarshal(res, &config)
+	return &config, err
 }
 
 func (r *RemoteSession) RemovePool(ctx context.Context, pool ksuid.KSUID) error {
@@ -131,19 +129,19 @@ func (r *RemoteSession) Add(ctx context.Context, poolID ksuid.KSUID, reader zio.
 }
 
 func (r *RemoteSession) AddIndexRules(context.Context, []index.Rule) error {
-	return errors.New("unsupported")
+	return errors.New("unsupported see issue #2934")
 }
 
 func (*RemoteSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
-	return nil, errors.New("unsupported")
+	return nil, errors.New("unsupported see issue #2934")
 }
 
 func (*RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID ksuid.KSUID, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
-	return ksuid.Nil, errors.New("unsupported")
+	return ksuid.Nil, errors.New("unsupported see issue #2934")
 }
 
 func (r *RemoteSession) ScanIndexRules(ctx context.Context, w zio.Writer, names []string) error {
-	return errors.New("unsupported")
+	return errors.New("unsupported see issue #2934")
 }
 
 func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, src string, srcfiles ...string) (zbuf.ScannerStats, error) {
@@ -164,16 +162,11 @@ func unmarshal(res *client.Response, i interface{}) error {
 	if err != nil {
 		return nil
 	}
-	var buf bytes.Buffer
-	// XXX maybe just have requests that do this request a zson response?
-	zw := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
-	if err := zio.Copy(zw, zr); err != nil {
+	rec, err := zr.Read()
+	if err != nil {
 		return err
 	}
-	if err := zw.Close(); err != nil {
-		return err
-	}
-	return zson.Unmarshal(buf.String(), i)
+	return zson.UnmarshalZNGRecord(rec, i)
 }
 
 func (r *RemoteSession) Commit(ctx context.Context, poolID, id ksuid.KSUID, commit api.CommitRequest) error {

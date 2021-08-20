@@ -50,9 +50,6 @@ func (c *CreateCommand) Run(args []string) error {
 	}
 	ruleName := args[0]
 	args = args[1:]
-	if len(args) == 0 {
-		return errors.New("at least one index pattern must be specified")
-	}
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
