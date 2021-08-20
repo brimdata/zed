@@ -26,7 +26,6 @@ var _ Interface = (*LocalSession)(nil)
 type LocalSession struct {
 	root   *lake.Root
 	engine storage.Engine
-	pools  map[ksuid.KSUID]*lake.Pool
 }
 
 func OpenLocalLake(ctx context.Context, lakePath *storage.URI) (*LocalSession, error) {
@@ -38,7 +37,6 @@ func OpenLocalLake(ctx context.Context, lakePath *storage.URI) (*LocalSession, e
 	return &LocalSession{
 		root:   root,
 		engine: engine,
-		pools:  make(map[ksuid.KSUID]*lake.Pool),
 	}, nil
 }
 
@@ -111,16 +109,7 @@ func (l *LocalSession) RemovePool(ctx context.Context, id ksuid.KSUID) error {
 }
 
 func (l *LocalSession) lookupPool(ctx context.Context, id ksuid.KSUID) (*lake.Pool, error) {
-	pool, ok := l.pools[id]
-	if !ok {
-		var err error
-		pool, err = l.root.OpenPool(ctx, id)
-		if err != nil {
-			return nil, err
-		}
-		l.pools[id] = pool
-	}
-	return pool, nil
+	return l.root.OpenPool(ctx, id)
 }
 
 func (l *LocalSession) Add(ctx context.Context, poolID ksuid.KSUID, r zio.Reader, commit *api.CommitRequest) (ksuid.KSUID, error) {
