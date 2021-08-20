@@ -1,17 +1,15 @@
 package lake
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"time"
+	"sort"
 
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/index"
+	"github.com/brimdata/zed/lake/journal/kvs"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
@@ -26,38 +24,36 @@ import (
 var ErrPoolExists = errors.New("pool already exists")
 var ErrPoolNotFound = errors.New("pool not found")
 
+const (
+	PoolsTag      = "pools"
+	IndexRulesTag = "index_rules"
+)
+
 // The Root of the lake represents the path prefix and configuration state
-// for all of the data pools in the lake.  XXX For now, we are storing the
-// pool configs in a json file without concurrency control.  We should
-// make this use a journal and check for update conflicts.
+// for all of the data pools in the lake.
 type Root struct {
-	engine   storage.Engine
-	path     *storage.URI
-	poolPath *storage.URI
+	*Config
+	engine storage.Engine
+	path   *storage.URI
 }
 
 var _ proc.DataAdaptor = (*Root)(nil)
 
 type Config struct {
-	Version int           `zng:"version"`
-	Pools   []PoolConfig  `zng:"pools"`
-	Indices index.Indices `zng:"indices"`
+	pools      *kvs.Store
+	indexRules *index.Store
 }
 
 func newRoot(engine storage.Engine, path *storage.URI) *Root {
 	return &Root{
 		engine: engine,
 		path:   path,
-		//XXX For now this is just a json file with races,
-		// but we'll eventually put this in a mutable journal.
-		// See issue #2547.
-		poolPath: path.AppendPath("pools.json"),
 	}
 }
 
 func Open(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root, error) {
 	r := newRoot(engine, path)
-	if _, err := r.loadConfig(ctx); err != nil {
+	if err := r.loadConfig(ctx); err != nil {
 		if zqe.IsNotFound(err) {
 			err = fmt.Errorf("%s: no such lake", path)
 		}
@@ -68,20 +64,14 @@ func Open(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root,
 
 func Create(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root, error) {
 	r := newRoot(engine, path)
-	if _, err := r.loadConfig(ctx); err == nil {
+	if err := r.loadConfig(ctx); err == nil {
 		return nil, fmt.Errorf("%s: lake already exists", path)
 	}
-	//XXX For now, we write an empty config file to indicate that the
-	// lake exists.  This will soon change to a lake config journal to
-	// allow for write-concurrent atomic updates to config saved in
-	// a shared cloud store.
-	empty := storage.NewBytesReader(nil)
-	if err := storage.Put(ctx, engine, r.poolPath, empty); err != nil {
+	c, err := r.createConfig(ctx)
+	if err != nil {
 		return nil, err
 	}
-	if err := r.storeConfig(ctx, Config{}); err != nil {
-		return nil, err
-	}
+	r.Config = c
 	return r, nil
 }
 
@@ -93,56 +83,46 @@ func CreateOrOpen(ctx context.Context, engine storage.Engine, path *storage.URI)
 	return Create(ctx, engine, path)
 }
 
-func (r *Root) loadConfig(ctx context.Context) (Config, error) {
-	// XXX currently, we are storing the lake config using a file URL but
-	// cloud instances will write the lake config to the cloud and generally
-	// do not write to the file system (except for logs, /tmp, etc in which
-	// case the storage engine isn't used).  For now, we just create a temp
-	// local storage engine to deal with lake config.  We will fix this soon
-	// when we switch the lake to config to use a key-value journal.
-	local := storage.NewLocalEngine()
-	b, err := storage.Get(ctx, local, r.poolPath)
+func (r *Root) createConfig(ctx context.Context) (*Config, error) {
+	poolPath := r.path.AppendPath(PoolsTag)
+	rulesPath := r.path.AppendPath(IndexRulesTag)
+	types := []interface{}{PoolConfig{}}
+	pools, err := kvs.Create(ctx, r.engine, poolPath, types)
 	if err != nil {
-		return Config{}, err
+		return nil, err
 	}
-	var config Config
-	if err := json.Unmarshal(b, &config); err != nil {
-		return Config{}, err
+	indexRules, err := index.CreateStore(ctx, r.engine, rulesPath)
+	if err != nil {
+		return nil, err
 	}
-	return config, nil
+	return &Config{pools, indexRules}, nil
 }
 
-func (r *Root) storeConfig(ctx context.Context, config Config) error {
-	uri := r.poolPath
-	//XXX this will soon change to a key-value journal.  for now we write
-	// the new config in its entirety and hope there is no error.
-	b, err := json.Marshal(config)
+func (r *Root) loadConfig(ctx context.Context) error {
+	poolPath := r.path.AppendPath(PoolsTag)
+	rulesPath := r.path.AppendPath(IndexRulesTag)
+	types := []interface{}{PoolConfig{}}
+	pools, err := kvs.Open(ctx, r.engine, poolPath, types)
 	if err != nil {
 		return err
 	}
-	if err := storage.Put(ctx, r.engine, uri, bytes.NewReader(b)); err != nil {
+	indexRules, err := index.OpenStore(ctx, r.engine, rulesPath)
+	if err != nil {
 		return err
 	}
-	if uri.Scheme == "file" {
-		// Ensure the mtime is updated on the file after the close. This Chtimes
-		// call was required due to failures seen in CI, when an mtime change
-		// wasn't observed after some writes.
-		// See https://github.com/brimdata/brim/issues/883.
-		now := time.Now()
-		return os.Chtimes(uri.Filepath(), now, now)
-	}
+	r.Config = &Config{pools, indexRules}
 	return nil
 }
 
 func (r *Root) ScanPools(ctx context.Context, w zio.Writer) error {
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
-	config, err := r.loadConfig(ctx)
+	pools, err := r.ListPools(ctx)
 	if err != nil {
 		return err
 	}
-	for _, p := range config.Pools {
-		rec, err := m.MarshalRecord(&p)
+	for k := range pools {
+		rec, err := m.MarshalRecord(&pools[k])
 		if err != nil {
 			return err
 		}
@@ -154,8 +134,19 @@ func (r *Root) ScanPools(ctx context.Context, w zio.Writer) error {
 }
 
 func (r *Root) ListPools(ctx context.Context) ([]PoolConfig, error) {
-	config, err := r.loadConfig(ctx)
-	return config.Pools, err
+	entries, err := r.pools.All(ctx)
+	if err != nil {
+		return nil, err
+	}
+	pools := make([]PoolConfig, 0, len(entries))
+	for _, entry := range entries {
+		pool, ok := entry.Value.(*PoolConfig)
+		if !ok {
+			return nil, errors.New("corrupt pool config journal")
+		}
+		pools = append(pools, *pool)
+	}
+	return pools, nil
 }
 
 func lookupPool(pools []PoolConfig, fn func(PoolConfig) bool) *PoolConfig {
@@ -218,36 +209,25 @@ func (r *Root) OpenPool(ctx context.Context, id ksuid.KSUID) (*Pool, error) {
 	return poolRef.Open(ctx, r.engine, r.path)
 }
 
-func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newname string) error {
-	config, err := r.loadConfig(ctx)
-	if err != nil {
-		return err
+func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newName string) error {
+	pool := r.LookupPool(ctx, id)
+	if pool == nil {
+		return fmt.Errorf("%s: %w", id, ErrPoolNotFound)
 	}
-	if lookupPoolByName(config.Pools, newname) != nil {
+	oldName := pool.Name
+	pool.Name = newName
+	err := r.pools.Move(ctx, oldName, newName, pool)
+	switch err {
+	case kvs.ErrKeyExists:
 		return ErrPoolExists
+	case kvs.ErrNoSuchKey:
+		return fmt.Errorf("%s: %w", id, ErrPoolNotFound)
 	}
-	for i, p := range config.Pools {
-		if p.ID == id {
-			config.Pools[i].Name = newname
-			return r.storeConfig(ctx, config)
-		}
-	}
-	return fmt.Errorf("%s: %w", id, ErrPoolNotFound)
+	return err
 }
 
 func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64) (*Pool, error) {
-	// Pool creation can be a race so it's possible that two different
-	// pools with the same name get created.  XXX mutex here won't protect
-	// this because we can have distributed nodes created multiple pools
-	// in the cloud object store.  That all said, this should be rare
-	// and we can add logic to detect dupnames eventually and disable one
-	// of them and warn the user.  You can always get at the underlying
-	// pool using its ID.
-	config, err := r.loadConfig(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if lookupPoolByName(config.Pools, name) != nil {
+	if r.LookupPoolByName(ctx, name) != nil {
 		return nil, fmt.Errorf("%s: %w", name, ErrPoolExists)
 	}
 	if thresh == 0 {
@@ -259,116 +239,101 @@ func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout,
 	}
 	pool, err := poolRef.Open(ctx, r.engine, r.path)
 	if err != nil {
+		poolRef.Delete(ctx, r.engine, r.path)
 		return nil, err
 	}
-	config.Pools = append(config.Pools, *poolRef)
-	if err := r.storeConfig(ctx, config); err != nil {
-		// XXX this is bad
+	if err := r.pools.Insert(ctx, name, poolRef); err != nil {
+		poolRef.Delete(ctx, r.engine, r.path)
+		if err == kvs.ErrKeyExists {
+			return nil, fmt.Errorf("%s: %w", name, ErrPoolExists)
+		}
 		return nil, err
 	}
 	return pool, nil
 }
 
-// RemovePool removes all the each such directory and all of its contents.
+// RemovePool deletes a pool from the configuration journal and deletes all
+// data associated with the pool.
 func (r *Root) RemovePool(ctx context.Context, id ksuid.KSUID) error {
-	config, err := r.loadConfig(ctx)
-	if err != nil {
-		return err
-	}
-	hit := -1
-	for k, p := range config.Pools {
-		if p.ID == id {
-			hit = k
-			break
-		}
-	}
-	if hit < 0 {
+	poolConfig := r.LookupPool(ctx, id)
+	if poolConfig == nil {
 		return fmt.Errorf("%s: %w", id, ErrPoolNotFound)
 	}
-	if err := config.Pools[hit].Delete(ctx, r.engine, r.path); err != nil {
+	err := r.pools.Delete(ctx, poolConfig.Name, func(v interface{}) bool {
+		p, ok := v.(*PoolConfig)
+		if !ok {
+			return false
+		}
+		return p.ID == id
+	})
+	if err != nil {
+		if err == kvs.ErrNoSuchKey {
+			return fmt.Errorf("%s: %w", id, ErrPoolNotFound)
+		}
+		if err == kvs.ErrConstraint {
+			return fmt.Errorf("%s: pool %q renamed during removal", poolConfig.Name, id)
+		}
 		return err
 	}
-	config.Pools = append(config.Pools[:hit], config.Pools[hit+1:]...)
-	return r.storeConfig(ctx, config)
+	return poolConfig.Delete(ctx, r.engine, r.path)
 }
 
-func (r *Root) AddIndex(ctx context.Context, indices []index.Index) error {
-	config, err := r.loadConfig(ctx)
-	if err != nil {
-		return err
-	}
-	updated := config.Indices
-	for _, idx := range indices {
-		var existing *index.Index
-		if updated, existing = updated.Add(idx); existing != nil {
-			return fmt.Errorf("index %s is a duplicate of index %s", idx.ID, existing.ID)
+func (r *Root) AddIndexRules(ctx context.Context, rules []index.Rule) error {
+	//XXX should change this to do a single commit for all of the rules
+	// and abort all if one fails.  (change Add() semantics)
+	for _, rule := range rules {
+		if err := r.indexRules.Add(ctx, rule); err != nil {
+			return err
 		}
 	}
-	config.Indices = updated
-	return r.storeConfig(ctx, config)
+	return nil
 }
 
-func (r *Root) DeleteIndices(ctx context.Context, ids []ksuid.KSUID) ([]index.Index, error) {
-	config, err := r.loadConfig(ctx)
-	if err != nil {
-		return nil, err
-	}
-	updated := config.Indices
-	deleted := make([]index.Index, len(ids))
-	for i, id := range ids {
-		var d *index.Index
-		updated, d = updated.LookupDelete(id)
-		if d == nil {
-			return nil, fmt.Errorf("index %s not found", id)
+func (r *Root) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
+	deleted := make([]index.Rule, 0, len(ids))
+	for _, id := range ids {
+		rule, err := r.indexRules.Delete(ctx, id)
+		if err != nil {
+			return deleted, fmt.Errorf("index %s not found", id)
 		}
-		deleted[i] = *d
+		deleted = append(deleted, rule)
 	}
-	config.Indices = updated
-	return deleted, r.storeConfig(ctx, config)
+	return deleted, nil
 }
 
-func (r *Root) LookupIndices(ctx context.Context, ids []ksuid.KSUID) ([]index.Index, error) {
-	config, err := r.loadConfig(ctx)
-	if err != nil {
-		return nil, err
-	}
-	indices := make([]index.Index, len(ids))
-	for i, id := range ids {
-		index := config.Indices.Lookup(id)
-		if index == nil {
-			return nil, fmt.Errorf("could not find index: %s", id)
-		}
-		indices[i] = *index
-	}
-	return indices, nil
+func (r *Root) LookupIndexRules(ctx context.Context, name string) ([]index.Rule, error) {
+	return r.indexRules.Lookup(ctx, name)
 }
 
-func (r *Root) ListIndexIDs(ctx context.Context) []ksuid.KSUID {
-	config, err := r.loadConfig(ctx)
-	if err != nil {
-		return nil
-	}
-	return config.Indices.IDs()
-}
-
-func (r *Root) ScanIndex(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
-	config, err := r.loadConfig(ctx)
-	if err != nil {
-		return nil
-	}
+func (r *Root) ScanIndexRules(ctx context.Context, w zio.Writer, names []string) error {
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
-	for _, id := range ids {
-		index := config.Indices.Lookup(id)
-		if index == nil {
-			continue
-		}
-		rec, err := m.MarshalRecord(index)
+	if len(names) == 0 {
+		var err error
+		names, err = r.indexRules.Names(ctx)
 		if err != nil {
 			return err
 		}
-		if err := w.Write(rec); err != nil {
+	}
+	for _, name := range names {
+		rules, err := r.indexRules.Lookup(ctx, name)
+		if err != nil {
+			if err == index.ErrNoSuchRule {
+				continue
+			}
 			return err
+		}
+		sort.Slice(rules, func(i, j int) bool {
+			return rules[i].CreateTime() < rules[j].CreateTime()
+		})
+		for _, rule := range rules {
+			rec, err := m.MarshalRecord(rule)
+			if err != nil {
+				return err
+			}
+			if err := w.Write(rec); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

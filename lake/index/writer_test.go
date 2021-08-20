@@ -16,8 +16,8 @@ import (
 )
 
 func TestWriter(t *testing.T) {
-	r := NewTypeIndex(zng.TypeInt64)
-	ref := Reference{Index: r, SegmentID: ksuid.New()}
+	r := NewTypeRule("test", zng.TypeInt64)
+	ref := Reference{Rule: r, SegmentID: ksuid.New()}
 	w := testWriter(t, ref)
 	err := zio.Copy(w, babbleReader(t))
 	require.NoError(t, err, "copy error")
@@ -25,8 +25,8 @@ func TestWriter(t *testing.T) {
 }
 
 func TestWriterWriteAfterClose(t *testing.T) {
-	r := NewTypeIndex(zng.TypeInt64)
-	ref := Reference{Index: r, SegmentID: ksuid.New()}
+	r := NewTypeRule("test", zng.TypeInt64)
+	ref := Reference{Rule: r, SegmentID: ksuid.New()}
 	w := testWriter(t, ref)
 	require.NoError(t, w.Close())
 	err := w.Write(nil)
@@ -38,7 +38,7 @@ func TestWriterWriteAfterClose(t *testing.T) {
 func TestWriterError(t *testing.T) {
 	const r1 = `{ts:1970-01-01T00:00:01Z,id:"id1"}`
 	const r2 = "{ts:1970-01-01T00:00:02Z,id:2}"
-	ref := Reference{Index: NewFieldIndex("id"), SegmentID: ksuid.New()}
+	ref := Reference{Rule: NewFieldRule("test", "id"), SegmentID: ksuid.New()}
 	w := testWriter(t, ref)
 	zctx := zson.NewContext()
 	arr1, err := zbuf.ReadAll(zson.NewReader(strings.NewReader(r1), zctx))

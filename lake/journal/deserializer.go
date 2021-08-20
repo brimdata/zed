@@ -1,4 +1,4 @@
-package actions
+package journal
 
 import (
 	"io"
@@ -12,21 +12,21 @@ type Deserializer struct {
 	unmarshaler *zson.UnmarshalZNGContext
 }
 
-func NewDeserializer(reader io.Reader) *Deserializer {
+func NewDeserializer(reader io.Reader, templates []interface{}) *Deserializer {
 	u := zson.NewZNGUnmarshaler()
-	u.Bind(actions...)
+	u.Bind(templates...)
 	return &Deserializer{
 		reader:      zngio.NewReader(reader, zson.NewContext()),
 		unmarshaler: u,
 	}
 }
 
-func (d *Deserializer) Read() (Interface, error) {
+func (d *Deserializer) Read() (interface{}, error) {
 	rec, err := d.reader.Read()
 	if err != nil || rec == nil {
 		return nil, err
 	}
-	var action Interface
+	var action interface{}
 	if err := d.unmarshaler.Unmarshal(rec.Value, &action); err != nil {
 		return nil, err
 	}

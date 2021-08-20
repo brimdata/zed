@@ -14,10 +14,15 @@ type Interface interface {
 	fmt.Stringer
 }
 
-var actions = []interface{}{
+var JournalTypes = []interface{}{
 	Add{},
 	AddIndex{},
+	index.AddRule{},
 	Delete{},
+	index.DeleteRule{},
+	index.TypeRule{},
+	index.AggRule{},
+	index.FieldRule{},
 	CommitMessage{},
 }
 

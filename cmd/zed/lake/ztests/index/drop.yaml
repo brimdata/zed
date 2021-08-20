@@ -1,9 +1,9 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  indexid=$(zed lake index create -f zng :ip | zq -f text "cut s:='0x'+to_hex(id)" -)
+  indexid=$(zed lake index create -f zng IPs type ip | zq -f text "cut s:='0x'+to_hex(id)" -)
   zed lake index drop $indexid
 
 outputs:
   - name: stdout
-    regexp: \w{27} dropped
+    regexp: \w{27} dropped from rule \"IPs\"

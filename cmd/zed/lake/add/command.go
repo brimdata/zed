@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/cli/inputflags"
+	"github.com/brimdata/zed/cli/lakeflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/lake"
@@ -49,27 +50,29 @@ func init() {
 // TBD: add option to apply Zed program on add path?
 
 type Command struct {
-	lake       *zedlake.Command
+	lake       zedlake.Command
 	seekStride units.Bytes
 	commit     bool
 	inputFlags inputflags.Flags
+	lakeFlags  lakeflags.Flags
 	zedlake.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
-		lake:       parent.(*zedlake.Command),
+		lake:       parent.(zedlake.Command),
 		seekStride: units.Bytes(lake.SeekIndexStride),
 	}
 	f.BoolVar(&c.commit, "commit", false, "commit added data if successfully written")
 	f.Var(&c.seekStride, "seekstride", "size of seek-index unit for ZNG data, as '32KB', '1MB', etc.")
 	c.inputFlags.SetFlags(f)
+	c.lakeFlags.SetFlags(f)
 	c.CommitFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init(&c.inputFlags)
+	ctx, cleanup, err := c.lake.Root().Init(&c.inputFlags)
 	if err != nil {
 		return err
 	}
@@ -81,10 +84,6 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	pool, err := c.lake.Flags.OpenPool(ctx)
-	if err != nil {
-		return err
-	}
 	paths := args
 	local := storage.NewLocalEngine()
 	readers, err := c.inputFlags.Open(zson.NewContext(), local, paths, false)
@@ -92,7 +91,16 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Config().Layout.Order)
+	lake, err := c.lake.Open(ctx)
+	if err != nil {
+		return err
+	}
+	pool, err := lake.LookupPool(ctx, c.lakeFlags.PoolName)
+	if err != nil {
+		return err
+	}
+	// XXX See issue #2921.  Not clear we should merge by ts here.
+	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Layout.Order)
 	if err != nil {
 		return err
 	}
@@ -102,11 +110,11 @@ func (c *Command) Run(args []string) error {
 		commit = c.CommitRequest()
 		action = "committed"
 	}
-	id, err := pool.Add(ctx, reader, commit)
+	id, err := lake.Add(ctx, pool.ID, reader, commit)
 	if err != nil {
 		return err
 	}
-	if !c.lake.Flags.Quiet() {
+	if !c.lakeFlags.Quiet {
 		fmt.Printf("%s %s\n", id, action)
 	}
 	return nil

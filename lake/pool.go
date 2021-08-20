@@ -262,12 +262,20 @@ func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID)
 	}
 	ch := make(chan actions.Interface, 10)
 	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
+	done := make(chan error)
 	go func() {
-		defer close(ch)
+		var errDone error
+		defer func() {
+			close(ch)
+			if errDone != nil {
+				done <- errDone
+			}
+			close(done)
+		}()
 		for _, id := range ids {
 			txn, err := p.LoadFromStaging(ctx, id)
 			if err != nil {
+				errDone = err
 				return
 			}
 			for _, action := range txn.Actions {
@@ -289,13 +297,18 @@ func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID)
 	for p := range ch {
 		rec, err := m.MarshalRecord(p)
 		if err != nil {
+			cancel()
+			<-done
 			return err
 		}
 		if err := w.Write(rec); err != nil {
+			cancel()
+			<-done
 			return err
 		}
 	}
-	return nil
+	cancel()
+	return <-done
 }
 
 func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.Reference) error {
@@ -363,9 +376,10 @@ func (p *Pool) IsJournalID(ctx context.Context, id journal.ID) (bool, error) {
 	return id >= tail && id <= head, nil
 }
 
-func (p *Pool) Index(ctx context.Context, rules []index.Index, ids []ksuid.KSUID) (ksuid.KSUID, error) {
+func (p *Pool) ApplyIndexRules(ctx context.Context, rules []index.Rule, ids []ksuid.KSUID) (ksuid.KSUID, error) {
 	idxrefs := make([]*index.Reference, 0, len(rules)*len(ids))
 	for _, id := range ids {
+		//XXX make issue for this.
 		// This could be easily parallized with errgroup.
 		refs, err := p.indexSegment(ctx, rules, id)
 		if err != nil {
@@ -381,7 +395,7 @@ func (p *Pool) Index(ctx context.Context, rules []index.Index, ids []ksuid.KSUID
 	return id, nil
 }
 
-func (p *Pool) indexSegment(ctx context.Context, rules []index.Index, id ksuid.KSUID) ([]*index.Reference, error) {
+func (p *Pool) indexSegment(ctx context.Context, rules []index.Rule, id ksuid.KSUID) ([]*index.Reference, error) {
 	r, err := p.engine.Get(ctx, segment.RowObjectPath(p.DataPath, id))
 	if err != nil {
 		return nil, err

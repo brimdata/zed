@@ -5,8 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli/lakecli"
-	zedlake "github.com/brimdata/zed/cmd/zed/lake"
+	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 )
@@ -14,21 +13,20 @@ import (
 var Drop = &charm.Spec{
 	Name:  "drop",
 	Usage: "drop [-R root] [options] id... ",
-	Short: "drop indicies from a lake",
+	Short: "drop rule from a lake index",
 	New:   NewDrop,
 }
 
 type DropCommand struct {
-	lake *zedlake.Command
+	*Command
 }
 
 func NewDrop(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &DropCommand{lake: parent.(*Command).Command}
-	return c, nil
+	return &DropCommand{Command: parent.(*Command)}, nil
 }
 
 func (c *DropCommand) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init()
+	ctx, cleanup, err := c.lake.Root().Init()
 	if err != nil {
 		return err
 	}
@@ -39,21 +37,21 @@ func (c *DropCommand) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	ids, err := lakecli.ParseIDs(args)
+	ids, err := lakeflags.ParseIDs(args)
 	if err != nil {
 		return err
 	}
-	root, err := c.lake.Open(ctx)
+	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-	indices, err := root.DeleteIndices(ctx, ids)
+	rules, err := lake.DeleteIndexRules(ctx, ids)
 	if err != nil {
 		return err
 	}
-	if !c.lake.Quiet() {
-		for _, index := range indices {
-			fmt.Printf("%s dropped\n", index.ID)
+	if !c.lakeFlags.Quiet {
+		for _, rule := range rules {
+			fmt.Printf("%s dropped from rule %q\n", rule.RuleID(), rule.RuleName())
 		}
 	}
 	return nil

@@ -110,11 +110,8 @@ type indexer struct {
 }
 
 func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, ref *Reference, r zio.Reader) (*indexer, error) {
-	idx := ref.Index
-	zedQuery, err := idx.zedQuery()
-	if err != nil {
-		return nil, err
-	}
+	rule := ref.Rule
+	zedQuery := rule.Zed()
 	p, err := compiler.ParseProc(zedQuery)
 	if err != nil {
 		return nil, err
@@ -124,13 +121,9 @@ func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, r
 	if err != nil {
 		return nil, err
 	}
-	keys := idx.Keys
+	keys := rule.RuleKeys()
 	if len(keys) == 0 {
 		keys = field.List{field.Dotted(keyName)}
-	}
-	opts := []index.Option{index.KeyFields(keys...)}
-	if idx.Framesize > 0 {
-		opts = append(opts, index.FrameThresh(idx.Framesize))
 	}
 	writer, err := newIndexWriter(ctx, zctx, engine, path, ref)
 	if err != nil {
@@ -174,6 +167,13 @@ func (d *indexer) Write(rec *zng.Record) error {
 	key, err := d.cutter.Apply(rec)
 	if err != nil {
 		return fmt.Errorf("checking index record: %w", err)
+	}
+	if key == nil {
+		s, err := zson.FormatValue(rec.Value)
+		if err != nil {
+			s = err.Error()
+		}
+		return fmt.Errorf("no index key(s) found in record: %s", s)
 	}
 	if d.keyType == nil {
 		d.keyType = key.Type

@@ -15,7 +15,7 @@
     + [Log](#log)
   * [Cloud Object Naming](#cloud-object-naming)
     + [Immutable Objects](#immutable-objects)
-      - [Segments](#segments)
+      - [Data Objects](#data-objects)
       - [Search Indexes](#search-indexes)
     + [Mutable Objects](#mutable-objects)
       - [Commit Journal](#commit-journal)
@@ -202,7 +202,7 @@ zed lake add -p logs sample.json
 (commit <tag> etc. printed to stdout)
 zed lake commit -p logs <tag>
 ```
-A commit `<tag>` refers to one or more data segments stored in the
+A commit `<tag>` refers to one or more data objects stored in the
 data pool.  In general, a commit tag is simply a shortcut
 for the set of object tags that comprise the commit and otherwise
 has no meaningful semantics to the Zed execution engine.
@@ -280,36 +280,37 @@ a transactionally consistent fashion.
 
 #### Data Segmentation
 
-In an `add` operation, a commit is broken out into data units called _segments_
-where a target segment size is configured into the pool,
-typically 100-500MB.  The records of each segment are sorted by its pool key.
-A segment of data is presumed to fit into the memory of an intake worker node
+In an `add` operation, a commit is broken out into units called _data objects_
+where a target objet size is configured into the pool,
+typically 100-500MB.  The records within each object are sorted by the pool key(s).
+A data object is presumed by the implementation
+to fit into the memory of an intake worker node
 so that such a sort can be trivially accomplished.
 
 Data added to a pool can arrive in any order with respect to the pool key.
-While each segment is sorted before it is written,
-the collection of segments is generally not sorted in its initial commit.
+While each object is sorted before it is written,
+the collection of objects is generally not sorted.
 
 ### Merge
 
 To support _sorted scans_,
-data from overlapping segments is read in parallel and merged in sorted order.
+data from overlapping objects is read in parallel and merged in sorted order.
 
-However, if many overlapping segments arise, merging the scan in this fashion
+However, if many overlapping data objects arise, merging the scan in this fashion
 on every read can be inefficient.
 This can arise when
 many random data `load` operations involving perhaps "late" data
 (i.e., the pool key is `ts` and records with old `ts` values regularly
 show up and need to be inserted into the past).  The data layout can become
 fragmented and less efficient to scan, requiring a scan to merge data
-from a potentially large number of different segments.
+from a potentially large number of different objects.
 
 To solve this problem, the Zed lake design follows the
 [LSM](https://en.wikipedia.org/wiki/Log-structured_merge-tree) design pattern.
-Since records in each segment are stored in sorted order, a total order over a collection
-of segments (e.g., the collection coming from a specific set of commits)
+Since records in each data object are stored in sorted order, a total order over
+a collection of objects (e.g., the collection coming from a specific set of commits)
 can be produced by executing a sorted scan and rewriting the results back to the pool
-in a new commit.  In addition, the segments comprising the total order
+in a new commit.  In addition, the objects comprising the total order
 do not overlap.  This is just the basic LSM algorithm at work.
 
 Continuing the `git` metaphor, the `merge` command (implementation tracked via [zed/2537](https://github.com/brimdata/zed/issues/2537))
@@ -318,14 +319,14 @@ is like a "squash" and performs the LSM-like compaction function, e.g.,
 zed lake merge -p logs <tag>
 (merged commit <tag> printed to stdout)
 ```
-After the merge, all of the segments comprising the new commit are sorted
+After the merge, all of the objects comprising the new commit are sorted
 and non-overlapping.
-Here, the segments from the given commit tag are read and compacted into
+Here, the objects from the given commit tag are read and compacted into
 a new commit as an `add` operation.  Again, until the data is actually committed,
 no readers will see any change.
 
 Additionally, multiple commits can be merged all at once to sort all of the
-segments of all of the commits that comprise the group, e.g.,
+objects of all of the commits that comprise the group, e.g.,
 ```
 zed lake merge -p logs <tag-1> <tag-2> <tag-3>
 (merged commit <tag> printed to stdout)
@@ -334,7 +335,7 @@ zed lake merge -p logs <tag-1> <tag-2> <tag-3>
 ### Squash and Delete
 
 After the merge phase, we have a new commit that combines the old commits
-across non-overlapping segments, but they are not yet committed.
+across non-overlapping objects, but they are not yet committed.
 To avoid consistency issues here, the old commits need
 to be deleted while simultaneously adding the new commit.
 
@@ -368,7 +369,7 @@ zed lake commit -p logs <squash-tag> <del-tag>
 ```
 
 Note that delete can be used separately from squash to delete entire commits
-or individual segments at any time.  This is handy when importing data by
+or individual data objects at any time.  This is handy when importing data by
 mistake:
 ```
 zed lake load -p logs oops.ndjson
@@ -396,14 +397,14 @@ accessible through the modified commit journal.
 An orchestration layer outside of the Zed lake is responsible for defining
 policy over
 how data is ingested and committed and rolled up.  Depending on the
-use case and workflow, we envision that some amount of overlapping segments
+use case and workflow, we envision that some amount of overlapping data objects
 would persist at small scale and always be "mixed in" with other overlapping
-segments during any key-range scan.
+data during any key-range scan.
 
 > Note: since this style of data organization follows the LSM pattern,
 > how data is rolled up (or not) can control the degree of LSM write
 > amplification that occurs for a given workload.  There is an explicit
-> tradeoff here between overhead of merging overlapping segments on read
+> tradeoff here between overhead of merging overlapping objects on read
 > and LSM write amplification to organize the data to avoid such overlaps.
 
 > Note: we are showing here manual, CLI-driven steps to accomplish these tasks
@@ -419,15 +420,17 @@ operations.
 The journal represents the entire history of the lake.  Each entry contains
 an action:
 
-* `Add` and `Delete` for data segments,
-* `AddIndexRule` and `DeleteIndexRule` to define indexing rules,
-* `AddIndex` and `DeleteIndex` for index objects, and
+* `Add` to add a data object reference to a pool,
+* `Delete` to delete a data object reference from a pool,
+* `AddIndex` to bind an index object to a data object to prune the data object
+from a scan when possible using the index,
+* `DeleteIndex` to remove an index object reference to its data object, and
 * `CommitMessage` for providing metadata about each commit.
 
 The actions are not grouped directly by their commit tag but instead each
 action embeds the KSUID of its commit tag.
 
-Note that indexing of data segments is performed in a transactionally-consistent
+Note that indexing of data objects is performed in a transactionally-consistent
 fashion by including index operations in the commit journal.
 
 By default, `zed lake log` outputs an abbreviated form of the log as text to
@@ -455,19 +458,122 @@ can be simply and efficiently processed as a ZNG stream.
 > `zed lake log` command is implemented and can provide a complete journal
 > snapshot.
 
-## Cloud Object Naming
+## Search Indexes
+
+Unlike traditional indexing systems based on an inverted-keyword index,
+indexing in Zed is decentralized and incremental.  Instead of rolling up
+index data structures across many data objects, a Zed lake stores a small
+amount of index state for each data object.  Moreover, the design relies on
+indexes only to enhance performance, not to implement the lake semantics.
+Thus, indexes need not exist to operate and can be incrementally added or
+deleted without large indexing jobs needing to rebuild a monolithic index
+after each configuration change.
+
+To optimize pool scans, the lake design relies on the well-known pruning
+concept to skip any data object that the planner determines can be skipped
+based on one or more indexes of that object.  For example, if an object
+has been index for field "foo" and the query
+```
+foo == "bar" | ...
+```
+is run, then the scan will consult the "foo" index and skip the data object
+if the value "bar" is not in that index.
+
+This approach works well for "needle in the haystack"-style searches.  When
+a search hits every object, this style of indexing would not eliminate any
+objects and thus does not help.
+
+While an individual index lookup involves latency to cloud storage to lookup
+a key in each index, each lookup is cheap and involves a small amount of data
+and the lookups can all be run in parallel, even from a single node, so
+the scan schedule can be quickly computed in a small number of round-trips
+(that navigate very wide B-trees) to cloud object storage.
+
+### Index Rules
+
+An index of an object is created by applying an _index rule_ to a data object
+and recording the binding to the pool's commit journal.  Once the index is
+available, the query planner can use it to optimize Zed lake scans.
+
+Rules come in three flavors:
+* field rule - index all values of a named field
+* type rule - index all values of all fields of a given type
+* aggregation rule - index any results computed by any Zed script run
+over the data object and keyed by one or more named fields, typically used
+to compute partial aggregations
+
+Rules are organized into groups by name and defined at the lake level
+so that any named group of rules can be applied to data objects from
+any pool.  The group name provides no meaning beyond a reference to
+a set of index rules at any given time.
+
+Rules are created with `zed lake index create`,
+deleted with `zed lake index drop`, and applied with
+`zed lake index apply`.
+
+#### Field Rule
+
+A field rule indicates that all values of a field be indexed.
+For example,
+```
+zed lake index create IndexGroupEx field foo
+```
+adds a field rule for field `foo` to the index group named `IndexGroupEx`.
+This rule can then be applied to an data object having a given `<tag>`
+in a pool, e.g.,
+```
+zed lake index apply -p logs IndexGroupEx <tag>
+```
+The index is created and a transaction put in staging.  Once this transaction
+has been committed to the pool's journal, the index is available for use
+by the query planner.
+
+#### Type Rule
+
+A type rule indicates that all values of any field of a specified type
+be indexed where the type signature uses Zed type syntax.
+For example,
+```
+zed lake index create IndexGroupEx type ip
+```
+creates a rule that indexes all IP addresses appearing in fields of type `ip`
+in the index group `IndexGroupEx`.
+
+#### Aggregation Rule
+
+An aggregation rule allows the creation of any index keyed by one or more fields
+(primary, second, etc) typically the result of an aggregation.
+The aggregation is specified as a Zed query.
+For example,
+```
+zed lake index create IndexGroupEx agg "count() by _path"
+```
+creates a rule that creates an index keyed by the group-by keys whose
+values are the partial-result aggregation given by the Zed expression.
+
+> This is not yet implemented.  The query planner would replace any full object
+> scan with the needed aggregation with the result given in the index.
+> Where a filter is applied to match one row of the index, that result could be
+> likewise and extracted instead of scanning the entire object.
+> This capability is not generally useful for interactive search and analytics
+> (except for optimizations that suit the interactive app) but rather is a powerful
+> capability for application-specific workflows that know the pre-computed
+> aggregations that they will use ahead of time, e.g., beacon analysis
+> of zeek logs.
+
+## Cloud Object Architecture
 
 The Zed lake semantics defined above are achieved by mapping the
 lake and pool abstractions onto a key-value cloud object store.
 
 Every data element in a Zed lake is either of two fundamental object types:
 * a single-writer _immutable object_, or
-* a multi-writer _mutable object_.
+* a multi-writer _transaction journal_.
 
 ### Immutable Objects
 
 All imported data in a data pool is composed of immutable objects, which are organized
-into data _segments_.  Each segment is composed of one or more immutable objects
+around a primary data object.  Each data object is composed of one or more immutable objects
 all of which share a common, globally unique identifier,
 which is referred to below as `<tag>`.
 
@@ -480,7 +586,7 @@ sort of the KSUIDs results in a creation-time ordering (though this ordering
 is not relied on for causal relationships since clock skew can violate
 such an assumption).
 
-Segments are referred to by zero or more commits, where the commits
+Data objects are referred to by zero or more commits, where the commits
 are maintained in a commit journal described below.
 
 > While a Zed lake is defined in terms of a cloud object store, it may also
@@ -488,7 +594,7 @@ are maintained in a commit journal described below.
 > local, small-scale deployments for test/debug workflows.  Thus, for simple use cases,
 > the complexity of running an object-store service may be avoided.
 
-#### Segments
+#### Data Objects
 
 An immutable object is created by a single writer using a globally unique name
 with an embedded KSUID.  
@@ -497,11 +603,11 @@ may be made once an object exists.  Given these semantics, any such object may b
 trivially cached as its name or content never changes.
 
 Since the object's name is globally unique and the
-resulting object is immutable, there is no possible write concurrency to manage.
+resulting object is immutable, there is no possible write concurrency to manage
+with respect to a given object.
 
-A segment is composed of
-* one or two data objects (for row and/or column layout),
-* a metadata object,
+A data object is composed of
+* the primary data object stored as one or two objects (for row and/or column layout),
 * an optional seek index, and
 * zero or more search indexes.
 
@@ -517,10 +623,13 @@ Immutable objects are named as follows:
 |-----------|----|
 |column data|`<pool-tag>/data/<tag>.zst`|
 |row data|`<pool-tag>/data/<tag>.zng`|
-|row seek index|`<pool-tag>/<tag>-seek.zng`|
-|search index|`<pool-tag>/index/<tag>.zng`|
+|row seek index|`<pool-tag>/data/<tag>-seek.zng`|
+|search index|`<pool-tag>/index/<tag>-<index-tag>.zng`|
 
-`<tag>` is the KSUID of the segment.
+`<tag>` is the KSUID of the data object.
+`<index-tag>` is the KSUID of an index object created according to the
+index rules described above.  Every index object is defined
+with respect to a data object.
 
 The seek index maps pool key values to seek offset in the ZNG file thereby
 allowing a scan to do a partial GET of the ZNG object when scanning only
@@ -528,44 +637,22 @@ a subset of data.
 
 > Note the ZST format will have seekable checkpoints based on the sort key that
 > are encoded into its metadata section so there is no need to have a separate
-> seek index for the columnar object, though we are considering adding columnar
-> meta-data outside of the ZST object as an optional configuration of the format.
+> seek index for the columnar object.
 
-#### Search Indexes
+### Transaction Journal
 
-To optimize pool scans, the lake design includes the well-known pruning
-concept, where segments of data can be skipped when it can be determined
-(either at "compile time" or "run time") that a segment of data is not
-needed by a scan, e.g., because a filter predicate would otherwise filter
-all of the data in that object.
-
-In addition to standard techniques for pruning a cloud scan (e.g., summary stats
-that can determine when a predicate would be false for every record, etc),
-search indexes can be built and attached to any data segment using the
-`zed lake index` command.
-
-The indexing rules are defined at the lake level and assigned an integer
-rule number.  Index objects for each segment are created at some
-point of the segment's life cycle and the query system can use the information
-in the indexes to prune eligible segments from a scan based on the predicates
-present in the query.
-
-While an individual search lookup involves latency to cloud storage to lookup
-a key in each index, each lookup is cheap and involves a small amount of data
-and the lookups can all be run in parallel, even from a single node, so
-the scan schedule can be quickly computed in a small number of round-trips
-(that navigate very wide B-trees) to cloud object storage.
-
-### Mutable Objects
-
-Mutable objects are built upon a journal of arbitrary set updates
-to sets of one or more key-value entities stored within a commit journal.
+State that is mutable is built upon a transaction journal of immutable
+collections of entries.  In this way, there are no objects in the
+storage footprint that are ever modified.  Instead, the journal captures
+changes and journal snapshots are used to provide synchronization points
+for efficient access to the journal (so the entire journal need not be
+read to create the current state) and old journal entries may be removed
+based on retention policy.
 
 #### Commit Journal
 
-The pool's journal is the definitive record of the evolution of data in
-that pool.  At any point in the journal, a snapshot may be available
-for efficient, pool-key range scans.
+The pool's commit journal is the definitive record of the evolution of data in
+that pool in a transactionally consistent fashion.
 
 Each journal entry is identified with its `journal ID`,
 a 64-bit, unsigned integer that begins at 0.
@@ -573,30 +660,30 @@ The journal may be updated concurrently by multiple writers so concurrency
 controls are included (see [Journal Concurrency Control](#journal-concurrency-control)
 below) to provide atomic updates.
 
-A journal entry simply contains one or more ADD and DROP directives,
-which refer to a commit tag and its key range, which in turn, implies
-one or more data segments that comprise said commit.  A journal entry
-also contains descriptive information as described earlier.
+A journal entry simply contains actions that modify the "state" of the pool
+as described in the `zed lake commit` section above.
+Each 'Add' entry includes metadata about the object committed to the pool,
+including its pool-key range and commit timestamp.
+Thus, data objects and journal entries can be purged with _either_ key-based
+or time-based retention policies (or both).
 
-Because each reference commit includes its key range and because the
-commit tag embeds a time stamp (indicating date/time of creation),
-journal entries can be purged with _either_ key-based or time-based
-retention policies (or both).
-
-Each journal is a ZNG file numbered 1 to the end of journal (HEAD),
+Each atomic journal commit object is a ZNG file numbered 1 to the end of journal (HEAD),
 e.g., `1.zng`, `2.zng`, etc., each number corresponding to a journal ID.
 The 0 value is reserved as the null journal ID.
 The journal's TAIL begins at 1 and is increased as journal entries are purged.
 Entries are added at the HEAD and removed from the TAIL.
 Once created, a journal entry is never modified but it may be deleted and
 never again allocated.
+There may be 1 or more entries in each commit object.
 
 Each journal entry implies a snapshot of the data in a pool.  A snapshot
-is computed by applying the ADD/DROP directives in sequence from entry TAIL to
+is computed by applying the transactions in sequence from entry TAIL to
 the journal entry in question, up to HEAD.  This gives the set of commit tags
-that comprise a snapshot.  A snapshot may then be assembled by scanning,
-in key order, the segments that comprise all of the commits while merging
-records from overlapping segments.  The snapshot is sorted by its pool key
+that comprise a snapshot.
+
+A data scan may then be assembled at any point in the journal's history
+by scanning, in key order, the objects that comprise all of the commits while merging
+records from overlapping objects.  The snapshot is sorted by its pool key
 range, where key-range values are sorted by the beginning key as the primary key
 and the ending key is the secondary key.
 
@@ -615,8 +702,8 @@ In this case, commits to the parent pool are made in the same fashion,
 but instead of snapshotting updates into a snapshot ZNG file,
 the snapshots are committed to the journal sub-pool.  In this way, commit histories
 can be rolled up and organized by the pool key.  Likewise, retention policies
-based on the pool key can remove not just data segments from the main pool but
-also data segments in the journal pool comprising commit segment data that falls
+based on the pool key can remove not just data objects from the main pool but
+also data objects in the journal pool comprising committed data that falls
 outside of the retention boundary.
 
 #### Journal Concurrency Control
@@ -681,15 +768,11 @@ the configuration history.
       <tag1>.{zng,zst}
       <tag2>.{zng,zst}
       ...
-    X/
-      <rule-tag-1>/
-        <tag2>.zng
-        <tag23>.zng
-        <tag101>.zng
-      <rule-tag-2>/
-        <tag77>.zng
-        <tag89>.zng
-        ...
+    index/
+      <tag1>-<index-tag-1>.zng
+      <tag1>-<index-tag-2>.zng
+      ...
+      <tag2>-<index-tag-1>.zng
       ...
   <pool-tag-2>/
   ...
@@ -707,7 +790,7 @@ to scale to arbitrarily large footprints as described earlier.
 
 ## Lake Introspection
 
-Commit history, metadata about segments, segment key spaces,
+Commit history, metadata about data objects, lake and pool configuration,
 etc. can all be queried and
 returned as Zed data, which in turn, can be fed into Zed analytics.
 This allows a very powerful approach to introspecting the structure of a
@@ -716,7 +799,7 @@ optimize layout for performance.
 
 > TBD: define model for scanning metadata in this fashion.  It might be as
 > easy as scanning virtual sub-pools that conform to the different types of
-> metadata related to a pool, e.g., logs.$segments, logs.$commits, etc.
+> metadata related to a pool, e.g., logs.$journal, logs.$indexes, etc.
 
 ## Derived Analytics
 
@@ -764,16 +847,16 @@ rows can be maintained by trivially detected duplicates (because any
 duplicate row will be adjacent when sorted by "this") so that duplicates are
 trivially detected.
 
-Efficient upserts can be accomplished because each segment is sorted by the
+Efficient upserts can be accomplished because each data object is sorted by the
 pool key.  Thus, an upsert can be sorted then merge-joined with each
-overlapping segment.  Where segments produce changes and additions, they can
-be forwarded to a streaming add operator and the list of modified segments
+overlapping object.  Where data objects produce changes and additions, they can
+be forwarded to a streaming add operator and the list of modified objects
 accumulated.  At the end of the operation, then new commit(s) along with
-the to-be-deleted segments can be added to the journal in a single atomic
+the to-be-deleted objects can be added to the journal in a single atomic
 operation.  A write conflict occurs if there are any other deletes added to
-the list of to-be-deleted segments.  When this occurs, the transaction can
+the list of to-be-deleted objects.  When this occurs, the transaction can
 simply be restarted.  To avoid inefficiency of many restarts, an upsert can
-be partitioned into smaller segments if the use case allows for it.
+be partitioned into smaller objects if the use case allows for it.
 
 > TBD: Finish working through this use case, its requirements, and the
 > mechanisms needed to implement it.  Write conflicts will need to be

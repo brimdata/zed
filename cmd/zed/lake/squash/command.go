@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/cli/lakecli"
+	"github.com/brimdata/zed/cli/lakeflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
@@ -37,38 +37,44 @@ func init() {
 }
 
 type Command struct {
-	lake *zedlake.Command
+	lake zedlake.Command
 	zedlake.CommitFlags
+	lakeFlags lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{lake: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(zedlake.Command)}
 	c.CommitFlags.SetFlags(f)
+	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init()
+	ctx, cleanup, err := c.lake.Root().Init()
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	pool, err := c.lake.Flags.OpenPool(ctx)
+	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-	ids, err := lakecli.ParseIDs(args)
+	pool, err := lake.LookupPool(ctx, c.lakeFlags.PoolName)
+	if err != nil {
+		return err
+	}
+	ids, err := lakeflags.ParseIDs(args)
 	if err != nil {
 		return err
 	}
 	if len(ids) == 0 {
 		return errors.New("no commit tags specified")
 	}
-	commit, err := pool.Squash(ctx, ids)
+	commit, err := lake.Squash(ctx, pool.ID, ids)
 	if err != nil {
 		return err
 	}
-	if !c.lake.Flags.Quiet() {
+	if !c.lakeFlags.Quiet {
 		fmt.Printf("squashed commit in staging: %s\n", commit)
 	}
 	return nil

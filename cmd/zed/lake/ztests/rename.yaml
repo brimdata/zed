@@ -1,0 +1,28 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p p1
+  zed lake create -q -p p2
+  zed lake rename -p p2 p3
+  echo ===
+  zed lake ls | sort
+  echo ===
+  zed lake drop -f -p p1
+  echo ===
+  zed lake rename -p p1 p4 || true
+  zed lake rename -p p2 p4
+
+outputs:
+  - name: stdout
+    regexp: |
+      pool \w{27} renamed from p2 to p3
+      ===
+      p1 \w{27} key ts order desc
+      p3 \w{27} key ts order desc
+      ===
+      pool deleted: p1
+      ===
+  - name: stderr
+    data: |
+      p1: pool not found
+      p2: pool not found
