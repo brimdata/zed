@@ -106,7 +106,7 @@ func (f *FieldRule) Zed() string {
 		// This is problematic.  We should change the index files
 		// to presume the original names of the keys and just do
 		// a non-assignmnet cut on all of the fields.
-		panic("")
+		panic("issue #2923")
 	}
 	return fmt.Sprintf("cut %s:=%s | count() by %s | sort %s", keyName, f.Fields[0], keyName, keyName)
 }

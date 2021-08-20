@@ -507,7 +507,7 @@ so that any named group of rules can be applied to data objects from
 any pool.  The group name provides no meaning beyond a reference to
 a set of index rules at any given time.
 
-Rules are created with the `zed lake index create`,
+Rules are created with `zed lake index create`,
 deleted with `zed lake index drop`, and applied with
 `zed lake index apply`.
 
@@ -518,7 +518,7 @@ For example,
 ```
 zed lake index create IndexGroupEx field foo
 ```
-add a field rule for field `foo` to the index group named `IndexGroupEx`.
+adds a field rule for field `foo` to the index group named `IndexGroupEx`.
 This rule can then be applied to an data object having a given `<tag>`
 in a pool, e.g.,
 ```
@@ -662,7 +662,7 @@ below) to provide atomic updates.
 
 A journal entry simply contains actions that modify the "state" of the pool
 as described in the `zed lake commit` section above.
-Each 'Add' entry includes meta-data about the object committed to the pool,
+Each 'Add' entry includes metadata about the object committed to the pool,
 including its pool-key range and commit timestamp.
 Thus, data objects and journal entries can be purged with _either_ key-based
 or time-based retention policies (or both).
@@ -703,7 +703,7 @@ but instead of snapshotting updates into a snapshot ZNG file,
 the snapshots are committed to the journal sub-pool.  In this way, commit histories
 can be rolled up and organized by the pool key.  Likewise, retention policies
 based on the pool key can remove not just data objects from the main pool but
-also data objects in the journal pool comprising commited data that falls
+also data objects in the journal pool comprising committed data that falls
 outside of the retention boundary.
 
 #### Journal Concurrency Control

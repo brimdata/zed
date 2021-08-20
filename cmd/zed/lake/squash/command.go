@@ -60,6 +60,9 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	pool, err := lake.LookupPool(ctx, c.lakeFlags.PoolName)
+	if err != nil {
+		return err
+	}
 	ids, err := lakeflags.ParseIDs(args)
 	if err != nil {
 		return err

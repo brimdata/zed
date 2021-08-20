@@ -96,6 +96,9 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	pool, err := lake.LookupPool(ctx, c.lakeFlags.PoolName)
+	if err != nil {
+		return err
+	}
 	// XXX See issue #2921.  Not clear we should merge by ts here.
 	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Layout.Order)
 	if err != nil {
