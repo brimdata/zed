@@ -29,7 +29,8 @@ type Reader struct {
 //}
 
 func NewReader(r io.Reader, zctx *zson.Context) *Reader {
-	reader := csv.NewReader(r)
+	preprocess := newPreProcess(r)
+	reader := csv.NewReader(preprocess)
 	reader.ReuseRecord = true
 	reader.TrimLeadingSpace = true
 	return &Reader{
