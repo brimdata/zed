@@ -24,8 +24,7 @@ type Log struct {
 }
 
 const (
-	journalHandle = "J"
-	maxRetries    = 10
+	maxRetries = 10
 )
 
 var ErrRetriesExceeded = fmt.Errorf("commit journal unavailable after %d attempts", maxRetries)
@@ -41,7 +40,7 @@ func newLog(path *storage.URI, o order.Which) *Log {
 func Open(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which) (*Log, error) {
 	l := newLog(path, o)
 	var err error
-	l.journal, err = journal.Open(ctx, engine, l.path.AppendPath(journalHandle))
+	l.journal, err = journal.Open(ctx, engine, l.path)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +49,7 @@ func Open(ctx context.Context, engine storage.Engine, path *storage.URI, o order
 
 func Create(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which) (*Log, error) {
 	l := newLog(path, o)
-	j, err := journal.Create(ctx, engine, l.path.AppendPath(journalHandle))
+	j, err := journal.Create(ctx, engine, l.path)
 	if err != nil {
 		return nil, err
 	}

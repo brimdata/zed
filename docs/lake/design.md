@@ -746,14 +746,22 @@ the configuration history.
 
 ```
 <lake-path>/
-  R/
+  pools/
     HEAD
     TAIL
     1.zng
     2.zng
     ...
+  index_rules/
+    HEAD
+    TAIL
+    1.zng
+    2.zng
+    ...
+  staging/
+    ...
   <pool-tag-1>/
-    J/
+    log/
       HEAD
       TAIL
       1.zng
@@ -764,7 +772,7 @@ the configuration history.
       20-seek.zng
       21.zng
       ...
-    D/
+    data/
       <tag1>.{zng,zst}
       <tag2>.{zng,zst}
       ...
