@@ -513,7 +513,7 @@ PoolAt
 KSUID = ([0-9a-zA-Z])+ { RETURN(TEXT) }
 
 PoolRange
-  = _ "over"i _ lower:Literal _ "to"i _ upper:Literal {
+  = _ "range"i _ lower:Literal _ "to"i _ upper:Literal {
       RETURN(MAP("kind":"Range","lower": lower, "upper": upper))
     }
   / "" { RETURN(NULL) }

@@ -676,8 +676,8 @@ function peg$parse(input, options) {
       peg$c221 = function(id) { return id },
       peg$c222 = /^[0-9a-zA-Z]/,
       peg$c223 = peg$classExpectation([["0", "9"], ["a", "z"], ["A", "Z"]], false, false),
-      peg$c224 = "over",
-      peg$c225 = peg$literalExpectation("over", true),
+      peg$c224 = "range",
+      peg$c225 = peg$literalExpectation("range", true),
       peg$c226 = "to",
       peg$c227 = peg$literalExpectation("to", true),
       peg$c228 = function(lower, upper) {
@@ -5557,9 +5557,9 @@ function peg$parse(input, options) {
     s0 = peg$currPos;
     s1 = peg$parse_();
     if (s1 !== peg$FAILED) {
-      if (input.substr(peg$currPos, 4).toLowerCase() === peg$c224) {
-        s2 = input.substr(peg$currPos, 4);
-        peg$currPos += 4;
+      if (input.substr(peg$currPos, 5).toLowerCase() === peg$c224) {
+        s2 = input.substr(peg$currPos, 5);
+        peg$currPos += 5;
       } else {
         s2 = peg$FAILED;
         if (peg$silentFails === 0) { peg$fail(peg$c225); }
