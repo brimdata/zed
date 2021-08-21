@@ -152,7 +152,7 @@ and arbitrary data _shapes_ can coexist side by side.
 
 Data is read from one or more pools with the `query` command.  The pool names
 are specified with `from` at the beginning the Zed query along with an optional
-time range using `over` and `to`.  The default output format is ZNG though this
+time range using `range` and `to`.  The default output format is ZNG though this
 can be overridden with `-f` to specify one of the various supported output
 formats.
 
@@ -165,7 +165,7 @@ zed lake query -f zson 'from logs'
 
 Or we can narrow the span of the query by specifying the key range.
 ```
-zed lake query -z 'from logs over 2018-03-24T17:36:30.090766Z to 2018-03-24T17:36:30.090758Z'
+zed lake query -z 'from logs range 2018-03-24T17:36:30.090766Z to 2018-03-24T17:36:30.090758Z'
 ```
 
 A much more efficient format for transporting query results is the
