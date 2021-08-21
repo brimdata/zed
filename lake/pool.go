@@ -26,10 +26,10 @@ import (
 )
 
 const (
-	DataTag  = "D"
-	IndexTag = "I"
-	LogTag   = "L"
-	StageTag = "S"
+	DataTag  = "data"
+	IndexTag = "index"
+	LogTag   = "log"
+	StageTag = "staging"
 )
 
 var ErrStagingEmpty = errors.New("staging area empty")
