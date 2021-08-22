@@ -7,10 +7,10 @@ import (
 
 	"github.com/brimdata/zed/lake/commit/actions"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zngbytes"
 	"github.com/segmentio/ksuid"
 )
 
@@ -94,7 +94,7 @@ func (t *Transaction) appendAddIndex(i *index.Reference) {
 }
 
 func (t Transaction) Serialize() ([]byte, error) {
-	writer := journal.NewSerializer()
+	writer := zngbytes.NewSerializer()
 	for _, action := range t.Actions {
 		if err := writer.Write(action); err != nil {
 			writer.Close()
@@ -112,7 +112,7 @@ func (t Transaction) Serialize() ([]byte, error) {
 }
 
 func (t *Transaction) Deserialize(r io.Reader) error {
-	reader := journal.NewDeserializer(r, actions.JournalTypes)
+	reader := zngbytes.NewDeserializer(r, actions.JournalTypes)
 	for {
 		entry, err := reader.Read()
 		if err != nil {

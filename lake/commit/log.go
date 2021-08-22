@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zngbytes"
 	"github.com/segmentio/ksuid"
 )
 
@@ -116,7 +117,7 @@ func (l *Log) Snapshot(ctx context.Context, at journal.ID) (*Snapshot, error) {
 		return nil, err
 	}
 	snapshot := newSnapshotAt(at)
-	reader := journal.NewDeserializer(r, actions.JournalTypes)
+	reader := zngbytes.NewDeserializer(r, actions.JournalTypes)
 	for {
 		entry, err := reader.Read()
 		if err != nil {
@@ -149,7 +150,7 @@ func (l *Log) SnapshotOfCommit(ctx context.Context, at journal.ID, commit ksuid.
 	}
 	var valid bool
 	snapshot := newSnapshotAt(at)
-	reader := journal.NewDeserializer(r, actions.JournalTypes)
+	reader := zngbytes.NewDeserializer(r, actions.JournalTypes)
 	for {
 		entry, err := reader.Read()
 		if err != nil {
@@ -190,7 +191,7 @@ func (l *Log) JournalIDOfCommit(ctx context.Context, at journal.ID, commit ksuid
 		if err != nil {
 			return journal.Nil, err
 		}
-		reader := journal.NewDeserializer(bytes.NewReader(b), actions.JournalTypes)
+		reader := zngbytes.NewDeserializer(bytes.NewReader(b), actions.JournalTypes)
 		entry, err := reader.Read()
 		if err != nil {
 			return journal.Nil, err

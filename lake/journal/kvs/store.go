@@ -9,6 +9,7 @@ import (
 
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -218,7 +219,7 @@ func (s *Store) Move(ctx context.Context, oldKey, newKey string, newVal interfac
 		Key:   newKey,
 		Value: newVal,
 	}
-	serializer := journal.NewSerializer()
+	serializer := zngbytes.NewSerializer()
 	if err := serializer.Write(&remove); err != nil {
 		return err
 	}
@@ -254,7 +255,7 @@ func (s *Store) Move(ctx context.Context, oldKey, newKey string, newVal interfac
 }
 
 func (e Entry) serialize() ([]byte, error) {
-	serializer := journal.NewSerializer()
+	serializer := zngbytes.NewSerializer()
 	if err := serializer.Write(&e); err != nil {
 		return nil, err
 	}

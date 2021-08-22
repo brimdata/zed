@@ -10,6 +10,7 @@ import (
 
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -261,7 +262,7 @@ func (s *Store) IDs(ctx context.Context) ([]ksuid.KSUID, error) {
 }
 
 func serialize(r interface{}) ([]byte, error) {
-	serializer := journal.NewSerializer()
+	serializer := zngbytes.NewSerializer()
 	if err := serializer.Write(r); err != nil {
 		return nil, err
 	}
