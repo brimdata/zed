@@ -304,7 +304,7 @@ However, if many overlapping data objects arise, merging the scan in this fashio
 on every read can be inefficient.
 This can arise when
 many random data `load` operations involving perhaps "late" data
-(i.e., the pool key is timestamp `ts` and records with old `ts` values regularly
+(e.g., the pool key is a timestamp and records with old timestamp values regularly
 show up and need to be inserted into the past).  The data layout can become
 fragmented and less efficient to scan, requiring a scan to merge data
 from a potentially large number of different objects.
