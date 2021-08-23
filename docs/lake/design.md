@@ -13,11 +13,15 @@
     + [Squash and Delete](#squash-and-delete)
     + [Purge and Vacate](#purge-and-vacate)
     + [Log](#log)
-  * [Cloud Object Naming](#cloud-object-naming)
+  * [Search Indexes](#search-indexes)
+    + [Index Rules](#index-rules)
+      - [Field Rule](#field-rule)
+      - [Type Rule](#type-rule)
+      - [Aggregation Rule](#aggregation-rule)
+  * [Cloud Object Architecture](#cloud-object-architecture)
     + [Immutable Objects](#immutable-objects)
       - [Data Objects](#data-objects)
-      - [Search Indexes](#search-indexes)
-    + [Mutable Objects](#mutable-objects)
+    + [Transaction Journal](#transaction-journal)
       - [Commit Journal](#commit-journal)
       - [Scaling a Journal](#scaling-a-journal)
       - [Journal Concurrency Control](#journal-concurrency-control)
@@ -29,7 +33,6 @@
   * [Keyless Data](#keyless-data)
   * [Relational Model](#relational-model)
   * [Current Status](#current-status)
-
 
 A Zed lake is a cloud-native arrangement of data,
 optimized for search, analytics, ETL, and data discovery
@@ -119,15 +122,16 @@ or descending, respectively, e.g.,
 ```
 zed lake create -p logs -orderby ts:desc
 ```
-Note that there may be multiple pool keys, where subsequent keys act as the secondary,
-tertiary, and so forth sort key.
+Note that there may be multiple pool keys (implementation tracked in
+[zed/2657](https://github.com/brimdata/zed/issues/2657)), where subsequent keys
+act as the secondary sort key, tertiary sort key, and so forth.
 
 If a pool key is not specified, then it defaults to the whole record, which
 in the Zed language is referred to as "this".
 
 ### Load
 
-Data is then loaded into a lake with the `load` command, .e.g.,
+Data is then loaded into a lake with the `load` command, e.g.,
 ```
 zed lake load -p logs sample.ndjson
 ```
@@ -151,7 +155,7 @@ and arbitrary data _shapes_ can coexist side by side.
 ### Query
 
 Data is read from one or more pools with the `query` command.  The pool names
-are specified with `from` at the beginning the Zed query along with an optional
+are specified with `from` at the beginning of the Zed query along with an optional
 time range using `range` and `to`.  The default output format is ZNG though this
 can be overridden with `-f` to specify one of the various supported output
 formats.
@@ -178,7 +182,7 @@ zed lake query -f zng 'from logs' | zed query -f table 'count() by field' -
 Of course, it's even more efficient to run the query inside of the pool traversal
 like this:
 ```
-zed lake query 'from logs | count() by field'
+zed lake query -f table 'from logs | count() by field'
 ```
 By default, the `query` command scans pool data in pool-key order though
 the Zed optimizer may, in general, reorder the scan to optimize searches,
@@ -281,7 +285,7 @@ a transactionally consistent fashion.
 #### Data Segmentation
 
 In an `add` operation, a commit is broken out into units called _data objects_
-where a target objet size is configured into the pool,
+where a target object size is configured into the pool,
 typically 100-500MB.  The records within each object are sorted by the pool key(s).
 A data object is presumed by the implementation
 to fit into the memory of an intake worker node
@@ -300,7 +304,7 @@ However, if many overlapping data objects arise, merging the scan in this fashio
 on every read can be inefficient.
 This can arise when
 many random data `load` operations involving perhaps "late" data
-(i.e., the pool key is `ts` and records with old `ts` values regularly
+(e.g., the pool key is a timestamp and records with old timestamp values regularly
 show up and need to be inserted into the past).  The data layout can become
 fragmented and less efficient to scan, requiring a scan to merge data
 from a potentially large number of different objects.
@@ -472,7 +476,7 @@ after each configuration change.
 To optimize pool scans, the lake design relies on the well-known pruning
 concept to skip any data object that the planner determines can be skipped
 based on one or more indexes of that object.  For example, if an object
-has been index for field "foo" and the query
+has been indexed for field "foo" and the query
 ```
 foo == "bar" | ...
 ```
@@ -519,7 +523,7 @@ For example,
 zed lake index create IndexGroupEx field foo
 ```
 adds a field rule for field `foo` to the index group named `IndexGroupEx`.
-This rule can then be applied to an data object having a given `<tag>`
+This rule can then be applied to a data object having a given `<tag>`
 in a pool, e.g.,
 ```
 zed lake index apply -p logs IndexGroupEx <tag>
@@ -542,11 +546,11 @@ in the index group `IndexGroupEx`.
 #### Aggregation Rule
 
 An aggregation rule allows the creation of any index keyed by one or more fields
-(primary, second, etc) typically the result of an aggregation.
+(primary, second, etc.), typically the result of an aggregation.
 The aggregation is specified as a Zed query.
 For example,
 ```
-zed lake index create IndexGroupEx agg "count() by _path"
+zed lake index create IndexGroupEx agg "count() by field"
 ```
 creates a rule that creates an index keyed by the group-by keys whose
 values are the partial-result aggregation given by the Zed expression.
@@ -559,7 +563,7 @@ values are the partial-result aggregation given by the Zed expression.
 > (except for optimizations that suit the interactive app) but rather is a powerful
 > capability for application-specific workflows that know the pre-computed
 > aggregations that they will use ahead of time, e.g., beacon analysis
-> of zeek logs.
+> of network security logs.
 
 ## Cloud Object Architecture
 
@@ -685,7 +689,7 @@ A data scan may then be assembled at any point in the journal's history
 by scanning, in key order, the objects that comprise all of the commits while merging
 records from overlapping objects.  The snapshot is sorted by its pool key
 range, where key-range values are sorted by the beginning key as the primary key
-and the ending key is the secondary key.
+and the ending key as the secondary key.
 
 For efficiency, a journal entry's snapshot may be stored as a "cached snapshot"
 alongside the journal entry.  This way, the snapshot at HEAD may be
