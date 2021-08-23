@@ -5,7 +5,7 @@ script: |
   zapi create -q -p p3
   zapi drop -f -p p3
   echo ===
-  zapi ls -f zng | zq -f zson "pick name" -
+  zapi ls -f zng | zq -f zson "pick name | sort name" -
 
 inputs:
   - name: service.sh

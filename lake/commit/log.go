@@ -13,6 +13,7 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zngbytes"
 	"github.com/segmentio/ksuid"
 )
 
@@ -24,8 +25,7 @@ type Log struct {
 }
 
 const (
-	journalHandle = "J"
-	maxRetries    = 10
+	maxRetries = 10
 )
 
 var ErrRetriesExceeded = fmt.Errorf("commit journal unavailable after %d attempts", maxRetries)
@@ -41,7 +41,7 @@ func newLog(path *storage.URI, o order.Which) *Log {
 func Open(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which) (*Log, error) {
 	l := newLog(path, o)
 	var err error
-	l.journal, err = journal.Open(ctx, engine, l.path.AppendPath(journalHandle))
+	l.journal, err = journal.Open(ctx, engine, l.path)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func Open(ctx context.Context, engine storage.Engine, path *storage.URI, o order
 
 func Create(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which) (*Log, error) {
 	l := newLog(path, o)
-	j, err := journal.Create(ctx, engine, l.path.AppendPath(journalHandle))
+	j, err := journal.Create(ctx, engine, l.path)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +117,7 @@ func (l *Log) Snapshot(ctx context.Context, at journal.ID) (*Snapshot, error) {
 		return nil, err
 	}
 	snapshot := newSnapshotAt(at)
-	reader := journal.NewDeserializer(r, actions.JournalTypes)
+	reader := zngbytes.NewDeserializer(r, actions.JournalTypes)
 	for {
 		entry, err := reader.Read()
 		if err != nil {
@@ -150,7 +150,7 @@ func (l *Log) SnapshotOfCommit(ctx context.Context, at journal.ID, commit ksuid.
 	}
 	var valid bool
 	snapshot := newSnapshotAt(at)
-	reader := journal.NewDeserializer(r, actions.JournalTypes)
+	reader := zngbytes.NewDeserializer(r, actions.JournalTypes)
 	for {
 		entry, err := reader.Read()
 		if err != nil {
@@ -191,7 +191,7 @@ func (l *Log) JournalIDOfCommit(ctx context.Context, at journal.ID, commit ksuid
 		if err != nil {
 			return journal.Nil, err
 		}
-		reader := journal.NewDeserializer(bytes.NewReader(b), actions.JournalTypes)
+		reader := zngbytes.NewDeserializer(bytes.NewReader(b), actions.JournalTypes)
 		entry, err := reader.Read()
 		if err != nil {
 			return journal.Nil, err
