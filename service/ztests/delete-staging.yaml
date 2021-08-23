@@ -1,0 +1,26 @@
+script: |
+  source service.sh
+  zapi create -q -p test
+  a=$(zapi add -p test a.zson | head -1 | awk '{print $1}')
+  b=$(zapi add -p test b.zson | head -1 | awk '{print $1}')
+  zapi delete -p test -staging $a $b
+  zapi delete -p test -staging DoesNotExistOtTFSu2ElrcOcHi
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+  - name: b.zson
+    data: |
+      {b:1}
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stderr
+    data: |
+      status code 404: DoesNotExistOtTFSu2ElrcOcHi: not found in staging
+  - name: stdout
+    regexp: |
+      \w{27} deleted from staging
+      \w{27} deleted from staging

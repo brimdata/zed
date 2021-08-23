@@ -189,6 +189,10 @@ func (r *RemoteSession) Delete(ctx context.Context, poolID ksuid.KSUID, tags []k
 	return staged.Commit, err
 }
 
+func (r *RemoteSession) DeleteFromStaging(ctx context.Context, poolID ksuid.KSUID, id ksuid.KSUID) error {
+	return r.conn.DeleteFromStaging(ctx, poolID, id)
+}
+
 func (r *RemoteSession) Squash(ctx context.Context, poolID ksuid.KSUID, ids []ksuid.KSUID) (ksuid.KSUID, error) {
 	res, err := r.conn.Squash(ctx, poolID, ids)
 	if err != nil {

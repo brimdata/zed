@@ -35,7 +35,9 @@ consistency, but the final decision on a consistency is made
 when the staged delete commit is actually committed,
 e.g., with "zed lake commit".
 
-To delete commits in staging, use the "zed lake stage" command.
+If the -staging flag is set, the specified commit(s) will be
+deleted from staging. If the specified commit(s) do not exist,
+an error will be returned.
 `,
 	New: New,
 }
@@ -49,12 +51,14 @@ type Command struct {
 	lake      zedlake.Command
 	commit    bool
 	lakeFlags lakeflags.Flags
+	staging   bool
 	zedlake.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{lake: parent.(zedlake.Command)}
-	f.BoolVar(&c.commit, "commit", false, "commit added data if successfully written")
+	f.BoolVar(&c.commit, "commit", false, "commit deleted data if successfully written")
+	f.BoolVar(&c.staging, "staging", false, "perform delete on staged commits")
 	c.CommitFlags.SetFlags(f)
 	c.lakeFlags.SetFlags(f)
 	return c, nil
@@ -80,6 +84,18 @@ func (c *Command) Run(args []string) error {
 	}
 	if len(tags) == 0 {
 		return errors.New("no data or commit tags specified")
+	}
+	if c.staging {
+		if c.commit {
+			return errors.New("cannot have both -staging and -commit flags activated")
+		}
+		for _, id := range tags {
+			if err := lake.DeleteFromStaging(ctx, pool.ID, id); err != nil {
+				return err
+			}
+			fmt.Printf("%s deleted from staging\n", id.String())
+		}
+		return nil
 	}
 	if c.commit {
 		if _, err := lake.Delete(ctx, pool.ID, tags, c.CommitRequest()); err != nil {

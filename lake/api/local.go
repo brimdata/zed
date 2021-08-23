@@ -158,6 +158,14 @@ func (l *LocalSession) Delete(ctx context.Context, poolID ksuid.KSUID, tags []ks
 	return commitID, nil
 }
 
+func (l *LocalSession) DeleteFromStaging(ctx context.Context, poolID ksuid.KSUID, id ksuid.KSUID) error {
+	pool, err := l.lookupPool(ctx, poolID)
+	if err != nil {
+		return err
+	}
+	return pool.ClearFromStaging(ctx, id)
+}
+
 func (l *LocalSession) ApplyIndexRules(ctx context.Context, name string, poolID ksuid.KSUID, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
 	pool, err := l.lookupPool(ctx, poolID)
 	if err != nil {

@@ -352,6 +352,30 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	w.Marshal(api.StagedCommit{commit})
 }
 
+func handleDeleteFromStaging(c *Core, w *ResponseWriter, r *Request) {
+	poolID, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), poolID)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	id, ok := r.TagFromPath("commit", w)
+	if !ok {
+		return
+	}
+	if err := pool.ClearFromStaging(r.Context(), id); err != nil {
+		if errors.Is(err, lake.ErrNotFoundInStaging) {
+			err = zqe.ErrNotFound(err)
+		}
+		w.Error(err)
+		return
+	}
+	w.WriteHeader(http.StatusNoContent)
+}
+
 func handleSquash(c *Core, w *ResponseWriter, r *Request) {
 	id, ok := r.PoolID(w)
 	if !ok {

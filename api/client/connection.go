@@ -380,6 +380,12 @@ func (c *Connection) Delete(ctx context.Context, pool ksuid.KSUID, ids []ksuid.K
 	return c.stream(req)
 }
 
+func (c *Connection) DeleteFromStaging(ctx context.Context, pool ksuid.KSUID, id ksuid.KSUID) error {
+	_, err := c.Request(ctx).
+		Delete(path.Join("/pool", pool.String(), "staging", id.String()))
+	return err
+}
+
 func (c *Connection) Squash(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(api.SquashRequest{ids})

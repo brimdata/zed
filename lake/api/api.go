@@ -30,6 +30,7 @@ type Interface interface {
 	// Data operations
 	Add(ctx context.Context, pool ksuid.KSUID, r zio.Reader, commit *api.CommitRequest) (ksuid.KSUID, error)
 	Delete(ctx context.Context, pool ksuid.KSUID, tags []ksuid.KSUID, commit *api.CommitRequest) (ksuid.KSUID, error)
+	DeleteFromStaging(ctx context.Context, pool ksuid.KSUID, id ksuid.KSUID) error
 	Commit(ctx context.Context, pool ksuid.KSUID, id ksuid.KSUID, commit api.CommitRequest) error
 	Squash(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (ksuid.KSUID, error)
 

@@ -32,7 +32,10 @@ const (
 	StageTag = "staging"
 )
 
-var ErrStagingEmpty = errors.New("staging area empty")
+var (
+	ErrStagingEmpty      = errors.New("staging area empty")
+	ErrNotFoundInStaging = errors.New("not found in staging")
+)
 
 type PoolConfig struct {
 	Version   int          `zng:"version"`
@@ -207,7 +210,11 @@ func (p *Pool) SegmentExists(ctx context.Context, id ksuid.KSUID) (bool, error) 
 }
 
 func (p *Pool) ClearFromStaging(ctx context.Context, id ksuid.KSUID) error {
-	return p.engine.Delete(ctx, p.StagingObject(id))
+	err := p.engine.Delete(ctx, p.StagingObject(id))
+	if zqe.IsNotFound(err) {
+		return fmt.Errorf("%s: %w", id.String(), ErrNotFoundInStaging)
+	}
+	return err
 }
 
 func (p *Pool) ListStagedCommits(ctx context.Context) ([]ksuid.KSUID, error) {
