@@ -17,7 +17,7 @@ field4,"field"5 with "multiple" quotes "to" escape,field6`
 	const expected = `
 field1,field2,field3 my friend
 field4,field5 with multiple quotes to escape,field6`
-	p := newPreProcess(strings.NewReader(input))
+	p := newPreprocess(strings.NewReader(input))
 	var buf bytes.Buffer
 	_, err := io.Copy(&buf, p)
 	require.NoError(t, err)

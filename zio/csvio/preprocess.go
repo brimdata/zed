@@ -12,7 +12,7 @@ const (
 	MaxLineSize = 50 * 1024 * 1024
 )
 
-// preProcess is a reader, meant to sit in front of the go csv reader, that
+// preprocess is a reader, meant to sit in front of the go csv reader, that
 // looks for fields where quotes do not cover the entirety of a field. If such
 // a case is found the quotes are stripped from the field.
 //
@@ -20,19 +20,19 @@ const (
 // field1,"field2" extra
 // Would get converted into:
 // field1,field2 extra
-type preProcess struct {
+type preprocess struct {
 	leftover []byte
 	scanner  *skim.Scanner
 }
 
-func newPreProcess(r io.Reader) *preProcess {
+func newPreprocess(r io.Reader) *preprocess {
 	buffer := make([]byte, ReadSize)
-	return &preProcess{
+	return &preprocess{
 		scanner: skim.NewScanner(r, buffer, MaxLineSize),
 	}
 }
 
-func (p *preProcess) Read(b []byte) (int, error) {
+func (p *preprocess) Read(b []byte) (int, error) {
 	n := len(p.leftover)
 	if n > 0 {
 		if cc := p.copy(b, p.leftover); cc < n {
@@ -55,7 +55,7 @@ func (p *preProcess) Read(b []byte) (int, error) {
 	}
 }
 
-func (p *preProcess) copy(dst []byte, src []byte) int {
+func (p *preprocess) copy(dst []byte, src []byte) int {
 	cc := copy(dst, src)
 	p.leftover = append(p.leftover[0:], src[cc:]...)
 	return cc
@@ -65,8 +65,8 @@ func checkLine(line []byte) []byte {
 	var field []byte
 	var pos int
 	for {
-		comma := bytes.Index(line[pos:], []byte(","))
-		newline := bytes.Index(line[pos:], []byte("\n"))
+		comma := bytes.IndexByte(line[pos:], ',')
+		newline := bytes.IndexByte(line[pos:], '\n')
 		if i := minIndex(comma, newline); i == -1 {
 			field = line[pos:]
 		} else {
@@ -87,14 +87,7 @@ func checkLine(line []byte) []byte {
 }
 
 func minIndex(x, y int) int {
-	switch {
-	case x == -1 && y == -1:
-		return -1
-	case x == -1:
-		return y
-	case y == -1:
-		return x
-	case x < y:
+	if x != -1 && (y == -1 || x < y) {
 		return x
 	}
 	return y
