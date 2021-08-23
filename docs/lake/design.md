@@ -124,7 +124,7 @@ zed lake create -p logs -orderby ts:desc
 ```
 Note that there may be multiple pool keys (implementation tracked in
 [zed/2657](https://github.com/brimdata/zed/issues/2657)), where subsequent keys
-act as the secondary, tertiary, and so forth sort key.
+act as the secondary sort key, tertiary sort key, and so forth.
 
 If a pool key is not specified, then it defaults to the whole record, which
 in the Zed language is referred to as "this".
