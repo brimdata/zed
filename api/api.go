@@ -159,5 +159,5 @@ type QueryStats struct {
 }
 
 type QueryWarning struct {
-	Warning string `zng:"warning"`
+	Warning string `json:"warning" zng:"warning"`
 }
