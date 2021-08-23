@@ -103,13 +103,12 @@ func minIndex(x, y int) int {
 func checkField(field []byte) []byte {
 	// Looking for the case where there's open and closed quotes and text to the
 	// left or right side of it. If we find this case remove the quotes.
-	quote := []byte(`"`)
 	for {
-		start := bytes.Index(field, quote)
+		start := bytes.IndexByte(field, '"')
 		if start == -1 {
 			return field
 		}
-		end := bytes.Index(field[start+1:], quote)
+		end := bytes.IndexByte(field[start+1:], '"')
 		if end == -1 {
 			return field
 		}
