@@ -129,6 +129,7 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
@@ -272,6 +273,7 @@ type ZTest struct {
 	// For Zed-style tests.
 	Zed         string `yaml:"zed,omitempty"`
 	Input       string `yaml:"input,omitempty"`
+	InputFlags  string `yaml:"input-flags,omitempty"`
 	Output      string `yaml:"output,omitempty"`
 	OutputFlags string `yaml:"output-flags,omitempty"`
 	ErrorRE     string `yaml:"errorRE"`
@@ -358,8 +360,9 @@ func (z *ZTest) RunInternal(path string) error {
 	if err := z.check(); err != nil {
 		return fmt.Errorf("bad yaml format: %w", err)
 	}
+	inputFlags := strings.Fields(z.InputFlags)
 	outputFlags := append([]string{"-f", "zson", "-pretty=0"}, strings.Fields(z.OutputFlags)...)
-	out, errout, err := runzq(path, z.Zed, z.Input, outputFlags)
+	out, errout, err := runzq(path, z.Zed, z.Input, outputFlags, inputFlags)
 	if err != nil {
 		if z.errRegex != nil {
 			if !z.errRegex.MatchString(errout) {
@@ -527,14 +530,15 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 // is empty, the program runs in the current process.  If path is not empty, it
 // specifies a command search path used to find a zq executable to run the
 // program.
-func runzq(path, zed, input string, outputFlags []string) (string, string, error) {
+func runzq(path, zed, input string, outputFlags []string, inputFlags []string) (string, string, error) {
 	var errbuf, outbuf bytes.Buffer
 	if path != "" {
 		zq, err := lookupzq(path)
 		if err != nil {
 			return "", "", err
 		}
-		cmd := exec.Command(zq, append(outputFlags, zed, "-")...)
+		flags := append(outputFlags, inputFlags...)
+		cmd := exec.Command(zq, append(flags, zed, "-")...)
 		cmd.Stdin = strings.NewReader(input)
 		cmd.Stdout = &outbuf
 		cmd.Stderr = &errbuf
@@ -548,18 +552,20 @@ func runzq(path, zed, input string, outputFlags []string) (string, string, error
 	if err != nil {
 		return "", "", err
 	}
+	var outflags outputflags.Flags
+	var inflags inputflags.Flags
+	var flags flag.FlagSet
+	outflags.SetFlags(&flags)
+	inflags.SetFlags(&flags)
+	if err := flags.Parse(append(outputFlags, inputFlags...)); err != nil {
+		return "", "", err
+	}
 	zctx := zson.NewContext()
-	zr, err := anyio.NewReader(anyio.GzipReader(strings.NewReader(input)), zctx)
+	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(strings.NewReader(input)), zctx, inflags.Options())
 	if err != nil {
 		return "", err.Error(), err
 	}
-	var zflags outputflags.Flags
-	var flags flag.FlagSet
-	zflags.SetFlags(&flags)
-	if err := flags.Parse(outputFlags); err != nil {
-		return "", "", err
-	}
-	zw, err := anyio.NewWriter(&nopCloser{&outbuf}, zflags.Options())
+	zw, err := anyio.NewWriter(&nopCloser{&outbuf}, outflags.Options())
 	if err != nil {
 		return "", "", err
 	}
