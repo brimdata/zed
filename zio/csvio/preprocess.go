@@ -1,15 +1,9 @@
 package csvio
 
 import (
+	"bufio"
 	"bytes"
 	"io"
-
-	"github.com/brimdata/zed/pkg/skim"
-)
-
-const (
-	ReadSize    = 64 * 1024
-	MaxLineSize = 50 * 1024 * 1024
 )
 
 // preprocess is a reader, meant to sit in front of the go csv reader, that
@@ -22,13 +16,13 @@ const (
 // field1,field2 extra
 type preprocess struct {
 	leftover []byte
-	scanner  *skim.Scanner
+	scanner  *bufio.Reader
+	scratch  []byte
 }
 
 func newPreprocess(r io.Reader) *preprocess {
-	buffer := make([]byte, ReadSize)
 	return &preprocess{
-		scanner: skim.NewScanner(r, buffer, MaxLineSize),
+		scanner: bufio.NewReader(r),
 	}
 }
 
@@ -40,12 +34,15 @@ func (p *preprocess) Read(b []byte) (int, error) {
 		}
 	}
 	for {
-		line, err := p.scanner.Scan()
-		if len(line) > 0 {
-			line = checkLine(line)
-			cc := p.copy(b[n:], line)
+		field, err := p.parseField()
+		if len(field) > 0 {
+			cc := p.copy(b[n:], field)
 			n += cc
-			if cc < len(line) {
+			if cc < len(field) {
+				// If copied is less than field size it means there was not
+				// enough space in b to copy the entirety of the field. The
+				// copy function has copied the remaining data into leftover,
+				// just return what we have.
 				return n, err
 			}
 		}
@@ -61,59 +58,61 @@ func (p *preprocess) copy(dst []byte, src []byte) int {
 	return cc
 }
 
-func checkLine(line []byte) []byte {
-	var field []byte
-	var pos int
+func (p *preprocess) parseField() ([]byte, error) {
+	var hasstr bool
+	p.scratch = p.scratch[:0]
 	for {
-		comma := bytes.IndexByte(line[pos:], ',')
-		newline := bytes.IndexByte(line[pos:], '\n')
-		if i := minIndex(comma, newline); i == -1 {
-			field = line[pos:]
-		} else {
-			field = line[pos : pos+i+1]
+		c, err := p.scanner.ReadByte()
+		if err != nil {
+			return p.scratch, err
 		}
-		old := len(field)
-		if old == 0 {
-			return line
+		if c == '"' {
+			hasstr = true
+			str, err := p.parseString()
+			p.scratch = append(p.scratch, str...)
+			if err != nil {
+				return p.scratch, err
+			}
+			continue
 		}
-		field = checkField(field)
-		n := len(field)
-		pos += n
-		if n != old {
-			diff := old - n
-			line = append(line[:pos], line[pos+diff:]...)
+		if c == ',' || c == '\n' {
+			ending := []byte{c}
+			if hasstr {
+				// If field had quotes wrap entire field in quotes.
+				if last := len(p.scratch) - 1; p.scratch[last] == '\r' {
+					ending = []byte("\r\n")
+					p.scratch = p.scratch[:last]
+				}
+				p.scratch = append(p.scratch, '"')
+				p.scratch = append([]byte{'"'}, bytes.TrimSpace(p.scratch)...)
+			}
+			p.scratch = append(p.scratch, ending...)
+			return p.scratch, nil
 		}
+		p.scratch = append(p.scratch, c)
 	}
 }
 
-func minIndex(x, y int) int {
-	if x != -1 && (y == -1 || x < y) {
-		return x
-	}
-	return y
-}
-
-func checkField(field []byte) []byte {
-	// Looking for the case where there's open and closed quotes and text to the
-	// left or right side of it. If we find this case remove the quotes.
+func (p *preprocess) parseString() ([]byte, error) {
+	var str []byte
 	for {
-		start := bytes.IndexByte(field, '"')
-		if start == -1 {
-			return field
+		c, err := p.scanner.ReadByte()
+		if err != nil {
+			return str, err
 		}
-		end := bytes.IndexByte(field[start+1:], '"')
-		if end == -1 {
-			return field
+		if c == '"' {
+			next, err := p.scanner.ReadByte()
+			if err != nil {
+				str = append(str, c)
+				return str, err
+			}
+			if next == '"' {
+				// keep double quotes in a string.
+				str = append(str, c, c)
+				continue
+			}
+			return str, p.scanner.UnreadByte()
 		}
-		end += start + 1
-		if start == 0 && end == len(field)-1 {
-			return field
-		}
-		// also ignore double quotes
-		if end == start+1 {
-			return field
-		}
-		field = append(field[:end], field[end+1:]...)
-		field = append(field[:start], field[start+1:]...)
+		str = append(str, c)
 	}
 }
