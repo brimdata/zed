@@ -7,10 +7,8 @@ import (
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/zst"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
@@ -76,15 +74,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, order.Asc)
-	if err != nil {
-		return err
-	}
 	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}
-	if err := zio.Copy(writer, reader); err != nil {
+	if err := zio.Copy(writer, zio.ConcatReader(readers...)); err != nil {
 		return err
 	}
 	return writer.Close()
