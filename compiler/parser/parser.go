@@ -1339,44 +1339,44 @@ var g = &grammar{
 							},
 						},
 					},
-					&ruleRefExpr{
-						pos:  position{line: 119, col: 5, offset: 3879},
-						name: "SearchExpr",
-					},
 					&actionExpr{
-						pos: position{line: 120, col: 5, offset: 3894},
-						run: (*parser).callonSearchFactor14,
+						pos: position{line: 119, col: 5, offset: 3879},
+						run: (*parser).callonSearchFactor13,
 						expr: &seqExpr{
-							pos: position{line: 120, col: 5, offset: 3894},
+							pos: position{line: 119, col: 5, offset: 3879},
 							exprs: []interface{}{
 								&litMatcher{
-									pos:        position{line: 120, col: 5, offset: 3894},
+									pos:        position{line: 119, col: 5, offset: 3879},
 									val:        "(",
 									ignoreCase: false,
 								},
 								&ruleRefExpr{
-									pos:  position{line: 120, col: 9, offset: 3898},
+									pos:  position{line: 119, col: 9, offset: 3883},
 									name: "__",
 								},
 								&labeledExpr{
-									pos:   position{line: 120, col: 12, offset: 3901},
+									pos:   position{line: 119, col: 12, offset: 3886},
 									label: "expr",
 									expr: &ruleRefExpr{
-										pos:  position{line: 120, col: 17, offset: 3906},
+										pos:  position{line: 119, col: 17, offset: 3891},
 										name: "SearchBoolean",
 									},
 								},
 								&ruleRefExpr{
-									pos:  position{line: 120, col: 31, offset: 3920},
+									pos:  position{line: 119, col: 31, offset: 3905},
 									name: "__",
 								},
 								&litMatcher{
-									pos:        position{line: 120, col: 34, offset: 3923},
+									pos:        position{line: 119, col: 34, offset: 3908},
 									val:        ")",
 									ignoreCase: false,
 								},
 							},
 						},
+					},
+					&ruleRefExpr{
+						pos:  position{line: 120, col: 5, offset: 3937},
+						name: "SearchExpr",
 					},
 				},
 			},
@@ -11501,14 +11501,14 @@ func (p *parser) callonSearchFactor2() (interface{}, error) {
 	return p.cur.onSearchFactor2(stack["e"])
 }
 
-func (c *current) onSearchFactor14(expr interface{}) (interface{}, error) {
+func (c *current) onSearchFactor13(expr interface{}) (interface{}, error) {
 	return expr, nil
 }
 
-func (p *parser) callonSearchFactor14() (interface{}, error) {
+func (p *parser) callonSearchFactor13() (interface{}, error) {
 	stack := p.vstack[len(p.vstack)-1]
 	_ = stack
-	return p.cur.onSearchFactor14(stack["expr"])
+	return p.cur.onSearchFactor13(stack["expr"])
 }
 
 func (c *current) onTBD2(compareOp, v interface{}) (interface{}, error) {

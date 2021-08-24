@@ -156,8 +156,8 @@ SearchFactor
   = (NotToken _ / "!" __) e:SearchFactor {
       RETURN(MAP("kind": "UnaryExpr", "op": "!", "operand": e))
     }
-  / SearchExpr
   / "(" __ expr:SearchBoolean __ ")" { RETURN(expr) }
+  / SearchExpr
 
 
 TBD
