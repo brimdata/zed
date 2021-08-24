@@ -91,7 +91,6 @@ FromTrunk
 
 FromTrunkSeq
   = __ "=>" __ seq:Sequential { RETURN(seq) }
-  / "" { RETURN(NULL)}
 
 FromSource
   = FileProc
@@ -228,10 +227,10 @@ SearchGuard
 /// === Aggregations ===
 
 Aggregation
-  = Summarize every:EveryDur keys:GroupByKeys limit:LimitArg {
+  = Summarize? every:EveryDur? keys:GroupByKeys limit:LimitArg {
       RETURN(MAP("kind": "Summarize", "keys": keys, "aggs": NULL, "duration": every, "limit": limit))
     }
-  / Summarize every:EveryDur aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
+  / Summarize? every:EveryDur? aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
       VAR(p) = MAP("kind": "Summarize", "keys": NULL, "aggs": aggs, "duration": every, "limit": limit)
       if ISNOTNULL(keys) {
         p["keys"] = ASSERT_ARRAY(keys)[1]
@@ -239,11 +238,10 @@ Aggregation
       RETURN(p)
     }
 
-Summarize = "summarize" _ / ""
+Summarize = "summarize" _
 
 EveryDur
   = "every"i _ dur:Duration _ { RETURN(dur) }
-  / ""  { RETURN(NULL) }
 
 GroupByKeys
   = ByToken _ columns:FlexAssignments { RETURN(columns) }
@@ -483,7 +481,7 @@ FromAny
   / PoolProc
 
 FileProc
-  = "file"i _ path:Path format:FormatArg layout:LayoutArg  {
+  = "file"i _ path:Path format:FormatArg? layout:LayoutArg?  {
       RETURN(MAP("kind": "File", "path": path, "format": format, "layout": layout ))
     }
 
@@ -491,12 +489,12 @@ PoolProc
   = "from"i _ body:PoolBody { RETURN(body) }
 
 PoolBody
-  = name:PoolName at:PoolAt over:PoolRange order:OrderArg {
+  = name:PoolName at:PoolAt? over:PoolRange? order:OrderArg? {
       RETURN(MAP("kind": "Pool", "name": name, "at": at, "range": over, "scan_order": order))
     }
 
 HTTPProc
-  = "get"i _ url:URL format:FormatArg layout:LayoutArg {
+  = "get"i _ url:URL format:FormatArg? layout:LayoutArg? {
       RETURN(MAP("kind": "HTTP", "url": url, "format": format, "layout": layout ))
     }
 
@@ -508,7 +506,6 @@ Path
 
 PoolAt
   = _ "at"i _ id:KSUID { RETURN(id) }
-  / "" { RETURN(NULL) }
 
 KSUID = ([0-9a-zA-Z])+ { RETURN(TEXT) }
 
@@ -516,11 +513,6 @@ PoolRange
   = _ "range"i _ lower:Literal _ "to"i _ upper:Literal {
       RETURN(MAP("kind":"Range","lower": lower, "upper": upper))
     }
-  / "" { RETURN(NULL) }
-
-PoolTo
-  = _ "to"i _ val:Literal { RETURN(val) }
-  / "" { RETURN(NULL) }
 
 PoolName
   = name:IdentifierName { RETURN(name) }
@@ -531,11 +523,9 @@ LayoutArg
   = _ "order"i _ keys:FieldExprs order:OrderSuffix {
       RETURN(MAP("kind": "Layout", "keys": keys, "order": order))
     }
-  / "" { RETURN(NULL) }
 
 FormatArg
   = _ "format"i _ val:IdentifierName { RETURN(val) }
-  / "" { RETURN("") }
 
 OrderSuffix
   = ":asc"i  { RETURN("asc") }
@@ -545,7 +535,6 @@ OrderSuffix
 OrderArg
   = _ "order"i _ "asc"i  { RETURN("asc") }
   / _ "order"i _ "desc"i  { RETURN("desc") }
-  / "" { RETURN("") }
 
 PassProc
   = "pass"i {
@@ -555,7 +544,7 @@ PassProc
 // Currently we support only "explode by type" but this will be generalized
 // to explode arbitrary arrays, records, etc.
 ExplodeProc
-  = "explode"i _ args:Exprs typ:TypeArg as:AsArg {
+  = "explode"i _ args:Exprs typ:TypeArg as:AsArg? {
       RETURN(MAP("kind":"Explode", "args": args, "as": as, "type": typ))
     }
 
@@ -564,7 +553,6 @@ TypeArg
 
 AsArg
   = _ AS _ lhs:Lval { RETURN(lhs) }
-  / "" { RETURN(NULL)}
 
 /// === Expressions ===
 
@@ -681,7 +669,7 @@ MatchExpr
   = "match" __ "(" expr:SearchBoolean ")" { RETURN(expr) }
 
 SelectExpr
-  = "select" __ "(" __ args:Exprs __ ")" methods:Methods {
+  = "select" __ "(" __ args:Exprs __ ")" methods:Methods? {
       RETURN(MAP("kind":"SelectExpr", "selectors":args, "methods": methods))
     }
 
@@ -691,7 +679,6 @@ SelectExpr
 // than a stand-alone AST node with its own Op code.
 Methods
   = methods:Method+ { RETURN(methods) }
-  / "" { RETURN(NULL) }
 
 Method
   = __ "." __ f:Function { RETURN(f) }
@@ -819,12 +806,12 @@ Entry
 
 SQLProc
   = selection:SQLSelect
-    from:SQLFrom
-    joins:SQLJoins
-    where:SQLWhere
-    groupby:SQLGroupBy
-    having:SQLHaving
-    orderby:SQLOrderBy
+    from:SQLFrom?
+    joins:SQLJoins?
+    where:SQLWhere?
+    groupby:SQLGroupBy?
+    having:SQLHaving?
+    orderby:SQLOrderBy?
     limit:SQLLimit
     {
       RETURN(MAP(
@@ -853,16 +840,14 @@ SQLAssignments
     }
 
 SQLFrom
-  = _ FROM _ table:SQLTable alias:SQLAlias {
+  = _ FROM _ table:SQLTable alias:SQLAlias? {
       RETURN(MAP("table": table, "alias": alias))
     }
   / _ FROM _ "*" { RETURN(NULL) }
-  / "" { RETURN(NULL) }
 
 SQLAlias
   = _ AS _ id:Lval { RETURN(id) }
   / _ id:Lval { RETURN(id) }
-  / "" { RETURN(NULL) }
 
 SQLTable
   = Expr
@@ -871,10 +856,9 @@ SQLJoins
   = first:SQLJoin rest:(join:SQLJoin { RETURN(join) })* {
       RETURN(PREPEND(first, rest))
     }
-  / "" { RETURN(NULL) }
 
 SQLJoin
-  = style:SQLJoinStyle _ JOIN _ table:SQLTable alias:SQLAlias _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey {
+  = style:SQLJoinStyle _ JOIN _ table:SQLTable alias:SQLAlias? _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey {
       RETURN(MAP(
         "table": table,
         "style": style,
@@ -889,21 +873,17 @@ SQLJoinStyle
 
 SQLWhere
   = _ WHERE _ expr:SearchBoolean { RETURN(expr) }
-  / "" { RETURN(NULL) }
 
 SQLGroupBy
   = _ GROUP _ BY _ columns:FieldExprs { RETURN(columns) }
-  / "" { RETURN(NULL) }
 
 SQLHaving
   = _ HAVING _ expr:SearchBoolean { RETURN(expr) }
-  / "" { RETURN(NULL) }
 
 SQLOrderBy
   = _ ORDER _ BY _ keys:Exprs order:SQLOrder {
       RETURN(MAP("kind": "SQLOrderBy", "keys": keys, "order":order))
     }
-  / "" { RETURN(NULL) }
 
 SQLOrder
   = _ dir:(ASC / DESC) { RETURN(dir) }
