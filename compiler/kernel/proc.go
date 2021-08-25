@@ -60,9 +60,9 @@ type Reader struct {
 	Layout order.Layout
 }
 
-func (*Reader) Source() {}
-
 var _ dag.Source = (*Reader)(nil)
+
+func (*Reader) Source() {}
 
 func isContainerOp(op dag.Op) bool {
 	switch op.(type) {

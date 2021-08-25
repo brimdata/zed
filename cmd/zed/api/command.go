@@ -19,12 +19,12 @@ var Cmd = &charm.Spec{
 	New:   New,
 }
 
-var _ zedlake.Command = (*Command)(nil)
-
 type Command struct {
 	*root.Command
 	Host string
 }
+
+var _ zedlake.Command = (*Command)(nil)
 
 const HostEnv = "ZED_LAKE_HOST"
 

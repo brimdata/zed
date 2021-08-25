@@ -10,13 +10,13 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-var _ ControlWriter = &ZJSONWriter{}
-
 type ZJSONWriter struct {
 	encoder   *json.Encoder
 	marshaler *zson.MarshalZNGContext
 	stream    *zjsonio.Stream
 }
+
+var _ ControlWriter = (*ZJSONWriter)(nil)
 
 func NewZJSONWriter(w io.Writer) *ZJSONWriter {
 	m := zson.NewZNGMarshaler()

@@ -23,11 +23,11 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-var _ Interface = (*RemoteSession)(nil)
-
 type RemoteSession struct {
 	conn *client.Connection
 }
+
+var _ Interface = (*RemoteSession)(nil)
 
 func OpenRemoteLake(ctx context.Context, host string) (*RemoteSession, error) {
 	return &RemoteSession{
