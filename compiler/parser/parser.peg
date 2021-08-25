@@ -536,8 +536,6 @@ PoolName
   / id:KSUID { RETURN(id) }
   / s:QuotedString { RETURN(s) }
 
-PoolNameChar = [A-Za-z0-9_$.[\]]
-
 LayoutArg
   = _ "order"i _ keys:FieldExprs order:OrderSuffix {
       RETURN(MAP("kind": "Layout", "keys": keys, "order": order))
