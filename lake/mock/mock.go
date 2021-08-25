@@ -60,7 +60,7 @@ func fakeID(name string) ksuid.KSUID {
 	return id
 }
 
-func (l *Lake) LookupIDs(_ context.Context, poolName, branchName string) (ksuid.KSUID, ksuid.KSUID, error) {
+func (l *Lake) IDs(_ context.Context, poolName, branchName string) (ksuid.KSUID, ksuid.KSUID, error) {
 	pool, ok := l.pools[poolName]
 	if !ok {
 		var err error

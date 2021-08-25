@@ -37,7 +37,7 @@ func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, l
 
 type internalAdaptor struct{}
 
-func (*internalAdaptor) LookupIDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error) {
+func (*internalAdaptor) IDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error) {
 	return ksuid.Nil, ksuid.Nil, nil
 }
 

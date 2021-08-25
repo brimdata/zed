@@ -29,7 +29,7 @@ func NewFileAdaptor(engine storage.Engine) *FileAdaptor {
 	}
 }
 
-func (*FileAdaptor) LookupIDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error) {
+func (*FileAdaptor) IDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error) {
 	return ksuid.Nil, ksuid.Nil, nil
 }
 

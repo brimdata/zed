@@ -31,7 +31,7 @@ type Interface interface {
 }
 
 type DataAdaptor interface {
-	LookupIDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error)
+	IDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error)
 	Layout(context.Context, dag.Source) order.Layout
 	NewScheduler(context.Context, *zson.Context, dag.Source, extent.Span, zbuf.Filter) (Scheduler, error)
 	Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error)

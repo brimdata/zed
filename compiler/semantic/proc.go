@@ -113,7 +113,7 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor proc.DataAd
 	}
 	poolID, err := parser.ParseID(p.Spec.Pool)
 	if err != nil {
-		poolID, _, err = adaptor.LookupIDs(ctx, p.Spec.Pool, p.Spec.Branch)
+		poolID, _, err = adaptor.IDs(ctx, p.Spec.Pool, p.Spec.Branch)
 		if err != nil {
 			return nil, err
 		}

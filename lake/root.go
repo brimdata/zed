@@ -106,10 +106,7 @@ func (r *Root) createConfig(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if err := r.writeLakeMagic(ctx); err != nil {
-		return err
-	}
-	return err
+	return r.writeLakeMagic(ctx)
 }
 
 func (r *Root) loadConfig(ctx context.Context) error {
@@ -168,10 +165,10 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	}
 	magic, ok := v.(*LakeMagic)
 	if !ok {
-		return fmt.Errorf("corrupt lake magic file %q: unknown type: %T", LakeMagicFile, v)
+		return fmt.Errorf("corrupt lake version file %q: unknown type: %T", LakeMagicFile, v)
 	}
 	if magic.Magic != LakeMagicString {
-		return fmt.Errorf("corrupt lake magic: %q should be %q", magic.Magic, LakeMagicString)
+		return fmt.Errorf("corrupt lake version file: magic %q should be %q", magic.Magic, LakeMagicString)
 	}
 	if magic.Version != Version {
 		return fmt.Errorf("unsupported lake version: found version %d while expecting %d", magic.Version, Version)
@@ -268,7 +265,7 @@ func (r *Root) LookupPoolByName(ctx context.Context, name string) *PoolConfig {
 	return lookupPoolByName(pools, name)
 }
 
-func (r *Root) LookupIDs(ctx context.Context, poolName string, branchName string) (ksuid.KSUID, ksuid.KSUID, error) {
+func (r *Root) IDs(ctx context.Context, poolName string, branchName string) (ksuid.KSUID, ksuid.KSUID, error) {
 	if poolName == "" {
 		return ksuid.Nil, ksuid.Nil, errors.New("no pool name given")
 	}
@@ -441,7 +438,7 @@ func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, src dag.Sou
 	case *dag.PoolMeta:
 		return r.newPoolMetaScheduler(ctx, zctx, src.ID, src.Meta, src.At, span, filter)
 	default:
-		return nil, fmt.Errorf("internal error: unsupported source type in lake.Root.NewScheduler(): %T", src)
+		return nil, fmt.Errorf("internal error: unsupported source type in lake.Root.NewScheduler: %T", src)
 	}
 }
 
@@ -476,11 +473,11 @@ func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zson.Context, poo
 	}
 	switch meta {
 	case "objects":
-		snap, err := p.SnapshotOf(ctx, tag)
+		snap, err := p.Snapshot(ctx, tag)
 		if err != nil {
 			return nil, err
 		}
-		reader, err := p.readerOfObjects(ctx, zctx, snap, span)
+		reader, err := p.objectReader(ctx, zctx, snap, span)
 		if err != nil {
 			return nil, err
 		}
@@ -490,11 +487,11 @@ func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zson.Context, poo
 		}
 		return newScannerScheduler(s), nil
 	case "partitions":
-		snap, err := p.SnapshotOf(ctx, tag)
+		snap, err := p.Snapshot(ctx, tag)
 		if err != nil {
 			return nil, err
 		}
-		reader, err := p.readerOfPartitions(ctx, zctx, snap, span)
+		reader, err := p.partitionReader(ctx, zctx, snap, span)
 		if err != nil {
 			return nil, err
 		}

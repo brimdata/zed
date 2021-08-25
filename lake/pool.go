@@ -200,10 +200,11 @@ func (p *Pool) LookupTags(ctx context.Context, tags []ksuid.KSUID) ([]ksuid.KSUI
 	return ids, nil
 }
 
-func (p *Pool) SnapshotOf(ctx context.Context, tag ksuid.KSUID) (*commit.Snapshot, error) {
+func (p *Pool) Snapshot(ctx context.Context, tag ksuid.KSUID) (*commit.Snapshot, error) {
 	if tag == ksuid.Nil {
 		return p.log.Head(ctx)
 	}
+	// XXX issue #2955
 	snap, ok, err := p.log.SnapshotOfCommit(ctx, 0, tag)
 	if err != nil {
 		return nil, fmt.Errorf("tag does not exist: %s", tag)
@@ -324,7 +325,7 @@ func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID)
 	return <-done
 }
 
-func (p *Pool) readerOfPartitions(ctx context.Context, zctx *zson.Context, snap *commit.Snapshot, span extent.Span) (zio.Reader, error) {
+func (p *Pool) partitionReader(ctx context.Context, zctx *zson.Context, snap *commit.Snapshot, span extent.Span) (zio.Reader, error) {
 	ch := make(chan Partition)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
@@ -353,7 +354,7 @@ func (p *Pool) readerOfPartitions(ctx context.Context, zctx *zson.Context, snap 
 	}), nil
 }
 
-func (p *Pool) readerOfObjects(ctx context.Context, zctx *zson.Context, snap *commit.Snapshot, span extent.Span) (zio.Reader, error) {
+func (p *Pool) objectReader(ctx context.Context, zctx *zson.Context, snap *commit.Snapshot, span extent.Span) (zio.Reader, error) {
 	ch := make(chan segment.Reference)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
