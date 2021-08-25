@@ -3,6 +3,7 @@ package proc
 import (
 	"context"
 
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
@@ -30,9 +31,9 @@ type Interface interface {
 }
 
 type DataAdaptor interface {
-	Lookup(context.Context, string) (ksuid.KSUID, error)
-	Layout(context.Context, ksuid.KSUID) (order.Layout, error)
-	NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (Scheduler, error)
+	IDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error)
+	Layout(context.Context, dag.Source) order.Layout
+	NewScheduler(context.Context, *zson.Context, dag.Source, extent.Span, zbuf.Filter) (Scheduler, error)
 	Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error)
 }
 

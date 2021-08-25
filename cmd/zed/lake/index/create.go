@@ -8,6 +8,7 @@ import (
 
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
+	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
@@ -69,7 +70,7 @@ func (c *CreateCommand) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		if err := lake.ScanIndexRules(ctx, w, nil); err != nil {
+		if err := api.ScanIndexRules(ctx, lake, driver.NewCLI(w)); err != nil {
 			return err
 		}
 		return w.Close()

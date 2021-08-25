@@ -8,10 +8,8 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
@@ -76,10 +74,6 @@ func (l *LocalSession) AddIndexRules(ctx context.Context, rules []index.Rule) er
 
 func (l *LocalSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
 	return l.root.DeleteIndexRules(ctx, ids)
-}
-
-func (l *LocalSession) ScanIndexRules(ctx context.Context, w zio.Writer, names []string) error {
-	return l.root.ScanIndexRules(ctx, w, names)
 }
 
 func (l *LocalSession) Query(ctx context.Context, d driver.Driver, src string, srcfiles ...string) (zbuf.ScannerStats, error) {
@@ -192,42 +186,4 @@ func (l *LocalSession) ScanStaging(ctx context.Context, poolID ksuid.KSUID, w zi
 		return err
 	}
 	return pool.ScanStaging(ctx, w, ids)
-}
-
-func (l *LocalSession) ScanLog(ctx context.Context, poolID ksuid.KSUID, w zio.Writer, head, tail journal.ID) error {
-	pool, err := l.lookupPool(ctx, poolID)
-	if err != nil {
-		return err
-	}
-	r, err := pool.Log().OpenAsZNG(ctx, head, tail)
-	if err != nil {
-		return err
-	}
-	return zio.CopyWithContext(ctx, w, r)
-}
-
-func (l *LocalSession) ScanSegments(ctx context.Context, poolID ksuid.KSUID, w zio.Writer, at ksuid.KSUID, partition bool, span extent.Span) error {
-	pool, err := l.lookupPool(ctx, poolID)
-	if err != nil {
-		return err
-	}
-	var journalAt journal.ID
-	if at != ksuid.Nil {
-		journalAt, err = pool.Log().JournalIDOfCommit(ctx, 0, at)
-		if err != nil {
-			return fmt.Errorf("not a valid journal number or a commit tag: %s", at)
-		}
-	}
-	snap, err := pool.Log().Snapshot(ctx, journalAt)
-	if err != nil {
-		return err
-	}
-	if partition {
-		return pool.ScanPartitions(ctx, w, snap, span)
-	}
-	return pool.ScanSegments(ctx, w, snap, span)
-}
-
-func (l *LocalSession) ScanPools(ctx context.Context, w zio.Writer) error {
-	return l.root.ScanPools(ctx, w)
 }

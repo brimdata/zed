@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
@@ -24,6 +25,8 @@ type Scheduler struct {
 	done   chan error
 	stats  zbuf.ScannerStats
 }
+
+var _ proc.Scheduler = (*Scheduler)(nil)
 
 func NewSortedScheduler(ctx context.Context, zctx *zson.Context, pool *Pool, snap *commit.Snapshot, span extent.Span, filter zbuf.Filter) *Scheduler {
 	return &Scheduler{
@@ -86,6 +89,27 @@ func (s *Scheduler) PullScanWork() (Partition, error) {
 
 func (s *Scheduler) newSortedScanner(p Partition) (zbuf.PullerCloser, error) {
 	return newSortedScanner(s.ctx, s.pool, s.zctx, s.filter, p, s)
+}
+
+type scannerScheduler struct {
+	zbuf.Scanner
+	done bool
+}
+
+var _ proc.Scheduler = (*scannerScheduler)(nil)
+
+func newScannerScheduler(s zbuf.Scanner) *scannerScheduler {
+	return &scannerScheduler{
+		Scanner: s,
+	}
+}
+
+func (s *scannerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
+	if !s.done {
+		s.done = true
+		return zbuf.ScannerNopCloser(s.Scanner), nil
+	}
+	return nil, nil
 }
 
 func ScanSpan(ctx context.Context, snap *commit.Snapshot, span extent.Span, o order.Which, ch chan<- segment.Reference) error {

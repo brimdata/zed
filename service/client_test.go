@@ -56,7 +56,7 @@ func (c *testClient) zioreader(r *client.Response) zio.Reader {
 }
 
 func (c *testClient) TestPoolList() []lake.PoolConfig {
-	r, err := c.ScanPools(context.Background())
+	r, err := c.Query(context.Background(), "from [pools]")
 	require.NoError(c, err)
 	var confs []lake.PoolConfig
 	zr := c.zioreader(r)

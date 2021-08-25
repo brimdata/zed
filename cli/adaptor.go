@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
@@ -28,15 +29,15 @@ func NewFileAdaptor(engine storage.Engine) *FileAdaptor {
 	}
 }
 
-func (f *FileAdaptor) Lookup(_ context.Context, _ string) (ksuid.KSUID, error) {
-	return ksuid.Nil, nil
+func (*FileAdaptor) IDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error) {
+	return ksuid.Nil, ksuid.Nil, nil
 }
 
-func (f *FileAdaptor) Layout(_ context.Context, _ ksuid.KSUID) (order.Layout, error) {
-	return order.Nil, errors.New("pool scan not available when running on local file system")
+func (*FileAdaptor) Layout(context.Context, dag.Source) order.Layout {
+	return order.Nil
 }
 
-func (f *FileAdaptor) NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
+func (*FileAdaptor) NewScheduler(context.Context, *zson.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, errors.New("pool scan not available when running on local file system")
 }
 

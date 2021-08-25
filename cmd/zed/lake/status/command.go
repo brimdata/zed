@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/cli/outputflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
@@ -52,7 +53,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	ids, err := lakeflags.ParseIDs(args)
+	ids, err := parser.ParseIDs(args)
 	if err != nil {
 		return err
 	}

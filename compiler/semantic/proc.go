@@ -2,7 +2,6 @@ package semantic
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
@@ -73,43 +73,7 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor pro
 			Layout: layout,
 		}, nil
 	case *ast.Pool:
-		id, err := ParseID(p.Name)
-		if err != nil {
-			id, err = adaptor.Lookup(ctx, p.Name)
-			if err != nil {
-				return nil, err
-			}
-		}
-		var at ksuid.KSUID
-		if p.At != "" {
-			at, err = ParseID(p.At)
-			if err != nil {
-				return nil, err
-			}
-		}
-		var lower, upper dag.Expr
-		if r := p.Range; r != nil {
-			if r.Lower != nil {
-				lower, err = semExpr(scope, r.Lower)
-				if err != nil {
-					return nil, err
-				}
-			}
-			if r.Upper != nil {
-				upper, err = semExpr(scope, r.Upper)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-		return &dag.Pool{
-			Kind:      "Pool",
-			ID:        id,
-			ScanLower: lower,
-			ScanUpper: upper,
-			ScanOrder: p.ScanOrder,
-			At:        at,
-		}, nil
+		return semPool(ctx, scope, p, adaptor)
 	case *kernel.Reader:
 		// kernel.Reader implements both ast.Source and dag.Source
 		return p, nil
@@ -135,6 +99,66 @@ func semLayout(p *ast.Layout) (order.Layout, error) {
 		return order.Nil, err
 	}
 	return order.NewLayout(which, keys), nil
+}
+
+func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor proc.DataAdaptor) (dag.Source, error) {
+	if p.Spec.Pool == "" {
+		if p.Spec.Branch != "" || p.Spec.Meta == "" {
+			return nil, errors.New("pool name missing")
+		}
+		return &dag.LakeMeta{
+			Kind: "LakeMeta",
+			Meta: p.Spec.Meta,
+		}, nil
+	}
+	poolID, err := parser.ParseID(p.Spec.Pool)
+	if err != nil {
+		poolID, _, err = adaptor.IDs(ctx, p.Spec.Pool, p.Spec.Branch)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var at ksuid.KSUID
+	if p.At != "" {
+		at, err = parser.ParseID(p.At)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var lower, upper dag.Expr
+	if r := p.Range; r != nil {
+		if r.Lower != nil {
+			lower, err = semExpr(scope, r.Lower)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if r.Upper != nil {
+			upper, err = semExpr(scope, r.Upper)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	if p.Spec.Meta != "" {
+		return &dag.PoolMeta{
+			Kind:      "PoolMeta",
+			Meta:      p.Spec.Meta,
+			ID:        poolID,
+			ScanLower: lower,
+			ScanUpper: upper,
+			ScanOrder: p.ScanOrder,
+			At:        at,
+		}, nil
+	}
+	return &dag.Pool{
+		Kind:      "Pool",
+		ID:        poolID,
+		ScanLower: lower,
+		ScanUpper: upper,
+		ScanOrder: p.ScanOrder,
+		At:        at,
+	}, nil
 }
 
 func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adaptor proc.DataAdaptor) (*dag.Sequential, error) {
@@ -550,28 +574,4 @@ func isConst(p ast.Proc) bool {
 		return true
 	}
 	return false
-}
-
-//XXX this needs to find a common home that doesn't import lake
-func ParseID(s string) (ksuid.KSUID, error) {
-	// Check if this is a cut-and-paste from ZNG, which encodes
-	// the 20-byte KSUID as a 40 character hex string with 0x prefix.
-	var id ksuid.KSUID
-	if len(s) == 42 && s[0:2] == "0x" {
-		b, err := hex.DecodeString(s[2:])
-		if err != nil {
-			return ksuid.Nil, fmt.Errorf("illegal hex tag: %s", s)
-		}
-		id, err = ksuid.FromBytes(b)
-		if err != nil {
-			return ksuid.Nil, fmt.Errorf("illegal hex tag: %s", s)
-		}
-	} else {
-		var err error
-		id, err = ksuid.Parse(s)
-		if err != nil {
-			return ksuid.Nil, fmt.Errorf("%s: invalid commit ID", s)
-		}
-	}
-	return id, nil
 }

@@ -64,7 +64,7 @@ func (s *Store) load(ctx context.Context) error {
 	if head == s.at {
 		return nil
 	}
-	r, err := s.journal.OpenAsZNG(ctx, head, 0)
+	r, err := s.journal.OpenAsZNG(ctx, zson.NewContext(), head, 0)
 	if err != nil {
 		return err
 	}

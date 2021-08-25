@@ -489,8 +489,8 @@ PoolProc
   = "from"i _ body:PoolBody { RETURN(body) }
 
 PoolBody
-  = name:PoolName at:PoolAt? over:PoolRange? order:OrderArg? {
-      RETURN(MAP("kind": "Pool", "name": name, "at": at, "range": over, "scan_order": order))
+  = spec:PoolSpec at:PoolAt? over:PoolRange? order:OrderArg? {
+      RETURN(MAP("kind": "Pool", "spec": spec, "at": at, "range": over, "scan_order": order))
     }
 
 HTTPProc
@@ -513,6 +513,20 @@ PoolRange
   = _ "range"i _ lower:Literal _ "to"i _ upper:Literal {
       RETURN(MAP("kind":"Range","lower": lower, "upper": upper))
     }
+
+PoolSpec
+  = pool:PoolName branch:PoolBranch? meta:PoolMeta? {
+      RETURN(MAP("pool": pool, "branch": branch, "meta": meta))
+    }
+  / meta:PoolMeta {
+      RETURN(MAP("pool": NULL, "branch": NULL, "meta": meta))
+    }
+
+PoolBranch
+  = "/" branch:PoolName { RETURN(branch) }
+
+PoolMeta
+  = "[" meta:IdentifierName "]" { RETURN(meta) }
 
 PoolName
   = name:IdentifierName { RETURN(name) }

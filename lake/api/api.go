@@ -5,10 +5,8 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -33,11 +31,12 @@ type Interface interface {
 	Commit(ctx context.Context, pool ksuid.KSUID, id ksuid.KSUID, commit api.CommitRequest) error
 	Squash(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (ksuid.KSUID, error)
 
-	// XXX See issue #2922.  These methods should  be query endpoints...
+	// XXX ScanStaging will go away with issue #2626
 	// this way when the log converts to a sub-pool the API here is the same...
-	ScanLog(ctx context.Context, pool ksuid.KSUID, w zio.Writer, head, tail journal.ID) error
 	ScanStaging(ctx context.Context, pool ksuid.KSUID, w zio.Writer, ids []ksuid.KSUID) error
-	ScanSegments(ctx context.Context, pool ksuid.KSUID, w zio.Writer, at ksuid.KSUID, partitions bool, span extent.Span) error
-	ScanIndexRules(ctx context.Context, w zio.Writer, names []string) error
-	ScanPools(context.Context, zio.Writer) error
+}
+
+func ScanIndexRules(ctx context.Context, api Interface, d driver.Driver) error {
+	_, err := api.Query(ctx, d, "from [index_rules]")
+	return err
 }

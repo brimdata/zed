@@ -1,14 +1,18 @@
 package lake
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
 	"sort"
 
+	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/index"
+	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/journal/kvs"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
@@ -16,32 +20,40 @@ import (
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
-var ErrPoolExists = errors.New("pool already exists")
-var ErrPoolNotFound = errors.New("pool not found")
+var (
+	ErrPoolExists   = errors.New("pool already exists")
+	ErrPoolNotFound = errors.New("pool not found")
+)
 
 const (
-	PoolsTag      = "pools"
-	IndexRulesTag = "index_rules"
+	Version         = 1
+	PoolsTag        = "pools"
+	MetaTag         = "metas"
+	IndexRulesTag   = "index_rules"
+	LakeMagicFile   = "lake.zng"
+	LakeMagicString = "ZED LAKE"
 )
 
 // The Root of the lake represents the path prefix and configuration state
 // for all of the data pools in the lake.
 type Root struct {
-	*Config
-	engine storage.Engine
-	path   *storage.URI
+	engine     storage.Engine
+	path       *storage.URI
+	pools      *kvs.Store
+	indexRules *index.Store
 }
 
 var _ proc.DataAdaptor = (*Root)(nil)
 
-type Config struct {
-	pools      *kvs.Store
-	indexRules *index.Store
+type LakeMagic struct {
+	Magic   string `zng:"magic"`
+	Version int    `zng:"version"`
 }
 
 func newRoot(engine storage.Engine, path *storage.URI) *Root {
@@ -67,11 +79,9 @@ func Create(ctx context.Context, engine storage.Engine, path *storage.URI) (*Roo
 	if err := r.loadConfig(ctx); err == nil {
 		return nil, fmt.Errorf("%s: lake already exists", path)
 	}
-	c, err := r.createConfig(ctx)
-	if err != nil {
+	if err := r.createConfig(ctx); err != nil {
 		return nil, err
 	}
-	r.Config = c
 	return r, nil
 }
 
@@ -83,37 +93,110 @@ func CreateOrOpen(ctx context.Context, engine storage.Engine, path *storage.URI)
 	return Create(ctx, engine, path)
 }
 
-func (r *Root) createConfig(ctx context.Context) (*Config, error) {
+func (r *Root) createConfig(ctx context.Context) error {
 	poolPath := r.path.AppendPath(PoolsTag)
 	rulesPath := r.path.AppendPath(IndexRulesTag)
 	types := []interface{}{PoolConfig{}}
-	pools, err := kvs.Create(ctx, r.engine, poolPath, types)
+	var err error
+	r.pools, err = kvs.Create(ctx, r.engine, poolPath, types)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	indexRules, err := index.CreateStore(ctx, r.engine, rulesPath)
+	r.indexRules, err = index.CreateStore(ctx, r.engine, rulesPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return &Config{pools, indexRules}, nil
+	return r.writeLakeMagic(ctx)
 }
 
 func (r *Root) loadConfig(ctx context.Context) error {
+	if err := r.readLakeMagic(ctx); err != nil {
+		return err
+	}
 	poolPath := r.path.AppendPath(PoolsTag)
 	rulesPath := r.path.AppendPath(IndexRulesTag)
 	types := []interface{}{PoolConfig{}}
-	pools, err := kvs.Open(ctx, r.engine, poolPath, types)
+	var err error
+	r.pools, err = kvs.Open(ctx, r.engine, poolPath, types)
 	if err != nil {
 		return err
 	}
-	indexRules, err := index.OpenStore(ctx, r.engine, rulesPath)
+	r.indexRules, err = index.OpenStore(ctx, r.engine, rulesPath)
+	return err
+}
+
+func (r *Root) writeLakeMagic(ctx context.Context) error {
+	if err := r.readLakeMagic(ctx); err == nil {
+		return errors.New("lake already exists")
+	}
+	magic := &LakeMagic{
+		Magic:   LakeMagicString,
+		Version: Version,
+	}
+	serializer := zngbytes.NewSerializer()
+	if err := serializer.Write(magic); err != nil {
+		return err
+	}
+	if err := serializer.Close(); err != nil {
+		return err
+	}
+	path := r.path.AppendPath(LakeMagicFile)
+	err := r.engine.PutIfNotExists(ctx, path, serializer.Bytes())
+	if err == storage.ErrNotSupported {
+		//XXX workaround for now: see issue #2686
+		reader := bytes.NewReader(serializer.Bytes())
+		err = storage.Put(ctx, r.engine, path, reader)
+	}
+	return err
+}
+
+func (r *Root) readLakeMagic(ctx context.Context) error {
+	path := r.path.AppendPath(LakeMagicFile)
+	reader, err := r.engine.Get(ctx, path)
 	if err != nil {
 		return err
 	}
-	r.Config = &Config{pools, indexRules}
+	deserializer := zngbytes.NewDeserializer(reader, []interface{}{
+		LakeMagic{},
+	})
+	v, err := deserializer.Read()
+	if err != nil {
+		return err
+	}
+	magic, ok := v.(*LakeMagic)
+	if !ok {
+		return fmt.Errorf("corrupt lake version file %q: unknown type: %T", LakeMagicFile, v)
+	}
+	if magic.Magic != LakeMagicString {
+		return fmt.Errorf("corrupt lake version file: magic %q should be %q", magic.Magic, LakeMagicString)
+	}
+	if magic.Version != Version {
+		return fmt.Errorf("unsupported lake version: found version %d while expecting %d", magic.Version, Version)
+	}
 	return nil
 }
 
+func (r *Root) batchifyPools(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
+	m := zson.NewZNGMarshalerWithContext(zctx)
+	m.Decorate(zson.StyleSimple)
+	pools, err := r.ListPools(ctx)
+	if err != nil {
+		return nil, err
+	}
+	var batch zbuf.Array
+	for k := range pools {
+		rec, err := m.MarshalRecord(&pools[k])
+		if err != nil {
+			return nil, err
+		}
+		if f == nil || f(rec) {
+			batch.Append(rec)
+		}
+	}
+	return batch, nil
+}
+
+//XXX ScanPools will go away with issue #2953
 func (r *Root) ScanPools(ctx context.Context, w zio.Writer) error {
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
@@ -182,23 +265,32 @@ func (r *Root) LookupPoolByName(ctx context.Context, name string) *PoolConfig {
 	return lookupPoolByName(pools, name)
 }
 
-func (r *Root) Lookup(ctx context.Context, nameOrID string) (ksuid.KSUID, error) {
-	if pool := r.LookupPoolByName(ctx, nameOrID); pool != nil {
-		return pool.ID, nil
+func (r *Root) IDs(ctx context.Context, poolName string, branchName string) (ksuid.KSUID, ksuid.KSUID, error) {
+	if poolName == "" {
+		return ksuid.Nil, ksuid.Nil, errors.New("no pool name given")
 	}
-	id, err := ksuid.Parse(nameOrID)
+	poolID, err := ksuid.Parse(poolName)
 	if err != nil {
-		return ksuid.Nil, fmt.Errorf("%s: %w", nameOrID, ErrPoolNotFound)
+		pool := r.LookupPoolByName(ctx, poolName)
+		if pool == nil {
+			return ksuid.Nil, ksuid.Nil, fmt.Errorf("%s: pool not found", poolName)
+		}
+		poolID = pool.ID
 	}
-	return id, nil
+	// XXX need to look up branch ID
+	return poolID, ksuid.Nil, nil
 }
 
-func (r *Root) Layout(ctx context.Context, id ksuid.KSUID) (order.Layout, error) {
-	p := r.LookupPool(ctx, id)
-	if p == nil {
-		return order.Nil, fmt.Errorf("no such pool ID: %s", id)
+func (r *Root) Layout(ctx context.Context, src dag.Source) order.Layout {
+	poolSrc, ok := src.(*dag.Pool)
+	if !ok {
+		return order.Nil
 	}
-	return p.Layout, nil
+	pool := r.LookupPool(ctx, poolSrc.ID)
+	if pool == nil {
+		return order.Nil
+	}
+	return pool.Layout
 }
 
 func (r *Root) OpenPool(ctx context.Context, id ksuid.KSUID) (*Pool, error) {
@@ -305,23 +397,21 @@ func (r *Root) LookupIndexRules(ctx context.Context, name string) ([]index.Rule,
 	return r.indexRules.Lookup(ctx, name)
 }
 
-func (r *Root) ScanIndexRules(ctx context.Context, w zio.Writer, names []string) error {
-	m := zson.NewZNGMarshaler()
+func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
+	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StyleSimple)
-	if len(names) == 0 {
-		var err error
-		names, err = r.indexRules.Names(ctx)
-		if err != nil {
-			return err
-		}
+	names, err := r.indexRules.Names(ctx)
+	if err != nil {
+		return nil, err
 	}
+	var batch zbuf.Array
 	for _, name := range names {
 		rules, err := r.indexRules.Lookup(ctx, name)
 		if err != nil {
 			if err == index.ErrNoSuchRule {
 				continue
 			}
-			return err
+			return nil, err
 		}
 		sort.Slice(rules, func(i, j int) bool {
 			return rules[i].CreateTime() < rules[j].CreateTime()
@@ -329,17 +419,103 @@ func (r *Root) ScanIndexRules(ctx context.Context, w zio.Writer, names []string)
 		for _, rule := range rules {
 			rec, err := m.MarshalRecord(rule)
 			if err != nil {
-				return err
+				return nil, err
 			}
-			if err := w.Write(rec); err != nil {
-				return err
+			if f == nil || !f(rec) {
+				batch.Append(rec)
 			}
 		}
 	}
-	return nil
+	return batch, nil
 }
 
-func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, id, at ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, src dag.Source, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+	switch src := src.(type) {
+	case *dag.Pool:
+		return r.newPoolScheduler(ctx, zctx, src.ID, src.At, span, filter)
+	case *dag.LakeMeta:
+		return r.newLakeMetaScheduler(ctx, zctx, src.Meta, filter)
+	case *dag.PoolMeta:
+		return r.newPoolMetaScheduler(ctx, zctx, src.ID, src.Meta, src.At, span, filter)
+	default:
+		return nil, fmt.Errorf("internal error: unsupported source type in lake.Root.NewScheduler: %T", src)
+	}
+}
+
+func (r *Root) newLakeMetaScheduler(ctx context.Context, zctx *zson.Context, meta string, filter zbuf.Filter) (proc.Scheduler, error) {
+	f, err := filter.AsFilter()
+	if err != nil {
+		return nil, err
+	}
+	var batch zbuf.Array
+	switch meta {
+	case "pools":
+		batch, err = r.batchifyPools(ctx, zctx, f)
+	case "index_rules":
+		batch, err = r.batchifyIndexRules(ctx, zctx, f)
+	default:
+		return nil, fmt.Errorf("unknown lake metadata type: %q", meta)
+	}
+	if err != nil {
+		return nil, err
+	}
+	s, err := zbuf.NewScanner(ctx, &batch, filter)
+	if err != nil {
+		return nil, err
+	}
+	return newScannerScheduler(s), nil
+}
+
+func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zson.Context, poolID ksuid.KSUID, meta string, tag ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+	p, err := r.OpenPool(ctx, poolID)
+	if err != nil {
+		return nil, err
+	}
+	switch meta {
+	case "objects":
+		snap, err := p.Snapshot(ctx, tag)
+		if err != nil {
+			return nil, err
+		}
+		reader, err := p.objectReader(ctx, zctx, snap, span)
+		if err != nil {
+			return nil, err
+		}
+		s, err := zbuf.NewScanner(ctx, reader, filter)
+		if err != nil {
+			return nil, err
+		}
+		return newScannerScheduler(s), nil
+	case "partitions":
+		snap, err := p.Snapshot(ctx, tag)
+		if err != nil {
+			return nil, err
+		}
+		reader, err := p.partitionReader(ctx, zctx, snap, span)
+		if err != nil {
+			return nil, err
+		}
+		s, err := zbuf.NewScanner(ctx, reader, filter)
+		if err != nil {
+			return nil, err
+		}
+		return newScannerScheduler(s), nil
+	case "log":
+		reader, err := p.Log().OpenAsZNG(ctx, zctx, journal.Nil, journal.Nil)
+		if err != nil {
+			return nil, err
+		}
+		s, err := zbuf.NewScanner(ctx, reader, filter)
+		if err != nil {
+			return nil, err
+		}
+		return newScannerScheduler(s), nil
+	default:
+		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
+	}
+}
+
+func (r *Root) newPoolScheduler(ctx context.Context, zctx *zson.Context, id, at ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
 	pool, err := r.OpenPool(ctx, id)
 	if err != nil {
 		return nil, err

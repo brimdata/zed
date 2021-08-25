@@ -138,6 +138,9 @@ type nopWriteCloser struct {
 
 func (nopWriteCloser) Close() error { return nil }
 
+// XXX issue #2953 we should get rid of this and do query "from [pools]"
+// but leaving it here to coordinate with app frontend.  Once this is gone,
+// lake.Root.ScanPools() can go.
 func handlePoolList(c *Core, w *ResponseWriter, r *Request) {
 	zw := w.ZioWriterWithOpts(anyio.WriterOpts{JSON: jsonio.WriterOpts{ForceArray: true}})
 	if zw == nil {
@@ -399,62 +402,6 @@ func handleScanStaging(c *Core, w *ResponseWriter, r *Request) {
 		}
 		w.Error(err)
 		return
-	}
-}
-
-func handleScanSegments(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w)
-	if !ok {
-		return
-	}
-	pool, err := c.root.OpenPool(r.Context(), poolID)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	snap, err := snapshotAt(r.Context(), pool, r.URL.Query().Get("at"))
-	if err != nil {
-		if errors.Is(err, journal.ErrEmpty) {
-			w.WriteHeader(http.StatusNoContent)
-			return
-		}
-		w.Error(err)
-		return
-	}
-	zw := w.ZioWriter()
-	defer zw.Close()
-	if r.URL.Query().Get("partition") == "T" {
-		if err := pool.ScanPartitions(r.Context(), zw, snap, nil); err != nil {
-			w.Error(err)
-		}
-		return
-	}
-	if err := pool.ScanSegments(r.Context(), zw, snap, nil); err != nil {
-		w.Error(err)
-		return
-	}
-}
-
-func handleScanLog(c *Core, w *ResponseWriter, r *Request) {
-	id, ok := r.PoolID(w)
-	if !ok {
-		return
-	}
-	pool, err := c.root.OpenPool(r.Context(), id)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	zw := w.ZioWriter()
-	defer zw.Close()
-	// XXX Support head/tail references in api.
-	zr, err := pool.Log().OpenAsZNG(r.Context(), 0, 0)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	if err := zio.CopyWithContext(r.Context(), zw, zr); err != nil {
-		w.Error(err)
 	}
 }
 

@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -11,10 +12,8 @@ import (
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -43,20 +42,11 @@ func newConnection(host string) *client.Connection {
 	return client.NewConnectionTo(host)
 }
 
-func (r *RemoteSession) ScanPools(ctx context.Context, zw zio.Writer) error {
-	res, err := r.conn.ScanPools(ctx)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	zr := zngio.NewReader(res.Body, zson.NewContext())
-	return zio.CopyWithContext(ctx, zw, zr)
-}
-
 func (r *RemoteSession) LookupPool(ctx context.Context, name string) (*lake.PoolConfig, error) {
-	res, err := r.conn.ScanPools(ctx)
+	query := fmt.Sprintf("from [pools] | name == '%s'", name)
+	res, err := r.conn.Query(ctx, query)
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	defer res.Body.Close()
 	format, err := api.MediaTypeToFormat(res.ContentType)
@@ -65,7 +55,7 @@ func (r *RemoteSession) LookupPool(ctx context.Context, name string) (*lake.Pool
 	}
 	zr, err := anyio.NewReaderWithOpts(res.Body, zson.NewContext(), anyio.ReaderOpts{Format: format})
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
 	for {
 		rec, err := zr.Read()
@@ -140,10 +130,6 @@ func (*RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID k
 	return ksuid.Nil, errors.New("unsupported see issue #2934")
 }
 
-func (r *RemoteSession) ScanIndexRules(ctx context.Context, w zio.Writer, names []string) error {
-	return errors.New("unsupported see issue #2934")
-}
-
 func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, src string, srcfiles ...string) (zbuf.ScannerStats, error) {
 	res, err := r.conn.Query(ctx, src, srcfiles...)
 	if err != nil {
@@ -214,24 +200,4 @@ func (r *RemoteSession) ScanStaging(ctx context.Context, poolID ksuid.KSUID, w z
 	zr := zngio.NewReader(res.Body, zson.NewContext())
 	return zio.CopyWithContext(ctx, w, zr)
 
-}
-
-func (r *RemoteSession) ScanLog(ctx context.Context, poolID ksuid.KSUID, w zio.Writer, head, tail journal.ID) error {
-	res, err := r.conn.ScanLog(ctx, poolID)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	zr := zngio.NewReader(res.Body, zson.NewContext())
-	return zio.CopyWithContext(ctx, w, zr)
-}
-
-func (r *RemoteSession) ScanSegments(ctx context.Context, poolID ksuid.KSUID, w zio.Writer, at ksuid.KSUID, partitions bool, span extent.Span) (err error) {
-	res, err := r.conn.ScanSegments(ctx, poolID, at, partitions)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	zr := zngio.NewReader(res.Body, zson.NewContext())
-	return zio.CopyWithContext(ctx, w, zr)
 }

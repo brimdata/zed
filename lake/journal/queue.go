@@ -160,12 +160,12 @@ func (q *Queue) Open(ctx context.Context, head, tail ID) (io.Reader, error) {
 	return q.NewReader(ctx, head, tail), nil
 }
 
-func (q *Queue) OpenAsZNG(ctx context.Context, head, tail ID) (*zngio.Reader, error) {
+func (q *Queue) OpenAsZNG(ctx context.Context, zctx *zson.Context, head, tail ID) (*zngio.Reader, error) {
 	r, err := q.Open(ctx, head, tail)
 	if err != nil {
 		return nil, err
 	}
-	return zngio.NewReader(r, zson.NewContext()), nil
+	return zngio.NewReader(r, zctx), nil
 }
 
 func writeID(ctx context.Context, engine storage.Engine, u *storage.URI, id ID) error {

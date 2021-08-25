@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/cli/lakeflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
+	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/segmentio/ksuid"
 )
@@ -65,7 +66,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	ids, err := lakeflags.ParseIDs(args)
+	ids, err := parser.ParseIDs(args)
 	if err != nil {
 		return err
 	}

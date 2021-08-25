@@ -166,10 +166,35 @@ type (
 	Pool struct {
 		Kind      string      `json:"kind" unpack:""`
 		ID        ksuid.KSUID `json:"id"`
+		Branch    ksuid.KSUID `json:"branch"`
 		At        ksuid.KSUID `json:"at"`
 		ScanLower Expr        `json:"scan_lower"`
 		ScanUpper Expr        `json:"scan_upper"`
 		ScanOrder string      `json:"scan_order"`
+	}
+	PoolMeta struct {
+		Kind string      `json:"kind" unpack:""`
+		ID   ksuid.KSUID `json:"id"`
+		Meta string      `json:"meta"`
+		//XXX these will go away when we implement branches
+		At        ksuid.KSUID `json:"at"`
+		ScanLower Expr        `json:"scan_lower"`
+		ScanUpper Expr        `json:"scan_upper"`
+		ScanOrder string      `json:"scan_order"`
+	}
+	BranchMeta struct {
+		Kind      string      `json:"kind" unpack:""`
+		ID        ksuid.KSUID `json:"id"`
+		Branch    ksuid.KSUID `json:"branch"`
+		Meta      string      `json:"meta"`
+		At        ksuid.KSUID `json:"at"`
+		ScanLower Expr        `json:"scan_lower"`
+		ScanUpper Expr        `json:"scan_upper"`
+		ScanOrder string      `json:"scan_order"`
+	}
+	LakeMeta struct {
+		Kind string `json:"kind" unpack:""`
+		Meta string `json:"meta"`
 	}
 )
 
@@ -177,10 +202,13 @@ type Source interface {
 	Source()
 }
 
-func (*File) Source() {}
-func (*HTTP) Source() {}
-func (*Pool) Source() {}
-func (*Pass) Source() {}
+func (*File) Source()       {}
+func (*HTTP) Source()       {}
+func (*Pool) Source()       {}
+func (*LakeMeta) Source()   {}
+func (*PoolMeta) Source()   {}
+func (*BranchMeta) Source() {}
+func (*Pass) Source()       {}
 
 // A From node can be a DAG entrypoint or an operator.  When it appears
 // as an operator it mixes its single parent in with other Trunks to

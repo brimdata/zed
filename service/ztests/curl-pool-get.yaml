@@ -15,4 +15,4 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      \{"kind":"PoolConfig","value":\{"id":"\w{42}","layout":\{"keys":\[\["ts"\]\],"order":"desc"\},"name":"test","threshold":524288000,"version":0\}\}
+      \{"kind":"PoolConfig","value":\{"id":"\w{42}","layout":\{"keys":\[\["ts"\]\],"order":"desc"\},"name":"test","threshold":524288000\}\}

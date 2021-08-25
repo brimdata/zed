@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
@@ -59,29 +60,33 @@ func fakeID(name string) ksuid.KSUID {
 	return id
 }
 
-func (l *Lake) Lookup(_ context.Context, name string) (ksuid.KSUID, error) {
-	pool, ok := l.pools[name]
+func (l *Lake) IDs(_ context.Context, poolName, branchName string) (ksuid.KSUID, ksuid.KSUID, error) {
+	pool, ok := l.pools[poolName]
 	if !ok {
 		var err error
-		pool, err = NewPool(name)
+		pool, err = NewPool(poolName)
 		if err != nil {
-			return ksuid.Nil, err
+			return ksuid.Nil, ksuid.Nil, err
 		}
-		l.pools[name] = pool
+		l.pools[poolName] = pool
 	}
-	return pool.id, nil
+	return pool.id, ksuid.Nil, nil
 }
 
-func (l *Lake) Layout(_ context.Context, id ksuid.KSUID) (order.Layout, error) {
+func (l *Lake) Layout(_ context.Context, src dag.Source) order.Layout {
+	poolSrc, ok := src.(*dag.Pool)
+	if !ok {
+		return order.Nil
+	}
 	for _, pool := range l.pools {
-		if pool.id == id {
-			return pool.layout, nil
+		if pool.id == poolSrc.ID {
+			return pool.layout
 		}
 	}
-	return order.Nil, fmt.Errorf("%s: no such pool", id)
+	return order.Nil
 }
 
-func (*Lake) NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
+func (*Lake) NewScheduler(context.Context, *zson.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, fmt.Errorf("mock.Lake.NewScheduler() should not be called")
 }
 
