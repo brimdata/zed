@@ -1,14 +1,12 @@
-script: zq -i csv -z '*' -
+zed: '*'
 
-inputs:
-  - name: stdin
-    data: |
-      a,b,c
-      1,2,3
-      hello,world,4
+input-flags: -i csv
 
-outputs:
-  - name: stdout
-    data: |
-      {a:1.,b:2.,c:3.}
-      {a:"hello",b:"world",c:4.}
+input: |
+  a,b,c
+  1,2,3
+  hello,world,4
+
+output: |
+  {a:1.,b:2.,c:3.}
+  {a:"hello",b:"world",c:4.}
