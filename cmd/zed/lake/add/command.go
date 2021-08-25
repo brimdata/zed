@@ -15,7 +15,6 @@ import (
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/units"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
@@ -99,18 +98,13 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	// XXX See issue #2921.  Not clear we should merge by ts here.
-	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Layout.Order)
-	if err != nil {
-		return err
-	}
 	action := "staged"
 	var commit *api.CommitRequest
 	if c.commit {
 		commit = c.CommitRequest()
 		action = "committed"
 	}
-	id, err := lake.Add(ctx, pool.ID, reader, commit)
+	id, err := lake.Add(ctx, pool.ID, zio.ConcatReader(readers...), commit)
 	if err != nil {
 		return err
 	}

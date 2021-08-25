@@ -15,7 +15,6 @@ import (
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/units"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
@@ -87,11 +86,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Layout.Order)
-	if err != nil {
-		return err
-	}
-	commitID, err := lake.Add(ctx, pool.ID, reader, c.CommitRequest())
+	commitID, err := lake.Add(ctx, pool.ID, zio.ConcatReader(readers...), c.CommitRequest())
 	if err != nil {
 		return err
 	}
