@@ -1,0 +1,77 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -p poolA -orderby a:asc
+  zed lake create -q -p poolB -orderby b:desc
+  zed lake load -q -p poolA a.zson
+  zed lake load -q -p poolB b.zson
+  zed lake query -Z 'from [pools] | drop id'
+  echo ===
+  zed lake query -Z 'from poolA[log] | cut nameof(this),segment.meta'
+  echo ===
+  zed lake index create -q Rule field a
+  zed lake query -Z 'from [index_rules] | put nameof(this) | drop ts,id'
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+      {a:2}
+  - name: b.zson
+    data: |
+      {b:3}
+      {b:2}
+      {b:1}
+
+outputs:
+  - name: stdout
+    data: |
+      {
+          name: "poolA",
+          layout: {
+              order: "asc" (=Which),
+              keys: [
+                  [
+                      "a"
+                  ] (=Path)
+              ] (=List)
+          } (=Layout),
+          threshold: 524288000
+      } (=0)
+      {
+          name: "poolB",
+          layout: {
+              order: "desc",
+              keys: [
+                  [
+                      "b"
+                  ]
+              ]
+          },
+          threshold: 524288000
+      } (0)
+      ===
+      {
+          nameof: "Add",
+          segment: {
+              meta: {
+                  first: 1,
+                  last: 2,
+                  count: 2 (uint64),
+                  row_size: 14
+              } (=Metadata)
+          } (=0)
+      } (=1)
+      {
+          nameof: "CommitMessage"
+      }
+      ===
+      {
+          name: "Rule",
+          fields: [
+              [
+                  "a"
+              ] (=Path)
+          ] (=List),
+          nameof: "FieldRule"
+      } (=0)
