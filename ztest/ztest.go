@@ -552,18 +552,22 @@ func runzq(path, zed, input string, outputFlags []string, inputFlags []string) (
 	if err != nil {
 		return "", "", err
 	}
-	var outflags outputflags.Flags
 	var inflags inputflags.Flags
 	var flags flag.FlagSet
-	outflags.SetFlags(&flags)
 	inflags.SetFlags(&flags)
-	if err := flags.Parse(append(outputFlags, inputFlags...)); err != nil {
+	if err := flags.Parse(inputFlags); err != nil {
 		return "", "", err
 	}
 	zctx := zson.NewContext()
 	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(strings.NewReader(input)), zctx, inflags.Options())
 	if err != nil {
 		return "", err.Error(), err
+	}
+	var outflags outputflags.Flags
+	flags = flag.FlagSet{}
+	outflags.SetFlags(&flags)
+	if err := flags.Parse(outputFlags); err != nil {
+		return "", "", err
 	}
 	zw, err := anyio.NewWriter(&nopCloser{&outbuf}, outflags.Options())
 	if err != nil {
