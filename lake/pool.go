@@ -334,25 +334,23 @@ func (p *Pool) readerOfPartitions(ctx context.Context, zctx *zson.Context, snap 
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	return &readerFunc{
-		get: func() (*zng.Record, error) {
-			select {
-			case p := <-ch:
-				if p.Segments == nil {
-					cancel()
-					return nil, scanErr
-				}
-				rec, err := m.MarshalRecord(p)
-				if err != nil {
-					cancel()
-					return nil, err
-				}
-				return rec, nil
-			case <-ctx.Done():
-				return nil, ctx.Err()
+	return readerFunc(func() (*zng.Record, error) {
+		select {
+		case p := <-ch:
+			if p.Segments == nil {
+				cancel()
+				return nil, scanErr
 			}
-		},
-	}, nil
+			rec, err := m.MarshalRecord(p)
+			if err != nil {
+				cancel()
+				return nil, err
+			}
+			return rec, nil
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}), nil
 }
 
 func (p *Pool) readerOfObjects(ctx context.Context, zctx *zson.Context, snap *commit.Snapshot, span extent.Span) (zio.Reader, error) {
@@ -365,34 +363,28 @@ func (p *Pool) readerOfObjects(ctx context.Context, zctx *zson.Context, snap *co
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	return &readerFunc{
-		get: func() (*zng.Record, error) {
-			select {
-			case p := <-ch:
-				if p.ID == ksuid.Nil {
-					cancel()
-					return nil, scanErr
-				}
-				rec, err := m.MarshalRecord(p)
-				if err != nil {
-					cancel()
-					return nil, err
-				}
-				return rec, nil
-			case <-ctx.Done():
-				return nil, ctx.Err()
+	return readerFunc(func() (*zng.Record, error) {
+		select {
+		case p := <-ch:
+			if p.ID == ksuid.Nil {
+				cancel()
+				return nil, scanErr
 			}
-		},
-	}, nil
+			rec, err := m.MarshalRecord(p)
+			if err != nil {
+				cancel()
+				return nil, err
+			}
+			return rec, nil
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}), nil
 }
 
-type readerFunc struct {
-	get func() (*zng.Record, error)
-}
+type readerFunc func() (*zng.Record, error)
 
-func (r *readerFunc) Read() (*zng.Record, error) {
-	return r.get()
-}
+func (r readerFunc) Read() (*zng.Record, error) { return r() }
 
 func (p *Pool) IsJournalID(ctx context.Context, id journal.ID) (bool, error) {
 	head, tail, err := p.log.Boundaries(ctx)
