@@ -3,9 +3,7 @@ package api
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
-	"net/http"
 	"strings"
 
 	"github.com/brimdata/zed/api"
@@ -35,6 +33,10 @@ func OpenRemoteLake(ctx context.Context, host string) (*RemoteSession, error) {
 	}, nil
 }
 
+func NewRemoteWithConnection(conn *client.Connection) *RemoteSession {
+	return &RemoteSession{conn}
+}
+
 func newConnection(host string) *client.Connection {
 	if !strings.HasPrefix(host, "http") {
 		host = "http://" + host
@@ -42,48 +44,59 @@ func newConnection(host string) *client.Connection {
 	return client.NewConnectionTo(host)
 }
 
-func (r *RemoteSession) LookupPool(ctx context.Context, name string) (*lake.PoolConfig, error) {
-	query := fmt.Sprintf("from [pools] | name == '%s'", name)
-	res, err := r.conn.Query(ctx, query)
+func (r *RemoteSession) IDs(ctx context.Context, poolName, branchName string) (ksuid.KSUID, ksuid.KSUID, error) {
+	res, err := r.conn.IDs(ctx, poolName, branchName)
 	if err != nil {
-		return nil, err
+		return ksuid.Nil, ksuid.Nil, err
 	}
-	defer res.Body.Close()
-	format, err := api.MediaTypeToFormat(res.ContentType)
-	if err != nil {
-		return nil, err
-	}
-	zr, err := anyio.NewReaderWithOpts(res.Body, zson.NewContext(), anyio.ReaderOpts{Format: format})
-	if err != nil {
-		return nil, err
-	}
-	for {
-		rec, err := zr.Read()
-		if rec == nil || err != nil {
-			return nil, err
-		}
-		var pool lake.PoolConfig
-		if err := zson.UnmarshalZNGRecord(rec, &pool); err != nil {
-			return nil, err
-		}
-		if pool.Name == name {
-			return &pool, nil
-		}
-	}
+	var ids api.IDsResponse
+	err = unmarshal(res, &ids)
+	return ids.PoolID, ids.BranchID, err
 }
 
-func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64) (*lake.PoolConfig, error) {
+func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64) (ksuid.KSUID, error) {
 	res, err := r.conn.PoolPost(ctx, api.PoolPostRequest{
 		Name:   name,
 		Layout: layout,
 		Thresh: thresh,
 	})
 	if err != nil {
-		return nil, err
+		return ksuid.Nil, err
 	}
-	var config lake.PoolConfig
-	err = unmarshal(res, &config)
-	return &config, err
+	var meta lake.BranchMeta
+	err = unmarshal(res, &meta)
+	return meta.PoolConfig.ID, err
+}
+
+func (r *RemoteSession) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string, parent, at ksuid.KSUID) (ksuid.KSUID, error) {
+	res, err := r.conn.BranchPost(ctx, poolID, api.BranchPostRequest{
+		Name:     name,
+		ParentID: parent.String(),
+		At:       at.String(),
+	})
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	var meta lake.BranchMeta
+	err = unmarshal(res, &meta)
+	return meta.BranchConfig.ID, err
+}
+
+func (r *RemoteSession) RemoveBranch(ctx context.Context, poolID, branchID ksuid.KSUID) error {
+	return errors.New("TBD RemoteSession.RemoveBranch")
+}
+
+func (r *RemoteSession) MergeBranch(ctx context.Context, poolID, branchID, tag ksuid.KSUID) (ksuid.KSUID, error) {
+	res, err := r.conn.MergeBranch(ctx, poolID, branchID, tag)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	defer res.Body.Close()
+	var body api.CommitResponse
+	if err := unmarshal(res, &body); err != nil {
+		return ksuid.Nil, err
+	}
+	return body.Commit, nil
 }
 
 func (r *RemoteSession) RemovePool(ctx context.Context, pool ksuid.KSUID) error {
@@ -97,23 +110,20 @@ func (r *RemoteSession) RenamePool(ctx context.Context, pool ksuid.KSUID, name s
 	return r.conn.PoolPut(ctx, pool, api.PoolPutRequest{Name: name})
 }
 
-func (r *RemoteSession) Add(ctx context.Context, poolID ksuid.KSUID, reader zio.Reader, commit *api.CommitRequest) (ksuid.KSUID, error) {
+func (r *RemoteSession) Load(ctx context.Context, poolID, branchID ksuid.KSUID, reader zio.Reader, commit api.CommitRequest) (ksuid.KSUID, error) {
 	pr, pw := io.Pipe()
 	w := zngio.NewWriter(pw, zngio.WriterOpts{})
 	go func() {
 		zio.CopyWithContext(ctx, w, reader)
 		w.Close()
 	}()
-	rc, err := r.conn.Add(ctx, poolID, pr)
+	rc, err := r.conn.Load(ctx, poolID, branchID, pr, commit)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	var res api.AddResponse
+	var res api.CommitResponse
 	if err := unmarshal(rc, &res); err != nil {
 		return ksuid.Nil, err
-	}
-	if commit != nil {
-		err = r.conn.Commit(ctx, poolID, res.Commit, *commit)
 	}
 	return res.Commit, err
 }
@@ -126,7 +136,7 @@ func (*RemoteSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) (
 	return nil, errors.New("unsupported see issue #2934")
 }
 
-func (*RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID ksuid.KSUID, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
+func (*RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID, branchID ksuid.KSUID, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
 	return ksuid.Nil, errors.New("unsupported see issue #2934")
 }
 
@@ -144,6 +154,7 @@ func unmarshal(res *client.Response, i interface{}) error {
 	if err != nil {
 		return err
 	}
+	//XXX should be ZNG
 	zr, err := anyio.NewReaderWithOpts(res.Body, zson.NewContext(), anyio.ReaderOpts{Format: format})
 	if err != nil {
 		return nil
@@ -155,49 +166,15 @@ func unmarshal(res *client.Response, i interface{}) error {
 	return zson.UnmarshalZNGRecord(rec, i)
 }
 
-func (r *RemoteSession) Commit(ctx context.Context, poolID, id ksuid.KSUID, commit api.CommitRequest) error {
-	return r.conn.Commit(ctx, poolID, id, commit)
-}
-
-func (r *RemoteSession) Delete(ctx context.Context, poolID ksuid.KSUID, tags []ksuid.KSUID, commit *api.CommitRequest) (ksuid.KSUID, error) {
-	res, err := r.conn.Delete(ctx, poolID, tags)
+func (r *RemoteSession) Delete(ctx context.Context, poolID, branchID ksuid.KSUID, tags []ksuid.KSUID, commit *api.CommitRequest) (ksuid.KSUID, error) {
+	res, err := r.conn.Delete(ctx, poolID, branchID, tags)
 	if err != nil {
 		return ksuid.Nil, err
 	}
 	defer res.Body.Close()
-	var staged api.StagedCommit
+	var staged api.CommitResponse
 	if err := unmarshal(res, &staged); err != nil {
 		return ksuid.Nil, err
-	}
-	if commit != nil {
-		err = r.Commit(ctx, poolID, staged.Commit, *commit)
 	}
 	return staged.Commit, err
-}
-
-func (r *RemoteSession) Squash(ctx context.Context, poolID ksuid.KSUID, ids []ksuid.KSUID) (ksuid.KSUID, error) {
-	res, err := r.conn.Squash(ctx, poolID, ids)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	defer res.Body.Close()
-	var staged api.StagedCommit
-	if err := unmarshal(res, &staged); err != nil {
-		return ksuid.Nil, err
-	}
-	return staged.Commit, nil
-}
-
-func (r *RemoteSession) ScanStaging(ctx context.Context, poolID ksuid.KSUID, w zio.Writer, ids []ksuid.KSUID) error {
-	res, err := r.conn.ScanStaging(ctx, poolID, ids)
-	if err != nil {
-		return err
-	}
-	defer res.Body.Close()
-	if res.StatusCode == http.StatusNoContent {
-		return lake.ErrStagingEmpty
-	}
-	zr := zngio.NewReader(res.Body, zson.NewContext())
-	return zio.CopyWithContext(ctx, w, zr)
-
 }

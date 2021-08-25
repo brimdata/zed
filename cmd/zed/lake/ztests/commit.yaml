@@ -2,8 +2,7 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -q -p test
-  id=$(zed lake add -p test in.zson | head -1 | awk '{print $1}')
-  zed lake commit -p test $id
+  zed lake load -p test in.zson
 
 inputs:
   - name: in.zson

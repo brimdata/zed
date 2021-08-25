@@ -176,11 +176,6 @@ type (
 		Kind string      `json:"kind" unpack:""`
 		ID   ksuid.KSUID `json:"id"`
 		Meta string      `json:"meta"`
-		//XXX these will go away when we implement branches
-		At        ksuid.KSUID `json:"at"`
-		ScanLower Expr        `json:"scan_lower"`
-		ScanUpper Expr        `json:"scan_upper"`
-		ScanOrder string      `json:"scan_order"`
 	}
 	BranchMeta struct {
 		Kind      string      `json:"kind" unpack:""`

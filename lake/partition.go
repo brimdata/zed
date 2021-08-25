@@ -2,13 +2,17 @@ package lake
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sort"
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
+	"github.com/brimdata/zed/lake/commit"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -132,3 +136,65 @@ func sortSegments(o order.Which, r []*segment.Reference) {
 		r[k] = segSpan.seg
 	}
 }
+
+func partitionReader(ctx context.Context, zctx *zson.Context, snap commit.View, span extent.Span, order order.Which) (zio.Reader, error) {
+	ch := make(chan Partition)
+	ctx, cancel := context.WithCancel(ctx)
+	var scanErr error
+	go func() {
+		scanErr = ScanPartitions(ctx, snap, span, order, ch)
+		close(ch)
+	}()
+	m := zson.NewZNGMarshalerWithContext(zctx)
+	m.Decorate(zson.StylePackage)
+	return readerFunc(func() (*zng.Record, error) {
+		select {
+		case p := <-ch:
+			if p.Segments == nil {
+				cancel()
+				return nil, scanErr
+			}
+			rec, err := m.MarshalRecord(p)
+			if err != nil {
+				cancel()
+				return nil, err
+			}
+			return rec, nil
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}), nil
+}
+
+func objectReader(ctx context.Context, zctx *zson.Context, snap commit.View, span extent.Span, order order.Which) (zio.Reader, error) {
+	ch := make(chan segment.Reference)
+	ctx, cancel := context.WithCancel(ctx)
+	var scanErr error
+	go func() {
+		scanErr = ScanSpan(ctx, snap, span, order, ch)
+		close(ch)
+	}()
+	m := zson.NewZNGMarshalerWithContext(zctx)
+	m.Decorate(zson.StylePackage)
+	return readerFunc(func() (*zng.Record, error) {
+		select {
+		case p := <-ch:
+			if p.ID == ksuid.Nil {
+				cancel()
+				return nil, scanErr
+			}
+			rec, err := m.MarshalRecord(p)
+			if err != nil {
+				cancel()
+				return nil, err
+			}
+			return rec, nil
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}), nil
+}
+
+type readerFunc func() (*zng.Record, error)
+
+func (r readerFunc) Read() (*zng.Record, error) { return r() }

@@ -21,9 +21,11 @@ type Lake struct {
 var _ proc.DataAdaptor = (*Lake)(nil)
 
 type Pool struct {
-	name   string
-	id     ksuid.KSUID
-	layout order.Layout
+	name     string
+	branch   string
+	id       ksuid.KSUID
+	branchID ksuid.KSUID
+	layout   order.Layout
 }
 
 func NewLake() *Lake {
@@ -34,8 +36,8 @@ func NewLake() *Lake {
 
 // create a mock lake whose key layout is embedded in the mock pool name,
 // e.g., "logs-ts:asc"
-func NewPool(s string) (Pool, error) {
-	parts := strings.Split(s, "-")
+func NewPool(poolName, branchName string) (Pool, error) {
+	parts := strings.Split(poolName, "-")
 	name := parts[0]
 	layout := order.Nil
 	if len(parts) > 1 {
@@ -46,9 +48,11 @@ func NewPool(s string) (Pool, error) {
 		}
 	}
 	return Pool{
-		name:   name,
-		id:     fakeID(name),
-		layout: layout,
+		name:     name,
+		id:       fakeID(name),
+		branch:   branchName,
+		branchID: fakeID(branchName),
+		layout:   layout,
 	}, nil
 }
 
@@ -64,13 +68,13 @@ func (l *Lake) IDs(_ context.Context, poolName, branchName string) (ksuid.KSUID,
 	pool, ok := l.pools[poolName]
 	if !ok {
 		var err error
-		pool, err = NewPool(poolName)
+		pool, err = NewPool(poolName, branchName)
 		if err != nil {
 			return ksuid.Nil, ksuid.Nil, err
 		}
 		l.pools[poolName] = pool
 	}
-	return pool.id, ksuid.Nil, nil
+	return pool.id, pool.branchID, nil
 }
 
 func (l *Lake) Layout(_ context.Context, src dag.Source) order.Layout {

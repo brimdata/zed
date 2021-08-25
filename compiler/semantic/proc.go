@@ -111,9 +111,25 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor proc.DataAd
 			Meta: p.Spec.Meta,
 		}, nil
 	}
-	poolID, err := parser.ParseID(p.Spec.Pool)
-	if err != nil {
-		poolID, _, err = adaptor.IDs(ctx, p.Spec.Pool, p.Spec.Branch)
+	// If a name appears as an 0x bytes ksuid, convert it to the
+	// ksuid string form since the backend doesn't parse the 0x format.
+	poolName := p.Spec.Pool
+	poolID, err := parser.ParseID(poolName)
+	if err == nil {
+		poolName = poolID.String()
+	}
+	branchName := p.Spec.Branch
+	branchID, err := parser.ParseID(branchName)
+	if err == nil {
+		branchName = branchID.String()
+	}
+	// This trick here allows us to default to the main branch when
+	// there is a "from pool" operator with no meta query.
+	if branchName == "" && p.Spec.Meta == "" {
+		branchName = "main"
+	}
+	if poolID == ksuid.Nil || branchID == ksuid.Nil {
+		poolID, branchID, err = adaptor.IDs(ctx, poolName, branchName)
 		if err != nil {
 			return nil, err
 		}
@@ -141,19 +157,32 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor proc.DataAd
 		}
 	}
 	if p.Spec.Meta != "" {
-		return &dag.PoolMeta{
-			Kind:      "PoolMeta",
-			Meta:      p.Spec.Meta,
-			ID:        poolID,
-			ScanLower: lower,
-			ScanUpper: upper,
-			ScanOrder: p.ScanOrder,
-			At:        at,
-		}, nil
+		if branchID == ksuid.Nil {
+			return &dag.PoolMeta{
+				Kind: "PoolMeta",
+				Meta: p.Spec.Meta,
+				ID:   poolID,
+			}, nil
+		} else {
+			return &dag.BranchMeta{
+				Kind:      "PoolMeta",
+				Meta:      p.Spec.Meta,
+				ID:        poolID,
+				Branch:    branchID,
+				ScanLower: lower,
+				ScanUpper: upper,
+				ScanOrder: p.ScanOrder,
+				At:        at,
+			}, nil
+		}
+	}
+	if branchID == ksuid.Nil {
+		return nil, fmt.Errorf("no branch specified for pool %q", poolName)
 	}
 	return &dag.Pool{
 		Kind:      "Pool",
 		ID:        poolID,
+		Branch:    branchID,
 		ScanLower: lower,
 		ScanUpper: upper,
 		ScanOrder: p.ScanOrder,

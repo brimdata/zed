@@ -1,7 +1,7 @@
 script: |
   source service.sh
   zapi create -q -p test
-  zapi add -q -p test -
+  zapi load -q -p test -
 
 inputs:
   - name: stdin

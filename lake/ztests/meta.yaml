@@ -7,7 +7,7 @@ script: |
   zed lake load -q -p poolB b.zson
   zed lake query -Z 'from [pools] | drop id'
   echo ===
-  zed lake query -Z 'from poolA[log] | cut nameof(this),segment.meta'
+  zed lake query -Z 'from poolA/main[log] | cut nameof(this),segment.meta'
   echo ===
   zed lake index create -q Rule field a
   zed lake query -Z 'from [index_rules] | put nameof(this) | drop ts,id'

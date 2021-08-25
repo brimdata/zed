@@ -8,7 +8,6 @@ import (
 	"io"
 	"mime"
 	"net/http"
-	"net/url"
 	"path"
 	"strconv"
 	"time"
@@ -195,11 +194,10 @@ func (c *Connection) ZedToAST(ctx context.Context, zprog string) ([]byte, error)
 	return resp.Body(), nil
 }
 
-// PoolGet retrieves information about the specified pool.
-func (c *Connection) PoolGet(ctx context.Context, id ksuid.KSUID) (*Response, error) {
+func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*Response, error) {
 	req := c.Request(ctx)
 	req.Method = http.MethodGet
-	req.URL = path.Join("/pool", id.String())
+	req.URL = path.Join("/pool", id.String(), "stats")
 	r, err := c.stream(req)
 	var errRes *ErrorResponse
 	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
@@ -208,13 +206,15 @@ func (c *Connection) PoolGet(ctx context.Context, id ksuid.KSUID) (*Response, er
 	return r, err
 }
 
-func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*Response, error) {
+func (c *Connection) IDs(ctx context.Context, poolName, branchName string) (*Response, error) {
 	req := c.Request(ctx)
-	req.Method = http.MethodGet
-	req.URL = path.Join("/pool", id.String(), "stats")
+	req.Method = http.MethodPost
+	req.URL = "/ids"
+	req.SetBody(api.IDsRequest{poolName, branchName})
 	r, err := c.stream(req)
 	var errRes *ErrorResponse
 	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
+		//XXX
 		return nil, ErrPoolNotFound
 	}
 	return r, err
@@ -249,16 +249,30 @@ func (c *Connection) PoolRemove(ctx context.Context, id ksuid.KSUID) error {
 	return err
 }
 
-func (c *Connection) ScanStaging(ctx context.Context, pool ksuid.KSUID, tags []ksuid.KSUID) (*Response, error) {
-	t := make([]string, len(tags))
-	for i, tag := range tags {
-		t[i] = tag.String()
-	}
+func (c *Connection) BranchPost(ctx context.Context, poolID ksuid.KSUID, payload api.BranchPostRequest) (*Response, error) {
 	req := c.Request(ctx).
-		SetQueryParamsFromValues(url.Values{"tag": t})
-	req.Method = http.MethodGet
-	req.URL = path.Join("/pool", pool.String(), "staging")
-	return c.stream(req)
+		SetBody(payload)
+	req.Method = http.MethodPost
+	req.URL = path.Join("/pool", poolID.String())
+	resp, err := c.stream(req)
+	var errRes *ErrorResponse
+	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusConflict {
+		return nil, ErrPoolExists
+	}
+	return resp, err
+}
+
+func (c *Connection) MergeBranch(ctx context.Context, poolID, branchID, at ksuid.KSUID) (*Response, error) {
+	req := c.Request(ctx).
+		SetBody(api.BranchMergeRequest{at.String()})
+	req.Method = http.MethodPost
+	req.URL = path.Join("/pool", poolID.String(), branchID.String(), "merge")
+	resp, err := c.stream(req)
+	var errRes *ErrorResponse
+	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusConflict {
+		return nil, ErrPoolExists
+	}
+	return resp, err
 }
 
 func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, params map[string]string) (*Response, error) {
@@ -330,34 +344,24 @@ func (c *Connection) IndexPost(ctx context.Context, id ksuid.KSUID, post api.Ind
 	return err
 }
 
-func (c *Connection) Add(ctx context.Context, pool ksuid.KSUID, r io.Reader) (*Response, error) {
+func (c *Connection) Load(ctx context.Context, poolID, branchID ksuid.KSUID, r io.Reader, commit api.CommitRequest) (*Response, error) {
+	encoded, err := json.Marshal(commit)
+	if err != nil {
+		return nil, err
+	}
 	req := c.Request(ctx).
-		SetBody(r)
+		SetBody(r).
+		SetHeader("Zed-Commit", string(encoded))
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", pool.String(), "add")
+	req.URL = path.Join("/pool", poolID.String(), branchID.String())
 	return c.stream(req)
 }
 
-func (c *Connection) Commit(ctx context.Context, pool, commitID ksuid.KSUID, commit api.CommitRequest) error {
-	_, err := c.Request(ctx).
-		SetBody(commit).
-		Post(path.Join("/pool", pool.String(), "staging", commitID.String()))
-	return err
-}
-
-func (c *Connection) Delete(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (*Response, error) {
+func (c *Connection) Delete(ctx context.Context, poolID, branchID ksuid.KSUID, ids []ksuid.KSUID) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(ids)
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", pool.String(), "delete")
-	return c.stream(req)
-}
-
-func (c *Connection) Squash(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(api.SquashRequest{ids})
-	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", pool.String(), "squash")
+	req.URL = path.Join("/pool", poolID.String(), branchID.String(), "delete")
 	return c.stream(req)
 }
 

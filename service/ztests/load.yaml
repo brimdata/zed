@@ -1,15 +1,14 @@
 script: |
   source service.sh
   zed api create -q -p test
-  zed api add -q -p test in.zson
-  hex=$(zed api status -p test -f zng | zq -f text "typeof(.)==type(StagedCommit) | cut s:='0x'+to_hex(commit)" -)
-  zed api commit -p test $hex
+  zed api load -p test in.zson
 
 inputs:
   - name: in.zson
     data: |
       {x:1}
   - name: service.sh
+    source: service.sh
 
 outputs:
   - name: stdout

@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commit/actions"
-	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
 	"github.com/segmentio/ksuid"
@@ -19,6 +18,7 @@ var (
 type View interface {
 	Lookup(ksuid.KSUID) (*segment.Reference, error)
 	Select(extent.Span, order.Which) Segments
+	SelectAll() Segments
 }
 
 type Writeable interface {
@@ -29,7 +29,6 @@ type Writeable interface {
 
 // A snapshot summarizes the pool state at a given point in the journal.
 type Snapshot struct {
-	at       journal.ID
 	segments map[ksuid.KSUID]*segment.Reference
 }
 
@@ -37,12 +36,6 @@ func NewSnapshot() *Snapshot {
 	return &Snapshot{
 		segments: make(map[ksuid.KSUID]*segment.Reference),
 	}
-}
-
-func newSnapshotAt(at journal.ID) *Snapshot {
-	s := NewSnapshot()
-	s.at = at
-	return s
 }
 
 func (s *Snapshot) AddSegment(seg *segment.Reference) error {
@@ -62,9 +55,13 @@ func (s *Snapshot) DeleteSegment(id ksuid.KSUID) error {
 	return nil
 }
 
+func Exists(view View, id ksuid.KSUID) bool {
+	_, err := view.Lookup(id)
+	return err == nil
+}
+
 func (s *Snapshot) Exists(id ksuid.KSUID) bool {
-	_, ok := s.segments[id]
-	return ok
+	return Exists(s, id)
 }
 
 func (s *Snapshot) Lookup(id ksuid.KSUID) (*segment.Reference, error) {

@@ -28,6 +28,7 @@ func init() {
 		index.AggRule{},
 		lake.Partition{},
 		lake.PoolConfig{},
+		lake.BranchMeta{},
 		segment.Reference{},
 	)
 }

@@ -7,8 +7,7 @@ script: |
   zapi delete -q -p test -commit $a
   echo ===
   zapi query -z "from test | sort ."
-  id=$(zapi delete -p test $b | head -1 | awk '{print $1}')
-  zapi commit -p test -q $id
+  zapi delete -q -p test -commit $b
   echo ===
   zapi query -z "from test | sort ."
 

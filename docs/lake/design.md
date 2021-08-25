@@ -65,6 +65,7 @@ If data loaded into a pool lacks the pool key, that data is still
 imported but is not available to pool-key range scans.  Since it lacks
 the pool key, such data is instead organized around its "this" value.
 
+> XXX update this
 > TBD: What is the interface for accessing non-keyed data?  Should this
 > show up in the Zed language somehow?
 
@@ -74,7 +75,8 @@ The semantics of a Zed lake loosely follows the nomenclature and
 design patterns of `git`.  In this approach,
 * a _lake_ is like a GitHub organization,
 * a _pool_ is like a `git` repository,
-* a _load_ operation is like a `git add` followed by a `git commit`,
+* a _branch_ of a _pool_ is like a `git` branch,
+* a _commit_ operation is like a `git commit`,
 * and a pool _snapshot_ is like a `git checkout`.
 
 A core theme of the Zed lake design is _ergonomics_.  Given the git metaphor,
@@ -129,22 +131,32 @@ act as the secondary sort key, tertiary sort key, and so forth.
 If a pool key is not specified, then it defaults to the whole record, which
 in the Zed language is referred to as "this".
 
-### Load
+The create command initiates a new pool with a single branch called `main`.
 
-Data is then loaded into a lake with the `load` command, e.g.,
+### Commit
+
+Data is then loaded and committed into a lake with the `commit` command, e.g.,
 ```
-zed lake load -p logs sample.ndjson
+zed lake commit -p logs sample.ndjson
 ```
 where `sample.ndjson` contains logs in NDJSON format.  Any supported format
 (NDJSON, ZNG, ZSON, etc.) as well multiple files can be used here, e.g.,
 ```
-zed lake load -p logs sample1.ndjson sample2.zng sample3.zson
+zed lake commit -p logs sample1.ndjson sample2.zng sample3.zson
 ```
 CSV, JSON, Parquet, and ZST formats are not auto-detected so you must currently
 specify `-i` with these formats, e.g.,
 ```
-zed lake load -p logs -i parquet sample4.parquet
-zed lake load -p logs -i zst sample5.zst
+zed lake commit -p logs -i parquet sample4.parquet
+zed lake commit -p logs -i zst sample5.zst
+```
+
+By default, the data is committed into the `main` branch of the pool.
+An alternative branch may be specified using the slash separator,
+i.e., `<pool>/<branch>`.  Supposing there was a branch called `updates`,
+data can be commited into this branch as follows:
+```
+zed lake commit -p logs/updates sample.zng
 ```
 
 Note that there is no need to define a schema or insert data into

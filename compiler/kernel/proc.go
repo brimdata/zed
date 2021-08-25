@@ -524,6 +524,16 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 	case *dag.PoolMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			if err != nil {
+				return nil, err
+			}
+			b.schedulers[src] = sched
+		}
+		source = from.NewScheduler(b.pctx, sched)
+	case *dag.BranchMeta:
+		sched, ok := b.schedulers[src]
+		if !ok {
 			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
 			if err != nil {
 				return nil, err

@@ -284,7 +284,7 @@ func OpenStore(ctx context.Context, engine storage.Engine, path *storage.URI) (*
 
 func CreateStore(ctx context.Context, engine storage.Engine, path *storage.URI) (*Store, error) {
 	s := newStore(path)
-	j, err := journal.Create(ctx, engine, path)
+	j, err := journal.Create(ctx, engine, path, journal.Nil)
 	if err != nil {
 		return nil, err
 	}

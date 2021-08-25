@@ -68,6 +68,8 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int,
 	switch v := v.(type) {
 	case *lake.PoolConfig:
 		formatPoolConfig(b, v)
+	case *lake.BranchMeta:
+		formatBranchMeta(b, v)
 	case segment.Reference:
 		formatSegment(b, &v, "", 0)
 	case *segment.Reference:
@@ -106,12 +108,21 @@ func formatCommit(b *bytes.Buffer, txn *commit.Transaction) {
 
 func formatPoolConfig(b *bytes.Buffer, p *lake.PoolConfig) {
 	b.WriteString(p.Name)
-	b.WriteString(" ")
+	b.WriteByte(' ')
 	b.WriteString(p.ID.String())
 	b.WriteString(" key ")
 	b.WriteString(field.List(p.Layout.Keys).String())
 	b.WriteString(" order ")
 	b.WriteString(p.Layout.Order.String())
+	b.WriteByte('\n')
+}
+
+func formatBranchMeta(b *bytes.Buffer, p *lake.BranchMeta) {
+	b.WriteString(p.PoolConfig.Name)
+	b.WriteByte('/')
+	b.WriteString(p.BranchConfig.Name)
+	b.WriteByte(' ')
+	b.WriteString(p.BranchConfig.ID.String())
 	b.WriteByte('\n')
 }
 
