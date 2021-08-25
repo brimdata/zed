@@ -70,8 +70,7 @@ func (c *CreateCommand) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		d := driver.NewCLI(w)
-		if err := api.ScanIndexRules(ctx, lake, d); err != nil {
+		if err := api.ScanIndexRules(ctx, lake, driver.NewCLI(w)); err != nil {
 			return err
 		}
 		return w.Close()

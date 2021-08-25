@@ -37,11 +37,11 @@ func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, l
 
 type internalAdaptor struct{}
 
-func (f *internalAdaptor) LookupIDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error) {
+func (*internalAdaptor) LookupIDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error) {
 	return ksuid.Nil, ksuid.Nil, nil
 }
 
-func (f *internalAdaptor) Layout(context.Context, dag.Source) order.Layout {
+func (*internalAdaptor) Layout(context.Context, dag.Source) order.Layout {
 	return order.Nil
 }
 

@@ -75,8 +75,6 @@ func (c *Command) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-	}
-	if at != ksuid.Nil {
 		query = fmt.Sprintf("%s at %s", query, at)
 	}
 	zw, err := c.outputFlags.Open(ctx, local)

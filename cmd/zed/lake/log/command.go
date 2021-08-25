@@ -61,12 +61,12 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	query := fmt.Sprintf("from '%s'[log]", c.lakeFlags.PoolName)
 	w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}
 	defer w.Close()
+	query := fmt.Sprintf("from '%s'[log]", c.lakeFlags.PoolName)
 	_, err = lake.Query(ctx, driver.NewCLI(w), query)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr

@@ -103,10 +103,7 @@ func semLayout(p *ast.Layout) (order.Layout, error) {
 
 func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor proc.DataAdaptor) (dag.Source, error) {
 	if p.Spec.Pool == "" {
-		if p.Spec.Branch != "" {
-			return nil, errors.New("cannot specify a branch name without a pool name")
-		}
-		if p.Spec.Meta == "" {
+		if p.Spec.Branch != "" || p.Spec.Meta == "" {
 			return nil, errors.New("pool name missing")
 		}
 		return &dag.LakeMeta{

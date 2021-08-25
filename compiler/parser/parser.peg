@@ -515,21 +515,18 @@ PoolRange
     }
 
 PoolSpec
-  = pool:PoolName "/" branch:PoolName "[" meta:IdentifierName "]" {
+  = pool:PoolName branch:PoolBranch? meta:PoolMeta? {
       RETURN(MAP("pool": pool, "branch": branch, "meta": meta))
     }
-  / pool:PoolName "[" meta:IdentifierName "]" {
-      RETURN(MAP("pool": pool, "branch": NULL, "meta": meta))
-    }
-  / "[" meta:IdentifierName "]" {
+  / meta:PoolMeta {
       RETURN(MAP("pool": NULL, "branch": NULL, "meta": meta))
     }
-  / pool:PoolName "/" branch:PoolName {
-      RETURN(MAP("pool": pool, "branch": branch, "meta": NULL))
-    }
-  / pool:PoolName {
-      RETURN(MAP("pool": pool, "branch": NULL, "meta": NULL))
-    }
+
+PoolBranch
+  = "/" branch:PoolName { RETURN(branch) }
+
+PoolMeta
+  = "[" meta:IdentifierName "]" { RETURN(meta) }
 
 PoolName
   = name:IdentifierName { RETURN(name) }
