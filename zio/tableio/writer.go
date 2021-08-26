@@ -38,16 +38,6 @@ func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	}
 }
 
-func (w *Writer) writeHeader(typ *zng.TypeRecord) {
-	// write out descriptor headers
-	columnNames := []string{}
-	for _, col := range typ.Columns {
-		//XXX not sure about ToUpper here...
-		columnNames = append(columnNames, strings.ToUpper(col.Name))
-	}
-	fmt.Fprintln(w.table, strings.Join(columnNames, "\t"))
-}
-
 func (w *Writer) Write(r *zng.Record) error {
 	r, err := w.flattener.Flatten(r)
 	if err != nil {
@@ -92,6 +82,16 @@ func (w *Writer) Write(r *zng.Record) error {
 
 func (w *Writer) flush() error {
 	return w.table.Flush()
+}
+
+func (w *Writer) writeHeader(typ *zng.TypeRecord) {
+	for i, c := range typ.Columns {
+		if i > 0 {
+			w.table.Write([]byte{'\t'})
+		}
+		w.table.Write([]byte(c.Name))
+	}
+	w.table.Write([]byte{'\n'})
 }
 
 func (w *Writer) Close() error {

@@ -21,9 +21,9 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      DESC        ZQL INPUT INDEX_COUNT CHUNK_COUNT
+      desc        zql input index_count chunk_count
       field-_path _   _     1           1
       type-ip     _   _     1           1
       ===
-      DESC    ZQL INPUT INDEX_COUNT CHUNK_COUNT
+      desc    zql input index_count chunk_count
       type-ip _   _     1           1

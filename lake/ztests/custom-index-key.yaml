@@ -19,6 +19,6 @@ outputs:
   - name: stdout
     data: |
       ===
-      _PATH COUNT
+      _path count
       conn  2
       http  1

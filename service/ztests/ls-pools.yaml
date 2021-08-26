@@ -34,7 +34,7 @@ outputs:
           name: "p2"
       }
       ===
-      NAME
+      name
       p1
       p2
       ===

@@ -20,12 +20,12 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      DESC               ZQL              INPUT INDEX_COUNT CHUNK_COUNT
+      desc               zql              input index_count chunk_count
       field-_path:string _                _     0           0
       type-ip            _                _     0           0
       zql-countbypath    count() by _path _     0           0
       ===
-      DESC               ZQL              INPUT INDEX_COUNT CHUNK_COUNT
+      desc               zql              input index_count chunk_count
       field-_path:string _                _     2           2
       type-ip            _                _     2           2
       zql-countbypath    count() by _path _     2           2
