@@ -19,12 +19,12 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-var _ Interface = (*LocalSession)(nil)
-
 type LocalSession struct {
 	root   *lake.Root
 	engine storage.Engine
 }
+
+var _ Interface = (*LocalSession)(nil)
 
 func OpenLocalLake(ctx context.Context, lakePath *storage.URI) (*LocalSession, error) {
 	engine := storage.NewLocalEngine()

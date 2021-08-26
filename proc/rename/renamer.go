@@ -11,8 +11,6 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-var _ proc.Function = (*Function)(nil)
-
 type Function struct {
 	zctx *zson.Context
 	// For the dst field name, we just store the leaf name since the
@@ -21,6 +19,8 @@ type Function struct {
 	dsts    field.List
 	typeMap map[int]*zng.TypeRecord
 }
+
+var _ proc.Function = (*Function)(nil)
 
 func NewFunction(zctx *zson.Context, srcs, dsts field.List) *Function {
 	return &Function{zctx, srcs, dsts, make(map[int]*zng.TypeRecord)}
