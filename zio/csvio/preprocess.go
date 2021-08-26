@@ -54,7 +54,7 @@ func (p *preprocess) Read(b []byte) (int, error) {
 
 func (p *preprocess) copy(dst []byte, src []byte) int {
 	cc := copy(dst, src)
-	p.leftover = append(p.leftover[0:], src[cc:]...)
+	p.leftover = append(p.leftover[:0], src[cc:]...)
 	return cc
 }
 
