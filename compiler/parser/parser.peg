@@ -626,7 +626,7 @@ EqualityOperator
 
 EqualityComparator
   = EqualityOperator
-  / "in" { RETURN(TEXT) }
+  / "in" &_ { RETURN(TEXT) }
 
 RelativeExpr
   = first:AdditiveExpr

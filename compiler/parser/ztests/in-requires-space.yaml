@@ -1,0 +1,9 @@
+# This was previously getting parsed as an 'in' comparator. Test that we are no
+# longer doing this
+zed: 'x==1 inaction'
+
+input: |
+  {x:1,text:"inaction"}
+
+output: |
+  {x:1,text:"inaction"}
