@@ -13,8 +13,6 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/ztest"
@@ -113,42 +111,4 @@ func TestInvalid(t *testing.T) {
 		_, err := parser.Parse("", line)
 		assert.Error(t, err, "zql: %q", line)
 	}
-}
-
-// parseString is a helper for testing string parsing.  It wraps the
-// given string in a simple zql query, parses it, and extracts the parsed
-// string from inside the AST.
-func parseString(in string) (string, error) {
-	code := fmt.Sprintf("s == \"%s\"", in)
-	tree, err := compiler.ParseProc(code)
-	if err != nil {
-		return "", err
-	}
-	if seq, ok := tree.(*ast.Sequential); ok {
-		tree = seq.Procs[0]
-	}
-	filt, ok := tree.(*ast.Filter)
-	if !ok {
-		return "", fmt.Errorf("Expected Filter proc got %T", tree)
-	}
-	comp, ok := filt.Expr.(*ast.BinaryExpr)
-	if !ok {
-		return "", fmt.Errorf("Expected BinaryExpr got %T", filt.Expr)
-	}
-	p, ok := comp.RHS.(*zed.Primitive)
-	if !ok {
-		return "", fmt.Errorf("Expected Primitive got %T", filt.Expr)
-	}
-	return p.Text, nil
-}
-
-// Test handling of unicode escapes in the parser
-func TestUnicode(t *testing.T) {
-	result, err := parseString("Sacr\u00e9 bleu!")
-	assert.NoError(t, err, "Parse of string succeeded")
-	assert.Equal(t, result, "Sacré bleu!", "Unicode escape without brackets parsed correctly")
-
-	result, err = parseString("I love \\u{1F32E}s")
-	assert.NoError(t, err, "Parse of string succeeded")
-	assert.Equal(t, result, "I love 🌮s", "Unicode escape with brackets parsed correctly")
 }

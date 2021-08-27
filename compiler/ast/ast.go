@@ -292,6 +292,14 @@ type (
 		Args []Assignment `json:"args"`
 	}
 
+	// An OpExprs proc is a list of assignments whose parent proc
+	// is unknown: It could be a Filter, Summarize, or Put proc. This
+	// will be determined in the semantic phase.
+	OpExprs struct {
+		Kind  string `json:"kind" unpack:""`
+		Exprs []Expr `json:"exprs"`
+	}
+
 	// A Rename proc represents a proc that renames fields.
 	Rename struct {
 		Kind string       `json:"kind" unpack:""`
@@ -465,6 +473,7 @@ func (*Uniq) ProcAST()       {}
 func (*Summarize) ProcAST()  {}
 func (*Top) ProcAST()        {}
 func (*Put) ProcAST()        {}
+func (*OpExprs) ProcAST()    {}
 func (*Rename) ProcAST()     {}
 func (*Fuse) ProcAST()       {}
 func (*Join) ProcAST()       {}
