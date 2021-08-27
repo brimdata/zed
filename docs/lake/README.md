@@ -104,7 +104,7 @@ zed lake query "count()" | zq -f table -
 ```
 which, for example, results in:
 ```
-COUNT
+count
 1462078
 ```
 
@@ -336,7 +336,7 @@ zed lake find -x custom.zng 10.164.94.120 | zq -f table "count=sum(count) by _pa
 ```
 You'll get
 ```
-_PATH       COUNT
+_path       count
 conn        26726
 http        13485
 ssl         9538
@@ -458,7 +458,7 @@ zed lake map "sort -r count | head 1000" wordcounts.zng | zq -f table "sum(count
 ```
 and you get the top-ten URIs...
 ```
-URI                     SUM
+uri                     sum
 /wordpress/wp-login.php 6516
 /                       5848
 /api/get/3/6            4677
@@ -503,7 +503,7 @@ zed lake find -x graph.zng 216.58.193.195 | zq -f table "count=sum(count) by fro
 to get a listing of all of the edges from IP 216.58.193.195 to any other IP,
 which looks like this:
 ```
-FROM_ADDR      TO_ADDR      COUNT
+from_addr      to_addr      count
 216.58.193.195 10.47.2.155  55
 216.58.193.195 10.47.2.100  47
 216.58.193.195 10.47.6.162  31

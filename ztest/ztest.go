@@ -37,7 +37,7 @@
 //    output-flags: -f table
 //
 //    output: |
-//      COUNT
+//      count
 //      2
 //
 // Alternatively, tests can be configured to run as shell scripts.

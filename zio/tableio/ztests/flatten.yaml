@@ -6,5 +6,5 @@ input: |
 output-flags: -f table
 
 output: |
-  _PATH TS                          UID               ID.ORIG_H ID.ORIG_P ID.RESP_H ID.RESP_P
+  _path ts                          uid               id.orig_h id.orig_p id.resp_h id.resp_p
   conn  2015-03-05T14:25:14.419939Z CogZFI3py5JsFZGik -         -         -         -

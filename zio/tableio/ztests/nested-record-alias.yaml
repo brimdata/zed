@@ -6,5 +6,5 @@ input: |
 output-flags: -f table
 
 output: |
-  A.B
+  a.b
   1

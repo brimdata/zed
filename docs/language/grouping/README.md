@@ -48,7 +48,7 @@ zq -f table 'every 1m sum(orig_bytes) | sort -r ts' conn.log.gz
 
 #### Output:
 ```mdtest-output head
-TS                   SUM
+ts                   sum
 2018-03-24T17:36:00Z 1443272
 2018-03-24T17:35:00Z 3851308
 2018-03-24T17:34:00Z 4704644
@@ -67,7 +67,7 @@ zq -f table 'every 0.5m count() | sort -r count' *.log.gz
 
 #### Output:
 ```mdtest-output head
-TS                   COUNT
+ts                   count
 2018-03-24T17:19:00Z 73512
 2018-03-24T17:16:30Z 59701
 2018-03-24T17:20:00Z 51229
@@ -85,7 +85,7 @@ zq -f table 'every 1m30s max(id.resp_p) | sort -r ts' conn.log.gz
 
 #### Output:
 ```mdtest-output head
-TS                   MAX
+ts                   max
 2018-03-24T17:36:00Z 60008
 2018-03-24T17:34:30Z 60008
 2018-03-24T17:33:00Z 65389
@@ -111,7 +111,7 @@ zq -f table 'by proto | sort' conn.log.gz
 
 #### Output:
 ```mdtest-output
-PROTO
+proto
 icmp
 tcp
 udp
@@ -127,7 +127,7 @@ zq -f table 'cut proto | sort | uniq' conn.log.gz
 
 #### Output:
 ```mdtest-output
-PROTO
+proto
 icmp
 tcp
 udp
@@ -145,7 +145,7 @@ zq -f table 'sum(resp_bytes) by id.resp_h,id.resp_p  | sort -r sum' conn.log.gz
 
 #### Output:
 ```mdtest-output head
-ID.RESP_H       ID.RESP_P SUM
+id.resp_h       id.resp_p sum
 52.216.132.61   443       1781778597
 10.47.3.200     80        1544111786
 91.189.91.23    80        745226873
@@ -172,7 +172,7 @@ zq -f table 'len(answers) > 0 | count() by id.resp_h,num_answers:=len(answers) |
 
 #### Output:
 ```mdtest-output head
-ID.RESP_H       NUM_ANSWERS COUNT
+id.resp_h       num_answers count
 10.0.0.100      16          4
 216.239.34.10   16          2
 209.112.113.33  15          2
@@ -194,7 +194,7 @@ zq -f table 'count() by host | sort -r | head 3' http.log.gz
 
 #### Output:
 ```mdtest-output
-HOST       COUNT
+host       count
 10.47.7.58 24693
 10.47.2.58 16499
 10.47.6.58 15180
@@ -208,7 +208,7 @@ zq -f table 'count() by query | sort -r | head 3' dns.log.gz
 
 #### Output:
 ```mdtest-output
-QUERY                                                     COUNT
+query                                                     count
 ise.wrccdc.org                                            22160
 *\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00 3834
 videosearch.ubuntu.com                                    1088
@@ -256,7 +256,7 @@ zq -f table 'fuse | count() by host,query | sort -r | head 3' http.log.gz dns.lo
 
 #### Output:
 ```mdtest-output
-HOST       QUERY          COUNT
+host       query          count
 10.47.7.58 -              24693
 -          ise.wrccdc.org 22160
 10.47.2.58 -              16499
@@ -279,7 +279,7 @@ zq -f table 'every 5m count() | sort ts' *.log.gz
 
 #### Output:
 ```mdtest-output
-TS                   COUNT
+ts                   count
 2018-03-24T17:15:00Z 441229
 2018-03-24T17:20:00Z 337264
 2018-03-24T17:25:00Z 310546
@@ -295,7 +295,7 @@ zq -f table 'every 5m count() | sort count' *.log.gz
 
 #### Output:
 ```mdtest-output
-TS                   COUNT
+ts                   count
 2018-03-24T17:35:00Z 98755
 2018-03-24T17:30:00Z 274284
 2018-03-24T17:25:00Z 310546

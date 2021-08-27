@@ -103,7 +103,7 @@ zq -f table '10.150.0.85' *.log.gz
 
 #### Output:
 ```mdtest-output head
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P PROTO SERVICE DURATION  ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY         ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+_path ts                          uid                id.orig_h    id.orig_p id.resp_h   id.resp_p proto service duration  orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history         orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
 conn  2018-03-24T17:15:22.18798Z  CFis4J1xm9BOgtib34 10.47.8.10   56800     10.150.0.85 443       tcp   -       1.000534  31         77         SF         -          -          0            ^dtAfDTFr       8         382           10        554           -
 conn  2018-03-24T17:15:25.527535Z CnvVUp1zg3fnDKrlFk 10.47.27.186 58665     10.150.0.85 443       tcp   -       1.000958  31         77         SF         -          -          0            ^dtAfDFTr       8         478           10        626           -
 conn  2018-03-24T17:15:27.167552Z CsSFJyH4ucFtpmhqa  10.10.18.2   57331     10.150.0.85 443       tcp   -       1.000978  31         77         SF         -          -          0            ^dtAfDFTr       8         478           10        626           -
@@ -144,9 +144,9 @@ zq -f table '"O=Internet Widgits"' *.log.gz
 
 #### Output:
 ```mdtest-output head
-_PATH  TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P FUID               FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                              SUB                                                          SRC          DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
+_path  ts                          uid                id.orig_h    id.orig_p id.resp_h   id.resp_p fuid               file_mime_type file_desc proto note                     msg                                                              sub                                                          src          dst         p   n peer_descr actions            suppress_for remote_location.country_code remote_location.region remote_location.city remote_location.latitude remote_location.longitude
 notice 2018-03-24T17:15:32.521729Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       FZW30y2Nwc9i0qmdvg -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (self signed certificate) CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 10.47.24.186 10.150.0.85 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H   ID.RESP_P VERSION CIPHER                                CURVE  SERVER_NAME RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS   CLIENT_CERT_CHAIN_FUIDS SUBJECT                                                      ISSUER                                                       CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
+_path ts                          uid                id.orig_h    id.orig_p id.resp_h   id.resp_p version cipher                                curve  server_name resumed last_alert next_protocol established cert_chain_fuids   client_cert_chain_fuids subject                                                      issuer                                                       client_subject client_issuer validation_status
 ssl   2018-03-24T17:15:32.513518Z Ckwqsn2ZSiVGtyiFO5 10.47.24.186 55782     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           FZW30y2Nwc9i0qmdvg (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
 ssl   2018-03-24T17:15:42.629228Z CqwJmZ2Lzd42fuvg4k 10.47.8.10   56802     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           Fo9ltu1O8DGE0KAgC  (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
 ssl   2018-03-24T17:15:46.542733Z CvTTHG2M6xPqDMDLB7 10.47.27.186 58666     10.150.0.85 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384 x25519 -           F       -          h2            T           F7oQQK1qo9HfmlN048 (empty)                 CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU -              -             self signed certificate
@@ -175,7 +175,7 @@ zq -f table 'www.*cdn*.com' *.log.gz
 
 #### Output:
 ```mdtest-output head
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY              QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                                                                                                                                                                                                                                                                                      TTLS                                REJECTED
+_path ts                          uid                id.orig_h   id.orig_p id.resp_h  id.resp_p proto trans_id rtt      query              qclass qclass_name qtype qtype_name rcode rcode_name AA TC RD RA Z answers                                                                                                                                                                                                                                                                                                                                      TTLs                                rejected
 dns   2018-03-24T17:16:24.038839Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   11089    0.000785 www.amazon.com     1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                              578,57,57                           F
 dns   2018-03-24T17:16:24.038843Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   11089    0.000784 www.amazon.com     1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net,54.192.139.227                                                                                                                                                                                                                                                                              578,57,57                           F
 dns   2018-03-24T17:16:24.038845Z ChS4MN2D9iPNzSwAw4 10.47.2.154 59353     10.0.0.100 53        udp   15749    0.001037 www.amazon.com     1      C_INTERNET  28    AAAA       0     NOERROR    F  F  T  T  0 www.cdn.amazon.com,d3ag4hukkh62yn.cloudfront.net                                                                                                                                                                                                                                                                                             578,57                              F
@@ -204,9 +204,9 @@ zq -f table '"CN=*"' *.log.gz
 
 #### Output:
 ```mdtest-output head
-_PATH  TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H   ID.RESP_P FUID              FILE_MIME_TYPE FILE_DESC PROTO NOTE                     MSG                                                                             SUB                                                                                          SRC        DST         P   N PEER_DESCR ACTIONS            SUPPRESS_FOR REMOTE_LOCATION.COUNTRY_CODE REMOTE_LOCATION.REGION REMOTE_LOCATION.CITY REMOTE_LOCATION.LATITUDE REMOTE_LOCATION.LONGITUDE
+_path  ts                          uid                id.orig_h  id.orig_p id.resp_h   id.resp_p fuid              file_mime_type file_desc proto note                     msg                                                                             sub                                                                                          src        dst         p   n peer_descr actions            suppress_for remote_location.country_code remote_location.region remote_location.city remote_location.latitude remote_location.longitude
 notice 2018-03-24T17:16:58.268179Z CVkrLo2Wjo4r51ZDZ7 10.47.8.10 56808     64.4.54.254 443       FYwv52OzGGIJPop3l -              -         tcp   SSL::Invalid_Server_Cert SSL certificate validation failed with (unable to get local issuer certificate) CN=*.vortex-win.data.microsoft.com,OU=Microsoft,O=Microsoft Corporation,L=Redmond,ST=WA,C=US 10.47.8.10 64.4.54.254 443 - -          Notice::ACTION_LOG 3600         -                            -                      -                    -                        -
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H       ID.RESP_P VERSION CIPHER                                        CURVE     SERVER_NAME                                             RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS                                                            CLIENT_CERT_CHAIN_FUIDS                                  SUBJECT                                                                                                                                                  ISSUER                                                                                                                                   CLIENT_SUBJECT                                             CLIENT_ISSUER                                            VALIDATION_STATUS
+_path ts                          uid                id.orig_h    id.orig_p id.resp_h       id.resp_p version cipher                                        curve     server_name                                             resumed last_alert next_protocol established cert_chain_fuids                                                            client_cert_chain_fuids                                  subject                                                                                                                                                  issuer                                                                                                                                   client_subject                                             client_issuer                                            validation_status
 ssl   2018-03-24T17:15:23.363645Z Ck6KyHTvFSs6ilQ43  10.47.26.160 49161     216.58.193.195  443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    fonts.gstatic.com                                       F       -          h2            T           FPxVI11Qp4XsZx8MIf,F287wP3LNxC1jQJZsb                                       (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
 ssl   2018-03-24T17:15:23.363999Z CdREh1wNA3vUhNI1f  10.47.26.160 49162     216.58.193.195  443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    fonts.gstatic.com                                       F       -          h2            T           FWz7sY1pnCwl9NvQe,FJ469V1AfRW24KDwBc                                        (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
 ssl   2018-03-24T17:15:23.37596Z  CYVobu3DR0JyyP1m3g 10.47.26.160 49163     216.58.193.195  443       TLSv12  TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256       x25519    ssl.gstatic.com                                         F       -          h2            T           F8iNVI29EYGgwvRa6j,FADPVCnp9r9OThjk9                                        (empty)                                                  CN=*.google.com,O=Google Inc,L=Mountain View,ST=California,C=US                                                                                          CN=Google Internet Authority G3,O=Google Trust Services,C=US                                                                             -                                                          -                                                        ok
@@ -248,7 +248,7 @@ zq -f table '/www.google(ad|tag)services.com/' *.log.gz
 
 #### Output:
 ```mdtest-output head
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                     QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                             TTLS      REJECTED
+_path ts                          uid                id.orig_h   id.orig_p id.resp_h  id.resp_p proto trans_id rtt      query                     qclass qclass_name qtype qtype_name rcode rcode_name AA TC RD RA Z answers                                             TTLs      rejected
 dns   2018-03-24T17:15:46.07484Z  CYjLXM1Yp1ZuuVJQV1 10.47.6.154 12478     10.10.6.1  53        udp   49089    0.001342 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                             0         F
 dns   2018-03-24T17:15:46.074842Z CYjLXM1Yp1ZuuVJQV1 10.47.6.154 12478     10.10.6.1  53        udp   49089    0.001375 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                             0         F
 dns   2018-03-24T17:15:46.07805Z  Cn1BpA2bKVzWn7IvVe 10.47.6.154 38992     10.10.6.1  53        udp   14171    0.000262 www.googletagservices.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                             0         F
@@ -280,7 +280,7 @@ zq -f table 'uid=="ChhAfsfyuz4n2hFMe"' *.log.gz
 #### Output:
 
 ```mdtest-output
-_PATH TS                          UID               ID.ORIG_H    ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+_path ts                          uid               id.orig_h    id.orig_p id.resp_h  id.resp_p proto service duration orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
 conn  2018-03-24T17:36:30.158539Z ChhAfsfyuz4n2hFMe 10.239.34.35 56602     10.47.6.51 873       tcp   -       0.000004 0          0          S0         -          -          0            S       2         88            0         0             -
  ```
 
@@ -300,7 +300,7 @@ zq -f table 'id.orig_p==id.resp_p' conn.log.gz
 #### Output:
 
 ```mdtest-output head
-_PATH TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P PROTO SERVICE DURATION   ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+_path ts                          uid                id.orig_h     id.orig_p id.resp_h       id.resp_p proto service duration   orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
 conn  2018-03-24T17:15:22.942327Z C6QN8gJLaOXw0GiA6  10.47.24.81   60004     10.128.0.238    60004     tcp   -       0.003538   0          0          SF         -          -          0            ShAafF  8         344           8         344           -
 conn  2018-03-24T17:15:38.523165Z CzFhMc47JPCOG4Z9E9 10.47.3.142   137       10.164.94.120   137       udp   dns     2.99937    300        0          S0         -          -          0            D       6         468           0         0             -
 conn  2018-03-24T17:15:31.711351Z C6TwvE4hg1RN9WxuI4 10.47.3.150   137       10.164.94.120   137       udp   dns     19.920781  1200       0          S0         -          -          0            D       24        1872          0         0             -
@@ -377,7 +377,7 @@ zq -f table 'certificate.subject matches *Widgits*' *.log.gz
 #### Output:
 
 ```mdtest-output head
-_PATH TS                          ID                 CERTIFICATE.VERSION CERTIFICATE.SERIAL CERTIFICATE.SUBJECT                                          CERTIFICATE.ISSUER                                           CERTIFICATE.NOT_VALID_BEFORE CERTIFICATE.NOT_VALID_AFTER CERTIFICATE.KEY_ALG CERTIFICATE.SIG_ALG     CERTIFICATE.KEY_TYPE CERTIFICATE.KEY_LENGTH CERTIFICATE.EXPONENT CERTIFICATE.CURVE SAN.DNS SAN.URI SAN.EMAIL SAN.IP BASIC_CONSTRAINTS.CA BASIC_CONSTRAINTS.PATH_LEN
+_path ts                          id                 certificate.version certificate.serial certificate.subject                                          certificate.issuer                                           certificate.not_valid_before certificate.not_valid_after certificate.key_alg certificate.sig_alg     certificate.key_type certificate.key_length certificate.exponent certificate.curve san.dns san.uri san.email san.ip basic_constraints.ca basic_constraints.path_len
 x509  2018-03-24T17:15:32.519299Z FZW30y2Nwc9i0qmdvg 3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 2018-03-22T14:22:37Z         2045-08-06T14:20:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
 x509  2018-03-24T17:15:42.635094Z Fo9ltu1O8DGE0KAgC  3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 2018-03-22T14:22:37Z         2045-08-06T14:20:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
 x509  2018-03-24T17:15:46.548292Z F7oQQK1qo9HfmlN048 3                   C5F8CDF3FFCBBF2D   CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU CN=10.150.0.85,O=Internet Widgits Pty Ltd,ST=Some-State,C=AU 2018-03-22T14:22:37Z         2045-08-06T14:20:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -       -       -         -      T                    -
@@ -394,7 +394,7 @@ zq -f table 'uri matches /scripts\/waE8_BuNCEKM.(pl|sh)/' http.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H   ID.RESP_P TRANS_DEPTH METHOD HOST        URI                         REFERRER VERSION USER_AGENT                                                      ORIGIN REQUEST_BODY_LEN RESPONSE_BODY_LEN STATUS_CODE STATUS_MSG INFO_CODE INFO_MSG TAGS    USERNAME PASSWORD PROXIED ORIG_FUIDS ORIG_FILENAMES ORIG_MIME_TYPES RESP_FUIDS         RESP_FILENAMES RESP_MIME_TYPES
+_path ts                          uid                id.orig_h     id.orig_p id.resp_h   id.resp_p trans_depth method host        uri                         referrer version user_agent                                                      origin request_body_len response_body_len status_code status_msg info_code info_msg tags    username password proxied orig_fuids orig_filenames orig_mime_types resp_fuids         resp_filenames resp_mime_types
 http  2018-03-24T17:17:41.67439Z  Cq3Knz2CEXSJB8ktj  10.164.94.120 40913     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.sh    -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               F8Jbkj1K2qm2xUR1Bj -              text/html
 http  2018-03-24T17:17:42.427215Z C5yUcM3CEFl86YIfY7 10.164.94.120 34369     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.pl    -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               F5M3Jc4B8xeR13JrP3 -              text/html
 http  2018-03-24T17:17:43.933983Z CxJhWB3aN4LcZP59S1 10.164.94.120 37999     10.47.3.142 5800      1           GET    10.47.3.142 /scripts/waE8_BuNCEKM.shtml -        1.0     Mozilla/4.0 (compatible; MSIE 8.0; Windows NT 5.1; Trident/4.0) -      0                151               404         Not Found  -         -        (empty) -        -        -       -          -              -               Fq7wId3B4sZn24Jrf6 -              text/html
@@ -420,7 +420,7 @@ zq -f table '"e5803.b.akamaiedge.net" in answers' dns.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                               TTLS         REJECTED
+_path ts                          uid                id.orig_h  id.orig_p id.resp_h  id.resp_p proto trans_id rtt      query                qclass qclass_name qtype qtype_name rcode rcode_name AA TC RD RA Z answers                                                               TTLs         rejected
 dns   2018-03-24T17:20:25.827504Z CATruWimwi1KR0gec  10.47.3.10 63576     10.0.0.100 53        udp   16678    0.072468 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17936,20 F
 dns   2018-03-24T17:20:25.827506Z CATruWimwi1KR0gec  10.47.3.10 63576     10.0.0.100 53        udp   16678    0.072468 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17936,20 F
 dns   2018-03-24T17:25:29.650694Z CHx5jo2qosRtQOZs1  10.47.6.10 55186     10.0.0.100 53        udp   30327    0.095174 www.techrepublic.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 www.techrepublic.com.edgekey.net,e5803.b.akamaiedge.net,23.55.209.124 180,17632,20 F
@@ -444,7 +444,7 @@ zq -f table 'query in answers' dns.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY      QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS    TTLS REJECTED
+_path ts                          uid                id.orig_h  id.orig_p id.resp_h  id.resp_p proto trans_id rtt      query      qclass qclass_name qtype qtype_name rcode rcode_name AA TC RD RA Z answers    TTLs rejected
 dns   2018-03-24T17:24:06.142423Z CCd3Uu1nPHikbjizuc 10.47.7.10 53280     10.0.0.100 53        udp   25252    0.000868 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
 dns   2018-03-24T17:24:06.142426Z CCd3Uu1nPHikbjizuc 10.47.7.10 53280     10.0.0.100 53        udp   25252    0.000869 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
 dns   2018-03-24T17:30:43.213667Z CV4T3j1mb4LbxNNgBl 10.47.7.10 53647     10.0.0.100 53        udp   45561    0.001054 10.47.7.30 1      C_INTERNET  1     A          0     NOERROR    T  F  T  T  0 10.47.7.30 0    F
@@ -461,7 +461,7 @@ zq -f table 'id.resp_h in 208.78.0.0/16' conn.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H     ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+_path ts                          uid                id.orig_h   id.orig_p id.resp_h     id.resp_p proto service duration orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
 conn  2018-03-24T17:32:44.212387Z CngWP41W7wzyQtMG4k 10.47.26.25 59095     208.78.71.136 53        udp   dns     0.003241 72         402        SF         -          -          0            Dd      2         128           2         458           -
 conn  2018-03-24T17:32:52.32455Z  CgZ2D84oSTX0Xw2fEl 10.47.26.25 59095     208.78.70.136 53        udp   dns     0.004167 144        804        SF         -          -          0            Dd      4         256           4         916           -
 conn  2018-03-24T17:33:07.538564Z CGfWHn2Y6IDSBra1K4 10.47.26.25 59095     208.78.71.31  53        udp   dns     3.044438 276        1188       SF         -          -          0            Dd      6         444           6         1356          -
@@ -483,7 +483,7 @@ zq -f table 'orig_bytes > 1000000' *.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H    ID.RESP_P PROTO SERVICE DURATION    ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY          ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+_path ts                          uid                id.orig_h    id.orig_p id.resp_h    id.resp_p proto service duration    orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history          orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
 conn  2018-03-24T17:25:15.208232Z CVimRo24ubbKqFvNu7 172.30.255.1 11        10.128.0.207 0         icmp  -       100.721937  1647088    0          OTH        -          -          0            -                44136     2882896       0         0             -
 conn  2018-03-24T17:15:20.630818Z CO0MhB2NCc08xWaly8 10.47.1.154  49814     134.71.3.17  443       tcp   -       1269.512465 1618740    12880888   OTH        -          -          0            ^dtADTatTtTtTtT  110169    7594230       111445    29872050      -
 conn  2018-03-24T17:15:20.637761Z Cmgywj2O8KZAHHjddb 10.47.1.154  49582     134.71.3.17  443       tcp   -       1266.367457 1594682    53255700   OTH        -          -          0            ^dtADTatTtTtTtTW 131516    8407458       142488    110641641     -
@@ -502,7 +502,7 @@ zq -f table 'query > "zippy"' *.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID               ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                                                    QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                TTLS       REJECTED
+_path ts                          uid               id.orig_h  id.orig_p id.resp_h  id.resp_p proto trans_id rtt      query                                                    qclass qclass_name qtype qtype_name rcode rcode_name AA TC RD RA Z answers                                                                TTLs       rejected
 dns   2018-03-24T17:30:09.84174Z  Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001694 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
 dns   2018-03-24T17:30:09.841742Z Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001697 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
 dns   2018-03-24T17:34:52.637234Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53        udp   43239    0.019491 zn_0pxrmhobblncaad-hpsupport.siteintercept.qualtrics.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 cloud.qualtrics.com.edgekey.net,e3672.ksd.akamaiedge.net,23.55.215.198 3600,17,20 F
@@ -559,7 +559,7 @@ zq -f table 'www.*cdn*.com _path=="ssl"' *.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H    ID.RESP_P VERSION CIPHER                                CURVE     SERVER_NAME       RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS                                                            CLIENT_CERT_CHAIN_FUIDS SUBJECT            ISSUER                                  CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
+_path ts                          uid                id.orig_h   id.orig_p id.resp_h    id.resp_p version cipher                                curve     server_name       resumed last_alert next_protocol established cert_chain_fuids                                                            client_cert_chain_fuids subject            issuer                                  client_subject client_issuer validation_status
 ssl   2018-03-24T17:23:00.244457Z CUG0fiQAzL4rNWxai  10.47.2.100 36150     52.85.83.228 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FXKmyTbr7HlvyL1h8,FADhCTvkq1ILFnD3j,FoVjYR16c3UIuXj4xk,FmiRYe1P53KOolQeVi   (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
 ssl   2018-03-24T17:24:00.189735Z CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FuW2cZ3leE606wXSia,Fu5kzi1BUwnF0bSCsd,FyTViI32zPvCmNXgSi,FwV6ff3JGj4NZcVPE4 (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
 ```
@@ -583,13 +583,13 @@ zq -f table 'orig_bytes > 1000000 or query > "zippy"' *.log.gz
 #### Output:
 
 ```mdtest-output head
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H    ID.RESP_P PROTO SERVICE DURATION    ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY          ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+_path ts                          uid                id.orig_h    id.orig_p id.resp_h    id.resp_p proto service duration    orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history          orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
 conn  2018-03-24T17:25:15.208232Z CVimRo24ubbKqFvNu7 172.30.255.1 11        10.128.0.207 0         icmp  -       100.721937  1647088    0          OTH        -          -          0            -                44136     2882896       0         0             -
 conn  2018-03-24T17:15:20.630818Z CO0MhB2NCc08xWaly8 10.47.1.154  49814     134.71.3.17  443       tcp   -       1269.512465 1618740    12880888   OTH        -          -          0            ^dtADTatTtTtTtT  110169    7594230       111445    29872050      -
 conn  2018-03-24T17:15:20.637761Z Cmgywj2O8KZAHHjddb 10.47.1.154  49582     134.71.3.17  443       tcp   -       1266.367457 1594682    53255700   OTH        -          -          0            ^dtADTatTtTtTtTW 131516    8407458       142488    110641641     -
 conn  2018-03-24T17:15:20.705347Z CWtQuI2IMNyE1pX47j 10.47.6.161  52121     134.71.3.17  443       tcp   -       1269.320626 2267243    54791018   OTH        -          -          0            DTadtATttTtTtT   152819    10575303      158738    113518994     -
 conn  2018-03-24T17:33:05.415532Z Cy3R5w2pfv8oSEpa2j 10.47.8.19   49376     10.128.0.214 443       tcp   -       202.457994  4862366    1614249    S1         -          -          0            ShAdtttDTaTTTt   7280      10015980      6077      3453020       -
-_PATH TS                          UID               ID.ORIG_H  ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT      QUERY                                                    QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                                                                TTLS       REJECTED
+_path ts                          uid               id.orig_h  id.orig_p id.resp_h  id.resp_p proto trans_id rtt      query                                                    qclass qclass_name qtype qtype_name rcode rcode_name AA TC RD RA Z answers                                                                TTLs       rejected
 dns   2018-03-24T17:30:09.84174Z  Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001694 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
 dns   2018-03-24T17:30:09.841742Z Csx7ymPvWeqIOHPi6 10.47.1.1  59144     10.10.1.1  53        udp   53970    0.001697 zn_9nquvazst1xipkt-cbs.siteintercept.qualtrics.com       1      C_INTERNET  1     A          0     NOERROR    F  F  T  F  0 0.0.0.0                                                                0          F
 dns   2018-03-24T17:34:52.637234Z CN9X7Y36SH6faoh8t 10.47.8.10 58340     10.0.0.100 53        udp   43239    0.019491 zn_0pxrmhobblncaad-hpsupport.siteintercept.qualtrics.com 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 cloud.qualtrics.com.edgekey.net,e3672.ksd.akamaiedge.net,23.55.215.198 3600,17,20 F
@@ -614,10 +614,10 @@ zq -f table 'not _path matches /conn|dns|files|ssl|x509|http|weird/' *.log.gz
 #### Output:
 
 ```mdtest-output head
-_PATH        TS                          TS_DELTA   PEER GAPS ACKS    PERCENT_LOST
+_path        ts                          ts_delta   peer gaps acks    percent_lost
 capture_loss 2018-03-24T17:30:20.600852Z 900.000127 zeek 1400 1414346 0.098986
 capture_loss 2018-03-24T17:36:30.158766Z 369.557914 zeek 919  663314  0.138547
-_PATH   TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H   ID.RESP_P RTT      NAMED_PIPE     ENDPOINT              OPERATION
+_path   ts                          uid                id.orig_h     id.orig_p id.resp_h   id.resp_p rtt      named_pipe     endpoint              operation
 dce_rpc 2018-03-24T17:15:25.396014Z CgxsNA1p2d0BurXd7c 10.164.94.120 36643     10.47.3.151 1030      0.000431 1030           samr                  SamrConnect2
 dce_rpc 2018-03-24T17:15:41.35659Z  CveQB24ujSZ3l34LRi 10.128.0.233  33692     10.47.21.25 135       0.000684 135            IObjectExporter       ComplexPing
 dce_rpc 2018-03-24T17:15:54.621588Z CWyKrz4YlSyPGoE8Bf 10.128.0.214  41717     10.47.8.142 445       0.002721 \\pipe\\ntsvcs svcctl                OpenSCManagerW
@@ -646,7 +646,7 @@ zq -f table 'not share_type=="DISK" _path=="smb_mapping"' *.log.gz
 
 #### Output:
 ```mdtest-output head
-_PATH       TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H    ID.RESP_P PATH                     SERVICE NATIVE_FILE_SYSTEM SHARE_TYPE
+_path       ts                          uid                id.orig_h     id.orig_p id.resp_h    id.resp_p path                     service native_file_system share_type
 smb_mapping 2018-03-24T17:15:21.625534Z ChZRry3Z4kv3i25TJf 10.164.94.120 36315     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
 smb_mapping 2018-03-24T17:15:22.021668Z C0jyse1JYc82Acu4xl 10.164.94.120 34691     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
 smb_mapping 2018-03-24T17:15:24.619169Z C2byFA2Y10G1GLUXgb 10.164.94.120 35337     10.47.27.80  445       \\\\PC-NEWMAN\\IPC$      -       -                  PIPE
@@ -668,10 +668,10 @@ zq -f table 'not (share_type=="DISK" _path=="smb_mapping")' *.log.gz
 
 #### Output:
 ```mdtest-output head
-_PATH        TS                          TS_DELTA   PEER GAPS ACKS    PERCENT_LOST
+_path        ts                          ts_delta   peer gaps acks    percent_lost
 capture_loss 2018-03-24T17:30:20.600852Z 900.000127 zeek 1400 1414346 0.098986
 capture_loss 2018-03-24T17:36:30.158766Z 369.557914 zeek 919  663314  0.138547
-_PATH TS                          UID                ID.ORIG_H      ID.ORIG_P ID.RESP_H     ID.RESP_P PROTO SERVICE  DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY     ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+_path ts                          uid                id.orig_h      id.orig_p id.resp_h     id.resp_p proto service  duration orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history     orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
 conn  2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl 10.164.94.120  39681     10.47.3.155   3389      tcp   -        0.004266 97         19         RSTR       -          -          0            ShADTdtr    10        730           6         342           -
 conn  2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6 10.47.25.80    50817     10.128.0.218  23189     tcp   -        0.000486 0          0          REJ        -          -          0            Sr          2         104           2         80            -
 conn  2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i  10.47.25.80    50817     10.128.0.218  23189     tcp   -        0.000538 0          0          REJ        -          -          0            Sr          2         104           2         80            -
@@ -689,7 +689,7 @@ zq -f table '((not share_type=="DISK") and (service=="IPC")) _path=="smb_mapping
 
 #### Output:
 ```mdtest-output head
-_PATH       TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H    ID.RESP_P PATH                     SERVICE NATIVE_FILE_SYSTEM SHARE_TYPE
+_path       ts                          uid                id.orig_h     id.orig_p id.resp_h    id.resp_p path                     service native_file_system share_type
 smb_mapping 2018-03-24T17:15:21.625534Z ChZRry3Z4kv3i25TJf 10.164.94.120 36315     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
 smb_mapping 2018-03-24T17:15:22.021668Z C0jyse1JYc82Acu4xl 10.164.94.120 34691     10.47.8.208  445       \\\\SNOZBERRY\\IPC$      IPC     -                  PIPE
 smb_mapping 2018-03-24T17:15:31.475945Z Cvaqhu3VhuXlDOMgXg 10.164.94.120 37127     10.47.3.151  445       \\\\COTTONCANDY4\\IPC$   IPC     -                  PIPE

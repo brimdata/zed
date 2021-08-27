@@ -50,7 +50,7 @@ zq -f table 'cut ts,uid' conn.log.gz
 
 #### Output:
 ```mdtest-output head
-TS                          UID
+ts                          uid
 2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
 2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
 2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i
@@ -71,7 +71,7 @@ zq -f table 'cut _path,ts,share_type' *
 
 #### Output:
 ```mdtest-output head
-_PATH        TS
+_path        ts
 capture_loss 2018-03-24T17:30:20.600852Z
 capture_loss 2018-03-24T17:36:30.158766Z
 conn         2018-03-24T17:15:21.255387Z
@@ -106,7 +106,7 @@ zq -f table 'cut time:=ts,uid' conn.log.gz
 
 #### Output:
 ```mdtest-output head
-TIME                        UID
+time                        uid
 2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
 2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
 2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i
@@ -134,7 +134,7 @@ zq -f table 'drop _path,id' weird.log.gz
 
 #### Output:
 ```mdtest-output head
-TS                          UID                NAME                             ADDL             NOTICE PEER
+ts                          uid                name                             addl             notice peer
 2018-03-24T17:15:20.600843Z C1zOivgBT6dBmknqk  TCP_ack_underflow_or_misorder    -                F      zeek
 2018-03-24T17:15:20.608108Z -                  truncated_header                 -                F      zeek
 2018-03-24T17:15:20.610033Z C45Ff03lESjMQQQej1 above_hole_data_without_any_acks -                F      zeek
@@ -167,7 +167,7 @@ zq -f table 'cut ts,uid | filter uid=="CXWfTK3LRdiuQxBbM6"' conn.log.gz
 
 #### Output:
 ```mdtest-output
-TS                          UID
+ts                          uid
 2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
 ```
 
@@ -181,7 +181,7 @@ zq -f table 'filter www.*cdn*.com _path=="ssl"' *.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H    ID.RESP_P VERSION CIPHER                                CURVE     SERVER_NAME       RESUMED LAST_ALERT NEXT_PROTOCOL ESTABLISHED CERT_CHAIN_FUIDS                                                            CLIENT_CERT_CHAIN_FUIDS SUBJECT            ISSUER                                  CLIENT_SUBJECT CLIENT_ISSUER VALIDATION_STATUS
+_path ts                          uid                id.orig_h   id.orig_p id.resp_h    id.resp_p version cipher                                curve     server_name       resumed last_alert next_protocol established cert_chain_fuids                                                            client_cert_chain_fuids subject            issuer                                  client_subject client_issuer validation_status
 ssl   2018-03-24T17:23:00.244457Z CUG0fiQAzL4rNWxai  10.47.2.100 36150     52.85.83.228 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FXKmyTbr7HlvyL1h8,FADhCTvkq1ILFnD3j,FoVjYR16c3UIuXj4xk,FmiRYe1P53KOolQeVi   (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
 ssl   2018-03-24T17:24:00.189735Z CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FuW2cZ3leE606wXSia,Fu5kzi1BUwnF0bSCsd,FyTViI32zPvCmNXgSi,FwV6ff3JGj4NZcVPE4 (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
 ```
@@ -208,9 +208,9 @@ zq -f table 'ts < 1521911721' stats.log.gz weird.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          PEER MEM PKTS_PROC BYTES_RECV PKTS_DROPPED PKTS_LINK PKT_LAG EVENTS_PROC EVENTS_QUEUED ACTIVE_TCP_CONNS ACTIVE_UDP_CONNS ACTIVE_ICMP_CONNS TCP_CONNS UDP_CONNS ICMP_CONNS TIMERS ACTIVE_TIMERS FILES ACTIVE_FILES DNS_REQUESTS ACTIVE_DNS_REQUESTS REASSEM_TCP_SIZE REASSEM_FILE_SIZE REASSEM_FRAG_SIZE REASSEM_UNKNOWN_SIZE
+_path ts                          peer mem pkts_proc bytes_recv pkts_dropped pkts_link pkt_lag events_proc events_queued active_tcp_conns active_udp_conns active_icmp_conns tcp_conns udp_conns icmp_conns timers active_timers files active_files dns_requests active_dns_requests reassem_tcp_size reassem_file_size reassem_frag_size reassem_unknown_size
 stats 2018-03-24T17:15:20.600725Z zeek 74  26        29375      -            -         -       404         11            1                0                0                 1         0         0          36     32            0     0            0            0                   1528             0                 0                 0
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H      ID.RESP_P NAME                             ADDL NOTICE PEER
+_path ts                          uid                id.orig_h   id.orig_p id.resp_h      id.resp_p name                             addl notice peer
 weird 2018-03-24T17:15:20.600843Z C1zOivgBT6dBmknqk  10.47.1.152 49562     23.217.103.245 80        TCP_ack_underflow_or_misorder    -    F      zeek
 weird 2018-03-24T17:15:20.608108Z -                  -           -         -              -         truncated_header                 -    F      zeek
 weird 2018-03-24T17:15:20.610033Z C45Ff03lESjMQQQej1 10.47.5.155 40712     91.189.91.23   80        above_hole_data_without_any_acks -    F      zeek
@@ -278,7 +278,7 @@ zq -f table 'head' dns.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H   ID.ORIG_P ID.RESP_H  ID.RESP_P PROTO TRANS_ID RTT     QUERY          QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS                        TTLS       REJECTED
+_path ts                          uid                id.orig_h   id.orig_p id.resp_h  id.resp_p proto trans_id rtt     query          qclass qclass_name qtype qtype_name rcode rcode_name AA TC RD RA Z answers                        TTLs       rejected
 dns   2018-03-24T17:15:20.865716Z C2zK5f13SbCtKcyiW5 10.47.1.100 41772     10.0.0.100 53        udp   36329    0.00087 ise.wrccdc.org 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 ise.wrccdc.cpp.edu,134.71.3.16 2230,41830 F
 ```
 
@@ -292,7 +292,7 @@ zq -f table 'id.resp_p==80 | head 5' conn.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H     ID.ORIG_P ID.RESP_H   ID.RESP_P PROTO SERVICE DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY   ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+_path ts                          uid                id.orig_h     id.orig_p id.resp_h   id.resp_p proto service duration orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history   orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
 conn  2018-03-24T17:15:20.602122Z C4RZ6d4r5mJHlSYFI6 10.164.94.120 33299     10.47.3.200 80        tcp   -       0.003077 0          235        RSTO       -          -          0            ^dtfAR    4         208           4         678           -
 conn  2018-03-24T17:15:20.606178Z CnKmhv4RfyAZ3fVc8b 10.164.94.120 36125     10.47.3.200 80        tcp   -       0.000002 0          0          RSTOS0     -          -          0            R         2         104           0         0             -
 conn  2018-03-24T17:15:20.604325Z C65IMkEAWNlE1f6L8  10.164.94.120 45941     10.47.3.200 80        tcp   -       0.002708 0          242        RSTO       -          -          0            ^dtfAR    4         208           4         692           -
@@ -616,7 +616,7 @@ zq -f table 'pick ts,uid' conn.log.gz
 
 #### Output:
 ```mdtest-output head
-TS                          UID
+ts                          uid
 2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
 2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
 2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i
@@ -637,7 +637,7 @@ zq -f table 'pick _path,ts,share_type' *
 
 #### Output:
 ```mdtest-output head
-_PATH       TS                          SHARE_TYPE
+_path       ts                          share_type
 smb_mapping 2018-03-24T17:15:21.382822Z DISK
 smb_mapping 2018-03-24T17:15:21.625534Z PIPE
 smb_mapping 2018-03-24T17:15:22.021668Z PIPE
@@ -672,7 +672,7 @@ zq -f table 'pick time:=ts,uid' conn.log.gz
 
 #### Output:
 ```mdtest-output head
-TIME                        UID
+time                        uid
 2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
 2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
 2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i
@@ -701,7 +701,7 @@ zq -q -f table 'put total_bytes := orig_bytes + resp_bytes | sort -r total_bytes
 
 #### Output:
 ```mdtest-output head
-ID.ORIG_H     ID.ORIG_P ID.RESP_H       ID.RESP_P ORIG_BYTES RESP_BYTES TOTAL_BYTES
+id.orig_h     id.orig_p id.resp_h       id.resp_p orig_bytes resp_bytes total_bytes
 10.47.7.154   27300     52.216.132.61   443       859        1781771107 1781771966
 10.164.94.120 33691     10.47.3.200     80        355        1543916493 1543916848
 10.47.8.100   37110     128.101.240.215 80        16398      376626606  376643004
@@ -732,7 +732,7 @@ Rename `ts` to `time`, rename one of the inner fields of `id`, and rename the `i
 
 #### Output:
 ```mdtest-output head
-_PATH TIME                        UID                CONNTUPLE.SRC  CONNTUPLE.ORIG_P CONNTUPLE.RESP_H CONNTUPLE.RESP_P PROTO SERVICE  DURATION ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY     ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+_path time                        uid                conntuple.src  conntuple.orig_p conntuple.resp_h conntuple.resp_p proto service  duration orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history     orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
 conn  2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl 10.164.94.120  39681            10.47.3.155      3389             tcp   -        0.004266 97         19         RSTR       -          -          0            ShADTdtr    10        730           6         342           -
 conn  2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6 10.47.25.80    50817            10.128.0.218     23189            tcp   -        0.000486 0          0          REJ        -          -          0            Sr          2         104           2         80            -
 conn  2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i  10.47.25.80    50817            10.128.0.218     23189            tcp   -        0.000538 0          0          REJ        -          -          0            Sr          2         104           2         80            -
@@ -761,7 +761,7 @@ zq -f table 'sort certificate.subject' x509.log.gz
 
 #### Output:
 ```mdtest-output head
-_PATH TS                          ID                 CERTIFICATE.VERSION CERTIFICATE.SERIAL                     CERTIFICATE.SUBJECT                                                                               CERTIFICATE.ISSUER                                                                                                                                       CERTIFICATE.NOT_VALID_BEFORE CERTIFICATE.NOT_VALID_AFTER CERTIFICATE.KEY_ALG CERTIFICATE.SIG_ALG     CERTIFICATE.KEY_TYPE CERTIFICATE.KEY_LENGTH CERTIFICATE.EXPONENT CERTIFICATE.CURVE SAN.DNS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      SAN.URI SAN.EMAIL SAN.IP BASIC_CONSTRAINTS.CA BASIC_CONSTRAINTS.PATH_LEN
+_path ts                          id                 certificate.version certificate.serial                     certificate.subject                                                                               certificate.issuer                                                                                                                                       certificate.not_valid_before certificate.not_valid_after certificate.key_alg certificate.sig_alg     certificate.key_type certificate.key_length certificate.exponent certificate.curve san.dns                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      san.uri san.email san.ip basic_constraints.ca basic_constraints.path_len
 x509  2018-03-24T17:29:38.233315Z Fn2Gkp2Qd434JylJX9 3                   CB11D05B561B4BB1                       C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net                                                        2016-05-09T10:09:02Z         2018-05-09T10:09:02Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            -       -         -      T                    -
 x509  2018-03-24T17:18:48.524223Z Fxq7P31K2FS3v7CBSh 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     2018-01-25T08:00:00Z         2019-01-25T20:00:00Z        id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
 x509  2018-03-24T17:18:48.524679Z F6WWPk3ajsHLrmNFdb 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     2018-01-25T08:00:00Z         2019-01-25T20:00:00Z        id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
@@ -786,7 +786,7 @@ zq -f table 'sort certificate.subject,id' x509.log.gz
 
 #### Output:
 ```mdtest-output head
-_PATH TS                          ID                 CERTIFICATE.VERSION CERTIFICATE.SERIAL                     CERTIFICATE.SUBJECT                                                                               CERTIFICATE.ISSUER                                                                                                                                       CERTIFICATE.NOT_VALID_BEFORE CERTIFICATE.NOT_VALID_AFTER CERTIFICATE.KEY_ALG CERTIFICATE.SIG_ALG     CERTIFICATE.KEY_TYPE CERTIFICATE.KEY_LENGTH CERTIFICATE.EXPONENT CERTIFICATE.CURVE SAN.DNS                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      SAN.URI SAN.EMAIL SAN.IP BASIC_CONSTRAINTS.CA BASIC_CONSTRAINTS.PATH_LEN
+_path ts                          id                 certificate.version certificate.serial                     certificate.subject                                                                               certificate.issuer                                                                                                                                       certificate.not_valid_before certificate.not_valid_after certificate.key_alg certificate.sig_alg     certificate.key_type certificate.key_length certificate.exponent certificate.curve san.dns                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      san.uri san.email san.ip basic_constraints.ca basic_constraints.path_len
 x509  2018-03-24T17:29:38.233315Z Fn2Gkp2Qd434JylJX9 3                   CB11D05B561B4BB1                       C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net                                                        2016-05-09T10:09:02Z         2018-05-09T10:09:02Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            -       -         -      T                    -
 x509  2018-03-24T17:18:48.524679Z F6WWPk3ajsHLrmNFdb 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     2018-01-25T08:00:00Z         2019-01-25T20:00:00Z        id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
 x509  2018-03-24T17:18:48.524223Z Fxq7P31K2FS3v7CBSh 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     2018-01-25T08:00:00Z         2019-01-25T20:00:00Z        id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
@@ -814,7 +814,7 @@ zq -f table 'count() by id.orig_h | sort -r' conn.log.gz
 
 #### Output:
 ```mdtest-output head
-ID.ORIG_H                COUNT
+id.orig_h                count
 10.174.251.215           279014
 10.47.24.81              162237
 10.47.26.82              153056
@@ -834,7 +834,7 @@ zq -f table 'count() by username | sort -nulls first username' http.log.gz
 
 #### Output:
 ```mdtest-output
-USERNAME     COUNT
+username     count
 -            139175
 M32318       4854
 agloop       1
@@ -865,7 +865,7 @@ zq -f table 'tail' dns.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H    ID.ORIG_P ID.RESP_H ID.RESP_P PROTO TRANS_ID RTT QUERY           QCLASS QCLASS_NAME QTYPE QTYPE_NAME RCODE RCODE_NAME AA TC RD RA Z ANSWERS TTLS REJECTED
+_path ts                          uid                id.orig_h    id.orig_p id.resp_h id.resp_p proto trans_id rtt query           qclass qclass_name qtype qtype_name rcode rcode_name AA TC RD RA Z answers TTLs rejected
 dns   2018-03-24T17:36:30.151237Z C0ybvu4HG3yWv6H5cb 172.31.255.5 60878     10.0.0.1  53        udp   36243    -   talk.google.com 1      C_INTERNET  1     A          -     -          F  F  T  F  0 -       -    F
 ```
 
@@ -879,7 +879,7 @@ zq -f table 'id.resp_p==80 | tail 5' conn.log.gz
 
 #### Output:
 ```mdtest-output
-_PATH TS                          UID                ID.ORIG_H      ID.ORIG_P ID.RESP_H    ID.RESP_P PROTO SERVICE DURATION  ORIG_BYTES RESP_BYTES CONN_STATE LOCAL_ORIG LOCAL_RESP MISSED_BYTES HISTORY    ORIG_PKTS ORIG_IP_BYTES RESP_PKTS RESP_IP_BYTES TUNNEL_PARENTS
+_path ts                          uid                id.orig_h      id.orig_p id.resp_h    id.resp_p proto service duration  orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history    orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
 conn  2018-03-24T17:33:23.087149Z CqPl942ft1MCpuNQgk 10.218.221.240 63812     10.47.2.20   80        tcp   -       15.607782 0          0          S1         -          -          0            Sh         2         88            10        440           -
 conn  2018-03-24T17:36:25.557756Z CKCuBO2N2sY6m8qkv6 10.128.0.247   30549     10.47.22.65  80        tcp   http    0.006639  334        271        SF         -          -          0            ShADTftFa  10        1092          6         806           -
 conn  2018-03-24T17:35:20.422826Z Cy1XB41BipfyCcCGVh 10.128.0.247   30487     10.47.2.58   80        tcp   http    68.309996 21249      15506      S1         -          -          0            ShADTadtTt 242       52202         270       41836         -
@@ -908,7 +908,7 @@ zq -f table 'cut certificate.issuer | sort | uniq -c | sort -r' x509.log.gz
 
 #### Output:
 ```mdtest-output head
-CERTIFICATE.ISSUER                                                                                                                                       _UNIQ
+certificate.issuer                                                                                                                                       _uniq
 O=VMware Installer                                                                                                                                       1761
 CN=Snozberry                                                                                                                                             1108
 ...
