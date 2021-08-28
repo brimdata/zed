@@ -6665,12 +6665,12 @@ function peg$parse(input, options) {
       if (s1 !== peg$FAILED) {
         s2 = peg$currPos;
         peg$silentFails++;
-        s3 = peg$parse_();
+        s3 = peg$parseIdentifierRest();
         peg$silentFails--;
-        if (s3 !== peg$FAILED) {
-          peg$currPos = s2;
+        if (s3 === peg$FAILED) {
           s2 = void 0;
         } else {
+          peg$currPos = s2;
           s2 = peg$FAILED;
         }
         if (s2 !== peg$FAILED) {
