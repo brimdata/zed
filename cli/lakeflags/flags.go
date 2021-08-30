@@ -18,12 +18,10 @@ func (f *Flags) SetFlags(fs *flag.FlagSet) {
 }
 
 func (f *Flags) Names() (string, string) {
-	list := strings.Split(f.PoolName, "/")
-	if len(list) == 1 {
-		return list[0], ""
+	if i := strings.LastIndexByte(f.PoolName, '/'); i > -1 {
+		return f.PoolName[:i], f.PoolName[i+1:]
 	}
-	last := len(list) - 1
-	return strings.Join(list[0:last], "/"), list[last]
+	return f.PoolName, ""
 }
 
 func (f *Flags) Branch() (string, string) {

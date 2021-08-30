@@ -26,11 +26,11 @@ const (
 )
 
 var (
-	// ErrPoolNotFound returns when specified pool does not exist.
+	// ErrPoolNotFound is returned when the specified pool does not exist.
 	ErrPoolNotFound = errors.New("pool not found")
-	// ErrPoolExists returns when specified the pool already exists.
+	// ErrPoolExists is returned when the specified the pool already exists.
 	ErrPoolExists = errors.New("pool exists")
-	// ErrBranchExists returns when specified the branch already exists.
+	// ErrBranchExists is returned when the specified the branch already exists.
 	ErrBranchExists = errors.New("branch exists")
 )
 

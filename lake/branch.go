@@ -54,8 +54,8 @@ func (b *BranchConfig) Create(ctx context.Context, engine storage.Engine, poolPa
 	return err
 }
 
-func (b *BranchConfig) Open(ctx context.Context, engine storage.Engine, parent *storage.URI, pool *Pool) (*Branch, error) {
-	path := b.Path(parent)
+func (b *BranchConfig) Open(ctx context.Context, engine storage.Engine, poolPath *storage.URI, pool *Pool) (*Branch, error) {
+	path := b.Path(poolPath)
 	log, err := commit.Open(ctx, engine, path, pool.Layout.Order)
 	if err != nil {
 		return nil, err

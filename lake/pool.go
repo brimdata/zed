@@ -71,7 +71,7 @@ func (p *PoolConfig) Create(ctx context.Context, engine storage.Engine, root *st
 	if err != nil {
 		return err
 	}
-	// create the main branche in the branches journal store
+	// create the main branch in the branches journal store
 	_, err = p.createBranch(ctx, engine, root, "main", ksuid.Nil, journal.Nil)
 	return err
 }
