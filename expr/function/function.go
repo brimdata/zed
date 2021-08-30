@@ -126,7 +126,7 @@ func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
 // HasBoolResult returns true if the function name returns a Boolean value.
 // XXX This is a hack so the semantic compiler can determine if a single call
 // expr is a Filter or Put proc. At some point function declarations should have
-// signatures the return type can be introspected.
+// signatures so the return type can be introspected.
 func HasBoolResult(name string) bool {
 	switch name {
 	case "iserr", "is", "has", "missing":
