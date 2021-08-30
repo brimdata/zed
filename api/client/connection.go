@@ -30,6 +30,8 @@ var (
 	ErrPoolNotFound = errors.New("pool not found")
 	// ErrPoolExists returns when specified the pool already exists.
 	ErrPoolExists = errors.New("pool exists")
+	// ErrBranchExists returns when specified the branch already exists.
+	ErrBranchExists = errors.New("branch exists")
 )
 
 type Response struct {
@@ -214,7 +216,6 @@ func (c *Connection) IDs(ctx context.Context, poolName, branchName string) (*Res
 	r, err := c.stream(req)
 	var errRes *ErrorResponse
 	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
-		//XXX
 		return nil, ErrPoolNotFound
 	}
 	return r, err
@@ -257,7 +258,7 @@ func (c *Connection) BranchPost(ctx context.Context, poolID ksuid.KSUID, payload
 	resp, err := c.stream(req)
 	var errRes *ErrorResponse
 	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusConflict {
-		return nil, ErrPoolExists
+		return nil, ErrBranchExists
 	}
 	return resp, err
 }
@@ -267,12 +268,7 @@ func (c *Connection) MergeBranch(ctx context.Context, poolID, branchID, at ksuid
 		SetBody(api.BranchMergeRequest{at.String()})
 	req.Method = http.MethodPost
 	req.URL = path.Join("/pool", poolID.String(), branchID.String(), "merge")
-	resp, err := c.stream(req)
-	var errRes *ErrorResponse
-	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusConflict {
-		return nil, ErrPoolExists
-	}
-	return resp, err
+	return c.stream(req)
 }
 
 func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, params map[string]string) (*Response, error) {
