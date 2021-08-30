@@ -112,7 +112,7 @@ Operation
       RETURN(MAP("kind": "From", "trunks": trunks))
     }
   / Operator
-  / f:Function &EndOfOp { RETURN(f) }
+  / a:OpExprs &EndOfOp { RETURN(a) }
   / a:Aggregation &EndOfOp  { RETURN(a) }
   / expr:SearchBoolean !AggGuard {
       RETURN(MAP("kind": "Filter", "expr": expr))
@@ -465,6 +465,21 @@ SampleProc
                                 "lhs": NULL,
                                 "rhs": MAP("kind": "ID", "name": "sample")))))))
     }
+
+// OpExprs is a top level operator that contains a list of function calls or
+// assignment expressions. It is in an ambiguous state and could either be
+//   1) a summarize proc,
+//   2) a put proc, or
+//   3) a filter.
+//  The semantic pass is responsible for converting it to one of the three.
+OpExprs
+  = first:OpExpr rest:(__ "," __ expr:OpExpr { RETURN(expr) })* {
+    RETURN(MAP("kind": "OpExprs", "exprs": PREPEND(first, rest)))
+  }
+
+OpExpr
+ = Assignment
+ / Function
 
 SampleExpr
   = _ lval:Lval { RETURN(lval)}

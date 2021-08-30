@@ -53,16 +53,10 @@ func TestMinMax(t *testing.T) {
 	const record = "{i:1 (uint64),f:2.} (=0)"
 
 	// Simple cases
-	testSuccessful(t, "min(1)", record, zint64(1))
-	testSuccessful(t, "max(1)", record, zint64(1))
 	testSuccessful(t, "min(1, 2, 3)", record, zint64(1))
 	testSuccessful(t, "max(1, 2, 3)", record, zint64(3))
 	testSuccessful(t, "min(3, 2, 1)", record, zint64(1))
 	testSuccessful(t, "max(3, 2, 1)", record, zint64(3))
-
-	// Fails with no arguments
-	testError(t, "min()", function.ErrTooFewArgs, "min with no args")
-	testError(t, "max()", function.ErrTooFewArgs, "max with no args")
 
 	// Mixed types work
 	testSuccessful(t, "min(i, 2, 3)", record, zuint64(1))

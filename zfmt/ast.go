@@ -34,12 +34,16 @@ func (c *canon) assignments(assignments []ast.Assignment) {
 		if k > 0 {
 			c.write(",")
 		}
-		if a.LHS != nil {
-			c.expr(a.LHS, false)
-			c.write(":=")
-		}
-		c.expr(a.RHS, false)
+		c.assignment(a)
 	}
+}
+
+func (c *canon) assignment(a ast.Assignment) {
+	if a.LHS != nil {
+		c.expr(a.LHS, false)
+		c.write(":=")
+	}
+	c.expr(a.RHS, false)
 }
 
 func (c *canon) exprs(exprs []ast.Expr) {
@@ -65,6 +69,8 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 			c.write(" where ")
 			c.expr(e.Where, false)
 		}
+	case *ast.Assignment:
+		c.assignment(*e)
 	case *zed.Primitive:
 		c.literal(*e)
 	case *ast.ID:
@@ -421,6 +427,9 @@ func (c *canon) proc(p ast.Proc) {
 			c.assignments(p.Args)
 		}
 		c.close()
+	case *ast.OpExprs:
+		c.next()
+		c.exprs(p.Exprs)
 	//case *ast.SqlExpression:
 	//	//XXX TBD
 	//	c.open("sql")

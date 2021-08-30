@@ -219,11 +219,6 @@ func (*From) OpNode() {}
 // Various Op fields
 
 type (
-	Assignment struct {
-		Kind string `json:"kind" unpack:""`
-		LHS  Expr   `json:"lhs"`
-		RHS  Expr   `json:"rhs"`
-	}
 	Agg struct {
 		Kind  string `json:"kind" unpack:""`
 		Name  string `json:"name"`

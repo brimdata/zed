@@ -1,0 +1,6 @@
+zed: 'x := "Sacr\u00e9 bleu!"'
+
+input: '{}'
+
+output: |
+  {x:"Sacré bleu!"}

@@ -1,0 +1,7 @@
+zed: 'to_upper(x), to_lower(x)'
+
+input: |
+  {x:"vAlUe1"}(=0)
+
+output: |
+   {x:"vAlUe1",to_upper:"VALUE1",to_lower:"value1"}
