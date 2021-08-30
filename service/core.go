@@ -151,7 +151,9 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/query", handleQuery).Methods("POST")
 
 	// Deprecated endpoints
-	c.authhandle("/search", handleSearch).Methods("POST")
+	c.authhandle("/search", handleSearchDeprecated).Methods("POST")
+	c.authhandle("/pool", handlePoolListDeprecated).Methods("GET")
+	c.authhandle("/pool/{pool}", handlePoolGetDeprecated).Methods("GET")
 	// c.authhandle("/index", handleIndexPost).Methods("POST")
 }
 

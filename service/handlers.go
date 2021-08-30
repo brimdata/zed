@@ -19,6 +19,7 @@ import (
 	"github.com/brimdata/zed/service/search"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -80,7 +81,7 @@ func handleASTPost(c *Core, w *ResponseWriter, r *Request) {
 	}
 }
 
-func handleSearch(c *Core, w *ResponseWriter, r *Request) {
+func handleSearchDeprecated(c *Core, w *ResponseWriter, r *Request) {
 	var req api.SearchRequest
 	if !r.Unmarshal(w, &req) {
 		return
@@ -156,6 +157,34 @@ func handleIDs(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	w.Respond(http.StatusOK, api.IDsResponse{poolID, branchID})
+}
+
+func handlePoolListDeprecated(c *Core, w *ResponseWriter, r *Request) {
+	zw := w.ZioWriterWithOpts(anyio.WriterOpts{JSON: jsonio.WriterOpts{ForceArray: true}})
+	if zw == nil {
+		return
+	}
+	if err := c.root.ScanPoolsDeprecated(r.Context(), zw); err != nil {
+		r.Logger.Warn("Error scanning pools", zap.Error(err))
+		return
+	}
+	zw.Close()
+}
+
+func handlePoolGetDeprecated(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if errors.Is(err, lake.ErrPoolNotFound) {
+		err = zqe.ErrNotFound("pool %q not found", id)
+	}
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	w.Respond(http.StatusOK, pool.PoolConfig)
 }
 
 func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {

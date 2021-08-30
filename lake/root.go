@@ -18,6 +18,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
@@ -639,4 +640,24 @@ func (r *Root) newPoolScheduler(ctx context.Context, zctx *zson.Context, poolID,
 
 func (r *Root) Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
 	return nil, errors.New("cannot use 'file' or 'http' source in a lake query")
+}
+
+//XXX ScanPools will go away with issue #2953
+func (r *Root) ScanPoolsDeprecated(ctx context.Context, w zio.Writer) error {
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StyleSimple)
+	pools, err := r.ListPools(ctx)
+	if err != nil {
+		return err
+	}
+	for k := range pools {
+		rec, err := m.MarshalRecord(&pools[k])
+		if err != nil {
+			return err
+		}
+		if err := w.Write(rec); err != nil {
+			return err
+		}
+	}
+	return nil
 }
