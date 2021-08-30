@@ -467,9 +467,9 @@ SampleProc
     }
 
 // OpExprs is a top level operator that contains a list of function calls or
-// assignment expressions. It is in an ambiguous state and could either be a:
-//   1) A summarize proc
-//   2) a put proc or
+// assignment expressions. It is in an ambiguous state and could either be
+//   1) a summarize proc,
+//   2) a put proc, or
 //   3) a filter.
 //  The semantic pass is responsible for converting to either of the three.
 OpExprs
