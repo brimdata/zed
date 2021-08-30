@@ -62,7 +62,6 @@ func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*lake.P
 	zed := fmt.Sprintf("from [pools] | id == from_hex('%s')", idToHex(id))
 	_, err := api.Query(ctx, d, zed)
 	if err != nil {
-		fmt.Println("XERR", err)
 		return nil, err
 	}
 	switch len(d.results) {

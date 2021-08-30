@@ -27,7 +27,7 @@ var Load = &charm.Spec{
 The load command adds data to a pool and commits it in one automatic operation.
 See documentation on "zed lake add" and "zed lake commit" for more details.
 
-A branch must be specified with the -p option.  If a pool name is given
+A pool and branch must be specified with the -p option.  If a pool name is given
 without a branch name, then the branch is assumed to be "main".
 `,
 	New: New,

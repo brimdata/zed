@@ -28,11 +28,11 @@ func (d *queryDriver) Write(channelID int, batch zbuf.Batch) error {
 	return nil
 }
 
-func (*queryDriver) Warn(msg string) error {
+func (*queryDriver) Warn(string) error {
 	return nil
 }
 
-func (*queryDriver) ChannelEnd(channelID int) error {
+func (*queryDriver) ChannelEnd(int) error {
 	return nil
 }
 
