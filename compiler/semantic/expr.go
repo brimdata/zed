@@ -509,7 +509,7 @@ func maybeConvertAgg(scope *Scope, call *ast.Call) (dag.Expr, error) {
 	if len(call.Args) > 1 {
 		if call.Name == "min" || call.Name == "max" {
 			// min and max are special cases as they are also functions. If the
-			// args are greater than 1 they're probably a function so do not
+			// number of args is greater than 1 they're probably a function so do not
 			// return an error.
 			return nil, nil
 		}
