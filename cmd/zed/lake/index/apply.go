@@ -21,14 +21,12 @@ var Apply = &charm.Spec{
 
 type ApplyCommand struct {
 	*Command
-	commit bool
-	ids    []ksuid.KSUID
+	ids []ksuid.KSUID
 	zedlake.CommitFlags
 }
 
 func NewApply(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &ApplyCommand{Command: parent.(*Command)}
-	f.BoolVar(&c.commit, "commit", false, "commit added index objects if successfully written")
 	c.CommitFlags.SetFlags(f)
 	return c, nil
 }

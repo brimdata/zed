@@ -37,14 +37,12 @@ func init() {
 
 type Command struct {
 	lake      zedlake.Command
-	commit    bool
 	lakeFlags lakeflags.Flags
 	zedlake.CommitFlags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{lake: parent.(zedlake.Command)}
-	f.BoolVar(&c.commit, "commit", false, "commit added data if successfully written")
 	c.CommitFlags.SetFlags(f)
 	c.lakeFlags.SetFlags(f)
 	return c, nil
