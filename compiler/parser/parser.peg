@@ -471,7 +471,7 @@ SampleProc
 //   1) a summarize proc,
 //   2) a put proc, or
 //   3) a filter.
-//  The semantic pass is responsible for converting to either of the three.
+//  The semantic pass is responsible for converting it to one of the three.
 OpExprs
   = first:OpExpr rest:(__ "," __ expr:OpExpr { RETURN(expr) })* {
     RETURN(MAP("kind": "OpExprs", "exprs": PREPEND(first, rest)))
