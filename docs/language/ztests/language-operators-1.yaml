@@ -15,4 +15,4 @@ outputs:
       filter match("widget")
       | summarize
           count() by color
-      | put COLOR:=to_upper(color)
+      | COLOR:=to_upper(color)
