@@ -7,7 +7,7 @@
 # ============================================================================
 
 script: |
-  zc -C 'widget | count() by color | put COLOR := to_upper(color)'
+  zc -C 'widget | count() by color | COLOR := to_upper(color)'
 
 outputs:
   - name: stdout
