@@ -23,7 +23,7 @@ type MergeSort struct {
 	zctx      *zson.Context
 }
 
-const TempPrefix = "zq-spill-"
+const TempPrefix = "zed-spill-"
 
 func TempDir() (string, error) {
 	return os.MkdirTemp("", TempPrefix)
