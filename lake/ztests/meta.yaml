@@ -5,7 +5,7 @@ script: |
   zed lake create -q -p poolB -orderby b:desc
   zed lake load -q -p poolA a.zson
   zed lake load -q -p poolB b.zson
-  zed lake query -Z 'from [pools] | drop id'
+  zed lake query -Z 'from [pools] | drop id | sort name'
   echo ===
   zed lake query -Z 'from poolA[log] | cut nameof(this),segment.meta'
   echo ===
