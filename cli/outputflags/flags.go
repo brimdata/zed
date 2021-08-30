@@ -86,17 +86,8 @@ func (f *Flags) Init() error {
 		f.outputFile = ""
 	}
 	if f.outputFile == "" && f.Format == "zng" && terminal.IsTerminalFile(os.Stdout) && !f.forceBinary {
-		return errors.New("writing binary zng data to terminal; override with -B or use -z for ZSON.")
-	}
-	return nil
-}
-
-func (f *Flags) InitWithFormat(format string) error {
-	if f.outputFile == "-" {
-		f.outputFile = ""
-	}
-	if f.outputFile == "" && f.Format == "zng" && terminal.IsTerminalFile(os.Stdout) && !f.forceBinary {
-		return errors.New("writing binary zng data to terminal; override with -B or use -z for ZSON.")
+		f.Format = "zson"
+		f.ZSON.Pretty = 0
 	}
 	return nil
 }
