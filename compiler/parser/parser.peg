@@ -148,7 +148,7 @@ SearchOrTerm = _ OrToken _ t:SearchAnd { RETURN(ARRAY("or", t)) }
 
 SearchAnd
   = first:SearchFactor
-    rest:(!(_ OrToken _) (_ AndToken)? _ expr:SearchFactor{ RETURN(ARRAY("and", expr)) })* {
+    rest:((_ AndToken)? _ !OrToken expr:SearchFactor{ RETURN(ARRAY("and", expr)) })* {
       RETURN(makeBinaryExprChain(first,rest))
     }
 
@@ -186,8 +186,8 @@ TBD
     }
 
 SearchExpr
-  = !(SearchGuard EOT) search:PatternSearch { RETURN(search) }
-  / !(SearchGuard EOT) v:SearchValue !ExprGuard {
+  = search:PatternSearch { RETURN(search) }
+  / v:SearchValue !ExprGuard {
       RETURN(MAP("kind": "Search", "text": TEXT, "value": v))
     }
   / "*" !ExprGuard {
@@ -212,17 +212,6 @@ PatternMatch
     }
 
 Pattern = Regexp / Glob
-
-SearchGuard
-  = SQLTokenSentinels
-  / AndToken
-  / OrToken
-  / NotToken
-  / InToken
-  / ByToken
-  / DefaultToken
-  / "type("
-  / "matches"i
 
 /// === Aggregations ===
 
@@ -876,7 +865,7 @@ SQLFrom
 
 SQLAlias
   = _ AS _ id:Lval { RETURN(id) }
-  / !(_ SQLTokenSentinels)_ id:Lval { RETURN(id) }
+  / _ !(SQLTokenSentinels _) id:Lval { RETURN(id) }
 
 SQLTable
   = Expr
