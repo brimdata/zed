@@ -148,7 +148,7 @@ SearchOrTerm = _ OrToken _ t:SearchAnd { RETURN(ARRAY("or", t)) }
 
 SearchAnd
   = first:SearchFactor
-    rest:((_ AndToken)? _ expr:SearchFactor{ RETURN(ARRAY("and", expr)) })* {
+    rest:((_ AndToken)? _ !OrToken expr:SearchFactor{ RETURN(ARRAY("and", expr)) })* {
       RETURN(makeBinaryExprChain(first,rest))
     }
 
@@ -186,8 +186,8 @@ TBD
     }
 
 SearchExpr
-  = !(SearchGuard EOT) search:PatternSearch { RETURN(search) }
-  / !(SearchGuard EOT) v:SearchValue !ExprGuard {
+  = search:PatternSearch { RETURN(search) }
+  / v:SearchValue !ExprGuard {
       RETURN(MAP("kind": "Search", "text": TEXT, "value": v))
     }
   / "*" !ExprGuard {
@@ -212,17 +212,6 @@ PatternMatch
     }
 
 Pattern = Regexp / Glob
-
-SearchGuard
-  = SQLTokenSentinels
-  / AndToken
-  / OrToken
-  / NotToken
-  / InToken
-  / ByToken
-  / DefaultToken
-  / "type("
-  / "matches"i
 
 /// === Aggregations ===
 
@@ -284,7 +273,7 @@ AggName
   / AndToken
   / OrToken
 
-WhereClause = _ "where" _ expr:SearchBoolean { RETURN(expr) }
+WhereClause = _ "where" _ expr:LogicalOrExpr { RETURN(expr) }
 
 AggAssignments
   = first:AggAssignment rest:(__ "," __ AggAssignment)* {
@@ -876,7 +865,7 @@ SQLFrom
 
 SQLAlias
   = _ AS _ id:Lval { RETURN(id) }
-  / _ id:Lval { RETURN(id) }
+  / _ !(SQLTokenSentinels _) id:Lval { RETURN(id) }
 
 SQLTable
   = Expr
@@ -901,13 +890,13 @@ SQLJoinStyle
   / ""         { RETURN("inner") }
 
 SQLWhere
-  = _ WHERE _ expr:SearchBoolean { RETURN(expr) }
+  = _ WHERE _ expr:LogicalOrExpr { RETURN(expr) }
 
 SQLGroupBy
   = _ GROUP _ BY _ columns:FieldExprs { RETURN(columns) }
 
 SQLHaving
-  = _ HAVING _ expr:SearchBoolean { RETURN(expr) }
+  = _ HAVING _ expr:LogicalOrExpr { RETURN(expr) }
 
 SQLOrderBy
   = _ ORDER _ BY _ keys:Exprs order:SQLOrder {
@@ -1155,7 +1144,7 @@ IDGuard
   = BooleanLiteral
   / NullLiteral
   / TypeExternal
-  / SearchGuard
+  / PrimitiveTypeExternal
 
 Time
   = FullDate "T" FullTime {
