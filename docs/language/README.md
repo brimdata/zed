@@ -252,9 +252,6 @@ widget | count() by color | COLOR := to_upper(color)
 as the compiler can tell from syntax and context that the three operators
 are `filter`, `summarize`, and `put`.
 
-> **Note:** Making `put` optional is still a work in progress
-> ([zed/2850](https://github.com/brimdata/zed/issues/2850)).
-
 All other operators are explicitly named.
 
 * [`cut`](operators/README.md#cut)
