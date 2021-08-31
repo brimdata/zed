@@ -1,5 +1,5 @@
 script: |
-  zq -z "count() where foo" in.zson
+  zq -z "count() where match(foo)" in.zson
   echo ===
   zq -z "foo | count()" in.zson
 

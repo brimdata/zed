@@ -1,0 +1,8 @@
+zed: 'layout.order == "p1" | put from:="hi"'
+
+input: |
+  {layout:{order:"p1"}}
+
+output: |
+  {layout:{order:"p1"},from:"hi"}
+
