@@ -21,14 +21,12 @@ var Apply = &charm.Spec{
 
 type ApplyCommand struct {
 	*Command
-	commit bool
-	ids    []ksuid.KSUID
+	ids []ksuid.KSUID
 	zedlake.CommitFlags
 }
 
 func NewApply(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &ApplyCommand{Command: parent.(*Command)}
-	f.BoolVar(&c.commit, "commit", false, "commit added index objects if successfully written")
 	c.CommitFlags.SetFlags(f)
 	return c, nil
 }
@@ -54,25 +52,20 @@ func (c *ApplyCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	pool, err := lake.LookupPool(ctx, c.lakeFlags.PoolName)
+	poolName, branchName := c.lakeFlags.Branch()
+	if poolName == "" {
+		return errors.New("name of pool must be supplied with -p option")
+	}
+	poolID, branchID, err := lake.IDs(ctx, poolName, branchName)
 	if err != nil {
 		return err
 	}
-	commit, err := lake.ApplyIndexRules(ctx, ruleName, pool.ID, tags)
+	commit, err := lake.ApplyIndexRules(ctx, ruleName, poolID, branchID, tags)
 	if err != nil {
 		return err
-	}
-	if c.commit {
-		if err := lake.Commit(ctx, pool.ID, commit, *c.CommitRequest()); err != nil {
-			return err
-		}
-		if !c.lakeFlags.Quiet {
-			fmt.Printf("%s committed\n", commit)
-		}
-		return nil
 	}
 	if !c.lakeFlags.Quiet {
-		fmt.Printf("%s staged\n", commit)
+		fmt.Printf("%s committed\n", commit)
 	}
 	return nil
 }

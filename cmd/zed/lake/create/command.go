@@ -19,7 +19,19 @@ var Create = &charm.Spec{
 	Usage: "create [-orderby key[,key...][:asc|:desc]] -p name",
 	Short: "create a new data pool",
 	Long: `
-"zed create" ...
+The lake create command creates new pools.  One or more pool keys may be specified
+as the sort keys (primary, secondary, etc) of the data stored in the pool.
+The prefix ":asc" or ":desc" appearing after the comma-separated list of
+keys indicates the sort order.  If no sort order is given, ascending is assumed.
+
+The -p option is required and specifies the name for the pool.
+
+The lake query command can efficiently perform
+range scans with respect to the pool key using the
+"range" parameter to the Zed "from" operator as the data is laid out
+naturally for such scans.
+
+By default, a branch called "main" is initialized in the newly created pool.
 `,
 	New: New,
 }
@@ -51,26 +63,30 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	name := c.lakeFlags.PoolName
-	if len(args) != 0 && name != "" {
-		return errors.New("zed lake create pool: does not take arguments")
+	if len(args) != 0 {
+		return errors.New("create command does not take arguments")
 	}
-	if name == "" {
-		return errors.New("zed lake create pool: -p required")
+	poolName, branchName := c.lakeFlags.Names()
+	if poolName == "" {
+		return errors.New("a pool or branch must be specified with -p")
 	}
-	layout, err := order.ParseLayout(c.layout)
-	if err != nil {
-		return err
+	if branchName != "" {
+		return errors.New("branch cannot be specified with pool name; use branch command to create branches")
 	}
 	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-	if _, err := lake.CreatePool(ctx, name, layout, int64(c.thresh)); err != nil {
+	layout, err := order.ParseLayout(c.layout)
+	if err != nil {
+		return err
+	}
+	id, err := lake.CreatePool(ctx, poolName, layout, int64(c.thresh))
+	if err != nil {
 		return err
 	}
 	if !c.lakeFlags.Quiet {
-		fmt.Printf("pool created: %s\n", name)
+		fmt.Printf("pool created: %s %s\n", poolName, id)
 	}
 	return nil
 }

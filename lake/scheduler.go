@@ -17,7 +17,7 @@ type Scheduler struct {
 	ctx    context.Context
 	zctx   *zson.Context
 	pool   *Pool
-	snap   *commit.Snapshot
+	snap   commit.View
 	span   extent.Span
 	filter zbuf.Filter
 	once   sync.Once
@@ -28,7 +28,7 @@ type Scheduler struct {
 
 var _ proc.Scheduler = (*Scheduler)(nil)
 
-func NewSortedScheduler(ctx context.Context, zctx *zson.Context, pool *Pool, snap *commit.Snapshot, span extent.Span, filter zbuf.Filter) *Scheduler {
+func NewSortedScheduler(ctx context.Context, zctx *zson.Context, pool *Pool, snap commit.View, span extent.Span, filter zbuf.Filter) *Scheduler {
 	return &Scheduler{
 		ctx:    ctx,
 		zctx:   zctx,
@@ -112,7 +112,7 @@ func (s *scannerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	return nil, nil
 }
 
-func ScanSpan(ctx context.Context, snap *commit.Snapshot, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
+func ScanSpan(ctx context.Context, snap commit.View, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
 	for _, seg := range snap.Select(span, o) {
 		if span == nil || span.Overlaps(seg.First, seg.Last) {
 			select {
@@ -125,7 +125,7 @@ func ScanSpan(ctx context.Context, snap *commit.Snapshot, span extent.Span, o or
 	return nil
 }
 
-func ScanSpanInOrder(ctx context.Context, snap *commit.Snapshot, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
+func ScanSpanInOrder(ctx context.Context, snap commit.View, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
 	segments := snap.Select(span, o)
 	sortSegments(o, segments)
 	for _, seg := range segments {
@@ -141,7 +141,7 @@ func ScanSpanInOrder(ctx context.Context, snap *commit.Snapshot, span extent.Spa
 // ScanPartitions partitions all segments in snap overlapping
 // span into non-overlapping partitions, sorts them by pool key and order,
 // and sends them to ch.
-func ScanPartitions(ctx context.Context, snap *commit.Snapshot, span extent.Span, o order.Which, ch chan<- Partition) error {
+func ScanPartitions(ctx context.Context, snap commit.View, span extent.Span, o order.Which, ch chan<- Partition) error {
 	segments := snap.Select(span, o)
 	for _, p := range PartitionSegments(segments, o) {
 		if span != nil {

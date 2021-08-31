@@ -11,6 +11,6 @@ inputs:
 
 outputs:
   - name: stdout
-    data: |
-      pool created: test
+    regexp: |
+      pool created: test \w{27}
       ===

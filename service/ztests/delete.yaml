@@ -4,11 +4,10 @@ script: |
   a=$(zapi load -p test a.zson | head -1 | awk '{print $1}')
   b=$(zapi load -p test b.zson | head -1 | awk '{print $1}')
   zapi query -z "from test | sort ."
-  zapi delete -q -p test -commit $a
+  zapi delete -q -p test $a
   echo ===
   zapi query -z "from test | sort ."
-  id=$(zapi delete -p test $b | head -1 | awk '{print $1}')
-  zapi commit -p test -q $id
+  zapi delete -q -p test $b
   echo ===
   zapi query -z "from test | sort ."
 

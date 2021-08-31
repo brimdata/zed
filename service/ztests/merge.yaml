@@ -1,10 +1,12 @@
 script: |
   source service.sh
   zapi create -q -p POOL
-  a=$(zapi add -p POOL a.zson | head -1 | awk '{print $1}')
-  b=$(zapi add -p POOL b.zson | head -1 | awk '{print $1}')
-  id=$(zapi squash -p POOL $a $b | head -1 | awk '{print $NF}')
-  zapi commit -q -p POOL $id
+  zapi branch -q -p POOL child
+  zapi load -q -p POOL/main a.zson
+  zapi load -q -p POOL/child b.zson
+  zapi query -z "from POOL | sort ."
+  echo ===
+  zapi merge -q -p POOL/child
   zapi query -z "from POOL | sort ."
 
 inputs:
@@ -20,5 +22,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
+      {a:1}
+      ===
       {a:1}
       {b:1}

@@ -24,19 +24,19 @@ func createLake(t *testing.T, rootPath *storage.URI, srcfile string) {
 	require.NoError(t, err)
 	pool, err := lk.CreatePool(ctx, "test", layout, 0)
 	require.NoError(t, err)
-	importTestFile(t, engine, pool, srcfile)
+	branch, err := pool.OpenBranchByName(ctx, "main")
+	require.NoError(t, err)
+	importTestFile(t, engine, branch, srcfile)
 }
 
-func importTestFile(t *testing.T, engine storage.Engine, pool *lake.Pool, srcfile string) {
+func importTestFile(t *testing.T, engine storage.Engine, branch *lake.Branch, srcfile string) {
 	zctx := zson.NewContext()
 	reader, err := anyio.OpenFile(zctx, engine, srcfile, anyio.ReaderOpts{})
 	require.NoError(t, err)
 	defer reader.Close()
 
 	ctx := context.Background()
-	stagingID, err := pool.Add(ctx, reader)
-	require.NoError(t, err)
-	err = pool.Commit(ctx, stagingID, 0, "", "")
+	_, err = branch.Load(ctx, reader, 0, "", "")
 	require.NoError(t, err)
 }
 

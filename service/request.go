@@ -49,6 +49,10 @@ func (r *Request) PoolID(w *ResponseWriter) (ksuid.KSUID, bool) {
 	return r.TagFromPath("pool", w)
 }
 
+func (r *Request) BranchID(w *ResponseWriter) (ksuid.KSUID, bool) {
+	return r.TagFromPath("branch", w)
+}
+
 func (r *Request) TagFromPath(arg string, w *ResponseWriter) (ksuid.KSUID, bool) {
 	v := mux.Vars(r.Request)
 	s, ok := v[arg]

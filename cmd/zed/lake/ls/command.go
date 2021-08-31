@@ -4,8 +4,8 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"strings"
 
-	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
@@ -17,8 +17,8 @@ import (
 
 var Ls = &charm.Spec{
 	Name:  "ls",
-	Usage: "ls [options]",
-	Short: "list objects in data pool",
+	Usage: "ls [options] [pool]",
+	Short: "list pools in a lake or branches in a pool",
 	Long: `
 "zed lake ls" shows a listing of a data pool's segments as tags.
 The the pool flag "-p" is not given, then the lake's pools are listed.
@@ -36,22 +36,23 @@ type Command struct {
 	partition   bool
 	at          string
 	outputFlags outputflags.Flags
-	lakeFlags   lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{lake: parent.(zedlake.Command)}
-	f.StringVar(&c.at, "at", "", "commit tag for time travel")
-	f.BoolVar(&c.partition, "partition", false, "display partitions as determined by scan logic")
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
-	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	if len(args) > 0 {
-		return errors.New("zed lake ls: too many arguments")
+	var poolName string
+	switch len(args) {
+	case 0:
+	case 1:
+		poolName = args[0]
+	default:
+		return errors.New("too many arguments")
 	}
 	ctx, cleanup, err := c.lake.Root().Init(&c.outputFlags)
 	if err != nil {
@@ -64,10 +65,13 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	var query string
-	if c.lakeFlags.PoolName == "" {
+	if poolName == "" {
 		query = "from [pools]"
 	} else {
-		query = fmt.Sprintf("from '%s'[objects]", c.lakeFlags.PoolName)
+		if strings.IndexByte(poolName, '\'') >= 0 {
+			return errors.New("pool name may not contain quote characters")
+		}
+		query = fmt.Sprintf("from '%s'[branches]", poolName)
 	}
 	var at ksuid.KSUID
 	if c.at != "" {

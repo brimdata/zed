@@ -10,21 +10,21 @@ import (
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
+	"github.com/segmentio/ksuid"
 )
-
-//XXX TBD: add drop by pool ID
 
 var Cmd = &charm.Spec{
 	Name:  "drop",
-	Usage: "drop -p name",
+	Usage: "drop -p pool[/branch]",
 	Short: "delete a data pool from a lake",
 	Long: `
 "zed lake drop" removes the named pool from the lake.
-The -p flag must be given.
+The -p flag must be given.  If a branch is specified,
+the branch is deleted and the pool remains.
 
 DANGER ZONE.
-There is no prompting or second chances here so use carefully.
-Once the pool is delted, its data is gone.
+When deleting an entire pool, the drop command prompts for confirmation.
+Once the pool is deleted, its data is gone so use this command carefully.
 `,
 	New: New,
 }
@@ -53,26 +53,35 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	name := c.lakeFlags.PoolName
-	if name == "" {
+	poolName, branchName := c.lakeFlags.Names()
+	if poolName == "" {
 		return errors.New("name of pool must be supplied with -p option")
 	}
 	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-	pool, err := lake.LookupPool(ctx, name)
+	poolID, branchID, err := lake.IDs(ctx, poolName, branchName)
 	if err != nil {
+		return nil
+	}
+	if branchID != ksuid.Nil {
+		if err := lake.RemoveBranch(ctx, poolID, branchID); err != nil {
+			return err
+		}
+		if !c.lakeFlags.Quiet {
+			fmt.Printf("branch deleted: %s\n", branchName)
+		}
 		return nil
 	}
 	if err := c.confirm(); err != nil {
 		return err
 	}
-	if err := lake.RemovePool(ctx, pool.ID); err != nil {
+	if err := lake.RemovePool(ctx, poolID); err != nil {
 		return err
 	}
 	if !c.lakeFlags.Quiet {
-		fmt.Printf("pool deleted: %s\n", name)
+		fmt.Printf("pool deleted: %s\n", poolName)
 	}
 	return nil
 }

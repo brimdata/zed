@@ -9,8 +9,7 @@ script: |
   zed lake query -z "from POOL at $a | sort ."
   echo === AT b
   zed lake query -z "from POOL at $b | sort ."
-  id=$(zed lake delete -p POOL $a | head -1 | awk '{print $1}')
-  zed lake commit -p POOL -q $id
+  zed lake delete -q -p POOL $a
   echo === with A deleted
   zed lake query -z "from POOL | sort ."
   echo === at B before A deleted

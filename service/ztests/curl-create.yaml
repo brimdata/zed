@@ -12,4 +12,4 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      \{"kind":"PoolConfig","value":\{"id":"\w{42}","layout":\{"keys":\[\["ts"\]\],"order":"desc"},"name":"test","threshold":524288000\}\}
+      \{"kind":"BranchMeta","value":\{"branch":\{"id":"\w{42}","name":"main","parent":"0x0000000000000000000000000000000000000000"\},"pool":\{"id":"\w{42}","layout":\{"keys":\[\["ts"\]\],"order":"desc"\},"name":"test","threshold":524288000\}\}\}

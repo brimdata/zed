@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"strings"
 
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
@@ -66,7 +67,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer w.Close()
-	query := fmt.Sprintf("from '%s'[log]", c.lakeFlags.PoolName)
+	poolName, branchName := c.lakeFlags.Branch()
+	if strings.IndexByte(poolName, '\'') >= 0 || strings.IndexByte(branchName, '\'') >= 0 {
+		return errors.New("pool name may not contain quote characters")
+	}
+	query := fmt.Sprintf("from '%s'/'%s'[log]", poolName, branchName)
 	_, err = lake.Query(ctx, driver.NewCLI(w), query)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr

@@ -277,7 +277,7 @@ func Open(ctx context.Context, engine storage.Engine, path *storage.URI, keyType
 
 func Create(ctx context.Context, engine storage.Engine, path *storage.URI, keyTypes []interface{}) (*Store, error) {
 	s := newStore(path, keyTypes)
-	j, err := journal.Create(ctx, engine, path)
+	j, err := journal.Create(ctx, engine, path, journal.Nil)
 	if err != nil {
 		return nil, err
 	}

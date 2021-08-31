@@ -21,8 +21,8 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      pool created: p1
-      pool created: p2
+      pool created: p1 \w{27}
+      pool created: p2 \w{27}
       ===
       p1 \w{27} key ts order desc
       p2 \w{27} key ts order desc

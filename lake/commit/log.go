@@ -49,9 +49,9 @@ func Open(ctx context.Context, engine storage.Engine, path *storage.URI, o order
 	return l, nil
 }
 
-func Create(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which) (*Log, error) {
+func Create(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which, base journal.ID) (*Log, error) {
 	l := newLog(path, o)
-	j, err := journal.Create(ctx, engine, l.path)
+	j, err := journal.Create(ctx, engine, l.path, base)
 	if err != nil {
 		return nil, err
 	}
@@ -63,27 +63,27 @@ func (l *Log) Boundaries(ctx context.Context) (journal.ID, journal.ID, error) {
 	return l.journal.Boundaries(ctx)
 }
 
-func (l *Log) Commit(ctx context.Context, commit *Transaction) error {
+func (l *Log) Commit(ctx context.Context, commit *Transaction) (journal.ID, error) {
 	b, err := commit.Serialize()
 	if err != nil {
-		return err
+		return journal.Nil, err
 	}
 	//XXX It's a bug to do this loop here as the committer above should
 	// recompute its commit and check for a write-conflict.  Right now,
 	// we are just demo-ing concurrent loads so it's not a problem,
 	// but it will eventually become one.  This is all addressed in #2546.
 	for attempts := 0; attempts < maxRetries; attempts++ {
-		err := l.journal.Commit(ctx, b)
+		tip, err := l.journal.Commit(ctx, b)
 		if err != nil {
 			if os.IsExist(err) {
 				time.Sleep(time.Millisecond)
 				continue
 			}
-			return err
+			return journal.Nil, err
 		}
-		return nil
+		return tip, nil
 	}
-	return ErrRetriesExceeded
+	return journal.Nil, ErrRetriesExceeded
 }
 
 func (l *Log) Open(ctx context.Context, head, tail journal.ID) (io.Reader, error) {
@@ -94,8 +94,16 @@ func (l *Log) OpenAsZNG(ctx context.Context, zctx *zson.Context, head, tail jour
 	return l.journal.OpenAsZNG(ctx, zctx, head, tail)
 }
 
-func (l *Log) Head(ctx context.Context) (*Snapshot, error) {
+func (l *Log) Tip(ctx context.Context) (*Snapshot, error) {
 	return l.Snapshot(ctx, 0)
+}
+
+func (l *Log) MoveTail(ctx context.Context, tail, base journal.ID) error {
+	return l.journal.MoveTail(ctx, tail, base)
+}
+
+func (l *Log) ReadTail(ctx context.Context) (journal.ID, journal.ID, error) {
+	return l.journal.ReadTail(ctx)
 }
 
 func badEntry(entry interface{}) error {
@@ -117,7 +125,7 @@ func (l *Log) Snapshot(ctx context.Context, at journal.ID) (*Snapshot, error) {
 	if err != nil {
 		return nil, err
 	}
-	snapshot := newSnapshotAt(at)
+	snapshot := NewSnapshot()
 	reader := zngbytes.NewDeserializer(r, actions.JournalTypes)
 	for {
 		entry, err := reader.Read()
@@ -150,7 +158,7 @@ func (l *Log) SnapshotOfCommit(ctx context.Context, at journal.ID, commit ksuid.
 		return nil, false, err
 	}
 	var valid bool
-	snapshot := newSnapshotAt(at)
+	snapshot := NewSnapshot()
 	reader := zngbytes.NewDeserializer(r, actions.JournalTypes)
 	for {
 		entry, err := reader.Read()
@@ -183,7 +191,7 @@ func (l *Log) JournalIDOfCommit(ctx context.Context, at journal.ID, commit ksuid
 			return journal.Nil, err
 		}
 	}
-	tail, err := l.journal.ReadTail(ctx)
+	tail, _, err := l.journal.ReadTail(ctx)
 	if err != nil {
 		return journal.Nil, err
 	}
@@ -209,4 +217,8 @@ func (l *Log) JournalIDOfCommit(ctx context.Context, at journal.ID, commit ksuid
 		}
 	}
 	return journal.Nil, ErrNotFound
+}
+
+func (l *Log) TipOfJournal(ctx context.Context) (journal.ID, error) {
+	return l.journal.ReadHead(ctx)
 }

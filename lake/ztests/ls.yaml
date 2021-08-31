@@ -5,7 +5,7 @@ script: |
   zed lake load -q -p logs babble.zson
   zed lake ls -f zng | zq -Z "drop id" -
   echo ===
-  zed lake ls -p logs -Z | zq -Z "cut meta" -
+  zed lake query -Z "from logs/main[objects] | cut meta"
 
 inputs:
   - name: babble.zson

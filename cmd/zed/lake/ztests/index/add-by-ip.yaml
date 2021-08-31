@@ -2,12 +2,11 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -q -p test
-  id=$(zed lake add -p test -commit in.zson | head -1 | awk '{print $1}')
-  echo $id
+  id=$(zed lake load -p test in.zson | awk '{print $1}')
   zed lake index create -q IPs type ip
   zed lake index apply -p test IPs $id
   echo ===
-  zed lake status -p test
+  zed lake query -Z "from test/main[log] | cut this:=index.Rule | drop id,ts"
 
 inputs:
   - name: in.zson
@@ -18,8 +17,9 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      \w{27} staged
+      \w{27} committed
       ===
-      staged \w{27}
-
-          AddIndex \w{27} index \w{27} segment
+      \{
+          name: "IPs",
+          type: "ip"
+      \}

@@ -21,11 +21,14 @@ import (
 
 var Load = &charm.Spec{
 	Name:  "load",
-	Usage: "load [options] file|S3-object|- ...",
+	Usage: "load [options] -p pool[/branch] file|S3-object|- ...",
 	Short: "add and commit data to a pool",
 	Long: `
 The load command adds data to a pool and commits it in one automatic operation.
 See documentation on "zed lake add" and "zed lake commit" for more details.
+
+A pool and branch must be specified with the -p option.  If a pool name is given
+without a branch name, then the branch is assumed to be "main".
 `,
 	New: New,
 }
@@ -82,17 +85,20 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	pool, err := lake.LookupPool(ctx, c.lakeFlags.PoolName)
+	poolName, branchName := c.lakeFlags.Branch()
+	if poolName == "" {
+		return errors.New("pool name must be specified with -p")
+	}
+	poolID, branchID, err := lake.IDs(ctx, poolName, branchName)
 	if err != nil {
 		return err
 	}
-	commitID, err := lake.Add(ctx, pool.ID, zio.ConcatReader(readers...), c.CommitRequest())
+	commitID, err := lake.Load(ctx, poolID, branchID, zio.ConcatReader(readers...), *c.CommitRequest())
 	if err != nil {
 		return err
 	}
 	if !c.lakeFlags.Quiet {
 		fmt.Printf("%s committed\n", commitID)
-		// XXX fmt.Printf("%s committed %d segments\n", commitID, len(txn.Actions))
 	}
 	return nil
 }

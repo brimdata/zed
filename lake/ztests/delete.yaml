@@ -5,12 +5,10 @@ script: |
   a=$(zed lake load -p test a.zson | head -1 | awk '{print $1}')
   b=$(zed lake load -p test b.zson | head -1 | awk '{print $1}')
   zed lake query -z "from test | sort ."
-  id=$(zed lake delete -p test $a | head -1 | awk '{print $1}')
-  zed lake commit -p test -q $id
+  zed lake delete -q -p test $a
   echo ===
   zed lake query -z "from test | sort ."
-  id=$(zed lake delete -p test $b | head -1 | awk '{print $1}')
-  zed lake commit -p test -q $id
+  zed lake delete -q -p test $b
   echo ===
   zed lake query -z "from test | sort ."
 
