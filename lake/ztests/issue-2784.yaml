@@ -4,7 +4,7 @@ script: |
   zed lake create -q -p test
   zed lake load -q -p test a.zson
   zed lake load -q -p test b.zson
-  zed lake query -z "from test/main[objects] | sort meta.first | cut first:=meta.first,last:=meta.last"
+  zed lake query -z "from test@main:objects | sort meta.first | cut first:=meta.first,last:=meta.last"
 
 inputs:
   - name: a.zson

@@ -7,11 +7,11 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed/expr/extent"
-	"github.com/brimdata/zed/lake/commit"
+	"github.com/brimdata/zed/lake/branches"
+	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/segment"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
@@ -21,62 +21,26 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-type BranchConfig struct {
-	Name   string      `zng:"name"`
-	ID     ksuid.KSUID `zng:"id"`
-	Parent ksuid.KSUID `zng:"parent"`
-}
+const maxCommitRetries = 10
+
+var ErrCommitFailed = fmt.Errorf("exceeded max update attempts (%d) to branch tip: commit failed", maxCommitRetries)
 
 type Branch struct {
-	BranchConfig
+	branches.Config
 	pool   *Pool
 	engine storage.Engine
-	log    *commit.Log
-	base   commit.View
+	//base   commits.View
 }
 
-func newBranchConfig(name string, parent ksuid.KSUID) *BranchConfig {
-	//XXX need to take parent args and check for a cycle.
-	// also check that parent journal ID exists in parent.
-	return &BranchConfig{
-		Name:   name,
-		ID:     ksuid.New(),
-		Parent: parent,
-	}
-}
-
-func (b *BranchConfig) Path(poolPath *storage.URI) *storage.URI {
-	return poolPath.AppendPath(b.ID.String())
-}
-
-func (b *BranchConfig) Create(ctx context.Context, engine storage.Engine, poolPath *storage.URI, order order.Which, base journal.ID) error {
-	_, err := commit.Create(ctx, engine, b.Path(poolPath), order, base)
-	return err
-}
-
-func (b *BranchConfig) Open(ctx context.Context, engine storage.Engine, poolPath *storage.URI, pool *Pool) (*Branch, error) {
-	path := b.Path(poolPath)
-	log, err := commit.Open(ctx, engine, path, pool.Layout.Order)
-	if err != nil {
-		return nil, err
-	}
+func OpenBranch(ctx context.Context, config *branches.Config, engine storage.Engine, poolPath *storage.URI, pool *Pool) (*Branch, error) {
 	return &Branch{
-		BranchConfig: *b,
-		pool:         pool,
-		engine:       engine,
-		log:          log,
+		Config: *config,
+		pool:   pool,
+		engine: engine,
 	}, nil
 }
 
-func (p *BranchConfig) Remove(ctx context.Context, engine storage.Engine, parent *storage.URI) error {
-	//XXX unmerged data objects are left behind because they live at pool level
-	return engine.DeleteByPrefix(ctx, p.Path(parent))
-}
-
-func (b *Branch) Load(ctx context.Context, r zio.Reader, date nano.Ts, author, message string) (ksuid.KSUID, error) {
-	if date == 0 {
-		date = nano.Now()
-	}
+func (b *Branch) Load(ctx context.Context, r zio.Reader, author, message string) (ksuid.KSUID, error) {
 	w, err := NewWriter(ctx, b.pool)
 	if err != nil {
 		return ksuid.Nil, err
@@ -90,92 +54,203 @@ func (b *Branch) Load(ctx context.Context, r zio.Reader, date nano.Ts, author, m
 	}
 	segments := w.Segments()
 	if len(segments) == 0 {
-		return ksuid.Nil, commit.ErrEmptyTransaction
+		return ksuid.Nil, commits.ErrEmptyTransaction
 	}
-	id := ksuid.New()
-	txn := commit.NewAddsTxn(id, w.Segments())
-	txn.AppendCommitMessage(id, date, author, message)
-	if _, err := b.log.Commit(ctx, txn); err != nil {
-		return ksuid.Nil, err
+	if message == "" {
+		message = loadMessage(segments)
 	}
-	return id, nil
+	// The load operation has only added new objects so we know its
+	// safe to merge at the tip and there can be no conflicts
+	// with other concurrent writers (except for updating the branch pointer
+	// which is handled by Branch.commit)
+	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
+		return commits.NewAddsObject(parent.Commit, retries, author, message, segments), nil
+	})
 }
 
-func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, error) {
-	id := ksuid.New()
-	// IDs aren't vetted here and will fail at commit time if problematic.
-	txn := commit.NewDeletesTxn(id, ids)
-	if _, err := b.log.Commit(ctx, txn); err != nil {
-		return ksuid.Nil, err
-	}
-	return id, nil
-}
+const maxMessageObjects = 10
 
-func (b *Branch) Merge(ctx context.Context, atTag ksuid.KSUID) (ksuid.KSUID, error) {
-	var at journal.ID
-	if atTag != ksuid.Nil {
-		var err error
-		at, err = b.log.JournalIDOfCommit(ctx, 0, atTag)
-		if err != nil {
-			//XXX clean up error for bad -at arg
-			return ksuid.Nil, err
+func loadMessage(segments []segment.Reference) string {
+	var b strings.Builder
+	plural := "s"
+	if len(segments) == 1 {
+		plural = ""
+	}
+	b.WriteString(fmt.Sprintf("loaded %d data object%s\n\n", len(segments), plural))
+	for k, segment := range segments {
+		b.WriteString("  ")
+		b.WriteString(segment.String())
+		b.WriteByte('\n')
+		if k >= 10 {
+			b.WriteString("  ...\n")
+			break
 		}
 	}
-	if err := b.checkParent(ctx); err != nil {
-		return ksuid.Nil, err
+	return b.String()
+}
+
+func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
+	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
+		snap, err := b.pool.commits.Snapshot(ctx, parent.Commit)
+		if err != nil {
+			return nil, err
+		}
+		object := commits.NewObject(parent.Commit, author, message, retries)
+		for _, id := range ids {
+			if !snap.Exists(id) {
+				return nil, fmt.Errorf("non-existant segment %s: delete operation aborted", id)
+			}
+			object.AppendDelete(id)
+		}
+		return object, nil
+	})
+}
+
+func (b *Branch) Undo(ctx context.Context, commit ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
+	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
+		patch, err := b.pool.commits.PatchOfCommit(ctx, commit)
+		if err != nil {
+			return nil, fmt.Errorf("commit not found: %s", commit)
+		}
+		tip, err := b.pool.commits.Snapshot(ctx, parent.Commit)
+		if err != nil {
+			return nil, err
+		}
+		if message == "" {
+			message = fmt.Sprintf("reverted commit %s", commit)
+		}
+		object, err := patch.Undo(tip, ksuid.New(), parent.Commit, retries, author, message)
+		if err != nil {
+			return nil, err
+		}
+		return object, nil
+	})
+}
+
+func (b *Branch) mergeInto(ctx context.Context, parent *Branch, author, message string) (ksuid.KSUID, error) {
+	if b == parent {
+		return ksuid.Nil, errors.New("cannot merge branch into itself")
 	}
-	// To merge, we play the log to the "at" pointer onto a patch based
-	// on the parent branch point.  We then create a transaction
-	// from the patch's delta and try to commit this to the parent's tip.
-	// We optionally squash the transaction into a single commit by allocating
-	// a new commit ID for all of the merged commits.
-	// If successful, we move the TAIL of this branch to one past the
-	// "at" pointer (or put a nop at HEAD+1 if at points at HEAD).
-	// XXX note: this NOP will turn into an UNLOCK after we add the
-	// pessimistic locking.
-	base := b.base
-	if base == nil {
-		return ksuid.Nil, errors.New("cannot merge a main branch since it has no parent")
-	}
-	// Play this branch's log into into the parent base patch.
-	patch := commit.NewPatch(base)
-	if err := patch.PlayLog(ctx, b.log, at); err != nil {
-		return ksuid.Nil, err
-	}
-	// XXX We should have an option to keep original commit structure without
-	// the squashing going on here, see isuue #2973.  In the meantime,
-	// we should change the logic here to combine commit messages into the
-	// squased commit, see issue #2972.
-	txn := patch.NewTransaction()
-	txn.AppendCommitMessage(txn.ID, nano.Now(), "<merge-operation>", "TBD: squash commit messages: see issue #2972")
-	parent, err := b.openParent(ctx)
+	return parent.commit(ctx, func(head *branches.Config, retries int) (*commits.Object, error) {
+		return b.buildMergeObject(ctx, head, retries, author, message, parent.Name)
+	})
+	//XXX we should follow parent commit with a child rebase... do this
+	// next... we want to fast forward the child to any pending commits
+	// that happened on the child branch while we were merging into the parent.
+	// and rebase the child branch to point at the parent where we grafted on
+	// it's ok if new commits are arriving past the parent graft on point...
+}
+
+func (b *Branch) buildMergeObject(ctx context.Context, parent *branches.Config, retries int, author, message, parentName string) (*commits.Object, error) {
+	childPath, err := b.pool.commits.Path(ctx, b.Commit)
 	if err != nil {
-		return ksuid.Nil, err
+		return nil, err
 	}
-	// Commit the patch to the parent.
-	newBase, err := parent.log.Commit(ctx, txn)
+	parentPath, err := b.pool.commits.Path(ctx, parent.Commit)
 	if err != nil {
-		return ksuid.Nil, err
+		return nil, err
 	}
-	// XXX Write a NOP to this branch's log so we can point the new TAIL
-	// here.  This will be replaced by a locking message.  See issue #2971.
-	// Hack the NOP for now with an empty commit message.
-	// If we write the lock at the same point of the rebase, then writes
-	// can continue just fine while the merge proceeds and the only
-	// need for exclusiveity is between merge operations.
-	nop := commit.NewCommitTxn(ksuid.New(), nano.Now(), "<merge-operation>", "NOP: see issue #2971", nil)
-	newTip, err := b.log.Commit(ctx, nop)
+	baseID := commonAncestor(parentPath, childPath)
+	if baseID == ksuid.Nil {
+		//XXX this shouldn't happen because because all of the branches
+		// should live in a single tree.
+		//XXX hmm, except if you branch main when it is empty...?
+		// we shoudl detect this and not allow it...?
+		return nil, errors.New("system error: cannot locate common ancestor for branch merge")
+	}
+	// Compute the snapshot of the common ancestor then compute patches
+	// along each branch and make sure the two patches do not have a
+	// delete conflict.  For now, this is the only kind of merge update
+	// conflict we detect.
+	base, err := b.pool.commits.Snapshot(ctx, baseID)
 	if err != nil {
-		return ksuid.Nil, err
+		return nil, err
 	}
-	// Now update this branch's TAIL and BASE PTR so the branch is
-	// grafted onto the parent at the new commit point.
-	if err := b.log.MoveTail(ctx, newTip, newBase); err != nil {
-		return ksuid.Nil, err
+	childPatch, err := b.pool.commits.PatchOfPath(ctx, base, baseID, b.Commit)
+	if err != nil {
+		return nil, err
 	}
-	// Clear old base snapshot since it has changed.
-	b.base = nil
-	return txn.ID, nil
+	parentPatch, err := b.pool.commits.PatchOfPath(ctx, base, baseID, parent.Commit)
+	if err != nil {
+		return nil, err
+	}
+	if overlap := childPatch.OverlappingDeletes(parentPatch); overlap != nil {
+		//XXX add IDs of (some of the) overlaps
+		return nil, errors.New("write conflict on merge")
+	}
+	if message == "" {
+		message = fmt.Sprintf("merged %s into %s", b.Name, parent.Name)
+	}
+	return childPatch.NewCommitObject(parent.Commit, retries, author, message), nil
+}
+
+func commonAncestor(a, b []ksuid.KSUID) ksuid.KSUID {
+	m := make(map[ksuid.KSUID]struct{})
+	for _, id := range a {
+		m[id] = struct{}{}
+	}
+	for _, id := range b {
+		if _, ok := m[id]; ok {
+			return id
+		}
+	}
+	return ksuid.Nil
+}
+
+type constructor func(parent *branches.Config, retries int) (*commits.Object, error)
+
+func (b *Branch) commit(ctx context.Context, create constructor) (ksuid.KSUID, error) {
+	// A commit must append new state to the tip of the branch while simultaneously
+	// upating the branch pointer in a trasactionally consistent fashion.
+	// For example, if we compute a commit object based on a certain tip commit,
+	// then commit that object after another writer commits in between,
+	// the commit object may be inconsistent against the intervening commit.
+	//
+	// We do this update optimistically and ensure this consistency with
+	// a loop that builds the commit object based on the presumed parent,
+	// then moves the branch pointer to the new commit but, using a constraint,
+	// only succeeds when the presumed parent is atomically consistent
+	// with the branch update.  If the contraint, fails will loop a number
+	// of times till it succeeds, or we give up.
+	for retries := 0; retries < maxCommitRetries; retries++ {
+		config, err := b.pool.branches.LookupByName(ctx, b.Name)
+		if err != nil {
+			return ksuid.Nil, err
+		}
+		// Note that we store the number of retries in the final commit
+		// object.  This will allow easily introspection of optimistic
+		// locking problems under high commit load by simply issuing
+		// a meta-query and looking at the retry count in the persisted
+		// commit objects.  If/when this is a problem, we could add
+		// pessimistic locking mechanisms alongside the optimistic approach.
+		object, err := create(config, retries)
+		if err != nil {
+			return ksuid.Nil, err
+		}
+		if err := b.pool.commits.Put(ctx, object); err != nil {
+			return ksuid.Nil, fmt.Errorf("branch %q failed to write commit object: %w", b.Name, err)
+		}
+		// Set the branch pointer to point to this commit object
+		// and stash the current commit (that will become the parent)
+		// in a local for the constraint check closure.
+		parent := config.Commit
+		config.Commit = object.Commit
+		parentCheck := func(e journal.Entry) bool {
+			if entry, ok := e.(*branches.Config); ok {
+				return entry.Commit == parent
+			}
+			return false
+		}
+		if err := b.pool.branches.Update(ctx, config, parentCheck); err != nil {
+			if err == journal.ErrConstraint {
+				// Parent check failed so try again.
+				continue
+			}
+			return ksuid.Nil, err
+		}
+		return object.Commit, nil
+	}
+	return ksuid.Nil, fmt.Errorf("branch %q: %w", b.Name, ErrCommitFailed)
 }
 
 func (b *Branch) LookupTags(ctx context.Context, tags []ksuid.KSUID) ([]ksuid.KSUID, error) {
@@ -189,151 +264,17 @@ func (b *Branch) LookupTags(ctx context.Context, tags []ksuid.KSUID) ([]ksuid.KS
 			ids = append(ids, tag)
 			continue
 		}
-		// Note that we only search in this branch not into the parent
-		// since this lookup is used for indexing, deleting, etc and
-		// the parent branch should be used in such cases.
-		snap, ok, err := b.log.SnapshotOfCommit(ctx, 0, tag)
+		patch, err := b.pool.commits.PatchOfCommit(ctx, tag)
 		if err != nil {
-			return nil, fmt.Errorf("tag does not exist: %s", tag)
+			continue
 		}
-		if !ok {
-			return nil, fmt.Errorf("commit tag was previously deleted: %s", tag)
-		}
-		for _, seg := range snap.SelectAll() {
-			ids = append(ids, seg.ID)
-		}
+		ids = append(ids, patch.Segments()...)
 	}
 	return ids, nil
 }
 
-func (b *Branch) checkParent(ctx context.Context) error {
-	var err error
-	if b.Parent != ksuid.Nil && b.base == nil {
-		_, basePtr, err := b.log.ReadTail(ctx)
-		if err != nil {
-			return err
-		}
-		b.base, err = b.snapParentAt(ctx, basePtr)
-	}
-	return err
-}
-
-// Snapshot returns a snapshot of this branch at the journal entry where
-// tag is a commit.  If tag is ksuid.Nil, the snapshot is at the tip of
-// the branch.
-func (b *Branch) Snapshot(ctx context.Context, tag ksuid.KSUID) (commit.View, error) {
-	if err := b.checkParent(ctx); err != nil {
-		return nil, err
-	}
-	if tag == ksuid.Nil {
-		// No commit reference.  Just play this branch's log
-		// on top of the parent.
-		if b.base == nil {
-			// No parent.
-			tip, err := b.log.Tip(ctx)
-			if err != nil {
-				if err != journal.ErrEmpty {
-					return nil, err
-				}
-				// Nothing in this branch.  Return parent snap.
-				return commit.NewSnapshot(), nil
-			}
-			return tip, nil
-		}
-		// We have a parent so create a patch and play this log
-		// into into the patch.
-		patch := commit.NewPatch(b.base)
-		if err := patch.PlayLog(ctx, b.log, 0); err != nil {
-			return nil, err
-		}
-		return patch, nil
-	}
-	// We have a commit tag.  So find the journal ID (and branch in
-	// our ancesetry fort his tag.
-	branch, at, err := b.searchForTag(ctx, tag)
-	if err != nil {
-		return nil, err
-	}
-	return branch.snapshotAt(ctx, at)
-}
-
-func (b *Branch) snapshotAt(ctx context.Context, at journal.ID) (commit.View, error) {
-	if err := b.checkParent(ctx); err != nil {
-		return nil, err
-	}
-	if b.base != nil {
-		patch := commit.NewPatch(b.base)
-		if err := patch.PlayLog(ctx, b.log, at); err != nil {
-			return nil, err
-		}
-		return patch, nil
-	}
-	// No parent.  Just return the snapshot of this branch.
-	return b.log.Snapshot(ctx, at)
-}
-
-func (b *Branch) searchForTag(ctx context.Context, tag ksuid.KSUID) (*Branch, journal.ID, error) {
-	for {
-		id, err := b.log.JournalIDOfCommit(ctx, 0, tag)
-		switch err {
-		case nil:
-			return b, id, nil
-		case commit.ErrNotFound:
-			if b.Parent == ksuid.Nil {
-				return nil, 0, err
-			}
-			b, err = b.pool.OpenBranchByID(ctx, b.Parent)
-			if err != nil {
-				return nil, 0, err
-			}
-		default:
-			return nil, 0, err
-		}
-	}
-}
-
-func (b *Branch) openParent(ctx context.Context) (*Branch, error) {
-	parent, err := b.pool.OpenBranchByID(ctx, b.Parent)
-	if err != nil {
-		return nil, fmt.Errorf("branch %s/%s could not access parent branch %s: %w", b.pool.Name, b.Name, b.Parent, err)
-	}
-	return parent, nil
-}
-
-func (b *Branch) snapParentAt(ctx context.Context, at journal.ID) (commit.View, error) {
-	parent, err := b.openParent(ctx)
-	if err != nil {
-		return nil, err
-	}
-	snap, err := parent.snapshotAt(ctx, at)
-	if err != nil {
-		return nil, fmt.Errorf("branch %s/%s could not access parent branch %s@%d: %w", b.pool.Name, b.Name, b.Parent, at, err)
-	}
-	return snap, nil
-}
-
-func (b *Branch) snapshot(ctx context.Context, tag ksuid.KSUID) (commit.View, error) {
-	if tag == ksuid.Nil {
-		return b.log.Tip(ctx)
-	}
-	// XXX See issue #2955.  If commit at tag has been deleted,
-	// this won't work right.
-	snap, ok, err := b.log.SnapshotOfCommit(ctx, 0, tag)
-	if err != nil {
-		return nil, fmt.Errorf("tag does not exist: %s", tag)
-	}
-	if !ok {
-		return nil, fmt.Errorf("commit tag was previously deleted: %s", tag)
-	}
-	return snap, nil
-}
-
 func (b *Branch) Pool() *Pool {
 	return b.pool
-}
-
-func (b *Branch) Log() *commit.Log {
-	return b.log
 }
 
 func (b *Branch) ApplyIndexRules(ctx context.Context, rules []index.Rule, ids []ksuid.KSUID) (ksuid.KSUID, error) {
@@ -342,21 +283,17 @@ func (b *Branch) ApplyIndexRules(ctx context.Context, rules []index.Rule, ids []
 		//XXX make issue for this.
 		// This could be easily parallized with errgroup.
 		refs, err := b.indexSegment(ctx, rules, id)
+		fmt.Println("INDEX", id, len(refs))
 		if err != nil {
 			return ksuid.Nil, err
 		}
 		idxrefs = append(idxrefs, refs...)
 	}
-	id := ksuid.New()
-	txn := commit.NewAddIndicesTxn(id, idxrefs)
-	date := nano.Now()
 	author := "indexer"
 	message := index_message(rules)
-	txn.AppendCommitMessage(id, date, author, message)
-	if _, err := b.log.Commit(ctx, txn); err != nil {
-		return ksuid.Nil, err
-	}
-	return id, nil
+	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
+		return commits.NewAddIndicesObject(parent.Commit, author, message, retries, idxrefs), nil
+	})
 }
 
 func index_message(rules []index.Rule) string {
@@ -404,7 +341,7 @@ type BranchStats struct {
 	Span *nano.Span `zng:"span"`
 }
 
-func (b *Branch) Stats(ctx context.Context, snap commit.View) (info BranchStats, err error) {
+func (b *Branch) Stats(ctx context.Context, snap commits.View) (info BranchStats, err error) {
 	ch := make(chan segment.Reference)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()

@@ -4,7 +4,7 @@ script: |
   zed lake create -p logs -q
   zed lake load -q -p logs babble-split1.zson
   zed lake load -q -p logs babble-split2.zson
-  zed lake log -p logs -f zng | zq -Z "cut segment.meta" -
+  zed lake query -Z "from logs@main:objects | cut meta | sort -r meta.row_size"
 
 inputs:
   - name: babble.zson
@@ -18,22 +18,18 @@ outputs:
   - name: stdout
     data: |
       {
-          segment: {
-              meta: {
-                  first: 2020-04-22T01:23:40.0622373Z,
-                  last: 2020-04-21T22:40:30.06852324Z,
-                  count: 500 (uint64),
-                  row_size: 17102
-              } (=Metadata)
-          } (=0)
-      } (=1)
+          meta: {
+              first: 2020-04-22T01:23:40.0622373Z,
+              last: 2020-04-21T22:40:30.06852324Z,
+              count: 500 (uint64),
+              row_size: 17102
+          } (=segment.Metadata)
+      } (=0)
       {
-          segment: {
-              meta: {
-                  first: 2020-04-22T01:23:21.06632034Z,
-                  last: 2020-04-21T22:40:49.0635839Z,
-                  count: 500,
-                  row_size: 17084
-              }
+          meta: {
+              first: 2020-04-22T01:23:21.06632034Z,
+              last: 2020-04-21T22:40:49.0635839Z,
+              count: 500,
+              row_size: 17084
           }
-      } (1)
+      } (0)

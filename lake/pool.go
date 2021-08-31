@@ -6,11 +6,10 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
-	"github.com/brimdata/zed/lake/commit"
-	"github.com/brimdata/zed/lake/journal"
-	"github.com/brimdata/zed/lake/journal/kvs"
+	"github.com/brimdata/zed/lake/branches"
+	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lake/segment"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/proc"
@@ -24,175 +23,109 @@ const (
 	DataTag     = "data"
 	IndexTag    = "index"
 	BranchesTag = "branches"
+	CommitsTag  = "commits"
 )
 
-type PoolConfig struct {
-	Name      string       `zng:"name"`
-	ID        ksuid.KSUID  `zng:"id"`
-	Layout    order.Layout `zng:"layout"`
-	Threshold int64        `zng:"threshold"`
-}
-
 type Pool struct {
-	PoolConfig
-	engine       storage.Engine
-	Path         *storage.URI
-	DataPath     *storage.URI
-	IndexPath    *storage.URI
-	BranchesPath *storage.URI
-	branches     *kvs.Store
+	pools.Config
+	engine    storage.Engine
+	Path      *storage.URI
+	DataPath  *storage.URI
+	IndexPath *storage.URI
+	branches  *branches.Store
+	commits   *commits.Store
 }
 
-func NewPoolConfig(name string, layout order.Layout, thresh int64) *PoolConfig {
-	if thresh == 0 {
-		thresh = segment.DefaultThreshold
-	}
-	return &PoolConfig{
-		Name:      name,
-		ID:        ksuid.New(),
-		Layout:    layout,
-		Threshold: thresh,
-	}
-}
-
-func (p *PoolConfig) Path(root *storage.URI) *storage.URI {
-	return root.AppendPath(p.ID.String())
-}
-
-var branchStoreTypes = []interface{}{BranchConfig{}}
-
-func (p *PoolConfig) Create(ctx context.Context, engine storage.Engine, root *storage.URI) error {
-	poolPath := p.Path(root)
+func CreatePool(ctx context.Context, config *pools.Config, engine storage.Engine, root *storage.URI) error {
+	poolPath := config.Path(root)
 	// branchesPath is the path to the kvs journal of BranchConfigs
 	// for the pool while the commit log is stored in <pool-id>/<branch-id>.
 	branchesPath := poolPath.AppendPath(BranchesTag)
 	// create the branches journal store
-	_, err := kvs.Create(ctx, engine, branchesPath, branchStoreTypes)
+	_, err := branches.CreateStore(ctx, engine, branchesPath)
 	if err != nil {
 		return err
 	}
-	// create the main branch in the branches journal store
-	_, err = p.createBranch(ctx, engine, root, "main", ksuid.Nil, journal.Nil)
+	// create the main branch in the branches journal store.  The parent
+	// commit object of the initial main branch is ksuid.Nil.
+	_, err = CreateBranch(ctx, config, engine, root, "main", ksuid.Nil)
 	return err
 }
 
-func (p *PoolConfig) createBranch(ctx context.Context, engine storage.Engine, root *storage.URI, name string, parent ksuid.KSUID, at journal.ID) (*BranchConfig, error) {
-	poolPath := p.Path(root)
+func CreateBranch(ctx context.Context, poolConfig *pools.Config, engine storage.Engine, root *storage.URI, name string, parent ksuid.KSUID) (*branches.Config, error) {
+	poolPath := poolConfig.Path(root)
 	branchesPath := poolPath.AppendPath(BranchesTag)
-	branches, err := kvs.Open(ctx, engine, branchesPath, branchStoreTypes)
+	store, err := branches.OpenStore(ctx, engine, branchesPath)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := branches.Lookup(ctx, name); err == nil {
-		return nil, fmt.Errorf("%s/%s: %w", p.Name, name, ErrBranchExists)
+	if _, err := store.LookupByName(ctx, name); err == nil {
+		return nil, fmt.Errorf("%s/%s: %w", poolConfig.Name, name, ErrBranchExists)
 	}
-	branchRef := newBranchConfig(name, parent)
-	if err := branchRef.Create(ctx, engine, poolPath, p.Layout.Order, at); err != nil {
+	branchConfig := branches.NewConfig(name, parent)
+	if err := store.Add(ctx, branchConfig); err != nil {
 		return nil, err
 	}
-	if err := branches.Insert(ctx, name, branchRef); err != nil {
-		branchRef.Remove(ctx, engine, poolPath)
-		return nil, err
-	}
-	return branchRef, err
+	return branchConfig, err
 }
 
-func (p *PoolConfig) Open(ctx context.Context, engine storage.Engine, root *storage.URI) (*Pool, error) {
-	path := p.Path(root)
+func OpenPool(ctx context.Context, config *pools.Config, engine storage.Engine, root *storage.URI) (*Pool, error) {
+	path := config.Path(root)
 	branchesPath := path.AppendPath(BranchesTag)
-	types := []interface{}{BranchConfig{}}
-	branches, err := kvs.Open(ctx, engine, branchesPath, types)
+	branches, err := branches.OpenStore(ctx, engine, branchesPath)
+	if err != nil {
+		return nil, err
+	}
+	commitsPath := path.AppendPath(CommitsTag)
+	commits, err := commits.OpenStore(engine, commitsPath)
 	if err != nil {
 		return nil, err
 	}
 	return &Pool{
-		PoolConfig:   *p,
-		engine:       engine,
-		Path:         path,
-		DataPath:     DataPath(path),
-		IndexPath:    IndexPath(path),
-		BranchesPath: branchesPath,
-		branches:     branches,
+		Config:    *config,
+		engine:    engine,
+		Path:      path,
+		DataPath:  DataPath(path),
+		IndexPath: IndexPath(path),
+		branches:  branches,
+		commits:   commits,
 	}, nil
 }
 
-func (p *PoolConfig) Remove(ctx context.Context, engine storage.Engine, root *storage.URI) error {
-	return engine.DeleteByPrefix(ctx, p.Path(root))
+func RemovePool(ctx context.Context, config *pools.Config, engine storage.Engine, root *storage.URI) error {
+	return engine.DeleteByPrefix(ctx, config.Path(root))
 }
 
-func (p *Pool) removeBranch(ctx context.Context, id ksuid.KSUID) error {
-	branch, err := p.OpenBranchByID(ctx, id)
+func (p *Pool) removeBranch(ctx context.Context, name string) error {
+	config, err := p.branches.LookupByName(ctx, name)
 	if err != nil {
 		return err
 	}
-	if err := p.branches.Delete(ctx, branch.Name, nil); err != nil {
-		return err
-	}
-	return branch.Remove(ctx, p.engine, p.Path)
+	return p.branches.Remove(ctx, *config)
 }
 
-func (p *Pool) newScheduler(ctx context.Context, zctx *zson.Context, branchID, at ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
-	branch, err := p.OpenBranchByID(ctx, branchID)
-	if err != nil {
-		return nil, err
-	}
-	snap, err := branch.Snapshot(ctx, at)
+func (p *Pool) newScheduler(ctx context.Context, zctx *zson.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+	snap, err := p.commits.Snapshot(ctx, commit)
 	if err != nil {
 		return nil, err
 	}
 	return NewSortedScheduler(ctx, zctx, p, snap, span, filter), nil
 }
 
-func (p *Pool) ListBranches(ctx context.Context) ([]BranchConfig, error) {
-	entries, err := p.branches.All(ctx)
-	if err != nil || len(entries) == 0 {
-		return nil, err
-	}
-	branches := make([]BranchConfig, 0, len(entries))
-	for _, entry := range entries {
-		b, ok := entry.Value.(*BranchConfig)
-		if !ok {
-			return nil, fmt.Errorf("system error: unknown type found in branch config: %T", entry.Value)
-		}
-		branches = append(branches, *b)
-	}
-	return branches, nil
+func (p *Pool) Snapshot(ctx context.Context, commit ksuid.KSUID) (commits.View, error) {
+	return p.commits.Snapshot(ctx, commit)
 }
 
-func (p *Pool) LookupBranchByName(ctx context.Context, name string) (*BranchConfig, error) {
-	v, err := p.branches.Lookup(ctx, name)
-	if err != nil {
-		if err == kvs.ErrNoSuchKey {
-			err = fmt.Errorf("%q: %w: %q", p.Name, ErrBranchNotFound, name)
-		}
-		return nil, err
-	}
-	b, ok := v.(*BranchConfig)
-	if !ok {
-		return nil, fmt.Errorf("system error: unknown type found in branch config: %T", v)
-	}
-	return b, nil
+func (p *Pool) ListBranches(ctx context.Context) ([]branches.Config, error) {
+	return p.branches.All(ctx)
 }
 
-func (p *Pool) openBranch(ctx context.Context, branchRef *BranchConfig) (*Branch, error) {
-	return branchRef.Open(ctx, p.engine, p.Path, p)
+func (p *Pool) LookupBranchByName(ctx context.Context, name string) (*branches.Config, error) {
+	return p.branches.LookupByName(ctx, name)
 }
 
-func (p *Pool) OpenBranchByID(ctx context.Context, id ksuid.KSUID) (*Branch, error) {
-	entries, err := p.branches.All(ctx)
-	if err != nil {
-		return nil, err
-	}
-	for _, entry := range entries {
-		branchRef, ok := entry.Value.(*BranchConfig)
-		if !ok {
-			return nil, fmt.Errorf("system error: branch table entry wrong type %T", entry.Value)
-		}
-		if branchRef.ID == id {
-			return p.openBranch(ctx, branchRef)
-		}
-	}
-	return nil, fmt.Errorf("branch id %s does not exist in pool %q", id, p.Name)
+func (p *Pool) openBranch(ctx context.Context, config *branches.Config) (*Branch, error) {
+	return OpenBranch(ctx, config, p.engine, p.Path, p)
 }
 
 func (p *Pool) OpenBranchByName(ctx context.Context, name string) (*Branch, error) {
@@ -209,8 +142,33 @@ func (p *Pool) batchifyBranches(ctx context.Context, recs zbuf.Array, m *zson.Ma
 		return nil, err
 	}
 	for _, branchRef := range branches {
-		meta := BranchMeta{p.PoolConfig, branchRef}
+		meta := BranchMeta{p.Config, branchRef}
 		rec, err := m.MarshalRecord(&meta)
+		if err != nil {
+			return nil, err
+		}
+		if f == nil || f(rec) {
+			recs.Append(rec)
+		}
+	}
+	return recs, nil
+}
+
+type BranchTip struct {
+	Name   string
+	Commit ksuid.KSUID
+}
+
+func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
+	branches, err := p.ListBranches(ctx)
+	if err != nil {
+		return nil, err
+	}
+	m := zson.NewZNGMarshalerWithContext(zctx)
+	m.Decorate(zson.StylePackage)
+	recs := make(zbuf.Array, 0, len(branches))
+	for _, branchRef := range branches {
+		rec, err := m.MarshalRecord(&BranchTip{branchRef.Name, branchRef.Commit})
 		if err != nil {
 			return nil, err
 		}
@@ -233,7 +191,7 @@ type PoolStats struct {
 	Span *nano.Span `zng:"span"`
 }
 
-func (p *Pool) Stats(ctx context.Context, snap commit.View) (info PoolStats, err error) {
+func (p *Pool) Stats(ctx context.Context, snap commits.View) (info PoolStats, err error) {
 	ch := make(chan segment.Reference)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
@@ -274,7 +232,7 @@ func (p *Pool) Main(ctx context.Context) (BranchMeta, error) {
 	if err != nil {
 		return BranchMeta{}, err
 	}
-	return BranchMeta{p.PoolConfig, branch.BranchConfig}, nil
+	return BranchMeta{p.Config, branch.Config}, nil
 }
 
 func DataPath(poolPath *storage.URI) *storage.URI {

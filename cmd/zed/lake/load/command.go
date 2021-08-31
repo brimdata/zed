@@ -21,7 +21,7 @@ import (
 
 var Load = &charm.Spec{
 	Name:  "load",
-	Usage: "load [options] -p pool[/branch] file|S3-object|- ...",
+	Usage: "load [options] -p pool[@branch] file|S3-object|- ...",
 	Short: "add and commit data to a pool",
 	Long: `
 The load command adds data to a pool and commits it in one automatic operation.
@@ -89,11 +89,11 @@ func (c *Command) Run(args []string) error {
 	if poolName == "" {
 		return errors.New("pool name must be specified with -p")
 	}
-	poolID, branchID, err := lake.IDs(ctx, poolName, branchName)
+	poolID, err := lake.PoolID(ctx, poolName)
 	if err != nil {
 		return err
 	}
-	commitID, err := lake.Load(ctx, poolID, branchID, zio.ConcatReader(readers...), *c.CommitRequest())
+	commitID, err := lake.Load(ctx, poolID, branchName, zio.ConcatReader(readers...), c.CommitMessage())
 	if err != nil {
 		return err
 	}

@@ -37,8 +37,12 @@ func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, l
 
 type internalAdaptor struct{}
 
-func (*internalAdaptor) IDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error) {
-	return ksuid.Nil, ksuid.Nil, nil
+func (*internalAdaptor) CommitObject(context.Context, ksuid.KSUID, string) (ksuid.KSUID, error) {
+	return ksuid.Nil, nil
+}
+
+func (*internalAdaptor) PoolID(context.Context, string) (ksuid.KSUID, error) {
+	return ksuid.Nil, nil
 }
 
 func (*internalAdaptor) Layout(context.Context, dag.Source) order.Layout {

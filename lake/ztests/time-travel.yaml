@@ -6,14 +6,14 @@ script: |
   b=$(zed lake load -p POOL b.zson | head -1 | awk '{print $1}')
   zed lake query -z "from POOL | sort ."
   echo === AT a
-  zed lake query -z "from POOL at $a | sort ."
+  zed lake query -z "from POOL@$a | sort ."
   echo === AT b
-  zed lake query -z "from POOL at $b | sort ."
-  zed lake delete -q -p POOL $a
+  zed lake query -z "from POOL@$b | sort ."
+  zed lake undo -q -p POOL $a
   echo === with A deleted
   zed lake query -z "from POOL | sort ."
   echo === at B before A deleted
-  zed lake query -z "from POOL at $b | sort ."
+  zed lake query -z "from POOL@$b | sort ."
 
 inputs:
   - name: a.zson

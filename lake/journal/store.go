@@ -1,4 +1,4 @@
-package kvs
+package journal
 
 import (
 	"context"
@@ -7,7 +7,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
@@ -23,25 +22,46 @@ var (
 )
 
 type Store struct {
-	journal     *journal.Queue
+	journal     *Queue
+	style       zson.TypeStyle
 	unmarshaler *zson.UnmarshalZNGContext
-	table       map[string]interface{}
-	at          journal.ID
+	table       map[string]Entry
+	at          ID
 	loadTime    time.Time
 }
 
-type Entry struct {
-	Key   string
-	Value interface{}
+type Entry interface {
+	Key() string
 }
 
-func newStore(path *storage.URI, valTypes []interface{}) *Store {
+type Add struct {
+	Entry `zng:"entry"`
+}
+
+type Update struct {
+	Entry `zng:"entry"`
+}
+
+type Delete struct {
+	EntryKey string `zng:"entry_key"`
+}
+
+func (d *Delete) Key() string {
+	return d.EntryKey
+}
+
+func newStore(path *storage.URI, entryTypes ...interface{}) *Store {
 	u := zson.NewZNGUnmarshaler()
-	u.Bind(valTypes...)
-	u.Bind(Entry{})
+	u.Bind(Add{}, Delete{}, Update{})
+	u.Bind(entryTypes...)
 	return &Store{
+		style:       zson.StylePackage,
 		unmarshaler: u,
 	}
+}
+
+func (s *Store) Decorate(style zson.TypeStyle) {
+	s.style = style
 }
 
 func (s *Store) load(ctx context.Context) error {
@@ -56,7 +76,7 @@ func (s *Store) load(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	table := make(map[string]interface{})
+	table := make(map[string]Entry)
 	for {
 		rec, err := r.Read()
 		if err != nil {
@@ -73,10 +93,19 @@ func (s *Store) load(ctx context.Context) error {
 		if err := s.unmarshaler.Unmarshal(rec.Value, &e); err != nil {
 			return err
 		}
-		if e.Value == nil {
-			delete(table, e.Key)
-		} else {
-			table[e.Key] = e.Value
+		switch e := e.(type) {
+		case *Add:
+			table[e.Entry.Key()] = e.Entry
+		case *Update:
+			key := e.Key()
+			if _, ok := table[key]; !ok {
+				return fmt.Errorf("update to non-existant key in journal store: %T", key)
+			}
+			table[key] = e.Entry
+		case *Delete:
+			delete(table, e.EntryKey)
+		default:
+			return fmt.Errorf("unknown type in journal store: %T", e)
 		}
 	}
 }
@@ -115,13 +144,13 @@ func (s *Store) All(ctx context.Context) ([]Entry, error) {
 		return nil, err
 	}
 	entries := make([]Entry, 0, len(s.table))
-	for key, val := range s.table {
-		entries = append(entries, Entry{key, val})
+	for _, e := range s.table {
+		entries = append(entries, e)
 	}
 	return entries, nil
 }
 
-func (s *Store) Lookup(ctx context.Context, key string) (interface{}, error) {
+func (s *Store) Lookup(ctx context.Context, key string) (Entry, error) {
 	var fresh bool
 	if s.stale() {
 		if err := s.load(ctx); err != nil {
@@ -147,15 +176,12 @@ func (s *Store) Lookup(ctx context.Context, key string) (interface{}, error) {
 	return val, nil
 }
 
-func (s *Store) Insert(ctx context.Context, key string, value interface{}) error {
-	e := Entry{
-		Key:   key,
-		Value: value,
-	}
-	b, err := e.serialize()
+func (s *Store) Insert(ctx context.Context, e Entry) error {
+	b, err := s.serialize(&Add{e})
 	if err != nil {
 		return err
 	}
+	key := e.Key()
 	for attempts := 0; attempts < maxRetries; attempts++ {
 		if err := s.load(ctx); err != nil {
 			return err
@@ -177,11 +203,10 @@ func (s *Store) Insert(ctx context.Context, key string, value interface{}) error
 	return ErrRetriesExceeded
 }
 
-type Constraint func(interface{}) bool
+type Constraint func(Entry) bool
 
 func (s *Store) Delete(ctx context.Context, key string, c Constraint) error {
-	e := Entry{Key: key}
-	b, err := e.serialize()
+	b, err := s.serialize(&Delete{key})
 	if err != nil {
 		return err
 	}
@@ -189,11 +214,11 @@ func (s *Store) Delete(ctx context.Context, key string, c Constraint) error {
 		if err := s.load(ctx); err != nil {
 			return err
 		}
-		val, ok := s.table[key]
+		e, ok := s.table[key]
 		if !ok {
 			return ErrNoSuchKey
 		}
-		if c != nil && !c(val) {
+		if c != nil && !c(e) {
 			return ErrConstraint
 		}
 		err := s.journal.CommitAt(ctx, s.at, b)
@@ -210,26 +235,56 @@ func (s *Store) Delete(ctx context.Context, key string, c Constraint) error {
 	return ErrRetriesExceeded
 }
 
-func (s *Store) Move(ctx context.Context, oldKey, newKey string, newVal interface{}) error {
-	remove := Entry{
-		Key:   oldKey,
-		Value: nil,
-	}
-	add := Entry{
-		Key:   newKey,
-		Value: newVal,
-	}
-	serializer := zngbytes.NewSerializer()
-	if err := serializer.Write(&remove); err != nil {
+func (s *Store) Update(ctx context.Context, e Entry, c Constraint) error {
+	b, err := s.serialize(&Update{e})
+	if err != nil {
 		return err
 	}
-	if err := serializer.Write(&add); err != nil {
+	key := e.Key()
+	for attempts := 0; attempts < maxRetries; attempts++ {
+		if err := s.load(ctx); err != nil {
+			return err
+		}
+		e, ok := s.table[key]
+		if !ok {
+			return ErrNoSuchKey
+		}
+		if c != nil && !c(e) {
+			return ErrConstraint
+		}
+		err := s.journal.CommitAt(ctx, s.at, b)
+		if err != nil {
+			if os.IsExist(err) {
+				time.Sleep(time.Millisecond)
+				continue
+			}
+			return err
+		}
+		s.at = 0
+		return nil
+	}
+	return ErrRetriesExceeded
+}
+
+func (s *Store) newSerializer() *zngbytes.Serializer {
+	serializer := zngbytes.NewSerializer()
+	serializer.Decorate(s.style)
+	return serializer
+}
+
+func (s *Store) Move(ctx context.Context, oldKey string, newEntry Entry) error {
+	serializer := s.newSerializer()
+	if err := serializer.Write(&Delete{oldKey}); err != nil {
+		return err
+	}
+	if err := serializer.Write(&Add{newEntry}); err != nil {
 		return err
 	}
 	if err := serializer.Close(); err != nil {
 		return err
 	}
 	b := serializer.Bytes()
+	newKey := newEntry.Key()
 	for attempts := 0; attempts < maxRetries; attempts++ {
 		if err := s.load(ctx); err != nil {
 			return err
@@ -254,8 +309,9 @@ func (s *Store) Move(ctx context.Context, oldKey, newKey string, newVal interfac
 	return ErrRetriesExceeded
 }
 
-func (e Entry) serialize() ([]byte, error) {
+func (s *Store) serialize(e Entry) ([]byte, error) {
 	serializer := zngbytes.NewSerializer()
+	serializer.Decorate(s.style)
 	if err := serializer.Write(&e); err != nil {
 		return nil, err
 	}
@@ -265,19 +321,19 @@ func (e Entry) serialize() ([]byte, error) {
 	return serializer.Bytes(), nil
 }
 
-func Open(ctx context.Context, engine storage.Engine, path *storage.URI, keyTypes []interface{}) (*Store, error) {
-	s := newStore(path, keyTypes)
+func OpenStore(ctx context.Context, engine storage.Engine, path *storage.URI, keyTypes ...interface{}) (*Store, error) {
+	s := newStore(path, keyTypes...)
 	var err error
-	s.journal, err = journal.Open(ctx, engine, path)
+	s.journal, err = Open(ctx, engine, path)
 	if err != nil {
 		return nil, err
 	}
 	return s, nil
 }
 
-func Create(ctx context.Context, engine storage.Engine, path *storage.URI, keyTypes []interface{}) (*Store, error) {
-	s := newStore(path, keyTypes)
-	j, err := journal.Create(ctx, engine, path, journal.Nil)
+func CreateStore(ctx context.Context, engine storage.Engine, path *storage.URI, keyTypes ...interface{}) (*Store, error) {
+	s := newStore(path, keyTypes...)
+	j, err := Create(ctx, engine, path, Nil)
 	if err != nil {
 		return nil, err
 	}

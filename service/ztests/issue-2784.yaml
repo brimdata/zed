@@ -3,7 +3,7 @@ script: |
   zed api create -q -p test
   zed api load -q -p test a.zson
   zed api load -q -p test b.zson
-  zed api query -z "from test/main[objects] | sort meta.first | cut first:=meta.first,last:=meta.last"
+  zed api query -z "from test@main:objects | sort meta.first | cut first:=meta.first,last:=meta.last"
 
 inputs:
   - name: service.sh

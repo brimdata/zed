@@ -3,6 +3,7 @@ script: |
   zed lake init -q
   zed lake create -q -p POOL -orderby a
   zed lake load -q -p POOL in.zson
+  zed lake query -z "from POOL@main:rawlog"
   zed lake log -p POOL
 
 inputs:
@@ -14,4 +15,4 @@ inputs:
 
 outputs:
   - name: stdout
-    regexp: from 1 to 3
+    regexp: loaded 1 data object

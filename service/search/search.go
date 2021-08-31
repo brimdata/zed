@@ -119,7 +119,7 @@ func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, branch *la
 			Kind: "Pool",
 			Spec: ast.PoolSpec{
 				Pool:   branch.Pool().Name,
-				Branch: branch.Name,
+				Commit: branch.Name,
 			},
 			Range:     scanRange,
 			ScanOrder: scanOrder,
@@ -140,7 +140,7 @@ func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, branch *la
 }
 
 func branchHasSpan(ctx context.Context, branch *lake.Branch) bool {
-	snap, err := branch.Log().Tip(ctx)
+	snap, err := branch.Pool().Snapshot(ctx, branch.Commit)
 	if err != nil {
 		return false
 	}

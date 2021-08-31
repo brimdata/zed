@@ -94,7 +94,14 @@ func (r Reference) IsZero() bool {
 }
 
 func (r Reference) String() string {
-	return fmt.Sprintf("%s %d records in %d data bytes", r.ID, r.Count, r.RowSize)
+	return fmt.Sprintf("%s %d record%s in %d data bytes", r.ID, r.Count, plural(int(r.Count)), r.RowSize)
+}
+
+func plural(ordinal int) string {
+	if ordinal == 1 {
+		return ""
+	}
+	return ""
 }
 
 func (r Reference) StringRange() string {

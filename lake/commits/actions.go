@@ -1,4 +1,4 @@
-package actions
+package commits
 
 import (
 	"fmt"
@@ -9,12 +9,12 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-type Interface interface {
+type Action interface {
 	CommitID() ksuid.KSUID
 	fmt.Stringer
 }
 
-var JournalTypes = []interface{}{
+var ActionTypes = []interface{}{
 	Add{},
 	AddIndex{},
 	index.AddRule{},
@@ -23,13 +23,15 @@ var JournalTypes = []interface{}{
 	index.TypeRule{},
 	index.AggRule{},
 	index.FieldRule{},
-	CommitMessage{},
+	Commit{},
 }
 
 type Add struct {
 	Commit  ksuid.KSUID       `zng:"commit"`
 	Segment segment.Reference `zng:"segment"`
 }
+
+var _ Action = (*Add)(nil)
 
 func (a *Add) CommitID() ksuid.KSUID {
 	return a.Commit
@@ -39,31 +41,22 @@ func (a *Add) String() string {
 	return fmt.Sprintf("ADD %s", a.Segment)
 }
 
-type CommitMessage struct {
-	Commit  ksuid.KSUID `zng:"commit"`
+type Commit struct {
+	ID      ksuid.KSUID `zng:"id"`
+	Parent  ksuid.KSUID `zng:"parent"`
+	Retries uint8       `zng:"retries"`
 	Author  string      `zng:"author"`
 	Date    nano.Ts     `zng:"date"`
 	Message string      `zng:"message"`
 }
 
-func (c *CommitMessage) CommitID() ksuid.KSUID {
-	return c.Commit
+func (c *Commit) CommitID() ksuid.KSUID {
+	return c.ID
 }
 
-func (c *CommitMessage) String() string {
-	return fmt.Sprintf("COMMIT %s %s %s %s", c.Commit, c.Date, c.Author, c.Message)
-}
-
-type StagedCommit struct {
-	Commit ksuid.KSUID `zng:"commit"`
-}
-
-func (s *StagedCommit) CommitID() ksuid.KSUID {
-	return s.Commit
-}
-
-func (s *StagedCommit) String() string {
-	return fmt.Sprintf("STAGED %s", s.Commit)
+func (c *Commit) String() string {
+	//XXX need to format Message field for single line
+	return fmt.Sprintf("COMMIT %s -> %s %s %s %s", c.ID, c.Parent, c.Date, c.Author, c.Message)
 }
 
 type Delete struct {

@@ -3,9 +3,9 @@ script: |
   zed lake init -q
   zed lake create -q -p logs
   zed lake load -q -p logs babble.zson
-  zed lake ls -f zng | zq -Z "drop id" -
+  zed lake ls -f zng | zq -Z "drop id,ts" -
   echo ===
-  zed lake query -Z "from logs/main[objects] | cut meta"
+  zed lake query -Z "from logs@main:objects | cut meta"
 
 inputs:
   - name: babble.zson
@@ -19,13 +19,13 @@ outputs:
       {
           name: "logs",
           layout: {
-              order: "desc" (=Which),
+              order: "desc" (=order.Which),
               keys: [
                   [
                       "ts"
-                  ] (=Path)
-              ] (=List)
-          } (=Layout),
+                  ] (=field.Path)
+              ] (=field.List)
+          } (=order.Layout),
           threshold: 524288000
       } (=0)
       ===

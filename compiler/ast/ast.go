@@ -393,7 +393,7 @@ type (
 
 type PoolSpec struct {
 	Pool   string `json:"pool"`
-	Branch string `json:"branch"`
+	Commit string `json:"commit"`
 	Meta   string `json:"meta"`
 }
 

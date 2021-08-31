@@ -5,12 +5,13 @@ script: |
   zed lake create -q -p poolB -orderby b:desc
   zed lake load -q -p poolA a.zson
   zed lake load -q -p poolB b.zson
-  zed lake query -Z 'from [pools] | drop id | sort name'
+  zed lake query -Z 'from :pools | drop id | sort name | drop ts'
   echo ===
-  zed lake query -Z 'from poolA/main[log] | cut nameof(this),segment.meta'
+  zed lake query -Z 'from poolA@main:objects | cut nameof(this),meta'
+  zed lake query -Z 'from poolA@main:log | cut nameof(this) | drop ts'
   echo ===
   zed lake index create -q Rule field a
-  zed lake query -Z 'from [index_rules] | put nameof(this) | drop ts,id'
+  zed lake query -Z 'from :index_rules | put nameof(this) | drop ts,id'
 
 inputs:
   - name: a.zson
@@ -29,13 +30,13 @@ outputs:
       {
           name: "poolA",
           layout: {
-              order: "asc" (=Which),
+              order: "asc" (=order.Which),
               keys: [
                   [
                       "a"
-                  ] (=Path)
-              ] (=List)
-          } (=Layout),
+                  ] (=field.Path)
+              ] (=field.List)
+          } (=order.Layout),
           threshold: 524288000
       } (=0)
       {
@@ -52,18 +53,19 @@ outputs:
       } (0)
       ===
       {
-          nameof: "Add",
-          segment: {
-              meta: {
-                  first: 1,
-                  last: 2,
-                  count: 2 (uint64),
-                  row_size: 14
-              } (=Metadata)
-          } (=0)
-      } (=1)
+          nameof: "segment.Reference",
+          meta: {
+              first: 1,
+              last: 2,
+              count: 2 (uint64),
+              row_size: 14
+          } (=segment.Metadata)
+      } (=0)
       {
-          nameof: "CommitMessage"
+          nameof: "lake.BranchTip"
+      }
+      {
+          nameof: "Commit"
       }
       ===
       {
@@ -71,7 +73,7 @@ outputs:
           fields: [
               [
                   "a"
-              ] (=Path)
-          ] (=List),
-          nameof: "FieldRule"
+              ] (=field.Path)
+          ] (=field.List),
+          nameof: "index.FieldRule"
       } (=0)

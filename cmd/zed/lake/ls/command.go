@@ -21,7 +21,8 @@ var Ls = &charm.Spec{
 	Short: "list pools in a lake or branches in a pool",
 	Long: `
 "zed lake ls" shows a listing of a data pool's segments as tags.
-The the pool flag "-p" is not given, then the lake's pools are listed.
+The a pool name or ID is given, then the pool's branches are listed
+along with their commit tag at the tip of each branch.
 `,
 	New: New,
 }
@@ -66,13 +67,14 @@ func (c *Command) Run(args []string) error {
 	}
 	var query string
 	if poolName == "" {
-		query = "from [pools]"
+		query = "from :pools"
 	} else {
 		if strings.IndexByte(poolName, '\'') >= 0 {
 			return errors.New("pool name may not contain quote characters")
 		}
-		query = fmt.Sprintf("from '%s'[branches]", poolName)
+		query = fmt.Sprintf("from '%s':branches", poolName)
 	}
+	//XXX at should be a date/time
 	var at ksuid.KSUID
 	if c.at != "" {
 		at, err = ksuid.Parse(c.at)

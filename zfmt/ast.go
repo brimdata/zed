@@ -443,11 +443,11 @@ func (c *canon) proc(p ast.Proc) {
 func (c *canon) pool(p *ast.Pool) {
 	//XXX TBD name, from, to, id etc
 	s := p.Spec.Pool
-	if p.Spec.Branch != "" {
-		s += "/" + p.Spec.Branch
+	if p.Spec.Commit != "" {
+		s += "@" + p.Spec.Commit
 	}
 	if p.Spec.Meta != "" {
-		s += "[" + p.Spec.Meta + "]"
+		s += ":" + p.Spec.Meta
 	}
 	c.write(s)
 }

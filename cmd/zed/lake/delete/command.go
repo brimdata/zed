@@ -14,7 +14,7 @@ import (
 
 var Delete = &charm.Spec{
 	Name:  "delete",
-	Usage: "delete -p pool[/branch] id [id ...]",
+	Usage: "delete -p pool[@commit] id [id ...]",
 	Short: "delete commits or data objects from a pool branch",
 	Long: `
 "zed lake delete" takes a list of commit tags and/or data object tags
@@ -62,7 +62,7 @@ func (c *Command) Run(args []string) error {
 	if poolName == "" {
 		return errors.New("name of pool must be supplied with -p option")
 	}
-	poolID, branchID, err := lake.IDs(ctx, poolName, branchName)
+	poolID, err := lake.PoolID(ctx, poolName)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func (c *Command) Run(args []string) error {
 	if len(tags) == 0 {
 		return errors.New("no data or commit tags specified")
 	}
-	commit, err := lake.Delete(ctx, poolID, branchID, tags, c.CommitRequest())
+	commit, err := lake.Delete(ctx, poolID, branchName, tags, c.CommitMessage())
 	if err != nil {
 		return err
 	}

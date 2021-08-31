@@ -10,9 +10,9 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
+	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/journal"
-	"github.com/brimdata/zed/lake/journal/kvs"
+	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
@@ -26,8 +26,8 @@ import (
 )
 
 var (
-	ErrPoolExists     = errors.New("pool already exists")
-	ErrPoolNotFound   = errors.New("pool not found")
+	//ErrPoolExists = errors.New("pool already exists")
+	//ErrPoolNotFound   = errors.New("pool not found")
 	ErrBranchExists   = errors.New("branch already exists")
 	ErrBranchNotFound = errors.New("branch not found")
 )
@@ -35,7 +35,6 @@ var (
 const (
 	Version         = 1
 	PoolsTag        = "pools"
-	MetaTag         = "metas"
 	IndexRulesTag   = "index_rules"
 	LakeMagicFile   = "lake.zng"
 	LakeMagicString = "ZED LAKE"
@@ -46,7 +45,7 @@ const (
 type Root struct {
 	engine     storage.Engine
 	path       *storage.URI
-	pools      *kvs.Store
+	pools      *pools.Store
 	indexRules *index.Store
 }
 
@@ -97,9 +96,8 @@ func CreateOrOpen(ctx context.Context, engine storage.Engine, path *storage.URI)
 func (r *Root) createConfig(ctx context.Context) error {
 	poolPath := r.path.AppendPath(PoolsTag)
 	rulesPath := r.path.AppendPath(IndexRulesTag)
-	types := []interface{}{PoolConfig{}}
 	var err error
-	r.pools, err = kvs.Create(ctx, r.engine, poolPath, types)
+	r.pools, err = pools.CreateStore(ctx, r.engine, poolPath)
 	if err != nil {
 		return err
 	}
@@ -116,9 +114,8 @@ func (r *Root) loadConfig(ctx context.Context) error {
 	}
 	poolPath := r.path.AppendPath(PoolsTag)
 	rulesPath := r.path.AppendPath(IndexRulesTag)
-	types := []interface{}{PoolConfig{}}
 	var err error
-	r.pools, err = kvs.Open(ctx, r.engine, poolPath, types)
+	r.pools, err = pools.OpenStore(ctx, r.engine, poolPath)
 	if err != nil {
 		return err
 	}
@@ -135,6 +132,7 @@ func (r *Root) writeLakeMagic(ctx context.Context) error {
 		Version: Version,
 	}
 	serializer := zngbytes.NewSerializer()
+	serializer.Decorate(zson.StylePackage)
 	if err := serializer.Write(magic); err != nil {
 		return err
 	}
@@ -179,7 +177,7 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 
 func (r *Root) batchifyPools(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
-	m.Decorate(zson.StyleSimple)
+	m.Decorate(zson.StylePackage)
 	pools, err := r.ListPools(ctx)
 	if err != nil {
 		return nil, err
@@ -199,18 +197,18 @@ func (r *Root) batchifyPools(ctx context.Context, zctx *zson.Context, f expr.Fil
 
 func (r *Root) batchifyBranches(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
-	m.Decorate(zson.StyleSimple)
+	m.Decorate(zson.StylePackage)
 	poolRefs, err := r.ListPools(ctx)
 	if err != nil {
 		return nil, err
 	}
 	var batch zbuf.Array
-	for _, poolRef := range poolRefs {
-		pool, err := poolRef.Open(ctx, r.engine, r.path)
+	for k := range poolRefs {
+		pool, err := OpenPool(ctx, &poolRefs[k], r.engine, r.path)
 		if err != nil {
 			// We could have race here because a pool got deleted
 			// while we looped so we check and continue.
-			if errors.Is(err, ErrPoolNotFound) {
+			if errors.Is(err, pools.ErrNotFound) {
 				continue
 			}
 			return nil, err
@@ -224,91 +222,44 @@ func (r *Root) batchifyBranches(ctx context.Context, zctx *zson.Context, f expr.
 }
 
 type BranchMeta struct {
-	PoolConfig   `zng:"pool"`
-	BranchConfig `zng:"branch"`
+	Pool   pools.Config    `zng:"pool"`
+	Branch branches.Config `zng:"branch"`
 }
 
-func (r *Root) ListPools(ctx context.Context) ([]PoolConfig, error) {
-	entries, err := r.pools.All(ctx)
-	if err != nil {
-		return nil, err
-	}
-	pools := make([]PoolConfig, 0, len(entries))
-	for _, entry := range entries {
-		pool, ok := entry.Value.(*PoolConfig)
-		if !ok {
-			return nil, errors.New("corrupt pool config journal")
-		}
-		pools = append(pools, *pool)
-	}
-	return pools, nil
+func (r *Root) ListPools(ctx context.Context) ([]pools.Config, error) {
+	return r.pools.All(ctx)
 }
 
-func lookupPool(pools []PoolConfig, fn func(PoolConfig) bool) *PoolConfig {
-	for _, pool := range pools {
-		if fn(pool) {
-			return &pool
-		}
-	}
-	return nil
-}
-
-func lookupPoolByName(pools []PoolConfig, name string) *PoolConfig {
-	return lookupPool(pools, func(p PoolConfig) bool {
-		return p.Name == name
-	})
-}
-
-func (r *Root) LookupPool(ctx context.Context, id ksuid.KSUID) *PoolConfig {
-	pools, err := r.ListPools(ctx)
-	if err != nil {
-		return nil
-	}
-	return lookupPool(pools, func(p PoolConfig) bool {
-		return p.ID == id
-	})
-}
-
-func (r *Root) LookupPoolByName(ctx context.Context, name string) *PoolConfig {
-	pools, err := r.ListPools(ctx)
-	if err != nil {
-		return nil
-	}
-	return lookupPoolByName(pools, name)
-}
-
-func (r *Root) IDs(ctx context.Context, poolName string, branchName string) (ksuid.KSUID, ksuid.KSUID, error) {
+func (r *Root) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {
 	if poolName == "" {
-		return ksuid.Nil, ksuid.Nil, errors.New("no pool name given")
+		return ksuid.Nil, errors.New("no pool name given")
 	}
 	poolID, err := ksuid.Parse(poolName)
-	var poolRef *PoolConfig
+	var poolRef *pools.Config
 	if err != nil {
-		poolRef = r.LookupPoolByName(ctx, poolName)
+		poolRef = r.pools.LookupByName(ctx, poolName)
 		if poolRef == nil {
-			return ksuid.Nil, ksuid.Nil, fmt.Errorf("%s: pool not found", poolName)
+			return ksuid.Nil, fmt.Errorf("%s: pool not found", poolName)
 		}
 		poolID = poolRef.ID
 	}
-	if branchName == "" {
-		return poolID, ksuid.Nil, nil
-	}
-	branchID, err := ksuid.Parse(branchName)
+	return poolID, nil
+}
+
+func (r *Root) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+	config, err := r.pools.LookupByID(ctx, poolID)
 	if err != nil {
-		if poolRef == nil {
-			poolRef = r.LookupPool(ctx, poolID)
-		}
-		pool, err := poolRef.Open(ctx, r.engine, r.path)
-		if err != nil {
-			return ksuid.Nil, ksuid.Nil, err
-		}
-		branchRef, err := pool.LookupBranchByName(ctx, branchName)
-		if err != nil {
-			return ksuid.Nil, ksuid.Nil, err
-		}
-		branchID = branchRef.ID
+		return ksuid.Nil, err
 	}
-	return poolID, branchID, nil
+	pool, err := OpenPool(ctx, config, r.engine, r.path)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	branchRef, err := pool.LookupBranchByName(ctx, branchName)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return branchRef.Commit, nil
 }
 
 func (r *Root) Layout(ctx context.Context, src dag.Source) order.Layout {
@@ -316,59 +267,43 @@ func (r *Root) Layout(ctx context.Context, src dag.Source) order.Layout {
 	if !ok {
 		return order.Nil
 	}
-	pool := r.LookupPool(ctx, poolSrc.ID)
-	if pool == nil {
+	config, err := r.pools.LookupByID(ctx, poolSrc.ID)
+	if err != nil {
 		return order.Nil
 	}
-	return pool.Layout
+	return config.Layout
 }
 
 func (r *Root) OpenPool(ctx context.Context, id ksuid.KSUID) (*Pool, error) {
-	poolRef := r.LookupPool(ctx, id)
-	if poolRef == nil {
-		return nil, ErrPoolNotFound
+	config, err := r.pools.LookupByID(ctx, id)
+	if err != nil {
+		return nil, err
 	}
-	return poolRef.Open(ctx, r.engine, r.path)
+	return OpenPool(ctx, config, r.engine, r.path)
 }
 
 func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newName string) error {
-	pool := r.LookupPool(ctx, id)
-	if pool == nil {
-		return fmt.Errorf("%s: %w", id, ErrPoolNotFound)
-	}
-	oldName := pool.Name
-	pool.Name = newName
-	err := r.pools.Move(ctx, oldName, newName, pool)
-	switch err {
-	case kvs.ErrKeyExists:
-		return ErrPoolExists
-	case kvs.ErrNoSuchKey:
-		return fmt.Errorf("%s: %w", id, ErrPoolNotFound)
-	}
-	return err
+	return r.pools.Rename(ctx, id, newName)
 }
 
 func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64) (*Pool, error) {
-	if r.LookupPoolByName(ctx, name) != nil {
-		return nil, fmt.Errorf("%s: %w", name, ErrPoolExists)
+	if r.pools.LookupByName(ctx, name) != nil {
+		return nil, fmt.Errorf("%s: %w", name, pools.ErrExists)
 	}
 	if thresh == 0 {
 		thresh = segment.DefaultThreshold
 	}
-	poolRef := NewPoolConfig(name, layout, thresh)
-	if err := poolRef.Create(ctx, r.engine, r.path); err != nil {
+	config := pools.NewConfig(name, layout, thresh)
+	if err := CreatePool(ctx, config, r.engine, r.path); err != nil {
 		return nil, err
 	}
-	pool, err := poolRef.Open(ctx, r.engine, r.path)
+	pool, err := OpenPool(ctx, config, r.engine, r.path)
 	if err != nil {
-		poolRef.Remove(ctx, r.engine, r.path)
+		RemovePool(ctx, config, r.engine, r.path)
 		return nil, err
 	}
-	if err := r.pools.Insert(ctx, name, poolRef); err != nil {
-		poolRef.Remove(ctx, r.engine, r.path)
-		if err == kvs.ErrKeyExists {
-			return nil, fmt.Errorf("%s: %w", name, ErrPoolExists)
-		}
+	if err := r.pools.Add(ctx, config); err != nil {
+		RemovePool(ctx, config, r.engine, r.path)
 		return nil, err
 	}
 	return pool, nil
@@ -377,79 +312,60 @@ func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout,
 // RemovePool deletes a pool from the configuration journal and deletes all
 // data associated with the pool.
 func (r *Root) RemovePool(ctx context.Context, id ksuid.KSUID) error {
-	poolConfig := r.LookupPool(ctx, id)
-	if poolConfig == nil {
-		return fmt.Errorf("%s: %w", id, ErrPoolNotFound)
-	}
-	err := r.pools.Delete(ctx, poolConfig.Name, func(v interface{}) bool {
-		p, ok := v.(*PoolConfig)
-		if !ok {
-			return false
-		}
-		return p.ID == id
-	})
+	config, err := r.pools.LookupByID(ctx, id)
 	if err != nil {
-		if err == kvs.ErrNoSuchKey {
-			return fmt.Errorf("%s: %w", id, ErrPoolNotFound)
-		}
-		if err == kvs.ErrConstraint {
-			return fmt.Errorf("%s: pool %q renamed during removal", poolConfig.Name, id)
-		}
 		return err
 	}
-	return poolConfig.Remove(ctx, r.engine, r.path)
+	if err := r.pools.Remove(ctx, *config); err != nil {
+		return err
+	}
+	return RemovePool(ctx, config, r.engine, r.path)
 }
 
-func (r *Root) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string, parent, atTag ksuid.KSUID) (*BranchConfig, error) {
-	poolRef := r.LookupPool(ctx, poolID)
-	if poolRef == nil {
-		return nil, fmt.Errorf("%s: %w", poolID, ErrPoolNotFound)
-	}
-	pool, err := poolRef.Open(ctx, r.engine, r.path)
+func (r *Root) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string, parent ksuid.KSUID) (*branches.Config, error) {
+	config, err := r.pools.LookupByID(ctx, poolID)
 	if err != nil {
 		return nil, err
 	}
-	var at journal.ID
-	if parent != ksuid.Nil {
-		parentBranch, err := pool.OpenBranchByID(ctx, parent)
-		if err != nil {
-			return nil, err
-		}
-		if atTag != ksuid.Nil {
-			at, err = parentBranch.log.JournalIDOfCommit(ctx, 0, atTag)
-			if err != nil {
-				return nil, fmt.Errorf("%s: no such commit ID in %s/%s", atTag, poolRef.Name, parentBranch.Name)
-			}
-		} else {
-			at, err = parentBranch.log.TipOfJournal(ctx)
-			if err != nil {
-				return nil, err
-			}
-		}
-	}
-	return poolRef.createBranch(ctx, r.engine, r.path, name, parent, at)
+	return CreateBranch(ctx, config, r.engine, r.path, name, parent)
 }
 
-func (r *Root) RemoveBranch(ctx context.Context, poolID, branchID ksuid.KSUID) error {
+func (r *Root) RemoveBranch(ctx context.Context, poolID ksuid.KSUID, name string) error {
 	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return err
 	}
-	return pool.removeBranch(ctx, branchID)
+	return pool.removeBranch(ctx, name)
 }
 
 // MergeBranch merges the indicated branch into its parent returning the
 // commit tag of the new commit into the parent branch.
-func (r *Root) MergeBranch(ctx context.Context, poolID, branchID, at ksuid.KSUID) (ksuid.KSUID, error) {
+func (r *Root) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch, parentBranch, author, message string) (ksuid.KSUID, error) {
 	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	branch, err := pool.OpenBranchByID(ctx, branchID)
+	child, err := pool.OpenBranchByName(ctx, childBranch)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return branch.Merge(ctx, at)
+	parent, err := pool.OpenBranchByName(ctx, parentBranch)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return child.mergeInto(ctx, parent, author, message)
+}
+
+func (r *Root) Undo(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
+	pool, err := r.OpenPool(ctx, poolID)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	branch, err := pool.OpenBranchByName(ctx, branchName)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return branch.Undo(ctx, commitID, author, message)
 }
 
 func (r *Root) AddIndexRules(ctx context.Context, rules []index.Rule) error {
@@ -481,7 +397,7 @@ func (r *Root) LookupIndexRules(ctx context.Context, name string) ([]index.Rule,
 
 func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
-	m.Decorate(zson.StyleSimple)
+	m.Decorate(zson.StylePackage)
 	names, err := r.indexRules.Names(ctx)
 	if err != nil {
 		return nil, err
@@ -514,13 +430,13 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zson.Context, f exp
 func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, src dag.Source, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
 	switch src := src.(type) {
 	case *dag.Pool:
-		return r.newPoolScheduler(ctx, zctx, src.ID, src.Branch, src.At, span, filter)
+		return r.newPoolScheduler(ctx, zctx, src.ID, src.Commit, span, filter)
 	case *dag.LakeMeta:
 		return r.newLakeMetaScheduler(ctx, zctx, src.Meta, filter)
 	case *dag.PoolMeta:
 		return r.newPoolMetaScheduler(ctx, zctx, src.ID, src.Meta, filter)
-	case *dag.BranchMeta:
-		return r.newBranchMetaScheduler(ctx, zctx, src.ID, src.Branch, src.Meta, src.At, span, filter)
+	case *dag.CommitMeta:
+		return r.newCommitMetaScheduler(ctx, zctx, src.Pool, src.Commit, src.Meta, span, filter)
 	default:
 		return nil, fmt.Errorf("internal error: unsupported source type in lake.Root.NewScheduler: %T", src)
 	}
@@ -565,7 +481,7 @@ func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zson.Context, poo
 	switch meta {
 	case "branches":
 		m := zson.NewZNGMarshalerWithContext(zctx)
-		m.Decorate(zson.StyleSimple)
+		m.Decorate(zson.StylePackage)
 		batch, err = p.batchifyBranches(ctx, batch, m, f)
 	default:
 		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
@@ -577,18 +493,14 @@ func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zson.Context, poo
 	return newScannerScheduler(s), nil
 }
 
-func (r *Root) newBranchMetaScheduler(ctx context.Context, zctx *zson.Context, poolID, branchID ksuid.KSUID, meta string, tag ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zson.Context, poolID, commit ksuid.KSUID, meta string, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
 	p, err := r.OpenPool(ctx, poolID)
-	if err != nil {
-		return nil, err
-	}
-	branch, err := p.OpenBranchByID(ctx, branchID)
 	if err != nil {
 		return nil, err
 	}
 	switch meta {
 	case "objects":
-		snap, err := branch.Snapshot(ctx, tag)
+		snap, err := p.commits.Snapshot(ctx, commit)
 		if err != nil {
 			return nil, err
 		}
@@ -602,7 +514,7 @@ func (r *Root) newBranchMetaScheduler(ctx context.Context, zctx *zson.Context, p
 		}
 		return newScannerScheduler(s), nil
 	case "partitions":
-		snap, err := branch.Snapshot(ctx, tag)
+		snap, err := p.commits.Snapshot(ctx, commit)
 		if err != nil {
 			return nil, err
 		}
@@ -616,7 +528,22 @@ func (r *Root) newBranchMetaScheduler(ctx context.Context, zctx *zson.Context, p
 		}
 		return newScannerScheduler(s), nil
 	case "log":
-		reader, err := branch.Log().OpenAsZNG(ctx, zctx, journal.Nil, journal.Nil)
+		tips, err := p.batchifyBranchTips(ctx, zctx, nil)
+		if err != nil {
+			return nil, err
+		}
+		tipsScanner, err := zbuf.NewScanner(ctx, &tips, filter)
+		if err != nil {
+			return nil, err
+		}
+		log := p.commits.OpenCommitLog(ctx, zctx, commit, ksuid.Nil)
+		logScanner, err := zbuf.NewScanner(ctx, log, filter)
+		if err != nil {
+			return nil, err
+		}
+		return newScannerScheduler(tipsScanner, logScanner), nil
+	case "rawlog":
+		reader, err := p.commits.OpenAsZNG(ctx, zctx, commit, ksuid.Nil)
 		if err != nil {
 			return nil, err
 		}
@@ -630,12 +557,12 @@ func (r *Root) newBranchMetaScheduler(ctx context.Context, zctx *zson.Context, p
 	}
 }
 
-func (r *Root) newPoolScheduler(ctx context.Context, zctx *zson.Context, poolID, branchID, at ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) newPoolScheduler(ctx context.Context, zctx *zson.Context, poolID, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
 	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err
 	}
-	return pool.newScheduler(ctx, zctx, branchID, at, span, filter)
+	return pool.newScheduler(ctx, zctx, commit, span, filter)
 }
 
 func (r *Root) Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
@@ -645,7 +572,7 @@ func (r *Root) Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.P
 //XXX ScanPools will go away with issue #2953
 func (r *Root) ScanPoolsDeprecated(ctx context.Context, w zio.Writer) error {
 	m := zson.NewZNGMarshaler()
-	m.Decorate(zson.StyleSimple)
+	m.Decorate(zson.StylePackage)
 	pools, err := r.ListPools(ctx)
 	if err != nil {
 		return err

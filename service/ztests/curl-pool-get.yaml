@@ -5,7 +5,6 @@ script: |
     -d '{"name": "test", "layout": { "order": "desc", "keys": [["ts"]] }}' \
     http://$ZED_LAKE_HOST/pool > pool.json
   poolID=$(zq -f text "cut value.pool.id" pool.json)
-  echo === $poolID $mainID
   curl -H "Accept: application/json" http://$ZED_LAKE_HOST/pool/$poolID
 
 inputs:
@@ -15,4 +14,4 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      \{"kind":"PoolConfig","value":\{"id":"\w{42}","layout":\{"keys":\[\["ts"\]\],"order":"desc"\},"name":"test","threshold":524288000\}\}
+      \{"kind":"pools.Config","value":\{"id":"\w{42}","layout":\{"keys":\[\["ts"\]\],"order":"desc"\},"name":"test","threshold":524288000,"ts":"[0-9TZ:.\-]+"\}\}

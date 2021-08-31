@@ -24,6 +24,10 @@ func NewSerializer() *Serializer {
 	return s
 }
 
+func (s *Serializer) Decorate(style zson.TypeStyle) {
+	s.marshaler.Decorate(style)
+}
+
 func (s *Serializer) Write(v interface{}) error {
 	rec, err := s.marshaler.MarshalRecord(v)
 	if err != nil {

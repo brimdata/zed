@@ -3,9 +3,9 @@ script: |
   zed lake init -q
   zed lake create -q -p logs
   zed lake load -q -p logs babble.zson
-  zed lake log -p logs -f zng | zq -z "cut first:=segment.meta.first,last:=segment.meta.last" -
+  zed lake query "from logs@main:objects" | zq -z "cut first:=meta.first,last:=meta.last" -
   zed lake drop -q -f -p logs
-  zed lake log -p logs
+  zed lake query "from logs@main:objects"
 
 inputs:
   - name: babble.zson

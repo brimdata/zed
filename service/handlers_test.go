@@ -56,8 +56,8 @@ func TestSearch(t *testing.T) {
 {_path:"b",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
 `
 	_, conn := newCore(t)
-	poolID, mainID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
-	conn.TestLoad(poolID, mainID, strings.NewReader(src))
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	conn.TestLoad(poolID, "main", strings.NewReader(src))
 
 	res := searchZson(t, conn, poolID, `_path == "a"`)
 	const expected = `{_path:"a",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)` + "\n"
@@ -70,8 +70,8 @@ func TestSearchNoCtrl(t *testing.T) {
 {_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
 `
 	_, conn := newCore(t)
-	poolID, mainID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
-	conn.TestLoad(poolID, mainID, strings.NewReader(src))
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	conn.TestLoad(poolID, "main", strings.NewReader(src))
 
 	parsed, err := compiler.ParseProc("*")
 	require.NoError(t, err)
@@ -103,8 +103,8 @@ func TestSearchStats(t *testing.T) {
 {_path:"b",ts:1970-01-01T00:00:01Z}
 `
 	_, conn := newCore(t)
-	poolID, mainID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
-	conn.TestLoad(poolID, mainID, strings.NewReader(src))
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	conn.TestLoad(poolID, "main", strings.NewReader(src))
 	_, msgs := search(t, conn, poolID, "_path != \"b\"")
 	var stats *api.SearchStats
 	for i := len(msgs) - 1; i >= 0; i-- {
@@ -131,14 +131,14 @@ func TestQuery(t *testing.T) {
 	expected := `{_path:"b",ts:1970-01-01T00:00:01Z}
 `
 	_, conn := newCore(t)
-	poolID, mainID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
-	conn.TestLoad(poolID, mainID, strings.NewReader(src))
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	conn.TestLoad(poolID, "main", strings.NewReader(src))
 	assert.Equal(t, expected, conn.TestQuery("from test | _path == 'b'"))
 }
 
 func TestQueryEmptyPool(t *testing.T) {
 	_, conn := newCore(t)
-	poolID, _ := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
 	res := searchZson(t, conn, poolID, "from test")
 	require.Equal(t, "", res)
 }
@@ -154,15 +154,15 @@ func TestGroupByReverse(t *testing.T) {
 {ts:1970-01-01T00:00:01Z,count:2}(0)
 `
 	_, conn := newCore(t)
-	poolID, mainID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
-	conn.TestLoad(poolID, mainID, strings.NewReader(src))
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	conn.TestLoad(poolID, "main", strings.NewReader(src))
 	res := searchZson(t, conn, poolID, "every 1s count()")
 	require.Equal(t, test.Trim(counts), res)
 }
 
 func TestSearchEmptyPool(t *testing.T) {
 	_, conn := newCore(t)
-	poolID, _ := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	res := searchZson(t, conn, poolID, "*")
 	require.Equal(t, "", res)
 }
@@ -173,8 +173,8 @@ func TestSearchError(t *testing.T) {
 {_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
 `
 	_, conn := newCore(t)
-	poolID, mainID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	conn.TestLoad(poolID, mainID, strings.NewReader(src))
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
+	conn.TestLoad(poolID, "main", strings.NewReader(src))
 
 	parsed, err := compiler.ParseProc("*")
 	require.NoError(t, err)
@@ -214,8 +214,8 @@ func TestPoolStats(t *testing.T) {
 {_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
 `
 	_, conn := newCore(t)
-	poolID, mainID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
-	conn.TestLoad(poolID, mainID, strings.NewReader(src))
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	conn.TestLoad(poolID, "main", strings.NewReader(src))
 
 	span := nano.Span{Ts: 1e9, Dur: 1e9 + 1}
 	expected := lake.PoolStats{
@@ -227,7 +227,7 @@ func TestPoolStats(t *testing.T) {
 
 func TestPoolStatsNoData(t *testing.T) {
 	_, conn := newCore(t)
-	poolID, _ := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
 	info := conn.TestPoolStats(poolID)
 	expected := lake.PoolStats{
 		Size: 0,
@@ -237,7 +237,7 @@ func TestPoolStatsNoData(t *testing.T) {
 
 func TestPoolPostNameOnly(t *testing.T) {
 	_, conn := newCore(t)
-	poolID, _ := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	assert.NotEqual(t, ksuid.Nil, poolID)
 }
 
@@ -245,7 +245,7 @@ func TestPoolPostDuplicateName(t *testing.T) {
 	_, conn := newCore(t)
 	conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	_, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test"})
-	require.Equal(t, client.ErrPoolExists, err)
+	require.Equal(t, errors.Is(err, client.ErrPoolExists), true)
 }
 
 func TestPoolInvalidName(t *testing.T) {
@@ -259,7 +259,7 @@ func TestPoolInvalidName(t *testing.T) {
 		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
 	t.Run("Put", func(t *testing.T) {
-		poolID, _ := conn.TestPoolPost(api.PoolPostRequest{Name: "𝚭𝚴𝚪1"})
+		poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "𝚭𝚴𝚪1"})
 		err := conn.PoolPut(ctx, poolID, api.PoolPutRequest{Name: "𝚭𝚴𝚪/2"})
 		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
@@ -267,16 +267,16 @@ func TestPoolInvalidName(t *testing.T) {
 
 func TestPoolPutDuplicateName(t *testing.T) {
 	_, conn := newCore(t)
-	poolID, _ := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	conn.TestPoolPost(api.PoolPostRequest{Name: "test1"})
 	err := conn.PoolPut(context.Background(), poolID, api.PoolPutRequest{Name: "test"})
-	assert.EqualError(t, err, "status code 409: pool already exists")
+	assert.EqualError(t, err, "status code 409: test: pool already exists")
 }
 
 func TestPoolPut(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
-	poolID, _ := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	err := conn.PoolPut(ctx, poolID, api.PoolPutRequest{Name: "new_name"})
 	require.NoError(t, err)
 	info := conn.TestPoolGet(poolID)
@@ -286,7 +286,7 @@ func TestPoolPut(t *testing.T) {
 func TestPoolRemote(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
-	poolID, _ := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
+	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	err := conn.PoolRemove(ctx, poolID)
 	require.NoError(t, err)
 	list := conn.TestPoolList()

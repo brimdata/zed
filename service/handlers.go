@@ -3,7 +3,6 @@ package service
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 
@@ -12,9 +11,10 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/commit"
+	"github.com/brimdata/zed/lake/branches"
+	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/journal"
-	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/service/search"
 	"github.com/brimdata/zed/zio"
@@ -88,7 +88,7 @@ func handleSearchDeprecated(c *Core, w *ResponseWriter, r *Request) {
 	}
 	pool, err := c.root.OpenPool(r.Context(), ksuid.KSUID(req.Pool))
 	if err != nil {
-		if errors.Is(err, lake.ErrPoolNotFound) {
+		if errors.Is(err, pools.ErrNotFound) {
 			err = zqe.ErrNotFound(err)
 		}
 		w.Error(err)
@@ -146,19 +146,6 @@ type nopWriteCloser struct {
 
 func (nopWriteCloser) Close() error { return nil }
 
-func handleIDs(c *Core, w *ResponseWriter, r *Request) {
-	var req api.IDsRequest
-	if !r.Unmarshal(w, &req) {
-		return
-	}
-	poolID, branchID, err := c.root.IDs(r.Context(), req.Pool, req.Branch)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	w.Respond(http.StatusOK, api.IDsResponse{poolID, branchID})
-}
-
 func handlePoolListDeprecated(c *Core, w *ResponseWriter, r *Request) {
 	zw := w.ZioWriterWithOpts(anyio.WriterOpts{JSON: jsonio.WriterOpts{ForceArray: true}})
 	if zw == nil {
@@ -177,14 +164,46 @@ func handlePoolGetDeprecated(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	pool, err := c.root.OpenPool(r.Context(), id)
-	if errors.Is(err, lake.ErrPoolNotFound) {
+	if errors.Is(err, pools.ErrNotFound) {
 		err = zqe.ErrNotFound("pool %q not found", id)
 	}
 	if err != nil {
 		w.Error(err)
 		return
 	}
-	w.Respond(http.StatusOK, pool.PoolConfig)
+	w.Respond(http.StatusOK, pool.Config)
+}
+
+func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
+	id, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	branchName, ok := r.StringArg(w, "branch")
+	if !ok {
+		return
+	}
+	pool, err := c.root.OpenPool(r.Context(), id)
+	if errors.Is(err, pools.ErrNotFound) {
+		err = zqe.ErrNotFound("pool %q not found", id)
+	}
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	if branchName != "" {
+		branch, err := pool.LookupBranchByName(r.Context(), branchName)
+		if err != nil {
+			if errors.Is(err, branches.ErrNotFound) {
+				err = zqe.ErrNotFound("branch %q not found", branchName)
+			}
+			w.Error(err)
+			return
+		}
+		w.Respond(http.StatusOK, api.CommitResponse{Commit: branch.Commit})
+		return
+	}
+	w.Respond(http.StatusOK, pool.Config)
 }
 
 func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
@@ -193,7 +212,7 @@ func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	pool, err := c.root.OpenPool(r.Context(), id)
-	if errors.Is(err, lake.ErrPoolNotFound) {
+	if errors.Is(err, pools.ErrNotFound) {
 		err = zqe.ErrNotFound("pool %q not found", id)
 	}
 	if err != nil {
@@ -208,7 +227,7 @@ func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	snap, err := branch.Log().Snapshot(r.Context(), 0)
+	snap, err := branch.Pool().Snapshot(r.Context(), branch.Commit)
 	if err != nil {
 		if errors.Is(err, journal.ErrEmpty) {
 			w.WriteHeader(http.StatusNoContent)
@@ -232,7 +251,7 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 	}
 	pool, err := c.root.CreatePool(r.Context(), req.Name, req.Layout, req.Thresh)
 	if err != nil {
-		if errors.Is(err, lake.ErrPoolExists) {
+		if errors.Is(err, pools.ErrExists) {
 			err = zqe.ErrConflict(err)
 		}
 		w.Error(err)
@@ -259,9 +278,9 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	if err := c.root.RenamePool(r.Context(), id, req.Name); err != nil {
-		if errors.Is(err, lake.ErrPoolExists) {
+		if errors.Is(err, pools.ErrExists) {
 			err = zqe.ErrConflict(err)
-		} else if errors.Is(err, lake.ErrPoolNotFound) {
+		} else if errors.Is(err, pools.ErrNotFound) {
 			err = zqe.ErrNotFound(err)
 		}
 		w.Error(err)
@@ -282,63 +301,76 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	var parent, atTag ksuid.KSUID
-	if req.ParentID != "" {
-		var err error
-		parent, err = api.ParseKSUID(req.ParentID)
-		if err != nil {
-			w.Error(zqe.ErrInvalid("invalid parent ID: %s", req.ParentID))
-			return
-		}
+	commit, err := api.ParseKSUID(req.Commit)
+	if err != nil {
+		w.Error(zqe.ErrInvalid("invalid commit object: %s", req.Commit))
+		return
 	}
-	if req.At != "" {
-		var err error
-		atTag, err = api.ParseKSUID(req.At)
-		if err != nil {
-			w.Error(zqe.ErrInvalid("invalid parent at tag: %s", req.At))
-			return
-		}
-	}
-	branchRef, err := c.root.CreateBranch(r.Context(), poolID, req.Name, parent, atTag)
+	branchRef, err := c.root.CreateBranch(r.Context(), poolID, req.Name, commit)
 	if err != nil {
 		if errors.Is(err, lake.ErrBranchExists) {
 			err = zqe.ErrConflict(err)
-		} else if errors.Is(err, lake.ErrPoolNotFound) {
+		} else if errors.Is(err, pools.ErrNotFound) {
 			err = zqe.ErrNotFound(err)
 		}
 		w.Error(err)
 		return
 	}
 	c.publishEvent("branch-update", api.EventBranch{
-		PoolID:   poolID.String(),
-		BranchID: branchRef.ID.String(),
+		PoolID: poolID.String(),
+		Branch: branchRef.Name,
 	})
 	w.Respond(http.StatusOK, branchRef)
 }
 
-func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
-	var req api.BranchMergeRequest
-	if !r.Unmarshal(w, &req) {
-		return
-	}
+func handleUndoPost(c *Core, w *ResponseWriter, r *Request) {
 	poolID, ok := r.PoolID(w)
 	if !ok {
 		return
 	}
-	branchID, ok := r.BranchID(w)
+	branch, ok := r.StringArg(w, "branch")
 	if !ok {
 		return
 	}
-	var at ksuid.KSUID
-	if req.At != "" {
-		var err error
-		at, err = ksuid.Parse(req.At)
-		if err != nil {
-			w.Error(fmt.Errorf("merge endpoint: bad at option: %w", err))
-			return
-		}
+	commit, ok := r.CommitID(w)
+	if !ok {
+		return
 	}
-	commit, err := c.root.MergeBranch(r.Context(), poolID, branchID, at)
+	message, ok := r.decodeCommitMessage(w)
+	if !ok {
+		return
+	}
+	commit, err := c.root.Undo(r.Context(), poolID, branch, commit, message.Author, message.Message)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	c.publishEvent("branch-undo", api.EventBranchCommit{
+		CommitID: commit.String(),
+		PoolID:   poolID.String(),
+		Branch:   branch,
+	})
+	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
+}
+
+func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
+	poolID, ok := r.PoolID(w)
+	if !ok {
+		return
+	}
+	parentBranch, ok := r.StringArg(w, "branch")
+	if !ok {
+		return
+	}
+	childBranch, ok := r.StringArg(w, "child")
+	if !ok {
+		return
+	}
+	message, ok := r.decodeCommitMessage(w)
+	if !ok {
+		return
+	}
+	commit, err := c.root.MergeBranch(r.Context(), poolID, childBranch, parentBranch, message.Author, message.Message)
 	if err != nil {
 		w.Error(err)
 		return
@@ -346,7 +378,8 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 	c.publishEvent("branch-merge", api.EventBranchCommit{
 		CommitID: commit.String(),
 		PoolID:   poolID.String(),
-		BranchID: branchID.String(),
+		Branch:   childBranch,
+		Parent:   parentBranch,
 	})
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 }
@@ -371,17 +404,17 @@ func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	branchID, ok := r.BranchID(w)
+	branchName, ok := r.StringArg(w, "branch")
 	if !ok {
 		return
 	}
-	if err := c.root.RemoveBranch(r.Context(), poolID, branchID); err != nil {
+	if err := c.root.RemoveBranch(r.Context(), poolID, branchName); err != nil {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("branch-delete", api.EventPool{
+	c.publishEvent("branch-delete", api.EventBranch{
 		PoolID: poolID.String(),
-		//XXX TBD BranchID: branchID.String(),
+		Branch: branchName,
 	})
 	w.WriteHeader(http.StatusNoContent)
 }
@@ -398,7 +431,11 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	branchID, ok := r.BranchID(w)
+	branchName, ok := r.StringArg(w, "branch")
+	if !ok {
+		return
+	}
+	message, ok := r.decodeCommitMessage(w)
 	if !ok {
 		return
 	}
@@ -407,21 +444,10 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	branch, err := pool.OpenBranchByID(r.Context(), branchID)
+	branch, err := pool.OpenBranchByName(r.Context(), branchName)
 	if err != nil {
 		w.Error(err)
 		return
-	}
-	commitJSON := r.Header.Get("Zed-Commit")
-	var info api.CommitRequest
-	if commitJSON != "" {
-		if err := json.Unmarshal([]byte(commitJSON), &info); err != nil {
-			w.Error(fmt.Errorf("load endpoint encountered invalid JSON in Zed-Commit header: %w", err))
-			return
-		}
-	}
-	if info.Date == 0 {
-		info.Date = nano.Now()
 	}
 	zr, err := anyio.NewReader(anyio.GzipReader(r.Body), zson.NewContext())
 	if err != nil {
@@ -430,9 +456,9 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	}
 	warnings := warningCollector{}
 	zr = zio.NewWarningReader(zr, &warnings)
-	kommit, err := branch.Load(r.Context(), zr, info.Date, info.Author, info.Message)
+	kommit, err := branch.Load(r.Context(), zr, message.Author, message.Message)
 	if err != nil {
-		if errors.Is(err, commit.ErrEmptyTransaction) {
+		if errors.Is(err, commits.ErrEmptyTransaction) {
 			err = zqe.ErrInvalid("no records in request")
 		}
 		w.Error(err)
@@ -445,7 +471,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	c.publishEvent("branch-commit", api.EventBranchCommit{
 		CommitID: kommit.String(),
 		PoolID:   pool.ID.String(),
-		BranchID: branch.ID.String(),
+		Branch:   branch.Name,
 	})
 }
 
@@ -454,7 +480,11 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	branchID, ok := r.BranchID(w)
+	branchName, ok := r.StringArg(w, "branch")
+	if !ok {
+		return
+	}
+	message, ok := r.decodeCommitMessage(w)
 	if !ok {
 		return
 	}
@@ -471,7 +501,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	branch, err := pool.OpenBranchByID(r.Context(), branchID)
+	branch, err := pool.OpenBranchByName(r.Context(), branchName)
 	if err != nil {
 		w.Error(err)
 		return
@@ -481,7 +511,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	commit, err := branch.Delete(r.Context(), ids)
+	commit, err := branch.Delete(r.Context(), ids, message.Author, message.Message)
 	if err != nil {
 		w.Error(err)
 		return

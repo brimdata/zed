@@ -3,7 +3,9 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync/atomic"
 
@@ -31,7 +33,7 @@ func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*Re
 		Logger:  logger,
 	}
 	m := zson.NewZNGMarshaler()
-	m.Decorate(zson.StyleSimple)
+	m.Decorate(zson.StylePackage)
 	res := &ResponseWriter{
 		ResponseWriter: w,
 		Logger:         logger,
@@ -49,8 +51,31 @@ func (r *Request) PoolID(w *ResponseWriter) (ksuid.KSUID, bool) {
 	return r.TagFromPath("pool", w)
 }
 
-func (r *Request) BranchID(w *ResponseWriter) (ksuid.KSUID, bool) {
-	return r.TagFromPath("branch", w)
+func (r *Request) CommitID(w *ResponseWriter) (ksuid.KSUID, bool) {
+	return r.TagFromPath("commit", w)
+}
+
+func (r *Request) decodeCommitMessage(w *ResponseWriter) (api.CommitMessage, bool) {
+	commitJSON := r.Header.Get("Zed-Commit")
+	var message api.CommitMessage
+	if commitJSON != "" {
+		if err := json.Unmarshal([]byte(commitJSON), &message); err != nil {
+			w.Error(fmt.Errorf("load endpoint encountered invalid JSON in Zed-Commit header: %w", err))
+			return message, false
+		}
+	}
+	return message, true
+}
+
+func (r *Request) StringArg(w *ResponseWriter, arg string) (string, bool) {
+	v := mux.Vars(r.Request)
+	s, ok := v[arg]
+	if !ok {
+		w.Error(zqe.ErrInvalid("no arg %q in path", arg))
+		return "", false
+	}
+	decoded, err := url.QueryUnescape(s)
+	return decoded, err == nil
 }
 
 func (r *Request) TagFromPath(arg string, w *ResponseWriter) (ksuid.KSUID, bool) {

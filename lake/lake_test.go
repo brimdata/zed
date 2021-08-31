@@ -36,7 +36,7 @@ func importTestFile(t *testing.T, engine storage.Engine, branch *lake.Branch, sr
 	defer reader.Close()
 
 	ctx := context.Background()
-	_, err = branch.Load(ctx, reader, 0, "", "")
+	_, err = branch.Load(ctx, reader, "", "")
 	require.NoError(t, err)
 }
 

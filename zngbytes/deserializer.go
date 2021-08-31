@@ -13,10 +13,14 @@ type Deserializer struct {
 }
 
 func NewDeserializer(reader io.Reader, templates []interface{}) *Deserializer {
+	return NewDeserializerWithContext(zson.NewContext(), reader, templates)
+}
+
+func NewDeserializerWithContext(zctx *zson.Context, reader io.Reader, templates []interface{}) *Deserializer {
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(templates...)
 	return &Deserializer{
-		reader:      zngio.NewReader(reader, zson.NewContext()),
+		reader:      zngio.NewReader(reader, zctx),
 		unmarshaler: u,
 	}
 }

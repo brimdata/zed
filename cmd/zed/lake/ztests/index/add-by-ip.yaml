@@ -6,7 +6,7 @@ script: |
   zed lake index create -q IPs type ip
   zed lake index apply -p test IPs $id
   echo ===
-  zed lake query -Z "from test/main[log] | cut this:=index.Rule | drop id,ts"
+  zed lake query -Z "from test@main:rawlog | cut this:=index.Rule | drop id,ts"
 
 inputs:
   - name: in.zson
