@@ -685,7 +685,7 @@ time                        uid
 
 |                           |                                                 |
 | ------------------------- | ----------------------------------------------- |
-| **Description**           | Add/update fields based on the results of an expression<br><br>The `put` keyword is optional, though its explicit use may be appropriate to disambiguate from contexts where `:=` is used for [naming fields to hold aggregation results](../aggregate-functions/README.md#field-naming). |
+| **Description**           | Add/update fields based on the results of an expression<br><br>The `put` keyword is optional, though its explicit use may be appropriate to disambiguate from where `:=` is used for [naming fields to hold aggregation results](../aggregate-functions/README.md#field-naming). |
 | **Syntax**                | `[put] <field> := <expression> [, <field> := <expression> ...]`   |
 | **Required arguments**    | `<field>`<br>Field into which the result of the expression will be stored.<br><br>`<expression>`<br>A valid Zed [expression](../expressions/README.md). If evaluation of any expression fails, a warning is emitted and the original record is passed through unchanged. |
 | **Optional arguments**    | None |
