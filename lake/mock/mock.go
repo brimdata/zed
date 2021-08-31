@@ -49,8 +49,8 @@ func NewPool(poolName, branchName string) (Pool, error) {
 	}
 	return Pool{
 		name:     name,
-		id:       fakeID(name),
 		branch:   branchName,
+		id:       fakeID(name),
 		branchID: fakeID(branchName),
 		layout:   layout,
 	}, nil

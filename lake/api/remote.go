@@ -172,9 +172,9 @@ func (r *RemoteSession) Delete(ctx context.Context, poolID, branchID ksuid.KSUID
 		return ksuid.Nil, err
 	}
 	defer res.Body.Close()
-	var staged api.CommitResponse
-	if err := unmarshal(res, &staged); err != nil {
+	var resp api.CommitResponse
+	if err := unmarshal(res, &resp); err != nil {
 		return ksuid.Nil, err
 	}
-	return staged.Commit, err
+	return resp.Commit, err
 }

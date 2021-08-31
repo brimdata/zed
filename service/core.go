@@ -141,19 +141,19 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/ids", handleIDs).Methods("POST")
 	c.authhandle("/pool", handlePoolPost).Methods("POST")
 	c.authhandle("/pool/{pool}", handlePoolDelete).Methods("DELETE")
+	c.authhandle("/pool/{pool}", handleBranchPost).Methods("POST")
 	c.authhandle("/pool/{pool}", handlePoolPut).Methods("PUT")
 	c.authhandle("/pool/{pool}/{branch}", handleBranchDelete).Methods("DELETE")
-	c.authhandle("/pool/{pool}", handleBranchPost).Methods("POST")
 	c.authhandle("/pool/{pool}/{branch}", handleBranchLoad).Methods("POST")
-	c.authhandle("/pool/{pool}/{branch}/merge", handleBranchMerge).Methods("POST")
 	c.authhandle("/pool/{pool}/{branch}/delete", handleDelete).Methods("POST")
+	c.authhandle("/pool/{pool}/{branch}/merge", handleBranchMerge).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
 	c.authhandle("/query", handleQuery).Methods("POST")
 
 	// Deprecated endpoints
-	c.authhandle("/search", handleSearchDeprecated).Methods("POST")
 	c.authhandle("/pool", handlePoolListDeprecated).Methods("GET")
 	c.authhandle("/pool/{pool}", handlePoolGetDeprecated).Methods("GET")
+	c.authhandle("/search", handleSearchDeprecated).Methods("POST")
 	// c.authhandle("/index", handleIndexPost).Methods("POST")
 }
 

@@ -238,7 +238,6 @@ func TestPoolStatsNoData(t *testing.T) {
 func TestPoolPostNameOnly(t *testing.T) {
 	_, conn := newCore(t)
 	poolID, _ := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	//assert.Equal(t, "test", pool.Name)
 	assert.NotEqual(t, ksuid.Nil, poolID)
 }
 
@@ -304,7 +303,6 @@ func TestNoEndSlashSupport(t *testing.T) {
 func TestRequestID(t *testing.T) {
 	ctx := context.Background()
 	t.Run("GeneratesUniqueID", func(t *testing.T) {
-		t.Skip("GET /pool is deprecated")
 		_, conn := newCore(t)
 		res1, err := conn.Do(ctx, "GET", "/pool", nil)
 		require.NoError(t, err)
@@ -314,7 +312,6 @@ func TestRequestID(t *testing.T) {
 		assert.NotEqual(t, "", res2.Header().Get("X-Request-ID"))
 	})
 	t.Run("PropagatesID", func(t *testing.T) {
-		t.Skip("GET /pool is deprecated")
 		_, conn := newCore(t)
 		requestID := "random-request-ID"
 		req := conn.Request(context.Background())
