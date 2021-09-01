@@ -685,9 +685,9 @@ time                        uid
 
 |                           |                                                 |
 | ------------------------- | ----------------------------------------------- |
-| **Description**           | Add/update fields based on the results of an expression         |
-| **Syntax**                | `put <field> := <expression> [, <field> := <expression> ...]`   |
-| **Required arguments**    | `<field>`<br>Field into which the result of the expression will be stored.<br><br>`<expression>`<br>A valid Zed [expression](../expressions/README.md). If evaluation of any expression fails, a warning is emitted and the original record is passed through unchanged. |
+| **Description**           | Add/update fields based on the results of an expression.<br><br>If evaluation of any expression fails, a warning is emitted and the original record is passed through unchanged.<br><br>As this operation is very common, the `put` keyword is optional. |
+| **Syntax**                | `[put] (<field> := <expression>) \| <call-expression> [, (<field> := <expression>) \| <call-expression> ...]` |
+| **Required arguments**    | One or more of either:<br><br>`<field> := <expression>`<br>Any valid Zed [expression](../expressions/README.md), preceded by the assignment operator `:=` and the name of a field in which to store the result.<br><br>`<call-expression>`<br>A call to a function. When this shorthand is used, the value returned by the function will be stored in a field of the same name as the function. |
 | **Optional arguments**    | None |
 | **Limitations**           | If multiple fields are written in a single `put`, all the new field values are computed first and then they are all written simultaneously.  As a result, a computed value cannot be referenced in another expression.  If you need to re-use a computed result, this can be done by chaining multiple `put` operators.  For example, this will not work:<br>`put N:=len(somelist), isbig:=N>10`<br>But it could be written instead as:<br>`put N:=len(somelist) \| put isbig:=N>10` |
 
@@ -706,6 +706,25 @@ id.orig_h     id.orig_p id.resp_h       id.resp_p orig_bytes resp_bytes total_by
 10.164.94.120 33691     10.47.3.200     80        355        1543916493 1543916848
 10.47.8.100   37110     128.101.240.215 80        16398      376626606  376643004
 10.47.3.151   11120     198.255.68.110  80        392        274063633  274064025
+...
+```
+
+#### Example #2:
+
+As noted above, shorthand syntax may be used, such as leaving out the optional
+`put` keyword or calling a function without specifying a field name in which
+to store the value it returns. Using both of these shortcuts, here we create
+a field to hold the lowercase representation of another field value.
+
+```mdtest-command zed-sample-data/zeek-default
+zq -f table 'cut method | to_lower(method)' http.log.gz
+```
+
+#### Output:
+```mdtest-output head
+method  to_lower
+GET     get
+GET     get
 ...
 ```
 
