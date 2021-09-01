@@ -6,6 +6,7 @@ inputs:
       {}
       {"a": null}
       {"a": {}}
+      {"a": {}(=alias)}
       {"a": {"c": null}}
       {"a": {"c": {}}}
       {"a": {"c": {"a": 4}}}
@@ -17,6 +18,7 @@ outputs:
   - name: stdout
     data: |
       {pre:"pre",a:{a:1,b:2,c:{a:3},d:4},b:5,post:"post"}
+      {a:{a:1,b:2,c:{a:3},d:4},pre:"pre",b:5,post:"post"}
       {a:{a:1,b:2,c:{a:3},d:4},pre:"pre",b:5,post:"post"}
       {a:{a:1,b:2,c:{a:3},d:4},pre:"pre",b:5,post:"post"}
       {a:{c:{a:3},a:1,b:2,d:4},pre:"pre",b:5,post:"post"}
