@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"os"
+	"os/exec"
 
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/terminal"
@@ -96,6 +97,14 @@ func (f *Flags) FileName() string {
 	return f.outputFile
 }
 
+var child *exec.Cmd
+
+func WaitForChild() {
+	if child != nil {
+		child.Wait()
+	}
+}
+
 func (f *Flags) Open(ctx context.Context, engine storage.Engine) (zio.WriteCloser, error) {
 	if f.dir != "" {
 		d, err := emitter.NewDir(ctx, engine, f.dir, f.outputFile, os.Stderr, f.WriterOpts)
@@ -106,6 +115,16 @@ func (f *Flags) Open(ctx context.Context, engine storage.Engine) (zio.WriteClose
 	}
 	if f.outputFile == "" && f.color && terminal.IsTerminalFile(os.Stdout) {
 		color.Enabled = true
+		if pager := os.Getenv("ZED_PAGER"); pager != "" && (f.zsonPretty || f.Format == "lake") {
+			cmd := exec.Command("/usr/bin/less", "-R")
+			if w, err := cmd.StdinPipe(); err == nil {
+				cmd.Stdout = os.Stdout
+				if err := cmd.Start(); err == nil {
+					child = cmd
+					return anyio.NewWriter(w, f.WriterOpts)
+				}
+			}
+		}
 	}
 	w, err := emitter.NewFileFromPath(ctx, engine, f.outputFile, f.WriterOpts)
 	if err != nil {

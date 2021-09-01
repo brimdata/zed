@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/api"
 	"github.com/brimdata/zed/cmd/zed/compile"
 	"github.com/brimdata/zed/cmd/zed/index"
@@ -46,6 +47,7 @@ func main() {
 	zed.Add(index.Cmd)
 	if err := zed.ExecRoot(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
+		outputflags.WaitForChild()
 		os.Exit(1)
 	}
 }
