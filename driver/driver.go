@@ -93,7 +93,6 @@ func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *
 }
 
 func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-chan time.Time) error {
-	defer pctx.Cancel()
 	puller := runtime.Puller()
 	if puller == nil {
 		return errors.New("internal error: driver called with unprepared runtime")
@@ -106,12 +105,18 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 	go func() {
 		for {
 			batch, err := safePull(puller)
-			select {
-			case resultCh <- proc.Result{Batch: batch, Err: err}:
-				if batch == nil || err != nil {
-					return
-				}
-			case <-pctx.Done():
+			resultCh <- proc.Result{Batch: batch, Err: err}
+			if batch == nil || err != nil {
+				close(resultCh)
+				return
+			}
+		}
+	}()
+	defer func() {
+		pctx.Cancel()
+		// Drain resultCh so puller sees cancellation and can clean up.
+		for {
+			if _, ok := <-resultCh; !ok {
 				return
 			}
 		}
