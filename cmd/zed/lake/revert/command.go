@@ -1,4 +1,4 @@
-package undo
+package revert
 
 import (
 	"errors"
@@ -12,22 +12,22 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 )
 
-var Undo = &charm.Spec{
-	Name:  "undo",
-	Usage: "undo -p pool[@branch] commit",
-	Short: "undo reverts a commit in a branch",
+var Revert = &charm.Spec{
+	Name:  "revert",
+	Usage: "revert -p pool[@branch] commit",
+	Short: "revert reverses an old commit",
 	Long: `
-The undo command reverts the actions in a commit by applying the inverse
-steps to a new commit a the tip of the indicated branch.  Any data loaded
+The revert command reverses the actions in a commit by applying the inverse
+steps in a new commit to the tip of the indicated branch.  Any data loaded
 in a reverted commit remains in the lake but no longer appears in the branch.
-This new commit may also be reverted by an additional undo operation, etc.
+The new commit may recursively be reverted by an additional revert operation.
 `,
 	New: New,
 }
 
 func init() {
-	zedlake.Cmd.Add(Undo)
-	zedapi.Cmd.Add(Undo)
+	zedlake.Cmd.Add(Revert)
+	zedapi.Cmd.Add(Revert)
 }
 
 type Command struct {
@@ -71,12 +71,12 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	undoID, err := lake.Undo(ctx, poolID, branchName, commitID, c.CommitMessage())
+	revertID, err := lake.Revert(ctx, poolID, branchName, commitID, c.CommitMessage())
 	if err != nil {
 		return err
 	}
 	if !c.lakeFlags.Quiet {
-		fmt.Printf("%q: %s reverted in %s\n", branchName, commitID, undoID)
+		fmt.Printf("%q: %s reverted in %s\n", branchName, commitID, revertID)
 	}
 	return nil
 }

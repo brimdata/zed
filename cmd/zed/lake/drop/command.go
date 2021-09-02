@@ -52,8 +52,11 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	poolName, branchName := c.lakeFlags.Names()
-	if poolName == "" || branchName != "" {
+	if poolName == "" {
 		return errors.New("name of pool must be supplied with -p option")
+	}
+	if branchName != "" {
+		return errors.New("branch name not allowed; use the branch command to delete branches")
 	}
 	lake, err := c.lake.Open(ctx)
 	if err != nil {

@@ -60,7 +60,7 @@ func CreateBranch(ctx context.Context, poolConfig *pools.Config, engine storage.
 		return nil, err
 	}
 	if _, err := store.LookupByName(ctx, name); err == nil {
-		return nil, fmt.Errorf("%s/%s: %w", poolConfig.Name, name, ErrBranchExists)
+		return nil, fmt.Errorf("%s/%s: %w", poolConfig.Name, name, branches.ErrExists)
 	}
 	branchConfig := branches.NewConfig(name, parent)
 	if err := store.Add(ctx, branchConfig); err != nil {

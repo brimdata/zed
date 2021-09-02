@@ -151,7 +151,7 @@ The create command initiates a new pool with a single branch called `main`.
 
 ### Branch
 
-A branch is simply a named pointer to a commit object in the zed lake.
+A branch is simply a named pointer to a commit object in the Zed lake.
 Like git, commit objects are arranged into a tree and represent the entire
 commit history of the lake.
 A branch is created with the `branch` command, e.g.,
@@ -159,9 +159,9 @@ A branch is created with the `branch` command, e.g.,
 zed lake branch -p logs@main staging
 ```
 This creates a new branch called "staging" in pool "logs", which points to
-same commit object as the "main" branch.  Commits to the "staging" branch
+the same commit object as the "main" branch.  Commits to the "staging" branch
 will be added to the commit history without affecting the "main" branch
-and each branch can be queried indepedently at any time.
+and each branch can be queried independently at any time.
 
 ### Load
 
@@ -219,7 +219,7 @@ To understand the log contents, the `load` operation is actually
 decomposed into two steps under the covers:
 an `add` step stores one or more
 new immutable data objects in the lake and a `commit` operation
-materialize the objects into a branch with an ACID transaction.
+materializes the objects into a branch with an ACID transaction.
 This updates the branch pointer to point at a new commit object
 referencing the data objects where the new commit object's parent
 points at the branch's previous commit object, thus forming a path
@@ -241,7 +241,7 @@ from the current pointer back through history to the first commit object.
 
 A commit object includes
 an optional author and message, along with a required timestamp,
-that is stored in the commit journal for reference.  This values may
+that is stored in the commit journal for reference.  These values may
 be specified as options to the `load` command, and are also available in the
 API for automation.  For example,
 ```
@@ -274,7 +274,7 @@ zed lake merge -p logs@updates main
 where the "updates" branch is being merged into the "main" branch.
 
 A merge operation finds a common ancestor in the commit history then
-computes the set of changes needed for target branch to reflect the
+computes the set of changes needed for the target branch to reflect the
 data additions and deletions in the source branch.
 While the merge operation is performed, data can still be written
 to both branches and queries performed.  Newly written data remains in the
@@ -404,7 +404,7 @@ lake can be easily queried.
 
 If a writer commits data after a reader starts scanning, then the reader
 does not see the new data since it's scanning the snapshot that existed
-before these new writes occur.
+before these new writes occurred.
 
 Also, arbitrary metadata can be committed to the log as described below,
 e.g., to associate index objects or derived analytics to a specific
@@ -646,9 +646,6 @@ sort of the KSUIDs results in a creation-time ordering (though this ordering
 is not relied on for causal relationships since clock skew can violate
 such an assumption).
 
-Data objects are referred to by zero or more commit objects, where the =
-commits are maintained referenced by the branches journal described below.
-
 > While a Zed lake is defined in terms of a cloud object store, it may also
 > be realized on top of a file system, which provides a convenient means for
 > local, small-scale deployments for test/debug workflows.  Thus, for simple use cases,
@@ -709,12 +706,12 @@ Objects are immutable and uniquely named so there is never a concurrent write
 condition.
 
 The `add` and `commit` operations are transactionally stored
-in a chain of commit object.  Any number of adds (and deletes) may appear
+in a chain of commit objects.  Any number of adds (and deletes) may appear
 in a commit object.  All of the operations that belong to a commit are
 identified with a commit identifier (ID).
 
 As each commit object points to its parent (except for the initial commit
-in main), the collection commit objects in a pool forms a tree.
+in main), the collection of commit objects in a pool forms a tree.
 
 Each commit object contains a sequence of _actions_:
 
@@ -737,7 +734,7 @@ insights about data layout, provenance, history, and so forth.  Thus,
 Zed lake provides a means to query a pool's configuration state as well,
 thereby allowing past versions of the complete pool and branch configurations
 as well as all of their underlying data to be subject to time travel.
-To interrogate the underlying trasaction history of the branches and
+To interrogate the underlying transaction history of the branches and
 their pointers, simply query a pool's "branchlog" via the syntax `<pool>:branchlog`.
 
 For example, to aggregate a count of each journal entry type of the pool
@@ -974,7 +971,7 @@ The initial prototype has been simplified as follows:
 
 ## CLI tool naming conventions
 
-> This is a work in in progress.
+> This is a work in progress.
 
 Now that we have a comprehensive branching model, the `-p` argument to the
 `zed lake` commands needs to be revisited.
@@ -1003,7 +1000,7 @@ nature of a branch as a `ref`.
 Both a `commitish` and a `ref` may drop omit `@` suffix
 and refer solely to the pool name, in which case it becomes pool@main.
 
-Complicating matters further, a `ref` may be specified a simple name
+Complicating matters further, a `ref` may be specified as a simple name
 without the `pool@` qualifier when the pool context is known from
 another argument as in merge or rename.  We will refer to this
 plain name as `sref` below (short `ref`).
@@ -1027,7 +1024,7 @@ or a `ref`.
 * ls `pool` - list branch names of a pool
 * merge `commitish` `sref` - merge a commit history rooted at `commitish` into a branch `sref`
 * query: `from commitish` - data scan
-* query: `from commitish:meta` branch or comit meta-scan (-no defaulting main here because thats pool-level meta)
+* query: `from commitish:meta` branch or commit meta-scan (no defaulting to main here as that would be pool-level meta)
 * query: `from pool:meta`
 * query: `from :meta`
 * rebase `ref` `commitish` - rebase a branch `ref` onto the commit object history starting at `commitish` (this is peculiar because `ref` could implied the pool name for `commitish` though this will usually be a branch name)

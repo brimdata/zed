@@ -99,7 +99,7 @@ func (s *Store) load(ctx context.Context) error {
 		case *Update:
 			key := e.Key()
 			if _, ok := table[key]; !ok {
-				return fmt.Errorf("update to non-existant key in journal store: %T", key)
+				return fmt.Errorf("update to non-existent key in journal store: %T", key)
 			}
 			table[key] = e.Entry
 		case *Delete:
@@ -252,8 +252,7 @@ func (s *Store) Update(ctx context.Context, e Entry, c Constraint) error {
 		if c != nil && !c(e) {
 			return ErrConstraint
 		}
-		err := s.journal.CommitAt(ctx, s.at, b)
-		if err != nil {
+		if err := s.journal.CommitAt(ctx, s.at, b); err != nil {
 			if os.IsExist(err) {
 				time.Sleep(time.Millisecond)
 				continue

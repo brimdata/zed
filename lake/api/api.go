@@ -28,7 +28,7 @@ type Interface interface {
 	MergeBranch(ctx context.Context, pool ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (ksuid.KSUID, error)
 	Load(ctx context.Context, pool ksuid.KSUID, branch string, r zio.Reader, message api.CommitMessage) (ksuid.KSUID, error)
 	Delete(ctx context.Context, pool ksuid.KSUID, branchName string, tags []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error)
-	Undo(ctx context.Context, poolID ksuid.KSUID, branch string, commitID ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error)
+	Revert(ctx context.Context, poolID ksuid.KSUID, branch string, commitID ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error)
 	AddIndexRules(context.Context, []index.Rule) error
 	DeleteIndexRules(context.Context, []ksuid.KSUID) ([]index.Rule, error)
 	ApplyIndexRules(ctx context.Context, rule string, pool ksuid.KSUID, branchName string, ids []ksuid.KSUID) (ksuid.KSUID, error)

@@ -275,13 +275,13 @@ func (c *Connection) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childB
 	return c.stream(req)
 }
 
-func (c *Connection) Undo(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (*Response, error) {
+func (c *Connection) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (*Response, error) {
 	req := c.Request(ctx)
 	if err := encodeCommitMessage(req, message); err != nil {
 		return nil, err
 	}
 	req.Method = http.MethodPost
-	req.URL = urlPath("pool", poolID.String(), "branch", branchName, "undo", commitID.String())
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName, "revert", commitID.String())
 	return c.stream(req)
 }
 

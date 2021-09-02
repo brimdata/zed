@@ -21,7 +21,10 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-const maxCommitRetries = 10
+const (
+	maxCommitRetries  = 10
+	maxMessageObjects = 10
+)
 
 var ErrCommitFailed = fmt.Errorf("exceeded max update attempts (%d) to branch tip: commit failed", maxCommitRetries)
 
@@ -68,8 +71,6 @@ func (b *Branch) Load(ctx context.Context, r zio.Reader, author, message string)
 	})
 }
 
-const maxMessageObjects = 10
-
 func loadMessage(segments []segment.Reference) string {
 	var b strings.Builder
 	plural := "s"
@@ -81,7 +82,7 @@ func loadMessage(segments []segment.Reference) string {
 		b.WriteString("  ")
 		b.WriteString(segment.String())
 		b.WriteByte('\n')
-		if k >= 10 {
+		if k >= maxMessageObjects {
 			b.WriteString("  ...\n")
 			break
 		}
@@ -106,7 +107,7 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 	})
 }
 
-func (b *Branch) Undo(ctx context.Context, commit ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
+func (b *Branch) Revert(ctx context.Context, commit ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
 		patch, err := b.pool.commits.PatchOfCommit(ctx, commit)
 		if err != nil {

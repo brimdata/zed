@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/journal"
@@ -96,7 +95,7 @@ func handleSearchDeprecated(c *Core, w *ResponseWriter, r *Request) {
 	}
 	branch, err := pool.OpenBranchByName(r.Context(), "main")
 	if err != nil {
-		if errors.Is(err, lake.ErrBranchNotFound) {
+		if errors.Is(err, branches.ErrNotFound) {
 			err = zqe.ErrNotFound(err)
 		}
 		w.Error(err)
@@ -308,7 +307,7 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 	}
 	branchRef, err := c.root.CreateBranch(r.Context(), poolID, req.Name, commit)
 	if err != nil {
-		if errors.Is(err, lake.ErrBranchExists) {
+		if errors.Is(err, branches.ErrExists) {
 			err = zqe.ErrConflict(err)
 		} else if errors.Is(err, pools.ErrNotFound) {
 			err = zqe.ErrNotFound(err)
@@ -323,7 +322,7 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 	w.Respond(http.StatusOK, branchRef)
 }
 
-func handleUndoPost(c *Core, w *ResponseWriter, r *Request) {
+func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
 	poolID, ok := r.PoolID(w)
 	if !ok {
 		return
@@ -340,12 +339,12 @@ func handleUndoPost(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	commit, err := c.root.Undo(r.Context(), poolID, branch, commit, message.Author, message.Body)
+	commit, err := c.root.Revert(r.Context(), poolID, branch, commit, message.Author, message.Body)
 	if err != nil {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("branch-undo", api.EventBranchCommit{
+	c.publishEvent("branch-revert", api.EventBranchCommit{
 		CommitID: commit.String(),
 		PoolID:   poolID.String(),
 		Branch:   branch,

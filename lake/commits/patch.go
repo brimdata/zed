@@ -96,7 +96,7 @@ func (p *Patch) NewCommitObject(parent ksuid.KSUID, retries int, author, message
 	return o
 }
 
-//XXX we need to handle more than add/delete
+//XXX We need to handle more than add/delete.  See issue #3000.
 func (p *Patch) Undo(tip *Snapshot, commit, parent ksuid.KSUID, retries int, author, message string) (*Object, error) {
 	object := NewObject(parent, author, message, retries)
 	// For each segment in the patch that is also in the tip, we do a delete.

@@ -81,10 +81,13 @@ func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout orde
 }
 
 func (r *RemoteSession) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string, at ksuid.KSUID) error {
-	_, err := r.conn.BranchPost(ctx, poolID, api.BranchPostRequest{
+	resp, err := r.conn.BranchPost(ctx, poolID, api.BranchPostRequest{
 		Name:   name,
 		Commit: at.String(),
 	})
+	if err == nil {
+		resp.Body.Close()
+	}
 	return err
 }
 
@@ -134,8 +137,8 @@ func (r *RemoteSession) Load(ctx context.Context, poolID ksuid.KSUID, branchName
 	return res.Commit, err
 }
 
-func (r *RemoteSession) Undo(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
-	res, err := r.conn.Undo(ctx, poolID, branchName, commitID, message)
+func (r *RemoteSession) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
+	res, err := r.conn.Revert(ctx, poolID, branchName, commitID, message)
 	if err != nil {
 		return ksuid.Nil, err
 	}

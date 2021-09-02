@@ -88,8 +88,7 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 	}
 	var objects []*Object
 	var base *Snapshot
-	at := leaf
-	for at != ksuid.Nil {
+	for at := leaf; at != ksuid.Nil; {
 		if snap, ok := s.snapshots[at]; ok {
 			base = snap
 			break
@@ -137,8 +136,7 @@ func (s *Store) Path(ctx context.Context, leaf ksuid.KSUID) ([]ksuid.KSUID, erro
 
 func (s *Store) PathRange(ctx context.Context, from, to ksuid.KSUID) ([]ksuid.KSUID, error) {
 	var path []ksuid.KSUID
-	at := from
-	for at != ksuid.Nil {
+	for at := from; at != ksuid.Nil; {
 		if cache, ok := s.paths[at]; ok {
 			for _, id := range cache {
 				path = append(path, id)

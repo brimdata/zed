@@ -147,7 +147,7 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/branch/{branch}", handleBranchLoad).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/delete", handleDelete).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/merge/{child}", handleBranchMerge).Methods("POST")
-	c.authhandle("/pool/{pool}/branch/{branch}/undo/{commit}", handleUndoPost).Methods("POST")
+	c.authhandle("/pool/{pool}/branch/{branch}/revert/{commit}", handleRevertPost).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
 	c.authhandle("/query", handleQuery).Methods("POST")
 

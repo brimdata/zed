@@ -25,13 +25,6 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-var (
-	//ErrPoolExists = errors.New("pool already exists")
-	//ErrPoolNotFound   = errors.New("pool not found")
-	ErrBranchExists   = errors.New("branch already exists")
-	ErrBranchNotFound = errors.New("branch not found")
-)
-
 const (
 	Version         = 1
 	PoolsTag        = "pools"
@@ -356,7 +349,7 @@ func (r *Root) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch,
 	return child.mergeInto(ctx, parent, author, message)
 }
 
-func (r *Root) Undo(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
+func (r *Root) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
 	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return ksuid.Nil, err
@@ -365,7 +358,7 @@ func (r *Root) Undo(ctx context.Context, poolID ksuid.KSUID, branchName string, 
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return branch.Undo(ctx, commitID, author, message)
+	return branch.Revert(ctx, commitID, author, message)
 }
 
 func (r *Root) AddIndexRules(ctx context.Context, rules []index.Rule) error {

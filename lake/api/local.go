@@ -147,8 +147,8 @@ func (l *LocalSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchNam
 	return commitID, nil
 }
 
-func (l *LocalSession) Undo(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
-	return l.root.Undo(ctx, poolID, branchName, commitID, message.Author, message.Body)
+func (l *LocalSession) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
+	return l.root.Revert(ctx, poolID, branchName, commitID, message.Author, message.Body)
 }
 
 func (l *LocalSession) ApplyIndexRules(ctx context.Context, name string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
