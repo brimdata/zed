@@ -43,7 +43,7 @@ func (c *CommitFlags) SetFlags(f *flag.FlagSet) {
 
 func (c *CommitFlags) CommitMessage() api.CommitMessage {
 	return api.CommitMessage{
-		Author:  c.User,
-		Message: c.Message,
+		Author: c.User,
+		Body:   c.Message,
 	}
 }

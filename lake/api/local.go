@@ -82,7 +82,7 @@ func (l *LocalSession) RemoveBranch(ctx context.Context, poolID ksuid.KSUID, bra
 }
 
 func (l *LocalSession) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (ksuid.KSUID, error) {
-	return l.root.MergeBranch(ctx, poolID, childBranch, parentBranch, message.Author, message.Message)
+	return l.root.MergeBranch(ctx, poolID, childBranch, parentBranch, message.Author, message.Body)
 }
 
 func (l *LocalSession) AddIndexRules(ctx context.Context, rules []index.Rule) error {
@@ -127,12 +127,12 @@ func (l *LocalSession) lookupBranch(ctx context.Context, poolID ksuid.KSUID, bra
 	return pool, branch, nil
 }
 
-func (l *LocalSession) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r zio.Reader, commit api.CommitMessage) (ksuid.KSUID, error) {
+func (l *LocalSession) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r zio.Reader, message api.CommitMessage) (ksuid.KSUID, error) {
 	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return branch.Load(ctx, r, commit.Author, commit.Message)
+	return branch.Load(ctx, r, message.Author, message.Body)
 }
 
 func (l *LocalSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
@@ -140,7 +140,7 @@ func (l *LocalSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchNam
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	commitID, err := branch.Delete(ctx, ids, message.Author, message.Message)
+	commitID, err := branch.Delete(ctx, ids, message.Author, message.Body)
 	if err != nil {
 		return ksuid.Nil, err
 	}
@@ -148,7 +148,7 @@ func (l *LocalSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchNam
 }
 
 func (l *LocalSession) Undo(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
-	return l.root.Undo(ctx, poolID, branchName, commitID, message.Author, message.Message)
+	return l.root.Undo(ctx, poolID, branchName, commitID, message.Author, message.Body)
 }
 
 func (l *LocalSession) ApplyIndexRules(ctx context.Context, name string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {

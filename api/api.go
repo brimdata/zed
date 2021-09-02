@@ -111,8 +111,8 @@ type BranchMergeRequest struct {
 }
 
 type CommitMessage struct {
-	Author  string `zng:"author"`
-	Message string `zng:"message"`
+	Author string `zng:"author"`
+	Body   string `zng:"body"`
 }
 
 type CommitResponse struct {

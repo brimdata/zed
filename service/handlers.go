@@ -340,7 +340,7 @@ func handleUndoPost(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	commit, err := c.root.Undo(r.Context(), poolID, branch, commit, message.Author, message.Message)
+	commit, err := c.root.Undo(r.Context(), poolID, branch, commit, message.Author, message.Body)
 	if err != nil {
 		w.Error(err)
 		return
@@ -370,7 +370,7 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	commit, err := c.root.MergeBranch(r.Context(), poolID, childBranch, parentBranch, message.Author, message.Message)
+	commit, err := c.root.MergeBranch(r.Context(), poolID, childBranch, parentBranch, message.Author, message.Body)
 	if err != nil {
 		w.Error(err)
 		return
@@ -456,7 +456,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	}
 	warnings := warningCollector{}
 	zr = zio.NewWarningReader(zr, &warnings)
-	kommit, err := branch.Load(r.Context(), zr, message.Author, message.Message)
+	kommit, err := branch.Load(r.Context(), zr, message.Author, message.Body)
 	if err != nil {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
 			err = zqe.ErrInvalid("no records in request")
@@ -511,7 +511,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	commit, err := branch.Delete(r.Context(), ids, message.Author, message.Message)
+	commit, err := branch.Delete(r.Context(), ids, message.Author, message.Body)
 	if err != nil {
 		w.Error(err)
 		return
