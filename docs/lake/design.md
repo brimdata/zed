@@ -155,11 +155,13 @@ A branch is created with the `branch` command, e.g.,
 zed lake branch -p logs@main staging
 ```
 This creates a new branch called "staging" in pool "logs", which points to
-same commit object as the "main" branch.  
+same commit object as the "main" branch.  Commits to the "staging" branch
+will be added to the commit history without affecting the "main" branch
+and each branch can be queried indepedently at any time.
 
 ### Load
 
-Data is loaded and committed into a lake with the `load` command, e.g.,
+Data is loaded and committed into a branch with the `load` command, e.g.,
 ```
 zed lake load -p logs sample.ndjson
 ```
@@ -188,29 +190,56 @@ a "table" as all Zed data is _self describing_ and can be queried in a
 schema-agnostic fashion.  Data of any _shape_ can be stored in any pool
 and arbitrary data _shapes_ can coexist side by side.
 
-#### Commit Log
+#### Data Segmentation
 
-Continuing the `git` metaphor, the `load` operation is actually
+In a `load` operation, a commit is broken out into units called _data objects_
+where a target object size is configured into the pool,
+typically 100-500MB.  The records within each object are sorted by the pool key(s).
+A data object is presumed by the implementation
+to fit into the memory of an intake worker node
+so that such a sort can be trivially accomplished.
+
+Data added to a pool can arrive in any order with respect to the pool key.
+While each object is sorted before it is written,
+the collection of objects is generally not sorted.
+
+### Log
+
+Like `git log`, the command `zed lake log` prints a history of commit objects
+starting from any commit.  The log can be displayed with the `log` command,
+e.g.,
+```
+zed lake log -p pool@branch
+```
+To understand the log contents, the `load` operation is actually
 decomposed into two steps under the covers:
 an `add` step stores one or more
 new immutable data objects in the lake and a `commit` operation
-materialize the objects into a branch with an ACID transaction
-updating the branch pointer to the new commit object.
+materialize the objects into a branch with an ACID transaction.
+This updates the branch pointer to point at a new commit object
+referencing the data objects where the new commit object's parent
+points at the branch's previous commit object, thus forming a path
+through the object tree.
 
-The `add` and `commit` operations are transactionally stored
-in a chain of commit object.  Any number of adds (and deletes) may appear
-in a commit object.  All of the operations that belong to a commit are
-identified with a commit identifier (ID).
+> Note that following the pointers of a sequence of commit objects
+> each stored independently in cloud storage can have tremendously
+> high latency.  Fortunately, all of these objects are immutable and
+> any commit object thus has a predetermined state that can be computed
+> from its predecessors and persisted as a snapshot and cached
+> in memory (or in redis etc).
 
-Both commit objects and data objects are named using globally unique
-[KSUIDs](https://github.com/segmentio/ksuid).
+Every commit object and data object is named by and referenced
+using globally unique [KSUIDs](https://github.com/segmentio/ksuid),
+called a `commit ID` or a data `object ID`, respectively.
+
+The log command prints the commit ID of each commit object in that path
+from the current pointer back through history to the first commit object.
 
 A commit object includes
 an optional author and message, along with a required timestamp,
 that is stored in the commit journal for reference.  This values may
 be specified as options to the `load` command, and are also available in the
-API for automation.
-For example,
+API for automation.  For example,
 ```
 zed lake load -p logs -user user@example.com -message "new version of prod dataset" ...
 ```
@@ -225,25 +254,12 @@ every journal entry, which has a Zed type signature as follows:
 }
 ```
 None of the fields are used by the Zed lake system for any purpose
-except to provide information about the journal commit to the end user
+except to provide information about the commit object to the end user
 and/or end application.  Any ZSON/ZNG data can be stored in the `Data` field
 allowing external applications to implement arbitrary data provenance and audit
 capabilities by embedding custom metadata in the commit journal.
 
 > The Data field is not yet implemented.
-
-#### Data Segmentation
-
-In a `load` operation, a commit is broken out into units called _data objects_
-where a target object size is configured into the pool,
-typically 100-500MB.  The records within each object are sorted by the pool key(s).
-A data object is presumed by the implementation
-to fit into the memory of an intake worker node
-so that such a sort can be trivially accomplished.
-
-Data added to a pool can arrive in any order with respect to the pool key.
-While each object is sorted before it is written,
-the collection of objects is generally not sorted.
 
 ### Merge
 
@@ -252,8 +268,9 @@ Data is merged from one branch into another with the `merge` command, e.g.,
 zed lake merge -p logs@updates main
 ```
 where the "updates" branch is being merged into the "main" branch.
+
 A merge operation finds a common ancestor in the commit history then
-computes the set of changes needed to target branch to reflect the
+computes the set of changes needed for target branch to reflect the
 data additions and deletions in the source branch.
 While the merge operation is performed, data can still be written
 to both branches and queries performed.  Newly written data remains in the
@@ -266,6 +283,11 @@ For example, data can be continuously ingested into a branch of main called `liv
 and orchestration logic can periodically merge updates from branch `live` to
 branch `main`, possibly compacting and indexing data after the merge
 according to configured policies and logic.
+
+### Rebase
+
+> TBD
+
 
 ### Query
 
@@ -366,8 +388,9 @@ zed lake query -f lake "from logs@live:branches"
 
 The `commit` operation is _transactional_.  This means that a query scanning
 a pool sees its entire data scan as a fixed "snapshot" with respect to the
-commit history.  In fact, the Zed language includes an `at` specification that
-can be used to specify a commit tag at which to query, e.g.,
+commit history.  In fact, the Zed language allows a commit object (created
+at any point in the past) to be specified with the `@` suffix to a
+pool reference, e.g.,
 ```
 zed lake query -z 'from logs@1tRxi7zjT7oKxCBwwZ0rbaiLRxb | count() by field'
 ```
@@ -379,13 +402,22 @@ If a writer commits data after a reader starts scanning, then the reader
 does not see the new data since it's scanning the snapshot that existed
 before these new writes occur.
 
-Alternatively, a reader can scan a specific set of commits by enumerating
-the commit tags in the scan/search API.
-
 Also, arbitrary metadata can be committed to the log as described below,
 e.g., to associate index objects or derived analytics to a specific
 journal commit point potentially across different data pools in
 a transactionally consistent fashion.
+
+#### Time Travel
+
+While time-travel through commit history provides one means to explore
+past snapshots of the commit history, another means is to use a timestamp.
+Because the entire history of branch updates is stored in a transaction journal
+and each entry contains a timestamp, branch references can be easily
+navigated by time.  For example, a list of branches of a pool's past
+can be created by scanning the branches log and stopping at the largest
+timestamp less than or equal to the desired timestamp.  Likewise, a branch
+can be located in a similar fashion then its corresponding commit object
+can be used to construct that data of that branch at that past point in time.
 
 ### Merge Scan and Compaction
 
@@ -459,14 +491,15 @@ simply removes the data from branch without actually deleting the
 underlying data objects thereby allowing time travel to work in the face
 of deletes.
 
-For example, this commmand deletes the three objects and/or commits referenced
-by the given tags:
+For example, this command deletes the three objects and/or commits referenced
+by the data object IDs:
 ```
 zed lake delete -p logs <id> <id> <id>
 ```
 
-> TBD: when a scan encounters an object that was physically deleted, it should simply
-> continue on and issue a warning of the query endpoint warnings channel.
+> TBD: when a scan encounters an object that was physically deleted for
+> whatever reason, it should simply continue on and issue a warning on
+> the query endpoint "warnings channel".
 
 ### Purge and Vacate
 
@@ -480,51 +513,6 @@ command (but still in the DANGER-ZONE), `zed lake vacate` (also
 [zed/2545](https://github.com/brimdata/zed/issues/2545)) which moves
 the tail of the commit journal forward and removes any data no longer
 accessible through the modified commit journal.
-
-### Log
-
-Like `git log`, the command `zed lake log` prints a history of commit objects
-starting from any commit.
-
-The commit objects represents the entire history of the data in the lake.
-Each entry contains an action:
-
-* `Add` to add a data object reference to a pool,
-* `Delete` to delete a data object reference from a pool,
-* `AddIndex` to bind an index object to a data object to prune the data object
-from a scan when possible using the index,
-* `DeleteIndex` to remove an index object reference to its data object, and
-* `Commit` for providing metadata about each commit.
-
-The actions are not grouped directly by their commit tag but instead each
-action embeds the KSUID of its commit tag.
-
-Note that indexing of data objects is performed in a transactionally-consistent
-fashion by including index operations in the commit journal.
-
-By default, `zed lake log` outputs an abbreviated form of the log as text to
-stdout, similar to the output of `git log`.
-
-However, the log represents the definitive record of a pool's present
-and historical content, and accessing its complete detail can provide
-insights about data layout, provenance, history, and so forth.  Thus,
-Zed lake provides a means to query a pool's configuration state as well,
-thereby allowing past versions of the complete pool and branch configurations
-as well as all of their underlying data to be subject to time travel.
-To interrogate the underlying trasaction history of the branches and
-their pointers, simply query a pool's "branchlog" via the syntax `<pool>:branchlog`.
-
-For example, to aggregate a count of each journal entry type of the pool
-called `logs`, you can simply say:
-```
-zed lake query "from logs:branchlog | count() by typeof(this)"
-```
-Since the Zed system "typedefs" each journal record with a named type,
-this kind of query gives intuitive results.  There is no need to implement
-a long list of features for journal introspection since the data in its entirety
-can be simply and efficiently processed as a ZNG stream.
-
-> Note that the branchlog meta-query source is not yet implemented.
 
 ## Search Indexes
 
@@ -643,7 +631,7 @@ Every data element in a Zed lake is either of two fundamental object types:
 All imported data in a data pool is composed of immutable objects, which are organized
 around a primary data object.  Each data object is composed of one or more immutable objects
 all of which share a common, globally unique identifier,
-which is referred to below as `<tag>`.
+which is referred to below generically as `<id>` below.
 
 These identifiers are [KSUIDs](https://github.com/segmentio/ksuid).
 The KSUID allocation scheme
@@ -654,8 +642,8 @@ sort of the KSUIDs results in a creation-time ordering (though this ordering
 is not relied on for causal relationships since clock skew can violate
 such an assumption).
 
-Data objects are referred to by zero or more commits, where the commits
-are maintained in a commit journal described below.
+Data objects are referred to by zero or more commit objects, where the =
+commits are maintained referenced by the branches journal described below.
 
 > While a Zed lake is defined in terms of a cloud object store, it may also
 > be realized on top of a file system, which provides a convenient means for
@@ -689,13 +677,13 @@ Immutable objects are named as follows:
 
 |object type|name|
 |-----------|----|
-|column data|`<pool-tag>/data/<tag>.zst`|
-|row data|`<pool-tag>/data/<tag>.zng`|
-|row seek index|`<pool-tag>/data/<tag>-seek.zng`|
-|search index|`<pool-tag>/index/<tag>-<index-tag>.zng`|
+|column data|`<pool-id>/data/<id>.zst`|
+|row data|`<pool-id>/data/<id>.zng`|
+|row seek index|`<pool-id>/data/<id>-seek.zng`|
+|search index|`<pool-id>/index/<id>-<index-id>.zng`|
 
-`<tag>` is the KSUID of the data object.
-`<index-tag>` is the KSUID of an index object created according to the
+`<id>` is the KSUID of the data object.
+`<index-id>` is the KSUID of an index object created according to the
 index rules described above.  Every index object is defined
 with respect to a data object.
 
@@ -707,6 +695,59 @@ a subset of data.
 > are encoded into its metadata section so there is no need to have a separate
 > seek index for the columnar object.
 
+#### Commit History
+
+A pool's commit history is the definitive record of the evolution of data in
+that pool in a transactionally consistent fashion.
+
+Each commit object entry is identified with its `commit ID`.
+Objects are immutable and uniquely named so there is never a concurrent write
+condition.
+
+The `add` and `commit` operations are transactionally stored
+in a chain of commit object.  Any number of adds (and deletes) may appear
+in a commit object.  All of the operations that belong to a commit are
+identified with a commit identifier (ID).
+
+As each commit object points to its parent (except for the initial commit
+in main), the collection commit objects in a pool forms a tree.
+
+Each commit object contains a sequence of _actions_:
+
+* `Add` to add a data object reference to a pool,
+* `Delete` to delete a data object reference from a pool,
+* `AddIndex` to bind an index object to a data object to prune the data object
+from a scan when possible using the index,
+* `DeleteIndex` to remove an index object reference to its data object, and
+* `Commit` for providing metadata about each commit.
+
+The actions are not grouped directly by their commit tag but instead each
+action embeds the KSUID of its commit tag.
+
+By default, `zed lake log` outputs an abbreviated form of the log as text to
+stdout, similar to the output of `git log`.
+
+However, the log represents the definitive record of a pool's present
+and historical content, and accessing its complete detail can provide
+insights about data layout, provenance, history, and so forth.  Thus,
+Zed lake provides a means to query a pool's configuration state as well,
+thereby allowing past versions of the complete pool and branch configurations
+as well as all of their underlying data to be subject to time travel.
+To interrogate the underlying trasaction history of the branches and
+their pointers, simply query a pool's "branchlog" via the syntax `<pool>:branchlog`.
+
+For example, to aggregate a count of each journal entry type of the pool
+called `logs`, you can simply say:
+```
+zed lake query "from logs:branchlog | count() by typeof(this)"
+```
+Since the Zed system "typedefs" each journal record with a named type,
+this kind of query gives intuitive results.  There is no need to implement
+a long list of features for journal introspection since the data in its entirety
+can be simply and efficiently processed as a ZNG stream.
+
+> Note that the branchlog meta-query source is not yet implemented.
+
 ### Transaction Journal
 
 State that is mutable is built upon a transaction journal of immutable
@@ -717,27 +758,14 @@ for efficient access to the journal (so the entire journal need not be
 read to create the current state) and old journal entries may be removed
 based on retention policy.
 
-#### Commit History
-
-The pool's commit history is the definitive record of the evolution of data in
-that pool in a transactionally consistent fashion.
-
-Each commit object entry is identified with its `commit ID`.
-Objects are immutable and uniquely named so there is never a concurrent write
-condition.  
-
-XXX
-
 The journal may be updated concurrently by multiple writers so concurrency
 controls are included (see [Journal Concurrency Control](#journal-concurrency-control)
 below) to provide atomic updates.
 
-A journal entry simply contains actions that modify the "state" of the pool
-as described in the `zed lake commit` section above.
-Each 'Add' entry includes metadata about the object committed to the pool,
-including its pool-key range and commit timestamp.
-Thus, data objects and journal entries can be purged with _either_ key-based
-or time-based retention policies (or both).
+A journal entry simply contains actions that modify the visible "state" of
+the pool by changing branch name to commit object mappings.  Note that
+adding a commit object to a pool changes nothing until a branch pointer
+is mutated to point at that object.
 
 Each atomic journal commit object is a ZNG file numbered 1 to the end of journal (HEAD),
 e.g., `1.zng`, `2.zng`, etc., each number corresponding to a journal ID.
@@ -753,11 +781,10 @@ is computed by applying the transactions in sequence from entry TAIL to
 the journal entry in question, up to HEAD.  This gives the set of commit tags
 that comprise a snapshot.
 
-A data scan may then be assembled at any point in the journal's history
-by scanning, in key order, the objects that comprise all of the commits while merging
-records from overlapping objects.  The snapshot is sorted by its pool key
-range, where key-range values are sorted by the beginning key as the primary key
-and the ending key as the secondary key.
+The set of branch pointers in a pool is assembled at any point in the journal's history
+by scanning a journal that includes ADD, UPDATE, and DELETE actions for the
+mapping of a branch name to a commit object.  A timestamp is recorded in
+each action to provide for time travel.
 
 For efficiency, a journal entry's snapshot may be stored as a "cached snapshot"
 alongside the journal entry.  This way, the snapshot at HEAD may be
@@ -766,10 +793,11 @@ forward to HEAD.
 
 #### Scaling a Journal
 
-When the size of the snapshot file reaches a certain size (and thus becomes too large to
-conveniently handle in memory), the journal is converted to an internal sub-pool
-called the "journal pool".  The journal pool's
-pool key is the "from" value (of its parent pool key) from each commit.
+When the sizes of the journal snapshot files exceed a certain size
+(and thus becomes too large to conveniently handle in memory),
+the snapshots can be converted to and stored
+in an internal sub-pool called the "snapshot pool".  The snapshot pool's
+pool key is the "from" value (of its parent pool key) from each commit action.
 In this case, commits to the parent pool are made in the same fashion,
 but instead of snapshotting updates into a snapshot ZNG file,
 the snapshots are committed to the journal sub-pool.  In this way, commit histories
@@ -777,6 +805,10 @@ can be rolled up and organized by the pool key.  Likewise, retention policies
 based on the pool key can remove not just data objects from the main pool but
 also data objects in the journal pool comprising committed data that falls
 outside of the retention boundary.
+
+> Note we currently record a delete using only the object ID.  In order to
+> organize add and delete actions around key spans, we need to add the span
+> metadata to the delete action just as it exists in the add action.
 
 #### Journal Concurrency Control
 
@@ -801,18 +833,9 @@ can be used to implement transactional journal updates as follows:
 * _TBD: this is worked out but needs to be written up_
 
 Finally, since the above algorithm requires many round trips to the storage
-system and such round trips can be 10s of milliseconds, another approach
+system and such round trips can be tens of milliseconds, another approach
 is to simply run a lock service as part of a cloud deployment that manages
 a mutex lock for each pool's journal.
-
-To support the branch merge operation, the lake requires consistency across
-the parent and child branches.  The merge operation is designed so that
-scanning and writing can proceed while the merge completes, but this requires
-exclusive access to the merge steps.  This exclusivity is achieved through
-a pessimistic locking model.
-
-> TBD: These locks can be stored in another per-branch journal and we need
-> a way to recover from stuck locks that can arise from crashes.
 
 #### Configuration State
 
@@ -944,3 +967,69 @@ The initial prototype has been simplified as follows:
 * transaction journal incomplete
 * no recursive journal pool
 * no columnar support
+
+## CLI tool naming conventions
+
+> This is a work in in progress.
+
+Now that we have a comprehensive branching model, the `-p` argument to the
+`zed lake` commands needs to be revisited.
+
+We need to have a consistent syntax to refer to pools, branches, and commits.
+Some commands require branch names (e.g., branch, rename, merge, etc) while
+others require a commit (e.g., log or a scan in the Zed `from` operator).
+
+The proposal on the table is to refer to commits things and branch references
+both as an `@` character following the pool being referenced, e.g.,
+```
+pool@commit
+```
+where commit is a KSUID of the commit object, or
+```
+pool@branch
+```
+where branch is a name (that cannot be a KSUID).
+
+Confusion arises because a commit can be referred to by a branch name
+and, depending on context, a branch can refer to a commit or to
+a mutable reference of that branch.  For the technical discussion here, we will
+refer to the branch/commit dichotomy as a `commitish` and the l-value
+nature of a branch as a `ref`.
+
+Both a `commitish` and a `ref` may drop omit `@` suffix
+and refer solely to the pool name, in which case it becomes pool@main.
+
+Complicating matters further, a `ref` may be specified a simple name
+without the `pool@` qualifier when the pool context is known from
+another argument as in merge or rename.  We will refer to this
+plain name as `sref` below (short `ref`).
+
+In some contexts (e.g., `create` and `drop`),
+only a pool name makes sense.  We will refer to this as `pool` here.
+
+Also, we want some way to set the "current branch" so that the pool
+and "branch" is implied and the implied branch can be either a `commitish`
+or a `ref`.
+
+* branch `commitish` `sref` - create branch `sref` with parent commit object `commitish`
+* branch -d `ref` - delete branch
+* create `pool` - create the pool named pool
+* delete `ref` `id` `id` ... - delete data objects from branch `ref` and update the branch to point to the new commit object
+* drop `pool` - delete a data pool
+* index `ref` `id` `id` ... - create index objects if they don't exist and record them in branch `ref`
+* load `ref` `file` ... - load the files or stdin into data objects, create a commit object for the new data that points backward to the head of `ref`, and update branch `ref` to point to the new commit
+* log `commitish`- display the commit object history starting at `commitish`
+* ls - list pools in a lake
+* ls `pool` - list branch names of a pool
+* merge `commitish` `sref` - merge a commit history rooted at `commitish` into a branch `sref`
+* query: `from commitish` - data scan
+* query: `from commitish:meta` branch or comit meta-scan (-no defaulting main here because thats pool-level meta)
+* query: `from pool:meta`
+* query: `from :meta`
+* rebase `ref` `commitish` - rebase a branch `ref` onto the commit object history starting at `commitish` (this is peculiar because `ref` could implied the pool name for `commitish` though this will usually be a branch name)
+* rename `pool` `pool` - change name of a data pool
+* undo `ref` `commitish`- undo reverts the commit at `commitish` with a new commit object and updates the branch `ref` to point at the new commit; typically this commit would be in the branches history but it doesn't have to be (but would typically fail a consistency check if it isn't in the history).  We could prevent this condition with a check.
+
+> Note we can simplify the rules about meta-query not allowing the default
+> to "main" by partitioning the meta names and using the name to disambiguate
+> between the pool-level, branch-level, and commit-level meta-queries...
