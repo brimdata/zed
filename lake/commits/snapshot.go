@@ -51,7 +51,7 @@ func (s *Snapshot) AddSegment(seg *segment.Reference) error {
 
 func (s *Snapshot) DeleteSegment(id ksuid.KSUID) error {
 	if _, ok := s.segments[id]; !ok {
-		return fmt.Errorf("%s: delete of a non-existant data object: %w", id, ErrWriteConflict)
+		return fmt.Errorf("%s: delete of a non-existent data object: %w", id, ErrWriteConflict)
 	}
 	delete(s.segments, id)
 	return nil

@@ -149,9 +149,8 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor proc.DataAd
 		// This would require commitRef to be branch name not a commit ID.
 		return nil, errors.New("TBD: at clause in from operator needs to use time")
 	}
-	commitRef := p.Spec.Commit
 	var commit ksuid.KSUID
-	if commitRef != "" {
+	if commitRef := p.Spec.Commit; commitRef != "" {
 		commit, err = parser.ParseID(commitRef)
 		if err != nil {
 			commit, err = adaptor.CommitObject(ctx, poolID, commitRef)

@@ -39,13 +39,13 @@ func init() {
 
 type Command struct {
 	lake      zedlake.Command
-	drop      bool
+	delete    bool
 	lakeFlags lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{lake: parent.(zedlake.Command)}
-	f.BoolVar(&c.drop, "d", false, "delete the branch instead of creating it")
+	f.BoolVar(&c.delete, "d", false, "delete the branch instead of creating it")
 	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
@@ -82,7 +82,7 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 	}
-	if c.drop {
+	if c.delete {
 		if err := lake.RemoveBranch(ctx, poolID, branchName); err != nil {
 			return err
 		}

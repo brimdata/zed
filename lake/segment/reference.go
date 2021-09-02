@@ -101,7 +101,7 @@ func plural(ordinal int) string {
 	if ordinal == 1 {
 		return ""
 	}
-	return ""
+	return "s"
 }
 
 func (r Reference) StringRange() string {

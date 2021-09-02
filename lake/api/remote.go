@@ -60,7 +60,9 @@ func (r *RemoteSession) CommitObject(ctx context.Context, poolID ksuid.KSUID, br
 		return ksuid.Nil, err
 	}
 	var commit api.CommitResponse
-	err = unmarshal(res, &commit)
+	if err = unmarshal(res, &commit); err != nil {
+		return ksuid.Nil, err
+	}
 	return commit.Commit, nil
 }
 

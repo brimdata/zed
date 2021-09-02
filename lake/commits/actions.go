@@ -41,6 +41,13 @@ func (a *Add) String() string {
 	return fmt.Sprintf("ADD %s", a.Segment)
 }
 
+// Note that we store the number of retries in the final commit
+// object.  This will allow easily introspection of optimistic
+// locking problems under high commit load by simply issuing
+// a meta-query and looking at the retry count in the persisted
+// commit objects.  If/when this is a problem, we could add
+// pessimistic locking mechanisms alongside the optimistic approach.
+
 type Commit struct {
 	ID      ksuid.KSUID `zng:"id"`
 	Parent  ksuid.KSUID `zng:"parent"`

@@ -98,7 +98,7 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 		object := commits.NewObject(parent.Commit, author, message, retries)
 		for _, id := range ids {
 			if !snap.Exists(id) {
-				return nil, fmt.Errorf("non-existant segment %s: delete operation aborted", id)
+				return nil, fmt.Errorf("non-existent segment %s: delete operation aborted", id)
 			}
 			object.AppendDelete(id)
 		}
@@ -217,12 +217,6 @@ func (b *Branch) commit(ctx context.Context, create constructor) (ksuid.KSUID, e
 		if err != nil {
 			return ksuid.Nil, err
 		}
-		// Note that we store the number of retries in the final commit
-		// object.  This will allow easily introspection of optimistic
-		// locking problems under high commit load by simply issuing
-		// a meta-query and looking at the retry count in the persisted
-		// commit objects.  If/when this is a problem, we could add
-		// pessimistic locking mechanisms alongside the optimistic approach.
 		object, err := create(config, retries)
 		if err != nil {
 			return ksuid.Nil, err
@@ -283,7 +277,6 @@ func (b *Branch) ApplyIndexRules(ctx context.Context, rules []index.Rule, ids []
 		//XXX make issue for this.
 		// This could be easily parallized with errgroup.
 		refs, err := b.indexSegment(ctx, rules, id)
-		fmt.Println("INDEX", id, len(refs))
 		if err != nil {
 			return ksuid.Nil, err
 		}

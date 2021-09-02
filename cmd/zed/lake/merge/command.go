@@ -69,8 +69,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	_, err = lake.MergeBranch(ctx, poolID, childBranch, parentBranch, c.commitFlags.CommitMessage())
-	if err != nil {
+	if _, err = lake.MergeBranch(ctx, poolID, childBranch, parentBranch, c.commitFlags.CommitMessage()); err != nil {
 		return err
 	}
 	if !c.lakeFlags.Quiet {

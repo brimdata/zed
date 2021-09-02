@@ -179,7 +179,7 @@ func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	branchName, ok := r.StringArg(w, "branch")
+	branchName, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
 	}
@@ -328,7 +328,7 @@ func handleUndoPost(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	branch, ok := r.StringArg(w, "branch")
+	branch, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
 	}
@@ -358,11 +358,11 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	parentBranch, ok := r.StringArg(w, "branch")
+	parentBranch, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
 	}
-	childBranch, ok := r.StringArg(w, "child")
+	childBranch, ok := r.StringFromPath(w, "child")
 	if !ok {
 		return
 	}
@@ -404,7 +404,7 @@ func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	branchName, ok := r.StringArg(w, "branch")
+	branchName, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
 	}
@@ -431,7 +431,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	branchName, ok := r.StringArg(w, "branch")
+	branchName, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
 	}
@@ -480,7 +480,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	branchName, ok := r.StringArg(w, "branch")
+	branchName, ok := r.StringFromPath(w, "branch")
 	if !ok {
 		return
 	}

@@ -13,8 +13,6 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-// ErrEmptyTransaction is the error returned by Transaction.Serialize when
-// Transaction.Actions is empty.
 var ErrEmptyTransaction = errors.New("empty transaction")
 
 type Object struct {

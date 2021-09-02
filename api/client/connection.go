@@ -214,7 +214,7 @@ func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*Response, 
 func (c *Connection) BranchGet(ctx context.Context, poolID ksuid.KSUID, branchName string) (*Response, error) {
 	req := c.Request(ctx)
 	req.Method = http.MethodGet
-	req.URL = path.Join("/pool", poolID.String(), "branch", url.QueryEscape(branchName))
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName)
 	r, err := c.stream(req)
 	var errRes *ErrorResponse
 	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
@@ -266,25 +266,22 @@ func (c *Connection) BranchPost(ctx context.Context, poolID ksuid.KSUID, payload
 }
 
 func (c *Connection) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (*Response, error) {
-	encodedChild := url.QueryEscape(childBranch)
-	encodedParent := url.QueryEscape(parentBranch)
 	req := c.Request(ctx)
 	if err := encodeCommitMessage(req, message); err != nil {
 		return nil, err
 	}
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", poolID.String(), "branch", encodedParent, "merge", encodedChild)
+	req.URL = urlPath("pool", poolID.String(), "branch", parentBranch, "merge", childBranch)
 	return c.stream(req)
 }
 
 func (c *Connection) Undo(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (*Response, error) {
-	encodedBranch := url.QueryEscape(branchName)
 	req := c.Request(ctx)
 	if err := encodeCommitMessage(req, message); err != nil {
 		return nil, err
 	}
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", poolID.String(), "branch", encodedBranch, "undo", commitID.String())
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName, "undo", commitID.String())
 	return c.stream(req)
 }
 
@@ -364,7 +361,7 @@ func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName st
 		return nil, err
 	}
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", poolID.String(), "branch", url.QueryEscape(branchName))
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName)
 	return c.stream(req)
 }
 
@@ -384,7 +381,7 @@ func (c *Connection) Delete(ctx context.Context, poolID ksuid.KSUID, branchName 
 		return nil, err
 	}
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", poolID.String(), "branch", branchName, "delete")
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName, "delete")
 	return c.stream(req)
 }
 
@@ -413,4 +410,12 @@ func (e *ErrorResponse) Unwrap() error {
 
 func (e *ErrorResponse) Error() string {
 	return fmt.Sprintf("status code %d: %v", e.StatusCode(), e.Err)
+}
+
+func urlPath(elem ...string) string {
+	var s string
+	for _, e := range elem {
+		s += "/" + url.PathEscape(e)
+	}
+	return path.Clean(s)
 }

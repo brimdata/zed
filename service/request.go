@@ -67,7 +67,7 @@ func (r *Request) decodeCommitMessage(w *ResponseWriter) (api.CommitMessage, boo
 	return message, true
 }
 
-func (r *Request) StringArg(w *ResponseWriter, arg string) (string, bool) {
+func (r *Request) StringFromPath(w *ResponseWriter, arg string) (string, bool) {
 	v := mux.Vars(r.Request)
 	s, ok := v[arg]
 	if !ok {

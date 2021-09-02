@@ -41,7 +41,7 @@ func (f *Flags) FromSpec(meta string) (string, error) {
 	}
 	var s string
 	if _, err := parser.ParseID(branchName); err == nil {
-		s = fmt.Sprintf("'%s'@%s", poolName, branchName)
+		s = fmt.Sprintf("from '%s'@%s", poolName, branchName)
 	} else {
 		s = fmt.Sprintf("from '%s'@'%s'", poolName, branchName)
 	}
