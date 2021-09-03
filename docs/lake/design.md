@@ -57,8 +57,8 @@ ranges of data over the pool key.
 Data can be efficiently accessed via range scans composed of a
 range of values conforming to the pool key.
 
-A lake has a configured sort order, either ascending or descending
-and data is organized in the lake in accordance with this order.
+A pool key has a configured sort order, either ascending or descending
+and data is organized in the pool in accordance with this order.
 Data scans may be either ascending or descending, and scans that
 follow the configured order are generally more efficient than
 scans that run in the opposing order.
@@ -91,8 +91,8 @@ design patterns of `git`.  In this approach,
 * a _commit_ operation is like a `git commit`,
 * and a pool _snapshot_ is like a `git checkout`.
 
-A core theme of the Zed lake design is _ergonomics_.  Given the git metaphor,
-our goal here is that the Zed lake tooling be as easy and familiar as git is
+A core theme of the Zed lake design is _ergonomics_.  Given the Git metaphor,
+our goal here is that the Zed lake tooling be as easy and familiar as Git is
 to a technical user.
 
 While this design document is independent of any particular implementation,
@@ -221,8 +221,8 @@ zed lake log -p pool@branch
 ```
 To understand the log contents, the `load` operation is actually
 decomposed into two steps under the covers:
-an `add` step stores one or more
-new immutable data objects in the lake and a `commit` operation
+an "add" step stores one or more
+new immutable data objects in the lake and a "commit" operation
 materializes the objects into a branch with an ACID transaction.
 This updates the branch pointer to point at a new commit object
 referencing the data objects where the new commit object's parent
@@ -301,9 +301,9 @@ according to configured policies and logic.
 
 Data is read from one or more pools with the `query` command.  The pool/branch names
 are specified with `from` at the beginning of the Zed query along with an optional
-time range using `range` and `to`.  The default output format is ZNG though this
-can be overridden with `-f` to specify one of the various supported output
-formats.
+time range using `range` and `to`.  The default output format is ZSON (if to a
+terminal) or ZNG (if redirected elsewhere) though this can be overridden with
+`-f` to specify one of the various supported output formats.
 
 If a pool name is provided to `from` without a branch name, then branch
 "main" is assumed.
@@ -320,7 +320,7 @@ values refer to the pool key:
 ```
 zed lake query -z 'from logs range 2018-03-24T17:36:30.090766Z to 2018-03-24T17:36:30.090758Z'
 ```
-This range queries are efficiently implemented as the data is laid out
+These range queries are efficiently implemented as the data is laid out
 according to the pool key and seek indexes keyed by the pool key
 are computed for each data object.
 
@@ -358,7 +358,7 @@ lake making it easy to measure, tune, and adjust lake parameters to
 optimize layout for performance.
 
 These structures are introspected using meta-queries that simply
-specify a metadata source using a bracket syntax in the `from` operator.
+specify a metadata source using an extended syntax in the `from` operator.
 There are three types of meta-queries:
 * `from :meta` - lake level  
 * `from pool:meta` - pool level  
@@ -495,7 +495,7 @@ data during any key-range scan.
 ### Delete
 
 Data objects can be deleted with the `delete` command.  This command
-simply removes the data from branch without actually deleting the
+simply removes the data from the branch without actually deleting the
 underlying data objects thereby allowing time travel to work in the face
 of deletes.
 
