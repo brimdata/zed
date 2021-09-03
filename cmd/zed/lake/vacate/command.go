@@ -15,7 +15,7 @@ var Vacate = &charm.Spec{
 	Long: `
 The vacate command advances the tail of a pool's commit journal so that any commits
 before the new tail cannot be accessed and thus "time travel" to previous
-such commits can no longer be accomplished.  Data segments that are no
+such commits can no longer be accomplished.  Data objects that are no
 longer accessible after the tail has been advanced are removed from the
 underlying storage system.
 
