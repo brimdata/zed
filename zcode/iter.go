@@ -21,7 +21,7 @@ func (i *Iter) Done() bool {
 func (i *Iter) Next() (Bytes, bool, error) {
 	// The tag is zero for an unset value; otherwise, it is the value's
 	// length plus one.
-	u64, n := uvarint(*i)
+	u64, n := binary.Uvarint(*i)
 	if n <= 0 {
 		return nil, false, fmt.Errorf("bad uvarint: %d", n)
 	}
@@ -39,7 +39,7 @@ func (i *Iter) Next() (Bytes, bool, error) {
 // undecoded tag followed by its body along with a boolean that is true if the
 // value is a container.
 func (i *Iter) NextTagAndBody() (Bytes, bool, error) {
-	u64, n := uvarint(*i)
+	u64, n := binary.Uvarint(*i)
 	if n <= 0 {
 		return nil, false, fmt.Errorf("bad uvarint: %d", n)
 	}
