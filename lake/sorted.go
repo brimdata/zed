@@ -63,7 +63,7 @@ func newSortedScanner(ctx context.Context, pool *Pool, zctx *zson.Context, filte
 		reader := zngio.NewReader(rc, zctx)
 		f := filter
 		if len(pool.Layout.Keys) != 0 {
-			// If the scan span does not wholly contain the segment, then
+			// If the scan span does not wholly contain the data object, then
 			// we must filter out records that fall outside the range.
 			f = wrapRangeFilter(f, scan.Span, scan.compare, object.First, object.Last, pool.Layout)
 		}

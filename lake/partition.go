@@ -18,8 +18,8 @@ import (
 )
 
 // A Partition is a logical view of the records within a time span, stored
-// in one or more Segments.  This provides a way to return the list of
-// Segments that should be scanned along with a span to limit the scan
+// in one or more data objects.  This provides a way to return the list of
+// objects that should be scanned along with a span to limit the scan
 // to only the span involved.
 type Partition struct {
 	extent.Span
@@ -40,7 +40,7 @@ func (p Partition) FormatRange() string {
 	return fmt.Sprintf("[%s-%s]", zson.String(p.First()), zson.String(p.Last()))
 }
 
-// partitionSegments takes a sorted set of segments with possibly overlapping
+// PartitionObjects takes a sorted set of data objects with possibly overlapping
 // key ranges and returns an ordered list of Ranges such that none of the
 // Ranges overlap with one another.  This is the straightforward computational
 // geometry problem of merging overlapping intervals,

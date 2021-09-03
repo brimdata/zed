@@ -110,9 +110,9 @@ func (p *Patch) Undo(tip *Snapshot, commit, parent ksuid.KSUID, retries int, aut
 	}
 	// For each delete in the patch that is not in the tip, we do an add.
 	for _, id := range p.deletes {
-		segment, err := tip.Lookup(id)
+		object, err := tip.Lookup(id)
 		if err == nil {
-			object.appendAdd(segment)
+			object.appendAdd(object)
 		}
 	}
 	if len(object.Actions) == 1 {
