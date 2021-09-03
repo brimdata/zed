@@ -531,7 +531,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 			b.schedulers[src] = sched
 		}
 		source = from.NewScheduler(b.pctx, sched)
-	case *dag.BranchMeta:
+	case *dag.CommitMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
 			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)

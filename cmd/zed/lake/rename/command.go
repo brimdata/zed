@@ -13,7 +13,7 @@ import (
 
 var Rename = &charm.Spec{
 	Name:  "rename",
-	Usage: "rename -p old-name new-name",
+	Usage: "rename old-name new-name",
 	Short: "rename a data pool",
 	Long: `
 The rename command changes the name of the pool given by the -p option to the
@@ -44,22 +44,16 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	oldName := c.lakeFlags.PoolName
-	if oldName == "" {
-		return errors.New("rename pool: -p required")
+	if len(args) != 2 {
+		return errors.New("two pool names must be provided")
 	}
-	if len(args) > 1 {
-		return errors.New("rename pool: too many arguments")
-	}
-	if len(args) != 1 {
-		return errors.New("rename pool: new name of pool is required")
-	}
-	newName := args[0]
+	oldName := args[0]
+	newName := args[1]
 	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-	poolID, _, err := lake.IDs(ctx, oldName, "main")
+	poolID, err := lake.PoolID(ctx, oldName)
 	if err != nil {
 		return err
 	}

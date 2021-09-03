@@ -25,6 +25,7 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/lake/merge"
 	_ "github.com/brimdata/zed/cmd/zed/lake/query"
 	_ "github.com/brimdata/zed/cmd/zed/lake/rename"
+	_ "github.com/brimdata/zed/cmd/zed/lake/revert"
 	_ "github.com/brimdata/zed/cmd/zed/lake/serve"
 	_ "github.com/brimdata/zed/cmd/zed/lake/vacate"
 	"github.com/brimdata/zed/cmd/zed/query"

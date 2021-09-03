@@ -15,28 +15,29 @@ import (
 )
 
 type Lake struct {
-	pools map[string]Pool
+	poolsByName map[string]*Pool
+	poolsByID   map[ksuid.KSUID]*Pool
 }
 
 var _ proc.DataAdaptor = (*Lake)(nil)
 
 type Pool struct {
-	name     string
-	branch   string
-	id       ksuid.KSUID
-	branchID ksuid.KSUID
-	layout   order.Layout
+	name    string
+	id      ksuid.KSUID
+	layout  order.Layout
+	commits map[string]ksuid.KSUID
 }
 
 func NewLake() *Lake {
 	return &Lake{
-		pools: make(map[string]Pool),
+		poolsByName: make(map[string]*Pool),
+		poolsByID:   make(map[ksuid.KSUID]*Pool),
 	}
 }
 
 // create a mock lake whose key layout is embedded in the mock pool name,
 // e.g., "logs-ts:asc"
-func NewPool(poolName, branchName string) (Pool, error) {
+func (l *Lake) NewPool(poolName string) (*Pool, error) {
 	parts := strings.Split(poolName, "-")
 	name := parts[0]
 	layout := order.Nil
@@ -44,16 +45,18 @@ func NewPool(poolName, branchName string) (Pool, error) {
 		var err error
 		layout, err = order.ParseLayout(parts[1])
 		if err != nil {
-			return Pool{}, err
+			return nil, err
 		}
 	}
-	return Pool{
-		name:     name,
-		branch:   branchName,
-		id:       fakeID(name),
-		branchID: fakeID(branchName),
-		layout:   layout,
-	}, nil
+	p := &Pool{
+		name:    name,
+		id:      fakeID(name),
+		layout:  layout,
+		commits: make(map[string]ksuid.KSUID),
+	}
+	l.poolsByID[p.id] = p
+	l.poolsByName[name] = p
+	return p, nil
 }
 
 // fakeID creates a ksuid derived from the name string so we can deterministically
@@ -64,17 +67,29 @@ func fakeID(name string) ksuid.KSUID {
 	return id
 }
 
-func (l *Lake) IDs(_ context.Context, poolName, branchName string) (ksuid.KSUID, ksuid.KSUID, error) {
-	pool, ok := l.pools[poolName]
+func (l *Lake) PoolID(_ context.Context, poolName string) (ksuid.KSUID, error) {
+	pool, ok := l.poolsByName[poolName]
 	if !ok {
 		var err error
-		pool, err = NewPool(poolName, branchName)
+		pool, err = l.NewPool(poolName)
 		if err != nil {
-			return ksuid.Nil, ksuid.Nil, err
+			return ksuid.Nil, err
 		}
-		l.pools[poolName] = pool
 	}
-	return pool.id, pool.branchID, nil
+	return pool.id, nil
+}
+
+func (l *Lake) CommitObject(_ context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+	pool, ok := l.poolsByID[poolID]
+	if !ok {
+		return ksuid.Nil, fmt.Errorf("%s: no such pool", poolID)
+	}
+	commit, ok := pool.commits[branchName]
+	if !ok {
+		commit = fakeID(branchName)
+		pool.commits[branchName] = commit
+	}
+	return commit, nil
 }
 
 func (l *Lake) Layout(_ context.Context, src dag.Source) order.Layout {
@@ -82,10 +97,8 @@ func (l *Lake) Layout(_ context.Context, src dag.Source) order.Layout {
 	if !ok {
 		return order.Nil
 	}
-	for _, pool := range l.pools {
-		if pool.id == poolSrc.ID {
-			return pool.layout
-		}
+	if pool, ok := l.poolsByID[poolSrc.ID]; ok {
+		return pool.layout
 	}
 	return order.Nil
 }

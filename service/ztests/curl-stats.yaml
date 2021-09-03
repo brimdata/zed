@@ -2,8 +2,7 @@ script: |
   source service.sh
   curl -X POST -d '{"name":"test"}' http://$ZED_LAKE_HOST/pool > pool.json
   poolID=$(zq -f text 'cut value.pool.id' pool.json)
-  branchID=$(zq -f text 'cut value.branch.id' pool.json)
-  curl -X POST -d @- http://$ZED_LAKE_HOST/pool/$poolID/$branchID > load.json
+  curl -X POST -d @- http://$ZED_LAKE_HOST/pool/$poolID/branch/main > load.json
   curl http://$ZED_LAKE_HOST/pool/$poolID/stats
 
 inputs:
@@ -14,4 +13,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {"kind":"PoolStats","value":{"size":34374,"span":{"dur":9789993714061,"ts":"2020-04-21T22:40:30.06852324Z"}}}
+      {"kind":"lake.PoolStats","value":{"size":34374,"span":{"dur":9789993714061,"ts":"2020-04-21T22:40:30.06852324Z"}}}

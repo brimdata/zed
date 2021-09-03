@@ -8,6 +8,7 @@ import (
 	"io"
 	"mime"
 	"net/http"
+	"net/url"
 	"path"
 	"strconv"
 	"time"
@@ -30,6 +31,8 @@ var (
 	ErrPoolNotFound = errors.New("pool not found")
 	// ErrPoolExists is returned when the specified the pool already exists.
 	ErrPoolExists = errors.New("pool exists")
+	// ErrBranchNotFound is returned when the specified branch does not exist.
+	ErrBranchNotFound = errors.New("branch not found")
 	// ErrBranchExists is returned when the specified the branch already exists.
 	ErrBranchExists = errors.New("branch exists")
 )
@@ -208,15 +211,14 @@ func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*Response, 
 	return r, err
 }
 
-func (c *Connection) IDs(ctx context.Context, poolName, branchName string) (*Response, error) {
+func (c *Connection) BranchGet(ctx context.Context, poolID ksuid.KSUID, branchName string) (*Response, error) {
 	req := c.Request(ctx)
-	req.Method = http.MethodPost
-	req.URL = "/ids"
-	req.SetBody(api.IDsRequest{poolName, branchName})
+	req.Method = http.MethodGet
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName)
 	r, err := c.stream(req)
 	var errRes *ErrorResponse
 	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
-		return nil, ErrPoolNotFound
+		return nil, ErrBranchNotFound
 	}
 	return r, err
 }
@@ -263,11 +265,23 @@ func (c *Connection) BranchPost(ctx context.Context, poolID ksuid.KSUID, payload
 	return resp, err
 }
 
-func (c *Connection) MergeBranch(ctx context.Context, poolID, branchID, at ksuid.KSUID) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(api.BranchMergeRequest{at.String()})
+func (c *Connection) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (*Response, error) {
+	req := c.Request(ctx)
+	if err := encodeCommitMessage(req, message); err != nil {
+		return nil, err
+	}
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", poolID.String(), branchID.String(), "merge")
+	req.URL = urlPath("pool", poolID.String(), "branch", parentBranch, "merge", childBranch)
+	return c.stream(req)
+}
+
+func (c *Connection) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (*Response, error) {
+	req := c.Request(ctx)
+	if err := encodeCommitMessage(req, message); err != nil {
+		return nil, err
+	}
+	req.Method = http.MethodPost
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName, "revert", commitID.String())
 	return c.stream(req)
 }
 
@@ -340,24 +354,34 @@ func (c *Connection) IndexPost(ctx context.Context, id ksuid.KSUID, post api.Ind
 	return err
 }
 
-func (c *Connection) Load(ctx context.Context, poolID, branchID ksuid.KSUID, r io.Reader, commit api.CommitRequest) (*Response, error) {
-	encoded, err := json.Marshal(commit)
-	if err != nil {
+func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r io.Reader, message api.CommitMessage) (*Response, error) {
+	req := c.Request(ctx).
+		SetBody(r)
+	if err := encodeCommitMessage(req, message); err != nil {
 		return nil, err
 	}
-	req := c.Request(ctx).
-		SetBody(r).
-		SetHeader("Zed-Commit", string(encoded))
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", poolID.String(), branchID.String())
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName)
 	return c.stream(req)
 }
 
-func (c *Connection) Delete(ctx context.Context, poolID, branchID ksuid.KSUID, ids []ksuid.KSUID) (*Response, error) {
+func encodeCommitMessage(req *resty.Request, message api.CommitMessage) error {
+	encoded, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+	req.SetHeader("Zed-Commit", string(encoded))
+	return nil
+}
+
+func (c *Connection) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(ids)
+	if err := encodeCommitMessage(req, message); err != nil {
+		return nil, err
+	}
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", poolID.String(), branchID.String(), "delete")
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName, "delete")
 	return c.stream(req)
 }
 
@@ -386,4 +410,12 @@ func (e *ErrorResponse) Unwrap() error {
 
 func (e *ErrorResponse) Error() string {
 	return fmt.Sprintf("status code %d: %v", e.StatusCode(), e.Err)
+}
+
+func urlPath(elem ...string) string {
+	var s string
+	for _, e := range elem {
+		s += "/" + url.PathEscape(e)
+	}
+	return path.Clean(s)
 }

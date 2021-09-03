@@ -1,12 +1,12 @@
 script: |
   source service.sh
   zapi create -q -p POOL
-  zapi branch -q -p POOL child
-  zapi load -q -p POOL/main a.zson
-  zapi load -q -p POOL/child b.zson
+  zapi load -q -p POOL@main a.zson
+  zapi branch -q -p POOL@main child
+  zapi load -q -p POOL@child b.zson
   zapi query -z "from POOL | sort ."
   echo ===
-  zapi merge -q -p POOL/child
+  zapi merge -q -p POOL@child main
   zapi query -z "from POOL | sort ."
 
 inputs:

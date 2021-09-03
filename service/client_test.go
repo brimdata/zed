@@ -10,6 +10,8 @@ import (
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/lake"
 	lakeapi "github.com/brimdata/zed/lake/api"
+	"github.com/brimdata/zed/lake/branches"
+	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zsonio"
@@ -41,7 +43,7 @@ func (c *testClient) TestPoolStats(id ksuid.KSUID) (info lake.PoolStats) {
 	return info
 }
 
-func (c *testClient) TestPoolGet(id ksuid.KSUID) (config lake.PoolConfig) {
+func (c *testClient) TestPoolGet(id ksuid.KSUID) (config pools.Config) {
 	remote := lakeapi.NewRemoteWithConnection(c.Connection)
 	pool, err := lakeapi.LookupPoolByID(context.Background(), remote, id)
 	require.NoError(c, err)
@@ -63,10 +65,10 @@ func (c *testClient) zioreader(r *client.Response) zio.Reader {
 	return zr
 }
 
-func (c *testClient) TestPoolList() []lake.PoolConfig {
+func (c *testClient) TestPoolList() []pools.Config {
 	r, err := c.Query(context.Background(), "from [pools]")
 	require.NoError(c, err)
-	var confs []lake.PoolConfig
+	var confs []pools.Config
 	zr := c.zioreader(r)
 	for {
 		rec, err := zr.Read()
@@ -74,25 +76,25 @@ func (c *testClient) TestPoolList() []lake.PoolConfig {
 		if rec == nil {
 			return confs
 		}
-		var pool lake.PoolConfig
+		var pool pools.Config
 		err = zson.UnmarshalZNGRecord(rec, &pool)
 		require.NoError(c, err)
 		confs = append(confs, pool)
 	}
 }
 
-func (c *testClient) TestPoolPost(payload api.PoolPostRequest) (ksuid.KSUID, ksuid.KSUID) {
+func (c *testClient) TestPoolPost(payload api.PoolPostRequest) ksuid.KSUID {
 	r, err := c.Connection.PoolPost(context.Background(), payload)
 	require.NoError(c, err)
 	var conf lake.BranchMeta
 	c.unmarshal(r, &conf)
-	return conf.PoolConfig.ID, conf.BranchConfig.ID
+	return conf.Pool.ID
 }
 
-func (c *testClient) TestBranchPost(poolID ksuid.KSUID, payload api.BranchPostRequest) lake.BranchConfig {
+func (c *testClient) TestBranchPost(poolID ksuid.KSUID, payload api.BranchPostRequest) branches.Config {
 	r, err := c.Connection.BranchPost(context.Background(), poolID, payload)
 	require.NoError(c, err)
-	var conf lake.BranchConfig
+	var conf branches.Config
 	c.unmarshal(r, &conf)
 	return conf
 }
@@ -107,8 +109,8 @@ func (c *testClient) TestQuery(query string) string {
 	return buf.String()
 }
 
-func (c *testClient) TestLoad(poolID, branchID ksuid.KSUID, r io.Reader) {
-	_, err := c.Connection.Load(context.Background(), poolID, branchID, r, api.CommitRequest{})
+func (c *testClient) TestLoad(poolID ksuid.KSUID, branchName string, r io.Reader) {
+	_, err := c.Connection.Load(context.Background(), poolID, branchName, r, api.CommitMessage{})
 	require.NoError(c, err)
 }
 

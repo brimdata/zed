@@ -29,8 +29,12 @@ func NewFileAdaptor(engine storage.Engine) *FileAdaptor {
 	}
 }
 
-func (*FileAdaptor) IDs(context.Context, string, string) (ksuid.KSUID, ksuid.KSUID, error) {
-	return ksuid.Nil, ksuid.Nil, nil
+func (*FileAdaptor) PoolID(context.Context, string) (ksuid.KSUID, error) {
+	return ksuid.Nil, nil
+}
+
+func (*FileAdaptor) CommitObject(context.Context, ksuid.KSUID, string) (ksuid.KSUID, error) {
+	return ksuid.Nil, nil
 }
 
 func (*FileAdaptor) Layout(context.Context, dag.Source) order.Layout {

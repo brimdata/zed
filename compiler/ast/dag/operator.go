@@ -166,8 +166,7 @@ type (
 	Pool struct {
 		Kind      string      `json:"kind" unpack:""`
 		ID        ksuid.KSUID `json:"id"`
-		Branch    ksuid.KSUID `json:"branch"`
-		At        ksuid.KSUID `json:"at"`
+		Commit    ksuid.KSUID `json:"commit"`
 		ScanLower Expr        `json:"scan_lower"`
 		ScanUpper Expr        `json:"scan_upper"`
 		ScanOrder string      `json:"scan_order"`
@@ -177,12 +176,11 @@ type (
 		ID   ksuid.KSUID `json:"id"`
 		Meta string      `json:"meta"`
 	}
-	BranchMeta struct {
+	CommitMeta struct {
 		Kind      string      `json:"kind" unpack:""`
-		ID        ksuid.KSUID `json:"id"`
-		Branch    ksuid.KSUID `json:"branch"`
+		Pool      ksuid.KSUID `json:"pool"`
+		Commit    ksuid.KSUID `json:"branch"`
 		Meta      string      `json:"meta"`
-		At        ksuid.KSUID `json:"at"`
 		ScanLower Expr        `json:"scan_lower"`
 		ScanUpper Expr        `json:"scan_upper"`
 		ScanOrder string      `json:"scan_order"`
@@ -202,7 +200,7 @@ func (*HTTP) Source()       {}
 func (*Pool) Source()       {}
 func (*LakeMeta) Source()   {}
 func (*PoolMeta) Source()   {}
-func (*BranchMeta) Source() {}
+func (*CommitMeta) Source() {}
 func (*Pass) Source()       {}
 
 // A From node can be a DAG entrypoint or an operator.  When it appears

@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/expr/extent"
-	"github.com/brimdata/zed/lake/commit"
+	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
@@ -17,7 +17,7 @@ type Scheduler struct {
 	ctx    context.Context
 	zctx   *zson.Context
 	pool   *Pool
-	snap   commit.View
+	snap   commits.View
 	span   extent.Span
 	filter zbuf.Filter
 	once   sync.Once
@@ -28,7 +28,7 @@ type Scheduler struct {
 
 var _ proc.Scheduler = (*Scheduler)(nil)
 
-func NewSortedScheduler(ctx context.Context, zctx *zson.Context, pool *Pool, snap commit.View, span extent.Span, filter zbuf.Filter) *Scheduler {
+func NewSortedScheduler(ctx context.Context, zctx *zson.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter) *Scheduler {
 	return &Scheduler{
 		ctx:    ctx,
 		zctx:   zctx,
@@ -92,27 +92,38 @@ func (s *Scheduler) newSortedScanner(p Partition) (zbuf.PullerCloser, error) {
 }
 
 type scannerScheduler struct {
-	zbuf.Scanner
-	done bool
+	scanners []zbuf.Scanner
+	stats    zbuf.ScannerStats
+	last     zbuf.Scanner
 }
 
 var _ proc.Scheduler = (*scannerScheduler)(nil)
 
-func newScannerScheduler(s zbuf.Scanner) *scannerScheduler {
+func newScannerScheduler(scanners ...zbuf.Scanner) *scannerScheduler {
 	return &scannerScheduler{
-		Scanner: s,
+		scanners: scanners,
 	}
 }
 
 func (s *scannerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
-	if !s.done {
-		s.done = true
-		return zbuf.ScannerNopCloser(s.Scanner), nil
+	if s.last != nil {
+		s.stats.Add(s.last.Stats())
+		s.last = nil
+	}
+	if len(s.scanners) > 0 {
+		scanner := s.scanners[0]
+		s.scanners = s.scanners[1:]
+		s.last = scanner
+		return zbuf.ScannerNopCloser(scanner), nil
 	}
 	return nil, nil
 }
 
-func ScanSpan(ctx context.Context, snap commit.View, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
+func (s *scannerScheduler) Stats() zbuf.ScannerStats {
+	return s.stats.Copy()
+}
+
+func ScanSpan(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
 	for _, seg := range snap.Select(span, o) {
 		if span == nil || span.Overlaps(seg.First, seg.Last) {
 			select {
@@ -125,7 +136,7 @@ func ScanSpan(ctx context.Context, snap commit.View, span extent.Span, o order.W
 	return nil
 }
 
-func ScanSpanInOrder(ctx context.Context, snap commit.View, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
+func ScanSpanInOrder(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
 	segments := snap.Select(span, o)
 	sortSegments(o, segments)
 	for _, seg := range segments {
@@ -141,7 +152,7 @@ func ScanSpanInOrder(ctx context.Context, snap commit.View, span extent.Span, o 
 // ScanPartitions partitions all segments in snap overlapping
 // span into non-overlapping partitions, sorts them by pool key and order,
 // and sends them to ch.
-func ScanPartitions(ctx context.Context, snap commit.View, span extent.Span, o order.Which, ch chan<- Partition) error {
+func ScanPartitions(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- Partition) error {
 	segments := snap.Select(span, o)
 	for _, p := range PartitionSegments(segments, o) {
 		if span != nil {

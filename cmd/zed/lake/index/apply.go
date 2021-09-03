@@ -14,7 +14,7 @@ import (
 
 var Apply = &charm.Spec{
 	Name:  "apply",
-	Usage: "apply [options] rule tag [tag ...]",
+	Usage: "apply -p pool rule tag [tag ...]",
 	Short: "apply index rule to one or more data objects",
 	New:   NewApply,
 }
@@ -56,11 +56,11 @@ func (c *ApplyCommand) Run(args []string) error {
 	if poolName == "" {
 		return errors.New("name of pool must be supplied with -p option")
 	}
-	poolID, branchID, err := lake.IDs(ctx, poolName, branchName)
+	poolID, err := lake.PoolID(ctx, poolName)
 	if err != nil {
 		return err
 	}
-	commit, err := lake.ApplyIndexRules(ctx, ruleName, poolID, branchID, tags)
+	commit, err := lake.ApplyIndexRules(ctx, ruleName, poolID, branchName, tags)
 	if err != nil {
 		return err
 	}

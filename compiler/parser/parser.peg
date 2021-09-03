@@ -508,9 +508,11 @@ Path
   = v:QuotedString { RETURN(v) }
   / [0-9a-zA-Z!@$%^&*()_=<>,./?:[\]{}~|+-]+ { RETURN(TEXT) }
 
+//XXX this should be a timestamp
 PoolAt
   = _ "at"i _ id:KSUID { RETURN(id) }
 
+//XXX this should allow 0x bytes format
 KSUID = ([0-9a-zA-Z])+ { RETURN(TEXT) }
 
 PoolRange
@@ -519,23 +521,23 @@ PoolRange
     }
 
 PoolSpec
-  = pool:PoolName branch:PoolBranch? meta:PoolMeta? {
-      RETURN(MAP("pool": pool, "branch": branch, "meta": meta))
+  = pool:PoolName commit:PoolCommit? meta:PoolMeta? {
+      RETURN(MAP("pool": pool, "commit": commit, "meta": meta))
     }
   / meta:PoolMeta {
-      RETURN(MAP("pool": NULL, "branch": NULL, "meta": meta))
+      RETURN(MAP("pool": NULL, "commit": NULL, "meta": meta))
     }
 
-PoolBranch
-  = "/" branch:PoolName { RETURN(branch) }
+PoolCommit
+  = "@" commit:PoolName { RETURN(commit) }
 
 PoolMeta
-  = "[" meta:IdentifierName "]" { RETURN(meta) }
+  = ":" meta:IdentifierRaw { RETURN(meta) }
 
 PoolName
-  = name:IdentifierName { RETURN(name) }
-  / id:KSUID { RETURN(id) }
-  / s:QuotedString { RETURN(s) }
+  = IdentifierRaw
+  / KSUID
+  / QuotedString
 
 LayoutArg
   = _ "order"i _ keys:FieldExprs order:OrderSuffix {
@@ -1131,6 +1133,9 @@ IdentifierRest = IdentifierStart / [0-9]
 
 Identifier
   = id:IdentifierName { RETURN(MAP("kind": "ID", "name": id)) }
+
+IdentifierRaw
+  = IdentifierStart IdentifierRest* {  RETURN(TEXT) }
 
 IdentifierName
   = !(IDGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }

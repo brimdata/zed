@@ -1,8 +1,8 @@
 script: |
   source service.sh
   zapi create -q -p test
-  zapi load -date 2021-05-28T15:13:42Z -user testuser -q -p test 1.zson
-  zapi load -date 2021-05-28T15:13:43Z -user testuser -q -p test 2.zson
+  zapi load -user testuser -q -p test 1.zson
+  zapi load -user testuser -q -p test 2.zson
   zapi log -p test
 
 inputs:
@@ -18,16 +18,18 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
+      commit \w{27} \(main\)
+      Author: testuser
+      Date:   [0-9TZ:\-]+
+
+          loaded 1 data object
+
+          \w{27} 1 record in 10 data bytes
+
       commit \w{27}
       Author: testuser
-      Date:   2021-05-28T15:13:42Z
+      Date:   [0-9TZ:\-]+
 
-          Add \w{27} \d+\w+ bytes 1 records
-             from null to null
+          loaded 1 data object
 
-      commit \w{27}
-      Author: testuser
-      Date:   2021-05-28T15:13:43Z
-
-          Add \w{27} \d+\w+ bytes 1 records
-             from null to null
+          \w{27} 1 record in 10 data bytes

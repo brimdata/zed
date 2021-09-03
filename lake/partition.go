@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
-	"github.com/brimdata/zed/lake/commit"
+	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zio"
@@ -137,7 +137,7 @@ func sortSegments(o order.Which, r []*segment.Reference) {
 	}
 }
 
-func partitionReader(ctx context.Context, zctx *zson.Context, snap commit.View, span extent.Span, order order.Which) (zio.Reader, error) {
+func partitionReader(ctx context.Context, zctx *zson.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
 	ch := make(chan Partition)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
@@ -166,7 +166,7 @@ func partitionReader(ctx context.Context, zctx *zson.Context, snap commit.View, 
 	}), nil
 }
 
-func objectReader(ctx context.Context, zctx *zson.Context, snap commit.View, span extent.Span, order order.Which) (zio.Reader, error) {
+func objectReader(ctx context.Context, zctx *zson.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
 	ch := make(chan segment.Reference)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error

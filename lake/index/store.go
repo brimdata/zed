@@ -263,6 +263,7 @@ func (s *Store) IDs(ctx context.Context) ([]ksuid.KSUID, error) {
 
 func serialize(r interface{}) ([]byte, error) {
 	serializer := zngbytes.NewSerializer()
+	serializer.Decorate(zson.StylePackage)
 	if err := serializer.Write(r); err != nil {
 		return nil, err
 	}

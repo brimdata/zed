@@ -72,20 +72,17 @@ func (l *LocalSession) RenamePool(ctx context.Context, id ksuid.KSUID, name stri
 	return l.root.RenamePool(ctx, id, name)
 }
 
-func (l *LocalSession) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string, parent, at ksuid.KSUID) (ksuid.KSUID, error) {
-	branch, err := l.root.CreateBranch(ctx, poolID, name, parent, at)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	return branch.ID, nil
+func (l *LocalSession) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string, parent ksuid.KSUID) error {
+	_, err := l.root.CreateBranch(ctx, poolID, name, parent)
+	return err
 }
 
-func (l *LocalSession) RemoveBranch(ctx context.Context, poolID, branchID ksuid.KSUID) error {
-	return l.root.RemoveBranch(ctx, poolID, branchID)
+func (l *LocalSession) RemoveBranch(ctx context.Context, poolID ksuid.KSUID, branchName string) error {
+	return l.root.RemoveBranch(ctx, poolID, branchName)
 }
 
-func (l *LocalSession) MergeBranch(ctx context.Context, poolID, branchID, tag ksuid.KSUID) (ksuid.KSUID, error) {
-	return l.root.MergeBranch(ctx, poolID, branchID, tag)
+func (l *LocalSession) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (ksuid.KSUID, error) {
+	return l.root.MergeBranch(ctx, poolID, childBranch, parentBranch, message.Author, message.Body)
 }
 
 func (l *LocalSession) AddIndexRules(ctx context.Context, rules []index.Rule) error {
@@ -107,51 +104,55 @@ func (l *LocalSession) Query(ctx context.Context, d driver.Driver, src string, s
 	return driver.RunWithLake(ctx, d, query, zson.NewContext(), l.root)
 }
 
-func (l *LocalSession) IDs(ctx context.Context, poolName, branchName string) (ksuid.KSUID, ksuid.KSUID, error) {
+func (l *LocalSession) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {
 	if poolName == "" {
-		return ksuid.Nil, ksuid.Nil, errors.New("no pool name provided")
+		return ksuid.Nil, errors.New("no pool name provided")
 	}
-	return l.root.IDs(ctx, poolName, branchName)
+	return l.root.PoolID(ctx, poolName)
 }
 
-func (l *LocalSession) lookupBranch(ctx context.Context, poolID, branchID ksuid.KSUID) (*lake.Pool, *lake.Branch, error) {
+func (l *LocalSession) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+	return l.root.CommitObject(ctx, poolID, branchName)
+}
+
+func (l *LocalSession) lookupBranch(ctx context.Context, poolID ksuid.KSUID, branchName string) (*lake.Pool, *lake.Branch, error) {
 	pool, err := l.root.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, nil, err
 	}
-	branch, err := pool.OpenBranchByID(ctx, branchID)
+	branch, err := pool.OpenBranchByName(ctx, branchName)
 	if err != nil {
 		return nil, nil, err
 	}
 	return pool, branch, nil
 }
 
-func (l *LocalSession) Load(ctx context.Context, poolID, branchID ksuid.KSUID, r zio.Reader, commit api.CommitRequest) (ksuid.KSUID, error) {
-	_, branch, err := l.lookupBranch(ctx, poolID, branchID)
+func (l *LocalSession) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r zio.Reader, message api.CommitMessage) (ksuid.KSUID, error) {
+	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return branch.Load(ctx, r, commit.Date, commit.Author, commit.Message)
+	return branch.Load(ctx, r, message.Author, message.Body)
 }
 
-func (l *LocalSession) Delete(ctx context.Context, poolID, branchID ksuid.KSUID, tags []ksuid.KSUID, commit *api.CommitRequest) (ksuid.KSUID, error) {
-	_, branch, err := l.lookupBranch(ctx, poolID, branchID)
+func (l *LocalSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
+	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	ids, err := branch.LookupTags(ctx, tags)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	commitID, err := branch.Delete(ctx, ids)
+	commitID, err := branch.Delete(ctx, ids, message.Author, message.Body)
 	if err != nil {
 		return ksuid.Nil, err
 	}
 	return commitID, nil
 }
 
-func (l *LocalSession) ApplyIndexRules(ctx context.Context, name string, poolID, branchID ksuid.KSUID, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
-	_, branch, err := l.lookupBranch(ctx, poolID, branchID)
+func (l *LocalSession) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
+	return l.root.Revert(ctx, poolID, branchName, commitID, message.Author, message.Body)
+}
+
+func (l *LocalSession) ApplyIndexRules(ctx context.Context, name string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
+	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
 	if err != nil {
 		return ksuid.Nil, err
 	}

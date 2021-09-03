@@ -42,6 +42,8 @@ func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
 	case "join":
 		argmax = 2
 		f = &join{}
+	case "ksuid":
+		f = &ksuidToString{}
 	case "log":
 		f = &log{}
 	case "max":

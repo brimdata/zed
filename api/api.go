@@ -91,16 +91,6 @@ type VersionResponse struct {
 	Version string `json:"version"`
 }
 
-type IDsRequest struct {
-	Pool   string `json:"pool"`
-	Branch string `json:"branch"`
-}
-
-type IDsResponse struct {
-	PoolID   ksuid.KSUID `json:"pool_id"`
-	BranchID ksuid.KSUID `json:"branch_id"`
-}
-
 type PoolPostRequest struct {
 	Name   string       `json:"name"`
 	Layout order.Layout `json:"layout"`
@@ -112,19 +102,17 @@ type PoolPutRequest struct {
 }
 
 type BranchPostRequest struct {
-	Name     string `json:"name"`
-	ParentID string `json:"parent_id"`
-	At       string `json:"at"`
+	Name   string `json:"name"`
+	Commit string `json:"commit"`
 }
 
 type BranchMergeRequest struct {
 	At string `json:"at"`
 }
 
-type CommitRequest struct {
-	Author  string  `zng:"author"`
-	Date    nano.Ts `zng:"date"`
-	Message string  `zng:"message"`
+type CommitMessage struct {
+	Author string `zng:"author"`
+	Body   string `zng:"body"`
 }
 
 type CommitResponse struct {
@@ -142,7 +130,8 @@ type IndexPostRequest struct {
 type EventBranchCommit struct {
 	CommitID string `json:"commit_id"`
 	PoolID   string `json:"pool_id"`
-	BranchID string `json:"branch_id"`
+	Branch   string `json:"branch"`
+	Parent   string `json:"parent"`
 }
 
 type EventPool struct {
@@ -150,8 +139,8 @@ type EventPool struct {
 }
 
 type EventBranch struct {
-	PoolID   string `json:"pool_id"`
-	BranchID string `json:"branch_id"`
+	PoolID string `json:"pool_id"`
+	Branch string `json:"branch"`
 }
 
 type QueryRequest struct {

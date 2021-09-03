@@ -4,12 +4,13 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/commit"
-	"github.com/brimdata/zed/lake/commit/actions"
+	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/index"
+	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/terminal/color"
@@ -23,6 +24,7 @@ type Writer struct {
 	writer   io.WriteCloser
 	zson     *zson.Formatter
 	commits  table
+	branches map[ksuid.KSUID][]string
 	rulename string
 	width    int
 	colors   color.Stack
@@ -30,10 +32,11 @@ type Writer struct {
 
 func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{
-		writer:  w,
-		zson:    zson.NewFormatter(0),
-		commits: make(table),
-		width:   80, //XXX
+		writer:   w,
+		zson:     zson.NewFormatter(0),
+		commits:  make(table),
+		branches: make(map[ksuid.KSUID][]string),
+		width:    80, //XXX
 	}
 }
 
@@ -66,20 +69,19 @@ func (w *Writer) WriteZSON(rec *zng.Record) error {
 
 func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int, colors *color.Stack) {
 	switch v := v.(type) {
-	case *lake.PoolConfig:
+	case *pools.Config:
 		formatPoolConfig(b, v)
 	case *lake.BranchMeta:
-		formatBranchMeta(b, v)
+		formatBranchMeta(b, v, width, colors)
 	case segment.Reference:
 		formatSegment(b, &v, "", 0)
 	case *segment.Reference:
 		formatSegment(b, v, "", 0)
 	case lake.Partition:
 		formatPartition(b, v)
-	case *actions.CommitMessage:
-		t.formatCommit(b, v, width, colors)
-	case *actions.StagedCommit:
-		t.formatStaged(b, v, colors)
+	case *commits.Commit:
+		branches := w.branches[v.ID]
+		t.formatCommit(b, v, branches, width, colors)
 	case index.Rule:
 		name := v.RuleName()
 		if name != w.rulename {
@@ -90,8 +92,10 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int,
 		tab(b, 4)
 		b.WriteString(v.String())
 		b.WriteByte('\n')
+	case *lake.BranchTip:
+		w.branches[v.Commit] = append(w.branches[v.Commit], v.Name)
 	default:
-		if action, ok := v.(actions.Interface); ok {
+		if action, ok := v.(commits.Action); ok {
 			t.append(action)
 			return
 		}
@@ -99,14 +103,14 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int,
 	}
 }
 
-func formatCommit(b *bytes.Buffer, txn *commit.Transaction) {
-	b.WriteString(fmt.Sprintf("commit %s\n", txn.ID))
-	for _, action := range txn.Actions {
+func formatCommit(b *bytes.Buffer, object *commits.Object) {
+	b.WriteString(fmt.Sprintf("commit %s\n", object.Commit))
+	for _, action := range object.Actions {
 		b.WriteString(fmt.Sprintf("  segment %s\n", action))
 	}
 }
 
-func formatPoolConfig(b *bytes.Buffer, p *lake.PoolConfig) {
+func formatPoolConfig(b *bytes.Buffer, p *pools.Config) {
 	b.WriteString(p.Name)
 	b.WriteByte(' ')
 	b.WriteString(p.ID.String())
@@ -117,12 +121,15 @@ func formatPoolConfig(b *bytes.Buffer, p *lake.PoolConfig) {
 	b.WriteByte('\n')
 }
 
-func formatBranchMeta(b *bytes.Buffer, p *lake.BranchMeta) {
-	b.WriteString(p.PoolConfig.Name)
-	b.WriteByte('/')
-	b.WriteString(p.BranchConfig.Name)
+func formatBranchMeta(b *bytes.Buffer, p *lake.BranchMeta, width int, colors *color.Stack) {
+	b.WriteString(p.Pool.Name)
+	b.WriteByte('@')
+	b.WriteString(p.Branch.Name)
 	b.WriteByte(' ')
-	b.WriteString(p.BranchConfig.ID.String())
+	colors.Start(b, color.GrayYellow)
+	b.WriteString("commit ")
+	b.WriteString(p.Branch.Commit.String())
+	colors.End(b)
 	b.WriteByte('\n')
 }
 
@@ -161,28 +168,30 @@ func formatPartition(b *bytes.Buffer, p lake.Partition) {
 	}
 }
 
-type table map[ksuid.KSUID][]actions.Interface
+type table map[ksuid.KSUID][]commits.Action
 
-func (t table) append(a actions.Interface) {
+func (t table) append(a commits.Action) {
 	id := a.CommitID()
 	t[id] = append(t[id], a)
 }
 
-func (t table) formatStaged(b *bytes.Buffer, commit *actions.StagedCommit, colors *color.Stack) {
-	id := commit.CommitID()
-	colors.Start(b, color.GrayYellow)
-	b.WriteString("staged ")
-	b.WriteString(id.String())
-	colors.End(b)
-	b.WriteString("\n\n")
-	t.formatActions(b, id)
-}
-
-func (t table) formatCommit(b *bytes.Buffer, commit *actions.CommitMessage, width int, colors *color.Stack) {
+func (t table) formatCommit(b *bytes.Buffer, commit *commits.Commit, branches []string, width int, colors *color.Stack) {
 	id := commit.CommitID()
 	colors.Start(b, color.GrayYellow)
 	b.WriteString("commit ")
 	b.WriteString(id.String())
+	if len(branches) > 0 {
+		b.WriteString(" (")
+		for k, name := range branches {
+			if k != 0 {
+				b.WriteString(", ")
+			}
+			colors.Start(b, color.Green)
+			b.WriteString(name)
+			colors.End(b)
+		}
+		b.WriteString(")")
+	}
 	colors.End(b)
 	b.WriteString("\nAuthor: ")
 	b.WriteString(commit.Author)
@@ -190,37 +199,38 @@ func (t table) formatCommit(b *bytes.Buffer, commit *actions.CommitMessage, widt
 	b.WriteString(commit.Date.String())
 	b.WriteString("\n\n")
 	if commit.Message != "" {
-		b.WriteString(charm.FormatParagraph(commit.Message, "    ", width))
+		s := charm.FormatParagraph(commit.Message, "    ", width)
+		s = strings.TrimRight(s, " \n") + "\n\n"
+		b.WriteString(s)
 	}
-	t.formatActions(b, id)
 }
 
 func (t table) formatActions(b *bytes.Buffer, id ksuid.KSUID) {
 	for _, action := range t[id] {
 		switch action := action.(type) {
-		case *actions.Add:
+		case *commits.Add:
 			formatAdd(b, 4, action)
-		case *actions.AddIndex:
+		case *commits.AddIndex:
 			formatAddIndex(b, 4, action)
-		case *actions.Delete:
+		case *commits.Delete:
 			formatDelete(b, 4, action)
 		}
 	}
 	b.WriteString("\n")
 }
 
-func formatDelete(b *bytes.Buffer, indent int, delete *actions.Delete) {
+func formatDelete(b *bytes.Buffer, indent int, delete *commits.Delete) {
 	tab(b, indent)
 	b.WriteString("Delete ")
 	b.WriteString(delete.ID.String())
 	b.WriteByte('\n')
 }
 
-func formatAdd(b *bytes.Buffer, indent int, add *actions.Add) {
+func formatAdd(b *bytes.Buffer, indent int, add *commits.Add) {
 	formatSegment(b, &add.Segment, "Add", indent)
 }
 
-func formatAddIndex(b *bytes.Buffer, indent int, addx *actions.AddIndex) {
+func formatAddIndex(b *bytes.Buffer, indent int, addx *commits.AddIndex) {
 	formatIndexObject(b, &addx.Index, "AddIndex", indent)
 }
 

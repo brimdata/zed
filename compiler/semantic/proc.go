@@ -103,8 +103,9 @@ func semLayout(p *ast.Layout) (order.Layout, error) {
 }
 
 func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor proc.DataAdaptor) (dag.Source, error) {
-	if p.Spec.Pool == "" {
-		if p.Spec.Branch != "" || p.Spec.Meta == "" {
+	poolName := p.Spec.Pool
+	if poolName == "" {
+		if p.Spec.Meta == "" {
 			return nil, errors.New("pool name missing")
 		}
 		return &dag.LakeMeta{
@@ -114,30 +115,11 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor proc.DataAd
 	}
 	// If a name appears as an 0x bytes ksuid, convert it to the
 	// ksuid string form since the backend doesn't parse the 0x format.
-	poolName := p.Spec.Pool
 	poolID, err := parser.ParseID(poolName)
 	if err == nil {
 		poolName = poolID.String()
-	}
-	branchName := p.Spec.Branch
-	branchID, err := parser.ParseID(branchName)
-	if err == nil {
-		branchName = branchID.String()
-	}
-	// This trick here allows us to default to the main branch when
-	// there is a "from pool" operator with no meta query.
-	if branchName == "" && p.Spec.Meta == "" {
-		branchName = "main"
-	}
-	if poolID == ksuid.Nil || branchID == ksuid.Nil {
-		poolID, branchID, err = adaptor.IDs(ctx, poolName, branchName)
-		if err != nil {
-			return nil, err
-		}
-	}
-	var at ksuid.KSUID
-	if p.At != "" {
-		at, err = parser.ParseID(p.At)
+	} else {
+		poolID, err = adaptor.PoolID(ctx, poolName)
 		if err != nil {
 			return nil, err
 		}
@@ -157,37 +139,59 @@ func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor proc.DataAd
 			}
 		}
 	}
+	//var at ksuid.KSUID
+	if p.At != "" {
+		// XXX
+		// We no longer use "at" to refer to a commit tag, but if there
+		// is no commit tag, we could use an "at" time argument to time
+		// travel by going back in the branch log and finding the commit
+		// object with the largest time stamp <= the at time.
+		// This would require commitRef to be branch name not a commit ID.
+		return nil, errors.New("TBD: at clause in from operator needs to use time")
+	}
+	var commit ksuid.KSUID
+	if commitRef := p.Spec.Commit; commitRef != "" {
+		commit, err = parser.ParseID(commitRef)
+		if err != nil {
+			commit, err = adaptor.CommitObject(ctx, poolID, commitRef)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
 	if p.Spec.Meta != "" {
-		if branchID == ksuid.Nil {
-			return &dag.PoolMeta{
-				Kind: "PoolMeta",
-				Meta: p.Spec.Meta,
-				ID:   poolID,
-			}, nil
-		} else {
-			return &dag.BranchMeta{
-				Kind:      "PoolMeta",
+		if commit != ksuid.Nil {
+			return &dag.CommitMeta{
+				Kind:      "CommitMeta",
 				Meta:      p.Spec.Meta,
-				ID:        poolID,
-				Branch:    branchID,
+				Pool:      poolID,
+				Commit:    commit,
 				ScanLower: lower,
 				ScanUpper: upper,
 				ScanOrder: p.ScanOrder,
-				At:        at,
 			}, nil
 		}
+		return &dag.PoolMeta{
+			Kind: "PoolMeta",
+			Meta: p.Spec.Meta,
+			ID:   poolID,
+		}, nil
 	}
-	if branchID == ksuid.Nil {
-		return nil, fmt.Errorf("no branch specified for pool %q", poolName)
+	if commit == ksuid.Nil {
+		// This trick here allows us to default to the main branch when
+		// there is a "from pool" operator with no meta query or commit object.
+		commit, err = adaptor.CommitObject(ctx, poolID, "main")
+		if err != nil {
+			return nil, err
+		}
 	}
 	return &dag.Pool{
 		Kind:      "Pool",
 		ID:        poolID,
-		Branch:    branchID,
+		Commit:    commit,
 		ScanLower: lower,
 		ScanUpper: upper,
 		ScanOrder: p.ScanOrder,
-		At:        at,
 	}, nil
 }
 
