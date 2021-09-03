@@ -1,4 +1,4 @@
-package segment
+package data
 
 /* NOT YET
 func TestWriterIndex(t *testing.T) {

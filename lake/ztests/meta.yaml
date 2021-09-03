@@ -53,13 +53,13 @@ outputs:
       } (0)
       ===
       {
-          nameof: "segment.Reference",
+          nameof: "data.Object",
           meta: {
               first: 1,
               last: 2,
               count: 2 (uint64),
               row_size: 14
-          } (=segment.Metadata)
+          } (=data.Metadata)
       } (=0)
       {
           nameof: "lake.BranchTip"

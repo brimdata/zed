@@ -11,9 +11,9 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/branches"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
-	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/proc"
@@ -284,7 +284,7 @@ func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout,
 		return nil, fmt.Errorf("%s: %w", name, pools.ErrExists)
 	}
 	if thresh == 0 {
-		thresh = segment.DefaultThreshold
+		thresh = data.DefaultThreshold
 	}
 	config := pools.NewConfig(name, layout, thresh)
 	if err := CreatePool(ctx, config, r.engine, r.path); err != nil {

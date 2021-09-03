@@ -9,9 +9,9 @@ import (
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
-	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
@@ -55,32 +55,32 @@ func (b *Branch) Load(ctx context.Context, r zio.Reader, author, message string)
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	segments := w.Segments()
-	if len(segments) == 0 {
+	objects := w.Objects()
+	if len(objects) == 0 {
 		return ksuid.Nil, commits.ErrEmptyTransaction
 	}
 	if message == "" {
-		message = loadMessage(segments)
+		message = loadMessage(objects)
 	}
 	// The load operation has only added new objects so we know its
 	// safe to merge at the tip and there can be no conflicts
 	// with other concurrent writers (except for updating the branch pointer
 	// which is handled by Branch.commit)
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		return commits.NewAddsObject(parent.Commit, retries, author, message, segments), nil
+		return commits.NewAddsObject(parent.Commit, retries, author, message, objects), nil
 	})
 }
 
-func loadMessage(segments []segment.Reference) string {
+func loadMessage(objects []data.Object) string {
 	var b strings.Builder
 	plural := "s"
-	if len(segments) == 1 {
+	if len(objects) == 1 {
 		plural = ""
 	}
-	b.WriteString(fmt.Sprintf("loaded %d data object%s\n\n", len(segments), plural))
-	for k, segment := range segments {
+	b.WriteString(fmt.Sprintf("loaded %d data object%s\n\n", len(objects), plural))
+	for k, o := range objects {
 		b.WriteString("  ")
-		b.WriteString(segment.String())
+		b.WriteString(o.String())
 		b.WriteByte('\n')
 		if k >= maxMessageObjects {
 			b.WriteString("  ...\n")
@@ -98,7 +98,7 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 		}
 		for _, id := range ids {
 			if !snap.Exists(id) {
-				return nil, fmt.Errorf("non-existent segment %s: delete operation aborted", id)
+				return nil, fmt.Errorf("non-existent object %s: delete operation aborted", id)
 			}
 		}
 		return commits.NewDeletesObject(parent.Commit, retries, author, message, ids), nil
@@ -264,7 +264,7 @@ func (b *Branch) LookupTags(ctx context.Context, tags []ksuid.KSUID) ([]ksuid.KS
 		if err != nil {
 			continue
 		}
-		ids = append(ids, patch.Segments()...)
+		ids = append(ids, patch.DataObjects()...)
 	}
 	return ids, nil
 }
@@ -274,11 +274,11 @@ func (b *Branch) Pool() *Pool {
 }
 
 func (b *Branch) ApplyIndexRules(ctx context.Context, rules []index.Rule, ids []ksuid.KSUID) (ksuid.KSUID, error) {
-	idxrefs := make([]*index.Reference, 0, len(rules)*len(ids))
+	idxrefs := make([]*index.Object, 0, len(rules)*len(ids))
 	for _, id := range ids {
 		//XXX make issue for this.
 		// This could be easily parallized with errgroup.
-		refs, err := b.indexSegment(ctx, rules, id)
+		refs, err := b.indexObject(ctx, rules, id)
 		if err != nil {
 			return ksuid.Nil, err
 		}
@@ -307,8 +307,8 @@ func index_message(rules []index.Rule) string {
 	return "index rules applied: " + strings.Join(names, ",")
 }
 
-func (b *Branch) indexSegment(ctx context.Context, rules []index.Rule, id ksuid.KSUID) ([]*index.Reference, error) {
-	r, err := b.engine.Get(ctx, segment.RowObjectPath(b.pool.DataPath, id))
+func (b *Branch) indexObject(ctx context.Context, rules []index.Rule, id ksuid.KSUID) ([]*index.Object, error) {
+	r, err := b.engine.Get(ctx, data.RowObjectPath(b.pool.DataPath, id))
 	if err != nil {
 		return nil, err
 	}
@@ -337,7 +337,7 @@ type BranchStats struct {
 }
 
 func (b *Branch) Stats(ctx context.Context, snap commits.View) (info BranchStats, err error) {
-	ch := make(chan segment.Reference)
+	ch := make(chan data.Object)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
@@ -347,13 +347,13 @@ func (b *Branch) Stats(ctx context.Context, snap commits.View) (info BranchStats
 	// XXX this doesn't scale... it should be stored in the snapshot and is
 	// not easy to compute in the face of deletes...
 	var poolSpan *extent.Generic
-	for segment := range ch {
-		info.Size += segment.RowSize
+	for object := range ch {
+		info.Size += object.RowSize
 		if poolSpan == nil {
-			poolSpan = extent.NewGenericFromOrder(segment.First, segment.Last, b.pool.Layout.Order)
+			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, b.pool.Layout.Order)
 		} else {
-			poolSpan.Extend(segment.First)
-			poolSpan.Extend(segment.Last)
+			poolSpan.Extend(object.First)
+			poolSpan.Extend(object.Last)
 		}
 	}
 	//XXX need to change API to take return key range

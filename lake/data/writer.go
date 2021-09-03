@@ -1,4 +1,4 @@
-package segment
+package data
 
 import (
 	"bytes"
@@ -15,9 +15,9 @@ import (
 )
 
 // Writer is a zbuf.Writer that writes a stream of sorted records into a
-// data segment.
+// data object.
 type Writer struct {
-	ref              *Reference
+	object           *Object
 	byteCounter      *writeCounter
 	count            uint64
 	rowObject        *zngio.Writer
@@ -38,8 +38,8 @@ type Writer struct {
 // seekIndexStride is non-zero.  We assume all records are non-volatile until
 // Close as zng.Values from the various record bodies are referenced across
 // calls to Write.
-func (r *Reference) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, o order.Which, poolKey field.Path, seekIndexStride int) (*Writer, error) {
-	out, err := engine.Put(ctx, r.RowObjectPath(path))
+func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, order order.Which, poolKey field.Path, seekIndexStride int) (*Writer, error) {
+	out, err := engine.Put(ctx, o.RowObjectPath(path))
 	if err != nil {
 		return nil, err
 	}
@@ -48,16 +48,16 @@ func (r *Reference) NewWriter(ctx context.Context, engine storage.Engine, path *
 		LZ4BlockSize: zngio.DefaultLZ4BlockSize,
 	})
 	w := &Writer{
-		ref:         r,
+		object:      o,
 		byteCounter: counter,
 		rowObject:   writer,
-		order:       o,
+		order:       order,
 		first:       true,
 		poolKey:     poolKey,
 	}
 	if seekIndexStride != 0 {
 		w.seekIndexStride = seekIndexStride
-		seekOut, err := engine.Put(ctx, r.SeekObjectPath(path))
+		seekOut, err := engine.Put(ctx, o.SeekObjectPath(path))
 		if err != nil {
 			return nil, err
 		}
@@ -128,8 +128,8 @@ func (w *Writer) Close(ctx context.Context) error {
 		w.Abort()
 		return err
 	}
-	w.ref.Count = w.count
-	w.ref.RowSize = w.rowObject.Position()
+	w.object.Count = w.count
+	w.object.RowSize = w.rowObject.Position()
 	return nil
 }
 
@@ -141,10 +141,10 @@ func (w *Writer) RecordsWritten() uint64 {
 	return w.count
 }
 
-// Segment returns the Segment written by the writer. This is only valid after
+// Object returns the Object written by the writer. This is only valid after
 // Close() has returned a nil error.
-func (w *Writer) Segment() *Reference {
-	return w.ref
+func (w *Writer) Object() *Object {
+	return w.object
 }
 
 type writeCounter struct {

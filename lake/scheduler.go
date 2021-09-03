@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
@@ -55,7 +55,7 @@ func (s *Scheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	})
 	select {
 	case p := <-s.ch:
-		if p.Segments == nil {
+		if p.Objects == nil {
 			return nil, <-s.done
 		}
 		return s.newSortedScanner(p)
@@ -123,11 +123,11 @@ func (s *scannerScheduler) Stats() zbuf.ScannerStats {
 	return s.stats.Copy()
 }
 
-func ScanSpan(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
-	for _, seg := range snap.Select(span, o) {
-		if span == nil || span.Overlaps(seg.First, seg.Last) {
+func ScanSpan(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- data.Object) error {
+	for _, object := range snap.Select(span, o) {
+		if span == nil || span.Overlaps(object.First, object.Last) {
 			select {
-			case ch <- *seg:
+			case ch <- *object:
 			case <-ctx.Done():
 				return ctx.Err()
 			}
@@ -136,12 +136,12 @@ func ScanSpan(ctx context.Context, snap commits.View, span extent.Span, o order.
 	return nil
 }
 
-func ScanSpanInOrder(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
-	segments := snap.Select(span, o)
-	sortSegments(o, segments)
-	for _, seg := range segments {
+func ScanSpanInOrder(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- data.Object) error {
+	objects := snap.Select(span, o)
+	sortObjects(o, objects)
+	for _, object := range objects {
 		select {
-		case ch <- *seg:
+		case ch <- *object:
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -149,12 +149,12 @@ func ScanSpanInOrder(ctx context.Context, snap commits.View, span extent.Span, o
 	return nil
 }
 
-// ScanPartitions partitions all segments in snap overlapping
+// ScanPartitions partitions all the data objects in snap overlapping
 // span into non-overlapping partitions, sorts them by pool key and order,
 // and sends them to ch.
 func ScanPartitions(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- Partition) error {
-	segments := snap.Select(span, o)
-	for _, p := range PartitionSegments(segments, o) {
+	objects := snap.Select(span, o)
+	for _, p := range PartitionObjects(objects, o) {
 		if span != nil {
 			p.Span.Crop(span)
 		}

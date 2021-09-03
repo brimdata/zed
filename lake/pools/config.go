@@ -1,8 +1,8 @@
 package pools
 
 import (
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/journal"
-	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
@@ -21,7 +21,7 @@ var _ journal.Entry = (*Config)(nil)
 
 func NewConfig(name string, layout order.Layout, thresh int64) *Config {
 	if thresh == 0 {
-		thresh = segment.DefaultThreshold
+		thresh = data.DefaultThreshold
 	}
 	return &Config{
 		Ts:        nano.Now(),

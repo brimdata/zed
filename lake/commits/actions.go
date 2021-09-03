@@ -3,8 +3,8 @@ package commits
 import (
 	"fmt"
 
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/segmentio/ksuid"
 )
@@ -27,8 +27,8 @@ var ActionTypes = []interface{}{
 }
 
 type Add struct {
-	Commit  ksuid.KSUID       `zng:"commit"`
-	Segment segment.Reference `zng:"segment"`
+	Commit ksuid.KSUID `zng:"commit"`
+	Object data.Object `zng:"object"`
 }
 
 var _ Action = (*Add)(nil)
@@ -38,7 +38,7 @@ func (a *Add) CommitID() ksuid.KSUID {
 }
 
 func (a *Add) String() string {
-	return fmt.Sprintf("ADD %s", a.Segment)
+	return fmt.Sprintf("ADD %s", a.Object)
 }
 
 // Note that we store the number of retries in the final commit
@@ -80,12 +80,12 @@ func (d *Delete) String() string {
 }
 
 type AddIndex struct {
-	Commit ksuid.KSUID     `zng:"commit"`
-	Index  index.Reference `zng:"index"`
+	Commit ksuid.KSUID  `zng:"commit"`
+	Object index.Object `zng:"object"`
 }
 
 func (a *AddIndex) String() string {
-	return fmt.Sprintf("ADD_INDEX %s", a.Index)
+	return fmt.Sprintf("ADD_INDEX %s", a.Object)
 }
 
 func (a *AddIndex) CommitID() ksuid.KSUID {

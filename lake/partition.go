@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commits"
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
@@ -18,29 +18,29 @@ import (
 )
 
 // A Partition is a logical view of the records within a time span, stored
-// in one or more Segments.  This provides a way to return the list of
-// Segments that should be scanned along with a span to limit the scan
+// in one or more data objects.  This provides a way to return the list of
+// objects that should be scanned along with a span to limit the scan
 // to only the span involved.
 type Partition struct {
 	extent.Span
-	compare  expr.ValueCompareFn
-	Segments []*segment.Reference
+	compare expr.ValueCompareFn
+	Objects []*data.Object
 }
 
 func (p Partition) IsZero() bool {
-	return p.Segments == nil
+	return p.Objects == nil
 }
 
-func (p Partition) FormatRangeOf(segno int) string {
-	seg := p.Segments[segno]
-	return fmt.Sprintf("[%s-%s,%s-%s]", zson.String(p.First()), zson.String(p.Last()), zson.String(seg.First), zson.String(seg.Last))
+func (p Partition) FormatRangeOf(index int) string {
+	o := p.Objects[index]
+	return fmt.Sprintf("[%s-%s,%s-%s]", zson.String(p.First()), zson.String(p.Last()), zson.String(o.First), zson.String(o.Last))
 }
 
 func (p Partition) FormatRange() string {
 	return fmt.Sprintf("[%s-%s]", zson.String(p.First()), zson.String(p.Last()))
 }
 
-// partitionSegments takes a sorted set of segments with possibly overlapping
+// PartitionObjects takes a sorted set of data objects with possibly overlapping
 // key ranges and returns an ordered list of Ranges such that none of the
 // Ranges overlap with one another.  This is the straightforward computational
 // geometry problem of merging overlapping intervals,
@@ -49,21 +49,21 @@ func (p Partition) FormatRange() string {
 // XXX this algorithm doesn't quite do what we want because it continues
 // to merge *anything* that overlaps.  It's easy to fix though.
 // Issue #2538
-func PartitionSegments(segments []*segment.Reference, o order.Which) []Partition {
-	if len(segments) == 0 {
+func PartitionObjects(objects []*data.Object, o order.Which) []Partition {
+	if len(objects) == 0 {
 		return nil
 	}
 	cmp := extent.CompareFunc(o)
-	segspans := sortedSegmentSpans(segments, cmp)
+	spans := sortedObjectSpans(objects, cmp)
 	var s stack
-	s.pushSegmentSpan(segspans[0], cmp)
-	for _, segspan := range segspans[1:] {
+	s.pushObjectSpan(spans[0], cmp)
+	for _, span := range spans[1:] {
 		tos := s.tos()
-		if segspan.Before(tos.Last()) {
-			s.pushSegmentSpan(segspan, cmp)
+		if span.Before(tos.Last()) {
+			s.pushObjectSpan(span, cmp)
 		} else {
-			tos.Segments = append(tos.Segments, segspan.seg)
-			tos.Extend(segspan.Last())
+			tos.Objects = append(tos.Objects, span.object)
+			tos.Extend(span.Last())
 		}
 	}
 	// On exit, the ranges in the stack are properly sorted so
@@ -73,11 +73,11 @@ func PartitionSegments(segments []*segment.Reference, o order.Which) []Partition
 
 type stack []Partition
 
-func (s *stack) pushSegmentSpan(segspan segmentSpan, cmp expr.ValueCompareFn) {
+func (s *stack) pushObjectSpan(span objectSpan, cmp expr.ValueCompareFn) {
 	s.push(Partition{
-		Span:     segspan.Span,
-		compare:  cmp,
-		Segments: []*segment.Reference{segspan.seg},
+		Span:    span.Span,
+		compare: cmp,
+		Objects: []*data.Object{span.object},
 	})
 }
 
@@ -96,26 +96,26 @@ func (s *stack) tos() *Partition {
 	return &(*s)[len(*s)-1]
 }
 
-type segmentSpan struct {
+type objectSpan struct {
 	extent.Span
-	seg *segment.Reference
+	object *data.Object
 }
 
-func sortedSegmentSpans(segments []*segment.Reference, cmp expr.ValueCompareFn) []segmentSpan {
-	segspans := make([]segmentSpan, 0, len(segments))
-	for _, s := range segments {
-		segspans = append(segspans, segmentSpan{
-			Span: extent.NewGeneric(s.First, s.Last, cmp),
-			seg:  s,
+func sortedObjectSpans(objects []*data.Object, cmp expr.ValueCompareFn) []objectSpan {
+	spans := make([]objectSpan, 0, len(objects))
+	for _, o := range objects {
+		spans = append(spans, objectSpan{
+			Span:   extent.NewGeneric(o.First, o.Last, cmp),
+			object: o,
 		})
 	}
-	sort.Slice(segspans, func(i, j int) bool {
-		return segmentSpanLess(segspans[i], segspans[j])
+	sort.Slice(spans, func(i, j int) bool {
+		return objectSpanLess(spans[i], spans[j])
 	})
-	return segspans
+	return spans
 }
 
-func segmentSpanLess(a, b segmentSpan) bool {
+func objectSpanLess(a, b objectSpan) bool {
 	if b.Before(a.First()) {
 		return true
 	}
@@ -123,17 +123,17 @@ func segmentSpanLess(a, b segmentSpan) bool {
 		return false
 	}
 	if bytes.Equal(a.Last().Bytes, b.Last().Bytes) {
-		if a.seg.Count != b.seg.Count {
-			return a.seg.Count < b.seg.Count
+		if a.object.Count != b.object.Count {
+			return a.object.Count < b.object.Count
 		}
-		return ksuid.Compare(a.seg.ID, b.seg.ID) < 0
+		return ksuid.Compare(a.object.ID, b.object.ID) < 0
 	}
 	return a.After(b.Last())
 }
 
-func sortSegments(o order.Which, r []*segment.Reference) {
-	for k, segSpan := range sortedSegmentSpans(r, extent.CompareFunc(o)) {
-		r[k] = segSpan.seg
+func sortObjects(o order.Which, objects []*data.Object) {
+	for k, span := range sortedObjectSpans(objects, extent.CompareFunc(o)) {
+		objects[k] = span.object
 	}
 }
 
@@ -150,7 +150,7 @@ func partitionReader(ctx context.Context, zctx *zson.Context, snap commits.View,
 	return readerFunc(func() (*zng.Record, error) {
 		select {
 		case p := <-ch:
-			if p.Segments == nil {
+			if p.Objects == nil {
 				cancel()
 				return nil, scanErr
 			}
@@ -167,7 +167,7 @@ func partitionReader(ctx context.Context, zctx *zson.Context, snap commits.View,
 }
 
 func objectReader(ctx context.Context, zctx *zson.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
-	ch := make(chan segment.Reference)
+	ch := make(chan data.Object)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
 	go func() {

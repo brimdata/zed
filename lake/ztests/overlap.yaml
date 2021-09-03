@@ -23,7 +23,7 @@ outputs:
               last: 2020-04-21T22:40:30.06852324Z,
               count: 500 (uint64),
               row_size: 17102
-          } (=segment.Metadata)
+          } (=data.Metadata)
       } (=0)
       {
           meta: {
