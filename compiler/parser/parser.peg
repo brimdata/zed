@@ -119,7 +119,7 @@ Operation
     }
 
 SwitchLiteralClause
-  = __ expr:(DefaultToken / Literal) __ "=>" __ proc:Sequential __ ";" {
+  = __ expr:(DefaultToken / Literal / Identifier) __ "=>" __ proc:Sequential __ ";" {
       RETURN(MAP("expr": expr, "proc": proc))
     }
 
