@@ -51,10 +51,10 @@ func (s *statScanner) Pull() (zbuf.Batch, error) {
 }
 
 func newSortedScanner(ctx context.Context, pool *Pool, zctx *zson.Context, filter zbuf.Filter, scan Partition, sched *Scheduler) (*sortedPuller, error) {
-	closers := make(multiCloser, 0, len(scan.Segments))
-	pullers := make([]zbuf.Puller, 0, len(scan.Segments))
-	for _, segref := range scan.Segments {
-		rc, err := segref.NewReader(ctx, pool.engine, pool.DataPath, scan.Span, scan.compare)
+	closers := make(multiCloser, 0, len(scan.Objects))
+	pullers := make([]zbuf.Puller, 0, len(scan.Objects))
+	for _, object := range scan.Objects {
+		rc, err := object.NewReader(ctx, pool.engine, pool.DataPath, scan.Span, scan.compare)
 		if err != nil {
 			closers.Close()
 			return nil, err
@@ -65,7 +65,7 @@ func newSortedScanner(ctx context.Context, pool *Pool, zctx *zson.Context, filte
 		if len(pool.Layout.Keys) != 0 {
 			// If the scan span does not wholly contain the segment, then
 			// we must filter out records that fall outside the range.
-			f = wrapRangeFilter(f, scan.Span, scan.compare, segref.First, segref.Last, pool.Layout)
+			f = wrapRangeFilter(f, scan.Span, scan.compare, object.First, object.Last, pool.Layout)
 		}
 		scanner, err := reader.NewScanner(ctx, f)
 		if err != nil {

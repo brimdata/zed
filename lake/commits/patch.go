@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"github.com/brimdata/zed/expr/extent"
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
 	"github.com/segmentio/ksuid"
 )
@@ -19,6 +19,9 @@ type Patch struct {
 	deletes []ksuid.KSUID
 }
 
+var _ View = (*Patch)(nil)
+var _ Writeable = (*Patch)(nil)
+
 func NewPatch(base View) *Patch {
 	return &Patch{
 		base: base,
@@ -26,37 +29,37 @@ func NewPatch(base View) *Patch {
 	}
 }
 
-func (p *Patch) Lookup(id ksuid.KSUID) (*segment.Reference, error) {
+func (p *Patch) Lookup(id ksuid.KSUID) (*data.Object, error) {
 	if s, err := p.diff.Lookup(id); err == nil {
 		return s, nil
 	}
 	return p.base.Lookup(id)
 }
 
-func (p *Patch) Select(span extent.Span, o order.Which) Segments {
-	segments := p.base.Select(span, o)
-	segments.Append(p.diff.Select(span, o))
-	return segments
+func (p *Patch) Select(span extent.Span, o order.Which) DataObjects {
+	objects := p.base.Select(span, o)
+	objects.Append(p.diff.Select(span, o))
+	return objects
 }
 
-func (p *Patch) SelectAll() Segments {
-	segments := p.base.SelectAll()
-	segments.Append(p.diff.SelectAll())
-	return segments
+func (p *Patch) SelectAll() DataObjects {
+	objects := p.base.SelectAll()
+	objects.Append(p.diff.SelectAll())
+	return objects
 }
 
-func (p *Patch) Segments() []ksuid.KSUID {
+func (p *Patch) DataObjects() []ksuid.KSUID {
 	var ids []ksuid.KSUID
-	for _, segment := range p.diff.SelectAll() {
-		ids = append(ids, segment.ID)
+	for _, dataObject := range p.diff.SelectAll() {
+		ids = append(ids, dataObject.ID)
 	}
 	return ids
 }
 
 func (p *Patch) Adds() []ksuid.KSUID {
 	var ids []ksuid.KSUID
-	for _, segment := range p.base.SelectAll() {
-		ids = append(ids, segment.ID)
+	for _, dataObject := range p.base.SelectAll() {
+		ids = append(ids, dataObject.ID)
 	}
 	return ids
 }
@@ -65,16 +68,16 @@ func (p *Patch) Deletes() []ksuid.KSUID {
 	return p.deletes
 }
 
-func (p *Patch) AddSegment(seg *segment.Reference) error {
-	if Exists(p.base, seg.ID) {
+func (p *Patch) AddDataObject(object *data.Object) error {
+	if Exists(p.base, object.ID) {
 		return ErrExists
 	}
-	return p.diff.AddSegment(seg)
+	return p.diff.AddDataObject(object)
 }
 
-func (p *Patch) DeleteSegment(id ksuid.KSUID) error {
+func (p *Patch) DeleteObject(id ksuid.KSUID) error {
 	if p.diff.Exists(id) {
-		return p.diff.DeleteSegment(id)
+		return p.diff.DeleteObject(id)
 	}
 	if !Exists(p.base, id) {
 		return ErrNotFound
@@ -90,7 +93,7 @@ func (p *Patch) NewCommitObject(parent ksuid.KSUID, retries int, author, message
 	for _, id := range p.deletes {
 		o.appendDelete(id)
 	}
-	for _, s := range p.diff.segments {
+	for _, s := range p.diff.objects {
 		o.appendAdd(s)
 	}
 	return o
@@ -99,11 +102,10 @@ func (p *Patch) NewCommitObject(parent ksuid.KSUID, retries int, author, message
 //XXX We need to handle more than add/delete.  See issue #3000.
 func (p *Patch) Undo(tip *Snapshot, commit, parent ksuid.KSUID, retries int, author, message string) (*Object, error) {
 	object := NewObject(parent, author, message, retries)
-	// For each segment in the patch that is also in the tip, we do a delete.
-	segments := p.diff.SelectAll()
-	for _, segment := range segments {
-		if Exists(tip, segment.ID) {
-			object.appendDelete(segment.ID)
+	// For each data object in the patch that is also in the tip, we do a delete.
+	for _, dataObject := range p.diff.SelectAll() {
+		if Exists(tip, dataObject.ID) {
+			object.appendDelete(dataObject.ID)
 		}
 	}
 	// For each delete in the patch that is not in the tip, we do an add.

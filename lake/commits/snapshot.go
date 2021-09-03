@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/expr/extent"
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
 	"github.com/segmentio/ksuid"
 )
@@ -16,44 +16,47 @@ var (
 )
 
 type View interface {
-	Lookup(ksuid.KSUID) (*segment.Reference, error)
-	Select(extent.Span, order.Which) Segments
-	SelectAll() Segments
+	Lookup(ksuid.KSUID) (*data.Object, error)
+	Select(extent.Span, order.Which) DataObjects
+	SelectAll() DataObjects
 }
 
 type Writeable interface {
 	View
-	AddSegment(seg *segment.Reference) error
-	DeleteSegment(id ksuid.KSUID) error
+	AddDataObject(*data.Object) error
+	DeleteObject(id ksuid.KSUID) error
 }
 
 // A snapshot summarizes the pool state at any point in
 // the commit object tree.
 // XXX redefine snapshot as type map instead of struct
 type Snapshot struct {
-	segments map[ksuid.KSUID]*segment.Reference
+	objects map[ksuid.KSUID]*data.Object
 }
+
+var _ View = (*Snapshot)(nil)
+var _ Writeable = (*Snapshot)(nil)
 
 func NewSnapshot() *Snapshot {
 	return &Snapshot{
-		segments: make(map[ksuid.KSUID]*segment.Reference),
+		objects: make(map[ksuid.KSUID]*data.Object),
 	}
 }
 
-func (s *Snapshot) AddSegment(seg *segment.Reference) error {
-	id := seg.ID
-	if _, ok := s.segments[id]; ok {
+func (s *Snapshot) AddDataObject(object *data.Object) error {
+	id := object.ID
+	if _, ok := s.objects[id]; ok {
 		return fmt.Errorf("%s: add of a duplicate data object: %w", id, ErrWriteConflict)
 	}
-	s.segments[id] = seg
+	s.objects[id] = object
 	return nil
 }
 
-func (s *Snapshot) DeleteSegment(id ksuid.KSUID) error {
-	if _, ok := s.segments[id]; !ok {
+func (s *Snapshot) DeleteObject(id ksuid.KSUID) error {
+	if _, ok := s.objects[id]; !ok {
 		return fmt.Errorf("%s: delete of a non-existent data object: %w", id, ErrWriteConflict)
 	}
-	delete(s.segments, id)
+	delete(s.objects, id)
 	return nil
 }
 
@@ -66,45 +69,45 @@ func (s *Snapshot) Exists(id ksuid.KSUID) bool {
 	return Exists(s, id)
 }
 
-func (s *Snapshot) Lookup(id ksuid.KSUID) (*segment.Reference, error) {
-	seg, ok := s.segments[id]
+func (s *Snapshot) Lookup(id ksuid.KSUID) (*data.Object, error) {
+	o, ok := s.objects[id]
 	if !ok {
 		return nil, fmt.Errorf("%s: %w", id, ErrNotFound)
 	}
-	return seg, nil
+	return o, nil
 }
 
-func (s *Snapshot) Select(scan extent.Span, o order.Which) Segments {
-	var segments Segments
-	for _, seg := range s.segments {
-		segspan := seg.Span(o)
+func (s *Snapshot) Select(scan extent.Span, order order.Which) DataObjects {
+	var objects DataObjects
+	for _, o := range s.objects {
+		segspan := o.Span(order)
 		if scan == nil || segspan == nil || extent.Overlaps(scan, segspan) {
-			segments = append(segments, seg)
+			objects = append(objects, o)
 		}
 	}
-	return segments
+	return objects
 }
 
-func (s *Snapshot) SelectAll() Segments {
-	var segments Segments
-	for _, seg := range s.segments {
-		segments = append(segments, seg)
+func (s *Snapshot) SelectAll() DataObjects {
+	var objects DataObjects
+	for _, o := range s.objects {
+		objects = append(objects, o)
 	}
-	return segments
+	return objects
 }
 
 func (s *Snapshot) Copy() *Snapshot {
 	out := NewSnapshot()
-	for key, val := range s.segments {
-		out.segments[key] = val
+	for key, val := range s.objects {
+		out.objects[key] = val
 	}
 	return out
 }
 
-type Segments []*segment.Reference
+type DataObjects []*data.Object
 
-func (s *Segments) Append(segments Segments) {
-	*s = append(*s, segments...)
+func (d *DataObjects) Append(objects DataObjects) {
+	*d = append(*d, objects...)
 }
 
 func PlayAction(w Writeable, action Action) error {
@@ -114,9 +117,9 @@ func PlayAction(w Writeable, action Action) error {
 	//XXX other cases like actions.AddIndex etc coming soon...
 	switch action := action.(type) {
 	case *Add:
-		w.AddSegment(&action.Segment)
+		w.AddDataObject(&action.Object)
 	case *Delete:
-		w.DeleteSegment(action.ID)
+		w.DeleteObject(action.ID)
 	}
 	return nil
 }

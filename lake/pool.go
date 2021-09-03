@@ -8,8 +8,8 @@ import (
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/pools"
-	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/proc"
@@ -181,7 +181,7 @@ func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zson.Context, f exp
 
 //XXX this is inefficient but is only meant for interactive queries...?
 func (p *Pool) ObjectExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
-	return p.engine.Exists(ctx, segment.RowObjectPath(p.DataPath, id))
+	return p.engine.Exists(ctx, data.RowObjectPath(p.DataPath, id))
 }
 
 //XXX for backward compat keep this for now, and return branchstats for pool/main
@@ -192,7 +192,7 @@ type PoolStats struct {
 }
 
 func (p *Pool) Stats(ctx context.Context, snap commits.View) (info PoolStats, err error) {
-	ch := make(chan segment.Reference)
+	ch := make(chan data.Object)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
@@ -202,13 +202,13 @@ func (p *Pool) Stats(ctx context.Context, snap commits.View) (info PoolStats, er
 	// XXX this doesn't scale... it should be stored in the snapshot and is
 	// not easy to compute in the face of deletes...
 	var poolSpan *extent.Generic
-	for segment := range ch {
-		info.Size += segment.RowSize
+	for object := range ch {
+		info.Size += object.RowSize
 		if poolSpan == nil {
-			poolSpan = extent.NewGenericFromOrder(segment.First, segment.Last, p.Layout.Order)
+			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, p.Layout.Order)
 		} else {
-			poolSpan.Extend(segment.First)
-			poolSpan.Extend(segment.Last)
+			poolSpan.Extend(object.First)
+			poolSpan.Extend(object.Last)
 		}
 	}
 	//XXX need to change API to take return key range

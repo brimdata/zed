@@ -1,4 +1,4 @@
-package segment
+package data
 
 import (
 	"bytes"
@@ -25,8 +25,8 @@ type Reader struct {
 // NewReader returns a Reader for this segment. If the segment has a seek index and
 // if the provided span skips part of the segment, the seek index will be used to
 // limit the reading window of the returned reader.
-func (r *Reference) NewReader(ctx context.Context, engine storage.Engine, path *storage.URI, scanRange extent.Span, cmp expr.ValueCompareFn) (*Reader, error) {
-	objectPath := r.RowObjectPath(path)
+func (o *Object) NewReader(ctx context.Context, engine storage.Engine, path *storage.URI, scanRange extent.Span, cmp expr.ValueCompareFn) (*Reader, error) {
+	objectPath := o.RowObjectPath(path)
 	reader, err := engine.Get(ctx, objectPath)
 	if err != nil {
 		return nil, err
@@ -34,23 +34,23 @@ func (r *Reference) NewReader(ctx context.Context, engine storage.Engine, path *
 	sr := &Reader{
 		Reader:     reader,
 		Closer:     reader,
-		TotalBytes: r.RowSize,
-		ReadBytes:  r.RowSize, //XXX
+		TotalBytes: o.RowSize,
+		ReadBytes:  o.RowSize, //XXX
 	}
 	// If a whole segment has nulls for the key values, just return the
 	// whole-segment reader.  Eventually, we will store keyless rows some
 	// other way, perhaps in a sub-pool.
-	if r.First.Bytes == nil || r.Last.Bytes == nil {
+	if o.First.Bytes == nil || o.Last.Bytes == nil {
 		return sr, nil
 	}
-	segspan := extent.NewGeneric(r.First, r.Last, cmp)
-	if !segspan.Crop(scanRange) {
-		return nil, fmt.Errorf("segment reader: segment does not intersect provided span: %s (segment range %s) (scan range %s)", path, segspan, scanRange)
+	span := extent.NewGeneric(o.First, o.Last, cmp)
+	if !span.Crop(scanRange) {
+		return nil, fmt.Errorf("segment reader: segment does not intersect provided span: %s (segment range %s) (scan range %s)", path, span, scanRange)
 	}
-	if bytes.Equal(r.First.Bytes, segspan.First().Bytes) && bytes.Equal(r.Last.Bytes, segspan.Last().Bytes) {
+	if bytes.Equal(o.First.Bytes, span.First().Bytes) && bytes.Equal(o.Last.Bytes, span.Last().Bytes) {
 		return sr, nil
 	}
-	indexReader, err := engine.Get(ctx, r.SeekObjectPath(path))
+	indexReader, err := engine.Get(ctx, o.SeekObjectPath(path))
 	if err != nil {
 		if zqe.IsNotFound(err) {
 			return sr, nil

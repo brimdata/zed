@@ -4,7 +4,7 @@ import (
 	"context"
 	"path"
 
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/pkg/storage"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/prometheus/client_golang/prometheus"
@@ -37,7 +37,7 @@ func (c *LocalCache) Get(ctx context.Context, u *storage.URI) (storage.Reader, e
 	if !c.cacheable(u) {
 		return c.Engine.Get(ctx, u)
 	}
-	kind, _, _ := segment.FileMatch(path.Base(u.Path))
+	kind, _, _ := data.FileMatch(path.Base(u.Path))
 	if v, ok := c.lru.Get(u.String()); ok {
 		c.hits.WithLabelValues(kind.Description()).Inc()
 		return storage.NewBytesReader(v.([]byte)), nil

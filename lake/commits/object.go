@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
@@ -38,10 +38,10 @@ func NewObject(parent ksuid.KSUID, author, message string, retries int) *Object 
 	return o
 }
 
-func NewAddsObject(parent ksuid.KSUID, retries int, author, message string, segments []segment.Reference) *Object {
+func NewAddsObject(parent ksuid.KSUID, retries int, author, message string, objects []data.Object) *Object {
 	o := NewObject(parent, author, message, retries)
-	for _, s := range segments {
-		o.append(&Add{Commit: o.Commit, Segment: s})
+	for _, dataObject := range objects {
+		o.append(&Add{Commit: o.Commit, Object: dataObject})
 	}
 	return o
 }
@@ -54,7 +54,7 @@ func NewDeletesObject(parent ksuid.KSUID, retries int, author, message string, i
 	return o
 }
 
-func NewAddIndicesObject(parent ksuid.KSUID, author, message string, retries int, indices []*index.Reference) *Object {
+func NewAddIndicesObject(parent ksuid.KSUID, author, message string, retries int, indices []*index.Object) *Object {
 	o := NewObject(parent, author, message, retries)
 	for _, index := range indices {
 		o.appendAddIndex(index)
@@ -66,16 +66,16 @@ func (o *Object) append(action Action) {
 	o.Actions = append(o.Actions, action)
 }
 
-func (o *Object) appendAdd(s *segment.Reference) {
-	o.append(&Add{Commit: o.Commit, Segment: *s})
+func (o *Object) appendAdd(dataObject *data.Object) {
+	o.append(&Add{Commit: o.Commit, Object: *dataObject})
 }
 
 func (o *Object) appendDelete(id ksuid.KSUID) {
 	o.append(&Delete{Commit: o.Commit, ID: id})
 }
 
-func (o *Object) appendAddIndex(i *index.Reference) {
-	o.append(&AddIndex{Commit: o.Commit, Index: *i})
+func (o *Object) appendAddIndex(i *index.Object) {
+	o.append(&AddIndex{Commit: o.Commit, Object: *i})
 }
 
 func (o Object) Serialize() ([]byte, error) {

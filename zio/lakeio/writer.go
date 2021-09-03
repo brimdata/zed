@@ -9,9 +9,9 @@ import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
-	"github.com/brimdata/zed/lake/segment"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/pkg/units"
@@ -73,10 +73,10 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int,
 		formatPoolConfig(b, v)
 	case *lake.BranchMeta:
 		formatBranchMeta(b, v, width, colors)
-	case segment.Reference:
-		formatSegment(b, &v, "", 0)
-	case *segment.Reference:
-		formatSegment(b, v, "", 0)
+	case data.Object:
+		formatDataObject(b, &v, "", 0)
+	case *data.Object:
+		formatDataObject(b, v, "", 0)
 	case lake.Partition:
 		formatPartition(b, v)
 	case *commits.Commit:
@@ -106,7 +106,7 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int,
 func formatCommit(b *bytes.Buffer, object *commits.Object) {
 	b.WriteString(fmt.Sprintf("commit %s\n", object.Commit))
 	for _, action := range object.Actions {
-		b.WriteString(fmt.Sprintf("  segment %s\n", action))
+		b.WriteString(fmt.Sprintf("  action %s\n", action))
 	}
 }
 
@@ -139,21 +139,21 @@ func tab(b *bytes.Buffer, indent int) {
 	}
 }
 
-func formatSegment(b *bytes.Buffer, seg *segment.Reference, prefix string, indent int) {
+func formatDataObject(b *bytes.Buffer, object *data.Object, prefix string, indent int) {
 	tab(b, indent)
 	if prefix != "" {
 		b.WriteString(prefix)
 		b.WriteByte(' ')
 	}
-	b.WriteString(seg.ID.String())
-	objectSize := units.Bytes(seg.RowSize).Abbrev()
-	b.WriteString(fmt.Sprintf(" %s bytes %d records", objectSize, seg.Count))
+	b.WriteString(object.ID.String())
+	objectSize := units.Bytes(object.RowSize).Abbrev()
+	b.WriteString(fmt.Sprintf(" %s bytes %d records", objectSize, object.Count))
 	b.WriteString("\n  ")
 	tab(b, indent)
 	b.WriteString(" from ")
-	b.WriteString(zson.String(seg.First))
+	b.WriteString(zson.String(object.First))
 	b.WriteString(" to ")
-	b.WriteString(zson.String(seg.Last))
+	b.WriteString(zson.String(object.Last))
 	b.WriteByte('\n')
 }
 
@@ -163,8 +163,8 @@ func formatPartition(b *bytes.Buffer, p lake.Partition) {
 	b.WriteString(" to ")
 	b.WriteString(zson.String(p.Last()))
 	b.WriteByte('\n')
-	for _, seg := range p.Segments {
-		formatSegment(b, seg, "", 2)
+	for _, o := range p.Objects {
+		formatDataObject(b, o, "", 2)
 	}
 }
 
@@ -227,19 +227,19 @@ func formatDelete(b *bytes.Buffer, indent int, delete *commits.Delete) {
 }
 
 func formatAdd(b *bytes.Buffer, indent int, add *commits.Add) {
-	formatSegment(b, &add.Segment, "Add", indent)
+	formatDataObject(b, &add.Object, "Add", indent)
 }
 
 func formatAddIndex(b *bytes.Buffer, indent int, addx *commits.AddIndex) {
-	formatIndexObject(b, &addx.Index, "AddIndex", indent)
+	formatIndexObject(b, &addx.Object, "AddIndex", indent)
 }
 
-func formatIndexObject(b *bytes.Buffer, index *index.Reference, prefix string, indent int) {
+func formatIndexObject(b *bytes.Buffer, index *index.Object, prefix string, indent int) {
 	tab(b, indent)
 	if prefix != "" {
 		b.WriteString(prefix)
 		b.WriteByte(' ')
 	}
-	b.WriteString(fmt.Sprintf("%s index %s segment", index.Rule.RuleID(), index.SegmentID))
+	b.WriteString(fmt.Sprintf("%s index %s object", index.Rule.RuleID(), index.ID)) //XXX
 	b.WriteByte('\n')
 }

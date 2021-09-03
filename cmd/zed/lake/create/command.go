@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/cli/lakeflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/units"
@@ -50,7 +50,7 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{lake: parent.(zedlake.Command)}
-	c.thresh = segment.DefaultThreshold
+	c.thresh = data.DefaultThreshold
 	f.Var(&c.thresh, "S", "target size of pool data objects, as '10MB' or '4GiB', etc.")
 	f.StringVar(&c.layout, "orderby", "ts:desc", "comma-separated pool keys with optional :asc or :desc suffix to organize data in pool (cannot be changed)")
 	c.lakeFlags.SetFlags(f)
