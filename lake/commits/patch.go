@@ -100,7 +100,7 @@ func (p *Patch) NewCommitObject(parent ksuid.KSUID, retries int, author, message
 }
 
 //XXX We need to handle more than add/delete.  See issue #3000.
-func (p *Patch) Undo(tip *Snapshot, commit, parent ksuid.KSUID, retries int, author, message string) (*Object, error) {
+func (p *Patch) Revert(tip *Snapshot, commit, parent ksuid.KSUID, retries int, author, message string) (*Object, error) {
 	object := NewObject(parent, author, message, retries)
 	// For each data object in the patch that is also in the tip, we do a delete.
 	for _, dataObject := range p.diff.SelectAll() {
@@ -110,13 +110,13 @@ func (p *Patch) Undo(tip *Snapshot, commit, parent ksuid.KSUID, retries int, aut
 	}
 	// For each delete in the patch that is not in the tip, we do an add.
 	for _, id := range p.deletes {
-		dataObject, err := tip.Lookup(id)
-		if err == nil {
+		dataObject, _ := tip.LookupDeleted(id)
+		if dataObject != nil {
 			object.appendAdd(dataObject)
 		}
 	}
 	if len(object.Actions) == 1 {
-		return nil, errors.New("undo commit is empty")
+		return nil, errors.New("revert commit is empty")
 	}
 	return object, nil
 }
