@@ -88,7 +88,7 @@ func (p *Patch) DeleteSegment(id ksuid.KSUID) error {
 func (p *Patch) NewCommitObject(parent ksuid.KSUID, retries int, author, message string) *Object {
 	o := NewObject(parent, author, message, retries)
 	for _, id := range p.deletes {
-		o.AppendDelete(id)
+		o.appendDelete(id)
 	}
 	for _, s := range p.diff.segments {
 		o.appendAdd(s)
@@ -103,7 +103,7 @@ func (p *Patch) Undo(tip *Snapshot, commit, parent ksuid.KSUID, retries int, aut
 	segments := p.diff.SelectAll()
 	for _, segment := range segments {
 		if Exists(tip, segment.ID) {
-			object.AppendDelete(segment.ID)
+			object.appendDelete(segment.ID)
 		}
 	}
 	// For each delete in the patch that is not in the tip, we do an add.

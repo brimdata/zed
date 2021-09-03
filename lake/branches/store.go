@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/segmentio/ksuid"
 )
 
 var (
@@ -49,18 +48,6 @@ func (s *Store) All(ctx context.Context) ([]Config, error) {
 		list = append(list, *branch)
 	}
 	return list, nil
-}
-
-func (s *Store) LookupByCommit(ctx context.Context, commit ksuid.KSUID) (*Config, error) {
-	list, err := s.All(ctx)
-	if err == nil {
-		for k, config := range list {
-			if config.Commit == commit {
-				return &list[k], nil
-			}
-		}
-	}
-	return nil, fmt.Errorf("%s: %w", commit, ErrNotFound)
 }
 
 func (s *Store) LookupByName(ctx context.Context, name string) (*Config, error) {

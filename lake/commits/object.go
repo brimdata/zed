@@ -27,25 +27,32 @@ func NewObject(parent ksuid.KSUID, author, message string, retries int) *Object 
 		Commit: commit,
 		Parent: parent,
 	}
-	o.AppendCommit(commit, parent, retries, nano.Now(), author, message)
+	o.append(&Commit{
+		ID:      commit,
+		Parent:  parent,
+		Retries: uint8(retries),
+		Date:    nano.Now(),
+		Author:  author,
+		Message: message,
+	})
 	return o
 }
 
 func NewAddsObject(parent ksuid.KSUID, retries int, author, message string, segments []segment.Reference) *Object {
 	o := NewObject(parent, author, message, retries)
-	o.appendAdds(segments)
-	return o
-}
-
-/*
-func NewDeletesObject(commit, parent ksuid.KSUID, ids []ksuid.KSUID) *Object {
-	o := newObject(commit, parent, len(ids))
-	for _, id := range ids {
-		o.AppendDelete(id, retires)
+	for _, s := range segments {
+		o.append(&Add{Commit: o.Commit, Segment: s})
 	}
 	return o
 }
-*/
+
+func NewDeletesObject(parent ksuid.KSUID, retries int, author, message string, ids []ksuid.KSUID) *Object {
+	o := NewObject(parent, author, message, retries)
+	for _, id := range ids {
+		o.appendDelete(id)
+	}
+	return o
+}
 
 func NewAddIndicesObject(parent ksuid.KSUID, author, message string, retries int, indices []*index.Reference) *Object {
 	o := NewObject(parent, author, message, retries)
@@ -55,37 +62,20 @@ func NewAddIndicesObject(parent ksuid.KSUID, author, message string, retries int
 	return o
 }
 
-func (o *Object) Append(action Action) {
+func (o *Object) append(action Action) {
 	o.Actions = append(o.Actions, action)
 }
 
-func (o *Object) AppendCommit(id, parent ksuid.KSUID, retries int, date nano.Ts, author, message string) {
-	o.Append(&Commit{
-		ID:      id,
-		Parent:  parent,
-		Retries: uint8(retries),
-		Date:    date,
-		Author:  author,
-		Message: message,
-	})
-}
-
-func (o *Object) appendAdds(segments []segment.Reference) {
-	for _, s := range segments {
-		o.Append(&Add{Commit: o.Commit, Segment: s})
-	}
-}
-
 func (o *Object) appendAdd(s *segment.Reference) {
-	o.Append(&Add{Commit: o.Commit, Segment: *s})
+	o.append(&Add{Commit: o.Commit, Segment: *s})
 }
 
-func (o *Object) AppendDelete(id ksuid.KSUID) {
-	o.Append(&Delete{Commit: o.Commit, ID: id})
+func (o *Object) appendDelete(id ksuid.KSUID) {
+	o.append(&Delete{Commit: o.Commit, ID: id})
 }
 
 func (o *Object) appendAddIndex(i *index.Reference) {
-	o.Append(&AddIndex{Commit: o.Commit, Index: *i})
+	o.append(&AddIndex{Commit: o.Commit, Index: *i})
 }
 
 func (o Object) Serialize() ([]byte, error) {
@@ -122,7 +112,7 @@ func DecodeObject(r io.Reader) (*Object, error) {
 		if !ok {
 			return nil, badObject(entry)
 		}
-		o.Append(action)
+		o.append(action)
 	}
 	// Fill in the commit and parent IDs from the first record,
 	// which must always be a Commit action.

@@ -96,14 +96,12 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 		if err != nil {
 			return nil, err
 		}
-		object := commits.NewObject(parent.Commit, author, message, retries)
 		for _, id := range ids {
 			if !snap.Exists(id) {
 				return nil, fmt.Errorf("non-existent segment %s: delete operation aborted", id)
 			}
-			object.AppendDelete(id)
 		}
-		return object, nil
+		return commits.NewDeletesObject(parent.Commit, retries, author, message, ids), nil
 	})
 }
 
@@ -239,6 +237,9 @@ func (b *Branch) commit(ctx context.Context, create constructor) (ksuid.KSUID, e
 		if err := b.pool.branches.Update(ctx, config, parentCheck); err != nil {
 			if err == journal.ErrConstraint {
 				// Parent check failed so try again.
+				if err := b.pool.commits.Remove(ctx, object); err != nil {
+					return ksuid.Nil, err
+				}
 				continue
 			}
 			return ksuid.Nil, err
