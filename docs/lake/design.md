@@ -145,15 +145,19 @@ in the Zed language is referred to as "this".
 
 The create command initiates a new pool with a single branch called `main`.
 
-> Zed lakes can be used without branches.  When referencing a pool without
+> Zed lakes can be used without thinking about branches.  When referencing a pool without
 > a branch, the tooling presumes the "main" branch as the default, and everything
 > can be done on main without having to think about branching.
 
 ### Branch
 
 A branch is simply a named pointer to a commit object in the Zed lake.
-Like git, commit objects are arranged into a tree and represent the entire
-commit history of the lake.
+Similar to Git, Zed commit objects are arranged into a tree and
+represent the entire commit history of the lake.  (Technically speaking,
+Git allows merging from multiple parents and thus Git commits form a
+directed acyclic graph instead of a tree; Zed does not currently support
+multiple parents in the commit object history.)
+
 A branch is created with the `branch` command, e.g.,
 ```
 zed lake branch -p logs@main staging
@@ -281,7 +285,7 @@ to both branches and queries performed.  Newly written data remains in the
 branch while all of the data present at merge initiation is merged into the
 parent.
 
-This git-like behavior for a data lake provides a clean solution to
+This Git-like behavior for a data lake provides a clean solution to
 the live ingest problem.
 For example, data can be continuously ingested into a branch of main called `live`
 and orchestration logic can periodically merge updates from branch `live` to
@@ -413,7 +417,7 @@ a transactionally consistent fashion.
 
 #### Time Travel
 
-While time-travel through commit history provides one means to explore
+While time travel through commit history provides one means to explore
 past snapshots of the commit history, another means is to use a timestamp.
 Because the entire history of branch updates is stored in a transaction journal
 and each entry contains a timestamp, branch references can be easily
