@@ -2197,6 +2197,9 @@ function peg$parse(input, options) {
       s2 = peg$parseDefaultToken();
       if (s2 === peg$FAILED) {
         s2 = peg$parseLiteral();
+        if (s2 === peg$FAILED) {
+          s2 = peg$parseIdentifier();
+        }
       }
       if (s2 !== peg$FAILED) {
         s3 = peg$parse__();

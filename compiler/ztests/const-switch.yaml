@@ -1,0 +1,12 @@
+zed: const THREE = 3 ; switch x ( 1 => y:=3; 2 => y:=2; THREE => y:=1; ) | sort x
+
+input: |
+  {x:1}
+  {x:2}
+  {x:3}
+  {x:4}
+
+output: |
+  {x:1,y:3}
+  {x:2,y:2}
+  {x:3,y:1}
