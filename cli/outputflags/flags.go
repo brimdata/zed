@@ -5,6 +5,7 @@ import (
 	"errors"
 	"flag"
 	"os"
+	"regexp"
 
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/terminal"
@@ -24,6 +25,7 @@ type Flags struct {
 	forceBinary   bool
 	zsonShortcut  bool
 	zsonPretty    bool
+	zsonPersist   string
 	color         bool
 }
 
@@ -41,6 +43,8 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 		"LZ4 block size in bytes for ZNG compression (nonpositive to disable)")
 	fs.IntVar(&f.ZSON.Pretty, "pretty", 4,
 		"tab size to pretty print zson output (0 for newline-delimited zson")
+	fs.StringVar(&f.zsonPersist, "persist", "",
+		"regular expression to persist type definitions across the stream")
 	f.Zst.ColumnThresh = zstio.DefaultColumnThresh
 	fs.Var(&f.Zst.ColumnThresh, "coltresh", "minimum frame size (MiB) used for zst columns")
 	f.Zst.SkewThresh = zstio.DefaultSkewThresh
@@ -73,6 +77,13 @@ func (f *Flags) SetFormatFlags(fs *flag.FlagSet) {
 }
 
 func (f *Flags) Init() error {
+	if f.zsonPersist != "" {
+		re, err := regexp.Compile(f.zsonPersist)
+		if err != nil {
+			return err
+		}
+		f.ZSON.Persist = re
+	}
 	if f.zsonShortcut || f.zsonPretty {
 		if f.Format != f.DefaultFormat {
 			return errors.New("cannot use -z or -Z with -f")

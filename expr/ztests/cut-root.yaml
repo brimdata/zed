@@ -1,11 +1,11 @@
 zed: 'put x:=cut(this)'
 
 input: |
-  {a:null(0=({b:int32}))}(=1)
-  {a:{b:null}}(1)
-  {a:{b:1}}(1)
+  {a:null({b:int32})}
+  {a:{b:null(int32)}}
+  {a:{b:1(int32)}}
 
 output: |
-  {a:null(0=({b:int32})),x:{a:null(0)}(=1)}(=2)
-  {a:{b:null},x:{a:{b:null}}}(2)
-  {a:{b:1},x:{a:{b:1}}}(2)
+  {a:null({b:int32}),x:{a:null({b:int32})}}
+  {a:{b:null(int32)},x:{a:{b:null(int32)}}}
+  {a:{b:1(int32)},x:{a:{b:1(int32)}}}

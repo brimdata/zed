@@ -9,12 +9,12 @@ input: |
   {a:null(string)}
   {a:1}
   {a:"hello"}
-  {a:"goodbye"(=string_alias)}(=0)
+  {a:"goodbye"(=string_alias)}
 
 output: |
-  {a:null(union=(0=((int64,string,string_alias=(string)))))}(=1)
-  {a:null}(1)
-  {a:null}(1)
-  {a:1}(1)
-  {a:"hello"}(1)
-  {a:"goodbye"(string_alias)}(1)
+  {a:null(union=((int64,string,string_alias=(string))))}
+  {a:null(union=((int64,string,string_alias=(string))))}
+  {a:null(union=((int64,string,string_alias=(string))))}
+  {a:1(union=((int64,string,string_alias=(string))))}
+  {a:"hello"(union=((int64,string,string_alias=(string))))}
+  {a:"goodbye"(=string_alias)(union=((int64,string,string_alias)))}

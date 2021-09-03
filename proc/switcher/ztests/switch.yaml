@@ -7,12 +7,12 @@ zed: |
      ) | sort a
 
 input: |
-  {a:1(int32),s:"a"}(=0)
-  {a:2,s:"B"}(0)
-  {a:3,s:"c"}(0)
-  {a:4,s:"c"}(0)
+  {a:1(int32),s:"a"}
+  {a:2(int32),s:"B"}
+  {a:3(int32),s:"c"}
+  {a:4(int32),s:"c"}
 
 output: |
-  {count:1(uint64),a:-1}(=0)
-  {a:1(int32),s:"a",v:"one"}(=1)
-  {a:2,s:"B",v:"two"}(1)
+  {count:1(uint64),a:-1}
+  {a:1(int32),s:"a",v:"one"}
+  {a:2(int32),s:"B",v:"two"}

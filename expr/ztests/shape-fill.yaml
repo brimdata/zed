@@ -2,10 +2,10 @@ zed: put this := fill({a:{b:{c:string}}})
 
 input: |
   {s:"x"}
-  {a:null(0=({s:string}))}
+  {a:null({s:string})}
   {a:{s:null(string)}}
 
 output: |
-  {s:"x",a:null(0=({b:1=({c:string})}))}
-  {a:null(2=({s:string,b:1}))}
-  {a:{s:null(string),b:null(1)}}
+  {s:"x",a:null({b:{c:string}})}
+  {a:null({s:string,b:{c:string}})}
+  {a:{s:null(string),b:null({c:string})}}

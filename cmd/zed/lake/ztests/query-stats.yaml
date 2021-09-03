@@ -14,7 +14,7 @@ outputs:
     data: |
       {
           count: 1000 (uint64)
-      } (=0)
+      }
   - name: stderr
     data: |
       data opened: 32889

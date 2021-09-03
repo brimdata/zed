@@ -1,7 +1,7 @@
 zed: put b:=null
 
 input: |
-  {a:1(int32)}(=0)
+  {a:1(int32)}
 
 output: |
-  {a:1(int32),b:null}(=0)
+  {a:1(int32),b:null}

@@ -16,5 +16,5 @@ input: |
 
 output: |
   {_path:"ArrayUnsets",vector_int:[123,null(int64),456]}
-  {_path:"ArrayUnsets",vector_int:[](0=([int64]))}
-  {_path:"ArrayUnsets",vector_int:null(0)}
+  {_path:"ArrayUnsets",vector_int:[]([int64])}
+  {_path:"ArrayUnsets",vector_int:null([int64])}

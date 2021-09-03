@@ -33,7 +33,7 @@ type Writer struct {
 func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{
 		writer:   w,
-		zson:     zson.NewFormatter(0),
+		zson:     zson.NewFormatter(0, nil),
 		commits:  make(table),
 		branches: make(map[ksuid.KSUID][]string),
 		width:    80, //XXX

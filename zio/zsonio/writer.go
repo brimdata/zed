@@ -2,6 +2,7 @@ package zsonio
 
 import (
 	"io"
+	"regexp"
 
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -13,12 +14,13 @@ type Writer struct {
 }
 
 type WriterOpts struct {
-	Pretty int
+	Pretty  int
+	Persist *regexp.Regexp
 }
 
 func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	return &Writer{
-		formatter: zson.NewFormatter(opts.Pretty),
+		formatter: zson.NewFormatter(opts.Pretty, opts.Persist),
 		writer:    w,
 	}
 }

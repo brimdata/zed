@@ -24,12 +24,12 @@ outputs:
               count: 500 (uint64),
               row_size: 17102
           } (=data.Metadata)
-      } (=0)
+      }
       {
           meta: {
               first: 2020-04-22T01:23:21.06632034Z,
               last: 2020-04-21T22:40:49.0635839Z,
-              count: 500,
+              count: 500 (uint64),
               row_size: 17084
-          }
-      } (0)
+          } (=data.Metadata)
+      }

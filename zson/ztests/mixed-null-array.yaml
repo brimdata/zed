@@ -7,7 +7,7 @@ inputs:
       {version:[1,null(int64)]}
       {version:[null(int64),2]}
       {version:[null,null]}
-      {version:[null(0=((null,string,int64))),"foo"(0),3(0)](=1)}(=2)
+      {version:[null((null,string,int64)),"foo"((null,string,int64)),3((null,string,int64))]}
 
 outputs:
   - name: stdout
@@ -15,4 +15,4 @@ outputs:
       {version:[1,null(int64)]}
       {version:[null(int64),2]}
       {version:[null,null]}
-      {version:[null(0=((null,string,int64))),"foo"(0),3(0)](=1)}(=2)
+      {version:[null((null,string,int64)),"foo"((null,string,int64)),3((null,string,int64))]}

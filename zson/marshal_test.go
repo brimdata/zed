@@ -75,7 +75,7 @@ func TestMarshal(t *testing.T) {
 	aIn := []int8{1, 2, 3}
 	z, err = zson.Marshal(aIn)
 	require.NoError(t, err)
-	assert.Equal(t, `[1(int8),2(int8),3(int8)](=0)`, z)
+	assert.Equal(t, `[1(int8),2(int8),3(int8)]`, z)
 
 	var v interface{}
 	err = zson.Unmarshal(z, &v)
@@ -179,7 +179,7 @@ func TestBytes(t *testing.T) {
 	require.NotNil(t, rec)
 
 	exp = `
-{S:null(0=([bytes]))}
+{S:null([bytes])}
 	`
 	assert.Equal(t, trim(exp), recToZSON(t, rec))
 

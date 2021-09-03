@@ -1,7 +1,7 @@
 zed: 'cut this:=a'
 
 input: |
-  {a:1(int32)}(=0)
+  {a:1(int32)}
 
 warnings: |
   cut: cannot cut a non-record to .

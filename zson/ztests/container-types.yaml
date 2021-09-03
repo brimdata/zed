@@ -1,13 +1,13 @@
 zed: '*'
 
 input: |
-  {n:null(0=(|{string,int32}|))}(=1)
-  {n:null(2=(|[string]|))}
-  {n:null(3=([string]))}
-  {n:null(4=({a:string}))}
+  {n:null(|{string,int32}|)}
+  {n:null(|[string]|)}
+  {n:null([string])}
+  {n:null({a:string})}
 
 output: |
-  {n:null(0=(|{string,int32}|))}(=1)
-  {n:null(2=(|[string]|))}
-  {n:null(3=([string]))}
-  {n:null(4=({a:string}))}
+  {n:null(|{string,int32}|)}
+  {n:null(|[string]|)}
+  {n:null([string])}
+  {n:null({a:string})}

@@ -5,5 +5,5 @@ input: |
   {"schema":"25","values":[null]}
 
 output: |
-  {a:["asdfasdf"(0=((int32,string))),null(0),100(int32)(0)](=1)}(=2)
-  {a:null}(2)
+  {a:["asdfasdf"((int32,string)),null((int32,string)),100(int32)((int32,string))]}
+  {a:null([(int32,string)])}

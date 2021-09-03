@@ -3,9 +3,9 @@ script: zq -f zeek -U in.zson
 inputs:
   - name: in.zson
     data: |
-      {_path:"",foo:"😁"(bstring)}(=0)
-      {_path:"magic",foo:"😁"}(0)
-      {_path:"",foo:"foo😁bar\x00\x01baz"}(0)
+      {_path:"",foo:"😁"(bstring)}
+      {_path:"magic",foo:"😁"(bstring)}
+      {_path:"",foo:"foo😁bar\x00\x01baz"(bstring)}
 
 outputs:
   - name: stdout

@@ -1,11 +1,11 @@
 zed: rename id.dst:=id.resp_h, id.src:=id.orig_h, net:=id
 
 input: |
-  {id:{orig_h:10.164.94.120,orig_p:39681(port=(uint16)),resp_h:10.47.3.155,resp_p:3389(port)}(=0)}(=1)
-  {id:{orig_h:10.164.94.121,orig_p:39681,resp_h:10.47.3.155,resp_p:3390}}(1)
-  {id:{orig_p:39681(port),resp_p:3389(port)}(=2)}(=3)
+  {id:{orig_h:10.164.94.120,orig_p:39681(port=(uint16)),resp_h:10.47.3.155,resp_p:3389(port)}}
+  {id:{orig_h:10.164.94.121,orig_p:39681(port=(uint16)),resp_h:10.47.3.155,resp_p:3390(port)}}
+  {id:{orig_p:39681(port=(uint16)),resp_p:3389(port)}}
 
 output: |
-  {net:{src:10.164.94.120,orig_p:39681(port=(uint16)),dst:10.47.3.155,resp_p:3389(port)}(=0)}(=1)
-  {net:{src:10.164.94.121,orig_p:39681,dst:10.47.3.155,resp_p:3390}}(1)
-  {net:{orig_p:39681(port),resp_p:3389(port)}(=2)}(=3)
+  {net:{src:10.164.94.120,orig_p:39681(port=(uint16)),dst:10.47.3.155,resp_p:3389(port)}}
+  {net:{src:10.164.94.121,orig_p:39681(port=(uint16)),dst:10.47.3.155,resp_p:3390(port)}}
+  {net:{orig_p:39681(port=(uint16)),resp_p:3389(port)}}

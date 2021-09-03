@@ -7,5 +7,5 @@ zed: 'rename s2:=s | count() by s2 | sort s2'
 input: !!binary 9gEBcxAXAgRhFwIEYhcCBGH/
 
 output: |
-  {s2:"a",count:2(uint64)}(=0)
-  {s2:"b",count:1}(0)
+  {s2:"a",count:2(uint64)}
+  {s2:"b",count:1(uint64)}

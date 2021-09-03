@@ -4,5 +4,5 @@ input: !!binary |
   +QIHEPcX9gEBYRgZEiMXBAISYXNkZmFzZGYABwIEyBkBAP8=
 
 output: |
-  {a:["asdfasdf"(0=((int64,string))),null(0),100(0)](=1)}(=2)
-  {a:null}(2)
+  {a:["asdfasdf"((int64,string)),null((int64,string)),100((int64,string))]}
+  {a:null([(int64,string)])}

@@ -1,8 +1,8 @@
 zed: cut fields(this), fields2:=fields(r)
 
 input: |
-  {r:{a:1(int32)}(=0),s:123(int32)}(=1)
-  {r:{a:1(int8),b:2(int8)}(=2),s:"a"}(=3)
+  {r:{a:1(int32)},s:123(int32)}
+  {r:{a:1(int8),b:2(int8)},s:"a"}
 
 output: |
   {fields:["r.a","s"],fields2:["a"]}

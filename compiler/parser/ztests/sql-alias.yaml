@@ -7,4 +7,4 @@ input: |
   {x:2}(=table)
 
 output: |
-  {fromt:{x:1}(=table)}(=0)
+  {fromt:{x:1}(=table)}

@@ -4,18 +4,18 @@ script: |
 inputs:
   - name: A.zson
     data: |
-      {a:1(int32)}(=0)
-      {a:2}(0)
-      {a:3}(0)
+      {a:1(int32)}
+      {a:2(int32)}
+      {a:3(int32)}
   - name: B.zson
     data: |
-      {b:1(int32)}(=0)
-      {b:2}(0)
-      {b:3}(0)
+      {b:1(int32)}
+      {b:2(int32)}
+      {b:3(int32)}
 
 outputs:
   - name: stdout
     data: |
-      {a:1(int32),b:1(int32)}(=0)
-      {a:2,b:2}(0)
-      {a:3,b:3}(0)
+      {a:1(int32),b:1(int32)}
+      {a:2(int32),b:2(int32)}
+      {a:3(int32),b:3(int32)}

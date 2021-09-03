@@ -22,7 +22,7 @@ func testSuccessful(t *testing.T, e string, record string, expect zng.Value) {
 	typ, _ := zctx.LookupTypeRecord([]zng.Column{{"result", expect.Type}})
 	bytes := zcode.AppendPrimitive(nil, expect.Bytes)
 	rec := zng.NewRecord(typ, bytes)
-	formatter := zson.NewFormatter(0)
+	formatter := zson.NewFormatter(0, nil)
 	val, err := formatter.Format(rec.Value)
 	require.NoError(t, err)
 	runZTest(t, e, &ztest.ZTest{

@@ -11,7 +11,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {magic:"zed_index",version:2(int32),descending:false,child_field:"_child",frame_thresh:200(int32),sections:[24069,36,414,3192],keys:null(0=({key:string}))}(=1)
+      {magic:"zed_index",version:2(int32),descending:false,child_field:"_child",frame_thresh:200(int32),sections:[24069,36,414,3192],keys:null({key:string})}
       ===
       {key:"Algedi-pigeonman",_child:0}
       {key:"Rupicola-overponderous",_child:222}

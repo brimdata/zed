@@ -2,8 +2,8 @@ zed: "*"
 
 input: &input |
   {x:1}(=foo)
-  {x:2}(foo)
+  {x:2}(=foo)
   {x:"hello"}(=foo)
-  {x:"world"}(foo)
+  {x:"world"}(=foo)
 
 output: *input

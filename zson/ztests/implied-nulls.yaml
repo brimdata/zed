@@ -5,12 +5,12 @@ inputs:
   - name: in.zson
     data: |
       {a:"hello",b:[{a:"a",b:"b"},{a:"c",b:"d"},{a:"e",b:"f"}]}
-      {a:"world",b:null(0=([1=({a:string,b:string})]))}
-      {a:"goodnight",b:[{a:"a",b:"b"}(2=((1,3=({a:string,b:null})))),{a:"c",b:null}(2),{a:"e",b:"f"}(2)](=4)}(=5)
+      {a:"world",b:null([{a:string,b:string}])}
+      {a:"goodnight",b:[{a:"a",b:"b"}(({a:string,b:string},{a:string,b:null})),{a:"c",b:null}(({a:string,b:string},{a:string,b:null})),{a:"e",b:"f"}(({a:string,b:string},{a:string,b:null}))]}
 
 outputs:
   - name: stdout
     data: |
       {a:"hello",b:[{a:"a",b:"b"},{a:"c",b:"d"},{a:"e",b:"f"}]}
-      {a:"world",b:null(0=([1=({a:string,b:string})]))}
-      {a:"goodnight",b:[{a:"a",b:"b"}(2=((1,3=({a:string,b:null})))),{a:"c",b:null}(2),{a:"e",b:"f"}(2)](=4)}(=5)
+      {a:"world",b:null([{a:string,b:string}])}
+      {a:"goodnight",b:[{a:"a",b:"b"}(({a:string,b:string},{a:string,b:null})),{a:"c",b:null}(({a:string,b:string},{a:string,b:null})),{a:"e",b:"f"}(({a:string,b:string},{a:string,b:null}))]}

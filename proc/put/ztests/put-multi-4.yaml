@@ -3,8 +3,8 @@
 zed: put new:=1, x:=x+1
 
 input: |
-  {x:1(int32)}(=0)
-  {x:2}(0)
+  {x:1(int32)}
+  {x:2(int32)}
 
 output: |
   {x:2,new:1}
