@@ -360,9 +360,13 @@ optimize layout for performance.
 These structures are introspected using meta-queries that simply
 specify a metadata source using an extended syntax in the `from` operator.
 There are three types of meta-queries:
-* `from :meta` - lake level  
-* `from pool:meta` - pool level  
-* `from pool@branch:meta` - branch level
+* `from :<meta>` - lake level
+* `from pool:<meta>` - pool level
+* `from pool@branch<:meta>` - branch level
+
+`<meta>` is the name of the metadata being queried. The available metadata
+sources varies based on level.
+
 For example, a list of pools with configuration data can be obtained
 in the ZSON format as follows:
 ```
@@ -381,20 +385,20 @@ zed lake query -Z "from logs:branches | branch.name=='main'"
 This meta-query produces a list of the data objects in the `live` branch
 of pool `logs`:
 ```
-zed lake query -Z "from logs@live:branches"
+zed lake query -Z "from logs@live:objects"
 ```
 
 You can also pretty-print in human-readable form most of the metadata Zed records
 using the "lake" format, e.g.,
 ```
-zed lake query -f lake "from logs@live:branches"
+zed lake query -f lake "from logs@live:objects"
 ```
 
 > TODO: we need to document all of the meta-data sources somewhere.
 
 #### Transactional Semantics
 
-The `commit` operation is _transactional_.  This means that a query scanning
+The "commit" operation is _transactional_.  This means that a query scanning
 a pool sees its entire data scan as a fixed "snapshot" with respect to the
 commit history.  In fact, the Zed language allows a commit object (created
 at any point in the past) to be specified with the `@` suffix to a
@@ -424,7 +428,7 @@ and each entry contains a timestamp, branch references can be easily
 navigated by time.  For example, a list of branches of a pool's past
 can be created by scanning the branches log and stopping at the largest
 timestamp less than or equal to the desired timestamp.  Likewise, a branch
-can be located in a similar fashion then its corresponding commit object
+can be located in a similar fashion, then its corresponding commit object
 can be used to construct that data of that branch at that past point in time.
 
 ### Merge Scan and Compaction
@@ -452,8 +456,7 @@ do not overlap.  This is just the basic LSM algorithm at work.
 
 To perform an LSM rollup, the `compact` command (implementation tracked
 via [zed/2977](https://github.com/brimdata/zed/issues/2977))
-is like a "squash" and
-To perform LSM-like compaction function, e.g.,
+is like a "squash" to perform LSM-like compaction function, e.g.,
 ```
 zed lake compact -p logs <tag>
 (merged commit <tag> printed to stdout)
@@ -470,8 +473,8 @@ meta-queries, an agent can introspect the layout of data, perform
 some computational geometry, and decide how and what to compact.
 The nature of this orchestration is highly workload dependent so we plan
 to develop a family of data-management orchestration agents optimized
-for various use cases (e.g., continuously ingested logs vs collections of
-metrics that should be optimized with columnar form vs slowly-changing
+for various use cases (e.g., continuously ingested logs vs. collections of
+metrics that should be optimized with columnar form vs. slowly-changing
 dimensional datasets like threat intel tables).
 
 An orchestration layer outside of the Zed lake is responsible for defining
