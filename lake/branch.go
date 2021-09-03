@@ -98,7 +98,7 @@ func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message 
 		}
 		for _, id := range ids {
 			if !snap.Exists(id) {
-				return nil, fmt.Errorf("non-existent segment %s: delete operation aborted", id)
+				return nil, fmt.Errorf("non-existent object %s: delete operation aborted", id)
 			}
 		}
 		return commits.NewDeletesObject(parent.Commit, retries, author, message, ids), nil
@@ -278,7 +278,7 @@ func (b *Branch) ApplyIndexRules(ctx context.Context, rules []index.Rule, ids []
 	for _, id := range ids {
 		//XXX make issue for this.
 		// This could be easily parallized with errgroup.
-		refs, err := b.indexSegment(ctx, rules, id)
+		refs, err := b.indexObject(ctx, rules, id)
 		if err != nil {
 			return ksuid.Nil, err
 		}
@@ -307,7 +307,7 @@ func index_message(rules []index.Rule) string {
 	return "index rules applied: " + strings.Join(names, ",")
 }
 
-func (b *Branch) indexSegment(ctx context.Context, rules []index.Rule, id ksuid.KSUID) ([]*index.Object, error) {
+func (b *Branch) indexObject(ctx context.Context, rules []index.Rule, id ksuid.KSUID) ([]*index.Object, error) {
 	r, err := b.engine.Get(ctx, data.RowObjectPath(b.pool.DataPath, id))
 	if err != nil {
 		return nil, err

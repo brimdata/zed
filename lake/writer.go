@@ -153,7 +153,7 @@ func (w *Writer) writeObject(object *data.Object, recs []*zng.Record) error {
 		return err
 	}
 	w.stats.Accumulate(ImportStats{
-		SegmentsWritten:    1, //XXX change this
+		ObjectsWritten:     1,
 		RecordBytesWritten: writer.BytesWritten(),
 		RecordsWritten:     int64(writer.RecordsWritten()),
 	})
@@ -165,20 +165,20 @@ func (w *Writer) Stats() ImportStats {
 }
 
 type ImportStats struct {
-	SegmentsWritten    int64
+	ObjectsWritten     int64
 	RecordBytesWritten int64
 	RecordsWritten     int64
 }
 
 func (s *ImportStats) Accumulate(b ImportStats) {
-	atomic.AddInt64(&s.SegmentsWritten, b.SegmentsWritten)
+	atomic.AddInt64(&s.ObjectsWritten, b.ObjectsWritten)
 	atomic.AddInt64(&s.RecordBytesWritten, b.RecordBytesWritten)
 	atomic.AddInt64(&s.RecordsWritten, b.RecordsWritten)
 }
 
 func (s *ImportStats) Copy() ImportStats {
 	return ImportStats{
-		SegmentsWritten:    atomic.LoadInt64(&s.SegmentsWritten),
+		ObjectsWritten:     atomic.LoadInt64(&s.ObjectsWritten),
 		RecordBytesWritten: atomic.LoadInt64(&s.RecordBytesWritten),
 		RecordsWritten:     atomic.LoadInt64(&s.RecordsWritten),
 	}

@@ -74,8 +74,8 @@ type Metadata struct {
 }
 
 //XXX
-// A Segment is a file that holds Zed records ordered according to the
-// pool's data order.
+// An Object represents a cloud object of file that holds Zed records
+// ordered according to the pool's data order.
 // seekIndexPath returns the path of an associated seek index for the ZNG
 // version of data, which can be used to lookup a nearby seek offset
 // for a desired pool-key value.

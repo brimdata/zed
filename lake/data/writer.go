@@ -15,7 +15,7 @@ import (
 )
 
 // Writer is a zbuf.Writer that writes a stream of sorted records into a
-// data segment.
+// data object.
 type Writer struct {
 	object           *Object
 	byteCounter      *writeCounter
