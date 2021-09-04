@@ -2,5 +2,6 @@ zed: '*'
 
 input: &input |
   {a:""(=string_alias)(union_alias=(0=((int64,string_alias))))}(=1)
+  {a:[[](2=([null]))(3=((2,int64))),1(3)](=4)}(=5)
 
 output: *input
