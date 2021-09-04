@@ -16,6 +16,7 @@
       - [Time Travel](#time-travel)
     + [Merge Scan and Compaction](#merge-scan-and-compaction)
     + [Delete](#delete)
+    + [Revert](#revert)
     + [Purge and Vacate](#purge-and-vacate)
   * [Search Indexes](#search-indexes)
     + [Index Rules](#index-rules)
@@ -57,8 +58,8 @@ ranges of data over the pool key.
 Data can be efficiently accessed via range scans composed of a
 range of values conforming to the pool key.
 
-A lake has a configured sort order, either ascending or descending
-and data is organized in the lake in accordance with this order.
+A pool also has a configured sort order, either ascending or descending
+and data is organized in the pool in accordance with this order.
 Data scans may be either ascending or descending, and scans that
 follow the configured order are generally more efficient than
 scans that run in the opposing order.
@@ -91,8 +92,8 @@ design patterns of `git`.  In this approach,
 * a _commit_ operation is like a `git commit`,
 * and a pool _snapshot_ is like a `git checkout`.
 
-A core theme of the Zed lake design is _ergonomics_.  Given the git metaphor,
-our goal here is that the Zed lake tooling be as easy and familiar as git is
+A core theme of the Zed lake design is _ergonomics_.  Given the Git metaphor,
+our goal here is that the Zed lake tooling be as easy and familiar as Git is
 to a technical user.
 
 While this design document is independent of any particular implementation,
@@ -221,8 +222,8 @@ zed lake log -p pool@branch
 ```
 To understand the log contents, the `load` operation is actually
 decomposed into two steps under the covers:
-an `add` step stores one or more
-new immutable data objects in the lake and a `commit` operation
+an "add" step stores one or more
+new immutable data objects in the lake and a "commit" step
 materializes the objects into a branch with an ACID transaction.
 This updates the branch pointer to point at a new commit object
 referencing the data objects where the new commit object's parent
@@ -301,9 +302,9 @@ according to configured policies and logic.
 
 Data is read from one or more pools with the `query` command.  The pool/branch names
 are specified with `from` at the beginning of the Zed query along with an optional
-time range using `range` and `to`.  The default output format is ZNG though this
-can be overridden with `-f` to specify one of the various supported output
-formats.
+time range using `range` and `to`.  The default output format is ZSON for
+terminals and ZNG otherwise, though this can be overridden with
+`-f` to specify one of the various supported output formats.
 
 If a pool name is provided to `from` without a branch name, then branch
 "main" is assumed.
@@ -320,7 +321,7 @@ values refer to the pool key:
 ```
 zed lake query -z 'from logs range 2018-03-24T17:36:30.090766Z to 2018-03-24T17:36:30.090758Z'
 ```
-This range queries are efficiently implemented as the data is laid out
+These range queries are efficiently implemented as the data is laid out
 according to the pool key and seek indexes keyed by the pool key
 are computed for each data object.
 
@@ -358,11 +359,15 @@ lake making it easy to measure, tune, and adjust lake parameters to
 optimize layout for performance.
 
 These structures are introspected using meta-queries that simply
-specify a metadata source using a bracket syntax in the `from` operator.
+specify a metadata source using an extended syntax in the `from` operator.
 There are three types of meta-queries:
-* `from :meta` - lake level  
-* `from pool:meta` - pool level  
-* `from pool@branch:meta` - branch level
+* `from :<meta>` - lake level
+* `from pool:<meta>` - pool level
+* `from pool@branch<:meta>` - branch level
+
+`<meta>` is the name of the metadata being queried. The available metadata
+sources vary based on level.
+
 For example, a list of pools with configuration data can be obtained
 in the ZSON format as follows:
 ```
@@ -381,20 +386,20 @@ zed lake query -Z "from logs:branches | branch.name=='main'"
 This meta-query produces a list of the data objects in the `live` branch
 of pool `logs`:
 ```
-zed lake query -Z "from logs@live:branches"
+zed lake query -Z "from logs@live:objects"
 ```
 
 You can also pretty-print in human-readable form most of the metadata Zed records
 using the "lake" format, e.g.,
 ```
-zed lake query -f lake "from logs@live:branches"
+zed lake query -f lake "from logs@live:objects"
 ```
 
 > TODO: we need to document all of the meta-data sources somewhere.
 
 #### Transactional Semantics
 
-The `commit` operation is _transactional_.  This means that a query scanning
+The "commit" operation is _transactional_.  This means that a query scanning
 a pool sees its entire data scan as a fixed "snapshot" with respect to the
 commit history.  In fact, the Zed language allows a commit object (created
 at any point in the past) to be specified with the `@` suffix to a
@@ -424,7 +429,7 @@ and each entry contains a timestamp, branch references can be easily
 navigated by time.  For example, a list of branches of a pool's past
 can be created by scanning the branches log and stopping at the largest
 timestamp less than or equal to the desired timestamp.  Likewise, a branch
-can be located in a similar fashion then its corresponding commit object
+can be located in a similar fashion, then its corresponding commit object
 can be used to construct that data of that branch at that past point in time.
 
 ### Merge Scan and Compaction
@@ -452,8 +457,7 @@ do not overlap.  This is just the basic LSM algorithm at work.
 
 To perform an LSM rollup, the `compact` command (implementation tracked
 via [zed/2977](https://github.com/brimdata/zed/issues/2977))
-is like a "squash" and
-To perform LSM-like compaction function, e.g.,
+is like a "squash" to perform LSM-like compaction function, e.g.,
 ```
 zed lake compact -p logs <tag>
 (merged commit <tag> printed to stdout)
@@ -470,8 +474,8 @@ meta-queries, an agent can introspect the layout of data, perform
 some computational geometry, and decide how and what to compact.
 The nature of this orchestration is highly workload dependent so we plan
 to develop a family of data-management orchestration agents optimized
-for various use cases (e.g., continuously ingested logs vs collections of
-metrics that should be optimized with columnar form vs slowly-changing
+for various use cases (e.g., continuously ingested logs vs. collections of
+metrics that should be optimized with columnar form vs. slowly-changing
 dimensional datasets like threat intel tables).
 
 An orchestration layer outside of the Zed lake is responsible for defining
@@ -495,11 +499,11 @@ data during any key-range scan.
 ### Delete
 
 Data objects can be deleted with the `delete` command.  This command
-simply removes the data from branch without actually deleting the
+simply removes the data from the branch without actually deleting the
 underlying data objects thereby allowing time travel to work in the face
 of deletes.
 
-For example, this command deletes the three objects and/or commits referenced
+For example, this command deletes the three objects referenced
 by the data object IDs:
 ```
 zed lake delete -p logs <id> <id> <id>
@@ -508,6 +512,20 @@ zed lake delete -p logs <id> <id> <id>
 > TBD: when a scan encounters an object that was physically deleted for
 > whatever reason, it should simply continue on and issue a warning on
 > the query endpoint "warnings channel".
+
+### Revert
+
+The actions in a commit can be reversed with the `revert` command.  This
+command applies the inverse steps in a new commit to the tip of the indicated
+branch.  Any data loaded in a reverted commit remains in the lake but no longer
+appears in the branch.  The new commit may itself be reverted by an
+additional revert operation.
+
+For example, this command reverts the commit referenced by commit ID
+`<commit>`.
+```
+zed lake revert -p logs <commit>
+```
 
 ### Purge and Vacate
 
@@ -588,7 +606,7 @@ in a pool, e.g.,
 ```
 zed lake index apply -p logs IndexGroupEx <tag>
 ```
-The index is created and a transaction put in staging.  Once this transaction
+The index is created and a transaction put (somewhere).  Once this transaction
 has been committed to the pool's journal, the index is available for use
 by the query planner.
 
@@ -617,8 +635,8 @@ values are the partial-result aggregation given by the Zed expression.
 
 > This is not yet implemented.  The query planner would replace any full object
 > scan with the needed aggregation with the result given in the index.
-> Where a filter is applied to match one row of the index, that result could be
-> likewise and extracted instead of scanning the entire object.
+> Where a filter is applied to match one row of the index, that result could
+> likewise be extracted instead of scanning the entire object.
 > This capability is not generally useful for interactive search and analytics
 > (except for optimizations that suit the interactive app) but rather is a powerful
 > capability for application-specific workflows that know the pre-computed
@@ -661,7 +679,7 @@ An immutable object is created by a single writer using a globally unique name
 with an embedded KSUID.  
 New objects are written in their entirety.  No updates, appends, or modifications
 may be made once an object exists.  Given these semantics, any such object may be
-trivially cached as its name or content never changes.
+trivially cached as its name nor content ever change.
 
 Since the object's name is globally unique and the
 resulting object is immutable, there is no possible write concurrency to manage
@@ -709,7 +727,7 @@ Each commit object entry is identified with its `commit ID`.
 Objects are immutable and uniquely named so there is never a concurrent write
 condition.
 
-The `add` and `commit` operations are transactionally stored
+The "add" and "commit" operations are transactionally stored
 in a chain of commit objects.  Any number of adds (and deletes) may appear
 in a commit object.  All of the operations that belong to a commit are
 identified with a commit identifier (ID).
@@ -1031,9 +1049,9 @@ or a `ref`.
 * query: `from commitish:meta` branch or commit meta-scan (no defaulting to main here as that would be pool-level meta)
 * query: `from pool:meta`
 * query: `from :meta`
-* rebase `ref` `commitish` - rebase a branch `ref` onto the commit object history starting at `commitish` (this is peculiar because `ref` could implied the pool name for `commitish` though this will usually be a branch name)
+* rebase `ref` `commitish` - rebase a branch `ref` onto the commit object history starting at `commitish` (this is peculiar because `ref` could imply the pool name for `commitish` though this will usually be a branch name)
 * rename `pool` `pool` - change name of a data pool
-* undo `ref` `commitish`- undo reverts the commit at `commitish` with a new commit object and updates the branch `ref` to point at the new commit; typically this commit would be in the branches history but it doesn't have to be (but would typically fail a consistency check if it isn't in the history).  We could prevent this condition with a check.
+* revert `ref` `commitish`- undo the commit at `commitish` with a new commit object and update the branch `ref` to point at the new commit; typically this commit would be in the branch's history but it doesn't have to be (but would typically fail a consistency check if it isn't in the history).  We could prevent this condition with a check.
 
 > Note we can simplify the rules about meta-query not allowing the default
 > to "main" by partitioning the meta names and using the name to disambiguate
