@@ -1,0 +1,6 @@
+zed: '*'
+
+input: &input |
+  {a:""(=string_alias)(union_alias=(0=((int64,string_alias))))}(=1)
+
+output: *input
