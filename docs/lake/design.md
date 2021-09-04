@@ -16,6 +16,7 @@
       - [Time Travel](#time-travel)
     + [Merge Scan and Compaction](#merge-scan-and-compaction)
     + [Delete](#delete)
+    + [Revert](#revert)
     + [Purge and Vacate](#purge-and-vacate)
   * [Search Indexes](#search-indexes)
     + [Index Rules](#index-rules)
@@ -365,7 +366,7 @@ There are three types of meta-queries:
 * `from pool@branch<:meta>` - branch level
 
 `<meta>` is the name of the metadata being queried. The available metadata
-sources varies based on level.
+sources vary based on level.
 
 For example, a list of pools with configuration data can be obtained
 in the ZSON format as follows:
@@ -502,7 +503,7 @@ simply removes the data from the branch without actually deleting the
 underlying data objects thereby allowing time travel to work in the face
 of deletes.
 
-For example, this command deletes the three objects and/or commits referenced
+For example, this command deletes the three objects referenced
 by the data object IDs:
 ```
 zed lake delete -p logs <id> <id> <id>
@@ -511,6 +512,20 @@ zed lake delete -p logs <id> <id> <id>
 > TBD: when a scan encounters an object that was physically deleted for
 > whatever reason, it should simply continue on and issue a warning on
 > the query endpoint "warnings channel".
+
+### Revert
+
+The actions in a commit can be reversed with the `revert` command.  This
+command applies the inverse steps in a new commit to the tip of the indicated
+branch.  Any data loaded in a reverted commit remains in the lake but no longer
+appears in the branch.  The new commit may recursively be reverted by an
+additional revert operation.
+
+For example, this command reverts the commit referenced by commit ID
+`<commit>`.
+```
+zed lake revert -p logs <commit>
+```
 
 ### Purge and Vacate
 
@@ -591,7 +606,7 @@ in a pool, e.g.,
 ```
 zed lake index apply -p logs IndexGroupEx <tag>
 ```
-The index is created and a transaction put in staging.  Once this transaction
+The index is created and a transaction put (somewhere).  Once this transaction
 has been committed to the pool's journal, the index is available for use
 by the query planner.
 
@@ -620,8 +635,8 @@ values are the partial-result aggregation given by the Zed expression.
 
 > This is not yet implemented.  The query planner would replace any full object
 > scan with the needed aggregation with the result given in the index.
-> Where a filter is applied to match one row of the index, that result could be
-> likewise and extracted instead of scanning the entire object.
+> Where a filter is applied to match one row of the index, that result could
+> likewise be extracted instead of scanning the entire object.
 > This capability is not generally useful for interactive search and analytics
 > (except for optimizations that suit the interactive app) but rather is a powerful
 > capability for application-specific workflows that know the pre-computed
@@ -664,7 +679,7 @@ An immutable object is created by a single writer using a globally unique name
 with an embedded KSUID.  
 New objects are written in their entirety.  No updates, appends, or modifications
 may be made once an object exists.  Given these semantics, any such object may be
-trivially cached as its name or content never changes.
+trivially cached as its name nor content ever change.
 
 Since the object's name is globally unique and the
 resulting object is immutable, there is no possible write concurrency to manage
@@ -712,7 +727,7 @@ Each commit object entry is identified with its `commit ID`.
 Objects are immutable and uniquely named so there is never a concurrent write
 condition.
 
-The `add` and `commit` operations are transactionally stored
+The "add" and "commit" operations are transactionally stored
 in a chain of commit objects.  Any number of adds (and deletes) may appear
 in a commit object.  All of the operations that belong to a commit are
 identified with a commit identifier (ID).
@@ -1034,9 +1049,9 @@ or a `ref`.
 * query: `from commitish:meta` branch or commit meta-scan (no defaulting to main here as that would be pool-level meta)
 * query: `from pool:meta`
 * query: `from :meta`
-* rebase `ref` `commitish` - rebase a branch `ref` onto the commit object history starting at `commitish` (this is peculiar because `ref` could implied the pool name for `commitish` though this will usually be a branch name)
+* rebase `ref` `commitish` - rebase a branch `ref` onto the commit object history starting at `commitish` (this is peculiar because `ref` could imply the pool name for `commitish` though this will usually be a branch name)
 * rename `pool` `pool` - change name of a data pool
-* undo `ref` `commitish`- undo reverts the commit at `commitish` with a new commit object and updates the branch `ref` to point at the new commit; typically this commit would be in the branches history but it doesn't have to be (but would typically fail a consistency check if it isn't in the history).  We could prevent this condition with a check.
+* revert `ref` `commitish`- undo the commit at `commitish` with a new commit object and updates the branch `ref` to point at the new commit; typically this commit would be in the branches history but it doesn't have to be (but would typically fail a consistency check if it isn't in the history).  We could prevent this condition with a check.
 
 > Note we can simplify the rules about meta-query not allowing the default
 > to "main" by partitioning the meta names and using the name to disambiguate
