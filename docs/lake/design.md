@@ -518,7 +518,7 @@ zed lake delete -p logs <id> <id> <id>
 The actions in a commit can be reversed with the `revert` command.  This
 command applies the inverse steps in a new commit to the tip of the indicated
 branch.  Any data loaded in a reverted commit remains in the lake but no longer
-appears in the branch.  The new commit may recursively be reverted by an
+appears in the branch.  The new commit may itself be reverted by an
 additional revert operation.
 
 For example, this command reverts the commit referenced by commit ID
