@@ -302,8 +302,8 @@ according to configured policies and logic.
 
 Data is read from one or more pools with the `query` command.  The pool/branch names
 are specified with `from` at the beginning of the Zed query along with an optional
-time range using `range` and `to`.  The default output format is ZSON (if to a
-terminal) or ZNG (if redirected elsewhere) though this can be overridden with
+time range using `range` and `to`.  The default output format is ZSON for
+terminals and ZNG otherwise, though this can be overridden with
 `-f` to specify one of the various supported output formats.
 
 If a pool name is provided to `from` without a branch name, then branch
