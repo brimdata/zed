@@ -118,7 +118,7 @@ func (b *Branch) Revert(ctx context.Context, commit ksuid.KSUID, author, message
 		if message == "" {
 			message = fmt.Sprintf("reverted commit %s", commit)
 		}
-		object, err := patch.Undo(tip, ksuid.New(), parent.Commit, retries, author, message)
+		object, err := patch.Revert(tip, ksuid.New(), parent.Commit, retries, author, message)
 		if err != nil {
 			return nil, err
 		}

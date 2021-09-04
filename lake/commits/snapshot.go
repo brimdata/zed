@@ -32,6 +32,7 @@ type Writeable interface {
 // XXX redefine snapshot as type map instead of struct
 type Snapshot struct {
 	objects map[ksuid.KSUID]*data.Object
+	deletes map[ksuid.KSUID]*data.Object
 }
 
 var _ View = (*Snapshot)(nil)
@@ -40,6 +41,7 @@ var _ Writeable = (*Snapshot)(nil)
 func NewSnapshot() *Snapshot {
 	return &Snapshot{
 		objects: make(map[ksuid.KSUID]*data.Object),
+		deletes: make(map[ksuid.KSUID]*data.Object),
 	}
 }
 
@@ -49,14 +51,17 @@ func (s *Snapshot) AddDataObject(object *data.Object) error {
 		return fmt.Errorf("%s: add of a duplicate data object: %w", id, ErrWriteConflict)
 	}
 	s.objects[id] = object
+	delete(s.deletes, id)
 	return nil
 }
 
 func (s *Snapshot) DeleteObject(id ksuid.KSUID) error {
-	if _, ok := s.objects[id]; !ok {
+	object, ok := s.objects[id]
+	if !ok {
 		return fmt.Errorf("%s: delete of a non-existent data object: %w", id, ErrWriteConflict)
 	}
 	delete(s.objects, id)
+	s.deletes[id] = object
 	return nil
 }
 
@@ -71,6 +76,14 @@ func (s *Snapshot) Exists(id ksuid.KSUID) bool {
 
 func (s *Snapshot) Lookup(id ksuid.KSUID) (*data.Object, error) {
 	o, ok := s.objects[id]
+	if !ok {
+		return nil, fmt.Errorf("%s: %w", id, ErrNotFound)
+	}
+	return o, nil
+}
+
+func (s *Snapshot) LookupDeleted(id ksuid.KSUID) (*data.Object, error) {
+	o, ok := s.deletes[id]
 	if !ok {
 		return nil, fmt.Errorf("%s: %w", id, ErrNotFound)
 	}
