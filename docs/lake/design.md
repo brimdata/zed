@@ -223,7 +223,7 @@ zed lake log -p pool@branch
 To understand the log contents, the `load` operation is actually
 decomposed into two steps under the covers:
 an "add" step stores one or more
-new immutable data objects in the lake and a "commit" operation
+new immutable data objects in the lake and a "commit" step
 materializes the objects into a branch with an ACID transaction.
 This updates the branch pointer to point at a new commit object
 referencing the data objects where the new commit object's parent
