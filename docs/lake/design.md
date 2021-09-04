@@ -1051,7 +1051,7 @@ or a `ref`.
 * query: `from :meta`
 * rebase `ref` `commitish` - rebase a branch `ref` onto the commit object history starting at `commitish` (this is peculiar because `ref` could imply the pool name for `commitish` though this will usually be a branch name)
 * rename `pool` `pool` - change name of a data pool
-* revert `ref` `commitish`- undo the commit at `commitish` with a new commit object and updates the branch `ref` to point at the new commit; typically this commit would be in the branches history but it doesn't have to be (but would typically fail a consistency check if it isn't in the history).  We could prevent this condition with a check.
+* revert `ref` `commitish`- undo the commit at `commitish` with a new commit object and update the branch `ref` to point at the new commit; typically this commit would be in the branch's history but it doesn't have to be (but would typically fail a consistency check if it isn't in the history).  We could prevent this condition with a check.
 
 > Note we can simplify the rules about meta-query not allowing the default
 > to "main" by partitioning the meta names and using the name to disambiguate
