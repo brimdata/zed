@@ -114,9 +114,15 @@ func (a Analyzer) convertValue(zctx *Context, val zed.Value, parent zng.Type) (V
 		}
 		return v, nil
 	case *zed.CastValue:
-		if _, ok := val.Of.(*zed.DefValue); ok {
+		switch valOf := val.Of.(type) {
+		case *zed.DefValue:
 			// Enter the type def so val.Type can see it.
-			if _, err := a.convertValue(zctx, val.Of, nil); err != nil {
+			if _, err := a.convertValue(zctx, valOf, nil); err != nil {
+				return nil, err
+			}
+		case *zed.CastValue:
+			// Enter any nested type defs so val.Type can see them.
+			if _, err := a.convertType(zctx, valOf.Type); err != nil {
 				return nil, err
 			}
 		}
