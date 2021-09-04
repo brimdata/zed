@@ -58,7 +58,7 @@ ranges of data over the pool key.
 Data can be efficiently accessed via range scans composed of a
 range of values conforming to the pool key.
 
-A pool key has a configured sort order, either ascending or descending
+A pool also has a configured sort order, either ascending or descending
 and data is organized in the pool in accordance with this order.
 Data scans may be either ascending or descending, and scans that
 follow the configured order are generally more efficient than
