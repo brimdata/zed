@@ -11,7 +11,7 @@ inputs:
       {key:"hello"}
   - name: trailer.zson
     data: |
-      {magic:"zed_index",version:0(int32),descending:false,child_field:"_child",frame_thresh:32768(int32),sections:[16],keys:null(0=({key:string}))}(=1)
+      {magic:"zed_index",version:0(int32),descending:false,child_field:"_child",frame_thresh:32768(int32),sections:[16],keys:null({key:string})}
 
 outputs:
   - name: stderr

@@ -3,17 +3,17 @@ zed: "*"
 output-flags: -f zson -pretty=4
 
 input: |
-  {flip:HEADS(0=(<HEADS,TAILS>))}(=1)
-  {flip:TAILS}(1)
-  {flip:HEADS}(1)
+  {flip:HEADS(<HEADS,TAILS>)}
+  {flip:TAILS(<HEADS,TAILS>)}
+  {flip:HEADS(<HEADS,TAILS>)}
 
 output: |
   {
-      flip: HEADS (0=(<HEADS,TAILS>))
-  } (=1)
+      flip: HEADS (<HEADS,TAILS>)
+  }
   {
-      flip: TAILS
-  } (1)
+      flip: TAILS (<HEADS,TAILS>)
+  }
   {
-      flip: HEADS
-  } (1)
+      flip: HEADS (<HEADS,TAILS>)
+  }

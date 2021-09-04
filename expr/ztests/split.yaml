@@ -5,4 +5,4 @@ input: |
   {s1:"foo.bar.com",s2:"foo",s3:null(string),s4:""}
 
 output: |
-  {a1:["foo","bar","com"],a2:["foo"],a3:null(0=([string])),a4:[""],oo:["f",".bar.com"]}
+  {a1:["foo","bar","com"],a2:["foo"],a3:null([string]),a4:[""],oo:["f",".bar.com"]}

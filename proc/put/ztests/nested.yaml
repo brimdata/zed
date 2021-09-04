@@ -4,15 +4,15 @@ inputs:
   - name: stdin
     data: |
       {}
-      {"a": null}
-      {"a": {}}
-      {"a": {}(=alias)}
-      {"a": {"c": null}}
-      {"a": {"c": {}}}
-      {"a": {"c": {"a": 4}}}
-      {"a": {"c": {"a": {"a": 4}}}}
-      {"pre": "pre","a": {"x": 10,"b": 2,"c": {"a": 3},"d": 4},"b": 5,"post": "post"}
-      {"other": "other"}
+      {a:null}
+      {a:{}}
+      {a:{}(=alias)}
+      {a:{c:null}}
+      {a:{c:{}}}
+      {a:{c:{a:4}}}
+      {a:{c:{a:{a:4}}}}
+      {pre:"pre",a:{x:10,b:2,c:{a:3},d:4},b:5,post:"post"}
+      {other:"other"}
 
 outputs:
   - name: stdout

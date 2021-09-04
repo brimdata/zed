@@ -36,7 +36,7 @@ func NewMarshaler() *MarshalContext {
 func NewMarshalerIndent(indent int) *MarshalContext {
 	return &MarshalContext{
 		MarshalZNGContext: NewZNGMarshaler(),
-		formatter:         NewFormatter(indent),
+		formatter:         NewFormatter(indent, nil),
 	}
 }
 

@@ -22,4 +22,4 @@ outputs:
               count: 1000 (uint64),
               row_size: 34325
           } (=data.Metadata)
-      } (=0)
+      }

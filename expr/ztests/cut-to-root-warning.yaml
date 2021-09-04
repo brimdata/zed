@@ -1,9 +1,9 @@
 zed: 'cut this:=c'
 
 input: |
-  {a:null(0=({b:int32}))}(=1)
-  {a:{b:null}}(1)
-  {a:{b:1}}(1)
+  {a:null({b:int32})}
+  {a:{b:null(int32)}}
+  {a:{b:1(int32)}}
 
 warnings: |
   cut: no record found with columns c

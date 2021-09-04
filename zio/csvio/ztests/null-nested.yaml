@@ -1,7 +1,7 @@
 zed: fuse
 
 input: |
-  {a:null(0=({b:1=({a1:2=([string]),a2:2})}))}
+  {a:null({b:{a1:[string],a2:[string]}})}
   {s:"x"}
 
 output-flags: -f csv

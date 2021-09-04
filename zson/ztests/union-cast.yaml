@@ -6,14 +6,14 @@ inputs:
     data: |
       {
           r: {
-              u: "\"hello\"" (sint=(0=((int32,string))))
-          } (=1)
-      } (=2)
+              u: "\"hello\"" (sint=((int32,string)))
+          }
+      }
       {
           r: {
-              v: 123 (int32) (sint)
-          } (=3)
-      } (=4)
+              v: 123 (int32) (sint=((int32,string)))
+          }
+      }
 
 outputs:
   - name: stdout

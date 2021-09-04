@@ -3,7 +3,7 @@ zed: |
 
 input: |
   {a:"a",b:"b"}
-  {a:[](0=([null])),b:{c:1}}
+  {a:[]([null]),b:{c:1}}
   {a:[0],b:{c:1}}
 
 output: |

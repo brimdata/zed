@@ -1,7 +1,7 @@
 zed: "*"
 
 input: |
-  {foo:0x68692c20776f726c64,".bar@":123(int32),x:"hello"}(=0)
+  {foo:0x68692c20776f726c64,".bar@":123(int32),x:"hello"}
 
 output: |
-  {foo:0x68692c20776f726c64,".bar@":123(int32),x:"hello"}(=0)
+  {foo:0x68692c20776f726c64,".bar@":123(int32),x:"hello"}

@@ -19,5 +19,5 @@ input: |
   {"color":"brown","name":"coconut","flavor":"nutty"}
 
 output: |
-  {flavor:"sweet",characters:4,count:1(uint64)}(=0)
-  {flavor:"nutty",characters:7,count:1}(0)
+  {flavor:"sweet",characters:4,count:1(uint64)}
+  {flavor:"nutty",characters:7,count:1(uint64)}

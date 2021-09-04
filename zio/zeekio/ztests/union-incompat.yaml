@@ -3,7 +3,7 @@ script: zq -f zeek -
 inputs:
   - name: stdin
     data: |
-      {u:"foo"(0=((string,int32)))}(=1)
+      {u:"foo"((string,int32))}
 
 outputs:
   - name: stderr

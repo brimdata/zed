@@ -3,12 +3,12 @@
 zed: put y := sqrt(x)
 
 input: |
-  {x:-1(int32)}(=0)
-  {x:-2}(0)
+  {x:-1(int32)}
+  {x:-2(int32)}
 
 output: |
-  {x:-1(int32)}(=0)
-  {x:-2}(0)
+  {x:-1(int32)}
+  {x:-2(int32)}
 
 warnings: |
   sqrt: bad argument

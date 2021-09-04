@@ -14,6 +14,6 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {magic:"zed_index",version:2(int32),descending:false,child_field:"",frame_thresh:32768(int32),sections:null(0=([int64])),keys:null(1=({key:null}))}(=2)
+      {magic:"zed_index",version:2(int32),descending:false,child_field:"",frame_thresh:32768(int32),sections:null([int64]),keys:null({key:null})}
       ===
       ===

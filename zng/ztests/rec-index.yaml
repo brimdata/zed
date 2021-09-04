@@ -1,7 +1,7 @@
 zed: 'put x:=r[".bar@"]+3'
 
 input: |
-  {r:{".bar@":123(int32),x:"hello"}(=0)}(=1)
+  {r:{".bar@":123(int32),x:"hello"}}
 
 output: |
-  {r:{".bar@":123(int32),x:"hello"}(=0),x:126}(=1)
+  {r:{".bar@":123(int32),x:"hello"},x:126}

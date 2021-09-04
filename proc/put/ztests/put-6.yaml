@@ -2,7 +2,7 @@
 zed: put y := x / 0
 
 input: |
-  {x:1(int32)}(=0)
+  {x:1(int32)}
 
 output: |
-  {x:1(int32),y:"signed integer divide by 0"(error)}(=0)
+  {x:1(int32),y:"signed integer divide by 0"(error)}

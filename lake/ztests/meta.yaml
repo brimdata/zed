@@ -38,19 +38,19 @@ outputs:
               ] (=field.List)
           } (=order.Layout),
           threshold: 524288000
-      } (=0)
+      }
       {
           name: "poolB",
           layout: {
-              order: "desc",
+              order: "desc" (=order.Which),
               keys: [
                   [
                       "b"
-                  ]
-              ]
-          },
+                  ] (=field.Path)
+              ] (=field.List)
+          } (=order.Layout),
           threshold: 524288000
-      } (0)
+      }
       ===
       {
           nameof: "data.Object",
@@ -60,7 +60,7 @@ outputs:
               count: 2 (uint64),
               row_size: 14
           } (=data.Metadata)
-      } (=0)
+      }
       {
           nameof: "lake.BranchTip"
       }
@@ -76,4 +76,4 @@ outputs:
               ] (=field.Path)
           ] (=field.List),
           nameof: "index.FieldRule"
-      } (=0)
+      }

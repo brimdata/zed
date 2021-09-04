@@ -1,7 +1,7 @@
 zed: put a:=3,b:=2,c:=1
 
 input: |
-  {a:1(int32),b:2(int32)}(=0)
+  {a:1(int32),b:2(int32)}
 
 output: |
   {a:3,b:2,c:1}

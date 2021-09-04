@@ -2,8 +2,8 @@ zed: fuse
 
 input: |
   {a:"hello",b:"world"}
-  {a:"goodnight",b:123(int32)}(=0)
+  {a:"goodnight",b:123(int32)}
 
 output: |
-  {a:"hello",b:"world"(0=((string,int32)))}(=1)
-  {a:"goodnight",b:123(int32)}(1)
+  {a:"hello",b:"world"((string,int32))}
+  {a:"goodnight",b:123(int32)((string,int32))}

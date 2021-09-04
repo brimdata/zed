@@ -74,21 +74,21 @@ const zson2 = `{foo:{bar:"test"}}`
 
 const zson3 = "{foo:|[null(string)]|}"
 
-const zson4 = `{foo:"-"(bstring)}(=0)`
+const zson4 = `{foo:"-"(bstring)}`
 
-const zson5 = `{foo:"["(bstring),bar:"[-]"(bstring)}(=0)`
+const zson5 = `{foo:"["(bstring),bar:"[-]"(bstring)}`
 
 // Make sure we handle unset fields and empty sets.
-const zson6 = "{id:{a:null(string),s:|[]|(0=(|[string]|))}}"
+const zson6 = "{id:{a:null(string),s:|[]|(|[string]|)}}"
 
 // Make sure we handle unset sets.
-const zson7 = `{a:"foo",b:|[]|(0=(|[string]|)),c:null(0)}`
+const zson7 = `{a:"foo",b:|[]|(|[string]|),c:null(|[string]|)}`
 
 // recursive record with unset set and empty set
 const zson8 = `
-{id:{a:null(string),s:|[]|(0=(|[string]|))}}
-{id:{a:null(string),s:null(0)}}
-{id:null(1=({a:string,s:0}))}
+{id:{a:null(string),s:|[]|(|[string]|)}}
+{id:{a:null(string),s:null(|[string]|)}}
+{id:null({a:string,s:|[string]|})}
 `
 
 // generate some really big strings
@@ -140,14 +140,14 @@ func TestZjson(t *testing.T) {
 }
 
 func TestAlias(t *testing.T) {
-	const simple = `{foo:"bar",orig_h:127.0.0.1(=ipaddr)}(=0)`
+	const simple = `{foo:"bar",orig_h:127.0.0.1(=ipaddr)}`
 	const multipleRecords = `
-{foo:"bar",orig_h:127.0.0.1(=ipaddr)}(=0)
-{foo:"bro",resp_h:127.0.0.1(ipaddr)}(=1)
+{foo:"bar",orig_h:127.0.0.1(=ipaddr)}
+{foo:"bro",resp_h:127.0.0.1(=ipaddr)}
 `
 	const recordAlias = `
-{foo:{host:127.0.0.2}(=myrec)}(=0)
-{foo:null}(0)
+{foo:{host:127.0.0.2}(=myrec)}
+{foo:null(myrec=({host:ip}))}
 `
 	t.Run("Zng", func(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {

@@ -27,7 +27,7 @@ outputs:
               ] (=field.List)
           } (=order.Layout),
           threshold: 524288000
-      } (=0)
+      }
       ===
       {
           meta: {
@@ -36,4 +36,4 @@ outputs:
               count: 1000 (uint64),
               row_size: 34325
           } (=data.Metadata)
-      } (=0)
+      }

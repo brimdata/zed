@@ -4,25 +4,25 @@ zed: '*'
 # ID order) when https://github.com/brimdata/zed/issues/2518 is fixed.
 input: |
   {
-    u8:0 (myuint8=(uint8)),
-    u16:0 (myuint16=(uint16)),
-    u32:0 (myuint32=(uint32)),
-    u64:0 (myuint64=(uint64)),
-    i8:0 (myint8=(int8)),
-    i16:0 (myint16=(int16)),
-    i32:0 (myint32=(int32)),
-    i64:0 (myint64=(int64)),
-    dur:0m (myduration=(duration)),
-    tim:1970-01-01T00:00:00Z (mytime=(time)),
-    f64:0. (myfloat64=(float64)),
-    boo:false (mybool=(bool)),
-    byt:0x00 (mybytes=(bytes)),
-    str:"" (mystring=(string)),
-    bst:"" (mybstring=(bstring)),
-    ip:0.0.0.0 (myip=(ip)),
-    net:0.0.0.0/0 (mynet=(net)),
-    err:"" (myerror=(error)),
-    nul:null (mynull=(null))
+    u8: 0 (myuint8=(uint8)),
+    u16: 0 (myuint16=(uint16)),
+    u32: 0 (myuint32=(uint32)),
+    u64: 0 (myuint64=(uint64)),
+    i8: 0 (myint8=(int8)),
+    i16: 0 (myint16=(int16)),
+    i32: 0 (myint32=(int32)),
+    i64: 0 (=myint64),
+    dur: 0s (=myduration),
+    tim: 1970-01-01T00:00:00Z (=mytime),
+    f64: 0. (=myfloat64),
+    boo: false (=mybool),
+    byt: 0x00 (=mybytes),
+    str: "" (=mystring),
+    bst: "" (mybstring=(bstring)),
+    ip: 0.0.0.0 (=myip),
+    net: 0.0.0.0/0 (=mynet),
+    err: "" (myerror=(error)),
+    nul: null (mynull=(null))
   }
 
 output-flags: -pretty=2
@@ -48,4 +48,4 @@ output: |
     net: 0.0.0.0/0 (=mynet),
     err: "" (myerror=(error)),
     nul: null (mynull=(null))
-  } (=0)
+  }

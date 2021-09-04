@@ -1,9 +1,9 @@
 zed: is(a,'string')
 
 input: |
-  {a:1(int32),b:"foo"}(=0)
-  {x:2(int8)}(=1)
-  {a:3,b:"bar"}(0)
+  {a:1(int32),b:"foo"}
+  {x:2(int8)}
+  {a:3(int32),b:"bar"}
   {a:"foo"}
   {a:"bar"}
 

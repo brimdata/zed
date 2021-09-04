@@ -1,0 +1,31 @@
+script: |
+  zq -z -persist 'b.*' in.zson
+  echo ===
+  zq -z -persist '(foo|^bar)' in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      {a:1(baz=(int8))}(=foo)
+      {a:1}(foo)
+      {a:1}(=fubar)
+      {a:1}(fubar)
+      {a:1}(=bar)
+      {a:1}(bar)
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1(baz=(int8))}(=foo)
+      {a:1(baz)}(=foo)
+      {a:1}(=fubar)
+      {a:1}(fubar)
+      {a:1}(=bar)
+      {a:1}(bar)
+      ===
+      {a:1(baz=(int8))}(=foo)
+      {a:1}(foo)
+      {a:1}(=fubar)
+      {a:1}(=fubar)
+      {a:1}(=bar)
+      {a:1}(bar)

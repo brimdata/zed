@@ -3,6 +3,7 @@ package zson
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -12,28 +13,45 @@ import (
 )
 
 type Formatter struct {
-	typedefs typemap
-	tab      int
-	newline  string
-	typeTab  int
-	nid      int
-	builder  strings.Builder
-	stack    []strings.Builder
-	implied  map[zng.Type]bool
-	colors   color.Stack
+	typedefs  typemap
+	permanent typemap
+	persist   *regexp.Regexp
+	tab       int
+	newline   string
+	typeTab   int
+	nid       int
+	builder   strings.Builder
+	stack     []strings.Builder
+	implied   map[zng.Type]bool
+	colors    color.Stack
 }
 
-func NewFormatter(pretty int) *Formatter {
+func NewFormatter(pretty int, persist *regexp.Regexp) *Formatter {
 	var newline string
 	if pretty > 0 {
 		newline = "\n"
 	}
-	return &Formatter{
-		typedefs: make(typemap),
-		tab:      pretty,
-		newline:  newline,
-		implied:  make(map[zng.Type]bool),
+	var permanent typemap
+	if persist != nil {
+		permanent = make(typemap)
 	}
+	return &Formatter{
+		typedefs:  make(typemap),
+		permanent: permanent,
+		tab:       pretty,
+		newline:   newline,
+		implied:   make(map[zng.Type]bool),
+		persist:   persist,
+	}
+}
+
+// Persist matches type names to the regular expression provided and
+// persists the matched types across records in the stream.  This is useful
+// when typedefs have complicated type signatures, e.g., as generated
+// by fused fields of records creating a union of records.
+func (f *Formatter) Persist(re *regexp.Regexp) {
+	f.permanent = make(typemap)
+	f.persist = re
 }
 
 func (f *Formatter) push() {
@@ -49,6 +67,12 @@ func (f *Formatter) pop() {
 
 func (f *Formatter) FormatRecord(rec *zng.Record) (string, error) {
 	f.builder.Reset()
+	// We reset tyepdefs so named types are emitted with their
+	// definition at first use in each record according to the
+	// left-to-right DFS order.  We could make this more efficient
+	// by putting a record number/nonce in the map but ZSON
+	// is already intended to be the low performance path.
+	f.typedefs = make(typemap)
 	if err := f.formatValueAndDecorate(rec.Type, rec.Bytes); err != nil {
 		return "", err
 	}
@@ -56,7 +80,7 @@ func (f *Formatter) FormatRecord(rec *zng.Record) (string, error) {
 }
 
 func FormatValue(zv zng.Value) (string, error) {
-	f := NewFormatter(0)
+	f := NewFormatter(0, nil)
 	return f.Format(zv)
 }
 
@@ -76,8 +100,32 @@ func (f *Formatter) Format(zv zng.Value) (string, error) {
 	return f.builder.String(), nil
 }
 
+func (f *Formatter) hasName(typ zng.Type) bool {
+	ok := f.typedefs.exists(typ)
+	if !ok && f.persist != nil {
+		ok = f.permanent.exists(typ)
+	}
+	return ok
+}
+
+func (f *Formatter) nameOf(typ zng.Type) string {
+	s := f.typedefs[typ]
+	if s == "" && f.permanent != nil {
+		s = f.permanent[typ]
+	}
+	return s
+}
+
+func (f *Formatter) saveType(alias *zng.TypeAlias) {
+	name := alias.Name
+	f.typedefs[alias] = name
+	if f.permanent != nil && f.persist.MatchString(name) {
+		f.permanent[alias] = name
+	}
+}
+
 func (f *Formatter) formatValueAndDecorate(typ zng.Type, bytes zcode.Bytes) error {
-	known := f.typedefs.exists(typ)
+	known := f.hasName(typ)
 	implied := f.isImplied(typ)
 	if err := f.formatValue(0, typ, bytes, known, implied, false); err != nil {
 		return err
@@ -87,7 +135,7 @@ func (f *Formatter) formatValueAndDecorate(typ zng.Type, bytes zcode.Bytes) erro
 }
 
 func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, parentKnown, parentImplied, decorate bool) error {
-	known := parentKnown || f.typedefs.exists(typ)
+	known := parentKnown || f.hasName(typ)
 	if bytes == nil {
 		f.build("null")
 		if parentImplied {
@@ -140,27 +188,27 @@ func (f *Formatter) decorate(typ zng.Type, known, null bool) {
 	}
 	f.startColor(color.Gray(200))
 	defer f.endColor()
-	if f.tab > 0 {
-		f.build(" ")
-	}
-	if name, ok := f.typedefs[typ]; ok {
-		f.buildf("(%s)", name)
-		return
-	}
-	if SelfDescribing(typ) && !null {
-		var name string
-		if typ, ok := typ.(*zng.TypeAlias); ok {
-			name = typ.Name
-		} else {
-			name = f.nextInternalType()
+	if name := f.nameOf(typ); name != "" {
+		if f.tab > 0 {
+			f.build(" ")
 		}
-		f.typedefs[typ] = name
-		f.buildf("(=%s)", name)
-		return
+		f.buildf("(%s)", name)
+	} else if SelfDescribing(typ) && !null {
+		if typ, ok := typ.(*zng.TypeAlias); ok {
+			f.saveType(typ)
+			if f.tab > 0 {
+				f.build(" ")
+			}
+			f.buildf("(=%s)", typ.Name)
+		}
+	} else {
+		if f.tab > 0 {
+			f.build(" ")
+		}
+		f.build("(")
+		f.formatType(typ)
+		f.build(")")
 	}
-	f.build("(")
-	f.formatType(typ)
-	f.build(")")
 }
 
 func (f *Formatter) formatRecord(indent int, typ *zng.TypeRecord, bytes zcode.Bytes, known, parentImplied bool) error {
@@ -303,42 +351,31 @@ func (f *Formatter) buildf(s string, args ...interface{}) {
 // The routine re-enters the type formatter with a fresh builder by
 // invoking push()/pop().
 func (f *Formatter) formatType(typ zng.Type) {
-	if name, ok := f.typedefs[typ]; ok {
+	if name := f.nameOf(typ); name != "" {
 		f.build(name)
 		return
 	}
 	if alias, ok := typ.(*zng.TypeAlias); ok {
-		// We don't check here for typedefs that illegally change
-		// the type of a type name as we build this output from
-		// the internal type system which should not let this happen.
-		name := alias.Name
-		f.typedefs[typ] = name
-		f.build(name)
+		f.saveType(alias)
+		f.build(alias.Name)
 		f.build("=(")
 		f.formatType(alias.Type)
 		f.build(")")
 		return
 	}
 	if typ.ID() < zng.IDTypeDef {
-		name := typ.String()
-		f.typedefs[typ] = name
-		f.build(name)
+		f.build(typ.String())
 		return
 	}
-	name := f.nextInternalType()
-	f.build(name)
-	f.build("=(")
 	f.push()
 	f.formatTypeBody(typ)
 	s := f.builder.String()
 	f.pop()
 	f.build(s)
-	f.build(")")
-	f.typedefs[typ] = name
 }
 
 func (f *Formatter) formatTypeBody(typ zng.Type) error {
-	if name, ok := f.typedefs[typ]; ok {
+	if name := f.nameOf(typ); name != "" {
 		f.build(name)
 		return nil
 	}

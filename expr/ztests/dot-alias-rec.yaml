@@ -1,7 +1,7 @@
 zed: cut v:=a.f
 
 input: |
-  {a:{f:1(int8)}(=foo)}(=0)
+  {a:{f:1(int8)}(=foo)}
 
 output: |
-  {v:1(int8)}(=0)
+  {v:1(int8)}

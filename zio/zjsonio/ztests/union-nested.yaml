@@ -7,7 +7,7 @@ input: |
   {"schema":"27","values":[["3",["1","123"]]]}
 
 output: |
-  {a:"\"hello\""(0=((string,1=([int32]),2=([string]),3=((string,int32)))))}(=4)
-  {a:[1,2](1)}(4)
-  {a:["\"a\"","\"b\""]}(4)
-  {a:123(int32)(3)}(4)
+  {a:"\"hello\""((string,[int32],[string],(string,int32)))}
+  {a:[1(int32),2(int32)]((string,[int32],[string],(string,int32)))}
+  {a:["\"a\"","\"b\""]((string,[int32],[string],(string,int32)))}
+  {a:123(int32)((string,int32))((string,[int32],[string],(string,int32)))}

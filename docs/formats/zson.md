@@ -1,6 +1,6 @@
 # ZSON - ZNG Structured Object-record Notation
 
-> ### DRAFT 3/21/21
+> ### DRAFT 9/3/21
 > ### Note: This specification is in BETA development.
 > We plan to have a final form established soon.
 >
@@ -88,12 +88,11 @@ There's no need for a type decorator here.  It's explicitly a string.
 A structured SQL table might look like this:
 ```
 { city: "Berkeley", state: "CA", population: 121643 (uint32) } (=city_schema)
-{ city: "Broad Cove", state: "ME", population: 806 } (city_schema)
-{ city: "Baton Rouge", state: "LA", population: 221599 } (city_schema)
+{ city: "Broad Cove", state: "ME", population: 806 (uint32) } (=city_schema)
+{ city: "Baton Rouge", state: "LA", population: 221599 (uint32) } (=city_schema)
 ```
 This ZSON text depicts three record values.  It defines a type called `city_schema`
-based on the first value and decorates the two subsequent values with that type.
-The inferred value of the `city_schema` type is a record type depicted as:
+and the inferred type of the `city_schema` has the signature:
 ```
 { city:string, state:string, population:uint32 }
 ```
@@ -108,13 +107,13 @@ might look like this:
 {
     info: "Connection Example",
     src: { addr: 10.1.1.2, port: 80 (uint16) } (=socket),
-    dst: { addr: 10.0.1.2, port: 20130 } (socket)
+    dst: { addr: 10.0.1.2, port: 20130 (uint16) } (=socket)
 } (=conn)
 {
     info: "Connection Example 2",
-    src: { addr: 10.1.1.8, port: 80 },
-    dst: { addr: 10.1.2.88, port: 19801 }
-} (conn)
+    src: { addr: 10.1.1.8, port: 80 (uint16) } (=socket),
+    dst: { addr: 10.1.2.88, port: 19801 (uint16) } (=socket)
+} (=conn)
 {
     info: "Access List Example",
     nets: [ 10.1.1.0/24, 10.1.2.0/24 ]
@@ -124,17 +123,12 @@ might look like this:
 { metric: "A", ts: 2020-11-24T08:44:32.201458-08:00, value: 126 }
 { metric: "C", ts: 2020-11-24T08:44:43.547506-08:00, value: { x:10, y:101 } }
 ```
-In this case, the first record value defines not just the new record type
+In this case, the first records defines not just the a record type
 called `conn`, but also a second embedded record type called `socket`.
 The parenthesized decorators are used where a type is not gleaned from
 the value itself:
 * `socket` is a record with typed fields `addr` and `port` where `port` is an unsigned 16-bit integer, and
 * `conn` is a record with typed fields `info`, `src`, and `dst`.
-
-The next value in the sequence is also a `conn` type but given that this
-complex type has been defined previously, there is no need to specify the
-type decorators for each nested field since they are all determined by the
-top-level record type.
 
 The subsequent value defines a type called `access_list`.  In this case,
 the `nets` field is an array of networks and illustrates the helpful range of
@@ -150,21 +144,9 @@ note that the `value` field takes on different types and even a complex record
 type on the last line.  In this case, there is a different type top-level
 record type implied by each of the three variations of type of the `value` field.
 
-Note that when a record is decorated, the field names may be omitted as
-the decorator implies the missing names, e.g.,
-```
-{
-    "Connection Example 2",
-    { 10.1.1.8, 80 },
-    { 10.1.2.88, 19801 }
-} (conn)
-```
-
 ## 2. The ZSON Data Model
 
 ZSON data is defined as an ordered sequence of one or more typed data values.
-A sequence implies a type context as described below.
-
 Each value's type is either a "primitive type", a "complex type", the "type type",
 or the "null type".
 
@@ -173,15 +155,6 @@ or the "null type".
 Primitive types include signed and unsigned integers, IEEE floating point of
 several widths, IEEE decimal,
 string, bstring, byte sequence, boolean, IP address, and IP network.
-
-> Note: The `bstring` type is an unusual mixture of a UTF-8 string
-> with embedded binary data as in
-> [Rust's experimental `bstr` library](https://docs.rs/bstr/0.2.14/bstr/).
-> This type is useful in systems that, for instance, pull data off the network
-> while expecting a string, but sometimes encounter embedded binary data due to
-> bugs, malicious attacks, etc.  It is up to the application to differentiate
-> between a `bstring` value that happens to look like a valid UTF-8 string and
-> an actual UTF-8 string encoded as a `bstring`.
 
 ### 2.2 Complex Types
 
@@ -208,42 +181,9 @@ value can have any type.
 
 ### 2.5 Type Definitions
 
-Type definitions embedded in the data sequence bind a name to a type
-so that later values can refer to their type by name instead of explicitly
-enumerating the type of every element.  A collection of bindings from name to
-type is called a "type context."  As bindings are read from a sequence, they
-create the sequence's type context.
-
-A type name is either internal or external.  Internal names are used exclusively
-to organize the types in the type context within the data sequence itself and have
-no meaning outside of that data.  External names are visible outside of
-a data sequence as named types, providing external systems a way to
-discover and refer to types by name where the type is defined within the data
-sequence.  The binding between an external name and its type must be reestablished
-in each type context in which it used.  External names are analogous to the notion
-of "logical types" in Parquet and Avro.
-
-Internal type names are represented by integers while external names are
-represented by identifiers.  When ZSON data is organized into a sequence
-comprised of two or more subsequences where each subsequence has its own
-type context, the internal names may be "reused" across type contexts to refer
-to different types but external names should generally have the same type value
-throughout.  That said, external type definitions _may_ vary and an implementation
-must properly handle changing external name by updating the binding between
-the type name and the new type for all subsequent values in the sequence.
-
-> Handling type definition conflicts is outside of the scope of ZSON, but an implementation
-> may police all external definitions so that "type conflicts" are rejected with
-> an error, or it may arrange to name types with a version number (e.g., example.0,
-> example.1, etc.), and then have operators that understand that example.* are all variations
-> of a commonly named type "example".
-
-> Note that the semantics of type definitions allows an implementation to "reset" the type
-> context at any point in the sequence causing it to re-emit tyepdefs for each type used
-> thereafter, thus creating a seekable synchronization point in a ZSON data stream.  That said,
-> an implementation would typically not do this for a ZSON sequence but use similar
-> patterns in ZNG and ZST to have seekable data footprints that are far more
-> efficient than ZSON.
+Type definitions establish a binding between a name and Zed type and
+are established by decorating a Zed value with its type name using
+the syntax described below.
 
 ## 3. The ZSON Format
 
@@ -276,7 +216,7 @@ and digits (0-9), but may not start with a digit.  An identifier cannot be
 
 ### 3.2 Type Decorators
 
-Any value may be explicitly typed by tagging it with a type decorator.
+A value may be explicitly typed by tagging it with a type decorator.
 The syntax for a decorator is a parenthesized type, as in
 ```
 <value> ( <decorator> )
@@ -285,22 +225,20 @@ where a `<decorator>` is either a type or a type definition.
 
 It is an error for the decorator to be type incompatible with its referenced value.  
 
-> TBD: define precisely the notion of type compatibility
-
 #### 3.2.1 Type Definitions
 
-New type names are created by binding a name to a type with an assignment decorator
-of the form
+New type names are created within a Zed value by binding a name to a type with
+an assignment decorator of the form
 ```
 <value> (= <type-name> )
 ```
 This creates a new type whose name is given by the type name and whose
 type is equivalent to the type of `<value>`.  This new
-type may then be used anywhere a type may appear.  The name
-of the type definition
+type may then be referenced by other values within the same complex type.
+The name of the type definition
 must not be equal to any of the primitive type names.
 
-A type definition may also appear inside a decorator as in
+A type definition may also appear recursively inside a decorator as in
 ```
 <type-name> = ( <type> )
 ```
@@ -315,19 +253,6 @@ e.g.,
 80 (port=(uint16))
 ````
 is the value 80 of type "port", where "port" is a type name bound to `uint16`.
-
-The abbreviated form `(=<type-name>)` may be used whenever a type value is
-_self describing_ in the sense that its type name can be entirely derived
-from its value, e.g., a record type can be derived from a record value
-because all of the field names and type names are present in the value, but
-an enum type cannot be derived from an enum value because not all the enumerated
-symbols are present in the value.  In the the latter case, the long form
-`(<type-name>=(<type>))` must be used.
-
-It is an error for an external type to be defined to a different type
-than its previous definition though multiple definitions of the same
-type are legal (thereby allowing for concatenation of otherwise
-independent sequences).
 
 One decorator is allowed per value except for nested type-union values, which
 may include additional decorators to successively refine the union type for union values
@@ -538,10 +463,6 @@ needed to resolve the ambiguity, e.g.,
 "hello, world" (int32, string) ((int32,string),[int32])
 ```
 
-> TBD: list the ambiguous possibilities so this is clear.  I think they are
-> float16, float32, (u)int8, (u)int16, (u)int32, and uint64 as well as union
-> values inside of union values.
-
 #### 3.4.5 Enum Value
 
 An enum type represents a symbol from a finite set of symbols
@@ -563,8 +484,8 @@ When an enum name is `true`, `false`, or `null`, it must be quoted.
 A sequence of enum values might look like this:
 ```
 HEADS (flip=(<HEADS,TAILS>))
-TAILS (flip)
-HEADS (flip)
+TAILS (flip=(<HEADS,TAILS>))
+HEADS (flip=(<HEADS,TAILS>))
 ```
 
 #### 3.4.6 Map Value
@@ -573,6 +494,7 @@ A map value has the following syntax:
 ```
 |{ {<key>, <value>}, {<key>, <value>}, ... }|
 ```
+
 A type decorator applied to a map can either be one element, referring to a
 map type, or two elements referring to the type of the keys and type of the values.
 
@@ -707,99 +629,7 @@ zero value or, in the case of record fields, an optional field whose
 value is not present, though these semantics are not explicitly
 defined by ZSON.
 
-## 4. Examples
-
-> TBD: Add a range of helpful examples and also some that cover the more obscure corner cases.
-> Example of pico-second timestamp.
-
-### zeek
-```
-{
-    _path: "conn",
-    ts: 2018-03-24T17:15:20.600725Z,
-    uid: "C1zOivgBT6dBmknqk" (bstring),
-    id: {
-        orig_h: 10.47.1.152,
-        orig_p: 49562 (port=(uint16)),
-        resp_h: 23.217.103.245,
-        resp_p: 80 (port)
-    } (=0),
-    proto: "tcp" (=zenum),
-    service: null (bstring),
-    duration: 9.698493s (duration),
-    orig_bytes: 0 (uint64),
-    resp_bytes: 90453565 (uint64),
-    conn_state: "SF" (bstring),
-    local_orig: null,
-    local_resp: null,
-    missed_bytes: 0 (uint64),
-    history: "^dtAttttFf" (bstring),
-    orig_pkts: 57490 (uint64),
-    orig_ip_bytes: 2358856 (uint64),
-    resp_pkts: 123713 (uint64),
-    resp_ip_bytes: 185470730 (uint64),
-    tunnel_parents: null (=1)
-} (=2)
-{
-    _path: "conn",
-    ts: 2018-03-24T17:15:20.6008Z,
-    uid: "CfbnHCmClhWXY99ui",
-    id: {
-        orig_h: 10.128.0.207,
-        orig_p: 13,
-        resp_h: 10.47.19.254,
-        resp_p: 14
-    },
-    proto: "icmp",
-    service: null,
-    duration: 1.278ms,
-    orig_bytes: 336,
-    resp_bytes: 0,
-    conn_state: "OTH",
-    local_orig: null,
-    local_resp: null,
-    missed_bytes: 0,
-    history: null,
-    orig_pkts: 28,
-    orig_ip_bytes: 1120,
-    resp_pkts: 0,
-    resp_ip_bytes: 0,
-    tunnel_parents: null
-} (2)
-```
-
-### enum
-
-```
-{ rank: Ace (24=(<Two,Three,Four,Five,Six,Seven,Eight,Nine,Ten,Jack,Queen,King,Ace>)), suit: H (25=(<Hearts,Diamonds,Spaces,Clubs>)) } (=card)
-
-```
-is the same as
-```
-{ rank: Ace, suit:H } (card=({rank: <Two,Three,Four,Five,Six,Seven,Eight,Nine,Ten,Jack,Queen,King,Ace>, suit:<Hearts,Diamonds,Spaces,Clubs>}))
-```
-
-### union
-
-```
-{ u: 12 (int32, string, (0=({a:int8,b:ip}), |[0]| ) } (=union_ex)
-{ u: "foo" } (union_ex)
-{ u: |[ {123,10.0.0.1}, {345,10.0.0.1} ]| } (union_ex)
-```
-
-If you have a set of two different types inside of a union that "look the same" then you don't
-know which is which so you need a type decorator to distinguish....
-```
-{ u: |[12, 13 ]| (28=(26=(|[int8])) (26, (27=(|[int16]|)))) } (=union_ex2)
-{ u: |[14, 15 ]| (27) } (union_ex2)
-```
-is the same as
-```
-{ u: |[12 (int8), 13 ]| (|[int8]|, |[int16]| } (=union_ex2)
-{ u: |[14 (int16), 15 ]| } (union_ex2)
-```
-
-## 5. Grammar
+## 4. Grammar
 
 Here is a left-recursive pseudo-grammar of ZSON.  Note that not all
 acceptable inputs are semantically valid as type mismatches may arise.
@@ -880,3 +710,14 @@ the defines their type.
 
 <type-name> = as defined above
 ```
+
+## 6. The Bstring Type
+
+The Zed `bstring` type is an unusual mixture of a UTF-8 string
+with embedded binary data as in
+Rust's experimental `bstr` library](https://docs.rs/bstr/0.2.14/bstr/).
+This type is useful in systems that, for instance, pull data off the network
+while expecting a string, but sometimes encounter embedded binary data due to
+bugs, malicious attacks, etc.  It is up to the application to differentiate
+between a `bstring` value that happens to look like a valid UTF-8 string and
+an actual UTF-8 string encoded as a `bstring`.

@@ -52,22 +52,22 @@ func TestASTPost(t *testing.T) {
 
 func TestSearch(t *testing.T) {
 	const src = `
-{_path:"a",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
-{_path:"b",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
+{_path:"a",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}
+{_path:"b",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"(bstring)}
 `
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
 	conn.TestLoad(poolID, "main", strings.NewReader(src))
 
 	res := searchZson(t, conn, poolID, `_path == "a"`)
-	const expected = `{_path:"a",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)` + "\n"
+	const expected = `{_path:"a",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}` + "\n"
 	require.Equal(t, expected, res)
 }
 
 func TestSearchNoCtrl(t *testing.T) {
 	src := `
-{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
-{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
+{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}
+{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"(bstring)}
 `
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
@@ -145,13 +145,13 @@ func TestQueryEmptyPool(t *testing.T) {
 
 func TestGroupByReverse(t *testing.T) {
 	src := `
-{ts:1970-01-01T00:00:01Z,uid:"A"}(=0)
-{ts:1970-01-01T00:00:01Z,uid:"B"}(0)
-{ts:1970-01-01T00:00:02Z,uid:"B"}(0)
+{ts:1970-01-01T00:00:01Z,uid:"A"}
+{ts:1970-01-01T00:00:01Z,uid:"B"}
+{ts:1970-01-01T00:00:02Z,uid:"B"}
 `
 	counts := `
-{ts:1970-01-01T00:00:02Z,count:1(uint64)}(=0)
-{ts:1970-01-01T00:00:01Z,count:2}(0)
+{ts:1970-01-01T00:00:02Z,count:1(uint64)}
+{ts:1970-01-01T00:00:01Z,count:2(uint64)}
 `
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
@@ -169,8 +169,8 @@ func TestSearchEmptyPool(t *testing.T) {
 
 func TestSearchError(t *testing.T) {
 	src := `
-{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
-{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
+{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}
+{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"}(bstring)
 `
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
@@ -210,8 +210,8 @@ func TestSearchError(t *testing.T) {
 
 func TestPoolStats(t *testing.T) {
 	src := `
-{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}(=0)
-{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"}(0)
+{_path:"conn",ts:1970-01-01T00:00:01Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}
+{_path:"conn",ts:1970-01-01T00:00:02Z,uid:"C8Tful1TvM3Zf5x8fl"(bstring)}
 `
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})

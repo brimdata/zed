@@ -3,15 +3,15 @@ script: |
 
 inputs:
   - name: in.zson
-    data: |- # |- means no newline at end
+    data: | # |- means no newline at end
       {
           c: 23 (int32)
-      } (=0)
+      }
       {
-          c: 42
-      } (0)
+          c: 42 (int32)
+      }
 
 outputs:
   - name: stdout
     data: |
-      {count:2(uint64)}(=0)
+      {count:2(uint64)}

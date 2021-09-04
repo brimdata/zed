@@ -5,5 +5,5 @@ input: |
   {addr:fe80::215:17ff:fe84:c13f}
 
 output: |
-  {x:"not an IPv4"(error)}(=0)
+  {x:"not an IPv4"(error)}
   {x:10.0.0.0/8}

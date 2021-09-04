@@ -1,11 +1,11 @@
 zed: put s1:=sum(select(this)), s2:=sum(select(this).filter($>=3))
 
 input: |
-  {a:1(int32),b:2(int32),c:3(int32)}(=0)
-  {a:2,b:3,c:4}(0)
-  {a:3,b:4,c:5}(0)
+  {a:1(int32),b:2(int32),c:3(int32)}
+  {a:2(int32),b:3(int32),c:4(int32)}
+  {a:3(int32),b:4(int32),c:5(int32)}
 
 output: |
-  {a:1(int32),b:2(int32),c:3(int32),s1:6,s2:3}(=0)
-  {a:2,b:3,c:4,s1:9,s2:7}(0)
-  {a:3,b:4,c:5,s1:12,s2:12}(0)
+  {a:1(int32),b:2(int32),c:3(int32),s1:6,s2:3}
+  {a:2(int32),b:3(int32),c:4(int32),s1:9,s2:7}
+  {a:3(int32),b:4(int32),c:5(int32),s1:12,s2:12}

@@ -8,6 +8,6 @@ input: |
   {x:"foo",y:1,z:2}(=bar)
 
 output: |
-  {nameof:"missing"(error),count:3(uint64)}(=0)
-  {nameof:"bar",count:1(uint64)}(=1)
-  {nameof:"foo",count:1}(1)
+  {nameof:"missing"(error),count:3(uint64)}
+  {nameof:"bar",count:1(uint64)}
+  {nameof:"foo",count:1(uint64)}
