@@ -239,24 +239,38 @@ func (f *Finder) ParseKeys(inputs ...string) (*zng.Record, error) {
 	if len(inputs) > len(cols) {
 		return nil, fmt.Errorf("too many keys: expected at most %d but got %d", len(cols), len(inputs))
 	}
-	var b zcode.Builder
-	for k, col := range cols {
-		typ := col.Type
-		var zv zng.Value
-		if k < len(inputs) {
-			s := inputs[k]
-			var err error
-			zv, err = zson.ParseValue(f.zctx, s)
-			if err != nil {
-				return nil, fmt.Errorf("could not parse %q: %w", s, err)
-			}
-			if typ != zv.Type {
-				return nil, fmt.Errorf("type mismatch for %q: expected type %s", s, typ)
-			}
-		} else {
-			zv = zng.Value{typ, nil}
+	var keys []zng.Value
+	for k, s := range inputs {
+		zv, err := zson.ParseValue(f.zctx, s)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse %q: %w", s, err)
 		}
-		if zng.IsContainerType(typ) {
+		if typ := cols[k].Type; typ != zv.Type {
+			return nil, fmt.Errorf("type mismatch for %q: expected type %s", s, typ)
+		}
+		keys = append(keys, zv)
+	}
+	return f.WrapKeys(keys...)
+}
+
+//XXX the index package currently takes a record as the key... we should
+// simplify this to use the zng.Value directly?  Also, it would be cleaner
+// if we just stored the original field in the index so the index record
+// would be exactly the cut of the original key(s).  Also, we wouldn't need
+// to store the key template in the trailer.
+
+func (f *Finder) WrapKeys(keys ...zng.Value) (*zng.Record, error) {
+	cols := f.trailer.KeyType.Columns
+	if len(keys) > len(cols) {
+		return nil, fmt.Errorf("too many keys: expected at most %d but got %d", len(cols), len(keys))
+	}
+	for k := len(keys); k < len(cols); k++ {
+		// Pad secondary keys with nulls if not used in this lookup.
+		keys = append(keys, zng.Value{cols[k].Type, nil})
+	}
+	var b zcode.Builder
+	for k, zv := range keys {
+		if zng.IsContainerType(cols[k].Type) {
 			b.AppendContainer(zv.Bytes)
 		} else {
 			b.AppendPrimitive(zv.Bytes)

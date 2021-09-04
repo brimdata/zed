@@ -14,7 +14,7 @@ import (
 
 var Apply = &charm.Spec{
 	Name:  "apply",
-	Usage: "apply -p pool rule tag [tag ...]",
+	Usage: "apply -p pool rule id [id ...]",
 	Short: "apply index rule to one or more data objects",
 	New:   NewApply,
 }

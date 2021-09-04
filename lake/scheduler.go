@@ -7,10 +7,13 @@ import (
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
+	"github.com/segmentio/ksuid"
 )
 
 type Scheduler struct {
@@ -65,7 +68,7 @@ func (s *Scheduler) PullScanTask() (zbuf.PullerCloser, error) {
 }
 
 func (s *Scheduler) run() {
-	if err := ScanPartitions(s.ctx, s.snap, s.span, s.pool.Layout.Order, s.ch); err != nil {
+	if err := ScanPartitions(s.ctx, s.pool, s.snap, s.span, s.pool.Layout.Order, s.ch); err != nil {
 		s.done <- err
 	}
 	close(s.ch)
@@ -149,11 +152,67 @@ func ScanSpanInOrder(ctx context.Context, snap commits.View, span extent.Span, o
 	return nil
 }
 
+var SearchRuleID ksuid.KSUID
+var SearchValue zng.Value
+
+const SearchIndexConcurrency = 10
+
+//XXX make this a method on Pool... get rid of finder.go?
+func search(ctx context.Context, pool *Pool, ruleID ksuid.KSUID, value zng.Value, objects commits.DataObjects) (commits.DataObjects, error) {
+	//XXX this needs to select on ctx.Done() before merging to main
+	hits := make(chan chan *data.Object, SearchIndexConcurrency)
+	var searchErr error
+	go func() {
+		var wg sync.WaitGroup
+		for _, object := range objects {
+			ch := make(chan *data.Object)
+			hits <- ch
+			wg.Add(1)
+			go func(ch chan *data.Object, object *data.Object) {
+				defer func() {
+					close(ch)
+					wg.Done()
+				}()
+				path := index.Path(pool.IndexPath, ruleID, object.ID)
+				hit, err := index.Search(ctx, pool.engine, path, value)
+				if err != nil {
+					searchErr = err
+					return
+				}
+				if hit {
+					ch <- object
+				}
+			}(ch, object)
+		}
+		wg.Wait()
+		close(hits)
+	}()
+	var out commits.DataObjects
+	for ch := range hits {
+		if dataObject := <-ch; dataObject != nil {
+			out = append(out, dataObject)
+		}
+	}
+	return out, searchErr
+}
+
 // ScanPartitions partitions all the data objects in snap overlapping
 // span into non-overlapping partitions, sorts them by pool key and order,
 // and sends them to ch.
-func ScanPartitions(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- Partition) error {
+func ScanPartitions(ctx context.Context, pool *Pool, snap commits.View, span extent.Span, o order.Which, ch chan<- Partition) error {
 	objects := snap.Select(span, o)
+	if pool != nil && SearchRuleID != ksuid.Nil {
+		// XXX At some point, we should refactor so that partitions can
+		// be computed incrementally (e.g., as the objects come from a
+		// sub-pool scan) and the search lookups can run ahead
+		// of the data scans so that we don't have to complete all of the
+		// index lookups before the scan can start.
+		var err error
+		objects, err = search(ctx, pool, SearchRuleID, SearchValue, objects)
+		if err != nil {
+			return err
+		}
+	}
 	for _, p := range PartitionObjects(objects, o) {
 		if span != nil {
 			p.Span.Crop(span)

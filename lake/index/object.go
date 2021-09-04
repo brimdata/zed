@@ -19,6 +19,10 @@ func (o Object) String() string {
 }
 
 func (o Object) Path(path *storage.URI) *storage.URI {
-	return path.AppendPath(o.Rule.RuleID().String())
-	//	return xObjectPath(path, o.Rule, o.ID)
+	return Path(path, o.Rule.RuleID(), o.ID)
+}
+
+func Path(path *storage.URI, ruleID, dataID ksuid.KSUID) *storage.URI {
+	file := fmt.Sprintf("%s.zng", dataID)
+	return path.AppendPath(ruleID.String(), file)
 }

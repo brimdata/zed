@@ -142,7 +142,7 @@ func partitionReader(ctx context.Context, zctx *zson.Context, snap commits.View,
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
 	go func() {
-		scanErr = ScanPartitions(ctx, snap, span, order, ch)
+		scanErr = ScanPartitions(ctx, nil, snap, span, order, ch)
 		close(ch)
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
