@@ -1,10 +1,13 @@
 // This reference Zed shaper for Zeek NDJSON logs was most recently tested with
-// Zeek v4.0.1. The fields and data types reflect the default NDJSON
+// Zeek v4.1.0. The fields and data types reflect the default NDJSON
 // logs output by that Zeek version when using the JSON Streaming Logs package.
 
 type port=uint16;
 type zenum=string;
 type conn_id={orig_h:ip,orig_p:port,resp_h:ip,resp_p:port};
+
+// This first block of type definitions cover the fields we've observed in
+// an out-of-the-box Zeek v4.0.3 and earlier.
 
 type broker={_path:string,ts:time,ty:zenum,ev:bstring,peer:{address:bstring,bound_port:port},message:bstring,_write_ts:time};
 type capture_loss={_path:string,ts:time,ts_delta:duration,peer:bstring,gaps:uint64,acks:uint64,percent_lost:float64,_write_ts:time};
@@ -31,11 +34,12 @@ type mysql={_path:string,ts:time,uid:bstring,id:conn_id,cmd:bstring,arg:bstring,
 type netcontrol={_path:string,ts:time,rule_id:bstring,category:zenum,cmd:bstring,state:zenum,action:bstring,target:zenum,entity_type:bstring,entity:bstring,mod:bstring,msg:bstring,priority:int64,expire:duration,location:bstring,plugin:bstring,_write_ts:time};
 type netcontrol_drop={_path:string,ts:time,rule_id:bstring,orig_h:ip,orig_p:port,resp_h:ip,resp_p:port,expire:duration,location:bstring,_write_ts:time};
 type netcontrol_shunt={_path:string,ts:time,rule_id:bstring,f:{src_h:ip,src_p:port,dst_h:ip,dst_p:port},expire:duration,location:bstring,_write_ts:time};
-type notice={_path:string,ts:time,uid:bstring,id:conn_id,fuid:bstring,file_mime_type:bstring,file_desc:bstring,proto:zenum,note:zenum,msg:bstring,sub:bstring,src:ip,dst:ip,p:port,n:uint64,peer_descr:bstring,actions:|[zenum]|,suppress_for:duration,remote_location:{country_code:bstring,region:bstring,city:bstring,latitude:float64,longitude:float64},_write_ts:time};
-type notice_alarm={_path:string,ts:time,uid:bstring,id:conn_id,fuid:bstring,file_mime_type:bstring,file_desc:bstring,proto:zenum,note:zenum,msg:bstring,sub:bstring,src:ip,dst:ip,p:port,n:uint64,peer_descr:bstring,actions:|[zenum]|,suppress_for:duration,remote_location:{country_code:bstring,region:bstring,city:bstring,latitude:float64,longitude:float64},_write_ts:time};
+type notice={_path:string,ts:time,uid:bstring,id:conn_id,fuid:bstring,file_mime_type:bstring,file_desc:bstring,proto:zenum,note:zenum,msg:bstring,sub:bstring,src:ip,dst:ip,p:port,n:uint64,peer_descr:bstring,actions:|[zenum]|,email_dest:set[bstring],suppress_for:duration,remote_location:{country_code:bstring,region:bstring,city:bstring,latitude:float64,longitude:float64},_write_ts:time};
+type notice_alarm={_path:string,ts:time,uid:bstring,id:conn_id,fuid:bstring,file_mime_type:bstring,file_desc:bstring,proto:zenum,note:zenum,msg:bstring,sub:bstring,src:ip,dst:ip,p:port,n:uint64,peer_descr:bstring,actions:|[zenum]|,email_dest:set[bstring],suppress_for:duration,remote_location:{country_code:bstring,region:bstring,city:bstring,latitude:float64,longitude:float64},_write_ts:time};
 type ntlm={_path:string,ts:time,uid:bstring,id:conn_id,username:bstring,hostname:bstring,domainname:bstring,server_nb_computer_name:bstring,server_dns_computer_name:bstring,server_tree_name:bstring,success:bool,_write_ts:time};
 type ntp={_path:string,ts:time,uid:bstring,id:conn_id,version:uint64,mode:uint64,stratum:uint64,poll:duration,precision:duration,root_delay:duration,root_disp:duration,ref_id:bstring,ref_time:time,org_time:time,rec_time:time,xmt_time:time,num_exts:uint64,_write_ts:time};
-type openflow={_path:string,ts:time,dpid:uint64,match:{in_port:uint64,dl_src:bstring,dl_dst:bstring,dl_vlan:uint64,dl_vlan_pcp:uint64,dl_type:uint64,nw_tos:uint64,nw_proto:uint64,nw_src:net,nw_dst:net,tp_src:uint64,tp_dst:uint64},flow_mod:{cookie:uint64,table_id:uint64,command:zenum=(string),idle_timeout:uint64,hard_timeout:uint64,priority:uint64,out_port:uint64,out_group:uint64,flags:uint64,actions:{out_ports:[uint64],vlan_vid:uint64,vlan_pcp:uint64,vlan_strip:bool,dl_src:bstring,dl_dst:bstring,nw_tos:uint64,nw_src:ip,nw_dst:ip,tp_src:uint64,tp_dst:uint64}}};
+type ocsp={_path:string,ts:time,id:bstring,hashAlgorithm:bstring,issuerNameHash:bstring,issuerKeyHash:bstring,serialNumber:bstring,certStatus:bstring,revoketime:time,revokereason:bstring,thisUpdate:time,nextUpdate:time,_write_ts:time"}
+type openflow={_path:string,ts:time,dpid:uint64,match:{in_port:uint64,dl_src:bstring,dl_dst:bstring,dl_vlan:uint64,dl_vlan_pcp:uint64,dl_type:uint64,nw_tos:uint64,nw_proto:uint64,nw_src:net,nw_dst:net,tp_src:uint64,tp_dst:uint64},flow_mod:{cookie:uint64,table_id:uint64,command:zenum=(string),idle_timeout:uint64,hard_timeout:uint64,priority:uint64,out_port:uint64,out_group:uint64,flags:uint64,actions:{out_ports:[uint64],vlan_vid:uint64,vlan_pcp:uint64,vlan_strip:bool,dl_src:bstring,dl_dst:bstring,nw_tos:uint64,nw_src:ip,nw_dst:ip,tp_src:uint64,tp_dst:uint64}},_write_ts:time};
 type packet_filter={_path:string,ts:time,node:bstring,filter:bstring,init:bool,success:bool,_write_ts:time};
 type pe={_path:string,ts:time,id:bstring,machine:bstring,compile_ts:time,os:bstring,subsystem:bstring,is_exe:bool,is_64bit:bool,uses_aslr:bool,uses_dep:bool,uses_code_integrity:bool,uses_seh:bool,has_import_table:bool,has_export_table:bool,has_cert_table:bool,has_debug_data:bool,section_names:[bstring],_write_ts:time};
 type radius={_path:string,ts:time,uid:bstring,id:conn_id,username:bstring,mac:bstring,framed_addr:ip,tunnel_client:bstring,connect_info:bstring,reply_msg:bstring,result:bstring,ttl:duration,_write_ts:time};
@@ -57,6 +61,16 @@ type syslog={_path:string,ts:time,uid:bstring,id:conn_id,proto:zenum,facility:bs
 type tunnel={_path:string,ts:time,uid:bstring,id:conn_id,tunnel_type:zenum,action:zenum,_write_ts:time};
 type weird={_path:string,ts:time,uid:bstring,id:conn_id,name:bstring,addl:bstring,notice:bool,peer:bstring,source:bstring,_write_ts:time};
 type x509={_path:string,ts:time,id:bstring,certificate:{version:uint64,serial:bstring,subject:bstring,issuer:bstring,not_valid_before:time,not_valid_after:time,key_alg:bstring,sig_alg:bstring,key_type:bstring,key_length:uint64,exponent:bstring,curve:bstring},san:{dns:[bstring],uri:[bstring],email:[bstring],ip:[ip]},basic_constraints:{ca:bool,path_len:uint64},_write_ts:time};
+
+// This second block of type definitions represent changes needed to cover
+// an out-of-the-box Zeek v4.1.0. In other Zeek revisions, we were accustomed
+// to only seeing new fields added, but this represented the first time fields
+// have changed, e.g. in SSL logs, "cert_chain_fuids" became "cert_chain_fps".
+// Therefore we have wholly separate type definitions for this revision so we
+// can cover 100% of the expected fields.
+
+type ssl_4_1_0={_path:string,ts:time,uid:bstring,id:conn_id,version:bstring,cipher:bstring,curve:bstring,server_name:bstring,resumed:bool,last_alert:bstring,next_protocol:bstring,established:bool,ssl_history:bstring,cert_chain_fps:[bstring],client_cert_chain_fps:[bstring],subject:bstring,issuer:bstring,client_subject:bstring,client_issuer:bstring,sni_matches_cert:bool,validation_status:bstring,_write_ts:time};
+type x509_4_1_0={_path:string,ts:time,fingerprint:bstring,certificate:{version:uint64,serial:bstring,subject:bstring,issuer:bstring,not_valid_before:time,not_valid_after:time,key_alg:bstring,sig_alg:bstring,key_type:bstring,key_length:uint64,exponent:bstring,curve:bstring},san:{dns:[bstring],uri:[bstring],email:[bstring],ip:[ip]},basic_constraints:{ca:bool,path_len:uint64},host_cert:bool,client_cert:bool,_write_ts:time};
 
 const schemas = |{
   "broker": broker,
@@ -113,4 +127,13 @@ const schemas = |{
   x509
 }|
 
-put this := unflatten(this) | put this := shape(schemas[_path])
+// We'll check for the presence of fields we know are unique to records that
+// changed in Zeek v4.1.0 and shape those with special v4.1.0-specific config.
+// For everything else we'll apply the type definitions that were known to
+// cover Zeek v4.0.3 and earlier.
+
+put this := unflatten(this) | switch (
+  _path=="ssl" has(ssl_history) => put this := shape(ssl_4_1_0);
+  _path="x509" has(fingerprint) => put this := shape(x509_4_1_0);
+  default => put this := shape(schemas[_path])
+}
