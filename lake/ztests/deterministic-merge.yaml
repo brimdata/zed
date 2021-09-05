@@ -1,8 +1,8 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -p logs -q -S 32B
-  zed lake load -p logs -q -
+  zed lake create -q -S 32B logs
+  zed lake load -HEAD logs@main -q -
   zed lake query -z "from logs | *" > 1.zson
   zed lake query -z "from logs | *" > 2.zson
 

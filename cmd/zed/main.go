@@ -13,6 +13,7 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/index/section"
 	"github.com/brimdata/zed/cmd/zed/lake"
 	_ "github.com/brimdata/zed/cmd/zed/lake/branch"
+	_ "github.com/brimdata/zed/cmd/zed/lake/checkout"
 	_ "github.com/brimdata/zed/cmd/zed/lake/create"
 	_ "github.com/brimdata/zed/cmd/zed/lake/delete"
 	_ "github.com/brimdata/zed/cmd/zed/lake/drop"

@@ -1,15 +1,16 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -p POOL
-  a=$(zed lake load -p POOL a.zson | head -1 | awk '{print $1}')
-  b=$(zed lake load -p POOL b.zson | head -1 | awk '{print $1}')
+  zed lake create -q POOL
+  zed lake checkout -q POOL@main
+  a=$(zed lake load a.zson | head -1 | awk '{print $1}')
+  b=$(zed lake load b.zson | head -1 | awk '{print $1}')
   zed lake query -z "from POOL | sort ."
   echo === AT a
   zed lake query -z "from POOL@$a | sort ."
   echo === AT b
   zed lake query -z "from POOL@$b | sort ."
-  zed lake revert -q -p POOL $a
+  zed lake revert -q $a
   echo === with A deleted
   zed lake query -z "from POOL | sort ."
   echo === at B before A deleted

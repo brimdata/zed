@@ -29,6 +29,7 @@ type WriterOpts struct {
 	Zng    zngio.WriterOpts
 	ZSON   zsonio.WriterOpts
 	Zst    zstio.WriterOpts
+	Lake   lakeio.WriterOpts
 }
 
 func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
@@ -63,7 +64,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "parquet":
 		return parquetio.NewWriter(w), nil
 	case "lake":
-		return lakeio.NewWriter(w), nil
+		return lakeio.NewWriter(w, opts.Lake), nil
 	default:
 		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	}

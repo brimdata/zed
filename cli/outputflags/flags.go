@@ -51,7 +51,7 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 	fs.Var(&f.Zst.SkewThresh, "skewtresh", "minimum skew size (MiB) used to group zst columns")
 
 	// emitter stuff
-	fs.StringVar(&f.dir, "d", "", "directory for output data files")
+	fs.StringVar(&f.dir, "D", "", "directory for output data files")
 	fs.StringVar(&f.outputFile, "o", "", "write data to output file")
 
 }

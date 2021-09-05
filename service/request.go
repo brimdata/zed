@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake/journal"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zqe"
@@ -85,7 +86,7 @@ func (r *Request) TagFromPath(arg string, w *ResponseWriter) (ksuid.KSUID, bool)
 		w.Error(zqe.ErrInvalid("no arg %q in path", arg))
 		return ksuid.Nil, false
 	}
-	id, err := api.ParseKSUID(s)
+	id, err := lakeparse.ParseID(s)
 	if err != nil {
 		w.Error(zqe.ErrInvalid("invalid path param %q: %w", arg, err))
 		return ksuid.Nil, false

@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/pkg/units"
@@ -19,6 +20,10 @@ import (
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
+
+type WriterOpts struct {
+	Head string
+}
 
 type Writer struct {
 	writer   io.WriteCloser
@@ -28,16 +33,27 @@ type Writer struct {
 	rulename string
 	width    int
 	colors   color.Stack
+	headID   ksuid.KSUID
+	headName string
 }
 
-func NewWriter(w io.WriteCloser) *Writer {
-	return &Writer{
+func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
+	writer := &Writer{
 		writer:   w,
 		zson:     zson.NewFormatter(0, nil),
 		commits:  make(table),
 		branches: make(map[ksuid.KSUID][]string),
 		width:    80, //XXX
 	}
+	// If head is an ID, we assume its detached and format accordingly.
+	// If it's name, we'll print "HEAD -> branch" in the branch name listing
+	// if we encounter that name.
+	if headID, err := lakeparse.ParseID(opts.Head); err == nil {
+		writer.headID = headID
+	} else {
+		writer.headName = opts.Head
+	}
+	return writer
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
@@ -81,7 +97,7 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int,
 		formatPartition(b, v)
 	case *commits.Commit:
 		branches := w.branches[v.ID]
-		t.formatCommit(b, v, branches, width, colors)
+		t.formatCommit(b, v, branches, w.headName, w.headID, width, colors)
 	case index.Rule:
 		name := v.RuleName()
 		if name != w.rulename {
@@ -175,7 +191,7 @@ func (t table) append(a commits.Action) {
 	t[id] = append(t[id], a)
 }
 
-func (t table) formatCommit(b *bytes.Buffer, commit *commits.Commit, branches []string, width int, colors *color.Stack) {
+func (t table) formatCommit(b *bytes.Buffer, commit *commits.Commit, branches []string, headName string, headID ksuid.KSUID, width int, colors *color.Stack) {
 	id := commit.CommitID()
 	colors.Start(b, color.GrayYellow)
 	b.WriteString("commit ")
@@ -186,10 +202,21 @@ func (t table) formatCommit(b *bytes.Buffer, commit *commits.Commit, branches []
 			if k != 0 {
 				b.WriteString(", ")
 			}
+			if name == headName {
+				colors.Start(b, color.Turqoise)
+				b.WriteString(color.Embolden("HEAD -> "))
+				colors.End(b)
+			}
 			colors.Start(b, color.Green)
 			b.WriteString(name)
 			colors.End(b)
 		}
+		b.WriteString(")")
+	} else if commit.ID == headID {
+		b.WriteString(" (")
+		colors.Start(b, color.Blue)
+		b.WriteString("HEAD")
+		colors.End(b)
 		b.WriteString(")")
 	}
 	colors.End(b)

@@ -66,7 +66,7 @@ func (c *testClient) zioreader(r *client.Response) zio.Reader {
 }
 
 func (c *testClient) TestPoolList() []pools.Config {
-	r, err := c.Query(context.Background(), "from [pools]")
+	r, err := c.Query(context.Background(), nil, "from [pools]")
 	require.NoError(c, err)
 	var confs []pools.Config
 	zr := c.zioreader(r)
@@ -100,7 +100,7 @@ func (c *testClient) TestBranchPost(poolID ksuid.KSUID, payload api.BranchPostRe
 }
 
 func (c *testClient) TestQuery(query string) string {
-	r, err := c.Connection.Query(context.Background(), query)
+	r, err := c.Connection.Query(context.Background(), nil, query)
 	require.NoError(c, err)
 	zr := c.zioreader(r)
 	var buf bytes.Buffer

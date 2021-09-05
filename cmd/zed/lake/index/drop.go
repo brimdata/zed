@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 
-	"github.com/brimdata/zed/compiler/parser"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 )
@@ -37,7 +37,7 @@ func (c *DropCommand) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	ids, err := parser.ParseIDs(args)
+	ids, err := lakeparse.ParseIDs(args)
 	if err != nil {
 		return err
 	}

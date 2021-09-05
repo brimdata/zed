@@ -1,6 +1,6 @@
 script: |
   source service.sh
-  zapi create -q -p test
+  zapi create -q test
   zapi query "from test"
 
 inputs:

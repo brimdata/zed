@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -17,7 +18,7 @@ import (
 )
 
 type Interface interface {
-	Query(ctx context.Context, d driver.Driver, src string, srcfiles ...string) (zbuf.ScannerStats, error)
+	Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ScannerStats, error)
 	PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 	CreatePool(context.Context, string, order.Layout, int64) (ksuid.KSUID, error)
@@ -35,14 +36,14 @@ type Interface interface {
 }
 
 func ScanIndexRules(ctx context.Context, api Interface, d driver.Driver) error {
-	_, err := api.Query(ctx, d, "from :index_rules")
+	_, err := api.Query(ctx, d, nil, "from :index_rules")
 	return err
 }
 
 func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.Config, error) {
 	d := newQueryDriver(pools.Config{})
 	zed := fmt.Sprintf("from :pools | name == '%s'", name)
-	_, err := api.Query(ctx, d, zed)
+	_, err := api.Query(ctx, d, nil, zed)
 	if err != nil {
 		return nil, err
 	}
@@ -63,7 +64,7 @@ func LookupPoolByName(ctx context.Context, api Interface, name string) (*pools.C
 func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.Config, error) {
 	d := newQueryDriver(pools.Config{})
 	zed := fmt.Sprintf("from :pools | id == from_hex('%s')", idToHex(id))
-	_, err := api.Query(ctx, d, zed)
+	_, err := api.Query(ctx, d, nil, zed)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +85,7 @@ func LookupPoolByID(ctx context.Context, api Interface, id ksuid.KSUID) (*pools.
 func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName string) (*lake.BranchMeta, error) {
 	d := newQueryDriver(lake.BranchMeta{})
 	zed := fmt.Sprintf("from :branches | pool.name == '%s' branch.name == '%s'", poolName, branchName)
-	_, err := api.Query(ctx, d, zed)
+	_, err := api.Query(ctx, d, nil, zed)
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +106,7 @@ func LookupBranchByName(ctx context.Context, api Interface, poolName, branchName
 func LookupBranchByID(ctx context.Context, api Interface, id ksuid.KSUID) (*lake.BranchMeta, error) {
 	d := newQueryDriver(lake.BranchMeta{})
 	zed := fmt.Sprintf("from :branches | branch.id == 'from_hex(%s)'", idToHex(id))
-	_, err := api.Query(ctx, d, zed)
+	_, err := api.Query(ctx, d, nil, zed)
 	if err != nil {
 		return nil, err
 	}

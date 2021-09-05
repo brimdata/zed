@@ -1,9 +1,9 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -p test
-  zed lake load -q -p test 1.zson
-  zed lake load -q -p test 2.zson
+  zed lake create -q test
+  zed lake load -q -HEAD test@main 1.zson
+  zed lake load -q -HEAD test@main 2.zson
   zed lake query -f lake "from test@main:objects"
 
 inputs:

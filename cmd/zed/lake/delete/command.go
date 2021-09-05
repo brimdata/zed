@@ -8,17 +8,18 @@ import (
 	"github.com/brimdata/zed/cli/lakeflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/compiler/parser"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
 )
 
 var Delete = &charm.Spec{
 	Name:  "delete",
-	Usage: "delete -p pool[@commit] id [id ...]",
-	Short: "delete commits or data objects from a pool branch",
+	Usage: "delete id [id ...]",
+	Short: "delete data objects from a pool branch",
 	Long: `
-"zed lake delete" takes a list of commit tags and/or data object tags
-in the specified pool branch and deletes all of the corresponding data objects.
+The delete command takes a list of data object IDs and
+deletes references to those object from HEAD by commiting a new
+delet operation to HEAD.
 Once the delete operation completes, the deleted data is no longer seen
 when read data from the pool.
 
@@ -58,22 +59,26 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolName, branchName := c.lakeFlags.Branch()
+	head, err := c.lakeFlags.HEAD()
+	if err != nil {
+		return err
+	}
+	poolName := head.Pool
 	if poolName == "" {
-		return errors.New("name of pool must be supplied with -p option")
+		return lakeflags.ErrNoHEAD
 	}
 	poolID, err := lake.PoolID(ctx, poolName)
 	if err != nil {
 		return err
 	}
-	tags, err := parser.ParseIDs(args)
+	ids, err := lakeparse.ParseIDs(args)
 	if err != nil {
 		return err
 	}
-	if len(tags) == 0 {
-		return errors.New("no data or commit tags specified")
+	if len(ids) == 0 {
+		return errors.New("no data object IDs specified")
 	}
-	commit, err := lake.Delete(ctx, poolID, branchName, tags, c.CommitMessage())
+	commit, err := lake.Delete(ctx, poolID, head.Branch, ids, c.CommitMessage())
 	if err != nil {
 		return err
 	}

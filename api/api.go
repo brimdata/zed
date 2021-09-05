@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio/zjsonio"
@@ -144,7 +145,8 @@ type EventBranch struct {
 }
 
 type QueryRequest struct {
-	Query string `json:"query"`
+	Query string              `json:"query"`
+	Head  lakeparse.Commitish `json:"head"`
 }
 
 type QueryChannelSet struct {

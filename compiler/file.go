@@ -9,7 +9,7 @@ import (
 )
 
 func CompileForFileSystem(pctx *proc.Context, p ast.Proc, reader zio.Reader, adaptor proc.DataAdaptor) (*Runtime, error) {
-	runtime, err := New(pctx, p, adaptor)
+	runtime, err := New(pctx, p, adaptor, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func CompileJoinForFileSystem(pctx *proc.Context, p ast.Proc, readers []zio.Read
 	if len(readers) != 2 {
 		return nil, errors.New("join operaetor requires two inputs")
 	}
-	runtime, err := New(pctx, p, adaptor)
+	runtime, err := New(pctx, p, adaptor, nil)
 	if err != nil {
 		return nil, err
 	}

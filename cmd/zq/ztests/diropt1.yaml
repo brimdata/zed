@@ -1,4 +1,4 @@
-script: zq -f zeek -d out "*" -
+script: zq -f zeek -D out "*" -
 
 inputs:
   - name: stdin

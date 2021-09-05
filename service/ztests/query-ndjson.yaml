@@ -1,7 +1,7 @@
 script: |
   source service.sh
-  zapi create -q -p test
-  zapi load -q -p test in.zson
+  zapi create -q test
+  zapi load -q -HEAD test@main in.zson
   zapi query -f ndjson "from test | pick a,b"
 
 inputs:

@@ -2,8 +2,8 @@ script: |
   source minio.sh
   export ZED_LAKE_ROOT=s3://bucket/lake_test
   zed lake init -q
-  zed lake create -q -p logs
-  zed lake load -q -p logs babble.zson
+  zed lake create -q logs
+  zed lake load -q -HEAD logs@main babble.zson
   zed lake query -Z "from logs@main:objects | cut m:=meta"
 
 inputs:

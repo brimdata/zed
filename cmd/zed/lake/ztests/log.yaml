@@ -1,10 +1,11 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -p test
-  zed lake load -q -p test -user testuser 1.zson
-  zed lake load -q -p test -user testuser 2.zson
-  zed lake log -p test
+  zed lake create -q test
+  zed lake checkout -q test@main
+  zed lake load -q -user testuser 1.zson
+  zed lake load -q -user testuser 2.zson
+  zed lake log
 
 inputs:
   - name: 1.zson
@@ -17,7 +18,7 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      commit \w{27} \(main\)
+      commit \w{27} \(HEAD -> main\)
       Author: testuser
       Date:   [0-9TZ:\-]+
 

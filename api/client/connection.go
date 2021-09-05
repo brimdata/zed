@@ -15,6 +15,7 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/parser"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/go-resty/resty/v2"
 	"github.com/segmentio/ksuid"
@@ -295,13 +296,16 @@ func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, pa
 	return c.stream(req)
 }
 
-func (c *Connection) Query(ctx context.Context, src string, filenames ...string) (*Response, error) {
+func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src string, filenames ...string) (*Response, error) {
 	src, srcInfo, err := parser.ConcatSource(filenames, src)
 	if err != nil {
 		return nil, err
 	}
-	req := c.Request(ctx).
-		SetBody(api.QueryRequest{Query: src})
+	body := api.QueryRequest{Query: src}
+	if head != nil {
+		body.Head = *head
+	}
+	req := c.Request(ctx).SetBody(body)
 	req.Method = http.MethodPost
 	req.URL = "/query"
 	res, err := c.stream(req)

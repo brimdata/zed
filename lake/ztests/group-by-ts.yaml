@@ -3,9 +3,9 @@ script: |
   zed lake init -q
   # group-by-ts.zson contains records over two days, mapping to two partitions, and
   # the small target size here causes each partition to have several segments.
-  zed lake create -q -p logs -S 256B
+  zed lake create -q -S 256B logs
   # causes parition to have several chunk files.
-  zed lake load -q -p logs group-by-ts.zson
+  zed lake load -q -HEAD logs@main group-by-ts.zson
   echo ===
   zed lake query -z 'from logs | head 1'
   echo ===

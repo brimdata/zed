@@ -16,7 +16,7 @@ import (
 
 var Create = &charm.Spec{
 	Name:  "create",
-	Usage: "create [-orderby key[,key...][:asc|:desc]] -p name",
+	Usage: "create [-orderby key[,key...][:asc|:desc]] name",
 	Short: "create a new data pool",
 	Long: `
 The lake create command creates new pools.  One or more pool keys may be specified
@@ -24,7 +24,7 @@ as the sort keys (primary, secondary, etc) of the data stored in the pool.
 The prefix ":asc" or ":desc" appearing after the comma-separated list of
 keys indicates the sort order.  If no sort order is given, ascending is assumed.
 
-The -p option is required and specifies the name for the pool.
+The single argument specifies the name for the pool.
 
 The lake query command can efficiently perform
 range scans with respect to the pool key using the
@@ -63,15 +63,8 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	if len(args) != 0 {
-		return errors.New("create command does not take arguments")
-	}
-	poolName, branchName := c.lakeFlags.Names()
-	if poolName == "" {
-		return errors.New("a pool or branch must be specified with -p")
-	}
-	if branchName != "" {
-		return errors.New("branch cannot be specified with pool name; use branch command to create branches")
+	if len(args) != 1 {
+		return errors.New("create requires one argument")
 	}
 	lake, err := c.lake.Open(ctx)
 	if err != nil {
@@ -81,6 +74,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	poolName := args[0]
 	id, err := lake.CreatePool(ctx, poolName, layout, int64(c.thresh))
 	if err != nil {
 		return err

@@ -22,8 +22,8 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -p PoolOne
-  zed lake load -q -p PoolOne fruit.zson
+  zed lake create -q PoolOne
+  zed lake load -q -HEAD PoolOne@main fruit.zson
   zed lake query -z -I split.zed
 
 inputs:
