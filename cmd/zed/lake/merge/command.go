@@ -13,8 +13,8 @@ import (
 
 var Merge = &charm.Spec{
 	Name:  "merge",
-	Usage: "merge -p pool@child-branch parent-branch",
-	Short: "merge a branch into another",
+	Usage: "merge branch",
+	Short: "merge current branch into another",
 	Long: `
 `,
 	New: New,

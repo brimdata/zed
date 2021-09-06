@@ -14,7 +14,7 @@ import (
 
 var Checkout = &charm.Spec{
 	Name:  "checkout",
-	Usage: "checkout [-b] branch",
+	Usage: "checkout [-p pool] [-b] branch [base]",
 	Short: "checkout a branch",
 	Long: `
 The lake checkout command sets the working branch as indicated.
@@ -22,6 +22,9 @@ This allows commands like load, rebase, merge etc to function without
 having to specify the working branch.  The branch specifier may also be
 a commit ID, in which case you entered a headless state and commands
 like load that require a branch name for HEAD will report an error.
+
+Checkout may also be run with -p to indicate a pool name.  In this case,
+the main branch of the specified pool is checked out.
 
 Any command that relies upon HEAD can also be run with the -HEAD option
 to refer to a different HEAD without performing a checkout.
@@ -53,12 +56,14 @@ func init() {
 type Command struct {
 	lake      zedlake.Command
 	branch    bool
+	poolName  string
 	lakeFlags lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{lake: parent.(zedlake.Command)}
 	f.BoolVar(&c.branch, "b", false, "create the branch then check it out")
+	f.StringVar(&c.poolName, "p", "", "check out the main branch of the given pool")
 	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
@@ -69,19 +74,34 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
+	var branchName, baseName string
 	switch len(args) {
 	case 0:
-		return errors.New("a branch name or commit ID must be given")
-	case 1, 2:
+		if c.poolName == "" {
+			return errors.New("a branch name or commit ID must be given")
+		}
+	case 1:
+		branchName = args[0]
+	case 2:
+		branchName = args[0]
+		baseName = args[1]
 	default:
 		return errors.New("too many arguments")
 	}
-	branchName := args[0]
+	if baseName != "" && !c.branch {
+		return errors.New("cannot specify a base for a new branch without -b")
+	}
 	head, err := c.lakeFlags.HEAD()
 	if err != nil {
 		return err
 	}
-	poolName, baseName := head.Pool, head.Branch
+	poolName := head.Pool
+	if c.poolName != "" {
+		poolName = c.poolName
+		if branchName == "" {
+			branchName = "main"
+		}
+	}
 	commitish, err := lakeparse.ParseCommitish(branchName)
 	if err != nil {
 		return err
@@ -91,10 +111,10 @@ func (c *Command) Run(args []string) error {
 		poolName, branchName = poolSpec, branchSpec
 	}
 	if poolName == "" {
-		return lakeflags.ErrNoHEAD
-	}
-	if len(args) == 2 {
-		baseName = args[1]
+		if c.poolName == "" {
+			return lakeflags.ErrNoHEAD
+		}
+
 	}
 	lake, err := c.lake.Open(ctx)
 	if err != nil {
@@ -110,6 +130,9 @@ func (c *Command) Run(args []string) error {
 	if c.branch {
 		if _, err := lakeparse.ParseID(branchName); err == nil {
 			return errors.New("new branch name cannot be a commit ID")
+		}
+		if baseName == "" {
+			baseName = head.Branch
 		}
 		baseCommit, err := lakeparse.ParseID(baseName)
 		if err != nil {
@@ -132,7 +155,11 @@ func (c *Command) Run(args []string) error {
 		if c.branch {
 			new = "a new "
 		}
-		fmt.Printf("Switched to %sbranch %q\n", new, branchName)
+		if c.poolName != "" {
+			fmt.Printf("Switched to %sbranch %q on pool %q\n", new, branchName, c.poolName)
+		} else {
+			fmt.Printf("Switched to %sbranch %q\n", new, branchName)
+		}
 	}
 	return nil
 }
