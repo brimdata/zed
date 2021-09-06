@@ -38,12 +38,3 @@ func ParseIDs(ss []string) ([]ksuid.KSUID, error) {
 	}
 	return ids, nil
 }
-
-// cleanse normalizes 0x bytes ksuids into a base62 string
-func NormalizeID(s string) string {
-	id, err := ParseID(s)
-	if err == nil {
-		return id.String()
-	}
-	return s
-}
