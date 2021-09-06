@@ -7,7 +7,7 @@ import (
 	"github.com/brimdata/zed/lakeparse"
 )
 
-var ErrNoHEAD = errors.New("HEAD not specified: run checkout or use -head")
+var ErrNoHEAD = errors.New("HEAD not specified: run checkout or use -HEAD")
 
 type Flags struct {
 	Quiet       bool
