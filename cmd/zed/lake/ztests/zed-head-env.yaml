@@ -1,0 +1,19 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  export ZED_HEAD_PATH=x
+  mkdir x
+  zed lake init -q
+  zed lake create -q -q POOL
+  zed lake checkout -q POOL@main
+  cat x/.ZED_HEAD
+  export ZED_HEAD_PATH=.
+  mkdir y
+  cd y
+  zed lake checkout -R ../test -q POOL@main
+  cat .ZED_HEAD
+
+outputs:
+  - name: stdout
+    data: |
+      POOL@main
+      POOL@main
