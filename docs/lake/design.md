@@ -5,6 +5,7 @@
     + [Initialization](#initialization)
     + [Create](#create)
     + [Branch](#branch)
+    + [Checkout](#checkout)
     + [Load](#load)
       - [Data Segmentation](#data-segmentation)
     + [Log](#log)
@@ -89,8 +90,8 @@ design patterns of `git`.  In this approach,
 * a _lake_ is like a GitHub organization,
 * a _pool_ is like a `git` repository,
 * a _branch_ of a _pool_ is like a `git` branch,
-* a _commit_ operation is like a `git commit`,
-* and a pool _snapshot_ is like a `git checkout`.
+* a _checkout_  is like a `git checkout`, and
+* a _load_ is like a `git add/commit/push`.
 
 A core theme of the Zed lake design is _ergonomics_.  Given the Git metaphor,
 our goal here is that the Zed lake tooling be as easy and familiar as Git is
@@ -107,7 +108,6 @@ a user and a Zed lake would be via an application like
 [Brim](https://github.com/brimdata/brim) or a
 programming environment like Python/Pandas rather than via direct interaction
 with `zed lake`.
-
 
 ### Initialization
 
@@ -128,14 +128,14 @@ access to a named GitHub organization).
 
 A new pool is created with
 ```
-zed lake create -p <name> [-orderby key[,key...][:asc|:desc]]
+zed lake create [-orderby key[,key...][:asc|:desc]] <name>
 ```
 where `<name>` is the name of the pool within the implied lake instance,
 `<key>` is the Zed language representation of the pool key, and `asc` or `desc`
 indicate that the natural scan order by the pool key should be ascending
 or descending, respectively, e.g.,
 ```
-zed lake create -p logs -orderby ts:desc
+zed lake create -orderby ts:desc logs
 ```
 Note that there may be multiple pool keys (implementation tracked in
 [zed/2657](https://github.com/brimdata/zed/issues/2657)), where subsequent keys
@@ -161,29 +161,65 @@ multiple parents in the commit object history.)
 
 A branch is created with the `branch` command, e.g.,
 ```
-zed lake branch -p logs@main staging
+zed lake branch -HEAD logs@main staging
 ```
 This creates a new branch called "staging" in pool "logs", which points to
 the same commit object as the "main" branch.  Commits to the "staging" branch
 will be added to the commit history without affecting the "main" branch
 and each branch can be queried independently at any time.
 
+The `-HEAD` flag emulates a temporary checkout just for that one command.
+Supposing the `main` branch of `logs` was already checked out, you could
+simply say
+```
+zed lake branch staging
+```
+Likewise, you can delete a branch with `-d`:
+```
+zed lake branch -d staging
+```
+and list the branches as follows:
+```
+zed lake branch
+```
+
+### Checkout
+
+The `checkout` command provides a means to set the current branch context
+to the indicate branch, e.g.,
+```
+zed lake checkout staging
+```
+When you want to specify a branch in another pool, you simply prepend
+the pool name to the branch:
+```
+zed lake checkout otherpool@otherbranch
+```
+Just like Git, to create a new branch and check it out, use `-b`:
+```
+zed lake checkout -b newbranch
+```
+
+Note that unlike Git, the "repo" is not copied to your local directory.
+Instead, the Zed command manages a file in your working directory
+called ".zed_head" that contains the default HEAD.
+
 ### Load
 
 Data is loaded and committed into a branch with the `load` command, e.g.,
 ```
-zed lake load -p logs sample.ndjson
+zed lake load sample.ndjson
 ```
 where `sample.ndjson` contains logs in NDJSON format.  Any supported format
 (NDJSON, ZNG, ZSON, etc.) as well multiple files can be used here, e.g.,
 ```
-zed lake load -p logs sample1.ndjson sample2.zng sample3.zson
+zed lake load sample1.ndjson sample2.zng sample3.zson
 ```
 CSV, JSON, Parquet, and ZST formats are not auto-detected so you must currently
 specify `-i` with these formats, e.g.,
 ```
-zed lake load -p logs -i parquet sample4.parquet
-zed lake load -p logs -i zst sample5.zst
+zed lake load -i parquet sample4.parquet
+zed lake load -i zst sample5.zst
 ```
 
 By default, the data is committed into the `main` branch of the pool.
@@ -191,7 +227,12 @@ An alternative branch may be specified using the `@` separator,
 i.e., `<pool>@<branch>`.  Supposing there was a branch called `updates`,
 data can be committed into this branch as follows:
 ```
-zed lake load -p logs@updates sample.zng
+zed lake load -HEAD logs@updates sample.zng
+```
+Or, as mentioned above, you can simply checkout the branch you want to load into:
+```
+zed lake checkout logs@updates
+zed lake load sample.zng
 ```
 
 Note that there is no need to define a schema or insert data into
@@ -218,7 +259,7 @@ Like `git log`, the command `zed lake log` prints a history of commit objects
 starting from any commit.  The log can be displayed with the `log` command,
 e.g.,
 ```
-zed lake log -p pool@branch
+zed lake log
 ```
 To understand the log contents, the `load` operation is actually
 decomposed into two steps under the covers:
@@ -250,7 +291,7 @@ that is stored in the commit journal for reference.  These values may
 be specified as options to the `load` command, and are also available in the
 API for automation.  For example,
 ```
-zed lake load -p logs -user user@example.com -message "new version of prod dataset" ...
+zed lake load -user user@example.com -message "new version of prod dataset" ...
 ```
 This metadata is carried in a description record attached to
 every journal entry, which has a Zed type signature as follows:
@@ -262,9 +303,10 @@ every journal entry, which has a Zed type signature as follows:
     Data: <any>
 }
 ```
-None of the fields are used by the Zed lake system for any purpose
-except to provide information about the commit object to the end user
-and/or end application.  Any ZSON/ZNG data can be stored in the `Data` field
+The `Date` field here is used by the Zed lake system to do time travel
+through the branch and pool history, allowing you to see the state of
+branches at their commit history at any point in time.
+Any ZSON/ZNG data can be stored in the `Data` field
 allowing external applications to implement arbitrary data provenance and audit
 capabilities by embedding custom metadata in the commit journal.
 
@@ -274,15 +316,17 @@ capabilities by embedding custom metadata in the commit journal.
 
 Data is merged from one branch into another with the `merge` command, e.g.,
 ```
-zed lake merge -p logs@updates main
+zed lake merge -HEAD logs@updates main
 ```
-where the "updates" branch is being merged into the "main" branch.
+where the `updates` branch is being merged into the `main` branch
+within the `logs` pool.
 
 A merge operation finds a common ancestor in the commit history then
 computes the set of changes needed for the target branch to reflect the
 data additions and deletions in the source branch.
-While the merge operation is performed, data can still be written
-to both branches and queries performed.  Newly written data remains in the
+While the merge operation is performed, data can still be written concurrently
+to both branches and queries performed and everything remains transactionally
+consistent.  Newly written data remains in the
 branch while all of the data present at merge initiation is merged into the
 parent.
 
@@ -310,20 +354,30 @@ If a pool name is provided to `from` without a branch name, then branch
 "main" is assumed.
 
 This example reads every record from the full key range of the `logs` pool
-and sends the results as ZSON to stdout.
+and sends the results to stdout.
 
 ```
-zed lake query -f zson 'from logs'
+zed lake query 'from logs'
 ```
 
 We can narrow the span of the query by specifying the key range, where these
 values refer to the pool key:
 ```
-zed lake query -z 'from logs range 2018-03-24T17:36:30.090766Z to 2018-03-24T17:36:30.090758Z'
+zed lake query 'from logs range 2018-03-24T17:36:30.090766Z to 2018-03-24T17:36:30.090758Z'
 ```
 These range queries are efficiently implemented as the data is laid out
 according to the pool key and seek indexes keyed by the pool key
 are computed for each data object.
+
+Lake queries also can refer to head either implicitly by omitting
+the `from` operator:
+```
+zed lake query '*'
+```
+or by referencing `HEAD`:
+```
+zed lake query 'from HEAD'
+```
 
 A much more efficient format for transporting query results is the
 row-oriented, compressed binary format ZNG.  Because ZNG
@@ -459,12 +513,12 @@ To perform an LSM rollup, the `compact` command (implementation tracked
 via [zed/2977](https://github.com/brimdata/zed/issues/2977))
 is like a "squash" to perform LSM-like compaction function, e.g.,
 ```
-zed lake compact -p logs <tag>
-(merged commit <tag> printed to stdout)
+zed lake compact <id> [<id> ...]
+(merged commit <id> printed to stdout)
 ```
 After compaction, all of the objects comprising the new commit are sorted
 and non-overlapping.
-Here, the objects from the given commit tag are read and compacted into
+Here, the objects from the given commit IDs are read and compacted into
 a new commit.  Again, until the data is actually committed,
 no readers will see any change.
 
@@ -506,7 +560,7 @@ of deletes.
 For example, this command deletes the three objects referenced
 by the data object IDs:
 ```
-zed lake delete -p logs <id> <id> <id>
+zed lake delete <id> [<id> ...]
 ```
 
 > TBD: when a scan encounters an object that was physically deleted for
@@ -524,7 +578,7 @@ additional revert operation.
 For example, this command reverts the commit referenced by commit ID
 `<commit>`.
 ```
-zed lake revert -p logs <commit>
+zed lake revert <commit>
 ```
 
 ### Purge and Vacate
@@ -604,7 +658,7 @@ adds a field rule for field `foo` to the index group named `IndexGroupEx`.
 This rule can then be applied to a data object having a given `<tag>`
 in a pool, e.g.,
 ```
-zed lake index apply -p logs IndexGroupEx <tag>
+zed lake index apply -HEAD logs@main IndexGroupEx <tag>
 ```
 The index is created and a transaction put (somewhere).  Once this transaction
 has been committed to the pool's journal, the index is available for use
