@@ -7,7 +7,8 @@ type zenum=string;
 type conn_id={orig_h:ip,orig_p:port,resp_h:ip,resp_p:port};
 
 // This first block of type definitions cover the fields we've observed in
-// an out-of-the-box Zeek v4.0.3 and earlier.
+// an out-of-the-box Zeek v4.0.3 and earlier, as well as all out-of-the-box
+// Zeek v4.1.0 log types except for "ssl" and "x509".
 
 type broker={_path:string,ts:time,ty:zenum,ev:bstring,peer:{address:bstring,bound_port:port},message:bstring,_write_ts:time};
 type capture_loss={_path:string,ts:time,ts_delta:duration,peer:bstring,gaps:uint64,acks:uint64,percent_lost:float64,_write_ts:time};
@@ -65,7 +66,7 @@ type x509={_path:string,ts:time,id:bstring,certificate:{version:uint64,serial:bs
 // This second block of type definitions represent changes needed to cover
 // an out-of-the-box Zeek v4.1.0. In other Zeek revisions, we were accustomed
 // to only seeing new fields added, but this represented the first time fields
-// have changed, e.g. in SSL logs, "cert_chain_fuids" became "cert_chain_fps".
+// have changed, e.g., in SSL logs, "cert_chain_fuids" became "cert_chain_fps".
 // Therefore we have wholly separate type definitions for this revision so we
 // can cover 100% of the expected fields.
 
@@ -129,8 +130,7 @@ const schemas = |{
 
 // We'll check for the presence of fields we know are unique to records that
 // changed in Zeek v4.1.0 and shape those with special v4.1.0-specific config.
-// For everything else we'll apply the type definitions that were known to
-// cover Zeek v4.0.3 and earlier.
+// For everything else we'll apply the default type definitions.
 
 put this := unflatten(this) | switch (
   _path=="ssl" has(ssl_history) => put this := shape(ssl_4_1_0);
