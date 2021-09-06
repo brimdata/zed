@@ -305,7 +305,7 @@ every journal entry, which has a Zed type signature as follows:
 ```
 The `Date` field here is used by the Zed lake system to do time travel
 through the branch and pool history, allowing you to see the state of
-branches at their commit history at any point in time.
+branches at any time in their commit history.
 Any ZSON/ZNG data can be stored in the `Data` field
 allowing external applications to implement arbitrary data provenance and audit
 capabilities by embedding custom metadata in the commit journal.

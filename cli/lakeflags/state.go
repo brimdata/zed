@@ -11,7 +11,7 @@ const headFile = ".zed_head"
 func readHead() (string, error) {
 	b, err := os.ReadFile(headFile)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	return strings.TrimSpace(string(b)), nil
 }

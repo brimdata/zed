@@ -26,7 +26,7 @@ The lake branch command creates a new branch with the indicated name.
 If specified, base is either an existing branch name or a commit ID
 and provides the new branch's base.  If not specified, then HEAD is assumed.
 
-The branch command does not checkout the new branch.
+The branch command does not check out the new branch.
 
 If the -d option is specified, then the branch is deleted.  No data is
 deleted by this operation and the deleted branch can be easily recreated by
@@ -34,7 +34,6 @@ running the branch command again with the commit ID desired.
 
 If no branch is currently checked out, then "-HEAD pool@base" can be
 used to specify the desired pool for the new branch.
-
 `,
 	New: New,
 }
@@ -65,6 +64,9 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	if len(args) > 1 {
+		return errors.New("too many arguments")
+	}
 	defer cleanup()
 	lake, err := c.lake.Open(ctx)
 	if err != nil {
@@ -72,9 +74,6 @@ func (c *Command) Run(args []string) error {
 	}
 	if len(args) == 0 {
 		return c.list(ctx, lake)
-	}
-	if len(args) > 1 {
-		return errors.New("too many arguments")
 	}
 	branchName := args[0]
 	head, err := c.lakeFlags.HEAD()
@@ -124,7 +123,7 @@ func (c *Command) list(ctx context.Context, lake api.Interface) error {
 	}
 	poolName := head.Pool
 	if poolName == "" {
-		return errors.New("must be on a checked out out branch to list the branches in the same pool")
+		return errors.New("must be on a checked out branch to list the branches in the same pool")
 	}
 	query := fmt.Sprintf("from '%s':branches", poolName)
 	if c.outputFlags.Format == "lake" {

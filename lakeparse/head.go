@@ -16,7 +16,7 @@ func ParseCommitish(commitish string) (*Commitish, error) {
 		return nil, errors.New("pool and branch names may not contain single quote characters")
 	}
 	if i := strings.LastIndexByte(commitish, '@'); i > -1 {
-		return &Commitish{commitish[:i], commitish[i+1:]}, nil
+		return &Commitish{Pool: commitish[:i], Branch: commitish[i+1:]}, nil
 	}
 	return &Commitish{Branch: commitish}, nil
 }
