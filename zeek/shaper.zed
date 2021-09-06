@@ -34,11 +34,11 @@ type mysql={_path:string,ts:time,uid:bstring,id:conn_id,cmd:bstring,arg:bstring,
 type netcontrol={_path:string,ts:time,rule_id:bstring,category:zenum,cmd:bstring,state:zenum,action:bstring,target:zenum,entity_type:bstring,entity:bstring,mod:bstring,msg:bstring,priority:int64,expire:duration,location:bstring,plugin:bstring,_write_ts:time};
 type netcontrol_drop={_path:string,ts:time,rule_id:bstring,orig_h:ip,orig_p:port,resp_h:ip,resp_p:port,expire:duration,location:bstring,_write_ts:time};
 type netcontrol_shunt={_path:string,ts:time,rule_id:bstring,f:{src_h:ip,src_p:port,dst_h:ip,dst_p:port},expire:duration,location:bstring,_write_ts:time};
-type notice={_path:string,ts:time,uid:bstring,id:conn_id,fuid:bstring,file_mime_type:bstring,file_desc:bstring,proto:zenum,note:zenum,msg:bstring,sub:bstring,src:ip,dst:ip,p:port,n:uint64,peer_descr:bstring,actions:|[zenum]|,email_dest:set[bstring],suppress_for:duration,remote_location:{country_code:bstring,region:bstring,city:bstring,latitude:float64,longitude:float64},_write_ts:time};
-type notice_alarm={_path:string,ts:time,uid:bstring,id:conn_id,fuid:bstring,file_mime_type:bstring,file_desc:bstring,proto:zenum,note:zenum,msg:bstring,sub:bstring,src:ip,dst:ip,p:port,n:uint64,peer_descr:bstring,actions:|[zenum]|,email_dest:set[bstring],suppress_for:duration,remote_location:{country_code:bstring,region:bstring,city:bstring,latitude:float64,longitude:float64},_write_ts:time};
+type notice={_path:string,ts:time,uid:bstring,id:conn_id,fuid:bstring,file_mime_type:bstring,file_desc:bstring,proto:zenum,note:zenum,msg:bstring,sub:bstring,src:ip,dst:ip,p:port,n:uint64,peer_descr:bstring,actions:|[zenum]|,email_dest:|[bstring]|,suppress_for:duration,remote_location:{country_code:bstring,region:bstring,city:bstring,latitude:float64,longitude:float64},_write_ts:time};
+type notice_alarm={_path:string,ts:time,uid:bstring,id:conn_id,fuid:bstring,file_mime_type:bstring,file_desc:bstring,proto:zenum,note:zenum,msg:bstring,sub:bstring,src:ip,dst:ip,p:port,n:uint64,peer_descr:bstring,actions:|[zenum]|,email_dest:|[bstring]|,suppress_for:duration,remote_location:{country_code:bstring,region:bstring,city:bstring,latitude:float64,longitude:float64},_write_ts:time};
 type ntlm={_path:string,ts:time,uid:bstring,id:conn_id,username:bstring,hostname:bstring,domainname:bstring,server_nb_computer_name:bstring,server_dns_computer_name:bstring,server_tree_name:bstring,success:bool,_write_ts:time};
 type ntp={_path:string,ts:time,uid:bstring,id:conn_id,version:uint64,mode:uint64,stratum:uint64,poll:duration,precision:duration,root_delay:duration,root_disp:duration,ref_id:bstring,ref_time:time,org_time:time,rec_time:time,xmt_time:time,num_exts:uint64,_write_ts:time};
-type ocsp={_path:string,ts:time,id:bstring,hashAlgorithm:bstring,issuerNameHash:bstring,issuerKeyHash:bstring,serialNumber:bstring,certStatus:bstring,revoketime:time,revokereason:bstring,thisUpdate:time,nextUpdate:time,_write_ts:time"}
+type ocsp={_path:string,ts:time,id:bstring,hashAlgorithm:bstring,issuerNameHash:bstring,issuerKeyHash:bstring,serialNumber:bstring,certStatus:bstring,revoketime:time,revokereason:bstring,thisUpdate:time,nextUpdate:time,_write_ts:time}
 type openflow={_path:string,ts:time,dpid:uint64,match:{in_port:uint64,dl_src:bstring,dl_dst:bstring,dl_vlan:uint64,dl_vlan_pcp:uint64,dl_type:uint64,nw_tos:uint64,nw_proto:uint64,nw_src:net,nw_dst:net,tp_src:uint64,tp_dst:uint64},flow_mod:{cookie:uint64,table_id:uint64,command:zenum=(string),idle_timeout:uint64,hard_timeout:uint64,priority:uint64,out_port:uint64,out_group:uint64,flags:uint64,actions:{out_ports:[uint64],vlan_vid:uint64,vlan_pcp:uint64,vlan_strip:bool,dl_src:bstring,dl_dst:bstring,nw_tos:uint64,nw_src:ip,nw_dst:ip,tp_src:uint64,tp_dst:uint64}},_write_ts:time};
 type packet_filter={_path:string,ts:time,node:bstring,filter:bstring,init:bool,success:bool,_write_ts:time};
 type pe={_path:string,ts:time,id:bstring,machine:bstring,compile_ts:time,os:bstring,subsystem:bstring,is_exe:bool,is_64bit:bool,uses_aslr:bool,uses_dep:bool,uses_code_integrity:bool,uses_seh:bool,has_import_table:bool,has_export_table:bool,has_cert_table:bool,has_debug_data:bool,section_names:[bstring],_write_ts:time};
@@ -123,8 +123,7 @@ const schemas = |{
   "syslog": syslog,
   "tunnel": tunnel,
   "weird": weird,
-  "x509":
-  x509
+  "x509": x509
 }|
 
 // We'll check for the presence of fields we know are unique to records that
@@ -134,6 +133,6 @@ const schemas = |{
 
 put this := unflatten(this) | switch (
   _path=="ssl" has(ssl_history) => put this := shape(ssl_4_1_0);
-  _path="x509" has(fingerprint) => put this := shape(x509_4_1_0);
-  default => put this := shape(schemas[_path])
-}
+  _path=="x509" has(fingerprint) => put this := shape(x509_4_1_0);
+  default => put this := shape(schemas[_path]);
+)
