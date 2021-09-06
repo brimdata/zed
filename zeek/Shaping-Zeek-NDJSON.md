@@ -1,13 +1,14 @@
 # Shaping Zeek NDJSON
 
 - [Summary](#summary)
+- [Zeek Version/Configuration](#zeek-versionconfiguration)
 - [Reference Shaper Contents](#reference-shaper-contents)
   * [Leading Type Definitions](#leading-type-definitions)
-  * [Type Definitions Per Zeek Log `_path`](#type-definitions-per-zeek-log-_path)
+  * [Default Type Definitions Per Zeek Log `_path`](#default-type-definitions-per-zeek-log-_path)
+  * [Version-Specific Type Definitions](#version-specific-type-definitions)
   * [Mapping From `_path` Values to Types](#mapping-from-_path-values-to-types)
   * [Zed Pipeline](#zed-pipeline)
 - [Invoking the Shaper From `zq`](#invoking-the-shaper-from-zq)
-- [Zeek Version/Configuration](#zeek-versionconfiguration)
 - [Importing Shaped Data Into Brim](#importing-shaped-data-into-brim)
 - [Contact us!](#contact-us)
 
@@ -30,6 +31,37 @@ A full description of all that's possible with shapers is beyond the scope of
 this doc. However, this example for shaping Zeek NDJSON is quite simple and
 is described below.
 
+# Zeek Version/Configuration
+
+The fields and data types in the reference `shaper.zed` reflect the default
+NDJSON-format logs output by Zeek releases up to the version number referenced
+in the comments at the top of that file. They have been revisited periodically
+as new Zeek versions have been released.
+
+Most changes we've observed in Zeek logs between versions have involved only the
+addition of new fields. Because of this, we expect the shaper should be usable
+as is for Zeek releases older than the one most recently tested, since fields
+in the shaper not present in your environment would just be filled in with
+`null` values.
+
+[Zeek v4.1.0](https://github.com/zeek/zeek/releases/tag/v4.1.0) is the first
+release we've seen since starting to maintain this reference shaper where
+field names for the same log type have _changed_ between releases. Because
+of this, as shown below, the shaper includes `switch` logic that applies
+different type definitions based on the observed field names that are known
+to be specific to newer Zeek releases.
+
+All attempts will be made to update this reference shaper in a timely manner
+as new Zeek versions are released. However, if you have modified your Zeek
+installation with [packages](https://packages.zeek.org/)
+or other customizations, or if you are using a [Corelight Sensor](https://corelight.com/products/appliance-sensors/)
+that produces Zeek logs with many fields and logs beyond those found in open
+source Zeek, the reference shaper will not cover all the fields in your logs.
+[As described below](#zed-pipeline), the reference shaper will assign
+inferred types to such additional fields. By exploring your data, you can then
+iteratively enhance your shaper to match your environment. If you need
+assistance, please speak up on our [public Slack](https://www.brimsecurity.com/join-slack/).
+
 # Reference Shaper Contents
 
 The reference `shaper.zed` may seem large, but ultimately it follows a
@@ -50,7 +82,7 @@ doc. The `conn_id` type will just save us from having to repeat these fields
 individually in the many Zeek record types that contain an embedded `id`
 record.
 
-## Type Definitions Per Zeek Log `_path`
+## Default Type Definitions Per Zeek Log `_path`
 
 The bulk of this Zed shaper consists of detailed per-field data type
 definitions for each record in the default set of NDJSON logs output by Zeek.
@@ -69,6 +101,16 @@ type dce_rpc={_path:string,ts:time,uid:bstring,id:conn_id,rtt:duration,named_pip
 > **Note:** See [the role of `_path` ](Reading-Zeek-Log-Formats.md#the-role-of-_path)
 > for important details if you're using Zeek's built-in [ASCII logger](https://docs.zeek.org/en/current/scripts/base/frameworks/logging/writers/ascii.zeek.html)
 > to generate NDJSON rather than the [JSON Streaming Logs](https://github.com/corelight/json-streaming-logs) package.
+
+## Version-Specific Type Definitions
+
+The next block of type definitions are exceptions for Zeek v4.1.0 where the
+names of fields for certain log types have changed from prior releases.
+
+```
+type ssl_4_1_0={_path:string,ts:time,uid:bstring,id:conn_id,version:bstring,cipher:bstring,curve:bstring,server_name:bstring,resumed:bool,last_alert:bstring,next_protocol:bstring,established:bool,ssl_history:bstring,cert_chain_fps:[bstring],client_cert_chain_fps:[bstring],subject:bstring,issuer:bstring,client_subject:bstring,client_issuer:bstring,sni_matches_cert:bool,validation_status:bstring,_write_ts:time};
+type x509_4_1_0={_path:string,ts:time,fingerprint:bstring,certificate:{version:uint64,serial:bstring,subject:bstring,issuer:bstring,not_valid_before:time,not_valid_after:time,key_alg:bstring,sig_alg:bstring,key_type:bstring,key_length:uint64,exponent:bstring,curve:bstring},san:{dns:[bstring],uri:[bstring],email:[bstring],ip:[ip]},basic_constraints:{ca:bool,path_len:uint64},host_cert:bool,client_cert:bool,_write_ts:time};
+```
 
 ## Mapping From `_path` Values to Types
 
@@ -92,10 +134,14 @@ The Zed shaper ends with a pipeline that stitches together everything we've defi
 so far.
 
 ```
-put this := unflatten(this) | put this := shape(schemas[_path])
+put this := unflatten(this) | switch (
+  _path=="ssl" has(ssl_history) => put this := shape(ssl_4_1_0);
+  _path=="x509" has(fingerprint) => put this := shape(x509_4_1_0);
+  default => put this := shape(schemas[_path]);
+)
 ```
 
-Picking this apart, it transforms reach record as it's being read, in two
+Picking this apart, it transforms reach record as it's being read, in three
 steps:
 
 1. `unflatten()` reverses the Zeek NDJSON logger's "flattening" of nested
@@ -106,8 +152,14 @@ steps:
    access the individual values using the same dotted syntax like `id.orig_h`
    when needed.
 
-2. `shape()` applies the type definition based on the value found in the
-   incoming record's `_path` field. This includes:
+2. The `switch()` detects if fields specific to Zeek v4.1.0 are present for the
+   two log types for which the [version-specific type definitions](#version-specific-type-definitions)
+   should be applied. For all log lines and types other than these exceptions,
+   the [default type definitions](#default-type-definitions-per-zeek-log-_path)
+   are applied.
+
+3. Each `shape()` call applies an appropriate type definition based on the
+   nature of the incoming record. The logic of `shape()` includes:
 
    * For any fields referenced in the type definition that aren't present in
      the input record, the field is added with a `null` value. (Note: This
@@ -128,7 +180,7 @@ steps:
    Zed pipeline, e.g.:
 
       ```
-      put this := unflatten(this) | put this := shape(schemas[_path]) | put this := crop(schemas[_path])
+      ... | put this := shape(schemas[_path]) | put this := crop(schemas[_path])
       ```
 
    Open issues [zed/2585](https://github.com/brimdata/zed/issues/2585) and
@@ -169,27 +221,6 @@ shell to always invoke `zq` with the necessary `-I` flag pointing to the path
 of your finalized shaper. [zed/1059](https://github.com/brimdata/zed/issues/1059)
 tracks a planned enhancement to persist such settings within Zed itself rather
 than relying on external mechanisms such as shell aliases.
-
-# Zeek Version/Configuration
-
-The fields and data types in the reference `shaper.zed` reflect the default
-NDJSON-format logs output by the Zeek version referenced in the comments at the
-top of that file. They have been revisited periodically as new
-Zeek versions have been released and in that time we've only seen a couple new
-fields appear and none have been removed. Because of this, we expect the
-shaper should be usable as-is for Zeek releases older than the
-one most recently tested, since fields in the shaper not present in your
-environment would just be filled in with `null` values. All attempts will be
-made to update it in a timely manner as new Zeek versions are released.
-
-However, if you have modified your Zeek installation with [packages](https://packages.zeek.org/)
-or other customizations, or if you are using a [Corelight Sensor](https://corelight.com/products/appliance-sensors/)
-that produces Zeek logs with many fields and logs beyond those found in open
-source Zeek, the reference shaper will not cover all the fields in your logs.
-[As described above](#zed-pipeline), the reference shaper will assign
-inferred types to such additional fields. By exploring your data, you can then
-iteratively enhance your shaper to match your environment. If you need
-assistance, please speak up on our [public Slack](https://www.brimsecurity.com/join-slack/).
 
 # Importing Shaped Data Into Brim
 
