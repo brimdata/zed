@@ -1,8 +1,8 @@
 script: |
   source service.sh
-  zed api create -q -p test
-  zed api load -q -p test a.zson
-  zed api load -q -p test b.zson
+  zed api create -q test
+  zed api load -q -HEAD test@main a.zson
+  zed api load -q -HEAD test@main b.zson
   zed api query -z "from test@main:objects | sort meta.first | cut first:=meta.first,last:=meta.last"
 
 inputs:

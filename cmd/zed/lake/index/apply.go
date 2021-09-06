@@ -5,8 +5,9 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimdata/zed/cli/lakeflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/compiler/parser"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/segmentio/ksuid"
@@ -48,19 +49,22 @@ func (c *ApplyCommand) Run(args []string) error {
 		return errors.New("index apply command requires rule name and one or more object IDs")
 	}
 	ruleName := args[0]
-	tags, err := parser.ParseIDs(args[1:])
+	tags, err := lakeparse.ParseIDs(args[1:])
 	if err != nil {
 		return err
 	}
-	poolName, branchName := c.lakeFlags.Branch()
-	if poolName == "" {
-		return errors.New("name of pool must be supplied with -p option")
-	}
-	poolID, err := lake.PoolID(ctx, poolName)
+	head, err := c.lakeFlags.HEAD()
 	if err != nil {
 		return err
 	}
-	commit, err := lake.ApplyIndexRules(ctx, ruleName, poolID, branchName, tags)
+	if head.Pool == "" {
+		return lakeflags.ErrNoHEAD
+	}
+	poolID, err := lake.PoolID(ctx, head.Pool)
+	if err != nil {
+		return err
+	}
+	commit, err := lake.ApplyIndexRules(ctx, ruleName, poolID, head.Branch, tags)
 	if err != nil {
 		return err
 	}

@@ -1,9 +1,10 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -p logs -q
-  zed lake load -q -p logs babble-split1.zson
-  zed lake load -q -p logs babble-split2.zson
+  zed lake create -q logs
+  zed lake checkout -q logs@main
+  zed lake load -q babble-split1.zson
+  zed lake load -q babble-split2.zson
   zed lake query -Z "from logs@main:objects | cut meta | sort -r meta.row_size"
 
 inputs:

@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/mux"
@@ -71,9 +72,9 @@ func RunJoinWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx
 	return runtime.Statser().Stats(), err
 }
 
-func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor) (zbuf.ScannerStats, error) {
+func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor, head *lakeparse.Commitish) (zbuf.ScannerStats, error) {
 	pctx := proc.NewContext(ctx, zctx, nil)
-	runtime, err := compiler.CompileForLake(pctx, program, lake, 0)
+	runtime, err := compiler.CompileForLake(pctx, program, lake, 0, head)
 	if err != nil {
 		pctx.Cancel()
 		return zbuf.ScannerStats{}, err
@@ -82,9 +83,9 @@ func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Con
 	return runtime.Statser().Stats(), err
 }
 
-func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor, ticker <-chan time.Time, logger *zap.Logger, parallelism int) error {
+func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor, head *lakeparse.Commitish, ticker <-chan time.Time, logger *zap.Logger, parallelism int) error {
 	pctx := proc.NewContext(ctx, zctx, logger)
-	runtime, err := compiler.CompileForLake(pctx, program, lake, parallelism)
+	runtime, err := compiler.CompileForLake(pctx, program, lake, parallelism, head)
 	if err != nil {
 		pctx.Cancel()
 		return err

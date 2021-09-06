@@ -1,7 +1,7 @@
 script: |
   source service.sh
-  zapi create -q -p test
-  zapi load -q -p test babble.zson
+  zapi create -q test
+  zapi load -q -HEAD test@main babble.zson
   zapi query -s -Z "from test | count()"
 
 inputs:

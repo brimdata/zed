@@ -21,10 +21,10 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -p PoolOne -orderby color
-  zed lake create -q -p PoolTwo -orderby price
-  zed lake load -q -p PoolOne fruit.zson
-  zed lake load -q -p PoolTwo prices.zson
+  zed lake create -q -orderby color PoolOne
+  zed lake create -q -orderby price PoolTwo
+  zed lake load -q -HEAD PoolOne@main fruit.zson
+  zed lake load -q -HEAD PoolTwo@main prices.zson
   zed lake query -z -I join.zed
 
 inputs:

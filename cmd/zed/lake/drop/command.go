@@ -14,11 +14,10 @@ import (
 
 var Cmd = &charm.Spec{
 	Name:  "drop",
-	Usage: "drop -p pool",
+	Usage: "drop pool",
 	Short: "delete a data pool from a lake",
 	Long: `
-"zed lake drop" removes the named pool from the lake.
-The -p flag must be given.
+The drop command removes the named pool from the lake.
 
 DANGER ZONE.
 When deleting an entire pool, the drop command prompts for confirmation.
@@ -51,22 +50,19 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	poolName, branchName := c.lakeFlags.Names()
-	if poolName == "" {
-		return errors.New("name of pool must be supplied with -p option")
-	}
-	if branchName != "" {
-		return errors.New("branch name not allowed; use the branch command to delete branches")
+	if len(args) != 1 {
+		return errors.New("a single pool name must be specified")
 	}
 	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
+	poolName := args[0]
 	poolID, err := lake.PoolID(ctx, poolName)
 	if err != nil {
 		return nil
 	}
-	if err := c.confirm(); err != nil {
+	if err := c.confirm(poolName); err != nil {
 		return err
 	}
 	if err := lake.RemovePool(ctx, poolID); err != nil {
@@ -78,11 +74,10 @@ func (c *Command) Run(args []string) error {
 	return nil
 }
 
-func (c *Command) confirm() error {
+func (c *Command) confirm(name string) error {
 	if c.force {
 		return nil
 	}
-	name := c.lakeFlags.PoolName
 	fmt.Printf("Are you sure you want to delete pool %q? There is no going back... [y|n]\n", name)
 	var input string
 	if _, err := fmt.Scanln(&input); err != nil {

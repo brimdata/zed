@@ -22,7 +22,7 @@ func CompileForInternal(pctx *proc.Context, p ast.Proc, r zio.Reader) (*Runtime,
 
 func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, layout order.Layout) (*Runtime, error) {
 	adaptor := &internalAdaptor{}
-	runtime, err := New(pctx, p, adaptor)
+	runtime, err := New(pctx, p, adaptor, nil)
 	if err != nil {
 		return nil, err
 	}

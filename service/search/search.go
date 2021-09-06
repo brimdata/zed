@@ -132,7 +132,7 @@ func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, branch *la
 	statsTicker := time.NewTicker(StatsInterval)
 	defer statsTicker.Stop()
 	zctx := zson.NewContext()
-	err = driver.RunWithLakeAndStats(ctx, d, seq, zctx, adaptor, statsTicker.C, s.logger, parallelism)
+	err = driver.RunWithLakeAndStats(ctx, d, seq, zctx, adaptor, nil, statsTicker.C, s.logger, parallelism)
 	if errors.Is(err, journal.ErrEmpty) {
 		return nil
 	}

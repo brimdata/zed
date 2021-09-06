@@ -47,7 +47,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			t.Helper()
 			p, err := compiler.ParseProc(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
-			runtime, err := compiler.New(proc.DefaultContext(), p, lk)
+			runtime, err := compiler.New(proc.DefaultContext(), p, lk, nil)
 			require.NoError(t, err, "filter: %q", c.filter)
 			err = runtime.Build()
 			require.NoError(t, err, "filter: %q", c.filter)
@@ -436,6 +436,6 @@ func TestBadFilter(t *testing.T) {
 	t.Parallel()
 	p, err := compiler.ParseProc(`s matches \xa8*`)
 	require.NoError(t, err)
-	_, err = compiler.New(proc.DefaultContext(), p, mock.NewLake())
+	_, err = compiler.New(proc.DefaultContext(), p, mock.NewLake(), nil)
 	assert.Error(t, err, "error parsing regexp: invalid UTF-8: `^\xa8.*$`")
 }

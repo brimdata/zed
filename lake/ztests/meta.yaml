@@ -1,10 +1,10 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -p poolA -orderby a:asc
-  zed lake create -q -p poolB -orderby b:desc
-  zed lake load -q -p poolA a.zson
-  zed lake load -q -p poolB b.zson
+  zed lake create -q -orderby a:asc poolA
+  zed lake create -q -orderby b:desc poolB
+  zed lake load -q -HEAD poolA@main a.zson
+  zed lake load -q -HEAD poolB@main b.zson
   zed lake query -Z 'from :pools | drop id | sort name | drop ts'
   echo ===
   zed lake query -Z 'from poolA@main:objects | cut nameof(this),meta'

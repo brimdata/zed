@@ -1,4 +1,4 @@
-script: zq -z -d out -o foo- "*" -
+script: zq -z -D out -o foo- "*" -
 
 inputs:
   - name: stdin

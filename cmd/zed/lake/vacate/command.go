@@ -10,22 +10,21 @@ import (
 
 var Vacate = &charm.Spec{
 	Name:  "vacate",
-	Usage: "vacate [options] journal-id",
-	Short: "advance the tail of a pool's commit journal and delete old data",
+	Usage: "vacate [options] commit",
+	Short: "compact a pool's commit history by squashing old commit objects",
 	Long: `
-The vacate command advances the tail of a pool's commit journal so that any commits
-before the new tail cannot be accessed and thus "time travel" to previous
-such commits can no longer be accomplished.  Data objects that are no
-longer accessible after the tail has been advanced are removed from the
-underlying storage system.
+The vacate command compacts the commit history by squashing all of the commit
+objects in the history up to the indicated commit and removing the old commits.
+No other commit objects in the pool may point at any of the squashed commits.
+In particular, no branch may point to any commit that would be deleted.
 
-The only time you should use
-this is when you want to free up old data that no longer needs to be accessed.
+The branch history may contain pointers to old commit objects, but any attempt
+to access them will fail as the underlying commit history will be no longer available.
 
 DANGER ZONE.
 There is no prompting or second chances here so use carefully.
-Once the pool's tail has been advanced and old data is deleted,
-it cannot be recovered.
+Once the pool's commit history has been squashed and old commits is deleted,
+they cannot be recovered.
 `,
 	New: New,
 }

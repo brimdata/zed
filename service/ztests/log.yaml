@@ -1,9 +1,10 @@
 script: |
   source service.sh
-  zapi create -q -p test
-  zapi load -user testuser -q -p test 1.zson
-  zapi load -user testuser -q -p test 2.zson
-  zapi log -p test
+  zapi create -q test
+  zapi checkout -q test@main
+  zapi load -user testuser -q 1.zson
+  zapi load -user testuser -q 2.zson
+  zapi log
 
 inputs:
   - name: service.sh
@@ -18,7 +19,7 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      commit \w{27} \(main\)
+      commit \w{27} \(HEAD -> main\)
       Author: testuser
       Date:   [0-9TZ:\-]+
 

@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/service/search"
 	"github.com/brimdata/zed/zio"
@@ -52,7 +53,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 	}
 	defer d.Close()
-	err = driver.RunWithLakeAndStats(r.Context(), d, query, zson.NewContext(), c.root, nil, r.Logger, 0)
+	err = driver.RunWithLakeAndStats(r.Context(), d, query, zson.NewContext(), c.root, &req.Head, nil, r.Logger, 0)
 	if err != nil && !errors.Is(err, journal.ErrEmpty) {
 		d.Error(err)
 	}
@@ -300,7 +301,7 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	commit, err := api.ParseKSUID(req.Commit)
+	commit, err := lakeparse.ParseID(req.Commit)
 	if err != nil {
 		w.Error(zqe.ErrInvalid("invalid commit object: %s", req.Commit))
 		return
@@ -491,7 +492,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &args) {
 		return
 	}
-	tags, err := api.ParseKSUIDs(args)
+	tags, err := lakeparse.ParseIDs(args)
 	if err != nil {
 		w.Error(zqe.ErrInvalid(err))
 	}

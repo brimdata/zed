@@ -467,10 +467,10 @@ Populating the Pools, then executing the Zed script:
 mkdir lake
 export ZED_LAKE_ROOT=lake
 zed lake init -q
-zed lake create -q -p fruit -orderby flavor:asc
-zed lake create -q -p people -orderby likes:asc
-zed lake load -q -p fruit fruit.ndjson
-zed lake load -q -p people people.ndjson
+zed lake create -q -orderby flavor:asc fruit
+zed lake create -q -orderby likes:asc people
+zed lake load -q -HEAD fruit@main fruit.ndjson
+zed lake load -q -HEAD people@main people.ndjson
 zed lake query -z -I inner-join-pools.zed
 ```
 

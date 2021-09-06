@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -162,8 +163,8 @@ func (*RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID k
 	return ksuid.Nil, errors.New("unsupported see issue #2934")
 }
 
-func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, src string, srcfiles ...string) (zbuf.ScannerStats, error) {
-	res, err := r.conn.Query(ctx, src, srcfiles...)
+func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ScannerStats, error) {
+	res, err := r.conn.Query(ctx, head, src, srcfiles...)
 	if err != nil {
 		return zbuf.ScannerStats{}, err
 	}

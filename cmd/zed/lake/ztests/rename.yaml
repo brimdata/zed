@@ -1,13 +1,13 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -p p1
-  zed lake create -q -p p2
+  zed lake create -q p1
+  zed lake create -q p2
   zed lake rename p2 p3
   echo ===
   zed lake ls | sort
   echo ===
-  zed lake drop -f -p p1
+  zed lake drop -f p1
   echo ===
   zed lake rename p1 p4 || true
   zed lake rename p2 p4

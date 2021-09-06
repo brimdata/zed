@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
@@ -93,7 +94,7 @@ func (l *LocalSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) 
 	return l.root.DeleteIndexRules(ctx, ids)
 }
 
-func (l *LocalSession) Query(ctx context.Context, d driver.Driver, src string, srcfiles ...string) (zbuf.ScannerStats, error) {
+func (l *LocalSession) Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ScannerStats, error) {
 	query, err := compiler.ParseProc(src, srcfiles...)
 	if err != nil {
 		return zbuf.ScannerStats{}, err
@@ -101,7 +102,7 @@ func (l *LocalSession) Query(ctx context.Context, d driver.Driver, src string, s
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return zbuf.ScannerStats{}, err
 	}
-	return driver.RunWithLake(ctx, d, query, zson.NewContext(), l.root)
+	return driver.RunWithLake(ctx, d, query, zson.NewContext(), l.root, head)
 }
 
 func (l *LocalSession) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {

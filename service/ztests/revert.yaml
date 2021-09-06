@@ -1,13 +1,13 @@
 script: |
   source service.sh
-  zapi create -q -p test
-  a=$(zapi load -p test a.zson | head -1 | awk '{print $1}')
-  b=$(zapi load -p test b.zson | head -1 | awk '{print $1}')
+  zapi create -q test
+  a=$(zapi load -HEAD test@main a.zson | head -1 | awk '{print $1}')
+  b=$(zapi load -HEAD test@main b.zson | head -1 | awk '{print $1}')
   zapi query -z "from test | sort ."
-  zapi revert -q -p test $a
+  zapi revert -q -HEAD test@main $a
   echo ===
   zapi query -z "from test | sort ."
-  zapi revert -q -p test $b
+  zapi revert -q -HEAD test@main $b
   echo ===
   zapi query -z "from test | sort ."
 

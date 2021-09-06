@@ -1,7 +1,7 @@
 script: |
   source service.sh
-  zapi create -p p1
-  zapi create -p p2
+  zapi create p1
+  zapi create p2
   echo ===
 
   # Verify that the default output format is text of names only.

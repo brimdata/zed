@@ -1,7 +1,6 @@
 package query
 
 import (
-	"errors"
 	"flag"
 	"os"
 
@@ -65,9 +64,6 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 1 {
 		src = args[0]
 	}
-	if c.lakeFlags.PoolName != "" {
-		return errors.New("zed lake query: use from operator instead of -p")
-	}
 	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
@@ -80,7 +76,8 @@ func (c *Command) Run(args []string) error {
 	if !c.lakeFlags.Quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	stats, err := lake.Query(ctx, d, src, c.includes...)
+	head, _ := c.lakeFlags.HEAD()
+	stats, err := lake.Query(ctx, d, head, src, c.includes...)
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}

@@ -280,6 +280,9 @@ func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newName string) e
 }
 
 func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64) (*Pool, error) {
+	if name == "HEAD" {
+		return nil, fmt.Errorf("pool cannot be named %q", name)
+	}
 	if r.pools.LookupByName(ctx, name) != nil {
 		return nil, fmt.Errorf("%s: %w", name, pools.ErrExists)
 	}

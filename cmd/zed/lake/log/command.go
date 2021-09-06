@@ -46,9 +46,6 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	if c.lakeFlags.PoolName == "" {
-		return errors.New("pool must be specified")
-	}
 	ctx, cleanup, err := c.lake.Root().Init(&c.outputFlags)
 	if err != nil {
 		return err
@@ -61,16 +58,23 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
+	head, err := c.lakeFlags.HEAD()
+	if err != nil {
+		return err
+	}
+	query, err := head.FromSpec("log")
+	if err != nil {
+		return err
+	}
+	if c.outputFlags.Format == "lake" {
+		c.outputFlags.WriterOpts.Lake.Head = head.Branch
+	}
 	w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
 	}
 	defer w.Close()
-	query, err := c.lakeFlags.FromSpec("log")
-	if err != nil {
-		return err
-	}
-	_, err = lake.Query(ctx, driver.NewCLI(w), query)
+	_, err = lake.Query(ctx, driver.NewCLI(w), nil, query)
 	if closeErr := w.Close(); err == nil {
 		err = closeErr
 	}

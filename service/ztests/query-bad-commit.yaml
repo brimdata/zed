@@ -1,6 +1,6 @@
 script: |
   source service.sh
-  zapi create -p test
+  zapi create test
   zapi query "from test@doesnotexist"
 
 inputs:

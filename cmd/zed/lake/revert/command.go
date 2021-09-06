@@ -8,13 +8,13 @@ import (
 	"github.com/brimdata/zed/cli/lakeflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/compiler/parser"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
 )
 
 var Revert = &charm.Spec{
 	Name:  "revert",
-	Usage: "revert -p pool[@branch] commit",
+	Usage: "revert commit",
 	Short: "revert reverses an old commit",
 	Long: `
 The revert command reverses the actions in a commit by applying the inverse
@@ -56,27 +56,30 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	poolName, branchName := c.lakeFlags.Branch()
-	if poolName == "" {
-		return errors.New("name of pool must be supplied with -p option")
-	}
-	poolID, err := lake.PoolID(ctx, poolName)
+	head, err := c.lakeFlags.HEAD()
 	if err != nil {
 		return err
 	}
-	if _, err := parser.ParseID(branchName); err == nil {
+	if head.Pool == "" {
+		return lakeflags.ErrNoHEAD
+	}
+	poolID, err := lake.PoolID(ctx, head.Pool)
+	if err != nil {
+		return err
+	}
+	if _, err := lakeparse.ParseID(head.Branch); err == nil {
 		return errors.New("branch must be named")
 	}
-	commitID, err := parser.ParseID(args[0])
+	commitID, err := lakeparse.ParseID(args[0])
 	if err != nil {
 		return err
 	}
-	revertID, err := lake.Revert(ctx, poolID, branchName, commitID, c.CommitMessage())
+	revertID, err := lake.Revert(ctx, poolID, head.Branch, commitID, c.CommitMessage())
 	if err != nil {
 		return err
 	}
 	if !c.lakeFlags.Quiet {
-		fmt.Printf("%q: %s reverted in %s\n", branchName, commitID, revertID)
+		fmt.Printf("%q: %s reverted in %s\n", head.Branch, commitID, revertID)
 	}
 	return nil
 }

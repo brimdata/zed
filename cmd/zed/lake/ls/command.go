@@ -87,7 +87,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	_, err = lake.Query(ctx, driver.NewCLI(zw), query)
+	_, err = lake.Query(ctx, driver.NewCLI(zw), nil, query)
 	if closeErr := zw.Close(); err == nil {
 		err = closeErr
 	}

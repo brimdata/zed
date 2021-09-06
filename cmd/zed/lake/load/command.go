@@ -84,15 +84,18 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	poolName, branchName := c.lakeFlags.Branch()
-	if poolName == "" {
-		return errors.New("pool name must be specified with -p")
-	}
-	poolID, err := lake.PoolID(ctx, poolName)
+	head, err := c.lakeFlags.HEAD()
 	if err != nil {
 		return err
 	}
-	commitID, err := lake.Load(ctx, poolID, branchName, zio.ConcatReader(readers...), c.CommitMessage())
+	if head.Pool == "" {
+		return lakeflags.ErrNoHEAD
+	}
+	poolID, err := lake.PoolID(ctx, head.Pool)
+	if err != nil {
+		return err
+	}
+	commitID, err := lake.Load(ctx, poolID, head.Branch, zio.ConcatReader(readers...), c.CommitMessage())
 	if err != nil {
 		return err
 	}
