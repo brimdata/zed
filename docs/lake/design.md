@@ -369,7 +369,7 @@ These range queries are efficiently implemented as the data is laid out
 according to the pool key and seek indexes keyed by the pool key
 are computed for each data object.
 
-Lake queries also can refer to head either implicitly by omitting
+Lake queries also can refer to HEAD either implicitly by omitting
 the `from` operator:
 ```
 zed lake query '*'
