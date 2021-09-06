@@ -23,7 +23,7 @@ having to specify the working branch.  The branch specifier may also be
 a commit ID, in which case you entered a headless state and commands
 like load that require a branch name for HEAD will report an error.
 
-Checkout may also be run with the -p to indicate a pool name.  In this case,
+Checkout may also be run with -p to indicate a pool name.  In this case,
 the main branch of the specified pool is checked out.
 
 Any command that relies upon HEAD can also be run with the -HEAD option
@@ -155,7 +155,11 @@ func (c *Command) Run(args []string) error {
 		if c.branch {
 			new = "a new "
 		}
-		fmt.Printf("Switched to %sbranch %q\n", new, branchName)
+		if c.poolName != "" {
+			fmt.Printf("Switched to %sbranch %q on pool %q\n", new, branchName, c.poolName)
+		} else {
+			fmt.Printf("Switched to %sbranch %q\n", new, branchName)
+		}
 	}
 	return nil
 }
