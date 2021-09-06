@@ -40,7 +40,7 @@ as new Zeek versions have been released.
 
 Most changes we've observed in Zeek logs between versions have involved only the
 addition of new fields. Because of this, we expect the shaper should be usable
-as-is for Zeek releases older than the one most recently tested, since fields
+as is for Zeek releases older than the one most recently tested, since fields
 in the shaper not present in your environment would just be filled in with
 `null` values.
 
