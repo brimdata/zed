@@ -88,7 +88,7 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int,
 	case *pools.Config:
 		formatPoolConfig(b, v)
 	case *lake.BranchMeta:
-		formatBranchMeta(b, v, width, colors)
+		formatBranchMeta(b, v, width, w.headID, w.headName, colors)
 	case data.Object:
 		formatDataObject(b, &v, "", 0)
 	case *data.Object:
@@ -119,13 +119,6 @@ func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int,
 	}
 }
 
-func formatCommit(b *bytes.Buffer, object *commits.Object) {
-	b.WriteString(fmt.Sprintf("commit %s\n", object.Commit))
-	for _, action := range object.Actions {
-		b.WriteString(fmt.Sprintf("  action %s\n", action))
-	}
-}
-
 func formatPoolConfig(b *bytes.Buffer, p *pools.Config) {
 	b.WriteString(p.Name)
 	b.WriteByte(' ')
@@ -137,7 +130,7 @@ func formatPoolConfig(b *bytes.Buffer, p *pools.Config) {
 	b.WriteByte('\n')
 }
 
-func formatBranchMeta(b *bytes.Buffer, p *lake.BranchMeta, width int, colors *color.Stack) {
+func formatBranchMeta(b *bytes.Buffer, p *lake.BranchMeta, width int, headID ksuid.KSUID, headName string, colors *color.Stack) {
 	b.WriteString(p.Pool.Name)
 	b.WriteByte('@')
 	b.WriteString(p.Branch.Name)
@@ -145,6 +138,13 @@ func formatBranchMeta(b *bytes.Buffer, p *lake.BranchMeta, width int, colors *co
 	colors.Start(b, color.GrayYellow)
 	b.WriteString("commit ")
 	b.WriteString(p.Branch.Commit.String())
+	if headID == p.Branch.Commit || headName == p.Branch.Name {
+		b.WriteString(" (")
+		colors.Start(b, color.Turqoise)
+		b.WriteString(color.Embolden("HEAD"))
+		colors.End(b)
+		b.WriteByte(')')
+	}
 	colors.End(b)
 	b.WriteByte('\n')
 }

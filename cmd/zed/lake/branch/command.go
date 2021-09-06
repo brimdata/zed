@@ -127,6 +127,9 @@ func (c *Command) list(ctx context.Context, lake api.Interface) error {
 		return errors.New("must be on a checked out out branch to list the branches in the same pool")
 	}
 	query := fmt.Sprintf("from '%s':branches", poolName)
+	if c.outputFlags.Format == "lake" {
+		c.outputFlags.WriterOpts.Lake.Head = head.Branch
+	}
 	zw, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 	if err != nil {
 		return err
