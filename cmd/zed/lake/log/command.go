@@ -15,10 +15,10 @@ import (
 
 var Log = &charm.Spec{
 	Name:  "log",
-	Usage: "log [options] -p pool[@commit]",
+	Usage: "log [options]",
 	Short: "display the commit log history starting at any commit",
 	Long: `
-"zed lake log" outputs a commit history of any branch or unnamed commit object
+The log command outputs a commit history of any branch or unnamed commit object
 from a data pool in the format desired.
 By default, the output is in the human-readable "lake" format
 but ZNG can be used to easily be pipe a log to zq or other tooling for analysis.

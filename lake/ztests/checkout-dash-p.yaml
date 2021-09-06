@@ -1,0 +1,23 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q POOL
+  zed lake checkout -q -p POOL
+  zed lake load -q a.zson
+  zed lake checkout -q -b child
+  zed lake load -q b.zson
+  zed lake checkout -q -p POOL
+  zed lake query -z "*"
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+  - name: b.zson
+    data: |
+      {b:1}
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
