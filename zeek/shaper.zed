@@ -102,6 +102,7 @@ const schemas = |{
   "notice_alarm": notice_alarm,
   "ntlm": ntlm,
   "ntp": ntp,
+  "ocsp": ocsp,
   "openflow": openflow,
   "packet_filter": packet_filter,
   "pe": pe,
