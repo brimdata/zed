@@ -6,7 +6,7 @@ type port=uint16;
 type zenum=string;
 type conn_id={orig_h:ip,orig_p:port,resp_h:ip,resp_p:port};
 
-// This first block of type definitions cover the fields we've observed in
+// This first block of type definitions covers the fields we've observed in
 // an out-of-the-box Zeek v4.0.3 and earlier, as well as all out-of-the-box
 // Zeek v4.1.0 log types except for "ssl" and "x509".
 
