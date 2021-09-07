@@ -24,7 +24,7 @@ outputs:
               last: 2020-04-21T22:40:30.06852324Z,
               count: 500 (uint64),
               row_size: 17102
-          } (=data.Metadata)
+          } (=data.Meta)
       }
       {
           meta: {
@@ -32,5 +32,5 @@ outputs:
               last: 2020-04-21T22:40:49.0635839Z,
               count: 500 (uint64),
               row_size: 17084
-          } (=data.Metadata)
+          } (=data.Meta)
       }

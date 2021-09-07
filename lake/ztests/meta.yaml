@@ -59,7 +59,7 @@ outputs:
               last: 2,
               count: 2 (uint64),
               row_size: 14
-          } (=data.Metadata)
+          } (=data.Meta)
       }
       {
           nameof: "lake.BranchTip"
