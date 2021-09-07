@@ -3,13 +3,25 @@ package lakeflags
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
 const headFile = ".zed_head"
 
+func headPath() string {
+	dir := os.Getenv("ZED_HEAD_DIR")
+	if dir == "" {
+		dir, _ = os.UserHomeDir()
+	}
+	if dir == "." {
+		dir = ""
+	}
+	return filepath.Join(dir, headFile)
+}
+
 func readHead() (string, error) {
-	b, err := os.ReadFile(headFile)
+	b, err := os.ReadFile(headPath())
 	if err != nil {
 		return "", err
 	}
@@ -18,7 +30,7 @@ func readHead() (string, error) {
 
 func WriteHead(pool, branch string) error {
 	head := fmt.Sprintf("%s@%s\n", pool, branch)
-	err := os.WriteFile(headFile, []byte(head), 0644)
+	err := os.WriteFile(headPath(), []byte(head), 0644)
 	if err != nil {
 		err = fmt.Errorf("%q: failed to write HEAD: %w", headFile, err)
 	}
