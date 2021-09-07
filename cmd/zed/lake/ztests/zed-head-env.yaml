@@ -1,12 +1,12 @@
 script: |
   export ZED_LAKE_ROOT=test
-  export ZED_HEAD_PATH=x
+  export ZED_HEAD_DIR=x
   mkdir x
   zed lake init -q
   zed lake create -q -q POOL
   zed lake checkout -q POOL@main
   cat x/.zed_head
-  export ZED_HEAD_PATH=.
+  export ZED_HEAD_DIR=.
   mkdir y
   cd y
   zed lake checkout -R ../test -q POOL@main

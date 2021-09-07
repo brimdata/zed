@@ -10,14 +10,14 @@ import (
 const headFile = ".zed_head"
 
 func headPath() string {
-	path := os.Getenv("ZED_HEAD_PATH")
-	if path == "" {
-		path, _ = os.UserHomeDir()
+	dir := os.Getenv("ZED_HEAD_DIR")
+	if dir == "" {
+		dir, _ = os.UserHomeDir()
 	}
-	if path == "." {
-		path = ""
+	if dir == "." {
+		dir = ""
 	}
-	return filepath.Join(path, headFile)
+	return filepath.Join(dir, headFile)
 }
 
 func readHead() (string, error) {
