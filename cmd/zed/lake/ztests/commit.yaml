@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -q test
-  zed lake load -HEAD test@main in.zson
+  zed lake load -use test@main in.zson
 
 inputs:
   - name: in.zson

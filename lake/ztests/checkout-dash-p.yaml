@@ -2,11 +2,11 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -q POOL
-  zed lake checkout -q -p POOL
+  zed lake use -q -p POOL
   zed lake load -q a.zson
-  zed lake checkout -q -b child
+  zed lake use -q -b child
   zed lake load -q b.zson
-  zed lake checkout -q -p POOL
+  zed lake use -q -p POOL
   zed lake query -z "*"
 
 inputs:
