@@ -24,7 +24,7 @@ a commit ID, in which case you entered a headless state and commands
 like load that require a branch name for HEAD will report an error.
 
 The use command is like "git checkuout" but there is no local copy of
-the lake data.  Rather, the local HEAD states links invocations of
+the lake data.  Rather, the local HEAD state links invocations of
 lake commands run locally or through zapi directly to the remote lake.
 
 Use may also be run with -p to indicate a pool name.  In this case,

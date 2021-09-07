@@ -171,9 +171,9 @@ and each branch can be queried independently at any time.
 The `-use` flag appears in most of the lake commands and indicates
 a commit-history pointer just for that one command invocation.
 
-Supposing the `main` branch of `logs` was already defaulted with the "use" commmand
-(see below), then you could create the new branch called "staging"
-by simply saying
+Supposing the `main` branch of `logs` was already set as the default
+with the "use" command (see below),
+then you could create the new branch called "staging" by simply saying
 ```
 zed lake branch staging
 ```
@@ -199,7 +199,7 @@ the pool name to the branch:
 zed lake use otherpool@otherbranch
 ```
 Just like Git `checkout -b`, you may create a new branch as a side effect
-of the `use` command with via `-b`:
+of the `use` command with `-b`:
 ```
 zed lake use -b newbranch
 ```
@@ -233,7 +233,7 @@ data can be committed into this branch as follows:
 ```
 zed lake load -use logs@updates sample.zng
 ```
-Or, as mentioned above, you can default the branch you want to load into
+Or, as mentioned above, you can set the default branch for the load command
 via `use`:
 ```
 zed lake use logs@updates
