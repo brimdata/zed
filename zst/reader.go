@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-// Reader implements the zio.Reader and io.Closer.  It reads a columnar
+// Reader implements zio.Reader and io.Closer.  It reads a columnar
 // zst object to generate a stream of zng.Records.  It also has methods
 // to read metainformation for test and debugging.
 type Reader struct {
