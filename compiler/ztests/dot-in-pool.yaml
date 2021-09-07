@@ -1,0 +1,13 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q foo.bar
+  zed lake checkout -q -p foo.bar
+  echo '{a:1}' | zed lake load -q -
+  zed lake query -z "from foo.bar"
+
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
