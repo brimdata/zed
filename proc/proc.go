@@ -14,7 +14,7 @@ import (
 
 const BatchLen = 100
 
-// proc.Interface is the interface to objects that operate on Batches of zbuf.Records
+// proc.Interface is the interface to objects that operate on Batches of zng.Records
 // and are arranged into a flowgraph to perform pattern matching and analytics.
 // A proc is generally single-threaded unless lengths are taken to implement
 // concurrency within a Proc.  The model is receiver-driven, stream-oriented

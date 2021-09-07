@@ -15,7 +15,7 @@
 // An Object provides the interface to the underlying storage object.
 // To generate rows or cuts (and in the future more sophisticated traversals
 // and introspection), an Assembly is created from the Object then zng records
-// are read from the assembly, which implements zbuf.Reader.  The Assembly
+// are read from the assembly, which implements zio.Reader.  The Assembly
 // keeps track of where each column is, which is why you need a separate
 // Assembly per scan.
 //

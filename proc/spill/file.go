@@ -14,17 +14,17 @@ import (
 // File provides a means to write a sequence of zng records to temporary
 // storage then read them back.  This is used for processing large batches of
 // data that do not fit in memory and/or cannot be shuffled to a peer worker,
-// but can be processed in multiple passes.  File implements zbuf.Reader and
-// zbuf.Writer.
+// but can be processed in multiple passes.  File implements zio.Reader and
+// zio.Writer.
 type File struct {
 	*zngio.Reader
 	*zngio.Writer
 	file *os.File
 }
 
-// NewFile returns a File.  Records should be written to File via the zbuf.Writer
+// NewFile returns a File.  Records should be written to File via the zio.Writer
 // interface, followed by a call to the Rewind method, followed by reading
-// records via the zbuf.Reader interface.
+// records via the zio.Reader interface.
 func NewFile(f *os.File) *File {
 	return &File{
 		Writer: zngio.NewWriter(bufwriter.New(zio.NopCloser(f)), zngio.WriterOpts{}),

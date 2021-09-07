@@ -131,9 +131,9 @@ func (r *Reader) reset() {
 
 var startCompressed = errors.New("start of compressed value messaage block")
 
-// ReadPayload returns either data values as zbuf.Record or app-specific
+// ReadPayload returns either data values as zng.Record or app-specific
 // messages .  The record or message is volatile so they must be
-// copied (via copy for message's byte slice or zbuf.Record.Keep()) as
+// copied (via copy for message's byte slice or zng.Record.Keep) as
 // subsequent calls to Read or ReadPayload will modify the referenced data.
 func (r *Reader) readPayload(rec *zng.Record) (*zng.Record, *AppMessage, error) {
 	for {

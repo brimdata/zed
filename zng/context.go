@@ -212,7 +212,7 @@ func (c *Context) LookupTypeAlias(name string, target Type) (*TypeAlias, error) 
 	return typ, nil
 }
 
-// AddColumns returns a new zbuf.Record with columns equal to the given
+// AddColumns returns a new zng.Record with columns equal to the given
 // record along with new rightmost columns as indicated with the given values.
 // If any of the newly provided columns already exists in the specified value,
 // an error is returned.
