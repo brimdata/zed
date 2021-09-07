@@ -532,12 +532,15 @@ PoolCommit
   = "@" commit:PoolName { RETURN(commit) }
 
 PoolMeta
-  = ":" meta:IdentifierRaw { RETURN(meta) }
+  = ":" meta:PoolIdentifier { RETURN(meta) }
 
 PoolName
-  = IdentifierRaw
+  = PoolIdentifier
   / KSUID
   / QuotedString
+
+PoolIdentifier
+  = (IdentifierStart / ".") (IdentifierRest / ".")* {  RETURN(TEXT) }
 
 LayoutArg
   = _ "order"i _ keys:FieldExprs order:OrderSuffix {
@@ -1133,9 +1136,6 @@ IdentifierRest = IdentifierStart / [0-9]
 
 Identifier
   = id:IdentifierName { RETURN(MAP("kind": "ID", "name": id)) }
-
-IdentifierRaw
-  = IdentifierStart IdentifierRest* {  RETURN(TEXT) }
 
 IdentifierName
   = !(IDGuard !IdentifierRest) IdentifierStart IdentifierRest* {  RETURN(TEXT) }
