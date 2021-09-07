@@ -35,5 +35,5 @@ outputs:
               last: 2020-04-21T22:40:30.06852324Z,
               count: 1000 (uint64),
               row_size: 34325
-          } (=data.Metadata)
+          } (=data.Meta)
       }

@@ -66,7 +66,7 @@ func FileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 	return k, id, true
 }
 
-type Metadata struct {
+type Meta struct {
 	First   zng.Value `zng:"first"`
 	Last    zng.Value `zng:"last"`
 	Count   uint64    `zng:"count"`
@@ -85,8 +85,8 @@ type Metadata struct {
 // XXX should First/Last be wrt pool order or be smallest and largest?
 
 type Object struct {
-	ID       ksuid.KSUID `zng:"id"`
-	Metadata `zng:"meta"`
+	ID   ksuid.KSUID `zng:"id"`
+	Meta `zng:"meta"`
 }
 
 func (o Object) IsZero() bool {
