@@ -2,9 +2,9 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -orderby a POOL
-  zed lake load -q -HEAD POOL@main in.zson
+  zed lake load -q -use POOL@main in.zson
   zed lake query -z "from POOL@main:rawlog"
-  zed lake log -HEAD POOL@main
+  zed lake log -use POOL@main
 
 inputs:
   - name: in.zson

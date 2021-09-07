@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -q logs
-  zed lake load -q -HEAD logs@main babble.zson
+  zed lake load -q -use logs@main babble.zson
   zed lake query "from logs | count()" | zq -z -
 
 inputs:

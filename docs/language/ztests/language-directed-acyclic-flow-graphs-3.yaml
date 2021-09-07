@@ -22,7 +22,7 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -q -orderby name fruit
-  zed lake load -q -HEAD fruit@main fruit.zson
+  zed lake load -q -use fruit@main fruit.zson
   zed lake query -z -I switch.zed
 
 inputs:

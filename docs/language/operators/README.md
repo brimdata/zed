@@ -469,8 +469,8 @@ export ZED_LAKE_ROOT=lake
 zed lake init -q
 zed lake create -q -orderby flavor:asc fruit
 zed lake create -q -orderby likes:asc people
-zed lake load -q -HEAD fruit@main fruit.ndjson
-zed lake load -q -HEAD people@main people.ndjson
+zed lake load -q -use fruit@main fruit.ndjson
+zed lake load -q -use people@main people.ndjson
 zed lake query -z -I inner-join-pools.zed
 ```
 

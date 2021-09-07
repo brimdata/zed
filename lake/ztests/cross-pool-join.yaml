@@ -3,8 +3,8 @@ script: |
   zed lake init -q
   zed lake create -q fruit
   zed lake create -q person
-  zed lake load -q -HEAD fruit@main fruit.zson
-  zed lake load -q -HEAD person@main person.zson
+  zed lake load -q -use fruit@main fruit.zson
+  zed lake load -q -use person@main person.zson
   zed lake query -z -I join.zed
 
 inputs:

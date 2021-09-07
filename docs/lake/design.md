@@ -5,7 +5,7 @@
     + [Initialization](#initialization)
     + [Create](#create)
     + [Branch](#branch)
-    + [Checkout](#checkout)
+    + [Use](#use)
     + [Load](#load)
       - [Data Segmentation](#data-segmentation)
     + [Log](#log)
@@ -90,8 +90,8 @@ design patterns of `git`.  In this approach,
 * a _lake_ is like a GitHub organization,
 * a _pool_ is like a `git` repository,
 * a _branch_ of a _pool_ is like a `git` branch,
-* a _checkout_  is like a `git checkout`, and
-* a _load_ is like a `git add/commit/push`.
+* a _use_  command is like a `git checkout`, and
+* a _load_ command is like a `git add/commit/push`.
 
 A core theme of the Zed lake design is _ergonomics_.  Given the Git metaphor,
 our goal here is that the Zed lake tooling be as easy and familiar as Git is
@@ -161,16 +161,19 @@ multiple parents in the commit object history.)
 
 A branch is created with the `branch` command, e.g.,
 ```
-zed lake branch -HEAD logs@main staging
+zed lake branch -use logs@main staging
 ```
 This creates a new branch called "staging" in pool "logs", which points to
 the same commit object as the "main" branch.  Commits to the "staging" branch
 will be added to the commit history without affecting the "main" branch
 and each branch can be queried independently at any time.
 
-The `-HEAD` flag emulates a temporary checkout just for that one command.
-Supposing the `main` branch of `logs` was already checked out, you could
-simply say
+The `-use` flag appears in most of the lake commands and indicates
+a commit-history pointer just for that one command invocation.
+
+Supposing the `main` branch of `logs` was already defaulted with the "use" commmand
+(see below), then you could create the new branch called "staging"
+by simply saying
 ```
 zed lake branch staging
 ```
@@ -183,21 +186,22 @@ and list the branches as follows:
 zed lake branch
 ```
 
-### Checkout
+### Use
 
-The `checkout` command provides a means to set the current branch context
+The `use` command provides a means to set the current branch context
 to the indicate branch, e.g.,
 ```
-zed lake checkout staging
+zed lake use staging
 ```
 When you want to specify a branch in another pool, you simply prepend
 the pool name to the branch:
 ```
-zed lake checkout otherpool@otherbranch
+zed lake use otherpool@otherbranch
 ```
-Just like Git, to create a new branch and check it out, use `-b`:
+Just like Git `checkout -b`, you may create a new branch as a side effect
+of the `use` command with via `-b`:
 ```
-zed lake checkout -b newbranch
+zed lake use -b newbranch
 ```
 
 Note that unlike Git, the "repo" is not copied to your local directory.
@@ -227,11 +231,12 @@ An alternative branch may be specified using the `@` separator,
 i.e., `<pool>@<branch>`.  Supposing there was a branch called `updates`,
 data can be committed into this branch as follows:
 ```
-zed lake load -HEAD logs@updates sample.zng
+zed lake load -use logs@updates sample.zng
 ```
-Or, as mentioned above, you can simply checkout the branch you want to load into:
+Or, as mentioned above, you can default the branch you want to load into
+via `use`:
 ```
-zed lake checkout logs@updates
+zed lake use logs@updates
 zed lake load sample.zng
 ```
 
@@ -316,7 +321,7 @@ capabilities by embedding custom metadata in the commit journal.
 
 Data is merged from one branch into another with the `merge` command, e.g.,
 ```
-zed lake merge -HEAD logs@updates main
+zed lake merge -use logs@updates main
 ```
 where the `updates` branch is being merged into the `main` branch
 within the `logs` pool.
@@ -658,7 +663,7 @@ adds a field rule for field `foo` to the index group named `IndexGroupEx`.
 This rule can then be applied to a data object having a given `<tag>`
 in a pool, e.g.,
 ```
-zed lake index apply -HEAD logs@main IndexGroupEx <tag>
+zed lake index apply -use logs@main IndexGroupEx <tag>
 ```
 The index is created and a transaction put (somewhere).  Once this transaction
 has been committed to the pool's journal, the index is available for use

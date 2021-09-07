@@ -1,4 +1,4 @@
-package branch
+package use
 
 import (
 	"errors"
@@ -12,34 +12,38 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 )
 
-var Checkout = &charm.Spec{
-	Name:  "checkout",
-	Usage: "checkout [-p pool] [-b] branch [base]",
-	Short: "checkout a branch",
+var Use = &charm.Spec{
+	Name:  "use",
+	Usage: "use [-p pool] [-b] branch [base]",
+	Short: "use a branch",
 	Long: `
-The lake checkout command sets the working branch as indicated.
+The lake use command sets the working branch as indicated.
 This allows commands like load, rebase, merge etc to function without
 having to specify the working branch.  The branch specifier may also be
 a commit ID, in which case you entered a headless state and commands
 like load that require a branch name for HEAD will report an error.
 
-Checkout may also be run with -p to indicate a pool name.  In this case,
+The use command is like "git checkuout" but there is no local copy of
+the lake data.  Rather, the local HEAD states links invocations of
+lake commands run locally or through zapi directly to the remote lake.
+
+Use may also be run with -p to indicate a pool name.  In this case,
 the main branch of the specified pool is checked out.
 
-Any command that relies upon HEAD can also be run with the -HEAD option
-to refer to a different HEAD without performing a checkout.
+Any command that relies upon HEAD can also be run with the -use option
+to refer to a different HEAD without executing an explicit "use" command.
 The HEAD option has the form "pool@branch" where pool is the name or ID of an
 existing pool and branch is the name of the branch or a commit ID.
-While checkouts of HEAD are useful for interactive CLI sessions,
+While the use of HEAD is convenient for interactive CLI sessions,
 automation and orchestration tools are better of hard-wiring the
-HEAD references in each lake command using -HEAD.
+HEAD references in each lake command via -use.
 
 If the -b option is provided, then a new branch with the indicated
 name is created with base HEAD and checked out.
 
-The checkout command merely checks that the branch exists and updates the
+The use command merely checks that the branch exists and updates the
 file ~/.zed_head.  This file simply contains a pointer to the HEAD branch
-and thus provides the default for the -HEAD option.  This way, multiple working
+and thus provides the default for the -use option.  This way, multiple working
 directories can contain different HEAD pointers (along with your local files)
 and you can easily switch between windows without having to continually
 re-specify a new HEAD.  Unlike Git, all the commited pool data remains
@@ -49,8 +53,8 @@ in the lake and is not copied to this local directory.
 }
 
 func init() {
-	zedlake.Cmd.Add(Checkout)
-	zedapi.Cmd.Add(Checkout)
+	zedlake.Cmd.Add(Use)
+	zedapi.Cmd.Add(Use)
 }
 
 type Command struct {

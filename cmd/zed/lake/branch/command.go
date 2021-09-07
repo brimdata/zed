@@ -32,8 +32,8 @@ If the -d option is specified, then the branch is deleted.  No data is
 deleted by this operation and the deleted branch can be easily recreated by
 running the branch command again with the commit ID desired.
 
-If no branch is currently checked out, then "-HEAD pool@base" can be
-used to specify the desired pool for the new branch.
+If no branch is currently checked out, then "-use pool@base" can be
+supplied to specify the desired pool for the new branch.
 `,
 	New: New,
 }

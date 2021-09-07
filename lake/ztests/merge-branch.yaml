@@ -2,9 +2,9 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -q -orderby k POOL
-  zed lake checkout -q POOL@main
+  zed lake use -q POOL@main
   zed lake load -q -message "initial load of a.zson into main" a.zson
-  zed lake checkout -q -b child
+  zed lake use -q -b child
   zed lake load -q -message "initial load of b.zson into child" b.zson
   echo === main ===
   zed lake query -z "from POOL@main"
@@ -16,7 +16,7 @@ script: |
   echo === main after merge ===
   zed lake query -z "from POOL@main"
   echo === main after load c ===
-  zed lake load -q -HEAD POOL@main c.zson
+  zed lake load -q -use POOL@main c.zson
   zed lake query -z "from POOL@main"
   echo === child after main load c ===
   zed lake query -z "from POOL@child"

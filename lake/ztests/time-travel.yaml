@@ -2,7 +2,7 @@ script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
   zed lake create -q POOL
-  zed lake checkout -q POOL@main
+  zed lake use -q POOL@main
   a=$(zed lake load a.zson | head -1 | awk '{print $1}')
   b=$(zed lake load b.zson | head -1 | awk '{print $1}')
   zed lake query -z "from POOL | sort ."

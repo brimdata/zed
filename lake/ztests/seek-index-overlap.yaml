@@ -3,12 +3,12 @@ script: |
   zed lake init -q
   zed lake create -orderby ts:asc -q asc
   zed lake create -orderby ts:desc -q desc
-  zed lake checkout -q asc@main
+  zed lake use -q asc@main
   zq "tail 900" babble.zson | zed lake load -seekstride=2000B -q -
   zq "head 250" babble.zson | zed lake load -seekstride=2000B -q -
   zed lake query -z -s "from asc | count()"
   echo === | tee /dev/stderr
-  zed lake checkout -q desc@main
+  zed lake use -q desc@main
   zq "tail 900" babble.zson | zed lake load -seekstride=2000B -q -
   zq "head 250" babble.zson | zed lake load -seekstride=2000B -q -
   zed lake query -z -s "from desc | count()"
