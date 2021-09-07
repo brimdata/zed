@@ -10,9 +10,9 @@
 // the sizes of each section (so section boundaries can be found), the keys
 // that were indexed, the frame threshold used in build the B-tree hierarchy, etc.
 //
-// Reader implements zbuf.Reader and Writer implements zbuf.Writer so
+// Reader implements zio.Reader and Writer implements zio.Writer so
 // generic zng functionality applies, e.g., a Reader can be copied to a Writer
-// using zbuf.Copy().
+// using zio.Copy.
 package index
 
 import (

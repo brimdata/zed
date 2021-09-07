@@ -76,7 +76,7 @@ type multiFileReader struct {
 var _ zio.ReadCloser = (*multiFileReader)(nil)
 var _ zbuf.ScannerAble = (*multiFileReader)(nil)
 
-// MultiFileReader returns a zbuf.ReadCloser that's the logical concatenation
+// MultiFileReader returns a zio.ReadCloser that's the logical concatenation
 // of the provided input paths. They're read sequentially. Once all inputs have
 // reached end of stream, Read will return end of stream. If any of the readers
 // return a non-nil error, Read will return that error.

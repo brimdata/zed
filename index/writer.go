@@ -17,7 +17,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-// Writer implements the zbuf.Writer interface. A Writer creates a zed index,
+// Writer implements the zio.Writer interface. A Writer creates a zed index,
 // comprising the base zng file along with its related B-tree sections,
 // as zng records are consumed.
 //

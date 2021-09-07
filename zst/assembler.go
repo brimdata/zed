@@ -39,7 +39,7 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 	return assembler, nil
 }
 
-// Assembler implements the zbuf.Reader and io.Closer.  It reads a columnar
+// Assembler implements the zio.Reader and io.Closer.  It reads a columnar
 // zst object to generate a stream of zng.Records.  It also has methods
 // to read metainformation for test and debugging.
 type Assembler struct {

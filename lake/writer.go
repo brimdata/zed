@@ -25,7 +25,7 @@ var (
 
 const defaultCommitTimeout = time.Second * 5
 
-// Writer is a zbuf.Writer that consumes records into memory according to
+// Writer is a zio.Writer that consumes records into memory according to
 // the pools data object threshold, sorts each resulting buffer, and writes
 // it as an immutable object to the storage system.  The presumption is that
 // each buffer's worth of data fits into memory.
@@ -55,7 +55,7 @@ type Writer struct {
 // microbatches with a timeout defined from above and a nice way to sync the
 // timeout with the commit rather than trying to do all of this bottoms up.
 
-// NewWriter creates a zbuf.Writer compliant writer for writing data to an
+// NewWriter creates a zio.Writer compliant writer for writing data to an
 // a data pool presuming the input is not guaranteed to be sorted.
 //XXX we should make another writer that takes sorted input and is a bit
 // more efficient.  This other writer could have different commit triggers

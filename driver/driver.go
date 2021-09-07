@@ -258,8 +258,8 @@ func (d *transformDriver) Warn(warning string) error          { return nil }
 func (d *transformDriver) Stats(stats api.ScannerStats) error { return nil }
 func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
 
-// Copy applies a proc to all records from a zbuf.Reader, writing to a
-// single zbuf.Writer. The proc must have a single tail.
+// Copy applies a proc to all records from a zio.Reader, writing to a
+// single zio.Writer. The proc must have a single tail.
 func Copy(ctx context.Context, w zio.Writer, prog ast.Proc, zctx *zson.Context, r zio.Reader, logger *zap.Logger) error {
 	d := &transformDriver{w: w}
 	return RunWithReader(ctx, d, prog, zctx, r, logger)

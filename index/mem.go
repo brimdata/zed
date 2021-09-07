@@ -11,7 +11,7 @@ import (
 )
 
 // MemTable implements an in-memory table to build a microindex.
-// It implements zbuf.Reader and will generate a stream of zng.Records that
+// It implements zio.Reader and will generate a stream of zng.Records that
 // are either single column ("key") or a two-column ("key", "value") where the
 // types of the columns depend upon the zng.Values entered into the table.
 type MemTable struct {

@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-// FinderReader is zbuf.Reader version of Finder that streams back all records
+// FinderReader is zio.Reader version of Finder that streams back all records
 // in a microindex that match the provided key Record.
 type FinderReader struct {
 	compare expr.KeyCompareFn

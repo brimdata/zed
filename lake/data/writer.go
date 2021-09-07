@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/zng"
 )
 
-// Writer is a zbuf.Writer that writes a stream of sorted records into a
+// Writer is a zio.Writer that writes a stream of sorted records into a
 // data object.
 type Writer struct {
 	object           *Object
