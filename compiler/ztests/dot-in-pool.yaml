@@ -6,7 +6,6 @@ script: |
   echo '{a:1}' | zed lake load -q -
   zed lake query -z "from foo.bar"
 
-
 outputs:
   - name: stdout
     data: |

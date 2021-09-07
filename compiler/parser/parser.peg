@@ -540,7 +540,7 @@ PoolName
   / QuotedString
 
 PoolIdentifier
-  = (IdentifierStart / ".") (IdentifierRest / ".") * {  RETURN(TEXT) }
+  = (IdentifierStart / ".") (IdentifierRest / ".")* {  RETURN(TEXT) }
 
 LayoutArg
   = _ "order"i _ keys:FieldExprs order:OrderSuffix {
