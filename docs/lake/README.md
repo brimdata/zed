@@ -172,7 +172,7 @@ The `-use` flag appears in most of the lake commands and indicates
 a commit-history pointer just for that one command invocation.
 
 Supposing the `main` branch of `logs` was already set as the default
-with the "use" command (see below),
+with the `use` command (see below),
 then you could create the new branch called "staging" by simply saying
 ```
 zed lake branch staging
@@ -189,10 +189,20 @@ zed lake branch
 ### Use
 
 The `use` command provides a means to set the current branch context
-to the indicate branch, e.g.,
+to the indicated branch, e.g.,
 ```
 zed lake use staging
 ```
+As previously noted, Zed lakes can be used without thinking about branches.
+The `use` command includes a `-p` option that can specify a pool name, which
+sets the current context to the `main` branch of that pool. A user that's not
+yet ready to fully embrace branches could therefore have locked in this
+context by executing the following command after running [`create`](#create)
+to initiate our new example pool.
+```
+zed lake use -p logs
+```
+
 When you want to specify a branch in another pool, you simply prepend
 the pool name to the branch:
 ```
@@ -226,7 +236,6 @@ zed lake load -i parquet sample4.parquet
 zed lake load -i zst sample5.zst
 ```
 
-By default, the data is committed into the `main` branch of the pool.
 An alternative branch may be specified using the `@` separator,
 i.e., `<pool>@<branch>`.  Supposing there was a branch called `updates`,
 data can be committed into this branch as follows:
@@ -374,8 +383,8 @@ These range queries are efficiently implemented as the data is laid out
 according to the pool key and seek indexes keyed by the pool key
 are computed for each data object.
 
-Lake queries also can refer to HEAD either implicitly by omitting
-the `from` operator:
+Lake queries also can refer to HEAD (i.e., the branch context set in the most
+recent `use` command) either implicitly by omitting the `from` operator:
 ```
 zed lake query '*'
 ```
