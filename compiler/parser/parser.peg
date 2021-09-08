@@ -1342,7 +1342,7 @@ Regexp
   = "/" body:RegexpBody "/" !KeyWordStart { RETURN(body) }
 
 RegexpBody
-  = ([^/\\]/"\\/")+ { RETURN(TEXT) }
+  = ([^/\\] / "\\" .)+ { RETURN(TEXT) }
 
 EscapedChar
   = [\x00-\x1f\\]
