@@ -42,3 +42,7 @@ func (c *Commitish) FromSpec(meta string) (string, error) {
 func (c *Commitish) String() string {
 	return fmt.Sprintf("%s@%s", c.Pool, c.Branch)
 }
+
+func (c *Commitish) IsZero() bool {
+	return c.Pool == "" && c.Branch == ""
+}
