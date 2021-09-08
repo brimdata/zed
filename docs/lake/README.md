@@ -194,8 +194,8 @@ to the indicated branch, e.g.,
 zed lake use staging
 ```
 As previously noted, Zed lakes can be used without thinking about branches.
-The `use` command includes a `-p` option that can specify a pool name, which
-sets the current context to the `main` branch of that pool. A user that's not
+To this end, the `use` command includes a `-p` option that sets the current
+branch context to the indicated pool's `main` branch. A user that's not
 yet ready to fully embrace branches could therefore have locked in this
 context by executing the following command after running [`create`](#create)
 to initiate our new example pool.
