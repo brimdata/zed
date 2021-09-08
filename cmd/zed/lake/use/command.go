@@ -83,10 +83,11 @@ func (c *Command) Run(args []string) error {
 	case 0:
 		if c.poolName == "" {
 			head, err := c.lakeFlags.HEAD()
-			if err == nil && !head.IsZero() {
-				fmt.Printf("HEAD at %s\n", head)
+			if err != nil || head.IsZero() {
+				return errors.New("no branch HEAD set: pool name and branch name or commit ID must be given")
 			}
-			return errors.New("no branch HEAD set: pool name and branch name or commit ID must be given")
+			fmt.Printf("HEAD at %s\n", head)
+			return nil
 		}
 		poolName, branchName = c.poolName, "main"
 	case 1:
