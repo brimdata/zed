@@ -78,33 +78,38 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer cleanup()
-	var branchName, baseName string
+	var poolName, branchName, baseName string
 	switch len(args) {
 	case 0:
 		if c.poolName == "" {
-			return errors.New("a branch name or commit ID must be given")
+			head, err := c.lakeFlags.HEAD()
+			if err != nil || head.IsZero() {
+				return errors.New("no branch HEAD set: pool name and branch name or commit ID must be given")
+			}
+			fmt.Printf("HEAD at %s\n", head)
+			return nil
 		}
+		poolName, branchName = c.poolName, "main"
 	case 1:
 		branchName = args[0]
+		if c.poolName != "" {
+			poolName, baseName = c.poolName, "main"
+		} else if head, err := c.lakeFlags.HEAD(); err == nil {
+			poolName, baseName = head.Pool, head.Branch
+		}
 	case 2:
+		if !c.branch {
+			return errors.New("cannot specify a base for a new branch without -b")
+		}
 		branchName = args[0]
 		baseName = args[1]
+		if c.poolName != "" {
+			poolName = c.poolName
+		} else if head, err := c.lakeFlags.HEAD(); err == nil {
+			poolName = head.Pool
+		}
 	default:
 		return errors.New("too many arguments")
-	}
-	if baseName != "" && !c.branch {
-		return errors.New("cannot specify a base for a new branch without -b")
-	}
-	head, err := c.lakeFlags.HEAD()
-	if err != nil {
-		return err
-	}
-	poolName := head.Pool
-	if c.poolName != "" {
-		poolName = c.poolName
-		if branchName == "" {
-			branchName = "main"
-		}
 	}
 	commitish, err := lakeparse.ParseCommitish(branchName)
 	if err != nil {
@@ -115,10 +120,7 @@ func (c *Command) Run(args []string) error {
 		poolName, branchName = poolSpec, branchSpec
 	}
 	if poolName == "" {
-		if c.poolName == "" {
-			return lakeflags.ErrNoHEAD
-		}
-
+		return lakeflags.ErrNoHEAD
 	}
 	lake, err := c.lake.Open(ctx)
 	if err != nil {
@@ -136,7 +138,7 @@ func (c *Command) Run(args []string) error {
 			return errors.New("new branch name cannot be a commit ID")
 		}
 		if baseName == "" {
-			baseName = head.Branch
+			return errors.New("no HEAD or branch base specified for -b")
 		}
 		baseCommit, err := lakeparse.ParseID(baseName)
 		if err != nil {
