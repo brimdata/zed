@@ -1,0 +1,8 @@
+# Add \a and \v when they can be be represented in a ZSON string
+# (https://github.com/brimdata/zed/issues/3041).
+zed: '/\f\t\n\r\(\)\*\+\.\/\?\[\]\{\}/'
+
+input: &input |
+  {a:"\f\t\n\r()*+./?[]{}"}
+
+output: *input
