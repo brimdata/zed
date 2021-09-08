@@ -1,6 +1,7 @@
 package inputflags
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
@@ -46,13 +47,13 @@ func (f *Flags) Init() error {
 	return nil
 }
 
-func (f *Flags) Open(zctx *zson.Context, engine storage.Engine, paths []string, stopOnErr bool) ([]zio.Reader, error) {
+func (f *Flags) Open(ctx context.Context, zctx *zson.Context, engine storage.Engine, paths []string, stopOnErr bool) ([]zio.Reader, error) {
 	var readers []zio.Reader
 	for _, path := range paths {
 		if path == "-" {
 			path = "stdio:stdin"
 		}
-		file, err := anyio.OpenFile(zctx, engine, path, f.ReaderOpts)
+		file, err := anyio.Open(ctx, zctx, engine, path, f.ReaderOpts)
 		if err != nil {
 			err = fmt.Errorf("%s: %w", path, err)
 			if stopOnErr {

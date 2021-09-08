@@ -30,12 +30,10 @@ func createLake(t *testing.T, rootPath *storage.URI, srcfile string) {
 }
 
 func importTestFile(t *testing.T, engine storage.Engine, branch *lake.Branch, srcfile string) {
-	zctx := zson.NewContext()
-	reader, err := anyio.OpenFile(zctx, engine, srcfile, anyio.ReaderOpts{})
+	ctx := context.Background()
+	reader, err := anyio.Open(ctx, zson.NewContext(), engine, srcfile, anyio.ReaderOpts{})
 	require.NoError(t, err)
 	defer reader.Close()
-
-	ctx := context.Background()
 	_, err = branch.Load(ctx, reader, "", "")
 	require.NoError(t, err)
 }

@@ -143,7 +143,7 @@ func (c *Command) Run(args []string) error {
 	}
 	zctx := zson.NewContext()
 	local := storage.NewLocalEngine()
-	readers, err := c.inputFlags.Open(zctx, local, paths, c.stopErr)
+	readers, err := c.inputFlags.Open(ctx, zctx, local, paths, c.stopErr)
 	if err != nil {
 		return err
 	}

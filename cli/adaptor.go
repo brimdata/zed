@@ -49,7 +49,7 @@ func (f *FileAdaptor) Open(ctx context.Context, zctx *zson.Context, path string,
 	if path == "-" {
 		path = "stdio:stdin"
 	}
-	file, err := anyio.OpenFile(zctx, f.engine, path, anyio.ReaderOpts{})
+	file, err := anyio.Open(ctx, zctx, f.engine, path, anyio.ReaderOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}

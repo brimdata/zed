@@ -10,15 +10,9 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-// OpenFile creates and returns zbuf.File for the indicated "path",
-// which can be a local file path, a local directory path, or an S3
-// URL. If the path is neither of these or can't otherwise be opened,
-// an error is returned.
-func OpenFile(zctx *zson.Context, engine storage.Engine, path string, opts ReaderOpts) (*zbuf.File, error) {
-	return OpenFileWithContext(context.Background(), zctx, engine, path, opts)
-}
-
-func OpenFileWithContext(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string, opts ReaderOpts) (*zbuf.File, error) {
+// Open uses engine to open path for reading.  path is a local file path or a
+// URI whose scheme is understood by engine.
+func Open(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string, opts ReaderOpts) (*zbuf.File, error) {
 	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, err
@@ -27,10 +21,10 @@ func OpenFileWithContext(ctx context.Context, zctx *zson.Context, engine storage
 	if err != nil {
 		return nil, err
 	}
-	return OpenFromNamedReadCloser(zctx, f, path, opts)
+	return NewFile(zctx, f, path, opts)
 }
 
-func OpenFromNamedReadCloser(zctx *zson.Context, rc io.ReadCloser, path string, opts ReaderOpts) (*zbuf.File, error) {
+func NewFile(zctx *zson.Context, rc io.ReadCloser, path string, opts ReaderOpts) (*zbuf.File, error) {
 	var err error
 	r := io.Reader(rc)
 	if opts.Format != "parquet" && opts.Format != "zst" {
