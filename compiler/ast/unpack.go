@@ -12,7 +12,7 @@ var unpacker = unpack.New(
 	zed.Array{},
 	ArrayExpr{},
 	Assignment{},
-	OpExprs{},
+	OpAssignment{},
 	BinaryExpr{},
 	Call{},
 	Cast{},

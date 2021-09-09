@@ -292,12 +292,12 @@ type (
 		Args []Assignment `json:"args"`
 	}
 
-	// An OpExprs proc is a list of assignments whose parent proc
-	// is unknown: It could be a Filter, Summarize, or Put proc. This
-	// will be determined in the semantic phase.
-	OpExprs struct {
-		Kind  string `json:"kind" unpack:""`
-		Exprs []Expr `json:"exprs"`
+	// An OpAssignment proc is a list of assignments whose parent proc
+	// is unknown: It could be a Summarize or Put proc. This will be
+	// determined in the semantic phase.
+	OpAssignment struct {
+		Kind        string       `json:"kind" unpack:""`
+		Assignments []Assignment `json:"assignments"`
 	}
 
 	// A Rename proc represents a proc that renames fields.
@@ -458,31 +458,31 @@ type Assignment struct {
 	RHS  Expr   `json:"rhs"`
 }
 
-func (*Sequential) ProcAST() {}
-func (*Parallel) ProcAST()   {}
-func (*Switch) ProcAST()     {}
-func (*Sort) ProcAST()       {}
-func (*Cut) ProcAST()        {}
-func (*Pick) ProcAST()       {}
-func (*Drop) ProcAST()       {}
-func (*Head) ProcAST()       {}
-func (*Tail) ProcAST()       {}
-func (*Pass) ProcAST()       {}
-func (*Filter) ProcAST()     {}
-func (*Uniq) ProcAST()       {}
-func (*Summarize) ProcAST()  {}
-func (*Top) ProcAST()        {}
-func (*Put) ProcAST()        {}
-func (*OpExprs) ProcAST()    {}
-func (*Rename) ProcAST()     {}
-func (*Fuse) ProcAST()       {}
-func (*Join) ProcAST()       {}
-func (*Const) ProcAST()      {}
-func (*TypeProc) ProcAST()   {}
-func (*Call) ProcAST()       {}
-func (*Shape) ProcAST()      {}
-func (*From) ProcAST()       {}
-func (*Explode) ProcAST()    {}
+func (*Sequential) ProcAST()   {}
+func (*Parallel) ProcAST()     {}
+func (*Switch) ProcAST()       {}
+func (*Sort) ProcAST()         {}
+func (*Cut) ProcAST()          {}
+func (*Pick) ProcAST()         {}
+func (*Drop) ProcAST()         {}
+func (*Head) ProcAST()         {}
+func (*Tail) ProcAST()         {}
+func (*Pass) ProcAST()         {}
+func (*Filter) ProcAST()       {}
+func (*Uniq) ProcAST()         {}
+func (*Summarize) ProcAST()    {}
+func (*Top) ProcAST()          {}
+func (*Put) ProcAST()          {}
+func (*OpAssignment) ProcAST() {}
+func (*Rename) ProcAST()       {}
+func (*Fuse) ProcAST()         {}
+func (*Join) ProcAST()         {}
+func (*Const) ProcAST()        {}
+func (*TypeProc) ProcAST()     {}
+func (*Call) ProcAST()         {}
+func (*Shape) ProcAST()        {}
+func (*From) ProcAST()         {}
+func (*Explode) ProcAST()      {}
 
 func (*SQLExpr) ProcAST() {}
 

@@ -112,7 +112,8 @@ Operation
       RETURN(MAP("kind": "From", "trunks": trunks))
     }
   / Operator
-  / a:OpExprs &EndOfOp { RETURN(a) }
+  / f:Function &EndOfOp { RETURN(f) }
+  / a:OpAssignment &EndOfOp { RETURN(a) }
   / a:Aggregation &EndOfOp  { RETURN(a) }
   / expr:SearchBoolean !AggGuard {
       RETURN(MAP("kind": "Filter", "expr": expr))
@@ -385,7 +386,7 @@ UniqProc
     }
 
 PutProc
-  = "put"i _ args:FlexAssignments {
+  = "put"i _ args:Assignments {
       RETURN(MAP("kind": "Put", "args": args))
     }
 
@@ -455,20 +456,15 @@ SampleProc
                                 "rhs": MAP("kind": "ID", "name": "sample")))))))
     }
 
-// OpExprs is a top level operator that contains a list of function calls or
-// assignment expressions. It is in an ambiguous state and could either be
-//   1) a summarize proc,
-//   2) a put proc, or
-//   3) a filter.
-//  The semantic pass is responsible for converting it to one of the three.
-OpExprs
-  = first:OpExpr rest:(__ "," __ expr:OpExpr { RETURN(expr) })* {
-    RETURN(MAP("kind": "OpExprs", "exprs": PREPEND(first, rest)))
+// OpAssignment is a top level operator that contains a list of assignment
+// expressions. It is in an ambiguous state and could either be:
+//   1) A summarize proc.
+//   2) A put proc.
+//  The semantic pass is responsible for converting it to one of the two.
+OpAssignment
+  = a:Assignments {
+    RETURN(MAP("kind": "OpAssignment", "assignments": a))
   }
-
-OpExpr
- = Assignment
- / Function
 
 SampleExpr
   = _ lval:Lval { RETURN(lval)}
@@ -598,6 +594,11 @@ FieldExprs
 
       RETURN(result)
     }
+
+Assignments
+  = first:Assignment rest:(__ "," __ a:Assignment { RETURN(a) })* {
+    RETURN(PREPEND(first, rest))
+  }
 
 Assignment
   = lhs:Lval __ ":=" __ rhs:Expr { RETURN(MAP("kind": "Assignment", "lhs": lhs, "rhs": rhs)) }

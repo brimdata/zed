@@ -686,8 +686,8 @@ time                        uid
 |                           |                                                 |
 | ------------------------- | ----------------------------------------------- |
 | **Description**           | Add/update fields based on the results of an expression.<br><br>If evaluation of any expression fails, a warning is emitted and the original record is passed through unchanged.<br><br>As this operation is very common, the `put` keyword is optional. |
-| **Syntax**                | `[put] (<field> := <expression>) \| <call-expression> [, (<field> := <expression>) \| <call-expression> ...]` |
-| **Required arguments**    | One or more of either:<br><br>`<field> := <expression>`<br>Any valid Zed [expression](../expressions/README.md), preceded by the assignment operator `:=` and the name of a field in which to store the result.<br><br>`<call-expression>`<br>A call to a function. When this shorthand is used, the value returned by the function will be stored in a field of the same name as the function. |
+| **Syntax**                | `[put] <field> := <expression> [, (<field> := <expression>)...]` |
+| **Required arguments**    | One or more of:<br><br>`<field> := <expression>`<br>Any valid Zed [expression](../expressions/README.md), preceded by the assignment operator `:=` and the name of a field in which to store the result. |
 | **Optional arguments**    | None |
 | **Limitations**           | If multiple fields are written in a single `put`, all the new field values are computed first and then they are all written simultaneously.  As a result, a computed value cannot be referenced in another expression.  If you need to re-use a computed result, this can be done by chaining multiple `put` operators.  For example, this will not work:<br>`put N:=len(somelist), isbig:=N>10`<br>But it could be written instead as:<br>`put N:=len(somelist) \| put isbig:=N>10` |
 
@@ -711,18 +711,17 @@ id.orig_h     id.orig_p id.resp_h       id.resp_p orig_bytes resp_bytes total_by
 
 #### Example #2:
 
-As noted above, shorthand syntax may be used, such as leaving out the optional
-`put` keyword or calling a function without specifying a field name in which
-to store the value it returns. Using both of these shortcuts, here we create
-a field to hold the lowercase representation of another field value.
+As noted above the `put` keyword is entirely optional. Here we omit
+it and create a new field to hold the lowercase representation of
+another field value.
 
 ```mdtest-command zed-sample-data/zeek-default
-zq -f table 'cut method | to_lower(method)' http.log.gz
+zq -f table 'cut method | lower_method:=to_lower(method)' http.log.gz
 ```
 
 #### Output:
 ```mdtest-output head
-method  to_lower
+method  lower_method
 GET     get
 GET     get
 ...

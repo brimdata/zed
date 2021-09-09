@@ -11,7 +11,7 @@ script: |
   zed lake query -Z 'from poolA@main:log | cut nameof(this) | drop ts'
   echo ===
   zed lake index create -q Rule field a
-  zed lake query -Z 'from :index_rules | put nameof(this) | drop ts,id'
+  zed lake query -Z 'from :index_rules | nameof:=nameof(this) | drop ts,id'
 
 inputs:
   - name: a.zson
