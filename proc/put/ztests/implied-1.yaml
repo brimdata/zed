@@ -1,9 +1,9 @@
-zed: 'put y:=x+1,to_lower(s),typeof(s)'
+zed: y := x + 1
 
 input: |
-  {a:[]([int32]),x:1(int32),s:"foo",b:0x68656c6c6f0a}
-  {a:[1(int32)],x:2(int32),s:"Bar",b:0x74686572650a}
+  {x:1(int32)}
+  {x:2(int32)}
 
 output: |
-  {a:[]([int32]),x:1(int32),s:"foo",b:0x68656c6c6f0a,y:2,to_lower:"foo",typeof:(string)}
-  {a:[1(int32)],x:2(int32),s:"Bar",b:0x74686572650a,y:3,to_lower:"bar",typeof:(string)}
+  {x:1(int32),y:2}
+  {x:2(int32),y:3}

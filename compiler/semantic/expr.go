@@ -9,6 +9,7 @@ import (
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/agg"
+	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/field"
 )
 
@@ -499,6 +500,33 @@ func semField(scope *Scope, e ast.Expr) (dag.Expr, error) {
 	// This includes a null Expr, which can happen if the AST is missing
 	// a field or sets it to null.
 	return nil, errors.New("expression is not a field reference.")
+}
+
+func convertCallProc(scope *Scope, call *ast.Call) (dag.Op, error) {
+	agg, err := maybeConvertAgg(scope, call)
+	if err != nil || agg != nil {
+		return &dag.Summarize{
+			Kind: "Summarize",
+			Aggs: []dag.Assignment{
+				{
+					Kind: "Assignment",
+					LHS:  &dag.Path{"Path", field.New(call.Name)},
+					RHS:  agg,
+				},
+			},
+		}, err
+	}
+	if !function.HasBoolResult(call.Name) {
+		return nil, fmt.Errorf("bad expression in filter: function %q does not return a boolean value", call.Name)
+	}
+	c, err := semCall(scope, call)
+	if err != nil {
+		return nil, err
+	}
+	return &dag.Filter{
+		Kind: "Filter",
+		Expr: c,
+	}, nil
 }
 
 func maybeConvertAgg(scope *Scope, call *ast.Call) (dag.Expr, error) {

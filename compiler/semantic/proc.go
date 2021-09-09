@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
-	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
@@ -352,6 +351,8 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Expr:  expr,
 			Cases: cases,
 		}, nil
+	case *ast.Call:
+		return convertCallProc(scope, p)
 	case *ast.Shape:
 		return &dag.Shape{"Shape"}, nil
 	case *ast.Cut:
@@ -452,8 +453,8 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Kind: "Put",
 			Args: assignments,
 		}, nil
-	case *ast.OpExprs:
-		return semOpExprs(ctx, scope, p, adaptor, head)
+	case *ast.OpAssignments:
+		return semOpAssignments(ctx, scope, p, adaptor, head)
 	case *ast.Rename:
 		var assignments []dag.Assignment
 		for _, fa := range p.Args {
@@ -618,39 +619,18 @@ func isConst(p ast.Proc) bool {
 	return false
 }
 
-func semOpExprs(ctx context.Context, scope *Scope, p *ast.OpExprs, a proc.DataAdaptor, head *lakeparse.Commitish) (dag.Op, error) {
-	if len(p.Exprs) == 1 {
-		// If there is only one expressions and that expression is a call with
-		// a boolean return, convert to Filter.
-		if call, ok := p.Exprs[0].(*ast.Call); ok && function.HasBoolResult(call.Name) {
-			filter := &ast.Filter{Kind: "Filter", Expr: p.Exprs[0]}
-			return semProc(ctx, scope, filter, a, head)
-		}
-	}
+func semOpAssignments(ctx context.Context, scope *Scope, p *ast.OpAssignments, a proc.DataAdaptor, head *lakeparse.Commitish) (dag.Op, error) {
 	var aggs, puts []dag.Assignment
-	for i := range p.Exprs {
-	again:
-		switch arg := p.Exprs[i].(type) {
-		case *ast.Call:
-			// Convert calls to flex assignment.
-			p.Exprs[i] = &ast.Assignment{
-				Kind: "Assignment",
-				RHS:  arg,
-			}
-			goto again
-		case *ast.Assignment:
-			// Parition assignments into agg vs. puts
-			assignment, err := semAssignment(scope, *arg)
-			if err != nil {
-				return nil, err
-			}
-			if _, ok := assignment.RHS.(*dag.Agg); ok {
-				aggs = append(aggs, assignment)
-			} else {
-				puts = append(puts, assignment)
-			}
-		default:
-			return nil, errors.New("invalid expression in assignment list")
+	for _, a := range p.Assignments {
+		// Parition assignments into agg vs. puts
+		assignment, err := semAssignment(scope, a)
+		if err != nil {
+			return nil, err
+		}
+		if _, ok := assignment.RHS.(*dag.Agg); ok {
+			aggs = append(aggs, assignment)
+		} else {
+			puts = append(puts, assignment)
 		}
 	}
 	if len(puts) > 0 && len(aggs) > 0 {
