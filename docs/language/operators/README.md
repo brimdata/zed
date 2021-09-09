@@ -716,12 +716,12 @@ the `put` keyword and create a new field to hold the lowercase
 representation of another field value.
 
 ```mdtest-command zed-sample-data/zeek-default
-zq -f table 'cut method | to_lower:=to_lower(method)' http.log.gz
+zq -f table 'cut method | lower_method:=to_lower(method)' http.log.gz
 ```
 
 #### Output:
 ```mdtest-output head
-method  to_lower
+method  lower_method
 GET     get
 GET     get
 ...
