@@ -4,4 +4,4 @@ input: |
   {x:123}
 
 output: |
-  {x:123} (=foo)
+  {x:123}(=foo)

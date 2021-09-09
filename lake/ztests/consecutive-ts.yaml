@@ -1,9 +1,9 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -p logs -orderby ts:desc
-  zed lake load -q -p logs -seekstride 11B in.zson
-  zq -z test/*/D/*-seek.zng
+  zed lake create -q -orderby ts:desc logs
+  zed lake load -use logs@main -q -seekstride 11B in.zson
+  zq -z test/*/data/*-seek.zng
 
 inputs:
   - name: in.zson
@@ -30,7 +30,6 @@ inputs:
 # keys of the same value as that would cause relevant keys to be
 # otherwise skipped over.
 #
-
 outputs:
   - name: stdout
     data: |

@@ -5,17 +5,17 @@ script: |
 inputs:
   - name: in.zson
     data: |
-      {x:1 (int32)} (=0)
-      {x:-1} (0)
-      {x:2} (0)
-      {x:1} (0)
-      {x:8} (0)
-      {x:1} (0)
+      {x:1(int32)}
+      {x:-1(int32)}
+      {x:2(int32)}
+      {x:1(int32)}
+      {x:8(int32)}
+      {x:1(int32)}
 
 outputs:
   - name: union.zson
     data: |
-      {union:|[1 (int32),-1 (int32),2 (int32),8 (int32)]| (=0)} (=1)
+      {union:|[1(int32),-1(int32),2(int32),8(int32)]|}
   - name: collect.zson
     data: |
-      {collect:[1 (int32),-1 (int32),2 (int32),1 (int32),8 (int32),1 (int32)] (=0)} (=1)
+      {collect:[1(int32),-1(int32),2(int32),1(int32),8(int32),1(int32)]}

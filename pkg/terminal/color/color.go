@@ -10,6 +10,7 @@ type Code int
 
 var (
 	Reset      Code = -1
+	Bold       Code = -2
 	Red        Code = 1
 	Green      Code = 2
 	GrayYellow Code = 3
@@ -25,6 +26,9 @@ func (code Code) String() string {
 		if code == Reset {
 			return "\u001b[0m"
 		}
+		if code == Bold {
+			return "\u001b[1m"
+		}
 		return fmt.Sprintf("\u001b[38;5;%dm", code)
 	}
 	return ""
@@ -35,6 +39,13 @@ func (code Code) Colorize(s string) string {
 		return s
 	}
 	return code.String() + s + Reset.String()
+}
+
+func Embolden(s string) string {
+	if !Enabled {
+		return s
+	}
+	return Bold.Colorize(s)
 }
 
 func Gray(level int) Code {

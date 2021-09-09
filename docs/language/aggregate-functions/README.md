@@ -1,8 +1,11 @@
-# Aggregate Functions
+# Summarize Aggregations
 
-A pipeline may contain one or more _aggregate functions_ that operate on
+The `summarize` operator performs zero or more aggregations with
+zero or more [grouping expressions](../grouping/README.md).
+Each aggregation is performed by an
+_aggregate function_ that operates on
 batches of records to carry out a running computation over the values they
-contain.
+contain.  The `summarize` keyword is optional.
 
    * [General Usage](#general-usage)
      + [Invoking](#invoking)
@@ -43,7 +46,7 @@ zq -f table 'min(duration),max(duration),avg(duration)' conn.log.gz
 
 #### Output:
 ```mdtest-output
-MIN      MAX         AVG
+min      max         avg
 0.000001 1269.512465 1.6373747834138621
 ```
 
@@ -61,7 +64,7 @@ zq -f table 'quickest:=min(duration),longest:=max(duration),typical:=avg(duratio
 
 #### Output:
 ```mdtest-output
-QUICKEST LONGEST     TYPICAL
+quickest longest     typical
 0.000001 1269.512465 1.6373747834138621
 ```
 
@@ -88,7 +91,7 @@ zq -f table 'answers != null | every 5m short_rtt:=avg(rtt) where len(answers)<=
 
 #### Output:
 ```mdtest-output
-TS                   SHORT_RTT            SHORT_COUNT LONG_RTT             LONG_COUNT
+ts                   short_rtt            short_count long_rtt             long_count
 2018-03-24T17:15:00Z 0.004386461911629731 7628        0.01571223665048545  824
 2018-03-24T17:20:00Z 0.006360169034406226 9010        0.01992656544502617  764
 2018-03-24T17:25:00Z 0.006063177039132521 8486        0.02742244411764705  680
@@ -120,7 +123,7 @@ zq -f table 'count() by name | sort -r count' weird.log.gz
 
 #### Output:
 ```mdtest-output head
-NAME                                        COUNT
+name                                        count
 bad_HTTP_request                            11777
 line_terminated_with_single_CR              11734
 unknown_HTTP_method                         140
@@ -137,7 +140,7 @@ zq -f table 'only_bads:=and(name=="bad_HTTP_request") by uid | count() where onl
 
 #### Output:
 ```mdtest-output
-COUNT
+count
 37
 ```
 
@@ -166,7 +169,7 @@ case, the output is:
 
 #### Output:
 ```mdtest-output
-ANY
+any
 TCP_ack_underflow_or_misorder
 ```
 
@@ -192,7 +195,7 @@ zq -f table 'avg(orig_bytes)' conn.log.gz
 
 #### Output:
 ```mdtest-output
-AVG
+avg
 176.9861548654682
 ```
 
@@ -218,7 +221,7 @@ zq -f table 'host=="www.bing.com" | methods:=collect(method) by uid | sort uid' 
 
 #### Output:
 ```mdtest-output head
-UID                METHODS
+uid                methods
 C1iilt2FG8PnyEl0bb GET,GET,POST,GET,GET,POST
 C31wi6XQB8h9igoa5  GET,GET,POST,POST,POST
 CFwagt4ivDe3p6R7U8 GET,GET,POST,POST,GET,GET,GET,POST,POST,GET,GET,GET,GET,POST
@@ -247,7 +250,7 @@ zq -f table 'count()' *.log.gz
 
 #### Output:
 ```mdtest-output
-COUNT
+count
 1462078
 ```
 
@@ -262,7 +265,7 @@ zq -f table 'count(mime_type) by _path | filter count > 0 | sort -r count' *.log
 ```
 
 ```mdtest-output
-_PATH COUNT
+_path count
 files 162986
 ftp   93
 ```
@@ -289,7 +292,7 @@ zq -f table 'countdistinct(uid)' *
 
 #### Output:
 ```mdtest-output
-COUNTDISTINCT
+countdistinct
 1029651
 ```
 
@@ -301,7 +304,7 @@ zq -f table 'count() by uid | count()' *
 
 #### Output:
 ```mdtest-output
-COUNT
+count
 1021953
 ```
 
@@ -330,7 +333,7 @@ zq -f table 'max(orig_bytes)' conn.log.gz
 
 #### Output:
 ```mdtest-output
-MAX
+max
 4862366
 ```
 
@@ -356,7 +359,7 @@ zq -f table 'min(rtt)' dns.log.gz
 
 #### Output:
 ```mdtest-output
-MIN
+min
 0.000012
 ```
 
@@ -382,7 +385,7 @@ zq -f table 'count() by id.resp_p | sort -r count' http.log.gz
 
 #### Output:
 ```mdtest-output head
-ID.RESP_P COUNT
+id.resp_p count
 80        134496
 8080      5204
 5800      1691
@@ -394,13 +397,13 @@ The following query confirms this high-port traffic is present, but that none
 of those ports are higher than what TCP allows.
 
 ```mdtest-command zed-sample-data/zeek-default
-zq -f table 'some_highports:=or(id.resp_p>80),impossible_ports:=or(id.resp_p>65535)' http.log.gz
+zq -f table 'some_high_ports:=or(id.resp_p>80),impossible_ports:=or(id.resp_p>65535)' http.log.gz
 ```
 
 #### Output:
 ```mdtest-output
-SOME_HIGHPORTS IMPOSSIBLE_PORTS
-T              F
+some_high_ports impossible_ports
+T               F
 ```
 
 ---
@@ -425,7 +428,7 @@ zq -f table 'sum(total_bytes)' files.log.gz
 
 #### Output:
 ```mdtest-output
-SUM
+sum
 3092961270
 ```
 
@@ -452,7 +455,7 @@ zq -f table 'host=="www.bing.com" | methods:=union(method) by uid | sort uid' ht
 
 #### Output:
 ```mdtest-output head
-UID                METHODS
+uid                methods
 C1iilt2FG8PnyEl0bb GET,POST
 C31wi6XQB8h9igoa5  GET,POST
 CFwagt4ivDe3p6R7U8 GET,POST

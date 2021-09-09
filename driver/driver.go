@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/mux"
@@ -71,9 +72,9 @@ func RunJoinWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx
 	return runtime.Statser().Stats(), err
 }
 
-func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor) (zbuf.ScannerStats, error) {
+func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor, head *lakeparse.Commitish) (zbuf.ScannerStats, error) {
 	pctx := proc.NewContext(ctx, zctx, nil)
-	runtime, err := compiler.CompileForLake(pctx, program, lake, 0)
+	runtime, err := compiler.CompileForLake(pctx, program, lake, 0, head)
 	if err != nil {
 		pctx.Cancel()
 		return zbuf.ScannerStats{}, err
@@ -82,9 +83,9 @@ func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Con
 	return runtime.Statser().Stats(), err
 }
 
-func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor, ticker <-chan time.Time, logger *zap.Logger, parallelism int) error {
+func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor, head *lakeparse.Commitish, ticker <-chan time.Time, logger *zap.Logger, parallelism int) error {
 	pctx := proc.NewContext(ctx, zctx, logger)
-	runtime, err := compiler.CompileForLake(pctx, program, lake, parallelism)
+	runtime, err := compiler.CompileForLake(pctx, program, lake, parallelism, head)
 	if err != nil {
 		pctx.Cancel()
 		return err
@@ -95,37 +96,30 @@ func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *
 func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-chan time.Time) error {
 	puller := runtime.Puller()
 	if puller == nil {
-		pctx.Cancel()
 		return errors.New("internal error: driver called with unprepared runtime")
 	}
 	statser := runtime.Statser()
 	if statser == nil && statsTicker != nil {
-		pctx.Cancel()
 		return errors.New("internal error: driver wants live stats but runtime has no statser")
 	}
-	pullerCh := make(chan zbuf.Batch)
-	done := make(chan error)
-	defer func() {
-		pctx.Cancel()
-		<-pullerCh
-		<-done
-	}()
+	resultCh := make(chan proc.Result)
 	go func() {
 		for {
-			// We can simply call Pull here knowing it will return
-			// when pctx.Cancel() is called on exit from our
-			// parent goroutine and we won't block because pullerCh
-			// and done are always read on exit.
 			batch, err := safePull(puller)
+			resultCh <- proc.Result{Batch: batch, Err: err}
 			if batch == nil || err != nil {
-				close(pullerCh)
-				if err != nil {
-					done <- err
-				}
-				close(done)
+				close(resultCh)
 				return
 			}
-			pullerCh <- batch
+		}
+	}()
+	defer func() {
+		pctx.Cancel()
+		// Drain resultCh so puller sees cancellation and can clean up.
+		for {
+			if _, ok := <-resultCh; !ok {
+				return
+			}
 		}
 	}()
 	for {
@@ -134,9 +128,9 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 			if err := d.Stats(api.ScannerStats(statser.Stats())); err != nil {
 				return err
 			}
-		case p := <-pullerCh:
-			if p == nil {
-				err := <-done
+		case result := <-resultCh:
+			if result.Batch == nil || result.Err != nil {
+				err := result.Err
 				// Now that we're done, drain the warnings.
 				// This is a little goofy and we should clean
 				// up the warnings model with its own package.
@@ -161,7 +155,7 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 				}
 				return err
 			}
-			batch, cid := extractLabel(p)
+			batch, cid := extractLabel(result.Batch)
 			if batch == nil {
 				if err := d.ChannelEnd(cid); err != nil {
 					return err
@@ -175,6 +169,8 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 			if err := d.Warn(warning); err != nil {
 				return err
 			}
+		case <-pctx.Done():
+			return pctx.Err()
 		}
 	}
 }
@@ -262,8 +258,8 @@ func (d *transformDriver) Warn(warning string) error          { return nil }
 func (d *transformDriver) Stats(stats api.ScannerStats) error { return nil }
 func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
 
-// Copy applies a proc to all records from a zbuf.Reader, writing to a
-// single zbuf.Writer. The proc must have a single tail.
+// Copy applies a proc to all records from a zio.Reader, writing to a
+// single zio.Writer. The proc must have a single tail.
 func Copy(ctx context.Context, w zio.Writer, prog ast.Proc, zctx *zson.Context, r zio.Reader, logger *zap.Logger) error {
 	d := &transformDriver{w: w}
 	return RunWithReader(ctx, d, prog, zctx, r, logger)

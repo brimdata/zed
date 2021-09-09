@@ -45,7 +45,7 @@ const sortedStrings = `
 
 // A point that can be included with unsortedInts
 const unsetInt = `
-{foo:null (int64)}
+{foo:null(int64)}
 `
 
 // Some records that don't include the field "foo".  These are combined
@@ -135,7 +135,7 @@ func runTest(t *testing.T, cmd, input, output string) {
 		Zed:    cmd,
 		Input:  input,
 		Output: trim(output),
-	}).Run(t, "", "", "", "")
+	}).Run(t, "", "")
 }
 
 func TestSort(t *testing.T) {

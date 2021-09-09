@@ -192,6 +192,7 @@ type (
 	// a stream of records from their parent.
 	Switch struct {
 		Kind  string `json:"kind" unpack:""`
+		Expr  Expr   `json:"expr"`
 		Cases []Case `json:"cases"`
 	}
 	// A Sort proc represents a proc that sorts records.
@@ -291,6 +292,14 @@ type (
 		Args []Assignment `json:"args"`
 	}
 
+	// An OpExprs proc is a list of assignments whose parent proc
+	// is unknown: It could be a Filter, Summarize, or Put proc. This
+	// will be determined in the semantic phase.
+	OpExprs struct {
+		Kind  string `json:"kind" unpack:""`
+		Exprs []Expr `json:"exprs"`
+	}
+
 	// A Rename proc represents a proc that renames fields.
 	Rename struct {
 		Kind string       `json:"kind" unpack:""`
@@ -368,11 +377,11 @@ type (
 		Layout *Layout `json:"layout"`
 	}
 	Pool struct {
-		Kind      string `json:"kind" unpack:""`
-		Name      string `json:"name"`
-		At        string `json:"at"`
-		Range     *Range `json:"range"`
-		ScanOrder string `json:"scan_order"` // asc, desc, or unknown
+		Kind      string   `json:"kind" unpack:""`
+		Spec      PoolSpec `json:"spec"`
+		At        string   `json:"at"`
+		Range     *Range   `json:"range"`
+		ScanOrder string   `json:"scan_order"` // asc, desc, or unknown
 	}
 	Explode struct {
 		Kind string   `json:"kind" unpack:""`
@@ -381,6 +390,12 @@ type (
 		As   Expr     `json:"as"`
 	}
 )
+
+type PoolSpec struct {
+	Pool   string `json:"pool"`
+	Commit string `json:"commit"`
+	Meta   string `json:"meta"`
+}
 
 type Range struct {
 	Kind  string `json:"kind" unpack:""`
@@ -458,6 +473,7 @@ func (*Uniq) ProcAST()       {}
 func (*Summarize) ProcAST()  {}
 func (*Top) ProcAST()        {}
 func (*Put) ProcAST()        {}
+func (*OpExprs) ProcAST()    {}
 func (*Rename) ProcAST()     {}
 func (*Fuse) ProcAST()       {}
 func (*Join) ProcAST()       {}

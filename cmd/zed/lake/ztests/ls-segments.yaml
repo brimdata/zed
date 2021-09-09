@@ -1,10 +1,10 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -p test
-  zed lake load -q -p test 1.zson
-  zed lake load -q -p test 2.zson
-  zed lake ls -p test
+  zed lake create -q test
+  zed lake load -q -use test@main 1.zson
+  zed lake load -q -use test@main 2.zson
+  zed lake query -f lake "from test@main:objects"
 
 inputs:
   - name: 1.zson

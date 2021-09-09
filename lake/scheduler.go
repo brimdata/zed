@@ -5,9 +5,10 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/expr/extent"
-	"github.com/brimdata/zed/lake/commit"
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
@@ -16,7 +17,7 @@ type Scheduler struct {
 	ctx    context.Context
 	zctx   *zson.Context
 	pool   *Pool
-	snap   *commit.Snapshot
+	snap   commits.View
 	span   extent.Span
 	filter zbuf.Filter
 	once   sync.Once
@@ -25,7 +26,9 @@ type Scheduler struct {
 	stats  zbuf.ScannerStats
 }
 
-func NewSortedScheduler(ctx context.Context, zctx *zson.Context, pool *Pool, snap *commit.Snapshot, span extent.Span, filter zbuf.Filter) *Scheduler {
+var _ proc.Scheduler = (*Scheduler)(nil)
+
+func NewSortedScheduler(ctx context.Context, zctx *zson.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter) *Scheduler {
 	return &Scheduler{
 		ctx:    ctx,
 		zctx:   zctx,
@@ -52,7 +55,7 @@ func (s *Scheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	})
 	select {
 	case p := <-s.ch:
-		if p.Segments == nil {
+		if p.Objects == nil {
 			return nil, <-s.done
 		}
 		return s.newSortedScanner(p)
@@ -88,11 +91,43 @@ func (s *Scheduler) newSortedScanner(p Partition) (zbuf.PullerCloser, error) {
 	return newSortedScanner(s.ctx, s.pool, s.zctx, s.filter, p, s)
 }
 
-func ScanSpan(ctx context.Context, snap *commit.Snapshot, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
-	for _, seg := range snap.Select(span, o) {
-		if span == nil || span.Overlaps(seg.First, seg.Last) {
+type scannerScheduler struct {
+	scanners []zbuf.Scanner
+	stats    zbuf.ScannerStats
+	last     zbuf.Scanner
+}
+
+var _ proc.Scheduler = (*scannerScheduler)(nil)
+
+func newScannerScheduler(scanners ...zbuf.Scanner) *scannerScheduler {
+	return &scannerScheduler{
+		scanners: scanners,
+	}
+}
+
+func (s *scannerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
+	if s.last != nil {
+		s.stats.Add(s.last.Stats())
+		s.last = nil
+	}
+	if len(s.scanners) > 0 {
+		scanner := s.scanners[0]
+		s.scanners = s.scanners[1:]
+		s.last = scanner
+		return zbuf.ScannerNopCloser(scanner), nil
+	}
+	return nil, nil
+}
+
+func (s *scannerScheduler) Stats() zbuf.ScannerStats {
+	return s.stats.Copy()
+}
+
+func ScanSpan(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- data.Object) error {
+	for _, object := range snap.Select(span, o) {
+		if span == nil || span.Overlaps(object.First, object.Last) {
 			select {
-			case ch <- *seg:
+			case ch <- *object:
 			case <-ctx.Done():
 				return ctx.Err()
 			}
@@ -101,12 +136,12 @@ func ScanSpan(ctx context.Context, snap *commit.Snapshot, span extent.Span, o or
 	return nil
 }
 
-func ScanSpanInOrder(ctx context.Context, snap *commit.Snapshot, span extent.Span, o order.Which, ch chan<- segment.Reference) error {
-	segments := snap.Select(span, o)
-	sortSegments(o, segments)
-	for _, seg := range segments {
+func ScanSpanInOrder(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- data.Object) error {
+	objects := snap.Select(span, o)
+	sortObjects(o, objects)
+	for _, object := range objects {
 		select {
-		case ch <- *seg:
+		case ch <- *object:
 		case <-ctx.Done():
 			return ctx.Err()
 		}
@@ -114,12 +149,12 @@ func ScanSpanInOrder(ctx context.Context, snap *commit.Snapshot, span extent.Spa
 	return nil
 }
 
-// ScanPartitions partitions all segments in snap overlapping
+// ScanPartitions partitions all the data objects in snap overlapping
 // span into non-overlapping partitions, sorts them by pool key and order,
 // and sends them to ch.
-func ScanPartitions(ctx context.Context, snap *commit.Snapshot, span extent.Span, o order.Which, ch chan<- Partition) error {
-	segments := snap.Select(span, o)
-	for _, p := range PartitionSegments(segments, o) {
+func ScanPartitions(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- Partition) error {
+	objects := snap.Select(span, o)
+	for _, p := range PartitionObjects(objects, o) {
 		if span != nil {
 			p.Span.Crop(span)
 		}

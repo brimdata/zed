@@ -479,14 +479,14 @@ tend to be zero-filled for small integers.
 The body of a length-N container comprises zero or more tag-encoded values,
 where the values are encoded as follows:
 
-| Type     |          Value                            |
-|----------|-------------------------------------------|
-| `array`  | concatenation of elements                 |
-| `set`    | normalized concatenation of elements      |
-| `record` | concatenation of elements                 |
-| `union`  | concatenation of type position and value  |
-| `enum`   | position of enum element                  |
-| `map`    | concatenation of key and value elements   |
+| Type     |          Value                          |
+|----------|-----------------------------------------|
+| `array`  | concatenation of elements               |
+| `set`    | normalized concatenation of elements    |
+| `record` | concatenation of elements               |
+| `union`  | concatenation of selector and value     |
+| `enum`   | position of enum element                |
+| `map`    | concatenation of key and value elements |
 
 Since N, the byte length of any of these container values, is known,
 there is no need to encode a count of the
@@ -498,9 +498,10 @@ sequence of bytes encoding each element's tag-counted value is
 lexicographically greater than that of the preceding element.
 
 A union value is encoded as a container with two elements. The first
-element is the `uvarint` encoding of the positional index determining
-the type of the value in reference to the union's list of defined types,
-and the second element is the value encoded according to that type.
+element, called the selector, is the `uvarint` encoding of the
+positional index determining the type of the value in reference to the
+union's list of defined types, and the second element is the value
+encoded according to that type.
 
 An enumeration value is represented as the `uvarint` encoding of the
 positional index of that value's symbol in reference to the enum's

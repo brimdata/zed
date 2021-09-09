@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
 )
 
 var MemMaxBytes = 128 * 1024 * 1024
@@ -73,11 +72,12 @@ func (p *Proc) writeBatch(batch zbuf.Batch) error {
 }
 
 func (p *Proc) pushOutput() error {
+	puller := zbuf.NewPuller(p.shaper, BatchSize)
 	for {
 		if err := p.pctx.Err(); err != nil {
 			return err
 		}
-		batch, err := p.nextBatch()
+		batch, err := puller.Pull()
 		if err != nil || batch == nil {
 			return err
 		}
@@ -102,22 +102,4 @@ func (p *Proc) shutdown(err error) {
 
 func (p *Proc) Done() {
 	p.parent.Done()
-}
-
-func (p *Proc) nextBatch() (zbuf.Batch, error) {
-	var out []*zng.Record
-	for len(out) < BatchSize {
-		rec, err := p.shaper.Read()
-		if err != nil {
-			return nil, err
-		}
-		if rec == nil {
-			break
-		}
-		out = append(out, rec)
-	}
-	if out == nil {
-		return nil, nil
-	}
-	return zbuf.Array(out), nil
 }

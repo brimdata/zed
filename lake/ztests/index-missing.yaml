@@ -12,7 +12,6 @@ inputs:
 outputs:
   - name: stderr
     regexp: no matching index rule found
-
   - name: stdout
     data: |
       ===

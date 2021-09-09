@@ -3,8 +3,8 @@ zed: match(a) is(s2,'string')
 input: |
   {s1:"a",s2:"b"}
   {s1:"b",s2:"b"}
-  {s1:"a",s2:0 (int32)} (=0)
-  {s1:"b",s2:0} (0)
+  {s1:"a",s2:0(int32)}
+  {s1:"b",s2:0(int32)}
   {s1:"b",s2:"a"}
 
 output: |

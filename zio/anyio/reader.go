@@ -22,6 +22,9 @@ type ReaderOpts struct {
 }
 
 func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zio.Reader, error) {
+	if opts.Format != "" && opts.Format != "auto" {
+		return lookupReader(r, zctx, opts)
+	}
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 

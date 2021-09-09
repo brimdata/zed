@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
@@ -21,7 +22,7 @@ func CompileForInternal(pctx *proc.Context, p ast.Proc, r zio.Reader) (*Runtime,
 
 func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, layout order.Layout) (*Runtime, error) {
 	adaptor := &internalAdaptor{}
-	runtime, err := New(pctx, p, adaptor)
+	runtime, err := New(pctx, p, adaptor, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -36,15 +37,19 @@ func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, l
 
 type internalAdaptor struct{}
 
-func (f *internalAdaptor) Lookup(_ context.Context, _ string) (ksuid.KSUID, error) {
+func (*internalAdaptor) CommitObject(context.Context, ksuid.KSUID, string) (ksuid.KSUID, error) {
 	return ksuid.Nil, nil
 }
 
-func (*internalAdaptor) Layout(_ context.Context, _ ksuid.KSUID) (order.Layout, error) {
-	return order.Nil, errors.New("invalid pool scan specified for internally streamed Zed query")
+func (*internalAdaptor) PoolID(context.Context, string) (ksuid.KSUID, error) {
+	return ksuid.Nil, nil
 }
 
-func (*internalAdaptor) NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
+func (*internalAdaptor) Layout(context.Context, dag.Source) order.Layout {
+	return order.Nil
+}
+
+func (*internalAdaptor) NewScheduler(context.Context, *zson.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, errors.New("invalid pool or file scan specified for internally streamed Zed query")
 }
 

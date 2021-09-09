@@ -194,15 +194,36 @@ func (c *canonDAG) op(p dag.Op) {
 		c.ret()
 		c.flush()
 		c.write(")")
+	case *dag.Switch:
+		c.next()
+		c.open("switch ")
+		if p.Expr != nil {
+			c.expr(p.Expr, false)
+			c.write(" ")
+		}
+		c.open("(")
+		for _, k := range p.Cases {
+			c.ret()
+			if k.Expr != nil {
+				c.expr(k.Expr, false)
+			} else {
+				c.write("default")
+			}
+			c.write(" =>")
+			c.open()
+			c.head = true
+			c.op(k.Op)
+			c.close()
+		}
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
 	case *dag.Merge:
 		c.next()
 		c.write("merge ")
 		c.fieldpath(p.Key)
-		if p.Reverse {
-			c.write(":desc")
-		} else {
-			c.write(":asc")
-		}
+		c.write(":" + p.Order.String())
 	case *dag.Const:
 		c.write("const %s=", p.Name)
 		c.expr(p.Expr, false)
@@ -364,6 +385,12 @@ func source(src dag.Source) string {
 		return fmt.Sprintf("get %s", p.URL)
 	case *dag.Pool:
 		return fmt.Sprintf("%s", p.ID)
+	case *dag.PoolMeta:
+		return fmt.Sprintf("%s:%s", p.ID, p.Meta)
+	case *dag.CommitMeta:
+		return fmt.Sprintf("%s@%s:%s", p.Pool, p.Commit, p.Meta)
+	case *dag.LakeMeta:
+		return fmt.Sprintf(":%s", p.Meta)
 		//XXX from, to, order
 	case *kernel.Reader:
 		return "(internal reader)"

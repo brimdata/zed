@@ -1,8 +1,8 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -S 75B -p logs -orderby addr:asc
-  zed lake load -q -p logs in.zson
+  zed lake create -q -S 75B -orderby addr:asc logs
+  zed lake load -q -use logs@main in.zson
   zed lake query -z 'from logs | cut addr'
 
 inputs:

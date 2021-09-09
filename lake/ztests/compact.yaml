@@ -33,7 +33,6 @@ script: |
   zq -z "sort -r ts" babble-norm.zson > t2.zson
   diff -s t1.zson t2.zson
 
-
 inputs:
   - name: babble-norm.zson
     source: ../testdata/babble-norm.zson

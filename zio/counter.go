@@ -6,7 +6,7 @@ import (
 	"github.com/brimdata/zed/zng"
 )
 
-// Counter wraps a zbuf.Reader and provides a method to return the number
+// Counter wraps a zio.Reader and provides a method to return the number
 // of records read from the stream.
 type Counter struct {
 	Reader

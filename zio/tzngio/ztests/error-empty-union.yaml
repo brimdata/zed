@@ -4,8 +4,8 @@ script: |
 inputs:
   - name: emptyunion.tzng
     data: |
-        #0:record[a:union[]]
-        0:[0:1;]
+      #0:record[a:union[]]
+      0:[0:1;]
 
 outputs:
   - name: stderr

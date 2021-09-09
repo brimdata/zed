@@ -48,7 +48,7 @@ func NewFileFromURI(ctx context.Context, engine storage.Engine, path *storage.UR
 	} else {
 		wc = bufwriter.New(f)
 	}
-	// On close, zbuf.WriteCloser.Close() will close and flush the
+	// On close, zio.WriteCloser.Close will close and flush the
 	// downstream writer, which will flush the bufwriter here and,
 	// in turn, close its underlying writer.
 	return anyio.NewWriter(wc, opts)

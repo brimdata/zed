@@ -4,11 +4,11 @@ input: |
   {s:"b"}
   {s:"c"}
   {s:"a"}
-  {s:null (string)}
+  {s:null(string)}
   {notS:"bleah"}
 
 output: |
-  {s:null (string)}
+  {s:null(string)}
   {notS:"bleah"}
   {s:"c"}
   {s:"b"}

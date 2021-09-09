@@ -11,7 +11,6 @@ script: |
   zed lake compact -R logs -purge > /dev/null
   zed lake index ls -R logs -stats -f zng | zq -f table "drop id" -
 
-
 inputs:
   - name: data.zson
     data: |
@@ -23,10 +22,10 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      DESC               ZQL INPUT INDEX_COUNT CHUNK_COUNT
+      desc               zql input index_count chunk_count
       field-_path:string _   _     0           4
       type-ip            _   _     0           4
       ===
-      DESC               ZQL INPUT INDEX_COUNT CHUNK_COUNT
+      desc               zql input index_count chunk_count
       field-_path:string _   _     1           1
       type-ip            _   _     1           1

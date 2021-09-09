@@ -35,6 +35,7 @@ func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, ri
 	if err != nil {
 		return nil, err
 	}
+	cutter.AllowPartialCuts()
 	ctx, cancel := context.WithCancel(pctx.Context)
 	return &Proc{
 		pctx:        pctx,
@@ -128,7 +129,7 @@ func (p *Proc) setJoinKey(key zng.Value) {
 }
 
 func (p *Proc) getJoinSet(leftKey zng.Value) ([]*zng.Record, error) {
-	if leftKey.Equal(p.joinKey) {
+	if p.compare(leftKey, p.joinKey) == 0 {
 		return p.joinSet, nil
 	}
 	for {
@@ -144,12 +145,13 @@ func (p *Proc) getJoinSet(leftKey zng.Value) ([]*zng.Record, error) {
 			}
 			return nil, err
 		}
-		if leftKey.Equal(rightKey) {
+		cmp := p.compare(leftKey, rightKey)
+		if cmp == 0 {
 			p.setJoinKey(leftKey)
 			p.joinSet, err = p.readJoinSet(p.joinKey)
 			return p.joinSet, err
 		}
-		if p.compare(leftKey, rightKey) < 0 {
+		if cmp < 0 {
 			// If the left key is smaller than the next eligible
 			// join key, then there is nothing to join for this
 			// record.
@@ -183,7 +185,7 @@ func (p *Proc) readJoinSet(joinKey zng.Value) ([]*zng.Record, error) {
 			}
 			return nil, err
 		}
-		if !key.Equal(joinKey) {
+		if p.compare(key, joinKey) != 0 {
 			return recs, nil
 		}
 		recs = append(recs, rec.Keep())

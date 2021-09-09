@@ -5,7 +5,7 @@ package lake
 
 /*
 
-// statReadCloser implements zbuf.ReadCloser.
+// statReadCloser implements zio.ReadCloser.
 type statReadCloser struct {
 	lk       *Lake
 	ctx      context.Context

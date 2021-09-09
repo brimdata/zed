@@ -15,5 +15,5 @@ input: |
 output-flags: -f table
 
 output: |
-  COUNT
+  count
   10

@@ -1,0 +1,38 @@
+# ============================================================================
+# NOTE: This is a test to protect an example shown in the Zed language
+# docs. If you need to make changes to the Zed below to make the tests pass
+# again after a change, the docs likely need to be updated as well.
+#
+# See https://github.com/brimdata/zed/pull/2901 for details
+# ============================================================================
+
+# The Zed being tested below has been modified from the way it appears in
+# docs/language/README.md, as the "sort" is needed to produce deterministic
+# test output from the aggregation. 
+
+zed: |
+  not srcip in 192.168.0.0/16
+  | summarize
+      bytes := sum(src_bytes + dst_bytes),
+      maxdur := max(duration),
+      valid := and(status == "ok")
+        by srcip, dstip
+  | sort srcip, dstip
+
+input: |
+  {srcip:10.0.0.1,dstip:5.6.7.8,src_bytes:20,dst_bytes:40,status:"ok"}
+  {srcip:10.0.0.1,dstip:5.6.7.8,src_bytes:20,dst_bytes:40,duration:10}
+  {srcip:192.168.1.1,dstip:5.6.7.8,src_bytes:10,dst_bytes:30,duration:5,status:"ok"}
+  {srcip:10.0.0.1,dstip:9.10.11.12,src_bytes:25,dst_bytes:45,status:"ok"}
+  {srcip:10.0.0.1,dstip:9.10.11.12,src_bytes:20,dst_bytes:40,status:"failed"}
+  {srcip:10.0.0.1,dstip:13.14.15.16,src_bytes:29,dst_bytes:49}
+  {srcip:10.0.0.1,dstip:13.14.15.16,src_bytes:23,dst_bytes:43}
+  {srcip:10.0.0.1,src_bytes:23,dst_bytes:43}
+  {srcip:10.0.0.1,dstip:17.18.19.20,status:"ok"}
+  {srcip:10.0.0.1,dstip:17.18.19.20,status:"ok"}
+
+output: |
+  {srcip:10.0.0.1,dstip:5.6.7.8,bytes:120,maxdur:10,valid:true}
+  {srcip:10.0.0.1,dstip:9.10.11.12,bytes:130,maxdur:null,valid:false}
+  {srcip:10.0.0.1,dstip:13.14.15.16,bytes:144,maxdur:null,valid:null(bool)}
+  {srcip:10.0.0.1,dstip:17.18.19.20,bytes:null,maxdur:null,valid:true}

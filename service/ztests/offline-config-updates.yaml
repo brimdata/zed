@@ -1,9 +1,9 @@
 script: |
   source service.sh
-  zed lake create -q -p test
+  zed lake create -q test
   zapi ls
   echo ===
-  zed lake drop -q -f -p test
+  zed lake drop -q -f test
   zapi ls
 
 inputs:

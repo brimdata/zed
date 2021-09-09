@@ -2,6 +2,7 @@ package spill
 
 import (
 	"container/heap"
+	"context"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -23,7 +24,7 @@ type MergeSort struct {
 	zctx      *zson.Context
 }
 
-const TempPrefix = "zq-spill-"
+const TempPrefix = "zed-spill-"
 
 func TempDir() (string, error) {
 	return os.MkdirTemp("", TempPrefix)
@@ -59,10 +60,15 @@ func (r *MergeSort) Cleanup() {
 // temp directory.  Since we sort each chunk in memory before spilling, the
 // different chunks can be easily merged into sorted order when reading back
 // the chunks sequentially.
-func (r *MergeSort) Spill(recs []*zng.Record) error {
-	expr.SortStable(recs, r.compareFn)
+func (r *MergeSort) Spill(ctx context.Context, recs []*zng.Record) error {
+	// Sorting can be slow, so check for cancellation.
+	if err := goWithContext(ctx, func() {
+		expr.SortStable(recs, r.compareFn)
+	}); err != nil {
+		return err
+	}
 	filename := filepath.Join(r.tempDir, strconv.Itoa(r.nspill))
-	runFile, err := newPeeker(filename, r.nspill, recs, r.zctx)
+	runFile, err := newPeeker(ctx, filename, r.nspill, recs, r.zctx)
 	if err != nil {
 		return err
 	}
@@ -74,6 +80,20 @@ func (r *MergeSort) Spill(recs []*zng.Record) error {
 	r.spillSize += size
 	heap.Push(r, runFile)
 	return nil
+}
+
+func goWithContext(ctx context.Context, f func()) error {
+	ch := make(chan struct{})
+	go func() {
+		f()
+		close(ch)
+	}()
+	select {
+	case <-ch:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // Peek returns the next record without advancing the reader.  The record stops

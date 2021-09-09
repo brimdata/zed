@@ -19,7 +19,7 @@ const (
 	MaxSkewThresh    = 512 * 1024 * 1024
 )
 
-// Writer implements the zbuf.Writer interface. A Writer creates a columnar
+// Writer implements the zio.Writer interface. A Writer creates a columnar
 // zst object from a stream of zng.Records.
 type Writer struct {
 	zctx       *zson.Context

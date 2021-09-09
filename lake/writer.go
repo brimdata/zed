@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -25,13 +25,13 @@ var (
 
 const defaultCommitTimeout = time.Second * 5
 
-// Writer is a zbuf.Writer that consumes records into memory according to
-// the pools segment threshold, sorts each resulting buffer, and writes
+// Writer is a zio.Writer that consumes records into memory according to
+// the pools data object threshold, sorts each resulting buffer, and writes
 // it as an immutable object to the storage system.  The presumption is that
 // each buffer's worth of data fits into memory.
 type Writer struct {
 	pool        *Pool
-	segments    []segment.Reference
+	objects     []data.Object
 	inputSorted bool
 	ctx         context.Context
 	//defs          index.Definitions
@@ -55,7 +55,7 @@ type Writer struct {
 // microbatches with a timeout defined from above and a nice way to sync the
 // timeout with the commit rather than trying to do all of this bottoms up.
 
-// NewWriter creates a zbuf.Writer compliant writer for writing data to an
+// NewWriter creates a zio.Writer compliant writer for writing data to an
 // a data pool presuming the input is not guaranteed to be sorted.
 //XXX we should make another writer that takes sorted input and is a bit
 // more efficient.  This other writer could have different commit triggers
@@ -72,13 +72,13 @@ func NewWriter(ctx context.Context, pool *Pool) (*Writer, error) {
 	}, nil
 }
 
-func (w *Writer) Segments() []segment.Reference {
-	return w.segments
+func (w *Writer) Objects() []data.Object {
+	return w.objects
 }
 
-func (w *Writer) newSegment() *segment.Reference {
-	w.segments = append(w.segments, segment.New())
-	return &w.segments[len(w.segments)-1]
+func (w *Writer) newObject() *data.Object {
+	w.objects = append(w.objects, data.NewObject())
+	return &w.objects[len(w.objects)-1]
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
@@ -96,7 +96,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 	w.records = append(w.records, rec)
 	w.memBuffered += int64(len(rec.Bytes))
 	//XXX change name LogSizeThreshold
-	// XXX the previous logic estimated the segment size with divide by 2...?!
+	// XXX the previous logic estimated the object size with divide by 2...?!
 	if w.memBuffered >= w.pool.Threshold {
 		w.flipBuffers()
 	}
@@ -109,7 +109,7 @@ func (w *Writer) flipBuffers() {
 	w.records = oldrecs[:0]
 	w.memBuffered = 0
 	w.errgroup.Go(func() error {
-		err := w.writeObject(w.newSegment(), recs)
+		err := w.writeObject(w.newObject(), recs)
 		w.buffer <- recs
 		return err
 	})
@@ -125,22 +125,22 @@ func (w *Writer) Close() error {
 	return w.errgroup.Wait()
 }
 
-func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
+func (w *Writer) writeObject(object *data.Object, recs []*zng.Record) error {
 	if !w.inputSorted {
 		expr.SortStable(recs, importCompareFn(w.pool))
 	}
 	// Set first and last key values after the sort.
 	key := poolKey(w.pool.Layout)
 	var err error
-	seg.First, err = recs[0].Deref(key)
+	object.First, err = recs[0].Deref(key)
 	if err != nil {
-		seg.First = zng.Value{zng.TypeNull, nil}
+		object.First = zng.Value{zng.TypeNull, nil}
 	}
-	seg.Last, err = recs[len(recs)-1].Deref(key)
+	object.Last, err = recs[len(recs)-1].Deref(key)
 	if err != nil {
-		seg.Last = zng.Value{zng.TypeNull, nil}
+		object.Last = zng.Value{zng.TypeNull, nil}
 	}
-	writer, err := seg.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, key, SeekIndexStride)
+	writer, err := object.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, key, SeekIndexStride)
 	if err != nil {
 		return err
 	}
@@ -153,7 +153,7 @@ func (w *Writer) writeObject(seg *segment.Reference, recs []*zng.Record) error {
 		return err
 	}
 	w.stats.Accumulate(ImportStats{
-		SegmentsWritten:    1,
+		ObjectsWritten:     1,
 		RecordBytesWritten: writer.BytesWritten(),
 		RecordsWritten:     int64(writer.RecordsWritten()),
 	})
@@ -165,27 +165,29 @@ func (w *Writer) Stats() ImportStats {
 }
 
 type ImportStats struct {
-	SegmentsWritten    int64
+	ObjectsWritten     int64
 	RecordBytesWritten int64
 	RecordsWritten     int64
 }
 
 func (s *ImportStats) Accumulate(b ImportStats) {
-	atomic.AddInt64(&s.SegmentsWritten, b.SegmentsWritten)
+	atomic.AddInt64(&s.ObjectsWritten, b.ObjectsWritten)
 	atomic.AddInt64(&s.RecordBytesWritten, b.RecordBytesWritten)
 	atomic.AddInt64(&s.RecordsWritten, b.RecordsWritten)
 }
 
 func (s *ImportStats) Copy() ImportStats {
 	return ImportStats{
-		SegmentsWritten:    atomic.LoadInt64(&s.SegmentsWritten),
+		ObjectsWritten:     atomic.LoadInt64(&s.ObjectsWritten),
 		RecordBytesWritten: atomic.LoadInt64(&s.RecordBytesWritten),
 		RecordsWritten:     atomic.LoadInt64(&s.RecordsWritten),
 	}
 }
 
 func importCompareFn(pool *Pool) expr.CompareFn {
-	return zbuf.NewCompareFn(poolKey(pool.Layout), pool.Layout.Order == order.Desc)
+	layout := pool.Layout
+	layout.Keys = field.List{poolKey(layout)}
+	return zbuf.NewCompareFn(layout)
 }
 
 func poolKey(layout order.Layout) field.Path {

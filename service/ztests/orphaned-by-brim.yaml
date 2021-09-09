@@ -1,6 +1,6 @@
 script: |
   source mockbrim.sh
-  zapi create -p test
+  zapi create test
   echo ===
   kill -9 $MOCKBRIM_PID 2>/dev/null
   awaitdeadservice
@@ -11,6 +11,6 @@ inputs:
 
 outputs:
   - name: stdout
-    data: |
-      pool created: test
+    regexp: |
+      pool created: test \w{27}
       ===

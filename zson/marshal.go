@@ -36,7 +36,7 @@ func NewMarshaler() *MarshalContext {
 func NewMarshalerIndent(indent int) *MarshalContext {
 	return &MarshalContext{
 		MarshalZNGContext: NewZNGMarshaler(),
-		formatter:         NewFormatter(indent),
+		formatter:         NewFormatter(indent, nil),
 	}
 }
 
@@ -402,9 +402,16 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zng.Type, error) {
 }
 
 func (m *MarshalZNGContext) encodeNil(t reflect.Type) (zng.Type, error) {
-	typ, err := m.lookupType(t)
-	if err != nil {
-		return nil, err
+	var typ zng.Type
+	if t.Kind() == reflect.Interface {
+		// Encode the nil interface as TypeNull.
+		typ = zng.TypeNull
+	} else {
+		var err error
+		typ, err = m.lookupType(t)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if zng.IsContainerType(typ) {
 		m.Builder.AppendContainer(nil)

@@ -42,7 +42,6 @@ script: |
   echo user1 rm
   zapi -configpath ./user1 -host $LAKE_HOST -id $USER2_SP0 rm 2>&1
 
-
 inputs:
   - name: services.sh
     source: ../services.sh

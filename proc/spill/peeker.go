@@ -1,6 +1,10 @@
 package spill
 
 import (
+	"context"
+
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -11,16 +15,15 @@ type peeker struct {
 	ordinal    int
 }
 
-func newPeeker(filename string, ordinal int, recs []*zng.Record, zctx *zson.Context) (*peeker, error) {
+func newPeeker(ctx context.Context, filename string, ordinal int, recs []*zng.Record, zctx *zson.Context) (*peeker, error) {
 	f, err := NewFileWithPath(filename, zctx)
 	if err != nil {
 		return nil, err
 	}
-	for _, rec := range recs {
-		if err := f.Write(rec); err != nil {
-			f.CloseAndRemove()
-			return nil, err
-		}
+	arr := zbuf.Array(recs)
+	if err := zio.CopyWithContext(ctx, f, &arr); err != nil {
+		f.CloseAndRemove()
+		return nil, err
 	}
 	if err := f.Rewind(zctx); err != nil {
 		f.CloseAndRemove()

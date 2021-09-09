@@ -4,4 +4,4 @@ input: |
   {x:"foo"}
 
 output: |
-  {s:null (string),a:null (ip)}
+  {s:null(string),a:null(ip)}

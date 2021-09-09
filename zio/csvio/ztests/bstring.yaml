@@ -1,13 +1,13 @@
 zed: '*'
 
 input: |
-  {bstring:null (bstring)} (=0)
-  {bstring:""} (0)
-  {bstring:"\""} (0)
-  {bstring:","} (0)
-  {bstring:"-"} (0)
-  {bstring:"\\"} (0)
-  {bstring:"\x00\xff"} (0)
+  {bstring:null(bstring)}
+  {bstring:""(bstring)}
+  {bstring:"\""(bstring)}
+  {bstring:","(bstring)}
+  {bstring:"-"(bstring)}
+  {bstring:"\\"(bstring)}
+  {bstring:"\x00\xff"(bstring)}
 
 output-flags: -f csv
 

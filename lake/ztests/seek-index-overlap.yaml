@@ -1,14 +1,16 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -p asc -orderby ts:asc -q
-  zed lake create -p desc -orderby ts:desc -q
-  zq "tail 900" babble.zson | zed lake load -p asc -seekstride=2000B -q -
-  zq "head 250" babble.zson | zed lake load -p asc -seekstride=2000B -q -
+  zed lake create -orderby ts:asc -q asc
+  zed lake create -orderby ts:desc -q desc
+  zed lake use -q asc@main
+  zq "tail 900" babble.zson | zed lake load -seekstride=2000B -q -
+  zq "head 250" babble.zson | zed lake load -seekstride=2000B -q -
   zed lake query -z -s "from asc | count()"
   echo === | tee /dev/stderr
-  zq "tail 900" babble.zson | zed lake load -p desc -seekstride=2000B -q -
-  zq "head 250" babble.zson | zed lake load -p desc -seekstride=2000B -q -
+  zed lake use -q desc@main
+  zq "tail 900" babble.zson | zed lake load -seekstride=2000B -q -
+  zq "head 250" babble.zson | zed lake load -seekstride=2000B -q -
   zed lake query -z -s "from desc | count()"
 
 inputs:
@@ -18,9 +20,9 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {count:1150 (uint64)} (=0)
+      {count:1150(uint64)}
       ===
-      {count:1150 (uint64)} (=0)
+      {count:1150(uint64)}
   - name: stderr
     data: |
       data opened: 37833

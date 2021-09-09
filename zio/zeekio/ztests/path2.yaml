@@ -11,4 +11,4 @@ input: |
   notconn	yes
 
 output: |
-  {_path:"notconn" (bstring),foo:"yes" (bstring)} (=0)
+  {_path:"notconn"(bstring),foo:"yes"(bstring)}

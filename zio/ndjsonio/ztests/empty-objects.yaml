@@ -5,6 +5,7 @@ input: |
   {"ja3s":{}}
 
 output-flags: -f ndjson
+
 output: |
   {}
   {"ja3s":{}}

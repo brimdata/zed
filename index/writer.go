@@ -17,7 +17,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-// Writer implements the zbuf.Writer interface. A Writer creates a zed index,
+// Writer implements the zio.Writer interface. A Writer creates a zed index,
 // comprising the base zng file along with its related B-tree sections,
 // as zng records are consumed.
 //
@@ -162,6 +162,9 @@ func (w *Writer) Write(rec *zng.Record) error {
 		if err != nil {
 			return err
 		}
+		if keys == nil {
+			return fmt.Errorf("key(s) not found in record: %q", w.keyFields)
+		}
 		w.keyType = zng.TypeRecordOf(keys.Type)
 		w.childField = uniqChildField(w.zctx, keys)
 	}
@@ -267,6 +270,9 @@ func (w *Writer) finalize() error {
 		if err := f.Close(); err != nil {
 			return err
 		}
+	}
+	if w.keyType == nil {
+		return fmt.Errorf("index writer: no sort keys found in input for %q", w.keyFields)
 	}
 	return writeTrailer(base.zng, w.zctx, w.childField, w.frameThresh, sizes, w.keyType, w.order)
 }

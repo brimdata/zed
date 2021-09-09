@@ -2,7 +2,6 @@ package semantic
 
 import (
 	"context"
-	"encoding/hex"
 	"errors"
 	"fmt"
 
@@ -10,17 +9,19 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
+	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/proc"
 	"github.com/segmentio/ksuid"
 )
 
-func semFrom(ctx context.Context, scope *Scope, from *ast.From, adaptor proc.DataAdaptor) (*dag.From, error) {
+func semFrom(ctx context.Context, scope *Scope, from *ast.From, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*dag.From, error) {
 	var trunks []dag.Trunk
 	for _, in := range from.Trunks {
-		converted, err := semTrunk(ctx, scope, in, adaptor)
+		converted, err := semTrunk(ctx, scope, in, adaptor, head)
 		if err != nil {
 			return nil, err
 		}
@@ -32,12 +33,12 @@ func semFrom(ctx context.Context, scope *Scope, from *ast.From, adaptor proc.Dat
 	}, nil
 }
 
-func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, adaptor proc.DataAdaptor) (dag.Trunk, error) {
-	source, err := semSource(ctx, scope, trunk.Source, adaptor)
+func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (dag.Trunk, error) {
+	source, err := semSource(ctx, scope, trunk.Source, adaptor, head)
 	if err != nil {
 		return dag.Trunk{}, err
 	}
-	seq, err := semSequential(ctx, scope, trunk.Seq, adaptor)
+	seq, err := semSequential(ctx, scope, trunk.Seq, adaptor, head)
 	if err != nil {
 		return dag.Trunk{}, err
 	}
@@ -48,7 +49,7 @@ func semTrunk(ctx context.Context, scope *Scope, trunk ast.Trunk, adaptor proc.D
 	}, nil
 }
 
-func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor proc.DataAdaptor) (dag.Source, error) {
+func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (dag.Source, error) {
 	switch p := source.(type) {
 	case *ast.File:
 		layout, err := semLayout(p.Layout)
@@ -73,43 +74,7 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor pro
 			Layout: layout,
 		}, nil
 	case *ast.Pool:
-		id, err := ParseID(p.Name)
-		if err != nil {
-			id, err = adaptor.Lookup(ctx, p.Name)
-			if err != nil {
-				return nil, err
-			}
-		}
-		var at ksuid.KSUID
-		if p.At != "" {
-			at, err = ParseID(p.At)
-			if err != nil {
-				return nil, err
-			}
-		}
-		var lower, upper dag.Expr
-		if r := p.Range; r != nil {
-			if r.Lower != nil {
-				lower, err = semExpr(scope, r.Lower)
-				if err != nil {
-					return nil, err
-				}
-			}
-			if r.Upper != nil {
-				upper, err = semExpr(scope, r.Upper)
-				if err != nil {
-					return nil, err
-				}
-			}
-		}
-		return &dag.Pool{
-			Kind:      "Pool",
-			ID:        id,
-			ScanLower: lower,
-			ScanUpper: upper,
-			ScanOrder: p.ScanOrder,
-			At:        at,
-		}, nil
+		return semPool(ctx, scope, p, adaptor, head)
 	case *kernel.Reader:
 		// kernel.Reader implements both ast.Source and dag.Source
 		return p, nil
@@ -137,7 +102,108 @@ func semLayout(p *ast.Layout) (order.Layout, error) {
 	return order.NewLayout(which, keys), nil
 }
 
-func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adaptor proc.DataAdaptor) (*dag.Sequential, error) {
+func semPool(ctx context.Context, scope *Scope, p *ast.Pool, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (dag.Source, error) {
+	poolName := p.Spec.Pool
+	commit := p.Spec.Commit
+	if poolName == "HEAD" {
+		if head == nil {
+			return nil, errors.New("cannot scan from unknown HEAD")
+		}
+		poolName = head.Pool
+		commit = head.Branch
+	}
+	if poolName == "" {
+		if p.Spec.Meta == "" {
+			return nil, errors.New("pool name missing")
+		}
+		return &dag.LakeMeta{
+			Kind: "LakeMeta",
+			Meta: p.Spec.Meta,
+		}, nil
+	}
+	// If a name appears as an 0x bytes ksuid, convert it to the
+	// ksuid string form since the backend doesn't parse the 0x format.
+	poolID, err := lakeparse.ParseID(poolName)
+	if err == nil {
+		poolName = poolID.String()
+	} else {
+		poolID, err = adaptor.PoolID(ctx, poolName)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var lower, upper dag.Expr
+	if r := p.Range; r != nil {
+		if r.Lower != nil {
+			lower, err = semExpr(scope, r.Lower)
+			if err != nil {
+				return nil, err
+			}
+		}
+		if r.Upper != nil {
+			upper, err = semExpr(scope, r.Upper)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	//var at ksuid.KSUID
+	if p.At != "" {
+		// XXX
+		// We no longer use "at" to refer to a commit tag, but if there
+		// is no commit tag, we could use an "at" time argument to time
+		// travel by going back in the branch log and finding the commit
+		// object with the largest time stamp <= the at time.
+		// This would require commitRef to be branch name not a commit ID.
+		return nil, errors.New("TBD: at clause in from operator needs to use time")
+	}
+	var commitID ksuid.KSUID
+	if commit != "" {
+		commitID, err = lakeparse.ParseID(commit)
+		if err != nil {
+			commitID, err = adaptor.CommitObject(ctx, poolID, commit)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+	if p.Spec.Meta != "" {
+		if commitID != ksuid.Nil {
+			return &dag.CommitMeta{
+				Kind:      "CommitMeta",
+				Meta:      p.Spec.Meta,
+				Pool:      poolID,
+				Commit:    commitID,
+				ScanLower: lower,
+				ScanUpper: upper,
+				ScanOrder: p.ScanOrder,
+			}, nil
+		}
+		return &dag.PoolMeta{
+			Kind: "PoolMeta",
+			Meta: p.Spec.Meta,
+			ID:   poolID,
+		}, nil
+	}
+	if commitID == ksuid.Nil {
+		// This trick here allows us to default to the main branch when
+		// there is a "from pool" operator with no meta query or commit object.
+		commitID, err = adaptor.CommitObject(ctx, poolID, "main")
+		if err != nil {
+			return nil, err
+		}
+	}
+	return &dag.Pool{
+		Kind:      "Pool",
+		ID:        poolID,
+		Commit:    commitID,
+		ScanLower: lower,
+		ScanUpper: upper,
+		ScanOrder: p.ScanOrder,
+	}, nil
+}
+
+func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*dag.Sequential, error) {
 	if seq == nil {
 		return nil, nil
 	}
@@ -146,7 +212,7 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 		if isConst(p) {
 			continue
 		}
-		converted, err := semProc(ctx, scope, p, adaptor)
+		converted, err := semProc(ctx, scope, p, adaptor, head)
 		if err != nil {
 			return nil, err
 		}
@@ -163,10 +229,10 @@ func semSequential(ctx context.Context, scope *Scope, seq *ast.Sequential, adapt
 // object.  Currently, it only replaces the group-by duration with
 // a truncation call on the ts and replaces FunctionCall's in proc context
 // with either a group-by or filter-proc based on the function's name.
-func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAdaptor) (dag.Op, error) {
+func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (dag.Op, error) {
 	switch p := p.(type) {
 	case *ast.From:
-		return semFrom(ctx, scope, p, adaptor)
+		return semFrom(ctx, scope, p, adaptor, head)
 	case *ast.Summarize:
 		keys, err := semAssignments(scope, p.Keys)
 		if err != nil {
@@ -236,7 +302,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			if isConst(p) {
 				continue
 			}
-			converted, err := semProc(ctx, scope, p, adaptor)
+			converted, err := semProc(ctx, scope, p, adaptor, head)
 			if err != nil {
 				return nil, err
 			}
@@ -247,27 +313,45 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Ops:  ops,
 		}, nil
 	case *ast.Sequential:
-		return semSequential(ctx, scope, p, adaptor)
+		return semSequential(ctx, scope, p, adaptor, head)
 	case *ast.Switch:
-		var cases []dag.Case
-		for k := range p.Cases {
+		var expr dag.Expr
+		if p.Expr != nil {
 			var err error
-			tr, err := semProc(ctx, scope, p.Cases[k].Proc, adaptor)
+			expr, err = semExpr(scope, p.Expr)
 			if err != nil {
 				return nil, err
 			}
-			e, err := semExpr(scope, p.Cases[k].Expr)
+		}
+		var cases []dag.Case
+		for _, c := range p.Cases {
+			var e dag.Expr
+			if c.Expr != nil {
+				var err error
+				e, err = semExpr(scope, c.Expr)
+				if err != nil {
+					return nil, err
+				}
+			} else if p.Expr == nil {
+				// c.Expr == nil indicates the default case,
+				// whose handling depends on p.Expr.
+				e = &zed.Primitive{
+					Kind: "Primitive",
+					Type: "bool",
+					Text: "true",
+				}
+			}
+			op, err := semProc(ctx, scope, c.Proc, adaptor, head)
 			if err != nil {
 				return nil, err
 			}
-			cases = append(cases, dag.Case{Expr: e, Op: tr})
+			cases = append(cases, dag.Case{Expr: e, Op: op})
 		}
 		return &dag.Switch{
 			Kind:  "Switch",
+			Expr:  expr,
 			Cases: cases,
 		}, nil
-	case *ast.Call:
-		return convertFunctionProc(scope, p)
 	case *ast.Shape:
 		return &dag.Shape{"Shape"}, nil
 	case *ast.Cut:
@@ -368,6 +452,8 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Kind: "Put",
 			Args: assignments,
 		}, nil
+	case *ast.OpExprs:
+		return semOpExprs(ctx, scope, p, adaptor, head)
 	case *ast.Rename:
 		var assignments []dag.Assignment
 		for _, fa := range p.Args {
@@ -532,26 +618,52 @@ func isConst(p ast.Proc) bool {
 	return false
 }
 
-//XXX this needs to find a common home that doesn't import lake
-func ParseID(s string) (ksuid.KSUID, error) {
-	// Check if this is a cut-and-paste from ZNG, which encodes
-	// the 20-byte KSUID as a 40 character hex string with 0x prefix.
-	var id ksuid.KSUID
-	if len(s) == 42 && s[0:2] == "0x" {
-		b, err := hex.DecodeString(s[2:])
-		if err != nil {
-			return ksuid.Nil, fmt.Errorf("illegal hex tag: %s", s)
-		}
-		id, err = ksuid.FromBytes(b)
-		if err != nil {
-			return ksuid.Nil, fmt.Errorf("illegal hex tag: %s", s)
-		}
-	} else {
-		var err error
-		id, err = ksuid.Parse(s)
-		if err != nil {
-			return ksuid.Nil, fmt.Errorf("%s: invalid commit ID", s)
+func semOpExprs(ctx context.Context, scope *Scope, p *ast.OpExprs, a proc.DataAdaptor, head *lakeparse.Commitish) (dag.Op, error) {
+	if len(p.Exprs) == 1 {
+		// If there is only one expressions and that expression is a call with
+		// a boolean return, convert to Filter.
+		if call, ok := p.Exprs[0].(*ast.Call); ok && function.HasBoolResult(call.Name) {
+			filter := &ast.Filter{Kind: "Filter", Expr: p.Exprs[0]}
+			return semProc(ctx, scope, filter, a, head)
 		}
 	}
-	return id, nil
+	var aggs, puts []dag.Assignment
+	for i := range p.Exprs {
+	again:
+		switch arg := p.Exprs[i].(type) {
+		case *ast.Call:
+			// Convert calls to flex assignment.
+			p.Exprs[i] = &ast.Assignment{
+				Kind: "Assignment",
+				RHS:  arg,
+			}
+			goto again
+		case *ast.Assignment:
+			// Parition assignments into agg vs. puts
+			assignment, err := semAssignment(scope, *arg)
+			if err != nil {
+				return nil, err
+			}
+			if _, ok := assignment.RHS.(*dag.Agg); ok {
+				aggs = append(aggs, assignment)
+			} else {
+				puts = append(puts, assignment)
+			}
+		default:
+			return nil, errors.New("invalid expression in assignment list")
+		}
+	}
+	if len(puts) > 0 && len(aggs) > 0 {
+		return nil, errors.New("mix of aggregations and non-aggregations in assignment list")
+	}
+	if len(puts) > 0 {
+		return &dag.Put{
+			Kind: "Put",
+			Args: puts,
+		}, nil
+	}
+	return &dag.Summarize{
+		Kind: "Summarize",
+		Aggs: aggs,
+	}, nil
 }

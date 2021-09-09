@@ -1,7 +1,7 @@
 zed: top 3 foo
 
 input: |
-  {foo:null (int64)}
+  {foo:null(int64)}
   {foo:1}
   {foo:2}
   {foo:3}

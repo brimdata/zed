@@ -13,6 +13,11 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
 	}
+	Assignment struct {
+		Kind string `json:"kind" unpack:""`
+		LHS  Expr   `json:"lhs"`
+		RHS  Expr   `json:"rhs"`
+	}
 	BinaryExpr struct {
 		Kind string `json:"kind" unpack:""`
 		Op   string `json:"op"`
@@ -106,6 +111,7 @@ type (
 )
 
 func (*Agg) ExprDAG()          {}
+func (*Assignment) ExprDAG()   {}
 func (*ArrayExpr) ExprDAG()    {}
 func (*BinaryExpr) ExprDAG()   {}
 func (*Call) ExprDAG()         {}

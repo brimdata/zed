@@ -1,9 +1,7 @@
 package zng
 
 import (
-	"bytes"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"github.com/brimdata/zed/zcode"
@@ -22,16 +20,16 @@ func (t *TypeUnion) ID() int {
 	return t.id
 }
 
-func (t *TypeUnion) TypeIndex(index int) (Type, error) {
-	if index < 0 || index >= len(t.Types) {
-		return nil, ErrUnionIndex
+// Type returns the type corresponding to selector.
+func (t *TypeUnion) Type(selector int) (Type, error) {
+	if selector < 0 || selector >= len(t.Types) {
+		return nil, ErrUnionSelector
 	}
-	return t.Types[index], nil
+	return t.Types[selector], nil
 }
 
 // SplitZng takes a zng encoding of a value of the receiver's union type and
-// returns the concrete type of the value, its index into the union
-// type, and the value encoding.
+// returns the concrete type of the value, its selector, and the value encoding.
 func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	it := zv.Iter()
 	v, container, err := it.Next()
@@ -41,11 +39,11 @@ func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	if container {
 		return nil, -1, nil, ErrBadValue
 	}
-	index, err := DecodeInt(v)
+	selector, err := DecodeInt(v)
 	if err != nil {
 		return nil, -1, nil, err
 	}
-	inner, err := t.TypeIndex(int(index))
+	inner, err := t.Type(int(selector))
 	if err != nil {
 		return nil, -1, nil, err
 	}
@@ -56,26 +54,7 @@ func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	if !it.Done() {
 		return nil, -1, nil, ErrBadValue
 	}
-	return inner, int64(index), v, nil
-}
-
-// SplitTzng takes a tzng encoding of a value of the receiver's type and returns the
-// concrete type of the value, its index into the union type, and the value
-// encoding.
-func (t *TypeUnion) SplitTzng(in []byte) (Type, int, []byte, error) {
-	c := bytes.Index(in, []byte{':'})
-	if c < 0 {
-		return nil, -1, nil, ErrBadValue
-	}
-	index, err := strconv.Atoi(string(in[0:c]))
-	if err != nil {
-		return nil, -1, nil, err
-	}
-	typ, err := t.TypeIndex(index)
-	if err != nil {
-		return nil, -1, nil, err
-	}
-	return typ, index, in[c+1:], nil
+	return inner, int64(selector), v, nil
 }
 
 func (t *TypeUnion) Marshal(zv zcode.Bytes) (interface{}, error) {
@@ -100,4 +79,20 @@ func (t *TypeUnion) Format(zv zcode.Bytes) string {
 		return badZng(err, t, zv)
 	}
 	return fmt.Sprintf("%s (%s) %s", typ.Format(iv), typ, t)
+}
+
+// BuildUnion appends to b a union described by selector, val, and container.
+func BuildUnion(b *zcode.Builder, selector int, val zcode.Bytes, container bool) {
+	if val == nil {
+		b.AppendNull()
+		return
+	}
+	b.BeginContainer()
+	b.AppendPrimitive(EncodeInt(int64(selector)))
+	if container {
+		b.AppendContainer(val)
+	} else {
+		b.AppendPrimitive(val)
+	}
+	b.EndContainer()
 }

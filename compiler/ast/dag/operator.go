@@ -57,9 +57,9 @@ type (
 		Args     []Assignment `json:"args"`
 	}
 	Merge struct {
-		Kind    string     `json:"kind" unpack:""`
-		Key     field.Path `json:"key"`
-		Reverse bool       `json:"reverse"`
+		Kind  string      `json:"kind" unpack:""`
+		Key   field.Path  `json:"key"`
+		Order order.Which `json:"order"`
 	}
 	Parallel struct {
 		Kind string `json:"kind" unpack:""`
@@ -105,6 +105,7 @@ type (
 	}
 	Switch struct {
 		Kind  string `json:"kind" unpack:""`
+		Expr  Expr   `json:"expr"`
 		Cases []Case `json:"cases"`
 	}
 	Tail struct {
@@ -165,10 +166,28 @@ type (
 	Pool struct {
 		Kind      string      `json:"kind" unpack:""`
 		ID        ksuid.KSUID `json:"id"`
-		At        ksuid.KSUID `json:"at"`
+		Commit    ksuid.KSUID `json:"commit"`
 		ScanLower Expr        `json:"scan_lower"`
 		ScanUpper Expr        `json:"scan_upper"`
 		ScanOrder string      `json:"scan_order"`
+	}
+	PoolMeta struct {
+		Kind string      `json:"kind" unpack:""`
+		ID   ksuid.KSUID `json:"id"`
+		Meta string      `json:"meta"`
+	}
+	CommitMeta struct {
+		Kind      string      `json:"kind" unpack:""`
+		Pool      ksuid.KSUID `json:"pool"`
+		Commit    ksuid.KSUID `json:"branch"`
+		Meta      string      `json:"meta"`
+		ScanLower Expr        `json:"scan_lower"`
+		ScanUpper Expr        `json:"scan_upper"`
+		ScanOrder string      `json:"scan_order"`
+	}
+	LakeMeta struct {
+		Kind string `json:"kind" unpack:""`
+		Meta string `json:"meta"`
 	}
 )
 
@@ -176,10 +195,13 @@ type Source interface {
 	Source()
 }
 
-func (*File) Source() {}
-func (*HTTP) Source() {}
-func (*Pool) Source() {}
-func (*Pass) Source() {}
+func (*File) Source()       {}
+func (*HTTP) Source()       {}
+func (*Pool) Source()       {}
+func (*LakeMeta) Source()   {}
+func (*PoolMeta) Source()   {}
+func (*CommitMeta) Source() {}
+func (*Pass) Source()       {}
 
 // A From node can be a DAG entrypoint or an operator.  When it appears
 // as an operator it mixes its single parent in with other Trunks to
@@ -190,11 +212,6 @@ func (*From) OpNode() {}
 // Various Op fields
 
 type (
-	Assignment struct {
-		Kind string `json:"kind" unpack:""`
-		LHS  Expr   `json:"lhs"`
-		RHS  Expr   `json:"rhs"`
-	}
 	Agg struct {
 		Kind  string `json:"kind" unpack:""`
 		Name  string `json:"name"`

@@ -1,0 +1,47 @@
+# ============================================================================
+# NOTE: This is a test to protect an example shown in the Zed language
+# docs. If you need to make changes to the Zed below to make the tests pass
+# again after a change, the docs likely need to be updated as well.
+#
+# See https://github.com/brimdata/zed/pull/2901 for details
+# ============================================================================
+
+# The Zed being tested below has been modified from the way it appears in
+# docs/language/README.md:
+#
+#   from ... | switch color (
+#     "red" => op1 | op2 | ... ;
+#     "blue" => op1 | op2 | ... ;
+#     default => op1 | op2 | ... ;
+#   ) | ...
+#
+# Specifically, the "op1", "op2", and "..." have been filled in with real
+# operations.
+
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -orderby name fruit
+  zed lake load -q -use fruit@main fruit.zson
+  zed lake query -z -I switch.zed
+
+inputs:
+  - name: fruit.zson
+    data: |
+      {name:"apple",color:"red",price:1.5}
+      {name:"banana",color:"yellow",price:2.1}
+      {name:"blueberry",color:"blue",price:0.1}
+  - name: switch.zed
+    data: |
+      from fruit | switch color (
+        "red" => put price:=price+0.5 | put bigcolor:=to_upper(color) | put tag:="expensive";
+        "blue" => put price:=price+0.1 | put colorlen:=len(color) | put tag:="cheaper";
+        default => put price:=price-0.1 | put promo:="discounted" | put tag:="promoted";
+      ) | sort name
+
+outputs:
+  - name: stdout
+    data: |
+      {name:"apple",color:"red",price:2.,bigcolor:"RED",tag:"expensive"}
+      {name:"banana",color:"yellow",price:2.,promo:"discounted",tag:"promoted"}
+      {name:"blueberry",color:"blue",price:0.2,colorlen:4,tag:"cheaper"}

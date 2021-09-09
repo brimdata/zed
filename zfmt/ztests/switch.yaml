@@ -1,0 +1,45 @@
+script: |
+  zc -C "switch ( a => head; c => tail; )"
+  echo ===
+  zc -C -s "switch ( a => head; c => tail; )"
+  echo ===
+  zc -C "switch ( a => head; default => tail; )"
+  echo ===
+  zc -C -s "switch ( a => head; default => tail; )"
+
+outputs:
+  - name: stdout
+    data: |
+      switch (
+        match("a") =>
+          head 1
+        match("c") =>
+          tail 1
+      )
+      ===
+      from (
+        (internal reader);
+      )
+      | switch (
+          match("a") =>
+            head 1
+          match("c") =>
+            tail 1
+        )
+      ===
+      switch (
+        match("a") =>
+          head 1
+        default =>
+          tail 1
+      )
+      ===
+      from (
+        (internal reader);
+      )
+      | switch (
+          match("a") =>
+            head 1
+          true =>
+            tail 1
+        )

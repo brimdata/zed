@@ -1,9 +1,9 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -p logs -q
-  zed lake drop -f -p logs -q
-  zed lake log -p logs
+  zed lake create -q logs
+  zed lake drop -f -q logs
+  zed lake log -use logs@main
 
 inputs:
   - name: babble.zson

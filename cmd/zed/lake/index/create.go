@@ -4,41 +4,36 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 
-	"github.com/brimdata/zed/cli/lakecli"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
-	zedlake "github.com/brimdata/zed/cmd/zed/lake"
-	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/lake/api"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zson"
 )
 
 var Create = &charm.Spec{
 	Name:  "create",
-	Usage: "create [options] pattern",
-	Short: "create an index for a lake",
+	Usage: "create [options] rule-name pattern",
+	Short: "create an index rule for a lake",
 	New:   NewCreate,
 }
 
 type CreateCommand struct {
-	lake        *zedlake.Command
+	*Command
 	framesize   int
-	keys        string
-	name        string
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
-	zed         string
 }
 
 func NewCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &CreateCommand{lake: parent.(*Command).Command}
+	c := &CreateCommand{Command: parent.(*Command)}
 	f.IntVar(&c.framesize, "framesize", 32*1024, "minimum frame size used in microindex file")
-	f.StringVar(&c.keys, "k", "key", "one or more comma-separated key fields (for Zed script indices only)")
-	f.StringVar(&c.name, "n", "", "name of index (for Zed script indices only)")
-	f.StringVar(&c.zed, "zed", "", "Zed script for index")
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
@@ -46,31 +41,36 @@ func NewCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *CreateCommand) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init(&c.procFlags, &c.outputFlags)
+	ctx, cleanup, err := c.lake.Root().Init(&c.procFlags, &c.outputFlags)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	if len(args) == 0 && c.zed == "" {
-		return errors.New("at least one index pattern must be specified")
+	if len(args) < 2 {
+		return errors.New("a rule name and at least one index pattern must be specified")
 	}
+	ruleName := args[0]
+	args = args[1:]
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	root, err := c.lake.Open(ctx)
+	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-	rules, err := c.createIndices(ctx, root, args)
+	rules, err := c.parseIndexRules(ctx, lake, ruleName, args)
 	if err != nil {
 		return err
 	}
-	if !c.lake.Quiet() {
+	if err := lake.AddIndexRules(ctx, rules); err != nil {
+		return err
+	}
+	if !c.lakeFlags.Quiet {
 		w, err := c.outputFlags.Open(ctx, storage.NewLocalEngine())
 		if err != nil {
 			return err
 		}
-		if err := root.ScanIndex(ctx, w, rules.IDs()); err != nil {
+		if err := api.ScanIndexRules(ctx, lake, driver.NewCLI(w)); err != nil {
 			return err
 		}
 		return w.Close()
@@ -78,24 +78,45 @@ func (c *CreateCommand) Run(args []string) error {
 	return err
 }
 
-func (c *CreateCommand) createIndices(ctx context.Context, root lakecli.Root, args []string) (index.Indices, error) {
-	var rules []index.Index
-	if c.zed != "" {
-		rule, err := index.NewZedIndex(c.zed, c.name, field.DottedList(c.keys))
-		if err != nil {
-			return nil, err
-		}
-		rule.Framesize = c.framesize
-		rules = append(rules, rule)
-	}
-
-	for _, pattern := range args {
-		rule, err := index.ParseIndex(pattern)
+func (c *CreateCommand) parseIndexRules(ctx context.Context, lake api.Interface, ruleName string, args []string) ([]index.Rule, error) {
+	var rules []index.Rule
+	for len(args) > 0 {
+		rest, rule, err := parseRule(args, ruleName)
 		if err != nil {
 			return nil, err
 		}
 		rules = append(rules, rule)
+		args = rest
 	}
+	return rules, nil
+}
 
-	return rules, root.AddIndex(ctx, rules)
+func parseRule(args []string, ruleName string) ([]string, index.Rule, error) {
+	switch args[0] {
+	case "field":
+		if len(args) < 2 {
+			return nil, nil, errors.New("field index rule requires field(s) argument")
+		}
+		rule := index.NewFieldRule(ruleName, args[1])
+		return args[2:], rule, nil
+	case "type":
+		if len(args) < 2 {
+			return nil, nil, errors.New("type index rule requires type argument")
+		}
+		typ, err := zson.ParseType(zson.NewContext(), args[1])
+		if err != nil {
+			return nil, nil, err
+		}
+		rule := index.NewTypeRule(ruleName, typ)
+		return args[2:], rule, nil
+	case "agg":
+		if len(args) < 2 {
+			return nil, nil, errors.New("agg index rule requires a script argument")
+		}
+		script := args[1]
+		rule, err := index.NewAggRule(ruleName, script)
+		return args[2:], rule, err
+	default:
+		return nil, nil, fmt.Errorf("unknown index rule type: %q", args[0])
+	}
 }

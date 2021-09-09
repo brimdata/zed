@@ -58,7 +58,7 @@ func TestMarshalZNG(t *testing.T) {
 	})
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-	assert.Equal(t, `{Field1:"value1",Sub1:{f2:"value2",Field3:-1},PField1:null (bool)}`, toZSON(t, rec))
+	assert.Equal(t, `{Field1:"value1",Sub1:{f2:"value2",Field3:-1},PField1:null(bool)}`, toZSON(t, rec))
 }
 
 type ZNGThing struct {
@@ -84,7 +84,7 @@ func TestMarshalSlice(t *testing.T) {
 	rec2, err := m.MarshalRecord(r2)
 	require.NoError(t, err)
 	require.NotNil(t, rec2)
-	assert.Equal(t, "{Things:[] (0=([1=({a:string,B:int64})]))}", toZSON(t, rec2))
+	assert.Equal(t, "{Things:[]([{a:string,B:int64}])}", toZSON(t, rec2))
 }
 
 func TestMarshalNilSlice(t *testing.T) {
@@ -160,7 +160,7 @@ func TestUnmarshalRecord(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 
-	const expected = `{top:{T2f1:{T3f1:1 (int32),T3f2:1.} (=0),T2f2:"t2f2-string1"} (=1)} (=2)`
+	const expected = `{top:{T2f1:{T3f1:1(int32),T3f2:1.},T2f2:"t2f2-string1"}}`
 	require.Equal(t, expected, toZSON(t, rec))
 
 	zctx := zson.NewContext()
@@ -267,7 +267,7 @@ func TestMarshalArray(t *testing.T) {
 	rec, err := zson.NewZNGMarshaler().MarshalRecord(r1)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-	const expected = `{A1:[1 (int8),2 (int8)] (=0),A2:["foo","bar"],A3:null (1=([bytes]))} (=2)`
+	const expected = `{A1:[1(int8),2(int8)],A2:["foo","bar"],A3:null([bytes])}`
 	assert.Equal(t, expected, toZSON(t, rec))
 
 	var r2 rectype
@@ -306,7 +306,7 @@ func TestIntsAndUints(t *testing.T) {
 	rec, err := zson.NewZNGMarshaler().MarshalRecord(r1)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-	const expected = "{I:-9223372036854775808,I8:-128 (int8),I16:-32768 (int16),I32:-2147483648 (int32),I64:-9223372036854775808,U:18446744073709551615 (uint64),UI8:255 (uint8),UI16:65535 (uint16),UI32:4294967295 (uint32),UI64:18446744073709551615 (uint64)} (=0)"
+	const expected = "{I:-9223372036854775808,I8:-128(int8),I16:-32768(int16),I32:-2147483648(int32),I64:-9223372036854775808,U:18446744073709551615(uint64),UI8:255(uint8),UI16:65535(uint16),UI32:4294967295(uint32),UI64:18446744073709551615(uint64)}"
 	assert.Equal(t, expected, toZSON(t, rec))
 
 	var r2 rectype

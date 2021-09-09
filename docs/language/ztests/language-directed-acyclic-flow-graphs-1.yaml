@@ -1,0 +1,51 @@
+# ============================================================================
+# NOTE: This is a test to protect an example shown in the Zed language
+# docs. If you need to make changes to the Zed below to make the tests pass
+# again after a change, the docs likely need to be updated as well.
+#
+# See https://github.com/brimdata/zed/pull/2901 for details
+# ============================================================================
+
+# The Zed being tested below has been modified from the way it appears in
+# docs/language/README.md:
+#
+#   from PoolOne | split (
+#     => op1 | op2 | ... ;
+#     => op1 | op2 | ... ;
+#   ) | merge ts | ...
+#
+# Specifically, the "op1", "op2", and "..." have been filled in with real
+# operations, and the "merge" has been replaced with a "sort" for now since
+# merge has not yet been fully implemented
+# (https://github.com/brimdata/zed/issues/2906).
+
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q PoolOne
+  zed lake load -q -use PoolOne@main fruit.zson
+  zed lake query -z -I split.zed
+
+inputs:
+  - name: fruit.zson
+    data: |
+      {ts:2018-03-24T17:15:21Z,name:"apple",color:"red"}
+      {ts:2018-03-24T17:16:55Z,name:"banana",color:"yellow"}
+      {ts:2018-03-24T17:21:23Z,name:"avocado",color:"green"}
+      {ts:2018-03-24T17:23:29Z,name:"strawberry",color:"red"}
+  - name: split.zed
+    data: |
+      from PoolOne | split (
+        => every 5m allfruit:=collect(name),allcolor:=collect(color) | put numfruit:=len(allfruit) | put numcolor:=len(allcolor);
+        => put color:=to_upper(color) | put namelen:=len(name) | put tag:="mytag";
+      ) | sort ts | rename time:=ts
+
+outputs:
+  - name: stdout
+    data: |
+      {time:2018-03-24T17:15:00Z,allfruit:["banana","apple"],allcolor:["yellow","red"],numfruit:2,numcolor:2}
+      {time:2018-03-24T17:15:21Z,name:"apple",color:"RED",namelen:5,tag:"mytag"}
+      {time:2018-03-24T17:16:55Z,name:"banana",color:"YELLOW",namelen:6,tag:"mytag"}
+      {time:2018-03-24T17:20:00Z,allfruit:["strawberry","avocado"],allcolor:["red","green"],numfruit:2,numcolor:2}
+      {time:2018-03-24T17:21:23Z,name:"avocado",color:"GREEN",namelen:7,tag:"mytag"}
+      {time:2018-03-24T17:23:29Z,name:"strawberry",color:"RED",namelen:10,tag:"mytag"}

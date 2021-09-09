@@ -1,7 +1,7 @@
 script: |
   source service.sh
-  zapi create -p test
-  zapi query "from test at doesnotexist"
+  zapi create test
+  zapi query "from test@doesnotexist"
 
 inputs:
   - name: service.sh
@@ -10,4 +10,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      doesnotexist: invalid commit ID
+      "doesnotexist": branch not found

@@ -17,15 +17,15 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, ref *Reference) (*Writer, error) {
+func NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, object *Object) (*Writer, error) {
 	rwCh := make(rwChan)
-	indexer, err := newIndexer(ctx, engine, path, ref, rwCh)
+	indexer, err := newIndexer(ctx, engine, path, object, rwCh)
 	if err != nil {
 		return nil, err
 	}
 	w := &Writer{
-		Reference: ref,
-		URI:       ref.ObjectPath(path),
+		Object: object,
+		URI:    object.Path(path),
 
 		done:    make(chan struct{}),
 		indexer: indexer,
@@ -35,8 +35,8 @@ func NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, re
 }
 
 type Writer struct {
-	Reference *Reference
-	URI       *storage.URI
+	Object *Object
+	URI    *storage.URI
 
 	done    chan struct{}
 	indexer *indexer
@@ -109,12 +109,9 @@ type indexer struct {
 	wg      sync.WaitGroup
 }
 
-func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, ref *Reference, r zio.Reader) (*indexer, error) {
-	idx := ref.Index
-	zedQuery, err := idx.zedQuery()
-	if err != nil {
-		return nil, err
-	}
+func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, object *Object, r zio.Reader) (*indexer, error) {
+	rule := object.Rule
+	zedQuery := rule.Zed()
 	p, err := compiler.ParseProc(zedQuery)
 	if err != nil {
 		return nil, err
@@ -124,15 +121,11 @@ func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, r
 	if err != nil {
 		return nil, err
 	}
-	keys := idx.Keys
+	keys := rule.RuleKeys()
 	if len(keys) == 0 {
 		keys = field.List{field.Dotted(keyName)}
 	}
-	opts := []index.Option{index.KeyFields(keys...)}
-	if idx.Framesize > 0 {
-		opts = append(opts, index.FrameThresh(idx.Framesize))
-	}
-	writer, err := newIndexWriter(ctx, zctx, engine, path, ref)
+	writer, err := newIndexWriter(ctx, zctx, engine, path, object)
 	if err != nil {
 		return nil, err
 	}
@@ -148,9 +141,8 @@ func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, r
 	}, nil
 }
 
-func newIndexWriter(ctx context.Context, zctx *zson.Context, engine storage.Engine, path *storage.URI, ref *Reference, opts ...index.Option) (w *index.Writer, err error) {
-	op := ref.ObjectPath(path)
-	return index.NewWriterWithContext(ctx, zctx, engine, op.String(), opts...)
+func newIndexWriter(ctx context.Context, zctx *zson.Context, engine storage.Engine, path *storage.URI, object *Object, opts ...index.Option) (w *index.Writer, err error) {
+	return index.NewWriterWithContext(ctx, zctx, engine, object.Path(path).String(), opts...)
 }
 
 func (d *indexer) start() {
@@ -174,6 +166,13 @@ func (d *indexer) Write(rec *zng.Record) error {
 	key, err := d.cutter.Apply(rec)
 	if err != nil {
 		return fmt.Errorf("checking index record: %w", err)
+	}
+	if key == nil {
+		s, err := zson.FormatValue(rec.Value)
+		if err != nil {
+			s = err.Error()
+		}
+		return fmt.Errorf("no index key(s) found in record: %s", s)
 	}
 	if d.keyType == nil {
 		d.keyType = key.Type

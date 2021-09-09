@@ -1,0 +1,33 @@
+script: zq -z -I test.zed
+
+inputs:
+  - name: test.zed
+    data: |
+      from (
+        file people.ndjson => sort likes;
+        file fruit.ndjson => sort flavor;
+      ) | left join on likes=flavor fruit:=name,note
+  - name: people.ndjson
+    data: |
+      {"name":"morgan","age":61,"likes":"tart"}
+      {"name":"quinn","age":14,"likes":"sweet"}
+      {"name":"jessie","age":30,"likes":"plain"}
+      {"name":"chris","age":47,"likes":"tart"}
+  - name: fruit.ndjson
+    data: |
+      {"name":"apple","color":"red","flavor":"tart"}
+      {"name":"banana","color":"yellow","flavor":"sweet"}
+      {"name":"avocado","color":"green","flavor":"savory"}
+      {"name":"strawberry","color":"red","flavor":"sweet"}
+      {"name":"dates","color":"brown","flavor":"sweet","note":"in season"}
+      {"name":"figs","color":"brown","flavor":"plain"}
+
+outputs:
+  - name: stdout
+    data: |
+      {name:"jessie",age:30,likes:"plain",fruit:"figs"}
+      {name:"quinn",age:14,likes:"sweet",fruit:"banana"}
+      {name:"quinn",age:14,likes:"sweet",fruit:"strawberry"}
+      {name:"quinn",age:14,likes:"sweet",fruit:"dates",note:"in season"}
+      {name:"morgan",age:61,likes:"tart",fruit:"apple"}
+      {name:"chris",age:47,likes:"tart",fruit:"apple"}

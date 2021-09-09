@@ -6,24 +6,22 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimdata/zed/cli/lakeflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 )
 
-//XXX TBD: add drop by pool ID
-
 var Cmd = &charm.Spec{
 	Name:  "drop",
-	Usage: "drop -p name",
+	Usage: "drop pool",
 	Short: "delete a data pool from a lake",
 	Long: `
-"zed lake drop" removes the named pool from the lake.
-The -p flag must be given.
+The drop command removes the named pool from the lake.
 
 DANGER ZONE.
-There is no prompting or second chances here so use carefully.
-Once the pool is delted, its data is gone.
+When deleting an entire pool, the drop command prompts for confirmation.
+Once the pool is deleted, its data is gone so use this command carefully.
 `,
 	New: New,
 }
@@ -34,54 +32,52 @@ func init() {
 }
 
 type Command struct {
-	lake  *zedlake.Command
-	force bool
+	lake      zedlake.Command
+	force     bool
+	lakeFlags lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{lake: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(zedlake.Command)}
 	f.BoolVar(&c.force, "f", false, "do not prompt for confirmation")
+	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init()
+	ctx, cleanup, err := c.lake.Root().Init()
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	name := c.lake.Flags.PoolName()
-	if name == "" {
-		return errors.New("name of pool must be supplied with -p option")
+	if len(args) != 1 {
+		return errors.New("a single pool name must be specified")
 	}
-	lk, err := c.lake.Flags.Open(ctx)
+	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
-	pool, err := lk.LookupPoolByName(ctx, name)
+	poolName := args[0]
+	poolID, err := lake.PoolID(ctx, poolName)
 	if err != nil {
 		return nil
 	}
-	if pool == nil {
-		return fmt.Errorf("%s: no such pool", name)
-	}
-	if err := c.confirm(); err != nil {
+	if err := c.confirm(poolName); err != nil {
 		return err
 	}
-	if err := lk.RemovePool(ctx, pool.ID); err != nil {
+	if err := lake.RemovePool(ctx, poolID); err != nil {
 		return err
 	}
-	if !c.lake.Flags.Quiet() {
-		fmt.Printf("pool deleted: %s\n", name)
+	if !c.lakeFlags.Quiet {
+		fmt.Printf("pool deleted: %s\n", poolName)
 	}
 	return nil
 }
 
-func (c *Command) confirm() error {
+func (c *Command) confirm(name string) error {
 	if c.force {
 		return nil
 	}
-	name := c.lake.Flags.PoolName()
 	fmt.Printf("Are you sure you want to delete pool %q? There is no going back... [y|n]\n", name)
 	var input string
 	if _, err := fmt.Scanln(&input); err != nil {

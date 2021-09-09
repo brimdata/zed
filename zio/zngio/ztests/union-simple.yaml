@@ -3,6 +3,6 @@ zed: '*'
 input: !!binary +QIHEPYBAWEXGAwXBAISYXNkZmFzZGYYBAcCBAIYAQD/
 
 output: |
-  {a:"asdfasdf" (0=((int64,string)))} (=1)
-  {a:1} (1)
-  {a:null} (1)
+  {a:"asdfasdf"((int64,string))}
+  {a:1((int64,string))}
+  {a:null((int64,string))}

@@ -50,6 +50,12 @@ func (c *Pair) Equal() bool {
 func (c *Pair) Coerce(a, b zng.Value) (int, error) {
 	c.A = a.Bytes
 	c.B = b.Bytes
+	if a.Type == nil {
+		a.Type = zng.TypeNull
+	}
+	if b.Type == nil {
+		b.Type = zng.TypeNull
+	}
 	aid := a.Type.ID()
 	bid := b.Type.ID()
 	if aid == bid {

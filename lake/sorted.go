@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
-	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
@@ -51,10 +51,10 @@ func (s *statScanner) Pull() (zbuf.Batch, error) {
 }
 
 func newSortedScanner(ctx context.Context, pool *Pool, zctx *zson.Context, filter zbuf.Filter, scan Partition, sched *Scheduler) (*sortedPuller, error) {
-	closers := make(multiCloser, 0, len(scan.Segments))
-	pullers := make([]zbuf.Puller, 0, len(scan.Segments))
-	for _, segref := range scan.Segments {
-		rc, err := segref.NewReader(ctx, pool.engine, pool.DataPath, scan.Span, scan.compare)
+	closers := make(multiCloser, 0, len(scan.Objects))
+	pullers := make([]zbuf.Puller, 0, len(scan.Objects))
+	for _, object := range scan.Objects {
+		rc, err := object.NewReader(ctx, pool.engine, pool.DataPath, scan.Span, scan.compare)
 		if err != nil {
 			closers.Close()
 			return nil, err
@@ -63,9 +63,9 @@ func newSortedScanner(ctx context.Context, pool *Pool, zctx *zson.Context, filte
 		reader := zngio.NewReader(rc, zctx)
 		f := filter
 		if len(pool.Layout.Keys) != 0 {
-			// If the scan span does not wholly contain the segment, then
+			// If the scan span does not wholly contain the data object, then
 			// we must filter out records that fall outside the range.
-			f = wrapRangeFilter(f, scan.Span, scan.compare, segref.First, segref.Last, pool.Layout.Keys[0])
+			f = wrapRangeFilter(f, scan.Span, scan.compare, object.First, object.Last, pool.Layout)
 		}
 		scanner, err := reader.NewScanner(ctx, f)
 		if err != nil {
@@ -95,10 +95,9 @@ func newSortedScanner(ctx context.Context, pool *Pool, zctx *zson.Context, filte
 
 type rangeWrapper struct {
 	zbuf.Filter
-	first   zng.Value
-	last    zng.Value
-	key     field.Path
-	compare expr.ValueCompareFn
+	first  zng.Value
+	last   zng.Value
+	layout order.Layout
 }
 
 func (r *rangeWrapper) AsFilter() (expr.Filter, error) {
@@ -106,21 +105,22 @@ func (r *rangeWrapper) AsFilter() (expr.Filter, error) {
 	if err != nil {
 		return nil, err
 	}
+	compare := extent.CompareFunc(r.layout.Order)
 	return func(rec *zng.Record) bool {
-		keyVal, err := rec.Deref(r.key)
+		keyVal, err := rec.Deref(r.layout.Keys[0])
 		if err != nil {
 			// XXX match keyless records.
 			// See issue #2637.
 			return true
 		}
-		if r.compare(keyVal, r.first) < 0 || r.compare(keyVal, r.last) > 0 {
+		if compare(keyVal, r.first) < 0 || compare(keyVal, r.last) > 0 {
 			return false
 		}
 		return f == nil || f(rec)
 	}, nil
 }
 
-func wrapRangeFilter(f zbuf.Filter, scan extent.Span, cmp expr.ValueCompareFn, first, last zng.Value, key field.Path) zbuf.Filter {
+func wrapRangeFilter(f zbuf.Filter, scan extent.Span, cmp expr.ValueCompareFn, first, last zng.Value, layout order.Layout) zbuf.Filter {
 	scanFirst := scan.First()
 	scanLast := scan.Last()
 	if cmp(scanFirst, first) <= 0 {
@@ -129,10 +129,9 @@ func wrapRangeFilter(f zbuf.Filter, scan extent.Span, cmp expr.ValueCompareFn, f
 		}
 	}
 	return &rangeWrapper{
-		Filter:  f,
-		first:   scanFirst,
-		last:    scanLast,
-		key:     key,
-		compare: cmp,
+		Filter: f,
+		first:  scanFirst,
+		last:   scanLast,
+		layout: layout,
 	}
 }

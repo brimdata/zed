@@ -25,6 +25,7 @@ type WriterOpts struct {
 	Format string
 	UTF8   bool
 	JSON   jsonio.WriterOpts
+	Lake   lakeio.WriterOpts
 	Text   textio.WriterOpts
 	Zng    zngio.WriterOpts
 	ZSON   zsonio.WriterOpts
@@ -63,7 +64,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "parquet":
 		return parquetio.NewWriter(w), nil
 	case "lake":
-		return lakeio.NewWriter(w), nil
+		return lakeio.NewWriter(w, opts.Lake), nil
 	default:
 		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	}

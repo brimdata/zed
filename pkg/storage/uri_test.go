@@ -61,10 +61,14 @@ func TestURISerializeEmpty(t *testing.T) {
 	assert.Equal(t, "", u.String())
 }
 
-func TestPathWithEncodedChars(t *testing.T) {
+func TestParseURIWithBarePathContainingSpecialChars(t *testing.T) {
 	// Create a real directory since ParseURI will always return an absolute
 	// path, and this will verify Windows path handling as well.
-	p := filepath.Join(t.TempDir(), "file with spaces")
+	dir := t.TempDir()
+	// "%" is special because it introduces a percent-encoded octet.  "?"
+	// and "#" are special because they introduce a path's query component
+	// and fragment identifier component, respectively.
+	p := filepath.Join(dir, "%?#")
 	u, err := ParseURI(p)
 	require.NoError(t, err)
 	assert.Equal(t, p, u.Filepath())

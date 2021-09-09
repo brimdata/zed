@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio/zjsonio"
@@ -101,52 +102,23 @@ type PoolPutRequest struct {
 	Name string `json:"name"`
 }
 
-type CommitRequest struct {
-	Author  string  `zng:"author"`
-	Date    nano.Ts `zng:"date"`
-	Message string  `zng:"message"`
+type BranchPostRequest struct {
+	Name   string `json:"name"`
+	Commit string `json:"commit"`
 }
 
-type SquashRequest struct {
-	Commits []ksuid.KSUID `json:"commits"`
+type BranchMergeRequest struct {
+	At string `json:"at"`
 }
 
-type LogPostRequest struct {
-	Paths   []string        `json:"paths"`
-	StopErr bool            `json:"stop_err"`
-	Shaper  json.RawMessage `json:"shaper,omitempty"`
+type CommitMessage struct {
+	Author string `zng:"author"`
+	Body   string `zng:"body"`
 }
 
-type LogPostWarning struct {
-	Type    string `json:"type"`
-	Warning string `json:"warning"`
-}
-
-type LogPostStatus struct {
-	Type         string `json:"type"`
-	LogTotalSize int64  `json:"log_total_size" unit:"bytes"`
-	LogReadSize  int64  `json:"log_read_size" unit:"bytes"`
-}
-
-type LogPostResponse struct {
-	Type      string      `json:"type"`
-	BytesRead int64       `json:"bytes_read" unit:"bytes"`
-	Commit    ksuid.KSUID `json:"commit"`
-	Warnings  []string    `json:"warnings"`
-}
-
-type AddResponse struct {
+type CommitResponse struct {
 	Commit   ksuid.KSUID `zng:"commit"`
 	Warnings []string    `zng:"warnings"`
-}
-
-type StagedCommit struct {
-	Commit ksuid.KSUID `zng:"commit"`
-}
-
-type IndexSearchRequest struct {
-	IndexName string   `json:"index_name"`
-	Patterns  []string `json:"patterns"`
 }
 
 type IndexPostRequest struct {
@@ -156,17 +128,25 @@ type IndexPostRequest struct {
 	Zed      string   `json:"zed,omitempty"`
 }
 
-type EventPoolCommit struct {
+type EventBranchCommit struct {
 	CommitID string `json:"commit_id"`
 	PoolID   string `json:"pool_id"`
+	Branch   string `json:"branch"`
+	Parent   string `json:"parent"`
 }
 
 type EventPool struct {
 	PoolID string `json:"pool_id"`
 }
 
+type EventBranch struct {
+	PoolID string `json:"pool_id"`
+	Branch string `json:"branch"`
+}
+
 type QueryRequest struct {
-	Query string `json:"query"`
+	Query string              `json:"query"`
+	Head  lakeparse.Commitish `json:"head"`
 }
 
 type QueryChannelSet struct {
@@ -188,5 +168,5 @@ type QueryStats struct {
 }
 
 type QueryWarning struct {
-	Warning string `zng:"warning"`
+	Warning string `json:"warning" zng:"warning"`
 }

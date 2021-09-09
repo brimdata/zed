@@ -17,11 +17,11 @@ import (
 )
 
 var (
-	ErrLenUnset   = errors.New("len(unset) is undefined")
-	ErrNotArray   = errors.New("cannot index a non-array")
-	ErrIndex      = errors.New("array index out of bounds")
-	ErrUnionIndex = errors.New("union index out of bounds")
-	ErrEnumIndex  = errors.New("enum index out of bounds")
+	ErrLenUnset      = errors.New("len(unset) is undefined")
+	ErrNotArray      = errors.New("cannot index a non-array")
+	ErrIndex         = errors.New("array index out of bounds")
+	ErrUnionSelector = errors.New("union selector out of bounds")
+	ErrEnumIndex     = errors.New("enum index out of bounds")
 )
 
 // A Type is an interface presented by a zeek type.

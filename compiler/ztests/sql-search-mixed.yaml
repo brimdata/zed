@@ -5,14 +5,14 @@ zed: |
   | sort .
 
 input: |
-  {name:"apple", color:["green","red"], flavor: "tart"} (=fruit)
-  {name:"banana", color:["yellow"], flavor: "sweet"} (fruit)
-  {name:"strawberry", color:["red"], flavor: "sweet"} (fruit)
-  {name:"dates", color:["brown"], flavor: "sweet" } (fruit)
-  {name:"figs", color:["brown","green"], flavor: "plain" } (fruit)
-  {name:"bob", likes: ["apple", "dates", "figs"], age:61} (=person)
-  {name:"joe", likes: ["apple", "banana"], age:14} (person)
-  {name:"jim", likes: null, age:30} (person)
+  {name:"apple",color:["green","red"],flavor:"tart"}(=fruit)
+  {name:"banana",color:["yellow"],flavor:"sweet"}(=fruit)
+  {name:"strawberry",color:["red"],flavor:"sweet"}(=fruit)
+  {name:"dates",color:["brown"],flavor:"sweet"}(=fruit)
+  {name:"figs",color:["brown","green"],flavor:"plain"}(=fruit)
+  {name:"bob",likes:["apple","dates","figs"],age:61}(=person)
+  {name:"joe",likes:["apple","banana"],age:14}(=person)
+  {name:"jim",likes:null([string]),age:30}(=person)
 
 output: |
   {flavor:"tart",union:|["apple"]|}

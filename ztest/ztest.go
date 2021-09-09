@@ -37,7 +37,7 @@
 //    output-flags: -f table
 //
 //    output: |
-//      COUNT
+//      count
 //      2
 //
 // Alternatively, tests can be configured to run as shell scripts.
@@ -129,10 +129,10 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
@@ -151,8 +151,8 @@ type Bundle struct {
 	Error    error
 }
 
-func (b *Bundle) RunScript(shellPath, workingDir string) error {
-	return b.Test.RunScript(b.TestName, shellPath, workingDir, b.FileName)
+func (b *Bundle) RunScript(shellPath, tempDir string) error {
+	return b.Test.RunScript(shellPath, filepath.Dir(b.FileName), tempDir)
 }
 
 func Load(dirname string) ([]Bundle, error) {
@@ -196,7 +196,7 @@ func Run(t *testing.T, dirname string) {
 			if b.Error != nil {
 				t.Fatalf("%s: %s", b.FileName, b.Error)
 			}
-			b.Test.Run(t, b.TestName, shellPath, dirname, b.FileName)
+			b.Test.Run(t, shellPath, b.FileName)
 		})
 	}
 }
@@ -273,6 +273,7 @@ type ZTest struct {
 	// For Zed-style tests.
 	Zed         string `yaml:"zed,omitempty"`
 	Input       string `yaml:"input,omitempty"`
+	InputFlags  string `yaml:"input-flags,omitempty"`
 	Output      string `yaml:"output,omitempty"`
 	OutputFlags string `yaml:"output-flags,omitempty"`
 	ErrorRE     string `yaml:"errorRE"`
@@ -348,20 +349,20 @@ func (z *ZTest) ShouldSkip(path string) string {
 	return ""
 }
 
-func (z *ZTest) RunScript(testname, shellPath, workingDir, filename string) error {
+func (z *ZTest) RunScript(shellPath, testDir, tempDir string) error {
 	if err := z.check(); err != nil {
-		return fmt.Errorf("%s: bad yaml format: %w", filename, err)
+		return fmt.Errorf("bad yaml format: %w", err)
 	}
-	adir, _ := filepath.Abs(workingDir)
-	return runsh(testname, shellPath, adir, z)
+	return runsh(shellPath, testDir, tempDir, z)
 }
 
 func (z *ZTest) RunInternal(path string) error {
 	if err := z.check(); err != nil {
 		return fmt.Errorf("bad yaml format: %w", err)
 	}
+	inputFlags := strings.Fields(z.InputFlags)
 	outputFlags := append([]string{"-f", "zson", "-pretty=0"}, strings.Fields(z.OutputFlags)...)
-	out, errout, err := runzq(path, z.Zed, outputFlags, z.Input)
+	out, errout, err := runzq(path, z.Zed, z.Input, outputFlags, inputFlags)
 	if err != nil {
 		if z.errRegex != nil {
 			if !z.errRegex.MatchString(errout) {
@@ -384,13 +385,13 @@ func (z *ZTest) RunInternal(path string) error {
 	return nil
 }
 
-func (z *ZTest) Run(t *testing.T, testname, path, dirname, filename string) {
+func (z *ZTest) Run(t *testing.T, path, filename string) {
 	if msg := z.ShouldSkip(path); msg != "" {
 		t.Skip("skipping test:", msg)
 	}
 	var err error
 	if z.Script != "" {
-		err = z.RunScript(testname, path, dirname, filename)
+		err = z.RunScript(path, filepath.Dir(filename), t.TempDir())
 	} else {
 		err = z.RunInternal(path)
 	}
@@ -417,7 +418,7 @@ func diffErr(name, expected, actual string) error {
 	return fmt.Errorf("expected and actual %s differ:\n%s", name, diff)
 }
 
-func checkPatterns(patterns map[string]*regexp.Regexp, dir *Dir, stdout, stderr string) error {
+func checkPatterns(patterns map[string]*regexp.Regexp, dir Dir, stdout, stderr string) error {
 	for name, re := range patterns {
 		var body []byte
 		switch name {
@@ -439,7 +440,7 @@ func checkPatterns(patterns map[string]*regexp.Regexp, dir *Dir, stdout, stderr 
 	return nil
 }
 
-func checkData(files map[string][]byte, dir *Dir, stdout, stderr string) error {
+func checkData(files map[string][]byte, dir Dir, stdout, stderr string) error {
 	for name, expected := range files {
 		var actual []byte
 		switch name {
@@ -461,15 +462,11 @@ func checkData(files map[string][]byte, dir *Dir, stdout, stderr string) error {
 	return nil
 }
 
-func runsh(testname, path, dirname string, zt *ZTest) error {
-	dir, err := NewDir(testname)
-	if err != nil {
-		return fmt.Errorf("creating ztest scratch dir: \"%s\": %w", testname, err)
-	}
+func runsh(path, testDir, tempDir string, zt *ZTest) error {
+	dir := Dir(tempDir)
 	var stdin io.Reader
-	defer dir.RemoveAll()
 	for _, f := range zt.Inputs {
-		b, re, err := f.load(dirname)
+		b, re, err := f.load(testDir)
 		if err != nil {
 			return err
 		}
@@ -493,7 +490,7 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 	expectedData := make(map[string][]byte)
 	expectedPattern := make(map[string]*regexp.Regexp)
 	for _, f := range zt.Outputs {
-		b, re, err := f.load(dirname)
+		b, re, err := f.load(testDir)
 		if err != nil {
 			return err
 		}
@@ -527,25 +524,22 @@ func runsh(testname, path, dirname string, zt *ZTest) error {
 	return checkData(expectedData, dir, stdout, stderr)
 }
 
-// runzq runs the Zed program in zed over inputs and returns the output.  inputs
+// runzq runs the Zed program in zed over input and returns the output.  input
 // may be in any format recognized by "zq -i auto" and may be gzip-compressed.
 // outputFlags may contain any flags accepted by cli/outputflags.Flags.  If path
 // is empty, the program runs in the current process.  If path is not empty, it
 // specifies a command search path used to find a zq executable to run the
 // program.
-func runzq(path, zed string, outputFlags []string, inputs ...string) (string, string, error) {
+func runzq(path, zed, input string, outputFlags []string, inputFlags []string) (string, string, error) {
 	var errbuf, outbuf bytes.Buffer
 	if path != "" {
 		zq, err := lookupzq(path)
 		if err != nil {
 			return "", "", err
 		}
-		tmpdir, files, err := tmpInputFiles(inputs)
-		if err != nil {
-			return "", "", err
-		}
-		defer os.RemoveAll(tmpdir)
-		cmd := exec.Command(zq, append(append(outputFlags, zed), files...)...)
+		flags := append(outputFlags, inputFlags...)
+		cmd := exec.Command(zq, append(flags, zed, "-")...)
+		cmd.Stdin = strings.NewReader(input)
 		cmd.Stdout = &outbuf
 		cmd.Stderr = &errbuf
 		err = cmd.Run()
@@ -558,25 +552,30 @@ func runzq(path, zed string, outputFlags []string, inputs ...string) (string, st
 	if err != nil {
 		return "", "", err
 	}
-	ctx := context.Background()
+	var inflags inputflags.Flags
+	var flags flag.FlagSet
+	inflags.SetFlags(&flags)
+	if err := flags.Parse(inputFlags); err != nil {
+		return "", "", err
+	}
 	zctx := zson.NewContext()
-	rc, err := loadInputs(inputs, zctx)
+	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(strings.NewReader(input)), zctx, inflags.Options())
 	if err != nil {
 		return "", err.Error(), err
 	}
-	var zflags outputflags.Flags
-	var flags flag.FlagSet
-	zflags.SetFlags(&flags)
+	var outflags outputflags.Flags
+	flags = flag.FlagSet{}
+	outflags.SetFlags(&flags)
 	if err := flags.Parse(outputFlags); err != nil {
 		return "", "", err
 	}
-	zw, err := anyio.NewWriter(&nopCloser{&outbuf}, zflags.Options())
+	zw, err := anyio.NewWriter(&nopCloser{&outbuf}, outflags.Options())
 	if err != nil {
 		return "", "", err
 	}
 	d := driver.NewCLI(zw)
 	d.SetWarningsWriter(&errbuf)
-	err = driver.RunWithReader(ctx, d, proc, zctx, rc, nil)
+	err = driver.RunWithReader(context.Background(), d, proc, zctx, zr, nil)
 	if err2 := zw.Close(); err == nil {
 		err = err2
 	}
@@ -597,36 +596,6 @@ func lookupzq(path string) (string, error) {
 		}
 	}
 	return "", zqe.E(zqe.NotFound)
-}
-
-func loadInputs(inputs []string, zctx *zson.Context) (zio.Reader, error) {
-	var readers []zio.Reader
-	for _, input := range inputs {
-		zr, err := anyio.NewReader(anyio.GzipReader(strings.NewReader(input)), zctx)
-		if err != nil {
-			return nil, err
-		}
-		readers = append(readers, zr)
-	}
-	return zio.ConcatReader(readers...), nil
-}
-
-func tmpInputFiles(inputs []string) (string, []string, error) {
-	dir, err := os.MkdirTemp("", "")
-	if err != nil {
-		return "", nil, err
-	}
-	var files []string
-	for i, input := range inputs {
-		name := fmt.Sprintf("input%d", i+1)
-		file := filepath.Join(dir, name)
-		if err := os.WriteFile(file, []byte(input), 0644); err != nil {
-			os.RemoveAll(dir)
-			return "", nil, err
-		}
-		files = append(files, file)
-	}
-	return dir, files, nil
 }
 
 type nopCloser struct{ io.Writer }

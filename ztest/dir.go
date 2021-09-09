@@ -8,19 +8,6 @@ import (
 // syntactic sugar for directory manipulations of a temp dir
 type Dir string
 
-func NewDir(name string) (*Dir, error) {
-	path, err := os.MkdirTemp("", name)
-	if err != nil {
-		return nil, err
-	}
-	d := Dir(path)
-	return &d, nil
-}
-
-func (d Dir) RemoveAll() {
-	os.RemoveAll(string(d))
-}
-
 func (d Dir) Path() string {
 	return string(d)
 }

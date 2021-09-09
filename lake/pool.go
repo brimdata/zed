@@ -1,417 +1,198 @@
 package lake
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
-	"path/filepath"
-	"strings"
 
+	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
-	"github.com/brimdata/zed/lake/commit"
-	"github.com/brimdata/zed/lake/commit/actions"
-	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/journal"
-	"github.com/brimdata/zed/lake/segment"
-	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/lake/branches"
+	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/lake/data"
+	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/proc"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
 const (
-	DataTag  = "D"
-	IndexTag = "I"
-	LogTag   = "L"
-	StageTag = "S"
+	DataTag     = "data"
+	IndexTag    = "index"
+	BranchesTag = "branches"
+	CommitsTag  = "commits"
 )
 
-var ErrStagingEmpty = errors.New("staging area empty")
-
-type PoolConfig struct {
-	Version   int          `zng:"version"`
-	Name      string       `zng:"name"`
-	ID        ksuid.KSUID  `zng:"id"`
-	Layout    order.Layout `zng:"layout"`
-	Threshold int64        `zng:"threshold"`
-}
-
 type Pool struct {
-	PoolConfig
+	pools.Config
 	engine    storage.Engine
 	Path      *storage.URI
 	DataPath  *storage.URI
 	IndexPath *storage.URI
-	StagePath *storage.URI
-	log       *commit.Log
+	branches  *branches.Store
+	commits   *commits.Store
 }
 
-func NewPoolConfig(name string, id ksuid.KSUID, layout order.Layout, thresh int64) *PoolConfig {
-	if thresh == 0 {
-		thresh = segment.DefaultThreshold
+func CreatePool(ctx context.Context, config *pools.Config, engine storage.Engine, root *storage.URI) error {
+	poolPath := config.Path(root)
+	// branchesPath is the path to the kvs journal of BranchConfigs
+	// for the pool while the commit log is stored in <pool-id>/<branch-id>.
+	branchesPath := poolPath.AppendPath(BranchesTag)
+	// create the branches journal store
+	_, err := branches.CreateStore(ctx, engine, branchesPath)
+	if err != nil {
+		return err
 	}
-	return &PoolConfig{
-		Version:   0,
-		Name:      name,
-		ID:        id,
-		Layout:    layout,
-		Threshold: thresh,
-	}
-}
-
-func (p *PoolConfig) Path(root *storage.URI) *storage.URI {
-	return root.AppendPath(p.ID.String())
-}
-
-func (p *PoolConfig) Create(ctx context.Context, engine storage.Engine, root *storage.URI) error {
-	path := p.Path(root)
-	_, err := commit.Create(ctx, engine, LogPath(path), p.Layout.Order)
+	// create the main branch in the branches journal store.  The parent
+	// commit object of the initial main branch is ksuid.Nil.
+	_, err = CreateBranch(ctx, config, engine, root, "main", ksuid.Nil)
 	return err
 }
 
-func (p *PoolConfig) Open(ctx context.Context, engine storage.Engine, root *storage.URI) (*Pool, error) {
-	path := p.Path(root)
-	log, err := commit.Open(ctx, engine, path.AppendPath(LogTag), p.Layout.Order)
+func CreateBranch(ctx context.Context, poolConfig *pools.Config, engine storage.Engine, root *storage.URI, name string, parent ksuid.KSUID) (*branches.Config, error) {
+	poolPath := poolConfig.Path(root)
+	branchesPath := poolPath.AppendPath(BranchesTag)
+	store, err := branches.OpenStore(ctx, engine, branchesPath)
 	if err != nil {
 		return nil, err
 	}
-	pool := &Pool{
-		PoolConfig: *p,
-		engine:     engine,
-		Path:       path,
-		DataPath:   DataPath(path),
-		IndexPath:  IndexPath(path),
-		StagePath:  StagePath(path),
-		log:        log,
+	if _, err := store.LookupByName(ctx, name); err == nil {
+		return nil, fmt.Errorf("%s/%s: %w", poolConfig.Name, name, branches.ErrExists)
 	}
-	return pool, nil
+	branchConfig := branches.NewConfig(name, parent)
+	if err := store.Add(ctx, branchConfig); err != nil {
+		return nil, err
+	}
+	return branchConfig, err
 }
 
-func (p *PoolConfig) Delete(ctx context.Context, engine storage.Engine, root *storage.URI) error {
-	return engine.DeleteByPrefix(ctx, p.Path(root))
-}
-
-func (p *Pool) Add(ctx context.Context, r zio.Reader) (ksuid.KSUID, error) {
-	w, err := NewWriter(ctx, p)
+func OpenPool(ctx context.Context, config *pools.Config, engine storage.Engine, root *storage.URI) (*Pool, error) {
+	path := config.Path(root)
+	branchesPath := path.AppendPath(BranchesTag)
+	branches, err := branches.OpenStore(ctx, engine, branchesPath)
 	if err != nil {
-		return ksuid.Nil, err
+		return nil, err
 	}
-	err = zio.CopyWithContext(ctx, w, r)
-	if closeErr := w.Close(); err == nil {
-		err = closeErr
-	}
+	commitsPath := path.AppendPath(CommitsTag)
+	commits, err := commits.OpenStore(engine, commitsPath)
 	if err != nil {
-		return ksuid.Nil, err
+		return nil, err
 	}
-	id := ksuid.New()
-	txn := commit.NewAddsTxn(id, w.Segments())
-	if err := p.StoreInStaging(ctx, txn); err != nil {
-		return ksuid.Nil, err
-	}
-	return id, nil
+	return &Pool{
+		Config:    *config,
+		engine:    engine,
+		Path:      path,
+		DataPath:  DataPath(path),
+		IndexPath: IndexPath(path),
+		branches:  branches,
+		commits:   commits,
+	}, nil
 }
 
-func (p *Pool) Delete(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, error) {
-	id := ksuid.New()
-	// IDs aren't vetted here and will fail at commit time if problematic.
-	txn := commit.NewDeletesTxn(id, ids)
-	if err := p.StoreInStaging(ctx, txn); err != nil {
-		return ksuid.Nil, err
-	}
-	return id, nil
+func RemovePool(ctx context.Context, config *pools.Config, engine storage.Engine, root *storage.URI) error {
+	return engine.DeleteByPrefix(ctx, config.Path(root))
 }
 
-func (p *Pool) Commit(ctx context.Context, id ksuid.KSUID, date nano.Ts, author, message string) error {
-	if date == 0 {
-		date = nano.Now()
-	}
-	txn, err := p.LoadFromStaging(ctx, id)
+func (p *Pool) removeBranch(ctx context.Context, name string) error {
+	config, err := p.branches.LookupByName(ctx, name)
 	if err != nil {
-		if !zqe.IsNotFound(err) {
-			return err
-		}
-		return fmt.Errorf("commit ID not staged: %s", id)
-	}
-	txn.AppendCommitMessage(id, date, author, message)
-	if err := p.log.Commit(ctx, txn); err != nil {
 		return err
 	}
-	// Commit succeeded.  Delete the staging entry.
-	return p.ClearFromStaging(ctx, id)
+	return p.branches.Remove(ctx, *config)
 }
 
-func (p *Pool) Squash(ctx context.Context, ids []ksuid.KSUID) (ksuid.KSUID, error) {
-	head, err := p.log.Head(ctx)
+func (p *Pool) newScheduler(ctx context.Context, zctx *zson.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+	snap, err := p.commits.Snapshot(ctx, commit)
 	if err != nil {
-		if err != journal.ErrEmpty {
-			return ksuid.Nil, err
-		}
-		head = commit.NewSnapshot()
+		return nil, err
 	}
-	patch := commit.NewPatch(head)
-	for _, id := range ids {
-		txn, err := p.LoadFromStaging(ctx, id)
-		if err != nil {
-			if !zqe.IsNotFound(err) {
-				return ksuid.Nil, err
-			}
-			return ksuid.Nil, fmt.Errorf("commit ID not staged: %s", id)
-		}
-		commit.Play(patch, txn)
-	}
-	txn := patch.NewTransaction()
-	if err := p.StoreInStaging(ctx, txn); err != nil {
-		return ksuid.Nil, err
-	}
-	for _, id := range ids {
-		if err := p.ClearFromStaging(ctx, id); err != nil {
-			return ksuid.Nil, err
-		}
-	}
-	return txn.ID, nil
+	return NewSortedScheduler(ctx, zctx, p, snap, span, filter), nil
 }
 
-func (p *Pool) LookupTags(ctx context.Context, tags []ksuid.KSUID) ([]ksuid.KSUID, error) {
-	var ids []ksuid.KSUID
-	for _, tag := range tags {
-		ok, err := p.SegmentExists(ctx, tag)
+func (p *Pool) Snapshot(ctx context.Context, commit ksuid.KSUID) (commits.View, error) {
+	return p.commits.Snapshot(ctx, commit)
+}
+
+func (p *Pool) ListBranches(ctx context.Context) ([]branches.Config, error) {
+	return p.branches.All(ctx)
+}
+
+func (p *Pool) LookupBranchByName(ctx context.Context, name string) (*branches.Config, error) {
+	return p.branches.LookupByName(ctx, name)
+}
+
+func (p *Pool) openBranch(ctx context.Context, config *branches.Config) (*Branch, error) {
+	return OpenBranch(ctx, config, p.engine, p.Path, p)
+}
+
+func (p *Pool) OpenBranchByName(ctx context.Context, name string) (*Branch, error) {
+	branchRef, err := p.LookupBranchByName(ctx, name)
+	if err != nil {
+		return nil, err
+	}
+	return p.openBranch(ctx, branchRef)
+}
+
+func (p *Pool) batchifyBranches(ctx context.Context, recs zbuf.Array, m *zson.MarshalZNGContext, f expr.Filter) (zbuf.Array, error) {
+	branches, err := p.ListBranches(ctx)
+	if err != nil {
+		return nil, err
+	}
+	for _, branchRef := range branches {
+		meta := BranchMeta{p.Config, branchRef}
+		rec, err := m.MarshalRecord(&meta)
 		if err != nil {
 			return nil, err
 		}
-		if ok {
-			ids = append(ids, tag)
-			continue
-		}
-		snap, ok, err := p.log.SnapshotOfCommit(ctx, 0, tag)
-		if err != nil {
-			return nil, fmt.Errorf("tag does not exist: %s", tag)
-		}
-		if !ok {
-			return nil, fmt.Errorf("commit tag was previously deleted: %s", tag)
-		}
-		for _, seg := range snap.SelectAll() {
-			ids = append(ids, seg.ID)
+		if f == nil || f(rec) {
+			recs.Append(rec)
 		}
 	}
-	return ids, nil
+	return recs, nil
 }
 
-func (p *Pool) SegmentExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
-	return p.engine.Exists(ctx, segment.RowObjectPath(p.DataPath, id))
+type BranchTip struct {
+	Name   string
+	Commit ksuid.KSUID
 }
 
-func (p *Pool) ClearFromStaging(ctx context.Context, id ksuid.KSUID) error {
-	return p.engine.Delete(ctx, p.StagingObject(id))
-}
-
-func (p *Pool) ListStagedCommits(ctx context.Context) ([]ksuid.KSUID, error) {
-	infos, err := p.engine.List(ctx, p.StagePath)
+func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
+	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
 	}
-	ids := make([]ksuid.KSUID, 0, len(infos))
-	for _, info := range infos {
-		_, name := filepath.Split(info.Name)
-		base := strings.TrimSuffix(name, ".zng")
-		id, err := ksuid.Parse(base)
-		if err == nil {
-			ids = append(ids, id)
-		}
-	}
-	return ids, nil
-}
-
-func (p *Pool) StagingObject(id ksuid.KSUID) *storage.URI {
-	return p.StagePath.AppendPath(id.String() + ".zng")
-}
-
-func (p *Pool) Log() *commit.Log {
-	return p.log
-}
-
-func (p *Pool) LoadFromStaging(ctx context.Context, id ksuid.KSUID) (*commit.Transaction, error) {
-	return commit.LoadTransaction(ctx, p.engine, id, p.StagingObject(id))
-}
-
-func (p *Pool) StoreInStaging(ctx context.Context, txn *commit.Transaction) error {
-	b, err := txn.Serialize()
-	if err != nil {
-		return fmt.Errorf("pool %q: internal error: serialize transaction: %w", p.Name, err)
-	}
-	return storage.Put(ctx, p.engine, p.StagingObject(txn.ID), bytes.NewReader(b))
-}
-
-// ScanStaging writes the staging commits in ids to w.
-// If ids is empty, all staging commits are written.
-func (p *Pool) ScanStaging(ctx context.Context, w zio.Writer, ids []ksuid.KSUID) error {
-	if len(ids) == 0 {
-		var err error
-		ids, err = p.ListStagedCommits(ctx)
-		if err != nil {
-			return err
-		}
-		if len(ids) == 0 {
-			return ErrStagingEmpty
-		}
-	}
-	ch := make(chan actions.Interface, 10)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	go func() {
-		defer close(ch)
-		for _, id := range ids {
-			txn, err := p.LoadFromStaging(ctx, id)
-			if err != nil {
-				return
-			}
-			for _, action := range txn.Actions {
-				select {
-				case ch <- action:
-				case <-ctx.Done():
-					return
-				}
-			}
-			select {
-			case ch <- &actions.StagedCommit{Commit: id}:
-			case <-ctx.Done():
-				return
-			}
-		}
-	}()
-	m := zson.NewZNGMarshaler()
-	m.Decorate(zson.StyleSimple)
-	for p := range ch {
-		rec, err := m.MarshalRecord(p)
-		if err != nil {
-			return err
-		}
-		if err := w.Write(rec); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
-func (p *Pool) Scan(ctx context.Context, snap *commit.Snapshot, ch chan segment.Reference) error {
-	for _, seg := range snap.SelectAll() {
-		select {
-		case ch <- *seg:
-		case <-ctx.Done():
-			return ctx.Err()
-		}
-	}
-	return nil
-}
-
-func (p *Pool) ScanPartitions(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span extent.Span) error {
-	ch := make(chan Partition, 10)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	var err error
-	go func() {
-		err = ScanPartitions(ctx, snap, span, p.Layout.Order, ch)
-		close(ch)
-	}()
-	m := zson.NewZNGMarshaler()
-	m.Decorate(zson.StyleSimple)
-	for p := range ch {
-		rec, err := m.MarshalRecord(p)
-		if err != nil {
-			return err
-		}
-		if err := w.Write(rec); err != nil {
-			return err
-		}
-	}
-	return err
-}
-
-func (p *Pool) ScanSegments(ctx context.Context, w zio.Writer, snap *commit.Snapshot, span extent.Span) error {
-	ch := make(chan segment.Reference)
-	ctx, cancel := context.WithCancel(ctx)
-	defer cancel()
-	var err error
-	go func() {
-		err = ScanSpan(ctx, snap, span, p.Layout.Order, ch)
-		close(ch)
-	}()
-	m := zson.NewZNGMarshaler()
+	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	for p := range ch {
-		rec, err := m.MarshalRecord(p)
+	recs := make(zbuf.Array, 0, len(branches))
+	for _, branchRef := range branches {
+		rec, err := m.MarshalRecord(&BranchTip{branchRef.Name, branchRef.Commit})
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if err := w.Write(rec); err != nil {
-			return err
+		if f == nil || f(rec) {
+			recs.Append(rec)
 		}
 	}
-	return err
+	return recs, nil
 }
 
-func (p *Pool) IsJournalID(ctx context.Context, id journal.ID) (bool, error) {
-	head, tail, err := p.log.Boundaries(ctx)
-	if err != nil {
-		return false, err
-	}
-	return id >= tail && id <= head, nil
+//XXX this is inefficient but is only meant for interactive queries...?
+func (p *Pool) ObjectExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
+	return p.engine.Exists(ctx, data.RowObjectPath(p.DataPath, id))
 }
 
-func (p *Pool) Index(ctx context.Context, rules []index.Index, ids []ksuid.KSUID) (ksuid.KSUID, error) {
-	idxrefs := make([]*index.Reference, 0, len(rules)*len(ids))
-	for _, id := range ids {
-		// This could be easily parallized with errgroup.
-		refs, err := p.indexSegment(ctx, rules, id)
-		if err != nil {
-			return ksuid.Nil, err
-		}
-		idxrefs = append(idxrefs, refs...)
-	}
-	id := ksuid.New()
-	txn := commit.NewAddIndicesTxn(id, idxrefs)
-	if err := p.StoreInStaging(ctx, txn); err != nil {
-		return ksuid.Nil, err
-	}
-	return id, nil
-}
-
-func (p *Pool) indexSegment(ctx context.Context, rules []index.Index, id ksuid.KSUID) ([]*index.Reference, error) {
-	r, err := p.engine.Get(ctx, segment.RowObjectPath(p.DataPath, id))
-	if err != nil {
-		return nil, err
-	}
-	reader := zngio.NewReader(r, zson.NewContext())
-	w, err := index.NewCombiner(ctx, p.engine, p.IndexPath, rules, id)
-	if err != nil {
-		r.Close()
-		return nil, err
-	}
-	err = zio.CopyWithContext(ctx, w, reader)
-	if err != nil {
-		w.Abort()
-	} else {
-		err = w.Close()
-	}
-	if rerr := r.Close(); err == nil {
-		err = rerr
-	}
-	return w.References(), err
-}
-
+//XXX for backward compat keep this for now, and return branchstats for pool/main
 type PoolStats struct {
 	Size int64 `zng:"size"`
 	// XXX (nibs) - This shouldn't be a span because keys don't have to be time.
 	Span *nano.Span `zng:"span"`
 }
 
-func (p *Pool) Stats(ctx context.Context, snap *commit.Snapshot) (info PoolStats, err error) {
-	ch := make(chan segment.Reference)
+func (p *Pool) Stats(ctx context.Context, snap commits.View) (info PoolStats, err error) {
+	ch := make(chan data.Object)
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	go func() {
@@ -421,13 +202,13 @@ func (p *Pool) Stats(ctx context.Context, snap *commit.Snapshot) (info PoolStats
 	// XXX this doesn't scale... it should be stored in the snapshot and is
 	// not easy to compute in the face of deletes...
 	var poolSpan *extent.Generic
-	for segment := range ch {
-		info.Size += segment.RowSize
+	for object := range ch {
+		info.Size += object.RowSize
 		if poolSpan == nil {
-			poolSpan = extent.NewGenericFromOrder(segment.First, segment.Last, p.Layout.Order)
+			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, p.Layout.Order)
 		} else {
-			poolSpan.Extend(segment.First)
-			poolSpan.Extend(segment.Last)
+			poolSpan.Extend(object.First)
+			poolSpan.Extend(object.Last)
 		}
 	}
 	//XXX need to change API to take return key range
@@ -446,16 +227,16 @@ func (p *Pool) Stats(ctx context.Context, snap *commit.Snapshot) (info PoolStats
 	return info, err
 }
 
+func (p *Pool) Main(ctx context.Context) (BranchMeta, error) {
+	branch, err := p.OpenBranchByName(ctx, "main")
+	if err != nil {
+		return BranchMeta{}, err
+	}
+	return BranchMeta{p.Config, branch.Config}, nil
+}
+
 func DataPath(poolPath *storage.URI) *storage.URI {
 	return poolPath.AppendPath(DataTag)
-}
-
-func StagePath(poolPath *storage.URI) *storage.URI {
-	return poolPath.AppendPath(StageTag)
-}
-
-func LogPath(poolPath *storage.URI) *storage.URI {
-	return poolPath.AppendPath(LogTag)
 }
 
 func IndexPath(poolPath *storage.URI) *storage.URI {

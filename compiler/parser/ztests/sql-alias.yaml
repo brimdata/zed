@@ -1,0 +1,10 @@
+# Make sure the parser doesn't error out on a table alias
+# that starts with a SQL sentinel.
+zed: 'select * from table fromt where fromt.x == 1'
+
+input: |
+  {x:1}(=table)
+  {x:2}(=table)
+
+output: |
+  {fromt:{x:1}(=table)}

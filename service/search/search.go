@@ -66,7 +66,7 @@ func NewSearchOp(req api.SearchRequest, logger *zap.Logger) (*SearchOp, error) {
 	}, nil
 }
 
-func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, pool *lake.Pool, output Output, parallelism int) (err error) {
+func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, branch *lake.Branch, output Output, parallelism int) (err error) {
 	d := &searchdriver{
 		output:    output,
 		startTime: nano.Now(),
@@ -98,7 +98,7 @@ func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, pool *lake
 		scanOrder = "desc"
 	}
 	var scanRange *ast.Range
-	if s.query.Span.Dur != 0 && poolHasSpan(ctx, pool) {
+	if s.query.Span.Dur != 0 && branchHasSpan(ctx, branch) {
 		scanRange = &ast.Range{
 			Kind: "Range",
 			Lower: &zed.Primitive{
@@ -116,8 +116,11 @@ func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, pool *lake
 	trunk := ast.Trunk{
 		Kind: "Trunk",
 		Source: &ast.Pool{
-			Kind:      "Pool",
-			Name:      pool.Name,
+			Kind: "Pool",
+			Spec: ast.PoolSpec{
+				Pool:   branch.Pool().Name,
+				Commit: branch.Name,
+			},
 			Range:     scanRange,
 			ScanOrder: scanOrder,
 		},
@@ -129,19 +132,19 @@ func (s *SearchOp) Run(ctx context.Context, adaptor proc.DataAdaptor, pool *lake
 	statsTicker := time.NewTicker(StatsInterval)
 	defer statsTicker.Stop()
 	zctx := zson.NewContext()
-	err = driver.RunWithLakeAndStats(ctx, d, seq, zctx, adaptor, statsTicker.C, s.logger, parallelism)
+	err = driver.RunWithLakeAndStats(ctx, d, seq, zctx, adaptor, nil, statsTicker.C, s.logger, parallelism)
 	if errors.Is(err, journal.ErrEmpty) {
 		return nil
 	}
 	return err
 }
 
-func poolHasSpan(ctx context.Context, pool *lake.Pool) bool {
-	snap, err := pool.Log().Head(ctx)
+func branchHasSpan(ctx context.Context, branch *lake.Branch) bool {
+	snap, err := branch.Pool().Snapshot(ctx, branch.Commit)
 	if err != nil {
 		return false
 	}
-	info, err := pool.Stats(ctx, snap)
+	info, err := branch.Stats(ctx, snap)
 	if err != nil {
 		return false
 	}

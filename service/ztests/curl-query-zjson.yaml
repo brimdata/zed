@@ -1,7 +1,7 @@
 script: |
   source service.sh
-  zapi create -q -p test
-  zapi load -q -p test data.zson
+  zapi create -q test
+  zapi load -q -use test@main data.zson
   curl -X POST \
     -H "Accept: application/x-zjson" \
     -d '{"query": "from test"}' \
@@ -13,8 +13,8 @@ inputs:
     source: service.sh
   - name: data.zson
     data: |
-      {ts: 1}
-      {ts: 2}
+      {ts:1}
+      {ts:2}
 
 outputs:
   - name: stdout

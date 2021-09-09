@@ -3,8 +3,8 @@ zed: 'count() by typeof(this) | sort count'
 output-flags: -f zson -pretty=4
 
 input: |
-  {x:1 (int32),s:"foo"} (=0)
-  {x:2,s:"Bar"} (0)
+  {x:1(int32),s:"foo"}
+  {x:2(int32),s:"Bar"}
   {y:5}
   {y:5}
   {y:7}
@@ -13,8 +13,8 @@ output: |
   {
       typeof: ({x:int32,s:string}),
       count: 2 (uint64)
-  } (=0)
+  }
   {
       typeof: ({y:int64}),
-      count: 3
-  } (0)
+      count: 3 (uint64)
+  }

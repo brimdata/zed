@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
@@ -14,41 +15,48 @@ import (
 )
 
 type Lake struct {
-	pools map[string]Pool
+	poolsByName map[string]*Pool
+	poolsByID   map[ksuid.KSUID]*Pool
 }
 
 var _ proc.DataAdaptor = (*Lake)(nil)
 
 type Pool struct {
-	name   string
-	id     ksuid.KSUID
-	layout order.Layout
+	name    string
+	id      ksuid.KSUID
+	layout  order.Layout
+	commits map[string]ksuid.KSUID
 }
 
 func NewLake() *Lake {
 	return &Lake{
-		pools: make(map[string]Pool),
+		poolsByName: make(map[string]*Pool),
+		poolsByID:   make(map[ksuid.KSUID]*Pool),
 	}
 }
 
 // create a mock lake whose key layout is embedded in the mock pool name,
 // e.g., "logs-ts:asc"
-func NewPool(s string) (Pool, error) {
-	parts := strings.Split(s, "-")
+func (l *Lake) NewPool(poolName string) (*Pool, error) {
+	parts := strings.Split(poolName, "-")
 	name := parts[0]
 	layout := order.Nil
 	if len(parts) > 1 {
 		var err error
 		layout, err = order.ParseLayout(parts[1])
 		if err != nil {
-			return Pool{}, err
+			return nil, err
 		}
 	}
-	return Pool{
-		name:   name,
-		id:     fakeID(name),
-		layout: layout,
-	}, nil
+	p := &Pool{
+		name:    name,
+		id:      fakeID(name),
+		layout:  layout,
+		commits: make(map[string]ksuid.KSUID),
+	}
+	l.poolsByID[p.id] = p
+	l.poolsByName[name] = p
+	return p, nil
 }
 
 // fakeID creates a ksuid derived from the name string so we can deterministically
@@ -59,29 +67,43 @@ func fakeID(name string) ksuid.KSUID {
 	return id
 }
 
-func (l *Lake) Lookup(_ context.Context, name string) (ksuid.KSUID, error) {
-	pool, ok := l.pools[name]
+func (l *Lake) PoolID(_ context.Context, poolName string) (ksuid.KSUID, error) {
+	pool, ok := l.poolsByName[poolName]
 	if !ok {
 		var err error
-		pool, err = NewPool(name)
+		pool, err = l.NewPool(poolName)
 		if err != nil {
 			return ksuid.Nil, err
 		}
-		l.pools[name] = pool
 	}
 	return pool.id, nil
 }
 
-func (l *Lake) Layout(_ context.Context, id ksuid.KSUID) (order.Layout, error) {
-	for _, pool := range l.pools {
-		if pool.id == id {
-			return pool.layout, nil
-		}
+func (l *Lake) CommitObject(_ context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+	pool, ok := l.poolsByID[poolID]
+	if !ok {
+		return ksuid.Nil, fmt.Errorf("%s: no such pool", poolID)
 	}
-	return order.Nil, fmt.Errorf("%s: no such pool", id)
+	commit, ok := pool.commits[branchName]
+	if !ok {
+		commit = fakeID(branchName)
+		pool.commits[branchName] = commit
+	}
+	return commit, nil
 }
 
-func (*Lake) NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
+func (l *Lake) Layout(_ context.Context, src dag.Source) order.Layout {
+	poolSrc, ok := src.(*dag.Pool)
+	if !ok {
+		return order.Nil
+	}
+	if pool, ok := l.poolsByID[poolSrc.ID]; ok {
+		return pool.layout
+	}
+	return order.Nil
+}
+
+func (*Lake) NewScheduler(context.Context, *zson.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, fmt.Errorf("mock.Lake.NewScheduler() should not be called")
 }
 

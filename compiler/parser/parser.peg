@@ -82,54 +82,15 @@ Sequential
 SequentialTail = __ Pipe __ p:Operation { RETURN(p) }
 
 Parallel
-  = first:Sequential rest:ParallelTail+ {
-      RETURN(PREPEND(first, rest))
-    }
-  / first:Sequential {
-      RETURN(ARRAY(first))
-    }
-
-ParallelTail
-  = __ "=>" __ ch:Sequential { RETURN(ch) }
-
-SwitchBranch
-  = __ CaseToken _ e:SearchBoolean __ "=>" __ proc:Sequential {
-      RETURN(MAP("expr": e, "proc": proc))
-    }
-  / __ DefaultToken __ "=>" __ proc:Sequential {
-      RETURN(MAP("expr": MAP("kind": "Primitive", "type": "bool", "text": "true"), "proc": proc))
-    }
-
-Switch
-  = first:SwitchBranch rest:SwitchBranch+ {
-      RETURN(PREPEND(first, rest))
-    }
-  / first:SwitchBranch {
-      RETURN(ARRAY(first))
-    }
-
-CaseToken = "case"i
-DefaultToken = "default"i
-
-FromTrunks
-  = first:FromTrunk rest:FromTrunkTail+ {
-      RETURN(PREPEND(first, rest))
-    }
-  / first:FromTrunk {
-      RETURN(ARRAY(first))
-    }
+  = __ "=>" __ s:Sequential __ ";" { RETURN(s) }
 
 FromTrunk
-  = source:FromSource seq:FromTrunkSeq {
-      RETURN(MAP("kind": "Trunk", "source": source, "seq":seq ))
+  = __ source:FromSource  seq:FromTrunkSeq? __ ";" {
+      RETURN(MAP("kind": "Trunk", "source": source, "seq": seq))
     }
 
 FromTrunkSeq
   = __ "=>" __ seq:Sequential { RETURN(seq) }
-  / "" { RETURN(NULL)}
-
-FromTrunkTail
-  = (__ ";" __ ) trunk:FromTrunk { RETURN(trunk) }
 
 FromSource
   = FileProc
@@ -138,23 +99,38 @@ FromSource
   / PoolBody
 
 Operation
-  = "split" __ "(" __ "=>" __ procArray:Parallel __ ")" {
+  = "split" __ "(" procArray:Parallel+ __ ")" {
       RETURN(MAP("kind": "Parallel", "procs": procArray))
     }
-  / "switch" __ "(" __ caseArray:Switch __ ")" {
-      RETURN(MAP("kind": "Switch", "cases": caseArray))
+  / "switch" _ expr:Expr _ "(" cases:SwitchLiteralClause+ __ ")" {
+      RETURN(MAP("kind": "Switch", "expr": expr, "cases": cases))
     }
-  / "from" __ "(" __ trunks:FromTrunks __ ";"? __ ")" {
+  / "switch" __ "(" cases:SwitchSearchBooleanClause+ __ ")" {
+      RETURN(MAP("kind": "Switch", "expr": NULL, "cases": cases))
+    }
+  / "from" __ "(" trunks:FromTrunk+ __ ")" {
       RETURN(MAP("kind": "From", "trunks": trunks))
     }
   / Operator
-  / f:Function &EndOfOp { RETURN(f) }
+  / a:OpExprs &EndOfOp { RETURN(a) }
   / a:Aggregation &EndOfOp  { RETURN(a) }
   / expr:SearchBoolean !AggGuard {
       RETURN(MAP("kind": "Filter", "expr": expr))
     }
 
-EndOfOp = __ (Pipe / "=>" / ")" / EOF)
+SwitchLiteralClause
+  = __ expr:(DefaultToken / Literal / Identifier) __ "=>" __ proc:Sequential __ ";" {
+      RETURN(MAP("expr": expr, "proc": proc))
+    }
+
+SwitchSearchBooleanClause
+  = __ expr:(DefaultToken / SearchBoolean) __ "=>" __ proc:Sequential __ ";" {
+      RETURN(MAP("expr": expr, "proc": proc))
+    }
+
+DefaultToken = "default"i { RETURN(NULL) }
+
+EndOfOp = __ (Pipe / "=>" / [);] / EOF)
 Pipe = "|" !("{" / "[")
 
 ExprGuard = __ ((!"=>" Comparator) / AdditiveOperator / MultiplicativeOperator / ":" / "(" / "[" / "matches")
@@ -172,7 +148,7 @@ SearchOrTerm = _ OrToken _ t:SearchAnd { RETURN(ARRAY("or", t)) }
 
 SearchAnd
   = first:SearchFactor
-    rest:((_ AndToken)? _ expr:SearchFactor{ RETURN(ARRAY("and", expr)) })* {
+    rest:((_ AndToken)? _ !OrToken expr:SearchFactor{ RETURN(ARRAY("and", expr)) })* {
       RETURN(makeBinaryExprChain(first,rest))
     }
 
@@ -180,8 +156,8 @@ SearchFactor
   = (NotToken _ / "!" __) e:SearchFactor {
       RETURN(MAP("kind": "UnaryExpr", "op": "!", "operand": e))
     }
-  / SearchExpr
   / "(" __ expr:SearchBoolean __ ")" { RETURN(expr) }
+  / SearchExpr
 
 
 TBD
@@ -210,8 +186,8 @@ TBD
     }
 
 SearchExpr
-  = !(SearchGuard EOT) search:PatternSearch { RETURN(search) }
-  / !(SearchGuard EOT) v:SearchValue !ExprGuard {
+  = search:PatternSearch { RETURN(search) }
+  / v:SearchValue !ExprGuard {
       RETURN(MAP("kind": "Search", "text": TEXT, "value": v))
     }
   / "*" !ExprGuard {
@@ -237,25 +213,13 @@ PatternMatch
 
 Pattern = Regexp / Glob
 
-SearchGuard
-  = SQLTokenSentinels
-  / AndToken
-  / OrToken
-  / NotToken
-  / InToken
-  / ByToken
-  / CaseToken
-  / DefaultToken
-  / "type("
-  / "matches"i
-
 /// === Aggregations ===
 
 Aggregation
-  = Summarize every:EveryDur keys:GroupByKeys limit:LimitArg {
+  = Summarize? every:EveryDur? keys:GroupByKeys limit:LimitArg {
       RETURN(MAP("kind": "Summarize", "keys": keys, "aggs": NULL, "duration": every, "limit": limit))
     }
-  / Summarize every:EveryDur aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
+  / Summarize? every:EveryDur? aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
       VAR(p) = MAP("kind": "Summarize", "keys": NULL, "aggs": aggs, "duration": every, "limit": limit)
       if ISNOTNULL(keys) {
         p["keys"] = ASSERT_ARRAY(keys)[1]
@@ -263,11 +227,10 @@ Aggregation
       RETURN(p)
     }
 
-Summarize = "summarize" _ / ""
+Summarize = "summarize" _
 
 EveryDur
   = "every"i _ dur:Duration _ { RETURN(dur) }
-  / ""  { RETURN(NULL) }
 
 GroupByKeys
   = ByToken _ columns:FlexAssignments { RETURN(columns) }
@@ -310,7 +273,7 @@ AggName
   / AndToken
   / OrToken
 
-WhereClause = _ "where" _ expr:SearchBoolean { RETURN(expr) }
+WhereClause = _ "where" _ expr:LogicalOrExpr { RETURN(expr) }
 
 AggAssignments
   = first:AggAssignment rest:(__ "," __ AggAssignment)* {
@@ -492,6 +455,21 @@ SampleProc
                                 "rhs": MAP("kind": "ID", "name": "sample")))))))
     }
 
+// OpExprs is a top level operator that contains a list of function calls or
+// assignment expressions. It is in an ambiguous state and could either be
+//   1) a summarize proc,
+//   2) a put proc, or
+//   3) a filter.
+//  The semantic pass is responsible for converting it to one of the three.
+OpExprs
+  = first:OpExpr rest:(__ "," __ expr:OpExpr { RETURN(expr) })* {
+    RETURN(MAP("kind": "OpExprs", "exprs": PREPEND(first, rest)))
+  }
+
+OpExpr
+ = Assignment
+ / Function
+
 SampleExpr
   = _ lval:Lval { RETURN(lval)}
   / "" { RETURN(MAP("kind":"Root")) }
@@ -507,7 +485,7 @@ FromAny
   / PoolProc
 
 FileProc
-  = "file"i _ path:Path format:FormatArg layout:LayoutArg  {
+  = "file"i _ path:Path format:FormatArg? layout:LayoutArg?  {
       RETURN(MAP("kind": "File", "path": path, "format": format, "layout": layout ))
     }
 
@@ -515,12 +493,12 @@ PoolProc
   = "from"i _ body:PoolBody { RETURN(body) }
 
 PoolBody
-  = name:PoolName at:PoolAt over:PoolRange order:OrderArg {
-      RETURN(MAP("kind": "Pool", "name": name, "at": at, "range": over, "scan_order": order))
+  = spec:PoolSpec at:PoolAt? over:PoolRange? order:OrderArg? {
+      RETURN(MAP("kind": "Pool", "spec": spec, "at": at, "range": over, "scan_order": order))
     }
 
 HTTPProc
-  = "get"i _ url:URL format:FormatArg layout:LayoutArg {
+  = "get"i _ url:URL format:FormatArg? layout:LayoutArg? {
       RETURN(MAP("kind": "HTTP", "url": url, "format": format, "layout": layout ))
     }
 
@@ -528,38 +506,49 @@ URL = ("http:" / "https:") Path { RETURN(TEXT) }
 
 Path
   = v:QuotedString { RETURN(v) }
-  / [0-9a-zA-Z!@$%^&*()_=<>,./?;:[\]{}~|+-]+ &EOT { RETURN(TEXT) }
+  / [0-9a-zA-Z!@$%^&*()_=<>,./?:[\]{}~|+-]+ { RETURN(TEXT) }
 
+//XXX this should be a timestamp
 PoolAt
   = _ "at"i _ id:KSUID { RETURN(id) }
-  / "" { RETURN(NULL) }
 
+//XXX this should allow 0x bytes format
 KSUID = ([0-9a-zA-Z])+ { RETURN(TEXT) }
 
 PoolRange
-  = _ "over"i _ lower:Literal _ "to"i _ upper:Literal {
+  = _ "range"i _ lower:Literal _ "to"i _ upper:Literal {
       RETURN(MAP("kind":"Range","lower": lower, "upper": upper))
     }
-  / "" { RETURN(NULL) }
 
-PoolTo
-  = _ "to"i _ val:Literal { RETURN(val) }
-  / "" { RETURN(NULL) }
+PoolSpec
+  = pool:PoolName commit:PoolCommit? meta:PoolMeta? {
+      RETURN(MAP("pool": pool, "commit": commit, "meta": meta))
+    }
+  / meta:PoolMeta {
+      RETURN(MAP("pool": NULL, "commit": NULL, "meta": meta))
+    }
+
+PoolCommit
+  = "@" commit:PoolName { RETURN(commit) }
+
+PoolMeta
+  = ":" meta:PoolIdentifier { RETURN(meta) }
 
 PoolName
-  = name:IdentifierName { RETURN(name) }
-  / id:KSUID { RETURN(id) }
-  / s:QuotedString { RETURN(s) }
+  = PoolIdentifier
+  / KSUID
+  / QuotedString
+
+PoolIdentifier
+  = (IdentifierStart / ".") (IdentifierRest / ".")* {  RETURN(TEXT) }
 
 LayoutArg
   = _ "order"i _ keys:FieldExprs order:OrderSuffix {
       RETURN(MAP("kind": "Layout", "keys": keys, "order": order))
     }
-  / "" { RETURN(NULL) }
 
 FormatArg
   = _ "format"i _ val:IdentifierName { RETURN(val) }
-  / "" { RETURN("") }
 
 OrderSuffix
   = ":asc"i  { RETURN("asc") }
@@ -569,7 +558,6 @@ OrderSuffix
 OrderArg
   = _ "order"i _ "asc"i  { RETURN("asc") }
   / _ "order"i _ "desc"i  { RETURN("desc") }
-  / "" { RETURN("") }
 
 PassProc
   = "pass"i {
@@ -579,7 +567,7 @@ PassProc
 // Currently we support only "explode by type" but this will be generalized
 // to explode arbitrary arrays, records, etc.
 ExplodeProc
-  = "explode"i _ args:Exprs typ:TypeArg as:AsArg {
+  = "explode"i _ args:Exprs typ:TypeArg as:AsArg? {
       RETURN(MAP("kind":"Explode", "args": args, "as": as, "type": typ))
     }
 
@@ -588,7 +576,6 @@ TypeArg
 
 AsArg
   = _ AS _ lhs:Lval { RETURN(lhs) }
-  / "" { RETURN(NULL)}
 
 /// === Expressions ===
 
@@ -648,7 +635,7 @@ EqualityOperator
 
 EqualityComparator
   = EqualityOperator
-  / "in" { RETURN(TEXT) }
+  / "in" !IdentifierRest { RETURN(TEXT) }
 
 RelativeExpr
   = first:AdditiveExpr
@@ -705,7 +692,7 @@ MatchExpr
   = "match" __ "(" expr:SearchBoolean ")" { RETURN(expr) }
 
 SelectExpr
-  = "select" __ "(" __ args:Exprs __ ")" methods:Methods {
+  = "select" __ "(" __ args:Exprs __ ")" methods:Methods? {
       RETURN(MAP("kind":"SelectExpr", "selectors":args, "methods": methods))
     }
 
@@ -715,7 +702,6 @@ SelectExpr
 // than a stand-alone AST node with its own Op code.
 Methods
   = methods:Method+ { RETURN(methods) }
-  / "" { RETURN(NULL) }
 
 Method
   = __ "." __ f:Function { RETURN(f) }
@@ -843,12 +829,12 @@ Entry
 
 SQLProc
   = selection:SQLSelect
-    from:SQLFrom
-    joins:SQLJoins
-    where:SQLWhere
-    groupby:SQLGroupBy
-    having:SQLHaving
-    orderby:SQLOrderBy
+    from:SQLFrom?
+    joins:SQLJoins?
+    where:SQLWhere?
+    groupby:SQLGroupBy?
+    having:SQLHaving?
+    orderby:SQLOrderBy?
     limit:SQLLimit
     {
       RETURN(MAP(
@@ -877,16 +863,14 @@ SQLAssignments
     }
 
 SQLFrom
-  = _ FROM _ table:SQLTable alias:SQLAlias {
+  = _ FROM _ table:SQLTable alias:SQLAlias? {
       RETURN(MAP("table": table, "alias": alias))
     }
   / _ FROM _ "*" { RETURN(NULL) }
-  / "" { RETURN(NULL) }
 
 SQLAlias
   = _ AS _ id:Lval { RETURN(id) }
-  / _ id:Lval { RETURN(id) }
-  / "" { RETURN(NULL) }
+  / _ !(SQLTokenSentinels _) id:Lval { RETURN(id) }
 
 SQLTable
   = Expr
@@ -895,10 +879,9 @@ SQLJoins
   = first:SQLJoin rest:(join:SQLJoin { RETURN(join) })* {
       RETURN(PREPEND(first, rest))
     }
-  / "" { RETURN(NULL) }
 
 SQLJoin
-  = style:SQLJoinStyle _ JOIN _ table:SQLTable alias:SQLAlias _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey {
+  = style:SQLJoinStyle _ JOIN _ table:SQLTable alias:SQLAlias? _ ON _ leftKey:JoinKey __ "=" __ rightKey:JoinKey {
       RETURN(MAP(
         "table": table,
         "style": style,
@@ -912,22 +895,18 @@ SQLJoinStyle
   / ""         { RETURN("inner") }
 
 SQLWhere
-  = _ WHERE _ expr:SearchBoolean { RETURN(expr) }
-  / "" { RETURN(NULL) }
+  = _ WHERE _ expr:LogicalOrExpr { RETURN(expr) }
 
 SQLGroupBy
   = _ GROUP _ BY _ columns:FieldExprs { RETURN(columns) }
-  / "" { RETURN(NULL) }
 
 SQLHaving
-  = _ HAVING _ expr:SearchBoolean { RETURN(expr) }
-  / "" { RETURN(NULL) }
+  = _ HAVING _ expr:LogicalOrExpr { RETURN(expr) }
 
 SQLOrderBy
   = _ ORDER _ BY _ keys:Exprs order:SQLOrder {
       RETURN(MAP("kind": "SQLOrderBy", "keys": keys, "order":order))
     }
-  / "" { RETURN(NULL) }
 
 SQLOrder
   = _ dir:(ASC / DESC) { RETURN(dir) }
@@ -1170,7 +1149,7 @@ IDGuard
   = BooleanLiteral
   / NullLiteral
   / TypeExternal
-  / SearchGuard
+  / PrimitiveTypeExternal
 
 Time
   = FullDate "T" FullTime {
@@ -1363,7 +1342,7 @@ Regexp
   = "/" body:RegexpBody "/" !KeyWordStart { RETURN(body) }
 
 RegexpBody
-  = ([^/\\]/"\\/")+ { RETURN(TEXT) }
+  = ([^/\\] / "\\" .)+ { RETURN(TEXT) }
 
 EscapedChar
   = [\x00-\x1f\\]

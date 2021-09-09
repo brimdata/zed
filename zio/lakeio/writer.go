@@ -4,13 +4,15 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/commit"
-	"github.com/brimdata/zed/lake/commit/actions"
+	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/pools"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/pkg/units"
@@ -19,21 +21,39 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-type Writer struct {
-	writer  io.WriteCloser
-	zson    *zson.Formatter
-	commits table
-	width   int
-	colors  color.Stack
+type WriterOpts struct {
+	Head string
 }
 
-func NewWriter(w io.WriteCloser) *Writer {
-	return &Writer{
-		writer:  w,
-		zson:    zson.NewFormatter(0),
-		commits: make(table),
-		width:   80, //XXX
+type Writer struct {
+	writer   io.WriteCloser
+	zson     *zson.Formatter
+	commits  table
+	branches map[ksuid.KSUID][]string
+	rulename string
+	width    int
+	colors   color.Stack
+	headID   ksuid.KSUID
+	headName string
+}
+
+func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
+	writer := &Writer{
+		writer:   w,
+		zson:     zson.NewFormatter(0, nil),
+		commits:  make(table),
+		branches: make(map[ksuid.KSUID][]string),
+		width:    80, //XXX
 	}
+	// If head is an ID, we assume its detached and format accordingly.
+	// If it's name, we'll print "HEAD -> branch" in the branch name listing
+	// if we encounter that name.
+	if headID, err := lakeparse.ParseID(opts.Head); err == nil {
+		writer.headID = headID
+	} else {
+		writer.headName = opts.Head
+	}
+	return writer
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
@@ -42,7 +62,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 		return w.WriteZSON(rec)
 	}
 	var b bytes.Buffer
-	formatValue(w.commits, &b, v, w.width, &w.colors)
+	w.formatValue(w.commits, &b, v, w.width, &w.colors)
 	_, err := w.writer.Write(b.Bytes())
 	return err
 }
@@ -63,24 +83,35 @@ func (w *Writer) WriteZSON(rec *zng.Record) error {
 	return err
 }
 
-func formatValue(t table, b *bytes.Buffer, v interface{}, width int, colors *color.Stack) {
+func (w *Writer) formatValue(t table, b *bytes.Buffer, v interface{}, width int, colors *color.Stack) {
 	switch v := v.(type) {
-	case *lake.PoolConfig:
+	case *pools.Config:
 		formatPoolConfig(b, v)
-	case segment.Reference:
-		formatSegment(b, &v, "", 0)
-	case *segment.Reference:
-		formatSegment(b, v, "", 0)
+	case *lake.BranchMeta:
+		formatBranchMeta(b, v, width, w.headID, w.headName, colors)
+	case data.Object:
+		formatDataObject(b, &v, "", 0)
+	case *data.Object:
+		formatDataObject(b, v, "", 0)
 	case lake.Partition:
 		formatPartition(b, v)
-	case *actions.CommitMessage:
-		t.formatCommit(b, v, width, colors)
-	case *actions.StagedCommit:
-		t.formatStaged(b, v, colors)
-	case *index.Index:
-		formatIndex(b, v, 0)
+	case *commits.Commit:
+		branches := w.branches[v.ID]
+		t.formatCommit(b, v, branches, w.headName, w.headID, width, colors)
+	case index.Rule:
+		name := v.RuleName()
+		if name != w.rulename {
+			w.rulename = name
+			b.WriteString(name)
+			b.WriteByte('\n')
+		}
+		tab(b, 4)
+		b.WriteString(v.String())
+		b.WriteByte('\n')
+	case *lake.BranchTip:
+		w.branches[v.Commit] = append(w.branches[v.Commit], v.Name)
 	default:
-		if action, ok := v.(actions.Interface); ok {
+		if action, ok := v.(commits.Action); ok {
 			t.append(action)
 			return
 		}
@@ -88,21 +119,33 @@ func formatValue(t table, b *bytes.Buffer, v interface{}, width int, colors *col
 	}
 }
 
-func formatCommit(b *bytes.Buffer, txn *commit.Transaction) {
-	b.WriteString(fmt.Sprintf("commit %s\n", txn.ID))
-	for _, action := range txn.Actions {
-		b.WriteString(fmt.Sprintf("  segment %s\n", action))
-	}
-}
-
-func formatPoolConfig(b *bytes.Buffer, p *lake.PoolConfig) {
+func formatPoolConfig(b *bytes.Buffer, p *pools.Config) {
 	b.WriteString(p.Name)
-	b.WriteString(" ")
+	b.WriteByte(' ')
 	b.WriteString(p.ID.String())
 	b.WriteString(" key ")
 	b.WriteString(field.List(p.Layout.Keys).String())
 	b.WriteString(" order ")
 	b.WriteString(p.Layout.Order.String())
+	b.WriteByte('\n')
+}
+
+func formatBranchMeta(b *bytes.Buffer, p *lake.BranchMeta, width int, headID ksuid.KSUID, headName string, colors *color.Stack) {
+	b.WriteString(p.Pool.Name)
+	b.WriteByte('@')
+	b.WriteString(p.Branch.Name)
+	b.WriteByte(' ')
+	colors.Start(b, color.GrayYellow)
+	b.WriteString("commit ")
+	b.WriteString(p.Branch.Commit.String())
+	if headID == p.Branch.Commit || headName == p.Branch.Name {
+		b.WriteString(" (")
+		colors.Start(b, color.Turqoise)
+		b.WriteString(color.Embolden("HEAD"))
+		colors.End(b)
+		b.WriteByte(')')
+	}
+	colors.End(b)
 	b.WriteByte('\n')
 }
 
@@ -112,21 +155,21 @@ func tab(b *bytes.Buffer, indent int) {
 	}
 }
 
-func formatSegment(b *bytes.Buffer, seg *segment.Reference, prefix string, indent int) {
+func formatDataObject(b *bytes.Buffer, object *data.Object, prefix string, indent int) {
 	tab(b, indent)
 	if prefix != "" {
 		b.WriteString(prefix)
 		b.WriteByte(' ')
 	}
-	b.WriteString(seg.ID.String())
-	objectSize := units.Bytes(seg.RowSize).Abbrev()
-	b.WriteString(fmt.Sprintf(" %s bytes %d records", objectSize, seg.Count))
+	b.WriteString(object.ID.String())
+	objectSize := units.Bytes(object.RowSize).Abbrev()
+	b.WriteString(fmt.Sprintf(" %s bytes %d records", objectSize, object.Count))
 	b.WriteString("\n  ")
 	tab(b, indent)
 	b.WriteString(" from ")
-	b.WriteString(zson.String(seg.First))
+	b.WriteString(zson.String(object.First))
 	b.WriteString(" to ")
-	b.WriteString(zson.String(seg.Last))
+	b.WriteString(zson.String(object.Last))
 	b.WriteByte('\n')
 }
 
@@ -136,33 +179,46 @@ func formatPartition(b *bytes.Buffer, p lake.Partition) {
 	b.WriteString(" to ")
 	b.WriteString(zson.String(p.Last()))
 	b.WriteByte('\n')
-	for _, seg := range p.Segments {
-		formatSegment(b, seg, "", 2)
+	for _, o := range p.Objects {
+		formatDataObject(b, o, "", 2)
 	}
 }
 
-type table map[ksuid.KSUID][]actions.Interface
+type table map[ksuid.KSUID][]commits.Action
 
-func (t table) append(a actions.Interface) {
+func (t table) append(a commits.Action) {
 	id := a.CommitID()
 	t[id] = append(t[id], a)
 }
 
-func (t table) formatStaged(b *bytes.Buffer, commit *actions.StagedCommit, colors *color.Stack) {
-	id := commit.CommitID()
-	colors.Start(b, color.GrayYellow)
-	b.WriteString("staged ")
-	b.WriteString(id.String())
-	colors.End(b)
-	b.WriteString("\n\n")
-	t.formatActions(b, id)
-}
-
-func (t table) formatCommit(b *bytes.Buffer, commit *actions.CommitMessage, width int, colors *color.Stack) {
+func (t table) formatCommit(b *bytes.Buffer, commit *commits.Commit, branches []string, headName string, headID ksuid.KSUID, width int, colors *color.Stack) {
 	id := commit.CommitID()
 	colors.Start(b, color.GrayYellow)
 	b.WriteString("commit ")
 	b.WriteString(id.String())
+	if len(branches) > 0 {
+		b.WriteString(" (")
+		for k, name := range branches {
+			if k != 0 {
+				b.WriteString(", ")
+			}
+			if name == headName {
+				colors.Start(b, color.Turqoise)
+				b.WriteString(color.Embolden("HEAD -> "))
+				colors.End(b)
+			}
+			colors.Start(b, color.Green)
+			b.WriteString(name)
+			colors.End(b)
+		}
+		b.WriteString(")")
+	} else if commit.ID == headID {
+		b.WriteString(" (")
+		colors.Start(b, color.Blue)
+		b.WriteString("HEAD")
+		colors.End(b)
+		b.WriteString(")")
+	}
 	colors.End(b)
 	b.WriteString("\nAuthor: ")
 	b.WriteString(commit.Author)
@@ -170,72 +226,47 @@ func (t table) formatCommit(b *bytes.Buffer, commit *actions.CommitMessage, widt
 	b.WriteString(commit.Date.String())
 	b.WriteString("\n\n")
 	if commit.Message != "" {
-		b.WriteString(charm.FormatParagraph(commit.Message, "    ", width))
+		s := charm.FormatParagraph(commit.Message, "    ", width)
+		s = strings.TrimRight(s, " \n") + "\n\n"
+		b.WriteString(s)
 	}
-	t.formatActions(b, id)
 }
 
 func (t table) formatActions(b *bytes.Buffer, id ksuid.KSUID) {
 	for _, action := range t[id] {
 		switch action := action.(type) {
-		case *actions.Add:
+		case *commits.Add:
 			formatAdd(b, 4, action)
-		case *actions.AddIndex:
+		case *commits.AddIndex:
 			formatAddIndex(b, 4, action)
-		case *actions.Delete:
+		case *commits.Delete:
 			formatDelete(b, 4, action)
 		}
 	}
 	b.WriteString("\n")
 }
 
-func formatDelete(b *bytes.Buffer, indent int, delete *actions.Delete) {
+func formatDelete(b *bytes.Buffer, indent int, delete *commits.Delete) {
 	tab(b, indent)
 	b.WriteString("Delete ")
 	b.WriteString(delete.ID.String())
 	b.WriteByte('\n')
 }
 
-func formatAdd(b *bytes.Buffer, indent int, add *actions.Add) {
-	formatSegment(b, &add.Segment, "Add", indent)
+func formatAdd(b *bytes.Buffer, indent int, add *commits.Add) {
+	formatDataObject(b, &add.Object, "Add", indent)
 }
 
-func formatAddIndex(b *bytes.Buffer, indent int, addx *actions.AddIndex) {
-	formatIndexObject(b, &addx.Index, "AddIndex", indent)
+func formatAddIndex(b *bytes.Buffer, indent int, addx *commits.AddIndex) {
+	formatIndexObject(b, &addx.Object, "AddIndex", indent)
 }
 
-func formatIndexObject(b *bytes.Buffer, index *index.Reference, prefix string, indent int) {
+func formatIndexObject(b *bytes.Buffer, index *index.Object, prefix string, indent int) {
 	tab(b, indent)
 	if prefix != "" {
 		b.WriteString(prefix)
 		b.WriteByte(' ')
 	}
-	b.WriteString(fmt.Sprintf("%s index %s segment", index.Index.ID, index.SegmentID))
-	b.WriteByte('\n')
-}
-
-func formatIndex(b *bytes.Buffer, idx *index.Index, indent int) {
-	tab(b, indent)
-	b.WriteString("Index ")
-	b.WriteString(idx.ID.String() + " ")
-	switch idx.Kind {
-	case index.IndexType:
-		b.WriteString("type ")
-		b.WriteString(idx.Value)
-	case index.IndexField:
-		b.WriteString("field ")
-		b.WriteString(idx.Value)
-	case index.IndexZed:
-		b.WriteString("field(s) ")
-		for i, k := range idx.Keys {
-			if i > 0 {
-				b.WriteString(", ")
-			}
-			b.WriteString(k.String())
-		}
-		b.WriteString(" from zed script:\n  ")
-		tab(b, indent)
-		b.WriteString(idx.Value)
-	}
+	b.WriteString(fmt.Sprintf("%s index %s object", index.Rule.RuleID(), index.ID)) //XXX
 	b.WriteByte('\n')
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/combine"
 	"github.com/brimdata/zed/proc/explode"
+	"github.com/brimdata/zed/proc/exprswitch"
 	"github.com/brimdata/zed/proc/from"
 	"github.com/brimdata/zed/proc/fuse"
 	"github.com/brimdata/zed/proc/head"
@@ -39,7 +40,7 @@ type Builder struct {
 	pctx       *proc.Context
 	scope      *Scope
 	adaptor    proc.DataAdaptor
-	schedulers map[*dag.Pool]proc.Scheduler
+	schedulers map[dag.Source]proc.Scheduler
 }
 
 func NewBuilder(pctx *proc.Context, adaptor proc.DataAdaptor) *Builder {
@@ -50,7 +51,7 @@ func NewBuilder(pctx *proc.Context, adaptor proc.DataAdaptor) *Builder {
 		pctx:       pctx,
 		scope:      scope,
 		adaptor:    adaptor,
-		schedulers: make(map[*dag.Pool]proc.Scheduler),
+		schedulers: make(map[dag.Source]proc.Scheduler),
 	}
 }
 
@@ -59,9 +60,9 @@ type Reader struct {
 	Layout order.Layout
 }
 
-func (*Reader) Source() {}
-
 var _ dag.Source = (*Reader)(nil)
+
+func (*Reader) Source() {}
 
 func isContainerOp(op dag.Op) bool {
 	switch op.(type) {
@@ -312,6 +313,34 @@ func (b *Builder) compileParallel(parallel *dag.Parallel, parents []proc.Interfa
 	return procs, nil
 }
 
+func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface) ([]proc.Interface, error) {
+	if len(parents) != 1 {
+		return nil, errors.New("expression switch has multiple parents")
+	}
+	e, err := compileExpr(b.pctx.Zctx, b.scope, swtch.Expr)
+	if err != nil {
+		return nil, err
+	}
+	s := exprswitch.New(parents[0], e)
+	var procs []proc.Interface
+	for _, c := range swtch.Cases {
+		// A nil (rather than null) zng.Value indicates the default case.
+		var zv zng.Value
+		if c.Expr != nil {
+			zv, err = evalAtCompileTime(b.pctx.Zctx, b.scope, c.Expr)
+			if err != nil {
+				return nil, err
+			}
+		}
+		proc, err := b.compile(c.Op, []proc.Interface{s.NewProc(zv)})
+		if err != nil {
+			return nil, err
+		}
+		procs = append(procs, proc...)
+	}
+	return procs, nil
+}
+
 func (b *Builder) compileSwitch(swtch *dag.Switch, parents []proc.Interface) ([]proc.Interface, error) {
 	n := len(swtch.Cases)
 	if len(parents) == 1 {
@@ -353,6 +382,9 @@ func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface
 	case *dag.Parallel:
 		return b.compileParallel(op, parents)
 	case *dag.Switch:
+		if op.Expr != nil {
+			return b.compileExprSwitch(op, parents)
+		}
 		return b.compileSwitch(op, parents)
 	case *dag.From:
 		if len(parents) > 1 {
@@ -400,7 +432,8 @@ func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface
 		}
 		return []proc.Interface{join}, nil
 	case *dag.Merge:
-		cmp := zbuf.NewCompareFn(op.Key, op.Reverse)
+		layout := order.NewLayout(op.Order, field.List{op.Key})
+		cmp := zbuf.NewCompareFn(layout)
 		return []proc.Interface{merge.New(b.pctx, parents, cmp)}, nil
 	default:
 		var parent proc.Interface
@@ -477,29 +510,45 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 		// of proc.From operators.
 		sched, ok := b.schedulers[src]
 		if !ok {
-			lower := zng.Value{zng.TypeNull, nil}
-			upper := zng.Value{zng.TypeNull, nil}
-			if src.ScanLower != nil {
-				lower, err = evalAtCompileTime(b.pctx.Zctx, b.scope, src.ScanLower)
-				if err != nil {
-					return nil, err
-				}
+			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
+			if err != nil {
+				return nil, err
 			}
-			if src.ScanUpper != nil {
-				upper, err = evalAtCompileTime(b.pctx.Zctx, b.scope, src.ScanUpper)
-				if err != nil {
-					return nil, err
-				}
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			if err != nil {
+				return nil, err
 			}
-			var span extent.Span
-			if lower.Bytes != nil || upper.Bytes != nil {
-				layout, err := b.adaptor.Layout(b.pctx.Context, src.ID)
-				if err != nil {
-					return nil, err
-				}
-				span = extent.NewGenericFromOrder(lower, upper, layout.Order)
+			b.schedulers[src] = sched
+		}
+		source = from.NewScheduler(b.pctx, sched)
+	case *dag.PoolMeta:
+		sched, ok := b.schedulers[src]
+		if !ok {
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			if err != nil {
+				return nil, err
 			}
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src.ID, src.At, span, pushdown)
+			b.schedulers[src] = sched
+		}
+		source = from.NewScheduler(b.pctx, sched)
+	case *dag.CommitMeta:
+		sched, ok := b.schedulers[src]
+		if !ok {
+			span, err := b.compileRange(src, src.ScanLower, src.ScanUpper)
+			if err != nil {
+				return nil, err
+			}
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			if err != nil {
+				return nil, err
+			}
+			b.schedulers[src] = sched
+		}
+		source = from.NewScheduler(b.pctx, sched)
+	case *dag.LakeMeta:
+		sched, ok := b.schedulers[src]
+		if !ok {
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
 			if err != nil {
 				return nil, err
 			}
@@ -525,6 +574,31 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 		return []proc.Interface{source}, nil
 	}
 	return b.compileSequential(trunk.Seq, []proc.Interface{source})
+}
+
+func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (extent.Span, error) {
+	lower := zng.Value{zng.TypeNull, nil}
+	upper := zng.Value{zng.TypeNull, nil}
+	if exprLower != nil {
+		var err error
+		lower, err = evalAtCompileTime(b.pctx.Zctx, b.scope, exprLower)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if exprUpper != nil {
+		var err error
+		upper, err = evalAtCompileTime(b.pctx.Zctx, b.scope, exprUpper)
+		if err != nil {
+			return nil, err
+		}
+	}
+	var span extent.Span
+	if lower.Bytes != nil || upper.Bytes != nil {
+		layout := b.adaptor.Layout(b.pctx.Context, src)
+		span = extent.NewGenericFromOrder(lower, upper, layout.Order)
+	}
+	return span, nil
 }
 
 func (b *Builder) PushdownOf(trunk *dag.Trunk) (*Filter, error) {

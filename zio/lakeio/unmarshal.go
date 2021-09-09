@@ -3,9 +3,10 @@ package lakeio
 import (
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/commit/actions"
+	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -14,16 +15,21 @@ var unmarshaler *zson.UnmarshalZNGContext
 func init() {
 	unmarshaler = zson.NewZNGUnmarshaler()
 	unmarshaler.Bind(
-		actions.Add{},
-		actions.AddIndex{},
-		actions.CommitMessage{},
-		actions.Delete{},
-		actions.StagedCommit{},
+		commits.Add{},
+		commits.AddIndex{},
+		commits.Commit{},
+		commits.Delete{},
 		field.Path{},
-		index.Index{},
-		index.Reference{},
+		index.AddRule{},
+		index.DeleteRule{},
+		index.Object{},
+		index.FieldRule{},
+		index.TypeRule{},
+		index.AggRule{},
 		lake.Partition{},
-		lake.PoolConfig{},
-		segment.Reference{},
+		pools.Config{},
+		lake.BranchMeta{},
+		lake.BranchTip{},
+		data.Object{},
 	)
 }

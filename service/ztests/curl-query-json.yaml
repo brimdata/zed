@@ -1,7 +1,7 @@
 script: |
   source service.sh
-  zapi create -q -p test
-  zapi load -q -p test in.zson
+  zapi create -q test
+  zapi load -q -use test@main in.zson
   curl -X POST \
     -H "Accept: application/json" \
     -d '{"query": "from test"}' \

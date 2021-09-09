@@ -4,8 +4,8 @@ zed: |
   is(r,type(rec))
 
 input: |
-  {r:{p:80 (port=(uint16))} (=rec)} (=0)
+  {r:{p:80(port=(uint16))}(=rec)}
   {s:"hello"}
 
 output: |
-  {r:{p:80 (port=(uint16))} (=rec)} (=0)
+  {r:{p:80(port=(uint16))}(=rec)}

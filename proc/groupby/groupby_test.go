@@ -30,90 +30,90 @@ import (
 
 // Data sets for tests:
 const in = `
-{key1:"a",key2:"x",n:1 (int32)} (=0)
-{key1:"a",key2:"y",n:2} (0)
-{key1:"b",key2:"z",n:1} (0)
+{key1:"a",key2:"x",n:1(int32)}
+{key1:"a",key2:"y",n:2(int32)}
+{key1:"b",key2:"z",n:1(int32)}
 `
 
 const groupSingleOut = `
-{key1:"a",count:2 (uint64)} (=0)
-{key1:"b",count:1} (0)
+{key1:"a",count:2(uint64)}
+{key1:"b",count:1(uint64)}
 `
 
 const groupMultiOut = `
-{key1:"a",key2:"x",count:1 (uint64)} (=0)
-{key1:"a",key2:"y",count:1} (0)
-{key1:"b",key2:"z",count:1} (0)
+{key1:"a",key2:"x",count:1(uint64)}
+{key1:"a",key2:"y",count:1(uint64)}
+{key1:"b",key2:"z",count:1(uint64)}
 `
 
 const unsetKeyIn = `
-{key1:null (string),key2:null (string),n:3 (int32)} (=0)
-{key1:null,key2:null,n:4} (0)
+{key1:null(string),key2:null(string),n:3(int32)}
+{key1:null(string),key2:null(string),n:4(int32)}
 `
 
 const groupSingleOut_unsetOut = `
-{key1:"a",count:2 (uint64)} (=0)
-{key1:"b",count:1} (0)
-{key1:null,count:2} (0)
+{key1:"a",count:2(uint64)}
+{key1:"b",count:1(uint64)}
+{key1:null(string),count:2(uint64)}
 `
 
 const missingField = `
-{key3:"a",n:1 (int32)} (=0)
-{key3:"b",n:2} (0)
+{key3:"a",n:1(int32)}
+{key3:"b",n:2(int32)}
 `
 
 const differentTypeIn = `
-{key1:10.0.0.1,n:1 (int32)} (=0)
-{key1:10.0.0.2,n:1} (0)
-{key1:10.0.0.1,n:1} (0)
+{key1:10.0.0.1,n:1(int32)}
+{key1:10.0.0.2,n:1(int32)}
+{key1:10.0.0.1,n:1(int32)}
 `
 
 const differentTypeOut = `
-{key1:10.0.0.1,count:2 (uint64)} (=0)
-{key1:10.0.0.2,count:1} (0)
-{key1:"a",count:2 (uint64)} (=1)
-{key1:"b",count:1} (1)
+{key1:10.0.0.1,count:2(uint64)}
+{key1:10.0.0.2,count:1(uint64)}
+{key1:"a",count:2(uint64)}
+{key1:"b",count:1(uint64)}
 `
 
 const reducersOut = `
-{key1:"a",any:1 (int32),sum:3,avg:1.5,min:1,max:2} (=0)
-{key1:"b",any:1,sum:1,avg:1.,min:1,max:1} (0)
+{key1:"a",any:1(int32),sum:3,avg:1.5,min:1,max:2}
+{key1:"b",any:1(int32),sum:1,avg:1.,min:1,max:1}
 `
 
 const arrayKeyIn = `
-{arr:null (0=([int32])),val:2 (int32)} (=1)
-{arr:[1,2],val:2} (1)
-{arr:[1,2],val:3} (1)
+{arr:null([int32]),val:2(int32)}
+{arr:[1(int32),2(int32)],val:2(int32)}
+{arr:[1(int32),2(int32)],val:3(int32)}
 `
 
 const arrayKeyOut = `
-{arr:null (0=([int32])),count:1 (uint64)} (=1)
-{arr:[1,2],count:2} (1)
+{arr:null([int32]),count:1(uint64)}
+{arr:[1(int32),2(int32)],count:2(uint64)}
 `
 
 const nestedKeyIn = `
-{rec:{i:1 (int32),s:"bleah"} (=0),val:1} (=1)
-{rec:{i:1,s:"bleah"},val:2} (1)
-{rec:{i:2,s:"bleah"},val:3} (1)
+{rec:{i:1(int32),s:"bleah"},val:1}
+{rec:{i:1(int32),s:"bleah"},val:2}
+{rec:{i:2(int32),s:"bleah"},val:3}
 `
 
 const nestedKeyOut = `
-{rec:{i:1 (int32)} (=0),count:2 (uint64)} (=1)
-{rec:{i:2},count:1} (1)
+{rec:{i:1(int32)},count:2(uint64)}
+{rec:{i:2(int32)},count:1(uint64)}
 `
 const nestedKeyAssignedOut = `
-{newkey:1 (int32),count:2 (uint64)} (=0)
-{newkey:2,count:1} (0)
+{newkey:1(int32),count:2(uint64)}
+{newkey:2(int32),count:1(uint64)}
 `
 
 const unsetIn = `
 {key:"key1",val:5}
-{key:"key2",val:null (int64)}
+{key:"key2",val:null(int64)}
 `
 
 const unsetOut = `
 {key:"key1",sum:5}
-{key:"key2",sum:null (int64)}
+{key:"key2",sum:null(int64)}
 `
 
 const notPresentIn = `
@@ -125,31 +125,31 @@ const notPresentOut = `
 `
 
 const mixedIn = `
-{key:"k",f:5 (int32)} (=0)
+{key:"k",f:5(int32)}
 {key:"k",f:"bleah"}
 `
 
 const mixedOut = `
-{key:"k",first:5 (int32),last:"bleah"} (=0)
+{key:"k",first:5(int32),last:"bleah"}
 `
 
 const aliasIn = `
-{host:127.0.0.1 (=ipaddr)} (=0)
+{host:127.0.0.1(=ipaddr)}
 {host:127.0.0.2}
 `
 
 const aliasOut = `
-{host:127.0.0.1 (=ipaddr),count:1 (uint64)} (=0)
-{host:127.0.0.2,count:1 (uint64)} (=1)
+{host:127.0.0.1(=ipaddr),count:1(uint64)}
+{host:127.0.0.2,count:1(uint64)}
 `
 
 const computedKeyIn = `
-{s:"foo",i:2 (uint64),j:2 (uint64)} (=0)
-{s:"FOO",i:2,j:2} (0)
+{s:"foo",i:2(uint64),j:2(uint64)}
+{s:"FOO",i:2(uint64),j:2(uint64)}
 `
 
 const computedKeyOut = `
-{s:"foo",ij:4 (uint64),count:2 (uint64)} (=0)
+{s:"foo",ij:4(uint64),count:2(uint64)}
 `
 
 //XXX this should go in a shared package

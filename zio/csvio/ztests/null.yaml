@@ -1,12 +1,12 @@
 zed: '*'
 
 input: |
-  {null:null (null)} (=0)
-  {null:null} (0)
+  {null:null}
+  {null:null}
 
 output-flags: -f csv
 
 output: |+
   null
-  
-  
+
+

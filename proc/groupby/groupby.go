@@ -1,6 +1,7 @@
 package groupby
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -33,6 +34,7 @@ type Proc struct {
 // ("every") group-by operations.  Records are generated in a
 // deterministic but undefined total order.
 type Aggregator struct {
+	ctx  context.Context
 	zctx *zson.Context
 	// The keyTypes and outTypes tables maps a vector of types resulting
 	// from evaluating the key and reducer expressions to a small int,
@@ -69,7 +71,7 @@ type Row struct {
 	reducers valRow
 }
 
-func NewAggregator(zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *builder.ColumnBuilder, limit int, inputDir order.Direction, partialsIn, partialsOut bool) (*Aggregator, error) {
+func NewAggregator(ctx context.Context, zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *builder.ColumnBuilder, limit int, inputDir order.Direction, partialsIn, partialsOut bool) (*Aggregator, error) {
 	if limit == 0 {
 		limit = DefaultLimit
 	}
@@ -104,6 +106,7 @@ func NewAggregator(zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluat
 		keysCompare = rs
 	}
 	return &Aggregator{
+		ctx:          ctx,
 		zctx:         zctx,
 		inputDir:     inputDir,
 		limit:        limit,
@@ -147,7 +150,7 @@ func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggN
 		keyRefs = append(keyRefs, expr.NewDotExpr(e.LHS))
 		keyExprs = append(keyExprs, e.RHS)
 	}
-	agg, err := NewAggregator(pctx.Zctx, keyRefs, keyExprs, valRefs, aggs, builder, limit, inputSortDir, partialsIn, partialsOut)
+	agg, err := NewAggregator(pctx.Context, pctx.Zctx, keyRefs, keyExprs, valRefs, aggs, builder, limit, inputSortDir, partialsIn, partialsOut)
 	if err != nil {
 		return nil, err
 	}
@@ -323,7 +326,7 @@ func (a *Aggregator) spillTable(eof bool) error {
 	}
 	recs := batch.Records()
 	// Note that this will sort recs according to g.keysCompare.
-	if err := a.spiller.Spill(recs); err != nil {
+	if err := a.spiller.Spill(a.ctx, recs); err != nil {
 		return err
 	}
 	if !eof && a.inputDir != 0 {

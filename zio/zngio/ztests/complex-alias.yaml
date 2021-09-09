@@ -5,9 +5,9 @@ script: zq - | zq -z -
 inputs:
   - name: stdin
     data: |
-      {a:["hello" (=bar), "world" (bar)]}
+      {a:["hello"(=bar),"world"(bar)]}
 
 outputs:
   - name: stdout
     data: |
-      {a:["hello" (=bar),"world" (bar)] (=0)} (=1)
+      {a:["hello"(=bar),"world"(bar)]}

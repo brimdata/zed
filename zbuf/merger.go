@@ -6,9 +6,7 @@ import (
 	"sync"
 
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -39,11 +37,15 @@ type batch struct {
 	err error
 }
 
-func NewCompareFn(mergeField field.Path, reversed bool) expr.CompareFn {
-	nullsMax := !reversed
-	fn := expr.NewCompareFn(nullsMax, expr.NewDotExpr(mergeField))
+func NewCompareFn(layout order.Layout) expr.CompareFn {
+	nullsMax := layout.Order == order.Asc
+	exprs := make([]expr.Evaluator, len(layout.Keys))
+	for i, key := range layout.Keys {
+		exprs[i] = expr.NewDotExpr(key)
+	}
+	fn := expr.NewCompareFn(nullsMax, exprs...)
 	fn = totalOrderCompare(fn)
-	if !reversed {
+	if layout.Order == order.Asc {
 		return fn
 	}
 	return func(a, b *zng.Record) int { return fn(b, a) }
@@ -71,21 +73,6 @@ func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merge
 		m.pullers = append(m.pullers, &mergerPuller{Puller: p, ch: make(chan batch)})
 	}
 	return m
-}
-
-func MergeReadersByTsAsReader(ctx context.Context, readers []zio.Reader, o order.Which) (zio.Reader, error) {
-	if len(readers) == 1 {
-		return readers[0], nil
-	}
-	return MergeReadersByTs(ctx, readers, o)
-}
-
-func MergeReadersByTs(ctx context.Context, readers []zio.Reader, o order.Which) (*Merger, error) {
-	pullers, err := ReadersToPullers(ctx, readers)
-	if err != nil {
-		return nil, err
-	}
-	return MergeByTs(ctx, pullers, o), nil
 }
 
 func MergeByTs(ctx context.Context, pullers []Puller, o order.Which) *Merger {

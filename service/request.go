@@ -3,13 +3,16 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"net/url"
 	"strconv"
 	"sync/atomic"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake/journal"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zqe"
@@ -31,7 +34,7 @@ func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*Re
 		Logger:  logger,
 	}
 	m := zson.NewZNGMarshaler()
-	m.Decorate(zson.StyleSimple)
+	m.Decorate(zson.StylePackage)
 	res := &ResponseWriter{
 		ResponseWriter: w,
 		Logger:         logger,
@@ -49,6 +52,33 @@ func (r *Request) PoolID(w *ResponseWriter) (ksuid.KSUID, bool) {
 	return r.TagFromPath("pool", w)
 }
 
+func (r *Request) CommitID(w *ResponseWriter) (ksuid.KSUID, bool) {
+	return r.TagFromPath("commit", w)
+}
+
+func (r *Request) decodeCommitMessage(w *ResponseWriter) (api.CommitMessage, bool) {
+	commitJSON := r.Header.Get("Zed-Commit")
+	var message api.CommitMessage
+	if commitJSON != "" {
+		if err := json.Unmarshal([]byte(commitJSON), &message); err != nil {
+			w.Error(fmt.Errorf("load endpoint encountered invalid JSON in Zed-Commit header: %w", err))
+			return message, false
+		}
+	}
+	return message, true
+}
+
+func (r *Request) StringFromPath(w *ResponseWriter, arg string) (string, bool) {
+	v := mux.Vars(r.Request)
+	s, ok := v[arg]
+	if !ok {
+		w.Error(zqe.ErrInvalid("no arg %q in path", arg))
+		return "", false
+	}
+	decoded, err := url.QueryUnescape(s)
+	return decoded, err == nil
+}
+
 func (r *Request) TagFromPath(arg string, w *ResponseWriter) (ksuid.KSUID, bool) {
 	v := mux.Vars(r.Request)
 	s, ok := v[arg]
@@ -56,7 +86,7 @@ func (r *Request) TagFromPath(arg string, w *ResponseWriter) (ksuid.KSUID, bool)
 		w.Error(zqe.ErrInvalid("no arg %q in path", arg))
 		return ksuid.Nil, false
 	}
-	id, err := api.ParseKSUID(s)
+	id, err := lakeparse.ParseID(s)
 	if err != nil {
 		w.Error(zqe.ErrInvalid("invalid path param %q: %w", arg, err))
 		return ksuid.Nil, false

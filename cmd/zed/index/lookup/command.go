@@ -1,7 +1,6 @@
 package lookup
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"strings"
@@ -51,7 +50,7 @@ func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 }
 
 func (c *LookupCommand) Run(args []string) error {
-	_, cleanup, err := c.Init(&c.outputFlags)
+	ctx, cleanup, err := c.Init(&c.outputFlags)
 	if err != nil {
 		return err
 	}
@@ -68,7 +67,7 @@ func (c *LookupCommand) Run(args []string) error {
 		return err
 	}
 	local := storage.NewLocalEngine()
-	finder, err := index.NewFinder(context.TODO(), zson.NewContext(), local, uri)
+	finder, err := index.NewFinder(ctx, zson.NewContext(), local, uri)
 	if err != nil {
 		return err
 	}
@@ -77,8 +76,6 @@ func (c *LookupCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	hits := make(chan *zng.Record)
 	var searchErr error
 	go func() {

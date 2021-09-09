@@ -13,7 +13,7 @@ import (
 func newQueue(ctx context.Context, t *testing.T) *Queue {
 	path := storage.MustParseURI(t.TempDir())
 	engine := storage.NewLocalEngine()
-	q, err := Create(ctx, engine, path)
+	q, err := Create(ctx, engine, path, 0)
 	require.NoError(t, err)
 	return q
 }
@@ -26,7 +26,7 @@ func TestJournalConcurrent(t *testing.T) {
 	for i := 0; i < N; i++ {
 		go func(which int) {
 			for {
-				err := q.Commit(ctx, []byte("hello, world"))
+				_, err := q.Commit(ctx, []byte("hello, world"))
 				if os.IsExist(err) {
 					continue
 				}
@@ -35,7 +35,7 @@ func TestJournalConcurrent(t *testing.T) {
 					return
 				}
 				head, _ := q.ReadHead(ctx)
-				tail, _ := q.ReadTail(ctx)
+				tail, _, _ := q.ReadTail(ctx)
 				err = fmt.Errorf("%d: head %d, tail %d: %s", which, head, tail, err)
 				ch <- err
 				return

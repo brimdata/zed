@@ -16,18 +16,18 @@ import (
 )
 
 func TestWriter(t *testing.T) {
-	r := NewTypeIndex(zng.TypeInt64)
-	ref := Reference{Index: r, SegmentID: ksuid.New()}
-	w := testWriter(t, ref)
+	r := NewTypeRule("test", zng.TypeInt64)
+	o := Object{Rule: r, ID: ksuid.New()}
+	w := testWriter(t, o)
 	err := zio.Copy(w, babbleReader(t))
 	require.NoError(t, err, "copy error")
 	require.NoError(t, w.Close())
 }
 
 func TestWriterWriteAfterClose(t *testing.T) {
-	r := NewTypeIndex(zng.TypeInt64)
-	ref := Reference{Index: r, SegmentID: ksuid.New()}
-	w := testWriter(t, ref)
+	r := NewTypeRule("test", zng.TypeInt64)
+	o := Object{Rule: r, ID: ksuid.New()}
+	w := testWriter(t, o)
 	require.NoError(t, w.Close())
 	err := w.Write(nil)
 	assert.EqualError(t, err, "index writer closed")
@@ -38,8 +38,8 @@ func TestWriterWriteAfterClose(t *testing.T) {
 func TestWriterError(t *testing.T) {
 	const r1 = `{ts:1970-01-01T00:00:01Z,id:"id1"}`
 	const r2 = "{ts:1970-01-01T00:00:02Z,id:2}"
-	ref := Reference{Index: NewFieldIndex("id"), SegmentID: ksuid.New()}
-	w := testWriter(t, ref)
+	o := Object{Rule: NewFieldRule("test", "id"), ID: ksuid.New()}
+	w := testWriter(t, o)
 	zctx := zson.NewContext()
 	arr1, err := zbuf.ReadAll(zson.NewReader(strings.NewReader(r1), zctx))
 	require.NoError(t, err)
@@ -55,9 +55,9 @@ func TestWriterError(t *testing.T) {
 	assert.NoFileExists(t, w.URI.Filepath())
 }
 
-func testWriter(t *testing.T, ref Reference) *Writer {
+func testWriter(t *testing.T, o Object) *Writer {
 	path := storage.MustParseURI(t.TempDir())
-	w, err := NewWriter(context.Background(), storage.NewLocalEngine(), path, &ref)
+	w, err := NewWriter(context.Background(), storage.NewLocalEngine(), path, &o)
 	require.NoError(t, err)
 	return w
 }

@@ -1,0 +1,18 @@
+# issues #2853 #2879
+
+zed: |
+  put this := shape({
+    array:[string],
+    record:{c1:int64,c2:bstring,c3:time}
+  })
+
+input: |
+  {array:null,record:null}
+
+output-flags: -pretty=2
+
+output: |
+  {
+    array: null ([string]),
+    record: null ({c1:int64,c2:bstring,c3:time})
+  }

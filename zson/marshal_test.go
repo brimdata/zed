@@ -36,9 +36,9 @@ func (a *Animal) Color() string { return a.MyColor }
 
 func TestInterfaceMarshal(t *testing.T) {
 	rose := Thing(&Plant{"red"})
-	expectedRose := `{MyColor:"red"} (=Plant)`
+	expectedRose := `{MyColor:"red"}(=Plant)`
 	flamingo := Thing(&Animal{"pink"})
-	expectedFlamingo := `{MyColor:"pink"} (=Animal)`
+	expectedFlamingo := `{MyColor:"pink"}(=Animal)`
 
 	m := zson.NewMarshaler()
 	m.Decorate(zson.StyleSimple)
@@ -75,7 +75,7 @@ func TestMarshal(t *testing.T) {
 	aIn := []int8{1, 2, 3}
 	z, err = zson.Marshal(aIn)
 	require.NoError(t, err)
-	assert.Equal(t, `[1 (int8),2 (int8),3 (int8)] (=0)`, z)
+	assert.Equal(t, `[1(int8),2(int8),3(int8)]`, z)
 
 	var v interface{}
 	err = zson.Unmarshal(z, &v)
@@ -88,7 +88,7 @@ func TestMarshal(t *testing.T) {
 	m.Decorate(zson.StyleSimple)
 	z, err = m.Marshal(Roll(true))
 	require.NoError(t, err)
-	assert.Equal(t, `true (=Roll)`, z)
+	assert.Equal(t, `true(=Roll)`, z)
 }
 
 type BytesRecord struct {
@@ -150,7 +150,7 @@ func TestBytes(t *testing.T) {
 	require.NotNil(t, rec)
 
 	exp = `
-{A:0x00010203 (=ID),B:0x04050607 (ID)} (=IDRecord)
+{A:0x00010203(=ID),B:0x04050607(ID)}(=IDRecord)
 	`
 	assert.Equal(t, trim(exp), recToZSON(t, rec))
 
@@ -168,7 +168,7 @@ func TestBytes(t *testing.T) {
 	require.NotNil(t, rec)
 
 	exp = `
-{B:null (bytes)}
+{B:null(bytes)}
 `
 	assert.Equal(t, trim(exp), recToZSON(t, rec))
 
@@ -179,7 +179,7 @@ func TestBytes(t *testing.T) {
 	require.NotNil(t, rec)
 
 	exp = `
-{S:null (0=([bytes]))}
+{S:null([bytes])}
 	`
 	assert.Equal(t, trim(exp), recToZSON(t, rec))
 
@@ -251,7 +251,7 @@ func TestZNGValueField(t *testing.T) {
 	m.Decorate(zson.StyleSimple)
 	zv, err := m.Marshal(zngValueField)
 	require.NoError(t, err)
-	expected := `{Name:"test1",field:123} (=ZNGValueField)`
+	expected := `{Name:"test1",field:123}(=ZNGValueField)`
 	actual, err := zson.FormatValue(zv)
 	require.NoError(t, err)
 	assert.Equal(t, trim(expected), trim(actual))
@@ -272,7 +272,7 @@ func TestZNGValueField(t *testing.T) {
 	m2.Decorate(zson.StyleSimple)
 	zv3, err := m2.Marshal(zngValueField2)
 	require.NoError(t, err)
-	expected2 := `{Name:"test2",field:{s:"foo",a:[1,2,3]}} (=ZNGValueField)`
+	expected2 := `{Name:"test2",field:{s:"foo",a:[1,2,3]}}(=ZNGValueField)`
 	actual2, err := zson.FormatValue(zv3)
 	require.NoError(t, err)
 	assert.Equal(t, trim(expected2), trim(actual2))

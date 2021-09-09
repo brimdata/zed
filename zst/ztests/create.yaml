@@ -5,11 +5,11 @@ script: |
 inputs:
   - name: stdin
     data: |
-      {a:"hello",b:1 (int32)} (=0)
-      {a:"world",b:2} (0)
+      {a:"hello",b:1(int32)}
+      {a:"world",b:2(int32)}
 
 outputs:
   - name: stdout
     data: |
-      {a:"hello",b:1 (int32)} (=0)
-      {a:"world",b:2} (0)
+      {a:"hello",b:1(int32)}
+      {a:"world",b:2(int32)}

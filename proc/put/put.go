@@ -253,7 +253,7 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zng.Column, val
 			cols = append(cols, zng.Column{inCol.Name, vals[matchIndex].Type})
 		// input record field overwritten by nested assignment: recurse.
 		case len(path) < len(matchPath) && zng.IsRecordType(inCol.Type):
-			nestedStep, typ, err := p.deriveRecordSteps(path, inCol.Type.(*zng.TypeRecord).Columns, vals)
+			nestedStep, typ, err := p.deriveRecordSteps(path, zng.TypeRecordOf(inCol.Type).Columns, vals)
 			if err != nil {
 				return step{}, nil, err
 			}

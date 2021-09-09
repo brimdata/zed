@@ -1,8 +1,8 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -p logs -q
-  zed lake load -q -p logs in.zson
+  zed lake create -q logs
+  zed lake load -q -use logs@main in.zson
   zed lake query "from logs | cut notafield"
 
 inputs:

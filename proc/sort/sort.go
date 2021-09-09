@@ -126,7 +126,7 @@ func (p *Proc) createRuns(firstRunRecs []*zng.Record) (*spill.MergeSort, error) 
 	if err != nil {
 		return nil, err
 	}
-	if err := rm.Spill(firstRunRecs); err != nil {
+	if err := rm.Spill(p.pctx.Context, firstRunRecs); err != nil {
 		rm.Cleanup()
 		return nil, err
 	}
@@ -137,7 +137,7 @@ func (p *Proc) createRuns(firstRunRecs []*zng.Record) (*spill.MergeSort, error) 
 			return nil, err
 		}
 		if recs != nil {
-			if err := rm.Spill(recs); err != nil {
+			if err := rm.Spill(p.pctx.Context, recs); err != nil {
 				rm.Cleanup()
 				return nil, err
 			}

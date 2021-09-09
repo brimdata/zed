@@ -1,6 +1,7 @@
 package zcode
 
 import (
+	"encoding/binary"
 	"math"
 	"testing"
 
@@ -82,15 +83,15 @@ func TestUvarint(t *testing.T) {
 	}
 	for _, c := range cases {
 		buf := AppendUvarint(nil, c)
-		u64, n := uvarint(buf)
+		u64, n := binary.Uvarint(buf)
 		require.Len(t, buf, n, "case: %d", c)
 		require.Exactly(t, c, u64, "case: %d", c)
 
 		buf = AppendUvarint(buf, c)
-		u64, n = uvarint(buf)
+		u64, n = binary.Uvarint(buf)
 		require.Len(t, buf, n*2, "case: %d", c)
 		require.Exactly(t, c, u64, "case: %d", c)
-		u64, n = uvarint(buf[n:])
+		u64, n = binary.Uvarint(buf[n:])
 		require.Len(t, buf, n*2, "case: %d", c)
 		require.Exactly(t, c, u64, "case: %d", c)
 	}
