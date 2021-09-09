@@ -453,8 +453,8 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Kind: "Put",
 			Args: assignments,
 		}, nil
-	case *ast.OpAssignments:
-		return semOpAssignments(ctx, scope, p, adaptor, head)
+	case *ast.OpAssignment:
+		return semOpAssignment(scope, p)
 	case *ast.Rename:
 		var assignments []dag.Assignment
 		for _, fa := range p.Args {
@@ -619,7 +619,7 @@ func isConst(p ast.Proc) bool {
 	return false
 }
 
-func semOpAssignments(ctx context.Context, scope *Scope, p *ast.OpAssignments, a proc.DataAdaptor, head *lakeparse.Commitish) (dag.Op, error) {
+func semOpAssignment(scope *Scope, p *ast.OpAssignment) (dag.Op, error) {
 	var aggs, puts []dag.Assignment
 	for _, a := range p.Assignments {
 		// Parition assignments into agg vs. puts

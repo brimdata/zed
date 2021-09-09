@@ -427,7 +427,7 @@ func (c *canon) proc(p ast.Proc) {
 			c.assignments(p.Args)
 		}
 		c.close()
-	case *ast.OpAssignments:
+	case *ast.OpAssignment:
 		c.next()
 		c.assignments(p.Assignments)
 	//case *ast.SqlExpression:

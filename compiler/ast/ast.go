@@ -292,10 +292,10 @@ type (
 		Args []Assignment `json:"args"`
 	}
 
-	// An OpAssignments proc is a list of assignments whose parent proc
+	// An OpAssignment proc is a list of assignments whose parent proc
 	// is unknown: It could be a Summarize or Put proc. This will be
 	// determined in the semantic phase.
-	OpAssignments struct {
+	OpAssignment struct {
 		Kind        string       `json:"kind" unpack:""`
 		Assignments []Assignment `json:"assignments"`
 	}
@@ -458,31 +458,31 @@ type Assignment struct {
 	RHS  Expr   `json:"rhs"`
 }
 
-func (*Sequential) ProcAST()    {}
-func (*Parallel) ProcAST()      {}
-func (*Switch) ProcAST()        {}
-func (*Sort) ProcAST()          {}
-func (*Cut) ProcAST()           {}
-func (*Pick) ProcAST()          {}
-func (*Drop) ProcAST()          {}
-func (*Head) ProcAST()          {}
-func (*Tail) ProcAST()          {}
-func (*Pass) ProcAST()          {}
-func (*Filter) ProcAST()        {}
-func (*Uniq) ProcAST()          {}
-func (*Summarize) ProcAST()     {}
-func (*Top) ProcAST()           {}
-func (*Put) ProcAST()           {}
-func (*OpAssignments) ProcAST() {}
-func (*Rename) ProcAST()        {}
-func (*Fuse) ProcAST()          {}
-func (*Join) ProcAST()          {}
-func (*Const) ProcAST()         {}
-func (*TypeProc) ProcAST()      {}
-func (*Call) ProcAST()          {}
-func (*Shape) ProcAST()         {}
-func (*From) ProcAST()          {}
-func (*Explode) ProcAST()       {}
+func (*Sequential) ProcAST()   {}
+func (*Parallel) ProcAST()     {}
+func (*Switch) ProcAST()       {}
+func (*Sort) ProcAST()         {}
+func (*Cut) ProcAST()          {}
+func (*Pick) ProcAST()         {}
+func (*Drop) ProcAST()         {}
+func (*Head) ProcAST()         {}
+func (*Tail) ProcAST()         {}
+func (*Pass) ProcAST()         {}
+func (*Filter) ProcAST()       {}
+func (*Uniq) ProcAST()         {}
+func (*Summarize) ProcAST()    {}
+func (*Top) ProcAST()          {}
+func (*Put) ProcAST()          {}
+func (*OpAssignment) ProcAST() {}
+func (*Rename) ProcAST()       {}
+func (*Fuse) ProcAST()         {}
+func (*Join) ProcAST()         {}
+func (*Const) ProcAST()        {}
+func (*TypeProc) ProcAST()     {}
+func (*Call) ProcAST()         {}
+func (*Shape) ProcAST()        {}
+func (*From) ProcAST()         {}
+func (*Explode) ProcAST()      {}
 
 func (*SQLExpr) ProcAST() {}
 

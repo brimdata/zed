@@ -9,5 +9,3 @@ outputs:
   - name: stderr
     data: |
       bad expression in filter: function "to_lower" does not return a boolean value
-
-

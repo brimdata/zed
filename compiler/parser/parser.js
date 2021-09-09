@@ -554,7 +554,7 @@ function peg$parse(input, options) {
           
           },
       peg$c198 = function(a) {
-          return {"kind": "OpAssignments", "assignments": a}
+          return {"kind": "OpAssignment", "assignments": a}
         },
       peg$c199 = function(lval) { return lval},
       peg$c200 = function() { return {"kind":"Root"} },
@@ -2068,7 +2068,7 @@ function peg$parse(input, options) {
               }
               if (s0 === peg$FAILED) {
                 s0 = peg$currPos;
-                s1 = peg$parseOpAssignments();
+                s1 = peg$parseOpAssignment();
                 if (s1 !== peg$FAILED) {
                   s2 = peg$currPos;
                   peg$silentFails++;
@@ -5170,7 +5170,7 @@ function peg$parse(input, options) {
     return s0;
   }
 
-  function peg$parseOpAssignments() {
+  function peg$parseOpAssignment() {
     var s0, s1;
 
     s0 = peg$currPos;

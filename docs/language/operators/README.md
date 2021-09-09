@@ -712,8 +712,8 @@ id.orig_h     id.orig_p id.resp_h       id.resp_p orig_bytes resp_bytes total_by
 #### Example #2:
 
 As noted above the `put` keyword is entirely optional. Here we omit
-the `put` keyword and create a new field to hold the lowercase
-representation of another field value.
+it and create a new field to hold the lowercase representation of
+another field value.
 
 ```mdtest-command zed-sample-data/zeek-default
 zq -f table 'cut method | lower_method:=to_lower(method)' http.log.gz
