@@ -17,14 +17,14 @@ var Cmd = &charm.Spec{
 	Usage: "api [options] sub-command",
 	Short: "perform lake actions on Zed service",
 	Long: `
-The "api" commands provides client access to a Zed lake service running
+The "api" command provides client access to a Zed lake service running
 on the IP and port provided in the "-host" option.  This option defaults
 to localhost:9867 so you can conveniently connect to a lake service
 running locally on the default port, as is automatically launched
 by the Brim application for the "local Zed lake".
 
 All of the relevant "lake" commands are available through the "api" command.
-Refer to the help of the indidual sub-commands for more details.`,
+Refer to the help of the individual sub-commands for more details.`,
 	New: New,
 }
 
