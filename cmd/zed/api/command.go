@@ -15,8 +15,17 @@ import (
 var Cmd = &charm.Spec{
 	Name:  "api",
 	Usage: "api [options] sub-command",
-	Short: "create, manage, and search Zed lakes",
-	New:   New,
+	Short: "perform lake actions on Zed service",
+	Long: `
+The "api" command provides client access to a Zed lake service running
+on the IP and port provided in the "-host" option.  This option defaults
+to localhost:9867 so you can conveniently connect to a lake service
+running locally on the default port, as is automatically launched
+by the Brim application for the "local Zed lake".
+
+All of the relevant "lake" commands are available through the "api" command.
+Refer to the help of the individual sub-commands for more details.`,
+	New: New,
 }
 
 type Command struct {
