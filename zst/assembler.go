@@ -14,7 +14,7 @@ var ErrBadSchemaID = errors.New("bad schema id in root reassembly column")
 
 type Assembly struct {
 	root    zng.Value
-	schemas []*zng.TypeRecord
+	schemas []zng.Type
 	columns []*zng.Record
 }
 
@@ -31,7 +31,8 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 		rec := a.columns[k]
 		zv := rec.Value
 		record_col := &column.Record{}
-		if err := record_col.UnmarshalZNG(a.schemas[k], zv, seeker); err != nil {
+		typ := zng.TypeRecordOf(a.schemas[k])
+		if err := record_col.UnmarshalZNG(typ, zv, seeker); err != nil {
 			return nil, err
 		}
 		assembler.columns[k] = record_col
@@ -45,7 +46,7 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 type Assembler struct {
 	root    *column.Int
 	columns []*column.Record
-	schemas []*zng.TypeRecord
+	schemas []zng.Type
 	builder zcode.Builder
 	err     error
 }
