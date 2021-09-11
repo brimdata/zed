@@ -51,7 +51,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.order, "order", "asc", "specify data in ascending (asc) or descending (desc) order")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
-	c.inputFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f, true)
 
 	return c, nil
 }

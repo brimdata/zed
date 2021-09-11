@@ -92,7 +92,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.outputFlags.SetFlags(f)
-	c.inputFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f, false)
 	c.procFlags.SetFlags(f)
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
