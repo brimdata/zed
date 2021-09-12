@@ -554,7 +554,7 @@ func runzq(path, zed, input string, outputFlags []string, inputFlags []string) (
 	}
 	var inflags inputflags.Flags
 	var flags flag.FlagSet
-	inflags.SetFlags(&flags)
+	inflags.SetFlags(&flags, true)
 	if err := flags.Parse(inputFlags); err != nil {
 		return "", "", err
 	}

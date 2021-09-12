@@ -53,7 +53,7 @@ func MibToBytes(mib float64) int {
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zst.Command)}
-	c.inputFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f, true)
 	c.outputFlags.SetFlagsWithFormat(f, "zst")
 	return c, nil
 }

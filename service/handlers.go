@@ -449,7 +449,10 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	zr, err := anyio.NewReader(anyio.GzipReader(r.Body), zson.NewContext())
+	// Force validation of ZNG when initialing loading into the lake.
+	var opts anyio.ReaderOpts
+	opts.Zng.Validate = true
+	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(r.Body), zson.NewContext(), opts)
 	if err != nil {
 		w.Error(err)
 		return

@@ -57,6 +57,9 @@ func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zio.Re
 	}
 	track.Reset()
 
+	// For the matching reader, force validation to true so we are extra
+	// careful about auto-matching ZNG.  Then, once matched, relaxed
+	// validation to the user setting in the actual reader returned.
 	zngOpts := opts.Zng
 	zngOpts.Validate = true
 	zngErr := match(zngio.NewReaderWithOpts(track, zson.NewContext(), zngOpts), "zng")

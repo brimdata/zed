@@ -50,8 +50,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.keyField, "k", "", "field name of search keys")
 	f.BoolVar(&c.inputReady, "x", false, "input file is already sorted keys (and optional values)")
 	f.BoolVar(&c.skip, "S", false, "skip all records except for the first of each stream")
-	c.inputFlags.SetFlags(f)
-
+	c.inputFlags.SetFlags(f, true)
 	return c, nil
 }
 
