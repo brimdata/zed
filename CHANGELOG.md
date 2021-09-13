@@ -8,7 +8,7 @@
 * Fix an issue where `cut(.)` could cause a `slice bounds out of range` panic (#2107)
 * Add `is()`, `fields()`, and `exists()` functions (#2131)
 * Add auto-detection of ZSON format (#2123)
-* Fix an issue where [`cut`](https://github.com/brimdata/zed/tree/main/docs/language/operators#cut) to the root would exit if the referenced column was missing from a record (#2121)
+* Fix an issue where [`cut`](https://github.com/brimdata/zed/tree/main/docs/language/operators#cut) to the root would exit if the referenced field was missing from a record (#2121)
 * Fix an issue where [`put`](https://github.com/brimdata/zed/tree/main/docs/language/operators#put) to the root would panic on a non-record field (#2136)
 * Add support for parsing map types in ZSON (#2142)
 * Add a `fuse()` aggregate function (#2115)
