@@ -1,0 +1,6 @@
+zed: "*"
+
+input: &input |
+  {"":1}
+
+output: *input
