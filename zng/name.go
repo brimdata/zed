@@ -14,6 +14,9 @@ func TypeChar(c rune) bool {
 }
 
 func IsIdentifier(s string) bool {
+	if s == "" {
+		return false
+	}
 	first := true
 	for _, c := range s {
 		if !IDChar(c) && (first || !unicode.IsDigit(c)) {
