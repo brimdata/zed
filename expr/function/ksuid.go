@@ -1,16 +1,13 @@
 package function
 
 import (
-	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/zng"
 	"github.com/segmentio/ksuid"
 )
 
-type ksuidToString struct {
-	result.Buffer
-}
+type ksuidToString struct{}
 
-func (k *ksuidToString) Call(args []zng.Value) (zng.Value, error) {
+func (*ksuidToString) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	if zv.Type.ID() != zng.IDBytes {
 		return zng.NewErrorf("not a bytes type"), nil
