@@ -149,7 +149,7 @@
 * Reserved words in the Zed language can now be used in more places (e.g., field name references) without risk of collisions that would require escaping (#2968)
 * Zed CLI tools now send human-readable ZSON by default if output is to a terminal, otherwise binary ZNG (#2979, #2985)
 * Temporary directories for spill-to-disk operations now are prefixed with `zed-spill-` rather than `zq-spill-` (#2980)
-* The [`put`](https://github.com/brimdata/zed/tree/main/docs/language/operators#put) operator keyword is now optional (e.g., can write`x:=1` instead of `put x:=1`) (#2967, #2986, #3043)
+* The [`put`](https://github.com/brimdata/zed/tree/main/docs/language/operators#put) operator keyword is now optional (e.g., can write `x:=1` instead of `put x:=1`) (#2967, #2986, #3043)
 * Fix an issue where a [`put`](https://github.com/brimdata/zed/tree/main/docs/language/operators#put) on a nested record with an alias triggered a panic (#2990)
 * Fix an issue where temporary spill-to-disk directories were not being deleted upon exit (#3009, #3010)
 * Fix a ZSON issue with `union` types with alias decorators (#3015, #3016)
