@@ -31,12 +31,20 @@ func isNull(val zng.Value) bool {
 // a record with a null value is considered larger than a record with any
 // other value, and vice versa.
 func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
+	var aBytesBuf []byte
 	var pair coerce.Pair
 	comparefns := make(map[zng.Type]comparefn)
 	return func(ra *zng.Record, rb *zng.Record) int {
 		for _, resolver := range fields {
 			// XXX return errors?
 			a, _ := resolver.Eval(ra)
+			if len(a.Bytes) > 0 {
+				// a.Bytes's backing array might belonging to
+				// resolver.Eval, so copy it before calling
+				// resolver.Eval again.
+				aBytesBuf = append(aBytesBuf[:0], a.Bytes...)
+				a.Bytes = aBytesBuf
+			}
 			b, _ := resolver.Eval(rb)
 			v := compareValues(a, b, comparefns, &pair, nullsMax)
 			// If the events don't match, then return the sort
