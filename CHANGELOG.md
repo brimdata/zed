@@ -1,7 +1,7 @@
 ## v0.30.0
 
 As you can see below, there's been many changes since the last Zed GA release!  Highlights include:
-* The introduction of Zed lakes for data storage, which includes powerful
+* The introduction of Zed lakes for data storage, which include powerful
   Git-like branching. See the [Zed lake README](https://github.com/brimdata/zed/blob/main/docs/lake/README.md)
   for details.
 * Enhancements to the Zed language to unify search and expression syntax,
