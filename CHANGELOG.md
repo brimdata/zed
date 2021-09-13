@@ -138,7 +138,7 @@
 * Introduce alternate `switch` syntax (#2888, #3004)
 * When [`fuse`](https://github.com/brimdata/zed/tree/main/docs/language/operators#fuse) encounters a field with the same name but different types, it now creates one field of `union` type rather than separate, uniquely-named fields (#2885, #2886)
 * Fix an issue where [`fuse`](https://github.com/brimdata/zed/tree/main/docs/language/operators#fuse) would consume too much memory when fusing many types (#2897, #2899)
-* Emphasize in the [`sort`](https://github.com/brimdata/zed/tree/main/docs/language/operators#sort) documentation that its output can be non-deterministic in the absence of an explicit field-list (#2902)
+* Emphasize in the [`sort`](https://github.com/brimdata/zed/tree/main/docs/language/operators#sort) documentation that its output can be non-deterministic in the absence of an explicit field list (#2902)
 * Remove the space separator before decorator in ZSON `-z` output (#2911)
 * Fix an issue where handling of record alises caused a failure to shape Zeek NDJSON data (#2904)
 * Fix an issue where posting garbage input data to a pool caused an HTTP 500 response (#2924)
