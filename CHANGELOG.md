@@ -155,7 +155,7 @@
 * Fix a ZSON issue with `union` types with alias decorators (#3015, #3016)
 * The ZSON format has been changed such that integer type IDs are no longer output (#3017)
 * Update the reference Zed shaper for Zeek ([shaper](https://github.com/brimdata/zed/blob/main/zeek/shaper.zed), [docs](https://github.com/brimdata/zed/blob/main/zeek/Shaping-Zeek-NDJSON.md)) to reflect changes in Zeek release v4.1.0 (#3021)
-* Fix an issue where backslash escapes in Zed regexps were not being accepted (#3040)
+* Fix an issue where backslash escapes in Zed regular expressions were not accepted (#3040)
 
 ## v0.29.0
 * zqd: Update Zeek pointer to [v3.2.1-brim10](https://github.com/brimdata/zeek/releases/tag/v3.2.1-brim10) which provides the latest [geolocation](https://github.com/brimdata/brim/wiki/Geolocation) data (#2081)
