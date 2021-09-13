@@ -135,7 +135,7 @@
 * Shapers can now cast values of the `null` type to any type (e.g., arrays or records) (#2882)
 * Fix an issue where [`join`](https://github.com/brimdata/zed/blob/main/docs/language/operators/README.md#join) was failing to match on values of comparable types (e.g., `string` and `bstring`) (#2880, #2884)
 * Shapers can now cast a value to a `union` type (#2881)
-* Introduce alternate `switch()` syntax (#2888, #3004)
+* Introduce alternate `switch` syntax (#2888, #3004)
 * When [`fuse`](https://github.com/brimdata/zed/tree/main/docs/language/operators#fuse) encounters a field with the same name but different types, it now creates one field of `union` type rather than separate, uniquely-named fields (#2885, #2886)
 * Fix an issue where [`fuse`](https://github.com/brimdata/zed/tree/main/docs/language/operators#fuse) would consume too much memory when fusing many types (#2897, #2899)
 * Emphasize in the [`sort`](https://github.com/brimdata/zed/tree/main/docs/language/operators#sort) documentation that its output can be non-deterministic in the absence of an explicit field-list (#2902)
