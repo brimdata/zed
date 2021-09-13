@@ -14,7 +14,7 @@ func TypeChar(c rune) bool {
 }
 
 func IsIdentifier(s string) bool {
-	if len(s) == 0 {
+	if s == "" {
 		return false
 	}
 	first := true
