@@ -40,7 +40,7 @@ func NewCutterFromPath(ctx context.Context, zctx *zson.Context, engine storage.E
 type CutAssembler struct {
 	zctx    *zson.Context
 	root    *column.Int
-	schemas []*zng.TypeRecord
+	schemas []zng.Type
 	columns []column.Interface
 	types   []*zng.TypeRecord
 	nwrap   []int
@@ -68,17 +68,18 @@ func NewCutAssembler(zctx *zson.Context, fields []string, object *Object) (*CutA
 		var err error
 		zv := a.columns[k].Value
 		topcol := &column.Record{}
-		if err := topcol.UnmarshalZNG(a.schemas[k], zv, object.seeker); err != nil {
+		typ := zng.TypeRecordOf(schema)
+		if err := topcol.UnmarshalZNG(typ, zv, object.seeker); err != nil {
 			return nil, err
 		}
-		_, ca.columns[k], err = topcol.Lookup(schema, fields)
+		_, ca.columns[k], err = topcol.Lookup(typ, fields)
 		if err == zng.ErrMissing || err == column.ErrNonRecordAccess {
 			continue
 		}
 		if err != nil {
 			return nil, err
 		}
-		ca.types[k], ca.nwrap[k], err = cutType(zctx, schema, fields)
+		ca.types[k], ca.nwrap[k], err = cutType(zctx, typ, fields)
 		if err != nil {
 			return nil, err
 		}

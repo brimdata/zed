@@ -27,7 +27,7 @@ type Writer struct {
 	spiller    *column.Spiller
 	schemaMap  map[int]int
 	schemas    []column.RecordWriter
-	types      []*zng.TypeRecord
+	types      []zng.Type
 	skewThresh int
 	segThresh  int
 	// We keep track of the size of rows we've encoded into in-memory
@@ -103,18 +103,19 @@ func checkThresh(which string, max, thresh int) error {
 }
 
 func (w *Writer) Write(rec *zng.Record) error {
-	inputID := rec.Type.ID()
+	inputID := zng.TypeID(rec.Type)
 	schemaID, ok := w.schemaMap[inputID]
 	if !ok {
-		recType, err := w.zctx.TranslateTypeRecord(zng.TypeRecordOf(rec.Type))
+		schema, err := w.zctx.TranslateType(rec.Type)
 		if err != nil {
 			return err
 		}
+		recType := zng.TypeRecordOf(schema)
 		schemaID = len(w.schemas)
 		w.schemaMap[inputID] = schemaID
 		rw := column.NewRecordWriter(recType, w.spiller)
 		w.schemas = append(w.schemas, rw)
-		w.types = append(w.types, recType)
+		w.types = append(w.types, schema)
 	}
 	if err := w.root.Write(int32(schemaID)); err != nil {
 		return err
@@ -174,7 +175,7 @@ func (w *Writer) finalize() error {
 	// input.
 	for _, schema := range w.types {
 		b.Reset()
-		for _, col := range schema.Columns {
+		for _, col := range zng.TypeRecordOf(schema).Columns {
 			if zng.IsContainerType(col.Type) {
 				b.AppendContainer(nil)
 			} else {
