@@ -1,21 +1,18 @@
-skip: "issue #2651"
-
 script: |
-  source services.sh
-  zapi -host $LAKE_HOST new test
-  zapi -host $LAKE_HOST -p test post in.zson
-  zapi -host $LAKE_HOST -p test get -e ndjson "pick a,b" > out.ndjson
+  source service.sh
+  zapi create -q test
+  zapi load -q -use test@main -
+  zapi query -f ndjson 'from test'
 
 inputs:
-  - name: services.sh
-    source: services.sh
-  - name: in.zson
+  - name: service.sh
+  - name: stdin
     data: |
-      {ts:1970-01-01T00:00:02Z,a:"hello",b:"world"}
-      {ts:1970-01-01T00:00:01Z,a:"goodnight",b:"gracie"}
+      {a:"hello",b:"world"}
+      {a:"goodnight",b:"gracie"}
 
 outputs:
-  - name: out.ndjson
+  - name: stdout
     data: |
-      {"a":"hello","b":"world"}
       {"a":"goodnight","b":"gracie"}
+      {"a":"hello","b":"world"}

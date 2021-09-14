@@ -1,19 +1,17 @@
-skip: "issue #2651"
-
 script: |
-  source services.sh
-  zapi -host $LAKE_HOST new test
-  zapi -host $LAKE_HOST -p test post in.zson
-  zapi -host $LAKE_HOST -p test get -e json > out.json
+  source service.sh
+  zapi create -q test
+  zapi load -q -use test@main -
+  zapi query -f json 'from test'
 
 inputs:
-  - name: services.sh
-    source: services.sh
-  - name: in.zson
+  - name: service.sh
+  - name: stdin
     data: |
-      {a:"hello",b:{c:"world",d:"goodbye"}}
+      {a:"hello",b:"world"}
+      {a:"goodnight",b:"gracie"}
 
 outputs:
-  - name: out.json
-    regexp: |
-      .*"type":"TaskStart","task_id":0.*"type":\{"kind":"record","fields":\[\{"name":"a".*"values":\["hello",\["world".*
+  - name: stdout
+    data: |
+      [{"a":"goodnight","b":"gracie"},{"a":"hello","b":"world"}]

@@ -1,20 +1,17 @@
-skip: "issue #2651"
-
 script: |
-  source services.sh
-  zapi -host $LAKE_HOST new test
-  zapi -host $LAKE_HOST -p test post in.zson
-  zapi -host $LAKE_HOST -p test get -e csv > out.csv
+  source service.sh
+  zapi create -q test
+  zapi load -q -use test@main -
+  zapi query -f csv 'from test'
 
 inputs:
-  - name: services.sh
-    source: services.sh
-  - name: in.zson
+  - name: service.sh
+  - name: stdin
     data: |
       {a:"hello",b:{c:"world",d:"goodbye"}}
 
 outputs:
-  - name: out.csv
+  - name: stdout
     data: |
       a,b.c,b.d
       hello,world,goodbye
