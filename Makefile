@@ -87,14 +87,14 @@ install:
 
 create-release-assets:
 	for os in darwin linux windows; do \
-		zqdir=zq-$(VERSION).$${os}-amd64 ; \
-		rm -rf dist/$${zqdir} ; \
-		mkdir -p dist/$${zqdir} ; \
-		cp LICENSE.txt acknowledgments.txt dist/$${zqdir} ; \
-		GOOS=$${os} GOARCH=$(ARCH) go build -ldflags='$(LDFLAGS)' -o dist/$${zqdir} ./cmd/... ; \
+		zeddir=zed-$(VERSION).$${os}-amd64 ; \
+		rm -rf dist/$${zeddir} ; \
+		mkdir -p dist/$${zeddir} ; \
+		cp LICENSE.txt acknowledgments.txt dist/$${zeddir} ; \
+		GOOS=$${os} GOARCH=$(ARCH) go build -ldflags='$(LDFLAGS)' -o dist/$${zeddir} ./cmd/... ; \
 	done
 	rm -rf dist/release && mkdir -p dist/release
-	cd dist && for d in zq-$(VERSION)* ; do \
+	cd dist && for d in zed-$(VERSION)* ; do \
 		zip -r release/$${d}.zip $${d} ; \
 	done
 
