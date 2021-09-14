@@ -4,15 +4,12 @@ import (
 	"bytes"
 	"net"
 
-	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/zng"
 )
 
-type networkOf struct {
-	result.Buffer
-}
+type networkOf struct{}
 
-func (n *networkOf) Call(args []zng.Value) (zng.Value, error) {
+func (*networkOf) Call(args []zng.Value) (zng.Value, error) {
 	id := args[0].Type.ID()
 	if id != zng.IDIP {
 		return zng.NewErrorf("not an IP"), nil
