@@ -133,7 +133,6 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 }
 
 func (c *Core) addAPIServerRoutes() {
-	c.authhandle("/ast", handleASTPost).Methods("POST")
 	c.authhandle("/auth/identity", handleAuthIdentityGet).Methods("GET")
 	// /auth/method intentionally requires no authentication
 	c.routerAPI.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
@@ -154,7 +153,6 @@ func (c *Core) addAPIServerRoutes() {
 	// Deprecated endpoints
 	c.authhandle("/pool", handlePoolListDeprecated).Methods("GET")
 	c.authhandle("/pool/{pool}", handlePoolGetDeprecated).Methods("GET")
-	c.authhandle("/search", handleSearchDeprecated).Methods("POST")
 	// c.authhandle("/index", handleIndexPost).Methods("POST")
 }
 

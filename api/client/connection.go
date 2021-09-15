@@ -187,19 +187,6 @@ func (c *Connection) Version(ctx context.Context) (string, error) {
 	return resp.Result().(*api.VersionResponse).Version, nil
 }
 
-// ZedToAST sends a request to the server to translate a Zed program into its
-// AST form.
-func (c *Connection) ZedToAST(ctx context.Context, zprog string) ([]byte, error) {
-	resp, err := c.Request(ctx).
-		SetBody(api.ASTRequest{ZQL: zprog}).
-		SetHeader("Accept", api.MediaTypeJSON).
-		Post("/ast")
-	if err != nil {
-		return nil, err
-	}
-	return resp.Body(), nil
-}
-
 func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*Response, error) {
 	req := c.Request(ctx)
 	req.Method = http.MethodGet
@@ -286,16 +273,6 @@ func (c *Connection) Revert(ctx context.Context, poolID ksuid.KSUID, branchName 
 	return c.stream(req)
 }
 
-func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, params map[string]string) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(search).
-		SetQueryParam("format", "zng")
-	req.SetQueryParams(params)
-	req.Method = http.MethodPost
-	req.URL = "/search"
-	return c.stream(req)
-}
-
 func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src string, filenames ...string) (*Response, error) {
 	src, srcInfo, err := parser.ConcatSource(filenames, src)
 	if err != nil {
@@ -318,37 +295,6 @@ func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src s
 		}
 	}
 	return res, err
-}
-
-// Search sends a search request to the server and returns a ZngSearch
-// that the caller uses to stream back results via the Read method.
-// Example usage:
-//
-//	conn := client.NewConnectionTo("http://localhost:9867")
-//	poolID, err := conn.PoolLookup(ctx, "poolName")
-//	if err != nil { return err }
-//	search, err := conn.Search(ctx, poolID, "_path=conn | count()")
-//	if err != nil { return err }
-//	for {
-//		rec, err := search.Read()
-//		if err != nil { return err }
-//		if rec == nil {
-//			// End of results.
-//			return nil
-//		}
-//		fmt.Println(rec)
-//	}
-//
-func (c *Connection) Search(ctx context.Context, id ksuid.KSUID, query string) (*Response, error) {
-	procBytes, err := c.ZedToAST(ctx, query)
-	if err != nil {
-		return nil, err
-	}
-	return c.SearchRaw(ctx, api.SearchRequest{
-		Pool: api.KSUID(id),
-		Proc: procBytes,
-		Dir:  -1,
-	}, nil)
 }
 
 func (c *Connection) IndexPost(ctx context.Context, id ksuid.KSUID, post api.IndexPostRequest) error {
