@@ -61,6 +61,26 @@ func TestMarshalZNG(t *testing.T) {
 	assert.Equal(t, `{Field1:"value1",Sub1:{f2:"value2",Field3:-1},PField1:null(bool)}`, toZSON(t, rec))
 }
 
+func TestMarshalMap(t *testing.T) {
+	type s struct {
+		Name string
+		Map  map[string]int
+	}
+	cases := []s{
+		{Name: "nil", Map: nil},
+		{Name: "empty", Map: map[string]int{}},
+		{Name: "nonempty", Map: map[string]int{"a": 1, "b": 2}},
+	}
+	for _, c := range cases {
+		c := c
+		var v s
+		t.Run(c.Name, func(t *testing.T) {
+			boomerang(t, c, &v)
+			assert.Equal(t, c, v)
+		})
+	}
+}
+
 type ZNGThing struct {
 	A string `zng:"a"`
 	B int

@@ -348,6 +348,11 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zng.Type, error) {
 			return m.encodeArrayBytes(v)
 		}
 		return m.encodeArray(v)
+	case reflect.Map:
+		if v.IsNil() {
+			return m.encodeNil(v.Type())
+		}
+		return m.encodeMap(v)
 	case reflect.Slice:
 		if v.IsNil() {
 			return m.encodeNil(v.Type())
@@ -399,6 +404,44 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zng.Type, error) {
 	default:
 		return nil, fmt.Errorf("unsupported type: %v", v.Kind())
 	}
+}
+
+func (m *MarshalZNGContext) encodeMap(v reflect.Value) (zng.Type, error) {
+	var lastKeyType, lastValType zng.Type
+	m.Builder.BeginContainer()
+	for iter := v.MapRange(); iter.Next(); {
+		keyType, err := m.encodeValue(iter.Key())
+		if err != nil {
+			return nil, err
+		}
+		if keyType != lastKeyType && lastKeyType != nil {
+			return nil, errors.New("map has mixed key types")
+		}
+		lastKeyType = keyType
+		valType, err := m.encodeValue(iter.Value())
+		if err != nil {
+			return nil, err
+		}
+		if valType != lastValType && lastValType != nil {
+			return nil, errors.New("map has mixed values types")
+		}
+		lastValType = valType
+	}
+	m.Builder.TransformContainer(zng.NormalizeMap)
+	m.Builder.EndContainer()
+	if lastKeyType == nil {
+		// Map is empty so look up types.
+		var err error
+		lastKeyType, err = m.lookupType(v.Type().Key())
+		if err != nil {
+			return nil, err
+		}
+		lastValType, err = m.lookupType(v.Type().Elem())
+		if err != nil {
+			return nil, err
+		}
+	}
+	return m.Context.LookupTypeMap(lastKeyType, lastValType), nil
 }
 
 func (m *MarshalZNGContext) encodeNil(t reflect.Type) (zng.Type, error) {
@@ -507,6 +550,16 @@ func (m *MarshalZNGContext) lookupType(typ reflect.Type) (zng.Type, error) {
 			return nil, err
 		}
 		return m.Context.LookupTypeArray(typ), nil
+	case reflect.Map:
+		key, err := m.lookupType(typ.Key())
+		if err != nil {
+			return nil, err
+		}
+		val, err := m.lookupType(typ.Elem())
+		if err != nil {
+			return nil, err
+		}
+		return m.Context.LookupTypeMap(key, val), nil
 	case reflect.Struct:
 		return m.lookupTypeRecord(typ)
 	case reflect.Ptr:
@@ -643,6 +696,8 @@ func (u *UnmarshalZNGContext) decodeAny(zv zng.Value, v reflect.Value) error {
 	switch v.Kind() {
 	case reflect.Array:
 		return u.decodeArray(zv, v)
+	case reflect.Map:
+		return u.decodeMap(zv, v)
 	case reflect.Slice:
 		if isIP(v.Type()) {
 			return u.decodeIP(zv, v)
@@ -776,6 +831,41 @@ func (u *UnmarshalZNGContext) decodeIP(zv zng.Value, v reflect.Value) error {
 	x, err := zng.DecodeIP(zv.Bytes)
 	v.Set(reflect.ValueOf(x))
 	return err
+}
+
+func (u *UnmarshalZNGContext) decodeMap(zv zng.Value, mapVal reflect.Value) error {
+	typ, ok := zng.AliasOf(zv.Type).(*zng.TypeMap)
+	if !ok {
+		return errors.New("not a map")
+	}
+	if zv.Bytes == nil {
+		return nil
+	}
+	if mapVal.IsNil() {
+		mapVal.Set(reflect.MakeMap(mapVal.Type()))
+	}
+	keyType := mapVal.Type().Key()
+	valType := mapVal.Type().Elem()
+	for it := zv.Iter(); !it.Done(); {
+		keyzb, _, err := it.Next()
+		if err != nil {
+			return err
+		}
+		key := reflect.New(keyType).Elem()
+		if err := u.decodeAny(zng.Value{typ.KeyType, keyzb}, key); err != nil {
+			return err
+		}
+		valzb, _, err := it.Next()
+		if err != nil {
+			return err
+		}
+		val := reflect.New(valType).Elem()
+		if err := u.decodeAny(zng.Value{typ.ValType, valzb}, val); err != nil {
+			return err
+		}
+		mapVal.SetMapIndex(key, val)
+	}
+	return nil
 }
 
 func (u *UnmarshalZNGContext) decodeRecord(zv zng.Value, sval reflect.Value) error {
