@@ -1,9 +1,7 @@
 package service
 
 import (
-	"encoding/json"
 	"errors"
-	"io"
 	"net/http"
 
 	"github.com/brimdata/zed/api"
@@ -16,13 +14,11 @@ import (
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/service/auth"
-	"github.com/brimdata/zed/service/search"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
-	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 )
 
@@ -58,93 +54,6 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		d.Error(err)
 	}
 }
-
-func handleASTPost(c *Core, w *ResponseWriter, r *Request) {
-	var req api.ASTRequest
-	accept := r.Header.Get("Accept")
-	if accept != api.MediaTypeJSON && !api.IsAmbiguousMediaType(accept) {
-		w.Error(zqe.ErrInvalid("unsupported accept header: %s", w.ContentType()))
-		return
-	}
-	if !r.Unmarshal(w, &req) {
-		return
-	}
-	proc, err := compiler.ParseProc(req.ZQL)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	w.WriteHeader(http.StatusOK)
-	if err := json.NewEncoder(w).Encode(proc); err != nil {
-		w.Error(err)
-		return
-	}
-}
-
-func handleSearchDeprecated(c *Core, w *ResponseWriter, r *Request) {
-	var req api.SearchRequest
-	if !r.Unmarshal(w, &req) {
-		return
-	}
-	pool, err := c.root.OpenPool(r.Context(), ksuid.KSUID(req.Pool))
-	if err != nil {
-		if errors.Is(err, pools.ErrNotFound) {
-			err = zqe.ErrNotFound(err)
-		}
-		w.Error(err)
-		return
-	}
-	branch, err := pool.OpenBranchByName(r.Context(), "main")
-	if err != nil {
-		if errors.Is(err, branches.ErrNotFound) {
-			err = zqe.ErrNotFound(err)
-		}
-		w.Error(err)
-		return
-	}
-	srch, err := search.NewSearchOp(req, r.Logger)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	out, err := getSearchOutput(w.ResponseWriter, r)
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(r.Context(), c.root, branch, out, 0); err != nil {
-		r.Logger.Warn("Error writing response", zap.Error(err))
-	}
-}
-
-func getSearchOutput(w http.ResponseWriter, r *Request) (search.Output, error) {
-	ctrl := true
-	if r.URL.Query().Get("noctrl") != "" {
-		ctrl = false
-	}
-	format := r.URL.Query().Get("format")
-	switch format {
-	case "csv":
-		return search.NewCSVOutput(w, ctrl), nil
-	case "json":
-		return search.NewJSONOutput(w, search.DefaultMTU, ctrl), nil
-	case "ndjson":
-		return search.NewNDJSONOutput(w), nil
-	case "zjson":
-		return search.NewZJSONOutput(w, search.DefaultMTU, ctrl), nil
-	case "zng":
-		return search.NewZngOutput(w, ctrl), nil
-	default:
-		return nil, zqe.E(zqe.Invalid, "unsupported search format: %s", format)
-	}
-}
-
-type nopWriteCloser struct {
-	io.Writer
-}
-
-func (nopWriteCloser) Close() error { return nil }
 
 func handlePoolListDeprecated(c *Core, w *ResponseWriter, r *Request) {
 	zw := w.ZioWriterWithOpts(anyio.WriterOpts{JSON: jsonio.WriterOpts{ForceArray: true}})

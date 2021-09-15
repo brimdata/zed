@@ -1,11 +1,8 @@
 package service_test
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"errors"
-	"net/http"
 	"net/http/httptest"
 	"os"
 	"strings"
@@ -13,8 +10,6 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
-	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/order"
@@ -22,9 +17,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/test"
 	"github.com/brimdata/zed/service"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zson"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
@@ -33,94 +25,9 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-const (
-	babble       = "../../testdata/babble.zson"
-	babbleSorted = "../../testdata/babble-sorted.zson"
-)
-
 var defaultLayout = order.Layout{
 	Order: order.Desc,
 	Keys:  field.DottedList("ts"),
-}
-
-func TestASTPost(t *testing.T) {
-	_, conn := newCore(t)
-	resp, err := conn.Do(context.Background(), http.MethodPost, "/ast", &api.ASTRequest{ZQL: "*"})
-	require.NoError(t, err)
-	require.Equal(t, string(resp.Body()), "{\"kind\":\"Sequential\",\"procs\":[{\"kind\":\"Filter\",\"expr\":{\"kind\":\"Primitive\",\"type\":\"bool\",\"text\":\"true\"}}]}\n")
-}
-
-func TestSearch(t *testing.T) {
-	const src = `
-{_path:"a",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}
-{_path:"b",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"(bstring)}
-`
-	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
-	conn.TestLoad(poolID, "main", strings.NewReader(src))
-
-	res := searchZson(t, conn, poolID, `_path == "a"`)
-	const expected = `{_path:"a",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}` + "\n"
-	require.Equal(t, expected, res)
-}
-
-func TestSearchNoCtrl(t *testing.T) {
-	src := `
-{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}
-{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"(bstring)}
-`
-	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
-	conn.TestLoad(poolID, "main", strings.NewReader(src))
-
-	parsed, err := compiler.ParseProc("*")
-	require.NoError(t, err)
-	proc, err := json.Marshal(parsed)
-	require.NoError(t, err)
-	req := api.SearchRequest{
-		Pool: api.KSUID(poolID),
-		Proc: proc,
-		Span: nano.MaxSpan,
-		Dir:  -1,
-	}
-	res, err := conn.SearchRaw(context.Background(), req, map[string]string{"noctrl": "true"})
-	require.NoError(t, err)
-	var msgs []interface{}
-	r := client.NewZngSearch(res.Body)
-	r.SetOnCtrl(func(i interface{}) {
-		msgs = append(msgs, i)
-	})
-	buf := bytes.NewBuffer(nil)
-	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
-	require.NoError(t, zio.Copy(w, r))
-	require.Equal(t, test.Trim(src), buf.String())
-	require.Equal(t, 0, len(msgs))
-}
-
-func TestSearchStats(t *testing.T) {
-	src := `
-{_path:"a",ts:1970-01-01T00:00:01Z}
-{_path:"b",ts:1970-01-01T00:00:01Z}
-`
-	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
-	conn.TestLoad(poolID, "main", strings.NewReader(src))
-	_, msgs := search(t, conn, poolID, "_path != \"b\"")
-	var stats *api.SearchStats
-	for i := len(msgs) - 1; i >= 0; i-- {
-		if s, ok := msgs[i].(*api.SearchStats); ok {
-			stats = s
-			break
-		}
-	}
-	require.NotNil(t, stats)
-	assert.Equal(t, stats.Type, "SearchStats")
-	assert.Equal(t, api.ScannerStats{
-		BytesRead:      14,
-		BytesMatched:   7,
-		RecordsRead:    2,
-		RecordsMatched: 1,
-	}, stats.ScannerStats)
 }
 
 func TestQuery(t *testing.T) {
@@ -138,12 +45,11 @@ func TestQuery(t *testing.T) {
 
 func TestQueryEmptyPool(t *testing.T) {
 	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
-	res := searchZson(t, conn, poolID, "from test")
-	require.Equal(t, "", res)
+	conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
+	assert.Equal(t, "", conn.TestQuery("from test"))
 }
 
-func TestGroupByReverse(t *testing.T) {
+func TestQueryGroupByReverse(t *testing.T) {
 	src := `
 {ts:1970-01-01T00:00:01Z,uid:"A"}
 {ts:1970-01-01T00:00:01Z,uid:"B"}
@@ -156,56 +62,7 @@ func TestGroupByReverse(t *testing.T) {
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test", Layout: defaultLayout})
 	conn.TestLoad(poolID, "main", strings.NewReader(src))
-	res := searchZson(t, conn, poolID, "every 1s count()")
-	require.Equal(t, test.Trim(counts), res)
-}
-
-func TestSearchEmptyPool(t *testing.T) {
-	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	res := searchZson(t, conn, poolID, "*")
-	require.Equal(t, "", res)
-}
-
-func TestSearchError(t *testing.T) {
-	src := `
-{_path:"conn",ts:2018-03-24T17:15:23.205187Z,uid:"CBrzd94qfowOqJwCHa"(bstring)}
-{_path:"conn",ts:2018-03-24T17:15:21.255387Z,uid:"C8Tful1TvM3Zf5x8fl"}(bstring)
-`
-	_, conn := newCore(t)
-	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	conn.TestLoad(poolID, "main", strings.NewReader(src))
-
-	parsed, err := compiler.ParseProc("*")
-	require.NoError(t, err)
-	proc, err := json.Marshal(parsed)
-	require.NoError(t, err)
-	t.Run("InvalidDir", func(t *testing.T) {
-		req := api.SearchRequest{
-			Pool: api.KSUID(poolID),
-			Proc: proc,
-			Span: nano.MaxSpan,
-			Dir:  1,
-		}
-		_, err = conn.SearchRaw(context.Background(), req, nil)
-		require.Error(t, err)
-		errResp := err.(*client.ErrorResponse)
-		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
-		assert.IsType(t, &api.Error{}, errResp.Err)
-	})
-	t.Run("ForwardSearchUnsupported", func(t *testing.T) {
-		req := api.SearchRequest{
-			Pool: api.KSUID(poolID),
-			Proc: proc,
-			Span: nano.MaxSpan,
-			Dir:  1,
-		}
-		_, err = conn.SearchRaw(context.Background(), req, nil)
-		require.Error(t, err)
-		errResp := err.(*client.ErrorResponse)
-		assert.Equal(t, http.StatusBadRequest, errResp.StatusCode())
-		assert.IsType(t, &api.Error{}, errResp.Err)
-	})
+	require.Equal(t, test.Trim(counts), conn.TestQuery("from test | every 1s count()"))
 }
 
 func TestPoolStats(t *testing.T) {
@@ -372,66 +229,6 @@ func indexSearch(t *testing.T, conn *testClient, pool ksuid.KSUID, indexName str
 	return buf.String(), msgs
 }
 */
-
-// search runs the provided zql program as a search on the provided
-// pool, returning the zson results along with a slice of all control
-// messages that were received.
-func search(t *testing.T, conn *testClient, pool ksuid.KSUID, prog string) (string, []interface{}) {
-	parsed, err := compiler.ParseProc(prog)
-	require.NoError(t, err)
-	proc, err := json.Marshal(parsed)
-	require.NoError(t, err)
-	req := api.SearchRequest{
-		Pool: api.KSUID(pool),
-		Proc: proc,
-		Span: nano.MaxSpan,
-		Dir:  -1,
-	}
-	res, err := conn.SearchRaw(context.Background(), req, nil)
-	require.NoError(t, err)
-	r := client.NewZngSearch(res.Body)
-	buf := bytes.NewBuffer(nil)
-	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
-	var msgs []interface{}
-	r.SetOnCtrl(func(i interface{}) {
-		msgs = append(msgs, i)
-	})
-	require.NoError(t, zio.Copy(w, r))
-	return buf.String(), msgs
-}
-
-func searchZson(t *testing.T, conn *testClient, pool ksuid.KSUID, prog string) string {
-	res, err := conn.Search(context.Background(), pool, prog)
-	require.NoError(t, err)
-	buf := bytes.NewBuffer(nil)
-	w := zsonio.NewWriter(zio.NopCloser(buf), zsonio.WriterOpts{})
-	err = zio.Copy(w, conn.zioreader(res))
-	require.NoError(t, err)
-	return buf.String()
-}
-
-func zsonCopy(t *testing.T, prog string, in string) string {
-	zctx := zson.NewContext()
-	r := zson.NewReader(strings.NewReader(in), zctx)
-	var buf bytes.Buffer
-	w := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
-	p := compiler.MustParseProc(prog)
-	err := driver.Copy(context.Background(), w, p, zctx, r, nil)
-	require.NoError(t, err)
-	return buf.String()
-}
-
-func writeTempFile(t *testing.T, data string) string {
-	f, err := os.CreateTemp("", t.Name())
-	require.NoError(t, err)
-	name := f.Name()
-	t.Cleanup(func() { os.Remove(name) })
-	_, err = f.WriteString(data)
-	require.NoError(t, err)
-	require.NoError(t, f.Close())
-	return name
-}
-
 func newCore(t *testing.T) (*service.Core, *testClient) {
 	root := t.TempDir()
 	return newCoreAtDir(t, root)

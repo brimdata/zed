@@ -2,12 +2,10 @@ package api
 
 import (
 	"context"
-	"encoding/json"
 
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/segmentio/ksuid"
 )
 
@@ -29,56 +27,6 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.Message
-}
-
-type ASTRequest struct {
-	ZQL string `json:"zql"`
-}
-
-type TaskStart struct {
-	Type   string `json:"type"`
-	TaskID int64  `json:"task_id"`
-}
-
-type TaskEnd struct {
-	Type   string `json:"type"`
-	TaskID int64  `json:"task_id"`
-	Error  *Error `json:"error,omitempty"`
-}
-
-type SearchRequest struct {
-	JournalID uint64 `json:"journal_id"`
-	// Pool has to have wrapped type because KSUID in request body can be either
-	// hex or base62 and the regular ksuid.KSUID does not handle hex. This will
-	// go away once the search endpoint is deprecated.
-	Pool KSUID           `json:"pool"`
-	Proc json.RawMessage `json:"proc,omitempty"`
-	Span nano.Span       `json:"span"`
-	Dir  int             `json:"dir"`
-}
-
-type SearchRecords struct {
-	Type      string           `json:"type"`
-	ChannelID int              `json:"channel_id"`
-	Records   []zjsonio.Object `json:"records"`
-}
-
-type SearchWarning struct {
-	Type    string `json:"type"`
-	Warning string `json:"warning"`
-}
-
-type SearchEnd struct {
-	Type      string `json:"type"`
-	ChannelID int    `json:"channel_id"`
-	Reason    string `json:"reason"`
-}
-
-type SearchStats struct {
-	Type       string  `json:"type"`
-	StartTime  nano.Ts `json:"start_time"`
-	UpdateTime nano.Ts `json:"update_time"`
-	ScannerStats
 }
 
 type ScannerStats struct {
