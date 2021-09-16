@@ -7,6 +7,7 @@ import (
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
@@ -160,6 +161,17 @@ func ScanPartitions(ctx context.Context, snap commits.View, span extent.Span, o 
 		}
 		select {
 		case ch <- p:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+	return nil
+}
+
+func ScanIndexes(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- *index.Object) error {
+	for _, idx := range snap.SelectIndexes(span, o) {
+		select {
+		case ch <- idx:
 		case <-ctx.Done():
 			return ctx.Err()
 		}

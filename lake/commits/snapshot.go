@@ -6,6 +6,7 @@ import (
 
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/data"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/order"
 	"github.com/segmentio/ksuid"
 )
@@ -19,20 +20,25 @@ type View interface {
 	Lookup(ksuid.KSUID) (*data.Object, error)
 	Select(extent.Span, order.Which) DataObjects
 	SelectAll() DataObjects
+	SelectIndexes(extent.Span, order.Which) []*index.Object
 }
 
 type Writeable interface {
 	View
 	AddDataObject(*data.Object) error
-	DeleteObject(id ksuid.KSUID) error
+	DeleteObject(ksuid.KSUID) error
+	AddIndexObject(*index.Object) error
+	DeleteIndexObject(ksuid.KSUID, ksuid.KSUID) error
 }
 
 // A snapshot summarizes the pool state at any point in
 // the commit object tree.
 // XXX redefine snapshot as type map instead of struct
 type Snapshot struct {
-	objects map[ksuid.KSUID]*data.Object
-	deletes map[ksuid.KSUID]*data.Object
+	objects        map[ksuid.KSUID]*data.Object
+	deletedObjects map[ksuid.KSUID]*data.Object
+	indexes        index.Map
+	deletedIndexes index.Map
 }
 
 var _ View = (*Snapshot)(nil)
@@ -40,8 +46,10 @@ var _ Writeable = (*Snapshot)(nil)
 
 func NewSnapshot() *Snapshot {
 	return &Snapshot{
-		objects: make(map[ksuid.KSUID]*data.Object),
-		deletes: make(map[ksuid.KSUID]*data.Object),
+		objects:        make(map[ksuid.KSUID]*data.Object),
+		deletedObjects: make(map[ksuid.KSUID]*data.Object),
+		indexes:        make(index.Map),
+		deletedIndexes: make(index.Map),
 	}
 }
 
@@ -51,7 +59,7 @@ func (s *Snapshot) AddDataObject(object *data.Object) error {
 		return fmt.Errorf("%s: add of a duplicate data object: %w", id, ErrWriteConflict)
 	}
 	s.objects[id] = object
-	delete(s.deletes, id)
+	delete(s.deletedObjects, id)
 	return nil
 }
 
@@ -61,7 +69,27 @@ func (s *Snapshot) DeleteObject(id ksuid.KSUID) error {
 		return fmt.Errorf("%s: delete of a non-existent data object: %w", id, ErrWriteConflict)
 	}
 	delete(s.objects, id)
-	s.deletes[id] = object
+	s.deletedObjects[id] = object
+	return nil
+}
+
+func (s *Snapshot) AddIndexObject(object *index.Object) error {
+	id := object.ID
+	if s.indexes.Lookup(object.Rule.RuleID(), id) != nil {
+		return fmt.Errorf("%s: add of a duplicate index object: %w", id, ErrWriteConflict)
+	}
+	s.indexes.Insert(object)
+	delete(s.deletedIndexes, id)
+	return nil
+}
+
+func (s *Snapshot) DeleteIndexObject(ruleID ksuid.KSUID, id ksuid.KSUID) error {
+	object := s.indexes.Lookup(ruleID, id)
+	if object == nil {
+		return fmt.Errorf("%s: delete of a non-existent index object: %w", index.ObjectName(ruleID, id), ErrWriteConflict)
+	}
+	s.indexes.Delete(ruleID, id)
+	s.deletedIndexes.Insert(object)
 	return nil
 }
 
@@ -83,7 +111,7 @@ func (s *Snapshot) Lookup(id ksuid.KSUID) (*data.Object, error) {
 }
 
 func (s *Snapshot) LookupDeleted(id ksuid.KSUID) (*data.Object, error) {
-	o, ok := s.deletes[id]
+	o, ok := s.deletedObjects[id]
 	if !ok {
 		return nil, fmt.Errorf("%s: %w", id, ErrNotFound)
 	}
@@ -109,6 +137,21 @@ func (s *Snapshot) SelectAll() DataObjects {
 	return objects
 }
 
+func (s *Snapshot) SelectIndexes(scan extent.Span, order order.Which) []*index.Object {
+	var indexes []*index.Object
+	for _, i := range s.indexes.All() {
+		o, ok := s.objects[i.ID]
+		if !ok {
+			continue
+		}
+		segspan := o.Span(order)
+		if scan == nil || segspan == nil || extent.Overlaps(scan, segspan) {
+			indexes = append(indexes, i)
+		}
+	}
+	return indexes
+}
+
 func (s *Snapshot) Copy() *Snapshot {
 	out := NewSnapshot()
 	for key, val := range s.objects {
@@ -127,12 +170,15 @@ func PlayAction(w Writeable, action Action) error {
 	if _, ok := action.(Action); !ok {
 		return badObject(action)
 	}
-	//XXX other cases like actions.AddIndex etc coming soon...
 	switch action := action.(type) {
 	case *Add:
 		w.AddDataObject(&action.Object)
 	case *Delete:
 		w.DeleteObject(action.ID)
+	case *AddIndex:
+		w.AddIndexObject(&action.Object)
+	case *DeleteIndex:
+		w.DeleteIndexObject(action.RuleID, action.ID)
 	}
 	return nil
 }

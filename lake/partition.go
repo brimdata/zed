@@ -10,6 +10,7 @@ import (
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zng"
@@ -184,6 +185,35 @@ func objectReader(ctx context.Context, zctx *zson.Context, snap commits.View, sp
 				return nil, scanErr
 			}
 			rec, err := m.MarshalRecord(p)
+			if err != nil {
+				cancel()
+				return nil, err
+			}
+			return rec, nil
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
+	}), nil
+}
+
+func indexObjectReader(ctx context.Context, zctx *zson.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
+	ch := make(chan *index.Object)
+	ctx, cancel := context.WithCancel(ctx)
+	var scanErr error
+	go func() {
+		scanErr = ScanIndexes(ctx, snap, span, order, ch)
+		close(ch)
+	}()
+	m := zson.NewZNGMarshalerWithContext(zctx)
+	m.Decorate(zson.StylePackage)
+	return readerFunc(func() (*zng.Record, error) {
+		select {
+		case p := <-ch:
+			if p == nil {
+				cancel()
+				return nil, scanErr
+			}
+			rec, err := m.MarshalRecord(*p)
 			if err != nil {
 				cancel()
 				return nil, err

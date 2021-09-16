@@ -5,6 +5,7 @@ import (
 
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/data"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/order"
 	"github.com/segmentio/ksuid"
 )
@@ -48,6 +49,11 @@ func (p *Patch) SelectAll() DataObjects {
 	return objects
 }
 
+func (p *Patch) SelectIndexes(span extent.Span, o order.Which) []*index.Object {
+	objects := p.base.SelectIndexes(span, o)
+	return append(objects, p.diff.SelectIndexes(span, o)...)
+}
+
 func (p *Patch) DataObjects() []ksuid.KSUID {
 	var ids []ksuid.KSUID
 	for _, dataObject := range p.diff.SelectAll() {
@@ -86,6 +92,14 @@ func (p *Patch) DeleteObject(id ksuid.KSUID) error {
 	// needed delete Actions when building the transaction patch.
 	p.deletes = append(p.deletes, id)
 	return nil
+}
+
+func (p *Patch) AddIndexObject(object *index.Object) error {
+	return errors.New("ADD_INDEX unsupported for patches #3000")
+}
+
+func (p *Patch) DeleteIndexObject(ruleID ksuid.KSUID, id ksuid.KSUID) error {
+	return errors.New("DEL_INDEX unsupported for patches #3000")
 }
 
 func (p *Patch) NewCommitObject(parent ksuid.KSUID, retries int, author, message string) *Object {
