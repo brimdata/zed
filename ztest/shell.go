@@ -33,5 +33,6 @@ func RunShell(dir Dir, bindir, script string, stdin io.Reader, useenvs []string)
 	cmd.Stdout = &stdout
 	cmd.Stderr = &stderr
 	err := cmd.Run()
+	fmt.Println("stderr", stderr.String())
 	return stdout.String(), stderr.String(), err
 }

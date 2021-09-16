@@ -20,7 +20,7 @@ type View interface {
 	Lookup(ksuid.KSUID) (*data.Object, error)
 	Select(extent.Span, order.Which) DataObjects
 	SelectAll() DataObjects
-	SelectIndices(extent.Span, order.Which) []*index.Object
+	SelectIndexes(extent.Span, order.Which) []*index.Object
 }
 
 type Writeable interface {
@@ -37,8 +37,8 @@ type Writeable interface {
 type Snapshot struct {
 	objects        map[ksuid.KSUID]*data.Object
 	deletedObjects map[ksuid.KSUID]*data.Object
-	indices        index.Map
-	deletedIndices index.Map
+	indexes        index.Map
+	deletedIndexes index.Map
 }
 
 var _ View = (*Snapshot)(nil)
@@ -48,8 +48,8 @@ func NewSnapshot() *Snapshot {
 	return &Snapshot{
 		objects:        make(map[ksuid.KSUID]*data.Object),
 		deletedObjects: make(map[ksuid.KSUID]*data.Object),
-		indices:        index.NewMap(),
-		deletedIndices: index.NewMap(),
+		indexes:        index.NewMap(),
+		deletedIndexes: index.NewMap(),
 	}
 }
 
@@ -75,21 +75,21 @@ func (s *Snapshot) DeleteObject(id ksuid.KSUID) error {
 
 func (s *Snapshot) AddIndexObject(object *index.Object) error {
 	id := object.ID
-	if s.indices.Lookup(object.Rule.RuleID(), id) != nil {
+	if s.indexes.Lookup(object.Rule.RuleID(), id) != nil {
 		return fmt.Errorf("%s: add of a duplicate index object: %w", id, ErrWriteConflict)
 	}
-	s.indices.Insert(object)
-	delete(s.deletedIndices, id)
+	s.indexes.Insert(object)
+	delete(s.deletedIndexes, id)
 	return nil
 }
 
 func (s *Snapshot) DeleteIndexObject(ruleID ksuid.KSUID, id ksuid.KSUID) error {
-	object := s.indices.Lookup(ruleID, id)
+	object := s.indexes.Lookup(ruleID, id)
 	if object == nil {
 		return fmt.Errorf("%s: delete of a non-existent index object: %w", index.ObjectName(ruleID, id), ErrWriteConflict)
 	}
-	s.indices.Remove(ruleID, id)
-	s.deletedIndices.Insert(object)
+	s.indexes.Remove(ruleID, id)
+	s.deletedIndexes.Insert(object)
 	return nil
 }
 
@@ -137,19 +137,19 @@ func (s *Snapshot) SelectAll() DataObjects {
 	return objects
 }
 
-func (s *Snapshot) SelectIndices(scan extent.Span, order order.Which) []*index.Object {
-	var indices []*index.Object
-	for _, i := range s.indices.All() {
+func (s *Snapshot) SelectIndexes(scan extent.Span, order order.Which) []*index.Object {
+	var indexes []*index.Object
+	for _, i := range s.indexes.All() {
 		o, ok := s.objects[i.ID]
 		if !ok {
 			continue
 		}
 		segspan := o.Span(order)
 		if scan == nil || segspan == nil || extent.Overlaps(scan, segspan) {
-			indices = append(indices, i)
+			indexes = append(indexes, i)
 		}
 	}
-	return indices
+	return indexes
 }
 
 func (s *Snapshot) Copy() *Snapshot {

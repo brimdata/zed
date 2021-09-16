@@ -197,11 +197,11 @@ func objectReader(ctx context.Context, zctx *zson.Context, snap commits.View, sp
 }
 
 func indexObjectReader(ctx context.Context, zctx *zson.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
-	ch := make(chan index.Object)
+	ch := make(chan *index.Object)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
 	go func() {
-		scanErr = ScanIndices(ctx, snap, span, order, ch)
+		scanErr = ScanIndexes(ctx, snap, span, order, ch)
 		close(ch)
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
@@ -209,11 +209,11 @@ func indexObjectReader(ctx context.Context, zctx *zson.Context, snap commits.Vie
 	return readerFunc(func() (*zng.Record, error) {
 		select {
 		case p := <-ch:
-			if p.ID == ksuid.Nil {
+			if p == nil {
 				cancel()
 				return nil, scanErr
 			}
-			rec, err := m.MarshalRecord(p)
+			rec, err := m.MarshalRecord(*p)
 			if err != nil {
 				cancel()
 				return nil, err

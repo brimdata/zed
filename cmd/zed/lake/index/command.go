@@ -11,7 +11,7 @@ import (
 var Index = &charm.Spec{
 	Name:  "index",
 	Usage: "index [subcommand]",
-	Short: "create and drop indices, index data",
+	Short: "create and drop indexes, index data",
 	Long: `
 The index subcommands control the creation, management, and deletion
 of search indexes in a Zed lake.  Unlike traditional approaches to search

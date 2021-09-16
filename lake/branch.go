@@ -287,7 +287,7 @@ func (b *Branch) ApplyIndexRules(ctx context.Context, rules []index.Rule, ids []
 	author := "indexer"
 	message := index_message(rules)
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		return commits.NewAddIndicesObject(parent.Commit, author, message, retries, idxrefs), nil
+		return commits.NewAddIndexesObject(parent.Commit, author, message, retries, idxrefs), nil
 	})
 }
 

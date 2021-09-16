@@ -168,10 +168,10 @@ func ScanPartitions(ctx context.Context, snap commits.View, span extent.Span, o 
 	return nil
 }
 
-func ScanIndices(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- index.Object) error {
-	for _, idx := range snap.SelectIndices(span, o) {
+func ScanIndexes(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- *index.Object) error {
+	for _, idx := range snap.SelectIndexes(span, o) {
 		select {
-		case ch <- *idx:
+		case ch <- idx:
 		case <-ctx.Done():
 			return ctx.Err()
 		}

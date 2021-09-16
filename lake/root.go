@@ -509,7 +509,7 @@ func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zson.Context, p
 			return nil, err
 		}
 		return newScannerScheduler(s), nil
-	case "indices":
+	case "indexes":
 		snap, err := p.commits.Snapshot(ctx, commit)
 		if err != nil {
 			return nil, err

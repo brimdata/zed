@@ -54,9 +54,9 @@ func NewDeletesObject(parent ksuid.KSUID, retries int, author, message string, i
 	return o
 }
 
-func NewAddIndicesObject(parent ksuid.KSUID, author, message string, retries int, indices []*index.Object) *Object {
+func NewAddIndexesObject(parent ksuid.KSUID, author, message string, retries int, indexes []*index.Object) *Object {
 	o := NewObject(parent, author, message, retries)
-	for _, index := range indices {
+	for _, index := range indexes {
 		o.appendAddIndex(index)
 	}
 	return o

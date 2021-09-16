@@ -49,9 +49,9 @@ func (p *Patch) SelectAll() DataObjects {
 	return objects
 }
 
-func (p *Patch) SelectIndices(span extent.Span, o order.Which) []*index.Object {
-	objects := p.base.SelectIndices(span, o)
-	return append(objects, p.diff.SelectIndices(span, o)...)
+func (p *Patch) SelectIndexes(span extent.Span, o order.Which) []*index.Object {
+	objects := p.base.SelectIndexes(span, o)
+	return append(objects, p.diff.SelectIndexes(span, o)...)
 }
 
 func (p *Patch) DataObjects() []ksuid.KSUID {
