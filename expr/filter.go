@@ -39,7 +39,7 @@ func Apply(e Evaluator, pred Boolean) Filter {
 func EvalAny(eval Boolean, recursive bool) Filter {
 	if !recursive {
 		return func(r *zng.Record) bool {
-			it := r.ZvalIter()
+			it := r.Bytes.Iter()
 			for _, c := range r.Columns() {
 				val, _, err := it.Next()
 				if err != nil {
