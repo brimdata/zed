@@ -509,6 +509,20 @@ func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zson.Context, p
 			return nil, err
 		}
 		return newScannerScheduler(s), nil
+	case "indices":
+		snap, err := p.commits.Snapshot(ctx, commit)
+		if err != nil {
+			return nil, err
+		}
+		reader, err := indexObjectReader(ctx, zctx, snap, span, p.Layout.Order)
+		if err != nil {
+			return nil, err
+		}
+		s, err := zbuf.NewScanner(ctx, reader, filter)
+		if err != nil {
+			return nil, err
+		}
+		return newScannerScheduler(s), nil
 	case "partitions":
 		snap, err := p.commits.Snapshot(ctx, commit)
 		if err != nil {

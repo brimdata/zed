@@ -91,3 +91,17 @@ func (a *AddIndex) String() string {
 func (a *AddIndex) CommitID() ksuid.KSUID {
 	return a.Commit
 }
+
+type DeleteIndex struct {
+	Commit ksuid.KSUID `zng:"commit"`
+	ID     ksuid.KSUID `zng:"id"`
+	RuleID ksuid.KSUID `zng:"rule_id"`
+}
+
+func (d *DeleteIndex) String() string {
+	return fmt.Sprintf("DEL_INDEX %s/%s", d.RuleID, d.ID)
+}
+
+func (d *DeleteIndex) CommitID() ksuid.KSUID {
+	return d.Commit
+}
