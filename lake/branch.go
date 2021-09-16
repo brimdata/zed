@@ -307,7 +307,7 @@ func (b *Branch) UpdateIndex(ctx context.Context, rules []index.Rule) (ksuid.KSU
 	if len(objects) == 0 {
 		return ksuid.Nil, errors.New("indices are up to date")
 	}
-	author := "indexer"
+	const author = "indexer"
 	message := index_message(rules)
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
 		return commits.NewAddIndexesObject(parent.Commit, author, message, retries, objects), nil
