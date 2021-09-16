@@ -418,7 +418,7 @@ func diffErr(name, expected, actual string) error {
 	return fmt.Errorf("expected and actual %s differ:\n%s", name, diff)
 }
 
-func checkPatterns(patterns map[string]*regexp.Regexp, dir Dir, stdout, stderr string) error {
+func checkPatterns(patterns map[string]*regexp.Regexp, dir, stdout, stderr string) error {
 	for name, re := range patterns {
 		var body []byte
 		switch name {
@@ -428,7 +428,7 @@ func checkPatterns(patterns map[string]*regexp.Regexp, dir Dir, stdout, stderr s
 			body = []byte(stderr)
 		default:
 			var err error
-			body, err = dir.Read(name)
+			body, err = os.ReadFile(filepath.Join(dir, name))
 			if err != nil {
 				return fmt.Errorf("%s: %w", name, err)
 			}
@@ -440,7 +440,7 @@ func checkPatterns(patterns map[string]*regexp.Regexp, dir Dir, stdout, stderr s
 	return nil
 }
 
-func checkData(files map[string][]byte, dir Dir, stdout, stderr string) error {
+func checkData(files map[string][]byte, dir, stdout, stderr string) error {
 	for name, expected := range files {
 		var actual []byte
 		switch name {
@@ -450,7 +450,7 @@ func checkData(files map[string][]byte, dir Dir, stdout, stderr string) error {
 			actual = []byte(stderr)
 		default:
 			var err error
-			actual, err = dir.Read(name)
+			actual, err = os.ReadFile(filepath.Join(dir, name))
 			if err != nil {
 				return fmt.Errorf("%s: %w", name, err)
 			}
@@ -463,7 +463,6 @@ func checkData(files map[string][]byte, dir Dir, stdout, stderr string) error {
 }
 
 func runsh(path, testDir, tempDir string, zt *ZTest) error {
-	dir := Dir(tempDir)
 	var stdin io.Reader
 	for _, f := range zt.Inputs {
 		b, re, err := f.load(testDir)
@@ -471,7 +470,7 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 			return err
 		}
 		if f.Symlink != "" {
-			if err := dir.Symlink(f.Symlink, f.Name); err != nil {
+			if err := os.Symlink(f.Symlink, filepath.Join(tempDir, f.Name)); err != nil {
 				return err
 			}
 			continue
@@ -483,7 +482,7 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 		if re != nil {
 			return fmt.Errorf("%s: cannot use a regexp pattern in an input", f.Name)
 		}
-		if err := dir.Write(f.Name, b); err != nil {
+		if err := os.WriteFile(filepath.Join(tempDir, f.Name), b, 0644); err != nil {
 			return err
 		}
 	}
@@ -504,7 +503,7 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 			expectedPattern[f.Name] = re
 		}
 	}
-	stdout, stderr, err := RunShell(dir, path, zt.Script, stdin, zt.Env)
+	stdout, stderr, err := RunShell(tempDir, path, zt.Script, stdin, zt.Env)
 	if err != nil {
 		// XXX If the err is an exit error, we ignore it and rely on
 		// tests that check stderr etc.  We could pull out the exit
@@ -518,10 +517,10 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 			return err
 		}
 	}
-	if err := checkPatterns(expectedPattern, dir, stdout, stderr); err != nil {
+	if err := checkPatterns(expectedPattern, tempDir, stdout, stderr); err != nil {
 		return err
 	}
-	return checkData(expectedData, dir, stdout, stderr)
+	return checkData(expectedData, tempDir, stdout, stderr)
 }
 
 // runzq runs the Zed program in zed over input and returns the output.  input
