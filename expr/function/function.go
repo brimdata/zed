@@ -3,11 +3,9 @@ package function
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/brimdata/zed/anymath"
 	"github.com/brimdata/zed/expr/result"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -115,8 +113,8 @@ func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
 		f = &networkOf{}
 	case "parse_uri":
 		f = &parseURI{marshaler: zson.NewZNGMarshalerWithContext(zctx)}
-	case "zson_parse":
-		f = &zsonParse{zctx: zctx}
+	case "parse_zson":
+		f = &parseZSON{zctx: zctx}
 	}
 	if argmin != -1 && narg < argmin {
 		return nil, false, ErrTooFewArgs
@@ -233,38 +231,4 @@ func (i *is) Call(args []zng.Value) (zng.Value, error) {
 		return zng.True, nil
 	}
 	return zng.False, nil
-}
-
-type zsonParse struct {
-	zctx *zson.Context
-}
-
-func (p *zsonParse) Call(args []zng.Value) (zng.Value, error) {
-	in := args[0]
-	if !in.IsStringy() {
-		return badarg("zson_parse: input must be string")
-	}
-	if in.Bytes == nil {
-		return badarg("zson_parse: input must not be null")
-	}
-	s, err := zng.DecodeString(in.Bytes)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	parser, err := zson.NewParser(strings.NewReader(s))
-	if err != nil {
-		return zng.Value{}, err
-	}
-	ast, err := parser.ParseValue()
-	if err != nil {
-		return zng.Value{}, err
-	}
-	if ast == nil {
-		return badarg("zson_parse: input contains no values")
-	}
-	val, err := zson.NewAnalyzer().ConvertValue(p.zctx, ast)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	return zson.Build(zcode.NewBuilder(), val)
 }

@@ -5,7 +5,9 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"strings"
 
+	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
@@ -74,4 +76,38 @@ func (p *parseURI) Call(args []zng.Value) (zng.Value, error) {
 		v.Fragment = &u.Fragment
 	}
 	return p.marshaler.Marshal(v)
+}
+
+type parseZSON struct {
+	zctx *zson.Context
+}
+
+func (p *parseZSON) Call(args []zng.Value) (zng.Value, error) {
+	in := args[0]
+	if !in.IsStringy() {
+		return badarg("parse_zson: input must be string")
+	}
+	if in.Bytes == nil {
+		return badarg("parse_zson: input must not be null")
+	}
+	s, err := zng.DecodeString(in.Bytes)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	parser, err := zson.NewParser(strings.NewReader(s))
+	if err != nil {
+		return zng.Value{}, err
+	}
+	ast, err := parser.ParseValue()
+	if err != nil {
+		return zng.Value{}, err
+	}
+	if ast == nil {
+		return badarg("parse_zson: input contains no values")
+	}
+	val, err := zson.NewAnalyzer().ConvertValue(p.zctx, ast)
+	if err != nil {
+		return zng.Value{}, err
+	}
+	return zson.Build(zcode.NewBuilder(), val)
 }
