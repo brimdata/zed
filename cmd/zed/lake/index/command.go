@@ -43,6 +43,7 @@ func init() {
 	Index.Add(Create)
 	Index.Add(Drop)
 	Index.Add(Ls)
+	Index.Add(Update)
 	zedlake.Cmd.Add(Index)
 }
 

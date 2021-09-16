@@ -291,6 +291,29 @@ func (b *Branch) ApplyIndexRules(ctx context.Context, rules []index.Rule, ids []
 	})
 }
 
+func (b *Branch) UpdateIndex(ctx context.Context, rules []index.Rule) (ksuid.KSUID, error) {
+	snap, err := b.pool.commits.Snapshot(ctx, b.Commit)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	var objects []*index.Object
+	for id, rules := range snap.Unindexed(rules) {
+		o, err := b.indexObject(ctx, rules, id)
+		if err != nil {
+			return ksuid.Nil, err
+		}
+		objects = append(objects, o...)
+	}
+	if len(objects) == 0 {
+		return ksuid.Nil, errors.New("indices are up to date")
+	}
+	author := "indexer"
+	message := index_message(rules)
+	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
+		return commits.NewAddIndexesObject(parent.Commit, author, message, retries, objects), nil
+	})
+}
+
 func index_message(rules []index.Rule) string {
 	skip := make(map[string]struct{})
 	var names []string

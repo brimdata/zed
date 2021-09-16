@@ -64,3 +64,13 @@ func (m Map) All() []*Object {
 }
 
 type ObjectRules map[ksuid.KSUID]*Object
+
+func (o ObjectRules) Missing(rules []Rule) []Rule {
+	var missing []Rule
+	for _, r := range rules {
+		if _, ok := o[r.RuleID()]; !ok {
+			missing = append(missing, r)
+		}
+	}
+	return missing
+}

@@ -111,6 +111,17 @@ func (s *Store) stale() bool {
 	return time.Now().Sub(s.loadTime) > time.Second
 }
 
+func (s *Store) All(ctx context.Context) ([]Rule, error) {
+	if err := s.load(ctx); err != nil {
+		return nil, err
+	}
+	rules := make([]Rule, 0, len(s.table))
+	for _, r := range s.table {
+		rules = append(rules, r)
+	}
+	return rules, nil
+}
+
 func (s *Store) Names(ctx context.Context) ([]string, error) {
 	if err := s.load(ctx); err != nil {
 		return nil, err

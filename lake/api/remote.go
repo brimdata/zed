@@ -163,6 +163,10 @@ func (*RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID k
 	return ksuid.Nil, errors.New("unsupported see issue #2934")
 }
 
+func (*RemoteSession) UpdateIndex(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+	return ksuid.Nil, errors.New("unsupported see issue #2934")
+}
+
 func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ScannerStats, error) {
 	res, err := r.conn.Query(ctx, head, src, srcfiles...)
 	if err != nil {
