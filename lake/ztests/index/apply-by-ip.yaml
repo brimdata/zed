@@ -21,7 +21,6 @@ inputs:
       )
       | left join on id = o.rule.id
       | count() by name,type
-      | sort name
 
 outputs:
   - name: stderr

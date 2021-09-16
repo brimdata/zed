@@ -48,8 +48,8 @@ func NewSnapshot() *Snapshot {
 	return &Snapshot{
 		objects:        make(map[ksuid.KSUID]*data.Object),
 		deletedObjects: make(map[ksuid.KSUID]*data.Object),
-		indexes:        index.NewMap(),
-		deletedIndexes: index.NewMap(),
+		indexes:        make(index.Map),
+		deletedIndexes: make(index.Map),
 	}
 }
 
@@ -88,7 +88,7 @@ func (s *Snapshot) DeleteIndexObject(ruleID ksuid.KSUID, id ksuid.KSUID) error {
 	if object == nil {
 		return fmt.Errorf("%s: delete of a non-existent index object: %w", index.ObjectName(ruleID, id), ErrWriteConflict)
 	}
-	s.indexes.Remove(ruleID, id)
+	s.indexes.Delete(ruleID, id)
 	s.deletedIndexes.Insert(object)
 	return nil
 }
