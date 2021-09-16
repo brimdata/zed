@@ -35,12 +35,12 @@ func ErrorTest() (*C.char, bool) {
 	return result(errors.New("error test"))
 }
 
-//export ZqlFileEval
-func ZqlFileEval(inquery, inpath, informat, outpath, outformat string) (*C.char, bool) {
-	return result(doZqlFileEval(inquery, inpath, informat, outpath, outformat))
+//export ZedFileEval
+func ZedFileEval(inquery, inpath, informat, outpath, outformat string) (*C.char, bool) {
+	return result(doZedFileEval(inquery, inpath, informat, outpath, outformat))
 }
 
-func doZqlFileEval(inquery, inpath, informat, outpath, outformat string) (err error) {
+func doZedFileEval(inquery, inpath, informat, outpath, outformat string) (err error) {
 	if inpath == "-" {
 		inpath = "/dev/stdin"
 	}

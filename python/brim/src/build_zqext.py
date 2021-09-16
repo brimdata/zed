@@ -27,12 +27,12 @@ struct ErrorTest_return {
 
 extern struct ErrorTest_return ErrorTest();
 
-struct ZqlFileEval_return {
+struct ZedFileEval_return {
 	char* r0;
 	GoUint8 r1;
 };
 
-extern struct ZqlFileEval_return ZqlFileEval(GoString p0, GoString p1, GoString p2, GoString p3, GoString p4);
+extern struct ZedFileEval_return ZedFileEval(GoString p0, GoString p1, GoString p2, GoString p3, GoString p4);
 """)
 
 ffibuilder.set_source("_zqext",

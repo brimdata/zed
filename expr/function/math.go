@@ -139,7 +139,7 @@ type mod struct {
 }
 
 //XXX currently integer mod, but this could also do fmod
-// also why doesn't zql have x%y instead of Math.mod(x,y)?
+// also why doesn't Zed have x%y instead of mod(x,y)?
 func (m *mod) Call(args []zng.Value) (zng.Value, error) {
 	zv := args[0]
 	id := zv.Type.ID()
@@ -212,7 +212,7 @@ func (s *sqrt) Call(args []zng.Value) (zng.Value, error) {
 	if math.IsNaN(x) {
 		// For now we can't represent non-numeric values in a float64,
 		// we will revisit this but it has implications for file
-		// formats, zql, etc.
+		// formats, Zed, etc.
 		return badarg("sqrt")
 	}
 	return zng.Value{zng.TypeFloat64, s.Float64(x)}, nil

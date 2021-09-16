@@ -64,7 +64,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("must specify at least one key field with -k")
 	}
 	//XXX no reason to limit this... we will fix this when we refactor
-	// the code here to use zql/proc instead for the hash table (after we
+	// the code here to use Zed/proc instead for the hash table (after we
 	// have spillable group-bys)
 	if len(args) != 1 {
 		return errors.New("must specify a single zng input file containing the indicated keys")

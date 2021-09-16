@@ -96,7 +96,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.procFlags.SetFlags(f)
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
-	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
+	f.BoolVar(&c.quiet, "q", false, "don't display Zed warnings")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.Var(&c.includes, "I", "source file containing Zed query text (may be used multiple times)")
 	return c, nil

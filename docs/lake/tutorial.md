@@ -310,7 +310,7 @@ zed lake ls custom.zng
 ```
 To see what's in it:
 ```
-find $ZED_LAKE_ROOT -name idx-$(zed lake index ls -f zng | zq -f text 'desc="zql-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'head 10' -
+find $ZED_LAKE_ROOT -name idx-$(zed lake index ls -f zng | zq -f text 'desc="zed-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'head 10' -
 ```
 You can see the IPs, counts, and _path strings.
 
@@ -318,7 +318,7 @@ At the bottom you'll also find a record describing the index layout. To
 see it:
 
 ```
-find $ZED_LAKE_ROOT -name idx-$(zed lake index ls -f zng | zq -f text 'desc="zql-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'tail 1' -
+find $ZED_LAKE_ROOT -name idx-$(zed lake index ls -f zng | zq -f text 'desc="zed-custom.zng" | cut id' -).zng | head -n 1 | xargs zq -f table 'tail 1' -
 ```
 
 ## `zed lake find` with custom index
@@ -417,7 +417,7 @@ a count of all bytes received by 10.47.6.173 as the originator, which is the
 secondary key.  While we could build a different custom index where `id.orig_h`
 is the primary key, we could also just scan the custom2 index using brute force:
 ```
-zed lake map id.orig_h=10.47.6.173 idx-$(zed lake index ls -f zng | zq -f text 'desc="zql-custom2.zng" | cut id' -).zng | zq -f text "sum(resp_bytes)" -
+zed lake map id.orig_h=10.47.6.173 idx-$(zed lake index ls -f zng | zq -f text 'desc="zed-custom2.zng" | cut id' -).zng | zq -f text "sum(resp_bytes)" -
 ```
 Even though this is a "brute force scan", it's a brute force scan of only this
 one index so it runs much faster than scanning all of the original

@@ -1,4 +1,4 @@
-// Package ast declares the types used to represent syntax trees for zql
+// Package ast declares the types used to represent syntax trees for Zed
 // queries.
 package ast
 
