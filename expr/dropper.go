@@ -8,12 +8,15 @@ import (
 )
 
 type dropper struct {
-	typ       *zng.TypeRecord
+	typ       zng.Type
 	builder   *builder.ColumnBuilder
 	fieldRefs []Evaluator
 }
 
 func (d *dropper) drop(in *zng.Record) (*zng.Record, error) {
+	if d.typ == in.Type {
+		return in, nil
+	}
 	b := d.builder
 	b.Reset()
 	for _, e := range d.fieldRefs {
@@ -46,7 +49,13 @@ func NewDropper(zctx *zson.Context, fields field.List) *Dropper {
 }
 
 func (d *Dropper) newDropper(r *zng.Record) (*dropper, error) {
-	fields, fieldTypes := complementFields(d.fields, nil, zng.TypeRecordOf(r.Type))
+	fields, fieldTypes, match := complementFields(d.fields, nil, zng.TypeRecordOf(r.Type))
+	if !match {
+		// r.Type contains no fields matching d.fields, so we set
+		// dropper.typ to r.Type to indicate that records of this type
+		// should not be modified.
+		return &dropper{typ: r.Type}, nil
+	}
 	// If the set of dropped fields is equal to the all of record's
 	// fields, then there is no output for this input type.
 	// We return nil to block this input type.
@@ -69,25 +78,30 @@ func (d *Dropper) newDropper(r *zng.Record) (*dropper, error) {
 	return &dropper{typ, builder, fieldRefs}, nil
 }
 
-// complementFields returns the slice of fields and associated types
-// that make up the complement of the set of fields in drops.
-func complementFields(drops field.List, prefix field.Path, typ *zng.TypeRecord) (field.List, []zng.Type) {
+// complementFields returns the slice of fields and associated types that make
+// up the complement of the set of fields in drops along with a boolean that is
+// true if typ contains any the fields in drops.
+func complementFields(drops field.List, prefix field.Path, typ *zng.TypeRecord) (field.List, []zng.Type, bool) {
 	var fields field.List
 	var types []zng.Type
+	var match bool
 	for _, c := range typ.Columns {
 		if contains(drops, append(prefix, c.Name)) {
+			match = true
 			continue
 		}
-		if typ, ok := c.Type.(*zng.TypeRecord); ok {
-			innerFields, innerTypes := complementFields(drops, append(prefix, c.Name), typ)
-			fields = append(fields, innerFields...)
-			types = append(types, innerTypes...)
-			continue
+		if typ, ok := zng.AliasOf(c.Type).(*zng.TypeRecord); ok {
+			if fs, ts, m := complementFields(drops, append(prefix, c.Name), typ); m {
+				fields = append(fields, fs...)
+				types = append(types, ts...)
+				match = true
+				continue
+			}
 		}
 		fields = append(fields, append(prefix, c.Name))
 		types = append(types, c.Type)
 	}
-	return fields, types
+	return fields, types, match
 }
 
 func contains(ss field.List, el field.Path) bool {
