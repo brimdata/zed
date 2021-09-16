@@ -125,7 +125,7 @@ func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, o
 	if len(keys) == 0 {
 		keys = field.List{field.Dotted(keyName)}
 	}
-	writer, err := newIndexWriter(ctx, zctx, engine, path, object)
+	writer, err := index.NewWriterWithContext(ctx, zctx, engine, object.Path(path).String())
 	if err != nil {
 		return nil, err
 	}
@@ -139,10 +139,6 @@ func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, o
 		cutter: cutter,
 		index:  writer,
 	}, nil
-}
-
-func newIndexWriter(ctx context.Context, zctx *zson.Context, engine storage.Engine, path *storage.URI, object *Object, opts ...index.Option) (w *index.Writer, err error) {
-	return index.NewWriterWithContext(ctx, zctx, engine, object.Path(path).String(), opts...)
 }
 
 func (d *indexer) start() {
