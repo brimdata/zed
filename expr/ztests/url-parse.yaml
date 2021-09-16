@@ -1,0 +1,86 @@
+zed: |
+  url := url_parse(s)
+
+input: |
+  {s:""}
+  {s:"scheme://user:password@host:12345/path?a=1&a=2&b=3&c=#fragment"}
+  {s:"scheme:opaque"}
+  {s:1}
+  {s:null(string)}
+  {s:":no-scheme"}
+  {s:"scheme://bad-port:1234567"}
+
+output-flags: -pretty=2
+
+output: |
+  {
+    s: "",
+    url: {
+      scheme: null (string),
+      opaque: null (string),
+      user: null (string),
+      password: null (string),
+      host: null (string),
+      port: null (uint16),
+      path: null (string),
+      query: null (|{string,[string]}|),
+      fragment: null (string)
+    }
+  }
+  {
+    s: "scheme://user:password@host:12345/path?a=1&a=2&b=3&c=#fragment",
+    url: {
+      scheme: "scheme",
+      opaque: null (string),
+      user: "user",
+      password: "password",
+      host: "host",
+      port: 12345 (uint16),
+      path: "/path",
+      query: |{
+        {"a",[
+            "1",
+            "2"
+          ]},
+        {"b",[
+            "3"
+          ]},
+        {"c",[
+            ""
+          ]}
+      }|,
+      fragment: "fragment"
+    }
+  }
+  {
+    s: "scheme:opaque",
+    url: {
+      scheme: "scheme",
+      opaque: "opaque",
+      user: null (string),
+      password: null (string),
+      host: null (string),
+      port: null (uint16),
+      path: null (string),
+      query: null (|{string,[string]}|),
+      fragment: null (string)
+    }
+  }
+  {
+    s: 1
+  }
+  {
+    s: null (string)
+  }
+  {
+    s: ":no-scheme"
+  }
+  {
+    s: "scheme://bad-port:1234567"
+  }
+
+warnings: |
+  url_parse: input must be string: bad argument
+  url_parse: input must not be null: bad argument
+  url_parse: ":no-scheme": missing protocol scheme
+  url_parse: "scheme://bad-port:1234567": invalid port: value out of range
