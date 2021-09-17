@@ -152,6 +152,20 @@ func (s *Snapshot) SelectIndexes(scan extent.Span, order order.Which) []*index.O
 	return indexes
 }
 
+func (s *Snapshot) Unindexed(rules []index.Rule) map[ksuid.KSUID][]index.Rule {
+	unindexed := make(map[ksuid.KSUID][]index.Rule)
+	for id := range s.objects {
+		to := rules
+		if o, ok := s.indexes[id]; ok {
+			to = o.Missing(rules)
+		}
+		if len(to) > 0 {
+			unindexed[id] = to
+		}
+	}
+	return unindexed
+}
+
 func (s *Snapshot) Copy() *Snapshot {
 	out := NewSnapshot()
 	for key, val := range s.objects {

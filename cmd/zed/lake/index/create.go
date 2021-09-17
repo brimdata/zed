@@ -17,22 +17,22 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-var Create = &charm.Spec{
+var create = &charm.Spec{
 	Name:  "create",
 	Usage: "create [options] rule-name pattern",
 	Short: "create an index rule for a lake",
-	New:   NewCreate,
+	New:   newCreate,
 }
 
-type CreateCommand struct {
+type createCommand struct {
 	*Command
 	framesize   int
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
 }
 
-func NewCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &CreateCommand{Command: parent.(*Command)}
+func newCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	c := &createCommand{Command: parent.(*Command)}
 	f.IntVar(&c.framesize, "framesize", 32*1024, "minimum frame size used in microindex file")
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
@@ -40,7 +40,7 @@ func NewCreate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	return c, nil
 }
 
-func (c *CreateCommand) Run(args []string) error {
+func (c *createCommand) Run(args []string) error {
 	ctx, cleanup, err := c.lake.Root().Init(&c.procFlags, &c.outputFlags)
 	if err != nil {
 		return err
@@ -78,7 +78,7 @@ func (c *CreateCommand) Run(args []string) error {
 	return err
 }
 
-func (c *CreateCommand) parseIndexRules(ctx context.Context, lake api.Interface, ruleName string, args []string) ([]index.Rule, error) {
+func (c *createCommand) parseIndexRules(ctx context.Context, lake api.Interface, ruleName string, args []string) ([]index.Rule, error) {
 	var rules []index.Rule
 	for len(args) > 0 {
 		rest, rule, err := parseRule(args, ruleName)

@@ -11,26 +11,26 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 )
 
-var Ls = &charm.Spec{
+var ls = &charm.Spec{
 	Name:  "ls",
 	Usage: "ls [-R root] [options]",
 	Short: "list and display lake index rules",
-	New:   NewLs,
+	New:   newLs,
 }
 
-type LsCommand struct {
+type lsCommand struct {
 	*Command
 	outputFlags outputflags.Flags
 }
 
-func NewLs(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &LsCommand{Command: parent.(*Command)}
+func newLs(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	c := &lsCommand{Command: parent.(*Command)}
 	c.outputFlags.DefaultFormat = "lake"
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }
 
-func (c *LsCommand) Run(args []string) error {
+func (c *lsCommand) Run(args []string) error {
 	ctx, cleanup, err := c.lake.Root().Init(&c.outputFlags)
 	if err != nil {
 		return err

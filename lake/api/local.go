@@ -171,3 +171,15 @@ func (l *LocalSession) ApplyIndexRules(ctx context.Context, name string, poolID 
 	}
 	return commit, nil
 }
+
+func (l *LocalSession) UpdateIndex(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+	_, branch, err := l.lookupBranch(ctx, poolID, branchName)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	rules, err := l.root.AllIndexRules(ctx)
+	if err != nil {
+		return ksuid.Nil, err
+	}
+	return branch.UpdateIndex(ctx, rules)
+}
