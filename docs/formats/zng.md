@@ -676,7 +676,7 @@ that has not been previously defined according to the DFS order.
 
 ## Appendix B. Recommended Type Coercion Rules
 
-> TBD: it might be better to put this in the Zed docs
+> TBD: it might be better to put this in the Zed language docs
 
 While outside the scope of the ZNG format specification, we include here
 some suggested rules for converting types when mixed-type operations occur,
