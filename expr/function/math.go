@@ -212,7 +212,7 @@ func (s *sqrt) Call(args []zng.Value) (zng.Value, error) {
 	if math.IsNaN(x) {
 		// For now we can't represent non-numeric values in a float64,
 		// we will revisit this but it has implications for file
-		// formats, Zed, etc.
+		// formats, the Zed language, etc.
 		return badarg("sqrt")
 	}
 	return zng.Value{zng.TypeFloat64, s.Float64(x)}, nil
