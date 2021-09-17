@@ -13,7 +13,7 @@ import (
 var update = &charm.Spec{
 	Name:  "update",
 	Usage: "update [rule ...]",
-	Short: "index all unindexed objects",
+	Short: "index all unindexed data objects",
 	Long: `
 The index update command creates an index for all objects that don't have an
 index for a provided list of index rules.
