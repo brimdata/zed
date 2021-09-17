@@ -60,7 +60,7 @@ func (f *DotExpr) Eval(rec *zng.Record) (zng.Value, error) {
 	return accessField(lval, f.field)
 }
 
-// DotExprToString returns Zed for the Evaluator assuming its a field expr.
+// DotExprToString returns Zed for the Evaluator assuming it's a field expr.
 func DotExprToString(e Evaluator) (string, error) {
 	f, err := DotExprToField(e)
 	if err != nil {
