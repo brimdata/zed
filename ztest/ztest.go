@@ -239,30 +239,30 @@ func (f *File) check() error {
 	return nil
 }
 
-func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
+func (f *File) load(dir string) (string, *regexp.Regexp, error) {
 	if f.Data != nil {
-		return []byte(*f.Data), nil, nil
+		return *f.Data, nil, nil
 	}
 	if f.Source != "" {
 		b, err := os.ReadFile(filepath.Join(dir, f.Source))
-		return b, nil, err
+		return string(b), nil, err
 	}
 	if f.Re != "" {
 		re, err := regexp.Compile(f.Re)
-		return nil, re, err
+		return "", re, err
 	}
 	if f.Symlink != "" {
 		f.Symlink = filepath.Join(dir, f.Symlink)
-		return nil, nil, nil
+		return "", nil, nil
 	}
 	b, err := os.ReadFile(filepath.Join(dir, f.Name))
 	if err == nil {
-		return b, nil, nil
+		return string(b), nil, nil
 	}
 	if os.IsNotExist(err) {
 		err = fmt.Errorf("%s: no data source", f.Name)
 	}
-	return nil, nil, err
+	return "", nil, err
 }
 
 // ZTest defines a ztest.
@@ -296,10 +296,16 @@ func (z *ZTest) check() error {
 			if err := f.check(); err != nil {
 				return err
 			}
+			if f.Re != "" {
+				return fmt.Errorf("%s: cannot use regexp in an input", f.Name)
+			}
 		}
 		for _, f := range z.Outputs {
 			if err := f.check(); err != nil {
 				return err
+			}
+			if f.Symlink != "" {
+				return fmt.Errorf("%s: cannot use symlink in an output", f.Name)
 			}
 		}
 	} else if z.Zed == "" {
@@ -418,54 +424,10 @@ func diffErr(name, expected, actual string) error {
 	return fmt.Errorf("expected and actual %s differ:\n%s", name, diff)
 }
 
-func checkPatterns(patterns map[string]*regexp.Regexp, dir, stdout, stderr string) error {
-	for name, re := range patterns {
-		var body []byte
-		switch name {
-		case "stdout":
-			body = []byte(stdout)
-		case "stderr":
-			body = []byte(stderr)
-		default:
-			var err error
-			body, err = os.ReadFile(filepath.Join(dir, name))
-			if err != nil {
-				return fmt.Errorf("%s: %w", name, err)
-			}
-		}
-		if !re.Match(body) {
-			return fmt.Errorf("%s: regex %s does not match %s", name, re, body)
-		}
-	}
-	return nil
-}
-
-func checkData(files map[string][]byte, dir, stdout, stderr string) error {
-	for name, expected := range files {
-		var actual []byte
-		switch name {
-		case "stdout":
-			actual = []byte(stdout)
-		case "stderr":
-			actual = []byte(stderr)
-		default:
-			var err error
-			actual, err = os.ReadFile(filepath.Join(dir, name))
-			if err != nil {
-				return fmt.Errorf("%s: %w", name, err)
-			}
-		}
-		if !bytes.Equal(expected, actual) {
-			return diffErr(name, string(expected), string(actual))
-		}
-	}
-	return nil
-}
-
 func runsh(path, testDir, tempDir string, zt *ZTest) error {
 	var stdin io.Reader
 	for _, f := range zt.Inputs {
-		b, re, err := f.load(testDir)
+		s, _, err := f.load(testDir)
 		if err != nil {
 			return err
 		}
@@ -476,31 +438,11 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 			continue
 		}
 		if f.Name == "stdin" {
-			stdin = bytes.NewReader(b)
+			stdin = strings.NewReader(s)
 			continue
 		}
-		if re != nil {
-			return fmt.Errorf("%s: cannot use a regexp pattern in an input", f.Name)
-		}
-		if err := os.WriteFile(filepath.Join(tempDir, f.Name), b, 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tempDir, f.Name), []byte(s), 0644); err != nil {
 			return err
-		}
-	}
-	expectedData := make(map[string][]byte)
-	expectedPattern := make(map[string]*regexp.Regexp)
-	for _, f := range zt.Outputs {
-		b, re, err := f.load(testDir)
-		if err != nil {
-			return err
-		}
-		if f.Symlink != "" {
-			return fmt.Errorf("%s: cannot use a symlink in an output", f.Name)
-		}
-		if b != nil {
-			expectedData[f.Name] = b
-		}
-		if re != nil {
-			expectedPattern[f.Name] = re
 		}
 	}
 	stdout, stderr, err := RunShell(tempDir, path, zt.Script, stdin, zt.Env)
@@ -517,10 +459,32 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 			return err
 		}
 	}
-	if err := checkPatterns(expectedPattern, tempDir, stdout, stderr); err != nil {
-		return err
+	for _, f := range zt.Outputs {
+		var actual string
+		switch f.Name {
+		case "stdout":
+			actual = stdout
+		case "stderr":
+			actual = stderr
+		default:
+			b, err := os.ReadFile(filepath.Join(tempDir, f.Name))
+			if err != nil {
+				return fmt.Errorf("%s: %w", f.Name, err)
+			}
+			actual = string(b)
+		}
+		expected, expectedRE, err := f.load(testDir)
+		if err != nil {
+			return err
+		}
+		if expected != "" && expected != actual {
+			return diffErr(f.Name, expected, actual)
+		}
+		if expectedRE != nil && !expectedRE.MatchString(actual) {
+			return fmt.Errorf("%s: regexp %q does not match %q", f.Name, expectedRE, actual)
+		}
 	}
-	return checkData(expectedData, tempDir, stdout, stderr)
+	return nil
 }
 
 // runzq runs the Zed program in zed over input and returns the output.  input
