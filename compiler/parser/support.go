@@ -4,24 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strconv"
-	"strings"
 )
-
-func makeChain(first interface{}, restIn interface{}, op string) interface{} {
-	rest, ok := restIn.([]interface{})
-	if !ok || len(rest) == 0 {
-		return first
-	}
-	result := first
-	for _, term := range rest {
-		result = map[string]interface{}{
-			"kind":  op,
-			"left":  result,
-			"right": term,
-		}
-	}
-	return result
-}
 
 func makeBinaryExprChain(first, rest interface{}) interface{} {
 	ret := first
@@ -63,10 +46,6 @@ func joinChars(in interface{}) string {
 	return str.String()
 }
 
-func toLowerCase(in interface{}) interface{} {
-	return strings.ToLower(in.(string))
-}
-
 func parseInt(v interface{}) interface{} {
 	num := v.(string)
 	i, err := strconv.Atoi(num)
@@ -75,15 +54,6 @@ func parseInt(v interface{}) interface{} {
 	}
 
 	return i
-}
-
-func parseFloat(v interface{}) interface{} {
-	num := v.(string)
-	if f, err := strconv.ParseFloat(num, 64); err != nil {
-		return f
-	}
-
-	return nil
 }
 
 func OR(a, b interface{}) interface{} {

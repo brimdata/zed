@@ -8,14 +8,6 @@ import (
 	"github.com/brimdata/zed/order"
 )
 
-//XXX
-func zbufDirInt(reversed bool) int {
-	if reversed {
-		return -1
-	}
-	return 1
-}
-
 func orderAsDirection(which order.Which) int {
 	if which == order.Asc {
 		return 1

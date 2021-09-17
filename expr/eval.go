@@ -266,28 +266,6 @@ func (r *RegexpMatch) Eval(rec *zng.Record) (zng.Value, error) {
 	return zng.False, nil
 }
 
-type RegexpSearch struct {
-	re     *regexp.Regexp
-	filter Filter
-}
-
-func NewRegexpSearch(re *regexp.Regexp) *RegexpSearch {
-	match := NewRegexpBoolean(re)
-	contains := Contains(match)
-	pred := func(zv zng.Value) bool {
-		return match(zv) || contains(zv)
-	}
-	filter := EvalAny(pred, true)
-	return &RegexpSearch{re, filter}
-}
-
-func (r *RegexpSearch) Eval(rec *zng.Record) (zng.Value, error) {
-	if r.filter(rec) {
-		return zng.True, nil
-	}
-	return zng.False, nil
-}
-
 type numeric struct {
 	zctx *zson.Context
 	lhs  Evaluator

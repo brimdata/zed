@@ -160,12 +160,6 @@ func (p *Parser) parseDecorator(any zed.Any, val zed.Value) (zed.Value, error) {
 	}, nil
 }
 
-// A bug in Go's time.ParseDuration() function causes an error for
-// duration value math.MinInt64.  We work around this by explicitly
-// checking for the string that represents this duration (which is
-// correctly returned by time.Duration.String()).
-const minDuration = "-2562047h47m16.854775808s"
-
 func (p *Parser) matchPrimitive() (*zed.Primitive, error) {
 	if val, err := p.matchStringPrimitive(); val != nil || err != nil {
 		return val, noEOF(err)
