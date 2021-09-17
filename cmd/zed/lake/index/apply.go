@@ -13,26 +13,26 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-var Apply = &charm.Spec{
+var apply = &charm.Spec{
 	Name:  "apply",
 	Usage: "apply rule tag [tag ...]",
 	Short: "apply index rule to one or more data objects in a branch",
-	New:   NewApply,
+	New:   newApply,
 }
 
-type ApplyCommand struct {
+type applyCommand struct {
 	*Command
 	ids []ksuid.KSUID
 	zedlake.CommitFlags
 }
 
-func NewApply(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &ApplyCommand{Command: parent.(*Command)}
+func newApply(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	c := &applyCommand{Command: parent.(*Command)}
 	c.CommitFlags.SetFlags(f)
 	return c, nil
 }
 
-func (c *ApplyCommand) Run(args []string) error {
+func (c *applyCommand) Run(args []string) error {
 	ctx, cleanup, err := c.lake.Root().Init()
 	if err != nil {
 		return err

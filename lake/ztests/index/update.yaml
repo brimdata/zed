@@ -24,7 +24,7 @@ inputs:
     data: |
       from (
         :index_rules => sort id;
-        test@main:indices => sort rule.id | cut o:=this;
+        test@main:indexes => sort rule.id | cut o:=this;
       )
       | left join on id = o.rule.id
       | count() by name,fields 

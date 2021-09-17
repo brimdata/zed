@@ -10,25 +10,25 @@ import (
 	"github.com/brimdata/zed/pkg/rlimit"
 )
 
-var Update = &charm.Spec{
+var update = &charm.Spec{
 	Name:  "update",
 	Usage: "update",
 	Short: "index all object in a branch using the current set of index rules",
-	New:   NewUpdate,
+	New:   newUpdate,
 }
 
-type UpdateCommand struct {
+type updateCommand struct {
 	*Command
 	zedlake.CommitFlags
 }
 
-func NewUpdate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &UpdateCommand{Command: parent.(*Command)}
+func newUpdate(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	c := &updateCommand{Command: parent.(*Command)}
 	c.CommitFlags.SetFlags(f)
 	return c, nil
 }
 
-func (c *UpdateCommand) Run(args []string) error {
+func (c *updateCommand) Run(args []string) error {
 	ctx, cleanup, err := c.lake.Root().Init()
 	if err != nil {
 		return err
