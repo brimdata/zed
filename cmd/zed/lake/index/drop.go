@@ -10,22 +10,22 @@ import (
 	"github.com/brimdata/zed/pkg/rlimit"
 )
 
-var Drop = &charm.Spec{
+var drop = &charm.Spec{
 	Name:  "drop",
 	Usage: "drop [-R root] [options] id... ",
 	Short: "drop rule from a lake index",
-	New:   NewDrop,
+	New:   newDrop,
 }
 
-type DropCommand struct {
+type dropCommand struct {
 	*Command
 }
 
-func NewDrop(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	return &DropCommand{Command: parent.(*Command)}, nil
+func newDrop(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
+	return &dropCommand{Command: parent.(*Command)}, nil
 }
 
-func (c *DropCommand) Run(args []string) error {
+func (c *dropCommand) Run(args []string) error {
 	ctx, cleanup, err := c.lake.Root().Init()
 	if err != nil {
 		return err

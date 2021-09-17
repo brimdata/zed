@@ -42,7 +42,7 @@ declare -a DESCRIPTIONS=(
     'Output all events with the field `id.resp_h` set to `52.85.83.116`'
 )
 
-declare -a ZQL_QUERIES=(
+declare -a ZED_QUERIES=(
     '*'
     'cut ts'
     'count()'
@@ -72,28 +72,28 @@ declare -a ZCUT_FIELDS=(
     'NONE'
 )
 
-for (( n=0; n<"${#ZQL_QUERIES[@]}"; n++ ))
+for (( n=0; n<"${#ZED_QUERIES[@]}"; n++ ))
 do
     DESC=${DESCRIPTIONS[$n]}
     MD=${MARKDOWNS[$n]}
-    zql=${ZQL_QUERIES[$n]}
+    zed=${ZED_QUERIES[$n]}
     echo -e "### $DESC\n" | tee "$MD"
     echo "|**<br>Tool**|**<br>Arguments**|**Input<br>Format**|**Output<br>Format**|**<br>Real**|**<br>User**|**<br>Sys**|" | tee -a "$MD"
     echo "|:----------:|:---------------:|:-----------------:|:------------------:|-----------:|-----------:|----------:|" | tee -a "$MD"
     for INPUT in zeek zng zng-uncompressed zson tzng ndjson ; do
       for OUTPUT in zeek zng zng-uncompressed zson tzng ndjson ; do
-        echo -n "|\`zq\`|\`$zql\`|$INPUT|$OUTPUT|" | tee -a "$MD"
+        echo -n "|\`zq\`|\`$zed\`|$INPUT|$OUTPUT|" | tee -a "$MD"
         if [[ $INPUT == "zng-uncompressed" ]]; then
           INPUT_FMT="zng"
         else
           INPUT_FMT="$INPUT"
         fi
         if [[ $OUTPUT == "zng-uncompressed" ]]; then
-          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f zng -znglz4blocksize 0 "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
+          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f zng -znglz4blocksize 0 "$zed" $DATA/$INPUT/* > /dev/null) 2>&1)
         elif [[ $INPUT == "ndjson" ]] && [[ $OUTPUT == "zeek" ]]; then
-          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f "$OUTPUT" -I ../zeek/shaper.zed "| $zql" $DATA/$INPUT/* > /dev/null) 2>&1)
+          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f "$OUTPUT" -I ../zeek/shaper.zed "| $zed" $DATA/$INPUT/* > /dev/null) 2>&1)
         else
-          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f "$OUTPUT" "$zql" $DATA/$INPUT/* > /dev/null) 2>&1)
+          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f "$OUTPUT" "$zed" $DATA/$INPUT/* > /dev/null) 2>&1)
         fi
         echo "$ALL_TIMES" | tr '\n' ' ' | awk '{ print $2 "|" $4 "|" $6 "|" }' | tee -a "$MD"
       done

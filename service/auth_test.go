@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/service"
 	"github.com/brimdata/zed/service/auth"
-	"github.com/golang-jwt/jwt"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -32,19 +30,6 @@ func genToken(t *testing.T, tenantID auth.TenantID, userID auth.UserID) string {
 		1*time.Hour, ac.Domain, tenantID, userID)
 	require.NoError(t, err)
 	return token
-}
-
-func makeToken(t *testing.T, kid string, c jwt.MapClaims) string {
-	b, err := os.ReadFile("testdata/auth-private-key")
-	require.NoError(t, err)
-	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(b)
-	require.NoError(t, err)
-	token := jwt.New(jwt.SigningMethodRS256)
-	token.Claims = c
-	token.Header["kid"] = kid
-	s, err := token.SignedString(privateKey)
-	require.NoError(t, err)
-	return s
 }
 
 func TestAuthIdentity(t *testing.T) {

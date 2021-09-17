@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/lake/mock"
 	"github.com/brimdata/zed/proc"
@@ -353,7 +352,7 @@ func TestFilters(t *testing.T) {
 		{"i32 == 2147483647", true},
 		{"u32 == 4294967295", true},
 		{"i64 == 9223372036854775807", true},
-		// can't represent large unsigned 64 bit values in zql...
+		// Can't represent large unsigned 64 bit values in Zed.
 		// {"u64 = 18446744073709551615", true},
 	})
 
@@ -420,16 +419,6 @@ func TestFilters(t *testing.T) {
 		{"empty", true},
 	})
 
-}
-
-func filterProc(p ast.Proc) *ast.Filter {
-	if seq, ok := p.(*ast.Sequential); ok {
-		p = seq.Procs[0]
-	}
-	if f, ok := p.(*ast.Filter); ok {
-		return f
-	}
-	return nil
 }
 
 func TestBadFilter(t *testing.T) {

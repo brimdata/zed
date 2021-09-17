@@ -39,10 +39,11 @@ new index objects to reflect the change.
 }
 
 func init() {
-	Index.Add(Apply)
-	Index.Add(Create)
-	Index.Add(Drop)
-	Index.Add(Ls)
+	Index.Add(apply)
+	Index.Add(create)
+	Index.Add(drop)
+	Index.Add(ls)
+	Index.Add(update)
 	zedlake.Cmd.Add(Index)
 }
 

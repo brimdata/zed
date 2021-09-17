@@ -289,11 +289,6 @@ func isMap(t zng.Type) bool {
 	return ok
 }
 
-func isSet(t zng.Type) bool {
-	_, ok := t.(*zng.TypeSet)
-	return ok
-}
-
 type op int
 
 const (

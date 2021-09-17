@@ -1,0 +1,37 @@
+script: |
+  source service.sh
+  zapi create -q test
+  zapi load -q -use test@main -
+  for accept in text/csv application/{json,x-ndjson,x-zjson,x-zson}; do
+    echo === $accept ===
+    curl -H "Accept: $accept" -d '{"query":"from test"}' http://${ZED_LAKE_HOST}/query |
+      grep -v QueryStats  # for ZJSON
+  done
+
+inputs:
+  - name: service.sh
+  - name: stdin
+    data: |
+      {a:"hello",b:{c:"world",d:"goodbye"}}
+      {a:"one",b:{c:"two",d:"three"}}
+
+outputs:
+  - name: stdout
+    data: |
+      === text/csv ===
+      a,b.c,b.d
+      hello,world,goodbye
+      one,two,three
+      === application/json ===
+      [{"a":"hello","b":{"c":"world","d":"goodbye"}},{"a":"one","b":{"c":"two","d":"three"}}]
+      === application/x-ndjson ===
+      {"a":"hello","b":{"c":"world","d":"goodbye"}}
+      {"a":"one","b":{"c":"two","d":"three"}}
+      === application/x-zjson ===
+      {"kind":"QueryChannelSet","value":{"channel_id":0}}
+      {"kind":"Object","value":{"schema":"24","types":[{"kind":"typedef","name":"24","type":{"kind":"record","fields":[{"name":"a","type":{"kind":"primitive","name":"string"}},{"name":"b","type":{"kind":"record","fields":[{"name":"c","type":{"kind":"primitive","name":"string"}},{"name":"d","type":{"kind":"primitive","name":"string"}}]}}]}}],"values":["hello",["world","goodbye"]]}}
+      {"kind":"Object","value":{"schema":"24","values":["one",["two","three"]]}}
+      {"kind":"QueryChannelEnd","value":{"channel_id":0}}
+      === application/x-zson ===
+      {a:"hello",b:{c:"world",d:"goodbye"}}
+      {a:"one",b:{c:"two",d:"three"}}

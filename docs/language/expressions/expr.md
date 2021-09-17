@@ -159,7 +159,7 @@ query != /web\..*\.com/
 > See Issue #2021.
 
 In order to support a mixture of _ad hoc_ search and well-defined analytics,
-the zql expression syntax attempts to blend the more informal properties
+the Zed expression syntax attempts to blend the more informal properties
 of keyword search languages with the formal properties of expression syntax
 from programming languages.
 
@@ -197,7 +197,7 @@ If you're writing an analytics query to be saved in a notebook or run from
 automation, then the cognitive load is justified but if you are searching for
 stuff on an ad hoc basis, the free form syntax is much more productive.
 
-## zql - A Hybrid Approach
+## Zed - A Hybrid Approach
 
 Log search and analytics systems came along to fill this gap.
 In this approach, you can run a keyword search and send the
@@ -208,7 +208,7 @@ predictable.
 In previous approaches, the search syntax is very different from the analytics
 syntax and the syntax for expressions can be somewhat cumbersome.
 
-With zql, however, we have strived to blend together the search language
+With Zed, however, we have strived to blend together the search language
 with the expression language where you can enjoy the ease of use of ad hoc,
 search-style syntax but blend searches with precision expression syntax
 that works both within the search predicate as well as the analytics processing.

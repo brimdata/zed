@@ -16,7 +16,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/parser"
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/mock"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/proc"
@@ -235,14 +234,6 @@ func (c *Command) compile(z string) (*compiler.Runtime, error) {
 		return nil, err
 	}
 	return compiler.New(proc.DefaultContext(), p, mock.NewLake(), nil)
-}
-
-func keys(s string) []ast.Expr {
-	var exprs []ast.Expr
-	for _, f := range field.DottedList(s) {
-		exprs = append(exprs, ast.NewDotExpr(f))
-	}
-	return exprs
 }
 
 const nodeProblem = `

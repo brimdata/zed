@@ -1,7 +1,6 @@
 package kernel
 
 import (
-	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
@@ -123,15 +122,6 @@ func isCompareAny(seq *dag.SeqExpr) (*zed.Primitive, string, bool) {
 		}
 	}
 	return nil, "", false
-}
-
-func isSelectAll(e ast.Expr) bool {
-	s, ok := e.(*ast.SelectExpr)
-	if !ok || len(s.Selectors) != 1 {
-		return false
-	}
-	_, ok = s.Selectors[0].(*ast.Root)
-	return ok
 }
 
 func isDollar(e dag.Expr) bool {

@@ -3,8 +3,6 @@ package function
 import (
 	"errors"
 	"fmt"
-	"net/url"
-	"strconv"
 	"strings"
 
 	"github.com/brimdata/zed/anymath"
@@ -115,8 +113,8 @@ func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
 	case "network_of":
 		argmax = 2
 		f = &networkOf{}
-	case "url_parse":
-		f = &urlParse{marshaler: zson.NewZNGMarshalerWithContext(zctx)}
+	case "parse_uri":
+		f = &parseURI{marshaler: zson.NewZNGMarshalerWithContext(zctx)}
 	case "zson_parse":
 		f = &zsonParse{zctx: zctx}
 	}
@@ -235,72 +233,6 @@ func (i *is) Call(args []zng.Value) (zng.Value, error) {
 		return zng.True, nil
 	}
 	return zng.False, nil
-}
-
-type urlParse struct {
-	marshaler *zson.MarshalZNGContext
-}
-
-func (u *urlParse) Call(args []zng.Value) (zng.Value, error) {
-	in := args[0]
-	if !in.IsStringy() {
-		return badarg("url_parse: input must be string")
-	}
-	if in.Bytes == nil {
-		return badarg("url_parse: input must not be null")
-	}
-	s, err := zng.DecodeString(in.Bytes)
-	if err != nil {
-		return zng.Value{}, err
-	}
-	ur, err := url.Parse(s)
-	if err != nil {
-		return zng.Value{}, fmt.Errorf("url_parse: %q: %w", s, errors.Unwrap(err))
-	}
-	var v struct {
-		Scheme   *string    `zng:"scheme"`
-		Opaque   *string    `zng:"opaque"`
-		User     *string    `zng:"user"`
-		Password *string    `zng:"password"`
-		Host     *string    `zng:"host"`
-		Port     *uint16    `zng:"port"`
-		Path     *string    `zng:"path"`
-		Query    url.Values `zng:"query"`
-		Fragment *string    `zng:"fragment"`
-	}
-	if ur.Scheme != "" {
-		v.Scheme = &ur.Scheme
-	}
-	if ur.Opaque != "" {
-		v.Opaque = &ur.Opaque
-	}
-	if s := ur.User.Username(); s != "" {
-		v.User = &s
-	}
-	if s, ok := ur.User.Password(); ok {
-		v.Password = &s
-	}
-	if s := ur.Hostname(); s != "" {
-		v.Host = &s
-	}
-	if ss := ur.Port(); ss != "" {
-		u64, err := strconv.ParseUint(ss, 10, 16)
-		if err != nil {
-			return zng.Value{}, fmt.Errorf("url_parse: %q: invalid port: %s", s, errors.Unwrap(err))
-		}
-		u16 := uint16(u64)
-		v.Port = &u16
-	}
-	if ur.Path != "" {
-		v.Path = &ur.Path
-	}
-	if q := ur.Query(); len(q) > 0 {
-		v.Query = q
-	}
-	if ur.Fragment != "" {
-		v.Fragment = &ur.Fragment
-	}
-	return u.marshaler.Marshal(v)
 }
 
 type zsonParse struct {

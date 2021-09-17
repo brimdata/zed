@@ -1,8 +1,8 @@
 script: |
-  zq -z -I count.zql in.zson
+  zq -z -I count.zed in.zson
 
 inputs:
-  - name: count.zql
+  - name: count.zed
     data: |
       2 | c  := count() //,
           , sum(v) // moon

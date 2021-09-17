@@ -1,5 +1,5 @@
 zed: |
-  url := url_parse(s)
+  uri := parse_uri(s)
 
 input: |
   {s:""}
@@ -15,7 +15,7 @@ output-flags: -pretty=2
 output: |
   {
     s: "",
-    url: {
+    uri: {
       scheme: null (string),
       opaque: null (string),
       user: null (string),
@@ -29,7 +29,7 @@ output: |
   }
   {
     s: "scheme://user:password@host:12345/path?a=1&a=2&b=3&c=#fragment",
-    url: {
+    uri: {
       scheme: "scheme",
       opaque: null (string),
       user: "user",
@@ -54,7 +54,7 @@ output: |
   }
   {
     s: "scheme:opaque",
-    url: {
+    uri: {
       scheme: "scheme",
       opaque: "opaque",
       user: null (string),
@@ -80,7 +80,7 @@ output: |
   }
 
 warnings: |
-  url_parse: input must be string: bad argument
-  url_parse: input must not be null: bad argument
-  url_parse: ":no-scheme": missing protocol scheme
-  url_parse: "scheme://bad-port:1234567": invalid port: value out of range
+  parse_uri: input must be string: bad argument
+  parse_uri: input must not be null: bad argument
+  parse_uri: ":no-scheme": missing protocol scheme
+  parse_uri: "scheme://bad-port:1234567": invalid port: value out of range

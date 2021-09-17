@@ -425,7 +425,6 @@ func diffErr(name, expected, actual string) error {
 }
 
 func runsh(path, testDir, tempDir string, zt *ZTest) error {
-	dir := Dir(tempDir)
 	var stdin io.Reader
 	for _, f := range zt.Inputs {
 		s, _, err := f.load(testDir)
@@ -433,7 +432,7 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 			return err
 		}
 		if f.Symlink != "" {
-			if err := dir.Symlink(f.Symlink, f.Name); err != nil {
+			if err := os.Symlink(f.Symlink, filepath.Join(tempDir, f.Name)); err != nil {
 				return err
 			}
 			continue
@@ -442,11 +441,11 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 			stdin = strings.NewReader(s)
 			continue
 		}
-		if err := dir.Write(f.Name, []byte(s)); err != nil {
+		if err := os.WriteFile(filepath.Join(tempDir, f.Name), []byte(s), 0644); err != nil {
 			return err
 		}
 	}
-	stdout, stderr, err := RunShell(dir, path, zt.Script, stdin, zt.Env)
+	stdout, stderr, err := RunShell(tempDir, path, zt.Script, stdin, zt.Env)
 	if err != nil {
 		// XXX If the err is an exit error, we ignore it and rely on
 		// tests that check stderr etc.  We could pull out the exit
@@ -468,7 +467,7 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 		case "stderr":
 			actual = stderr
 		default:
-			b, err := dir.Read(f.Name)
+			b, err := os.ReadFile(filepath.Join(tempDir, f.Name))
 			if err != nil {
 				return fmt.Errorf("%s: %w", f.Name, err)
 			}

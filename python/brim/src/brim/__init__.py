@@ -27,14 +27,14 @@ def error_test():
     checkresult(lib.ErrorTest())
 
 
-def zql_file_eval(inquery, infile, informat, outfile, outformat):
+def zed_file_eval(inquery, infile, informat, outfile, outformat):
     # objrefs holds references to the allocated cdata objects for the
-    # lifetime of the zql file call.
+    # lifetime of the zed file call.
     objrefs = []
-    gzql = gostring(objrefs, inquery)
+    gquery = gostring(objrefs, inquery)
     ginfile = gostring(objrefs, infile)
     ginformat = gostring(objrefs, informat)
     goutfile = gostring(objrefs, outfile)
     goutformat = gostring(objrefs, outformat)
-    checkresult(lib.ZqlFileEval(gzql[0], ginfile[0], ginformat[0], goutfile[0],
+    checkresult(lib.ZedFileEval(gquery[0], ginfile[0], ginformat[0], goutfile[0],
                                 goutformat[0]))

@@ -11,7 +11,6 @@ package zng
 
 import (
 	"errors"
-	"strings"
 
 	"github.com/brimdata/zed/zcode"
 )
@@ -332,13 +331,6 @@ func IsContainerType(typ Type) bool {
 
 func IsPrimitiveType(typ Type) bool {
 	return !IsContainerType(typ)
-}
-
-func trimInnerTypes(typ string, raw string) string {
-	// XXX handle white space, "set [..."... ?
-	innerTypes := strings.TrimPrefix(raw, typ+"[")
-	innerTypes = strings.TrimSuffix(innerTypes, "]")
-	return innerTypes
 }
 
 func TypeID(typ Type) int {

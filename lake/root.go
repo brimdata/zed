@@ -391,6 +391,10 @@ func (r *Root) LookupIndexRules(ctx context.Context, name string) ([]index.Rule,
 	return r.indexRules.Lookup(ctx, name)
 }
 
+func (r *Root) AllIndexRules(ctx context.Context) ([]index.Rule, error) {
+	return r.indexRules.All(ctx)
+}
+
 func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
