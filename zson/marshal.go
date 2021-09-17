@@ -14,8 +14,6 @@ import (
 )
 
 var (
-	errNotStruct = errors.New("not a struct or struct ptr")
-
 	marshalerTypeZNG   = reflect.TypeOf((*ZNGMarshaler)(nil)).Elem()
 	unmarshalerTypeZNG = reflect.TypeOf((*ZNGUnmarshaler)(nil)).Elem()
 )

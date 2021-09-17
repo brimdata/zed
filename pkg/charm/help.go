@@ -76,13 +76,6 @@ func helpList(heading string, lines []string) {
 	fmt.Fprint(os.Stderr, body)
 }
 
-func optionSection(body []string) []string {
-	if len(body) == 0 {
-		return []string{""}
-	}
-	return body
-}
-
 func getCommands(target *Spec, vflag bool) []string {
 	var lines []string
 	for _, cmd := range target.children {

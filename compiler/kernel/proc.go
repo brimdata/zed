@@ -64,14 +64,6 @@ var _ dag.Source = (*Reader)(nil)
 
 func (*Reader) Source() {}
 
-func isContainerOp(op dag.Op) bool {
-	switch op.(type) {
-	case *dag.Sequential, *dag.Parallel:
-		return true
-	}
-	return false
-}
-
 func (b *Builder) Build(seq *dag.Sequential) ([]proc.Interface, error) {
 	if !seq.IsEntry() {
 		return nil, errors.New("internal error: DAG entry point is not a data source")

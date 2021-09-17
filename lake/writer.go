@@ -3,7 +3,6 @@ package lake
 import (
 	"context"
 	"sync/atomic"
-	"time"
 
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
@@ -11,19 +10,11 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zng"
 	"golang.org/x/sync/errgroup"
 )
 
-var (
-	SeekIndexStride = 64 * 1024
-
-	// For unit testing.
-	importLZ4BlockSize = zngio.DefaultLZ4BlockSize
-)
-
-const defaultCommitTimeout = time.Second * 5
+var SeekIndexStride = 64 * 1024
 
 // Writer is a zio.Writer that consumes records into memory according to
 // the pools data object threshold, sorts each resulting buffer, and writes

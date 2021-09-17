@@ -12,7 +12,6 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
@@ -124,15 +123,6 @@ const notPresentOut = `
 {key:"key1",max:null}
 `
 
-const mixedIn = `
-{key:"k",f:5(int32)}
-{key:"k",f:"bleah"}
-`
-
-const mixedOut = `
-{key:"k",first:5(int32),last:"bleah"}
-`
-
 const aliasIn = `
 {host:127.0.0.1(=ipaddr)}
 {host:127.0.0.2}
@@ -239,15 +229,6 @@ func TestGroupbySystem(t *testing.T) {
 		}()
 		tests().runSystem(t)
 	})
-}
-
-func compileGroupBy(code string) (*ast.Summarize, error) {
-	parsed, err := compiler.ParseProc(code)
-	if err != nil {
-		return nil, err
-	}
-	sp := parsed.(*ast.Sequential)
-	return sp.Procs[0].(*ast.Summarize), nil
 }
 
 type countReader struct {

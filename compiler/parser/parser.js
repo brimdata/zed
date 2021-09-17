@@ -15163,17 +15163,6 @@ function peg$parse(input, options) {
 
   let reglob = require("../../reglob/reglob")
 
-  function makeChain(first, rest, op) {
-    if (!rest || rest.length == 0) {
-      return first;
-    }
-    let result = first;
-    for (let term of rest) {
-      result = { op, left: result, right: term };
-    }
-    return result;
-  }
-
   function makeArgMap(args) {
     let m = {};
     for (let arg of args) {
@@ -15195,10 +15184,6 @@ function peg$parse(input, options) {
 
   function joinChars(chars) {
     return chars.join("");
-  }
-
-  function toLowerCase(str) {
-    return str.toLowerCase();
   }
 
   function OR(a, b) {

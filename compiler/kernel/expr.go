@@ -484,14 +484,6 @@ func compileRegexpMatch(zctx *zson.Context, scope *Scope, match *dag.RegexpMatch
 	return expr.NewRegexpMatch(re, e), nil
 }
 
-func compileRegexpSearch(zctx *zson.Context, scope *Scope, search *dag.RegexpSearch) (expr.Evaluator, error) {
-	re, err := expr.CompileRegexp(search.Pattern)
-	if err != nil {
-		return nil, err
-	}
-	return expr.NewRegexpSearch(re), nil
-}
-
 func compileRecordExpr(zctx *zson.Context, scope *Scope, record *dag.RecordExpr) (expr.Evaluator, error) {
 	var names []string
 	var exprs []expr.Evaluator
