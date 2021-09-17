@@ -15,10 +15,10 @@ var update = &charm.Spec{
 	Usage: "update [rule ...]",
 	Short: "index all unindexed data objects",
 	Long: `
-The index update command creates an index for all objects that don't have an
-index for a provided list of index rules.
+The index update command creates index objects for all data objects that don't have an
+index object for the provided list of index rules.
 
-If no argument(s) are given, update runs for all index rules.`,
+If no rules are given, the update is performed for all index rules.`,
 	New: newUpdate,
 }
 
