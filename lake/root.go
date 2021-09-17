@@ -387,8 +387,16 @@ func (r *Root) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index
 	return deleted, nil
 }
 
-func (r *Root) LookupIndexRules(ctx context.Context, name string) ([]index.Rule, error) {
-	return r.indexRules.Lookup(ctx, name)
+func (r *Root) LookupIndexRules(ctx context.Context, names ...string) ([]index.Rule, error) {
+	var rules []index.Rule
+	for _, name := range names {
+		r, err := r.indexRules.Lookup(ctx, name)
+		if err != nil {
+			return nil, err
+		}
+		rules = append(rules, r...)
+	}
+	return rules, nil
 }
 
 func (r *Root) AllIndexRules(ctx context.Context) ([]index.Rule, error) {

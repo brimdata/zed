@@ -163,7 +163,7 @@ func (*RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID k
 	return ksuid.Nil, errors.New("unsupported see issue #2934")
 }
 
-func (*RemoteSession) UpdateIndex(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+func (*RemoteSession) UpdateIndex(ctx context.Context, names []string, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
 	return ksuid.Nil, errors.New("unsupported see issue #2934")
 }
 

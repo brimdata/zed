@@ -33,7 +33,7 @@ type Interface interface {
 	AddIndexRules(context.Context, []index.Rule) error
 	DeleteIndexRules(context.Context, []ksuid.KSUID) ([]index.Rule, error)
 	ApplyIndexRules(ctx context.Context, rule string, pool ksuid.KSUID, branchName string, ids []ksuid.KSUID) (ksuid.KSUID, error)
-	UpdateIndex(ctx context.Context, pool ksuid.KSUID, branchName string) (ksuid.KSUID, error)
+	UpdateIndex(ctx context.Context, names []string, pool ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 }
 
 func ScanIndexRules(ctx context.Context, api Interface, d driver.Driver) error {
