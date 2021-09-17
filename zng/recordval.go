@@ -70,16 +70,11 @@ func NewVolatileRecord(typ Type, bytes zcode.Bytes) *Record {
 	}
 }
 
-// ZvalIter returns a zcode.Iter iterator over the receiver's values.
-func (r *Record) ZvalIter() zcode.Iter {
-	return r.Bytes.Iter()
-}
-
 // FieldIter returns a fieldIter iterator over the receiver's values.
 func (r *Record) FieldIter() fieldIter {
 	return fieldIter{
 		stack: []iterInfo{{
-			iter: r.ZvalIter(),
+			iter: r.Bytes.Iter(),
 			typ:  TypeRecordOf(r.Type),
 		}},
 	}

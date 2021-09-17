@@ -127,7 +127,7 @@ func isHighPrecision(ts nano.Ts) bool {
 // XXX change to Pretty for output writers?... except zeek?
 func ZeekStrings(r *zng.Record, fmt tzngio.OutFmt) ([]string, error) {
 	var ss []string
-	it := r.ZvalIter()
+	it := r.Bytes.Iter()
 	for _, col := range zng.TypeRecordOf(r.Type).Columns {
 		val, _, err := it.Next()
 		if err != nil {
