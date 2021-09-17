@@ -12,9 +12,14 @@ import (
 
 var update = &charm.Spec{
 	Name:  "update",
-	Usage: "update",
-	Short: "index all object in a branch using the current set of index rules",
-	New:   newUpdate,
+	Usage: "update [rule ...]",
+	Short: "index all unindexed objects",
+	Long: `
+The index update command creates an index for all objects that don't have an
+index for a provided list of index rules.
+
+If no argument(s) are given, update runs for all index rules.`,
+	New: newUpdate,
 }
 
 type updateCommand struct {
@@ -52,7 +57,7 @@ func (c *updateCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	commit, err := lake.UpdateIndex(ctx, poolID, head.Branch)
+	commit, err := lake.UpdateIndex(ctx, args, poolID, head.Branch)
 	if err != nil {
 		return err
 	}
