@@ -20,8 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func searchForZqls() ([]string, error) {
-	var zqls []string
+func searchForZed() ([]string, error) {
+	var zed []string
 	pattern := fmt.Sprintf(`.*ztests\%c.*\.yaml$`, filepath.Separator)
 	re := regexp.MustCompile(pattern)
 	err := filepath.Walk("..", func(path string, info os.FileInfo, err error) error {
@@ -34,11 +34,11 @@ func searchForZqls() ([]string, error) {
 			if z == "" || z == "*" {
 				return nil
 			}
-			zqls = append(zqls, z)
+			zed = append(zed, z)
 		}
 		return err
 	})
-	return zqls, err
+	return zed, err
 }
 
 func parsePEGjs(z string) ([]byte, error) {
@@ -63,12 +63,12 @@ func parsePigeon(z string) ([]byte, error) {
 	return json.Marshal(ast)
 }
 
-// testZQL parses the zql query in line by both the Go and Javascript
+// testZed parses the Zed query in line by both the Go and Javascript
 // parsers.  It checks both that the parse is successful and that the
 // two resulting ASTs are equivalent.  On the go side, we take a round
 // trip through json marshal and unmarshal to turn the parse-tree types
 // into generic JSON types.
-func testZQL(t *testing.T, line string) {
+func testZed(t *testing.T, line string) {
 	pigeonJSON, err := parsePigeon(line)
 	assert.NoError(t, err, "parsePigeon: %q", line)
 
@@ -90,15 +90,15 @@ func TestValid(t *testing.T) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		testZQL(t, string(line))
+		testZed(t, string(line))
 	}
 }
 
-func TestZtestZqls(t *testing.T) {
-	zqls, err := searchForZqls()
+func TestZtestZed(t *testing.T) {
+	zed, err := searchForZed()
 	require.NoError(t, err)
-	for _, z := range zqls {
-		testZQL(t, z)
+	for _, z := range zed {
+		testZed(t, z)
 	}
 }
 
@@ -109,6 +109,6 @@ func TestInvalid(t *testing.T) {
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		_, err := parser.Parse("", line)
-		assert.Error(t, err, "zql: %q", line)
+		assert.Error(t, err, "Zed: %q", line)
 	}
 }

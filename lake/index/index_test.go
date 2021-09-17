@@ -130,7 +130,7 @@ func TestFindTypeRule(t *testing.T) {
 	assert.EqualValues(t, 3, count)
 }
 
-func TestZQLRule(t *testing.T) {
+func TestZedRule(t *testing.T) {
 	r, err := NewZedRule("sum(v) by s | put key=s | sort key", "custom", nil)
 	require.NoError(t, err)
 	w := testWriter(t, r)

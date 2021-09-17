@@ -113,8 +113,8 @@ $(PEG_GEN): compiler/parser/Makefile compiler/parser/support.js compiler/parser/
 	$(MAKE) -C compiler/parser
 
 # This rule is best for edit-compile-debug cycle of peg development.  It should
-# properly trigger rebuilds of peg-generated code, but best to run "make" in the
-# zql subdirectory if you are changing versions of pigeon, pegjs, or javascript
+# properly trigger rebuilds of peg-generated code, but best to run
+# "make -C compiler/parser" when changing versions of pigeon, pegjs, or javascript
 # dependencies.
 .PHONY: peg peg-run
 peg: $(PEG_GEN)

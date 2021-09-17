@@ -13,7 +13,7 @@
 > * Only streams of `record` types (which may consist of any combination of
 >   other implemented types) are supported by zq even though a stream of
 >   any types may currently be expressed in value messages.
-> * ZQL syntax for working with the [`enum` type](#3115-enum-typedef) is not yet implemented. ([#1498](https://github.com/brimdata/zed/issues/1498))
+> * Zed syntax for working with the [`enum` type](#3115-enum-typedef) is not yet implemented. ([#1498](https://github.com/brimdata/zed/issues/1498))
 > * [Primitive Types](#3-primitive-types) for `float16`, `float32`, and `decimal` are not yet implemented. ([#1312](https://github.com/brimdata/zed/issues/1312), [#1522](https://github.com/brimdata/zed/issues/1522))
 
 * [1. Introduction](#1-introduction)
@@ -676,7 +676,7 @@ that has not been previously defined according to the DFS order.
 
 ## Appendix B. Recommended Type Coercion Rules
 
-> TBD: it might be better to put this in the ZQL docs
+> TBD: it might be better to put this in the Zed language docs
 
 While outside the scope of the ZNG format specification, we include here
 some suggested rules for converting types when mixed-type operations occur,
