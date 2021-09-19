@@ -24,7 +24,7 @@ func (t *TypeMap) ID() int {
 }
 
 func (t *TypeMap) String() string {
-	return fmt.Sprintf("|{%s,%s|}", t.KeyType, t.ValType)
+	return fmt.Sprintf("|{%s:%s|}", t.KeyType, t.ValType)
 }
 
 func (t *TypeMap) Decode(zv zcode.Bytes) (Value, Value, error) {

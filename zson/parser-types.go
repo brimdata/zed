@@ -237,7 +237,7 @@ func (p *Parser) parseTypeMap() (*zed.TypeMap, error) {
 	if err != nil {
 		return nil, err
 	}
-	ok, err := p.lexer.match(',')
+	ok, err := p.lexer.match(':')
 	if err != nil {
 		return nil, err
 	}

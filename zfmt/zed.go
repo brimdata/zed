@@ -70,7 +70,7 @@ func (c *canonZed) typ(t zed.Type) {
 	case *zed.TypeMap:
 		c.write("|{")
 		c.typ(t.KeyType)
-		c.write(",")
+		c.write(":")
 		c.typ(t.ValType)
 		c.write("}|")
 	case *zed.TypeNull:

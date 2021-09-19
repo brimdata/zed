@@ -1,13 +1,9 @@
 zed: '*'
 
-input: |
-  {n:null(|{string,int32}|)}
+input: &input |
+  {n:null(|{string:int32}|)}
   {n:null(|[string]|)}
   {n:null([string])}
   {n:null({a:string})}
 
-output: |
-  {n:null(|{string,int32}|)}
-  {n:null(|[string]|)}
-  {n:null([string])}
-  {n:null({a:string})}
+output: *input

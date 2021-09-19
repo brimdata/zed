@@ -313,15 +313,22 @@ func (f *Formatter) formatMap(indent int, typ *zng.TypeMap, bytes zcode.Bytes, k
 			return empty, err
 		}
 		f.build(sep)
-		f.indent(indent, "{")
-		if err := f.formatValue(indent+f.tab, typ.KeyType, keyBytes, known, parentImplied, true); err != nil {
+		f.indent(indent, "")
+		if err := f.formatValue(indent, typ.KeyType, keyBytes, known, parentImplied, true); err != nil {
 			return empty, err
 		}
-		f.build(",")
-		if err := f.formatValue(indent+f.tab, typ.ValType, valBytes, known, parentImplied, true); err != nil {
+		if zng.AliasOf(typ.KeyType) == zng.TypeIP && len(keyBytes) == 16 {
+			// To avoid ambiguity, whitespace must separate an IPv6
+			// map key from the colon that follows it.
+			f.build(" ")
+		}
+		f.build(":")
+		if f.tab > 0 {
+			f.build(" ")
+		}
+		if err := f.formatValue(indent, typ.ValType, valBytes, known, parentImplied, true); err != nil {
 			return empty, err
 		}
-		f.build("}")
 		sep = "," + f.newline
 	}
 	f.build(f.newline)
@@ -397,7 +404,7 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 	case *zng.TypeMap:
 		f.build("|{")
 		f.formatType(typ.KeyType)
-		f.build(",")
+		f.build(":")
 		f.formatType(typ.ValType)
 		f.build("}|")
 	case *zng.TypeUnion:
@@ -551,7 +558,7 @@ func formatType(b *strings.Builder, typedefs typemap, typ zng.Type) {
 	case *zng.TypeMap:
 		b.WriteString("|{")
 		formatType(b, typedefs, t.KeyType)
-		b.WriteByte(',')
+		b.WriteByte(':')
 		formatType(b, typedefs, t.ValType)
 		b.WriteString("}|")
 	case *zng.TypeUnion:

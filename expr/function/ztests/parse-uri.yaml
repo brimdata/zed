@@ -23,7 +23,7 @@ output: |
       host: null (string),
       port: null (uint16),
       path: null (string),
-      query: null (|{string,[string]}|),
+      query: null (|{string:[string]}|),
       fragment: null (string)
     }
   }
@@ -38,16 +38,16 @@ output: |
       port: 12345 (uint16),
       path: "/path",
       query: |{
-        {"a",[
-            "1",
-            "2"
-          ]},
-        {"b",[
-            "3"
-          ]},
-        {"c",[
-            ""
-          ]}
+        "a": [
+          "1",
+          "2"
+        ],
+        "b": [
+          "3"
+        ],
+        "c": [
+          ""
+        ]
       }|,
       fragment: "fragment"
     }
@@ -62,7 +62,7 @@ output: |
       host: null (string),
       port: null (uint16),
       path: null (string),
-      query: null (|{string,[string]}|),
+      query: null (|{string:[string]}|),
       fragment: null (string)
     }
   }
