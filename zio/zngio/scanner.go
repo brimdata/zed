@@ -200,6 +200,7 @@ func (w *worker) scanBatch(buf *buffer, mapper *resolver.Mapper, streamZctx *zso
 	}
 	// Otherwise, build a batch by reading all records in the buffer.
 	batch := newBatch(buf)
+	var stackRec zng.Record
 	var stats zbuf.ScannerStats
 	for buf.length() > 0 {
 		code, err := buf.ReadByte()
@@ -209,7 +210,7 @@ func (w *worker) scanBatch(buf *buffer, mapper *resolver.Mapper, streamZctx *zso
 		if code > zng.CtrlValueEscape {
 			return nil, errors.New("zngio: control message in compressed value messaage block")
 		}
-		rec, err := readValue(buf, code, mapper, w.scanner.reader.validate, nil)
+		rec, err := readValue(buf, code, mapper, w.scanner.reader.validate, &stackRec)
 		if err != nil {
 			return nil, err
 		}
