@@ -18,8 +18,8 @@ pip install "git+https://github.com/brimdata/zed@$(zed -version | cut -d ' ' -f 
 
 ## Example
 
-Run a Zed lake service from your shell...
-```
+Run a Zed lake service from your shell.
+```sh
 mkdir scratch
 cd scratch
 zed lake serve
@@ -27,15 +27,14 @@ zed lake serve
 > Or you can launch the Brim app and it will run a Zed lake service
 > on the default port at localhost:9867.
 
-In another shell, create a data pool and post some data...
-```
+In another shell, create a pool and load some data.
+```sh
 zapi create TestPool
 zapi use TestPool@main
 echo '{s:"hello"} {s:"world"}' | zapi load -
 ```
 
-Then query the records from python...
-
+Then query the pool from Python.
 ```python
 import zed
 
