@@ -26,9 +26,11 @@ import (
 var Serve = &charm.Spec{
 	Name:  "serve",
 	Usage: "serve [options]",
-	Short: "serve as a daemon and repond to zqd service requests",
+	Short: "service requests to a Zed lake",
 	Long: `
-The listen command launches a process to listen on the provided interface and
+The serve command listens for Zed lake API requests on the provided
+interface and port, executes the requests, and returns results.
+Requests may be issued to this service via the "zed api" command.
 `,
 	HiddenFlags: "brimfd,filestorereadonly,nodename,podip,recruiter,workers",
 	New:         New,

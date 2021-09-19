@@ -1,12 +1,12 @@
 import setuptools
 
 setuptools.setup(
-    name='zqd',
+    name='zed',
     install_requires=[
         'durationpy',
         'python-dateutil',
         'requests',
     ],
-    py_modules=['zqd'],
+    py_modules=['zed'],
     python_requires='>=3.3',
 )

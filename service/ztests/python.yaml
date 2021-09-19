@@ -2,18 +2,18 @@ script: |
   python3 -m venv v
   . v/bin/activate
 
-  mkdir zqd
-  mv setup.py zqd.py zqd
+  mkdir zed
+  mv setup.py zed.py zed
   # -qq supresses warnings about availability of newer pip versions.
-  pip install -qq ./zqd
+  pip install -qq ./zed
 
   source service.sh
   zapi create -q test
   zapi load -q -use test@main in.zson
 
   python <<EOF
-  import zqd
-  c = zqd.Client('http://$ZED_LAKE_HOST')
+  import zed
+  c = zed.Client('http://$ZED_LAKE_HOST')
   for rec in c.query('from test'):
     print(rec)
   EOF
@@ -118,9 +118,9 @@ inputs:
   - name: service.sh
     source: service.sh
   - name: setup.py
-    source: ../../python/zqd/setup.py
-  - name: zqd.py
-    source: ../../python/zqd/zqd.py
+    source: ../../python/zed/setup.py
+  - name: zed.py
+    source: ../../python/zed/zed.py
 
 outputs:
   - name: stdout
