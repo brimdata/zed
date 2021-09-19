@@ -98,16 +98,6 @@ create-release-assets:
 		zip -r release/$${d}.zip $${d} ; \
 	done
 
-build-python-wheel: build-python-lib
-	pip3 wheel --no-deps -w dist python/brim
-
-build-python-lib:
-	@mkdir -p python/brim/build/zqext
-	go build -buildmode=c-archive -o python/brim/build/zqext/libzqext.a python/brim/src/zqext.go
-
-clean-python:
-	@rm -rf python/brim/build
-
 PEG_GEN := $(addprefix compiler/parser/parser., go js es.js)
 $(PEG_GEN): compiler/parser/Makefile compiler/parser/support.js compiler/parser/parser.peg
 	$(MAKE) -C compiler/parser
@@ -126,9 +116,9 @@ peg-run: $(PEG_GEN)
 # this is a shortcut so that a local dev can easily run everything.
 test-ci: fmt tidy vet test-generate test-unit test-system test-heavy
 
-clean: clean-python
+clean:
 	@rm -rf dist
 
 .PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
-.PHONY: perf-compare build install create-release-assets clean clean-python
-.PHONY: build-python-wheel generate test-generate
+.PHONY: perf-compare build install create-release-assets clean
+.PHONY: generate test-generate
