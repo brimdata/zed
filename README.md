@@ -28,7 +28,7 @@ integration with your favorite Python libraries.
 ## How?
 
 Zed solves all these problems with a new format called
-[ZSON](doc/formats/zson.md),
+[ZSON](docs/formats/zson.md),
 which is a superset of JSON and the relational models.
 ZSON is syntax-compatible with JSON
 but it has a comprehensive type system that you can use as little or as much as you like.
@@ -128,5 +128,5 @@ Join our [Public Slack](https://www.brimsecurity.com/join-slack/) workspace for 
 ## Acknowledgment
 
 We modeled this README after
-[Philip O'Toole's](https://www.linkedin.com/in/philipotoole) brilliantly succinct
+Philip O'Toole's brilliantly succinct
 [description of `rqllite`](https://github.com/rqlite/rqlite).
