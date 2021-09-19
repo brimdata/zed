@@ -1,4 +1,4 @@
-# ZSON - ZNG Structured Object-record Notation
+# ZSON - Zed Structured Object-record Notation
 
 > ### DRAFT 9/3/21
 > ### Note: This specification is in BETA development.
