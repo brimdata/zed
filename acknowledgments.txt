@@ -79,7 +79,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 # End https://github.com/araddon/dateparse/blob/master/LICENSE
 
-# Begin https://github.com/rqlite/rqlite/blob/master/LICENS
+# Begin https://github.com/rqlite/rqlite/blob/master/LICENSE
 The MIT License (MIT)
 
 Copyright (c) Philip O'Toole (http://www.philipotoole.com) 2015 - 2021
@@ -103,4 +103,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-# End https://github.com/rqlite/rqlite/blob/master/LICENS
+# End https://github.com/rqlite/rqlite/blob/master/LICENSE

@@ -37,23 +37,24 @@ Zed types can be used as schemas.
 Zed also has a cloud-based object design that was modeled after
 the `git` design pattern.  Commits to the lake are transactional
 and consistent.  Search index updates are also transactionally
-consistent with any ingested data and searches can run with or
+consistent with any ingested data, and searches can run with or
 without indexes.
 
 ## Quick Start
 
 _Detailed documentation [is available](docs/README.md)._
 
-The quickest way to get running on macOS, Linux, or windows
+The quickest way to get running on macOS, Linux, or Windows
 is to download a pre-built release binary.
-You can find these binaries on the Github releases page.
+You can find these binaries on the GitHub
+[releases](https://github.com/brimdata/zed/releases) page.
 
 Once installed, you can run the query engine from the command-line using `zq`:
 ```
-echo '{"s":"hello, word"}' | zq -Z -
+echo '{"s":"hello, world"}' | zq -Z -
 ```
 Or you can run a Zed lake server, load it with data using `zapi`, and hit the API.
-In one shell, run the server
+In one shell, run the server:
 ```
 mkdir scratch
 cd scratch
@@ -68,7 +69,7 @@ zapi query "from Demo"
 ```
 You can also use `zed` from Python.  After you install the Zed Python:
 ```
-pip install "git+https://github.com/brimdata/zed#subdirectory=python/zed"
+pip3 install "git+https://github.com/brimdata/zed#subdirectory=python/zed"
 ```
 You can hit the Zed service from a Python program:
 ```python
@@ -80,7 +81,7 @@ client = zed.Client()
 
 # Begin executing a Zed query for all records in the pool named "Demo".
 # This returns an iterator, not a container.
-records = zed.query('from Demo'):
+records = client.query('from Demo'):
 
 # Stream records from the server.
 for record in records:
@@ -111,7 +112,7 @@ make install
 This installs binaries in your `$GOPATH/bin`.
 
 > If you don't have Go installed, download and install it from the
-> [Go instasll page](https://golang.org/doc/install). Go version 1.16 or later is
+> [Go install page](https://golang.org/doc/install). Go version 1.16 or later is
 > required.
 
 ## Contributing
@@ -129,4 +130,4 @@ Join our [Public Slack](https://www.brimsecurity.com/join-slack/) workspace for 
 
 We modeled this README after
 Philip O'Toole's brilliantly succinct
-[description of `rqllite`](https://github.com/rqlite/rqlite).
+[description of `rqlite`](https://github.com/rqlite/rqlite).
