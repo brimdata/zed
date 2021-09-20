@@ -19,6 +19,7 @@ func init() {
 		commits.AddIndex{},
 		commits.Commit{},
 		commits.Delete{},
+		commits.DeleteIndex{},
 		field.Path{},
 		index.AddRule{},
 		index.DeleteRule{},

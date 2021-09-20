@@ -26,8 +26,8 @@ inputs:
         :index_rules => sort id;
         test@main:indexes => sort rule.id | cut o:=this;
       )
-      | left join on id = o.rule.id
-      | count() by name,fields 
+      | left join on id = o.rule.id o
+      | count(o) by name,fields 
       | sort name
 
 outputs:

@@ -19,6 +19,7 @@ var ActionTypes = []interface{}{
 	AddIndex{},
 	index.AddRule{},
 	Delete{},
+	DeleteIndex{},
 	index.DeleteRule{},
 	index.TypeRule{},
 	index.AggRule{},

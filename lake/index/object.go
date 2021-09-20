@@ -29,6 +29,10 @@ func (o Object) Path(path *storage.URI) *storage.URI {
 
 type Map map[ksuid.KSUID]ObjectRules
 
+func (m Map) Exists(object *Object) bool {
+	return m.Lookup(object.Rule.RuleID(), object.ID) != nil
+}
+
 func (m Map) Lookup(ruleID, id ksuid.KSUID) *Object {
 	if rules, ok := m[id]; ok {
 		if object, ok := rules[ruleID]; ok {
@@ -49,7 +53,7 @@ func (m Map) Insert(object *Object) {
 
 func (m Map) Delete(ruleID, id ksuid.KSUID) {
 	if rules, ok := m[id]; ok {
-		delete(rules, id)
+		delete(rules, ruleID)
 	}
 }
 
@@ -61,6 +65,17 @@ func (m Map) All() []*Object {
 		}
 	}
 	return objects
+}
+
+func (m Map) Copy() Map {
+	out := make(Map)
+	for oid, rules := range m {
+		out[oid] = make(ObjectRules)
+		for rid, value := range rules {
+			out[oid][rid] = value
+		}
+	}
+	return out
 }
 
 type ObjectRules map[ksuid.KSUID]*Object

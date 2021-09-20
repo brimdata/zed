@@ -1,0 +1,43 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q test
+  zed lake use -q test@main
+  zed lake load -q in.zson
+  zed lake index create -q IPs type ip
+  zed lake index create -q Ys field y
+  a=$(zed lake index update | awk '{print $1}')
+  zed lake query -z -I query.zed
+  echo ===
+  r=$(zed lake revert $a | awk '{print $5}')
+  zed lake query -z -I query.zed
+  echo ===
+  zed lake revert -q $r
+  zed lake query -z -I query.zed
+
+inputs:
+  - name: in.zson
+    data: |
+      {x:127.0.0.1,y:1}
+      {x:127.0.0.2,y:2}
+  - name: query.zed
+    data: |
+      from (
+        :index_rules => sort id;
+        test@main:indexes => sort rule.id | cut o:=this;
+      )
+      | left join on id = o.rule.id o
+      | count(o) by name
+      | sort name
+
+outputs:
+  - name: stdout
+    data: |
+      {name:"IPs",count:1(uint64)}
+      {name:"Ys",count:1(uint64)}
+      ===
+      {name:"IPs",count:0(uint64)}
+      {name:"Ys",count:0(uint64)}
+      ===
+      {name:"IPs",count:1(uint64)}
+      {name:"Ys",count:1(uint64)}

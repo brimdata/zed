@@ -18,6 +18,7 @@ var (
 
 type View interface {
 	Lookup(ksuid.KSUID) (*data.Object, error)
+	LookupIndex(ksuid.KSUID, ksuid.KSUID) (*index.Object, error)
 	Select(extent.Span, order.Which) DataObjects
 	SelectAll() DataObjects
 	SelectIndexes(extent.Span, order.Which) []*index.Object
@@ -79,7 +80,7 @@ func (s *Snapshot) AddIndexObject(object *index.Object) error {
 		return fmt.Errorf("%s: add of a duplicate index object: %w", id, ErrWriteConflict)
 	}
 	s.indexes.Insert(object)
-	delete(s.deletedIndexes, id)
+	s.deletedIndexes.Delete(object.Rule.RuleID(), id)
 	return nil
 }
 
@@ -108,6 +109,18 @@ func (s *Snapshot) Lookup(id ksuid.KSUID) (*data.Object, error) {
 		return nil, fmt.Errorf("%s: %w", id, ErrNotFound)
 	}
 	return o, nil
+}
+
+func IndexExists(view View, ruleID, id ksuid.KSUID) bool {
+	_, err := view.LookupIndex(ruleID, id)
+	return err == nil
+}
+
+func (s *Snapshot) LookupIndex(ruleID, id ksuid.KSUID) (*index.Object, error) {
+	if o := s.indexes.Lookup(ruleID, id); o != nil {
+		return o, nil
+	}
+	return nil, fmt.Errorf("%s: %w", index.ObjectName(ruleID, id), ErrNotFound)
 }
 
 func (s *Snapshot) LookupDeleted(id ksuid.KSUID) (*data.Object, error) {
@@ -171,6 +184,11 @@ func (s *Snapshot) Copy() *Snapshot {
 	for key, val := range s.objects {
 		out.objects[key] = val
 	}
+	for key, val := range s.deletedObjects {
+		out.deletedObjects[key] = val
+	}
+	out.indexes = s.indexes.Copy()
+	out.deletedIndexes = s.deletedIndexes.Copy()
 	return out
 }
 
