@@ -81,7 +81,7 @@ client = zed.Client()
 
 # Begin executing a Zed query for all records in the pool named "Demo".
 # This returns an iterator, not a container.
-records = client.query('from Demo'):
+records = client.query('from Demo')
 
 # Stream records from the server.
 for record in records:
