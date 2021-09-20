@@ -1,51 +1,119 @@
 # Zed [![Tests][tests-img]][tests]
 
-The Zed system provides an open-source, cloud-native, and searchable data lake for
-semi-structured and structured data.
+_Zed_ is a new kind of data lake that provides lightweight search and
+analytics for semi-structured data (like JSON) as well as
+structured data (like relational tables) all in the same package.
 
-[Zed lakes](docs/lake/README.md) utilize a superset of the relational
-and JSON document data models
-yet require no up-front schema definitions to insert data.  They also provide
-transactional views and time travel by leveraging a `git`-like design pattern
-based on a commit journal.  Using this mechanism, a lake's (optional) search indexes
-are transactionally consistent with its data.
+Check out the [Zed FAQ](FAQ.md).
 
-At Zed's foundation lies a new family of self-describing data formats based on the
-[Zed data model](docs/formats/zson.md#1-introduction),
-which unifies the highly structured approach of dataframes and relational tables
-with the loosely structured document model of JSON.
+## Why?
 
-While the Zed system is built around its family of data formats, it is also
-interoperable with popular data formats like CSV, (ND)JSON, and Parquet.
+We think that you shouldn't have to set up one system
+for search and another completely different system for historical analytics.
+And the same search/analytics system that works at cloud scale should run easily as
+a lightweight command-line tool on your laptop.
 
-This repository contains tools and components used to organize, search, analyze,
-and store Zed data, including:
+And rather than having to set up complex ETL pipelines with brittle
+transformation logic, managing your data lake should be as easy as `git`.
 
-* The [`zed`](cmd/zed/README.md) command line tool for managing, searching, and querying a Zed lake
-* The [Zed language](docs/language/README.md) documentation
-* The [Zed formats](docs/formats/README.md) specifications and documentation
+And while _schemas_ are a great way to model and organize your data, they often
+[get in the way](https://github.com/brimdata/sharkfest-21#schemas-a-double-edged-sword)
+when you are just trying to store or transmit your semi-structured data.
 
-The previously released [`zq`](cmd/zed/README.md#zq) tool is now packaged as
-a command-line shortcut for the `zed query` command.
+Finally, we believe a lightweight data store that provides easy search and analytics
+would be a great place to store data sets for data science and
+data engineering experiments running in Python and providing easy
+integration with your favorite Python libraries.
 
-## Installation
+## How?
 
-To install `zed` or any other tool from this repo, you can either clone the repo
- and compile from source, or use a pre-compiled
- [release](https://github.com/brimdata/zed/releases), available for Windows, macOS, and Linux.
+Zed solves all these problems with a new format called
+[ZSON](docs/formats/zson.md),
+which is a superset of JSON and the relational models.
+ZSON is syntax-compatible with JSON
+but it has a comprehensive type system that you can use as little or as much as you like.
+Zed types can be used as schemas.
 
-If you don't have Go installed, download and install it from the
-[Go downloads page](https://golang.org/dl/). Go version 1.16 or later is
-required.
+Zed also has a cloud-based object design that was modeled after
+the `git` design pattern.  Commits to the lake are transactional
+and consistent.  Search index updates are also transactionally
+consistent with any ingested data, and searches can run with or
+without indexes.
 
-To install the binaries in `$GOPATH/bin`, clone this repo and
-execute `make install`:
+## Quick Start
 
+_Detailed documentation [is available](docs/README.md)._
+
+The quickest way to get running on macOS, Linux, or Windows
+is to download a pre-built release binary.
+You can find these binaries on the GitHub
+[releases](https://github.com/brimdata/zed/releases) page.
+
+Once installed, you can run the query engine from the command-line using `zq`:
+```
+echo '{"s":"hello, world"}' | zq -Z -
+```
+Or you can run a Zed lake server, load it with data using `zapi`, and hit the API.
+In one shell, run the server:
+```
+mkdir scratch
+cd scratch
+zed lake serve
+```
+And in another shell, run the client:
+```
+zapi create Demo
+zapi use Demo@main
+echo '{s:"hello, world"}' | zapi load -
+zapi query "from Demo"
+```
+You can also use `zed` from Python.  After you install the Zed Python:
+```
+pip3 install "git+https://github.com/brimdata/zed#subdirectory=python/zed"
+```
+You can hit the Zed service from a Python program:
+```python
+import zed
+
+# Connect to the REST API at the default base URL (http://127.0.0.1:9867).
+# To use a different base URL, supply it as an argument.
+client = zed.Client()
+
+# Begin executing a Zed query for all records in the pool named "Demo".
+# This returns an iterator, not a container.
+records = client.query('from Demo'):
+
+# Stream records from the server.
+for record in records:
+    print(record)
+```
+See the [python/zed](python/zed) for more details.
+
+### Brim
+
+You can use the [Brim app](https://github.com/brimdata/brim)
+to explore, query, and shape the data in your Zed lake.
+
+We originally developed Brim for security-oriented use cases
+(having tight integration with [Zeek](https://zeek.org/),
+[Suricata](https://suricata.io/), and
+[Wireshark](https://www.wireshark.org/)),
+but we are actively extending Brim with UX for handling generic
+data sets to support data science, data engineering, and ETL use cases.
+
+### Building from Source
+
+It's also easy to build `zed` from source:
 ```
 git clone https://github.com/brimdata/zed
 cd zed
 make install
 ```
+This installs binaries in your `$GOPATH/bin`.
+
+> If you don't have Go installed, download and install it from the
+> [Go install page](https://golang.org/doc/install). Go version 1.16 or later is
+> required.
 
 ## Contributing
 
@@ -57,3 +125,9 @@ Join our [Public Slack](https://www.brimsecurity.com/join-slack/) workspace for 
 
 [tests-img]: https://github.com/brimdata/zed/workflows/Tests/badge.svg
 [tests]: https://github.com/brimdata/zed/actions?query=workflow%3ATests
+
+## Acknowledgment
+
+We modeled this README after
+Philip O'Toole's brilliantly succinct
+[description of `rqlite`](https://github.com/rqlite/rqlite).

@@ -7,7 +7,7 @@ The `zed` Python package provides a client for the REST API served by
 
 Install the latest version like this:
 ```sh
-pip install "git+https://github.com/brimdata/zed#subdirectory=python/zed"
+pip3 install "git+https://github.com/brimdata/zed#subdirectory=python/zed"
 ```
 
 Install the version compatible with a local `zed` like this:
@@ -44,7 +44,7 @@ client = zed.Client()
 
 # Begin executing a Zed query for all records in the pool named
 # "TestPool".  This returns an iterator, not a container.
-records = zed.query('from TestPool'):
+records = client.query('from TestPool'):
 
 # Stream records from the server.
 for record in records:
