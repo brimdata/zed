@@ -48,5 +48,3 @@ require (
 )
 
 replace github.com/fraugster/parquet-go => github.com/brimdata/parquet-go v0.3.1
-
-replace github.com/minio/minio => github.com/brimdata/minio v0.0.0-20201019191454-3c6f24527f6d
