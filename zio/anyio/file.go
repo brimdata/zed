@@ -17,11 +17,28 @@ func Open(ctx context.Context, zctx *zson.Context, engine storage.Engine, path s
 	if err != nil {
 		return nil, err
 	}
-	f, err := engine.Get(ctx, uri)
-	if err != nil {
-		return nil, err
+	ch := make(chan struct{})
+	var zf *zbuf.File
+	go func() {
+		defer close(ch)
+		var sr storage.Reader
+		// Opening a fifo might block.
+		sr, err = engine.Get(ctx, uri)
+		if err != nil {
+			return
+		}
+		// NewFile reads from sr, which might block.
+		zf, err = NewFile(zctx, sr, path, opts)
+		if err != nil {
+			sr.Close()
+		}
+	}()
+	select {
+	case <-ch:
+		return zf, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
-	return NewFile(zctx, f, path, opts)
 }
 
 func NewFile(zctx *zson.Context, rc io.ReadCloser, path string, opts ReaderOpts) (*zbuf.File, error) {
