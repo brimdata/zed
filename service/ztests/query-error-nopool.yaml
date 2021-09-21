@@ -1,6 +1,6 @@
 script: |
   source service.sh
-  zapi query "from doesnotexit"
+  ! zapi query "from doesnotexit"
 
 inputs:
   - name: service.sh

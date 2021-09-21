@@ -1,4 +1,5 @@
-script: zq in.tzng
+script: |
+  ! zq in.tzng
 
 inputs:
   - name: in.tzng
