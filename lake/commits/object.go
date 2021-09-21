@@ -78,6 +78,10 @@ func (o *Object) appendAddIndex(i *index.Object) {
 	o.append(&AddIndex{Commit: o.Commit, Object: *i})
 }
 
+func (o *Object) appendDeleteIndex(ruleID, id ksuid.KSUID) {
+	o.append(&DeleteIndex{Commit: o.Commit, RuleID: ruleID, ID: id})
+}
+
 func (o Object) Serialize() ([]byte, error) {
 	writer := zngbytes.NewSerializer()
 	writer.Decorate(zson.StylePackage)

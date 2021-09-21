@@ -241,6 +241,8 @@ func (t table) formatActions(b *bytes.Buffer, id ksuid.KSUID) {
 			formatAddIndex(b, 4, action)
 		case *commits.Delete:
 			formatDelete(b, 4, action)
+		case *commits.DeleteIndex:
+			formatDeleteIndex(b, 4, action)
 		}
 	}
 	b.WriteString("\n")
@@ -258,15 +260,19 @@ func formatAdd(b *bytes.Buffer, indent int, add *commits.Add) {
 }
 
 func formatAddIndex(b *bytes.Buffer, indent int, addx *commits.AddIndex) {
-	formatIndexObject(b, &addx.Object, "AddIndex", indent)
+	formatIndexObject(b, addx.Object.Rule.RuleID(), addx.Object.ID, "AddIndex", indent)
 }
 
-func formatIndexObject(b *bytes.Buffer, index *index.Object, prefix string, indent int) {
+func formatDeleteIndex(b *bytes.Buffer, indent int, delx *commits.DeleteIndex) {
+	formatIndexObject(b, delx.RuleID, delx.ID, "DeleteIndex", indent)
+}
+
+func formatIndexObject(b *bytes.Buffer, ruleID, id ksuid.KSUID, prefix string, indent int) {
 	tab(b, indent)
 	if prefix != "" {
 		b.WriteString(prefix)
 		b.WriteByte(' ')
 	}
-	b.WriteString(fmt.Sprintf("%s index %s object", index.Rule.RuleID(), index.ID)) //XXX
+	fmt.Fprintf(b, "%s index %s object", ruleID, id) //XXX
 	b.WriteByte('\n')
 }
