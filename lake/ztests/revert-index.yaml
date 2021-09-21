@@ -22,13 +22,7 @@ inputs:
       {x:127.0.0.2,y:2}
   - name: query.zed
     data: |
-      from (
-        :index_rules => sort id;
-        test@main:indexes => sort rule.id | cut o:=this;
-      )
-      | left join on id = o.rule.id o
-      | count(o) by name
-      | sort name
+      from test@main:indexes | count() by name:=rule.name | sort name
 
 outputs:
   - name: stdout
@@ -36,8 +30,6 @@ outputs:
       {name:"IPs",count:1(uint64)}
       {name:"Ys",count:1(uint64)}
       ===
-      {name:"IPs",count:0(uint64)}
-      {name:"Ys",count:0(uint64)}
       ===
       {name:"IPs",count:1(uint64)}
       {name:"Ys",count:1(uint64)}

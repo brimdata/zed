@@ -273,6 +273,6 @@ func formatIndexObject(b *bytes.Buffer, ruleID, id ksuid.KSUID, prefix string, i
 		b.WriteString(prefix)
 		b.WriteByte(' ')
 	}
-	fmt.Fprintf(b, "%s index %s object", ruleID, id)) //XXX
+	fmt.Fprintf(b, "%s index %s object", ruleID, id) //XXX
 	b.WriteByte('\n')
 }
