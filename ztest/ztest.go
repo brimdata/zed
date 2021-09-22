@@ -239,30 +239,30 @@ func (f *File) check() error {
 	return nil
 }
 
-func (f *File) load(dir string) (string, *regexp.Regexp, error) {
+func (f *File) load(dir string) ([]byte, *regexp.Regexp, error) {
 	if f.Data != nil {
-		return *f.Data, nil, nil
+		return []byte(*f.Data), nil, nil
 	}
 	if f.Source != "" {
 		b, err := os.ReadFile(filepath.Join(dir, f.Source))
-		return string(b), nil, err
+		return b, nil, err
 	}
 	if f.Re != "" {
 		re, err := regexp.Compile(f.Re)
-		return "", re, err
+		return nil, re, err
 	}
 	if f.Symlink != "" {
 		f.Symlink = filepath.Join(dir, f.Symlink)
-		return "", nil, nil
+		return nil, nil, nil
 	}
 	b, err := os.ReadFile(filepath.Join(dir, f.Name))
 	if err == nil {
-		return string(b), nil, nil
+		return b, nil, nil
 	}
 	if os.IsNotExist(err) {
 		err = fmt.Errorf("%s: no data source", f.Name)
 	}
-	return "", nil, err
+	return nil, nil, err
 }
 
 // ZTest defines a ztest.
@@ -427,7 +427,7 @@ func diffErr(name, expected, actual string) error {
 func runsh(path, testDir, tempDir string, zt *ZTest) error {
 	var stdin io.Reader
 	for _, f := range zt.Inputs {
-		s, _, err := f.load(testDir)
+		b, _, err := f.load(testDir)
 		if err != nil {
 			return err
 		}
@@ -438,10 +438,10 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 			continue
 		}
 		if f.Name == "stdin" {
-			stdin = strings.NewReader(s)
+			stdin = bytes.NewReader(b)
 			continue
 		}
-		if err := os.WriteFile(filepath.Join(tempDir, f.Name), []byte(s), 0644); err != nil {
+		if err := os.WriteFile(filepath.Join(tempDir, f.Name), b, 0644); err != nil {
 			return err
 		}
 	}
@@ -477,8 +477,8 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 		if err != nil {
 			return err
 		}
-		if expected != "" && expected != actual {
-			return diffErr(f.Name, expected, actual)
+		if expected != nil && string(expected) != actual {
+			return diffErr(f.Name, string(expected), actual)
 		}
 		if expectedRE != nil && !expectedRE.MatchString(actual) {
 			return fmt.Errorf("%s: regexp %q does not match %q", f.Name, expectedRE, actual)

@@ -1,10 +1,13 @@
 package ztest
 
 import (
+	"os"
+	"path/filepath"
 	"runtime"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestShouldSkip(t *testing.T) {
@@ -15,4 +18,36 @@ func TestShouldSkip(t *testing.T) {
 	}
 	assert.Equal(t, "reason", (&ZTest{Skip: "reason"}).ShouldSkip(""))
 	assert.Equal(t, `tag "x" does not match ZTEST_TAG=""`, (&ZTest{Tag: "x"}).ShouldSkip(""))
+}
+
+func TestRunShell(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("skipping test on Windows because RunScript uses cmd.exe instead of bash")
+	}
+	t.Run("outputs", func(t *testing.T) {
+		testDir := t.TempDir()
+		require.NoError(t, os.WriteFile(filepath.Join(testDir, "testdirfile"), []byte("testdirfile\n"), 0644))
+		strptr := func(s string) *string { return &s }
+		err := (&ZTest{
+			Script: `
+				echo stdout
+				echo stderr >&2
+				touch empty
+				echo notempty > notempty
+				echo regexp > regexp
+				echo testdirfile > testdirfile
+				echo testdirfile > testdirfile2
+				`,
+			Outputs: []File{
+				{Name: "stdout", Data: strptr("stdout\n")},
+				{Name: "stderr", Data: strptr("stderr\n")},
+				{Name: "empty", Data: strptr("")},
+				{Name: "notempty", Data: strptr("notempty\n")},
+				{Name: "regexp", Re: "^re"},
+				{Name: "testdirfile"},
+				{Name: "testdirfile2", Source: "testdirfile"},
+			},
+		}).RunScript("", testDir, t.TempDir())
+		assert.NoError(t, err)
+	})
 }
