@@ -76,7 +76,7 @@ func (c *Command) Run(args []string) error {
 	}
 	paths := args
 	local := storage.NewLocalEngine()
-	readers, err := c.inputFlags.Open(zson.NewContext(), local, paths, false)
+	readers, err := c.inputFlags.Open(ctx, zson.NewContext(), local, paths, false)
 	if err != nil {
 		return err
 	}

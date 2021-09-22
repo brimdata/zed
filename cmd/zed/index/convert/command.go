@@ -57,7 +57,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	_, cleanup, err := c.Init(&c.inputFlags)
+	ctx, cleanup, err := c.Init(&c.inputFlags)
 	if err != nil {
 		return err
 	}
@@ -75,7 +75,7 @@ func (c *Command) Run(args []string) error {
 	}
 	zctx := zson.NewContext()
 	local := storage.NewLocalEngine()
-	file, err := anyio.OpenFile(zctx, local, path, c.inputFlags.Options())
+	file, err := anyio.Open(ctx, zctx, local, path, c.inputFlags.Options())
 	if err != nil {
 		return err
 	}
