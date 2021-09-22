@@ -1,5 +1,5 @@
 script: |
-  zq emptyset.tzng
+  ! zq emptyset.tzng
 
 inputs:
   - name: emptyset.tzng

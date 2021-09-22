@@ -1,5 +1,5 @@
 script: |
-  zq -z in.csv
+  ! zq -z in.csv
 
 inputs:
   - name: in.csv

@@ -1,7 +1,7 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake use || true
+  ! zed lake use
   zed lake create -q POOL
   echo ===
   zed lake use -p POOL

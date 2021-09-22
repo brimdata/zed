@@ -1,4 +1,5 @@
-script: zq -z -I badshaper.zed -
+script: |
+  ! zq -z -I badshaper.zed -
 
 inputs:
   - name: stdin

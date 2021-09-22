@@ -33,8 +33,7 @@ func stringReader(input string, ifmt string, zctx *zson.Context) (zio.Reader, er
 		Format: ifmt,
 	}
 	rc := io.NopCloser(strings.NewReader(input))
-
-	return anyio.OpenFromNamedReadCloser(zctx, rc, "test", opts)
+	return anyio.NewFile(zctx, rc, "test", opts)
 }
 
 func newEmitter(ofmt string) (*emitter.Bytes, error) {

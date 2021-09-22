@@ -1,7 +1,7 @@
 script: |
   source service.sh
   zapi create test
-  zapi query "from test@doesnotexist"
+  ! zapi query "from test@doesnotexist"
 
 inputs:
   - name: service.sh

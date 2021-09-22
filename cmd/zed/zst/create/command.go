@@ -67,9 +67,8 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("must specify one or more input files")
 	}
-	zctx := zson.NewContext()
 	local := storage.NewLocalEngine()
-	readers, err := c.inputFlags.Open(zctx, local, args, true)
+	readers, err := c.inputFlags.Open(ctx, zson.NewContext(), local, args, true)
 	if err != nil {
 		return err
 	}

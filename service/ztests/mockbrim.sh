@@ -45,5 +45,5 @@ export LAKE_PID=$(cat $tempdir/pid)
 export MOCKBRIM_PID=$mockbrimpid
 
 # ensure that lake service process isn't leaked
-trap "kill -9 $LAKE_PID 2>/dev/null" EXIT
+trap "kill -9 $LAKE_PID 2>/dev/null || :" EXIT
 rm -rf $tempdir

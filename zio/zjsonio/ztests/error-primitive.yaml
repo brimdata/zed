@@ -1,4 +1,5 @@
-script: zq -i zjson in.zjson
+script: |
+  ! zq -i zjson in.zjson
 
 inputs:
   - name: in.zjson

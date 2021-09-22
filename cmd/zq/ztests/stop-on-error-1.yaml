@@ -1,5 +1,5 @@
 script: |
-  zq "*" good.zson bad.zson
+  ! zq "*" good.zson bad.zson
 
 inputs:
   - name: good.zson

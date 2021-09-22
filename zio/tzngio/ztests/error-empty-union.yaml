@@ -1,5 +1,5 @@
 script: |
-  zq emptyunion.tzng
+  ! zq emptyunion.tzng
 
 inputs:
   - name: emptyunion.tzng

@@ -5,7 +5,7 @@ script: |
     mv out2.zng out.zng
   done
   zq -znglz4blocksize=0 -o bigrow.zng "collect(s)" out.zng
-  zq  -i zng -o /dev/null -readmax 10KB "count()" bigrow.zng
+  ! zq  -i zng -o /dev/null -readmax 10KB "count()" bigrow.zng
 
 inputs:
   - name: in.zson

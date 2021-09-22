@@ -9,8 +9,8 @@ script: |
   echo ===
   zed lake drop -f p1
   echo ===
-  zed lake rename p1 p4 || true
-  zed lake rename p2 p4
+  ! zed lake rename p1 p4
+  ! zed lake rename p2 p4
 
 outputs:
   - name: stdout
