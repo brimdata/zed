@@ -5,7 +5,7 @@ script: |
   zed lake load -q -use logs@main babble.zson
   zed lake query "from logs@main:objects" | zq -z "cut first:=meta.first,last:=meta.last" -
   zed lake drop -q -f logs
-  zed lake query "from logs@main:objects"
+  ! zed lake query "from logs@main:objects"
 
 inputs:
   - name: babble.zson

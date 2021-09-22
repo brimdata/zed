@@ -1,6 +1,6 @@
 # redefining an alias should cause an error
 script: |
-  zq in.tzng
+  ! zq in.tzng
 
 inputs:
   - name: in.tzng

@@ -1,5 +1,5 @@
 script: |
-  zq -
+  ! zq -
 
 inputs:
   - name: stdin

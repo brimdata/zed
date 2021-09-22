@@ -1,4 +1,5 @@
-script: zq -f zeek -
+script: |
+  ! zq -f zeek -
 
 inputs:
   - name: stdin

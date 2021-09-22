@@ -1,5 +1,5 @@
 script: |
-  zed index create -f 1000000000 -o index.zng -k a in.zson
+  ! zed index create -f 1000000000 -o index.zng -k a in.zson
 
 inputs:
   - name: in.zson

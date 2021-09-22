@@ -42,7 +42,9 @@
 //
 // Alternatively, tests can be configured to run as shell scripts.
 // In this style of test, arbitrary bash scripts can run chaining together
-// any of the tools in cmd/ in addition to zq.  Here, the yaml sets up a collection
+// any of the tools in cmd/ in addition to zq.  Scripts are executed by "bash -e
+// -o pipefail", and a nonzero shell exit code causes a test failure, so any failed
+// command generally results in a test failure.  Here, the yaml sets up a collection
 // of input files and stdin, the script runs, and the test driver compares expected
 // output files, stdout, and stderr with data in the yaml spec.  In this case,
 // instead of specifying, "zed", "input", "output", you specify the yaml arrays
@@ -447,17 +449,8 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 	}
 	stdout, stderr, err := RunShell(tempDir, path, zt.Script, stdin, zt.Env)
 	if err != nil {
-		// XXX If the err is an exit error, we ignore it and rely on
-		// tests that check stderr etc.  We could pull out the exit
-		// status and test on this if we added a field for this to
-		// the ZTest struct.  I don't think it makes sense to comingle
-		// this condition with the stderr checks as in the other
-		// testing code path below.
-		if _, ok := err.(*exec.ExitError); !ok {
-			// Not an exit error from the test shell so there was
-			// a problem execing and runnning the shell command...
-			return err
-		}
+		return fmt.Errorf("script failed: %w\n=== stdout ===\n%s=== stderr ===\n%s",
+			err, stdout, stderr)
 	}
 	for _, f := range zt.Outputs {
 		var actual string
