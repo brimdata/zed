@@ -162,7 +162,7 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 	case IDTypeMap:
 		b.WriteString("|{")
 		tv = formatTypeValue(tv, b)
-		b.WriteByte(',')
+		b.WriteByte(':')
 		tv = formatTypeValue(tv, b)
 		b.WriteString("}|")
 	case IDTypeUnion:

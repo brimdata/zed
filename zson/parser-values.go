@@ -488,29 +488,14 @@ func (p *Parser) matchSetOrMap() (zed.Any, error) {
 }
 
 func (p *Parser) matchMapEntries() ([]zed.Entry, error) {
-	l := p.lexer
 	var entries []zed.Entry
 	for {
-		ok, err := l.match('{')
-		if err != nil {
-			return nil, err
-		}
-		if !ok {
-			return entries, nil
-		}
 		entry, err := p.parseEntry()
 		if err != nil {
 			return nil, err
 		}
-		ok, err = l.match('}')
-		if err != nil {
-			return nil, err
-		}
-		if !ok {
-			return nil, p.error("mismatched braces while parsing map value entries")
-		}
 		entries = append(entries, *entry)
-		ok, err = p.lexer.match(',')
+		ok, err := p.lexer.match(',')
 		if err != nil {
 			return nil, err
 		}
@@ -527,15 +512,15 @@ func (p *Parser) parseEntry() (*zed.Entry, error) {
 	}
 	if key == nil {
 		// no match
-		return nil, errors.New("map key not found after '{' while parsing entries")
+		return nil, errors.New("map key not found while parsing map entry")
 	}
-	ok, err := p.lexer.match(',')
+	ok, err := p.lexer.match(':')
 	if err != nil {
 
 		return nil, err
 	}
 	if !ok {
-		return nil, p.error("no comma found after key vaoue while parsing map entry")
+		return nil, p.error("no colon found after map key while parsing map entry")
 	}
 	val, err := p.ParseValue()
 	if err != nil {

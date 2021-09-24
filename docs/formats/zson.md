@@ -492,14 +492,18 @@ HEADS (flip=(<HEADS,TAILS>))
 
 A map value has the following syntax:
 ```
-|{ {<key>, <value>}, {<key>, <value>}, ... }|
+|{ <key> : <value>, <key> : <value>, ... }|
 ```
+
+Whitespace around keys and values is generally optional, but to
+avoid ambiguity, whitespace must separate an IPv6 key from the colon
+that follows it.
 
 A type decorator applied to a map can either be one element, referring to a
 map type, or two elements referring to the type of the keys and type of the values.
 
 A map value may be empty.  An empty map value without a type decorator is
-presumed to be an empty map of type (`null`, `null`).
+presumed to be an empty map of type `|{null: null}|`.
 
 #### 3.4.7 Type Value
 
@@ -678,7 +682,7 @@ the defines their type.
 
 <mlist> = <mvalue> | <mlist> "," <mvalue>
 
-<mvalue> = "{" <value> "," <value> "}"
+<mvalue> = <value> ":" <value>
 
 <type-value> = "(" <type> ")"
 
