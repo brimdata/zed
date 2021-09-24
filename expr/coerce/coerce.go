@@ -32,6 +32,7 @@ type Pair struct {
 	// be coerced (you never need to coerce both).  Then we point a or b
 	// at buf and let go of the other input pointer.
 	result.Buffer
+	buf2 result.Buffer
 }
 
 func (c *Pair) Equal() bool {
@@ -118,10 +119,24 @@ func (c *Pair) promoteToUnsigned(in zcode.Bytes) (zcode.Bytes, error) {
 
 func (c *Pair) coerceNumbers(aid, bid int) (int, error) {
 	if zed.IsFloat(aid) {
+		if aid == zed.IDFloat32 {
+			v, err := zed.DecodeFloat32(c.A)
+			if err != nil {
+				return 0, err
+			}
+			c.A = c.buf2.Float64(float64(v))
+		}
 		c.B = c.Float64(intToFloat(bid, c.B))
 		return aid, nil
 	}
 	if zed.IsFloat(bid) {
+		if bid == zed.IDFloat32 {
+			v, err := zed.DecodeFloat32(c.B)
+			if err != nil {
+				return 0, err
+			}
+			c.B = c.buf2.Float64(float64(v))
+		}
 		c.A = c.Float64(intToFloat(aid, c.A))
 		return bid, nil
 	}
@@ -164,7 +179,7 @@ func (c *Pair) coerceNumbers(aid, bid int) (int, error) {
 func ToFloat(zv zed.Value) (float64, bool) {
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
-		f, _ := zed.DecodeFloat64(zv.Bytes)
+		f, _ := zed.DecodeFloat(zv.Bytes)
 		return f, true
 	}
 	if zed.IsInteger(id) {
@@ -190,7 +205,7 @@ func ToFloat(zv zed.Value) (float64, bool) {
 func ToUint(zv zed.Value) (uint64, bool) {
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
-		f, _ := zed.DecodeFloat64(zv.Bytes)
+		f, _ := zed.DecodeFloat(zv.Bytes)
 		return uint64(f), true
 	}
 	if zed.IsInteger(id) {
@@ -219,7 +234,7 @@ func ToUint(zv zed.Value) (uint64, bool) {
 func ToInt(zv zed.Value) (int64, bool) {
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
-		f, _ := zed.DecodeFloat64(zv.Bytes)
+		f, _ := zed.DecodeFloat(zv.Bytes)
 		return int64(f), true
 	}
 	if zed.IsInteger(id) {
@@ -271,7 +286,7 @@ func ToTime(zv zed.Value) (nano.Ts, bool) {
 		return nano.Ts(v), true
 	}
 	if zed.IsFloat(id) {
-		v, _ := zed.DecodeFloat64(zv.Bytes)
+		v, _ := zed.DecodeFloat(zv.Bytes)
 		return nano.Ts(v * 1e9), true
 	}
 	return 0, false
@@ -300,9 +315,9 @@ func ToDuration(in zed.Value) (nano.Duration, bool) {
 		v, err = zed.DecodeInt(in.Bytes)
 		//XXX check for overflow here
 		out = nano.Duration(v) * nano.Second
-	case zed.IDFloat64:
+	case zed.IDFloat32, zed.IDFloat64:
 		var v float64
-		v, err = zed.DecodeFloat64(in.Bytes)
+		v, err = zed.DecodeFloat(in.Bytes)
 		out = nano.DurationFromFloat(v)
 	default:
 		return 0, false

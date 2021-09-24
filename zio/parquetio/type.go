@@ -153,7 +153,7 @@ func newPrimitiveType(zctx *zed.Context, s *parquet.SchemaElement) (zed.Type, er
 	case parquet.Type_INT96:
 		return zctx.LookupTypeAlias("int96", zed.TypeBytes)
 	case parquet.Type_FLOAT:
-		return zctx.LookupTypeAlias("float", zed.TypeFloat64)
+		return zed.TypeFloat32, nil
 	case parquet.Type_DOUBLE:
 		return zed.TypeFloat64, nil
 	case parquet.Type_BYTE_ARRAY:

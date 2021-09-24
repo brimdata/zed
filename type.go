@@ -51,7 +51,7 @@ var (
 	TypeDuration = &TypeOfDuration{}
 	TypeTime     = &TypeOfTime{}
 	// XXX add TypeFloat16
-	// XXX add TypeFloat32
+	TypeFloat32 = &TypeOfFloat32{}
 	TypeFloat64 = &TypeOfFloat64{}
 	// XXX add TypeDecimal
 	TypeBool    = &TypeOfBool{}
@@ -112,7 +112,7 @@ var promote = []int{
 	IDInt64,   // IDInt64    = 7
 	IDInt64,   // IDDuration = 8
 	IDInt64,   // IDTime     = 9
-	IDFloat16, // IDFloat32  = 10
+	IDFloat16, // IDFloat16  = 10
 	IDFloat32, // IDFloat32  = 11
 	IDFloat64, // IDFloat64  = 12
 	IDDecimal, // IDDecimal  = 13
@@ -200,6 +200,8 @@ func LookupPrimitive(name string) Type {
 		return TypeDuration
 	case "time":
 		return TypeTime
+	case "float32":
+		return TypeFloat32
 	case "float64":
 		return TypeFloat64
 	case "bool":

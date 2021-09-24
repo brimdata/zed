@@ -70,7 +70,7 @@ func zngTypeToZeek(typ zed.Type) (string, error) {
 		return "int", nil
 	case *zed.TypeOfUint64:
 		return "count", nil
-	case *zed.TypeOfFloat64:
+	case *zed.TypeOfFloat32, *zed.TypeOfFloat64:
 		return "double", nil
 	case *zed.TypeOfIP:
 		return "addr", nil

@@ -3,7 +3,7 @@ zed: '*'
 # 1e-45 and 5e-324 are the smallest nonzero float32 and float64.
 # 3.4028235e+38 and 1.7976931348623157e+308 are the maximum float32 and
 # float64.
-input: |
+input: &input |
   {f32:null(float32),f64:null(float64)}
   {f32:+Inf(float32),f64:+Inf}
   {f32:-Inf(float32),f64:-Inf}
@@ -18,20 +18,4 @@ input: |
   {f32:3.4028235e+38(float32),f64:1.7976931348623157e+308}
   {f32:-3.4028235e+38(float32),f64:-1.7976931348623157e+308}
 
-output-flags: -f csv
-
-output: |
-  f32,f64
-  ,
-  +Inf,+Inf
-  -Inf,-Inf
-  NaN,NaN
-  0,0
-  1,1
-  -1,-1
-  2.2,2.2
-  -2.2,-2.2
-  1e-45,5e-324
-  -1e-45,-5e-324
-  3.4028235e+38,1.7976931348623157e+308
-  -3.4028235e+38,-1.7976931348623157e+308
+output: *input

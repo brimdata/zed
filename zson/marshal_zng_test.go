@@ -180,7 +180,7 @@ func TestUnmarshalRecord(t *testing.T) {
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 
-	const expected = `{top:{T2f1:{T3f1:1(int32),T3f2:1.},T2f2:"t2f2-string1"}}`
+	const expected = `{top:{T2f1:{T3f1:1(int32),T3f2:1.(float32)},T2f2:"t2f2-string1"}}`
 	require.Equal(t, expected, toZSON(t, rec))
 
 	zctx := zed.NewContext()

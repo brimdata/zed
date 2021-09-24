@@ -34,6 +34,8 @@ func LookupPrimitiveCaster(typ zed.Type) PrimitiveCaster {
 		return castToUint32
 	case zed.TypeUint64:
 		return castToUint64
+	case zed.TypeFloat32:
+		return castToFloat32
 	case zed.TypeFloat64:
 		return castToFloat64
 	case zed.TypeIP:
@@ -97,6 +99,14 @@ func castToBool(zv zed.Value) (zed.Value, error) {
 	return zed.Value{zed.TypeBool, zed.EncodeBool(b)}, nil
 }
 
+func castToFloat32(zv zed.Value) (zed.Value, error) {
+	f, ok := coerce.ToFloat(zv)
+	if !ok {
+		return zed.Value{}, ErrBadCast
+	}
+	return zed.Value{zed.TypeFloat32, zed.EncodeFloat32(float32(f))}, nil
+}
+
 func castToFloat64(zv zed.Value) (zed.Value, error) {
 	f, ok := coerce.ToFloat(zv)
 	if !ok {
@@ -144,7 +154,10 @@ func castToDuration(zv zed.Value) (zed.Value, error) {
 		return zed.Value{zed.TypeDuration, zed.EncodeDuration(d)}, nil
 	}
 	if zed.IsFloat(id) {
-		f, _ := zed.DecodeFloat64(zv.Bytes)
+		f, err := zed.DecodeFloat(zv.Bytes)
+		if err != nil {
+			return zed.Value{}, err
+		}
 		d := nano.DurationFromFloat(f)
 		// XXX GC
 		return zed.Value{zed.TypeDuration, zed.EncodeDuration(d)}, nil

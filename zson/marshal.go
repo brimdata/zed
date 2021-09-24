@@ -395,8 +395,10 @@ func (m *MarshalZNGContext) encodeAny(v reflect.Value) (zed.Type, error) {
 		}
 		m.Builder.AppendPrimitive(zed.EncodeUint(v.Uint()))
 		return zt, nil
-	// XXX add float32 to zng?
-	case reflect.Float64, reflect.Float32:
+	case reflect.Float32:
+		m.Builder.AppendPrimitive(zed.EncodeFloat32(float32(v.Float())))
+		return zed.TypeFloat32, nil
+	case reflect.Float64:
 		m.Builder.AppendPrimitive(zed.EncodeFloat64(v.Float()))
 		return zed.TypeFloat64, nil
 	default:
@@ -582,8 +584,10 @@ func (m *MarshalZNGContext) lookupType(typ reflect.Type) (zed.Type, error) {
 		return zed.TypeUint16, nil
 	case reflect.Uint8:
 		return zed.TypeUint8, nil
-	case reflect.Float64, reflect.Float32:
-		return zed.TypeUint64, nil
+	case reflect.Float32:
+		return zed.TypeFloat32, nil
+	case reflect.Float64:
+		return zed.TypeFloat64, nil
 	default:
 		return nil, fmt.Errorf("unsupported type: %v", typ.Kind())
 	}
@@ -795,11 +799,19 @@ func (u *UnmarshalZNGContext) decodeAny(zv zed.Value, v reflect.Value) error {
 		x, err := zed.DecodeUint(zv.Bytes)
 		v.SetUint(x)
 		return err
-	case reflect.Float32, reflect.Float64:
-		// TODO: zed.TypeFloat32 when it lands
-		switch zed.AliasOf(zv.Type) {
-		case zed.TypeFloat64:
-		default:
+	case reflect.Float32:
+		if zed.AliasOf(zv.Type) != zed.TypeFloat32 {
+			return incompatTypeError(zv.Type, v)
+		}
+		if zv.Bytes == nil {
+			v.Set(reflect.Zero(v.Type()))
+			return nil
+		}
+		x, err := zed.DecodeFloat32(zv.Bytes)
+		v.SetFloat(float64(x))
+		return err
+	case reflect.Float64:
+		if zed.AliasOf(zv.Type) != zed.TypeFloat64 {
 			return incompatTypeError(zv.Type, v)
 		}
 		if zv.Bytes == nil {
@@ -1124,7 +1136,8 @@ func (u *UnmarshalZNGContext) lookupPrimitiveType(typ zed.Type) (reflect.Type, e
 		v = int32(0)
 	case *zed.TypeOfInt64:
 		v = int64(0)
-	// TODO: zed.TypeFloat32 when it lands
+	case *zed.TypeOfFloat32:
+		v = float32(0)
 	case *zed.TypeOfFloat64:
 		v = float64(0)
 	case *zed.TypeOfIP:
