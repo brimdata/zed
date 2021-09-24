@@ -1,8 +1,6 @@
 zed: '*'
 
-# Add "typ:({}) (mytype=(type))," (between net and err to maintain type
-# ID order) when https://github.com/brimdata/zed/issues/2518 is fixed.
-input: |
+input: &input |
   {
     u8: 0 (myuint8=(uint8)),
     u16: 0 (myuint16=(uint16)),
@@ -21,31 +19,11 @@ input: |
     bst: "" (mybstring=(bstring)),
     ip: 0.0.0.0 (=myip),
     net: 0.0.0.0/0 (=mynet),
+    typ: ({}) (=mytype),
     err: "" (myerror=(error)),
     nul: null (mynull=(null))
   }
 
 output-flags: -pretty=2
 
-output: |
-  {
-    u8: 0 (myuint8=(uint8)),
-    u16: 0 (myuint16=(uint16)),
-    u32: 0 (myuint32=(uint32)),
-    u64: 0 (myuint64=(uint64)),
-    i8: 0 (myint8=(int8)),
-    i16: 0 (myint16=(int16)),
-    i32: 0 (myint32=(int32)),
-    i64: 0 (=myint64),
-    dur: 0s (=myduration),
-    tim: 1970-01-01T00:00:00Z (=mytime),
-    f64: 0. (=myfloat64),
-    boo: false (=mybool),
-    byt: 0x00 (=mybytes),
-    str: "" (=mystring),
-    bst: "" (mybstring=(bstring)),
-    ip: 0.0.0.0 (=myip),
-    net: 0.0.0.0/0 (=mynet),
-    err: "" (myerror=(error)),
-    nul: null (mynull=(null))
-  }
+output: *input
