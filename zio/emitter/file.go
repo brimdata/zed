@@ -27,6 +27,9 @@ func IsTerminal(w io.Writer) bool {
 	if f, ok := w.(*os.File); ok {
 		return terminal.IsTerminalFile(f)
 	}
+	if nc, ok := w.(*storage.NopCloser); ok {
+		return IsTerminal(nc.Writer)
+	}
 	return false
 }
 
