@@ -9,6 +9,9 @@ import (
 // the Reader interfaces.
 type Array []*zng.Record
 
+var _ zio.Reader = (*Array)(nil)
+var _ zio.Writer = (*Array)(nil)
+
 func (a Array) Ref() {
 	// do nothing... let the GC reclaim it
 }
