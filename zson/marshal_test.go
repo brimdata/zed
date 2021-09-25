@@ -54,7 +54,6 @@ func TestInterfaceMarshal(t *testing.T) {
 	u := zson.NewUnmarshaler()
 	u.Bind(Plant{}, Animal{})
 	var thing Thing
-	require.NoError(t, err)
 
 	err = u.Unmarshal(zsonRose, &thing)
 	require.NoError(t, err)
