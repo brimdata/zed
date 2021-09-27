@@ -1,4 +1,4 @@
-# Zed [![Tests][tests-img]][tests]
+# Zed [![Tests][tests-img]][tests] [![GoPkg][gopkg-img]][gopkg]
 
 _Zed_ is a new kind of data lake that provides lightweight search and
 analytics for semi-structured data (like JSON) as well as
@@ -123,11 +123,13 @@ See the [contributing guide](CONTRIBUTING.md) on how you can help improve Zed!
 
 Join our [Public Slack](https://www.brimsecurity.com/join-slack/) workspace for announcements, Q&A, and to trade tips!
 
-[tests-img]: https://github.com/brimdata/zed/workflows/Tests/badge.svg
-[tests]: https://github.com/brimdata/zed/actions?query=workflow%3ATests
-
 ## Acknowledgment
 
 We modeled this README after
 Philip O'Toole's brilliantly succinct
 [description of `rqlite`](https://github.com/rqlite/rqlite).
+
+[tests-img]: https://github.com/brimdata/zed/workflows/Tests/badge.svg
+[tests]: https://github.com/brimdata/zed/actions?query=workflow%3ATests
+[gopkg-img]: https://pkg.go.dev/badge/github.com/brimdata/zed
+[gopkg]: https://pkg.go.dev/github.com/brimdata/zed
