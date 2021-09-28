@@ -9,7 +9,7 @@ package zson
 import (
 	"strings"
 
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 )
@@ -85,7 +85,7 @@ func ParseValue(zctx *Context, zson string) (zng.Value, error) {
 	return Build(zcode.NewBuilder(), val)
 }
 
-func ParseValueFromAST(zctx *Context, ast zed.Value) (zng.Value, error) {
+func ParseValueFromAST(zctx *Context, ast astzed.Value) (zng.Value, error) {
 	val, err := NewAnalyzer().ConvertValue(zctx, ast)
 	if err != nil {
 		return zng.Value{}, err
@@ -93,6 +93,6 @@ func ParseValueFromAST(zctx *Context, ast zed.Value) (zng.Value, error) {
 	return Build(zcode.NewBuilder(), val)
 }
 
-func TranslateType(zctx *Context, astType zed.Type) (zng.Type, error) {
+func TranslateType(zctx *Context, astType astzed.Type) (zng.Type, error) {
 	return NewAnalyzer().convertType(zctx, astType)
 }

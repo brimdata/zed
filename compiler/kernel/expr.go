@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/agg"
 	"github.com/brimdata/zed/expr/function"
@@ -49,7 +49,7 @@ func compileExpr(zctx *zson.Context, scope *Scope, e dag.Expr) (expr.Evaluator, 
 		return nil, errors.New("null expression not allowed")
 	}
 	switch e := e.(type) {
-	case *zed.Primitive:
+	case *astzed.Primitive:
 		zv, err := zson.ParsePrimitive(e.Type, e.Text)
 		if err != nil {
 			return nil, err
@@ -86,7 +86,7 @@ func compileExpr(zctx *zson.Context, scope *Scope, e dag.Expr) (expr.Evaluator, 
 		return compileCall(zctx, scope, *e)
 	case *dag.Cast:
 		return compileCast(zctx, scope, *e)
-	case *zed.TypeValue:
+	case *astzed.TypeValue:
 		return compileTypeValue(zctx, scope, e)
 	case *dag.SeqExpr:
 		return compileSeqExpr(zctx, scope, e)
@@ -454,8 +454,8 @@ func compileExprs(zctx *zson.Context, scope *Scope, in []dag.Expr) ([]expr.Evalu
 	return out, nil
 }
 
-func compileTypeValue(zctx *zson.Context, scope *Scope, t *zed.TypeValue) (expr.Evaluator, error) {
-	if typ, ok := t.Value.(*zed.TypeName); ok {
+func compileTypeValue(zctx *zson.Context, scope *Scope, t *astzed.TypeValue) (expr.Evaluator, error) {
+	if typ, ok := t.Value.(*astzed.TypeName); ok {
 		// We currently support dynamic type names only for
 		// top-level type names.  By dynamic, we mean typedefs that
 		// come from the data instead of the Zed.  For dynamic type

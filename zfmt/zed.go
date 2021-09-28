@@ -1,7 +1,7 @@
 package zfmt
 
 import (
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/zng"
 )
 
@@ -10,7 +10,7 @@ type canonZed struct {
 }
 
 //XXX this needs to change when we use the zson values from the ast
-func (c *canonZed) literal(e zed.Primitive) {
+func (c *canonZed) literal(e astzed.Primitive) {
 	switch e.Type {
 	case "string", "bstring", "error":
 		c.write("\"%s\"", e.Text)
@@ -43,48 +43,48 @@ func (c *canonZed) fieldpath(path []string) {
 	}
 }
 
-func (c *canonZed) typ(t zed.Type) {
+func (c *canonZed) typ(t astzed.Type) {
 	switch t := t.(type) {
-	case *zed.TypePrimitive:
+	case *astzed.TypePrimitive:
 		c.write(t.Name)
-	case *zed.TypeRecord:
+	case *astzed.TypeRecord:
 		c.write("{")
 		c.typeFields(t.Fields)
 		c.write("}")
-	case *zed.TypeArray:
+	case *astzed.TypeArray:
 		c.write("[")
 		c.typ(t.Type)
 		c.write("]")
-	case *zed.TypeSet:
+	case *astzed.TypeSet:
 		c.write("|[")
 		c.typ(t.Type)
 		c.write("]|")
-	case *zed.TypeUnion:
+	case *astzed.TypeUnion:
 		c.write("(")
 		c.types(t.Types)
 		c.write(")")
-	case *zed.TypeEnum:
+	case *astzed.TypeEnum:
 		//XXX need to figure out Zed syntax for enum literal which may
 		// be different than zson, requiring some ast adjustments.
 		c.write("TBD:ENUM")
-	case *zed.TypeMap:
+	case *astzed.TypeMap:
 		c.write("|{")
 		c.typ(t.KeyType)
 		c.write(":")
 		c.typ(t.ValType)
 		c.write("}|")
-	case *zed.TypeNull:
+	case *astzed.TypeNull:
 		c.write("null")
-	case *zed.TypeDef:
+	case *astzed.TypeDef:
 		c.write("%s=(", t.Name)
 		c.typ(t.Type)
 		c.write(")")
-	case *zed.TypeName:
+	case *astzed.TypeName:
 		c.write(t.Name)
 	}
 }
 
-func (c *canonZed) typeFields(fields []zed.TypeField) {
+func (c *canonZed) typeFields(fields []astzed.TypeField) {
 	for k, f := range fields {
 		if k != 0 {
 			c.write(",")
@@ -94,7 +94,7 @@ func (c *canonZed) typeFields(fields []zed.TypeField) {
 	}
 }
 
-func (c *canonZed) types(types []zed.Type) {
+func (c *canonZed) types(types []astzed.Type) {
 	for k, t := range types {
 		if k != 0 {
 			c.write(",")

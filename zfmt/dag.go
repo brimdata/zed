@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
 )
@@ -70,7 +70,7 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 			c.write(" where ")
 			c.expr(e.Where, false)
 		}
-	case *zed.Primitive:
+	case *astzed.Primitive:
 		c.literal(*e)
 	case *dag.UnaryExpr:
 		c.space()
@@ -102,7 +102,7 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 		c.fieldpath(e.Name)
 	case *dag.Ref:
 		c.write("%s", e.Name)
-	case *zed.TypeValue:
+	case *astzed.TypeValue:
 		c.write("type(")
 		c.typ(e.Value)
 		c.write(")")
@@ -400,7 +400,7 @@ func source(src dag.Source) string {
 }
 
 func isDAGTrue(e dag.Expr) bool {
-	if p, ok := e.(*zed.Primitive); ok {
+	if p, ok := e.(*astzed.Primitive); ok {
 		return p.Type == "bool" && p.Text == "true"
 	}
 	return false

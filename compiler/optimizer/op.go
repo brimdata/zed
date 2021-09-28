@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 )
@@ -269,7 +269,7 @@ func fieldsOf(e dag.Expr) (field.List, bool) {
 		return nil, false
 	}
 	switch e := e.(type) {
-	case *zed.Primitive, *zed.TypeValue, *dag.Search:
+	case *astzed.Primitive, *astzed.TypeValue, *dag.Search:
 		return nil, true
 	case *dag.Ref:
 		// finish with issue #2756

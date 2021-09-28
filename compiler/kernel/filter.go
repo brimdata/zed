@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
@@ -35,7 +35,7 @@ func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
 
 func compileCompareField(zctx *zson.Context, scope *Scope, e *dag.BinaryExpr) (expr.Filter, error) {
 	if e.Op == "in" {
-		literal, ok := e.LHS.(*zed.Primitive)
+		literal, ok := e.LHS.(*astzed.Primitive)
 		if !ok {
 			// XXX If the RHS here is a literal container or a subnet,
 			// we should optimize this case.  This is part of
@@ -54,7 +54,7 @@ func compileCompareField(zctx *zson.Context, scope *Scope, e *dag.BinaryExpr) (e
 		comparison := expr.Contains(eql)
 		return expr.Apply(resolver, comparison), nil
 	}
-	literal, ok := e.RHS.(*zed.Primitive)
+	literal, ok := e.RHS.(*astzed.Primitive)
 	if !ok {
 		return nil, nil
 	}
@@ -137,7 +137,7 @@ func CompileFilter(zctx *zson.Context, scope *Scope, node dag.Expr) (expr.Filter
 		}
 		return expr.LogicalNot(e), nil
 
-	case *zed.Primitive:
+	case *astzed.Primitive:
 		// This literal translation should happen elsewhere will
 		// be fixed when we add ZSON literals to Zed, e.g.,
 		// dag.Literal.AsBool() etc methods.

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"strconv"
 
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
@@ -29,7 +29,7 @@ func (s *Stream) Transform(r *zng.Record) (Object, error) {
 	if err != nil {
 		return Object{}, err
 	}
-	var types []zed.Type
+	var types []astzed.Type
 	id, t := s.typeID(typ)
 	if t != nil {
 		types = append(types, t)
@@ -52,7 +52,7 @@ func (s *Stream) Transform(r *zng.Record) (Object, error) {
 	}, nil
 }
 
-func (s *Stream) typeID(typ zng.Type) (string, zed.Type) {
+func (s *Stream) typeID(typ zng.Type) (string, astzed.Type) {
 	if id, ok := s.encoder[typ]; ok {
 		return id, nil
 	}
@@ -66,7 +66,7 @@ func (s *Stream) typeID(typ zng.Type) (string, zed.Type) {
 	if !ok {
 		id = strconv.Itoa(zng.TypeID(typ))
 		s.encoder[typ] = id
-		t = &zed.TypeDef{
+		t = &astzed.TypeDef{
 			Kind: "typedef",
 			Name: id,
 			Type: t,
@@ -115,7 +115,7 @@ func (s *Stream) hasTypeType(typ zng.Type) bool {
 	return b
 }
 
-func (s *Stream) appendTypeValues(types []zed.Type, zv zng.Value) []zed.Type {
+func (s *Stream) appendTypeValues(types []astzed.Type, zv zng.Value) []astzed.Type {
 	zng.Walk(zv.Type, zv.Bytes, func(t zng.Type, bytes zcode.Bytes) error {
 		typ, err := s.zctx.TranslateType(t)
 		if err != nil {

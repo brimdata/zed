@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/agg"
 	"github.com/brimdata/zed/expr/function"
@@ -35,8 +35,8 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Kind:    "RegexpSearch",
 			Pattern: e.Pattern,
 		}, nil
-	case *zed.Primitive:
-		return &zed.Primitive{
+	case *astzed.Primitive:
+		return &astzed.Primitive{
 			Kind: "Primitive",
 			Type: e.Type,
 			Text: e.Text,
@@ -63,7 +63,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		return &dag.Search{
 			Kind: "Search",
 			Text: e.Text,
-			Value: zed.Primitive{
+			Value: astzed.Primitive{
 				Kind: "Primitive",
 				Type: e.Value.Type,
 				Text: e.Value.Text,
@@ -118,12 +118,12 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Expr: expr,
 			Type: typ,
 		}, nil
-	case *zed.TypeValue:
+	case *astzed.TypeValue:
 		tv, err := semType(scope, e.Value)
 		if err != nil {
 			return nil, err
 		}
-		return &zed.TypeValue{
+		return &astzed.TypeValue{
 			Kind:  "TypeValue",
 			Value: tv,
 		}, nil
@@ -255,7 +255,7 @@ func isRootIndex(scope *Scope, lhs, rhs dag.Expr) *dag.Path {
 }
 
 func isStringConst(scope *Scope, e dag.Expr) (string, bool) {
-	if p, ok := e.(*zed.Primitive); ok && p.Type == "string" {
+	if p, ok := e.(*astzed.Primitive); ok && p.Type == "string" {
 		return p.Text, true
 	}
 	if ref, ok := e.(*dag.Ref); ok {
@@ -581,7 +581,7 @@ func DotExprToFieldPath(e ast.Expr) *dag.Path {
 			if lhs == nil {
 				return nil
 			}
-			id, ok := e.RHS.(*zed.Primitive)
+			id, ok := e.RHS.(*astzed.Primitive)
 			if !ok || id.Type != "string" {
 				return nil
 			}

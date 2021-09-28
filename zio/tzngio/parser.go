@@ -7,7 +7,7 @@ import (
 	"net"
 	"strconv"
 
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
@@ -299,7 +299,7 @@ func ParseValue(typ zng.Type, in []byte) (zcode.Bytes, error) {
 	case *zng.TypeOfTime:
 		return ParseTime(in)
 	default:
-		primitive := zed.Primitive{
+		primitive := astzed.Primitive{
 			Kind: "Primitive",
 			Type: typ.String(),
 			Text: string(in),

@@ -12,7 +12,7 @@ var (
 
 // XXX Leaving this wrapper here for now.  When we move package zng into
 // the top-level zed package, we'll change all the references zson.Context
-// to zed.Context.  See issue #2824
+// to astzed.Context.  See issue #2824
 type Context struct {
 	*zng.Context
 }

@@ -3,7 +3,7 @@
 package ast
 
 import (
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 )
@@ -36,9 +36,9 @@ type Root struct {
 }
 
 type Search struct {
-	Kind  string        `json:"kind" unpack:""`
-	Text  string        `json:"text"`
-	Value zed.Primitive `json:"value"` //XXX search should be extended to complex types
+	Kind  string           `json:"kind" unpack:""`
+	Text  string           `json:"text"`
+	Value astzed.Primitive `json:"value"` //XXX search should be extended to complex types
 }
 
 type UnaryExpr struct {
@@ -85,9 +85,9 @@ type Call struct {
 }
 
 type Cast struct {
-	Kind string   `json:"kind" unpack:""`
-	Expr Expr     `json:"expr"`
-	Type zed.Type `json:"type"`
+	Kind string      `json:"kind" unpack:""`
+	Expr Expr        `json:"expr"`
+	Type astzed.Type `json:"type"`
 }
 
 type SeqExpr struct {
@@ -270,11 +270,11 @@ type (
 	// output result; likewise, if PartialsIn is true, the proc will
 	// expect partial results as input.
 	Summarize struct {
-		Kind     string         `json:"kind" unpack:""`
-		Duration *zed.Primitive `json:"duration"`
-		Limit    int            `json:"limit"`
-		Keys     []Assignment   `json:"keys"`
-		Aggs     []Assignment   `json:"aggs"`
+		Kind     string            `json:"kind" unpack:""`
+		Duration *astzed.Primitive `json:"duration"`
+		Limit    int               `json:"limit"`
+		Keys     []Assignment      `json:"keys"`
+		Aggs     []Assignment      `json:"aggs"`
 	}
 	// A Top proc is similar to a Sort with a few key differences:
 	// - It only sorts in descending order.
@@ -330,9 +330,9 @@ type (
 	}
 
 	TypeProc struct {
-		Kind string   `json:"kind" unpack:""`
-		Name string   `json:"name"`
-		Type zed.Type `json:"type"`
+		Kind string      `json:"kind" unpack:""`
+		Name string      `json:"name"`
+		Type astzed.Type `json:"type"`
 	}
 	// A SQLExpr can be a proc, an expression inside of a SQL FROM clause,
 	// or an expression used as a Zed value generator.  Currenly, the "select"
@@ -384,10 +384,10 @@ type (
 		ScanOrder string   `json:"scan_order"` // asc, desc, or unknown
 	}
 	Explode struct {
-		Kind string   `json:"kind" unpack:""`
-		Args []Expr   `json:"args"`
-		Type zed.Type `json:"type"`
-		As   Expr     `json:"as"`
+		Kind string      `json:"kind" unpack:""`
+		Args []Expr      `json:"args"`
+		Type astzed.Type `json:"type"`
+		As   Expr        `json:"as"`
 	}
 )
 
