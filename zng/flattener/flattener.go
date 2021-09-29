@@ -3,15 +3,15 @@ package flattener
 import (
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 )
 
 type Flattener struct {
 	zctx   *zson.Context
-	mapper *resolver.Mapper
+	mapper *zed.Mapper
 }
 
 // New returns a flattener that transforms nested records to flattened
@@ -24,7 +24,7 @@ func New(zctx *zson.Context) *Flattener {
 		// This mapper maps types back into the same context and gives
 		// us a convenient way to track type-ID to type-ID for types that
 		// need to be flattened.
-		mapper: resolver.NewMapper(zctx),
+		mapper: zed.NewMapper(zctx),
 	}
 }
 
