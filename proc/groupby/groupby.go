@@ -5,6 +5,7 @@ import (
 	"errors"
 	"sync"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
@@ -13,8 +14,6 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/builder"
-	"github.com/brimdata/zed/zng/typevector"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -36,13 +35,13 @@ type Proc struct {
 type Aggregator struct {
 	ctx  context.Context
 	zctx *zson.Context
-	// The keyTypes and outTypes tables maps a vector of types resulting
+	// The keyTypes and outTypes tables map a vector of types resulting
 	// from evaluating the key and reducer expressions to a small int,
 	// such that the same vector of types maps to the same small int.
 	// The int is used in each row to track the type of the keys and used
 	// at the output to track the combined type of the keys and aggregations.
-	keyTypes     *typevector.Table
-	outTypes     *typevector.Table
+	keyTypes     *zed.TypeVectorTable
+	outTypes     *zed.TypeVectorTable
 	block        map[int]struct{}
 	typeCache    []zng.Type
 	keyCache     []byte // Reduces memory allocations in Consume.
@@ -50,7 +49,7 @@ type Aggregator struct {
 	keyExprs     []expr.Evaluator
 	aggRefs      []expr.Evaluator
 	aggs         []*expr.Aggregator
-	builder      *builder.ColumnBuilder
+	builder      *zed.ColumnBuilder
 	recordTypes  map[int]*zng.TypeRecord
 	table        map[string]*Row
 	limit        int
@@ -71,7 +70,7 @@ type Row struct {
 	reducers valRow
 }
 
-func NewAggregator(ctx context.Context, zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *builder.ColumnBuilder, limit int, inputDir order.Direction, partialsIn, partialsOut bool) (*Aggregator, error) {
+func NewAggregator(ctx context.Context, zctx *zson.Context, keyRefs, keyExprs, aggRefs []expr.Evaluator, aggs []*expr.Aggregator, builder *zed.ColumnBuilder, limit int, inputDir order.Direction, partialsIn, partialsOut bool) (*Aggregator, error) {
 	if limit == 0 {
 		limit = DefaultLimit
 	}
@@ -110,8 +109,8 @@ func NewAggregator(ctx context.Context, zctx *zson.Context, keyRefs, keyExprs, a
 		zctx:         zctx,
 		inputDir:     inputDir,
 		limit:        limit,
-		keyTypes:     typevector.NewTable(),
-		outTypes:     typevector.NewTable(),
+		keyTypes:     zed.NewTypeVectorTable(),
+		outTypes:     zed.NewTypeVectorTable(),
 		keyRefs:      keyRefs,
 		keyExprs:     keyExprs,
 		aggRefs:      aggRefs,
@@ -136,7 +135,7 @@ func New(pctx *proc.Context, parent proc.Interface, keys []expr.Assignment, aggN
 		names = append(names, e.LHS)
 	}
 	names = append(names, aggNames...)
-	builder, err := builder.NewColumnBuilder(pctx.Zctx, names)
+	builder, err := zed.NewColumnBuilder(pctx.Zctx, names)
 	if err != nil {
 		return nil, err
 	}

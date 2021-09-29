@@ -6,16 +6,16 @@ import (
 	"strings"
 	"time"
 
+	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/flattener"
 	"github.com/brimdata/zed/zson"
 )
 
 type Writer struct {
 	WriterOpts
 	writer    io.WriteCloser
-	flattener *flattener.Flattener
+	flattener *expr.Flattener
 	format    tzngio.OutFmt
 }
 
@@ -32,7 +32,7 @@ func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts) *Writer {
 	return &Writer{
 		WriterOpts: opts,
 		writer:     w,
-		flattener:  flattener.New(zson.NewContext()),
+		flattener:  expr.NewFlattener(zson.NewContext()),
 		format:     format,
 	}
 }
