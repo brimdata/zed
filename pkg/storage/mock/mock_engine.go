@@ -6,11 +6,10 @@ package mock
 
 import (
 	context "context"
-	io "io"
-	reflect "reflect"
-
 	storage "github.com/brimdata/zed/pkg/storage"
 	gomock "github.com/golang/mock/gomock"
+	io "io"
+	reflect "reflect"
 )
 
 // MockEngine is a mock of Engine interface
