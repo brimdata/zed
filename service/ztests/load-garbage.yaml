@@ -19,7 +19,7 @@ outputs:
       	zson: identifier "This" must be enum and requires decorator
       	zng: malformed zng record
       	csv: auto-detection not supported
-      	json: auto-detection not supported
+      	json: invalid character 'T' looking for beginning of value
       	parquet: auto-detection not supported
       	zst: auto-detection not supported
       status code 400: no records in request

@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
@@ -58,6 +59,15 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	}
 	track.Reset()
 
+	// JSON comes after ZSON because we want the ZSON reader to handle
+	// top-level JSON objects and the JSON reader to handle top-level
+	// JSON arrays.
+	jsonErr := match(jsonio.NewReader(track, zson.NewContext()), "json")
+	if jsonErr == nil {
+		return jsonio.NewReader(recorder, zctx), nil
+	}
+	track.Reset()
+
 	// For the matching reader, force validation to true so we are extra
 	// careful about auto-matching ZNG.  Then, once matched, relaxed
 	// validation to the user setting in the actual reader returned.
@@ -78,7 +88,6 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	//track.Reset()
 
 	csvErr := errors.New("csv: auto-detection not supported")
-	jsonErr := errors.New("json: auto-detection not supported")
 	parquetErr := errors.New("parquet: auto-detection not supported")
 	zstErr := errors.New("zst: auto-detection not supported")
 	return nil, joinErrs([]error{tzngErr, zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, zstErr})

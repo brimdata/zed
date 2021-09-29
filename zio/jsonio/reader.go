@@ -14,7 +14,7 @@ type Reader struct {
 	decoder *json.Decoder
 }
 
-func NewReader(r io.Reader, zctx *zed.Context) (*Reader, error) {
+func NewReader(r io.Reader, zctx *zed.Context) *Reader {
 	d := json.NewDecoder(r)
 	// Prime d's buffer so we can check for an array.
 	d.More()
@@ -26,7 +26,7 @@ func NewReader(r io.Reader, zctx *zed.Context) (*Reader, error) {
 	return &Reader{
 		zctx:    zctx,
 		decoder: d,
-	}, nil
+	}
 }
 
 func (r *Reader) Read() (*zed.Record, error) {
