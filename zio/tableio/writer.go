@@ -7,15 +7,15 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/flattener"
 	"github.com/brimdata/zed/zson"
 )
 
 type Writer struct {
 	writer    io.WriteCloser
-	flattener *flattener.Flattener
+	flattener *expr.Flattener
 	table     *tabwriter.Writer
 	typ       *zng.TypeRecord
 	limit     int
@@ -31,7 +31,7 @@ func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	}
 	return &Writer{
 		writer:    w,
-		flattener: flattener.New(zson.NewContext()),
+		flattener: expr.NewFlattener(zson.NewContext()),
 		table:     table,
 		limit:     1000,
 		format:    format,

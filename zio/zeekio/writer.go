@@ -6,10 +6,10 @@ import (
 	"io"
 	"strings"
 
+	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/flattener"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -18,7 +18,7 @@ var ErrDescriptorChanged = errors.New("descriptor changed")
 type Writer struct {
 	writer io.WriteCloser
 	header
-	flattener *flattener.Flattener
+	flattener *expr.Flattener
 	typ       *zng.TypeRecord
 	format    tzngio.OutFmt
 }
@@ -32,7 +32,7 @@ func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	}
 	return &Writer{
 		writer:    w,
-		flattener: flattener.New(zson.NewContext()),
+		flattener: expr.NewFlattener(zson.NewContext()),
 		format:    format,
 	}
 }
