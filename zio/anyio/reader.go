@@ -62,7 +62,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	// JSON comes after ZSON because we want the ZSON reader to handle
 	// top-level JSON objects and the JSON reader to handle top-level
 	// JSON arrays.
-	jsonErr := match(jsonio.NewReader(track, zson.NewContext()), "json")
+	jsonErr := match(jsonio.NewReader(track, zed.NewContext()), "json")
 	if jsonErr == nil {
 		return jsonio.NewReader(recorder, zctx), nil
 	}
