@@ -4,6 +4,7 @@ import (
 	"context"
 	"sync"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/data"
@@ -11,12 +12,11 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zson"
 )
 
 type Scheduler struct {
 	ctx    context.Context
-	zctx   *zson.Context
+	zctx   *zed.Context
 	pool   *Pool
 	snap   commits.View
 	span   extent.Span
@@ -29,7 +29,7 @@ type Scheduler struct {
 
 var _ proc.Scheduler = (*Scheduler)(nil)
 
-func NewSortedScheduler(ctx context.Context, zctx *zson.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter) *Scheduler {
+func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter) *Scheduler {
 	return &Scheduler{
 		ctx:    ctx,
 		zctx:   zctx,

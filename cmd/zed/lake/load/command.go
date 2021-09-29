@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/procflags"
@@ -16,7 +17,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/units"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Load = &charm.Spec{
@@ -76,7 +76,7 @@ func (c *Command) Run(args []string) error {
 	}
 	paths := args
 	local := storage.NewLocalEngine()
-	readers, err := c.inputFlags.Open(ctx, zson.NewContext(), local, paths, false)
+	readers, err := c.inputFlags.Open(ctx, zed.NewContext(), local, paths, false)
 	if err != nil {
 		return err
 	}

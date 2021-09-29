@@ -24,7 +24,7 @@ const (
 )
 
 type Shaper struct {
-	zctx       *zson.Context
+	zctx       *zed.Context
 	typExpr    Evaluator
 	expr       Evaluator
 	shapers    map[zed.Type]*ConstShaper
@@ -33,7 +33,7 @@ type Shaper struct {
 
 // NewShaper returns a shaper that will shape the result of expr
 // to the type returned by typExpr.
-func NewShaper(zctx *zson.Context, expr, typExpr Evaluator, tf ShaperTransform) *Shaper {
+func NewShaper(zctx *zed.Context, expr, typExpr Evaluator, tf ShaperTransform) *Shaper {
 	return &Shaper{
 		zctx:       zctx,
 		typExpr:    typExpr,
@@ -67,7 +67,7 @@ func (s *Shaper) Eval(rec *zed.Record) (zed.Value, error) {
 }
 
 type ConstShaper struct {
-	zctx       *zson.Context
+	zctx       *zed.Context
 	b          zcode.Builder
 	expr       Evaluator
 	shapeTo    zed.Type
@@ -77,7 +77,7 @@ type ConstShaper struct {
 
 // NewConstShaper returns a shaper that will shape the result of expr
 // to the provided shapeTo type.
-func NewConstShaper(zctx *zson.Context, expr Evaluator, shapeTo zed.Type, tf ShaperTransform) *ConstShaper {
+func NewConstShaper(zctx *zed.Context, expr Evaluator, shapeTo zed.Type, tf ShaperTransform) *ConstShaper {
 	return &ConstShaper{
 		zctx:       zctx,
 		expr:       expr,
@@ -134,7 +134,7 @@ type shaper struct {
 	step step
 }
 
-func createShaper(zctx *zson.Context, tf ShaperTransform, spec, in zed.Type) (*shaper, error) {
+func createShaper(zctx *zed.Context, tf ShaperTransform, spec, in zed.Type) (*shaper, error) {
 	typ, err := shaperType(zctx, tf, spec, in)
 	if err != nil {
 		return nil, err
@@ -143,7 +143,7 @@ func createShaper(zctx *zson.Context, tf ShaperTransform, spec, in zed.Type) (*s
 	return &shaper{typ, step}, err
 }
 
-func shaperType(zctx *zson.Context, tf ShaperTransform, spec, in zed.Type) (zed.Type, error) {
+func shaperType(zctx *zed.Context, tf ShaperTransform, spec, in zed.Type) (zed.Type, error) {
 	inUnder, specUnder := zed.AliasOf(in), zed.AliasOf(spec)
 	if tf&Cast > 0 {
 		if inUnder == specUnder || inUnder == zed.TypeNull {
@@ -202,7 +202,7 @@ func shaperType(zctx *zson.Context, tf ShaperTransform, spec, in zed.Type) (zed.
 	return in, nil
 }
 
-func shaperColumns(zctx *zson.Context, tf ShaperTransform, specRec, inRec *zed.TypeRecord) ([]zed.Column, error) {
+func shaperColumns(zctx *zed.Context, tf ShaperTransform, specRec, inRec *zed.TypeRecord) ([]zed.Column, error) {
 	crop, fill := tf&Crop > 0, tf&Fill > 0
 	if tf&Order == 0 {
 		crop, fill = !fill, !crop

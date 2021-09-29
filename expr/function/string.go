@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 // XXX these string format functions should be handlded by :string cast
@@ -249,12 +248,12 @@ func (*trim) Call(args []zed.Value) (zed.Value, error) {
 }
 
 type split struct {
-	zctx  *zson.Context
+	zctx  *zed.Context
 	typ   zed.Type
 	bytes zcode.Bytes
 }
 
-func newSplit(zctx *zson.Context) *split {
+func newSplit(zctx *zed.Context) *split {
 	return &split{
 		typ: zctx.LookupTypeArray(zed.TypeString),
 	}

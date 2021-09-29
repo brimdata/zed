@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zson"
 )
 
 type header struct {
@@ -23,7 +22,7 @@ type header struct {
 
 type Parser struct {
 	header
-	zctx       *zson.Context
+	zctx       *zed.Context
 	types      *tzngio.TypeParser
 	unknown    int // Count of unknown directives
 	needfields bool
@@ -41,7 +40,7 @@ var (
 	ErrBadEscape    = errors.New("bad escape sequence") //XXX
 )
 
-func NewParser(r *zson.Context) *Parser {
+func NewParser(r *zed.Context) *Parser {
 	return &Parser{
 		header: header{separator: " "},
 		zctx:   r,
@@ -170,7 +169,7 @@ func (p *Parser) ParseDirective(line []byte) error {
 // bool indicating if a _path column was added.
 // Note that according to the zng spec, all the fields for a nested
 // record must be adjacent which simplifies the logic here.
-func Unflatten(zctx *zson.Context, columns []zed.Column, addPath bool) ([]zed.Column, bool, error) {
+func Unflatten(zctx *zed.Context, columns []zed.Column, addPath bool) ([]zed.Column, bool, error) {
 	hasPath := false
 	for _, col := range columns {
 		// XXX could validate field names here...
@@ -192,7 +191,7 @@ func Unflatten(zctx *zson.Context, columns []zed.Column, addPath bool) ([]zed.Co
 	return out, needpath, nil
 }
 
-func unflattenRecord(zctx *zson.Context, cols []zed.Column) ([]zed.Column, error) {
+func unflattenRecord(zctx *zed.Context, cols []zed.Column) ([]zed.Column, error) {
 	// extract a []Column consisting of all the leading columns
 	// from the input that belong to the same record, with the
 	// common prefix removed from their name.

@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 type ArrayWriter struct {
@@ -46,7 +45,7 @@ func (a *ArrayWriter) Flush(eof bool) error {
 	return a.values.Flush(eof)
 }
 
-func (a *ArrayWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zed.Type, error) {
+func (a *ArrayWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
 	b.BeginContainer()
 	valType, err := a.values.MarshalZNG(zctx, b)
 	if err != nil {

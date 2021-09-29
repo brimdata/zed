@@ -17,7 +17,7 @@ func boomerang(t *testing.T, r1 Rule) (r2 Rule) {
 	t.Helper()
 	b, err := serialize(r1)
 	require.NoError(t, err)
-	reader := zngio.NewReader(bytes.NewReader(b), zson.NewContext())
+	reader := zngio.NewReader(bytes.NewReader(b), zed.NewContext())
 	rec, err := reader.Read()
 	require.NoError(t, err)
 	u := zson.NewZNGUnmarshaler()
@@ -44,7 +44,7 @@ func babbleReader(t *testing.T) zio.Reader {
 	r, err := os.Open("../../testdata/babble-sorted.zson")
 	require.NoError(t, err)
 	t.Cleanup(func() { r.Close() })
-	return zson.NewReader(r, zson.NewContext())
+	return zson.NewReader(r, zed.NewContext())
 }
 
 /* Not yet
@@ -56,7 +56,7 @@ func TestWriteIndices(t *testing.T) {
 	dir := iosrc.MustParseURI(t.TempDir())
 
 	ctx := context.Background()
-	r := zson.NewReader(strings.NewReader(data), zson.NewContext())
+	r := zson.NewReader(strings.NewReader(data), zed.NewContext())
 
 	ip := MustNewDefinition(NewTypeRule(zed.TypeIP))
 	proto := MustNewDefinition(NewFieldRule("proto"))
@@ -94,7 +94,7 @@ func TestWriteIndices(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(fmt.Sprintf("Find-%s-%t", test.def.Kind, test.has), func(t *testing.T) {
-			reader, err := Find(ctx, zson.NewContext(), dir, test.def.ID, test.pattern)
+			reader, err := Find(ctx, zed.NewContext(), dir, test.def.ID, test.pattern)
 			require.NoError(t, err)
 			recs, err := zbuf.ReadAll(reader)
 			require.NoError(t, err)
@@ -115,7 +115,7 @@ func TestFindTypeRule(t *testing.T) {
 	err := zbuf.Copy(w, babbleReader(t))
 	require.NoError(t, err)
 	require.NoError(t, w.Close())
-	reader, err := FindFromPath(context.Background(), zson.NewContext(), w.URI, "456")
+	reader, err := FindFromPath(context.Background(), zed.NewContext(), w.URI, "456")
 	require.NoError(t, err)
 	recs, err := zbuf.ReadAll(reader)
 	require.NoError(t, err)
@@ -137,7 +137,7 @@ func TestZedRule(t *testing.T) {
 	err = zbuf.Copy(w, babbleReader(t))
 	require.NoError(t, err)
 	require.NoError(t, w.Close())
-	reader, err := FindFromPath(context.Background(), zson.NewContext(), w.URI, "kartometer-trifocal")
+	reader, err := FindFromPath(context.Background(), zed.NewContext(), w.URI, "kartometer-trifocal")
 	require.NoError(t, err)
 	recs, err := zbuf.ReadAll(reader)
 	require.NoError(t, err)

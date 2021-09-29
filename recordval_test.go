@@ -76,7 +76,7 @@ func TestRecordTypeCheck(t *testing.T) {
 
 func TestRecordAccessAlias(t *testing.T) {
 	const input = `{foo:"hello" (=zfile),bar:true (=zbool)} (=0)`
-	reader := zson.NewReader(strings.NewReader(input), zson.NewContext())
+	reader := zson.NewReader(strings.NewReader(input), zed.NewContext())
 	rec, err := reader.Read()
 	require.NoError(t, err)
 	s, err := rec.AccessString("foo")
@@ -98,7 +98,7 @@ func TestRecordTs(t *testing.T) {
 		{"{ts:1}", nano.MinTs},                       // Type of ts field is not TypeOfTime.
 	}
 	for _, c := range cases {
-		zr := zson.NewReader(strings.NewReader(c.input), zson.NewContext())
+		zr := zson.NewReader(strings.NewReader(c.input), zed.NewContext())
 		rec, err := zr.Read()
 		assert.NoError(t, err)
 		require.NotNil(t, rec)

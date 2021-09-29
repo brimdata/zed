@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"unicode/utf8"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/stringsearch"
-	"github.com/brimdata/zed/zson"
 )
 
 const (
@@ -66,7 +66,7 @@ func NewBufferFilterForStringCase(pattern string) *BufferFilter {
 }
 
 // Eval returns true if buf matches the receiver and false otherwise.
-func (b *BufferFilter) Eval(zctx *zson.Context, buf []byte) bool {
+func (b *BufferFilter) Eval(zctx *zed.Context, buf []byte) bool {
 	switch b.op {
 	case opAnd:
 		return b.left.Eval(zctx, buf) && b.right.Eval(zctx, buf)

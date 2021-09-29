@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
 	goparquet "github.com/fraugster/parquet-go"
 )
 
@@ -16,7 +15,7 @@ type Reader struct {
 	builder builder
 }
 
-func NewReader(r io.Reader, zctx *zson.Context) (*Reader, error) {
+func NewReader(r io.Reader, zctx *zed.Context) (*Reader, error) {
 	rs, ok := r.(io.ReadSeeker)
 	if !ok {
 		return nil, errors.New("reader cannot seek")

@@ -104,7 +104,7 @@ func (p *Pool) removeBranch(ctx context.Context, name string) error {
 	return p.branches.Remove(ctx, *config)
 }
 
-func (p *Pool) newScheduler(ctx context.Context, zctx *zson.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+func (p *Pool) newScheduler(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
 	snap, err := p.commits.Snapshot(ctx, commit)
 	if err != nil {
 		return nil, err
@@ -159,7 +159,7 @@ type BranchTip struct {
 	Commit ksuid.KSUID
 }
 
-func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
+func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr.Filter) (zbuf.Array, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err

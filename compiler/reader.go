@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
@@ -12,7 +13,6 @@ import (
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -49,10 +49,10 @@ func (*internalAdaptor) Layout(context.Context, dag.Source) order.Layout {
 	return order.Nil
 }
 
-func (*internalAdaptor) NewScheduler(context.Context, *zson.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
+func (*internalAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, errors.New("invalid pool or file scan specified for internally streamed Zed query")
 }
 
-func (*internalAdaptor) Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
+func (*internalAdaptor) Open(context.Context, *zed.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
 	return nil, errors.New("invalid file or URL access for internally streamed Zed query")
 }

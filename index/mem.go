@@ -7,7 +7,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 // MemTable implements an in-memory table to build a microindex.
@@ -18,13 +17,13 @@ type MemTable struct {
 	table   map[string]zcode.Bytes
 	keys    []zcode.Bytes
 	offset  int
-	zctx    *zson.Context
+	zctx    *zed.Context
 	builder *zed.Builder
 	keyType zed.Type
 	valType zed.Type
 }
 
-func NewMemTable(zctx *zson.Context) *MemTable {
+func NewMemTable(zctx *zed.Context) *MemTable {
 	return &MemTable{
 		table: make(map[string]zcode.Bytes),
 		zctx:  zctx,

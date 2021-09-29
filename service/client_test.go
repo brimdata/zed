@@ -6,6 +6,7 @@ import (
 	"io"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/lake"
@@ -60,7 +61,7 @@ func (c *testClient) TestBranchGet(id ksuid.KSUID) (config lake.BranchMeta) {
 func (c *testClient) zioreader(r *client.Response) zio.Reader {
 	format, err := api.MediaTypeToFormat(r.ContentType)
 	require.NoError(c, err)
-	zr, err := anyio.NewReaderWithOpts(r.Body, zson.NewContext(), anyio.ReaderOpts{Format: format})
+	zr, err := anyio.NewReaderWithOpts(r.Body, zed.NewContext(), anyio.ReaderOpts{Format: format})
 	require.NoError(c, err)
 	return zr
 }

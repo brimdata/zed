@@ -57,7 +57,7 @@ func SelfDescribing(typ zed.Type) bool {
 	return false
 }
 
-func ParseType(zctx *Context, zson string) (zed.Type, error) {
+func ParseType(zctx *zed.Context, zson string) (zed.Type, error) {
 	zp, err := NewParser(strings.NewReader(zson))
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func ParseType(zctx *Context, zson string) (zed.Type, error) {
 	return NewAnalyzer().convertType(zctx, ast)
 }
 
-func ParseValue(zctx *Context, zson string) (zed.Value, error) {
+func ParseValue(zctx *zed.Context, zson string) (zed.Value, error) {
 	zp, err := NewParser(strings.NewReader(zson))
 	if err != nil {
 		return zed.Value{}, err
@@ -85,7 +85,7 @@ func ParseValue(zctx *Context, zson string) (zed.Value, error) {
 	return Build(zcode.NewBuilder(), val)
 }
 
-func ParseValueFromAST(zctx *Context, ast astzed.Value) (zed.Value, error) {
+func ParseValueFromAST(zctx *zed.Context, ast astzed.Value) (zed.Value, error) {
 	val, err := NewAnalyzer().ConvertValue(zctx, ast)
 	if err != nil {
 		return zed.Value{}, err
@@ -93,6 +93,6 @@ func ParseValueFromAST(zctx *Context, ast astzed.Value) (zed.Value, error) {
 	return Build(zcode.NewBuilder(), val)
 }
 
-func TranslateType(zctx *Context, astType astzed.Type) (zed.Type, error) {
+func TranslateType(zctx *zed.Context, astType astzed.Type) (zed.Type, error) {
 	return NewAnalyzer().convertType(zctx, astType)
 }

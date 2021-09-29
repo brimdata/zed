@@ -4,11 +4,10 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 )
 
 type Writer struct {
-	zctx    *zson.Context
+	zctx    *zed.Context
 	builder *zcode.Builder
 	writer  zio.Writer
 	typ     zed.Type
@@ -17,7 +16,7 @@ type Writer struct {
 
 func NewWriter(w zio.Writer) *Writer {
 	return &Writer{
-		zctx:    zson.NewContext(),
+		zctx:    zed.NewContext(),
 		builder: zcode.NewBuilder(),
 		writer:  w,
 	}

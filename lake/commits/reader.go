@@ -19,7 +19,7 @@ type LogReader struct {
 
 var _ zio.Reader = (*LogReader)(nil)
 
-func newLogReader(ctx context.Context, zctx *zson.Context, store *Store, leaf, stop ksuid.KSUID) *LogReader {
+func newLogReader(ctx context.Context, zctx *zed.Context, store *Store, leaf, stop ksuid.KSUID) *LogReader {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StyleSimple)
 	return &LogReader{

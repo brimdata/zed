@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 type Collect struct {
@@ -42,7 +41,7 @@ func (c *Collect) update(b zcode.Bytes) {
 	}
 }
 
-func (c *Collect) Result(zctx *zson.Context) (zed.Value, error) {
+func (c *Collect) Result(zctx *zed.Context) (zed.Value, error) {
 	if c.typ == nil {
 		// no values found
 		return zed.Value{Type: zed.TypeNull}, nil
@@ -78,6 +77,6 @@ func (c *Collect) ConsumeAsPartial(zv zed.Value) error {
 	return nil
 }
 
-func (c *Collect) ResultAsPartial(tc *zson.Context) (zed.Value, error) {
+func (c *Collect) ResultAsPartial(tc *zed.Context) (zed.Value, error) {
 	return c.Result(tc)
 }

@@ -18,12 +18,12 @@ const (
 
 type Reader struct {
 	scanner *skim.Scanner
-	zctx    *zson.Context
+	zctx    *zed.Context
 	decoder decoder
 	builder *zcode.Builder
 }
 
-func NewReader(reader io.Reader, zctx *zson.Context) *Reader {
+func NewReader(reader io.Reader, zctx *zed.Context) *Reader {
 	buffer := make([]byte, ReadSize)
 	return &Reader{
 		scanner: skim.NewScanner(reader, buffer, MaxLineSize),

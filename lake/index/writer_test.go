@@ -40,7 +40,7 @@ func TestWriterError(t *testing.T) {
 	const r2 = "{ts:1970-01-01T00:00:02Z,id:2}"
 	o := Object{Rule: NewFieldRule("test", "id"), ID: ksuid.New()}
 	w := testWriter(t, o)
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	arr1, err := zbuf.ReadAll(zson.NewReader(strings.NewReader(r1), zctx))
 	require.NoError(t, err)
 	arr2, err := zbuf.ReadAll(zson.NewReader(strings.NewReader(r2), zctx))

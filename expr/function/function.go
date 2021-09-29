@@ -21,7 +21,7 @@ type Interface interface {
 	Call([]zed.Value) (zed.Value, error)
 }
 
-func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
+func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 	argmin := 1
 	argmax := 1
 	var root bool
@@ -172,7 +172,7 @@ func (l *lenFn) Call(args []zed.Value) (zed.Value, error) {
 }
 
 type typeOf struct {
-	zctx *zson.Context
+	zctx *zed.Context
 }
 
 func (t *typeOf) Call(args []zed.Value) (zed.Value, error) {
@@ -181,7 +181,7 @@ func (t *typeOf) Call(args []zed.Value) (zed.Value, error) {
 }
 
 type typeUnder struct {
-	zctx *zson.Context
+	zctx *zed.Context
 }
 
 func (t *typeUnder) Call(args []zed.Value) (zed.Value, error) {
@@ -210,7 +210,7 @@ func (*isErr) Call(args []zed.Value) (zed.Value, error) {
 }
 
 type is struct {
-	zctx *zson.Context
+	zctx *zed.Context
 }
 
 func (i *is) Call(args []zed.Value) (zed.Value, error) {

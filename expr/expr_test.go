@@ -18,7 +18,7 @@ func testSuccessful(t *testing.T, e string, record string, expect zed.Value) {
 	if record == "" {
 		record = "{}"
 	}
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	typ, _ := zctx.LookupTypeRecord([]zed.Column{{"result", expect.Type}})
 	bytes := zcode.AppendPrimitive(nil, expect.Bytes)
 	rec := zed.NewRecord(typ, bytes)

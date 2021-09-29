@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 type FieldWriter struct {
@@ -28,7 +27,7 @@ func (f *FieldWriter) write(body zcode.Bytes) error {
 	return f.column.Write(body)
 }
 
-func (f *FieldWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zed.Type, error) {
+func (f *FieldWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
 	b.BeginContainer()
 	var colType zed.Type
 	if f.vcnt == 0 {

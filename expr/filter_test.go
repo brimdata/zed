@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/lake/mock"
@@ -34,7 +35,7 @@ func runCasesExpectBufferFilterFalsePositives(t *testing.T, record string, cases
 func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferFilterFalsePositives bool) {
 	t.Helper()
 
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	batch, err := zbuf.NewPuller(zson.NewReader(strings.NewReader(record), zctx), 2).Pull()
 	require.NoError(t, err, "record: %q", record)
 	require.Exactly(t, 1, batch.Length(), "record: %q", record)

@@ -4,13 +4,13 @@ import (
 	"errors"
 	"flag"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	zedindex "github.com/brimdata/zed/cmd/zed/index"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Section = &charm.Spec{
@@ -57,7 +57,7 @@ func (c *Command) Run(args []string) error {
 	}
 	path := args[0]
 	local := storage.NewLocalEngine()
-	reader, err := index.NewReader(zson.NewContext(), local, path)
+	reader, err := index.NewReader(zed.NewContext(), local, path)
 	if err != nil {
 		return err
 	}

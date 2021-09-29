@@ -4,13 +4,13 @@ import (
 	"errors"
 	"flag"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Create = &charm.Spec{
@@ -68,7 +68,7 @@ func (c *Command) Run(args []string) error {
 		return errors.New("must specify one or more input files")
 	}
 	local := storage.NewLocalEngine()
-	readers, err := c.inputFlags.Open(ctx, zson.NewContext(), local, args, true)
+	readers, err := c.inputFlags.Open(ctx, zed.NewContext(), local, args, true)
 	if err != nil {
 		return err
 	}

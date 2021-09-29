@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	zedindex "github.com/brimdata/zed/cmd/zed/index"
 	"github.com/brimdata/zed/field"
@@ -13,7 +14,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Convert = &charm.Spec{
@@ -73,7 +73,7 @@ func (c *Command) Run(args []string) error {
 	if path == "-" {
 		path = "stdio:stdin"
 	}
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	local := storage.NewLocalEngine()
 	file, err := anyio.Open(ctx, zctx, local, path, c.inputFlags.Options())
 	if err != nil {

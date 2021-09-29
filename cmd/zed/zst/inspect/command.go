@@ -4,13 +4,13 @@ import (
 	"errors"
 	"flag"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	zedzst "github.com/brimdata/zed/cmd/zed/zst"
 	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst"
 )
 
@@ -60,7 +60,7 @@ func (c *Command) Run(args []string) error {
 	}
 	path := args[0]
 	local := storage.NewLocalEngine()
-	reader, err := zst.NewReaderFromPath(ctx, zson.NewContext(), local, path)
+	reader, err := zst.NewReaderFromPath(ctx, zed.NewContext(), local, path)
 	if err != nil {
 		return err
 	}

@@ -30,7 +30,7 @@ func (o *Output) Close() error {
 // Send logs to ZSON reader -> ZNG writer -> ZNG reader -> ZSON writer.
 func boomerang(t *testing.T, logs string, compress bool) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
-	zsonSrc := zson.NewReader(bytes.NewReader(in), zson.NewContext())
+	zsonSrc := zson.NewReader(bytes.NewReader(in), zed.NewContext())
 	var rawzng Output
 	var zngLZ4BlockSize int
 	if compress {
@@ -41,7 +41,7 @@ func boomerang(t *testing.T, logs string, compress bool) {
 	require.NoError(t, rawDst.Close())
 
 	var out Output
-	rawSrc := zngio.NewReader(bytes.NewReader(rawzng.Bytes()), zson.NewContext())
+	rawSrc := zngio.NewReader(bytes.NewReader(rawzng.Bytes()), zed.NewContext())
 	zsonDst := zsonio.NewWriter(&out, zsonio.WriterOpts{})
 	err := zio.Copy(zsonDst, rawSrc)
 	if assert.NoError(t, err) {
@@ -50,14 +50,14 @@ func boomerang(t *testing.T, logs string, compress bool) {
 }
 
 func boomerangZJSON(t *testing.T, logs string) {
-	zsonSrc := zson.NewReader(strings.NewReader(logs), zson.NewContext())
+	zsonSrc := zson.NewReader(strings.NewReader(logs), zed.NewContext())
 	var zjsonOutput Output
 	zjsonDst := zjsonio.NewWriter(&zjsonOutput)
 	err := zio.Copy(zjsonDst, zsonSrc)
 	require.NoError(t, err)
 
 	var out Output
-	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), zson.NewContext())
+	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), zed.NewContext())
 	zsonDst := zsonio.NewWriter(&out, zsonio.WriterOpts{})
 	err = zio.Copy(zsonDst, zjsonSrc)
 	if assert.NoError(t, err) {
@@ -182,7 +182,7 @@ func TestStreams(t *testing.T) {
 {key:1.160.203.191}
 {key:2.12.27.251}
 `
-	r := zson.NewReader(strings.NewReader(in), zson.NewContext())
+	r := zson.NewReader(strings.NewReader(in), zed.NewContext())
 	var out Output
 	zw := zngio.NewWriter(&out, zngio.WriterOpts{
 		LZ4BlockSize: zngio.DefaultLZ4BlockSize,
@@ -202,7 +202,7 @@ func TestStreams(t *testing.T) {
 		}
 	}
 
-	zr := zngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), zson.NewContext())
+	zr := zngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), zed.NewContext())
 
 	rec, rec2Off, err := zr.SkipStream()
 	require.NoError(t, err)
@@ -216,19 +216,19 @@ func TestStreams(t *testing.T) {
 	len := int64(len(b))
 
 	sr := io.NewSectionReader(bytes.NewReader(b), rec4Off, len-rec4Off)
-	reader := zngio.NewReader(sr, zson.NewContext())
+	reader := zngio.NewReader(sr, zed.NewContext())
 	rec, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, recs[4].Bytes, rec.Bytes)
 
 	sr = io.NewSectionReader(bytes.NewReader(b), rec2Off, len-rec2Off)
-	reader = zngio.NewReader(sr, zson.NewContext())
+	reader = zngio.NewReader(sr, zed.NewContext())
 	rec, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, recs[2].Bytes, rec.Bytes)
 
 	sr = io.NewSectionReader(bytes.NewReader(b), 0, len)
-	reader = zngio.NewReader(sr, zson.NewContext())
+	reader = zngio.NewReader(sr, zed.NewContext())
 	rec, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, recs[0].Bytes, rec.Bytes)

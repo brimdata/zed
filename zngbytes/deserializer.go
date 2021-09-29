@@ -3,6 +3,7 @@ package zngbytes
 import (
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zson"
 )
@@ -13,10 +14,10 @@ type Deserializer struct {
 }
 
 func NewDeserializer(reader io.Reader, templates []interface{}) *Deserializer {
-	return NewDeserializerWithContext(zson.NewContext(), reader, templates)
+	return NewDeserializerWithContext(zed.NewContext(), reader, templates)
 }
 
-func NewDeserializerWithContext(zctx *zson.Context, reader io.Reader, templates []interface{}) *Deserializer {
+func NewDeserializerWithContext(zctx *zed.Context, reader io.Reader, templates []interface{}) *Deserializer {
 	u := zson.NewZNGUnmarshaler()
 	u.Bind(templates...)
 	return &Deserializer{

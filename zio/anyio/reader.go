@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zio/zeekio"
@@ -21,20 +22,20 @@ type ReaderOpts struct {
 	AwsCfg *aws.Config
 }
 
-func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zio.Reader, error) {
+func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Reader, error) {
 	if opts.Format != "" && opts.Format != "auto" {
 		return lookupReader(r, zctx, opts)
 	}
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
 
-	tzngErr := match(tzngio.NewReader(track, zson.NewContext()), "tzng")
+	tzngErr := match(tzngio.NewReader(track, zed.NewContext()), "tzng")
 	if tzngErr == nil {
 		return tzngio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 
-	zr, err := zeekio.NewReader(track, zson.NewContext())
+	zr, err := zeekio.NewReader(track, zed.NewContext())
 	if err != nil {
 		return nil, err
 	}
@@ -45,13 +46,13 @@ func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zio.Re
 	track.Reset()
 
 	// ZJSON must come before ZSON since ZJSON is a subset of ZSON
-	zjsonErr := match(zjsonio.NewReader(track, zson.NewContext()), "zjson")
+	zjsonErr := match(zjsonio.NewReader(track, zed.NewContext()), "zjson")
 	if zjsonErr == nil {
 		return zjsonio.NewReader(recorder, zctx), nil
 	}
 	track.Reset()
 
-	zsonErr := match(zson.NewReader(track, zson.NewContext()), "zson")
+	zsonErr := match(zson.NewReader(track, zed.NewContext()), "zson")
 	if zsonErr == nil {
 		return zson.NewReader(recorder, zctx), nil
 	}
@@ -62,7 +63,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zio.Re
 	// validation to the user setting in the actual reader returned.
 	zngOpts := opts.Zng
 	zngOpts.Validate = true
-	zngErr := match(zngio.NewReaderWithOpts(track, zson.NewContext(), zngOpts), "zng")
+	zngErr := match(zngio.NewReaderWithOpts(track, zed.NewContext(), zngOpts), "zng")
 	if zngErr == nil {
 		return zngio.NewReaderWithOpts(recorder, zctx, opts.Zng), nil
 	}
@@ -70,7 +71,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zio.Re
 
 	// XXX This is a placeholder until we add a flag to the csv reader
 	// for "strict" mode.  See issue #2316.
-	//csvErr := match(csvio.NewReader(track, zson.NewContext()), "csv")
+	//csvErr := match(csvio.NewReader(track, zed.NewContext()), "csv")
 	//if csvErr == nil {
 	//	return csvio.NewReader(recorder, Context), nil
 	//}
@@ -83,7 +84,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zio.Re
 	return nil, joinErrs([]error{tzngErr, zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, zstErr})
 }
 
-func NewReader(r io.Reader, zctx *zson.Context) (zio.Reader, error) {
+func NewReader(r io.Reader, zctx *zed.Context) (zio.Reader, error) {
 	return NewReaderWithOpts(r, zctx, ReaderOpts{})
 }
 

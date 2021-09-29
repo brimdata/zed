@@ -6,12 +6,11 @@ import (
 
 	"github.com/brimdata/zed"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/zson"
 )
 
 type encoder map[zed.Type]string
 
-func (e encoder) encodeType(zctx *zson.Context, typ zed.Type) astzed.Type {
+func (e encoder) encodeType(zctx *zed.Context, typ zed.Type) astzed.Type {
 	if name, ok := e[typ]; ok {
 		return &astzed.TypeName{
 			Kind: "typename",
@@ -58,7 +57,7 @@ func (e encoder) encodeType(zctx *zson.Context, typ zed.Type) astzed.Type {
 	}
 }
 
-func (e encoder) encodeTypeRecord(zctx *zson.Context, typ *zed.TypeRecord) *astzed.TypeRecord {
+func (e encoder) encodeTypeRecord(zctx *zed.Context, typ *zed.TypeRecord) *astzed.TypeRecord {
 	var fields []astzed.TypeField
 	for _, c := range typ.Columns {
 		typ := e.encodeType(zctx, c.Type)
@@ -70,11 +69,11 @@ func (e encoder) encodeTypeRecord(zctx *zson.Context, typ *zed.TypeRecord) *astz
 	}
 }
 
-func (e encoder) encodeTypeEnum(zctx *zson.Context, typ *zed.TypeEnum) *astzed.TypeEnum {
+func (e encoder) encodeTypeEnum(zctx *zed.Context, typ *zed.TypeEnum) *astzed.TypeEnum {
 	panic("issue 2508")
 }
 
-func (e encoder) encodeTypeUnion(zctx *zson.Context, union *zed.TypeUnion) *astzed.TypeUnion {
+func (e encoder) encodeTypeUnion(zctx *zed.Context, union *zed.TypeUnion) *astzed.TypeUnion {
 	var types []astzed.Type
 	for _, t := range union.Types {
 		types = append(types, e.encodeType(zctx, t))
@@ -87,7 +86,7 @@ func (e encoder) encodeTypeUnion(zctx *zson.Context, union *zed.TypeUnion) *astz
 
 type decoder map[string]zed.Type
 
-func (d decoder) decodeType(zctx *zson.Context, typ astzed.Type) (zed.Type, error) {
+func (d decoder) decodeType(zctx *zed.Context, typ astzed.Type) (zed.Type, error) {
 	switch typ := typ.(type) {
 	case *astzed.TypeRecord:
 		return d.decodeTypeRecord(zctx, typ)
@@ -135,7 +134,7 @@ func (d decoder) decodeType(zctx *zson.Context, typ astzed.Type) (zed.Type, erro
 	return nil, fmt.Errorf("ZJSON unknown type: %T", typ)
 }
 
-func (d decoder) decodeTypeRecord(zctx *zson.Context, typ *astzed.TypeRecord) (*zed.TypeRecord, error) {
+func (d decoder) decodeTypeRecord(zctx *zed.Context, typ *astzed.TypeRecord) (*zed.TypeRecord, error) {
 	columns := make([]zed.Column, 0, len(typ.Fields))
 	for _, field := range typ.Fields {
 		typ, err := d.decodeType(zctx, field.Type)
@@ -151,7 +150,7 @@ func (d decoder) decodeTypeRecord(zctx *zson.Context, typ *astzed.TypeRecord) (*
 	return zctx.LookupTypeRecord(columns)
 }
 
-func (d decoder) decodeTypeUnion(zctx *zson.Context, union *astzed.TypeUnion) (*zed.TypeUnion, error) {
+func (d decoder) decodeTypeUnion(zctx *zed.Context, union *astzed.TypeUnion) (*zed.TypeUnion, error) {
 	var types []zed.Type
 	for _, t := range union.Types {
 		typ, err := d.decodeType(zctx, t)
@@ -163,7 +162,7 @@ func (d decoder) decodeTypeUnion(zctx *zson.Context, union *astzed.TypeUnion) (*
 	return zctx.LookupTypeUnion(types), nil
 }
 
-func (d decoder) decodeTypeMap(zctx *zson.Context, m *astzed.TypeMap) (*zed.TypeMap, error) {
+func (d decoder) decodeTypeMap(zctx *zed.Context, m *astzed.TypeMap) (*zed.TypeMap, error) {
 	keyType, err := d.decodeType(zctx, m.KeyType)
 	if err != nil {
 		return nil, err
@@ -175,6 +174,6 @@ func (d decoder) decodeTypeMap(zctx *zson.Context, m *astzed.TypeMap) (*zed.Type
 	return zctx.LookupTypeMap(keyType, valType), nil
 }
 
-func (d decoder) decodeTypeEnum(zctx *zson.Context, enum *astzed.TypeEnum) (*zed.TypeEnum, error) {
+func (d decoder) decodeTypeEnum(zctx *zed.Context, enum *astzed.TypeEnum) (*zed.TypeEnum, error) {
 	return nil, errors.New("TBD: issue #2508")
 }

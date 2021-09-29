@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
@@ -168,7 +169,7 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	return nil
 }
 
-func (r *Root) batchifyPools(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
+func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Filter) (zbuf.Array, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	pools, err := r.ListPools(ctx)
@@ -188,7 +189,7 @@ func (r *Root) batchifyPools(ctx context.Context, zctx *zson.Context, f expr.Fil
 	return batch, nil
 }
 
-func (r *Root) batchifyBranches(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
+func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.Filter) (zbuf.Array, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	poolRefs, err := r.ListPools(ctx)
@@ -403,7 +404,7 @@ func (r *Root) AllIndexRules(ctx context.Context) ([]index.Rule, error) {
 	return r.indexRules.All(ctx)
 }
 
-func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zson.Context, f expr.Filter) (zbuf.Array, error) {
+func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr.Filter) (zbuf.Array, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	names, err := r.indexRules.Names(ctx)
@@ -435,7 +436,7 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zson.Context, f exp
 	return batch, nil
 }
 
-func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, src dag.Source, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
 	switch src := src.(type) {
 	case *dag.Pool:
 		return r.newPoolScheduler(ctx, zctx, src.ID, src.Commit, span, filter)
@@ -450,7 +451,7 @@ func (r *Root) NewScheduler(ctx context.Context, zctx *zson.Context, src dag.Sou
 	}
 }
 
-func (r *Root) newLakeMetaScheduler(ctx context.Context, zctx *zson.Context, meta string, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) newLakeMetaScheduler(ctx context.Context, zctx *zed.Context, meta string, filter zbuf.Filter) (proc.Scheduler, error) {
 	f, err := filter.AsFilter()
 	if err != nil {
 		return nil, err
@@ -476,7 +477,7 @@ func (r *Root) newLakeMetaScheduler(ctx context.Context, zctx *zson.Context, met
 	return newScannerScheduler(s), nil
 }
 
-func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zson.Context, poolID ksuid.KSUID, meta string, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zed.Context, poolID ksuid.KSUID, meta string, filter zbuf.Filter) (proc.Scheduler, error) {
 	f, err := filter.AsFilter()
 	if err != nil {
 		return nil, err
@@ -501,7 +502,7 @@ func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zson.Context, poo
 	return newScannerScheduler(s), nil
 }
 
-func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zson.Context, poolID, commit ksuid.KSUID, meta string, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, meta string, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
 	p, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err
@@ -579,7 +580,7 @@ func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zson.Context, p
 	}
 }
 
-func (r *Root) newPoolScheduler(ctx context.Context, zctx *zson.Context, poolID, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) newPoolScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
 	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err
@@ -587,7 +588,7 @@ func (r *Root) newPoolScheduler(ctx context.Context, zctx *zson.Context, poolID,
 	return pool.newScheduler(ctx, zctx, commit, span, filter)
 }
 
-func (r *Root) Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
+func (r *Root) Open(context.Context, *zed.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {
 	return nil, errors.New("cannot use 'file' or 'http' source in a lake query")
 }
 

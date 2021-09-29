@@ -138,7 +138,7 @@ func sortObjects(o order.Which, objects []*data.Object) {
 	}
 }
 
-func partitionReader(ctx context.Context, zctx *zson.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
+func partitionReader(ctx context.Context, zctx *zed.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
 	ch := make(chan Partition)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
@@ -167,7 +167,7 @@ func partitionReader(ctx context.Context, zctx *zson.Context, snap commits.View,
 	}), nil
 }
 
-func objectReader(ctx context.Context, zctx *zson.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
+func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
 	ch := make(chan data.Object)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error
@@ -196,7 +196,7 @@ func objectReader(ctx context.Context, zctx *zson.Context, snap commits.View, sp
 	}), nil
 }
 
-func indexObjectReader(ctx context.Context, zctx *zson.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
+func indexObjectReader(ctx context.Context, zctx *zed.Context, snap commits.View, span extent.Span, order order.Which) (zio.Reader, error) {
 	ch := make(chan *index.Object)
 	ctx, cancel := context.WithCancel(ctx)
 	var scanErr error

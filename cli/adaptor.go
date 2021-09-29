@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
@@ -13,7 +14,6 @@ import (
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -41,11 +41,11 @@ func (*FileAdaptor) Layout(context.Context, dag.Source) order.Layout {
 	return order.Nil
 }
 
-func (*FileAdaptor) NewScheduler(context.Context, *zson.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
+func (*FileAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, errors.New("pool scan not available when running on local file system")
 }
 
-func (f *FileAdaptor) Open(ctx context.Context, zctx *zson.Context, path string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
+func (f *FileAdaptor) Open(ctx context.Context, zctx *zed.Context, path string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
 	if path == "-" {
 		path = "stdio:stdin"
 	}

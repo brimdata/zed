@@ -7,11 +7,10 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/proc/spill"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 type Shaper struct {
-	zctx        *zson.Context
+	zctx        *zed.Context
 	memMaxBytes int
 
 	nbytes     int
@@ -119,7 +118,7 @@ func (a *anchor) needRecode() []zed.Column {
 	return nil
 }
 
-func NewShaper(zctx *zson.Context, memMaxBytes int) *Shaper {
+func NewShaper(zctx *zed.Context, memMaxBytes int) *Shaper {
 	return &Shaper{
 		zctx:        zctx,
 		memMaxBytes: memMaxBytes,

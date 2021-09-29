@@ -113,7 +113,7 @@ func (c *Command) Run(args []string) error {
 		hits := make(chan *zed.Record)
 		var searchErr error
 		go func() {
-			searchErr = lake.Find(ctx, zson.NewContext(), lk, query, hits, findOptions...)
+			searchErr = lake.Find(ctx, zed.NewContext(), lk, query, hits, findOptions...)
 			close(hits)
 		}()
 		for hit := range hits {

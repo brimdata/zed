@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -66,7 +67,7 @@ ff
 	expected, err := hex.DecodeString(expectedHex)
 	require.NoError(t, err)
 
-	zr := zson.NewReader(strings.NewReader(input), zson.NewContext())
+	zr := zson.NewReader(strings.NewReader(input), zed.NewContext())
 	var buf bytes.Buffer
 	zw := NewWriter(zio.NopCloser(&buf), WriterOpts{})
 	require.NoError(t, zio.Copy(zw, zr))

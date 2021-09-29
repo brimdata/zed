@@ -7,12 +7,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/auto"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 )
 
 type Flags struct {
@@ -47,7 +47,7 @@ func (f *Flags) Init() error {
 	return nil
 }
 
-func (f *Flags) Open(ctx context.Context, zctx *zson.Context, engine storage.Engine, paths []string, stopOnErr bool) ([]zio.Reader, error) {
+func (f *Flags) Open(ctx context.Context, zctx *zed.Context, engine storage.Engine, paths []string, stopOnErr bool) ([]zio.Reader, error) {
 	var readers []zio.Reader
 	for _, path := range paths {
 		if path == "-" {

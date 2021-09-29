@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/column"
 )
 
@@ -24,7 +23,7 @@ func NewCutter(object *Object, fields []string) (*Reader, error) {
 
 }
 
-func NewCutterFromPath(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string, fields []string) (*Reader, error) {
+func NewCutterFromPath(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string, fields []string) (*Reader, error) {
 	object, err := NewObjectFromPath(ctx, zctx, engine, path)
 	if err != nil {
 		return nil, err
@@ -38,7 +37,7 @@ func NewCutterFromPath(ctx context.Context, zctx *zson.Context, engine storage.E
 }
 
 type CutAssembler struct {
-	zctx    *zson.Context
+	zctx    *zed.Context
 	root    *column.Int
 	schemas []zed.Type
 	columns []column.Interface
@@ -48,7 +47,7 @@ type CutAssembler struct {
 	leaf    string
 }
 
-func NewCutAssembler(zctx *zson.Context, fields []string, object *Object) (*CutAssembler, error) {
+func NewCutAssembler(zctx *zed.Context, fields []string, object *Object) (*CutAssembler, error) {
 	a := object.assembly
 	n := len(a.columns)
 	ca := &CutAssembler{
@@ -91,7 +90,7 @@ func NewCutAssembler(zctx *zson.Context, fields []string, object *Object) (*CutA
 	return ca, nil
 }
 
-func cutType(zctx *zson.Context, typ *zed.TypeRecord, fields []string) (*zed.TypeRecord, int, error) {
+func cutType(zctx *zed.Context, typ *zed.TypeRecord, fields []string) (*zed.TypeRecord, int, error) {
 	if len(fields) == 0 {
 		panic("zst.cutType cannot be called with an empty fields argument")
 	}

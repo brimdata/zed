@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
 )
 
 type fuse struct {
@@ -28,7 +27,7 @@ func (f *fuse) Consume(v zed.Value) error {
 	return nil
 }
 
-func (f *fuse) Result(zctx *zson.Context) (zed.Value, error) {
+func (f *fuse) Result(zctx *zed.Context) (zed.Value, error) {
 	if len(f.shapes)+len(f.partials) == 0 {
 		// empty input
 		return zed.Value{zed.TypeNull, nil}, nil
@@ -63,6 +62,6 @@ func (f *fuse) ConsumeAsPartial(p zed.Value) error {
 	return nil
 }
 
-func (f *fuse) ResultAsPartial(zctx *zson.Context) (zed.Value, error) {
+func (f *fuse) ResultAsPartial(zctx *zed.Context) (zed.Value, error) {
 	return f.Result(zctx)
 }

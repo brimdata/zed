@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 )
 
 const (
@@ -23,7 +22,7 @@ const (
 type Reader struct {
 	reader     storage.Reader
 	uri        *storage.URI
-	zctx       *zson.Context
+	zctx       *zed.Context
 	size       int64
 	trailer    *Trailer
 	trailerLen int
@@ -36,7 +35,7 @@ var _ io.Closer = (*Reader)(nil)
 // Seek() may be called on this Reader.  Any call to Seek() must be to
 // an offset that begins a new zng stream (e.g., beginning of file or
 // the data immediately following an end-of-stream code)
-func NewReader(zctx *zson.Context, engine storage.Engine, path string) (*Reader, error) {
+func NewReader(zctx *zed.Context, engine storage.Engine, path string) (*Reader, error) {
 	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, err
@@ -44,7 +43,7 @@ func NewReader(zctx *zson.Context, engine storage.Engine, path string) (*Reader,
 	return NewReaderFromURI(context.Background(), zctx, engine, uri)
 }
 
-func NewReaderWithContext(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string) (*Reader, error) {
+func NewReaderWithContext(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string) (*Reader, error) {
 	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, err
@@ -52,7 +51,7 @@ func NewReaderWithContext(ctx context.Context, zctx *zson.Context, engine storag
 	return NewReaderFromURI(ctx, zctx, engine, uri)
 }
 
-func NewReaderFromURI(ctx context.Context, zctx *zson.Context, engine storage.Engine, uri *storage.URI) (*Reader, error) {
+func NewReaderFromURI(ctx context.Context, zctx *zed.Context, engine storage.Engine, uri *storage.URI) (*Reader, error) {
 	r, err := engine.Get(ctx, uri)
 	if err != nil {
 		return nil, err

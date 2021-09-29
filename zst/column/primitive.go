@@ -39,7 +39,7 @@ func (p *PrimitiveWriter) Flush(eof bool) error {
 	return err
 }
 
-func (p *PrimitiveWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zed.Type, error) {
+func (p *PrimitiveWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
 	b.BeginContainer()
 	for _, segment := range p.segments {
 		// Add a segmap record to the array for each segment.

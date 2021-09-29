@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
 	"github.com/brimdata/zed/driver"
@@ -103,7 +104,7 @@ func parseRule(args []string, ruleName string) ([]string, index.Rule, error) {
 		if len(args) < 2 {
 			return nil, nil, errors.New("type index rule requires type argument")
 		}
-		typ, err := zson.ParseType(zson.NewContext(), args[1])
+		typ, err := zson.ParseType(zed.NewContext(), args[1])
 		if err != nil {
 			return nil, nil, err
 		}

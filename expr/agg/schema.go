@@ -2,19 +2,18 @@ package agg
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
 )
 
 // Schema constructs a fused record type for the record types passed to Mixin.
 // Records of any mixed-in type can be shaped to the fused type without loss of
 // information.
 type Schema struct {
-	zctx *zson.Context
+	zctx *zed.Context
 
 	cols []zed.Column
 }
 
-func NewSchema(zctx *zson.Context) *Schema {
+func NewSchema(zctx *zed.Context) *Schema {
 	return &Schema{zctx: zctx}
 }
 
@@ -70,7 +69,7 @@ func columnOfField(cols []zed.Column, name string) (int, bool) {
 	return -1, false
 }
 
-func unify(zctx *zson.Context, a, b zed.Type) zed.Type {
+func unify(zctx *zed.Context, a, b zed.Type) zed.Type {
 	if ua, ok := zed.AliasOf(a).(*zed.TypeUnion); ok {
 		types := ua.Types
 		if ub, ok := zed.AliasOf(b).(*zed.TypeUnion); ok {

@@ -3,17 +3,16 @@ package zngio
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 type Encoder struct {
-	zctx    *zson.Context
+	zctx    *zed.Context
 	encoded map[zed.Type]zed.Type
 }
 
 func NewEncoder() *Encoder {
 	return &Encoder{
-		zctx:    zson.NewContext(),
+		zctx:    zed.NewContext(),
 		encoded: make(map[zed.Type]zed.Type),
 	}
 }

@@ -35,7 +35,7 @@ func TestZsonParser(t *testing.T) {
 	assert.NotEqual(t, s, "")
 }
 
-func analyze(zctx *zson.Context, path string) (zson.Value, error) {
+func analyze(zctx *zed.Context, path string) (zson.Value, error) {
 	val, err := parse(path)
 	if err != nil {
 		return nil, err
@@ -45,14 +45,14 @@ func analyze(zctx *zson.Context, path string) (zson.Value, error) {
 }
 
 func TestZsonAnalyzer(t *testing.T) {
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	val, err := analyze(zctx, testFile)
 	require.NoError(t, err)
 	assert.NotNil(t, val)
 }
 
 func TestZsonBuilder(t *testing.T) {
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	val, err := analyze(zctx, testFile)
 	require.NoError(t, err)
 	b := zcode.NewBuilder()

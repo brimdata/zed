@@ -11,7 +11,7 @@ func TestWriterIndex(t *testing.T) {
 `
 	def := index.MustNewDefinition(index.NewTypeRule(zed.TypeInt64))
 	chunk := testWriteWithDef(t, data, def)
-	reader, err := index.Find(context.Background(), zson.NewContext(), chunk.ZarDir(), def.ID, "100")
+	reader, err := index.Find(context.Background(), zed.NewContext(), chunk.ZarDir(), def.ID, "100")
 	require.NoError(t, err)
 	recs, err := zbuf.ReadAll(reader)
 	require.NoError(t, err)
@@ -29,7 +29,7 @@ func TestWriterSkipsInputPath(t *testing.T) {
 	sdef := index.MustNewDefinition(index.NewFieldRule("s"))
 	inputdef := index.MustNewDefinition(index.NewTypeRule(zed.TypeInt64))
 	inputdef.Input = "input_path"
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	chunk := testWriteWithDef(t, data, sdef, inputdef)
 	//reader, err := index.Find(context.Background(), zctx, chunk.ZarDir(), sdef.ID, "test")
 	//require.NoError(t, err)
@@ -46,7 +46,7 @@ func testWriteWithDef(t *testing.T, input string, defs ...*index.Definition) *Re
 	ref := New()
 	w, err := ref.NewWriter(context.Background(), dir, WriterOpts{Order: zbuf.OrderDesc, Definitions: defs})
 	require.NoError(t, err)
-	require.NoError(t, zbuf.Copy(w, zson.NewReader(strings.NewReader(input), zson.NewContext())))
+	require.NoError(t, zbuf.Copy(w, zson.NewReader(strings.NewReader(input), zed.NewContext())))
 	require.NoError(t, w.Close(context.Background()))
 	return w.Segment()
 }

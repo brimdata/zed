@@ -10,11 +10,11 @@ import (
 )
 
 type Reader struct {
-	zctx    *zson.Context
+	zctx    *zed.Context
 	decoder *json.Decoder
 }
 
-func NewReader(r io.Reader, zctx *zson.Context) (*Reader, error) {
+func NewReader(r io.Reader, zctx *zed.Context) (*Reader, error) {
 	d := json.NewDecoder(r)
 	// Prime d's buffer so we can check for an array.
 	d.More()

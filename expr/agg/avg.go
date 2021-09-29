@@ -4,7 +4,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 type Avg struct {
@@ -23,7 +22,7 @@ func (a *Avg) Consume(v zed.Value) error {
 	return nil
 }
 
-func (a *Avg) Result(*zson.Context) (zed.Value, error) {
+func (a *Avg) Result(*zed.Context) (zed.Value, error) {
 	if a.count > 0 {
 		return zed.NewFloat64(a.sum / float64(a.count)), nil
 	}
@@ -62,7 +61,7 @@ func (a *Avg) ConsumeAsPartial(p zed.Value) error {
 	return nil
 }
 
-func (a *Avg) ResultAsPartial(zctx *zson.Context) (zed.Value, error) {
+func (a *Avg) ResultAsPartial(zctx *zed.Context) (zed.Value, error) {
 	var zv zcode.Bytes
 	zv = zed.NewFloat64(a.sum).Encode(zv)
 	zv = zed.NewUint64(a.count).Encode(zv)
