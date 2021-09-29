@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zngbytes"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/segmentio/ksuid"
 )
 
@@ -26,27 +27,37 @@ var (
 type Store struct {
 	path   *storage.URI
 	engine storage.Engine
-	// We use these poor-man's caches for now since chasing linked lists
-	// over cloud storage will run very slowly... there is an interesting
-	// scaling problem to work on here.
-	cache     map[ksuid.KSUID]*Object
-	snapshots map[ksuid.KSUID]*Snapshot
-	paths     map[ksuid.KSUID][]ksuid.KSUID
+
+	cache     *lru.ARCCache // Used like a map[ksuid.KSUID]*Object.
+	paths     *lru.ARCCache // Used like a map[ksuid.KSUID][]ksuid.KSUID.
+	snapshots *lru.ARCCache // Used like a map[ksuid.KSUID]*Snapshot.
 }
 
 func OpenStore(engine storage.Engine, path *storage.URI) (*Store, error) {
+	cache, err := lru.NewARC(1024)
+	if err != nil {
+		return nil, err
+	}
+	paths, err := lru.NewARC(1024)
+	if err != nil {
+		return nil, err
+	}
+	snapshots, err := lru.NewARC(32)
+	if err != nil {
+		return nil, err
+	}
 	return &Store{
 		path:      path,
 		engine:    engine,
-		cache:     make(map[ksuid.KSUID]*Object),
-		snapshots: make(map[ksuid.KSUID]*Snapshot),
-		paths:     make(map[ksuid.KSUID][]ksuid.KSUID),
+		cache:     cache,
+		paths:     paths,
+		snapshots: snapshots,
 	}, nil
 }
 
 func (s *Store) Get(ctx context.Context, commit ksuid.KSUID) (*Object, error) {
-	if o, ok := s.cache[commit]; ok {
-		return o, nil
+	if o, ok := s.cache.Get(commit); ok {
+		return o.(*Object), nil
 	}
 	r, err := s.engine.Get(ctx, s.pathOf(commit))
 	if err != nil {
@@ -62,8 +73,7 @@ func (s *Store) Get(ctx context.Context, commit ksuid.KSUID) (*Object, error) {
 	if err != nil {
 		return nil, err
 	}
-	//XXX do a length check on the table to limit memory use
-	s.cache[commit] = o
+	s.cache.Add(commit, o)
 	return o, nil
 }
 
@@ -85,20 +95,20 @@ func (s *Store) Remove(ctx context.Context, o *Object) error {
 }
 
 func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, error) {
-	if snap, ok := s.snapshots[leaf]; ok {
-		return snap, nil
+	if snap, ok := s.snapshots.Get(leaf); ok {
+		return snap.(*Snapshot), nil
 	}
 	if snap, err := s.getSnapshot(ctx, leaf); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return nil, err
 	} else if err == nil {
-		s.snapshots[leaf] = snap
+		s.snapshots.Add(leaf, snap)
 		return snap, nil
 	}
 	var objects []*Object
 	var base *Snapshot
 	for at := leaf; at != ksuid.Nil; {
-		if snap, ok := s.snapshots[at]; ok {
-			base = snap
+		if snap, ok := s.snapshots.Get(at); ok {
+			base = snap.(*Snapshot)
 			break
 		}
 		var o *Object
@@ -114,7 +124,7 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 		if snap, err := s.getSnapshot(ctx, at); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return nil, err
 		} else if err == nil {
-			s.snapshots[at] = snap
+			s.snapshots.Add(at, snap)
 			base = snap
 			break
 		}
@@ -142,7 +152,7 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 	if err := s.putSnapshot(ctx, leaf, snap); err != nil {
 		return nil, err
 	}
-	s.snapshots[leaf] = snap
+	s.snapshots.Add(leaf, snap)
 	return snap, nil
 }
 
@@ -173,22 +183,22 @@ func (s *Store) Path(ctx context.Context, leaf ksuid.KSUID) ([]ksuid.KSUID, erro
 	if leaf == ksuid.Nil {
 		return nil, errors.New("no path for nil commit ID")
 	}
-	if path, ok := s.paths[leaf]; ok {
-		return path, nil
+	if path, ok := s.paths.Get(leaf); ok {
+		return path.([]ksuid.KSUID), nil
 	}
 	path, err := s.PathRange(ctx, leaf, ksuid.Nil)
 	if err != nil {
 		return nil, err
 	}
-	s.paths[leaf] = path
+	s.paths.Add(leaf, path)
 	return path, nil
 }
 
 func (s *Store) PathRange(ctx context.Context, from, to ksuid.KSUID) ([]ksuid.KSUID, error) {
 	var path []ksuid.KSUID
 	for at := from; at != ksuid.Nil; {
-		if cache, ok := s.paths[at]; ok {
-			for _, id := range cache {
+		if cache, ok := s.paths.Get(at); ok {
+			for _, id := range cache.([]ksuid.KSUID) {
 				path = append(path, id)
 				if id == to {
 					break
