@@ -131,13 +131,13 @@ import (
 	"testing"
 	"unicode/utf8"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zqe"
-	"github.com/brimdata/zed/zson"
 	"github.com/pmezard/go-difflib/difflib"
 	"gopkg.in/yaml.v3"
 )
@@ -480,13 +480,13 @@ func runsh(path, testDir, tempDir string, zt *ZTest) error {
 	return nil
 }
 
-// runzq runs the Zed program in zed over input and returns the output.  input
+// runzq runs zedProgram over input and returns the output.  input
 // may be in any format recognized by "zq -i auto" and may be gzip-compressed.
 // outputFlags may contain any flags accepted by cli/outputflags.Flags.  If path
 // is empty, the program runs in the current process.  If path is not empty, it
 // specifies a command search path used to find a zq executable to run the
 // program.
-func runzq(path, zed, input string, outputFlags []string, inputFlags []string) (string, string, error) {
+func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []string) (string, string, error) {
 	var errbuf, outbuf bytes.Buffer
 	if path != "" {
 		zq, err := lookupzq(path)
@@ -494,7 +494,7 @@ func runzq(path, zed, input string, outputFlags []string, inputFlags []string) (
 			return "", "", err
 		}
 		flags := append(outputFlags, inputFlags...)
-		cmd := exec.Command(zq, append(flags, zed, "-")...)
+		cmd := exec.Command(zq, append(flags, zedProgram, "-")...)
 		cmd.Stdin = strings.NewReader(input)
 		cmd.Stdout = &outbuf
 		cmd.Stderr = &errbuf
@@ -504,7 +504,7 @@ func runzq(path, zed, input string, outputFlags []string, inputFlags []string) (
 		// tests.
 		return outbuf.String(), errbuf.String(), err
 	}
-	proc, err := compiler.ParseProc(zed)
+	proc, err := compiler.ParseProc(zedProgram)
 	if err != nil {
 		return "", "", err
 	}
@@ -514,7 +514,7 @@ func runzq(path, zed, input string, outputFlags []string, inputFlags []string) (
 	if err := flags.Parse(inputFlags); err != nil {
 		return "", "", err
 	}
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(strings.NewReader(input)), zctx, inflags.Options())
 	if err != nil {
 		return "", err.Error(), err

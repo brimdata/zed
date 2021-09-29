@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -76,7 +75,7 @@ type testSeekIndex struct {
 }
 
 func (t *testSeekIndex) Lookup(s nano.Span, expected Range, o order.Which) {
-	r := zngio.NewReader(bytes.NewReader(t.buffer.Bytes()), zson.NewContext())
+	r := zngio.NewReader(bytes.NewReader(t.buffer.Bytes()), zed.NewContext())
 	cmp := extent.CompareFunc(o)
 	var first, last zed.Value
 	if o == order.Asc {

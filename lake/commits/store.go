@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zngbytes"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -203,7 +203,7 @@ func (s *Store) Open(ctx context.Context, commit, stop ksuid.KSUID) (io.Reader, 
 	return bytes.NewReader(b), nil
 }
 
-func (s *Store) OpenAsZNG(ctx context.Context, zctx *zson.Context, commit, stop ksuid.KSUID) (*zngio.Reader, error) {
+func (s *Store) OpenAsZNG(ctx context.Context, zctx *zed.Context, commit, stop ksuid.KSUID) (*zngio.Reader, error) {
 	r, err := s.Open(ctx, commit, stop)
 	if err != nil {
 		return nil, err
@@ -211,7 +211,7 @@ func (s *Store) OpenAsZNG(ctx context.Context, zctx *zson.Context, commit, stop 
 	return zngio.NewReader(r, zctx), nil
 }
 
-func (s *Store) OpenCommitLog(ctx context.Context, zctx *zson.Context, commit, stop ksuid.KSUID) zio.Reader {
+func (s *Store) OpenCommitLog(ctx context.Context, zctx *zed.Context, commit, stop ksuid.KSUID) zio.Reader {
 	return newLogReader(ctx, zctx, s, commit, stop)
 }
 

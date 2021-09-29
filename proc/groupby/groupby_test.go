@@ -314,7 +314,7 @@ func TestGroupbyStreamingSpill(t *testing.T) {
 		proc, err := compiler.ParseProc("every 1s count() by ip")
 		assert.NoError(t, err)
 
-		zctx := zson.NewContext()
+		zctx := zed.NewContext()
 		zr := zson.NewReader(strings.NewReader(strings.Join(data, "\n")), zctx)
 		cr := &countReader{r: zr}
 		var outbuf bytes.Buffer

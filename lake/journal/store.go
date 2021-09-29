@@ -7,6 +7,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
@@ -72,7 +73,7 @@ func (s *Store) load(ctx context.Context) error {
 	if head == s.at {
 		return nil
 	}
-	r, err := s.journal.OpenAsZNG(ctx, zson.NewContext(), head, 0)
+	r, err := s.journal.OpenAsZNG(ctx, zed.NewContext(), head, 0)
 	if err != nil {
 		return err
 	}

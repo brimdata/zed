@@ -3,11 +3,10 @@ package function
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 type fields struct {
-	zctx  *zson.Context
+	zctx  *zed.Context
 	typ   zed.Type
 	bytes zcode.Bytes
 }
@@ -40,7 +39,7 @@ func (f *fields) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{f.typ, bytes}, nil
 }
 
-func isRecordType(zv zed.Value, zctx *zson.Context) *zed.TypeRecord {
+func isRecordType(zv zed.Value, zctx *zed.Context) *zed.TypeRecord {
 	if typ, ok := zed.AliasOf(zv.Type).(*zed.TypeRecord); ok {
 		return typ
 	}

@@ -116,7 +116,7 @@ func newIndexer(ctx context.Context, engine storage.Engine, path *storage.URI, o
 	if err != nil {
 		return nil, err
 	}
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	fgr, err := driver.NewReader(ctx, p, zctx, r)
 	if err != nil {
 		return nil, err

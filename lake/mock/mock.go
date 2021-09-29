@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -103,10 +103,10 @@ func (l *Lake) Layout(_ context.Context, src dag.Source) order.Layout {
 	return order.Nil
 }
 
-func (*Lake) NewScheduler(context.Context, *zson.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
+func (*Lake) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, fmt.Errorf("mock.Lake.NewScheduler() should not be called")
 }
 
-func (*Lake) Open(_ context.Context, _ *zson.Context, _ string, _ zbuf.Filter) (zbuf.PullerCloser, error) {
+func (*Lake) Open(_ context.Context, _ *zed.Context, _ string, _ zbuf.Filter) (zbuf.PullerCloser, error) {
 	return nil, fmt.Errorf("mock.Lake.Open() should not be called")
 }

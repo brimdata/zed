@@ -3,9 +3,9 @@ package zst
 import (
 	"context"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 )
 
 // Reader implements zio.Reader and io.Closer.  It reads a columnar
@@ -30,7 +30,7 @@ func NewReader(object *Object) (*Reader, error) {
 
 }
 
-func NewReaderFromPath(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string) (*Reader, error) {
+func NewReaderFromPath(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string) (*Reader, error) {
 	object, err := NewObjectFromPath(ctx, zctx, engine, path)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func NewReaderFromPath(ctx context.Context, zctx *zson.Context, engine storage.E
 	return reader, nil
 }
 
-func NewReaderFromSeeker(zctx *zson.Context, seeker *storage.Seeker) (*Reader, error) {
+func NewReaderFromSeeker(zctx *zed.Context, seeker *storage.Seeker) (*Reader, error) {
 	object, err := NewObjectFromSeeker(zctx, seeker)
 	if err != nil {
 		return nil, err

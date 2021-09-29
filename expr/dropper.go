@@ -3,7 +3,6 @@ package expr
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/zson"
 )
 
 type dropper struct {
@@ -33,13 +32,13 @@ func (d *dropper) drop(in *zed.Record) (*zed.Record, error) {
 }
 
 type Dropper struct {
-	zctx      *zson.Context
+	zctx      *zed.Context
 	fields    field.List
 	resolvers []Evaluator
 	droppers  map[int]*dropper
 }
 
-func NewDropper(zctx *zson.Context, fields field.List) *Dropper {
+func NewDropper(zctx *zed.Context, fields field.List) *Dropper {
 	return &Dropper{
 		zctx:     zctx,
 		fields:   fields,

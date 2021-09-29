@@ -17,7 +17,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -335,7 +334,7 @@ func (b *Branch) indexObject(ctx context.Context, rules []index.Rule, id ksuid.K
 	if err != nil {
 		return nil, err
 	}
-	reader := zngio.NewReader(r, zson.NewContext())
+	reader := zngio.NewReader(r, zed.NewContext())
 	w, err := index.NewCombiner(ctx, b.engine, b.pool.IndexPath, rules, id)
 	if err != nil {
 		r.Close()

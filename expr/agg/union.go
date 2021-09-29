@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 type Union struct {
@@ -55,7 +54,7 @@ func (u *Union) deleteOne() {
 	}
 }
 
-func (u *Union) Result(zctx *zson.Context) (zed.Value, error) {
+func (u *Union) Result(zctx *zed.Context) (zed.Value, error) {
 	if u.typ == nil {
 		return zed.Value{Type: zed.TypeNull}, nil
 	}
@@ -92,6 +91,6 @@ func (u *Union) ConsumeAsPartial(zv zed.Value) error {
 	return nil
 }
 
-func (u *Union) ResultAsPartial(zctx *zson.Context) (zed.Value, error) {
+func (u *Union) ResultAsPartial(zctx *zed.Context) (zed.Value, error) {
 	return u.Result(zctx)
 }

@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -34,7 +33,7 @@ func makeHeader(name string, rest []string) string {
 // directives, expecting them to all be parsed successfully.
 // A parser object ready for further testing is returned.
 func startTest(t *testing.T, headers []string) *Parser {
-	p := NewParser(zson.NewContext())
+	p := NewParser(zed.NewContext())
 	for _, h := range headers {
 		require.NoError(t, p.ParseDirective([]byte(h)))
 	}

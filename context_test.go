@@ -10,7 +10,7 @@ import (
 )
 
 func TestDuplicates(t *testing.T) {
-	ctx := zson.NewContext()
+	ctx := zed.NewContext()
 	setType := ctx.LookupTypeSet(zed.TypeInt32)
 	typ1, err := ctx.LookupTypeRecord([]zed.Column{
 		zed.NewColumn("a", zed.TypeString),
@@ -27,8 +27,8 @@ func TestDuplicates(t *testing.T) {
 }
 
 func TestTranslateAlias(t *testing.T) {
-	c1 := zson.NewContext()
-	c2 := zson.NewContext()
+	c1 := zed.NewContext()
+	c2 := zed.NewContext()
 	set1, err := zson.ParseType(c1, "|[int64]|")
 	require.NoError(t, err)
 	set2, err := zson.ParseType(c2, "|[int64]|")
@@ -43,7 +43,7 @@ func TestTranslateAlias(t *testing.T) {
 }
 
 func TestCopyMutateColumns(t *testing.T) {
-	c := zson.NewContext()
+	c := zed.NewContext()
 	cols := []zed.Column{{"foo", zed.TypeString}, {"bar", zed.TypeInt64}}
 	typ, err := c.LookupTypeRecord(cols)
 	require.NoError(t, err)

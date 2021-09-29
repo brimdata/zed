@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/test"
@@ -96,7 +97,7 @@ func TestParallelOrder(t *testing.T) {
 
 	for i, c := range cases {
 		t.Run(strconv.Itoa(i), func(t *testing.T) {
-			zctx := zson.NewContext()
+			zctx := zed.NewContext()
 			pctx := &proc.Context{Context: context.Background(), Zctx: zctx}
 			var parents []proc.Interface
 			for _, input := range c.inputs {

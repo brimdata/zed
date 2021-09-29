@@ -6,7 +6,6 @@ import (
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 // A an explode Proc is a proc that, given an input record and a
@@ -21,7 +20,7 @@ type Proc struct {
 
 // New creates a exploder for type typ, where the
 // output records' single column is named name.
-func New(zctx *zson.Context, parent proc.Interface, args []expr.Evaluator, typ zed.Type, name string) (proc.Interface, error) {
+func New(zctx *zed.Context, parent proc.Interface, args []expr.Evaluator, typ zed.Type, name string) (proc.Interface, error) {
 	cols := []zed.Column{{Name: name, Type: typ}}
 	rectyp := zctx.MustLookupTypeRecord(cols)
 	builder := zed.NewBuilder(rectyp)

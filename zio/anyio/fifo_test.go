@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -22,7 +22,7 @@ func TestOpenFifoCancelation(t *testing.T) {
 		errCh := make(chan error)
 		ctx, cancel := context.WithCancel(context.Background())
 		go func() {
-			_, err := Open(ctx, zson.NewContext(), storage.NewFileSystem(), path, ReaderOpts{})
+			_, err := Open(ctx, zed.NewContext(), storage.NewFileSystem(), path, ReaderOpts{})
 			errCh <- err
 		}()
 		time.Sleep(10 * time.Millisecond)

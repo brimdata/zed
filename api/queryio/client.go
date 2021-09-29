@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 )
 
 func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Response) (zbuf.ScannerStats, error) {
@@ -23,7 +22,7 @@ func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Respons
 		return zbuf.ScannerStats{}, fmt.Errorf("unsupported format: %s", format)
 	}
 	run := &runner{driver: d}
-	r := NewZNGReader(zngio.NewReader(res.Body, zson.NewContext()))
+	r := NewZNGReader(zngio.NewReader(res.Body, zed.NewContext()))
 	for ctx.Err() == nil {
 		rec, ctrl, err := r.ReadPayload()
 		if err != nil {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
@@ -21,7 +22,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Cmd = &charm.Spec{
@@ -141,7 +141,7 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	local := storage.NewLocalEngine()
 	readers, err := c.inputFlags.Open(ctx, zctx, local, paths, c.stopErr)
 	if err != nil {

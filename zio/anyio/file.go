@@ -4,15 +4,15 @@ import (
 	"context"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 )
 
 // Open uses engine to open path for reading.  path is a local file path or a
 // URI whose scheme is understood by engine.
-func Open(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string, opts ReaderOpts) (*zbuf.File, error) {
+func Open(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string, opts ReaderOpts) (*zbuf.File, error) {
 	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, err
@@ -41,7 +41,7 @@ func Open(ctx context.Context, zctx *zson.Context, engine storage.Engine, path s
 	}
 }
 
-func NewFile(zctx *zson.Context, rc io.ReadCloser, path string, opts ReaderOpts) (*zbuf.File, error) {
+func NewFile(zctx *zed.Context, rc io.ReadCloser, path string, opts ReaderOpts) (*zbuf.File, error) {
 	var err error
 	r := io.Reader(rc)
 	if opts.Format != "parquet" && opts.Format != "zst" {

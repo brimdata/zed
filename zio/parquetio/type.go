@@ -5,12 +5,11 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
 	"github.com/fraugster/parquet-go/parquet"
 	"github.com/fraugster/parquet-go/parquetschema"
 )
 
-func newRecordType(zctx *zson.Context, children []*parquetschema.ColumnDefinition) (*zed.TypeRecord, error) {
+func newRecordType(zctx *zed.Context, children []*parquetschema.ColumnDefinition) (*zed.TypeRecord, error) {
 	var cols []zed.Column
 	for _, c := range children {
 		typ, err := newType(zctx, c)
@@ -25,7 +24,7 @@ func newRecordType(zctx *zson.Context, children []*parquetschema.ColumnDefinitio
 	return zctx.LookupTypeRecord(cols)
 }
 
-func newType(zctx *zson.Context, cd *parquetschema.ColumnDefinition) (zed.Type, error) {
+func newType(zctx *zed.Context, cd *parquetschema.ColumnDefinition) (zed.Type, error) {
 	se := cd.SchemaElement
 	if se.Type != nil {
 		return newPrimitiveType(zctx, se)
@@ -55,7 +54,7 @@ func newType(zctx *zson.Context, cd *parquetschema.ColumnDefinition) (zed.Type, 
 
 }
 
-func newPrimitiveType(zctx *zson.Context, s *parquet.SchemaElement) (zed.Type, error) {
+func newPrimitiveType(zctx *zed.Context, s *parquet.SchemaElement) (zed.Type, error) {
 	if s.IsSetLogicalType() && s.LogicalType.IsSetDECIMAL() ||
 		s.GetConvertedType() == parquet.ConvertedType_DECIMAL {
 		return nil, errors.New("DECIMAL type is unimplemented")

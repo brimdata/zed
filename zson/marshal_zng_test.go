@@ -31,7 +31,7 @@ func boomerang(t *testing.T, in interface{}, out interface{}) {
 	zw := zngio.NewWriter(zio.NopCloser(&buf), zngio.WriterOpts{})
 	err = zw.Write(rec)
 	require.NoError(t, err)
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	zr := zngio.NewReader(&buf, zctx)
 	rec, err = zr.Read()
 	require.NoError(t, err)
@@ -147,7 +147,7 @@ func TestIPType(t *testing.T) {
 	addr := net.ParseIP("192.168.1.1").To4()
 	require.NotNil(t, addr)
 	s := TestIP{Addr: addr}
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	rec, err := m.MarshalRecord(s)
 	require.NoError(t, err)
@@ -183,7 +183,7 @@ func TestUnmarshalRecord(t *testing.T) {
 	const expected = `{top:{T2f1:{T3f1:1(int32),T3f2:1.},T2f2:"t2f2-string1"}}`
 	require.Equal(t, expected, toZSON(t, rec))
 
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	rec, err = zson.NewReader(strings.NewReader(expected), zctx).Read()
 	require.NoError(t, err)
 
@@ -210,7 +210,7 @@ func TestUnmarshalSlice(t *testing.T) {
 	v1 := T1{
 		T1f1: []bool{true, false, true},
 	}
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	rec, err := zson.NewZNGMarshalerWithContext(zctx).MarshalRecord(v1)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
@@ -227,7 +227,7 @@ func TestUnmarshalSlice(t *testing.T) {
 	v3 := T2{
 		Field1: []*int{intp(1), intp(2)},
 	}
-	zctx = zson.NewContext()
+	zctx = zed.NewContext()
 	rec, err = zson.NewZNGMarshalerWithContext(zctx).MarshalRecord(v3)
 	require.NoError(t, err)
 	require.NotNil(t, rec)

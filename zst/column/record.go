@@ -6,7 +6,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 var ErrColumnMismatch = errors.New("zng record value doesn't match column writer")
@@ -56,7 +55,7 @@ func (r RecordWriter) Flush(eof bool) error {
 	return nil
 }
 
-func (r RecordWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zed.Type, error) {
+func (r RecordWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
 	var columns []zed.Column
 	b.BeginContainer()
 	for _, f := range r {

@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zson"
 )
 
 var ErrDescriptorChanged = errors.New("descriptor changed")
@@ -32,7 +31,7 @@ func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	}
 	return &Writer{
 		writer:    w,
-		flattener: expr.NewFlattener(zson.NewContext()),
+		flattener: expr.NewFlattener(zed.NewContext()),
 		format:    format,
 	}
 }

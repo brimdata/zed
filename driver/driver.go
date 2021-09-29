@@ -19,7 +19,6 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zqe"
-	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
 )
 
@@ -30,7 +29,7 @@ type Driver interface {
 	Stats(api.ScannerStats) error
 }
 
-func RunWithReader(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zio.Reader, logger *zap.Logger) error {
+func RunWithReader(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, reader zio.Reader, logger *zap.Logger) error {
 	pctx := proc.NewContext(ctx, zctx, logger)
 	runtime, err := compiler.CompileForInternal(pctx, program, reader)
 	if err != nil {
@@ -40,7 +39,7 @@ func RunWithReader(ctx context.Context, d Driver, program ast.Proc, zctx *zson.C
 	return run(pctx, d, runtime, nil)
 }
 
-func RunWithOrderedReader(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zio.Reader, layout order.Layout, logger *zap.Logger) error {
+func RunWithOrderedReader(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, reader zio.Reader, layout order.Layout, logger *zap.Logger) error {
 	pctx := proc.NewContext(ctx, zctx, logger)
 	runtime, err := compiler.CompileForInternalWithOrder(pctx, program, reader, layout)
 	if err != nil {
@@ -50,7 +49,7 @@ func RunWithOrderedReader(ctx context.Context, d Driver, program ast.Proc, zctx 
 	return run(pctx, d, runtime, nil)
 }
 
-func RunWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, reader zio.Reader, adaptor proc.DataAdaptor) (zbuf.ScannerStats, error) {
+func RunWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, reader zio.Reader, adaptor proc.DataAdaptor) (zbuf.ScannerStats, error) {
 	pctx := proc.NewContext(ctx, zctx, nil)
 	runtime, err := compiler.CompileForFileSystem(pctx, program, reader, adaptor)
 	if err != nil {
@@ -61,7 +60,7 @@ func RunWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zs
 	return runtime.Statser().Stats(), err
 }
 
-func RunJoinWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, readers []zio.Reader, adaptor proc.DataAdaptor) (zbuf.ScannerStats, error) {
+func RunJoinWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, readers []zio.Reader, adaptor proc.DataAdaptor) (zbuf.ScannerStats, error) {
 	pctx := proc.NewContext(ctx, zctx, nil)
 	runtime, err := compiler.CompileJoinForFileSystem(pctx, program, readers, adaptor)
 	if err != nil {
@@ -72,7 +71,7 @@ func RunJoinWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx
 	return runtime.Statser().Stats(), err
 }
 
-func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor, head *lakeparse.Commitish) (zbuf.ScannerStats, error) {
+func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, lake proc.DataAdaptor, head *lakeparse.Commitish) (zbuf.ScannerStats, error) {
 	pctx := proc.NewContext(ctx, zctx, nil)
 	runtime, err := compiler.CompileForLake(pctx, program, lake, 0, head)
 	if err != nil {
@@ -83,7 +82,7 @@ func RunWithLake(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Con
 	return runtime.Statser().Stats(), err
 }
 
-func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *zson.Context, lake proc.DataAdaptor, head *lakeparse.Commitish, ticker <-chan time.Time, logger *zap.Logger, parallelism int) error {
+func RunWithLakeAndStats(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, lake proc.DataAdaptor, head *lakeparse.Commitish, ticker <-chan time.Time, logger *zap.Logger, parallelism int) error {
 	pctx := proc.NewContext(ctx, zctx, logger)
 	runtime, err := compiler.CompileForLake(pctx, program, lake, parallelism, head)
 	if err != nil {
@@ -260,7 +259,7 @@ func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
 
 // Copy applies a proc to all records from a zio.Reader, writing to a
 // single zio.Writer. The proc must have a single tail.
-func Copy(ctx context.Context, w zio.Writer, prog ast.Proc, zctx *zson.Context, r zio.Reader, logger *zap.Logger) error {
+func Copy(ctx context.Context, w zio.Writer, prog ast.Proc, zctx *zed.Context, r zio.Reader, logger *zap.Logger) error {
 	d := &transformDriver{w: w}
 	return RunWithReader(ctx, d, prog, zctx, r, logger)
 }
@@ -317,7 +316,7 @@ func (r *Reader) Close() error {
 	return r.Closer.Close()
 }
 
-func NewReader(ctx context.Context, program ast.Proc, zctx *zson.Context, reader zio.Reader) (*Reader, error) {
+func NewReader(ctx context.Context, program ast.Proc, zctx *zed.Context, reader zio.Reader) (*Reader, error) {
 	pctx := proc.NewContext(ctx, zctx, nil)
 	runtime, err := compiler.CompileForInternal(pctx, program, reader)
 	if err != nil {

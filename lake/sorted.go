@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 	"go.uber.org/multierr"
 )
 
@@ -50,7 +49,7 @@ func (s *statScanner) Pull() (zbuf.Batch, error) {
 	return batch, err
 }
 
-func newSortedScanner(ctx context.Context, pool *Pool, zctx *zson.Context, filter zbuf.Filter, scan Partition, sched *Scheduler) (*sortedPuller, error) {
+func newSortedScanner(ctx context.Context, pool *Pool, zctx *zed.Context, filter zbuf.Filter, scan Partition, sched *Scheduler) (*sortedPuller, error) {
 	closers := make(multiCloser, 0, len(scan.Objects))
 	pullers := make([]zbuf.Puller, 0, len(scan.Objects))
 	for _, object := range scan.Objects {

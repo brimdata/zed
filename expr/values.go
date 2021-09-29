@@ -3,18 +3,17 @@ package expr
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 type RecordExpr struct {
-	zctx    *zson.Context
+	zctx    *zed.Context
 	typ     *zed.TypeRecord
 	builder *zcode.Builder
 	columns []zed.Column
 	exprs   []Evaluator
 }
 
-func NewRecordExpr(zctx *zson.Context, names []string, exprs []Evaluator) *RecordExpr {
+func NewRecordExpr(zctx *zed.Context, names []string, exprs []Evaluator) *RecordExpr {
 	columns := make([]zed.Column, 0, len(names))
 	for _, name := range names {
 		columns = append(columns, zed.Column{Name: name})
@@ -57,13 +56,13 @@ func (r *RecordExpr) Eval(rec *zed.Record) (zed.Value, error) {
 }
 
 type ArrayExpr struct {
-	zctx    *zson.Context
+	zctx    *zed.Context
 	typ     *zed.TypeArray
 	builder *zcode.Builder
 	exprs   []Evaluator
 }
 
-func NewArrayExpr(zctx *zson.Context, exprs []Evaluator) *ArrayExpr {
+func NewArrayExpr(zctx *zed.Context, exprs []Evaluator) *ArrayExpr {
 	return &ArrayExpr{
 		zctx:    zctx,
 		typ:     zctx.LookupTypeArray(zed.TypeNull),
@@ -111,13 +110,13 @@ func (a *ArrayExpr) Eval(rec *zed.Record) (zed.Value, error) {
 }
 
 type SetExpr struct {
-	zctx    *zson.Context
+	zctx    *zed.Context
 	typ     *zed.TypeSet
 	builder *zcode.Builder
 	exprs   []Evaluator
 }
 
-func NewSetExpr(zctx *zson.Context, exprs []Evaluator) *SetExpr {
+func NewSetExpr(zctx *zed.Context, exprs []Evaluator) *SetExpr {
 	return &SetExpr{
 		zctx:    zctx,
 		typ:     zctx.LookupTypeSet(zed.TypeNull),
@@ -170,13 +169,13 @@ type Entry struct {
 }
 
 type MapExpr struct {
-	zctx    *zson.Context
+	zctx    *zed.Context
 	typ     *zed.TypeMap
 	builder *zcode.Builder
 	entries []Entry
 }
 
-func NewMapExpr(zctx *zson.Context, entries []Entry) *MapExpr {
+func NewMapExpr(zctx *zed.Context, entries []Entry) *MapExpr {
 	return &MapExpr{
 		zctx:    zctx,
 		typ:     zctx.LookupTypeMap(zed.TypeNull, zed.TypeNull),

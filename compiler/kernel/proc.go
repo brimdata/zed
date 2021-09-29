@@ -246,7 +246,7 @@ type picker struct{ *expr.Cutter }
 
 func (_ *picker) String() string { return "pick" }
 
-func compileAssignments(assignments []dag.Assignment, zctx *zson.Context, scope *Scope) ([]expr.Assignment, error) {
+func compileAssignments(assignments []dag.Assignment, zctx *zed.Context, scope *Scope) ([]expr.Assignment, error) {
 	keys := make([]expr.Assignment, 0, len(assignments))
 	for _, assignment := range assignments {
 		a, err := CompileAssignment(zctx, scope, &assignment)
@@ -640,7 +640,7 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 	return nil
 }
 
-func evalAtCompileTime(zctx *zson.Context, scope *Scope, in dag.Expr) (zed.Value, error) {
+func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (zed.Value, error) {
 	if in == nil {
 		return zed.Value{zed.TypeNull, nil}, nil
 	}

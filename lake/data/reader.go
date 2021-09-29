@@ -6,13 +6,13 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zqe"
-	"github.com/brimdata/zed/zson"
 )
 
 type Reader struct {
@@ -57,7 +57,7 @@ func (o *Object) NewReader(ctx context.Context, engine storage.Engine, path *sto
 		return nil, err
 	}
 	defer indexReader.Close()
-	rg, err := seekindex.Lookup(zngio.NewReader(indexReader, zson.NewContext()), scanRange.First(), scanRange.Last(), cmp)
+	rg, err := seekindex.Lookup(zngio.NewReader(indexReader, zed.NewContext()), scanRange.First(), scanRange.Last(), cmp)
 	if err != nil {
 		if zqe.IsNotFound(err) {
 			return sr, nil

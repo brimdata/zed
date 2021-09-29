@@ -10,13 +10,13 @@ import (
 
 type Reader struct {
 	reader   io.Reader
-	zctx     *Context
+	zctx     *zed.Context
 	parser   *Parser
 	analyzer Analyzer
 	builder  *zcode.Builder
 }
 
-func NewReader(r io.Reader, zctx *Context) *Reader {
+func NewReader(r io.Reader, zctx *zed.Context) *Reader {
 	return &Reader{
 		reader:   r,
 		zctx:     zctx,

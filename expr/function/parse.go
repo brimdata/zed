@@ -79,7 +79,7 @@ func (p *parseURI) Call(args []zed.Value) (zed.Value, error) {
 }
 
 type parseZSON struct {
-	zctx *zson.Context
+	zctx *zed.Context
 }
 
 func (p *parseZSON) Call(args []zed.Value) (zed.Value, error) {

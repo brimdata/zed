@@ -38,7 +38,7 @@ func NewMarshalerIndent(indent int) *MarshalContext {
 	}
 }
 
-func NewMarshalerWithContext(zctx *Context) *MarshalContext {
+func NewMarshalerWithContext(zctx *zed.Context) *MarshalContext {
 	return &MarshalContext{
 		MarshalZNGContext: NewZNGMarshalerWithContext(zctx),
 	}
@@ -62,7 +62,7 @@ func (m *MarshalContext) MarshalCustom(names []string, fields []interface{}) (st
 
 type UnmarshalContext struct {
 	*UnmarshalZNGContext
-	zctx     *Context
+	zctx     *zed.Context
 	analyzer Analyzer
 	builder  *zcode.Builder
 }
@@ -70,7 +70,7 @@ type UnmarshalContext struct {
 func NewUnmarshaler() *UnmarshalContext {
 	return &UnmarshalContext{
 		UnmarshalZNGContext: NewZNGUnmarshaler(),
-		zctx:                NewContext(),
+		zctx:                zed.NewContext(),
 		analyzer:            NewAnalyzer(),
 		builder:             zcode.NewBuilder(),
 	}
@@ -109,17 +109,17 @@ func MarshalZNG(v interface{}) (zed.Value, error) {
 }
 
 type MarshalZNGContext struct {
-	*Context
+	*zed.Context
 	zcode.Builder
 	decorator func(string, string) string
 	bindings  map[string]string
 }
 
 func NewZNGMarshaler() *MarshalZNGContext {
-	return NewZNGMarshalerWithContext(NewContext())
+	return NewZNGMarshalerWithContext(zed.NewContext())
 }
 
-func NewZNGMarshalerWithContext(zctx *Context) *MarshalZNGContext {
+func NewZNGMarshalerWithContext(zctx *zed.Context) *MarshalZNGContext {
 	return &MarshalZNGContext{
 		Context: zctx,
 	}

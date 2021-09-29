@@ -11,9 +11,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 )
 
 const ext = "zng"
@@ -172,7 +172,7 @@ func (q *Queue) Open(ctx context.Context, head, tail ID) (io.Reader, error) {
 	return q.NewReader(ctx, head, tail), nil
 }
 
-func (q *Queue) OpenAsZNG(ctx context.Context, zctx *zson.Context, head, tail ID) (*zngio.Reader, error) {
+func (q *Queue) OpenAsZNG(ctx context.Context, zctx *zed.Context, head, tail ID) (*zngio.Reader, error) {
 	r, err := q.Open(ctx, head, tail)
 	if err != nil {
 		return nil, err

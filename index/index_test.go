@@ -45,7 +45,7 @@ func TestMicroIndex(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "test2.zng")
 	stream, err := newReader(N)
 	require.NoError(t, err)
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	engine := storage.NewLocalEngine()
 	writer, err := index.NewWriter(zctx, engine, path)
 	require.NoError(t, err)
@@ -129,7 +129,7 @@ func TestCompare(t *testing.T) {
 			runtest(t, desc, "==", c.value, c.eql)
 		}
 	})
-	r, err := driver.NewReader(context.Background(), compiler.MustParseProc("sort ts"), zson.NewContext(), reader(records))
+	r, err := driver.NewReader(context.Background(), compiler.MustParseProc("sort ts"), zed.NewContext(), reader(records))
 	require.NoError(t, err)
 	asc := buildAndOpen(t, engine, r, index.Keys("ts"), index.Order(order.Asc))
 	t.Run("Ascending", func(t *testing.T) {
@@ -148,7 +148,7 @@ func buildAndOpen(t *testing.T, engine storage.Engine, r zio.Reader, opts ...ind
 func openFinder(t *testing.T, path string) *index.Finder {
 	uri, err := storage.ParseURI(path)
 	require.NoError(t, err)
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	finder, err := index.NewFinder(context.Background(), zctx, storage.NewLocalEngine(), uri)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, finder.Close()) })
@@ -157,7 +157,7 @@ func openFinder(t *testing.T, path string) *index.Finder {
 
 func build(t *testing.T, engine storage.Engine, r zio.Reader, opts ...index.Option) string {
 	path := filepath.Join(t.TempDir(), "test.zng")
-	writer, err := index.NewWriter(zson.NewContext(), engine, path, opts...)
+	writer, err := index.NewWriter(zed.NewContext(), engine, path, opts...)
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(writer, r))
 	require.NoError(t, writer.Close())
@@ -165,7 +165,7 @@ func build(t *testing.T, engine storage.Engine, r zio.Reader, opts ...index.Opti
 }
 
 func reader(logs string) zio.Reader {
-	return zson.NewReader(strings.NewReader(logs), zson.NewContext())
+	return zson.NewReader(strings.NewReader(logs), zed.NewContext())
 }
 
 func newReader(size int) (zio.Reader, error) {

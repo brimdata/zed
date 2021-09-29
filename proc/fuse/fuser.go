@@ -5,14 +5,13 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/agg"
 	"github.com/brimdata/zed/proc/spill"
-	"github.com/brimdata/zed/zson"
 )
 
 // Fuser buffers records written to it, assembling from them a unified schema of
 // fields and types.  Fuser then transforms those records to the unified schema
 // as they are read back from it.
 type Fuser struct {
-	zctx        *zson.Context
+	zctx        *zed.Context
 	memMaxBytes int
 
 	nbytes  int
@@ -27,7 +26,7 @@ type Fuser struct {
 // NewFuser returns a new Fuser.  The Fuser buffers records in memory until
 // their cumulative size (measured in zcode.Bytes length) exceeds memMaxBytes,
 // at which point it buffers them in a temporary file.
-func NewFuser(zctx *zson.Context, memMaxBytes int) *Fuser {
+func NewFuser(zctx *zed.Context, memMaxBytes int) *Fuser {
 	return &Fuser{
 		zctx:        zctx,
 		memMaxBytes: memMaxBytes,

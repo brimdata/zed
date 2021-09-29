@@ -5,12 +5,12 @@ import (
 	"flag"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst"
 )
 
@@ -66,7 +66,7 @@ func (c *Command) Run(args []string) error {
 	fields := strings.Split(c.fieldExpr, ".")
 	path := args[0]
 	local := storage.NewLocalEngine()
-	cutter, err := zst.NewCutterFromPath(ctx, zson.NewContext(), local, path, fields)
+	cutter, err := zst.NewCutterFromPath(ctx, zed.NewContext(), local, path, fields)
 	if err != nil {
 		return err
 	}

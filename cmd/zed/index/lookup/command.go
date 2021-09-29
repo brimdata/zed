@@ -11,7 +11,6 @@ import (
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zson"
 )
 
 var Lookup = &charm.Spec{
@@ -67,7 +66,7 @@ func (c *LookupCommand) Run(args []string) error {
 		return err
 	}
 	local := storage.NewLocalEngine()
-	finder, err := index.NewFinder(ctx, zson.NewContext(), local, uri)
+	finder, err := index.NewFinder(ctx, zed.NewContext(), local, uri)
 	if err != nil {
 		return err
 	}

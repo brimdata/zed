@@ -23,7 +23,7 @@ func TestReadOneLineNoEOF(t *testing.T) {
 		// The test needs two records because with a single record the parser
 		// will stall waiting to see if the record has a decorator.
 		reader <- []byte(expected + "\n" + expected)
-		r := zson.NewReader(reader, zson.NewContext())
+		r := zson.NewReader(reader, zed.NewContext())
 		rec, err := r.Read()
 		done <- result{rec: rec, err: err}
 	}()

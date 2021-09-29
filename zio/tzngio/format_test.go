@@ -6,7 +6,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,7 +18,7 @@ func makeContainer(vals ...[]byte) zcode.Bytes {
 }
 
 func TestFormatting(t *testing.T) {
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	bstringSetType := zctx.LookupTypeSet(zed.TypeBstring)
 	bstringVecType := zctx.LookupTypeArray(zed.TypeBstring)
 	setOfVectorsType := zctx.LookupTypeSet(bstringVecType)

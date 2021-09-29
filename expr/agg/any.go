@@ -2,7 +2,6 @@ package agg
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
 )
 
 type Any zed.Value
@@ -16,7 +15,7 @@ func (a *Any) Consume(v zed.Value) error {
 	return nil
 }
 
-func (a Any) Result(*zson.Context) (zed.Value, error) {
+func (a Any) Result(*zed.Context) (zed.Value, error) {
 	if a.Type == nil {
 		return zed.Value{Type: zed.TypeNull}, nil
 	}
@@ -27,6 +26,6 @@ func (a *Any) ConsumeAsPartial(v zed.Value) error {
 	return a.Consume(v)
 }
 
-func (a Any) ResultAsPartial(*zson.Context) (zed.Value, error) {
+func (a Any) ResultAsPartial(*zed.Context) (zed.Value, error) {
 	return a.Result(nil)
 }

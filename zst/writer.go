@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/column"
 )
 
@@ -22,7 +21,7 @@ const (
 // Writer implements the zio.Writer interface. A Writer creates a columnar
 // zst object from a stream of zed.Records.
 type Writer struct {
-	zctx       *zson.Context
+	zctx       *zed.Context
 	writer     io.WriteCloser
 	spiller    *column.Spiller
 	schemaMap  map[int]int
@@ -48,7 +47,7 @@ func NewWriter(w io.WriteCloser, skewThresh, segThresh int) (*Writer, error) {
 	}
 	spiller := column.NewSpiller(w, segThresh)
 	return &Writer{
-		zctx:       zson.NewContext(),
+		zctx:       zed.NewContext(),
 		spiller:    spiller,
 		writer:     w,
 		schemaMap:  make(map[int]int),
@@ -230,7 +229,7 @@ func (w *Writer) writeEmptyTrailer() error {
 	return writeTrailer(zw, w.zctx, w.skewThresh, w.segThresh, nil)
 }
 
-func writeTrailer(w *zngio.Writer, zctx *zson.Context, skewThresh, segThresh int, sizes []int64) error {
+func writeTrailer(w *zngio.Writer, zctx *zed.Context, skewThresh, segThresh int, sizes []int64) error {
 	rec, err := newTrailerRecord(zctx, skewThresh, segThresh, sizes)
 	if err != nil {
 		return err

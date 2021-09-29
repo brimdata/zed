@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
@@ -15,7 +16,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -102,7 +102,7 @@ func (l *LocalSession) Query(ctx context.Context, d driver.Driver, head *lakepar
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return zbuf.ScannerStats{}, err
 	}
-	return driver.RunWithLake(ctx, d, query, zson.NewContext(), l.root, head)
+	return driver.RunWithLake(ctx, d, query, zed.NewContext(), l.root, head)
 }
 
 func (l *LocalSession) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {

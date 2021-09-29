@@ -19,7 +19,7 @@ var ErrNotFound = errors.New("key not found")
 // Finder looks up values in a microindex using its embedded index.
 type Finder struct {
 	*Reader
-	zctx *zson.Context
+	zctx *zed.Context
 	uri  *storage.URI
 }
 
@@ -28,7 +28,7 @@ type Finder struct {
 // corrupt, doesn't exist, or has an invalid trailer.  If the microindex exists
 // but is empty, zero values are returned for any lookups. If the microindex
 // does not exist, a wrapped zqe.NotFound error is returned.
-func NewFinder(ctx context.Context, zctx *zson.Context, engine storage.Engine, uri *storage.URI) (*Finder, error) {
+func NewFinder(ctx context.Context, zctx *zed.Context, engine storage.Engine, uri *storage.URI) (*Finder, error) {
 	reader, err := NewReaderFromURI(ctx, zctx, engine, uri)
 	if err != nil {
 		return nil, err

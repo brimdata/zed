@@ -15,7 +15,7 @@ import (
 )
 
 func mkRecord(t *testing.T, s string) *zed.Record {
-	r := zson.NewReader(strings.NewReader(s), zson.NewContext())
+	r := zson.NewReader(strings.NewReader(s), zed.NewContext())
 	rec, err := r.Read()
 	require.NoError(t, err)
 	return rec

@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zson"
 )
 
 var ErrNotDataFrame = errors.New("CSV output requires uniform records but multiple types encountered (consider 'fuse')")
@@ -34,7 +33,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	return &Writer{
 		writer:    w,
 		encoder:   csv.NewWriter(w),
-		flattener: expr.NewFlattener(zson.NewContext()),
+		flattener: expr.NewFlattener(zed.NewContext()),
 		format:    format,
 	}
 }

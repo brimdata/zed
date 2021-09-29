@@ -2,7 +2,6 @@ package zio
 
 import (
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
 )
 
 type Mapper struct {
@@ -10,7 +9,7 @@ type Mapper struct {
 	mapper *zed.Mapper
 }
 
-func NewMapper(reader Reader, zctx *zson.Context) *Mapper {
+func NewMapper(reader Reader, zctx *zed.Context) *Mapper {
 	return &Mapper{
 		Reader: reader,
 		mapper: zed.NewMapper(zctx),

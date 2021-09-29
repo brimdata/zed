@@ -6,16 +6,15 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zson"
 )
 
 var ErrEmptyTypeList = errors.New("empty type list in set or union")
 
 type TypeParser struct {
-	zctx *zson.Context
+	zctx *zed.Context
 }
 
-func NewTypeParser(zctx *zson.Context) *TypeParser {
+func NewTypeParser(zctx *zed.Context) *TypeParser {
 	return &TypeParser{
 		zctx: zctx,
 	}

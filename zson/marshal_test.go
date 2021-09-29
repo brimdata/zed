@@ -214,7 +214,7 @@ func TestBug2575(t *testing.T) {
 	writer.Close()
 
 	r := bytes.NewReader(buffer.Bytes())
-	reader := zngio.NewReader(r, zson.NewContext())
+	reader := zngio.NewReader(r, zed.NewContext())
 	recActual, err := reader.Read()
 	exp, err := zson.FormatValue(recExpected.Value)
 	require.NoError(t, err)
@@ -261,7 +261,7 @@ func TestZNGValueField(t *testing.T) {
 	assert.Equal(t, *zngValueField, out)
 	// Include a Zed record inside a Go struct in a zed.Value field.
 	z := `{s:"foo",a:[1,2,3]}`
-	zv2, err := zson.ParseValue(zson.NewContext(), z)
+	zv2, err := zson.ParseValue(zed.NewContext(), z)
 	require.NoError(t, err)
 	zngValueField2 := &ZNGValueField{
 		Name:  "test2",

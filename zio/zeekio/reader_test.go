@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -23,7 +23,7 @@ func TestReaderCRLF(t *testing.T) {
 10.000000	1
 `
 	input = strings.ReplaceAll(input, "\n", "\r\n")
-	r, err := NewReader(strings.NewReader(input), zson.NewContext())
+	r, err := NewReader(strings.NewReader(input), zed.NewContext())
 	require.NoError(t, err)
 	rec, err := r.Read()
 	require.NoError(t, err)

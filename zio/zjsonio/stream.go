@@ -7,18 +7,17 @@ import (
 	"github.com/brimdata/zed"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zson"
 )
 
 type Stream struct {
-	zctx     *zson.Context
+	zctx     *zed.Context
 	encoder  encoder
 	typetype map[zed.Type]bool
 }
 
 func NewStream() *Stream {
 	return &Stream{
-		zctx:     zson.NewContext(),
+		zctx:     zed.NewContext(),
 		encoder:  make(encoder),
 		typetype: make(map[zed.Type]bool),
 	}

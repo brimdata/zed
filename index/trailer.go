@@ -10,7 +10,6 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 )
 
 const (
@@ -41,7 +40,7 @@ type Trailer struct {
 
 var ErrNotIndex = errors.New("not a zed index")
 
-func newTrailerRecord(zctx *zson.Context, childField string, frameThresh int, sections []int64, keyType *zed.TypeRecord, o order.Which) (*zed.Record, error) {
+func newTrailerRecord(zctx *zed.Context, childField string, frameThresh int, sections []int64, keyType *zed.TypeRecord, o order.Which) (*zed.Record, error) {
 	sectionsType := zctx.LookupTypeArray(zed.TypeInt64)
 	cols := []zed.Column{
 		{MagicField, zed.TypeString},
@@ -100,7 +99,7 @@ func readTrailer(r io.ReaderAt, size int64) (*Trailer, int, error) {
 				continue
 			}
 			r := bytes.NewReader(buf[off:n])
-			rec, _ := zngio.NewReader(r, zson.NewContext()).Read()
+			rec, _ := zngio.NewReader(r, zed.NewContext()).Read()
 			if rec == nil {
 				continue
 			}
@@ -198,7 +197,7 @@ func decodeSections(rec *zed.Record) ([]int64, error) {
 	return sizes, nil
 }
 
-func uniqChildField(zctx *zson.Context, keys *zed.Record) string {
+func uniqChildField(zctx *zed.Context, keys *zed.Record) string {
 	// This loop works around the corner case that the field reserved
 	// for the child pointer is in use by another key...
 	childField := ChildFieldVal

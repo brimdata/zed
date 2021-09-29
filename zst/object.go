@@ -43,7 +43,7 @@ import (
 type Object struct {
 	seeker   *storage.Seeker
 	closer   io.Closer
-	zctx     *zson.Context
+	zctx     *zed.Context
 	assembly *Assembly
 	trailer  *Trailer
 	size     int64
@@ -51,7 +51,7 @@ type Object struct {
 	err      error
 }
 
-func NewObject(zctx *zson.Context, s *storage.Seeker, size int64) (*Object, error) {
+func NewObject(zctx *zed.Context, s *storage.Seeker, size int64) (*Object, error) {
 	trailer, err := readTrailer(s, size)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func NewObject(zctx *zson.Context, s *storage.Seeker, size int64) (*Object, erro
 	return o, err
 }
 
-func NewObjectFromSeeker(zctx *zson.Context, s *storage.Seeker) (*Object, error) {
+func NewObjectFromSeeker(zctx *zed.Context, s *storage.Seeker) (*Object, error) {
 	size, err := storage.Size(s.Reader)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func NewObjectFromSeeker(zctx *zson.Context, s *storage.Seeker) (*Object, error)
 	return NewObject(zctx, s, size)
 }
 
-func NewObjectFromPath(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string) (*Object, error) {
+func NewObjectFromPath(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string) (*Object, error) {
 	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, err

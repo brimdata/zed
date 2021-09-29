@@ -3,8 +3,8 @@ package index
 import (
 	"context"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zson"
 )
 
 type InfoKey struct {
@@ -23,7 +23,7 @@ func Stat(ctx context.Context, engine storage.Engine, uri *storage.URI) (*Info, 
 	if err != nil {
 		return nil, err
 	}
-	r, err := NewReaderFromURI(ctx, zson.NewContext(), engine, uri)
+	r, err := NewReaderFromURI(ctx, zed.NewContext(), engine, uri)
 	if err != nil {
 		return nil, err
 	}

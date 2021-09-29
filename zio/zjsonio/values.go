@@ -10,7 +10,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func encodeUnion(zctx *zson.Context, union *zed.TypeUnion, bytes zcode.Bytes) (interface{}, error) {
+func encodeUnion(zctx *zed.Context, union *zed.TypeUnion, bytes zcode.Bytes) (interface{}, error) {
 	// encode nil val as JSON null since
 	// zed.Escape() returns "" for nil
 	if bytes == nil {
@@ -27,7 +27,7 @@ func encodeUnion(zctx *zson.Context, union *zed.TypeUnion, bytes zcode.Bytes) (i
 	return []interface{}{strconv.Itoa(int(selector)), val}, nil
 }
 
-func encodeMap(zctx *zson.Context, typ *zed.TypeMap, v zcode.Bytes) (interface{}, error) {
+func encodeMap(zctx *zed.Context, typ *zed.TypeMap, v zcode.Bytes) (interface{}, error) {
 	// encode nil val as JSON null since
 	// zed.Escape() returns "" for nil
 	if v == nil {
@@ -58,7 +58,7 @@ func encodeMap(zctx *zson.Context, typ *zed.TypeMap, v zcode.Bytes) (interface{}
 	return out, nil
 }
 
-func encodePrimitive(zctx *zson.Context, typ zed.Type, v zcode.Bytes) (interface{}, error) {
+func encodePrimitive(zctx *zed.Context, typ zed.Type, v zcode.Bytes) (interface{}, error) {
 	// encode nil val as JSON null since
 	// zed.Escape() returns "" for nil
 	var fld interface{}
@@ -84,7 +84,7 @@ func encodePrimitive(zctx *zson.Context, typ zed.Type, v zcode.Bytes) (interface
 	return typ.Format(v), nil
 }
 
-func encodeValue(zctx *zson.Context, typ zed.Type, val zcode.Bytes) (interface{}, error) {
+func encodeValue(zctx *zed.Context, typ zed.Type, val zcode.Bytes) (interface{}, error) {
 	switch typ := typ.(type) {
 	case *zed.TypeAlias:
 		return encodeValue(zctx, typ.Type, val)
@@ -105,7 +105,7 @@ func encodeValue(zctx *zson.Context, typ zed.Type, val zcode.Bytes) (interface{}
 	}
 }
 
-func encodeRecord(zctx *zson.Context, typ *zed.TypeRecord, val zcode.Bytes) (interface{}, error) {
+func encodeRecord(zctx *zed.Context, typ *zed.TypeRecord, val zcode.Bytes) (interface{}, error) {
 	if val == nil {
 		return nil, nil
 	}
@@ -127,7 +127,7 @@ func encodeRecord(zctx *zson.Context, typ *zed.TypeRecord, val zcode.Bytes) (int
 	return out, nil
 }
 
-func encodeContainer(zctx *zson.Context, typ zed.Type, bytes zcode.Bytes) (interface{}, error) {
+func encodeContainer(zctx *zed.Context, typ zed.Type, bytes zcode.Bytes) (interface{}, error) {
 	if bytes == nil {
 		return nil, nil
 	}

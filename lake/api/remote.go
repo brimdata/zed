@@ -7,6 +7,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/api/queryio"
@@ -182,7 +183,7 @@ func unmarshal(res *client.Response, i interface{}) error {
 		return err
 	}
 	//XXX should be ZNG
-	zr, err := anyio.NewReaderWithOpts(res.Body, zson.NewContext(), anyio.ReaderOpts{Format: format})
+	zr, err := anyio.NewReaderWithOpts(res.Body, zed.NewContext(), anyio.ReaderOpts{Format: format})
 	if err != nil {
 		return nil
 	}

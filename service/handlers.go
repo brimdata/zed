@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
@@ -18,7 +19,6 @@ import (
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zqe"
-	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
 )
 
@@ -49,7 +49,7 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 	}
 	defer d.Close()
-	err = driver.RunWithLakeAndStats(r.Context(), d, query, zson.NewContext(), c.root, &req.Head, nil, r.Logger, 0)
+	err = driver.RunWithLakeAndStats(r.Context(), d, query, zed.NewContext(), c.root, &req.Head, nil, r.Logger, 0)
 	if err != nil && !errors.Is(err, journal.ErrEmpty) {
 		d.Error(err)
 	}
@@ -361,7 +361,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	// Force validation of ZNG when initialing loading into the lake.
 	var opts anyio.ReaderOpts
 	opts.Zng.Validate = true
-	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(r.Body), zson.NewContext(), opts)
+	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(r.Body), zed.NewContext(), opts)
 	if err != nil {
 		w.Error(err)
 		return

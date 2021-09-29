@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zson"
 )
 
 type Writer struct {
@@ -32,7 +31,7 @@ func NewWriter(w io.WriteCloser, utf8 bool, opts WriterOpts) *Writer {
 	return &Writer{
 		WriterOpts: opts,
 		writer:     w,
-		flattener:  expr.NewFlattener(zson.NewContext()),
+		flattener:  expr.NewFlattener(zed.NewContext()),
 		format:     format,
 	}
 }

@@ -57,7 +57,7 @@ func (r *ZNGReader) ReadPayload() (*zed.Record, interface{}, error) {
 		if msg.Encoding != zed.AppEncodingZSON {
 			return nil, nil, fmt.Errorf("unsupported app encoding: %v", msg.Encoding)
 		}
-		value, err := zson.ParseValue(zson.NewContext(), string(msg.Bytes))
+		value, err := zson.ParseValue(zed.NewContext(), string(msg.Bytes))
 		if err != nil {
 			return nil, nil, err
 		}
