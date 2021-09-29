@@ -237,34 +237,6 @@ func (d *CLI) Warn(msg string) error {
 func (d *CLI) ChannelEnd(int) error         { return nil }
 func (d *CLI) Stats(api.ScannerStats) error { return nil }
 
-type transformDriver struct {
-	w zio.Writer
-}
-
-func (d *transformDriver) Write(cid int, batch zbuf.Batch) error {
-	if cid != 0 {
-		return errors.New("transform proc with multiple tails")
-	}
-	for i := 0; i < batch.Length(); i++ {
-		if err := d.w.Write(batch.Index(i)); err != nil {
-			return err
-		}
-	}
-	batch.Unref()
-	return nil
-}
-
-func (d *transformDriver) Warn(warning string) error          { return nil }
-func (d *transformDriver) Stats(stats api.ScannerStats) error { return nil }
-func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
-
-// Copy applies a proc to all records from a zio.Reader, writing to a
-// single zio.Writer. The proc must have a single tail.
-func Copy(ctx context.Context, w zio.Writer, prog ast.Proc, zctx *zson.Context, r zio.Reader, logger *zap.Logger) error {
-	d := &transformDriver{w: w}
-	return RunWithReader(ctx, d, prog, zctx, r, logger)
-}
-
 // Reader implements zio.ReaderCloser and Driver.
 type Reader struct {
 	io.Closer
