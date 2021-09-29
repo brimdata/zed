@@ -5,17 +5,17 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/builder"
 	"github.com/brimdata/zed/zng/typevector"
 	"github.com/brimdata/zed/zson"
 )
 
 type Cutter struct {
 	zctx        *zson.Context
-	builder     *builder.ColumnBuilder
+	builder     *zed.ColumnBuilder
 	fieldRefs   field.List
 	fieldExprs  []Evaluator
 	typeCache   []zng.Type
@@ -40,11 +40,11 @@ func NewCutter(zctx *zson.Context, fieldRefs field.List, fieldExprs []Evaluator)
 			}
 		}
 	}
-	var b *builder.ColumnBuilder
+	var b *zed.ColumnBuilder
 	if len(fieldRefs) == 0 || !fieldRefs[0].IsRoot() {
 		// A root field will cause NewColumnBuilder to panic.
 		var err error
-		b, err = builder.NewColumnBuilder(zctx, fieldRefs)
+		b, err = zed.NewColumnBuilder(zctx, fieldRefs)
 		if err != nil {
 			return nil, err
 		}
