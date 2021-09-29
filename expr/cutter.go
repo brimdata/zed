@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zng/builder"
-	"github.com/brimdata/zed/zng/typevector"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -19,7 +19,7 @@ type Cutter struct {
 	fieldRefs   field.List
 	fieldExprs  []Evaluator
 	typeCache   []zng.Type
-	outTypes    *typevector.Table
+	outTypes    *zed.TypeVectorTable
 	recordTypes map[int]*zng.TypeRecord
 
 	droppers     []*Dropper
@@ -55,7 +55,7 @@ func NewCutter(zctx *zson.Context, fieldRefs field.List, fieldExprs []Evaluator)
 		fieldRefs:   fieldRefs,
 		fieldExprs:  fieldExprs,
 		typeCache:   make([]zng.Type, len(fieldRefs)),
-		outTypes:    typevector.NewTable(),
+		outTypes:    zed.NewTypeVectorTable(),
 		recordTypes: make(map[int]*zng.TypeRecord),
 	}, nil
 }
