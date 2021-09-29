@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/peeker"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 	"github.com/pierrec/lz4/v4"
 )
@@ -29,7 +29,7 @@ type Reader struct {
 	// internal context implied by zng file
 	zctx *zson.Context
 	// mapper to map internal to shared type contexts
-	mapper   *resolver.Mapper
+	mapper   *zed.Mapper
 	sos      int64
 	validate bool
 	app      AppMessage
@@ -67,7 +67,7 @@ func NewReaderWithOpts(reader io.Reader, sctx *zson.Context, opts ReaderOpts) *R
 		peeker:   peeker.NewReader(reader, opts.Size, opts.Max),
 		sctx:     sctx,
 		zctx:     zson.NewContext(),
-		mapper:   resolver.NewMapper(sctx),
+		mapper:   zed.NewMapper(sctx),
 		validate: opts.Validate,
 	}
 }
@@ -125,7 +125,7 @@ func (r *Reader) LastSOS() int64 {
 
 func (r *Reader) reset() {
 	r.zctx = zson.NewContext()
-	r.mapper = resolver.NewMapper(r.sctx)
+	r.mapper = zed.NewMapper(r.sctx)
 	r.sos = r.peekerOffset
 }
 
@@ -190,7 +190,7 @@ type reader interface {
 var _ reader = (*Reader)(nil)
 var _ reader = (*buffer)(nil)
 
-func readValue(r reader, code byte, m *resolver.Mapper, validate bool, rec *zng.Record) (*zng.Record, error) {
+func readValue(r reader, code byte, m *zed.Mapper, validate bool, rec *zng.Record) (*zng.Record, error) {
 	id := int(code)
 	if code == zng.CtrlValueEscape {
 		var err error

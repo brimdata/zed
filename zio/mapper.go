@@ -1,20 +1,20 @@
 package zio
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 )
 
 type Mapper struct {
 	Reader
-	mapper *resolver.Mapper
+	mapper *zed.Mapper
 }
 
 func NewMapper(reader Reader, zctx *zson.Context) *Mapper {
 	return &Mapper{
 		Reader: reader,
-		mapper: resolver.NewMapper(zctx),
+		mapper: zed.NewMapper(zctx),
 	}
 }
 

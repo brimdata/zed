@@ -7,10 +7,10 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
 	"github.com/brimdata/zed/zson"
 	"golang.org/x/sync/errgroup"
 )
@@ -190,7 +190,7 @@ func copyBytes(dst, src []byte) []byte {
 	return dst
 }
 
-func (w *worker) scanBatch(buf *buffer, mapper *resolver.Mapper, streamZctx *zson.Context) (zbuf.Batch, error) {
+func (w *worker) scanBatch(buf *buffer, mapper *zed.Mapper, streamZctx *zson.Context) (zbuf.Batch, error) {
 	// If w.bufferFilter evaluates to false, we know buf cannot contain
 	// records matching w.filter.
 	if w.bufferFilter != nil && !w.bufferFilter.Eval(streamZctx, buf.Bytes()) {
