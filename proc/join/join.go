@@ -5,12 +5,12 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 )
 
 type Proc struct {
@@ -24,9 +24,9 @@ type Proc struct {
 	getRightKey expr.Evaluator
 	compare     expr.ValueCompareFn
 	cutter      *expr.Cutter
-	joinKey     zng.Value
-	joinSet     []*zng.Record
-	types       map[int]map[int]*zng.TypeRecord
+	joinKey     zed.Value
+	joinSet     []*zed.Record
+	types       map[int]map[int]*zed.TypeRecord
 	inner       bool
 }
 
@@ -48,7 +48,7 @@ func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, ri
 		// XXX need to make sure nullsmax agrees with inbound merge
 		compare: expr.NewValueCompareFn(false),
 		cutter:  cutter,
-		types:   make(map[int]map[int]*zng.TypeRecord),
+		types:   make(map[int]map[int]*zed.TypeRecord),
 		inner:   inner,
 	}, nil
 }
@@ -59,7 +59,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		go p.left.run()
 		go p.right.Reader.(*puller).run()
 	})
-	var out []*zng.Record
+	var out []*zed.Record
 	for {
 		leftRec, err := p.left.Read()
 		if err != nil {
@@ -76,7 +76,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			// If the left key isn't present (which is not a thing
 			// in a sql join), then drop the record and return only
 			// left records that can eval the key expression.
-			if err == zng.ErrMissing {
+			if err == zed.ErrMissing {
 				continue
 			}
 			return nil, err
@@ -120,7 +120,7 @@ func (p *Proc) Done() {
 	p.cancel()
 }
 
-func (p *Proc) setJoinKey(key zng.Value) {
+func (p *Proc) setJoinKey(key zed.Value) {
 	// Copy the joinkey value into the joinKeBytes buffer since
 	// we want to stash it and the zcode.Bytes points to a record
 	// that otherwise could be freed.
@@ -128,7 +128,7 @@ func (p *Proc) setJoinKey(key zng.Value) {
 	p.joinKey.Bytes = append(p.joinKey.Bytes[:0], key.Bytes...)
 }
 
-func (p *Proc) getJoinSet(leftKey zng.Value) ([]*zng.Record, error) {
+func (p *Proc) getJoinSet(leftKey zed.Value) ([]*zed.Record, error) {
 	if p.compare(leftKey, p.joinKey) == 0 {
 		return p.joinSet, nil
 	}
@@ -139,7 +139,7 @@ func (p *Proc) getJoinSet(leftKey zng.Value) ([]*zng.Record, error) {
 		}
 		rightKey, err := p.getRightKey.Eval(rec)
 		if err != nil {
-			if err == zng.ErrMissing {
+			if err == zed.ErrMissing {
 				p.right.Read()
 				continue
 			}
@@ -167,8 +167,8 @@ func (p *Proc) getJoinSet(leftKey zng.Value) ([]*zng.Record, error) {
 // fillJoinSet is called when a join key has been found that matches
 // the current lefthand key.  It returns the all the subsequent records
 // from the righthand stream that match this key.
-func (p *Proc) readJoinSet(joinKey zng.Value) ([]*zng.Record, error) {
-	var recs []*zng.Record
+func (p *Proc) readJoinSet(joinKey zed.Value) ([]*zed.Record, error) {
+	var recs []*zed.Record
 	for {
 		rec, err := p.right.Peek()
 		if err != nil {
@@ -179,7 +179,7 @@ func (p *Proc) readJoinSet(joinKey zng.Value) ([]*zng.Record, error) {
 		}
 		key, err := p.getRightKey.Eval(rec)
 		if err != nil {
-			if err == zng.ErrMissing {
+			if err == zed.ErrMissing {
 				p.right.Read()
 				continue
 			}
@@ -193,25 +193,25 @@ func (p *Proc) readJoinSet(joinKey zng.Value) ([]*zng.Record, error) {
 	}
 }
 
-func (p *Proc) lookupType(left, right *zng.TypeRecord) *zng.TypeRecord {
+func (p *Proc) lookupType(left, right *zed.TypeRecord) *zed.TypeRecord {
 	if table, ok := p.types[left.ID()]; ok {
 		return table[right.ID()]
 	}
 	return nil
 }
 
-func (p *Proc) enterType(combined, left, right *zng.TypeRecord) {
+func (p *Proc) enterType(combined, left, right *zed.TypeRecord) {
 	id := left.ID()
 	table := p.types[id]
 	if table == nil {
-		table = make(map[int]*zng.TypeRecord)
+		table = make(map[int]*zed.TypeRecord)
 		p.types[id] = table
 	}
 	table[right.ID()] = combined
 }
 
-func (p *Proc) buildType(left, right *zng.TypeRecord) (*zng.TypeRecord, error) {
-	cols := make([]zng.Column, 0, len(left.Columns)+len(right.Columns))
+func (p *Proc) buildType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) {
+	cols := make([]zed.Column, 0, len(left.Columns)+len(right.Columns))
 	for _, c := range left.Columns {
 		cols = append(cols, c)
 	}
@@ -220,12 +220,12 @@ func (p *Proc) buildType(left, right *zng.TypeRecord) (*zng.TypeRecord, error) {
 		for k := 2; left.HasField(name); k++ {
 			name = fmt.Sprintf("%s_%d", c.Name, k)
 		}
-		cols = append(cols, zng.Column{name, c.Type})
+		cols = append(cols, zed.Column{name, c.Type})
 	}
 	return p.pctx.Zctx.LookupTypeRecord(cols)
 }
 
-func (p *Proc) combinedType(left, right *zng.TypeRecord) (*zng.TypeRecord, error) {
+func (p *Proc) combinedType(left, right *zed.TypeRecord) (*zed.TypeRecord, error) {
 	if typ := p.lookupType(left, right); typ != nil {
 		return typ, nil
 	}
@@ -237,7 +237,7 @@ func (p *Proc) combinedType(left, right *zng.TypeRecord) (*zng.TypeRecord, error
 	return typ, nil
 }
 
-func (p *Proc) splice(left, right *zng.Record) (*zng.Record, error) {
+func (p *Proc) splice(left, right *zed.Record) (*zed.Record, error) {
 	if right == nil {
 		// This happens on a simple join, i.e., "join key",
 		// where there are no cut expressions.  For left joins,
@@ -246,7 +246,7 @@ func (p *Proc) splice(left, right *zng.Record) (*zng.Record, error) {
 		// stream.
 		return left, nil
 	}
-	typ, err := p.combinedType(zng.TypeRecordOf(left.Type), zng.TypeRecordOf(right.Type))
+	typ, err := p.combinedType(zed.TypeRecordOf(left.Type), zed.TypeRecordOf(right.Type))
 	if err != nil {
 		return nil, err
 	}
@@ -254,5 +254,5 @@ func (p *Proc) splice(left, right *zng.Record) (*zng.Record, error) {
 	bytes := make([]byte, n+len(right.Bytes))
 	copy(bytes, left.Bytes)
 	copy(bytes[n:], right.Bytes)
-	return zng.NewRecord(typ, bytes), nil
+	return zed.NewRecord(typ, bytes), nil
 }

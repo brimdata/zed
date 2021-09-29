@@ -4,18 +4,18 @@ import (
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
 type ArrayWriter struct {
-	typ     zng.Type
+	typ     zed.Type
 	values  Writer
 	lengths *IntWriter
 }
 
-func NewArrayWriter(inner zng.Type, spiller *Spiller) *ArrayWriter {
+func NewArrayWriter(inner zed.Type, spiller *Spiller) *ArrayWriter {
 	return &ArrayWriter{
 		typ:     inner,
 		values:  NewWriter(inner, spiller),
@@ -46,7 +46,7 @@ func (a *ArrayWriter) Flush(eof bool) error {
 	return a.values.Flush(eof)
 }
 
-func (a *ArrayWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zng.Type, error) {
+func (a *ArrayWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zed.Type, error) {
 	b.BeginContainer()
 	valType, err := a.values.MarshalZNG(zctx, b)
 	if err != nil {
@@ -57,7 +57,7 @@ func (a *ArrayWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zng.Type
 		return nil, err
 	}
 	b.EndContainer()
-	cols := []zng.Column{
+	cols := []zed.Column{
 		{"values", valType},
 		{"lengths", lenType},
 	}
@@ -69,12 +69,12 @@ type Array struct {
 	lengths *Int
 }
 
-func (a *Array) UnmarshalZNG(inner zng.Type, in zng.Value, r io.ReaderAt) error {
-	typ, ok := in.Type.(*zng.TypeRecord)
+func (a *Array) UnmarshalZNG(inner zed.Type, in zed.Value, r io.ReaderAt) error {
+	typ, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
 		return errors.New("zst object array_column not a record")
 	}
-	rec := zng.NewRecord(typ, in.Bytes)
+	rec := zed.NewRecord(typ, in.Bytes)
 	zv, err := rec.Access("values")
 	if err != nil {
 		return err

@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -18,7 +18,7 @@ type header struct {
 	Path         string
 	open         string
 	close        string
-	columns      []zng.Column
+	columns      []zed.Column
 }
 
 type Parser struct {
@@ -31,7 +31,7 @@ type Parser struct {
 	addpath    bool
 	// descriptor is a lazily-allocated Descriptor corresponding
 	// to the contents of the #fields and #types directives.
-	descriptor   *zng.TypeRecord
+	descriptor   *zed.TypeRecord
 	builder      builder
 	sourceFields []int
 }
@@ -55,7 +55,7 @@ func badfield(field string) error {
 
 func (p *Parser) parseFields(fields []string) error {
 	if len(p.columns) != len(fields) {
-		p.columns = make([]zng.Column, len(fields))
+		p.columns = make([]zed.Column, len(fields))
 		p.needtypes = true
 	}
 	for k, field := range fields {
@@ -69,7 +69,7 @@ func (p *Parser) parseFields(fields []string) error {
 
 func (p *Parser) parseTypes(types []string) error {
 	if len(p.columns) != len(types) {
-		p.columns = make([]zng.Column, len(types))
+		p.columns = make([]zed.Column, len(types))
 		p.needfields = true
 	}
 	for k, name := range types {
@@ -94,8 +94,8 @@ func (p *Parser) ParseDirective(line []byte) error {
 		if len(tokens) != 2 {
 			return badfield("separator")
 		}
-		// zng.UnescapeBstring handles \x format escapes
-		p.separator = string(zng.UnescapeBstring([]byte(tokens[1])))
+		// zed.UnescapeBstring handles \x format escapes
+		p.separator = string(zed.UnescapeBstring([]byte(tokens[1])))
 	case "set_separator":
 		if len(tokens) != 2 {
 			return badfield("set_separator")
@@ -170,7 +170,7 @@ func (p *Parser) ParseDirective(line []byte) error {
 // bool indicating if a _path column was added.
 // Note that according to the zng spec, all the fields for a nested
 // record must be adjacent which simplifies the logic here.
-func Unflatten(zctx *zson.Context, columns []zng.Column, addPath bool) ([]zng.Column, bool, error) {
+func Unflatten(zctx *zson.Context, columns []zed.Column, addPath bool) ([]zed.Column, bool, error) {
 	hasPath := false
 	for _, col := range columns {
 		// XXX could validate field names here...
@@ -185,20 +185,20 @@ func Unflatten(zctx *zson.Context, columns []zng.Column, addPath bool) ([]zng.Co
 
 	var needpath bool
 	if addPath && !hasPath {
-		pathcol := zng.NewColumn("_path", zng.TypeString)
-		out = append([]zng.Column{pathcol}, out...)
+		pathcol := zed.NewColumn("_path", zed.TypeString)
+		out = append([]zed.Column{pathcol}, out...)
 		needpath = true
 	}
 	return out, needpath, nil
 }
 
-func unflattenRecord(zctx *zson.Context, cols []zng.Column) ([]zng.Column, error) {
+func unflattenRecord(zctx *zson.Context, cols []zed.Column) ([]zed.Column, error) {
 	// extract a []Column consisting of all the leading columns
 	// from the input that belong to the same record, with the
 	// common prefix removed from their name.
 	// returns the prefix and the extracted same-record columns.
-	recCols := func(cols []zng.Column) (string, []zng.Column) {
-		var ret []zng.Column
+	recCols := func(cols []zed.Column) (string, []zed.Column) {
+		var ret []zed.Column
 		var prefix string
 		if dot := strings.IndexByte(cols[0].Name, '.'); dot != -1 {
 			prefix = cols[0].Name[:dot]
@@ -208,11 +208,11 @@ func unflattenRecord(zctx *zson.Context, cols []zng.Column) ([]zng.Column, error
 				break
 			}
 			trimmed := strings.TrimPrefix(cols[i].Name, prefix+".")
-			ret = append(ret, zng.NewColumn(trimmed, cols[i].Type))
+			ret = append(ret, zed.NewColumn(trimmed, cols[i].Type))
 		}
 		return prefix, ret
 	}
-	var out []zng.Column
+	var out []zed.Column
 	i := 0
 	for i < len(cols) {
 		col := cols[i]
@@ -231,7 +231,7 @@ func unflattenRecord(zctx *zson.Context, cols []zng.Column) ([]zng.Column, error
 		if err != nil {
 			return nil, err
 		}
-		out = append(out, zng.NewColumn(prefix, recType))
+		out = append(out, zed.NewColumn(prefix, recType))
 		i += len(nestedCols)
 	}
 	return out, nil
@@ -260,9 +260,9 @@ func (p *Parser) setDescriptor() error {
 // coalesceRecordColumns returns a permutation of cols in which the columns of
 // each nested record have been made adjacent along with a slice containing the
 // index of the source field for each column in that permutation.
-func coalesceRecordColumns(cols []zng.Column) ([]zng.Column, []int) {
+func coalesceRecordColumns(cols []zed.Column) ([]zed.Column, []int) {
 	prefixes := map[string]bool{"": true}
-	var outcols []zng.Column
+	var outcols []zed.Column
 	var sourceFields []int
 	for i, c := range cols {
 		outcols = append(outcols, c)
@@ -303,7 +303,7 @@ func getPrefix(name string) string {
 // seen #types and #fields lines) and a bool indicating whether _path
 // was added to the descriptor. If no descriptor is present, nil and
 // and false are returned.
-func (p *Parser) Descriptor() (*zng.TypeRecord, bool) {
+func (p *Parser) Descriptor() (*zed.TypeRecord, bool) {
 	if p.descriptor != nil {
 		return p.descriptor, p.addpath
 	}
@@ -314,7 +314,7 @@ func (p *Parser) Descriptor() (*zng.TypeRecord, bool) {
 
 }
 
-func (p *Parser) ParseValue(line []byte) (*zng.Record, error) {
+func (p *Parser) ParseValue(line []byte) (*zed.Record, error) {
 	if p.descriptor == nil {
 		if err := p.setDescriptor(); err != nil {
 			return nil, err

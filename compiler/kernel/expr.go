@@ -4,13 +4,13 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/agg"
 	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -33,13 +33,13 @@ import (
 // each record type is like a schema and as we encounter them, we can compile
 // optimized code for the now-static types within that record type.
 //
-// The Evaluator return by CompileExpr produces zng.Values that are stored
+// The Evaluator return by CompileExpr produces zed.Values that are stored
 // in temporary buffers and may be modified on subsequent calls to Eval.
 // This is intended to minimize the garbage collection needs of the inner loop
 // by not allocating memory on a per-Eval basis.  For uses like filtering and
 // aggregations, where the results are immediately used, this is desirable and
 // efficient but for use cases like storing the results as groupby keys, the
-// resulting zng.Value should be copied (e.g., via zng.Value.Copy()).
+// resulting zed.Value should be copied (e.g., via zed.Value.Copy()).
 //
 // TBD: string values and net.IP address do not need to be copied because they
 // are allocated by go libraries and temporary buffers are not used.  This will
@@ -469,7 +469,7 @@ func compileTypeValue(zctx *zson.Context, scope *Scope, t *astzed.TypeValue) (ex
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewLiteral(zng.NewTypeValue(typ)), nil
+	return expr.NewLiteral(zed.NewTypeValue(typ)), nil
 }
 
 func compileRegexpMatch(zctx *zson.Context, scope *Scope, match *dag.RegexpMatch) (expr.Evaluator, error) {

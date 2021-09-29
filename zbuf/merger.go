@@ -5,9 +5,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/zng"
 )
 
 // A Merger merges multiple upstream Pullers into one downstream Puller.
@@ -28,7 +28,7 @@ type Merger struct {
 type mergerPuller struct {
 	Puller
 	ch    chan batch
-	recs  []*zng.Record
+	recs  []*zed.Record
 	batch Batch
 }
 
@@ -48,11 +48,11 @@ func NewCompareFn(layout order.Layout) expr.CompareFn {
 	if layout.Order == order.Asc {
 		return fn
 	}
-	return func(a, b *zng.Record) int { return fn(b, a) }
+	return func(a, b *zed.Record) int { return fn(b, a) }
 }
 
 func totalOrderCompare(fn expr.CompareFn) expr.CompareFn {
-	return func(a, b *zng.Record) int {
+	return func(a, b *zed.Record) int {
 		cmp := fn(a, b)
 		if cmp == 0 {
 			return bytes.Compare(a.Bytes, b.Bytes)
@@ -76,7 +76,7 @@ func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merge
 }
 
 func MergeByTs(ctx context.Context, pullers []Puller, o order.Which) *Merger {
-	cmp := func(a, b *zng.Record) int {
+	cmp := func(a, b *zed.Record) int {
 		if o == order.Desc {
 			a, b = b, a
 		}
@@ -116,7 +116,7 @@ func (m *Merger) run() {
 
 // Read fulfills Reader so that we can use ReadBatch or
 // use Merger as a Reader directly.
-func (m *Merger) Read() (*zng.Record, error) {
+func (m *Merger) Read() (*zed.Record, error) {
 	m.once.Do(m.run)
 	leader, err := m.findLeader()
 	if leader < 0 || err != nil {
@@ -127,7 +127,7 @@ func (m *Merger) Read() (*zng.Record, error) {
 	return m.pullers[leader].next(), nil
 }
 
-func (m *mergerPuller) next() *zng.Record {
+func (m *mergerPuller) next() *zed.Record {
 	rec := m.recs[0]
 	m.recs = m.recs[1:]
 	m.batch = nil

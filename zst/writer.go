@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/column"
 )
@@ -20,14 +20,14 @@ const (
 )
 
 // Writer implements the zio.Writer interface. A Writer creates a columnar
-// zst object from a stream of zng.Records.
+// zst object from a stream of zed.Records.
 type Writer struct {
 	zctx       *zson.Context
 	writer     io.WriteCloser
 	spiller    *column.Spiller
 	schemaMap  map[int]int
 	schemas    []column.RecordWriter
-	types      []zng.Type
+	types      []zed.Type
 	skewThresh int
 	segThresh  int
 	// We keep track of the size of rows we've encoded into in-memory
@@ -102,15 +102,15 @@ func checkThresh(which string, max, thresh int) error {
 	return nil
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
-	inputID := zng.TypeID(rec.Type)
+func (w *Writer) Write(rec *zed.Record) error {
+	inputID := zed.TypeID(rec.Type)
 	schemaID, ok := w.schemaMap[inputID]
 	if !ok {
 		schema, err := w.zctx.TranslateType(rec.Type)
 		if err != nil {
 			return err
 		}
-		recType := zng.TypeRecordOf(schema)
+		recType := zed.TypeRecordOf(schema)
 		schemaID = len(w.schemas)
 		w.schemaMap[inputID] = schemaID
 		rw := column.NewRecordWriter(recType, w.spiller)
@@ -175,14 +175,14 @@ func (w *Writer) finalize() error {
 	// input.
 	for _, schema := range w.types {
 		b.Reset()
-		for _, col := range zng.TypeRecordOf(schema).Columns {
-			if zng.IsContainerType(col.Type) {
+		for _, col := range zed.TypeRecordOf(schema).Columns {
+			if zed.IsContainerType(col.Type) {
 				b.AppendContainer(nil)
 			} else {
 				b.AppendPrimitive(nil)
 			}
 		}
-		rec := zng.NewRecord(schema, b.Bytes())
+		rec := zed.NewRecord(schema, b.Bytes())
 		if err := zw.Write(rec); err != nil {
 			return err
 		}
@@ -193,11 +193,11 @@ func (w *Writer) finalize() error {
 	if err != nil {
 		return err
 	}
-	rootType, err := w.zctx.LookupTypeRecord([]zng.Column{{"root", typ}})
+	rootType, err := w.zctx.LookupTypeRecord([]zed.Column{{"root", typ}})
 	if err != nil {
 		return err
 	}
-	rec := zng.NewRecord(rootType, b.Bytes())
+	rec := zed.NewRecord(rootType, b.Bytes())
 	if err := zw.Write(rec); err != nil {
 		return err
 	}
@@ -214,7 +214,7 @@ func (w *Writer) finalize() error {
 		if err != nil {
 			return err
 		}
-		rec := zng.NewRecord(typ.(*zng.TypeRecord), body)
+		rec := zed.NewRecord(typ.(*zed.TypeRecord), body)
 		if err := zw.Write(rec); err != nil {
 			return err
 		}

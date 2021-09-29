@@ -1,11 +1,11 @@
 package explode
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -14,17 +14,17 @@ import (
 // type T. It is useful for type-based indexing.
 type Proc struct {
 	parent  proc.Interface
-	builder zng.Builder
-	typ     zng.Type
+	builder zed.Builder
+	typ     zed.Type
 	args    []expr.Evaluator
 }
 
 // New creates a exploder for type typ, where the
 // output records' single column is named name.
-func New(zctx *zson.Context, parent proc.Interface, args []expr.Evaluator, typ zng.Type, name string) (proc.Interface, error) {
-	cols := []zng.Column{{Name: name, Type: typ}}
+func New(zctx *zson.Context, parent proc.Interface, args []expr.Evaluator, typ zed.Type, name string) (proc.Interface, error) {
+	cols := []zed.Column{{Name: name, Type: typ}}
 	rectyp := zctx.MustLookupTypeRecord(cols)
-	builder := zng.NewBuilder(rectyp)
+	builder := zed.NewBuilder(rectyp)
 	return &Proc{
 		parent:  parent,
 		builder: *builder,
@@ -39,17 +39,17 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if proc.EOS(batch, err) {
 			return nil, err
 		}
-		recs := make([]*zng.Record, 0, batch.Length())
+		recs := make([]*zed.Record, 0, batch.Length())
 		for _, rec := range batch.Records() {
 			for _, arg := range p.args {
 				zv, err := arg.Eval(rec)
 				if err != nil {
 					return nil, err
 				}
-				zng.Walk(zv.Type, zv.Bytes, func(typ zng.Type, body zcode.Bytes) error {
+				zed.Walk(zv.Type, zv.Bytes, func(typ zed.Type, body zcode.Bytes) error {
 					if typ == p.typ && body != nil {
 						recs = append(recs, p.builder.Build(body).Keep())
-						return zng.SkipContainer
+						return zed.SkipContainer
 					}
 					return nil
 				})

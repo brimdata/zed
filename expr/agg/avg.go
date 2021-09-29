@@ -1,9 +1,9 @@
 package agg
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -12,7 +12,7 @@ type Avg struct {
 	count uint64
 }
 
-func (a *Avg) Consume(v zng.Value) error {
+func (a *Avg) Consume(v zed.Value) error {
 	if v.Bytes == nil {
 		return nil
 	}
@@ -23,11 +23,11 @@ func (a *Avg) Consume(v zng.Value) error {
 	return nil
 }
 
-func (a *Avg) Result(*zson.Context) (zng.Value, error) {
+func (a *Avg) Result(*zson.Context) (zed.Value, error) {
 	if a.count > 0 {
-		return zng.NewFloat64(a.sum / float64(a.count)), nil
+		return zed.NewFloat64(a.sum / float64(a.count)), nil
 	}
-	return zng.Value{Type: zng.TypeFloat64}, nil
+	return zed.Value{Type: zed.TypeFloat64}, nil
 }
 
 const (
@@ -35,25 +35,25 @@ const (
 	countName = "count"
 )
 
-func (a *Avg) ConsumeAsPartial(p zng.Value) error {
-	rType, ok := p.Type.(*zng.TypeRecord)
+func (a *Avg) ConsumeAsPartial(p zed.Value) error {
+	rType, ok := p.Type.(*zed.TypeRecord)
 	if !ok {
 		return ErrBadValue
 	}
-	rec := zng.NewRecord(rType, p.Bytes)
+	rec := zed.NewRecord(rType, p.Bytes)
 	sumVal, err := rec.ValueByField(sumName)
-	if err != nil || sumVal.Type != zng.TypeFloat64 {
+	if err != nil || sumVal.Type != zed.TypeFloat64 {
 		return ErrBadValue
 	}
-	sum, err := zng.DecodeFloat64(sumVal.Bytes)
+	sum, err := zed.DecodeFloat64(sumVal.Bytes)
 	if err != nil {
 		return ErrBadValue
 	}
 	countVal, err := rec.ValueByField(countName)
-	if err != nil || countVal.Type != zng.TypeUint64 {
+	if err != nil || countVal.Type != zed.TypeUint64 {
 		return ErrBadValue
 	}
-	count, err := zng.DecodeUint(countVal.Bytes)
+	count, err := zed.DecodeUint(countVal.Bytes)
 	if err != nil {
 		return ErrBadValue
 	}
@@ -62,18 +62,18 @@ func (a *Avg) ConsumeAsPartial(p zng.Value) error {
 	return nil
 }
 
-func (a *Avg) ResultAsPartial(zctx *zson.Context) (zng.Value, error) {
+func (a *Avg) ResultAsPartial(zctx *zson.Context) (zed.Value, error) {
 	var zv zcode.Bytes
-	zv = zng.NewFloat64(a.sum).Encode(zv)
-	zv = zng.NewUint64(a.count).Encode(zv)
+	zv = zed.NewFloat64(a.sum).Encode(zv)
+	zv = zed.NewUint64(a.count).Encode(zv)
 
-	cols := []zng.Column{
-		zng.NewColumn(sumName, zng.TypeFloat64),
-		zng.NewColumn(countName, zng.TypeUint64),
+	cols := []zed.Column{
+		zed.NewColumn(sumName, zed.TypeFloat64),
+		zed.NewColumn(countName, zed.TypeUint64),
 	}
 	typ, err := zctx.LookupTypeRecord(cols)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
-	return zng.Value{Type: typ, Bytes: zv}, nil
+	return zed.Value{Type: typ, Bytes: zv}, nil
 }

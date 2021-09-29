@@ -7,10 +7,10 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zng"
 )
 
 var (
@@ -29,7 +29,7 @@ type Dir struct {
 	ext     string
 	stderr  io.Writer // XXX use warnings channel
 	opts    anyio.WriterOpts
-	writers map[zng.Type]zio.WriteCloser
+	writers map[zed.Type]zio.WriteCloser
 	paths   map[string]zio.WriteCloser
 	engine  storage.Engine
 }
@@ -54,13 +54,13 @@ func NewDirWithEngine(ctx context.Context, engine storage.Engine, dir *storage.U
 		ext:     e,
 		stderr:  stderr,
 		opts:    opts,
-		writers: make(map[zng.Type]zio.WriteCloser),
+		writers: make(map[zed.Type]zio.WriteCloser),
 		paths:   make(map[string]zio.WriteCloser),
 		engine:  engine,
 	}, nil
 }
 
-func (d *Dir) Write(r *zng.Record) error {
+func (d *Dir) Write(r *zed.Record) error {
 	out, err := d.lookupOutput(r)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (d *Dir) Write(r *zng.Record) error {
 	return out.Write(r)
 }
 
-func (d *Dir) lookupOutput(rec *zng.Record) (zio.WriteCloser, error) {
+func (d *Dir) lookupOutput(rec *zed.Record) (zio.WriteCloser, error) {
 	typ := rec.Type
 	w, ok := d.writers[typ]
 	if ok {
@@ -85,7 +85,7 @@ func (d *Dir) lookupOutput(rec *zng.Record) (zio.WriteCloser, error) {
 // filename returns the name of the file for the specified path. This handles
 // the case of two tds one _path, adding a # in the filename for every _path that
 // has more than one td.
-func (d *Dir) filename(r *zng.Record) (*storage.URI, string) {
+func (d *Dir) filename(r *zed.Record) (*storage.URI, string) {
 	var _path string
 	base, err := r.AccessString("_path")
 	if err == nil {
@@ -97,7 +97,7 @@ func (d *Dir) filename(r *zng.Record) (*storage.URI, string) {
 	return d.dir.AppendPath(name), _path
 }
 
-func (d *Dir) newFile(rec *zng.Record) (zio.WriteCloser, error) {
+func (d *Dir) newFile(rec *zed.Record) (zio.WriteCloser, error) {
 	filename, path := d.filename(rec)
 	if w, ok := d.paths[path]; ok {
 		return w, nil

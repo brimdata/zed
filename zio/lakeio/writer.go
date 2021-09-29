@@ -6,6 +6,7 @@ import (
 	"io"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/commits"
@@ -16,7 +17,6 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/pkg/units"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -56,7 +56,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	return writer
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
+func (w *Writer) Write(rec *zed.Record) error {
 	var v interface{}
 	if err := unmarshaler.Unmarshal(rec.Value, &v); err != nil {
 		return w.WriteZSON(rec)
@@ -71,7 +71,7 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) WriteZSON(rec *zng.Record) error {
+func (w *Writer) WriteZSON(rec *zed.Record) error {
 	s, err := w.zson.FormatRecord(rec)
 	if err != nil {
 		return err

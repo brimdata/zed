@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"regexp"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zqe"
 	"github.com/segmentio/ksuid"
 )
@@ -67,8 +67,8 @@ func FileMatch(s string) (kind FileKind, id ksuid.KSUID, ok bool) {
 }
 
 type Meta struct {
-	First   zng.Value `zng:"first"`
-	Last    zng.Value `zng:"last"`
+	First   zed.Value `zng:"first"`
+	Last    zed.Value `zng:"last"`
 	Count   uint64    `zng:"count"`
 	RowSize int64     `zng:"row_size"`
 }

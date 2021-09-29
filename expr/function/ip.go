@@ -4,66 +4,66 @@ import (
 	"bytes"
 	"net"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 )
 
 type networkOf struct{}
 
-func (*networkOf) Call(args []zng.Value) (zng.Value, error) {
+func (*networkOf) Call(args []zed.Value) (zed.Value, error) {
 	id := args[0].Type.ID()
-	if id != zng.IDIP {
-		return zng.NewErrorf("not an IP"), nil
+	if id != zed.IDIP {
+		return zed.NewErrorf("not an IP"), nil
 	}
 	// XXX GC
-	ip, err := zng.DecodeIP(args[0].Bytes)
+	ip, err := zed.DecodeIP(args[0].Bytes)
 	if err != nil {
-		return zng.NewError(err), nil
+		return zed.NewError(err), nil
 	}
 	var mask net.IPMask
 	if len(args) == 1 {
 		mask = ip.DefaultMask()
 		if mask == nil {
-			return zng.NewErrorf("not an IPv4"), nil
+			return zed.NewErrorf("not an IPv4"), nil
 		}
 	} else {
 		// two args
 		id := args[1].Type.ID()
 		body := args[1].Bytes
-		if id == zng.IDNet {
+		if id == zed.IDNet {
 			var err error
-			cidrMask, err := zng.DecodeNet(body)
+			cidrMask, err := zed.DecodeNet(body)
 			if err != nil {
-				return zng.NewError(err), nil
+				return zed.NewError(err), nil
 			}
 			if !bytes.Equal(cidrMask.IP, cidrMask.Mask) {
-				return zng.NewErrorf("network arg not a cidr mask"), nil
+				return zed.NewErrorf("network arg not a cidr mask"), nil
 			}
 			mask = cidrMask.Mask
-		} else if zng.IsInteger(id) {
+		} else if zed.IsInteger(id) {
 			var nbits uint
-			if zng.IsSigned(id) {
-				v, err := zng.DecodeInt(body)
+			if zed.IsSigned(id) {
+				v, err := zed.DecodeInt(body)
 				if err != nil {
-					return zng.NewError(err), nil
+					return zed.NewError(err), nil
 				}
 				nbits = uint(v)
 			} else {
-				v, err := zng.DecodeUint(body)
+				v, err := zed.DecodeUint(body)
 				if err != nil {
-					return zng.NewError(err), nil
+					return zed.NewError(err), nil
 				}
 				nbits = uint(v)
 			}
 			if nbits > 64 {
-				return zng.NewErrorf("cidr bit count out of range"), nil
+				return zed.NewErrorf("cidr bit count out of range"), nil
 			}
 			mask = net.CIDRMask(int(nbits), 8*len(ip))
 		} else {
-			return zng.NewErrorf("bad arg for cidr mask"), nil
+			return zed.NewErrorf("bad arg for cidr mask"), nil
 		}
 	}
 	// XXX GC
 	netIP := ip.Mask(mask)
 	v := &net.IPNet{netIP, mask}
-	return zng.Value{zng.TypeNet, zng.EncodeNet(v)}, nil
+	return zed.Value{zed.TypeNet, zed.EncodeNet(v)}, nil
 }

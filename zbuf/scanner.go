@@ -6,9 +6,9 @@ import (
 	"io"
 	"sync/atomic"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 )
 
 type Filter interface {
@@ -103,7 +103,7 @@ func (s *scanner) Stats() ScannerStats {
 }
 
 // Read implements Reader.Read.
-func (s *scanner) Read() (*zng.Record, error) {
+func (s *scanner) Read() (*zed.Record, error) {
 	for {
 		if err := s.ctx.Err(); err != nil {
 			return nil, err

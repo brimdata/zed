@@ -3,9 +3,9 @@ package expr
 import (
 	"errors"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 )
 
 type Slice struct {
@@ -26,7 +26,7 @@ func NewSlice(elem, from, to Evaluator) *Slice {
 var ErrSliceIndex = errors.New("slice index is not a number")
 var ErrSliceIndexEmpty = errors.New("slice index is empty")
 
-func sliceIndex(slot Evaluator, elem zng.Value, rec *zng.Record) (int, error) {
+func sliceIndex(slot Evaluator, elem zed.Value, rec *zed.Record) (int, error) {
 	if slot == nil {
 		return 0, ErrSliceIndexEmpty
 	}
@@ -49,13 +49,13 @@ func sliceIndex(slot Evaluator, elem zng.Value, rec *zng.Record) (int, error) {
 	return index, nil
 }
 
-func (s *Slice) Eval(rec *zng.Record) (zng.Value, error) {
+func (s *Slice) Eval(rec *zed.Record) (zed.Value, error) {
 	elem, err := s.elem.Eval(rec)
 	if err != nil {
 		return elem, err
 	}
-	if _, ok := zng.AliasOf(elem.Type).(*zng.TypeArray); !ok {
-		return zng.NewErrorf("sliced value is not an array"), nil
+	if _, ok := zed.AliasOf(elem.Type).(*zed.TypeArray); !ok {
+		return zed.NewErrorf("sliced value is not an array"), nil
 	}
 	if elem.Bytes == nil {
 		return elem, nil
@@ -63,21 +63,21 @@ func (s *Slice) Eval(rec *zng.Record) (zng.Value, error) {
 	from, err := sliceIndex(s.from, elem, rec)
 	if err != nil && err != ErrSliceIndexEmpty {
 		if err == ErrSliceIndex {
-			return zng.NewError(err), nil
+			return zed.NewError(err), nil
 		}
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	to, err := sliceIndex(s.to, elem, rec)
 	if err != nil {
 		if err != ErrSliceIndexEmpty {
 			if err == ErrSliceIndex {
-				return zng.NewError(err), nil
+				return zed.NewError(err), nil
 			}
-			return zng.Value{}, err
+			return zed.Value{}, err
 		}
 		n, err := elem.ContainerLength()
 		if err != nil {
-			return zng.Value{}, err
+			return zed.Value{}, err
 		}
 		to = int(n)
 	}
@@ -91,8 +91,8 @@ func (s *Slice) Eval(rec *zng.Record) (zng.Value, error) {
 			bytes = zcode.Bytes(it)
 		}
 		if _, _, err := it.Next(); err != nil {
-			return zng.Value{}, err
+			return zed.Value{}, err
 		}
 	}
-	return zng.Value{elem.Type, bytes[:len(bytes)-len(it)]}, nil
+	return zed.Value{elem.Type, bytes[:len(bytes)-len(it)]}, nil
 }

@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -29,7 +29,7 @@ func NewReader(r io.Reader, zctx *zson.Context) (*Reader, error) {
 	}, nil
 }
 
-func (r *Reader) Read() (*zng.Record, error) {
+func (r *Reader) Read() (*zed.Record, error) {
 	if !r.decoder.More() {
 		return nil, nil
 	}

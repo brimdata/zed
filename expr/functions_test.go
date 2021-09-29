@@ -5,18 +5,18 @@ import (
 	"net"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zng"
 )
 
 func namedErrBadArgument(name string) error {
 	return fmt.Errorf("%s: %w", name, function.ErrBadArgument)
 }
 
-func zaddr(addr string) zng.Value {
+func zaddr(addr string) zed.Value {
 	parsed := net.ParseIP(addr)
-	return zng.Value{zng.TypeIP, zng.EncodeIP(parsed)}
+	return zed.Value{zed.TypeIP, zed.EncodeIP(parsed)}
 }
 
 func TestBadFunction(t *testing.T) {
@@ -173,12 +173,12 @@ func TestTime(t *testing.T) {
 	iso := "2020-05-26T15:27:47.967Z"
 	msec := 1590506867_967
 	nsec := msec * 1_000_000
-	zval := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(nsec))}
+	zval := zed.Value{zed.TypeTime, zed.EncodeTime(nano.Ts(nsec))}
 
 	exp := fmt.Sprintf(`iso("%s")`, iso)
 	testSuccessful(t, exp, "", zval)
 
-	testSuccessful(t, "trunc(1590506867.967, 1)", "", zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1590506867 * 1_000_000_000))})
+	testSuccessful(t, "trunc(1590506867.967, 1)", "", zed.Value{zed.TypeTime, zed.EncodeTime(nano.Ts(1590506867 * 1_000_000_000))})
 
 	testError(t, "iso()", function.ErrTooFewArgs, "iso() with no args")
 	testError(t, `iso("abc", "def")`, function.ErrTooManyArgs, "iso() with too many args")

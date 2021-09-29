@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 )
 
 const SegmapTypeString = "[{offset:int64,length:int32}]"
@@ -30,7 +30,7 @@ func UnmarshalSegment(zv zcode.Bytes, s *Segment) error {
 	if isContainer {
 		return ErrCorruptSegment
 	}
-	v, err := zng.DecodeInt(zv)
+	v, err := zed.DecodeInt(zv)
 	if err != nil {
 		return err
 	}
@@ -42,24 +42,24 @@ func UnmarshalSegment(zv zcode.Bytes, s *Segment) error {
 	if isContainer {
 		return ErrCorruptSegment
 	}
-	s.Length, err = zng.DecodeInt(zv)
+	s.Length, err = zed.DecodeInt(zv)
 	return err
 }
 
-func checkSegType(col zng.Column, which string, typ zng.Type) bool {
+func checkSegType(col zed.Column, which string, typ zed.Type) bool {
 	return col.Name == which && col.Type == typ
 }
 
-func UnmarshalSegmap(in zng.Value, s *[]Segment) error {
-	typ, ok := in.Type.(*zng.TypeArray)
+func UnmarshalSegmap(in zed.Value, s *[]Segment) error {
+	typ, ok := in.Type.(*zed.TypeArray)
 	if !ok {
 		return errors.New("zst object segmap not an array")
 	}
-	segType, ok := typ.Type.(*zng.TypeRecord)
+	segType, ok := typ.Type.(*zed.TypeRecord)
 	if !ok {
 		return errors.New("zst object segmap element not a record")
 	}
-	if len(segType.Columns) != 2 || !checkSegType(segType.Columns[0], "offset", zng.TypeInt64) || !checkSegType(segType.Columns[1], "length", zng.TypeInt32) {
+	if len(segType.Columns) != 2 || !checkSegType(segType.Columns[0], "offset", zed.TypeInt64) || !checkSegType(segType.Columns[1], "length", zed.TypeInt32) {
 		return errors.New("zst object segmap element not a record[offset:int64,length:int32]")
 	}
 	*s = []Segment{}

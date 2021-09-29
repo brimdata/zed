@@ -4,12 +4,12 @@ import (
 	"context"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"go.uber.org/multierr"
 )
@@ -95,8 +95,8 @@ func newSortedScanner(ctx context.Context, pool *Pool, zctx *zson.Context, filte
 
 type rangeWrapper struct {
 	zbuf.Filter
-	first  zng.Value
-	last   zng.Value
+	first  zed.Value
+	last   zed.Value
 	layout order.Layout
 }
 
@@ -106,7 +106,7 @@ func (r *rangeWrapper) AsFilter() (expr.Filter, error) {
 		return nil, err
 	}
 	compare := extent.CompareFunc(r.layout.Order)
-	return func(rec *zng.Record) bool {
+	return func(rec *zed.Record) bool {
 		keyVal, err := rec.Deref(r.layout.Keys[0])
 		if err != nil {
 			// XXX match keyless records.
@@ -120,7 +120,7 @@ func (r *rangeWrapper) AsFilter() (expr.Filter, error) {
 	}, nil
 }
 
-func wrapRangeFilter(f zbuf.Filter, scan extent.Span, cmp expr.ValueCompareFn, first, last zng.Value, layout order.Layout) zbuf.Filter {
+func wrapRangeFilter(f zbuf.Filter, scan extent.Span, cmp expr.ValueCompareFn, first, last zed.Value, layout order.Layout) zbuf.Filter {
 	scanFirst := scan.First()
 	scanLast := scan.Last()
 	if cmp(scanFirst, first) <= 0 {

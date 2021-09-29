@@ -4,19 +4,19 @@ import (
 	"bytes"
 	"sort"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 )
 
-type CompareFn func(a *zng.Record, b *zng.Record) int
-type ValueCompareFn func(a zng.Value, b zng.Value) int
-type KeyCompareFn func(*zng.Record) int
+type CompareFn func(a *zed.Record, b *zed.Record) int
+type ValueCompareFn func(a zed.Value, b zed.Value) int
+type KeyCompareFn func(*zed.Record) int
 
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zcode.Bytes) int
 
-func isNull(val zng.Value) bool {
+func isNull(val zed.Value) bool {
 	return val.Type == nil || val.Bytes == nil
 }
 
@@ -33,8 +33,8 @@ func isNull(val zng.Value) bool {
 func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 	var aBytesBuf []byte
 	var pair coerce.Pair
-	comparefns := make(map[zng.Type]comparefn)
-	return func(ra *zng.Record, rb *zng.Record) int {
+	comparefns := make(map[zed.Type]comparefn)
+	return func(ra *zed.Record, rb *zed.Record) int {
 		for _, resolver := range fields {
 			// XXX return errors?
 			a, _ := resolver.Eval(ra)
@@ -61,13 +61,13 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 
 func NewValueCompareFn(nullsMax bool) ValueCompareFn {
 	var pair coerce.Pair
-	comparefns := make(map[zng.Type]comparefn)
-	return func(a, b zng.Value) int {
+	comparefns := make(map[zed.Type]comparefn)
+	return func(a, b zed.Value) int {
 		return compareValues(a, b, comparefns, &pair, nullsMax)
 	}
 }
 
-func compareValues(a, b zng.Value, comparefns map[zng.Type]comparefn, pair *coerce.Pair, nullsMax bool) int {
+func compareValues(a, b zed.Value, comparefns map[zed.Type]comparefn, pair *coerce.Pair, nullsMax bool) int {
 	// Handle nulls according to nullsMax
 	nullA := isNull(a)
 	nullB := isNull(b)
@@ -93,7 +93,7 @@ func compareValues(a, b zng.Value, comparefns map[zng.Type]comparefn, pair *coer
 	abytes, bbytes := a.Bytes, b.Bytes
 	if a.Type.ID() != b.Type.ID() {
 		id, err := pair.Coerce(a, b)
-		typ = zng.LookupPrimitiveByID(id)
+		typ = zed.LookupPrimitiveByID(id)
 		if err != nil || typ == nil {
 			// If values cannot be coerced, just compare the native
 			// representation of the type.
@@ -113,10 +113,10 @@ func compareValues(a, b zng.Value, comparefns map[zng.Type]comparefn, pair *coer
 	return cfn(abytes, bbytes)
 }
 
-func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
-	comparefns := make(map[zng.Type]comparefn)
+func NewKeyCompareFn(key *zed.Record) (KeyCompareFn, error) {
+	comparefns := make(map[zed.Type]comparefn)
 	var accessors []Evaluator
-	var keyval []zng.Value
+	var keyval []zed.Value
 	for it := key.FieldIter(); !it.Done(); {
 		name, val, err := it.Next()
 		if err != nil {
@@ -130,7 +130,7 @@ func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
 		keyval = append(keyval, val)
 		accessors = append(accessors, NewDotExpr(name))
 	}
-	return func(rec *zng.Record) int {
+	return func(rec *zed.Record) int {
 		for k, access := range accessors {
 			// XXX error
 			a, _ := access.Eval(rec)
@@ -164,13 +164,13 @@ func NewKeyCompareFn(key *zng.Record) (KeyCompareFn, error) {
 }
 
 // SortStable performs a stable sort on the provided records.
-func SortStable(records []*zng.Record, compare CompareFn) {
+func SortStable(records []*zed.Record, compare CompareFn) {
 	slice := &RecordSlice{records, compare}
 	sort.Stable(slice)
 }
 
 type RecordSlice struct {
-	records []*zng.Record
+	records []*zed.Record
 	compare CompareFn
 }
 
@@ -191,7 +191,7 @@ func (r *RecordSlice) Less(i, j int) bool {
 
 // Push adds x as element Len(). Implements heap.Interface.
 func (r *RecordSlice) Push(rec interface{}) {
-	r.records = append(r.records, rec.(*zng.Record))
+	r.records = append(r.records, rec.(*zed.Record))
 }
 
 // Pop removes the first element in the array. Implements heap.Interface.
@@ -202,14 +202,14 @@ func (r *RecordSlice) Pop() interface{} {
 }
 
 // Index returns the ith record.
-func (r *RecordSlice) Index(i int) *zng.Record {
+func (r *RecordSlice) Index(i int) *zed.Record {
 	return r.records[i]
 }
 
-func LookupCompare(typ zng.Type) comparefn {
+func LookupCompare(typ zed.Type) comparefn {
 	// XXX record support easy to add here if we moved the creation of the
 	// field resolvers into this package.
-	if innerType := zng.InnerType(typ); innerType != nil {
+	if innerType := zed.InnerType(typ); innerType != nil {
 		return func(a, b zcode.Bytes) int {
 			compare := LookupCompare(innerType)
 			ia := a.Iter()
@@ -240,13 +240,13 @@ func LookupCompare(typ zng.Type) comparefn {
 		}
 	}
 	switch typ.ID() {
-	case zng.IDBool:
+	case zed.IDBool:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeBool(a)
+			va, err := zed.DecodeBool(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeBool(b)
+			vb, err := zed.DecodeBool(b)
 			if err != nil {
 				return 1
 			}
@@ -259,18 +259,18 @@ func LookupCompare(typ zng.Type) comparefn {
 			return -1
 		}
 
-	case zng.IDString:
+	case zed.IDString:
 		return func(a, b zcode.Bytes) int {
 			return bytes.Compare(a, b)
 		}
 
-	case zng.IDInt16, zng.IDInt32, zng.IDInt64:
+	case zed.IDInt16, zed.IDInt32, zed.IDInt64:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeInt(a)
+			va, err := zed.DecodeInt(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeInt(b)
+			vb, err := zed.DecodeInt(b)
 			if err != nil {
 				return 1
 			}
@@ -282,13 +282,13 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IDUint16, zng.IDUint32, zng.IDUint64:
+	case zed.IDUint16, zed.IDUint32, zed.IDUint64:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeUint(a)
+			va, err := zed.DecodeUint(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeUint(b)
+			vb, err := zed.DecodeUint(b)
 			if err != nil {
 				return 1
 			}
@@ -300,13 +300,13 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IDFloat64:
+	case zed.IDFloat64:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeFloat64(a)
+			va, err := zed.DecodeFloat64(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeFloat64(b)
+			vb, err := zed.DecodeFloat64(b)
 			if err != nil {
 				return 1
 			}
@@ -318,13 +318,13 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IDTime:
+	case zed.IDTime:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeTime(a)
+			va, err := zed.DecodeTime(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeTime(b)
+			vb, err := zed.DecodeTime(b)
 			if err != nil {
 				return 1
 			}
@@ -336,13 +336,13 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IDDuration:
+	case zed.IDDuration:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeDuration(a)
+			va, err := zed.DecodeDuration(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeDuration(b)
+			vb, err := zed.DecodeDuration(b)
 			if err != nil {
 				return 1
 			}
@@ -354,13 +354,13 @@ func LookupCompare(typ zng.Type) comparefn {
 			return 0
 		}
 
-	case zng.IDIP:
+	case zed.IDIP:
 		return func(a, b zcode.Bytes) int {
-			va, err := zng.DecodeIP(a)
+			va, err := zed.DecodeIP(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zng.DecodeIP(b)
+			vb, err := zed.DecodeIP(b)
 			if err != nil {
 				return 1
 			}

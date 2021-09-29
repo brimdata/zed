@@ -143,7 +143,7 @@ func newBufferFilterForLiteral(l astzed.Primitive) (*expr.BufferFilter, error) {
 		// Could try to extract a pattern (e.g., "efg" from "(ab|cd)(efg)+[hi]").
 		return nil, nil
 	case "string":
-		// Match the behavior of zng.ParseLiteral.
+		// Match the behavior of zed.ParseLiteral.
 		l.Type = "bstring"
 	}
 	v, err := zson.ParsePrimitive(l.Type, l.Text)

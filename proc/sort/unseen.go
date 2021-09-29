@@ -1,13 +1,13 @@
 package sort
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/zng"
 )
 
 type unseenFieldTracker struct {
 	unseenFields map[expr.Evaluator]struct{}
-	seenTypes    map[*zng.TypeRecord]bool
+	seenTypes    map[*zed.TypeRecord]bool
 }
 
 func newUnseenFieldTracker(fields []expr.Evaluator) *unseenFieldTracker {
@@ -19,12 +19,12 @@ func newUnseenFieldTracker(fields []expr.Evaluator) *unseenFieldTracker {
 	}
 	return &unseenFieldTracker{
 		unseenFields: unseen,
-		seenTypes:    make(map[*zng.TypeRecord]bool),
+		seenTypes:    make(map[*zed.TypeRecord]bool),
 	}
 }
 
-func (u *unseenFieldTracker) update(rec *zng.Record) {
-	recType := zng.TypeRecordOf(rec.Type)
+func (u *unseenFieldTracker) update(rec *zed.Record) {
+	recType := zed.TypeRecordOf(rec.Type)
 	if len(u.unseenFields) == 0 || u.seenTypes[recType] {
 		// Either have seen this type or nothing to unsee anymore.
 		return

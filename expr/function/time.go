@@ -4,32 +4,32 @@ import (
 	"fmt"
 
 	"github.com/araddon/dateparse"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zng"
 )
 
 type iso struct {
 	result.Buffer
 }
 
-func (i *iso) Call(args []zng.Value) (zng.Value, error) {
+func (i *iso) Call(args []zed.Value) (zed.Value, error) {
 	ts, err := CastToTime(args[0])
 	if err != nil {
-		return zng.NewError(err), nil
+		return zed.NewError(err), nil
 	}
-	return zng.Value{zng.TypeTime, i.Time(ts)}, nil
+	return zed.Value{zed.TypeTime, i.Time(ts)}, nil
 }
 
-func CastToTime(zv zng.Value) (nano.Ts, error) {
+func CastToTime(zv zed.Value) (nano.Ts, error) {
 	if zv.Bytes == nil {
 		// Any nil value is cast to a zero time.
 		return 0, nil
 	}
 	id := zv.Type.ID()
-	if zng.IsStringy(id) {
+	if zed.IsStringy(id) {
 		ts, err := dateparse.ParseAny(byteconv.UnsafeString(zv.Bytes))
 		if err != nil {
 			sec, ferr := byteconv.ParseFloat64(zv.Bytes)
@@ -40,12 +40,12 @@ func CastToTime(zv zng.Value) (nano.Ts, error) {
 		}
 		return nano.Ts(ts.UnixNano()), nil
 	}
-	if zng.IsInteger(id) {
+	if zed.IsInteger(id) {
 		if sec, ok := coerce.ToInt(zv); ok {
 			return nano.Ts(sec * 1_000_000_000), nil
 		}
 	}
-	if zng.IsFloat(id) {
+	if zed.IsFloat(id) {
 		if sec, ok := coerce.ToFloat(zv); ok {
 			return nano.Ts(sec * 1e9), nil
 		}
@@ -57,22 +57,22 @@ type trunc struct {
 	result.Buffer
 }
 
-func (t *trunc) Call(args []zng.Value) (zng.Value, error) {
+func (t *trunc) Call(args []zed.Value) (zed.Value, error) {
 	tsArg := args[0]
 	binArg := args[1]
 	if tsArg.Bytes == nil || binArg.Bytes == nil {
-		return zng.Value{zng.TypeTime, nil}, nil
+		return zed.Value{zed.TypeTime, nil}, nil
 	}
 	ts, ok := coerce.ToTime(tsArg)
 	if !ok {
 		return badarg("trunc")
 	}
 	var bin nano.Duration
-	if binArg.Type == zng.TypeDuration {
+	if binArg.Type == zed.TypeDuration {
 		var err error
-		bin, err = zng.DecodeDuration(binArg.Bytes)
+		bin, err = zed.DecodeDuration(binArg.Bytes)
 		if err != nil {
-			return zng.Value{}, err
+			return zed.Value{}, err
 		}
 	} else {
 		d, ok := coerce.ToInt(binArg)
@@ -81,5 +81,5 @@ func (t *trunc) Call(args []zng.Value) (zng.Value, error) {
 		}
 		bin = nano.Duration(d) * nano.Second
 	}
-	return zng.Value{zng.TypeTime, t.Time(nano.Ts(ts.Trunc(bin)))}, nil
+	return zed.Value{zed.TypeTime, t.Time(nano.Ts(ts.Trunc(bin)))}, nil
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/branches"
@@ -14,7 +15,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -214,9 +214,9 @@ func (p *Pool) Stats(ctx context.Context, snap commits.View) (info PoolStats, er
 	//XXX need to change API to take return key range
 	if poolSpan != nil {
 		min := poolSpan.First()
-		if min.Type == zng.TypeTime {
-			firstTs, _ := zng.DecodeTime(min.Bytes)
-			lastTs, _ := zng.DecodeTime(poolSpan.Last().Bytes)
+		if min.Type == zed.TypeTime {
+			firstTs, _ := zed.DecodeTime(min.Bytes)
+			lastTs, _ := zed.DecodeTime(poolSpan.Last().Bytes)
 			if lastTs < firstTs {
 				firstTs, lastTs = lastTs, firstTs
 			}

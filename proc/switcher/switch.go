@@ -3,10 +3,10 @@ package switcher
 import (
 	"sync"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
 )
 
 type request struct {
@@ -61,7 +61,7 @@ func (s *Switcher) gather() {
 }
 
 func (s *Switcher) run() {
-	records := make([][]*zng.Record, s.n)
+	records := make([][]*zed.Record, s.n)
 	results := make([]proc.Result, s.n)
 	for {
 		s.gather()
@@ -76,7 +76,7 @@ func (s *Switcher) run() {
 		for _, rec := range batch.Records() {
 			if i := s.match(rec); i >= 0 {
 				if records[i] == nil {
-					records[i] = make([]*zng.Record, 0, batch.Length())
+					records[i] = make([]*zed.Record, 0, batch.Length())
 				}
 				records[i] = append(records[i], rec)
 			}
@@ -93,7 +93,7 @@ func (s *Switcher) run() {
 	s.parent.Done()
 }
 
-func (s *Switcher) match(rec *zng.Record) int {
+func (s *Switcher) match(rec *zed.Record) int {
 	for i, f := range s.filters {
 		if f(rec) {
 			return i

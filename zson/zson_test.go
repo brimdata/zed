@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/brimdata/zed"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -58,7 +58,7 @@ func TestZsonBuilder(t *testing.T) {
 	b := zcode.NewBuilder()
 	zv, err := zson.Build(b, val)
 	require.NoError(t, err)
-	rec := zng.NewRecord(zv.Type.(*zng.TypeRecord), zv.Bytes)
+	rec := zed.NewRecord(zv.Type.(*zed.TypeRecord), zv.Bytes)
 	zv, err = rec.Access("a")
 	require.NoError(t, err)
 	assert.Equal(t, "[string]: [(31)(32)(33)]", zv.String())

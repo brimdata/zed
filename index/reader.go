@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -134,6 +134,6 @@ func (r *Reader) Order() order.Which {
 	return r.trailer.Order
 }
 
-func (r *Reader) Keys() *zng.TypeRecord {
+func (r *Reader) Keys() *zed.TypeRecord {
 	return r.trailer.KeyType
 }

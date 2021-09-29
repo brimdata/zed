@@ -3,12 +3,12 @@ package kernel
 import (
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -83,7 +83,7 @@ func compileSearch(node *dag.Search) (expr.Filter, error) {
 			return nil, err
 		}
 		contains := expr.Contains(match)
-		pred := func(zv zng.Value) bool {
+		pred := func(zv zed.Value) bool {
 			return match(zv) || contains(zv)
 		}
 
@@ -122,7 +122,7 @@ func CompileFilter(zctx *zson.Context, scope *Scope, node dag.Expr) (expr.Filter
 		}
 		match := expr.NewRegexpBoolean(re)
 		contains := expr.Contains(match)
-		pred := func(zv zng.Value) bool {
+		pred := func(zv zed.Value) bool {
 			return match(zv) || contains(zv)
 		}
 		return expr.EvalAny(pred, true), nil
@@ -152,7 +152,7 @@ func CompileFilter(zctx *zson.Context, scope *Scope, node dag.Expr) (expr.Filter
 		default:
 			return nil, fmt.Errorf("bad boolean value in dag.Literal: %s", v.Text)
 		}
-		return func(*zng.Record) bool { return b }, nil
+		return func(*zed.Record) bool { return b }, nil
 
 	case *dag.Search:
 		return compileSearch(v)
@@ -203,9 +203,9 @@ func compileExprPredicate(zctx *zson.Context, scope *Scope, e dag.Expr) (expr.Fi
 	if err != nil {
 		return nil, err
 	}
-	return func(rec *zng.Record) bool {
+	return func(rec *zed.Record) bool {
 		zv, err := predicate.Eval(rec)
-		return err == nil && zv.Type == zng.TypeBool && zng.IsTrue(zv.Bytes)
+		return err == nil && zv.Type == zed.TypeBool && zed.IsTrue(zv.Bytes)
 	}, nil
 }
 

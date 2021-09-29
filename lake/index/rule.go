@@ -3,10 +3,10 @@ package index
 import (
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -55,7 +55,7 @@ func NewFieldRule(name, keys string) *FieldRule {
 	}
 }
 
-func NewTypeRule(name string, typ zng.Type) *TypeRule {
+func NewTypeRule(name string, typ zed.Type) *TypeRule {
 	return &TypeRule{
 		Ts:   nano.Now(),
 		Name: name,

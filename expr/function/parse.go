@@ -7,8 +7,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -16,7 +16,7 @@ type parseURI struct {
 	marshaler *zson.MarshalZNGContext
 }
 
-func (p *parseURI) Call(args []zng.Value) (zng.Value, error) {
+func (p *parseURI) Call(args []zed.Value) (zed.Value, error) {
 	in := args[0]
 	if !in.IsStringy() {
 		return badarg("parse_uri: input must be string")
@@ -24,13 +24,13 @@ func (p *parseURI) Call(args []zng.Value) (zng.Value, error) {
 	if in.Bytes == nil {
 		return badarg("parse_uri: input must not be null")
 	}
-	s, err := zng.DecodeString(in.Bytes)
+	s, err := zed.DecodeString(in.Bytes)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	u, err := url.Parse(s)
 	if err != nil {
-		return zng.Value{}, fmt.Errorf("parse_uri: %q: %w", s, errors.Unwrap(err))
+		return zed.Value{}, fmt.Errorf("parse_uri: %q: %w", s, errors.Unwrap(err))
 	}
 	var v struct {
 		Scheme   *string    `zng:"scheme"`
@@ -61,7 +61,7 @@ func (p *parseURI) Call(args []zng.Value) (zng.Value, error) {
 	if ss := u.Port(); ss != "" {
 		u64, err := strconv.ParseUint(ss, 10, 16)
 		if err != nil {
-			return zng.Value{}, fmt.Errorf("parse_uri: %q: invalid port: %s", s, errors.Unwrap(err))
+			return zed.Value{}, fmt.Errorf("parse_uri: %q: invalid port: %s", s, errors.Unwrap(err))
 		}
 		u16 := uint16(u64)
 		v.Port = &u16
@@ -82,7 +82,7 @@ type parseZSON struct {
 	zctx *zson.Context
 }
 
-func (p *parseZSON) Call(args []zng.Value) (zng.Value, error) {
+func (p *parseZSON) Call(args []zed.Value) (zed.Value, error) {
 	in := args[0]
 	if !in.IsStringy() {
 		return badarg("parse_zson: input must be string")
@@ -90,24 +90,24 @@ func (p *parseZSON) Call(args []zng.Value) (zng.Value, error) {
 	if in.Bytes == nil {
 		return badarg("parse_zson: input must not be null")
 	}
-	s, err := zng.DecodeString(in.Bytes)
+	s, err := zed.DecodeString(in.Bytes)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	parser, err := zson.NewParser(strings.NewReader(s))
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	ast, err := parser.ParseValue()
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	if ast == nil {
 		return badarg("parse_zson: input contains no values")
 	}
 	val, err := zson.NewAnalyzer().ConvertValue(p.zctx, ast)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	return zson.Build(zcode.NewBuilder(), val)
 }

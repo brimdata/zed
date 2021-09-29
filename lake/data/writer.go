@@ -5,13 +5,13 @@ import (
 	"context"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 )
 
 // Writer is a zio.Writer that writes a stream of sorted records into a
@@ -21,8 +21,8 @@ type Writer struct {
 	byteCounter      *writeCounter
 	count            uint64
 	rowObject        *zngio.Writer
-	firstKey         zng.Value
-	lastKey          zng.Value
+	firstKey         zed.Value
+	lastKey          zed.Value
 	lastSOS          int64
 	order            order.Which
 	seekIndex        *seekindex.Writer
@@ -36,7 +36,7 @@ type Writer struct {
 // NewWriter returns a writer for writing the data of a zng-row storage object as
 // well as optionally creating a seek index for the row object when the
 // seekIndexStride is non-zero.  We assume all records are non-volatile until
-// Close as zng.Values from the various record bodies are referenced across
+// Close as zed.Values from the various record bodies are referenced across
 // calls to Write.
 func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *storage.URI, order order.Which, poolKey field.Path, seekIndexStride int) (*Writer, error) {
 	out, err := engine.Put(ctx, o.RowObjectPath(path))
@@ -71,10 +71,10 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 	return w, nil
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
+func (w *Writer) Write(rec *zed.Record) error {
 	key, err := rec.Deref(w.poolKey)
 	if err != nil {
-		key = zng.Value{zng.TypeNull, nil}
+		key = zed.Value{zed.TypeNull, nil}
 	}
 	if w.seekIndex != nil {
 		if err := w.writeIndex(key); err != nil {
@@ -89,7 +89,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 	return nil
 }
 
-func (w *Writer) writeIndex(key zng.Value) error {
+func (w *Writer) writeIndex(key zed.Value) error {
 	w.seekIndexTrigger += len(key.Bytes)
 	if w.first {
 		w.first = false

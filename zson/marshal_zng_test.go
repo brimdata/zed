@@ -8,17 +8,17 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func toZSON(t *testing.T, rec *zng.Record) string {
+func toZSON(t *testing.T, rec *zed.Record) string {
 	var buf strings.Builder
 	require.NoError(t, zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}).Write(rec))
 	return strings.TrimRight(buf.String(), "\n")
@@ -240,11 +240,11 @@ func TestUnmarshalSlice(t *testing.T) {
 
 type testMarshaler string
 
-func (m testMarshaler) MarshalZNG(mc *zson.MarshalZNGContext) (zng.Type, error) {
+func (m testMarshaler) MarshalZNG(mc *zson.MarshalZNGContext) (zed.Type, error) {
 	return mc.MarshalValue("marshal-" + string(m))
 }
 
-func (m *testMarshaler) UnmarshalZNG(mc *zson.UnmarshalZNGContext, zv zng.Value) error {
+func (m *testMarshaler) UnmarshalZNG(mc *zson.UnmarshalZNGContext, zv zed.Value) error {
 	var s string
 	if err := mc.Unmarshal(zv, &s); err != nil {
 		return err

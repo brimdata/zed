@@ -3,73 +3,73 @@ package parquetio
 import (
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 )
 
-func newData(typ zng.Type, zb zcode.Bytes) (interface{}, error) {
+func newData(typ zed.Type, zb zcode.Bytes) (interface{}, error) {
 	if zb == nil {
 		return nil, nil
 	}
-	switch typ := zng.AliasOf(typ).(type) {
-	case *zng.TypeOfUint8:
-		v, err := zng.DecodeUint(zb)
+	switch typ := zed.AliasOf(typ).(type) {
+	case *zed.TypeOfUint8:
+		v, err := zed.DecodeUint(zb)
 		return uint32(v), err
-	case *zng.TypeOfUint16:
-		v, err := zng.DecodeUint(zb)
+	case *zed.TypeOfUint16:
+		v, err := zed.DecodeUint(zb)
 		return uint32(v), err
-	case *zng.TypeOfUint32:
-		v, err := zng.DecodeUint(zb)
+	case *zed.TypeOfUint32:
+		v, err := zed.DecodeUint(zb)
 		return uint32(v), err
-	case *zng.TypeOfUint64:
-		return zng.DecodeUint(zb)
-	case *zng.TypeOfInt8:
-		v, err := zng.DecodeInt(zb)
+	case *zed.TypeOfUint64:
+		return zed.DecodeUint(zb)
+	case *zed.TypeOfInt8:
+		v, err := zed.DecodeInt(zb)
 		return int32(v), err
-	case *zng.TypeOfInt16:
-		v, err := zng.DecodeInt(zb)
+	case *zed.TypeOfInt16:
+		v, err := zed.DecodeInt(zb)
 		return int32(v), err
-	case *zng.TypeOfInt32:
-		v, err := zng.DecodeInt(zb)
+	case *zed.TypeOfInt32:
+		v, err := zed.DecodeInt(zb)
 		return int32(v), err
-	case *zng.TypeOfInt64, *zng.TypeOfDuration, *zng.TypeOfTime:
-		return zng.DecodeInt(zb)
+	case *zed.TypeOfInt64, *zed.TypeOfDuration, *zed.TypeOfTime:
+		return zed.DecodeInt(zb)
 	// XXX add TypeFloat16
 	// XXX add TypeFloat32
-	case *zng.TypeOfFloat64:
-		return zng.DecodeFloat64(zb)
+	case *zed.TypeOfFloat64:
+		return zed.DecodeFloat64(zb)
 	// XXX add TypeDecimal
-	case *zng.TypeOfBool:
-		return zng.DecodeBool(zb)
-	case *zng.TypeOfBytes, *zng.TypeOfBstring, *zng.TypeOfString:
-		return zng.DecodeBytes(zb)
-	case *zng.TypeOfIP:
-		v, err := zng.DecodeIP(zb)
+	case *zed.TypeOfBool:
+		return zed.DecodeBool(zb)
+	case *zed.TypeOfBytes, *zed.TypeOfBstring, *zed.TypeOfString:
+		return zed.DecodeBytes(zb)
+	case *zed.TypeOfIP:
+		v, err := zed.DecodeIP(zb)
 		return []byte(v.String()), err
-	case *zng.TypeOfNet:
-		v, err := zng.DecodeNet(zb)
+	case *zed.TypeOfNet:
+		v, err := zed.DecodeNet(zb)
 		return []byte(v.String()), err
-	case *zng.TypeOfType, *zng.TypeOfError:
-		return zng.DecodeBytes(zb)
-	case *zng.TypeOfNull:
+	case *zed.TypeOfType, *zed.TypeOfError:
+		return zed.DecodeBytes(zb)
+	case *zed.TypeOfNull:
 		return nil, ErrNullType
-	case *zng.TypeRecord:
+	case *zed.TypeRecord:
 		return newRecordData(typ, zb)
-	case *zng.TypeArray:
+	case *zed.TypeArray:
 		return newListData(typ.Type, zb)
-	case *zng.TypeSet:
+	case *zed.TypeSet:
 		return newListData(typ.Type, zb)
-	case *zng.TypeUnion:
+	case *zed.TypeUnion:
 		return nil, ErrUnionType
-	case *zng.TypeEnum:
+	case *zed.TypeEnum:
 		return []byte(typ.Format(zb)), nil
-	case *zng.TypeMap:
+	case *zed.TypeMap:
 		return newMapData(typ.KeyType, typ.ValType, zb)
 	}
 	panic(fmt.Sprintf("unknown type %T", typ))
 }
 
-func newListData(typ zng.Type, zb zcode.Bytes) (map[string]interface{}, error) {
+func newListData(typ zed.Type, zb zcode.Bytes) (map[string]interface{}, error) {
 	var elements []map[string]interface{}
 	for it := zb.Iter(); !it.Done(); {
 		zb2, _, err := it.Next()
@@ -85,7 +85,7 @@ func newListData(typ zng.Type, zb zcode.Bytes) (map[string]interface{}, error) {
 	return map[string]interface{}{"list": elements}, nil
 }
 
-func newMapData(keyType, valType zng.Type, zb zcode.Bytes) (map[string]interface{}, error) {
+func newMapData(keyType, valType zed.Type, zb zcode.Bytes) (map[string]interface{}, error) {
 	var elements []map[string]interface{}
 	for i, it := 0, zb.Iter(); !it.Done(); i++ {
 		keyBytes, _, err := it.Next()
@@ -112,7 +112,7 @@ func newMapData(keyType, valType zng.Type, zb zcode.Bytes) (map[string]interface
 	return map[string]interface{}{"key_value": elements}, nil
 }
 
-func newRecordData(typ *zng.TypeRecord, zb zcode.Bytes) (map[string]interface{}, error) {
+func newRecordData(typ *zed.TypeRecord, zb zcode.Bytes) (map[string]interface{}, error) {
 	m := make(map[string]interface{}, len(typ.Columns))
 	for i, it := 0, zb.Iter(); !it.Done(); i++ {
 		zb2, _, err := it.Next()

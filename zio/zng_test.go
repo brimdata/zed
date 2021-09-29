@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -188,7 +188,7 @@ func TestStreams(t *testing.T) {
 		LZ4BlockSize: zngio.DefaultLZ4BlockSize,
 	})
 
-	var recs []*zng.Record
+	var recs []*zed.Record
 	for {
 		rec, err := r.Read()
 		require.NoError(t, err)

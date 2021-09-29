@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
@@ -13,7 +14,6 @@ import (
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -54,7 +54,7 @@ type Writer struct {
 	cutter      *expr.Cutter
 	tmpdir      string
 	frameThresh int
-	keyType     *zng.TypeRecord
+	keyType     *zed.TypeRecord
 	iow         io.WriteCloser
 	childField  string
 	nlevel      int
@@ -69,7 +69,7 @@ type indexWriter struct {
 	zng        *zngio.Writer
 	frameStart int64
 	frameEnd   int64
-	frameKey   *zng.Record
+	frameKey   *zed.Record
 }
 
 // NewWriter returns a Writer ready to write a zed index or it returns
@@ -151,7 +151,7 @@ func Order(o order.Which) Option {
 	})
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
+func (w *Writer) Write(rec *zed.Record) error {
 	if w.writer == nil {
 		var err error
 		w.writer, err = newIndexWriter(w, w.iow, "")
@@ -165,7 +165,7 @@ func (w *Writer) Write(rec *zng.Record) error {
 		if keys == nil {
 			return fmt.Errorf("key(s) not found in record: %q", w.keyFields)
 		}
-		w.keyType = zng.TypeRecordOf(keys.Type)
+		w.keyType = zed.TypeRecordOf(keys.Type)
 		w.childField = uniqChildField(w.zctx, keys)
 	}
 	return w.writer.write(rec)
@@ -278,9 +278,9 @@ func (w *Writer) finalize() error {
 }
 
 func (w *Writer) writeEmptyTrailer() error {
-	var cols []zng.Column
+	var cols []zed.Column
 	for _, key := range w.keyFields {
-		cols = append(cols, zng.Column{key.String(), zng.TypeNull})
+		cols = append(cols, zed.Column{key.String(), zed.TypeNull})
 	}
 	typ, err := w.zctx.LookupTypeRecord(cols)
 	if err != nil {
@@ -290,7 +290,7 @@ func (w *Writer) writeEmptyTrailer() error {
 	return writeTrailer(zw, w.zctx, "", w.frameThresh, nil, typ, w.order)
 }
 
-func writeTrailer(w *zngio.Writer, zctx *zson.Context, childField string, frameThresh int, sizes []int64, keyType *zng.TypeRecord, o order.Which) error {
+func writeTrailer(w *zngio.Writer, zctx *zson.Context, childField string, frameThresh int, sizes []int64, keyType *zed.TypeRecord, o order.Which) error {
 	// Finally, write the size records as the trailer of the index.
 	rec, err := newTrailerRecord(zctx, childField, frameThresh, sizes, keyType, o)
 	if err != nil {
@@ -334,7 +334,7 @@ func (w *indexWriter) Close() error {
 	return w.buffer.Close()
 }
 
-func (w *indexWriter) write(rec *zng.Record) error {
+func (w *indexWriter) write(rec *zed.Record) error {
 	offset := w.zng.Position()
 	if offset >= w.frameEnd && w.frameKey != nil {
 		w.frameEnd = offset + int64(w.base.frameThresh)
@@ -385,7 +385,7 @@ func (w *indexWriter) closeFrame() error {
 	return nil
 }
 
-func (w *indexWriter) addToParentIndex(key *zng.Record, offset int64) error {
+func (w *indexWriter) addToParentIndex(key *zed.Record, offset int64) error {
 	if w.parent == nil {
 		var err error
 		w.parent, err = w.newParent()
@@ -396,10 +396,10 @@ func (w *indexWriter) addToParentIndex(key *zng.Record, offset int64) error {
 	return w.parent.writeIndexRecord(key, offset)
 }
 
-func (w *indexWriter) writeIndexRecord(keys *zng.Record, offset int64) error {
-	col := []zng.Column{{w.base.childField, zng.TypeInt64}}
-	val := zng.EncodeInt(offset)
-	rec, err := w.base.zctx.AddColumns(keys, col, []zng.Value{{zng.TypeInt64, val}})
+func (w *indexWriter) writeIndexRecord(keys *zed.Record, offset int64) error {
+	col := []zed.Column{{w.base.childField, zed.TypeInt64}}
+	val := zed.EncodeInt(offset)
+	rec, err := w.base.zctx.AddColumns(keys, col, []zed.Value{{zed.TypeInt64, val}})
 	if err != nil {
 		return err
 	}

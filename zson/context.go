@@ -3,7 +3,7 @@ package zson
 import (
 	"errors"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 )
 
 var (
@@ -13,10 +13,6 @@ var (
 // XXX Leaving this wrapper here for now.  When we move package zng into
 // the top-level zed package, we'll change all the references zson.Context
 // to astzed.Context.  See issue #2824
-type Context struct {
-	*zng.Context
-}
+type Context = zed.Context
 
-func NewContext() *Context {
-	return &Context{zng.NewContext()}
-}
+var NewContext = zed.NewContext

@@ -1,8 +1,6 @@
 package column
 
-import (
-	"github.com/brimdata/zed/zng"
-)
+import "github.com/brimdata/zed"
 
 type IntWriter struct {
 	PrimitiveWriter
@@ -13,7 +11,7 @@ func NewIntWriter(spiller *Spiller) *IntWriter {
 }
 
 func (p *IntWriter) Write(v int32) error {
-	return p.PrimitiveWriter.Write(zng.EncodeInt(int64(v)))
+	return p.PrimitiveWriter.Write(zed.EncodeInt(int64(v)))
 }
 
 type Int struct {
@@ -25,6 +23,6 @@ func (p *Int) Read() (int32, error) {
 	if err != nil {
 		return 0, err
 	}
-	v, err := zng.DecodeInt(zv)
+	v, err := zed.DecodeInt(zv)
 	return int32(v), err
 }

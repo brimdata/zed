@@ -3,7 +3,7 @@ package stringsearch
 import (
 	"testing"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/require"
 )
@@ -13,7 +13,7 @@ func TestFieldNameIter(t *testing.T) {
 	typ, err := zson.ParseType(zson.NewContext(), typeString)
 	require.NoError(t, err)
 	var f FieldNameIter
-	f.Init(typ.(*zng.TypeRecord))
+	f.Init(typ.(*zed.TypeRecord))
 	require.False(t, f.Done())
 	require.Exactly(t, "r1.r2.s", string(f.Next()))
 	require.False(t, f.Done())
@@ -31,6 +31,6 @@ func TestFieldNameIterEmptyTopLevelRecord(t *testing.T) {
 	typ, err := zson.ParseType(zson.NewContext(), "{}")
 	require.NoError(t, err)
 	var f FieldNameIter
-	f.Init(typ.(*zng.TypeRecord))
+	f.Init(typ.(*zed.TypeRecord))
 	require.True(t, f.Done())
 }

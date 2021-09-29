@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -49,11 +49,11 @@ func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Respons
 type runner struct {
 	driver driver.Driver
 	cid    int
-	recs   []*zng.Record
+	recs   []*zed.Record
 	stats  zbuf.ScannerStats
 }
 
-func (r *runner) Write(rec *zng.Record) error {
+func (r *runner) Write(rec *zed.Record) error {
 	return r.driver.Write(r.cid, &zbuf.Array{rec})
 }
 

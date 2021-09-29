@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -35,20 +35,20 @@ type Trailer struct {
 	Order            order.Which
 	ChildOffsetField string
 	FrameThresh      int
-	KeyType          *zng.TypeRecord
+	KeyType          *zed.TypeRecord
 	Sections         []int64
 }
 
 var ErrNotIndex = errors.New("not a zed index")
 
-func newTrailerRecord(zctx *zson.Context, childField string, frameThresh int, sections []int64, keyType *zng.TypeRecord, o order.Which) (*zng.Record, error) {
-	sectionsType := zctx.LookupTypeArray(zng.TypeInt64)
-	cols := []zng.Column{
-		{MagicField, zng.TypeString},
-		{VersionField, zng.TypeInt32},
-		{DescendingField, zng.TypeBool},
-		{ChildField, zng.TypeString},
-		{FrameThreshField, zng.TypeInt32},
+func newTrailerRecord(zctx *zson.Context, childField string, frameThresh int, sections []int64, keyType *zed.TypeRecord, o order.Which) (*zed.Record, error) {
+	sectionsType := zctx.LookupTypeArray(zed.TypeInt64)
+	cols := []zed.Column{
+		{MagicField, zed.TypeString},
+		{VersionField, zed.TypeInt32},
+		{DescendingField, zed.TypeBool},
+		{ChildField, zed.TypeString},
+		{FrameThreshField, zed.TypeInt32},
 		{SectionsField, sectionsType},
 		{KeysField, keyType},
 	}
@@ -60,13 +60,13 @@ func newTrailerRecord(zctx *zson.Context, childField string, frameThresh int, se
 	if o == order.Desc {
 		desc = true
 	}
-	builder := zng.NewBuilder(typ)
+	builder := zed.NewBuilder(typ)
 	return builder.Build(
-		zng.EncodeString(MagicVal),
-		zng.EncodeInt(VersionVal),
-		zng.EncodeBool(desc),
-		zng.EncodeString(childField),
-		zng.EncodeInt(int64(frameThresh)),
+		zed.EncodeString(MagicVal),
+		zed.EncodeInt(VersionVal),
+		zed.EncodeBool(desc),
+		zed.EncodeString(childField),
+		zed.EncodeInt(int64(frameThresh)),
 		encodeSections(sections),
 		nil), nil
 }
@@ -74,7 +74,7 @@ func newTrailerRecord(zctx *zson.Context, childField string, frameThresh int, se
 func encodeSections(sections []int64) zcode.Bytes {
 	var b zcode.Builder
 	for _, s := range sections {
-		b.AppendPrimitive(zng.EncodeInt(s))
+		b.AppendPrimitive(zed.EncodeInt(s))
 	}
 	return b.Bytes()
 }
@@ -92,8 +92,8 @@ func readTrailer(r io.ReaderAt, size int64) (*Trailer, int, error) {
 		// look for end of stream followed by an array[int64] typedef then
 		// a record typedef indicating the possible presence of the trailer,
 		// which we then try to decode.
-		if bytes.Equal(buf[off:(off+3)], []byte{zng.TypeDefArray, zng.IDInt64, zng.TypeDefRecord}) {
-			if off > 0 && buf[off-1] != zng.CtrlEOS {
+		if bytes.Equal(buf[off:(off+3)], []byte{zed.TypeDefArray, zed.IDInt64, zed.TypeDefRecord}) {
+			if off > 0 && buf[off-1] != zed.CtrlEOS {
 				// If this isn't right after an end-of-stream
 				// (and we're not at the start of index), then
 				// we skip because it can't be a valid trailer.
@@ -117,7 +117,7 @@ func readTrailer(r io.ReaderAt, size int64) (*Trailer, int, error) {
 	return nil, 0, errors.New("zed index trailer not found")
 }
 
-func trailerVersion(rec *zng.Record) (int, error) {
+func trailerVersion(rec *zed.Record) (int, error) {
 	version, err := rec.AccessInt(VersionField)
 	if err != nil {
 		return -1, errors.New("zed index version field is not a valid int32")
@@ -128,7 +128,7 @@ func trailerVersion(rec *zng.Record) (int, error) {
 	return int(version), nil
 }
 
-func recordToTrailer(rec *zng.Record) (*Trailer, error) {
+func recordToTrailer(rec *zed.Record) (*Trailer, error) {
 	var trailer Trailer
 	var err error
 	trailer.Magic, err = rec.AccessString(MagicField)
@@ -156,7 +156,7 @@ func recordToTrailer(rec *zng.Record) (*Trailer, error) {
 		return nil, ErrNotIndex
 	}
 	var ok bool
-	trailer.KeyType, ok = keys.Type.(*zng.TypeRecord)
+	trailer.KeyType, ok = keys.Type.(*zed.TypeRecord)
 	if !ok {
 		return nil, ErrNotIndex
 	}
@@ -167,12 +167,12 @@ func recordToTrailer(rec *zng.Record) (*Trailer, error) {
 	return &trailer, nil
 }
 
-func decodeSections(rec *zng.Record) ([]int64, error) {
+func decodeSections(rec *zed.Record) ([]int64, error) {
 	v, err := rec.Access(SectionsField)
 	if err != nil {
 		return nil, err
 	}
-	arrayType, ok := v.Type.(*zng.TypeArray)
+	arrayType, ok := v.Type.(*zed.TypeArray)
 	if !ok {
 		return nil, fmt.Errorf("%s field in zed index trailer is not an arrray", SectionsField)
 	}
@@ -180,16 +180,16 @@ func decodeSections(rec *zng.Record) ([]int64, error) {
 		// This is an empty index.  Just return nil/success.
 		return nil, nil
 	}
-	zvals, err := zng.Split(arrayType.Type, v.Bytes)
+	zvals, err := zed.Split(arrayType.Type, v.Bytes)
 	if err != nil {
 		return nil, err
 	}
 	var sizes []int64
 	for _, zv := range zvals {
-		if zv.Type != zng.TypeInt64 {
+		if zv.Type != zed.TypeInt64 {
 			return nil, errors.New("section element is not an int64")
 		}
-		size, err := zng.DecodeInt(zv.Bytes)
+		size, err := zed.DecodeInt(zv.Bytes)
 		if err != nil {
 			return nil, errors.New("int64 section element could not be decoded")
 		}
@@ -198,7 +198,7 @@ func decodeSections(rec *zng.Record) ([]int64, error) {
 	return sizes, nil
 }
 
-func uniqChildField(zctx *zson.Context, keys *zng.Record) string {
+func uniqChildField(zctx *zson.Context, keys *zed.Record) string {
 	// This loop works around the corner case that the field reserved
 	// for the child pointer is in use by another key...
 	childField := ChildFieldVal

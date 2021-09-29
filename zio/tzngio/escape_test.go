@@ -3,7 +3,7 @@ package tzngio
 import (
 	"testing"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/stretchr/testify/require"
 )
 
@@ -23,10 +23,10 @@ func TestUnescapeBstring(t *testing.T) {
 	for _, c := range cases {
 		in, expected := c.escaped, c.unescaped
 
-		actual := zng.UnescapeBstring([]byte(in))
+		actual := zed.UnescapeBstring([]byte(in))
 		require.Exactly(t, []byte(expected), actual, "case: %#v", c)
 
-		actual = zng.UnescapeBstring([]byte("prefix" + in + "suffix"))
+		actual = zed.UnescapeBstring([]byte("prefix" + in + "suffix"))
 		expected = "prefix" + expected + "suffix"
 		require.Exactly(t, []byte(expected), actual, "case: %#v", c)
 	}

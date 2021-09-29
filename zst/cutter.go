@@ -5,9 +5,9 @@ import (
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/column"
 )
@@ -40,9 +40,9 @@ func NewCutterFromPath(ctx context.Context, zctx *zson.Context, engine storage.E
 type CutAssembler struct {
 	zctx    *zson.Context
 	root    *column.Int
-	schemas []zng.Type
+	schemas []zed.Type
 	columns []column.Interface
-	types   []*zng.TypeRecord
+	types   []*zed.TypeRecord
 	nwrap   []int
 	builder zcode.Builder
 	leaf    string
@@ -56,7 +56,7 @@ func NewCutAssembler(zctx *zson.Context, fields []string, object *Object) (*CutA
 		root:    &column.Int{},
 		schemas: a.schemas,
 		columns: make([]column.Interface, n),
-		types:   make([]*zng.TypeRecord, n),
+		types:   make([]*zed.TypeRecord, n),
 		nwrap:   make([]int, n),
 		leaf:    fields[len(fields)-1],
 	}
@@ -68,12 +68,12 @@ func NewCutAssembler(zctx *zson.Context, fields []string, object *Object) (*CutA
 		var err error
 		zv := a.columns[k].Value
 		topcol := &column.Record{}
-		typ := zng.TypeRecordOf(schema)
+		typ := zed.TypeRecordOf(schema)
 		if err := topcol.UnmarshalZNG(typ, zv, object.seeker); err != nil {
 			return nil, err
 		}
 		_, ca.columns[k], err = topcol.Lookup(typ, fields)
-		if err == zng.ErrMissing || err == column.ErrNonRecordAccess {
+		if err == zed.ErrMissing || err == column.ErrNonRecordAccess {
 			continue
 		}
 		if err != nil {
@@ -86,26 +86,26 @@ func NewCutAssembler(zctx *zson.Context, fields []string, object *Object) (*CutA
 		cnt++
 	}
 	if cnt == 0 {
-		return nil, zng.ErrMissing
+		return nil, zed.ErrMissing
 	}
 	return ca, nil
 }
 
-func cutType(zctx *zson.Context, typ *zng.TypeRecord, fields []string) (*zng.TypeRecord, int, error) {
+func cutType(zctx *zson.Context, typ *zed.TypeRecord, fields []string) (*zed.TypeRecord, int, error) {
 	if len(fields) == 0 {
 		panic("zst.cutType cannot be called with an empty fields argument")
 	}
 	k, ok := typ.ColumnOfField(fields[0])
 	if !ok {
-		return nil, 0, zng.ErrMissing
+		return nil, 0, zed.ErrMissing
 	}
 	if len(fields) == 1 {
-		col := []zng.Column{typ.Columns[k]}
+		col := []zed.Column{typ.Columns[k]}
 		recType, err := zctx.LookupTypeRecord(col)
 		return recType, 0, err
 	}
 	fieldName := typ.Columns[k].Name
-	typ, ok = typ.Columns[k].Type.(*zng.TypeRecord)
+	typ, ok = typ.Columns[k].Type.(*zed.TypeRecord)
 	if !ok {
 		return nil, 0, column.ErrNonRecordAccess
 	}
@@ -113,12 +113,12 @@ func cutType(zctx *zson.Context, typ *zng.TypeRecord, fields []string) (*zng.Typ
 	if err != nil {
 		return nil, 0, err
 	}
-	col := []zng.Column{{fieldName, typ}}
+	col := []zed.Column{{fieldName, typ}}
 	wrapType, err := zctx.LookupTypeRecord(col)
 	return wrapType, nwrap + 1, err
 }
 
-func (a *CutAssembler) Read() (*zng.Record, error) {
+func (a *CutAssembler) Read() (*zed.Record, error) {
 	a.builder.Reset()
 	for {
 		schemaID, err := a.root.Read()
@@ -145,7 +145,7 @@ func (a *CutAssembler) Read() (*zng.Record, error) {
 			a.builder.EndContainer()
 		}
 		recType := a.types[schemaID]
-		rec := zng.NewRecord(recType, a.builder.Bytes())
+		rec := zed.NewRecord(recType, a.builder.Bytes())
 		//XXX if we had a buffer pool where records could be built back to
 		// back in batches, then we could get rid of this extra allocation
 		// and copy on every record

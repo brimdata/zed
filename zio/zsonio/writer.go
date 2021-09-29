@@ -4,7 +4,7 @@ import (
 	"io"
 	"regexp"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -29,7 +29,7 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
+func (w *Writer) Write(rec *zed.Record) error {
 	s, err := w.formatter.FormatRecord(rec)
 	if err != nil {
 		return err

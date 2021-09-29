@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/jsonio"
@@ -18,7 +19,6 @@ import (
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zio/zstio"
-	"github.com/brimdata/zed/zng"
 )
 
 type WriterOpts struct {
@@ -72,7 +72,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 
 type nullWriter struct{}
 
-func (*nullWriter) Write(*zng.Record) error {
+func (*nullWriter) Write(*zed.Record) error {
 	return nil
 }
 

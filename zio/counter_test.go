@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,7 +13,7 @@ import (
 
 type Sink struct{}
 
-func (n *Sink) Write(rec *zng.Record) error {
+func (n *Sink) Write(rec *zed.Record) error {
 	return nil
 }
 

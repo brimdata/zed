@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -72,11 +72,11 @@ func (d Direction) MarshalJSON() ([]byte, error) {
 	return json.Marshal(d.String())
 }
 
-func (d Direction) MarshalZNG(m *zson.MarshalZNGContext) (zng.Type, error) {
+func (d Direction) MarshalZNG(m *zson.MarshalZNGContext) (zed.Type, error) {
 	return m.MarshalValue(d.String())
 }
 
-func (d *Direction) UnmarshalZNG(u *zson.UnmarshalZNGContext, zv zng.Value) error {
+func (d *Direction) UnmarshalZNG(u *zson.UnmarshalZNGContext, zv zed.Value) error {
 	dir, err := ParseDirection(string(zv.Bytes))
 	if err != nil {
 		return err

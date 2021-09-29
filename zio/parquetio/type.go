@@ -4,20 +4,20 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 	"github.com/fraugster/parquet-go/parquet"
 	"github.com/fraugster/parquet-go/parquetschema"
 )
 
-func newRecordType(zctx *zson.Context, children []*parquetschema.ColumnDefinition) (*zng.TypeRecord, error) {
-	var cols []zng.Column
+func newRecordType(zctx *zson.Context, children []*parquetschema.ColumnDefinition) (*zed.TypeRecord, error) {
+	var cols []zed.Column
 	for _, c := range children {
 		typ, err := newType(zctx, c)
 		if err != nil {
 			return nil, fmt.Errorf("%s: %w", c.SchemaElement.Name, err)
 		}
-		cols = append(cols, zng.Column{
+		cols = append(cols, zed.Column{
 			Name: c.SchemaElement.Name,
 			Type: typ,
 		})
@@ -25,7 +25,7 @@ func newRecordType(zctx *zson.Context, children []*parquetschema.ColumnDefinitio
 	return zctx.LookupTypeRecord(cols)
 }
 
-func newType(zctx *zson.Context, cd *parquetschema.ColumnDefinition) (zng.Type, error) {
+func newType(zctx *zson.Context, cd *parquetschema.ColumnDefinition) (zed.Type, error) {
 	se := cd.SchemaElement
 	if se.Type != nil {
 		return newPrimitiveType(zctx, se)
@@ -55,142 +55,142 @@ func newType(zctx *zson.Context, cd *parquetschema.ColumnDefinition) (zng.Type, 
 
 }
 
-func newPrimitiveType(zctx *zson.Context, s *parquet.SchemaElement) (zng.Type, error) {
+func newPrimitiveType(zctx *zson.Context, s *parquet.SchemaElement) (zed.Type, error) {
 	if s.IsSetLogicalType() && s.LogicalType.IsSetDECIMAL() ||
 		s.GetConvertedType() == parquet.ConvertedType_DECIMAL {
 		return nil, errors.New("DECIMAL type is unimplemented")
 	}
 	switch *s.Type {
 	case parquet.Type_BOOLEAN:
-		return zng.TypeBool, nil
+		return zed.TypeBool, nil
 	case parquet.Type_INT32:
 		if s.IsSetLogicalType() {
 			switch l := s.LogicalType; {
 			case l.IsSetDATE():
-				zctx.LookupTypeAlias("date", zng.TypeInt32)
+				zctx.LookupTypeAlias("date", zed.TypeInt32)
 			case l.IsSetINTEGER():
 				switch i := l.INTEGER; {
 				case i.BitWidth == 8 && i.IsSigned:
-					return zng.TypeInt8, nil
+					return zed.TypeInt8, nil
 				case i.BitWidth == 8:
-					return zng.TypeUint8, nil
+					return zed.TypeUint8, nil
 				case i.BitWidth == 16 && i.IsSigned:
-					return zng.TypeInt16, nil
+					return zed.TypeInt16, nil
 				case i.BitWidth == 16:
-					return zng.TypeUint16, nil
+					return zed.TypeUint16, nil
 				case i.BitWidth == 32 && i.IsSigned:
-					return zng.TypeInt32, nil
+					return zed.TypeInt32, nil
 				case i.BitWidth == 32:
-					return zng.TypeUint32, nil
+					return zed.TypeUint32, nil
 				}
 			case l.IsSetTIME() && l.TIME.IsSetUnit() && l.TIME.Unit.IsSetMILLIS():
-				return zctx.LookupTypeAlias("time_millis", zng.TypeInt32)
+				return zctx.LookupTypeAlias("time_millis", zed.TypeInt32)
 			}
 		}
 		if s.IsSetConvertedType() {
 			switch *s.ConvertedType {
 			case parquet.ConvertedType_DATE:
-				return zctx.LookupTypeAlias("date", zng.TypeInt32)
+				return zctx.LookupTypeAlias("date", zed.TypeInt32)
 			case parquet.ConvertedType_UINT_8:
-				return zng.TypeUint8, nil
+				return zed.TypeUint8, nil
 			case parquet.ConvertedType_UINT_16:
-				return zng.TypeUint16, nil
+				return zed.TypeUint16, nil
 			case parquet.ConvertedType_UINT_32:
-				return zng.TypeUint32, nil
+				return zed.TypeUint32, nil
 			case parquet.ConvertedType_INT_8:
-				return zng.TypeInt8, nil
+				return zed.TypeInt8, nil
 			case parquet.ConvertedType_INT_16:
-				return zng.TypeInt16, nil
+				return zed.TypeInt16, nil
 			case parquet.ConvertedType_INT_32:
-				return zng.TypeInt32, nil
+				return zed.TypeInt32, nil
 			case parquet.ConvertedType_TIME_MILLIS:
-				return zctx.LookupTypeAlias("time_millis", zng.TypeInt32)
+				return zctx.LookupTypeAlias("time_millis", zed.TypeInt32)
 			}
 		}
-		return zng.TypeInt32, nil
+		return zed.TypeInt32, nil
 	case parquet.Type_INT64:
 		if s.IsSetLogicalType() {
 			switch l := s.LogicalType; {
 			case l.IsSetINTEGER():
 				switch {
 				case l.INTEGER.BitWidth == 64 && l.INTEGER.IsSigned:
-					return zng.TypeInt64, nil
+					return zed.TypeInt64, nil
 				case l.INTEGER.BitWidth == 64:
-					return zng.TypeUint64, nil
+					return zed.TypeUint64, nil
 				}
 			case l.IsSetTIME() && l.TIME.IsSetUnit():
 				switch {
 				case l.TIME.Unit.IsSetMICROS():
-					return zctx.LookupTypeAlias("time_micros", zng.TypeInt64)
+					return zctx.LookupTypeAlias("time_micros", zed.TypeInt64)
 				case l.TIME.Unit.IsSetNANOS():
-					return zctx.LookupTypeAlias("time_nanos", zng.TypeInt64)
+					return zctx.LookupTypeAlias("time_nanos", zed.TypeInt64)
 				}
 			case l.IsSetTIMESTAMP() && l.TIMESTAMP.IsSetUnit():
 				switch {
 				case l.TIMESTAMP.Unit.IsSetMILLIS():
-					return zctx.LookupTypeAlias("timestamp_millis", zng.TypeInt64)
+					return zctx.LookupTypeAlias("timestamp_millis", zed.TypeInt64)
 				case l.TIMESTAMP.Unit.IsSetMICROS():
-					return zctx.LookupTypeAlias("timestamp_micros", zng.TypeInt64)
+					return zctx.LookupTypeAlias("timestamp_micros", zed.TypeInt64)
 				case l.TIMESTAMP.Unit.IsSetNANOS():
-					return zng.TypeTime, nil
+					return zed.TypeTime, nil
 				}
 			}
 		}
 		if s.IsSetConvertedType() {
 			switch *s.ConvertedType {
 			case parquet.ConvertedType_UINT_64:
-				return zng.TypeUint64, nil
+				return zed.TypeUint64, nil
 			case parquet.ConvertedType_INT_64:
-				return zng.TypeInt64, nil
+				return zed.TypeInt64, nil
 			case parquet.ConvertedType_TIME_MICROS:
-				return zctx.LookupTypeAlias("time_micros", zng.TypeInt64)
+				return zctx.LookupTypeAlias("time_micros", zed.TypeInt64)
 			case parquet.ConvertedType_TIMESTAMP_MILLIS:
-				return zctx.LookupTypeAlias("timestamp_millis", zng.TypeInt32)
+				return zctx.LookupTypeAlias("timestamp_millis", zed.TypeInt32)
 			case parquet.ConvertedType_TIMESTAMP_MICROS:
-				return zctx.LookupTypeAlias("timestamp_micros", zng.TypeInt64)
+				return zctx.LookupTypeAlias("timestamp_micros", zed.TypeInt64)
 			}
 		}
-		return zng.TypeInt64, nil
+		return zed.TypeInt64, nil
 	case parquet.Type_INT96:
-		return zctx.LookupTypeAlias("int96", zng.TypeBytes)
+		return zctx.LookupTypeAlias("int96", zed.TypeBytes)
 	case parquet.Type_FLOAT:
-		return zctx.LookupTypeAlias("float", zng.TypeFloat64)
+		return zctx.LookupTypeAlias("float", zed.TypeFloat64)
 	case parquet.Type_DOUBLE:
-		return zng.TypeFloat64, nil
+		return zed.TypeFloat64, nil
 	case parquet.Type_BYTE_ARRAY:
 		if s.IsSetLogicalType() {
 			switch l := s.LogicalType; {
 			case l.IsSetBSON():
-				return zctx.LookupTypeAlias("bson", zng.TypeBytes)
+				return zctx.LookupTypeAlias("bson", zed.TypeBytes)
 			case l.IsSetENUM():
-				return zctx.LookupTypeAlias("enum", zng.TypeString)
+				return zctx.LookupTypeAlias("enum", zed.TypeString)
 			case l.IsSetJSON():
-				return zctx.LookupTypeAlias("json", zng.TypeString)
+				return zctx.LookupTypeAlias("json", zed.TypeString)
 			case l.IsSetSTRING():
-				return zng.TypeString, nil
+				return zed.TypeString, nil
 			}
 		}
 		if s.IsSetConvertedType() {
 			switch *s.ConvertedType {
 			case parquet.ConvertedType_BSON:
-				return zctx.LookupTypeAlias("bson", zng.TypeBytes)
+				return zctx.LookupTypeAlias("bson", zed.TypeBytes)
 			case parquet.ConvertedType_JSON:
-				return zctx.LookupTypeAlias("json", zng.TypeString)
+				return zctx.LookupTypeAlias("json", zed.TypeString)
 			case parquet.ConvertedType_ENUM:
-				return zctx.LookupTypeAlias("enum", zng.TypeString)
+				return zctx.LookupTypeAlias("enum", zed.TypeString)
 			case parquet.ConvertedType_UTF8:
-				return zng.TypeString, nil
+				return zed.TypeString, nil
 			}
 		}
-		return zng.TypeBytes, nil
+		return zed.TypeBytes, nil
 	case parquet.Type_FIXED_LEN_BYTE_ARRAY:
 		switch {
 		case s.GetTypeLength() == 16 && s.IsSetLogicalType() && s.LogicalType.IsSetUUID():
-			return zctx.LookupTypeAlias("uuid", zng.TypeBytes)
+			return zctx.LookupTypeAlias("uuid", zed.TypeBytes)
 		case s.GetTypeLength() == 12 && s.GetConvertedType() == parquet.ConvertedType_INTERVAL:
-			return zctx.LookupTypeAlias("interval", zng.TypeBytes)
+			return zctx.LookupTypeAlias("interval", zed.TypeBytes)
 		}
-		return zctx.LookupTypeAlias(fmt.Sprintf("fixed_len_byte_array_%d", *s.TypeLength), zng.TypeBytes)
+		return zctx.LookupTypeAlias(fmt.Sprintf("fixed_len_byte_array_%d", *s.TypeLength), zed.TypeBytes)
 	}
 	panic(s.Type.String())
 }

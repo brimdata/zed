@@ -4,8 +4,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/anymath"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -25,10 +25,10 @@ var (
 )
 
 type Function interface {
-	Consume(zng.Value) error
-	ConsumeAsPartial(zng.Value) error
-	Result(*zson.Context) (zng.Value, error)
-	ResultAsPartial(*zson.Context) (zng.Value, error)
+	Consume(zed.Value) error
+	ConsumeAsPartial(zed.Value) error
+	Result(*zson.Context) (zed.Value, error)
+	ResultAsPartial(*zson.Context) (zed.Value, error)
 }
 
 func NewPattern(op string) (Pattern, error) {

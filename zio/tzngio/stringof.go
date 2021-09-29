@@ -10,9 +10,9 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -28,14 +28,14 @@ const (
 	OutFormatZeekAscii
 )
 
-func StringOf(zv zng.Value, out OutFmt, b bool) string {
+func StringOf(zv zed.Value, out OutFmt, b bool) string {
 	switch t := zv.Type.(type) {
-	case *zng.TypeArray:
+	case *zed.TypeArray:
 		return StringOfArray(t, zv.Bytes, out, b)
-	case *zng.TypeAlias:
-		return StringOf(zng.Value{t.Type, zv.Bytes}, out, b)
-	case *zng.TypeOfBool:
-		b, err := zng.DecodeBool(zv.Bytes)
+	case *zed.TypeAlias:
+		return StringOf(zed.Value{t.Type, zv.Bytes}, out, b)
+	case *zed.TypeOfBool:
+		b, err := zed.DecodeBool(zv.Bytes)
 		if err != nil {
 			return badZng(err, t, zv.Bytes)
 		}
@@ -43,65 +43,65 @@ func StringOf(zv zng.Value, out OutFmt, b bool) string {
 			return "T"
 		}
 		return "F"
-	case *zng.TypeOfBstring:
+	case *zed.TypeOfBstring:
 		return StringOfBstring(zv.Bytes, out, b)
-	case *zng.TypeOfBytes:
+	case *zed.TypeOfBytes:
 		return base64.StdEncoding.EncodeToString(zv.Bytes)
-	case *zng.TypeOfDuration:
+	case *zed.TypeOfDuration:
 		return StringOfDuration(t, zv.Bytes, out, b)
-	case *zng.TypeEnum:
-		return StringOf(zng.Value{zng.TypeUint64, zv.Bytes}, out, false)
-	case *zng.TypeOfError:
+	case *zed.TypeEnum:
+		return StringOf(zed.Value{zed.TypeUint64, zv.Bytes}, out, false)
+	case *zed.TypeOfError:
 		return string(zv.Bytes)
-	case *zng.TypeOfFloat64:
-		d, err := zng.DecodeFloat64(zv.Bytes)
+	case *zed.TypeOfFloat64:
+		d, err := zed.DecodeFloat64(zv.Bytes)
 		if err != nil {
 			return badZng(err, t, zv.Bytes)
 		}
 		return strconv.FormatFloat(d, 'f', -1, 64)
-	case *zng.TypeOfInt8, *zng.TypeOfInt16, *zng.TypeOfInt32, *zng.TypeOfInt64:
-		b, err := zng.DecodeInt(zv.Bytes)
+	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64:
+		b, err := zed.DecodeInt(zv.Bytes)
 		if err != nil {
 			return badZng(err, t, zv.Bytes)
 		}
 		return strconv.FormatInt(int64(b), 10)
-	case *zng.TypeOfUint8, *zng.TypeOfUint16, *zng.TypeOfUint32, *zng.TypeOfUint64:
-		b, err := zng.DecodeUint(zv.Bytes)
+	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
+		b, err := zed.DecodeUint(zv.Bytes)
 		if err != nil {
 			return badZng(err, t, zv.Bytes)
 		}
 		return strconv.FormatUint(uint64(b), 10)
-	case *zng.TypeOfIP:
-		ip, err := zng.DecodeIP(zv.Bytes)
+	case *zed.TypeOfIP:
+		ip, err := zed.DecodeIP(zv.Bytes)
 		if err != nil {
 			return badZng(err, t, zv.Bytes)
 		}
 		return ip.String()
-	case *zng.TypeMap:
+	case *zed.TypeMap:
 		return StringOfMap(t, zv.Bytes, out, b)
-	case *zng.TypeOfNet:
+	case *zed.TypeOfNet:
 		return StringOfNet(t, zv.Bytes, out, b)
-	case *zng.TypeOfNull:
+	case *zed.TypeOfNull:
 		return "-"
-	case *zng.TypeRecord:
+	case *zed.TypeRecord:
 		return StringOfRecord(t, zv.Bytes, out, b)
-	case *zng.TypeSet:
+	case *zed.TypeSet:
 		return StringOfSet(t, zv.Bytes, out, b)
-	case *zng.TypeOfString:
+	case *zed.TypeOfString:
 		return StringOfString(t, zv.Bytes, out, b)
-	case *zng.TypeOfTime:
+	case *zed.TypeOfTime:
 		return StringOfTime(t, zv.Bytes, out, b)
-	case *zng.TypeOfType:
+	case *zed.TypeOfType:
 		s, _ := zson.FormatValue(zv)
 		return s
-	case *zng.TypeUnion:
+	case *zed.TypeUnion:
 		return StringOfUnion(t, zv.Bytes, out, b)
 	default:
 		return fmt.Sprintf("tzngio.StringOf(): unknown type: %T", t)
 	}
 }
 
-func StringOfArray(t *zng.TypeArray, zv zcode.Bytes, fmt OutFmt, _ bool) string {
+func StringOfArray(t *zed.TypeArray, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 	if len(zv) == 0 && (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) {
 		return "(empty)"
 	}
@@ -130,7 +130,7 @@ func StringOfArray(t *zng.TypeArray, zv zcode.Bytes, fmt OutFmt, _ bool) string 
 		if val == nil {
 			b.WriteByte('-')
 		} else {
-			b.WriteString(StringOf(zng.Value{t.Type, val}, fmt, true))
+			b.WriteString(StringOf(zed.Value{t.Type, val}, fmt, true))
 		}
 	}
 
@@ -185,8 +185,8 @@ func StringOfBstring(data zcode.Bytes, fmt OutFmt, inContainer bool) string {
 	return string(append(out, data[start:]...))
 }
 
-func StringOfDuration(t *zng.TypeOfDuration, zv zcode.Bytes, _ OutFmt, _ bool) string {
-	i, err := zng.DecodeDuration(zv)
+func StringOfDuration(t *zed.TypeOfDuration, zv zcode.Bytes, _ OutFmt, _ bool) string {
+	i, err := zed.DecodeDuration(zv)
 	if err != nil {
 		return badZng(err, t, zv)
 	}
@@ -197,7 +197,7 @@ func StringOfDuration(t *zng.TypeOfDuration, zv zcode.Bytes, _ OutFmt, _ bool) s
 	return nano.Ts(i).StringFloat()
 }
 
-func StringOfMap(t *zng.TypeMap, zv zcode.Bytes, fmt OutFmt, _ bool) string {
+func StringOfMap(t *zed.TypeMap, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 	var b strings.Builder
 	it := zv.Iter()
 	b.WriteByte('[')
@@ -208,7 +208,7 @@ func StringOfMap(t *zng.TypeMap, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 			b.WriteString("ERR")
 			break
 		}
-		b.WriteString(StringOf(zng.Value{t.KeyType, val}, fmt, true))
+		b.WriteString(StringOf(zed.Value{t.KeyType, val}, fmt, true))
 		if !container {
 			b.WriteByte(';')
 		}
@@ -218,7 +218,7 @@ func StringOfMap(t *zng.TypeMap, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 			b.WriteString("ERR")
 			break
 		}
-		b.WriteString(StringOf(zng.Value{t.ValType, val}, fmt, true))
+		b.WriteString(StringOf(zed.Value{t.ValType, val}, fmt, true))
 		if !container {
 			b.WriteByte(';')
 		}
@@ -227,8 +227,8 @@ func StringOfMap(t *zng.TypeMap, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 	return b.String()
 }
 
-func StringOfNet(t *zng.TypeOfNet, zv zcode.Bytes, _ OutFmt, _ bool) string {
-	s, err := zng.DecodeNet(zv)
+func StringOfNet(t *zed.TypeOfNet, zv zcode.Bytes, _ OutFmt, _ bool) string {
+	s, err := zed.DecodeNet(zv)
 	if err != nil {
 		return badZng(err, t, zv)
 	}
@@ -236,7 +236,7 @@ func StringOfNet(t *zng.TypeOfNet, zv zcode.Bytes, _ OutFmt, _ bool) string {
 	return ipnet.String()
 }
 
-func StringOfRecord(t *zng.TypeRecord, zv zcode.Bytes, fmt OutFmt, _ bool) string {
+func StringOfRecord(t *zed.TypeRecord, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 	var b strings.Builder
 	separator := byte(',')
 	if fmt == OutFormatZNG {
@@ -261,7 +261,7 @@ func StringOfRecord(t *zng.TypeRecord, zv zcode.Bytes, fmt OutFmt, _ bool) strin
 		if val == nil {
 			b.WriteByte('-')
 		} else {
-			b.WriteString(StringOf(zng.Value{col.Type, val}, fmt, false))
+			b.WriteString(StringOf(zed.Value{col.Type, val}, fmt, false))
 		}
 	}
 
@@ -274,7 +274,7 @@ func StringOfRecord(t *zng.TypeRecord, zv zcode.Bytes, fmt OutFmt, _ bool) strin
 	return b.String()
 }
 
-func StringOfSet(t *zng.TypeSet, zv zcode.Bytes, fmt OutFmt, _ bool) string {
+func StringOfSet(t *zed.TypeSet, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 	if len(zv) == 0 && (fmt == OutFormatZeek || fmt == OutFormatZeekAscii) {
 		return "(empty)"
 	}
@@ -300,7 +300,7 @@ func StringOfSet(t *zng.TypeSet, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 		} else {
 			b.WriteByte(separator)
 		}
-		b.WriteString(StringOf(zng.Value{t.Type, val}, fmt, true))
+		b.WriteString(StringOf(zed.Value{t.Type, val}, fmt, true))
 	}
 
 	if fmt == OutFormatZNG {
@@ -312,7 +312,7 @@ func StringOfSet(t *zng.TypeSet, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 	return b.String()
 }
 
-func StringOfString(t *zng.TypeOfString, zv zcode.Bytes, fmt OutFmt, inContainer bool) string {
+func StringOfString(t *zed.TypeOfString, zv zcode.Bytes, fmt OutFmt, inContainer bool) string {
 	if fmt != OutFormatUnescaped && bytes.Equal(zv, []byte{'-'}) {
 		return "\\u002d"
 	}
@@ -351,8 +351,8 @@ func uescape(r rune) []byte {
 	return []byte(s)
 }
 
-func StringOfTime(t *zng.TypeOfTime, zv zcode.Bytes, _ OutFmt, _ bool) string {
-	ts, err := zng.DecodeTime(zv)
+func StringOfTime(t *zed.TypeOfTime, zv zcode.Bytes, _ OutFmt, _ bool) string {
+	ts, err := zed.DecodeTime(zv)
 	if err != nil {
 		return badZng(err, t, zv)
 	}
@@ -363,7 +363,7 @@ func StringOfTime(t *zng.TypeOfTime, zv zcode.Bytes, _ OutFmt, _ bool) string {
 	return ts.StringFloat()
 }
 
-func StringOfUnion(t *zng.TypeUnion, zv zcode.Bytes, ofmt OutFmt, _ bool) string {
+func StringOfUnion(t *zed.TypeUnion, zv zcode.Bytes, ofmt OutFmt, _ bool) string {
 	typ, selector, iv, err := t.SplitZng(zv)
 	if err != nil {
 		// this follows set and record StringOfs. Like there, XXX.
@@ -371,5 +371,5 @@ func StringOfUnion(t *zng.TypeUnion, zv zcode.Bytes, ofmt OutFmt, _ bool) string
 	}
 
 	s := strconv.FormatInt(selector, 10) + ":"
-	return s + StringOf(zng.Value{typ, iv}, ofmt, false)
+	return s + StringOf(zed.Value{typ, iv}, ofmt, false)
 }

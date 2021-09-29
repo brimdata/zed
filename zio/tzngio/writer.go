@@ -5,7 +5,7 @@ import (
 	"io"
 	"strconv"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 )
 
 type Writer struct {
@@ -37,7 +37,7 @@ func (w *Writer) WriteControl(b []byte) error {
 	return err
 }
 
-func (w *Writer) Write(r *zng.Record) error {
+func (w *Writer) Write(r *zed.Record) error {
 	inID := r.Type.ID()
 	name, ok := w.tracker[inID]
 	if !ok {
@@ -46,7 +46,7 @@ func (w *Writer) Write(r *zng.Record) error {
 		}
 		typ := r.Type
 		var op string
-		if alias, ok := typ.(*zng.TypeAlias); ok {
+		if alias, ok := typ.(*zed.TypeAlias); ok {
 			name = alias.Name
 			op = "="
 		} else {
@@ -74,7 +74,7 @@ func (w *Writer) Write(r *zng.Record) error {
 	return w.write("\n")
 }
 
-func (w *Writer) writeAliases(typ zng.Type) error {
+func (w *Writer) writeAliases(typ zed.Type) error {
 	aliases := findAliases(typ)
 	for _, alias := range aliases {
 		id := alias.AliasID()
@@ -89,26 +89,26 @@ func (w *Writer) writeAliases(typ zng.Type) error {
 	return nil
 }
 
-func findAliases(typ zng.Type) []*zng.TypeAlias {
-	var aliases []*zng.TypeAlias
+func findAliases(typ zed.Type) []*zed.TypeAlias {
+	var aliases []*zed.TypeAlias
 	switch typ := typ.(type) {
-	case *zng.TypeSet:
+	case *zed.TypeSet:
 		aliases = findAliases(typ.Type)
-	case *zng.TypeArray:
+	case *zed.TypeArray:
 		aliases = findAliases(typ.Type)
-	case *zng.TypeRecord:
+	case *zed.TypeRecord:
 		for _, col := range typ.Columns {
 			aliases = append(aliases, findAliases(col.Type)...)
 		}
-	case *zng.TypeUnion:
+	case *zed.TypeUnion:
 		for _, typ := range typ.Types {
 			aliases = append(aliases, findAliases(typ)...)
 		}
-	case *zng.TypeMap:
+	case *zed.TypeMap:
 		keyAliases := findAliases(typ.KeyType)
 		valAliases := findAliases(typ.KeyType)
 		aliases = append(keyAliases, valAliases...)
-	case *zng.TypeAlias:
+	case *zed.TypeAlias:
 		aliases = append(aliases, findAliases(typ.Type)...)
 		aliases = append(aliases, typ)
 	}
@@ -120,8 +120,8 @@ func (w *Writer) write(s string) error {
 	return err
 }
 
-func (w *Writer) writeUnion(parent zng.Value) error {
-	utyp := zng.AliasOf(parent.Type).(*zng.TypeUnion)
+func (w *Writer) writeUnion(parent zed.Value) error {
+	utyp := zed.AliasOf(parent.Type).(*zed.TypeUnion)
 	inner, selector, v, err := utyp.SplitZng(parent.Bytes)
 	if err != nil {
 		return err
@@ -131,8 +131,8 @@ func (w *Writer) writeUnion(parent zng.Value) error {
 		return err
 	}
 
-	value := zng.Value{inner, v}
-	if zng.IsContainerType(zng.AliasOf(inner)) {
+	value := zed.Value{inner, v}
+	if zed.IsContainerType(zed.AliasOf(inner)) {
 		if err := w.writeContainer(value); err != nil {
 			return err
 		}
@@ -144,23 +144,23 @@ func (w *Writer) writeUnion(parent zng.Value) error {
 	return nil
 }
 
-func (w *Writer) writeContainer(parent zng.Value) error {
+func (w *Writer) writeContainer(parent zed.Value) error {
 	if parent.IsUnsetOrNil() {
 		w.write("-;")
 		return nil
 	}
-	realType := zng.AliasOf(parent.Type)
-	if _, ok := realType.(*zng.TypeUnion); ok {
+	realType := zed.AliasOf(parent.Type)
+	if _, ok := realType.(*zed.TypeUnion); ok {
 		return w.writeUnion(parent)
 	}
-	if typ, ok := realType.(*zng.TypeMap); ok {
-		s := StringOf(zng.Value{typ, parent.Bytes}, OutFormatZNG, true)
+	if typ, ok := realType.(*zed.TypeMap); ok {
+		s := StringOf(zed.Value{typ, parent.Bytes}, OutFormatZNG, true)
 		return w.write(s)
 	}
 	if err := w.write("["); err != nil {
 		return err
 	}
-	childType, columns := zng.ContainedType(realType)
+	childType, columns := zed.ContainedType(realType)
 	if childType == nil && columns == nil {
 		return ErrSyntax
 	}
@@ -173,12 +173,12 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 			}
 			if columns != nil {
 				if k >= len(columns) {
-					return &zng.RecordTypeError{Name: "<record>", Type: parent.Type.String(), Err: zng.ErrExtraField}
+					return &zed.RecordTypeError{Name: "<record>", Type: parent.Type.String(), Err: zed.ErrExtraField}
 				}
 				childType = columns[k].Type
 				k++
 			}
-			value := zng.Value{childType, v}
+			value := zed.Value{childType, v}
 			if container {
 				if err := w.writeContainer(value); err != nil {
 					return err
@@ -193,7 +193,7 @@ func (w *Writer) writeContainer(parent zng.Value) error {
 	return w.write("]")
 }
 
-func (w *Writer) writeValue(v zng.Value) error {
+func (w *Writer) writeValue(v zed.Value) error {
 	if v.IsUnsetOrNil() {
 		return w.write("-;")
 	}

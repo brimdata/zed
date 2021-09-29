@@ -3,10 +3,10 @@ package index
 import (
 	"context"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -40,7 +40,7 @@ func (f *FinderReader) init() error {
 	return err
 }
 
-func (f *FinderReader) Read() (*zng.Record, error) {
+func (f *FinderReader) Read() (*zed.Record, error) {
 	if f.finder.IsEmpty() {
 		return nil, nil
 	}

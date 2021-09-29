@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -38,32 +38,32 @@ type Trailer struct {
 
 var ErrNotZst = errors.New("not a zst object")
 
-func newTrailerRecord(zctx *zson.Context, skewThresh, segmentThresh int, sections []int64) (*zng.Record, error) {
-	sectionsType := zctx.LookupTypeArray(zng.TypeInt64)
-	cols := []zng.Column{
-		{MagicField, zng.TypeString},
-		{VersionField, zng.TypeInt32},
-		{SkewThreshField, zng.TypeInt32},
-		{SegmentThreshField, zng.TypeInt32},
+func newTrailerRecord(zctx *zson.Context, skewThresh, segmentThresh int, sections []int64) (*zed.Record, error) {
+	sectionsType := zctx.LookupTypeArray(zed.TypeInt64)
+	cols := []zed.Column{
+		{MagicField, zed.TypeString},
+		{VersionField, zed.TypeInt32},
+		{SkewThreshField, zed.TypeInt32},
+		{SegmentThreshField, zed.TypeInt32},
 		{SectionsField, sectionsType},
 	}
 	typ, err := zctx.LookupTypeRecord(cols)
 	if err != nil {
 		return nil, err
 	}
-	builder := zng.NewBuilder(typ)
+	builder := zed.NewBuilder(typ)
 	return builder.Build(
-		zng.EncodeString(MagicVal),
-		zng.EncodeInt(VersionVal),
-		zng.EncodeInt(int64(skewThresh)),
-		zng.EncodeInt(int64(segmentThresh)),
+		zed.EncodeString(MagicVal),
+		zed.EncodeInt(VersionVal),
+		zed.EncodeInt(int64(skewThresh)),
+		zed.EncodeInt(int64(segmentThresh)),
 		encodeSections(sections)), nil
 }
 
 func encodeSections(sections []int64) zcode.Bytes {
 	var b zcode.Builder
 	for _, s := range sections {
-		b.AppendPrimitive(zng.EncodeInt(s))
+		b.AppendPrimitive(zed.EncodeInt(s))
 	}
 	return b.Bytes()
 }
@@ -89,8 +89,8 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, error) {
 		// Look for end of stream followed by an array[int64] typedef then
 		// a record typedef indicating the possible presence of the trailer,
 		// which we then try to decode.
-		if bytes.Equal(buf[off:(off+3)], []byte{zng.TypeDefArray, zng.IDInt64, zng.TypeDefRecord}) {
-			if off > 0 && buf[off-1] != zng.CtrlEOS {
+		if bytes.Equal(buf[off:(off+3)], []byte{zed.TypeDefArray, zed.IDInt64, zed.TypeDefRecord}) {
+			if off > 0 && buf[off-1] != zed.CtrlEOS {
 				// If this isn't right after an end-of-stream
 				// (and we're not at the start of index), then
 				// we skip because it can't be a valid trailer.
@@ -115,7 +115,7 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, error) {
 	return nil, errors.New("zst trailer not found")
 }
 
-func trailerVersion(rec *zng.Record) (int, error) {
+func trailerVersion(rec *zed.Record) (int, error) {
 	version, err := rec.AccessInt(VersionField)
 	if err != nil {
 		return -1, errors.New("zst version field is not a valid int32")
@@ -126,7 +126,7 @@ func trailerVersion(rec *zng.Record) (int, error) {
 	return int(version), nil
 }
 
-func recordToTrailer(rec *zng.Record) (*Trailer, error) {
+func recordToTrailer(rec *zed.Record) (*Trailer, error) {
 	var trailer Trailer
 	var err error
 	trailer.Magic, err = rec.AccessString(MagicField)
@@ -145,12 +145,12 @@ func recordToTrailer(rec *zng.Record) (*Trailer, error) {
 	return &trailer, nil
 }
 
-func decodeSections(rec *zng.Record) ([]int64, error) {
+func decodeSections(rec *zed.Record) ([]int64, error) {
 	v, err := rec.Access(SectionsField)
 	if err != nil {
 		return nil, err
 	}
-	arrayType, ok := v.Type.(*zng.TypeArray)
+	arrayType, ok := v.Type.(*zed.TypeArray)
 	if !ok {
 		return nil, fmt.Errorf("%s field in zst trailer is not an arrray", SectionsField)
 	}
@@ -158,16 +158,16 @@ func decodeSections(rec *zng.Record) ([]int64, error) {
 		// This is an empty index.  Just return nil/success.
 		return nil, nil
 	}
-	zvals, err := zng.Split(arrayType.Type, v.Bytes)
+	zvals, err := zed.Split(arrayType.Type, v.Bytes)
 	if err != nil {
 		return nil, err
 	}
 	var sizes []int64
 	for _, zv := range zvals {
-		if zv.Type != zng.TypeInt64 {
+		if zv.Type != zed.TypeInt64 {
 			return nil, errors.New("section element is not an int64")
 		}
-		size, err := zng.DecodeInt(zv.Bytes)
+		size, err := zed.DecodeInt(zv.Bytes)
 		if err != nil {
 			return nil, errors.New("int64 section element could not be decoded")
 		}

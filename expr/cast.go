@@ -5,199 +5,199 @@ import (
 	"net"
 	"unicode/utf8"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zng"
 )
 
-type PrimitiveCaster func(zv zng.Value) (zng.Value, error)
+type PrimitiveCaster func(zv zed.Value) (zed.Value, error)
 
-func LookupPrimitiveCaster(typ zng.Type) PrimitiveCaster {
+func LookupPrimitiveCaster(typ zed.Type) PrimitiveCaster {
 	switch typ {
-	case zng.TypeBool:
+	case zed.TypeBool:
 		return castToBool
-	case zng.TypeInt8:
+	case zed.TypeInt8:
 		return castToInt8
-	case zng.TypeInt16:
+	case zed.TypeInt16:
 		return castToInt16
-	case zng.TypeInt32:
+	case zed.TypeInt32:
 		return castToInt32
-	case zng.TypeInt64:
+	case zed.TypeInt64:
 		return castToInt64
-	case zng.TypeUint8:
+	case zed.TypeUint8:
 		return castToUint8
-	case zng.TypeUint16:
+	case zed.TypeUint16:
 		return castToUint16
-	case zng.TypeUint32:
+	case zed.TypeUint32:
 		return castToUint32
-	case zng.TypeUint64:
+	case zed.TypeUint64:
 		return castToUint64
-	case zng.TypeFloat64:
+	case zed.TypeFloat64:
 		return castToFloat64
-	case zng.TypeIP:
+	case zed.TypeIP:
 		return castToIP
-	case zng.TypeNet:
+	case zed.TypeNet:
 		return castToNet
-	case zng.TypeDuration:
+	case zed.TypeDuration:
 		return castToDuration
-	case zng.TypeTime:
+	case zed.TypeTime:
 		return castToTime
-	case zng.TypeString:
+	case zed.TypeString:
 		return castToString
-	case zng.TypeBstring:
+	case zed.TypeBstring:
 		return castToBstring
-	case zng.TypeBytes:
+	case zed.TypeBytes:
 		return castToBytes
 	default:
 		return nil
 	}
 }
 
-var castToInt8 = castToIntN(zng.TypeInt8, math.MinInt8, math.MaxInt8)
-var castToInt16 = castToIntN(zng.TypeInt16, math.MinInt16, math.MaxInt16)
-var castToInt32 = castToIntN(zng.TypeInt32, math.MinInt32, math.MaxInt32)
-var castToInt64 = castToIntN(zng.TypeInt64, 0, 0)
+var castToInt8 = castToIntN(zed.TypeInt8, math.MinInt8, math.MaxInt8)
+var castToInt16 = castToIntN(zed.TypeInt16, math.MinInt16, math.MaxInt16)
+var castToInt32 = castToIntN(zed.TypeInt32, math.MinInt32, math.MaxInt32)
+var castToInt64 = castToIntN(zed.TypeInt64, 0, 0)
 
-func castToIntN(typ zng.Type, min, max int64) func(zng.Value) (zng.Value, error) {
-	return func(zv zng.Value) (zng.Value, error) {
+func castToIntN(typ zed.Type, min, max int64) func(zed.Value) (zed.Value, error) {
+	return func(zv zed.Value) (zed.Value, error) {
 		v, ok := coerce.ToInt(zv)
 		// XXX better error message
 		if !ok || (min != 0 && (v < min || v > max)) {
-			return zng.Value{}, ErrBadCast
+			return zed.Value{}, ErrBadCast
 		}
 		// XXX GC
-		return zng.Value{typ, zng.EncodeInt(v)}, nil
+		return zed.Value{typ, zed.EncodeInt(v)}, nil
 	}
 }
 
-var castToUint8 = castToUintN(zng.TypeUint8, math.MaxUint8)
-var castToUint16 = castToUintN(zng.TypeUint16, math.MaxUint16)
-var castToUint32 = castToUintN(zng.TypeUint32, math.MaxUint32)
-var castToUint64 = castToUintN(zng.TypeUint64, 0)
+var castToUint8 = castToUintN(zed.TypeUint8, math.MaxUint8)
+var castToUint16 = castToUintN(zed.TypeUint16, math.MaxUint16)
+var castToUint32 = castToUintN(zed.TypeUint32, math.MaxUint32)
+var castToUint64 = castToUintN(zed.TypeUint64, 0)
 
-func castToUintN(typ zng.Type, max uint64) func(zng.Value) (zng.Value, error) {
-	return func(zv zng.Value) (zng.Value, error) {
+func castToUintN(typ zed.Type, max uint64) func(zed.Value) (zed.Value, error) {
+	return func(zv zed.Value) (zed.Value, error) {
 		v, ok := coerce.ToUint(zv)
 		// XXX better error message
 		if !ok || (max != 0 && v > max) {
-			return zng.Value{}, ErrBadCast
+			return zed.Value{}, ErrBadCast
 		}
 		// XXX GC
-		return zng.Value{typ, zng.EncodeUint(v)}, nil
+		return zed.Value{typ, zed.EncodeUint(v)}, nil
 	}
 }
 
-func castToBool(zv zng.Value) (zng.Value, error) {
+func castToBool(zv zed.Value) (zed.Value, error) {
 	b, ok := coerce.ToBool(zv)
 	if !ok {
-		return zng.Value{}, ErrBadCast
+		return zed.Value{}, ErrBadCast
 	}
-	return zng.Value{zng.TypeBool, zng.EncodeBool(b)}, nil
+	return zed.Value{zed.TypeBool, zed.EncodeBool(b)}, nil
 }
 
-func castToFloat64(zv zng.Value) (zng.Value, error) {
+func castToFloat64(zv zed.Value) (zed.Value, error) {
 	f, ok := coerce.ToFloat(zv)
 	if !ok {
-		return zng.Value{}, ErrBadCast
+		return zed.Value{}, ErrBadCast
 	}
-	return zng.Value{zng.TypeFloat64, zng.EncodeFloat64(f)}, nil
+	return zed.Value{zed.TypeFloat64, zed.EncodeFloat64(f)}, nil
 }
 
-func castToIP(zv zng.Value) (zng.Value, error) {
+func castToIP(zv zed.Value) (zed.Value, error) {
 	if !zv.IsStringy() {
-		return zng.Value{}, ErrBadCast
+		return zed.Value{}, ErrBadCast
 	}
 	ip := net.ParseIP(string(zv.Bytes))
 	if ip == nil {
-		return zng.Value{}, ErrBadCast
+		return zed.Value{}, ErrBadCast
 	}
 	// XXX GC
-	return zng.Value{zng.TypeIP, zng.EncodeIP(ip)}, nil
+	return zed.Value{zed.TypeIP, zed.EncodeIP(ip)}, nil
 }
 
-func castToNet(zv zng.Value) (zng.Value, error) {
+func castToNet(zv zed.Value) (zed.Value, error) {
 	if !zv.IsStringy() {
-		return zng.Value{}, ErrBadCast
+		return zed.Value{}, ErrBadCast
 	}
 	_, net, err := net.ParseCIDR(string(zv.Bytes))
 	if err != nil {
-		return zng.Value{}, ErrBadCast
+		return zed.Value{}, ErrBadCast
 	}
 	// XXX GC
-	return zng.Value{zng.TypeNet, zng.EncodeNet(net)}, nil
+	return zed.Value{zed.TypeNet, zed.EncodeNet(net)}, nil
 }
 
-func castToDuration(zv zng.Value) (zng.Value, error) {
+func castToDuration(zv zed.Value) (zed.Value, error) {
 	id := zv.Type.ID()
-	if zng.IsStringy(id) {
+	if zed.IsStringy(id) {
 		d, err := nano.ParseDuration(byteconv.UnsafeString(zv.Bytes))
 		if err != nil {
 			f, ferr := byteconv.ParseFloat64(zv.Bytes)
 			if ferr != nil {
-				return zng.NewError(err), nil
+				return zed.NewError(err), nil
 			}
 			d = nano.DurationFromFloat(f)
 		}
 		// XXX GC
-		return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
+		return zed.Value{zed.TypeDuration, zed.EncodeDuration(d)}, nil
 	}
-	if zng.IsFloat(id) {
-		f, _ := zng.DecodeFloat64(zv.Bytes)
+	if zed.IsFloat(id) {
+		f, _ := zed.DecodeFloat64(zv.Bytes)
 		d := nano.DurationFromFloat(f)
 		// XXX GC
-		return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
+		return zed.Value{zed.TypeDuration, zed.EncodeDuration(d)}, nil
 	}
 	sec, ok := coerce.ToInt(zv)
 	if !ok {
-		return zng.Value{}, ErrBadCast
+		return zed.Value{}, ErrBadCast
 	}
 	d := nano.Duration(sec) * nano.Second
 	// XXX GC
-	return zng.Value{zng.TypeDuration, zng.EncodeDuration(d)}, nil
+	return zed.Value{zed.TypeDuration, zed.EncodeDuration(d)}, nil
 }
 
-func castToTime(zv zng.Value) (zng.Value, error) {
+func castToTime(zv zed.Value) (zed.Value, error) {
 	ts, err := function.CastToTime(zv)
 	if err != nil {
-		return zng.NewError(err), nil
+		return zed.NewError(err), nil
 	}
-	return zng.Value{zng.TypeTime, zng.EncodeTime(ts)}, nil
+	return zed.Value{zed.TypeTime, zed.EncodeTime(ts)}, nil
 }
 
-func castToStringy(typ zng.Type) func(zng.Value) (zng.Value, error) {
-	return func(zv zng.Value) (zng.Value, error) {
+func castToStringy(typ zed.Type) func(zed.Value) (zed.Value, error) {
+	return func(zv zed.Value) (zed.Value, error) {
 		id := zv.Type.ID()
-		if id == zng.IDBytes || id == zng.IDBstring {
+		if id == zed.IDBytes || id == zed.IDBstring {
 			if !utf8.Valid(zv.Bytes) {
-				return zng.NewErrorf("non-UTF-8 bytes cannot be cast to string"), nil
+				return zed.NewErrorf("non-UTF-8 bytes cannot be cast to string"), nil
 			}
-			return zng.Value{typ, zv.Bytes}, nil
+			return zed.Value{typ, zv.Bytes}, nil
 		}
-		if enum, ok := zv.Type.(*zng.TypeEnum); ok {
-			selector, _ := zng.DecodeUint(zv.Bytes)
+		if enum, ok := zv.Type.(*zed.TypeEnum); ok {
+			selector, _ := zed.DecodeUint(zv.Bytes)
 			symbol, err := enum.Symbol(int(selector))
 			if err != nil {
-				return zng.NewError(err), nil
+				return zed.NewError(err), nil
 			}
-			return zng.Value{typ, zng.EncodeString(symbol)}, nil
+			return zed.Value{typ, zed.EncodeString(symbol)}, nil
 		}
-		if zng.IsStringy(id) {
+		if zed.IsStringy(id) {
 			// If it's already stringy, then the Zeed encoding can stay
 			// the same and we just update the stringy type.
-			return zng.Value{typ, zv.Bytes}, nil
+			return zed.Value{typ, zv.Bytes}, nil
 		}
 		// Otherwise, we'll use a canonical ZSON value for the string rep
 		// of an arbitrary value cast to a string.
 		result := zv.Type.Format(zv.Bytes)
-		return zng.Value{typ, zng.EncodeString(result)}, nil
+		return zed.Value{typ, zed.EncodeString(result)}, nil
 	}
 }
 
-var castToString = castToStringy(zng.TypeString)
-var castToBstring = castToStringy(zng.TypeBstring)
+var castToString = castToStringy(zed.TypeString)
+var castToBstring = castToStringy(zed.TypeBstring)
 
-func castToBytes(zv zng.Value) (zng.Value, error) {
-	return zng.Value{zng.TypeBytes, zng.EncodeBytes(zv.Bytes)}, nil
+func castToBytes(zv zed.Value) (zed.Value, error) {
+	return zed.Value{zed.TypeBytes, zed.EncodeBytes(zv.Bytes)}, nil
 }

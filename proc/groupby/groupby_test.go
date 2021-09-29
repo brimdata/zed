@@ -10,6 +10,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
@@ -21,7 +22,6 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -243,7 +243,7 @@ func (cr *countReader) records() int {
 	return cr.n
 }
 
-func (cr *countReader) Read() (*zng.Record, error) {
+func (cr *countReader) Read() (*zed.Record, error) {
 	rec, err := cr.r.Read()
 	if rec != nil {
 		cr.mu.Lock()

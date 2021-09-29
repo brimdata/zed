@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -13,7 +13,7 @@ var ErrColumnMismatch = errors.New("zng record value doesn't match column writer
 
 type RecordWriter []*FieldWriter
 
-func NewRecordWriter(typ *zng.TypeRecord, spiller *Spiller) RecordWriter {
+func NewRecordWriter(typ *zed.TypeRecord, spiller *Spiller) RecordWriter {
 	var r RecordWriter
 	for _, col := range typ.Columns {
 		fw := &FieldWriter{
@@ -56,15 +56,15 @@ func (r RecordWriter) Flush(eof bool) error {
 	return nil
 }
 
-func (r RecordWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zng.Type, error) {
-	var columns []zng.Column
+func (r RecordWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zed.Type, error) {
+	var columns []zed.Column
 	b.BeginContainer()
 	for _, f := range r {
 		fieldType, err := f.MarshalZNG(zctx, b)
 		if err != nil {
 			return nil, err
 		}
-		columns = append(columns, zng.Column{f.name, fieldType})
+		columns = append(columns, zed.Column{f.name, fieldType})
 	}
 	b.EndContainer()
 	return zctx.LookupTypeRecord(columns)
@@ -72,8 +72,8 @@ func (r RecordWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zng.Type
 
 type Record []*Field
 
-func (r *Record) UnmarshalZNG(typ *zng.TypeRecord, in zng.Value, reader io.ReaderAt) error {
-	rtype, ok := in.Type.(*zng.TypeRecord)
+func (r *Record) UnmarshalZNG(typ *zed.TypeRecord, in zed.Value, reader io.ReaderAt) error {
+	rtype, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
 		return errors.New("corrupt zst object: record_column is not a record")
 	}
@@ -88,7 +88,7 @@ func (r *Record) UnmarshalZNG(typ *zng.TypeRecord, in zng.Value, reader io.Reade
 		}
 		fieldType := typ.Columns[k].Type
 		f := &Field{}
-		if err = f.UnmarshalZNG(fieldType, zng.Value{rtype.Columns[k].Type, zv}, reader); err != nil {
+		if err = f.UnmarshalZNG(fieldType, zed.Value{rtype.Columns[k].Type, zv}, reader); err != nil {
 			return err
 		}
 		*r = append(*r, f)
@@ -109,19 +109,19 @@ func (r Record) Read(b *zcode.Builder) error {
 
 var ErrNonRecordAccess = errors.New("attempting to access a field in a non-record value")
 
-func (r Record) Lookup(typ *zng.TypeRecord, fields []string) (zng.Type, Interface, error) {
+func (r Record) Lookup(typ *zed.TypeRecord, fields []string) (zed.Type, Interface, error) {
 	if len(fields) == 0 {
 		panic("column.Record.Lookup cannot be called with an empty fields argument")
 	}
 	k, ok := typ.ColumnOfField(fields[0])
 	if !ok {
-		return nil, nil, zng.ErrMissing
+		return nil, nil, zed.ErrMissing
 	}
 	t := typ.Columns[k].Type
 	if len(fields) == 1 {
 		return t, r[k], nil
 	}
-	typ, ok = t.(*zng.TypeRecord)
+	typ, ok = t.(*zed.TypeRecord)
 	if !ok {
 		// This condition can happen when you are cutting id.foo and there
 		// is a field "id" that isn't a record so cut should ignore it.

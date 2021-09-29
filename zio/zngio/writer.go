@@ -3,8 +3,8 @@ package zngio
 import (
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/pierrec/lz4/v4"
 )
 
@@ -86,13 +86,13 @@ func (w *Writer) EndStream() error {
 	}
 	w.encoder.Reset()
 	w.streamRecords = 0
-	if err := w.writeUncompressed([]byte{zng.CtrlEOS}); err != nil {
+	if err := w.writeUncompressed([]byte{zed.CtrlEOS}); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (w *Writer) Write(r *zng.Record) error {
+func (w *Writer) Write(r *zed.Record) error {
 	// First send any typedefs for unsent types.
 	typ := w.encoder.Lookup(r.Type)
 	if typ == nil {
@@ -117,14 +117,14 @@ func (w *Writer) Write(r *zng.Record) error {
 	}
 	dst := w.buffer[:0]
 	id := typ.ID()
-	if typ, ok := typ.(*zng.TypeAlias); ok {
+	if typ, ok := typ.(*zed.TypeAlias); ok {
 		id = typ.AliasID()
 	}
-	if id < zng.CtrlValueEscape {
+	if id < zed.CtrlValueEscape {
 		dst = append(dst, byte(id))
 	} else {
-		dst = append(dst, zng.CtrlValueEscape)
-		dst = zcode.AppendUvarint(dst, uint64(id-zng.CtrlValueEscape))
+		dst = append(dst, zed.CtrlValueEscape)
+		dst = zcode.AppendUvarint(dst, uint64(id-zed.CtrlValueEscape))
 	}
 	dst = zcode.AppendUvarint(dst, uint64(len(r.Bytes)))
 	w.buffer = dst
@@ -152,7 +152,7 @@ func (w *Writer) WriteControl(b []byte, encoding uint8) error {
 		return err
 	}
 	dst := w.buffer[:0]
-	dst = append(dst, zng.CtrlAppMessage)
+	dst = append(dst, zed.CtrlAppMessage)
 	dst = append(dst, encoding)
 	dst = zcode.AppendUvarint(dst, uint64(len(b)))
 	dst = append(dst, b...)
@@ -206,8 +206,8 @@ func (c *compressionWriter) Flush() error {
 		return err
 	}
 	if zlen > 0 {
-		c.header = append(c.header[:0], zng.CtrlCompressed)
-		c.header = zcode.AppendUvarint(c.header, uint64(zng.CompressionFormatLZ4))
+		c.header = append(c.header[:0], zed.CtrlCompressed)
+		c.header = zcode.AppendUvarint(c.header, uint64(zed.CompressionFormatLZ4))
 		c.header = zcode.AppendUvarint(c.header, uint64(len(c.ubuf)))
 		c.header = zcode.AppendUvarint(c.header, uint64(zlen))
 	}

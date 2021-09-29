@@ -1,8 +1,8 @@
 package zfmt
 
 import (
+	"github.com/brimdata/zed"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/zng"
 )
 
 type canonZed struct {
@@ -29,7 +29,7 @@ func (c *canonZed) fieldpath(path []string) {
 		return
 	}
 	for k, s := range path {
-		if zng.IsIdentifier(s) {
+		if zed.IsIdentifier(s) {
 			if k != 0 {
 				c.write(".")
 			}
@@ -89,7 +89,7 @@ func (c *canonZed) typeFields(fields []astzed.TypeField) {
 		if k != 0 {
 			c.write(",")
 		}
-		c.write("%s:", zng.QuotedName(f.Name))
+		c.write("%s:", zed.QuotedName(f.Name))
 		c.typ(f.Type)
 	}
 }

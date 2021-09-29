@@ -9,7 +9,7 @@ func TestWriterIndex(t *testing.T) {
 {ts:1970-01-01T00:00:02Z,v:109}
 {ts:1970-01-01T00:00:01Z,v:100}
 `
-	def := index.MustNewDefinition(index.NewTypeRule(zng.TypeInt64))
+	def := index.MustNewDefinition(index.NewTypeRule(zed.TypeInt64))
 	chunk := testWriteWithDef(t, data, def)
 	reader, err := index.Find(context.Background(), zson.NewContext(), chunk.ZarDir(), def.ID, "100")
 	require.NoError(t, err)
@@ -27,7 +27,7 @@ func TestWriterIndex(t *testing.T) {
 func TestWriterSkipsInputPath(t *testing.T) {
 	const data = `{ts:1970-01-01T00:00:05Z,v:100,s:"test"}`
 	sdef := index.MustNewDefinition(index.NewFieldRule("s"))
-	inputdef := index.MustNewDefinition(index.NewTypeRule(zng.TypeInt64))
+	inputdef := index.MustNewDefinition(index.NewTypeRule(zed.TypeInt64))
 	inputdef.Input = "input_path"
 	zctx := zson.NewContext()
 	chunk := testWriteWithDef(t, data, sdef, inputdef)

@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 )
 
-func columnString(c zng.Column) string {
+func columnString(c zed.Column) string {
 	return FormatName(c.Name) + ":" + TypeString(c.Type)
 }
 
-func ColumnString(prefix string, columns []zng.Column, suffix string) string {
+func ColumnString(prefix string, columns []zed.Column, suffix string) string {
 	var s strings.Builder
 	s.WriteString(prefix)
 	var comma bool
@@ -27,7 +27,7 @@ func ColumnString(prefix string, columns []zng.Column, suffix string) string {
 	return s.String()
 }
 
-func StringTypeEnum(t *zng.TypeEnum) string {
+func StringTypeEnum(t *zed.TypeEnum) string {
 	var out []string
 	for _, s := range t.Symbols {
 		out = append(out, FormatName(s))
@@ -36,25 +36,25 @@ func StringTypeEnum(t *zng.TypeEnum) string {
 }
 
 func FormatName(name string) string {
-	if zng.IsIdentifier(name) {
+	if zed.IsIdentifier(name) {
 		return name
 	}
 	var b strings.Builder
 	b.WriteRune('[')
-	b.WriteString(StringOfString(zng.TypeString, zng.EncodeString(name), OutFormatZNG, false))
+	b.WriteString(StringOfString(zed.TypeString, zed.EncodeString(name), OutFormatZNG, false))
 	b.WriteRune(']')
 	return b.String()
 }
 
-func TypeRecordString(columns []zng.Column) string {
+func TypeRecordString(columns []zed.Column) string {
 	return ColumnString("record[", columns, "]")
 }
 
-func StringRecord(t *zng.TypeRecord) string {
+func StringRecord(t *zed.TypeRecord) string {
 	return TypeRecordString(t.Columns)
 }
 
-func StringTypeUnion(t *zng.TypeUnion) string {
+func StringTypeUnion(t *zed.TypeUnion) string {
 	var ss []string
 	for _, typ := range t.Types {
 		ss = append(ss, TypeString(typ))
@@ -62,32 +62,32 @@ func StringTypeUnion(t *zng.TypeUnion) string {
 	return fmt.Sprintf("union[%s]", strings.Join(ss, ","))
 }
 
-func badZng(err error, t zng.Type, zv zcode.Bytes) string {
+func badZng(err error, t zed.Type, zv zcode.Bytes) string {
 	return fmt.Sprintf("<ZNG-ERR type %s [%s]: %s>", t, zv, err)
 }
 
-func FormatValue(v zng.Value, fmt OutFmt) string {
+func FormatValue(v zed.Value, fmt OutFmt) string {
 	if v.Bytes == nil {
 		return "-"
 	}
 	return StringOf(v, fmt, false)
 }
 
-func TypeString(typ zng.Type) string {
+func TypeString(typ zed.Type) string {
 	switch typ := typ.(type) {
-	case *zng.TypeAlias:
+	case *zed.TypeAlias:
 		return typ.Name
-	case *zng.TypeRecord:
+	case *zed.TypeRecord:
 		return StringRecord(typ)
-	case *zng.TypeArray:
+	case *zed.TypeArray:
 		return fmt.Sprintf("array[%s]", TypeString(typ.Type))
-	case *zng.TypeSet:
+	case *zed.TypeSet:
 		return fmt.Sprintf("set[%s]", TypeString(typ.Type))
-	case *zng.TypeUnion:
+	case *zed.TypeUnion:
 		return StringTypeUnion(typ)
-	case *zng.TypeEnum:
+	case *zed.TypeEnum:
 		return StringTypeEnum(typ)
-	case *zng.TypeMap:
+	case *zed.TypeMap:
 		return fmt.Sprintf("map[%s,%s]", TypeString(typ.KeyType), TypeString(typ.ValType))
 	default:
 		return typ.String()

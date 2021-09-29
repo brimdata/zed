@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/anymath"
 	"github.com/brimdata/zed/expr/result"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -18,7 +18,7 @@ var (
 )
 
 type Interface interface {
-	Call([]zng.Value) (zng.Value, error)
+	Call([]zed.Value) (zed.Value, error)
 }
 
 func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
@@ -91,7 +91,7 @@ func New(zctx *zson.Context, name string, narg int) (Interface, bool, error) {
 	case "nameof":
 		f = &nameOf{}
 	case "fields":
-		typ := zctx.LookupTypeArray(zng.TypeString)
+		typ := zctx.LookupTypeArray(zed.TypeString)
 		f = &fields{zctx: zctx, typ: typ}
 	case "is":
 		argmin = 1
@@ -137,11 +137,11 @@ func HasBoolResult(name string) bool {
 	return false
 }
 
-func zverr(msg string, err error) (zng.Value, error) {
-	return zng.Value{}, fmt.Errorf("%s: %w", msg, err)
+func zverr(msg string, err error) (zed.Value, error) {
+	return zed.Value{}, fmt.Errorf("%s: %w", msg, err)
 }
 
-func badarg(msg string) (zng.Value, error) {
+func badarg(msg string) (zed.Value, error) {
 	return zverr(msg, ErrBadArgument)
 }
 
@@ -149,23 +149,23 @@ type lenFn struct {
 	result.Buffer
 }
 
-func (l *lenFn) Call(args []zng.Value) (zng.Value, error) {
+func (l *lenFn) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if zv.Bytes == nil {
-		return zng.Value{zng.TypeInt64, nil}, nil
+		return zed.Value{zed.TypeInt64, nil}, nil
 	}
-	switch typ := zng.AliasOf(args[0].Type).(type) {
-	case *zng.TypeRecord:
-		return zng.Value{zng.TypeInt64, l.Int(int64(len(typ.Columns)))}, nil
-	case *zng.TypeArray, *zng.TypeSet:
+	switch typ := zed.AliasOf(args[0].Type).(type) {
+	case *zed.TypeRecord:
+		return zed.Value{zed.TypeInt64, l.Int(int64(len(typ.Columns)))}, nil
+	case *zed.TypeArray, *zed.TypeSet:
 		len, err := zv.ContainerLength()
 		if err != nil {
-			return zng.Value{}, err
+			return zed.Value{}, err
 		}
-		return zng.Value{zng.TypeInt64, l.Int(int64(len))}, nil
-	case *zng.TypeOfString, *zng.TypeOfBstring, *zng.TypeOfIP, *zng.TypeOfNet:
+		return zed.Value{zed.TypeInt64, l.Int(int64(len))}, nil
+	case *zed.TypeOfString, *zed.TypeOfBstring, *zed.TypeOfIP, *zed.TypeOfNet:
 		v := len(zv.Bytes)
-		return zng.Value{zng.TypeInt64, l.Int(int64(v))}, nil
+		return zed.Value{zed.TypeInt64, l.Int(int64(v))}, nil
 	default:
 		return badarg("len")
 	}
@@ -175,7 +175,7 @@ type typeOf struct {
 	zctx *zson.Context
 }
 
-func (t *typeOf) Call(args []zng.Value) (zng.Value, error) {
+func (t *typeOf) Call(args []zed.Value) (zed.Value, error) {
 	typ := args[0].Type
 	return t.zctx.LookupTypeValue(typ), nil
 }
@@ -184,43 +184,43 @@ type typeUnder struct {
 	zctx *zson.Context
 }
 
-func (t *typeUnder) Call(args []zng.Value) (zng.Value, error) {
-	typ := zng.AliasOf(args[0].Type)
+func (t *typeUnder) Call(args []zed.Value) (zed.Value, error) {
+	typ := zed.AliasOf(args[0].Type)
 	return t.zctx.LookupTypeValue(typ), nil
 }
 
 type nameOf struct{}
 
-func (*nameOf) Call(args []zng.Value) (zng.Value, error) {
+func (*nameOf) Call(args []zed.Value) (zed.Value, error) {
 	typ := args[0].Type
-	if alias, ok := typ.(*zng.TypeAlias); ok {
+	if alias, ok := typ.(*zed.TypeAlias); ok {
 		// XXX GC
-		return zng.Value{zng.TypeString, zng.EncodeString(alias.Name)}, nil
+		return zed.Value{zed.TypeString, zed.EncodeString(alias.Name)}, nil
 	}
-	return zng.Missing, nil
+	return zed.Missing, nil
 }
 
 type isErr struct{}
 
-func (*isErr) Call(args []zng.Value) (zng.Value, error) {
+func (*isErr) Call(args []zed.Value) (zed.Value, error) {
 	if args[0].IsError() {
-		return zng.True, nil
+		return zed.True, nil
 	}
-	return zng.False, nil
+	return zed.False, nil
 }
 
 type is struct {
 	zctx *zson.Context
 }
 
-func (i *is) Call(args []zng.Value) (zng.Value, error) {
+func (i *is) Call(args []zed.Value) (zed.Value, error) {
 	zvSubject := args[0]
 	zvTypeVal := args[1]
 	if len(args) == 3 {
 		zvSubject = args[1]
 		zvTypeVal = args[2]
 	}
-	var typ zng.Type
+	var typ zed.Type
 	var err error
 	if zvTypeVal.IsStringy() {
 		typ, err = zson.ParseType(i.zctx, string(zvTypeVal.Bytes))
@@ -228,7 +228,7 @@ func (i *is) Call(args []zng.Value) (zng.Value, error) {
 		typ, err = i.zctx.LookupByValue(zvTypeVal.Bytes)
 	}
 	if err == nil && typ == zvSubject.Type {
-		return zng.True, nil
+		return zed.True, nil
 	}
-	return zng.False, nil
+	return zed.False, nil
 }

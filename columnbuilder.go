@@ -7,8 +7,6 @@ import (
 
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 )
 
 var ErrNonAdjacent = errors.New("non adjacent fields")
@@ -75,7 +73,7 @@ type fieldInfo struct {
 type ColumnBuilder struct {
 	fields   []fieldInfo
 	builder  *zcode.Builder
-	zctx     *zson.Context
+	zctx     *Context
 	curField int
 }
 
@@ -84,7 +82,7 @@ type ColumnBuilder struct {
 // Append should be called to enter field values in the left to right order
 // of the provided fields and Encode is called to retrieve the nested zcode.Bytes
 // value.  Reset should be called before encoding the next record.
-func NewColumnBuilder(zctx *zson.Context, fields field.List) (*ColumnBuilder, error) {
+func NewColumnBuilder(zctx *Context, fields field.List) (*ColumnBuilder, error) {
 	seenRecords := make(map[string]bool)
 	fieldInfos := make([]fieldInfo, 0, len(fields))
 	var currentRecord []string
@@ -219,13 +217,13 @@ func (c *ColumnBuilder) Encode() (zcode.Bytes, error) {
 
 // A ColumnBuilder understands the shape of a sequence of FieldExprs
 // (i.e., which columns are inside nested records) but not the types.
-// TypedColumns takes an array of zng.Types for the individual fields
-// and constructs an array of zng.Columns that reflects the fullly
+// TypedColumns takes an array of Types for the individual fields
+// and constructs an array of Columns that reflects the fullly
 // typed structure.  This is suitable for e.g. allocating a descriptor.
-func (c *ColumnBuilder) TypedColumns(types []zng.Type) []zng.Column {
+func (c *ColumnBuilder) TypedColumns(types []Type) []Column {
 	type rec struct {
 		name string
-		cols []zng.Column
+		cols []Column
 	}
 	current := &rec{"", nil}
 	stack := make([]*rec, 1)
@@ -237,14 +235,14 @@ func (c *ColumnBuilder) TypedColumns(types []zng.Type) []zng.Column {
 			stack = append(stack, current)
 		}
 
-		current.cols = append(current.cols, zng.NewColumn(fi.field.Leaf(), types[i]))
+		current.cols = append(current.cols, NewColumn(fi.field.Leaf(), types[i]))
 
 		for j := 0; j < fi.containerEnds; j++ {
 			recType := c.zctx.MustLookupTypeRecord(current.cols)
 			slen := len(stack)
 			stack = stack[:slen-1]
 			cur := stack[slen-2]
-			cur.cols = append(cur.cols, zng.NewColumn(current.name, recType))
+			cur.cols = append(cur.cols, NewColumn(current.name, recType))
 			current = cur
 		}
 	}

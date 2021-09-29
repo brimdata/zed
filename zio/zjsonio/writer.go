@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/zng"
 )
 
 type Object struct {
@@ -64,7 +64,7 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(r *zng.Record) error {
+func (w *Writer) Write(r *zed.Record) error {
 	rec, err := w.stream.Transform(r)
 	if err != nil {
 		return err

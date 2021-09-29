@@ -3,8 +3,8 @@ package commits
 import (
 	"context"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -31,7 +31,7 @@ func newLogReader(ctx context.Context, zctx *zson.Context, store *Store, leaf, s
 	}
 }
 
-func (r *LogReader) Read() (*zng.Record, error) {
+func (r *LogReader) Read() (*zed.Record, error) {
 	if r.cursor == ksuid.Nil {
 		return nil, nil
 	}

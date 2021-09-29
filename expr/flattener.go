@@ -5,7 +5,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -28,10 +27,10 @@ func NewFlattener(zctx *zson.Context) *Flattener {
 	}
 }
 
-func recode(dst zcode.Bytes, typ *zng.TypeRecord, in zcode.Bytes) (zcode.Bytes, error) {
+func recode(dst zcode.Bytes, typ *zed.TypeRecord, in zcode.Bytes) (zcode.Bytes, error) {
 	if in == nil {
 		for _, col := range typ.Columns {
-			if typ, ok := zng.AliasOf(col.Type).(*zng.TypeRecord); ok {
+			if typ, ok := zed.AliasOf(col.Type).(*zed.TypeRecord); ok {
 				var err error
 				dst, err = recode(dst, typ, nil)
 				if err != nil {
@@ -52,7 +51,7 @@ func recode(dst zcode.Bytes, typ *zng.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 		}
 		col := typ.Columns[colno]
 		colno++
-		if childType, ok := zng.AliasOf(col.Type).(*zng.TypeRecord); ok {
+		if childType, ok := zed.AliasOf(col.Type).(*zed.TypeRecord); ok {
 			dst, err = recode(dst, childType, val)
 			if err != nil {
 				return nil, err
@@ -68,7 +67,7 @@ func recode(dst zcode.Bytes, typ *zng.TypeRecord, in zcode.Bytes) (zcode.Bytes, 
 	return dst, nil
 }
 
-func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
+func (f *Flattener) Flatten(r *zed.Record) (*zed.Record, error) {
 	id := r.Type.ID()
 	flatType := f.mapper.Lookup(id)
 	if flatType == nil {
@@ -83,22 +82,22 @@ func (f *Flattener) Flatten(r *zng.Record) (*zng.Record, error) {
 	// Since we are mapping the input context to itself we can do a
 	// pointer comparison to see if the types are the same and there
 	// is no need to record.
-	if zng.AliasOf(r.Type) == flatType {
+	if zed.AliasOf(r.Type) == flatType {
 		return r, nil
 	}
-	zv, err := recode(nil, zng.TypeRecordOf(r.Type), r.Bytes)
+	zv, err := recode(nil, zed.TypeRecordOf(r.Type), r.Bytes)
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(flatType.(*zng.TypeRecord), zv), nil
+	return zed.NewRecord(flatType.(*zed.TypeRecord), zv), nil
 }
 
 // FlattenColumns turns nested records into a series of columns of
 // the form "outer.inner".
-func FlattenColumns(cols []zng.Column) []zng.Column {
-	ret := []zng.Column{}
+func FlattenColumns(cols []zed.Column) []zed.Column {
+	ret := []zed.Column{}
 	for _, c := range cols {
-		if recType, ok := zng.AliasOf(c.Type).(*zng.TypeRecord); ok {
+		if recType, ok := zed.AliasOf(c.Type).(*zed.TypeRecord); ok {
 			inners := FlattenColumns(recType.Columns)
 			for i := range inners {
 				inners[i].Name = fmt.Sprintf("%s.%s", c.Name, inners[i].Name)
