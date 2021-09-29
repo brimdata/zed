@@ -79,7 +79,7 @@ func (p *preprocess) parseField() ([]byte, error) {
 			ending := []byte{c}
 			if hasstr {
 				// If field had quotes wrap entire field in quotes.
-				if last := len(p.scratch) - 1; p.scratch[last] == '\r' {
+				if last := len(p.scratch) - 1; last > 0 && p.scratch[last] == '\r' {
 					ending = []byte("\r\n")
 					p.scratch = p.scratch[:last]
 				}
