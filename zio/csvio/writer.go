@@ -6,9 +6,9 @@ import (
 	"io"
 	"time"
 
+	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/flattener"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -17,7 +17,7 @@ var ErrNotDataFrame = errors.New("CSV output requires uniform records but multip
 type Writer struct {
 	writer    io.WriteCloser
 	encoder   *csv.Writer
-	flattener *flattener.Flattener
+	flattener *expr.Flattener
 	format    tzngio.OutFmt
 	first     *zng.TypeRecord
 }
@@ -34,7 +34,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 	return &Writer{
 		writer:    w,
 		encoder:   csv.NewWriter(w),
-		flattener: flattener.New(zson.NewContext()),
+		flattener: expr.NewFlattener(zson.NewContext()),
 		format:    format,
 	}
 }

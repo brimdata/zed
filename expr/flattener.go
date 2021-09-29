@@ -1,4 +1,4 @@
-package flattener
+package expr
 
 import (
 	"fmt"
@@ -14,11 +14,11 @@ type Flattener struct {
 	mapper *resolver.Mapper
 }
 
-// New returns a flattener that transforms nested records to flattened
+// NewFlattener returns a flattener that transforms nested records to flattened
 // records where the type context of the received records must match the
 // zctx parameter provided here.  Any new type descriptors that are created
 // to flatten types also use zctx.
-func New(zctx *zson.Context) *Flattener {
+func NewFlattener(zctx *zson.Context) *Flattener {
 	return &Flattener{
 		zctx: zctx,
 		// This mapper maps types back into the same context and gives
