@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/skim"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -21,11 +21,11 @@ type Reader struct {
 }
 
 func NewReader(reader io.Reader, zctx *zson.Context) (*Reader, error) {
-	_, err := zctx.LookupTypeAlias("zenum", zng.TypeString)
+	_, err := zctx.LookupTypeAlias("zenum", zed.TypeString)
 	if err != nil {
 		return nil, err
 	}
-	if _, err = zctx.LookupTypeAlias("port", zng.TypeUint16); err != nil {
+	if _, err = zctx.LookupTypeAlias("port", zed.TypeUint16); err != nil {
 		return nil, err
 	}
 	buffer := make([]byte, ReadSize)
@@ -35,7 +35,7 @@ func NewReader(reader io.Reader, zctx *zson.Context) (*Reader, error) {
 	}, nil
 }
 
-func (r *Reader) Read() (*zng.Record, error) {
+func (r *Reader) Read() (*zed.Record, error) {
 	e := func(err error) error {
 		if err == nil {
 			return err

@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 	"github.com/stretchr/testify/assert"
@@ -16,7 +16,7 @@ import (
 )
 
 func TestWriter(t *testing.T) {
-	r := NewTypeRule("test", zng.TypeInt64)
+	r := NewTypeRule("test", zed.TypeInt64)
 	o := Object{Rule: r, ID: ksuid.New()}
 	w := testWriter(t, o)
 	err := zio.Copy(w, babbleReader(t))
@@ -25,7 +25,7 @@ func TestWriter(t *testing.T) {
 }
 
 func TestWriterWriteAfterClose(t *testing.T) {
-	r := NewTypeRule("test", zng.TypeInt64)
+	r := NewTypeRule("test", zed.TypeInt64)
 	o := Object{Rule: r, ID: ksuid.New()}
 	w := testWriter(t, o)
 	require.NoError(t, w.Close())

@@ -2,7 +2,7 @@
 // to and from zng row format.  The zst storage format consists of
 // a section of column data stored in zng values followed by a section
 // containing a zng record stream comprised of N zng "reassembly records"
-// (one for each zng.TypeRecord or "schema") stored in the zst object, plus
+// (one for each zed.TypeRecord or "schema") stored in the zst object, plus
 // an N+1st zng record describing the list of schemas IDs of the original
 // zng rows that were encoded into the zst object.
 //
@@ -31,11 +31,11 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/column"
 )
@@ -121,7 +121,7 @@ func (o *Object) IsEmpty() bool {
 func (o *Object) readAssembly() (*Assembly, error) {
 	reader := o.NewReassemblyReader()
 	assembly := &Assembly{}
-	var rec *zng.Record
+	var rec *zed.Record
 	for {
 		var err error
 		rec, err = reader.Read()

@@ -3,13 +3,13 @@ package expr
 import (
 	"errors"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/zng"
 )
 
 type RootRecord struct{}
 
-func (r *RootRecord) Eval(rec *zng.Record) (zng.Value, error) {
+func (r *RootRecord) Eval(rec *zed.Record) (zed.Value, error) {
 	return rec.Value, nil
 }
 
@@ -30,32 +30,32 @@ func NewDotExpr(f field.Path) Evaluator {
 	return ret
 }
 
-func accessField(record zng.Value, field string) (zng.Value, error) {
-	recType, ok := zng.AliasOf(record.Type).(*zng.TypeRecord)
+func accessField(record zed.Value, field string) (zed.Value, error) {
+	recType, ok := zed.AliasOf(record.Type).(*zed.TypeRecord)
 	if !ok {
-		return zng.Value{}, zng.ErrMissing
+		return zed.Value{}, zed.ErrMissing
 	}
 	idx, ok := recType.ColumnOfField(field)
 	if !ok {
-		return zng.Value{}, zng.ErrMissing
+		return zed.Value{}, zed.ErrMissing
 	}
 	typ := recType.Columns[idx].Type
 	if record.Bytes == nil {
 		// Value was unset.  Return unset value of the indicated type.
-		return zng.Value{typ, nil}, nil
+		return zed.Value{typ, nil}, nil
 	}
 	//XXX see PR #1071 to improve this (though we need this for Index anyway)
 	zv, err := getNthFromContainer(record.Bytes, uint(idx))
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
-	return zng.Value{recType.Columns[idx].Type, zv}, nil
+	return zed.Value{recType.Columns[idx].Type, zv}, nil
 }
 
-func (f *DotExpr) Eval(rec *zng.Record) (zng.Value, error) {
+func (f *DotExpr) Eval(rec *zed.Record) (zed.Value, error) {
 	lval, err := f.record.Eval(rec)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	return accessField(lval, f.field)
 }

@@ -7,13 +7,13 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,7 +36,7 @@ func TestSearch(t *testing.T) {
 	require.NotNil(t, rec)
 	value, err := rec.Slice(1)
 	require.NoError(t, err)
-	value2 := zng.EncodeString("value2")
+	value2 := zed.EncodeString("value2")
 	assert.Equal(t, value, value2, "key lookup failed")
 }
 
@@ -98,7 +98,7 @@ func TestCompare(t *testing.T) {
 			k, err := finder.ParseKeys(fmt.Sprintf("%d", value))
 			require.NoError(t, err)
 
-			var rec *zng.Record
+			var rec *zed.Record
 			switch op {
 			case ">=":
 				rec, err = finder.ClosestGTE(k)

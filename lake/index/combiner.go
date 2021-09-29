@@ -3,8 +3,8 @@ package index
 import (
 	"context"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zng"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/multierr"
 )
@@ -25,7 +25,7 @@ func NewCombiner(ctx context.Context, engine storage.Engine, path *storage.URI, 
 	return writers, nil
 }
 
-func (c Combiner) Write(rec *zng.Record) error {
+func (c Combiner) Write(rec *zed.Record) error {
 	for _, w := range c {
 		if err := w.Write(rec); err != nil {
 			return err

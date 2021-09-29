@@ -1,9 +1,5 @@
 package zed
 
-import (
-	"github.com/brimdata/zed/zng"
-)
-
 type TypeVectorTable struct {
 	types []typeVector
 }
@@ -12,7 +8,7 @@ func NewTypeVectorTable() *TypeVectorTable {
 	return &TypeVectorTable{}
 }
 
-func (t *TypeVectorTable) Lookup(types []zng.Type) int {
+func (t *TypeVectorTable) Lookup(types []Type) int {
 	for k, typ := range t.types {
 		if typ.equal(types) {
 			return k
@@ -23,7 +19,7 @@ func (t *TypeVectorTable) Lookup(types []zng.Type) int {
 	return k
 }
 
-func (t *TypeVectorTable) LookupByValues(vals []zng.Value) int {
+func (t *TypeVectorTable) LookupByValues(vals []Value) int {
 	for k, typ := range t.types {
 		if typ.equalToValues(vals) {
 			return k
@@ -34,7 +30,7 @@ func (t *TypeVectorTable) LookupByValues(vals []zng.Value) int {
 	return k
 }
 
-func (t *TypeVectorTable) Types(id int) []zng.Type {
+func (t *TypeVectorTable) Types(id int) []Type {
 	return t.types[id]
 }
 
@@ -42,9 +38,9 @@ func (t *TypeVectorTable) Length() int {
 	return len(t.types)
 }
 
-type typeVector []zng.Type
+type typeVector []Type
 
-func newTypeVector(in []zng.Type) typeVector {
+func newTypeVector(in []Type) typeVector {
 	out := make(typeVector, 0, len(in))
 	for _, t := range in {
 		out = append(out, t)
@@ -52,7 +48,7 @@ func newTypeVector(in []zng.Type) typeVector {
 	return out
 }
 
-func newTypeVectorFromValues(vals []zng.Value) typeVector {
+func newTypeVectorFromValues(vals []Value) typeVector {
 	out := make(typeVector, 0, len(vals))
 	for _, zv := range vals {
 		out = append(out, zv.Type)
@@ -60,7 +56,7 @@ func newTypeVectorFromValues(vals []zng.Value) typeVector {
 	return out
 }
 
-func (t typeVector) equal(to []zng.Type) bool {
+func (t typeVector) equal(to []Type) bool {
 	if len(t) != len(to) {
 		return false
 	}
@@ -72,7 +68,7 @@ func (t typeVector) equal(to []zng.Type) bool {
 	return true
 }
 
-func (t typeVector) equalToValues(vals []zng.Value) bool {
+func (t typeVector) equalToValues(vals []Value) bool {
 	if len(t) != len(vals) {
 		return false
 	}

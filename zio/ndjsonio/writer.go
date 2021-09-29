@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"io"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 )
 
 // Writer implements a Formatter for ndjson
@@ -24,6 +24,6 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
+func (w *Writer) Write(rec *zed.Record) error {
 	return w.encoder.Encode(rec)
 }

@@ -15,11 +15,11 @@
 //
 // After all of the zng data is written, a reassembly record may be formed for
 // the RecordColumn by calling its MarshalZNG method, which builds the record
-// value in place using zcode.Builder and returns the zng.TypeRecord (i.e., schema)
+// value in place using zcode.Builder and returns the zed.TypeRecord (i.e., schema)
 // of that record column.
 //
 // Data is read from a zst file by scanning the reassembly records then unmarshaling
-// a zng.Record body into an empty Record by calling Record.UnmarshalZNG, which
+// a zed.Record body into an empty Record by calling Record.UnmarshalZNG, which
 // recusirvely builds an assembly structure.  An io.ReaderAt is passed to unmarshal
 // so each column reader can access the underlying storage object and read its
 // column data effciently in largish column chunks.
@@ -34,8 +34,8 @@ package column
 import (
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -51,22 +51,22 @@ type Writer interface {
 	Flush(bool) error
 	// MarshalZNG is called after all data is flushed to build the reassembly
 	// record for this column.
-	MarshalZNG(*zson.Context, *zcode.Builder) (zng.Type, error)
+	MarshalZNG(*zson.Context, *zcode.Builder) (zed.Type, error)
 }
 
-func NewWriter(typ zng.Type, spiller *Spiller) Writer {
+func NewWriter(typ zed.Type, spiller *Spiller) Writer {
 	switch typ := typ.(type) {
-	case *zng.TypeAlias:
+	case *zed.TypeAlias:
 		return NewWriter(typ.Type, spiller)
-	case *zng.TypeRecord:
+	case *zed.TypeRecord:
 		return NewRecordWriter(typ, spiller)
-	case *zng.TypeArray:
+	case *zed.TypeArray:
 		return NewArrayWriter(typ.Type, spiller)
-	case *zng.TypeSet:
+	case *zed.TypeSet:
 		// Sets encode the same way as arrays but behave
 		// differently semantically, and we don't care here.
 		return NewArrayWriter(typ.Type, spiller)
-	case *zng.TypeUnion:
+	case *zed.TypeUnion:
 		return NewUnionWriter(typ, spiller)
 	default:
 		return NewPrimitiveWriter(spiller)
@@ -77,25 +77,25 @@ type Interface interface {
 	Read(*zcode.Builder) error
 }
 
-func Unmarshal(typ zng.Type, in zng.Value, r io.ReaderAt) (Interface, error) {
+func Unmarshal(typ zed.Type, in zed.Value, r io.ReaderAt) (Interface, error) {
 	switch typ := typ.(type) {
-	case *zng.TypeAlias:
+	case *zed.TypeAlias:
 		return Unmarshal(typ.Type, in, r)
-	case *zng.TypeRecord:
+	case *zed.TypeRecord:
 		record := &Record{}
 		err := record.UnmarshalZNG(typ, in, r)
 		return record, err
-	case *zng.TypeArray:
+	case *zed.TypeArray:
 		a := &Array{}
 		err := a.UnmarshalZNG(typ.Type, in, r)
 		return a, err
-	case *zng.TypeSet:
+	case *zed.TypeSet:
 		// Sets encode the same way as arrays but behave
 		// differently semantically, and we don't care here.
 		a := &Array{}
 		err := a.UnmarshalZNG(typ.Type, in, r)
 		return a, err
-	case *zng.TypeUnion:
+	case *zed.TypeUnion:
 		u := &Union{}
 		err := u.UnmarshalZNG(typ, in, r)
 		return u, err

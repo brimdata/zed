@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/commits"
@@ -13,7 +14,6 @@ import (
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -148,7 +148,7 @@ func partitionReader(ctx context.Context, zctx *zson.Context, snap commits.View,
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	return readerFunc(func() (*zng.Record, error) {
+	return readerFunc(func() (*zed.Record, error) {
 		select {
 		case p := <-ch:
 			if p.Objects == nil {
@@ -177,7 +177,7 @@ func objectReader(ctx context.Context, zctx *zson.Context, snap commits.View, sp
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	return readerFunc(func() (*zng.Record, error) {
+	return readerFunc(func() (*zed.Record, error) {
 		select {
 		case p := <-ch:
 			if p.ID == ksuid.Nil {
@@ -206,7 +206,7 @@ func indexObjectReader(ctx context.Context, zctx *zson.Context, snap commits.Vie
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	return readerFunc(func() (*zng.Record, error) {
+	return readerFunc(func() (*zed.Record, error) {
 		select {
 		case p := <-ch:
 			if p == nil {
@@ -225,6 +225,6 @@ func indexObjectReader(ctx context.Context, zctx *zson.Context, snap commits.Vie
 	}), nil
 }
 
-type readerFunc func() (*zng.Record, error)
+type readerFunc func() (*zed.Record, error)
 
-func (r readerFunc) Read() (*zng.Record, error) { return r() }
+func (r readerFunc) Read() (*zed.Record, error) { return r() }

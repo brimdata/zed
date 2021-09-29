@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -38,7 +38,7 @@ func (w *ZNGWriter) WriteControl(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	return w.Writer.WriteControl(buf.Bytes(), zng.AppEncodingZSON)
+	return w.Writer.WriteControl(buf.Bytes(), zed.AppEncodingZSON)
 }
 
 type ZNGReader struct {
@@ -51,10 +51,10 @@ func NewZNGReader(r *zngio.Reader) *ZNGReader {
 	}
 }
 
-func (r *ZNGReader) ReadPayload() (*zng.Record, interface{}, error) {
+func (r *ZNGReader) ReadPayload() (*zed.Record, interface{}, error) {
 	rec, msg, err := r.reader.ReadPayload()
 	if msg != nil {
-		if msg.Encoding != zng.AppEncodingZSON {
+		if msg.Encoding != zed.AppEncodingZSON {
 			return nil, nil, fmt.Errorf("unsupported app encoding: %v", msg.Encoding)
 		}
 		value, err := zson.ParseValue(zson.NewContext(), string(msg.Bytes))

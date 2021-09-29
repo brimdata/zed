@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 )
 
 const MaxWriteBuffer = 25 * 1024 * 1024
@@ -23,7 +23,7 @@ type Writer struct {
 
 type describe struct {
 	Kind  string      `json:"kind"`
-	Value *zng.Record `json:"value"`
+	Value *zed.Record `json:"value"`
 }
 
 func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
@@ -45,11 +45,11 @@ func (w *Writer) Close() error {
 	return err
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
+func (w *Writer) Write(rec *zed.Record) error {
 	if w.size > MaxWriteBuffer {
 		return fmt.Errorf("JSON output buffer size exceeded: %d", w.size)
 	}
-	if alias, ok := rec.Type.(*zng.TypeAlias); ok {
+	if alias, ok := rec.Type.(*zed.TypeAlias); ok {
 		w.recs = append(w.recs, &describe{alias.Name, rec.Keep()})
 	} else {
 		w.recs = append(w.recs, rec.Keep())

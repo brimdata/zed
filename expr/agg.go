@@ -3,8 +3,8 @@ package expr
 import (
 	"errors"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/agg"
-	"github.com/brimdata/zed/zng"
 )
 
 var (
@@ -26,7 +26,7 @@ func NewAggregator(op string, expr Evaluator, where Filter) (*Aggregator, error)
 	if expr == nil {
 		// Count is the only that has no argument so we just return
 		// true so it counts each value encountered.
-		expr = &Literal{zng.True}
+		expr = &Literal{zed.True}
 	}
 	return &Aggregator{
 		pattern: pattern,
@@ -39,13 +39,13 @@ func (a *Aggregator) NewFunction() agg.Function {
 	return a.pattern()
 }
 
-func (a *Aggregator) Apply(f agg.Function, rec *zng.Record) error {
+func (a *Aggregator) Apply(f agg.Function, rec *zed.Record) error {
 	if a.filter(rec) {
 		return nil
 	}
 	zv, err := a.expr.Eval(rec)
 	if err != nil {
-		if err == zng.ErrMissing {
+		if err == zed.ErrMissing {
 			err = nil
 		}
 		return err
@@ -53,7 +53,7 @@ func (a *Aggregator) Apply(f agg.Function, rec *zng.Record) error {
 	return f.Consume(zv)
 }
 
-func (a *Aggregator) filter(rec *zng.Record) bool {
+func (a *Aggregator) filter(rec *zed.Record) bool {
 	if a.where == nil {
 		return false
 	}

@@ -110,7 +110,7 @@ func (c *Command) Run(args []string) error {
 			return err
 		}
 		defer writer.Close()
-		hits := make(chan *zng.Record)
+		hits := make(chan *zed.Record)
 		var searchErr error
 		go func() {
 			searchErr = lake.Find(ctx, zson.NewContext(), lk, query, hits, findOptions...)

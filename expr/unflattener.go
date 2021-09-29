@@ -3,14 +3,13 @@ package expr
 import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
 type Unflattener struct {
 	zctx        *zson.Context
 	builders    map[int]*zed.ColumnBuilder
-	recordTypes map[int]*zng.TypeRecord
+	recordTypes map[int]*zed.TypeRecord
 	fieldExpr   Evaluator
 }
 
@@ -25,17 +24,17 @@ func NewUnflattener(zctx *zson.Context) *Unflattener {
 	return &Unflattener{
 		zctx:        zctx,
 		builders:    make(map[int]*zed.ColumnBuilder),
-		recordTypes: make(map[int]*zng.TypeRecord),
+		recordTypes: make(map[int]*zed.TypeRecord),
 	}
 }
 
-func (u *Unflattener) lookupBuilderAndType(in *zng.TypeRecord) (*zed.ColumnBuilder, *zng.TypeRecord, error) {
+func (u *Unflattener) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuilder, *zed.TypeRecord, error) {
 	if b, ok := u.builders[in.ID()]; ok {
 		return b, u.recordTypes[in.ID()], nil
 	}
 	var foundDotted bool
 	var fields field.List
-	var types []zng.Type
+	var types []zed.Type
 	for _, c := range in.Columns {
 		dotted := field.Dotted(c.Name)
 		if len(dotted) > 1 {
@@ -63,8 +62,8 @@ func (u *Unflattener) lookupBuilderAndType(in *zng.TypeRecord) (*zed.ColumnBuild
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
-func (u *Unflattener) Apply(in *zng.Record) (*zng.Record, error) {
-	b, typ, err := u.lookupBuilderAndType(zng.TypeRecordOf(in.Type))
+func (u *Unflattener) Apply(in *zed.Record) (*zed.Record, error) {
+	b, typ, err := u.lookupBuilderAndType(zed.TypeRecordOf(in.Type))
 	if err != nil {
 		return nil, err
 	}
@@ -83,16 +82,16 @@ func (u *Unflattener) Apply(in *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(typ, zbytes), nil
+	return zed.NewRecord(typ, zbytes), nil
 }
 
-func (c *Unflattener) Eval(rec *zng.Record) (zng.Value, error) {
+func (c *Unflattener) Eval(rec *zed.Record) (zed.Value, error) {
 	out, err := c.Apply(rec)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	if out == nil {
-		return zng.Value{}, zng.ErrMissing
+		return zed.Value{}, zed.ErrMissing
 	}
 	return out.Value, nil
 }

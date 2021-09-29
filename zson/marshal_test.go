@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -111,7 +111,7 @@ type SliceRecord struct {
 	S []IDSlice
 }
 
-func recToZSON(t *testing.T, rec *zng.Record) string {
+func recToZSON(t *testing.T, rec *zed.Record) string {
 	var b strings.Builder
 	w := zsonio.NewWriter(zio.NopCloser(&b), zsonio.WriterOpts{})
 	err := w.Write(rec)
@@ -209,7 +209,7 @@ func TestBug2575(t *testing.T) {
 
 	var buffer bytes.Buffer
 	writer := zngio.NewWriter(zio.NopCloser(&buffer), zngio.WriterOpts{})
-	recExpected := zng.NewRecord(zv.Type, zv.Bytes)
+	recExpected := zed.NewRecord(zv.Type, zv.Bytes)
 	writer.Write(recExpected)
 	writer.Close()
 
@@ -237,14 +237,14 @@ func TestUnexported(t *testing.T) {
 
 type ZNGValueField struct {
 	Name  string
-	Field zng.Value `zng:"field"`
+	Field zed.Value `zng:"field"`
 }
 
 func TestZNGValueField(t *testing.T) {
-	// Include a Zed int64 inside a Go struct as a zng.Value field.
+	// Include a Zed int64 inside a Go struct as a zed.Value field.
 	zngValueField := &ZNGValueField{
 		Name:  "test1",
-		Field: zng.Value{zng.TypeInt64, zng.EncodeInt(123)},
+		Field: zed.Value{zed.TypeInt64, zed.EncodeInt(123)},
 	}
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
@@ -259,7 +259,7 @@ func TestZNGValueField(t *testing.T) {
 	err = u.Unmarshal(zv, &out)
 	require.NoError(t, err)
 	assert.Equal(t, *zngValueField, out)
-	// Include a Zed record inside a Go struct in a zng.Value field.
+	// Include a Zed record inside a Go struct in a zed.Value field.
 	z := `{s:"foo",a:[1,2,3]}`
 	zv2, err := zson.ParseValue(zson.NewContext(), z)
 	require.NoError(t, err)

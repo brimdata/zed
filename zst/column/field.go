@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -28,11 +28,11 @@ func (f *FieldWriter) write(body zcode.Bytes) error {
 	return f.column.Write(body)
 }
 
-func (f *FieldWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zng.Type, error) {
+func (f *FieldWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zed.Type, error) {
 	b.BeginContainer()
-	var colType zng.Type
+	var colType zed.Type
 	if f.vcnt == 0 {
-		colType = zng.TypeNull
+		colType = zed.TypeNull
 		b.AppendPrimitive(nil)
 	} else {
 		var err error
@@ -46,7 +46,7 @@ func (f *FieldWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zng.Type
 		return nil, err
 	}
 	b.EndContainer()
-	cols := []zng.Column{
+	cols := []zed.Column{
 		{"column", colType},
 		{"presence", presenceType},
 	}
@@ -88,12 +88,12 @@ type Field struct {
 	presence    *Presence
 }
 
-func (f *Field) UnmarshalZNG(typ zng.Type, in zng.Value, r io.ReaderAt) error {
-	rtype, ok := in.Type.(*zng.TypeRecord)
+func (f *Field) UnmarshalZNG(typ zed.Type, in zed.Value, r io.ReaderAt) error {
+	rtype, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
 		return errors.New("zst object array_column not a record")
 	}
-	rec := zng.NewRecord(rtype, in.Bytes)
+	rec := zed.NewRecord(rtype, in.Bytes)
 	zv, err := rec.Access("column")
 	if err != nil {
 		return err
@@ -108,7 +108,7 @@ func (f *Field) UnmarshalZNG(typ zng.Type, in zng.Value, r io.ReaderAt) error {
 	if err != nil {
 		return err
 	}
-	f.isContainer = zng.IsContainerType(typ)
+	f.isContainer = zed.IsContainerType(typ)
 	f.presence = NewPresence()
 	if err := f.presence.UnmarshalZNG(zv, r); err != nil {
 		return err

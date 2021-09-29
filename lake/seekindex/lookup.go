@@ -3,14 +3,14 @@ package seekindex
 import (
 	"math"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 )
 
-func Lookup(r zio.Reader, from, to zng.Value, cmp expr.ValueCompareFn) (Range, error) {
+func Lookup(r zio.Reader, from, to zed.Value, cmp expr.ValueCompareFn) (Range, error) {
 	rg := Range{0, math.MaxInt64}
-	var rec *zng.Record
+	var rec *zed.Record
 	for {
 		var err error
 		rec, err = r.Read()
@@ -31,7 +31,7 @@ func Lookup(r zio.Reader, from, to zng.Value, cmp expr.ValueCompareFn) (Range, e
 		if err != nil {
 			return Range{}, err
 		}
-		rg.Start, err = zng.DecodeInt(off.Bytes)
+		rg.Start, err = zed.DecodeInt(off.Bytes)
 		if err != nil {
 			return Range{}, err
 		}
@@ -49,7 +49,7 @@ func Lookup(r zio.Reader, from, to zng.Value, cmp expr.ValueCompareFn) (Range, e
 			if err != nil {
 				return Range{}, err
 			}
-			rg.End, err = zng.DecodeInt(off.Bytes)
+			rg.End, err = zed.DecodeInt(off.Bytes)
 			if err != nil {
 				return Range{}, err
 			}

@@ -1,13 +1,13 @@
 package agg
 
 import (
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 )
 
-type Any zng.Value
+type Any zed.Value
 
-func (a *Any) Consume(v zng.Value) error {
+func (a *Any) Consume(v zed.Value) error {
 	// Copy any value from the input while favoring any-typed non-null values
 	// over null values.
 	if a.Type == nil || (a.Bytes == nil && v.Bytes != nil) {
@@ -16,17 +16,17 @@ func (a *Any) Consume(v zng.Value) error {
 	return nil
 }
 
-func (a Any) Result(*zson.Context) (zng.Value, error) {
+func (a Any) Result(*zson.Context) (zed.Value, error) {
 	if a.Type == nil {
-		return zng.Value{Type: zng.TypeNull}, nil
+		return zed.Value{Type: zed.TypeNull}, nil
 	}
-	return zng.Value(a), nil
+	return zed.Value(a), nil
 }
 
-func (a *Any) ConsumeAsPartial(v zng.Value) error {
+func (a *Any) ConsumeAsPartial(v zed.Value) error {
 	return a.Consume(v)
 }
 
-func (a Any) ResultAsPartial(*zson.Context) (zng.Value, error) {
+func (a Any) ResultAsPartial(*zson.Context) (zed.Value, error) {
 	return a.Result(nil)
 }

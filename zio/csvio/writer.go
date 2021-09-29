@@ -6,9 +6,9 @@ import (
 	"io"
 	"time"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -19,7 +19,7 @@ type Writer struct {
 	encoder   *csv.Writer
 	flattener *expr.Flattener
 	format    tzngio.OutFmt
-	first     *zng.TypeRecord
+	first     *zed.TypeRecord
 }
 
 type WriterOpts struct {
@@ -49,13 +49,13 @@ func (w *Writer) Flush() error {
 	return w.encoder.Error()
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
+func (w *Writer) Write(rec *zed.Record) error {
 	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
 		return err
 	}
 	if w.first == nil {
-		w.first = zng.TypeRecordOf(rec.Type)
+		w.first = zed.TypeRecordOf(rec.Type)
 		var hdr []string
 		for _, col := range rec.Columns() {
 			hdr = append(hdr, col.Name)
@@ -73,13 +73,13 @@ func (w *Writer) Write(rec *zng.Record) error {
 		value := rec.ValueByColumn(k)
 		if !value.IsUnsetOrNil() {
 			switch col.Type.ID() {
-			case zng.IDTime:
-				ts, err := zng.DecodeTime(value.Bytes)
+			case zed.IDTime:
+				ts, err := zed.DecodeTime(value.Bytes)
 				if err != nil {
 					return err
 				}
 				v = ts.Time().UTC().Format(time.RFC3339Nano)
-			case zng.IDString, zng.IDBstring, zng.IDType, zng.IDError:
+			case zed.IDString, zed.IDBstring, zed.IDType, zed.IDError:
 				v = string(value.Bytes)
 			default:
 				v = tzngio.FormatValue(value, w.format)

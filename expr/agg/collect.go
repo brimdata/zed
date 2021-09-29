@@ -3,18 +3,18 @@ package agg
 import (
 	"errors"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
 type Collect struct {
-	typ  zng.Type
+	typ  zed.Type
 	val  []zcode.Bytes
 	size int
 }
 
-func (c *Collect) Consume(v zng.Value) error {
+func (c *Collect) Consume(v zed.Value) error {
 	if v.IsNil() {
 		return nil
 	}
@@ -42,13 +42,13 @@ func (c *Collect) update(b zcode.Bytes) {
 	}
 }
 
-func (c *Collect) Result(zctx *zson.Context) (zng.Value, error) {
+func (c *Collect) Result(zctx *zson.Context) (zed.Value, error) {
 	if c.typ == nil {
 		// no values found
-		return zng.Value{Type: zng.TypeNull}, nil
+		return zed.Value{Type: zed.TypeNull}, nil
 	}
 	var b zcode.Builder
-	container := zng.IsContainerType(c.typ)
+	container := zed.IsContainerType(c.typ)
 	for _, item := range c.val {
 		if container {
 			b.AppendContainer(item)
@@ -57,12 +57,12 @@ func (c *Collect) Result(zctx *zson.Context) (zng.Value, error) {
 		}
 	}
 	typ := zctx.LookupTypeArray(c.typ)
-	return zng.Value{typ, b.Bytes()}, nil
+	return zed.Value{typ, b.Bytes()}, nil
 }
 
-func (c *Collect) ConsumeAsPartial(zv zng.Value) error {
+func (c *Collect) ConsumeAsPartial(zv zed.Value) error {
 	if c.typ == nil {
-		typ, ok := zv.Type.(*zng.TypeArray)
+		typ, ok := zv.Type.(*zed.TypeArray)
 		if !ok {
 			return errors.New("partial not an array type")
 		}
@@ -78,6 +78,6 @@ func (c *Collect) ConsumeAsPartial(zv zng.Value) error {
 	return nil
 }
 
-func (c *Collect) ResultAsPartial(tc *zson.Context) (zng.Value, error) {
+func (c *Collect) ResultAsPartial(tc *zson.Context) (zed.Value, error) {
 	return c.Result(tc)
 }

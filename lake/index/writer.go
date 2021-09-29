@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/expr"
@@ -13,7 +14,6 @@ import (
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -44,13 +44,13 @@ type Writer struct {
 	rwCh    rwChan
 }
 
-type rwChan chan *zng.Record
+type rwChan chan *zed.Record
 
-func (c rwChan) Read() (*zng.Record, error) {
+func (c rwChan) Read() (*zed.Record, error) {
 	return <-c, nil
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
+func (w *Writer) Write(rec *zed.Record) error {
 	select {
 	case <-w.done:
 		if err := w.indexer.err.Load(); err != nil {
@@ -105,7 +105,7 @@ type indexer struct {
 	cutter  *expr.Cutter
 	fgr     zio.ReadCloser
 	index   *index.Writer
-	keyType zng.Type
+	keyType zed.Type
 	wg      sync.WaitGroup
 }
 
@@ -158,7 +158,7 @@ func (d *indexer) Wait() error {
 	return d.err.Load()
 }
 
-func (d *indexer) Write(rec *zng.Record) error {
+func (d *indexer) Write(rec *zed.Record) error {
 	key, err := d.cutter.Apply(rec)
 	if err != nil {
 		return fmt.Errorf("checking index record: %w", err)

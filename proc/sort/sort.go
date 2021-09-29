@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/spill"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
 )
 
 // MemMaxBytes specifies the maximum amount of memory that each sort proc
@@ -96,9 +96,9 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	}
 }
 
-func (p *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
+func (p *Proc) recordsForOneRun() ([]*zed.Record, bool, error) {
 	var nbytes int
-	var recs []*zng.Record
+	var recs []*zed.Record
 	for {
 		batch, err := p.parent.Pull()
 		if err != nil {
@@ -121,7 +121,7 @@ func (p *Proc) recordsForOneRun() ([]*zng.Record, bool, error) {
 	}
 }
 
-func (p *Proc) createRuns(firstRunRecs []*zng.Record) (*spill.MergeSort, error) {
+func (p *Proc) createRuns(firstRunRecs []*zed.Record) (*spill.MergeSort, error) {
 	rm, err := spill.NewMergeSort(p.compareFn)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func (p *Proc) warnAboutUnseenFields() {
 	}
 }
 
-func (p *Proc) setCompareFn(r *zng.Record) {
+func (p *Proc) setCompareFn(r *zed.Record) {
 	resolvers := p.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
@@ -168,33 +168,33 @@ func (p *Proc) setCompareFn(r *zng.Record) {
 	}
 	compareFn := expr.NewCompareFn(nullsMax, resolvers...)
 	if p.order == order.Desc {
-		p.compareFn = func(a, b *zng.Record) int { return compareFn(b, a) }
+		p.compareFn = func(a, b *zed.Record) int { return compareFn(b, a) }
 	} else {
 		p.compareFn = compareFn
 	}
 }
 
-func GuessSortKey(rec *zng.Record) field.Path {
-	typ := zng.TypeRecordOf(rec.Type)
-	if f := firstMatchingField(typ, zng.IsInteger); f != nil {
+func GuessSortKey(rec *zed.Record) field.Path {
+	typ := zed.TypeRecordOf(rec.Type)
+	if f := firstMatchingField(typ, zed.IsInteger); f != nil {
 		return f
 	}
-	if f := firstMatchingField(typ, zng.IsFloat); f != nil {
+	if f := firstMatchingField(typ, zed.IsFloat); f != nil {
 		return f
 	}
-	isNotTime := func(id int) bool { return id != zng.IDTime }
+	isNotTime := func(id int) bool { return id != zed.IDTime }
 	if f := firstMatchingField(typ, isNotTime); f != nil {
 		return f
 	}
 	return field.New("ts")
 }
 
-func firstMatchingField(typ *zng.TypeRecord, pred func(id int) bool) field.Path {
+func firstMatchingField(typ *zed.TypeRecord, pred func(id int) bool) field.Path {
 	for _, col := range typ.Columns {
 		if pred(col.Type.ID()) {
 			return field.New(col.Name)
 		}
-		if typ := zng.TypeRecordOf(col.Type); typ != nil {
+		if typ := zed.TypeRecordOf(col.Type); typ != nil {
 			if f := firstMatchingField(typ, pred); f != nil {
 				return append(field.New(col.Name), f...)
 			}

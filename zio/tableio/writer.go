@@ -7,9 +7,9 @@ import (
 	"text/tabwriter"
 	"time"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -17,7 +17,7 @@ type Writer struct {
 	writer    io.WriteCloser
 	flattener *expr.Flattener
 	table     *tabwriter.Writer
-	typ       *zng.TypeRecord
+	typ       *zed.TypeRecord
 	limit     int
 	nline     int
 	format    tzngio.OutFmt
@@ -38,7 +38,7 @@ func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	}
 }
 
-func (w *Writer) Write(r *zng.Record) error {
+func (w *Writer) Write(r *zed.Record) error {
 	r, err := w.flattener.Flatten(r)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func (w *Writer) Write(r *zng.Record) error {
 			w.nline = 0
 		}
 		// First time, or new descriptor, print header
-		typ := zng.TypeRecordOf(r.Type)
+		typ := zed.TypeRecordOf(r.Type)
 		w.writeHeader(typ)
 		w.typ = typ
 	}
@@ -62,9 +62,9 @@ func (w *Writer) Write(r *zng.Record) error {
 	for k, col := range r.Columns() {
 		var v string
 		value := r.ValueByColumn(k)
-		if col.Type == zng.TypeTime {
+		if col.Type == zed.TypeTime {
 			if !value.IsUnsetOrNil() {
-				ts, err := zng.DecodeTime(value.Bytes)
+				ts, err := zed.DecodeTime(value.Bytes)
 				if err != nil {
 					return err
 				}
@@ -84,7 +84,7 @@ func (w *Writer) flush() error {
 	return w.table.Flush()
 }
 
-func (w *Writer) writeHeader(typ *zng.TypeRecord) {
+func (w *Writer) writeHeader(typ *zed.TypeRecord) {
 	for i, c := range typ.Columns {
 		if i > 0 {
 			w.table.Write([]byte{'\t'})

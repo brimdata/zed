@@ -9,14 +9,14 @@ import (
 )
 
 // Reader implements zio.Reader and io.Closer.  It reads a columnar
-// zst object to generate a stream of zng.Records.  It also has methods
+// zst object to generate a stream of zed.Records.  It also has methods
 // to read metainformation for test and debugging.
 type Reader struct {
 	*Object
 	zio.Reader
 }
 
-// NewReader returns a Reader ready to read a zst object as zng.Records.
+// NewReader returns a Reader ready to read a zst object as zed.Records.
 // Close() should be called when done.  This embeds a zst.Object.
 func NewReader(object *Object) (*Reader, error) {
 	assembler, err := NewAssembler(object.assembly, object.seeker)

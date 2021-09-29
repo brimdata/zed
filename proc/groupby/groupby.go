@@ -13,7 +13,6 @@ import (
 	"github.com/brimdata/zed/proc/spill"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -43,21 +42,21 @@ type Aggregator struct {
 	keyTypes     *zed.TypeVectorTable
 	outTypes     *zed.TypeVectorTable
 	block        map[int]struct{}
-	typeCache    []zng.Type
+	typeCache    []zed.Type
 	keyCache     []byte // Reduces memory allocations in Consume.
 	keyRefs      []expr.Evaluator
 	keyExprs     []expr.Evaluator
 	aggRefs      []expr.Evaluator
 	aggs         []*expr.Aggregator
 	builder      *zed.ColumnBuilder
-	recordTypes  map[int]*zng.TypeRecord
+	recordTypes  map[int]*zed.TypeRecord
 	table        map[string]*Row
 	limit        int
 	valueCompare expr.ValueCompareFn // to compare primary group keys for early key output
 	keyCompare   expr.CompareFn      // compare the first key (used when input sorted)
 	keysCompare  expr.CompareFn      // compare all keys
-	maxTableKey  *zng.Value
-	maxSpillKey  *zng.Value
+	maxTableKey  *zed.Value
+	maxSpillKey  *zed.Value
 	inputDir     order.Direction
 	spiller      *spill.MergeSort
 	partialsIn   bool
@@ -66,7 +65,7 @@ type Aggregator struct {
 
 type Row struct {
 	keyType  int
-	groupval *zng.Value // for sorting when input sorted
+	groupval *zed.Value // for sorting when input sorted
 	reducers valRow
 }
 
@@ -86,21 +85,21 @@ func NewAggregator(ctx context.Context, zctx *zson.Context, keyRefs, keyExprs, a
 
 		vs := expr.NewValueCompareFn(nullsMax)
 		if inputDir < 0 {
-			valueCompare = func(a, b zng.Value) int { return vs(b, a) }
+			valueCompare = func(a, b zed.Value) int { return vs(b, a) }
 		} else {
 			valueCompare = vs
 		}
 
 		rs := expr.NewCompareFn(true, keyRefs[0])
 		if inputDir < 0 {
-			keyCompare = func(a, b *zng.Record) int { return rs(b, a) }
+			keyCompare = func(a, b *zed.Record) int { return rs(b, a) }
 		} else {
 			keyCompare = rs
 		}
 	}
 	rs := expr.NewCompareFn(true, keyRefs...)
 	if inputDir < 0 {
-		keysCompare = func(a, b *zng.Record) int { return rs(b, a) }
+		keysCompare = func(a, b *zed.Record) int { return rs(b, a) }
 	} else {
 		keysCompare = rs
 	}
@@ -117,10 +116,10 @@ func NewAggregator(ctx context.Context, zctx *zson.Context, keyRefs, keyExprs, a
 		aggs:         aggs,
 		builder:      builder,
 		block:        make(map[int]struct{}),
-		typeCache:    make([]zng.Type, nkeys+len(aggs)),
+		typeCache:    make([]zed.Type, nkeys+len(aggs)),
 		keyCache:     make(zcode.Bytes, 0, 128),
 		table:        make(map[string]*Row),
-		recordTypes:  make(map[int]*zng.TypeRecord),
+		recordTypes:  make(map[int]*zed.TypeRecord),
 		keyCompare:   keyCompare,
 		keysCompare:  keysCompare,
 		valueCompare: valueCompare,
@@ -235,7 +234,7 @@ func (p *Proc) shutdown(err error) {
 }
 
 // Consume adds a record to the aggregation.
-func (a *Aggregator) Consume(r *zng.Record) error {
+func (a *Aggregator) Consume(r *zed.Record) error {
 	// First check if we've seen this descriptor and whether it is blocked.
 	id := r.Type.ID()
 	if _, ok := a.block[id]; ok {
@@ -267,11 +266,11 @@ func (a *Aggregator) Consume(r *zng.Record) error {
 
 	types := a.typeCache[:0]
 	keyBytes := a.keyCache[:0]
-	var prim *zng.Value
+	var prim *zed.Value
 	for i, keyExpr := range a.keyExprs {
 		zv, err := keyExpr.Eval(r)
 		if err != nil {
-			if errors.Is(err, zng.ErrMissing) {
+			if errors.Is(err, zed.ErrMissing) {
 				// block this input type
 				a.block[id] = struct{}{}
 			}
@@ -333,16 +332,16 @@ func (a *Aggregator) spillTable(eof bool) error {
 		if err != nil {
 			return err
 		}
-		// pass volatile zng.Value since updateMaxSpillKey will make
+		// pass volatile zed.Value since updateMaxSpillKey will make
 		// a copy if needed.
 		a.updateMaxSpillKey(v)
 	}
 	return nil
 }
 
-// updateMaxTableKey is called with a volatile zng.Value to update the
+// updateMaxTableKey is called with a volatile zed.Value to update the
 // max value seen in the table for the streaming logic when the input is sorted.
-func (a *Aggregator) updateMaxTableKey(zv zng.Value) *zng.Value {
+func (a *Aggregator) updateMaxTableKey(zv zed.Value) *zed.Value {
 	if a.maxTableKey == nil || a.valueCompare(zv, *a.maxTableKey) > 0 {
 		v := zv.Copy()
 		a.maxTableKey = &v
@@ -350,7 +349,7 @@ func (a *Aggregator) updateMaxTableKey(zv zng.Value) *zng.Value {
 	return a.maxTableKey
 }
 
-func (a *Aggregator) updateMaxSpillKey(v zng.Value) {
+func (a *Aggregator) updateMaxSpillKey(v zed.Value) {
 	if a.maxSpillKey == nil || a.valueCompare(v, *a.maxSpillKey) > 0 {
 		v = v.Copy()
 		a.maxSpillKey = &v
@@ -375,7 +374,7 @@ func (a *Aggregator) Results(eof bool) (zbuf.Batch, error) {
 }
 
 func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
-	recs := make([]*zng.Record, 0, proc.BatchLen)
+	recs := make([]*zed.Record, 0, proc.BatchLen)
 	if !eof && a.inputDir == 0 {
 		return nil, nil
 	}
@@ -411,7 +410,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 	return zbuf.Array(recs), nil
 }
 
-func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
+func (a *Aggregator) nextResultFromSpills() (*zed.Record, error) {
 	// This loop pulls records from the spiller in key order.
 	// The spiller is doing a merge across all of the spills and
 	// here we merge the decomposed aggregations across the batch
@@ -420,7 +419,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	// their state instead of allocating a new one per row and sending
 	// each one to GC, but this would require a change to reducer API.
 	row := newValRow(a.aggs)
-	var firstRec *zng.Record
+	var firstRec *zed.Record
 	for {
 		rec, err := a.spiller.Peek()
 		if err != nil {
@@ -453,7 +452,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 		a.builder.Append(keyVal.Bytes, keyVal.IsContainer())
 	}
 	for _, col := range row {
-		var v zng.Value
+		var v zed.Value
 		if a.partialsOut {
 			vv, err := col.ResultAsPartial(a.zctx)
 			if err != nil {
@@ -478,7 +477,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(typ, bytes), nil
+	return zed.NewRecord(typ, bytes), nil
 }
 
 // readTable returns a slice of records from the in-memory groupby
@@ -487,7 +486,7 @@ func (a *Aggregator) nextResultFromSpills() (*zng.Record, error) {
 // If partialsOut is true, it returns partial aggregation results as
 // defined by each agg.Function.ResultAsPartial() method.
 func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
-	var recs []*zng.Record
+	var recs []*zed.Record
 	for key, row := range a.table {
 		if !flush && a.valueCompare == nil {
 			panic("internal bug: tried to fetch completed tuples on non-sorted input")
@@ -512,11 +511,11 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 			if err != nil {
 				return nil, err
 			}
-			a.builder.Append(flatVal, zng.IsContainerType(typ))
+			a.builder.Append(flatVal, zed.IsContainerType(typ))
 			types = append(types, typ)
 		}
 		for _, col := range row.reducers {
-			var v zng.Value
+			var v zed.Value
 			var err error
 			if partialsOut {
 				v, err = col.ResultAsPartial(a.zctx)
@@ -537,7 +536,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 		if err != nil {
 			return nil, err
 		}
-		recs = append(recs, zng.NewRecord(typ, zv))
+		recs = append(recs, zed.NewRecord(typ, zv))
 		// Delete entries from the table as we create records, so
 		// the freed enries can be GC'd incrementally as we shift
 		// state from the table to the records.  Otherwise, when
@@ -552,7 +551,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 	return zbuf.Array(recs), nil
 }
 
-func (a *Aggregator) lookupRecordType(types []zng.Type) (*zng.TypeRecord, error) {
+func (a *Aggregator) lookupRecordType(types []zed.Type) (*zed.TypeRecord, error) {
 	id := a.outTypes.Lookup(types)
 	typ, ok := a.recordTypes[id]
 	if !ok {

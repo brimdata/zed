@@ -1,7 +1,7 @@
 package agg
 
 import (
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -11,7 +11,7 @@ import (
 type Schema struct {
 	zctx *zson.Context
 
-	cols []zng.Column
+	cols []zed.Column
 }
 
 func NewSchema(zctx *zson.Context) *Schema {
@@ -19,7 +19,7 @@ func NewSchema(zctx *zson.Context) *Schema {
 }
 
 // Mixin mixes t's columns into the fused record type.
-func (s *Schema) Mixin(t *zng.TypeRecord) error {
+func (s *Schema) Mixin(t *zed.TypeRecord) error {
 	cols, err := s.fuseColumns(s.cols, t.Columns)
 	if err != nil {
 		return err
@@ -29,11 +29,11 @@ func (s *Schema) Mixin(t *zng.TypeRecord) error {
 }
 
 // Type returns the fused record type.
-func (s *Schema) Type() (*zng.TypeRecord, error) {
+func (s *Schema) Type() (*zed.TypeRecord, error) {
 	return s.zctx.LookupTypeRecord(s.cols)
 }
 
-func (s *Schema) fuseColumns(fused, cols []zng.Column) ([]zng.Column, error) {
+func (s *Schema) fuseColumns(fused, cols []zed.Column) ([]zed.Column, error) {
 	for _, c := range cols {
 		i, ok := columnOfField(fused, c.Name)
 		switch {
@@ -41,11 +41,11 @@ func (s *Schema) fuseColumns(fused, cols []zng.Column) ([]zng.Column, error) {
 			fused = append(fused, c)
 		case fused[i] == c:
 			continue
-		case zng.IsRecordType(fused[i].Type) && zng.IsRecordType(c.Type):
-			nestedCols := zng.TypeRecordOf(fused[i].Type).Columns
-			nestedColsCopy := make([]zng.Column, len(nestedCols))
+		case zed.IsRecordType(fused[i].Type) && zed.IsRecordType(c.Type):
+			nestedCols := zed.TypeRecordOf(fused[i].Type).Columns
+			nestedColsCopy := make([]zed.Column, len(nestedCols))
 			copy(nestedColsCopy, nestedCols)
-			nestedFused, err := s.fuseColumns(nestedColsCopy, zng.TypeRecordOf(c.Type).Columns)
+			nestedFused, err := s.fuseColumns(nestedColsCopy, zed.TypeRecordOf(c.Type).Columns)
 			if err != nil {
 				return nil, err
 			}
@@ -61,7 +61,7 @@ func (s *Schema) fuseColumns(fused, cols []zng.Column) ([]zng.Column, error) {
 	return fused, nil
 }
 
-func columnOfField(cols []zng.Column, name string) (int, bool) {
+func columnOfField(cols []zed.Column, name string) (int, bool) {
 	for i, c := range cols {
 		if c.Name == name {
 			return i, true
@@ -70,10 +70,10 @@ func columnOfField(cols []zng.Column, name string) (int, bool) {
 	return -1, false
 }
 
-func unify(zctx *zson.Context, a, b zng.Type) zng.Type {
-	if ua, ok := zng.AliasOf(a).(*zng.TypeUnion); ok {
+func unify(zctx *zson.Context, a, b zed.Type) zed.Type {
+	if ua, ok := zed.AliasOf(a).(*zed.TypeUnion); ok {
 		types := ua.Types
-		if ub, ok := zng.AliasOf(b).(*zng.TypeUnion); ok {
+		if ub, ok := zed.AliasOf(b).(*zed.TypeUnion); ok {
 			for _, t := range ub.Types {
 				types = appendIfAbsent(types, t)
 			}
@@ -82,13 +82,13 @@ func unify(zctx *zson.Context, a, b zng.Type) zng.Type {
 		}
 		return zctx.LookupTypeUnion(types)
 	}
-	if _, ok := zng.AliasOf(b).(*zng.TypeUnion); ok {
+	if _, ok := zed.AliasOf(b).(*zed.TypeUnion); ok {
 		return unify(zctx, b, a)
 	}
-	return zctx.LookupTypeUnion([]zng.Type{a, b})
+	return zctx.LookupTypeUnion([]zed.Type{a, b})
 }
 
-func appendIfAbsent(types []zng.Type, typ zng.Type) []zng.Type {
+func appendIfAbsent(types []zed.Type, typ zed.Type) []zed.Type {
 	for _, t := range types {
 		if t == typ {
 			return types

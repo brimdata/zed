@@ -4,24 +4,24 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
 // MemTable implements an in-memory table to build a microindex.
-// It implements zio.Reader and will generate a stream of zng.Records that
+// It implements zio.Reader and will generate a stream of zed.Records that
 // are either single column ("key") or a two-column ("key", "value") where the
-// types of the columns depend upon the zng.Values entered into the table.
+// types of the columns depend upon the zed.Values entered into the table.
 type MemTable struct {
 	table   map[string]zcode.Bytes
 	keys    []zcode.Bytes
 	offset  int
 	zctx    *zson.Context
-	builder *zng.Builder
-	keyType zng.Type
-	valType zng.Type
+	builder *zed.Builder
+	keyType zed.Type
+	valType zed.Type
 }
 
 func NewMemTable(zctx *zson.Context) *MemTable {
@@ -31,7 +31,7 @@ func NewMemTable(zctx *zson.Context) *MemTable {
 	}
 }
 
-func (t *MemTable) Read() (*zng.Record, error) {
+func (t *MemTable) Read() (*zed.Record, error) {
 	if t.keyType == nil {
 		return nil, nil
 	}
@@ -71,15 +71,15 @@ func (t *MemTable) open() {
 		})
 	}
 	t.offset = 0
-	cols := []zng.Column{{"key", t.keyType}}
+	cols := []zed.Column{{"key", t.keyType}}
 	if t.valType != nil {
-		cols = append(cols, zng.Column{"value", t.valType})
+		cols = append(cols, zed.Column{"value", t.valType})
 	}
 	typ := t.zctx.MustLookupTypeRecord(cols)
-	t.builder = zng.NewBuilder(typ)
+	t.builder = zed.NewBuilder(typ)
 }
 
-func checkType(which string, before *zng.Type, after zng.Type) error {
+func checkType(which string, before *zed.Type, after zed.Type) error {
 	if *before == nil {
 		*before = after
 	} else if *before != after {
@@ -88,7 +88,7 @@ func checkType(which string, before *zng.Type, after zng.Type) error {
 	return nil
 }
 
-func (t *MemTable) EnterKey(key zng.Value) error {
+func (t *MemTable) EnterKey(key zed.Value) error {
 	if t.builder != nil {
 		panic("MemTable.Enter() cannot be called after reading")
 	}
@@ -99,7 +99,7 @@ func (t *MemTable) EnterKey(key zng.Value) error {
 	return nil
 }
 
-func (t *MemTable) EnterKeyVal(key, val zng.Value) error {
+func (t *MemTable) EnterKeyVal(key, val zed.Value) error {
 	if t.builder != nil {
 		panic("MemTable.Enter() cannot be called after reading")
 	}

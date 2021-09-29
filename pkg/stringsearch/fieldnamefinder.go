@@ -4,8 +4,8 @@ import (
 	"encoding/binary"
 	"math/big"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -26,12 +26,12 @@ func (f *FieldNameFinder) Find(zctx *zson.Context, buf []byte) bool {
 	f.checkedIDs.SetInt64(0)
 	for len(buf) > 0 {
 		code := buf[0]
-		if code > zng.CtrlValueEscape {
+		if code > zed.CtrlValueEscape {
 			// Control messages are not expected.
 			return true
 		}
 		var id int
-		if code == zng.CtrlValueEscape {
+		if code == zed.CtrlValueEscape {
 			v, n := binary.Uvarint(buf[1:])
 			if n <= 0 {
 				return true
@@ -55,7 +55,7 @@ func (f *FieldNameFinder) Find(zctx *zson.Context, buf []byte) bool {
 		if err != nil {
 			return true
 		}
-		tr, ok := zng.AliasOf(t).(*zng.TypeRecord)
+		tr, ok := zed.AliasOf(t).(*zed.TypeRecord)
 		if !ok {
 			return true
 		}
@@ -75,11 +75,11 @@ type FieldNameIter struct {
 }
 
 type fieldNameIterInfo struct {
-	columns []zng.Column
+	columns []zed.Column
 	offset  int
 }
 
-func (f *FieldNameIter) Init(t *zng.TypeRecord) {
+func (f *FieldNameIter) Init(t *zed.TypeRecord) {
 	f.buf = f.buf[:0]
 	f.stack = f.stack[:0]
 	if len(t.Columns) > 0 {
@@ -97,7 +97,7 @@ func (f *FieldNameIter) Next() []byte {
 		info := &f.stack[len(f.stack)-1]
 		col := info.columns[info.offset]
 		f.buf = append(f.buf, "."+col.Name...)
-		t, ok := zng.AliasOf(col.Type).(*zng.TypeRecord)
+		t, ok := zed.AliasOf(col.Type).(*zed.TypeRecord)
 		if !ok || len(t.Columns) == 0 {
 			break
 		}

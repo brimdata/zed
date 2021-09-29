@@ -5,9 +5,9 @@ import (
 	"os"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -27,7 +27,7 @@ func boomerang(t *testing.T, r1 Rule) (r2 Rule) {
 }
 
 func TestTypeIndexMarshal(t *testing.T) {
-	r1 := NewTypeRule("test", zng.TypeIP)
+	r1 := NewTypeRule("test", zed.TypeIP)
 	r2 := boomerang(t, r1)
 	assert.Equal(t, r1, r2)
 }
@@ -58,7 +58,7 @@ func TestWriteIndices(t *testing.T) {
 	ctx := context.Background()
 	r := zson.NewReader(strings.NewReader(data), zson.NewContext())
 
-	ip := MustNewDefinition(NewTypeRule(zng.TypeIP))
+	ip := MustNewDefinition(NewTypeRule(zed.TypeIP))
 	proto := MustNewDefinition(NewFieldRule("proto"))
 
 	indices, err := WriteIndices(ctx, dir, r, ip, proto)
@@ -110,7 +110,7 @@ func TestWriteIndices(t *testing.T) {
 }
 
 func TestFindTypeRule(t *testing.T) {
-	r := NewTypeRule(zng.TypeInt64)
+	r := NewTypeRule(zed.TypeInt64)
 	w := testWriter(t, r)
 	err := zbuf.Copy(w, babbleReader(t))
 	require.NoError(t, err)

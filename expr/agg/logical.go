@@ -1,7 +1,7 @@
 package agg
 
 import (
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -9,11 +9,11 @@ type And struct {
 	val *bool
 }
 
-func (a *And) Consume(v zng.Value) error {
+func (a *And) Consume(v zed.Value) error {
 	if v.Bytes == nil {
 		return nil
 	}
-	if v.Type != zng.TypeBool {
+	if v.Type != zed.TypeBool {
 		//l.TypeMismatch++
 		return nil
 	}
@@ -21,25 +21,25 @@ func (a *And) Consume(v zng.Value) error {
 		b := true
 		a.val = &b
 	}
-	*a.val = *a.val && zng.IsTrue(v.Bytes)
+	*a.val = *a.val && zed.IsTrue(v.Bytes)
 	return nil
 }
 
-func (a *And) Result(*zson.Context) (zng.Value, error) {
+func (a *And) Result(*zson.Context) (zed.Value, error) {
 	if a.val == nil {
-		return zng.Value{Type: zng.TypeBool}, nil
+		return zed.Value{Type: zed.TypeBool}, nil
 	}
 	if *a.val {
-		return zng.True, nil
+		return zed.True, nil
 	}
-	return zng.False, nil
+	return zed.False, nil
 }
 
-func (a *And) ConsumeAsPartial(v zng.Value) error {
+func (a *And) ConsumeAsPartial(v zed.Value) error {
 	return a.Consume(v)
 }
 
-func (a *And) ResultAsPartial(*zson.Context) (zng.Value, error) {
+func (a *And) ResultAsPartial(*zson.Context) (zed.Value, error) {
 	return a.Result(nil)
 }
 
@@ -47,11 +47,11 @@ type Or struct {
 	val *bool
 }
 
-func (o *Or) Consume(v zng.Value) error {
+func (o *Or) Consume(v zed.Value) error {
 	if v.Bytes == nil {
 		return nil
 	}
-	if v.Type != zng.TypeBool {
+	if v.Type != zed.TypeBool {
 		//l.TypeMismatch++
 		return nil
 	}
@@ -59,24 +59,24 @@ func (o *Or) Consume(v zng.Value) error {
 		b := false
 		o.val = &b
 	}
-	*o.val = *o.val || zng.IsTrue(v.Bytes)
+	*o.val = *o.val || zed.IsTrue(v.Bytes)
 	return nil
 }
 
-func (o *Or) Result(*zson.Context) (zng.Value, error) {
+func (o *Or) Result(*zson.Context) (zed.Value, error) {
 	if o.val == nil {
-		return zng.Value{Type: zng.TypeBool}, nil
+		return zed.Value{Type: zed.TypeBool}, nil
 	}
 	if *o.val {
-		return zng.True, nil
+		return zed.True, nil
 	}
-	return zng.False, nil
+	return zed.False, nil
 }
 
-func (o *Or) ConsumeAsPartial(v zng.Value) error {
+func (o *Or) ConsumeAsPartial(v zed.Value) error {
 	return o.Consume(v)
 }
 
-func (o *Or) ResultAsPartial(*zson.Context) (zng.Value, error) {
+func (o *Or) ResultAsPartial(*zson.Context) (zed.Value, error) {
 	return o.Result(nil)
 }

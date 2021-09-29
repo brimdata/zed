@@ -5,8 +5,8 @@ import (
 	"io"
 	"reflect"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio/zjsonio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -28,7 +28,7 @@ func NewZJSONWriter(w io.Writer) *ZJSONWriter {
 	}
 }
 
-func (w *ZJSONWriter) Write(rec *zng.Record) error {
+func (w *ZJSONWriter) Write(rec *zed.Record) error {
 	object, err := w.stream.Transform(rec)
 	if err != nil {
 		return err

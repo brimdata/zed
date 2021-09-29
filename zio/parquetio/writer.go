@@ -4,7 +4,7 @@ import (
 	"errors"
 	"io"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	goparquet "github.com/fraugster/parquet-go"
 )
 
@@ -12,7 +12,7 @@ type Writer struct {
 	w io.WriteCloser
 
 	fw  *goparquet.FileWriter
-	typ *zng.TypeRecord
+	typ *zed.TypeRecord
 }
 
 func NewWriter(w io.WriteCloser) *Writer {
@@ -30,8 +30,8 @@ func (w *Writer) Close() error {
 	return err
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
-	recType := zng.AliasOf(rec.Type).(*zng.TypeRecord)
+func (w *Writer) Write(rec *zed.Record) error {
+	recType := zed.AliasOf(rec.Type).(*zed.TypeRecord)
 	if w.typ == nil {
 		w.typ = recType
 		sd, err := newSchemaDefinition(recType)

@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -52,15 +52,15 @@ const (
 // key values in the records read from the reader.  If the op argument is eql
 // then only exact matches are returned.  Otherwise, the record with the
 // largest key smaller (or larger) than the key argument is returned.
-func lookup(reader zio.Reader, compare expr.KeyCompareFn, o order.Which, op operator) (*zng.Record, error) {
+func lookup(reader zio.Reader, compare expr.KeyCompareFn, o order.Which, op operator) (*zed.Record, error) {
 	if o == order.Asc {
 		return lookupAsc(reader, compare, op)
 	}
 	return lookupDesc(reader, compare, op)
 }
 
-func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zng.Record, error) {
-	var prev *zng.Record
+func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zed.Record, error) {
+	var prev *zed.Record
 	for {
 		rec, err := reader.Read()
 		if rec == nil || err != nil {
@@ -85,8 +85,8 @@ func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zng.Recor
 	}
 }
 
-func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zng.Record, error) {
-	var prev *zng.Record
+func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zed.Record, error) {
+	var prev *zed.Record
 	for {
 		rec, err := reader.Read()
 		if rec == nil || err != nil {
@@ -148,7 +148,7 @@ func (f *Finder) search(compare expr.KeyCompareFn) (zio.Reader, error) {
 	return f.newSectionReader(0, off)
 }
 
-func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
+func (f *Finder) Lookup(keys *zed.Record) (*zed.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
@@ -167,7 +167,7 @@ func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
 	return lookup(reader, compare, f.trailer.Order, eql)
 }
 
-func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *zng.Record) error {
+func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Record, keys *zed.Record) error {
 	if f.IsEmpty() {
 		return nil
 	}
@@ -200,17 +200,17 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 
 // ClosestGTE returns the closest record that is greater than or equal to the
 // provided key values.
-func (f *Finder) ClosestGTE(keys *zng.Record) (*zng.Record, error) {
+func (f *Finder) ClosestGTE(keys *zed.Record) (*zed.Record, error) {
 	return f.closest(keys, gte)
 }
 
 // ClosestLTE returns the closest record that is less than or equal to the
 // provided key values.
-func (f *Finder) ClosestLTE(keys *zng.Record) (*zng.Record, error) {
+func (f *Finder) ClosestLTE(keys *zed.Record) (*zed.Record, error) {
 	return f.closest(keys, lte)
 }
 
-func (f *Finder) closest(keys *zng.Record, op operator) (*zng.Record, error) {
+func (f *Finder) closest(keys *zed.Record, op operator) (*zed.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
@@ -231,7 +231,7 @@ func (f *Finder) closest(keys *zng.Record, op operator) (*zng.Record, error) {
 // number of key fields, in which case they are "don't cares"
 // in terms of key lookups.  Any don't-care fields must all be
 // at the end of the key record.
-func (f *Finder) ParseKeys(inputs ...string) (*zng.Record, error) {
+func (f *Finder) ParseKeys(inputs ...string) (*zed.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
@@ -242,7 +242,7 @@ func (f *Finder) ParseKeys(inputs ...string) (*zng.Record, error) {
 	var b zcode.Builder
 	for k, col := range cols {
 		typ := col.Type
-		var zv zng.Value
+		var zv zed.Value
 		if k < len(inputs) {
 			s := inputs[k]
 			var err error
@@ -254,13 +254,13 @@ func (f *Finder) ParseKeys(inputs ...string) (*zng.Record, error) {
 				return nil, fmt.Errorf("type mismatch for %q: expected type %s", s, typ)
 			}
 		} else {
-			zv = zng.Value{typ, nil}
+			zv = zed.Value{typ, nil}
 		}
-		if zng.IsContainerType(typ) {
+		if zed.IsContainerType(typ) {
 			b.AppendContainer(zv.Bytes)
 		} else {
 			b.AppendPrimitive(zv.Bytes)
 		}
 	}
-	return zng.NewRecord(f.trailer.KeyType, b.Bytes()), nil
+	return zed.NewRecord(f.trailer.KeyType, b.Bytes()), nil
 }

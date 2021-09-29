@@ -3,13 +3,13 @@ package agg
 import (
 	"errors"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
 type Union struct {
-	typ  zng.Type
+	typ  zed.Type
 	val  map[string]struct{}
 	size int
 }
@@ -20,7 +20,7 @@ func newUnion() *Union {
 	}
 }
 
-func (u *Union) Consume(v zng.Value) error {
+func (u *Union) Consume(v zed.Value) error {
 	if v.IsNil() {
 		return nil
 	}
@@ -55,12 +55,12 @@ func (u *Union) deleteOne() {
 	}
 }
 
-func (u *Union) Result(zctx *zson.Context) (zng.Value, error) {
+func (u *Union) Result(zctx *zson.Context) (zed.Value, error) {
 	if u.typ == nil {
-		return zng.Value{Type: zng.TypeNull}, nil
+		return zed.Value{Type: zed.TypeNull}, nil
 	}
 	var b zcode.Builder
-	container := zng.IsContainerType(u.typ)
+	container := zed.IsContainerType(u.typ)
 	for s := range u.val {
 		if container {
 			b.AppendContainer([]byte(s))
@@ -69,12 +69,12 @@ func (u *Union) Result(zctx *zson.Context) (zng.Value, error) {
 		}
 	}
 	setType := zctx.LookupTypeSet(u.typ)
-	return zng.Value{setType, zng.NormalizeSet(b.Bytes())}, nil
+	return zed.Value{setType, zed.NormalizeSet(b.Bytes())}, nil
 }
 
-func (u *Union) ConsumeAsPartial(zv zng.Value) error {
+func (u *Union) ConsumeAsPartial(zv zed.Value) error {
 	if u.typ == nil {
-		typ, ok := zv.Type.(*zng.TypeSet)
+		typ, ok := zv.Type.(*zed.TypeSet)
 		if !ok {
 			return errors.New("partial not a set type")
 		}
@@ -92,6 +92,6 @@ func (u *Union) ConsumeAsPartial(zv zng.Value) error {
 	return nil
 }
 
-func (u *Union) ResultAsPartial(zctx *zson.Context) (zng.Value, error) {
+func (u *Union) ResultAsPartial(zctx *zson.Context) (zed.Value, error) {
 	return u.Result(zctx)
 }

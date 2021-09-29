@@ -5,16 +5,16 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/pkg/test"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func mkRecord(t *testing.T, s string) *zng.Record {
+func mkRecord(t *testing.T, s string) *zed.Record {
 	r := zson.NewReader(strings.NewReader(s), zson.NewContext())
 	rec, err := r.Read()
 	require.NoError(t, err)

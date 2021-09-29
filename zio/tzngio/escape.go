@@ -3,7 +3,7 @@ package tzngio
 import (
 	"regexp"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 )
 
 // ShouldEscape determines if the given code point at the given position
@@ -40,7 +40,7 @@ func replaceStringEscape(in []byte) []byte {
 	}
 	for ; i < len(in) && in[i] != '}'; i++ {
 		r <<= 4
-		r |= rune(zng.Unhex(in[i]))
+		r |= rune(zed.Unhex(in[i]))
 	}
 	return []byte(string(r))
 }

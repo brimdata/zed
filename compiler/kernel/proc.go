@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/extent"
@@ -30,7 +31,6 @@ import (
 	"github.com/brimdata/zed/proc/uniq"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -231,7 +231,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 
 type filterFunction expr.Filter
 
-func (f filterFunction) Apply(rec *zng.Record) (*zng.Record, error) {
+func (f filterFunction) Apply(rec *zed.Record) (*zed.Record, error) {
 	if f(rec) {
 		return rec, nil
 	}
@@ -316,8 +316,8 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface)
 	s := exprswitch.New(parents[0], e)
 	var procs []proc.Interface
 	for _, c := range swtch.Cases {
-		// A nil (rather than null) zng.Value indicates the default case.
-		var zv zng.Value
+		// A nil (rather than null) zed.Value indicates the default case.
+		var zv zed.Value
 		if c.Expr != nil {
 			zv, err = evalAtCompileTime(b.pctx.Zctx, b.scope, c.Expr)
 			if err != nil {
@@ -569,8 +569,8 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 }
 
 func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (extent.Span, error) {
-	lower := zng.Value{zng.TypeNull, nil}
-	upper := zng.Value{zng.TypeNull, nil}
+	lower := zed.Value{zed.TypeNull, nil}
+	upper := zed.Value{zed.TypeNull, nil}
 	if exprLower != nil {
 		var err error
 		lower, err = evalAtCompileTime(b.pctx.Zctx, b.scope, exprLower)
@@ -613,7 +613,7 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 		case *dag.Const:
 			zv, err := evalAtCompileTime(zctx, scope, p.Expr)
 			if err != nil {
-				if err == zng.ErrMissing {
+				if err == zed.ErrMissing {
 					err = fmt.Errorf("cannot resolve const '%s' at compile time", p.Name)
 				}
 				return err
@@ -630,7 +630,7 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 			if err != nil {
 				return err
 			}
-			zv := zng.NewTypeValue(alias)
+			zv := zed.NewTypeValue(alias)
 			scope.Bind(name, &zv)
 
 		default:
@@ -640,18 +640,18 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 	return nil
 }
 
-func evalAtCompileTime(zctx *zson.Context, scope *Scope, in dag.Expr) (zng.Value, error) {
+func evalAtCompileTime(zctx *zson.Context, scope *Scope, in dag.Expr) (zed.Value, error) {
 	if in == nil {
-		return zng.Value{zng.TypeNull, nil}, nil
+		return zed.Value{zed.TypeNull, nil}, nil
 	}
-	typ, err := zctx.LookupTypeRecord([]zng.Column{})
+	typ, err := zctx.LookupTypeRecord([]zed.Column{})
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	e, err := compileExpr(zctx, scope, in)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
-	rec := zng.NewRecord(typ, nil)
+	rec := zed.NewRecord(typ, nil)
 	return e.Eval(rec)
 }

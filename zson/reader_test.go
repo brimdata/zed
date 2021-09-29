@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,7 +15,7 @@ func TestReadOneLineNoEOF(t *testing.T) {
 	const expected = `{msg:"record1"}`
 	type result struct {
 		err error
-		rec *zng.Record
+		rec *zed.Record
 	}
 	done := make(chan result)
 	go func() {

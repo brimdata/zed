@@ -6,10 +6,10 @@ import (
 	"io"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -19,7 +19,7 @@ type Writer struct {
 	writer io.WriteCloser
 	header
 	flattener *expr.Flattener
-	typ       *zng.TypeRecord
+	typ       *zed.TypeRecord
 	format    tzngio.OutFmt
 }
 
@@ -41,7 +41,7 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(r *zng.Record) error {
+func (w *Writer) Write(r *zed.Record) error {
 	r, err := w.flattener.Flatten(r)
 	if err != nil {
 		return err
@@ -51,7 +51,7 @@ func (w *Writer) Write(r *zng.Record) error {
 		if err := w.writeHeader(r, path); err != nil {
 			return err
 		}
-		w.typ = zng.TypeRecordOf(r.Type)
+		w.typ = zed.TypeRecordOf(r.Type)
 	}
 	values, err := ZeekStrings(r, w.format)
 	if err != nil {
@@ -66,7 +66,7 @@ func (w *Writer) Write(r *zng.Record) error {
 	return err
 }
 
-func (w *Writer) writeHeader(r *zng.Record, path string) error {
+func (w *Writer) writeHeader(r *zed.Record, path string) error {
 	d := r.Type
 	var s string
 	if w.separator != "\\x90" {
@@ -94,7 +94,7 @@ func (w *Writer) writeHeader(r *zng.Record, path string) error {
 	}
 	if d != w.typ {
 		s += "#fields"
-		for _, col := range zng.TypeRecordOf(d).Columns {
+		for _, col := range zed.TypeRecordOf(d).Columns {
 			if col.Name == "_path" {
 				continue
 			}
@@ -102,7 +102,7 @@ func (w *Writer) writeHeader(r *zng.Record, path string) error {
 		}
 		s += "\n"
 		s += "#types"
-		for _, col := range zng.TypeRecordOf(d).Columns {
+		for _, col := range zed.TypeRecordOf(d).Columns {
 			if col.Name == "_path" {
 				continue
 			}
@@ -125,10 +125,10 @@ func isHighPrecision(ts nano.Ts) bool {
 
 // This returns the zeek strings for this record.  XXX We need to not use this.
 // XXX change to Pretty for output writers?... except zeek?
-func ZeekStrings(r *zng.Record, fmt tzngio.OutFmt) ([]string, error) {
+func ZeekStrings(r *zed.Record, fmt tzngio.OutFmt) ([]string, error) {
 	var ss []string
 	it := r.Bytes.Iter()
-	for _, col := range zng.TypeRecordOf(r.Type).Columns {
+	for _, col := range zed.TypeRecordOf(r.Type).Columns {
 		val, _, err := it.Next()
 		if err != nil {
 			return nil, err
@@ -136,8 +136,8 @@ func ZeekStrings(r *zng.Record, fmt tzngio.OutFmt) ([]string, error) {
 		var field string
 		if val == nil {
 			field = "-"
-		} else if col.Type == zng.TypeTime {
-			ts, err := zng.DecodeTime(val)
+		} else if col.Type == zed.TypeTime {
+			ts, err := zed.DecodeTime(val)
 			if err != nil {
 				return nil, err
 			}
@@ -147,7 +147,7 @@ func ZeekStrings(r *zng.Record, fmt tzngio.OutFmt) ([]string, error) {
 			}
 			field = string(ts.AppendFloat(nil, precision))
 		} else {
-			field = tzngio.StringOf(zng.Value{col.Type, val}, fmt, false)
+			field = tzngio.StringOf(zed.Value{col.Type, val}, fmt, false)
 		}
 		ss = append(ss, field)
 	}

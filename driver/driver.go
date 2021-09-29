@@ -8,6 +8,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
@@ -17,7 +18,6 @@ import (
 	"github.com/brimdata/zed/proc/mux"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"go.uber.org/zap"
@@ -288,7 +288,7 @@ func (r *Reader) Write(_ int, batch zbuf.Batch) error {
 	return nil
 }
 
-func (r *Reader) Read() (*zng.Record, error) {
+func (r *Reader) Read() (*zed.Record, error) {
 	r.once.Do(func() {
 		go func() {
 			r.err = run(r.runtime.Context(), r, r.runtime, nil)

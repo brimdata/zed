@@ -8,8 +8,8 @@ import (
 	"io"
 	"strconv"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/skim"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -44,7 +44,7 @@ type Reader struct {
 	scanner *skim.Scanner
 	stats   ReadStats
 	zctx    *zson.Context
-	mapper  map[string]zng.Type
+	mapper  map[string]zed.Type
 	parser  *Parser
 	types   *TypeParser
 }
@@ -56,13 +56,13 @@ func NewReader(reader io.Reader, zctx *zson.Context) *Reader {
 		scanner: scanner,
 		stats:   ReadStats{Stats: &scanner.Stats},
 		zctx:    zctx,
-		mapper:  make(map[string]zng.Type),
+		mapper:  make(map[string]zed.Type),
 		parser:  NewParser(),
 		types:   NewTypeParser(zctx),
 	}
 }
 
-func (r *Reader) Read() (*zng.Record, error) {
+func (r *Reader) Read() (*zed.Record, error) {
 	for {
 		rec, b, err := r.ReadPayload()
 		if b != nil {
@@ -78,7 +78,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 	}
 }
 
-func (r *Reader) ReadPayload() (*zng.Record, []byte, error) {
+func (r *Reader) ReadPayload() (*zed.Record, []byte, error) {
 again:
 	line, err := r.scanner.ScanLine()
 	if line == nil {
@@ -128,7 +128,7 @@ func parseAliasType(line []byte) (string, []byte, bool) {
 		return "", line, false
 	}
 	name := string(line[:i])
-	if !zng.IsIdentifier(name) {
+	if !zed.IsIdentifier(name) {
 		return "", line, false
 	}
 	return name, line[i+1:], true
@@ -183,7 +183,7 @@ func (r *Reader) parseDirective(line []byte) ([]byte, error) {
 	return nil, nil
 }
 
-func (r *Reader) parseType(line []byte) (zng.Type, []byte, error) {
+func (r *Reader) parseType(line []byte) (zed.Type, []byte, error) {
 	i := bytes.IndexByte(line, ':')
 	if i <= 0 {
 		return nil, nil, ErrBadFormat
@@ -196,7 +196,7 @@ func (r *Reader) parseType(line []byte) (zng.Type, []byte, error) {
 	return typ, line[i+1:], nil
 }
 
-func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
+func (r *Reader) parseValue(line []byte) (*zed.Record, error) {
 	// From the zng spec:
 	// A regular value is encoded on a line as type descriptor
 	// followed by ":" followed by a value encoding.
@@ -204,7 +204,7 @@ func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	recType, ok := zng.AliasOf(typ).(*zng.TypeRecord)
+	recType, ok := zed.AliasOf(typ).(*zed.TypeRecord)
 	if !ok {
 		return nil, errors.New("outer type is not a record type")
 	}
@@ -212,5 +212,5 @@ func (r *Reader) parseValue(line []byte) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecordCheck(typ, bytes)
+	return zed.NewRecordCheck(typ, bytes)
 }

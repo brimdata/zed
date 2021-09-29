@@ -1,21 +1,19 @@
 package expr
 
-import (
-	"github.com/brimdata/zed/zng"
-)
+import "github.com/brimdata/zed"
 
 type Var struct {
-	ref *zng.Value
+	ref *zed.Value
 }
 
-func NewVar(ref *zng.Value) *Var {
+func NewVar(ref *zed.Value) *Var {
 	return &Var{ref}
 }
 
-func (v *Var) Eval(*zng.Record) (zng.Value, error) {
+func (v *Var) Eval(*zed.Record) (zed.Value, error) {
 	zv := *v.ref
 	if zv.Type == nil {
-		return zng.Value{}, zng.ErrMissing
+		return zed.Value{}, zed.ErrMissing
 	}
 	return zv, nil
 }

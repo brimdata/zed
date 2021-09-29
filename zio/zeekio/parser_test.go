@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -63,7 +63,7 @@ func startLegacyTest(t *testing.T, fields, types []string, path string) *Parser 
 
 // sendLegacyValues() formats the array of values as a legacy zeek log line
 // and parses it.
-func sendLegacyValues(p *Parser, vals []string) (*zng.Record, error) {
+func sendLegacyValues(p *Parser, vals []string) (*zed.Record, error) {
 	return p.ParseValue([]byte(strings.Join(vals, "\t")))
 }
 
@@ -109,10 +109,10 @@ func TestLegacyZeekValid(t *testing.T) {
 	// XXX test overriding separator, setSeparator
 }
 
-func assertInt64(t *testing.T, i int64, val zng.Value, what string) {
-	ok := val.Type == zng.TypeInt64
+func assertInt64(t *testing.T, i int64, val zed.Value, what string) {
+	ok := val.Type == zed.TypeInt64
 	assert.Truef(t, ok, "%s is type int", what)
-	v, _ := zng.DecodeInt(val.Bytes)
+	v, _ := zed.DecodeInt(val.Bytes)
 	assert.Equalf(t, i, v, "%s has value %d", what, i)
 }
 
@@ -132,29 +132,29 @@ func TestNestedRecords(t *testing.T) {
 	require.NoError(t, err)
 
 	// First check that the descriptor was created correctly
-	cols := zng.TypeRecordOf(record.Type).Columns
+	cols := zed.TypeRecordOf(record.Type).Columns
 	assert.Equal(t, 5, len(cols), "Descriptor has 5 columns")
 	//assert.Equal(t, "_path", cols[0].Name, "Column 0 is _path")
 	assert.Equal(t, "a", cols[0].Name, "Column 0 is a")
 	assert.Equal(t, "nest1", cols[1].Name, "Column 1 is nest1")
-	nest1Type, ok := cols[1].Type.(*zng.TypeRecord)
+	nest1Type, ok := cols[1].Type.(*zed.TypeRecord)
 	assert.True(t, ok, "Columns nest1 is a record")
 	assert.Equal(t, 3, len(nest1Type.Columns), "nest1 has 3 columns")
 	assert.Equal(t, "a", nest1Type.Columns[0].Name, "First column in nest1 is a")
 	assert.Equal(t, "b", nest1Type.Columns[1].Name, "Second column in nest1 is b")
 	assert.Equal(t, "nestnest", nest1Type.Columns[2].Name, "Third column in nest1 is nestnest")
-	nestnestType, ok := nest1Type.Columns[2].Type.(*zng.TypeRecord)
+	nestnestType, ok := nest1Type.Columns[2].Type.(*zed.TypeRecord)
 	assert.True(t, ok, "nest1.nestnest is a record")
 	assert.Equal(t, 1, len(nestnestType.Columns), "nest1.nestnest has 1 column")
 	assert.Equal(t, "c", nestnestType.Columns[0].Name, "First column in nest1.nestnest is c")
 	assert.Equal(t, "b", cols[2].Name, "Column 2 is b")
 	assert.Equal(t, "nest2", cols[3].Name, "Column 3 is nest2")
-	nest2Type, ok := cols[3].Type.(*zng.TypeRecord)
+	nest2Type, ok := cols[3].Type.(*zed.TypeRecord)
 	assert.True(t, ok, "Columns nest2 is a record")
 	assert.Equal(t, 1, len(nest2Type.Columns), "nest2 has 1 column")
 	assert.Equal(t, "y", nest2Type.Columns[0].Name, "column in nest2 is y")
 	assert.Equal(t, "nest3", cols[4].Name, "Column 4 is nest3")
-	nest3Type, ok := cols[4].Type.(*zng.TypeRecord)
+	nest3Type, ok := cols[4].Type.(*zed.TypeRecord)
 	assert.True(t, ok, "Column nest3 is a record")
 	assert.Equal(t, 1, len(nest3Type.Columns), "nest3 has 1 column")
 	assert.Equal(t, "z", nest3Type.Columns[0].Name, "column in nest3 is z")

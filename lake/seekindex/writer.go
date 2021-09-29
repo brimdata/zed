@@ -1,9 +1,9 @@
 package seekindex
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -11,8 +11,8 @@ type Writer struct {
 	zctx    *zson.Context
 	builder *zcode.Builder
 	writer  zio.Writer
-	typ     zng.Type
-	recType *zng.TypeRecord
+	typ     zed.Type
+	recType *zed.TypeRecord
 }
 
 func NewWriter(w zio.Writer) *Writer {
@@ -23,22 +23,22 @@ func NewWriter(w zio.Writer) *Writer {
 	}
 }
 
-func (w *Writer) Write(key zng.Value, offset int64) error {
+func (w *Writer) Write(key zed.Value, offset int64) error {
 	b := w.builder
 	b.Reset()
-	if zng.IsContainerType(key.Type) {
+	if zed.IsContainerType(key.Type) {
 		b.AppendContainer(key.Bytes)
 	} else {
 		b.AppendPrimitive(key.Bytes)
 	}
-	b.AppendPrimitive(zng.EncodeInt(offset))
+	b.AppendPrimitive(zed.EncodeInt(offset))
 	if w.typ != key.Type {
-		var schema = []zng.Column{
+		var schema = []zed.Column{
 			{"key", key.Type},
-			{"offset", zng.TypeInt64},
+			{"offset", zed.TypeInt64},
 		}
 		w.recType = w.zctx.MustLookupTypeRecord(schema)
 		w.typ = key.Type
 	}
-	return w.writer.Write(zng.NewRecord(w.recType, b.Bytes()))
+	return w.writer.Write(zed.NewRecord(w.recType, b.Bytes()))
 }
