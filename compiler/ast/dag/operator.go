@@ -8,7 +8,7 @@ package dag
 // license that can be found in the LICENSE file.
 
 import (
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/segmentio/ksuid"
@@ -33,10 +33,10 @@ type (
 		Args []Expr `json:"args"`
 	}
 	Explode struct {
-		Kind string   `json:"kind" unpack:""`
-		Args []Expr   `json:"args"`
-		Type zed.Type `json:"type"`
-		As   Expr     `json:"as"`
+		Kind string      `json:"kind" unpack:""`
+		Args []Expr      `json:"args"`
+		Type astzed.Type `json:"type"`
+		As   Expr        `json:"as"`
 	}
 	Filter struct {
 		Kind string `json:"kind" unpack:""`
@@ -94,14 +94,14 @@ type (
 		NullsFirst bool        `json:"nullsfirst"`
 	}
 	Summarize struct {
-		Kind         string         `json:"kind" unpack:""`
-		Duration     *zed.Primitive `json:"duration"`
-		Limit        int            `json:"limit"`
-		Keys         []Assignment   `json:"keys"`
-		Aggs         []Assignment   `json:"aggs"`
-		InputSortDir int            `json:"input_sort_dir,omitempty"`
-		PartialsIn   bool           `json:"partials_in,omitempty"`
-		PartialsOut  bool           `json:"partials_out,omitempty"`
+		Kind         string            `json:"kind" unpack:""`
+		Duration     *astzed.Primitive `json:"duration"`
+		Limit        int               `json:"limit"`
+		Keys         []Assignment      `json:"keys"`
+		Aggs         []Assignment      `json:"aggs"`
+		InputSortDir int               `json:"input_sort_dir,omitempty"`
+		PartialsIn   bool              `json:"partials_in,omitempty"`
+		PartialsOut  bool              `json:"partials_out,omitempty"`
 	}
 	Switch struct {
 		Kind  string `json:"kind" unpack:""`
@@ -301,7 +301,7 @@ type Const struct {
 	Expr Expr   `json:"expr"`
 }
 type TypeProc struct {
-	Kind string   `json:"kind" unpack:""`
-	Name string   `json:"name"`
-	Type zed.Type `json:"type"`
+	Kind string      `json:"kind" unpack:""`
+	Name string      `json:"name"`
+	Type astzed.Type `json:"type"`
 }

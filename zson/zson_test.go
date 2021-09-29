@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zng"
@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func parse(path string) (zed.Value, error) {
+func parse(path string) (astzed.Value, error) {
 	file, err := fs.Open(path)
 	if err != nil {
 		return nil, err

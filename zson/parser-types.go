@@ -3,11 +3,11 @@ package zson
 import (
 	"unicode"
 
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/zng"
 )
 
-func (p *Parser) parseType() (zed.Type, error) {
+func (p *Parser) parseType() (astzed.Type, error) {
 	typ, err := p.matchType()
 	if typ == nil && err == nil {
 		err = p.error("couldn't parse type")
@@ -15,7 +15,7 @@ func (p *Parser) parseType() (zed.Type, error) {
 	return typ, err
 }
 
-func (p *Parser) matchType() (zed.Type, error) {
+func (p *Parser) matchType() (astzed.Type, error) {
 	if typ, err := p.matchTypeName(); typ != nil || err != nil {
 		return typ, err
 	}
@@ -50,7 +50,7 @@ func (p *Parser) matchIdentifier() (string, error) {
 	return l.scanIdentifier()
 }
 
-func (p *Parser) matchTypeName() (zed.Type, error) {
+func (p *Parser) matchTypeName() (astzed.Type, error) {
 	l := p.lexer
 	if err := l.skipSpace(); err != nil {
 		return nil, err
@@ -67,12 +67,12 @@ func (p *Parser) matchTypeName() (zed.Type, error) {
 		return nil, err
 	}
 	if t := zng.LookupPrimitive(name); t != nil {
-		return &zed.TypePrimitive{"TypePrimitive", name}, nil
+		return &astzed.TypePrimitive{"TypePrimitive", name}, nil
 	}
 	// Wherever we have a type name, we can have a type def defining the
 	// type name.
 	if ok, err := l.match('='); !ok || err != nil {
-		return &zed.TypeName{"TypeName", name}, nil
+		return &astzed.TypeName{"TypeName", name}, nil
 	}
 	tv, err := p.matchTypeValue()
 	if err != nil {
@@ -81,19 +81,19 @@ func (p *Parser) matchTypeName() (zed.Type, error) {
 	if tv == nil {
 		return nil, p.errorf("bad type sytax in typedef '%s=...'", name)
 	}
-	return &zed.TypeDef{
+	return &astzed.TypeDef{
 		Kind: "TypeDef",
 		Name: name,
 		Type: tv.Value,
 	}, nil
 }
 
-func (p *Parser) matchTypeRecord() (*zed.TypeRecord, error) {
+func (p *Parser) matchTypeRecord() (*astzed.TypeRecord, error) {
 	l := p.lexer
 	if ok, err := l.match('{'); !ok || err != nil {
 		return nil, err
 	}
-	var fields []zed.TypeField
+	var fields []astzed.TypeField
 	for {
 		field, err := p.matchTypeField()
 		if err != nil {
@@ -118,13 +118,13 @@ func (p *Parser) matchTypeRecord() (*zed.TypeRecord, error) {
 	if !ok {
 		return nil, p.error("mismatched braces while parsing record type")
 	}
-	return &zed.TypeRecord{
+	return &astzed.TypeRecord{
 		Kind:   "TypeRecord",
 		Fields: fields,
 	}, nil
 }
 
-func (p *Parser) matchTypeField() (*zed.TypeField, error) {
+func (p *Parser) matchTypeField() (*astzed.TypeField, error) {
 	l := p.lexer
 	symbol, ok, err := p.matchSymbol()
 	if err != nil {
@@ -144,13 +144,13 @@ func (p *Parser) matchTypeField() (*zed.TypeField, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &zed.TypeField{
+	return &astzed.TypeField{
 		Name: symbol,
 		Type: typ,
 	}, nil
 }
 
-func (p *Parser) matchTypeArray() (*zed.TypeArray, error) {
+func (p *Parser) matchTypeArray() (*astzed.TypeArray, error) {
 	l := p.lexer
 	if ok, err := l.match('['); !ok || err != nil {
 		return nil, err
@@ -166,13 +166,13 @@ func (p *Parser) matchTypeArray() (*zed.TypeArray, error) {
 	if !ok {
 		return nil, p.error("mismatched brackets while parsing array type")
 	}
-	return &zed.TypeArray{
+	return &astzed.TypeArray{
 		Kind: "TypeArray",
 		Type: typ,
 	}, nil
 }
 
-func (p *Parser) matchTypeSetOrMap() (zed.Type, error) {
+func (p *Parser) matchTypeSetOrMap() (astzed.Type, error) {
 	l := p.lexer
 	if ok, err := l.match('|'); !ok || err != nil {
 		return nil, err
@@ -181,7 +181,7 @@ func (p *Parser) matchTypeSetOrMap() (zed.Type, error) {
 	if err != nil {
 		return nil, err
 	}
-	var typ zed.Type
+	var typ astzed.Type
 	var which string
 	if isSet {
 		which = "set"
@@ -196,7 +196,7 @@ func (p *Parser) matchTypeSetOrMap() (zed.Type, error) {
 		if !ok {
 			return nil, p.error("mismatched set-brackets while parsing set type")
 		}
-		typ = &zed.TypeSet{
+		typ = &astzed.TypeSet{
 			Kind: "TypeSet",
 			Type: inner,
 		}
@@ -232,7 +232,7 @@ func (p *Parser) matchTypeSetOrMap() (zed.Type, error) {
 
 }
 
-func (p *Parser) parseTypeMap() (*zed.TypeMap, error) {
+func (p *Parser) parseTypeMap() (*astzed.TypeMap, error) {
 	keyType, err := p.parseType()
 	if err != nil {
 		return nil, err
@@ -248,19 +248,19 @@ func (p *Parser) parseTypeMap() (*zed.TypeMap, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &zed.TypeMap{
+	return &astzed.TypeMap{
 		Kind:    "TypeMap",
 		KeyType: keyType,
 		ValType: valType,
 	}, nil
 }
 
-func (p *Parser) matchTypeUnion() (*zed.TypeUnion, error) {
+func (p *Parser) matchTypeUnion() (*astzed.TypeUnion, error) {
 	l := p.lexer
 	if ok, err := l.match('('); !ok || err != nil {
 		return nil, err
 	}
-	var types []zed.Type
+	var types []astzed.Type
 	for {
 		typ, err := p.matchType()
 		if err != nil {
@@ -288,13 +288,13 @@ func (p *Parser) matchTypeUnion() (*zed.TypeUnion, error) {
 	if !ok {
 		return nil, p.error("mismatched parentheses while parsing union type")
 	}
-	return &zed.TypeUnion{
+	return &astzed.TypeUnion{
 		Kind:  "TypeUnion",
 		Types: types,
 	}, nil
 }
 
-func (p *Parser) matchTypeEnum() (*zed.TypeEnum, error) {
+func (p *Parser) matchTypeEnum() (*astzed.TypeEnum, error) {
 	l := p.lexer
 	if ok, err := l.match('<'); !ok || err != nil {
 		return nil, err
@@ -310,7 +310,7 @@ func (p *Parser) matchTypeEnum() (*zed.TypeEnum, error) {
 	if !ok {
 		return nil, p.error("mismatched brackets while parsing enum type")
 	}
-	return &zed.TypeEnum{
+	return &astzed.TypeEnum{
 		Kind:    "TypeEnum",
 		Symbols: fields,
 	}, nil

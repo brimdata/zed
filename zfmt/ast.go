@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/order"
 )
 
@@ -71,7 +71,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		}
 	case *ast.Assignment:
 		c.assignment(*e)
-	case *zed.Primitive:
+	case *astzed.Primitive:
 		c.literal(*e)
 	case *ast.ID:
 		c.write(e.Name)
@@ -105,7 +105,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.write(")")
 	case *ast.SQLExpr:
 		c.sql(e)
-	case *zed.TypeValue:
+	case *astzed.TypeValue:
 		c.write("type(")
 		c.typ(e.Value)
 		c.write(")")
@@ -476,7 +476,7 @@ func (c *canon) source(src ast.Source) {
 }
 
 func isTrue(e ast.Expr) bool {
-	if p, ok := e.(*zed.Primitive); ok {
+	if p, ok := e.(*astzed.Primitive); ok {
 		return p.Type == "bool" && p.Text == "true"
 	}
 	return false

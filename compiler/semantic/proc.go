@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/lakeparse"
@@ -256,7 +256,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 							Kind: "Path",
 							Name: field.New("ts"),
 						},
-						&zed.Primitive{
+						&astzed.Primitive{
 							Kind: "Primitive",
 							Type: "duration",
 							Text: d.String(),
@@ -269,9 +269,9 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 		if err != nil {
 			return nil, err
 		}
-		var dur *zed.Primitive
+		var dur *astzed.Primitive
 		if p.Duration != nil {
-			dur = &zed.Primitive{
+			dur = &astzed.Primitive{
 				Kind: "Primitive",
 				Type: p.Duration.Type,
 				Text: p.Duration.Text,
@@ -334,7 +334,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			} else if p.Expr == nil {
 				// c.Expr == nil indicates the default case,
 				// whose handling depends on p.Expr.
-				e = &zed.Primitive{
+				e = &astzed.Primitive{
 					Kind: "Primitive",
 					Type: "bool",
 					Text: "true",
