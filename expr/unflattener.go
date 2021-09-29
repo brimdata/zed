@@ -1,15 +1,15 @@
 package expr
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/builder"
 	"github.com/brimdata/zed/zson"
 )
 
 type Unflattener struct {
 	zctx        *zson.Context
-	builders    map[int]*builder.ColumnBuilder
+	builders    map[int]*zed.ColumnBuilder
 	recordTypes map[int]*zng.TypeRecord
 	fieldExpr   Evaluator
 }
@@ -24,12 +24,12 @@ type Unflattener struct {
 func NewUnflattener(zctx *zson.Context) *Unflattener {
 	return &Unflattener{
 		zctx:        zctx,
-		builders:    make(map[int]*builder.ColumnBuilder),
+		builders:    make(map[int]*zed.ColumnBuilder),
 		recordTypes: make(map[int]*zng.TypeRecord),
 	}
 }
 
-func (u *Unflattener) lookupBuilderAndType(in *zng.TypeRecord) (*builder.ColumnBuilder, *zng.TypeRecord, error) {
+func (u *Unflattener) lookupBuilderAndType(in *zng.TypeRecord) (*zed.ColumnBuilder, *zng.TypeRecord, error) {
 	if b, ok := u.builders[in.ID()]; ok {
 		return b, u.recordTypes[in.ID()], nil
 	}
@@ -47,7 +47,7 @@ func (u *Unflattener) lookupBuilderAndType(in *zng.TypeRecord) (*builder.ColumnB
 	if !foundDotted {
 		return nil, nil, nil
 	}
-	b, err := builder.NewColumnBuilder(u.zctx, fields)
+	b, err := zed.NewColumnBuilder(u.zctx, fields)
 	if err != nil {
 		return nil, nil, err
 	}

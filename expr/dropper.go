@@ -1,15 +1,15 @@
 package expr
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/builder"
 	"github.com/brimdata/zed/zson"
 )
 
 type dropper struct {
 	typ       zng.Type
-	builder   *builder.ColumnBuilder
+	builder   *zed.ColumnBuilder
 	fieldRefs []Evaluator
 }
 
@@ -66,7 +66,7 @@ func (d *Dropper) newDropper(r *zng.Record) (*dropper, error) {
 	for _, f := range fields {
 		fieldRefs = append(fieldRefs, NewDotExpr(f))
 	}
-	builder, err := builder.NewColumnBuilder(d.zctx, fields)
+	builder, err := zed.NewColumnBuilder(d.zctx, fields)
 	if err != nil {
 		return nil, err
 	}
