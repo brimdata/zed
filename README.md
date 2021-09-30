@@ -57,8 +57,7 @@ Or you can run a Zed lake server, load it with data using `zapi`, and hit the AP
 In one shell, run the server:
 ```
 mkdir scratch
-cd scratch
-zed lake serve
+zed lake serve -R scratch
 ```
 And in another shell, run the client:
 ```
