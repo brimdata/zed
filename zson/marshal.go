@@ -192,7 +192,7 @@ func (m *MarshalZNGContext) MarshalCustom(names []string, fields []interface{}) 
 }
 
 const (
-	tagName = "zng"
+	tagName = "zed"
 	tagSep  = ","
 )
 

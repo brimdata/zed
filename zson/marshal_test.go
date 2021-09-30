@@ -237,7 +237,7 @@ func TestUnexported(t *testing.T) {
 
 type ZNGValueField struct {
 	Name  string
-	Field zed.Value `zng:"field"`
+	Field zed.Value `zed:"field"`
 }
 
 func TestZNGValueField(t *testing.T) {

@@ -353,9 +353,9 @@ func (b *Branch) indexObject(ctx context.Context, rules []index.Rule, id ksuid.K
 }
 
 type BranchStats struct {
-	Size int64 `zng:"size"`
+	Size int64 `zed:"size"`
 	// XXX (nibs) - This shouldn't be a span because keys don't have to be time.
-	Span *nano.Span `zng:"span"`
+	Span *nano.Span `zed:"span"`
 }
 
 func (b *Branch) Stats(ctx context.Context, snap commits.View) (info BranchStats, err error) {

@@ -41,7 +41,7 @@ func boomerang(t *testing.T, in interface{}, out interface{}) {
 
 func TestMarshalZNG(t *testing.T) {
 	type S2 struct {
-		Field2 string `zng:"f2"`
+		Field2 string `zed:"f2"`
 		Field3 int
 	}
 	type S1 struct {
@@ -82,7 +82,7 @@ func TestMarshalMap(t *testing.T) {
 }
 
 type ZNGThing struct {
-	A string `zng:"a"`
+	A string `zed:"a"`
 	B int
 }
 
@@ -171,7 +171,7 @@ func TestUnmarshalRecord(t *testing.T) {
 		T2f2 string
 	}
 	type T1 struct {
-		T1f1 *T2 `zng:"top"`
+		T1f1 *T2 `zed:"top"`
 	}
 	v1 := T1{
 		T1f1: &T2{T2f1: T3{T3f1: 1, T3f2: 1.0}, T2f2: "t2f2-string1"},
@@ -193,7 +193,7 @@ func TestUnmarshalRecord(t *testing.T) {
 	require.Equal(t, v1, v2)
 
 	type T4 struct {
-		T4f1 *T2 `zng:"top"`
+		T4f1 *T2 `zed:"top"`
 	}
 	var v3 *T4
 	err = zson.UnmarshalZNGRecord(rec, &v3)
@@ -355,7 +355,7 @@ func TestCustomRecord(t *testing.T) {
 }
 
 type ThingTwo struct {
-	C string `zng:"c"`
+	C string `zed:"c"`
 }
 
 type ThingaMaBob interface {
