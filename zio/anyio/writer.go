@@ -60,7 +60,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "table":
 		return tableio.NewWriter(w, opts.UTF8), nil
 	case "csv":
-		return csvio.NewWriter(w, csvio.WriterOpts{UTF8: opts.UTF8}), nil
+		return csvio.NewWriter(w), nil
 	case "parquet":
 		return parquetio.NewWriter(w), nil
 	case "lake":

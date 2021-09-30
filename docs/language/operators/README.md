@@ -248,10 +248,10 @@ zq -f csv 'ts < 1521911721 | fuse' stats.log.gz weird.log.gz
 ```mdtest-output
 _path,ts,peer,mem,pkts_proc,bytes_recv,pkts_dropped,pkts_link,pkt_lag,events_proc,events_queued,active_tcp_conns,active_udp_conns,active_icmp_conns,tcp_conns,udp_conns,icmp_conns,timers,active_timers,files,active_files,dns_requests,active_dns_requests,reassem_tcp_size,reassem_file_size,reassem_frag_size,reassem_unknown_size,uid,id.orig_h,id.orig_p,id.resp_h,id.resp_p,name,addl,notice
 stats,2018-03-24T17:15:20.600725Z,zeek,74,26,29375,,,,404,11,1,0,0,1,0,0,36,32,0,0,0,0,1528,0,0,0,,,,,,,,
-weird,2018-03-24T17:15:20.600843Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,C1zOivgBT6dBmknqk,10.47.1.152,49562,23.217.103.245,80,TCP_ack_underflow_or_misorder,,F
-weird,2018-03-24T17:15:20.608108Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,truncated_header,,F
-weird,2018-03-24T17:15:20.610033Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,C45Ff03lESjMQQQej1,10.47.5.155,40712,91.189.91.23,80,above_hole_data_without_any_acks,,F
-weird,2018-03-24T17:15:20.742818Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,Cs7J9j2xFQcazrg7Nc,10.47.8.100,5900,10.129.53.65,58485,connection_originator_SYN_ack,,F
+weird,2018-03-24T17:15:20.600843Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,C1zOivgBT6dBmknqk,10.47.1.152,49562,23.217.103.245,80,TCP_ack_underflow_or_misorder,,false
+weird,2018-03-24T17:15:20.608108Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,truncated_header,,false
+weird,2018-03-24T17:15:20.610033Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,C45Ff03lESjMQQQej1,10.47.5.155,40712,91.189.91.23,80,above_hole_data_without_any_acks,,false
+weird,2018-03-24T17:15:20.742818Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,Cs7J9j2xFQcazrg7Nc,10.47.8.100,5900,10.129.53.65,58485,connection_originator_SYN_ack,,false
 ```
 
 Other output formats invoked via `zq -f` that benefit greatly from the use of
