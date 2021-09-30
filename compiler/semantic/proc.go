@@ -74,6 +74,8 @@ func semSource(ctx context.Context, scope *Scope, source ast.Source, adaptor pro
 		}, nil
 	case *ast.Pool:
 		return semPool(ctx, scope, p, adaptor, head)
+	case *ast.Pass:
+		return &dag.Pass{Kind: "Pass"}, nil
 	case *kernel.Reader:
 		// kernel.Reader implements both ast.Source and dag.Source
 		return p, nil
