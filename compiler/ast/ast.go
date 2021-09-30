@@ -410,6 +410,7 @@ type Source interface {
 func (*Pool) Source() {}
 func (*File) Source() {}
 func (*HTTP) Source() {}
+func (*Pass) Source() {}
 
 type Layout struct {
 	Kind  string `json:"kind" unpack:""`
