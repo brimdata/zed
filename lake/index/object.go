@@ -8,8 +8,8 @@ import (
 )
 
 type Object struct {
-	Rule Rule        `zng:"rule"`
-	ID   ksuid.KSUID `zng:"id"`
+	Rule Rule        `zed:"rule"`
+	ID   ksuid.KSUID `zed:"id"`
 }
 
 func (o Object) String() string {

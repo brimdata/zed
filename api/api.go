@@ -60,13 +60,13 @@ type BranchMergeRequest struct {
 }
 
 type CommitMessage struct {
-	Author string `zng:"author"`
-	Body   string `zng:"body"`
+	Author string `zed:"author"`
+	Body   string `zed:"body"`
 }
 
 type CommitResponse struct {
-	Commit   ksuid.KSUID `zng:"commit"`
-	Warnings []string    `zng:"warnings"`
+	Commit   ksuid.KSUID `zed:"commit"`
+	Warnings []string    `zed:"warnings"`
 }
 
 type IndexPostRequest struct {
@@ -98,23 +98,23 @@ type QueryRequest struct {
 }
 
 type QueryChannelSet struct {
-	ChannelID int `json:"channel_id" zng:"channel_id"`
+	ChannelID int `json:"channel_id" zed:"channel_id"`
 }
 
 type QueryChannelEnd struct {
-	ChannelID int `json:"channel_id" zng:"channel_id"`
+	ChannelID int `json:"channel_id" zed:"channel_id"`
 }
 
 type QueryError struct {
-	Error string `json:"error" zng:"error"`
+	Error string `json:"error" zed:"error"`
 }
 
 type QueryStats struct {
-	StartTime  nano.Ts `json:"start_time" zng:"start_time"`
-	UpdateTime nano.Ts `json:"update_time" zng:"update_time"`
+	StartTime  nano.Ts `json:"start_time" zed:"start_time"`
+	UpdateTime nano.Ts `json:"update_time" zed:"update_time"`
 	ScannerStats
 }
 
 type QueryWarning struct {
-	Warning string `json:"warning" zng:"warning"`
+	Warning string `json:"warning" zed:"warning"`
 }

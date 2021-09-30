@@ -21,24 +21,24 @@ type Rule interface {
 }
 
 type FieldRule struct {
-	Ts     nano.Ts     `zng:"ts"`
-	ID     ksuid.KSUID `zng:"id"`
-	Name   string      `zng:"name"`
-	Fields field.List  `zng:"fields,omitempty"`
+	Ts     nano.Ts     `zed:"ts"`
+	ID     ksuid.KSUID `zed:"id"`
+	Name   string      `zed:"name"`
+	Fields field.List  `zed:"fields,omitempty"`
 }
 
 type TypeRule struct {
-	Ts   nano.Ts     `zng:"ts"`
-	ID   ksuid.KSUID `zng:"id"`
-	Name string      `zng:"name"`
-	Type string      `zng:"type"`
+	Ts   nano.Ts     `zed:"ts"`
+	ID   ksuid.KSUID `zed:"id"`
+	Name string      `zed:"name"`
+	Type string      `zed:"type"`
 }
 
 type AggRule struct {
-	Ts     nano.Ts     `zng:"ts"`
-	ID     ksuid.KSUID `zng:"id"`
-	Name   string      `zng:"name"`
-	Script string      `zng:"script"`
+	Ts     nano.Ts     `zed:"ts"`
+	ID     ksuid.KSUID `zed:"id"`
+	Name   string      `zed:"name"`
+	Script string      `zed:"script"`
 }
 
 func NewFieldRule(name, keys string) *FieldRule {

@@ -186,9 +186,9 @@ func (p *Pool) ObjectExists(ctx context.Context, id ksuid.KSUID) (bool, error) {
 
 //XXX for backward compat keep this for now, and return branchstats for pool/main
 type PoolStats struct {
-	Size int64 `zng:"size"`
+	Size int64 `zed:"size"`
 	// XXX (nibs) - This shouldn't be a span because keys don't have to be time.
-	Span *nano.Span `zng:"span"`
+	Span *nano.Span `zed:"span"`
 }
 
 func (p *Pool) Stats(ctx context.Context, snap commits.View) (info PoolStats, err error) {

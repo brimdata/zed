@@ -10,11 +10,11 @@ import (
 )
 
 type Config struct {
-	Ts        nano.Ts      `zng:"ts"`
-	Name      string       `zng:"name"`
-	ID        ksuid.KSUID  `zng:"id"`
-	Layout    order.Layout `zng:"layout"`
-	Threshold int64        `zng:"threshold"`
+	Ts        nano.Ts      `zed:"ts"`
+	Name      string       `zed:"name"`
+	ID        ksuid.KSUID  `zed:"id"`
+	Layout    order.Layout `zed:"layout"`
+	Threshold int64        `zed:"threshold"`
 }
 
 var _ journal.Entry = (*Config)(nil)

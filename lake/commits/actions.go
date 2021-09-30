@@ -28,8 +28,8 @@ var ActionTypes = []interface{}{
 }
 
 type Add struct {
-	Commit ksuid.KSUID `zng:"commit"`
-	Object data.Object `zng:"object"`
+	Commit ksuid.KSUID `zed:"commit"`
+	Object data.Object `zed:"object"`
 }
 
 var _ Action = (*Add)(nil)
@@ -50,12 +50,12 @@ func (a *Add) String() string {
 // pessimistic locking mechanisms alongside the optimistic approach.
 
 type Commit struct {
-	ID      ksuid.KSUID `zng:"id"`
-	Parent  ksuid.KSUID `zng:"parent"`
-	Retries uint8       `zng:"retries"`
-	Author  string      `zng:"author"`
-	Date    nano.Ts     `zng:"date"`
-	Message string      `zng:"message"`
+	ID      ksuid.KSUID `zed:"id"`
+	Parent  ksuid.KSUID `zed:"parent"`
+	Retries uint8       `zed:"retries"`
+	Author  string      `zed:"author"`
+	Date    nano.Ts     `zed:"date"`
+	Message string      `zed:"message"`
 }
 
 func (c *Commit) CommitID() ksuid.KSUID {
@@ -68,8 +68,8 @@ func (c *Commit) String() string {
 }
 
 type Delete struct {
-	Commit ksuid.KSUID `zng:"commit"`
-	ID     ksuid.KSUID `zng:"id"`
+	Commit ksuid.KSUID `zed:"commit"`
+	ID     ksuid.KSUID `zed:"id"`
 }
 
 func (d *Delete) CommitID() ksuid.KSUID {
@@ -81,8 +81,8 @@ func (d *Delete) String() string {
 }
 
 type AddIndex struct {
-	Commit ksuid.KSUID  `zng:"commit"`
-	Object index.Object `zng:"object"`
+	Commit ksuid.KSUID  `zed:"commit"`
+	Object index.Object `zed:"object"`
 }
 
 func (a *AddIndex) String() string {
@@ -94,9 +94,9 @@ func (a *AddIndex) CommitID() ksuid.KSUID {
 }
 
 type DeleteIndex struct {
-	Commit ksuid.KSUID `zng:"commit"`
-	ID     ksuid.KSUID `zng:"id"`
-	RuleID ksuid.KSUID `zng:"rule_id"`
+	Commit ksuid.KSUID `zed:"commit"`
+	ID     ksuid.KSUID `zed:"id"`
+	RuleID ksuid.KSUID `zed:"rule_id"`
 }
 
 func (d *DeleteIndex) String() string {

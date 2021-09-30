@@ -33,15 +33,15 @@ func (p *parseURI) Call(args []zed.Value) (zed.Value, error) {
 		return zed.Value{}, fmt.Errorf("parse_uri: %q: %w", s, errors.Unwrap(err))
 	}
 	var v struct {
-		Scheme   *string    `zng:"scheme"`
-		Opaque   *string    `zng:"opaque"`
-		User     *string    `zng:"user"`
-		Password *string    `zng:"password"`
-		Host     *string    `zng:"host"`
-		Port     *uint16    `zng:"port"`
-		Path     *string    `zng:"path"`
-		Query    url.Values `zng:"query"`
-		Fragment *string    `zng:"fragment"`
+		Scheme   *string    `zed:"scheme"`
+		Opaque   *string    `zed:"opaque"`
+		User     *string    `zed:"user"`
+		Password *string    `zed:"password"`
+		Host     *string    `zed:"host"`
+		Port     *uint16    `zed:"port"`
+		Path     *string    `zed:"path"`
+		Query    url.Values `zed:"query"`
+		Fragment *string    `zed:"fragment"`
 	}
 	if u.Scheme != "" {
 		v.Scheme = &u.Scheme

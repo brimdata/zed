@@ -46,8 +46,8 @@ type Root struct {
 var _ proc.DataAdaptor = (*Root)(nil)
 
 type LakeMagic struct {
-	Magic   string `zng:"magic"`
-	Version int    `zng:"version"`
+	Magic   string `zed:"magic"`
+	Version int    `zed:"version"`
 }
 
 func newRoot(engine storage.Engine, path *storage.URI) *Root {
@@ -216,8 +216,8 @@ func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.F
 }
 
 type BranchMeta struct {
-	Pool   pools.Config    `zng:"pool"`
-	Branch branches.Config `zng:"branch"`
+	Pool   pools.Config    `zed:"pool"`
+	Branch branches.Config `zed:"branch"`
 }
 
 func (r *Root) ListPools(ctx context.Context) ([]pools.Config, error) {
