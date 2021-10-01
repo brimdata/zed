@@ -31,20 +31,15 @@ func (o *Object) NewReader(ctx context.Context, engine storage.Engine, path *sto
 	if err != nil {
 		return nil, err
 	}
+	span := extent.NewGeneric(o.First, o.Last, cmp)
+	if !span.Crop(scanRange) {
+		return nil, fmt.Errorf("data object reader: object does not intersect provided span: %s (object range %s) (scan range %s)", path, span, scanRange)
+	}
 	sr := &Reader{
 		Reader:     reader,
 		Closer:     reader,
 		TotalBytes: o.RowSize,
 		ReadBytes:  o.RowSize, //XXX
-	}
-	// If a data object has nulls for all of the key values, just return the
-	// whole-object reader.
-	if o.First.Bytes == nil || o.Last.Bytes == nil {
-		return sr, nil
-	}
-	span := extent.NewGeneric(o.First, o.Last, cmp)
-	if !span.Crop(scanRange) {
-		return nil, fmt.Errorf("data object reader: object does not intersect provided span: %s (object range %s) (scan range %s)", path, span, scanRange)
 	}
 	if bytes.Equal(o.First.Bytes, span.First().Bytes) && bytes.Equal(o.Last.Bytes, span.Last().Bytes) {
 		return sr, nil
