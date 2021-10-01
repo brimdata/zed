@@ -368,8 +368,8 @@ func (c *Compare) Eval(rec *zed.Record) (zed.Value, error) {
 		case c.vals.A == nil || c.vals.B == nil:
 			return zed.False, nil
 		case zed.IsFloat(id):
-			v1, _ := zed.DecodeFloat64(c.vals.A)
-			v2, _ := zed.DecodeFloat64(c.vals.B)
+			v1, _ := zed.DecodeFloat(c.vals.A)
+			v2, _ := zed.DecodeFloat(c.vals.B)
 			if v1 < v2 {
 				result = -1
 			} else {

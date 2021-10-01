@@ -12,6 +12,7 @@ input: &input |
     i64: 0 (=myint64),
     dur: 0s (=myduration),
     tim: 1970-01-01T00:00:00Z (=mytime),
+    f32: 0. (=myfloat32),
     f64: 0. (=myfloat64),
     boo: false (=mybool),
     byt: 0x00 (=mybytes),

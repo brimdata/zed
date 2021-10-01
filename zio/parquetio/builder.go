@@ -22,7 +22,7 @@ func (b *builder) appendValue(typ zed.Type, v interface{}) {
 		b.buf = zed.AppendBool(b.buf[:0], v)
 		b.AppendPrimitive(b.buf)
 	case float32:
-		b.buf = zed.AppendFloat64(b.buf[:0], float64(v))
+		b.buf = zed.AppendFloat32(b.buf[:0], v)
 		b.AppendPrimitive(b.buf)
 	case float64:
 		b.buf = zed.AppendFloat64(b.buf[:0], v)

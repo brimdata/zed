@@ -300,13 +300,13 @@ func LookupCompare(typ zed.Type) comparefn {
 			return 0
 		}
 
-	case zed.IDFloat64:
+	case zed.IDFloat32, zed.IDFloat64:
 		return func(a, b zcode.Bytes) int {
-			va, err := zed.DecodeFloat64(a)
+			va, err := zed.DecodeFloat(a)
 			if err != nil {
 				return -1
 			}
-			vb, err := zed.DecodeFloat64(b)
+			vb, err := zed.DecodeFloat(b)
 			if err != nil {
 				return 1
 			}
