@@ -115,6 +115,21 @@ func (v Value) ContainerLength() (int, error) {
 			n++
 		}
 		return n, nil
+	case *TypeMap:
+		if v.Bytes == nil {
+			return -1, ErrLenUnset
+		}
+		var n int
+		for it := v.Iter(); !it.Done(); {
+			if _, _, err := it.Next(); err != nil {
+				return -1, err
+			}
+			if _, _, err := it.Next(); err != nil {
+				return -1, err
+			}
+			n++
+		}
+		return n, nil
 	default:
 		return -1, ErrNotContainer
 	}
