@@ -39,8 +39,8 @@ type Generic struct {
 // then the first value is larger than the last value and Before is true
 // for larger values while After is true for smaller values, etc.
 func CompareFunc(o order.Which) expr.ValueCompareFn {
-	// The values of nullsMax here (used during data reads) and in
-	// zbuf.NewCompareFn (used during data writes) must agree.
+	// The values of nullsMax here (used during lake data reads) and in
+	// zbuf.NewCompareFn (used during lake data writes) must agree.
 	cmp := expr.NewValueCompareFn(o == order.Asc)
 	if o == order.Asc {
 		return cmp
