@@ -298,7 +298,7 @@ func TestMarshalArray(t *testing.T) {
 	assert.Len(t, r2.A3, 0)
 }
 
-func TestIntsAndUints(t *testing.T) {
+func TestNumbers(t *testing.T) {
 	type rectype struct {
 		I    int
 		I8   int8
@@ -310,6 +310,8 @@ func TestIntsAndUints(t *testing.T) {
 		UI16 uint16
 		UI32 uint32
 		UI64 uint64
+		F32  float32
+		F64  float64
 	}
 	r1 := rectype{
 		I:    math.MinInt64,
@@ -322,11 +324,13 @@ func TestIntsAndUints(t *testing.T) {
 		UI16: math.MaxUint16,
 		UI32: math.MaxUint32,
 		UI64: math.MaxUint64,
+		F32:  math.MaxFloat32,
+		F64:  math.MaxFloat64,
 	}
 	rec, err := zson.NewZNGMarshaler().MarshalRecord(r1)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
-	const expected = "{I:-9223372036854775808,I8:-128(int8),I16:-32768(int16),I32:-2147483648(int32),I64:-9223372036854775808,U:18446744073709551615(uint64),UI8:255(uint8),UI16:65535(uint16),UI32:4294967295(uint32),UI64:18446744073709551615(uint64)}"
+	const expected = "{I:-9223372036854775808,I8:-128(int8),I16:-32768(int16),I32:-2147483648(int32),I64:-9223372036854775808,U:18446744073709551615(uint64),UI8:255(uint8),UI16:65535(uint16),UI32:4294967295(uint32),UI64:18446744073709551615(uint64),F32:3.4028235e+38(float32),F64:1.7976931348623157e+308}"
 	assert.Equal(t, expected, toZSON(t, rec))
 
 	var r2 rectype
