@@ -157,13 +157,13 @@ func (l *lenFn) Call(args []zed.Value) (zed.Value, error) {
 	switch typ := zed.AliasOf(args[0].Type).(type) {
 	case *zed.TypeRecord:
 		return zed.Value{zed.TypeInt64, l.Int(int64(len(typ.Columns)))}, nil
-	case *zed.TypeArray, *zed.TypeSet:
+	case *zed.TypeArray, *zed.TypeSet, *zed.TypeMap:
 		len, err := zv.ContainerLength()
 		if err != nil {
 			return zed.Value{}, err
 		}
 		return zed.Value{zed.TypeInt64, l.Int(int64(len))}, nil
-	case *zed.TypeOfString, *zed.TypeOfBstring, *zed.TypeOfIP, *zed.TypeOfNet:
+	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfBstring, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfError:
 		v := len(zv.Bytes)
 		return zed.Value{zed.TypeInt64, l.Int(int64(v))}, nil
 	default:
