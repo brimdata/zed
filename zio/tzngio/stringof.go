@@ -53,6 +53,12 @@ func StringOf(zv zed.Value, out OutFmt, b bool) string {
 		return StringOf(zed.Value{zed.TypeUint64, zv.Bytes}, out, false)
 	case *zed.TypeOfError:
 		return string(zv.Bytes)
+	case *zed.TypeOfFloat32:
+		v, err := zed.DecodeFloat32(zv.Bytes)
+		if err != nil {
+			return badZng(err, t, zv.Bytes)
+		}
+		return strconv.FormatFloat(float64(v), 'f', -1, 32)
 	case *zed.TypeOfFloat64:
 		d, err := zed.DecodeFloat64(zv.Bytes)
 		if err != nil {

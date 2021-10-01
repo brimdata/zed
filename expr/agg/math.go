@@ -57,7 +57,7 @@ func (m *mathReducer) consumeVal(val zed.Value) {
 			m.math = NewInt64(m.function)
 		case zed.IDUint8, zed.IDUint16, zed.IDUint32, zed.IDUint64:
 			m.math = NewUint64(m.function)
-		case zed.IDFloat64:
+		case zed.IDFloat32, zed.IDFloat64:
 			m.math = NewFloat64(m.function)
 		case zed.IDDuration:
 			m.math = NewDuration(m.function)

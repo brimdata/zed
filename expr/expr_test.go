@@ -3,6 +3,7 @@ package expr_test
 import (
 	"fmt"
 	"net"
+	"strings"
 	"testing"
 
 	"github.com/brimdata/zed"
@@ -79,6 +80,10 @@ func zuint64(v uint64) zed.Value {
 	return zed.Value{zed.TypeUint64, zed.EncodeUint(v)}
 }
 
+func zfloat32(f float32) zed.Value {
+	return zed.Value{zed.TypeFloat32, zed.EncodeFloat32(f)}
+}
+
 func zfloat64(f float64) zed.Value {
 	return zed.Value{zed.TypeFloat64, zed.EncodeFloat64(f)}
 }
@@ -131,14 +136,15 @@ func TestLogical(t *testing.T) {
 }
 
 func TestCompareNumbers(t *testing.T) {
-	var numericTypes = []string{"uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float64"}
+	var numericTypes = []string{
+		"uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float32", "float64"}
 	var intFields = []string{"u8", "i16", "u16", "i32", "u32", "i64", "u64"}
 
 	for _, typ := range numericTypes {
 		// Make a test point with this type in a field called x plus
 		// one field of each other integer type
 		one := "1"
-		if typ == "float64" {
+		if strings.HasPrefix(typ, "float") {
 			one = "1."
 		}
 		record := fmt.Sprintf(
@@ -184,7 +190,7 @@ func TestCompareNumbers(t *testing.T) {
 
 		// For integer types, test this type against other
 		// number-ish types: port, time, duration
-		if typ != "float64" {
+		if !strings.HasPrefix(typ, "float") {
 			record := fmt.Sprintf(
 				"{x:%s (%s),p:80 (port=(uint16)),t:2020-03-09T22:54:12Z,d:16m40s} (=0)", one, typ)
 
@@ -631,6 +637,10 @@ func TestCasts(t *testing.T) {
 	testWarning(t, "uint64(-1)", "", expr.ErrBadCast, "out of range cast to uint64")
 	testWarning(t, `uint64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint64")
 
+	// Test casts to float32
+	testSuccessful(t, "float32(10)", "", zfloat32(10))
+	testWarning(t, `float32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to float64")
+
 	// Test casts to float64
 	testSuccessful(t, "float64(10)", "", zfloat64(10))
 	testWarning(t, `float64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to float64")
@@ -648,7 +658,8 @@ func TestCasts(t *testing.T) {
 
 	// Test casts to time
 	ts := zed.Value{zed.TypeTime, zed.EncodeTime(nano.Ts(1589126400_000_000_000))}
-	testSuccessful(t, "time(1589126400.0)", "", ts)
+	testSuccessful(t, "time(float32(1589126400.0))", "", ts)
+	testSuccessful(t, "time(float64(1589126400.0))", "", ts)
 	testSuccessful(t, "time(1589126400)", "", ts)
 	testSuccessful(t, `time("1589126400")`, "", ts)
 
@@ -657,11 +668,13 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, "string(1.2.3.4)", "", zstring("1.2.3.4"))
 	testSuccessful(t, `int64("1")`, "", zint64(1))
 	testSuccessful(t, `int64("-1")`, "", zint64(-1))
+	testSuccessful(t, `float32("5.5")`, "", zfloat32(5.5))
 	testSuccessful(t, `float64("5.5")`, "", zfloat64(5.5))
 	testSuccessful(t, `ip("1.2.3.4")`, "", zaddr("1.2.3.4"))
 
 	testWarning(t, "ip(1)", "", expr.ErrBadCast, "ip cast non-ip arg")
 	testWarning(t, `int64("abc")`, "", expr.ErrBadCast, "int64 cast with non-parseable string")
+	testWarning(t, `float32("abc")`, "", expr.ErrBadCast, "float32 cast with non-parseable string")
 	testWarning(t, `float64("abc")`, "", expr.ErrBadCast, "float64 cast with non-parseable string")
 	testWarning(t, `ip("abc")`, "", expr.ErrBadCast, "ip cast with non-parseable string")
 }

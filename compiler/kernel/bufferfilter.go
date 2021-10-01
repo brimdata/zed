@@ -133,7 +133,8 @@ func isDollar(e dag.Expr) bool {
 
 func newBufferFilterForLiteral(l astzed.Primitive) (*expr.BufferFilter, error) {
 	switch l.Type {
-	case "bool", "byte", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float64", "time", "duration":
+	case "bool", "byte", "int16", "uint16", "int32", "uint32", "int64", "uint64",
+		"float32", "float64", "time", "duration":
 		// These are all comparable, so they can require up to three
 		// patterns: float, varint, and uvarint.
 		return nil, nil

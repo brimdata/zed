@@ -18,6 +18,11 @@ func (b *Buffer) Uint(v uint64) zcode.Bytes {
 	return zcode.Bytes(*b)
 }
 
+func (b *Buffer) Float32(v float32) zcode.Bytes {
+	*b = Buffer(zed.AppendFloat32(zcode.Bytes((*b)[:0]), v))
+	return zcode.Bytes(*b)
+}
+
 func (b *Buffer) Float64(v float64) zcode.Bytes {
 	*b = Buffer(zed.AppendFloat64(zcode.Bytes((*b)[:0]), v))
 	return zcode.Bytes(*b)

@@ -4,7 +4,7 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
-	"strconv"
+	"strings"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
@@ -71,18 +71,15 @@ func (w *Writer) Write(rec *zed.Record) error {
 			typ := cols[i].Type
 			id := typ.ID()
 			switch {
-			case zed.IsStringy(id):
-				s = string(zb)
-			case zed.IsFloat(id):
-				v, err := zed.DecodeFloat64(zb)
-				if err != nil {
-					return err
-				}
-				s = strconv.FormatFloat(v, 'g', -1, 64)
 			case id == zed.IDBytes && len(zb) == 0:
 				// We want "" instead of "0x" from typ.Format.
+			case zed.IsStringy(id):
+				s = string(zb)
 			default:
 				s = typ.Format(zb)
+				if zed.IsFloat(id) && strings.HasSuffix(s, ".") {
+					s = strings.TrimSuffix(s, ".")
+				}
 			}
 		}
 		w.strings = append(w.strings, s)
