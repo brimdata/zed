@@ -71,7 +71,6 @@ func (w *Writer) Write(rec *zed.Record) error {
 				// value.Type.Format.
 			case zed.IsStringy(id):
 				s = string(value.Bytes)
-
 			default:
 				s = value.Type.Format(value.Bytes)
 				if zed.IsFloat(id) && strings.HasSuffix(s, ".") {
