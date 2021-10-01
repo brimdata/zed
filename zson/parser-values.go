@@ -494,15 +494,19 @@ func (p *Parser) matchMapEntries() ([]astzed.Entry, error) {
 		if err != nil {
 			return nil, err
 		}
+		if entry == nil {
+			break
+		}
 		entries = append(entries, *entry)
 		ok, err := p.lexer.match(',')
 		if err != nil {
 			return nil, err
 		}
 		if !ok {
-			return entries, nil
+			break
 		}
 	}
+	return entries, nil
 }
 
 func (p *Parser) parseEntry() (*astzed.Entry, error) {
@@ -512,7 +516,7 @@ func (p *Parser) parseEntry() (*astzed.Entry, error) {
 	}
 	if key == nil {
 		// no match
-		return nil, errors.New("map key not found while parsing map entry")
+		return nil, nil
 	}
 	ok, err := p.lexer.match(':')
 	if err != nil {
