@@ -17,6 +17,7 @@ type Writer struct {
 	encoder   *csv.Writer
 	flattener *expr.Flattener
 	first     *zed.TypeRecord
+	strings   []string
 }
 
 type WriterOpts struct {
@@ -58,27 +59,30 @@ func (w *Writer) Write(rec *zed.Record) error {
 	} else if rec.Type != w.first {
 		return ErrNotDataFrame
 	}
-	var out []string
-	for k, col := range rec.Columns() {
+	w.strings = w.strings[:0]
+	cols := rec.Columns()
+	for i, it := 0, rec.Bytes.Iter(); i < len(cols) && !it.Done(); i++ {
+		zb, _, err := it.Next()
+		if err != nil {
+			return err
+		}
 		var s string
-		// O(n^2)
-		value := rec.ValueByColumn(k)
-		if !value.IsUnsetOrNil() {
-			id := col.Type.ID()
+		if zb != nil {
+			typ := cols[i].Type
+			id := typ.ID()
 			switch {
-			case id == zed.IDBytes && len(value.Bytes) == 0:
-				// We want "" instead of "0x" from
-				// value.Type.Format.
+			case id == zed.IDBytes && len(zb) == 0:
+				// We want "" instead of "0x" from typ.Format.
 			case zed.IsStringy(id):
-				s = string(value.Bytes)
+				s = string(zb)
 			default:
-				s = value.Type.Format(value.Bytes)
+				s = typ.Format(zb)
 				if zed.IsFloat(id) && strings.HasSuffix(s, ".") {
 					s = strings.TrimSuffix(s, ".")
 				}
 			}
 		}
-		out = append(out, s)
+		w.strings = append(w.strings, s)
 	}
-	return w.encoder.Write(out)
+	return w.encoder.Write(w.strings)
 }
