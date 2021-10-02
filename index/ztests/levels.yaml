@@ -11,19 +11,19 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {magic:"zed_index",version:2(int32),descending:false,child_field:"_child",frame_thresh:200(int32),sections:[24069,36,414,3192],keys:null({key:string})}
+      {magic:"zed_index",version:3,order:"asc",child_field:"_child",frame_thresh:200,sections:[23835,34,396,3185],keys:[["s"]]}
       ===
-      {key:"Algedi-pigeonman",_child:0}
-      {key:"Rupicola-overponderous",_child:222}
-      {key:"antiprohibitionist-sinusoid",_child:440}
-      {key:"brochure-chiropodous",_child:640}
-      {key:"cowhiding-pterylographic",_child:851}
-      {key:"equinate-serialist",_child:1060}
-      {key:"heaper-praedial",_child:1275}
-      {key:"intracranial-preyful",_child:1484}
-      {key:"milliard-diffusely",_child:1690}
-      {key:"overwomanly-transverberation",_child:1904}
-      {key:"placoganoidean-spookery",_child:2134}
-      {key:"recollapse-accompliceship",_child:2338}
-      {key:"seventy-unbracing",_child:2543}
-      {key:"supraprotest-asseveratively",_child:2745}
+      {s:"Algedi-pigeonman",_child:0}
+      {s:"Rupicola-overponderous",_child:220}
+      {s:"antiprohibitionist-sinusoid",_child:436}
+      {s:"caneology-preroyally",_child:662}
+      {s:"curatorship-bose",_child:870}
+      {s:"fontful-korymboi",_child:1082}
+      {s:"horizometer-misogamy",_child:1294}
+      {s:"laevotartaric-pseudohyoscyamine",_child:1501}
+      {s:"monumentally-Manihot",_child:1713}
+      {s:"palinode-penality",_child:1919}
+      {s:"predikant-tentorial",_child:2147}
+      {s:"roborant-ultraparallel",_child:2368}
+      {s:"sorediferous-iliocaudal",_child:2585}
+      {s:"tibourbou-crisper",_child:2808}

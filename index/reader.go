@@ -6,6 +6,7 @@ import (
 	"io"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
@@ -133,6 +134,6 @@ func (r *Reader) Order() order.Which {
 	return r.trailer.Order
 }
 
-func (r *Reader) Keys() *zed.TypeRecord {
-	return r.trailer.KeyType
+func (r *Reader) Keys() field.List {
+	return r.trailer.Keys
 }

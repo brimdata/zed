@@ -96,24 +96,20 @@ func Equivalent(a, b Rule) bool {
 	return false
 }
 
-// XXX See issue #2923
-const keyName = "key"
-
 func (f *FieldRule) Zed() string {
-	if len(f.Fields) != 1 {
-		// XXX see issue #2923.  Multiple field keys not supported.
-		// The code below does a cut assignment presuming one key.
-		// This is problematic.  We should change the index files
-		// to presume the original names of the keys and just do
-		// a non-assignmnet cut on all of the fields.
-		panic("issue #2923")
+	var fields string
+	for i, field := range f.Fields {
+		if i > 0 {
+			fields += ", "
+		}
+		fields += field.String()
 	}
-	return fmt.Sprintf("cut %s:=%s | count() by %s | sort %s", keyName, f.Fields[0], keyName, keyName)
+	return fmt.Sprintf("cut %s | count() by %s | sort %s", fields, fields, fields)
 }
 
 func (t *TypeRule) Zed() string {
-	// XXX See issue #2923 as this doesn't make sense.
-	return fmt.Sprintf("explode this by %s as %s | count() by %s | sort %s", t.Type, keyName, keyName, keyName)
+	// XXX See issue #3140 as this does not allow for multiple type keys
+	return fmt.Sprintf("explode this by %s as %s | count() by %s | sort %s", t.Type, "key", "key", "key")
 }
 
 func (a *AggRule) Zed() string {
@@ -169,11 +165,11 @@ func (a *AggRule) RuleID() ksuid.KSUID {
 }
 
 func (f *FieldRule) RuleKeys() field.List {
-	return field.DottedList(keyName)
+	return f.Fields
 }
 
 func (t *TypeRule) RuleKeys() field.List {
-	return nil
+	return field.DottedList("key")
 }
 
 func (a *AggRule) RuleKeys() field.List {

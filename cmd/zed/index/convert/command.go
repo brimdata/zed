@@ -84,8 +84,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer file.Close()
-	writer, err := index.NewWriter(zctx, local, c.outputFile,
-		index.KeyFields(field.DottedList(c.keys)...),
+	writer, err := index.NewWriter(zctx, local, c.outputFile, field.DottedList(c.keys),
 		index.FrameThresh(c.frameThresh),
 		index.Order(o),
 	)
