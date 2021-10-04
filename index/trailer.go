@@ -31,8 +31,8 @@ type Trailer struct {
 }
 
 var (
-	ErrNotIndex        = errors.New("not a zed index")
-	ErrTrailerNotFound = errors.New("zed index trailer not found")
+	ErrNotIndex        = errors.New("not a Zed index")
+	ErrTrailerNotFound = errors.New("Zed index trailer not found")
 )
 
 var startOfTrailer = []byte{
