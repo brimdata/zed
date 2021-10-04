@@ -11,6 +11,7 @@ import (
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/parser"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/zio"
@@ -48,8 +49,26 @@ func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*Re
 	return res, req
 }
 
-func (r *Request) PoolID(w *ResponseWriter) (ksuid.KSUID, bool) {
-	return r.TagFromPath("pool", w)
+func (r *Request) PoolID(w *ResponseWriter, root *lake.Root) (ksuid.KSUID, bool) {
+	v := mux.Vars(r.Request)
+	s, ok := v["pool"]
+	if !ok {
+		w.Error(zqe.ErrInvalid("no arg 'pool' in path"))
+		return ksuid.Nil, false
+	}
+	id, err := lakeparse.ParseID(s)
+	if err != nil {
+		id, err = root.PoolID(r.Context(), s)
+		if errors.Is(err, lake.ErrPoolNotFound) {
+			w.Error(zqe.ErrNotFound(err))
+			return ksuid.Nil, false
+		}
+		if err != nil {
+			w.Error(zqe.ErrInvalid("invalid path param %q: %w", s, err))
+			return ksuid.Nil, false
+		}
+	}
+	return id, true
 }
 
 func (r *Request) CommitID(w *ResponseWriter) (ksuid.KSUID, bool) {

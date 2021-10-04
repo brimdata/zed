@@ -34,6 +34,8 @@ const (
 	LakeMagicString = "ZED LAKE"
 )
 
+var ErrPoolNotFound = errors.New("pool not found")
+
 // The Root of the lake represents the path prefix and configuration state
 // for all of the data pools in the lake.
 type Root struct {
@@ -233,7 +235,7 @@ func (r *Root) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 	if err != nil {
 		poolRef = r.pools.LookupByName(ctx, poolName)
 		if poolRef == nil {
-			return ksuid.Nil, fmt.Errorf("%s: pool not found", poolName)
+			return ksuid.Nil, fmt.Errorf("%s: %w", poolName, ErrPoolNotFound)
 		}
 		poolID = poolRef.ID
 	}
