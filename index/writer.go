@@ -83,6 +83,9 @@ func NewWriter(zctx *zed.Context, engine storage.Engine, path string, keys field
 }
 
 func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string, keys field.List, options ...Option) (*Writer, error) {
+	if len(keys) == 0 {
+		return nil, errors.New("must specify at least one key")
+	}
 	w := &Writer{
 		keys:       keys,
 		zctx:       zctx,
@@ -91,9 +94,6 @@ func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage
 	}
 	for _, opt := range options {
 		opt.apply(w)
-	}
-	if len(keys) == 0 {
-		return nil, errors.New("must specify at least one key")
 	}
 	if w.frameThresh == 0 {
 		w.frameThresh = frameThresh
