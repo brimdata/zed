@@ -109,7 +109,7 @@ func (f *FieldRule) Zed() string {
 
 func (t *TypeRule) Zed() string {
 	// XXX See issue #3140 as this does not allow for multiple type keys
-	return fmt.Sprintf("explode this by %s as %s | count() by %s | sort %s", t.Type, "key", "key", "key")
+	return fmt.Sprintf("explode this by %s as key | count() by key | sort key", t.Type)
 }
 
 func (a *AggRule) Zed() string {
