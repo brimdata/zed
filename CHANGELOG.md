@@ -1,3 +1,29 @@
+## v0.31.0
+
+* Allow indexes to handle fields containing values of different types (#3141)
+* Improve CSV writer performance (#3137)
+* Fix an issue preventing use of a seek index containing nulls (#3138)
+* Add `float32` primitive type (#3110)
+* Add `len()` support for `bytes`, `error`, and map types (#3136)
+* Allow empty ZSON maps (#3135)
+* Fix an issue affecting `range` queries on a lake containing records with a missing or null pool key (#3134)
+* Allow `from ( pass => ...; )` (#3133)
+* Change Go marshaling struct field tag to `zed` from `zng` (#3130)
+* Fix a panic when reading CSV containing an empty quoted field (#3128)
+* Improve CSV output format (#3129)
+* Detect JSON input containing a top-level array (#3124)
+* Decode top-level JSON arrays incrementally (#3123)
+* Remove PPL license (#3116)
+* Change ZSON map syntax to `|{ key: value, ... }|` (#3111)
+* Support revert for indexes (#3101)    
+* Rename `zson_parse()` to `parse_zson()` (#3092)
+* Add `zed lake index update` and `zed api index update` commands (#3079, #3093)
+* Add `parse_uri()` function (#3080, #3084)
+* Add `from pool@branch:indexes` meta query (#3078)
+* Fix an issue where `sort len(field)` produced incorrect output (#3045)
+* Remove `POST /ast` and `POST /search` from the Zed lake service API (#3065)
+* Fix an issue with with record aliases in `drop` (#3064)
+
 ## v0.30.0
 
 As you can see below, there's been many changes since the last Zed GA release!  Highlights include:
