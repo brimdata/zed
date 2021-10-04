@@ -56,10 +56,7 @@ func (t *MemTable) open() {
 		for _, key := range t.keys {
 			resolvers = append(resolvers, expr.NewDotExpr(key))
 		}
-		compare := expr.NewCompareFn(false, resolvers...)
-		sort.SliceStable(t.values, func(a, b int) bool {
-			return compare(t.values[a], t.values[b]) < 0
-		})
+		expr.SortStable(t.values, expr.NewCompareFn(false, resolvers...))
 	}
 	t.sorted = true
 }
