@@ -52,9 +52,9 @@ func (t *MemTable) open() {
 		for _, value := range t.table {
 			t.values = append(t.values, value)
 		}
-		resolvers := make([]expr.Evaluator, len(t.keys))
-		for k, key := range t.keys {
-			resolvers[k] = expr.NewDotExpr(key)
+		resolvers := make([]expr.Evaluator, 0, len(t.keys))
+		for _, key := range t.keys {
+			resolvers = append(resolvers, expr.NewDotExpr(key))
 		}
 		compare := expr.NewCompareFn(false, resolvers...)
 		sort.SliceStable(t.values, func(a, b int) bool {
