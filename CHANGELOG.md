@@ -22,7 +22,7 @@
 * Add `from pool@branch:indexes` meta query (#3078)
 * Fix an issue where `sort len(field)` produced incorrect output (#3045)
 * Remove `POST /ast` and `POST /search` from the Zed lake service API (#3065)
-* Fix an issue with with record aliases in `drop()` (#3064)
+* Fix an issue with with record aliases in `drop` (#3064)
 
 ## v0.30.0
 
