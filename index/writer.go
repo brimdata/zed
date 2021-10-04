@@ -84,10 +84,10 @@ func NewWriter(zctx *zed.Context, engine storage.Engine, path string, keys field
 
 func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string, keys field.List, options ...Option) (*Writer, error) {
 	w := &Writer{
-		zctx:       zctx,
-		childField: uniqChildField(keys),
-		engine:     engine,
 		keys:       keys,
+		zctx:       zctx,
+		engine:     engine,
+		childField: uniqChildField(keys),
 	}
 	for _, opt := range options {
 		opt.apply(w)
