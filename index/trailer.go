@@ -79,7 +79,7 @@ func readTrailer(r io.ReaderAt, size int64) (*Trailer, int, error) {
 		return nil, 0, ErrNotIndex
 	}
 	if trailer.Version != Version {
-		return nil, 0, fmt.Errorf("zed index version %d found while expecting version %d", trailer.Version, Version)
+		return nil, 0, fmt.Errorf("Zed index version %d found while expecting version %d", trailer.Version, Version)
 	}
 	return &trailer, int(n) - off, nil
 }
