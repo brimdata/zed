@@ -1,26 +1,3 @@
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 ## v0.31.0
 
 * Allow indexes to handle fields containing values of different types (#3141)
@@ -40,10 +17,10 @@
 * change ZSON map syntax to `|{ key: value, ... }|` (#3111)
 * Support revert for indexes (#3101)    
 * Rename `zson_parse()` to `parse_zson()` (#3092)
-* Add `zed lake index update` and `zed api index update` commands (#3079, 3093)
+* Add `zed lake index update` and `zed api index update` commands (#3079, #3093)
 * Add `parse_uri()` function (#3080, #3084)
-* Add `from pool@branch:indexes` meta query #3078
-* Fix an issue where `sort len(field)` produces incorrect output (#3045)
+* Add `from pool@branch:indexes` meta query (#3078)
+* Fix an issue where `sort len(field)` produced incorrect output (#3045)
 * Remove `POST /ast` and `POST /search` from the Zed lake service API (#3065)
 * Fix an issue with with record aliases in `drop()` (#3064)
 
