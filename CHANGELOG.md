@@ -14,7 +14,7 @@
 * Detect JSON input containing a top-level array (#3124)
 * Decode top-level JSON arrays incrementally (#3123)
 * Remove PPL license (#3116)
-* change ZSON map syntax to `|{ key: value, ... }|` (#3111)
+* Change ZSON map syntax to `|{ key: value, ... }|` (#3111)
 * Support revert for indexes (#3101)    
 * Rename `zson_parse()` to `parse_zson()` (#3092)
 * Add `zed lake index update` and `zed api index update` commands (#3079, #3093)
