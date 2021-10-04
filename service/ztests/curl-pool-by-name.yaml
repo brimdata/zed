@@ -8,7 +8,6 @@ script: |
 
 inputs:
   - name: service.sh
-    source: service.sh
 
 outputs:
   - name: stdout
