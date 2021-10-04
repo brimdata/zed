@@ -50,10 +50,8 @@ func newRequest(w http.ResponseWriter, r *http.Request, logger *zap.Logger) (*Re
 }
 
 func (r *Request) PoolID(w *ResponseWriter, root *lake.Root) (ksuid.KSUID, bool) {
-	v := mux.Vars(r.Request)
-	s, ok := v["pool"]
+	s, ok := r.StringFromPath(w, "pool")
 	if !ok {
-		w.Error(zqe.ErrInvalid("no arg 'pool' in path"))
 		return ksuid.Nil, false
 	}
 	id, err := lakeparse.ParseID(s)
