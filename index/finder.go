@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zson"
 )
@@ -235,13 +234,18 @@ func (f *Finder) ParseKeys(inputs ...string) (*zed.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
-	cols := f.trailer.KeyType.Columns
-	if len(inputs) > len(cols) {
-		return nil, fmt.Errorf("too many keys: expected at most %d but got %d", len(cols), len(inputs))
+	keys := f.trailer.Keys
+	if len(inputs) > len(keys) {
+		return nil, fmt.Errorf("too many keys: expected at most %d but got %d", len(keys), len(inputs))
 	}
-	var b zcode.Builder
-	for k, col := range cols {
-		typ := col.Type
+	// zed.NewContext().LookupTypeRecord
+	zctx := zed.NewContext()
+	builder, err := zed.NewColumnBuilder(zctx, keys)
+	if err != nil {
+		return nil, err
+	}
+	var types []zed.Type
+	for k := range keys {
 		var zv zed.Value
 		if k < len(inputs) {
 			s := inputs[k]
@@ -250,17 +254,19 @@ func (f *Finder) ParseKeys(inputs ...string) (*zed.Record, error) {
 			if err != nil {
 				return nil, fmt.Errorf("could not parse %q: %w", s, err)
 			}
-			if typ != zv.Type {
-				return nil, fmt.Errorf("type mismatch for %q: expected type %s", s, typ)
-			}
 		} else {
-			zv = zed.Value{typ, nil}
+			zv = zed.Value{zed.TypeNull, nil}
 		}
-		if zed.IsContainerType(typ) {
-			b.AppendContainer(zv.Bytes)
-		} else {
-			b.AppendPrimitive(zv.Bytes)
-		}
+		builder.Append(zv.Bytes, zed.IsContainerType(zv.Type))
+		types = append(types, zv.Type)
 	}
-	return zed.NewRecord(f.trailer.KeyType, b.Bytes()), nil
+	typ, err := zctx.LookupTypeRecord(builder.TypedColumns(types))
+	if err != nil {
+		return nil, err
+	}
+	b, err := builder.Encode()
+	if err != nil {
+		return nil, err
+	}
+	return zed.NewRecord(typ, b), nil
 }
