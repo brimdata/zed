@@ -4,19 +4,18 @@ import (
 	"errors"
 	"io"
 
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed"
 	goparquet "github.com/fraugster/parquet-go"
 )
 
 type Reader struct {
 	fr  *goparquet.FileReader
-	typ *zng.TypeRecord
+	typ *zed.TypeRecord
 
 	builder builder
 }
 
-func NewReader(r io.Reader, zctx *zson.Context) (*Reader, error) {
+func NewReader(r io.Reader, zctx *zed.Context) (*Reader, error) {
 	rs, ok := r.(io.ReadSeeker)
 	if !ok {
 		return nil, errors.New("reader cannot seek")
@@ -35,7 +34,7 @@ func NewReader(r io.Reader, zctx *zson.Context) (*Reader, error) {
 	}, nil
 }
 
-func (r *Reader) Read() (*zng.Record, error) {
+func (r *Reader) Read() (*zed.Record, error) {
 	data, err := r.fr.NextRow()
 	if err != nil {
 		if err == io.EOF {
@@ -47,5 +46,5 @@ func (r *Reader) Read() (*zng.Record, error) {
 	for _, c := range r.typ.Columns {
 		r.builder.appendValue(c.Type, data[c.Name])
 	}
-	return zng.NewRecord(r.typ, r.builder.Bytes()), nil
+	return zed.NewRecord(r.typ, r.builder.Bytes()), nil
 }

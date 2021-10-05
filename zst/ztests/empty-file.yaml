@@ -1,7 +1,7 @@
 script: |
-  zq -i zst /dev/null
+  ! zq -i zst /dev/null
 
 outputs:
   - name: stderr
     regexp: |
-      .*: zst trailer not found
+      .*: EOF

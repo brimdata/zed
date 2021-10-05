@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	storagemock "github.com/brimdata/zed/pkg/storage/mock"
 	"github.com/brimdata/zed/zio"
@@ -33,7 +34,7 @@ func TestDirS3Source(t *testing.T) {
 	engine.EXPECT().Put(context.Background(), uri.AppendPath("http.zson")).
 		Return(&nopCloser{bytes.NewBuffer(nil)}, nil)
 
-	r := zson.NewReader(strings.NewReader(input), zson.NewContext())
+	r := zson.NewReader(strings.NewReader(input), zed.NewContext())
 	require.NoError(t, err)
 	w, err := NewDirWithEngine(context.Background(), engine, uri, "", os.Stderr, anyio.WriterOpts{Format: "zson"})
 	require.NoError(t, err)

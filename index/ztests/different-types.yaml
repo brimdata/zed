@@ -1,0 +1,25 @@
+script: |
+  zed index create -o index.zng -k a in.zson
+  zed index lookup -z -k 127.0.0.1 index.zng
+  zed index lookup -z -k 1.4 index.zng
+  zed index lookup -z -k 1 index.zng
+  zed index lookup -z -k '"hello"' index.zng
+
+inputs:
+  - name: in.zson
+    data: |
+      {a:127.0.0.1,value:"4"}
+      {a:1.4,value:3}
+      {a:1,value:2}
+      {a:"hello",value:1}
+
+
+outputs:
+  - name: stderr
+    data: ""
+  - name: stdout
+    data: |
+      {a:127.0.0.1}
+      {a:1.4}
+      {a:1}
+      {a:"hello"}

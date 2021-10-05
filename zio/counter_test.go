@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,7 +13,7 @@ import (
 
 type Sink struct{}
 
-func (n *Sink) Write(rec *zng.Record) error {
+func (n *Sink) Write(rec *zed.Record) error {
 	return nil
 }
 
@@ -32,7 +32,7 @@ func TestCounter(t *testing.T) {
 	wg.Add(2)
 	go func() {
 		for i := 0; i < 22; i++ {
-			stream := zson.NewReader(strings.NewReader(input), zson.NewContext())
+			stream := zson.NewReader(strings.NewReader(input), zed.NewContext())
 			counter := NewCounter(stream, &count)
 			require.NoError(t, Copy(&sink, counter))
 		}
@@ -40,7 +40,7 @@ func TestCounter(t *testing.T) {
 	}()
 	go func() {
 		for i := 0; i < 17; i++ {
-			stream := zson.NewReader(strings.NewReader(input), zson.NewContext())
+			stream := zson.NewReader(strings.NewReader(input), zed.NewContext())
 			counter := NewCounter(stream, &count)
 			require.NoError(t, Copy(&sink, counter))
 		}

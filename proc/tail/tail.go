@@ -1,9 +1,9 @@
 package tail
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
 )
 
 type Proc struct {
@@ -11,7 +11,7 @@ type Proc struct {
 	limit  int
 	count  int
 	off    int
-	q      []*zng.Record
+	q      []*zed.Record
 }
 
 func New(parent proc.Interface, limit int) *Proc {
@@ -19,7 +19,7 @@ func New(parent proc.Interface, limit int) *Proc {
 	return &Proc{
 		parent: parent,
 		limit:  limit,
-		q:      make([]*zng.Record, limit),
+		q:      make([]*zed.Record, limit),
 	}
 }
 
@@ -31,7 +31,7 @@ func (p *Proc) tail() zbuf.Batch {
 	if p.count < p.limit {
 		start = 0
 	}
-	out := make([]*zng.Record, p.count)
+	out := make([]*zed.Record, p.count)
 	for k := 0; k < p.count; k++ {
 		out[k] = p.q[(start+k)%p.limit]
 	}

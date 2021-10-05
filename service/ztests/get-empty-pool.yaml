@@ -1,15 +1,10 @@
-skip: "issue #2651"
-
 script: |
-  source services.sh
-  zapi -host $LAKE_HOST new test
-  zapi -host $LAKE_HOST info test
-  zapi -host $LAKE_HOST get -p test "*"
-
+  source service.sh
+  zapi create -q test
+  zapi query -z 'from test'
 
 inputs:
-  - name: services.sh
-    source: services.sh
+  - name: service.sh
 
 outputs:
   - name: stderr

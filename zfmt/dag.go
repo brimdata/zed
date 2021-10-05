@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/order"
 )
@@ -70,7 +70,7 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 			c.write(" where ")
 			c.expr(e.Where, false)
 		}
-	case *zed.Primitive:
+	case *astzed.Primitive:
 		c.literal(*e)
 	case *dag.UnaryExpr:
 		c.space()
@@ -102,7 +102,7 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 		c.fieldpath(e.Name)
 	case *dag.Ref:
 		c.write("%s", e.Name)
-	case *zed.TypeValue:
+	case *astzed.TypeValue:
 		c.write("type(")
 		c.typ(e.Value)
 		c.write(")")
@@ -194,15 +194,36 @@ func (c *canonDAG) op(p dag.Op) {
 		c.ret()
 		c.flush()
 		c.write(")")
+	case *dag.Switch:
+		c.next()
+		c.open("switch ")
+		if p.Expr != nil {
+			c.expr(p.Expr, false)
+			c.write(" ")
+		}
+		c.open("(")
+		for _, k := range p.Cases {
+			c.ret()
+			if k.Expr != nil {
+				c.expr(k.Expr, false)
+			} else {
+				c.write("default")
+			}
+			c.write(" =>")
+			c.open()
+			c.head = true
+			c.op(k.Op)
+			c.close()
+		}
+		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
 	case *dag.Merge:
 		c.next()
 		c.write("merge ")
 		c.fieldpath(p.Key)
-		if p.Reverse {
-			c.write(":desc")
-		} else {
-			c.write(":asc")
-		}
+		c.write(":" + p.Order.String())
 	case *dag.Const:
 		c.write("const %s=", p.Name)
 		c.expr(p.Expr, false)
@@ -364,6 +385,12 @@ func source(src dag.Source) string {
 		return fmt.Sprintf("get %s", p.URL)
 	case *dag.Pool:
 		return fmt.Sprintf("%s", p.ID)
+	case *dag.PoolMeta:
+		return fmt.Sprintf("%s:%s", p.ID, p.Meta)
+	case *dag.CommitMeta:
+		return fmt.Sprintf("%s@%s:%s", p.Pool, p.Commit, p.Meta)
+	case *dag.LakeMeta:
+		return fmt.Sprintf(":%s", p.Meta)
 		//XXX from, to, order
 	case *kernel.Reader:
 		return "(internal reader)"
@@ -373,7 +400,7 @@ func source(src dag.Source) string {
 }
 
 func isDAGTrue(e dag.Expr) bool {
-	if p, ok := e.(*zed.Primitive); ok {
+	if p, ok := e.(*astzed.Primitive); ok {
 		return p.Type == "bool" && p.Text == "true"
 	}
 	return false

@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr/agg"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
@@ -154,7 +154,7 @@ func eligiblePred(aliasID string, e dag.Expr) dag.Expr {
 				Operand: operand,
 			}
 		}
-	case *zed.Primitive:
+	case *astzed.Primitive:
 		return e
 	case *dag.Dot:
 		// A field reference of the form <aliasID>.x is eligible
@@ -221,9 +221,9 @@ func convertSQLTableRef(scope *Scope, e ast.Expr) (dag.Op, error) {
 	// then convert it to a type name as it is otherwise expected that
 	// the type name will be defined by the data stream.
 	if id, ok := dag.RootField(converted); ok && scope.Lookup(id) == nil {
-		converted = &zed.TypeValue{
+		converted = &astzed.TypeValue{
 			Kind: "TypeValue",
-			Value: &zed.TypeName{
+			Value: &astzed.TypeName{
 				Kind: "TypeName",
 				Name: id,
 			},

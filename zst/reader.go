@@ -3,20 +3,20 @@ package zst
 import (
 	"context"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 )
 
-// Reader implements the zbuf.Reader and io.Closer.  It reads a columnar
-// zst object to generate a stream of zng.Records.  It also has methods
+// Reader implements zio.Reader and io.Closer.  It reads a columnar
+// zst object to generate a stream of zed.Records.  It also has methods
 // to read metainformation for test and debugging.
 type Reader struct {
 	*Object
 	zio.Reader
 }
 
-// NewReader returns a Reader ready to read a zst object as zng.Records.
+// NewReader returns a Reader ready to read a zst object as zed.Records.
 // Close() should be called when done.  This embeds a zst.Object.
 func NewReader(object *Object) (*Reader, error) {
 	assembler, err := NewAssembler(object.assembly, object.seeker)
@@ -30,7 +30,7 @@ func NewReader(object *Object) (*Reader, error) {
 
 }
 
-func NewReaderFromPath(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string) (*Reader, error) {
+func NewReaderFromPath(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string) (*Reader, error) {
 	object, err := NewObjectFromPath(ctx, zctx, engine, path)
 	if err != nil {
 		return nil, err
@@ -43,7 +43,7 @@ func NewReaderFromPath(ctx context.Context, zctx *zson.Context, engine storage.E
 	return reader, nil
 }
 
-func NewReaderFromSeeker(zctx *zson.Context, seeker *storage.Seeker) (*Reader, error) {
+func NewReaderFromSeeker(zctx *zed.Context, seeker *storage.Seeker) (*Reader, error) {
 	object, err := NewObjectFromSeeker(zctx, seeker)
 	if err != nil {
 		return nil, err

@@ -2,7 +2,7 @@
 // to and from zng row format.  The zst storage format consists of
 // a section of column data stored in zng values followed by a section
 // containing a zng record stream comprised of N zng "reassembly records"
-// (one for each zng.TypeRecord or "schema") stored in the zst object, plus
+// (one for each zed.TypeRecord or "schema") stored in the zst object, plus
 // an N+1st zng record describing the list of schemas IDs of the original
 // zng rows that were encoded into the zst object.
 //
@@ -15,7 +15,7 @@
 // An Object provides the interface to the underlying storage object.
 // To generate rows or cuts (and in the future more sophisticated traversals
 // and introspection), an Assembly is created from the Object then zng records
-// are read from the assembly, which implements zbuf.Reader.  The Assembly
+// are read from the assembly, which implements zio.Reader.  The Assembly
 // keeps track of where each column is, which is why you need a separate
 // Assembly per scan.
 //
@@ -31,11 +31,11 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/column"
 )
@@ -43,7 +43,7 @@ import (
 type Object struct {
 	seeker   *storage.Seeker
 	closer   io.Closer
-	zctx     *zson.Context
+	zctx     *zed.Context
 	assembly *Assembly
 	trailer  *Trailer
 	size     int64
@@ -51,7 +51,7 @@ type Object struct {
 	err      error
 }
 
-func NewObject(zctx *zson.Context, s *storage.Seeker, size int64) (*Object, error) {
+func NewObject(zctx *zed.Context, s *storage.Seeker, size int64) (*Object, error) {
 	trailer, err := readTrailer(s, size)
 	if err != nil {
 		return nil, err
@@ -72,7 +72,7 @@ func NewObject(zctx *zson.Context, s *storage.Seeker, size int64) (*Object, erro
 	return o, err
 }
 
-func NewObjectFromSeeker(zctx *zson.Context, s *storage.Seeker) (*Object, error) {
+func NewObjectFromSeeker(zctx *zed.Context, s *storage.Seeker) (*Object, error) {
 	size, err := storage.Size(s.Reader)
 	if err != nil {
 		return nil, err
@@ -80,7 +80,7 @@ func NewObjectFromSeeker(zctx *zson.Context, s *storage.Seeker) (*Object, error)
 	return NewObject(zctx, s, size)
 }
 
-func NewObjectFromPath(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string) (*Object, error) {
+func NewObjectFromPath(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string) (*Object, error) {
 	uri, err := storage.ParseURI(path)
 	if err != nil {
 		return nil, err
@@ -121,7 +121,7 @@ func (o *Object) IsEmpty() bool {
 func (o *Object) readAssembly() (*Assembly, error) {
 	reader := o.NewReassemblyReader()
 	assembly := &Assembly{}
-	var rec *zng.Record
+	var rec *zed.Record
 	for {
 		var err error
 		rec, err = reader.Read()
@@ -135,8 +135,7 @@ func (o *Object) readAssembly() (*Assembly, error) {
 		if zv.Bytes != nil {
 			break
 		}
-		//XXX See issue #2439: Wneed to preserve top-level type here.
-		assembly.schemas = append(assembly.schemas, zng.TypeRecordOf(rec.Type))
+		assembly.schemas = append(assembly.schemas, rec.Type)
 	}
 	var err error
 	assembly.root, err = rec.Access("root")

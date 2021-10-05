@@ -4,13 +4,13 @@ script: |
 inputs:
   - name: in.zson
     data: |
-      { version: [ 1, "b", 2 ] } (=0)
-      { version: [ 8, 3 ] } (0)
-      { version: [ "hello", "goodbye"] } (0)
+      {version:[1((int64,string)),"b"((int64,string)),2((int64,string))]}
+      {version:[8((int64,string)),3((int64,string))]}
+      {version:["hello"((int64,string)),"goodbye"((int64,string))]}
 
 outputs:
   - name: stdout
     data: |
-      {version:[1 (0=((int64,string))),"b" (0),2 (0)] (=1)} (=2)
-      {version:[8,3]} (2)
-      {version:["hello","goodbye"]} (2)
+      {version:[1((int64,string)),"b"((int64,string)),2((int64,string))]}
+      {version:[8((int64,string)),3((int64,string))]}
+      {version:["hello"((int64,string)),"goodbye"((int64,string))]}

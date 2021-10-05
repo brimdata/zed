@@ -1,14 +1,14 @@
 zed: 'count() by this | sort this'
 
 input: |
-  {x:1 (int32),s:"foo"} (=0)
-  {x:2,s:"Bar"} (0)
+  {x:1(int32),s:"foo"}
+  {x:2(int32),s:"Bar"}
   {y:5}
   {y:5}
   {y:7}
 
 output: |
-  {".":{x:1 (int32),s:"foo"} (=0),count:1 (uint64)} (=1)
-  {".":{x:2,s:"Bar"},count:1} (1)
-  {".":{y:5},count:2 (uint64)} (=2)
-  {".":{y:7},count:1} (2)
+  {".":{x:1(int32),s:"foo"},count:1(uint64)}
+  {".":{x:2(int32),s:"Bar"},count:1(uint64)}
+  {".":{y:5},count:2(uint64)}
+  {".":{y:7},count:1(uint64)}

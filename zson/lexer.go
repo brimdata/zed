@@ -9,12 +9,12 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 )
 
 var ErrBufferOverflow = errors.New("zson scanner buffer size exceeded")
 
-const primitiveRE = `^(([0-9a-fA-Fx_\$\-\+:eEnumsh./TZµ]+)|true|false|null|-Inf|-inf|\+Inf|\+inf|NaN|nan|(([-.0-9]+(ns|us|ms|s|m|h|d|w|y))+))`
+const primitiveRE = `^(true|false|null|NaN|nan|[-+][Ii]nf|[-+0-9Ee./]+|0x[[:xdigit:]]*|([[:xdigit:]]{0,4}(:[[:xdigit:]]{0,4}){2,}(/[0-9]+)?)|([-.0-9]+(ns|us|ms|s|m|h|d|w|y))+|([-.:T\d]+(Z|[-+]\d\d:\d\d)))`
 const indentationRE = `\n\s*`
 
 type Lexer struct {
@@ -329,7 +329,7 @@ func (l *Lexer) scanTypeName() (string, error) {
 			}
 			return "", err
 		}
-		if !zng.TypeChar(r) {
+		if !zed.TypeChar(r) {
 			return s.String(), nil
 		}
 		s.WriteRune(r)
@@ -342,7 +342,7 @@ func (l *Lexer) scanIdentifier() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !zng.IsIdentifier(s) {
+	if !zed.IsIdentifier(s) {
 		return "", errors.New("malformed identifier")
 	}
 	return s, nil

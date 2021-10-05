@@ -5,10 +5,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -36,9 +36,9 @@ func (a *Animal) Color() string { return a.MyColor }
 
 func TestInterfaceMarshal(t *testing.T) {
 	rose := Thing(&Plant{"red"})
-	expectedRose := `{MyColor:"red"} (=Plant)`
+	expectedRose := `{MyColor:"red"}(=Plant)`
 	flamingo := Thing(&Animal{"pink"})
-	expectedFlamingo := `{MyColor:"pink"} (=Animal)`
+	expectedFlamingo := `{MyColor:"pink"}(=Animal)`
 
 	m := zson.NewMarshaler()
 	m.Decorate(zson.StyleSimple)
@@ -54,7 +54,6 @@ func TestInterfaceMarshal(t *testing.T) {
 	u := zson.NewUnmarshaler()
 	u.Bind(Plant{}, Animal{})
 	var thing Thing
-	require.NoError(t, err)
 
 	err = u.Unmarshal(zsonRose, &thing)
 	require.NoError(t, err)
@@ -75,7 +74,7 @@ func TestMarshal(t *testing.T) {
 	aIn := []int8{1, 2, 3}
 	z, err = zson.Marshal(aIn)
 	require.NoError(t, err)
-	assert.Equal(t, `[1 (int8),2 (int8),3 (int8)] (=0)`, z)
+	assert.Equal(t, `[1(int8),2(int8),3(int8)]`, z)
 
 	var v interface{}
 	err = zson.Unmarshal(z, &v)
@@ -88,7 +87,7 @@ func TestMarshal(t *testing.T) {
 	m.Decorate(zson.StyleSimple)
 	z, err = m.Marshal(Roll(true))
 	require.NoError(t, err)
-	assert.Equal(t, `true (=Roll)`, z)
+	assert.Equal(t, `true(=Roll)`, z)
 }
 
 type BytesRecord struct {
@@ -112,7 +111,7 @@ type SliceRecord struct {
 	S []IDSlice
 }
 
-func recToZSON(t *testing.T, rec *zng.Record) string {
+func recToZSON(t *testing.T, rec *zed.Record) string {
 	var b strings.Builder
 	w := zsonio.NewWriter(zio.NopCloser(&b), zsonio.WriterOpts{})
 	err := w.Write(rec)
@@ -150,7 +149,7 @@ func TestBytes(t *testing.T) {
 	require.NotNil(t, rec)
 
 	exp = `
-{A:0x00010203 (=ID),B:0x04050607 (ID)} (=IDRecord)
+{A:0x00010203(=ID),B:0x04050607(ID)}(=IDRecord)
 	`
 	assert.Equal(t, trim(exp), recToZSON(t, rec))
 
@@ -168,7 +167,7 @@ func TestBytes(t *testing.T) {
 	require.NotNil(t, rec)
 
 	exp = `
-{B:null (bytes)}
+{B:null(bytes)}
 `
 	assert.Equal(t, trim(exp), recToZSON(t, rec))
 
@@ -179,7 +178,7 @@ func TestBytes(t *testing.T) {
 	require.NotNil(t, rec)
 
 	exp = `
-{S:null (0=([bytes]))}
+{S:null([bytes])}
 	`
 	assert.Equal(t, trim(exp), recToZSON(t, rec))
 
@@ -210,12 +209,12 @@ func TestBug2575(t *testing.T) {
 
 	var buffer bytes.Buffer
 	writer := zngio.NewWriter(zio.NopCloser(&buffer), zngio.WriterOpts{})
-	recExpected := zng.NewRecord(zv.Type, zv.Bytes)
+	recExpected := zed.NewRecord(zv.Type, zv.Bytes)
 	writer.Write(recExpected)
 	writer.Close()
 
 	r := bytes.NewReader(buffer.Bytes())
-	reader := zngio.NewReader(r, zson.NewContext())
+	reader := zngio.NewReader(r, zed.NewContext())
 	recActual, err := reader.Read()
 	exp, err := zson.FormatValue(recExpected.Value)
 	require.NoError(t, err)
@@ -238,20 +237,20 @@ func TestUnexported(t *testing.T) {
 
 type ZNGValueField struct {
 	Name  string
-	Field zng.Value `zng:"field"`
+	Field zed.Value `zed:"field"`
 }
 
 func TestZNGValueField(t *testing.T) {
-	// Include a Zed int64 inside a Go struct as a zng.Value field.
+	// Include a Zed int64 inside a Go struct as a zed.Value field.
 	zngValueField := &ZNGValueField{
 		Name:  "test1",
-		Field: zng.Value{zng.TypeInt64, zng.EncodeInt(123)},
+		Field: zed.Value{zed.TypeInt64, zed.EncodeInt(123)},
 	}
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
 	zv, err := m.Marshal(zngValueField)
 	require.NoError(t, err)
-	expected := `{Name:"test1",field:123} (=ZNGValueField)`
+	expected := `{Name:"test1",field:123}(=ZNGValueField)`
 	actual, err := zson.FormatValue(zv)
 	require.NoError(t, err)
 	assert.Equal(t, trim(expected), trim(actual))
@@ -260,9 +259,9 @@ func TestZNGValueField(t *testing.T) {
 	err = u.Unmarshal(zv, &out)
 	require.NoError(t, err)
 	assert.Equal(t, *zngValueField, out)
-	// Include a Zed record inside a Go struct in a zng.Value field.
+	// Include a Zed record inside a Go struct in a zed.Value field.
 	z := `{s:"foo",a:[1,2,3]}`
-	zv2, err := zson.ParseValue(zson.NewContext(), z)
+	zv2, err := zson.ParseValue(zed.NewContext(), z)
 	require.NoError(t, err)
 	zngValueField2 := &ZNGValueField{
 		Name:  "test2",
@@ -272,7 +271,7 @@ func TestZNGValueField(t *testing.T) {
 	m2.Decorate(zson.StyleSimple)
 	zv3, err := m2.Marshal(zngValueField2)
 	require.NoError(t, err)
-	expected2 := `{Name:"test2",field:{s:"foo",a:[1,2,3]}} (=ZNGValueField)`
+	expected2 := `{Name:"test2",field:{s:"foo",a:[1,2,3]}}(=ZNGValueField)`
 	actual2, err := zson.FormatValue(zv3)
 	require.NoError(t, err)
 	assert.Equal(t, trim(expected2), trim(actual2))

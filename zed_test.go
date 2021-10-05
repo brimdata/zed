@@ -1,4 +1,4 @@
-package zed
+package zed_test
 
 import (
 	"fmt"
@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/parquetio"
-	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/require"
 )
@@ -66,7 +66,7 @@ diff baseline.zson boomerang.zson
 		b := b
 		t.Run(b.TestName, func(t *testing.T) {
 			t.Parallel()
-			err := b.RunScript(shellPath, ".")
+			err := b.RunScript(shellPath, t.TempDir())
 			if err != nil {
 				err = &BoomerangError{
 					*b.Test.Inputs[0].Data,
@@ -125,7 +125,7 @@ func expectFailure(b ztest.Bundle) bool {
 }
 
 func isValidForZson(input string) bool {
-	r, err := anyio.NewReader(strings.NewReader(input), zson.NewContext())
+	r, err := anyio.NewReader(strings.NewReader(input), zed.NewContext())
 	if err != nil {
 		return false
 	}
@@ -159,11 +159,12 @@ diff baseline.parquet boomerang.parquet
 		b := b
 		t.Run(b.TestName, func(t *testing.T) {
 			t.Parallel()
-			err := b.RunScript(shellPath, ".")
+			err := b.RunScript(shellPath, t.TempDir())
 			if err != nil {
 				if s := err.Error(); strings.Contains(s, parquetio.ErrEmptyRecordType.Error()) ||
 					strings.Contains(s, parquetio.ErrNullType.Error()) ||
-					strings.Contains(s, parquetio.ErrUnionType.Error()) {
+					strings.Contains(s, parquetio.ErrUnionType.Error()) ||
+					strings.Contains(s, "column has no name") {
 					t.Skip("skipping because the Parquet writer cannot handle an input type")
 				}
 				err = &BoomerangError{
@@ -178,7 +179,7 @@ diff baseline.parquet boomerang.parquet
 }
 
 func isValidForParquet(input string) bool {
-	r, err := anyio.NewReader(strings.NewReader(input), zson.NewContext())
+	r, err := anyio.NewReader(strings.NewReader(input), zed.NewContext())
 	if err != nil {
 		return false
 	}

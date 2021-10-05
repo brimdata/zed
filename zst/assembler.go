@@ -4,18 +4,18 @@ import (
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zst/column"
 )
 
 var ErrBadSchemaID = errors.New("bad schema id in root reassembly column")
 
 type Assembly struct {
-	root    zng.Value
-	schemas []*zng.TypeRecord
-	columns []*zng.Record
+	root    zed.Value
+	schemas []zed.Type
+	columns []*zed.Record
 }
 
 func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
@@ -31,7 +31,8 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 		rec := a.columns[k]
 		zv := rec.Value
 		record_col := &column.Record{}
-		if err := record_col.UnmarshalZNG(a.schemas[k], zv, seeker); err != nil {
+		typ := zed.TypeRecordOf(a.schemas[k])
+		if err := record_col.UnmarshalZNG(typ, zv, seeker); err != nil {
 			return nil, err
 		}
 		assembler.columns[k] = record_col
@@ -39,18 +40,18 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 	return assembler, nil
 }
 
-// Assembler implements the zbuf.Reader and io.Closer.  It reads a columnar
-// zst object to generate a stream of zng.Records.  It also has methods
+// Assembler implements the zio.Reader and io.Closer.  It reads a columnar
+// zst object to generate a stream of zed.Records.  It also has methods
 // to read metainformation for test and debugging.
 type Assembler struct {
 	root    *column.Int
 	columns []*column.Record
-	schemas []*zng.TypeRecord
+	schemas []zed.Type
 	builder zcode.Builder
 	err     error
 }
 
-func (a *Assembler) Read() (*zng.Record, error) {
+func (a *Assembler) Read() (*zed.Record, error) {
 	a.builder.Reset()
 	schemaID, err := a.root.Read()
 	if err == io.EOF {
@@ -71,7 +72,7 @@ func (a *Assembler) Read() (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	rec := zng.NewRecord(a.schemas[schemaID], body)
+	rec := zed.NewRecord(a.schemas[schemaID], body)
 	//XXX if we had a buffer pool where records could be built back to
 	// back in batches, then we could get rid of this extra allocation
 	// and copy on every record

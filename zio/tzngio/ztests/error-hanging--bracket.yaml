@@ -1,14 +1,14 @@
 # missing bracket in record type (with missing field name) should cause an error
 script: |
-  zq -f tzng -i tzng in.tzng
+  ! zq -f tzng -i tzng in.tzng
 
 inputs:
   - name: in.tzng
     data: |
-        #0:record[record[s:string]
-        0:[-;]
+      #0:record[record[s:string]
+      0:[-;]
 
 outputs:
   - name: stderr
     regexp: |
-         .*: line 1: syntax error parsing type string
+      .*: line 1: syntax error parsing type string

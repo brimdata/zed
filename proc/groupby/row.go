@@ -1,9 +1,9 @@
 package groupby
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/agg"
-	"github.com/brimdata/zed/zng"
 )
 
 type valRow []agg.Function
@@ -16,7 +16,7 @@ func newValRow(aggs []*expr.Aggregator) valRow {
 	return cols
 }
 
-func (v valRow) apply(aggs []*expr.Aggregator, rec *zng.Record) error {
+func (v valRow) apply(aggs []*expr.Aggregator, rec *zed.Record) error {
 	for k, a := range aggs {
 		if err := a.Apply(v[k], rec); err != nil {
 			return err
@@ -25,7 +25,7 @@ func (v valRow) apply(aggs []*expr.Aggregator, rec *zng.Record) error {
 	return nil
 }
 
-func (v valRow) consumeAsPartial(rec *zng.Record, vals []expr.Evaluator) error {
+func (v valRow) consumeAsPartial(rec *zed.Record, vals []expr.Evaluator) error {
 	for k, r := range v {
 		v, err := vals[k].Eval(rec)
 		if err != nil {

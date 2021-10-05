@@ -1,9 +1,10 @@
-script: zq -f zeek -
+script: |
+  ! zq -f zeek -
 
 inputs:
   - name: stdin
     data: |
-        {a:[{s:"foo"}]}
+      {a:[{s:"foo"}]}
 
 outputs:
   - name: stderr

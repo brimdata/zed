@@ -1,28 +1,27 @@
 package expr
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/agg"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 )
 
 type Generator interface {
-	Init(*zng.Record)
-	Next() (zng.Value, error)
+	Init(*zed.Record)
+	Next() (zed.Value, error)
 }
 
 type MapMethod struct {
 	src    Generator
-	dollar zng.Value
+	dollar zed.Value
 	expr   Evaluator
-	rec    *zng.Record
+	rec    *zed.Record
 }
 
 func NewMapMethod(src Generator) *MapMethod {
 	return &MapMethod{src: src}
 }
 
-func (m *MapMethod) Ref() *zng.Value {
+func (m *MapMethod) Ref() *zed.Value {
 	return &m.dollar
 }
 
@@ -30,12 +29,12 @@ func (m *MapMethod) Set(e Evaluator) {
 	m.expr = e
 }
 
-func (m *MapMethod) Init(rec *zng.Record) {
+func (m *MapMethod) Init(rec *zed.Record) {
 	m.rec = rec
 	m.src.Init(rec)
 }
 
-func (m *MapMethod) Next() (zng.Value, error) {
+func (m *MapMethod) Next() (zed.Value, error) {
 	zv, err := m.src.Next()
 	if err != nil || zv.Type == nil {
 		return zv, err
@@ -46,16 +45,16 @@ func (m *MapMethod) Next() (zng.Value, error) {
 
 type FilterMethod struct {
 	src    Generator
-	dollar zng.Value
+	dollar zed.Value
 	expr   Evaluator
-	rec    *zng.Record
+	rec    *zed.Record
 }
 
 func NewFilterMethod(src Generator) *FilterMethod {
 	return &FilterMethod{src: src}
 }
 
-func (f *FilterMethod) Ref() *zng.Value {
+func (f *FilterMethod) Ref() *zed.Value {
 	return &f.dollar
 }
 
@@ -63,12 +62,12 @@ func (f *FilterMethod) Set(e Evaluator) {
 	f.expr = e
 }
 
-func (f *FilterMethod) Init(rec *zng.Record) {
+func (f *FilterMethod) Init(rec *zed.Record) {
 	f.rec = rec
 	f.src.Init(rec)
 }
 
-func (f *FilterMethod) Next() (zng.Value, error) {
+func (f *FilterMethod) Next() (zed.Value, error) {
 	for {
 		zv, err := f.src.Next()
 		if err != nil || zv.Type == nil {
@@ -77,24 +76,24 @@ func (f *FilterMethod) Next() (zng.Value, error) {
 		f.dollar = zv
 		b, err := f.expr.Eval(f.rec)
 		if err != nil {
-			return zng.Value{}, err
+			return zed.Value{}, err
 		}
-		if zng.AliasOf(b.Type) != zng.TypeBool {
-			return zng.NewErrorf("not a boolean"), nil
+		if zed.AliasOf(b.Type) != zed.TypeBool {
+			return zed.NewErrorf("not a boolean"), nil
 		}
-		if zng.IsTrue(b.Bytes) {
+		if zed.IsTrue(b.Bytes) {
 			return zv, nil
 		}
 	}
 }
 
 type AggExpr struct {
-	zctx   *zson.Context
+	zctx   *zed.Context
 	newAgg agg.Pattern
 	src    Generator
 }
 
-func NewAggExpr(zctx *zson.Context, pattern agg.Pattern, src Generator) *AggExpr {
+func NewAggExpr(zctx *zed.Context, pattern agg.Pattern, src Generator) *AggExpr {
 	return &AggExpr{
 		zctx:   zctx,
 		newAgg: pattern,
@@ -102,7 +101,7 @@ func NewAggExpr(zctx *zson.Context, pattern agg.Pattern, src Generator) *AggExpr
 	}
 }
 
-func (a *AggExpr) Eval(rec *zng.Record) (zng.Value, error) {
+func (a *AggExpr) Eval(rec *zed.Record) (zed.Value, error) {
 	// XXX This is currently really inefficient while we prototype
 	// this machinery.  We used to have a Reset() method on aggregators
 	// and we should probably reintroduce that for use here so we
@@ -112,16 +111,16 @@ func (a *AggExpr) Eval(rec *zng.Record) (zng.Value, error) {
 	for {
 		zv, err := a.src.Next()
 		if err != nil {
-			if err == zng.ErrMissing {
+			if err == zed.ErrMissing {
 				continue
 			}
-			return zng.Value{}, err
+			return zed.Value{}, err
 		}
 		if zv.Type == nil {
 			return f.Result(a.zctx)
 		}
 		if err := f.Consume(zv); err != nil {
-			return zng.Value{}, err
+			return zed.Value{}, err
 		}
 	}
 }

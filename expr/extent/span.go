@@ -3,9 +3,9 @@ package extent
 import (
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -17,20 +17,20 @@ import (
 // Span represents the closed interval [first, last] where first is "less than"
 // last with respect to the Span's order.Which.
 type Span interface {
-	First() zng.Value
-	Last() zng.Value
-	Before(zng.Value) bool
-	After(zng.Value) bool
-	In(zng.Value) bool
-	Overlaps(zng.Value, zng.Value) bool
+	First() zed.Value
+	Last() zed.Value
+	Before(zed.Value) bool
+	After(zed.Value) bool
+	In(zed.Value) bool
+	Overlaps(zed.Value, zed.Value) bool
 	Crop(Span) bool
-	Extend(zng.Value)
+	Extend(zed.Value)
 	String() string
 }
 
 type Generic struct {
-	first zng.Value
-	last  zng.Value
+	first zed.Value
+	last  zed.Value
 	cmp   expr.ValueCompareFn
 }
 
@@ -39,18 +39,19 @@ type Generic struct {
 // then the first value is larger than the last value and Before is true
 // for larger values while After is true for smaller values, etc.
 func CompareFunc(o order.Which) expr.ValueCompareFn {
-	//  Treat null as the minimum value.
-	cmp := expr.NewValueCompareFn(false)
+	// The values of nullsMax here (used during lake data reads) and in
+	// zbuf.NewCompareFn (used during lake data writes) must agree.
+	cmp := expr.NewValueCompareFn(o == order.Asc)
 	if o == order.Asc {
 		return cmp
 	}
-	return func(a, b zng.Value) int { return cmp(b, a) }
+	return func(a, b zed.Value) int { return cmp(b, a) }
 }
 
-// Create a new Range from generic range of zng.Values according
+// Create a new Range from generic range of zed.Values according
 // to lower and upper.  The range is not sensitive to the absolute order
 // of lower and upper.
-func NewGeneric(lower, upper zng.Value, cmp expr.ValueCompareFn) *Generic {
+func NewGeneric(lower, upper zed.Value, cmp expr.ValueCompareFn) *Generic {
 	if cmp(lower, upper) > 0 {
 		lower, upper = upper, lower
 	}
@@ -61,31 +62,31 @@ func NewGeneric(lower, upper zng.Value, cmp expr.ValueCompareFn) *Generic {
 	}
 }
 
-func NewGenericFromOrder(first, last zng.Value, o order.Which) *Generic {
+func NewGenericFromOrder(first, last zed.Value, o order.Which) *Generic {
 	return NewGeneric(first, last, CompareFunc(o))
 }
 
-func (g *Generic) In(zv zng.Value) bool {
+func (g *Generic) In(zv zed.Value) bool {
 	return g.cmp(zv, g.first) >= 0 && g.cmp(zv, g.last) <= 0
 }
 
-func (g *Generic) First() zng.Value {
+func (g *Generic) First() zed.Value {
 	return g.first
 }
 
-func (g *Generic) Last() zng.Value {
+func (g *Generic) Last() zed.Value {
 	return g.last
 }
 
-func (g *Generic) After(zv zng.Value) bool {
+func (g *Generic) After(zv zed.Value) bool {
 	return g.cmp(zv, g.last) > 0
 }
 
-func (g *Generic) Before(zv zng.Value) bool {
+func (g *Generic) Before(zv zed.Value) bool {
 	return g.cmp(zv, g.first) < 0
 }
 
-func (g *Generic) Overlaps(first, last zng.Value) bool {
+func (g *Generic) Overlaps(first, last zed.Value) bool {
 	if g.cmp(first, g.first) >= 0 {
 		return g.cmp(first, g.last) <= 0
 	}
@@ -102,7 +103,7 @@ func (g *Generic) Crop(s Span) bool {
 	return g.cmp(g.first, g.last) <= 0
 }
 
-func (g *Generic) Extend(zv zng.Value) {
+func (g *Generic) Extend(zv zed.Value) {
 	if g.cmp(zv, g.first) < 0 {
 		g.first = zv
 	} else if g.cmp(zv, g.last) > 0 {

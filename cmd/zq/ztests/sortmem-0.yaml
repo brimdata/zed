@@ -1,4 +1,5 @@
-script: zq -sortmem 0 -
+script: |
+  ! zq -sortmem 0 -
 
 outputs:
   - name: stderr

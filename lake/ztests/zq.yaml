@@ -1,8 +1,8 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -p logs -q
-  zed lake load -q -p logs babble.zson
+  zed lake create -q logs
+  zed lake load -q -use logs@main babble.zson
   zed lake query "from logs | count()" | zq -z -
 
 inputs:
@@ -12,4 +12,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {count:1000 (uint64)} (=0)
+      {count:1000(uint64)}

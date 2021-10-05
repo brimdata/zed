@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,7 +15,7 @@ func TestReadOneLineNoEOF(t *testing.T) {
 	const expected = `{msg:"record1"}`
 	type result struct {
 		err error
-		rec *zng.Record
+		rec *zed.Record
 	}
 	done := make(chan result)
 	go func() {
@@ -23,7 +23,7 @@ func TestReadOneLineNoEOF(t *testing.T) {
 		// The test needs two records because with a single record the parser
 		// will stall waiting to see if the record has a decorator.
 		reader <- []byte(expected + "\n" + expected)
-		r := zson.NewReader(reader, zson.NewContext())
+		r := zson.NewReader(reader, zed.NewContext())
 		rec, err := r.Read()
 		done <- result{rec: rec, err: err}
 	}()

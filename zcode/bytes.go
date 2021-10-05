@@ -14,7 +14,6 @@
 package zcode
 
 import (
-	"encoding/binary"
 	"errors"
 )
 
@@ -153,12 +152,6 @@ func sizeOfUvarint(u64 uint64) int {
 		u64 >>= 7
 	}
 	return n
-}
-
-// uvarint just calls binary.Uvarint.  It's here for symmetry with
-// appendUvarint.
-func uvarint(buf []byte) (uint64, int) {
-	return binary.Uvarint(buf)
 }
 
 func containerTag(length int) uint64 {

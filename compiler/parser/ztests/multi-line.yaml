@@ -1,14 +1,12 @@
 script: |
-  zq -z -I count.zql in.zson
+  zq -z -I count.zed in.zson
 
 inputs:
-  - name: count.zql
+  - name: count.zed
     data: |
-
       c
         :=
           count()
-
   - name: in.zson
     data: |
       {s:"1"}
@@ -18,4 +16,4 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {c:3 (uint64)} (=0)
+      {c:3(uint64)}

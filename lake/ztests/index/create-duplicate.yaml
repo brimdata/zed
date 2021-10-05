@@ -1,0 +1,10 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake index create IPs type ip
+  ! zed lake index create IPs type ip
+
+outputs:
+  - name: stderr
+    regexp: |
+      index rule already exists

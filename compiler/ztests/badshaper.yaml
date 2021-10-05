@@ -1,4 +1,5 @@
-script: zq -z -I badshaper.zed -
+script: |
+  ! zq -z -I badshaper.zed -
 
 inputs:
   - name: stdin
@@ -12,7 +13,6 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      zq: error parsing Zed at line 1, col 34:
+      zq: error parsing Zed in badshaper.zed at line 1, column 34:
       type foo={_path:string,testfield:"null"}
                                    === ^ ===
-      put . = shape(foo)

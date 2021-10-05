@@ -4,9 +4,9 @@ script: |
 inputs:
   - name: stdin
     data: |
-      {x:0} (=typ)
+      {x:0}(=typ)
 
 outputs:
   - name: stdout
     data: |
-      {x:0} (=typ)
+      {x:0}(=typ)

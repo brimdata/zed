@@ -1,0 +1,20 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  ! zed lake use
+  zed lake create -q POOL
+  echo ===
+  zed lake use -p POOL
+  echo ===
+  zed lake use
+
+outputs:
+  - name: stdout
+    data: |
+      ===
+      Switched to branch "main" on pool "POOL"
+      ===
+      HEAD at POOL@main
+  - name: stderr
+    regexp: |
+      no branch HEAD set: pool name and branch name or commit ID must be given

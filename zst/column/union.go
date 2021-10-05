@@ -5,18 +5,17 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 )
 
 type UnionWriter struct {
-	typ      *zng.TypeUnion
+	typ      *zed.TypeUnion
 	values   []Writer
 	selector *IntWriter
 }
 
-func NewUnionWriter(typ *zng.TypeUnion, spiller *Spiller) *UnionWriter {
+func NewUnionWriter(typ *zed.TypeUnion, spiller *Spiller) *UnionWriter {
 	var values []Writer
 	for _, typ := range typ.Types {
 		values = append(values, NewWriter(typ, spiller))
@@ -54,8 +53,8 @@ func (u *UnionWriter) Flush(eof bool) error {
 	return nil
 }
 
-func (u *UnionWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zng.Type, error) {
-	var cols []zng.Column
+func (u *UnionWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
+	var cols []zed.Column
 	b.BeginContainer()
 	for k, value := range u.values {
 		typ, err := value.MarshalZNG(zctx, b)
@@ -64,13 +63,13 @@ func (u *UnionWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zng.Type
 		}
 		// Field name is based on integer position in the column.
 		name := fmt.Sprintf("c%d", k)
-		cols = append(cols, zng.Column{name, typ})
+		cols = append(cols, zed.Column{name, typ})
 	}
 	typ, err := u.selector.MarshalZNG(zctx, b)
 	if err != nil {
 		return nil, err
 	}
-	cols = append(cols, zng.Column{"selector", typ})
+	cols = append(cols, zed.Column{"selector", typ})
 	b.EndContainer()
 	return zctx.LookupTypeRecord(cols)
 }
@@ -80,12 +79,12 @@ type Union struct {
 	selector *Int
 }
 
-func (u *Union) UnmarshalZNG(typ *zng.TypeUnion, in zng.Value, r io.ReaderAt) error {
-	rtype, ok := in.Type.(*zng.TypeRecord)
+func (u *Union) UnmarshalZNG(typ *zed.TypeUnion, in zed.Value, r io.ReaderAt) error {
+	rtype, ok := in.Type.(*zed.TypeRecord)
 	if !ok {
 		return errors.New("zst object union_column not a record")
 	}
-	rec := zng.NewRecord(rtype, in.Bytes)
+	rec := zed.NewRecord(rtype, in.Bytes)
 	for k := 0; k < len(typ.Types); k++ {
 		zv, err := rec.Access(fmt.Sprintf("c%d", k))
 		if err != nil {
@@ -114,7 +113,7 @@ func (u *Union) Read(b *zcode.Builder) error {
 		return errors.New("bad selector in zst union reader") //XXX
 	}
 	b.BeginContainer()
-	b.AppendPrimitive(zng.EncodeInt(int64(selector)))
+	b.AppendPrimitive(zed.EncodeInt(int64(selector)))
 	if err := u.values[selector].Read(b); err != nil {
 		return err
 	}

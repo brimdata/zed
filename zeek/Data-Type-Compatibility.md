@@ -120,17 +120,17 @@ zq -Z zeek_types.log | tee zeek_types.zson
         "in" (bstring),
         "set" (bstring),
         "things" (bstring)
-    ]| (=0),
+    ]|,
     my_vector: [
         "order" (bstring),
         "is" (bstring),
         "important" (bstring)
-    ] (=1),
+    ],
     my_record: {
         name: "Jeanne" (bstring),
         age: 122 (uint64)
-    } (=2)
-} (=3)
+    }
+}
 ```
 
 #### Reading the saved ZSON output and outputting as Zeek TSV:

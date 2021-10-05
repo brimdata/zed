@@ -4,27 +4,27 @@ import (
 	"bufio"
 	"os"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 )
 
 // File provides a means to write a sequence of zng records to temporary
 // storage then read them back.  This is used for processing large batches of
 // data that do not fit in memory and/or cannot be shuffled to a peer worker,
-// but can be processed in multiple passes.  File implements zbuf.Reader and
-// zbuf.Writer.
+// but can be processed in multiple passes.  File implements zio.Reader and
+// zio.Writer.
 type File struct {
 	*zngio.Reader
 	*zngio.Writer
 	file *os.File
 }
 
-// NewFile returns a File.  Records should be written to File via the zbuf.Writer
+// NewFile returns a File.  Records should be written to File via the zio.Writer
 // interface, followed by a call to the Rewind method, followed by reading
-// records via the zbuf.Reader interface.
+// records via the zio.Reader interface.
 func NewFile(f *os.File) *File {
 	return &File{
 		Writer: zngio.NewWriter(bufwriter.New(zio.NopCloser(f)), zngio.WriterOpts{}),
@@ -40,7 +40,7 @@ func NewTempFile() (*File, error) {
 	return NewFile(f), nil
 }
 
-func NewFileWithPath(path string, zctx *zson.Context) (*File, error) {
+func NewFileWithPath(path string, zctx *zed.Context) (*File, error) {
 	f, err := fs.Create(path)
 	if err != nil {
 		return nil, err
@@ -48,7 +48,7 @@ func NewFileWithPath(path string, zctx *zson.Context) (*File, error) {
 	return NewFile(f), nil
 }
 
-func (f *File) Rewind(zctx *zson.Context) error {
+func (f *File) Rewind(zctx *zed.Context) error {
 	// Close the writer to flush any pending output but since we
 	// wrapped the file in a zio.NopCloser, the file will stay open.
 	if err := f.Writer.Close(); err != nil {

@@ -1,0 +1,28 @@
+script: |
+  source service.sh
+  zapi create -q POOL
+  zapi load -q -use POOL@main a.zson
+  zapi branch -q -use POOL@main child
+  zapi load -q -use POOL@child b.zson
+  zapi query -z "from POOL | sort ."
+  echo ===
+  zapi merge -q -use POOL@child main
+  zapi query -z "from POOL | sort ."
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+  - name: b.zson
+    data: |
+      {b:1}
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
+      ===
+      {a:1}
+      {b:1}

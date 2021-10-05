@@ -27,6 +27,9 @@ func IsTerminal(w io.Writer) bool {
 	if f, ok := w.(*os.File); ok {
 		return terminal.IsTerminalFile(f)
 	}
+	if nc, ok := w.(*storage.NopCloser); ok {
+		return IsTerminal(nc.Writer)
+	}
 	return false
 }
 
@@ -48,7 +51,7 @@ func NewFileFromURI(ctx context.Context, engine storage.Engine, path *storage.UR
 	} else {
 		wc = bufwriter.New(f)
 	}
-	// On close, zbuf.WriteCloser.Close() will close and flush the
+	// On close, zio.WriteCloser.Close will close and flush the
 	// downstream writer, which will flush the bufwriter here and,
 	// in turn, close its underlying writer.
 	return anyio.NewWriter(wc, opts)

@@ -1,0 +1,18 @@
+zed: |
+  switch (
+     2 => put v:='two';
+     1 => put v:='one';
+     3 => filter null;
+     default => count() | put a:=-1;
+  ) | sort a
+
+input: |
+  {a:1,s:"a"}
+  {a:2,s:"B"}
+  {a:3,s:"c"}
+  {a:4,s:"c"}
+
+output: |
+  {count:1(uint64),a:-1}
+  {a:1,s:"a",v:"one"}
+  {a:2,s:"B",v:"two"}

@@ -14,7 +14,8 @@ import (
 	"time"
 
 	"github.com/brimdata/zed/api"
-	"github.com/brimdata/zed/compiler/ast"
+	"github.com/brimdata/zed/compiler/parser"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/go-resty/resty/v2"
 	"github.com/segmentio/ksuid"
@@ -27,10 +28,14 @@ const (
 )
 
 var (
-	// ErrPoolNotFound returns when specified pool does not exist.
+	// ErrPoolNotFound is returned when the specified pool does not exist.
 	ErrPoolNotFound = errors.New("pool not found")
-	// ErrPoolExists returns when specified the pool already exists.
+	// ErrPoolExists is returned when the specified the pool already exists.
 	ErrPoolExists = errors.New("pool exists")
+	// ErrBranchNotFound is returned when the specified branch does not exist.
+	ErrBranchNotFound = errors.New("branch not found")
+	// ErrBranchExists is returned when the specified the branch already exists.
+	ErrBranchExists = errors.New("branch exists")
 )
 
 type Response struct {
@@ -182,39 +187,6 @@ func (c *Connection) Version(ctx context.Context) (string, error) {
 	return resp.Result().(*api.VersionResponse).Version, nil
 }
 
-// ZedToAST sends a request to the server to translate a Zed program into its
-// AST form.
-func (c *Connection) ZedToAST(ctx context.Context, zprog string) ([]byte, error) {
-	resp, err := c.Request(ctx).
-		SetBody(api.ASTRequest{ZQL: zprog}).
-		SetHeader("Accept", api.MediaTypeJSON).
-		Post("/ast")
-	if err != nil {
-		return nil, err
-	}
-	return resp.Body(), nil
-}
-
-func (c *Connection) ScanPools(ctx context.Context) (*Response, error) {
-	req := c.Request(ctx)
-	req.Method = http.MethodGet
-	req.URL = "/pool"
-	return c.stream(req)
-}
-
-// PoolGet retrieves information about the specified pool.
-func (c *Connection) PoolGet(ctx context.Context, id ksuid.KSUID) (*Response, error) {
-	req := c.Request(ctx)
-	req.Method = http.MethodGet
-	req.URL = path.Join("/pool", id.String())
-	r, err := c.stream(req)
-	var errRes *ErrorResponse
-	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
-		return nil, ErrPoolNotFound
-	}
-	return r, err
-}
-
 func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*Response, error) {
 	req := c.Request(ctx)
 	req.Method = http.MethodGet
@@ -223,6 +195,18 @@ func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*Response, 
 	var errRes *ErrorResponse
 	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
 		return nil, ErrPoolNotFound
+	}
+	return r, err
+}
+
+func (c *Connection) BranchGet(ctx context.Context, poolID ksuid.KSUID, branchName string) (*Response, error) {
+	req := c.Request(ctx)
+	req.Method = http.MethodGet
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName)
+	r, err := c.stream(req)
+	var errRes *ErrorResponse
+	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
+		return nil, ErrBranchNotFound
 	}
 	return r, err
 }
@@ -256,85 +240,61 @@ func (c *Connection) PoolRemove(ctx context.Context, id ksuid.KSUID) error {
 	return err
 }
 
-func (c *Connection) ScanStaging(ctx context.Context, pool ksuid.KSUID, tags []ksuid.KSUID) (*Response, error) {
-	t := make([]string, len(tags))
-	for i, tag := range tags {
-		t[i] = tag.String()
-	}
+func (c *Connection) BranchPost(ctx context.Context, poolID ksuid.KSUID, payload api.BranchPostRequest) (*Response, error) {
 	req := c.Request(ctx).
-		SetQueryParamsFromValues(url.Values{"tag": t})
-	req.Method = http.MethodGet
-	req.URL = path.Join("/pool", pool.String(), "staging")
-	return c.stream(req)
-}
-
-func (c *Connection) ScanSegments(ctx context.Context, pool ksuid.KSUID, at string, partitions bool) (*Response, error) {
-	req := c.Request(ctx)
-	if at != "" {
-		req.SetQueryParam("at", at)
-	}
-	if partitions {
-		req.SetQueryParam("partition", "T")
-	}
-	req.Method = http.MethodGet
-	req.URL = path.Join("/pool", pool.String(), "segments")
-	return c.stream(req)
-}
-
-func (c *Connection) ScanLog(ctx context.Context, pool ksuid.KSUID) (*Response, error) {
-	req := c.Request(ctx)
-	req.Method = http.MethodGet
-	req.URL = path.Join("/pool", pool.String(), "log")
-	return c.stream(req)
-}
-
-func (c *Connection) SearchRaw(ctx context.Context, search api.SearchRequest, params map[string]string) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(search).
-		SetQueryParam("format", "zng")
-	req.SetQueryParams(params)
+		SetBody(payload)
 	req.Method = http.MethodPost
-	req.URL = "/search"
-	return c.stream(req)
+	req.URL = path.Join("/pool", poolID.String())
+	resp, err := c.stream(req)
+	var errRes *ErrorResponse
+	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusConflict {
+		return nil, ErrBranchExists
+	}
+	return resp, err
 }
 
-func (c *Connection) Query(ctx context.Context, query string) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(api.QueryRequest{Query: query})
+func (c *Connection) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (*Response, error) {
+	req := c.Request(ctx)
+	if err := encodeCommitMessage(req, message); err != nil {
+		return nil, err
+	}
 	req.Method = http.MethodPost
-	req.URL = "/query"
+	req.URL = urlPath("pool", poolID.String(), "branch", parentBranch, "merge", childBranch)
 	return c.stream(req)
 }
 
-// Search sends a search request to the server and returns a ZngSearch
-// that the caller uses to stream back results via the Read method.
-// Example usage:
-//
-//	conn := client.NewConnectionTo("http://localhost:9867")
-//	poolID, err := conn.PoolLookup(ctx, "poolName")
-//	if err != nil { return err }
-//	search, err := conn.Search(ctx, poolID, "_path=conn | count()")
-//	if err != nil { return err }
-//	for {
-//		rec, err := search.Read()
-//		if err != nil { return err }
-//		if rec == nil {
-//			// End of results.
-//			return nil
-//		}
-//		fmt.Println(rec)
-//	}
-//
-func (c *Connection) Search(ctx context.Context, id ksuid.KSUID, query string) (*Response, error) {
-	procBytes, err := c.ZedToAST(ctx, query)
+func (c *Connection) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (*Response, error) {
+	req := c.Request(ctx)
+	if err := encodeCommitMessage(req, message); err != nil {
+		return nil, err
+	}
+	req.Method = http.MethodPost
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName, "revert", commitID.String())
+	return c.stream(req)
+}
+
+func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src string, filenames ...string) (*Response, error) {
+	src, srcInfo, err := parser.ConcatSource(filenames, src)
 	if err != nil {
 		return nil, err
 	}
-	return c.SearchRaw(ctx, api.SearchRequest{
-		Pool: api.KSUID(id),
-		Proc: procBytes,
-		Dir:  -1,
-	}, nil)
+	body := api.QueryRequest{Query: src}
+	if head != nil {
+		body.Head = *head
+	}
+	req := c.Request(ctx).SetBody(body)
+	req.Method = http.MethodPost
+	req.URL = "/query"
+	res, err := c.stream(req)
+	var ae *api.Error
+	if errors.As(err, &ae) {
+		if m, ok := ae.Info.(map[string]interface{}); ok {
+			if offset, ok := m["parse_error_offset"].(float64); ok {
+				return res, parser.NewError(src, srcInfo, int(offset))
+			}
+		}
+	}
+	return res, err
 }
 
 func (c *Connection) IndexPost(ctx context.Context, id ksuid.KSUID, post api.IndexPostRequest) error {
@@ -344,80 +304,34 @@ func (c *Connection) IndexPost(ctx context.Context, id ksuid.KSUID, post api.Ind
 	return err
 }
 
-type LogPostOpts struct {
-	StopError bool
-	Shaper    ast.Proc
-}
-
-func (c *Connection) Add(ctx context.Context, pool ksuid.KSUID, r io.Reader) (*Response, error) {
+func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r io.Reader, message api.CommitMessage) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(r)
+	if err := encodeCommitMessage(req, message); err != nil {
+		return nil, err
+	}
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", pool.String(), "add")
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName)
 	return c.stream(req)
 }
 
-func (c *Connection) Commit(ctx context.Context, pool, commitID ksuid.KSUID, commit api.CommitRequest) error {
-	_, err := c.Request(ctx).
-		SetBody(commit).
-		Post(path.Join("/pool", pool.String(), "staging", commitID.String()))
-	return err
+func encodeCommitMessage(req *resty.Request, message api.CommitMessage) error {
+	encoded, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+	req.SetHeader("Zed-Commit", string(encoded))
+	return nil
 }
 
-func (c *Connection) Delete(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (*Response, error) {
+func (c *Connection) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (*Response, error) {
 	req := c.Request(ctx).
 		SetBody(ids)
-	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", pool.String(), "delete")
-	return c.stream(req)
-}
-
-func (c *Connection) Squash(ctx context.Context, pool ksuid.KSUID, ids []ksuid.KSUID) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(api.SquashRequest{ids})
-	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", pool.String(), "squash")
-	return c.stream(req)
-}
-
-func (c *Connection) LogPostPath(ctx context.Context, id ksuid.KSUID, payload api.LogPostRequest) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(payload)
-	req.URL = path.Join("/pool", id.String(), "log", "paths")
-	req.Method = http.MethodPost
-	return c.stream(req)
-}
-
-func (c *Connection) LogPost(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, paths []string) (*Response, error) {
-	mw, err := NewMultipartWriter(c.storage, paths...)
-	if err != nil {
+	if err := encodeCommitMessage(req, message); err != nil {
 		return nil, err
 	}
-	return c.LogPostWriter(ctx, id, opts, mw)
-}
-
-func (c *Connection) LogPostReaders(ctx context.Context, engine storage.Engine, id ksuid.KSUID, opts *LogPostOpts, readers ...io.Reader) (*Response, error) {
-	w, err := MultipartDataWriter(engine, readers...)
-	if err != nil {
-		return nil, err
-	}
-	return c.LogPostWriter(ctx, id, opts, w)
-}
-
-func (c *Connection) LogPostWriter(ctx context.Context, id ksuid.KSUID, opts *LogPostOpts, writer *MultipartWriter) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(writer).
-		SetHeader("Content-Type", writer.ContentType())
 	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", id.String(), "log")
-	if opts != nil {
-		if opts.Shaper != nil {
-			writer.SetShaper(opts.Shaper)
-		}
-		if opts.StopError {
-			req.SetQueryParam("stop_err", "true")
-		}
-	}
+	req.URL = urlPath("pool", poolID.String(), "branch", branchName, "delete")
 	return c.stream(req)
 }
 
@@ -446,4 +360,12 @@ func (e *ErrorResponse) Unwrap() error {
 
 func (e *ErrorResponse) Error() string {
 	return fmt.Sprintf("status code %d: %v", e.StatusCode(), e.Err)
+}
+
+func urlPath(elem ...string) string {
+	var s string
+	for _, e := range elem {
+		s += "/" + url.PathEscape(e)
+	}
+	return path.Clean(s)
 }

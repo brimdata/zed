@@ -1,9 +1,9 @@
-// Package ast declares the types used to represent syntax trees for zql
+// Package ast declares the types used to represent syntax trees for Zed
 // queries.
 package ast
 
 import (
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 )
@@ -36,9 +36,9 @@ type Root struct {
 }
 
 type Search struct {
-	Kind  string        `json:"kind" unpack:""`
-	Text  string        `json:"text"`
-	Value zed.Primitive `json:"value"` //XXX search should be extended to complex types
+	Kind  string           `json:"kind" unpack:""`
+	Text  string           `json:"text"`
+	Value astzed.Primitive `json:"value"` //XXX search should be extended to complex types
 }
 
 type UnaryExpr struct {
@@ -85,9 +85,9 @@ type Call struct {
 }
 
 type Cast struct {
-	Kind string   `json:"kind" unpack:""`
-	Expr Expr     `json:"expr"`
-	Type zed.Type `json:"type"`
+	Kind string      `json:"kind" unpack:""`
+	Expr Expr        `json:"expr"`
+	Type astzed.Type `json:"type"`
 }
 
 type SeqExpr struct {
@@ -192,6 +192,7 @@ type (
 	// a stream of records from their parent.
 	Switch struct {
 		Kind  string `json:"kind" unpack:""`
+		Expr  Expr   `json:"expr"`
 		Cases []Case `json:"cases"`
 	}
 	// A Sort proc represents a proc that sorts records.
@@ -269,11 +270,11 @@ type (
 	// output result; likewise, if PartialsIn is true, the proc will
 	// expect partial results as input.
 	Summarize struct {
-		Kind     string         `json:"kind" unpack:""`
-		Duration *zed.Primitive `json:"duration"`
-		Limit    int            `json:"limit"`
-		Keys     []Assignment   `json:"keys"`
-		Aggs     []Assignment   `json:"aggs"`
+		Kind     string            `json:"kind" unpack:""`
+		Duration *astzed.Primitive `json:"duration"`
+		Limit    int               `json:"limit"`
+		Keys     []Assignment      `json:"keys"`
+		Aggs     []Assignment      `json:"aggs"`
 	}
 	// A Top proc is similar to a Sort with a few key differences:
 	// - It only sorts in descending order.
@@ -289,6 +290,14 @@ type (
 	Put struct {
 		Kind string       `json:"kind" unpack:""`
 		Args []Assignment `json:"args"`
+	}
+
+	// An OpAssignment proc is a list of assignments whose parent proc
+	// is unknown: It could be a Summarize or Put proc. This will be
+	// determined in the semantic phase.
+	OpAssignment struct {
+		Kind        string       `json:"kind" unpack:""`
+		Assignments []Assignment `json:"assignments"`
 	}
 
 	// A Rename proc represents a proc that renames fields.
@@ -321,9 +330,9 @@ type (
 	}
 
 	TypeProc struct {
-		Kind string   `json:"kind" unpack:""`
-		Name string   `json:"name"`
-		Type zed.Type `json:"type"`
+		Kind string      `json:"kind" unpack:""`
+		Name string      `json:"name"`
+		Type astzed.Type `json:"type"`
 	}
 	// A SQLExpr can be a proc, an expression inside of a SQL FROM clause,
 	// or an expression used as a Zed value generator.  Currenly, the "select"
@@ -368,19 +377,25 @@ type (
 		Layout *Layout `json:"layout"`
 	}
 	Pool struct {
-		Kind      string `json:"kind" unpack:""`
-		Name      string `json:"name"`
-		At        string `json:"at"`
-		Range     *Range `json:"range"`
-		ScanOrder string `json:"scan_order"` // asc, desc, or unknown
+		Kind      string   `json:"kind" unpack:""`
+		Spec      PoolSpec `json:"spec"`
+		At        string   `json:"at"`
+		Range     *Range   `json:"range"`
+		ScanOrder string   `json:"scan_order"` // asc, desc, or unknown
 	}
 	Explode struct {
-		Kind string   `json:"kind" unpack:""`
-		Args []Expr   `json:"args"`
-		Type zed.Type `json:"type"`
-		As   Expr     `json:"as"`
+		Kind string      `json:"kind" unpack:""`
+		Args []Expr      `json:"args"`
+		Type astzed.Type `json:"type"`
+		As   Expr        `json:"as"`
 	}
 )
+
+type PoolSpec struct {
+	Pool   string `json:"pool"`
+	Commit string `json:"commit"`
+	Meta   string `json:"meta"`
+}
 
 type Range struct {
 	Kind  string `json:"kind" unpack:""`
@@ -395,6 +410,7 @@ type Source interface {
 func (*Pool) Source() {}
 func (*File) Source() {}
 func (*HTTP) Source() {}
+func (*Pass) Source() {}
 
 type Layout struct {
 	Kind  string `json:"kind" unpack:""`
@@ -443,30 +459,31 @@ type Assignment struct {
 	RHS  Expr   `json:"rhs"`
 }
 
-func (*Sequential) ProcAST() {}
-func (*Parallel) ProcAST()   {}
-func (*Switch) ProcAST()     {}
-func (*Sort) ProcAST()       {}
-func (*Cut) ProcAST()        {}
-func (*Pick) ProcAST()       {}
-func (*Drop) ProcAST()       {}
-func (*Head) ProcAST()       {}
-func (*Tail) ProcAST()       {}
-func (*Pass) ProcAST()       {}
-func (*Filter) ProcAST()     {}
-func (*Uniq) ProcAST()       {}
-func (*Summarize) ProcAST()  {}
-func (*Top) ProcAST()        {}
-func (*Put) ProcAST()        {}
-func (*Rename) ProcAST()     {}
-func (*Fuse) ProcAST()       {}
-func (*Join) ProcAST()       {}
-func (*Const) ProcAST()      {}
-func (*TypeProc) ProcAST()   {}
-func (*Call) ProcAST()       {}
-func (*Shape) ProcAST()      {}
-func (*From) ProcAST()       {}
-func (*Explode) ProcAST()    {}
+func (*Sequential) ProcAST()   {}
+func (*Parallel) ProcAST()     {}
+func (*Switch) ProcAST()       {}
+func (*Sort) ProcAST()         {}
+func (*Cut) ProcAST()          {}
+func (*Pick) ProcAST()         {}
+func (*Drop) ProcAST()         {}
+func (*Head) ProcAST()         {}
+func (*Tail) ProcAST()         {}
+func (*Pass) ProcAST()         {}
+func (*Filter) ProcAST()       {}
+func (*Uniq) ProcAST()         {}
+func (*Summarize) ProcAST()    {}
+func (*Top) ProcAST()          {}
+func (*Put) ProcAST()          {}
+func (*OpAssignment) ProcAST() {}
+func (*Rename) ProcAST()       {}
+func (*Fuse) ProcAST()         {}
+func (*Join) ProcAST()         {}
+func (*Const) ProcAST()        {}
+func (*TypeProc) ProcAST()     {}
+func (*Call) ProcAST()         {}
+func (*Shape) ProcAST()        {}
+func (*From) ProcAST()         {}
+func (*Explode) ProcAST()      {}
 
 func (*SQLExpr) ProcAST() {}
 

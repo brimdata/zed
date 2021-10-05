@@ -1,17 +1,15 @@
 package expr
 
-import (
-	"github.com/brimdata/zed/zng"
-)
+import "github.com/brimdata/zed"
 
 type Literal struct {
-	zv zng.Value
+	zv zed.Value
 }
 
-func NewLiteral(zv zng.Value) *Literal {
+func NewLiteral(zv zed.Value) *Literal {
 	return &Literal{zv}
 }
 
-func (l *Literal) Eval(*zng.Record) (zng.Value, error) {
+func (l *Literal) Eval(*zed.Record) (zed.Value, error) {
 	return l.zv, nil
 }

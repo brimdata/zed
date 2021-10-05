@@ -1,0 +1,6 @@
+zed: 'x := "I love \u{1F32E}s"'
+
+input: '{}'
+
+output: |
+  {x:"I love 🌮s"}

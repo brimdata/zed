@@ -1,0 +1,56 @@
+# ============================================================================
+# NOTE: This is a test to protect an example shown in the Zed language
+# docs. If you need to make changes to the Zed below to make the tests pass
+# again after a change, the docs likely need to be updated as well.
+#
+# See https://github.com/brimdata/zed/pull/2901 for details
+# ============================================================================
+
+# The Zed being tested below has been modified from the way it appears in
+# docs/language/README.md:
+#
+#   from (
+#     PoolOne => op1 | op2 | ... ;
+#     PoolTwo => op1 | op2 | ... ;
+#   ) | join on key=key | ...
+#
+# Specifically, the "op1", "op2", and "..." have been filled in with real
+# operations, and a field assignment has been added to the join
+# (https://github.com/brimdata/zed/issues/2815).
+
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -orderby color PoolOne
+  zed lake create -q -orderby price PoolTwo
+  zed lake load -q -use PoolOne@main fruit.zson
+  zed lake load -q -use PoolTwo@main prices.zson
+  zed lake query -z -I join.zed
+
+inputs:
+  - name: fruit.zson
+    data: |
+      {key:"apple",color:"red"}
+      {key:"banana",color:"yellow"}
+      {key:"avocado",color:"green"}
+      {key:"strawberry",color:"red"}
+  - name: prices.zson
+    data: |
+      {key:"apple",price:1.5}
+      {key:"banana",price:2.1}
+      {key:"avocado",price:3.}
+      {key:"strawberry",price:0.5}
+  - name: join.zed
+    data: |
+      from (
+        PoolOne => put color:=to_upper(color) | put namelen:=len(key) | sort key;
+        PoolTwo => put price:=price+0.5 | put tag:="mytag" | sort key;
+      ) | join on key=key priceinfo:=this | drop priceinfo.key
+
+outputs:
+  - name: stdout
+    data: |
+      {key:"apple",color:"RED",namelen:5,priceinfo:{price:2.,tag:"mytag"}}
+      {key:"avocado",color:"GREEN",namelen:7,priceinfo:{price:3.5,tag:"mytag"}}
+      {key:"banana",color:"YELLOW",namelen:6,priceinfo:{price:2.6,tag:"mytag"}}
+      {key:"strawberry",color:"RED",namelen:10,priceinfo:{price:1.,tag:"mytag"}}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/jsonio"
@@ -16,7 +17,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-func lookupReader(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zio.Reader, error) {
+func lookupReader(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Reader, error) {
 	switch opts.Format {
 	case "csv":
 		return csvio.NewReader(r, zctx), nil
@@ -25,7 +26,7 @@ func lookupReader(r io.Reader, zctx *zson.Context, opts ReaderOpts) (zio.Reader,
 	case "zeek":
 		return zeekio.NewReader(r, zctx)
 	case "json":
-		return jsonio.NewReader(r, zctx)
+		return jsonio.NewReader(r, zctx), nil
 	case "zjson":
 		return zjsonio.NewReader(r, zctx), nil
 	case "zng":

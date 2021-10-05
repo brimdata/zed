@@ -3,17 +3,18 @@ package proc
 import (
 	"context"
 
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/zap"
 )
 
 const BatchLen = 100
 
-// proc.Interface is the interface to objects that operate on Batches of zbuf.Records
+// proc.Interface is the interface to objects that operate on Batches of zed.Records
 // and are arranged into a flowgraph to perform pattern matching and analytics.
 // A proc is generally single-threaded unless lengths are taken to implement
 // concurrency within a Proc.  The model is receiver-driven, stream-oriented
@@ -30,10 +31,11 @@ type Interface interface {
 }
 
 type DataAdaptor interface {
-	Lookup(context.Context, string) (ksuid.KSUID, error)
-	Layout(context.Context, ksuid.KSUID) (order.Layout, error)
-	NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (Scheduler, error)
-	Open(context.Context, *zson.Context, string, zbuf.Filter) (zbuf.PullerCloser, error)
+	PoolID(context.Context, string) (ksuid.KSUID, error)
+	CommitObject(context.Context, ksuid.KSUID, string) (ksuid.KSUID, error)
+	Layout(context.Context, dag.Source) order.Layout
+	NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter) (Scheduler, error)
+	Open(context.Context, *zed.Context, string, zbuf.Filter) (zbuf.PullerCloser, error)
 }
 
 type Scheduler interface {
@@ -54,11 +56,11 @@ type Context struct {
 	context.Context
 	Logger   *zap.Logger
 	Warnings chan string
-	Zctx     *zson.Context
+	Zctx     *zed.Context
 	cancel   context.CancelFunc
 }
 
-func NewContext(ctx context.Context, zctx *zson.Context, logger *zap.Logger) *Context {
+func NewContext(ctx context.Context, zctx *zed.Context, logger *zap.Logger) *Context {
 	ctx, cancel := context.WithCancel(ctx)
 	if logger == nil {
 		logger = zap.NewNop()
@@ -73,7 +75,7 @@ func NewContext(ctx context.Context, zctx *zson.Context, logger *zap.Logger) *Co
 }
 
 func DefaultContext() *Context {
-	return NewContext(context.Background(), zson.NewContext(), nil)
+	return NewContext(context.Background(), zed.NewContext(), nil)
 }
 
 func (c *Context) Cancel() {

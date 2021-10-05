@@ -1,0 +1,31 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q test
+  zed lake use -q test@main
+  a=$(zed lake load a.zson | head -1 | awk '{print $1}')
+  b=$(zed lake load b.zson | head -1 | awk '{print $1}')
+  zed lake query -z "sort ."
+  zed lake revert -q $a
+  echo ===
+  zed lake query -z "sort ."
+  zed lake revert -q $b
+  echo ===
+  zed lake query -z "sort ."
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+  - name: b.zson
+    data: |
+      {b:1}
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
+      {b:1}
+      ===
+      {b:1}
+      ===

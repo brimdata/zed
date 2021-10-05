@@ -1,10 +1,11 @@
-script: zq -i tzng in.tzng
+script: |
+  ! zq -i tzng in.tzng
 
 inputs:
   - name: in.tzng
     data: |
-        #0:record[a:record[b:string]]
-        0:[1;]
+      #0:record[a:record[b:string]]
+      0:[1;]
 
 outputs:
   - name: stderr

@@ -3,11 +3,11 @@ package root
 import (
 	"context"
 	"flag"
+	"os/signal"
 	"syscall"
 
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/pkg/charm"
-	"github.com/brimdata/zed/pkg/signalctx"
 )
 
 var Zed = &charm.Spec{
@@ -35,7 +35,7 @@ func (c *Command) Init(all ...cli.Initializer) (context.Context, func(), error) 
 	if err := c.cli.Init(all...); err != nil {
 		return nil, nil, err
 	}
-	ctx, cancel := signalctx.New(syscall.SIGINT, syscall.SIGTERM)
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	var cleanup = func() {
 		cancel()
 		c.cli.Cleanup()

@@ -5,13 +5,12 @@ import (
 	"math"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -76,15 +75,15 @@ type testSeekIndex struct {
 }
 
 func (t *testSeekIndex) Lookup(s nano.Span, expected Range, o order.Which) {
-	r := zngio.NewReader(bytes.NewReader(t.buffer.Bytes()), zson.NewContext())
+	r := zngio.NewReader(bytes.NewReader(t.buffer.Bytes()), zed.NewContext())
 	cmp := extent.CompareFunc(o)
-	var first, last zng.Value
+	var first, last zed.Value
 	if o == order.Asc {
-		first = zng.NewTime(s.Ts)
-		last = zng.NewTime(s.End() - 1)
+		first = zed.NewTime(s.Ts)
+		last = zed.NewTime(s.End() - 1)
 	} else {
-		first = zng.NewTime(s.End() - 1)
-		last = zng.NewTime(s.Ts)
+		first = zed.NewTime(s.End() - 1)
+		last = zed.NewTime(s.Ts)
 	}
 	rg, err := Lookup(r, first, last, cmp)
 	require.NoError(t, err)
@@ -100,7 +99,7 @@ func build(t *testing.T, entries entries) *bytes.Buffer {
 	var buffer bytes.Buffer
 	w := NewWriter(zngio.NewWriter(zio.NopCloser(&buffer), zngio.WriterOpts{}))
 	for _, entry := range entries {
-		zv := zng.Value{zng.TypeTime, zng.EncodeTime(entry.ts)}
+		zv := zed.Value{zed.TypeTime, zed.EncodeTime(entry.ts)}
 		err := w.Write(zv, entry.offset)
 		require.NoError(t, err)
 	}

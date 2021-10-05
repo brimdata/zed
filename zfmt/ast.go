@@ -4,7 +4,7 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/order"
 )
 
@@ -34,12 +34,16 @@ func (c *canon) assignments(assignments []ast.Assignment) {
 		if k > 0 {
 			c.write(",")
 		}
-		if a.LHS != nil {
-			c.expr(a.LHS, false)
-			c.write(":=")
-		}
-		c.expr(a.RHS, false)
+		c.assignment(a)
 	}
+}
+
+func (c *canon) assignment(a ast.Assignment) {
+	if a.LHS != nil {
+		c.expr(a.LHS, false)
+		c.write(":=")
+	}
+	c.expr(a.RHS, false)
 }
 
 func (c *canon) exprs(exprs []ast.Expr) {
@@ -65,7 +69,9 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 			c.write(" where ")
 			c.expr(e.Where, false)
 		}
-	case *zed.Primitive:
+	case *ast.Assignment:
+		c.assignment(*e)
+	case *astzed.Primitive:
 		c.literal(*e)
 	case *ast.ID:
 		c.write(e.Name)
@@ -99,7 +105,7 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.write(")")
 	case *ast.SQLExpr:
 		c.sql(e)
-	case *zed.TypeValue:
+	case *astzed.TypeValue:
 		c.write("type(")
 		c.typ(e.Value)
 		c.write(")")
@@ -205,26 +211,51 @@ func (c *canon) proc(p ast.Proc) {
 		if p.MergeReverse {
 			c.write(" rev")
 		}
-	case *ast.From:
-		//XXX cleanup for len(Trunks) = 1
+	case *ast.Switch:
 		c.next()
-		c.open("from (")
-		c.open()
-		for _, trunk := range p.Trunks {
+		c.write("switch ")
+		if p.Expr != nil {
+			c.expr(p.Expr, false)
+			c.write(" ")
+		}
+		c.open("(")
+		for _, k := range p.Cases {
 			c.ret()
-			c.source(trunk.Source)
-			c.write(" => ")
+			if k.Expr != nil {
+				c.expr(k.Expr, false)
+			} else {
+				c.write("default")
+			}
+			c.write(" =>")
 			c.open()
 			c.head = true
-			c.proc(trunk.Seq)
-			c.write(";")
+			c.proc(k.Proc)
 			c.close()
 		}
 		c.close()
 		c.ret()
 		c.flush()
 		c.write(")")
+	case *ast.From:
+		//XXX cleanup for len(Trunks) = 1
+		c.next()
+		c.open("from (")
+		for _, trunk := range p.Trunks {
+			c.ret()
+			c.source(trunk.Source)
+			if trunk.Seq != nil {
+				c.write(" =>")
+				c.open()
+				c.head = true
+				c.proc(trunk.Seq)
+				c.close()
+			}
+			c.write(";")
+		}
 		c.close()
+		c.ret()
+		c.flush()
+		c.write(")")
 	case *ast.Const:
 		c.write("const %s=", p.Name)
 		c.expr(p.Expr, false)
@@ -396,6 +427,9 @@ func (c *canon) proc(p ast.Proc) {
 			c.assignments(p.Args)
 		}
 		c.close()
+	case *ast.OpAssignment:
+		c.next()
+		c.assignments(p.Assignments)
 	//case *ast.SqlExpression:
 	//	//XXX TBD
 	//	c.open("sql")
@@ -408,7 +442,14 @@ func (c *canon) proc(p ast.Proc) {
 
 func (c *canon) pool(p *ast.Pool) {
 	//XXX TBD name, from, to, id etc
-	c.write("%s", p.Name)
+	s := p.Spec.Pool
+	if p.Spec.Commit != "" {
+		s += "@" + p.Spec.Commit
+	}
+	if p.Spec.Meta != "" {
+		s += ":" + p.Spec.Meta
+	}
+	c.write(s)
 }
 
 func (c *canon) http(p *ast.HTTP) {
@@ -435,7 +476,7 @@ func (c *canon) source(src ast.Source) {
 }
 
 func isTrue(e ast.Expr) bool {
-	if p, ok := e.(*zed.Primitive); ok {
+	if p, ok := e.(*astzed.Primitive); ok {
 		return p.Type == "bool" && p.Text == "true"
 	}
 	return false

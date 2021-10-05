@@ -6,9 +6,10 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/agg"
+	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/field"
 )
 
@@ -34,8 +35,8 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Kind:    "RegexpSearch",
 			Pattern: e.Pattern,
 		}, nil
-	case *zed.Primitive:
-		return &zed.Primitive{
+	case *astzed.Primitive:
+		return &astzed.Primitive{
 			Kind: "Primitive",
 			Type: e.Type,
 			Text: e.Text,
@@ -62,7 +63,7 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 		return &dag.Search{
 			Kind: "Search",
 			Text: e.Text,
-			Value: zed.Primitive{
+			Value: astzed.Primitive{
 				Kind: "Primitive",
 				Type: e.Value.Type,
 				Text: e.Value.Text,
@@ -117,12 +118,12 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Expr: expr,
 			Type: typ,
 		}, nil
-	case *zed.TypeValue:
+	case *astzed.TypeValue:
 		tv, err := semType(scope, e.Value)
 		if err != nil {
 			return nil, err
 		}
-		return &zed.TypeValue{
+		return &astzed.TypeValue{
 			Kind:  "TypeValue",
 			Value: tv,
 		}, nil
@@ -254,7 +255,7 @@ func isRootIndex(scope *Scope, lhs, rhs dag.Expr) *dag.Path {
 }
 
 func isStringConst(scope *Scope, e dag.Expr) (string, bool) {
-	if p, ok := e.(*zed.Primitive); ok && p.Type == "string" {
+	if p, ok := e.(*astzed.Primitive); ok && p.Type == "string" {
 		return p.Text, true
 	}
 	if ref, ok := e.(*dag.Ref); ok {
@@ -392,9 +393,16 @@ func semAssignments(scope *Scope, assignments []ast.Assignment) ([]dag.Assignmen
 }
 
 func semAssignment(scope *Scope, a ast.Assignment) (dag.Assignment, error) {
-	rhs, err := semExpr(scope, a.RHS)
+	var err error
+	var rhs dag.Expr
+	if call, ok := a.RHS.(*ast.Call); ok {
+		rhs, err = maybeConvertAgg(scope, call)
+	}
+	if rhs == nil && err == nil {
+		rhs, err = semExpr(scope, a.RHS)
+	}
 	if err != nil {
-		return dag.Assignment{}, fmt.Errorf("rhs of assigment expression: %w", err)
+		return dag.Assignment{}, fmt.Errorf("rhs of assignment expression: %w", err)
 	}
 	var lhs dag.Expr
 	if a.LHS != nil {
@@ -494,48 +502,62 @@ func semField(scope *Scope, e ast.Expr) (dag.Expr, error) {
 	return nil, errors.New("expression is not a field reference.")
 }
 
-// convertFunctionProc converts a FunctionCall ast node at proc level
-// to a group-by or a filter-proc based on the name of the function.
-// This way, Zed of the form `... | exists(...) | ...` can be distinguished
-// from `count()` by the name lookup here at compile time.
-func convertFunctionProc(scope *Scope, call *ast.Call) (dag.Op, error) {
+func convertCallProc(scope *Scope, call *ast.Call) (dag.Op, error) {
+	agg, err := maybeConvertAgg(scope, call)
+	if err != nil || agg != nil {
+		return &dag.Summarize{
+			Kind: "Summarize",
+			Aggs: []dag.Assignment{
+				{
+					Kind: "Assignment",
+					LHS:  &dag.Path{"Path", field.New(call.Name)},
+					RHS:  agg,
+				},
+			},
+		}, err
+	}
+	if !function.HasBoolResult(call.Name) {
+		return nil, fmt.Errorf("bad expression in filter: function %q does not return a boolean value", call.Name)
+	}
+	c, err := semCall(scope, call)
+	if err != nil {
+		return nil, err
+	}
+	return &dag.Filter{
+		Kind: "Filter",
+		Expr: c,
+	}, nil
+}
+
+func maybeConvertAgg(scope *Scope, call *ast.Call) (dag.Expr, error) {
 	if _, err := agg.NewPattern(call.Name); err != nil {
-		// Assume it's a valid function and convert.  If not,
-		// the compiler will report an unknown function error.
-		c, err := semCall(scope, call)
-		if err != nil {
-			return nil, err
-		}
-		return &dag.Filter{
-			Kind: "Filter",
-			Expr: c,
-		}, nil
+		return nil, nil
 	}
 	var e dag.Expr
 	if len(call.Args) > 1 {
+		if call.Name == "min" || call.Name == "max" {
+			// min and max are special cases as they are also functions. If the
+			// number of args is greater than 1 they're probably a function so do not
+			// return an error.
+			return nil, nil
+		}
 		return nil, fmt.Errorf("%s: wrong number of arguments", call.Name)
 	}
 	if len(call.Args) == 1 {
+		if _, ok := call.Args[0].(*ast.SelectExpr); ok {
+			// Do not convert select expressions.
+			return nil, nil
+		}
 		var err error
 		e, err = semExpr(scope, call.Args[0])
 		if err != nil {
 			return nil, err
 		}
 	}
-	agg := &dag.Agg{
+	return &dag.Agg{
 		Kind: "Agg",
 		Name: call.Name,
 		Expr: e,
-	}
-	return &dag.Summarize{
-		Kind: "Summarize",
-		Aggs: []dag.Assignment{
-			{
-				Kind: "Assignment",
-				LHS:  &dag.Path{"Path", field.New(call.Name)},
-				RHS:  agg,
-			},
-		},
 	}, nil
 }
 
@@ -559,7 +581,7 @@ func DotExprToFieldPath(e ast.Expr) *dag.Path {
 			if lhs == nil {
 				return nil
 			}
-			id, ok := e.RHS.(*zed.Primitive)
+			id, ok := e.RHS.(*astzed.Primitive)
 			if !ok || id.Type != "string" {
 				return nil
 			}

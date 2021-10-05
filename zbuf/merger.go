@@ -5,11 +5,9 @@ import (
 	"context"
 	"sync"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
-	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 )
 
 // A Merger merges multiple upstream Pullers into one downstream Puller.
@@ -24,12 +22,13 @@ type Merger struct {
 	cmp     expr.CompareFn
 	once    sync.Once
 	pullers []*mergerPuller
+	wg      sync.WaitGroup
 }
 
 type mergerPuller struct {
 	Puller
 	ch    chan batch
-	recs  []*zng.Record
+	recs  []*zed.Record
 	batch Batch
 }
 
@@ -38,18 +37,22 @@ type batch struct {
 	err error
 }
 
-func NewCompareFn(mergeField field.Path, reversed bool) expr.CompareFn {
-	nullsMax := !reversed
-	fn := expr.NewCompareFn(nullsMax, expr.NewDotExpr(mergeField))
+func NewCompareFn(layout order.Layout) expr.CompareFn {
+	nullsMax := layout.Order == order.Asc
+	exprs := make([]expr.Evaluator, len(layout.Keys))
+	for i, key := range layout.Keys {
+		exprs[i] = expr.NewDotExpr(key)
+	}
+	fn := expr.NewCompareFn(nullsMax, exprs...)
 	fn = totalOrderCompare(fn)
-	if !reversed {
+	if layout.Order == order.Asc {
 		return fn
 	}
-	return func(a, b *zng.Record) int { return fn(b, a) }
+	return func(a, b *zed.Record) int { return fn(b, a) }
 }
 
 func totalOrderCompare(fn expr.CompareFn) expr.CompareFn {
-	return func(a, b *zng.Record) int {
+	return func(a, b *zed.Record) int {
 		cmp := fn(a, b)
 		if cmp == 0 {
 			return bytes.Compare(a.Bytes, b.Bytes)
@@ -72,23 +75,8 @@ func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merge
 	return m
 }
 
-func MergeReadersByTsAsReader(ctx context.Context, readers []zio.Reader, o order.Which) (zio.Reader, error) {
-	if len(readers) == 1 {
-		return readers[0], nil
-	}
-	return MergeReadersByTs(ctx, readers, o)
-}
-
-func MergeReadersByTs(ctx context.Context, readers []zio.Reader, o order.Which) (*Merger, error) {
-	pullers, err := ReadersToPullers(ctx, readers)
-	if err != nil {
-		return nil, err
-	}
-	return MergeByTs(ctx, pullers, o), nil
-}
-
 func MergeByTs(ctx context.Context, pullers []Puller, o order.Which) *Merger {
-	cmp := func(a, b *zng.Record) int {
+	cmp := func(a, b *zed.Record) int {
 		if o == order.Desc {
 			a, b = b, a
 		}
@@ -106,8 +94,10 @@ func MergeByTs(ctx context.Context, pullers []Puller, o order.Which) *Merger {
 
 func (m *Merger) run() {
 	for _, p := range m.pullers {
+		m.wg.Add(1)
 		puller := p
 		go func() {
+			defer m.wg.Done()
 			for {
 				b, err := puller.Pull()
 				select {
@@ -126,17 +116,18 @@ func (m *Merger) run() {
 
 // Read fulfills Reader so that we can use ReadBatch or
 // use Merger as a Reader directly.
-func (m *Merger) Read() (*zng.Record, error) {
+func (m *Merger) Read() (*zed.Record, error) {
 	m.once.Do(m.run)
 	leader, err := m.findLeader()
 	if leader < 0 || err != nil {
 		m.Cancel()
+		m.wg.Wait()
 		return nil, err
 	}
 	return m.pullers[leader].next(), nil
 }
 
-func (m *mergerPuller) next() *zng.Record {
+func (m *mergerPuller) next() *zed.Record {
 	rec := m.recs[0]
 	m.recs = m.recs[1:]
 	m.batch = nil
@@ -198,6 +189,7 @@ func (m *Merger) Pull() (Batch, error) {
 	leader, err := m.findLeader()
 	if leader < 0 || err != nil {
 		m.Cancel()
+		m.wg.Wait()
 		return nil, err
 	}
 	if !m.overlaps(leader) {

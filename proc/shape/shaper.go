@@ -4,29 +4,28 @@ import (
 	"errors"
 	"hash/maphash"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/proc/spill"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 )
 
 type Shaper struct {
-	zctx        *zson.Context
+	zctx        *zed.Context
 	memMaxBytes int
 
 	nbytes     int
-	queue      []*zng.Record
-	typeAnchor map[zng.Type]*anchor
+	queue      []*zed.Record
+	typeAnchor map[zed.Type]*anchor
 	anchors    map[uint64]*anchor
-	recode     map[zng.Type]*zng.TypeRecord
+	recode     map[zed.Type]*zed.TypeRecord
 	spiller    *spill.File
 	hash       maphash.Hash
-	recs       []*zng.Record
+	recs       []*zed.Record
 }
 
 type anchor struct {
-	typ      *zng.TypeRecord
-	columns  []zng.Column
+	typ      *zed.TypeRecord
+	columns  []zed.Column
 	integers []integer
 	next     *anchor
 }
@@ -36,11 +35,11 @@ type integer struct {
 	unsigned bool
 }
 
-func nulltype(t zng.Type) bool {
-	return zng.AliasOf(t) == zng.TypeNull
+func nulltype(t zed.Type) bool {
+	return zed.AliasOf(t) == zed.TypeNull
 }
 
-func (a *anchor) match(cols []zng.Column) bool {
+func (a *anchor) match(cols []zed.Column) bool {
 	if len(cols) != len(a.columns) {
 		return false
 	}
@@ -53,7 +52,7 @@ func (a *anchor) match(cols []zng.Column) bool {
 	return true
 }
 
-func (a *anchor) mixIn(cols []zng.Column) {
+func (a *anchor) mixIn(cols []zed.Column) {
 	for k, c := range a.columns {
 		if nulltype(c.Type) {
 			a.columns[k].Type = cols[k].Type
@@ -61,17 +60,17 @@ func (a *anchor) mixIn(cols []zng.Column) {
 	}
 }
 
-func (i *integer) check(zv zng.Value) {
+func (i *integer) check(zv zed.Value) {
 	id := zv.Type.ID()
-	if zng.IsInteger(id) || id == zng.IDNull {
+	if zed.IsInteger(id) || id == zed.IDNull {
 		return
 	}
-	if !zng.IsFloat(id) {
+	if !zed.IsFloat(id) {
 		i.signed = false
 		i.unsigned = false
 		return
 	}
-	f, _ := zng.DecodeFloat64(zv.Bytes)
+	f, _ := zed.DecodeFloat64(zv.Bytes)
 	//XXX We could track signed vs unsigned and overflow,
 	// but for now, we leave it as float64 unless we can
 	// guarantee int64.
@@ -84,33 +83,33 @@ func (i *integer) check(zv zng.Value) {
 	}
 }
 
-func (a *anchor) updateInts(rec *zng.Record) error {
+func (a *anchor) updateInts(rec *zed.Record) error {
 	it := rec.Bytes.Iter()
 	for k, c := range rec.Columns() {
 		bytes, _, err := it.Next()
 		if err != nil {
 			return err
 		}
-		zv := zng.Value{c.Type, bytes}
+		zv := zed.Value{c.Type, bytes}
 		a.integers[k].check(zv)
 	}
 	return nil
 }
 
-func (a *anchor) recodeType() []zng.Column {
-	var cols []zng.Column
+func (a *anchor) recodeType() []zed.Column {
+	var cols []zed.Column
 	for k, c := range a.typ.Columns {
 		if i := a.integers[k]; i.signed {
-			c.Type = zng.TypeInt64
+			c.Type = zed.TypeInt64
 		} else if i.unsigned {
-			c.Type = zng.TypeUint64
+			c.Type = zed.TypeUint64
 		}
 		cols = append(cols, c)
 	}
 	return cols
 }
 
-func (a *anchor) needRecode() []zng.Column {
+func (a *anchor) needRecode() []zed.Column {
 	for _, i := range a.integers {
 		if i.signed || i.unsigned {
 			return a.recodeType()
@@ -119,13 +118,13 @@ func (a *anchor) needRecode() []zng.Column {
 	return nil
 }
 
-func NewShaper(zctx *zson.Context, memMaxBytes int) *Shaper {
+func NewShaper(zctx *zed.Context, memMaxBytes int) *Shaper {
 	return &Shaper{
 		zctx:        zctx,
 		memMaxBytes: memMaxBytes,
 		anchors:     make(map[uint64]*anchor),
-		typeAnchor:  make(map[zng.Type]*anchor),
-		recode:      make(map[zng.Type]*zng.TypeRecord),
+		typeAnchor:  make(map[zed.Type]*anchor),
+		recode:      make(map[zed.Type]*zed.TypeRecord),
 	}
 }
 
@@ -137,7 +136,7 @@ func (s *Shaper) Close() error {
 	return nil
 }
 
-func hash(h *maphash.Hash, cols []zng.Column) uint64 {
+func hash(h *maphash.Hash, cols []zed.Column) uint64 {
 	h.Reset()
 	for _, c := range cols {
 		h.WriteString(c.Name)
@@ -145,7 +144,7 @@ func hash(h *maphash.Hash, cols []zng.Column) uint64 {
 	return h.Sum64()
 }
 
-func (s *Shaper) lookupAnchor(columns []zng.Column) *anchor {
+func (s *Shaper) lookupAnchor(columns []zed.Column) *anchor {
 	h := hash(&s.hash, columns)
 	for a := s.anchors[h]; a != nil; a = a.next {
 		if a.match(columns) {
@@ -155,7 +154,7 @@ func (s *Shaper) lookupAnchor(columns []zng.Column) *anchor {
 	return nil
 }
 
-func (s *Shaper) newAnchor(columns []zng.Column) *anchor {
+func (s *Shaper) newAnchor(columns []zed.Column) *anchor {
 	h := hash(&s.hash, columns)
 	a := &anchor{
 		columns:  columns,
@@ -172,7 +171,7 @@ func (s *Shaper) newAnchor(columns []zng.Column) *anchor {
 	return a
 }
 
-func (s *Shaper) update(rec *zng.Record) {
+func (s *Shaper) update(rec *zed.Record) {
 	if a, ok := s.typeAnchor[rec.Type]; ok {
 		a.updateInts(rec)
 		return
@@ -188,7 +187,7 @@ func (s *Shaper) update(rec *zng.Record) {
 	s.typeAnchor[rec.Type] = a
 }
 
-func (s *Shaper) needRecode(typ zng.Type) (*zng.TypeRecord, error) {
+func (s *Shaper) needRecode(typ zed.Type) (*zed.TypeRecord, error) {
 	target, ok := s.recode[typ]
 	if !ok {
 		a := s.typeAnchor[typ]
@@ -205,7 +204,7 @@ func (s *Shaper) needRecode(typ zng.Type) (*zng.TypeRecord, error) {
 	return target, nil
 }
 
-func (s *Shaper) lookupType(in zng.Type) (*zng.TypeRecord, error) {
+func (s *Shaper) lookupType(in zed.Type) (*zed.TypeRecord, error) {
 	a, ok := s.typeAnchor[in]
 	if !ok {
 		return nil, errors.New("Shaper: unencountered type (this is a bug)")
@@ -223,7 +222,7 @@ func (s *Shaper) lookupType(in zng.Type) (*zng.TypeRecord, error) {
 }
 
 // Write buffers rec. If called after Read, Write panics.
-func (s *Shaper) Write(rec *zng.Record) error {
+func (s *Shaper) Write(rec *zed.Record) error {
 	if s.spiller != nil {
 		return s.spiller.Write(rec)
 	}
@@ -234,7 +233,7 @@ func (s *Shaper) Write(rec *zng.Record) error {
 	return nil
 }
 
-func (s *Shaper) stash(rec *zng.Record) error {
+func (s *Shaper) stash(rec *zed.Record) error {
 	s.nbytes += len(rec.Bytes)
 	if s.nbytes >= s.memMaxBytes {
 		var err error
@@ -255,7 +254,7 @@ func (s *Shaper) stash(rec *zng.Record) error {
 	return nil
 }
 
-func (s *Shaper) Read() (*zng.Record, error) {
+func (s *Shaper) Read() (*zed.Record, error) {
 	rec, err := s.next()
 	if rec == nil || err != nil {
 		return nil, err
@@ -275,10 +274,10 @@ func (s *Shaper) Read() (*zng.Record, error) {
 		}
 		typ = targetType
 	}
-	return zng.NewRecord(typ, bytes), nil
+	return zed.NewRecord(typ, bytes), nil
 }
 
-func recode(from, to []zng.Column, bytes zcode.Bytes) (zcode.Bytes, error) {
+func recode(from, to []zed.Column, bytes zcode.Bytes) (zcode.Bytes, error) {
 	out := make(zcode.Bytes, 0, len(bytes))
 	it := bytes.Iter()
 	for k, fromCol := range from {
@@ -288,14 +287,14 @@ func recode(from, to []zng.Column, bytes zcode.Bytes) (zcode.Bytes, error) {
 		}
 		toType := to[k].Type
 		if fromCol.Type != toType && b != nil {
-			if fromCol.Type != zng.TypeFloat64 {
+			if fromCol.Type != zed.TypeFloat64 {
 				return nil, errors.New("shape: can't recode from non float64")
 			}
-			f, _ := zng.DecodeFloat64(b)
-			if toType == zng.TypeInt64 {
-				b = zng.EncodeInt(int64(f))
-			} else if toType == zng.TypeUint64 {
-				b = zng.EncodeUint(uint64(f))
+			f, _ := zed.DecodeFloat64(b)
+			if toType == zed.TypeInt64 {
+				b = zed.EncodeInt(int64(f))
+			} else if toType == zed.TypeUint64 {
+				b = zed.EncodeUint(uint64(f))
 			} else {
 				return nil, errors.New("internal error: can't recode from to non-integer")
 			}
@@ -305,11 +304,11 @@ func recode(from, to []zng.Column, bytes zcode.Bytes) (zcode.Bytes, error) {
 	return out, nil
 }
 
-func (s *Shaper) next() (*zng.Record, error) {
+func (s *Shaper) next() (*zed.Record, error) {
 	if s.spiller != nil {
 		return s.spiller.Read()
 	}
-	var rec *zng.Record
+	var rec *zed.Record
 	if len(s.recs) > 0 {
 		rec = s.recs[0]
 		s.recs = s.recs[1:]

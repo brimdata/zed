@@ -8,4 +8,4 @@ input: |
 output-flags: -pretty=0
 
 output: |
-  {count:2 (uint64)} (=0)
+  {count:2(uint64)}

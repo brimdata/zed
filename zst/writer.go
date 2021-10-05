@@ -5,12 +5,11 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst/column"
 )
 
@@ -19,15 +18,15 @@ const (
 	MaxSkewThresh    = 512 * 1024 * 1024
 )
 
-// Writer implements the zbuf.Writer interface. A Writer creates a columnar
-// zst object from a stream of zng.Records.
+// Writer implements the zio.Writer interface. A Writer creates a columnar
+// zst object from a stream of zed.Records.
 type Writer struct {
-	zctx       *zson.Context
+	zctx       *zed.Context
 	writer     io.WriteCloser
 	spiller    *column.Spiller
 	schemaMap  map[int]int
 	schemas    []column.RecordWriter
-	types      []*zng.TypeRecord
+	types      []zed.Type
 	skewThresh int
 	segThresh  int
 	// We keep track of the size of rows we've encoded into in-memory
@@ -48,7 +47,7 @@ func NewWriter(w io.WriteCloser, skewThresh, segThresh int) (*Writer, error) {
 	}
 	spiller := column.NewSpiller(w, segThresh)
 	return &Writer{
-		zctx:       zson.NewContext(),
+		zctx:       zed.NewContext(),
 		spiller:    spiller,
 		writer:     w,
 		schemaMap:  make(map[int]int),
@@ -102,19 +101,20 @@ func checkThresh(which string, max, thresh int) error {
 	return nil
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
-	inputID := rec.Type.ID()
+func (w *Writer) Write(rec *zed.Record) error {
+	inputID := zed.TypeID(rec.Type)
 	schemaID, ok := w.schemaMap[inputID]
 	if !ok {
-		recType, err := w.zctx.TranslateTypeRecord(zng.TypeRecordOf(rec.Type))
+		schema, err := w.zctx.TranslateType(rec.Type)
 		if err != nil {
 			return err
 		}
+		recType := zed.TypeRecordOf(schema)
 		schemaID = len(w.schemas)
 		w.schemaMap[inputID] = schemaID
 		rw := column.NewRecordWriter(recType, w.spiller)
 		w.schemas = append(w.schemas, rw)
-		w.types = append(w.types, recType)
+		w.types = append(w.types, schema)
 	}
 	if err := w.root.Write(int32(schemaID)); err != nil {
 		return err
@@ -174,14 +174,14 @@ func (w *Writer) finalize() error {
 	// input.
 	for _, schema := range w.types {
 		b.Reset()
-		for _, col := range schema.Columns {
-			if zng.IsContainerType(col.Type) {
+		for _, col := range zed.TypeRecordOf(schema).Columns {
+			if zed.IsContainerType(col.Type) {
 				b.AppendContainer(nil)
 			} else {
 				b.AppendPrimitive(nil)
 			}
 		}
-		rec := zng.NewRecord(schema, b.Bytes())
+		rec := zed.NewRecord(schema, b.Bytes())
 		if err := zw.Write(rec); err != nil {
 			return err
 		}
@@ -192,11 +192,11 @@ func (w *Writer) finalize() error {
 	if err != nil {
 		return err
 	}
-	rootType, err := w.zctx.LookupTypeRecord([]zng.Column{{"root", typ}})
+	rootType, err := w.zctx.LookupTypeRecord([]zed.Column{{"root", typ}})
 	if err != nil {
 		return err
 	}
-	rec := zng.NewRecord(rootType, b.Bytes())
+	rec := zed.NewRecord(rootType, b.Bytes())
 	if err := zw.Write(rec); err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func (w *Writer) finalize() error {
 		if err != nil {
 			return err
 		}
-		rec := zng.NewRecord(typ.(*zng.TypeRecord), body)
+		rec := zed.NewRecord(typ.(*zed.TypeRecord), body)
 		if err := zw.Write(rec); err != nil {
 			return err
 		}
@@ -229,7 +229,7 @@ func (w *Writer) writeEmptyTrailer() error {
 	return writeTrailer(zw, w.zctx, w.skewThresh, w.segThresh, nil)
 }
 
-func writeTrailer(w *zngio.Writer, zctx *zson.Context, skewThresh, segThresh int, sizes []int64) error {
+func writeTrailer(w *zngio.Writer, zctx *zed.Context, skewThresh, segThresh int, sizes []int64) error {
 	rec, err := newTrailerRecord(zctx, skewThresh, segThresh, sizes)
 	if err != nil {
 		return err

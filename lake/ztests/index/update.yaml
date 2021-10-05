@@ -1,0 +1,37 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q test
+  zed lake index create -q foo field foo
+  zed lake index create -q bar field bar
+  zed lake load -q -use test@main 1.zson
+  zed lake load -q -use test@main 2.zson
+  zed lake load -q -use test@main 3.zson
+  zed lake index update -q -use test@main
+  zed lake query -z -I query.zed
+
+inputs:
+  - name: 1.zson
+    data: |
+      {foo:1,bar:1}
+  - name: 2.zson
+    data: |
+      {foo:2,bar:2}
+  - name: 3.zson
+    data: |
+      {foo:3,bar:3}
+  - name: query.zed
+    data: |
+      from (
+        :index_rules => sort id;
+        test@main:indexes => sort rule.id | cut o:=this;
+      )
+      | left join on id = o.rule.id o
+      | count(o) by name,fields 
+      | sort name
+
+outputs:
+  - name: stdout
+    data: |
+      {name:"bar",fields:[["bar"](=field.Path)](=field.List),count:3(uint64)}
+      {name:"foo",fields:[["foo"](=field.Path)](=field.List),count:3(uint64)}

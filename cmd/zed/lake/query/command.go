@@ -1,10 +1,10 @@
 package query
 
 import (
-	"errors"
 	"flag"
 	"os"
 
+	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cli/procflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
@@ -17,10 +17,10 @@ import (
 
 var Query = &charm.Spec{
 	Name:  "query",
-	Usage: "query [options] zql [path...]",
-	Short: "run a Zed program over a data lake",
+	Usage: "query [options] [zed-query]",
+	Short: "run a Zed query against a data lake",
 	Long: `
-"zed lake query" executes a Zed query against data in a data lake.
+"zed lake query" runs a Zed query against a data lake.
 `,
 	New: New,
 }
@@ -31,34 +31,40 @@ func init() {
 }
 
 type Command struct {
-	lake        *zedlake.Command
+	lake        zedlake.Command
 	stats       bool
 	stopErr     bool
 	includes    query.Includes
 	outputFlags outputflags.Flags
 	procFlags   procflags.Flags
+	lakeFlags   lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{lake: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(zedlake.Command)}
 	f.BoolVar(&c.stats, "s", false, "print search stats to stderr on successful completion")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.Var(&c.includes, "I", "source file containing Zed query text (may be used multiple times)")
 	c.outputFlags.SetFlags(f)
 	c.procFlags.SetFlags(f)
+	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init(&c.outputFlags, &c.procFlags)
+	ctx, cleanup, err := c.lake.Root().Init(&c.outputFlags, &c.procFlags)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	if c.lake.Flags.PoolName() != "" {
-		return errors.New("zed lake query: use from operator instead of -p")
+	if len(args) > 1 || len(args) == 0 && len(c.includes) == 0 {
+		return charm.NeedHelp
 	}
-	lk, err := c.lake.Flags.Open(ctx)
+	var src string
+	if len(args) == 1 {
+		src = args[0]
+	}
+	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
@@ -67,14 +73,11 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	d := driver.NewCLI(writer)
-	if !c.lake.Flags.Quiet() {
+	if !c.lakeFlags.Quiet {
 		d.SetWarningsWriter(os.Stderr)
 	}
-	zedSrc, err := query.CombineSources(args, c.includes)
-	if err != nil {
-		return err
-	}
-	stats, err := lk.Query(ctx, d, zedSrc)
+	head, _ := c.lakeFlags.HEAD()
+	stats, err := lake.Query(ctx, d, head, src, c.includes...)
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}

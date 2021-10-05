@@ -37,6 +37,6 @@ zq -f table 'put ref_id:=ip(ref_id)| filter ref_id in 83.162.0.0/16 | count()' n
 #### Output:
 ```mdtest-output
 bad cast
-COUNT
+count
 28
 ```

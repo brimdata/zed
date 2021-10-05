@@ -3,26 +3,27 @@ package expr_test
 import (
 	"fmt"
 	"net"
+	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/require"
 )
 
-func testSuccessful(t *testing.T, e string, record string, expect zng.Value) {
+func testSuccessful(t *testing.T, e string, record string, expect zed.Value) {
 	if record == "" {
 		record = "{}"
 	}
-	zctx := zson.NewContext()
-	typ, _ := zctx.LookupTypeRecord([]zng.Column{{"result", expect.Type}})
+	zctx := zed.NewContext()
+	typ, _ := zctx.LookupTypeRecord([]zed.Column{{"result", expect.Type}})
 	bytes := zcode.AppendPrimitive(nil, expect.Bytes)
-	rec := zng.NewRecord(typ, bytes)
-	formatter := zson.NewFormatter(0)
+	rec := zed.NewRecord(typ, bytes)
+	formatter := zson.NewFormatter(0, nil)
 	val, err := formatter.Format(rec.Value)
 	require.NoError(t, err)
 	runZTest(t, e, &ztest.ZTest{
@@ -59,43 +60,47 @@ func runZTest(t *testing.T, e string, zt *ztest.ZTest) {
 	})
 }
 
-func zbool(b bool) zng.Value {
-	return zng.Value{zng.TypeBool, zng.EncodeBool(b)}
+func zbool(b bool) zed.Value {
+	return zed.Value{zed.TypeBool, zed.EncodeBool(b)}
 }
 
-func zerr(s string) zng.Value {
-	return zng.Value{zng.TypeError, zng.EncodeString(s)}
+func zerr(s string) zed.Value {
+	return zed.Value{zed.TypeError, zed.EncodeString(s)}
 }
 
-func zint32(v int32) zng.Value {
-	return zng.Value{zng.TypeInt32, zng.EncodeInt(int64(v))}
+func zint32(v int32) zed.Value {
+	return zed.Value{zed.TypeInt32, zed.EncodeInt(int64(v))}
 }
 
-func zint64(v int64) zng.Value {
-	return zng.Value{zng.TypeInt64, zng.EncodeInt(v)}
+func zint64(v int64) zed.Value {
+	return zed.Value{zed.TypeInt64, zed.EncodeInt(v)}
 }
 
-func zuint64(v uint64) zng.Value {
-	return zng.Value{zng.TypeUint64, zng.EncodeUint(v)}
+func zuint64(v uint64) zed.Value {
+	return zed.Value{zed.TypeUint64, zed.EncodeUint(v)}
 }
 
-func zfloat64(f float64) zng.Value {
-	return zng.Value{zng.TypeFloat64, zng.EncodeFloat64(f)}
+func zfloat32(f float32) zed.Value {
+	return zed.Value{zed.TypeFloat32, zed.EncodeFloat32(f)}
 }
 
-func zstring(s string) zng.Value {
-	return zng.Value{zng.TypeString, zng.EncodeString(s)}
+func zfloat64(f float64) zed.Value {
+	return zed.Value{zed.TypeFloat64, zed.EncodeFloat64(f)}
 }
 
-func zip(t *testing.T, s string) zng.Value {
+func zstring(s string) zed.Value {
+	return zed.Value{zed.TypeString, zed.EncodeString(s)}
+}
+
+func zip(t *testing.T, s string) zed.Value {
 	ip := net.ParseIP(s)
 	require.NotNil(t, ip, "converted ip")
-	return zng.Value{zng.TypeIP, zng.EncodeIP(ip)}
+	return zed.Value{zed.TypeIP, zed.EncodeIP(ip)}
 }
-func znet(t *testing.T, s string) zng.Value {
+func znet(t *testing.T, s string) zed.Value {
 	_, net, err := net.ParseCIDR(s)
 	require.NoError(t, err)
-	return zng.Value{zng.TypeNet, zng.EncodeNet(net)}
+	return zed.Value{zed.TypeNet, zed.EncodeNet(net)}
 }
 
 func TestPrimitives(t *testing.T) {
@@ -131,14 +136,15 @@ func TestLogical(t *testing.T) {
 }
 
 func TestCompareNumbers(t *testing.T) {
-	var numericTypes = []string{"uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float64"}
+	var numericTypes = []string{
+		"uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float32", "float64"}
 	var intFields = []string{"u8", "i16", "u16", "i32", "u32", "i64", "u64"}
 
 	for _, typ := range numericTypes {
 		// Make a test point with this type in a field called x plus
 		// one field of each other integer type
 		one := "1"
-		if typ == "float64" {
+		if strings.HasPrefix(typ, "float") {
 			one = "1."
 		}
 		record := fmt.Sprintf(
@@ -184,7 +190,7 @@ func TestCompareNumbers(t *testing.T) {
 
 		// For integer types, test this type against other
 		// number-ish types: port, time, duration
-		if typ != "float64" {
+		if !strings.HasPrefix(typ, "float") {
 			record := fmt.Sprintf(
 				"{x:%s (%s),p:80 (port=(uint16)),t:2020-03-09T22:54:12Z,d:16m40s} (=0)", one, typ)
 
@@ -464,51 +470,51 @@ func TestArithmetic(t *testing.T) {
 
 	width := func(id int) int {
 		switch id {
-		case zng.IDInt8, zng.IDUint8:
+		case zed.IDInt8, zed.IDUint8:
 			return 8
-		case zng.IDInt16, zng.IDUint16:
+		case zed.IDInt16, zed.IDUint16:
 			return 16
-		case zng.IDInt32, zng.IDUint32:
+		case zed.IDInt32, zed.IDUint32:
 			return 32
-		case zng.IDInt64, zng.IDUint64:
+		case zed.IDInt64, zed.IDUint64:
 			return 64
 		}
 		panic("width")
 	}
-	signed := func(width int) zng.Type {
+	signed := func(width int) zed.Type {
 		switch width {
 		case 8:
-			return zng.TypeInt8
+			return zed.TypeInt8
 		case 16:
-			return zng.TypeInt16
+			return zed.TypeInt16
 		case 32:
-			return zng.TypeInt32
+			return zed.TypeInt32
 		case 64:
-			return zng.TypeInt64
+			return zed.TypeInt64
 		}
 		panic("signed")
 	}
-	unsigned := func(width int) zng.Type {
+	unsigned := func(width int) zed.Type {
 		switch width {
 		case 8:
-			return zng.TypeUint8
+			return zed.TypeUint8
 		case 16:
-			return zng.TypeUint16
+			return zed.TypeUint16
 		case 32:
-			return zng.TypeUint32
+			return zed.TypeUint32
 		case 64:
-			return zng.TypeUint64
+			return zed.TypeUint64
 		}
 		panic("signed")
 	}
 	// Test arithmetic between integer types
-	iresult := func(t1, t2 string, v uint64) zng.Value {
-		typ1 := zng.LookupPrimitive(t1)
-		typ2 := zng.LookupPrimitive(t2)
+	iresult := func(t1, t2 string, v uint64) zed.Value {
+		typ1 := zed.LookupPrimitive(t1)
+		typ2 := zed.LookupPrimitive(t2)
 		id1 := typ1.ID()
 		id2 := typ2.ID()
-		sign1 := zng.IsSigned(id1)
-		sign2 := zng.IsSigned(id2)
+		sign1 := zed.IsSigned(id1)
+		sign2 := zed.IsSigned(id2)
 		sign := true
 		if sign1 == sign2 {
 			sign = sign1
@@ -518,9 +524,9 @@ func TestArithmetic(t *testing.T) {
 			w = w2
 		}
 		if sign {
-			return zng.Value{signed(w), zng.AppendInt(nil, int64(v))}
+			return zed.Value{signed(w), zed.AppendInt(nil, int64(v))}
 		}
-		return zng.Value{unsigned(w), zng.AppendUint(nil, v)}
+		return zed.Value{unsigned(w), zed.AppendUint(nil, v)}
 	}
 
 	var intTypes = []string{"int8", "uint8", "int16", "uint16", "int32", "uint32", "int64", "uint64"}
@@ -597,31 +603,31 @@ func TestConditional(t *testing.T) {
 
 func TestCasts(t *testing.T) {
 	// Test casts to byte
-	testSuccessful(t, "uint8(10)", "", zng.Value{zng.TypeUint8, zng.EncodeUint(10)})
+	testSuccessful(t, "uint8(10)", "", zed.Value{zed.TypeUint8, zed.EncodeUint(10)})
 	testWarning(t, "uint8(-1)", "", expr.ErrBadCast, "out of range cast to uint8")
 	testWarning(t, "uint8(300)", "", expr.ErrBadCast, "out of range cast to uint8")
 	testWarning(t, `uint8("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint8")
 
 	// Test casts to int16
-	testSuccessful(t, "int16(10)", "", zng.Value{zng.TypeInt16, zng.EncodeInt(10)})
+	testSuccessful(t, "int16(10)", "", zed.Value{zed.TypeInt16, zed.EncodeInt(10)})
 	testWarning(t, "int16(-33000)", "", expr.ErrBadCast, "out of range cast to int16")
 	testWarning(t, "int16(33000)", "", expr.ErrBadCast, "out of range cast to int16")
 	testWarning(t, `int16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int16")
 
 	// Test casts to uint16
-	testSuccessful(t, "uint16(10)", "", zng.Value{zng.TypeUint16, zng.EncodeUint(10)})
+	testSuccessful(t, "uint16(10)", "", zed.Value{zed.TypeUint16, zed.EncodeUint(10)})
 	testWarning(t, "uint16(-1)", "", expr.ErrBadCast, "out of range cast to uint16")
 	testWarning(t, "uint16(66000)", "", expr.ErrBadCast, "out of range cast to uint16")
 	testWarning(t, `uint16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint16")
 
 	// Test casts to int32
-	testSuccessful(t, "int32(10)", "", zng.Value{zng.TypeInt32, zng.EncodeInt(10)})
+	testSuccessful(t, "int32(10)", "", zed.Value{zed.TypeInt32, zed.EncodeInt(10)})
 	testWarning(t, "int32(-2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
 	testWarning(t, "int32(2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
 	testWarning(t, `int32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int32")
 
 	// Test casts to uint32
-	testSuccessful(t, "uint32(10)", "", zng.Value{zng.TypeUint32, zng.EncodeUint(10)})
+	testSuccessful(t, "uint32(10)", "", zed.Value{zed.TypeUint32, zed.EncodeUint(10)})
 	testWarning(t, "uint32(-1)", "", expr.ErrBadCast, "out of range cast to uint32")
 	testWarning(t, "uint8(4300000000)", "", expr.ErrBadCast, "out of range cast to uint32")
 	testWarning(t, `uint32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint32")
@@ -630,6 +636,10 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, "uint64(10)", "", zuint64(10))
 	testWarning(t, "uint64(-1)", "", expr.ErrBadCast, "out of range cast to uint64")
 	testWarning(t, `uint64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint64")
+
+	// Test casts to float32
+	testSuccessful(t, "float32(10)", "", zfloat32(10))
+	testWarning(t, `float32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to float64")
 
 	// Test casts to float64
 	testSuccessful(t, "float64(10)", "", zfloat64(10))
@@ -647,8 +657,9 @@ func TestCasts(t *testing.T) {
 	testWarning(t, `net("1.2.3.4")`, "", expr.ErrBadCast, "cast of invalid net fails")
 
 	// Test casts to time
-	ts := zng.Value{zng.TypeTime, zng.EncodeTime(nano.Ts(1589126400_000_000_000))}
-	testSuccessful(t, "time(1589126400.0)", "", ts)
+	ts := zed.Value{zed.TypeTime, zed.EncodeTime(nano.Ts(1589126400_000_000_000))}
+	testSuccessful(t, "time(float32(1589126400.0))", "", ts)
+	testSuccessful(t, "time(float64(1589126400.0))", "", ts)
 	testSuccessful(t, "time(1589126400)", "", ts)
 	testSuccessful(t, `time("1589126400")`, "", ts)
 
@@ -657,11 +668,13 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, "string(1.2.3.4)", "", zstring("1.2.3.4"))
 	testSuccessful(t, `int64("1")`, "", zint64(1))
 	testSuccessful(t, `int64("-1")`, "", zint64(-1))
+	testSuccessful(t, `float32("5.5")`, "", zfloat32(5.5))
 	testSuccessful(t, `float64("5.5")`, "", zfloat64(5.5))
 	testSuccessful(t, `ip("1.2.3.4")`, "", zaddr("1.2.3.4"))
 
 	testWarning(t, "ip(1)", "", expr.ErrBadCast, "ip cast non-ip arg")
 	testWarning(t, `int64("abc")`, "", expr.ErrBadCast, "int64 cast with non-parseable string")
+	testWarning(t, `float32("abc")`, "", expr.ErrBadCast, "float32 cast with non-parseable string")
 	testWarning(t, `float64("abc")`, "", expr.ErrBadCast, "float64 cast with non-parseable string")
 	testWarning(t, `ip("abc")`, "", expr.ErrBadCast, "ip cast with non-parseable string")
 }

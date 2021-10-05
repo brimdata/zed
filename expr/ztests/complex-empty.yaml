@@ -4,4 +4,4 @@ input: |
   {}
 
 output: |
-  {a:[] (0=([null])),s:|[]| (1=(|[null]|)),m:|{}| (2=(|{null,null}|))}
+  {a:[]([null]),s:|[]|(|[null]|),m:|{}|(|{null:null}|)}

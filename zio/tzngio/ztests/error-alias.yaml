@@ -1,16 +1,16 @@
 # redefining an alias should cause an error
 script: |
-  zq in.tzng
+  ! zq in.tzng
 
 inputs:
   - name: in.tzng
     data: |
-        #alias=ip
-        #0:record[orig_h:alias]
-        0:[127.0.0.1;]
-        #alias=uint64
-        #1:record[count:alias]
-        1:[25;]
+      #alias=ip
+      #0:record[orig_h:alias]
+      0:[127.0.0.1;]
+      #alias=uint64
+      #1:record[count:alias]
+      1:[25;]
 
 outputs:
   - name: stderr

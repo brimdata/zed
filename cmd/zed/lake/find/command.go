@@ -5,6 +5,7 @@ import (
 	"flag"
 	"os"
 
+	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
@@ -55,84 +56,81 @@ func init() {
 }
 
 type Command struct {
-	*zedlake.Command
+	lake          zedlake.Command
 	root          string
 	skipMissing   bool
 	indexFile     string
 	relativePaths bool
 	outputFlags   outputflags.Flags
+	lakeFlags     lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedlake.Command)}
+	c := &Command{lake: parent.(zedlake.Command)}
 	f.StringVar(&c.root, "R", os.Getenv("ZED_LAKE_ROOT"), "root location of zar archive to walk")
 	f.BoolVar(&c.skipMissing, "Q", false, "skip errors caused by missing index files ")
 	f.StringVar(&c.indexFile, "x", "", "name of microindex for custom index searches")
 	f.BoolVar(&c.relativePaths, "relative", false, "display paths relative to root")
-
 	c.outputFlags.SetFlags(f)
-
+	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
 	return errors.New("issue #2532")
 	/* NOT YET
-	defer c.Cleanup()
-	if err := c.Init(&c.outputFlags); err != nil {
-		return err
-	}
-
-	lk, err := lake.OpenLake(c.root, nil)
-	if err != nil {
-		return err
-	}
-
-	query, err := index.ParseQuery(c.indexFile, args)
-	if err != nil {
-		return err
-	}
-
-	var findOptions []lake.FindOption
-	if c.pathField != "" {
-		findOptions = append(findOptions, lake.AddPath(c.pathField, !c.relativePaths))
-	}
-	if c.skipMissing {
-		findOptions = append(findOptions, lake.SkipMissing())
-	}
-
-	ctx, cancel := context.WithCancel(context.TODO())
-	defer cancel()
-	outputFile := c.outputFlags.FileName()
-	if outputFile == "-" {
-		outputFile = ""
-	}
-	writer, err := emitter.NewFile(ctx, outputFile, c.outputFlags.Options())
-	if err != nil {
-		return err
-	}
-	defer writer.Close()
-	hits := make(chan *zng.Record)
-	var searchErr error
-	go func() {
-		searchErr = lake.Find(ctx, zson.NewContext(), lk, query, hits, findOptions...)
-		close(hits)
-	}()
-	for hit := range hits {
-		var err error
-		if writer != nil {
-			err = writer.Write(hit)
-		} else {
-			var path string
-			path, err = hit.AccessString(c.pathField)
-			if err == nil {
-				fmt.Println(path)
-			}
+		ctx, cleanup, err := c.Init(&c.outputFlags)
+	 	if err != nil {
+			return err
 		}
+		defer cleanup()
+		lk, err := lake.OpenLake(c.root, nil)
 		if err != nil {
 			return err
 		}
-	}
-	return searchErr
+
+		query, err := index.ParseQuery(c.indexFile, args)
+		if err != nil {
+			return err
+		}
+
+		var findOptions []lake.FindOption
+		if c.pathField != "" {
+			findOptions = append(findOptions, lake.AddPath(c.pathField, !c.relativePaths))
+		}
+		if c.skipMissing {
+			findOptions = append(findOptions, lake.SkipMissing())
+		}
+		outputFile := c.outputFlags.FileName()
+		if outputFile == "-" {
+			outputFile = ""
+		}
+		writer, err := emitter.NewFile(ctx, outputFile, c.outputFlags.Options())
+		if err != nil {
+			return err
+		}
+		defer writer.Close()
+		hits := make(chan *zed.Record)
+		var searchErr error
+		go func() {
+			searchErr = lake.Find(ctx, zed.NewContext(), lk, query, hits, findOptions...)
+			close(hits)
+		}()
+		for hit := range hits {
+			var err error
+			if writer != nil {
+				err = writer.Write(hit)
+			} else {
+				var path string
+				path, err = hit.AccessString(c.pathField)
+				if err == nil {
+					fmt.Println(path)
+				}
+			}
+			if err != nil {
+				return err
+			}
+		}
+		return searchErr
 	*/
 }

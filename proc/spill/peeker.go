@@ -1,26 +1,28 @@
 package spill
 
 import (
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
+	"context"
+
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zbuf"
+	"github.com/brimdata/zed/zio"
 )
 
 type peeker struct {
 	*File
-	nextRecord *zng.Record
+	nextRecord *zed.Record
 	ordinal    int
 }
 
-func newPeeker(filename string, ordinal int, recs []*zng.Record, zctx *zson.Context) (*peeker, error) {
+func newPeeker(ctx context.Context, filename string, ordinal int, recs []*zed.Record, zctx *zed.Context) (*peeker, error) {
 	f, err := NewFileWithPath(filename, zctx)
 	if err != nil {
 		return nil, err
 	}
-	for _, rec := range recs {
-		if err := f.Write(rec); err != nil {
-			f.CloseAndRemove()
-			return nil, err
-		}
+	arr := zbuf.Array(recs)
+	if err := zio.CopyWithContext(ctx, f, &arr); err != nil {
+		f.CloseAndRemove()
+		return nil, err
 	}
 	if err := f.Rewind(zctx); err != nil {
 		f.CloseAndRemove()
@@ -36,7 +38,7 @@ func newPeeker(filename string, ordinal int, recs []*zng.Record, zctx *zson.Cont
 
 // read is like Read but returns eof at the last record so a MergeSort can
 // do its heap management a bit more easily.
-func (p *peeker) read() (*zng.Record, bool, error) {
+func (p *peeker) read() (*zed.Record, bool, error) {
 	rec := p.nextRecord
 	if rec != nil {
 		rec = rec.Keep()

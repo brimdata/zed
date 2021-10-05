@@ -6,11 +6,9 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/peeker"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
-	"github.com/brimdata/zed/zson"
 	"github.com/pierrec/lz4/v4"
 )
 
@@ -25,11 +23,11 @@ type Reader struct {
 	peekerOffset    int64 // never points inside a compressed value message block
 	uncompressedBuf *buffer
 	// shared/output context
-	sctx *zson.Context
+	sctx *zed.Context
 	// internal context implied by zng file
-	zctx *zson.Context
+	zctx *zed.Context
 	// mapper to map internal to shared type contexts
-	mapper   *resolver.Mapper
+	mapper   *zed.Mapper
 	sos      int64
 	validate bool
 	app      AppMessage
@@ -49,11 +47,11 @@ type AppMessage struct {
 	Bytes    []byte
 }
 
-func NewReader(reader io.Reader, sctx *zson.Context) *Reader {
+func NewReader(reader io.Reader, sctx *zed.Context) *Reader {
 	return NewReaderWithOpts(reader, sctx, ReaderOpts{})
 }
 
-func NewReaderWithOpts(reader io.Reader, sctx *zson.Context, opts ReaderOpts) *Reader {
+func NewReaderWithOpts(reader io.Reader, sctx *zed.Context, opts ReaderOpts) *Reader {
 	if opts.Size == 0 {
 		opts.Size = ReadSize
 	}
@@ -66,8 +64,8 @@ func NewReaderWithOpts(reader io.Reader, sctx *zson.Context, opts ReaderOpts) *R
 	return &Reader{
 		peeker:   peeker.NewReader(reader, opts.Size, opts.Max),
 		sctx:     sctx,
-		zctx:     zson.NewContext(),
-		mapper:   resolver.NewMapper(sctx),
+		zctx:     zed.NewContext(),
+		mapper:   zed.NewMapper(sctx),
 		validate: opts.Validate,
 	}
 }
@@ -79,7 +77,7 @@ func (r *Reader) Position() int64 {
 // SkipStream skips over the records in the current stream and returns
 // the first record of the next stream and the start-of-stream position
 // of that record.
-func (r *Reader) SkipStream() (*zng.Record, int64, error) {
+func (r *Reader) SkipStream() (*zed.Record, int64, error) {
 	sos := r.sos
 	for {
 		rec, err := r.Read()
@@ -89,7 +87,7 @@ func (r *Reader) SkipStream() (*zng.Record, int64, error) {
 	}
 }
 
-func (r *Reader) Read() (*zng.Record, error) {
+func (r *Reader) Read() (*zed.Record, error) {
 	for {
 		rec, msg, err := r.ReadPayload()
 		if err != nil {
@@ -102,7 +100,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 	}
 }
 
-func (r *Reader) ReadPayload() (*zng.Record, *AppMessage, error) {
+func (r *Reader) ReadPayload() (*zed.Record, *AppMessage, error) {
 	for {
 		rec, msg, err := r.readPayload(nil)
 		if err != nil {
@@ -124,18 +122,18 @@ func (r *Reader) LastSOS() int64 {
 }
 
 func (r *Reader) reset() {
-	r.zctx = zson.NewContext()
-	r.mapper = resolver.NewMapper(r.sctx)
+	r.zctx = zed.NewContext()
+	r.mapper = zed.NewMapper(r.sctx)
 	r.sos = r.peekerOffset
 }
 
 var startCompressed = errors.New("start of compressed value messaage block")
 
-// ReadPayload returns either data values as zbuf.Record or app-specific
+// ReadPayload returns either data values as zed.Record or app-specific
 // messages .  The record or message is volatile so they must be
-// copied (via copy for message's byte slice or zbuf.Record.Keep()) as
+// copied (via copy for message's byte slice or zed.Record.Keep) as
 // subsequent calls to Read or ReadPayload will modify the referenced data.
-func (r *Reader) readPayload(rec *zng.Record) (*zng.Record, *AppMessage, error) {
+func (r *Reader) readPayload(rec *zed.Record) (*zed.Record, *AppMessage, error) {
 	for {
 		b, err := r.read(1)
 		if err != nil {
@@ -146,30 +144,30 @@ func (r *Reader) readPayload(rec *zng.Record) (*zng.Record, *AppMessage, error) 
 			return nil, nil, err
 		}
 		code := b[0]
-		if code <= zng.CtrlValueEscape {
+		if code <= zed.CtrlValueEscape {
 			rec, err := readValue(r, code, r.mapper, r.validate, rec)
 			return rec, nil, err
 		}
 		switch code {
-		case zng.TypeDefRecord:
+		case zed.TypeDefRecord:
 			err = r.readTypeRecord()
-		case zng.TypeDefSet:
+		case zed.TypeDefSet:
 			err = r.readTypeSet()
-		case zng.TypeDefArray:
+		case zed.TypeDefArray:
 			err = r.readTypeArray()
-		case zng.TypeDefUnion:
+		case zed.TypeDefUnion:
 			err = r.readTypeUnion()
-		case zng.TypeDefEnum:
+		case zed.TypeDefEnum:
 			err = r.readTypeEnum()
-		case zng.TypeDefMap:
+		case zed.TypeDefMap:
 			err = r.readTypeMap()
-		case zng.TypeDefAlias:
+		case zed.TypeDefAlias:
 			err = r.readTypeAlias()
-		case zng.CtrlEOS:
+		case zed.CtrlEOS:
 			r.reset()
-		case zng.CtrlCompressed:
+		case zed.CtrlCompressed:
 			return nil, nil, startCompressed
-		case zng.CtrlAppMessage:
+		case zed.CtrlAppMessage:
 			msg, err := r.readAppMessage(int(code))
 			return nil, msg, err
 		default:
@@ -190,41 +188,41 @@ type reader interface {
 var _ reader = (*Reader)(nil)
 var _ reader = (*buffer)(nil)
 
-func readValue(r reader, code byte, m *resolver.Mapper, validate bool, rec *zng.Record) (*zng.Record, error) {
+func readValue(r reader, code byte, m *zed.Mapper, validate bool, rec *zed.Record) (*zed.Record, error) {
 	id := int(code)
-	if code == zng.CtrlValueEscape {
+	if code == zed.CtrlValueEscape {
 		var err error
 		id, err = readUvarintAsInt(r)
 		if err != nil {
 			return nil, err
 		}
-		id += zng.CtrlValueEscape
+		id += zed.CtrlValueEscape
 	}
 	n, err := readUvarintAsInt(r)
 	if err != nil {
-		return nil, zng.ErrBadFormat
+		return nil, zed.ErrBadFormat
 	}
 	b, err := r.read(n)
 	if err != nil && err != io.EOF {
 		if err == peeker.ErrBufferOverflow {
 			return nil, fmt.Errorf("large value of %d bytes exceeds maximum read buffer", n)
 		}
-		return nil, zng.ErrBadFormat
+		return nil, zed.ErrBadFormat
 	}
 	typ := m.Lookup(id)
 	if typ == nil {
-		return nil, zng.ErrTypeIDInvalid
+		return nil, zed.ErrTypeIDInvalid
 	}
-	if _, ok := zng.AliasOf(typ).(*zng.TypeRecord); !ok {
+	if _, ok := zed.AliasOf(typ).(*zed.TypeRecord); !ok {
 		// A top-level ZNG value that is not a record is valid ZNG data
 		// but not supported by Zed.  In particular, this can happen
 		// when trying to parse random non-ZNG data in the auto-detector.
 		return nil, errors.New("non-record, top-level zng values are not supported")
 	}
 	if rec == nil {
-		rec = zng.NewVolatileRecord(typ, b)
+		rec = zed.NewVolatileRecord(typ, b)
 	} else {
-		*rec = *zng.NewVolatileRecord(typ, b)
+		*rec = *zed.NewVolatileRecord(typ, b)
 	}
 	if validate {
 		if err := rec.TypeCheck(); err != nil {
@@ -242,11 +240,11 @@ func readUvarintAsInt(r io.ByteReader) (int, error) {
 func (r *Reader) readAppMessage(code int) (*AppMessage, error) {
 	encoding, err := r.ReadByte()
 	if err != nil {
-		return nil, zng.ErrBadFormat
+		return nil, zed.ErrBadFormat
 	}
 	len, err := r.readUvarint()
 	if err != nil {
-		return nil, zng.ErrBadFormat
+		return nil, zed.ErrBadFormat
 	}
 	buf, err := r.read(len)
 	if err != nil {
@@ -283,7 +281,7 @@ func (r *Reader) readCompressedAndUncompress() error {
 	return err
 }
 
-func (r *Reader) readCompressed() (zng.CompressionFormat, int, []byte, error) {
+func (r *Reader) readCompressed() (zed.CompressionFormat, int, []byte, error) {
 	format, err := r.readUvarint()
 	if err != nil {
 		return 0, 0, nil, err
@@ -303,11 +301,11 @@ func (r *Reader) readCompressed() (zng.CompressionFormat, int, []byte, error) {
 	if err != nil {
 		return 0, 0, nil, err
 	}
-	return zng.CompressionFormat(format), uncompressedLen, cbuf, err
+	return zed.CompressionFormat(format), uncompressedLen, cbuf, err
 }
 
-func uncompress(format zng.CompressionFormat, uncompressedLen int, cbuf []byte) (*buffer, error) {
-	if format != zng.CompressionFormatLZ4 {
+func uncompress(format zed.CompressionFormat, uncompressedLen int, cbuf []byte) (*buffer, error) {
+	if format != zed.CompressionFormatLZ4 {
 		return nil, fmt.Errorf("zngio: unknown compression format 0x%x", format)
 	}
 	ubuf := newBuffer(uncompressedLen)
@@ -337,34 +335,34 @@ func (r *Reader) ReadByte() (byte, error) {
 	return b, err
 }
 
-func (r *Reader) readColumn() (zng.Column, error) {
+func (r *Reader) readColumn() (zed.Column, error) {
 	len, err := r.readUvarint()
 	if err != nil {
-		return zng.Column{}, zng.ErrBadFormat
+		return zed.Column{}, zed.ErrBadFormat
 	}
 	b, err := r.read(len)
 	if err != nil {
-		return zng.Column{}, zng.ErrBadFormat
+		return zed.Column{}, zed.ErrBadFormat
 	}
 	// pull the name out before the next read which might overwrite the buffer
 	name := string(b)
 	id, err := r.readUvarint()
 	if err != nil {
-		return zng.Column{}, zng.ErrBadFormat
+		return zed.Column{}, zed.ErrBadFormat
 	}
 	typ, err := r.zctx.LookupType(id)
 	if err != nil {
-		return zng.Column{}, err
+		return zed.Column{}, err
 	}
-	return zng.NewColumn(name, typ), nil
+	return zed.NewColumn(name, typ), nil
 }
 
 func (r *Reader) readTypeRecord() error {
 	ncol, err := r.readUvarint()
 	if err != nil {
-		return zng.ErrBadFormat
+		return zed.ErrBadFormat
 	}
-	var columns []zng.Column
+	var columns []zed.Column
 	for k := 0; k < int(ncol); k++ {
 		col, err := r.readColumn()
 		if err != nil {
@@ -376,23 +374,23 @@ func (r *Reader) readTypeRecord() error {
 	if err != nil {
 		return err
 	}
-	_, err = r.mapper.Enter(zng.TypeID(typ), typ)
+	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
 	return err
 }
 
 func (r *Reader) readTypeUnion() error {
 	ntyp, err := r.readUvarint()
 	if err != nil {
-		return zng.ErrBadFormat
+		return zed.ErrBadFormat
 	}
 	if ntyp == 0 {
 		return errors.New("type union: zero columns not allowed")
 	}
-	var types []zng.Type
+	var types []zed.Type
 	for k := 0; k < int(ntyp); k++ {
 		id, err := r.readUvarint()
 		if err != nil {
-			return zng.ErrBadFormat
+			return zed.ErrBadFormat
 		}
 		typ, err := r.zctx.LookupType(int(id))
 		if err != nil {
@@ -401,28 +399,28 @@ func (r *Reader) readTypeUnion() error {
 		types = append(types, typ)
 	}
 	typ := r.zctx.LookupTypeUnion(types)
-	_, err = r.mapper.Enter(zng.TypeID(typ), typ)
+	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
 	return err
 }
 
 func (r *Reader) readTypeSet() error {
 	id, err := r.readUvarint()
 	if err != nil {
-		return zng.ErrBadFormat
+		return zed.ErrBadFormat
 	}
 	innerType, err := r.zctx.LookupType(int(id))
 	if err != nil {
 		return err
 	}
 	typ := r.zctx.LookupTypeSet(innerType)
-	_, err = r.mapper.Enter(zng.TypeID(typ), typ)
+	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
 	return err
 }
 
 func (r *Reader) readTypeEnum() error {
 	nsym, err := r.readUvarint()
 	if err != nil {
-		return zng.ErrBadFormat
+		return zed.ErrBadFormat
 	}
 	var symbols []string
 	for k := 0; k < int(nsym); k++ {
@@ -433,18 +431,18 @@ func (r *Reader) readTypeEnum() error {
 		symbols = append(symbols, s)
 	}
 	typ := r.zctx.LookupTypeEnum(symbols)
-	_, err = r.mapper.Enter(zng.TypeID(typ), typ)
+	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
 	return err
 }
 
 func (r *Reader) readSymbol() (string, error) {
 	n, err := r.readUvarint()
 	if err != nil {
-		return "", zng.ErrBadFormat
+		return "", zed.ErrBadFormat
 	}
 	b, err := r.read(n)
 	if err != nil {
-		return "", zng.ErrBadFormat
+		return "", zed.ErrBadFormat
 	}
 	// pull the name out before the next read which might overwrite the buffer
 	return string(b), nil
@@ -453,7 +451,7 @@ func (r *Reader) readSymbol() (string, error) {
 func (r *Reader) readTypeMap() error {
 	id, err := r.readUvarint()
 	if err != nil {
-		return zng.ErrBadFormat
+		return zed.ErrBadFormat
 	}
 	keyType, err := r.zctx.LookupType(int(id))
 	if err != nil {
@@ -461,44 +459,44 @@ func (r *Reader) readTypeMap() error {
 	}
 	id, err = r.readUvarint()
 	if err != nil {
-		return zng.ErrBadFormat
+		return zed.ErrBadFormat
 	}
 	valType, err := r.zctx.LookupType(int(id))
 	if err != nil {
 		return err
 	}
 	typ := r.zctx.LookupTypeMap(keyType, valType)
-	_, err = r.mapper.Enter(zng.TypeID(typ), typ)
+	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
 	return err
 }
 
 func (r *Reader) readTypeArray() error {
 	id, err := r.readUvarint()
 	if err != nil {
-		return zng.ErrBadFormat
+		return zed.ErrBadFormat
 	}
 	inner, err := r.zctx.LookupType(int(id))
 	if err != nil {
 		return err
 	}
 	typ := r.zctx.LookupTypeArray(inner)
-	_, err = r.mapper.Enter(zng.TypeID(typ), typ)
+	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
 	return err
 }
 
 func (r *Reader) readTypeAlias() error {
 	len, err := r.readUvarint()
 	if err != nil {
-		return zng.ErrBadFormat
+		return zed.ErrBadFormat
 	}
 	b, err := r.read(len)
 	if err != nil {
-		return zng.ErrBadFormat
+		return zed.ErrBadFormat
 	}
 	name := string(b)
 	id, err := r.readUvarint()
 	if err != nil {
-		return zng.ErrBadFormat
+		return zed.ErrBadFormat
 	}
 	inner, err := r.zctx.LookupType(int(id))
 	if err != nil {
@@ -508,6 +506,6 @@ func (r *Reader) readTypeAlias() error {
 	if err != nil {
 		return err
 	}
-	_, err = r.mapper.Enter(zng.TypeID(typ), typ)
+	_, err = r.mapper.Enter(zed.TypeID(typ), typ)
 	return err
 }

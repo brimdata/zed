@@ -3,18 +3,14 @@ package index
 import (
 	"context"
 
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zson"
 )
 
-type InfoKey struct {
-	Name     string `zng:"name"`
-	TypeName string `zng:"type"`
-}
-
 type Info struct {
-	Size int64     `zng:"size"`
-	Keys []InfoKey `zng:"keys"`
+	Size int64      `zed:"size"`
+	Keys field.List `zed:"keys"`
 }
 
 // Stat returns summary information about the microindex at uri.
@@ -23,22 +19,14 @@ func Stat(ctx context.Context, engine storage.Engine, uri *storage.URI) (*Info, 
 	if err != nil {
 		return nil, err
 	}
-	r, err := NewReaderFromURI(ctx, zson.NewContext(), engine, uri)
+	r, err := NewReaderFromURI(ctx, zed.NewContext(), engine, uri)
 	if err != nil {
 		return nil, err
 	}
 	defer r.Close()
 
-	columns := r.Keys().Columns
-	keys := make([]InfoKey, len(columns))
-	for i, c := range columns {
-		keys[i] = InfoKey{
-			Name:     c.Name,
-			TypeName: c.Type.String(),
-		}
-	}
 	return &Info{
 		Size: size,
-		Keys: keys,
+		Keys: r.Keys(),
 	}, nil
 }

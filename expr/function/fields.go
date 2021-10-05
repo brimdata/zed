@@ -1,21 +1,20 @@
 package function
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 )
 
 type fields struct {
-	zctx  *zson.Context
-	typ   zng.Type
+	zctx  *zed.Context
+	typ   zed.Type
 	bytes zcode.Bytes
 }
 
-func fieldNames(typ *zng.TypeRecord) []string {
+func fieldNames(typ *zed.TypeRecord) []string {
 	var out []string
 	for _, c := range typ.Columns {
-		if typ, ok := zng.AliasOf(c.Type).(*zng.TypeRecord); ok {
+		if typ, ok := zed.AliasOf(c.Type).(*zed.TypeRecord); ok {
 			for _, subfield := range fieldNames(typ) {
 				out = append(out, c.Name+"."+subfield)
 			}
@@ -26,30 +25,30 @@ func fieldNames(typ *zng.TypeRecord) []string {
 	return out
 }
 
-func (f *fields) Call(args []zng.Value) (zng.Value, error) {
+func (f *fields) Call(args []zed.Value) (zed.Value, error) {
 	zvSubject := args[0]
 	typ := isRecordType(zvSubject, f.zctx)
 	if typ == nil {
-		return zng.Missing, nil
+		return zed.Missing, nil
 	}
 	bytes := f.bytes[:0]
 	for _, field := range fieldNames(typ) {
 		bytes = zcode.AppendPrimitive(bytes, zcode.Bytes(field))
 	}
 	f.bytes = bytes
-	return zng.Value{f.typ, bytes}, nil
+	return zed.Value{f.typ, bytes}, nil
 }
 
-func isRecordType(zv zng.Value, zctx *zson.Context) *zng.TypeRecord {
-	if typ, ok := zng.AliasOf(zv.Type).(*zng.TypeRecord); ok {
+func isRecordType(zv zed.Value, zctx *zed.Context) *zed.TypeRecord {
+	if typ, ok := zed.AliasOf(zv.Type).(*zed.TypeRecord); ok {
 		return typ
 	}
-	if zv.Type == zng.TypeType {
+	if zv.Type == zed.TypeType {
 		typ, err := zctx.LookupByValue(zv.Bytes)
 		if err != nil {
 			return nil
 		}
-		if typ, ok := zng.AliasOf(typ).(*zng.TypeRecord); ok {
+		if typ, ok := zed.AliasOf(typ).(*zed.TypeRecord); ok {
 			return typ
 		}
 	}

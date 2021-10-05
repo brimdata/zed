@@ -1,8 +1,8 @@
-zed: 'cut y:=x+1,a:=to_lower(s),typeof(s)'
+zed: 'cut y:=x+1,a:=to_lower(s),typeof:=typeof(s)'
 
 input: |
-  {a:[] (0=([int32])),x:1 (int32),s:"foo",b:0x68656c6c6f0a} (=1)
-  {a:[1],x:2,s:"Bar",b:0x74686572650a} (1)
+  {a:[]([int32]),x:1(int32),s:"foo",b:0x68656c6c6f0a}
+  {a:[1(int32)],x:2(int32),s:"Bar",b:0x74686572650a}
 
 output: |
   {y:2,a:"foo",typeof:(string)}

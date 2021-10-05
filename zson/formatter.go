@@ -3,40 +3,55 @@ package zson
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/terminal/color"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 )
 
 type Formatter struct {
-	typedefs    typemap
-	tab         int
-	newline     string
-	whitespace  string
-	typeTab     int
-	typeNewline string
-	nid         int
-	builder     strings.Builder
-	stack       []strings.Builder
-	implied     map[zng.Type]bool
-	colors      color.Stack
+	typedefs  typemap
+	permanent typemap
+	persist   *regexp.Regexp
+	tab       int
+	newline   string
+	typeTab   int
+	nid       int
+	builder   strings.Builder
+	stack     []strings.Builder
+	implied   map[zed.Type]bool
+	colors    color.Stack
 }
 
-func NewFormatter(pretty int) *Formatter {
+func NewFormatter(pretty int, persist *regexp.Regexp) *Formatter {
 	var newline string
 	if pretty > 0 {
 		newline = "\n"
 	}
-	return &Formatter{
-		typedefs:   make(typemap),
-		tab:        pretty,
-		newline:    newline,
-		whitespace: strings.Repeat(" ", 80),
-		implied:    make(map[zng.Type]bool),
+	var permanent typemap
+	if persist != nil {
+		permanent = make(typemap)
 	}
+	return &Formatter{
+		typedefs:  make(typemap),
+		permanent: permanent,
+		tab:       pretty,
+		newline:   newline,
+		implied:   make(map[zed.Type]bool),
+		persist:   persist,
+	}
+}
+
+// Persist matches type names to the regular expression provided and
+// persists the matched types across records in the stream.  This is useful
+// when typedefs have complicated type signatures, e.g., as generated
+// by fused fields of records creating a union of records.
+func (f *Formatter) Persist(re *regexp.Regexp) {
+	f.permanent = make(typemap)
+	f.persist = re
 }
 
 func (f *Formatter) push() {
@@ -50,20 +65,26 @@ func (f *Formatter) pop() {
 	f.stack = f.stack[:n-1]
 }
 
-func (f *Formatter) FormatRecord(rec *zng.Record) (string, error) {
+func (f *Formatter) FormatRecord(rec *zed.Record) (string, error) {
 	f.builder.Reset()
+	// We reset tyepdefs so named types are emitted with their
+	// definition at first use in each record according to the
+	// left-to-right DFS order.  We could make this more efficient
+	// by putting a record number/nonce in the map but ZSON
+	// is already intended to be the low performance path.
+	f.typedefs = make(typemap)
 	if err := f.formatValueAndDecorate(rec.Type, rec.Bytes); err != nil {
 		return "", err
 	}
 	return f.builder.String(), nil
 }
 
-func FormatValue(zv zng.Value) (string, error) {
-	f := NewFormatter(0)
+func FormatValue(zv zed.Value) (string, error) {
+	f := NewFormatter(0, nil)
 	return f.Format(zv)
 }
 
-func String(zv zng.Value) string {
+func String(zv zed.Value) string {
 	s, err := FormatValue(zv)
 	if err != nil {
 		s = fmt.Sprintf("<zng parse err: %s>", err)
@@ -71,7 +92,7 @@ func String(zv zng.Value) string {
 	return s
 }
 
-func (f *Formatter) Format(zv zng.Value) (string, error) {
+func (f *Formatter) Format(zv zed.Value) (string, error) {
 	f.builder.Reset()
 	if err := f.formatValueAndDecorate(zv.Type, zv.Bytes); err != nil {
 		return "", err
@@ -79,8 +100,32 @@ func (f *Formatter) Format(zv zng.Value) (string, error) {
 	return f.builder.String(), nil
 }
 
-func (f *Formatter) formatValueAndDecorate(typ zng.Type, bytes zcode.Bytes) error {
-	known := f.typedefs.exists(typ)
+func (f *Formatter) hasName(typ zed.Type) bool {
+	ok := f.typedefs.exists(typ)
+	if !ok && f.persist != nil {
+		ok = f.permanent.exists(typ)
+	}
+	return ok
+}
+
+func (f *Formatter) nameOf(typ zed.Type) string {
+	s := f.typedefs[typ]
+	if s == "" && f.permanent != nil {
+		s = f.permanent[typ]
+	}
+	return s
+}
+
+func (f *Formatter) saveType(alias *zed.TypeAlias) {
+	name := alias.Name
+	f.typedefs[alias] = name
+	if f.permanent != nil && f.persist.MatchString(name) {
+		f.permanent[alias] = name
+	}
+}
+
+func (f *Formatter) formatValueAndDecorate(typ zed.Type, bytes zcode.Bytes) error {
+	known := f.hasName(typ)
 	implied := f.isImplied(typ)
 	if err := f.formatValue(0, typ, bytes, known, implied, false); err != nil {
 		return err
@@ -89,8 +134,8 @@ func (f *Formatter) formatValueAndDecorate(typ zng.Type, bytes zcode.Bytes) erro
 	return nil
 }
 
-func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, parentKnown, parentImplied, decorate bool) error {
-	known := parentKnown || f.typedefs.exists(typ)
+func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, parentKnown, parentImplied, decorate bool) error {
+	known := parentKnown || f.hasName(typ)
 	if bytes == nil {
 		f.build("null")
 		if parentImplied {
@@ -106,23 +151,23 @@ func (f *Formatter) formatValue(indent int, typ zng.Type, bytes zcode.Bytes, par
 		f.startColorPrimitive(typ)
 		f.build(typ.Format(bytes))
 		f.endColor()
-	case *zng.TypeAlias:
+	case *zed.TypeAlias:
 		err = f.formatValue(indent, t.Type, bytes, known, parentImplied, false)
-	case *zng.TypeRecord:
+	case *zed.TypeRecord:
 		err = f.formatRecord(indent, t, bytes, known, parentImplied)
-	case *zng.TypeArray:
-		null, err = f.formatVector(indent, "[", "]", t.Type, zng.Value{t, bytes}, known, parentImplied)
-	case *zng.TypeSet:
-		null, err = f.formatVector(indent, "|[", "]|", t.Type, zng.Value{t, bytes}, known, parentImplied)
-	case *zng.TypeUnion:
+	case *zed.TypeArray:
+		null, err = f.formatVector(indent, "[", "]", t.Type, zed.Value{t, bytes}, known, parentImplied)
+	case *zed.TypeSet:
+		null, err = f.formatVector(indent, "|[", "]|", t.Type, zed.Value{t, bytes}, known, parentImplied)
+	case *zed.TypeUnion:
 		err = f.formatUnion(indent, t, bytes)
-	case *zng.TypeMap:
+	case *zed.TypeMap:
 		null, err = f.formatMap(indent, t, bytes, known, parentImplied)
-	case *zng.TypeEnum:
+	case *zed.TypeEnum:
 		f.build(t.Format(bytes))
-	case *zng.TypeOfType:
-		f.startColorPrimitive(zng.TypeType)
-		f.buildf("(%s)", zng.FormatTypeValue(bytes))
+	case *zed.TypeOfType:
+		f.startColorPrimitive(zed.TypeType)
+		f.buildf("(%s)", zed.FormatTypeValue(bytes))
 		f.endColor()
 	}
 	if err == nil && decorate {
@@ -137,33 +182,36 @@ func (f *Formatter) nextInternalType() string {
 	return name
 }
 
-func (f *Formatter) decorate(typ zng.Type, known, null bool) {
-	if known || (!(null && typ != zng.TypeNull) && f.isImplied(typ)) {
+func (f *Formatter) decorate(typ zed.Type, known, null bool) {
+	if known || (!(null && typ != zed.TypeNull) && f.isImplied(typ)) {
 		return
 	}
 	f.startColor(color.Gray(200))
 	defer f.endColor()
-	if name, ok := f.typedefs[typ]; ok {
-		f.buildf(" (%s)", name)
-		return
-	}
-	if SelfDescribing(typ) && !null {
-		var name string
-		if typ, ok := typ.(*zng.TypeAlias); ok {
-			name = typ.Name
-		} else {
-			name = f.nextInternalType()
+	if name := f.nameOf(typ); name != "" {
+		if f.tab > 0 {
+			f.build(" ")
 		}
-		f.typedefs[typ] = name
-		f.buildf(" (=%s)", name)
-		return
+		f.buildf("(%s)", name)
+	} else if SelfDescribing(typ) && !null {
+		if typ, ok := typ.(*zed.TypeAlias); ok {
+			f.saveType(typ)
+			if f.tab > 0 {
+				f.build(" ")
+			}
+			f.buildf("(=%s)", typ.Name)
+		}
+	} else {
+		if f.tab > 0 {
+			f.build(" ")
+		}
+		f.build("(")
+		f.formatType(typ)
+		f.build(")")
 	}
-	f.build(" (")
-	f.formatType(typ)
-	f.build(")")
 }
 
-func (f *Formatter) formatRecord(indent int, typ *zng.TypeRecord, bytes zcode.Bytes, known, parentImplied bool) error {
+func (f *Formatter) formatRecord(indent int, typ *zed.TypeRecord, bytes zcode.Bytes, known, parentImplied bool) error {
 	f.build("{")
 	if len(typ.Columns) == 0 {
 		f.build("}")
@@ -174,7 +222,7 @@ func (f *Formatter) formatRecord(indent int, typ *zng.TypeRecord, bytes zcode.By
 	it := bytes.Iter()
 	for _, field := range typ.Columns {
 		if it.Done() {
-			return &zng.RecordTypeError{Name: string(field.Name), Type: field.Type.String(), Err: zng.ErrMissingField}
+			return &zed.RecordTypeError{Name: string(field.Name), Type: field.Type.String(), Err: zed.ErrMissingField}
 		}
 		bytes, _, err := it.Next()
 		if err != nil {
@@ -182,7 +230,7 @@ func (f *Formatter) formatRecord(indent int, typ *zng.TypeRecord, bytes zcode.By
 		}
 		f.build(sep)
 		f.startColor(color.Blue)
-		f.indent(indent, zng.QuotedName(field.Name))
+		f.indent(indent, zed.QuotedName(field.Name))
 		f.endColor()
 		f.build(":")
 		if f.tab > 0 {
@@ -198,7 +246,7 @@ func (f *Formatter) formatRecord(indent int, typ *zng.TypeRecord, bytes zcode.By
 	return nil
 }
 
-func (f *Formatter) formatVector(indent int, open, close string, inner zng.Type, zv zng.Value, known, parentImplied bool) (bool, error) {
+func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type, zv zed.Value, known, parentImplied bool) (bool, error) {
 	f.build(open)
 	len, err := zv.ContainerLength()
 	if err != nil {
@@ -228,7 +276,7 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zng.Type,
 	return false, nil
 }
 
-func (f *Formatter) formatUnion(indent int, union *zng.TypeUnion, bytes zcode.Bytes) error {
+func (f *Formatter) formatUnion(indent int, union *zed.TypeUnion, bytes zcode.Bytes) error {
 	typ, _, bytes, err := union.SplitZng(bytes)
 	if err != nil {
 		return err
@@ -246,7 +294,7 @@ func (f *Formatter) formatUnion(indent int, union *zng.TypeUnion, bytes zcode.By
 	return f.formatValue(indent, typ, bytes, known, parentImplied, true)
 }
 
-func (f *Formatter) formatMap(indent int, typ *zng.TypeMap, bytes zcode.Bytes, known, parentImplied bool) (bool, error) {
+func (f *Formatter) formatMap(indent int, typ *zed.TypeMap, bytes zcode.Bytes, known, parentImplied bool) (bool, error) {
 	empty := true
 	f.build("|{")
 	indent += f.tab
@@ -265,15 +313,22 @@ func (f *Formatter) formatMap(indent int, typ *zng.TypeMap, bytes zcode.Bytes, k
 			return empty, err
 		}
 		f.build(sep)
-		f.indent(indent, "{")
-		if err := f.formatValue(indent+f.tab, typ.KeyType, keyBytes, known, parentImplied, true); err != nil {
+		f.indent(indent, "")
+		if err := f.formatValue(indent, typ.KeyType, keyBytes, known, parentImplied, true); err != nil {
 			return empty, err
 		}
-		f.build(",")
-		if err := f.formatValue(indent+f.tab, typ.ValType, valBytes, known, parentImplied, true); err != nil {
+		if zed.AliasOf(typ.KeyType) == zed.TypeIP && len(keyBytes) == 16 {
+			// To avoid ambiguity, whitespace must separate an IPv6
+			// map key from the colon that follows it.
+			f.build(" ")
+		}
+		f.build(":")
+		if f.tab > 0 {
+			f.build(" ")
+		}
+		if err := f.formatValue(indent, typ.ValType, valBytes, known, parentImplied, true); err != nil {
 			return empty, err
 		}
-		f.build("}")
 		sep = "," + f.newline
 	}
 	f.build(f.newline)
@@ -302,72 +357,61 @@ func (f *Formatter) buildf(s string, args ...interface{}) {
 // Typedefs handled by decorators are handled in decorate().
 // The routine re-enters the type formatter with a fresh builder by
 // invoking push()/pop().
-func (f *Formatter) formatType(typ zng.Type) {
-	if name, ok := f.typedefs[typ]; ok {
+func (f *Formatter) formatType(typ zed.Type) {
+	if name := f.nameOf(typ); name != "" {
 		f.build(name)
 		return
 	}
-	if alias, ok := typ.(*zng.TypeAlias); ok {
-		// We don't check here for typedefs that illegally change
-		// the type of a type name as we build this output from
-		// the internal type system which should not let this happen.
-		name := alias.Name
-		f.typedefs[typ] = name
-		f.build(name)
+	if alias, ok := typ.(*zed.TypeAlias); ok {
+		f.saveType(alias)
+		f.build(alias.Name)
 		f.build("=(")
 		f.formatType(alias.Type)
 		f.build(")")
 		return
 	}
-	if typ.ID() < zng.IDTypeDef {
-		name := typ.String()
-		f.typedefs[typ] = name
-		f.build(name)
+	if typ.ID() < zed.IDTypeDef {
+		f.build(typ.String())
 		return
 	}
-	name := f.nextInternalType()
-	f.build(name)
-	f.build("=(")
 	f.push()
 	f.formatTypeBody(typ)
 	s := f.builder.String()
 	f.pop()
 	f.build(s)
-	f.build(")")
-	f.typedefs[typ] = name
 }
 
-func (f *Formatter) formatTypeBody(typ zng.Type) error {
-	if name, ok := f.typedefs[typ]; ok {
+func (f *Formatter) formatTypeBody(typ zed.Type) error {
+	if name := f.nameOf(typ); name != "" {
 		f.build(name)
 		return nil
 	}
 	switch typ := typ.(type) {
-	case *zng.TypeAlias:
+	case *zed.TypeAlias:
 		// Aliases are handled differently above to determine the
 		// plain form vs embedded typedef.
 		panic("alias shouldn't be formatted")
-	case *zng.TypeRecord:
+	case *zed.TypeRecord:
 		f.formatTypeRecord(typ)
-	case *zng.TypeArray:
+	case *zed.TypeArray:
 		f.build("[")
 		f.formatType(typ.Type)
 		f.build("]")
-	case *zng.TypeSet:
+	case *zed.TypeSet:
 		f.build("|[")
 		f.formatType(typ.Type)
 		f.build("]|")
-	case *zng.TypeMap:
+	case *zed.TypeMap:
 		f.build("|{")
 		f.formatType(typ.KeyType)
-		f.build(",")
+		f.build(":")
 		f.formatType(typ.ValType)
 		f.build("}|")
-	case *zng.TypeUnion:
+	case *zed.TypeUnion:
 		f.formatTypeUnion(typ)
-	case *zng.TypeEnum:
+	case *zed.TypeEnum:
 		return f.formatTypeEnum(typ)
-	case *zng.TypeOfType:
+	case *zed.TypeOfType:
 		formatType(&f.builder, make(typemap), typ)
 	default:
 		panic("unknown case in formatTypeBody(): " + typ.String())
@@ -375,20 +419,20 @@ func (f *Formatter) formatTypeBody(typ zng.Type) error {
 	return nil
 }
 
-func (f *Formatter) formatTypeRecord(typ *zng.TypeRecord) {
+func (f *Formatter) formatTypeRecord(typ *zed.TypeRecord) {
 	f.build("{")
 	for k, col := range typ.Columns {
 		if k > 0 {
 			f.build(",")
 		}
-		f.build(zng.QuotedName(col.Name))
+		f.build(zed.QuotedName(col.Name))
 		f.build(":")
 		f.formatType(col.Type)
 	}
 	f.build("}")
 }
 
-func (f *Formatter) formatTypeUnion(typ *zng.TypeUnion) {
+func (f *Formatter) formatTypeUnion(typ *zed.TypeUnion) {
 	f.build("(")
 	for k, typ := range typ.Types {
 		if k > 0 {
@@ -399,28 +443,28 @@ func (f *Formatter) formatTypeUnion(typ *zng.TypeUnion) {
 	f.build(")")
 }
 
-func (f *Formatter) formatTypeEnum(typ *zng.TypeEnum) error {
+func (f *Formatter) formatTypeEnum(typ *zed.TypeEnum) error {
 	f.build("<")
 	for k, s := range typ.Symbols {
 		if k > 0 {
 			f.build(",")
 		}
-		f.buildf("%s", zng.QuotedName(s))
+		f.buildf("%s", zed.QuotedName(s))
 	}
 	f.build(">")
 	return nil
 }
 
-var colors = map[zng.Type]color.Code{
-	zng.TypeString:  color.Green,
-	zng.TypeBstring: color.Green,
-	zng.TypeError:   color.Red,
-	zng.TypeType:    color.Orange,
+var colors = map[zed.Type]color.Code{
+	zed.TypeString:  color.Green,
+	zed.TypeBstring: color.Green,
+	zed.TypeError:   color.Red,
+	zed.TypeType:    color.Orange,
 }
 
-func (f *Formatter) startColorPrimitive(typ zng.Type) {
+func (f *Formatter) startColorPrimitive(typ zed.Type) {
 	if f.tab > 0 {
-		c, ok := colors[zng.AliasOf(typ)]
+		c, ok := colors[zed.AliasOf(typ)]
 		if !ok {
 			c = color.Reset
 		}
@@ -440,7 +484,7 @@ func (f *Formatter) endColor() {
 	}
 }
 
-func (f *Formatter) isImplied(typ zng.Type) bool {
+func (f *Formatter) isImplied(typ zed.Type) bool {
 	implied, ok := f.implied[typ]
 	if !ok {
 		implied = Implied(typ)
@@ -449,41 +493,41 @@ func (f *Formatter) isImplied(typ zng.Type) bool {
 	return implied
 }
 
-type typemap map[zng.Type]string
+type typemap map[zed.Type]string
 
-func (t typemap) exists(typ zng.Type) bool {
+func (t typemap) exists(typ zed.Type) bool {
 	_, ok := t[typ]
 	return ok
 }
 
-func (t typemap) known(typ zng.Type) bool {
+func (t typemap) known(typ zed.Type) bool {
 	if _, ok := t[typ]; ok {
 		return true
 	}
-	if _, ok := typ.(*zng.TypeOfType); ok {
+	if _, ok := typ.(*zed.TypeOfType); ok {
 		return true
 	}
-	if _, ok := typ.(*zng.TypeAlias); ok {
+	if _, ok := typ.(*zed.TypeAlias); ok {
 		return false
 	}
-	return typ.ID() < zng.IDTypeDef
+	return typ.ID() < zed.IDTypeDef
 }
 
 // FormatType formats a type in canonical form to represent type values
 // as standalone entities.
-func FormatType(typ zng.Type) string {
+func FormatType(typ zed.Type) string {
 	var b strings.Builder
 	formatType(&b, make(typemap), typ)
 	return b.String()
 }
 
-func formatType(b *strings.Builder, typedefs typemap, typ zng.Type) {
+func formatType(b *strings.Builder, typedefs typemap, typ zed.Type) {
 	if name, ok := typedefs[typ]; ok {
 		b.WriteString(name)
 		return
 	}
 	switch t := typ.(type) {
-	case *zng.TypeAlias:
+	case *zed.TypeAlias:
 		name := t.Name
 		b.WriteString(name)
 		if _, ok := typedefs[typ]; !ok {
@@ -492,32 +536,32 @@ func formatType(b *strings.Builder, typedefs typemap, typ zng.Type) {
 			formatType(b, typedefs, t.Type)
 			b.WriteByte(')')
 		}
-	case *zng.TypeRecord:
+	case *zed.TypeRecord:
 		b.WriteByte('{')
 		for k, col := range t.Columns {
 			if k > 0 {
 				b.WriteByte(',')
 			}
-			b.WriteString(zng.QuotedName(col.Name))
+			b.WriteString(zed.QuotedName(col.Name))
 			b.WriteString(":")
 			formatType(b, typedefs, col.Type)
 		}
 		b.WriteByte('}')
-	case *zng.TypeArray:
+	case *zed.TypeArray:
 		b.WriteByte('[')
 		formatType(b, typedefs, t.Type)
 		b.WriteByte(']')
-	case *zng.TypeSet:
+	case *zed.TypeSet:
 		b.WriteString("|[")
 		formatType(b, typedefs, t.Type)
 		b.WriteString("]|")
-	case *zng.TypeMap:
+	case *zed.TypeMap:
 		b.WriteString("|{")
 		formatType(b, typedefs, t.KeyType)
-		b.WriteByte(',')
+		b.WriteByte(':')
 		formatType(b, typedefs, t.ValType)
 		b.WriteString("}|")
-	case *zng.TypeUnion:
+	case *zed.TypeUnion:
 		b.WriteByte('(')
 		for k, typ := range t.Types {
 			if k > 0 {
@@ -526,13 +570,13 @@ func formatType(b *strings.Builder, typedefs typemap, typ zng.Type) {
 			formatType(b, typedefs, typ)
 		}
 		b.WriteByte(')')
-	case *zng.TypeEnum:
+	case *zed.TypeEnum:
 		b.WriteByte('<')
 		for k, s := range t.Symbols {
 			if k > 0 {
 				b.WriteByte(',')
 			}
-			b.WriteString(zng.QuotedName(s))
+			b.WriteString(zed.QuotedName(s))
 		}
 		b.WriteByte('>')
 	default:

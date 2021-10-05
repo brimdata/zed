@@ -3,8 +3,8 @@ package parquetio
 import (
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 )
 
 type builder struct {
@@ -12,36 +12,36 @@ type builder struct {
 	buf []byte
 }
 
-func (b *builder) appendValue(typ zng.Type, v interface{}) {
+func (b *builder) appendValue(typ zed.Type, v interface{}) {
 	switch v := v.(type) {
 	case nil:
 		b.AppendNull()
 	case []byte:
 		b.AppendPrimitive(v)
 	case bool:
-		b.buf = zng.AppendBool(b.buf[:0], v)
+		b.buf = zed.AppendBool(b.buf[:0], v)
 		b.AppendPrimitive(b.buf)
 	case float32:
-		b.buf = zng.AppendFloat64(b.buf[:0], float64(v))
+		b.buf = zed.AppendFloat32(b.buf[:0], v)
 		b.AppendPrimitive(b.buf)
 	case float64:
-		b.buf = zng.AppendFloat64(b.buf[:0], v)
+		b.buf = zed.AppendFloat64(b.buf[:0], v)
 		b.AppendPrimitive(b.buf)
 	case int32:
-		b.buf = zng.AppendInt(b.buf[:0], int64(v))
+		b.buf = zed.AppendInt(b.buf[:0], int64(v))
 		b.AppendPrimitive(b.buf)
 	case int64:
-		b.buf = zng.AppendInt(b.buf[:0], v)
+		b.buf = zed.AppendInt(b.buf[:0], v)
 		b.AppendPrimitive(b.buf)
 	case uint32:
-		b.buf = zng.AppendUint(b.buf[:0], uint64(v))
+		b.buf = zed.AppendUint(b.buf[:0], uint64(v))
 		b.AppendPrimitive(b.buf)
 	case uint64:
-		b.buf = zng.AppendUint(b.buf[:0], v)
+		b.buf = zed.AppendUint(b.buf[:0], v)
 		b.AppendPrimitive(b.buf)
 	case map[string]interface{}:
-		switch typ := zng.AliasOf(typ).(type) {
-		case *zng.TypeArray:
+		switch typ := zed.AliasOf(typ).(type) {
+		case *zed.TypeArray:
 			switch v := v["list"].(type) {
 			case nil:
 				b.AppendNull()
@@ -54,7 +54,7 @@ func (b *builder) appendValue(typ zng.Type, v interface{}) {
 			default:
 				panic(fmt.Sprintf("unknown type %T", v))
 			}
-		case *zng.TypeMap:
+		case *zed.TypeMap:
 			switch v := v["key_value"].(type) {
 			case nil:
 				b.AppendNull()
@@ -68,7 +68,7 @@ func (b *builder) appendValue(typ zng.Type, v interface{}) {
 			default:
 				panic(fmt.Sprintf("unknown type %T", v))
 			}
-		case *zng.TypeRecord:
+		case *zed.TypeRecord:
 			b.BeginContainer()
 			for _, c := range typ.Columns {
 				b.appendValue(c.Type, v[c.Name])

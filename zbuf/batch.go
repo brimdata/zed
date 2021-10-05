@@ -3,8 +3,8 @@ package zbuf
 import (
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 )
 
 // Batch is an interface to a bundle of records.  Reference counting allows
@@ -17,7 +17,7 @@ import (
 //
 // To promote reuse, a goroutine should release a Batch reference when possible,
 // but care must be taken to avoid race conditions that arise from releasing a
-// reference too soon.  Specifically, a goroutine obtaining a *zng.Record from a
+// reference too soon.  Specifically, a goroutine obtaining a *zed.Record from a
 // Batch must retain its Batch reference for as long as it retains the pointer,
 // and the goroutine must not use the pointer after releasing its reference.
 //
@@ -26,9 +26,9 @@ import (
 type Batch interface {
 	Ref()
 	Unref()
-	Index(int) *zng.Record
+	Index(int) *zed.Record
 	Length() int
-	Records() []*zng.Record
+	Records() []*zed.Record
 }
 
 // readBatch reads up to n records from zr and returns them as a Batch.  At EOS,
@@ -36,7 +36,7 @@ type Batch interface {
 // error is encoutered, it returns a nil Batch and the error.  Otherwise,
 // readBatch returns a full Batch of n records and nil error.
 func readBatch(zr zio.Reader, n int) (Batch, error) {
-	recs := make([]*zng.Record, 0, n)
+	recs := make([]*zed.Record, 0, n)
 	for len(recs) < n {
 		rec, err := zr.Read()
 		if err != nil {
@@ -115,7 +115,7 @@ type pullerReader struct {
 	idx   int
 }
 
-func (r *pullerReader) Read() (*zng.Record, error) {
+func (r *pullerReader) Read() (*zed.Record, error) {
 	if r.batch == nil {
 		for {
 			batch, err := r.p.Pull()

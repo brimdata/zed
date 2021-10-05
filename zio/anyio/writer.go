@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/jsonio"
@@ -18,13 +19,13 @@ import (
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zio/zstio"
-	"github.com/brimdata/zed/zng"
 )
 
 type WriterOpts struct {
 	Format string
 	UTF8   bool
 	JSON   jsonio.WriterOpts
+	Lake   lakeio.WriterOpts
 	Text   textio.WriterOpts
 	Zng    zngio.WriterOpts
 	ZSON   zsonio.WriterOpts
@@ -59,11 +60,11 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "table":
 		return tableio.NewWriter(w, opts.UTF8), nil
 	case "csv":
-		return csvio.NewWriter(w, csvio.WriterOpts{UTF8: opts.UTF8}), nil
+		return csvio.NewWriter(w), nil
 	case "parquet":
 		return parquetio.NewWriter(w), nil
 	case "lake":
-		return lakeio.NewWriter(w), nil
+		return lakeio.NewWriter(w, opts.Lake), nil
 	default:
 		return nil, fmt.Errorf("unknown format: %s", opts.Format)
 	}
@@ -71,7 +72,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 
 type nullWriter struct{}
 
-func (*nullWriter) Write(*zng.Record) error {
+func (*nullWriter) Write(*zed.Record) error {
 	return nil
 }
 

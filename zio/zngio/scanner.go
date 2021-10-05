@@ -7,11 +7,9 @@ import (
 	"sync"
 	"sync/atomic"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
-	"github.com/brimdata/zed/zson"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -111,7 +109,7 @@ func (w *worker) run(ctx context.Context) error {
 		if msg != nil {
 			goto again
 		}
-		var format zng.CompressionFormat
+		var format zed.CompressionFormat
 		var uncompressedLen int
 		var cbuf []byte
 		if err == startCompressed {
@@ -190,7 +188,7 @@ func copyBytes(dst, src []byte) []byte {
 	return dst
 }
 
-func (w *worker) scanBatch(buf *buffer, mapper *resolver.Mapper, streamZctx *zson.Context) (zbuf.Batch, error) {
+func (w *worker) scanBatch(buf *buffer, mapper *zed.Mapper, streamZctx *zed.Context) (zbuf.Batch, error) {
 	// If w.bufferFilter evaluates to false, we know buf cannot contain
 	// records matching w.filter.
 	if w.bufferFilter != nil && !w.bufferFilter.Eval(streamZctx, buf.Bytes()) {
@@ -200,16 +198,17 @@ func (w *worker) scanBatch(buf *buffer, mapper *resolver.Mapper, streamZctx *zso
 	}
 	// Otherwise, build a batch by reading all records in the buffer.
 	batch := newBatch(buf)
+	var stackRec zed.Record
 	var stats zbuf.ScannerStats
 	for buf.length() > 0 {
 		code, err := buf.ReadByte()
 		if err != nil {
 			return nil, err
 		}
-		if code > zng.CtrlValueEscape {
+		if code > zed.CtrlValueEscape {
 			return nil, errors.New("zngio: control message in compressed value messaage block")
 		}
-		rec, err := readValue(buf, code, mapper, w.scanner.reader.validate, nil)
+		rec, err := readValue(buf, code, mapper, w.scanner.reader.validate, &stackRec)
 		if err != nil {
 			return nil, err
 		}
@@ -225,7 +224,7 @@ func (w *worker) scanBatch(buf *buffer, mapper *resolver.Mapper, streamZctx *zso
 	return batch, nil
 }
 
-func (w *worker) wantRecord(rec *zng.Record, stats *zbuf.ScannerStats) bool {
+func (w *worker) wantRecord(rec *zed.Record, stats *zbuf.ScannerStats) bool {
 	stats.BytesRead += int64(len(rec.Bytes))
 	stats.RecordsRead++
 	// It's tempting to call w.bufferFilter.Eval on rec.Bytes here, but that

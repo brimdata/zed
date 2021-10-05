@@ -1,5 +1,5 @@
 script: |
-  zq -z doesnotexist
+  ! zq -z doesnotexist
 
 outputs:
   - name: stdout

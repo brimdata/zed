@@ -4,14 +4,14 @@ import (
 	"encoding/json"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 )
 
-func semType(scope *Scope, typ zed.Type) (zed.Type, error) {
+func semType(scope *Scope, typ astzed.Type) (astzed.Type, error) {
 	return copyType(typ), nil
 }
 
-func copyType(t zed.Type) zed.Type {
+func copyType(t astzed.Type) astzed.Type {
 	if t == nil {
 		panic("copyType nil")
 	}
@@ -23,7 +23,7 @@ func copyType(t zed.Type) zed.Type {
 	if err != nil {
 		panic(err)
 	}
-	typ, ok := copy.(zed.Type)
+	typ, ok := copy.(astzed.Type)
 	if !ok {
 		panic("copyType not a type")
 	}

@@ -1,8 +1,9 @@
 script: |
   source service.sh
-  zapi create -q -p test
-  zapi load -q -p test babble.zson
+  zapi create -q test
+  zapi load -q -use test@main babble.zson
   zapi query -s -Z "from test | count()"
+
 inputs:
   - name: service.sh
     source: service.sh
@@ -14,7 +15,7 @@ outputs:
     data: |
       {
           count: 1000 (uint64)
-      } (=0)
+      }
   - name: stderr
     data: |
       data opened: 32889

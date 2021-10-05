@@ -1,11 +1,11 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -q -p logs
-  zed lake load -q -p logs babble.zson
-  zed lake ls -f zng | zq -Z "drop id" -
+  zed lake create -q logs
+  zed lake load -q -use logs@main babble.zson
+  zed lake ls -f zng | zq -Z "drop id,ts" -
   echo ===
-  zed lake ls -p logs -Z | zq -Z "cut meta" -
+  zed lake query -Z "from logs@main:objects | cut meta"
 
 inputs:
   - name: babble.zson
@@ -13,23 +13,21 @@ inputs:
 
 # The keys field should be labeled with (field.)Path.
 # See bug #2576
-
 outputs:
   - name: stdout
     data: |
       {
-          version: 0,
           name: "logs",
           layout: {
-              order: "desc" (=Which),
+              order: "desc" (=order.Which),
               keys: [
                   [
                       "ts"
-                  ] (=Path)
-              ] (=List)
-          } (=Layout),
+                  ] (=field.Path)
+              ] (=field.List)
+          } (=order.Layout),
           threshold: 524288000
-      } (=0)
+      }
       ===
       {
           meta: {
@@ -37,5 +35,5 @@ outputs:
               last: 2020-04-21T22:40:30.06852324Z,
               count: 1000 (uint64),
               row_size: 34325
-          } (=segment.Metadata)
-      } (=0)
+          } (=data.Meta)
+      }

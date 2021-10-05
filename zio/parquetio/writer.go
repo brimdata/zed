@@ -1,10 +1,10 @@
 package parquetio
 
 import (
+	"errors"
 	"io"
 
-	"github.com/brimdata/zed/zio/csvio"
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	goparquet "github.com/fraugster/parquet-go"
 )
 
@@ -12,7 +12,7 @@ type Writer struct {
 	w io.WriteCloser
 
 	fw  *goparquet.FileWriter
-	typ *zng.TypeRecord
+	typ *zed.TypeRecord
 }
 
 func NewWriter(w io.WriteCloser) *Writer {
@@ -30,18 +30,20 @@ func (w *Writer) Close() error {
 	return err
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
+func (w *Writer) Write(rec *zed.Record) error {
+	recType := zed.AliasOf(rec.Type).(*zed.TypeRecord)
 	if w.typ == nil {
-		w.typ = zng.TypeRecordOf(rec.Type)
-		sd, err := newSchemaDefinition(w.typ)
+		w.typ = recType
+		sd, err := newSchemaDefinition(recType)
 		if err != nil {
 			return err
 		}
 		w.fw = goparquet.NewFileWriter(w.w, goparquet.WithSchemaDefinition(sd))
-	} else if w.typ != rec.Type {
-		return csvio.ErrNotDataFrame
+	} else if w.typ != recType {
+		return errors.New(
+			"Parquet output requires uniform records but multiple types encountered (consider 'fuse')")
 	}
-	data, err := newRecordData(zng.TypeRecordOf(rec.Type), rec.Bytes)
+	data, err := newRecordData(recType, rec.Bytes)
 	if err != nil {
 		return err
 	}

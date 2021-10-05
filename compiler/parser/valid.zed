@@ -7,9 +7,11 @@ foo | count()
 _path=='conn'
 _path=='conn' id.resp_p==80
 * | count(), sum(foo)
-* | split (=>count() by _path =>count() by addr)
+* | split (=>count() by _path; =>count() by addr;)
+* | switch (foo => count() by _path; field==1 => count() by addr;)
 * | count() by _path | count() by addr
-* | split (=>count() by _path =>sort) | split (=>count() by addr)
+* | split (=>count() by _path; =>sort;) | split (=>count() by addr;)
+* | switch (foo => count() by _path; field==1 => sort;) | switch (* =>count() by addr;)
 * | sort -r
 * | sort -r a, b, c
 * | sort -r a, b, c

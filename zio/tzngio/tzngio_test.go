@@ -5,9 +5,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -67,7 +67,7 @@ func identity(t *testing.T, logs string) {
 	var out bytes.Buffer
 	dst := tzngio.NewWriter(zio.NopCloser(&out))
 	in := strings.TrimSpace(logs) + "\n"
-	src := tzngio.NewReader(strings.NewReader(in), zson.NewContext())
+	src := tzngio.NewReader(strings.NewReader(in), zed.NewContext())
 	err := zio.Copy(dst, src)
 	if assert.NoError(t, err) {
 		assert.Equal(t, in, out.String())

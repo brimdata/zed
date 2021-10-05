@@ -1,12 +1,12 @@
 zed: fuse(.) by key with -limit 1
 
 input: |
-  {a:"hello",r:{x:1 (int32),y:2 (int32)} (=0),key:"a"} (=1)
-  {a:"hello",r:{x:1,y:2},key:"b"} (1)
-  {a:"hello",r:{x:1,y:2},key:"c"} (1)
-  {r:{y:4 (int32),z:5 (int32)} (=2),s:"world",r2:{x:6 (int32)} (=3),key:"a"} (=4)
-  {r:{y:4,z:5},s:"world",r2:{x:6},key:"b"} (4)
-  {r:{y:4,z:5},s:"world",r2:{x:6},key:"c"} (4)
+  {a:"hello",r:{x:1(int32),y:2(int32)},key:"a"}
+  {a:"hello",r:{x:1(int32),y:2(int32)},key:"b"}
+  {a:"hello",r:{x:1(int32),y:2(int32)},key:"c"}
+  {r:{y:4(int32),z:5(int32)},s:"world",r2:{x:6(int32)},key:"a"}
+  {r:{y:4(int32),z:5(int32)},s:"world",r2:{x:6(int32)},key:"b"}
+  {r:{y:4(int32),z:5(int32)},s:"world",r2:{x:6(int32)},key:"c"}
 
 output: |
   {key:"a",fuse:({a:string,r:{x:int32,y:int32,z:int32},key:string,s:string,r2:{x:int32}})}

@@ -3,9 +3,9 @@
 zed: 'put y := x > 0 ? "string" : x'
 
 input: |
-  {x:0 (int32)} (=0)
-  {x:1} (0)
+  {x:0(int32)}
+  {x:1(int32)}
 
 output: |
-  {x:0 (int32),y:0 (int32)} (=0)
-  {x:1 (int32),y:"string"} (=1)
+  {x:0(int32),y:0(int32)}
+  {x:1(int32),y:"string"}

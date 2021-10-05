@@ -4,8 +4,8 @@ import (
 	"errors"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -39,13 +39,13 @@ func (p *PrimitiveWriter) Flush(eof bool) error {
 	return err
 }
 
-func (p *PrimitiveWriter) MarshalZNG(zctx *zson.Context, b *zcode.Builder) (zng.Type, error) {
+func (p *PrimitiveWriter) MarshalZNG(zctx *zed.Context, b *zcode.Builder) (zed.Type, error) {
 	b.BeginContainer()
 	for _, segment := range p.segments {
 		// Add a segmap record to the array for each segment.
 		b.BeginContainer()
-		b.AppendPrimitive(zng.EncodeInt(segment.Offset))
-		b.AppendPrimitive(zng.EncodeInt(segment.Length))
+		b.AppendPrimitive(zed.EncodeInt(segment.Offset))
+		b.AppendPrimitive(zed.EncodeInt(segment.Length))
 		b.EndContainer()
 	}
 	b.EndContainer()
@@ -58,7 +58,7 @@ type Primitive struct {
 	reader io.ReaderAt
 }
 
-func (p *Primitive) UnmarshalZNG(in zng.Value, reader io.ReaderAt) error {
+func (p *Primitive) UnmarshalZNG(in zed.Value, reader io.ReaderAt) error {
 	p.reader = reader
 	return UnmarshalSegmap(in, &p.segmap)
 }

@@ -32,22 +32,18 @@ func username() string {
 
 // CommitFlags implements flags used by all "zed lake" commands that need commit info.
 type CommitFlags struct {
-	Date    Date
 	User    string
 	Message string
 }
 
 func (c *CommitFlags) SetFlags(f *flag.FlagSet) {
-	c.Date = DefaultDate()
-	f.Var(&c.Date, "date", "date string for commit message")
 	f.StringVar(&c.User, "user", username(), "user name for commit message")
 	f.StringVar(&c.Message, "message", "", "commit message")
 }
 
-func (c *CommitFlags) CommitRequest() *api.CommitRequest {
-	return &api.CommitRequest{
-		Date:    c.Date.Ts(),
-		Author:  c.User,
-		Message: c.Message,
+func (c *CommitFlags) CommitMessage() api.CommitMessage {
+	return api.CommitMessage{
+		Author: c.User,
+		Body:   c.Message,
 	}
 }

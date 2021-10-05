@@ -1,24 +1,22 @@
 package zio
 
 import (
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/resolver"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed"
 )
 
 type Mapper struct {
 	Reader
-	mapper *resolver.Mapper
+	mapper *zed.Mapper
 }
 
-func NewMapper(reader Reader, zctx *zson.Context) *Mapper {
+func NewMapper(reader Reader, zctx *zed.Context) *Mapper {
 	return &Mapper{
 		Reader: reader,
-		mapper: resolver.NewMapper(zctx),
+		mapper: zed.NewMapper(zctx),
 	}
 }
 
-func (m *Mapper) Read() (*zng.Record, error) {
+func (m *Mapper) Read() (*zed.Record, error) {
 	rec, err := m.Reader.Read()
 	if err != nil {
 		return nil, err
@@ -26,7 +24,7 @@ func (m *Mapper) Read() (*zng.Record, error) {
 	if rec == nil {
 		return nil, nil
 	}
-	id := zng.TypeID(rec.Type)
+	id := zed.TypeID(rec.Type)
 	sharedType := m.mapper.Lookup(id)
 	if sharedType == nil {
 		sharedType, err = m.mapper.Enter(id, rec.Type)

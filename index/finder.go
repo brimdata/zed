@@ -5,12 +5,11 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -19,7 +18,7 @@ var ErrNotFound = errors.New("key not found")
 // Finder looks up values in a microindex using its embedded index.
 type Finder struct {
 	*Reader
-	zctx *zson.Context
+	zctx *zed.Context
 	uri  *storage.URI
 }
 
@@ -28,7 +27,7 @@ type Finder struct {
 // corrupt, doesn't exist, or has an invalid trailer.  If the microindex exists
 // but is empty, zero values are returned for any lookups. If the microindex
 // does not exist, a wrapped zqe.NotFound error is returned.
-func NewFinder(ctx context.Context, zctx *zson.Context, engine storage.Engine, uri *storage.URI) (*Finder, error) {
+func NewFinder(ctx context.Context, zctx *zed.Context, engine storage.Engine, uri *storage.URI) (*Finder, error) {
 	reader, err := NewReaderFromURI(ctx, zctx, engine, uri)
 	if err != nil {
 		return nil, err
@@ -52,15 +51,15 @@ const (
 // key values in the records read from the reader.  If the op argument is eql
 // then only exact matches are returned.  Otherwise, the record with the
 // largest key smaller (or larger) than the key argument is returned.
-func lookup(reader zio.Reader, compare expr.KeyCompareFn, o order.Which, op operator) (*zng.Record, error) {
+func lookup(reader zio.Reader, compare expr.KeyCompareFn, o order.Which, op operator) (*zed.Record, error) {
 	if o == order.Asc {
 		return lookupAsc(reader, compare, op)
 	}
 	return lookupDesc(reader, compare, op)
 }
 
-func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zng.Record, error) {
-	var prev *zng.Record
+func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zed.Record, error) {
+	var prev *zed.Record
 	for {
 		rec, err := reader.Read()
 		if rec == nil || err != nil {
@@ -85,8 +84,8 @@ func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zng.Recor
 	}
 }
 
-func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zng.Record, error) {
-	var prev *zng.Record
+func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zed.Record, error) {
+	var prev *zed.Record
 	for {
 		rec, err := reader.Read()
 		if rec == nil || err != nil {
@@ -148,7 +147,7 @@ func (f *Finder) search(compare expr.KeyCompareFn) (zio.Reader, error) {
 	return f.newSectionReader(0, off)
 }
 
-func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
+func (f *Finder) Lookup(keys *zed.Record) (*zed.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
@@ -167,7 +166,7 @@ func (f *Finder) Lookup(keys *zng.Record) (*zng.Record, error) {
 	return lookup(reader, compare, f.trailer.Order, eql)
 }
 
-func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *zng.Record) error {
+func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Record, keys *zed.Record) error {
 	if f.IsEmpty() {
 		return nil
 	}
@@ -200,17 +199,17 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zng.Record, keys *z
 
 // ClosestGTE returns the closest record that is greater than or equal to the
 // provided key values.
-func (f *Finder) ClosestGTE(keys *zng.Record) (*zng.Record, error) {
+func (f *Finder) ClosestGTE(keys *zed.Record) (*zed.Record, error) {
 	return f.closest(keys, gte)
 }
 
 // ClosestLTE returns the closest record that is less than or equal to the
 // provided key values.
-func (f *Finder) ClosestLTE(keys *zng.Record) (*zng.Record, error) {
+func (f *Finder) ClosestLTE(keys *zed.Record) (*zed.Record, error) {
 	return f.closest(keys, lte)
 }
 
-func (f *Finder) closest(keys *zng.Record, op operator) (*zng.Record, error) {
+func (f *Finder) closest(keys *zed.Record, op operator) (*zed.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
@@ -231,18 +230,23 @@ func (f *Finder) closest(keys *zng.Record, op operator) (*zng.Record, error) {
 // number of key fields, in which case they are "don't cares"
 // in terms of key lookups.  Any don't-care fields must all be
 // at the end of the key record.
-func (f *Finder) ParseKeys(inputs ...string) (*zng.Record, error) {
+func (f *Finder) ParseKeys(inputs ...string) (*zed.Record, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
-	cols := f.trailer.KeyType.Columns
-	if len(inputs) > len(cols) {
-		return nil, fmt.Errorf("too many keys: expected at most %d but got %d", len(cols), len(inputs))
+	keys := f.trailer.Keys
+	if len(inputs) > len(keys) {
+		return nil, fmt.Errorf("too many keys: expected at most %d but got %d", len(keys), len(inputs))
 	}
-	var b zcode.Builder
-	for k, col := range cols {
-		typ := col.Type
-		var zv zng.Value
+	// zed.NewContext().LookupTypeRecord
+	zctx := zed.NewContext()
+	builder, err := zed.NewColumnBuilder(zctx, keys)
+	if err != nil {
+		return nil, err
+	}
+	var types []zed.Type
+	for k := range keys {
+		var zv zed.Value
 		if k < len(inputs) {
 			s := inputs[k]
 			var err error
@@ -250,17 +254,19 @@ func (f *Finder) ParseKeys(inputs ...string) (*zng.Record, error) {
 			if err != nil {
 				return nil, fmt.Errorf("could not parse %q: %w", s, err)
 			}
-			if typ != zv.Type {
-				return nil, fmt.Errorf("type mismatch for %q: expected type %s", s, typ)
-			}
 		} else {
-			zv = zng.Value{typ, nil}
+			zv = zed.Value{zed.TypeNull, nil}
 		}
-		if zng.IsContainerType(typ) {
-			b.AppendContainer(zv.Bytes)
-		} else {
-			b.AppendPrimitive(zv.Bytes)
-		}
+		builder.Append(zv.Bytes, zed.IsContainerType(zv.Type))
+		types = append(types, zv.Type)
 	}
-	return zng.NewRecord(f.trailer.KeyType, b.Bytes()), nil
+	typ, err := zctx.LookupTypeRecord(builder.TypedColumns(types))
+	if err != nil {
+		return nil, err
+	}
+	b, err := builder.Encode()
+	if err != nil {
+		return nil, err
+	}
+	return zed.NewRecord(typ, b), nil
 }

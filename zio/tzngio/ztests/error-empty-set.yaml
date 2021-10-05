@@ -1,11 +1,11 @@
 script: |
-  zq emptyset.tzng
+  ! zq emptyset.tzng
 
 inputs:
   - name: emptyset.tzng
     data: |
-        #0:record[a:set[]]
-        0:[0:1;]
+      #0:record[a:set[]]
+      0:[0:1;]
 
 outputs:
   - name: stderr

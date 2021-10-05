@@ -1,39 +1,37 @@
 package fuse
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/agg"
-	"github.com/brimdata/zed/proc/rename"
 	"github.com/brimdata/zed/proc/spill"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 )
 
 // Fuser buffers records written to it, assembling from them a unified schema of
 // fields and types.  Fuser then transforms those records to the unified schema
 // as they are read back from it.
 type Fuser struct {
-	zctx        *zson.Context
+	zctx        *zed.Context
 	memMaxBytes int
 
 	nbytes  int
-	recs    []*zng.Record
+	recs    []*zed.Record
 	spiller *spill.File
-	types   map[zng.Type]int
 
-	shaper   *expr.ConstShaper
-	renamers map[int]*rename.Function
+	types      map[zed.Type]struct{}
+	uberSchema *agg.Schema
+	shaper     *expr.ConstShaper
 }
 
 // NewFuser returns a new Fuser.  The Fuser buffers records in memory until
 // their cumulative size (measured in zcode.Bytes length) exceeds memMaxBytes,
 // at which point it buffers them in a temporary file.
-func NewFuser(zctx *zson.Context, memMaxBytes int) *Fuser {
+func NewFuser(zctx *zed.Context, memMaxBytes int) *Fuser {
 	return &Fuser{
 		zctx:        zctx,
 		memMaxBytes: memMaxBytes,
-		types:       make(map[zng.Type]int),
-		renamers:    make(map[int]*rename.Function),
+		types:       make(map[zed.Type]struct{}),
+		uberSchema:  agg.NewSchema(zctx),
 	}
 }
 
@@ -46,12 +44,15 @@ func (f *Fuser) Close() error {
 }
 
 // Write buffers rec. If called after Read, Write panics.
-func (f *Fuser) Write(rec *zng.Record) error {
-	if f.finished() {
+func (f *Fuser) Write(rec *zed.Record) error {
+	if f.shaper != nil {
 		panic("fuser: write after read")
 	}
 	if _, ok := f.types[rec.Type]; !ok {
-		f.types[rec.Type] = len(f.types)
+		f.types[rec.Type] = struct{}{}
+		if err := f.uberSchema.Mixin(zed.TypeRecordOf(rec.Type)); err != nil {
+			return err
+		}
 	}
 	if f.spiller != nil {
 		return f.spiller.Write(rec)
@@ -59,7 +60,7 @@ func (f *Fuser) Write(rec *zng.Record) error {
 	return f.stash(rec)
 }
 
-func (f *Fuser) stash(rec *zng.Record) error {
+func (f *Fuser) stash(rec *zed.Record) error {
 	f.nbytes += len(rec.Bytes)
 	if f.nbytes >= f.memMaxBytes {
 		var err error
@@ -80,73 +81,33 @@ func (f *Fuser) stash(rec *zng.Record) error {
 	return nil
 }
 
-func (f *Fuser) finished() bool {
-	return f.shaper != nil
-}
-
-func (f *Fuser) finish() error {
-	uber, err := agg.NewSchema(f.zctx)
-	if err != nil {
-		return err
-	}
-	for _, typ := range typesInOrder(f.types) {
-		if typ != nil {
-			if err = uber.Mixin(zng.AliasOf(typ).(*zng.TypeRecord)); err != nil {
-				return err
-			}
-		}
-	}
-
-	f.shaper = expr.NewConstShaper(f.zctx, &expr.RootRecord{}, uber.Type, expr.Fill|expr.Order)
-	for typ, renames := range uber.Renames {
-		f.renamers[typ] = rename.NewFunction(f.zctx, renames.Srcs, renames.Dsts)
-	}
-
-	if f.spiller != nil {
-		return f.spiller.Rewind(f.zctx)
-	}
-	return nil
-}
-
-func typesInOrder(in map[zng.Type]int) []zng.Type {
-	if len(in) == 0 {
-		return nil
-	}
-	out := make([]zng.Type, len(in))
-	for typ, position := range in {
-		out[position] = typ
-	}
-	return out
-}
-
 // Read returns the next buffered record after transforming it to the unified
 // schema.
-func (f *Fuser) Read() (*zng.Record, error) {
-	if !f.finished() {
-		if err := f.finish(); err != nil {
+func (f *Fuser) Read() (*zed.Record, error) {
+	if f.shaper == nil {
+		t, err := f.uberSchema.Type()
+		if err != nil {
 			return nil, err
+		}
+		f.shaper = expr.NewConstShaper(f.zctx, &expr.RootRecord{}, t, expr.Cast|expr.Fill|expr.Order)
+		if f.spiller != nil {
+			if err := f.spiller.Rewind(f.zctx); err != nil {
+				return nil, err
+			}
 		}
 	}
 	rec, err := f.next()
 	if rec == nil || err != nil {
 		return nil, err
 	}
-
-	if renamer, ok := f.renamers[rec.Type.ID()]; ok {
-		rec, err = renamer.Apply(rec)
-		if err != nil {
-			return nil, err
-		}
-	}
-
 	return f.shaper.Apply(rec)
 }
 
-func (f *Fuser) next() (*zng.Record, error) {
+func (f *Fuser) next() (*zed.Record, error) {
 	if f.spiller != nil {
 		return f.spiller.Read()
 	}
-	var rec *zng.Record
+	var rec *zed.Record
 	if len(f.recs) > 0 {
 		rec = f.recs[0]
 		f.recs = f.recs[1:]

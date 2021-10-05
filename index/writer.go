@@ -2,10 +2,12 @@ package index
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
@@ -13,11 +15,10 @@ import (
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
-// Writer implements the zbuf.Writer interface. A Writer creates a zed index,
+// Writer implements the zio.Writer interface. A Writer creates a zed index,
 // comprising the base zng file along with its related B-tree sections,
 // as zng records are consumed.
 //
@@ -47,14 +48,13 @@ import (
 // instead of Close().
 type Writer struct {
 	uri         *storage.URI
-	keyFields   field.List
-	zctx        *zson.Context
+	keys        field.List
+	zctx        *zed.Context
 	engine      storage.Engine
 	writer      *indexWriter
 	cutter      *expr.Cutter
 	tmpdir      string
 	frameThresh int
-	keyType     *zng.TypeRecord
 	iow         io.WriteCloser
 	childField  string
 	nlevel      int
@@ -69,7 +69,7 @@ type indexWriter struct {
 	zng        *zngio.Writer
 	frameStart int64
 	frameEnd   int64
-	frameKey   *zng.Record
+	frameKey   *zed.Record
 }
 
 // NewWriter returns a Writer ready to write a zed index or it returns
@@ -78,20 +78,22 @@ type indexWriter struct {
 // provide keys in increasing lexicographic order.  Duplicate keys are not
 // allowed but will not be detected.  Close() or Abort() must be called when
 // done writing.
-func NewWriter(zctx *zson.Context, engine storage.Engine, path string, options ...Option) (*Writer, error) {
-	return NewWriterWithContext(context.Background(), zctx, engine, path, options...)
+func NewWriter(zctx *zed.Context, engine storage.Engine, path string, keys field.List, options ...Option) (*Writer, error) {
+	return NewWriterWithContext(context.Background(), zctx, engine, path, keys, options...)
 }
 
-func NewWriterWithContext(ctx context.Context, zctx *zson.Context, engine storage.Engine, path string, options ...Option) (*Writer, error) {
+func NewWriterWithContext(ctx context.Context, zctx *zed.Context, engine storage.Engine, path string, keys field.List, options ...Option) (*Writer, error) {
+	if len(keys) == 0 {
+		return nil, errors.New("must specify at least one key")
+	}
 	w := &Writer{
-		zctx:   zctx,
-		engine: engine,
+		keys:       keys,
+		zctx:       zctx,
+		engine:     engine,
+		childField: uniqChildField(keys),
 	}
 	for _, opt := range options {
 		opt.apply(w)
-	}
-	if w.keyFields == nil {
-		w.keyFields = field.List{field.New("key")}
 	}
 	if w.frameThresh == 0 {
 		w.frameThresh = frameThresh
@@ -112,7 +114,7 @@ func NewWriterWithContext(ctx context.Context, zctx *zson.Context, engine storag
 	if err != nil {
 		return nil, err
 	}
-	fields, resolvers := compiler.CompileAssignments(w.keyFields, w.keyFields)
+	fields, resolvers := compiler.CompileAssignments(w.keys, w.keys)
 	w.cutter, err = expr.NewCutter(zctx, fields, resolvers)
 	return w, err
 }
@@ -127,14 +129,14 @@ func (f optionFunc) apply(w *Writer) { f(w) }
 
 func KeyFields(keys ...field.Path) Option {
 	return optionFunc(func(w *Writer) {
-		w.keyFields = keys
+		w.keys = keys
 	})
 }
 
 func Keys(keys ...string) Option {
 	return optionFunc(func(w *Writer) {
 		for _, k := range keys {
-			w.keyFields = append(w.keyFields, field.Dotted(k))
+			w.keys = append(w.keys, field.Dotted(k))
 		}
 	})
 }
@@ -151,7 +153,7 @@ func Order(o order.Which) Option {
 	})
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
+func (w *Writer) Write(rec *zed.Record) error {
 	if w.writer == nil {
 		var err error
 		w.writer, err = newIndexWriter(w, w.iow, "")
@@ -162,8 +164,9 @@ func (w *Writer) Write(rec *zng.Record) error {
 		if err != nil {
 			return err
 		}
-		w.keyType = zng.TypeRecordOf(keys.Type)
-		w.childField = uniqChildField(w.zctx, keys)
+		if keys == nil {
+			return fmt.Errorf("key(s) not found in record: %q", w.keys)
+		}
 	}
 	return w.writer.write(rec)
 }
@@ -198,7 +201,8 @@ func (w *Writer) Close() error {
 		// encountered, then the base layer writer was never created.
 		// In this case, bypass the base layer, write an empty trailer
 		// directly to the output, and close.
-		err := w.writeEmptyTrailer()
+		zw := zngio.NewWriter(w.iow, zngio.WriterOpts{})
+		err := writeTrailer(zw, w.zctx, w.childField, w.frameThresh, nil, w.keys, w.order)
 		if err2 := w.iow.Close(); err == nil {
 			err = err2
 		}
@@ -268,25 +272,20 @@ func (w *Writer) finalize() error {
 			return err
 		}
 	}
-	return writeTrailer(base.zng, w.zctx, w.childField, w.frameThresh, sizes, w.keyType, w.order)
+	return writeTrailer(base.zng, w.zctx, w.childField, w.frameThresh, sizes, w.keys, w.order)
 }
 
-func (w *Writer) writeEmptyTrailer() error {
-	var cols []zng.Column
-	for _, key := range w.keyFields {
-		cols = append(cols, zng.Column{key.String(), zng.TypeNull})
+func writeTrailer(w *zngio.Writer, zctx *zed.Context, childField string, frameThresh int, sizes []int64, keys field.List, o order.Which) error {
+	t := Trailer{
+		ChildOffsetField: childField,
+		FrameThresh:      frameThresh,
+		Keys:             keys,
+		Magic:            Magic,
+		Order:            o,
+		Sections:         sizes,
+		Version:          Version,
 	}
-	typ, err := w.zctx.LookupTypeRecord(cols)
-	if err != nil {
-		return err
-	}
-	zw := zngio.NewWriter(w.iow, zngio.WriterOpts{})
-	return writeTrailer(zw, w.zctx, "", w.frameThresh, nil, typ, w.order)
-}
-
-func writeTrailer(w *zngio.Writer, zctx *zson.Context, childField string, frameThresh int, sizes []int64, keyType *zng.TypeRecord, o order.Which) error {
-	// Finally, write the size records as the trailer of the index.
-	rec, err := newTrailerRecord(zctx, childField, frameThresh, sizes, keyType, o)
+	rec, err := zson.NewZNGMarshalerWithContext(zctx).MarshalRecord(t)
 	if err != nil {
 		return err
 	}
@@ -328,7 +327,7 @@ func (w *indexWriter) Close() error {
 	return w.buffer.Close()
 }
 
-func (w *indexWriter) write(rec *zng.Record) error {
+func (w *indexWriter) write(rec *zed.Record) error {
 	offset := w.zng.Position()
 	if offset >= w.frameEnd && w.frameKey != nil {
 		w.frameEnd = offset + int64(w.base.frameThresh)
@@ -379,7 +378,7 @@ func (w *indexWriter) closeFrame() error {
 	return nil
 }
 
-func (w *indexWriter) addToParentIndex(key *zng.Record, offset int64) error {
+func (w *indexWriter) addToParentIndex(key *zed.Record, offset int64) error {
 	if w.parent == nil {
 		var err error
 		w.parent, err = w.newParent()
@@ -390,10 +389,10 @@ func (w *indexWriter) addToParentIndex(key *zng.Record, offset int64) error {
 	return w.parent.writeIndexRecord(key, offset)
 }
 
-func (w *indexWriter) writeIndexRecord(keys *zng.Record, offset int64) error {
-	col := []zng.Column{{w.base.childField, zng.TypeInt64}}
-	val := zng.EncodeInt(offset)
-	rec, err := w.base.zctx.AddColumns(keys, col, []zng.Value{{zng.TypeInt64, val}})
+func (w *indexWriter) writeIndexRecord(keys *zed.Record, offset int64) error {
+	col := []zed.Column{{w.base.childField, zed.TypeInt64}}
+	val := zed.EncodeInt(offset)
+	rec, err := w.base.zctx.AddColumns(keys, col, []zed.Value{{zed.TypeInt64, val}})
 	if err != nil {
 		return err
 	}

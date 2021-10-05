@@ -3,13 +3,12 @@ package kernel
 import (
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 )
 
 type Filter struct {
@@ -33,9 +32,9 @@ func (f *Filter) AsBufferFilter() (*expr.BufferFilter, error) {
 	return CompileBufferFilter(f.pushdown)
 }
 
-func compileCompareField(zctx *zson.Context, scope *Scope, e *dag.BinaryExpr) (expr.Filter, error) {
+func compileCompareField(zctx *zed.Context, scope *Scope, e *dag.BinaryExpr) (expr.Filter, error) {
 	if e.Op == "in" {
-		literal, ok := e.LHS.(*zed.Primitive)
+		literal, ok := e.LHS.(*astzed.Primitive)
 		if !ok {
 			// XXX If the RHS here is a literal container or a subnet,
 			// we should optimize this case.  This is part of
@@ -54,7 +53,7 @@ func compileCompareField(zctx *zson.Context, scope *Scope, e *dag.BinaryExpr) (e
 		comparison := expr.Contains(eql)
 		return expr.Apply(resolver, comparison), nil
 	}
-	literal, ok := e.RHS.(*zed.Primitive)
+	literal, ok := e.RHS.(*astzed.Primitive)
 	if !ok {
 		return nil, nil
 	}
@@ -83,7 +82,7 @@ func compileSearch(node *dag.Search) (expr.Filter, error) {
 			return nil, err
 		}
 		contains := expr.Contains(match)
-		pred := func(zv zng.Value) bool {
+		pred := func(zv zed.Value) bool {
 			return match(zv) || contains(zv)
 		}
 
@@ -101,7 +100,7 @@ func compileSearch(node *dag.Search) (expr.Filter, error) {
 	return expr.SearchRecordOther(node.Text, node.Value)
 }
 
-func CompileFilter(zctx *zson.Context, scope *Scope, node dag.Expr) (expr.Filter, error) {
+func CompileFilter(zctx *zed.Context, scope *Scope, node dag.Expr) (expr.Filter, error) {
 	switch v := node.(type) {
 	case *dag.RegexpMatch:
 		e, err := compileExpr(zctx, scope, v.Expr)
@@ -122,7 +121,7 @@ func CompileFilter(zctx *zson.Context, scope *Scope, node dag.Expr) (expr.Filter
 		}
 		match := expr.NewRegexpBoolean(re)
 		contains := expr.Contains(match)
-		pred := func(zv zng.Value) bool {
+		pred := func(zv zed.Value) bool {
 			return match(zv) || contains(zv)
 		}
 		return expr.EvalAny(pred, true), nil
@@ -137,7 +136,7 @@ func CompileFilter(zctx *zson.Context, scope *Scope, node dag.Expr) (expr.Filter
 		}
 		return expr.LogicalNot(e), nil
 
-	case *zed.Primitive:
+	case *astzed.Primitive:
 		// This literal translation should happen elsewhere will
 		// be fixed when we add ZSON literals to Zed, e.g.,
 		// dag.Literal.AsBool() etc methods.
@@ -152,7 +151,7 @@ func CompileFilter(zctx *zson.Context, scope *Scope, node dag.Expr) (expr.Filter
 		default:
 			return nil, fmt.Errorf("bad boolean value in dag.Literal: %s", v.Text)
 		}
-		return func(*zng.Record) bool { return b }, nil
+		return func(*zed.Record) bool { return b }, nil
 
 	case *dag.Search:
 		return compileSearch(v)
@@ -198,20 +197,14 @@ func CompileFilter(zctx *zson.Context, scope *Scope, node dag.Expr) (expr.Filter
 	}
 }
 
-func compileExprPredicate(zctx *zson.Context, scope *Scope, e dag.Expr) (expr.Filter, error) {
+func compileExprPredicate(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Filter, error) {
 	predicate, err := compileExpr(zctx, scope, e)
 	if err != nil {
 		return nil, err
 	}
-	return func(rec *zng.Record) bool {
+	return func(rec *zed.Record) bool {
 		zv, err := predicate.Eval(rec)
-		if err != nil {
-			return false
-		}
-		if zv.Type == zng.TypeBool && zng.IsTrue(zv.Bytes) {
-			return true
-		}
-		return false
+		return err == nil && zv.Type == zed.TypeBool && zed.IsTrue(zv.Bytes)
 	}, nil
 }
 

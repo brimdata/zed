@@ -33,7 +33,7 @@ func (*StdioEngine) Put(ctx context.Context, u *URI) (io.WriteCloser, error) {
 	default:
 		return nil, fmt.Errorf("cannot write to '%s'", u.Path)
 	}
-	return &nopCloser{f}, nil
+	return &NopCloser{f}, nil
 }
 
 func (*StdioEngine) PutIfNotExists(context.Context, *URI, []byte) error {
@@ -60,11 +60,11 @@ func (*StdioEngine) List(_ context.Context, _ *URI) ([]Info, error) {
 	return nil, errStdioNotSupport
 }
 
-type nopCloser struct {
+type NopCloser struct {
 	io.Writer
 }
 
-func (*nopCloser) Close() error {
+func (*NopCloser) Close() error {
 	return nil
 }
 

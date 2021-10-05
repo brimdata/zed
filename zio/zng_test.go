@@ -9,11 +9,11 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -30,7 +30,7 @@ func (o *Output) Close() error {
 // Send logs to ZSON reader -> ZNG writer -> ZNG reader -> ZSON writer.
 func boomerang(t *testing.T, logs string, compress bool) {
 	in := []byte(strings.TrimSpace(logs) + "\n")
-	zsonSrc := zson.NewReader(bytes.NewReader(in), zson.NewContext())
+	zsonSrc := zson.NewReader(bytes.NewReader(in), zed.NewContext())
 	var rawzng Output
 	var zngLZ4BlockSize int
 	if compress {
@@ -41,7 +41,7 @@ func boomerang(t *testing.T, logs string, compress bool) {
 	require.NoError(t, rawDst.Close())
 
 	var out Output
-	rawSrc := zngio.NewReader(bytes.NewReader(rawzng.Bytes()), zson.NewContext())
+	rawSrc := zngio.NewReader(bytes.NewReader(rawzng.Bytes()), zed.NewContext())
 	zsonDst := zsonio.NewWriter(&out, zsonio.WriterOpts{})
 	err := zio.Copy(zsonDst, rawSrc)
 	if assert.NoError(t, err) {
@@ -50,14 +50,14 @@ func boomerang(t *testing.T, logs string, compress bool) {
 }
 
 func boomerangZJSON(t *testing.T, logs string) {
-	zsonSrc := zson.NewReader(strings.NewReader(logs), zson.NewContext())
+	zsonSrc := zson.NewReader(strings.NewReader(logs), zed.NewContext())
 	var zjsonOutput Output
 	zjsonDst := zjsonio.NewWriter(&zjsonOutput)
 	err := zio.Copy(zjsonDst, zsonSrc)
 	require.NoError(t, err)
 
 	var out Output
-	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), zson.NewContext())
+	zjsonSrc := zjsonio.NewReader(bytes.NewReader(zjsonOutput.Bytes()), zed.NewContext())
 	zsonDst := zsonio.NewWriter(&out, zsonio.WriterOpts{})
 	err = zio.Copy(zsonDst, zjsonSrc)
 	if assert.NoError(t, err) {
@@ -72,23 +72,23 @@ const zson1 = `
 
 const zson2 = `{foo:{bar:"test"}}`
 
-const zson3 = "{foo:|[null (string)]|}"
+const zson3 = "{foo:|[null(string)]|}"
 
-const zson4 = `{foo:"-" (bstring)} (=0)`
+const zson4 = `{foo:"-"(bstring)}`
 
-const zson5 = `{foo:"[" (bstring),bar:"[-]" (bstring)} (=0)`
+const zson5 = `{foo:"["(bstring),bar:"[-]"(bstring)}`
 
 // Make sure we handle unset fields and empty sets.
-const zson6 = "{id:{a:null (string),s:|[]| (0=(|[string]|))}}"
+const zson6 = "{id:{a:null(string),s:|[]|(|[string]|)}}"
 
 // Make sure we handle unset sets.
-const zson7 = `{a:"foo",b:|[]| (0=(|[string]|)),c:null (0)}`
+const zson7 = `{a:"foo",b:|[]|(|[string]|),c:null(|[string]|)}`
 
 // recursive record with unset set and empty set
 const zson8 = `
-{id:{a:null (string),s:|[]| (0=(|[string]|))}}
-{id:{a:null (string),s:null (0)}}
-{id:null (1=({a:string,s:0}))}
+{id:{a:null(string),s:|[]|(|[string]|)}}
+{id:{a:null(string),s:null(|[string]|)}}
+{id:null({a:string,s:|[string]|})}
 `
 
 // generate some really big strings
@@ -140,14 +140,14 @@ func TestZjson(t *testing.T) {
 }
 
 func TestAlias(t *testing.T) {
-	const simple = `{foo:"bar",orig_h:127.0.0.1 (=ipaddr)} (=0)`
+	const simple = `{foo:"bar",orig_h:127.0.0.1(=ipaddr)}`
 	const multipleRecords = `
-{foo:"bar",orig_h:127.0.0.1 (=ipaddr)} (=0)
-{foo:"bro",resp_h:127.0.0.1 (ipaddr)} (=1)
+{foo:"bar",orig_h:127.0.0.1(=ipaddr)}
+{foo:"bro",resp_h:127.0.0.1(=ipaddr)}
 `
 	const recordAlias = `
-{foo:{host:127.0.0.2} (=myrec)} (=0)
-{foo:null} (0)
+{foo:{host:127.0.0.2}(=myrec)}
+{foo:null(myrec=({host:ip}))}
 `
 	t.Run("Zng", func(t *testing.T) {
 		t.Run("simple", func(t *testing.T) {
@@ -182,13 +182,13 @@ func TestStreams(t *testing.T) {
 {key:1.160.203.191}
 {key:2.12.27.251}
 `
-	r := zson.NewReader(strings.NewReader(in), zson.NewContext())
+	r := zson.NewReader(strings.NewReader(in), zed.NewContext())
 	var out Output
 	zw := zngio.NewWriter(&out, zngio.WriterOpts{
 		LZ4BlockSize: zngio.DefaultLZ4BlockSize,
 	})
 
-	var recs []*zng.Record
+	var recs []*zed.Record
 	for {
 		rec, err := r.Read()
 		require.NoError(t, err)
@@ -202,7 +202,7 @@ func TestStreams(t *testing.T) {
 		}
 	}
 
-	zr := zngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), zson.NewContext())
+	zr := zngio.NewReader(bytes.NewReader(out.Buffer.Bytes()), zed.NewContext())
 
 	rec, rec2Off, err := zr.SkipStream()
 	require.NoError(t, err)
@@ -216,19 +216,19 @@ func TestStreams(t *testing.T) {
 	len := int64(len(b))
 
 	sr := io.NewSectionReader(bytes.NewReader(b), rec4Off, len-rec4Off)
-	reader := zngio.NewReader(sr, zson.NewContext())
+	reader := zngio.NewReader(sr, zed.NewContext())
 	rec, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, recs[4].Bytes, rec.Bytes)
 
 	sr = io.NewSectionReader(bytes.NewReader(b), rec2Off, len-rec2Off)
-	reader = zngio.NewReader(sr, zson.NewContext())
+	reader = zngio.NewReader(sr, zed.NewContext())
 	rec, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, recs[2].Bytes, rec.Bytes)
 
 	sr = io.NewSectionReader(bytes.NewReader(b), 0, len)
-	reader = zngio.NewReader(sr, zson.NewContext())
+	reader = zngio.NewReader(sr, zed.NewContext())
 	rec, err = reader.Read()
 	require.NoError(t, err)
 	assert.Equal(t, recs[0].Bytes, rec.Bytes)

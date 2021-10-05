@@ -7,7 +7,7 @@ import (
 	"path"
 	"time"
 
-	"github.com/brimdata/zed/lake/segment"
+	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/go-redis/redis/v8"
 	"github.com/prometheus/client_golang/prometheus"
@@ -35,7 +35,7 @@ func (c *RedisCache) Get(ctx context.Context, u *storage.URI) (storage.Reader, e
 	if !c.cacheable(u) {
 		return c.Engine.Get(ctx, u)
 	}
-	kind, _, _ := segment.FileMatch(path.Base(u.Path))
+	kind, _, _ := data.FileMatch(path.Base(u.Path))
 	res := c.client.Get(ctx, u.String())
 	if err := res.Err(); err == nil {
 		c.hits.WithLabelValues(kind.Description()).Inc()

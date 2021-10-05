@@ -1,13 +1,13 @@
 script: |
   export ZED_LAKE_ROOT=test
   zed lake init -q
-  zed lake create -p asc -orderby ts:asc -q
-  zed lake load -q -seekstride=2KB -p asc babble.zson
-  zed lake query -z -s "from asc over 2020-04-21T23:59:26.063Z to 2020-04-21T23:59:38.069Z"
+  zed lake create -orderby ts:asc -q asc
+  zed lake load -q -seekstride=2KB -use asc@main babble.zson
+  zed lake query -z -s "from asc range 2020-04-21T23:59:26.063Z to 2020-04-21T23:59:38.069Z"
   echo === | tee /dev/stderr
-  zed lake create -p desc -orderby ts:desc -q
-  zed lake load -q -seekstride=2KB -p desc babble.zson
-  zed lake query -z -s "from desc over 2020-04-21T23:59:26.063Z to 2020-04-21T23:59:38.069Z"
+  zed lake create -orderby ts:desc -q desc
+  zed lake load -q -seekstride=2KB -use desc@main babble.zson
+  zed lake query -z -s "from desc range 2020-04-21T23:59:26.063Z to 2020-04-21T23:59:38.069Z"
 
 inputs:
   - name: babble.zson

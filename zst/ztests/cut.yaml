@@ -9,11 +9,11 @@ script: |
 inputs:
   - name: stdin
     data: |
-      {a:"hello",b:{c:1 (int32),d:2 (int32)} (=0)} (=1)
-      {a:"world",b:{c:3,d:4}} (1)
+      {a:"hello",b:{c:1(int32),d:2(int32)}}
+      {a:"world",b:{c:3(int32),d:4(int32)}}
       {junk:"trick"}
-      {a:"goodnight",b:{c:5,d:6}} (1)
-      {a:"gracie",b:{c:7,d:8}} (1)
+      {a:"goodnight",b:{c:5(int32),d:6(int32)}}
+      {a:"gracie",b:{c:7(int32),d:8(int32)}}
 
 outputs:
   - name: stdout
@@ -23,12 +23,12 @@ outputs:
       {a:"goodnight"}
       {a:"gracie"}
       ===
-      {b:{c:1 (int32),d:2 (int32)} (=0)} (=1)
-      {b:{c:3,d:4}} (1)
-      {b:{c:5,d:6}} (1)
-      {b:{c:7,d:8}} (1)
+      {b:{c:1(int32),d:2(int32)}}
+      {b:{c:3(int32),d:4(int32)}}
+      {b:{c:5(int32),d:6(int32)}}
+      {b:{c:7(int32),d:8(int32)}}
       ===
-      {b:{c:1 (int32)} (=0)} (=1)
-      {b:{c:3}} (1)
-      {b:{c:5}} (1)
-      {b:{c:7}} (1)
+      {b:{c:1(int32)}}
+      {b:{c:3(int32)}}
+      {b:{c:5(int32)}}
+      {b:{c:7(int32)}}

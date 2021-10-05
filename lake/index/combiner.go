@@ -3,19 +3,19 @@ package index
 import (
 	"context"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zng"
 	"github.com/segmentio/ksuid"
 	"go.uber.org/multierr"
 )
 
 type Combiner []*Writer
 
-func NewCombiner(ctx context.Context, engine storage.Engine, path *storage.URI, rules []Index, segmentID ksuid.KSUID) (Combiner, error) {
+func NewCombiner(ctx context.Context, engine storage.Engine, path *storage.URI, rules []Rule, id ksuid.KSUID) (Combiner, error) {
 	writers := make(Combiner, 0, len(rules))
 	for _, rule := range rules {
-		ref := &Reference{Index: rule, SegmentID: segmentID}
-		w, err := NewWriter(ctx, engine, path, ref)
+		o := &Object{Rule: rule, ID: id}
+		w, err := NewWriter(ctx, engine, path, o)
 		if err != nil {
 			writers.Abort()
 			return nil, err
@@ -25,7 +25,7 @@ func NewCombiner(ctx context.Context, engine storage.Engine, path *storage.URI, 
 	return writers, nil
 }
 
-func (c Combiner) Write(rec *zng.Record) error {
+func (c Combiner) Write(rec *zed.Record) error {
 	for _, w := range c {
 		if err := w.Write(rec); err != nil {
 			return err
@@ -43,12 +43,12 @@ func (c Combiner) Close() (merr error) {
 	return
 }
 
-func (c Combiner) References() []*Reference {
-	references := make([]*Reference, len(c))
+func (c Combiner) References() []*Object {
+	objects := make([]*Object, len(c))
 	for i, w := range c {
-		references[i] = w.Reference
+		objects[i] = w.Object
 	}
-	return references
+	return objects
 }
 
 func (c Combiner) Abort() {

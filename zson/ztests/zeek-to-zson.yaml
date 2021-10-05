@@ -35,14 +35,14 @@ outputs:
               "in" (bstring),
               "set" (bstring),
               "things" (bstring)
-          ]| (=0),
+          ]|,
           my_vector: [
               "order" (bstring),
               "is" (bstring),
               "important" (bstring)
-          ] (=1),
+          ],
           my_record: {
               name: "Jeanne" (bstring),
               age: 122 (uint64)
-          } (=2)
-      } (=3)
+          }
+      }

@@ -7,18 +7,19 @@ inputs:
   - name: nested1.zson
     data: |
       {rec:{foo:"foo1",bar:"bar1"}}
-      {rec:{foo:"foo2",bar:"bar2"}}
-
+      {rec:{foo:"foo2",bar:"bar2"}(=rec_alias)}(=alias)
+      {rec:{foo:"foo3",baz:"baz1"}(=rec_alias)}(=alias)
   - name: nested2.zson
     data: |
       {foo:"outer1",rec1:{sub1:{foo:"foo1.1",bar:"bar1.1"},sub2:{foo:"foo2.1",bar:"bar2.1"}},rec2:{foo:"foo3.1"}}
-      {foo:"outer2",rec1:{sub1:{foo:"foo1.2",bar:"bar1.2"},sub2:{foo:"foo2.2",bar:"bar2.2"}},rec2:{foo:"foo3.2"}}
+      {foo:"outer2",rec1:{sub1:{foo:"foo1.2",bar:"bar1.2"},sub2:{foo:"foo2.2",bar:"bar2.2"}}(=rec1_alias),rec2:{foo:"foo3.2"}(=rec2_alias)}(=alias)
 
 outputs:
   - name: stdout
     data: |
       {rec:{foo:"foo1"}}
       {rec:{foo:"foo2"}}
+      {rec:{foo:"foo3",baz:"baz1"}(=rec_alias)}(=alias)
       ===
       {foo:"outer1",rec2:{foo:"foo3.1"}}
-      {foo:"outer2",rec2:{foo:"foo3.2"}}
+      {foo:"outer2",rec2:{foo:"foo3.2"}(=rec2_alias)}

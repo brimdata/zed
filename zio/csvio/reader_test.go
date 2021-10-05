@@ -4,12 +4,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewReaderUsesContextParameter(t *testing.T) {
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	rec, err := NewReader(strings.NewReader("f\n1\n"), zctx).Read()
 	require.NoError(t, err)
 	typ, err := zctx.LookupType(rec.Type.ID())

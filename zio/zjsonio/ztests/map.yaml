@@ -1,13 +1,11 @@
 script: |
   zq -f zjson in.zson | zq -z -
 
-
 inputs:
   - name: in.zson
-    data: |
-      {m:|{{"a",{a:1 (int32),b:2 (int32)} (=0)},{"b",{a:2,b:3} (0)},{"c",{a:3,b:4} (0)}}| (=1)} (=2)
+    data: &in |
+      {m:|{"a":{a:1(int32),b:2(int32)},"b":{a:2(int32),b:3(int32)},"c":{a:3(int32),b:4(int32)}}|}
 
 outputs:
   - name: stdout
-    data: |
-      {m:|{{"a",{a:1 (int32),b:2 (int32)} (=0)},{"b",{a:2,b:3} (0)},{"c",{a:3,b:4} (0)}}| (=1)} (=2)
+    data: *in

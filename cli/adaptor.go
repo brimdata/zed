@@ -6,13 +6,14 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -28,23 +29,27 @@ func NewFileAdaptor(engine storage.Engine) *FileAdaptor {
 	}
 }
 
-func (f *FileAdaptor) Lookup(_ context.Context, _ string) (ksuid.KSUID, error) {
+func (*FileAdaptor) PoolID(context.Context, string) (ksuid.KSUID, error) {
 	return ksuid.Nil, nil
 }
 
-func (f *FileAdaptor) Layout(_ context.Context, _ ksuid.KSUID) (order.Layout, error) {
-	return order.Nil, errors.New("pool scan not available when running on local file system")
+func (*FileAdaptor) CommitObject(context.Context, ksuid.KSUID, string) (ksuid.KSUID, error) {
+	return ksuid.Nil, nil
 }
 
-func (f *FileAdaptor) NewScheduler(context.Context, *zson.Context, ksuid.KSUID, ksuid.KSUID, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
+func (*FileAdaptor) Layout(context.Context, dag.Source) order.Layout {
+	return order.Nil
+}
+
+func (*FileAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
 	return nil, errors.New("pool scan not available when running on local file system")
 }
 
-func (f *FileAdaptor) Open(ctx context.Context, zctx *zson.Context, path string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
+func (f *FileAdaptor) Open(ctx context.Context, zctx *zed.Context, path string, pushdown zbuf.Filter) (zbuf.PullerCloser, error) {
 	if path == "-" {
 		path = "stdio:stdin"
 	}
-	file, err := anyio.OpenFile(zctx, f.engine, path, anyio.ReaderOpts{})
+	file, err := anyio.Open(ctx, zctx, f.engine, path, anyio.ReaderOpts{})
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", path, err)
 	}

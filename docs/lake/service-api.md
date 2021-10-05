@@ -47,7 +47,7 @@ The supported mime types are as follows:
 
 <!-- XXX: Index revamp -->
 <!-- - [Create Index](#create-index) -->
-<!-- - [List Indices](#list-indices) -->
+<!-- - [List Indexes](#list-indexes) -->
 <!-- - [Drop Index](#drop-index) -->
 <!-- - [Index Data](#index-data) -->
 

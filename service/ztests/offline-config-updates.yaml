@@ -1,0 +1,19 @@
+script: |
+  source service.sh
+  zed lake create -q test
+  zapi ls
+  echo ===
+  zed lake drop -q -f test
+  zapi ls
+
+inputs:
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stdout
+    regexp: |
+      test \w{27} key ts order desc
+      ===
+  - name: stderr
+    data: ""

@@ -1,0 +1,79 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q -orderby a:asc poolA
+  zed lake create -q -orderby b:desc poolB
+  zed lake load -q -use poolA@main a.zson
+  zed lake load -q -use poolB@main b.zson
+  zed lake query -Z 'from :pools | drop id | sort name | drop ts'
+  echo ===
+  zed lake query -Z 'from poolA@main:objects | cut nameof(this),meta'
+  zed lake query -Z 'from poolA@main:log | cut nameof(this) | drop ts'
+  echo ===
+  zed lake index create -q Rule field a
+  zed lake query -Z 'from :index_rules | nameof:=nameof(this) | drop ts,id'
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+      {a:2}
+  - name: b.zson
+    data: |
+      {b:3}
+      {b:2}
+      {b:1}
+
+outputs:
+  - name: stdout
+    data: |
+      {
+          name: "poolA",
+          layout: {
+              order: "asc" (=order.Which),
+              keys: [
+                  [
+                      "a"
+                  ] (=field.Path)
+              ] (=field.List)
+          } (=order.Layout),
+          threshold: 524288000
+      }
+      {
+          name: "poolB",
+          layout: {
+              order: "desc" (=order.Which),
+              keys: [
+                  [
+                      "b"
+                  ] (=field.Path)
+              ] (=field.List)
+          } (=order.Layout),
+          threshold: 524288000
+      }
+      ===
+      {
+          nameof: "data.Object",
+          meta: {
+              first: 1,
+              last: 2,
+              count: 2 (uint64),
+              row_size: 14
+          } (=data.Meta)
+      }
+      {
+          nameof: "lake.BranchTip"
+      }
+      {
+          nameof: "Commit"
+      }
+      ===
+      {
+          name: "Rule",
+          fields: [
+              [
+                  "a"
+              ] (=field.Path)
+          ] (=field.List),
+          nameof: "index.FieldRule"
+      }

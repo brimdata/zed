@@ -1,19 +1,16 @@
 package create
 
 import (
-	"context"
 	"errors"
 	"flag"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
 	"github.com/brimdata/zed/cmd/zed/zst"
-	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Create = &charm.Spec{
@@ -56,13 +53,13 @@ func MibToBytes(mib float64) int {
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zst.Command)}
-	c.inputFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f, true)
 	c.outputFlags.SetFlagsWithFormat(f, "zst")
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	_, cleanup, err := c.Init(&c.inputFlags, &c.outputFlags)
+	ctx, cleanup, err := c.Init(&c.inputFlags, &c.outputFlags)
 	if err != nil {
 		return err
 	}
@@ -70,22 +67,17 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("must specify one or more input files")
 	}
-	zctx := zson.NewContext()
 	local := storage.NewLocalEngine()
-	readers, err := c.inputFlags.Open(zctx, local, args, true)
+	readers, err := c.inputFlags.Open(ctx, zed.NewContext(), local, args, true)
 	if err != nil {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	reader, err := zbuf.MergeReadersByTsAsReader(context.Background(), readers, order.Asc)
+	writer, err := c.outputFlags.Open(ctx, local)
 	if err != nil {
 		return err
 	}
-	writer, err := c.outputFlags.Open(context.TODO(), local)
-	if err != nil {
-		return err
-	}
-	if err := zio.Copy(writer, reader); err != nil {
+	if err := zio.Copy(writer, zio.ConcatReader(readers...)); err != nil {
 		return err
 	}
 	return writer.Close()

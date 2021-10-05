@@ -15,5 +15,5 @@ input: |
 output-flags: -f table
 
 output: |
-  C
+  c
   10

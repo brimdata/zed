@@ -5,7 +5,7 @@ input: !!binary |
   JiIhsIDwQGCQQCBPb/
 
 output: |
-  {a:"\"hello\"" (0=((string,1=([int64]),2=([string]),3=((string,int64)))))} (=4)
-  {a:[1,2]} (4)
-  {a:["\"a\"","\"b\""]} (4)
-  {a:123 (3)} (4)
+  {a:"\"hello\""((string,[int64],[string],(string,int64)))}
+  {a:[1,2]((string,[int64],[string],(string,int64)))}
+  {a:["\"a\"","\"b\""]((string,[int64],[string],(string,int64)))}
+  {a:123((string,int64))((string,[int64],[string],(string,int64)))}

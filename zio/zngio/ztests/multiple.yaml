@@ -6,4 +6,4 @@ input: !!binary |
   9gEBYQcXAgQC//YBAWEHFwIEAv8=
 
 output: |
-  {count:2 (uint64)} (=0)
+  {count:2(uint64)}

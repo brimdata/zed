@@ -2,9 +2,9 @@ zed: |
   type port=int64; type prec={p: port}; type parr=[prec]; put this:=crop({a:prec, b:parr})
 
 input: |
-  {a:{p:1 (port=(int64)), q: null (port)} (=0),b:[{p:1,q:2 (port)} (=1)] (=2),c:3 (port)} (=3)
-  {a:{p:1 (myport=(int16)),q:null (port)} (=4),b:[{p:1 (myport),q:2 (port)} (=5)] (=6),c:3 (port)} (=7)
+  {a:{p:1(=port),q:null(port)},b:[{p:1,q:2(port)}],c:3(port)}
+  {a:{p:1(myport=(int16)),q:null(port=(int64))},b:[{p:1(myport),q:2(port)}],c:3(port)}
 
 output: |
-  {a:{p:1 (=port)} (=0),b:[{p:1}]} (=1)
-  {a:{p:1 (myport=(int16))} (=2),b:[{p:1} (2)] (=3)} (=4)
+  {a:{p:1(=port)},b:[{p:1}]}
+  {a:{p:1(myport=(int16))},b:[{p:1(myport)}]}

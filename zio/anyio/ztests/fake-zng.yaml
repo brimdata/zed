@@ -1,4 +1,5 @@
-script: zq -z -
+script: |
+  ! zq -z -
 
 inputs:
   - name: stdin
@@ -15,6 +16,6 @@ outputs:
       	zson: zson syntax error
       	zng: zng type ID out of range
       	csv: auto-detection not supported
-      	json: auto-detection not supported
+      	json: invalid character '\x00' looking for beginning of value
       	parquet: auto-detection not supported
       	zst: auto-detection not supported

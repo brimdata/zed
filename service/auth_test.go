@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"os"
 	"testing"
 	"time"
 
@@ -12,7 +11,6 @@ import (
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/service"
 	"github.com/brimdata/zed/service/auth"
-	"github.com/dgrijalva/jwt-go"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
@@ -34,26 +32,13 @@ func genToken(t *testing.T, tenantID auth.TenantID, userID auth.UserID) string {
 	return token
 }
 
-func makeToken(t *testing.T, kid string, c jwt.MapClaims) string {
-	b, err := os.ReadFile("testdata/auth-private-key")
-	require.NoError(t, err)
-	privateKey, err := jwt.ParseRSAPrivateKeyFromPEM(b)
-	require.NoError(t, err)
-	token := jwt.New(jwt.SigningMethodRS256)
-	token.Claims = c
-	token.Header["kid"] = kid
-	s, err := token.SignedString(privateKey)
-	require.NoError(t, err)
-	return s
-}
-
 func TestAuthIdentity(t *testing.T) {
 	authConfig := testAuthConfig()
 	core, conn := newCoreWithConfig(t, service.Config{
 		Auth:   authConfig,
 		Logger: zap.NewNop(),
 	})
-	_, err := conn.ScanPools(context.Background())
+	_, err := conn.Query(context.Background(), nil, "from [pools]")
 	require.Error(t, err)
 	require.Equal(t, 1.0, promCounterValue(core.Registry(), "request_errors_unauthorized_total"))
 
@@ -75,7 +60,7 @@ func TestAuthIdentity(t *testing.T) {
 		UserID:   "test_user_id",
 	}, res)
 
-	_, err = conn.ScanPools(context.Background())
+	_, err = conn.Query(context.Background(), nil, "from [pools]")
 	require.NoError(t, err)
 }
 

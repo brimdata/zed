@@ -1,10 +1,10 @@
 script: |
-  zq -I query.zed
+  ! zq -I query.zed
 
 inputs:
   - name: query.zed
     data: |
-      from ( file a.zson )
+      from ( file a.zson; )
 
 outputs:
   - name: stderr

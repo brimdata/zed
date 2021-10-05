@@ -97,12 +97,17 @@ func NewSeeker(r Reader) (*Seeker, error) {
 		return nil, err
 	}
 	return &Seeker{
-		Seeker: io.NewSectionReader(r, 0, size),
-		Reader: r,
+		ReadSeeker: io.NewSectionReader(r, 0, size),
+		Reader:     r,
 	}, nil
 }
 
 type Seeker struct {
-	io.Seeker
+	io.ReadSeeker
 	Reader
+}
+
+// Read resolves the ambiguous selector s.Read to s.ReadSeeker.Read.
+func (s *Seeker) Read(b []byte) (int, error) {
+	return s.ReadSeeker.Read(b)
 }

@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/compiler/semantic"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/mux"
 	"github.com/brimdata/zed/zbuf"
@@ -26,7 +27,7 @@ type Runtime struct {
 	readers   []*kernel.Reader
 }
 
-func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor) (*Runtime, error) {
+func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*Runtime, error) {
 	parserAST := ast.Copy(inAST)
 	// An AST always begins with a Sequential proc with at least one
 	// proc.  If the first proc is a From, then we presume there is no
@@ -78,10 +79,18 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor) (*Runtime
 			Trunks: trunks,
 		}
 	default:
-		readers = []*kernel.Reader{{}}
-		trunk := ast.Trunk{
-			Kind:   "Trunk",
-			Source: readers[0],
+		trunk := ast.Trunk{Kind: "Trunk"}
+		if head != nil {
+			// For the lakes, if there is no from operator, then
+			// we default to scanning HEAD (without any of the
+			// from options).
+			trunk.Source = &ast.Pool{
+				Kind: "Pool",
+				Spec: ast.PoolSpec{Pool: "HEAD"},
+			}
+		} else {
+			readers = []*kernel.Reader{{}}
+			trunk.Source = readers[0]
 		}
 		from = &ast.From{
 			Kind:   "From",
@@ -91,7 +100,7 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor) (*Runtime
 	if from != nil {
 		seq.Prepend(from)
 	}
-	entry, consts, err := semantic.Analyze(pctx.Context, seq, adaptor)
+	entry, consts, err := semantic.Analyze(pctx.Context, seq, adaptor, head)
 	if err != nil {
 		return nil, err
 	}
@@ -140,8 +149,8 @@ func (r *Runtime) Parallelize(n int) error {
 
 // ParseProc() is an entry point for use from external go code,
 // mostly just a wrapper around Parse() that casts the return value.
-func ParseProc(z string) (ast.Proc, error) {
-	parsed, err := parser.ParseZed(z)
+func ParseProc(src string, filenames ...string) (ast.Proc, error) {
+	parsed, err := parser.ParseZed(filenames, src)
 	if err != nil {
 		return nil, err
 	}

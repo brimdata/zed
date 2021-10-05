@@ -1,0 +1,3 @@
+# Zed FAQ
+
+Coming soon!

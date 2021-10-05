@@ -11,8 +11,7 @@ inputs:
 outputs:
   - name: stderr
     data: ""
-
   - name: stdout
     data: |
-      {a:"hello",b:"world",c:null (string)}
-      {a:null (string),b:"goodnight",c:"gracie"}
+      {a:"hello",b:"world",c:null(string)}
+      {a:null(string),b:"goodnight",c:"gracie"}

@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -21,7 +21,9 @@ func NewZNGWriter(w io.WriteCloser) *ZNGWriter {
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StyleSimple)
 	return &ZNGWriter{
-		Writer:    zngio.NewWriter(w, zngio.WriterOpts{}),
+		Writer: zngio.NewWriter(w, zngio.WriterOpts{
+			LZ4BlockSize: zngio.DefaultLZ4BlockSize,
+		}),
 		marshaler: m,
 	}
 }
@@ -36,7 +38,7 @@ func (w *ZNGWriter) WriteControl(v interface{}) error {
 	if err != nil {
 		return err
 	}
-	return w.Writer.WriteControl(buf.Bytes(), zng.AppEncodingZSON)
+	return w.Writer.WriteControl(buf.Bytes(), zed.AppEncodingZSON)
 }
 
 type ZNGReader struct {
@@ -49,13 +51,13 @@ func NewZNGReader(r *zngio.Reader) *ZNGReader {
 	}
 }
 
-func (r *ZNGReader) ReadPayload() (*zng.Record, interface{}, error) {
+func (r *ZNGReader) ReadPayload() (*zed.Record, interface{}, error) {
 	rec, msg, err := r.reader.ReadPayload()
 	if msg != nil {
-		if msg.Encoding != zng.AppEncodingZSON {
+		if msg.Encoding != zed.AppEncodingZSON {
 			return nil, nil, fmt.Errorf("unsupported app encoding: %v", msg.Encoding)
 		}
-		value, err := zson.ParseValue(zson.NewContext(), string(msg.Bytes))
+		value, err := zson.ParseValue(zed.NewContext(), string(msg.Bytes))
 		if err != nil {
 			return nil, nil, err
 		}

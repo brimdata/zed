@@ -143,11 +143,7 @@ func (o *Optimizer) propagateScanOrder(op dag.Op, parent order.Layout) (order.La
 		}
 		return egress, nil
 	case *dag.Merge:
-		o := order.Asc
-		if op.Reverse {
-			o = order.Desc
-		}
-		layout := order.NewLayout(o, field.List{op.Key})
+		layout := order.NewLayout(op.Order, field.List{op.Key})
 		if !layout.Equal(parent) {
 			layout = order.Nil
 		}
@@ -187,8 +183,8 @@ func (o *Optimizer) getLayout(s dag.Source, parent order.Layout) (order.Layout, 
 		return s.Layout, nil
 	case *dag.HTTP:
 		return s.Layout, nil
-	case *dag.Pool:
-		return o.adaptor.Layout(o.ctx, s.ID)
+	case *dag.Pool, *dag.LakeMeta, *dag.PoolMeta, *dag.CommitMeta:
+		return o.adaptor.Layout(o.ctx, s), nil
 	case *dag.Pass:
 		return parent, nil
 	case *kernel.Reader:

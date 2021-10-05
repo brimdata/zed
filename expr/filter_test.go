@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	"github.com/brimdata/zed/lake/mock"
 	"github.com/brimdata/zed/proc"
@@ -35,7 +35,7 @@ func runCasesExpectBufferFilterFalsePositives(t *testing.T, record string, cases
 func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferFilterFalsePositives bool) {
 	t.Helper()
 
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	batch, err := zbuf.NewPuller(zson.NewReader(strings.NewReader(record), zctx), 2).Pull()
 	require.NoError(t, err, "record: %q", record)
 	require.Exactly(t, 1, batch.Length(), "record: %q", record)
@@ -47,7 +47,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			t.Helper()
 			p, err := compiler.ParseProc(c.filter)
 			require.NoError(t, err, "filter: %q", c.filter)
-			runtime, err := compiler.New(proc.DefaultContext(), p, lk)
+			runtime, err := compiler.New(proc.DefaultContext(), p, lk, nil)
 			require.NoError(t, err, "filter: %q", c.filter)
 			err = runtime.Build()
 			require.NoError(t, err, "filter: %q", c.filter)
@@ -353,7 +353,7 @@ func TestFilters(t *testing.T) {
 		{"i32 == 2147483647", true},
 		{"u32 == 4294967295", true},
 		{"i64 == 9223372036854775807", true},
-		// can't represent large unsigned 64 bit values in zql...
+		// Can't represent large unsigned 64 bit values in Zed.
 		// {"u64 = 18446744073709551615", true},
 	})
 
@@ -422,20 +422,10 @@ func TestFilters(t *testing.T) {
 
 }
 
-func filterProc(p ast.Proc) *ast.Filter {
-	if seq, ok := p.(*ast.Sequential); ok {
-		p = seq.Procs[0]
-	}
-	if f, ok := p.(*ast.Filter); ok {
-		return f
-	}
-	return nil
-}
-
 func TestBadFilter(t *testing.T) {
 	t.Parallel()
 	p, err := compiler.ParseProc(`s matches \xa8*`)
 	require.NoError(t, err)
-	_, err = compiler.New(proc.DefaultContext(), p, mock.NewLake())
+	_, err = compiler.New(proc.DefaultContext(), p, mock.NewLake(), nil)
 	assert.Error(t, err, "error parsing regexp: invalid UTF-8: `^\xa8.*$`")
 }

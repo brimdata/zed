@@ -6,29 +6,63 @@ inputs:
     data: |
       {
           info: "Connection Example",
-          src: { addr: 10.1.1.2, port: 80 (uint16) } (=socket),
-          dst: { addr: 10.0.1.2, port: 20130 } (socket)
+          src: {
+              addr: 10.1.1.2,
+              port: 80 (uint16)
+          } (=socket),
+          dst: {
+              addr: 10.0.1.2,
+              port: 20130
+          } (socket)
       } (=conn)
       {
           info: "Connection Example 2",
-          src: { addr: 10.1.1.8, port: 80 },
-          dst: { addr: 10.1.2.88, port: 19801 }
-      } (conn)
+          src: {
+              addr: 10.1.1.8,
+              port: 80 (uint16)
+          } (=socket),
+          dst: {
+              addr: 10.1.2.88,
+              port: 19801
+          } (socket)
+      } (=conn)
       {
           info: "Access List Example",
-          nets: [ 10.1.1.0/24, 10.1.2.0/24 ]
+          nets: [
+              10.1.1.0/24,
+              10.1.2.0/24
+          ]
       } (=access_list)
-      { metric: "A", ts: 2020-11-24T08:44:09.586441-08:00, value: 120 }
-      { metric: "B", ts: 2020-11-24T08:44:20.726057-08:00, value: 0.86 }
-      { metric: "A", ts: 2020-11-24T08:44:32.201458-08:00, value: 126 }
-      { metric: "C", ts: 2020-11-24T08:44:43.547506-08:00, value: { x:10, y:101 } }
+      {
+          metric: "A",
+          ts: 2020-11-24T16:44:09.586441Z,
+          value: 120
+      }
+      {
+          metric: "B",
+          ts: 2020-11-24T16:44:20.726057Z,
+          value: 0.86
+      }
+      {
+          metric: "A",
+          ts: 2020-11-24T16:44:32.201458Z,
+          value: 126
+      }
+      {
+          metric: "C",
+          ts: 2020-11-24T16:44:43.547506Z,
+          value: {
+              x: 10,
+              y: 101
+          }
+      }
 
 outputs:
   - name: stdout
     data: |
-      {info:"Connection Example",src:{addr:10.1.1.2,port:80 (uint16)} (=socket),dst:{addr:10.0.1.2,port:20130} (socket)} (=conn)
-      {info:"Connection Example 2",src:{addr:10.1.1.8,port:80},dst:{addr:10.1.2.88,port:19801}} (conn)
-      {info:"Access List Example",nets:[10.1.1.0/24,10.1.2.0/24]} (=access_list)
+      {info:"Connection Example",src:{addr:10.1.1.2,port:80(uint16)}(=socket),dst:{addr:10.0.1.2,port:20130}(socket)}(=conn)
+      {info:"Connection Example 2",src:{addr:10.1.1.8,port:80(uint16)}(=socket),dst:{addr:10.1.2.88,port:19801}(socket)}(=conn)
+      {info:"Access List Example",nets:[10.1.1.0/24,10.1.2.0/24]}(=access_list)
       {metric:"A",ts:2020-11-24T16:44:09.586441Z,value:120}
       {metric:"B",ts:2020-11-24T16:44:20.726057Z,value:0.86}
       {metric:"A",ts:2020-11-24T16:44:32.201458Z,value:126}

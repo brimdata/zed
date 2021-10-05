@@ -4,6 +4,7 @@ import (
 	"errors"
 	"flag"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	zedindex "github.com/brimdata/zed/cmd/zed/index"
 	"github.com/brimdata/zed/field"
@@ -13,7 +14,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Convert = &charm.Spec{
@@ -51,13 +51,13 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	f.StringVar(&c.order, "order", "asc", "specify data in ascending (asc) or descending (desc) order")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")
-	c.inputFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f, true)
 
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	_, cleanup, err := c.Init(&c.inputFlags)
+	ctx, cleanup, err := c.Init(&c.inputFlags)
 	if err != nil {
 		return err
 	}
@@ -73,9 +73,9 @@ func (c *Command) Run(args []string) error {
 	if path == "-" {
 		path = "stdio:stdin"
 	}
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	local := storage.NewLocalEngine()
-	file, err := anyio.OpenFile(zctx, local, path, c.inputFlags.Options())
+	file, err := anyio.Open(ctx, zctx, local, path, c.inputFlags.Options())
 	if err != nil {
 		return err
 	}
@@ -84,8 +84,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	defer file.Close()
-	writer, err := index.NewWriter(zctx, local, c.outputFile,
-		index.KeyFields(field.DottedList(c.keys)...),
+	writer, err := index.NewWriter(zctx, local, c.outputFile, field.DottedList(c.keys),
 		index.FrameThresh(c.frameThresh),
 		index.Order(o),
 	)

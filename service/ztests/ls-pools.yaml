@@ -1,17 +1,17 @@
 script: |
   source service.sh
-  zapi create -p p1
-  zapi create -p p2
+  zapi create p1
+  zapi create p2
   echo ===
 
   # Verify that the default output format is text of names only.
-  zapi ls
+  zapi ls | sort
   echo ===
 
   # Verify that output flags are honored.
-  zapi ls -f zson | zq -i zson -f zson "pick name" -
+  zapi ls -f zson | zq -i zson -f zson "pick name | sort name" -
   echo ===
-  zapi ls -f zng | zq -i zng -f table "pick name" -
+  zapi ls -f zng | zq -i zng -f table "pick name | sort name" -
   echo ===
 
 inputs:
@@ -21,8 +21,8 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      pool created: p1
-      pool created: p2
+      pool created: p1 \w{27}
+      pool created: p2 \w{27}
       ===
       p1 \w{27} key ts order desc
       p2 \w{27} key ts order desc
@@ -34,7 +34,7 @@ outputs:
           name: "p2"
       }
       ===
-      NAME
+      name
       p1
       p2
       ===

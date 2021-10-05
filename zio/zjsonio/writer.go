@@ -5,13 +5,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/compiler/ast/zed"
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 )
 
 type Object struct {
 	Schema string        `json:"schema"`
-	Types  []zed.Type    `json:"types,omitempty"`
+	Types  []astzed.Type `json:"types,omitempty"`
 	Values []interface{} `json:"values"`
 }
 
@@ -24,7 +24,7 @@ func unmarshal(b []byte) (*Object, error) {
 	if err := json.Unmarshal(b, &template); err != nil {
 		return nil, err
 	}
-	var types []zed.Type
+	var types []astzed.Type
 	for _, t := range template.Types {
 		// We should enhance the unpacker to take the template struct
 		// here so we don't have to call UnmarshalObject.  But not
@@ -35,7 +35,7 @@ func unmarshal(b []byte) (*Object, error) {
 		if object == nil || err != nil {
 			return nil, err
 		}
-		typ, ok := object.(zed.Type)
+		typ, ok := object.(astzed.Type)
 		if !ok {
 			return nil, fmt.Errorf("ZJSON types object is not a type: %s", string(b))
 		}
@@ -64,7 +64,7 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(r *zng.Record) error {
+func (w *Writer) Write(r *zed.Record) error {
 	rec, err := w.stream.Transform(r)
 	if err != nil {
 		return err

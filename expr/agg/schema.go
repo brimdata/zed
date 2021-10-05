@@ -1,132 +1,97 @@
 package agg
 
 import (
-	"fmt"
-	"regexp"
-
-	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed"
 )
 
-type Renames struct{ Srcs, Dsts field.List }
-
-// A fuse schema holds the fused type as well as a per-input-type
-// rename specification. The latter is needed when input types have
-// name collisions on fields of different types.
+// Schema constructs a fused record type for the record types passed to Mixin.
+// Records of any mixed-in type can be shaped to the fused type without loss of
+// information.
 type Schema struct {
-	zctx    *zson.Context
-	Type    *zng.TypeRecord
-	Renames map[int]Renames
-	unify   bool
+	zctx *zed.Context
+
+	cols []zed.Column
 }
 
-func NewSchema(zctx *zson.Context) (*Schema, error) {
-	empty, err := zctx.LookupTypeRecord([]zng.Column{})
-	if err != nil {
-		return nil, err
-	}
-	return &Schema{
-		zctx:    zctx,
-		Type:    empty,
-		Renames: make(map[int]Renames),
-	}, nil
+func NewSchema(zctx *zed.Context) *Schema {
+	return &Schema{zctx: zctx}
 }
 
-func (s *Schema) Mixin(mix *zng.TypeRecord) error {
-	fused, renames, err := s.fuseRecordTypes(s.Type, mix, field.NewRoot(), Renames{})
+// Mixin mixes t's columns into the fused record type.
+func (s *Schema) Mixin(t *zed.TypeRecord) error {
+	cols, err := s.fuseColumns(s.cols, t.Columns)
 	if err != nil {
 		return err
 	}
-
-	s.Type = fused
-	s.Renames[mix.ID()] = renames
+	s.cols = cols
 	return nil
 }
 
-func disambiguate(cols []zng.Column, name string) string {
-	n := 1
-	re := regexp.MustCompile(name + `_(\d+)$`)
-	for _, col := range cols {
-		if col.Name == name || re.MatchString(col.Name) {
-			n++
-		}
-	}
-	if n == 1 {
-		return name
-	}
-	return fmt.Sprintf("%s_%d", name, n)
+// Type returns the fused record type.
+func (s *Schema) Type() (*zed.TypeRecord, error) {
+	return s.zctx.LookupTypeRecord(s.cols)
 }
 
-func unify(zctx *zson.Context, t, u zng.Type) zng.Type {
-	tIsUnion := zng.IsUnionType(t)
-	uIsUnion := zng.IsUnionType(u)
-	switch {
-	case tIsUnion && !uIsUnion:
-		found := false
-		list := t.(*zng.TypeUnion).Types
-		for _, t := range list {
-			if u == t {
-				found = true
-			}
-		}
-		if !found {
-			list = append(list, u)
-		}
-		return zctx.LookupTypeUnion(list)
-	case !tIsUnion && !uIsUnion:
-		return zctx.LookupTypeUnion([]zng.Type{t, u})
-	case tIsUnion && uIsUnion:
-		list := t.(*zng.TypeUnion).Types
-		for _, u := range u.(*zng.TypeUnion).Types {
-			found := false
-			for _, t := range list {
-				if u == t {
-					found = true
-				}
-			}
-			if !found {
-				list = append(list, u)
-			}
-		}
-		return zctx.LookupTypeUnion(list)
-	case !tIsUnion && uIsUnion:
-		return unify(zctx, u, t)
-	}
-	return nil
-}
-
-func (s *Schema) fuseRecordTypes(a, b *zng.TypeRecord, path field.Path, renames Renames) (*zng.TypeRecord, Renames, error) {
-	fused := make([]zng.Column, len(a.Columns))
-	copy(fused, a.Columns)
-	for _, bcol := range b.Columns {
-		i, ok := a.ColumnOfField(bcol.Name)
-		if !ok {
-			fused = append(fused, bcol)
-			continue
-		}
-		acol := a.Columns[i]
+func (s *Schema) fuseColumns(fused, cols []zed.Column) ([]zed.Column, error) {
+	for _, c := range cols {
+		i, ok := columnOfField(fused, c.Name)
 		switch {
-		case acol == bcol:
+		case !ok:
+			fused = append(fused, c)
+		case fused[i] == c:
 			continue
-		case zng.IsRecordType(acol.Type) && zng.IsRecordType(bcol.Type):
-			var err error
-			var nest *zng.TypeRecord
-			nest, renames, err = s.fuseRecordTypes(acol.Type.(*zng.TypeRecord), bcol.Type.(*zng.TypeRecord), append(path, bcol.Name), renames)
+		case zed.IsRecordType(fused[i].Type) && zed.IsRecordType(c.Type):
+			nestedCols := zed.TypeRecordOf(fused[i].Type).Columns
+			nestedColsCopy := make([]zed.Column, len(nestedCols))
+			copy(nestedColsCopy, nestedCols)
+			nestedFused, err := s.fuseColumns(nestedColsCopy, zed.TypeRecordOf(c.Type).Columns)
 			if err != nil {
-				return nil, renames, err
+				return nil, err
 			}
-			fused[i] = zng.Column{acol.Name, nest}
-		case s.unify:
-			fused[i] = zng.Column{acol.Name, unify(s.zctx, acol.Type, bcol.Type)}
-
+			t, err := s.zctx.LookupTypeRecord(nestedFused)
+			if err != nil {
+				return nil, err
+			}
+			fused[i].Type = t
 		default:
-			dis := disambiguate(fused, acol.Name)
-			renames.Srcs = append(renames.Srcs, append(path, acol.Name))
-			renames.Dsts = append(renames.Dsts, append(path, dis))
-			fused = append(fused, zng.Column{dis, bcol.Type})
+			fused[i].Type = unify(s.zctx, fused[i].Type, c.Type)
 		}
 	}
-	rec, err := s.zctx.LookupTypeRecord(fused)
-	return rec, renames, err
+	return fused, nil
+}
+
+func columnOfField(cols []zed.Column, name string) (int, bool) {
+	for i, c := range cols {
+		if c.Name == name {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+func unify(zctx *zed.Context, a, b zed.Type) zed.Type {
+	if ua, ok := zed.AliasOf(a).(*zed.TypeUnion); ok {
+		types := ua.Types
+		if ub, ok := zed.AliasOf(b).(*zed.TypeUnion); ok {
+			for _, t := range ub.Types {
+				types = appendIfAbsent(types, t)
+			}
+		} else {
+			types = appendIfAbsent(types, b)
+		}
+		return zctx.LookupTypeUnion(types)
+	}
+	if _, ok := zed.AliasOf(b).(*zed.TypeUnion); ok {
+		return unify(zctx, b, a)
+	}
+	return zctx.LookupTypeUnion([]zed.Type{a, b})
+}
+
+func appendIfAbsent(types []zed.Type, typ zed.Type) []zed.Type {
+	for _, t := range types {
+		if t == typ {
+			return types
+		}
+	}
+	return append(types, typ)
 }

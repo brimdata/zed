@@ -1,16 +1,15 @@
-skip: "issue #2651"
-
 script: |
-  source services.sh
-  zapi -host $LAKE_HOST -p test post -f -
-  zapi -host $LAKE_HOST -p test get -z > out.zson
+  source service.sh
+  zapi create -q test
+  zapi load -q -use test@main -
+  zapi query -z 'from test'
 
 inputs:
-  - name: services.sh
+  - name: service.sh
   - name: stdin
     data: &stdin |
       {ts:"A field named ts usually has type time, but this one does not."}
 
 outputs:
-  - name: out.zson
+  - name: stdout
     data: *stdin

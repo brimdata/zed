@@ -1,18 +1,16 @@
 package lookup
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	zedindex "github.com/brimdata/zed/cmd/zed/index"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 )
 
 var Lookup = &charm.Spec{
@@ -51,7 +49,7 @@ func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, err
 }
 
 func (c *LookupCommand) Run(args []string) error {
-	_, cleanup, err := c.Init(&c.outputFlags)
+	ctx, cleanup, err := c.Init(&c.outputFlags)
 	if err != nil {
 		return err
 	}
@@ -68,7 +66,7 @@ func (c *LookupCommand) Run(args []string) error {
 		return err
 	}
 	local := storage.NewLocalEngine()
-	finder, err := index.NewFinder(context.TODO(), zson.NewContext(), local, uri)
+	finder, err := index.NewFinder(ctx, zed.NewContext(), local, uri)
 	if err != nil {
 		return err
 	}
@@ -77,13 +75,11 @@ func (c *LookupCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	hits := make(chan *zng.Record)
+	hits := make(chan *zed.Record)
 	var searchErr error
 	go func() {
 		if c.closest {
-			var rec *zng.Record
+			var rec *zed.Record
 			rec, searchErr = finder.ClosestLTE(keys)
 			if rec != nil {
 				hits <- rec

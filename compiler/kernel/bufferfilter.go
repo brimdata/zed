@@ -1,9 +1,8 @@
 package kernel
 
 import (
-	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
-	"github.com/brimdata/zed/compiler/ast/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zson"
@@ -81,20 +80,20 @@ func CompileBufferFilter(e dag.Expr) (*expr.BufferFilter, error) {
 	}
 }
 
-func isFieldEqualOrIn(e *dag.BinaryExpr) (*zed.Primitive, string) {
+func isFieldEqualOrIn(e *dag.BinaryExpr) (*astzed.Primitive, string) {
 	if dag.IsRootField(e.LHS) && e.Op == "=" {
-		if literal, ok := e.RHS.(*zed.Primitive); ok {
+		if literal, ok := e.RHS.(*astzed.Primitive); ok {
 			return literal, "="
 		}
 	} else if dag.IsRootField(e.RHS) && e.Op == "in" {
-		if literal, ok := e.LHS.(*zed.Primitive); ok && literal.Type != "net" {
+		if literal, ok := e.LHS.(*astzed.Primitive); ok && literal.Type != "net" {
 			return literal, "in"
 		}
 	}
 	return nil, ""
 }
 
-func isCompareAny(seq *dag.SeqExpr) (*zed.Primitive, string, bool) {
+func isCompareAny(seq *dag.SeqExpr) (*astzed.Primitive, string, bool) {
 	if seq.Name != "or" || len(seq.Methods) != 1 {
 		return nil, "", false
 	}
@@ -111,27 +110,18 @@ func isCompareAny(seq *dag.SeqExpr) (*zed.Primitive, string, bool) {
 		if !isDollar(pred.LHS) {
 			return nil, "", false
 		}
-		if rhs, ok := pred.RHS.(*zed.Primitive); ok && rhs.Type != "net" {
+		if rhs, ok := pred.RHS.(*astzed.Primitive); ok && rhs.Type != "net" {
 			return rhs, pred.Op, true
 		}
 	} else if pred.Op == "in" {
 		if !isDollar(pred.RHS) {
 			return nil, "", false
 		}
-		if lhs, ok := pred.LHS.(*zed.Primitive); ok && lhs.Type != "net" {
+		if lhs, ok := pred.LHS.(*astzed.Primitive); ok && lhs.Type != "net" {
 			return lhs, pred.Op, true
 		}
 	}
 	return nil, "", false
-}
-
-func isSelectAll(e ast.Expr) bool {
-	s, ok := e.(*ast.SelectExpr)
-	if !ok || len(s.Selectors) != 1 {
-		return false
-	}
-	_, ok = s.Selectors[0].(*ast.Root)
-	return ok
 }
 
 func isDollar(e dag.Expr) bool {
@@ -141,9 +131,10 @@ func isDollar(e dag.Expr) bool {
 	return false
 }
 
-func newBufferFilterForLiteral(l zed.Primitive) (*expr.BufferFilter, error) {
+func newBufferFilterForLiteral(l astzed.Primitive) (*expr.BufferFilter, error) {
 	switch l.Type {
-	case "bool", "byte", "int16", "uint16", "int32", "uint32", "int64", "uint64", "float64", "time", "duration":
+	case "bool", "byte", "int16", "uint16", "int32", "uint32", "int64", "uint64",
+		"float32", "float64", "time", "duration":
 		// These are all comparable, so they can require up to three
 		// patterns: float, varint, and uvarint.
 		return nil, nil
@@ -153,7 +144,7 @@ func newBufferFilterForLiteral(l zed.Primitive) (*expr.BufferFilter, error) {
 		// Could try to extract a pattern (e.g., "efg" from "(ab|cd)(efg)+[hi]").
 		return nil, nil
 	case "string":
-		// Match the behavior of zng.ParseLiteral.
+		// Match the behavior of zed.ParseLiteral.
 		l.Type = "bstring"
 	}
 	v, err := zson.ParsePrimitive(l.Type, l.Text)

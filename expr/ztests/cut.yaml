@@ -4,19 +4,19 @@ warnings: |
   put: a referenced field is missing
 
 input: |
-  {x:1 (int32),s:"a"} (=0)
-  {x:2,s:"b"} (0)
+  {x:1(int32),s:"a"}
+  {x:2(int32),s:"b"}
   {s:"x"}
   {s:"b"}
   {none:"bad"}
-  {x:1,s:"a"} (0)
-  {x:3,s:"e"} (0)
+  {x:1(int32),s:"a"}
+  {x:3(int32),s:"e"}
 
 output: |
-  {x:1 (int32),s:"a",v:{s:"a",x:1 (int32)} (=0)} (=1)
-  {x:2,s:"b",v:{s:"b",x:2}} (1)
+  {x:1(int32),s:"a",v:{s:"a",x:1(int32)}}
+  {x:2(int32),s:"b",v:{s:"b",x:2(int32)}}
   {s:"x",v:{s:"x"}}
   {s:"b",v:{s:"b"}}
   {none:"bad"}
-  {x:1,s:"a",v:{s:"a",x:1}} (1)
-  {x:3,s:"e",v:{s:"e",x:3}} (1)
+  {x:1(int32),s:"a",v:{s:"a",x:1(int32)}}
+  {x:3(int32),s:"e",v:{s:"e",x:3(int32)}}

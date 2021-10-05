@@ -1,0 +1,14 @@
+script: zq -i csv -z '*' -
+
+inputs:
+  - name: stdin
+    data: |
+      field1,field2,field"3"
+      value1,"value"2,value"3" my friend
+      value4,"value"5 with "multiple" quotes "to" escape,value6
+
+outputs:
+  - name: stdout
+    data: |
+      {field1:"value1",field2:"value2",field3:"value3 my friend"}
+      {field1:"value4",field2:"value5 with multiple quotes to escape",field3:"value6"}

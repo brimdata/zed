@@ -3,12 +3,12 @@ package put
 import (
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 )
 
 // Put is a proc that modifies the record stream with computed values.
@@ -23,7 +23,7 @@ type Proc struct {
 	builder zcode.Builder
 	clauses []expr.Assignment
 	// vals is a fixed array to avoid re-allocating for every record
-	vals   []zng.Value
+	vals   []zed.Value
 	rules  map[int]putRule
 	warned map[string]struct{}
 }
@@ -35,8 +35,8 @@ type Proc struct {
 // Such changes aren't typically expected but are possible in the expression
 // language.
 type putRule struct {
-	typ         zng.Type
-	clauseTypes []zng.Type
+	typ         zed.Type
+	clauseTypes []zed.Type
 	step        step
 }
 
@@ -59,7 +59,7 @@ func New(pctx *proc.Context, parent proc.Interface, clauses []expr.Assignment) (
 		pctx:    pctx,
 		parent:  parent,
 		clauses: clauses,
-		vals:    make([]zng.Value, len(clauses)),
+		vals:    make([]zed.Value, len(clauses)),
 		rules:   make(map[int]putRule),
 		warned:  make(map[string]struct{}),
 	}, nil
@@ -69,15 +69,16 @@ func (p *Proc) maybeWarn(err error) {
 	s := err.Error()
 	_, alreadyWarned := p.warned[s]
 	if !alreadyWarned {
-		if err == zng.ErrMissing {
-			s = "put: a referenced field is missing"
+		warning := s
+		if err == zed.ErrMissing {
+			warning = "put: a referenced field is missing"
 		}
-		p.pctx.Warnings <- s
+		p.pctx.Warnings <- warning
 		p.warned[s] = struct{}{}
 	}
 }
 
-func (p *Proc) eval(in *zng.Record) ([]zng.Value, error) {
+func (p *Proc) eval(in *zed.Record) ([]zed.Value, error) {
 	vals := p.vals
 	for k, cl := range p.clauses {
 		var err error
@@ -112,7 +113,7 @@ const (
 	record               // recurse into record below us
 )
 
-func (s step) build(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) (zcode.Bytes, error) {
+func (s step) build(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) (zcode.Bytes, error) {
 	switch s.op {
 	case root:
 		bytes := make(zcode.Bytes, len(vals[s.index].Bytes))
@@ -130,7 +131,7 @@ func (s step) build(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) (zcode.B
 	}
 }
 
-func (s step) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zng.Value) error {
+func (s step) buildRecord(in zcode.Bytes, b *zcode.Builder, vals []zed.Value) error {
 	ig := newGetter(in)
 
 	for _, step := range s.record {
@@ -211,11 +212,11 @@ func findOverwriteClause(path field.Path, clauses []expr.Assignment) (int, field
 	return -1, nil, false
 }
 
-func (p *Proc) deriveSteps(inType *zng.TypeRecord, vals []zng.Value) (step, zng.Type, error) {
+func (p *Proc) deriveSteps(inType *zed.TypeRecord, vals []zed.Value) (step, zed.Type, error) {
 	// special case: assign to root (put .=x)
 	if p.clauses[0].LHS.IsRoot() {
 		typ := vals[0].Type
-		if zng.TypeRecordOf(typ) == nil {
+		if zed.TypeRecordOf(typ) == nil {
 			return step{}, nil, fmt.Errorf("put this=x: cannot put a non-record to this")
 		}
 		return step{op: root, index: 0}, typ, nil
@@ -223,9 +224,9 @@ func (p *Proc) deriveSteps(inType *zng.TypeRecord, vals []zng.Value) (step, zng.
 	return p.deriveRecordSteps(field.NewRoot(), inType.Columns, vals)
 }
 
-func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zng.Column, vals []zng.Value) (step, *zng.TypeRecord, error) {
+func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zed.Column, vals []zed.Value) (step, *zed.TypeRecord, error) {
 	s := step{op: record}
-	cols := make([]zng.Column, 0)
+	cols := make([]zed.Column, 0)
 
 	// First look at all input columns to see which should
 	// be copied over and which should be overwritten by
@@ -238,7 +239,7 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zng.Column, val
 		case !found:
 			s.append(step{
 				op:        fromInput,
-				container: zng.IsContainerType(inCol.Type),
+				container: zed.IsContainerType(inCol.Type),
 				index:     i,
 			})
 			cols = append(cols, inCol)
@@ -246,28 +247,28 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zng.Column, val
 		case len(path) == len(matchPath):
 			s.append(step{
 				op:        fromClause,
-				container: zng.IsContainerType(vals[matchIndex].Type),
+				container: zed.IsContainerType(vals[matchIndex].Type),
 				index:     matchIndex,
 			})
-			cols = append(cols, zng.Column{inCol.Name, vals[matchIndex].Type})
+			cols = append(cols, zed.Column{inCol.Name, vals[matchIndex].Type})
 		// input record field overwritten by nested assignment: recurse.
-		case len(path) < len(matchPath) && zng.IsRecordType(inCol.Type):
-			nestedStep, typ, err := p.deriveRecordSteps(path, inCol.Type.(*zng.TypeRecord).Columns, vals)
+		case len(path) < len(matchPath) && zed.IsRecordType(inCol.Type):
+			nestedStep, typ, err := p.deriveRecordSteps(path, zed.TypeRecordOf(inCol.Type).Columns, vals)
 			if err != nil {
 				return step{}, nil, err
 			}
 			nestedStep.index = i
 			s.append(nestedStep)
-			cols = append(cols, zng.Column{inCol.Name, typ})
+			cols = append(cols, zed.Column{inCol.Name, typ})
 		// input non-record field overwritten by nested assignment(s): recurse.
-		case len(path) < len(matchPath) && !zng.IsRecordType(inCol.Type):
-			nestedStep, typ, err := p.deriveRecordSteps(path, []zng.Column{}, vals)
+		case len(path) < len(matchPath) && !zed.IsRecordType(inCol.Type):
+			nestedStep, typ, err := p.deriveRecordSteps(path, []zed.Column{}, vals)
 			if err != nil {
 				return step{}, nil, err
 			}
 			nestedStep.index = i
 			s.append(nestedStep)
-			cols = append(cols, zng.Column{inCol.Name, typ})
+			cols = append(cols, zed.Column{inCol.Name, typ})
 		default:
 			panic("faulty logic")
 		}
@@ -287,19 +288,19 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zng.Column, val
 			case len(cl.LHS) == len(parentPath)+1:
 				s.append(step{
 					op:        fromClause,
-					container: zng.IsContainerType(vals[i].Type),
+					container: zed.IsContainerType(vals[i].Type),
 					index:     i,
 				})
-				cols = append(cols, zng.Column{cl.LHS[len(parentPath)], vals[i].Type})
+				cols = append(cols, zed.Column{cl.LHS[len(parentPath)], vals[i].Type})
 			// Appended and nest. For example, this would happen with "put b.c=1" applied to a record {"a": 1}.
 			case len(cl.LHS) > len(parentPath)+1:
 				path := append(parentPath, cl.LHS[len(parentPath)])
-				nestedStep, typ, err := p.deriveRecordSteps(path, []zng.Column{}, vals)
+				nestedStep, typ, err := p.deriveRecordSteps(path, []zed.Column{}, vals)
 				if err != nil {
 					return step{}, nil, err
 				}
 				nestedStep.index = -1
-				cols = append(cols, zng.Column{cl.LHS[len(parentPath)], typ})
+				cols = append(cols, zed.Column{cl.LHS[len(parentPath)], typ})
 				s.append(nestedStep)
 			}
 		}
@@ -309,7 +310,7 @@ func (p *Proc) deriveRecordSteps(parentPath field.Path, inCols []zng.Column, val
 	return s, typ, err
 }
 
-func hasField(name string, cols []zng.Column) bool {
+func hasField(name string, cols []zed.Column) bool {
 	for _, col := range cols {
 		if col.Name == name {
 			return true
@@ -318,7 +319,7 @@ func hasField(name string, cols []zng.Column) bool {
 	return false
 }
 
-func sameTypes(types []zng.Type, vals []zng.Value) bool {
+func sameTypes(types []zed.Type, vals []zed.Value) bool {
 	for k, typ := range types {
 		if vals[k].Type != typ {
 			return false
@@ -327,13 +328,13 @@ func sameTypes(types []zng.Type, vals []zng.Value) bool {
 	return true
 }
 
-func (p *Proc) lookupRule(inType *zng.TypeRecord, vals []zng.Value) (putRule, error) {
+func (p *Proc) lookupRule(inType *zed.TypeRecord, vals []zed.Value) (putRule, error) {
 	rule, ok := p.rules[inType.ID()]
 	if ok && sameTypes(rule.clauseTypes, vals) {
 		return rule, nil
 	}
 	step, typ, err := p.deriveSteps(inType, vals)
-	var clauseTypes []zng.Type
+	var clauseTypes []zed.Type
 	for _, val := range vals {
 		clauseTypes = append(clauseTypes, val.Type)
 	}
@@ -342,13 +343,13 @@ func (p *Proc) lookupRule(inType *zng.TypeRecord, vals []zng.Value) (putRule, er
 	return rule, err
 }
 
-func (p *Proc) put(in *zng.Record) (*zng.Record, error) {
+func (p *Proc) put(in *zed.Record) (*zed.Record, error) {
 	vals, err := p.eval(in)
 	if err != nil {
 		p.maybeWarn(err)
 		return in, nil
 	}
-	rule, err := p.lookupRule(zng.TypeRecordOf(in.Type), vals)
+	rule, err := p.lookupRule(zed.TypeRecordOf(in.Type), vals)
 	if err != nil {
 		return nil, err
 	}
@@ -357,7 +358,7 @@ func (p *Proc) put(in *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(rule.typ, bytes), nil
+	return zed.NewRecord(rule.typ, bytes), nil
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {
@@ -365,7 +366,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
-	recs := make([]*zng.Record, 0, batch.Length())
+	recs := make([]*zed.Record, 0, batch.Length())
 	for k := 0; k < batch.Length(); k++ {
 		in := batch.Index(k)
 		rec, err := p.put(in)

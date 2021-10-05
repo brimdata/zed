@@ -3,11 +3,11 @@ package top
 import (
 	"container/heap"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/sort"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
 )
 
 const defaultTopLimit = 100
@@ -61,7 +61,7 @@ func (p *Proc) Done() {
 	p.parent.Done()
 }
 
-func (p *Proc) consume(rec *zng.Record) {
+func (p *Proc) consume(rec *zed.Record) {
 	if p.fields == nil {
 		fld := sort.GuessSortKey(rec)
 		accessor := expr.NewDotExpr(fld)
@@ -84,9 +84,9 @@ func (t *Proc) sorted() zbuf.Batch {
 	if t.records == nil {
 		return nil
 	}
-	out := make([]*zng.Record, t.records.Len())
+	out := make([]*zed.Record, t.records.Len())
 	for i := t.records.Len() - 1; i >= 0; i-- {
-		rec := heap.Pop(t.records).(*zng.Record)
+		rec := heap.Pop(t.records).(*zed.Record)
 		out[i] = rec
 	}
 	// clear records

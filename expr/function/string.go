@@ -6,84 +6,83 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
 )
 
 // XXX these string format functions should be handlded by :string cast
 
 type stringFormatFloat struct{}
 
-func (s *stringFormatFloat) Call(args []zng.Value) (zng.Value, error) {
+func (s *stringFormatFloat) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
-	if zv.Type.ID() != zng.IDFloat64 {
+	if zv.Type.ID() != zed.IDFloat64 {
 		return badarg("string.floatToString")
 	}
 	if zv.Bytes == nil {
-		return zng.Value{zng.TypeString, nil}, nil
+		return zed.Value{zed.TypeString, nil}, nil
 	}
-	f, _ := zng.DecodeFloat64(zv.Bytes)
+	f, _ := zed.DecodeFloat64(zv.Bytes)
 	// XXX GC
 	v := strconv.FormatFloat(f, 'g', -1, 64)
-	return zng.Value{zng.TypeString, zng.EncodeString(v)}, nil
+	return zed.Value{zed.TypeString, zed.EncodeString(v)}, nil
 }
 
 type stringFormatInt struct{}
 
-func (s *stringFormatInt) Call(args []zng.Value) (zng.Value, error) {
+func (s *stringFormatInt) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	id := zv.Type.ID()
 	var out string
-	if !zng.IsInteger(id) {
+	if !zed.IsInteger(id) {
 		return badarg("string.intToString")
 	}
 	if zv.Bytes == nil {
-		return zng.Value{zng.TypeString, nil}, nil
+		return zed.Value{zed.TypeString, nil}, nil
 	}
-	if zng.IsSigned(id) {
-		v, _ := zng.DecodeInt(zv.Bytes)
+	if zed.IsSigned(id) {
+		v, _ := zed.DecodeInt(zv.Bytes)
 		// XXX GC
 		out = strconv.FormatInt(v, 10)
 	} else {
-		v, _ := zng.DecodeUint(zv.Bytes)
+		v, _ := zed.DecodeUint(zv.Bytes)
 		// XXX GC
 		out = strconv.FormatUint(v, 10)
 	}
-	return zng.Value{zng.TypeString, zng.EncodeString(out)}, nil
+	return zed.Value{zed.TypeString, zed.EncodeString(out)}, nil
 }
 
 type stringFormatIp struct{}
 
-func (s *stringFormatIp) Call(args []zng.Value) (zng.Value, error) {
+func (s *stringFormatIp) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
-	if zv.Type.ID() != zng.IDIP {
+	if zv.Type.ID() != zed.IDIP {
 		return badarg("string.ipToString")
 	}
 	if zv.Bytes == nil {
-		return zng.Value{zng.TypeString, nil}, nil
+		return zed.Value{zed.TypeString, nil}, nil
 	}
 	// XXX GC
-	ip, _ := zng.DecodeIP(zv.Bytes)
-	return zng.Value{zng.TypeString, zng.EncodeString(ip.String())}, nil
+	ip, _ := zed.DecodeIP(zv.Bytes)
+	return zed.Value{zed.TypeString, zed.EncodeString(ip.String())}, nil
 }
 
 type stringParseInt struct {
 	result.Buffer
 }
 
-func (s *stringParseInt) Call(args []zng.Value) (zng.Value, error) {
+func (s *stringParseInt) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("String.parseInt")
 	}
 	if zv.Bytes == nil {
-		return zng.Value{zng.TypeInt64, nil}, nil
+		return zed.Value{zed.TypeInt64, nil}, nil
 	}
-	v, e := zng.DecodeString(zv.Bytes)
+	v, e := zed.DecodeString(zv.Bytes)
 	if e != nil {
-		return zng.Value{}, e
+		return zed.Value{}, e
 	}
 	i, perr := strconv.ParseInt(v, 10, 64)
 	if perr != nil {
@@ -92,24 +91,24 @@ func (s *stringParseInt) Call(args []zng.Value) (zng.Value, error) {
 		e := perr.(*strconv.NumError)
 		return zverr("String.parseInt", e.Err)
 	}
-	return zng.Value{zng.TypeInt64, s.Int(i)}, nil
+	return zed.Value{zed.TypeInt64, s.Int(i)}, nil
 }
 
 type stringParseFloat struct {
 	result.Buffer
 }
 
-func (s *stringParseFloat) Call(args []zng.Value) (zng.Value, error) {
+func (s *stringParseFloat) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("String.parseFloat")
 	}
 	if zv.Bytes == nil {
-		return zng.Value{zng.TypeFloat64, nil}, nil
+		return zed.Value{zed.TypeFloat64, nil}, nil
 	}
-	v, perr := zng.DecodeString(zv.Bytes)
+	v, perr := zed.DecodeString(zv.Bytes)
 	if perr != nil {
-		return zng.Value{}, perr
+		return zed.Value{}, perr
 	}
 	f, perr := strconv.ParseFloat(v, 64)
 	if perr != nil {
@@ -118,22 +117,22 @@ func (s *stringParseFloat) Call(args []zng.Value) (zng.Value, error) {
 		e := perr.(*strconv.NumError)
 		return zverr("String.parseFloat", e.Err)
 	}
-	return zng.Value{zng.TypeFloat64, s.Float64(f)}, nil
+	return zed.Value{zed.TypeFloat64, s.Float64(f)}, nil
 }
 
 type stringParseIp struct{}
 
-func (s *stringParseIp) Call(args []zng.Value) (zng.Value, error) {
+func (s *stringParseIp) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("String.parseIp")
 	}
 	if zv.Bytes == nil {
-		return zng.Value{zng.TypeIP, nil}, nil
+		return zed.Value{zed.TypeIP, nil}, nil
 	}
-	v, err := zng.DecodeString(zv.Bytes)
+	v, err := zed.DecodeString(zv.Bytes)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	// XXX GC
 	a := net.ParseIP(v)
@@ -141,12 +140,12 @@ func (s *stringParseIp) Call(args []zng.Value) (zng.Value, error) {
 		return badarg("String.parseIp")
 	}
 	// XXX GC
-	return zng.Value{zng.TypeIP, zng.EncodeIP(a)}, nil
+	return zed.Value{zed.TypeIP, zed.EncodeIP(a)}, nil
 }
 
 type replace struct{}
 
-func (*replace) Call(args []zng.Value) (zng.Value, error) {
+func (*replace) Call(args []zed.Value) (zed.Value, error) {
 	zvs := args[0]
 	zvold := args[1]
 	zvnew := args[2]
@@ -159,45 +158,45 @@ func (*replace) Call(args []zng.Value) (zng.Value, error) {
 	if zvold.Bytes == nil || zvnew.Bytes == nil {
 		return badarg("replace")
 	}
-	s, err := zng.DecodeString(zvs.Bytes)
+	s, err := zed.DecodeString(zvs.Bytes)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
-	old, err := zng.DecodeString(zvold.Bytes)
+	old, err := zed.DecodeString(zvold.Bytes)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
-	new, err := zng.DecodeString(zvnew.Bytes)
+	new, err := zed.DecodeString(zvnew.Bytes)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	result := strings.ReplaceAll(s, old, new)
-	return zng.Value{zng.TypeString, zng.EncodeString(result)}, nil
+	return zed.Value{zed.TypeString, zed.EncodeString(result)}, nil
 }
 
 type runeLen struct {
 	result.Buffer
 }
 
-func (s *runeLen) Call(args []zng.Value) (zng.Value, error) {
+func (s *runeLen) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("rune_len")
 	}
 	if zv.Bytes == nil {
-		return zng.Value{zng.TypeInt64, s.Int(0)}, nil
+		return zed.Value{zed.TypeInt64, s.Int(0)}, nil
 	}
-	in, err := zng.DecodeString(zv.Bytes)
+	in, err := zed.DecodeString(zv.Bytes)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	v := utf8.RuneCountInString(in)
-	return zng.Value{zng.TypeInt64, s.Int(int64(v))}, nil
+	return zed.Value{zed.TypeInt64, s.Int(int64(v))}, nil
 }
 
 type toLower struct{}
 
-func (*toLower) Call(args []zng.Value) (zng.Value, error) {
+func (*toLower) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("to_lower")
@@ -205,18 +204,18 @@ func (*toLower) Call(args []zng.Value) (zng.Value, error) {
 	if zv.Bytes == nil {
 		return zv, nil
 	}
-	s, err := zng.DecodeString(zv.Bytes)
+	s, err := zed.DecodeString(zv.Bytes)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	// XXX GC
 	s = strings.ToLower(s)
-	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
+	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
 }
 
 type toUpper struct{}
 
-func (*toUpper) Call(args []zng.Value) (zng.Value, error) {
+func (*toUpper) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("to_upper")
@@ -224,18 +223,18 @@ func (*toUpper) Call(args []zng.Value) (zng.Value, error) {
 	if zv.Bytes == nil {
 		return zv, nil
 	}
-	s, err := zng.DecodeString(zv.Bytes)
+	s, err := zed.DecodeString(zv.Bytes)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	// XXX GC
 	s = strings.ToUpper(s)
-	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
+	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
 }
 
 type trim struct{}
 
-func (*trim) Call(args []zng.Value) (zng.Value, error) {
+func (*trim) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("trim")
@@ -245,45 +244,45 @@ func (*trim) Call(args []zng.Value) (zng.Value, error) {
 	}
 	// XXX GC
 	s := strings.TrimSpace(string(zv.Bytes))
-	return zng.Value{zng.TypeString, zng.EncodeString(s)}, nil
+	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
 }
 
 type split struct {
-	zctx  *zson.Context
-	typ   zng.Type
+	zctx  *zed.Context
+	typ   zed.Type
 	bytes zcode.Bytes
 }
 
-func newSplit(zctx *zson.Context) *split {
+func newSplit(zctx *zed.Context) *split {
 	return &split{
-		typ: zctx.LookupTypeArray(zng.TypeString),
+		typ: zctx.LookupTypeArray(zed.TypeString),
 	}
 }
 
-func (s *split) Call(args []zng.Value) (zng.Value, error) {
+func (s *split) Call(args []zed.Value) (zed.Value, error) {
 	zs := args[0]
 	zsep := args[1]
 	if !zs.IsStringy() || !zsep.IsStringy() {
 		return badarg("split")
 	}
 	if zs.Bytes == nil || zsep.Bytes == nil {
-		return zng.Value{Type: s.typ}, nil
+		return zed.Value{Type: s.typ}, nil
 	}
-	str, err := zng.DecodeString(zs.Bytes)
+	str, err := zed.DecodeString(zs.Bytes)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
-	sep, err := zng.DecodeString(zsep.Bytes)
+	sep, err := zed.DecodeString(zsep.Bytes)
 	if err != nil {
-		return zng.Value{}, err
+		return zed.Value{}, err
 	}
 	splits := strings.Split(str, sep)
 	b := s.bytes[:0]
 	for _, substr := range splits {
-		b = zcode.AppendPrimitive(b, zng.EncodeString(substr))
+		b = zcode.AppendPrimitive(b, zed.EncodeString(substr))
 	}
 	s.bytes = b
-	return zng.Value{s.typ, b}, nil
+	return zed.Value{s.typ, b}, nil
 }
 
 type join struct {
@@ -291,25 +290,25 @@ type join struct {
 	builder strings.Builder
 }
 
-func (j *join) Call(args []zng.Value) (zng.Value, error) {
+func (j *join) Call(args []zed.Value) (zed.Value, error) {
 	zsplits := args[0]
-	typ, ok := zng.AliasOf(zsplits.Type).(*zng.TypeArray)
+	typ, ok := zed.AliasOf(zsplits.Type).(*zed.TypeArray)
 	if !ok {
-		return zng.NewErrorf("argument to join() is not an array"), nil
+		return zed.NewErrorf("argument to join() is not an array"), nil
 	}
-	if !zng.IsStringy(typ.Type.ID()) {
-		return zng.NewErrorf("argument to join() is not a string array"), nil
+	if !zed.IsStringy(typ.Type.ID()) {
+		return zed.NewErrorf("argument to join() is not a string array"), nil
 	}
 	var separator string
 	if len(args) == 2 {
 		zsep := args[1]
 		if !zsep.IsStringy() {
-			return zng.NewErrorf("separator argument to join() is not a string"), nil
+			return zed.NewErrorf("separator argument to join() is not a string"), nil
 		}
 		var err error
-		separator, err = zng.DecodeString(zsep.Bytes)
+		separator, err = zed.DecodeString(zsep.Bytes)
 		if err != nil {
-			return zng.Value{}, err
+			return zed.Value{}, err
 		}
 	}
 	b := j.builder
@@ -319,15 +318,15 @@ func (j *join) Call(args []zng.Value) (zng.Value, error) {
 	for !it.Done() {
 		bytes, _, err := it.Next()
 		if err != nil {
-			return zng.Value{}, err
+			return zed.Value{}, err
 		}
-		s, err := zng.DecodeString(bytes)
+		s, err := zed.DecodeString(bytes)
 		if err != nil {
-			return zng.Value{}, err
+			return zed.Value{}, err
 		}
 		b.WriteString(sep)
 		b.WriteString(s)
 		sep = separator
 	}
-	return zng.Value{zng.TypeString, zng.EncodeString(b.String())}, nil
+	return zed.Value{zed.TypeString, zed.EncodeString(b.String())}, nil
 }

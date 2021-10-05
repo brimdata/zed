@@ -1,7 +1,7 @@
 zed: 'cut this:=a'
 
 input: |
-  {a:null (0=({b:int32}))} (=0)
+  {a:null({b:int32})}
 
 warnings: |
   cut: cannot cut an unset value to .

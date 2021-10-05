@@ -5,11 +5,11 @@ import (
 	"errors"
 	"net"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng"
 )
 
 type builder struct {
@@ -19,7 +19,7 @@ type builder struct {
 	reorderedFields [][]byte
 }
 
-func (b *builder) build(typ *zng.TypeRecord, sourceFields []int, path []byte, data []byte) (*zng.Record, error) {
+func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, data []byte) (*zed.Record, error) {
 	b.Reset()
 	b.Grow(len(data))
 	columns := typ.Columns
@@ -58,10 +58,10 @@ func (b *builder) build(typ *zng.TypeRecord, sourceFields []int, path []byte, da
 	if len(leftoverFields) != 0 {
 		return nil, errors.New("too many values")
 	}
-	return zng.NewRecord(typ, b.Bytes()), nil
+	return zed.NewRecord(typ, b.Bytes()), nil
 }
 
-func (b *builder) appendColumns(columns []zng.Column, fields [][]byte) ([][]byte, error) {
+func (b *builder) appendColumns(columns []zed.Column, fields [][]byte) ([][]byte, error) {
 	const setSeparator = ','
 	const emptyContainer = "(empty)"
 	for _, c := range columns {
@@ -69,7 +69,7 @@ func (b *builder) appendColumns(columns []zng.Column, fields [][]byte) ([][]byte
 			return nil, errors.New("too few values")
 		}
 		switch typ := c.Type.(type) {
-		case *zng.TypeArray, *zng.TypeSet:
+		case *zed.TypeArray, *zed.TypeSet:
 			val := fields[0]
 			fields = fields[1:]
 			if string(val) == "-" {
@@ -81,7 +81,7 @@ func (b *builder) appendColumns(columns []zng.Column, fields [][]byte) ([][]byte
 				b.EndContainer()
 				continue
 			}
-			inner := zng.InnerType(typ)
+			inner := zed.InnerType(typ)
 			var cstart int
 			for i, ch := range val {
 				if ch == setSeparator {
@@ -94,11 +94,11 @@ func (b *builder) appendColumns(columns []zng.Column, fields [][]byte) ([][]byte
 			if err := b.appendPrimitive(inner, val[cstart:]); err != nil {
 				return nil, err
 			}
-			if _, ok := typ.(*zng.TypeSet); ok {
-				b.TransformContainer(zng.NormalizeSet)
+			if _, ok := typ.(*zed.TypeSet); ok {
+				b.TransformContainer(zed.NormalizeSet)
 			}
 			b.EndContainer()
-		case *zng.TypeRecord:
+		case *zed.TypeRecord:
 			b.BeginContainer()
 			var err error
 			if fields, err = b.appendColumns(typ.Columns, fields); err != nil {
@@ -115,56 +115,56 @@ func (b *builder) appendColumns(columns []zng.Column, fields [][]byte) ([][]byte
 	return fields, nil
 }
 
-func (b *builder) appendPrimitive(typ zng.Type, val []byte) error {
+func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 	if string(val) == "-" {
 		b.AppendPrimitive(nil)
 		return nil
 	}
 	switch typ.ID() {
-	case zng.IDInt64:
+	case zed.IDInt64:
 		v, err := byteconv.ParseInt64(val)
 		if err != nil {
 			return err
 		}
-		b.buf = zng.AppendInt(b.buf[:0], v)
-	case zng.IDUint16:
+		b.buf = zed.AppendInt(b.buf[:0], v)
+	case zed.IDUint16:
 		// Zeek's port type is aliased to uint16.
 		v, err := byteconv.ParseUint16(val)
 		if err != nil {
 			return err
 		}
-		b.buf = zng.AppendUint(b.buf[:0], uint64(v))
-	case zng.IDUint64:
+		b.buf = zed.AppendUint(b.buf[:0], uint64(v))
+	case zed.IDUint64:
 		v, err := byteconv.ParseUint64(val)
 		if err != nil {
 			return err
 		}
-		b.buf = zng.AppendUint(b.buf[:0], v)
-	case zng.IDDuration:
+		b.buf = zed.AppendUint(b.buf[:0], v)
+	case zed.IDDuration:
 		v, err := nano.Parse(val) // zeek-style fractional ts
 		if err != nil {
 			return err
 		}
-		b.buf = zng.AppendDuration(b.buf[:0], nano.Duration(v))
-	case zng.IDTime:
+		b.buf = zed.AppendDuration(b.buf[:0], nano.Duration(v))
+	case zed.IDTime:
 		v, err := nano.Parse(val)
 		if err != nil {
 			return err
 		}
-		b.buf = zng.AppendTime(b.buf[:0], v)
-	case zng.IDFloat64:
+		b.buf = zed.AppendTime(b.buf[:0], v)
+	case zed.IDFloat64:
 		v, err := byteconv.ParseFloat64(val)
 		if err != nil {
 			return err
 		}
-		b.buf = zng.AppendFloat64(b.buf[:0], v)
-	case zng.IDBool:
+		b.buf = zed.AppendFloat64(b.buf[:0], v)
+	case zed.IDBool:
 		v, err := byteconv.ParseBool(val)
 		if err != nil {
 			return err
 		}
-		b.buf = zng.AppendBool(b.buf[:0], v)
-	case zng.IDString:
+		b.buf = zed.AppendBool(b.buf[:0], v)
+	case zed.IDString:
 		// Zeek's enum type is aliased to string.
 		zb, err := tzngio.ParseString(val)
 		if err != nil {
@@ -172,25 +172,25 @@ func (b *builder) appendPrimitive(typ zng.Type, val []byte) error {
 		}
 		b.AppendPrimitive(zb)
 		return nil
-	case zng.IDBstring:
+	case zed.IDBstring:
 		zb, err := tzngio.ParseBstring(val)
 		if err != nil {
 			return err
 		}
 		b.AppendPrimitive(zb)
 		return nil
-	case zng.IDIP:
+	case zed.IDIP:
 		v, err := byteconv.ParseIP(val)
 		if err != nil {
 			return err
 		}
-		b.buf = zng.AppendIP(b.buf[:0], v)
-	case zng.IDNet:
+		b.buf = zed.AppendIP(b.buf[:0], v)
+	case zed.IDNet:
 		_, v, err := net.ParseCIDR(string(val))
 		if err != nil {
 			return err
 		}
-		b.buf = zng.AppendNet(b.buf[:0], v)
+		b.buf = zed.AppendNet(b.buf[:0], v)
 	default:
 		panic(typ)
 	}

@@ -1,0 +1,12 @@
+script: |
+  ! zq -z -
+
+inputs:
+  - name: stdin
+    data: |
+      {e:bang (0=(<foo,bar,baz>))} (=1)
+
+outputs:
+  - name: stderr
+    regexp: |
+      zson: identifier "bang" not a member of enum type "<foo,bar,baz>"

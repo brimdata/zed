@@ -1,7 +1,7 @@
 zed: '*'
 
 input: |
-  {string:null (string)}
+  {string:null(string)}
   {string:""}
   {string:"\""}
   {string:","}
@@ -12,8 +12,8 @@ output-flags: -f csv
 
 output: |
   string
-  
-  
+
+
   """"
   ","
   -

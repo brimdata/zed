@@ -1,19 +1,20 @@
 package expr
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/builder"
-	"github.com/brimdata/zed/zson"
 )
 
 type dropper struct {
-	typ       *zng.TypeRecord
-	builder   *builder.ColumnBuilder
+	typ       zed.Type
+	builder   *zed.ColumnBuilder
 	fieldRefs []Evaluator
 }
 
-func (d *dropper) drop(in *zng.Record) (*zng.Record, error) {
+func (d *dropper) drop(in *zed.Record) (*zed.Record, error) {
+	if d.typ == in.Type {
+		return in, nil
+	}
 	b := d.builder
 	b.Reset()
 	for _, e := range d.fieldRefs {
@@ -27,17 +28,17 @@ func (d *dropper) drop(in *zng.Record) (*zng.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zng.NewRecord(d.typ, zv), nil
+	return zed.NewRecord(d.typ, zv), nil
 }
 
 type Dropper struct {
-	zctx      *zson.Context
+	zctx      *zed.Context
 	fields    field.List
 	resolvers []Evaluator
 	droppers  map[int]*dropper
 }
 
-func NewDropper(zctx *zson.Context, fields field.List) *Dropper {
+func NewDropper(zctx *zed.Context, fields field.List) *Dropper {
 	return &Dropper{
 		zctx:     zctx,
 		fields:   fields,
@@ -45,8 +46,14 @@ func NewDropper(zctx *zson.Context, fields field.List) *Dropper {
 	}
 }
 
-func (d *Dropper) newDropper(r *zng.Record) (*dropper, error) {
-	fields, fieldTypes := complementFields(d.fields, nil, zng.TypeRecordOf(r.Type))
+func (d *Dropper) newDropper(r *zed.Record) (*dropper, error) {
+	fields, fieldTypes, match := complementFields(d.fields, nil, zed.TypeRecordOf(r.Type))
+	if !match {
+		// r.Type contains no fields matching d.fields, so we set
+		// dropper.typ to r.Type to indicate that records of this type
+		// should not be modified.
+		return &dropper{typ: r.Type}, nil
+	}
 	// If the set of dropped fields is equal to the all of record's
 	// fields, then there is no output for this input type.
 	// We return nil to block this input type.
@@ -57,7 +64,7 @@ func (d *Dropper) newDropper(r *zng.Record) (*dropper, error) {
 	for _, f := range fields {
 		fieldRefs = append(fieldRefs, NewDotExpr(f))
 	}
-	builder, err := builder.NewColumnBuilder(d.zctx, fields)
+	builder, err := zed.NewColumnBuilder(d.zctx, fields)
 	if err != nil {
 		return nil, err
 	}
@@ -69,25 +76,30 @@ func (d *Dropper) newDropper(r *zng.Record) (*dropper, error) {
 	return &dropper{typ, builder, fieldRefs}, nil
 }
 
-// complementFields returns the slice of fields and associated types
-// that make up the complement of the set of fields in drops.
-func complementFields(drops field.List, prefix field.Path, typ *zng.TypeRecord) (field.List, []zng.Type) {
+// complementFields returns the slice of fields and associated types that make
+// up the complement of the set of fields in drops along with a boolean that is
+// true if typ contains any the fields in drops.
+func complementFields(drops field.List, prefix field.Path, typ *zed.TypeRecord) (field.List, []zed.Type, bool) {
 	var fields field.List
-	var types []zng.Type
+	var types []zed.Type
+	var match bool
 	for _, c := range typ.Columns {
 		if contains(drops, append(prefix, c.Name)) {
+			match = true
 			continue
 		}
-		if typ, ok := c.Type.(*zng.TypeRecord); ok {
-			innerFields, innerTypes := complementFields(drops, append(prefix, c.Name), typ)
-			fields = append(fields, innerFields...)
-			types = append(types, innerTypes...)
-			continue
+		if typ, ok := zed.AliasOf(c.Type).(*zed.TypeRecord); ok {
+			if fs, ts, m := complementFields(drops, append(prefix, c.Name), typ); m {
+				fields = append(fields, fs...)
+				types = append(types, ts...)
+				match = true
+				continue
+			}
 		}
 		fields = append(fields, append(prefix, c.Name))
 		types = append(types, c.Type)
 	}
-	return fields, types
+	return fields, types, match
 }
 
 func contains(ss field.List, el field.Path) bool {
@@ -105,7 +117,7 @@ func (_ *Dropper) Warning() string { return "" }
 
 // Apply implements proc.Function and returns a new record comprising fields
 // that are not specified in the set of drop targets.
-func (d *Dropper) Apply(in *zng.Record) (*zng.Record, error) {
+func (d *Dropper) Apply(in *zed.Record) (*zed.Record, error) {
 	id := in.Type.ID()
 	dropper, ok := d.droppers[id]
 	if !ok {

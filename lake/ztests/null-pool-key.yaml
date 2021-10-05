@@ -1,0 +1,33 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  for o in asc desc; do
+    echo // $o
+    zed lake create -q -orderby k:$o $o
+    zed lake load -q -use $o@main in.zson
+    zed lake query -z "from $o range 1 to 3"
+  done
+
+inputs:
+  - name: in.zson
+    data: |
+      {k:null(int64),v:"null"}
+      {k:0,v:"zero"}
+      {k:1,v:"one"}
+      {k:2,v:"two"}
+      {k:3,v:"three"}
+      {k:4,v:"four"}
+
+outputs:
+  - name: stdout
+    data: |
+      // asc
+      {k:1,v:"one"}
+      {k:2,v:"two"}
+      {k:3,v:"three"}
+      // desc
+      {k:3,v:"three"}
+      {k:2,v:"two"}
+      {k:1,v:"one"}
+  - name: stderr
+    data: ''

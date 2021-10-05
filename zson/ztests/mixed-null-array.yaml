@@ -4,15 +4,15 @@ script: |
 inputs:
   - name: in.zson
     data: |
-      { version: [ 1, null ] } (=0)
-      { version: [ null, 2 ] } (=1)
-      { version: [ null, null] } (=2)
-      { version: [ null, "foo", 3 ] } (=3)
+      {version:[1,null(int64)]}
+      {version:[null(int64),2]}
+      {version:[null,null]}
+      {version:[null((null,string,int64)),"foo"((null,string,int64)),3((null,string,int64))]}
 
 outputs:
   - name: stdout
     data: |
-      {version:[1,null (int64)]}
-      {version:[null (int64),2]}
+      {version:[1,null(int64)]}
+      {version:[null(int64),2]}
       {version:[null,null]}
-      {version:[null (0=((null,string,int64))),"foo" (0),3 (0)] (=1)} (=2)
+      {version:[null((null,string,int64)),"foo"((null,string,int64)),3((null,string,int64))]}

@@ -1,9 +1,9 @@
 package head
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
 )
 
 type Proc struct {
@@ -38,7 +38,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	// This batch has more than the needed records.
 	// Create a new batch and copy only the needed records.
 	// Then signal to the upstream that we're done.
-	recs := make([]*zng.Record, remaining)
+	recs := make([]*zed.Record, remaining)
 	for k := 0; k < remaining; k++ {
 		recs[k] = batch.Index(k).Keep()
 	}

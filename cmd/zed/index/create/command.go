@@ -4,8 +4,10 @@ import (
 	"errors"
 	"flag"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	zedindex "github.com/brimdata/zed/cmd/zed/index"
+	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/index"
@@ -13,7 +15,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Create = &charm.Spec{
@@ -37,7 +38,7 @@ type Command struct {
 	*zedindex.Command
 	frameThresh int
 	outputFile  string
-	keyField    string
+	keys        field.List
 	skip        bool
 	inputReady  bool
 	inputFlags  inputflags.Flags
@@ -47,25 +48,24 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedindex.Command)}
 	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in index file")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
-	f.StringVar(&c.keyField, "k", "", "field name of search keys")
+	f.Func("k", "field name of search keys", c.parseKey)
 	f.BoolVar(&c.inputReady, "x", false, "input file is already sorted keys (and optional values)")
 	f.BoolVar(&c.skip, "S", false, "skip all records except for the first of each stream")
-	c.inputFlags.SetFlags(f)
-
+	c.inputFlags.SetFlags(f, true)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	_, cleanup, err := c.Init(&c.inputFlags)
+	ctx, cleanup, err := c.Init(&c.inputFlags)
 	if err != nil {
 		return err
 	}
 	defer cleanup()
-	if c.keyField == "" {
+	if len(c.keys) == 0 {
 		return errors.New("must specify at least one key field with -k")
 	}
 	//XXX no reason to limit this... we will fix this when we refactor
-	// the code here to use zql/proc instead for the hash table (after we
+	// the code here to use Zed/proc instead for the hash table (after we
 	// have spillable group-bys)
 	if len(args) != 1 {
 		return errors.New("must specify a single zng input file containing the indicated keys")
@@ -74,13 +74,13 @@ func (c *Command) Run(args []string) error {
 	if path == "-" {
 		path = "stdio:stdin"
 	}
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	local := storage.NewLocalEngine()
-	file, err := anyio.OpenFile(zctx, local, path, c.inputFlags.Options())
+	file, err := anyio.Open(ctx, zctx, local, path, c.inputFlags.Options())
 	if err != nil {
 		return err
 	}
-	writer, err := index.NewWriter(zctx, local, c.outputFile, index.FrameThresh(c.frameThresh))
+	writer, err := index.NewWriter(zctx, local, c.outputFile, c.keys, index.FrameThresh(c.frameThresh))
 	if err != nil {
 		return err
 	}
@@ -101,9 +101,18 @@ func (c *Command) Run(args []string) error {
 	return writer.Close()
 }
 
-func (c *Command) buildTable(zctx *zson.Context, reader zio.Reader) (*index.MemTable, error) {
-	readKey := expr.NewDotExpr(field.Dotted(c.keyField))
-	table := index.NewMemTable(zctx)
+func (c *Command) parseKey(s string) error {
+	c.keys = append(c.keys, field.Dotted(s))
+	return nil
+}
+
+func (c *Command) buildTable(zctx *zed.Context, reader zio.Reader) (*index.MemTable, error) {
+	fields, resolvers := compiler.CompileAssignments(c.keys, c.keys)
+	cutter, err := expr.NewCutter(zctx, fields, resolvers)
+	if err != nil {
+		return nil, err
+	}
+	table := index.NewMemTable(zctx, c.keys)
 	for {
 		rec, err := reader.Read()
 		if err != nil {
@@ -112,8 +121,8 @@ func (c *Command) buildTable(zctx *zson.Context, reader zio.Reader) (*index.MemT
 		if rec == nil {
 			break
 		}
-		k, err := readKey.Eval(rec)
-		if err != nil || k.Type == nil {
+		k, err := cutter.Apply(rec)
+		if err != nil || k == nil {
 			// if the key doesn't exist, just skip it
 			continue
 		}
@@ -123,7 +132,7 @@ func (c *Command) buildTable(zctx *zson.Context, reader zio.Reader) (*index.MemT
 			// the right thing to do.
 			continue
 		}
-		if err := table.EnterKey(k); err != nil {
+		if err := table.Enter(k); err != nil {
 			return nil, err
 		}
 	}

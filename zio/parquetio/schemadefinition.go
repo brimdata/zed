@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/fraugster/parquet-go/parquet"
 	"github.com/fraugster/parquet-go/parquetschema"
 )
@@ -71,7 +71,7 @@ var (
 	timeUnitNanos  = &parquet.TimeUnit{NANOS: &parquet.NanoSeconds{}}
 )
 
-func newSchemaDefinition(typ *zng.TypeRecord) (*parquetschema.SchemaDefinition, error) {
+func newSchemaDefinition(typ *zed.TypeRecord) (*parquetschema.SchemaDefinition, error) {
 	c, err := newColumnDefinition("", typ)
 	if err != nil {
 		return nil, err
@@ -87,84 +87,85 @@ func newSchemaDefinition(typ *zng.TypeRecord) (*parquetschema.SchemaDefinition, 
 	return s, s.ValidateStrict()
 }
 
-func newColumnDefinition(name string, typ zng.Type) (*parquetschema.ColumnDefinition, error) {
+func newColumnDefinition(name string, typ zed.Type) (*parquetschema.ColumnDefinition, error) {
 	switch typ := typ.(type) {
-	case *zng.TypeAlias:
+	case *zed.TypeAlias:
 		switch id := typ.Type.ID(); {
-		case typ.Name == "date" && id == zng.IDInt32:
+		case typ.Name == "date" && id == zed.IDInt32:
 			return newPrimitiveColumnDefinition(name, parquet.Type_INT32, convertedDate, logicalDate)
-		case typ.Name == "bson" && id == zng.IDBytes:
+		case typ.Name == "bson" && id == zed.IDBytes:
 			return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedBSON, logicalBSON)
-		case typ.Name == "interval" && id == zng.IDBytes:
+		case typ.Name == "interval" && id == zed.IDBytes:
 			return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedInterval, nil)
-		case typ.Name == "json" && id == zng.IDString:
+		case typ.Name == "json" && id == zed.IDString:
 			return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedJSON, logicalJSON)
-		case typ.Name == "enum" && id == zng.IDString:
-			return newColumnDefinition(name, &zng.TypeEnum{})
-		case typ.Name == "float" && id == zng.IDFloat64:
+		case typ.Name == "enum" && id == zed.IDString:
+			return newColumnDefinition(name, &zed.TypeEnum{})
+		case typ.Name == "float" && id == zed.IDFloat64:
 			return newPrimitiveColumnDefinition(name, parquet.Type_FLOAT, nil, nil)
-		case typ.Name == "int96" && id == zng.IDBytes:
+		case typ.Name == "int96" && id == zed.IDBytes:
 			return newPrimitiveColumnDefinition(name, parquet.Type_INT96, nil, nil)
-		case typ.Name == "time_millis" && id == zng.IDInt32:
+		case typ.Name == "time_millis" && id == zed.IDInt32:
 			return newPrimitiveColumnDefinition(
 				name, parquet.Type_INT32, convertedTimeMillis, logicalTimeMillis)
-		case name == "time_micros" && id == zng.IDInt64:
+		case name == "time_micros" && id == zed.IDInt64:
 			return newPrimitiveColumnDefinition(
 				name, parquet.Type_INT64, convertedTimeMicros, logicalTimeMicros)
-		case name == "time_nanos" && id == zng.IDInt64:
+		case name == "time_nanos" && id == zed.IDInt64:
 			return newPrimitiveColumnDefinition(name, parquet.Type_INT64, nil, logicalTimeNanos)
-		case name == "timestamp_millis" && id == zng.IDInt64:
+		case name == "timestamp_millis" && id == zed.IDInt64:
 			return newPrimitiveColumnDefinition(
 				name, parquet.Type_INT64, convertedTimestampMillis, logicalTimestampMillis)
-		case name == "timestamp_micros" && id == zng.IDInt64:
+		case name == "timestamp_micros" && id == zed.IDInt64:
 			return newPrimitiveColumnDefinition(
 				name, parquet.Type_INT64, convertedTimestampMicros, logicalTimestampMicros)
-		case name == "uuid" && id == zng.IDBytes:
+		case name == "uuid" && id == zed.IDBytes:
 			return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, nil, logicalUUID)
 		}
 		return newColumnDefinition(name, typ.Type)
-	case *zng.TypeOfUint8:
+	case *zed.TypeOfUint8:
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT32, convertedUint8, logicalUint8)
-	case *zng.TypeOfUint16:
+	case *zed.TypeOfUint16:
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT32, convertedUint16, logicalUint16)
-	case *zng.TypeOfUint32:
+	case *zed.TypeOfUint32:
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT32, convertedUint32, logicalUint32)
-	case *zng.TypeOfUint64:
+	case *zed.TypeOfUint64:
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT64, convertedUint64, logicalUint64)
-	case *zng.TypeOfInt8:
+	case *zed.TypeOfInt8:
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT32, convertedInt8, logicalInt8)
-	case *zng.TypeOfInt16:
+	case *zed.TypeOfInt16:
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT32, convertedInt16, logicalInt16)
-	case *zng.TypeOfInt32:
+	case *zed.TypeOfInt32:
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT32, convertedInt32, logicalInt32)
-	case *zng.TypeOfInt64, *zng.TypeOfDuration:
+	case *zed.TypeOfInt64, *zed.TypeOfDuration:
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT64, convertedInt64, logicalInt64)
-	case *zng.TypeOfTime:
+	case *zed.TypeOfTime:
 		return newPrimitiveColumnDefinition(name, parquet.Type_INT64, nil, logicalTimestampNanos)
 	// XXX add TypeFloat16
-	// XXX add TypeFloat32
-	case *zng.TypeOfFloat64:
+	case *zed.TypeOfFloat32:
+		return newPrimitiveColumnDefinition(name, parquet.Type_FLOAT, nil, nil)
+	case *zed.TypeOfFloat64:
 		return newPrimitiveColumnDefinition(name, parquet.Type_DOUBLE, nil, nil)
 	// XXX add TypeDecimal
-	case *zng.TypeOfBool:
+	case *zed.TypeOfBool:
 		return newPrimitiveColumnDefinition(name, parquet.Type_BOOLEAN, nil, nil)
-	case *zng.TypeOfBytes, *zng.TypeOfBstring:
+	case *zed.TypeOfBytes, *zed.TypeOfBstring:
 		return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, nil, nil)
-	case *zng.TypeOfString, *zng.TypeOfIP, *zng.TypeOfNet, *zng.TypeOfType, *zng.TypeOfError:
+	case *zed.TypeOfString, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfType, *zed.TypeOfError:
 		return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedUTF8, logicalString)
-	case *zng.TypeOfNull:
+	case *zed.TypeOfNull:
 		return nil, ErrNullType
-	case *zng.TypeRecord:
+	case *zed.TypeRecord:
 		return newRecordColumnDefinition(name, typ)
-	case *zng.TypeArray:
+	case *zed.TypeArray:
 		return newListColumnDefinition(name, typ.Type)
-	case *zng.TypeSet:
+	case *zed.TypeSet:
 		return newListColumnDefinition(name, typ.Type)
-	case *zng.TypeUnion:
+	case *zed.TypeUnion:
 		return nil, ErrUnionType
-	case *zng.TypeEnum:
+	case *zed.TypeEnum:
 		return newPrimitiveColumnDefinition(name, parquet.Type_BYTE_ARRAY, convertedEnum, logicalEnum)
-	case *zng.TypeMap:
+	case *zed.TypeMap:
 		return newMapColumnDefinition(name, typ.KeyType, typ.ValType)
 	default:
 		panic(fmt.Sprintf("unknown type %T", typ))
@@ -183,7 +184,7 @@ func newPrimitiveColumnDefinition(name string, t parquet.Type, c *parquet.Conver
 	}, nil
 }
 
-func newListColumnDefinition(name string, typ zng.Type) (*parquetschema.ColumnDefinition, error) {
+func newListColumnDefinition(name string, typ zed.Type) (*parquetschema.ColumnDefinition, error) {
 	element, err := newColumnDefinition("element", typ)
 	if err != nil {
 		return nil, err
@@ -209,7 +210,7 @@ func newListColumnDefinition(name string, typ zng.Type) (*parquetschema.ColumnDe
 	}, nil
 }
 
-func newMapColumnDefinition(name string, keyType, valueType zng.Type) (*parquetschema.ColumnDefinition, error) {
+func newMapColumnDefinition(name string, keyType, valueType zed.Type) (*parquetschema.ColumnDefinition, error) {
 	key, err := newColumnDefinition("key", keyType)
 	if err != nil {
 		return nil, err
@@ -243,7 +244,7 @@ func newMapColumnDefinition(name string, keyType, valueType zng.Type) (*parquets
 	}, nil
 }
 
-func newRecordColumnDefinition(name string, typ *zng.TypeRecord) (*parquetschema.ColumnDefinition, error) {
+func newRecordColumnDefinition(name string, typ *zed.TypeRecord) (*parquetschema.ColumnDefinition, error) {
 	if len(typ.Columns) == 0 {
 		return nil, ErrEmptyRecordType
 	}

@@ -1,17 +1,16 @@
 package inspect
 
 import (
-	"context"
 	"errors"
 	"flag"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
 	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/zst"
 )
 
@@ -53,7 +52,7 @@ func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 }
 
 func (c *Command) Run(args []string) error {
-	_, cleanup, err := c.Init(&c.outputFlags)
+	ctx, cleanup, err := c.Init(&c.outputFlags)
 	if err != nil {
 		return err
 	}
@@ -65,11 +64,9 @@ func (c *Command) Run(args []string) error {
 		return errors.New("zst cut: must specify field to cut with -k")
 	}
 	fields := strings.Split(c.fieldExpr, ".")
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
 	path := args[0]
 	local := storage.NewLocalEngine()
-	cutter, err := zst.NewCutterFromPath(ctx, zson.NewContext(), local, path, fields)
+	cutter, err := zst.NewCutterFromPath(ctx, zed.NewContext(), local, path, fields)
 	if err != nil {
 		return err
 	}

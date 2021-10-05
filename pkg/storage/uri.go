@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/brimdata/zed/zng"
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -18,17 +18,11 @@ func ParseURI(path string) (*URI, error) {
 	if path == "" {
 		return &URI{}, nil
 	}
-	u, err := url.Parse(path)
-	if err != nil {
-		return nil, err
-	}
-	if !knownScheme(Scheme(u.Scheme)) {
-		// If we don't know the scheme, either it's empty string,
-		// implying a file, or it's a file path with a colon embedded,
-		// so we parse it either way as a file.
+	if i := strings.IndexByte(path, ':'); i < 0 || !knownScheme(Scheme(path[:i])) {
 		return parseBarePath(path)
 	}
-	return (*URI)(u), nil
+	u, err := url.Parse(path)
+	return (*URI)(u), err
 }
 
 func MustParseURI(path string) *URI {
@@ -79,6 +73,6 @@ func (u *URI) UnmarshalText(b []byte) error {
 	return nil
 }
 
-func (u *URI) MarshalZNG(mc *zson.MarshalZNGContext) (zng.Type, error) {
+func (u *URI) MarshalZNG(mc *zson.MarshalZNGContext) (zed.Type, error) {
 	return mc.MarshalValue(u.String())
 }

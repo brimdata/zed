@@ -1,0 +1,16 @@
+script: |
+  source service.sh
+  zed api create -q test
+  zed api load -use test@main in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      {x:1}
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stdout
+    regexp: |
+      \w{27} committed

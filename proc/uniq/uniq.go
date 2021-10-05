@@ -3,9 +3,9 @@ package uniq
 import (
 	"bytes"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
 	"go.uber.org/zap"
 )
 
@@ -14,7 +14,7 @@ type Proc struct {
 	parent proc.Interface
 	cflag  bool
 	count  uint64
-	last   *zng.Record
+	last   *zed.Record
 }
 
 func New(pctx *proc.Context, parent proc.Interface, cflag bool) *Proc {
@@ -25,15 +25,15 @@ func New(pctx *proc.Context, parent proc.Interface, cflag bool) *Proc {
 	}
 }
 
-func (p *Proc) wrap(t *zng.Record) *zng.Record {
+func (p *Proc) wrap(t *zed.Record) *zed.Record {
 	if p.cflag {
 		// The leading underscore in "_uniq" is to avoid clashing with existing field
-		// names. Reducers don't have this problem since ZQL has a way to assign
+		// names. Reducers don't have this problem since Zed has a way to assign
 		// a field name to their returned result. At some point we could maybe add an
 		// option like "-f foo" to set a field name, at which point we could safely
 		// use a non-underscore field name by default, such as "count".
-		cols := []zng.Column{zng.NewColumn("_uniq", zng.TypeUint64)}
-		vals := []zng.Value{zng.NewUint64(p.count)}
+		cols := []zed.Column{zed.NewColumn("_uniq", zed.TypeUint64)}
+		vals := []zed.Value{zed.NewUint64(p.count)}
 		newR, err := p.pctx.Zctx.AddColumns(t, cols, vals)
 		if err != nil {
 			p.pctx.Logger.Error("AddColumns failed", zap.Error(err))
@@ -44,7 +44,7 @@ func (p *Proc) wrap(t *zng.Record) *zng.Record {
 	return t
 }
 
-func (p *Proc) appendUniq(out []*zng.Record, t *zng.Record) []*zng.Record {
+func (p *Proc) appendUniq(out []*zed.Record, t *zed.Record) []*zed.Record {
 	if p.count == 0 {
 		p.last = t.Keep()
 		p.count = 1
@@ -75,7 +75,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			p.last = nil
 			return zbuf.Array{t}, nil
 		}
-		var out []*zng.Record
+		var out []*zed.Record
 		for k := 0; k < batch.Length(); k++ {
 			out = p.appendUniq(out, batch.Index(k))
 		}

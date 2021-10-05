@@ -5,8 +5,7 @@ import (
 	"os"
 
 	"github.com/brimdata/zed/cmd/zed/api"
-	_ "github.com/brimdata/zed/cmd/zed/lake/add"
-	_ "github.com/brimdata/zed/cmd/zed/lake/commit"
+	_ "github.com/brimdata/zed/cmd/zed/lake/branch"
 	_ "github.com/brimdata/zed/cmd/zed/lake/create"
 	_ "github.com/brimdata/zed/cmd/zed/lake/delete"
 	_ "github.com/brimdata/zed/cmd/zed/lake/drop"
@@ -18,9 +17,10 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/lake/ls"
 	_ "github.com/brimdata/zed/cmd/zed/lake/merge"
 	_ "github.com/brimdata/zed/cmd/zed/lake/query"
+	_ "github.com/brimdata/zed/cmd/zed/lake/rename"
+	_ "github.com/brimdata/zed/cmd/zed/lake/revert"
 	_ "github.com/brimdata/zed/cmd/zed/lake/serve"
-	_ "github.com/brimdata/zed/cmd/zed/lake/squash"
-	_ "github.com/brimdata/zed/cmd/zed/lake/status"
+	_ "github.com/brimdata/zed/cmd/zed/lake/use"
 	_ "github.com/brimdata/zed/cmd/zed/lake/vacate"
 	"github.com/brimdata/zed/cmd/zed/root"
 )

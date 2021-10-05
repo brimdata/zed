@@ -1,11 +1,11 @@
 script: |
-  zq -z -i tzng null.tzng
+  ! zq -z -i tzng null.tzng
 
 inputs:
   - name: null.tzng
     data: |
-        #0:record[foo:null]
-        0:[bleah;]
+      #0:record[foo:null]
+      0:[bleah;]
 
 outputs:
   - name: stderr

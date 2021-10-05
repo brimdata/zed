@@ -3,8 +3,8 @@ zed: "put t:=typeof(s) | put tt:=typeof(t)"
 output-flags: -f zson -pretty=4
 
 input: |
-  {s:"hello",n:123 (int32),a:[1 (foo=(uint8)),2 (foo),3 (foo)] (=0)} (=1)
-  {s:"goodbye",n:34,a:[3,4]} (1)
+  {s:"hello",n:123(int32),a:[1(foo=(uint8)),2(foo),3(foo)]}
+  {s:"goodbye",n:34(int32),a:[3(foo=(uint8)),4(foo)]}
 
 output: |
   {
@@ -14,17 +14,17 @@ output: |
           1 (foo=(uint8)),
           2 (foo),
           3 (foo)
-      ] (=0),
-      t: (string),
-      tt: (type)
-  } (=1)
-  {
-      s: "goodbye",
-      n: 34,
-      a: [
-          3,
-          4
       ],
       t: (string),
       tt: (type)
-  } (1)
+  }
+  {
+      s: "goodbye",
+      n: 34 (int32),
+      a: [
+          3 (foo=(uint8)),
+          4 (foo)
+      ],
+      t: (string),
+      tt: (type)
+  }

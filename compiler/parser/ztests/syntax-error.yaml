@@ -1,5 +1,5 @@
 script: |
-  zq -z 'count() by ,x,y' -
+  ! zq -z 'count() by ,x,y' -
 
 inputs:
   - name: stdin

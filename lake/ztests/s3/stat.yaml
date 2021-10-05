@@ -2,9 +2,9 @@ script: |
   source minio.sh
   export ZED_LAKE_ROOT=s3://bucket/lake_test
   zed lake init -q
-  zed lake create -q -p logs
-  zed lake load -q -p logs babble.zson
-  zed lake log -p logs -f zng | zq -Z "cut m:=segment.meta" -
+  zed lake create -q logs
+  zed lake load -q -use logs@main babble.zson
+  zed lake query -Z "from logs@main:objects | cut m:=meta"
 
 inputs:
   - name: babble.zson
@@ -21,5 +21,5 @@ outputs:
               last: 2020-04-21T22:40:30.06852324Z,
               count: 1000 (uint64),
               row_size: 34325
-          } (=Metadata)
-      } (=0)
+          } (=data.Meta)
+      }

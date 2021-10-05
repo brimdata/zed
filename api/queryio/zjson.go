@@ -5,18 +5,18 @@ import (
 	"io"
 	"reflect"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio/zjsonio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
-
-var _ ControlWriter = &ZJSONWriter{}
 
 type ZJSONWriter struct {
 	encoder   *json.Encoder
 	marshaler *zson.MarshalZNGContext
 	stream    *zjsonio.Stream
 }
+
+var _ ControlWriter = (*ZJSONWriter)(nil)
 
 func NewZJSONWriter(w io.Writer) *ZJSONWriter {
 	m := zson.NewZNGMarshaler()
@@ -28,7 +28,7 @@ func NewZJSONWriter(w io.Writer) *ZJSONWriter {
 	}
 }
 
-func (w *ZJSONWriter) Write(rec *zng.Record) error {
+func (w *ZJSONWriter) Write(rec *zed.Record) error {
 	object, err := w.stream.Transform(rec)
 	if err != nil {
 		return err

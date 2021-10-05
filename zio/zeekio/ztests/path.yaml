@@ -11,4 +11,4 @@ input: |
   conn	yes
 
 output: |
-  {_path:"conn" (bstring),foo:"yes" (bstring)} (=0)
+  {_path:"conn"(bstring),foo:"yes"(bstring)}

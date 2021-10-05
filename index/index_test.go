@@ -7,13 +7,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +29,7 @@ func TestSearch(t *testing.T) {
 {key:"key5",value:"value5"}
 {key:"key6",value:"value6"}
 `
-	finder := buildAndOpen(t, storage.NewLocalEngine(), reader(data))
+	finder := buildAndOpen(t, storage.NewLocalEngine(), reader(data), field.DottedList("key"))
 	keyRec, err := finder.ParseKeys(`"key2"`)
 	require.NoError(t, err)
 	rec, err := finder.Lookup(keyRec)
@@ -36,7 +37,7 @@ func TestSearch(t *testing.T) {
 	require.NotNil(t, rec)
 	value, err := rec.Slice(1)
 	require.NoError(t, err)
-	value2 := zng.EncodeString("value2")
+	value2 := zed.EncodeString("value2")
 	assert.Equal(t, value, value2, "key lookup failed")
 }
 
@@ -45,9 +46,9 @@ func TestMicroIndex(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "test2.zng")
 	stream, err := newReader(N)
 	require.NoError(t, err)
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	engine := storage.NewLocalEngine()
-	writer, err := index.NewWriter(zctx, engine, path)
+	writer, err := index.NewWriter(zctx, engine, path, field.DottedList("key"))
 	require.NoError(t, err)
 	err = zio.Copy(writer, stream)
 	require.NoError(t, err)
@@ -98,7 +99,7 @@ func TestCompare(t *testing.T) {
 			k, err := finder.ParseKeys(fmt.Sprintf("%d", value))
 			require.NoError(t, err)
 
-			var rec *zng.Record
+			var rec *zed.Record
 			switch op {
 			case ">=":
 				rec, err = finder.ClosestGTE(k)
@@ -121,7 +122,7 @@ func TestCompare(t *testing.T) {
 
 	}
 	engine := storage.NewLocalEngine()
-	desc := buildAndOpen(t, engine, reader(records), index.Keys("ts"), index.Order(order.Desc))
+	desc := buildAndOpen(t, engine, reader(records), field.DottedList("ts"), index.Order(order.Desc))
 	t.Run("Descending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, desc, ">=", c.value, c.gte)
@@ -129,9 +130,9 @@ func TestCompare(t *testing.T) {
 			runtest(t, desc, "==", c.value, c.eql)
 		}
 	})
-	r, err := driver.NewReader(context.Background(), compiler.MustParseProc("sort ts"), zson.NewContext(), reader(records))
+	r, err := driver.NewReader(context.Background(), compiler.MustParseProc("sort ts"), zed.NewContext(), reader(records))
 	require.NoError(t, err)
-	asc := buildAndOpen(t, engine, r, index.Keys("ts"), index.Order(order.Asc))
+	asc := buildAndOpen(t, engine, r, field.DottedList("ts"), index.Order(order.Asc))
 	t.Run("Ascending", func(t *testing.T) {
 		for _, c := range cases {
 			runtest(t, asc, ">=", c.value, c.gte)
@@ -141,23 +142,23 @@ func TestCompare(t *testing.T) {
 	})
 }
 
-func buildAndOpen(t *testing.T, engine storage.Engine, r zio.Reader, opts ...index.Option) *index.Finder {
-	return openFinder(t, build(t, engine, r, opts...))
+func buildAndOpen(t *testing.T, engine storage.Engine, r zio.Reader, keys field.List, opts ...index.Option) *index.Finder {
+	return openFinder(t, build(t, engine, r, keys, opts...))
 }
 
 func openFinder(t *testing.T, path string) *index.Finder {
 	uri, err := storage.ParseURI(path)
 	require.NoError(t, err)
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	finder, err := index.NewFinder(context.Background(), zctx, storage.NewLocalEngine(), uri)
 	require.NoError(t, err)
 	t.Cleanup(func() { require.NoError(t, finder.Close()) })
 	return finder
 }
 
-func build(t *testing.T, engine storage.Engine, r zio.Reader, opts ...index.Option) string {
+func build(t *testing.T, engine storage.Engine, r zio.Reader, keys field.List, opts ...index.Option) string {
 	path := filepath.Join(t.TempDir(), "test.zng")
-	writer, err := index.NewWriter(zson.NewContext(), engine, path, opts...)
+	writer, err := index.NewWriter(zed.NewContext(), engine, path, keys, opts...)
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(writer, r))
 	require.NoError(t, writer.Close())
@@ -165,7 +166,7 @@ func build(t *testing.T, engine storage.Engine, r zio.Reader, opts ...index.Opti
 }
 
 func reader(logs string) zio.Reader {
-	return zson.NewReader(strings.NewReader(logs), zson.NewContext())
+	return zson.NewReader(strings.NewReader(logs), zed.NewContext())
 }
 
 func newReader(size int) (zio.Reader, error) {

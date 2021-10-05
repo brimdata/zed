@@ -1,0 +1,9 @@
+zed: '*'
+
+input: |
+  {a:{b:1}(=record_alias)}
+
+output-flags: -f text
+
+output: |
+  1

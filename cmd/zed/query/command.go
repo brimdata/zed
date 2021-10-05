@@ -8,6 +8,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
@@ -21,7 +22,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Cmd = &charm.Spec{
@@ -92,11 +92,11 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*root.Command)}
 	c.outputFlags.SetFlags(f)
-	c.inputFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f, false)
 	c.procFlags.SetFlags(f)
 	f.BoolVar(&c.verbose, "v", false, "show verbose details")
 	f.BoolVar(&c.stats, "S", false, "display search stats on stderr")
-	f.BoolVar(&c.quiet, "q", false, "don't display zql warnings")
+	f.BoolVar(&c.quiet, "q", false, "don't display warnings")
 	f.BoolVar(&c.stopErr, "e", true, "stop upon input errors")
 	f.Var(&c.includes, "I", "source file containing Zed query text (may be used multiple times)")
 	return c, nil
@@ -141,9 +141,9 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	local := storage.NewLocalEngine()
-	readers, err := c.inputFlags.Open(zctx, local, paths, c.stopErr)
+	readers, err := c.inputFlags.Open(ctx, zctx, local, paths, c.stopErr)
 	if err != nil {
 		return err
 	}
@@ -191,20 +191,17 @@ func isJoin(p ast.Proc) bool {
 }
 
 func ParseSourcesAndInputs(paths, includes Includes) ([]string, ast.Proc, error) {
-	srcs, err := includes.Read()
-	if err != nil {
-		return nil, nil, err
-	}
+	var src string
 	if len(paths) != 0 && !cli.FileExists(paths[0]) && !isURLWithKnownScheme(paths[0], "http", "https", "s3") {
 		if len(paths) == 1 {
 			// We don't interpret the first arg as a query if there
 			// are no additional args.
 			return nil, nil, fmt.Errorf("no such file: %s", paths[0])
 		}
-		srcs = append(srcs, paths[0])
+		src = paths[0]
 		paths = paths[1:]
 	}
-	query, err := parseZed(srcs)
+	query, err := compiler.ParseProc(src, includes...)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -222,34 +219,6 @@ func isURLWithKnownScheme(path string, schemes ...string) bool {
 		}
 	}
 	return false
-}
-
-func CombineSources(args, includes Includes) (string, error) {
-	srcs, err := includes.Read()
-	if err != nil {
-		return "", err
-	}
-	zedSrc := strings.Join(append(srcs, args...), "\n")
-	if zedSrc == "" {
-		zedSrc = "*"
-	}
-	return zedSrc, nil
-}
-
-func ParseSources(args, includes Includes) (ast.Proc, error) {
-	zedSrc, err := CombineSources(args, includes)
-	if err != nil {
-		return nil, err
-	}
-	return compiler.ParseProc(zedSrc)
-}
-
-func parseZed(srcs []string) (ast.Proc, error) {
-	zedSrc := strings.Join(srcs, "\n")
-	if zedSrc == "" {
-		zedSrc = "*"
-	}
-	return compiler.ParseProc(zedSrc)
 }
 
 func PrintStats(stats zbuf.ScannerStats) {

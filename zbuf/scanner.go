@@ -6,9 +6,9 @@ import (
 	"io"
 	"sync/atomic"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zng"
 )
 
 type Filter interface {
@@ -64,35 +64,6 @@ func (s *ScannerStats) Copy() ScannerStats {
 	}
 }
 
-func ReadersToScanners(ctx context.Context, readers []zio.Reader) ([]Scanner, error) {
-	scanners := make([]Scanner, 0, len(readers))
-	for _, reader := range readers {
-		s, err := NewScanner(ctx, reader, nil)
-		if err != nil {
-			return nil, err
-		}
-		scanners = append(scanners, s)
-	}
-	return scanners, nil
-}
-
-// ReadersToPullers returns a slice of Pullers that pull from the given
-// Readers.  If any or all of the readers implement Scannerable, then
-// a scanner will be created from the underlying Scannerable so that the
-// pulled Batches are more efficient, i.e., the zng scanner will arrange
-// for each Batch to be returned to a pool instead of being GC'd.
-func ReadersToPullers(ctx context.Context, readers []zio.Reader) ([]Puller, error) {
-	scanners, err := ReadersToScanners(ctx, readers)
-	if err != nil {
-		return nil, err
-	}
-	pullers := make([]Puller, 0, len(scanners))
-	for _, s := range scanners {
-		pullers = append(pullers, s)
-	}
-	return pullers, nil
-}
-
 var ScannerBatchSize = 100
 
 // NewScanner returns a Scanner for r that filters records by filterExpr and s.
@@ -132,7 +103,7 @@ func (s *scanner) Stats() ScannerStats {
 }
 
 // Read implements Reader.Read.
-func (s *scanner) Read() (*zng.Record, error) {
+func (s *scanner) Read() (*zed.Record, error) {
 	for {
 		if err := s.ctx.Err(); err != nil {
 			return nil, err

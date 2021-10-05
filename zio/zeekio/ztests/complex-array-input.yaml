@@ -1,15 +1,16 @@
-script: zq -f zeek -
+script: |
+  ! zq -f zeek -
 
 inputs:
   - name: stdin
     data: |
-        #separator \x09
-        #set_separator	,
-        #empty_field	(empty)
-        #unset_field	-
-        #fields	foo
-        #types	vector[record[s:string]]
-        bar
+      #separator \x09
+      #set_separator	,
+      #empty_field	(empty)
+      #unset_field	-
+      #fields	foo
+      #types	vector[record[s:string]]
+      bar
 
 outputs:
   - name: stderr

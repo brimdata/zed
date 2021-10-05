@@ -1,11 +1,9 @@
 script: |
   source service.sh
-  zed api create -q -p test
-  a=$(zed api add -p test a.zson | head -1 | awk '{print $1}')
-  b=$(zed api add -p test b.zson | head -1 | awk '{print $1}')
-  zed api commit -q -p test -user testuser -date 2021-06-18T14:29:28Z $a $b
-  zed api status -p test
-  zed api log -p test -f zng | zq -z "sort segment.meta.first | cut first:=segment.meta.first,last:=segment.meta.last" -
+  zed api create -q test
+  zed api load -q -use test@main a.zson
+  zed api load -q -use test@main b.zson
+  zed api query -z "from test@main:objects | sort meta.first | cut first:=meta.first,last:=meta.last"
 
 inputs:
   - name: service.sh
@@ -18,9 +16,6 @@ inputs:
       {ts:2}
 
 outputs:
-  - name: stderr
-    data: |
-      staging area is empty
   - name: stdout
     data: |
       {first:1,last:1}

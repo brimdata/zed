@@ -3,16 +3,16 @@ package join
 import (
 	"context"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zng"
 )
 
 type puller struct {
 	proc  proc.Interface
 	ctx   context.Context
 	ch    chan proc.Result
-	recs  []*zng.Record
+	recs  []*zed.Record
 	batch zbuf.Batch
 	off   int
 	len   int
@@ -51,7 +51,7 @@ func (p *puller) Pull() (zbuf.Batch, error) {
 	}
 }
 
-func (p *puller) Read() (*zng.Record, error) {
+func (p *puller) Read() (*zed.Record, error) {
 	if p.off >= p.len {
 		// XXX last batch at EOS gets sent to GC
 		if p.batch != nil {

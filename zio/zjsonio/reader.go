@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/zed"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/pkg/skim"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -18,12 +18,12 @@ const (
 
 type Reader struct {
 	scanner *skim.Scanner
-	zctx    *zson.Context
+	zctx    *zed.Context
 	decoder decoder
 	builder *zcode.Builder
 }
 
-func NewReader(reader io.Reader, zctx *zson.Context) *Reader {
+func NewReader(reader io.Reader, zctx *zed.Context) *Reader {
 	buffer := make([]byte, ReadSize)
 	return &Reader{
 		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
@@ -33,7 +33,7 @@ func NewReader(reader io.Reader, zctx *zson.Context) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zng.Record, error) {
+func (r *Reader) Read() (*zed.Record, error) {
 	e := func(err error) error {
 		if err == nil {
 			return err
@@ -58,7 +58,7 @@ func (r *Reader) Read() (*zng.Record, error) {
 	if !ok {
 		return nil, fmt.Errorf("undefined schema ID: %s", rec.Schema)
 	}
-	if !zng.IsRecordType(typ) {
+	if !zed.IsRecordType(typ) {
 		return nil, fmt.Errorf("ZJSON outer type is not a record: %s", zson.FormatType(typ))
 	}
 	r.builder.Reset()
@@ -69,10 +69,10 @@ func (r *Reader) Read() (*zng.Record, error) {
 	if err != nil {
 		return nil, e(err)
 	}
-	return zng.NewRecordCheck(typ, bytes)
+	return zed.NewRecordCheck(typ, bytes)
 }
 
-func (r *Reader) decodeTypes(types []zed.Type) error {
+func (r *Reader) decodeTypes(types []astzed.Type) error {
 	d := r.decoder
 	for _, t := range types {
 		d.decodeType(r.zctx, t)

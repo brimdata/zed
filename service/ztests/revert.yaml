@@ -1,0 +1,31 @@
+script: |
+  source service.sh
+  zapi create -q test
+  a=$(zapi load -use test@main a.zson | head -1 | awk '{print $1}')
+  b=$(zapi load -use test@main b.zson | head -1 | awk '{print $1}')
+  zapi query -z "from test | sort ."
+  zapi revert -q -use test@main $a
+  echo ===
+  zapi query -z "from test | sort ."
+  zapi revert -q -use test@main $b
+  echo ===
+  zapi query -z "from test | sort ."
+
+inputs:
+  - name: a.zson
+    data: |
+      {a:1}
+  - name: b.zson
+    data: |
+      {b:1}
+  - name: service.sh
+    source: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
+      {b:1}
+      ===
+      {b:1}
+      ===

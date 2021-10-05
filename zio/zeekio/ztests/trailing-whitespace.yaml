@@ -1,16 +1,7 @@
 zed: '*'
 
 # The last input line should end with a tab character.
-input: |
-  #separator \x09
-  #set_separator	,
-  #empty_field	(empty)
-  #unset_field	-
-  #path	unknown_mime_type_discovery
-  #open	2020-04-10-18-15-32
-  #fields	ts	fid	bof
-  #types	time	string	string
-  1425634708.454143	FTBt2P3wJBdHGKpZwc	 
+input: "#separator \\x09\n#set_separator\t,\n#empty_field\t(empty)\n#unset_field\t-\n#path\tunknown_mime_type_discovery\n#open\t2020-04-10-18-15-32\n#fields\tts\tfid\tbof\n#types\ttime\tstring\tstring\n1425634708.454143\tFTBt2P3wJBdHGKpZwc\t \n"
 
 output: |
-  {_path:"unknown_mime_type_discovery",ts:2015-03-06T09:38:28.454143Z,fid:"FTBt2P3wJBdHGKpZwc" (bstring),bof:" " (bstring)} (=0)
+  {_path:"unknown_mime_type_discovery",ts:2015-03-06T09:38:28.454143Z,fid:"FTBt2P3wJBdHGKpZwc"(bstring),bof:" "(bstring)}

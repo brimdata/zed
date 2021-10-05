@@ -39,7 +39,7 @@ zq -Z 'head 1' conn.log.gz
         orig_p: 39681 (port=(uint16)),
         resp_h: 10.47.3.155,
         resp_p: 3389 (port)
-    } (=0),
+    },
     proto: "tcp" (=zenum),
     service: null (bstring),
     duration: 4.266ms,
@@ -54,8 +54,8 @@ zq -Z 'head 1' conn.log.gz
     orig_ip_bytes: 730 (uint64),
     resp_pkts: 6 (uint64),
     resp_ip_bytes: 342 (uint64),
-    tunnel_parents: null (1=(|[bstring]|))
-} (=2)
+    tunnel_parents: null (|[bstring]|)
+}
 ```
 
 Other than Zed, Zeek provides one of the richest data typing systems available

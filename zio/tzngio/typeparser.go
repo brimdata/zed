@@ -5,17 +5,16 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed"
 )
 
 var ErrEmptyTypeList = errors.New("empty type list in set or union")
 
 type TypeParser struct {
-	zctx *zson.Context
+	zctx *zed.Context
 }
 
-func NewTypeParser(zctx *zson.Context) *TypeParser {
+func NewTypeParser(zctx *zed.Context) *TypeParser {
 	return &TypeParser{
 		zctx: zctx,
 	}
@@ -39,21 +38,21 @@ func parseWord(in string) (string, string) {
 	return in[off:], in[:off]
 }
 
-func (t *TypeParser) Parse(in string) (zng.Type, error) {
+func (t *TypeParser) Parse(in string) (zed.Type, error) {
 	rest, typ, err := t.parseType(in)
 	if err == nil && rest != "" {
-		err = zng.ErrTypeSyntax
+		err = zed.ErrTypeSyntax
 	}
 	return typ, err
 }
 
-func (t *TypeParser) parseType(in string) (string, zng.Type, error) {
+func (t *TypeParser) parseType(in string) (string, zed.Type, error) {
 	in = strings.TrimSpace(in)
 	rest, word := parseWord(in)
 	if word == "" {
 		return "", nil, fmt.Errorf("unknown type: %s", in)
 	}
-	typ := zng.LookupPrimitive(word)
+	typ := zed.LookupPrimitive(word)
 	if typ != nil {
 		return rest, typ, nil
 	}
@@ -94,20 +93,20 @@ func match(in, pattern string) (string, bool) {
 }
 
 // parseRecordTypeBody parses a list of record columns of the form "[field:type,...]".
-func (t *TypeParser) parseRecordTypeBody(in string) (string, zng.Type, error) {
+func (t *TypeParser) parseRecordTypeBody(in string) (string, zed.Type, error) {
 	in, ok := match(in, "[")
 	if !ok {
-		return "", nil, zng.ErrTypeSyntax
+		return "", nil, zed.ErrTypeSyntax
 	}
 	in, ok = match(in, "]")
 	if ok {
-		typ, err := t.zctx.LookupTypeRecord([]zng.Column{})
+		typ, err := t.zctx.LookupTypeRecord([]zed.Column{})
 		if err != nil {
 			return "", nil, err
 		}
 		return in, typ, nil
 	}
-	var columns []zng.Column
+	var columns []zed.Column
 	for {
 		// at top of loop, we have to have a field def either because
 		// this is the first def or we found a comma and are expecting
@@ -124,7 +123,7 @@ func (t *TypeParser) parseRecordTypeBody(in string) (string, zng.Type, error) {
 		}
 		rest, ok = match(rest, "]")
 		if !ok {
-			return "", nil, zng.ErrTypeSyntax
+			return "", nil, zed.ErrTypeSyntax
 		}
 		typ, err := t.zctx.LookupTypeRecord(columns)
 		if err != nil {
@@ -134,34 +133,34 @@ func (t *TypeParser) parseRecordTypeBody(in string) (string, zng.Type, error) {
 	}
 }
 
-func (t *TypeParser) parseColumn(in string) (string, zng.Column, error) {
+func (t *TypeParser) parseColumn(in string) (string, zed.Column, error) {
 	in = strings.TrimSpace(in)
 	rest, name, err := t.parseName(in)
 	if err != nil {
-		return "", zng.Column{}, err
+		return "", zed.Column{}, err
 	}
-	var typ zng.Type
+	var typ zed.Type
 	rest, typ, err = t.parseType(rest)
 	if err != nil {
-		return "", zng.Column{}, err
+		return "", zed.Column{}, err
 	}
 	if typ == nil {
-		return "", zng.Column{}, zng.ErrTypeSyntax
+		return "", zed.Column{}, zed.ErrTypeSyntax
 	}
-	return rest, zng.NewColumn(name, typ), nil
+	return rest, zed.NewColumn(name, typ), nil
 }
 
 // parseTypeList parses a type list of the form "[type1,type2,type3]".
-func (t *TypeParser) parseTypeList(in string) (string, []zng.Type, error) {
+func (t *TypeParser) parseTypeList(in string) (string, []zed.Type, error) {
 	rest, ok := match(in, "[")
 	if !ok {
-		return "", nil, zng.ErrTypeSyntax
+		return "", nil, zed.ErrTypeSyntax
 	}
 	if rest[0] == ']' {
 		return "", nil, ErrEmptyTypeList
 	}
 	in = rest
-	var types []zng.Type
+	var types []zed.Type
 	for {
 		// at top of loop, we have to have a field def either because
 		// this is the first def or we found a comma and are expecting
@@ -178,7 +177,7 @@ func (t *TypeParser) parseTypeList(in string) (string, []zng.Type, error) {
 		}
 		rest, ok = match(rest, "]")
 		if !ok {
-			return "", nil, zng.ErrTypeSyntax
+			return "", nil, zed.ErrTypeSyntax
 		}
 		return rest, types, nil
 	}
@@ -186,7 +185,7 @@ func (t *TypeParser) parseTypeList(in string) (string, []zng.Type, error) {
 
 // parseSetTypeBody parses a set type body of the form "[type]" presuming the set
 // keyword is already matched.
-func (t *TypeParser) parseSetTypeBody(in string) (string, zng.Type, error) {
+func (t *TypeParser) parseSetTypeBody(in string) (string, zed.Type, error) {
 	rest, types, err := t.parseTypeList(in)
 	if err != nil {
 		return "", nil, err
@@ -200,7 +199,7 @@ func (t *TypeParser) parseSetTypeBody(in string) (string, zng.Type, error) {
 // parseMapTypeBody parses a maap type body of the form "[type,type]" presuming
 // the map keyword is already matched.
 // The syntax is "map[keyType,valType]".
-func (t *TypeParser) parseMapTypeBody(in string) (string, zng.Type, error) {
+func (t *TypeParser) parseMapTypeBody(in string) (string, zed.Type, error) {
 	rest, types, err := t.parseTypeList(in)
 	if err != nil {
 		return "", nil, err
@@ -213,7 +212,7 @@ func (t *TypeParser) parseMapTypeBody(in string) (string, zng.Type, error) {
 
 // parseUnionTypeBody parses a set type body of the form
 // "[type1,type2,...]" presuming the union keyword is already matched.
-func (t *TypeParser) parseUnionTypeBody(in string) (string, zng.Type, error) {
+func (t *TypeParser) parseUnionTypeBody(in string) (string, zed.Type, error) {
 	rest, types, err := t.parseTypeList(in)
 	if err != nil {
 		return "", nil, err
@@ -222,12 +221,12 @@ func (t *TypeParser) parseUnionTypeBody(in string) (string, zng.Type, error) {
 }
 
 // parse an array body type of the form "[type]"
-func (t *TypeParser) parseArrayTypeBody(in string) (string, *zng.TypeArray, error) {
+func (t *TypeParser) parseArrayTypeBody(in string) (string, *zed.TypeArray, error) {
 	rest, ok := match(in, "[")
 	if !ok {
-		return "", nil, zng.ErrTypeSyntax
+		return "", nil, zed.ErrTypeSyntax
 	}
-	var inner zng.Type
+	var inner zed.Type
 	var err error
 	rest, inner, err = t.parseType(rest)
 	if err != nil {
@@ -235,16 +234,16 @@ func (t *TypeParser) parseArrayTypeBody(in string) (string, *zng.TypeArray, erro
 	}
 	rest, ok = match(rest, "]")
 	if !ok {
-		return "", nil, zng.ErrTypeSyntax
+		return "", nil, zed.ErrTypeSyntax
 	}
 	return rest, t.zctx.LookupTypeArray(inner), nil
 }
 
 // parse an array body type of the form "[type]"
-func (t *TypeParser) parseEnumTypeBody(in string) (string, *zng.TypeEnum, error) {
+func (t *TypeParser) parseEnumTypeBody(in string) (string, *zed.TypeEnum, error) {
 	rest, ok := match(in, "[")
 	if !ok {
-		return "", nil, zng.ErrTypeSyntax
+		return "", nil, zed.ErrTypeSyntax
 	}
 	var symbols []string
 	var err error
@@ -261,23 +260,23 @@ func (c *TypeParser) parseName(in string) (string, string, error) {
 	if in, ok := match(in, "["); ok {
 		rbracket := strings.IndexByte(in, byte(']'))
 		if rbracket < 0 {
-			return "", "", zng.ErrTypeSyntax
+			return "", "", zed.ErrTypeSyntax
 		}
 		name := strings.TrimSpace(in[:rbracket])
 		rest := in[rbracket+1:]
 		rest, ok := match(rest, ":")
 		if !ok {
-			return "", "", zng.ErrTypeSyntax
+			return "", "", zed.ErrTypeSyntax
 		}
 		return rest, name, nil
 	}
 	colon := strings.IndexByte(in, byte(':'))
 	if colon < 0 {
-		return "", "", zng.ErrTypeSyntax
+		return "", "", zed.ErrTypeSyntax
 	}
 	name := strings.TrimSpace(in[:colon])
-	if !zng.IsIdentifier(name) {
-		return "", "", zng.ErrTypeSyntax
+	if !zed.IsIdentifier(name) {
+		return "", "", zed.ErrTypeSyntax
 	}
 	return in[colon+1:], name, nil
 }
@@ -301,7 +300,7 @@ func (c *TypeParser) parseSymbols(in string) (string, []string, error) {
 		}
 		rest, ok = match(rest, "]")
 		if !ok {
-			return "", nil, zng.ErrTypeSyntax
+			return "", nil, zed.ErrTypeSyntax
 		}
 		return rest, symbols, nil
 	}

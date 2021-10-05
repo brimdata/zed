@@ -5,7 +5,9 @@ import (
 	"flag"
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
+	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/procflags"
 	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
@@ -14,18 +16,15 @@ import (
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/pkg/units"
-	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zson"
 )
 
 var Load = &charm.Spec{
 	Name:  "load",
 	Usage: "load [options] file|S3-object|- ...",
-	Short: "add and commit data to a pool",
+	Short: "add and commit data to a branch",
 	Long: `
-The load command adds data to a pool and commits it in one automatic operation.
-See documentation on "zed lake add" and "zed lake commit" for more details.
+The load command adds data to a pool and commits it to a branch.
 `,
 	New: New,
 }
@@ -36,28 +35,30 @@ func init() {
 }
 
 type Command struct {
-	lake       *zedlake.Command
+	lake       zedlake.Command
 	seekStride units.Bytes
 	commit     bool
 	zedlake.CommitFlags
 	procFlags  procflags.Flags
 	inputFlags inputflags.Flags
+	lakeFlags  lakeflags.Flags
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
-		lake:       parent.(*zedlake.Command),
+		lake:       parent.(zedlake.Command),
 		seekStride: units.Bytes(lake.SeekIndexStride),
 	}
 	f.Var(&c.seekStride, "seekstride", "size of seek-index unit for ZNG data, as '32KB', '1MB', etc.")
 	c.CommitFlags.SetFlags(f)
-	c.inputFlags.SetFlags(f)
+	c.inputFlags.SetFlags(f, true)
 	c.procFlags.SetFlags(f)
+	c.lakeFlags.SetFlags(f)
 	return c, nil
 }
 
 func (c *Command) Run(args []string) error {
-	ctx, cleanup, err := c.lake.Init(&c.inputFlags, &c.procFlags)
+	ctx, cleanup, err := c.lake.Root().Init(&c.inputFlags, &c.procFlags)
 	if err != nil {
 		return err
 	}
@@ -69,28 +70,34 @@ func (c *Command) Run(args []string) error {
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
-	pool, err := c.lake.Flags.OpenPool(ctx)
+	lake, err := c.lake.Open(ctx)
 	if err != nil {
 		return err
 	}
 	paths := args
 	local := storage.NewLocalEngine()
-	readers, err := c.inputFlags.Open(zson.NewContext(), local, paths, false)
+	readers, err := c.inputFlags.Open(ctx, zed.NewContext(), local, paths, false)
 	if err != nil {
 		return err
 	}
 	defer zio.CloseReaders(readers)
-	reader, err := zbuf.MergeReadersByTsAsReader(ctx, readers, pool.Config().Layout.Order)
+	head, err := c.lakeFlags.HEAD()
 	if err != nil {
 		return err
 	}
-	commitID, err := pool.Add(ctx, reader, c.CommitRequest())
+	if head.Pool == "" {
+		return lakeflags.ErrNoHEAD
+	}
+	poolID, err := lake.PoolID(ctx, head.Pool)
 	if err != nil {
 		return err
 	}
-	if !c.lake.Flags.Quiet() {
+	commitID, err := lake.Load(ctx, poolID, head.Branch, zio.ConcatReader(readers...), c.CommitMessage())
+	if err != nil {
+		return err
+	}
+	if !c.lakeFlags.Quiet {
 		fmt.Printf("%s committed\n", commitID)
-		// XXX fmt.Printf("%s committed %d segments\n", commitID, len(txn.Actions))
 	}
 	return nil
 }

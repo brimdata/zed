@@ -1,6 +1,6 @@
 package dag
 
-import "github.com/brimdata/zed/compiler/ast/zed"
+import astzed "github.com/brimdata/zed/compiler/ast/zed"
 
 type Expr interface {
 	ExprDAG()
@@ -12,6 +12,11 @@ type (
 	ArrayExpr struct {
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
+	}
+	Assignment struct {
+		Kind string `json:"kind" unpack:""`
+		LHS  Expr   `json:"lhs"`
+		RHS  Expr   `json:"rhs"`
 	}
 	BinaryExpr struct {
 		Kind string `json:"kind" unpack:""`
@@ -25,9 +30,9 @@ type (
 		Args []Expr `json:"args"`
 	}
 	Cast struct {
-		Kind string   `json:"kind" unpack:""`
-		Expr Expr     `json:"expr"`
-		Type zed.Type `json:"type"`
+		Kind string      `json:"kind" unpack:""`
+		Expr Expr        `json:"expr"`
+		Type astzed.Type `json:"type"`
 	}
 	Conditional struct {
 		Kind string `json:"kind" unpack:""`
@@ -66,9 +71,9 @@ type (
 		Pattern string `json:"pattern"`
 	}
 	Search struct {
-		Kind  string        `json:"kind" unpack:""`
-		Text  string        `json:"text"`
-		Value zed.Primitive `json:"value"` //XXX search should be extended to complex types
+		Kind  string           `json:"kind" unpack:""`
+		Text  string           `json:"text"`
+		Value astzed.Primitive `json:"value"` //XXX search should be extended to complex types
 	}
 	SelectExpr struct {
 		Kind      string `json:"kind" unpack:""`
@@ -106,6 +111,7 @@ type (
 )
 
 func (*Agg) ExprDAG()          {}
+func (*Assignment) ExprDAG()   {}
 func (*ArrayExpr) ExprDAG()    {}
 func (*BinaryExpr) ExprDAG()   {}
 func (*Call) ExprDAG()         {}

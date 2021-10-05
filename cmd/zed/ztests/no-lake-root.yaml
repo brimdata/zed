@@ -1,5 +1,5 @@
 script: |
-  zed lake ls
+  ! zed lake ls
 
 outputs:
   - name: stderr

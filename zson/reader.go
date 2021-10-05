@@ -4,19 +4,19 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zng"
 )
 
 type Reader struct {
 	reader   io.Reader
-	zctx     *Context
+	zctx     *zed.Context
 	parser   *Parser
 	analyzer Analyzer
 	builder  *zcode.Builder
 }
 
-func NewReader(r io.Reader, zctx *Context) *Reader {
+func NewReader(r io.Reader, zctx *zed.Context) *Reader {
 	return &Reader{
 		reader:   r,
 		zctx:     zctx,
@@ -25,7 +25,7 @@ func NewReader(r io.Reader, zctx *Context) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zng.Record, error) {
+func (r *Reader) Read() (*zed.Record, error) {
 	if r.parser == nil {
 		var err error
 		r.parser, err = NewParser(r.reader)
@@ -47,8 +47,8 @@ func (r *Reader) Read() (*zng.Record, error) {
 	}
 	// ZSON can represent value streams that aren't records,
 	// but we handle only top-level records here.
-	if _, ok := zng.AliasOf(zv.Type).(*zng.TypeRecord); !ok {
+	if _, ok := zed.AliasOf(zv.Type).(*zed.TypeRecord); !ok {
 		return nil, fmt.Errorf("top-level ZSON value not a record: %s", zv.Type)
 	}
-	return zng.NewRecord(zv.Type, zv.Bytes), nil
+	return zed.NewRecord(zv.Type, zv.Bytes), nil
 }

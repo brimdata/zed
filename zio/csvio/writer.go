@@ -4,12 +4,10 @@ import (
 	"encoding/csv"
 	"errors"
 	"io"
-	"time"
+	"strings"
 
-	"github.com/brimdata/zed/zio/tzngio"
-	"github.com/brimdata/zed/zng"
-	"github.com/brimdata/zed/zng/flattener"
-	"github.com/brimdata/zed/zson"
+	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/expr"
 )
 
 var ErrNotDataFrame = errors.New("CSV output requires uniform records but multiple types encountered (consider 'fuse')")
@@ -17,25 +15,20 @@ var ErrNotDataFrame = errors.New("CSV output requires uniform records but multip
 type Writer struct {
 	writer    io.WriteCloser
 	encoder   *csv.Writer
-	flattener *flattener.Flattener
-	format    tzngio.OutFmt
-	first     *zng.TypeRecord
+	flattener *expr.Flattener
+	first     *zed.TypeRecord
+	strings   []string
 }
 
 type WriterOpts struct {
 	UTF8 bool
 }
 
-func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
-	format := tzngio.OutFormatZeekAscii
-	if opts.UTF8 {
-		format = tzngio.OutFormatZeek
-	}
+func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{
 		writer:    w,
 		encoder:   csv.NewWriter(w),
-		flattener: flattener.New(zson.NewContext()),
-		format:    format,
+		flattener: expr.NewFlattener(zed.NewContext()),
 	}
 }
 
@@ -49,13 +42,13 @@ func (w *Writer) Flush() error {
 	return w.encoder.Error()
 }
 
-func (w *Writer) Write(rec *zng.Record) error {
+func (w *Writer) Write(rec *zed.Record) error {
 	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
 		return err
 	}
 	if w.first == nil {
-		w.first = zng.TypeRecordOf(rec.Type)
+		w.first = zed.TypeRecordOf(rec.Type)
 		var hdr []string
 		for _, col := range rec.Columns() {
 			hdr = append(hdr, col.Name)
@@ -66,26 +59,30 @@ func (w *Writer) Write(rec *zng.Record) error {
 	} else if rec.Type != w.first {
 		return ErrNotDataFrame
 	}
-	var out []string
-	for k, col := range rec.Columns() {
-		var v string
-		// O(n^2)
-		value := rec.ValueByColumn(k)
-		if !value.IsUnsetOrNil() {
-			switch col.Type.ID() {
-			case zng.IDTime:
-				ts, err := zng.DecodeTime(value.Bytes)
-				if err != nil {
-					return err
-				}
-				v = ts.Time().UTC().Format(time.RFC3339Nano)
-			case zng.IDString, zng.IDBstring, zng.IDType, zng.IDError:
-				v = string(value.Bytes)
+	w.strings = w.strings[:0]
+	cols := rec.Columns()
+	for i, it := 0, rec.Bytes.Iter(); i < len(cols) && !it.Done(); i++ {
+		zb, _, err := it.Next()
+		if err != nil {
+			return err
+		}
+		var s string
+		if zb != nil {
+			typ := cols[i].Type
+			id := typ.ID()
+			switch {
+			case id == zed.IDBytes && len(zb) == 0:
+				// We want "" instead of "0x" from typ.Format.
+			case zed.IsStringy(id):
+				s = string(zb)
 			default:
-				v = tzngio.FormatValue(value, w.format)
+				s = typ.Format(zb)
+				if zed.IsFloat(id) && strings.HasSuffix(s, ".") {
+					s = strings.TrimSuffix(s, ".")
+				}
 			}
 		}
-		out = append(out, v)
+		w.strings = append(w.strings, s)
 	}
-	return w.encoder.Write(out)
+	return w.encoder.Write(w.strings)
 }

@@ -6,12 +6,12 @@ import (
 	"io"
 	"strings"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/emitter"
-	"github.com/brimdata/zed/zson"
 )
 
 type Internal struct {
@@ -28,13 +28,12 @@ func Trim(s string) string {
 	return strings.TrimSpace(s) + "\n"
 }
 
-func stringReader(input string, ifmt string, zctx *zson.Context) (zio.Reader, error) {
+func stringReader(input string, ifmt string, zctx *zed.Context) (zio.Reader, error) {
 	opts := anyio.ReaderOpts{
 		Format: ifmt,
 	}
 	rc := io.NopCloser(strings.NewReader(input))
-
-	return anyio.OpenFromNamedReadCloser(zctx, rc, "test", opts)
+	return anyio.NewFile(zctx, rc, "test", opts)
 }
 
 func newEmitter(ofmt string) (*emitter.Bytes, error) {
@@ -50,7 +49,7 @@ func (i *Internal) Run() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("parse error: %w (%s)", err, i.Query)
 	}
-	zctx := zson.NewContext()
+	zctx := zed.NewContext()
 	reader, err := stringReader(i.Input, i.InputFormat, zctx)
 	if err != nil {
 		return "", err

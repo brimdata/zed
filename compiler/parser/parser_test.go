@@ -13,8 +13,6 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed/compiler"
-	"github.com/brimdata/zed/compiler/ast"
-	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/pkg/fs"
 	"github.com/brimdata/zed/ztest"
@@ -22,8 +20,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func searchForZqls() ([]string, error) {
-	var zqls []string
+func searchForZed() ([]string, error) {
+	var zed []string
 	pattern := fmt.Sprintf(`.*ztests\%c.*\.yaml$`, filepath.Separator)
 	re := regexp.MustCompile(pattern)
 	err := filepath.Walk("..", func(path string, info os.FileInfo, err error) error {
@@ -36,11 +34,11 @@ func searchForZqls() ([]string, error) {
 			if z == "" || z == "*" {
 				return nil
 			}
-			zqls = append(zqls, z)
+			zed = append(zed, z)
 		}
 		return err
 	})
-	return zqls, err
+	return zed, err
 }
 
 func parsePEGjs(z string) ([]byte, error) {
@@ -65,12 +63,12 @@ func parsePigeon(z string) ([]byte, error) {
 	return json.Marshal(ast)
 }
 
-// testZQL parses the zql query in line by both the Go and Javascript
+// testZed parses the Zed query in line by both the Go and Javascript
 // parsers.  It checks both that the parse is successful and that the
 // two resulting ASTs are equivalent.  On the go side, we take a round
 // trip through json marshal and unmarshal to turn the parse-tree types
 // into generic JSON types.
-func testZQL(t *testing.T, line string) {
+func testZed(t *testing.T, line string) {
 	pigeonJSON, err := parsePigeon(line)
 	assert.NoError(t, err, "parsePigeon: %q", line)
 
@@ -92,15 +90,15 @@ func TestValid(t *testing.T) {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		line := scanner.Bytes()
-		testZQL(t, string(line))
+		testZed(t, string(line))
 	}
 }
 
-func TestZtestZqls(t *testing.T) {
-	zqls, err := searchForZqls()
+func TestZtestZed(t *testing.T) {
+	zed, err := searchForZed()
 	require.NoError(t, err)
-	for _, z := range zqls {
-		testZQL(t, z)
+	for _, z := range zed {
+		testZed(t, z)
 	}
 }
 
@@ -111,44 +109,6 @@ func TestInvalid(t *testing.T) {
 	for scanner.Scan() {
 		line := scanner.Bytes()
 		_, err := parser.Parse("", line)
-		assert.Error(t, err, "zql: %q", line)
+		assert.Error(t, err, "Zed: %q", line)
 	}
-}
-
-// parseString is a helper for testing string parsing.  It wraps the
-// given string in a simple zql query, parses it, and extracts the parsed
-// string from inside the AST.
-func parseString(in string) (string, error) {
-	code := fmt.Sprintf("s == \"%s\"", in)
-	tree, err := compiler.ParseProc(code)
-	if err != nil {
-		return "", err
-	}
-	if seq, ok := tree.(*ast.Sequential); ok {
-		tree = seq.Procs[0]
-	}
-	filt, ok := tree.(*ast.Filter)
-	if !ok {
-		return "", fmt.Errorf("Expected Filter proc got %T", tree)
-	}
-	comp, ok := filt.Expr.(*ast.BinaryExpr)
-	if !ok {
-		return "", fmt.Errorf("Expected BinaryExpr got %T", filt.Expr)
-	}
-	p, ok := comp.RHS.(*zed.Primitive)
-	if !ok {
-		return "", fmt.Errorf("Expected Primitive got %T", filt.Expr)
-	}
-	return p.Text, nil
-}
-
-// Test handling of unicode escapes in the parser
-func TestUnicode(t *testing.T) {
-	result, err := parseString("Sacr\u00e9 bleu!")
-	assert.NoError(t, err, "Parse of string succeeded")
-	assert.Equal(t, result, "Sacré bleu!", "Unicode escape without brackets parsed correctly")
-
-	result, err = parseString("I love \\u{1F32E}s")
-	assert.NoError(t, err, "Parse of string succeeded")
-	assert.Equal(t, result, "I love 🌮s", "Unicode escape with brackets parsed correctly")
 }

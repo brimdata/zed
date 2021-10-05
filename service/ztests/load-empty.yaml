@@ -1,0 +1,14 @@
+script: |
+  source service.sh
+  zapi create -q test
+  ! zapi load -q -use test@main -
+
+inputs:
+  - name: stdin
+    data: ''
+  - name: service.sh
+
+outputs:
+  - name: stderr
+    data: |
+      status code 400: no records in request
