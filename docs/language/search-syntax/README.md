@@ -22,10 +22,13 @@
 
 The simplest possible Zed search is a match of all records. This search is
 expressed in `zq` with the wildcard `*`. The response will be a dump of all
-records. The default `zq` output is binary [ZNG](../../formats/zng.md), a
-compact format that's ideal for working in pipelines. However, in these docs
-we'll often make use of the `-z` or `-Z` options to output the text-based
-[ZSON](../../formats/zson.md) format, which is readable at the command line.
+records. The default `zq` output to the terminal is text-based
+[ZSON](../../formats/zson.md) format, whereas the compact binary
+[ZNG](../../formats/zng.md) format is used if the output is redirected or
+piped.
+
+In the examples, we'll be explicit in how we request our output format, using
+`-z` for ZSON in this case.
 
 #### Example:
 ```mdtest-command zed-sample-data/edu/zson
@@ -38,6 +41,33 @@ zq -z '*' schools.zson
 {School:"100 Black Men of the Bay Area Community",District:"Oakland Unified",City:"Oakland",County:"Alameda",Zip:"94607-1404",Latitude:37.745418,Longitude:-122.14067,Magnet:null(bool),OpenDate:2012-08-06T00:00:00Z,ClosedDate:2014-10-28T00:00:00Z,Phone:null(string),StatusType:"Closed",Website:"www.100school.org"}(=school)
 {School:"101 Elementary",District:"Victor Elementary",City:"Victorville",County:"San Bernardino",Zip:"92395-3360",Latitude:null(float64),Longitude:null(float64),Magnet:null(bool),OpenDate:1996-02-07T00:00:00Z,ClosedDate:2005-06-30T00:00:00Z,Phone:null(string),StatusType:"Closed",Website:"www.charter101.org"}(=school)
 {School:"180 Program",District:"Novato Unified",City:"Novato",County:"Marin",Zip:"94947-4004",Latitude:38.097792,Longitude:-122.57617,Magnet:null(bool),OpenDate:2012-08-22T00:00:00Z,ClosedDate:2014-06-13T00:00:00Z,Phone:null(string),StatusType:"Closed",Website:null(string)}(=school)
+...
+```
+
+The `-Z` option is also available for "pretty-printed" ZSON output.
+
+#### Example:
+```mdtest-command zed-sample-data/edu/zson
+zq -Z '*' schools.zson
+```
+
+#### Output:
+```mdtest-output head
+{
+    School: "'3R' Middle",
+    District: "Nevada County Office of Education",
+    City: "Nevada City",
+    County: "Nevada",
+    Zip: "95959",
+    Latitude: null (float64),
+    Longitude: null (float64),
+    Magnet: null (bool),
+    OpenDate: 1995-10-30T00:00:00Z,
+    ClosedDate: 1996-06-28T00:00:00Z,
+    Phone: null (string),
+    StatusType: "Merged",
+    Website: null (string)
+} (=school)
 ...
 ```
 
@@ -270,7 +300,7 @@ same:
 
 #### Example:
 ```mdtest-command zed-sample-data/edu/zson
-zq -z 'School==District' schools.zson
+zq -z 'District==School' schools.zson
 ```
 
 #### Output:
@@ -287,7 +317,7 @@ zq -z 'School==District' schools.zson
 To match successfully when comparing values to the contents of named fields,
 the value must be comparable to the _data type_ of the field.
 
-For instance, the 'Zip' field in our schools data is of `string` type because
+For instance, the "Zip" field in our schools data is of `string` type because
 several values are of the extended format that includes a hyphen and four
 additional digits and hence could not be represented in a numeric type.
 
@@ -403,7 +433,7 @@ Determining whether the value of an `ip`-type field is contained within a
 subnet also uses `in`.
 
 The following example locates all schools whose web sites are hosted in an
-IP address in the class A `38`.
+IP address in the class A network `38`.
 
 #### Example:
 ```mdtest-command zed-sample-data/edu/zson
