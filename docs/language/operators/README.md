@@ -62,7 +62,7 @@ zq -Z 'cut School,OpenDate' schools.zson
 As long as some of the named fields are present, these will be returned. No
 warning is generated regarding absent fields. For instance, the following
 query is run against all three of our data sources and returns values from our
-school data that includes fields for both `School` and `Website`, our webx
+school data that includes fields for both `School` and `Website`, our web
 address data that has only the `Website` field, and nothing from the SAT
 scores data that has neither field.
 
@@ -121,19 +121,16 @@ zq -z 'cut School:=sname,District:=dname' satscores.zson
 
 #### Example #1:
 
-To return all fields _other than_ the `_path` field and `id` record of `weird`
-records:
+To return all the field _other than_ the scores in our SAT data source:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'drop _path,id' weird.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'drop AvgScrMath,AvgScrRead,AvgScrWrite' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output head
-ts                          uid                name                             addl             notice peer
-2018-03-24T17:15:20.600843Z C1zOivgBT6dBmknqk  TCP_ack_underflow_or_misorder    -                F      zeek
-2018-03-24T17:15:20.608108Z -                  truncated_header                 -                F      zeek
-2018-03-24T17:15:20.610033Z C45Ff03lESjMQQQej1 above_hole_data_without_any_acks -                F      zeek
+{cname:"Riverside",dname:"Beaumont Unified",sname:"21st Century Learning Institute"}
+{cname:"Los Angeles",dname:"ABC Unified",sname:"ABC Secondary (Alternative)"}
 ...
 ```
 
@@ -157,29 +154,33 @@ ts                          uid                name                             
 
 To further trim the data returned in our [`cut`](#cut) example:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'cut ts,uid | filter uid=="CXWfTK3LRdiuQxBbM6"' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'cut School,OpenDate | filter School=="Breeze Hill Elementary"' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-ts                          uid
-2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
+{
+    School: "Breeze Hill Elementary",
+    OpenDate: 1992-07-06T00:00:00Z
+}
 ```
 
 #### Example #2:
 
 An alternative syntax for our [`and` example](../search-syntax/README.md#and):
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'filter www.*cdn*.com _path=="ssl"' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'filter StatusType=="Pending" academy' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-_path ts                          uid                id.orig_h   id.orig_p id.resp_h    id.resp_p version cipher                                curve     server_name       resumed last_alert next_protocol established cert_chain_fuids                                                            client_cert_chain_fuids subject            issuer                                  client_subject client_issuer validation_status
-ssl   2018-03-24T17:23:00.244457Z CUG0fiQAzL4rNWxai  10.47.2.100 36150     52.85.83.228 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FXKmyTbr7HlvyL1h8,FADhCTvkq1ILFnD3j,FoVjYR16c3UIuXj4xk,FmiRYe1P53KOolQeVi   (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
-ssl   2018-03-24T17:24:00.189735Z CSbGJs3jOeB6glWLJj 10.47.7.154 27137     52.85.83.215 443       TLSv12  TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256 secp256r1 www.herokucdn.com F       -          h2            T           FuW2cZ3leE606wXSia,Fu5kzi1BUwnF0bSCsd,FyTViI32zPvCmNXgSi,FwV6ff3JGj4NZcVPE4 (empty)                 CN=*.herokucdn.com CN=Amazon,OU=Server CA 1B,O=Amazon,C=US -              -             ok
+{School:"Equitas Academy 4",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90015-2412",Latitude:34.044837,Longitude:-118.27844,Magnet:false,OpenDate:2017-09-01T00:00:00Z,ClosedDate:null(time),Phone:"(213) 201-0440",StatusType:"Pending",Website:"http://equitasacademy.org"}(=school)
+{School:"Pinnacle Academy Charter - Independent Study",District:"South Monterey County Joint Union High",City:"King City",County:"Monterey",Zip:"93930-3311",Latitude:36.208934,Longitude:-121.13286,Magnet:false,OpenDate:2016-08-08T00:00:00Z,ClosedDate:null(time),Phone:"(831) 385-4661",StatusType:"Pending",Website:"www.smcjuhsd.org"}(=school)
+{School:"Rocketship Futuro Academy",District:"SBE - Rocketship Futuro Academy",City:"Concord",County:"Contra Costa",Zip:"94521-1522",Latitude:37.965658,Longitude:-121.96106,Magnet:false,OpenDate:2016-08-15T00:00:00Z,ClosedDate:null(time),Phone:"(301) 789-5469",StatusType:"Pending",Website:"www.rsed.org"}(=school)
+{School:"Sherman Thomas STEM Academy",District:"Madera Unified",City:"Madera",County:"Madera",Zip:"93638",Latitude:36.982843,Longitude:-120.06665,Magnet:false,OpenDate:2017-08-09T00:00:00Z,ClosedDate:null(time),Phone:"(559) 674-1192",StatusType:"Pending",Website:"www.stcs.k12.ca.us"}(=school)
+{School:null(string),District:"SBE - Rocketship Futuro Academy",City:"Concord",County:"Contra Costa",Zip:"94521-1522",Latitude:37.965658,Longitude:-121.96106,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(301) 789-5469",StatusType:"Pending",Website:"www.rsed.org"}(=school)
 ```
 
 ---
@@ -604,52 +605,52 @@ zq -z -I embed-opposite.zed
 
 #### Example #1:
 
-To return only the `ts` and `uid` columns of `conn` records:
+To return only the name and date of opening for our school records:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'pick ts,uid' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'pick School,OpenDate' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-ts                          uid
-2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
-2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
-2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i
+{
+    School: "'3R' Middle",
+    OpenDate: 1995-10-30T00:00:00Z
+}
+{
+    School: "100 Black Men of the Bay Area Community",
+    OpenDate: 2012-08-06T00:00:00Z
+}
 ...
 ```
 
 #### Example #2:
 
 All of the named fields must be present in a record for `pick` to return a
-result for it. For instance, since only the Zeek `smb_mapping` in our sample
-data contains the field named `share_type`, the following query returns columns
-for only that record type. The many other Zeek record types that also include
-`_path` and/or `ts` fields are not returned.
+result for it. For instance, since only our school data has _both_ `School`
+and `Website` fields, the following query that's run against all three of our
+data sources only returns a result from the school data.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'pick _path,ts,share_type' *
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'yosemiteuhsd | pick School,Website' *
 ```
 
 #### Output:
-```mdtest-output head
-_path       ts                          share_type
-smb_mapping 2018-03-24T17:15:21.382822Z DISK
-smb_mapping 2018-03-24T17:15:21.625534Z PIPE
-smb_mapping 2018-03-24T17:15:22.021668Z PIPE
-...
+```mdtest-output
+{School:null(string),Website:"www.yosemiteuhsd.com"}
 ```
 
 Contrast this with a [similar example](#example-2) that shows how
-[`cut`](#cut)'s relaxed behavior would produce a partial result here.
+[`cut`](#cut)'s relaxed behavior also returned a result from the web address
+data, since that data source includes a field called `Website`.
 
 #### Example #3:
 
 If no records are found that contain any of the named fields, `pick` returns a
 warning.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'pick nothere,alsoabsent' weird.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'pick nothere,alsoabsent' satscores.zson
 ```
 
 #### Output:
@@ -659,19 +660,17 @@ pick: no record found with columns nothere,alsoabsent
 
 #### Example #4:
 
-To return only the `ts` and `uid` columns of `conn` records, with `ts` renamed
-to `time`:
+To return only the `sname` and `dname` fields of the SAT scores while also
+renaming the fields:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'pick time:=ts,uid' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'pick School:=sname,District:=dname' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output head
-time                        uid
-2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
-2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
-2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i
+{School:"21st Century Learning Institute",District:"Beaumont Unified"}
+{School:"ABC Secondary (Alternative)",District:"ABC Unified"}
 ...
 ```
 
