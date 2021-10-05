@@ -20,10 +20,6 @@ The following available operators are documented in detail below:
 * [`tail`](#tail)
 * [`uniq`](#uniq)
 
-> **Note:** In the examples below, we'll use the `zq -f table` output format
-> for human readability. Due to the width of the Zeek records used as sample
-> data, you may need to "scroll right" in the output to see some field values.
-
 > **Note:** Per Zed [search syntax](../search-syntax/README.md), many examples
 > below use shorthand that leaves off the explicit leading `* |`, matching all
 > records before invoking the first element in a pipeline.
@@ -42,40 +38,42 @@ The following available operators are documented in detail below:
 
 #### Example #1:
 
-To return only the `ts` and `uid` columns of `conn` records:
+To return only the name and date of opening for our school records:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'cut ts,uid' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'cut School,OpenDate' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-ts                          uid
-2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
-2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
-2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i
+{
+    School: "'3R' Middle",
+    OpenDate: 1995-10-30T00:00:00Z
+}
+{
+    School: "100 Black Men of the Bay Area Community",
+    OpenDate: 2012-08-06T00:00:00Z
+}
 ...
 ```
 
 #### Example #2:
 
 As long as some of the named fields are present, these will be returned. No
-warning is generated regarding absent fields. For instance, even though only
-the Zeek `smb_mapping` logs in our sample data contain the field named
-`share_type`, the following query returns records for many other log types that
-contain the `_path` and/or `ts` that we included in our field list.
+warning is generated regarding absent fields. For instance, the following
+query is run against all three of our data sources and returns values from our
+school data that includes fields for both `School` and `Website`, our webx
+address data that has only the `Website` field, and nothing from the SAT
+scores data that has neither field.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'cut _path,ts,share_type' *
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'yosemiteuhsd | cut School,Website' *
 ```
 
 #### Output:
-```mdtest-output head
-_path        ts
-capture_loss 2018-03-24T17:30:20.600852Z
-capture_loss 2018-03-24T17:36:30.158766Z
-conn         2018-03-24T17:15:21.255387Z
-...
+```mdtest-output
+{School:null(string),Website:"www.yosemiteuhsd.com"}
+{Website:"www.yosemiteuhsd.com"}
 ```
 
 Contrast this with a [similar example](#example-2-3) that shows how
@@ -86,8 +84,8 @@ Contrast this with a [similar example](#example-2-3) that shows how
 If no records are found that contain any of the named fields, `cut` returns a
 warning.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'cut nothere,alsoabsent' weird.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'cut nothere,alsoabsent' satscores.zson
 ```
 
 #### Output:
@@ -97,19 +95,17 @@ cut: no record found with columns nothere,alsoabsent
 
 #### Example #4:
 
-To return only the `ts` and `uid` columns of `conn` records, with `ts` renamed
-to `time`:
+To return only the `sname` and `dname` fields of the SAT scores while also
+renaming the fields:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'cut time:=ts,uid' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'cut School:=sname,District:=dname' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output head
-time                        uid
-2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl
-2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6
-2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i
+{School:"21st Century Learning Institute",District:"Beaumont Unified"}
+{School:"ABC Secondary (Alternative)",District:"ABC Unified"}
 ...
 ```
 
