@@ -37,17 +37,17 @@ Multiple aggregate functions may be invoked at the same time.
 
 #### Example:
 
-To simultaneously calculate the minimum, maximum, and average of connection
-duration:
+To simultaneously calculate the minimum, maximum, and average of the math
+test scores:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'min(duration),max(duration),avg(duration)' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -f table 'min(AvgScrMath),max(AvgScrMath),avg(AvgScrMath)' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output
-min      max         avg
-0.000001 1269.512465 1.6373747834138621
+min max avg
+289 699 484.99019042123484
 ```
 
 ### Field Naming
@@ -58,14 +58,14 @@ instead use `:=` to specify an explicit name for the generated field.
 
 #### Example:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'quickest:=min(duration),longest:=max(duration),typical:=avg(duration)' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -f table 'lowest:=min(AvgScrMath),highest:=max(AvgScrMath),typical:=avg(AvgScrMath)' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output
-quickest longest     typical
-0.000001 1269.512465 1.6373747834138621
+lowest highest typical
+289    699     484.99019042123484
 ```
 
 ### Grouping
@@ -82,21 +82,19 @@ function will operate.
 
 #### Example:
 
-To check whether we've seen higher DNS round-trip times when servers return
-longer lists of `answers`:
+To calculate average math test scores for the cities of Los Angeles and San
+Francisco:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'answers != null | every 5m short_rtt:=avg(rtt) where len(answers)<=2, short_count:=count() where len(answers)<=2, long_rtt:=avg(rtt) where len(answers)>2, long_count:=count() where len(answers)>2 | sort ts' dns.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'LA_Math:=avg(AvgScrMath) where cname=="Los Angeles", SF_Math:=avg(AvgScrMath) where cname=="San Francisco"' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output
-ts                   short_rtt            short_count long_rtt             long_count
-2018-03-24T17:15:00Z 0.004386461911629731 7628        0.01571223665048545  824
-2018-03-24T17:20:00Z 0.006360169034406226 9010        0.01992656544502617  764
-2018-03-24T17:25:00Z 0.006063177039132521 8486        0.02742244411764705  680
-2018-03-24T17:30:00Z 0.005641562210915819 8652        0.021644265586034935 802
-2018-03-24T17:35:00Z 0.008572169213139795 2618        0.01933044954128441  218
+{
+    LA_Math: 456.27341772151897,
+    SF_Math: 485.3636363636364
+}
 ```
 
 ---
@@ -114,34 +112,28 @@ ts                   short_rtt            short_count long_rtt             long_
 
 #### Example:
 
-Let's say you've been studying `weird` records and noticed that lots of
-connections have made one or more bad HTTP requests.
+Many of the reocrds in our school data mention their websites, but many do
+not. The following query shows the cities for which all schools have a website.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'count() by name | sort -r count' weird.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'all_schools_have_website:=and(Website!=null) by City | sort City' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-name                                        count
-bad_HTTP_request                            11777
-line_terminated_with_single_CR              11734
-unknown_HTTP_method                         140
-above_hole_data_without_any_acks            107
+{
+    City: "Acampo",
+    all_schools_have_website: false
+}
+{
+    City: "Acton",
+    all_schools_have_website: false
+}
+{
+    City: "Acton, CA",
+    all_schools_have_website: true
+}
 ...
-```
-
-To count the number of connections for which this was the _only_ category of
-`weird` record observed:
-
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'only_bads:=and(name=="bad_HTTP_request") by uid | count() where only_bads==true' weird.log.gz
-```
-
-#### Output:
-```mdtest-output
-count
-37
 ```
 
 ---
@@ -157,10 +149,10 @@ count
 
 #### Example:
 
-To see the `name` of a Zeek `weird` record in our sample data:
+To see the name of one of the schools in our sample data:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'any(name)' weird.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'any(School)' schools.zson
 ```
 
 For small inputs that fit in memory, this will typically be the first such
@@ -169,8 +161,7 @@ case, the output is:
 
 #### Output:
 ```mdtest-output
-any
-TCP_ack_underflow_or_misorder
+{any:"'3R' Middle"}
 ```
 
 ---
@@ -179,24 +170,23 @@ TCP_ack_underflow_or_misorder
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the mean (average) of the values of a specified field. Non-numeric values are ignored. |
+| **Description**           | Return the mean (average) of the values of a specified field. Non-numeric values (including `null`) are ignored. |
 | **Syntax**                | `avg(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
 
-To calculate the average number of bytes originated by all connections as
-captured in Zeek `conn` records:
+To calculate the average of the math test scores:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'avg(orig_bytes)' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -f table 'avg(AvgScrMath)' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output
 avg
-176.9861548654682
+484.99019042123484
 ```
 
 ---
@@ -210,22 +200,44 @@ avg
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
 
-#### Example #1:
+#### Example
 
-To assemble the sequence of HTTP methods invoked in each interaction with the
-Bing search engine:
+For schools in Fresno county that include websites, the following query
+constructs a list per city of their websites along with a parallel list of
+which school each website represents.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'host=="www.bing.com" | methods:=collect(method) by uid | sort uid' http.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'County=="Fresno" Website!=null | Websites:=collect(Website),Schools:=collect(School) by City | sort City' schools.zson
 ```
 
 #### Output:
-```mdtest-output head
-uid                methods
-C1iilt2FG8PnyEl0bb GET,GET,POST,GET,GET,POST
-C31wi6XQB8h9igoa5  GET,GET,POST,POST,POST
-CFwagt4ivDe3p6R7U8 GET,GET,POST,POST,GET,GET,GET,POST,POST,GET,GET,GET,GET,POST
-CI0SCN14gWpY087KA3 GET,POST,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET
+```
+{
+    City: "Auberry",
+    Websites: [
+        "www.sierra.k12.ca.us",
+        "www.sierra.k12.ca.us",
+        "www.pineridge.k12.ca.us",
+        "www.pineridge.k12.ca.us"
+    ],
+    Schools: [
+        "Auberry Elementary",
+        "Balch Camp Elementary",
+        "Pine Ridge Elementary",
+        ""
+    ]
+}
+{
+    City: "Big Creek",
+    Websites: [
+        "www.bigcreekschool.com",
+        "www.bigcreekschool.com"
+    ],
+    Schools: [
+        "Big Creek Elementary",
+        ""
+    ]
+}
 ...
 ```
 
@@ -244,8 +256,8 @@ CI0SCN14gWpY087KA3 GET,POST,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET
 
 To count the number of records in the entire sample data set:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'count()' *.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'count()' *
 ```
 
 #### Output:
@@ -444,25 +456,30 @@ sum
 | **Optional<br>arguments** | None                                                           |
 | **Limitations**           | The data type of the input values must be uniform.             |
 
-#### Example #1:
+#### Example:
 
-To observe which HTTP methods were invoked in each interaction with the Bing
-search engine:
+For schools in Fresno county that include websites, the following query
+constructs a set per city of all the unique websites for the schools in that
+city.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'host=="www.bing.com" | methods:=union(method) by uid | sort uid' http.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'County=="Fresno" Website!=null | Websites:=union(Website) by City | sort City' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-uid                methods
-C1iilt2FG8PnyEl0bb GET,POST
-C31wi6XQB8h9igoa5  GET,POST
-CFwagt4ivDe3p6R7U8 GET,POST
-CI0SCN14gWpY087KA3 GET,POST
-CJcF5E1DVn8FLq5JVc POST
-CLsXgZ1W5l9gMzx7e8 GET,POST
-CM2qfb4dhM2KJ6uAZk GET
-CSOmBD4vJEGRU6pJmg POST
+{
+    City: "Auberry",
+    Websites: |[
+        "www.sierra.k12.ca.us",
+        "www.pineridge.k12.ca.us"
+    ]|
+}
+{
+    City: "Big Creek",
+    Websites: |[
+        "www.bigcreekschool.com"
+    ]|
+}
 ...
 ```
