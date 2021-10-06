@@ -20,6 +20,10 @@ The following available operators are documented in detail below:
 * [`tail`](#tail)
 * [`uniq`](#uniq)
 
+> **Note:** Due to the width of the records used as sample data, you may need
+> to "scroll right" in the output to see some field values in the example
+> outputs.
+
 > **Note:** Per Zed [search syntax](../search-syntax/README.md), many examples
 > below use shorthand that leaves off the explicit leading `* |`, matching all
 > records before invoking the first element in a pipeline.
@@ -38,7 +42,7 @@ The following available operators are documented in detail below:
 
 #### Example #1:
 
-To return only the name and opening date for our school records:
+To return only the name and opening date from our school records:
 
 ```mdtest-command zed-sample-data/edu/zson
 zq -Z 'cut School,OpenDate' schools.zson
@@ -62,9 +66,9 @@ zq -Z 'cut School,OpenDate' schools.zson
 As long as some of the named fields are present, these will be returned. No
 warning is generated regarding absent fields. For instance, the following
 query is run against all three of our data sources and returns values from our
-school data that includes fields for both `School` and `Website`, our web
-address data that has the `Website` and `addr` fields, and nothing from the SAT
-scores data that has none of these fields.
+school data that includes fields for both `School` and `Website`, values from
+our web address data that have the `Website` and `addr` fields, and nothing
+from the test scores data since it has none of these fields.
 
 ```mdtest-command zed-sample-data/edu/zson
 zq -z 'yosemiteuhsd | cut School,Website,addr' *
@@ -96,7 +100,7 @@ cut: no record found with columns nothere,alsoabsent
 
 #### Example #4:
 
-To return only the `sname` and `dname` fields of the SAT scores while also
+To return only the `sname` and `dname` fields of the test scores while also
 renaming the fields:
 
 ```mdtest-command zed-sample-data/edu/zson
@@ -216,7 +220,7 @@ Geyserville Community Day         Geyserville Unified Geyserville Sonoma 95441  
 ...
 ```
 
-Two SAT score records were output first, so the preceding header row
+Two test score records were output first, so the preceding header row
 describes the names of its fields. Next, several school records were to be
 output, so a header row describing the fields for that data source was
 printed. This presentation accurately conveys the heterogeneous nature of the
@@ -621,7 +625,7 @@ zq -z -I embed-opposite.zed
 
 #### Example #1:
 
-To return only the name and date of opening for our school records:
+To return only the name and opening date from our school records:
 
 ```mdtest-command zed-sample-data/edu/zson
 zq -Z 'pick School,OpenDate' schools.zson
@@ -676,7 +680,7 @@ pick: no record found with columns nothere,alsoabsent
 
 #### Example #4:
 
-To return only the `sname` and `dname` fields of the SAT scores while also
+To return only the `sname` and `dname` fields of the test scores while also
 renaming the fields:
 
 ```mdtest-command zed-sample-data/edu/zson
@@ -704,11 +708,11 @@ zq -z 'pick School:=sname,District:=dname' satscores.zson
 
 #### Example #1:
 
-Add a field to our test score records that contains the computed average of
-the math, reading, and writing scores for each school that reported them.
+Add a field to our test score records to hold the computed average of the math,
+reading, and writing scores for each school that reported them.
 
 ```mdtest-command zed-sample-data/edu/zson
-zq -Z 'AvgScrMath!=null | put AvgAll:=(AvgScrMath+AvgScrRead+AvgScrWrite)/3' satscores.zson
+zq -Z 'AvgScrMath!=null | put AvgAll:=(AvgScrMath+AvgScrRead+AvgScrWrite)/3.0' satscores.zson
 ```
 
 #### Output:
@@ -720,7 +724,7 @@ zq -Z 'AvgScrMath!=null | put AvgAll:=(AvgScrMath+AvgScrRead+AvgScrWrite)/3' sat
     cname: "Los Angeles",
     dname: "Los Angeles Unified",
     sname: "APEX Academy",
-    AvgAll: 371
+    AvgAll: 371.6666666666667
 }
 ...
 ```
