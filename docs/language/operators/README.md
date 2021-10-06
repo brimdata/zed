@@ -197,39 +197,42 @@ zq -z 'filter StatusType=="Pending" academy' schools.zson
 
 #### Example:
 
-Let's say you'd started with table-formatted output of both `stats` and `weird` records:
+Let's say you'd started with table-formatted output of all records in our data
+that reference the town of Geyserville.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'ts < 1521911721' stats.log.gz weird.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -f table 'Geyserville' *
 ```
 
 #### Output:
-```mdtest-output
-_path ts                          peer mem pkts_proc bytes_recv pkts_dropped pkts_link pkt_lag events_proc events_queued active_tcp_conns active_udp_conns active_icmp_conns tcp_conns udp_conns icmp_conns timers active_timers files active_files dns_requests active_dns_requests reassem_tcp_size reassem_file_size reassem_frag_size reassem_unknown_size
-stats 2018-03-24T17:15:20.600725Z zeek 74  26        29375      -            -         -       404         11            1                0                0                 1         0         0          36     32            0     0            0            0                   1528             0                 0                 0
-_path ts                          uid                id.orig_h   id.orig_p id.resp_h      id.resp_p name                             addl notice peer
-weird 2018-03-24T17:15:20.600843Z C1zOivgBT6dBmknqk  10.47.1.152 49562     23.217.103.245 80        TCP_ack_underflow_or_misorder    -    F      zeek
-weird 2018-03-24T17:15:20.608108Z -                  -           -         -              -         truncated_header                 -    F      zeek
-weird 2018-03-24T17:15:20.610033Z C45Ff03lESjMQQQej1 10.47.5.155 40712     91.189.91.23   80        above_hole_data_without_any_acks -    F      zeek
-weird 2018-03-24T17:15:20.742818Z Cs7J9j2xFQcazrg7Nc 10.47.8.100 5900      10.129.53.65   58485     connection_originator_SYN_ack    -    F      zeek
+```mdtest-output head
+AvgScrMath AvgScrRead AvgScrWrite cname  dname               sname
+-          -          -           Sonoma Geyserville Unified Geyserville New Tech Academy
+-          -          -           Sonoma Geyserville Unified -
+School                            District            City        County Zip        Latitude  Longitude  Magnet OpenDate             ClosedDate           Phone          StatusType Website
+Buena Vista High                  Geyserville Unified Geyserville Sonoma 95441-9670 38.722005 -122.89123 F      1980-07-01T00:00:00Z                      (707) 857-3592 Active     -
+Geyserville Community Day         Geyserville Unified Geyserville Sonoma 95441      38.722005 -122.89123 -      2004-09-01T00:00:00Z 2010-06-30T00:00:00Z -              Closed     -
+...
 ```
 
-Here a `stats` record was the first record type to be printed in the results
-stream, so the preceding header row describes the names of its fields. Then a
-`weird` record came next in the results stream, so a header row describing its
-fields was printed. This presentation accurately conveys the heterogeneous
-nature of the data, but changing schemas mid-stream is not allowed in formats
+Two SAT score records were output first, so the preceding header row
+describes the names of its fields. Next several school records were to be
+output, so a header row describing the fields for that data source was
+printed. This presentation accurately conveys the heterogeneous nature of the
+data, but changing schemas mid-stream is not allowed in formats
 such as CSV or other downstream tooling such as SQL. Indeed, `zq` halts its
 output in this case.
 
 ```
-zq -f csv 'ts < 1521911721' stats.log.gz weird.log.gz
+zq -f csv 'Geyserville' *
 ```
 
 #### Output:
 ```
-_path,ts,peer,mem,pkts_proc,bytes_recv,pkts_dropped,pkts_link,pkt_lag,events_proc,events_queued,active_tcp_conns,active_udp_conns,active_icmp_conns,tcp_conns,udp_conns,icmp_conns,timers,active_timers,files,active_files,dns_requests,active_dns_requests,reassem_tcp_size,reassem_file_size,reassem_frag_size,reassem_unknown_size,stats,2018-03-24T17:15:20.600725Z,zeek,74,26,29375,-,-,-,404,11,1,0,0,1,0,0,36,32,0,0,0,0,1528,0,0,0
-csv output requires uniform records but different types encountered
+AvgScrMath,AvgScrRead,AvgScrWrite,cname,dname,sname
+,,,Sonoma,Geyserville Unified,Geyserville New Tech Academy
+,,,Sonoma,Geyserville Unified,
+CSV output requires uniform records but multiple types encountered (consider 'fuse')
 ```
 
 By using `fuse`, the unified schema of field names and types across all records
@@ -237,18 +240,18 @@ is assembled in a first pass through the data stream, which enables the
 presentation of the results under a single, wider header row with no further
 interruptions between the subsequent data rows.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f csv 'ts < 1521911721 | fuse' stats.log.gz weird.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -f csv 'Geyserville | fuse' *
 ```
 
 #### Output:
-```mdtest-output
-_path,ts,peer,mem,pkts_proc,bytes_recv,pkts_dropped,pkts_link,pkt_lag,events_proc,events_queued,active_tcp_conns,active_udp_conns,active_icmp_conns,tcp_conns,udp_conns,icmp_conns,timers,active_timers,files,active_files,dns_requests,active_dns_requests,reassem_tcp_size,reassem_file_size,reassem_frag_size,reassem_unknown_size,uid,id.orig_h,id.orig_p,id.resp_h,id.resp_p,name,addl,notice
-stats,2018-03-24T17:15:20.600725Z,zeek,74,26,29375,,,,404,11,1,0,0,1,0,0,36,32,0,0,0,0,1528,0,0,0,,,,,,,,
-weird,2018-03-24T17:15:20.600843Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,C1zOivgBT6dBmknqk,10.47.1.152,49562,23.217.103.245,80,TCP_ack_underflow_or_misorder,,false
-weird,2018-03-24T17:15:20.608108Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,truncated_header,,false
-weird,2018-03-24T17:15:20.610033Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,C45Ff03lESjMQQQej1,10.47.5.155,40712,91.189.91.23,80,above_hole_data_without_any_acks,,false
-weird,2018-03-24T17:15:20.742818Z,zeek,,,,,,,,,,,,,,,,,,,,,,,,,Cs7J9j2xFQcazrg7Nc,10.47.8.100,5900,10.129.53.65,58485,connection_originator_SYN_ack,,false
+```mdtest-output head
+AvgScrMath,AvgScrRead,AvgScrWrite,cname,dname,sname,School,District,City,County,Zip,Latitude,Longitude,Magnet,OpenDate,ClosedDate,Phone,StatusType,Website
+,,,Sonoma,Geyserville Unified,Geyserville New Tech Academy,,,,,,,,,,,,,
+,,,Sonoma,Geyserville Unified,,,,,,,,,,,,,,
+,,,,,,Buena Vista High,Geyserville Unified,Geyserville,Sonoma,95441-9670,38.722005,-122.89123,false,1980-07-01T00:00:00Z,,(707) 857-3592,Active,
+,,,,,,Geyserville Community Day,Geyserville Unified,Geyserville,Sonoma,95441,38.722005,-122.89123,,2004-09-01T00:00:00Z,2010-06-30T00:00:00Z,,Closed,
+...
 ```
 
 Other output formats invoked via `zq -f` that benefit greatly from the use of
