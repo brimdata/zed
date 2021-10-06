@@ -1,0 +1,15 @@
+script: |
+  source service.sh
+  curl -X POST \
+    -H "Accept: application/json" \
+    -d '{"name": "test", "layout": { "order": "desc", "keys": [["ts"]] }}' \
+    http://$ZED_LAKE_HOST/pool > /dev/null
+  curl -H "Accept: application/json" http://$ZED_LAKE_HOST/pool/test
+
+inputs:
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    regexp: |
+      \{"kind":"pools.Config","value":\{"id":"\w{42}","layout":\{"keys":\[\["ts"\]\],"order":"desc"\},"name":"test","threshold":524288000,"ts":"[0-9TZ:.\-]+"\}\}
