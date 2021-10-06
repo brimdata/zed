@@ -40,7 +40,7 @@ Multiple aggregate functions may be invoked at the same time.
 To simultaneously calculate the minimum, maximum, and average of connection
 duration:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'min(duration),max(duration),avg(duration)' conn.log.gz
 ```
 
@@ -58,7 +58,7 @@ instead use `:=` to specify an explicit name for the generated field.
 
 #### Example:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'quickest:=min(duration),longest:=max(duration),typical:=avg(duration)' conn.log.gz
 ```
 
@@ -85,7 +85,7 @@ function will operate.
 To check whether we've seen higher DNS round-trip times when servers return
 longer lists of `answers`:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'answers != null | every 5m short_rtt:=avg(rtt) where len(answers)<=2, short_count:=count() where len(answers)<=2, long_rtt:=avg(rtt) where len(answers)>2, long_count:=count() where len(answers)>2 | sort ts' dns.log.gz
 ```
 
@@ -117,7 +117,7 @@ ts                   short_rtt            short_count long_rtt             long_
 Let's say you've been studying `weird` records and noticed that lots of
 connections have made one or more bad HTTP requests.
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'count() by name | sort -r count' weird.log.gz
 ```
 
@@ -134,7 +134,7 @@ above_hole_data_without_any_acks            107
 To count the number of connections for which this was the _only_ category of
 `weird` record observed:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'only_bads:=and(name=="bad_HTTP_request") by uid | count() where only_bads==true' weird.log.gz
 ```
 
@@ -159,7 +159,7 @@ count
 
 To see the `name` of a Zeek `weird` record in our sample data:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'any(name)' weird.log.gz
 ```
 
@@ -189,7 +189,7 @@ TCP_ack_underflow_or_misorder
 To calculate the average number of bytes originated by all connections as
 captured in Zeek `conn` records:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'avg(orig_bytes)' conn.log.gz
 ```
 
@@ -215,7 +215,7 @@ avg
 To assemble the sequence of HTTP methods invoked in each interaction with the
 Bing search engine:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'host=="www.bing.com" | methods:=collect(method) by uid | sort uid' http.log.gz
 ```
 
@@ -244,7 +244,7 @@ CI0SCN14gWpY087KA3 GET,POST,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET
 
 To count the number of records in the entire sample data set:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'count()' *.log.gz
 ```
 
@@ -260,7 +260,7 @@ Let's say we wanted to know how many records contain a field called `mime_type`.
 The following example shows us that count and that the field is present in
 our Zeek `ftp` and `files` records.
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'count(mime_type) by _path | filter count > 0 | sort -r count' *.log.gz
 ```
 
@@ -286,7 +286,7 @@ ftp   93
 
 To see an approximate count of unique `uid` values in our sample data set:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'countdistinct(uid)' *
 ```
 
@@ -298,7 +298,7 @@ countdistinct
 
 To see the precise value, which may take longer to execute:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'count() by uid | count()' *
 ```
 
@@ -327,7 +327,7 @@ to perform this test, the Zed using `countdistinct()` executed almost 3x faster.
 To see the maximum number of bytes originated by any connection in our sample
 data:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'max(orig_bytes)' conn.log.gz
 ```
 
@@ -353,7 +353,7 @@ max
 To see the quickest round trip time of all DNS queries observed in our sample
 data:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'min(rtt)' dns.log.gz
 ```
 
@@ -379,7 +379,7 @@ min
 Let's say you've noticed there's lots of HTTP traffic happening on ports higher
 than the standard port `80`.
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'count() by id.resp_p | sort -r count' http.log.gz
 ```
 
@@ -396,7 +396,7 @@ id.resp_p count
 The following query confirms this high-port traffic is present, but that none
 of those ports are higher than what TCP allows.
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'some_high_ports:=or(id.resp_p>80),impossible_ports:=or(id.resp_p>65535)' http.log.gz
 ```
 
@@ -422,7 +422,7 @@ T               F
 To calculate the total number of bytes across all file payloads logged in our
 sample data:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'sum(total_bytes)' files.log.gz
 ```
 
@@ -449,7 +449,7 @@ sum
 To observe which HTTP methods were invoked in each interaction with the Bing
 search engine:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'host=="www.bing.com" | methods:=union(method) by uid | sort uid' http.log.gz
 ```
 
