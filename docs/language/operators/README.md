@@ -38,7 +38,7 @@ The following available operators are documented in detail below:
 
 #### Example #1:
 
-To return only the name and date of opening for our school records:
+To return only the name and opening date for our school records:
 
 ```mdtest-command zed-sample-data/edu/zson
 zq -Z 'cut School,OpenDate' schools.zson
@@ -63,21 +63,22 @@ As long as some of the named fields are present, these will be returned. No
 warning is generated regarding absent fields. For instance, the following
 query is run against all three of our data sources and returns values from our
 school data that includes fields for both `School` and `Website`, our web
-address data that has only the `Website` field, and nothing from the SAT
-scores data that has neither field.
+address data that has the `Website` and `addr` fields, and nothing from the SAT
+scores data that has none of these fields.
 
 ```mdtest-command zed-sample-data/edu/zson
-zq -z 'yosemiteuhsd | cut School,Website' *
+zq -z 'yosemiteuhsd | cut School,Website,addr' *
 ```
 
 #### Output:
 ```mdtest-output
 {School:null(string),Website:"www.yosemiteuhsd.com"}
-{Website:"www.yosemiteuhsd.com"}
+{Website:"www.yosemiteuhsd.com",addr:104.253.209.210}
 ```
 
 Contrast this with a [similar example](#example-2-3) that shows how
-[`pick`](#pick)'s stricter behavior would have returned no results here.
+[`pick`](#pick)'s stricter behavior only returns results when _all_ of the
+named fields are present.
 
 #### Example #3:
 
@@ -121,7 +122,7 @@ zq -z 'cut School:=sname,District:=dname' satscores.zson
 
 #### Example #1:
 
-To return all the field _other than_ the scores in our SAT data source:
+To return all the fields _other than_ the score values in our test score data:
 
 ```mdtest-command zed-sample-data/edu/zson
 zq -z 'drop AvgScrMath,AvgScrRead,AvgScrWrite' satscores.zson
@@ -145,7 +146,7 @@ zq -z 'drop AvgScrMath,AvgScrRead,AvgScrWrite' satscores.zson
 | **Required<br>arguments** | `<search>`<br>Any valid Zed [search syntax](../search-syntax/README.md) |
 | **Optional<br>arguments** | None                                                                  |
 
-> **Note:** As searches can appear anywhere in a Zed pipeline, it is not
+> **Note:** As searches may appear anywhere in a Zed pipeline, it is not
 > strictly necessary to enter the explicit `filter` operator name before your
 > search. However, you may find it useful to include it to help express the
 > intent of your query.
@@ -216,7 +217,7 @@ Geyserville Community Day         Geyserville Unified Geyserville Sonoma 95441  
 ```
 
 Two SAT score records were output first, so the preceding header row
-describes the names of its fields. Next several school records were to be
+describes the names of its fields. Next, several school records were to be
 output, so a header row describing the fields for that data source was
 printed. This presentation accurately conveys the heterogeneous nature of the
 data, but changing schemas mid-stream is not allowed in formats
@@ -270,34 +271,46 @@ Other output formats invoked via `zq -f` that benefit greatly from the use of
 
 #### Example #1:
 
-To see the first `dns` record:
+To see the first school record:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'head' dns.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'head' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-_path ts                          uid                id.orig_h   id.orig_p id.resp_h  id.resp_p proto trans_id rtt     query          qclass qclass_name qtype qtype_name rcode rcode_name AA TC RD RA Z answers                        TTLs       rejected
-dns   2018-03-24T17:15:20.865716Z C2zK5f13SbCtKcyiW5 10.47.1.100 41772     10.0.0.100 53        udp   36329    0.00087 ise.wrccdc.org 1      C_INTERNET  1     A          0     NOERROR    F  F  T  T  0 ise.wrccdc.cpp.edu,134.71.3.16 2230,41830 F
+{
+    School: "'3R' Middle",
+    District: "Nevada County Office of Education",
+    City: "Nevada City",
+    County: "Nevada",
+    Zip: "95959",
+    Latitude: null (float64),
+    Longitude: null (float64),
+    Magnet: null (bool),
+    OpenDate: 1995-10-30T00:00:00Z,
+    ClosedDate: 1996-06-28T00:00:00Z,
+    Phone: null (string),
+    StatusType: "Merged",
+    Website: null (string)
+} (=school)
 ```
 
 #### Example #2:
 
-To see the first five `conn` records with activity on port `80`:
+To see the first five school records in Los Angeles county:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'id.resp_p==80 | head 5' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'County=="Los Angeles" | head 5' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-_path ts                          uid                id.orig_h     id.orig_p id.resp_h   id.resp_p proto service duration orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history   orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
-conn  2018-03-24T17:15:20.602122Z C4RZ6d4r5mJHlSYFI6 10.164.94.120 33299     10.47.3.200 80        tcp   -       0.003077 0          235        RSTO       -          -          0            ^dtfAR    4         208           4         678           -
-conn  2018-03-24T17:15:20.606178Z CnKmhv4RfyAZ3fVc8b 10.164.94.120 36125     10.47.3.200 80        tcp   -       0.000002 0          0          RSTOS0     -          -          0            R         2         104           0         0             -
-conn  2018-03-24T17:15:20.604325Z C65IMkEAWNlE1f6L8  10.164.94.120 45941     10.47.3.200 80        tcp   -       0.002708 0          242        RSTO       -          -          0            ^dtfAR    4         208           4         692           -
-conn  2018-03-24T17:15:20.607031Z CpQfkTi8xytq87HW2  10.164.94.120 36729     10.47.3.200 80        tcp   http    0.006238 325        263        RSTO       -          -          0            ShADTdftR 10        1186          6         854           -
-conn  2018-03-24T17:15:20.607695Z CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.47.3.200 80        tcp   http    0.007139 315        241        RSTO       -          -          0            ShADTdtfR 10        1166          6         810           -
+{School:"ABC Adult",District:"ABC Unified",City:"Cerritos",County:"Los Angeles",Zip:"90703-2801",Latitude:33.878924,Longitude:-118.07128,Magnet:null(bool),OpenDate:1980-07-01T00:00:00Z,ClosedDate:null(time),Phone:"(562) 229-7960",StatusType:"Active",Website:"www.abcadultschool.com"}(=school)
+{School:"ABC Charter Middle",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90017",Latitude:null(float64),Longitude:null(float64),Magnet:null(bool),OpenDate:2008-09-03T00:00:00Z,ClosedDate:2009-06-10T00:00:00Z,Phone:null(string),StatusType:"Closed",Website:"www.abcsf.us"}(=school)
+{School:"ABC Evening High School",District:"ABC Unified",City:"Cerritos",County:"Los Angeles",Zip:"90701",Latitude:null(float64),Longitude:null(float64),Magnet:null(bool),OpenDate:1980-07-01T00:00:00Z,ClosedDate:1994-11-23T00:00:00Z,Phone:null(string),StatusType:"Closed",Website:null(string)}(=school)
+{School:"ABC Secondary (Alternative)",District:"ABC Unified",City:"Cerritos",County:"Los Angeles",Zip:"90703-2301",Latitude:33.881547,Longitude:-118.04635,Magnet:false,OpenDate:1991-09-05T00:00:00Z,ClosedDate:null(time),Phone:"(562) 229-7768",StatusType:"Active",Website:null(string)}(=school)
+{School:"APEX Academy",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90028-8526",Latitude:34.052234,Longitude:-118.24368,Magnet:false,OpenDate:2008-09-03T00:00:00Z,ClosedDate:null(time),Phone:"(323) 817-6550",StatusType:"Active",Website:null(string)}(=school)
 ```
 
 ---
@@ -631,8 +644,8 @@ zq -Z 'pick School,OpenDate' schools.zson
 
 All of the named fields must be present in a record for `pick` to return a
 result for it. For instance, since only our school data has _both_ `School`
-and `Website` fields, the following query that's run against all three of our
-data sources only returns a result from the school data.
+and `Website` fields, the following query of all three example data sources
+only returns a result from the school data.
 
 ```mdtest-command zed-sample-data/edu/zson
 zq -z 'yosemiteuhsd | pick School,Website' *
@@ -644,8 +657,8 @@ zq -z 'yosemiteuhsd | pick School,Website' *
 ```
 
 Contrast this with a [similar example](#example-2) that shows how
-[`cut`](#cut)'s relaxed behavior also returned a result from the web address
-data, since that data source includes a field called `Website`.
+[`cut`](#cut)'s relaxed behavior returns a result whenever _any_ of the named
+fields are present.
 
 #### Example #3:
 
@@ -691,19 +704,24 @@ zq -z 'pick School:=sname,District:=dname' satscores.zson
 
 #### Example #1:
 
-Compute a `total_bytes` field in `conn` records:
+Add a field to our test score records that contains the computed average of
+the math, reading, and writing scores for each school that reported them.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -q -f table 'put total_bytes := orig_bytes + resp_bytes | sort -r total_bytes | cut id, orig_bytes, resp_bytes, total_bytes' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'AvgScrMath!=null | put AvgAll:=(AvgScrMath+AvgScrRead+AvgScrWrite)/3' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output head
-id.orig_h     id.orig_p id.resp_h       id.resp_p orig_bytes resp_bytes total_bytes
-10.47.7.154   27300     52.216.132.61   443       859        1781771107 1781771966
-10.164.94.120 33691     10.47.3.200     80        355        1543916493 1543916848
-10.47.8.100   37110     128.101.240.215 80        16398      376626606  376643004
-10.47.3.151   11120     198.255.68.110  80        392        274063633  274064025
+{
+    AvgScrMath: 371 (uint16),
+    AvgScrRead: 376 (uint16),
+    AvgScrWrite: 368 (uint16),
+    cname: "Los Angeles",
+    dname: "Los Angeles Unified",
+    sname: "APEX Academy",
+    AvgAll: 371
+}
 ...
 ```
 
@@ -711,17 +729,18 @@ id.orig_h     id.orig_p id.resp_h       id.resp_p orig_bytes resp_bytes total_by
 
 As noted above the `put` keyword is entirely optional. Here we omit
 it and create a new field to hold the lowercase representation of
-another field value.
+the school `District` field.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'cut method | lower_method:=to_lower(method)' http.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'cut District | lower_district:=to_lower(District)' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-method  lower_method
-GET     get
-GET     get
+{
+    District: "Nevada County Office of Education",
+    lower_district: "nevada county office of education"
+}
 ...
 ```
 
@@ -735,25 +754,82 @@ GET     get
 | **Syntax**                | `rename <newname> := <oldname> [, <newname> := <oldname> ...]`     |
 | **Required arguments**    | One or more field assignment expressions. Renames are applied left to right; each rename observes the effect of all renames that preceded it. |
 | **Optional arguments**    | None |
-| **Limitations**           | A field can only be renamed within its own record. For example `id.orig_h` can be renamed to `id.src`, but it cannot be renamed to `src`. |
+| **Limitations**           | A field can only be renamed within its own record. |
 
+#### Example #1:
 
-#### Example:
+To rename some fields in our test scores data to match the field names from
+our schools data:
 
-Rename `ts` to `time`, rename one of the inner fields of `id`, and rename the `id` record itself to `conntuple`:
-
-```mdtest-command zed-sample-data/zeek-default
- zq -f table 'rename time:=ts, id.src:=id.orig_h, conntuple:=id' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'rename School:=sname,District:=dname,City:=cname' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output head
-_path time                        uid                conntuple.src  conntuple.orig_p conntuple.resp_h conntuple.resp_p proto service  duration orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history     orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
-conn  2018-03-24T17:15:21.255387Z C8Tful1TvM3Zf5x8fl 10.164.94.120  39681            10.47.3.155      3389             tcp   -        0.004266 97         19         RSTR       -          -          0            ShADTdtr    10        730           6         342           -
-conn  2018-03-24T17:15:21.411148Z CXWfTK3LRdiuQxBbM6 10.47.25.80    50817            10.128.0.218     23189            tcp   -        0.000486 0          0          REJ        -          -          0            Sr          2         104           2         80            -
-conn  2018-03-24T17:15:21.926018Z CM59GGQhNEoKONb5i  10.47.25.80    50817            10.128.0.218     23189            tcp   -        0.000538 0          0          REJ        -          -          0            Sr          2         104           2         80            -
-conn  2018-03-24T17:15:22.690601Z CuKFds250kxFgkhh8f 10.47.25.80    50813            10.128.0.218     27765            tcp   -        0.000546 0          0          REJ        -          -          0            Sr          2         104           2         80            -
+{
+    AvgScrMath: null (uint16),
+    AvgScrRead: null (uint16),
+    AvgScrWrite: null (uint16),
+    City: "Riverside",
+    District: "Beaumont Unified",
+    School: "21st Century Learning Institute"
+}
 ...
+```
+
+#### Example #2:
+
+As mentioned above, a field can only be renamed within its own record. In
+other words, a field cannot move between nested levels when being renamed.
+
+For example, consider this sample input data `nested.zson`:
+
+```mdtest-input nested.zson
+{
+    outer: {
+        inner: "MyValue"
+    }
+}
+```
+
+The field `inner` can be renamed within that nested record.
+
+```mdtest-command
+zq -Z 'rename outer.renamed:=outer.inner' nested.zson
+```
+
+#### Output:
+```mdtest-output
+{
+    outer: {
+        renamed: "MyValue"
+    }
+}
+```
+
+However, an attempt to rename it to a top-level field will fail.
+
+```
+zq -Z 'rename toplevel:=outer.inner' nested.zson
+```
+
+#### Output:
+```
+cannot rename outer.inner to toplevel
+```
+
+This could instead be achieved by combining [`put`](#put) and [`drop`](#drop).
+
+```mdtest-command
+zq -Z 'put toplevel:=outer.inner | drop outer.inner' nested.zson
+```
+
+#### Output:
+```mdtest-output
+{
+    toplevel: "MyValue"
+}
 ```
 
 ---
@@ -769,95 +845,80 @@ conn  2018-03-24T17:15:22.690601Z CuKFds250kxFgkhh8f 10.47.25.80    50813       
 
 #### Example #1:
 
-To sort `x509` records by `certificate.subject`:
+To sort our test score records by average reading score:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'sort certificate.subject' x509.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'sort AvgScrRead' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output head
-_path ts                          id                 certificate.version certificate.serial                     certificate.subject                                                                               certificate.issuer                                                                                                                                       certificate.not_valid_before certificate.not_valid_after certificate.key_alg certificate.sig_alg     certificate.key_type certificate.key_length certificate.exponent certificate.curve san.dns                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      san.uri san.email san.ip basic_constraints.ca basic_constraints.path_len
-x509  2018-03-24T17:29:38.233315Z Fn2Gkp2Qd434JylJX9 3                   CB11D05B561B4BB1                       C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net                                                        2016-05-09T10:09:02Z         2018-05-09T10:09:02Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            -       -         -      T                    -
-x509  2018-03-24T17:18:48.524223Z Fxq7P31K2FS3v7CBSh 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     2018-01-25T08:00:00Z         2019-01-25T20:00:00Z        id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
-x509  2018-03-24T17:18:48.524679Z F6WWPk3ajsHLrmNFdb 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     2018-01-25T08:00:00Z         2019-01-25T20:00:00Z        id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
-x509  2018-03-24T17:29:40.661204Z FEMo0JLdFfaiP3cCj  3                   068D4086AEB3472996E5DFA2EC521A41       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
-x509  2018-03-24T17:29:40.664443Z Fx9w2e3ZeGeRVzB7wa 3                   068D4086AEB3472996E5DFA2EC521A41       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
-x509  2018-03-24T17:29:40.971149Z Fs71N02K3C48z0W8Rl 3                   08C2D95B922842FCD7EEC9C4AF3BB3C1       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
-x509  2018-03-24T17:29:40.972007Z FNfnZ84jkUdb1ELG4e 3                   08C2D95B922842FCD7EEC9C4AF3BB3C1       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
-x509  2018-03-24T17:29:41.350977Z FE774oxbdOCDlPx0i  3                   068D4086AEB3472996E5DFA2EC521A41       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
-x509  2018-03-24T17:29:41.351155Z FQNOg4tbfGapYl4A7  3                   068D4086AEB3472996E5DFA2EC521A41       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
+{AvgScrMath:352(uint16),AvgScrRead:308(uint16),AvgScrWrite:327(uint16),cname:"Alameda",dname:"Oakland Unified",sname:"Oakland International High"}(=satscore)
+{AvgScrMath:289(uint16),AvgScrRead:314(uint16),AvgScrWrite:312(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"Gompers (Samuel) Continuation"}(=satscore)
+{AvgScrMath:450(uint16),AvgScrRead:321(uint16),AvgScrWrite:318(uint16),cname:"San Francisco",dname:"San Francisco Unified",sname:"S.F. International High"}(=satscore)
+{AvgScrMath:314(uint16),AvgScrRead:324(uint16),AvgScrWrite:321(uint16),cname:"Los Angeles",dname:"Norwalk-La Mirada Unified",sname:"El Camino High (Continuation)"}(=satscore)
+{AvgScrMath:307(uint16),AvgScrRead:324(uint16),AvgScrWrite:328(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"North Campus Continuation"}(=satscore)
 ...
 ```
 
 #### Example #2:
 
-Now we'll sort `x509` records first by `certificate.subject`, then by the `id`.
-Compared to the previous example, note how this changes the order of some
-records that had the same `certificate.subject` value.
+Now we'll sort the test score records first by average reading score and then
+by average math score. Note how this changed the order of the bottom two
+records in the result.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'sort certificate.subject,id' x509.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'sort AvgScrRead,AvgScrMath' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output head
-_path ts                          id                 certificate.version certificate.serial                     certificate.subject                                                                               certificate.issuer                                                                                                                                       certificate.not_valid_before certificate.not_valid_after certificate.key_alg certificate.sig_alg     certificate.key_type certificate.key_length certificate.exponent certificate.curve san.dns                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      san.uri san.email san.ip basic_constraints.ca basic_constraints.path_len
-x509  2018-03-24T17:29:38.233315Z Fn2Gkp2Qd434JylJX9 3                   CB11D05B561B4BB1                       C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net C=/C=US/ST=HI/O=Goldner and Sons/OU=1080p/CN=goldner.sons.net/emailAddress=1080p@goldner.sons.net                                                        2016-05-09T10:09:02Z         2018-05-09T10:09:02Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 -                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            -       -         -      T                    -
-x509  2018-03-24T17:18:48.524679Z F6WWPk3ajsHLrmNFdb 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     2018-01-25T08:00:00Z         2019-01-25T20:00:00Z        id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
-x509  2018-03-24T17:18:48.524223Z Fxq7P31K2FS3v7CBSh 3                   031489479BCD9C116EA7B6162E5E68E6       CN=*.adnxs.com,O=AppNexus\\, Inc.,L=New York,ST=New York,C=US                                     CN=DigiCert ECC Secure Server CA,O=DigiCert Inc,C=US                                                                                                     2018-01-25T08:00:00Z         2019-01-25T20:00:00Z        id-ecPublicKey      ecdsa-with-SHA256       ecdsa                256                    -                    prime256v1        *.adnxs.com,adnxs.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        -       -         -      F                    -
-x509  2018-03-24T17:29:51.670293Z F0hybM3L5RvvQnB0Af 3                   068D4086AEB3472996E5DFA2EC521A41       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
-x509  2018-03-24T17:29:51.670418Z F7QTmz23i9Wb9PxCec 3                   068D4086AEB3472996E5DFA2EC521A41       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
-x509  2018-03-24T17:29:50.367386Z FAquaM1YmnRYGrPM0j 3                   068D4086AEB3472996E5DFA2EC521A41       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
-x509  2018-03-24T17:29:41.350977Z FE774oxbdOCDlPx0i  3                   068D4086AEB3472996E5DFA2EC521A41       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
-x509  2018-03-24T17:29:40.661204Z FEMo0JLdFfaiP3cCj  3                   068D4086AEB3472996E5DFA2EC521A41       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
-x509  2018-03-24T17:29:51.317347Z FMITm2OyLT3OYnfq3  3                   068D4086AEB3472996E5DFA2EC521A41       CN=*.adobe.com,OU=IS,O=Adobe Systems Incorporated,L=San Jose,ST=California,C=US                   CN=DigiCert SHA2 Secure Server CA,O=DigiCert Inc,C=US                                                                                                    2018-01-05T08:00:00Z         2019-01-05T20:00:00Z        rsaEncryption       sha256WithRSAEncryption rsa                  2048                   65537                -                 *.adobe.com                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  -       -         -      F                    -
+{AvgScrMath:352(uint16),AvgScrRead:308(uint16),AvgScrWrite:327(uint16),cname:"Alameda",dname:"Oakland Unified",sname:"Oakland International High"}(=satscore)
+{AvgScrMath:289(uint16),AvgScrRead:314(uint16),AvgScrWrite:312(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"Gompers (Samuel) Continuation"}(=satscore)
+{AvgScrMath:450(uint16),AvgScrRead:321(uint16),AvgScrWrite:318(uint16),cname:"San Francisco",dname:"San Francisco Unified",sname:"S.F. International High"}(=satscore)
+{AvgScrMath:307(uint16),AvgScrRead:324(uint16),AvgScrWrite:328(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"North Campus Continuation"}(=satscore)
+{AvgScrMath:314(uint16),AvgScrRead:324(uint16),AvgScrWrite:321(uint16),cname:"Los Angeles",dname:"Norwalk-La Mirada Unified",sname:"El Camino High (Continuation)"}(=satscore)
 ...
 ```
 
 #### Example #3:
 
-Here we'll find which originating IP addresses generated the most `conn`
-records using the `count()`
-[aggregate function](../aggregate-functions/README.md) and piping its output to
-a `sort` in reverse order. Note that even though we didn't list a field name as
-an explicit argument, the `sort` operator did what we wanted because it found a
-field of the `uint64` [data type](../data-types/README.md).
+Here we'll find the counties with the most schools by using the
+[`count()`](../aggregate-functions/#count) aggregate function and piping its
+output to a `sort` in reverse order. Note that even though we didn't list a
+field name as an explicit argument, the `sort` operator did what we wanted
+because it found a field of the `uint64` [data type](../data-types/README.md).
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'count() by id.orig_h | sort -r' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'count() by County | sort -r' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-id.orig_h                count
-10.174.251.215           279014
-10.47.24.81              162237
-10.47.26.82              153056
-10.224.110.133           67320
+{County:"Los Angeles",count:3636(uint64)}
+{County:"San Diego",count:1139(uint64)}
+{County:"Orange",count:886(uint64)}
 ...
 ```
 
 #### Example #4:
 
-In this example we count the number of times each distinct username appears in
-`http` records, but deliberately put the unset username at the front of the
-list:
+Next we'll count the number of unique websites mentioned in our school
+records. Since we know some of the records don't include a web site, we'll
+deliberately put the unset values at the front of the list so we can see how
+many there are.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'count() by username | sort -nulls first username' http.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'count() by Website | sort -nulls first Website' schools.zson
 ```
 
 #### Output:
-```mdtest-output
-username     count
--            139175
-M32318       4854
-agloop       1
-cbucket      1
-mteavee      1
-poompaloompa 1
-wwonka       1
+```mdtest-output head
+{Website:null(string),count:10722(uint64)}
+{Website:"acornstooakscharter.org",count:1(uint64)}
+{Website:"atlascharter.org",count:1(uint64)}
+{Website:"bizweb.lightspeed.net/~leagles",count:1(uint64)}
+...
 ```
 
 ---
@@ -873,34 +934,46 @@ wwonka       1
 
 #### Example #1:
 
-To see the last `dns` record:
+To see the last school record:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'tail' dns.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'tail' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-_path ts                          uid                id.orig_h    id.orig_p id.resp_h id.resp_p proto trans_id rtt query           qclass qclass_name qtype qtype_name rcode rcode_name AA TC RD RA Z answers TTLs rejected
-dns   2018-03-24T17:36:30.151237Z C0ybvu4HG3yWv6H5cb 172.31.255.5 60878     10.0.0.1  53        udp   36243    -   talk.google.com 1      C_INTERNET  1     A          -     -          F  F  T  F  0 -       -    F
+{
+    School: null (string),
+    District: "Wheatland Union High",
+    City: "Wheatland",
+    County: "Yuba",
+    Zip: "95692-9798",
+    Latitude: 38.998968,
+    Longitude: -121.45497,
+    Magnet: null (bool),
+    OpenDate: null (time),
+    ClosedDate: null (time),
+    Phone: "(530) 633-3100",
+    StatusType: "Active",
+    Website: "www.wheatlandhigh.org"
+} (=school)
 ```
 
 #### Example #2:
 
-To see the last five `conn` records with activity on port `80`:
+To see the last five school records in Los Angeles county:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'id.resp_p==80 | tail 5' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'County=="Los Angeles" | tail 5' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-_path ts                          uid                id.orig_h      id.orig_p id.resp_h    id.resp_p proto service duration  orig_bytes resp_bytes conn_state local_orig local_resp missed_bytes history    orig_pkts orig_ip_bytes resp_pkts resp_ip_bytes tunnel_parents
-conn  2018-03-24T17:33:23.087149Z CqPl942ft1MCpuNQgk 10.218.221.240 63812     10.47.2.20   80        tcp   -       15.607782 0          0          S1         -          -          0            Sh         2         88            10        440           -
-conn  2018-03-24T17:36:25.557756Z CKCuBO2N2sY6m8qkv6 10.128.0.247   30549     10.47.22.65  80        tcp   http    0.006639  334        271        SF         -          -          0            ShADTftFa  10        1092          6         806           -
-conn  2018-03-24T17:35:20.422826Z Cy1XB41BipfyCcCGVh 10.128.0.247   30487     10.47.2.58   80        tcp   http    68.309996 21249      15506      S1         -          -          0            ShADTadtTt 242       52202         270       41836         -
-conn  2018-03-24T17:31:04.953409Z CMxwGp14TBAF3QtEq  10.219.216.224 56004     10.47.24.186 80        tcp   -       31.235313 0          0          S1         -          -          0            Sh         2         88            12        528           -
-conn  2018-03-24T17:36:28.752765Z COICgc1FXHKteyFy67 10.0.0.227     61314     10.47.5.58   80        tcp   http    0.106754  1328       820        S1         -          -          0            ShADTadt   20        3720          12        2280          -
+{School:null(string),District:"Wiseburn Unified",City:"Hawthorne",County:"Los Angeles",Zip:"90250-6462",Latitude:33.920462,Longitude:-118.37839,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(310) 643-3025",StatusType:"Active",Website:"www.wiseburn.k12.ca.us"}(=school)
+{School:null(string),District:"SBE - Anahuacalmecac International University Preparatory of North America",City:"Los Angeles",County:"Los Angeles",Zip:"90032-1942",Latitude:34.085085,Longitude:-118.18154,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(323) 352-3148",StatusType:"Active",Website:"www.dignidad.org"}(=school)
+{School:null(string),District:"SBE - Academia Avance Charter",City:"Highland Park",County:"Los Angeles",Zip:"90042-4005",Latitude:34.107313,Longitude:-118.19811,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(323) 230-7270",StatusType:"Active",Website:"www.academiaavance.com"}(=school)
+{School:null(string),District:"SBE - Prepa Tec Los Angeles High",City:"Huntington Park",County:"Los Angeles",Zip:"90255-4138",Latitude:33.983752,Longitude:-118.22344,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(323) 800-2741",StatusType:"Active",Website:"www.prepatechighschool.org"}(=school)
+{School:null(string),District:"California Advancing Pathways for Students in Los Angeles County ROC/P",City:"Bellflower",County:"Los Angeles",Zip:"90706",Latitude:33.882509,Longitude:-118.13442,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(562) 866-9011",StatusType:"Active",Website:"www.CalAPS.org"}(=school)
 ```
 
 ---
@@ -909,23 +982,50 @@ conn  2018-03-24T17:36:28.752765Z COICgc1FXHKteyFy67 10.0.0.227     61314     10
 
 |                           |                                                                       |
 | ------------------------- | --------------------------------------------------------------------- |
-| **Description**           | Remove adjacent duplicate records from the output, leaving only unique results.<br><br>Note that due to the large number of fields in typical records, and many fields whose values change often in subtle ways between records (e.g. timestamps), this operator will most often apply to the trimmed output from [`cut`](#cut). Furthermore, since duplicate field values may not often be adjacent to one another, upstream use of [`sort`](#sort) may also often be appropriate.
+| **Description**           | Remove adjacent duplicate records from the output, leaving only unique results.<br><br>Note that due to the large number of fields in typical records, and many fields whose values change often in subtle ways between records (e.g., timestamps), this operator will most often apply to the trimmed output from [`cut`](#cut). Furthermore, since duplicate field values may not often be adjacent to one another, upstream use of [`sort`](#sort) may also often be appropriate.
 | **Syntax**                | `uniq [-c]`                                                           |
 | **Required<br>arguments** | None                                                                  |
 | **Optional<br>arguments** | `[-c]`<br>For each unique value shown, include a numeric count of how many times it appeared. |
 
 #### Example:
 
-To see a count of the top issuers of X.509 certificates:
+Let's say you'd been looking at the contents of just the `District` and
+`County` fields in the order they appear in the school data.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'cut certificate.issuer | sort | uniq -c | sort -r' x509.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'cut District,County' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-certificate.issuer                                                                                                                                       _uniq
-O=VMware Installer                                                                                                                                       1761
-CN=Snozberry                                                                                                                                             1108
+{District:"Nevada County Office of Education",County:"Nevada"}
+{District:"Oakland Unified",County:"Alameda"}
+{District:"Victor Elementary",County:"San Bernardino"}
+{District:"Novato Unified",County:"Marin"}
+{District:"Beaumont Unified",County:"Riverside"}
+{District:"Nevada County Office of Education",County:"Nevada"}
+{District:"Nevada County Office of Education",County:"Nevada"}
+{District:"San Bernardino City Unified",County:"San Bernardino"}
+{District:"San Bernardino City Unified",County:"San Bernardino"}
+{District:"Ojai Unified",County:"Ventura"}
+...
+```
+
+To eliminate the adjacent lines that share the same field/value pairs:
+
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'cut District,County | uniq' schools.zson
+```
+
+#### Output:
+```mdtest-output head
+{District:"Nevada County Office of Education",County:"Nevada"}
+{District:"Oakland Unified",County:"Alameda"}
+{District:"Victor Elementary",County:"San Bernardino"}
+{District:"Novato Unified",County:"Marin"}
+{District:"Beaumont Unified",County:"Riverside"}
+{District:"Nevada County Office of Education",County:"Nevada"}
+{District:"San Bernardino City Unified",County:"San Bernardino"}
+{District:"Ojai Unified",County:"Ventura"}
 ...
 ```
