@@ -1,5 +1,5 @@
 // Package mdtest finds example shell commands in Markdown files and runs them,
-// checking for expected output.
+// checking for expected output and exit status.
 //
 // Example inputs, commands, and outputs are specified in fenced code blocks
 // whose info string (https://spec.commonmark.org/0.29/#info-string) has
@@ -9,27 +9,32 @@
 //    ```mdtest-input file.txt
 //    hello
 //    ```
-//    ```mdtest-command [dir=...]
+//    ```mdtest-command [dir=...] [fails]
 //    cat file.txt
 //    ```
-//    ```mdtest-output
+//    ```mdtest-output [head]
 //    hello
 //    ```
 //
 // The content of each mdtest-command block is fed to "bash -e -o pipefail" on
-// standard input.  The shell's working directory is a temporary directory
-// populated with files described by any mdtest-input blocks in the same
-// Markdown file and shared by other tests in the same file.  Alternatively, if
-// the mdtest-command block's info string contains a word prefixed by "dir=",
-// the rest of that word specifies the shell's working directory as a path
-// relative to the repository root, and files desribed by mdtest-input blocks
-// are not available.  In either case, the shell's combined standard output and
-// standard error must exactly match the content of the following mdtest-output
-// block except as described below.
+// standard input.
 //
-// If head appears as the second word in an mdtest-output block's info string,
-// then any "...\n" suffix of the block content is ignored, and what remains
-// must be a prefix of the shell output.
+// The shell's working directory is a temporary directory populated with files
+// described by any mdtest-input blocks in the same Markdown file and shared by
+// other tests in the same file.  Alternatively, if the mdtest-command block's
+// info string contains a word prefixed with "dir=", the rest of that word
+// specifies the shell's working directory as a path relative to the repository
+// root, and files desribed by mdtest-input blocks are not available.
+//
+// The shell's exit status must indicate success (i.e., be zero) unless the
+// mdtest-command block's info string contains the word "fails", in which case
+// the exit status must indicate failure (i.e. be nonzero).
+//
+// The shell's combined standard output and standard error must exactly match
+// the content of the following mdtest-output block unless that block's info
+// string contains the word "head", in which case any "...\n" suffix of the
+// block content is ignored, and what remains must be a prefix of the shell
+// output.
 //
 //    ```mdtest-command
 //    echo hello
@@ -159,11 +164,14 @@ func parseMarkdown(source []byte) (map[string]string, []*Test, error) {
 			if commandFCB == nil {
 				return ast.WalkStop, fcbError(fcb, source, "unpaired mdtest-output")
 			}
-			var dir string
+			var commandDir string
+			var commandFails bool
 			for _, s := range fcbInfoWords(commandFCB, source)[1:] {
 				switch {
 				case strings.HasPrefix(s, "dir="):
-					dir = strings.TrimPrefix(s, "dir=")
+					commandDir = strings.TrimPrefix(s, "dir=")
+				case s == "fails":
+					commandFails = true
 				default:
 					msg := fmt.Sprintf("unknown word in mdtest-command info string: %q", s)
 					return ast.WalkStop, fcbError(commandFCB, source, msg)
@@ -177,8 +185,9 @@ func parseMarkdown(source []byte) (map[string]string, []*Test, error) {
 			}
 			tests = append(tests, &Test{
 				Command:  fcbLines(commandFCB, source),
-				Dir:      dir,
+				Dir:      commandDir,
 				Expected: expected,
+				Fails:    commandFails,
 				Head:     head,
 				Line:     fcbLineNumber(commandFCB, source),
 			})

@@ -98,6 +98,20 @@ block 3
 			strerror: "line 2: unpaired mdtest-command",
 		},
 		{
+			name: "mdtest-command with dir and fails",
+			markdown: `
+~~~mdtest-command dir=d fails
+block 1
+~~~
+~~~mdtest-output
+block 2
+~~~
+`,
+			tests: []*Test{
+				{Command: "block 1\n", Dir: "d", Expected: "block 2\n", Fails: true, Line: 2},
+			},
+		},
+		{
 			name: "two tests",
 			markdown: `
 ~~~mdtest-command dir=1
