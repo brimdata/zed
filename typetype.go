@@ -143,7 +143,7 @@ func formatTypeValue(tv zcode.Bytes, b *strings.Builder) zcode.Bytes {
 			}
 			var name string
 			name, tv = decodeNameAndCheck(tv, b)
-			b.WriteString(name)
+			b.WriteString(QuotedName(name))
 			b.WriteString(":")
 			tv = formatTypeValue(tv, b)
 			if tv == nil {
