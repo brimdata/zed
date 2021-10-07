@@ -224,8 +224,7 @@ func isURLWithKnownScheme(path string, schemes ...string) bool {
 func PrintStats(stats zbuf.ScannerStats) {
 	out, err := zson.Marshal(stats)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "error writing query stats: %v", err)
-		return
+		out = fmt.Sprintf("error marshaling stats: %s", err)
 	}
 	fmt.Fprintln(os.Stderr, out)
 }
