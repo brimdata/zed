@@ -225,14 +225,15 @@ nature of the data, but changing schemas mid-stream is not allowed in formats
 such as CSV or other downstream tooling such as SQL. Indeed, `zq` halts its
 output in this case.
 
-```
+```mdtest-command dir=zed-sample-data/zeek-default fails
 zq -f csv 'ts < 1521911721' stats.log.gz weird.log.gz
 ```
 
 #### Output:
-```
-_path,ts,peer,mem,pkts_proc,bytes_recv,pkts_dropped,pkts_link,pkt_lag,events_proc,events_queued,active_tcp_conns,active_udp_conns,active_icmp_conns,tcp_conns,udp_conns,icmp_conns,timers,active_timers,files,active_files,dns_requests,active_dns_requests,reassem_tcp_size,reassem_file_size,reassem_frag_size,reassem_unknown_size,stats,2018-03-24T17:15:20.600725Z,zeek,74,26,29375,-,-,-,404,11,1,0,0,1,0,0,36,32,0,0,0,0,1528,0,0,0
-csv output requires uniform records but different types encountered
+```mdtest-output
+_path,ts,peer,mem,pkts_proc,bytes_recv,pkts_dropped,pkts_link,pkt_lag,events_proc,events_queued,active_tcp_conns,active_udp_conns,active_icmp_conns,tcp_conns,udp_conns,icmp_conns,timers,active_timers,files,active_files,dns_requests,active_dns_requests,reassem_tcp_size,reassem_file_size,reassem_frag_size,reassem_unknown_size
+stats,2018-03-24T17:15:20.600725Z,zeek,74,26,29375,,,,404,11,1,0,0,1,0,0,36,32,0,0,0,0,1528,0,0,0
+CSV output requires uniform records but multiple types encountered (consider 'fuse')
 ```
 
 By using `fuse`, the unified schema of field names and types across all records
