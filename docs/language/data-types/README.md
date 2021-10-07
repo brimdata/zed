@@ -7,7 +7,8 @@ in progress. In the meantime, here's a few tips to get started with.
   data types described in the
   [Primitive Values](../../formats/zson.md#33-primitive-values) section of the
   ZSON spec.
-* See the [Equivalent Types](../../../zeek/Data-Type-Compatibility.md#equivalent-types)
+* Users of [Zeek](../../../zeek/README.md) logs should review the
+  [Equivalent Types](../../../zeek/Data-Type-Compatibility.md#equivalent-types)
   table for details on which Zed data types correspond to the
   [data types](https://docs.zeek.org/en/current/script-reference/types.html)
   that appear in Zeek logs.
@@ -17,26 +18,47 @@ in progress. In the meantime, here's a few tips to get started with.
 
 #### Example:
 
-In the Zeek `ntp` log, the field `ref_id` is of Zeek's `string` type, but is
-often populated with a value that happens to be an IP address. When treated as
-a string, the attempted CIDR match in the following Zed would be unsuccessful
-and no records would be counted.
+Consider the following NDJSON file `shipments.ndjson` that contains what
+appear to be timestamped quantities of shipped items.
 
+```mdtest-input shipments.ndjson
+{"ts":"2021-10-07T13:55:22Z", "quantity": 873}
+{"ts":"2021-10-07T17:23:44Z", "quantity": 436}
+{"ts":"2021-10-07T23:01:34Z", "quantity": 123}
+{"ts":"2021-10-08T09:12:45Z", "quantity": 998}
+{"ts":"2021-10-08T12:44:12Z", "quantity": 744}
+{"ts":"2021-10-09T20:01:19Z", "quantity": 2003}
+{"ts":"2021-10-09T04:16:33Z", "quantity": 977}
+{"ts":"2021-10-10T05:04:46Z", "quantity": 3004}
 ```
-zq -f table 'ref_id in 83.162.0.0/16 | count()' ntp.log.gz
-```
 
-However, if we cast it to an `ip` type, now the CIDR match is successful. The
-`bad cast` warning on stderr tells us that some of the values for `ref_id`
-could _not_ be successfully cast to `ip`.
+This data suffers from a notorious limitation of JSON: The lack of a native
+"time" type requires storing timestamps as strings. As a result, if read into
+`zq` as the strings they are, these `ts` values are not usable with
+time-specific operations in Zed, such as this attempt to use
+[time grouping](../grouping#time-grouping---every) to calculate total
+quantities shipped per day.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'put ref_id:=ip(ref_id)| filter ref_id in 83.162.0.0/16 | count()' ntp.log.gz
+```mdtest-command
+zq -f table 'every 1d sum(quantity) | sort ts' shipments.ndjson
 ```
 
 #### Output:
 ```mdtest-output
-bad cast
-count
-28
+```
+
+However, if we cast the `ts` field to the Zed `time` type, now the
+calculation works as expected.
+
+```mdtest-command
+zq -f table 'ts:=time(ts) | every 1d sum(quantity) | sort ts' shipments.ndjson
+```
+
+#### Output:
+```mdtest-output
+ts                   sum
+2021-10-07T00:00:00Z 1432
+2021-10-08T00:00:00Z 1742
+2021-10-09T00:00:00Z 2980
+2021-10-10T00:00:00Z 3004
 ```
