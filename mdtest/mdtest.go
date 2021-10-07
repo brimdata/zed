@@ -9,7 +9,7 @@
 //    ```mdtest-input file.txt
 //    hello
 //    ```
-//    ```mdtest-command [path]
+//    ```mdtest-command [dir=...]
 //    cat file.txt
 //    ```
 //    ```mdtest-output
@@ -20,11 +20,12 @@
 // standard input.  The shell's working directory is a temporary directory
 // populated with files described by any mdtest-input blocks in the same
 // Markdown file and shared by other tests in the same file.  Alternatively, if
-// the mdtest-command block's info string contains a second word, it specifies
-// the shell's working directory as a path relative to the repository root, and
-// files desribed by mdtest-input blocks are not available.  In either case, the
-// shell's combined standard output and standard error must exactly match the
-// content of the following mdtest-output block except as described below.
+// the mdtest-command block's info string contains a word prefixed by "dir=",
+// the rest of that word specifies the shell's working directory as a path
+// relative to the repository root, and files desribed by mdtest-input blocks
+// are not available.  In either case, the shell's combined standard output and
+// standard error must exactly match the content of the following mdtest-output
+// block except as described below.
 //
 // If head appears as the second word in an mdtest-output block's info string,
 // then any "...\n" suffix of the block content is ignored, and what remains
@@ -159,8 +160,14 @@ func parseMarkdown(source []byte) (map[string]string, []*Test, error) {
 				return ast.WalkStop, fcbError(fcb, source, "unpaired mdtest-output")
 			}
 			var dir string
-			if words := fcbInfoWords(commandFCB, source); len(words) > 1 {
-				dir = words[1]
+			for _, s := range fcbInfoWords(commandFCB, source)[1:] {
+				switch {
+				case strings.HasPrefix(s, "dir="):
+					dir = strings.TrimPrefix(s, "dir=")
+				default:
+					msg := fmt.Sprintf("unknown word in mdtest-command info string: %q", s)
+					return ast.WalkStop, fcbError(commandFCB, source, msg)
+				}
 			}
 			expected := fcbLines(fcb, source)
 			var head bool

@@ -28,7 +28,7 @@ we'll sometimes make use of the `-z` option to output the text-based
 [ZSON](../../formats/zson.md) format, which is readable at the command line.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -z '*' conn.log.gz
 ```
 
@@ -61,7 +61,7 @@ zq -z '* | cut server_tree_name' ntlm.log.gz
 
 #### Example:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -z 'cut server_tree_name' ntlm.log.gz
 ```
 
@@ -97,7 +97,7 @@ appears within `string`-type fields (such as the field `certificate.subject` in
 > matching field values.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table '10.150.0.85' *.log.gz
 ```
 
@@ -138,7 +138,7 @@ search. If typed bare as our Zed query, we'd experience two problems:
 However, wrapping in quotes gives the desired result.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table '"O=Internet Widgits"' *.log.gz
 ```
 
@@ -169,7 +169,7 @@ hostnames that include the letters `cdn` in the middle of them, such as
 `www.cdn.amazon.com` or `www.herokucdn.com`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'www.*cdn*.com' *.log.gz
 ```
 
@@ -198,7 +198,7 @@ matches records that contain the substring `CN=*` as is often found in the
 start of certificate subjects.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table '"CN=*"' *.log.gz
 ```
 
@@ -242,7 +242,7 @@ But if you're only interested in records having to do with "ad" or "tag"
 services, the following regexp search can accomplish this.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table '/www.google(ad|tag)services.com/' *.log.gz
 ```
 
@@ -273,7 +273,7 @@ will only match records containing the field called `uid` where it is set to
 the precise string value `ChhAfsfyuz4n2hFMe`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'uid=="ChhAfsfyuz4n2hFMe"' *.log.gz
 ```
 
@@ -293,7 +293,7 @@ we match records in which the values in the fields for originating and
 responding ports are the same.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'id.orig_p==id.resp_p' conn.log.gz
 ```
 
@@ -317,7 +317,7 @@ in two ways.
    our sample data are of `string` type, since it logs an HTTP header that is
    often a hostname or an IP address.
 
-   ```mdtest-command zed-sample-data/zeek-default
+   ```mdtest-command dir=zed-sample-data/zeek-default
    zq -z 'count() by host | sort count,host' http.log.gz
    ```
 
@@ -358,7 +358,7 @@ following example produces no output.
 
 #### Example:
 
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'certificate.subject=="Widgits"' *.log.gz
 ```
 
@@ -370,7 +370,7 @@ To achieve this with a field/value match, we enter `matches` before specifying
 a [glob wildcard](#glob-wildcards).
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'certificate.subject matches *Widgits*' *.log.gz
 ```
 
@@ -388,7 +388,7 @@ x509  2018-03-24T17:15:47.493786Z FdBWBA3eODh6nHFt82 3                   C5F8CDF
 [Regular expressions](#regular-expressions) can also be used with `matches`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'uri matches /scripts\/waE8_BuNCEKM.(pl|sh)/' http.log.gz
 ```
 
@@ -414,7 +414,7 @@ multiple responses that may have been returned for a query. To determine which
 responses included hostname `e5803.b.akamaiedge.net`, we'll use `in`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table '"e5803.b.akamaiedge.net" in answers' dns.log.gz
 ```
 
@@ -438,7 +438,7 @@ However, the `query` field does exist in our `dns` records, so the following
 example does return matches.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'query in answers' dns.log.gz
 ```
 
@@ -455,7 +455,7 @@ Determining whether the value of a Zeek `ip`-type field is contained within a
 subnet also uses `in`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'id.resp_h in 208.78.0.0/16' conn.log.gz
 ```
 
@@ -477,7 +477,7 @@ In addition to testing for equality via `==` and finding patterns via
 For example, the following search finds connections that have transferred many bytes.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'orig_bytes > 1000000' *.log.gz
 ```
 
@@ -496,7 +496,7 @@ such as this search that finds DNS requests that were issued for hostnames at
 the high end of the alphabet.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'query > "zippy"' *.log.gz
 ```
 
@@ -553,7 +553,7 @@ couple `ssl` records. You could quickly isolate just the SSL records by
 leveraging this implicit `and`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'www.*cdn*.com _path=="ssl"' *.log.gz
 ```
 
@@ -576,7 +576,7 @@ For example, we can revisit two of our previous example searches that each only
 returned a few records, searching now with `or` to see them all at once.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'orig_bytes > 1000000 or query > "zippy"' *.log.gz
 ```
 
@@ -607,7 +607,7 @@ some of the less-common Zeek record types by inverting the logic of a
 [regexp match](#regular-expressions).
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'not _path matches /conn|dns|files|ssl|x509|http|weird/' *.log.gz
 ```
 
@@ -640,7 +640,7 @@ all `smb_mapping` records in which the `share_type` field is set to a value
 other than `DISK`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'not share_type=="DISK" _path=="smb_mapping"' *.log.gz
 ```
 
@@ -662,7 +662,7 @@ _other than_ `smb_mapping` records that have the value of their `share_type`
 field set to `DISK`.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'not (share_type=="DISK" _path=="smb_mapping")' *.log.gz
 ```
 
@@ -683,7 +683,7 @@ conn  2018-03-24T17:15:23.205187Z CBrzd94qfowOqJwCHa 10.47.25.80    50813     10
 Parentheses can also be nested.
 
 #### Example:
-```mdtest-command zed-sample-data/zeek-default
+```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table '((not share_type=="DISK") and (service=="IPC")) _path=="smb_mapping"' *.log.gz
 ```
 

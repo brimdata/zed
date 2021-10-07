@@ -71,6 +71,18 @@ other code block
 			strerror: "line 2: unpaired mdtest-output",
 		},
 		{
+			name: "mdtest-command with unknown word",
+			markdown: `
+~~~mdtest-command unknown
+block 1
+~~~
+~~~mdtest-output
+block 2
+~~~
+`,
+			strerror: `line 2: unknown word in mdtest-command info string: "unknown"`,
+		},
+		{
 			name: "two commands",
 			markdown: `
 ~~~mdtest-command 1
@@ -88,16 +100,16 @@ block 3
 		{
 			name: "two tests",
 			markdown: `
-~~~mdtest-command 1
+~~~mdtest-command dir=1
 block 1
 ~~~
-~~~mdtest-output 1
+~~~mdtest-output
 block 2
 ~~~
-~~~mdtest-command 2
+~~~mdtest-command dir=2
 block 3
 ~~~
-~~~mdtest-output 2
+~~~mdtest-output
 block 4
 ~~~
 `,
@@ -144,6 +156,7 @@ block 2
 			if tc.strerror != "" {
 				assert.EqualError(t, err, tc.strerror)
 			} else {
+				assert.NoError(t, err)
 				assert.Equal(t, inputs, tc.inputs)
 				assert.Equal(t, tests, tc.tests)
 			}
