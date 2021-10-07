@@ -52,9 +52,9 @@ min max avg
 
 ### Field Naming
 
-As just shown, by default the result returned by an aggregate function is
-placed in a field with the same name as the aggregate function. You may
-instead use `:=` to specify an explicit name for the generated field.
+As just shown, by default the result returned is placed in a field with the
+same name as the aggregate function. You may instead use `:=` to specify an
+explicit name for the generated field.
 
 #### Example:
 
@@ -112,8 +112,8 @@ zq -Z 'LA_Math:=avg(AvgScrMath) where cname=="Los Angeles", SF_Math:=avg(AvgScrM
 
 #### Example:
 
-Many of the reocrds in our school data mention their websites, but many do
-not. The following query shows the cities for which all schools have a website.
+Many of the school records in our sample data include websites, but many do
+not. The following query shows the cities in which all schools have a website.
 
 ```mdtest-command zed-sample-data/edu/zson
 zq -Z 'all_schools_have_website:=and(Website!=null) by City | sort City' schools.zson
@@ -203,15 +203,15 @@ avg
 #### Example
 
 For schools in Fresno county that include websites, the following query
-constructs a list per city of their websites along with a parallel list of
-which school each website represents.
+constructs an ordered list per city of their websites along with a parallel
+list of which school each website represents.
 
 ```mdtest-command zed-sample-data/edu/zson
 zq -Z 'County=="Fresno" Website!=null | Websites:=collect(Website),Schools:=collect(School) by City | sort City' schools.zson
 ```
 
 #### Output:
-```
+```mdtest-output head
 {
     City: "Auberry",
     Websites: [
@@ -254,33 +254,35 @@ zq -Z 'County=="Fresno" Website!=null | Websites:=collect(Website),Schools:=coll
 
 #### Example #1:
 
-To count the number of records in the entire sample data set:
+To count the number of records in each of our example data sources:
 
 ```mdtest-command zed-sample-data/edu/zson
-zq -Z 'count()' *
+zq -z 'count()' schools.zson && zq -z 'count()' satscores.zson && zq -z 'count()' webaddrs.zson
 ```
 
 #### Output:
 ```mdtest-output
-count
-1462078
+{count:17686(uint64)}
+{count:2331(uint64)}
+{count:2223(uint64)}
 ```
 
 #### Example #2:
 
-Let's say we wanted to know how many records contain a field called `mime_type`.
-The following example shows us that count and that the field is present in
-our Zeek `ftp` and `files` records.
+The `Website` field is known to be in our schools and website address data
+sources, but not in the test scores data. To confirm this, we can count across
+all data sources and specify the named field.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'count(mime_type) by _path | filter count > 0 | sort -r count' *.log.gz
+
+```mdtest-command zed-sample-data/edu/zson
+zq -z 'count(Website)' *
 ```
 
 ```mdtest-output
-_path count
-files 162986
-ftp   93
+{count:19909(uint64)}
 ```
+
+Since `17686 + 2223 = 19909`, the count result is what we expected.
 
 ---
 
@@ -296,32 +298,33 @@ ftp   93
 
 #### Example:
 
-To see an approximate count of unique `uid` values in our sample data set:
+To see an approximate count of unique school names in our sample data set:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'countdistinct(uid)' *
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'countdistinct(School)' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-countdistinct
-1029651
+{
+    countdistinct: 13918 (uint64)
+}
 ```
 
 To see the precise value, which may take longer to execute:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'count() by uid | count()' *
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'count() by School | count()' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-count
-1021953
+{
+    count: 13876 (uint64)
+}
 ```
 
-Here we saw the approximation was "off" by 0.75%. On the system that was used
-to perform this test, the Zed using `countdistinct()` executed almost 3x faster.
+Here we saw the approximation was "off" by 0.3%.
 
 ---
 
@@ -336,17 +339,16 @@ to perform this test, the Zed using `countdistinct()` executed almost 3x faster.
 
 #### Example:
 
-To see the maximum number of bytes originated by any connection in our sample
-data:
+To see the highest reported math test score:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'max(orig_bytes)' conn.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -f table 'max(AvgScrMath)' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output
 max
-4862366
+699
 ```
 
 ---
@@ -362,17 +364,16 @@ max
 
 #### Example:
 
-To see the quickest round trip time of all DNS queries observed in our sample
-data:
+To see the lowest reported math test score:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'min(rtt)' dns.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -f table 'min(AvgScrMath)' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output
 min
-0.000012
+289
 ```
 
 ---
@@ -388,34 +389,37 @@ min
 
 #### Example:
 
-Let's say you've noticed there's lots of HTTP traffic happening on ports higher
-than the standard port `80`.
+Many of the school records in our sample data include websites, but many do
+not. The following query shows the cities for which at least one school has
+a listed website.
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'count() by id.resp_p | sort -r count' http.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'has_at_least_one_school_website:=or(Website!=null) by City | sort City' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-id.resp_p count
-80        134496
-8080      5204
-5800      1691
-65534     903
+{
+    City: "Acampo",
+    has_at_least_one_school_website: true
+}
+{
+    City: "Acton",
+    has_at_least_one_school_website: true
+}
+{
+    City: "Acton, CA",
+    has_at_least_one_school_website: true
+}
+{
+    City: "Adelanto",
+    has_at_least_one_school_website: true
+}
+{
+    City: "Adin",
+    has_at_least_one_school_website: false
+}
 ...
-```
-
-The following query confirms this high-port traffic is present, but that none
-of those ports are higher than what TCP allows.
-
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'some_high_ports:=or(id.resp_p>80),impossible_ports:=or(id.resp_p>65535)' http.log.gz
-```
-
-#### Output:
-```mdtest-output
-some_high_ports impossible_ports
-T               F
 ```
 
 ---
@@ -431,17 +435,20 @@ T               F
 
 #### Example:
 
-To calculate the total number of bytes across all file payloads logged in our
-sample data:
+To calculate the total of all the math, reading, and writing test scores
+across all schools:
 
-```mdtest-command zed-sample-data/zeek-default
-zq -f table 'sum(total_bytes)' files.log.gz
+```mdtest-command zed-sample-data/edu/zson
+zq -Z 'AllMath:=sum(AvgScrMath),AllRead:=sum(AvgScrRead),AllWrite:=sum(AvgScrWrite)' satscores.zson
 ```
 
 #### Output:
 ```mdtest-output
-sum
-3092961270
+{
+    AllMath: 840488 (uint64),
+    AllRead: 832260 (uint64),
+    AllWrite: 819632 (uint64)
+}
 ```
 
 ---
