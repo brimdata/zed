@@ -146,9 +146,18 @@ type (
 		Kind     string      `json:"kind" unpack:""`
 		Source   Source      `json:"source"`
 		Seq      *Sequential `json:"seq"`
-		Pushdown Op          `json:"pushdown"`
+		Pushdown Pushdown    `json:"pushdown"`
 	}
 
+	Pushdown struct {
+		Scan  Op               `json:"scan"`
+		Index []IndexPredicate `json:"index"`
+	}
+
+	IndexPredicate struct {
+		Key   *Path             `json:"key"`
+		Value *astzed.Primitive `json:"value"`
+	}
 	// Leaf sources
 
 	File struct {

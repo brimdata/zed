@@ -45,6 +45,13 @@ func (p *Patch) LookupIndex(ruleID, id ksuid.KSUID) (*index.Object, error) {
 	return p.base.LookupIndex(ruleID, id)
 }
 
+func (p *Patch) LookupIndexObjectRules(id ksuid.KSUID) ([]index.Rule, error) {
+	if r, err := p.diff.LookupIndexObjectRules(id); err == nil {
+		return r, nil
+	}
+	return p.base.LookupIndexObjectRules(id)
+}
+
 func (p *Patch) Select(span extent.Span, o order.Which) DataObjects {
 	objects := p.base.Select(span, o)
 	objects.Append(p.diff.Select(span, o))

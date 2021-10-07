@@ -19,6 +19,7 @@ var (
 type View interface {
 	Lookup(ksuid.KSUID) (*data.Object, error)
 	LookupIndex(ksuid.KSUID, ksuid.KSUID) (*index.Object, error)
+	LookupIndexObjectRules(ksuid.KSUID) ([]index.Rule, error)
 	Select(extent.Span, order.Which) DataObjects
 	SelectAll() DataObjects
 	SelectIndexes(extent.Span, order.Which) []*index.Object
@@ -121,6 +122,14 @@ func (s *Snapshot) LookupIndex(ruleID, id ksuid.KSUID) (*index.Object, error) {
 		return o, nil
 	}
 	return nil, fmt.Errorf("%s: %w", index.ObjectName(ruleID, id), ErrNotFound)
+}
+
+func (s *Snapshot) LookupIndexObjectRules(id ksuid.KSUID) ([]index.Rule, error) {
+	r, ok := s.indexes[id]
+	if !ok {
+		return nil, fmt.Errorf("%s: %w", id, ErrNotFound)
+	}
+	return r.Rules(), nil
 }
 
 func (s *Snapshot) LookupDeleted(id ksuid.KSUID) (*data.Object, error) {

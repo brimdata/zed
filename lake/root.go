@@ -438,10 +438,10 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 	return batch, nil
 }
 
-func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, span extent.Span, filter zbuf.Filter, pred []dag.IndexPredicate) (proc.Scheduler, error) {
 	switch src := src.(type) {
 	case *dag.Pool:
-		return r.newPoolScheduler(ctx, zctx, src.ID, src.Commit, span, filter)
+		return r.newPoolScheduler(ctx, zctx, src.ID, src.Commit, span, filter, pred)
 	case *dag.LakeMeta:
 		return r.newLakeMetaScheduler(ctx, zctx, src.Meta, filter)
 	case *dag.PoolMeta:
@@ -582,12 +582,12 @@ func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, po
 	}
 }
 
-func (r *Root) newPoolScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter) (proc.Scheduler, error) {
+func (r *Root) newPoolScheduler(ctx context.Context, zctx *zed.Context, poolID, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter, idx []dag.IndexPredicate) (proc.Scheduler, error) {
 	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return nil, err
 	}
-	return pool.newScheduler(ctx, zctx, commit, span, filter)
+	return pool.newScheduler(ctx, zctx, commit, span, filter, idx)
 }
 
 func (r *Root) Open(context.Context, *zed.Context, string, zbuf.Filter) (zbuf.PullerCloser, error) {

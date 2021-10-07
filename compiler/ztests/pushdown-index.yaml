@@ -1,0 +1,12 @@
+script: zed compile -C -O "from 'pool-ts'| x=='hello' or x==1.0"
+
+outputs:
+  - name: stdout
+    data: |
+      from (
+        (pushdown
+          (scan
+            filter x="hello" or x=1.0)
+          (index x=="hello", x==1.0))
+        G2eDzBUfU6IEmUSGCa5kHyXMhoO;
+      )
