@@ -6,7 +6,6 @@ import (
 	"net/url"
 	"os"
 	"strings"
-	"text/tabwriter"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli"
@@ -22,6 +21,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zson"
 )
 
 var Cmd = &charm.Spec{
@@ -222,8 +222,10 @@ func isURLWithKnownScheme(path string, schemes ...string) bool {
 }
 
 func PrintStats(stats zbuf.ScannerStats) {
-	w := tabwriter.NewWriter(os.Stderr, 0, 0, 1, ' ', 0)
-	fmt.Fprintf(w, "data opened:\t%d\n", stats.BytesRead)
-	fmt.Fprintf(w, "data read:\t%d\n", stats.BytesMatched)
-	w.Flush()
+	out, err := zson.Marshal(stats)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error writing query stats: %v", err)
+		return
+	}
+	fmt.Fprintln(os.Stderr, out)
 }
