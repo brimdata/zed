@@ -1,6 +1,7 @@
 package mdtest
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -13,6 +14,7 @@ type Test struct {
 	Command  string
 	Dir      string
 	Expected string
+	Fails    bool
 	Head     bool
 	Line     int
 }
@@ -24,6 +26,13 @@ func (t *Test) Run() error {
 	c.Stdin = strings.NewReader(t.Command)
 	outBytes, err := c.CombinedOutput()
 	out := string(outBytes)
+	if t.Fails {
+		if errors.As(err, new(*exec.ExitError)) {
+			err = nil
+		} else if err == nil {
+			err = errors.New("command succeeded unexpectedly")
+		}
+	}
 	if err != nil {
 		if out != "" {
 			return fmt.Errorf("%w\noutput:\n%s", err, out)

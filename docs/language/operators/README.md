@@ -44,7 +44,7 @@ The following available operators are documented in detail below:
 
 To return only the name and opening date from our school records:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'cut School,OpenDate' schools.zson
 ```
 
@@ -70,7 +70,7 @@ school data that includes fields for both `School` and `Website`, values from
 our web address data that have the `Website` and `addr` fields, and nothing
 from the test scores data since it has none of these fields.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'yosemiteuhsd | cut School,Website,addr' *
 ```
 
@@ -89,7 +89,7 @@ named fields are present.
 If no records are found that contain any of the named fields, `cut` returns a
 warning.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'cut nothere,alsoabsent' satscores.zson
 ```
 
@@ -103,7 +103,7 @@ cut: no record found with columns nothere,alsoabsent
 To return only the `sname` and `dname` fields of the test scores while also
 renaming the fields:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'cut School:=sname,District:=dname' satscores.zson
 ```
 
@@ -128,7 +128,7 @@ zq -z 'cut School:=sname,District:=dname' satscores.zson
 
 To return all the fields _other than_ the score values in our test score data:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'drop AvgScrMath,AvgScrRead,AvgScrWrite' satscores.zson
 ```
 
@@ -159,7 +159,7 @@ zq -z 'drop AvgScrMath,AvgScrRead,AvgScrWrite' satscores.zson
 
 To further trim the data returned in our [`cut`](#cut) example:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'cut School,OpenDate | filter School=="Breeze Hill Elementary"' schools.zson
 ```
 
@@ -175,7 +175,7 @@ zq -Z 'cut School,OpenDate | filter School=="Breeze Hill Elementary"' schools.zs
 
 An alternative syntax for our [`and` example](../search-syntax/README.md#and):
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'filter StatusType=="Pending" academy' schools.zson
 ```
 
@@ -205,7 +205,7 @@ zq -z 'filter StatusType=="Pending" academy' schools.zson
 Let's say you'd started with table-formatted output of all records in our data
 that reference the town of Geyserville.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -f table 'Geyserville' *
 ```
 
@@ -245,7 +245,7 @@ is assembled in a first pass through the data stream, which enables the
 presentation of the results under a single, wider header row with no further
 interruptions between the subsequent data rows.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -f csv 'Geyserville | fuse' *
 ```
 
@@ -277,7 +277,7 @@ Other output formats invoked via `zq -f` that benefit greatly from the use of
 
 To see the first school record:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'head' schools.zson
 ```
 
@@ -304,7 +304,7 @@ zq -Z 'head' schools.zson
 
 To see the first five school records in Los Angeles county:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'County=="Los Angeles" | head 5' schools.zson
 ```
 
@@ -627,7 +627,7 @@ zq -z -I embed-opposite.zed
 
 To return only the name and opening date from our school records:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'pick School,OpenDate' schools.zson
 ```
 
@@ -651,7 +651,7 @@ result for it. For instance, since only our school data has _both_ `School`
 and `Website` fields, the following query of all three example data sources
 only returns a result from the school data.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'yosemiteuhsd | pick School,Website' *
 ```
 
@@ -669,7 +669,7 @@ fields are present.
 If no records are found that contain any of the named fields, `pick` returns a
 warning.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'pick nothere,alsoabsent' satscores.zson
 ```
 
@@ -683,7 +683,7 @@ pick: no record found with columns nothere,alsoabsent
 To return only the `sname` and `dname` fields of the test scores while also
 renaming the fields:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'pick School:=sname,District:=dname' satscores.zson
 ```
 
@@ -711,7 +711,7 @@ zq -z 'pick School:=sname,District:=dname' satscores.zson
 Add a field to our test score records to hold the computed average of the math,
 reading, and writing scores for each school that reported them.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'AvgScrMath!=null | put AvgAll:=(AvgScrMath+AvgScrRead+AvgScrWrite)/3.0' satscores.zson
 ```
 
@@ -735,7 +735,7 @@ As noted above the `put` keyword is entirely optional. Here we omit
 it and create a new field to hold the lowercase representation of
 the school `District` field.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'cut District | lower_district:=to_lower(District)' schools.zson
 ```
 
@@ -765,7 +765,7 @@ zq -Z 'cut District | lower_district:=to_lower(District)' schools.zson
 To rename some fields in our test scores data to match the field names from
 our schools data:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'rename School:=sname,District:=dname,City:=cname' satscores.zson
 ```
 
@@ -851,7 +851,7 @@ zq -Z 'put toplevel:=outer.inner | drop outer.inner' nested.zson
 
 To sort our test score records by average reading score:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'sort AvgScrRead' satscores.zson
 ```
 
@@ -871,7 +871,7 @@ Now we'll sort the test score records first by average reading score and then
 by average math score. Note how this changed the order of the bottom two
 records in the result.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'sort AvgScrRead,AvgScrMath' satscores.zson
 ```
 
@@ -893,7 +893,7 @@ output to a `sort` in reverse order. Note that even though we didn't list a
 field name as an explicit argument, the `sort` operator did what we wanted
 because it found a field of the `uint64` [data type](../data-types/README.md).
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'count() by County | sort -r' schools.zson
 ```
 
@@ -912,7 +912,7 @@ records. Since we know some of the records don't include a web site, we'll
 deliberately put the unset values at the front of the list so we can see how
 many there are.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'count() by Website | sort -nulls first Website' schools.zson
 ```
 
@@ -940,7 +940,7 @@ zq -z 'count() by Website | sort -nulls first Website' schools.zson
 
 To see the last school record:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'tail' schools.zson
 ```
 
@@ -967,7 +967,7 @@ zq -Z 'tail' schools.zson
 
 To see the last five school records in Los Angeles county:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'County=="Los Angeles" | tail 5' schools.zson
 ```
 
@@ -996,7 +996,7 @@ zq -z 'County=="Los Angeles" | tail 5' schools.zson
 Let's say you'd been looking at the contents of just the `District` and
 `County` fields in the order they appear in the school data.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'cut District,County' schools.zson
 ```
 
@@ -1017,7 +1017,7 @@ zq -z 'cut District,County' schools.zson
 
 To eliminate the adjacent lines that share the same field/value pairs:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'cut District,County | uniq' schools.zson
 ```
 

@@ -139,7 +139,7 @@ GET /pool/{pool}
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | ID of the requested pool. |
+| pool | string | path | ID or name of the requested pool. |
 | stats | bool | query | Include pool stats in response. |
 
 #### Response
@@ -178,7 +178,7 @@ Get a pool's configuration as well as stats about the pool.
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | ID of the requested pool. |
+| pool | string | path | ID or name of the requested pool. |
 | at | string | query | Commit or journal ID for time travel. |
 
 #### Response
@@ -220,7 +220,7 @@ PUT /pool/{pool}
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | ID of the requested pool. |
+| pool | string | path | ID or name of the requested pool. |
 | name | string | body | **Required.** The desired new name of the pool. Must be unique. |
 
 #### Response
@@ -261,7 +261,7 @@ DELETE /pool/{pool}
 
 | Name | Type | In | Description |
 | ---- | ---- | -- | ----------- |
-| pool | string | path | ID of the requested pool. |
+| pool | string | path | ID or name of the requested pool. |
 
 #### Response
 

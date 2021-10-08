@@ -68,7 +68,7 @@ func handlePoolListDeprecated(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handlePoolGetDeprecated(c *Core, w *ResponseWriter, r *Request) {
-	id, ok := r.PoolID(w)
+	id, ok := r.PoolID(w, c.root)
 	if !ok {
 		return
 	}
@@ -84,7 +84,7 @@ func handlePoolGetDeprecated(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
-	id, ok := r.PoolID(w)
+	id, ok := r.PoolID(w, c.root)
 	if !ok {
 		return
 	}
@@ -116,7 +116,7 @@ func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
-	id, ok := r.PoolID(w)
+	id, ok := r.PoolID(w, c.root)
 	if !ok {
 		return
 	}
@@ -182,7 +182,7 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	id, ok := r.PoolID(w)
+	id, ok := r.PoolID(w, c.root)
 	if !ok {
 		return
 	}
@@ -206,7 +206,7 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	poolID, ok := r.PoolID(w)
+	poolID, ok := r.PoolID(w, c.root)
 	if !ok {
 		return
 	}
@@ -233,7 +233,7 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w)
+	poolID, ok := r.PoolID(w, c.root)
 	if !ok {
 		return
 	}
@@ -263,7 +263,7 @@ func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w)
+	poolID, ok := r.PoolID(w, c.root)
 	if !ok {
 		return
 	}
@@ -294,7 +294,7 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
-	id, ok := r.PoolID(w)
+	id, ok := r.PoolID(w, c.root)
 	if !ok {
 		return
 	}
@@ -309,7 +309,7 @@ func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w)
+	poolID, ok := r.PoolID(w, c.root)
 	if !ok {
 		return
 	}
@@ -336,7 +336,7 @@ func (w *warningCollector) Warn(msg string) error {
 }
 
 func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w)
+	poolID, ok := r.PoolID(w, c.root)
 	if !ok {
 		return
 	}
@@ -388,7 +388,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleDelete(c *Core, w *ResponseWriter, r *Request) {
-	poolID, ok := r.PoolID(w)
+	poolID, ok := r.PoolID(w, c.root)
 	if !ok {
 		return
 	}

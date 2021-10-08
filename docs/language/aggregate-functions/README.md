@@ -40,7 +40,7 @@ Multiple aggregate functions may be invoked at the same time.
 To simultaneously calculate the minimum, maximum, and average of the math
 test scores:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -f table 'min(AvgScrMath),max(AvgScrMath),avg(AvgScrMath)' satscores.zson
 ```
 
@@ -58,7 +58,7 @@ explicit name for the generated field.
 
 #### Example:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -f table 'lowest:=min(AvgScrMath),highest:=max(AvgScrMath),typical:=avg(AvgScrMath)' satscores.zson
 ```
 
@@ -85,7 +85,7 @@ function will operate.
 To calculate average math test scores for the cities of Los Angeles and San
 Francisco:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'LA_Math:=avg(AvgScrMath) where cname=="Los Angeles", SF_Math:=avg(AvgScrMath) where cname=="San Francisco"' satscores.zson
 ```
 
@@ -115,7 +115,7 @@ zq -Z 'LA_Math:=avg(AvgScrMath) where cname=="Los Angeles", SF_Math:=avg(AvgScrM
 Many of the school records in our sample data include websites, but many do
 not. The following query shows the cities in which all schools have a website.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'all_schools_have_website:=and(Website!=null) by City | sort City' schools.zson
 ```
 
@@ -151,7 +151,7 @@ zq -Z 'all_schools_have_website:=and(Website!=null) by City | sort City' schools
 
 To see the name of one of the schools in our sample data:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'any(School)' schools.zson
 ```
 
@@ -179,7 +179,7 @@ case, the output is:
 
 To calculate the average of the math test scores:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -f table 'avg(AvgScrMath)' satscores.zson
 ```
 
@@ -206,7 +206,7 @@ For schools in Fresno county that include websites, the following query
 constructs an ordered list per city of their websites along with a parallel
 list of which school each website represents.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'County=="Fresno" Website!=null | Websites:=collect(Website),Schools:=collect(School) by City | sort City' schools.zson
 ```
 
@@ -256,7 +256,7 @@ zq -Z 'County=="Fresno" Website!=null | Websites:=collect(Website),Schools:=coll
 
 To count the number of records in each of our example data sources:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'count()' schools.zson && zq -z 'count()' satscores.zson && zq -z 'count()' webaddrs.zson
 ```
 
@@ -273,8 +273,7 @@ The `Website` field is known to be in our schools and website address data
 sources, but not in the test scores data. To confirm this, we can count across
 all data sources and specify the named field.
 
-
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -z 'count(Website)' *
 ```
 
@@ -300,7 +299,7 @@ Since `17686 + 2223 = 19909`, the count result is what we expected.
 
 To see an approximate count of unique school names in our sample data set:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'countdistinct(School)' schools.zson
 ```
 
@@ -313,7 +312,7 @@ zq -Z 'countdistinct(School)' schools.zson
 
 To see the precise value, which may take longer to execute:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'count() by School | count()' schools.zson
 ```
 
@@ -341,7 +340,7 @@ Here we saw the approximation was "off" by 0.3%.
 
 To see the highest reported math test score:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -f table 'max(AvgScrMath)' satscores.zson
 ```
 
@@ -366,7 +365,7 @@ max
 
 To see the lowest reported math test score:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -f table 'min(AvgScrMath)' satscores.zson
 ```
 
@@ -393,7 +392,7 @@ Many of the school records in our sample data include websites, but many do
 not. The following query shows the cities for which at least one school has
 a listed website.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'has_at_least_one_school_website:=or(Website!=null) by City | sort City' schools.zson
 ```
 
@@ -438,7 +437,7 @@ zq -Z 'has_at_least_one_school_website:=or(Website!=null) by City | sort City' s
 To calculate the total of all the math, reading, and writing test scores
 across all schools:
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'AllMath:=sum(AvgScrMath),AllRead:=sum(AvgScrRead),AllWrite:=sum(AvgScrWrite)' satscores.zson
 ```
 
@@ -469,7 +468,7 @@ For schools in Fresno county that include websites, the following query
 constructs a set per city of all the unique websites for the schools in that
 city.
 
-```mdtest-command zed-sample-data/edu/zson
+```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'County=="Fresno" Website!=null | Websites:=union(Website) by City | sort City' schools.zson
 ```
 
