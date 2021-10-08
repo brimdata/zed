@@ -307,6 +307,7 @@ Operator
   / FromProc
   / PassProc
   / ExplodeProc
+  / CollectProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
@@ -572,6 +573,11 @@ TypeArg
 
 AsArg
   = _ AS _ lhs:Lval { RETURN(lhs) }
+
+CollectProc
+  = "collect"i _ "by"i _ keys:Exprs _ "until"i _ expr:Expr {
+      RETURN(MAP("kind":"Collect", "keys": keys, "until": expr))
+    }
 
 /// === Expressions ===
 

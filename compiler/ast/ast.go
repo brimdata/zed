@@ -389,6 +389,11 @@ type (
 		Type astzed.Type `json:"type"`
 		As   Expr        `json:"as"`
 	}
+	Collect struct {
+		Kind  string `json:"kind" unpack:""`
+		By    []Expr `json:"by"`
+		Until Expr   `json:"until"`
+	}
 )
 
 type PoolSpec struct {
@@ -484,6 +489,7 @@ func (*Call) ProcAST()         {}
 func (*Shape) ProcAST()        {}
 func (*From) ProcAST()         {}
 func (*Explode) ProcAST()      {}
+func (*Collect) ProcAST()      {}
 
 func (*SQLExpr) ProcAST() {}
 
