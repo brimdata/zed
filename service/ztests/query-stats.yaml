@@ -18,5 +18,4 @@ outputs:
       }
   - name: stderr
     data: |
-      data opened: 32889
-      data read:   32889
+      {bytes_read:32889,bytes_matched:32889,records_read:1000,records_matched:1000}
