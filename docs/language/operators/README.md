@@ -228,12 +228,12 @@ data, but changing schemas mid-stream is not allowed in formats
 such as CSV or other downstream tooling such as SQL. Indeed, `zq` halts its
 output in this case.
 
-```
+```mdtest-command dir=zed-sample-data/edu/zson fails
 zq -f csv 'Geyserville' *
 ```
 
 #### Output:
-```
+```mdtest-output
 AvgScrMath,AvgScrRead,AvgScrWrite,cname,dname,sname
 ,,,Sonoma,Geyserville Unified,Geyserville New Tech Academy
 ,,,Sonoma,Geyserville Unified,
@@ -814,12 +814,12 @@ zq -Z 'rename outer.renamed:=outer.inner' nested.zson
 
 However, an attempt to rename it to a top-level field will fail.
 
-```
+```mdtest-command fails
 zq -Z 'rename toplevel:=outer.inner' nested.zson
 ```
 
 #### Output:
-```
+```mdtest-output
 cannot rename outer.inner to toplevel
 ```
 

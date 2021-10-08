@@ -151,8 +151,8 @@ start of an attempted [field/value match](#fieldvalue-match) for a field named
 `Defunct`.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
-zq -z 'Defunct=' *.zson || true
+```mdtest-command dir=zed-sample-data/edu/zson fails
+zq -z 'Defunct=' *.zson
 ```
 
 #### Output:
