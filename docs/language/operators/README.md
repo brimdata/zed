@@ -90,7 +90,7 @@ If no records are found that contain any of the named fields, `cut` returns a
 warning.
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -z 'cut nothere,alsoabsent' satscores.zson
+zq -z 'cut nothere,alsoabsent' testscores.zson
 ```
 
 #### Output:
@@ -104,7 +104,7 @@ To return only the `sname` and `dname` fields of the test scores while also
 renaming the fields:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -z 'cut School:=sname,District:=dname' satscores.zson
+zq -z 'cut School:=sname,District:=dname' testscores.zson
 ```
 
 #### Output:
@@ -129,7 +129,7 @@ zq -z 'cut School:=sname,District:=dname' satscores.zson
 To return all the fields _other than_ the score values in our test score data:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -z 'drop AvgScrMath,AvgScrRead,AvgScrWrite' satscores.zson
+zq -z 'drop AvgScrMath,AvgScrRead,AvgScrWrite' testscores.zson
 ```
 
 #### Output:
@@ -181,11 +181,11 @@ zq -z 'filter StatusType=="Pending" academy' schools.zson
 
 #### Output:
 ```mdtest-output
-{School:"Equitas Academy 4",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90015-2412",Latitude:34.044837,Longitude:-118.27844,Magnet:false,OpenDate:2017-09-01T00:00:00Z,ClosedDate:null(time),Phone:"(213) 201-0440",StatusType:"Pending",Website:"http://equitasacademy.org"}(=school)
-{School:"Pinnacle Academy Charter - Independent Study",District:"South Monterey County Joint Union High",City:"King City",County:"Monterey",Zip:"93930-3311",Latitude:36.208934,Longitude:-121.13286,Magnet:false,OpenDate:2016-08-08T00:00:00Z,ClosedDate:null(time),Phone:"(831) 385-4661",StatusType:"Pending",Website:"www.smcjuhsd.org"}(=school)
-{School:"Rocketship Futuro Academy",District:"SBE - Rocketship Futuro Academy",City:"Concord",County:"Contra Costa",Zip:"94521-1522",Latitude:37.965658,Longitude:-121.96106,Magnet:false,OpenDate:2016-08-15T00:00:00Z,ClosedDate:null(time),Phone:"(301) 789-5469",StatusType:"Pending",Website:"www.rsed.org"}(=school)
-{School:"Sherman Thomas STEM Academy",District:"Madera Unified",City:"Madera",County:"Madera",Zip:"93638",Latitude:36.982843,Longitude:-120.06665,Magnet:false,OpenDate:2017-08-09T00:00:00Z,ClosedDate:null(time),Phone:"(559) 674-1192",StatusType:"Pending",Website:"www.stcs.k12.ca.us"}(=school)
-{School:null(string),District:"SBE - Rocketship Futuro Academy",City:"Concord",County:"Contra Costa",Zip:"94521-1522",Latitude:37.965658,Longitude:-121.96106,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(301) 789-5469",StatusType:"Pending",Website:"www.rsed.org"}(=school)
+{School:"Equitas Academy 4",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90015-2412",Latitude:34.044837,Longitude:-118.27844,Magnet:false,OpenDate:2017-09-01T00:00:00Z,ClosedDate:null(time),Phone:"(213) 201-0440",StatusType:"Pending",Website:"http://equitasacademy.org"}
+{School:"Pinnacle Academy Charter - Independent Study",District:"South Monterey County Joint Union High",City:"King City",County:"Monterey",Zip:"93930-3311",Latitude:36.208934,Longitude:-121.13286,Magnet:false,OpenDate:2016-08-08T00:00:00Z,ClosedDate:null(time),Phone:"(831) 385-4661",StatusType:"Pending",Website:"www.smcjuhsd.org"}
+{School:"Rocketship Futuro Academy",District:"SBE - Rocketship Futuro Academy",City:"Concord",County:"Contra Costa",Zip:"94521-1522",Latitude:37.965658,Longitude:-121.96106,Magnet:false,OpenDate:2016-08-15T00:00:00Z,ClosedDate:null(time),Phone:"(301) 789-5469",StatusType:"Pending",Website:"www.rsed.org"}
+{School:"Sherman Thomas STEM Academy",District:"Madera Unified",City:"Madera",County:"Madera",Zip:"93638",Latitude:36.982843,Longitude:-120.06665,Magnet:false,OpenDate:2017-08-09T00:00:00Z,ClosedDate:null(time),Phone:"(559) 674-1192",StatusType:"Pending",Website:"www.stcs.k12.ca.us"}
+{School:null(string),District:"SBE - Rocketship Futuro Academy",City:"Concord",County:"Contra Costa",Zip:"94521-1522",Latitude:37.965658,Longitude:-121.96106,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(301) 789-5469",StatusType:"Pending",Website:"www.rsed.org"}
 ```
 
 ---
@@ -210,23 +210,26 @@ zq -f table 'Geyserville' *
 ```
 
 #### Output:
-```mdtest-output head
-AvgScrMath AvgScrRead AvgScrWrite cname  dname               sname
--          -          -           Sonoma Geyserville Unified Geyserville New Tech Academy
--          -          -           Sonoma Geyserville Unified -
+```mdtest-output
 School                            District            City        County Zip        Latitude  Longitude  Magnet OpenDate             ClosedDate           Phone          StatusType Website
 Buena Vista High                  Geyserville Unified Geyserville Sonoma 95441-9670 38.722005 -122.89123 F      1980-07-01T00:00:00Z                      (707) 857-3592 Active     -
 Geyserville Community Day         Geyserville Unified Geyserville Sonoma 95441      38.722005 -122.89123 -      2004-09-01T00:00:00Z 2010-06-30T00:00:00Z -              Closed     -
-...
+Geyserville Educational Park High Geyserville Unified Geyserville Sonoma 95441      38.722005 -122.89123 -      1980-07-01T00:00:00Z 2014-06-30T00:00:00Z -              Closed     -
+Geyserville Elementary            Geyserville Unified Geyserville Sonoma 95441-0108 38.705895 -122.90296 F      1980-07-01T00:00:00Z                      (707) 857-3410 Active     www.gusd.com
+Geyserville Middle                Geyserville Unified Geyserville Sonoma 95441      38.722005 -122.89123 -      1980-07-01T00:00:00Z 2014-06-30T00:00:00Z -              Closed     -
+Geyserville New Tech Academy      Geyserville Unified Geyserville Sonoma 95441-9670 38.72015  -122.88534 F      2014-07-01T00:00:00Z                      (707) 857-3592 Active     www.gusd.com
+-                                 Geyserville Unified Geyserville Sonoma 95441-9670 38.722005 -122.89123 -                                                (707) 857-3592 Active     www.gusd.com
+AvgScrMath AvgScrRead AvgScrWrite cname  dname               sname
+-          -          -           Sonoma Geyserville Unified Geyserville New Tech Academy
+-          -          -           Sonoma Geyserville Unified -
 ```
 
-Two test score records were output first, so the preceding header row
-describes the names of its fields. Next, several school records were to be
-output, so a header row describing the fields for that data source was
-printed. This presentation accurately conveys the heterogeneous nature of the
-data, but changing schemas mid-stream is not allowed in formats
-such as CSV or other downstream tooling such as SQL. Indeed, `zq` halts its
-output in this case.
+School records were output first, so the preceding header row describes the
+names of those fields. Later on, two test score records were also output, so
+a header row describing its fields was also printed. This presentation
+accurately conveys the heterogeneous nature of the data, but changing schemas
+mid-stream is not allowed in formats such as CSV or other downstream tooling
+such as SQL. Indeed, `zq` halts its output in this case.
 
 ```mdtest-command dir=zed-sample-data/edu/zson fails
 zq -f csv 'Geyserville' *
@@ -234,9 +237,14 @@ zq -f csv 'Geyserville' *
 
 #### Output:
 ```mdtest-output
-AvgScrMath,AvgScrRead,AvgScrWrite,cname,dname,sname
-,,,Sonoma,Geyserville Unified,Geyserville New Tech Academy
-,,,Sonoma,Geyserville Unified,
+School,District,City,County,Zip,Latitude,Longitude,Magnet,OpenDate,ClosedDate,Phone,StatusType,Website
+Buena Vista High,Geyserville Unified,Geyserville,Sonoma,95441-9670,38.722005,-122.89123,false,1980-07-01T00:00:00Z,,(707) 857-3592,Active,
+Geyserville Community Day,Geyserville Unified,Geyserville,Sonoma,95441,38.722005,-122.89123,,2004-09-01T00:00:00Z,2010-06-30T00:00:00Z,,Closed,
+Geyserville Educational Park High,Geyserville Unified,Geyserville,Sonoma,95441,38.722005,-122.89123,,1980-07-01T00:00:00Z,2014-06-30T00:00:00Z,,Closed,
+Geyserville Elementary,Geyserville Unified,Geyserville,Sonoma,95441-0108,38.705895,-122.90296,false,1980-07-01T00:00:00Z,,(707) 857-3410,Active,www.gusd.com
+Geyserville Middle,Geyserville Unified,Geyserville,Sonoma,95441,38.722005,-122.89123,,1980-07-01T00:00:00Z,2014-06-30T00:00:00Z,,Closed,
+Geyserville New Tech Academy,Geyserville Unified,Geyserville,Sonoma,95441-9670,38.72015,-122.88534,false,2014-07-01T00:00:00Z,,(707) 857-3592,Active,www.gusd.com
+,Geyserville Unified,Geyserville,Sonoma,95441-9670,38.722005,-122.89123,,,,(707) 857-3592,Active,www.gusd.com
 CSV output requires uniform records but multiple types encountered (consider 'fuse')
 ```
 
@@ -250,13 +258,17 @@ zq -f csv 'Geyserville | fuse' *
 ```
 
 #### Output:
-```mdtest-output head
-AvgScrMath,AvgScrRead,AvgScrWrite,cname,dname,sname,School,District,City,County,Zip,Latitude,Longitude,Magnet,OpenDate,ClosedDate,Phone,StatusType,Website
-,,,Sonoma,Geyserville Unified,Geyserville New Tech Academy,,,,,,,,,,,,,
-,,,Sonoma,Geyserville Unified,,,,,,,,,,,,,,
-,,,,,,Buena Vista High,Geyserville Unified,Geyserville,Sonoma,95441-9670,38.722005,-122.89123,false,1980-07-01T00:00:00Z,,(707) 857-3592,Active,
-,,,,,,Geyserville Community Day,Geyserville Unified,Geyserville,Sonoma,95441,38.722005,-122.89123,,2004-09-01T00:00:00Z,2010-06-30T00:00:00Z,,Closed,
-...
+```mdtest-output
+School,District,City,County,Zip,Latitude,Longitude,Magnet,OpenDate,ClosedDate,Phone,StatusType,Website,AvgScrMath,AvgScrRead,AvgScrWrite,cname,dname,sname
+Buena Vista High,Geyserville Unified,Geyserville,Sonoma,95441-9670,38.722005,-122.89123,false,1980-07-01T00:00:00Z,,(707) 857-3592,Active,,,,,,,
+Geyserville Community Day,Geyserville Unified,Geyserville,Sonoma,95441,38.722005,-122.89123,,2004-09-01T00:00:00Z,2010-06-30T00:00:00Z,,Closed,,,,,,,
+Geyserville Educational Park High,Geyserville Unified,Geyserville,Sonoma,95441,38.722005,-122.89123,,1980-07-01T00:00:00Z,2014-06-30T00:00:00Z,,Closed,,,,,,,
+Geyserville Elementary,Geyserville Unified,Geyserville,Sonoma,95441-0108,38.705895,-122.90296,false,1980-07-01T00:00:00Z,,(707) 857-3410,Active,www.gusd.com,,,,,,
+Geyserville Middle,Geyserville Unified,Geyserville,Sonoma,95441,38.722005,-122.89123,,1980-07-01T00:00:00Z,2014-06-30T00:00:00Z,,Closed,,,,,,,
+Geyserville New Tech Academy,Geyserville Unified,Geyserville,Sonoma,95441-9670,38.72015,-122.88534,false,2014-07-01T00:00:00Z,,(707) 857-3592,Active,www.gusd.com,,,,,,
+,Geyserville Unified,Geyserville,Sonoma,95441-9670,38.722005,-122.89123,,,,(707) 857-3592,Active,www.gusd.com,,,,,,
+,,,,,,,,,,,,,,,,Sonoma,Geyserville Unified,Geyserville New Tech Academy
+,,,,,,,,,,,,,,,,Sonoma,Geyserville Unified,
 ```
 
 Other output formats invoked via `zq -f` that benefit greatly from the use of
@@ -297,7 +309,7 @@ zq -Z 'head' schools.zson
     Phone: null (string),
     StatusType: "Merged",
     Website: null (string)
-} (=school)
+}
 ```
 
 #### Example #2:
@@ -310,11 +322,11 @@ zq -z 'County=="Los Angeles" | head 5' schools.zson
 
 #### Output:
 ```mdtest-output
-{School:"ABC Adult",District:"ABC Unified",City:"Cerritos",County:"Los Angeles",Zip:"90703-2801",Latitude:33.878924,Longitude:-118.07128,Magnet:null(bool),OpenDate:1980-07-01T00:00:00Z,ClosedDate:null(time),Phone:"(562) 229-7960",StatusType:"Active",Website:"www.abcadultschool.com"}(=school)
-{School:"ABC Charter Middle",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90017",Latitude:null(float64),Longitude:null(float64),Magnet:null(bool),OpenDate:2008-09-03T00:00:00Z,ClosedDate:2009-06-10T00:00:00Z,Phone:null(string),StatusType:"Closed",Website:"www.abcsf.us"}(=school)
-{School:"ABC Evening High School",District:"ABC Unified",City:"Cerritos",County:"Los Angeles",Zip:"90701",Latitude:null(float64),Longitude:null(float64),Magnet:null(bool),OpenDate:1980-07-01T00:00:00Z,ClosedDate:1994-11-23T00:00:00Z,Phone:null(string),StatusType:"Closed",Website:null(string)}(=school)
-{School:"ABC Secondary (Alternative)",District:"ABC Unified",City:"Cerritos",County:"Los Angeles",Zip:"90703-2301",Latitude:33.881547,Longitude:-118.04635,Magnet:false,OpenDate:1991-09-05T00:00:00Z,ClosedDate:null(time),Phone:"(562) 229-7768",StatusType:"Active",Website:null(string)}(=school)
-{School:"APEX Academy",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90028-8526",Latitude:34.052234,Longitude:-118.24368,Magnet:false,OpenDate:2008-09-03T00:00:00Z,ClosedDate:null(time),Phone:"(323) 817-6550",StatusType:"Active",Website:null(string)}(=school)
+{School:"ABC Adult",District:"ABC Unified",City:"Cerritos",County:"Los Angeles",Zip:"90703-2801",Latitude:33.878924,Longitude:-118.07128,Magnet:null(bool),OpenDate:1980-07-01T00:00:00Z,ClosedDate:null(time),Phone:"(562) 229-7960",StatusType:"Active",Website:"www.abcadultschool.com"}
+{School:"ABC Charter Middle",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90017",Latitude:null(float64),Longitude:null(float64),Magnet:null(bool),OpenDate:2008-09-03T00:00:00Z,ClosedDate:2009-06-10T00:00:00Z,Phone:null(string),StatusType:"Closed",Website:"www.abcsf.us"}
+{School:"ABC Evening High School",District:"ABC Unified",City:"Cerritos",County:"Los Angeles",Zip:"90701",Latitude:null(float64),Longitude:null(float64),Magnet:null(bool),OpenDate:1980-07-01T00:00:00Z,ClosedDate:1994-11-23T00:00:00Z,Phone:null(string),StatusType:"Closed",Website:null(string)}
+{School:"ABC Secondary (Alternative)",District:"ABC Unified",City:"Cerritos",County:"Los Angeles",Zip:"90703-2301",Latitude:33.881547,Longitude:-118.04635,Magnet:false,OpenDate:1991-09-05T00:00:00Z,ClosedDate:null(time),Phone:"(562) 229-7768",StatusType:"Active",Website:null(string)}
+{School:"APEX Academy",District:"Los Angeles Unified",City:"Los Angeles",County:"Los Angeles",Zip:"90028-8526",Latitude:34.052234,Longitude:-118.24368,Magnet:false,OpenDate:2008-09-03T00:00:00Z,ClosedDate:null(time),Phone:"(323) 817-6550",StatusType:"Active",Website:null(string)}
 ```
 
 ---
@@ -670,7 +682,7 @@ If no records are found that contain any of the named fields, `pick` returns a
 warning.
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -z 'pick nothere,alsoabsent' satscores.zson
+zq -z 'pick nothere,alsoabsent' testscores.zson
 ```
 
 #### Output:
@@ -684,7 +696,7 @@ To return only the `sname` and `dname` fields of the test scores while also
 renaming the fields:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -z 'pick School:=sname,District:=dname' satscores.zson
+zq -z 'pick School:=sname,District:=dname' testscores.zson
 ```
 
 #### Output:
@@ -712,7 +724,7 @@ Add a field to our test score records to hold the computed average of the math,
 reading, and writing scores for each school that reported them.
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -Z 'AvgScrMath!=null | put AvgAll:=(AvgScrMath+AvgScrRead+AvgScrWrite)/3.0' satscores.zson
+zq -Z 'AvgScrMath!=null | put AvgAll:=(AvgScrMath+AvgScrRead+AvgScrWrite)/3.0' testscores.zson
 ```
 
 #### Output:
@@ -766,7 +778,7 @@ To rename some fields in our test scores data to match the field names from
 our schools data:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -Z 'rename School:=sname,District:=dname,City:=cname' satscores.zson
+zq -Z 'rename School:=sname,District:=dname,City:=cname' testscores.zson
 ```
 
 #### Output:
@@ -852,16 +864,16 @@ zq -Z 'put toplevel:=outer.inner | drop outer.inner' nested.zson
 To sort our test score records by average reading score:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -z 'sort AvgScrRead' satscores.zson
+zq -z 'sort AvgScrRead' testscores.zson
 ```
 
 #### Output:
 ```mdtest-output head
-{AvgScrMath:352(uint16),AvgScrRead:308(uint16),AvgScrWrite:327(uint16),cname:"Alameda",dname:"Oakland Unified",sname:"Oakland International High"}(=satscore)
-{AvgScrMath:289(uint16),AvgScrRead:314(uint16),AvgScrWrite:312(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"Gompers (Samuel) Continuation"}(=satscore)
-{AvgScrMath:450(uint16),AvgScrRead:321(uint16),AvgScrWrite:318(uint16),cname:"San Francisco",dname:"San Francisco Unified",sname:"S.F. International High"}(=satscore)
-{AvgScrMath:314(uint16),AvgScrRead:324(uint16),AvgScrWrite:321(uint16),cname:"Los Angeles",dname:"Norwalk-La Mirada Unified",sname:"El Camino High (Continuation)"}(=satscore)
-{AvgScrMath:307(uint16),AvgScrRead:324(uint16),AvgScrWrite:328(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"North Campus Continuation"}(=satscore)
+{AvgScrMath:352(uint16),AvgScrRead:308(uint16),AvgScrWrite:327(uint16),cname:"Alameda",dname:"Oakland Unified",sname:"Oakland International High"}
+{AvgScrMath:289(uint16),AvgScrRead:314(uint16),AvgScrWrite:312(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"Gompers (Samuel) Continuation"}
+{AvgScrMath:450(uint16),AvgScrRead:321(uint16),AvgScrWrite:318(uint16),cname:"San Francisco",dname:"San Francisco Unified",sname:"S.F. International High"}
+{AvgScrMath:314(uint16),AvgScrRead:324(uint16),AvgScrWrite:321(uint16),cname:"Los Angeles",dname:"Norwalk-La Mirada Unified",sname:"El Camino High (Continuation)"}
+{AvgScrMath:307(uint16),AvgScrRead:324(uint16),AvgScrWrite:328(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"North Campus Continuation"}
 ...
 ```
 
@@ -872,16 +884,16 @@ by average math score. Note how this changed the order of the bottom two
 records in the result.
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -z 'sort AvgScrRead,AvgScrMath' satscores.zson
+zq -z 'sort AvgScrRead,AvgScrMath' testscores.zson
 ```
 
 #### Output:
 ```mdtest-output head
-{AvgScrMath:352(uint16),AvgScrRead:308(uint16),AvgScrWrite:327(uint16),cname:"Alameda",dname:"Oakland Unified",sname:"Oakland International High"}(=satscore)
-{AvgScrMath:289(uint16),AvgScrRead:314(uint16),AvgScrWrite:312(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"Gompers (Samuel) Continuation"}(=satscore)
-{AvgScrMath:450(uint16),AvgScrRead:321(uint16),AvgScrWrite:318(uint16),cname:"San Francisco",dname:"San Francisco Unified",sname:"S.F. International High"}(=satscore)
-{AvgScrMath:307(uint16),AvgScrRead:324(uint16),AvgScrWrite:328(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"North Campus Continuation"}(=satscore)
-{AvgScrMath:314(uint16),AvgScrRead:324(uint16),AvgScrWrite:321(uint16),cname:"Los Angeles",dname:"Norwalk-La Mirada Unified",sname:"El Camino High (Continuation)"}(=satscore)
+{AvgScrMath:352(uint16),AvgScrRead:308(uint16),AvgScrWrite:327(uint16),cname:"Alameda",dname:"Oakland Unified",sname:"Oakland International High"}
+{AvgScrMath:289(uint16),AvgScrRead:314(uint16),AvgScrWrite:312(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"Gompers (Samuel) Continuation"}
+{AvgScrMath:450(uint16),AvgScrRead:321(uint16),AvgScrWrite:318(uint16),cname:"San Francisco",dname:"San Francisco Unified",sname:"S.F. International High"}
+{AvgScrMath:307(uint16),AvgScrRead:324(uint16),AvgScrWrite:328(uint16),cname:"Contra Costa",dname:"West Contra Costa Unified",sname:"North Campus Continuation"}
+{AvgScrMath:314(uint16),AvgScrRead:324(uint16),AvgScrWrite:321(uint16),cname:"Los Angeles",dname:"Norwalk-La Mirada Unified",sname:"El Camino High (Continuation)"}
 ...
 ```
 
@@ -960,7 +972,7 @@ zq -Z 'tail' schools.zson
     Phone: "(530) 633-3100",
     StatusType: "Active",
     Website: "www.wheatlandhigh.org"
-} (=school)
+}
 ```
 
 #### Example #2:
@@ -973,11 +985,11 @@ zq -z 'County=="Los Angeles" | tail 5' schools.zson
 
 #### Output:
 ```mdtest-output
-{School:null(string),District:"Wiseburn Unified",City:"Hawthorne",County:"Los Angeles",Zip:"90250-6462",Latitude:33.920462,Longitude:-118.37839,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(310) 643-3025",StatusType:"Active",Website:"www.wiseburn.k12.ca.us"}(=school)
-{School:null(string),District:"SBE - Anahuacalmecac International University Preparatory of North America",City:"Los Angeles",County:"Los Angeles",Zip:"90032-1942",Latitude:34.085085,Longitude:-118.18154,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(323) 352-3148",StatusType:"Active",Website:"www.dignidad.org"}(=school)
-{School:null(string),District:"SBE - Academia Avance Charter",City:"Highland Park",County:"Los Angeles",Zip:"90042-4005",Latitude:34.107313,Longitude:-118.19811,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(323) 230-7270",StatusType:"Active",Website:"www.academiaavance.com"}(=school)
-{School:null(string),District:"SBE - Prepa Tec Los Angeles High",City:"Huntington Park",County:"Los Angeles",Zip:"90255-4138",Latitude:33.983752,Longitude:-118.22344,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(323) 800-2741",StatusType:"Active",Website:"www.prepatechighschool.org"}(=school)
-{School:null(string),District:"California Advancing Pathways for Students in Los Angeles County ROC/P",City:"Bellflower",County:"Los Angeles",Zip:"90706",Latitude:33.882509,Longitude:-118.13442,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(562) 866-9011",StatusType:"Active",Website:"www.CalAPS.org"}(=school)
+{School:null(string),District:"Wiseburn Unified",City:"Hawthorne",County:"Los Angeles",Zip:"90250-6462",Latitude:33.920462,Longitude:-118.37839,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(310) 643-3025",StatusType:"Active",Website:"www.wiseburn.k12.ca.us"}
+{School:null(string),District:"SBE - Anahuacalmecac International University Preparatory of North America",City:"Los Angeles",County:"Los Angeles",Zip:"90032-1942",Latitude:34.085085,Longitude:-118.18154,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(323) 352-3148",StatusType:"Active",Website:"www.dignidad.org"}
+{School:null(string),District:"SBE - Academia Avance Charter",City:"Highland Park",County:"Los Angeles",Zip:"90042-4005",Latitude:34.107313,Longitude:-118.19811,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(323) 230-7270",StatusType:"Active",Website:"www.academiaavance.com"}
+{School:null(string),District:"SBE - Prepa Tec Los Angeles High",City:"Huntington Park",County:"Los Angeles",Zip:"90255-4138",Latitude:33.983752,Longitude:-118.22344,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(323) 800-2741",StatusType:"Active",Website:"www.prepatechighschool.org"}
+{School:null(string),District:"California Advancing Pathways for Students in Los Angeles County ROC/P",City:"Bellflower",County:"Los Angeles",Zip:"90706",Latitude:33.882509,Longitude:-118.13442,Magnet:null(bool),OpenDate:null(time),ClosedDate:null(time),Phone:"(562) 866-9011",StatusType:"Active",Website:"www.CalAPS.org"}
 ```
 
 ---

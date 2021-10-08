@@ -61,7 +61,7 @@ unique combination of values found in those fields. To see the average reading
 test scores and school count for each county/district pairing:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -f table 'avg(AvgScrRead),count() by cname,dname | sort -r count' satscores.zson
+zq -f table 'avg(AvgScrRead),count() by cname,dname | sort -r count' testscores.zson
 ```
 
 #### Output:
@@ -109,7 +109,7 @@ grouped batches would be found in the data and hence no query result would
 appear.
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -f table 'avg(AvgScrRead),count() by cname,dnmae | sort -r count' satscores.zson
+zq -f table 'avg(AvgScrRead),count() by cname,dnmae | sort -r count' testscores.zson
 ```
 
 #### Output:

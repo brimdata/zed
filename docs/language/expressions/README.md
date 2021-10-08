@@ -4,7 +4,7 @@ Comprehensive documentation for Zed expressions is still a work in progress. In
 the meantime, here's an example expression with simple math to get started:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -f table 'AvgScrMath != null | put combined_scores:=AvgScrMath+AvgScrRead+AvgScrWrite | cut sname,combined_scores,AvgScrMath,AvgScrRead,AvgScrWrite | head 5' satscores.zson
+zq -f table 'AvgScrMath != null | put combined_scores:=AvgScrMath+AvgScrRead+AvgScrWrite | cut sname,combined_scores,AvgScrMath,AvgScrRead,AvgScrWrite | head 5' testscores.zson
 ```
 
 #### Output:

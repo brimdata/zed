@@ -41,7 +41,7 @@ To simultaneously calculate the minimum, maximum, and average of the math
 test scores:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -f table 'min(AvgScrMath),max(AvgScrMath),avg(AvgScrMath)' satscores.zson
+zq -f table 'min(AvgScrMath),max(AvgScrMath),avg(AvgScrMath)' testscores.zson
 ```
 
 #### Output:
@@ -59,7 +59,7 @@ explicit name for the generated field.
 #### Example:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -f table 'lowest:=min(AvgScrMath),highest:=max(AvgScrMath),typical:=avg(AvgScrMath)' satscores.zson
+zq -f table 'lowest:=min(AvgScrMath),highest:=max(AvgScrMath),typical:=avg(AvgScrMath)' testscores.zson
 ```
 
 #### Output:
@@ -86,7 +86,7 @@ To calculate average math test scores for the cities of Los Angeles and San
 Francisco:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -Z 'LA_Math:=avg(AvgScrMath) where cname=="Los Angeles", SF_Math:=avg(AvgScrMath) where cname=="San Francisco"' satscores.zson
+zq -Z 'LA_Math:=avg(AvgScrMath) where cname=="Los Angeles", SF_Math:=avg(AvgScrMath) where cname=="San Francisco"' testscores.zson
 ```
 
 #### Output:
@@ -180,7 +180,7 @@ case, the output is:
 To calculate the average of the math test scores:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -f table 'avg(AvgScrMath)' satscores.zson
+zq -f table 'avg(AvgScrMath)' testscores.zson
 ```
 
 #### Output:
@@ -257,7 +257,7 @@ zq -Z 'County=="Fresno" Website!=null | Websites:=collect(Website),Schools:=coll
 To count the number of records in each of our example data sources:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -z 'count()' schools.zson && zq -z 'count()' satscores.zson && zq -z 'count()' webaddrs.zson
+zq -z 'count()' schools.zson && zq -z 'count()' testscores.zson && zq -z 'count()' webaddrs.zson
 ```
 
 #### Output:
@@ -341,7 +341,7 @@ Here we saw the approximation was "off" by 0.3%.
 To see the highest reported math test score:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -f table 'max(AvgScrMath)' satscores.zson
+zq -f table 'max(AvgScrMath)' testscores.zson
 ```
 
 #### Output:
@@ -366,7 +366,7 @@ max
 To see the lowest reported math test score:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -f table 'min(AvgScrMath)' satscores.zson
+zq -f table 'min(AvgScrMath)' testscores.zson
 ```
 
 #### Output:
@@ -438,7 +438,7 @@ To calculate the total of all the math, reading, and writing test scores
 across all schools:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
-zq -Z 'AllMath:=sum(AvgScrMath),AllRead:=sum(AvgScrRead),AllWrite:=sum(AvgScrWrite)' satscores.zson
+zq -Z 'AllMath:=sum(AvgScrMath),AllRead:=sum(AvgScrRead),AllWrite:=sum(AvgScrWrite)' testscores.zson
 ```
 
 #### Output:
