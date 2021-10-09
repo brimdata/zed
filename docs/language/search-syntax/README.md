@@ -453,7 +453,7 @@ In addition to testing for equality via `==` and finding patterns via
 `>=` are also available.
 
 For example, the following search finds the schools that reported the highest
-SAT math scores.
+math test scores.
 
 #### Example:
 ```mdtest-command dir=zed-sample-data/edu/zson
