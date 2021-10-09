@@ -1,5 +1,10 @@
 # Operators
 
+> **Note:** Many examples below are generated using the
+> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
+> which you may wish to clone locally to reproduce the examples and create
+> your own query variations.
+
 A pipeline may contain one or more _operators_ to transform or filter records.
 You can imagine the data flowing left-to-right through an operator, with its
 functionality further determined by arguments you may set. Operator names are
@@ -19,11 +24,6 @@ The following available operators are documented in detail below:
 * [`sort`](#sort)
 * [`tail`](#tail)
 * [`uniq`](#uniq)
-
-> **Note:** Many examples below are generated using the
-> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
-> which you may wish to clone locally to reproduce the examples and create
-> your own query variations.
 
 ---
 

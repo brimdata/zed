@@ -1,5 +1,10 @@
 # Search Syntax
 
+> **Note:** Many examples below are generated using the
+> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
+> which you may wish to clone locally to reproduce the examples and create
+> your own query variations.
+
   * [Search all records](#search-all-records)
   * [Value Match](#value-match)
     + [Bare Word](#bare-word)
@@ -17,11 +22,6 @@
     + [`or`](#or)
     + [`not`](#not)
     + [Parentheses & Order of Evaluation](#parentheses--order-of-evaluation)
-
-> **Note:** Many examples below are generated using the
-> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
-> which you may wish to clone locally to reproduce the examples and create
-> your own query variations.
 
 ## Search all records
 

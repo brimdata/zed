@@ -1,5 +1,10 @@
 # Summarize Aggregations
 
+> **Note:** Many examples below are generated using the
+> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
+> which you may wish to clone locally to reproduce the examples and create
+> your own query variations.
+
 The `summarize` operator performs zero or more aggregations with
 zero or more [grouping expressions](../grouping/README.md).
 Each aggregation is performed by an
@@ -24,11 +29,6 @@ contain.  The `summarize` keyword is optional.
      + [`or`](#or)
      + [`sum`](#sum)
      + [`union`](#union)
-
-> **Note:** Many examples below are generated using the
-> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
-> which you may wish to clone locally to reproduce the examples and create
-> your own query variations.
 
 ## General Usage
 
