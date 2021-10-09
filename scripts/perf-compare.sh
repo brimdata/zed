@@ -6,7 +6,7 @@ set -eo pipefail
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$SCRIPT_DIR" || exit 1
 
-DATA="../zed-sample-data"
+DATA="../zed-sample-data/zeek"
 ln -sfn zeek-default "$DATA/zeek"
 ln -sfn zeek-ndjson "$DATA/ndjson"
 
