@@ -1,5 +1,10 @@
 # Expressions
 
+> **Note:** The example below was generated using the
+> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
+> which you may wish to clone locally to reproduce the example and create
+> your own query variations.
+
 Comprehensive documentation for Zed expressions is still a work in progress. In
 the meantime, here's an example expression with simple math to get started:
 

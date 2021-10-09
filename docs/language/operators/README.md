@@ -20,13 +20,10 @@ The following available operators are documented in detail below:
 * [`tail`](#tail)
 * [`uniq`](#uniq)
 
-> **Note:** Due to the width of the records used as sample data, you may need
-> to "scroll right" in the output to see some field values in the example
-> outputs.
-
-> **Note:** Per Zed [search syntax](../search-syntax/README.md), many examples
-> below use shorthand that leaves off the explicit leading `* |`, matching all
-> records before invoking the first element in a pipeline.
+> **Note:** Many examples below are generated using the
+> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
+> which you may wish to clone locally to reproduce the examples and create
+> your own query variations.
 
 ---
 

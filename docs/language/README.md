@@ -282,7 +282,7 @@ Zed _[Data Types](data-types/README.md)_.
 
 Each of the sections hyperlinked above describes these elements of the language
 in more detail. To make effective use of the materials, it is recommended to
-first review the [Documentation Conventions](conventions/README.md). You will
+first review the [documentation conventions](conventions/README.md). You will
 likely also want to download a copy of the
-[Sample Data](https://github.com/brimdata/zed-sample-data) so you can reproduce
-the examples shown.
+[educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu)
+so you can reproduce the examples shown.

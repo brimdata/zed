@@ -1,5 +1,10 @@
 # Grouping
 
+> **Note:** Many examples below are generated using the
+> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
+> which you may wish to clone locally to reproduce the examples and create
+> your own query variations.
+
 Zed includes _grouping_ options that partition the input stream into batches
 that are aggregated separately based on field values. Grouping is most often
 used with [aggregate functions](../aggregate-functions/README.md). If explicit

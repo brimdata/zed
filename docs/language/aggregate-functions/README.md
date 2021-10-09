@@ -25,9 +25,10 @@ contain.  The `summarize` keyword is optional.
      + [`sum`](#sum)
      + [`union`](#union)
 
-> **Note:** Per Zed [search syntax](../search-syntax/README.md), many examples
-> below use shorthand that leaves off the explicit leading `* |`, matching all
-> records before invoking the first element in a pipeline.
+> **Note:** Many examples below are generated using the
+> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
+> which you may wish to clone locally to reproduce the examples and create
+> your own query variations.
 
 ## General Usage
 
