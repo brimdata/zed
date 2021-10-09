@@ -772,7 +772,7 @@ zq -Z 'cut District | lower_district:=to_lower(District)' schools.zson
 #### Example #1:
 
 To rename some fields in our test scores data to match the field names from
-our schools data:
+our school data:
 
 ```mdtest-command dir=zed-sample-data/edu/zson
 zq -Z 'rename School:=sname,District:=dname,City:=cname' testscores.zson

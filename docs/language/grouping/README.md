@@ -109,7 +109,7 @@ All fields referenced in a `by` grouping must be present in a given record for
 the grouping to have effect.
 
 For instance, if we'd made an typographical error in our
-[prior example](#example-2) in our attempt to reference the `dname` field, no
+[prior example](#example-2) when attempting to reference the `dname` field, no
 grouped batches would be found in the data and hence no query result would
 appear.
 

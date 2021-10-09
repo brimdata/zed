@@ -270,8 +270,8 @@ zq -z 'count()' schools.zson && zq -z 'count()' testscores.zson && zq -z 'count(
 
 #### Example #2:
 
-The `Website` field is known to be in our schools and website address data
-sources, but not in the test scores data. To confirm this, we can count across
+The `Website` field is known to be in our school and website address data
+sources, but not in the test score data. To confirm this, we can count across
 all data sources and specify the named field.
 
 ```mdtest-command dir=zed-sample-data/edu/zson
@@ -332,7 +332,7 @@ Here we saw the approximation was "off" by 0.3%.
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the maximum value of a specified field. Non-numeric values are ignored. |
+| **Description**           | Return the maximum value of a specified field. Non-numeric values (including `null`) are ignored. |
 | **Syntax**                | `max(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
@@ -357,7 +357,7 @@ max
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the minimum value of a specified field. Non-numeric values are ignored. |
+| **Description**           | Return the minimum value of a specified field. Non-numeric values (including `null`) are ignored. |
 | **Syntax**                | `min(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
@@ -428,7 +428,7 @@ zq -Z 'has_at_least_one_school_website:=or(Website!=null) by City | sort City' s
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the total sum of the values of a specified field. Non-numeric values are ignored. |
+| **Description**           | Return the total sum of the values of a specified field. Non-numeric values (including `null`) are ignored. |
 | **Syntax**                | `sum(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |

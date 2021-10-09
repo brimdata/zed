@@ -120,10 +120,10 @@ which will match against any field that contains the word, whether it's an
 exact match to the data type and value of a field or the word appears as a
 substring in a field.
 
-For example, searching across both our school and test data sources for `596`
-matches records that contain numeric fields of this precise value (such as from
-the test scores) and also where it appears within string-typed fields (such
-as the zip code and phone number fields in the school data.)
+For example, searching across both our school and test score data sources for
+`596` matches records that contain numeric fields of this precise value (such
+as from the test scores) and also where it appears within string-typed fields
+(such as the zip code and phone number fields in the school data.)
 
 #### Example:
 ```mdtest-command dir=zed-sample-data/edu/zson
