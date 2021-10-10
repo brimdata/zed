@@ -279,6 +279,10 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 				Text: p.Duration.Text,
 			}
 		}
+		until, err := semExprNullable(scope, p.Until)
+		if err != nil {
+			return nil, err
+		}
 		// Note: InputSortDir is copied in here but it's not meaningful
 		// coming from a parser AST, only from a worker using the kernel DSL,
 		// which is another reason why we need separate parser and kernel ASTs.
@@ -294,6 +298,7 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Kind:     "Summarize",
 			Duration: dur,
 			Limit:    p.Limit,
+			Until:    until,
 			Keys:     keys,
 			Aggs:     aggs,
 		}, nil

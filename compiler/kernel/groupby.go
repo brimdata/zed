@@ -11,9 +11,10 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/proc/groupby"
+	"github.com/brimdata/zed/proc/until"
 )
 
-func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, summarize *dag.Summarize) (*groupby.Proc, error) {
+func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, summarize *dag.Summarize) (proc.Interface, error) {
 	keys, err := compileAssignments(summarize.Keys, pctx.Zctx, scope)
 	if err != nil {
 		return nil, err
@@ -23,6 +24,13 @@ func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, sum
 		return nil, err
 	}
 	dir := order.Direction(summarize.InputSortDir)
+	if summarize.Until != nil {
+		clause, err := compileExprPredicate(pctx.Zctx, scope, summarize.Until)
+		if err != nil {
+			return nil, err
+		}
+		return until.New(pctx, parent, clause, keys, names, reducers, summarize.Limit)
+	}
 	return groupby.New(pctx, parent, keys, names, reducers, summarize.Limit, dir, summarize.PartialsIn, summarize.PartialsOut)
 }
 

@@ -23,11 +23,6 @@ var PassOp = &Pass{Kind: "Pass"}
 // Ops
 
 type (
-	Collect struct {
-		Kind  string `json:"kind" unpack:""`
-		By    []Expr `json:"by"`
-		Until Expr   `json:"until"`
-	}
 	Cut struct {
 		Kind  string       `json:"kind" unpack:""`
 		Args  []Assignment `json:"args"`
@@ -104,6 +99,7 @@ type (
 		Limit        int               `json:"limit"`
 		Keys         []Assignment      `json:"keys"`
 		Aggs         []Assignment      `json:"aggs"`
+		Until        Expr              `json:"until"`
 		InputSortDir int               `json:"input_sort_dir,omitempty"`
 		PartialsIn   bool              `json:"partials_in,omitempty"`
 		PartialsOut  bool              `json:"partials_out,omitempty"`
@@ -255,7 +251,6 @@ func (*Const) OpNode()      {}
 func (*TypeProc) OpNode()   {}
 func (*Shape) OpNode()      {}
 func (*Explode) OpNode()    {}
-func (*Collect) OpNode()    {}
 func (*Merge) OpNode()      {}
 
 func (seq *Sequential) IsEntry() bool {

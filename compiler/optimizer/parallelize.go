@@ -73,6 +73,14 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 	case *dag.Join, *dag.Parallel, *dag.Sequential:
 		return nil
 	case *dag.Summarize:
+		if ingress.Until != nil {
+			// "Until" aggregations cannot be parallelized since
+			// all of the records for each group-by need to be
+			// recieved at the same entity.  We could handle this
+			// by routing values based on a key hash, but we do
+			// not yet have this capability.
+			return nil
+		}
 		// To decompose the groupby, we split the flowgraph into branches that run up to and including a groupby,
 		// followed by a post-merge groupby that composes the results.
 		// Copy the aggregator into the tail of the trunk and arrange

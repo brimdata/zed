@@ -15,7 +15,6 @@ var unpacker = unpack.New(
 	Call{},
 	Cast{},
 	astzed.CastValue{},
-	Collect{},
 	Conditional{},
 	Const{},
 	Cut{},
