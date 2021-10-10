@@ -65,7 +65,6 @@ func (p *Proc) Done() {
 
 func (p *Proc) run() {
 	for {
-		var out zbuf.Array
 		batch, err := p.parent.Pull()
 		if err != nil {
 			p.shutdown(err)
@@ -75,6 +74,7 @@ func (p *Proc) run() {
 			p.sendResult(nil, err)
 			return
 		}
+		var out zbuf.Array
 		for k := 0; k < batch.Length(); k++ {
 			rec, err := p.agg.Consume(batch.Index(k))
 			if err != nil {
@@ -82,7 +82,9 @@ func (p *Proc) run() {
 				p.shutdown(err)
 				return
 			}
-			out.Append(rec)
+			if rec != nil {
+				out.Append(rec)
+			}
 		}
 		batch.Unref()
 		if out.Length() > 0 {

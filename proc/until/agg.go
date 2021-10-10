@@ -15,7 +15,9 @@ var DefaultLimit = 1000000
 // ("every") group-by operations.  Records are generated in a
 // deterministic but undefined total order.
 type Aggregator struct {
-	zctx *zed.Context
+	zctx  *zed.Context
+	limit int
+	until expr.Filter
 	// The keyTypes and outTypes tables map a vector of types resulting
 	// from evaluating the key and reducer expressions to a small int,
 	// such that the same vector of types maps to the same small int.
@@ -24,7 +26,6 @@ type Aggregator struct {
 	keyTypes    *zed.TypeVectorTable
 	outTypes    *zed.TypeVectorTable
 	block       map[int]struct{}
-	until       expr.Filter
 	typeCache   []zed.Type
 	keyCache    []byte // Reduces memory allocations in Consume.
 	keyRefs     []expr.Evaluator
@@ -34,7 +35,6 @@ type Aggregator struct {
 	builder     *zed.ColumnBuilder
 	recordTypes map[int]*zed.TypeRecord
 	table       map[string]*Row
-	limit       int
 }
 
 type Row struct {
@@ -50,6 +50,7 @@ func NewAggregator(zctx *zed.Context, until expr.Filter, keyRefs, keyExprs, aggR
 	return &Aggregator{
 		zctx:        zctx,
 		limit:       limit,
+		until:       until,
 		keyTypes:    zed.NewTypeVectorTable(),
 		outTypes:    zed.NewTypeVectorTable(),
 		keyRefs:     keyRefs,
@@ -182,15 +183,8 @@ func (a *Aggregator) recon(keyBytes []byte) (*zed.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	rec := zed.NewRecord(typ, zv)
-	// Delete entries from the table as we create records, so
-	// the freed enries can be GC'd incrementally as we shift
-	// state from the table to the records.  Otherwise, when
-	// operating near capacity, we would double the memory footprint
-	// unnecessarily by holding back the table entries from GC
-	// until this loop finished.
 	delete(a.table, string(keyBytes))
-	return rec, nil
+	return zed.NewRecord(typ, zv), nil
 }
 
 func (a *Aggregator) lookupRecordType(types []zed.Type) (*zed.TypeRecord, error) {
