@@ -217,11 +217,11 @@ Pattern = Regexp / Glob
 /// === Aggregations ===
 
 Aggregation
-  = Summarize? every:EveryDur? keys:GroupByKeys limit:LimitArg {
-      RETURN(MAP("kind": "Summarize", "keys": keys, "aggs": NULL, "duration": every, "limit": limit))
+  = Summarize? every:EveryDur? keys:GroupByKeys until:UntilClause? limit:LimitArg {
+      RETURN(MAP("kind": "Summarize", "keys": keys, "aggs": NULL, "duration": every, "until" :until, "limit": limit))
     }
-  / Summarize? every:EveryDur? aggs:AggAssignments keys:(_ GroupByKeys)? limit:LimitArg {
-      VAR(p) = MAP("kind": "Summarize", "keys": NULL, "aggs": aggs, "duration": every, "limit": limit)
+  / Summarize? every:EveryDur? aggs:AggAssignments keys:(_ GroupByKeys)? until:UntilClause? limit:LimitArg {
+      VAR(p) = MAP("kind": "Summarize", "keys": NULL, "aggs": aggs, "duration": every, "until": until, "limit": limit)
       if ISNOTNULL(keys) {
         p["keys"] = ASSERT_ARRAY(keys)[1]
       }
@@ -276,6 +276,8 @@ AggName
 
 WhereClause = _ "where" _ expr:LogicalOrExpr { RETURN(expr) }
 
+UntilClause = _ "until" _ expr:LogicalOrExpr { RETURN(expr) }
+
 AggAssignments
   = first:AggAssignment rest:(__ "," __ AggAssignment)* {
       VAR(result) = ARRAY(first)
@@ -307,7 +309,6 @@ Operator
   / FromProc
   / PassProc
   / ExplodeProc
-  / CollectProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
@@ -573,11 +574,6 @@ TypeArg
 
 AsArg
   = _ AS _ lhs:Lval { RETURN(lhs) }
-
-CollectProc
-  = "collect"i _ "by"i _ keys:Exprs _ "until"i _ expr:Expr {
-      RETURN(MAP("kind":"Collect", "keys": keys, "until": expr))
-    }
 
 /// === Expressions ===
 
