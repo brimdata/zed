@@ -64,7 +64,7 @@ func (d *Driver) ChannelEnd(channelID int) error {
 	return d.WriteControl(api.QueryChannelEnd{channelID})
 }
 
-func (d *Driver) Stats(stats api.ScannerStats) error {
+func (d *Driver) Stats(stats zbuf.ScannerStats) error {
 	v := api.QueryStats{
 		StartTime:    d.start,
 		UpdateTime:   nano.Now(),
