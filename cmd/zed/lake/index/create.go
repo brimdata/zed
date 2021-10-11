@@ -71,7 +71,8 @@ func (c *createCommand) Run(args []string) error {
 		if err != nil {
 			return err
 		}
-		if err := api.ScanIndexRules(ctx, lake, driver.NewCLI(w)); err != nil {
+		query := fmt.Sprintf("from :index_rules | name == '%s'", ruleName)
+		if _, err = lake.Query(ctx, driver.NewCLI(w), nil, query); err != nil {
 			return err
 		}
 		return w.Close()
