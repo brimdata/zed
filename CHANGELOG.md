@@ -37,7 +37,7 @@ As you can see below, there's been many changes since the last Zed GA release!  
   for details.
 
 The exhaustive set of changes is listed below. Come talk to us on
-[Slack](https://www.brimsecurity.com/join-slack/) if you have additional
+[Slack](https://www.brimdata.io/join-slack/) if you have additional
 questions.
 
 ---
@@ -241,7 +241,7 @@ lets us realize both.
 For more detail regarding licensing, see the
 [CONTRIBUTING.md](CONTRIBUTING.md)
 doc, and feel free to come talk to us on
-[Slack](https://www.brimsecurity.com/join-slack/) if you have additional
+[Slack](https://www.brimdata.io/join-slack/) if you have additional
 questions.
 
 ---
@@ -393,7 +393,7 @@ questions.
 * zqd: Add an endpoint for creating/querying search indexes (#1272)
 * zapi: Add commands `zapi index create|find` for creating/querying search indexes (#1289)
 * pcap: Mention ICMP protocol filtering (`-p icmp`) in help text (#1281)
-* zq: Point to new Slack community URL https://www.brimsecurity.com/join-slack/ in docs (#1304)
+* zq: Point to new Slack community URL https://www.brimdata.io/join-slack/ in docs (#1304)
 * zqd: Fix an issue where starting `zqd listen` created excess error messages when subdirectories were present (#1303)
 * zql: Add the [`fuse` operator](docs/language/operators#fuse) for unifying records under a single schema (#1310, #1319, #1324)
 * zql: Fix broken links in documentation (#1321, #1339)

@@ -166,7 +166,7 @@ would require complicated table references, nested selects, and multi-way joins.
 > If you try it out, you may run into problems and we'd love your
 > feedback.
 > Feel free to [open an issue](https://github.com/brimdata/zed/issues/new)
-> or talk to us on our [public Slack](https://www.brimsecurity.com/join-slack/)
+> or talk to us on our [public Slack](https://www.brimdata.io/join-slack/)
 > about where you've seen it break or where you think it can be improved.
 
 ## Data Sources
