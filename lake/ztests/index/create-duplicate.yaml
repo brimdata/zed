@@ -5,6 +5,10 @@ script: |
   ! zed lake index create IPs type ip
 
 outputs:
+  - name: stdout
+    regexp: |
+      IPs
+          rule \w{27} type ip
   - name: stderr
     regexp: |
       index rule already exists
