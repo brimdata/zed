@@ -74,7 +74,7 @@ func (c *Collect) buildUnion(zctx *zed.Context, selectors map[zed.Type]int) (zed
 	// to create union values instead of doing the work here to find the
 	// index of the type.
 	types := make([]zed.Type, 0, len(selectors))
-	for typ, _ := range selectors {
+	for typ := range selectors {
 		selectors[typ] = len(types)
 		types = append(types, typ)
 	}
