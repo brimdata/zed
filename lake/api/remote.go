@@ -7,21 +7,17 @@ import (
 	"io"
 	"strings"
 
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/driver"
-	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/anyio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -58,14 +54,7 @@ func (r *RemoteSession) PoolID(ctx context.Context, poolName string) (ksuid.KSUI
 
 func (r *RemoteSession) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
 	res, err := r.conn.BranchGet(ctx, poolID, branchName)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	var commit api.CommitResponse
-	if err = unmarshal(res, &commit); err != nil {
-		return ksuid.Nil, err
-	}
-	return commit.Commit, nil
+	return res.Commit, err
 }
 
 func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64) (ksuid.KSUID, error) {
@@ -77,19 +66,14 @@ func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout orde
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	var meta lake.BranchMeta
-	err = unmarshal(res, &meta)
-	return meta.Pool.ID, err
+	return res.Pool.ID, err
 }
 
 func (r *RemoteSession) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string, at ksuid.KSUID) error {
-	resp, err := r.conn.BranchPost(ctx, poolID, api.BranchPostRequest{
+	_, err := r.conn.BranchPost(ctx, poolID, api.BranchPostRequest{
 		Name:   name,
 		Commit: at.String(),
 	})
-	if err == nil {
-		resp.Body.Close()
-	}
 	return err
 }
 
@@ -99,15 +83,7 @@ func (r *RemoteSession) RemoveBranch(ctx context.Context, poolID ksuid.KSUID, br
 
 func (r *RemoteSession) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (ksuid.KSUID, error) {
 	res, err := r.conn.MergeBranch(ctx, poolID, childBranch, parentBranch, message)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	defer res.Body.Close()
-	var body api.CommitResponse
-	if err := unmarshal(res, &body); err != nil {
-		return ksuid.Nil, err
-	}
-	return body.Commit, nil
+	return res.Commit, err
 }
 
 func (r *RemoteSession) RemovePool(ctx context.Context, pool ksuid.KSUID) error {
@@ -128,28 +104,13 @@ func (r *RemoteSession) Load(ctx context.Context, poolID ksuid.KSUID, branchName
 		zio.CopyWithContext(ctx, w, reader)
 		w.Close()
 	}()
-	rc, err := r.conn.Load(ctx, poolID, branchName, pr, commit)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	var res api.CommitResponse
-	if err := unmarshal(rc, &res); err != nil {
-		return ksuid.Nil, err
-	}
+	res, err := r.conn.Load(ctx, poolID, branchName, pr, commit)
 	return res.Commit, err
 }
 
 func (r *RemoteSession) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
 	res, err := r.conn.Revert(ctx, poolID, branchName, commitID, message)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	defer res.Body.Close()
-	var body api.CommitResponse
-	if err := unmarshal(res, &body); err != nil {
-		return ksuid.Nil, err
-	}
-	return body.Commit, nil
+	return res.Commit, err
 }
 
 func (*RemoteSession) AddIndexRules(context.Context, []index.Rule) error {
@@ -177,32 +138,7 @@ func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, head *lakepa
 	return queryio.RunClientResponse(ctx, d, res)
 }
 
-func unmarshal(res *client.Response, i interface{}) error {
-	format, err := api.MediaTypeToFormat(res.ContentType)
-	if err != nil {
-		return err
-	}
-	//XXX should be ZNG
-	zr, err := anyio.NewReaderWithOpts(res.Body, zed.NewContext(), anyio.ReaderOpts{Format: format})
-	if err != nil {
-		return nil
-	}
-	rec, err := zr.Read()
-	if err != nil {
-		return err
-	}
-	return zson.UnmarshalZNGRecord(rec, i)
-}
-
 func (r *RemoteSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, tags []ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error) {
 	res, err := r.conn.Delete(ctx, poolID, branchName, tags, commit)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	defer res.Body.Close()
-	var resp api.CommitResponse
-	if err := unmarshal(res, &resp); err != nil {
-		return ksuid.Nil, err
-	}
-	return resp.Commit, err
+	return res.Commit, err
 }

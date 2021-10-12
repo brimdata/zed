@@ -44,13 +44,13 @@ func TestAuthIdentity(t *testing.T) {
 
 	var poolErr *client.ErrorResponse
 	require.True(t, errors.As(err, &poolErr))
-	require.Equal(t, http.StatusUnauthorized, poolErr.StatusCode())
+	require.Equal(t, http.StatusUnauthorized, poolErr.StatusCode)
 
 	var identErr *client.ErrorResponse
 	_, err = conn.AuthIdentity(context.Background())
 	require.Error(t, err)
 	require.True(t, errors.As(err, &identErr))
-	require.Equal(t, http.StatusUnauthorized, identErr.StatusCode())
+	require.Equal(t, http.StatusUnauthorized, identErr.StatusCode)
 
 	token := genToken(t, "test_tenant_id", "test_user_id")
 	conn.SetAuthToken(token)
