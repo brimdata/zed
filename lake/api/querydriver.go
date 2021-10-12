@@ -1,7 +1,6 @@
 package api
 
 import (
-	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
@@ -36,6 +35,6 @@ func (*queryDriver) ChannelEnd(int) error {
 	return nil
 }
 
-func (*queryDriver) Stats(api.ScannerStats) error {
+func (*queryDriver) Stats(zbuf.ScannerStats) error {
 	return nil
 }

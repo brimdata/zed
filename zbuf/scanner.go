@@ -38,13 +38,12 @@ type ScannerCloser interface {
 	io.Closer
 }
 
-// ScannerStats holds Scanner statistics. It should be identical to
-// api.ScannerStats.
+// ScannerStats holds Scanner statistics.
 type ScannerStats struct {
-	BytesRead      int64 `zed:"bytes_read"`
-	BytesMatched   int64 `zed:"bytes_matched"`
-	RecordsRead    int64 `zed:"records_read"`
-	RecordsMatched int64 `zed:"records_matched"`
+	BytesRead      int64 `zed:"bytes_read" json:"bytes_read"`
+	BytesMatched   int64 `zed:"bytes_matched" json:"bytes_matched"`
+	RecordsRead    int64 `zed:"records_read" json:"records_read"`
+	RecordsMatched int64 `zed:"records_matched" json:"records_matched"`
 }
 
 // Add updates its receiver by adding to it the values in ss.

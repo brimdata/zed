@@ -6,6 +6,7 @@ import (
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/segmentio/ksuid"
 )
 
@@ -27,13 +28,6 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.Message
-}
-
-type ScannerStats struct {
-	BytesRead      int64 `json:"bytes_read"`
-	BytesMatched   int64 `json:"bytes_matched"`
-	RecordsRead    int64 `json:"records_read"`
-	RecordsMatched int64 `json:"records_matched"`
 }
 
 type VersionResponse struct {
@@ -112,7 +106,7 @@ type QueryError struct {
 type QueryStats struct {
 	StartTime  nano.Ts `json:"start_time" zed:"start_time"`
 	UpdateTime nano.Ts `json:"update_time" zed:"update_time"`
-	ScannerStats
+	zbuf.ScannerStats
 }
 
 type QueryWarning struct {
