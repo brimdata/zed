@@ -430,7 +430,7 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 			if err != nil {
 				return nil, err
 			}
-			if f == nil || !f(rec) {
+			if f == nil || f(rec) {
 				batch.Append(rec)
 			}
 		}
