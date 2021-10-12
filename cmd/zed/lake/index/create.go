@@ -72,10 +72,11 @@ func (c *createCommand) Run(args []string) error {
 			return err
 		}
 		query := fmt.Sprintf("from :index_rules | name == '%s'", ruleName)
-		if _, err = lake.Query(ctx, driver.NewCLI(w), nil, query); err != nil {
-			return err
+		err = lake.Query(ctx, driver.NewCLI(w), nil, query)
+		if err2 := w.Close(); err == nil {
+			err = err2
 		}
-		return w.Close()
+		return err
 	}
 	return err
 }
