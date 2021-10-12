@@ -37,7 +37,7 @@ As you can see below, there's been many changes since the last Zed GA release!  
   for details.
 
 The exhaustive set of changes is listed below. Come talk to us on
-[Slack](https://www.brimsecurity.com/join-slack/) if you have additional
+[Slack](https://www.brimdata.io/join-slack/) if you have additional
 questions.
 
 ---
@@ -241,7 +241,7 @@ lets us realize both.
 For more detail regarding licensing, see the
 [CONTRIBUTING.md](CONTRIBUTING.md)
 doc, and feel free to come talk to us on
-[Slack](https://www.brimsecurity.com/join-slack/) if you have additional
+[Slack](https://www.brimdata.io/join-slack/) if you have additional
 questions.
 
 ---
