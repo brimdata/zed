@@ -1,4 +1,6 @@
 script: |
+  echo === ANTI ===
+  zq -z 'anti join on a=b | sort a' A.zson B.zson
   echo === LEFT ===
   zq -z 'left join on a=b hit:=sb | sort a' A.zson B.zson
   echo === INNER ===
@@ -18,6 +20,7 @@ inputs:
       {a:40,sa:"a3"}
       {a:45,sa:"a5"}
       {a:50,sa:"a4"}
+      {anti_a:"Anti join output must not contain this record."}
   - name: B.zson
     data: |
       {b:20,sb:"b20.1"}
@@ -37,6 +40,14 @@ inputs:
 outputs:
   - name: stdout
     data: |
+      === ANTI ===
+      {a:10,sa:"a0"}
+      {a:15,sa:"a8"}
+      {a:25,sa:"a7"}
+      {a:30,sa:"a2"}
+      {a:35,sa:"a6"}
+      {a:45,sa:"a5"}
+      {a:50,sa:"a4"}
       === LEFT ===
       {a:10,sa:"a0"}
       {a:15,sa:"a8"}

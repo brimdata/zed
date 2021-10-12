@@ -404,21 +404,21 @@ func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface
 		if err != nil {
 			return nil, err
 		}
-		inner := true
-		leftParent := parents[0]
-		rightParent := parents[1]
+		leftParent, rightParent := parents[0], parents[1]
+		var anti, inner bool
 		switch op.Style {
+		case "anti":
+			anti = true
+		case "inner":
+			inner = true
 		case "left":
-			inner = false
 		case "right":
-			inner = false
 			leftKey, rightKey = rightKey, leftKey
 			leftParent, rightParent = rightParent, leftParent
-		case "inner":
 		default:
 			return nil, fmt.Errorf("unknown kind of join: '%s'", op.Style)
 		}
-		join, err := join.New(b.pctx, inner, leftParent, rightParent, leftKey, rightKey, lhs, rhs)
+		join, err := join.New(b.pctx, anti, inner, leftParent, rightParent, leftKey, rightKey, lhs, rhs)
 		if err != nil {
 			return nil, err
 		}
