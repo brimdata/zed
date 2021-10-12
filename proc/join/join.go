@@ -15,6 +15,8 @@ import (
 
 type Proc struct {
 	pctx        *proc.Context
+	anti        bool
+	inner       bool
 	ctx         context.Context
 	cancel      context.CancelFunc
 	once        sync.Once
@@ -27,10 +29,9 @@ type Proc struct {
 	joinKey     zed.Value
 	joinSet     []*zed.Record
 	types       map[int]map[int]*zed.TypeRecord
-	inner       bool
 }
 
-func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Proc, error) {
+func New(pctx *proc.Context, anti, inner bool, left, right proc.Interface, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Proc, error) {
 	cutter, err := expr.NewCutter(pctx.Zctx, lhs, rhs)
 	if err != nil {
 		return nil, err
@@ -39,6 +40,8 @@ func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, ri
 	ctx, cancel := context.WithCancel(pctx.Context)
 	return &Proc{
 		pctx:        pctx,
+		anti:        anti,
+		inner:       inner,
 		ctx:         ctx,
 		cancel:      cancel,
 		getLeftKey:  leftKey,
@@ -49,7 +52,6 @@ func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, ri
 		compare: expr.NewValueCompareFn(false),
 		cutter:  cutter,
 		types:   make(map[int]map[int]*zed.TypeRecord),
-		inner:   inner,
 	}, nil
 }
 
@@ -91,6 +93,9 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			if !p.inner {
 				out = append(out, leftRec.Keep())
 			}
+			continue
+		}
+		if p.anti {
 			continue
 		}
 		// For every record on the right with a key matching
