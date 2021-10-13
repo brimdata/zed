@@ -2,6 +2,7 @@ package lake
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -40,7 +41,7 @@ func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap
 		span:   span,
 		filter: filter,
 		index:  index,
-		ch:     make(chan Partition, 10),
+		ch:     make(chan Partition),
 	}
 }
 
@@ -72,6 +73,10 @@ func (s *Scheduler) run() {
 	s.group, ctx = errgroup.WithContext(s.ctx)
 	ch := s.ch
 	if s.index != nil {
+		// Make the index out channel buffered so the index filter reads ahead
+		// of the scan pass, but not too far ahead- the search may be aborted
+		// before the scan pass gets to the end and we don't want to waste
+		// resources running index lookups that aren't used.
 		ch = make(chan Partition)
 		s.group.Go(func() error {
 			defer close(s.ch)
@@ -139,7 +144,10 @@ func indexFilterPass(ctx context.Context, snap commits.View, filter *index.Filte
 	for p := range in {
 		objects := make([]*data.Object, 0, len(p.Objects))
 		for _, o := range p.Objects {
-			r, _ := snap.LookupIndexObjectRules(o.ID)
+			r, err := snap.LookupIndexObjectRules(o.ID)
+			if err != nil && !errors.Is(err, commits.ErrNotFound) {
+				return err
+			}
 			if r != nil {
 				hit, err := filter.Apply(ctx, o.ID, r)
 				if err != nil {

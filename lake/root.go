@@ -438,10 +438,10 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 	return batch, nil
 }
 
-func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, span extent.Span, filter zbuf.Filter, pred []dag.IndexPredicate) (proc.Scheduler, error) {
+func (r *Root) NewScheduler(ctx context.Context, zctx *zed.Context, src dag.Source, span extent.Span, filter zbuf.Filter, predicates []dag.IndexPredicate) (proc.Scheduler, error) {
 	switch src := src.(type) {
 	case *dag.Pool:
-		return r.newPoolScheduler(ctx, zctx, src.ID, src.Commit, span, filter, pred)
+		return r.newPoolScheduler(ctx, zctx, src.ID, src.Commit, span, filter, predicates)
 	case *dag.LakeMeta:
 		return r.newLakeMetaScheduler(ctx, zctx, src.Meta, filter)
 	case *dag.PoolMeta:
