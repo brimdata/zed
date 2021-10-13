@@ -552,63 +552,43 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Type: typ,
 			As:   as,
 		}, nil
+	case *ast.Const:
+		return nil, errors.New("const declaration must appear in outer block")
+	case *ast.TypeProc:
+		return nil, errors.New("type declaration must appear in outer block")
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST type: %v", p)
 }
 
-func semConsts(consts []dag.Op, scope *Scope, p ast.Proc) ([]dag.Op, error) {
-	switch p := p.(type) {
-	case *ast.From:
-		for _, trunk := range p.Trunks {
-			if trunk.Seq == nil {
-				continue
-			}
-			var err error
-			consts, err = semConsts(consts, scope, trunk.Seq)
+func semConsts(scope *Scope, constsAST []ast.Proc) ([]dag.Op, error) {
+	var consts []dag.Op
+	for _, p := range constsAST {
+		switch p := p.(type) {
+		case *ast.TypeProc:
+			typ, err := semType(scope, p.Type)
 			if err != nil {
 				return nil, err
 			}
-		}
-	case *ast.Sequential:
-		for _, p := range p.Procs {
-			var err error
-			consts, err = semConsts(consts, scope, p)
+			converted := &dag.TypeProc{
+				Kind: "TypeProc",
+				Name: p.Name,
+				Type: typ,
+			}
+			scope.Bind(p.Name, converted)
+			consts = append(consts, converted)
+		case *ast.Const:
+			e, err := semExpr(scope, p.Expr)
 			if err != nil {
 				return nil, err
 			}
-		}
-	case *ast.Parallel:
-		for _, p := range p.Procs {
-			var err error
-			consts, err = semConsts(consts, scope, p)
-			if err != nil {
-				return nil, err
+			converted := &dag.Const{
+				Kind: "Const",
+				Name: p.Name,
+				Expr: e,
 			}
+			scope.Bind(p.Name, converted)
+			consts = append(consts, converted)
 		}
-	case *ast.TypeProc:
-		typ, err := semType(scope, p.Type)
-		if err != nil {
-			return nil, err
-		}
-		converted := &dag.TypeProc{
-			Kind: "TypeProc",
-			Name: p.Name,
-			Type: typ,
-		}
-		scope.Bind(p.Name, converted)
-		return append(consts, converted), nil
-	case *ast.Const:
-		e, err := semExpr(scope, p.Expr)
-		if err != nil {
-			return nil, err
-		}
-		converted := &dag.Const{
-			Kind: "Const",
-			Name: p.Name,
-			Expr: e,
-		}
-		scope.Bind(p.Name, converted)
-		return append(consts, converted), nil
 	}
 	return consts, nil
 }
@@ -648,4 +628,21 @@ func semOpAssignment(scope *Scope, p *ast.OpAssignment) (dag.Op, error) {
 		Kind: "Summarize",
 		Aggs: aggs,
 	}, nil
+}
+
+func LiftConsts(p ast.Proc) []ast.Proc {
+	seq, ok := p.(*ast.Sequential)
+	if !ok {
+		return nil
+	}
+	var consts []ast.Proc
+	for {
+		switch seq.Procs[0].(type) {
+		case *ast.Const, *ast.TypeProc:
+			consts = append(consts, seq.Procs[0])
+			seq.Procs = seq.Procs[1:]
+		default:
+			return consts
+		}
+	}
 }

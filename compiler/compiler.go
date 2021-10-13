@@ -29,6 +29,7 @@ type Runtime struct {
 
 func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*Runtime, error) {
 	parserAST := ast.Copy(inAST)
+	constsAST := semantic.LiftConsts(parserAST)
 	// An AST always begins with a Sequential proc with at least one
 	// proc.  If the first proc is a From, then we presume there is no
 	// externally defined input.  Otherwise, we expect two readers
@@ -100,7 +101,7 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lak
 	if from != nil {
 		seq.Prepend(from)
 	}
-	entry, consts, err := semantic.Analyze(pctx.Context, seq, adaptor, head)
+	entry, consts, err := semantic.Analyze(pctx.Context, seq, constsAST, adaptor, head)
 	if err != nil {
 		return nil, err
 	}
