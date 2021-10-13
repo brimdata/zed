@@ -29,9 +29,14 @@ func Analyze(ctx context.Context, seq *ast.Sequential, adaptor proc.DataAdaptor,
 }
 
 func isFrom(seq *ast.Sequential) bool {
-	if len(seq.Procs) == 0 {
-		return false
+	for _, p := range seq.Procs {
+		switch p.(type) {
+		case *ast.Const, *ast.TypeProc:
+		case *ast.From:
+			return true
+		default:
+			return false
+		}
 	}
-	_, ok := seq.Procs[0].(*ast.From)
-	return ok
+	return false
 }

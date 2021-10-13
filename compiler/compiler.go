@@ -48,8 +48,9 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lak
 	var readers []*kernel.Reader
 	var from *ast.From
 	switch proc := seq.Procs[0].(type) {
-	case *ast.From:
-		// Already have an entry point with From.  Do nothing.
+	case *ast.From, *ast.Const, *ast.TypeProc:
+		// Already have an entry point with From.  Or, if there are
+		// const and/or type decls, assume a from comes later. Do nothing.
 	case *ast.Join:
 		readers = []*kernel.Reader{{}, {}}
 		trunk0 := ast.Trunk{
