@@ -1,0 +1,24 @@
+script: zq -z -I src.zed
+
+inputs:
+  - name: src.zed
+    data: |
+      const A=1;
+      from (
+        file a.zson => put x:=A+1;
+        file b.zson => put x:=A;
+      ) | sort x
+
+  - name: a.zson
+    data: |
+      {a:1}
+
+  - name: b.zson
+    data: |
+      {b:2}
+
+outputs:
+  - name: stdout
+    data: |
+      {b:2,x:1}
+      {a:1,x:2}
