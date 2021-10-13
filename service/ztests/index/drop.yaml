@@ -1,0 +1,20 @@
+script: |
+  source service.sh
+  zed lake index -q create IPs type ip
+  zed lake index -q create DropMe field DropMe
+  id=$(zed lake query -f text 'from :index_rules | name == "DropMe" | cut id | id:=to_hex(id)')
+  zed lake index drop 0x$id
+  echo ===
+  zed lake index ls
+
+inputs:
+  - name: service.sh
+    source: ../service.sh
+
+outputs:
+  - name: stdout
+    regexp: |
+      \w{27} dropped from rule "DropMe"
+      ===
+      IPs
+          rule \w{27} type ip

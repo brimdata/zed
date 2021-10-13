@@ -1,0 +1,13 @@
+script: |
+  source service.sh
+  zed lake index create IPs type ip
+  ! zed lake index create IPs type ip
+
+inputs:
+  - name: service.sh
+    source: ../service.sh
+
+outputs:
+  - name: stderr
+    regexp: |
+      index rule already exists

@@ -1,0 +1,14 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake index create -q IPs type ip
+  zed lake index create -q foo.bar field foo.bar
+  zed lake index create -q duration.sum agg 'sum(duration)'
+  zed lake query -z 'from :index_rules | sort name | drop id, ts'
+
+outputs:
+  - name: stdout
+    data: |
+      {name:"IPs",type:"ip"}
+      {name:"duration.sum",script:"sum(duration)"}
+      {name:"foo.bar",fields:[["foo","bar"](=field.Path)](=field.List)}

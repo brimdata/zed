@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
@@ -63,11 +64,21 @@ type CommitResponse struct {
 	Warnings []string    `zed:"warnings"`
 }
 
-type IndexPostRequest struct {
-	Keys     []string `json:"keys"`
-	Name     string   `json:"name"`
-	Patterns []string `json:"patterns"`
-	Zed      string   `json:"zed,omitempty"`
+type IndexRulesDeleteRequest struct {
+	RuleIDs []string `zed:"rule_ids"`
+}
+
+type IndexRulesDeleteResponse struct {
+	Rules []index.Rule `zed:"rules"`
+}
+
+type ApplyIndexRequest struct {
+	RuleName string        `zed:"rule_name"`
+	Tags     []ksuid.KSUID `zed:"tags"`
+}
+
+type UpdateIndexRequest struct {
+	RuleNames []string `zed:"rule_names"`
 }
 
 type EventBranchCommit struct {

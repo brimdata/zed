@@ -113,20 +113,23 @@ func (r *RemoteSession) Revert(ctx context.Context, poolID ksuid.KSUID, branchNa
 	return res.Commit, err
 }
 
-func (*RemoteSession) AddIndexRules(context.Context, []index.Rule) error {
-	return errors.New("unsupported see issue #2934")
+func (r *RemoteSession) AddIndexRules(ctx context.Context, rules []index.Rule) error {
+	return r.conn.IndexRulesPost(ctx, rules)
 }
 
-func (*RemoteSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
-	return nil, errors.New("unsupported see issue #2934")
+func (r *RemoteSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
+	res, err := r.conn.IndexRulesDelete(ctx, ids)
+	return res.Rules, err
 }
 
-func (*RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
-	return ksuid.Nil, errors.New("unsupported see issue #2934")
+func (r *RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
+	res, err := r.conn.IndexApply(ctx, poolID, branchName, rule, inTags)
+	return res.Commit, err
 }
 
-func (*RemoteSession) UpdateIndex(ctx context.Context, names []string, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
-	return ksuid.Nil, errors.New("unsupported see issue #2934")
+func (r *RemoteSession) UpdateIndex(ctx context.Context, rules []string, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+	res, err := r.conn.IndexUpdate(ctx, poolID, branchName, rules)
+	return res.Commit, err
 }
 
 func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ScannerStats, error) {

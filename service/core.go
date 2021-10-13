@@ -137,6 +137,7 @@ func (c *Core) addAPIServerRoutes() {
 	// /auth/method intentionally requires no authentication
 	c.routerAPI.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
 	c.authhandle("/events", handleEvents).Methods("GET")
+	c.authhandle("/index", handleIndexRulesPost).Methods("POST")
 	c.authhandle("/pool", handlePoolPost).Methods("POST")
 	c.authhandle("/pool/{pool}", handlePoolDelete).Methods("DELETE")
 	c.authhandle("/pool/{pool}", handleBranchPost).Methods("POST")
@@ -147,14 +148,17 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/branch/{branch}/delete", handleDelete).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/merge/{child}", handleBranchMerge).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/revert/{commit}", handleRevertPost).Methods("POST")
+	c.authhandle("/pool/{pool}/branch/{branch}/index", branchHandle(handleIndexApply)).Methods("POST")
+	c.authhandle("/pool/{pool}/branch/{branch}/index/update", branchHandle(handleIndexUpdate)).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
 	c.authhandle("/query", handleQuery).Methods("POST")
 
 	// Deprecated endpoints
 	c.authhandle("/pool", handlePoolListDeprecated).Methods("GET")
 	c.authhandle("/pool/{pool}", handlePoolGetDeprecated).Methods("GET")
-	// c.authhandle("/index", handleIndexPost).Methods("POST")
 }
+
+type coreHandler func(*Core, *ResponseWriter, *Request)
 
 func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -171,6 +175,30 @@ func (c *Core) authhandle(path string, f func(*Core, *ResponseWriter, *Request))
 		h = c.handler(f)
 	}
 	return c.routerAPI.Handle(path, h)
+}
+
+func branchHandle(f func(*Core, *ResponseWriter, *Request, *lake.Branch)) coreHandler {
+	return func(c *Core, w *ResponseWriter, r *Request) {
+		poolID, ok := r.PoolID(w, c.root)
+		if !ok {
+			return
+		}
+		branchName, ok := r.StringFromPath(w, "branch")
+		if !ok {
+			return
+		}
+		pool, err := c.root.OpenPool(r.Context(), poolID)
+		if err != nil {
+			w.Error(err)
+			return
+		}
+		branch, err := pool.OpenBranchByName(r.Context(), branchName)
+		if err != nil {
+			w.Error(err)
+			return
+		}
+		f(c, w, r, branch)
+	}
 }
 
 func (c *Core) Registry() *prometheus.Registry {

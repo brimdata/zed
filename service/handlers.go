@@ -9,8 +9,10 @@ import (
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
+	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
@@ -431,59 +433,76 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	w.Marshal(api.CommitResponse{Commit: commit})
 }
 
-/* XXX Not yet
-func handleIndexPost(c *Core, w *Response, r *Request) {
-	var req api.IndexPostRequest
-	if !request(c, w, r, &req) {
+func handleIndexRulesPost(c *Core, w *ResponseWriter, r *Request) {
+	var rules []index.Rule
+	if !r.Unmarshal(w, &rules) {
 		return
 	}
-	// func (r *Root) AddIndex(ctx context.Context, indices []index.Index) error {
-	if err := c.root.AddIndex(r.Context(), req); err != nil {
-		respondError(c, w, r, err)
+	if err := c.root.AddIndexRules(r.Context(), rules); err != nil {
+		w.Error(err)
 		return
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func handleIndexSearch(c *Core, w *Response, r *Request) {
-	var req api.IndexSearchRequest
-	if !request(c, w, r, &req) {
+func handleIndexRulesDelete(c *Core, w *ResponseWriter, r *Request) {
+	var req api.IndexRulesDeleteRequest
+	if !r.Unmarshal(w, &req) {
 		return
 	}
-	id, ok := extractPoolID(c, w, r)
-	if !ok {
-		return
-	}
-	store, err := c.mgr.GetStorage(r.Context(), id)
+	ruleIDs, err := lakeparse.ParseIDs(req.RuleIDs)
 	if err != nil {
-		respondError(c, w, r, err)
-		return
+		w.Error(zqe.ErrInvalid(err))
 	}
-	as, ok := store.(*archivestore.Storage)
-	if !ok {
-		respondError(c, w, r, zqe.E(zqe.Invalid, "pool storage does not support index search"))
-		return
-	}
-
-	srch, err := search.NewIndexSearchOp(r.Context(), as, req)
+	rules, err := c.root.DeleteIndexRules(r.Context(), ruleIDs)
 	if err != nil {
-		respondError(c, w, r, err)
+		w.Error(err)
 		return
 	}
-	defer srch.Close()
-
-	out, err := getSearchOutput(w, r)
-	if err != nil {
-		respondError(c, w, r, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", out.ContentType())
-	if err := srch.Run(out); err != nil {
-		c.requestLogger(r).Warn("Error writing response", zap.Error(err))
-	}
+	w.Respond(http.StatusOK, api.IndexRulesDeleteResponse{Rules: rules})
 }
-*/
+
+func handleIndexApply(c *Core, w *ResponseWriter, r *Request, branch *lake.Branch) {
+	var req api.ApplyIndexRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	tags, err := branch.LookupTags(r.Context(), req.Tags)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	rules, err := c.root.LookupIndexRules(r.Context(), req.RuleName)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	commit, err := branch.ApplyIndexRules(r.Context(), rules, tags)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
+
+}
+
+func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request, branch *lake.Branch) {
+	var req api.UpdateIndexRequest
+	if !r.Unmarshal(w, &req) {
+		return
+	}
+	rules, err := c.root.LookupIndexRules(r.Context(), req.RuleNames...)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	commit, err := branch.UpdateIndex(r.Context(), rules)
+	if err != nil {
+		w.Error(err)
+		return
+	}
+	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
+}
 
 func handleAuthIdentityGet(c *Core, w *ResponseWriter, r *Request) {
 	ident := auth.IdentityFromContext(r.Context())
