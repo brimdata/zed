@@ -553,9 +553,9 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			As:   as,
 		}, nil
 	case *ast.Const:
-		return nil, errors.New("const declaration must appear in outer block")
+		return nil, errors.New("const declaration must appear at top level")
 	case *ast.TypeProc:
-		return nil, errors.New("type declaration must appear in outer block")
+		return nil, errors.New("type declaration must appear at top level")
 	}
 	return nil, fmt.Errorf("semantic transform: unknown AST type: %v", p)
 }
