@@ -103,7 +103,7 @@ func (l *Lake) Layout(_ context.Context, src dag.Source) order.Layout {
 	return order.Nil
 }
 
-func (*Lake) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
+func (*Lake) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter, []dag.IndexPredicate) (proc.Scheduler, error) {
 	return nil, fmt.Errorf("mock.Lake.NewScheduler() should not be called")
 }
 

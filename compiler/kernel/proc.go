@@ -506,7 +506,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 			if err != nil {
 				return nil, err
 			}
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown, trunk.Pushdown.Index)
 			if err != nil {
 				return nil, err
 			}
@@ -516,7 +516,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 	case *dag.PoolMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -530,7 +530,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 			if err != nil {
 				return nil, err
 			}
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -540,7 +540,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 	case *dag.LakeMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -595,8 +595,8 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 
 func (b *Builder) PushdownOf(trunk *dag.Trunk) (*Filter, error) {
 	var filter *Filter
-	if trunk.Pushdown != nil {
-		f, ok := trunk.Pushdown.(*dag.Filter)
+	if trunk.Pushdown.Scan != nil {
+		f, ok := trunk.Pushdown.Scan.(*dag.Filter)
 		if !ok {
 			return nil, errors.New("non-filter pushdown operator not yet supported")
 		}
