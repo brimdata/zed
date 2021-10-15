@@ -21,7 +21,7 @@ func NewCounter(reader Reader, p *int64) *Counter {
 	return &Counter{Reader: reader, counter: p}
 }
 
-func (c *Counter) Read() (*zed.Record, error) {
+func (c *Counter) Read() (*zed.Value, error) {
 	rec, err := c.Reader.Read()
 	if rec != nil {
 		atomic.AddInt64(c.counter, 1)

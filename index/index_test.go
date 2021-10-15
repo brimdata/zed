@@ -99,7 +99,7 @@ func TestCompare(t *testing.T) {
 			k, err := finder.ParseKeys(fmt.Sprintf("%d", value))
 			require.NoError(t, err)
 
-			var rec *zed.Record
+			var rec *zed.Value
 			switch op {
 			case ">=":
 				rec, err = finder.ClosestGTE(k)

@@ -38,7 +38,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if proc.EOS(batch, err) {
 			return nil, err
 		}
-		recs := make([]*zed.Record, 0, batch.Length())
+		recs := make([]*zed.Value, 0, batch.Length())
 		for _, rec := range batch.Records() {
 			for _, arg := range p.args {
 				zv, err := arg.Eval(rec)

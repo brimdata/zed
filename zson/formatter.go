@@ -65,7 +65,7 @@ func (f *Formatter) pop() {
 	f.stack = f.stack[:n-1]
 }
 
-func (f *Formatter) FormatRecord(rec *zed.Record) (string, error) {
+func (f *Formatter) FormatRecord(rec *zed.Value) (string, error) {
 	f.builder.Reset()
 	// We reset tyepdefs so named types are emitted with their
 	// definition at first use in each record according to the

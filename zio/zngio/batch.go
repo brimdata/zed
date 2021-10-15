@@ -9,7 +9,7 @@ import (
 
 type batch struct {
 	buf  *buffer
-	recs []zed.Record
+	recs []zed.Value
 	refs int32
 }
 
@@ -18,7 +18,7 @@ var batchPool sync.Pool
 func newBatch(buf *buffer) *batch {
 	b, ok := batchPool.Get().(*batch)
 	if !ok {
-		b = &batch{recs: make([]zed.Record, 200)}
+		b = &batch{recs: make([]zed.Value, 200)}
 	}
 	b.buf = buf
 	b.recs = b.recs[:0]
@@ -26,14 +26,14 @@ func newBatch(buf *buffer) *batch {
 	return b
 }
 
-func (b *batch) add(r *zed.Record) { b.recs = append(b.recs, *r) }
+func (b *batch) add(r *zed.Value) { b.recs = append(b.recs, *r) }
 
-func (b *batch) Index(i int) *zed.Record { return &b.recs[i] }
+func (b *batch) Index(i int) *zed.Value { return &b.recs[i] }
 
 func (b *batch) Length() int { return len(b.recs) }
 
-func (b *batch) Records() []*zed.Record {
-	var recs []*zed.Record
+func (b *batch) Records() []*zed.Value {
+	var recs []*zed.Value
 	for i := range b.recs {
 		recs = append(recs, &b.recs[i])
 	}

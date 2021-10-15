@@ -30,7 +30,7 @@ func NewBuilder(typ *TypeRecord) *Builder {
 // primitive vs container insertions.  This could be the start of a whole package
 // that provides different ways to build Records via, e.g., a marshal API,
 // auto-generated stubs, etc.
-func (b *Builder) Build(zvs ...zcode.Bytes) *Record {
+func (b *Builder) Build(zvs ...zcode.Bytes) *Value {
 	b.Reset()
 	cols := b.Type.Columns
 	for k, zv := range zvs {

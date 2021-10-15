@@ -69,7 +69,7 @@ type indexWriter struct {
 	zng        *zngio.Writer
 	frameStart int64
 	frameEnd   int64
-	frameKey   *zed.Record
+	frameKey   *zed.Value
 }
 
 // NewWriter returns a Writer ready to write a zed index or it returns
@@ -153,7 +153,7 @@ func Order(o order.Which) Option {
 	})
 }
 
-func (w *Writer) Write(rec *zed.Record) error {
+func (w *Writer) Write(rec *zed.Value) error {
 	if w.writer == nil {
 		var err error
 		w.writer, err = newIndexWriter(w, w.iow, "")
@@ -327,7 +327,7 @@ func (w *indexWriter) Close() error {
 	return w.buffer.Close()
 }
 
-func (w *indexWriter) write(rec *zed.Record) error {
+func (w *indexWriter) write(rec *zed.Value) error {
 	offset := w.zng.Position()
 	if offset >= w.frameEnd && w.frameKey != nil {
 		w.frameEnd = offset + int64(w.base.frameThresh)
@@ -378,7 +378,7 @@ func (w *indexWriter) closeFrame() error {
 	return nil
 }
 
-func (w *indexWriter) addToParentIndex(key *zed.Record, offset int64) error {
+func (w *indexWriter) addToParentIndex(key *zed.Value, offset int64) error {
 	if w.parent == nil {
 		var err error
 		w.parent, err = w.newParent()
@@ -389,7 +389,7 @@ func (w *indexWriter) addToParentIndex(key *zed.Record, offset int64) error {
 	return w.parent.writeIndexRecord(key, offset)
 }
 
-func (w *indexWriter) writeIndexRecord(keys *zed.Record, offset int64) error {
+func (w *indexWriter) writeIndexRecord(keys *zed.Value, offset int64) error {
 	col := []zed.Column{{w.base.childField, zed.TypeInt64}}
 	val := zed.EncodeInt(offset)
 	rec, err := w.base.zctx.AddColumns(keys, col, []zed.Value{{zed.TypeInt64, val}})

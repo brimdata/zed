@@ -23,7 +23,7 @@ func NewStream() *Stream {
 	}
 }
 
-func (s *Stream) Transform(r *zed.Record) (Object, error) {
+func (s *Stream) Transform(r *zed.Value) (Object, error) {
 	typ, err := s.zctx.TranslateType(r.Type)
 	if err != nil {
 		return Object{}, err

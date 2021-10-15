@@ -37,7 +37,7 @@ func (w *Writer) WriteControl(b []byte) error {
 	return err
 }
 
-func (w *Writer) Write(r *zed.Record) error {
+func (w *Writer) Write(r *zed.Value) error {
 	inID := r.Type.ID()
 	name, ok := w.tracker[inID]
 	if !ok {

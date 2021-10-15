@@ -51,15 +51,15 @@ const (
 // key values in the records read from the reader.  If the op argument is eql
 // then only exact matches are returned.  Otherwise, the record with the
 // largest key smaller (or larger) than the key argument is returned.
-func lookup(reader zio.Reader, compare expr.KeyCompareFn, o order.Which, op operator) (*zed.Record, error) {
+func lookup(reader zio.Reader, compare expr.KeyCompareFn, o order.Which, op operator) (*zed.Value, error) {
 	if o == order.Asc {
 		return lookupAsc(reader, compare, op)
 	}
 	return lookupDesc(reader, compare, op)
 }
 
-func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zed.Record, error) {
-	var prev *zed.Record
+func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zed.Value, error) {
+	var prev *zed.Value
 	for {
 		rec, err := reader.Read()
 		if rec == nil || err != nil {
@@ -84,8 +84,8 @@ func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zed.Recor
 	}
 }
 
-func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zed.Record, error) {
-	var prev *zed.Record
+func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zed.Value, error) {
+	var prev *zed.Value
 	for {
 		rec, err := reader.Read()
 		if rec == nil || err != nil {
@@ -147,7 +147,7 @@ func (f *Finder) search(compare expr.KeyCompareFn) (zio.Reader, error) {
 	return f.newSectionReader(0, off)
 }
 
-func (f *Finder) Lookup(keys *zed.Record) (*zed.Record, error) {
+func (f *Finder) Lookup(keys *zed.Value) (*zed.Value, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
@@ -166,7 +166,7 @@ func (f *Finder) Lookup(keys *zed.Record) (*zed.Record, error) {
 	return lookup(reader, compare, f.trailer.Order, eql)
 }
 
-func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Record, keys *zed.Record) error {
+func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, keys *zed.Value) error {
 	if f.IsEmpty() {
 		return nil
 	}
@@ -199,17 +199,17 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Record, keys *z
 
 // ClosestGTE returns the closest record that is greater than or equal to the
 // provided key values.
-func (f *Finder) ClosestGTE(keys *zed.Record) (*zed.Record, error) {
+func (f *Finder) ClosestGTE(keys *zed.Value) (*zed.Value, error) {
 	return f.closest(keys, gte)
 }
 
 // ClosestLTE returns the closest record that is less than or equal to the
 // provided key values.
-func (f *Finder) ClosestLTE(keys *zed.Record) (*zed.Record, error) {
+func (f *Finder) ClosestLTE(keys *zed.Value) (*zed.Value, error) {
 	return f.closest(keys, lte)
 }
 
-func (f *Finder) closest(keys *zed.Record, op operator) (*zed.Record, error) {
+func (f *Finder) closest(keys *zed.Value, op operator) (*zed.Value, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
@@ -230,7 +230,7 @@ func (f *Finder) closest(keys *zed.Record, op operator) (*zed.Record, error) {
 // number of key fields, in which case they are "don't cares"
 // in terms of key lookups.  Any don't-care fields must all be
 // at the end of the key record.
-func (f *Finder) ParseKeys(inputs ...string) (*zed.Record, error) {
+func (f *Finder) ParseKeys(inputs ...string) (*zed.Value, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}

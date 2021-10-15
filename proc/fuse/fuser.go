@@ -15,7 +15,7 @@ type Fuser struct {
 	memMaxBytes int
 
 	nbytes  int
-	recs    []*zed.Record
+	recs    []*zed.Value
 	spiller *spill.File
 
 	types      map[zed.Type]struct{}
@@ -44,7 +44,7 @@ func (f *Fuser) Close() error {
 }
 
 // Write buffers rec. If called after Read, Write panics.
-func (f *Fuser) Write(rec *zed.Record) error {
+func (f *Fuser) Write(rec *zed.Value) error {
 	if f.shaper != nil {
 		panic("fuser: write after read")
 	}
@@ -60,7 +60,7 @@ func (f *Fuser) Write(rec *zed.Record) error {
 	return f.stash(rec)
 }
 
-func (f *Fuser) stash(rec *zed.Record) error {
+func (f *Fuser) stash(rec *zed.Value) error {
 	f.nbytes += len(rec.Bytes)
 	if f.nbytes >= f.memMaxBytes {
 		var err error
@@ -83,7 +83,7 @@ func (f *Fuser) stash(rec *zed.Record) error {
 
 // Read returns the next buffered record after transforming it to the unified
 // schema.
-func (f *Fuser) Read() (*zed.Record, error) {
+func (f *Fuser) Read() (*zed.Value, error) {
 	if f.shaper == nil {
 		t, err := f.uberSchema.Type()
 		if err != nil {
@@ -103,11 +103,11 @@ func (f *Fuser) Read() (*zed.Record, error) {
 	return f.shaper.Apply(rec)
 }
 
-func (f *Fuser) next() (*zed.Record, error) {
+func (f *Fuser) next() (*zed.Value, error) {
 	if f.spiller != nil {
 		return f.spiller.Read()
 	}
-	var rec *zed.Record
+	var rec *zed.Value
 	if len(f.recs) > 0 {
 		rec = f.recs[0]
 		f.recs = f.recs[1:]

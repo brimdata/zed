@@ -37,7 +37,7 @@ func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
 	}
 }
 
-func (w *Writer) Write(r *zed.Record) error {
+func (w *Writer) Write(r *zed.Value) error {
 	r, err := w.flattener.Flatten(r)
 	if err != nil {
 		return err

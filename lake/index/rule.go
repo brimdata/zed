@@ -180,7 +180,7 @@ func (a *AggRule) RuleKeys() field.List {
 // newLookupKey creates a Zed Record that can be used as a lookup key for an
 // index created for the provided Rule. The Values provided must be in order
 // with the Key in the rule that it will be paired with it.
-func newLookupKey(zctx *zed.Context, r Rule, values []zed.Value) (*zed.Record, error) {
+func newLookupKey(zctx *zed.Context, r Rule, values []zed.Value) (*zed.Value, error) {
 	keys := r.RuleKeys()
 	// XXX Ensure length of values equals the length of Keys in the Rule or
 	// else zed.ColumnBuilder will throw an error on Encode. We should adjust

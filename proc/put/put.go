@@ -78,7 +78,7 @@ func (p *Proc) maybeWarn(err error) {
 	}
 }
 
-func (p *Proc) eval(in *zed.Record) ([]zed.Value, error) {
+func (p *Proc) eval(in *zed.Value) ([]zed.Value, error) {
 	vals := p.vals
 	for k, cl := range p.clauses {
 		var err error
@@ -343,7 +343,7 @@ func (p *Proc) lookupRule(inType *zed.TypeRecord, vals []zed.Value) (putRule, er
 	return rule, err
 }
 
-func (p *Proc) put(in *zed.Record) (*zed.Record, error) {
+func (p *Proc) put(in *zed.Value) (*zed.Value, error) {
 	vals, err := p.eval(in)
 	if err != nil {
 		p.maybeWarn(err)
@@ -366,7 +366,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
-	recs := make([]*zed.Record, 0, batch.Length())
+	recs := make([]*zed.Value, 0, batch.Length())
 	for k := 0; k < batch.Length(); k++ {
 		in := batch.Index(k)
 		rec, err := p.put(in)

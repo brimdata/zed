@@ -12,14 +12,14 @@ type Selector struct {
 	cursor    []Evaluator
 	iter      zcode.Iter
 	iterCols  []zed.Column
-	rec       *zed.Record
+	rec       *zed.Value
 }
 
 func NewSelector(selectors []Evaluator) *Selector {
 	return &Selector{selectors: selectors}
 }
 
-func (s *Selector) Init(rec *zed.Record) {
+func (s *Selector) Init(rec *zed.Value) {
 	s.rec = rec
 	s.cursor = s.selectors
 }

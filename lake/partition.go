@@ -148,7 +148,7 @@ func partitionReader(ctx context.Context, zctx *zed.Context, snap commits.View, 
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	return readerFunc(func() (*zed.Record, error) {
+	return readerFunc(func() (*zed.Value, error) {
 		select {
 		case p := <-ch:
 			if p.Objects == nil {
@@ -177,7 +177,7 @@ func objectReader(ctx context.Context, zctx *zed.Context, snap commits.View, spa
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	return readerFunc(func() (*zed.Record, error) {
+	return readerFunc(func() (*zed.Value, error) {
 		select {
 		case p := <-ch:
 			if p.ID == ksuid.Nil {
@@ -206,7 +206,7 @@ func indexObjectReader(ctx context.Context, zctx *zed.Context, snap commits.View
 	}()
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	return readerFunc(func() (*zed.Record, error) {
+	return readerFunc(func() (*zed.Value, error) {
 		select {
 		case p := <-ch:
 			if p == nil {
@@ -225,6 +225,6 @@ func indexObjectReader(ctx context.Context, zctx *zed.Context, snap commits.View
 	}), nil
 }
 
-type readerFunc func() (*zed.Record, error)
+type readerFunc func() (*zed.Value, error)
 
-func (r readerFunc) Read() (*zed.Record, error) { return r() }
+func (r readerFunc) Read() (*zed.Value, error) { return r() }

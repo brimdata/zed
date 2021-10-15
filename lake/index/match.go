@@ -9,7 +9,7 @@ import (
 
 type match struct {
 	rule       Rule
-	lookupKeys []*zed.Record
+	lookupKeys []*zed.Value
 }
 
 type matcher func([]Rule) []match
@@ -43,8 +43,8 @@ func compilePredicates(in []dag.IndexPredicate) (matcher, error) {
 	}, nil
 }
 
-func matchRule(zctx *zed.Context, rule Rule, predicates []predicate) []*zed.Record {
-	var recs []*zed.Record
+func matchRule(zctx *zed.Context, rule Rule, predicates []predicate) []*zed.Value {
+	var recs []*zed.Value
 	for _, p := range predicates {
 		// XXX support indexes with multiple keys #3162
 		// and other rule types.

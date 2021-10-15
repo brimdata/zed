@@ -91,14 +91,14 @@ func NewAggregator(ctx context.Context, zctx *zed.Context, keyRefs, keyExprs, ag
 
 		rs := expr.NewCompareFn(true, keyRefs[0])
 		if inputDir < 0 {
-			keyCompare = func(a, b *zed.Record) int { return rs(b, a) }
+			keyCompare = func(a, b *zed.Value) int { return rs(b, a) }
 		} else {
 			keyCompare = rs
 		}
 	}
 	rs := expr.NewCompareFn(true, keyRefs...)
 	if inputDir < 0 {
-		keysCompare = func(a, b *zed.Record) int { return rs(b, a) }
+		keysCompare = func(a, b *zed.Value) int { return rs(b, a) }
 	} else {
 		keysCompare = rs
 	}
@@ -233,7 +233,7 @@ func (p *Proc) shutdown(err error) {
 }
 
 // Consume adds a record to the aggregation.
-func (a *Aggregator) Consume(r *zed.Record) error {
+func (a *Aggregator) Consume(r *zed.Value) error {
 	// First check if we've seen this descriptor and whether it is blocked.
 	id := r.Type.ID()
 	if _, ok := a.block[id]; ok {
@@ -373,7 +373,7 @@ func (a *Aggregator) Results(eof bool) (zbuf.Batch, error) {
 }
 
 func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
-	recs := make([]*zed.Record, 0, proc.BatchLen)
+	recs := make([]*zed.Value, 0, proc.BatchLen)
 	if !eof && a.inputDir == 0 {
 		return nil, nil
 	}
@@ -409,7 +409,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 	return zbuf.Array(recs), nil
 }
 
-func (a *Aggregator) nextResultFromSpills() (*zed.Record, error) {
+func (a *Aggregator) nextResultFromSpills() (*zed.Value, error) {
 	// This loop pulls records from the spiller in key order.
 	// The spiller is doing a merge across all of the spills and
 	// here we merge the decomposed aggregations across the batch
@@ -418,7 +418,7 @@ func (a *Aggregator) nextResultFromSpills() (*zed.Record, error) {
 	// their state instead of allocating a new one per row and sending
 	// each one to GC, but this would require a change to reducer API.
 	row := newValRow(a.aggs)
-	var firstRec *zed.Record
+	var firstRec *zed.Value
 	for {
 		rec, err := a.spiller.Peek()
 		if err != nil {
@@ -485,7 +485,7 @@ func (a *Aggregator) nextResultFromSpills() (*zed.Record, error) {
 // If partialsOut is true, it returns partial aggregation results as
 // defined by each agg.Function.ResultAsPartial() method.
 func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
-	var recs []*zed.Record
+	var recs []*zed.Value
 	for key, row := range a.table {
 		if !flush && a.valueCompare == nil {
 			panic("internal bug: tried to fetch completed tuples on non-sorted input")

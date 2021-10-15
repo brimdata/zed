@@ -31,7 +31,7 @@ func newLogReader(ctx context.Context, zctx *zed.Context, store *Store, leaf, st
 	}
 }
 
-func (r *LogReader) Read() (*zed.Record, error) {
+func (r *LogReader) Read() (*zed.Value, error) {
 	if r.cursor == ksuid.Nil {
 		return nil, nil
 	}

@@ -59,7 +59,7 @@ func (r *MergeSort) Cleanup() {
 // temp directory.  Since we sort each chunk in memory before spilling, the
 // different chunks can be easily merged into sorted order when reading back
 // the chunks sequentially.
-func (r *MergeSort) Spill(ctx context.Context, recs []*zed.Record) error {
+func (r *MergeSort) Spill(ctx context.Context, recs []*zed.Value) error {
 	// Sorting can be slow, so check for cancellation.
 	if err := goWithContext(ctx, func() {
 		expr.SortStable(recs, r.compareFn)
@@ -97,7 +97,7 @@ func goWithContext(ctx context.Context, f func()) error {
 
 // Peek returns the next record without advancing the reader.  The record stops
 // being valid at the next read call.
-func (r *MergeSort) Peek() (*zed.Record, error) {
+func (r *MergeSort) Peek() (*zed.Value, error) {
 	if r.Len() == 0 {
 		return nil, nil
 	}
@@ -107,7 +107,7 @@ func (r *MergeSort) Peek() (*zed.Record, error) {
 // Read returns the smallest record (per the comparison function provided to MewMergeSort)
 // from among the next records in the spilled chunks.  It implements the merge operation
 // for an external merge sort.
-func (r *MergeSort) Read() (*zed.Record, error) {
+func (r *MergeSort) Read() (*zed.Value, error) {
 	for {
 		if r.Len() == 0 {
 			return nil, nil

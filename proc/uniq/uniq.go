@@ -14,7 +14,7 @@ type Proc struct {
 	parent proc.Interface
 	cflag  bool
 	count  uint64
-	last   *zed.Record
+	last   *zed.Value
 }
 
 func New(pctx *proc.Context, parent proc.Interface, cflag bool) *Proc {
@@ -25,7 +25,7 @@ func New(pctx *proc.Context, parent proc.Interface, cflag bool) *Proc {
 	}
 }
 
-func (p *Proc) wrap(t *zed.Record) *zed.Record {
+func (p *Proc) wrap(t *zed.Value) *zed.Value {
 	if p.cflag {
 		// The leading underscore in "_uniq" is to avoid clashing with existing field
 		// names. Reducers don't have this problem since Zed has a way to assign
@@ -44,7 +44,7 @@ func (p *Proc) wrap(t *zed.Record) *zed.Record {
 	return t
 }
 
-func (p *Proc) appendUniq(out []*zed.Record, t *zed.Record) []*zed.Record {
+func (p *Proc) appendUniq(out []*zed.Value, t *zed.Value) []*zed.Value {
 	if p.count == 0 {
 		p.last = t.Keep()
 		p.count = 1
@@ -75,7 +75,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			p.last = nil
 			return zbuf.Array{t}, nil
 		}
-		var out []*zed.Record
+		var out []*zed.Value
 		for k := 0; k < batch.Length(); k++ {
 			out = p.appendUniq(out, batch.Index(k))
 		}

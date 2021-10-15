@@ -38,7 +38,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	// This batch has more than the needed records.
 	// Create a new batch and copy only the needed records.
 	// Then signal to the upstream that we're done.
-	recs := make([]*zed.Record, remaining)
+	recs := make([]*zed.Value, remaining)
 	for k := 0; k < remaining; k++ {
 		recs[k] = batch.Index(k).Keep()
 	}

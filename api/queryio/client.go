@@ -48,11 +48,11 @@ func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Respons
 type runner struct {
 	driver driver.Driver
 	cid    int
-	recs   []*zed.Record
+	recs   []*zed.Value
 	stats  zbuf.ScannerStats
 }
 
-func (r *runner) Write(rec *zed.Record) error {
+func (r *runner) Write(rec *zed.Value) error {
 	return r.driver.Write(r.cid, &zbuf.Array{rec})
 }
 

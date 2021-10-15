@@ -71,7 +71,7 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 	return w, nil
 }
 
-func (w *Writer) Write(rec *zed.Record) error {
+func (w *Writer) Write(rec *zed.Value) error {
 	key, err := rec.Deref(w.poolKey)
 	if err != nil {
 		key = zed.Value{zed.TypeNull, nil}

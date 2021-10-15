@@ -15,7 +15,7 @@ var ErrBadSchemaID = errors.New("bad schema id in root reassembly column")
 type Assembly struct {
 	root    zed.Value
 	schemas []zed.Type
-	columns []*zed.Record
+	columns []*zed.Value
 }
 
 func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
@@ -50,7 +50,7 @@ type Assembler struct {
 	err     error
 }
 
-func (a *Assembler) Read() (*zed.Record, error) {
+func (a *Assembler) Read() (*zed.Value, error) {
 	a.builder.Reset()
 	schemaID, err := a.root.Read()
 	if err == io.EOF {

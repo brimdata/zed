@@ -60,7 +60,7 @@ func NewDirWithEngine(ctx context.Context, engine storage.Engine, dir *storage.U
 	}, nil
 }
 
-func (d *Dir) Write(r *zed.Record) error {
+func (d *Dir) Write(r *zed.Value) error {
 	out, err := d.lookupOutput(r)
 	if err != nil {
 		return err
@@ -68,7 +68,7 @@ func (d *Dir) Write(r *zed.Record) error {
 	return out.Write(r)
 }
 
-func (d *Dir) lookupOutput(rec *zed.Record) (zio.WriteCloser, error) {
+func (d *Dir) lookupOutput(rec *zed.Value) (zio.WriteCloser, error) {
 	typ := rec.Type
 	w, ok := d.writers[typ]
 	if ok {
@@ -85,7 +85,7 @@ func (d *Dir) lookupOutput(rec *zed.Record) (zio.WriteCloser, error) {
 // filename returns the name of the file for the specified path. This handles
 // the case of two tds one _path, adding a # in the filename for every _path that
 // has more than one td.
-func (d *Dir) filename(r *zed.Record) (*storage.URI, string) {
+func (d *Dir) filename(r *zed.Value) (*storage.URI, string) {
 	var _path string
 	base, err := r.AccessString("_path")
 	if err == nil {
@@ -97,7 +97,7 @@ func (d *Dir) filename(r *zed.Record) (*storage.URI, string) {
 	return d.dir.AppendPath(name), _path
 }
 
-func (d *Dir) newFile(rec *zed.Record) (zio.WriteCloser, error) {
+func (d *Dir) newFile(rec *zed.Value) (zio.WriteCloser, error) {
 	filename, path := d.filename(rec)
 	if w, ok := d.paths[path]; ok {
 		return w, nil

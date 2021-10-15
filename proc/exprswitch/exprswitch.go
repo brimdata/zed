@@ -13,9 +13,9 @@ type ExprSwitch struct {
 	parent    proc.Interface
 	evaluator expr.Evaluator
 
-	cases     map[string]chan<- *zed.Record
-	defaultCh chan<- *zed.Record
-	doneChCh  chan chan<- *zed.Record
+	cases     map[string]chan<- *zed.Value
+	defaultCh chan<- *zed.Value
+	doneChCh  chan chan<- *zed.Value
 	err       error
 	once      sync.Once
 }
@@ -24,13 +24,13 @@ func New(parent proc.Interface, e expr.Evaluator) *ExprSwitch {
 	return &ExprSwitch{
 		parent:    parent,
 		evaluator: e,
-		cases:     make(map[string]chan<- *zed.Record),
-		doneChCh:  make(chan chan<- *zed.Record),
+		cases:     make(map[string]chan<- *zed.Value),
+		doneChCh:  make(chan chan<- *zed.Value),
 	}
 }
 
 func (s *ExprSwitch) NewProc(zv zed.Value) proc.Interface {
-	ch := make(chan *zed.Record)
+	ch := make(chan *zed.Value)
 	if zv.IsNil() {
 		s.defaultCh = ch
 	} else {
@@ -83,7 +83,7 @@ func (s *ExprSwitch) run() {
 	}
 }
 
-func (s *ExprSwitch) handleDoneCh(doneCh chan<- *zed.Record) {
+func (s *ExprSwitch) handleDoneCh(doneCh chan<- *zed.Value) {
 	if s.defaultCh == doneCh {
 		s.defaultCh = nil
 	} else {
@@ -98,7 +98,7 @@ func (s *ExprSwitch) handleDoneCh(doneCh chan<- *zed.Record) {
 
 type Proc struct {
 	parent *ExprSwitch
-	ch     <-chan *zed.Record
+	ch     <-chan *zed.Value
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {

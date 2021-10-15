@@ -75,11 +75,11 @@ func (c *LookupCommand) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	hits := make(chan *zed.Record)
+	hits := make(chan *zed.Value)
 	var searchErr error
 	go func() {
 		if c.closest {
-			var rec *zed.Record
+			var rec *zed.Value
 			rec, searchErr = finder.ClosestLTE(keys)
 			if rec != nil {
 				hits <- rec

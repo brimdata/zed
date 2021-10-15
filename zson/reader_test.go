@@ -15,7 +15,7 @@ func TestReadOneLineNoEOF(t *testing.T) {
 	const expected = `{msg:"record1"}`
 	type result struct {
 		err error
-		rec *zed.Record
+		rec *zed.Value
 	}
 	done := make(chan result)
 	go func() {

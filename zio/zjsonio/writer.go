@@ -64,7 +64,7 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(r *zed.Record) error {
+func (w *Writer) Write(r *zed.Value) error {
 	rec, err := w.stream.Transform(r)
 	if err != nil {
 		return err

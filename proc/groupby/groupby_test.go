@@ -242,7 +242,7 @@ func (cr *countReader) records() int {
 	return cr.n
 }
 
-func (cr *countReader) Read() (*zed.Record, error) {
+func (cr *countReader) Read() (*zed.Value, error) {
 	rec, err := cr.r.Read()
 	if rec != nil {
 		cr.mu.Lock()

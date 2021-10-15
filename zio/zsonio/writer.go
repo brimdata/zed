@@ -29,7 +29,7 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(rec *zed.Record) error {
+func (w *Writer) Write(rec *zed.Value) error {
 	s, err := w.formatter.FormatRecord(rec)
 	if err != nil {
 		return err

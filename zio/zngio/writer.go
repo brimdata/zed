@@ -92,7 +92,7 @@ func (w *Writer) EndStream() error {
 	return nil
 }
 
-func (w *Writer) Write(r *zed.Record) error {
+func (w *Writer) Write(r *zed.Value) error {
 	// First send any typedefs for unsent types.
 	typ := w.encoder.Lookup(r.Type)
 	if typ == nil {

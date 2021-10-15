@@ -43,7 +43,7 @@ func NewShaper(zctx *zed.Context, expr, typExpr Evaluator, tf ShaperTransform) *
 	}
 }
 
-func (s *Shaper) Eval(rec *zed.Record) (zed.Value, error) {
+func (s *Shaper) Eval(rec *zed.Value) (zed.Value, error) {
 	typVal, err := s.typExpr.Eval(rec)
 	if err != nil {
 		return zed.Value{}, err
@@ -87,7 +87,7 @@ func NewConstShaper(zctx *zed.Context, expr Evaluator, shapeTo zed.Type, tf Shap
 	}
 }
 
-func (s *ConstShaper) Apply(in *zed.Record) (*zed.Record, error) {
+func (s *ConstShaper) Apply(in *zed.Value) (*zed.Value, error) {
 	v, err := s.Eval(in)
 	if err != nil {
 		return nil, err
@@ -98,7 +98,7 @@ func (s *ConstShaper) Apply(in *zed.Record) (*zed.Record, error) {
 	return zed.NewRecord(v.Type, v.Bytes), nil
 }
 
-func (c *ConstShaper) Eval(in *zed.Record) (zed.Value, error) {
+func (c *ConstShaper) Eval(in *zed.Value) (zed.Value, error) {
 	inVal, err := c.expr.Eval(in)
 	if err != nil {
 		return zed.Value{}, err

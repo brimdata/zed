@@ -19,7 +19,7 @@ type builder struct {
 	reorderedFields [][]byte
 }
 
-func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, data []byte) (*zed.Record, error) {
+func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, data []byte) (*zed.Value, error) {
 	b.Reset()
 	b.Grow(len(data))
 	columns := typ.Columns

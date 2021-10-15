@@ -188,7 +188,7 @@ func TestStreams(t *testing.T) {
 		LZ4BlockSize: zngio.DefaultLZ4BlockSize,
 	})
 
-	var recs []*zed.Record
+	var recs []*zed.Value
 	for {
 		rec, err := r.Read()
 		require.NoError(t, err)

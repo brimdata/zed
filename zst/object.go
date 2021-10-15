@@ -121,7 +121,7 @@ func (o *Object) IsEmpty() bool {
 func (o *Object) readAssembly() (*Assembly, error) {
 	reader := o.NewReassemblyReader()
 	assembly := &Assembly{}
-	var rec *zed.Record
+	var rec *zed.Value
 	for {
 		var err error
 		rec, err = reader.Read()

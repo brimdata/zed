@@ -27,13 +27,13 @@ type Writer struct {
 	ctx         context.Context
 	//defs          index.Definitions
 	errgroup *errgroup.Group
-	records  []*zed.Record
+	records  []*zed.Value
 	// XXX this is a simple double buffering model so the cloud-object
 	// writer can run in parallel with the reader filling the records
 	// buffer.  This can be later extended to pass a big bytes buffer
 	// back and forth where the bytes buffer holds all of the record
 	// data efficiently in one big backing store.
-	buffer chan []*zed.Record
+	buffer chan []*zed.Value
 
 	memBuffered int64
 	stats       ImportStats
@@ -53,7 +53,7 @@ type Writer struct {
 // to do useful things like paritioning given the context is a rollup.
 func NewWriter(ctx context.Context, pool *Pool) (*Writer, error) {
 	g, ctx := errgroup.WithContext(ctx)
-	ch := make(chan []*zed.Record, 1)
+	ch := make(chan []*zed.Value, 1)
 	ch <- nil
 	return &Writer{
 		pool:     pool,
@@ -72,7 +72,7 @@ func (w *Writer) newObject() *data.Object {
 	return &w.objects[len(w.objects)-1]
 }
 
-func (w *Writer) Write(rec *zed.Record) error {
+func (w *Writer) Write(rec *zed.Value) error {
 	if w.ctx.Err() != nil {
 		if err := w.errgroup.Wait(); err != nil {
 			return err
@@ -116,7 +116,7 @@ func (w *Writer) Close() error {
 	return w.errgroup.Wait()
 }
 
-func (w *Writer) writeObject(object *data.Object, recs []*zed.Record) error {
+func (w *Writer) writeObject(object *data.Object, recs []*zed.Value) error {
 	if !w.inputSorted {
 		expr.SortStable(recs, importCompareFn(w.pool))
 	}

@@ -149,7 +149,7 @@ func (m *MarshalZNGContext) Marshal(v interface{}) (zed.Value, error) {
 	return zed.Value{typ, bytes}, nil
 }
 
-func (m *MarshalZNGContext) MarshalRecord(v interface{}) (*zed.Record, error) {
+func (m *MarshalZNGContext) MarshalRecord(v interface{}) (*zed.Value, error) {
 	m.Builder.Reset()
 	typ, err := m.encodeValue(reflect.ValueOf(v))
 	if err != nil {
@@ -165,7 +165,7 @@ func (m *MarshalZNGContext) MarshalRecord(v interface{}) (*zed.Record, error) {
 	return zed.NewRecord(typ, body), nil
 }
 
-func (m *MarshalZNGContext) MarshalCustom(names []string, fields []interface{}) (*zed.Record, error) {
+func (m *MarshalZNGContext) MarshalCustom(names []string, fields []interface{}) (*zed.Value, error) {
 	if len(names) != len(fields) {
 		return nil, errors.New("fields and columns don't match")
 	}
@@ -623,7 +623,7 @@ func UnmarshalZNG(zv zed.Value, v interface{}) error {
 	return NewZNGUnmarshaler().decodeAny(zv, reflect.ValueOf(v))
 }
 
-func UnmarshalZNGRecord(rec *zed.Record, v interface{}) error {
+func UnmarshalZNGRecord(rec *zed.Value, v interface{}) error {
 	return UnmarshalZNG(*rec, v)
 }
 

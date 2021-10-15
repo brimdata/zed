@@ -25,7 +25,7 @@ func NewCombiner(ctx context.Context, engine storage.Engine, path *storage.URI, 
 	return writers, nil
 }
 
-func (c Combiner) Write(rec *zed.Record) error {
+func (c Combiner) Write(rec *zed.Value) error {
 	for _, w := range c {
 		if err := w.Write(rec); err != nil {
 			return err
