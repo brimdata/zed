@@ -20,7 +20,7 @@ pipeline.
 
 ![Example Zed 2](images/example-zed-operator-search.png)
 
-You can skip ahead to learn about the [search syntax](search-syntax/README.md)
+You can skip ahead to learn about the [search syntax](search-syntax.md)
 or browse the complete list of [Zed operators](#operators) below. However, we
 recommend first continuing on to read about what makes Zed unique and how it
 relates to other common data languages such as SQL.
@@ -229,14 +229,14 @@ from ... | switch color (
 
 Each operator is identified by name and performs a specific operation
 on a stream of records.  The entire list of operators is documented
-in the [Zed Operator Reference](operators/README.md).
+in the [Zed Operator Reference](operators.md).
 
 For three important and commonly used operators, the operator name
 is optional, as the compiler can determine from syntax and context which operator
 is intended.  This promotes an easy-to-type, interactive UX
 for these common use cases.  They include:
-* `filter` - select only the records that match a specified [search expression](search-syntax/README.md)
-* `summarize` - perform zero or more aggregations with optional [group-by](grouping/README.md) keys
+* `filter` - select only the records that match a specified [search expression](search-syntax.md)
+* `summarize` - perform zero or more aggregations with optional [group-by](grouping.md) keys
 * `put` - add or modify fields in records
 
 For example, the canonical form of
@@ -254,19 +254,19 @@ are `filter`, `summarize`, and `put`.
 
 All other operators are explicitly named.
 
-* [`cut`](operators/README.md#cut)
-* [`drop`](operators/README.md#drop)
-* [`filter`](operators/README.md#filter)
-* [`fuse`](operators/README.md#fuse)
-* [`head`](operators/README.md#head)
-* [`join`](operators/README.md#join)
-* [`pick`](operators/README.md#pick)
-* [`put`](operators/README.md#put)
-* [`rename`](operators/README.md#rename)
-* [`sort`](operators/README.md#sort)
-* [`summarize`](aggregate-functions/README.md)
-* [`tail`](operators/README.md#tail)
-* [`uniq`](operators/README.md#uniq)
+* [`cut`](operators.md#cut)
+* [`drop`](operators.md#drop)
+* [`filter`](operators.md#filter)
+* [`fuse`](operators.md#fuse)
+* [`head`](operators.md#head)
+* [`join`](operators.md#join)
+* [`pick`](operators.md#pick)
+* [`put`](operators.md#put)
+* [`rename`](operators.md#rename)
+* [`sort`](operators.md#sort)
+* [`summarize`](aggregate-functions.md)
+* [`tail`](operators.md#tail)
+* [`uniq`](operators.md#uniq)
 
 ### Operators not yet fully documented
 
@@ -278,11 +278,11 @@ All other operators are explicitly named.
 ## Conventions
 
 To build effective queries, it is also important to become familiar with the
-Zed _[Data Types](data-types/README.md)_.
+Zed _[Data Types](data-types.md)_.
 
 Each of the sections hyperlinked above describes these elements of the language
 in more detail. To make effective use of the materials, it is recommended to
-first review the [Documentation Conventions](conventions/README.md). You will
+first review the [Documentation Conventions](conventions.md). You will
 likely also want to download a copy of the
 [Sample Data](https://github.com/brimdata/zed-sample-data) so you can reproduce
 the examples shown.

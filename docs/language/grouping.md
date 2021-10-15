@@ -2,7 +2,7 @@
 
 Zed includes _grouping_ options that partition the input stream into batches
 that are aggregated separately based on field values. Grouping is most often
-used with [aggregate functions](../aggregate-functions/README.md). If explicit
+used with [aggregate functions](aggregate-functions.md). If explicit
 grouping is not used, an aggregate function will operate over all records in the
 input stream.
 
@@ -95,7 +95,7 @@ ts                   max
 # Value Grouping - `by`
 
 To create batches of records based on the values of fields or the results of
-[expressions](../expressions/README.md), specify
+[expressions](expressions.md), specify
 `by <field-name | name:=expression> [, <field-name | name:=expression> ...]`
 after invoking your aggregate function(s).
 
@@ -156,7 +156,7 @@ id.resp_h       id.resp_p sum
 #### Example #3:
 
 Instead of a simple field name, any of the comma-separated `by` groupings could
-be based on the result of an [expression](../expressions/README.md). The
+be based on the result of an [expression](expressions.md). The
 expression must be preceded by the name that will hold the expression result
 for further processing/presentation downstream in your Zed pipeline.
 
@@ -223,7 +223,7 @@ zq -f table 'count() by host,query | sort -r' http.log.gz dns.log.gz
 
 This is due to the `query` field not being present in any of the `http` records
 and the `host` field not being present in any of the `dns` records. This can
-be observed by looking at the [ZSON](../../formats/zson.md)
+be observed by looking at the [ZSON](../formats/zson.md)
 representation of the type definitions for each record type.
 
 ```mdtest-command dir=zed-sample-data/zeek-default
@@ -245,7 +245,7 @@ zq -f zson 'count() by _path,typeof(.) | sort _path' http.log.gz dns.log.gz
 ```
 
 A way to achieve this would be to use the
-[`fuse` operator](../operators/README.md#fuse) to unite the `http` and `dns`
+[`fuse` operator](operators.md#fuse) to unite the `http` and `dns`
 records under a single schema. This has the effect of populating missing
 fields with null values. Now that the named fields are present in
 all records, the `by` grouping has the desired effect.
@@ -265,7 +265,7 @@ host       query          count
 # Note: Undefined Order
 
 The order of results from a grouped aggregation are undefined. If you want to
-ensure a specific order, a [`sort` operator](../operators/README.md#sort)
+ensure a specific order, a [`sort` operator](operators.md#sort)
 should be used downstream of the aggregate function(s) in the Zed pipeline.
 
 #### Example:
@@ -304,9 +304,9 @@ ts                   count
 ```
 
 Records that are stored and retrieved via
-[`zed lake serve`](../../../cmd/zed/lake) (that is, using the
+[`zed lake serve`](../../cmd/zed/lake) (that is, using the
 [Brim application](https://github.com/brimdata/brim) and/or
-[`zapi`](../../../cmd/zapi)) are by default automatically sorted in reverse
+[`zapi`](../../cmd/zapi)) are by default automatically sorted in reverse
 order by timestamp (`ts`). Therefore for the particular case of a [time
 grouping](#time-grouping---every) query entered via Brim or `zapi`, if the same
 reverse time ordering is desired in the output of the aggregation result, an
@@ -314,4 +314,4 @@ explicit `| sort -r ts` is _not_ necessary on your Zed pipeline.
 
 #### Output:
 
-![Zed "every" in Brim](media/Brim-Zed-every.png)
+![Zed "every" in Brim](images/Brim-Zed-every.png)

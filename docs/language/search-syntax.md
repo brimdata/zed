@@ -22,10 +22,10 @@
 
 The simplest possible Zed search is a match of all records. This search is
 expressed in `zq` with the wildcard `*`. The response will be a dump of all
-records. The default `zq` output is binary [ZNG](../../formats/zng.md), a
+records. The default `zq` output is binary [ZNG](../formats/zng.md), a
 compact format that's ideal for working in pipelines. However, in these docs
 we'll sometimes make use of the `-z` option to output the text-based
-[ZSON](../../formats/zson.md) format, which is readable at the command line.
+[ZSON](../formats/zson.md) format, which is readable at the command line.
 
 #### Example:
 ```mdtest-command dir=zed-sample-data/zeek-default
@@ -51,8 +51,8 @@ zq -z conn.log.gz
 
 To start a Zed pipeline with this default search, you can similarly leave out
 the leading `* |` before invoking your first
-[operator](#../operators/README.md) or
-[aggregate function](#../aggregate-functions/README.md). The following example
+[operator](#operators.md) or
+[aggregate function](#aggregate-functions.md). The following example
 is shorthand for:
 
 ```
@@ -118,7 +118,7 @@ conn  2018-03-24T17:15:50.685818Z CCTYYh2Y0IAt4cJpV6 10.10.18.2   57335     10.1
 
 By comparison, the section below on [Field/Value Match](#fieldvalue-match)
 describes ways to perform searches against only fields of a specific
-[data type](../data-types/README.md).
+[data type](data-types.md).
 
 ### Quoted Word
 
@@ -344,7 +344,7 @@ in two ways.
    complex type, `set[ip]`. See the section below on
    [Containment](#containment) for details regarding the use of `in`.
 
-See the [Data Types](../data-types/README.md) page for more details.
+See the [Data Types](data-types.md) page for more details.
 
 ### Finding Patterns with `matches`
 
