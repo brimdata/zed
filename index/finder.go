@@ -7,6 +7,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
@@ -20,6 +21,11 @@ type Finder struct {
 	*Reader
 	zctx *zed.Context
 	uri  *storage.URI
+}
+
+type KeyValue struct {
+	Key   field.Path
+	Value zed.Value
 }
 
 // NewFinder returns an object that is used to lookup keys in a microindex.
@@ -147,14 +153,11 @@ func (f *Finder) search(compare expr.KeyCompareFn) (zio.Reader, error) {
 	return f.newSectionReader(0, off)
 }
 
-func (f *Finder) Lookup(keys *zed.Value) (*zed.Value, error) {
+func (f *Finder) Lookup(kvs ...KeyValue) (*zed.Value, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
-	compare, err := expr.NewKeyCompareFn(keys)
-	if err != nil {
-		return nil, err
-	}
+	compare := compareFn(kvs)
 	reader, err := f.search(compare)
 	if err != nil {
 		if err == ErrNotFound {
@@ -166,14 +169,11 @@ func (f *Finder) Lookup(keys *zed.Value) (*zed.Value, error) {
 	return lookup(reader, compare, f.trailer.Order, eql)
 }
 
-func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, keys *zed.Value) error {
+func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []KeyValue) error {
 	if f.IsEmpty() {
 		return nil
 	}
-	compare, err := expr.NewKeyCompareFn(keys)
-	if err != nil {
-		return err
-	}
+	compare := compareFn(kvs)
 	reader, err := f.search(compare)
 	if err != nil {
 		return err
@@ -199,24 +199,43 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, keys *ze
 
 // ClosestGTE returns the closest record that is greater than or equal to the
 // provided key values.
-func (f *Finder) ClosestGTE(keys *zed.Value) (*zed.Value, error) {
-	return f.closest(keys, gte)
+func (f *Finder) ClosestGTE(kvs ...KeyValue) (*zed.Value, error) {
+	return f.closest(kvs, gte)
 }
 
 // ClosestLTE returns the closest record that is less than or equal to the
 // provided key values.
-func (f *Finder) ClosestLTE(keys *zed.Value) (*zed.Value, error) {
-	return f.closest(keys, lte)
+func (f *Finder) ClosestLTE(kvs ...KeyValue) (*zed.Value, error) {
+	return f.closest(kvs, lte)
 }
 
-func (f *Finder) closest(keys *zed.Value, op operator) (*zed.Value, error) {
+func compareFn(kvs []KeyValue) expr.KeyCompareFn {
+	accessors := make([]expr.Evaluator, len(kvs))
+	values := make([]zed.Value, len(kvs))
+	for i := range kvs {
+		accessors[i] = expr.NewDotExpr(kvs[i].Key)
+		values[i] = kvs[i].Value
+	}
+	fn := expr.NewValueCompareFn(false)
+	return func(rec *zed.Value) int {
+		for i := range kvs {
+			zv, err := accessors[i].Eval(rec)
+			if err != nil {
+				panic(err)
+			}
+			if c := fn(zv, values[i]); c != 0 {
+				return c
+			}
+		}
+		return 0
+	}
+}
+
+func (f *Finder) closest(kvs []KeyValue, op operator) (*zed.Value, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
-	compare, err := expr.NewKeyCompareFn(keys)
-	if err != nil {
-		return nil, err
-	}
+	compare := compareFn(kvs)
 	reader, err := f.search(compare)
 	if err != nil {
 		return nil, err
@@ -230,7 +249,7 @@ func (f *Finder) closest(keys *zed.Value, op operator) (*zed.Value, error) {
 // number of key fields, in which case they are "don't cares"
 // in terms of key lookups.  Any don't-care fields must all be
 // at the end of the key record.
-func (f *Finder) ParseKeys(inputs ...string) (*zed.Value, error) {
+func (f *Finder) ParseKeys(inputs ...string) ([]KeyValue, error) {
 	if f.IsEmpty() {
 		return nil, nil
 	}
@@ -238,35 +257,16 @@ func (f *Finder) ParseKeys(inputs ...string) (*zed.Value, error) {
 	if len(inputs) > len(keys) {
 		return nil, fmt.Errorf("too many keys: expected at most %d but got %d", len(keys), len(inputs))
 	}
-	// zed.NewContext().LookupTypeRecord
-	zctx := zed.NewContext()
-	builder, err := zed.NewColumnBuilder(zctx, keys)
-	if err != nil {
-		return nil, err
-	}
-	var types []zed.Type
-	for k := range keys {
-		var zv zed.Value
+	kvs := make([]KeyValue, 0, len(inputs))
+	for k := range inputs {
 		if k < len(inputs) {
 			s := inputs[k]
-			var err error
-			zv, err = zson.ParseValue(f.zctx, s)
+			zv, err := zson.ParseValue(f.zctx, s)
 			if err != nil {
 				return nil, fmt.Errorf("could not parse %q: %w", s, err)
 			}
-		} else {
-			zv = zed.Value{zed.TypeNull, nil}
+			kvs = append(kvs, KeyValue{Key: keys[k], Value: zv})
 		}
-		builder.Append(zv.Bytes, zed.IsContainerType(zv.Type))
-		types = append(types, zv.Type)
 	}
-	typ, err := zctx.LookupTypeRecord(builder.TypedColumns(types))
-	if err != nil {
-		return nil, err
-	}
-	b, err := builder.Encode()
-	if err != nil {
-		return nil, err
-	}
-	return zed.NewValue(typ, b), nil
+	return kvs, nil
 }

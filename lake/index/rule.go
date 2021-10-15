@@ -176,33 +176,3 @@ func (a *AggRule) RuleKeys() field.List {
 	// XXX can get these by analyzing the compiled script
 	return nil
 }
-
-// newLookupKey creates a Zed Record that can be used as a lookup key for an
-// index created for the provided Rule. The Values provided must be in order
-// with the Key in the rule that it will be paired with it.
-func newLookupKey(zctx *zed.Context, r Rule, values []zed.Value) (*zed.Value, error) {
-	keys := r.RuleKeys()
-	// XXX Ensure length of values equals the length of Keys in the Rule or
-	// else zed.ColumnBuilder will throw an error on Encode. We should adjust
-	// zed.ColumnBuilder to be less strict.
-	if n := len(keys) - len(values); n < 0 {
-		values = values[:len(keys)]
-	} else if n > 0 {
-		values = append(values, make([]zed.Value, n)...)
-	}
-	builder, err := zed.NewColumnBuilder(zctx, keys)
-	if err != nil {
-		return nil, err
-	}
-	types := make([]zed.Type, len(values))
-	for i, v := range values {
-		types[i] = v.Type
-		builder.Append(v.Bytes, zed.IsContainerType(v.Type))
-	}
-	b, err := builder.Encode()
-	if err != nil {
-		return nil, err
-	}
-	typ := zctx.MustLookupTypeRecord(builder.TypedColumns(types))
-	return zed.NewValue(typ, b), nil
-}
