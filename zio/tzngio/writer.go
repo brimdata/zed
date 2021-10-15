@@ -68,7 +68,7 @@ func (w *Writer) Write(r *zed.Record) error {
 	// zng type.  We should just call StringOf on r.Type here and get rid of
 	// all these write* methods and make sure there is consistency between this
 	// logic and the logic in the StringOfs.  See issue #1417.
-	if err := w.writeContainer(r.Value); err != nil {
+	if err := w.writeContainer(*r); err != nil {
 		return err
 	}
 	return w.write("\n")

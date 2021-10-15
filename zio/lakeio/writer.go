@@ -58,7 +58,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 
 func (w *Writer) Write(rec *zed.Record) error {
 	var v interface{}
-	if err := unmarshaler.Unmarshal(rec.Value, &v); err != nil {
+	if err := unmarshaler.Unmarshal(*rec, &v); err != nil {
 		return w.WriteZSON(rec)
 	}
 	var b bytes.Buffer

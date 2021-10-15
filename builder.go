@@ -13,7 +13,6 @@ var ErrIncomplete = errors.New("not enough values supplied to complete record")
 type Builder struct {
 	zcode.Builder
 	Type *TypeRecord
-	rec  Record
 }
 
 func NewBuilder(typ *TypeRecord) *Builder {
@@ -41,11 +40,7 @@ func (b *Builder) Build(zvs ...zcode.Bytes) *Record {
 			b.AppendPrimitive(zv)
 		}
 	}
-	// Note that t.rec.nonvolatile is false so anything downstream
-	// will have to copy the record and we can re-use the record value
-	// between subsequent calls.
-	b.rec.Value = Value{b.Type, b.Bytes()}
-	return &b.rec
+	return NewRecord(b.Type, b.Bytes())
 }
 
 func (b *Builder) appendUnset(typ Type) {

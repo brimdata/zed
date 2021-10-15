@@ -92,5 +92,5 @@ func (c *Unflattener) Eval(rec *zed.Record) (zed.Value, error) {
 	if out == nil {
 		return zed.Value{}, zed.ErrMissing
 	}
-	return out.Value, nil
+	return *out, nil
 }
