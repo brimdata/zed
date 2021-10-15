@@ -211,5 +211,9 @@ func (r *Reader) parseValue(line []byte) (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zed.NewRecordCheck(typ, bytes)
+	zv := zed.NewValue(typ, bytes)
+	if err := zv.TypeCheck(); err != nil {
+		return nil, err
+	}
+	return zv, nil
 }

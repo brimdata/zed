@@ -81,7 +81,7 @@ func (u *Unflattener) Apply(in *zed.Value) (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zed.NewRecord(typ, zbytes), nil
+	return zed.NewValue(typ, zbytes), nil
 }
 
 func (c *Unflattener) Eval(rec *zed.Value) (zed.Value, error) {

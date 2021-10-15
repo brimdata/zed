@@ -358,7 +358,7 @@ func (p *Proc) put(in *zed.Value) (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zed.NewRecord(rule.typ, bytes), nil
+	return zed.NewValue(rule.typ, bytes), nil
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {

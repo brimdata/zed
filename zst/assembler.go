@@ -71,7 +71,7 @@ func (a *Assembler) Read() (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	rec := zed.NewRecord(a.schemas[schemaID], body)
+	rec := zed.NewValue(a.schemas[schemaID], body)
 	//XXX if we had a buffer pool where records could be built back to
 	// back in batches, then we could get rid of this extra allocation
 	// and copy on every record

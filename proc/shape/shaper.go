@@ -274,7 +274,7 @@ func (s *Shaper) Read() (*zed.Value, error) {
 		}
 		typ = targetType
 	}
-	return zed.NewRecord(typ, bytes), nil
+	return zed.NewValue(typ, bytes), nil
 }
 
 func recode(from, to []zed.Column, bytes zcode.Bytes) (zcode.Bytes, error) {

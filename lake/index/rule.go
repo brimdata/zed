@@ -204,5 +204,5 @@ func newLookupKey(zctx *zed.Context, r Rule, values []zed.Value) (*zed.Value, er
 		return nil, err
 	}
 	typ := zctx.MustLookupTypeRecord(builder.TypedColumns(types))
-	return zed.NewRecord(typ, b), nil
+	return zed.NewValue(typ, b), nil
 }

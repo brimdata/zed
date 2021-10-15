@@ -652,6 +652,6 @@ func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (zed.Value,
 	if err != nil {
 		return zed.Value{}, err
 	}
-	rec := zed.NewRecord(typ, nil)
+	rec := zed.NewValue(typ, nil)
 	return e.Eval(rec)
 }

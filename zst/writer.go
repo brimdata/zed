@@ -181,7 +181,7 @@ func (w *Writer) finalize() error {
 				b.AppendPrimitive(nil)
 			}
 		}
-		rec := zed.NewRecord(schema, b.Bytes())
+		rec := zed.NewValue(schema, b.Bytes())
 		if err := zw.Write(rec); err != nil {
 			return err
 		}
@@ -196,7 +196,7 @@ func (w *Writer) finalize() error {
 	if err != nil {
 		return err
 	}
-	rec := zed.NewRecord(rootType, b.Bytes())
+	rec := zed.NewValue(rootType, b.Bytes())
 	if err := zw.Write(rec); err != nil {
 		return err
 	}
@@ -213,7 +213,7 @@ func (w *Writer) finalize() error {
 		if err != nil {
 			return err
 		}
-		rec := zed.NewRecord(typ.(*zed.TypeRecord), body)
+		rec := zed.NewValue(typ.(*zed.TypeRecord), body)
 		if err := zw.Write(rec); err != nil {
 			return err
 		}

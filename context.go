@@ -235,7 +235,7 @@ func (c *Context) AddColumns(r *Value, newCols []Column, vals []Value) (*Value, 
 	if err != nil {
 		return nil, err
 	}
-	return NewRecord(typ, zv), nil
+	return NewValue(typ, zv), nil
 }
 
 // LookupByValue returns the Type indicated by a binary-serialized type value.

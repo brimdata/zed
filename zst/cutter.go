@@ -143,7 +143,7 @@ func (a *CutAssembler) Read() (*zed.Value, error) {
 			a.builder.EndContainer()
 		}
 		recType := a.types[schemaID]
-		rec := zed.NewRecord(recType, a.builder.Bytes())
+		rec := zed.NewValue(recType, a.builder.Bytes())
 		//XXX if we had a buffer pool where records could be built back to
 		// back in batches, then we could get rid of this extra allocation
 		// and copy on every record

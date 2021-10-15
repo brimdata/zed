@@ -95,7 +95,7 @@ func (s *ConstShaper) Apply(in *zed.Value) (*zed.Value, error) {
 	if !zed.IsRecordType(v.Type) {
 		return nil, fmt.Errorf("shaper returned non-record value %s", zson.String(v))
 	}
-	return zed.NewRecord(v.Type, v.Bytes), nil
+	return zed.NewValue(v.Type, v.Bytes), nil
 }
 
 func (c *ConstShaper) Eval(in *zed.Value) (zed.Value, error) {

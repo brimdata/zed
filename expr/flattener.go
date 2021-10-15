@@ -88,7 +88,7 @@ func (f *Flattener) Flatten(r *zed.Value) (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zed.NewRecord(flatType.(*zed.TypeRecord), zv), nil
+	return zed.NewValue(flatType.(*zed.TypeRecord), zv), nil
 }
 
 // FlattenColumns turns nested records into a series of columns of

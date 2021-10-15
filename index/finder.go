@@ -268,5 +268,5 @@ func (f *Finder) ParseKeys(inputs ...string) (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zed.NewRecord(typ, b), nil
+	return zed.NewValue(typ, b), nil
 }

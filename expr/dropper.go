@@ -28,7 +28,7 @@ func (d *dropper) drop(in *zed.Value) (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zed.NewRecord(d.typ, zv), nil
+	return zed.NewValue(d.typ, zv), nil
 }
 
 type Dropper struct {
