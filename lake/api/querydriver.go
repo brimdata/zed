@@ -19,7 +19,7 @@ func newQueryDriver(types ...interface{}) *queryDriver {
 func (d *queryDriver) Write(channelID int, batch zbuf.Batch) error {
 	for _, rec := range batch.Records() {
 		var v interface{}
-		if err := d.unmarshaler.Unmarshal(rec.Value, &v); err != nil {
+		if err := d.unmarshaler.Unmarshal(*rec, &v); err != nil {
 			return err
 		}
 		d.results = append(d.results, v)

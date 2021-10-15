@@ -624,7 +624,7 @@ func UnmarshalZNG(zv zed.Value, v interface{}) error {
 }
 
 func UnmarshalZNGRecord(rec *zed.Record, v interface{}) error {
-	return NewZNGUnmarshaler().decodeAny(rec.Value, reflect.ValueOf(v))
+	return UnmarshalZNG(*rec, v)
 }
 
 func incompatTypeError(zt zed.Type, v reflect.Value) error {

@@ -29,10 +29,9 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 	assembler.columns = make([]*column.Record, len(a.schemas))
 	for k := 0; k < len(a.schemas); k++ {
 		rec := a.columns[k]
-		zv := rec.Value
 		record_col := &column.Record{}
 		typ := zed.TypeRecordOf(a.schemas[k])
-		if err := record_col.UnmarshalZNG(typ, zv, seeker); err != nil {
+		if err := record_col.UnmarshalZNG(typ, *rec, seeker); err != nil {
 			return nil, err
 		}
 		assembler.columns[k] = record_col

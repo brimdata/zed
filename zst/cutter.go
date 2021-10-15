@@ -65,10 +65,9 @@ func NewCutAssembler(zctx *zed.Context, fields []string, object *Object) (*CutAs
 	cnt := 0
 	for k, schema := range a.schemas {
 		var err error
-		zv := a.columns[k].Value
 		topcol := &column.Record{}
 		typ := zed.TypeRecordOf(schema)
-		if err := topcol.UnmarshalZNG(typ, zv, object.seeker); err != nil {
+		if err := topcol.UnmarshalZNG(typ, *a.columns[k], object.seeker); err != nil {
 			return nil, err
 		}
 		_, ca.columns[k], err = topcol.Lookup(typ, fields)

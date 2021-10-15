@@ -34,20 +34,10 @@ type RecordTypeError struct {
 func (r *RecordTypeError) Error() string { return r.Name + " (" + r.Type + "): " + r.Err.Error() }
 func (r *RecordTypeError) Unwrap() error { return r.Err }
 
-// A Record wraps a Value and provides helper methods for accessing
-// and iterating over the record's fields.
-type Record struct {
-	Value
-	nonvolatile bool
-	ts          nano.Ts
-	tsValid     bool
-}
+type Record = Value
 
 func NewRecord(typ Type, bytes zcode.Bytes) *Record {
-	return &Record{
-		Value:       Value{typ, bytes},
-		nonvolatile: true,
-	}
+	return &Value{typ, bytes}
 }
 
 func NewRecordCheck(typ Type, bytes zcode.Bytes) (*Record, error) {
@@ -58,16 +48,8 @@ func NewRecordCheck(typ Type, bytes zcode.Bytes) (*Record, error) {
 	return r, nil
 }
 
-// NewVolatileRecord creates a record from a zcode.Bytes and marks
-// it volatile so that Keep() must be called to make it safe.
-// This is useful for readers that allocate records whose Bytes field points
-// into a reusable buffer allowing the scanner to filter these records
-// without having the Bytes buffer copied to safe memory, i.e., when the scanner
-// matches a record, it will call Keep() to make a safe copy.
 func NewVolatileRecord(typ Type, bytes zcode.Bytes) *Record {
-	return &Record{
-		Value: Value{typ, bytes},
-	}
+	return NewRecord(typ, bytes)
 }
 
 // FieldIter returns a fieldIter iterator over the receiver's values.
@@ -81,27 +63,15 @@ func (r *Record) FieldIter() fieldIter {
 }
 
 func (r *Record) Keep() *Record {
-	if r.nonvolatile {
-		return r
-	}
 	bytes := make(zcode.Bytes, len(r.Bytes))
 	copy(bytes, r.Bytes)
-	return &Record{
-		Value:       Value{r.Type, bytes},
-		nonvolatile: true,
-		ts:          r.ts,
-		tsValid:     r.tsValid,
-	}
+	return NewRecord(r.Type, bytes)
 }
 
 func (r *Record) CopyBytes() {
-	if r.nonvolatile {
-		return
-	}
 	bytes := make(zcode.Bytes, len(r.Bytes))
 	copy(bytes, r.Bytes)
 	r.Bytes = bytes
-	r.nonvolatile = true
 }
 
 func (r *Record) HasField(field string) bool {
@@ -232,7 +202,7 @@ func (r *Record) Access(field string) (Value, error) {
 }
 
 func (r *Record) Deref(path field.Path) (Value, error) {
-	v := r.Value
+	v := *r
 	for _, f := range path {
 		typ := TypeRecordOf(v.Type)
 		if typ == nil {
@@ -328,18 +298,6 @@ func (r *Record) AccessTimeByColumn(colno int) (nano.Ts, error) {
 // Ts returns the value of the receiver's "ts" field.  If the field is absent,
 // is null, or has a type other than TypeOfTime, Ts returns nano.MinTs.
 func (r *Record) Ts() nano.Ts {
-	if !r.tsValid {
-		r.ts, _ = r.AccessTime("ts")
-		r.tsValid = true
-	}
-	return r.ts
-}
-
-func (r *Record) String() string {
-	return r.Value.String()
-}
-
-// MarshalJSON implements json.Marshaler.
-func (r *Record) MarshalJSON() ([]byte, error) {
-	return r.Value.MarshalJSON()
+	ts, _ := r.AccessTime("ts")
+	return ts
 }

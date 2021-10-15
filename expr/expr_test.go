@@ -24,7 +24,7 @@ func testSuccessful(t *testing.T, e string, record string, expect zed.Value) {
 	bytes := zcode.AppendPrimitive(nil, expect.Bytes)
 	rec := zed.NewRecord(typ, bytes)
 	formatter := zson.NewFormatter(0, nil)
-	val, err := formatter.Format(rec.Value)
+	val, err := formatter.Format(*rec)
 	require.NoError(t, err)
 	runZTest(t, e, &ztest.ZTest{
 		Zed:    fmt.Sprintf("cut result := %s", e),
