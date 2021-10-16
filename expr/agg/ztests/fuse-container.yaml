@@ -1,6 +1,4 @@
-skip: Enable after fixing https://github.com/brimdata/zed/issues/2145.
-
-zed: all=fuse(.),r=fuse(r)
+zed: all:=fuse(.),r:=fuse(r)
 
 input: |
   {a:"hello",r:{x:1(int32),y:2(int32)}}
