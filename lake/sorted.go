@@ -77,12 +77,9 @@ func newSortedScanner(ctx context.Context, pool *Pool, zctx *zed.Context, filter
 			sched:   sched,
 		})
 	}
-	keys := pool.Layout.Keys
 	var merger zbuf.Puller
 	if len(pullers) == 1 {
 		merger = pullers[0]
-	} else if len(keys) > 0 && len(keys[0]) == 1 && keys[0][0] == "ts" {
-		merger = zbuf.MergeByTs(ctx, pullers, pool.Layout.Order)
 	} else {
 		merger = zbuf.NewMerger(ctx, pullers, importCompareFn(pool))
 	}

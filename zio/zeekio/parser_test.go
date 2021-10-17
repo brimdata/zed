@@ -79,7 +79,9 @@ func TestLegacyZeekValid(t *testing.T) {
 	record, err := sendLegacyValues(parser, values)
 	require.NoError(t, err)
 
-	assert.Equal(t, record.Ts(), nano.MinTs, "Record has MinTs")
+	ts, err := record.AccessTime("ts")
+	assert.ErrorIs(t, err, zed.ErrMissing)
+	assert.Equal(t, nano.MinTs, ts)
 	// XXX check contents of other fields?
 
 	// Test standard headers with a timestamp in records
@@ -92,9 +94,11 @@ func TestLegacyZeekValid(t *testing.T) {
 	record, err = sendLegacyValues(parser, valsWithTs)
 	require.NoError(t, err)
 
-	ts, err := nano.Parse([]byte(timestamp))
+	expectedTs, err := nano.Parse([]byte(timestamp))
 	require.NoError(t, err)
-	assert.Equal(t, record.Ts(), ts, "Timestamp is correct")
+	ts, err = record.AccessTime("ts")
+	assert.NoError(t, err)
+	assert.Equal(t, expectedTs, ts, "Timestamp is correct")
 
 	// Test the #path header
 	parser = startLegacyTest(t, fieldsWithTs, typesWithTs, "testpath")
