@@ -101,7 +101,7 @@ func checkThresh(which string, max, thresh int) error {
 	return nil
 }
 
-func (w *Writer) Write(rec *zed.Record) error {
+func (w *Writer) Write(rec *zed.Value) error {
 	inputID := zed.TypeID(rec.Type)
 	schemaID, ok := w.schemaMap[inputID]
 	if !ok {

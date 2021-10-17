@@ -39,7 +39,7 @@ func (f *FinderReader) init() error {
 	return err
 }
 
-func (f *FinderReader) Read() (*zed.Record, error) {
+func (f *FinderReader) Read() (*zed.Value, error) {
 	if f.finder.IsEmpty() {
 		return nil, nil
 	}

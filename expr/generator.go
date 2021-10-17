@@ -6,7 +6,7 @@ import (
 )
 
 type Generator interface {
-	Init(*zed.Record)
+	Init(*zed.Value)
 	Next() (zed.Value, error)
 }
 
@@ -14,7 +14,7 @@ type MapMethod struct {
 	src    Generator
 	dollar zed.Value
 	expr   Evaluator
-	rec    *zed.Record
+	rec    *zed.Value
 }
 
 func NewMapMethod(src Generator) *MapMethod {
@@ -29,7 +29,7 @@ func (m *MapMethod) Set(e Evaluator) {
 	m.expr = e
 }
 
-func (m *MapMethod) Init(rec *zed.Record) {
+func (m *MapMethod) Init(rec *zed.Value) {
 	m.rec = rec
 	m.src.Init(rec)
 }
@@ -47,7 +47,7 @@ type FilterMethod struct {
 	src    Generator
 	dollar zed.Value
 	expr   Evaluator
-	rec    *zed.Record
+	rec    *zed.Value
 }
 
 func NewFilterMethod(src Generator) *FilterMethod {
@@ -62,7 +62,7 @@ func (f *FilterMethod) Set(e Evaluator) {
 	f.expr = e
 }
 
-func (f *FilterMethod) Init(rec *zed.Record) {
+func (f *FilterMethod) Init(rec *zed.Value) {
 	f.rec = rec
 	f.src.Init(rec)
 }
@@ -101,7 +101,7 @@ func NewAggExpr(zctx *zed.Context, pattern agg.Pattern, src Generator) *AggExpr 
 	}
 }
 
-func (a *AggExpr) Eval(rec *zed.Record) (zed.Value, error) {
+func (a *AggExpr) Eval(rec *zed.Value) (zed.Value, error) {
 	// XXX This is currently really inefficient while we prototype
 	// this machinery.  We used to have a Reset() method on aggregators
 	// and we should probably reintroduce that for use here so we

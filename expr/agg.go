@@ -39,7 +39,7 @@ func (a *Aggregator) NewFunction() agg.Function {
 	return a.pattern()
 }
 
-func (a *Aggregator) Apply(f agg.Function, rec *zed.Record) error {
+func (a *Aggregator) Apply(f agg.Function, rec *zed.Value) error {
 	if a.filter(rec) {
 		return nil
 	}
@@ -53,7 +53,7 @@ func (a *Aggregator) Apply(f agg.Function, rec *zed.Record) error {
 	return f.Consume(zv)
 }
 
-func (a *Aggregator) filter(rec *zed.Record) bool {
+func (a *Aggregator) filter(rec *zed.Value) bool {
 	if a.where == nil {
 		return false
 	}

@@ -61,7 +61,7 @@ func (s *Switcher) gather() {
 }
 
 func (s *Switcher) run() {
-	records := make([][]*zed.Record, s.n)
+	records := make([][]*zed.Value, s.n)
 	results := make([]proc.Result, s.n)
 	for {
 		s.gather()
@@ -76,7 +76,7 @@ func (s *Switcher) run() {
 		for _, rec := range batch.Records() {
 			if i := s.match(rec); i >= 0 {
 				if records[i] == nil {
-					records[i] = make([]*zed.Record, 0, batch.Length())
+					records[i] = make([]*zed.Value, 0, batch.Length())
 				}
 				records[i] = append(records[i], rec)
 			}
@@ -93,7 +93,7 @@ func (s *Switcher) run() {
 	s.parent.Done()
 }
 
-func (s *Switcher) match(rec *zed.Record) int {
+func (s *Switcher) match(rec *zed.Value) int {
 	for i, f := range s.filters {
 		if f(rec) {
 			return i

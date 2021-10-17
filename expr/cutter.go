@@ -74,7 +74,7 @@ func (c *Cutter) FoundCut() bool {
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
-func (c *Cutter) Apply(in *zed.Record) (*zed.Record, error) {
+func (c *Cutter) Apply(in *zed.Value) (*zed.Value, error) {
 	if len(c.fieldRefs) == 1 && c.fieldRefs[0].IsRoot() {
 		zv, err := c.fieldExprs[0].Eval(in)
 		if err != nil {
@@ -176,7 +176,7 @@ func (c *Cutter) Warning() string {
 	return fmt.Sprintf("no record found with columns %s", fieldList(c.fieldExprs))
 }
 
-func (c *Cutter) Eval(rec *zed.Record) (zed.Value, error) {
+func (c *Cutter) Eval(rec *zed.Value) (zed.Value, error) {
 	out, err := c.Apply(rec)
 	if err != nil {
 		return zed.Value{}, err

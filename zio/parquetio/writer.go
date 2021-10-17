@@ -30,7 +30,7 @@ func (w *Writer) Close() error {
 	return err
 }
 
-func (w *Writer) Write(rec *zed.Record) error {
+func (w *Writer) Write(rec *zed.Value) error {
 	recType := zed.AliasOf(rec.Type).(*zed.TypeRecord)
 	if w.typ == nil {
 		w.typ = recType

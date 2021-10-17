@@ -61,7 +61,7 @@ func (p *Proc) Done() {
 	p.parent.Done()
 }
 
-func (p *Proc) consume(rec *zed.Record) {
+func (p *Proc) consume(rec *zed.Value) {
 	if p.fields == nil {
 		fld := sort.GuessSortKey(rec)
 		accessor := expr.NewDotExpr(fld)
@@ -84,9 +84,9 @@ func (t *Proc) sorted() zbuf.Batch {
 	if t.records == nil {
 		return nil
 	}
-	out := make([]*zed.Record, t.records.Len())
+	out := make([]*zed.Value, t.records.Len())
 	for i := t.records.Len() - 1; i >= 0; i-- {
-		rec := heap.Pop(t.records).(*zed.Record)
+		rec := heap.Pop(t.records).(*zed.Value)
 		out[i] = rec
 	}
 	// clear records

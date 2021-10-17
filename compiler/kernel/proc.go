@@ -231,7 +231,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 
 type filterFunction expr.Filter
 
-func (f filterFunction) Apply(rec *zed.Record) (*zed.Record, error) {
+func (f filterFunction) Apply(rec *zed.Value) (*zed.Value, error) {
 	if f(rec) {
 		return rec, nil
 	}

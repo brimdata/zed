@@ -14,13 +14,13 @@ type Shaper struct {
 	memMaxBytes int
 
 	nbytes     int
-	queue      []*zed.Record
+	queue      []*zed.Value
 	typeAnchor map[zed.Type]*anchor
 	anchors    map[uint64]*anchor
 	recode     map[zed.Type]*zed.TypeRecord
 	spiller    *spill.File
 	hash       maphash.Hash
-	recs       []*zed.Record
+	recs       []*zed.Value
 }
 
 type anchor struct {
@@ -83,7 +83,7 @@ func (i *integer) check(zv zed.Value) {
 	}
 }
 
-func (a *anchor) updateInts(rec *zed.Record) error {
+func (a *anchor) updateInts(rec *zed.Value) error {
 	it := rec.Bytes.Iter()
 	for k, c := range rec.Columns() {
 		bytes, _, err := it.Next()
@@ -171,7 +171,7 @@ func (s *Shaper) newAnchor(columns []zed.Column) *anchor {
 	return a
 }
 
-func (s *Shaper) update(rec *zed.Record) {
+func (s *Shaper) update(rec *zed.Value) {
 	if a, ok := s.typeAnchor[rec.Type]; ok {
 		a.updateInts(rec)
 		return
@@ -222,7 +222,7 @@ func (s *Shaper) lookupType(in zed.Type) (*zed.TypeRecord, error) {
 }
 
 // Write buffers rec. If called after Read, Write panics.
-func (s *Shaper) Write(rec *zed.Record) error {
+func (s *Shaper) Write(rec *zed.Value) error {
 	if s.spiller != nil {
 		return s.spiller.Write(rec)
 	}
@@ -233,7 +233,7 @@ func (s *Shaper) Write(rec *zed.Record) error {
 	return nil
 }
 
-func (s *Shaper) stash(rec *zed.Record) error {
+func (s *Shaper) stash(rec *zed.Value) error {
 	s.nbytes += len(rec.Bytes)
 	if s.nbytes >= s.memMaxBytes {
 		var err error
@@ -254,7 +254,7 @@ func (s *Shaper) stash(rec *zed.Record) error {
 	return nil
 }
 
-func (s *Shaper) Read() (*zed.Record, error) {
+func (s *Shaper) Read() (*zed.Value, error) {
 	rec, err := s.next()
 	if rec == nil || err != nil {
 		return nil, err
@@ -304,11 +304,11 @@ func recode(from, to []zed.Column, bytes zcode.Bytes) (zcode.Bytes, error) {
 	return out, nil
 }
 
-func (s *Shaper) next() (*zed.Record, error) {
+func (s *Shaper) next() (*zed.Value, error) {
 	if s.spiller != nil {
 		return s.spiller.Read()
 	}
-	var rec *zed.Record
+	var rec *zed.Value
 	if len(s.recs) > 0 {
 		rec = s.recs[0]
 		s.recs = s.recs[1:]

@@ -54,11 +54,11 @@ func NopCloser(w io.Writer) io.WriteCloser {
 // Read never returns a non-nil record and non-nil error together, and it never
 // returns io.EOF.
 type Reader interface {
-	Read() (*zed.Record, error)
+	Read() (*zed.Value, error)
 }
 
 type Writer interface {
-	Write(*zed.Record) error
+	Write(*zed.Value) error
 }
 
 type ReadCloser interface {
@@ -107,7 +107,7 @@ type concatReader struct {
 	readers []Reader
 }
 
-func (c *concatReader) Read() (*zed.Record, error) {
+func (c *concatReader) Read() (*zed.Value, error) {
 	for len(c.readers) > 0 {
 		rec, err := c.readers[0].Read()
 		if rec != nil || err != nil {
@@ -128,7 +128,7 @@ type multiWriter struct {
 	writers []Writer
 }
 
-func (m *multiWriter) Write(rec *zed.Record) error {
+func (m *multiWriter) Write(rec *zed.Value) error {
 	for _, w := range m.writers {
 		if err := w.Write(rec); err != nil {
 			return err

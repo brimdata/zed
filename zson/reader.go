@@ -25,7 +25,7 @@ func NewReader(r io.Reader, zctx *zed.Context) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zed.Record, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	if r.parser == nil {
 		var err error
 		r.parser, err = NewParser(r.reader)

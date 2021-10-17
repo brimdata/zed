@@ -19,7 +19,7 @@ var ErrNotContainer = errors.New("cannot apply in to a non-container")
 var ErrBadCast = errors.New("bad cast")
 
 type Evaluator interface {
-	Eval(*zed.Record) (zed.Value, error)
+	Eval(*zed.Value) (zed.Value, error)
 }
 
 type Not struct {
@@ -30,7 +30,7 @@ func NewLogicalNot(e Evaluator) *Not {
 	return &Not{e}
 }
 
-func (n *Not) Eval(rec *zed.Record) (zed.Value, error) {
+func (n *Not) Eval(rec *zed.Value) (zed.Value, error) {
 	zv, err := evalBool(n.expr, rec)
 	if err != nil {
 		return zv, err
@@ -59,7 +59,7 @@ func NewLogicalOr(lhs, rhs Evaluator) *Or {
 	return &Or{lhs, rhs}
 }
 
-func evalBool(e Evaluator, rec *zed.Record) (zed.Value, error) {
+func evalBool(e Evaluator, rec *zed.Value) (zed.Value, error) {
 	zv, err := e.Eval(rec)
 	if err != nil {
 		return zv, err
@@ -70,7 +70,7 @@ func evalBool(e Evaluator, rec *zed.Record) (zed.Value, error) {
 	return zv, err
 }
 
-func (a *And) Eval(rec *zed.Record) (zed.Value, error) {
+func (a *And) Eval(rec *zed.Value) (zed.Value, error) {
 	lhs, err := evalBool(a.lhs, rec)
 	if err != nil {
 		return lhs, err
@@ -88,7 +88,7 @@ func (a *And) Eval(rec *zed.Record) (zed.Value, error) {
 	return zed.True, nil
 }
 
-func (o *Or) Eval(rec *zed.Record) (zed.Value, error) {
+func (o *Or) Eval(rec *zed.Value) (zed.Value, error) {
 	lhs, err := evalBool(o.lhs, rec)
 	if err != nil {
 		return lhs, err
@@ -119,7 +119,7 @@ func NewIn(elem, container Evaluator) *In {
 	}
 }
 
-func (i *In) Eval(rec *zed.Record) (zed.Value, error) {
+func (i *In) Eval(rec *zed.Value) (zed.Value, error) {
 	elem, err := i.elem.Eval(rec)
 	if err != nil {
 		return elem, err
@@ -219,7 +219,7 @@ func NewCompareEquality(lhs, rhs Evaluator, operator string) (*Equal, error) {
 	return e, nil
 }
 
-func (e *Equal) Eval(rec *zed.Record) (zed.Value, error) {
+func (e *Equal) Eval(rec *zed.Value) (zed.Value, error) {
 	_, err := e.numeric.eval(rec)
 	if err != nil {
 		if err == coerce.ErrOverflow {
@@ -251,7 +251,7 @@ func NewRegexpMatch(re *regexp.Regexp, e Evaluator) *RegexpMatch {
 	return &RegexpMatch{re, e}
 }
 
-func (r *RegexpMatch) Eval(rec *zed.Record) (zed.Value, error) {
+func (r *RegexpMatch) Eval(rec *zed.Value) (zed.Value, error) {
 	zv, err := r.expr.Eval(rec)
 	if err != nil {
 		return zed.Value{}, err
@@ -287,7 +287,7 @@ func enumify(v zed.Value) (zed.Value, error) {
 	return v, nil
 }
 
-func (n *numeric) eval(rec *zed.Record) (int, error) {
+func (n *numeric) eval(rec *zed.Value) (int, error) {
 	lhs, err := n.lhs.Eval(rec)
 	if err != nil {
 		return 0, err
@@ -336,7 +336,7 @@ func (c *Compare) result(result int) zed.Value {
 	return zed.False
 }
 
-func (c *Compare) Eval(rec *zed.Record) (zed.Value, error) {
+func (c *Compare) Eval(rec *zed.Value) (zed.Value, error) {
 	lhs, err := c.lhs.Eval(rec)
 	if err != nil {
 		return zed.Value{}, err
@@ -442,7 +442,7 @@ func NewArithmetic(lhs, rhs Evaluator, op string) (Evaluator, error) {
 	return nil, fmt.Errorf("unknown arithmetic operator: %s", op)
 }
 
-func (a *Add) Eval(rec *zed.Record) (zed.Value, error) {
+func (a *Add) Eval(rec *zed.Value) (zed.Value, error) {
 	id, err := a.eval(rec)
 	if err != nil {
 		return zed.Value{}, err
@@ -470,7 +470,7 @@ func (a *Add) Eval(rec *zed.Record) (zed.Value, error) {
 	return zed.Value{}, ErrIncompatibleTypes
 }
 
-func (s *Subtract) Eval(rec *zed.Record) (zed.Value, error) {
+func (s *Subtract) Eval(rec *zed.Value) (zed.Value, error) {
 	id, err := s.eval(rec)
 	if err != nil {
 		return zed.Value{}, err
@@ -493,7 +493,7 @@ func (s *Subtract) Eval(rec *zed.Record) (zed.Value, error) {
 	return zed.Value{}, ErrIncompatibleTypes
 }
 
-func (m *Multiply) Eval(rec *zed.Record) (zed.Value, error) {
+func (m *Multiply) Eval(rec *zed.Value) (zed.Value, error) {
 	id, err := m.eval(rec)
 	if err != nil {
 		return zed.Value{}, err
@@ -516,7 +516,7 @@ func (m *Multiply) Eval(rec *zed.Record) (zed.Value, error) {
 	return zed.Value{}, ErrIncompatibleTypes
 }
 
-func (d *Divide) Eval(rec *zed.Record) (zed.Value, error) {
+func (d *Divide) Eval(rec *zed.Value) (zed.Value, error) {
 	id, err := d.eval(rec)
 	if err != nil {
 		return zed.Value{}, err
@@ -593,7 +593,7 @@ func NewIndexExpr(zctx *zed.Context, container, index Evaluator) (Evaluator, err
 	return &Index{zctx, container, index}, nil
 }
 
-func (i *Index) Eval(rec *zed.Record) (zed.Value, error) {
+func (i *Index) Eval(rec *zed.Value) (zed.Value, error) {
 	container, err := i.container.Eval(rec)
 	if err != nil {
 		return zed.Value{}, err
@@ -675,7 +675,7 @@ func NewConditional(predicate, thenExpr, elseExpr Evaluator) *Conditional {
 	}
 }
 
-func (c *Conditional) Eval(rec *zed.Record) (zed.Value, error) {
+func (c *Conditional) Eval(rec *zed.Value) (zed.Value, error) {
 	val, err := c.predicate.Eval(rec)
 	if err != nil {
 		return zed.Value{}, err
@@ -706,7 +706,7 @@ func NewCall(zctx *zed.Context, fn function.Interface, exprs []Evaluator) *Call 
 	}
 }
 
-func (c *Call) Eval(rec *zed.Record) (zed.Value, error) {
+func (c *Call) Eval(rec *zed.Value) (zed.Value, error) {
 	for k, e := range c.exprs {
 		val, err := e.Eval(rec)
 		if err != nil {
@@ -732,7 +732,7 @@ func NewTypeFunc(zctx *zed.Context, name string) *TypeFunc {
 	}
 }
 
-func (t *TypeFunc) Eval(rec *zed.Record) (zed.Value, error) {
+func (t *TypeFunc) Eval(rec *zed.Value) (zed.Value, error) {
 	if t.zv.Bytes == nil {
 		typ := t.zctx.LookupTypeDef(t.name)
 		if typ == nil {
@@ -755,7 +755,7 @@ func NewExists(zctx *zed.Context, exprs []Evaluator) *Exists {
 	}
 }
 
-func (e *Exists) Eval(rec *zed.Record) (zed.Value, error) {
+func (e *Exists) Eval(rec *zed.Value) (zed.Value, error) {
 	for _, expr := range e.exprs {
 		zv, err := expr.Eval(rec)
 		if err != nil || zv.Type == zed.TypeError {
@@ -773,7 +773,7 @@ func NewMissing(exprs []Evaluator) *Missing {
 	return &Missing{exprs}
 }
 
-func (m *Missing) Eval(rec *zed.Record) (zed.Value, error) {
+func (m *Missing) Eval(rec *zed.Value) (zed.Value, error) {
 	for _, e := range m.exprs {
 		zv, err := e.Eval(rec)
 		if err == zed.ErrMissing || zed.IsMissing(zv) {
@@ -794,7 +794,7 @@ func NewHas(exprs []Evaluator) *Has {
 	return &Has{exprs}
 }
 
-func (h *Has) Eval(rec *zed.Record) (zed.Value, error) {
+func (h *Has) Eval(rec *zed.Value) (zed.Value, error) {
 	for _, e := range h.exprs {
 		if _, err := e.Eval(rec); err != nil {
 			if err == zed.ErrMissing {
@@ -824,7 +824,7 @@ type evalCast struct {
 	typ    zed.Type
 }
 
-func (c *evalCast) Eval(rec *zed.Record) (zed.Value, error) {
+func (c *evalCast) Eval(rec *zed.Value) (zed.Value, error) {
 	zv, err := c.expr.Eval(rec)
 	if err != nil {
 		return zed.Value{}, err

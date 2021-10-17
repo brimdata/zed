@@ -6,14 +6,14 @@ import "github.com/brimdata/zed"
 // of the next item to be read without actually reading it.
 type Peeker struct {
 	Reader
-	cache *zed.Record
+	cache *zed.Value
 }
 
 func NewPeeker(reader Reader) *Peeker {
 	return &Peeker{Reader: reader}
 }
 
-func (p *Peeker) Peek() (*zed.Record, error) {
+func (p *Peeker) Peek() (*zed.Value, error) {
 	var err error
 	if p.cache == nil {
 		p.cache, err = p.Reader.Read()
@@ -21,7 +21,7 @@ func (p *Peeker) Peek() (*zed.Record, error) {
 	return p.cache, err
 }
 
-func (p *Peeker) Read() (*zed.Record, error) {
+func (p *Peeker) Read() (*zed.Value, error) {
 	v := p.cache
 	if v != nil {
 		p.cache = nil

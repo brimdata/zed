@@ -286,7 +286,7 @@ func (r *Reader) Write(_ int, batch zbuf.Batch) error {
 	return nil
 }
 
-func (r *Reader) Read() (*zed.Record, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	r.once.Do(func() {
 		go func() {
 			r.err = run(r.runtime.Context(), r, r.runtime, nil)

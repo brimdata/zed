@@ -9,7 +9,7 @@ import (
 
 type RootRecord struct{}
 
-func (r *RootRecord) Eval(rec *zed.Record) (zed.Value, error) {
+func (r *RootRecord) Eval(rec *zed.Value) (zed.Value, error) {
 	return *rec, nil
 }
 
@@ -73,7 +73,7 @@ func accessField(zv zed.Value, field string) (zed.Value, error) {
 	return zed.Value{recType.Columns[idx].Type, fv}, nil
 }
 
-func (f *DotExpr) Eval(rec *zed.Record) (zed.Value, error) {
+func (f *DotExpr) Eval(rec *zed.Value) (zed.Value, error) {
 	lval, err := f.record.Eval(rec)
 	if err != nil {
 		return zed.Value{}, err

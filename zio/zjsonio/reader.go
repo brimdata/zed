@@ -33,7 +33,7 @@ func NewReader(reader io.Reader, zctx *zed.Context) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zed.Record, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	e := func(err error) error {
 		if err == nil {
 			return err

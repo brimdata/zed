@@ -37,7 +37,7 @@ type Trailer struct {
 
 var ErrNotZst = errors.New("not a zst object")
 
-func newTrailerRecord(zctx *zed.Context, skewThresh, segmentThresh int, sections []int64) (*zed.Record, error) {
+func newTrailerRecord(zctx *zed.Context, skewThresh, segmentThresh int, sections []int64) (*zed.Value, error) {
 	sectionsType := zctx.LookupTypeArray(zed.TypeInt64)
 	cols := []zed.Column{
 		{MagicField, zed.TypeString},
@@ -114,7 +114,7 @@ func readTrailer(r io.ReadSeeker, n int64) (*Trailer, error) {
 	return nil, errors.New("zst trailer not found")
 }
 
-func trailerVersion(rec *zed.Record) (int, error) {
+func trailerVersion(rec *zed.Value) (int, error) {
 	version, err := rec.AccessInt(VersionField)
 	if err != nil {
 		return -1, errors.New("zst version field is not a valid int32")
@@ -125,7 +125,7 @@ func trailerVersion(rec *zed.Record) (int, error) {
 	return int(version), nil
 }
 
-func recordToTrailer(rec *zed.Record) (*Trailer, error) {
+func recordToTrailer(rec *zed.Value) (*Trailer, error) {
 	var trailer Trailer
 	var err error
 	trailer.Magic, err = rec.AccessString(MagicField)
@@ -144,7 +144,7 @@ func recordToTrailer(rec *zed.Record) (*Trailer, error) {
 	return &trailer, nil
 }
 
-func decodeSections(rec *zed.Record) ([]int64, error) {
+func decodeSections(rec *zed.Value) ([]int64, error) {
 	v, err := rec.Access(SectionsField)
 	if err != nil {
 		return nil, err

@@ -198,7 +198,7 @@ func (w *worker) scanBatch(buf *buffer, mapper *zed.Mapper, streamZctx *zed.Cont
 	}
 	// Otherwise, build a batch by reading all records in the buffer.
 	batch := newBatch(buf)
-	var stackRec zed.Record
+	var stackRec zed.Value
 	var stats zbuf.ScannerStats
 	for buf.length() > 0 {
 		code, err := buf.ReadByte()
@@ -224,7 +224,7 @@ func (w *worker) scanBatch(buf *buffer, mapper *zed.Mapper, streamZctx *zed.Cont
 	return batch, nil
 }
 
-func (w *worker) wantRecord(rec *zed.Record, stats *zbuf.ScannerStats) bool {
+func (w *worker) wantRecord(rec *zed.Value, stats *zbuf.ScannerStats) bool {
 	stats.BytesRead += int64(len(rec.Bytes))
 	stats.RecordsRead++
 	// It's tempting to call w.bufferFilter.Eval on rec.Bytes here, but that

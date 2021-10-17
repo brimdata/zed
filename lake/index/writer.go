@@ -40,13 +40,13 @@ type Writer struct {
 	rwCh    rwChan
 }
 
-type rwChan chan *zed.Record
+type rwChan chan *zed.Value
 
-func (c rwChan) Read() (*zed.Record, error) {
+func (c rwChan) Read() (*zed.Value, error) {
 	return <-c, nil
 }
 
-func (w *Writer) Write(rec *zed.Record) error {
+func (w *Writer) Write(rec *zed.Value) error {
 	select {
 	case <-w.done:
 		if err := w.indexer.err.Load(); err != nil {
@@ -143,6 +143,6 @@ func (d *indexer) Wait() error {
 	return d.err.Load()
 }
 
-func (d *indexer) Write(rec *zed.Record) error {
+func (d *indexer) Write(rec *zed.Value) error {
 	return d.index.Write(rec)
 }

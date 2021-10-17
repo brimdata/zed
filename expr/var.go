@@ -10,7 +10,7 @@ func NewVar(ref *zed.Value) *Var {
 	return &Var{ref}
 }
 
-func (v *Var) Eval(*zed.Record) (zed.Value, error) {
+func (v *Var) Eval(*zed.Value) (zed.Value, error) {
 	zv := *v.ref
 	if zv.Type == nil {
 		return zed.Value{}, zed.ErrMissing

@@ -77,7 +77,7 @@ func (r *Reader) Position() int64 {
 // SkipStream skips over the records in the current stream and returns
 // the first record of the next stream and the start-of-stream position
 // of that record.
-func (r *Reader) SkipStream() (*zed.Record, int64, error) {
+func (r *Reader) SkipStream() (*zed.Value, int64, error) {
 	sos := r.sos
 	for {
 		rec, err := r.Read()
@@ -87,7 +87,7 @@ func (r *Reader) SkipStream() (*zed.Record, int64, error) {
 	}
 }
 
-func (r *Reader) Read() (*zed.Record, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	for {
 		rec, msg, err := r.ReadPayload()
 		if err != nil {
@@ -100,7 +100,7 @@ func (r *Reader) Read() (*zed.Record, error) {
 	}
 }
 
-func (r *Reader) ReadPayload() (*zed.Record, *AppMessage, error) {
+func (r *Reader) ReadPayload() (*zed.Value, *AppMessage, error) {
 	for {
 		rec, msg, err := r.readPayload(nil)
 		if err != nil {
@@ -133,7 +133,7 @@ var startCompressed = errors.New("start of compressed value messaage block")
 // messages .  The record or message is volatile so they must be
 // copied (via copy for message's byte slice or zed.Record.Keep) as
 // subsequent calls to Read or ReadPayload will modify the referenced data.
-func (r *Reader) readPayload(rec *zed.Record) (*zed.Record, *AppMessage, error) {
+func (r *Reader) readPayload(rec *zed.Value) (*zed.Value, *AppMessage, error) {
 	for {
 		b, err := r.read(1)
 		if err != nil {
@@ -188,7 +188,7 @@ type reader interface {
 var _ reader = (*Reader)(nil)
 var _ reader = (*buffer)(nil)
 
-func readValue(r reader, code byte, m *zed.Mapper, validate bool, rec *zed.Record) (*zed.Record, error) {
+func readValue(r reader, code byte, m *zed.Mapper, validate bool, rec *zed.Value) (*zed.Value, error) {
 	id := int(code)
 	if code == zed.CtrlValueEscape {
 		var err error

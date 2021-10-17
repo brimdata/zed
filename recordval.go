@@ -34,13 +34,11 @@ type RecordTypeError struct {
 func (r *RecordTypeError) Error() string { return r.Name + " (" + r.Type + "): " + r.Err.Error() }
 func (r *RecordTypeError) Unwrap() error { return r.Err }
 
-type Record = Value
-
-func NewRecord(typ Type, bytes zcode.Bytes) *Record {
+func NewRecord(typ Type, bytes zcode.Bytes) *Value {
 	return &Value{typ, bytes}
 }
 
-func NewRecordCheck(typ Type, bytes zcode.Bytes) (*Record, error) {
+func NewRecordCheck(typ Type, bytes zcode.Bytes) (*Value, error) {
 	r := NewRecord(typ, bytes)
 	if err := r.TypeCheck(); err != nil {
 		return nil, err
@@ -48,12 +46,12 @@ func NewRecordCheck(typ Type, bytes zcode.Bytes) (*Record, error) {
 	return r, nil
 }
 
-func NewVolatileRecord(typ Type, bytes zcode.Bytes) *Record {
+func NewVolatileRecord(typ Type, bytes zcode.Bytes) *Value {
 	return NewRecord(typ, bytes)
 }
 
 // FieldIter returns a fieldIter iterator over the receiver's values.
-func (r *Record) FieldIter() fieldIter {
+func (r *Value) FieldIter() fieldIter {
 	return fieldIter{
 		stack: []iterInfo{{
 			iter: r.Bytes.Iter(),
@@ -62,32 +60,32 @@ func (r *Record) FieldIter() fieldIter {
 	}
 }
 
-func (r *Record) Keep() *Record {
+func (r *Value) Keep() *Value {
 	bytes := make(zcode.Bytes, len(r.Bytes))
 	copy(bytes, r.Bytes)
 	return NewRecord(r.Type, bytes)
 }
 
-func (r *Record) CopyBytes() {
+func (r *Value) CopyBytes() {
 	bytes := make(zcode.Bytes, len(r.Bytes))
 	copy(bytes, r.Bytes)
 	r.Bytes = bytes
 }
 
-func (r *Record) HasField(field string) bool {
+func (r *Value) HasField(field string) bool {
 	return TypeRecordOf(r.Type).HasField(field)
 }
 
 // Walk traverses a record in depth-first order, calling a
 // RecordVisitor on the way.
-func (r *Record) Walk(rv Visitor) error {
+func (r *Value) Walk(rv Visitor) error {
 	return walkRecord(TypeRecordOf(r.Type), r.Bytes, rv)
 }
 
 // TypeCheck checks that the Bytes field is structurally consistent
 // with this value's Type.  It does not check that the actual leaf
 // values when parsed are type compatible with the leaf types.
-func (r *Record) TypeCheck() error {
+func (r *Value) TypeCheck() error {
 	return r.Walk(func(typ Type, body zcode.Bytes) error {
 		if typset, ok := typ.(*TypeSet); ok {
 			if err := checkSet(typset, body); err != nil {
@@ -148,7 +146,7 @@ func checkEnum(typ *TypeEnum, body zcode.Bytes) error {
 // Slice returns the encoded zcode.Bytes corresponding to the indicated
 // column or an error if a problem was encountered.  If the encoded bytes
 // result is nil without error, then that columnn is unset in this record value.
-func (r *Record) Slice(column int) (zcode.Bytes, error) {
+func (r *Value) Slice(column int) (zcode.Bytes, error) {
 	var zv zcode.Bytes
 	for i, it := 0, r.Bytes.Iter(); i <= column; i++ {
 		if it.Done() {
@@ -163,13 +161,13 @@ func (r *Record) Slice(column int) (zcode.Bytes, error) {
 	return zv, nil
 }
 
-func (r *Record) Columns() []Column {
+func (r *Value) Columns() []Column {
 	return TypeRecordOf(r.Type).Columns
 }
 
 // Value returns the indicated column as a Value.  If the column doesn't
 // exist or another error occurs, the nil Value is returned.
-func (r *Record) ValueByColumn(col int) Value {
+func (r *Value) ValueByColumn(col int) Value {
 	zv, err := r.Slice(col)
 	if err != nil {
 		return Value{}
@@ -177,7 +175,7 @@ func (r *Record) ValueByColumn(col int) Value {
 	return Value{r.Columns()[col].Type, zv}
 }
 
-func (r *Record) ValueByField(field string) (Value, error) {
+func (r *Value) ValueByField(field string) (Value, error) {
 	col, ok := r.ColumnOfField(field)
 	if !ok {
 		return Value{}, ErrMissing
@@ -185,15 +183,15 @@ func (r *Record) ValueByField(field string) (Value, error) {
 	return r.ValueByColumn(col), nil
 }
 
-func (r *Record) ColumnOfField(field string) (int, bool) {
+func (r *Value) ColumnOfField(field string) (int, bool) {
 	return TypeRecordOf(r.Type).ColumnOfField(field)
 }
 
-func (r *Record) TypeOfColumn(col int) Type {
+func (r *Value) TypeOfColumn(col int) Type {
 	return TypeRecordOf(r.Type).Columns[col].Type
 }
 
-func (r *Record) Access(field string) (Value, error) {
+func (r *Value) Access(field string) (Value, error) {
 	col, ok := r.ColumnOfField(field)
 	if !ok {
 		return Value{}, ErrMissing
@@ -201,7 +199,7 @@ func (r *Record) Access(field string) (Value, error) {
 	return r.ValueByColumn(col), nil
 }
 
-func (r *Record) Deref(path field.Path) (Value, error) {
+func (r *Value) Deref(path field.Path) (Value, error) {
 	v := *r
 	for _, f := range path {
 		typ := TypeRecordOf(v.Type)
@@ -217,7 +215,7 @@ func (r *Record) Deref(path field.Path) (Value, error) {
 	return v, nil
 }
 
-func (r *Record) AccessString(field string) (string, error) {
+func (r *Value) AccessString(field string) (string, error) {
 	v, err := r.Access(field)
 	if err != nil {
 		return "", err
@@ -230,7 +228,7 @@ func (r *Record) AccessString(field string) (string, error) {
 	}
 }
 
-func (r *Record) AccessBool(field string) (bool, error) {
+func (r *Value) AccessBool(field string) (bool, error) {
 	v, err := r.Access(field)
 	if err != nil {
 		return false, err
@@ -241,7 +239,7 @@ func (r *Record) AccessBool(field string) (bool, error) {
 	return DecodeBool(v.Bytes)
 }
 
-func (r *Record) AccessInt(field string) (int64, error) {
+func (r *Value) AccessInt(field string) (int64, error) {
 	v, err := r.Access(field)
 	if err != nil {
 		return 0, err
@@ -265,7 +263,7 @@ func (r *Record) AccessInt(field string) (int64, error) {
 	return 0, ErrTypeMismatch
 }
 
-func (r *Record) AccessIP(field string) (net.IP, error) {
+func (r *Value) AccessIP(field string) (net.IP, error) {
 	v, err := r.Access(field)
 	if err != nil {
 		return nil, err
@@ -276,7 +274,7 @@ func (r *Record) AccessIP(field string) (net.IP, error) {
 	return DecodeIP(v.Bytes)
 }
 
-func (r *Record) AccessTime(field string) (nano.Ts, error) {
+func (r *Value) AccessTime(field string) (nano.Ts, error) {
 	v, err := r.Access(field)
 	if err != nil {
 		return 0, err
@@ -287,7 +285,7 @@ func (r *Record) AccessTime(field string) (nano.Ts, error) {
 	return DecodeTime(v.Bytes)
 }
 
-func (r *Record) AccessTimeByColumn(colno int) (nano.Ts, error) {
+func (r *Value) AccessTimeByColumn(colno int) (nano.Ts, error) {
 	zv, err := r.Slice(colno)
 	if err != nil {
 		return 0, err
@@ -297,7 +295,7 @@ func (r *Record) AccessTimeByColumn(colno int) (nano.Ts, error) {
 
 // Ts returns the value of the receiver's "ts" field.  If the field is absent,
 // is null, or has a type other than TypeOfTime, Ts returns nano.MinTs.
-func (r *Record) Ts() nano.Ts {
+func (r *Value) Ts() nano.Ts {
 	ts, _ := r.AccessTime("ts")
 	return ts
 }

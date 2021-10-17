@@ -102,7 +102,7 @@ func (s *scanner) Stats() ScannerStats {
 }
 
 // Read implements Reader.Read.
-func (s *scanner) Read() (*zed.Record, error) {
+func (s *scanner) Read() (*zed.Value, error) {
 	for {
 		if err := s.ctx.Err(); err != nil {
 			return nil, err

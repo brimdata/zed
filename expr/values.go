@@ -26,7 +26,7 @@ func NewRecordExpr(zctx *zed.Context, names []string, exprs []Evaluator) *Record
 	}
 }
 
-func (r *RecordExpr) Eval(rec *zed.Record) (zed.Value, error) {
+func (r *RecordExpr) Eval(rec *zed.Value) (zed.Value, error) {
 	var changed bool
 	b := r.builder
 	b.Reset()
@@ -71,7 +71,7 @@ func NewArrayExpr(zctx *zed.Context, exprs []Evaluator) *ArrayExpr {
 	}
 }
 
-func (a *ArrayExpr) Eval(rec *zed.Record) (zed.Value, error) {
+func (a *ArrayExpr) Eval(rec *zed.Value) (zed.Value, error) {
 	inner := a.typ.Type
 	container := zed.IsContainerType(inner)
 	b := a.builder
@@ -125,7 +125,7 @@ func NewSetExpr(zctx *zed.Context, exprs []Evaluator) *SetExpr {
 	}
 }
 
-func (s *SetExpr) Eval(rec *zed.Record) (zed.Value, error) {
+func (s *SetExpr) Eval(rec *zed.Value) (zed.Value, error) {
 	var inner zed.Type
 	var container bool
 	b := s.builder
@@ -184,7 +184,7 @@ func NewMapExpr(zctx *zed.Context, entries []Entry) *MapExpr {
 	}
 }
 
-func (m *MapExpr) Eval(rec *zed.Record) (zed.Value, error) {
+func (m *MapExpr) Eval(rec *zed.Value) (zed.Value, error) {
 	var containerKey, containerVal bool
 	var keyType, valType zed.Type
 	b := m.builder

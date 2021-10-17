@@ -111,7 +111,7 @@ type SliceRecord struct {
 	S []IDSlice
 }
 
-func recToZSON(t *testing.T, rec *zed.Record) string {
+func recToZSON(t *testing.T, rec *zed.Value) string {
 	var b strings.Builder
 	w := zsonio.NewWriter(zio.NopCloser(&b), zsonio.WriterOpts{})
 	err := w.Write(rec)

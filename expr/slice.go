@@ -26,7 +26,7 @@ func NewSlice(elem, from, to Evaluator) *Slice {
 var ErrSliceIndex = errors.New("slice index is not a number")
 var ErrSliceIndexEmpty = errors.New("slice index is empty")
 
-func sliceIndex(slot Evaluator, elem zed.Value, rec *zed.Record) (int, error) {
+func sliceIndex(slot Evaluator, elem zed.Value, rec *zed.Value) (int, error) {
 	if slot == nil {
 		return 0, ErrSliceIndexEmpty
 	}
@@ -49,7 +49,7 @@ func sliceIndex(slot Evaluator, elem zed.Value, rec *zed.Record) (int, error) {
 	return index, nil
 }
 
-func (s *Slice) Eval(rec *zed.Record) (zed.Value, error) {
+func (s *Slice) Eval(rec *zed.Value) (zed.Value, error) {
 	elem, err := s.elem.Eval(rec)
 	if err != nil {
 		return elem, err

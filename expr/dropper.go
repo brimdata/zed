@@ -11,7 +11,7 @@ type dropper struct {
 	fieldRefs []Evaluator
 }
 
-func (d *dropper) drop(in *zed.Record) (*zed.Record, error) {
+func (d *dropper) drop(in *zed.Value) (*zed.Value, error) {
 	if d.typ == in.Type {
 		return in, nil
 	}
@@ -46,7 +46,7 @@ func NewDropper(zctx *zed.Context, fields field.List) *Dropper {
 	}
 }
 
-func (d *Dropper) newDropper(r *zed.Record) (*dropper, error) {
+func (d *Dropper) newDropper(r *zed.Value) (*dropper, error) {
 	fields, fieldTypes, match := complementFields(d.fields, nil, zed.TypeRecordOf(r.Type))
 	if !match {
 		// r.Type contains no fields matching d.fields, so we set
@@ -117,7 +117,7 @@ func (_ *Dropper) Warning() string { return "" }
 
 // Apply implements proc.Function and returns a new record comprising fields
 // that are not specified in the set of drop targets.
-func (d *Dropper) Apply(in *zed.Record) (*zed.Record, error) {
+func (d *Dropper) Apply(in *zed.Value) (*zed.Value, error) {
 	id := in.Type.ID()
 	dropper, ok := d.droppers[id]
 	if !ok {

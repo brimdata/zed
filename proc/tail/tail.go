@@ -11,7 +11,7 @@ type Proc struct {
 	limit  int
 	count  int
 	off    int
-	q      []*zed.Record
+	q      []*zed.Value
 }
 
 func New(parent proc.Interface, limit int) *Proc {
@@ -19,7 +19,7 @@ func New(parent proc.Interface, limit int) *Proc {
 	return &Proc{
 		parent: parent,
 		limit:  limit,
-		q:      make([]*zed.Record, limit),
+		q:      make([]*zed.Value, limit),
 	}
 }
 
@@ -31,7 +31,7 @@ func (p *Proc) tail() zbuf.Batch {
 	if p.count < p.limit {
 		start = 0
 	}
-	out := make([]*zed.Record, p.count)
+	out := make([]*zed.Value, p.count)
 	for k := 0; k < p.count; k++ {
 		out[k] = p.q[(start+k)%p.limit]
 	}

@@ -62,7 +62,7 @@ func startLegacyTest(t *testing.T, fields, types []string, path string) *Parser 
 
 // sendLegacyValues() formats the array of values as a legacy zeek log line
 // and parses it.
-func sendLegacyValues(p *Parser, vals []string) (*zed.Record, error) {
+func sendLegacyValues(p *Parser, vals []string) (*zed.Value, error) {
 	return p.ParseValue([]byte(strings.Join(vals, "\t")))
 }
 

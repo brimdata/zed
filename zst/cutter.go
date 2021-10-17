@@ -116,7 +116,7 @@ func cutType(zctx *zed.Context, typ *zed.TypeRecord, fields []string) (*zed.Type
 	return wrapType, nwrap + 1, err
 }
 
-func (a *CutAssembler) Read() (*zed.Record, error) {
+func (a *CutAssembler) Read() (*zed.Value, error) {
 	a.builder.Reset()
 	for {
 		schemaID, err := a.root.Read()
