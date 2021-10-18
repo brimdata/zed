@@ -5,9 +5,9 @@ in progress. In the meantime, here's a few tips to get started with.
 
 * Values are stored internally and treated in expressions using one of the Zed
   data types described in the
-  [Primitive Values](../../formats/zson.md#33-primitive-values) section of the
+  [Primitive Values](../formats/zson.md#33-primitive-values) section of the
   ZSON spec.
-* See the [Equivalent Types](../../../zeek/Data-Type-Compatibility.md#equivalent-types)
+* See the [Equivalent Types](../../zeek/Data-Type-Compatibility.md#equivalent-types)
   table for details on which Zed data types correspond to the
   [data types](https://docs.zeek.org/en/current/script-reference/types.html)
   that appear in Zeek logs.

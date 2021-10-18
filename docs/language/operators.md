@@ -24,7 +24,7 @@ The following available operators are documented in detail below:
 > for human readability. Due to the width of the Zeek records used as sample
 > data, you may need to "scroll right" in the output to see some field values.
 
-> **Note:** Per Zed [search syntax](../search-syntax/README.md), many examples
+> **Note:** Per Zed [search syntax](search-syntax.md), many examples
 > below use shorthand that leaves off the explicit leading `* |`, matching all
 > records before invoking the first element in a pipeline.
 
@@ -149,7 +149,7 @@ ts                          uid                name                             
 | ------------------------- | --------------------------------------------------------------------- |
 | **Description**           | Apply a search to potentially trim data from the pipeline.            |
 | **Syntax**                | `filter <search>`                                                     |
-| **Required<br>arguments** | `<search>`<br>Any valid Zed [search syntax](../search-syntax/README.md) |
+| **Required<br>arguments** | `<search>`<br>Any valid Zed [search syntax](search-syntax.md) |
 | **Optional<br>arguments** | None                                                                  |
 
 > **Note:** As searches can appear anywhere in a Zed pipeline, it is not
@@ -173,7 +173,7 @@ ts                          uid
 
 #### Example #2:
 
-An alternative syntax for our [`and` example](../search-syntax/README.md#and):
+An alternative syntax for our [`and` example](search-syntax.md#and):
 
 ```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'filter www.*cdn*.com _path=="ssl"' *.log.gz
@@ -307,7 +307,7 @@ conn  2018-03-24T17:15:20.607695Z CpjMvj2Cvj048u6bF1 10.164.94.120 39169     10.
 
 |                           |                                               |
 | ------------------------- | --------------------------------------------- |
-| **Description**           | Return records derived from two inputs when particular values match between them.<br><br>The inputs must be sorted in the same order by their respective join keys. If an input source is already known to be sorted appropriately (either in an input file/object/stream, or if the data is pulled from a [Zed Lake](../../lake/README.md) that's ordered by this key) an explicit upstream [`sort`](https://github.com/brimdata/zed/tree/main/docs/language/operators#sort) is not required. ||
+| **Description**           | Return records derived from two inputs when particular values match between them.<br><br>The inputs must be sorted in the same order by their respective join keys. If an input source is already known to be sorted appropriately (either in an input file/object/stream, or if the data is pulled from a [Zed Lake](../lake/README.md) that's ordered by this key) an explicit upstream [`sort`](https://github.com/brimdata/zed/tree/main/docs/language/operators#sort) is not required. ||
 | **Syntax**                | `[anti\|inner\|left\|right] join on <left-key>=<right-key> [field-list]`          |
 | **Required<br>arguments** | `<left-key>`<br>A field in the left-hand input whose contents will be checked for equality against the `<right-key>`<br><br>`<right-key>`<br>A field in the right-hand input whose contents will be checked for equality against the `<left-key>` |
 | **Optional<br>arguments** | `[anti\|inner\|left\|right]`<br>The type of join that should be performed.<br>• `anti` - Return all records from the left-hand input for which `<left-key>` exists but that match no records from the right-hand input<br>• `inner` - Return only records that have matching key values in both inputs (default)<br>• `left` - Return all records from the left-hand input, and matched records from the right-hand input<br>• `right` - Return all records from the right-hand input, and matched records from the left-hand input<br><br>`[field-list]`<br>One or more comma-separated field names or assignments. The values in the field(s) specified will be copied from the _opposite_ input (right-hand side for an `anti`, `inner`, or `left` join, left-hand side for a `right` join) into the joined results. If no field list is provided, no fields from the opposite input will appear in the joined results (see [zed/2815](https://github.com/brimdata/zed/issues/2815) regarding expected enhancements in this area). |
@@ -688,7 +688,7 @@ time                        uid
 | ------------------------- | ----------------------------------------------- |
 | **Description**           | Add/update fields based on the results of an expression.<br><br>If evaluation of any expression fails, a warning is emitted and the original record is passed through unchanged.<br><br>As this operation is very common, the `put` keyword is optional. |
 | **Syntax**                | `[put] <field> := <expression> [, (<field> := <expression>)...]` |
-| **Required arguments**    | One or more of:<br><br>`<field> := <expression>`<br>Any valid Zed [expression](../expressions/README.md), preceded by the assignment operator `:=` and the name of a field in which to store the result. |
+| **Required arguments**    | One or more of:<br><br>`<field> := <expression>`<br>Any valid Zed [expression](expressions.md), preceded by the assignment operator `:=` and the name of a field in which to store the result. |
 | **Optional arguments**    | None |
 | **Limitations**           | If multiple fields are written in a single `put`, all the new field values are computed first and then they are all written simultaneously.  As a result, a computed value cannot be referenced in another expression.  If you need to re-use a computed result, this can be done by chaining multiple `put` operators.  For example, this will not work:<br>`put N:=len(somelist), isbig:=N>10`<br>But it could be written instead as:<br>`put N:=len(somelist) \| put isbig:=N>10` |
 
@@ -768,7 +768,7 @@ conn  2018-03-24T17:15:22.690601Z CuKFds250kxFgkhh8f 10.47.25.80    50813       
 | **Description**           | Sort records based on the order of values in the specified named field(s).|
 | **Syntax**                | `sort [-r] [-nulls first\|last] [field-list]`                             |
 | **Required<br>arguments** | None                                                                      |
-| **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-nulls first\|last]`<br>Specifies where null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, `sort` will automatically pick a field by which to sort. It does so by examining the first input record and finding the first field in left-to-right order that is of a Zed integer [data type](../data-types/README.md) (`int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`) or, if no integer field is found, the first field that is of a floating point data type (`float16`, `float32`, `float64`). If no such numeric field is found, `sort` finds the first field in left-to-right order that is _not_ of the `time` data type. Note that there are some cases (such as the output of a [grouped aggregation](../grouping#note-undefined-order) performed on heterogeneous data) where the first input record to `sort` may vary even when the same query is executed repeatedly against the same data. If you require a query to show deterministic output on repeated execution, an explicit field list must be provided. |
+| **Optional<br>arguments** | `[-r]`<br>If specified, results will be sorted in reverse order.<br><br>`[-nulls first\|last]`<br>Specifies where null values (i.e., values that are unset or that are not present at all in an incoming record) should be placed in the output.<br><br>`[field-list]`<br>One or more comma-separated field names by which to sort. Results will be sorted based on the values of the first field named in the list, then based on values in the second field named in the list, and so on.<br><br>If no field list is provided, `sort` will automatically pick a field by which to sort. It does so by examining the first input record and finding the first field in left-to-right order that is of a Zed integer [data type](data-types.md) (`int8`, `uint8`, `int16`, `uint16`, `int32`, `uint32`, `int64`, `uint64`) or, if no integer field is found, the first field that is of a floating point data type (`float16`, `float32`, `float64`). If no such numeric field is found, `sort` finds the first field in left-to-right order that is _not_ of the `time` data type. Note that there are some cases (such as the output of a [grouped aggregation](grouping.md#note-undefined-order) performed on heterogeneous data) where the first input record to `sort` may vary even when the same query is executed repeatedly against the same data. If you require a query to show deterministic output on repeated execution, an explicit field list must be provided. |
 
 #### Example #1:
 
@@ -822,10 +822,10 @@ x509  2018-03-24T17:29:51.317347Z FMITm2OyLT3OYnfq3  3                   068D408
 
 Here we'll find which originating IP addresses generated the most `conn`
 records using the `count()`
-[aggregate function](../aggregate-functions/README.md) and piping its output to
+[aggregate function](aggregate-functions.md) and piping its output to
 a `sort` in reverse order. Note that even though we didn't list a field name as
 an explicit argument, the `sort` operator did what we wanted because it found a
-field of the `uint64` [data type](../data-types/README.md).
+field of the `uint64` [data type](data-types.md).
 
 ```mdtest-command dir=zed-sample-data/zeek-default
 zq -f table 'count() by id.orig_h | sort -r' conn.log.gz

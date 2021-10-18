@@ -30,7 +30,7 @@ data, which is used in the examples in the
 [query language documentation](../../docs/language/README.md).
 
 To cut the columns of a Zeek "conn" log like `zeek-cut`, and output to the
- terminal, use [`cut`](../../docs/language/operators/README.md#cut):
+ terminal, use [`cut`](../../docs/language/operators.md#cut):
 
 ```
 zq -z "* | cut ts,id.orig_h,id.orig_p" conn.log
@@ -58,7 +58,7 @@ format:
 ```
 zq -f zeek "cut ts,id.orig_h,id.orig_p" conn.log
 ```
-You can use an [aggregate function](../../docs/language/aggregate-functions/README.md) to summarize data over one or
+You can use an [aggregate function](../../docs/language/aggregate-functions.md) to summarize data over one or
 more fields, e.g., summing field values, counting, or computing an average.
 ```
 zq -t "sum(orig_bytes)" conn.log

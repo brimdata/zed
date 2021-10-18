@@ -1,7 +1,7 @@
 # Summarize Aggregations
 
 The `summarize` operator performs zero or more aggregations with
-zero or more [grouping expressions](../grouping/README.md).
+zero or more [grouping expressions](grouping.md).
 Each aggregation is performed by an
 _aggregate function_ that operates on
 batches of records to carry out a running computation over the values they
@@ -25,7 +25,7 @@ contain.  The `summarize` keyword is optional.
      + [`sum`](#sum)
      + [`union`](#union)
 
-> **Note:** Per Zed [search syntax](../search-syntax/README.md), many examples
+> **Note:** Per Zed [search syntax](search-syntax.md), many examples
 > below use shorthand that leaves off the explicit leading `* |`, matching all
 > records before invoking the first element in a pipeline.
 
@@ -71,7 +71,7 @@ quickest longest     typical
 ### Grouping
 
 All aggregate functions may be invoked with one or more
-[grouping](../grouping/README.md) options that define the batches of records on
+[grouping](grouping.md) options that define the batches of records on
 which they operate. If explicit grouping is not used, an aggregate function
 will operate over all records in the input stream.
 
@@ -109,7 +109,7 @@ ts                   short_rtt            short_count long_rtt             long_
 | ------------------------- | -------------------------------------------------------------- |
 | **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for all inputs. Contrast with [`or`](#or). |
 | **Syntax**                | `and(<expression>)`                                            |
-| **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](../expressions/README.md). |
+| **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](expressions.md). |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
@@ -371,7 +371,7 @@ min
 | ------------------------- | -------------------------------------------------------------- |
 | **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for one or more inputs. Contrast with [`and`](#and). |
 | **Syntax**                | `or(<expression>)`                                             |
-| **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](../expressions/README.md). |
+| **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](expressions.md). |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
