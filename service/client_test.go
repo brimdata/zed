@@ -66,13 +66,13 @@ func (c *testClient) TestPoolList() []pools.Config {
 }
 
 func (c *testClient) TestPoolPost(payload api.PoolPostRequest) ksuid.KSUID {
-	r, err := c.Connection.PoolPost(context.Background(), payload)
+	r, err := c.Connection.CreatePool(context.Background(), payload)
 	require.NoError(c, err)
 	return r.Pool.ID
 }
 
 func (c *testClient) TestBranchPost(poolID ksuid.KSUID, payload api.BranchPostRequest) branches.Config {
-	r, err := c.Connection.BranchPost(context.Background(), poolID, payload)
+	r, err := c.Connection.CreateBranch(context.Background(), poolID, payload)
 	require.NoError(c, err)
 	return r
 }

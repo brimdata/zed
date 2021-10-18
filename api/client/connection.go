@@ -191,7 +191,7 @@ func (c *Connection) BranchGet(ctx context.Context, poolID ksuid.KSUID, branchNa
 	return commit, err
 }
 
-func (c *Connection) PoolPost(ctx context.Context, payload api.PoolPostRequest) (lake.BranchMeta, error) {
+func (c *Connection) CreatePool(ctx context.Context, payload api.PoolPostRequest) (lake.BranchMeta, error) {
 	req := c.NewRequest(ctx, http.MethodPost, "/pool", payload)
 	var meta lake.BranchMeta
 	err := c.doAndUnmarshal(req, &meta)
@@ -201,14 +201,14 @@ func (c *Connection) PoolPost(ctx context.Context, payload api.PoolPostRequest) 
 	return meta, err
 }
 
-func (c *Connection) PoolPut(ctx context.Context, id ksuid.KSUID, put api.PoolPutRequest) error {
+func (c *Connection) RenamePool(ctx context.Context, id ksuid.KSUID, put api.PoolPutRequest) error {
 	req := c.NewRequest(ctx, http.MethodPut, path.Join("/pool", id.String()), put)
 	res, err := c.Do(req)
 	res.Body.Close()
 	return err
 }
 
-func (c *Connection) PoolRemove(ctx context.Context, id ksuid.KSUID) error {
+func (c *Connection) RemovePool(ctx context.Context, id ksuid.KSUID) error {
 	req := c.NewRequest(ctx, http.MethodDelete, path.Join("/pool", id.String()), nil)
 	res, err := c.Do(req)
 	res.Body.Close()
@@ -218,7 +218,7 @@ func (c *Connection) PoolRemove(ctx context.Context, id ksuid.KSUID) error {
 	return err
 }
 
-func (c *Connection) BranchPost(ctx context.Context, poolID ksuid.KSUID, payload api.BranchPostRequest) (branches.Config, error) {
+func (c *Connection) CreateBranch(ctx context.Context, poolID ksuid.KSUID, payload api.BranchPostRequest) (branches.Config, error) {
 	req := c.NewRequest(ctx, http.MethodPost, path.Join("/pool", poolID.String()), payload)
 	var branch branches.Config
 	err := c.doAndUnmarshal(req, &branch)
@@ -283,14 +283,14 @@ func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName st
 	return commit, err
 }
 
-func (c *Connection) IndexRulesPost(ctx context.Context, rules []index.Rule) error {
+func (c *Connection) AddIndexRules(ctx context.Context, rules []index.Rule) error {
 	req := c.NewRequest(ctx, http.MethodPost, "/index", rules)
 	res, err := c.Do(req)
 	res.Body.Close()
 	return err
 }
 
-func (c *Connection) IndexRulesDelete(ctx context.Context, ids []ksuid.KSUID) (api.IndexRulesDeleteResponse, error) {
+func (c *Connection) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) (api.IndexRulesDeleteResponse, error) {
 	var request api.IndexRulesDeleteRequest
 	for _, id := range ids {
 		request.RuleIDs = append(request.RuleIDs, id.String())
@@ -301,17 +301,17 @@ func (c *Connection) IndexRulesDelete(ctx context.Context, ids []ksuid.KSUID) (a
 	return deleted, err
 }
 
-func (c *Connection) IndexApply(ctx context.Context, poolID ksuid.KSUID, branchName, rule string, oids []ksuid.KSUID) (api.CommitResponse, error) {
+func (c *Connection) ApplyIndexRules(ctx context.Context, poolID ksuid.KSUID, branchName, rule string, oids []ksuid.KSUID) (api.CommitResponse, error) {
 	path := urlPath("/pool", poolID.String(), "branch", branchName, "index")
-	req := c.NewRequest(ctx, http.MethodPost, path, api.ApplyIndexRequest{RuleName: rule, Tags: oids})
+	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexApplyRequest{RuleName: rule, Tags: oids})
 	var commit api.CommitResponse
 	err := c.doAndUnmarshal(req, &commit)
 	return commit, err
 }
 
-func (c *Connection) IndexUpdate(ctx context.Context, poolID ksuid.KSUID, branchName string, rules []string) (api.CommitResponse, error) {
+func (c *Connection) UpdateIndex(ctx context.Context, poolID ksuid.KSUID, branchName string, rules []string) (api.CommitResponse, error) {
 	path := urlPath("/pool", poolID.String(), "branch", branchName, "index/update")
-	req := c.NewRequest(ctx, http.MethodPost, path, api.UpdateIndexRequest{RuleNames: rules})
+	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexUpdateRequest{RuleNames: rules})
 	var commit api.CommitResponse
 	err := c.doAndUnmarshal(req, &commit)
 	return commit, err

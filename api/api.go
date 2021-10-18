@@ -72,12 +72,12 @@ type IndexRulesDeleteResponse struct {
 	Rules []index.Rule `zed:"rules"`
 }
 
-type ApplyIndexRequest struct {
+type IndexApplyRequest struct {
 	RuleName string        `zed:"rule_name"`
 	Tags     []ksuid.KSUID `zed:"tags"`
 }
 
-type UpdateIndexRequest struct {
+type IndexUpdateRequest struct {
 	RuleNames []string `zed:"rule_names"`
 }
 

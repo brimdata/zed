@@ -146,10 +146,10 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/branch/{branch}", handleBranchDelete).Methods("DELETE")
 	c.authhandle("/pool/{pool}/branch/{branch}", handleBranchLoad).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/delete", handleDelete).Methods("POST")
-	c.authhandle("/pool/{pool}/branch/{branch}/merge/{child}", handleBranchMerge).Methods("POST")
-	c.authhandle("/pool/{pool}/branch/{branch}/revert/{commit}", handleRevertPost).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/index", branchHandle(handleIndexApply)).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/index/update", branchHandle(handleIndexUpdate)).Methods("POST")
+	c.authhandle("/pool/{pool}/branch/{branch}/merge/{child}", handleBranchMerge).Methods("POST")
+	c.authhandle("/pool/{pool}/branch/{branch}/revert/{commit}", handleRevertPost).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
 	c.authhandle("/query", handleQuery).Methods("POST")
 
@@ -157,8 +157,6 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool", handlePoolListDeprecated).Methods("GET")
 	c.authhandle("/pool/{pool}", handlePoolGetDeprecated).Methods("GET")
 }
-
-type coreHandler func(*Core, *ResponseWriter, *Request)
 
 func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -177,7 +175,7 @@ func (c *Core) authhandle(path string, f func(*Core, *ResponseWriter, *Request))
 	return c.routerAPI.Handle(path, h)
 }
 
-func branchHandle(f func(*Core, *ResponseWriter, *Request, *lake.Branch)) coreHandler {
+func branchHandle(f func(*Core, *ResponseWriter, *Request, *lake.Branch)) func(*Core, *ResponseWriter, *Request) {
 	return func(c *Core, w *ResponseWriter, r *Request) {
 		poolID, ok := r.PoolID(w, c.root)
 		if !ok {

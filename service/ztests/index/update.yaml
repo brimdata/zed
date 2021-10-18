@@ -36,4 +36,3 @@ outputs:
     data: |
       {name:"bar",fields:[["bar"](=field.Path)](=field.List),count:3(uint64)}
       {name:"foo",fields:[["foo"](=field.Path)](=field.List),count:3(uint64)}
-

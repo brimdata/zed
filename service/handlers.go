@@ -463,7 +463,7 @@ func handleIndexRulesDelete(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleIndexApply(c *Core, w *ResponseWriter, r *Request, branch *lake.Branch) {
-	var req api.ApplyIndexRequest
+	var req api.IndexApplyRequest
 	if !r.Unmarshal(w, &req) {
 		return
 	}
@@ -487,7 +487,7 @@ func handleIndexApply(c *Core, w *ResponseWriter, r *Request, branch *lake.Branc
 }
 
 func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request, branch *lake.Branch) {
-	var req api.UpdateIndexRequest
+	var req api.IndexUpdateRequest
 	if !r.Unmarshal(w, &req) {
 		return
 	}
