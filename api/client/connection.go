@@ -104,8 +104,7 @@ func (c *Connection) doAndUnmarshal(req *Request, i interface{}) error {
 	if err != nil {
 		return err
 	}
-	zr := zngio.NewReader(res.Body, zed.NewContext())
-	rec, err := zr.Read()
+	rec, err := zngio.NewReader(res.Body, zed.NewContext()).Read()
 	if err != nil {
 		return err
 	}
