@@ -69,8 +69,7 @@ func (c *Connection) ClientHostURL() string {
 }
 
 func (c *Connection) SetAuthToken(token string) {
-	value := fmt.Sprintf("Bearer %s", token)
-	c.defaultHeader.Set(http.CanonicalHeaderKey("Authorization"), value)
+	c.defaultHeader.Set("Authorization", "Bearer "+value)
 }
 
 func (c *Connection) SetUserAgent(useragent string) {
