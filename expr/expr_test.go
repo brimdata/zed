@@ -22,7 +22,7 @@ func testSuccessful(t *testing.T, e string, record string, expect zed.Value) {
 	zctx := zed.NewContext()
 	typ, _ := zctx.LookupTypeRecord([]zed.Column{{"result", expect.Type}})
 	bytes := zcode.AppendPrimitive(nil, expect.Bytes)
-	rec := zed.NewRecord(typ, bytes)
+	rec := zed.NewValue(typ, bytes)
 	formatter := zson.NewFormatter(0, nil)
 	val, err := formatter.Format(*rec)
 	require.NoError(t, err)

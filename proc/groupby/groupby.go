@@ -476,7 +476,7 @@ func (a *Aggregator) nextResultFromSpills() (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zed.NewRecord(typ, bytes), nil
+	return zed.NewValue(typ, bytes), nil
 }
 
 // readTable returns a slice of records from the in-memory groupby
@@ -535,7 +535,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 		if err != nil {
 			return nil, err
 		}
-		recs = append(recs, zed.NewRecord(typ, zv))
+		recs = append(recs, zed.NewValue(typ, zv))
 		// Delete entries from the table as we create records, so
 		// the freed enries can be GC'd incrementally as we shift
 		// state from the table to the records.  Otherwise, when

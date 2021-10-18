@@ -58,7 +58,7 @@ func (b *builder) build(typ *zed.TypeRecord, sourceFields []int, path []byte, da
 	if len(leftoverFields) != 0 {
 		return nil, errors.New("too many values")
 	}
-	return zed.NewRecord(typ, b.Bytes()), nil
+	return zed.NewValue(typ, b.Bytes()), nil
 }
 
 func (b *builder) appendColumns(columns []zed.Column, fields [][]byte) ([][]byte, error) {

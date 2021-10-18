@@ -39,5 +39,5 @@ func (w *Writer) Write(key zed.Value, offset int64) error {
 		w.recType = w.zctx.MustLookupTypeRecord(schema)
 		w.typ = key.Type
 	}
-	return w.writer.Write(zed.NewRecord(w.recType, b.Bytes()))
+	return w.writer.Write(zed.NewValue(w.recType, b.Bytes()))
 }

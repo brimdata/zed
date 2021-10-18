@@ -91,7 +91,7 @@ func (c *Cutter) Apply(in *zed.Value) (*zed.Value, error) {
 			return nil, errors.New("cannot cut an unset value to .")
 		}
 		c.dirty = true
-		return zed.NewRecord(recType, append(zcode.Bytes{}, zv.Bytes...)), nil
+		return zed.NewValue(recType, append(zcode.Bytes{}, zv.Bytes...)), nil
 	}
 	types := c.typeCache
 	b := c.builder
@@ -126,7 +126,7 @@ func (c *Cutter) Apply(in *zed.Value) (*zed.Value, error) {
 	if err != nil {
 		return nil, err
 	}
-	rec := zed.NewRecord(typ, zv)
+	rec := zed.NewValue(typ, zv)
 	for _, d := range droppers {
 		r, err := d.Apply(rec)
 		if err != nil {

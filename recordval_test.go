@@ -14,7 +14,7 @@ import (
 )
 
 func TestRecordTypeCheck(t *testing.T) {
-	r := zed.NewRecord(
+	r := zed.NewValue(
 		zed.NewTypeRecord(0, []zed.Column{
 			zed.NewColumn("f", zed.NewTypeSet(0, zed.TypeString)),
 		}),
@@ -62,7 +62,7 @@ func TestRecordTypeCheck(t *testing.T) {
 		}
 		b.TransformContainer(zed.NormalizeSet)
 		b.EndContainer()
-		r := zed.NewRecord(
+		r := zed.NewValue(
 			zed.NewTypeRecord(0, []zed.Column{
 				zed.NewColumn("f", zed.NewTypeSet(0, zed.NewTypeRecord(0, []zed.Column{
 					zed.NewColumn("g", zed.TypeString),

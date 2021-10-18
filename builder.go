@@ -40,7 +40,7 @@ func (b *Builder) Build(zvs ...zcode.Bytes) *Value {
 			b.AppendPrimitive(zv)
 		}
 	}
-	return NewRecord(b.Type, b.Bytes())
+	return NewValue(b.Type, b.Bytes())
 }
 
 func (b *Builder) appendUnset(typ Type) {

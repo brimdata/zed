@@ -34,22 +34,6 @@ type RecordTypeError struct {
 func (r *RecordTypeError) Error() string { return r.Name + " (" + r.Type + "): " + r.Err.Error() }
 func (r *RecordTypeError) Unwrap() error { return r.Err }
 
-func NewRecord(typ Type, bytes zcode.Bytes) *Value {
-	return &Value{typ, bytes}
-}
-
-func NewRecordCheck(typ Type, bytes zcode.Bytes) (*Value, error) {
-	r := NewRecord(typ, bytes)
-	if err := r.TypeCheck(); err != nil {
-		return nil, err
-	}
-	return r, nil
-}
-
-func NewVolatileRecord(typ Type, bytes zcode.Bytes) *Value {
-	return NewRecord(typ, bytes)
-}
-
 // FieldIter returns a fieldIter iterator over the receiver's values.
 func (r *Value) FieldIter() fieldIter {
 	return fieldIter{
@@ -63,7 +47,7 @@ func (r *Value) FieldIter() fieldIter {
 func (r *Value) Keep() *Value {
 	bytes := make(zcode.Bytes, len(r.Bytes))
 	copy(bytes, r.Bytes)
-	return NewRecord(r.Type, bytes)
+	return NewValue(r.Type, bytes)
 }
 
 func (r *Value) CopyBytes() {
@@ -207,7 +191,7 @@ func (r *Value) Deref(path field.Path) (Value, error) {
 			return Value{}, errors.New("field access on non-record value")
 		}
 		var err error
-		v, err = NewVolatileRecord(typ, v.Bytes).Access(f)
+		v, err = NewValue(typ, v.Bytes).Access(f)
 		if err != nil {
 			return Value{}, err
 		}

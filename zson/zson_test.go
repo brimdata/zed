@@ -58,7 +58,7 @@ func TestZsonBuilder(t *testing.T) {
 	b := zcode.NewBuilder()
 	zv, err := zson.Build(b, val)
 	require.NoError(t, err)
-	rec := zed.NewRecord(zv.Type.(*zed.TypeRecord), zv.Bytes)
+	rec := zed.NewValue(zv.Type.(*zed.TypeRecord), zv.Bytes)
 	zv, err = rec.Access("a")
 	require.NoError(t, err)
 	assert.Equal(t, "[string]: [(31)(32)(33)]", zv.String())

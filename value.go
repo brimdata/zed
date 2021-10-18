@@ -19,6 +19,10 @@ type Value struct {
 	Bytes zcode.Bytes
 }
 
+func NewValue(zt Type, zb zcode.Bytes) *Value {
+	return &Value{zt, zb}
+}
+
 func (v Value) IsContainer() bool {
 	return IsContainerType(v.Type)
 }

@@ -220,9 +220,9 @@ func readValue(r reader, code byte, m *zed.Mapper, validate bool, rec *zed.Value
 		return nil, errors.New("non-record, top-level zng values are not supported")
 	}
 	if rec == nil {
-		rec = zed.NewVolatileRecord(typ, b)
+		rec = zed.NewValue(typ, b)
 	} else {
-		*rec = *zed.NewVolatileRecord(typ, b)
+		*rec = *zed.NewValue(typ, b)
 	}
 	if validate {
 		if err := rec.TypeCheck(); err != nil {

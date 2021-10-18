@@ -259,5 +259,5 @@ func (p *Proc) splice(left, right *zed.Value) (*zed.Value, error) {
 	bytes := make([]byte, n+len(right.Bytes))
 	copy(bytes, left.Bytes)
 	copy(bytes[n:], right.Bytes)
-	return zed.NewRecord(typ, bytes), nil
+	return zed.NewValue(typ, bytes), nil
 }
