@@ -152,8 +152,7 @@ func TestPoolRemote(t *testing.T) {
 
 func TestNoEndSlashSupport(t *testing.T) {
 	_, conn := newCore(t)
-	req := conn.NewRequest(context.Background(), "GET", "/pool/", nil)
-	_, err := conn.Do(req)
+	_, err := conn.Do(conn.NewRequest(context.Background(), "GET", "/pool/", nil))
 	require.Error(t, err)
 	require.Equal(t, 404, err.(*client.ErrorResponse).StatusCode)
 }
