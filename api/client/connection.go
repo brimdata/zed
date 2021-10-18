@@ -142,11 +142,7 @@ func errIsStatus(err error, code int) bool {
 }
 
 func (c *Connection) NewRequest(ctx context.Context, method, path string, body interface{}) *Request {
-	h := make(http.Header)
-	for key, val := range c.defaultHeader {
-		h[key] = val
-	}
-	req := newRequest(ctx, c.hostURL, h)
+	req := newRequest(ctx, c.hostURL, c.defaultHeader.Clone())
 	req.Method = method
 	req.Path = path
 	req.Body = body
