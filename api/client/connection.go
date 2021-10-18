@@ -114,7 +114,7 @@ func (c *Connection) doAndUnmarshal(req *Request, i interface{}) error {
 	return zson.UnmarshalZNGRecord(rec, i)
 }
 
-// parseError parses an error from an http.Response with an error status code. For now the response type of errors is assumed to be JSON.
+// parseError parses an error from an http.Response with an error status code. For now the content type of errors is assumed to be JSON.
 func parseError(r *http.Response) error {
 	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
