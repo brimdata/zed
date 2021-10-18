@@ -276,10 +276,3 @@ func (r *Value) AccessTimeByColumn(colno int) (nano.Ts, error) {
 	}
 	return DecodeTime(zv)
 }
-
-// Ts returns the value of the receiver's "ts" field.  If the field is absent,
-// is null, or has a type other than TypeOfTime, Ts returns nano.MinTs.
-func (r *Value) Ts() nano.Ts {
-	ts, _ := r.AccessTime("ts")
-	return ts
-}

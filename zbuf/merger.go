@@ -75,23 +75,6 @@ func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merge
 	return m
 }
 
-func MergeByTs(ctx context.Context, pullers []Puller, o order.Which) *Merger {
-	cmp := func(a, b *zed.Value) int {
-		if o == order.Desc {
-			a, b = b, a
-		}
-		aTs, bTs := a.Ts(), b.Ts()
-		if aTs < bTs {
-			return -1
-		}
-		if aTs > bTs {
-			return 1
-		}
-		return bytes.Compare(a.Bytes, b.Bytes)
-	}
-	return NewMerger(ctx, pullers, cmp)
-}
-
 func (m *Merger) run() {
 	for _, p := range m.pullers {
 		m.wg.Add(1)

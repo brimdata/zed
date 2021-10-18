@@ -3,10 +3,8 @@ package zed_test
 import (
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 	"github.com/stretchr/testify/assert"
@@ -85,23 +83,4 @@ func TestRecordAccessAlias(t *testing.T) {
 	b, err := rec.AccessBool("bar")
 	require.NoError(t, err)
 	assert.Equal(t, b, true)
-}
-
-func TestRecordTs(t *testing.T) {
-	cases := []struct {
-		input    string
-		expected nano.Ts
-	}{
-		{"{ts:1970-01-01T00:00:01Z}", nano.Ts(time.Second)},
-		{"{notts:1970-01-01T00:00:01Z}", nano.MinTs}, // No ts field.
-		{"{ts:null (time)}", nano.MinTs},             // Null ts field.
-		{"{ts:1}", nano.MinTs},                       // Type of ts field is not TypeOfTime.
-	}
-	for _, c := range cases {
-		zr := zson.NewReader(strings.NewReader(c.input), zed.NewContext())
-		rec, err := zr.Read()
-		assert.NoError(t, err)
-		require.NotNil(t, rec)
-		assert.Exactly(t, c.expected, rec.Ts(), "input: %q", c.input)
-	}
 }
