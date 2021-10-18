@@ -1,0 +1,14 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake index -q create IPs type ip
+  zed lake index -q create DropMe field DropMe
+  id=$(zed lake query -f text 'from :index_rules | name == "DropMe" | cut id:=to_hex(id)')
+  zed lake index drop 0x$id
+  echo ===
+  zed lake query -z 'from :index_rules | drop id, ts' 
+
+outputs:
+  - name: stdout
+    regexp: |
+      \w{27} dropped from rule "DropMe"

@@ -101,7 +101,7 @@ func TestPoolPostNameOnly(t *testing.T) {
 func TestPoolPostDuplicateName(t *testing.T) {
 	_, conn := newCore(t)
 	conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	_, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test"})
+	_, err := conn.CreatePool(context.Background(), api.PoolPostRequest{Name: "test"})
 	require.Equal(t, errors.Is(err, client.ErrPoolExists), true)
 }
 
@@ -110,14 +110,14 @@ func TestPoolInvalidName(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
 	t.Run("Post", func(t *testing.T) {
-		_, err := conn.PoolPost(ctx, api.PoolPostRequest{Name: "𝚭𝚴𝚪 is.good"})
+		_, err := conn.CreatePool(ctx, api.PoolPostRequest{Name: "𝚭𝚴𝚪 is.good"})
 		require.NoError(t, err)
-		_, err = conn.PoolPost(ctx, api.PoolPostRequest{Name: "𝚭𝚴𝚪/bad"})
+		_, err = conn.CreatePool(ctx, api.PoolPostRequest{Name: "𝚭𝚴𝚪/bad"})
 		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
 	t.Run("Put", func(t *testing.T) {
 		poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "𝚭𝚴𝚪1"})
-		err := conn.PoolPut(ctx, poolID, api.PoolPutRequest{Name: "𝚭𝚴𝚪/2"})
+		err := conn.RenamePool(ctx, poolID, api.PoolPutRequest{Name: "𝚭𝚴𝚪/2"})
 		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
 }
@@ -126,7 +126,7 @@ func TestPoolPutDuplicateName(t *testing.T) {
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	conn.TestPoolPost(api.PoolPostRequest{Name: "test1"})
-	err := conn.PoolPut(context.Background(), poolID, api.PoolPutRequest{Name: "test"})
+	err := conn.RenamePool(context.Background(), poolID, api.PoolPutRequest{Name: "test"})
 	assert.EqualError(t, err, "status code 409: test: pool already exists")
 }
 
@@ -134,7 +134,7 @@ func TestPoolPut(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	err := conn.PoolPut(ctx, poolID, api.PoolPutRequest{Name: "new_name"})
+	err := conn.RenamePool(ctx, poolID, api.PoolPutRequest{Name: "new_name"})
 	require.NoError(t, err)
 	info := conn.TestPoolGet(poolID)
 	assert.Equal(t, "new_name", info.Name)
@@ -144,7 +144,7 @@ func TestPoolRemote(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	err := conn.PoolRemove(ctx, poolID)
+	err := conn.RemovePool(ctx, poolID)
 	require.NoError(t, err)
 	list := conn.TestPoolList()
 	require.Len(t, list, 0)

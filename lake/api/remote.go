@@ -58,7 +58,7 @@ func (r *RemoteSession) CommitObject(ctx context.Context, poolID ksuid.KSUID, br
 }
 
 func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64) (ksuid.KSUID, error) {
-	res, err := r.conn.PoolPost(ctx, api.PoolPostRequest{
+	res, err := r.conn.CreatePool(ctx, api.PoolPostRequest{
 		Name:   name,
 		Layout: layout,
 		Thresh: thresh,
@@ -70,7 +70,7 @@ func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout orde
 }
 
 func (r *RemoteSession) CreateBranch(ctx context.Context, poolID ksuid.KSUID, name string, at ksuid.KSUID) error {
-	_, err := r.conn.BranchPost(ctx, poolID, api.BranchPostRequest{
+	_, err := r.conn.CreateBranch(ctx, poolID, api.BranchPostRequest{
 		Name:   name,
 		Commit: at.String(),
 	})
@@ -87,14 +87,14 @@ func (r *RemoteSession) MergeBranch(ctx context.Context, poolID ksuid.KSUID, chi
 }
 
 func (r *RemoteSession) RemovePool(ctx context.Context, pool ksuid.KSUID) error {
-	return r.conn.PoolRemove(ctx, pool)
+	return r.conn.RemovePool(ctx, pool)
 }
 
 func (r *RemoteSession) RenamePool(ctx context.Context, pool ksuid.KSUID, name string) error {
 	if name == "" {
 		return errors.New("no pool name provided")
 	}
-	return r.conn.PoolPut(ctx, pool, api.PoolPutRequest{Name: name})
+	return r.conn.RenamePool(ctx, pool, api.PoolPutRequest{Name: name})
 }
 
 func (r *RemoteSession) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, reader zio.Reader, commit api.CommitMessage) (ksuid.KSUID, error) {
@@ -113,22 +113,6 @@ func (r *RemoteSession) Revert(ctx context.Context, poolID ksuid.KSUID, branchNa
 	return res.Commit, err
 }
 
-func (*RemoteSession) AddIndexRules(context.Context, []index.Rule) error {
-	return errors.New("unsupported see issue #2934")
-}
-
-func (*RemoteSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
-	return nil, errors.New("unsupported see issue #2934")
-}
-
-func (*RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
-	return ksuid.Nil, errors.New("unsupported see issue #2934")
-}
-
-func (*RemoteSession) UpdateIndex(ctx context.Context, names []string, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
-	return ksuid.Nil, errors.New("unsupported see issue #2934")
-}
-
 func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, head *lakeparse.Commitish, src string, srcfiles ...string) (zbuf.ScannerStats, error) {
 	res, err := r.conn.Query(ctx, head, src, srcfiles...)
 	if err != nil {
@@ -140,5 +124,24 @@ func (r *RemoteSession) Query(ctx context.Context, d driver.Driver, head *lakepa
 
 func (r *RemoteSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, tags []ksuid.KSUID, commit api.CommitMessage) (ksuid.KSUID, error) {
 	res, err := r.conn.Delete(ctx, poolID, branchName, tags, commit)
+	return res.Commit, err
+}
+
+func (r *RemoteSession) AddIndexRules(ctx context.Context, rules []index.Rule) error {
+	return r.conn.AddIndexRules(ctx, rules)
+}
+
+func (r *RemoteSession) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) ([]index.Rule, error) {
+	res, err := r.conn.DeleteIndexRules(ctx, ids)
+	return res.Rules, err
+}
+
+func (r *RemoteSession) ApplyIndexRules(ctx context.Context, rule string, poolID ksuid.KSUID, branchName string, inTags []ksuid.KSUID) (ksuid.KSUID, error) {
+	res, err := r.conn.ApplyIndexRules(ctx, poolID, branchName, rule, inTags)
+	return res.Commit, err
+}
+
+func (r *RemoteSession) UpdateIndex(ctx context.Context, rules []string, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
+	res, err := r.conn.UpdateIndex(ctx, poolID, branchName, rules)
 	return res.Commit, err
 }

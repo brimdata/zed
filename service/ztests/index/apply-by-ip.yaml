@@ -1,0 +1,37 @@
+script: |
+  source service.sh
+  zed lake create -q test
+  id=$(zed lake load -use test@main in.zson | awk '{print $1}')
+  zed lake index create -q IPs type ip
+  zed lake index apply -use test@main IPs $id
+  echo ===
+  zed lake query -Z -I query.zed
+
+inputs:
+  - name: service.sh
+    source: ../service.sh
+  - name: in.zson
+    data: |
+      {x:127.0.0.1}
+      {x:127.0.0.2}
+  - name: query.zed
+    data: |
+      from (
+        :index_rules => sort id;
+        test@main:indexes => sort rule.id | cut o:=this;
+      )
+      | left join on id = o.rule.id o
+      | count(o) by name,type
+
+outputs:
+  - name: stderr
+    data: ""
+  - name: stdout
+    regexp: |
+      \w{27} committed
+      ===
+      \{
+          name: "IPs",
+          type: "ip",
+          count: 1 \(uint64\)
+      \}
