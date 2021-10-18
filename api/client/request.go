@@ -60,9 +60,7 @@ func (r *Request) reader() (io.Reader, error) {
 }
 
 func (r *Request) HTTPRequest() (*http.Request, error) {
-	if accept := r.Header.Get("Accept"); accept != api.MediaTypeZNG {
-		return nil, fmt.Errorf("%s: invalid 'Accept' header, only %s accepted", accept, api.MediaTypeZNG)
-	}
+	r.Header.Set("Accept", api.MediaTypeZNG)
 	body, err := r.reader()
 	if err != nil {
 		return nil, err
