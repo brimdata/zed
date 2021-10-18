@@ -56,10 +56,9 @@ func NewConnection() *Connection {
 // NewConnectionTo creates a new connection with the given useragent string
 // and a base URL derived from the hostURL argument.
 func NewConnectionTo(hostURL string) *Connection {
-	h := http.Header{"Accept": []string{api.MediaTypeZNG}}
 	return &Connection{
 		client:        &http.Client{},
-		defaultHeader: h,
+		defaultHeader: http.Header{"Accept": []string{api.MediaTypeZNG}},
 		hostURL:       hostURL,
 	}
 }
