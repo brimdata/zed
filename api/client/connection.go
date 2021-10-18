@@ -116,8 +116,8 @@ func (c *Connection) doAndUnmarshal(req *Request, i interface{}) error {
 
 // parseError parses an error from an http.Response with an error status code. For now the content type of errors is assumed to be JSON.
 func parseError(r *http.Response) error {
-	defer r.Body.Close()
 	body, err := io.ReadAll(r.Body)
+	r.Body.Close()
 	if err != nil {
 		return err
 	}
