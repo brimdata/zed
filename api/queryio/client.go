@@ -14,13 +14,6 @@ import (
 )
 
 func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Response) (zbuf.ScannerStats, error) {
-	format, err := api.MediaTypeToFormat(res.ContentType)
-	if err != nil {
-		return zbuf.ScannerStats{}, err
-	}
-	if format != "zng" {
-		return zbuf.ScannerStats{}, fmt.Errorf("unsupported format: %s", format)
-	}
 	run := &runner{driver: d}
 	r := NewZNGReader(zngio.NewReader(res.Body, zed.NewContext()))
 	for ctx.Err() == nil {

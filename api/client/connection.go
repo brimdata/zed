@@ -6,18 +6,20 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mime"
 	"net/http"
 	"net/url"
 	"path"
 	"strconv"
 	"time"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/parser"
+	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lakeparse"
-	"github.com/brimdata/zed/pkg/storage"
-	"github.com/go-resty/resty/v2"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -38,26 +40,10 @@ var (
 	ErrBranchExists = errors.New("branch exists")
 )
 
-type Response struct {
-	Body        io.ReadCloser
-	ContentType string
-	StatusCode  int
-}
-
 type Connection struct {
-	client  *resty.Client
-	storage storage.Engine
-}
-
-func newConnection(client *resty.Client) *Connection {
-	client.SetError(api.Error{})
-	client.OnAfterResponse(checkError)
-	c := &Connection{
-		client:  client,
-		storage: storage.NewLocalEngine(),
-	}
-	c.SetUserAgent(DefaultUserAgent)
-	return c
+	client        *http.Client
+	defaultHeader http.Header
+	hostURL       string
 }
 
 // NewConnection creates a new connection with the given useragent string
@@ -70,207 +56,197 @@ func NewConnection() *Connection {
 // NewConnectionTo creates a new connection with the given useragent string
 // and a base URL derived from the hostURL argument.
 func NewConnectionTo(hostURL string) *Connection {
-	client := resty.New()
-	client.HostURL = hostURL
-	// For now connection only accepts zng responses.
-	client.SetHeader("Accept", api.MediaTypeZNG)
-	return newConnection(client)
+	return &Connection{
+		client:        &http.Client{},
+		defaultHeader: http.Header{"Accept": []string{api.MediaTypeZNG}},
+		hostURL:       hostURL,
+	}
 }
 
 // ClientHostURL allows us to print the host in log messages and internal error messages
 func (c *Connection) ClientHostURL() string {
-	return c.client.HostURL
+	return c.hostURL
 }
 
 func (c *Connection) SetAuthToken(token string) {
-	c.client.SetAuthToken(token)
+	c.defaultHeader.Set("Authorization", "Bearer "+token)
 }
 
 func (c *Connection) SetUserAgent(useragent string) {
-	c.client.SetHeader("User-Agent", useragent)
+	c.defaultHeader.Set("User-Agent", useragent)
 }
 
-func (c *Connection) Do(ctx context.Context, method, url string, body interface{}) (*resty.Response, error) {
-	req := c.Request(ctx).SetBody(body)
-	req.Header.Set("Accept", api.MediaTypeJSON)
-	return req.Execute(method, url)
+type Response struct {
+	*http.Response
+	Duration time.Duration
 }
 
-func checkError(client *resty.Client, resp *resty.Response) error {
-	if resp.IsSuccess() {
-		return nil
-	}
-	resErr := &ErrorResponse{Response: resp}
-	if err := resp.Error(); err != nil {
-		resErr.Err = err.(*api.Error)
-	} else {
-		resErr.Err = errors.New(resp.String())
-	}
-	return resErr
-}
-
-func (c *Connection) stream(req *resty.Request) (*Response, error) {
-	resp, err := req.SetDoNotParseResponse(true).Send() // disables middleware
+func (c *Connection) Do(req *Request) (*Response, error) {
+	httpreq, err := req.HTTPRequest()
 	if err != nil {
 		return nil, err
 	}
-	r := resp.RawBody()
-	if resp.IsSuccess() {
-		typ, _, err := mime.ParseMediaType(resp.Header().Get("Content-Type"))
-		if err != nil {
-			return nil, err
-		}
-		return &Response{
-			Body:        r,
-			ContentType: typ,
-			StatusCode:  resp.StatusCode(),
-		}, err
-	}
-	defer r.Close()
-	body, err := io.ReadAll(r)
+	res, err := c.client.Do(httpreq)
 	if err != nil {
 		return nil, err
 	}
-	resErr := &ErrorResponse{Response: resp}
-	if resty.IsJSONType(resp.Header().Get("Content-Type")) {
+	if res.StatusCode < 200 || res.StatusCode > 299 {
+		err = parseError(res)
+	}
+	return &Response{
+		Response: res,
+		Duration: req.Duration(),
+	}, err
+}
+
+func (c *Connection) doAndUnmarshal(req *Request, i interface{}) error {
+	res, err := c.Do(req)
+	if err != nil {
+		return err
+	}
+	rec, err := zngio.NewReader(res.Body, zed.NewContext()).Read()
+	if err != nil {
+		return err
+	}
+	if rec == nil {
+		return errors.New("expected one record from response but got none")
+	}
+	return zson.UnmarshalZNGRecord(rec, i)
+}
+
+// parseError parses an error from an http.Response with an error status code. For now the content type of errors is assumed to be JSON.
+func parseError(r *http.Response) error {
+	body, err := io.ReadAll(r.Body)
+	r.Body.Close()
+	if err != nil {
+		return err
+	}
+	resErr := &ErrorResponse{Response: r}
+	if r.Header.Get("Content-Type") == api.MediaTypeJSON {
 		var apierr api.Error
 		if err := json.Unmarshal(body, &apierr); err != nil {
-			return nil, err
+			return err
 		}
 		resErr.Err = &apierr
 	} else {
 		resErr.Err = errors.New(string(body))
 	}
-	return nil, resErr
+	return resErr
 }
 
-// SetTimeout sets the underlying http request timeout to the given duration
-func (c *Connection) SetTimeout(to time.Duration) {
-	c.client.SetTimeout(to)
+func errIsStatus(err error, code int) bool {
+	var errRes *ErrorResponse
+	return errors.As(err, &errRes) && errRes.StatusCode == code
 }
 
-func (c *Connection) URL() string {
-	return c.client.HostURL
-}
-
-func (c *Connection) SetURL(u string) {
-	c.client.SetHostURL(u)
-}
-
-func (c *Connection) Request(ctx context.Context) *resty.Request {
-	req := c.client.R().SetContext(ctx)
-	if requestID := api.RequestIDFromContext(ctx); requestID != "" {
-		req = req.SetHeader(api.RequestIDHeader, requestID)
-	}
+func (c *Connection) NewRequest(ctx context.Context, method, path string, body interface{}) *Request {
+	req := newRequest(ctx, c.hostURL, c.defaultHeader.Clone())
+	req.Method = method
+	req.Path = path
+	req.Body = body
 	return req
 }
 
 // Ping checks to see if the server and measure the time it takes to
 // get back the response.
 func (c *Connection) Ping(ctx context.Context) (time.Duration, error) {
-	resp, err := c.Request(ctx).
-		Get("/status")
+	req := c.NewRequest(ctx, http.MethodGet, "/status", nil)
+	res, err := c.Do(req)
+	res.Body.Close()
 	if err != nil {
 		return 0, err
 	}
-	return resp.Time(), nil
+	return res.Duration, nil
 }
 
 // Version retrieves the version string from the service.
 func (c *Connection) Version(ctx context.Context) (string, error) {
-	resp, err := c.Request(ctx).
-		SetResult(&api.VersionResponse{}).
-		Get("/version")
-	if err != nil {
+	req := c.NewRequest(ctx, http.MethodGet, "/version", nil)
+	var res api.VersionResponse
+	if err := c.doAndUnmarshal(req, &res); err != nil {
 		return "", err
 	}
-	return resp.Result().(*api.VersionResponse).Version, nil
+	return res.Version, nil
 }
 
-func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (*Response, error) {
-	req := c.Request(ctx)
-	req.Method = http.MethodGet
-	req.URL = path.Join("/pool", id.String(), "stats")
-	r, err := c.stream(req)
-	var errRes *ErrorResponse
-	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
-		return nil, ErrPoolNotFound
+func (c *Connection) PoolStats(ctx context.Context, id ksuid.KSUID) (lake.PoolStats, error) {
+	req := c.NewRequest(ctx, http.MethodGet, path.Join("/pool", id.String(), "stats"), nil)
+	var stats lake.PoolStats
+	err := c.doAndUnmarshal(req, &stats)
+	if errIsStatus(err, http.StatusNotFound) {
+		err = ErrPoolNotFound
 	}
-	return r, err
+	return stats, err
 }
 
-func (c *Connection) BranchGet(ctx context.Context, poolID ksuid.KSUID, branchName string) (*Response, error) {
-	req := c.Request(ctx)
-	req.Method = http.MethodGet
-	req.URL = urlPath("pool", poolID.String(), "branch", branchName)
-	r, err := c.stream(req)
-	var errRes *ErrorResponse
-	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusNotFound {
-		return nil, ErrBranchNotFound
+func (c *Connection) BranchGet(ctx context.Context, poolID ksuid.KSUID, branchName string) (api.CommitResponse, error) {
+	path := urlPath("pool", poolID.String(), "branch", branchName)
+	req := c.NewRequest(ctx, http.MethodGet, path, nil)
+	var commit api.CommitResponse
+	err := c.doAndUnmarshal(req, &commit)
+	if errIsStatus(err, http.StatusNotFound) {
+		err = ErrBranchNotFound
 	}
-	return r, err
+	return commit, err
 }
 
-func (c *Connection) PoolPost(ctx context.Context, payload api.PoolPostRequest) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(payload)
-	req.Method = http.MethodPost
-	req.URL = "/pool"
-	resp, err := c.stream(req)
-	var errRes *ErrorResponse
-	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusConflict {
-		return nil, ErrPoolExists
+func (c *Connection) PoolPost(ctx context.Context, payload api.PoolPostRequest) (lake.BranchMeta, error) {
+	req := c.NewRequest(ctx, http.MethodPost, "/pool", payload)
+	var meta lake.BranchMeta
+	err := c.doAndUnmarshal(req, &meta)
+	if errIsStatus(err, http.StatusConflict) {
+		err = ErrPoolExists
 	}
-	return resp, err
+	return meta, err
 }
 
-func (c *Connection) PoolPut(ctx context.Context, id ksuid.KSUID, req api.PoolPutRequest) error {
-	_, err := c.Request(ctx).
-		SetBody(req).
-		Put(path.Join("/pool", id.String()))
+func (c *Connection) PoolPut(ctx context.Context, id ksuid.KSUID, put api.PoolPutRequest) error {
+	req := c.NewRequest(ctx, http.MethodPut, path.Join("/pool", id.String()), put)
+	res, err := c.Do(req)
+	res.Body.Close()
 	return err
 }
 
 func (c *Connection) PoolRemove(ctx context.Context, id ksuid.KSUID) error {
-	path := path.Join("/pool", id.String())
-	_, err := c.Request(ctx).Delete(path)
-	if r, ok := err.(*ErrorResponse); ok && r.StatusCode() == http.StatusNotFound {
-		return ErrPoolNotFound
+	req := c.NewRequest(ctx, http.MethodDelete, path.Join("/pool", id.String()), nil)
+	res, err := c.Do(req)
+	res.Body.Close()
+	if errIsStatus(err, http.StatusNotFound) {
+		err = ErrPoolNotFound
 	}
 	return err
 }
 
-func (c *Connection) BranchPost(ctx context.Context, poolID ksuid.KSUID, payload api.BranchPostRequest) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(payload)
-	req.Method = http.MethodPost
-	req.URL = path.Join("/pool", poolID.String())
-	resp, err := c.stream(req)
-	var errRes *ErrorResponse
-	if errors.As(err, &errRes) && errRes.StatusCode() == http.StatusConflict {
-		return nil, ErrBranchExists
+func (c *Connection) BranchPost(ctx context.Context, poolID ksuid.KSUID, payload api.BranchPostRequest) (branches.Config, error) {
+	req := c.NewRequest(ctx, http.MethodPost, path.Join("/pool", poolID.String()), payload)
+	var branch branches.Config
+	err := c.doAndUnmarshal(req, &branch)
+	if errIsStatus(err, http.StatusConflict) {
+		err = ErrBranchExists
 	}
-	return resp, err
+	return branch, err
 }
 
-func (c *Connection) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (*Response, error) {
-	req := c.Request(ctx)
+func (c *Connection) MergeBranch(ctx context.Context, poolID ksuid.KSUID, childBranch, parentBranch string, message api.CommitMessage) (api.CommitResponse, error) {
+	path := urlPath("pool", poolID.String(), "branch", parentBranch, "merge", childBranch)
+	req := c.NewRequest(ctx, http.MethodPost, path, nil)
 	if err := encodeCommitMessage(req, message); err != nil {
-		return nil, err
+		return api.CommitResponse{}, err
 	}
-	req.Method = http.MethodPost
-	req.URL = urlPath("pool", poolID.String(), "branch", parentBranch, "merge", childBranch)
-	return c.stream(req)
+	var commit api.CommitResponse
+	err := c.doAndUnmarshal(req, &commit)
+	return commit, err
 }
 
-func (c *Connection) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (*Response, error) {
-	req := c.Request(ctx)
+func (c *Connection) Revert(ctx context.Context, poolID ksuid.KSUID, branchName string, commitID ksuid.KSUID, message api.CommitMessage) (api.CommitResponse, error) {
+	path := urlPath("pool", poolID.String(), "branch", branchName, "revert", commitID.String())
+	req := c.NewRequest(ctx, http.MethodPost, path, nil)
 	if err := encodeCommitMessage(req, message); err != nil {
-		return nil, err
+		return api.CommitResponse{}, err
 	}
-	req.Method = http.MethodPost
-	req.URL = urlPath("pool", poolID.String(), "branch", branchName, "revert", commitID.String())
-	return c.stream(req)
+	var commit api.CommitResponse
+	err := c.doAndUnmarshal(req, &commit)
+	return commit, err
 }
 
 func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src string, filenames ...string) (*Response, error) {
@@ -282,10 +258,8 @@ func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src s
 	if head != nil {
 		body.Head = *head
 	}
-	req := c.Request(ctx).SetBody(body)
-	req.Method = http.MethodPost
-	req.URL = "/query"
-	res, err := c.stream(req)
+	req := c.NewRequest(ctx, http.MethodPost, "/query", body)
+	res, err := c.Do(req)
 	var ae *api.Error
 	if errors.As(err, &ae) {
 		if m, ok := ae.Info.(map[string]interface{}); ok {
@@ -297,60 +271,53 @@ func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src s
 	return res, err
 }
 
-func (c *Connection) IndexPost(ctx context.Context, id ksuid.KSUID, post api.IndexPostRequest) error {
-	_, err := c.Request(ctx).
-		SetBody(post).
-		Post(path.Join("/pool", id.String(), "index"))
-	return err
-}
-
-func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r io.Reader, message api.CommitMessage) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(r)
+func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r io.Reader, message api.CommitMessage) (api.CommitResponse, error) {
+	path := urlPath("pool", poolID.String(), "branch", branchName)
+	req := c.NewRequest(ctx, http.MethodPost, path, r)
 	if err := encodeCommitMessage(req, message); err != nil {
-		return nil, err
+		return api.CommitResponse{}, err
 	}
-	req.Method = http.MethodPost
-	req.URL = urlPath("pool", poolID.String(), "branch", branchName)
-	return c.stream(req)
+	var commit api.CommitResponse
+	err := c.doAndUnmarshal(req, &commit)
+	return commit, err
 }
 
-func encodeCommitMessage(req *resty.Request, message api.CommitMessage) error {
+func encodeCommitMessage(req *Request, message api.CommitMessage) error {
 	encoded, err := json.Marshal(message)
 	if err != nil {
 		return err
 	}
-	req.SetHeader("Zed-Commit", string(encoded))
+	req.Header.Set("Zed-Commit", string(encoded))
 	return nil
 }
 
-func (c *Connection) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (*Response, error) {
-	req := c.Request(ctx).
-		SetBody(ids)
+func (c *Connection) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (api.CommitResponse, error) {
+	path := urlPath("pool", poolID.String(), "branch", branchName, "delete")
+	req := c.NewRequest(ctx, http.MethodPost, path, ids)
 	if err := encodeCommitMessage(req, message); err != nil {
-		return nil, err
+		return api.CommitResponse{}, err
 	}
-	req.Method = http.MethodPost
-	req.URL = urlPath("pool", poolID.String(), "branch", branchName, "delete")
-	return c.stream(req)
+	var commit api.CommitResponse
+	err := c.doAndUnmarshal(req, &commit)
+	return commit, err
 }
 
-func (c *Connection) AuthMethod(ctx context.Context) (*Response, error) {
-	req := c.Request(ctx)
-	req.Method = http.MethodGet
-	req.URL = "/auth/method"
-	return c.stream(req)
+func (c *Connection) AuthMethod(ctx context.Context) (api.AuthMethodResponse, error) {
+	req := c.NewRequest(ctx, http.MethodGet, "/auth/method", nil)
+	var method api.AuthMethodResponse
+	err := c.doAndUnmarshal(req, &method)
+	return method, err
 }
 
-func (c *Connection) AuthIdentity(ctx context.Context) (*Response, error) {
-	req := c.Request(ctx)
-	req.Method = http.MethodGet
-	req.URL = "/auth/identity"
-	return c.stream(req)
+func (c *Connection) AuthIdentity(ctx context.Context) (api.AuthIdentityResponse, error) {
+	req := c.NewRequest(ctx, http.MethodGet, "/auth/identity", nil)
+	var ident api.AuthIdentityResponse
+	err := c.doAndUnmarshal(req, &ident)
+	return ident, err
 }
 
 type ErrorResponse struct {
-	*resty.Response
+	*http.Response
 	Err error
 }
 
@@ -359,7 +326,7 @@ func (e *ErrorResponse) Unwrap() error {
 }
 
 func (e *ErrorResponse) Error() string {
-	return fmt.Sprintf("status code %d: %v", e.StatusCode(), e.Err)
+	return fmt.Sprintf("status code %d: %v", e.StatusCode, e.Err)
 }
 
 func urlPath(elem ...string) string {

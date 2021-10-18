@@ -152,30 +152,30 @@ func TestPoolRemote(t *testing.T) {
 
 func TestNoEndSlashSupport(t *testing.T) {
 	_, conn := newCore(t)
-	_, err := conn.Do(context.Background(), "GET", "/pool/", nil)
+	_, err := conn.Do(conn.NewRequest(context.Background(), "GET", "/pool/", nil))
 	require.Error(t, err)
-	require.Equal(t, 404, err.(*client.ErrorResponse).StatusCode())
+	require.Equal(t, 404, err.(*client.ErrorResponse).StatusCode)
 }
 
 func TestRequestID(t *testing.T) {
 	ctx := context.Background()
 	t.Run("GeneratesUniqueID", func(t *testing.T) {
 		_, conn := newCore(t)
-		res1, err := conn.Do(ctx, "GET", "/pool", nil)
+		res1, err := conn.Do(conn.NewRequest(ctx, "GET", "/pool", nil))
 		require.NoError(t, err)
-		res2, err := conn.Do(ctx, "GET", "/pool", nil)
+		res2, err := conn.Do(conn.NewRequest(ctx, "GET", "/pool", nil))
 		require.NoError(t, err)
-		assert.NotEqual(t, "", res1.Header().Get("X-Request-ID"))
-		assert.NotEqual(t, "", res2.Header().Get("X-Request-ID"))
+		assert.NotEqual(t, "", res1.Header.Get("X-Request-ID"))
+		assert.NotEqual(t, "", res2.Header.Get("X-Request-ID"))
 	})
 	t.Run("PropagatesID", func(t *testing.T) {
 		_, conn := newCore(t)
 		requestID := "random-request-ID"
-		req := conn.Request(context.Background())
-		req.SetHeader("X-Request-ID", requestID)
-		res, err := req.Execute("GET", "/pool")
+		req := conn.NewRequest(context.Background(), "GET", "/pool", nil)
+		req.Header.Set("X-Request-ID", requestID)
+		res, err := conn.Do(req)
 		require.NoError(t, err)
-		require.Equal(t, requestID, res.Header().Get("X-Request-ID"))
+		require.Equal(t, requestID, res.Header.Get("X-Request-ID"))
 	})
 }
 
