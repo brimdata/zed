@@ -69,7 +69,7 @@ func (c *Connection) ClientHostURL() string {
 }
 
 func (c *Connection) SetAuthToken(token string) {
-	c.defaultHeader.Set("Authorization", "Bearer "+value)
+	c.defaultHeader.Set("Authorization", "Bearer "+token)
 }
 
 func (c *Connection) SetUserAgent(useragent string) {

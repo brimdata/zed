@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptrace"
@@ -48,17 +47,6 @@ func newRequest(ctx context.Context, host string, h http.Header) *Request {
 	return req
 }
 
-func (r *Request) reader() (io.Reader, error) {
-	if b, ok := r.Body.(io.Reader); ok {
-		return b, nil
-	}
-	b, err := json.Marshal(r.Body)
-	if err != nil {
-		return nil, err
-	}
-	return bytes.NewReader(b), nil
-}
-
 func (r *Request) HTTPRequest() (*http.Request, error) {
 	r.Header.Set("Accept", api.MediaTypeZNG)
 	body, err := r.reader()
@@ -72,6 +60,17 @@ func (r *Request) HTTPRequest() (*http.Request, error) {
 	}
 	req.Header = r.Header
 	return req, nil
+}
+
+func (r *Request) reader() (io.Reader, error) {
+	if b, ok := r.Body.(io.Reader); ok {
+		return b, nil
+	}
+	b, err := json.Marshal(r.Body)
+	if err != nil {
+		return nil, err
+	}
+	return bytes.NewReader(b), nil
 }
 
 func (r *Request) Duration() time.Duration {
