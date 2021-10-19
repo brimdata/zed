@@ -1,0 +1,22 @@
+# brimdata/brim#1884
+
+script: |
+  source service.sh
+  zed lake create -q test
+  zed lake use -q test@main
+  zed lake load -q data.zson
+  zed lake query -z 'SELECT count(), id GROUP BY id | sort id'
+
+inputs:
+  - name: service.sh
+  - name: data.zson
+    data: |
+      {id:1}
+      {id:2}
+      {id:1}
+
+outputs:
+  - name: stdout
+    data: |
+      {id:1,count:2(uint64)}
+      {id:2,count:1(uint64)}
