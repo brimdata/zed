@@ -99,7 +99,7 @@ func (r *RemoteSession) RenamePool(ctx context.Context, pool ksuid.KSUID, name s
 
 func (r *RemoteSession) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, reader zio.Reader, commit api.CommitMessage) (ksuid.KSUID, error) {
 	pr, pw := io.Pipe()
-	w := zngio.NewWriter(pw, zngio.WriterOpts{})
+	w := zngio.NewWriter(pw, zngio.WriterOpts{LZ4BlockSize: zngio.DefaultLZ4BlockSize})
 	go func() {
 		zio.CopyWithContext(ctx, w, reader)
 		w.Close()
