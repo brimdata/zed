@@ -71,7 +71,7 @@ func TestMicroIndex(t *testing.T) {
 	assert.Exactly(t, N, n, "number of pairs read from microindex file doesn't match number written")
 }
 
-func TestCompare(t *testing.T) {
+func TestNearest(t *testing.T) {
 	const records = `
 {ts:20,offset:10}
 {ts:18,offset:9}
@@ -85,39 +85,27 @@ func TestCompare(t *testing.T) {
 {ts:2,offset:1}
 `
 	type testcase struct {
-		value         int64
-		gte, lte, eql int64
+		value                 int64
+		gt, gte, lt, lte, eql int64
 	}
 	cases := []testcase{
-		{9, 10, 8, -1},
-		{1, 2, -1, -1},
-		{22, -1, 20, -1},
-		{12, 12, 12, 12},
+		{9, 10, 10, 8, 8, -1},
+		{1, 2, 2, -1, -1, -1},
+		{22, -1, -1, 20, 20, -1},
+		{12, 14, 12, 10, 12, 12},
 	}
 	runtest := func(t *testing.T, finder *index.Finder, op string, value int64, expected int64) {
 		t.Run(fmt.Sprintf("%d%s%d", expected, op, value), func(t *testing.T) {
 			kvs, err := finder.ParseKeys(fmt.Sprintf("%d", value))
 			require.NoError(t, err)
-
-			var rec *zed.Value
-			switch op {
-			case ">=":
-				rec, err = finder.ClosestGTE(kvs...)
-			case "<=":
-				rec, err = finder.ClosestLTE(kvs...)
-			case "==":
-				rec, err = finder.Lookup(kvs...)
-			}
-
+			rec, err := finder.Nearest(op, kvs...)
 			require.NoError(t, err)
-			if expected == -1 {
-				assert.Nil(t, rec)
-			} else {
-				require.NotNil(t, rec)
-				v, err := rec.AccessInt("ts")
+			var v int64 = -1
+			if rec != nil {
+				v, err = rec.AccessInt("ts")
 				require.NoError(t, err)
-				assert.Equal(t, expected, v)
 			}
+			assert.Equal(t, expected, v)
 		})
 
 	}
@@ -125,9 +113,11 @@ func TestCompare(t *testing.T) {
 	desc := buildAndOpen(t, engine, reader(records), field.DottedList("ts"), index.Order(order.Desc))
 	t.Run("Descending", func(t *testing.T) {
 		for _, c := range cases {
+			runtest(t, desc, ">", c.value, c.gt)
 			runtest(t, desc, ">=", c.value, c.gte)
+			runtest(t, desc, "<", c.value, c.lt)
 			runtest(t, desc, "<=", c.value, c.lte)
-			runtest(t, desc, "==", c.value, c.eql)
+			runtest(t, desc, "=", c.value, c.eql)
 		}
 	})
 	r, err := driver.NewReader(context.Background(), compiler.MustParseProc("sort ts"), zed.NewContext(), reader(records))
@@ -135,9 +125,11 @@ func TestCompare(t *testing.T) {
 	asc := buildAndOpen(t, engine, r, field.DottedList("ts"), index.Order(order.Asc))
 	t.Run("Ascending", func(t *testing.T) {
 		for _, c := range cases {
+			runtest(t, asc, ">", c.value, c.gt)
 			runtest(t, asc, ">=", c.value, c.gte)
+			runtest(t, asc, "<", c.value, c.lt)
 			runtest(t, asc, "<=", c.value, c.lte)
-			runtest(t, asc, "==", c.value, c.eql)
+			runtest(t, asc, "=", c.value, c.eql)
 		}
 	})
 }
