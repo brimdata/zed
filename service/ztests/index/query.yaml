@@ -1,0 +1,44 @@
+script: |
+  source service.sh
+  zapi create -q test
+  zapi use -q test@main
+  zapi index create -q s field s
+  # Load these separately so we have 3 different objects.
+  zapi load -q 1.zson
+  zapi load -q 2.zson
+  zapi load -q 3.zson
+  zapi query -z -s 's==127.0.0.1'
+  zapi index update -q
+  zapi query -z -s 's==127.0.0.1'
+  zapi query -z -s 's==1'
+  zapi query -z -s 's=="hello"'
+  zapi query -z -s 's=="hello" or s==1 or s==127.0.0.1 | count()'
+
+inputs:
+  - name: service.sh
+    source: ../service.sh
+  - name: 1.zson
+    data: |
+      {s:127.0.0.1}
+  - name: 2.zson
+    data: |
+      {s:1}
+  - name: 3.zson
+    data: |
+      {s:"hello"}
+
+outputs:
+  - name: stdout
+    data: |
+      {s:127.0.0.1}
+      {s:127.0.0.1}
+      {s:1}
+      {s:"hello"}
+      {count:3(uint64)}
+  - name: stderr
+    data: |
+      {bytes_read:13,bytes_matched:5,records_read:3,records_matched:1}
+      {bytes_read:5,bytes_matched:5,records_read:1,records_matched:1}
+      {bytes_read:2,bytes_matched:2,records_read:1,records_matched:1}
+      {bytes_read:6,bytes_matched:6,records_read:1,records_matched:1}
+      {bytes_read:13,bytes_matched:13,records_read:3,records_matched:3}

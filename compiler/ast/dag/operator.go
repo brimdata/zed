@@ -150,14 +150,10 @@ type (
 	}
 
 	Pushdown struct {
-		Scan  Op               `json:"scan"`
-		Index []IndexPredicate `json:"index"`
+		Scan  Op      `json:"scan"`
+		Index *Filter `json:"index"`
 	}
 
-	IndexPredicate struct {
-		Key   *Path             `json:"key"`
-		Value *astzed.Primitive `json:"value"`
-	}
 	// Leaf sources
 
 	File struct {
