@@ -419,8 +419,9 @@ func convertSQLGroupBy(scope *Scope, groupByKeys []ast.Expr, selection sqlSelect
 	var aggExprs []dag.Assignment
 	for _, p := range selection.aggs() {
 		aggExprs = append(aggExprs, dag.Assignment{
-			LHS: p.assignment.LHS,
-			RHS: p.agg,
+			Kind: "Assignment",
+			LHS:  p.assignment.LHS,
+			RHS:  p.agg,
 		})
 	}
 	// XXX how to override limit for spills?
