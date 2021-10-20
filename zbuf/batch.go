@@ -26,9 +26,9 @@ import (
 type Batch interface {
 	Ref()
 	Unref()
-	Index(int) *zed.Record
+	Index(int) *zed.Value
 	Length() int
-	Records() []*zed.Record
+	Records() []*zed.Value
 }
 
 // readBatch reads up to n records from zr and returns them as a Batch.  At EOS,
@@ -36,7 +36,7 @@ type Batch interface {
 // error is encoutered, it returns a nil Batch and the error.  Otherwise,
 // readBatch returns a full Batch of n records and nil error.
 func readBatch(zr zio.Reader, n int) (Batch, error) {
-	recs := make([]*zed.Record, 0, n)
+	recs := make([]*zed.Value, 0, n)
 	for len(recs) < n {
 		rec, err := zr.Read()
 		if err != nil {
@@ -115,7 +115,7 @@ type pullerReader struct {
 	idx   int
 }
 
-func (r *pullerReader) Read() (*zed.Record, error) {
+func (r *pullerReader) Read() (*zed.Value, error) {
 	if r.batch == nil {
 		for {
 			batch, err := r.p.Pull()

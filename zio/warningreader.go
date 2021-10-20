@@ -22,7 +22,7 @@ func NewWarningReader(zr Reader, w Warner) Reader {
 	return &WarningReader{zr: zr, wn: w}
 }
 
-func (w *WarningReader) Read() (*zed.Record, error) {
+func (w *WarningReader) Read() (*zed.Value, error) {
 	rec, err := w.zr.Read()
 	if err != nil {
 		w.wn.Warn(fmt.Sprintf("%s: %s", w.zr, err))

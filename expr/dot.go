@@ -9,8 +9,8 @@ import (
 
 type RootRecord struct{}
 
-func (r *RootRecord) Eval(rec *zed.Record) (zed.Value, error) {
-	return rec.Value, nil
+func (r *RootRecord) Eval(rec *zed.Value) (zed.Value, error) {
+	return *rec, nil
 }
 
 type DotExpr struct {
@@ -30,8 +30,29 @@ func NewDotExpr(f field.Path) Evaluator {
 	return ret
 }
 
-func accessField(record zed.Value, field string) (zed.Value, error) {
-	recType, ok := zed.AliasOf(record.Type).(*zed.TypeRecord)
+func valOf(zv zed.Value) (zed.Value, error) {
+	typ := zv.Type
+	bytes := zv.Bytes
+	for {
+		typ = zed.AliasOf(typ)
+		union, ok := typ.(*zed.TypeUnion)
+		if !ok {
+			return zed.Value{typ, bytes}, nil
+		}
+		var err error
+		typ, _, bytes, err = union.SplitZng(bytes)
+		if err != nil {
+			return zed.Value{}, err
+		}
+	}
+}
+
+func accessField(zv zed.Value, field string) (zed.Value, error) {
+	zv, err := valOf(zv)
+	if err != nil {
+		return zed.Value{}, err
+	}
+	recType, ok := zv.Type.(*zed.TypeRecord)
 	if !ok {
 		return zed.Value{}, zed.ErrMissing
 	}
@@ -40,19 +61,19 @@ func accessField(record zed.Value, field string) (zed.Value, error) {
 		return zed.Value{}, zed.ErrMissing
 	}
 	typ := recType.Columns[idx].Type
-	if record.Bytes == nil {
+	if zv.Bytes == nil {
 		// Value was unset.  Return unset value of the indicated type.
 		return zed.Value{typ, nil}, nil
 	}
 	//XXX see PR #1071 to improve this (though we need this for Index anyway)
-	zv, err := getNthFromContainer(record.Bytes, uint(idx))
+	fv, err := getNthFromContainer(zv.Bytes, uint(idx))
 	if err != nil {
 		return zed.Value{}, err
 	}
-	return zed.Value{recType.Columns[idx].Type, zv}, nil
+	return zed.Value{recType.Columns[idx].Type, fv}, nil
 }
 
-func (f *DotExpr) Eval(rec *zed.Record) (zed.Value, error) {
+func (f *DotExpr) Eval(rec *zed.Value) (zed.Value, error) {
 	lval, err := f.record.Eval(rec)
 	if err != nil {
 		return zed.Value{}, err

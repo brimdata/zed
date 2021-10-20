@@ -60,7 +60,7 @@ source Zeek, the reference shaper will not cover all the fields in your logs.
 [As described below](#zed-pipeline), the reference shaper will assign
 inferred types to such additional fields. By exploring your data, you can then
 iteratively enhance your shaper to match your environment. If you need
-assistance, please speak up on our [public Slack](https://www.brimsecurity.com/join-slack/).
+assistance, please speak up on our [public Slack](https://www.brimdata.io/join-slack/).
 
 # Reference Shaper Contents
 
@@ -236,6 +236,6 @@ the Pool.
 # Contact us!
 
 If you're having difficulty, interested in shaping other data sources, or
-just have feedback, please join our [public Slack](https://www.brimsecurity.com/join-slack/)
+just have feedback, please join our [public Slack](https://www.brimdata.io/join-slack/)
 and speak up or [open an issue](https://github.com/brimdata/zed/issues/new/choose).
 Thanks!

@@ -40,7 +40,7 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(r *zed.Record) error {
+func (w *Writer) Write(r *zed.Value) error {
 	r, err := w.flattener.Flatten(r)
 	if err != nil {
 		return err
@@ -65,7 +65,7 @@ func (w *Writer) Write(r *zed.Record) error {
 	return err
 }
 
-func (w *Writer) writeHeader(r *zed.Record, path string) error {
+func (w *Writer) writeHeader(r *zed.Value, path string) error {
 	d := r.Type
 	var s string
 	if w.separator != "\\x90" {
@@ -124,7 +124,7 @@ func isHighPrecision(ts nano.Ts) bool {
 
 // This returns the zeek strings for this record.  XXX We need to not use this.
 // XXX change to Pretty for output writers?... except zeek?
-func ZeekStrings(r *zed.Record, fmt tzngio.OutFmt) ([]string, error) {
+func ZeekStrings(r *zed.Value, fmt tzngio.OutFmt) ([]string, error) {
 	var ss []string
 	it := r.Bytes.Iter()
 	for _, col := range zed.TypeRecordOf(r.Type).Columns {

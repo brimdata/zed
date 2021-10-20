@@ -11,13 +11,13 @@ import (
 )
 
 // Analyze analysis the AST and prepares it for runtime compilation.
-func Analyze(ctx context.Context, seq *ast.Sequential, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*dag.Sequential, []dag.Op, error) {
+func Analyze(ctx context.Context, seq *ast.Sequential, constsAST []ast.Proc, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*dag.Sequential, []dag.Op, error) {
 	if !isFrom(seq) {
 		return nil, nil, errors.New("Zed program does not begin with a data source")
 	}
 	scope := NewScope()
 	scope.Enter()
-	consts, err := semConsts(nil, scope, seq)
+	consts, err := semConsts(scope, constsAST)
 	if err != nil {
 		return nil, nil, err
 	}

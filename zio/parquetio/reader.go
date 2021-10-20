@@ -34,7 +34,7 @@ func NewReader(r io.Reader, zctx *zed.Context) (*Reader, error) {
 	}, nil
 }
 
-func (r *Reader) Read() (*zed.Record, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	data, err := r.fr.NextRow()
 	if err != nil {
 		if err == io.EOF {
@@ -46,5 +46,5 @@ func (r *Reader) Read() (*zed.Record, error) {
 	for _, c := range r.typ.Columns {
 		r.builder.appendValue(c.Type, data[c.Name])
 	}
-	return zed.NewRecord(r.typ, r.builder.Bytes()), nil
+	return zed.NewValue(r.typ, r.builder.Bytes()), nil
 }

@@ -6,7 +6,7 @@
 > your own query variations.
 
 The `summarize` operator performs zero or more aggregations with
-zero or more [grouping expressions](../grouping/README.md).
+zero or more [grouping expressions](grouping.md).
 Each aggregation is performed by an
 _aggregate function_ that operates on
 batches of records to carry out a running computation over the values they
@@ -72,7 +72,7 @@ lowest highest typical
 ### Grouping
 
 All aggregate functions may be invoked with one or more
-[grouping](../grouping/README.md) options that define the batches of records on
+[grouping](grouping.md) options that define the batches of records on
 which they operate. If explicit grouping is not used, an aggregate function
 will operate over all records in the input stream.
 
@@ -108,7 +108,7 @@ zq -Z 'LA_Math:=avg(AvgScrMath) where cname=="Los Angeles", SF_Math:=avg(AvgScrM
 | ------------------------- | -------------------------------------------------------------- |
 | **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for all inputs. Contrast with [`or`](#or). |
 | **Syntax**                | `and(<expression>)`                                            |
-| **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](../expressions/README.md). |
+| **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](expressions.md). |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
@@ -384,7 +384,7 @@ min
 | ------------------------- | -------------------------------------------------------------- |
 | **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for one or more inputs. Contrast with [`and`](#and). |
 | **Syntax**                | `or(<expression>)`                                             |
-| **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](../expressions/README.md). |
+| **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](expressions.md). |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:

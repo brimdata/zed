@@ -30,9 +30,9 @@ func TestSearch(t *testing.T) {
 {key:"key6",value:"value6"}
 `
 	finder := buildAndOpen(t, storage.NewLocalEngine(), reader(data), field.DottedList("key"))
-	keyRec, err := finder.ParseKeys(`"key2"`)
+	kv, err := finder.ParseKeys(`"key2"`)
 	require.NoError(t, err)
-	rec, err := finder.Lookup(keyRec)
+	rec, err := finder.Lookup(kv...)
 	require.NoError(t, err)
 	require.NotNil(t, rec)
 	value, err := rec.Slice(1)
@@ -96,17 +96,17 @@ func TestCompare(t *testing.T) {
 	}
 	runtest := func(t *testing.T, finder *index.Finder, op string, value int64, expected int64) {
 		t.Run(fmt.Sprintf("%d%s%d", expected, op, value), func(t *testing.T) {
-			k, err := finder.ParseKeys(fmt.Sprintf("%d", value))
+			kvs, err := finder.ParseKeys(fmt.Sprintf("%d", value))
 			require.NoError(t, err)
 
-			var rec *zed.Record
+			var rec *zed.Value
 			switch op {
 			case ">=":
-				rec, err = finder.ClosestGTE(k)
+				rec, err = finder.ClosestGTE(kvs...)
 			case "<=":
-				rec, err = finder.ClosestLTE(k)
+				rec, err = finder.ClosestLTE(kvs...)
 			case "==":
-				rec, err = finder.Lookup(k)
+				rec, err = finder.Lookup(kvs...)
 			}
 
 			require.NoError(t, err)

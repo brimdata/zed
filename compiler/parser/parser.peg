@@ -426,7 +426,8 @@ JoinProc
     }
 
 JoinStyle
-  = "inner"i _ { RETURN("inner") }
+  = "anti"i _  { RETURN("anti") }
+  / "inner"i _ { RETURN("inner") }
   / "left"i  _ { RETURN("left") }
   / "right"i _ { RETURN("right") }
   / ""         { RETURN("inner") }
@@ -892,8 +893,8 @@ SQLJoin
     }
 
 SQLJoinStyle
-  = _ style:(LEFT / RIGHT / INNER) { RETURN(style) }
-  / ""         { RETURN("inner") }
+  = _ style:(ANTI / INNER / LEFT / RIGHT) { RETURN(style) }
+  / "" { RETURN("inner") }
 
 SQLWhere
   = _ WHERE _ expr:LogicalOrExpr { RETURN(expr) }
@@ -930,6 +931,7 @@ ON = "on"i { RETURN("on") }
 LIMIT = "limit"i { RETURN("limit") }
 ASC = "asc"i { RETURN("asc") }
 DESC = "desc"i { RETURN("desc") }
+ANTI = "anti"i { RETURN("anti") }
 LEFT = "left"i { RETURN("left") }
 RIGHT = "right"i { RETURN("right") }
 INNER = "inner"i { RETURN("inner") }

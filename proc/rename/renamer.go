@@ -61,7 +61,7 @@ func (r *Function) computeType(typ *zed.TypeRecord) (*zed.TypeRecord, error) {
 	return typ, nil
 }
 
-func (r *Function) Apply(in *zed.Record) (*zed.Record, error) {
+func (r *Function) Apply(in *zed.Value) (*zed.Value, error) {
 	id := in.Type.ID()
 	if _, ok := r.typeMap[id]; !ok {
 		typ, err := r.computeType(zed.TypeRecordOf(in.Type))
@@ -71,7 +71,7 @@ func (r *Function) Apply(in *zed.Record) (*zed.Record, error) {
 		r.typeMap[id] = typ
 	}
 	out := in.Keep()
-	return zed.NewRecord(r.typeMap[id], out.Bytes), nil
+	return zed.NewValue(r.typeMap[id], out.Bytes), nil
 }
 
 func (_ *Function) String() string { return "rename" }

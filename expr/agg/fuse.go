@@ -7,14 +7,12 @@ import (
 )
 
 type fuse struct {
-	shapes   map[*zed.TypeRecord]struct{}
+	shapes   map[*zed.TypeRecord]int
 	partials []zed.Value
 }
 
 func newFuse() *fuse {
-	return &fuse{
-		shapes: make(map[*zed.TypeRecord]struct{}),
-	}
+	return &fuse{shapes: make(map[*zed.TypeRecord]int)}
 }
 
 func (f *fuse) Consume(v zed.Value) error {
@@ -23,7 +21,7 @@ func (f *fuse) Consume(v zed.Value) error {
 	if !ok {
 		return nil
 	}
-	f.shapes[typ] = struct{}{}
+	f.shapes[typ] = len(f.shapes)
 	return nil
 }
 
@@ -44,7 +42,11 @@ func (f *fuse) Result(zctx *zed.Context) (zed.Value, error) {
 		}
 		schema.Mixin(recType)
 	}
-	for typ := range f.shapes {
+	shapes := make([]*zed.TypeRecord, len(f.shapes))
+	for typ, i := range f.shapes {
+		shapes[i] = typ
+	}
+	for _, typ := range shapes {
 		schema.Mixin(typ)
 	}
 	typ, err := schema.Type()

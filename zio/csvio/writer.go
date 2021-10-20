@@ -42,7 +42,7 @@ func (w *Writer) Flush() error {
 	return w.encoder.Error()
 }
 
-func (w *Writer) Write(rec *zed.Record) error {
+func (w *Writer) Write(rec *zed.Value) error {
 	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
 		return err

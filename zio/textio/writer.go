@@ -40,7 +40,7 @@ func (w *Writer) Close() error {
 	return w.writer.Close()
 }
 
-func (w *Writer) Write(rec *zed.Record) error {
+func (w *Writer) Write(rec *zed.Value) error {
 	rec, err := w.flattener.Flatten(rec)
 	if err != nil {
 		return err

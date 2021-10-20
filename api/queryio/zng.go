@@ -51,7 +51,7 @@ func NewZNGReader(r *zngio.Reader) *ZNGReader {
 	}
 }
 
-func (r *ZNGReader) ReadPayload() (*zed.Record, interface{}, error) {
+func (r *ZNGReader) ReadPayload() (*zed.Value, interface{}, error) {
 	rec, msg, err := r.reader.ReadPayload()
 	if msg != nil {
 		if msg.Encoding != zed.AppEncodingZSON {

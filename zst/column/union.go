@@ -84,7 +84,7 @@ func (u *Union) UnmarshalZNG(typ *zed.TypeUnion, in zed.Value, r io.ReaderAt) er
 	if !ok {
 		return errors.New("zst object union_column not a record")
 	}
-	rec := zed.NewRecord(rtype, in.Bytes)
+	rec := zed.NewValue(rtype, in.Bytes)
 	for k := 0; k < len(typ.Types); k++ {
 		zv, err := rec.Access(fmt.Sprintf("c%d", k))
 		if err != nil {

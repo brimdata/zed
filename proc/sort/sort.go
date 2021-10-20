@@ -96,9 +96,9 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	}
 }
 
-func (p *Proc) recordsForOneRun() ([]*zed.Record, bool, error) {
+func (p *Proc) recordsForOneRun() ([]*zed.Value, bool, error) {
 	var nbytes int
-	var recs []*zed.Record
+	var recs []*zed.Value
 	for {
 		batch, err := p.parent.Pull()
 		if err != nil {
@@ -121,7 +121,7 @@ func (p *Proc) recordsForOneRun() ([]*zed.Record, bool, error) {
 	}
 }
 
-func (p *Proc) createRuns(firstRunRecs []*zed.Record) (*spill.MergeSort, error) {
+func (p *Proc) createRuns(firstRunRecs []*zed.Value) (*spill.MergeSort, error) {
 	rm, err := spill.NewMergeSort(p.compareFn)
 	if err != nil {
 		return nil, err
@@ -155,7 +155,7 @@ func (p *Proc) warnAboutUnseenFields() {
 	}
 }
 
-func (p *Proc) setCompareFn(r *zed.Record) {
+func (p *Proc) setCompareFn(r *zed.Value) {
 	resolvers := p.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
@@ -168,13 +168,13 @@ func (p *Proc) setCompareFn(r *zed.Record) {
 	}
 	compareFn := expr.NewCompareFn(nullsMax, resolvers...)
 	if p.order == order.Desc {
-		p.compareFn = func(a, b *zed.Record) int { return compareFn(b, a) }
+		p.compareFn = func(a, b *zed.Value) int { return compareFn(b, a) }
 	} else {
 		p.compareFn = compareFn
 	}
 }
 
-func GuessSortKey(rec *zed.Record) field.Path {
+func GuessSortKey(rec *zed.Value) field.Path {
 	typ := zed.TypeRecordOf(rec.Type)
 	if f := firstMatchingField(typ, zed.IsInteger); f != nil {
 		return f

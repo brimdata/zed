@@ -2,6 +2,7 @@ package lake
 
 import (
 	"context"
+	"errors"
 	"sync"
 
 	"github.com/brimdata/zed"
@@ -12,6 +13,7 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
+	"golang.org/x/sync/errgroup"
 )
 
 type Scheduler struct {
@@ -21,15 +23,16 @@ type Scheduler struct {
 	snap   commits.View
 	span   extent.Span
 	filter zbuf.Filter
+	index  *index.Filter
 	once   sync.Once
 	ch     chan Partition
-	done   chan error
+	group  *errgroup.Group
 	stats  zbuf.ScannerStats
 }
 
 var _ proc.Scheduler = (*Scheduler)(nil)
 
-func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter) *Scheduler {
+func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap commits.View, span extent.Span, filter zbuf.Filter, index *index.Filter) *Scheduler {
 	return &Scheduler{
 		ctx:    ctx,
 		zctx:   zctx,
@@ -37,8 +40,8 @@ func NewSortedScheduler(ctx context.Context, zctx *zed.Context, pool *Pool, snap
 		snap:   snap,
 		span:   span,
 		filter: filter,
+		index:  index,
 		ch:     make(chan Partition),
-		done:   make(chan error),
 	}
 }
 
@@ -52,25 +55,38 @@ func (s *Scheduler) AddStats(stats zbuf.ScannerStats) {
 
 func (s *Scheduler) PullScanTask() (zbuf.PullerCloser, error) {
 	s.once.Do(func() {
-		go s.run()
+		s.run()
 	})
 	select {
 	case p := <-s.ch:
 		if p.Objects == nil {
-			return nil, <-s.done
+			return nil, s.group.Wait()
 		}
 		return s.newSortedScanner(p)
 	case <-s.ctx.Done():
-		return nil, <-s.done
+		return nil, s.group.Wait()
 	}
 }
 
 func (s *Scheduler) run() {
-	if err := ScanPartitions(s.ctx, s.snap, s.span, s.pool.Layout.Order, s.ch); err != nil {
-		s.done <- err
+	var ctx context.Context
+	s.group, ctx = errgroup.WithContext(s.ctx)
+	ch := s.ch
+	if s.index != nil {
+		// Make the index out channel buffered so the index filter reads ahead
+		// of the scan pass, but not too far ahead- the search may be aborted
+		// before the scan pass gets to the end and we don't want to waste
+		// resources running index lookups that aren't used.
+		ch = make(chan Partition)
+		s.group.Go(func() error {
+			defer close(s.ch)
+			return indexFilterPass(ctx, s.snap, s.index, ch, s.ch)
+		})
 	}
-	close(s.ch)
-	close(s.done)
+	s.group.Go(func() error {
+		defer close(ch)
+		return ScanPartitions(ctx, s.snap, s.span, s.pool.Layout.Order, ch)
+	})
 }
 
 // PullScanWork returns the next span in the schedule.  This is useful for a
@@ -78,13 +94,13 @@ func (s *Scheduler) run() {
 // worker, and streams the results into the runtime DAG.
 func (s *Scheduler) PullScanWork() (Partition, error) {
 	s.once.Do(func() {
-		go s.run()
+		s.run()
 	})
 	select {
 	case p := <-s.ch:
 		return p, nil
 	case <-s.ctx.Done():
-		return Partition{}, <-s.done
+		return Partition{}, s.group.Wait()
 	}
 }
 
@@ -122,6 +138,37 @@ func (s *scannerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
 
 func (s *scannerScheduler) Stats() zbuf.ScannerStats {
 	return s.stats.Copy()
+}
+
+func indexFilterPass(ctx context.Context, snap commits.View, filter *index.Filter, in <-chan Partition, out chan<- Partition) error {
+	for p := range in {
+		objects := make([]*data.Object, 0, len(p.Objects))
+		for _, o := range p.Objects {
+			r, err := snap.LookupIndexObjectRules(o.ID)
+			if err != nil && !errors.Is(err, commits.ErrNotFound) {
+				return err
+			}
+			if r != nil {
+				hit, err := filter.Apply(ctx, o.ID, r)
+				if err != nil {
+					return err
+				}
+				if !hit {
+					continue
+				}
+			}
+			objects = append(objects, o)
+		}
+		if len(objects) > 0 {
+			p.Objects = objects
+			select {
+			case out <- p:
+			case <-ctx.Done():
+				return ctx.Err()
+			}
+		}
+	}
+	return nil
 }
 
 func ScanSpan(ctx context.Context, snap commits.View, span extent.Span, o order.Which, ch chan<- data.Object) error {

@@ -65,10 +65,9 @@ func NewCutAssembler(zctx *zed.Context, fields []string, object *Object) (*CutAs
 	cnt := 0
 	for k, schema := range a.schemas {
 		var err error
-		zv := a.columns[k].Value
 		topcol := &column.Record{}
 		typ := zed.TypeRecordOf(schema)
-		if err := topcol.UnmarshalZNG(typ, zv, object.seeker); err != nil {
+		if err := topcol.UnmarshalZNG(typ, *a.columns[k], object.seeker); err != nil {
 			return nil, err
 		}
 		_, ca.columns[k], err = topcol.Lookup(typ, fields)
@@ -117,7 +116,7 @@ func cutType(zctx *zed.Context, typ *zed.TypeRecord, fields []string) (*zed.Type
 	return wrapType, nwrap + 1, err
 }
 
-func (a *CutAssembler) Read() (*zed.Record, error) {
+func (a *CutAssembler) Read() (*zed.Value, error) {
 	a.builder.Reset()
 	for {
 		schemaID, err := a.root.Read()
@@ -144,7 +143,7 @@ func (a *CutAssembler) Read() (*zed.Record, error) {
 			a.builder.EndContainer()
 		}
 		recType := a.types[schemaID]
-		rec := zed.NewRecord(recType, a.builder.Bytes())
+		rec := zed.NewValue(recType, a.builder.Bytes())
 		//XXX if we had a buffer pool where records could be built back to
 		// back in batches, then we could get rid of this extra allocation
 		// and copy on every record

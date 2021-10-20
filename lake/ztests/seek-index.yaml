@@ -25,8 +25,6 @@ outputs:
       {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
   - name: stderr
     data: |
-      data opened: 16401
-      data read:   87
+      {bytes_read:16401,bytes_matched:87,records_read:500,records_matched:3}
       ===
-      data opened: 16404
-      data read:   87
+      {bytes_read:16404,bytes_matched:87,records_read:500,records_matched:3}

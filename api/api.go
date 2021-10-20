@@ -3,9 +3,11 @@ package api
 import (
 	"context"
 
+	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/nano"
+	"github.com/brimdata/zed/zbuf"
 	"github.com/segmentio/ksuid"
 )
 
@@ -27,13 +29,6 @@ type Error struct {
 
 func (e Error) Error() string {
 	return e.Message
-}
-
-type ScannerStats struct {
-	BytesRead      int64 `json:"bytes_read"`
-	BytesMatched   int64 `json:"bytes_matched"`
-	RecordsRead    int64 `json:"records_read"`
-	RecordsMatched int64 `json:"records_matched"`
 }
 
 type VersionResponse struct {
@@ -69,11 +64,21 @@ type CommitResponse struct {
 	Warnings []string    `zed:"warnings"`
 }
 
-type IndexPostRequest struct {
-	Keys     []string `json:"keys"`
-	Name     string   `json:"name"`
-	Patterns []string `json:"patterns"`
-	Zed      string   `json:"zed,omitempty"`
+type IndexRulesDeleteRequest struct {
+	RuleIDs []string `zed:"rule_ids"`
+}
+
+type IndexRulesDeleteResponse struct {
+	Rules []index.Rule `zed:"rules"`
+}
+
+type IndexApplyRequest struct {
+	RuleName string        `zed:"rule_name"`
+	Tags     []ksuid.KSUID `zed:"tags"`
+}
+
+type IndexUpdateRequest struct {
+	RuleNames []string `zed:"rule_names"`
 }
 
 type EventBranchCommit struct {
@@ -112,7 +117,7 @@ type QueryError struct {
 type QueryStats struct {
 	StartTime  nano.Ts `json:"start_time" zed:"start_time"`
 	UpdateTime nano.Ts `json:"update_time" zed:"update_time"`
-	ScannerStats
+	zbuf.ScannerStats
 }
 
 type QueryWarning struct {

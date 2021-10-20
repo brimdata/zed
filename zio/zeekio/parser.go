@@ -313,7 +313,7 @@ func (p *Parser) Descriptor() (*zed.TypeRecord, bool) {
 
 }
 
-func (p *Parser) ParseValue(line []byte) (*zed.Record, error) {
+func (p *Parser) ParseValue(line []byte) (*zed.Value, error) {
 	if p.descriptor == nil {
 		if err := p.setDescriptor(); err != nil {
 			return nil, err

@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func toZSON(t *testing.T, rec *zed.Record) string {
+func toZSON(t *testing.T, rec *zed.Value) string {
 	var buf strings.Builder
 	require.NoError(t, zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{}).Write(rec))
 	return strings.TrimRight(buf.String(), "\n")

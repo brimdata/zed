@@ -231,7 +231,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 
 type filterFunction expr.Filter
 
-func (f filterFunction) Apply(rec *zed.Record) (*zed.Record, error) {
+func (f filterFunction) Apply(rec *zed.Value) (*zed.Value, error) {
 	if f(rec) {
 		return rec, nil
 	}
@@ -404,21 +404,21 @@ func (b *Builder) compile(op dag.Op, parents []proc.Interface) ([]proc.Interface
 		if err != nil {
 			return nil, err
 		}
-		inner := true
-		leftParent := parents[0]
-		rightParent := parents[1]
+		leftParent, rightParent := parents[0], parents[1]
+		var anti, inner bool
 		switch op.Style {
+		case "anti":
+			anti = true
+		case "inner":
+			inner = true
 		case "left":
-			inner = false
 		case "right":
-			inner = false
 			leftKey, rightKey = rightKey, leftKey
 			leftParent, rightParent = rightParent, leftParent
-		case "inner":
 		default:
 			return nil, fmt.Errorf("unknown kind of join: '%s'", op.Style)
 		}
-		join, err := join.New(b.pctx, inner, leftParent, rightParent, leftKey, rightKey, lhs, rhs)
+		join, err := join.New(b.pctx, anti, inner, leftParent, rightParent, leftKey, rightKey, lhs, rhs)
 		if err != nil {
 			return nil, err
 		}
@@ -506,7 +506,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 			if err != nil {
 				return nil, err
 			}
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown, trunk.Pushdown.Index)
 			if err != nil {
 				return nil, err
 			}
@@ -516,7 +516,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 	case *dag.PoolMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -530,7 +530,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 			if err != nil {
 				return nil, err
 			}
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, span, pushdown, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -540,7 +540,7 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 	case *dag.LakeMeta:
 		sched, ok := b.schedulers[src]
 		if !ok {
-			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown)
+			sched, err = b.adaptor.NewScheduler(b.pctx.Context, b.pctx.Zctx, src, nil, pushdown, nil)
 			if err != nil {
 				return nil, err
 			}
@@ -595,8 +595,8 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 
 func (b *Builder) PushdownOf(trunk *dag.Trunk) (*Filter, error) {
 	var filter *Filter
-	if trunk.Pushdown != nil {
-		f, ok := trunk.Pushdown.(*dag.Filter)
+	if trunk.Pushdown.Scan != nil {
+		f, ok := trunk.Pushdown.Scan.(*dag.Filter)
 		if !ok {
 			return nil, errors.New("non-filter pushdown operator not yet supported")
 		}
@@ -652,6 +652,6 @@ func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (zed.Value,
 	if err != nil {
 		return zed.Value{}, err
 	}
-	rec := zed.NewRecord(typ, nil)
+	rec := zed.NewValue(typ, nil)
 	return e.Eval(rec)
 }

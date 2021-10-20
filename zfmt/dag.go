@@ -47,6 +47,17 @@ func (c *canonDAG) assignments(assignments []dag.Assignment) {
 	}
 }
 
+func (c *canonDAG) indexPredicates(predicates []dag.IndexPredicate) {
+	for k, p := range predicates {
+		if k > 0 {
+			c.write(", ")
+		}
+		c.expr(p.Key, false)
+		c.write("==")
+		c.expr(p.Value, false)
+	}
+}
+
 func (c *canonDAG) exprs(exprs []dag.Expr) {
 	for k, e := range exprs {
 		if k > 0 {
@@ -343,10 +354,24 @@ func (c *canonDAG) op(p dag.Op) {
 		c.open("from (")
 		for _, trunk := range p.Trunks {
 			c.ret()
-			if trunk.Pushdown != nil {
-				c.open("(pushdown ")
-				c.head = true
-				c.op(trunk.Pushdown)
+			if trunk.Pushdown.Scan != nil || trunk.Pushdown.Index != nil {
+				c.open("(pushdown")
+				if trunk.Pushdown.Scan != nil {
+					c.head = true
+					c.ret()
+					c.open("(scan")
+					c.op(trunk.Pushdown.Scan)
+					c.write(")")
+					c.close()
+				}
+				if trunk.Pushdown.Index != nil {
+					c.head = true
+					c.ret()
+					c.open("(index ")
+					c.indexPredicates(trunk.Pushdown.Index)
+					c.write(")")
+					c.close()
+				}
 				c.write(")")
 				c.close()
 				c.ret()

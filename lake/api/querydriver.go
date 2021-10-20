@@ -1,7 +1,6 @@
 package api
 
 import (
-	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zson"
 )
@@ -20,7 +19,7 @@ func newQueryDriver(types ...interface{}) *queryDriver {
 func (d *queryDriver) Write(channelID int, batch zbuf.Batch) error {
 	for _, rec := range batch.Records() {
 		var v interface{}
-		if err := d.unmarshaler.Unmarshal(rec.Value, &v); err != nil {
+		if err := d.unmarshaler.Unmarshal(*rec, &v); err != nil {
 			return err
 		}
 		d.results = append(d.results, v)
@@ -36,6 +35,6 @@ func (*queryDriver) ChannelEnd(int) error {
 	return nil
 }
 
-func (*queryDriver) Stats(api.ScannerStats) error {
+func (*queryDriver) Stats(zbuf.ScannerStats) error {
 	return nil
 }

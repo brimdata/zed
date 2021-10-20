@@ -22,8 +22,8 @@ type Writer struct {
 }
 
 type describe struct {
-	Kind  string      `json:"kind"`
-	Value *zed.Record `json:"value"`
+	Kind  string     `json:"kind"`
+	Value *zed.Value `json:"value"`
 }
 
 func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
@@ -45,7 +45,7 @@ func (w *Writer) Close() error {
 	return err
 }
 
-func (w *Writer) Write(rec *zed.Record) error {
+func (w *Writer) Write(rec *zed.Value) error {
 	if w.size > MaxWriteBuffer {
 		return fmt.Errorf("JSON output buffer size exceeded: %d", w.size)
 	}

@@ -15,6 +15,8 @@ import (
 
 type Proc struct {
 	pctx        *proc.Context
+	anti        bool
+	inner       bool
 	ctx         context.Context
 	cancel      context.CancelFunc
 	once        sync.Once
@@ -25,12 +27,11 @@ type Proc struct {
 	compare     expr.ValueCompareFn
 	cutter      *expr.Cutter
 	joinKey     zed.Value
-	joinSet     []*zed.Record
+	joinSet     []*zed.Value
 	types       map[int]map[int]*zed.TypeRecord
-	inner       bool
 }
 
-func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Proc, error) {
+func New(pctx *proc.Context, anti, inner bool, left, right proc.Interface, leftKey, rightKey expr.Evaluator, lhs field.List, rhs []expr.Evaluator) (*Proc, error) {
 	cutter, err := expr.NewCutter(pctx.Zctx, lhs, rhs)
 	if err != nil {
 		return nil, err
@@ -39,6 +40,8 @@ func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, ri
 	ctx, cancel := context.WithCancel(pctx.Context)
 	return &Proc{
 		pctx:        pctx,
+		anti:        anti,
+		inner:       inner,
 		ctx:         ctx,
 		cancel:      cancel,
 		getLeftKey:  leftKey,
@@ -49,7 +52,6 @@ func New(pctx *proc.Context, inner bool, left, right proc.Interface, leftKey, ri
 		compare: expr.NewValueCompareFn(false),
 		cutter:  cutter,
 		types:   make(map[int]map[int]*zed.TypeRecord),
-		inner:   inner,
 	}, nil
 }
 
@@ -59,7 +61,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		go p.left.run()
 		go p.right.Reader.(*puller).run()
 	})
-	var out []*zed.Record
+	var out []*zed.Value
 	for {
 		leftRec, err := p.left.Read()
 		if err != nil {
@@ -91,6 +93,9 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			if !p.inner {
 				out = append(out, leftRec.Keep())
 			}
+			continue
+		}
+		if p.anti {
 			continue
 		}
 		// For every record on the right with a key matching
@@ -128,7 +133,7 @@ func (p *Proc) setJoinKey(key zed.Value) {
 	p.joinKey.Bytes = append(p.joinKey.Bytes[:0], key.Bytes...)
 }
 
-func (p *Proc) getJoinSet(leftKey zed.Value) ([]*zed.Record, error) {
+func (p *Proc) getJoinSet(leftKey zed.Value) ([]*zed.Value, error) {
 	if p.compare(leftKey, p.joinKey) == 0 {
 		return p.joinSet, nil
 	}
@@ -167,8 +172,8 @@ func (p *Proc) getJoinSet(leftKey zed.Value) ([]*zed.Record, error) {
 // fillJoinSet is called when a join key has been found that matches
 // the current lefthand key.  It returns the all the subsequent records
 // from the righthand stream that match this key.
-func (p *Proc) readJoinSet(joinKey zed.Value) ([]*zed.Record, error) {
-	var recs []*zed.Record
+func (p *Proc) readJoinSet(joinKey zed.Value) ([]*zed.Value, error) {
+	var recs []*zed.Value
 	for {
 		rec, err := p.right.Peek()
 		if err != nil {
@@ -237,7 +242,7 @@ func (p *Proc) combinedType(left, right *zed.TypeRecord) (*zed.TypeRecord, error
 	return typ, nil
 }
 
-func (p *Proc) splice(left, right *zed.Record) (*zed.Record, error) {
+func (p *Proc) splice(left, right *zed.Value) (*zed.Value, error) {
 	if right == nil {
 		// This happens on a simple join, i.e., "join key",
 		// where there are no cut expressions.  For left joins,
@@ -254,5 +259,5 @@ func (p *Proc) splice(left, right *zed.Record) (*zed.Record, error) {
 	bytes := make([]byte, n+len(right.Bytes))
 	copy(bytes, left.Bytes)
 	copy(bytes[n:], right.Bytes)
-	return zed.NewRecord(typ, bytes), nil
+	return zed.NewValue(typ, bytes), nil
 }

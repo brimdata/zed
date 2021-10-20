@@ -61,7 +61,7 @@ func (u *Unflattener) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuild
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
-func (u *Unflattener) Apply(in *zed.Record) (*zed.Record, error) {
+func (u *Unflattener) Apply(in *zed.Value) (*zed.Value, error) {
 	b, typ, err := u.lookupBuilderAndType(zed.TypeRecordOf(in.Type))
 	if err != nil {
 		return nil, err
@@ -81,10 +81,10 @@ func (u *Unflattener) Apply(in *zed.Record) (*zed.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zed.NewRecord(typ, zbytes), nil
+	return zed.NewValue(typ, zbytes), nil
 }
 
-func (c *Unflattener) Eval(rec *zed.Record) (zed.Value, error) {
+func (c *Unflattener) Eval(rec *zed.Value) (zed.Value, error) {
 	out, err := c.Apply(rec)
 	if err != nil {
 		return zed.Value{}, err
@@ -92,5 +92,5 @@ func (c *Unflattener) Eval(rec *zed.Record) (zed.Value, error) {
 	if out == nil {
 		return zed.Value{}, zed.ErrMissing
 	}
-	return out.Value, nil
+	return *out, nil
 }

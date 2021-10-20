@@ -1,0 +1,36 @@
+script: |
+  export ZED_LAKE_ROOT=test
+  zed lake init -q
+  zed lake create -q test
+  zed lake use -q test@main
+  zed lake index create -q s field s
+  # Load these separately so we have 3 different objects.
+  zed lake load -q 1.zson
+  zed lake load -q 2.zson
+  zed lake load -q 3.zson
+  zed lake query -s -o /dev/null 's==127.0.0.1' 2> stats.zson
+  zed lake index update -q
+  zed lake query -s -o /dev/null 's==127.0.0.1' 2>> stats.zson
+  zed lake query -s -o /dev/null 's==1' 2>> stats.zson
+  zed lake query -s -o /dev/null 's=="hello"' 2>> stats.zson
+  zed lake query -s -o /dev/null 's=="hello" or s==1 or s==127.0.0.1' 2>> stats.zson
+  zq -z 'cut records_read, records_matched' stats.zson
+inputs:
+  - name: 1.zson
+    data: |
+      {s:127.0.0.1}
+  - name: 2.zson
+    data: |
+      {s:1}
+  - name: 3.zson
+    data: |
+      {s:"hello"}
+
+outputs:
+  - name: stdout
+    data: |
+      {records_read:3,records_matched:1}
+      {records_read:1,records_matched:1}
+      {records_read:1,records_matched:1}
+      {records_read:1,records_matched:1}
+      {records_read:3,records_matched:3}

@@ -14,7 +14,7 @@ import (
 	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/zio"
-	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/zed/zio/zngio"
 	"github.com/brimdata/zed/zio/zsonio"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -26,22 +26,10 @@ type testClient struct {
 	*client.Connection
 }
 
-func (c *testClient) unmarshal(r *client.Response, i interface{}) {
-	zr := c.zioreader(r)
-	var buf bytes.Buffer
-	zw := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
-	require.NoError(c, zio.Copy(zw, zr))
-	require.NoError(c, zw.Close())
-	if s := buf.String(); s != "" {
-		require.NoError(c, zson.Unmarshal(s, i))
-	}
-}
-
-func (c *testClient) TestPoolStats(id ksuid.KSUID) (info lake.PoolStats) {
+func (c *testClient) TestPoolStats(id ksuid.KSUID) lake.PoolStats {
 	r, err := c.Connection.PoolStats(context.Background(), id)
 	require.NoError(c, err)
-	c.unmarshal(r, &info)
-	return info
+	return r
 }
 
 func (c *testClient) TestPoolGet(id ksuid.KSUID) (config pools.Config) {
@@ -58,19 +46,12 @@ func (c *testClient) TestBranchGet(id ksuid.KSUID) (config lake.BranchMeta) {
 	return *branch
 }
 
-func (c *testClient) zioreader(r *client.Response) zio.Reader {
-	format, err := api.MediaTypeToFormat(r.ContentType)
-	require.NoError(c, err)
-	zr, err := anyio.NewReaderWithOpts(r.Body, zed.NewContext(), anyio.ReaderOpts{Format: format})
-	require.NoError(c, err)
-	return zr
-}
-
 func (c *testClient) TestPoolList() []pools.Config {
 	r, err := c.Query(context.Background(), nil, "from [pools]")
 	require.NoError(c, err)
+	defer r.Body.Close()
 	var confs []pools.Config
-	zr := c.zioreader(r)
+	zr := zngio.NewReader(r.Body, zed.NewContext())
 	for {
 		rec, err := zr.Read()
 		require.NoError(c, err)
@@ -85,25 +66,22 @@ func (c *testClient) TestPoolList() []pools.Config {
 }
 
 func (c *testClient) TestPoolPost(payload api.PoolPostRequest) ksuid.KSUID {
-	r, err := c.Connection.PoolPost(context.Background(), payload)
+	r, err := c.Connection.CreatePool(context.Background(), payload)
 	require.NoError(c, err)
-	var conf lake.BranchMeta
-	c.unmarshal(r, &conf)
-	return conf.Pool.ID
+	return r.Pool.ID
 }
 
 func (c *testClient) TestBranchPost(poolID ksuid.KSUID, payload api.BranchPostRequest) branches.Config {
-	r, err := c.Connection.BranchPost(context.Background(), poolID, payload)
+	r, err := c.Connection.CreateBranch(context.Background(), poolID, payload)
 	require.NoError(c, err)
-	var conf branches.Config
-	c.unmarshal(r, &conf)
-	return conf
+	return r
 }
 
 func (c *testClient) TestQuery(query string) string {
 	r, err := c.Connection.Query(context.Background(), nil, query)
 	require.NoError(c, err)
-	zr := c.zioreader(r)
+	defer r.Body.Close()
+	zr := zngio.NewReader(r.Body, zed.NewContext())
 	var buf bytes.Buffer
 	zw := zsonio.NewWriter(zio.NopCloser(&buf), zsonio.WriterOpts{})
 	require.NoError(c, zio.Copy(zw, zr))
@@ -115,16 +93,14 @@ func (c *testClient) TestLoad(poolID ksuid.KSUID, branchName string, r io.Reader
 	require.NoError(c, err)
 }
 
-func (c *testClient) TestAuthMethod() (res api.AuthMethodResponse) {
+func (c *testClient) TestAuthMethod() api.AuthMethodResponse {
 	r, err := c.Connection.AuthMethod(context.Background())
 	require.NoError(c, err)
-	c.unmarshal(r, &res)
-	return res
+	return r
 }
 
-func (c *testClient) TestAuthIdentity() (res api.AuthIdentityResponse) {
+func (c *testClient) TestAuthIdentity() api.AuthIdentityResponse {
 	r, err := c.Connection.AuthIdentity(context.Background())
 	require.NoError(c, err)
-	c.unmarshal(r, &res)
-	return res
+	return r
 }

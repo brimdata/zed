@@ -15,7 +15,7 @@ var ErrBadSchemaID = errors.New("bad schema id in root reassembly column")
 type Assembly struct {
 	root    zed.Value
 	schemas []zed.Type
-	columns []*zed.Record
+	columns []*zed.Value
 }
 
 func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
@@ -29,10 +29,9 @@ func NewAssembler(a *Assembly, seeker *storage.Seeker) (*Assembler, error) {
 	assembler.columns = make([]*column.Record, len(a.schemas))
 	for k := 0; k < len(a.schemas); k++ {
 		rec := a.columns[k]
-		zv := rec.Value
 		record_col := &column.Record{}
 		typ := zed.TypeRecordOf(a.schemas[k])
-		if err := record_col.UnmarshalZNG(typ, zv, seeker); err != nil {
+		if err := record_col.UnmarshalZNG(typ, *rec, seeker); err != nil {
 			return nil, err
 		}
 		assembler.columns[k] = record_col
@@ -51,7 +50,7 @@ type Assembler struct {
 	err     error
 }
 
-func (a *Assembler) Read() (*zed.Record, error) {
+func (a *Assembler) Read() (*zed.Value, error) {
 	a.builder.Reset()
 	schemaID, err := a.root.Read()
 	if err == io.EOF {
@@ -72,7 +71,7 @@ func (a *Assembler) Read() (*zed.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	rec := zed.NewRecord(a.schemas[schemaID], body)
+	rec := zed.NewValue(a.schemas[schemaID], body)
 	//XXX if we had a buffer pool where records could be built back to
 	// back in batches, then we could get rid of this extra allocation
 	// and copy on every record

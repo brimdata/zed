@@ -61,7 +61,7 @@ func NewReader(reader io.Reader, zctx *zed.Context) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zed.Record, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	for {
 		rec, b, err := r.ReadPayload()
 		if b != nil {
@@ -77,7 +77,7 @@ func (r *Reader) Read() (*zed.Record, error) {
 	}
 }
 
-func (r *Reader) ReadPayload() (*zed.Record, []byte, error) {
+func (r *Reader) ReadPayload() (*zed.Value, []byte, error) {
 again:
 	line, err := r.scanner.ScanLine()
 	if line == nil {
@@ -195,7 +195,7 @@ func (r *Reader) parseType(line []byte) (zed.Type, []byte, error) {
 	return typ, line[i+1:], nil
 }
 
-func (r *Reader) parseValue(line []byte) (*zed.Record, error) {
+func (r *Reader) parseValue(line []byte) (*zed.Value, error) {
 	// From the zng spec:
 	// A regular value is encoded on a line as type descriptor
 	// followed by ":" followed by a value encoding.
@@ -211,5 +211,9 @@ func (r *Reader) parseValue(line []byte) (*zed.Record, error) {
 	if err != nil {
 		return nil, err
 	}
-	return zed.NewRecordCheck(typ, bytes)
+	zv := zed.NewValue(typ, bytes)
+	if err := zv.TypeCheck(); err != nil {
+		return nil, err
+	}
+	return zv, nil
 }

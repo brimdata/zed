@@ -216,7 +216,7 @@ func (c *Context) LookupTypeAlias(name string, target Type) (*TypeAlias, error) 
 // record along with new rightmost columns as indicated with the given values.
 // If any of the newly provided columns already exists in the specified value,
 // an error is returned.
-func (c *Context) AddColumns(r *Record, newCols []Column, vals []Value) (*Record, error) {
+func (c *Context) AddColumns(r *Value, newCols []Column, vals []Value) (*Value, error) {
 	oldCols := TypeRecordOf(r.Type).Columns
 	outCols := make([]Column, len(oldCols), len(oldCols)+len(newCols))
 	copy(outCols, oldCols)
@@ -235,7 +235,7 @@ func (c *Context) AddColumns(r *Record, newCols []Column, vals []Value) (*Record
 	if err != nil {
 		return nil, err
 	}
-	return NewRecord(typ, zv), nil
+	return NewValue(typ, zv), nil
 }
 
 // LookupByValue returns the Type indicated by a binary-serialized type value.

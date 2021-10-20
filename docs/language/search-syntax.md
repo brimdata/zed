@@ -28,8 +28,8 @@
 The simplest possible Zed search is a match of all records. This search is
 expressed in `zq` with the wildcard `*`. The response will be a dump of all
 records. The default `zq` output to the terminal is text-based
-[ZSON](../../formats/zson.md) format, whereas the compact binary
-[ZNG](../../formats/zng.md) format is used if the output is redirected or
+[ZSON](../formats/zson.md) format, whereas the compact binary
+[ZNG](../formats/zng.md) format is used if the output is redirected or
 piped.
 
 In the examples, we'll be explicit in how we request our output format, using
@@ -86,8 +86,8 @@ zq -z schools.zson
 
 To start a Zed pipeline with this default search, you can similarly leave out
 the leading `* |` before invoking your first
-[operator](#../operators/README.md) or
-[aggregate function](#../aggregate-functions/README.md). The following example
+[operator](#operators.md) or
+[aggregate function](#aggregate-functions.md). The following example
 is shorthand for:
 
 ```
@@ -142,7 +142,7 @@ zq -z '596' testscores.zson schools.zson
 
 By comparison, the section below on [Field/Value Match](#fieldvalue-match)
 describes ways to perform searches against only fields of a specific
-[data type](../data-types/README.md).
+[data type](data-types.md).
 
 ### Quoted Word
 
@@ -344,7 +344,7 @@ number before comparing it to all the fields named `Zip` that it sees in the
 input stream. However, `Zip=="95959"` _would_ match, since the quotes cause Zed
 to treat the value as a string.
 
-See the [Data Types](../data-types/README.md) page for more details.
+See the [Data Types](data-types.md) page for more details.
 
 ### Finding Patterns with `matches`
 
@@ -401,7 +401,7 @@ determine if a value is among the many possible elements of a complex field.
 This is performed with `in`.
 
 Since our sample data doesn't contain complex fields, we'll make one by
-using the [`union`](../aggregate-functions/#union) aggregate function to
+using the [`union`](aggregate-functions.md#union) aggregate function to
 create a [`set`](https://github.com/brimdata/zed/blob/main/docs/formats/zson.md#343-set-value)-typed
 field called `Schools` that contains all unique school names per district. From
 these we'll find each set that contains a school named `Lincoln Elementary`.

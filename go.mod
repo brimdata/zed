@@ -9,7 +9,6 @@ require (
 	github.com/axiomhq/hyperloglog v0.0.0-20191112132149-a4c4c47bc57f
 	github.com/fraugster/parquet-go v0.3.0
 	github.com/go-redis/redis/v8 v8.4.11
-	github.com/go-resty/resty/v2 v2.2.0
 	github.com/golang-jwt/jwt v3.2.1+incompatible
 	github.com/golang/mock v1.4.4
 	github.com/golang/protobuf v1.4.3 // indirect

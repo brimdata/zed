@@ -101,7 +101,7 @@ func TestPoolPostNameOnly(t *testing.T) {
 func TestPoolPostDuplicateName(t *testing.T) {
 	_, conn := newCore(t)
 	conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	_, err := conn.PoolPost(context.Background(), api.PoolPostRequest{Name: "test"})
+	_, err := conn.CreatePool(context.Background(), api.PoolPostRequest{Name: "test"})
 	require.Equal(t, errors.Is(err, client.ErrPoolExists), true)
 }
 
@@ -110,14 +110,14 @@ func TestPoolInvalidName(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
 	t.Run("Post", func(t *testing.T) {
-		_, err := conn.PoolPost(ctx, api.PoolPostRequest{Name: "𝚭𝚴𝚪 is.good"})
+		_, err := conn.CreatePool(ctx, api.PoolPostRequest{Name: "𝚭𝚴𝚪 is.good"})
 		require.NoError(t, err)
-		_, err = conn.PoolPost(ctx, api.PoolPostRequest{Name: "𝚭𝚴𝚪/bad"})
+		_, err = conn.CreatePool(ctx, api.PoolPostRequest{Name: "𝚭𝚴𝚪/bad"})
 		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
 	t.Run("Put", func(t *testing.T) {
 		poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "𝚭𝚴𝚪1"})
-		err := conn.PoolPut(ctx, poolID, api.PoolPutRequest{Name: "𝚭𝚴𝚪/2"})
+		err := conn.RenamePool(ctx, poolID, api.PoolPutRequest{Name: "𝚭𝚴𝚪/2"})
 		require.EqualError(t, err, "status code 400: name may not contain '/' or non-printable characters")
 	})
 }
@@ -126,7 +126,7 @@ func TestPoolPutDuplicateName(t *testing.T) {
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
 	conn.TestPoolPost(api.PoolPostRequest{Name: "test1"})
-	err := conn.PoolPut(context.Background(), poolID, api.PoolPutRequest{Name: "test"})
+	err := conn.RenamePool(context.Background(), poolID, api.PoolPutRequest{Name: "test"})
 	assert.EqualError(t, err, "status code 409: test: pool already exists")
 }
 
@@ -134,7 +134,7 @@ func TestPoolPut(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	err := conn.PoolPut(ctx, poolID, api.PoolPutRequest{Name: "new_name"})
+	err := conn.RenamePool(ctx, poolID, api.PoolPutRequest{Name: "new_name"})
 	require.NoError(t, err)
 	info := conn.TestPoolGet(poolID)
 	assert.Equal(t, "new_name", info.Name)
@@ -144,7 +144,7 @@ func TestPoolRemote(t *testing.T) {
 	ctx := context.Background()
 	_, conn := newCore(t)
 	poolID := conn.TestPoolPost(api.PoolPostRequest{Name: "test"})
-	err := conn.PoolRemove(ctx, poolID)
+	err := conn.RemovePool(ctx, poolID)
 	require.NoError(t, err)
 	list := conn.TestPoolList()
 	require.Len(t, list, 0)
@@ -152,30 +152,30 @@ func TestPoolRemote(t *testing.T) {
 
 func TestNoEndSlashSupport(t *testing.T) {
 	_, conn := newCore(t)
-	_, err := conn.Do(context.Background(), "GET", "/pool/", nil)
+	_, err := conn.Do(conn.NewRequest(context.Background(), "GET", "/pool/", nil))
 	require.Error(t, err)
-	require.Equal(t, 404, err.(*client.ErrorResponse).StatusCode())
+	require.Equal(t, 404, err.(*client.ErrorResponse).StatusCode)
 }
 
 func TestRequestID(t *testing.T) {
 	ctx := context.Background()
 	t.Run("GeneratesUniqueID", func(t *testing.T) {
 		_, conn := newCore(t)
-		res1, err := conn.Do(ctx, "GET", "/pool", nil)
+		res1, err := conn.Do(conn.NewRequest(ctx, "GET", "/pool", nil))
 		require.NoError(t, err)
-		res2, err := conn.Do(ctx, "GET", "/pool", nil)
+		res2, err := conn.Do(conn.NewRequest(ctx, "GET", "/pool", nil))
 		require.NoError(t, err)
-		assert.NotEqual(t, "", res1.Header().Get("X-Request-ID"))
-		assert.NotEqual(t, "", res2.Header().Get("X-Request-ID"))
+		assert.NotEqual(t, "", res1.Header.Get("X-Request-ID"))
+		assert.NotEqual(t, "", res2.Header.Get("X-Request-ID"))
 	})
 	t.Run("PropagatesID", func(t *testing.T) {
 		_, conn := newCore(t)
 		requestID := "random-request-ID"
-		req := conn.Request(context.Background())
-		req.SetHeader("X-Request-ID", requestID)
-		res, err := req.Execute("GET", "/pool")
+		req := conn.NewRequest(context.Background(), "GET", "/pool", nil)
+		req.Header.Set("X-Request-ID", requestID)
+		res, err := conn.Do(req)
 		require.NoError(t, err)
-		require.Equal(t, requestID, res.Header().Get("X-Request-ID"))
+		require.Equal(t, requestID, res.Header.Get("X-Request-ID"))
 	})
 }
 

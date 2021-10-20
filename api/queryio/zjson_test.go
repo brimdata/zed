@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func mkRecord(t *testing.T, s string) *zed.Record {
+func mkRecord(t *testing.T, s string) *zed.Value {
 	r := zson.NewReader(strings.NewReader(s), zed.NewContext())
 	rec, err := r.Read()
 	require.NoError(t, err)

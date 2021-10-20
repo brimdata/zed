@@ -28,7 +28,7 @@ func NewZJSONWriter(w io.Writer) *ZJSONWriter {
 	}
 }
 
-func (w *ZJSONWriter) Write(rec *zed.Record) error {
+func (w *ZJSONWriter) Write(rec *zed.Value) error {
 	object, err := w.stream.Transform(rec)
 	if err != nil {
 		return err

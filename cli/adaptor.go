@@ -41,7 +41,7 @@ func (*FileAdaptor) Layout(context.Context, dag.Source) order.Layout {
 	return order.Nil
 }
 
-func (*FileAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter) (proc.Scheduler, error) {
+func (*FileAdaptor) NewScheduler(context.Context, *zed.Context, dag.Source, extent.Span, zbuf.Filter, []dag.IndexPredicate) (proc.Scheduler, error) {
 	return nil, errors.New("pool scan not available when running on local file system")
 }
 

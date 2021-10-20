@@ -10,6 +10,6 @@ func NewLiteral(zv zed.Value) *Literal {
 	return &Literal{zv}
 }
 
-func (l *Literal) Eval(*zed.Record) (zed.Value, error) {
+func (l *Literal) Eval(*zed.Value) (zed.Value, error) {
 	return l.zv, nil
 }

@@ -28,7 +28,7 @@ type Merger struct {
 type mergerPuller struct {
 	Puller
 	ch    chan batch
-	recs  []*zed.Record
+	recs  []*zed.Value
 	batch Batch
 }
 
@@ -48,11 +48,11 @@ func NewCompareFn(layout order.Layout) expr.CompareFn {
 	if layout.Order == order.Asc {
 		return fn
 	}
-	return func(a, b *zed.Record) int { return fn(b, a) }
+	return func(a, b *zed.Value) int { return fn(b, a) }
 }
 
 func totalOrderCompare(fn expr.CompareFn) expr.CompareFn {
-	return func(a, b *zed.Record) int {
+	return func(a, b *zed.Value) int {
 		cmp := fn(a, b)
 		if cmp == 0 {
 			return bytes.Compare(a.Bytes, b.Bytes)
@@ -73,23 +73,6 @@ func NewMerger(ctx context.Context, pullers []Puller, cmp expr.CompareFn) *Merge
 		m.pullers = append(m.pullers, &mergerPuller{Puller: p, ch: make(chan batch)})
 	}
 	return m
-}
-
-func MergeByTs(ctx context.Context, pullers []Puller, o order.Which) *Merger {
-	cmp := func(a, b *zed.Record) int {
-		if o == order.Desc {
-			a, b = b, a
-		}
-		aTs, bTs := a.Ts(), b.Ts()
-		if aTs < bTs {
-			return -1
-		}
-		if aTs > bTs {
-			return 1
-		}
-		return bytes.Compare(a.Bytes, b.Bytes)
-	}
-	return NewMerger(ctx, pullers, cmp)
 }
 
 func (m *Merger) run() {
@@ -116,7 +99,7 @@ func (m *Merger) run() {
 
 // Read fulfills Reader so that we can use ReadBatch or
 // use Merger as a Reader directly.
-func (m *Merger) Read() (*zed.Record, error) {
+func (m *Merger) Read() (*zed.Value, error) {
 	m.once.Do(m.run)
 	leader, err := m.findLeader()
 	if leader < 0 || err != nil {
@@ -127,7 +110,7 @@ func (m *Merger) Read() (*zed.Record, error) {
 	return m.pullers[leader].next(), nil
 }
 
-func (m *mergerPuller) next() *zed.Record {
+func (m *mergerPuller) next() *zed.Value {
 	rec := m.recs[0]
 	m.recs = m.recs[1:]
 	m.batch = nil

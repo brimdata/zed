@@ -23,8 +23,11 @@ func ObjectName(ruleID, id ksuid.KSUID) string {
 }
 
 func (o Object) Path(path *storage.URI) *storage.URI {
-	return path.AppendPath(o.Rule.RuleID().String())
-	//	return xObjectPath(path, o.Rule, o.ID)
+	return ObjectPath(path, o.Rule.RuleID(), o.ID)
+}
+
+func ObjectPath(path *storage.URI, ruleID, id ksuid.KSUID) *storage.URI {
+	return path.AppendPath(ruleID.String(), id.String()+".zng")
 }
 
 type Map map[ksuid.KSUID]ObjectRules
@@ -79,6 +82,14 @@ func (m Map) Copy() Map {
 }
 
 type ObjectRules map[ksuid.KSUID]*Object
+
+func (o ObjectRules) Rules() []Rule {
+	rules := make([]Rule, 0, len(o))
+	for _, object := range o {
+		rules = append(rules, object.Rule)
+	}
+	return rules
+}
 
 func (o ObjectRules) Missing(rules []Rule) []Rule {
 	var missing []Rule

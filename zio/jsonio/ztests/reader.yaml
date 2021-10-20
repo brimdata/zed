@@ -12,6 +12,7 @@ inputs:
         "ts": 1521911721.926018012,
         "a": "hello, world",
         "b": {
+          "z": "&, <, and > should not be escaped",
           "x": 4611686018427387904,
           "y": "127.0.0.1"
         }
@@ -30,7 +31,8 @@ outputs:
           a: "hello, world",
           b: {
               x: 4611686018427388000,
-              y: "127.0.0.1"
+              y: "127.0.0.1",
+              z: "&, <, and > should not be escaped"
           },
           ts: 1.521911721926018e+09
       }

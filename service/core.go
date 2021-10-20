@@ -27,7 +27,7 @@ const indexPage = `
   <body style="padding:10px">
     <h2>zed lake serve</h2>
     <p>A <a href="https://github.com/brimdata/zed/tree/main/cmd/zed/lake/serve">zed lake service</a> is listening on this host/port.</p>
-    <p>If you're a <a href="https://www.brimsecurity.com/">Brim</a> user, connect to this host/port from the <a href="https://github.com/brimdata/brim">Brim application</a> in the graphical desktop interface in your operating system (not a web browser).</p>
+    <p>If you're a <a href="https://www.brimdata.io/">Brim</a> user, connect to this host/port from the <a href="https://github.com/brimdata/brim">Brim application</a> in the graphical desktop interface in your operating system (not a web browser).</p>
     <p>If your goal is to perform command line operations against this Zed lake, use the <a href="https://github.com/brimdata/zed/tree/main/cmd/zapi">zapi</a> client.</p>
   </body>
 </html>`
@@ -137,6 +137,7 @@ func (c *Core) addAPIServerRoutes() {
 	// /auth/method intentionally requires no authentication
 	c.routerAPI.Handle("/auth/method", c.handler(handleAuthMethodGet)).Methods("GET")
 	c.authhandle("/events", handleEvents).Methods("GET")
+	c.authhandle("/index", handleIndexRulesPost).Methods("POST")
 	c.authhandle("/pool", handlePoolPost).Methods("POST")
 	c.authhandle("/pool/{pool}", handlePoolDelete).Methods("DELETE")
 	c.authhandle("/pool/{pool}", handleBranchPost).Methods("POST")
@@ -145,6 +146,8 @@ func (c *Core) addAPIServerRoutes() {
 	c.authhandle("/pool/{pool}/branch/{branch}", handleBranchDelete).Methods("DELETE")
 	c.authhandle("/pool/{pool}/branch/{branch}", handleBranchLoad).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/delete", handleDelete).Methods("POST")
+	c.authhandle("/pool/{pool}/branch/{branch}/index", branchHandle(handleIndexApply)).Methods("POST")
+	c.authhandle("/pool/{pool}/branch/{branch}/index/update", branchHandle(handleIndexUpdate)).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/merge/{child}", handleBranchMerge).Methods("POST")
 	c.authhandle("/pool/{pool}/branch/{branch}/revert/{commit}", handleRevertPost).Methods("POST")
 	c.authhandle("/pool/{pool}/stats", handlePoolStats).Methods("GET")
@@ -153,7 +156,6 @@ func (c *Core) addAPIServerRoutes() {
 	// Deprecated endpoints
 	c.authhandle("/pool", handlePoolListDeprecated).Methods("GET")
 	c.authhandle("/pool/{pool}", handlePoolGetDeprecated).Methods("GET")
-	// c.authhandle("/index", handleIndexPost).Methods("POST")
 }
 
 func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
@@ -171,6 +173,30 @@ func (c *Core) authhandle(path string, f func(*Core, *ResponseWriter, *Request))
 		h = c.handler(f)
 	}
 	return c.routerAPI.Handle(path, h)
+}
+
+func branchHandle(f func(*Core, *ResponseWriter, *Request, *lake.Branch)) func(*Core, *ResponseWriter, *Request) {
+	return func(c *Core, w *ResponseWriter, r *Request) {
+		poolID, ok := r.PoolID(w, c.root)
+		if !ok {
+			return
+		}
+		branchName, ok := r.StringFromPath(w, "branch")
+		if !ok {
+			return
+		}
+		pool, err := c.root.OpenPool(r.Context(), poolID)
+		if err != nil {
+			w.Error(err)
+			return
+		}
+		branch, err := pool.OpenBranchByName(r.Context(), branchName)
+		if err != nil {
+			w.Error(err)
+			return
+		}
+		f(c, w, r, branch)
+	}
 }
 
 func (c *Core) Registry() *prometheus.Registry {

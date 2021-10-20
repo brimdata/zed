@@ -9,9 +9,9 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-type CompareFn func(a *zed.Record, b *zed.Record) int
+type CompareFn func(a *zed.Value, b *zed.Value) int
 type ValueCompareFn func(a zed.Value, b zed.Value) int
-type KeyCompareFn func(*zed.Record) int
+type KeyCompareFn func(*zed.Value) int
 
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zcode.Bytes) int
@@ -34,7 +34,7 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 	var aBytesBuf []byte
 	var pair coerce.Pair
 	comparefns := make(map[zed.Type]comparefn)
-	return func(ra *zed.Record, rb *zed.Record) int {
+	return func(ra *zed.Value, rb *zed.Value) int {
 		for _, resolver := range fields {
 			// XXX return errors?
 			a, _ := resolver.Eval(ra)
@@ -113,7 +113,7 @@ func compareValues(a, b zed.Value, comparefns map[zed.Type]comparefn, pair *coer
 	return cfn(abytes, bbytes)
 }
 
-func NewKeyCompareFn(key *zed.Record) (KeyCompareFn, error) {
+func NewKeyCompareFn(key *zed.Value) (KeyCompareFn, error) {
 	comparefns := make(map[zed.Type]comparefn)
 	var accessors []Evaluator
 	var keyval []zed.Value
@@ -130,7 +130,7 @@ func NewKeyCompareFn(key *zed.Record) (KeyCompareFn, error) {
 		keyval = append(keyval, val)
 		accessors = append(accessors, NewDotExpr(name))
 	}
-	return func(rec *zed.Record) int {
+	return func(rec *zed.Value) int {
 		for k, access := range accessors {
 			// XXX error
 			a, _ := access.Eval(rec)
@@ -164,13 +164,13 @@ func NewKeyCompareFn(key *zed.Record) (KeyCompareFn, error) {
 }
 
 // SortStable performs a stable sort on the provided records.
-func SortStable(records []*zed.Record, compare CompareFn) {
+func SortStable(records []*zed.Value, compare CompareFn) {
 	slice := &RecordSlice{records, compare}
 	sort.Stable(slice)
 }
 
 type RecordSlice struct {
-	records []*zed.Record
+	records []*zed.Value
 	compare CompareFn
 }
 
@@ -191,7 +191,7 @@ func (r *RecordSlice) Less(i, j int) bool {
 
 // Push adds x as element Len(). Implements heap.Interface.
 func (r *RecordSlice) Push(rec interface{}) {
-	r.records = append(r.records, rec.(*zed.Record))
+	r.records = append(r.records, rec.(*zed.Value))
 }
 
 // Pop removes the first element in the array. Implements heap.Interface.
@@ -202,7 +202,7 @@ func (r *RecordSlice) Pop() interface{} {
 }
 
 // Index returns the ith record.
-func (r *RecordSlice) Index(i int) *zed.Record {
+func (r *RecordSlice) Index(i int) *zed.Value {
 	return r.records[i]
 }
 

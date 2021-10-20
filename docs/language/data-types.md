@@ -5,10 +5,10 @@ in progress. In the meantime, here's a few tips to get started with.
 
 * Values are stored internally and treated in expressions using one of the Zed
   data types described in the
-  [Primitive Values](../../formats/zson.md#33-primitive-values) section of the
+  [Primitive Values](../formats/zson.md#33-primitive-values) section of the
   ZSON spec.
-* Users of [Zeek](../../../zeek/README.md) logs should review the
-  [Equivalent Types](../../../zeek/Data-Type-Compatibility.md#equivalent-types)
+* Users of [Zeek](../../zeek/README.md) logs should review the
+  [Equivalent Types](../../zeek/Data-Type-Compatibility.md#equivalent-types)
   table for details on which Zed data types correspond to the
   [data types](https://docs.zeek.org/en/current/script-reference/types.html)
   that appear in Zeek logs.
@@ -36,7 +36,7 @@ This data suffers from a notorious limitation of JSON: The lack of a native
 "time" type requires storing timestamps as strings. As a result, if read into
 `zq` as the strings they are, these `ts` values are not usable with
 time-specific operations in Zed, such as this attempt to use
-[time grouping](../grouping#time-grouping---every) to calculate total
+[time grouping](grouping.md#time-grouping---every) to calculate total
 quantities shipped per day.
 
 ```mdtest-command

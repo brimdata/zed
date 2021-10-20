@@ -25,7 +25,7 @@ func NewReader(r io.Reader, zctx *zed.Context) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zed.Record, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	if r.parser == nil {
 		var err error
 		r.parser, err = NewParser(r.reader)
@@ -50,5 +50,5 @@ func (r *Reader) Read() (*zed.Record, error) {
 	if _, ok := zed.AliasOf(zv.Type).(*zed.TypeRecord); !ok {
 		return nil, fmt.Errorf("top-level ZSON value not a record: %s", zv.Type)
 	}
-	return zed.NewRecord(zv.Type, zv.Bytes), nil
+	return zed.NewValue(zv.Type, zv.Bytes), nil
 }

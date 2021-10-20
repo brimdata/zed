@@ -6,6 +6,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
+	"github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/compiler/kernel"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/order"
@@ -276,5 +277,28 @@ func pushDown(trunk *dag.Trunk) {
 	if len(seq.Ops) == 0 {
 		trunk.Seq = nil
 	}
-	trunk.Pushdown = filter
+	trunk.Pushdown.Scan = filter
+	trunk.Pushdown.Index = indexPredicates(filter.Expr)
+}
+
+func indexPredicates(node dag.Expr) []dag.IndexPredicate {
+	e, ok := node.(*dag.BinaryExpr)
+	if !ok {
+		return nil
+	}
+	if e.Op == "and" || e.Op == "or" {
+		left := indexPredicates(e.LHS)
+		right := indexPredicates(e.RHS)
+		return append(left, right...)
+	}
+	if e.Op == "=" {
+		v, vok := e.RHS.(*zed.Primitive)
+		if k, ok := e.LHS.(*dag.Path); ok && vok {
+			return []dag.IndexPredicate{{
+				Key:   k,
+				Value: v,
+			}}
+		}
+	}
+	return nil
 }

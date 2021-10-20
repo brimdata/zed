@@ -29,8 +29,6 @@ outputs:
   - name: stderr
     data: |
       // asc
-      data opened: 16401
-      data read:   87
+      {bytes_read:16401,bytes_matched:87,records_read:500,records_matched:3}
       // desc
-      data opened: 16404
-      data read:   87
+      {bytes_read:16404,bytes_matched:87,records_read:500,records_matched:3}

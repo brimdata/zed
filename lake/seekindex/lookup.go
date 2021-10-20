@@ -10,7 +10,7 @@ import (
 
 func Lookup(r zio.Reader, from, to zed.Value, cmp expr.ValueCompareFn) (Range, error) {
 	rg := Range{0, math.MaxInt64}
-	var rec *zed.Record
+	var rec *zed.Value
 	for {
 		var err error
 		rec, err = r.Read()

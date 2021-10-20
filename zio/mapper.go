@@ -16,7 +16,7 @@ func NewMapper(reader Reader, zctx *zed.Context) *Mapper {
 	}
 }
 
-func (m *Mapper) Read() (*zed.Record, error) {
+func (m *Mapper) Read() (*zed.Value, error) {
 	rec, err := m.Reader.Read()
 	if err != nil {
 		return nil, err

@@ -10,8 +10,10 @@ import (
 )
 
 type Reader struct {
-	zctx    *zed.Context
-	decoder *json.Decoder
+	zctx       *zed.Context
+	decoder    *json.Decoder
+	encoder    *json.Encoder
+	encoderBuf *bytes.Buffer
 }
 
 func NewReader(r io.Reader, zctx *zed.Context) *Reader {
@@ -23,13 +25,18 @@ func NewReader(r io.Reader, zctx *zed.Context) *Reader {
 		// We have an array.  Discard its opening "[" delimiter.
 		d.Token()
 	}
+	var buf bytes.Buffer
+	e := json.NewEncoder(&buf)
+	e.SetEscapeHTML(false)
 	return &Reader{
-		zctx:    zctx,
-		decoder: d,
+		zctx:       zctx,
+		decoder:    d,
+		encoder:    e,
+		encoderBuf: &buf,
 	}
 }
 
-func (r *Reader) Read() (*zed.Record, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	if !r.decoder.More() {
 		return nil, nil
 	}
@@ -40,9 +47,9 @@ func (r *Reader) Read() (*zed.Record, error) {
 	if _, ok := v.(map[string]interface{}); !ok {
 		v = map[string]interface{}{"value": v}
 	}
-	b, err := json.Marshal(v)
-	if err != nil {
+	r.encoderBuf.Reset()
+	if err := r.encoder.Encode(v); err != nil {
 		return nil, err
 	}
-	return zson.NewReader(bytes.NewReader(b), r.zctx).Read()
+	return zson.NewReader(r.encoderBuf, r.zctx).Read()
 }

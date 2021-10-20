@@ -40,7 +40,7 @@ func NewReader(r io.Reader, zctx *zed.Context) *Reader {
 	}
 }
 
-func (r *Reader) Read() (*zed.Record, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	for {
 		csvRec, err := r.reader.Read()
 		if err != nil {
@@ -72,7 +72,7 @@ func (r *Reader) init(hdr []string) {
 	r.vals = make([]interface{}, len(hdr))
 }
 
-func (r *Reader) translate(fields []string) (*zed.Record, error) {
+func (r *Reader) translate(fields []string) (*zed.Value, error) {
 	if len(fields) != len(r.vals) {
 		// This error shouldn't happen as it should be caught by the
 		// csv package but we check anyway.

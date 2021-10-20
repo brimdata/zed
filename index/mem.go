@@ -12,8 +12,8 @@ import (
 // types of the columns depend upon the zed.Values entered into the table.
 type MemTable struct {
 	keys   field.List
-	table  map[string]*zed.Record
-	values []*zed.Record
+	table  map[string]*zed.Value
+	values []*zed.Value
 	sorted bool
 	zctx   *zed.Context
 }
@@ -21,12 +21,12 @@ type MemTable struct {
 func NewMemTable(zctx *zed.Context, keys field.List) *MemTable {
 	return &MemTable{
 		keys:  keys,
-		table: make(map[string]*zed.Record),
+		table: make(map[string]*zed.Value),
 		zctx:  zctx,
 	}
 }
 
-func (t *MemTable) Read() (*zed.Record, error) {
+func (t *MemTable) Read() (*zed.Value, error) {
 	if !t.sorted {
 		t.open()
 	}
@@ -46,7 +46,7 @@ func (t *MemTable) open() {
 	n := len(t.table)
 	if n > 0 {
 		//XXX escaping to GC
-		t.values = make([]*zed.Record, 0, n)
+		t.values = make([]*zed.Value, 0, n)
 		for _, value := range t.table {
 			t.values = append(t.values, value)
 		}
@@ -59,7 +59,7 @@ func (t *MemTable) open() {
 	t.sorted = true
 }
 
-func (t *MemTable) Enter(rec *zed.Record) error {
+func (t *MemTable) Enter(rec *zed.Value) error {
 	if t.sorted {
 		panic("MemTable.Enter() cannot be called after reading")
 	}

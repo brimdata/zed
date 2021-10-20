@@ -111,7 +111,7 @@ type SliceRecord struct {
 	S []IDSlice
 }
 
-func recToZSON(t *testing.T, rec *zed.Record) string {
+func recToZSON(t *testing.T, rec *zed.Value) string {
 	var b strings.Builder
 	w := zsonio.NewWriter(zio.NopCloser(&b), zsonio.WriterOpts{})
 	err := w.Write(rec)
@@ -209,16 +209,16 @@ func TestBug2575(t *testing.T) {
 
 	var buffer bytes.Buffer
 	writer := zngio.NewWriter(zio.NopCloser(&buffer), zngio.WriterOpts{})
-	recExpected := zed.NewRecord(zv.Type, zv.Bytes)
+	recExpected := zed.NewValue(zv.Type, zv.Bytes)
 	writer.Write(recExpected)
 	writer.Close()
 
 	r := bytes.NewReader(buffer.Bytes())
 	reader := zngio.NewReader(r, zed.NewContext())
 	recActual, err := reader.Read()
-	exp, err := zson.FormatValue(recExpected.Value)
+	exp, err := zson.FormatValue(*recExpected)
 	require.NoError(t, err)
-	actual, err := zson.FormatValue(recActual.Value)
+	actual, err := zson.FormatValue(*recActual)
 	require.NoError(t, err)
 	assert.Equal(t, trim(exp), actual)
 }

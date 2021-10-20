@@ -7,7 +7,7 @@
 
 Zed includes _grouping_ options that partition the input stream into batches
 that are aggregated separately based on field values. Grouping is most often
-used with [aggregate functions](../aggregate-functions/README.md). If explicit
+used with [aggregate functions](aggregate-functions.md). If explicit
 grouping is not used, an aggregate function will operate over all records in the
 input stream.
 
@@ -21,7 +21,7 @@ tips for their effective use.
 # Value Grouping - `by`
 
 To create batches of records based on the values of fields or the results of
-[expressions](../expressions/README.md), specify
+[expressions](expressions.md), specify
 `by <field-name | name:=expression> [, <field-name | name:=expression> ...]`
 after invoking your aggregate function(s).
 
@@ -82,7 +82,7 @@ San Francisco   San Francisco Unified                              454.368421052
 #### Example #3:
 
 Instead of a simple field name, any of the comma-separated `by` groupings could
-be based on the result of an [expression](../expressions/README.md). The
+be based on the result of an [expression](expressions.md). The
 expression must be preceded by the name of the that will hold the expression
 result for further processing/presentation downstream in your Zed pipeline.
 
@@ -232,7 +232,7 @@ ts                   sum
 # Note: Undefined Order
 
 The order of results from a grouped aggregation are undefined. If you want to
-ensure a specific order, a [`sort` operator](../operators/README.md#sort)
+ensure a specific order, a [`sort` operator](operators.md#sort)
 should be used downstream of the aggregate function(s) in the Zed pipeline.
 It is for this reason that our examples above all included an explicit
 `| sort` at the end of each pipeline.
@@ -249,4 +249,4 @@ into Brim:
 
 #### Output:
 
-![Zed "every" in Brim](media/Brim-Zed-every.png)
+![Zed "every" in Brim](images/Brim-Zed-every.png)

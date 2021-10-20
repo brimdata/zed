@@ -9,7 +9,7 @@ import (
 
 type Function interface {
 	fmt.Stringer
-	Apply(*zed.Record) (*zed.Record, error)
+	Apply(*zed.Value) (*zed.Value, error)
 	Warning() string
 }
 
@@ -38,7 +38,7 @@ func (a *applier) Pull() (zbuf.Batch, error) {
 			}
 			return nil, err
 		}
-		recs := make([]*zed.Record, 0, batch.Length())
+		recs := make([]*zed.Value, 0, batch.Length())
 		for k := 0; k < batch.Length(); k++ {
 			in := batch.Index(k)
 			out, err := a.function.Apply(in)

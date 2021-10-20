@@ -11,7 +11,6 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/field"
@@ -243,7 +242,7 @@ func (cr *countReader) records() int {
 	return cr.n
 }
 
-func (cr *countReader) Read() (*zed.Record, error) {
+func (cr *countReader) Read() (*zed.Value, error) {
 	rec, err := cr.r.Read()
 	if rec != nil {
 		cr.mu.Lock()
@@ -274,8 +273,8 @@ func (d *testGroupByDriver) Warn(msg string) error {
 	panic("shouldn't warn")
 }
 
-func (d *testGroupByDriver) ChannelEnd(int) error         { return nil }
-func (d *testGroupByDriver) Stats(api.ScannerStats) error { return nil }
+func (d *testGroupByDriver) ChannelEnd(int) error          { return nil }
+func (d *testGroupByDriver) Stats(zbuf.ScannerStats) error { return nil }
 
 func TestGroupbyStreamingSpill(t *testing.T) {
 

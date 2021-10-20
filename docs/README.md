@@ -8,6 +8,5 @@
 
 
 * [Zed Language Overview](language)
-* [Zed Language Operators](language/operators)
 * [Zed Lake Design](lake)
 * [Zed Formats](formats)

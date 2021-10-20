@@ -18,7 +18,7 @@ const (
 	// AudienceClaimValue is the value of the "aud" standard claim that clients
 	// should use when requesting access tokens for this api.
 	// Though formatted as a URL, it does not need to be a reachable location.
-	AudienceClaimValue = "https://app.brimsecurity.com"
+	AudienceClaimValue = "https://app.brimdata.io"
 
 	// These are the namespaced custom claims we expect on any JWT
 	// access token.

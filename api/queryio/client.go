@@ -14,13 +14,6 @@ import (
 )
 
 func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Response) (zbuf.ScannerStats, error) {
-	format, err := api.MediaTypeToFormat(res.ContentType)
-	if err != nil {
-		return zbuf.ScannerStats{}, err
-	}
-	if format != "zng" {
-		return zbuf.ScannerStats{}, fmt.Errorf("unsupported format: %s", format)
-	}
 	run := &runner{driver: d}
 	r := NewZNGReader(zngio.NewReader(res.Body, zed.NewContext()))
 	for ctx.Err() == nil {
@@ -48,11 +41,11 @@ func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Respons
 type runner struct {
 	driver driver.Driver
 	cid    int
-	recs   []*zed.Record
+	recs   []*zed.Value
 	stats  zbuf.ScannerStats
 }
 
-func (r *runner) Write(rec *zed.Record) error {
+func (r *runner) Write(rec *zed.Value) error {
 	return r.driver.Write(r.cid, &zbuf.Array{rec})
 }
 

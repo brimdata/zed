@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/lakeparse"
@@ -26,7 +25,7 @@ type Driver interface {
 	Warn(msg string) error
 	Write(channelID int, batch zbuf.Batch) error
 	ChannelEnd(channelID int) error
-	Stats(api.ScannerStats) error
+	Stats(zbuf.ScannerStats) error
 }
 
 func RunWithReader(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, reader zio.Reader, logger *zap.Logger) error {
@@ -124,7 +123,7 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 	for {
 		select {
 		case <-statsTicker:
-			if err := d.Stats(api.ScannerStats(statser.Stats())); err != nil {
+			if err := d.Stats(statser.Stats()); err != nil {
 				return err
 			}
 		case result := <-resultCh:
@@ -148,7 +147,7 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 					}
 				}
 				if statser != nil {
-					if statsErr := d.Stats(api.ScannerStats(statser.Stats())); err == nil {
+					if statsErr := d.Stats(statser.Stats()); err == nil {
 						err = statsErr
 					}
 				}
@@ -233,8 +232,8 @@ func (d *CLI) Warn(msg string) error {
 	return nil
 }
 
-func (d *CLI) ChannelEnd(int) error         { return nil }
-func (d *CLI) Stats(api.ScannerStats) error { return nil }
+func (d *CLI) ChannelEnd(int) error          { return nil }
+func (d *CLI) Stats(zbuf.ScannerStats) error { return nil }
 
 type transformDriver struct {
 	w zio.Writer
@@ -253,9 +252,9 @@ func (d *transformDriver) Write(cid int, batch zbuf.Batch) error {
 	return nil
 }
 
-func (d *transformDriver) Warn(warning string) error          { return nil }
-func (d *transformDriver) Stats(stats api.ScannerStats) error { return nil }
-func (d *transformDriver) ChannelEnd(cid int) error           { return nil }
+func (d *transformDriver) Warn(warning string) error           { return nil }
+func (d *transformDriver) Stats(stats zbuf.ScannerStats) error { return nil }
+func (d *transformDriver) ChannelEnd(cid int) error            { return nil }
 
 // Copy applies a proc to all records from a zio.Reader, writing to a
 // single zio.Writer. The proc must have a single tail.
@@ -276,9 +275,9 @@ type Reader struct {
 	err error
 }
 
-func (*Reader) Warn(warning string) error          { return nil }
-func (*Reader) Stats(stats api.ScannerStats) error { return nil }
-func (*Reader) ChannelEnd(cid int) error           { return nil }
+func (*Reader) Warn(warning string) error           { return nil }
+func (*Reader) Stats(stats zbuf.ScannerStats) error { return nil }
+func (*Reader) ChannelEnd(cid int) error            { return nil }
 
 func (r *Reader) Write(_ int, batch zbuf.Batch) error {
 	if batch != nil {
@@ -287,7 +286,7 @@ func (r *Reader) Write(_ int, batch zbuf.Batch) error {
 	return nil
 }
 
-func (r *Reader) Read() (*zed.Record, error) {
+func (r *Reader) Read() (*zed.Value, error) {
 	r.once.Do(func() {
 		go func() {
 			r.err = run(r.runtime.Context(), r, r.runtime, nil)

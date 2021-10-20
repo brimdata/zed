@@ -27,11 +27,11 @@ func NewFinderReader(ctx context.Context, zctx *zed.Context, engine storage.Engi
 }
 
 func (f *FinderReader) init() error {
-	keys, err := f.finder.ParseKeys(f.inputs...)
+	kvs, err := f.finder.ParseKeys(f.inputs...)
 	if err != nil {
 		return err
 	}
-	f.compare, err = expr.NewKeyCompareFn(keys)
+	f.compare = compareFn(kvs)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func (f *FinderReader) init() error {
 	return err
 }
 
-func (f *FinderReader) Read() (*zed.Record, error) {
+func (f *FinderReader) Read() (*zed.Value, error) {
 	if f.finder.IsEmpty() {
 		return nil, nil
 	}
