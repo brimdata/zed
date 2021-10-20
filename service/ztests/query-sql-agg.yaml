@@ -2,10 +2,10 @@
 
 script: |
   source service.sh
-  zed lake create -q test
-  zed lake use -q test@main
-  zed lake load -q data.zson
-  zed lake query -z 'SELECT count(), id GROUP BY id | sort id'
+  zapi create -q test
+  zapi use -q test@main
+  zapi load -q data.zson
+  zapi query -z 'SELECT count(), id GROUP BY id | sort id'
 
 inputs:
   - name: service.sh
