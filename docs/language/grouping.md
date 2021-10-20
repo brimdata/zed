@@ -1,9 +1,7 @@
 # Grouping
 
-> **Note:** Many examples below are generated using the
-> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
-> which you may wish to clone locally to reproduce the examples and create
-> your own query variations.
+> **Note:** Many examples below use the
+> [educational sample data](../../testdata/edu).
 
 Zed includes _grouping_ options that partition the input stream into batches
 that are aggregated separately based on field values. Grouping is most often
@@ -31,7 +29,7 @@ The simplest example summarizes the unique values of the named field(s), which
 requires no aggregate function. To see the different categories of status for
 the schools in our example data:
 
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'by StatusType | sort' schools.zson
 ```
 
@@ -47,7 +45,7 @@ If you work a lot at the UNIX/Linux shell, you might have sought to accomplish
 the same via a familiar, verbose idiom. This works in Zed, but the `by`
 shorthand is preferable.
 
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'cut StatusType | sort | uniq' schools.zson
 ```
 
@@ -65,7 +63,7 @@ By specifying multiple comma-separated field names, one batch is formed for each
 unique combination of values found in those fields. To see the average reading
 test scores and school count for each county/district pairing:
 
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -f table 'avg(AvgScrRead),count() by cname,dname | sort -r count' testscores.zson
 ```
 
@@ -89,17 +87,17 @@ result for further processing/presentation downstream in your Zed pipeline.
 To see a count of how many school names of a particular character length
 appear in our example data:
 
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -f table 'count() by Name_Length:=len(School) | sort -r' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
 Name_Length count
-90          1
 89          2
-85          1
-84          3
+85          2
+84          2
+83          1
 ...
 ```
 
@@ -113,7 +111,7 @@ For instance, if we'd made an typographical error in our
 grouped batches would be found in the data and hence no query result would
 appear.
 
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -f table 'avg(AvgScrRead),count() by cname,dnmae | sort -r count' testscores.zson
 ```
 
@@ -185,7 +183,7 @@ Our school data has a `time`-typed field called `OpenDate`. To see
 which collections of schools opened during each week after the start of year
 2014:
 
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -Z 'OpenDate >= 2014-01-01T00:00:00Z | OpenedThisWeek:=collect(School) by OpenWeek:=trunc(OpenDate, 1w) | sort OpenWeek' schools.zson
 ```
 

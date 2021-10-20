@@ -16,7 +16,7 @@
 # let all permutations run and allow the final error text to be seen before
 # explicitly returning the intended error code.
 
-cd zed-sample-data/zeek
+cd zed-sample-data
 scripts/check_md5sums.sh zng
 ZNG_SUCCESS="$?"
 echo

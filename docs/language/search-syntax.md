@@ -1,9 +1,7 @@
 # Search Syntax
 
-> **Note:** Many examples below are generated using the
-> [educational sample data](https://github.com/brimdata/zed-sample-data/tree/edu-data/edu),
-> which you may wish to clone locally to reproduce the examples and create
-> your own query variations.
+> **Note:** Many examples below use the
+> [educational sample data](../../testdata/edu).
 
   * [Search all records](#search-all-records)
   * [Value Match](#value-match)
@@ -36,7 +34,7 @@ In the examples, we'll be explicit in how we request our output format, using
 `-z` for ZSON in this case.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z '*' schools.zson
 ```
 
@@ -52,7 +50,7 @@ zq -z '*' schools.zson
 The `-Z` option is also available for "pretty-printed" ZSON output.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -Z '*' schools.zson
 ```
 
@@ -96,7 +94,7 @@ zq -z '* | cut School,City' schools.zson
 
 #### Example:
 
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'cut School,City' schools.zson
 ```
 
@@ -126,7 +124,7 @@ as from the test scores) and also where it appears within string-typed fields
 (such as the zip code and phone number fields in the school data.)
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z '596' testscores.zson schools.zson
 ```
 
@@ -156,7 +154,7 @@ start of an attempted [field/value match](#fieldvalue-match) for a field named
 `Defunct`.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson fails
+```mdtest-command dir=testdata/edu fails
 zq -z 'Defunct=' *.zson
 ```
 
@@ -170,7 +168,7 @@ Defunct=
 However, wrapping in quotes gives the desired result.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z '"Defunct="' schools.zson
 ```
 
@@ -187,7 +185,7 @@ Entered without quotes, we end up matching way more records than we intended
 since each space character between words is treated as a [boolean `and`](#and).
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'Union Hill Elementary' schools.zson
 ```
 
@@ -204,7 +202,7 @@ However, wrapping the entire term in quotes allows us to search for the
 complete string, including the spaces.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z '"Union Hill Elementary"' schools.zson
 ```
 
@@ -229,7 +227,7 @@ For example, the following search finds records that contain school names
 that have some additional text between `ACE` and `Academy`.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'ACE*Academy' schools.zson
 ```
 
@@ -257,7 +255,7 @@ For example, since there's so many high schools in our sample data, to find
 only records containing strings that _begin_ with the word `High`:
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z '/^High /' schools.zson
 ```
 
@@ -282,7 +280,7 @@ will only match records containing the field called `District` where it is set
 to the precise string value `Winton`.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'District=="Winton"' schools.zson
 ```
 
@@ -304,7 +302,7 @@ For example, to see the records in which the school and district name are the
 same:
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'District==School' schools.zson
 ```
 
@@ -326,7 +324,7 @@ For instance, the "Zip" field in our schools data is of `string` type because
 several values are of the extended format that includes a hyphen and four
 additional digits and hence could not be represented in a numeric type.
 
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'cut Zip' schools.zson
 ```
 
@@ -358,7 +356,7 @@ produces no output.
 
 #### Example:
 
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'District=="Luther"' schools.zson
 ```
 
@@ -370,7 +368,7 @@ To achieve this with a field/value match, we enter `matches` before specifying
 a [glob wildcard](#glob-wildcards).
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'District matches Luther*' schools.zson
 ```
 
@@ -384,7 +382,7 @@ zq -z 'District matches Luther*' schools.zson
 [Regular expressions](#regular-expressions) can also be used with `matches`.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'School matches /^Sunset (Ranch|Ridge) Elementary/' schools.zson
 ```
 
@@ -407,7 +405,7 @@ field called `Schools` that contains all unique school names per district. From
 these we'll find each set that contains a school named `Lincoln Elementary`.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -Z 'Schools:=union(School) by District | sort | "Lincoln Elementary" in Schools' schools.zson
 ```
 
@@ -441,7 +439,7 @@ The following example locates all schools whose web sites are hosted in an
 IP address in the class A network `38`.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'addr in 38.0.0.0/8' webaddrs.zson
 ```
 
@@ -461,7 +459,7 @@ For example, the following search finds the schools that reported the highest
 math test scores.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'AvgScrMath > 690' testscores.zson
 ```
 
@@ -476,7 +474,7 @@ The same approach can be used to compare characters in `string`-type values,
 such as this search that finds school names at the high end of the alphabet.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'School > "Z"' schools.zson
 ```
 
@@ -505,7 +503,7 @@ For example, let's say we're searching for info about academies that are
 flagged as being in a `Pending` status.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'StatusType=="Pending" academy' schools.zson
 ```
 
@@ -531,7 +529,7 @@ For example, we can revisit two of our previous example searches that each only
 returned a couple records, searching now with `or` to see them all at once.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z '"Defunct=" or ACE*Academy' schools.zson
 ```
 
@@ -553,7 +551,7 @@ For example, to find schools in the `Dixon Unified` district _other than_
 elementary schools, we invert the logic of a search term.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'not elementary District=="Dixon Unified"' schools.zson
 ```
 
@@ -585,7 +583,7 @@ For example, we've noticed there are some test score records that have `null`
 values for all three test scores.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'AvgScrMath==null AvgScrRead==null AvgScrWrite==null' testscores.zson
 ```
 
@@ -600,7 +598,7 @@ We can easily filter these out by negating the search for these records.
 
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z 'not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null)' testscores.zson
 ```
 
@@ -615,7 +613,7 @@ zq -z 'not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null)' testscores.zso
 Parentheses can also be nested.
 
 #### Example:
-```mdtest-command dir=zed-sample-data/edu/zson
+```mdtest-command dir=testdata/edu
 zq -z '(sname matches *High*) and (not (AvgScrMath==null AvgScrRead==null AvgScrWrite==null) and dname=="San Francisco Unified")' testscores.zson
 ```
 
