@@ -215,7 +215,7 @@ func compareFn(kvs []KeyValue) expr.KeyCompareFn {
 }
 
 // Nearest finds the zed.Value in the index that is nearest to kvs according to
-// the provided operator.
+// operator.
 func (f *Finder) Nearest(operator string, kvs ...KeyValue) (*zed.Value, error) {
 	op := Operator(operator)
 	if !op.valid() {
