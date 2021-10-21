@@ -264,9 +264,8 @@ func (o Operator) hasEqual() bool {
 	switch o {
 	case EQL, GTE, LTE:
 		return true
-	default:
-		return false
 	}
+	return false
 }
 
 func (o Operator) valid() bool {
