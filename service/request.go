@@ -141,8 +141,8 @@ func (r *Request) BoolFromQuery(param string, w *ResponseWriter) (bool, bool) {
 func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...interface{}) bool {
 	typ := r.Header.Get("Content-Type")
 	if typ == "" || typ == "application/x-www-form-urlencoded" {
-		// If Content-Type is set or is a form (probably set from curl), assume
-		// json.
+		// If Content-Type is unset or is a form (probably set from curl), assume
+		// JSON.
 		typ = api.MediaTypeJSON
 	}
 	format, err := api.MediaTypeToFormat(typ)

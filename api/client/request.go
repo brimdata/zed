@@ -69,15 +69,15 @@ func (r *Request) reader() (io.Reader, error) {
 	if b, ok := r.Body.(io.Reader); ok {
 		return b, nil
 	}
-	var buf bytes.Buffer
 	m := zson.NewZNGMarshaler()
 	m.Decorate(zson.StylePackage)
-	v, err := m.Marshal(r.Body)
+	zv, err := m.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
+	var buf bytes.Buffer
 	zw := zngio.NewWriter(zio.NopCloser(&buf), zngio.WriterOpts{})
-	if err := zw.Write(&v); err != nil {
+	if err := zw.Write(&zv); err != nil {
 		return nil, err
 	}
 	if err := zw.Close(); err != nil {

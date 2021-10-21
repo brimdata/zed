@@ -100,7 +100,7 @@ func (c *Connection) Do(req *Request) (*Response, error) {
 	}, err
 }
 
-func (c *Connection) doAndUnmarshal(req *Request, i interface{}, templates ...interface{}) error {
+func (c *Connection) doAndUnmarshal(req *Request, v interface{}, templates ...interface{}) error {
 	res, err := c.Do(req)
 	if err != nil {
 		return err
@@ -111,7 +111,7 @@ func (c *Connection) doAndUnmarshal(req *Request, i interface{}, templates ...in
 	}
 	m := zson.NewZNGUnmarshaler()
 	m.Bind(templates...)
-	return m.Unmarshal(*rec, i)
+	return m.Unmarshal(*rec, v)
 }
 
 // parseError parses an error from an http.Response with an error status code. For now the content type of errors is assumed to be JSON.
