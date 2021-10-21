@@ -14,6 +14,16 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
+type Operator string
+
+const (
+	EQL Operator = "="
+	GT  Operator = ">"
+	GTE Operator = ">="
+	LT  Operator = "<"
+	LTE Operator = "<="
+)
+
 var ErrNotFound = errors.New("key not found")
 
 // Finder looks up values in a microindex using its embedded index.
@@ -45,72 +55,68 @@ func NewFinder(ctx context.Context, zctx *zed.Context, engine storage.Engine, ur
 	}, nil
 }
 
-type operator int
-
-const (
-	eql operator = iota
-	gte
-	lte
-)
-
 // lookup searches for a match of the given key compared to the
 // key values in the records read from the reader.  If the op argument is eql
 // then only exact matches are returned.  Otherwise, the record with the
 // largest key smaller (or larger) than the key argument is returned.
-func lookup(reader zio.Reader, compare expr.KeyCompareFn, o order.Which, op operator) (*zed.Value, error) {
+func lookup(reader zio.Reader, compare expr.KeyCompareFn, o order.Which, op Operator) (*zed.Value, error) {
 	if o == order.Asc {
 		return lookupAsc(reader, compare, op)
 	}
 	return lookupDesc(reader, compare, op)
 }
 
-func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zed.Value, error) {
+func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Value, error) {
 	var prev *zed.Value
 	for {
 		rec, err := reader.Read()
 		if rec == nil || err != nil {
-			if op == eql || op == gte {
+			if op == EQL || op == GTE || op == GT {
 				prev = nil
 			}
 			return prev, err
 		}
 		if cmp := fn(rec); cmp >= 0 {
-			if cmp == 0 {
+			if cmp == 0 && op.hasEqual() {
 				return rec, nil
 			}
-			if op == eql {
-				rec = nil
-			}
-			if op == lte {
+			if op == LTE || op == LT {
 				return prev, nil
 			}
-			return rec, nil
+			if op == EQL {
+				return nil, nil
+			}
+			if !(op == GT && cmp == 0) {
+				return rec, nil
+			}
 		}
 		prev = rec
 	}
 }
 
-func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op operator) (*zed.Value, error) {
+func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Value, error) {
 	var prev *zed.Value
 	for {
 		rec, err := reader.Read()
 		if rec == nil || err != nil {
-			if op == eql || op == lte {
+			if op == EQL || op == LTE || op == LT {
 				prev = nil
 			}
 			return prev, err
 		}
 		if cmp := fn(rec); cmp <= 0 {
-			if cmp == 0 {
+			if cmp == 0 && op.hasEqual() {
 				return rec, nil
 			}
-			if op == eql {
-				rec = nil
-			}
-			if op == gte {
+			if op == GTE || op == GT {
 				return prev, nil
 			}
-			return rec, nil
+			if op == EQL {
+				return nil, nil
+			}
+			if !(op == LT && cmp == 0) {
+				return rec, nil
+			}
 		}
 		prev = rec
 	}
@@ -132,9 +138,9 @@ func (f *Finder) search(compare expr.KeyCompareFn) (zio.Reader, error) {
 		if err != nil {
 			return nil, err
 		}
-		op := lte
+		op := LTE
 		if f.trailer.Order == order.Desc {
-			op = gte
+			op = GTE
 		}
 		rec, err := lookup(reader, compare, f.trailer.Order, op)
 		if err != nil {
@@ -154,19 +160,7 @@ func (f *Finder) search(compare expr.KeyCompareFn) (zio.Reader, error) {
 }
 
 func (f *Finder) Lookup(kvs ...KeyValue) (*zed.Value, error) {
-	if f.IsEmpty() {
-		return nil, nil
-	}
-	compare := compareFn(kvs)
-	reader, err := f.search(compare)
-	if err != nil {
-		if err == ErrNotFound {
-			// Return nil/success when exact-match lookup fails
-			err = nil
-		}
-		return nil, err
-	}
-	return lookup(reader, compare, f.trailer.Order, eql)
+	return f.Nearest("=", kvs...)
 }
 
 func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []KeyValue) error {
@@ -182,7 +176,7 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []Ke
 		// As long as we have an exact key-match, where unset key
 		// columns are "don't care", keep reading records and return
 		// them via the channel.
-		rec, err := lookup(reader, compare, f.trailer.Order, eql)
+		rec, err := lookup(reader, compare, f.trailer.Order, EQL)
 		if err != nil {
 			return err
 		}
@@ -195,18 +189,6 @@ func (f *Finder) LookupAll(ctx context.Context, hits chan<- *zed.Value, kvs []Ke
 			return ctx.Err()
 		}
 	}
-}
-
-// ClosestGTE returns the closest record that is greater than or equal to the
-// provided key values.
-func (f *Finder) ClosestGTE(kvs ...KeyValue) (*zed.Value, error) {
-	return f.closest(kvs, gte)
-}
-
-// ClosestLTE returns the closest record that is less than or equal to the
-// provided key values.
-func (f *Finder) ClosestLTE(kvs ...KeyValue) (*zed.Value, error) {
-	return f.closest(kvs, lte)
 }
 
 func compareFn(kvs []KeyValue) expr.KeyCompareFn {
@@ -231,7 +213,13 @@ func compareFn(kvs []KeyValue) expr.KeyCompareFn {
 	}
 }
 
-func (f *Finder) closest(kvs []KeyValue, op operator) (*zed.Value, error) {
+// Nearest finds the zed.Value in the index that is nearest to kvs according to
+// operator.
+func (f *Finder) Nearest(operator string, kvs ...KeyValue) (*zed.Value, error) {
+	op := Operator(operator)
+	if !op.valid() {
+		return nil, fmt.Errorf("unsupported operator: %s", operator)
+	}
 	if f.IsEmpty() {
 		return nil, nil
 	}
@@ -269,4 +257,20 @@ func (f *Finder) ParseKeys(inputs ...string) ([]KeyValue, error) {
 		}
 	}
 	return kvs, nil
+}
+
+func (o Operator) hasEqual() bool {
+	switch o {
+	case EQL, GTE, LTE:
+		return true
+	}
+	return false
+}
+
+func (o Operator) valid() bool {
+	switch o {
+	case EQL, GT, GTE, LT, LTE:
+		return true
+	}
+	return false
 }
