@@ -76,8 +76,7 @@ func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Value
 			}
 			return prev, err
 		}
-		cmp := fn(rec)
-		if cmp >= 0 {
+		if cmp := fn(rec); cmp >= 0 {
 			if cmp == 0 && op.hasEqual() {
 				return rec, nil
 			}
