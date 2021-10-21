@@ -84,7 +84,7 @@ func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Value
 				return prev, nil
 			}
 			if op == EQL {
-				rec = nil
+				return nil, nil
 			}
 			if !(op == GT && cmp == 0) {
 				return rec, nil
