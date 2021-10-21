@@ -283,7 +283,8 @@ func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName st
 }
 
 func (c *Connection) AddIndexRules(ctx context.Context, rules []index.Rule) error {
-	req := c.NewRequest(ctx, http.MethodPost, "/index", rules)
+	body := api.IndexRulesAddRequest{Rules: rules}
+	req := c.NewRequest(ctx, http.MethodPost, "/index", body)
 	res, err := c.Do(req)
 	res.Body.Close()
 	return err
@@ -296,12 +297,12 @@ func (c *Connection) DeleteIndexRules(ctx context.Context, ids []ksuid.KSUID) (a
 	}
 	req := c.NewRequest(ctx, http.MethodDelete, "/index", request)
 	var deleted api.IndexRulesDeleteResponse
-	err := c.doAndUnmarshal(req, &deleted)
+	err := c.doAndUnmarshal(req, &deleted, index.RuleTypes...)
 	return deleted, err
 }
 
 func (c *Connection) ApplyIndexRules(ctx context.Context, poolID ksuid.KSUID, branchName, rule string, oids []ksuid.KSUID) (api.CommitResponse, error) {
-	path := urlPath("/pool", poolID.String(), "branch", branchName, "index")
+	path := urlPath("pool", poolID.String(), "branch", branchName, "index")
 	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexApplyRequest{RuleName: rule, Tags: oids})
 	var commit api.CommitResponse
 	err := c.doAndUnmarshal(req, &commit)
@@ -309,7 +310,7 @@ func (c *Connection) ApplyIndexRules(ctx context.Context, poolID ksuid.KSUID, br
 }
 
 func (c *Connection) UpdateIndex(ctx context.Context, poolID ksuid.KSUID, branchName string, rules []string) (api.CommitResponse, error) {
-	path := urlPath("/pool", poolID.String(), "branch", branchName, "index/update")
+	path := urlPath("pool", poolID.String(), "branch", branchName, "index", "update")
 	req := c.NewRequest(ctx, http.MethodPost, path, api.IndexUpdateRequest{RuleNames: rules})
 	var commit api.CommitResponse
 	err := c.doAndUnmarshal(req, &commit)

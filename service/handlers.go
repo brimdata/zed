@@ -434,11 +434,11 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleIndexRulesPost(c *Core, w *ResponseWriter, r *Request) {
-	var rules []index.Rule
-	if !r.Unmarshal(w, &rules) {
+	var body api.IndexRulesAddRequest
+	if !r.Unmarshal(w, &body, index.RuleTypes...) {
 		return
 	}
-	if err := c.root.AddIndexRules(r.Context(), rules); err != nil {
+	if err := c.root.AddIndexRules(r.Context(), body.Rules); err != nil {
 		w.Error(err)
 		return
 	}
@@ -491,13 +491,22 @@ func handleIndexUpdate(c *Core, w *ResponseWriter, r *Request, branch *lake.Bran
 	if !r.Unmarshal(w, &req) {
 		return
 	}
-	rules, err := c.root.LookupIndexRules(r.Context(), req.RuleNames...)
+	var err error
+	var rules []index.Rule
+	if len(req.RuleNames) > 0 {
+		rules, err = c.root.LookupIndexRules(r.Context(), req.RuleNames...)
+	} else {
+		rules, err = c.root.AllIndexRules(r.Context())
+	}
 	if err != nil {
 		w.Error(err)
 		return
 	}
 	commit, err := branch.UpdateIndex(r.Context(), rules)
 	if err != nil {
+		if errors.Is(err, commits.ErrEmptyTransaction) {
+			err = zqe.ErrInvalid(err)
+		}
 		w.Error(err)
 		return
 	}

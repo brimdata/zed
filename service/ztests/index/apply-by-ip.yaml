@@ -1,11 +1,11 @@
 script: |
   source service.sh
-  zed lake create -q test
-  id=$(zed lake load -use test@main in.zson | awk '{print $1}')
-  zed lake index create -q IPs type ip
-  zed lake index apply -use test@main IPs $id
+  zapi create -q test
+  id=$(zapi load -use test@main in.zson | awk '{print $1}')
+  zapi index create -q IPs type ip
+  zapi index apply -use test@main IPs $id
   echo ===
-  zed lake query -Z -I query.zed
+  zapi query -Z -I query.zed
 
 inputs:
   - name: service.sh

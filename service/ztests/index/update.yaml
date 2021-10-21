@@ -1,13 +1,13 @@
 script: |
   source service.sh
-  zed lake create -q test
-  zed lake index create -q foo field foo
-  zed lake index create -q bar field bar
-  zed lake load -q -use test@main 1.zson
-  zed lake load -q -use test@main 2.zson
-  zed lake load -q -use test@main 3.zson
-  zed lake index update -q -use test@main
-  zed lake query -z -I query.zed
+  zapi create -q test
+  zapi index create -q foo field foo
+  zapi index create -q bar field bar
+  zapi load -q -use test@main 1.zson
+  zapi load -q -use test@main 2.zson
+  zapi load -q -use test@main 3.zson
+  zapi index update -q -use test@main
+  zapi query -z -I query.zed
 
 inputs:
   - name: service.sh

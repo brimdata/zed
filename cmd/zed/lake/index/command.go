@@ -4,6 +4,7 @@ import (
 	"flag"
 
 	"github.com/brimdata/zed/cli/lakeflags"
+	zedapi "github.com/brimdata/zed/cmd/zed/api"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 )
@@ -45,6 +46,7 @@ func init() {
 	Index.Add(ls)
 	Index.Add(update)
 	zedlake.Cmd.Add(Index)
+	zedapi.Cmd.Add(Index)
 }
 
 type Command struct {

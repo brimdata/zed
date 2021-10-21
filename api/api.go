@@ -64,6 +64,10 @@ type CommitResponse struct {
 	Warnings []string    `zed:"warnings"`
 }
 
+type IndexRulesAddRequest struct {
+	Rules []index.Rule `zed:"rules"`
+}
+
 type IndexRulesDeleteRequest struct {
 	RuleIDs []string `zed:"rule_ids"`
 }
