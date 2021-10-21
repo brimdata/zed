@@ -100,7 +100,7 @@ func TestNearest(t *testing.T) {
 			require.NoError(t, err)
 			rec, err := finder.Nearest(op, kvs...)
 			require.NoError(t, err)
-			var v int64 = -1
+			v := int64(-1)
 			if rec != nil {
 				v, err = rec.AccessInt("ts")
 				require.NoError(t, err)
