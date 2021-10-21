@@ -3,13 +3,15 @@ package client
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptrace"
 	"time"
 
 	"github.com/brimdata/zed/api"
+	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zson"
 )
 
 type Request struct {
@@ -48,6 +50,7 @@ func newRequest(ctx context.Context, host string, h http.Header) *Request {
 }
 
 func (r *Request) HTTPRequest() (*http.Request, error) {
+	r.Header.Set("Content-Type", api.MediaTypeZNG)
 	r.Header.Set("Accept", api.MediaTypeZNG)
 	body, err := r.reader()
 	if err != nil {
@@ -66,11 +69,21 @@ func (r *Request) reader() (io.Reader, error) {
 	if b, ok := r.Body.(io.Reader); ok {
 		return b, nil
 	}
-	b, err := json.Marshal(r.Body)
+	var buf bytes.Buffer
+	m := zson.NewZNGMarshaler()
+	m.Decorate(zson.StylePackage)
+	v, err := m.Marshal(r.Body)
 	if err != nil {
 		return nil, err
 	}
-	return bytes.NewReader(b), nil
+	zw := zngio.NewWriter(zio.NopCloser(&buf), zngio.WriterOpts{})
+	if err := zw.Write(&v); err != nil {
+		return nil, err
+	}
+	if err := zw.Close(); err != nil {
+		return nil, err
+	}
+	return &buf, nil
 }
 
 func (r *Request) Duration() time.Duration {

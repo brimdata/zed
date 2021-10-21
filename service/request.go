@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"sync/atomic"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
@@ -137,8 +138,34 @@ func (r *Request) BoolFromQuery(param string, w *ResponseWriter) (bool, bool) {
 	return b, true
 }
 
-func (r *Request) Unmarshal(w *ResponseWriter, body interface{}) bool {
-	if err := json.NewDecoder(r.Body).Decode(body); err != nil {
+func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...interface{}) bool {
+	typ := r.Header.Get("Content-Type")
+	if typ == "" || typ == "application/x-www-form-urlencoded" {
+		// If Content-Type is set or is a form (probably set from curl), assume
+		// json.
+		typ = api.MediaTypeJSON
+	}
+	format, err := api.MediaTypeToFormat(typ)
+	if err != nil {
+		w.Error(zqe.ErrInvalid(err))
+		return false
+	}
+	zr, err := anyio.NewReaderWithOpts(r.Body, zed.NewContext(), anyio.ReaderOpts{Format: format})
+	if err != nil {
+		w.Error(zqe.ErrInvalid(err))
+		return false
+	}
+	zv, err := zr.Read()
+	if err != nil {
+		w.Error(zqe.ErrInvalid(err))
+		return false
+	}
+	if zv == nil {
+		return true
+	}
+	m := zson.NewZNGUnmarshaler()
+	m.Bind(templates...)
+	if err := m.Unmarshal(*zv, body); err != nil {
 		w.Error(err)
 		return false
 	}
