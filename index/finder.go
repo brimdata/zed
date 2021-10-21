@@ -273,7 +273,6 @@ func (o Operator) valid() bool {
 	switch o {
 	case EQL, GT, GTE, LT, LTE:
 		return true
-	default:
-		return false
 	}
+	return false
 }
