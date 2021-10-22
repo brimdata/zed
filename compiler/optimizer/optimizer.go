@@ -286,7 +286,7 @@ func pushDown(trunk *dag.Trunk) {
 	}
 }
 
-// indexFilterExpr returns a watered down version of the Scan Filter expression
+// indexFilterExpr returns a watered down version of a dag.Pushdown.Scan filter
 // that can be digested by index.  All parts of the expressions tree are removed
 // that are not:
 // - An '=', '>', '>=', '<', '<=', 'and' or 'or' BinaryExpr
