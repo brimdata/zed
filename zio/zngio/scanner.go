@@ -217,7 +217,7 @@ func (w *worker) scanBatch(buf *buffer, mapper *zed.Mapper, streamZctx *zed.Cont
 		}
 	}
 	w.scanner.stats.Add(stats)
-	if batch.Length() == 0 {
+	if len(batch.Values()) == 0 {
 		batch.Unref()
 		return nil, nil
 	}

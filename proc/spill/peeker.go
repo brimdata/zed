@@ -14,12 +14,11 @@ type peeker struct {
 	ordinal    int
 }
 
-func newPeeker(ctx context.Context, filename string, ordinal int, recs []*zed.Value, zctx *zed.Context) (*peeker, error) {
+func newPeeker(ctx context.Context, filename string, ordinal int, arr zbuf.Array, zctx *zed.Context) (*peeker, error) {
 	f, err := NewFileWithPath(filename, zctx)
 	if err != nil {
 		return nil, err
 	}
-	arr := zbuf.Array(recs)
 	if err := zio.CopyWithContext(ctx, f, &arr); err != nil {
 		f.CloseAndRemove()
 		return nil, err

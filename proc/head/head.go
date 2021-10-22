@@ -1,7 +1,6 @@
 package head
 
 import (
-	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 )
@@ -27,24 +26,19 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
-	n := batch.Length()
-	if n < remaining {
+	zvals := batch.Values()
+	if n := len(zvals); n < remaining {
 		// This batch has fewer than the needed records.
 		// Send them all downstream and update the count.
 		p.count += n
 		return batch, nil
 	}
-	defer batch.Unref()
 	// This batch has more than the needed records.
-	// Create a new batch and copy only the needed records.
-	// Then signal to the upstream that we're done.
-	recs := make([]*zed.Value, remaining)
-	for k := 0; k < remaining; k++ {
-		recs[k] = batch.Index(k).Keep()
-	}
-	p.count = p.limit
+	// Signal to the upstream that we're done.  Then
+	// return a batch with only the needed records.
 	p.Done()
-	return zbuf.Array(recs), nil
+	p.count = p.limit
+	return zbuf.Array(zvals[:remaining]), nil
 }
 
 func (p *Proc) Done() {

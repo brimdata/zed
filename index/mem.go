@@ -13,7 +13,7 @@ import (
 type MemTable struct {
 	keys   field.List
 	table  map[string]*zed.Value
-	values []*zed.Value
+	values []zed.Value
 	sorted bool
 	zctx   *zed.Context
 }
@@ -33,7 +33,7 @@ func (t *MemTable) Read() (*zed.Value, error) {
 	if len(t.values) == 0 {
 		return nil, nil
 	}
-	rec := t.values[0]
+	rec := &t.values[0]
 	t.values = t.values[1:]
 	return rec, nil
 }
@@ -46,9 +46,9 @@ func (t *MemTable) open() {
 	n := len(t.table)
 	if n > 0 {
 		//XXX escaping to GC
-		t.values = make([]*zed.Value, 0, n)
+		t.values = make([]zed.Value, 0, n)
 		for _, value := range t.table {
-			t.values = append(t.values, value)
+			t.values = append(t.values, *value)
 		}
 		resolvers := make([]expr.Evaluator, 0, len(t.keys))
 		for _, key := range t.keys {

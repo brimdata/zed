@@ -11,7 +11,7 @@ type Proc struct {
 	limit  int
 	count  int
 	off    int
-	q      []*zed.Value
+	q      []zed.Value
 }
 
 func New(parent proc.Interface, limit int) *Proc {
@@ -19,7 +19,7 @@ func New(parent proc.Interface, limit int) *Proc {
 	return &Proc{
 		parent: parent,
 		limit:  limit,
-		q:      make([]*zed.Value, limit),
+		q:      make([]zed.Value, limit),
 	}
 }
 
@@ -31,7 +31,7 @@ func (p *Proc) tail() zbuf.Batch {
 	if p.count < p.limit {
 		start = 0
 	}
-	out := make([]*zed.Value, p.count)
+	out := make([]zed.Value, p.count)
 	for k := 0; k < p.count; k++ {
 		out[k] = p.q[(start+k)%p.limit]
 	}
@@ -47,8 +47,9 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if proc.EOS(batch, err) {
 			return p.tail(), nil
 		}
-		for k := 0; k < batch.Length(); k++ {
-			p.q[p.off] = batch.Index(k).Keep()
+		zvals := batch.Values()
+		for i := range zvals {
+			p.q[p.off] = *zvals[i].Keep()
 			p.off = (p.off + 1) % p.limit
 			p.count++
 			if p.count >= p.limit {

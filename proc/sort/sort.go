@@ -61,7 +61,7 @@ func (p *Proc) sortLoop() {
 		p.sendResult(nil, err)
 		return
 	}
-	p.setCompareFn(firstRunRecs[0])
+	p.setCompareFn(&firstRunRecs[0])
 	if eof {
 		// Just one run so do an in-memory sort.
 		p.warnAboutUnseenFields()
@@ -96,9 +96,9 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	}
 }
 
-func (p *Proc) recordsForOneRun() ([]*zed.Value, bool, error) {
+func (p *Proc) recordsForOneRun() ([]zed.Value, bool, error) {
 	var nbytes int
-	var recs []*zed.Value
+	var recs []zed.Value
 	for {
 		batch, err := p.parent.Pull()
 		if err != nil {
@@ -107,13 +107,13 @@ func (p *Proc) recordsForOneRun() ([]*zed.Value, bool, error) {
 		if batch == nil {
 			return recs, true, nil
 		}
-		l := batch.Length()
-		for i := 0; i < l; i++ {
-			rec := batch.Index(i)
+		zvals := batch.Values()
+		for i := range zvals {
+			rec := &zvals[i]
 			p.unseenFieldTracker.update(rec)
 			nbytes += len(rec.Bytes)
 			// We're keeping records owned by batch so don't call Unref.
-			recs = append(recs, rec)
+			recs = append(recs, *rec)
 		}
 		if nbytes >= MemMaxBytes {
 			return recs, false, nil
@@ -121,7 +121,7 @@ func (p *Proc) recordsForOneRun() ([]*zed.Value, bool, error) {
 	}
 }
 
-func (p *Proc) createRuns(firstRunRecs []*zed.Value) (*spill.MergeSort, error) {
+func (p *Proc) createRuns(firstRunRecs []zed.Value) (*spill.MergeSort, error) {
 	rm, err := spill.NewMergeSort(p.compareFn)
 	if err != nil {
 		return nil, err

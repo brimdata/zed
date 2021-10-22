@@ -47,8 +47,9 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if batch == nil {
 			return p.sorted(), nil
 		}
-		for k := 0; k < batch.Length(); k++ {
-			p.consume(batch.Index(k))
+		zvals := batch.Values()
+		for i := range zvals {
+			p.consume(&zvals[i])
 		}
 		batch.Unref()
 		if p.flushEvery {
@@ -84,10 +85,9 @@ func (t *Proc) sorted() zbuf.Batch {
 	if t.records == nil {
 		return nil
 	}
-	out := make([]*zed.Value, t.records.Len())
+	out := make([]zed.Value, t.records.Len())
 	for i := t.records.Len() - 1; i >= 0; i-- {
-		rec := heap.Pop(t.records).(*zed.Value)
-		out[i] = rec
+		out[i] = *heap.Pop(t.records).(*zed.Value)
 	}
 	// clear records
 	t.records = nil

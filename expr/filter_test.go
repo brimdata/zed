@@ -38,8 +38,8 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 	zctx := zed.NewContext()
 	batch, err := zbuf.NewPuller(zson.NewReader(strings.NewReader(record), zctx), 2).Pull()
 	require.NoError(t, err, "record: %q", record)
-	require.Exactly(t, 1, batch.Length(), "record: %q", record)
-	rec := batch.Index(0)
+	require.Len(t, batch.Values(), 1, "record: %q", record)
+	rec := &batch.Values()[0]
 
 	lk := mock.NewLake()
 	for _, c := range cases {

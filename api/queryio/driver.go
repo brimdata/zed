@@ -55,8 +55,9 @@ func (d *Driver) Write(cid int, batch zbuf.Batch) error {
 			return err
 		}
 	}
-	for i := 0; i < batch.Length(); i++ {
-		if err := d.writer.Write(batch.Index(i)); err != nil {
+	zvals := batch.Values()
+	for i := range zvals {
+		if err := d.writer.Write(&zvals[i]); err != nil {
 			return err
 		}
 	}

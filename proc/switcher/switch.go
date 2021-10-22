@@ -61,7 +61,7 @@ func (s *Switcher) gather() {
 }
 
 func (s *Switcher) run() {
-	records := make([][]*zed.Value, s.n)
+	records := make([][]zed.Value, s.n)
 	results := make([]proc.Result, s.n)
 	for {
 		s.gather()
@@ -73,17 +73,18 @@ func (s *Switcher) run() {
 			s.sendEOS(proc.Result{batch, err})
 			continue
 		}
-		for _, rec := range batch.Records() {
-			if i := s.match(rec); i >= 0 {
-				if records[i] == nil {
-					records[i] = make([]*zed.Value, 0, batch.Length())
+		zvals := batch.Values()
+		for i := range zvals {
+			if j := s.match(&zvals[i]); j >= 0 {
+				if records[j] == nil {
+					records[j] = make([]zed.Value, 0, len(zvals))
 				}
-				records[i] = append(records[i], rec)
+				records[j] = append(records[j], zvals[i])
 			}
 		}
 		for i := range records {
 			if records[i] != nil {
-				results[i] = proc.Result{zbuf.Array(records[i]), nil}
+				results[i] = proc.Result{Batch: zbuf.Array(records[i])}
 				records[i] = nil
 			}
 		}

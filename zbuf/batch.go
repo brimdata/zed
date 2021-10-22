@@ -7,28 +7,26 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
-// Batch is an interface to a bundle of records.  Reference counting allows
+// Batch is an interface to a bundle of values.  Reference counting allows
 // efficient, safe reuse in concert with sharing across goroutines.
 //
 // A newly obtained Batch always has a reference count of one.  The Batch owns
-// its records and their storage, and an implementation may reuse this memory
+// its values and their storage, and an implementation may reuse this memory
 // when the reference count falls to zero, reducing load on the garbage
 // collector.
 //
 // To promote reuse, a goroutine should release a Batch reference when possible,
 // but care must be taken to avoid race conditions that arise from releasing a
-// reference too soon.  Specifically, a goroutine obtaining a *zed.Record from a
-// Batch must retain its Batch reference for as long as it retains the pointer,
-// and the goroutine must not use the pointer after releasing its reference.
+// reference too soon.  Specifically, a goroutine obtaining a value from a
+// Batch must retain its Batch reference for as long as it retains the value,
+// and the goroutine must not use the value after releasing its reference.
 //
 // Regardless of reference count or implementation, an unreachable Batch will
 // eventually be reclaimed by the garbage collector.
 type Batch interface {
 	Ref()
 	Unref()
-	Index(int) *zed.Value
-	Length() int
-	Records() []*zed.Value
+	Values() []zed.Value
 }
 
 // readBatch reads up to n records from zr and returns them as a Batch.  At EOS,
@@ -36,7 +34,7 @@ type Batch interface {
 // error is encoutered, it returns a nil Batch and the error.  Otherwise,
 // readBatch returns a full Batch of n records and nil error.
 func readBatch(zr zio.Reader, n int) (Batch, error) {
-	recs := make([]*zed.Value, 0, n)
+	recs := make([]zed.Value, 0, n)
 	for len(recs) < n {
 		rec, err := zr.Read()
 		if err != nil {
@@ -48,7 +46,7 @@ func readBatch(zr zio.Reader, n int) (Batch, error) {
 		// Copy the underlying buffer (if volatile) because call to next
 		// reader.Next() may overwrite said buffer.
 		rec.CopyBytes()
-		recs = append(recs, rec)
+		recs = append(recs, *rec)
 	}
 	if len(recs) == 0 {
 		return nil, nil
@@ -84,7 +82,7 @@ func (p *puller) Pull() (Batch, error) {
 		return nil, nil
 	}
 	batch, err := readBatch(p.zr, p.n)
-	if err == nil && (batch == nil || batch.Length() < p.n) {
+	if err == nil && (batch == nil || len(batch.Values()) < p.n) {
 		p.eos = true
 	}
 	return batch, err
@@ -96,8 +94,9 @@ func CopyPuller(w zio.Writer, p Puller) error {
 		if b == nil || err != nil {
 			return err
 		}
-		for _, r := range b.Records() {
-			if err := w.Write(r); err != nil {
+		zvals := b.Values()
+		for i := range zvals {
+			if err := w.Write(&zvals[i]); err != nil {
 				return err
 			}
 		}
@@ -122,7 +121,7 @@ func (r *pullerReader) Read() (*zed.Value, error) {
 			if err != nil || batch == nil {
 				return nil, err
 			}
-			if batch.Length() == 0 {
+			if len(batch.Values()) == 0 {
 				continue
 			}
 			r.batch = batch
@@ -130,9 +129,10 @@ func (r *pullerReader) Read() (*zed.Value, error) {
 			break
 		}
 	}
-	rec := r.batch.Index(r.idx)
+	zvals := r.batch.Values()
+	rec := &zvals[r.idx]
 	r.idx++
-	if r.idx == r.batch.Length() {
+	if r.idx == len(zvals) {
 		r.batch = nil
 	}
 	return rec, nil

@@ -366,15 +366,15 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
-	recs := make([]*zed.Value, 0, batch.Length())
-	for k := 0; k < batch.Length(); k++ {
-		in := batch.Index(k)
-		rec, err := p.put(in)
+	zvals := batch.Values()
+	recs := make([]zed.Value, 0, len(zvals))
+	for i := range zvals {
+		rec, err := p.put(&zvals[i])
 		if err != nil {
 			return nil, err
 		}
 		// Keep is necessary because put can return its argument.
-		recs = append(recs, rec.Keep())
+		recs = append(recs, *rec.Keep())
 	}
 	batch.Unref()
 	return zbuf.Array(recs), nil
