@@ -1,0 +1,156 @@
+package index
+
+import (
+	"context"
+	"fmt"
+	"sync"
+
+	"github.com/brimdata/zed/compiler/ast/dag"
+	astzed "github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/zed/index"
+	"github.com/brimdata/zed/zson"
+	"github.com/segmentio/ksuid"
+)
+
+type expr func(context.Context, *Filter, ksuid.KSUID, []Rule) <-chan result
+
+type result struct {
+	err error
+	hit bool
+}
+
+func compileExpr(node dag.Expr) (expr, error) {
+	e, ok := node.(*dag.BinaryExpr)
+	if !ok {
+		return nil, fmt.Errorf("unsupported expression: %T", node)
+	}
+	switch e.Op {
+	case "or", "and":
+		lhs, err := compileExpr(e.LHS)
+		if err != nil {
+			return nil, err
+		}
+		rhs, err := compileExpr(e.RHS)
+		if err != nil {
+			return nil, err
+		}
+		return logicalExpr(lhs, rhs, e.Op), nil
+	case "=", "<", "<=", ">", ">=":
+		p := e.RHS.(*astzed.Primitive)
+		zv, err := zson.ParsePrimitive(p.Type, p.Text)
+		if err != nil {
+			return nil, err
+		}
+		kv := index.KeyValue{Key: e.LHS.(*dag.Path).Name, Value: zv}
+		return compareExpr(kv, e.Op)
+	default:
+		return nil, fmt.Errorf("unsupported binary expression op: %s", e.Op)
+	}
+}
+
+func logicalExpr(lhs, rhs expr, op string) expr {
+	return func(ctx context.Context, f *Filter, oid ksuid.KSUID, rules []Rule) <-chan result {
+		lch := lhs(ctx, f, oid, rules)
+		rch := rhs(ctx, f, oid, rules)
+		if lch == nil || rch == nil {
+			return notNil(lch, rch)
+		}
+		c := make(chan result, 1)
+		go func() {
+			if op == "or" {
+				c <- orExpr(merge(lch, rch))
+			} else {
+				c <- andExpr(merge(lch, rch))
+			}
+			close(c)
+		}()
+		return c
+	}
+}
+
+func orExpr(c <-chan result) result {
+	var res result
+	for r := range c {
+		res = r
+		if res.hit || res.err != nil {
+			break
+		}
+	}
+	return res
+}
+
+func andExpr(c <-chan result) result {
+	var res result
+	for r := range c {
+		res = r
+		if !res.hit || res.err != nil {
+			break
+		}
+	}
+	return res
+}
+
+func compareExpr(kv index.KeyValue, op string) (expr, error) {
+	return func(ctx context.Context, f *Filter, oid ksuid.KSUID, rules []Rule) <-chan result {
+		rule := matchFieldRule(rules, kv)
+		if rule == nil {
+			return nil
+		}
+		// The output of ch may not be read so make this a buffered channel so
+		// this goroutine does not block indefinitely.
+		ch := make(chan result, 1)
+		go func() {
+			var r result
+			if r.err = f.sem.Acquire(ctx, 1); r.err == nil {
+				r.hit, r.err = f.find(ctx, oid, rule.RuleID(), kv, op)
+			}
+			f.sem.Release(1)
+			ch <- r
+			close(ch)
+		}()
+		return ch
+	}, nil
+}
+
+func matchFieldRule(rules []Rule, in index.KeyValue) Rule {
+	for _, rule := range rules {
+		// XXX support indexes with multiple keys #3162
+		// and other rule types.
+		if fr, ok := rule.(*FieldRule); ok && in.Key.Equal(fr.Fields[0]) {
+			return rule
+		}
+	}
+	return nil
+}
+
+// merge is taken from https://go.dev/blog/pipelines
+func merge(cs ...<-chan result) <-chan result {
+	var wg sync.WaitGroup
+	// The returned channel may not be read fully so make channels the size
+	// of expected results so our goroutines do not block forever.
+	out := make(chan result, len(cs))
+	output := func(c <-chan result) {
+		for r := range c {
+			out <- r
+		}
+		wg.Done()
+	}
+	wg.Add(len(cs))
+	for _, c := range cs {
+		go output(c)
+	}
+	go func() {
+		wg.Wait()
+		close(out)
+	}()
+	return out
+}
+
+func notNil(cs ...<-chan result) <-chan result {
+	for _, c := range cs {
+		if c != nil {
+			return c
+		}
+	}
+	return nil
+}

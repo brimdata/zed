@@ -106,16 +106,18 @@ func (p *Pool) removeBranch(ctx context.Context, name string) error {
 	return p.branches.Remove(ctx, *config)
 }
 
-func (p *Pool) newScheduler(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter, idx []dag.IndexPredicate) (proc.Scheduler, error) {
+func (p *Pool) newScheduler(ctx context.Context, zctx *zed.Context, commit ksuid.KSUID, span extent.Span, filter zbuf.Filter, idx *dag.Filter) (proc.Scheduler, error) {
 	snap, err := p.commits.Snapshot(ctx, commit)
 	if err != nil {
 		return nil, err
 	}
-	matcher, err := index.NewFilter(p.engine, p.IndexPath, idx)
-	if err != nil {
-		return nil, nil
+	var idxFilter *index.Filter
+	if idx != nil {
+		if idxFilter, err = index.NewFilter(p.engine, p.IndexPath, idx); err != nil {
+			return nil, err
+		}
 	}
-	return NewSortedScheduler(ctx, zctx, p, snap, span, filter, matcher), nil
+	return NewSortedScheduler(ctx, zctx, p, snap, span, filter, idxFilter), nil
 }
 
 func (p *Pool) Snapshot(ctx context.Context, commit ksuid.KSUID) (commits.View, error) {
