@@ -1,6 +1,7 @@
 package function
 
 import (
+	"bytes"
 	"encoding/base64"
 	"encoding/hex"
 
@@ -50,7 +51,11 @@ func (*fromHex) Call(args []zed.Value) (zed.Value, error) {
 	if zv.Bytes == nil {
 		return zed.Value{zed.TypeString, nil}, nil
 	}
-	b, err := hex.DecodeString(string(zv.Bytes))
+	zb := zv.Bytes
+	if bytes.HasPrefix(zb, []byte("0x")) {
+		zb = zb[2:]
+	}
+	b, err := hex.DecodeString(string(zb))
 	if err != nil {
 		return zed.NewError(err), nil
 	}

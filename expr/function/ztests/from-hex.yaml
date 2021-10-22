@@ -1,0 +1,7 @@
+zed: id:=from_hex(id)
+
+input: |
+  {id:"0x0e00924c694c98b6c11ef56f025f3255904f4e45"}
+
+output: |
+  {id:0x0e00924c694c98b6c11ef56f025f3255904f4e45}
