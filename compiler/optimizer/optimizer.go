@@ -287,7 +287,7 @@ func pushDown(trunk *dag.Trunk) {
 }
 
 // indexFilterExpr returns a watered down version of a dag.Pushdown.Scan filter
-// that can be digested by index.  All parts of the expressions tree are removed
+// that can be digested by index.  All parts of the expression tree are removed
 // that are not:
 // - An '=', '>', '>=', '<', '<=', 'and' or 'or' BinaryExpr
 // - Leaf BinaryExprs with the LHS of *dag.Path and RHS of *zed.Primitive
