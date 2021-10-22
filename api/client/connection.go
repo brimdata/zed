@@ -100,19 +100,18 @@ func (c *Connection) Do(req *Request) (*Response, error) {
 	}, err
 }
 
-func (c *Connection) doAndUnmarshal(req *Request, i interface{}) error {
+func (c *Connection) doAndUnmarshal(req *Request, v interface{}, templates ...interface{}) error {
 	res, err := c.Do(req)
 	if err != nil {
 		return err
 	}
 	rec, err := zngio.NewReader(res.Body, zed.NewContext()).Read()
-	if err != nil {
+	if err != nil || rec == nil {
 		return err
 	}
-	if rec == nil {
-		return errors.New("expected one record from response but got none")
-	}
-	return zson.UnmarshalZNGRecord(rec, i)
+	m := zson.NewZNGUnmarshaler()
+	m.Bind(templates...)
+	return m.Unmarshal(*rec, v)
 }
 
 // parseError parses an error from an http.Response with an error status code. For now the content type of errors is assumed to be JSON.

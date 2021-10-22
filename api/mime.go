@@ -47,5 +47,5 @@ func MediaTypeToFormat(s string) (string, error) {
 	case MediaTypeZSON:
 		return "zson", nil
 	}
-	return "", fmt.Errorf("unknown MIME type: %s", typ)
+	return "", fmt.Errorf("unsupported MIME type: %s", typ)
 }
