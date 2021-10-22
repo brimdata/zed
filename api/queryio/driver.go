@@ -8,6 +8,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
+	"github.com/brimdata/zed/zio/jsonio"
 )
 
 type ControlWriter interface {
@@ -34,6 +35,9 @@ func NewDriver(w io.WriteCloser, format string, ctrl bool) (*Driver, error) {
 		d.writer = NewZNGWriter(w)
 	case "zjson":
 		d.writer = NewZJSONWriter(w)
+	case "json":
+		// The json response should always be an array, so force array.
+		d.writer = jsonio.NewWriter(w, jsonio.WriterOpts{ForceArray: true})
 	default:
 		d.writer, err = anyio.NewWriter(w, anyio.WriterOpts{Format: format})
 	}

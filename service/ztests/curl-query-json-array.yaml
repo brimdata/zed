@@ -1,0 +1,16 @@
+script: |
+  source service.sh
+  zapi create -q test
+  curl -H "Accept: application/json" -d '{"query":"from :pools | cut name"}' http://${ZED_LAKE_HOST}/query?noctrl=T
+
+inputs:
+  - name: service.sh
+  - name: stdin
+    data: |
+      {a:"hello",b:{c:"world",d:"goodbye"}}
+      {a:"one",b:{c:"two",d:"three"}}
+
+outputs:
+  - name: stdout
+    data: |
+      [{"name":"test"}]
