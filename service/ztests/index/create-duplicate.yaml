@@ -1,7 +1,7 @@
 script: |
   source service.sh
-  zed lake index create IPs type ip
-  ! zed lake index create IPs type ip
+  zapi index create IPs type ip
+  ! zapi index create IPs type ip
 
 inputs:
   - name: service.sh

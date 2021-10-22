@@ -1,9 +1,9 @@
 script: |
   source service.sh
-  zed lake index create -q IPs type ip
-  zed lake index create -q foo.bar field foo.bar
-  zed lake index create -q duration.sum agg 'sum(duration)'
-  zed lake query -z 'from :index_rules | sort name | drop id, ts'
+  zapi index create -q IPs type ip
+  zapi index create -q foo.bar field foo.bar
+  zapi index create -q duration.sum agg 'sum(duration)'
+  zapi query -z 'from :index_rules | sort name | drop id, ts'
 
 inputs:
   - name: service.sh
