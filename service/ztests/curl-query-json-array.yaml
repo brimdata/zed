@@ -5,10 +5,6 @@ script: |
 
 inputs:
   - name: service.sh
-  - name: stdin
-    data: |
-      {a:"hello",b:{c:"world",d:"goodbye"}}
-      {a:"one",b:{c:"two",d:"three"}}
 
 outputs:
   - name: stdout
