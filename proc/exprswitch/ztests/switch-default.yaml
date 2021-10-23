@@ -1,5 +1,5 @@
 zed: |
-  switch (
+  switch a (
      2 => put v:='two';
      1 => put v:='one';
      3 => filter null;
