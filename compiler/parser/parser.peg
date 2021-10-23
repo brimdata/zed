@@ -946,6 +946,7 @@ Literal
   / StringLiteral
   / SubnetLiteral
   / AddressLiteral
+  / BytesLiteral
   / Duration
   / Time
   / FloatLiteral
@@ -990,6 +991,11 @@ BooleanLiteral
 
 NullLiteral
   = "null"           { RETURN(MAP("kind": "Primitive", "type": "null", "text": "")) }
+
+BytesLiteral
+  = "0x" HexDigit* {
+	RETURN(MAP("kind": "Primitive", "type": "bytes", "text": TEXT))
+  }
 
 TypeLiteral
   = !(SQLTokenSentinels EOT) typ:TypeExternal {
