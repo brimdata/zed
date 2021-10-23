@@ -98,6 +98,9 @@ create-release-assets:
 		zip -r release/$${d}.zip $${d} ; \
 	done
 
+generate-docs:
+	@go run ./scripts/funcdocs ./docs/language/functions.md
+
 PEG_GEN := $(addprefix compiler/parser/parser., go js es.js)
 $(PEG_GEN): compiler/parser/Makefile compiler/parser/support.js compiler/parser/parser.peg
 	$(MAKE) -C compiler/parser
@@ -121,4 +124,4 @@ clean:
 
 .PHONY: fmt tidy vet test-unit test-system test-heavy sampledata test-ci
 .PHONY: perf-compare build install create-release-assets clean
-.PHONY: generate test-generate
+.PHONY: generate test-generate generate-docs

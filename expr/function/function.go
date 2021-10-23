@@ -17,13 +17,30 @@ var (
 	ErrTooManyArgs    = errors.New("too many arguments")
 )
 
+var All *Funcs = &Funcs{
+	// bytes
+	FromBase64,
+	ToBase64,
+	FromHex,
+	ToHex,
+}
+
 type Interface interface {
 	Call([]zed.Value) (zed.Value, error)
+}
+
+type interfaceFunc func([]zed.Value) (zed.Value, error)
+
+func (f interfaceFunc) Call(zv []zed.Value) (zed.Value, error) {
+	return f(zv)
 }
 
 func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 	argmin := 1
 	argmax := 1
+	if f := All.lookup(name, narg); f != nil {
+		return f.New(zctx), true, nil
+	}
 	var root bool
 	var f Interface
 	switch name {
