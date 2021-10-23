@@ -1,9 +1,9 @@
 # Table of Contents
 
-- [from_base64](#from-base64)
-- [from_hex](#from-hex)
-- [to_base64](#to-base64)
-- [to_hex](#to-hex)
+- [from_base64](#from_base64)
+- [from_hex](#from_hex)
+- [to_base64](#to_base64)
+- [to_hex](#to_hex)
 
 ## from_base64
 
@@ -39,7 +39,7 @@ Decode a hex encoded value into a byte array.
 ### Example:
 
 ```
-foo := from_hex(foo)
+foo := string(from_hex(foo))
 ```
 
 **Input:**
@@ -49,12 +49,12 @@ foo := from_hex(foo)
 
 **Output:**
 ```
-{foo:0x68656c6c6f20776f726c64}
+{foo:"hello world"}
 ```
 ## to_base64
 
 ```
-to_base64(bytes) -> any
+to_base64(bytes) -> string
 ```
 
 Base64 encode a value.
@@ -77,7 +77,7 @@ foo := to_base64(foo)
 ## to_hex
 
 ```
-to_hex(bytes) -> any
+to_hex(bytes) -> string
 ```
 
 Hex encode a value.

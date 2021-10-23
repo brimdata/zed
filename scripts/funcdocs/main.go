@@ -42,7 +42,6 @@ func tableOfContents(w io.Writer, all function.Funcs) {
 func link(w io.Writer, name string) {
 	lnk := strings.ToLower(name)
 	lnk = strings.ReplaceAll(lnk, " ", "-")
-	lnk = strings.ReplaceAll(lnk, "_", "-")
 	fmt.Fprintf(w, "[%s](#%s)", name, lnk)
 }
 

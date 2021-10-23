@@ -11,6 +11,8 @@ type Func struct {
 	Signature *Signature
 	Desc      string
 	Examples  []Example
+
+	root bool
 }
 
 type Example struct {

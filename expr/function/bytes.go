@@ -24,7 +24,7 @@ var (
 	}
 	ToBase64 = &Func{
 		Name:      "to_base64",
-		Signature: sig(typeAny, zed.TypeBytes),
+		Signature: sig(zed.TypeString, zed.TypeBytes),
 		Desc:      "Base64 encode a value.",
 		Examples: []Example{
 			{
@@ -42,15 +42,15 @@ var (
 		Examples: []Example{
 			{
 				Input:  `{foo:"68656c6c6f20776f726c64"}`,
-				Output: `{foo:0x68656c6c6f20776f726c64}`,
-				Zed:    `foo := from_hex(foo)`,
+				Output: `{foo:"hello world"}`,
+				Zed:    `foo := string(from_hex(foo))`,
 			},
 		},
 		New: func(*zed.Context) Interface { return &fromHex{} },
 	}
 	ToHex = &Func{
 		Name:      "to_hex",
-		Signature: sig(typeAny, zed.TypeBytes),
+		Signature: sig(zed.TypeString, zed.TypeBytes),
 		Desc:      "Hex encode a value.",
 		Examples: []Example{
 			{
@@ -59,7 +59,7 @@ var (
 				Zed:    `foo := to_hex(foo)`,
 			},
 		},
-		New: func(*zed.Context) Interface { return &fromHex{} },
+		New: func(*zed.Context) Interface { return &toHex{} },
 	}
 )
 
