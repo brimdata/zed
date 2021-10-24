@@ -27,7 +27,7 @@ type Writer struct {
 	ctx         context.Context
 	//defs          index.Definitions
 	errgroup *errgroup.Group
-	records  []zed.Value
+	zvals    []zed.Value
 	// XXX this is a simple double buffering model so the cloud-object
 	// writer can run in parallel with the reader filling the records
 	// buffer.  This can be later extended to pass a big bytes buffer
@@ -83,7 +83,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 	// and slow down import. We should instead copy the raw record bytes into a
 	// recycled buffer and keep around an array of ts + byte-slice structs for
 	// sorting.
-	w.records = append(w.records, *rec.Keep())
+	w.zvals = append(w.zvals, *rec.Keep())
 	w.memBuffered += int64(len(rec.Bytes))
 	//XXX change name LogSizeThreshold
 	// XXX the previous logic estimated the object size with divide by 2...?!
@@ -95,8 +95,8 @@ func (w *Writer) Write(rec *zed.Value) error {
 
 func (w *Writer) flipBuffers() {
 	oldrecs := <-w.buffer
-	recs := w.records
-	w.records = oldrecs[:0]
+	recs := w.zvals
+	w.zvals = oldrecs[:0]
 	w.memBuffered = 0
 	w.errgroup.Go(func() error {
 		err := w.writeObject(w.newObject(), recs)
@@ -108,7 +108,7 @@ func (w *Writer) flipBuffers() {
 func (w *Writer) Close() error {
 	// Send the last write (Note: we could reorder things so we do the
 	// record sort in this thread while waiting for the write to complete.)
-	if len(w.records) > 0 {
+	if len(w.zvals) > 0 {
 		w.flipBuffers()
 	}
 	// Wait for any pending write to finish.

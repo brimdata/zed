@@ -12,8 +12,8 @@ type puller struct {
 	proc  proc.Interface
 	ctx   context.Context
 	ch    chan proc.Result
-	recs  []zed.Value
 	batch zbuf.Batch
+	zvals []zed.Value
 }
 
 func newPuller(p proc.Interface, ctx context.Context) *puller {
@@ -50,7 +50,7 @@ func (p *puller) Pull() (zbuf.Batch, error) {
 }
 
 func (p *puller) Read() (*zed.Value, error) {
-	for len(p.recs) == 0 {
+	for len(p.zvals) == 0 {
 		if p.batch != nil {
 			p.batch.Unref()
 		}
@@ -60,10 +60,10 @@ func (p *puller) Read() (*zed.Value, error) {
 			p.batch = nil
 			return nil, err
 		}
-		p.recs = p.batch.Values()
+		p.zvals = p.batch.Values()
 	}
-	rec := &p.recs[0]
-	p.recs = p.recs[1:]
+	rec := &p.zvals[0]
+	p.zvals = p.zvals[1:]
 	return rec, nil
 }
 

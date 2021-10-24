@@ -170,7 +170,7 @@ func SortStable(records []zed.Value, compare CompareFn) {
 }
 
 type RecordSlice struct {
-	records []zed.Value
+	zvals   []zed.Value
 	compare CompareFn
 }
 
@@ -179,31 +179,31 @@ func NewRecordSlice(compare CompareFn) *RecordSlice {
 }
 
 // Swap implements sort.Interface for *Record slices.
-func (r *RecordSlice) Len() int { return len(r.records) }
+func (r *RecordSlice) Len() int { return len(r.zvals) }
 
 // Swap implements sort.Interface for *Record slices.
-func (r *RecordSlice) Swap(i, j int) { r.records[i], r.records[j] = r.records[j], r.records[i] }
+func (r *RecordSlice) Swap(i, j int) { r.zvals[i], r.zvals[j] = r.zvals[j], r.zvals[i] }
 
 // Less implements sort.Interface for *Record slices.
 func (r *RecordSlice) Less(i, j int) bool {
-	return r.compare(&r.records[i], &r.records[j]) < 0
+	return r.compare(&r.zvals[i], &r.zvals[j]) < 0
 }
 
 // Push adds x as element Len(). Implements heap.Interface.
 func (r *RecordSlice) Push(rec interface{}) {
-	r.records = append(r.records, *rec.(*zed.Value))
+	r.zvals = append(r.zvals, *rec.(*zed.Value))
 }
 
 // Pop removes the first element in the array. Implements heap.Interface.
 func (r *RecordSlice) Pop() interface{} {
-	rec := r.records[len(r.records)-1]
-	r.records = r.records[:len(r.records)-1]
+	rec := r.zvals[len(r.zvals)-1]
+	r.zvals = r.zvals[:len(r.zvals)-1]
 	return &rec
 }
 
 // Index returns the ith record.
 func (r *RecordSlice) Index(i int) *zed.Value {
-	return &r.records[i]
+	return &r.zvals[i]
 }
 
 func LookupCompare(typ zed.Type) comparefn {
