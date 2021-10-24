@@ -41,7 +41,6 @@ func RunClientResponse(ctx context.Context, d driver.Driver, res *client.Respons
 type runner struct {
 	driver driver.Driver
 	cid    int
-	recs   []*zed.Value
 	stats  zbuf.ScannerStats
 }
 
