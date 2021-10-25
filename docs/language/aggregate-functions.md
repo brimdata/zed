@@ -104,7 +104,7 @@ zq -Z 'LA_Math:=avg(AvgScrMath) where cname=="Los Angeles", SF_Math:=avg(AvgScrM
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for all inputs. Contrast with [`or`](#or). |
+| **Description**           | Returns the Boolean value `true` if the provided expression evaluates to `true` for all inputs. Contrast with [`or`](#or). |
 | **Syntax**                | `and(<expression>)`                                            |
 | **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](expressions.md). |
 | **Optional<br>arguments** | None                                                           |
@@ -382,7 +382,7 @@ min
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for one or more inputs. Contrast with [`and`](#and). |
+| **Description**           | Returns the Boolean value `true` if the provided expression evaluates to `true` for one or more inputs. Contrast with [`and`](#and). |
 | **Syntax**                | `or(<expression>)`                                             |
 | **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](expressions.md). |
 | **Optional<br>arguments** | None                                                           |
