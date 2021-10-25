@@ -19,7 +19,7 @@ var Delete = &charm.Spec{
 	Long: `
 The delete command takes a list of data object IDs and
 deletes references to those object from HEAD by commiting a new
-delet operation to HEAD.
+delete operation to HEAD.
 Once the delete operation completes, the deleted data is no longer seen
 when read data from the pool.
 

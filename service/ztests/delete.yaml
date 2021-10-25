@@ -1,0 +1,27 @@
+script: |
+  source service.sh
+  zed lake create -q test
+  zed lake use -q test@main
+  zed lake load -q 1.zson
+  zed lake load -q 2.zson
+  zed lake query -z "*"
+  echo ===
+  id=$(zed lake query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")
+  zed lake delete -q $id
+  zed lake query -z "*"
+
+
+inputs:
+  - name: service.sh
+  - name: 1.zson
+    data: "{x:1}"
+  - name: 2.zson
+    data: "{x:2}"
+
+outputs:
+  - name: stdout
+    data: |
+      {x:2}
+      {x:1}
+      ===
+      {x:1}
