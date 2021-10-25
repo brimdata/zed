@@ -63,7 +63,7 @@ warning is generated regarding absent fields. For instance, the following
 query is run against all three of our data sources and returns values from our
 school data that includes fields for both `School` and `Website`, values from
 our web address data that have the `Website` and `addr` fields, and nothing
-from the test scores data since it has none of these fields.
+from the test score data since it has none of these fields.
 
 ```mdtest-command dir=testdata/edu
 zq -z 'yosemiteuhsd | cut School,Website,addr' *.zson
@@ -769,7 +769,7 @@ zq -Z 'cut District | lower_district:=to_lower(District)' schools.zson
 
 #### Example #1:
 
-To rename some fields in our test scores data to match the field names from
+To rename some fields in our test score data to match the field names from
 our school data:
 
 ```mdtest-command dir=testdata/edu
@@ -915,7 +915,7 @@ zq -z 'count() by County | sort -r' schools.zson
 #### Example #4:
 
 Next we'll count the number of unique websites mentioned in our school
-records. Since we know some of the records don't include a web site, we'll
+records. Since we know some of the records don't include a website, we'll
 deliberately put the unset values at the front of the list so we can see how
 many there are.
 
