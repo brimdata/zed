@@ -81,8 +81,8 @@ San Francisco   San Francisco Unified                              454.368421052
 
 Instead of a simple field name, any of the comma-separated `by` groupings could
 be based on the result of an [expression](expressions.md). The
-expression must be preceded by the name of the that will hold the expression
-result for further processing/presentation downstream in your Zed pipeline.
+expression must be preceded by the name of the expression result
+for further processing/presentation downstream in your Zed pipeline.
 
 To see a count of how many school names of a particular character length
 appear in our example data:
@@ -229,9 +229,9 @@ ts                   sum
 ```
 # Note: Undefined Order
 
-The order of results from a grouped aggregation are undefined. If you want to
+The order of results from a grouped aggregation is undefined. If you want to
 ensure a specific order, a [`sort` operator](operators.md#sort)
-should be used downstream of the aggregate function(s) in the Zed pipeline.
+should be used downstream of the aggregation in the Zed pipeline.
 It is for this reason that our examples above all included an explicit
 `| sort` at the end of each pipeline.
 
