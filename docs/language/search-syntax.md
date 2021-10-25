@@ -25,7 +25,7 @@
 
 The simplest possible Zed search is a match of all records. This search is
 expressed in `zq` with the wildcard `*`. The response will be a dump of all
-records. The default `zq` output to the terminal is text-based
+records. The default `zq` output to the terminal is the text-based
 [ZSON](../formats/zson.md) format, whereas the compact binary
 [ZNG](../formats/zng.md) format is used if the output is redirected or
 piped.
@@ -120,8 +120,8 @@ substring in a field.
 
 For example, searching across both our school and test score data sources for
 `596` matches records that contain numeric fields of this precise value (such
-as from the test scores) and also where it appears within string-typed fields
-(such as the zip code and phone number fields in the school data.)
+as from the test scores) and also records that contain string fields
+(such as the ZIP code and phone number fields in the school data.)
 
 #### Example:
 ```mdtest-command dir=testdata/edu
@@ -181,8 +181,8 @@ zq -z '"Defunct="' schools.zson
 Wrapping in quotes is particularly handy when you're looking for long, specific
 strings that may have several special characters in them. For example, let's
 say we're looking for information on the Union Hill Elementary district.
-Entered without quotes, we end up matching way more records than we intended
-since each space character between words is treated as a [boolean `and`](#and).
+Entered without quotes, we end up matching far more records than we intended
+since each space character between words is treated as a [Boolean `and`](#and).
 
 #### Example:
 ```mdtest-command dir=testdata/edu
@@ -251,7 +251,7 @@ For matching that requires more precision than can be achieved with
 available. To use them, simply place a `/` character before and after the
 regexp.
 
-For example, since there's so many high schools in our sample data, to find
+For example, since there are many high schools in our sample data, to find
 only records containing strings that _begin_ with the word `High`:
 
 #### Example:
@@ -321,7 +321,7 @@ To match successfully when comparing values to the contents of named fields,
 the value must be comparable to the _data type_ of the field.
 
 For instance, the "Zip" field in our schools data is of `string` type because
-several values are of the extended format that includes a hyphen and four
+several values are of the extended ZIP+4 format that includes a hyphen and four
 additional digits and hence could not be represented in a numeric type.
 
 ```mdtest-command dir=testdata/edu
@@ -349,9 +349,9 @@ See the [Data Types](data-types.md) page for more details.
 When comparing a named field to a quoted value, the quoted value is treated as
 an _exact_ match.
 
-For example, let's say we know there's several schools that start with
-`Luther`, but only a couple districts do. Because `Luther` only appears as a
-_substring_ of the district names in our sample data, the following example
+For example, let's say we know there are several school names that start with
+`Luther` but only a couple district names that do. Because `Luther` only appears
+as a _substring_ of the district names in our sample data, the following example
 produces no output.
 
 #### Example:
@@ -435,8 +435,8 @@ zq -Z 'Schools:=union(School) by District | sort | "Lincoln Elementary" in Schoo
 Determining whether the value of an `ip`-type field is contained within a
 subnet also uses `in`.
 
-The following example locates all schools whose web sites are hosted in an
-IP address in the class A network `38`.
+The following example locates all schools whose websites are hosted on an
+IP address in `38.0.0.0/8` network.
 
 #### Example:
 ```mdtest-command dir=testdata/edu
@@ -471,7 +471,7 @@ zq -z 'AvgScrMath > 690' testscores.zson
 ```
 
 The same approach can be used to compare characters in `string`-type values,
-such as this search that finds school names at the high end of the alphabet.
+such as this search that finds school names at the end of the alphabet.
 
 #### Example:
 ```mdtest-command dir=testdata/edu
@@ -499,8 +499,8 @@ If you enter multiple [value match](#value-match) or
 implicitly applies a boolean `and` between them, such that records are only
 returned if they match on _all_ terms.
 
-For example, let's say we're searching for info about academies that are
-flagged as being in a `Pending` status.
+For example, let's say we're searching for information about academies
+that are flagged as being in a `Pending` status.
 
 #### Example:
 ```mdtest-command dir=testdata/edu
