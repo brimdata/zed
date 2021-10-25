@@ -1,5 +1,8 @@
 # Grouping
 
+> **Note:** Many examples below use the
+> [educational sample data](../../testdata/edu).
+
 Zed includes _grouping_ options that partition the input stream into batches
 that are aggregated separately based on field values. Grouping is most often
 used with [aggregate functions](aggregate-functions.md). If explicit
@@ -9,14 +12,120 @@ input stream.
 Below you will find details regarding the available grouping mechanisms and
 tips for their effective use.
 
-- [Time Grouping - `every`](#time-grouping---every)
 - [Value Grouping - `by`](#value-grouping---by)
+- [Time Grouping - `every`](#time-grouping---every)
 - [Note: Undefined Order](#note-undefined-order)
+
+# Value Grouping - `by`
+
+To create batches of records based on the values of fields or the results of
+[expressions](expressions.md), specify
+`by <field-name | name:=expression> [, <field-name | name:=expression> ...]`
+after invoking your aggregate function(s).
+
+#### Example #1:
+
+The simplest example summarizes the unique values of the named field(s), which
+requires no aggregate function. To see the different categories of status for
+the schools in our example data:
+
+```mdtest-command dir=testdata/edu
+zq -z 'by StatusType | sort' schools.zson
+```
+
+#### Output:
+```mdtest-output
+{StatusType:"Active"}
+{StatusType:"Closed"}
+{StatusType:"Merged"}
+{StatusType:"Pending"}
+```
+
+If you work a lot at the UNIX/Linux shell, you might have sought to accomplish
+the same via a familiar, verbose idiom. This works in Zed, but the `by`
+shorthand is preferable.
+
+```mdtest-command dir=testdata/edu
+zq -z 'cut StatusType | sort | uniq' schools.zson
+```
+
+#### Output:
+```mdtest-output
+{StatusType:"Active"}
+{StatusType:"Closed"}
+{StatusType:"Merged"}
+{StatusType:"Pending"}
+```
+
+#### Example #2:
+
+By specifying multiple comma-separated field names, one batch is formed for each
+unique combination of values found in those fields. To see the average reading
+test scores and school count for each county/district pairing:
+
+```mdtest-command dir=testdata/edu
+zq -f table 'avg(AvgScrRead),count() by cname,dname | sort -r count' testscores.zson
+```
+
+#### Output:
+```mdtest-output head
+cname           dname                                              avg                count
+Los Angeles     Los Angeles Unified                                416.83522727272725 202
+San Diego       San Diego Unified                                  472                44
+Alameda         Oakland Unified                                    414.95238095238096 27
+San Francisco   San Francisco Unified                              454.36842105263156 26
+...
+```
+
+#### Example #3:
+
+Instead of a simple field name, any of the comma-separated `by` groupings could
+be based on the result of an [expression](expressions.md). The
+expression must be preceded by the name of the expression result
+for further processing/presentation downstream in your Zed pipeline.
+
+To see a count of how many school names of a particular character length
+appear in our example data:
+
+```mdtest-command dir=testdata/edu
+zq -f table 'count() by Name_Length:=len(School) | sort -r' schools.zson
+```
+
+#### Output:
+```mdtest-output head
+Name_Length count
+89          2
+85          2
+84          2
+83          1
+...
+```
+
+#### Example #4
+
+All fields referenced in a `by` grouping must be present in a given record for
+the grouping to have effect.
+
+For instance, if we'd made an typographical error in our
+[prior example](#example-2) when attempting to reference the `dname` field, no
+grouped batches would be found in the data and hence no query result would
+appear.
+
+```mdtest-command dir=testdata/edu
+zq -f table 'avg(AvgScrRead),count() by cname,dnmae | sort -r count' testscores.zson
+```
+
+#### Output:
+```mdtest-output
+```
 
 # Time Grouping - `every`
 
-To create batches of records that are close together in time, specify
-`every <duration>` before invoking your aggregate function(s).
+If a data source includes a field named `ts` of the `time` type, the shorthand
+`every <duration>` can be used before invoking your aggregate function(s) to
+create batches of records that are close together in time. If your data has
+a differently-named field of the `time` type, the same can be achieved with
+a grouping `by <name>:=trunc(<field-name>, <duration>)`.
 
 The `<duration>` may be expressed as a combination of one or more of the
 following units of time. An integer or decimal value must precede the
@@ -39,278 +148,102 @@ specification of each unit.
 
 #### Example #1:
 
-To see the total number of bytes originated across all connections during each
-minute:
+Consider the following ZSON file `shipments.zson` that contains timestamped
+quantities of shipped items.
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'every 1m sum(orig_bytes) | sort -r ts' conn.log.gz
+```mdtest-input shipments.zson
+{ts:2021-10-07T13:55:22Z,quantity:873}
+{ts:2021-10-07T17:23:44Z,quantity:436}
+{ts:2021-10-07T23:01:34Z,quantity:123}
+{ts:2021-10-08T09:12:45Z,quantity:998}
+{ts:2021-10-08T12:44:12Z,quantity:744}
+{ts:2021-10-09T20:01:19Z,quantity:2003}
+{ts:2021-10-09T04:16:33Z,quantity:977}
+{ts:2021-10-10T05:04:46Z,quantity:3004}
+```
+
+To calculate the total quantities shipped per day:
+
+```mdtest-command
+zq -f table 'every 1d sum(quantity) | sort ts' shipments.zson
 ```
 
 #### Output:
-```mdtest-output head
+```mdtest-output
 ts                   sum
-2018-03-24T17:36:00Z 1443272
-2018-03-24T17:35:00Z 3851308
-2018-03-24T17:34:00Z 4704644
-2018-03-24T17:33:00Z 10189155
-...
+2021-10-07T00:00:00Z 1432
+2021-10-08T00:00:00Z 1742
+2021-10-09T00:00:00Z 2980
+2021-10-10T00:00:00Z 3004
 ```
 
 #### Example #2:
 
-To see which 30-second intervals contained the most records, expressing the
-duration as a half-minute:
+Our school data has a `time`-typed field called `OpenDate`. To see
+which collections of schools opened during each week after the start of year
+2014:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'every 0.5m count() | sort -r count' *.log.gz
+```mdtest-command dir=testdata/edu
+zq -Z 'OpenDate >= 2014-01-01T00:00:00Z | OpenedThisWeek:=collect(School) by OpenWeek:=trunc(OpenDate, 1w) | sort OpenWeek' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-ts                   count
-2018-03-24T17:19:00Z 73512
-2018-03-24T17:16:30Z 59701
-2018-03-24T17:20:00Z 51229
+{
+    OpenWeek: 2014-01-02T00:00:00Z,
+    OpenedThisWeek: [
+        "Eucalyptus Hills Elementary",
+        "Santa Monica-Malibu Preschool",
+        "South Bay Academy Community Day"
+    ]
+}
+{
+    OpenWeek: 2014-03-20T00:00:00Z,
+    OpenedThisWeek: [
+        "Mitchell Child Development"
+    ]
+}
 ...
 ```
 
 #### Example #3:
 
-To see the highest-numbered responding network port during each 90-second
-interval, expressing the duration as a mix of minutes and seconds:
+To revisit our [prior example](#example-1-1) and instead do our time bucketing
+in increments of hours and minutes:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'every 1m30s max(id.resp_p) | sort -r ts' conn.log.gz
-```
-
-#### Output:
-```mdtest-output head
-ts                   max
-2018-03-24T17:36:00Z 60008
-2018-03-24T17:34:30Z 60008
-2018-03-24T17:33:00Z 65389
-...
-```
-
-# Value Grouping - `by`
-
-To create batches of records based on the values of fields or the results of
-[expressions](expressions.md), specify
-`by <field-name | name:=expression> [, <field-name | name:=expression> ...]`
-after invoking your aggregate function(s).
-
-#### Example #1:
-
-The simplest example summarizes the unique values of the named field(s), which
-requires no aggregate function. To see which protocols were observed in our
-Zeek `conn` records:
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'by proto | sort' conn.log.gz
+```mdtest-command
+zq -f table 'every 6h30m sum(quantity) | sort ts' shipments.zson
 ```
 
 #### Output:
 ```mdtest-output
-proto
-icmp
-tcp
-udp
+ts                   sum
+2021-10-07T10:00:00Z 873
+2021-10-07T16:30:00Z 436
+2021-10-07T23:00:00Z 123
+2021-10-08T05:30:00Z 998
+2021-10-08T12:00:00Z 744
+2021-10-09T01:00:00Z 977
+2021-10-09T14:00:00Z 2003
+2021-10-10T03:00:00Z 3004
 ```
-
-If you work a lot at the UNIX/Linux shell, you might have sought to accomplish
-the same via a familiar, verbose idiom. This works in Zed, but the `by`
-shorthand is preferable.
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'cut proto | sort | uniq' conn.log.gz
-```
-
-#### Output:
-```mdtest-output
-proto
-icmp
-tcp
-udp
-```
-
-#### Example #2:
-
-By specifying multiple comma-separated field names, one batch is formed for each
-unique combination of values found in those fields. To see which responding
-IP+port combinations generated the most traffic:
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'sum(resp_bytes) by id.resp_h,id.resp_p  | sort -r sum' conn.log.gz
-```
-
-#### Output:
-```mdtest-output head
-id.resp_h       id.resp_p sum
-52.216.132.61   443       1781778597
-10.47.3.200     80        1544111786
-91.189.91.23    80        745226873
-198.255.68.110  80        548238226
-...
-```
-
-#### Example #3:
-
-Instead of a simple field name, any of the comma-separated `by` groupings could
-be based on the result of an [expression](expressions.md). The
-expression must be preceded by the name that will hold the expression result
-for further processing/presentation downstream in your Zed pipeline.
-
-In our sample data, the `answers` field of Zeek `dns` records is an array
-that may hold multiple responses returned for a DNS query. To see which
-responding DNS servers generated the longest answers, we can group by
-both `id.resp_h` and an expression that evaluates the length of `answers`
-arrays.
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'len(answers) > 0 | count() by id.resp_h,num_answers:=len(answers) | sort -r num_answers,count' dns.log.gz
-```
-
-#### Output:
-```mdtest-output head
-id.resp_h       num_answers count
-10.0.0.100      16          4
-216.239.34.10   16          2
-209.112.113.33  15          2
-216.239.34.10   14          4
-...
-```
-
-#### Example #4
-
-All fields referenced in a `by` grouping must be present in a given record for
-the grouping to have effect.
-
-Let's say we've performed separate aggregations for fields present in different
-Zeek records. First we count the unique `host` values in `http` records.
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'count() by host | sort -r | head 3' http.log.gz
-```
-
-#### Output:
-```mdtest-output
-host       count
-10.47.7.58 24693
-10.47.2.58 16499
-10.47.6.58 15180
-```
-
-Next we count the unique `query` values in `dns` records.
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'count() by query | sort -r | head 3' dns.log.gz
-```
-
-#### Output:
-```mdtest-output
-query                                                     count
-ise.wrccdc.org                                            22160
-*\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00 3834
-videosearch.ubuntu.com                                    1088
-```
-
-The following attempt to reference both fields simultaneously in a `by`
-grouping to perform a single aggregation would yield no output.
-
-```
-zq -f table 'count() by host,query | sort -r' http.log.gz dns.log.gz
-```
-
-This is due to the `query` field not being present in any of the `http` records
-and the `host` field not being present in any of the `dns` records. This can
-be observed by looking at the [ZSON](../formats/zson.md)
-representation of the type definitions for each record type.
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f zson 'count() by _path,typeof(.) | sort _path' http.log.gz dns.log.gz
-```
-
-#### Output:
-```mdtest-output
-{
-    _path: "dns",
-    typeof: ({_path:string,ts:time,uid:bstring,id:{orig_h:ip,orig_p:port=(uint16),resp_h:ip,resp_p:port},proto:zenum=(string),trans_id:uint64,rtt:duration,query:bstring,qclass:uint64,qclass_name:bstring,qtype:uint64,qtype_name:bstring,rcode:uint64,rcode_name:bstring,AA:bool,TC:bool,RD:bool,RA:bool,Z:uint64,answers:[bstring],TTLs:[duration],rejected:bool}),
-    count: 53615 (uint64)
-}
-{
-    _path: "http",
-    typeof: ({_path:string,ts:time,uid:bstring,id:{orig_h:ip,orig_p:port=(uint16),resp_h:ip,resp_p:port},trans_depth:uint64,method:bstring,host:bstring,uri:bstring,referrer:bstring,version:bstring,user_agent:bstring,origin:bstring,request_body_len:uint64,response_body_len:uint64,status_code:uint64,status_msg:bstring,info_code:uint64,info_msg:bstring,tags:|[zenum=(string)]|,username:bstring,password:bstring,proxied:|[bstring]|,orig_fuids:[bstring],orig_filenames:[bstring],orig_mime_types:[bstring],resp_fuids:[bstring],resp_filenames:[bstring],resp_mime_types:[bstring]}),
-    count: 144034 (uint64)
-}
-```
-
-A way to achieve this would be to use the
-[`fuse` operator](operators.md#fuse) to unite the `http` and `dns`
-records under a single schema. This has the effect of populating missing
-fields with null values. Now that the named fields are present in
-all records, the `by` grouping has the desired effect.
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'fuse | count() by host,query | sort -r | head 3' http.log.gz dns.log.gz
-```
-
-#### Output:
-```mdtest-output
-host       query          count
-10.47.7.58 -              24693
--          ise.wrccdc.org 22160
-10.47.2.58 -              16499
-```
-
 # Note: Undefined Order
 
-The order of results from a grouped aggregation are undefined. If you want to
+The order of results from a grouped aggregation is undefined. If you want to
 ensure a specific order, a [`sort` operator](operators.md#sort)
-should be used downstream of the aggregate function(s) in the Zed pipeline.
+should be used downstream of the aggregation in the Zed pipeline.
+It is for this reason that our examples above all included an explicit
+`| sort` at the end of each pipeline.
 
-#### Example:
+Records that are stored in a Zed lake are by default sorted in reverse order by
+a `time` field named `ts`. Therefore for the particular case of a [time
+grouping](#time-grouping---every) query entered via Brim or `zapi` on such
+data, if the same reverse time ordering is desired in the output of the
+aggregation result, an explicit `| sort -r ts` is _not_ necessary on your Zed
+pipeline.
 
-If we were counting records into 5-minute batches and wanted to see these
-results ordered by incrementing timestamp of each batch:
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'every 5m count() | sort ts' *.log.gz
-```
-
-#### Output:
-```mdtest-output
-ts                   count
-2018-03-24T17:15:00Z 441229
-2018-03-24T17:20:00Z 337264
-2018-03-24T17:25:00Z 310546
-2018-03-24T17:30:00Z 274284
-2018-03-24T17:35:00Z 98755
-```
-
-If we'd wanted to see them ordered from lowest to highest record count:
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'every 5m count() | sort count' *.log.gz
-```
-
-#### Output:
-```mdtest-output
-ts                   count
-2018-03-24T17:35:00Z 98755
-2018-03-24T17:30:00Z 274284
-2018-03-24T17:25:00Z 310546
-2018-03-24T17:20:00Z 337264
-2018-03-24T17:15:00Z 441229
-```
-
-Records that are stored and retrieved via
-[`zed lake serve`](../../cmd/zed/lake) (that is, using the
-[Brim application](https://github.com/brimdata/brim) and/or
-[`zapi`](../../cmd/zapi)) are by default automatically sorted in reverse
-order by timestamp (`ts`). Therefore for the particular case of a [time
-grouping](#time-grouping---every) query entered via Brim or `zapi`, if the same
-reverse time ordering is desired in the output of the aggregation result, an
-explicit `| sort -r ts` is _not_ necessary on your Zed pipeline.
+For example, if we'd imported the data from our [prior example](#example-1-1)
+into Brim:
 
 #### Output:
 

@@ -1,10 +1,10 @@
 #!/bin/bash
 
-# zq is currently the only known tool that outputs data in ZNG formats. Sample
+# Zed is the only known tool set that outputs data in ZNG formats. Sample
 # ZNG data from zq is stored in the https://github.com/brimdata/zed-sample-data
-# repo. Therefore, if a change in zq causes the ZNG output format to change,
+# repo. Therefore, if a change in Zed causes the ZNG output format to change,
 # we'll want to know about it ASAP, since if it's a bug we'll want to fix it
-# in zq, and if it's an intentional enhancement we'll want to update the ZNG
+# in Zed, and if it's an intentional enhancement we'll want to update the ZNG
 # files in zed-sample-data so users are always finding a current copy.
 #
 # This script automates this check by running the Zeek TSV logs from

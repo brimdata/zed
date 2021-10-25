@@ -1,5 +1,8 @@
 # Summarize Aggregations
 
+> **Note:** Many examples below use the
+> [educational sample data](../../testdata/edu).
+
 The `summarize` operator performs zero or more aggregations with
 zero or more [grouping expressions](grouping.md).
 Each aggregation is performed by an
@@ -25,10 +28,6 @@ contain.  The `summarize` keyword is optional.
      + [`sum`](#sum)
      + [`union`](#union)
 
-> **Note:** Per Zed [search syntax](search-syntax.md), many examples
-> below use shorthand that leaves off the explicit leading `* |`, matching all
-> records before invoking the first element in a pipeline.
-
 ## General Usage
 
 ### Invoking
@@ -37,35 +36,35 @@ Multiple aggregate functions may be invoked at the same time.
 
 #### Example:
 
-To simultaneously calculate the minimum, maximum, and average of connection
-duration:
+To simultaneously calculate the minimum, maximum, and average of the math
+test scores:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'min(duration),max(duration),avg(duration)' conn.log.gz
+```mdtest-command dir=testdata/edu
+zq -f table 'min(AvgScrMath),max(AvgScrMath),avg(AvgScrMath)' testscores.zson
 ```
 
 #### Output:
 ```mdtest-output
-min      max         avg
-0.000001 1269.512465 1.6373747834138621
+min max avg
+289 699 484.99019042123484
 ```
 
 ### Field Naming
 
-As just shown, by default the result returned by an aggregate function is
-placed in a field with the same name as the aggregate function. You may
-instead use `:=` to specify an explicit name for the generated field.
+As just shown, by default the result returned is placed in a field with the
+same name as the aggregate function. You may instead use `:=` to specify an
+explicit name for the generated field.
 
 #### Example:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'quickest:=min(duration),longest:=max(duration),typical:=avg(duration)' conn.log.gz
+```mdtest-command dir=testdata/edu
+zq -f table 'lowest:=min(AvgScrMath),highest:=max(AvgScrMath),typical:=avg(AvgScrMath)' testscores.zson
 ```
 
 #### Output:
 ```mdtest-output
-quickest longest     typical
-0.000001 1269.512465 1.6373747834138621
+lowest highest typical
+289    699     484.99019042123484
 ```
 
 ### Grouping
@@ -82,21 +81,19 @@ function will operate.
 
 #### Example:
 
-To check whether we've seen higher DNS round-trip times when servers return
-longer lists of `answers`:
+To calculate average math test scores for the cities of Los Angeles and San
+Francisco:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'answers != null | every 5m short_rtt:=avg(rtt) where len(answers)<=2, short_count:=count() where len(answers)<=2, long_rtt:=avg(rtt) where len(answers)>2, long_count:=count() where len(answers)>2 | sort ts' dns.log.gz
+```mdtest-command dir=testdata/edu
+zq -Z 'LA_Math:=avg(AvgScrMath) where cname=="Los Angeles", SF_Math:=avg(AvgScrMath) where cname=="San Francisco"' testscores.zson
 ```
 
 #### Output:
 ```mdtest-output
-ts                   short_rtt            short_count long_rtt             long_count
-2018-03-24T17:15:00Z 0.004386461911629731 7628        0.01571223665048545  824
-2018-03-24T17:20:00Z 0.006360169034406226 9010        0.01992656544502617  764
-2018-03-24T17:25:00Z 0.006063177039132521 8486        0.02742244411764705  680
-2018-03-24T17:30:00Z 0.005641562210915819 8652        0.021644265586034935 802
-2018-03-24T17:35:00Z 0.008572169213139795 2618        0.01933044954128441  218
+{
+    LA_Math: 456.27341772151897,
+    SF_Math: 485.3636363636364
+}
 ```
 
 ---
@@ -107,41 +104,35 @@ ts                   short_rtt            short_count long_rtt             long_
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for all inputs. Contrast with [`or`](#or). |
+| **Description**           | Returns the Boolean value `true` if the provided expression evaluates to `true` for all inputs. Contrast with [`or`](#or). |
 | **Syntax**                | `and(<expression>)`                                            |
 | **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](expressions.md). |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
 
-Let's say you've been studying `weird` records and noticed that lots of
-connections have made one or more bad HTTP requests.
+Many of the school records in our sample data include websites, but many do
+not. The following query shows the cities in which all schools have a website.
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'count() by name | sort -r count' weird.log.gz
+```mdtest-command dir=testdata/edu
+zq -Z 'all_schools_have_website:=and(Website!=null) by City | sort City' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-name                                        count
-bad_HTTP_request                            11777
-line_terminated_with_single_CR              11734
-unknown_HTTP_method                         140
-above_hole_data_without_any_acks            107
+{
+    City: "Acampo",
+    all_schools_have_website: false
+}
+{
+    City: "Acton",
+    all_schools_have_website: false
+}
+{
+    City: "Acton, CA",
+    all_schools_have_website: true
+}
 ...
-```
-
-To count the number of connections for which this was the _only_ category of
-`weird` record observed:
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'only_bads:=and(name=="bad_HTTP_request") by uid | count() where only_bads==true' weird.log.gz
-```
-
-#### Output:
-```mdtest-output
-count
-37
 ```
 
 ---
@@ -157,10 +148,10 @@ count
 
 #### Example:
 
-To see the `name` of a Zeek `weird` record in our sample data:
+To see the name of one of the schools in our sample data:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'any(name)' weird.log.gz
+```mdtest-command dir=testdata/edu
+zq -z 'any(School)' schools.zson
 ```
 
 For small inputs that fit in memory, this will typically be the first such
@@ -169,8 +160,7 @@ case, the output is:
 
 #### Output:
 ```mdtest-output
-any
-TCP_ack_underflow_or_misorder
+{any:"'3R' Middle"}
 ```
 
 ---
@@ -179,24 +169,23 @@ TCP_ack_underflow_or_misorder
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the mean (average) of the values of a specified field. Non-numeric values are ignored. |
+| **Description**           | Return the mean (average) of the values of a specified field. Non-numeric values (including `null`) are ignored. |
 | **Syntax**                | `avg(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
 
-To calculate the average number of bytes originated by all connections as
-captured in Zeek `conn` records:
+To calculate the average of the math test scores:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'avg(orig_bytes)' conn.log.gz
+```mdtest-command dir=testdata/edu
+zq -f table 'avg(AvgScrMath)' testscores.zson
 ```
 
 #### Output:
 ```mdtest-output
 avg
-176.9861548654682
+484.99019042123484
 ```
 
 ---
@@ -210,22 +199,44 @@ avg
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
 
-#### Example #1:
+#### Example
 
-To assemble the sequence of HTTP methods invoked in each interaction with the
-Bing search engine:
+For schools in Fresno county that include websites, the following query
+constructs an ordered list per city of their websites along with a parallel
+list of which school each website represents.
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'host=="www.bing.com" | methods:=collect(method) by uid | sort uid' http.log.gz
+```mdtest-command dir=testdata/edu
+zq -Z 'County=="Fresno" Website!=null | Websites:=collect(Website),Schools:=collect(School) by City | sort City' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-uid                methods
-C1iilt2FG8PnyEl0bb GET,GET,POST,GET,GET,POST
-C31wi6XQB8h9igoa5  GET,GET,POST,POST,POST
-CFwagt4ivDe3p6R7U8 GET,GET,POST,POST,GET,GET,GET,POST,POST,GET,GET,GET,GET,POST
-CI0SCN14gWpY087KA3 GET,POST,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET
+{
+    City: "Auberry",
+    Websites: [
+        "www.sierra.k12.ca.us",
+        "www.sierra.k12.ca.us",
+        "www.pineridge.k12.ca.us",
+        "www.pineridge.k12.ca.us"
+    ],
+    Schools: [
+        "Auberry Elementary",
+        "Balch Camp Elementary",
+        "Pine Ridge Elementary",
+        ""
+    ]
+}
+{
+    City: "Big Creek",
+    Websites: [
+        "www.bigcreekschool.com",
+        "www.bigcreekschool.com"
+    ],
+    Schools: [
+        "Big Creek Elementary",
+        ""
+    ]
+}
 ...
 ```
 
@@ -242,33 +253,36 @@ CI0SCN14gWpY087KA3 GET,POST,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET,GET
 
 #### Example #1:
 
-To count the number of records in the entire sample data set:
+To count the number of records in each of our example data sources:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'count()' *.log.gz
+```mdtest-command dir=testdata/edu
+zq -z 'count()' schools.zson
+zq -z 'count()' testscores.zson
+zq -z 'count()' webaddrs.zson
 ```
 
 #### Output:
 ```mdtest-output
-count
-1462078
+{count:17686(uint64)}
+{count:2331(uint64)}
+{count:2223(uint64)}
 ```
 
 #### Example #2:
 
-Let's say we wanted to know how many records contain a field called `mime_type`.
-The following example shows us that count and that the field is present in
-our Zeek `ftp` and `files` records.
+The `Website` field is known to be in our school and website address data
+sources, but not in the test score data. To confirm this, we can count across
+all data sources and specify the named field.
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'count(mime_type) by _path | filter count > 0 | sort -r count' *.log.gz
+```mdtest-command dir=testdata/edu
+zq -z 'count(Website)' *.zson
 ```
 
 ```mdtest-output
-_path count
-files 162986
-ftp   93
+{count:19909(uint64)}
 ```
+
+Since `17686 + 2223 = 19909`, the count result is what we expected.
 
 ---
 
@@ -284,32 +298,33 @@ ftp   93
 
 #### Example:
 
-To see an approximate count of unique `uid` values in our sample data set:
+To see an approximate count of unique school names in our sample data set:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'countdistinct(uid)' *
+```mdtest-command dir=testdata/edu
+zq -Z 'countdistinct(School)' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-countdistinct
-1029651
+{
+    countdistinct: 13927 (uint64)
+}
 ```
 
 To see the precise value, which may take longer to execute:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'count() by uid | count()' *
+```mdtest-command dir=testdata/edu
+zq -Z 'count() by School | count()' schools.zson
 ```
 
 #### Output:
 ```mdtest-output
-count
-1021953
+{
+    count: 13876 (uint64)
+}
 ```
 
-Here we saw the approximation was "off" by 0.75%. On the system that was used
-to perform this test, the Zed using `countdistinct()` executed almost 3x faster.
+Here we saw the approximation was "off" by 0.3%.
 
 ---
 
@@ -317,24 +332,23 @@ to perform this test, the Zed using `countdistinct()` executed almost 3x faster.
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the maximum value of a specified field. Non-numeric values are ignored. |
+| **Description**           | Return the maximum value of a specified field. Non-numeric values (including `null`) are ignored. |
 | **Syntax**                | `max(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
 
-To see the maximum number of bytes originated by any connection in our sample
-data:
+To see the highest reported math test score:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'max(orig_bytes)' conn.log.gz
+```mdtest-command dir=testdata/edu
+zq -f table 'max(AvgScrMath)' testscores.zson
 ```
 
 #### Output:
 ```mdtest-output
 max
-4862366
+699
 ```
 
 ---
@@ -343,24 +357,23 @@ max
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the minimum value of a specified field. Non-numeric values are ignored. |
+| **Description**           | Return the minimum value of a specified field. Non-numeric values (including `null`) are ignored. |
 | **Syntax**                | `min(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
 
-To see the quickest round trip time of all DNS queries observed in our sample
-data:
+To see the lowest reported math test score:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'min(rtt)' dns.log.gz
+```mdtest-command dir=testdata/edu
+zq -f table 'min(AvgScrMath)' testscores.zson
 ```
 
 #### Output:
 ```mdtest-output
 min
-0.000012
+289
 ```
 
 ---
@@ -369,41 +382,44 @@ min
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Returns the boolean value `true` if the provided expression evaluates to `true` for one or more inputs. Contrast with [`and`](#and). |
+| **Description**           | Returns the Boolean value `true` if the provided expression evaluates to `true` for one or more inputs. Contrast with [`and`](#and). |
 | **Syntax**                | `or(<expression>)`                                             |
 | **Required<br>arguments** | `<expression>`<br>A valid Zed [expression](expressions.md). |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
 
-Let's say you've noticed there's lots of HTTP traffic happening on ports higher
-than the standard port `80`.
+Many of the school records in our sample data include websites, but many do
+not. The following query shows the cities for which at least one school has
+a listed website.
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'count() by id.resp_p | sort -r count' http.log.gz
+```mdtest-command dir=testdata/edu
+zq -Z 'has_at_least_one_school_website:=or(Website!=null) by City | sort City' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-id.resp_p count
-80        134496
-8080      5204
-5800      1691
-65534     903
+{
+    City: "Acampo",
+    has_at_least_one_school_website: true
+}
+{
+    City: "Acton",
+    has_at_least_one_school_website: true
+}
+{
+    City: "Acton, CA",
+    has_at_least_one_school_website: true
+}
+{
+    City: "Adelanto",
+    has_at_least_one_school_website: true
+}
+{
+    City: "Adin",
+    has_at_least_one_school_website: false
+}
 ...
-```
-
-The following query confirms this high-port traffic is present, but that none
-of those ports are higher than what TCP allows.
-
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'some_high_ports:=or(id.resp_p>80),impossible_ports:=or(id.resp_p>65535)' http.log.gz
-```
-
-#### Output:
-```mdtest-output
-some_high_ports impossible_ports
-T               F
 ```
 
 ---
@@ -412,24 +428,27 @@ T               F
 
 |                           |                                                                |
 | ------------------------- | -------------------------------------------------------------- |
-| **Description**           | Return the total sum of the values of a specified field. Non-numeric values are ignored. |
+| **Description**           | Return the total sum of the values of a specified field. Non-numeric values (including `null`) are ignored. |
 | **Syntax**                | `sum(<field-name>)`                                            |
 | **Required<br>arguments** | `<field-name>`<br>The name of a field.                         |
 | **Optional<br>arguments** | None                                                           |
 
 #### Example:
 
-To calculate the total number of bytes across all file payloads logged in our
-sample data:
+To calculate the total of all the math, reading, and writing test scores
+across all schools:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'sum(total_bytes)' files.log.gz
+```mdtest-command dir=testdata/edu
+zq -Z 'AllMath:=sum(AvgScrMath),AllRead:=sum(AvgScrRead),AllWrite:=sum(AvgScrWrite)' testscores.zson
 ```
 
 #### Output:
 ```mdtest-output
-sum
-3092961270
+{
+    AllMath: 840488 (uint64),
+    AllRead: 832260 (uint64),
+    AllWrite: 819632 (uint64)
+}
 ```
 
 ---
@@ -444,25 +463,30 @@ sum
 | **Optional<br>arguments** | None                                                           |
 | **Limitations**           | The data type of the input values must be uniform.             |
 
-#### Example #1:
+#### Example:
 
-To observe which HTTP methods were invoked in each interaction with the Bing
-search engine:
+For schools in Fresno county that include websites, the following query
+constructs a set per city of all the unique websites for the schools in that
+city.
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -f table 'host=="www.bing.com" | methods:=union(method) by uid | sort uid' http.log.gz
+```mdtest-command dir=testdata/edu
+zq -Z 'County=="Fresno" Website!=null | Websites:=union(Website) by City | sort City' schools.zson
 ```
 
 #### Output:
 ```mdtest-output head
-uid                methods
-C1iilt2FG8PnyEl0bb GET,POST
-C31wi6XQB8h9igoa5  GET,POST
-CFwagt4ivDe3p6R7U8 GET,POST
-CI0SCN14gWpY087KA3 GET,POST
-CJcF5E1DVn8FLq5JVc POST
-CLsXgZ1W5l9gMzx7e8 GET,POST
-CM2qfb4dhM2KJ6uAZk GET
-CSOmBD4vJEGRU6pJmg POST
+{
+    City: "Auberry",
+    Websites: |[
+        "www.sierra.k12.ca.us",
+        "www.pineridge.k12.ca.us"
+    ]|
+}
+{
+    City: "Big Creek",
+    Websites: |[
+        "www.bigcreekschool.com"
+    ]|
+}
 ...
 ```

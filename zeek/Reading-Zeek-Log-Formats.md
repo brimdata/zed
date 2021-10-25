@@ -18,14 +18,27 @@ is Zeek's default output format for logs. This format can be read automatically
 (i.e., no `-i` command line flag is necessary to indicate the input format)
 with the Zed tools such as `zq`.
 
-The following example shows the first `conn` record from the
-[Zeek TSV zed-sample-data](https://github.com/brimdata/zed-sample-data/tree/main/zeek-default)
-being read via `zq` and output as [ZSON](../docs/formats/zson.md).
+The following example shows a TSV `conn.log` being read via `zq` and
+output as [ZSON](../docs/formats/zson.md).
+
+#### conn.log:
+
+```mdtest-input conn.log
+#separator \x09
+#set_separator	,
+#empty_field	(empty)
+#unset_field	-
+#path	conn
+#open	2019-11-08-11-44-16
+#fields	ts	uid	id.orig_h	id.orig_p	id.resp_h	id.resp_p	proto	service	duration	orig_bytes	resp_bytes	conn_state	local_orig	local_resp	missed_bytes	history	orig_pkts	orig_ip_bytes	resp_pkts	resp_ip_bytes	tunnel_parents
+#types	time	string	addr	port	addr	port	enum	string	interval	count	count	string	bool	bool	count	string	count	count	count	count	set[string]
+1521911721.255387	C8Tful1TvM3Zf5x8fl	10.164.94.120	39681	10.47.3.155	3389	tcp	-	0.004266	97	19	RSTR	-	-	0	ShADTdtr	10	730	6	342	-
+```
 
 #### Example:
 
-```mdtest-command dir=zed-sample-data/zeek-default
-zq -Z 'head 1' conn.log.gz
+```mdtest-command
+zq -Z 'head 1' conn.log
 ```
 
 #### Output:
@@ -78,15 +91,19 @@ Zeek may instead generate logs in [NDJSON](http://ndjson.org/) format.
 In both cases, Zed tools such as `zq` can read these NDJSON logs automatically
 as is, but with caveats.
 
-Let's revisit the same `conn` record we just examined from the Zeek TSV log,
-but now using the
-[Zeek NDJSON zed-sample-data](https://github.com/brimdata/zed-sample-data/tree/main/zeek-ndjson),
-which was generated using the JSON Streaming Logs package.
+Let's revisit the same `conn` record we just examined from the Zeek TSV
+log, but now as NDJSON generated using the JSON Streaming Logs package.
+
+#### conn.ndjson:
+
+```mdtest-input conn.ndjson
+{"_path":"conn","_write_ts":"2018-03-24T17:15:21.400275Z","ts":"2018-03-24T17:15:21.255387Z","uid":"C8Tful1TvM3Zf5x8fl","id.orig_h":"10.164.94.120","id.orig_p":39681,"id.resp_h":"10.47.3.155","id.resp_p":3389,"proto":"tcp","duration":0.004266023635864258,"orig_bytes":97,"resp_bytes":19,"conn_state":"RSTR","missed_bytes":0,"history":"ShADTdtr","orig_pkts":10,"orig_ip_bytes":730,"resp_pkts":6,"resp_ip_bytes":342}
+```
 
 #### Example:
 
-```mdtest-command dir=zed-sample-data/zeek-ndjson
-zq -Z 'head 1' conn.ndjson.gz
+```mdtest-command
+zq -Z 'head 1' conn.ndjson
 ```
 
 #### Output:
