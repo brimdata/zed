@@ -253,20 +253,15 @@ func (cr *countReader) Read() (*zed.Value, error) {
 }
 
 type testGroupByDriver struct {
-	n      int
 	writer zio.Writer
 	cb     func(n int)
 }
 
 func (d *testGroupByDriver) Write(cid int, batch zbuf.Batch) error {
-	zvals := batch.Values()
-	for i := range zvals {
-		d.n++
-		if err := d.writer.Write(&zvals[i]); err != nil {
-			return err
-		}
+	if err := zbuf.WriteBatch(d.writer, batch); err != nil {
+		return err
 	}
-	d.cb(d.n)
+	d.cb(len(batch.Values()))
 	return nil
 }
 

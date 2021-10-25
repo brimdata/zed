@@ -29,6 +29,18 @@ type Batch interface {
 	Values() []zed.Value
 }
 
+// WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch
+// stops and returns the error.
+func WriteBatch(zw zio.Writer, batch Batch) error {
+	zvals := batch.Values()
+	for i := range zvals {
+		if err := zw.Write(&zvals[i]); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // readBatch reads up to n records from zr and returns them as a Batch.  At EOS,
 // it returns a nil or short (fewer than n records) Batch and nil error.  If an
 // error is encoutered, it returns a nil Batch and the error.  Otherwise,
@@ -94,11 +106,8 @@ func CopyPuller(w zio.Writer, p Puller) error {
 		if b == nil || err != nil {
 			return err
 		}
-		zvals := b.Values()
-		for i := range zvals {
-			if err := w.Write(&zvals[i]); err != nil {
-				return err
-			}
+		if err := WriteBatch(w, b); err != nil {
+			return err
 		}
 		b.Unref()
 	}
