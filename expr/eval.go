@@ -743,6 +743,7 @@ func (t *TypeFunc) Eval(rec *zed.Value) (zed.Value, error) {
 	return t.zv, nil
 }
 
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#has
 type Has struct {
 	exprs []Evaluator
 }
@@ -767,6 +768,7 @@ func (h *Has) Eval(rec *zed.Value) (zed.Value, error) {
 	return zed.True, nil
 }
 
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#missing
 type Missing struct {
 	has *Has
 }

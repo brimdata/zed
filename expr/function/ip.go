@@ -7,9 +7,10 @@ import (
 	"github.com/brimdata/zed"
 )
 
-type networkOf struct{}
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#network_of
+type NetworkOf struct{}
 
-func (*networkOf) Call(args []zed.Value) (zed.Value, error) {
+func (*NetworkOf) Call(args []zed.Value) (zed.Value, error) {
 	id := args[0].Type.ID()
 	if id != zed.IDIP {
 		return zed.NewErrorf("not an IP"), nil

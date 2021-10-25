@@ -9,9 +9,10 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-type replace struct{}
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#replace
+type Replace struct{}
 
-func (*replace) Call(args []zed.Value) (zed.Value, error) {
+func (*Replace) Call(args []zed.Value) (zed.Value, error) {
 	zvs := args[0]
 	zvold := args[1]
 	zvnew := args[2]
@@ -40,11 +41,12 @@ func (*replace) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{zed.TypeString, zed.EncodeString(result)}, nil
 }
 
-type runeLen struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#run_len
+type RuneLen struct {
 	result.Buffer
 }
 
-func (s *runeLen) Call(args []zed.Value) (zed.Value, error) {
+func (s *RuneLen) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("rune_len")
@@ -60,9 +62,10 @@ func (s *runeLen) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{zed.TypeInt64, s.Int(int64(v))}, nil
 }
 
-type toLower struct{}
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_lower
+type ToLower struct{}
 
-func (*toLower) Call(args []zed.Value) (zed.Value, error) {
+func (*ToLower) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("to_lower")
@@ -79,9 +82,10 @@ func (*toLower) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
 }
 
-type toUpper struct{}
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_upper
+type ToUpper struct{}
 
-func (*toUpper) Call(args []zed.Value) (zed.Value, error) {
+func (*ToUpper) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("to_upper")
@@ -98,9 +102,10 @@ func (*toUpper) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
 }
 
-type trim struct{}
+type Trim struct{}
 
-func (*trim) Call(args []zed.Value) (zed.Value, error) {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#trim
+func (*Trim) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("trim")
@@ -113,19 +118,20 @@ func (*trim) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
 }
 
-type split struct {
+// // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#split
+type Split struct {
 	zctx  *zed.Context
 	typ   zed.Type
 	bytes zcode.Bytes
 }
 
-func newSplit(zctx *zed.Context) *split {
-	return &split{
+func newSplit(zctx *zed.Context) *Split {
+	return &Split{
 		typ: zctx.LookupTypeArray(zed.TypeString),
 	}
 }
 
-func (s *split) Call(args []zed.Value) (zed.Value, error) {
+func (s *Split) Call(args []zed.Value) (zed.Value, error) {
 	zs := args[0]
 	zsep := args[1]
 	if !zs.IsStringy() || !zsep.IsStringy() {
@@ -151,12 +157,13 @@ func (s *split) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{s.typ, b}, nil
 }
 
-type join struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#join
+type Join struct {
 	bytes   zcode.Bytes
 	builder strings.Builder
 }
 
-func (j *join) Call(args []zed.Value) (zed.Value, error) {
+func (j *Join) Call(args []zed.Value) (zed.Value, error) {
 	zsplits := args[0]
 	typ, ok := zed.AliasOf(zsplits.Type).(*zed.TypeArray)
 	if !ok {

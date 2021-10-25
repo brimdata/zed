@@ -12,11 +12,12 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-type parseURI struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#parse_uri
+type ParseURI struct {
 	marshaler *zson.MarshalZNGContext
 }
 
-func (p *parseURI) Call(args []zed.Value) (zed.Value, error) {
+func (p *ParseURI) Call(args []zed.Value) (zed.Value, error) {
 	in := args[0]
 	if !in.IsStringy() {
 		return badarg("parse_uri: input must be string")
@@ -78,11 +79,12 @@ func (p *parseURI) Call(args []zed.Value) (zed.Value, error) {
 	return p.marshaler.Marshal(v)
 }
 
-type parseZSON struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#parse_zson
+type ParseZSON struct {
 	zctx *zed.Context
 }
 
-func (p *parseZSON) Call(args []zed.Value) (zed.Value, error) {
+func (p *ParseZSON) Call(args []zed.Value) (zed.Value, error) {
 	in := args[0]
 	if !in.IsStringy() {
 		return badarg("parse_zson: input must be string")

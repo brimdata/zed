@@ -7,11 +7,12 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 )
 
-type trunc struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#trunc
+type Trunc struct {
 	result.Buffer
 }
 
-func (t *trunc) Call(args []zed.Value) (zed.Value, error) {
+func (t *Trunc) Call(args []zed.Value) (zed.Value, error) {
 	tsArg := args[0]
 	binArg := args[1]
 	if tsArg.Bytes == nil || binArg.Bytes == nil {
