@@ -15,7 +15,7 @@ func TestReadOneLineNoEOF(t *testing.T) {
 	const expected = `{msg:"record1"}`
 	type result struct {
 		err error
-		rec *zed.Value
+		zv  *zed.Value
 	}
 	done := make(chan result)
 	go func() {
@@ -25,7 +25,7 @@ func TestReadOneLineNoEOF(t *testing.T) {
 		reader <- []byte(expected + "\n" + expected)
 		r := zson.NewReader(reader, zed.NewContext())
 		rec, err := r.Read()
-		done <- result{rec: rec, err: err}
+		done <- result{zv: rec, err: err}
 	}()
 	select {
 	// Because this test CAN deadlock fail after 5 seconds.
@@ -33,7 +33,7 @@ func TestReadOneLineNoEOF(t *testing.T) {
 		t.Fatal("testing did not complete in 5 seconds")
 	case res := <-done:
 		require.NoError(t, res.err)
-		rec := res.rec
+		rec := res.zv
 		assert.Equal(t, expected, rec.Type.Format(rec.Bytes))
 	}
 }

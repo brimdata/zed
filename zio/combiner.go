@@ -31,7 +31,7 @@ func NewCombiner(ctx context.Context, readers []Reader) *Combiner {
 type combinerResult struct {
 	err error
 	idx int
-	rec *zed.Value
+	zv  *zed.Value
 }
 
 func (c *Combiner) run() {
@@ -71,8 +71,8 @@ func (c *Combiner) Read() (*zed.Value, error) {
 				c.cancel()
 				return nil, r.err
 			}
-			if r.rec != nil {
-				return r.rec, nil
+			if r.zv != nil {
+				return r.zv, nil
 			}
 			c.done[r.idx] = true
 			if c.finished() {

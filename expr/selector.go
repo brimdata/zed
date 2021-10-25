@@ -12,7 +12,7 @@ type Selector struct {
 	cursor    []Evaluator
 	iter      zcode.Iter
 	iterCols  []zed.Column
-	rec       *zed.Value
+	zv        *zed.Value
 }
 
 func NewSelector(selectors []Evaluator) *Selector {
@@ -20,7 +20,7 @@ func NewSelector(selectors []Evaluator) *Selector {
 }
 
 func (s *Selector) Init(rec *zed.Value) {
-	s.rec = rec
+	s.zv = rec
 	s.cursor = s.selectors
 }
 
@@ -42,7 +42,7 @@ again:
 	if len(s.cursor) == 0 {
 		return zed.Value{}, nil
 	}
-	zv, err := s.cursor[0].Eval(s.rec)
+	zv, err := s.cursor[0].Eval(s.zv)
 	if err != nil {
 		return zed.Value{}, err
 	}

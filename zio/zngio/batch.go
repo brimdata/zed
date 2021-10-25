@@ -9,9 +9,9 @@ import (
 )
 
 type batch struct {
-	buf  *buffer
-	recs []zed.Value
-	refs int32
+	buf   *buffer
+	refs  int32
+	zvals []zed.Value
 }
 
 var _ zbuf.Batch = (*batch)(nil)
@@ -21,17 +21,17 @@ var batchPool sync.Pool
 func newBatch(buf *buffer) *batch {
 	b, ok := batchPool.Get().(*batch)
 	if !ok {
-		b = &batch{recs: make([]zed.Value, 200)}
+		b = &batch{zvals: make([]zed.Value, 200)}
 	}
 	b.buf = buf
-	b.recs = b.recs[:0]
 	b.refs = 1
+	b.zvals = b.zvals[:0]
 	return b
 }
 
-func (b *batch) add(r *zed.Value) { b.recs = append(b.recs, *r) }
+func (b *batch) add(r *zed.Value) { b.zvals = append(b.zvals, *r) }
 
-func (b *batch) Values() []zed.Value { return b.recs }
+func (b *batch) Values() []zed.Value { return b.zvals }
 
 func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }
 

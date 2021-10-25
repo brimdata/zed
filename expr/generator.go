@@ -14,7 +14,7 @@ type MapMethod struct {
 	src    Generator
 	dollar zed.Value
 	expr   Evaluator
-	rec    *zed.Value
+	zv     *zed.Value
 }
 
 func NewMapMethod(src Generator) *MapMethod {
@@ -30,7 +30,7 @@ func (m *MapMethod) Set(e Evaluator) {
 }
 
 func (m *MapMethod) Init(rec *zed.Value) {
-	m.rec = rec
+	m.zv = rec
 	m.src.Init(rec)
 }
 
@@ -40,14 +40,14 @@ func (m *MapMethod) Next() (zed.Value, error) {
 		return zv, err
 	}
 	m.dollar = zv
-	return m.expr.Eval(m.rec)
+	return m.expr.Eval(m.zv)
 }
 
 type FilterMethod struct {
 	src    Generator
 	dollar zed.Value
 	expr   Evaluator
-	rec    *zed.Value
+	zv     *zed.Value
 }
 
 func NewFilterMethod(src Generator) *FilterMethod {
@@ -63,7 +63,7 @@ func (f *FilterMethod) Set(e Evaluator) {
 }
 
 func (f *FilterMethod) Init(rec *zed.Value) {
-	f.rec = rec
+	f.zv = rec
 	f.src.Init(rec)
 }
 
@@ -74,7 +74,7 @@ func (f *FilterMethod) Next() (zed.Value, error) {
 			return zv, err
 		}
 		f.dollar = zv
-		b, err := f.expr.Eval(f.rec)
+		b, err := f.expr.Eval(f.zv)
 		if err != nil {
 			return zed.Value{}, err
 		}

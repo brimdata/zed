@@ -17,7 +17,7 @@ type WriterOpts struct {
 type Writer struct {
 	writer io.WriteCloser
 	opts   WriterOpts
-	recs   []interface{}
+	vals   []interface{}
 	size   int
 }
 
@@ -34,9 +34,9 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) *Writer {
 }
 
 func (w *Writer) Close() error {
-	var body interface{} = w.recs
-	if len(w.recs) == 1 && !w.opts.ForceArray {
-		body = w.recs[0]
+	body := interface{}(w.vals)
+	if len(w.vals) == 1 && !w.opts.ForceArray {
+		body = w.vals[0]
 	}
 	err := json.NewEncoder(w.writer).Encode(body)
 	if closeErr := w.writer.Close(); err == nil {
@@ -50,9 +50,9 @@ func (w *Writer) Write(rec *zed.Value) error {
 		return fmt.Errorf("JSON output buffer size exceeded: %d", w.size)
 	}
 	if alias, ok := rec.Type.(*zed.TypeAlias); ok {
-		w.recs = append(w.recs, &describe{alias.Name, rec.Keep()})
+		w.vals = append(w.vals, &describe{alias.Name, rec.Keep()})
 	} else {
-		w.recs = append(w.recs, rec.Keep())
+		w.vals = append(w.vals, rec.Keep())
 	}
 	w.size += len(rec.Bytes)
 	return nil
