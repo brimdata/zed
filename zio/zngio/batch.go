@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/zbuf"
 )
 
 type batch struct {
@@ -12,6 +13,8 @@ type batch struct {
 	recs []zed.Value
 	refs int32
 }
+
+var _ zbuf.Batch = (*batch)(nil)
 
 var batchPool sync.Pool
 
@@ -28,17 +31,7 @@ func newBatch(buf *buffer) *batch {
 
 func (b *batch) add(r *zed.Value) { b.recs = append(b.recs, *r) }
 
-func (b *batch) Index(i int) *zed.Value { return &b.recs[i] }
-
-func (b *batch) Length() int { return len(b.recs) }
-
-func (b *batch) Records() []*zed.Value {
-	var recs []*zed.Value
-	for i := range b.recs {
-		recs = append(recs, &b.recs[i])
-	}
-	return recs
-}
+func (b *batch) Values() []zed.Value { return b.recs }
 
 func (b *batch) Ref() { atomic.AddInt32(&b.refs, 1) }
 

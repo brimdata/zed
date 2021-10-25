@@ -12,10 +12,8 @@ type puller struct {
 	proc  proc.Interface
 	ctx   context.Context
 	ch    chan proc.Result
-	recs  []*zed.Value
+	recs  []zed.Value
 	batch zbuf.Batch
-	off   int
-	len   int
 }
 
 func newPuller(p proc.Interface, ctx context.Context) *puller {
@@ -52,8 +50,7 @@ func (p *puller) Pull() (zbuf.Batch, error) {
 }
 
 func (p *puller) Read() (*zed.Value, error) {
-	if p.off >= p.len {
-		// XXX last batch at EOS gets sent to GC
+	for len(p.recs) == 0 {
 		if p.batch != nil {
 			p.batch.Unref()
 		}
@@ -63,11 +60,10 @@ func (p *puller) Read() (*zed.Value, error) {
 			p.batch = nil
 			return nil, err
 		}
-		p.off = 0
-		p.len = p.batch.Length()
+		p.recs = p.batch.Values()
 	}
-	rec := p.batch.Index(p.off)
-	p.off++
+	rec := &p.recs[0]
+	p.recs = p.recs[1:]
 	return rec, nil
 }
 

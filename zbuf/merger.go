@@ -28,7 +28,7 @@ type Merger struct {
 type mergerPuller struct {
 	Puller
 	ch    chan batch
-	recs  []*zed.Value
+	recs  []zed.Value
 	batch Batch
 }
 
@@ -114,7 +114,7 @@ func (m *mergerPuller) next() *zed.Value {
 	rec := m.recs[0]
 	m.recs = m.recs[1:]
 	m.batch = nil
-	return rec
+	return &rec
 }
 
 func (m *Merger) findLeader() (int, error) {
@@ -137,13 +137,13 @@ func (m *Merger) findLeader() (int, error) {
 				// We're keeping records owned by res.Batch so don't call Unref.
 				// XXX this means the batch won't be returned to
 				// the pool and instead will run through GC.
-				p.recs = b.Batch.Records()
+				p.recs = b.Batch.Values()
 				p.batch = b.Batch
 			case <-m.ctx.Done():
 				return -1, m.ctx.Err()
 			}
 		}
-		if leader == -1 || m.cmp(p.recs[0], m.pullers[leader].recs[0]) < 0 {
+		if leader == -1 || m.cmp(&p.recs[0], &m.pullers[leader].recs[0]) < 0 {
 			leader = k
 		}
 	}
@@ -155,12 +155,12 @@ func (m *Merger) overlaps(leader int) bool {
 	if hol.batch == nil {
 		return true
 	}
-	last := hol.recs[len(hol.recs)-1]
+	last := &hol.recs[len(hol.recs)-1]
 	for k, p := range m.pullers {
 		if k == leader || p == nil {
 			continue
 		}
-		if m.cmp(last, p.recs[0]) > 0 {
+		if m.cmp(last, &p.recs[0]) > 0 {
 			return true
 		}
 	}

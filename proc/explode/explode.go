@@ -38,16 +38,17 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if proc.EOS(batch, err) {
 			return nil, err
 		}
-		recs := make([]*zed.Value, 0, batch.Length())
-		for _, rec := range batch.Records() {
+		zvals := batch.Values()
+		recs := make([]zed.Value, 0, len(zvals))
+		for i := range zvals {
 			for _, arg := range p.args {
-				zv, err := arg.Eval(rec)
+				zv, err := arg.Eval(&zvals[i])
 				if err != nil {
 					return nil, err
 				}
 				zed.Walk(zv.Type, zv.Bytes, func(typ zed.Type, body zcode.Bytes) error {
 					if typ == p.typ && body != nil {
-						recs = append(recs, p.builder.Build(body).Keep())
+						recs = append(recs, *p.builder.Build(body))
 						return zed.SkipContainer
 					}
 					return nil

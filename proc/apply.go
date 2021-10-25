@@ -38,10 +38,10 @@ func (a *applier) Pull() (zbuf.Batch, error) {
 			}
 			return nil, err
 		}
-		recs := make([]*zed.Value, 0, batch.Length())
-		for k := 0; k < batch.Length(); k++ {
-			in := batch.Index(k)
-			out, err := a.function.Apply(in)
+		zvals := batch.Values()
+		recs := make([]zed.Value, 0, len(zvals))
+		for i := range zvals {
+			out, err := a.function.Apply(&zvals[i])
 			if err != nil {
 				a.maybeWarn(err.Error())
 				continue
@@ -49,7 +49,7 @@ func (a *applier) Pull() (zbuf.Batch, error) {
 			if out != nil {
 				// Keep is necessary because Apply can return
 				// its argument.
-				recs = append(recs, out.Keep())
+				recs = append(recs, *out.Keep())
 			}
 		}
 		batch.Unref()

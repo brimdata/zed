@@ -214,8 +214,9 @@ func (d *CLI) Write(cid int, batch zbuf.Batch) error {
 	if len(d.writers) == 1 {
 		cid = 0
 	}
-	for _, r := range batch.Records() {
-		if err := d.writers[cid].Write(r); err != nil {
+	zvals := batch.Values()
+	for i := range zvals {
+		if err := d.writers[cid].Write(&zvals[i]); err != nil {
 			return err
 		}
 	}
@@ -243,8 +244,9 @@ func (d *transformDriver) Write(cid int, batch zbuf.Batch) error {
 	if cid != 0 {
 		return errors.New("transform proc with multiple tails")
 	}
-	for i := 0; i < batch.Length(); i++ {
-		if err := d.w.Write(batch.Index(i)); err != nil {
+	zvals := batch.Values()
+	for i := range zvals {
+		if err := d.w.Write(&zvals[i]); err != nil {
 			return err
 		}
 	}
@@ -300,12 +302,13 @@ next:
 			return nil, r.err
 		}
 	}
-	if r.index >= r.batch.Length() {
+	zvals := r.batch.Values()
+	if r.index >= len(zvals) {
 		r.batch.Unref()
 		r.batch, r.index = nil, 0
 		goto next
 	}
-	rec := r.batch.Index(r.index)
+	rec := &zvals[r.index]
 	r.index++
 	return rec, nil
 }

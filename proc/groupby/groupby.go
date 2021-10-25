@@ -188,8 +188,9 @@ func (p *Proc) run() {
 				p.sendResult(b, err)
 			}
 		}
-		for k := 0; k < batch.Length(); k++ {
-			if err := p.agg.Consume(batch.Index(k)); err != nil {
+		zvals := batch.Values()
+		for i := range zvals {
+			if err := p.agg.Consume(&zvals[i]); err != nil {
 				batch.Unref()
 				p.shutdown(err)
 				return
@@ -209,7 +210,7 @@ func (p *Proc) run() {
 			if res == nil {
 				break
 			}
-			expr.SortStable(res.Records(), p.agg.keyCompare)
+			expr.SortStable(res.Values(), p.agg.keyCompare)
 			p.sendResult(res, nil)
 		}
 	}
@@ -321,13 +322,13 @@ func (a *Aggregator) spillTable(eof bool) error {
 			return err
 		}
 	}
-	recs := batch.Records()
+	recs := batch.Values()
 	// Note that this will sort recs according to g.keysCompare.
 	if err := a.spiller.Spill(a.ctx, recs); err != nil {
 		return err
 	}
 	if !eof && a.inputDir != 0 {
-		v, err := a.keyExprs[0].Eval(recs[len(recs)-1])
+		v, err := a.keyExprs[0].Eval(&recs[len(recs)-1])
 		if err != nil {
 			return err
 		}
@@ -373,7 +374,7 @@ func (a *Aggregator) Results(eof bool) (zbuf.Batch, error) {
 }
 
 func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
-	recs := make([]*zed.Value, 0, proc.BatchLen)
+	recs := make([]zed.Value, 0, proc.BatchLen)
 	if !eof && a.inputDir == 0 {
 		return nil, nil
 	}
@@ -401,7 +402,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 		if rec == nil {
 			break
 		}
-		recs = append(recs, rec)
+		recs = append(recs, *rec)
 	}
 	if len(recs) == 0 {
 		return nil, nil
@@ -485,7 +486,7 @@ func (a *Aggregator) nextResultFromSpills() (*zed.Value, error) {
 // If partialsOut is true, it returns partial aggregation results as
 // defined by each agg.Function.ResultAsPartial() method.
 func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
-	var recs []*zed.Value
+	var recs []zed.Value
 	for key, row := range a.table {
 		if !flush && a.valueCompare == nil {
 			panic("internal bug: tried to fetch completed tuples on non-sorted input")
@@ -535,7 +536,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 		if err != nil {
 			return nil, err
 		}
-		recs = append(recs, zed.NewValue(typ, zv))
+		recs = append(recs, *zed.NewValue(typ, zv))
 		// Delete entries from the table as we create records, so
 		// the freed enries can be GC'd incrementally as we shift
 		// state from the table to the records.  Otherwise, when

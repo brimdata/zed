@@ -61,10 +61,9 @@ func (p *Proc) pullInput() error {
 
 func (p *Proc) writeBatch(batch zbuf.Batch) error {
 	defer batch.Unref()
-	l := batch.Length()
-	for i := 0; i < l; i++ {
-		rec := batch.Index(i)
-		if err := p.shaper.Write(rec); err != nil {
+	zvals := batch.Values()
+	for i := range zvals {
+		if err := p.shaper.Write(&zvals[i]); err != nil {
 			return err
 		}
 	}

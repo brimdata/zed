@@ -59,7 +59,7 @@ func (r *MergeSort) Cleanup() {
 // temp directory.  Since we sort each chunk in memory before spilling, the
 // different chunks can be easily merged into sorted order when reading back
 // the chunks sequentially.
-func (r *MergeSort) Spill(ctx context.Context, recs []*zed.Value) error {
+func (r *MergeSort) Spill(ctx context.Context, recs []zed.Value) error {
 	// Sorting can be slow, so check for cancellation.
 	if err := goWithContext(ctx, func() {
 		expr.SortStable(recs, r.compareFn)

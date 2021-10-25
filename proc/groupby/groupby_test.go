@@ -259,9 +259,10 @@ type testGroupByDriver struct {
 }
 
 func (d *testGroupByDriver) Write(cid int, batch zbuf.Batch) error {
-	for _, r := range batch.Records() {
+	zvals := batch.Values()
+	for i := range zvals {
 		d.n++
-		if err := d.writer.Write(r); err != nil {
+		if err := d.writer.Write(&zvals[i]); err != nil {
 			return err
 		}
 	}

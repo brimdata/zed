@@ -44,7 +44,7 @@ func (p *Proc) wrap(t *zed.Value) *zed.Value {
 	return t
 }
 
-func (p *Proc) appendUniq(out []*zed.Value, t *zed.Value) []*zed.Value {
+func (p *Proc) appendUniq(out []zed.Value, t *zed.Value) []zed.Value {
 	if p.count == 0 {
 		p.last = t.Keep()
 		p.count = 1
@@ -53,7 +53,7 @@ func (p *Proc) appendUniq(out []*zed.Value, t *zed.Value) []*zed.Value {
 		p.count++
 		return out
 	}
-	out = append(out, p.wrap(p.last))
+	out = append(out, *p.wrap(p.last))
 	p.last = t.Keep()
 	p.count = 1
 	return out
@@ -73,11 +73,12 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			}
 			t := p.wrap(p.last)
 			p.last = nil
-			return zbuf.Array{t}, nil
+			return zbuf.Array{*t}, nil
 		}
-		var out []*zed.Value
-		for k := 0; k < batch.Length(); k++ {
-			out = p.appendUniq(out, batch.Index(k))
+		var out []zed.Value
+		zvals := batch.Values()
+		for i := range zvals {
+			out = p.appendUniq(out, &zvals[i])
 		}
 		batch.Unref()
 		if len(out) > 0 {

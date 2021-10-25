@@ -61,7 +61,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		go p.left.run()
 		go p.right.Reader.(*puller).run()
 	})
-	var out []*zed.Value
+	var out []zed.Value
 	for {
 		leftRec, err := p.left.Read()
 		if err != nil {
@@ -91,7 +91,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			// Nothing to add to the left join.
 			// Accumulate this record for an outer join.
 			if !p.inner {
-				out = append(out, leftRec.Keep())
+				out = append(out, *leftRec.Keep())
 			}
 			continue
 		}
@@ -116,7 +116,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			if err != nil {
 				return nil, err
 			}
-			out = append(out, rec)
+			out = append(out, *rec)
 		}
 	}
 }
