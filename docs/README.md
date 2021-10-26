@@ -10,3 +10,4 @@
 * [Zed Language Overview](language)
 * [Zed Lake Design](lake)
 * [Zed Formats](formats)
+* [Zed Interoperability with Zeek Logs](zeek)

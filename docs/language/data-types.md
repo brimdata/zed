@@ -7,8 +7,8 @@ in progress. In the meantime, here's a few tips to get started with.
   data types described in the
   [Primitive Values](../formats/zson.md#33-primitive-values) section of the
   ZSON spec.
-* Users of [Zeek](../../zeek/README.md) logs should review the
-  [Equivalent Types](../../zeek/Data-Type-Compatibility.md#equivalent-types)
+* Users of [Zeek](../zeek/README.md) logs should review the
+  [Equivalent Types](../zeek/Data-Type-Compatibility.md#equivalent-types)
   table for details on which Zed data types correspond to the
   [data types](https://docs.zeek.org/en/current/script-reference/types.html)
   that appear in Zeek logs.

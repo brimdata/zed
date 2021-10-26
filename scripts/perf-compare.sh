@@ -91,7 +91,7 @@ do
         if [[ $OUTPUT == "zng-uncompressed" ]]; then
           ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f zng -znglz4blocksize 0 "$zed" $DATA/$INPUT/* > /dev/null) 2>&1)
         elif [[ $INPUT == "ndjson" ]] && [[ $OUTPUT == "zeek" ]]; then
-          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f "$OUTPUT" -I ../zeek/shaper.zed "| $zed" $DATA/$INPUT/* > /dev/null) 2>&1)
+          ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f "$OUTPUT" -I ../docs/zeek/shaper.zed "| $zed" $DATA/$INPUT/* > /dev/null) 2>&1)
         else
           ALL_TIMES=$(time -p (zq -i "$INPUT_FMT" -f "$OUTPUT" "$zed" $DATA/$INPUT/* > /dev/null) 2>&1)
         fi

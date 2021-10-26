@@ -88,7 +88,7 @@ The bulk of this Zed shaper consists of detailed per-field data type
 definitions for each record in the default set of NDJSON logs output by Zeek.
 These type definitions reference the types we defined above, such as `port`
 and `conn_id`. The syntax for defining primitive and complex types follows the
-relevant sections of the [ZSON Format](../docs/formats/zson.md#3-the-zson-format)
+relevant sections of the [ZSON Format](../formats/zson.md#3-the-zson-format)
 specification.
 
 ```
@@ -193,7 +193,7 @@ A shaper is typically invoked via the `-I` option of `zq`.
 
 For example, if working in a directory containing many NDJSON logs, the
 reference shaper can be applied to all the records they contain and
-output them all in a single binary [ZNG](../docs/formats/zng.md) file as
+output them all in a single binary [ZNG](../formats/zng.md) file as
 follows:
 
 ```
