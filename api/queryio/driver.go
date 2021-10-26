@@ -55,14 +55,8 @@ func (d *Driver) Write(cid int, batch zbuf.Batch) error {
 			return err
 		}
 	}
-	zvals := batch.Values()
-	for i := range zvals {
-		if err := d.writer.Write(&zvals[i]); err != nil {
-			return err
-		}
-	}
-	batch.Unref()
-	return nil
+	defer batch.Unref()
+	return zbuf.WriteBatch(d.writer, batch)
 }
 
 func (d *Driver) ChannelEnd(channelID int) error {

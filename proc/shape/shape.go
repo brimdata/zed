@@ -53,21 +53,11 @@ func (p *Proc) pullInput() error {
 		if err != nil || batch == nil {
 			return err
 		}
-		if err := p.writeBatch(batch); err != nil {
+		if err := zbuf.WriteBatch(p.shaper, batch); err != nil {
 			return err
 		}
+		batch.Unref()
 	}
-}
-
-func (p *Proc) writeBatch(batch zbuf.Batch) error {
-	defer batch.Unref()
-	zvals := batch.Values()
-	for i := range zvals {
-		if err := p.shaper.Write(&zvals[i]); err != nil {
-			return err
-		}
-	}
-	return nil
 }
 
 func (p *Proc) pushOutput() error {
