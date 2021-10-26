@@ -5,9 +5,9 @@ import (
 	"net"
 	"unicode/utf8"
 
+	"github.com/araddon/dateparse"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
-	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/nano"
 )
@@ -172,9 +172,36 @@ func castToDuration(zv zed.Value) (zed.Value, error) {
 }
 
 func castToTime(zv zed.Value) (zed.Value, error) {
-	ts, err := function.CastToTime(zv)
-	if err != nil {
-		return zed.NewError(err), nil
+	id := zv.Type.ID()
+	var ts nano.Ts
+	switch {
+	case zv.Bytes == nil:
+		// Do nothing. Any nil value is cast to a zero time.
+	case zed.IsStringy(id):
+		gotime, err := dateparse.ParseAny(byteconv.UnsafeString(zv.Bytes))
+		if err != nil {
+			sec, ferr := byteconv.ParseFloat64(zv.Bytes)
+			if ferr != nil {
+				return zed.NewError(err), nil
+			}
+			ts = nano.Ts(1e9 * sec)
+		} else {
+			ts = nano.Ts(gotime.UnixNano())
+		}
+	case zed.IsFloat(id):
+		sec, err := zed.DecodeFloat(zv.Bytes)
+		if err != nil {
+			return zed.Value{}, err
+		}
+		ts = nano.Ts(sec * 1e9)
+	case zed.IsInteger(id):
+		sec, ok := coerce.ToInt(zv)
+		if !ok {
+			return zed.NewErrorf("cannot convert value of type %s to time", zv.Type), nil
+		}
+		ts = nano.Ts(sec * 1e9)
+	default:
+		return zed.NewErrorf("cannot convert value of type %s to time", zv.Type), nil
 	}
 	return zed.Value{zed.TypeTime, zed.EncodeTime(ts)}, nil
 }

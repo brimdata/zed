@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/function"
-	"github.com/brimdata/zed/pkg/nano"
 )
 
 func namedErrBadArgument(name string) error {
@@ -166,20 +165,4 @@ func TestLen(t *testing.T) {
 	testSuccessful(t, `rune_len(s)`, record, zint64(1))
 	testSuccessful(t, `rune_len(bs)`, record, zint64(1))
 	testSuccessful(t, `rune_len(bs2)`, record, zint64(4))
-}
-
-func TestTime(t *testing.T) {
-	// These represent the same time (Tue, 26 May 2020 15:27:47.967 in GMT)
-	iso := "2020-05-26T15:27:47.967Z"
-	msec := 1590506867_967
-	nsec := msec * 1_000_000
-	zval := zed.Value{zed.TypeTime, zed.EncodeTime(nano.Ts(nsec))}
-
-	exp := fmt.Sprintf(`iso("%s")`, iso)
-	testSuccessful(t, exp, "", zval)
-
-	testSuccessful(t, "trunc(1590506867.967, 1)", "", zed.Value{zed.TypeTime, zed.EncodeTime(nano.Ts(1590506867 * 1_000_000_000))})
-
-	testError(t, "iso()", function.ErrTooFewArgs, "iso() with no args")
-	testError(t, `iso("abc", "def")`, function.ErrTooManyArgs, "iso() with too many args")
 }

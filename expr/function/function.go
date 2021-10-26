@@ -74,8 +74,6 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 		f = &toUpper{}
 	case "trim":
 		f = &trim{}
-	case "iso":
-		f = &iso{}
 	case "split":
 		argmin = 2
 		argmax = 2
