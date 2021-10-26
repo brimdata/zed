@@ -19,9 +19,7 @@ import (
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zqe"
-	"go.uber.org/zap"
 )
 
 func handleQuery(c *Core, w *ResponseWriter, r *Request) {
@@ -55,34 +53,6 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	if err != nil && !errors.Is(err, journal.ErrEmpty) {
 		d.Error(err)
 	}
-}
-
-func handlePoolListDeprecated(c *Core, w *ResponseWriter, r *Request) {
-	zw := w.ZioWriterWithOpts(anyio.WriterOpts{JSON: jsonio.WriterOpts{ForceArray: true}})
-	if zw == nil {
-		return
-	}
-	if err := c.root.ScanPoolsDeprecated(r.Context(), zw); err != nil {
-		r.Logger.Warn("Error scanning pools", zap.Error(err))
-		return
-	}
-	zw.Close()
-}
-
-func handlePoolGetDeprecated(c *Core, w *ResponseWriter, r *Request) {
-	id, ok := r.PoolID(w, c.root)
-	if !ok {
-		return
-	}
-	pool, err := c.root.OpenPool(r.Context(), id)
-	if errors.Is(err, pools.ErrNotFound) {
-		err = zqe.ErrNotFound("pool %q not found", id)
-	}
-	if err != nil {
-		w.Error(err)
-		return
-	}
-	w.Respond(http.StatusOK, pool.Config)
 }
 
 func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {

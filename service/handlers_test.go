@@ -159,11 +159,12 @@ func TestNoEndSlashSupport(t *testing.T) {
 
 func TestRequestID(t *testing.T) {
 	ctx := context.Background()
+	pools := api.QueryRequest{Query: "from :pools"}
 	t.Run("GeneratesUniqueID", func(t *testing.T) {
 		_, conn := newCore(t)
-		res1, err := conn.Do(conn.NewRequest(ctx, "GET", "/pool", nil))
+		res1, err := conn.Do(conn.NewRequest(ctx, "POST", "/query", pools))
 		require.NoError(t, err)
-		res2, err := conn.Do(conn.NewRequest(ctx, "GET", "/pool", nil))
+		res2, err := conn.Do(conn.NewRequest(ctx, "POST", "/query", pools))
 		require.NoError(t, err)
 		assert.NotEqual(t, "", res1.Header.Get("X-Request-ID"))
 		assert.NotEqual(t, "", res2.Header.Get("X-Request-ID"))
@@ -171,7 +172,7 @@ func TestRequestID(t *testing.T) {
 	t.Run("PropagatesID", func(t *testing.T) {
 		_, conn := newCore(t)
 		requestID := "random-request-ID"
-		req := conn.NewRequest(context.Background(), "GET", "/pool", nil)
+		req := conn.NewRequest(context.Background(), "POST", "/query", pools)
 		req.Header.Set("X-Request-ID", requestID)
 		res, err := conn.Do(req)
 		require.NoError(t, err)
