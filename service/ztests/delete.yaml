@@ -9,8 +9,6 @@ script: |
   id=$(zed lake query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")
   zed lake delete -q $id
   zed lake query -z "*"
-
-
 inputs:
   - name: service.sh
   - name: 1.zson
