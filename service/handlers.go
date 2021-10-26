@@ -402,13 +402,9 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	var args []string
-	if !r.Unmarshal(w, &args) {
+	var payload api.DeleteRequest
+	if !r.Unmarshal(w, &payload) {
 		return
-	}
-	tags, err := lakeparse.ParseIDs(args)
-	if err != nil {
-		w.Error(zqe.ErrInvalid(err))
 	}
 	pool, err := c.root.OpenPool(r.Context(), poolID)
 	if err != nil {
@@ -420,7 +416,7 @@ func handleDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	ids, err := branch.LookupTags(r.Context(), tags)
+	ids, err := branch.LookupTags(r.Context(), payload.ObjectIDs)
 	if err != nil {
 		w.Error(err)
 		return

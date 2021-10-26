@@ -54,6 +54,10 @@ type BranchMergeRequest struct {
 	At string `json:"at"`
 }
 
+type DeleteRequest struct {
+	ObjectIDs []ksuid.KSUID `zed:"object_ids"`
+}
+
 type CommitMessage struct {
 	Author string `zed:"author"`
 	Body   string `zed:"body"`

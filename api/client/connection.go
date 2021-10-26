@@ -328,7 +328,7 @@ func encodeCommitMessage(req *Request, message api.CommitMessage) error {
 
 func (c *Connection) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (api.CommitResponse, error) {
 	path := urlPath("pool", poolID.String(), "branch", branchName, "delete")
-	req := c.NewRequest(ctx, http.MethodPost, path, ids)
+	req := c.NewRequest(ctx, http.MethodPost, path, api.DeleteRequest{ids})
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err
 	}

@@ -1,0 +1,26 @@
+script: |
+  source service.sh
+  zapi create -q test
+  zapi use -q test@main
+  zapi load -q 1.zson
+  zapi load -q 2.zson
+  zapi query -z "*"
+  echo ===
+  id=$(zapi query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")
+  zapi delete -q $id
+  zapi query -z "*"
+
+inputs:
+  - name: service.sh
+  - name: 1.zson
+    data: "{x:1}"
+  - name: 2.zson
+    data: "{x:2}"
+
+outputs:
+  - name: stdout
+    data: |
+      {x:2}
+      {x:1}
+      ===
+      {x:1}
