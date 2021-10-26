@@ -1,14 +1,15 @@
 script: |
   source service.sh
-  zed lake create -q test
-  zed lake use -q test@main
-  zed lake load -q 1.zson
-  zed lake load -q 2.zson
-  zed lake query -z "*"
+  zapi create -q test
+  zapi use -q test@main
+  zapi load -q 1.zson
+  zapi load -q 2.zson
+  zapi query -z "*"
   echo ===
-  id=$(zed lake query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")
-  zed lake delete -q $id
-  zed lake query -z "*"
+  id=$(zapi query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")
+  zapi delete -q $id
+  zapi query -z "*"
+
 inputs:
   - name: service.sh
   - name: 1.zson
