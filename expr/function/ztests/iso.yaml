@@ -1,8 +1,0 @@
-zed: |
-  put z:=iso(z), offsetWithoutColon:=iso(offsetWithoutColon), offsetWithColon:=iso(offsetWithColon)
-
-input: |
-  {"z": "2018-03-24T17:15:21.255387Z", "offsetWithoutColon": "2015-03-05T16:07:13.154566+0100", "offsetWithColon": "2015-03-05T16:07:13.154566+01:00"}
-
-output: |
-  {z:2018-03-24T17:15:21.255387Z,offsetWithoutColon:2015-03-05T15:07:13.154566Z,offsetWithColon:2015-03-05T15:07:13.154566Z}
