@@ -3,10 +3,10 @@ script: |
   zapi create -q test
   zapi use -q test@main
   zapi load -q 1.zson
+  id=$(zapi query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")
   zapi load -q 2.zson
   zapi query -z "*"
   echo ===
-  id=$(zapi query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")
   zapi delete -q $id
   zapi query -z "*"
 
@@ -23,4 +23,4 @@ outputs:
       {x:2}
       {x:1}
       ===
-      {x:1}
+      {x:2}
