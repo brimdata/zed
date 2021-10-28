@@ -403,12 +403,6 @@ func compileCall(zctx *zed.Context, scope *Scope, call dag.Call) (expr.Evaluator
 		return cut, nil
 	case call.Name == "pick":
 		return compileCutter(zctx, scope, call)
-	case call.Name == "exists":
-		exprs, err := compileExprs(zctx, scope, call.Args)
-		if err != nil {
-			return nil, fmt.Errorf("exists(): bad argument: %w", err)
-		}
-		return expr.NewExists(zctx, exprs), nil
 	case call.Name == "missing":
 		exprs, err := compileExprs(zctx, scope, call.Args)
 		if err != nil {

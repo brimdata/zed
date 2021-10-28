@@ -13,6 +13,14 @@ func IsTrue(zv zcode.Bytes) bool {
 	return zv[0] != 0
 }
 
+// Not returns the inverse Value of the boolean typed bytes value of zv.
+func Not(zv zcode.Bytes) Value {
+	if IsTrue(zv) {
+		return False
+	}
+	return True
+}
+
 func NewBool(b bool) Value {
 	return Value{TypeBool, EncodeBool(b)}
 }
