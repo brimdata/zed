@@ -3,7 +3,6 @@ package zcode
 import (
 	"encoding/binary"
 	"fmt"
-	"io"
 )
 
 // Iter iterates over the sequence of values encoded in Bytes.
@@ -49,25 +48,4 @@ func (i *Iter) NextTagAndBody() (Bytes, bool, error) {
 	val := (*i)[:n]
 	*i = (*i)[n:]
 	return Bytes(val), tagIsContainer(u64), nil
-}
-
-// Read is like Iter.Next() except input comes from io.ByteReader.
-func Read(r io.ByteReader) (Bytes, bool, error) {
-	u64, err := binary.ReadUvarint(r)
-	if err != nil {
-		return nil, false, err
-	}
-	if tagIsNull(u64) {
-		return nil, false, nil
-	}
-	n := tagLength(u64)
-	out := make([]byte, 0, n)
-	for k := 0; k < n; k++ {
-		b, err := r.ReadByte()
-		if err != nil {
-			return nil, false, err
-		}
-		out = append(out, b)
-	}
-	return Bytes(out), tagIsContainer(u64), nil
 }
