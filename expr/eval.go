@@ -743,49 +743,6 @@ func (t *TypeFunc) Eval(rec *zed.Value) (zed.Value, error) {
 	return t.zv, nil
 }
 
-type Exists struct {
-	zctx  *zed.Context
-	exprs []Evaluator
-}
-
-func NewExists(zctx *zed.Context, exprs []Evaluator) *Exists {
-	return &Exists{
-		zctx:  zctx,
-		exprs: exprs,
-	}
-}
-
-func (e *Exists) Eval(rec *zed.Value) (zed.Value, error) {
-	for _, expr := range e.exprs {
-		zv, err := expr.Eval(rec)
-		if err != nil || zv.Type == zed.TypeError {
-			return zed.False, nil
-		}
-	}
-	return zed.True, nil
-}
-
-type Missing struct {
-	exprs []Evaluator
-}
-
-func NewMissing(exprs []Evaluator) *Missing {
-	return &Missing{exprs}
-}
-
-func (m *Missing) Eval(rec *zed.Value) (zed.Value, error) {
-	for _, e := range m.exprs {
-		zv, err := e.Eval(rec)
-		if err == zed.ErrMissing || zed.IsMissing(zv) {
-			return zed.True, nil
-		}
-		if err != nil {
-			return zed.Value{}, err
-		}
-	}
-	return zed.False, nil
-}
-
 type Has struct {
 	exprs []Evaluator
 }
@@ -796,14 +753,34 @@ func NewHas(exprs []Evaluator) *Has {
 
 func (h *Has) Eval(rec *zed.Value) (zed.Value, error) {
 	for _, e := range h.exprs {
-		if _, err := e.Eval(rec); err != nil {
-			if err == zed.ErrMissing {
-				return zed.False, nil
-			}
+		zv, err := e.Eval(rec)
+		if errors.Is(err, zed.ErrMissing) || zed.IsMissing(zv) {
+			return zed.False, nil
+		}
+		if err != nil {
 			return zed.Value{}, err
+		}
+		if zv.Type == zed.TypeError {
+			return zv, nil
 		}
 	}
 	return zed.True, nil
+}
+
+type Missing struct {
+	has *Has
+}
+
+func NewMissing(exprs []Evaluator) *Missing {
+	return &Missing{NewHas(exprs)}
+}
+
+func (m *Missing) Eval(rec *zed.Value) (zed.Value, error) {
+	zv, err := m.has.Eval(rec)
+	if zv.Type == zed.TypeBool {
+		zv = zed.Not(zv.Bytes)
+	}
+	return zv, err
 }
 
 func NewCast(expr Evaluator, typ zed.Type) (Evaluator, error) {
