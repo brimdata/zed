@@ -36,13 +36,14 @@ func handleQuery(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
-	format, err := api.MediaTypeToFormat(r.Header.Get("Accept"))
-	if err != nil {
-		if !errors.Is(err, api.ErrMediaTypeUnspecified) {
-			w.Error(zqe.ErrInvalid(err))
-			return
-		}
-		format = "zjson"
+	accept := r.Header.Get("Accept")
+	if accept == "" || accept == api.MediaTypeAny {
+		accept = api.MediaTypeZSON
+	}
+	format, err := api.MediaTypeToFormat(accept)
+	if err != nil && !errors.Is(err, api.ErrMediaTypeUnspecified) {
+		w.Error(zqe.ErrInvalid(err))
+		return
 	}
 	d, err := queryio.NewDriver(zio.NopCloser(w), format, !noctrl)
 	if err != nil {
