@@ -29,7 +29,7 @@ var Cmd = &charm.Spec{
 	Short: "inspect Zed language abstract syntax trees and compiler stages",
 	Long: `
 The "zed compile" command parses a Zed expression and prints the resulting abstract syntax
-tree as JSON object to standard output.  If you have istalled the
+tree as JSON object to standard output.  If you have installed the
 shortcuts, "zc" is a short cut for the "zed compile" command.
 
 "zed compile" is a tool for dev and test,

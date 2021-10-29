@@ -32,7 +32,7 @@ var Cmd = &charm.Spec{
 	Long: `
 "zed query" is a command for searching and analyzing data using the zed language
 (including the experimental SQL subset embedded in the zed language).
-If you have istalled the shortcuts, "zq" is a shortcut for the "zed query" command.
+If you have installed the shortcuts, "zq" is a shortcut for the "zed query" command.
 
 "zed query" applies boolean logic
 to filter each input value, optionally computes analytics and transformations,
