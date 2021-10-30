@@ -293,13 +293,13 @@ count() where acme.com or google.com
 ```
 Consider another examples
 ```
-* | put isConn=_path=conn, isSSL=_path=ssl, portsMatch=id.orig_h=id.orig_p | ...
+put isConn=_path=conn, isSSL=_path=ssl, portsMatch=id.orig_h=id.orig_p | ...
 ```
 Here, `=` means two different things (assignment and comparison).  The parse
 knows by context which is which but it can look a bit funny.  This might
 make more sense:
 ```
-* | put isConn=_path==conn, isSSL=_path==ssl, portsMatch=id.orig_h==id.orig_p | ...
+put isConn=_path==conn, isSSL=_path==ssl, portsMatch=id.orig_h==id.orig_p | ...
 ```
 But now, we don't want to have to say this...
 ```
@@ -360,18 +360,18 @@ search predicates.
 That said, keyword search does not appear in expression context.
 e.g.,
 ```
-* | put x=foo
+put x=foo
 ```
 means assign the field foo to x.  The RHS is never a keyword search resulting
 in a boolean for matches to the word "foo".   That said, search syntax can
 appear inside of an expression with the explicit use of the `match` function,
 e.g.,
 ```
-* | put foundIt=match(foo)
+put foundIt=match(foo)
 ```
 or from our example above...
 ```
-* | put foundIt=match("John Smith" (acme.com OR gmail.com))
+put foundIt=match("John Smith" (acme.com OR gmail.com))
 ```
 
 > Note: we may want to make `put x=foo==bar` treat bar as a string to be
@@ -650,7 +650,7 @@ in the Zed:
 ```
 let port = uint16
 let socket = {orig_h:ip,orig_p:port,resp_h:ip,resp_p:port}
-* | put hasSocket=id.is(socket)
+put hasSocket=id.is(socket)
 ```
 
 We should have methods for all of this so we could say `.is(string)`
