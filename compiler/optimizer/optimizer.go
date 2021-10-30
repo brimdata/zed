@@ -2,7 +2,6 @@ package optimizer
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"github.com/brimdata/zed/compiler/ast/dag"
@@ -20,16 +19,13 @@ type Optimizer struct {
 	layouts map[dag.Source]order.Layout
 }
 
-func New(ctx context.Context, entry *dag.Sequential, adaptor proc.DataAdaptor) (*Optimizer, error) {
-	if _, ok := entry.Ops[0].(*dag.From); !ok {
-		return nil, errors.New("DAG entry point is not a 'from' operator")
-	}
+func New(ctx context.Context, entry *dag.Sequential, adaptor proc.DataAdaptor) *Optimizer {
 	return &Optimizer{
 		ctx:     ctx,
 		entry:   entry,
 		adaptor: adaptor,
 		layouts: make(map[dag.Source]order.Layout),
-	}, nil
+	}
 }
 
 func (o *Optimizer) Entry() *dag.Sequential {
@@ -43,6 +39,9 @@ func (o *Optimizer) Entry() *dag.Sequential {
 // source's pushdown predicate.  This should be called before ParallelizeScan().
 // TBD: we need to do pushdown for search/cut to optimize columnar extraction.
 func (o *Optimizer) OptimizeScan() error {
+	if _, ok := o.entry.Ops[0].(*dag.From); !ok {
+		return nil
+	}
 	seq := o.entry
 	o.propagateScanOrder(seq, order.Nil)
 	from := seq.Ops[0].(*dag.From)
@@ -209,7 +208,10 @@ func (o *Optimizer) Parallelize(n int) error {
 		return fmt.Errorf("parallelization factor too big: %d", n)
 	}
 	seq := o.entry
-	from := seq.Ops[0].(*dag.From)
+	from, ok := seq.Ops[0].(*dag.From)
+	if !ok {
+		return nil
+	}
 	trunks := poolTrunks(from)
 	if len(trunks) == 1 {
 		quietCuts(trunks[0])

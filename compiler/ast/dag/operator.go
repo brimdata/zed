@@ -261,8 +261,21 @@ func (seq *Sequential) IsEntry() bool {
 	if len(seq.Ops) == 0 {
 		return false
 	}
-	_, ok := seq.Ops[0].(*From)
-	return ok
+	switch op := seq.Ops[0].(type) {
+	case *From:
+		return true
+	case *Parallel:
+		if len(op.Ops) == 0 {
+			return false
+		}
+		for _, o := range op.Ops {
+			if s, ok := o.(*Sequential); !ok || !s.IsEntry() {
+				return false
+			}
+		}
+		return true
+	}
+	return false
 }
 
 func (seq *Sequential) Prepend(front Op) {

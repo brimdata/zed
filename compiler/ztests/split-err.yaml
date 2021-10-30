@@ -1,0 +1,13 @@
+script: |
+  ! zq '
+    split (
+      => pass;
+      => from (file /dev/null => pass;);
+    )
+  ' /dev/null
+
+
+outputs:
+  - name: stderr
+    data: |
+      upstream data source blocked by 'from operator'

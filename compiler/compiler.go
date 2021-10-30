@@ -31,12 +31,13 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lak
 	parserAST := ast.Copy(inAST)
 	constsAST := semantic.LiftConsts(parserAST)
 	// An AST always begins with a Sequential proc with at least one
-	// proc.  If the first proc is a From, then we presume there is no
-	// externally defined input.  Otherwise, we expect two readers
+	// proc.  If the first proc is a From or a Parallel whose branches
+	// are Sequentials with a leading From, then we presume there is
+	// no externally defined input.  Otherwise, we expect two readers
 	// to be defined for a Join and one reader for anything else.  When input
 	// is expected like this, we set up one or two readers inside of an
-	// autamitcally inserted From.  These readers can be accessed by the
-	// caller via runtime.readers.  In all cases, the AST is left
+	// automatically inserted From.  These readers can be accessed by the
+	// caller via runtime.readers.  In most cases, the AST is left
 	// with an ast.From at the entry point, and hence a dag.From for the
 	// DAG's entry point.
 	seq, ok := parserAST.(*ast.Sequential)
@@ -65,20 +66,6 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lak
 			Kind:   "From",
 			Trunks: []ast.Trunk{trunk0, trunk1},
 		}
-	case *ast.Parallel:
-		readers = make([]*kernel.Reader, len(proc.Procs))
-		trunks := make([]ast.Trunk, len(proc.Procs))
-		for k := range proc.Procs {
-			readers[k] = &kernel.Reader{}
-			trunks[k] = ast.Trunk{
-				Kind:   "Trunk",
-				Source: readers[k],
-			}
-		}
-		from = &ast.From{
-			Kind:   "From",
-			Trunks: trunks,
-		}
 	default:
 		trunk := ast.Trunk{Kind: "Trunk"}
 		if head != nil {
@@ -97,15 +84,15 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lak
 			Kind:   "From",
 			Trunks: []ast.Trunk{trunk},
 		}
+		if isParallelWithLeadingFroms(proc) {
+			from = nil
+			readers = nil
+		}
 	}
 	if from != nil {
 		seq.Prepend(from)
 	}
 	entry, consts, err := semantic.Analyze(pctx.Context, seq, constsAST, adaptor, head)
-	if err != nil {
-		return nil, err
-	}
-	opt, err := optimizer.New(pctx.Context, entry, adaptor)
 	if err != nil {
 		return nil, err
 	}
@@ -116,10 +103,32 @@ func New(pctx *proc.Context, inAST ast.Proc, adaptor proc.DataAdaptor, head *lak
 	return &Runtime{
 		pctx:      pctx,
 		builder:   builder,
-		optimizer: opt,
+		optimizer: optimizer.New(pctx.Context, entry, adaptor),
 		consts:    consts,
 		readers:   readers,
 	}, nil
+}
+
+func isParallelWithLeadingFroms(p ast.Proc) bool {
+	par, ok := p.(*ast.Parallel)
+	if !ok {
+		return false
+	}
+	for _, p := range par.Procs {
+		if !isSequentialWithLeadingFrom(p) {
+			return false
+		}
+	}
+	return true
+}
+
+func isSequentialWithLeadingFrom(p ast.Proc) bool {
+	seq, ok := p.(*ast.Sequential)
+	if !ok && len(seq.Procs) == 0 {
+		return false
+	}
+	_, ok = seq.Procs[0].(*ast.From)
+	return ok
 }
 
 func (r *Runtime) Context() *proc.Context {

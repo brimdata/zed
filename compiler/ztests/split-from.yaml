@@ -1,0 +1,22 @@
+script: |
+  zq -z -I query.zed
+
+inputs:
+  - name: query.zed
+    data: |
+      split (
+        => from (file a.zson => pass;);
+        => from (file b.zson => pass;);
+      ) | sort a
+  - name: a.zson
+    data: |
+      {a:1}
+  - name: b.zson
+    data: |
+      {a:2}
+
+outputs:
+  - name: stdout
+    data: |
+      {a:1}
+      {a:2}

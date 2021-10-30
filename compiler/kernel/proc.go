@@ -281,6 +281,17 @@ func (b *Builder) compileSequential(seq *dag.Sequential, parents []proc.Interfac
 }
 
 func (b *Builder) compileParallel(parallel *dag.Parallel, parents []proc.Interface) ([]proc.Interface, error) {
+	if len(parents) == 0 {
+		var procs []proc.Interface
+		for _, op := range parallel.Ops {
+			proc, err := b.compile(op, nil)
+			if err != nil {
+				return nil, err
+			}
+			procs = append(procs, proc...)
+		}
+		return procs, nil
+	}
 	n := len(parallel.Ops)
 	if len(parents) == 1 {
 		// Single parent: insert a splitter and wire to each branch.

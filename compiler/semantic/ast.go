@@ -2,7 +2,6 @@ package semantic
 
 import (
 	"context"
-	"errors"
 
 	"github.com/brimdata/zed/compiler/ast"
 	"github.com/brimdata/zed/compiler/ast/dag"
@@ -12,9 +11,6 @@ import (
 
 // Analyze analysis the AST and prepares it for runtime compilation.
 func Analyze(ctx context.Context, seq *ast.Sequential, constsAST []ast.Proc, adaptor proc.DataAdaptor, head *lakeparse.Commitish) (*dag.Sequential, []dag.Op, error) {
-	if !isFrom(seq) {
-		return nil, nil, errors.New("Zed program does not begin with a data source")
-	}
 	scope := NewScope()
 	scope.Enter()
 	consts, err := semConsts(scope, constsAST)
