@@ -1,7 +1,9 @@
 import base64
 import decimal
+import getpass
 import ipaddress
 import json
+import urllib.parse
 
 import dateutil.parser
 import durationpy
@@ -15,6 +17,25 @@ class Client():
     def __init__(self, base_url=DEFAULT_BASE_URL):
         self.base_url = base_url
         self.session = requests.Session()
+
+    def create_pool(self, name, layout={'order': 'desc', 'keys': [['ts']]},
+                    thresh=0):
+        r = self.session.post(self.base_url + '/pool', json={
+            'name': name,
+            'layout': layout,
+            'thresh': thresh,
+        })
+        r.raise_for_status()
+
+    def load(self, pool_name_or_id, data, branch_name='main',
+             commit_author=getpass.getuser(), commit_body=''):
+        pool = urllib.parse.quote(pool_name_or_id)
+        branch = urllib.parse.quote(branch_name)
+        url = self.base_url + '/pool/' + pool + '/branch/' + branch
+        commit_message = {'author': commit_author, 'body': commit_body}
+        headers = {'Zed-Commit': json.dumps(commit_message)}
+        r = self.session.post(url, headers=headers, data=data)
+        r.raise_for_status()
 
     def query(self, query):
         return decode_raw(self.query_raw(query))
