@@ -21,20 +21,12 @@ pip install "git+https://github.com/brimdata/zed@$(zed -version | cut -d ' ' -f 
 Run a Zed lake service from your shell.
 ```sh
 mkdir scratch
-cd scratch
-zed lake serve
+zed lake serve -R scratch
 ```
 > Or you can launch the Brim app and it will run a Zed lake service
 > on the default port at localhost:9867.
 
-In another shell, create a pool and load some data.
-```sh
-zapi create TestPool
-zapi use TestPool@main
-echo '{s:"hello"} {s:"world"}' | zapi load -
-```
-
-Then query the pool from Python.
+Then, from Python, create a pool, load some data, and query it.
 ```python
 import zed
 
@@ -42,8 +34,15 @@ import zed
 # To use a different base URL, supply it as an argument.
 client = zed.Client()
 
-# Begin executing a Zed query for all records in the pool named
-# "TestPool".  This returns an iterator, not a container.
+c.create_pool('TestPool')
+
+# Load some ZSON records from a string.  A file-like object also works.
+# Data format is detected automatically and can be JSON, NDJSON, Zeek TSV,
+# ZJSON, ZNG, or ZSON.
+c.load('TestPool', '{s:"hello"} {s:"world"}')
+
+# Begin executing a Zed query for all records in TestPool.
+# This returns an iterator, not a container.
 records = client.query('from TestPool'):
 
 # Stream records from the server.

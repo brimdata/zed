@@ -8,12 +8,13 @@ script: |
   pip install -qq ./zed
 
   source service.sh
-  zapi create -q test
-  zapi load -q -use test@main in.zson
 
   python <<EOF
   import zed
   c = zed.Client('http://$ZED_LAKE_HOST')
+  c.create_pool('test')
+  with open('in.zson') as f:
+    c.load('test', f)
   for rec in c.query('from test'):
     print(rec)
   EOF
