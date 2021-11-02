@@ -97,7 +97,7 @@ func (o *Optimizer) parallelizeTrunk(seq *dag.Sequential, trunk *dag.Trunk, repl
 			// If the inbound layout doesn't match up here then the
 			// every operator won't work right so we flag
 			// a compilation error..., e.g., it's like saying
-			//   * | sort x | every 1h count() by _path
+			//   sort x | every 1h count() by _path
 			// Actually, this could work it just can't stream the
 			// every's as they finish.  We should work out this logic.
 			// Otherwise, the runtime builder will insert a simple combiner.

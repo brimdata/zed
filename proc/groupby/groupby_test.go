@@ -162,7 +162,7 @@ func New(name, input, output, cmd string) test.Internal {
 	output = strings.ReplaceAll(output, "\n\n", "\n")
 	return test.Internal{
 		Name:         name,
-		Query:        "* | " + cmd,
+		Query:        cmd,
 		Input:        input,
 		OutputFormat: "zson",
 		Expected:     test.Trim(output),
