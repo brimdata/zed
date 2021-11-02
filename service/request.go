@@ -3,7 +3,6 @@ package service
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -79,7 +78,7 @@ func (r *Request) decodeCommitMessage(w *ResponseWriter) (api.CommitMessage, boo
 	var message api.CommitMessage
 	if commitJSON != "" {
 		if err := json.Unmarshal([]byte(commitJSON), &message); err != nil {
-			w.Error(fmt.Errorf("load endpoint encountered invalid JSON in Zed-Commit header: %w", err))
+			w.Error(zqe.ErrInvalid("load endpoint encountered invalid JSON in Zed-Commit header: %w", err))
 			return message, false
 		}
 	}
@@ -166,7 +165,7 @@ func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...in
 	m := zson.NewZNGUnmarshaler()
 	m.Bind(templates...)
 	if err := m.Unmarshal(*zv, body); err != nil {
-		w.Error(err)
+		w.Error(zqe.ErrInvalid(err))
 		return false
 	}
 	return true
