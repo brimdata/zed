@@ -16,14 +16,14 @@ import (
 var Section = &charm.Spec{
 	Name:  "section",
 	Usage: "section [flags] path",
-	Short: "extract a section of a zed index file",
+	Short: "extract a section of a Zed index file",
 	Long: `
-The section command extracts a section from a zed index file and
+The section command extracts a section from a Zed index file and
 writes it to the output.  The -trailer option writes
-the zed index trailer to the output in addition to the section if the section
+the Zed index trailer to the output in addition to the section if the section
 number was specified.
 
-See the "zed index" command help for a description of a zed index file.`,
+See the "zed index" command help for a description of a Zed index file.`,
 	New: newCommand,
 }
 
@@ -40,7 +40,7 @@ type Command struct {
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedindex.Command)}
-	f.BoolVar(&c.trailer, "trailer", false, "include the zed index trailer in the output")
+	f.BoolVar(&c.trailer, "trailer", false, "include the Zed index trailer in the output")
 	f.IntVar(&c.section, "s", -1, "include the indicated section in the output")
 	c.outputFlags.SetFlags(f)
 	return c, nil

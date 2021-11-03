@@ -13,7 +13,7 @@ import (
 var Zed = &charm.Spec{
 	Name:  "zed",
 	Usage: "zed <command> [options] [arguments...]",
-	Short: "run zed commands",
+	Short: "run Zed commands",
 	Long: `
 zed is a command-line tool for creating, configuring, ingesting into,
 querying, and orchestrating Zed data lakes.`,

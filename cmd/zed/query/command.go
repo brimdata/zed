@@ -27,11 +27,11 @@ import (
 var Cmd = &charm.Spec{
 	Name:        "query",
 	Usage:       "query [ options ] [ zed-query ] file [ file ... ]",
-	Short:       "apply zed queries to data files or streams",
+	Short:       "apply Zed queries to data files or streams",
 	HiddenFlags: "cpuprofile,memprofile,pathregexp",
 	Long: `
-"zed query" is a command for searching and analyzing data using the zed language
-(including the experimental SQL subset embedded in the zed language).
+"zed query" is a command for searching and analyzing data using the Zed language
+(including the experimental SQL subset embedded in the Zed language).
 If you have installed the shortcuts, "zq" is a shortcut for the "zed query" command.
 
 "zed query" applies boolean logic
@@ -56,21 +56,21 @@ beginning of stream will determine the format.
 
 The output format is binary ZNG by default, but can be overridden with -f.
 
-After the options, a zed "query" string may be specified as a
-single argument conforming to the zed language syntax;
+After the options, a Zed "query" string may be specified as a
+single argument conforming to the Zed language syntax;
 i.e., it should be quoted as a single string in the shell.
 
-If the first argument is a path to a valid file rather than a zed query,
-then the zed query is assumed to be "*", i.e., match and output all
-of the input.  If the first argument is both a valid zed query
+If the first argument is a path to a valid file rather than a Zed query,
+then the Zed query is assumed to be "*", i.e., match and output all
+of the input.  If the first argument is both a valid Zed query
 and an existing file, then the file overrides.
 
-The zed query text may include files using -I, which is particularly
+The Zed query text may include files using -I, which is particularly
 convenient when a large, complex query spans multiple lines.  In this case,
-these zed files are concatenated together along with the command-line zed query text
+these Zed files are concatenated together along with the command-line Zed query text
 in the order appearing on the command-line.
 
-See the zed source repository for more information:
+See the Zed source repository for more information:
 
 https://github.com/brimdata/zed
 `,

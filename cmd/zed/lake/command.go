@@ -24,7 +24,7 @@ The "zed lake" command
 operates on collections of Zed data files partitioned by and organized
 by a specified key and stored either on a filesystem or an S3 compatible object store.
 
-See the zed lake README in the zed repository for more information:
+See the Zed lake README in the Zed repository for more information:
 https://github.com/brimdata/zed/blob/main/docs/lake/README.md
 `,
 	New: New,

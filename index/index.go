@@ -1,7 +1,7 @@
 // Package index provides an API for creating, merging, indexing, and querying
-// zed indexes.
+// Zed indexes.
 //
-// A zed index comprises a base index section followed by zero or more parent
+// A Zed index comprises a base index section followed by zero or more parent
 // section indexes followed by a trailer.  The sections are organized into a
 // B-tree-like data structure so keys can be looked up efficiently without
 // necessarily scanning the entire base index.
@@ -22,5 +22,5 @@ import (
 const MaxLevels = 20
 
 var (
-	ErrTooManyLevels = errors.New("zed index has too many levels (a larger frame threshold is needed)")
+	ErrTooManyLevels = errors.New("Zed index has too many levels (a larger frame threshold is needed)")
 )

@@ -16,10 +16,10 @@ import (
 var Lookup = &charm.Spec{
 	Name:  "lookup",
 	Usage: "lookup -k key[,key...] index",
-	Short: "lookup a key in a zed index file and print value as zng record",
+	Short: "lookup a key in a Zed index file and print value as zng record",
 	Long: `
 The lookup command locates the specified key(s) in the base layer of a
-zed index file and displays the result as a zng record.
+Zed index file and displays the result as a zng record.
 If the index has multiple keys, then multiple records may be returned for
 all the records that match the supplied keys.
 Each key argument specifies a value to look up in the table and must be parseable

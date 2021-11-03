@@ -239,7 +239,7 @@ func (c *Command) compile(z string) (*compiler.Runtime, error) {
 const nodeProblem = `
 Failed to run node on ./compiler/parser/run.js.  The "-js" flag is for PEG
 development and should only be used when running "zed compile" in the root
-directory of the zed repository.`
+directory of the Zed repository.`
 
 func (c *Command) interactive() {
 	rl := liner.NewLiner()
