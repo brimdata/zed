@@ -10,11 +10,9 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake"
-	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/commits"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lake/journal"
-	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/service/auth"
 	"github.com/brimdata/zed/zio"
@@ -65,9 +63,6 @@ func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	pool, err := c.root.OpenPool(r.Context(), id)
-	if errors.Is(err, pools.ErrNotFound) {
-		err = zqe.ErrNotFound("pool %q not found", id)
-	}
 	if err != nil {
 		w.Error(err)
 		return
@@ -75,9 +70,6 @@ func handleBranchGet(c *Core, w *ResponseWriter, r *Request) {
 	if branchName != "" {
 		branch, err := pool.LookupBranchByName(r.Context(), branchName)
 		if err != nil {
-			if errors.Is(err, branches.ErrNotFound) {
-				err = zqe.ErrNotFound("branch %q not found", branchName)
-			}
 			w.Error(err)
 			return
 		}
@@ -93,9 +85,6 @@ func handlePoolStats(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	pool, err := c.root.OpenPool(r.Context(), id)
-	if errors.Is(err, pools.ErrNotFound) {
-		err = zqe.ErrNotFound("pool %q not found", id)
-	}
 	if err != nil {
 		w.Error(err)
 		return
@@ -132,9 +121,6 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 	}
 	pool, err := c.root.CreatePool(r.Context(), req.Name, req.Layout, req.Thresh)
 	if err != nil {
-		if errors.Is(err, pools.ErrExists) {
-			err = zqe.ErrConflict(err)
-		}
 		w.Error(err)
 		return
 	}
@@ -159,11 +145,6 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 		return
 	}
 	if err := c.root.RenamePool(r.Context(), id, req.Name); err != nil {
-		if errors.Is(err, pools.ErrExists) {
-			err = zqe.ErrConflict(err)
-		} else if errors.Is(err, pools.ErrNotFound) {
-			err = zqe.ErrNotFound(err)
-		}
 		w.Error(err)
 		return
 	}
@@ -189,11 +170,6 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 	}
 	branchRef, err := c.root.CreateBranch(r.Context(), poolID, req.Name, commit)
 	if err != nil {
-		if errors.Is(err, branches.ErrExists) {
-			err = zqe.ErrConflict(err)
-		} else if errors.Is(err, pools.ErrNotFound) {
-			err = zqe.ErrNotFound(err)
-		}
 		w.Error(err)
 		return
 	}

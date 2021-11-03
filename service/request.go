@@ -12,7 +12,9 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/compiler/parser"
 	"github.com/brimdata/zed/lake"
+	"github.com/brimdata/zed/lake/branches"
 	"github.com/brimdata/zed/lake/journal"
+	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
@@ -266,8 +268,17 @@ func errorResponse(e error) (status int, ae *api.Error) {
 
 	var ze *zqe.Error
 	if !errors.As(e, &ze) {
-		ae.Message = e.Error()
-		return
+		var kind zqe.Kind
+		switch {
+		case errors.Is(e, branches.ErrExists) || errors.Is(e, pools.ErrExists):
+			kind = zqe.Conflict
+		case errors.Is(e, branches.ErrNotFound) || errors.Is(e, pools.ErrNotFound):
+			kind = zqe.NotFound
+		default:
+			ae.Message = e.Error()
+			return
+		}
+		ze = &zqe.Error{Kind: kind, Err: e}
 	}
 
 	switch ze.Kind {
