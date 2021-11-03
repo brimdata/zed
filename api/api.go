@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
