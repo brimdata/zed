@@ -1,3 +1,29 @@
+## v0.32.0
+
+* Add `create_pool()` and `load()` methods to the [Python client](python) (#3232)
+* Allow a leading `split` operator (#3230)
+* Remove the `exists()` function in favor of `missing()` (#3225)
+* Remove the `iso()` function in favor of `time()` (#3220)
+* Remove deprecated `GET /pool` and `GET /pool/{pool}` from the Zed lake service API (#3219)
+* Add bytes literals ("0x" followed by an even-length sequence of hexadecimal digits) to the Zed language (#3209)
+* When sending a JSON response for `POST /query`, always send an array (#3207)
+* Fix a panic when compiling `SELECT ... GROUP BY ...` (#3193)
+* Fix a bug in which data loaded through the Zed lake service was stored uncompressed (#3198)
+* Add all lake index commands to Zed lake service (#3181)
+* Reorganize [language documentation](docs/language) (#3187)
+* Make `fuse()` output deterministic (#3190)
+* Use lake indexes to speed up queries (#3158)
+* Fix bug where constants blocked `from` operator wiring logic (#3185)
+* Allow the dot operator to work on a union containing a record (#3178)
+* Disable escaping of "&", "<", and ">" in JSON output (#3177)
+* Change [`collect()`](docs/language/aggregate-functions.md#collect) to handle heterogeneous types with a type union (#3176)
+* Extend the [`join` operator](docs/language/operators.md#join) to support the `anti` join type (#3173)
+* Make `lake index create` output the details of the newly created rule (#3168)
+* Enable ANSI escapes in command output on Windows (#3164)
+* Change `zed lake query -stats` output to ZSON (#3159)
+* Fix a ZSON quoting bug for type value field names (#3154)
+* Allow pool names (in addition to pool IDs) in Zed lake service API paths (#3144)
+
 ## v0.31.0
 
 * Allow indexes to handle fields containing values of different types (#3141)
