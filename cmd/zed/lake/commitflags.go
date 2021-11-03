@@ -47,6 +47,6 @@ func (c *CommitFlags) CommitMessage() api.CommitMessage {
 	return api.CommitMessage{
 		Author: c.User,
 		Body:   c.Message,
-		Meta: 	c.Meta,
+		Meta:   c.Meta,
 	}
 }

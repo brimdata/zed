@@ -57,7 +57,7 @@ type Commit struct {
 	Author  string      `zed:"author"`
 	Date    nano.Ts     `zed:"date"`
 	Message string      `zed:"message"`
-	Meta 	zed.Value	`zed:"meta"`
+	Meta    zed.Value   `zed:"meta"`
 }
 
 func (c *Commit) String() string {
