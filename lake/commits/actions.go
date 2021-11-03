@@ -69,10 +69,6 @@ func (c *Commit) String() string {
 	return fmt.Sprintf("COMMIT %s -> %s %s %s %s", c.ID, c.Parent, c.Date, c.Author, c.Message)
 }
 
-func (c *Commit) AppMeta() zed.Value {
-	return c.Meta
-}
-
 type Delete struct {
 	Commit ksuid.KSUID `zed:"commit"`
 	ID     ksuid.KSUID `zed:"id"`

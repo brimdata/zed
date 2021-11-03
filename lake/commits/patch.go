@@ -124,7 +124,7 @@ func (p *Patch) DeleteIndexObject(ruleID ksuid.KSUID, id ksuid.KSUID) error {
 }
 
 func (p *Patch) NewCommitObject(parent ksuid.KSUID, retries int, author, message string, meta zed.Value) *Object {
-	o := NewObject(parent, author, message, retries, meta)
+	o := NewObject(parent, author, message, meta, retries)
 	for _, id := range p.deletedObjects {
 		o.appendDelete(id)
 	}
@@ -141,7 +141,7 @@ func (p *Patch) NewCommitObject(parent ksuid.KSUID, retries int, author, message
 }
 
 func (p *Patch) Revert(tip *Snapshot, commit, parent ksuid.KSUID, retries int, author, message string) (*Object, error) {
-	object := NewObject(parent, author, message, retries, zed.Value{zed.TypeNull, nil})
+	object := NewObject(parent, author, message, zed.Value{zed.TypeNull, nil}, retries)
 	// For each data object in the patch that is also in the tip, we do a delete.
 	for _, dataObject := range p.diff.SelectAll() {
 		if Exists(tip, dataObject.ID) {

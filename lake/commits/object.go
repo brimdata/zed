@@ -22,7 +22,7 @@ type Object struct {
 	Actions []Action    `zed:"actions"`
 }
 
-func NewObject(parent ksuid.KSUID, author, message string, retries int, meta zed.Value) *Object {
+func NewObject(parent ksuid.KSUID, author, message string, meta zed.Value, retries int) *Object {
 	commit := ksuid.New()
 	o := &Object{
 		Commit: commit,
@@ -41,7 +41,7 @@ func NewObject(parent ksuid.KSUID, author, message string, retries int, meta zed
 }
 
 func NewAddsObject(parent ksuid.KSUID, retries int, author, message string, meta zed.Value, objects []data.Object) *Object {
-	o := NewObject(parent, author, message, retries, meta)
+	o := NewObject(parent, author, message, meta, retries)
 	for _, dataObject := range objects {
 		o.append(&Add{Commit: o.Commit, Object: dataObject})
 	}
@@ -49,7 +49,7 @@ func NewAddsObject(parent ksuid.KSUID, retries int, author, message string, meta
 }
 
 func NewDeletesObject(parent ksuid.KSUID, retries int, author, message string, ids []ksuid.KSUID) *Object {
-	o := NewObject(parent, author, message, retries, zed.Value{zed.TypeNull, nil})
+	o := NewObject(parent, author, message, zed.Value{zed.TypeNull, nil}, retries)
 	for _, id := range ids {
 		o.appendDelete(id)
 	}
@@ -57,7 +57,7 @@ func NewDeletesObject(parent ksuid.KSUID, retries int, author, message string, i
 }
 
 func NewAddIndexesObject(parent ksuid.KSUID, author, message string, retries int, indexes []*index.Object) *Object {
-	o := NewObject(parent, author, message, retries, zed.Value{zed.TypeNull, nil})
+	o := NewObject(parent, author, message, zed.Value{zed.TypeNull, nil}, retries)
 	for _, index := range indexes {
 		o.appendAddIndex(index)
 	}
