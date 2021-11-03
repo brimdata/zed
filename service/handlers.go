@@ -370,7 +370,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	}
 	warnings := warningCollector{}
 	zr = zio.NewWarningReader(zr, &warnings)
-	kommit, err := branch.Load(r.Context(), zr, message.Author, message.Body)
+	kommit, err := branch.Load(r.Context(), zr, message.Author, message.Body, message.Meta)
 	if err != nil {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
 			err = zqe.ErrInvalid("no records in request")

@@ -2,7 +2,6 @@ package api
 
 import (
 	"context"
-
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
@@ -55,8 +54,9 @@ type BranchMergeRequest struct {
 }
 
 type CommitMessage struct {
-	Author string `zed:"author"`
-	Body   string `zed:"body"`
+	Author string    `zed:"author"`
+	Body   string    `zed:"body"`
+	Meta   string 	 `zed:"meta"`
 }
 
 type CommitResponse struct {

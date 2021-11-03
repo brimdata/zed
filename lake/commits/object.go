@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/nano"
@@ -21,7 +22,7 @@ type Object struct {
 	Actions []Action    `zed:"actions"`
 }
 
-func NewObject(parent ksuid.KSUID, author, message string, retries int) *Object {
+func NewObject(parent ksuid.KSUID, author, message string, retries int, meta zed.Value) *Object {
 	commit := ksuid.New()
 	o := &Object{
 		Commit: commit,
@@ -34,12 +35,13 @@ func NewObject(parent ksuid.KSUID, author, message string, retries int) *Object 
 		Date:    nano.Now(),
 		Author:  author,
 		Message: message,
+		Meta:    meta,
 	})
 	return o
 }
 
-func NewAddsObject(parent ksuid.KSUID, retries int, author, message string, objects []data.Object) *Object {
-	o := NewObject(parent, author, message, retries)
+func NewAddsObject(parent ksuid.KSUID, retries int, author, message string, meta zed.Value, objects []data.Object) *Object {
+	o := NewObject(parent, author, message, retries, meta)
 	for _, dataObject := range objects {
 		o.append(&Add{Commit: o.Commit, Object: dataObject})
 	}
@@ -47,7 +49,7 @@ func NewAddsObject(parent ksuid.KSUID, retries int, author, message string, obje
 }
 
 func NewDeletesObject(parent ksuid.KSUID, retries int, author, message string, ids []ksuid.KSUID) *Object {
-	o := NewObject(parent, author, message, retries)
+	o := NewObject(parent, author, message, retries, zed.Value{zed.TypeNull, nil})
 	for _, id := range ids {
 		o.appendDelete(id)
 	}
@@ -55,7 +57,7 @@ func NewDeletesObject(parent ksuid.KSUID, retries int, author, message string, i
 }
 
 func NewAddIndexesObject(parent ksuid.KSUID, author, message string, retries int, indexes []*index.Object) *Object {
-	o := NewObject(parent, author, message, retries)
+	o := NewObject(parent, author, message, retries, zed.Value{zed.TypeNull, nil})
 	for _, index := range indexes {
 		o.appendAddIndex(index)
 	}

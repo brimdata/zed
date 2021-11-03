@@ -3,6 +3,7 @@ package commits
 import (
 	"fmt"
 
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/pkg/nano"
@@ -56,15 +57,20 @@ type Commit struct {
 	Author  string      `zed:"author"`
 	Date    nano.Ts     `zed:"date"`
 	Message string      `zed:"message"`
+	Meta 	zed.Value	`zed:"meta"`
+}
+
+func (c *Commit) String() string {
+	//XXX need to format Message field for single line
+	return fmt.Sprintf("COMMIT %s -> %s %s %s %s", c.ID, c.Parent, c.Date, c.Author, c.Message)
 }
 
 func (c *Commit) CommitID() ksuid.KSUID {
 	return c.ID
 }
 
-func (c *Commit) String() string {
-	//XXX need to format Message field for single line
-	return fmt.Sprintf("COMMIT %s -> %s %s %s %s", c.ID, c.Parent, c.Date, c.Author, c.Message)
+func (c *Commit) AppMeta() zed.Value {
+	return c.Meta
 }
 
 type Delete struct {

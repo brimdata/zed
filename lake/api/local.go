@@ -133,7 +133,7 @@ func (l *LocalSession) Load(ctx context.Context, poolID ksuid.KSUID, branchName 
 	if err != nil {
 		return ksuid.Nil, err
 	}
-	return branch.Load(ctx, r, message.Author, message.Body)
+	return branch.Load(ctx, r, message.Author, message.Body, message.Meta)
 }
 
 func (l *LocalSession) Delete(ctx context.Context, poolID ksuid.KSUID, branchName string, ids []ksuid.KSUID, message api.CommitMessage) (ksuid.KSUID, error) {
