@@ -26,7 +26,10 @@ const (
 	maxMessageObjects = 10
 )
 
-var ErrCommitFailed = fmt.Errorf("exceeded max update attempts (%d) to branch tip: commit failed", maxCommitRetries)
+var (
+	ErrCommitFailed = fmt.Errorf("exceeded max update attempts (%d) to branch tip: commit failed", maxCommitRetries)
+	ErrInvalidCommitMeta = errors.New("cannot parse zson string")
+)
 
 type Branch struct {
 	branches.Config
@@ -100,7 +103,7 @@ func loadMeta(meta string) (zed.Value, error) {
 	}
 	zv, err := zson.ParseValue(zed.NewContext(), meta)
 	if err != nil {
-		return zed.Missing, fmt.Errorf("cannot parse zson string %s: %v", zv, err)
+		return zed.Missing, fmt.Errorf("%w %s: %v", ErrInvalidCommitMeta, zv, err)
 	}
 	return zv, nil
 }

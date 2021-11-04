@@ -375,6 +375,9 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
 			err = zqe.ErrInvalid("no records in request")
 		}
+		if errors.Is(err, lake.ErrInvalidCommitMeta) {
+			err = zqe.ErrInvalid("invalid commit metadata in request")
+		}
 		w.Error(err)
 		return
 	}
