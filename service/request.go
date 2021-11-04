@@ -140,16 +140,18 @@ func (r *Request) BoolFromQuery(param string, w *ResponseWriter) (bool, bool) {
 }
 
 func (r *Request) Unmarshal(w *ResponseWriter, body interface{}, templates ...interface{}) bool {
-	typ := r.Header.Get("Content-Type")
-	if typ == "" || typ == "application/x-www-form-urlencoded" {
-		// If Content-Type is unset or is a form (probably set from curl), assume
-		// JSON.
-		typ = api.MediaTypeJSON
-	}
-	format, err := api.MediaTypeToFormat(typ)
+	format, err := api.MediaTypeToFormat(r.Header.Get("Content-Type"), DefaultZedFormat)
 	if err != nil {
-		w.Error(zqe.ErrInvalid(err))
-		return false
+		var uerr *api.ErrUnsupportedMimeType
+		if errors.As(err, &uerr) && uerr.Type == "application/x-www-form-urlencoded" {
+			// curl will by default set the Accept header to
+			// application/x-www-from-urlencoded so assume zson if this is the
+			// case.
+			format = DefaultZedFormat
+		} else {
+			w.Error(zqe.ErrInvalid(err))
+			return false
+		}
 	}
 	zr, err := anyio.NewReaderWithOpts(r.Body, zed.NewContext(), anyio.ReaderOpts{Format: format})
 	if err != nil {
@@ -197,9 +199,9 @@ func (w *ResponseWriter) ZioWriterWithOpts(opts anyio.WriterOpts) zio.WriteClose
 	if w.zw == nil {
 		var err error
 		if opts.Format == "" {
-			opts.Format, err = api.MediaTypeToFormat(w.ContentType())
+			opts.Format, err = api.MediaTypeToFormat(w.ContentType(), DefaultZedFormat)
 			if err != nil {
-				w.Error(err)
+				w.Error(zqe.ErrInvalid(err))
 				return nil
 			}
 		}

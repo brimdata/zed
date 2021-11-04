@@ -17,6 +17,7 @@ class Client():
     def __init__(self, base_url=DEFAULT_BASE_URL):
         self.base_url = base_url
         self.session = requests.Session()
+        self.session.headers.update({'Accept': 'application/x-zjson'})
 
     def create_pool(self, name, layout={'order': 'desc', 'keys': [['ts']]},
                     thresh=0):

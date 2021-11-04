@@ -20,6 +20,11 @@ import (
 	"go.uber.org/zap"
 )
 
+// DefaultZedFormat is the default Zed format that the server will assume if the
+// value for a request's "Accept" or "Content-Type" headers are not set or set
+// to "*/*".
+const DefaultZedFormat = "zson"
+
 const indexPage = `
 <!DOCTYPE html>
 <html>
