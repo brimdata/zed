@@ -4,4 +4,4 @@ script: |
 outputs:
   - name: stderr
     regexp: |
-      run zed commands
+      run Zed commands

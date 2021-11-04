@@ -20,9 +20,9 @@ import (
 var Create = &charm.Spec{
 	Name:  "create",
 	Usage: "create [-f frameThresh] [ -o file ] -k field file",
-	Short: "create a key-only zed index from a zng file",
+	Short: "create a key-only Zed index from a zng file",
 	Long: `
-The create command generates a key-only zed index file comprising the values from the
+The create command generates a key-only Zed index file comprising the values from the
 input taken from the field specified by -k.  The output index will have a base layer
 with search key called "key".
 If a key appears more than once, the last value in the input takes precedence.

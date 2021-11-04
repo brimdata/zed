@@ -19,9 +19,9 @@ import (
 var Convert = &charm.Spec{
 	Name:  "convert",
 	Usage: "convert [-f frametresh] [ -o file ] -k field[,field,...] file",
-	Short: "generate a zed index file from one or more zng files",
+	Short: "generate a Zed index file from one or more zng files",
 	Long: `
-The convert command generates a zed index containing keys and optional values
+The convert command generates a Zed index containing keys and optional values
 from the input file.  The required flag -k specifies one or more zng record
 field names that comprise the index search keys, in precedence order.
 The keys must be pre-sorted in ascending order with
@@ -47,7 +47,7 @@ type Command struct {
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{Command: parent.(*zedindex.Command)}
-	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in zed index file")
+	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in Zed index file")
 	f.StringVar(&c.order, "order", "asc", "specify data in ascending (asc) or descending (desc) order")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")
 	f.StringVar(&c.keys, "k", "", "comma-separated list of field names for keys")

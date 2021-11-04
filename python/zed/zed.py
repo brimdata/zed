@@ -144,10 +144,10 @@ if __name__ == '__main__':
     import pprint
 
     parser = argparse.ArgumentParser(
-        description='Send a query to zed and pretty-print results.',
+        description='Query a Zed lake service and pretty-print results.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument('-u', dest='base_url', default=DEFAULT_BASE_URL,
-                        help='zed base URL')
+                        help='Zed lake service base URL')
     parser.add_argument('query')
     args = parser.parse_args()
 

@@ -18,7 +18,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
-// Writer implements the zio.Writer interface. A Writer creates a zed index,
+// Writer implements the zio.Writer interface. A Writer creates a Zed index,
 // comprising the base zng file along with its related B-tree sections,
 // as zng records are consumed.
 //
@@ -72,7 +72,7 @@ type indexWriter struct {
 	frameKey   *zed.Value
 }
 
-// NewWriter returns a Writer ready to write a zed index or it returns
+// NewWriter returns a Writer ready to write a Zed index or it returns
 // an error.  The index is written to the URL provided in the path argument
 // while temporary file are written locally.  Calls to Write must
 // provide keys in increasing lexicographic order.  Duplicate keys are not
@@ -266,7 +266,7 @@ func (w *Writer) finalize() error {
 		}
 		if n != size {
 			f.Close()
-			return fmt.Errorf("internal zed index error: index file size (%d) does not equal zng size (%d)", n, size)
+			return fmt.Errorf("internal Zed index error: index file size (%d) does not equal zng size (%d)", n, size)
 		}
 		if err := f.Close(); err != nil {
 			return err

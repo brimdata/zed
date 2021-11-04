@@ -1,5 +1,5 @@
 script: |
-  # b isn't in the input so this creates a valid zed index that is empty
+  # b isn't in the input so this creates a valid Zed index that is empty
   zed index create -o index.zng -k b in.zson
   zq -Z index.zng
   echo ===
