@@ -28,7 +28,7 @@ const (
 
 var (
 	ErrCommitFailed      = fmt.Errorf("exceeded max update attempts (%d) to branch tip: commit failed", maxCommitRetries)
-	ErrInvalidCommitMeta = errors.New("cannot parse zson string")
+	ErrInvalidCommitMeta = errors.New("cannot parse ZSON string")
 )
 
 type Branch struct {
