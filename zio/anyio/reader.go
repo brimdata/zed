@@ -13,7 +13,6 @@ import (
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 )
 
@@ -102,7 +101,7 @@ func joinErrs(errs []error) error {
 	for _, e := range errs {
 		s += "\n\t" + e.Error()
 	}
-	return zqe.E(s)
+	return errors.New(s)
 }
 func match(r zio.Reader, name string) error {
 	_, err := r.Read()
