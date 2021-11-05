@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"mime"
+	"strings"
 )
 
 const (
@@ -16,24 +17,27 @@ const (
 	MediaTypeZSON   = "application/x-zson"
 )
 
-var ErrMediaTypeUnspecified = errors.New("media type unspecified")
-
-func IsAmbiguousMediaType(s string) bool {
-	typ, _, err := mime.ParseMediaType(s)
-	if err != nil && !errors.Is(err, mime.ErrInvalidMediaParameter) {
-		return false
-	}
-	return typ == "" || typ == "*/*"
+type ErrUnsupportedMimeType struct {
+	Type string
 }
 
-func MediaTypeToFormat(s string) (string, error) {
+func (m *ErrUnsupportedMimeType) Error() string {
+	return fmt.Sprintf("unsupported MIME type: %s", m.Type)
+}
+
+// MediaTypeToFormat returns the anyio format of the media type value s. If s
+// is MediaTypeAny or undefined the default format dflt will be returned.
+func MediaTypeToFormat(s string, dflt string) (string, error) {
+	if s = strings.TrimSpace(s); s == "" {
+		return dflt, nil
+	}
 	typ, _, err := mime.ParseMediaType(s)
 	if err != nil && !errors.Is(err, mime.ErrInvalidMediaParameter) {
 		return "", err
 	}
 	switch typ {
 	case MediaTypeAny, "":
-		return "", ErrMediaTypeUnspecified
+		return dflt, nil
 	case MediaTypeCSV:
 		return "csv", nil
 	case MediaTypeJSON:
@@ -47,5 +51,5 @@ func MediaTypeToFormat(s string) (string, error) {
 	case MediaTypeZSON:
 		return "zson", nil
 	}
-	return "", fmt.Errorf("unsupported MIME type: %s", typ)
+	return "", &ErrUnsupportedMimeType{typ}
 }

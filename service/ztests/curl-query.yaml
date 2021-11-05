@@ -2,7 +2,7 @@ script: |
   source service.sh
   zapi create -q test
   zapi load -q -use test@main -
-  for accept in text/csv application/{json,x-ndjson,x-zjson,x-zson}; do
+  for accept in text/csv application/{json,x-ndjson,x-zjson,x-zson} ""; do
     echo === $accept ===
     curl -H "Accept: $accept" -d '{"query":"from test"}' http://${ZED_LAKE_HOST}/query |
       sed -E '/QueryStats/s/[0-9]{3,}/xxx/g'  # for ZJSON
@@ -34,5 +34,8 @@ outputs:
       {"kind":"QueryChannelEnd","value":{"channel_id":0}}
       {"kind":"QueryStats","value":{"start_time":{"sec":xxx,"ns":xxx},"update_time":{"sec":xxx,"ns":xxx},"bytes_read":36,"bytes_matched":36,"records_read":2,"records_matched":2}}
       === application/x-zson ===
+      {a:"hello",b:{c:"world",d:"goodbye"}}
+      {a:"one",b:{c:"two",d:"three"}}
+      === ===
       {a:"hello",b:{c:"world",d:"goodbye"}}
       {a:"one",b:{c:"two",d:"three"}}
