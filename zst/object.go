@@ -131,8 +131,9 @@ func (o *Object) readAssembly() (*Assembly, error) {
 		if rec == nil {
 			return nil, errors.New("no reassembly records found in zst file")
 		}
-		zv := rec.ValueByColumn(0)
-		if zv.Bytes != nil {
+		it := rec.Bytes.Iter()
+		bytes, _, _ := it.Next()
+		if bytes != nil {
 			break
 		}
 		assembly.schemas = append(assembly.schemas, rec.Type)

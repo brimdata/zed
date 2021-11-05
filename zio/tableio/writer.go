@@ -58,19 +58,23 @@ func (w *Writer) Write(r *zed.Value) error {
 		w.nline = 0
 	}
 	var out []string
-	for k, col := range r.Columns() {
+	it := r.Bytes.Iter()
+	for _, col := range r.Columns() {
 		var v string
-		value := r.ValueByColumn(k)
+		bytes, _, err := it.Next()
+		if err != nil {
+			return err
+		}
 		if col.Type == zed.TypeTime {
-			if !value.IsUnsetOrNil() {
-				ts, err := zed.DecodeTime(value.Bytes)
+			if len(bytes) != 0 {
+				ts, err := zed.DecodeTime(bytes)
 				if err != nil {
 					return err
 				}
 				v = ts.Time().UTC().Format(time.RFC3339Nano)
 			}
 		} else {
-			v = tzngio.FormatValue(value, w.format)
+			v = tzngio.FormatValue(zed.Value{col.Type, bytes}, w.format)
 		}
 		out = append(out, v)
 	}

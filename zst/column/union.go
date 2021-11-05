@@ -86,7 +86,7 @@ func (u *Union) UnmarshalZNG(typ *zed.TypeUnion, in zed.Value, r io.ReaderAt) er
 	}
 	rec := zed.NewValue(rtype, in.Bytes)
 	for k := 0; k < len(typ.Types); k++ {
-		zv, err := rec.Access(fmt.Sprintf("c%d", k))
+		zv, err := rec.Dot(fmt.Sprintf("c%d", k))
 		if err != nil {
 			return err
 		}
@@ -96,7 +96,7 @@ func (u *Union) UnmarshalZNG(typ *zed.TypeUnion, in zed.Value, r io.ReaderAt) er
 		}
 		u.values = append(u.values, valueCol)
 	}
-	zv, err := rec.Access("selector")
+	zv, err := rec.Dot("selector")
 	if err != nil {
 		return err
 	}

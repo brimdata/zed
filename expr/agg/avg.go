@@ -40,7 +40,7 @@ func (a *Avg) ConsumeAsPartial(p zed.Value) error {
 		return ErrBadValue
 	}
 	rec := zed.NewValue(rType, p.Bytes)
-	sumVal, err := rec.ValueByField(sumName)
+	sumVal, err := rec.Dot(sumName)
 	if err != nil || sumVal.Type != zed.TypeFloat64 {
 		return ErrBadValue
 	}
@@ -48,7 +48,7 @@ func (a *Avg) ConsumeAsPartial(p zed.Value) error {
 	if err != nil {
 		return ErrBadValue
 	}
-	countVal, err := rec.ValueByField(countName)
+	countVal, err := rec.Dot(countName)
 	if err != nil || countVal.Type != zed.TypeUint64 {
 		return ErrBadValue
 	}

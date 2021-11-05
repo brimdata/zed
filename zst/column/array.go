@@ -74,7 +74,7 @@ func (a *Array) UnmarshalZNG(inner zed.Type, in zed.Value, r io.ReaderAt) error 
 		return errors.New("zst object array_column not a record")
 	}
 	rec := zed.NewValue(typ, in.Bytes)
-	zv, err := rec.Access("values")
+	zv, err := rec.Dot("values")
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (a *Array) UnmarshalZNG(inner zed.Type, in zed.Value, r io.ReaderAt) error 
 	if err != nil {
 		return err
 	}
-	zv, err = rec.Access("lengths")
+	zv, err = rec.Dot("lengths")
 	if err != nil {
 		return err
 	}

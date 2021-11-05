@@ -46,21 +46,25 @@ func (w *Writer) Write(rec *zed.Value) error {
 		return err
 	}
 	var out []string
-	for k, col := range zed.TypeRecordOf(rec.Type).Columns {
+	it := rec.Bytes.Iter()
+	for _, col := range zed.TypeRecordOf(rec.Type).Columns {
 		var s, v string
-		value := rec.ValueByColumn(k)
+		bytes, _, err := it.Next()
+		if err != nil {
+			return err
+		}
 		if col.Type == zed.TypeTime {
-			if value.IsUnsetOrNil() {
+			if bytes == nil {
 				v = "-"
 			} else {
-				ts, err := zed.DecodeTime(value.Bytes)
+				ts, err := zed.DecodeTime(bytes)
 				if err != nil {
 					return err
 				}
 				v = ts.Time().UTC().Format(time.RFC3339Nano)
 			}
 		} else {
-			v = tzngio.FormatValue(value, w.format)
+			v = tzngio.FormatValue(zed.Value{col.Type, bytes}, w.format)
 		}
 		if w.ShowFields {
 			s = col.Name + ":"

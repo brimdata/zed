@@ -149,38 +149,20 @@ func (r *Value) Columns() []Column {
 	return TypeRecordOf(r.Type).Columns
 }
 
-// Value returns the indicated column as a Value.  If the column doesn't
-// exist or another error occurs, the nil Value is returned.
-func (r *Value) ValueByColumn(col int) Value {
-	zv, err := r.Slice(col)
-	if err != nil {
-		return Value{}
-	}
-	return Value{r.Columns()[col].Type, zv}
-}
-
-func (r *Value) ValueByField(field string) (Value, error) {
-	col, ok := r.ColumnOfField(field)
-	if !ok {
-		return Value{}, ErrMissing
-	}
-	return r.ValueByColumn(col), nil
-}
-
 func (r *Value) ColumnOfField(field string) (int, bool) {
 	return TypeRecordOf(r.Type).ColumnOfField(field)
 }
 
-func (r *Value) TypeOfColumn(col int) Type {
-	return TypeRecordOf(r.Type).Columns[col].Type
-}
-
-func (r *Value) Access(field string) (Value, error) {
-	col, ok := r.ColumnOfField(field)
+func (r *Value) Dot(field string) (Value, error) {
+	col, ok := TypeRecordOf(r.Type).ColumnOfField(field)
 	if !ok {
 		return Value{}, ErrMissing
 	}
-	return r.ValueByColumn(col), nil
+	zv, err := r.Slice(col)
+	if err != nil {
+		return Value{}, err
+	}
+	return Value{r.Columns()[col].Type, zv}, nil
 }
 
 func (r *Value) Deref(path field.Path) (Value, error) {
@@ -191,7 +173,7 @@ func (r *Value) Deref(path field.Path) (Value, error) {
 			return Value{}, errors.New("field access on non-record value")
 		}
 		var err error
-		v, err = NewValue(typ, v.Bytes).Access(f)
+		v, err = NewValue(typ, v.Bytes).Dot(f)
 		if err != nil {
 			return Value{}, err
 		}
@@ -200,7 +182,7 @@ func (r *Value) Deref(path field.Path) (Value, error) {
 }
 
 func (r *Value) AccessString(field string) (string, error) {
-	v, err := r.Access(field)
+	v, err := r.Dot(field)
 	if err != nil {
 		return "", err
 	}
@@ -213,7 +195,7 @@ func (r *Value) AccessString(field string) (string, error) {
 }
 
 func (r *Value) AccessBool(field string) (bool, error) {
-	v, err := r.Access(field)
+	v, err := r.Dot(field)
 	if err != nil {
 		return false, err
 	}
@@ -224,7 +206,7 @@ func (r *Value) AccessBool(field string) (bool, error) {
 }
 
 func (r *Value) AccessInt(field string) (int64, error) {
-	v, err := r.Access(field)
+	v, err := r.Dot(field)
 	if err != nil {
 		return 0, err
 	}
@@ -248,7 +230,7 @@ func (r *Value) AccessInt(field string) (int64, error) {
 }
 
 func (r *Value) AccessIP(field string) (net.IP, error) {
-	v, err := r.Access(field)
+	v, err := r.Dot(field)
 	if err != nil {
 		return nil, err
 	}
@@ -259,7 +241,7 @@ func (r *Value) AccessIP(field string) (net.IP, error) {
 }
 
 func (r *Value) AccessTime(field string) (nano.Ts, error) {
-	v, err := r.Access(field)
+	v, err := r.Dot(field)
 	if err != nil {
 		return 0, err
 	}

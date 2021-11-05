@@ -643,7 +643,7 @@ func indexRecord(typ *zed.TypeRecord, record zcode.Bytes, index zed.Value) (zed.
 		return zed.NewErrorf("record index is not a string"), nil
 	}
 	field, _ := zed.DecodeString(index.Bytes)
-	result, err := zed.NewValue(typ, record).ValueByField(string(field))
+	result, err := zed.NewValue(typ, record).Dot(string(field))
 	if err != nil {
 		return zed.NewError(err), nil
 	}
