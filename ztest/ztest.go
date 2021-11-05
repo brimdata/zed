@@ -137,7 +137,6 @@ import (
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/zio/anyio"
-	"github.com/brimdata/zed/zqe"
 	"github.com/pmezard/go-difflib/difflib"
 	"gopkg.in/yaml.v3"
 )
@@ -542,16 +541,15 @@ func runzq(path, zedProgram, input string, outputFlags []string, inputFlags []st
 }
 
 func lookupzq(path string) (string, error) {
+	var zq string
+	var err error
 	for _, dir := range filepath.SplitList(path) {
-		zq, err := exec.LookPath(filepath.Join(dir, "zq"))
+		zq, err = exec.LookPath(filepath.Join(dir, "zq"))
 		if err == nil {
 			return zq, nil
 		}
-		if !errors.Is(err, os.ErrNotExist) {
-			return "", err
-		}
 	}
-	return "", zqe.E(zqe.NotFound)
+	return "", err
 }
 
 type nopCloser struct{ io.Writer }
