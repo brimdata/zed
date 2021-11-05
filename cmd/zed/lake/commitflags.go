@@ -34,16 +34,19 @@ func username() string {
 type CommitFlags struct {
 	User    string
 	Message string
+	Meta    string
 }
 
 func (c *CommitFlags) SetFlags(f *flag.FlagSet) {
 	f.StringVar(&c.User, "user", username(), "user name for commit message")
 	f.StringVar(&c.Message, "message", "", "commit message")
+	f.StringVar(&c.Meta, "meta", "", "application metadata")
 }
 
 func (c *CommitFlags) CommitMessage() api.CommitMessage {
 	return api.CommitMessage{
 		Author: c.User,
 		Body:   c.Message,
+		Meta:   c.Meta,
 	}
 }

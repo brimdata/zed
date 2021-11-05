@@ -17,6 +17,7 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -25,7 +26,10 @@ const (
 	maxMessageObjects = 10
 )
 
-var ErrCommitFailed = fmt.Errorf("exceeded max update attempts (%d) to branch tip: commit failed", maxCommitRetries)
+var (
+	ErrCommitFailed      = fmt.Errorf("exceeded max update attempts (%d) to branch tip: commit failed", maxCommitRetries)
+	ErrInvalidCommitMeta = errors.New("cannot parse ZSON string")
+)
 
 type Branch struct {
 	branches.Config
@@ -42,7 +46,7 @@ func OpenBranch(ctx context.Context, config *branches.Config, engine storage.Eng
 	}, nil
 }
 
-func (b *Branch) Load(ctx context.Context, r zio.Reader, author, message string) (ksuid.KSUID, error) {
+func (b *Branch) Load(ctx context.Context, r zio.Reader, author, message, meta string) (ksuid.KSUID, error) {
 	w, err := NewWriter(ctx, b.pool)
 	if err != nil {
 		return ksuid.Nil, err
@@ -61,12 +65,16 @@ func (b *Branch) Load(ctx context.Context, r zio.Reader, author, message string)
 	if message == "" {
 		message = loadMessage(objects)
 	}
+	appMeta, err := loadMeta(meta)
+	if err != nil {
+		return ksuid.Nil, err
+	}
 	// The load operation has only added new objects so we know its
 	// safe to merge at the tip and there can be no conflicts
 	// with other concurrent writers (except for updating the branch pointer
 	// which is handled by Branch.commit)
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		return commits.NewAddsObject(parent.Commit, retries, author, message, objects), nil
+		return commits.NewAddsObject(parent.Commit, retries, author, message, appMeta, objects), nil
 	})
 }
 
@@ -87,6 +95,17 @@ func loadMessage(objects []data.Object) string {
 		}
 	}
 	return b.String()
+}
+
+func loadMeta(meta string) (zed.Value, error) {
+	if meta == "" {
+		return zed.Value{zed.TypeNull, nil}, nil
+	}
+	zv, err := zson.ParseValue(zed.NewContext(), meta)
+	if err != nil {
+		return zed.Missing, fmt.Errorf("%w %s: %v", ErrInvalidCommitMeta, zv, err)
+	}
+	return zv, nil
 }
 
 func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
@@ -179,7 +198,7 @@ func (b *Branch) buildMergeObject(ctx context.Context, parent *branches.Config, 
 	if message == "" {
 		message = fmt.Sprintf("merged %s into %s", b.Name, parent.Name)
 	}
-	return childPatch.NewCommitObject(parent.Commit, retries, author, message), nil
+	return childPatch.NewCommitObject(parent.Commit, retries, author, message, zed.Value{zed.TypeNull, nil}), nil
 }
 
 func commonAncestor(a, b []ksuid.KSUID) ksuid.KSUID {

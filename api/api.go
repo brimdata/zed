@@ -61,6 +61,7 @@ type DeleteRequest struct {
 type CommitMessage struct {
 	Author string `zed:"author"`
 	Body   string `zed:"body"`
+	Meta   string `zed:"meta"`
 }
 
 type CommitResponse struct {
