@@ -91,19 +91,19 @@ type IndexUpdateRequest struct {
 }
 
 type EventBranchCommit struct {
-	CommitID string `json:"commit_id"`
-	PoolID   string `json:"pool_id"`
-	Branch   string `json:"branch"`
-	Parent   string `json:"parent"`
+	CommitID ksuid.KSUID `json:"commit_id"`
+	PoolID   ksuid.KSUID `json:"pool_id"`
+	Branch   string      `json:"branch"`
+	Parent   string      `json:"parent"`
 }
 
 type EventPool struct {
-	PoolID string `json:"pool_id"`
+	PoolID ksuid.KSUID `json:"pool_id"`
 }
 
 type EventBranch struct {
-	PoolID string `json:"pool_id"`
-	Branch string `json:"branch"`
+	PoolID ksuid.KSUID `json:"pool_id"`
+	Branch string      `json:"branch"`
 }
 
 type QueryRequest struct {

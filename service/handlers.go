@@ -126,9 +126,7 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("pool-new", api.EventPool{
-		PoolID: pool.ID.String(),
-	})
+	c.publishEvent(w, "pool-new", api.EventPool{PoolID: pool.ID})
 	w.Respond(http.StatusOK, meta)
 }
 
@@ -145,9 +143,7 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("pool-update", api.EventPool{
-		PoolID: id.String(),
-	})
+	c.publishEvent(w, "pool-update", api.EventPool{PoolID: id})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -170,10 +166,7 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("branch-update", api.EventBranch{
-		PoolID: poolID.String(),
-		Branch: branchRef.Name,
-	})
+	c.publishEvent(w, "branch-update", api.EventBranch{PoolID: poolID, Branch: branchRef.Name})
 	w.Respond(http.StatusOK, branchRef)
 }
 
@@ -199,9 +192,9 @@ func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("branch-revert", api.EventBranchCommit{
-		CommitID: commit.String(),
-		PoolID:   poolID.String(),
+	c.publishEvent(w, "branch-revert", api.EventBranchCommit{
+		CommitID: commit,
+		PoolID:   poolID,
 		Branch:   branch,
 	})
 	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
@@ -229,9 +222,9 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("branch-merge", api.EventBranchCommit{
-		CommitID: commit.String(),
-		PoolID:   poolID.String(),
+	c.publishEvent(w, "branch-merge", api.EventBranchCommit{
+		CommitID: commit,
+		PoolID:   poolID,
 		Branch:   childBranch,
 		Parent:   parentBranch,
 	})
@@ -247,9 +240,7 @@ func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("pool-delete", api.EventPool{
-		PoolID: id.String(),
-	})
+	c.publishEvent(w, "pool-delete", api.EventPool{PoolID: id})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -266,10 +257,7 @@ func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("branch-delete", api.EventBranch{
-		PoolID: poolID.String(),
-		Branch: branchName,
-	})
+	c.publishEvent(w, "branch-delete", api.EventBranch{PoolID: poolID, Branch: branchName})
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -324,14 +312,14 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
+	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
+		CommitID: kommit,
+		PoolID:   pool.ID,
+		Branch:   branch.Name,
+	})
 	w.Respond(http.StatusOK, api.CommitResponse{
 		Warnings: warnings,
 		Commit:   kommit,
-	})
-	c.publishEvent("branch-commit", api.EventBranchCommit{
-		CommitID: kommit.String(),
-		PoolID:   pool.ID.String(),
-		Branch:   branch.Name,
 	})
 }
 
@@ -472,15 +460,20 @@ func handleAuthMethodGet(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleEvents(c *Core, w *ResponseWriter, r *Request) {
+	format, err := api.MediaTypeToFormat(r.Header.Get("Accept"), "zson")
+	if err != nil {
+		w.Error(zqe.ErrInvalid(err))
+	}
 	w.Header().Set("Content-Type", "text/event-stream")
-	subscription := make(chan []byte)
+	writer := &eventStreamWriter{body: w, format: format}
+	subscription := make(chan event)
 	c.subscriptionsMu.Lock()
 	c.subscriptions[subscription] = struct{}{}
 	c.subscriptionsMu.Unlock()
 	for {
 		select {
-		case msg := <-subscription:
-			if _, err := w.Write(msg); err != nil {
+		case ev := <-subscription:
+			if err := writer.WriteEvent(ev); err != nil {
 				w.Error(err)
 				continue
 			}
