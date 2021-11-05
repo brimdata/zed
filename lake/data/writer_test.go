@@ -38,7 +38,7 @@ func TestWriterSkipsInputPath(t *testing.T) {
 	require.NoError(t, reader.Close())
 	assert.Len(t, recs, 1)
 	_, err = index.Find(context.Background(), zctx, chunk.ZarDir(), inputdef.ID, "100")
-	assert.Truef(t, zqe.IsNotFound(err), "expected err to be zqe.IsNotFound, got: %v", err)
+	assert.ErrorIs(t, err, fs.ErrNotExist, "expected err to be fs.ErrNotExist, got: %v", err)
 }
 
 func testWriteWithDef(t *testing.T, input string, defs ...*index.Definition) *Reference {

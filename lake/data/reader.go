@@ -3,8 +3,10 @@ package data
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
@@ -12,7 +14,6 @@ import (
 	"github.com/brimdata/zed/lake/seekindex"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
-	"github.com/brimdata/zed/zqe"
 )
 
 type Reader struct {
@@ -46,7 +47,7 @@ func (o *Object) NewReader(ctx context.Context, engine storage.Engine, path *sto
 	}
 	indexReader, err := engine.Get(ctx, o.SeekObjectPath(path))
 	if err != nil {
-		if zqe.IsNotFound(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return sr, nil
 		}
 		return nil, err
@@ -54,7 +55,7 @@ func (o *Object) NewReader(ctx context.Context, engine storage.Engine, path *sto
 	defer indexReader.Close()
 	rg, err := seekindex.Lookup(zngio.NewReader(indexReader, zed.NewContext()), scanRange.First(), scanRange.Last(), cmp)
 	if err != nil {
-		if zqe.IsNotFound(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			return sr, nil
 		}
 		return nil, err

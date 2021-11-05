@@ -3,6 +3,7 @@ package service
 import (
 	"encoding/json"
 	"errors"
+	"io/fs"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -274,7 +275,8 @@ func errorResponse(e error) (status int, ae *api.Error) {
 		switch {
 		case errors.Is(e, branches.ErrExists) || errors.Is(e, pools.ErrExists):
 			kind = zqe.Conflict
-		case errors.Is(e, branches.ErrNotFound) || errors.Is(e, pools.ErrNotFound):
+		case errors.Is(e, branches.ErrNotFound) || errors.Is(e, pools.ErrNotFound) ||
+			errors.Is(e, fs.ErrNotExist):
 			kind = zqe.NotFound
 		default:
 			ae.Message = e.Error()

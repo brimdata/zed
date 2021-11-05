@@ -4,9 +4,8 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"net/http"
-
-	"github.com/brimdata/zed/zqe"
 )
 
 type HTTPEngine struct{}
@@ -29,7 +28,7 @@ func (*HTTPEngine) Get(ctx context.Context, u *URI) (Reader, error) {
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
 		if resp.StatusCode == http.StatusNotFound {
-			return nil, zqe.ErrNotFound()
+			return nil, fs.ErrNotExist
 		}
 		return nil, errors.New(resp.Status)
 	}

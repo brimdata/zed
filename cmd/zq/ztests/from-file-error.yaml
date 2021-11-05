@@ -9,4 +9,4 @@ inputs:
 outputs:
   - name: stderr
     regexp: |
-      a.zson: item does not exist: file:///.*/a.zson
+      a.zson: file does not exist
