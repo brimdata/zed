@@ -75,6 +75,5 @@ func (a *Assembler) Read() (*zed.Value, error) {
 	//XXX if we had a buffer pool where records could be built back to
 	// back in batches, then we could get rid of this extra allocation
 	// and copy on every record
-	rec.Keep()
-	return rec, nil
+	return rec.Copy(), nil
 }

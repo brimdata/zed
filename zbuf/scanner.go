@@ -118,10 +118,9 @@ func (s *scanner) Read() (*zed.Value, error) {
 		}
 		atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Bytes)))
 		atomic.AddInt64(&s.stats.RecordsMatched, 1)
-		// Copy the underlying buffer (if volatile) because next call to
-		// reader.Next() may overwrite said buffer.
-		rec.CopyBytes()
-		return rec, nil
+		// Copy the underlying buffer because the next call to
+		// s.reader.Read will overwrite it.
+		return rec.Copy(), nil
 	}
 }
 

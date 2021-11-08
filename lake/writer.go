@@ -83,7 +83,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 	// and slow down import. We should instead copy the raw record bytes into a
 	// recycled buffer and keep around an array of ts + byte-slice structs for
 	// sorting.
-	w.zvals = append(w.zvals, *rec.Keep())
+	w.zvals = append(w.zvals, *rec.Copy())
 	w.memBuffered += int64(len(rec.Bytes))
 	//XXX change name LogSizeThreshold
 	// XXX the previous logic estimated the object size with divide by 2...?!

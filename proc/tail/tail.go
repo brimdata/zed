@@ -49,7 +49,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		}
 		zvals := batch.Values()
 		for i := range zvals {
-			p.q[p.off] = *zvals[i].Keep()
+			p.q[p.off] = *zvals[i].Copy()
 			p.off = (p.off + 1) % p.limit
 			p.count++
 			if p.count >= p.limit {

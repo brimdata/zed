@@ -55,10 +55,9 @@ func readBatch(zr zio.Reader, n int) (Batch, error) {
 		if rec == nil {
 			break
 		}
-		// Copy the underlying buffer (if volatile) because call to next
-		// reader.Next() may overwrite said buffer.
-		rec.CopyBytes()
-		recs = append(recs, *rec)
+		// Copy the underlying buffer because the next call to
+		// zr.Read may overwrite it.
+		recs = append(recs, *rec.Copy())
 	}
 	if len(recs) == 0 {
 		return nil, nil

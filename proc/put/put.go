@@ -373,8 +373,8 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if err != nil {
 			return nil, err
 		}
-		// Keep is necessary because put can return its argument.
-		recs = append(recs, *rec.Keep())
+		// Copy is necessary because put can return its argument.
+		recs = append(recs, *rec.Copy())
 	}
 	batch.Unref()
 	return zbuf.Array(recs), nil

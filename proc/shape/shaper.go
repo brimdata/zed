@@ -249,8 +249,7 @@ func (s *Shaper) stash(rec *zed.Value) error {
 		s.zvals = nil
 		return s.spiller.Write(rec)
 	}
-	rec = rec.Keep()
-	s.zvals = append(s.zvals, rec)
+	s.zvals = append(s.zvals, rec.Copy())
 	return nil
 }
 

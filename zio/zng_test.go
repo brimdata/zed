@@ -196,7 +196,7 @@ func TestStreams(t *testing.T) {
 			break
 		}
 		require.NoError(t, zw.Write(rec))
-		recs = append(recs, rec.Keep())
+		recs = append(recs, rec.Copy())
 		if len(recs)%2 == 0 {
 			require.NoError(t, zw.EndStream())
 		}

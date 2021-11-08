@@ -91,7 +91,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			// Nothing to add to the left join.
 			// Accumulate this record for an outer join.
 			if !p.inner {
-				out = append(out, *leftRec.Keep())
+				out = append(out, *leftRec.Copy())
 			}
 			continue
 		}
@@ -193,7 +193,7 @@ func (p *Proc) readJoinSet(joinKey zed.Value) ([]*zed.Value, error) {
 		if p.compare(key, joinKey) != 0 {
 			return recs, nil
 		}
-		recs = append(recs, rec.Keep())
+		recs = append(recs, rec.Copy())
 		p.right.Read()
 	}
 }

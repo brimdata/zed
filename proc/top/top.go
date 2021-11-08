@@ -74,7 +74,7 @@ func (p *Proc) consume(rec *zed.Value) {
 		heap.Init(p.records)
 	}
 	if p.records.Len() < p.limit || p.compare(p.records.Index(0), rec) < 0 {
-		heap.Push(p.records, rec.Keep())
+		heap.Push(p.records, rec.Copy())
 	}
 	if p.records.Len() > p.limit {
 		heap.Pop(p.records)
