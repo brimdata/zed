@@ -143,8 +143,8 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent(w, "pool-update", api.EventPool{PoolID: id})
 	w.WriteHeader(http.StatusNoContent)
+	c.publishEvent(w, "pool-update", api.EventPool{PoolID: id})
 }
 
 func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
@@ -166,8 +166,8 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent(w, "branch-update", api.EventBranch{PoolID: poolID, Branch: branchRef.Name})
 	w.Respond(http.StatusOK, branchRef)
+	c.publishEvent(w, "branch-update", api.EventBranch{PoolID: poolID, Branch: branchRef.Name})
 }
 
 func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
@@ -192,12 +192,12 @@ func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
+	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-revert", api.EventBranchCommit{
 		CommitID: commit,
 		PoolID:   poolID,
 		Branch:   branch,
 	})
-	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 }
 
 func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
@@ -222,13 +222,13 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
+	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 	c.publishEvent(w, "branch-merge", api.EventBranchCommit{
 		CommitID: commit,
 		PoolID:   poolID,
 		Branch:   childBranch,
 		Parent:   parentBranch,
 	})
-	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 }
 
 func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
@@ -240,8 +240,8 @@ func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent(w, "pool-delete", api.EventPool{PoolID: id})
 	w.WriteHeader(http.StatusNoContent)
+	c.publishEvent(w, "pool-delete", api.EventPool{PoolID: id})
 }
 
 func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
@@ -257,8 +257,8 @@ func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent(w, "branch-delete", api.EventBranch{PoolID: poolID, Branch: branchName})
 	w.WriteHeader(http.StatusNoContent)
+	c.publishEvent(w, "branch-delete", api.EventBranch{PoolID: poolID, Branch: branchName})
 }
 
 type warningCollector []string
@@ -312,14 +312,14 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
+	w.Respond(http.StatusOK, api.CommitResponse{
+		Warnings: warnings,
+		Commit:   kommit,
+	})
 	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
 		CommitID: kommit,
 		PoolID:   pool.ID,
 		Branch:   branch.Name,
-	})
-	w.Respond(http.StatusOK, api.CommitResponse{
-		Warnings: warnings,
-		Commit:   kommit,
 	})
 }
 
