@@ -102,8 +102,8 @@ type EventPool struct {
 }
 
 type EventBranch struct {
-	PoolID ksuid.KSUID `json:"pool_id"`
-	Branch string      `json:"branch"`
+	PoolID ksuid.KSUID `zed:"pool_id"`
+	Branch string      `zed:"branch"`
 }
 
 type QueryRequest struct {
