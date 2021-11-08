@@ -473,9 +473,9 @@ echo '{foo:{a:1,b:2,c:3}}' | zq -z 'this := pick(foo.a,foo.c)' -
 unflatten(r record) -> record
 ```
 
-`unflatten` returns a copy of r with all successive dotted field names converted
-into nest records. If no argument is supplied to `unflatten`, the root value
-`this` is operated on.
+`unflatten` returns a copy of `r` with all dotted field names converted
+into nested records. If no argument is supplied to `unflatten`, `unflatten`
+operates on `this`.
 
 #### Example:
 
