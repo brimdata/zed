@@ -575,7 +575,7 @@ echo '{foo:"apple;banana;pear;peach"}' | zq -z 'foo := split(foo,";")' -
 to_lower(s <stringy>) -> string
 ```
 
-`to_lower` lowercases all unicode letters in `s`.
+`to_lower` lowercases all Unicode letters in `s`.
 
 ```mdtest-command
 echo '{foo:"Zed"}' | zq -z 'foo := to_lower(foo)' -
