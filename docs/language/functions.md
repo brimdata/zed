@@ -451,10 +451,10 @@ echo '{foo:{a:1,b:2,c:3}}' | zq -z 'cut foo := fields(foo)' -
 pick(f ...<fields>) -> record
 ```
 
-`pick` accepts one or more [field expressions](./expressions.md) f and returns
+`pick` accepts one or more [field expressions](expressions.md) `f` and returns
 a record with only these fields. `pick` is similar to `cut` but only returns 
 a value if all field expressions are matched. This is functionally equivalent
-to the [`pick` operator](./operators.md#cut)
+to the [`pick` operator](operators.md#cut)
 
 #### Example:
 
