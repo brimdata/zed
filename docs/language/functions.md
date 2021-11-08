@@ -148,7 +148,7 @@ echo '{foo:"hello word"}' | zq -z 'foo := to_base64(foo)' -
 to_hex(b bytes) -> string
 ```
 
-`to_hex` encodes byte sequence `b` into a hexadecimal encoded string.
+`to_hex` encodes byte sequence `b` into a hexadecimal string.
 
 #### Example:
 
