@@ -169,7 +169,7 @@ echo '{foo:0x68656c6c6f20776f726c64}' | zq -z 'foo := to_hex(foo)' -
 network_of(s ip, [m (net,int,uint)) -> net
 ```
 
-`network_of` returns the net of ip address `s` with ip mask `m` applied. `m`
+With two arguments, `network_of` returns the net of ip address `s` under mask `m`. `m`
 can be a net cidr mask or a signed or unsigned integer. If there is no
 optional `m` argument the default mask of `s` is return.
 
