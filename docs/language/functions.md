@@ -536,7 +536,7 @@ rune_len(s <stringy>) -> int64
 ```
 
 `rune_len` returns the number of runes in `p`. Erroneous and short encodings are
-treated as single runes of width 1 byte.
+treated as single runes.
 
 #### Example:
 
