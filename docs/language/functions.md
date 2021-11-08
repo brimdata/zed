@@ -776,8 +776,8 @@ missing(e <expression>) -> bool
 
 `missing` returns true if a value in [expression](expressions.md) `e` is
 missing. Typically `e` is a selector expression 
-(e.g. `foo.bar` or `foo[0]`, `foo`) but `missing` will also return true if a
-variable in an generic expression cannot be found (e.g. `foo+1`).
+(e.g., `foo.bar` or `foo[0]`, `foo`) but `missing` will also return true if a
+variable in a generic expression cannot be found (e.g., `foo+1`).
 
 #### Example:
 
