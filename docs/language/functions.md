@@ -496,7 +496,7 @@ echo '{"a.b.c":"foo"}' | zq -z 'this := unflatten()' -
 join(vals [<stringy>], sep <stringy>) -> string
 ```
 
-`join` concatenate the elements of string array `vals` to create a single
+`join` concatenates the elements of string array `vals` to create a single
 string. The string `sep` is placed between each value in the resulting string.
 
 #### Example:
