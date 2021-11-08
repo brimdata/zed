@@ -126,10 +126,8 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("pool-new", api.EventPool{
-		PoolID: pool.ID.String(),
-	})
 	w.Respond(http.StatusOK, meta)
+	c.publishEvent(w, "pool-new", api.EventPool{PoolID: pool.ID})
 }
 
 func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
@@ -145,10 +143,8 @@ func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("pool-update", api.EventPool{
-		PoolID: id.String(),
-	})
 	w.WriteHeader(http.StatusNoContent)
+	c.publishEvent(w, "pool-update", api.EventPool{PoolID: id})
 }
 
 func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
@@ -170,11 +166,8 @@ func handleBranchPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("branch-update", api.EventBranch{
-		PoolID: poolID.String(),
-		Branch: branchRef.Name,
-	})
 	w.Respond(http.StatusOK, branchRef)
+	c.publishEvent(w, "branch-update", api.EventBranch{PoolID: poolID, Branch: branchRef.Name})
 }
 
 func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
@@ -199,12 +192,12 @@ func handleRevertPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("branch-revert", api.EventBranchCommit{
-		CommitID: commit.String(),
-		PoolID:   poolID.String(),
+	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
+	c.publishEvent(w, "branch-revert", api.EventBranchCommit{
+		CommitID: commit,
+		PoolID:   poolID,
 		Branch:   branch,
 	})
-	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 }
 
 func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
@@ -229,13 +222,13 @@ func handleBranchMerge(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("branch-merge", api.EventBranchCommit{
-		CommitID: commit.String(),
-		PoolID:   poolID.String(),
+	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
+	c.publishEvent(w, "branch-merge", api.EventBranchCommit{
+		CommitID: commit,
+		PoolID:   poolID,
 		Branch:   childBranch,
 		Parent:   parentBranch,
 	})
-	w.Respond(http.StatusOK, api.CommitResponse{Commit: commit})
 }
 
 func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
@@ -247,10 +240,8 @@ func handlePoolDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("pool-delete", api.EventPool{
-		PoolID: id.String(),
-	})
 	w.WriteHeader(http.StatusNoContent)
+	c.publishEvent(w, "pool-delete", api.EventPool{PoolID: id})
 }
 
 func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
@@ -266,11 +257,8 @@ func handleBranchDelete(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent("branch-delete", api.EventBranch{
-		PoolID: poolID.String(),
-		Branch: branchName,
-	})
 	w.WriteHeader(http.StatusNoContent)
+	c.publishEvent(w, "branch-delete", api.EventBranch{PoolID: poolID, Branch: branchName})
 }
 
 type warningCollector []string
@@ -328,9 +316,9 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 		Warnings: warnings,
 		Commit:   kommit,
 	})
-	c.publishEvent("branch-commit", api.EventBranchCommit{
-		CommitID: kommit.String(),
-		PoolID:   pool.ID.String(),
+	c.publishEvent(w, "branch-commit", api.EventBranchCommit{
+		CommitID: kommit,
+		PoolID:   pool.ID,
 		Branch:   branch.Name,
 	})
 }
@@ -472,15 +460,20 @@ func handleAuthMethodGet(c *Core, w *ResponseWriter, r *Request) {
 }
 
 func handleEvents(c *Core, w *ResponseWriter, r *Request) {
+	format, err := api.MediaTypeToFormat(r.Header.Get("Accept"), "zson")
+	if err != nil {
+		w.Error(zqe.ErrInvalid(err))
+	}
 	w.Header().Set("Content-Type", "text/event-stream")
-	subscription := make(chan []byte)
+	writer := &eventStreamWriter{body: w, format: format}
+	subscription := make(chan event)
 	c.subscriptionsMu.Lock()
 	c.subscriptions[subscription] = struct{}{}
 	c.subscriptionsMu.Unlock()
 	for {
 		select {
-		case msg := <-subscription:
-			if _, err := w.Write(msg); err != nil {
+		case ev := <-subscription:
+			if err := writer.writeEvent(ev); err != nil {
 				w.Error(err)
 				continue
 			}

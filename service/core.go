@@ -14,6 +14,7 @@ import (
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zson"
 	"github.com/gorilla/mux"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -54,7 +55,7 @@ type Core struct {
 	routerAPI       *mux.Router
 	routerAux       *mux.Router
 	taskCount       int64
-	subscriptions   map[chan []byte]struct{}
+	subscriptions   map[chan event]struct{}
 	subscriptionsMu sync.RWMutex
 }
 
@@ -129,7 +130,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 		registry:      registry,
 		routerAPI:     routerAPI,
 		routerAux:     routerAux,
-		subscriptions: make(map[chan []byte]struct{}),
+		subscriptions: make(map[chan event]struct{}),
 	}
 
 	c.addAPIServerRoutes()
@@ -226,17 +227,17 @@ func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 	return c.logger.With(zap.String("request_id", api.RequestIDFromContext(r.Context())))
 }
 
-func (c *Core) publishEvent(event string, data interface{}) {
+func (c *Core) publishEvent(w *ResponseWriter, name string, data interface{}) {
+	zv, err := zson.MarshalZNG(data)
+	if err != nil {
+		w.Logger.Error("Error marshaling published event", zap.Error(err))
+		return
+	}
 	go func() {
-		b, err := json.Marshal(data)
-		if err != nil {
-			c.logger.Error("Marshal error", zap.Error(err))
-			return
-		}
-		payload := []byte(fmt.Sprintf("event: %s\ndata: %s\n\n", event, b))
+		ev := event{name: name, value: &zv}
 		c.subscriptionsMu.RLock()
 		for sub := range c.subscriptions {
-			sub <- payload
+			sub <- ev
 		}
 		c.subscriptionsMu.RUnlock()
 	}()
