@@ -577,7 +577,7 @@ func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, po
 		}
 		return newScannerScheduler(s), nil
 	default:
-		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
+		return nil, fmt.Errorf("unknown commit metadata type: %q", meta)
 	}
 }
 
