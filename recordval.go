@@ -44,18 +44,6 @@ func (r *Value) FieldIter() fieldIter {
 	}
 }
 
-func (r *Value) Keep() *Value {
-	bytes := make(zcode.Bytes, len(r.Bytes))
-	copy(bytes, r.Bytes)
-	return NewValue(r.Type, bytes)
-}
-
-func (r *Value) CopyBytes() {
-	bytes := make(zcode.Bytes, len(r.Bytes))
-	copy(bytes, r.Bytes)
-	r.Bytes = bytes
-}
-
 func (r *Value) HasField(field string) bool {
 	return TypeRecordOf(r.Type).HasField(field)
 }

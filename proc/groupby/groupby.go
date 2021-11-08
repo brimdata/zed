@@ -427,7 +427,7 @@ func (a *Aggregator) nextResultFromSpills() (*zed.Value, error) {
 			break
 		}
 		if firstRec == nil {
-			firstRec = rec.Keep()
+			firstRec = rec.Copy()
 		} else if a.keysCompare(firstRec, rec) != 0 {
 			break
 		}

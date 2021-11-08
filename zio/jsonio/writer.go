@@ -50,9 +50,9 @@ func (w *Writer) Write(rec *zed.Value) error {
 		return fmt.Errorf("JSON output buffer size exceeded: %d", w.size)
 	}
 	if alias, ok := rec.Type.(*zed.TypeAlias); ok {
-		w.vals = append(w.vals, &describe{alias.Name, rec.Keep()})
+		w.vals = append(w.vals, &describe{alias.Name, rec.Copy()})
 	} else {
-		w.vals = append(w.vals, rec.Keep())
+		w.vals = append(w.vals, rec.Copy())
 	}
 	w.size += len(rec.Bytes)
 	return nil

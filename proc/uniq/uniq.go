@@ -46,7 +46,7 @@ func (p *Proc) wrap(t *zed.Value) *zed.Value {
 
 func (p *Proc) appendUniq(out []zed.Value, t *zed.Value) []zed.Value {
 	if p.count == 0 {
-		p.last = t.Keep()
+		p.last = t.Copy()
 		p.count = 1
 		return out
 	} else if bytes.Equal(t.Bytes, p.last.Bytes) {
@@ -54,7 +54,7 @@ func (p *Proc) appendUniq(out []zed.Value, t *zed.Value) []zed.Value {
 		return out
 	}
 	out = append(out, *p.wrap(p.last))
-	p.last = t.Keep()
+	p.last = t.Copy()
 	p.count = 1
 	return out
 }

@@ -76,8 +76,7 @@ func (f *Fuser) stash(rec *zed.Value) error {
 		f.zvals = nil
 		return f.spiller.Write(rec)
 	}
-	rec = rec.Keep()
-	f.zvals = append(f.zvals, rec)
+	f.zvals = append(f.zvals, rec.Copy())
 	return nil
 }
 

@@ -70,7 +70,7 @@ func (r *Function) Apply(in *zed.Value) (*zed.Value, error) {
 		}
 		r.typeMap[id] = typ
 	}
-	out := in.Keep()
+	out := in.Copy()
 	return zed.NewValue(r.typeMap[id], out.Bytes), nil
 }
 
