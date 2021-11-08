@@ -730,7 +730,7 @@ nameof(v <any>) -> string
 typeof(a <any>) -> type
 ```
 
-`typeof` returns the [type](../formats/zson.md#357-type-type) of value a.
+`typeof` returns the [type](../formats/zson.md#357-type-type) of value `a`.
 
 #### Example:
 
