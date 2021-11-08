@@ -50,7 +50,7 @@
 
 ### Pseudo Types
 
-For brevity, psuedo-types which are represented by name wrapped in `<>`, are
+For brevity, pseudo types — represented by a name wrapped in `<>` — are
 used for arguments that accept a range of value types. They are:
 
 | Name | Types |
