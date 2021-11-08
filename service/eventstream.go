@@ -20,7 +20,7 @@ type eventStreamWriter struct {
 	format string
 }
 
-func (e *eventStreamWriter) WriteEvent(ev event) error {
+func (e *eventStreamWriter) writeEvent(ev event) error {
 	buf := bytes.NewBuffer(nil)
 	w, err := anyio.NewWriter(zio.NopCloser(buf), anyio.WriterOpts{Format: e.format})
 	if err != nil {
