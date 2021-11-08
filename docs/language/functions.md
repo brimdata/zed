@@ -432,7 +432,7 @@ echo '{foo:{a:1,b:2,c:3}}' | zq -z 'this := cut(foo.a,foo.c)' -
 fields(r record) -> [string]
 ```
 
-`fields` returns a string array of all the field names in record r.
+`fields` returns a string array of all the field names in record `r`.
 
 #### Example:
 
