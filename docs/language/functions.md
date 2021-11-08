@@ -592,7 +592,7 @@ echo '{foo:"Zed"}' | zq -z 'foo := to_lower(foo)' -
 to_upper(s <stringy>) -> string
 ```
 
-`to_upper` uppercases all unicode letters in `s`.
+`to_upper` uppercases all Unicode letters in `s`.
 
 ```mdtest-command
 echo '{foo:"Zed"}' | zq -z 'foo := to_upper(foo)' -
