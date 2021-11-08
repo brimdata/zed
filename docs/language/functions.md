@@ -67,7 +67,7 @@ used for arguments that accept a range of value types. They are:
 ### `from_base64`
 
 ```
-from_base64(s string) -> bytes
+from_base64(s <stringy>) -> bytes
 ```
 
 `from_base64` decodes base64 encoded string `s` into a byte sequence.
