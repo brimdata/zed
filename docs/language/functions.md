@@ -90,7 +90,7 @@ echo '{foo:"aGVsbG8gd29ybGQ="}' | zq -z 'foo := string(from_base64(foo))' -
 from_hex(s string) -> bytes
 ```
 
-`from_hex` decodes hex encoded string `s` into a byte sequence.
+`from_hex` decodes hexadecimal <stringy> `s` into a byte sequence.
 
 #### Example:
 
