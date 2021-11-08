@@ -170,8 +170,8 @@ network_of(s ip, [m (net,int,uint)) -> net
 ```
 
 With two arguments, `network_of` returns the net of ip address `s` under mask `m`. `m`
-can be a net cidr mask or a signed or unsigned integer. If there is no
-optional `m` argument the default mask of `s` is return.
+can be a net cidr mask or a signed or unsigned integer. With one argument,
+`network_of` returns the default net for `s`.
 
 #### Example:
 
