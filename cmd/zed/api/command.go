@@ -21,7 +21,11 @@ The "api" command provides client access to a Zed lake service running
 on the IP and port provided in the "-host" option.  This option defaults
 to localhost:9867 so you can conveniently connect to a lake service
 running locally on the default port, as is automatically launched
-by the Brim application for the "local Zed lake".
+by the Brim application for the "local Zed lake".  If the port is ommitted
+from the host string, then 9867 is assumed.
+
+You can also set the environment variable ZED_LAKE_HOST to override the default
+"-host" option of localhost:9867.
 
 All of the relevant "lake" commands are available through the "api" command.
 Refer to the help of the individual sub-commands for more details.`,
