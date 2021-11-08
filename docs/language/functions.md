@@ -110,7 +110,7 @@ ksuid(bytes) -> string
 ```
 
 `ksuid` encodes a [KSUID](https://github.com/segmentio/ksuid) (a byte sequence of length 20) into
-a base62 string.
+a Base62 string.
 
 #### Example:
 
@@ -775,9 +775,9 @@ missing(e <expression>) -> bool
 ```
 
 `missing` returns true if a value in [expression](expressions.md) `e` is
-missing. Typically `e` is a selector expression 
-(e.g., `foo.bar` or `foo[0]`, `foo`) but `missing` will also return true if a
-variable in a generic expression cannot be found (e.g., `foo+1`).
+missing. Typically `e` is a selector expression (e.g., `foo.bar` or `foo[0]`,
+`foo`) but `missing` will also return true if a variable in a generic
+expression cannot be found (e.g., `foo+1`).
 
 #### Example:
 
@@ -802,8 +802,8 @@ echo '{foo:10}' | zq -z 'cut yes := missing(bar+1), no := missing(foo+1)' -
 has(e ...<expression>) -> bool
 ```
 
-`has` returns true if a value exists for every [expression](./expressions.md) in the list `e`.
-`has` is functionally equivalent to [`!missing(foo)`](#missing).
+`has` returns true if a value exists for every [expression](expressions.md) in
+the list `e`. `has(e)` is functionally equivalent to [`!missing(e)`](#missing).
 
 #### Example:
 
