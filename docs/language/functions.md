@@ -799,7 +799,7 @@ echo '{foo:10}' | zq -z 'cut yes := missing(bar+1), no := missing(foo+1)' -
 ### `has`
 
 ```
-has(e <expression>) -> bool
+has(e ...<expression>) -> bool
 ```
 
 `has` returns true if the value(s) in [expression](./expressions.md) e
