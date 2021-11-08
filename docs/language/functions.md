@@ -109,7 +109,7 @@ echo '{foo:"68656c6c6f20776f726c64"}' | zq -z 'foo := string(from_hex(foo))' -
 ksuid(bytes) -> string
 ```
 
-`ksuid` encodes a [ksuid](https://github.com/segmentio/ksuid) byte sequence into
+`ksuid` encodes a [KSUID](https://github.com/segmentio/ksuid) (a byte sequence of length 20) into
 a base62 encoded string.
 
 #### Example:
