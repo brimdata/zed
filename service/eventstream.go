@@ -21,8 +21,8 @@ type eventStreamWriter struct {
 }
 
 func (e *eventStreamWriter) writeEvent(ev event) error {
-	buf := bytes.NewBuffer(nil)
-	w, err := anyio.NewWriter(zio.NopCloser(buf), anyio.WriterOpts{Format: e.format})
+	var buf bytes.Buffer
+	w, err := anyio.NewWriter(zio.NopCloser(&buf), anyio.WriterOpts{Format: e.format})
 	if err != nil {
 		return err
 	}
