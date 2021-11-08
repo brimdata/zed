@@ -10,7 +10,7 @@ func (a *Any) Consume(v zed.Value) error {
 	// Copy any value from the input while favoring any-typed non-null values
 	// over null values.
 	if a.Type == nil || (a.Bytes == nil && v.Bytes != nil) {
-		*a = Any(v.Copy())
+		*a = Any(*v.Copy())
 	}
 	return nil
 }
