@@ -126,7 +126,7 @@ echo  '{id:0x0dfc90519b60f362e84a3fdddd9b9e63e1fb90d1}' | zq -z 'id := ksuid(id)
 ### `to_base64`
 
 ```
-to_base64(b bytes) -> string
+to_base64(s <stringy>) -> string
 ```
 
 `to_base64` encodes <stringy> `s` into a Base64 string.
