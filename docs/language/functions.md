@@ -411,9 +411,9 @@ echo '{foo:"{a:\"1\",b:2}"}' | zq -z 'foo := parse_zson(foo)' -
 cut(f ...<fields>) -> record
 ```
 
-`cut` accepts one or more [field expressions](./expressions.md) f and returns
+`cut` accepts one or more [field expressions](expressions.md) f and returns
 a record with only these fields. This is functionally equivalent to the [`cut`
-operator](./operators.md#cut)
+operator](operators.md#cut)
 
 #### Example:
 
