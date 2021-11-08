@@ -230,7 +230,7 @@ func (c *Core) requestLogger(r *http.Request) *zap.Logger {
 func (c *Core) publishEvent(w *ResponseWriter, name string, data interface{}) {
 	zv, err := zson.MarshalZNG(data)
 	if err != nil {
-		w.Logger.Error("error marshaling published event", zap.Error(err))
+		w.Logger.Error("Error marshaling published event", zap.Error(err))
 		return
 	}
 	go func() {
