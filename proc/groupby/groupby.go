@@ -343,16 +343,14 @@ func (a *Aggregator) spillTable(eof bool) error {
 // max value seen in the table for the streaming logic when the input is sorted.
 func (a *Aggregator) updateMaxTableKey(zv zed.Value) *zed.Value {
 	if a.maxTableKey == nil || a.valueCompare(zv, *a.maxTableKey) > 0 {
-		v := zv.Copy()
-		a.maxTableKey = &v
+		a.maxTableKey = zv.Copy()
 	}
 	return a.maxTableKey
 }
 
 func (a *Aggregator) updateMaxSpillKey(v zed.Value) {
 	if a.maxSpillKey == nil || a.valueCompare(v, *a.maxSpillKey) > 0 {
-		v = v.Copy()
-		a.maxSpillKey = &v
+		a.maxSpillKey = v.Copy()
 	}
 }
 

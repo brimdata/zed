@@ -154,13 +154,13 @@ func (v Value) IsUnsetOrNil() bool {
 	return v.Bytes == nil
 }
 
-func (v Value) Copy() Value {
+func (v Value) Copy() *Value {
 	var b zcode.Bytes
 	if v.Bytes != nil {
 		b = make(zcode.Bytes, len(v.Bytes))
 		copy(b, v.Bytes)
 	}
-	return Value{v.Type, b}
+	return &Value{v.Type, b}
 }
 
 func (v Value) IsStringy() bool {
