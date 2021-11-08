@@ -12,7 +12,7 @@ import (
 
 type event struct {
 	name  string
-	value zed.Value
+	value *zed.Value
 }
 
 type eventStreamWriter struct {
@@ -26,12 +26,12 @@ func (e *eventStreamWriter) writeEvent(ev event) error {
 	if err != nil {
 		return err
 	}
-	if err := w.Write(&ev.value); err != nil {
+	if err := w.Write(ev.value); err != nil {
 		return err
 	}
 	if err := w.Close(); err != nil {
 		return err
 	}
-	_, err = fmt.Fprintf(e.body, "event: %s\ndata: %s\n\n", ev.name, buf)
+	_, err = fmt.Fprintf(e.body, "event: %s\ndata: %s\n\n", ev.name, &buf)
 	return err
 }

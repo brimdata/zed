@@ -126,8 +126,8 @@ func handlePoolPost(c *Core, w *ResponseWriter, r *Request) {
 		w.Error(err)
 		return
 	}
-	c.publishEvent(w, "pool-new", api.EventPool{PoolID: pool.ID})
 	w.Respond(http.StatusOK, meta)
+	c.publishEvent(w, "pool-new", api.EventPool{PoolID: pool.ID})
 }
 
 func handlePoolPut(c *Core, w *ResponseWriter, r *Request) {
@@ -473,7 +473,7 @@ func handleEvents(c *Core, w *ResponseWriter, r *Request) {
 	for {
 		select {
 		case ev := <-subscription:
-			if err := writer.WriteEvent(ev); err != nil {
+			if err := writer.writeEvent(ev); err != nil {
 				w.Error(err)
 				continue
 			}

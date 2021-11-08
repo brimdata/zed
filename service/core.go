@@ -234,7 +234,7 @@ func (c *Core) publishEvent(w *ResponseWriter, name string, data interface{}) {
 		return
 	}
 	go func() {
-		ev := event{name: name, value: zv}
+		ev := event{name: name, value: &zv}
 		c.subscriptionsMu.RLock()
 		for sub := range c.subscriptions {
 			sub <- ev
