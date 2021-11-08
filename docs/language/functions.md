@@ -703,7 +703,7 @@ echo '{foo:1.}' | zq -z 'foo := is({foo:float64})' -
 iserr(v <any>) -> bool
 ```
 
-`iserr` returns true if value v is of type error.
+`iserr` returns true if value `v` is of type error.
 
 #### Example:
 
