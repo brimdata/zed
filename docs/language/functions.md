@@ -55,12 +55,12 @@ used for arguments that accept a range of value types. They are:
 
 | Name | Types |
 | --- | --- |
-| `<stringy>` | `string`, `bstring`, `err` |
-| `<int>` | `int8`, `int16`, `int32`, `int64`<br />`uint8`, `uint16`, `uint32`, `uint64` |
-| `<float>` | `float32`, `float64` |
-| `<number>` | `<int>`, `<float>` |
-| `<timey>` | `time`, `<number>` |
 | `<any>` | Accepts a value as any type as the argument. |
+| `<float>` | `float32`, `float64` |
+| `<int>` | `int8`, `int16`, `int32`, `int64`<br />`uint8`, `uint16`, `uint32`, `uint64` |
+| `<number>` | `<int>`, `<float>` |
+| `<stringy>` | `string`, `bstring`, `err` |
+| `<timey>` | `time`, `<number>` |
 
 ## Bytes
 
@@ -333,7 +333,7 @@ parse_uri(u <stringy>) -> record
 
 `parse_uri` parses the [Universal Resource Identifier](https://en.wikipedia.org/wiki/Uniform_Resource_Identifier)
 string `u` into a generic URI record. The returned record has the following
-key/values:
+type:
 
 ```
 ({
