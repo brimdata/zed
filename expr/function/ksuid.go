@@ -5,9 +5,10 @@ import (
 	"github.com/segmentio/ksuid"
 )
 
-type ksuidToString struct{}
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ksuid
+type KSUIDToString struct{}
 
-func (*ksuidToString) Call(args []zed.Value) (zed.Value, error) {
+func (*KSUIDToString) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if zv.Type.ID() != zed.IDBytes {
 		return zed.NewErrorf("not a bytes type"), nil

@@ -5,7 +5,8 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-type fields struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#fields
+type Fields struct {
 	zctx  *zed.Context
 	typ   zed.Type
 	bytes zcode.Bytes
@@ -25,7 +26,7 @@ func fieldNames(typ *zed.TypeRecord) []string {
 	return out
 }
 
-func (f *fields) Call(args []zed.Value) (zed.Value, error) {
+func (f *Fields) Call(args []zed.Value) (zed.Value, error) {
 	zvSubject := args[0]
 	typ := isRecordType(zvSubject, f.zctx)
 	if typ == nil {

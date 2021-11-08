@@ -30,20 +30,20 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 	default:
 		return nil, false, ErrNoSuchFunction
 	case "len":
-		f = &lenFn{}
+		f = &LenFn{}
 	case "abs":
-		f = &abs{}
+		f = &Abs{}
 	case "ceil":
-		f = &ceil{}
+		f = &Ceil{}
 	case "floor":
-		f = &floor{}
+		f = &Floor{}
 	case "join":
 		argmax = 2
-		f = &join{}
+		f = &Join{}
 	case "ksuid":
-		f = &ksuidToString{}
+		f = &KSUIDToString{}
 	case "log":
-		f = &log{}
+		f = &Log{}
 	case "max":
 		argmax = -1
 		f = &reducer{fn: anymath.Max}
@@ -53,27 +53,27 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 	case "mod":
 		argmin = 2
 		argmax = 2
-		f = &mod{}
+		f = &Mod{}
 	case "round":
-		f = &round{}
+		f = &Round{}
 	case "pow":
 		argmin = 2
 		argmax = 2
-		f = &pow{}
+		f = &Pow{}
 	case "sqrt":
-		f = &sqrt{}
+		f = &Sqrt{}
 	case "replace":
 		argmin = 3
 		argmax = 3
-		f = &replace{}
+		f = &Replace{}
 	case "rune_len":
-		f = &runeLen{}
+		f = &RuneLen{}
 	case "to_lower":
-		f = &toLower{}
+		f = &ToLower{}
 	case "to_upper":
-		f = &toUpper{}
+		f = &ToUpper{}
 	case "trim":
-		f = &trim{}
+		f = &Trim{}
 	case "split":
 		argmin = 2
 		argmax = 2
@@ -81,38 +81,38 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 	case "trunc":
 		argmin = 2
 		argmax = 2
-		f = &trunc{}
+		f = &Trunc{}
 	case "typeof":
-		f = &typeOf{zctx}
+		f = &TypeOf{zctx}
 	case "typeunder":
 		f = &typeUnder{zctx}
 	case "nameof":
-		f = &nameOf{}
+		f = &NameOf{}
 	case "fields":
 		typ := zctx.LookupTypeArray(zed.TypeString)
-		f = &fields{zctx: zctx, typ: typ}
+		f = &Fields{zctx: zctx, typ: typ}
 	case "is":
 		argmin = 1
 		argmax = 2
 		root = true
-		f = &is{zctx: zctx}
+		f = &Is{zctx: zctx}
 	case "iserr":
-		f = &isErr{}
+		f = &IsErr{}
 	case "to_base64":
-		f = &toBase64{}
+		f = &ToBase64{}
 	case "from_base64":
-		f = &fromBase64{}
+		f = &FromBase64{}
 	case "to_hex":
-		f = &toHex{}
+		f = &ToHex{}
 	case "from_hex":
-		f = &fromHex{}
+		f = &FromHex{}
 	case "network_of":
 		argmax = 2
-		f = &networkOf{}
+		f = &NetworkOf{}
 	case "parse_uri":
-		f = &parseURI{marshaler: zson.NewZNGMarshalerWithContext(zctx)}
+		f = &ParseURI{marshaler: zson.NewZNGMarshalerWithContext(zctx)}
 	case "parse_zson":
-		f = &parseZSON{zctx: zctx}
+		f = &ParseZSON{zctx: zctx}
 	}
 	if argmin != -1 && narg < argmin {
 		return nil, false, ErrTooFewArgs
@@ -143,11 +143,12 @@ func badarg(msg string) (zed.Value, error) {
 	return zverr(msg, ErrBadArgument)
 }
 
-type lenFn struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#len
+type LenFn struct {
 	result.Buffer
 }
 
-func (l *lenFn) Call(args []zed.Value) (zed.Value, error) {
+func (l *LenFn) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if zv.Bytes == nil {
 		return zed.Value{zed.TypeInt64, nil}, nil
@@ -169,11 +170,12 @@ func (l *lenFn) Call(args []zed.Value) (zed.Value, error) {
 	}
 }
 
-type typeOf struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#typeof
+type TypeOf struct {
 	zctx *zed.Context
 }
 
-func (t *typeOf) Call(args []zed.Value) (zed.Value, error) {
+func (t *TypeOf) Call(args []zed.Value) (zed.Value, error) {
 	typ := args[0].Type
 	return t.zctx.LookupTypeValue(typ), nil
 }
@@ -187,9 +189,10 @@ func (t *typeUnder) Call(args []zed.Value) (zed.Value, error) {
 	return t.zctx.LookupTypeValue(typ), nil
 }
 
-type nameOf struct{}
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nameof
+type NameOf struct{}
 
-func (*nameOf) Call(args []zed.Value) (zed.Value, error) {
+func (*NameOf) Call(args []zed.Value) (zed.Value, error) {
 	typ := args[0].Type
 	if alias, ok := typ.(*zed.TypeAlias); ok {
 		// XXX GC
@@ -198,20 +201,22 @@ func (*nameOf) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Missing, nil
 }
 
-type isErr struct{}
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#iserr
+type IsErr struct{}
 
-func (*isErr) Call(args []zed.Value) (zed.Value, error) {
+func (*IsErr) Call(args []zed.Value) (zed.Value, error) {
 	if args[0].IsError() {
 		return zed.True, nil
 	}
 	return zed.False, nil
 }
 
-type is struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#is
+type Is struct {
 	zctx *zed.Context
 }
 
-func (i *is) Call(args []zed.Value) (zed.Value, error) {
+func (i *Is) Call(args []zed.Value) (zed.Value, error) {
 	zvSubject := args[0]
 	zvTypeVal := args[1]
 	if len(args) == 3 {

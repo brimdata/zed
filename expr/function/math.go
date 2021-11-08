@@ -9,11 +9,12 @@ import (
 	"github.com/brimdata/zed/expr/result"
 )
 
-type abs struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#abs.md
+type Abs struct {
 	result.Buffer
 }
 
-func (a *abs) Call(args []zed.Value) (zed.Value, error) {
+func (a *Abs) Call(args []zed.Value) (zed.Value, error) {
 	v := args[0]
 	id := v.Type.ID()
 	if zed.IsFloat(id) {
@@ -34,11 +35,12 @@ func (a *abs) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{v.Type, a.Int(x)}, nil
 }
 
-type ceil struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ceil
+type Ceil struct {
 	result.Buffer
 }
 
-func (c *ceil) Call(args []zed.Value) (zed.Value, error) {
+func (c *Ceil) Call(args []zed.Value) (zed.Value, error) {
 	v := args[0]
 	id := v.Type.ID()
 	if zed.IsFloat(id) {
@@ -52,11 +54,12 @@ func (c *ceil) Call(args []zed.Value) (zed.Value, error) {
 	return badarg("ceil")
 }
 
-type floor struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#floor
+type Floor struct {
 	result.Buffer
 }
 
-func (f *floor) Call(args []zed.Value) (zed.Value, error) {
+func (f *Floor) Call(args []zed.Value) (zed.Value, error) {
 	v := args[0]
 	id := v.Type.ID()
 	if zed.IsFloat(id) {
@@ -70,11 +73,12 @@ func (f *floor) Call(args []zed.Value) (zed.Value, error) {
 	return badarg("floor")
 }
 
-type log struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#log
+type Log struct {
 	result.Buffer
 }
 
-func (l *log) Call(args []zed.Value) (zed.Value, error) {
+func (l *Log) Call(args []zed.Value) (zed.Value, error) {
 	x, ok := coerce.ToFloat(args[0])
 	// XXX should have better error messages
 	if !ok {
@@ -134,13 +138,14 @@ func (r *reducer) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{typ, r.Uint(result)}, nil
 }
 
-type mod struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#mod
+type Mod struct {
 	result.Buffer
 }
 
 //XXX currently integer mod, but this could also do fmod
 // also why doesn't Zed have x%y instead of mod(x,y)?
-func (m *mod) Call(args []zed.Value) (zed.Value, error) {
+func (m *Mod) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
@@ -161,11 +166,12 @@ func (m *mod) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{zv.Type, m.Uint(x % y)}, nil
 }
 
-type round struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#round
+type Round struct {
 	result.Buffer
 }
 
-func (r *round) Call(args []zed.Value) (zed.Value, error) {
+func (r *Round) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
@@ -179,11 +185,12 @@ func (r *round) Call(args []zed.Value) (zed.Value, error) {
 	return zv, nil
 }
 
-type pow struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#pow
+type Pow struct {
 	result.Buffer
 }
 
-func (p *pow) Call(args []zed.Value) (zed.Value, error) {
+func (p *Pow) Call(args []zed.Value) (zed.Value, error) {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
 		return badarg("pow")
@@ -199,11 +206,12 @@ func (p *pow) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{zed.TypeFloat64, p.Float64(r)}, nil
 }
 
-type sqrt struct {
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#sqrt
+type Sqrt struct {
 	result.Buffer
 }
 
-func (s *sqrt) Call(args []zed.Value) (zed.Value, error) {
+func (s *Sqrt) Call(args []zed.Value) (zed.Value, error) {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
 		return badarg("sqrt")

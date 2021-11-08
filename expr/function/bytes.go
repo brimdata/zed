@@ -8,9 +8,10 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-type fromBase64 struct{}
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#from_base64
+type FromBase64 struct{}
 
-func (*fromBase64) Call(args []zed.Value) (zed.Value, error) {
+func (*FromBase64) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("from_base64")
@@ -26,9 +27,10 @@ func (*fromBase64) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{zed.TypeBytes, zed.EncodeBytes(b)}, nil
 }
 
-type toBase64 struct{}
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_base64
+type ToBase64 struct{}
 
-func (*toBase64) Call(args []zed.Value) (zed.Value, error) {
+func (*ToBase64) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("from_base64")
@@ -40,9 +42,10 @@ func (*toBase64) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
 }
 
-type fromHex struct{}
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#from_hex
+type FromHex struct{}
 
-func (*fromHex) Call(args []zed.Value) (zed.Value, error) {
+func (*FromHex) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return zed.NewErrorf("not a string"), nil
@@ -57,9 +60,10 @@ func (*fromHex) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{zed.TypeBytes, zcode.Bytes(b)}, nil
 }
 
-type toHex struct{}
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_hex
+type ToHex struct{}
 
-func (*toHex) Call(args []zed.Value) (zed.Value, error) {
+func (*ToHex) Call(args []zed.Value) (zed.Value, error) {
 	zv := args[0]
 	if zv.Bytes == nil {
 		return zed.Value{zed.TypeBytes, nil}, nil
