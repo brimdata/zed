@@ -680,7 +680,7 @@ echo '{foo:[1,2,3]}' | zq -z 'foo := len(foo)' -
 is([s <any>], t type) -> bool
 ```
 
-`is` returns true if the subject value s is of type t. `is` can accept either
+`is` returns true if the subject value `s` has type `t`. `is` can accept either
 one arguments or two: Value `s` is optional and if omitted the subject value is
 the root value (i.e. equivalent to `is(this, type)`).
 
