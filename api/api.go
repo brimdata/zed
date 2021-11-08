@@ -91,10 +91,10 @@ type IndexUpdateRequest struct {
 }
 
 type EventBranchCommit struct {
-	CommitID ksuid.KSUID `json:"commit_id"`
-	PoolID   ksuid.KSUID `json:"pool_id"`
-	Branch   string      `json:"branch"`
-	Parent   string      `json:"parent"`
+	CommitID ksuid.KSUID `zed:"commit_id"`
+	PoolID   ksuid.KSUID `zed:"pool_id"`
+	Branch   string      `zed:"branch"`
+	Parent   string      `zed:"parent"`
 }
 
 type EventPool struct {
