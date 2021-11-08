@@ -98,7 +98,7 @@ type EventBranchCommit struct {
 }
 
 type EventPool struct {
-	PoolID ksuid.KSUID `json:"pool_id"`
+	PoolID ksuid.KSUID `zed:"pool_id"`
 }
 
 type EventBranch struct {
