@@ -802,8 +802,8 @@ echo '{foo:10}' | zq -z 'cut yes := missing(bar+1), no := missing(foo+1)' -
 has(e ...<expression>) -> bool
 ```
 
-`has` returns true if the value(s) in [expression](./expressions.md) e
-exist. `has` is functionally equivalent to [`!missing(foo)`](#missing).
+`has` returns true if a value exists for every [expression](./expressions.md) in the list `e`.
+`has` is functionally equivalent to [`!missing(foo)`](#missing).
 
 #### Example:
 
