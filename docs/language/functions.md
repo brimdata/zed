@@ -212,7 +212,7 @@ echo '{foo:-1}' | zq -z 'foo := abs(foo)' -
 ### `ceil`
 
 ```
-ceil(n number) -> number
+ceil(n <number>) -> <number>
 ```
 
 `ceil` returns number `n` rounded up to the nearest integer.
