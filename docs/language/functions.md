@@ -110,7 +110,7 @@ ksuid(bytes) -> string
 ```
 
 `ksuid` encodes a [KSUID](https://github.com/segmentio/ksuid) (a byte sequence of length 20) into
-a base62 encoded string.
+a base62 string.
 
 #### Example:
 
