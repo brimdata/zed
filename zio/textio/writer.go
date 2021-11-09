@@ -14,18 +14,12 @@ import (
 type Writer struct {
 	writer    io.WriteCloser
 	flattener *expr.Flattener
-	format    tzngio.OutFmt
 }
 
-func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
-	format := tzngio.OutFormatZeekAscii
-	if utf8 {
-		format = tzngio.OutFormatZeek
-	}
+func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{
 		writer:    w,
 		flattener: expr.NewFlattener(zed.NewContext()),
-		format:    format,
 	}
 }
 
@@ -53,7 +47,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 				s = ts.Time().UTC().Format(time.RFC3339Nano)
 			}
 		} else {
-			s = tzngio.FormatValue(value, w.format)
+			s = tzngio.FormatValue(value, tzngio.OutFormatZeek)
 		}
 		out = append(out, s)
 	}

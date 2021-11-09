@@ -22,7 +22,6 @@ import (
 
 type WriterOpts struct {
 	Format string
-	UTF8   bool
 	JSON   jsonio.WriterOpts
 	Lake   lakeio.WriterOpts
 	ZNG    zngio.WriterOpts
@@ -37,7 +36,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "zng":
 		return zngio.NewWriter(w, opts.ZNG), nil
 	case "zeek":
-		return zeekio.NewWriter(w, opts.UTF8), nil
+		return zeekio.NewWriter(w), nil
 	case "ndjson":
 		return ndjsonio.NewWriter(w), nil
 	case "json":
@@ -49,9 +48,9 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "zst":
 		return zstio.NewWriter(w, opts.Zst)
 	case "text":
-		return textio.NewWriter(w, opts.UTF8), nil
+		return textio.NewWriter(w), nil
 	case "table":
-		return tableio.NewWriter(w, opts.UTF8), nil
+		return tableio.NewWriter(w), nil
 	case "csv":
 		return csvio.NewWriter(w), nil
 	case "parquet":

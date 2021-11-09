@@ -19,21 +19,15 @@ type Writer struct {
 	typ       *zed.TypeRecord
 	limit     int
 	nline     int
-	format    tzngio.OutFmt
 }
 
-func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
+func NewWriter(w io.WriteCloser) *Writer {
 	table := tabwriter.NewWriter(w, 0, 8, 1, ' ', 0)
-	format := tzngio.OutFormatZeekAscii
-	if utf8 {
-		format = tzngio.OutFormatZeek
-	}
 	return &Writer{
 		writer:    w,
 		flattener: expr.NewFlattener(zed.NewContext()),
 		table:     table,
 		limit:     1000,
-		format:    format,
 	}
 }
 
@@ -70,7 +64,7 @@ func (w *Writer) Write(r *zed.Value) error {
 				v = ts.Time().UTC().Format(time.RFC3339Nano)
 			}
 		} else {
-			v = tzngio.FormatValue(value, w.format)
+			v = tzngio.FormatValue(value, tzngio.OutFormatZeek)
 		}
 		out = append(out, v)
 	}
