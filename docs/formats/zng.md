@@ -1,18 +1,5 @@
 # ZNG Specification
 
-> ### Note: This specification is in BETA development.
-> We hope that no backward incompatible changes will be made during
-> the BETA phase.  We plan to
-> declare the specification stable in the near future.
->
-> [Zed](../../README.md)'s
-> implementation of ZNG is tracking this spec and as it changes,
-> the zq output format is subject to change.  In this branch,
-> zq attempts to implement everything herein excepting:
->
-> * Zed syntax for working with the [`enum` type](#3115-enum-typedef) is not yet implemented. ([#1498](https://github.com/brimdata/zed/issues/1498))
-> * [Primitive Types](#3-primitive-types) for `float16` and `decimal` are not yet implemented. ([#1312](https://github.com/brimdata/zed/issues/1312), [#1522](https://github.com/brimdata/zed/issues/1522))
-
 * [1. Introduction](#1-introduction)
 * [2. The ZNG Format](#2-the-zng-format)
   + [2.1 Control Messages](#21-control-messages)
@@ -30,13 +17,11 @@
   + [2.2 Value Messages](#22-value-messages)
 * [3. Primitive Types](#3-primitive-types)
 * [4. Type Values](#4-type-values)
-* [Appendix A. Related Links](#appendix-a-related-links)
-* [Appendix B. Recommended Type Coercion Rules](#appendix-b-recommended-type-coercion-rules)
 
 ## 1. Introduction
 
-ZNG implements the [ZSON](zson.md) data model and is an efficient, binary serialization
-format for ZSON value sequences.  ZNG is ideally suited for streams
+ZNG is an efficient, binary serialization
+format conforming to the [Zed data model](zdm.md).  ZNG is ideally suited for streams
 of heterogeneously typed records, e.g., structured logs, where filtering and
 analytics may be applied to a stream in parts without having to fully deserialize
 every value.
@@ -46,7 +31,7 @@ ZNG strikes a balance between the narrowly typed but flexible
 [newline-delimited JSON (NDJSON)](http://ndjson.org/) format and
 a more structured approach like [Apache Avro](https://avro.apache.org).
 
-As it follows the ZSON data model, ZNG embeds all type information
+As it follows the Zed data model, ZNG embeds all type information
 in the stream itself while having a binary serialization format that
 allows "lazy parsing" of fields such that
 only the fields of interest in a stream need to be deserialized and interpreted.
@@ -71,34 +56,20 @@ input contexts into an output context and adjusting the type reference of
 each value in the output ZNG sequence.  The values need not be traversed
 or otherwise rewritten to be merged in this fashion.
 
-ZNG is more expressive than JSON in that any JSON input
-can be mapped onto ZNG and recovered by decoding
-that ZNG back into JSON, but the converse is not true.
-
-Likewise, ZNG is a superset of SQL relational tables so any table could potentially
-be exported as ZNG data and re-imported from ZNG to SQL (though there is
-no notion of constraints like foreign keys in the ZNG format).
-
-The [`zq`](https://github.com/brimdata/zed) command-line tool provides a
-reference implementation of ZNG as it's described here, including the type
-system, error handling, etc., barring the exceptions
-described in the [beta notice](#note-this-specification-is-in-beta-development)
-at the top of this specification.
-
-## 2. The ZNG Format
-
 The ZNG binary format is based on machine-readable data types with an
 encoding methodology inspired by Avro,
 [Parquet](https://en.wikipedia.org/wiki/Apache_Parquet), and
 [Protocol Buffers](https://developers.google.com/protocol-buffers).
 
-ZNG follows the ZSON data model and
+ZNG adheres to the Zed data model and
 encodes a sequence of one or more typed data values to comprise a stream.
-The stream of values is interleaved with control messages
+A ZNG stream may be interleaved with control messages
 that provide type definitions and other metadata.  The type of
 a particular data value is specified by its "type identifier", or type ID,
 which is an integer representing either a "primitive type" or a
 "complex type".
+
+## 2. The ZNG Format
 
 A ZNG stream comprises a sequence of interleaved control messages and value messages
 that are serialized into a stream of bytes.
@@ -512,10 +483,6 @@ sequence of bytes encoding each tag-counted key (of the key/value pair) is
 lexicographically greater than that of the preceding key (of the preceding
 key/value pair).
 
-> XXX it's not clear that we should require sorted keys and give up
-> on a single canonical form for the zng file.  Or make this sort optional.
-> Or have the zq/zng writer do the sort but not correct it on input.
-
 ## 3. Primitive Types
 
 For each ZNG primitive type, the following table describes:
@@ -660,67 +627,3 @@ An alias type value reference has the form:
 ```
 It is an error for an alias reference to appear in a type value with a name
 that has not been previously defined according to the DFS order.
-
-## Appendix A. Related Links
-
-* [Zeek ASCII logging](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs)
-* [Binary logging in Zeek](https://old.zeek.org/development/projects/binary-logging.html)
-* [Hadoop sequence file](https://cwiki.apache.org/confluence/display/HADOOP2/SequenceFile)
-* [Avro](https://avro.apache.org)
-* [Parquet](https://en.wikipedia.org/wiki/Apache_Parquet)
-* [Protocol Buffers](https://developers.google.com/protocol-buffers)
-* [MessagePack](https://msgpack.org/index.html)
-* [gNMI](https://github.com/openconfig/reference/tree/master/rpc/gnmi)
-
-## Appendix B. Recommended Type Coercion Rules
-
-> TBD: it might be better to put this in the Zed language docs
-
-While outside the scope of the ZNG format specification, we include here
-some suggested rules for converting types when mixed-type operations occur,
-e.g., adding an uint32 field to an int32 fields or aggregating a stream of
-mixed-type numeric values in a sum operator.
-
-The age old question is "does unsigned(-1) equal unsigned(maxint) and thus
-that signed -1 is larger than unsigned 1 in a coerced comparison?"
-The standard SQL specification goes so far as to avoid unsigned types altogether
-to avoid this confusion.  However, since unsigned types are prevalent
-in the real world, and we want ZNG to be a reliable and complete language-independent
-model for communicating structured data, ZNG embraces the unsigned type.
-
-Given the dynamic typing nature of ZNG streams (e.g., x in one record might
-be a uint8, in another an int64, and in still another, a string), type coercion
-is important for ergonomic use, and implementations are thus encouraged
-to handle mixed-type operations robustly.
-
-For systems that perform analytics directly on ZNG, the following coercion
-patterns are recommend for logical comparisons of numbers, arithmetic operations,
-or streaming aggregations over numbers:
-* For float32 and float64, the float32 is converted to float64.
-* For float32 and any integer type, the integer is converted to float32
-and any loss of precision causes no error.
-* For float64 and any integer type, the integer is converted to float64
-and any loss of precision causes no error.
-* For integers of same signed-ness but different widths, the smaller width
-type is converted to the wider type.
-* For any signed and unsigned integers smaller than 64 bits, the unsigned value
-is converted to the corresponding signed type if possible, and otherwise,
-both are converted to the widest signed type that will allow conversion of
-the unsigned value unless the unsigned value cannot be converted,
-in which case an overflow error occurs.   e.g., uint8(255) and int8(-1), are
-converted to int16(255) and int16(-1), but uint64(2^32) and any signed value
-will result in overflow.
-* For a time or duration with a number, automatic coercion is not performed
-and casts or conversion functions should be used.
-* For a string with number, automatic coercion is not performed
-and casts or conversion functions should be used.
-
-Also,
-* numeric constants should be int64 or float64 unless cast, which means
-comparisons with constants will generally be coerced to these types and results
-of mathematical operations with constants will be promoted as well;
-* times and durations may be added, resulting in a time;
-* times may be subtracted, resulting in a duration; and,
-* a "plus" operator applied to two strings, implies concatenation,
-but a "plus" applied to a string and a non-string is a type mismatch and casts
-or conversion functions should be used.
