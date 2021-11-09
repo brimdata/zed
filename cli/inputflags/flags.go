@@ -26,7 +26,7 @@ func (f *Flags) Options() anyio.ReaderOpts {
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet, validate bool) {
-	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,zst,json,ndjson,zeek,zjson,csv,tzng,parquet]")
+	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,zst,json,ndjson,zeek,zjson,csv,parquet]")
 	fs.BoolVar(&f.Zng.Validate, "validate", validate, "validate the input format when reading ZNG streams")
 	f.ReadMax = auto.NewBytes(zngio.MaxSize)
 	fs.Var(&f.ReadMax, "readmax", "maximum memory used read buffers in MiB, MB, etc")

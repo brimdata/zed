@@ -132,7 +132,6 @@ zapi help
 | zng | yes | yes | yes | [ZNG specification](../../docs/formats/zng.md) |
 | zst | yes | no | yes | [ZST specification](../../docs/formats/zst.md) |
 | zson | yes | yes | yes | [ZSON specification](../../docs/formats/zson.md) |
-| tzng | yes | yes | yes | Alternate text-based ZNG format |
 | ndjson | yes | yes | yes | Newline delimited JSON records |
 | zeek  | yes | yes | yes | [Zeek compatible](https://docs.zeek.org/en/master/log-formats.html#zeek-tsv-format-logs) tab separated values |
 | zjson | yes | yes | yes | [ZNG over JSON](../../docs/formats/zjson.md) |

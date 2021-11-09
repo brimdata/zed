@@ -9,8 +9,6 @@ import (
 
 func Extension(format string) string {
 	switch format {
-	case "tzng":
-		return ".tzng"
 	case "zeek":
 		return ".log"
 	case "ndjson":

@@ -26,15 +26,13 @@ echo
 scripts/check_md5sums.sh zson
 ZSON_SUCCESS="$?"
 echo
-scripts/check_md5sums.sh tzng
-TZNG_SUCCESS="$?"
 
-if (( ZNG_SUCCESS == 0 && TZNG_SUCCESS == 0 && ZNG_UNCOMPRESSED_SUCCESS == 0 && ZSON_SUCCESS == 0)); then
+if (( ZNG_SUCCESS == 0 && ZNG_UNCOMPRESSED_SUCCESS == 0 && ZSON_SUCCESS == 0)); then
   exit 0
 else
   echo
   echo "------------------------------------------------------------------------------"
-  echo "Output format has changed. If your work intentionally changed ZNG/ZSON/TZNG"
+  echo "Output format has changed. If your work intentionally changed ZNG or ZSON"
   echo "output and hence you do not suspect a bug, either update the zed-sample-data"
   echo "repo with new output files and MD5 hashes to make this test pass, or open a zed"
   echo "issue and include the output from this script and someone else will take care"

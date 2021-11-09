@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/jsonio"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -28,12 +27,6 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	}
 	recorder := NewRecorder(r)
 	track := NewTrack(recorder)
-
-	tzngErr := match(tzngio.NewReader(track, zed.NewContext()), "tzng")
-	if tzngErr == nil {
-		return tzngio.NewReader(recorder, zctx), nil
-	}
-	track.Reset()
 
 	zr, err := zeekio.NewReader(track, zed.NewContext())
 	if err != nil {
@@ -89,7 +82,7 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	csvErr := errors.New("csv: auto-detection not supported")
 	parquetErr := errors.New("parquet: auto-detection not supported")
 	zstErr := errors.New("zst: auto-detection not supported")
-	return nil, joinErrs([]error{tzngErr, zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, zstErr})
+	return nil, joinErrs([]error{zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, zstErr})
 }
 
 func NewReader(r io.Reader, zctx *zed.Context) (zio.Reader, error) {
