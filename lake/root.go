@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"sort"
 
 	"github.com/brimdata/zed"
@@ -20,7 +21,6 @@ import (
 	"github.com/brimdata/zed/proc"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zngbytes"
-	"github.com/brimdata/zed/zqe"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
@@ -61,7 +61,7 @@ func newRoot(engine storage.Engine, path *storage.URI) *Root {
 func Open(ctx context.Context, engine storage.Engine, path *storage.URI) (*Root, error) {
 	r := newRoot(engine, path)
 	if err := r.loadConfig(ctx); err != nil {
-		if zqe.IsNotFound(err) {
+		if errors.Is(err, fs.ErrNotExist) {
 			err = fmt.Errorf("%s: no such lake", path)
 		}
 		return nil, err

@@ -9,4 +9,4 @@ inputs:
 outputs:
   - name: stderr
     data: |
-      s3://bucket/does/not/exist: item does not exist
+      s3://bucket/does/not/exist: file does not exist

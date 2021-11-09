@@ -2,14 +2,15 @@ package data
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"io/fs"
 	"regexp"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/zqe"
 	"github.com/segmentio/ksuid"
 )
 
@@ -163,7 +164,7 @@ func (o Object) Range() string {
 // Remove deletes the row object and its seek index.
 // Any 'not found' errors are ignored.
 func (o Object) Remove(ctx context.Context, engine storage.Engine, path *storage.URI) error {
-	if err := engine.DeleteByPrefix(ctx, o.ObjectPrefix(path)); err != nil && !zqe.IsNotFound(err) {
+	if err := engine.DeleteByPrefix(ctx, o.ObjectPrefix(path)); err != nil && !errors.Is(err, fs.ErrNotExist) {
 		return err
 	}
 	return nil

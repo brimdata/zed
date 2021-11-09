@@ -4,12 +4,12 @@ import (
 	"context"
 	"errors"
 	"io"
+	"io/fs"
 	"net/http"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/brimdata/zed/pkg/s3io"
-	"github.com/brimdata/zed/zqe"
 )
 
 type S3Engine struct {
@@ -75,7 +75,7 @@ func (s *S3Engine) List(ctx context.Context, uri *URI) ([]Info, error) {
 func wrapErr(err error) error {
 	var reqerr awserr.RequestFailure
 	if errors.As(err, &reqerr) && reqerr.StatusCode() == http.StatusNotFound {
-		return zqe.ErrNotFound()
+		return fs.ErrNotExist
 	}
 	return err
 }

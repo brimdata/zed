@@ -3,12 +3,13 @@ package storage
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
+	"io/fs"
 	"os"
 	"path/filepath"
 
-	"github.com/brimdata/zed/pkg/fs"
-	"github.com/brimdata/zed/zqe"
+	pkgfs "github.com/brimdata/zed/pkg/fs"
 )
 
 type FileSystem struct {
@@ -26,7 +27,7 @@ func NewFileSystem() *FileSystem {
 }
 
 func (f *FileSystem) Get(ctx context.Context, u *URI) (Reader, error) {
-	r, err := fs.Open(u.Filepath())
+	r, err := pkgfs.Open(u.Filepath())
 	return &fileSizer{r, u}, wrapfileError(u, err)
 }
 
@@ -35,7 +36,7 @@ func (f *FileSystem) Put(_ context.Context, u *URI) (io.WriteCloser, error) {
 	if err := f.checkPath(path); err != nil {
 		return nil, wrapfileError(u, err)
 	}
-	w, err := fs.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, f.perm)
+	w, err := pkgfs.OpenFile(path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, f.perm)
 	return w, wrapfileError(u, err)
 }
 
@@ -120,7 +121,7 @@ func (f *FileSystem) checkPath(path string) error {
 
 func wrapfileError(uri *URI, err error) error {
 	if os.IsNotExist(err) {
-		return zqe.E(zqe.NotFound, uri.String())
+		return fmt.Errorf("%s: %w", uri, fs.ErrNotExist)
 	}
 	return err
 }
