@@ -116,6 +116,9 @@ func castToFloat64(zv zed.Value) (zed.Value, error) {
 }
 
 func castToIP(zv zed.Value) (zed.Value, error) {
+	if _, ok := zed.AliasOf(zv.Type).(*zed.TypeOfIP); ok {
+		return zv, nil
+	}
 	if !zv.IsStringy() {
 		return zed.Value{}, ErrBadCast
 	}
