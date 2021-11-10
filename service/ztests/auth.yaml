@@ -1,0 +1,32 @@
+script: |
+  # Start an authentication enabled zqd, and create 2 separate access tokens
+  # representing different users in different tenants.
+  LAKE_EXTRA_FLAGS="-auth.enabled=true -auth.clientid=testuser -auth.domain=https://testdomain -auth.jwkspath=auth-public-jwks.json" source service.sh
+  zapi -configpath user1 auth store -access \
+    $(gentoken -domain https://testdomain -privatekeyfile auth-private-key -keyid testkey -tenantid tenant1 -userid user1)
+  zapi -configpath user1 auth verify
+  echo ===
+  zapi -configpath user1 create -q test0
+  # Unauthenticated user should not be able to create space
+  zapi create -q test1 2>&1 || true
+
+inputs:
+  - name: service.sh
+  - name: auth-public-jwks.json
+    source: ../testdata/auth-public-jwks.json
+  - name: auth-private-key
+    source: ../testdata/auth-private-key
+
+outputs:
+  - name: stderr
+    data: ""
+  - name: stdout
+    data: |
+      {
+      	"tenant_id": "tenant1",
+      	"user_id": "user1"
+      }
+      ===
+      status code 401: missing authentication credentials
+      
+      
