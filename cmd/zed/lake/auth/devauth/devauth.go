@@ -84,7 +84,7 @@ type auth0Error struct {
 }
 
 func (e *auth0Error) Error() string {
-	return fmt.Sprintf("auth0 error: %v description: %v", e.Kind, e.ErrorDescription)
+	return fmt.Sprintf("auth0 error: %s: %s", e.Kind, e.ErrorDescription)
 }
 
 type deviceCodeResponse struct {
