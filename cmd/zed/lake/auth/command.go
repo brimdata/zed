@@ -15,7 +15,7 @@ const (
 var Auth = &charm.Spec{
 	Name:  "auth",
 	Usage: "auth [subcommand]",
-	Short: "authentication and authorization related commands",
+	Short: "authentication and authorization commands",
 	Long:  ``,
 	New:   New,
 }
