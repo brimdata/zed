@@ -33,7 +33,7 @@ func (c *VerifyCommand) loadServiceCredentials(serviceURL string) (zedapi.Servic
 	}
 	creds, ok := svccreds.ServiceTokens(serviceURL)
 	if !ok {
-		return zedapi.ServiceTokens{}, fmt.Errorf("no stored credentials for %v", serviceURL)
+		return zedapi.ServiceTokens{}, fmt.Errorf("no stored credentials for %s", serviceURL)
 	}
 	return creds, nil
 }
