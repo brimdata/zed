@@ -8,7 +8,7 @@ import (
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
-	"github.com/brimdata/zed/zio/tzngio"
+	"golang.org/x/text/unicode/norm"
 )
 
 type Filter struct {
@@ -90,10 +90,7 @@ func compileSearch(node *dag.Search) (expr.Filter, error) {
 	}
 
 	if node.Value.Type == "string" {
-		term, err := tzngio.ParseBstring([]byte(node.Value.Text))
-		if err != nil {
-			return nil, err
-		}
+		term := norm.NFC.Bytes(zed.UnescapeBstring([]byte(node.Value.Text)))
 		return expr.SearchRecordString(string(term)), nil
 	}
 
