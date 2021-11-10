@@ -22,12 +22,12 @@ var Login = &charm.Spec{
 
 type LoginCommand struct {
 	*Command
-	LaunchBrowser bool
+	launchBrowser bool
 }
 
 func NewLoginCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &LoginCommand{Command: parent.(*Command)}
-	f.BoolVar(&c.LaunchBrowser, "launchbrowser", true, "automatically launch browser for verification")
+	f.BoolVar(&c.launchBrowser, "launchbrowser", true, "automatically launch browser for verification")
 	return c, nil
 }
 
@@ -66,7 +66,7 @@ func (c *LoginCommand) Run(args []string) error {
 		UserPrompt: func(res devauth.UserCodePrompt) error {
 			fmt.Println("Complete authentication at:", res.VerificationURL)
 			fmt.Println("User verification code:", res.UserCode)
-			if c.LaunchBrowser {
+			if c.launchBrowser {
 				browser.OpenURL(res.VerificationURL)
 			}
 			return nil

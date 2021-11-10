@@ -13,11 +13,11 @@ const (
 )
 
 func (c *Command) zapiPath() (string, error) {
-	if c.configPath != "" {
-		if err := os.MkdirAll(c.configPath, 0777); err != nil {
+	if c.configDir != "" {
+		if err := os.MkdirAll(c.configDir, 0777); err != nil {
 			return "", err
 		}
-		return filepath.Abs(c.configPath)
+		return filepath.Abs(c.configDir)
 	}
 	dir, err := os.UserConfigDir()
 	if err != nil {
@@ -31,32 +31,27 @@ func (c *Command) zapiPath() (string, error) {
 }
 
 func (c *Command) LoadCredentials() (*Credentials, error) {
-	path, err := c.zapiPath()
-	if err != nil {
-		return nil, err
-	}
-	path = filepath.Join(path, credsFileName)
-	var cf Credentials
-	if err := fs.UnmarshalJSONFile(path, &cf); err != nil {
+	path := filepath.Join(c.configDir, credsFileName)
+	var creds Credentials
+	if err := fs.UnmarshalJSONFile(path, &creds); err != nil {
 		if os.IsNotExist(err) {
 			return &Credentials{}, nil
 		}
 		return nil, err
 	}
-	return &cf, nil
+	return &creds, nil
 }
 
-func (c *Command) SaveCredentials(cf *Credentials) error {
-	path, err := c.zapiPath()
-	if err != nil {
+func (c *Command) SaveCredentials(creds *Credentials) error {
+	if err := os.MkdirAll(c.configDir, 0777); err != nil {
 		return err
 	}
-	return fs.MarshalJSONFile(cf, filepath.Join(path, credsFileName), 0600)
+	return fs.MarshalJSONFile(creds, filepath.Join(c.configDir, credsFileName), 0600)
 }
 
 type ServiceInfo struct {
-	Endpoint string        `json:"endpoint"`
-	Tokens   ServiceTokens `json:"tokens"`
+	URL    string        `json:"url"`
+	Tokens ServiceTokens `json:"tokens"`
 }
 
 type ServiceTokens struct {
@@ -72,31 +67,31 @@ type Credentials struct {
 
 func (c *Credentials) ServiceTokens(url string) (ServiceTokens, bool) {
 	for _, s := range c.Services {
-		if s.Endpoint == url {
+		if s.URL == url {
 			return s.Tokens, true
 		}
 	}
 	return ServiceTokens{}, false
 }
 
-func (c *Credentials) AddTokens(u string, sc ServiceTokens) {
+func (c *Credentials) AddTokens(url string, tokens ServiceTokens) {
 	svcs := make([]ServiceInfo, 0, len(c.Services)+1)
 	for _, s := range c.Services {
-		if s.Endpoint != u {
+		if s.URL != url {
 			svcs = append(svcs, s)
 		}
 	}
 	svcs = append(svcs, ServiceInfo{
-		Endpoint: u,
-		Tokens:   sc,
+		URL:    url,
+		Tokens: tokens,
 	})
 	c.Services = svcs
 }
 
-func (c *Credentials) RemoveTokens(u string) {
+func (c *Credentials) RemoveTokens(url string) {
 	svcs := make([]ServiceInfo, 0, len(c.Services))
 	for _, s := range c.Services {
-		if s.Endpoint != u {
+		if s.URL != url {
 			svcs = append(svcs, s)
 		}
 	}

@@ -32,7 +32,6 @@ func init() {
 type Command struct {
 	lake      *zedapi.Command
 	lakeFlags lakeflags.Flags
-	AuthToken string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {

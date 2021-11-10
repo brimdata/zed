@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/brimdata/zed/api/client"
@@ -35,8 +36,8 @@ Refer to the help of the individual sub-commands for more details.`,
 
 type Command struct {
 	*root.Command
-	Host       string
-	configPath string
+	Host      string
+	configDir string
 }
 
 var _ zedlake.Command = (*Command)(nil)
@@ -52,9 +53,9 @@ func DefaultHost() string {
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	dir, _ = os.UserHomeDir()
+	dir, _ := os.UserHomeDir()
 	if dir != "" {
-		dir := filepath.Join(dir, "zapi")
+		dir = filepath.Join(dir, ".zapi")
 	}
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.Host, "host", DefaultHost(), "host[:port] of Zed lake service")
