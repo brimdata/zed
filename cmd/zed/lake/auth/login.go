@@ -46,7 +46,7 @@ func (c *LoginCommand) Run(args []string) error {
 	}
 	method, err := conn.AuthMethod(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to obtain supported auth method: %w", err)
+		return fmt.Errorf("failed to obtain authentication method: %w", err)
 	}
 	switch method.Kind {
 	case api.AuthMethodAuth0:
