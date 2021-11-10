@@ -1,6 +1,26 @@
 zed: '*'
 
 input: &input |
+  0 (myuint8=(uint8))
+  0 (myuint16=(uint16))
+  0 (myuint32=(uint32))
+  0 (myuint64=(uint64))
+  0 (myint8=(int8))
+  0 (myint16=(int16))
+  0 (myint32=(int32))
+  0 (=myint64)
+  0s (=myduration)
+  1970-01-01T00:00:00Z (=mytime)
+  0. (=myfloat32)
+  0. (=myfloat64)
+  false (=mybool)
+  0x00 (=mybytes)
+  "" (=mystring)
+  "" (mybstring=(bstring))
+  0.0.0.0 (=myip)
+  0.0.0.0/0 (=mynet)
+  "" (myerror=(error))
+  null (mynull=(null))
   {
     u8: 0 (myuint8=(uint8)),
     u16: 0 (myuint16=(uint16)),

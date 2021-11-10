@@ -4,11 +4,15 @@ script: |
 inputs:
   - name: in.zson
     data: |
+      []
+      [1]
       {version:[]([null])}
       {version:[1]}
 
 outputs:
   - name: stdout
     data: |
+      []
+      [1]
       {version:[]([null])}
       {version:[1]}
