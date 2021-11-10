@@ -53,7 +53,7 @@ func (c *LoginCommand) Run(args []string) error {
 	case api.AuthMethodNone:
 		return fmt.Errorf("zed service at %v does not support authentication", c.lake.Host)
 	default:
-		return fmt.Errorf("zed service at %v supports unhandled authentication method: %v", c.lake.Host, method.Kind)
+		return fmt.Errorf("Zed lake service at %s requires unknown authentication method %s", c.lake.Host, method.Kind)
 	}
 	fmt.Println("method", method.Auth0.ClientID)
 	fmt.Println("domain", method.Auth0.Domain)
