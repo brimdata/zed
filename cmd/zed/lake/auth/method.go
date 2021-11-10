@@ -12,7 +12,7 @@ import (
 var Method = &charm.Spec{
 	Name:  "method",
 	Usage: "auth method",
-	Short: "display auth method supported by zqd service",
+	Short: "display authentication method supported by Zed lake service",
 	Long:  ``,
 	New:   NewMethod,
 }
