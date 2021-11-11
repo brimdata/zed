@@ -1,0 +1,37 @@
+script: |
+  python3 -m venv v
+  . v/bin/activate
+
+  mkdir zed
+  mv setup.py zed.py zed
+  # -qq supresses warnings about availability of newer pip versions.
+  pip install -qq ./zed
+
+  LAKE_EXTRA_FLAGS='-auth.enabled=t -auth.clientid=c -auth.domain=d -auth.jwkspath=auth-public-jwks.json' source service.sh source service.sh
+  token=$(gentoken -domain d -keyid testkey -privatekeyfile auth-private-key -tenantid t -userid u)
+  zapi auth store -access $token -host http://$ZED_LAKE_HOST
+
+  python <<EOF
+  import zed
+  c = zed.Client('http://$ZED_LAKE_HOST')
+  c.create_pool('test')
+  c.load('test', '{a:1}')
+  for v in c.query('from test'):
+    print(v)
+  EOF
+
+inputs:
+  - name: auth-private-key
+    source: ../testdata/auth-private-key
+  - name: auth-public-jwks.json
+    source: ../testdata/auth-public-jwks.json
+  - name: service.sh
+  - name: setup.py
+    source: ../../python/zed/setup.py
+  - name: zed.py
+    source: ../../python/zed/zed.py
+
+outputs:
+  - name: stdout
+    data: |
+      {'a': 1}
