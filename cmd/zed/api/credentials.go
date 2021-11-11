@@ -1,40 +1,21 @@
 package api
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 
-	"github.com/brimdata/zed/pkg/fs"
+	zedfs "github.com/brimdata/zed/pkg/fs"
 )
 
-const (
-	configDirName = "zapi"
-	credsFileName = "credentials.json"
-)
-
-func (c *Command) zapiPath() (string, error) {
-	if c.configDir != "" {
-		if err := os.MkdirAll(c.configDir, 0777); err != nil {
-			return "", err
-		}
-		return filepath.Abs(c.configDir)
-	}
-	dir, err := os.UserConfigDir()
-	if err != nil {
-		return "", err
-	}
-	zcd := filepath.Join(dir, configDirName)
-	if err := os.MkdirAll(zcd, 0777); err != nil {
-		return "", err
-	}
-	return zcd, nil
-}
+const credsFileName = "credentials.json"
 
 func (c *Command) LoadCredentials() (*Credentials, error) {
 	path := filepath.Join(c.configDir, credsFileName)
 	var creds Credentials
-	if err := fs.UnmarshalJSONFile(path, &creds); err != nil {
-		if os.IsNotExist(err) {
+	if err := zedfs.UnmarshalJSONFile(path, &creds); err != nil {
+		if errors.Is(err, fs.ErrNotExist) {
 			return &Credentials{}, nil
 		}
 		return nil, err
@@ -46,7 +27,7 @@ func (c *Command) SaveCredentials(creds *Credentials) error {
 	if err := os.MkdirAll(c.configDir, 0700); err != nil {
 		return err
 	}
-	return fs.MarshalJSONFile(creds, filepath.Join(c.configDir, credsFileName), 0600)
+	return zedfs.MarshalJSONFile(creds, filepath.Join(c.configDir, credsFileName), 0600)
 }
 
 type ServiceInfo struct {

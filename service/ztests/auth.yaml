@@ -1,9 +1,9 @@
 script: |
   LAKE_EXTRA_FLAGS="-auth.enabled=true -auth.clientid=testuser -auth.domain=https://testdomain -auth.jwkspath=auth-public-jwks.json" source service.sh
-  zapi -configDir user1 auth store -access \
+  zapi -configdir user1 auth store -access \
     $(gentoken -domain https://testdomain -privatekeyfile auth-private-key -keyid testkey -tenantid tenant1 -userid user1)
-  zapi -configDir user1 auth verify
-  zapi -configDir user1 create -q test0
+  zapi -configdir user1 auth verify
+  zapi -configdir user1 create -q test0
   # Unauthenticated user should not be able to create a pool.
   ! zapi create -q test1
 

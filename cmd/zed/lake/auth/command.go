@@ -8,10 +8,6 @@ import (
 	"github.com/brimdata/zed/pkg/charm"
 )
 
-const (
-	credsFileName = "credentials.json"
-)
-
 var Auth = &charm.Spec{
 	Name:  "auth",
 	Usage: "auth [subcommand]",

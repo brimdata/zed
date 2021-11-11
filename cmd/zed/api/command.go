@@ -55,11 +55,11 @@ func DefaultHost() string {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	dir, _ := os.UserHomeDir()
 	if dir != "" {
-		dir = filepath.Join(dir, ".zapi")
+		dir = filepath.Join(dir, ".zed")
 	}
 	c := &Command{Command: parent.(*root.Command)}
 	f.StringVar(&c.Host, "host", DefaultHost(), "host[:port] of Zed lake service")
-	f.StringVar(&c.configDir, "configDir", dir, "configuration and credentials directory")
+	f.StringVar(&c.configDir, "configdir", dir, "configuration and credentials directory")
 	return c, nil
 }
 
