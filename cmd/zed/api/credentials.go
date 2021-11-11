@@ -43,7 +43,7 @@ func (c *Command) LoadCredentials() (*Credentials, error) {
 }
 
 func (c *Command) SaveCredentials(creds *Credentials) error {
-	if err := os.MkdirAll(c.configDir, 0777); err != nil {
+	if err := os.MkdirAll(c.configDir, 0700); err != nil {
 		return err
 	}
 	return fs.MarshalJSONFile(creds, filepath.Join(c.configDir, credsFileName), 0600)
