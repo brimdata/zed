@@ -1,0 +1,26 @@
+script: |
+  LAKE_EXTRA_FLAGS="-auth.enabled=true -auth.clientid=testuser -auth.domain=https://testdomain -auth.jwkspath=auth-public-jwks.json" source service.sh
+  zapi -configdir user1 auth store -access \
+    $(gentoken -domain https://testdomain -privatekeyfile auth-private-key -keyid testkey -tenantid tenant1 -userid user1)
+  zapi -configdir user1 auth verify
+  zapi -configdir user1 create -q test0
+  # Unauthenticated user should not be able to create a pool.
+  ! zapi create -q test1
+
+inputs:
+  - name: service.sh
+  - name: auth-public-jwks.json
+    source: ../testdata/auth-public-jwks.json
+  - name: auth-private-key
+    source: ../testdata/auth-private-key
+
+outputs:
+  - name: stderr
+    data: |
+      status code 401: missing authentication credentials
+  - name: stdout
+    data: |
+      {
+      	"tenant_id": "tenant1",
+      	"user_id": "user1"
+      }

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/brimdata/zed/cmd/zed/api"
+	_ "github.com/brimdata/zed/cmd/zed/lake/auth"
 	_ "github.com/brimdata/zed/cmd/zed/lake/branch"
 	_ "github.com/brimdata/zed/cmd/zed/lake/create"
 	_ "github.com/brimdata/zed/cmd/zed/lake/delete"

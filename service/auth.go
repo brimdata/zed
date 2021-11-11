@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"net/http"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/service/auth"
@@ -68,22 +67,22 @@ func NewAuthenticator(ctx context.Context, logger *zap.Logger, registerer promet
 	}, nil
 }
 
-func (a *Auth0Authenticator) Middleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		token, ident, err := a.validator.ValidateRequest(r)
+func (a *Auth0Authenticator) Middleware(next func(*Core, *ResponseWriter, *Request)) func(*Core, *ResponseWriter, *Request) {
+	return func(c *Core, w *ResponseWriter, r *Request) {
+		token, ident, err := a.validator.ValidateRequest(r.Request)
 		if err != nil {
 			a.unauthorized.Inc()
 			a.logger.Info("Unauthorized request",
 				zap.String("request_id", api.RequestIDFromContext(r.Context())),
 				zap.Error(err))
-			http.Error(w, err.Error(), http.StatusUnauthorized)
+			w.Error(err)
 			return
 		}
 		ctx := auth.ContextWithAuthToken(r.Context(), token)
 		ctx = auth.ContextWithIdentity(ctx, ident)
-		r = r.WithContext(ctx)
-		next.ServeHTTP(w, r)
-	})
+		r.Request = r.WithContext(ctx)
+		next(c, w, r)
+	}
 }
 
 func (a *Auth0Authenticator) MethodResponse() api.AuthMethodResponse {

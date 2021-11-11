@@ -169,13 +169,10 @@ func (c *Core) handler(f func(*Core, *ResponseWriter, *Request)) http.Handler {
 }
 
 func (c *Core) authhandle(path string, f func(*Core, *ResponseWriter, *Request)) *mux.Route {
-	var h http.Handler
 	if c.auth != nil {
-		h = c.auth.Middleware(c.handler(f))
-	} else {
-		h = c.handler(f)
+		f = c.auth.Middleware(f)
 	}
-	return c.routerAPI.Handle(path, h)
+	return c.routerAPI.Handle(path, c.handler(f))
 }
 
 func branchHandle(f func(*Core, *ResponseWriter, *Request, *lake.Branch)) func(*Core, *ResponseWriter, *Request) {
