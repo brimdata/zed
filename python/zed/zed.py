@@ -48,16 +48,22 @@ class Client():
         return (json.loads(line) for line in r.iter_lines() if line)
 
 
+class QueryError(Exception):
+    """Raised by Client.query() when a query fails."""
+    pass
+
+
 def decode_raw(raw):
     types = {}
     for msg in raw:
-        if msg['kind'] != 'Object':
-            continue
-        value = msg['value']
-        if 'types' in value:
-            for typ in value['types']:
-                _decode_type(types, typ)
-        yield _decode_value(types[value['schema']], value['values'])
+        kind, value = msg['kind'], msg['value']
+        if kind == 'Object':
+            if 'types' in value:
+                for typ in value['types']:
+                    _decode_type(types, typ)
+            yield _decode_value(types[value['schema']], value['values'])
+        elif kind == 'QueryError':
+            raise QueryError(value['error'])
 
 
 def _decode_type(types, typ):
