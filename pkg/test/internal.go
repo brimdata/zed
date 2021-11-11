@@ -19,7 +19,7 @@ type Internal struct {
 	Query        string
 	Input        string
 	InputFormat  string // defaults to "auto", like zq
-	OutputFormat string // defaults to "tzng", like zq
+	OutputFormat string // defaults to "zson", like zq
 	Expected     string
 	ExpectedErr  error
 }
@@ -38,7 +38,7 @@ func stringReader(input string, ifmt string, zctx *zed.Context) (zio.Reader, err
 
 func newEmitter(ofmt string) (*emitter.Bytes, error) {
 	if ofmt == "" {
-		ofmt = "tzng"
+		ofmt = "zson"
 	}
 	// XXX text format options not supported
 	return emitter.NewBytes(anyio.WriterOpts{Format: ofmt})

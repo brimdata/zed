@@ -13,7 +13,6 @@ import (
 	"github.com/brimdata/zed/zio/parquetio"
 	"github.com/brimdata/zed/zio/tableio"
 	"github.com/brimdata/zed/zio/textio"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
 	"github.com/brimdata/zed/zio/zngio"
@@ -33,14 +32,9 @@ type WriterOpts struct {
 }
 
 func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
-	if opts.Format == "" {
-		opts.Format = "tzng"
-	}
 	switch opts.Format {
 	case "null":
 		return &nullWriter{}, nil
-	case "tzng":
-		return tzngio.NewWriter(w), nil
 	case "zng":
 		return zngio.NewWriter(w, opts.Zng), nil
 	case "zeek":
@@ -51,7 +45,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 		return jsonio.NewWriter(w, opts.JSON), nil
 	case "zjson":
 		return zjsonio.NewWriter(w), nil
-	case "zson":
+	case "zson", "":
 		return zsonio.NewWriter(w, opts.ZSON), nil
 	case "zst":
 		return zstio.NewWriter(w, opts.Zst)
