@@ -1,11 +1,12 @@
 package kernel
 
 import (
+	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/zio/tzngio"
 	"github.com/brimdata/zed/zson"
+	"golang.org/x/text/unicode/norm"
 )
 
 // CompileBufferFilter tries to return a BufferFilter for e such that the
@@ -58,10 +59,7 @@ func CompileBufferFilter(e dag.Expr) (*expr.BufferFilter, error) {
 			return nil, nil
 		}
 		if e.Value.Type == "string" {
-			pattern, err := tzngio.ParseBstring([]byte(e.Value.Text))
-			if err != nil {
-				return nil, err
-			}
+			pattern := norm.NFC.Bytes(zed.UnescapeBstring([]byte(e.Value.Text)))
 			left := expr.NewBufferFilterForStringCase(string(pattern))
 			if left == nil {
 				return nil, nil

@@ -9,7 +9,7 @@ import (
 	"github.com/brimdata/zed/pkg/byteconv"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zcode"
-	"github.com/brimdata/zed/zio/tzngio"
+	"golang.org/x/text/unicode/norm"
 )
 
 type builder struct {
@@ -166,18 +166,10 @@ func (b *builder) appendPrimitive(typ zed.Type, val []byte) error {
 		b.buf = zed.AppendBool(b.buf[:0], v)
 	case zed.IDString:
 		// Zeek's enum type is aliased to string.
-		zb, err := tzngio.ParseString(val)
-		if err != nil {
-			return err
-		}
-		b.AppendPrimitive(zb)
+		b.AppendPrimitive(norm.NFC.Bytes(val))
 		return nil
 	case zed.IDBstring:
-		zb, err := tzngio.ParseBstring(val)
-		if err != nil {
-			return err
-		}
-		b.AppendPrimitive(zb)
+		b.AppendPrimitive(norm.NFC.Bytes(zed.UnescapeBstring(val)))
 		return nil
 	case zed.IDIP:
 		v, err := byteconv.ParseIP(val)
