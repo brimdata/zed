@@ -29,7 +29,7 @@ const DefaultZedFormat = "zson"
 const indexPage = `
 <!DOCTYPE html>
 <html>
-  <title>ZQD daemon</title>
+  <title>Zed lake service</title>
   <body style="padding:10px">
     <h2>zed lake serve</h2>
     <p>A <a href="https://github.com/brimdata/zed/tree/main/cmd/zed/lake/serve">zed lake service</a> is listening on this host/port.</p>
