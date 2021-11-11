@@ -77,7 +77,7 @@ func (c *Command) Connection() (*client.Connection, error) {
 		host = "http://" + host
 	}
 	conn := client.NewConnectionTo(host)
-	if token, ok := creds.ServiceTokens(c.Host); ok {
+	if token, ok := creds.ServiceTokens(host); ok {
 		conn.SetAuthToken(token.Access)
 	}
 	return conn, nil
