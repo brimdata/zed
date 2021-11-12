@@ -3,6 +3,7 @@ import decimal
 import getpass
 import ipaddress
 import json
+import os.path
 import urllib.parse
 
 import dateutil.parser
@@ -14,10 +15,27 @@ DEFAULT_BASE_URL = 'http://127.0.0.1:9867'
 
 
 class Client():
-    def __init__(self, base_url=DEFAULT_BASE_URL):
+    def __init__(self, base_url=DEFAULT_BASE_URL,
+                 config_dir=os.path.expanduser('~/.zed')):
         self.base_url = base_url
         self.session = requests.Session()
         self.session.headers.update({'Accept': 'application/x-zjson'})
+        token = self.__get_auth_token(config_dir)
+        if token is not None:
+            self.session.headers.update({'Authorization': 'Bearer ' + token})
+
+    def __get_auth_token(self, config_dir):
+        creds_path = os.path.join(config_dir, 'credentials.json')
+        try:
+            with open(creds_path) as f:
+                data = f.read()
+        except FileNotFoundError:
+            return None
+        creds = json.loads(data)
+        for s in creds['services']:
+            if s['url'] == self.base_url:
+                return s['tokens']['access']
+        return None
 
     def create_pool(self, name, layout={'order': 'desc', 'keys': [['ts']]},
                     thresh=0):
