@@ -11,7 +11,7 @@ script: |
 
   python <<EOF
   import zed
-  c = zed.Client('http://$ZED_LAKE_HOST')
+  c = zed.Client('$ZED_LAKE')
   c.create_pool('test')
   with open('in.zson') as f:
     c.load('test', f)

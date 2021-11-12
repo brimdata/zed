@@ -40,7 +40,7 @@ mockbrimpid=$!
 awaitfile $tempdir/port
 awaitfile $tempdir/pid
 
-export ZED_LAKE_HOST=localhost:$(cat $tempdir/port)
+export ZED_LAKE=http://localhost:$(cat $tempdir/port)
 export LAKE_PID=$(cat $tempdir/pid)
 export MOCKBRIM_PID=$mockbrimpid
 

@@ -1,9 +1,9 @@
 script: |
   source service.sh
-  curl -X POST -d '{"name":"test"}' http://$ZED_LAKE_HOST/pool > pool.json
+  curl -X POST -d '{"name":"test"}' $ZED_LAKE/pool > pool.json
   poolID=$(zq -f text 'cut value.pool.id' pool.json)
-  curl -X POST -d @- http://$ZED_LAKE_HOST/pool/$poolID/branch/main > load.json
-  curl http://$ZED_LAKE_HOST/pool/$poolID/stats
+  curl -X POST -d @- $ZED_LAKE/pool/$poolID/branch/main > load.json
+  curl $ZED_LAKE/pool/$poolID/stats
 
 inputs:
   - name: stdin

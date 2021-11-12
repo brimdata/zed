@@ -4,7 +4,7 @@ script: |
   zapi load -q -use test@main -
   for accept in text/csv application/{json,x-ndjson,x-zjson,x-zson} ""; do
     echo === $accept ===
-    curl -H "Accept: $accept" -d '{"query":"from test"}' http://${ZED_LAKE_HOST}/query |
+    curl -H "Accept: $accept" -d '{"query":"from test"}' $ZED_LAKE/query |
       sed -E '/QueryStats/s/[0-9]{3,}/xxx/g'  # for ZJSON
   done
 

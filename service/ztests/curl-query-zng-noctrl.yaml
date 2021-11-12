@@ -5,7 +5,7 @@ script: |
   curl -X POST \
     -H "Accept: application/x-zng" \
     -d '{"query": "from test"}' \
-    http://${ZED_LAKE_HOST}/query?noctrl=t
+    $ZED_LAKE/query?noctrl=t
 
 inputs:
   - name: service.sh
