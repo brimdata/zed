@@ -211,6 +211,7 @@ func buildSet(b *zcode.Builder, set *Set) error {
 			return err
 		}
 	}
+	b.TransformContainer(zed.NormalizeSet)
 	b.EndContainer()
 	return nil
 }
@@ -225,6 +226,7 @@ func buildMap(b *zcode.Builder, m *Map) error {
 			return err
 		}
 	}
+	b.TransformContainer(zed.NormalizeMap)
 	b.EndContainer()
 	return nil
 }
