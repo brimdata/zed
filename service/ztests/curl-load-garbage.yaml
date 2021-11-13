@@ -1,0 +1,16 @@
+script: |
+  source service.sh
+  zapi create -q test
+  curl -w 'code %{response_code}\n' -d @- http://$ZED_LAKE_HOST/pool/test/branch/main
+
+inputs:
+  - name: stdin
+    data: |
+      This is not a detectable format.
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: |
+      {"type":"Error","kind":"invalid operation","error":"format detection error\n\tzeek: line 1: bad types/fields definition in zeek header\n\tzjson: line 1: invalid character 'T' looking for beginning of value\n\tzson: identifier \"This\" must be enum and requires decorator\n\tzng: malformed zng record\n\tcsv: auto-detection not supported\n\tjson: invalid character 'T' looking for beginning of value\n\tparquet: auto-detection not supported\n\tzst: auto-detection not supported"}
+      code 400
