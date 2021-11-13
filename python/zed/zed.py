@@ -1,4 +1,4 @@
-import base64
+import binascii
 import decimal
 import getpass
 import ipaddress
@@ -133,7 +133,7 @@ def _decode_value(typ, value):
         if name == 'bool':
             return value == 'T'
         if name == 'bytes':
-            return base64.b64decode(value, validate=True)
+            return binascii.a2b_hex(value[2:])
         if name in ['string', 'bstring']:
             return value
         if name == 'ip':
