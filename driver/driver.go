@@ -48,20 +48,9 @@ func RunWithOrderedReader(ctx context.Context, d Driver, program ast.Proc, zctx 
 	return run(pctx, d, runtime, nil)
 }
 
-func RunWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, reader zio.Reader, adaptor proc.DataAdaptor) (zbuf.ScannerStats, error) {
+func RunWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, readers []zio.Reader, adaptor proc.DataAdaptor) (zbuf.ScannerStats, error) {
 	pctx := proc.NewContext(ctx, zctx, nil)
-	runtime, err := compiler.CompileForFileSystem(pctx, program, reader, adaptor)
-	if err != nil {
-		pctx.Cancel()
-		return zbuf.ScannerStats{}, err
-	}
-	err = run(pctx, d, runtime, nil)
-	return runtime.Statser().Stats(), err
-}
-
-func RunJoinWithFileSystem(ctx context.Context, d Driver, program ast.Proc, zctx *zed.Context, readers []zio.Reader, adaptor proc.DataAdaptor) (zbuf.ScannerStats, error) {
-	pctx := proc.NewContext(ctx, zctx, nil)
-	runtime, err := compiler.CompileJoinForFileSystem(pctx, program, readers, adaptor)
+	runtime, err := compiler.CompileForFileSystem(pctx, program, readers, adaptor)
 	if err != nil {
 		pctx.Cancel()
 		return zbuf.ScannerStats{}, err

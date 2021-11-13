@@ -8,16 +8,24 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
-func CompileForFileSystem(pctx *proc.Context, p ast.Proc, reader zio.Reader, adaptor proc.DataAdaptor) (*Runtime, error) {
+func CompileForFileSystem(pctx *proc.Context, p ast.Proc, readers []zio.Reader, adaptor proc.DataAdaptor) (*Runtime, error) {
 	runtime, err := New(pctx, p, adaptor, nil)
 	if err != nil {
 		return nil, err
 	}
-	readers := runtime.readers
-	if reader == nil {
+	if isJoin(p) {
+		if len(readers) != 2 {
+			return nil, errors.New("join operaetor requires two inputs")
+		}
+		if len(runtime.readers) != 2 {
+			return nil, errors.New("internal error: join expected by semantic analyzer")
+		}
+		runtime.readers[0].Reader = readers[0]
+		runtime.readers[1].Reader = readers[1]
+	} else if len(readers) == 0 {
 		// If there's no reader but the DAG wants an input, then
 		// flag an error.
-		if len(readers) != 0 {
+		if len(runtime.readers) != 0 {
 			return nil, errors.New("no input specified: use a command-line file or a Zed source operator")
 		}
 	} else {
@@ -26,31 +34,24 @@ func CompileForFileSystem(pctx *proc.Context, p ast.Proc, reader zio.Reader, ada
 		// TBD: we could have such a configuration is a composite
 		// from command includes a "pass" operator, but we can add this later.
 		// See issue #2640.
-		if len(readers) == 0 {
+		if len(runtime.readers) == 0 {
 			return nil, errors.New("redundant inputs specified: use either command-line files or a Zed source operator")
 		}
-		if len(readers) != 1 {
+		if len(runtime.readers) != 1 {
 			return nil, errors.New("Zed query requires a single input path")
 		}
-		readers[0].Reader = reader
+		runtime.readers[0].Reader = zio.ConcatReader(readers...)
 	}
 	return optimizeAndBuild(runtime)
 }
 
-func CompileJoinForFileSystem(pctx *proc.Context, p ast.Proc, readers []zio.Reader, adaptor proc.DataAdaptor) (*Runtime, error) {
-	if len(readers) != 2 {
-		return nil, errors.New("join operaetor requires two inputs")
+func isJoin(p ast.Proc) bool {
+	seq, ok := p.(*ast.Sequential)
+	if !ok || len(seq.Procs) == 0 {
+		return false
 	}
-	runtime, err := New(pctx, p, adaptor, nil)
-	if err != nil {
-		return nil, err
-	}
-	if len(runtime.readers) != 2 {
-		return nil, errors.New("internal error: CompileJoinForFileSystem: join expected by semantic analyzer")
-	}
-	runtime.readers[0].Reader = readers[0]
-	runtime.readers[1].Reader = readers[1]
-	return optimizeAndBuild(runtime)
+	_, ok = seq.Procs[0].(*ast.Join)
+	return ok
 }
 
 func optimizeAndBuild(runtime *Runtime) (*Runtime, error) {
