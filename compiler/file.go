@@ -20,8 +20,8 @@ func CompileForFileSystem(pctx *proc.Context, p ast.Proc, readers []zio.Reader, 
 		if len(runtime.readers) != 2 {
 			return nil, errors.New("internal error: join expected by semantic analyzer")
 		}
-		runtime.readers[0].Reader = readers[0]
-		runtime.readers[1].Reader = readers[1]
+		runtime.readers[0].Readers = readers[0:1]
+		runtime.readers[1].Readers = readers[1:2]
 	} else if len(readers) == 0 {
 		// If there's no reader but the DAG wants an input, then
 		// flag an error.
@@ -40,7 +40,7 @@ func CompileForFileSystem(pctx *proc.Context, p ast.Proc, readers []zio.Reader, 
 		if len(runtime.readers) != 1 {
 			return nil, errors.New("Zed query requires a single input path")
 		}
-		runtime.readers[0].Reader = zio.ConcatReader(readers...)
+		runtime.readers[0].Readers = readers
 	}
 	return optimizeAndBuild(runtime)
 }
