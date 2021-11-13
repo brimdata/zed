@@ -1,0 +1,13 @@
+script: |
+  LAKE_EXTRA_FLAGS=-rootcontentfile=f source service.sh
+  curl http://$ZED_LAKE_HOST
+
+inputs:
+  - name: f
+    data: &f |
+      Hello, world!
+  - name: service.sh
+
+outputs:
+  - name: stdout
+    data: *f

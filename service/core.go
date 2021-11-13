@@ -8,8 +8,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/pprof"
+	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/lake"
@@ -39,10 +41,11 @@ const indexPage = `
 </html>`
 
 type Config struct {
-	Auth    AuthConfig
-	Logger  *zap.Logger
-	Root    *storage.URI
-	Version string
+	Auth        AuthConfig
+	Logger      *zap.Logger
+	Root        *storage.URI
+	RootContent io.ReadSeeker
+	Version     string
 }
 
 type Core struct {
@@ -62,6 +65,9 @@ type Core struct {
 func NewCore(ctx context.Context, conf Config) (*Core, error) {
 	if conf.Logger == nil {
 		conf.Logger = zap.NewNop()
+	}
+	if conf.RootContent == nil {
+		conf.RootContent = strings.NewReader(indexPage)
 	}
 	if conf.Version == "" {
 		conf.Version = "unknown"
@@ -97,7 +103,7 @@ func NewCore(ctx context.Context, conf Config) (*Core, error) {
 
 	routerAux := mux.NewRouter()
 	routerAux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		io.WriteString(w, indexPage)
+		http.ServeContent(w, r, "", time.Time{}, conf.RootContent)
 	})
 
 	debug := routerAux.PathPrefix("/debug/pprof").Subrouter()
