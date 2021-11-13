@@ -1,13 +1,16 @@
 package anyio
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zio"
+	"github.com/brimdata/zed/zio/csvio"
 	"github.com/brimdata/zed/zio/jsonio"
 	"github.com/brimdata/zed/zio/zeekio"
 	"github.com/brimdata/zed/zio/zjsonio"
@@ -71,15 +74,20 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	}
 	track.Reset()
 
-	// XXX This is a placeholder until we add a flag to the csv reader
-	// for "strict" mode.  See issue #2316.
-	//csvErr := match(csvio.NewReader(track, zed.NewContext()), "csv")
-	//if csvErr == nil {
-	//	return csvio.NewReader(recorder, Context), nil
-	//}
-	//track.Reset()
+	var csvErr error
+	if s, err := bufio.NewReader(track).ReadString('\n'); err != nil {
+		csvErr = fmt.Errorf("csv: line 1: %w", err)
+	} else if !strings.Contains(s, ",") {
+		csvErr = errors.New("csv: line 1: no comma found")
+	} else {
+		track.Reset()
+		csvErr = match(csvio.NewReader(track, zed.NewContext()), "csv")
+		if csvErr == nil {
+			return csvio.NewReader(recorder, zctx), nil
+		}
+	}
+	track.Reset()
 
-	csvErr := errors.New("csv: auto-detection not supported")
 	parquetErr := errors.New("parquet: auto-detection not supported")
 	zstErr := errors.New("zst: auto-detection not supported")
 	return nil, joinErrs([]error{zeekErr, zjsonErr, zsonErr, zngErr, csvErr, jsonErr, parquetErr, zstErr})
