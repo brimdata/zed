@@ -20,8 +20,14 @@ script: |
 
   print('===')
   try:
+    c.create_pool('test')
+  except Exception as e:
+    print(repr(e))
+
+  print('===')
+  try:
     all(c.query('from nosuchpool'))
-  except zed.QueryError as e:
+  except Exception as e:
     print(repr(e))
   EOF
 
@@ -141,5 +147,7 @@ outputs:
       {'array': [{'a': 1}, {'a': 2}]}
       {'u8': 0, 'u16': 0, 'u32': 0, 'u64': 0, 'i8': 0, 'i16': 0, 'i32': 0, 'i64': 0, 'dur': datetime.timedelta(0), 'tim': datetime.datetime(1970, 1, 1, 0, 0, tzinfo=tzutc()), 'f64': 0.0, 'boo': False, 'byt': b'\x00', 'str': '', 'bst': '', 'ip': IPv4Address('0.0.0.0'), 'net': IPv4Network('0.0.0.0/0'), 'err': '', 'nul': None}
       {'u8': 0, 'u16': 0, 'u32': 0, 'u64': 0, 'i8': 0, 'i16': 0, 'i32': 0, 'i64': 0, 'dur': datetime.timedelta(0), 'tim': datetime.datetime(1970, 1, 1, 0, 0, tzinfo=tzutc()), 'f64': 0.0, 'boo': False, 'byt': b'\x00', 'str': '', 'bst': '', 'ip': IPv4Address('0.0.0.0'), 'net': IPv4Network('0.0.0.0/0'), 'err': '', 'nul': None}
+      ===
+      RequestError('test: pool already exists')
       ===
       QueryError('nosuchpool: pool not found')

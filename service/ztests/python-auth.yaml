@@ -18,6 +18,13 @@ script: |
   c.load('test', '{a:1}')
   for v in c.query('from test'):
     print(v)
+
+  print('===')
+  c = zed.Client('http://$ZED_LAKE_HOST', config_dir='')
+  try:
+    c.query('from test')
+  except Exception as e:
+    print(repr(e))
   EOF
 
 inputs:
@@ -35,3 +42,5 @@ outputs:
   - name: stdout
     data: |
       {'a': 1}
+      ===
+      RequestError('missing authentication credentials')
