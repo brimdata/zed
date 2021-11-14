@@ -48,10 +48,11 @@ type Command struct {
 
 	// brimfd is a file descriptor passed through by brim desktop. If set the
 	// command will exit if the fd is closed.
-	brimfd     int
-	devMode    bool
-	listenAddr string
-	portFile   string
+	brimfd          int
+	devMode         bool
+	listenAddr      string
+	portFile        string
+	rootContentFile string
 }
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
@@ -66,6 +67,7 @@ func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c.logconf.Mode = logger.FileModeTruncate
 	f.Var(&c.logconf.Mode, "log.filemode", "logger file write mode (values: append, truncate, rotate)")
 	f.StringVar(&c.portFile, "portfile", "", "write listen port to file")
+	f.StringVar(&c.rootContentFile, "rootcontentfile", "", "file to serve for GET /")
 	return c, nil
 }
 
@@ -80,6 +82,14 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	c.conf.Root = path
+	if c.rootContentFile != "" {
+		f, err := fs.Open(c.rootContentFile)
+		if err != nil {
+			return err
+		}
+		defer f.Close()
+		c.conf.RootContent = f
+	}
 	if err := c.initLogger(); err != nil {
 		return err
 	}
