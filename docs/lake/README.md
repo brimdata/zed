@@ -229,7 +229,7 @@ where `sample.ndjson` contains logs in NDJSON format.  Any supported format
 ```
 zed lake load sample1.ndjson sample2.zng sample3.zson
 ```
-CSV, JSON, Parquet, and ZST formats are not auto-detected so you must currently
+Parquet and ZST formats are not auto-detected so you must currently
 specify `-i` with these formats, e.g.,
 ```
 zed lake load -i parquet sample4.parquet

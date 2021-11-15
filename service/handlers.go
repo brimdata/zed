@@ -296,7 +296,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	opts.Zng.Validate = true
 	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(r.Body), zed.NewContext(), opts)
 	if err != nil {
-		w.Error(err)
+		w.Error(zqe.ErrInvalid(err))
 		return
 	}
 	warnings := warningCollector{}

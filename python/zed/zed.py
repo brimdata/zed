@@ -1,4 +1,4 @@
-import base64
+import binascii
 import decimal
 import getpass
 import ipaddress
@@ -44,7 +44,7 @@ class Client():
             'layout': layout,
             'thresh': thresh,
         })
-        r.raise_for_status()
+        self.__raise_for_status(r)
 
     def load(self, pool_name_or_id, data, branch_name='main',
              commit_author=getpass.getuser(), commit_body=''):
@@ -54,7 +54,7 @@ class Client():
         commit_message = {'author': commit_author, 'body': commit_body}
         headers = {'Zed-Commit': json.dumps(commit_message)}
         r = self.session.post(url, headers=headers, data=data)
-        r.raise_for_status()
+        self.__raise_for_status(r)
 
     def query(self, query):
         return decode_raw(self.query_raw(query))
@@ -62,8 +62,25 @@ class Client():
     def query_raw(self, query):
         body = {'query': query}
         r = self.session.post(self.base_url + '/query', json=body, stream=True)
-        r.raise_for_status()
+        self.__raise_for_status(r)
         return (json.loads(line) for line in r.iter_lines() if line)
+
+    @staticmethod
+    def __raise_for_status(response):
+        if response.status_code >= 400:
+            try:
+                error = response.json()['error']
+            except Exception:
+                response.raise_for_status()
+            else:
+                raise RequestError(error, response)
+
+
+class RequestError(Exception):
+    """Raised by Client methods when an HTTP request fails."""
+    def __init__(self, message, response):
+        super(RequestError, self).__init__(message)
+        self.response = response
 
 
 class QueryError(Exception):
@@ -133,7 +150,7 @@ def _decode_value(typ, value):
         if name == 'bool':
             return value == 'T'
         if name == 'bytes':
-            return base64.b64decode(value, validate=True)
+            return binascii.a2b_hex(value[2:])
         if name in ['string', 'bstring']:
             return value
         if name == 'ip':

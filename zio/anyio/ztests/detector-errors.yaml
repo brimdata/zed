@@ -1,11 +1,10 @@
 script: |
-  ! zq -z in.csv
+  ! zq -z -
 
 inputs:
-  - name: in.csv
+  - name: stdin
     data: |
-      a,b
-      1,2
+      This is not a detectable format.
 
 outputs:
   - name: stderr
