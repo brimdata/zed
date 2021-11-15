@@ -1,6 +1,7 @@
 package kernel
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -56,8 +57,8 @@ func NewBuilder(pctx *proc.Context, adaptor proc.DataAdaptor) *Builder {
 }
 
 type Reader struct {
-	zio.Reader
-	Layout order.Layout
+	Layout  order.Layout
+	Readers []zio.Reader
 }
 
 var _ dag.Source = (*Reader)(nil)
@@ -480,13 +481,6 @@ func (b *Builder) compileFrom(from *dag.From, parent proc.Interface) ([]proc.Int
 	return parents, nil
 }
 
-func nameOf(r zio.Reader) string {
-	if stringer, ok := r.(fmt.Stringer); ok {
-		return stringer.String()
-	}
-	return ""
-}
-
 func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.Interface, error) {
 	pushdown, err := b.PushdownOf(trunk)
 	if err != nil {
@@ -495,14 +489,11 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 	var source proc.Interface
 	switch src := trunk.Source.(type) {
 	case *Reader:
-		scanner, err := zbuf.NewScanner(b.pctx.Context, src.Reader, pushdown)
-		if err != nil {
-			return nil, err
-		}
-		if name := nameOf(src.Reader); name != "" {
-			scanner = zbuf.NamedScanner(scanner, name)
-		}
-		source = from.NewPuller(b.pctx, zbuf.ScannerNopCloser(scanner))
+		source = from.NewScheduler(b.pctx, &readerScheduler{
+			ctx:     b.pctx.Context,
+			filter:  pushdown,
+			readers: src.Readers,
+		})
 	case *dag.Pass:
 		source = parent
 	case *dag.Pool:
@@ -666,3 +657,34 @@ func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (zed.Value,
 	rec := zed.NewValue(typ, nil)
 	return e.Eval(rec)
 }
+
+type readerScheduler struct {
+	ctx     context.Context
+	filter  *Filter
+	readers []zio.Reader
+	scanner zbuf.Scanner
+	stats   zbuf.ScannerStats
+}
+
+func (r *readerScheduler) PullScanTask() (zbuf.PullerCloser, error) {
+	if r.scanner != nil {
+		r.stats.Add(r.scanner.Stats())
+		r.scanner = nil
+	}
+	if len(r.readers) == 0 {
+		return nil, nil
+	}
+	zr := r.readers[0]
+	r.readers = r.readers[1:]
+	s, err := zbuf.NewScanner(r.ctx, zr, r.filter)
+	if err != nil {
+		return nil, err
+	}
+	r.scanner = s
+	if stringer, ok := zr.(fmt.Stringer); ok {
+		s = zbuf.NamedScanner(s, stringer.String())
+	}
+	return zbuf.ScannerNopCloser(s), nil
+}
+
+func (r *readerScheduler) Stats() zbuf.ScannerStats { return r.stats.Copy() }

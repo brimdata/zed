@@ -30,7 +30,7 @@ func CompileForInternalWithOrder(pctx *proc.Context, p ast.Proc, r zio.Reader, l
 	if len(readers) != 1 {
 		return nil, fmt.Errorf("CompileForInternalWithOrder: Zed program expected %d readers", len(readers))
 	}
-	readers[0].Reader = r
+	readers[0].Readers = []zio.Reader{r}
 	readers[0].Layout = layout
 	return optimizeAndBuild(runtime)
 }
