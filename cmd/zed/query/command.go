@@ -161,17 +161,7 @@ func (c *Command) Run(args []string) error {
 			readers[i] = zio.NewWarningReader(r, d)
 		}
 	}
-	adaptor := cli.NewFileAdaptor(local)
-	var stats zbuf.ScannerStats
-	if isJoin(query) {
-		stats, err = driver.RunJoinWithFileSystem(ctx, d, query, zctx, readers, adaptor)
-	} else {
-		var zr zio.Reader
-		if len(readers) > 0 {
-			zr = zio.ConcatReader(readers...)
-		}
-		stats, err = driver.RunWithFileSystem(ctx, d, query, zctx, zr, adaptor)
-	}
+	stats, err := driver.RunWithFileSystem(ctx, d, query, zctx, readers, cli.NewFileAdaptor(local))
 	if closeErr := writer.Close(); err == nil {
 		err = closeErr
 	}
@@ -179,15 +169,6 @@ func (c *Command) Run(args []string) error {
 		PrintStats(stats)
 	}
 	return err
-}
-
-func isJoin(p ast.Proc) bool {
-	seq, ok := p.(*ast.Sequential)
-	if !ok || len(seq.Procs) == 0 {
-		return false
-	}
-	_, ok = seq.Procs[0].(*ast.Join)
-	return ok
 }
 
 func ParseSourcesAndInputs(paths, includes Includes) ([]string, ast.Proc, error) {
