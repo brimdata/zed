@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/brimdata/zed/api"
 	"github.com/brimdata/zed/api/client"
@@ -27,21 +26,14 @@ type RemoteSession struct {
 
 var _ Interface = (*RemoteSession)(nil)
 
-func OpenRemoteLake(ctx context.Context, host string) (*RemoteSession, error) {
+func OpenRemoteLake(ctx context.Context, url string) (*RemoteSession, error) {
 	return &RemoteSession{
-		conn: newConnection(host),
+		conn: client.NewConnectionTo(url),
 	}, nil
 }
 
 func NewRemoteWithConnection(conn *client.Connection) *RemoteSession {
 	return &RemoteSession{conn}
-}
-
-func newConnection(host string) *client.Connection {
-	if !strings.HasPrefix(host, "http") {
-		host = "http://" + host
-	}
-	return client.NewConnectionTo(host)
 }
 
 func (r *RemoteSession) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {

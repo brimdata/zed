@@ -9,11 +9,11 @@ script: |
 
   LAKE_EXTRA_FLAGS='-auth.enabled=t -auth.clientid=c -auth.domain=d -auth.jwkspath=auth-public-jwks.json' source service.sh source service.sh
   token=$(gentoken -domain d -keyid testkey -privatekeyfile auth-private-key -tenantid t -userid u)
-  zapi auth store -access $token -host http://$ZED_LAKE_HOST
+  zapi auth store -access $token -lake $ZED_LAKE
 
   python <<EOF
   import zed
-  c = zed.Client('http://$ZED_LAKE_HOST')
+  c = zed.Client('$ZED_LAKE')
   c.create_pool('test')
   c.load('test', '{a:1}')
   for v in c.query('from test'):

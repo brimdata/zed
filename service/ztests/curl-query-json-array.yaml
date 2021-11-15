@@ -1,7 +1,7 @@
 script: |
   source service.sh
   zapi create -q test
-  curl -H "Accept: application/json" -d '{"query":"from :pools | cut name"}' http://${ZED_LAKE_HOST}/query
+  curl -H "Accept: application/json" -d '{"query":"from :pools | cut name"}' $ZED_LAKE/query
 
 inputs:
   - name: service.sh

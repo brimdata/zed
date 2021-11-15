@@ -5,7 +5,6 @@ import (
 	"flag"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/brimdata/zed/api/client"
 	zedlake "github.com/brimdata/zed/cmd/zed/lake"
@@ -20,14 +19,13 @@ var Cmd = &charm.Spec{
 	Short: "perform lake actions on Zed service",
 	Long: `
 The "api" command provides client access to a Zed lake service running
-on the IP and port provided in the "-host" option.  This option defaults
-to localhost:9867 so you can conveniently connect to a lake service
-running locally on the default port, as is automatically launched
-by the Brim application for the "local Zed lake".  If the port is ommitted
-from the host string, then 9867 is assumed.
+at the URL provided in the "-lake" option.  This option defaults to
+http://localhost:9867 so you can conveniently connect to a lake service
+running locally on the default port, like the one launched by the Brim
+application.
 
-You can also set the environment variable ZED_LAKE_HOST to override the default
-"-host" option of localhost:9867.
+You can also set the environment variable ZED_LAKE to override the default
+"-lake" option.
 
 All of the relevant "lake" commands are available through the "api" command.
 Refer to the help of the individual sub-commands for more details.`,
@@ -42,23 +40,17 @@ type Command struct {
 
 var _ zedlake.Command = (*Command)(nil)
 
-const HostEnv = "ZED_LAKE_HOST"
-
-func DefaultHost() string {
-	host := os.Getenv(HostEnv)
-	if host == "" {
-		host = "localhost:9867"
-	}
-	return host
-}
-
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	dir, _ := os.UserHomeDir()
 	if dir != "" {
 		dir = filepath.Join(dir, ".zed")
 	}
+	lake := os.Getenv("ZED_LAKE")
+	if lake == "" {
+		lake = "http://localhost:9867"
+	}
 	c := &Command{Command: parent.(*root.Command)}
-	f.StringVar(&c.Host, "host", DefaultHost(), "host[:port] of Zed lake service")
+	f.StringVar(&c.Host, "lake", lake, "Zed lake service URL")
 	f.StringVar(&c.configDir, "configdir", dir, "configuration and credentials directory")
 	return c, nil
 }
@@ -72,11 +64,7 @@ func (c *Command) Connection() (*client.Connection, error) {
 	if err != nil {
 		return nil, err
 	}
-	host := c.Host
-	if !strings.HasPrefix(host, "http") {
-		host = "http://" + host
-	}
-	conn := client.NewConnectionTo(host)
+	conn := client.NewConnectionTo(c.Host)
 	if token, ok := creds.ServiceTokens(c.Host); ok {
 		conn.SetAuthToken(token.Access)
 	}
