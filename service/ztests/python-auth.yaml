@@ -20,7 +20,7 @@ script: |
     print(v)
 
   print('===')
-  c = zed.Client('http://$ZED_LAKE_HOST', config_dir='')
+  c = zed.Client('$ZED_LAKE', config_dir='')
   try:
     c.query('from test')
   except Exception as e:

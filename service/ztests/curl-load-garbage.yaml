@@ -1,7 +1,7 @@
 script: |
   source service.sh
   zapi create -q test
-  curl -w 'code %{response_code}\n' -d @- http://$ZED_LAKE_HOST/pool/test/branch/main
+  curl -w 'code %{response_code}\n' -d @- $ZED_LAKE/pool/test/branch/main
 
 inputs:
   - name: stdin
