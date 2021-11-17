@@ -172,18 +172,20 @@ func (p *Proc) Done() {
 }
 
 func (p *Proc) run() {
-	for {
+	defer close(p.resultCh)
+loop:
+	for p.pctx.Context.Err() == nil {
 		batch, err := p.parent.Pull()
 		if err != nil {
-			p.shutdown(err)
-			return
+			p.eos(err)
+			continue
 		}
 		if batch == nil {
 			for {
 				b, err := p.agg.Results(true)
 				if b == nil {
-					p.shutdown(err)
-					return
+					p.eos(err)
+					continue loop
 				}
 				p.sendResult(b, err)
 			}
@@ -192,8 +194,8 @@ func (p *Proc) run() {
 		for i := range zvals {
 			if err := p.agg.Consume(&zvals[i]); err != nil {
 				batch.Unref()
-				p.shutdown(err)
-				return
+				p.eos(err)
+				continue
 			}
 		}
 		batch.Unref()
@@ -204,8 +206,8 @@ func (p *Proc) run() {
 		for {
 			res, err := p.agg.Results(false)
 			if err != nil {
-				p.shutdown(err)
-				return
+				p.eos(err)
+				continue
 			}
 			if res == nil {
 				break
@@ -223,14 +225,21 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	}
 }
 
-func (p *Proc) shutdown(err error) {
+func (p *Proc) eos(err error) {
+	p.agg.reset()
+	p.sendResult(nil, err)
+}
+
+func (a *Aggregator) reset() {
 	// Make sure we cleanup before sending EOS.  Otherwise, the process
 	// could exit before we remove the spill directory.
-	if p.agg.spiller != nil {
-		p.agg.spiller.Cleanup()
+	if a.spiller != nil {
+		a.spiller.Cleanup()
+		a.spiller = nil
 	}
-	p.sendResult(nil, err)
-	close(p.resultCh)
+	a.table = make(map[string]*Row)
+	a.maxSpillKey = nil
+	a.maxTableKey = nil
 }
 
 // Consume adds a record to the aggregation.

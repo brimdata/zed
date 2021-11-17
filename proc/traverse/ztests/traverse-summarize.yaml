@@ -1,0 +1,12 @@
+zed: |
+  traverse a => ( 
+    sum(this) by bin:=this/2 
+  )
+
+input: "{a:[0,1,2,3]} {a:[2,3,4,5]}"
+
+output: |
+  {bin:0,sum:1}
+  {bin:1,sum:5}
+  {bin:1,sum:5}
+  {bin:2,sum:9}

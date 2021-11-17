@@ -1006,7 +1006,7 @@ referencing the `this` root record.
 The ability to have sub sequence with traverse is a powerful feature: it allows
 users to leverage the full power of the Zed language on an single collection
 value. For instance the sum of elements in an array can be computed with
-`traverse a => (sum(this))`\*\*.
+`traverse a => (sum(this))`.
 
 \* `traverse` is currently in beta and does not currently support iterating over
 records and maps. This will be added shortly.
