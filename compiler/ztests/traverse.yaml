@@ -1,0 +1,14 @@
+script: |
+  zed compile -C 'traverse foo'
+  echo === 
+  zed compile -C 'traverse foo => (sum(this))'
+
+outputs:
+  - name: stdout
+    data: |
+      traverse foo
+      ===
+      traverse foo => (
+        sum(this)
+      )
+

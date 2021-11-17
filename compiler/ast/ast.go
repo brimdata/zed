@@ -291,6 +291,11 @@ type (
 		Kind string       `json:"kind" unpack:""`
 		Args []Assignment `json:"args"`
 	}
+	Traverse struct {
+		Kind string      `json:"kind" unpack:""`
+		Expr Expr        `json:"expr"`
+		Seq  *Sequential `json:"seq"`
+	}
 
 	// An OpAssignment proc is a list of assignments whose parent proc
 	// is unknown: It could be a Summarize or Put proc. This will be
@@ -484,6 +489,7 @@ func (*Call) ProcAST()         {}
 func (*Shape) ProcAST()        {}
 func (*From) ProcAST()         {}
 func (*Explode) ProcAST()      {}
+func (*Traverse) ProcAST()     {}
 
 func (*SQLExpr) ProcAST() {}
 
