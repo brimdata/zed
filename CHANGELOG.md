@@ -1,5 +1,6 @@
 ## v0.33.0
-* `zapi`: Rename the `ZED_LAKE_HOST` environment variable to `ZED_LAKE` and rename the ``-host` flag to `-lake` (#3280)
+
+* `zapi`: Rename the `ZED_LAKE_HOST` environment variable to `ZED_LAKE` and rename the `-host` flag to `-lake` (#3280)
 * `zq`: Improve ZNG read performance when the command line includes multiple input files (#3282)
 * `zed lake serve`: Add the `-rootcontentfile` flag  (#3283)
 * [Python client](python/zed): Improve error messages (#3279)
