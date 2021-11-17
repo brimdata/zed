@@ -1,3 +1,22 @@
+## v0.33.0
+* `zapi`: Rename the `ZED_LAKE_HOST` environment variable to `ZED_LAKE` and rename the ``-host` flag to `-lake` (#3280)
+* `zq`: Improve ZNG read performance when the command line includes multiple input files (#3282)
+* `zed lake serve`: Add the `-rootcontentfile` flag  (#3283)
+* [Python client](python/zed): Improve error messages (#3279)
+* [Python client](python/zed): Fix Zed `bytes` decoding (#3278)
+* Detect CSV input (#3277)
+* `zed lake serve`: Fix an issue where `POST /pool/{}/branch/{}` format detection errors caused a 500 response (#3272)
+* Fix an issue where the ZSON parser failed to normalize maps and sets (#3273)
+* [Python client](python/zed): Add authentication (#3270)
+* [Python client](python/zed): Handle query errors  (#3269)
+* Remove support for the TZNG format (#3263)
+* `zed lake serve`: Add authentication (#3266)
+* Fix an issue preventing casting from `ip` to `ip` (#3259)
+* `zed lake serve`: Respect the Accept request header for `GET /events` (#3246)
+* Add [function documentation](docs/language/functions.md) (#3215)
+* `zed lake serve`: Change the default response content encoding to ZSON (#3242)
+* `zapi load`, `zed lake load`: Add the `-meta` flag to embed custom metadata in commits (#3237)
+
 ## v0.32.0
 
 * Add `create_pool()` and `load()` methods to the [Python client](python) (#3232)
