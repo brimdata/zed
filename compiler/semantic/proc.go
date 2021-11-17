@@ -552,6 +552,20 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Type: typ,
 			As:   as,
 		}, nil
+	case *ast.Traverse:
+		e, err := semExpr(scope, p.Expr)
+		if err != nil {
+			return nil, err
+		}
+		seq, err := semSequential(ctx, scope, p.Seq, adaptor, head)
+		if err != nil {
+			return nil, err
+		}
+		return &dag.Traverse{
+			Kind: "Traverse",
+			Expr: e,
+			Seq:  seq,
+		}, nil
 	case *ast.Const:
 		return nil, errors.New("const declaration must appear at top level")
 	case *ast.TypeProc:

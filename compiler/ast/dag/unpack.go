@@ -59,6 +59,7 @@ var unpacker = unpack.New(
 	Switch{},
 	Tail{},
 	Top{},
+	Traverse{},
 	Trunk{},
 	astzed.TypeArray{},
 	astzed.TypeDef{},

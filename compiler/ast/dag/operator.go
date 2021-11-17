@@ -118,6 +118,11 @@ type (
 		Args  []Expr `json:"args"`
 		Flush bool   `json:"flush"`
 	}
+	Traverse struct {
+		Kind string      `json:"kind" unpack:""`
+		Expr Expr        `json:"expr"`
+		Seq  *Sequential `json:"seq"`
+	}
 	Uniq struct {
 		Kind  string `json:"kind" unpack:""`
 		Cflag bool   `json:"cflag"`
@@ -255,6 +260,7 @@ func (*Const) OpNode()      {}
 func (*TypeProc) OpNode()   {}
 func (*Shape) OpNode()      {}
 func (*Explode) OpNode()    {}
+func (*Traverse) OpNode()   {}
 func (*Merge) OpNode()      {}
 
 func (seq *Sequential) IsEntry() bool {

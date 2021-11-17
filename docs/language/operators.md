@@ -21,6 +21,7 @@ The following available operators are documented in detail below:
 * [`rename`](#rename)
 * [`sort`](#sort)
 * [`tail`](#tail)
+* [`traverse`](#traverse)
 * [`uniq`](#uniq)
 
 ---
@@ -988,6 +989,57 @@ zq -z 'County=="Los Angeles" | tail 5' schools.zson
 ```
 
 ---
+
+## `traverse`
+
+```
+traverse foo <collection> [=> (seq <sequence>)]
+```
+
+`traverse` emits each element in collection (i.e., values of type `array`,
+`set`, `record`\*, `map`\*) `foo` as a separate value to child
+nodes in the flowgraph. If the optional sequence `seq`\*\* argument is provided the
+elements of `foo` are read into `seq` as a separate stream sending an `EOS` when
+the last element is traversed. The each element can be accessed inside `seq` by
+referencing the `this` root record.
+
+The ability to have sub sequence with traverse is a powerful feature: it allows
+users to leverage the full power of the Zed language on an single collection
+value. For instance the sum of elements in an array can be computed with
+`traverse a => (sum(this))`\*\*.
+
+\* `traverse` is currently in beta and does not currently support iterating over
+records and maps. This will be added shortly.
+
+\*\* `traverse` is currently in beta and works on a subset of the available 
+operators. It has been tested with `filter`, `cut` and `pick` but users who use
+`traverse` with `summarize` and `sort` will get weird results.
+
+#### Example (basic):
+
+```mdtest-command
+echo '{a:[3,2,1]}' | zq -z 'traverse a' -
+```
+
+#### Output:
+```mdtest-output
+3
+2
+1
+```
+
+#### Example (filter)
+
+```mdtest-command
+echo '{a:[6,5,4]} {a:[3,2,1]}' | zq -z 'traverse a => (mod(this, 2) == 0)' -
+```
+
+#### Output:
+```mdtest-output
+6
+4
+2
+```
 
 ## `uniq`
 

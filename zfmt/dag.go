@@ -378,6 +378,19 @@ func (c *canonDAG) op(p dag.Op) {
 		c.ret()
 		c.close()
 		c.write(")")
+	case *dag.Traverse:
+		c.next()
+		c.write("traverse ")
+		c.expr(p.Expr, false)
+		if p.Seq != nil {
+			c.write(" => ")
+			c.open("(")
+			c.head = true
+			c.op(p.Seq)
+			c.ret()
+			c.close()
+			c.write(")")
+		}
 	default:
 		c.open("unknown proc: %T", p)
 		c.close()
