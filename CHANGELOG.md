@@ -10,7 +10,7 @@
 * [Python client](python/zed): Add authentication (#3270)
 * [Python client](python/zed): Handle query errors  (#3269)
 * Remove support for the TZNG format (#3263)
-* `zed lake serve`: Add authentication (#3266)
+* `zapi`, `zed lake serve`: Add authentication with Auth0 (#3266)
 * Fix an issue preventing casting from `ip` to `ip` (#3259)
 * `zed lake serve`: Respect the Accept request header for `GET /events` (#3246)
 * Add [function documentation](docs/language/functions.md) (#3215)
