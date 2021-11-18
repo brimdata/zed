@@ -9,6 +9,7 @@ import (
 type Proc struct {
 	parent proc.Interface
 	limit  int
+	done   bool
 	count  int
 	off    int
 	q      []zed.Value
@@ -25,6 +26,8 @@ func New(parent proc.Interface, limit int) *Proc {
 
 func (p *Proc) tail() zbuf.Batch {
 	if p.count <= 0 {
+		// Reset state on EOS.
+		p.done = false
 		return nil
 	}
 	start := p.off
@@ -37,11 +40,17 @@ func (p *Proc) tail() zbuf.Batch {
 	}
 	p.off = 0
 	p.count = 0
+	p.done = true
 	return zbuf.Array(out)
 
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {
+	if p.done {
+		// Reset state on EOS.
+		p.done = false
+		return nil, nil
+	}
 	for {
 		batch, err := p.parent.Pull()
 		if proc.EOS(batch, err) {

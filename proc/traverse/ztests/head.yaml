@@ -1,0 +1,9 @@
+zed: "traverse a => (head)"
+
+input: |
+  {a:[7,6,5,4]}
+  {a:[3,2,1,0]}
+
+output: |
+  7
+  3

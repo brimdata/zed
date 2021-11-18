@@ -20,10 +20,14 @@ func New(parent proc.Interface, limit int) *Proc {
 func (p *Proc) Pull() (zbuf.Batch, error) {
 	remaining := p.limit - p.count
 	if remaining <= 0 {
+		// Reset state on EOS.
+		p.count = 0
 		return nil, nil
 	}
 	batch, err := p.parent.Pull()
 	if proc.EOS(batch, err) {
+		// Reset state on EOS.
+		p.count = 0
 		return nil, err
 	}
 	zvals := batch.Values()

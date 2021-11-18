@@ -1,0 +1,9 @@
+zed: "traverse a => (tail)"
+
+input: |
+  {a:[7,6,5,4]}
+  {a:[3,2,1,0]}
+
+output: |
+  4
+  0
