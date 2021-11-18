@@ -7,7 +7,7 @@ import (
 
 type unseenFieldTracker struct {
 	unseenFields map[expr.Evaluator]struct{}
-	seenTypes    map[*zed.TypeRecord]bool
+	seenTypes    map[zed.Type]bool
 }
 
 func newUnseenFieldTracker(fields []expr.Evaluator) *unseenFieldTracker {
@@ -19,19 +19,19 @@ func newUnseenFieldTracker(fields []expr.Evaluator) *unseenFieldTracker {
 	}
 	return &unseenFieldTracker{
 		unseenFields: unseen,
-		seenTypes:    make(map[*zed.TypeRecord]bool),
+		seenTypes:    make(map[zed.Type]bool),
 	}
 }
 
-func (u *unseenFieldTracker) update(rec *zed.Value) {
-	recType := zed.TypeRecordOf(rec.Type)
-	if len(u.unseenFields) == 0 || u.seenTypes[recType] {
+func (u *unseenFieldTracker) update(zv *zed.Value) {
+	typ := zv.Type
+	if len(u.unseenFields) == 0 || u.seenTypes[typ] {
 		// Either have seen this type or nothing to unsee anymore.
 		return
 	}
-	u.seenTypes[recType] = true
+	u.seenTypes[typ] = true
 	for field := range u.unseenFields {
-		v, _ := field.Eval(rec)
+		v, _ := field.Eval(zv)
 		if !v.IsNil() {
 			delete(u.unseenFields, field)
 		}

@@ -56,36 +56,39 @@ func (p *Proc) Done() {
 
 func (p *Proc) sortLoop() {
 	defer close(p.resultCh)
-	firstRunRecs, eof, err := p.recordsForOneRun()
-	if err != nil || len(firstRunRecs) == 0 {
-		p.sendResult(nil, err)
-		return
-	}
-	p.setCompareFn(&firstRunRecs[0])
-	if eof {
-		// Just one run so do an in-memory sort.
-		p.warnAboutUnseenFields()
-		expr.SortStable(firstRunRecs, p.compareFn)
-		array := zbuf.Array(firstRunRecs)
-		p.sendResult(array, nil)
-		return
-	}
-	// Multiple runs so do an external merge sort.
-	runManager, err := p.createRuns(firstRunRecs)
-	if err != nil {
-		p.sendResult(nil, err)
-		return
-	}
-	defer runManager.Cleanup()
-	p.warnAboutUnseenFields()
-	puller := zbuf.NewPuller(runManager, 100)
 	for p.pctx.Err() == nil {
-		// Reading from runManager merges the runs.
-		b, err := puller.Pull()
-		p.sendResult(b, err)
-		if b == nil || err != nil {
-			return
+		firstRunRecs, eof, err := p.valuesForOneRun()
+		if err != nil || len(firstRunRecs) == 0 {
+			p.sendResult(nil, err)
+			continue
 		}
+		p.setCompareFn(&firstRunRecs[0])
+		if eof {
+			// Just one run so do an in-memory sort.
+			p.warnAboutUnseenFields()
+			expr.SortStable(firstRunRecs, p.compareFn)
+			array := zbuf.Array(firstRunRecs)
+			p.sendResult(array, nil)
+			p.sendResult(nil, nil)
+			continue
+		}
+		// Multiple runs so do an external merge sort.
+		runManager, err := p.createRuns(firstRunRecs)
+		if err != nil {
+			p.sendResult(nil, err)
+			continue
+		}
+		p.warnAboutUnseenFields()
+		puller := zbuf.NewPuller(runManager, 100)
+		for p.pctx.Err() == nil {
+			// Reading from runManager merges the runs.
+			b, err := puller.Pull()
+			p.sendResult(b, err)
+			if b == nil || err != nil {
+				break
+			}
+		}
+		runManager.Cleanup()
 	}
 }
 
@@ -96,27 +99,27 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) {
 	}
 }
 
-func (p *Proc) recordsForOneRun() ([]zed.Value, bool, error) {
+func (p *Proc) valuesForOneRun() ([]zed.Value, bool, error) {
 	var nbytes int
-	var recs []zed.Value
+	var out []zed.Value
 	for {
 		batch, err := p.parent.Pull()
 		if err != nil {
 			return nil, false, err
 		}
 		if batch == nil {
-			return recs, true, nil
+			return out, true, nil
 		}
 		zvals := batch.Values()
 		for i := range zvals {
-			rec := &zvals[i]
-			p.unseenFieldTracker.update(rec)
-			nbytes += len(rec.Bytes)
+			zv := &zvals[i]
+			p.unseenFieldTracker.update(zv)
+			nbytes += len(zv.Bytes)
 			// We're keeping records owned by batch so don't call Unref.
-			recs = append(recs, *rec)
+			out = append(out, *zv)
 		}
 		if nbytes >= MemMaxBytes {
-			return recs, false, nil
+			return out, false, nil
 		}
 	}
 }
@@ -131,13 +134,13 @@ func (p *Proc) createRuns(firstRunRecs []zed.Value) (*spill.MergeSort, error) {
 		return nil, err
 	}
 	for {
-		recs, eof, err := p.recordsForOneRun()
+		zvals, eof, err := p.valuesForOneRun()
 		if err != nil {
 			rm.Cleanup()
 			return nil, err
 		}
-		if recs != nil {
-			if err := rm.Spill(p.pctx.Context, recs); err != nil {
+		if zvals != nil {
+			if err := rm.Spill(p.pctx.Context, zvals); err != nil {
 				rm.Cleanup()
 				return nil, err
 			}
@@ -174,8 +177,12 @@ func (p *Proc) setCompareFn(r *zed.Value) {
 	}
 }
 
-func GuessSortKey(rec *zed.Value) field.Path {
-	typ := zed.TypeRecordOf(rec.Type)
+func GuessSortKey(zv *zed.Value) field.Path {
+	typ := zed.TypeRecordOf(zv.Type)
+	if typ == nil {
+		// If type is not a record assume root.
+		return field.NewRoot()
+	}
 	if f := firstMatchingField(typ, zed.IsInteger); f != nil {
 		return f
 	}

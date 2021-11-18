@@ -1,0 +1,14 @@
+zed: "traverse a => (sort)"
+
+input: |
+  {a:[2,1,0]}
+  {a:[6,5,4]}
+
+output: |
+  0
+  1
+  2
+  4
+  5
+  6
+
