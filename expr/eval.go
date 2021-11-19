@@ -425,6 +425,10 @@ type Divide struct {
 	numeric
 }
 
+type Modulo struct {
+	numeric
+}
+
 // NewArithmetic compiles an expression of the form "expr1 op expr2"
 // for the arithmetic operators +, -, *, /
 func NewArithmetic(lhs, rhs Evaluator, op string) (Evaluator, error) {
@@ -438,6 +442,8 @@ func NewArithmetic(lhs, rhs Evaluator, op string) (Evaluator, error) {
 		return &Multiply{n}, nil
 	case "/":
 		return &Divide{n}, nil
+	case "%":
+		return &Modulo{n}, nil
 	}
 	return nil, fmt.Errorf("unknown arithmetic operator: %s", op)
 }
@@ -546,6 +552,32 @@ func (d *Divide) Eval(rec *zed.Value) (zed.Value, error) {
 		return zed.Value{typ, d.vals.Uint(v1 / v2)}, nil
 	}
 	return zed.Value{}, ErrIncompatibleTypes
+}
+
+func (m *Modulo) Eval(zv *zed.Value) (zed.Value, error) {
+	id, err := m.eval(zv)
+	if err != nil {
+		fmt.Println("returning.err")
+		return zed.Value{}, err
+	}
+	typ := zed.LookupPrimitiveByID(id)
+	if zed.IsFloat(id) || !zed.IsNumber(id) {
+		return zed.NewErrorf("operator %% not defined on type %s", typ), nil
+	}
+	if zed.IsSigned(id) {
+		x, _ := zed.DecodeInt(m.vals.A)
+		y, _ := zed.DecodeInt(m.vals.B)
+		if y == 0 {
+			return zed.NewErrorf("divide by zero"), nil
+		}
+		return zed.Value{typ, m.vals.Int(x % y)}, nil
+	}
+	x, _ := zed.DecodeUint(m.vals.A)
+	y, _ := zed.DecodeUint(m.vals.B)
+	if y == 0 {
+		return zed.NewErrorf("divide by zero"), nil
+	}
+	return zed.Value{typ, m.vals.Uint(x % y)}, nil
 }
 
 func getNthFromContainer(container zcode.Bytes, idx uint) (zcode.Bytes, error) {

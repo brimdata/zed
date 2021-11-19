@@ -145,7 +145,7 @@ func compileBinary(zctx *zed.Context, scope *Scope, e *dag.BinaryExpr) (expr.Eva
 		return expr.NewCompareEquality(lhs, rhs, op)
 	case "<", "<=", ">", ">=":
 		return expr.NewCompareRelative(lhs, rhs, op)
-	case "+", "-", "*", "/":
+	case "+", "-", "*", "/", "%":
 		return expr.NewArithmetic(lhs, rhs, op)
 	case "[":
 		return expr.NewIndexExpr(zctx, lhs, rhs)

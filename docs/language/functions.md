@@ -15,7 +15,6 @@
   - [`ceil`](#ceil)
   - [`floor`](#floor)
   - [`log`](#log)
-  - [`mod`](#mod)
   - [`pow`](#pow)
   - [`round`](#round)
   - [`sqrt`](#sqrt)
@@ -264,25 +263,6 @@ echo '{foo:4}' | zq -z 'foo := log(foo)' -
 **Output:**
 ```mdtest-output
 {foo:1.3862943611198906}
-```
-
-### `mod`
-
-```
-mod(x <int>, y <int>) -> <int>
-```
-
-`mod` returns the remainder of `x` divided by `y`.
-
-#### Example:
-
-```mdtest-command
-echo '{foo:5}' | zq -z 'foo := mod(foo, 2)' -
-```
-
-**Output:**
-```mdtest-output
-{foo:1}
 ```
 
 ### `pow`

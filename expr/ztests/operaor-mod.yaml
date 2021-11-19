@@ -1,0 +1,18 @@
+zed: "cut res := a % b"
+
+input: |
+  {a:5,b:2}
+  {a:5,b:-2}
+  {a:5,b:2(uint64)}
+  {a:5(uint64),b:2(uint64)}
+  {a:5.,b:2(uint64)}
+  {a:5,b:0}
+
+output: |
+  {res:1}
+  {res:1}
+  {res:1}
+  {res:1(uint64)}
+  {res:"operator % not defined on type float64"(error)}
+  {res:"divide by zero"(error)}
+
