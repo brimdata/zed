@@ -178,147 +178,79 @@ func (s *Store) Lookup(ctx context.Context, key string) (Entry, error) {
 }
 
 func (s *Store) Insert(ctx context.Context, e Entry) error {
-	b, err := s.serialize(&Add{e})
-	if err != nil {
-		return err
-	}
-	key := e.Key()
-	for attempts := 0; attempts < maxRetries; attempts++ {
-		if err := s.load(ctx); err != nil {
-			return err
-		}
-		if _, ok := s.table[key]; ok {
+	return s.commit(ctx, func() error {
+		if _, ok := s.table[e.Key()]; ok {
 			return ErrKeyExists
 		}
-		if err := s.journal.CommitAt(ctx, s.at, b); err != nil {
-			if os.IsExist(err) {
-				time.Sleep(time.Millisecond)
-				continue
-			}
-			return err
-		}
-		// Force a re-load after a change.
-		s.at = 0
 		return nil
-	}
-	return ErrRetriesExceeded
+	}, &Add{e})
+}
+
+func (s *Store) Move(ctx context.Context, oldKey string, newEntry Entry) error {
+	return s.commit(ctx, func() error {
+		if _, ok := s.table[oldKey]; !ok {
+			return ErrNoSuchKey
+		}
+		if _, ok := s.table[newEntry.Key()]; ok {
+			return ErrKeyExists
+		}
+		return nil
+	}, &Delete{oldKey}, &Add{newEntry})
 }
 
 type Constraint func(Entry) bool
 
 func (s *Store) Delete(ctx context.Context, key string, c Constraint) error {
-	b, err := s.serialize(&Delete{key})
-	if err != nil {
-		return err
-	}
-	for attempts := 0; attempts < maxRetries; attempts++ {
-		if err := s.load(ctx); err != nil {
-			return err
-		}
-		e, ok := s.table[key]
-		if !ok {
-			return ErrNoSuchKey
-		}
-		if c != nil && !c(e) {
-			return ErrConstraint
-		}
-		err := s.journal.CommitAt(ctx, s.at, b)
-		if err != nil {
-			if os.IsExist(err) {
-				time.Sleep(time.Millisecond)
-				continue
-			}
-			return err
-		}
-		s.at = 0
-		return nil
-	}
-	return ErrRetriesExceeded
+	return s.commitWithConstraint(ctx, key, c, &Delete{key})
 }
 
 func (s *Store) Update(ctx context.Context, e Entry, c Constraint) error {
-	b, err := s.serialize(&Update{e})
-	if err != nil {
-		return err
-	}
-	key := e.Key()
-	for attempts := 0; attempts < maxRetries; attempts++ {
-		if err := s.load(ctx); err != nil {
-			return err
-		}
-		e, ok := s.table[key]
+	return s.commitWithConstraint(ctx, e.Key(), c, &Update{e})
+}
+
+func (s *Store) commitWithConstraint(ctx context.Context, key string, c Constraint, e Entry) error {
+	return s.commit(ctx, func() error {
+		oldEntry, ok := s.table[key]
 		if !ok {
 			return ErrNoSuchKey
 		}
-		if c != nil && !c(e) {
+		if c != nil && !c(oldEntry) {
 			return ErrConstraint
 		}
-		if err := s.journal.CommitAt(ctx, s.at, b); err != nil {
-			if os.IsExist(err) {
-				time.Sleep(time.Millisecond)
-				continue
-			}
-			return err
-		}
-		s.at = 0
 		return nil
-	}
-	return ErrRetriesExceeded
+	}, e)
 }
 
-func (s *Store) newSerializer() *zngbytes.Serializer {
+func (s *Store) commit(ctx context.Context, fn func() error, entries ...Entry) error {
 	serializer := zngbytes.NewSerializer()
 	serializer.Decorate(s.style)
-	return serializer
-}
-
-func (s *Store) Move(ctx context.Context, oldKey string, newEntry Entry) error {
-	serializer := s.newSerializer()
-	if err := serializer.Write(&Delete{oldKey}); err != nil {
-		return err
-	}
-	if err := serializer.Write(&Add{newEntry}); err != nil {
-		return err
+	for _, e := range entries {
+		if err := serializer.Write(e); err != nil {
+			return err
+		}
 	}
 	if err := serializer.Close(); err != nil {
 		return err
 	}
-	b := serializer.Bytes()
-	newKey := newEntry.Key()
 	for attempts := 0; attempts < maxRetries; attempts++ {
 		if err := s.load(ctx); err != nil {
 			return err
 		}
-		if _, ok := s.table[oldKey]; !ok {
-			return ErrNoSuchKey
+		if err := fn(); err != nil {
+			return err
 		}
-		if _, ok := s.table[newKey]; ok {
-			return ErrKeyExists
-		}
-		err := s.journal.CommitAt(ctx, s.at, b)
-		if err != nil {
+		if err := s.journal.CommitAt(ctx, s.at, serializer.Bytes()); err != nil {
 			if os.IsExist(err) {
 				time.Sleep(time.Millisecond)
 				continue
 			}
 			return err
 		}
-		s.at = 0
+		// Force a reload after a change.
+		s.at = Nil
 		return nil
 	}
 	return ErrRetriesExceeded
-}
-
-func (s *Store) serialize(e Entry) ([]byte, error) {
-	serializer := zngbytes.NewSerializer()
-	serializer.Decorate(s.style)
-	if err := serializer.Write(&e); err != nil {
-		return nil, err
-	}
-	if err := serializer.Close(); err != nil {
-		return nil, err
-	}
-	return serializer.Bytes(), nil
 }
 
 func OpenStore(ctx context.Context, engine storage.Engine, path *storage.URI, keyTypes ...interface{}) (*Store, error) {
