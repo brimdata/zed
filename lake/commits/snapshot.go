@@ -3,11 +3,14 @@ package commits
 import (
 	"errors"
 	"fmt"
+	"io"
 
 	"github.com/brimdata/zed/expr/extent"
 	"github.com/brimdata/zed/lake/data"
 	"github.com/brimdata/zed/lake/index"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/zngbytes"
+	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
 )
 
@@ -199,6 +202,70 @@ func (s *Snapshot) Copy() *Snapshot {
 	out.indexes = s.indexes.Copy()
 	out.deletedIndexes = s.deletedIndexes.Copy()
 	return out
+}
+
+// serialize serializes a snapshot as a sequence of actions.  Commit IDs are
+// omitted from actions since they are neither available here nor required
+// during deserialization.  Deleted entities are serialized as an add-delete
+// sequence to meet the requirements of DeleteObject and DeleteIndexObject.
+func (s *Snapshot) serialize() ([]byte, error) {
+	zs := zngbytes.NewSerializer()
+	zs.Decorate(zson.StylePackage)
+	for _, o := range s.objects {
+		if err := zs.Write(&Add{Object: *o}); err != nil {
+			return nil, err
+		}
+	}
+	for _, o := range s.deletedObjects {
+		if err := zs.Write(&Add{Object: *o}); err != nil {
+			return nil, err
+		}
+		if err := zs.Write(&Delete{ID: o.ID}); err != nil {
+			return nil, err
+		}
+	}
+	for _, objectRule := range s.indexes {
+		for _, o := range objectRule {
+			if err := zs.Write(&AddIndex{Object: *o}); err != nil {
+				return nil, err
+			}
+		}
+	}
+	for _, objectRule := range s.deletedIndexes {
+		for _, o := range objectRule {
+			if err := zs.Write(&AddIndex{Object: *o}); err != nil {
+				return nil, err
+			}
+			if err := zs.Write(&DeleteIndex{ID: o.ID, RuleID: o.Rule.RuleID()}); err != nil {
+				return nil, err
+			}
+		}
+	}
+	if err := zs.Close(); err != nil {
+		return nil, err
+	}
+	return zs.Bytes(), nil
+}
+
+func decodeSnapshot(r io.Reader) (*Snapshot, error) {
+	s := NewSnapshot()
+	zd := zngbytes.NewDeserializer(r, ActionTypes)
+	for {
+		entry, err := zd.Read()
+		if err != nil {
+			return nil, err
+		}
+		if entry == nil {
+			return s, nil
+		}
+		action, ok := entry.(Action)
+		if !ok {
+			return nil, fmt.Errorf("internal error: corrupt snapshot contains unknown entry type %T", entry)
+		}
+		if err := PlayAction(s, action); err != nil {
+			return nil, err
+		}
+	}
 }
 
 type DataObjects []*data.Object

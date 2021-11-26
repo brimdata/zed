@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
@@ -86,6 +87,12 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 	if snap, ok := s.snapshots[leaf]; ok {
 		return snap, nil
 	}
+	if snap, err := s.getSnapshot(ctx, leaf); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, err
+	} else if err == nil {
+		s.snapshots[leaf] = snap
+		return snap, nil
+	}
 	var objects []*Object
 	var base *Snapshot
 	for at := leaf; at != ksuid.Nil; {
@@ -111,10 +118,34 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 			if err := PlayAction(snap, action); err != nil {
 				return nil, err
 			}
+			if err := s.putSnapshot(ctx, objects[k].Commit, snap); err != nil {
+				return nil, err
+			}
 		}
 	}
 	s.snapshots[leaf] = snap
 	return snap, nil
+}
+
+func (s *Store) getSnapshot(ctx context.Context, commit ksuid.KSUID) (*Snapshot, error) {
+	r, err := s.engine.Get(ctx, s.snapshotPathOf(commit))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return decodeSnapshot(r)
+}
+
+func (s *Store) putSnapshot(ctx context.Context, commit ksuid.KSUID, snap *Snapshot) error {
+	b, err := snap.serialize()
+	if err != nil {
+		return err
+	}
+	return storage.Put(ctx, s.engine, s.snapshotPathOf(commit), bytes.NewReader(b))
+}
+
+func (s *Store) snapshotPathOf(commit ksuid.KSUID) *storage.URI {
+	return s.path.AppendPath(commit.String() + ".snap.zng")
 }
 
 // Path return the entire path from the commit object to the root
