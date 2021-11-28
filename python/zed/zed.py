@@ -3,6 +3,7 @@ import decimal
 import getpass
 import ipaddress
 import json
+import os
 import os.path
 import urllib.parse
 
@@ -11,11 +12,9 @@ import durationpy
 import requests
 
 
-DEFAULT_BASE_URL = 'http://127.0.0.1:9867'
-
-
 class Client():
-    def __init__(self, base_url=DEFAULT_BASE_URL,
+    def __init__(self,
+                 base_url=os.environ.get('ZED_LAKE', 'http://localhost:9867'),
                  config_dir=os.path.expanduser('~/.zed')):
         self.base_url = base_url
         self.session = requests.Session()
@@ -186,13 +185,11 @@ if __name__ == '__main__':
     import pprint
 
     parser = argparse.ArgumentParser(
-        description='Query a Zed lake service and pretty-print results.',
+        description='Query default Zed lake service and print results.',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument('-u', dest='base_url', default=DEFAULT_BASE_URL,
-                        help='Zed lake service base URL')
     parser.add_argument('query')
     args = parser.parse_args()
 
-    c = Client(args.base_url)
+    c = Client()
     for record in c.search(args.query):
         pprint.pprint(record)
