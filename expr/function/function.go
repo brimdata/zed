@@ -50,10 +50,6 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 	case "min":
 		argmax = -1
 		f = &reducer{fn: anymath.Min}
-	case "mod":
-		argmin = 2
-		argmax = 2
-		f = &Mod{}
 	case "round":
 		f = &Round{}
 	case "pow":
