@@ -118,10 +118,10 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 			if err := PlayAction(snap, action); err != nil {
 				return nil, err
 			}
-			if err := s.putSnapshot(ctx, objects[k].Commit, snap); err != nil {
-				return nil, err
-			}
 		}
+	}
+	if err := s.putSnapshot(ctx, leaf, snap); err != nil {
+		return nil, err
 	}
 	s.snapshots[leaf] = snap
 	return snap, nil
