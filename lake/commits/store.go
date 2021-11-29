@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"sync"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
@@ -100,9 +101,27 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 			base = snap
 			break
 		}
-		o, err := s.Get(ctx, at)
-		if err != nil {
+		var o *Object
+		var oErr error
+		var wg sync.WaitGroup
+		wg.Add(1)
+		// Start fetching the next data object.
+		go func() {
+			o, oErr = s.Get(ctx, at)
+			wg.Done()
+		}()
+		// Concurrently check for a snapshot.
+		if snap, err := s.getSnapshot(ctx, at); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return nil, err
+		} else if err == nil {
+			s.snapshots[at] = snap
+			base = snap
+			break
+		}
+		// No snapshot found, so wait for data object.
+		wg.Wait()
+		if oErr != nil {
+			return nil, oErr
 		}
 		objects = append(objects, o)
 		at = o.Parent
