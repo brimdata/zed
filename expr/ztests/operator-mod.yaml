@@ -14,4 +14,4 @@ output: |
   {res:1}
   {res:1(uint64)}
   {res:"operator % not defined on type float64"(error)}
-  {res:"divide by zero"(error)}
+  {res:"modulo by zero"(error)}
