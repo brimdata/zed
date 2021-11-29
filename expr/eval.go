@@ -567,14 +567,14 @@ func (m *Modulo) Eval(zv *zed.Value) (zed.Value, error) {
 		x, _ := zed.DecodeInt(m.vals.A)
 		y, _ := zed.DecodeInt(m.vals.B)
 		if y == 0 {
-			return zed.NewErrorf("divide by zero"), nil
+			return zed.NewErrorf("modulo by zero"), nil
 		}
 		return zed.Value{typ, m.vals.Int(x % y)}, nil
 	}
 	x, _ := zed.DecodeUint(m.vals.A)
 	y, _ := zed.DecodeUint(m.vals.B)
 	if y == 0 {
-		return zed.NewErrorf("divide by zero"), nil
+		return zed.NewErrorf("modulo by zero"), nil
 	}
 	return zed.Value{typ, m.vals.Uint(x % y)}, nil
 }
