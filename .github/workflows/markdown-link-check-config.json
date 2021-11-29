@@ -1,3 +1,8 @@
 {
+  "ignorePatterns": [
+    {
+      "pattern": "^http://localhost:9867"
+    }
+  ],
   "retryOn429": true
 }
