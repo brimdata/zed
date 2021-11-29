@@ -557,7 +557,6 @@ func (d *Divide) Eval(rec *zed.Value) (zed.Value, error) {
 func (m *Modulo) Eval(zv *zed.Value) (zed.Value, error) {
 	id, err := m.eval(zv)
 	if err != nil {
-		fmt.Println("returning.err")
 		return zed.Value{}, err
 	}
 	typ := zed.LookupPrimitiveByID(id)
