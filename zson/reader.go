@@ -1,7 +1,6 @@
 package zson
 
 import (
-	"fmt"
 	"io"
 
 	"github.com/brimdata/zed"
@@ -44,11 +43,6 @@ func (r *Reader) Read() (*zed.Value, error) {
 	zv, err := Build(r.builder, val)
 	if err != nil {
 		return nil, err
-	}
-	// ZSON can represent value streams that aren't records,
-	// but we handle only top-level records here.
-	if _, ok := zed.AliasOf(zv.Type).(*zed.TypeRecord); !ok {
-		return nil, fmt.Errorf("top-level ZSON value not a record: %s", zv.Type)
 	}
 	return zed.NewValue(zv.Type, zv.Bytes), nil
 }

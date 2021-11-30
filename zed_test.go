@@ -192,6 +192,10 @@ func isValidForParquet(input string) bool {
 		if rec == nil {
 			return found
 		}
+		if !zed.IsRecordType(rec.Type) {
+			// zio/parquetio requires records at top level.
+			return false
+		}
 		found = true
 	}
 }

@@ -19,6 +19,7 @@ jobs:
     - uses: gaurav-nelson/github-action-markdown-link-check@v1
       with:
         config-file: .github/workflows/markdown-link-check-config.json
+        use-quiet-mode: yes
     - name: Inform Slack users of link check failures
       uses: tiloio/slack-webhook-action@v1.1.2
       if: ${{ failure() && steps.extract_branch.outputs.branch == 'main' }}

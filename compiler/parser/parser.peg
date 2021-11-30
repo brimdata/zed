@@ -661,7 +661,7 @@ MultiplicativeExpr
         RETURN(makeBinaryExprChain(first, rest))
     }
 
-MultiplicativeOperator = ("*" / "/") { RETURN(TEXT) }
+MultiplicativeOperator = ("*" / "/" / "%") { RETURN(TEXT) }
 
 NotExpr
   = "!" __ e:NotExpr {

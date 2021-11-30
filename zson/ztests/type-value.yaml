@@ -1,6 +1,7 @@
 zed: "*"
 
 input: &input |
+  (int64)
   {typ:(int64)}
 
 output: *input

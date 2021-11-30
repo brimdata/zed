@@ -74,8 +74,9 @@ You can hit the Zed service from a Python program:
 ```python
 import zed
 
-# Connect to the REST API at the default base URL (http://127.0.0.1:9867).
-# To use a different base URL, supply it as an argument.
+# Connect to the default lake at http://localhost:9867.  To use a
+# different lake, supply its URL via the ZED_LAKE environment variable
+# or as an argument here.
 client = zed.Client()
 
 # Begin executing a Zed query for all records in the pool named "Demo".

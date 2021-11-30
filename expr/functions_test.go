@@ -112,19 +112,6 @@ func TestLogPow(t *testing.T) {
 	testWarning(t, "pow(-1, 0.5)", "", namedErrBadArgument("pow"), "pow() with invalid arguments")
 }
 
-func TestMod(t *testing.T) {
-	const record = "{u:5 (uint64)} (=0)"
-
-	testSuccessful(t, "mod(5, 3)", record, zint64(2))
-	testSuccessful(t, "mod(u, 3)", record, zuint64(2))
-	testSuccessful(t, "mod(8, 5)", record, zint64(3))
-	testSuccessful(t, "mod(8, u)", record, zint64(3))
-
-	testError(t, "mod()", function.ErrTooFewArgs, "mod() with no args")
-	testError(t, "mod(1, 2, 3)", function.ErrTooManyArgs, "mod() with too many args")
-	testWarning(t, "mod(3.2, 2)", record, namedErrBadArgument("mod"), "mod() with float64 arg")
-}
-
 func TestOtherStrFuncs(t *testing.T) {
 	testSuccessful(t, `replace("bann", "n", "na")`, "", zstring("banana"))
 	testError(t, `replace("foo", "bar")`, function.ErrTooFewArgs, "replace() with too few args")

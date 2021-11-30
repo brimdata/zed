@@ -24,14 +24,15 @@ mkdir scratch
 zed lake serve -R scratch
 ```
 > Or you can launch the Brim app and it will run a Zed lake service
-> on the default port at localhost:9867.
+> on the default port at http://localhost:9867.
 
 Then, from Python, create a pool, load some data, and query it.
 ```python
 import zed
 
-# Connect to the REST API at the default base URL (http://127.0.0.1:9867).
-# To use a different base URL, supply it as an argument.
+# Connect to the default lake at http://localhost:9867.  To use a
+# different lake, supply its URL via the ZED_LAKE environment variable
+# or as an argument here.
 client = zed.Client()
 
 c.create_pool('TestPool')

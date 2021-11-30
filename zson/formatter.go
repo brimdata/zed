@@ -141,7 +141,9 @@ func (f *Formatter) formatValue(indent int, typ zed.Type, bytes zcode.Bytes, par
 		if parentImplied {
 			parentKnown = false
 		}
-		f.decorate(typ, parentKnown, true)
+		if decorate {
+			f.decorate(typ, parentKnown, true)
+		}
 		return nil
 	}
 	var err error

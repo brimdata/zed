@@ -138,34 +138,6 @@ func (r *reducer) Call(args []zed.Value) (zed.Value, error) {
 	return zed.Value{typ, r.Uint(result)}, nil
 }
 
-// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#mod
-type Mod struct {
-	result.Buffer
-}
-
-//XXX currently integer mod, but this could also do fmod
-// also why doesn't Zed have x%y instead of mod(x,y)?
-func (m *Mod) Call(args []zed.Value) (zed.Value, error) {
-	zv := args[0]
-	id := zv.Type.ID()
-	if zed.IsFloat(id) {
-		return badarg("mod")
-	}
-	y, ok := coerce.ToUint(args[1])
-	if !ok {
-		return badarg("mod")
-	}
-	if !zed.IsNumber(id) {
-		return badarg("mod")
-	}
-	if zed.IsSigned(id) {
-		x, _ := zed.DecodeInt(zv.Bytes)
-		return zed.Value{zv.Type, m.Int(x % int64(y))}, nil
-	}
-	x, _ := zed.DecodeUint(zv.Bytes)
-	return zed.Value{zv.Type, m.Uint(x % y)}, nil
-}
-
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#round
 type Round struct {
 	result.Buffer
