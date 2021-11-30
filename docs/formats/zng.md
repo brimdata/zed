@@ -10,9 +10,6 @@
 > the zq output format is subject to change.  In this branch,
 > zq attempts to implement everything herein excepting:
 >
-> * Only streams of `record` types (which may consist of any combination of
->   other implemented types) are supported by zq even though a stream of
->   any types may currently be expressed in value messages.
 > * Zed syntax for working with the [`enum` type](#3115-enum-typedef) is not yet implemented. ([#1498](https://github.com/brimdata/zed/issues/1498))
 > * [Primitive Types](#3-primitive-types) for `float16` and `decimal` are not yet implemented. ([#1312](https://github.com/brimdata/zed/issues/1312), [#1522](https://github.com/brimdata/zed/issues/1522))
 
@@ -310,7 +307,7 @@ sequence must not include control messages.
 > allow for optimizations that discard entire buffers of data based on
 > heuristics to know a filtering predicate can't be true based on a
 > quick scan of the data (e.g., using the Boyer-Moore algorithm to determine
-> that a comparison with a string constant would not work for any record
+> that a comparison with a string constant would not work for any
 > value in the buffer).  Since blocks may be dropped without parsing using
 > such an optimization, any typedefs should be lifted out into the zng data
 > stream in front of the compressed blocks (i.e., the stream is rearranged
@@ -390,7 +387,7 @@ A end-of-stream marker is encoded as follows:
 
 After this marker, all previously read
 typedefs are invalidated and the "next available type ID" is reset to
-the initial value of 23.  To represent subsequent records that use a
+the initial value of 23.  To represent subsequent values that use a
 previously defined type, the appropriate typedef control code must
 be re-emitted
 (and note that the typedef may now be assigned a different ID).
