@@ -38,10 +38,10 @@ func (a *applier) Pull() (zbuf.Batch, error) {
 			}
 			return nil, err
 		}
-		zvals := batch.Values()
-		recs := make([]zed.Value, 0, len(zvals))
-		for i := range zvals {
-			out, err := a.function.Apply(&zvals[i])
+		vals := batch.Values()
+		recs := make([]zed.Value, 0, len(vals))
+		for i := range vals {
+			out, err := a.function.Apply(&vals[i])
 			if err != nil {
 				a.maybeWarn(err.Error())
 				continue

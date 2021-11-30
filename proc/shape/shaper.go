@@ -20,7 +20,7 @@ type Shaper struct {
 	recode     map[zed.Type]*zed.TypeRecord
 	spiller    *spill.File
 	hash       maphash.Hash
-	zvals      []*zed.Value
+	vals       []*zed.Value
 }
 
 type anchor struct {
@@ -241,15 +241,15 @@ func (s *Shaper) stash(rec *zed.Value) error {
 		if err != nil {
 			return err
 		}
-		for _, rec := range s.zvals {
+		for _, rec := range s.vals {
 			if err := s.spiller.Write(rec); err != nil {
 				return err
 			}
 		}
-		s.zvals = nil
+		s.vals = nil
 		return s.spiller.Write(rec)
 	}
-	s.zvals = append(s.zvals, rec.Copy())
+	s.vals = append(s.vals, rec.Copy())
 	return nil
 }
 
@@ -308,9 +308,9 @@ func (s *Shaper) next() (*zed.Value, error) {
 		return s.spiller.Read()
 	}
 	var rec *zed.Value
-	if len(s.zvals) > 0 {
-		rec = s.zvals[0]
-		s.zvals = s.zvals[1:]
+	if len(s.vals) > 0 {
+		rec = s.vals[0]
+		s.vals = s.vals[1:]
 	}
 	return rec, nil
 

@@ -55,9 +55,9 @@ func (s *ExprSwitch) run() {
 			s.err = err
 			return
 		}
-		zvals := batch.Values()
-		for i := range zvals {
-			zv, err := s.evaluator.Eval(&zvals[i])
+		vals := batch.Values()
+		for i := range vals {
+			zv, err := s.evaluator.Eval(&vals[i])
 			if err != nil {
 				s.err = err
 				return
@@ -71,7 +71,7 @@ func (s *ExprSwitch) run() {
 				continue
 			}
 			select {
-			case ch <- &zvals[i]:
+			case ch <- &vals[i]:
 			case doneCh := <-s.doneChCh:
 				s.handleDoneCh(doneCh)
 				if len(s.cases) == 0 && s.defaultCh == nil {

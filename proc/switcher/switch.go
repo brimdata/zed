@@ -73,13 +73,13 @@ func (s *Switcher) run() {
 			s.sendEOS(proc.Result{batch, err})
 			continue
 		}
-		zvals := batch.Values()
-		for i := range zvals {
-			if j := s.match(&zvals[i]); j >= 0 {
+		vals := batch.Values()
+		for i := range vals {
+			if j := s.match(&vals[i]); j >= 0 {
 				if records[j] == nil {
-					records[j] = make([]zed.Value, 0, len(zvals))
+					records[j] = make([]zed.Value, 0, len(vals))
 				}
-				records[j] = append(records[j], zvals[i])
+				records[j] = append(records[j], vals[i])
 			}
 		}
 		for i := range records {

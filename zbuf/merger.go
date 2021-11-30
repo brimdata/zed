@@ -27,8 +27,8 @@ type Merger struct {
 	ctx    context.Context
 	group  *errgroup.Group
 	once   sync.Once
-	// Maintained as a min-heap on cmp of mergerUpstream.zvals[0] (see Less)
-	// so that the next Read always returns upstreams[0].zvals[0].
+	// Maintained as a min-heap on cmp of mergerUpstream.vals[0] (see Less)
+	// so that the next Read always returns upstreams[0].vals[0].
 	upstreams []*mergerUpstream
 }
 
@@ -81,13 +81,13 @@ func (m *Merger) Pull() (Batch, error) {
 		return nil, m.group.Wait()
 	}
 	min := heap.Pop(m).(*mergerUpstream)
-	if m.Len() == 0 || m.cmp(&min.zvals[len(min.zvals)-1], &m.upstreams[0].zvals[0]) <= 0 {
+	if m.Len() == 0 || m.cmp(&min.vals[len(min.vals)-1], &m.upstreams[0].vals[0]) <= 0 {
 		// Either min is the only upstreams or min's last value is less
 		// than or equal to the next upstream's first value.  Either
 		// way, it's safe to return min's remaining values as a batch.
 		batch := min.batch
-		if len(min.zvals) < len(batch.Values()) {
-			batch = Array(min.zvals)
+		if len(min.vals) < len(batch.Values()) {
+			batch = Array(min.vals)
 		}
 		if min.receive() {
 			heap.Push(m, min)
@@ -104,9 +104,9 @@ func (m *Merger) Read() (*zed.Value, error) {
 		return nil, m.group.Wait()
 	}
 	u := m.upstreams[0]
-	zv := &u.zvals[0]
-	u.zvals = u.zvals[1:]
-	if len(u.zvals) > 0 || u.receive() {
+	zv := &u.vals[0]
+	u.vals = u.vals[1:]
+	if len(u.vals) > 0 || u.receive() {
 		heap.Fix(m, 0)
 	} else {
 		heap.Pop(m)
@@ -142,7 +142,7 @@ func (m *Merger) run() {
 func (m *Merger) Len() int { return len(m.upstreams) }
 
 func (m *Merger) Less(i, j int) bool {
-	return m.cmp(&m.upstreams[i].zvals[0], &m.upstreams[j].zvals[0]) < 0
+	return m.cmp(&m.upstreams[i].vals[0], &m.upstreams[j].vals[0]) < 0
 }
 
 func (m *Merger) Swap(i, j int) { m.upstreams[i], m.upstreams[j] = m.upstreams[j], m.upstreams[i] }
@@ -158,7 +158,7 @@ func (m *Merger) Pop() interface{} {
 type mergerUpstream struct {
 	ch    <-chan Batch
 	batch Batch
-	zvals []zed.Value
+	vals  []zed.Value
 }
 
 // receive tries to receive the next batch.  It returns false when no batches
@@ -167,7 +167,7 @@ func (m *mergerUpstream) receive() bool {
 	batch, ok := <-m.ch
 	m.batch = batch
 	if m.batch != nil {
-		m.zvals = batch.Values()
+		m.vals = batch.Values()
 	}
 	return ok
 }

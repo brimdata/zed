@@ -279,13 +279,13 @@ next:
 			return nil, r.err
 		}
 	}
-	zvals := r.batch.Values()
-	if r.index >= len(zvals) {
+	vals := r.batch.Values()
+	if r.index >= len(vals) {
 		r.batch.Unref()
 		r.batch, r.index = nil, 0
 		goto next
 	}
-	rec := &zvals[r.index]
+	rec := &vals[r.index]
 	r.index++
 	return rec, nil
 }

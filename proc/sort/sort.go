@@ -107,9 +107,9 @@ func (p *Proc) recordsForOneRun() ([]zed.Value, bool, error) {
 		if batch == nil {
 			return recs, true, nil
 		}
-		zvals := batch.Values()
-		for i := range zvals {
-			rec := &zvals[i]
+		vals := batch.Values()
+		for i := range vals {
+			rec := &vals[i]
 			p.unseenFieldTracker.update(rec)
 			nbytes += len(rec.Bytes)
 			// We're keeping records owned by batch so don't call Unref.
