@@ -39,7 +39,7 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 	fs.BoolVar(&f.Text.ShowTypes, "T", false, "display field types in text output")
 	fs.BoolVar(&f.Text.ShowFields, "F", false, "display field names in text output")
 	fs.BoolVar(&f.color, "color", true, "enable/disable color formatting for -Z and lake text output")
-	fs.IntVar(&f.Zng.LZ4BlockSize, "znglz4blocksize", zngio.DefaultLZ4BlockSize,
+	fs.IntVar(&f.ZNG.LZ4BlockSize, "znglz4blocksize", zngio.DefaultLZ4BlockSize,
 		"LZ4 block size in bytes for ZNG compression (nonpositive to disable)")
 	fs.IntVar(&f.ZSON.Pretty, "pretty", 4,
 		"tab size to pretty print zson output (0 for newline-delimited zson")

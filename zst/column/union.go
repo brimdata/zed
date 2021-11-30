@@ -28,7 +28,7 @@ func NewUnionWriter(typ *zed.TypeUnion, spiller *Spiller) *UnionWriter {
 }
 
 func (u *UnionWriter) Write(body zcode.Bytes) error {
-	_, selector, zv, err := u.typ.SplitZng(body)
+	_, selector, zv, err := u.typ.SplitZNG(body)
 	if err != nil {
 		return err
 	}

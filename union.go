@@ -28,9 +28,9 @@ func (t *TypeUnion) Type(selector int) (Type, error) {
 	return t.Types[selector], nil
 }
 
-// SplitZng takes a zng encoding of a value of the receiver's union type and
+// SplitZNG takes a zng encoding of a value of the receiver's union type and
 // returns the concrete type of the value, its selector, and the value encoding.
-func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
+func (t *TypeUnion) SplitZNG(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 	it := zv.Iter()
 	v, container, err := it.Next()
 	if err != nil {
@@ -58,7 +58,7 @@ func (t *TypeUnion) SplitZng(zv zcode.Bytes) (Type, int64, zcode.Bytes, error) {
 }
 
 func (t *TypeUnion) Marshal(zv zcode.Bytes) (interface{}, error) {
-	inner, _, zv, err := t.SplitZng(zv)
+	inner, _, zv, err := t.SplitZNG(zv)
 	if err != nil {
 		return nil, err
 	}
@@ -74,9 +74,9 @@ func (t *TypeUnion) String() string {
 }
 
 func (t *TypeUnion) Format(zv zcode.Bytes) string {
-	typ, _, iv, err := t.SplitZng(zv)
+	typ, _, iv, err := t.SplitZNG(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	return fmt.Sprintf("%s (%s) %s", typ.Format(iv), typ, t)
 }

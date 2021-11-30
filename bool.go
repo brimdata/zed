@@ -61,7 +61,7 @@ func (t *TypeOfBool) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfBool) Format(zv zcode.Bytes) string {
 	b, err := DecodeBool(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	if b {
 		return "true"

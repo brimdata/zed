@@ -62,7 +62,7 @@ func StringTypeUnion(t *zed.TypeUnion) string {
 	return fmt.Sprintf("union[%s]", strings.Join(ss, ","))
 }
 
-func badZng(err error, t zed.Type, zv zcode.Bytes) string {
+func badZNG(err error, t zed.Type, zv zcode.Bytes) string {
 	return fmt.Sprintf("<ZNG-ERR type %s [%s]: %s>", t, zv, err)
 }
 

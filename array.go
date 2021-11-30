@@ -46,7 +46,7 @@ func (t *TypeArray) Format(zv zcode.Bytes) string {
 	for !it.Done() {
 		val, _, err := it.Next()
 		if err != nil {
-			return badZng(err, t, zv)
+			return badZNG(err, t, zv)
 		}
 		b.WriteString(sep)
 		if val == nil {

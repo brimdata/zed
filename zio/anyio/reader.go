@@ -20,7 +20,7 @@ import (
 
 type ReaderOpts struct {
 	Format string
-	Zng    zngio.ReaderOpts
+	ZNG    zngio.ReaderOpts
 	AwsCfg *aws.Config
 }
 
@@ -66,11 +66,11 @@ func NewReaderWithOpts(r io.Reader, zctx *zed.Context, opts ReaderOpts) (zio.Rea
 	// For the matching reader, force validation to true so we are extra
 	// careful about auto-matching ZNG.  Then, once matched, relaxed
 	// validation to the user setting in the actual reader returned.
-	zngOpts := opts.Zng
+	zngOpts := opts.ZNG
 	zngOpts.Validate = true
 	zngErr := match(zngio.NewReaderWithOpts(track, zed.NewContext(), zngOpts), "zng")
 	if zngErr == nil {
-		return zngio.NewReaderWithOpts(recorder, zctx, opts.Zng), nil
+		return zngio.NewReaderWithOpts(recorder, zctx, opts.ZNG), nil
 	}
 	track.Reset()
 

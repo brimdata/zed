@@ -40,7 +40,7 @@ func valOf(zv zed.Value) (zed.Value, error) {
 			return zed.Value{typ, bytes}, nil
 		}
 		var err error
-		typ, _, bytes, err = union.SplitZng(bytes)
+		typ, _, bytes, err = union.SplitZNG(bytes)
 		if err != nil {
 			return zed.Value{}, err
 		}

@@ -27,7 +27,7 @@ func (f *Flags) Options() anyio.ReaderOpts {
 
 func (f *Flags) SetFlags(fs *flag.FlagSet, validate bool) {
 	fs.StringVar(&f.Format, "i", "auto", "format of input data [auto,zng,zst,json,ndjson,zeek,zjson,csv,parquet]")
-	fs.BoolVar(&f.Zng.Validate, "validate", validate, "validate the input format when reading ZNG streams")
+	fs.BoolVar(&f.ZNG.Validate, "validate", validate, "validate the input format when reading ZNG streams")
 	f.ReadMax = auto.NewBytes(zngio.MaxSize)
 	fs.Var(&f.ReadMax, "readmax", "maximum memory used read buffers in MiB, MB, etc")
 	f.ReadSize = auto.NewBytes(zngio.ReadSize)
@@ -36,12 +36,12 @@ func (f *Flags) SetFlags(fs *flag.FlagSet, validate bool) {
 
 // Init is called after flags have been parsed.
 func (f *Flags) Init() error {
-	f.Zng.Max = int(f.ReadMax.Bytes)
-	if f.Zng.Max < 0 {
+	f.ZNG.Max = int(f.ReadMax.Bytes)
+	if f.ZNG.Max < 0 {
 		return errors.New("max read buffer size must be greater than zero")
 	}
-	f.Zng.Size = int(f.ReadSize.Bytes)
-	if f.Zng.Size < 0 {
+	f.ZNG.Size = int(f.ReadSize.Bytes)
+	if f.ZNG.Size < 0 {
 		return errors.New("target read buffer size must be greater than zero")
 	}
 	return nil

@@ -110,7 +110,7 @@ func (t *TypeRecord) Format(zv zcode.Bytes) string {
 	for _, c := range t.Columns {
 		val, _, err := it.Next()
 		if err != nil {
-			return badZng(err, t, zv)
+			return badZNG(err, t, zv)
 		}
 		b.WriteString(sep)
 		b.WriteString(QuotedName(c.Name))

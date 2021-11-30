@@ -61,7 +61,7 @@ func (t *TypeOfFloat32) Marshal(zb zcode.Bytes) (interface{}, error) {
 func (t *TypeOfFloat32) Format(zb zcode.Bytes) string {
 	f, err := DecodeFloat32(zb)
 	if err != nil {
-		return badZng(err, t, zb)
+		return badZNG(err, t, zb)
 	}
 	if f == float32(int64(f)) {
 		return fmt.Sprintf("%d.", int(f))
@@ -108,7 +108,7 @@ func (t *TypeOfFloat64) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfFloat64) Format(zv zcode.Bytes) string {
 	d, err := DecodeFloat64(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	if d == float64(int64(d)) {
 		return fmt.Sprintf("%d.", int64(d))

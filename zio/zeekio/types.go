@@ -13,9 +13,9 @@ var ErrIncompatibleZeekType = errors.New("type cannot be represented in zeek for
 
 // The functions defined in this file handle mappings between legacy
 // Zeek types and equivalent ZNG types.
-// The function zeekTypeToZng() is used when reading Zeek logs to rewrite
+// The function zeekTypeToZNG() is used when reading Zeek logs to rewrite
 // types before looking up the proper Zeek type.  zngTypeToZeek() is used
-// when writing Zeek logs, it should always be the inverse of zeekTypeToZng().
+// when writing Zeek logs, it should always be the inverse of zeekTypeToZNG().
 
 func isValidInputType(typ zed.Type) bool {
 	switch t := typ.(type) {
@@ -30,7 +30,7 @@ func isValidInputType(typ zed.Type) bool {
 	}
 }
 
-func zeekTypeToZng(typstr string, types *tzngio.TypeParser) (zed.Type, error) {
+func zeekTypeToZNG(typstr string, types *tzngio.TypeParser) (zed.Type, error) {
 	// As zng types diverge from zeek types, we'll probably want to
 	// re-do this but lets keep it simple for now.
 	typstr = strings.ReplaceAll(typstr, "string", "bstring")
