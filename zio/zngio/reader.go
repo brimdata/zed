@@ -213,12 +213,6 @@ func readValue(r reader, code byte, m *zed.Mapper, validate bool, rec *zed.Value
 	if typ == nil {
 		return nil, zed.ErrTypeIDInvalid
 	}
-	if _, ok := zed.AliasOf(typ).(*zed.TypeRecord); !ok {
-		// A top-level ZNG value that is not a record is valid ZNG data
-		// but not supported by Zed.  In particular, this can happen
-		// when trying to parse random non-ZNG data in the auto-detector.
-		return nil, errors.New("non-record, top-level zng values are not supported")
-	}
 	if rec == nil {
 		rec = zed.NewValue(typ, b)
 	} else {

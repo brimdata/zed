@@ -48,10 +48,10 @@ func (r *Value) HasField(field string) bool {
 	return TypeRecordOf(r.Type).HasField(field)
 }
 
-// Walk traverses a record in depth-first order, calling a
-// RecordVisitor on the way.
+// Walk traverses a value in depth-first order, calling a
+// Visitor on the way.
 func (r *Value) Walk(rv Visitor) error {
-	return walkRecord(TypeRecordOf(r.Type), r.Bytes, rv)
+	return Walk(r.Type, r.Bytes, rv)
 }
 
 // TypeCheck checks that the Bytes field is structurally consistent

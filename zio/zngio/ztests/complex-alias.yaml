@@ -4,10 +4,10 @@ script: zq - | zq -z -
 
 inputs:
   - name: stdin
-    data: |
+    data: &stdin |
+      ["hello"(=bar),"world"(bar)]
       {a:["hello"(=bar),"world"(bar)]}
 
 outputs:
   - name: stdout
-    data: |
-      {a:["hello"(=bar),"world"(bar)]}
+    data: *stdin
