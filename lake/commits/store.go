@@ -6,6 +6,8 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/fs"
+	"sync"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/pkg/storage"
@@ -86,6 +88,12 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 	if snap, ok := s.snapshots[leaf]; ok {
 		return snap, nil
 	}
+	if snap, err := s.getSnapshot(ctx, leaf); err != nil && !errors.Is(err, fs.ErrNotExist) {
+		return nil, err
+	} else if err == nil {
+		s.snapshots[leaf] = snap
+		return snap, nil
+	}
 	var objects []*Object
 	var base *Snapshot
 	for at := leaf; at != ksuid.Nil; {
@@ -93,9 +101,27 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 			base = snap
 			break
 		}
-		o, err := s.Get(ctx, at)
-		if err != nil {
+		var o *Object
+		var oErr error
+		var wg sync.WaitGroup
+		wg.Add(1)
+		// Start fetching the next data object.
+		go func() {
+			o, oErr = s.Get(ctx, at)
+			wg.Done()
+		}()
+		// Concurrently check for a snapshot.
+		if snap, err := s.getSnapshot(ctx, at); err != nil && !errors.Is(err, fs.ErrNotExist) {
 			return nil, err
+		} else if err == nil {
+			s.snapshots[at] = snap
+			base = snap
+			break
+		}
+		// No snapshot found, so wait for data object.
+		wg.Wait()
+		if oErr != nil {
+			return nil, oErr
 		}
 		objects = append(objects, o)
 		at = o.Parent
@@ -113,8 +139,32 @@ func (s *Store) Snapshot(ctx context.Context, leaf ksuid.KSUID) (*Snapshot, erro
 			}
 		}
 	}
+	if err := s.putSnapshot(ctx, leaf, snap); err != nil {
+		return nil, err
+	}
 	s.snapshots[leaf] = snap
 	return snap, nil
+}
+
+func (s *Store) getSnapshot(ctx context.Context, commit ksuid.KSUID) (*Snapshot, error) {
+	r, err := s.engine.Get(ctx, s.snapshotPathOf(commit))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return decodeSnapshot(r)
+}
+
+func (s *Store) putSnapshot(ctx context.Context, commit ksuid.KSUID, snap *Snapshot) error {
+	b, err := snap.serialize()
+	if err != nil {
+		return err
+	}
+	return storage.Put(ctx, s.engine, s.snapshotPathOf(commit), bytes.NewReader(b))
+}
+
+func (s *Store) snapshotPathOf(commit ksuid.KSUID) *storage.URI {
+	return s.path.AppendPath(commit.String() + ".snap.zng")
 }
 
 // Path return the entire path from the commit object to the root
