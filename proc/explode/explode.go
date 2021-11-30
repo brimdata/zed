@@ -38,11 +38,11 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if proc.EOS(batch, err) {
 			return nil, err
 		}
-		zvals := batch.Values()
-		recs := make([]zed.Value, 0, len(zvals))
-		for i := range zvals {
+		vals := batch.Values()
+		recs := make([]zed.Value, 0, len(vals))
+		for i := range vals {
 			for _, arg := range p.args {
-				zv, err := arg.Eval(&zvals[i])
+				zv, err := arg.Eval(&vals[i])
 				if err != nil {
 					return nil, err
 				}

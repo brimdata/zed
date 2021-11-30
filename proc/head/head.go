@@ -26,8 +26,8 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
-	zvals := batch.Values()
-	if n := len(zvals); n < remaining {
+	vals := batch.Values()
+	if n := len(vals); n < remaining {
 		// This batch has fewer than the needed records.
 		// Send them all downstream and update the count.
 		p.count += n
@@ -38,7 +38,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	// return a batch with only the needed records.
 	p.Done()
 	p.count = p.limit
-	return zbuf.Array(zvals[:remaining]), nil
+	return zbuf.Array(vals[:remaining]), nil
 }
 
 func (p *Proc) Done() {

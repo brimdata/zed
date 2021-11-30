@@ -47,9 +47,9 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if batch == nil {
 			return p.sorted(), nil
 		}
-		zvals := batch.Values()
-		for i := range zvals {
-			p.consume(&zvals[i])
+		vals := batch.Values()
+		for i := range vals {
+			p.consume(&vals[i])
 		}
 		batch.Unref()
 		if p.flushEvery {

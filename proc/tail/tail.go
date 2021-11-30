@@ -47,9 +47,9 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if proc.EOS(batch, err) {
 			return p.tail(), nil
 		}
-		zvals := batch.Values()
-		for i := range zvals {
-			p.q[p.off] = *zvals[i].Copy()
+		vals := batch.Values()
+		for i := range vals {
+			p.q[p.off] = *vals[i].Copy()
 			p.off = (p.off + 1) % p.limit
 			p.count++
 			if p.count >= p.limit {

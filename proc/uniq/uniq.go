@@ -76,9 +76,9 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			return zbuf.Array{*t}, nil
 		}
 		var out []zed.Value
-		zvals := batch.Values()
-		for i := range zvals {
-			out = p.appendUniq(out, &zvals[i])
+		vals := batch.Values()
+		for i := range vals {
+			out = p.appendUniq(out, &vals[i])
 		}
 		batch.Unref()
 		if len(out) > 0 {

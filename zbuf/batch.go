@@ -32,9 +32,9 @@ type Batch interface {
 // WriteBatch writes the values in batch to zw.  If an error occurs, WriteBatch
 // stops and returns the error.
 func WriteBatch(zw zio.Writer, batch Batch) error {
-	zvals := batch.Values()
-	for i := range zvals {
-		if err := zw.Write(&zvals[i]); err != nil {
+	vals := batch.Values()
+	for i := range vals {
+		if err := zw.Write(&vals[i]); err != nil {
 			return err
 		}
 	}
@@ -137,10 +137,10 @@ func (r *pullerReader) Read() (*zed.Value, error) {
 			break
 		}
 	}
-	zvals := r.batch.Values()
-	rec := &zvals[r.idx]
+	vals := r.batch.Values()
+	rec := &vals[r.idx]
 	r.idx++
-	if r.idx == len(zvals) {
+	if r.idx == len(vals) {
 		r.batch = nil
 	}
 	return rec, nil

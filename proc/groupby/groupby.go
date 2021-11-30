@@ -188,9 +188,9 @@ func (p *Proc) run() {
 				p.sendResult(b, err)
 			}
 		}
-		zvals := batch.Values()
-		for i := range zvals {
-			if err := p.agg.Consume(&zvals[i]); err != nil {
+		vals := batch.Values()
+		for i := range vals {
+			if err := p.agg.Consume(&vals[i]); err != nil {
 				batch.Unref()
 				p.shutdown(err)
 				return
