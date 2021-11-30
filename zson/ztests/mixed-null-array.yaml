@@ -4,6 +4,10 @@ script: |
 inputs:
   - name: in.zson
     data: |
+      [1,null(int64)]
+      [null(int64),2]
+      [null,null]
+      [null((null,string,int64)),"foo"((null,string,int64)),3((null,string,int64))]
       {version:[1,null(int64)]}
       {version:[null(int64),2]}
       {version:[null,null]}
@@ -12,6 +16,10 @@ inputs:
 outputs:
   - name: stdout
     data: |
+      [1,null(int64)]
+      [null(int64),2]
+      [null,null]
+      [null((null,string,int64)),"foo"((null,string,int64)),3((null,string,int64))]
       {version:[1,null(int64)]}
       {version:[null(int64),2]}
       {version:[null,null]}
