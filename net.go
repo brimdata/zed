@@ -71,7 +71,7 @@ func (t *TypeOfNet) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfNet) Format(zv zcode.Bytes) string {
 	s, err := DecodeNet(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	ipnet := net.IPNet(*s)
 	return ipnet.String()

@@ -49,7 +49,7 @@ func (t *TypeOfTime) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfTime) Format(zv zcode.Bytes) string {
 	ts, err := DecodeTime(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	b := ts.Time().Format(time.RFC3339Nano)
 	return string(b)

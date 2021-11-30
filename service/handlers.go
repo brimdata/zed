@@ -293,7 +293,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	}
 	// Force validation of ZNG when initialing loading into the lake.
 	var opts anyio.ReaderOpts
-	opts.Zng.Validate = true
+	opts.ZNG.Validate = true
 	zr, err := anyio.NewReaderWithOpts(anyio.GzipReader(r.Body), zed.NewContext(), opts)
 	if err != nil {
 		w.Error(zqe.ErrInvalid(err))

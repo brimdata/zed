@@ -16,7 +16,7 @@ func encodeUnion(zctx *zed.Context, union *zed.TypeUnion, bytes zcode.Bytes) (in
 	if bytes == nil {
 		return nil, nil
 	}
-	inner, selector, b, err := union.SplitZng(bytes)
+	inner, selector, b, err := union.SplitZNG(bytes)
 	if err != nil {
 		return nil, err
 	}

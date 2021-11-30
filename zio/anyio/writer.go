@@ -26,7 +26,7 @@ type WriterOpts struct {
 	JSON   jsonio.WriterOpts
 	Lake   lakeio.WriterOpts
 	Text   textio.WriterOpts
-	Zng    zngio.WriterOpts
+	ZNG    zngio.WriterOpts
 	ZSON   zsonio.WriterOpts
 	Zst    zstio.WriterOpts
 }
@@ -36,7 +36,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "null":
 		return &nullWriter{}, nil
 	case "zng":
-		return zngio.NewWriter(w, opts.Zng), nil
+		return zngio.NewWriter(w, opts.ZNG), nil
 	case "zeek":
 		return zeekio.NewWriter(w, opts.UTF8), nil
 	case "ndjson":

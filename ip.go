@@ -55,7 +55,7 @@ func (t *TypeOfIP) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfIP) Format(zv zcode.Bytes) string {
 	ip, err := DecodeIP(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	return ip.String()
 }

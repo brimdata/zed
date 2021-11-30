@@ -33,7 +33,7 @@ parquet directly with zng but felt a new format was warranted and important
 
 > TBD: add more examples.
 
-## The Zng Data Model
+## The ZNG Data Model
 
 The zng data model is an unbounded sequence of zng streams, where
 each stream comprises a finite sequence of "rows", and each row conforms to
@@ -50,7 +50,7 @@ of each row value. A zng stream is fully self-contained and self describing.
 There is no need for external schema definitions or for accesses to a
 centralized schema registry to decode a zng stream.
 
-Zng streams can represent data at rest on a storage system, data in memory
+ZNG streams can represent data at rest on a storage system, data in memory
 for online-analytics processing, or data in flight,
 e.g., as the foundation of a data communication layer.  Like
 [FlexBuffers](https://google.github.io/flatbuffers/flexbuffers.html),

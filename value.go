@@ -38,7 +38,7 @@ func (v Value) MarshalJSON() ([]byte, error) {
 	return json.Marshal(object)
 }
 
-func badZng(err error, t Type, zv zcode.Bytes) string {
+func badZNG(err error, t Type, zv zcode.Bytes) string {
 	return fmt.Sprintf("<ZNG-ERR type %s [%s]: %s>", t, zv, err)
 }
 

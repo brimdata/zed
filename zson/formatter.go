@@ -279,7 +279,7 @@ func (f *Formatter) formatVector(indent int, open, close string, inner zed.Type,
 }
 
 func (f *Formatter) formatUnion(indent int, union *zed.TypeUnion, bytes zcode.Bytes) error {
-	typ, _, bytes, err := union.SplitZng(bytes)
+	typ, _, bytes, err := union.SplitZNG(bytes)
 	if err != nil {
 		return err
 	}

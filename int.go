@@ -69,7 +69,7 @@ func (t *TypeOfInt8) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfInt8) Format(zv zcode.Bytes) string {
 	b, err := DecodeInt(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	return strconv.FormatInt(int64(b), 10)
 }
@@ -91,7 +91,7 @@ func (t *TypeOfUint8) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfUint8) Format(zv zcode.Bytes) string {
 	b, err := DecodeUint(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	return strconv.FormatUint(uint64(b), 10)
 }
@@ -113,7 +113,7 @@ func (t *TypeOfInt16) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfInt16) Format(zv zcode.Bytes) string {
 	b, err := DecodeInt(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	return strconv.FormatInt(int64(b), 10)
 }
@@ -135,7 +135,7 @@ func (t *TypeOfUint16) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfUint16) Format(zv zcode.Bytes) string {
 	b, err := DecodeUint(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	return strconv.FormatUint(uint64(b), 10)
 }
@@ -157,7 +157,7 @@ func (t *TypeOfInt32) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfInt32) Format(zv zcode.Bytes) string {
 	b, err := DecodeInt(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	return strconv.FormatInt(int64(b), 10)
 }
@@ -179,7 +179,7 @@ func (t *TypeOfUint32) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfUint32) Format(zv zcode.Bytes) string {
 	b, err := DecodeUint(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	return strconv.FormatUint(uint64(b), 10)
 }
@@ -201,7 +201,7 @@ func (t *TypeOfInt64) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfInt64) Format(zv zcode.Bytes) string {
 	b, err := DecodeInt(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	return strconv.FormatInt(int64(b), 10)
 }
@@ -223,7 +223,7 @@ func (t *TypeOfUint64) Marshal(zv zcode.Bytes) (interface{}, error) {
 func (t *TypeOfUint64) Format(zv zcode.Bytes) string {
 	b, err := DecodeUint(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	return strconv.FormatUint(uint64(b), 10)
 }

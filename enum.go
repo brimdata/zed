@@ -59,7 +59,7 @@ func (t *TypeEnum) Format(zv zcode.Bytes) string {
 		if err == nil {
 			err = errors.New("enum index out of range")
 		}
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	return t.Symbols[id]
 }

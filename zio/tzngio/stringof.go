@@ -37,7 +37,7 @@ func StringOf(zv zed.Value, out OutFmt, b bool) string {
 	case *zed.TypeOfBool:
 		b, err := zed.DecodeBool(zv.Bytes)
 		if err != nil {
-			return badZng(err, t, zv.Bytes)
+			return badZNG(err, t, zv.Bytes)
 		}
 		if b {
 			return "T"
@@ -56,31 +56,31 @@ func StringOf(zv zed.Value, out OutFmt, b bool) string {
 	case *zed.TypeOfFloat32:
 		v, err := zed.DecodeFloat32(zv.Bytes)
 		if err != nil {
-			return badZng(err, t, zv.Bytes)
+			return badZNG(err, t, zv.Bytes)
 		}
 		return strconv.FormatFloat(float64(v), 'f', -1, 32)
 	case *zed.TypeOfFloat64:
 		d, err := zed.DecodeFloat64(zv.Bytes)
 		if err != nil {
-			return badZng(err, t, zv.Bytes)
+			return badZNG(err, t, zv.Bytes)
 		}
 		return strconv.FormatFloat(d, 'f', -1, 64)
 	case *zed.TypeOfInt8, *zed.TypeOfInt16, *zed.TypeOfInt32, *zed.TypeOfInt64:
 		b, err := zed.DecodeInt(zv.Bytes)
 		if err != nil {
-			return badZng(err, t, zv.Bytes)
+			return badZNG(err, t, zv.Bytes)
 		}
 		return strconv.FormatInt(int64(b), 10)
 	case *zed.TypeOfUint8, *zed.TypeOfUint16, *zed.TypeOfUint32, *zed.TypeOfUint64:
 		b, err := zed.DecodeUint(zv.Bytes)
 		if err != nil {
-			return badZng(err, t, zv.Bytes)
+			return badZNG(err, t, zv.Bytes)
 		}
 		return strconv.FormatUint(uint64(b), 10)
 	case *zed.TypeOfIP:
 		ip, err := zed.DecodeIP(zv.Bytes)
 		if err != nil {
-			return badZng(err, t, zv.Bytes)
+			return badZNG(err, t, zv.Bytes)
 		}
 		return ip.String()
 	case *zed.TypeMap:
@@ -194,7 +194,7 @@ func StringOfBstring(data zcode.Bytes, fmt OutFmt, inContainer bool) string {
 func StringOfDuration(t *zed.TypeOfDuration, zv zcode.Bytes, _ OutFmt, _ bool) string {
 	i, err := zed.DecodeDuration(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	// This format of a fractional second is used by zeek in logs.
 	// It uses enough precision to fully represent the 64-bit ns
@@ -236,7 +236,7 @@ func StringOfMap(t *zed.TypeMap, zv zcode.Bytes, fmt OutFmt, _ bool) string {
 func StringOfNet(t *zed.TypeOfNet, zv zcode.Bytes, _ OutFmt, _ bool) string {
 	s, err := zed.DecodeNet(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	ipnet := net.IPNet(*s)
 	return ipnet.String()
@@ -360,7 +360,7 @@ func uescape(r rune) []byte {
 func StringOfTime(t *zed.TypeOfTime, zv zcode.Bytes, _ OutFmt, _ bool) string {
 	ts, err := zed.DecodeTime(zv)
 	if err != nil {
-		return badZng(err, t, zv)
+		return badZNG(err, t, zv)
 	}
 	// This format of a fractional second is used by zeek in logs.
 	// It uses enough precision to fully represent the 64-bit ns
@@ -370,7 +370,7 @@ func StringOfTime(t *zed.TypeOfTime, zv zcode.Bytes, _ OutFmt, _ bool) string {
 }
 
 func StringOfUnion(t *zed.TypeUnion, zv zcode.Bytes, ofmt OutFmt, _ bool) string {
-	typ, selector, iv, err := t.SplitZng(zv)
+	typ, selector, iv, err := t.SplitZNG(zv)
 	if err != nil {
 		// this follows set and record StringOfs. Like there, XXX.
 		return "ERR"
