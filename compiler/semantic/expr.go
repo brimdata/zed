@@ -291,6 +291,12 @@ func semExprNullable(scope *Scope, e ast.Expr) (dag.Expr, error) {
 }
 
 func semCall(scope *Scope, call *ast.Call) (dag.Expr, error) {
+	if e, err := maybeConvertAgg(scope, call); e != nil || err != nil {
+		return e, err
+	}
+	if call.Where != nil {
+		return nil, fmt.Errorf("'where' clause on non-aggregation function: %s", call.Name)
+	}
 	if e, err := semSequence(scope, call); e != nil || err != nil {
 		return e, err
 	}
@@ -393,14 +399,7 @@ func semAssignments(scope *Scope, assignments []ast.Assignment) ([]dag.Assignmen
 }
 
 func semAssignment(scope *Scope, a ast.Assignment) (dag.Assignment, error) {
-	var err error
-	var rhs dag.Expr
-	if call, ok := a.RHS.(*ast.Call); ok {
-		rhs, err = maybeConvertAgg(scope, call)
-	}
-	if rhs == nil && err == nil {
-		rhs, err = semExpr(scope, a.RHS)
-	}
+	rhs, err := semExpr(scope, a.RHS)
 	if err != nil {
 		return dag.Assignment{}, fmt.Errorf("rhs of assignment expression: %w", err)
 	}
@@ -554,10 +553,15 @@ func maybeConvertAgg(scope *Scope, call *ast.Call) (dag.Expr, error) {
 			return nil, err
 		}
 	}
+	where, err := semExprNullable(scope, call.Where)
+	if err != nil {
+		return nil, err
+	}
 	return &dag.Agg{
-		Kind: "Agg",
-		Name: call.Name,
-		Expr: e,
+		Kind:  "Agg",
+		Name:  call.Name,
+		Expr:  e,
+		Where: where,
 	}, nil
 }
 

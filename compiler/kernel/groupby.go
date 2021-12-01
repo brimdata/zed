@@ -18,7 +18,7 @@ func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, sum
 	if err != nil {
 		return nil, err
 	}
-	names, reducers, err := compileAggs(summarize.Aggs, scope, pctx.Zctx)
+	names, reducers, err := compileAggAssignments(summarize.Aggs, scope, pctx.Zctx)
 	if err != nil {
 		return nil, err
 	}
@@ -26,11 +26,11 @@ func compileGroupBy(pctx *proc.Context, scope *Scope, parent proc.Interface, sum
 	return groupby.New(pctx, parent, keys, names, reducers, summarize.Limit, dir, summarize.PartialsIn, summarize.PartialsOut)
 }
 
-func compileAggs(assignments []dag.Assignment, scope *Scope, zctx *zed.Context) (field.List, []*expr.Aggregator, error) {
+func compileAggAssignments(assignments []dag.Assignment, scope *Scope, zctx *zed.Context) (field.List, []*expr.Aggregator, error) {
 	names := make(field.List, 0, len(assignments))
 	aggs := make([]*expr.Aggregator, 0, len(assignments))
 	for _, assignment := range assignments {
-		name, agg, err := compileAgg(zctx, scope, assignment)
+		name, agg, err := compileAggAssignment(zctx, scope, assignment)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -40,39 +40,35 @@ func compileAggs(assignments []dag.Assignment, scope *Scope, zctx *zed.Context) 
 	return names, aggs, nil
 }
 
-func compileAgg(zctx *zed.Context, scope *Scope, assignment dag.Assignment) (field.Path, *expr.Aggregator, error) {
+func compileAggAssignment(zctx *zed.Context, scope *Scope, assignment dag.Assignment) (field.Path, *expr.Aggregator, error) {
 	aggAST, ok := assignment.RHS.(*dag.Agg)
 	if !ok {
 		return nil, nil, errors.New("aggregator is not an aggregation expression")
 	}
-	aggName := aggAST.Name
+	lhs, err := compileLval(assignment.LHS)
+	if err != nil {
+		return nil, nil, fmt.Errorf("lhs of aggregation: %w", err)
+	}
+	m, err := compileAgg(zctx, scope, aggAST)
+	return lhs, m, err
+}
+
+func compileAgg(zctx *zed.Context, scope *Scope, agg *dag.Agg) (*expr.Aggregator, error) {
+	name := agg.Name
 	var err error
 	var arg expr.Evaluator
-	if aggAST.Expr != nil {
-		arg, err = compileExpr(zctx, nil, aggAST.Expr)
+	if agg.Expr != nil {
+		arg, err = compileExpr(zctx, nil, agg.Expr)
 		if err != nil {
-			return nil, nil, err
-		}
-	}
-	// If there is a reducer assignment, the LHS is non-nil and we
-	// compile.  Otherwise, we infer an LHS top-level field name from
-	// the name of reducer function.
-	var lhs field.Path
-	if assignment.LHS == nil {
-		lhs = field.New(aggName)
-	} else {
-		lhs, err = compileLval(assignment.LHS)
-		if err != nil {
-			return nil, nil, fmt.Errorf("lhs of aggregation: %w", err)
+			return nil, err
 		}
 	}
 	var where expr.Filter
-	if aggAST.Where != nil {
-		where, err = CompileFilter(zctx, scope, aggAST.Where)
+	if agg.Where != nil {
+		where, err = CompileFilter(zctx, scope, agg.Where)
 		if err != nil {
-			return nil, nil, err
+			return nil, err
 		}
 	}
-	m, err := expr.NewAggregator(aggName, arg, where)
-	return lhs, m, err
+	return expr.NewAggregator(name, arg, where)
 }

@@ -79,9 +79,10 @@ type Conditional struct {
 // a function call has the standard semantics where it takes one or more arguments
 // and returns a result.
 type Call struct {
-	Kind string `json:"kind" unpack:""`
-	Name string `json:"name"`
-	Args []Expr `json:"args"`
+	Kind  string `json:"kind" unpack:""`
+	Name  string `json:"name"`
+	Args  []Expr `json:"args"`
+	Where Expr   `json:"where"`
 }
 
 type Cast struct {

@@ -59,3 +59,27 @@ func (a *Aggregator) filter(rec *zed.Value) bool {
 	}
 	return !a.where(rec)
 }
+
+// NewAggregatorExpr returns an Evaluator from agg. The returned Evaluator
+// retains the same functionality of the aggregation only it returns it's
+// current state every time a new value is consumed.
+func NewAggregatorExpr(agg *Aggregator) Evaluator {
+	return &aggregatorExpr{agg: agg}
+}
+
+type aggregatorExpr struct {
+	agg  *Aggregator
+	fn   agg.Function
+	zctx *zed.Context
+}
+
+func (s *aggregatorExpr) Eval(zv *zed.Value) (zed.Value, error) {
+	if s.fn == nil {
+		s.fn = s.agg.NewFunction()
+		s.zctx = zed.NewContext()
+	}
+	if err := s.agg.Apply(s.fn, zv); err != nil {
+		return zed.Value{}, err
+	}
+	return s.fn.Result(s.zctx)
+}
