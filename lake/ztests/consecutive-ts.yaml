@@ -33,7 +33,7 @@ inputs:
 outputs:
   - name: stdout
     data: |
-      {key:1970-01-01T00:00:08Z,offset:0}
-      {key:1970-01-01T00:00:06Z,offset:23}
-      {key:1970-01-01T00:00:02Z,offset:72}
-      {key:1970-01-01T00:00:00Z,offset:108}
+      {key:1970-01-01T00:00:08Z,count:0(uint64),offset:0}
+      {key:1970-01-01T00:00:06Z,count:2(uint64),offset:23}
+      {key:1970-01-01T00:00:02Z,count:10(uint64),offset:72}
+      {key:1970-01-01T00:00:00Z,count:15(uint64),offset:108}

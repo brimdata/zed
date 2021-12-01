@@ -26,9 +26,9 @@ type Writer struct {
 	lastSOS          int64
 	order            order.Which
 	seekIndex        *seekindex.Writer
-	seekIndexCloser  io.Closer
 	seekIndexStride  int
 	seekIndexTrigger int
+	seekWriter       *zngio.Writer
 	first            bool
 	poolKey          field.Path
 }
@@ -64,9 +64,8 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 		opts := zngio.WriterOpts{
 			//LZ4BlockSize: zngio.DefaultLZ4BlockSize,
 		}
-		seekWriter := zngio.NewWriter(bufwriter.New(seekOut), opts)
-		w.seekIndex = seekindex.NewWriter(seekWriter)
-		w.seekIndexCloser = seekWriter
+		w.seekWriter = zngio.NewWriter(bufwriter.New(seekOut), opts)
+		w.seekIndex = seekindex.NewWriter(w.seekWriter)
 	}
 	return w, nil
 }
@@ -95,7 +94,7 @@ func (w *Writer) writeIndex(key zed.Value) error {
 		w.first = false
 		w.firstKey = key
 		w.lastKey = key
-		return w.seekIndex.Write(key, 0)
+		return w.seekIndex.Write(key, 0, 0)
 	}
 	if w.seekIndexTrigger < w.seekIndexStride || bytes.Equal(key.Bytes, w.lastKey.Bytes) {
 		return nil
@@ -103,19 +102,16 @@ func (w *Writer) writeIndex(key zed.Value) error {
 	if err := w.rowObject.EndStream(); err != nil {
 		return err
 	}
-	pos := w.rowObject.Position()
-	if err := w.seekIndex.Write(key, pos); err != nil {
-		return err
-	}
 	w.seekIndexTrigger = 0
-	return nil
+	pos := w.rowObject.Position()
+	return w.seekIndex.Write(key, w.count, pos)
 }
 
 // Abort is called when an error occurs during write. Errors are ignored
 // because the write error will be more informative and should be returned.
 func (w *Writer) Abort() {
 	w.rowObject.Close()
-	w.seekIndexCloser.Close()
+	w.seekWriter.Close()
 }
 
 func (w *Writer) Close(ctx context.Context) error {
@@ -124,7 +120,7 @@ func (w *Writer) Close(ctx context.Context) error {
 		w.Abort()
 		return err
 	}
-	if err := w.seekIndexCloser.Close(); err != nil {
+	if err := w.seekWriter.Close(); err != nil {
 		w.Abort()
 		return err
 	}
