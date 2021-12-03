@@ -14,7 +14,5 @@ Avro but with Zed's more general model for hetereogeneous and self-describing sc
 embodies Zed's more general model for hetereogeneous and self-describing schemas.
 * [Zed over JSON](zjson.md) defines a JSON format for encapsulating Zed data
 in JSON for easy transmission and decoding to JSON-based clients as is
-implemented by the
-[zealot javascript library](https://github.com/brimdata/brim/tree/master/zealot)
-and the
-[Zed python library](../../python).
+implemented by the [Zealot JavaScript library](https://github.com/brimdata/zealot)
+and the [Zed Python library](../../python).
