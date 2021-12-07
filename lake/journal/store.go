@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/brimdata/zed"
@@ -26,9 +27,11 @@ type Store struct {
 	journal     *Queue
 	style       zson.TypeStyle
 	unmarshaler *zson.UnmarshalZNGContext
-	table       map[string]Entry
-	at          ID
-	loadTime    time.Time
+
+	mu       sync.RWMutex // Protects everything below.
+	table    map[string]Entry
+	at       ID
+	loadTime time.Time
 }
 
 type Entry interface {
@@ -70,7 +73,10 @@ func (s *Store) load(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if head == s.at {
+	s.mu.RLock()
+	at := s.at
+	s.mu.RUnlock()
+	if head == at {
 		return nil
 	}
 	r, err := s.journal.OpenAsZNG(ctx, zed.NewContext(), head, 0)
@@ -84,9 +90,12 @@ func (s *Store) load(ctx context.Context) error {
 			return err
 		}
 		if rec == nil {
+			now := time.Now()
+			s.mu.Lock()
 			s.table = table
-			s.loadTime = time.Now()
 			s.at = head
+			s.loadTime = now
+			s.mu.Unlock()
 			return nil
 
 		}
@@ -112,20 +121,22 @@ func (s *Store) load(ctx context.Context) error {
 }
 
 func (s *Store) stale() bool {
-	if s.loadTime.IsZero() {
-		return true
-	}
-	return time.Now().Sub(s.loadTime) > time.Second
+	s.mu.RLock()
+	loadTime := s.loadTime
+	s.mu.RUnlock()
+	return time.Since(loadTime) > time.Second
 }
 
 func (s *Store) Keys(ctx context.Context, key string) ([]string, error) {
 	if err := s.load(ctx); err != nil {
 		return nil, err
 	}
+	s.mu.RLock()
 	keys := make([]string, 0, len(s.table))
 	for key := range s.table {
 		keys = append(keys, key)
 	}
+	s.mu.RUnlock()
 	return keys, nil
 }
 
@@ -133,10 +144,12 @@ func (s *Store) Values(ctx context.Context) ([]interface{}, error) {
 	if err := s.load(ctx); err != nil {
 		return nil, err
 	}
+	s.mu.RLock()
 	vals := make([]interface{}, 0, len(s.table))
 	for _, val := range s.table {
 		vals = append(vals, val)
 	}
+	s.mu.RUnlock()
 	return vals, nil
 }
 
@@ -144,10 +157,12 @@ func (s *Store) All(ctx context.Context) ([]Entry, error) {
 	if err := s.load(ctx); err != nil {
 		return nil, err
 	}
+	s.mu.RLock()
 	entries := make([]Entry, 0, len(s.table))
 	for _, e := range s.table {
 		entries = append(entries, e)
 	}
+	s.mu.RUnlock()
 	return entries, nil
 }
 
@@ -159,7 +174,9 @@ func (s *Store) Lookup(ctx context.Context, key string) (Entry, error) {
 		}
 		fresh = true
 	}
+	s.mu.RLock()
 	val, ok := s.table[key]
+	s.mu.RUnlock()
 	if !ok {
 		if fresh {
 			return nil, ErrNoSuchKey
@@ -169,7 +186,9 @@ func (s *Store) Lookup(ctx context.Context, key string) (Entry, error) {
 		if err := s.load(ctx); err != nil {
 			return nil, err
 		}
+		s.mu.RLock()
 		val, ok = s.table[key]
+		s.mu.RUnlock()
 		if !ok {
 			return nil, ErrNoSuchKey
 		}
@@ -236,10 +255,14 @@ func (s *Store) commit(ctx context.Context, fn func() error, entries ...Entry) e
 		if err := s.load(ctx); err != nil {
 			return err
 		}
-		if err := fn(); err != nil {
+		s.mu.RLock()
+		at := s.at
+		err := fn()
+		s.mu.RUnlock()
+		if err != nil {
 			return err
 		}
-		if err := s.journal.CommitAt(ctx, s.at, serializer.Bytes()); err != nil {
+		if err := s.journal.CommitAt(ctx, at, serializer.Bytes()); err != nil {
 			if os.IsExist(err) {
 				time.Sleep(time.Millisecond)
 				continue
@@ -247,7 +270,9 @@ func (s *Store) commit(ctx context.Context, fn func() error, entries ...Entry) e
 			return err
 		}
 		// Force a reload after a change.
+		s.mu.Lock()
 		s.at = Nil
+		s.mu.Unlock()
 		return nil
 	}
 	return ErrRetriesExceeded
