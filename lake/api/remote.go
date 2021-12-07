@@ -3,7 +3,6 @@ package api
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 
 	"github.com/brimdata/zed/api"
@@ -11,7 +10,6 @@ import (
 	"github.com/brimdata/zed/api/queryio"
 	"github.com/brimdata/zed/driver"
 	"github.com/brimdata/zed/lake/index"
-	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/zbuf"
@@ -39,7 +37,7 @@ func NewRemoteWithConnection(conn *client.Connection) *RemoteSession {
 func (r *RemoteSession) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error) {
 	config, err := LookupPoolByName(ctx, r, poolName)
 	if err != nil {
-		return ksuid.Nil, fmt.Errorf("%q: %w", poolName, pools.ErrNotFound)
+		return ksuid.Nil, err
 	}
 	return config.ID, nil
 }

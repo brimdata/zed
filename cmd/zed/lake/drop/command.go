@@ -60,7 +60,7 @@ func (c *Command) Run(args []string) error {
 	poolName := args[0]
 	poolID, err := lake.PoolID(ctx, poolName)
 	if err != nil {
-		return nil
+		return err
 	}
 	if err := c.confirm(poolName); err != nil {
 		return err
