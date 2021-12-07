@@ -4,8 +4,11 @@ script: |
   zapi create -q p2
   zapi create -q p3
   zapi drop -f p3
-  echo ===
-  zapi ls -f zng | zq -f zson "pick name | sort name" -
+  echo === | tee /dev/stderr
+  zapi ls -f zng | zq -z "pick name | sort name" -
+  echo === | tee /dev/stderr
+  ! zapi drop p3
+  ! zapi -lake http://localhost:1 drop p3
 
 inputs:
   - name: service.sh
@@ -16,9 +19,12 @@ outputs:
     data: |
       pool deleted: p3
       ===
-      {
-          name: "p1"
-      }
-      {
-          name: "p2"
-      }
+      {name:"p1"}
+      {name:"p2"}
+      ===
+  - name: stderr
+    data: |
+      ===
+      ===
+      "p3": pool not found
+      Post "http://localhost:1/query": dial tcp [::1]:1: connect: connection refused
