@@ -1,9 +1,9 @@
 script: |
-  zed index create -o index.zng -k a in.zson
-  zed index lookup -z -k 127.0.0.1 index.zng
-  zed index lookup -z -k 1.4 index.zng
-  zed index lookup -z -k 1 index.zng
-  zed index lookup -z -k '"hello"' index.zng
+  zed dev indexfile create -o index.zng -k a in.zson
+  zed dev indexfile lookup -z -k 127.0.0.1 index.zng
+  zed dev indexfile lookup -z -k 1.4 index.zng
+  zed dev indexfile lookup -z -k 1 index.zng
+  zed dev indexfile lookup -z -k '"hello"' index.zng
 
 inputs:
   - name: in.zson

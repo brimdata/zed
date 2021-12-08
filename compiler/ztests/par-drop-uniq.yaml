@@ -1,4 +1,4 @@
-script: zed compile -C -P 2 "from 'pool-ts' | drop x | uniq"
+script: zc -C -P 2 "from 'pool-ts' | drop x | uniq"
 
 outputs:
   - name: stdout

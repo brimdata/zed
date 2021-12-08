@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
-	zedindex "github.com/brimdata/zed/cmd/zed/index"
+	"github.com/brimdata/zed/cmd/zed/dev/indexfile"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
@@ -30,18 +30,18 @@ of any nested records.`,
 }
 
 func init() {
-	zedindex.Cmd.Add(Lookup)
+	indexfile.Cmd.Add(Lookup)
 }
 
 type LookupCommand struct {
-	*zedindex.Command
+	*indexfile.Command
 	keys        string
 	outputFlags outputflags.Flags
 	closest     bool
 }
 
 func newLookupCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &LookupCommand{Command: parent.(*zedindex.Command)}
+	c := &LookupCommand{Command: parent.(*indexfile.Command)}
 	f.StringVar(&c.keys, "k", "", "key(s) to search")
 	f.BoolVar(&c.closest, "c", false, "find closest insead of exact match")
 	c.outputFlags.SetFlags(f)
@@ -55,7 +55,7 @@ func (c *LookupCommand) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) != 1 {
-		return errors.New("zed index lookup: must be run with a single file argument")
+		return errors.New("zed dev indexfile lookup: must be run with a single file argument")
 	}
 	path := args[0]
 	if c.keys == "" {

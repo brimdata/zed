@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
-	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
+	devzst "github.com/brimdata/zed/cmd/zed/dev/zst"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
@@ -29,16 +29,16 @@ read zst objects with zq.
 }
 
 func init() {
-	zstcmd.Cmd.Add(Read)
+	devzst.Cmd.Add(Read)
 }
 
 type Command struct {
-	*zstcmd.Command
+	*devzst.Command
 	outputFlags outputflags.Flags
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zstcmd.Command)}
+	c := &Command{Command: parent.(*devzst.Command)}
 	c.outputFlags.SetFlags(f)
 	return c, nil
 }

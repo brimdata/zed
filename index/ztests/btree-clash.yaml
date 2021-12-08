@@ -1,6 +1,6 @@
 script: |
-  zed index convert -f 50 -o index.zng -k _child -
-  zed index section -z -trailer index.zng
+  zed dev indexfile convert -f 50 -o index.zng -k _child -
+  zed dev indexfile section -z -trailer index.zng
 
 inputs:
   - name: stdin

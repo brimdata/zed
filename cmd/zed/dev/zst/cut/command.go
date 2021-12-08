@@ -7,7 +7,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
-	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
+	devzst "github.com/brimdata/zed/cmd/zed/dev/zst"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
@@ -35,17 +35,17 @@ to scan all of the zng row data.
 }
 
 func init() {
-	zstcmd.Cmd.Add(Cut)
+	devzst.Cmd.Add(Cut)
 }
 
 type Command struct {
-	*zstcmd.Command
+	*devzst.Command
 	outputFlags outputflags.Flags
 	fieldExpr   string
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zstcmd.Command)}
+	c := &Command{Command: parent.(*devzst.Command)}
 	f.StringVar(&c.fieldExpr, "k", "", "dotted field expression of field to cut")
 	c.outputFlags.SetFlags(f)
 	return c, nil

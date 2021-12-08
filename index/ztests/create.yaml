@@ -1,5 +1,5 @@
 script: |
-  zed index create -o index.zng -k a in.zson
+  zed dev indexfile create -o index.zng -k a in.zson
   zq -z index.zng
 
 inputs:

@@ -1,20 +1,25 @@
-package index
+package indexfile
 
 import (
 	"flag"
 
+	"github.com/brimdata/zed/cmd/zed/dev"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 )
 
 var Cmd = &charm.Spec{
-	Name:  "index",
-	Usage: "index <command> [options] [arguments...]",
+	Name:  "indexfile",
+	Usage: "indexfile <command> [options] [arguments...]",
 	Short: "create and search Zed indexes",
 	Long: `
-"zed index" is command-line utility for creating and manipulating Zed indexes.
+"zed dev indexfile" is command-line utility for creating and manipulating Zed indexes.
 `,
 	New: New,
+}
+
+func init() {
+	dev.Cmd.Add(Cmd)
 }
 
 type Command struct {

@@ -3,6 +3,7 @@ package zst
 import (
 	"flag"
 
+	"github.com/brimdata/zed/cmd/zed/dev"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/pkg/charm"
 )
@@ -14,6 +15,10 @@ var Cmd = &charm.Spec{
 	Long: `
 zst is a command-line tool for creating and manipulating zst columnar objects.`,
 	New: New,
+}
+
+func init() {
+	dev.Cmd.Add(Cmd)
 }
 
 type Command struct {

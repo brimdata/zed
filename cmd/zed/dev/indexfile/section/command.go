@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
-	zedindex "github.com/brimdata/zed/cmd/zed/index"
+	"github.com/brimdata/zed/cmd/zed/dev/indexfile"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
@@ -23,23 +23,23 @@ writes it to the output.  The -trailer option writes
 the Zed index trailer to the output in addition to the section if the section
 number was specified.
 
-See the "zed index" command help for a description of a Zed index file.`,
+See the "zed dev indexfile" command help for a description of a Zed index file.`,
 	New: newCommand,
 }
 
 func init() {
-	zedindex.Cmd.Add(Section)
+	indexfile.Cmd.Add(Section)
 }
 
 type Command struct {
-	*zedindex.Command
+	*indexfile.Command
 	outputFlags outputflags.Flags
 	trailer     bool
 	section     int
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedindex.Command)}
+	c := &Command{Command: parent.(*indexfile.Command)}
 	f.BoolVar(&c.trailer, "trailer", false, "include the Zed index trailer in the output")
 	f.IntVar(&c.section, "s", -1, "include the indicated section in the output")
 	c.outputFlags.SetFlags(f)
@@ -53,7 +53,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) != 1 {
-		return errors.New("zed index section: must be run with a single path argument")
+		return errors.New("zed dev indexfine section: must be run with a single path argument")
 	}
 	path := args[0]
 	local := storage.NewLocalEngine()

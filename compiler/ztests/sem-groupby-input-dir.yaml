@@ -1,4 +1,4 @@
-script: zed compile -C -O "from 'pool-ts'| every 1h count()"
+script: zc -C -O "from 'pool-ts'| every 1h count()"
 
 outputs:
   - name: stdout
