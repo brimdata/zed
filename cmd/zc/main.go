@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/brimdata/zed/cmd/zed/compile"
+	"github.com/brimdata/zed/cmd/zed/dev/compile"
 	"github.com/brimdata/zed/cmd/zed/root"
 )
 

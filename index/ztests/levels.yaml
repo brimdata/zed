@@ -1,8 +1,8 @@
 script: |
-  zed index create -o index.zng -k s -f 200 babble.zson
-  zed index section -z -trailer index.zng
+  zed dev indexfile create -o index.zng -k s -f 200 babble.zson
+  zed dev indexfile section -z -trailer index.zng
   echo ===
-  zed index section -z -s 2 index.zng
+  zed dev indexfile section -z -s 2 index.zng
 
 inputs:
   - name: babble.zson

@@ -4,12 +4,12 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/brimdata/zed/cmd/zed/dev/zst"
+	_ "github.com/brimdata/zed/cmd/zed/dev/zst/create"
+	_ "github.com/brimdata/zed/cmd/zed/dev/zst/cut"
+	_ "github.com/brimdata/zed/cmd/zed/dev/zst/inspect"
+	_ "github.com/brimdata/zed/cmd/zed/dev/zst/read"
 	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/cmd/zed/zst"
-	_ "github.com/brimdata/zed/cmd/zed/zst/create"
-	_ "github.com/brimdata/zed/cmd/zed/zst/cut"
-	_ "github.com/brimdata/zed/cmd/zed/zst/inspect"
-	_ "github.com/brimdata/zed/cmd/zed/zst/read"
 )
 
 func main() {

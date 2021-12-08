@@ -7,7 +7,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
 	"github.com/brimdata/zed/cli/outputflags"
-	"github.com/brimdata/zed/cmd/zed/zst"
+	devzst "github.com/brimdata/zed/cmd/zed/dev/zst"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
@@ -38,11 +38,11 @@ taken here to control the amount of row skew that can arise.`,
 }
 
 func init() {
-	zst.Cmd.Add(Create)
+	devzst.Cmd.Add(Create)
 }
 
 type Command struct {
-	*zst.Command
+	*devzst.Command
 	outputFlags outputflags.Flags
 	inputFlags  inputflags.Flags
 }
@@ -52,7 +52,7 @@ func MibToBytes(mib float64) int {
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zst.Command)}
+	c := &Command{Command: parent.(*devzst.Command)}
 	c.inputFlags.SetFlags(f, true)
 	c.outputFlags.SetFlagsWithFormat(f, "zst")
 	return c, nil

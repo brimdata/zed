@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"strings"
 
+	"github.com/brimdata/zed/cmd/zed/dev"
 	"github.com/brimdata/zed/cmd/zed/root"
 	"github.com/brimdata/zed/compiler"
 	"github.com/brimdata/zed/compiler/ast"
@@ -28,11 +29,11 @@ var Cmd = &charm.Spec{
 	Usage: "compile [ options ] zed",
 	Short: "inspect Zed language abstract syntax trees and compiler stages",
 	Long: `
-The "zed compile" command parses a Zed expression and prints the resulting abstract syntax
+The "zed dev compile" command parses a Zed expression and prints the resulting abstract syntax
 tree as JSON object to standard output.  If you have installed the
-shortcuts, "zc" is a short cut for the "zed compile" command.
+shortcuts, "zc" is a short cut for the "zed dev compile" command.
 
-"zed compile" is a tool for dev and test,
+"zed dev compile" is a tool for dev and test,
 and is also useful to advanced users for understanding how Zed syntax is
 translated into an analytics requests sent to the "zed server" search endpoint.
 
@@ -45,6 +46,10 @@ how the parsed AST is transformed into a runtime object comprised of the
 Zed kernel operators.
 `,
 	New: New,
+}
+
+func init() {
+	dev.Cmd.Add(Cmd)
 }
 
 type Command struct {
@@ -238,7 +243,7 @@ func (c *Command) compile(z string) (*compiler.Runtime, error) {
 
 const nodeProblem = `
 Failed to run node on ./compiler/parser/run.js.  The "-js" flag is for PEG
-development and should only be used when running "zed compile" in the root
+development and should only be used when running "zed dev compile" in the root
 directory of the Zed repository.`
 
 func (c *Command) interactive() {

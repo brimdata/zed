@@ -1,9 +1,9 @@
 script: |
   # b isn't in the input so this creates a valid Zed index that is empty
-  zed index create -o index.zng -k b in.zson
+  zed dev indexfile create -o index.zng -k b in.zson
   zq -Z index.zng
   echo ===
-  zed index lookup -z -k hello index.zng
+  zed dev indexfile lookup -z -k hello index.zng
   echo ===
 
 inputs:

@@ -1,6 +1,6 @@
 script: |
-  zed index create -x -f 20 -o index.zng -k key -
-  zed index section -z -s 2 index.zng
+  zed dev indexfile create -x -f 20 -o index.zng -k key -
+  zed dev indexfile section -z -s 2 index.zng
 
 inputs:
   - name: stdin

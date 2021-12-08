@@ -6,7 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/inputflags"
-	zedindex "github.com/brimdata/zed/cmd/zed/index"
+	"github.com/brimdata/zed/cmd/zed/dev/indexfile"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/order"
@@ -33,11 +33,11 @@ It is an error if the key or value fields are not of uniform type.`,
 }
 
 func init() {
-	zedindex.Cmd.Add(Convert)
+	indexfile.Cmd.Add(Convert)
 }
 
 type Command struct {
-	*zedindex.Command
+	*indexfile.Command
 	frameThresh int
 	order       string
 	outputFile  string
@@ -46,7 +46,7 @@ type Command struct {
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zedindex.Command)}
+	c := &Command{Command: parent.(*indexfile.Command)}
 	f.IntVar(&c.frameThresh, "f", 32*1024, "minimum frame size used in Zed index file")
 	f.StringVar(&c.order, "order", "asc", "specify data in ascending (asc) or descending (desc) order")
 	f.StringVar(&c.outputFile, "o", "index.zng", "name of index output file")

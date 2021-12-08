@@ -1,6 +1,6 @@
 script: |
   zq -o tmp.zng babble.zson
-  ! zed index lookup -z -k 469 tmp.zng
+  ! zed dev indexfile lookup -z -k 469 tmp.zng
 
 inputs:
   - name: babble.zson

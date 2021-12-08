@@ -31,7 +31,7 @@ pigeon and pegjs to create the two parsers.
 
 ## Testing
 
-The [zed compile command](../../cmd/zc) can be used for easily testing the output of
+The [zed dev compile command](../../cmd/zc) can be used for easily testing the output of
 the Zed parser.
 
 ## Development

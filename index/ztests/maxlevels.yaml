@@ -1,5 +1,5 @@
 script: |
-  ! zed index create -o index.zng -k s -f 20 babble.zson
+  ! zed dev indexfile create -o index.zng -k s -f 20 babble.zson
 
 inputs:
   - name: babble.zson

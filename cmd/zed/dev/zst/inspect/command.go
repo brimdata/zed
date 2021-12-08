@@ -6,8 +6,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/cli/outputflags"
-	zedzst "github.com/brimdata/zed/cmd/zed/zst"
-	zstcmd "github.com/brimdata/zed/cmd/zed/zst"
+	devzst "github.com/brimdata/zed/cmd/zed/dev/zst"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
@@ -31,18 +30,18 @@ the -trailer option (off by defaulut) indicates that the trailer should be inclu
 }
 
 func init() {
-	zedzst.Cmd.Add(Inspect)
+	devzst.Cmd.Add(Inspect)
 }
 
 type Command struct {
-	*zedzst.Command
+	*devzst.Command
 	outputFlags outputflags.Flags
 	trailer     bool
 	reassembly  bool
 }
 
 func newCommand(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
-	c := &Command{Command: parent.(*zstcmd.Command)}
+	c := &Command{Command: parent.(*devzst.Command)}
 	f.BoolVar(&c.trailer, "trailer", false, "include the zst trailer in the output")
 	f.BoolVar(&c.reassembly, "R", true, "include the zst reassembly section in the output")
 	c.outputFlags.SetFlags(f)

@@ -5,12 +5,18 @@ import (
 	"os"
 
 	"github.com/brimdata/zed/cmd/zed/api"
-	"github.com/brimdata/zed/cmd/zed/compile"
-	"github.com/brimdata/zed/cmd/zed/index"
-	_ "github.com/brimdata/zed/cmd/zed/index/convert"
-	_ "github.com/brimdata/zed/cmd/zed/index/create"
-	_ "github.com/brimdata/zed/cmd/zed/index/lookup"
-	_ "github.com/brimdata/zed/cmd/zed/index/section"
+	"github.com/brimdata/zed/cmd/zed/dev"
+	_ "github.com/brimdata/zed/cmd/zed/dev/compile"
+	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile"
+	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/convert"
+	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/create"
+	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/lookup"
+	_ "github.com/brimdata/zed/cmd/zed/dev/indexfile/section"
+	_ "github.com/brimdata/zed/cmd/zed/dev/zst"
+	_ "github.com/brimdata/zed/cmd/zed/dev/zst/create"
+	_ "github.com/brimdata/zed/cmd/zed/dev/zst/cut"
+	_ "github.com/brimdata/zed/cmd/zed/dev/zst/inspect"
+	_ "github.com/brimdata/zed/cmd/zed/dev/zst/read"
 	"github.com/brimdata/zed/cmd/zed/lake"
 	_ "github.com/brimdata/zed/cmd/zed/lake/auth"
 	_ "github.com/brimdata/zed/cmd/zed/lake/branch"
@@ -32,21 +38,14 @@ import (
 	_ "github.com/brimdata/zed/cmd/zed/lake/vacate"
 	"github.com/brimdata/zed/cmd/zed/query"
 	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/cmd/zed/zst"
-	_ "github.com/brimdata/zed/cmd/zed/zst/create"
-	_ "github.com/brimdata/zed/cmd/zed/zst/cut"
-	_ "github.com/brimdata/zed/cmd/zed/zst/inspect"
-	_ "github.com/brimdata/zed/cmd/zed/zst/read"
 )
 
 func main() {
 	zed := root.Zed
 	zed.Add(api.Cmd)
-	zed.Add(compile.Cmd)
+	zed.Add(dev.Cmd)
 	zed.Add(query.Cmd)
-	zed.Add(zst.Cmd)
 	zed.Add(lake.Cmd)
-	zed.Add(index.Cmd)
 	if err := zed.ExecRoot(os.Args[1:]); err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
