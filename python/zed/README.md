@@ -1,7 +1,7 @@
 # `zed` Python Package
 
 The `zed` Python package provides a client for the REST API served by
-[`zed lake serve`](../../cmd/zed/lake#serve).
+[`zed serve`](../../cmd/zed/serve).
 
 ## Installation
 
@@ -21,7 +21,7 @@ pip install "git+https://github.com/brimdata/zed@$(zed -version | cut -d ' ' -f 
 Run a Zed lake service from your shell.
 ```sh
 mkdir scratch
-zed lake serve -R scratch
+zed serve -R scratch
 ```
 > Or you can launch the Brim app and it will run a Zed lake service
 > on the default port at http://localhost:9867.

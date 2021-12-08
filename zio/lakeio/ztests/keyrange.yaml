@@ -1,10 +1,10 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -orderby a POOL
-  zed lake load -q -use POOL@main in.zson
-  zed lake query -z "from POOL@main:rawlog"
-  zed lake log -use POOL@main
+  export ZED_LAKE=test
+  zed init -q
+  zed create -orderby a POOL
+  zed load -q -use POOL@main in.zson
+  zed query -z "from POOL@main:rawlog"
+  zed log -use POOL@main
 
 inputs:
   - name: in.zson

@@ -1,11 +1,11 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
+  export ZED_LAKE=test
+  zed init -q
   for o in asc desc; do
     echo // $o
-    zed lake create -q -orderby k:$o $o
-    zed lake load -q -use $o@main in.zson
-    zed lake query -z "from $o range 1 to 3"
+    zed create -q -orderby k:$o $o
+    zed load -q -use $o@main in.zson
+    zed query -z "from $o range 1 to 3"
   done
 
 inputs:

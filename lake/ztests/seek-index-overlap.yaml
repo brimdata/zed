@@ -1,17 +1,17 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -orderby ts:asc -q asc
-  zed lake create -orderby ts:desc -q desc
-  zed lake use -q asc@main
-  zq "tail 900" babble.zson | zed lake load -seekstride=2000B -q -
-  zq "head 250" babble.zson | zed lake load -seekstride=2000B -q -
-  zed lake query -z -s "from asc | count()"
+  export ZED_LAKE=test
+  zed init -q
+  zed create -orderby ts:asc -q asc
+  zed create -orderby ts:desc -q desc
+  zed use -q asc@main
+  zq "tail 900" babble.zson | zed load -seekstride=2000B -q -
+  zq "head 250" babble.zson | zed load -seekstride=2000B -q -
+  zed query -z -s "from asc | count()"
   echo === | tee /dev/stderr
-  zed lake use -q desc@main
-  zq "tail 900" babble.zson | zed lake load -seekstride=2000B -q -
-  zq "head 250" babble.zson | zed lake load -seekstride=2000B -q -
-  zed lake query -z -s "from desc | count()"
+  zed use -q desc@main
+  zq "tail 900" babble.zson | zed load -seekstride=2000B -q -
+  zq "head 250" babble.zson | zed load -seekstride=2000B -q -
+  zed query -z -s "from desc | count()"
 
 inputs:
   - name: babble.zson

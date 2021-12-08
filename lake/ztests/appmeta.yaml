@@ -1,11 +1,11 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q logs
-  zed lake load -q -use logs@main -meta '"original"' babble.zson
-  zed lake load -q -use logs@main -meta '"normalized-v1"' babble.zson
-  zed lake load -q -use logs@main -meta '"normalized-v2"' babble.zson
-  zed lake query "from logs@main:log | meta matches normalized* | sort date | cut meta" | zq -z -
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q logs
+  zed load -q -use logs@main -meta '"original"' babble.zson
+  zed load -q -use logs@main -meta '"normalized-v1"' babble.zson
+  zed load -q -use logs@main -meta '"normalized-v2"' babble.zson
+  zed query "from logs@main:log | meta matches normalized* | sort date | cut meta" | zq -z -
 
 inputs:
   - name: babble.zson

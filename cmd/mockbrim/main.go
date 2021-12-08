@@ -27,7 +27,7 @@ var (
 func init() {
 	flag.StringVar(&portfile, "portfile", "", "location to write zed lake serve port")
 	flag.StringVar(&pidfile, "pidfile", "", "location to write zed lake serve pid")
-	flag.StringVar(&lakeroot, "R", "", "location of ZED_LAKE_ROOT")
+	flag.StringVar(&lakeroot, "lake", "", "Zed lake location")
 	flag.Parse()
 }
 
@@ -44,12 +44,11 @@ func main() {
 		os.Exit(1)
 	}
 	args := []string{
-		"lake",
 		"serve",
 		"-l=localhost:0",
+		"-lake=" + lakeroot,
 		"-log.level=warn",
 		"-portfile=" + portfile,
-		"-R=" + lakeroot,
 		fmt.Sprintf("-brimfd=%d", r.Fd()),
 	}
 	stderr := bytes.NewBuffer(nil)

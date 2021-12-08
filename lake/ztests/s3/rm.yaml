@@ -3,14 +3,14 @@ skip: issue 2540... need to delete by key range
 script: |
   mkdir logs
   source minio.sh
-  zed lake import -R logs -data s3://bucket/lake_test babble.zson
-  zed lake map -R logs -o count.zng "count()"
+  zed import -R logs -data s3://bucket/lake_test babble.zson
+  zed map -R logs -o count.zng "count()"
   echo ===
-  zed lake ls -R logs -ranges -l
+  zed ls -R logs -ranges -l
   echo ===
-  zed lake rm -R logs -ranges count.zng
+  zed rm -R logs -ranges count.zng
   echo ===
-  zed lake rm -R logs -ranges count.zng
+  zed rm -R logs -ranges count.zng
 
 inputs:
   - name: babble.zson

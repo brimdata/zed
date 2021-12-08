@@ -1,12 +1,12 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  ! zed lake use
-  zed lake create -q POOL
+  export ZED_LAKE=test
+  zed init -q
+  ! zed use
+  zed create -q POOL
   echo ===
-  zed lake use -p POOL
+  zed use -p POOL
   echo ===
-  zed lake use
+  zed use
 
 outputs:
   - name: stdout

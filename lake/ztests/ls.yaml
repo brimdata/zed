@@ -1,11 +1,11 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q logs
-  zed lake load -q -use logs@main babble.zson
-  zed lake ls -f zng | zq -Z "drop id,ts" -
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q logs
+  zed load -q -use logs@main babble.zson
+  zed ls -f zng | zq -Z "drop id,ts" -
   echo ===
-  zed lake query -Z "from logs@main:objects | cut meta"
+  zed query -Z "from logs@main:objects | cut meta"
 
 inputs:
   - name: babble.zson

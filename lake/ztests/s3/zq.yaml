@@ -1,10 +1,10 @@
 script: |
   source minio.sh
-  export ZED_LAKE_ROOT=s3://bucket/lake_test
-  zed lake init -q
-  zed lake create -q logs
-  zed lake load -q -use logs@main  babble.zson
-  zed lake query -z "from logs | count()"
+  export ZED_LAKE=s3://bucket/lake_test
+  zed init -q
+  zed create -q logs
+  zed load -q -use logs@main  babble.zson
+  zed query -z "from logs | count()"
 
 inputs:
   - name: babble.zson

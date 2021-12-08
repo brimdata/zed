@@ -1,11 +1,11 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q fruit
-  zed lake create -q person
-  zed lake load -q -use fruit@main fruit.zson
-  zed lake load -q -use person@main person.zson
-  zed lake query -z -I join.zed
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q fruit
+  zed create -q person
+  zed load -q -use fruit@main fruit.zson
+  zed load -q -use person@main person.zson
+  zed query -z -I join.zed
 
 inputs:
   - name: fruit.zson

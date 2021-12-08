@@ -1,0 +1,23 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zed load -q -use test@main 1.zson
+  zed load -q -use test@main 2.zson
+  zed query -f lake "from test@main:objects"
+
+inputs:
+  - name: 1.zson
+    data: |
+      {x:1}
+  - name: 2.zson
+    data: |
+      {x:2}
+
+outputs:
+  - name: stdout
+    regexp: |
+      \w{27} \d+B bytes 1 records
+         from null to null
+      \w{27} \d+B bytes 1 records
+         from null to null

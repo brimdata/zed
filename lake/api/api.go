@@ -12,6 +12,7 @@ import (
 	"github.com/brimdata/zed/lake/pools"
 	"github.com/brimdata/zed/lakeparse"
 	"github.com/brimdata/zed/order"
+	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
 	"github.com/segmentio/ksuid"
@@ -34,6 +35,10 @@ type Interface interface {
 	DeleteIndexRules(context.Context, []ksuid.KSUID) ([]index.Rule, error)
 	ApplyIndexRules(ctx context.Context, rule string, pool ksuid.KSUID, branchName string, ids []ksuid.KSUID) (ksuid.KSUID, error)
 	UpdateIndex(ctx context.Context, names []string, pool ksuid.KSUID, branchName string) (ksuid.KSUID, error)
+}
+
+func IsRemoteLake(u *storage.URI) bool {
+	return u.Scheme == "http" || u.Scheme == "https"
 }
 
 func ScanIndexRules(ctx context.Context, api Interface, d driver.Driver) error {

@@ -1,7 +1,7 @@
 script: |
-  ! zed lake ls
+  ! zed ls
 
 outputs:
   - name: stderr
     data: |
-      no lake path specied: use -R or set ZED_LAKE_ROOT
+      lake URI must be set (either with the -lake flag or ZED_LAKE environment variable)

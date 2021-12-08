@@ -1,0 +1,17 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed index create -q indexA type ip field a.b
+  zed index create -q indexB agg 'count() by bar'
+  zed index create -q indexB field c
+  zed index ls
+
+outputs:
+  - name: stdout
+    regexp: |
+      indexA
+          rule \w{27} type ip
+          rule \w{27} field a.b
+      indexB
+          rule \w{27} agg \"count\(\) by bar\"
+          rule \w{27} field c

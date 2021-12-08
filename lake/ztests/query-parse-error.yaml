@@ -1,22 +1,22 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
+  export ZED_LAKE=test
+  zed init -q
   echo =1= >&2
-  ! zed lake query -z "$(cat bad-single-line.zed)"
+  ! zed query -z "$(cat bad-single-line.zed)"
   echo =2= >&2
-  ! zed lake query -z "$(cat bad-multiple-lines.zed)"
+  ! zed query -z "$(cat bad-multiple-lines.zed)"
   echo =3= >&2
-  ! zed lake query -z -I good.zed "$(cat bad-single-line.zed)"
+  ! zed query -z -I good.zed "$(cat bad-single-line.zed)"
   echo =4= >&2
-  ! zed lake query -z -I good.zed "$(cat bad-multiple-lines.zed)"
+  ! zed query -z -I good.zed "$(cat bad-multiple-lines.zed)"
   echo =5= >&2
-  ! zed lake query -z -I bad-single-line.zed
+  ! zed query -z -I bad-single-line.zed
   echo =6= >&2
-  ! zed lake query -z -I bad-multiple-lines.zed
+  ! zed query -z -I bad-multiple-lines.zed
   echo =7= >&2
-  ! zed lake query -z -I good.zed -I bad-single-line.zed
+  ! zed query -z -I good.zed -I bad-single-line.zed
   echo =8= >&2
-  ! zed lake query -z -I good.zed -I bad-multiple-lines.zed
+  ! zed query -z -I good.zed -I bad-multiple-lines.zed
 
 inputs:
   - name: bad-single-line.zed

@@ -468,9 +468,7 @@ stored in Pools in a Zed lake, the Pool names would instead be specified in the
 `from()` block.
 
 Here we'll load our input data to Pools in a temporary Zed Lake, then execute
-our inner join using `zed lake query`. If the Zed Lake had been fronted by a
-`zed lake serve` process, the equivalent operations would be performed over the
-network via `zed api`.
+our inner join using `zed query`.
 
 Notice that because we happened to use `-orderby` to sort our Pools by the same
 keys that we reference in our `join`, we did not need to use any explicit
@@ -489,13 +487,13 @@ Populating the Pools, then executing the Zed script:
 
 ```mdtest-command
 mkdir lake
-export ZED_LAKE_ROOT=lake
-zed lake init -q
-zed lake create -q -orderby flavor:asc fruit
-zed lake create -q -orderby likes:asc people
-zed lake load -q -use fruit@main fruit.ndjson
-zed lake load -q -use people@main people.ndjson
-zed lake query -z -I inner-join-pools.zed
+export ZED_LAKE=lake
+zed init -q
+zed create -q -orderby flavor:asc fruit
+zed create -q -orderby likes:asc people
+zed load -q -use fruit@main fruit.ndjson
+zed load -q -use people@main people.ndjson
+zed query -z -I inner-join-pools.zed
 ```
 
 #### Output:

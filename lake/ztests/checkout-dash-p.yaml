@@ -1,13 +1,13 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q POOL
-  zed lake use -q -p POOL
-  zed lake load -q a.zson
-  zed lake use -q -b child
-  zed lake load -q b.zson
-  zed lake use -q -p POOL
-  zed lake query -z "*"
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q POOL
+  zed use -q -p POOL
+  zed load -q a.zson
+  zed use -q -b child
+  zed load -q b.zson
+  zed use -q -p POOL
+  zed query -z "*"
 
 inputs:
   - name: a.zson

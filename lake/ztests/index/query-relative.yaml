@@ -1,19 +1,19 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q test
-  zed lake use -q test@main
-  zed lake index create -q s field s
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zed use -q test@main
+  zed index create -q s field s
   # Load these separately so we have 3 different objects.
-  zed lake load -q 1.zson
-  zed lake load -q 2.zson
-  zed lake load -q 3.zson
-  zed lake index update -q
-  zed lake query -z -s 's>3 | count()'
-  zed lake query -z -s 's<5.09 | count()'
-  zed lake query -z -s 's>=9.5 | count()'
-  zed lake query -z -s 's<=2 | count()'
-  zed lake query -z -s 's<1 | count()'
+  zed load -q 1.zson
+  zed load -q 2.zson
+  zed load -q 3.zson
+  zed index update -q
+  zed query -z -s 's>3 | count()'
+  zed query -z -s 's<5.09 | count()'
+  zed query -z -s 's>=9.5 | count()'
+  zed query -z -s 's<=2 | count()'
+  zed query -z -s 's<1 | count()'
 
 inputs:
   - name: 1.zson

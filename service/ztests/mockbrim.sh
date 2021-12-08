@@ -33,7 +33,7 @@ mkdir -p lakeroot
 lakeroot=lakeroot
 tempdir=$(mktemp -d)
 
-mockbrim -R="$lakeroot" -portfile="$tempdir/port" -pidfile="$tempdir/pid" &
+mockbrim -lake="$lakeroot" -portfile="$tempdir/port" -pidfile="$tempdir/pid" &
 mockbrimpid=$!
 
 # wait for service to start

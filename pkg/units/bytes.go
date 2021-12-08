@@ -1,7 +1,5 @@
 package units
 
-// XXX this should be unified with cmd/zapi/format
-
 import (
 	"fmt"
 

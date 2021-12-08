@@ -140,9 +140,10 @@ any ZNG streaming API.  In this way, senders and receivers of ZNG can embed
 protocol directives as ZNG control payloads rather than defining additional
 encapsulating protocols.
 
-> For example, the [zqd](../../cmd/zed/lake) service uses application-defined
-> message `0xf7` to embed search and server stats in the return stream of ZNG
-> data, e.g., as a long-running search progresses on the server.
+> For example, the [zed service](../../docs/lake/service-api.md) query endpoint
+> uses application-defined message `0xf7` to embed search and server stats in
+> the return stream of ZNG data, e.g., as a long-running search progresses on
+> the server.
 
 ### 2.1.1 Typedefs
 

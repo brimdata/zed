@@ -1,14 +1,14 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q test
-  zed lake load -q -use test@main in.zson
-  zed lake branch -q -use test@main index-test
-  zed lake index create -q x field x
-  zed lake index update -q -use test@index-test
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zed load -q -use test@main in.zson
+  zed branch -q -use test@main index-test
+  zed index create -q x field x
+  zed index update -q -use test@index-test
   # merge index-test branch into main
-  zed lake merge -q -use test@index-test main
-  zed lake query -z "from test@main:indexes | count() by name:=rule.name"
+  zed merge -q -use test@index-test main
+  zed query -z "from test@main:indexes | count() by name:=rule.name"
 
 inputs:
   - name: in.zson

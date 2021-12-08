@@ -1,17 +1,17 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q test
-  zed lake use -q test@main
-  a=$(zed lake load a.zson | head -1 | awk '{print $1}')
-  b=$(zed lake load b.zson | head -1 | awk '{print $1}')
-  zed lake query -z "sort ."
-  zed lake revert -q $a
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zed use -q test@main
+  a=$(zed load a.zson | head -1 | awk '{print $1}')
+  b=$(zed load b.zson | head -1 | awk '{print $1}')
+  zed query -z "sort ."
+  zed revert -q $a
   echo ===
-  zed lake query -z "sort ."
-  zed lake revert -q $b
+  zed query -z "sort ."
+  zed revert -q $b
   echo ===
-  zed lake query -z "sort ."
+  zed query -z "sort ."
 
 inputs:
   - name: a.zson

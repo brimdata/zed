@@ -2,9 +2,9 @@ skip: issue 2532
 
 script: |
   mkdir logs
-  zed lake import -R logs babble.zson
-  zed lake index create -R logs -q -o index -k sum,s -z "sum(v) by s | sort sum,s"
-  zed lake find -R logs -z -x index 149 wailer-strick | zq -z "drop _log" -
+  zed import -R logs babble.zson
+  zed index create -R logs -q -o index -k sum,s -z "sum(v) by s | sort sum,s"
+  zed find -R logs -z -x index 149 wailer-strick | zq -z "drop _log" -
 
 inputs:
   - name: babble.zson

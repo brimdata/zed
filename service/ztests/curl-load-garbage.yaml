@@ -1,6 +1,6 @@
 script: |
   source service.sh
-  zapi create -q test
+  zed create -q test
   curl -w 'code %{response_code}\n' -d @- $ZED_LAKE/pool/test/branch/main
 
 inputs:
