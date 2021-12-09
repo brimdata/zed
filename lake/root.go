@@ -242,11 +242,7 @@ func (r *Root) PoolID(ctx context.Context, poolName string) (ksuid.KSUID, error)
 }
 
 func (r *Root) CommitObject(ctx context.Context, poolID ksuid.KSUID, branchName string) (ksuid.KSUID, error) {
-	config, err := r.pools.LookupByID(ctx, poolID)
-	if err != nil {
-		return ksuid.Nil, err
-	}
-	pool, err := OpenPool(ctx, config, r.engine, r.path)
+	pool, err := r.OpenPool(ctx, poolID)
 	if err != nil {
 		return ksuid.Nil, err
 	}
