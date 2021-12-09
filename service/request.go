@@ -60,8 +60,8 @@ func (r *Request) PoolID(w *ResponseWriter, root *lake.Root) (ksuid.KSUID, bool)
 	id, err := lakeparse.ParseID(s)
 	if err != nil {
 		id, err = root.PoolID(r.Context(), s)
-		if errors.Is(err, lake.ErrPoolNotFound) {
-			w.Error(zqe.ErrNotFound(err))
+		if errors.Is(err, pools.ErrNotFound) {
+			w.Error(err)
 			return ksuid.Nil, false
 		}
 		if err != nil {
