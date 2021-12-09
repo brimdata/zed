@@ -22,6 +22,7 @@ import (
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zngbytes"
 	"github.com/brimdata/zed/zson"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/segmentio/ksuid"
 )
 
@@ -38,6 +39,7 @@ const (
 type Root struct {
 	engine     storage.Engine
 	path       *storage.URI
+	poolCache  *lru.ARCCache // Used like a map[ksuid.KSUID]*Pool.
 	pools      *pools.Store
 	indexRules *index.Store
 }
@@ -50,9 +52,14 @@ type LakeMagic struct {
 }
 
 func newRoot(engine storage.Engine, path *storage.URI) *Root {
+	poolCache, err := lru.NewARC(1024)
+	if err != nil {
+		panic(err)
+	}
 	return &Root{
-		engine: engine,
-		path:   path,
+		engine:    engine,
+		path:      path,
+		poolCache: poolCache,
 	}
 }
 
@@ -197,7 +204,7 @@ func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.F
 	}
 	var batch zbuf.Array
 	for k := range poolRefs {
-		pool, err := OpenPool(ctx, &poolRefs[k], r.engine, r.path)
+		pool, err := r.openPool(ctx, &poolRefs[k])
 		if err != nil {
 			// We could have race here because a pool got deleted
 			// while we looped so we check and continue.
@@ -268,7 +275,24 @@ func (r *Root) OpenPool(ctx context.Context, id ksuid.KSUID) (*Pool, error) {
 	if err != nil {
 		return nil, err
 	}
-	return OpenPool(ctx, config, r.engine, r.path)
+	return r.openPool(ctx, config)
+}
+
+func (r *Root) openPool(ctx context.Context, config *pools.Config) (*Pool, error) {
+	if v, ok := r.poolCache.Get(config.ID); ok {
+		// The cached pool's config may be outdated, so rather than
+		// return the pool directly, we return a copy whose config we
+		// can safely update without locking.
+		p := *v.(*Pool)
+		p.Config = *config
+		return &p, nil
+	}
+	p, err := OpenPool(ctx, config, r.engine, r.path)
+	if err != nil {
+		return nil, err
+	}
+	r.poolCache.Add(config.ID, p)
+	return p, nil
 }
 
 func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newName string) error {
@@ -289,7 +313,7 @@ func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout,
 	if err := CreatePool(ctx, config, r.engine, r.path); err != nil {
 		return nil, err
 	}
-	pool, err := OpenPool(ctx, config, r.engine, r.path)
+	pool, err := r.openPool(ctx, config)
 	if err != nil {
 		RemovePool(ctx, config, r.engine, r.path)
 		return nil, err
@@ -311,6 +335,10 @@ func (r *Root) RemovePool(ctx context.Context, id ksuid.KSUID) error {
 	if err := r.pools.Remove(ctx, *config); err != nil {
 		return err
 	}
+	// This pool might be cached on other cluster nodes, but that's fine.
+	// With no entry in the pool store, it will be inaccessible and
+	// eventually evicted by the cache's LRU algorithm.
+	r.poolCache.Remove(config.ID)
 	return RemovePool(ctx, config, r.engine, r.path)
 }
 
