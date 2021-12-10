@@ -18,8 +18,8 @@ import (
 const credsFileName = "credentials.json"
 
 type LakeFlags struct {
-	Lake      string
 	ConfigDir string
+	Lake      string
 }
 
 func (l *LakeFlags) SetFlags(fs *flag.FlagSet) {
