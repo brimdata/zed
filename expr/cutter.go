@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/zcode"
 )
 
 type Cutter struct {
@@ -71,8 +70,8 @@ func (c *Cutter) FoundCut() bool {
 	return c.dirty
 }
 
-// Apply returns a new record comprising fields copied from in according to the
-// receiver's configuration.  If the resulting record would be empty, Apply
+// Apply returns a new value comprising fields copied from in according to the
+// receiver's configuration.  If the resulting value would be empty, Apply
 // returns nil.
 func (c *Cutter) Apply(in *zed.Value) (*zed.Value, error) {
 	if len(c.fieldRefs) == 1 && c.fieldRefs[0].IsRoot() {
@@ -83,15 +82,8 @@ func (c *Cutter) Apply(in *zed.Value) (*zed.Value, error) {
 			}
 			return nil, err
 		}
-		recType, ok := zed.AliasOf(zv.Type).(*zed.TypeRecord)
-		if !ok {
-			return nil, errors.New("cannot cut a non-record to .")
-		}
-		if zv.IsUnset() {
-			return nil, errors.New("cannot cut an unset value to .")
-		}
 		c.dirty = true
-		return zed.NewValue(recType, append(zcode.Bytes{}, zv.Bytes...)), nil
+		return &zv, nil
 	}
 	types := c.typeCache
 	b := c.builder
