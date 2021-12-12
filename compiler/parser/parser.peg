@@ -307,7 +307,7 @@ Operator
   / FromProc
   / PassProc
   / ExplodeProc
-  / TraverseProc
+  / OverProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
@@ -569,13 +569,10 @@ ExplodeProc
       RETURN(MAP("kind":"Explode", "args": args, "as": as, "type": typ))
     }
 
-TraverseProc
-  = "traverse"i _ expr:Expr __ seq:TraverseSeq? {
-	  RETURN(MAP("kind":"Traverse", "expr":expr, "seq":seq))
+OverProc
+  = "over"i _ exprs:Exprs {
+	  RETURN(MAP("kind":"Over", "exprs":exprs))
     }
-
-TraverseSeq
-  = "=>" _ "(" __ seq:Sequential __ ")" { RETURN(seq) }
 
 TypeArg
   = _ BY _ typ:Type { RETURN(typ)}

@@ -172,22 +172,29 @@ func (p *Proc) Done() {
 }
 
 func (p *Proc) run() {
+	var eof bool
 	for {
 		batch, err := p.parent.Pull()
-		if err != nil {
+		if err != nil || (batch == nil && eof) {
 			p.shutdown(err)
 			return
 		}
 		if batch == nil {
 			for {
 				b, err := p.agg.Results(true)
-				if b == nil {
+				if err != nil {
 					p.shutdown(err)
 					return
 				}
-				p.sendResult(b, err)
+				if b == nil {
+					break
+				}
+				p.sendResult(b, nil)
 			}
+			eof = true
+			continue
 		}
+		eof = false
 		vals := batch.Values()
 		for i := range vals {
 			if err := p.agg.Consume(&vals[i]); err != nil {

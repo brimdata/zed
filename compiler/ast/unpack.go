@@ -36,7 +36,7 @@ var unpacker = unpack.New(
 	astzed.ImpliedValue{},
 	Join{},
 	Layout{},
-	Traverse{},
+	Over{},
 	Trunk{},
 	astzed.Map{},
 	MapExpr{},
