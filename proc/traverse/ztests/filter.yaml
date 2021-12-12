@@ -1,4 +1,4 @@
-zed: "traverse a => (mod(this, 2) == 0)"
+zed: "traverse a => (this % 2 == 0)"
 
 input: |
   {a:[7,6,5,4]}

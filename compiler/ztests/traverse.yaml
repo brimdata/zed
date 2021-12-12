@@ -1,7 +1,7 @@
 script: |
-  zed compile -C 'traverse foo'
-  echo === 
-  zed compile -C 'traverse foo => (sum(this))'
+  zed dev compile -C 'traverse foo'
+  echo ===
+  zed dev compile -C 'traverse foo => (sum(this))'
 
 outputs:
   - name: stdout
@@ -11,4 +11,3 @@ outputs:
       traverse foo => (
         sum(this)
       )
-
