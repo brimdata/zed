@@ -1011,7 +1011,7 @@ value. For instance the sum of elements in an array can be computed with
 \* `traverse` is currently in beta and does not currently support iterating over
 records and maps. This will be added shortly.
 
-\*\* `traverse` is currently in beta and works on a subset of the available 
+\*\* `traverse` is currently in beta and works on a subset of the available
 operators. It has been tested with `filter`, `cut` and `pick` but users who use
 `traverse` with `summarize` and `sort` will get weird results.
 
@@ -1031,7 +1031,7 @@ echo '{a:[3,2,1]}' | zq -z 'traverse a' -
 #### Example (filter)
 
 ```mdtest-command
-echo '{a:[6,5,4]} {a:[3,2,1]}' | zq -z 'traverse a => (mod(this, 2) == 0)' -
+echo '{a:[6,5,4]} {a:[3,2,1]}' | zq -z 'traverse a => (this % 2 == 0)' -
 ```
 
 #### Output:
