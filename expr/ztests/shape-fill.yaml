@@ -1,4 +1,4 @@
-zed: put this := fill({a:{b:{c:string}}})
+zed: put this := fill(<{a:{b:{c:string}}}>)
 
 input: |
   {s:"x"}

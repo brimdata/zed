@@ -1,5 +1,5 @@
 zed: |
-  put this := shape({a:string,b:string})
+  put this := shape(<{a:string,b:string}>)
 
 input: |
   {a:null,b:null(int64)}

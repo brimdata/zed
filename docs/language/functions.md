@@ -97,7 +97,7 @@ from_hex(s <stringy>) -> bytes
 echo '{foo:"68656c6c6f20776f726c64"}' | zq -z 'foo := string(from_hex(foo))' -
 ```
 
-**Output:** 
+**Output:**
 ```mdtest-output
 {foo:"hello world"}
 ```
@@ -180,7 +180,7 @@ echo '{foo:10.1.2.129}' | zq -z 'foo := network_of(foo, 24)' -
 echo '{foo:10.1.2.129}' | zq -z 'foo := network_of(foo)' -
 ```
 
-**Output:** 
+**Output:**
 ```mdtest-output
 {foo:10.1.2.128/25}
 {foo:10.1.2.0/24}
@@ -432,7 +432,7 @@ pick(f ...<fields>) -> record
 ```
 
 `pick` accepts one or more [field expressions](expressions.md) `f` and returns
-a record with only these fields. `pick` is similar to `cut` but only returns 
+a record with only these fields. `pick` is similar to `cut` but only returns
 a value if all field expressions are matched. This is functionally equivalent
 to the [`pick` operator](operators.md#cut)
 
@@ -667,8 +667,8 @@ the root value (i.e. equivalent to `is(this, type)`).
 #### Example:
 
 ```mdtest-command
-echo '{foo:1.}' | zq -z 'foo := is(foo, float64)' -
-echo '{foo:1.}' | zq -z 'foo := is({foo:float64})' -
+echo '{foo:1.}' | zq -z 'foo := is(foo, <float64>)' -
+echo '{foo:1.}' | zq -z 'foo := is(<{foo:float64}>)' -
 ```
 
 **Output:**

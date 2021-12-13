@@ -1,5 +1,5 @@
 zed: |
-  put this := shape({f1:time})
+  put this := shape(<{f1:time}>)
 
 input: |
   {f1:"WellWhatDoYouThinkOfThis",f2:"NotMuch"}
