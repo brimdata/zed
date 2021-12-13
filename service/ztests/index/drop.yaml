@@ -1,11 +1,11 @@
 script: |
   source service.sh
-  zapi index -q create IPs type ip
-  zapi index -q create DropMe field DropMe
-  id=$(zapi query -f text 'from :index_rules | name == "DropMe" | cut id:=to_hex(id)')
-  zapi index drop 0x$id
+  zed index -q create IPs type ip
+  zed index -q create DropMe field DropMe
+  id=$(zed query -f text 'from :index_rules | name == "DropMe" | cut id:=to_hex(id)')
+  zed index drop 0x$id
   echo ===
-  zapi index ls
+  zed index ls
 
 inputs:
   - name: service.sh

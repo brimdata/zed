@@ -1,8 +1,8 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q -orderby ts:desc logs
-  zed lake load -use logs@main -q -seekstride 11B in.zson
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -orderby ts:desc logs
+  zed load -use logs@main -q -seekstride 11B in.zson
   zq -z test/*/data/*-seek.zng
 
 inputs:

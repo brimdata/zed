@@ -1,15 +1,15 @@
 script: |
   source service.sh
-  zapi create -q test
-  a=$(zapi load -use test@main a.zson | head -1 | awk '{print $1}')
-  b=$(zapi load -use test@main b.zson | head -1 | awk '{print $1}')
-  zapi query -z "from test | sort ."
-  zapi revert -q -use test@main $a
+  zed create -q test
+  a=$(zed load -use test@main a.zson | head -1 | awk '{print $1}')
+  b=$(zed load -use test@main b.zson | head -1 | awk '{print $1}')
+  zed query -z "from test | sort ."
+  zed revert -q -use test@main $a
   echo ===
-  zapi query -z "from test | sort ."
-  zapi revert -q -use test@main $b
+  zed query -z "from test | sort ."
+  zed revert -q -use test@main $b
   echo ===
-  zapi query -z "from test | sort ."
+  zed query -z "from test | sort ."
 
 inputs:
   - name: a.zson

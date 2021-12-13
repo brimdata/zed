@@ -97,34 +97,6 @@ jq -c '. | { ts, "id.orig_h", "id.orig_p" }' conn.ndjson
 Comparisons of other simple operations and their relative performance are described
 at the [performance](../../performance/README.md) page.
 
-## `zqd`
-
-The `zqd` command is a command-line shortcut for `zed serve`.
-
-`zqd` serves a REST API used to manage and query a Zed data lake.
-It is used as the backend service for the [Brim](https://github.com/brimdata/brim)
-application.
-
-For all `zqd` options, see the built-in help by running:
-
-```
-zqd help
-```
-
-## `zapi`
-
-The `zapi` command is a command-line shortcut for `zed api`.
-
-`zapi` is command-line utility for interacting with the API provided by the
-`zqd`. It can be used to create data pools, import data, list info about
-Zed lakes and pools, and more.
-
-For all `zapi` options, use the help subcommand:
-
-```
-zapi help
-```
-
 ## Formats
 
 | Format | Read | Auto-Detect | Write | Description |

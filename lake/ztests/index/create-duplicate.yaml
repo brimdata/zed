@@ -1,8 +1,8 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake index create IPs type ip
-  ! zed lake index create IPs type ip
+  export ZED_LAKE=test
+  zed init -q
+  zed index create IPs type ip
+  ! zed index create IPs type ip
 
 outputs:
   - name: stdout

@@ -98,7 +98,7 @@ our goal here is that the Zed lake tooling be as easy and familiar as Git is
 to a technical user.
 
 While this design document is independent of any particular implementation,
-we will illustrate the design concepts here with examples of `zed lake` commands.
+we will illustrate the design concepts here with examples of `zed` commands.
 Where the example commands shown are known to not yet be fully implemented in
 the current Zed code, links are provided to open GitHub Issues.
 Note that while this CLI-first approach provides an ergonomic way to experiment with
@@ -107,18 +107,18 @@ exposed through an API to a cloud-based service.  Most interactions between
 a user and a Zed lake would be via an application like
 [Brim](https://github.com/brimdata/brim) or a
 programming environment like Python/Pandas rather than via direct interaction
-with `zed lake`.
+with `zed`.
 
 ### Initialization
 
 A new lake is initialized with
 ```
-zed lake init [path]
+zed init [path]
 ```
 
 In all these examples, the lake identity is implied by its path (e.g., an S3
-URI or a file system path) and may be specified by the `ZED_LAKE_ROOT`
-environment variable when running `zed lake` commands on a local host.  In a
+URI or a file system path) and may be specified by the `ZED_LAKE`
+environment variable when running `zed` commands on a local host.  In a
 cloud deployment or running queries through an application, the lake path is
 determined by an authenticated connection to the Zed lake service, which
 explicitly denotes the lake name (analogous to how a GitHub user authenticates
@@ -128,14 +128,14 @@ access to a named GitHub organization).
 
 A new pool is created with
 ```
-zed lake create [-orderby key[,key...][:asc|:desc]] <name>
+zed create [-orderby key[,key...][:asc|:desc]] <name>
 ```
 where `<name>` is the name of the pool within the implied lake instance,
 `<key>` is the Zed language representation of the pool key, and `asc` or `desc`
 indicate that the natural scan order by the pool key should be ascending
 or descending, respectively, e.g.,
 ```
-zed lake create -orderby ts:desc logs
+zed create -orderby ts:desc logs
 ```
 Note that there may be multiple pool keys (implementation tracked in
 [zed/2657](https://github.com/brimdata/zed/issues/2657)), where subsequent keys
@@ -161,7 +161,7 @@ multiple parents in the commit object history.)
 
 A branch is created with the `branch` command, e.g.,
 ```
-zed lake branch -use logs@main staging
+zed branch -use logs@main staging
 ```
 This creates a new branch called "staging" in pool "logs", which points to
 the same commit object as the "main" branch.  Commits to the "staging" branch
@@ -175,15 +175,15 @@ Supposing the `main` branch of `logs` was already set as the default
 with the `use` command (see below),
 then you could create the new branch called "staging" by simply saying
 ```
-zed lake branch staging
+zed branch staging
 ```
 Likewise, you can delete a branch with `-d`:
 ```
-zed lake branch -d staging
+zed branch -d staging
 ```
 and list the branches as follows:
 ```
-zed lake branch
+zed branch
 ```
 
 ### Use
@@ -191,7 +191,7 @@ zed lake branch
 The `use` command provides a means to set the current branch context
 to the indicated branch, e.g.,
 ```
-zed lake use staging
+zed use staging
 ```
 As previously noted, Zed lakes can be used without thinking about branches.
 To this end, the `use` command includes a `-p` option that sets the current
@@ -200,18 +200,18 @@ yet ready to fully embrace branches could therefore have locked in this
 context by executing the following command after running [`create`](#create)
 to initiate our new example pool.
 ```
-zed lake use -p logs
+zed use -p logs
 ```
 
 When you want to specify a branch in another pool, you simply prepend
 the pool name to the branch:
 ```
-zed lake use otherpool@otherbranch
+zed use otherpool@otherbranch
 ```
 Just like Git `checkout -b`, you may create a new branch as a side effect
 of the `use` command with `-b`:
 ```
-zed lake use -b newbranch
+zed use -b newbranch
 ```
 
 Note that unlike Git, the "repo" is not copied to your local directory.
@@ -222,31 +222,31 @@ called ".zed_head" that contains the default HEAD.
 
 Data is loaded and committed into a branch with the `load` command, e.g.,
 ```
-zed lake load sample.ndjson
+zed load sample.ndjson
 ```
 where `sample.ndjson` contains logs in NDJSON format.  Any supported format
 (NDJSON, ZNG, ZSON, etc.) as well multiple files can be used here, e.g.,
 ```
-zed lake load sample1.ndjson sample2.zng sample3.zson
+zed load sample1.ndjson sample2.zng sample3.zson
 ```
 Parquet and ZST formats are not auto-detected so you must currently
 specify `-i` with these formats, e.g.,
 ```
-zed lake load -i parquet sample4.parquet
-zed lake load -i zst sample5.zst
+zed load -i parquet sample4.parquet
+zed load -i zst sample5.zst
 ```
 
 An alternative branch may be specified using the `@` separator,
 i.e., `<pool>@<branch>`.  Supposing there was a branch called `updates`,
 data can be committed into this branch as follows:
 ```
-zed lake load -use logs@updates sample.zng
+zed load -use logs@updates sample.zng
 ```
 Or, as mentioned above, you can set the default branch for the load command
 via `use`:
 ```
-zed lake use logs@updates
-zed lake load sample.zng
+zed use logs@updates
+zed load sample.zng
 ```
 
 Note that there is no need to define a schema or insert data into
@@ -269,11 +269,11 @@ the collection of objects is generally not sorted.
 
 ### Log
 
-Like `git log`, the command `zed lake log` prints a history of commit objects
+Like `git log`, the command `zed log` prints a history of commit objects
 starting from any commit.  The log can be displayed with the `log` command,
 e.g.,
 ```
-zed lake log
+zed log
 ```
 To understand the log contents, the `load` operation is actually
 decomposed into two steps under the covers:
@@ -305,7 +305,7 @@ that is stored in the commit journal for reference.  These values may
 be specified as options to the `load` command, and are also available in the
 API for automation.  For example,
 ```
-zed lake load -user user@example.com -message "new version of prod dataset" ...
+zed load -user user@example.com -message "new version of prod dataset" ...
 ```
 This metadata is carried in a description record attached to
 every journal entry, which has a Zed type signature as follows:
@@ -330,7 +330,7 @@ capabilities by embedding custom metadata in the commit journal.
 
 Data is merged from one branch into another with the `merge` command, e.g.,
 ```
-zed lake merge -use logs@updates main
+zed merge -use logs@updates main
 ```
 where the `updates` branch is being merged into the `main` branch
 within the `logs` pool.
@@ -371,13 +371,13 @@ This example reads every record from the full key range of the `logs` pool
 and sends the results to stdout.
 
 ```
-zed lake query 'from logs'
+zed query 'from logs'
 ```
 
 We can narrow the span of the query by specifying the key range, where these
 values refer to the pool key:
 ```
-zed lake query 'from logs range 2018-03-24T17:36:30.090766Z to 2018-03-24T17:36:30.090758Z'
+zed query 'from logs range 2018-03-24T17:36:30.090766Z to 2018-03-24T17:36:30.090758Z'
 ```
 These range queries are efficiently implemented as the data is laid out
 according to the pool key and seek indexes keyed by the pool key
@@ -386,11 +386,11 @@ are computed for each data object.
 Lake queries also can refer to HEAD (i.e., the branch context set in the most
 recent `use` command) either implicitly by omitting the `from` operator:
 ```
-zed lake query '*'
+zed query '*'
 ```
 or by referencing `HEAD`:
 ```
-zed lake query 'from HEAD'
+zed query 'from HEAD'
 ```
 
 A much more efficient format for transporting query results is the
@@ -398,12 +398,12 @@ row-oriented, compressed binary format ZNG.  Because ZNG
 streams are easily merged and composed, query results in ZNG format
 from a pool can be can be piped to another `zed query` instance, e.g.,
 ```
-zed lake query -f zng 'from logs' | zed query -f table 'count() by field' -
+zed query -f zng 'from logs' | zed query -f table 'count() by field' -
 ```
 Of course, it's even more efficient to run the query inside of the pool traversal
 like this:
 ```
-zed lake query -f table 'from logs | count() by field'
+zed query -f table 'from logs | count() by field'
 ```
 By default, the `query` command scans pool data in pool-key order though
 the Zed optimizer may, in general, reorder the scan to optimize searches,
@@ -439,28 +439,28 @@ sources vary based on level.
 For example, a list of pools with configuration data can be obtained
 in the ZSON format as follows:
 ```
-zed lake query -Z "from :pools"
+zed query -Z "from :pools"
 ```
 This meta-query produces a list of branches in a pool called `logs`:
 ```
-zed lake query -Z "from logs:branches"
+zed query -Z "from logs:branches"
 ```
 Since this is all just Zed, you can filter the results just like any query,
 e.g., to look for particular branch:
 ```
-zed lake query -Z "from logs:branches | branch.name=='main'"
+zed query -Z "from logs:branches | branch.name=='main'"
 ```
 
 This meta-query produces a list of the data objects in the `live` branch
 of pool `logs`:
 ```
-zed lake query -Z "from logs@live:objects"
+zed query -Z "from logs@live:objects"
 ```
 
 You can also pretty-print in human-readable form most of the metadata Zed records
 using the "lake" format, e.g.,
 ```
-zed lake query -f lake "from logs@live:objects"
+zed query -f lake "from logs@live:objects"
 ```
 
 > TODO: we need to document all of the meta-data sources somewhere.
@@ -473,7 +473,7 @@ commit history.  In fact, the Zed language allows a commit object (created
 at any point in the past) to be specified with the `@` suffix to a
 pool reference, e.g.,
 ```
-zed lake query -z 'from logs@1tRxi7zjT7oKxCBwwZ0rbaiLRxb | count() by field'
+zed query -z 'from logs@1tRxi7zjT7oKxCBwwZ0rbaiLRxb | count() by field'
 ```
 In this way, a query can time-travel through the journal.  As long as the
 underlying data has not been deleted, arbitrarily old snapshots of the Zed
@@ -527,7 +527,7 @@ To perform an LSM rollup, the `compact` command (implementation tracked
 via [zed/2977](https://github.com/brimdata/zed/issues/2977))
 is like a "squash" to perform LSM-like compaction function, e.g.,
 ```
-zed lake compact <id> [<id> ...]
+zed compact <id> [<id> ...]
 (merged commit <id> printed to stdout)
 ```
 After compaction, all of the objects comprising the new commit are sorted
@@ -574,7 +574,7 @@ of deletes.
 For example, this command deletes the three objects referenced
 by the data object IDs:
 ```
-zed lake delete <id> [<id> ...]
+zed delete <id> [<id> ...]
 ```
 
 > TBD: when a scan encounters an object that was physically deleted for
@@ -592,18 +592,18 @@ additional revert operation.
 For example, this command reverts the commit referenced by commit ID
 `<commit>`.
 ```
-zed lake revert <commit>
+zed revert <commit>
 ```
 
 ### Purge and Vacate
 
-Data can be deleted with the DANGER-ZONE command `zed lake purge`
+Data can be deleted with the DANGER-ZONE command `zed purge`
 (implementation tracked in [zed/2545](https://github.com/brimdata/zed/issues/2545)).
 The commits still appear in the log but scans at any time-travel point
 where the commit is present will fail to scan the deleted data.
 
 Alternatively, old data can be removed from the system using a safer
-command (but still in the DANGER-ZONE), `zed lake vacate` (also
+command (but still in the DANGER-ZONE), `zed vacate` (also
 [zed/2545](https://github.com/brimdata/zed/issues/2545)) which moves
 the tail of the commit journal forward and removes any data no longer
 accessible through the modified commit journal.
@@ -657,22 +657,22 @@ so that any named group of rules can be applied to data objects from
 any pool.  The group name provides no meaning beyond a reference to
 a set of index rules at any given time.
 
-Rules are created with `zed lake index create`,
-deleted with `zed lake index drop`, and applied with
-`zed lake index apply`.
+Rules are created with `zed index create`,
+deleted with `zed index drop`, and applied with
+`zed index apply`.
 
 #### Field Rule
 
 A field rule indicates that all values of a field be indexed.
 For example,
 ```
-zed lake index create IndexGroupEx field foo
+zed index create IndexGroupEx field foo
 ```
 adds a field rule for field `foo` to the index group named `IndexGroupEx`.
 This rule can then be applied to a data object having a given `<tag>`
 in a pool, e.g.,
 ```
-zed lake index apply -use logs@main IndexGroupEx <tag>
+zed index apply -use logs@main IndexGroupEx <tag>
 ```
 The index is created and a transaction put (somewhere).  Once this transaction
 has been committed to the pool's journal, the index is available for use
@@ -684,7 +684,7 @@ A type rule indicates that all values of any field of a specified type
 be indexed where the type signature uses Zed type syntax.
 For example,
 ```
-zed lake index create IndexGroupEx type ip
+zed index create IndexGroupEx type ip
 ```
 creates a rule that indexes all IP addresses appearing in fields of type `ip`
 in the index group `IndexGroupEx`.
@@ -696,7 +696,7 @@ An aggregation rule allows the creation of any index keyed by one or more fields
 The aggregation is specified as a Zed query.
 For example,
 ```
-zed lake index create IndexGroupEx agg "count() by field"
+zed index create IndexGroupEx agg "count() by field"
 ```
 creates a rule that creates an index keyed by the group-by keys whose
 values are the partial-result aggregation given by the Zed expression.
@@ -815,7 +815,7 @@ from a scan when possible using the index,
 The actions are not grouped directly by their commit tag but instead each
 action embeds the KSUID of its commit tag.
 
-By default, `zed lake log` outputs an abbreviated form of the log as text to
+By default, `zed log` outputs an abbreviated form of the log as text to
 stdout, similar to the output of `git log`.
 
 However, the log represents the definitive record of a pool's present
@@ -830,7 +830,7 @@ their pointers, simply query a pool's "branchlog" via the syntax `<pool>:branchl
 For example, to aggregate a count of each journal entry type of the pool
 called `logs`, you can simply say:
 ```
-zed lake query "from logs:branchlog | count() by typeof(this)"
+zed query "from logs:branchlog | count() by typeof(this)"
 ```
 Since the Zed system "typedefs" each journal record with a named type,
 this kind of query gives intuitive results.  There is no need to implement

@@ -1,10 +1,10 @@
 script: |
   source service.sh
-  zed lake create -q test
-  zapi ls
+  zed create -q -lake $LAKE_PATH test
+  zed ls
   echo ===
-  zed lake drop -q -f test
-  zapi ls
+  zed drop -q -lake $LAKE_PATH -f test
+  zed ls
 
 inputs:
   - name: service.sh

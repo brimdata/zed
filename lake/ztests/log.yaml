@@ -1,0 +1,35 @@
+script: |
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zed use -q test@main
+  zed load -q -user testuser 1.zson
+  zed load -q -user testuser 2.zson
+  zed log
+
+inputs:
+  - name: 1.zson
+    data: |
+      {x:1}
+  - name: 2.zson
+    data: |
+      {x:2}
+
+outputs:
+  - name: stdout
+    regexp: |
+      commit \w{27} \(HEAD -> main\)
+      Author: testuser
+      Date:   [0-9TZ:\-]+
+
+          loaded 1 data object
+
+          \w{27} 1 record in 10 data bytes
+
+      commit \w{27}
+      Author: testuser
+      Date:   [0-9TZ:\-]+
+
+          loaded 1 data object
+
+          \w{27} 1 record in 10 data bytes

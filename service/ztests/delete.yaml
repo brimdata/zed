@@ -1,14 +1,14 @@
 script: |
   source service.sh
-  zapi create -q test
-  zapi use -q test@main
-  zapi load -q 1.zson
-  id=$(zapi query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")
-  zapi load -q 2.zson
-  zapi query -z "*"
+  zed create -q test
+  zed use -q test@main
+  zed load -q 1.zson
+  id=$(zed query -f text "from test@main:objects | cut id:=ksuid(id) | tail 1")
+  zed load -q 2.zson
+  zed query -z "*"
   echo ===
-  zapi delete -q $id
-  zapi query -z "*"
+  zed delete -q $id
+  zed query -z "*"
 
 inputs:
   - name: service.sh

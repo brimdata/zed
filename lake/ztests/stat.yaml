@@ -2,13 +2,13 @@ skip: issue 2532
 
 script: |
   mkdir logs
-  zed lake import -R logs babble.zson
-  zed lake index create -R logs -q :string v
+  zed import -R logs babble.zson
+  zed index create -R logs -q :string v
   echo ===
   # Verify the log_id's in the default table format.
-  zq -z "count()" $(zed lake stat -R logs | grep -v ^TYPE | awk '{print "logs/"$2}' | sort | uniq)
+  zq -z "count()" $(zed stat -R logs | grep -v ^TYPE | awk '{print "logs/"$2}' | sort | uniq)
   echo ===
-  zed lake stat -R logs -f zng | zq -z "drop log_id, definition.id | sort first, type, definition.description" -
+  zed stat -R logs -f zng | zq -z "drop log_id, definition.id | sort first, type, definition.description" -
 
 inputs:
   - name: babble.zson

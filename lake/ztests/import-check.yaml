@@ -1,8 +1,8 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q logs
-  ! zed lake load -q -use logs@main missingcol.zson
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q logs
+  ! zed load -q -use logs@main missingcol.zson
 
 inputs:
   - name: missingcol.zson

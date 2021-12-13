@@ -1,6 +1,6 @@
 script: |
   source service.sh
-  zapi -version
+  zed -version
 
 inputs:
   - name: service.sh

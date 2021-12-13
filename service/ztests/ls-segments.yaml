@@ -1,9 +1,9 @@
 script: |
   source service.sh
-  zapi create -q test
-  zapi load -q -use test@main 1.zson
-  zapi load -q -use test@main 2.zson
-  zapi query -f lake "from test@main:objects"
+  zed create -q test
+  zed load -q -use test@main 1.zson
+  zed load -q -use test@main 2.zson
+  zed query -f lake "from test@main:objects"
 
 inputs:
   - name: service.sh

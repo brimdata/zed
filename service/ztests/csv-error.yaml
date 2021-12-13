@@ -1,8 +1,8 @@
 script: |
   source service.sh
-  zapi create -q test
-  zapi load -q -use test@main -
-  ! zapi query -f csv 'from test'
+  zed create -q test
+  zed load -q -use test@main -
+  ! zed query -f csv 'from test'
 
 inputs:
   - name: service.sh

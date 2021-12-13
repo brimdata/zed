@@ -1,17 +1,17 @@
 script: |
   source service.sh
-  zapi create p1
-  zapi create p2
+  zed create p1
+  zed create p2
   echo ===
 
   # Verify that the default output format is text of names only.
-  zapi ls | sort
+  zed ls | sort
   echo ===
 
   # Verify that output flags are honored.
-  zapi ls -f zson | zq -i zson -f zson "pick name | sort name" -
+  zed ls -f zson | zq -i zson -f zson "pick name | sort name" -
   echo ===
-  zapi ls -f zng | zq -i zng -f table "pick name | sort name" -
+  zed ls -f zng | zq -i zng -f table "pick name | sort name" -
   echo ===
 
 inputs:

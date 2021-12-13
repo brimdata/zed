@@ -1,6 +1,6 @@
 script: |
   source mockbrim.sh
-  zapi create test
+  zed create test
   echo ===
   kill -9 $MOCKBRIM_PID 2>/dev/null
   awaitdeadservice

@@ -1,14 +1,14 @@
 script: |
   source service.sh
-  zapi create -q p1
-  zapi create -q p2
-  zapi create -q p3
-  zapi drop -f p3
+  zed create -q p1
+  zed create -q p2
+  zed create -q p3
+  zed drop -f p3
   echo === | tee /dev/stderr
-  zapi ls -f zng | zq -z "pick name | sort name" -
+  zed ls -f zng | zq -z "pick name | sort name" -
   echo === | tee /dev/stderr
-  ! zapi drop p3
-  ! zapi -lake http://localhost:1 drop p3
+  ! zed drop p3
+  ! zed drop -lake http://localhost:1 p3
 
 inputs:
   - name: service.sh

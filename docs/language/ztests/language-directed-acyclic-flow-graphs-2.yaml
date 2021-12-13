@@ -19,13 +19,13 @@
 # (https://github.com/brimdata/zed/issues/2815).
 
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q -orderby color PoolOne
-  zed lake create -q -orderby price PoolTwo
-  zed lake load -q -use PoolOne@main fruit.zson
-  zed lake load -q -use PoolTwo@main prices.zson
-  zed lake query -z -I join.zed
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q -orderby color PoolOne
+  zed create -q -orderby price PoolTwo
+  zed load -q -use PoolOne@main fruit.zson
+  zed load -q -use PoolTwo@main prices.zson
+  zed query -z -I join.zed
 
 inputs:
   - name: fruit.zson

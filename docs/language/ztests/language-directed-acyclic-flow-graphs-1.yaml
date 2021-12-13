@@ -20,11 +20,11 @@
 # (https://github.com/brimdata/zed/issues/2906).
 
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q PoolOne
-  zed lake load -q -use PoolOne@main fruit.zson
-  zed lake query -z -I split.zed
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q PoolOne
+  zed load -q -use PoolOne@main fruit.zson
+  zed query -z -I split.zed
 
 inputs:
   - name: fruit.zson

@@ -1,6 +1,6 @@
 script: |
   source service.sh
-  zapi create -q test
+  zed create -q test
   curl -H "Accept: application/json" -d '{"query":"from :pools | cut name"}' $ZED_LAKE/query
 
 inputs:

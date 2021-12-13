@@ -1,0 +1,7 @@
+script: |
+  ! zed ls -lake ''
+
+outputs:
+  - name: stderr
+    data: |
+      lake location must be set (either with the -lake flag or ZED_LAKE environment variable)

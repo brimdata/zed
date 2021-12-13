@@ -2,12 +2,13 @@ skip: "issue #2651"
 
 script: |
   source services.sh s3://bucket/zedlake
-  zapi -host $LAKE_HOST new -S 20KiB test
-  zapi -host $LAKE_HOST -p test post babble.zson >/dev/null
+  zed new -S 20KiB test
+  zed use -q test@main
+  zed post babble.zson >/dev/null
   echo ===
-  zapi -host $LAKE_HOST -p test info | egrep -v 'id'
+  zed info | egrep -v 'id'
   echo ===
-  zapi -host $LAKE_HOST -p test get -z 's=="harefoot-raucous"'
+  zed get -z 's=="harefoot-raucous"'
 
 inputs:
   - name: babble.zson

@@ -1,7 +1,7 @@
 script: |
   source service.sh
-  zapi create -q test
-  zapi load -q -use test@main -
+  zed create -q test
+  zed load -q -use test@main -
   for accept in text/csv application/{json,x-ndjson,x-zjson,x-zson} ""; do
     echo === $accept ===
     curl -H "Accept: $accept" -d '{"query":"from test"}' $ZED_LAKE/query |

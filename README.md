@@ -53,18 +53,18 @@ Once installed, you can run the query engine from the command-line using `zq`:
 ```
 echo '{"s":"hello, world"}' | zq -Z -
 ```
-Or you can run a Zed lake server, load it with data using `zapi`, and hit the API.
+Or you can run a Zed lake service, load it with data using `zed load`, and hit the API.
 In one shell, run the server:
 ```
 mkdir scratch
-zed lake serve -R scratch
+zed serve -lake scratch
 ```
 And in another shell, run the client:
 ```
-zapi create Demo
-zapi use Demo@main
-echo '{s:"hello, world"}' | zapi load -
-zapi query "from Demo"
+zed create Demo
+zed use Demo@main
+echo '{s:"hello, world"}' | zed load -
+zed query "from Demo"
 ```
 You can also use `zed` from Python.  After you install the Zed Python:
 ```

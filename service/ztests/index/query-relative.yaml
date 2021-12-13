@@ -1,18 +1,18 @@
 script: |
   source service.sh
-  zapi create -q test
-  zapi use -q test@main
-  zapi index create -q s field s
+  zed create -q test
+  zed use -q test@main
+  zed index create -q s field s
   # Load these separately so we have 3 different objects.
-  zapi load -q 1.zson
-  zapi load -q 2.zson
-  zapi load -q 3.zson
-  zapi index update -q
-  zapi query -z -s 's>3 | count()'
-  zapi query -z -s 's<5.09 | count()'
-  zapi query -z -s 's>=9.5 | count()'
-  zapi query -z -s 's<=2 | count()'
-  zapi query -z -s 's<1 | count()'
+  zed load -q 1.zson
+  zed load -q 2.zson
+  zed load -q 3.zson
+  zed index update -q
+  zed query -z -s 's>3 | count()'
+  zed query -z -s 's<5.09 | count()'
+  zed query -z -s 's>=9.5 | count()'
+  zed query -z -s 's<=2 | count()'
+  zed query -z -s 's<1 | count()'
 
 inputs:
   - name: service.sh

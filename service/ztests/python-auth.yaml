@@ -9,7 +9,7 @@ script: |
 
   LAKE_EXTRA_FLAGS='-auth.enabled=t -auth.clientid=c -auth.domain=d -auth.jwkspath=auth-public-jwks.json' source service.sh source service.sh
   token=$(gentoken -domain d -keyid testkey -privatekeyfile auth-private-key -tenantid t -userid u)
-  zapi auth store -access $token -lake $ZED_LAKE
+  zed auth store -access $token -lake $ZED_LAKE
 
   python <<EOF
   import zed

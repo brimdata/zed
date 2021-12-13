@@ -1,19 +1,19 @@
 script: |
-  export ZED_LAKE_ROOT=test
-  zed lake init -q
-  zed lake create -q test
-  zed lake use -q test@main
-  zed lake load -q in.zson
-  zed lake index create -q IPs type ip
-  zed lake index create -q Ys field y
-  a=$(zed lake index update | awk '{print $1}')
-  zed lake query -z -I query.zed
+  export ZED_LAKE=test
+  zed init -q
+  zed create -q test
+  zed use -q test@main
+  zed load -q in.zson
+  zed index create -q IPs type ip
+  zed index create -q Ys field y
+  a=$(zed index update | awk '{print $1}')
+  zed query -z -I query.zed
   echo ===
-  r=$(zed lake revert $a | awk '{print $5}')
-  zed lake query -z -I query.zed
+  r=$(zed revert $a | awk '{print $5}')
+  zed query -z -I query.zed
   echo ===
-  zed lake revert -q $r
-  zed lake query -z -I query.zed
+  zed revert -q $r
+  zed query -z -I query.zed
 
 inputs:
   - name: in.zson

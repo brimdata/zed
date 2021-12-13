@@ -1,10 +1,10 @@
 script: |
   source service.sh
-  zapi create -q test
-  zapi use -q test@main
-  zapi load -user testuser -q 1.zson
-  zapi load -user testuser -q 2.zson
-  zapi log
+  zed create -q test
+  zed use -q test@main
+  zed load -user testuser -q 1.zson
+  zed load -user testuser -q 2.zson
+  zed log
 
 inputs:
   - name: service.sh
