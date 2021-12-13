@@ -1,0 +1,7 @@
+zed: put x:={b:a}
+
+input: |
+  {a:1}
+
+output: |
+  {a:1,x:{b:1}}

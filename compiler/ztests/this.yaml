@@ -1,4 +1,4 @@
-zed: 'put this:={yodawg:this,b:this==.}'
+zed: 'yield {yodawg:this,b:this==.}'
 
 input: |
   {a:1}

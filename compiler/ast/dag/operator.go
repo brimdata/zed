@@ -126,6 +126,10 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Cflag bool   `json:"cflag"`
 	}
+	Yield struct {
+		Kind  string `json:"kind" unpack:""`
+		Exprs []Expr `json:"exprs"`
+	}
 )
 
 // Input structure
@@ -260,6 +264,7 @@ func (*TypeProc) OpNode()   {}
 func (*Shape) OpNode()      {}
 func (*Explode) OpNode()    {}
 func (*Over) OpNode()       {}
+func (*Yield) OpNode()      {}
 func (*Merge) OpNode()      {}
 
 func (seq *Sequential) IsEntry() bool {

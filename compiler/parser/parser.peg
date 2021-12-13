@@ -308,6 +308,7 @@ Operator
   / PassProc
   / ExplodeProc
   / OverProc
+  / YieldProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
@@ -572,6 +573,11 @@ ExplodeProc
 OverProc
   = "over"i _ exprs:Exprs {
 	  RETURN(MAP("kind":"Over", "exprs":exprs))
+    }
+
+YieldProc
+  = "yield"i _ exprs:Exprs {
+	  RETURN(MAP("kind":"Yield", "exprs":exprs))
     }
 
 TypeArg

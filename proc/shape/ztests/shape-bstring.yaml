@@ -1,6 +1,6 @@
 zed: |
   type custom = {bstring: bstring}
-  put this := shape(custom)
+  yield shape(<custom>)
 
 input: |
   {bstring:"this is a bstring"}

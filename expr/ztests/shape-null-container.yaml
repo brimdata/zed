@@ -1,7 +1,7 @@
 # issues #2853 #2879
 
 zed: |
-  put this := shape(<{
+  yield shape(<{
     array:[string],
     record:{c1:int64,c2:bstring,c3:time}
   }>)

@@ -3,6 +3,4 @@ zed: 'cut this:=a'
 input: |
   {a:1(int32)}
 
-warnings: |
-  cut: cannot cut a non-record to .
-  cut: no record found with columns a
+errorRE: "cut: 'this' not allowed \\(use record literal\\)"
