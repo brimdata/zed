@@ -38,9 +38,9 @@ func (l *LakeFlags) SetFlags(fs *flag.FlagSet) {
 func (l *LakeFlags) Connection() (*client.Connection, error) {
 	uri, err := l.URI()
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
-	if !api.IsRemoteLake(uri) {
+	if !api.IsLakeService(uri) {
 		return nil, errors.New("cannot open connection on local lake")
 	}
 	creds, err := l.LoadCredentials()
@@ -59,7 +59,7 @@ func (l *LakeFlags) Open(ctx context.Context) (api.Interface, error) {
 	if err != nil {
 		return nil, err
 	}
-	if api.IsRemoteLake(uri) {
+	if api.IsLakeService(uri) {
 		conn, err := l.Connection()
 		if err != nil {
 			return nil, err

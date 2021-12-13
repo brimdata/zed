@@ -37,7 +37,7 @@ type Interface interface {
 	UpdateIndex(ctx context.Context, names []string, pool ksuid.KSUID, branchName string) (ksuid.KSUID, error)
 }
 
-func IsRemoteLake(u *storage.URI) bool {
+func IsLakeService(u *storage.URI) bool {
 	return u.Scheme == "http" || u.Scheme == "https"
 }
 

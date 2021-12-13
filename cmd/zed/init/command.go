@@ -55,7 +55,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	if api.IsRemoteLake(lakePath) {
+	if api.IsLakeService(lakePath) {
 		return fmt.Errorf("init command not valid on remote lake")
 	}
 	if _, err := api.CreateLocalLake(ctx, lakePath); err != nil {
