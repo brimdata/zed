@@ -27,8 +27,12 @@ func (l *LakeFlags) SetFlags(fs *flag.FlagSet) {
 	if dir != "" {
 		dir = filepath.Join(dir, ".zed")
 	}
-	fs.StringVar(&l.Lake, "lake", os.Getenv("ZED_LAKE"), "Zed lake URI (env: ZED_LAKE)")
 	fs.StringVar(&l.ConfigDir, "configdir", dir, "configuration and credentials directory")
+	lake := "http://localhost:9867"
+	if s, ok := os.LookupEnv("ZED_LAKE"); ok {
+		lake = s
+	}
+	fs.StringVar(&l.Lake, "lake", lake, "lake location (env: ZED_LAKE)")
 }
 
 func (l *LakeFlags) Connection() (*client.Connection, error) {
