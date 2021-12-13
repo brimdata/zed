@@ -18,13 +18,15 @@ func New(parent proc.Interface, limit int) *Proc {
 }
 
 func (p *Proc) Pull() (zbuf.Batch, error) {
-	remaining := p.limit - p.count
-	if remaining <= 0 {
-		return nil, nil
-	}
 	batch, err := p.parent.Pull()
 	if proc.EOS(batch, err) {
+		p.count = 0
 		return nil, err
+	}
+	remaining := p.limit - p.count
+	if remaining <= 0 {
+		batch.Unref()
+		return nil, nil
 	}
 	vals := batch.Values()
 	if n := len(vals); n < remaining {

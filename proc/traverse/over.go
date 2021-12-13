@@ -46,7 +46,10 @@ func (o *Over) Pull() (zbuf.Batch, error) {
 	return out, err
 }
 
-func (o *Over) Done() { o.parent.Done() }
+// Done is currently ignored as the model here as each downstream batch should be
+// handled indepedently.  We need a way to scope flowgraphs so the done protocol can
+// be propagated on an outer scope but not on the inner scope.
+func (o *Over) Done() {}
 
 func (o *Over) over(this *zed.Value) (zbuf.Array, error) {
 	var out zbuf.Array
