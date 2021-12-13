@@ -57,7 +57,7 @@ Or you can run a Zed lake service, load it with data using `zed load`, and hit t
 In one shell, run the server:
 ```
 mkdir scratch
-zed serve -R scratch
+zed serve -lake scratch
 ```
 And in another shell, run the client:
 ```
