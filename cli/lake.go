@@ -75,7 +75,7 @@ func (l *LakeFlags) URI() (*storage.URI, error) {
 	}
 	u, err := storage.ParseURI(l.Lake)
 	if err != nil {
-		err = fmt.Errorf("error parsing lake path: %w", err)
+		err = fmt.Errorf("error parsing lake location: %w", err)
 	}
 	return u, err
 }
