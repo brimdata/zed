@@ -71,7 +71,7 @@ func (l *LakeFlags) Open(ctx context.Context) (api.Interface, error) {
 
 func (l *LakeFlags) URI() (*storage.URI, error) {
 	if l.Lake == "" {
-		return nil, errors.New("lake URI must be set (either with the -lake flag or ZED_LAKE environment variable)")
+		return nil, errors.New("lake location must be set (either with the -lake flag or ZED_LAKE environment variable)")
 	}
 	u, err := storage.ParseURI(l.Lake)
 	if err != nil {
