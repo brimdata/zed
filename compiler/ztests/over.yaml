@@ -1,0 +1,12 @@
+script: |
+  zed dev compile -C 'over foo'
+  echo ===
+  zed dev compile -C 'over foo,bar | sum(this)'
+
+outputs:
+  - name: stdout
+    data: |
+      over foo
+      ===
+      over foo, bar
+      | sum(this)

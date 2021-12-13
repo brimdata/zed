@@ -225,23 +225,12 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 			return nil, errors.New("explode field must be a top-level field")
 		}
 		return explode.New(b.pctx.Zctx, parent, args, typ, as.Leaf())
-	case *dag.Traverse:
-		e, err := compileExpr(b.pctx.Zctx, b.scope, v.Expr)
+	case *dag.Over:
+		exprs, err := compileExprs(b.pctx.Zctx, b.scope, v.Exprs)
 		if err != nil {
 			return nil, err
 		}
-		t := traverse.New(b.pctx.Context, parent, e)
-		if v.Seq == nil {
-			return t, nil
-		}
-		sub, err := b.compile(v.Seq, []proc.Interface{t.SubProcSource})
-		if err != nil {
-			return nil, err
-		}
-		if len(sub) != 1 {
-			return nil, errors.New("a traverse proc can only have one sub-sequence")
-		}
-		t.SetSubProc(sub[0])
+		t := traverse.NewOver(parent, exprs)
 		return t, nil
 	default:
 		return nil, fmt.Errorf("unknown AST proc type: %v", v)
