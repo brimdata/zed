@@ -18,7 +18,7 @@ var Cmd = &charm.Spec{
 	Usage: "create and initialize a new, empty lake",
 	Short: "init [ path ]",
 	Long: `
-"zed lake init" ...
+"zed init" ...
 `,
 	New: New,
 }

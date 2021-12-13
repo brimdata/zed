@@ -9,7 +9,7 @@ import (
 )
 
 func username() string {
-	if s := os.Getenv("ZED_LAKE_USER"); s != "" {
+	if s := os.Getenv("ZED_USER"); s != "" {
 		return s
 	}
 	u, err := user.Current()
@@ -30,7 +30,7 @@ func username() string {
 	return s
 }
 
-// CommitFlags implements flags used by all "zed lake" commands that need commit info.
+// CommitFlags implements flags used by all "zed" commands that need commit info.
 type CommitFlags struct {
 	User    string
 	Message string

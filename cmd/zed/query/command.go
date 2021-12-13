@@ -26,7 +26,7 @@ var Cmd = &charm.Spec{
 	Usage: "query [options] [zed-query]",
 	Short: "run a Zed query against a data lake",
 	Long: `
-"zed lake query" runs a Zed query against a data lake.
+"zed query" runs a Zed query against a data lake.
 `,
 	New: New,
 }

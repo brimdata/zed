@@ -20,7 +20,7 @@ var Cmd = &charm.Spec{
 	Usage: "ls [options] [pool]",
 	Short: "list pools in a lake or branches in a pool",
 	Long: `
-"zed lake ls" shows a listing of a data pool's data objects as IDs.
+"zed ls" shows a listing of a data pool's data objects as IDs.
 If a pool name or pool ID is given, then the pool's branches are listed
 along with the ID of their commit object, which points at the tip of each branch.
 `,

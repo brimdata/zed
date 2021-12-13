@@ -61,7 +61,7 @@ func (c *Command) Run(args []string) error {
 	}
 	defer cleanup()
 	if len(args) == 0 {
-		return errors.New("zed lake load: at least one input file must be specified (- for stdin)")
+		return errors.New("zed load: at least one input file must be specified (- for stdin)")
 	}
 	lake.SeekIndexStride = int(c.seekStride)
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {

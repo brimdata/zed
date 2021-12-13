@@ -26,7 +26,7 @@ when read data from the pool.
 No data is actually removed from the lake.  Instead, a delete
 operation is an action in the pool's commit journal.  Any delete
 can be "undone" by adding the commits back to the log using
-"zed lake add".
+"zed revert".
 `,
 	New: New,
 }
