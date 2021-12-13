@@ -16,12 +16,12 @@ The following available operators are documented in detail below:
 * [`fuse`](#fuse)
 * [`head`](#head)
 * [`join`](#join)
+* [`over`](#over)
 * [`pick`](#pick)
 * [`put`](#put)
 * [`rename`](#rename)
 * [`sort`](#sort)
 * [`tail`](#tail)
-* [`over`](#over)
 * [`uniq`](#uniq)
 
 ---
@@ -623,6 +623,61 @@ zq -z -I embed-opposite.zed
 
 ---
 
+## `over`
+
+```
+over <expr> [, <expr>...]
+```
+
+For each input value,
+`over` yields a sequence of output values terminated by `EOS`
+where the values are determined by the one or more expressions
+evaluated left to right.
+When an expression results in a complex type, `over` yields each of the composite value's top-level elements:
+* for an array or set, it yields each element;
+* for a record, it yields each field value as a single-field record; and
+* for a map, it yields each entry as a record containing two fields, `key` and `value`.
+
+The ability to have sub sequence with traverse is a powerful feature: it allows
+users to leverage the full power of the Zed language on a single collection
+value. For instance the sum of elements in an array can be computed with
+`over a | sum(this)`\*\*.
+
+\* `over` is currently in beta and does not currently support iterating over
+records and maps. This will be added shortly.
+
+\*\* `over` is currently in beta and works on a subset of the available
+operators including `filter`, `cut` and `pick`, and `summarize`.  Other operators
+currently used downstream of `over` may produce undefined results.
+
+#### Example (basic):
+
+```mdtest-command
+echo '{a:[3,2,1]}' | zq -z 'over a' -
+```
+
+#### Output:
+```mdtest-output
+3
+2
+1
+```
+
+#### Example (filter)
+
+```mdtest-command
+echo '{a:[6,5,4]} {a:[3,2,1]}' | zq -z 'over a | this % 2 == 0' -
+```
+
+#### Output:
+```mdtest-output
+6
+4
+2
+```
+
+---
+
 ## `pick`
 
 |                           |                                               |
@@ -989,61 +1044,6 @@ zq -z 'County=="Los Angeles" | tail 5' schools.zson
 ```
 
 ---
-
-## `over`
-
-```
-over <expr> [, <expr>...]
-```
-
-For each input value,
-`over` yields a sequence of output values terminated by `EOS`
-where the values are determined by the one or more expressions
-evaluated left to right.
-When an expression results in a complex type, each of the composite value's top-level
-elements is yielded:
-* for an array or set, each element is yielded;
-* for a record, each field value is yielded as a single-field record; and
-* for a map, each entry is yielded as a record containing two fields
-`key` and `value`.
-
-The ability to have sub sequence with traverse is a powerful feature: it allows
-users to leverage the full power of the Zed language on a single collection
-value. For instance the sum of elements in an array can be computed with
-`over a | sum(this)`\*\*.
-
-\* `over` is currently in beta and does not currently support iterating over
-records and maps. This will be added shortly.
-
-\*\* `over` is currently in beta and works on a subset of the available
-operators including `filter`, `cut` and `pick`, and `summarize`.  Other operators
-currently used downstream of `over` may produce undefined results.
-
-#### Example (basic):
-
-```mdtest-command
-echo '{a:[3,2,1]}' | zq -z 'over a' -
-```
-
-#### Output:
-```mdtest-output
-3
-2
-1
-```
-
-#### Example (filter)
-
-```mdtest-command
-echo '{a:[6,5,4]} {a:[3,2,1]}' | zq -z 'over a | this % 2 == 0' -
-```
-
-#### Output:
-```mdtest-output
-6
-4
-2
-```
 
 ## `uniq`
 

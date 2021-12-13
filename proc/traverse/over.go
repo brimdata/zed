@@ -73,9 +73,7 @@ func appendOver(out *zbuf.Array, zv *zed.Value) error {
 	}
 	typ := zed.InnerType(zv.Type)
 	if typ == nil {
-		// XXX Support records and maps.
-		// we shouldn't error on this...
-		//zerr := zed.NewErrorf("value must be of type array or set, got: %s", zv.Type)
+		// XXX Issue #3324: need to support records and maps.
 		return nil
 	}
 	iter := zcode.Iter(zv.Bytes)

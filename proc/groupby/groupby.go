@@ -172,6 +172,18 @@ func (p *Proc) Done() {
 }
 
 func (p *Proc) run() {
+	sendResults := func(p *Proc) error {
+		for {
+			b, err := p.agg.Results(true)
+			if err != nil {
+				return err
+			}
+			if b == nil {
+				return nil
+			}
+			p.sendResult(b, nil)
+		}
+	}
 	var eof bool
 	for {
 		batch, err := p.parent.Pull()
@@ -180,16 +192,9 @@ func (p *Proc) run() {
 			return
 		}
 		if batch == nil {
-			for {
-				b, err := p.agg.Results(true)
-				if err != nil {
-					p.shutdown(err)
-					return
-				}
-				if b == nil {
-					break
-				}
-				p.sendResult(b, nil)
+			if err := sendResults(p); err != nil {
+				p.shutdown(err)
+				return
 			}
 			eof = true
 			continue
