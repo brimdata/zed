@@ -307,6 +307,7 @@ Operator
   / FromProc
   / PassProc
   / ExplodeProc
+  / OverProc
 
 SortProc
   = "sort"i args:SortArgs list:(_ l:Exprs { RETURN(l) })? {
@@ -566,6 +567,11 @@ PassProc
 ExplodeProc
   = "explode"i _ args:Exprs typ:TypeArg as:AsArg? {
       RETURN(MAP("kind":"Explode", "args": args, "as": as, "type": typ))
+    }
+
+OverProc
+  = "over"i _ exprs:Exprs {
+	  RETURN(MAP("kind":"Over", "exprs":exprs))
     }
 
 TypeArg

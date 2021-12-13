@@ -35,6 +35,7 @@ var unpacker = unpack.New(
 	astzed.Map{},
 	MapExpr{},
 	Shape{},
+	Over{},
 	Parallel{},
 	Pass{},
 	Path{},

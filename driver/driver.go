@@ -91,13 +91,22 @@ func run(pctx *proc.Context, d Driver, runtime *compiler.Runtime, statsTicker <-
 	}
 	resultCh := make(chan proc.Result)
 	go func() {
+		var eof bool
 		for {
 			batch, err := safePull(puller)
-			resultCh <- proc.Result{Batch: batch, Err: err}
 			if batch == nil || err != nil {
-				close(resultCh)
-				return
+				if eof || err != nil {
+					if err != nil {
+						resultCh <- proc.Result{Err: err}
+					}
+					close(resultCh)
+					return
+				}
+				eof = true
+				continue
 			}
+			eof = false
+			resultCh <- proc.Result{Batch: batch}
 		}
 	}()
 	defer func() {

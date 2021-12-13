@@ -434,6 +434,10 @@ func (c *canon) proc(p ast.Proc) {
 	//	//XXX TBD
 	//	c.open("sql")
 	//	c.close()
+	case *ast.Over:
+		c.next()
+		c.write("over ")
+		c.exprs(p.Exprs)
 	default:
 		c.open("unknown proc: %T", p)
 		c.close()

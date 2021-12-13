@@ -29,6 +29,7 @@ import (
 	"github.com/brimdata/zed/proc/switcher"
 	"github.com/brimdata/zed/proc/tail"
 	"github.com/brimdata/zed/proc/top"
+	"github.com/brimdata/zed/proc/traverse"
 	"github.com/brimdata/zed/proc/uniq"
 	"github.com/brimdata/zed/zbuf"
 	"github.com/brimdata/zed/zio"
@@ -224,6 +225,13 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 			return nil, errors.New("explode field must be a top-level field")
 		}
 		return explode.New(b.pctx.Zctx, parent, args, typ, as.Leaf())
+	case *dag.Over:
+		exprs, err := compileExprs(b.pctx.Zctx, b.scope, v.Exprs)
+		if err != nil {
+			return nil, err
+		}
+		t := traverse.NewOver(parent, exprs)
+		return t, nil
 	default:
 		return nil, fmt.Errorf("unknown AST proc type: %v", v)
 
