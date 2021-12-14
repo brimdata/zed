@@ -382,6 +382,10 @@ func (c *canonDAG) op(p dag.Op) {
 		c.next()
 		c.write("over ")
 		c.exprs(p.Exprs)
+	case *dag.Yield:
+		c.next()
+		c.write("yield ")
+		c.exprs(p.Exprs)
 	default:
 		c.open("unknown proc: %T", p)
 		c.close()
