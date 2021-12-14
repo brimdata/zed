@@ -1,6 +1,0 @@
-zed: 'put this:=a'
-
-input: |
-  {a:1(int32)}
-
-errorRE: cannot put a non-record to this

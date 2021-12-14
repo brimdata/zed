@@ -1,4 +1,4 @@
-zed: put this:=a
+zed: yield a
 
 input: |
   {"a": {"a": "a", "b": "b"}, "b": "b"}

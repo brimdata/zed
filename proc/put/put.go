@@ -42,6 +42,9 @@ type putRule struct {
 
 func New(pctx *proc.Context, parent proc.Interface, clauses []expr.Assignment) (proc.Interface, error) {
 	for i, p := range clauses {
+		if p.LHS.IsRoot() {
+			return nil, fmt.Errorf("put: LHS cannot be 'this' (use 'yield' operator)")
+		}
 		for j, c := range clauses {
 			if i == j {
 				continue
@@ -213,14 +216,6 @@ func findOverwriteClause(path field.Path, clauses []expr.Assignment) (int, field
 }
 
 func (p *Proc) deriveSteps(inType *zed.TypeRecord, vals []zed.Value) (step, zed.Type, error) {
-	// special case: assign to root (put .=x)
-	if p.clauses[0].LHS.IsRoot() {
-		typ := vals[0].Type
-		if zed.TypeRecordOf(typ) == nil {
-			return step{}, nil, fmt.Errorf("put this=x: cannot put a non-record to this")
-		}
-		return step{op: root, index: 0}, typ, nil
-	}
 	return p.deriveRecordSteps(field.NewRoot(), inType.Columns, vals)
 }
 

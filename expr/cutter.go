@@ -7,7 +7,6 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/zcode"
 )
 
 type Cutter struct {
@@ -30,11 +29,9 @@ type Cutter struct {
 // is false, the Cutter copies any fields in fieldnames, where targets
 // specifies the copied field names.
 func NewCutter(zctx *zed.Context, fieldRefs field.List, fieldExprs []Evaluator) (*Cutter, error) {
-	if len(fieldRefs) > 1 {
-		for _, f := range fieldRefs {
-			if f.IsRoot() {
-				return nil, errors.New("cannot assign to . when cutting multiple values")
-			}
+	for _, f := range fieldRefs {
+		if f.IsRoot() {
+			return nil, errors.New("cut: 'this' not allowed (use record literal)")
 		}
 	}
 	var b *zed.ColumnBuilder
@@ -75,24 +72,6 @@ func (c *Cutter) FoundCut() bool {
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
 func (c *Cutter) Apply(in *zed.Value) (*zed.Value, error) {
-	if len(c.fieldRefs) == 1 && c.fieldRefs[0].IsRoot() {
-		zv, err := c.fieldExprs[0].Eval(in)
-		if err != nil {
-			if err == zed.ErrMissing {
-				return nil, nil
-			}
-			return nil, err
-		}
-		recType, ok := zed.AliasOf(zv.Type).(*zed.TypeRecord)
-		if !ok {
-			return nil, errors.New("cannot cut a non-record to .")
-		}
-		if zv.IsUnset() {
-			return nil, errors.New("cannot cut an unset value to .")
-		}
-		c.dirty = true
-		return zed.NewValue(recType, append(zcode.Bytes{}, zv.Bytes...)), nil
-	}
 	types := c.typeCache
 	b := c.builder
 	b.Reset()

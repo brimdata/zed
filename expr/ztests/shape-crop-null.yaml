@@ -1,4 +1,4 @@
-zed: put this:=crop(<{f:null}>)
+zed: yield crop(<{f:null}>)
 
 input: &input |
   {f:1(=int64_alias)}(=int64_record_alias)

@@ -23,6 +23,7 @@ The following available operators are documented in detail below:
 * [`sort`](#sort)
 * [`tail`](#tail)
 * [`uniq`](#uniq)
+* [`yield`](#yield)
 
 ---
 
@@ -1092,5 +1093,48 @@ zq -z 'cut District,County | uniq' schools.zson
 {District:"Nevada County Office of Education",County:"Nevada"}
 {District:"San Bernardino City Unified",County:"San Bernardino"}
 {District:"Ojai Unified",County:"Ventura"}
+...
+```
+
+---
+
+## `yield`
+
+|                           |                                                 |
+| ------------------------- | ----------------------------------------------- |
+| **Description**           | For each input value, produces one or more values downstream.
+| **Syntax**                | `yield <expression> [, (<expression>)...]` |
+| **Required arguments**    | One or more of `<expression>`, which may be any valid Zed [expression](expressions.md).
+| **Optional arguments**    | None |
+
+#### Example #1:
+
+This example produce two simpler records for every school record listing
+the average math score with the school name and the county name.
+
+```mdtest-command dir=testdata/edu
+zq -Z 'AvgScrMath!=null | yield {school:sname,avg:AvgScrMath}, {county:cname,zvg:AvgScrMath}' testscores.zson
+```
+
+>
+
+#### Output:
+```mdtest-output head 4
+{
+    school: "APEX Academy",
+    avg: 371 (uint16)
+}
+{
+    county: "Los Angeles",
+    zvg: 371 (uint16)
+}
+{
+    school: "ARISE High",
+    avg: 367 (uint16)
+}
+{
+    county: "Alameda",
+    zvg: 367 (uint16)
+}
 ...
 ```

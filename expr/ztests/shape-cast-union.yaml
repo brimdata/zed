@@ -1,7 +1,7 @@
 zed: |
   type string_alias=string
   type union=(int64,string,string_alias)
-  put this:=cast(<{a:union}>)
+  yield cast(<{a:union}>)
 
 input: |
   {a:null}

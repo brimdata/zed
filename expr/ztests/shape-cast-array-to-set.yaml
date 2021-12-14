@@ -1,5 +1,5 @@
 zed: |
-  put this := cast(<{a:|[ip]|,b:|[{b:ip}]|}>)
+  yield cast(<{a:|[ip]|,b:|[{b:ip}]|}>)
 
 input: |
   {a:null([string]),b:null([{b:string}])}

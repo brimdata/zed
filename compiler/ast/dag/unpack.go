@@ -75,6 +75,7 @@ var unpacker = unpack.New(
 	astzed.TypeValue{},
 	UnaryExpr{},
 	Uniq{},
+	Yield{},
 )
 
 func UnpackJSON(buf []byte) (interface{}, error) {

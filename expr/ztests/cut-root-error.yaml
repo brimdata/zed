@@ -3,4 +3,4 @@ zed: 'put x:=cut(this,b)'
 input: |
   {a:1(int32),b:2(int32)}
 
-errorRE: cannot assign to \. when cutting multiple values
+errorRE: "cut\\(\\): 'this' not allowed in cut argument \\(use record literal\\)"

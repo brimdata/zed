@@ -1,4 +1,4 @@
-zed: 'cut this:=a'
+zed: 'yield a'
 
 input: |
   {a:{b:null(int32)}}

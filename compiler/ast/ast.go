@@ -295,6 +295,10 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
 	}
+	Yield struct {
+		Kind  string `json:"kind" unpack:""`
+		Exprs []Expr `json:"exprs"`
+	}
 
 	// An OpAssignment proc is a list of assignments whose parent proc
 	// is unknown: It could be a Summarize or Put proc. This will be
@@ -489,6 +493,7 @@ func (*Shape) ProcAST()        {}
 func (*From) ProcAST()         {}
 func (*Explode) ProcAST()      {}
 func (*Over) ProcAST()         {}
+func (*Yield) ProcAST()        {}
 
 func (*SQLExpr) ProcAST() {}
 

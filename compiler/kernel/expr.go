@@ -324,14 +324,15 @@ func compileCutter(zctx *zed.Context, scope *Scope, node dag.Call) (*expr.Cutter
 		// This is a bit of a hack and could be cleaed up by re-factoring
 		// CompileAssigment, but for now, we create an assigment expression
 		// where the LHS and RHS are the same, so that cut(id.orig_h,_path)
-		// gives a value of type {id:{orig_h:ip},{_path:string}}
-		// with field names that are the same as the cut names.
-		// We should allow field assignments as function arguments.
-		// See issue #1772.
+		// gives a value of type {id:{orig_h:ip},_path:string},
+		// i.e., field names that are the same as the cut names.
 		assignment := &dag.Assignment{LHS: expr, RHS: expr}
 		compiled, err := CompileAssignment(zctx, scope, assignment)
 		if err != nil {
 			return nil, err
+		}
+		if compiled.LHS.IsRoot() {
+			return nil, errors.New("cut(): 'this' not allowed in cut argument (use record literal)")
 		}
 		lhs = append(lhs, compiled.LHS)
 		rhs = append(rhs, compiled.RHS)

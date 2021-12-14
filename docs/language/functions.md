@@ -398,7 +398,7 @@ operator](operators.md#cut)
 #### Example:
 
 ```mdtest-command
-echo '{foo:{a:1,b:2,c:3}}' | zq -z 'this := cut(foo.a,foo.c)' -
+echo '{foo:{a:1,b:2,c:3}}' | zq -z 'yield cut(foo.a,foo.c)' -
 ```
 
 **Output:**
@@ -439,7 +439,7 @@ to the [`pick` operator](operators.md#cut)
 #### Example:
 
 ```mdtest-command
-echo '{foo:{a:1,b:2,c:3}}' | zq -z 'this := pick(foo.a,foo.c)' -
+echo '{foo:{a:1,b:2,c:3}}' | zq -z 'yield pick(foo.a,foo.c)' -
 ```
 
 **Output:**
@@ -460,7 +460,7 @@ operates on `this`.
 #### Example:
 
 ```mdtest-command
-echo '{"a.b.c":"foo"}' | zq -z 'this := unflatten()' -
+echo '{"a.b.c":"foo"}' | zq -z 'yield unflatten()' -
 ```
 
 **Output:**
