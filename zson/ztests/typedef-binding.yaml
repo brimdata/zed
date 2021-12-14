@@ -1,7 +1,7 @@
 zed: |
   type port=uint16
   type rec={p:port}
-  is(r,type(rec))
+  is(r,<rec>)
 
 input: |
   {r:{p:80(port=(uint16))}(=rec)}

@@ -678,7 +678,6 @@ NotExpr
 FuncExpr
   = SelectExpr
   / MatchExpr
-  / typ:TypeLiteral !(__ "(") { RETURN(typ) }
   / first:Cast rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
     }
@@ -780,11 +779,11 @@ Deref
   / "." !(".") id:Identifier { RETURN(ARRAY(".", id)) }
 
 Primary
-  = Literal
-  / Record
+  = Record
   / Array
   / Set
   / Map
+  / Literal
   / "(" __ expr:Expr __ ")" { RETURN(expr) }
 
 Record
@@ -1004,27 +1003,18 @@ BytesLiteral
   }
 
 TypeLiteral
-  = !(SQLTokenSentinels EOT) typ:TypeExternal {
+  = "<" typ:Type ">" {
       RETURN(MAP("kind": "TypeValue", "value": typ))
     }
 
 CastType
-  = TypeExternal
+  = TypeLiteral
   / PrimitiveType
 
-TypeExternal
-  = ExplicitType
-  / ComplexTypeExternal
-  / typ:PrimitiveTypeExternal !IdentifierRest { RETURN(typ) }
-
 Type
-  = ExplicitType
+  = TypeLiteral
   / AmbiguousType
   / ComplexType
-
-ExplicitType
-  = "type" __ "(" __ typ:Type __ ")" { RETURN(typ)}
-  / "type" __ "(" __ typ:TypeUnion __ ")" { RETURN(typ) }
 
 AmbiguousType
   = name:PrimitiveType !IdentifierRest { RETURN(name) }
@@ -1062,45 +1052,12 @@ ComplexType
       RETURN(MAP("kind":"TypeMap", "key_type":keyType, "val_type": valType))
     }
 
-ComplexTypeExternal
-  = "{" __ fields:TypeFieldList __ "}" {
-      RETURN(MAP("kind":"TypeRecord", "fields":fields))
-    }
-  / "[" __ typ:TypeExternal __ "]" {
-      RETURN(MAP("kind":"TypeArray", "type":typ))
-    }
-  / "|[" __ typ:TypeExternal __ "]|" {
-      RETURN(MAP("kind":"TypeSet", "type":typ))
-    }
-  / "|{" __ keyType:TypeExternal __ "," __ valType:TypeExternal __ "}|" {
-      RETURN(MAP("kind":"TypeMap", "key_type":keyType, "val_type": valType))
-    }
-
 PrimitiveType
-  = PrimitiveTypeExternal
-  / PrimitiveTypeInternal
-
-// External types can be appear in expressions without using the type()
-// operator.  Unlike internal type names, these names would not confuse
-// someone that they cannot be used as field names.  For example, you can
-// say is(int32).
-PrimitiveTypeExternal
   = (   "uint8" / "uint16" / "uint32" / "uint64"
       / "int8" / "int16" / "int32" / "int64"
       / "float32" / "float64"
-      / "bool" / "string" ) {
-          RETURN(MAP("kind": "TypePrimitive", "name": TEXT))
-        }
-
-// Internal types must be enclosed in a type() operator when appearing in an
-// expression.  Unlike external type names, these names could surprise
-// someone that they cannot be used as field names.  For example, you cannot
-// say is(net) but instead must is(type(net)).  Of course you can still say,
-// {x:int32,n:net} as the use of net here is not an expression.  We include
-// null here as well so null outside of an explicit type expression is
-// the null value (and can be changed into a null type using type(null)).
-PrimitiveTypeInternal
-  = (   "duration" / "time"
+      / "bool" / "string"
+      / "duration" / "time"
       / "bytes"
       / "bstring"
       / "ip" / "net"
@@ -1117,18 +1074,6 @@ TypeFieldListTail = __ "," __ typ:TypeField { RETURN(typ) }
 
 TypeField
   = name:FieldName __ ":" __ typ:Type {
-      RETURN(MAP("name": name, "type": typ))
-    }
-
-TypeFieldListExternal
-  = first:TypeField rest:TypeFieldListTailExternal* {
-    RETURN(PREPEND(first, rest))
-  }
-
-TypeFieldListTailExternal = __ "," __ typ:TypeFieldExternal { RETURN(typ) }
-
-TypeFieldExternal
-  = name:FieldName __ ":" __ typ:TypeExternal {
       RETURN(MAP("name": name, "type": typ))
     }
 
@@ -1163,8 +1108,6 @@ IdentifierName
 IDGuard
   = BooleanLiteral
   / NullLiteral
-  / TypeExternal
-  / PrimitiveTypeExternal
 
 Time
   = FullDate "T" FullTime {

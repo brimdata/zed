@@ -1,5 +1,5 @@
 zed: |
-  put this:=order({id: {orig_h: string, orig_p: port=(uint16), resp_h:ip,resp_p:port=(uint16)}})
+  put this:=order(<{id: {orig_h: string, orig_p: port=(uint16), resp_h:ip,resp_p:port=(uint16)}}>)
 
 input: |
   {id:{orig_h:"ff02::fb",orig_p:5353(port=(uint16)),resp_p:5354(port),resp_h:"1.2.3.4"},other:123.}

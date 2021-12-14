@@ -1,4 +1,4 @@
-zed: type foo = {x:int64} ; put this:=cast(this, type(foo))
+zed: type foo = {x:int64} ; put this:=cast(this, <foo>)
 
 input: |
   {x:123}
