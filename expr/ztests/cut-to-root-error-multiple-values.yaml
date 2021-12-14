@@ -1,6 +1,0 @@
-zed: 'cut this:=a,x:=b'
-
-input: |
-  {a:1(int32),b:2(int32)}
-
-errorRE: "cut: 'this' not allowed \\(use record literal\\)"
