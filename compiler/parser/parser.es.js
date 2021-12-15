@@ -620,7 +620,9 @@ function peg$parse(input, options) {
                          
             "rhs": {"kind": "Call", "name": "typeof",
                                     
-            "args": [e]}}],
+            "args": [e],
+                                    
+            "where": null}}],
                 
             "aggs": [{"kind": "Assignment",
                                     
@@ -786,8 +788,8 @@ function peg$parse(input, options) {
       peg$c296 = function(typ, expr) {
             return {"kind": "Cast", "expr": expr, "type": typ}
           },
-      peg$c297 = function(fn, args) {
-            return {"kind": "Call", "name": fn, "args": args}
+      peg$c297 = function(fn, args, where) {
+            return {"kind": "Call", "name": fn, "args": args, "where": where}
           },
       peg$c298 = function() { return [] },
       peg$c299 = function(first, e) { return e },
@@ -7705,7 +7707,7 @@ function peg$parse(input, options) {
   }
 
   function peg$parseFunction() {
-    var s0, s1, s2, s3, s4, s5, s6, s7, s8;
+    var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9;
 
     s0 = peg$currPos;
     s1 = peg$currPos;
@@ -7745,9 +7747,18 @@ function peg$parse(input, options) {
                     if (peg$silentFails === 0) { peg$fail(peg$c26); }
                   }
                   if (s8 !== peg$FAILED) {
-                    peg$savedPos = s0;
-                    s1 = peg$c297(s2, s6);
-                    s0 = s1;
+                    s9 = peg$parseWhereClause();
+                    if (s9 === peg$FAILED) {
+                      s9 = null;
+                    }
+                    if (s9 !== peg$FAILED) {
+                      peg$savedPos = s0;
+                      s1 = peg$c297(s2, s6, s9);
+                      s0 = s1;
+                    } else {
+                      peg$currPos = s0;
+                      s0 = peg$FAILED;
+                    }
                   } else {
                     peg$currPos = s0;
                     s0 = peg$FAILED;

@@ -171,7 +171,8 @@ TBD
                 MAP("kind": "Call", "name": "map",
                     "args": ARRAY(MAP("kind": "BinaryExpr", "op": "=",
                                       "lhs": MAP("kind": "ID", "name": "$"),
-                                      "rhs": v))))))))
+                                      "rhs": v)),
+                    "where": NULL))))))
     }
   / match:PatternMatch !ExprGuard { RETURN(match) }
   / v:SearchValue _ InToken _ "*" {
@@ -183,7 +184,8 @@ TBD
                 MAP("kind": "Call", "name": "map",
                     "args": ARRAY(MAP("kind": "BinaryExpr", "op": "in",
                                       "rhs": MAP("kind": "ID", "name": "$"),
-                                      "lhs": v))))))))
+                                      "lhs": v)),
+                    "where": NULL))))))
     }
 
 SearchExpr
@@ -445,7 +447,8 @@ SampleProc
           "keys": ARRAY(MAP("kind": "Assignment",
                    "lhs": MAP("kind": "ID", "name": "shape"),
                    "rhs": MAP("kind": "Call", "name": "typeof",
-                              "args": ARRAY(e)))),
+                              "args": ARRAY(e),
+                              "where": NULL))),
           "aggs": ARRAY(MAP("kind": "Assignment",
                               "lhs": MAP("kind": "ID", "name": "sample"),
                               "rhs": MAP("kind": "Agg",
@@ -725,8 +728,8 @@ Cast
     }
 
 Function
-  = !FuncGuard fn:IdentifierName __ "(" __ args:OptionalExprs __ ")" {
-      RETURN(MAP("kind": "Call", "name": fn, "args": args))
+  = !FuncGuard fn:IdentifierName __ "(" __ args:OptionalExprs __ ")" where:WhereClause? {
+      RETURN(MAP("kind": "Call", "name": fn, "args": args, "where": where))
     }
 
 OptionalExprs

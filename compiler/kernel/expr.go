@@ -100,6 +100,12 @@ func compileExpr(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Evaluator, e
 		return compileSetExpr(zctx, scope, e)
 	case *dag.MapExpr:
 		return compileMapExpr(zctx, scope, e)
+	case *dag.Agg:
+		agg, err := compileAgg(zctx, scope, e)
+		if err != nil {
+			return nil, err
+		}
+		return expr.NewAggregatorExpr(agg), nil
 	default:
 		return nil, fmt.Errorf("invalid expression type %T", e)
 	}
