@@ -22,7 +22,8 @@
 ## 1. Introduction
 
 ZNG is an efficient, binary serialization
-format conforming to the [Zed data model](zdm.md).  ZNG is ideally suited for streams
+format conforming to the [Zed data model](zed-data-model.md).
+ZNG is ideally suited for streams
 of heterogeneously typed records, e.g., structured logs, where filtering and
 analytics may be applied to a stream in parts without having to fully deserialize
 every value.

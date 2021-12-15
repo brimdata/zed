@@ -29,7 +29,7 @@
 * [3. Grammar](#3-grammar)
 
 ZSON is the human-readable, text-based serialization format of
-the [Zed data model](zdm.md).
+the [Zed data model](zed-data-model.md).
 
 ZSON builds upon the elegant simplicity of JSON with "type decorators".
 Where the type of a value is not implied by its syntax, a parenthesized
@@ -340,7 +340,7 @@ A sequence of enum values might look like this:
 
 #### 2.4.6 Map Value
 
-A [Zed map value](zdm.md#526-map-value) has the following ZSON syntax:
+A [Zed map value](zed-data-model.md#526-map-value) has the following ZSON syntax:
 ```
 |{ <key> : <value>, <key> : <value>, ... }|
 ```

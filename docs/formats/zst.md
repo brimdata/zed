@@ -1,7 +1,7 @@
 # ZST - ZNG stacked format
 
 ZST, pronounced "zest", is an object storage format for columnar data based on
-[the Zed data model](zdm.md).
+[the Zed data model](zed-data-model.md).
 ZST is the "stacked" version of Zed, where the fields from a stream of
 Zed records are stacked into vectors that form columns.
 Its purpose is to provide for efficient analytics and search over
@@ -70,7 +70,7 @@ in a single pass.
 The data section contains raw data values organized into _segments_,
 where a segment is a seek offset and byte length relative to the
 data section.  Each segment contains a sequence of
-[primitive-type Zed values](zdm.md#5-1-primitive-types),
+[primitive-type Zed values](zed-data-model.md#5-1-primitive-types),
 encoded as counted-length byte sequences where the counted-length is
 variable-length encoded as in the ZNG spec.
 

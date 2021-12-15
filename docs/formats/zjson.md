@@ -14,7 +14,7 @@
 * [Framing ZJSON objects](#framing-zjson-objects)
 * [Example](#example)
 
-The [Zed data model](zdm.md)
+The [Zed data model](zed-data-model.md)
 is based on richly typed records with a deterministic column order,
 as is implemented by the ZSON, ZNG, and ZST formats.
 Given the ubiquity of JSON, it is desirable to also be able to serialize
