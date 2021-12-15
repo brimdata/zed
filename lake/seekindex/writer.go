@@ -22,7 +22,7 @@ func NewWriter(w zio.Writer) *Writer {
 	}
 }
 
-func (w *Writer) Write(key zed.Value, offset int64) error {
+func (w *Writer) Write(key zed.Value, count uint64, offset int64) error {
 	b := w.builder
 	b.Reset()
 	if zed.IsContainerType(key.Type) {
@@ -30,10 +30,12 @@ func (w *Writer) Write(key zed.Value, offset int64) error {
 	} else {
 		b.AppendPrimitive(key.Bytes)
 	}
+	b.AppendPrimitive(zed.EncodeUint(count))
 	b.AppendPrimitive(zed.EncodeInt(offset))
 	if w.typ != key.Type {
 		var schema = []zed.Column{
 			{"key", key.Type},
+			{"count", zed.TypeUint64},
 			{"offset", zed.TypeInt64},
 		}
 		w.recType = w.zctx.MustLookupTypeRecord(schema)
