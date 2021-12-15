@@ -579,8 +579,19 @@ OverProc
     }
 
 YieldProc
-  = "yield"i _ exprs:Exprs {
+  = "yield"i _  exprs:Exprs {
 	  RETURN(MAP("kind":"Yield", "exprs":exprs))
+    }
+  / e:DotShortcut {
+	  RETURN(MAP("kind":"Yield", "exprs":ARRAY(e)))
+    }
+  / "." {
+	  RETURN(MAP("kind":"Pass"))
+    }
+
+DotShortcut
+  = first:DotID rest:(Deref)* {
+      RETURN(makeBinaryExprChain(first, rest))
     }
 
 TypeArg
@@ -744,10 +755,7 @@ Exprs
 DerefExpr = !IP6 e:DerefExprPattern { RETURN(e) }
 
 DerefExprPattern
-  = first:DotID rest:(Deref)* {
-      RETURN(makeBinaryExprChain(first, rest))
-    }
-  / first:RootRecord rest:(Deref)* {
+  = first:RootRecord rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
     }
   / first:Identifier rest:(Deref)* {

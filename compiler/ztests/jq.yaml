@@ -1,0 +1,22 @@
+script: |
+  zq -z .a in.zson
+  echo ===
+  zq -z '.a[1]' in.zson
+  echo ===
+  zq -z . in.zson
+
+inputs:
+  - name: in.zson
+    data: |
+      {a:[1,2],s:"a"}
+      {b:3,s:"b"}
+
+outputs:
+  - name: stdout
+    data: |
+      [1,2]
+      ===
+      2
+      ===
+      {a:[1,2],s:"a"}
+      {b:3,s:"b"}

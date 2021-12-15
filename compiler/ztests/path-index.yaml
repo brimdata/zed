@@ -1,4 +1,4 @@
-zed: 'put .["x.y"]:=to_lower(.["x.y"])'
+zed: 'put this["x.y"]:=to_lower(this["x.y"])'
 
 input: |
   {"x.y":"Hello, World"}
