@@ -15,6 +15,7 @@
     - [2.4.5 Enum Value](#245-enum-value)
     - [2.4.6 Map Value](#246-map-value)
     - [2.4.7 Type Value](#247-type-value)
+    - [2.4.7 Error Value](#248-error-value)
   + [2.5 Type Syntax](#25-type-syntax)
     - [2.5.1 Record Type](#251-record-type)
     - [2.5.2 Array Type](#252-array-type)
@@ -23,6 +24,7 @@
     - [2.5.5 Enum Type](#255-enum-type)
     - [2.5.6 Map Type](#256-map-type)
     - [2.5.7 Type Type](#257-type-type)
+    - [2.5.8 Error Type](#258-error-type)
   + [2.6 Null Value](#26-null-value)
 * [3. Grammar](#3-grammar)
 
@@ -136,17 +138,18 @@ are as follows:
 | `float16`  | a _non-integer string_ representing an IEEE-754 binary16 value |
 | `float32`  | a _non-integer string_ representing an IEEE-754 binary32 value |
 | `float64`  | a _non-integer string_ representing an IEEE-754 binary64 value |
+| `float128`  | a _non-integer string_ representing an IEEE-754 binary128 value |
+| `float256`  | a _non-integer string_ representing an IEEE-754 binary256 value |
 | `decimal32`  | a _non-integer string_ representing an IEEE-754 decimal32 value |
 | `decimal64`  | a _non-integer string_ representing an IEEE-754 decimal64 value |
 | `decimal128`  | a _non-integer string_ representing an IEEE-754 decimal128 value |
+| `decimal256`  | a _non-integer string_ representing an IEEE-754 decimal256 value |
 | `bool`     | the string `true` or `false` |
 | `bytes`    | a sequence of bytes encoded as a hexadecimal string prefixed with `0x` |
 | `string`   | a double-quoted or backtick-quoted UTF-8 string |
-| `bstring`  | a doubled-quoted UTF-8 string with `\x` escapes of non-UTF binary data |
 | `ip`       | a string representing an IP address in [IPv4 or IPv6 format](https://tools.ietf.org/html/draft-main-ipaddr-text-rep-02#section-3) |
 | `net`      | a string in CIDR notation representing an IP address and prefix length as defined in RFC 4632 and RFC 4291. |
 | `type`     | a string in canonical form as described in [Section 3.5](#25-type-value) |
-| `error`    | a UTF-8 byte sequence of string of error message|
 | `null`     | the string `null` |
 
 The format of a _duration string_
@@ -177,13 +180,15 @@ also be one of:
 A floating point value may be expressed with an integer string provided
 a type decorator is applied, e.g., `123 (float64)`.
 
+Decimal values require type decorators.
+
 A string may be backtick-quoted with the backtick character `` ` ``.
 None of the text between backticks is escaped, but by default, any newlines
 followed by whitespace are converted to a single newline and the first
 newline of the string is deleted.  To avoid this automatic deletion and
 preserve indentation, the backtick-quoted string can be preceded with `=>`.
 
-Of the 23 primitive types, eleven of them represent _implied-type_ values:
+Of the 30 primitive types, eleven of them represent _implied-type_ values:
 `int64`, `time`, `duration`, `float64`, `bool`, `bytes`, `string`, `ip`, `net`, `type`, and `null`.
 Values for these types are determined by the syntax of the value and
 thus do not need decorators to clarify the underlying type, e.g.,
@@ -225,24 +230,11 @@ that encounters such invalid sequences in a `string` type is undefined.
 These escaping rules apply also to quoted field names in record values and
 record types.
 
-Doubled-quoted `bstring` values may also included embedded binary data
-using the hex escape syntax, i.e., `\xhh` where `h` is a hexadecimal digit.
-This allows binary data that does not conform to a valid UTF-8 character encoding
-to be embedded in the `bstring` data type.
-`\x` followed by anything other than two hexadecimal digits is not a valid
-escape sequence. The behavior of an implementation that encounters such
-invalid sequences in a `bstring` type is undefined.
-
-Additionally, the backslash character itself (U+3B) may be represented
-by a sequence of two consecutive backslash characters.  In other words,
-the `bstring` values `\\` and `\x3b` are equivalent and both represent
-a single backslash character.
-
 ### 2.4 Complex Values
 
 Complex values are built from primitive values and/or other complex values
 and each conform to one of six complex types:  _record_, _array_, _set_,
-_union_, _enum_, and _map_.
+_union_, _enum_, _map_, and _error_.
 
 #### 2.4.1 Record Value
 
@@ -383,6 +375,14 @@ computed by introspecting the type of `t`.  This result is
 }
 ```
 
+#### 2.4.7 Error Value
+
+An error value has the following syntax:
+```
+error(<value>)
+```
+where `<value>` is any ZSON value.
+
 ### 2.5 Type Syntax
 
 The syntax of a type mirrors the value syntax.
@@ -478,6 +478,14 @@ of a type context.
 A type name has the same form as an identifier except the characters
 `/` and `.` are also permitted.
 
+#### 2.5.9 Error Type
+
+An _error type_ has the form:
+```
+error(<type>)
+```
+where `<type>` is the type of the underlying ZSON values wrapped as an error.
+
 ### 2.6 Null Value
 
 The null value is represented by the string `null`.
@@ -540,11 +548,13 @@ the defines their type.
 
 <mvalue> = <value> ":" <value>
 
-<type-value> = "(" <type> ")"
+<type-value> = "<" <type> ">"
+
+<error-value> = "error(" <value> ")"
 
 <type> = <primitive-type> | <record-type> | <array-type> | <set-type> |
-            <union-type> | <enum-type> | <map-type> | <type-type> |
-            <type-def> | <type-name>
+            <union-type> | <enum-type> | <map-type> |
+            <type-def> | <type-name> | <error-type>
 
 <primitive-type> = uint8 | uint16 | etc. as defined above including "type"
 
@@ -569,4 +579,6 @@ the defines their type.
 <type-def> = <identifier> = <type-type>
 
 <type-name> = as defined above
+
+<error-type> = "error(" <type> ")"
 ```

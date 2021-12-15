@@ -10,7 +10,8 @@
       - [2.1.1.4 Union Typedef](#2114-union-typedef)
       - [2.1.1.5 Enum Typedef](#2115-enum-typedef)
       - [2.1.1.6 Map Typedef](#2116-map-typedef)
-      - [2.1.1.7 Alias Typedef](#2117-alias-typedef)
+      - [2.1.1.7 Type Typedef](#2117-type-typedef)
+      - [2.1.1.8 Error Typedef](#2118-error-typedef)
     - [2.1.2 Compressed Value Message Block](#212-compressed-value-message-block)
     - [2.1.3 Application-Defined Messages](#213-application-defined-messages)
     - [2.1.4 End-of-Stream Markers](#214-end-of-stream-markers)
@@ -26,16 +27,19 @@ of heterogeneously typed records, e.g., structured logs, where filtering and
 analytics may be applied to a stream in parts without having to fully deserialize
 every value.
 
-ZNG is richly typed and thinner on the wire than JSON.
-ZNG strikes a balance between the narrowly typed but flexible
-[newline-delimited JSON (NDJSON)](http://ndjson.org/) format and
-a more structured approach like [Apache Avro](https://avro.apache.org).
+ZNG is analogous to [Apache Avro](https://avro.apache.org) but does not
+require schema definitions as it instead utilizes the fine-grained type system
+of the Zed data model.
+This binary format is based on machine-readable data types with an
+encoding methodology inspired by Avro,
+[Parquet](https://en.wikipedia.org/wiki/Apache_Parquet), and
+[Protocol Buffers](https://developers.google.com/protocol-buffers).
 
-As it follows the Zed data model, ZNG embeds all type information
+To this end, ZNG embeds all type information
 in the stream itself while having a binary serialization format that
 allows "lazy parsing" of fields such that
 only the fields of interest in a stream need to be deserialized and interpreted.
-Unlike Avro, ZNG embeds its "schemas" in the data stream and thereby admits
+aUnlike Avro, ZNG embeds its "schemas" in the data stream as Zed types and thereby admits
 an efficient multiplexing of heterogeneous data types by prepending to each
 data value a simple integer identifier to reference its type.
 
@@ -56,19 +60,6 @@ input contexts into an output context and adjusting the type reference of
 each value in the output ZNG sequence.  The values need not be traversed
 or otherwise rewritten to be merged in this fashion.
 
-The ZNG binary format is based on machine-readable data types with an
-encoding methodology inspired by Avro,
-[Parquet](https://en.wikipedia.org/wiki/Apache_Parquet), and
-[Protocol Buffers](https://developers.google.com/protocol-buffers).
-
-ZNG adheres to the Zed data model and
-encodes a sequence of one or more typed data values to comprise a stream.
-A ZNG stream may be interleaved with control messages
-that provide type definitions and other metadata.  The type of
-a particular data value is specified by its "type identifier", or type ID,
-which is an integer representing either a "primitive type" or a
-"complex type".
-
 ## 2. The ZNG Format
 
 A ZNG stream comprises a sequence of interleaved control messages and value messages
@@ -83,13 +74,14 @@ Control codes `0xf6` through `0xff` (in hexadecimal) are defined as follows:
 
 | Code   | Message Type                   |
 |--------|--------------------------------|
-| `0xf6` | record definition              |
-| `0xf7` | array definition               |
-| `0xf8` | set definition                 |
-| `0xf9` | union definition               |
-| `0xfa` | enum definiton                 |
-| `0xfb` | map definiton                  |
-| `0xfc` | type alias                     |
+| `0xf5` | record definition              |
+| `0xf6` | array definition               |
+| `0xf7` | set definition                 |
+| `0xf8` | union definition               |
+| `0xf9` | enum definiton                 |
+| `0xfa` | map definiton                  |
+| `0xfb` | type definition                |
+| `0xfc` | error definiton                |
 | `0xfd` | compressed value message block |
 | `0xfe` | application-defined message    |
 | `0xff` | end-of-stream                  |
@@ -111,8 +103,8 @@ any ZNG streaming API.  In this way, senders and receivers of ZNG can embed
 protocol directives as ZNG control payloads rather than defining additional
 encapsulating protocols.
 
-> For example, the [zed service](../../docs/lake/service-api.md) query endpoint
-> uses application-defined message `0xf7` to embed search and server stats in
+> For example, the [Zed service](../../docs/lake/service-api.md) query endpoint
+> uses application-defined message `0xfe` to embed search and server stats in
 > the return stream of ZNG data, e.g., as a long-running search progresses on
 > the server.
 
@@ -120,8 +112,8 @@ encapsulating protocols.
 
 Following a header byte of `0xf6-0xfb` is a "typedef".  A typedef binds
 "the next available" integer type ID to a type encoding.  As there are
-a total of 23 primitive type IDs, the Type IDs for typedefs
-begin at the value 23 and increase by one for each typedef. These bindings
+a total of 30 primitive type IDs, the Type IDs for typedefs
+begin at the value 30 and increase by one for each typedef. These bindings
 are scoped to the stream in which the typedef occurs.
 
 Type IDs for the "primitive types" need not be defined with typedefs and
@@ -129,7 +121,7 @@ are predefined with the IDs shown in the [Primitive Types](#-primitive-types) ta
 
 A typedef is encoded as a single byte indicating the complex type ID followed by
 the type encoding.  This creates a binding between the implied type ID
-(i.e., 23 plus the count of all previous typedefs in the stream) and the new
+(i.e., 30 plus the count of all previous typedefs in the stream) and the new
 type definition.
 
 The type ID is encoded as a `uvarint`, an encoding used throughout the ZNG format.
@@ -147,7 +139,7 @@ A record typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
 ---------------------------------------------------------
-|0xf6|<ncolumns>|<name1><type-id-1><name2><type-id-2>...|
+|0xf5|<ncolumns>|<name1><type-id-1><name2><type-id-2>...|
 ---------------------------------------------------------
 ```
 Record types consist of an ordered set of columns where each column consists of
@@ -182,7 +174,7 @@ An array type is encoded as simply the type code of the elements of
 the array encoded as a `uvarint`:
 ```
 ----------------
-|0xf7|<type-id>|
+|0xf6|<type-id>|
 ----------------
 ```
 
@@ -192,7 +184,7 @@ A set type is encoded as the type ID of the
 elements of the set, encoded as a `uvarint`:
 ```
 ----------------
-|0xf8|<type-id>|
+|0xf7|<type-id>|
 ----------------
 ```
 
@@ -202,7 +194,7 @@ A union typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
 -----------------------------------------
-|0xf9|<ntypes>|<type-id-1><type-id-2>...|
+|0xf8|<ntypes>|<type-id-1><type-id-2>...|
 -----------------------------------------
 ```
 A union type consists of an ordered set of types
@@ -220,7 +212,7 @@ An enum type is encoded as a `uvarint` representing the number of symbols
 in the enumeration followed by the names of each symbol.
 ```
 --------------------------------
-|0xfa|<nelem>|<name1><name2>...|
+|0xf9|<nelem>|<name1><name2>...|
 --------------------------------
 ```
 `<nelem>` is encoded as `uvarint`.
@@ -233,30 +225,20 @@ A map type is encoded as the type code of the key
 followed by the type code of the value.
 ```
 --------------------------
-|0xfb|<type-id>|<type-id>|
+|0xfa|<type-id>|<type-id>|
 --------------------------
 ```
 Each `<type-id>` is encoded as `uvarint`.
 
 
-#### 2.1.1.7 Alias Typedef
+#### 2.1.1.7 Type Name Typedef
 
-A type alias defines a new type ID that binds a new type name
-to a previously existing type ID.  This is useful for systems like Zeek,
-where there are customary type names that are well-known to users of the
-Zeek system and are easily mapped onto a ZNG type having a different name.
-By encoding the aliases in the format, there is no need to configure mapping
-information across different systems using the format, as the type aliases
-are communicated to the consumer of a ZNG stream.
+A type name defines a new type ID that binds a name to a previously existing type ID.  
 
-Type aliases can also be used like the "logical types" in Avro and Parquet,
-where higher-level semantics can be defined for a particular named type,
-all outside the scope of the base ZNG specification.
-
-A type alias is encoded as follows:
+A type name is encoded as follows:
 ```
 ----------------------
-|0xfc|<name><type-id>|
+|0xfb|<name><type-id>|
 ----------------------
 ```
 where `<name>` is an identifier representing the new type name with a new type ID
@@ -265,9 +247,20 @@ existing type ID `<type-id>.  `<type-id> is encoded as a `uvarint` and `<name>`
 is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 
-It is an error to define an alias that has the same name as a primitive type.
-It is permissible to redefine a previously defined alias with a
+It is an error to define a type name that has the same name as a primitive type.
+It is permissible to redefine a previously defined type name with a
 type that differs from the previous definition.
+
+#### 2.1.1.8 Error Typedef
+
+An error type is encoded as follows:
+```
+----------------
+|0xfc|<type-id>|
+----------------
+```
+which defines a new error type for error values that have the underlying type
+indicated by `<type-id>`.
 
 ### 2.1.2 Compressed Value Message Block
 
@@ -359,7 +352,7 @@ A end-of-stream marker is encoded as follows:
 
 After this marker, all previously read
 typedefs are invalidated and the "next available type ID" is reset to
-the initial value of 23.  To represent subsequent values that use a
+the initial value of 30.  To represent subsequent values that use a
 previously defined type, the appropriate typedef control code must
 be re-emitted
 (and note that the typedef may now be assigned a different ID).
@@ -493,34 +486,38 @@ All multi-byte sequences, which are not varints (e.g., float64, ip, etc),
 representing machine words are serialized in little-endian format.
 
 
-| Type       | ID |    N     |       ZNG Value Interpretation                 |
-|------------|---:|:--------:|------------------------------------------------|
-| `uint8`    |  0 | variable  | unsigned int of length N                       |
-| `uint16`   |  1 | variable | unsigned int of length N                       |
-| `uint32`   |  2 | variable | unsigned int of length N                       |
-| `uint64`   |  3 | variable | unsigned int of length N                       |
-| `int8`     |  4 | variable | signed int of length N                         |
-| `int16`    |  5 | variable | signed int of length N                         |
-| `int32`    |  6 | variable | signed int of length N                         |
-| `int64`    |  7 | variable | signed int of length N                         |
-| `duration` |  8 | variable | signed int of length N as ns                   |
-| `time`     | 9 | variable | signed int of length N as ns since epoch       |
-| `float16`  | 10 |    2     | 2 bytes of IEEE 64-bit format                  |
-| `float32`  | 11 |    4     | 4 bytes of IEEE 64-bit format                  |
-| `float64`  | 12 |    8     | 8 bytes of IEEE 64-bit format                  |
-| `decimal`  | 13 |  4,8,16  | N bytes of IEEE decimal format                 |
-| `bool`     | 14 |    1     | one byte 0 (false) or 1 (true)                 |
-| `bytes`    | 15 | variable | N bytes of value                               |
-| `string`   | 16 | variable | UTF-8 byte sequence defined by ZSON            |
-| `bstring`  | 17 | variable | UTF-8 byte sequence defined by ZSON           |
-| `ip`       | 18 | 4 or 16  | 4 or 16 bytes of IP address                    |
-| `net`      | 19 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     |
-| `type`     | 20 | variable | type value byte sequence [as defined below](#4-type-values) |
-| `error`    | 21 | variable | UTF-8 byte sequence of string of error message |
-| `null`     | 22 |    0     | No value, always represents an undefined value |
-
-> TBD: For decimal, ZSON assumes decimal128 and there's not a way to specify
-> different widths.  This should be okay since a 128 will hold the others.
+| Type         | ID |    N     |       ZNG Value Interpretation                 |
+|--------------|---:|:--------:|------------------------------------------------|
+| `uint8`      |  0 | variable | unsigned int of length N                       |
+| `uint16`     |  1 | variable | unsigned int of length N                       |
+| `uint32`     |  2 | variable | unsigned int of length N                       |
+| `uint64`     |  3 | variable | unsigned int of length N                       |
+| `uint128`    |  4 | variable | unsigned int of length N                       |
+| `uint256`    |  5 | variable | unsigned int of length N                       |
+| `int8`       |  6 | variable | signed int of length N                         |
+| `int16`      |  7 | variable | signed int of length N                         |
+| `int32`      |  8 | variable | signed int of length N                         |
+| `int64`      |  9 | variable | signed int of length N                         |
+| `int128`     | 10 | variable | signed int of length N                         |
+| `int256`     | 11 | variable | signed int of length N                         |
+| `duration`   | 12 | variable | signed int of length N as ns                   |
+| `time`       | 13 | variable | signed int of length N as ns since epoch       |
+| `float16`    | 14 |     2    | 2 bytes of IEEE 64-bit format                  |
+| `float32`    | 15 |     4    | 4 bytes of IEEE 64-bit format                  |
+| `float64`    | 16 |     8    | 8 bytes of IEEE 64-bit format                  |
+| `float128`   | 17 |    16    | 16 bytes of IEEE 64-bit format                 |
+| `float256`   | 18 |    32    | 32 bytes of IEEE 64-bit format                 |
+| `decimal32`  | 19 |     4    | 4 bytes of IEEE decimal format                 |
+| `decimal64`  | 20 |     8    | 8 bytes of IEEE decimal format                 |
+| `decimal128` | 21 |    16    | 16 bytes of IEEE decimal format                |
+| `decimal256` | 22 |    32    | 32 bytes of IEEE decimal format                |
+| `bool`       | 23 |     1    | one byte 0 (false) or 1 (true)                 |
+| `bytes`      | 24 | variable | N bytes of value                               |
+| `string`     | 25 | variable | UTF-8 byte sequence                            |
+| `ip`         | 26 | 4 or 16  | 4 or 16 bytes of IP address                    |
+| `net`        | 27 | 8 or 32  | 8 or 32 bytes of IP prefix and subnet mask     |
+| `type`       | 28 | variable | type value byte sequence [as defined below](#4-type-values) |
+| `null`       | 29 |    0     | No value, always represents an undefined value |
 
 ## 4. Type Values
 
@@ -594,19 +591,19 @@ where `<nelem>` and each symbol name is encoded as in an enum typedef.
 A map type value has the form:
 ```
 ----------------------------
-|0x23|<key-type>|<val-type>|
+|0x24|<key-type>|<val-type>|
 ----------------------------
 ```
 where `<key-type>` and `<val-type>` are recursive encodings of type values.
 
-#### 4.7 Alias Type Value
+#### 4.7 Type Name Type Value
 
-An alias type value may appear either as a definition or a reference.
-When an alias appears in reference form, it must have been previously
+A type name type value may appear either as a definition or a reference.
+When a type name appears in reference form, it must have been previously
 defined in the type value in accordance with a left-to-right depth-first-search (DFS)
 traversal of the type.
 
-An alias type value definition has the form:
+A a type name type value definition has the form:
 ```
 ----------------------
 |0x17|<name><typeval>|
@@ -627,3 +624,13 @@ An alias type value reference has the form:
 ```
 It is an error for an alias reference to appear in a type value with a name
 that has not been previously defined according to the DFS order.
+
+#### 4.8 Error Type Value
+
+An error type value has the form:
+```
+-------------
+|0x25|<type>|
+-------------
+```
+where `<type>` is the type value of the error.

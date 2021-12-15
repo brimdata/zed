@@ -9,6 +9,7 @@
     - [Enum Type](#enum-type)
     - [Type Definition](#type-definition)
     - [Type Name](#type-name)
+    - [Error Type](#error-type)
   + [Value Encoding](#value-encoding)
 * [Framing ZJSON objects](#framing-zjson-objects)
 * [Example](#example)
@@ -261,6 +262,16 @@ and has the form
 }
 ```
 where `<id>` is a JSON string representing a previously defined type name.
+
+#### Error Type
+
+A Zed error type is defined by a JSON object of the form
+```
+{
+  "kind": "error",
+  "type": <type>,
+}
+```
 
 ### Value Encoding
 

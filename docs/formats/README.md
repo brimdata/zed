@@ -1,7 +1,8 @@
 # Zed Formats
 
-This directory contains specifications for the Zed family of data formats,
-providing a unified approach to row, columnar, and human-readable formats.
+This directory contains specifications for the Zed family of
+["superstructured"](#zdm.md-2-zed-a-super-structured-design-pattern)
+data formats, providing a unified approach to row, columnar, and human-readable formats.
 The [Zed data model](zdm.md) underlying the formats
 is a superset of both the dataframe/table model of relational systems and the
 semi-structured model that is used ubiquitously in development and by NOSQL

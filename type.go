@@ -99,6 +99,7 @@ const (
 	IDTypeUnion  = 28 // 0x22
 	IDTypeEnum   = 29 // 0x23
 	IDTypeMap    = 30 // 0x24
+	IDTypeError  = 31 // 0x25
 )
 
 var promote = []int{

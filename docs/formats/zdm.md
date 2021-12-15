@@ -238,7 +238,7 @@ result in cryptic messages or null values offering little insight as to the
 actual cause of the error.
 
 Zed however includes first-class errors.  When combined with the superstructured
-data model, error values ,ay appear anywhere in the output and operators
+data model, error values may appear anywhere in the output and operators
 can propagate or easily wrap errors so complicated, pipelines of analytics
 operators can be debugged by analyzing the location of errors in
 the output results.
@@ -370,16 +370,18 @@ There are 28 types of primitive values with syntax defined as follows:
 | `float16`  | IEEE-754 binary16 |
 | `float32`  | IEEE-754 binary32 |
 | `float64`  | IEEE-754 binary64 |
+| `float128`  | IEEE-754 binary128 |
+| `float256`  | IEEE-754 binary256 |
 | `decimal32`  | IEEE-754 decimal32 |
 | `decimal64`  | IEEE-754 decimal64 |
 | `decimal128`  | IEEE-754 decimal128 |
+| `decimal256`  | IEEE-754 decimal256 |
 | `bool`     | the boolean value `true` or `false` |
 | `bytes`    | a bounded sequence of 8-bit bytes |
 | `string`   | a UTF-8 string |
 | `ip`       | an IPv4 or IPv6 address |
 | `net`      | an IPv4 or IPv6 address and net mask |
 | `type`     | a Zed type value |
-| `error`    | an error comprising a UTF-8 string message |
 | `null`     | the null type |
 
 > Note that `time` values correspond to 64-bit epoch nanoseconds and thus
@@ -401,10 +403,11 @@ The _classes_ of complex types include:
 * _array_ - an ordered sequence of zero or more values called elements,
 * _set_ - a set of zero or more unique values called elements,
 * _union_ - a type representing values whose type is any of a specified collection of two or more unique types,
-* _enum_ - a type representing a finite set of symbols typically representing categories, and
+* _enum_ - a type representing a finite set of symbols typically representing categories,
 * _map_ - a collection of zero or more key/value pairs where the keys are of a
 uniform type called the key type and the values are of a uniform type called
-the value type.
+the value type, and
+* _error_ - any value wrapped as an "error".
 
 The type system comprises a total order:
 * The order of primitive types corresponds to the order in the table above.
@@ -500,7 +503,7 @@ The type order of two enum types is as follows:
 * Two enum types with same the number of symbols are ordered according to
 the type order of the constituent types in left to right order.
 
-#### 5.2.6 Map Value
+#### 5.2.6 Map
 
 A map represents a list of zero or more key-value pairs, where the keys
 have a common Zed type and the values have a common Zed type.
@@ -514,6 +517,12 @@ A map type is uniquely defined by its key type and value type.
 The type order of two map types is as follows is
 * the type order of their key types,
 * or if they are the same, then the order of their key types.
+
+#### 5.2.7 Error
+
+An error represents any value designated as an error.  
+
+The type order of an error is the type order of the type of its contained value.
 
 ### 5.3 The Type Type
 
