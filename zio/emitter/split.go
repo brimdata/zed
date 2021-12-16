@@ -2,7 +2,6 @@ package emitter
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strconv"
 
@@ -10,10 +9,6 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/anyio"
-)
-
-var (
-	ErrNoPath = errors.New("no _path field in zng record")
 )
 
 type Split struct {

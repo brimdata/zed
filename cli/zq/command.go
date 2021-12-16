@@ -28,13 +28,14 @@ var Cmd = &charm.Spec{
 "zq" is a command-line tool for processing data in diverse input formats,
 providing search, analytics, and extensive transormations using
 the Zed query language.
-A query typically applies boolean logic or keyword search to filter
-the input then performs analytics and/or transformations to the filtered stream.
+A query typically applies Boolean logic or keyword search to filter
+the input and then transforms or analyzes the filtered stream.
 Output is written to one or more files or to standard output.
 
 A Zed query is comprised of one or more operators interconnected
 into a pipeline using the Unix pipe charcter "|".
-See https://github.com/brimdata/docs/language for details.
+See https://github.com/brimdata/zed/tree/main/docs/language
+for details.
 
 Supported input formats include CSV, JSON, NDJSON, Parquet,
 ZSON, ZNG, ZST, and Zeek TSV.  Supported output formats include
@@ -53,7 +54,7 @@ Some output formats like Parquet are based on schemas and require all
 data in the output to conform to the same schema.  To handle this, you can
 either fuse the data into a union of all the record types present
 (presuming all the output values are records) or you can specify the -split
-flag to indicate that a directory to place separate output files for each
+flag to indicate a destination directory for separate output files for each
 output type.  This flag may be used in combination with -o, which
 provides the prefix for the file path, e.g.,
 
@@ -61,7 +62,7 @@ provides the prefix for the file path, e.g.,
 
 When writing to stdout and stdout is a terminal, the default output format is ZSON.
 Otherwise, the default format is binary ZNG.  In either case, the default
-may be overridden with -f.
+may be overridden with -f, -z, or -Z.
 
 After the options, a Zed "query" string may be specified as a
 single argument conforming to the Zed language syntax;
@@ -75,21 +76,18 @@ and an existing file, then the file overrides.
 The Zed query text may include source files using -I, which is particularly
 convenient when a large, complex query spans multiple lines.  In this case,
 these source files are concatenated together along with the command-line query text
-in the order appearing on the command-line.
+in the order appearing on the command line.
 
-The zq engine processes data natively in Zed so if you intend to run
-many queries over the same data, you will see substantil performance gains
-if you convert your data to the efficient binary form of Zed called ZNG, e.g.,
+The "zq" engine processes data natively in Zed so if you intend to run
+many queries over the same data, you will see substantial performance gains
+by converting your data to the efficient binary form of Zed called ZNG, e.g.,
 
   zq -f zng input.json > fast.zng
   zq <query> fast.zng
   ...
 
-Please see the zq or Zed github repositories for more information:
-
-https://github.com/brimdata/zq
-
-https://github.com/brimdata/zed
+Please see https://github.com/brimdata/zq and
+https://github.com/brimdata/zed for more information.
 `,
 	New: New,
 }
