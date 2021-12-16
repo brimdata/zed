@@ -125,14 +125,6 @@ func (p *Proc) Done() {
 	p.cancel()
 }
 
-func (p *Proc) setJoinKey(key zed.Value) {
-	// Copy the joinkey value into the joinKeBytes buffer since
-	// we want to stash it and the zcode.Bytes points to a record
-	// that otherwise could be freed.
-	p.joinKey.Type = key.Type
-	p.joinKey.Bytes = append(p.joinKey.Bytes[:0], key.Bytes...)
-}
-
 func (p *Proc) getJoinSet(leftKey zed.Value) ([]*zed.Value, error) {
 	if p.joinKey.Type != nil && p.compare(leftKey, p.joinKey) == 0 {
 		// If p.joinKey.Type is nil, p.joinKey hasn't been set.
@@ -153,7 +145,8 @@ func (p *Proc) getJoinSet(leftKey zed.Value) ([]*zed.Value, error) {
 		}
 		cmp := p.compare(leftKey, rightKey)
 		if cmp == 0 {
-			p.setJoinKey(leftKey)
+			// Copy leftKey.Bytes since it might get reused.
+			p.joinKey.CopyFrom(&leftKey)
 			p.joinSet, err = p.readJoinSet(p.joinKey)
 			return p.joinSet, err
 		}

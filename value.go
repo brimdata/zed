@@ -154,6 +154,8 @@ func (v Value) IsUnsetOrNil() bool {
 	return v.Bytes == nil
 }
 
+// Copy returns a copy of v that does not share v.Bytes.  The copy's Bytes field
+// is nil if and only if v.Bytes is nil.
 func (v Value) Copy() *Value {
 	var b zcode.Bytes
 	if v.Bytes != nil {
@@ -161,6 +163,20 @@ func (v Value) Copy() *Value {
 		copy(b, v.Bytes)
 	}
 	return &Value{v.Type, b}
+}
+
+// CopyFrom copies from into v, reusing v.Bytes if possible and setting v.Bytes
+// to nil if and only if from.Bytes is nil.
+func (v *Value) CopyFrom(from *Value) {
+	v.Type = from.Type
+	if from.Bytes == nil {
+		v.Bytes = nil
+	} else if v.Bytes == nil {
+		v.Bytes = make(zcode.Bytes, len(from.Bytes))
+		copy(v.Bytes, from.Bytes)
+	} else {
+		v.Bytes = append(v.Bytes[:0], from.Bytes...)
+	}
 }
 
 func (v Value) IsStringy() bool {
