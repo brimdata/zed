@@ -400,7 +400,7 @@ This is performed with `in`.
 
 Since our sample data doesn't contain complex fields, we'll make one by
 using the [`union`](aggregate-functions.md#union) aggregate function to
-create a [`set`](https://github.com/brimdata/zed/blob/main/docs/formats/zson.md#343-set-value)-typed
+create a [`set`](../data-model/zson.md#343-set-value)-typed
 field called `Schools` that contains all unique school names per district. From
 these we'll find each set that contains a school named `Lincoln Elementary`.
 

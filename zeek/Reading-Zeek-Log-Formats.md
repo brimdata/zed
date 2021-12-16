@@ -19,7 +19,7 @@ is Zeek's default output format for logs. This format can be read automatically
 with the Zed tools such as `zq`.
 
 The following example shows a TSV `conn.log` being read via `zq` and
-output as [ZSON](../docs/formats/zson.md).
+output as [ZSON](../docs/data-model/zson.md).
 
 #### conn.log:
 
@@ -76,7 +76,7 @@ and therefore such records typically need no adjustment to their data types
 once they've been read in as is. The
 [Zed/Zeek Data Type Compatibility](Data-Type-Compatibility.md) document
 provides further detail on how the rich data types in Zeek TSV map to the
-equivalent [rich types in Zed](../docs/formats/zson.md#33-primitive-values).
+equivalent [rich types in Zed](../docs/data-model/zson.md#33-primitive-values).
 
 # Zeek NDJSON
 
@@ -147,7 +147,7 @@ If you're familiar with the limitations of the JSON data types, it makes sense
 that Zeek chose to output these values in NDJSON as it did. Furthermore, if
 you were just seeking to do quick searches on the string values or simple math
 on the numbers, these limitations may be acceptable. However, if you intended
-to perform operations like 
+to perform operations like
 [aggregations with time-based grouping](../docs/language/grouping.md#time-grouping---every)
 or [CIDR matches](../docs/language/search-syntax.md#example-14)
 on IP addresses, you would likely want to restore the rich Zed data types as
