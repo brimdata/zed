@@ -3,7 +3,7 @@
 > TL;DR The Zed data model defines a new and easy way to manage, store,
 > and process data utilizing an emerging concept called
 [super-structured data](#2-zed-a-super-structured-pattern).
-> The [data model specification](zed.md) defines the model that is realized
+> The [data model specification](zed.md) defines the high-level model that is realized
 > in a [family of interoperable serialization formats](#3-the-data-model-and-formats),
 > providing a unified approach to row, columnar, and human-readable formats.
 > Zed is a superset of both the dataframe/table model of relational systems and the
