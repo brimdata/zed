@@ -22,7 +22,7 @@
 ## 1. Introduction
 
 ZNG is an efficient, binary serialization
-format conforming to the [Zed data model](zed-data-model.md).
+format conforming to the [Zed data model](zed.md).
 ZNG is ideally suited for streams
 of heterogeneously typed records, e.g., structured logs, where filtering and
 analytics may be applied to a stream in parts without having to fully deserialize
@@ -248,7 +248,7 @@ existing type ID `<type-id>.  `<type-id> is encoded as a `uvarint` and `<name>`
 is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 
-As indicated in the [data model](zed-data-model.md),
+As indicated in the [data model](zed.md),
 it is an error to define a type name that has the same name as a primitive type,
 and it is permissible to redefine a previously defined type name with a
 type that differs from the previous definition.
