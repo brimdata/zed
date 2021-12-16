@@ -2,7 +2,7 @@
 
 > TL;DR The Zed data model defines a new and easy way to manage, store,
 > and process data utilizing an emerging concept called
-[super-structured data](#2-zed-the-super-structured).
+[super-structured data](#2-zed-a-super-structured-pattern).
 > The [data model specification](zed.md) defines the model that is realized
 > in a [family of interoperable serialization formats](#3-the-data-model-and-formats),
 > providing a unified approach to row, columnar, and human-readable formats.
@@ -23,9 +23,10 @@ Referenced specifications
 Table of Contents
 
 * [1. Background](#1-background)
-  + [1.1 The Semi-structured Pattern](#11-the-semi-structured-pattern)
-  + [1.2 The Hybrid Pattern](#12-the-hybrid-pattern)
-* [2. Zed: The Super-structured Pattern](#2-zed-the-super-structured-pattern)
+  + [1.1 The Tabular-structured Pattern](#11-the-tabular-structured-pattern)
+  + [1.2 The Semi-structured Pattern](#12-the-semi-structured-pattern)
+  + [1.3 The Hybrid Pattern](#13-the-hybrid-pattern)
+* [2. Zed: A Super-structured Pattern](#2-zed-a-super-structured-pattern)
   + [2.1 Zed and Schemas](#21-zed-and-schemas)
   + [2.2 Type Combinatorics](#22-type-combinatorics)
   + [2.3 Analytics Performance](#23-analytics-performnce)
@@ -47,6 +48,8 @@ where a specific schema is defined to describe a table and values are enumerated
 define the data and values do not fit neatly into tables, e.g., JSON and XML; and
 * _unstructured_, where arbitrary text is formatted in accordance with
 external, often vague, rules for its interpretation.
+
+### 1.1 The Tabular-structured Pattern
 
 CSV is arguably the simplest but most frustrating format that follows the tabular-structured
 pattern.  It provides a bare bones schema consisting of the names of the columns as the
@@ -71,7 +74,7 @@ The [Iceberg specification](https://iceberg.apache.org/#spec/)
 defines data types and metadata schemas for how large relational tables can be
 managed as a collection of Avro, ORC, and/or Parquet files.
 
-### 1.1 The Semi-structured Pattern
+### 1.2 The Semi-structured Pattern
 
 JSON, on the other hand, is the ubiquitous example of the semi-structured pattern.
 Each JSON value is self-describing in terms of its
@@ -100,7 +103,7 @@ This creates a parallel type system for JSON, which is useful and powerful in ma
 contexts, but introduces schema-management complexity when simply trying to represent
 data in its natural form.
 
-### 1.2 The Hybrid Pattern
+### 1.3 The Hybrid Pattern
 
 As the utility and ease of the semi-structured design pattern emerged,
 relational system design, originally constrained by the tabular-structured
