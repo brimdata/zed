@@ -50,11 +50,11 @@ func CreateLocalLake(ctx context.Context, lakePath *storage.URI) (*LocalSession,
 	}, nil
 }
 
-func (l *LocalSession) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64) (ksuid.KSUID, error) {
+func (l *LocalSession) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64, seekStride int) (ksuid.KSUID, error) {
 	if name == "" {
 		return ksuid.Nil, errors.New("no pool name provided")
 	}
-	pool, err := l.root.CreatePool(ctx, name, layout, thresh)
+	pool, err := l.root.CreatePool(ctx, name, layout, thresh, seekStride)
 	if err != nil {
 		return ksuid.Nil, err
 	}

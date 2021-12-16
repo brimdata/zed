@@ -25,10 +25,10 @@ type Writer struct {
 	lastKey          zed.Value
 	lastSOS          int64
 	order            order.Which
+	seekWriter       *zngio.Writer
 	seekIndex        *seekindex.Writer
 	seekIndexStride  int
 	seekIndexTrigger int
-	seekWriter       *zngio.Writer
 	first            bool
 	poolKey          field.Path
 }
@@ -55,18 +55,19 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 		first:       true,
 		poolKey:     poolKey,
 	}
-	if seekIndexStride != 0 {
-		w.seekIndexStride = seekIndexStride
-		seekOut, err := engine.Put(ctx, o.SeekObjectPath(path))
-		if err != nil {
-			return nil, err
-		}
-		opts := zngio.WriterOpts{
-			//LZ4BlockSize: zngio.DefaultLZ4BlockSize,
-		}
-		w.seekWriter = zngio.NewWriter(bufwriter.New(seekOut), opts)
-		w.seekIndex = seekindex.NewWriter(w.seekWriter)
+	if seekIndexStride == 0 {
+		seekIndexStride = DefaultSeekStride
 	}
+	w.seekIndexStride = seekIndexStride
+	seekOut, err := engine.Put(ctx, o.SeekObjectPath(path))
+	if err != nil {
+		return nil, err
+	}
+	opts := zngio.WriterOpts{
+		//LZ4BlockSize: zngio.DefaultLZ4BlockSize,
+	}
+	w.seekWriter = zngio.NewWriter(bufwriter.New(seekOut), opts)
+	w.seekIndex = seekindex.NewWriter(w.seekWriter)
 	return w, nil
 }
 

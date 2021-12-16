@@ -14,8 +14,6 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var SeekIndexStride = 64 * 1024
-
 // Writer is a zio.Writer that consumes records into memory according to
 // the pools data object threshold, sorts each resulting buffer, and writes
 // it as an immutable object to the storage system.  The presumption is that
@@ -130,7 +128,7 @@ func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 	if err != nil {
 		object.Last = zed.Value{zed.TypeNull, nil}
 	}
-	writer, err := object.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, key, SeekIndexStride)
+	writer, err := object.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, key, w.pool.SeekStride)
 	if err != nil {
 		return err
 	}

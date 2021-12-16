@@ -1,6 +1,5 @@
 script: |
-  export ZED_LAKE=test
-  zed init -q
+  source service.sh
   zed create -seekstride 2KB -orderby ts:asc -q asc
   zed create -seekstride 2KB -orderby ts:desc -q desc
   zed use -q asc@main
@@ -14,6 +13,7 @@ script: |
   zed query -z -s "from desc | count()"
 
 inputs:
+  - name: service.sh
   - name: babble.zson
     source: ../../testdata/babble.zson
 

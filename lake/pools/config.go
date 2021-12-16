@@ -10,25 +10,30 @@ import (
 )
 
 type Config struct {
-	Ts        nano.Ts      `zed:"ts"`
-	Name      string       `zed:"name"`
-	ID        ksuid.KSUID  `zed:"id"`
-	Layout    order.Layout `zed:"layout"`
-	Threshold int64        `zed:"threshold"`
+	Ts         nano.Ts      `zed:"ts"`
+	Name       string       `zed:"name"`
+	ID         ksuid.KSUID  `zed:"id"`
+	Layout     order.Layout `zed:"layout"`
+	SeekStride int          `zed:"seek_stride"`
+	Threshold  int64        `zed:"threshold"`
 }
 
 var _ journal.Entry = (*Config)(nil)
 
-func NewConfig(name string, layout order.Layout, thresh int64) *Config {
+func NewConfig(name string, layout order.Layout, thresh int64, seekStride int) *Config {
 	if thresh == 0 {
 		thresh = data.DefaultThreshold
 	}
+	if seekStride == 0 {
+		seekStride = data.DefaultSeekStride
+	}
 	return &Config{
-		Ts:        nano.Now(),
-		Name:      name,
-		ID:        ksuid.New(),
-		Layout:    layout,
-		Threshold: thresh,
+		Ts:         nano.Now(),
+		Name:       name,
+		ID:         ksuid.New(),
+		Layout:     layout,
+		SeekStride: seekStride,
+		Threshold:  thresh,
 	}
 }
 
