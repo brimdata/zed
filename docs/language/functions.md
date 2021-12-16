@@ -602,6 +602,23 @@ echo '{foo:"   Zed   "}' | zq -z 'foo := trim(foo)' -
 
 ## Time
 
+### `now`
+
+```
+now() -> time
+```
+
+`now` returns the current UTC time.
+
+```
+echo '{}' | zq -z 'yield now()' -
+```
+
+**Output:**
+```
+2021-12-16T23:33:41.680643Z
+```
+
 ### `trunc`
 
 ```
