@@ -78,7 +78,7 @@ func (c *Command) Run(args []string) error {
 		return err
 	}
 	poolName := args[0]
-	id, err := lake.CreatePool(ctx, poolName, layout, int64(c.thresh), int(c.seekStride))
+	id, err := lake.CreatePool(ctx, poolName, layout, int(c.seekStride), int64(c.thresh))
 	if err != nil {
 		return err
 	}
