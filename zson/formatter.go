@@ -1,6 +1,7 @@
 package zson
 
 import (
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"regexp"
@@ -82,6 +83,14 @@ func (f *Formatter) FormatRecord(rec *zed.Value) (string, error) {
 func FormatValue(zv zed.Value) (string, error) {
 	f := NewFormatter(0, nil)
 	return f.Format(zv)
+}
+
+func MustFormatValue(zv zed.Value) string {
+	s, err := FormatValue(zv)
+	if err != nil {
+		panic(fmt.Errorf("zson format value failed: type %s, bytes %s", zv.Type, hex.EncodeToString(zv.Bytes)))
+	}
+	return s
 }
 
 func String(zv zed.Value) string {

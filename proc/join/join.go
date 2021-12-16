@@ -71,7 +71,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			if len(out) == 0 {
 				return nil, nil
 			}
-			return zbuf.Array(out), nil
+			return zbuf.NewArray(out), nil
 		}
 		key, err := p.getLeftKey.Eval(leftRec)
 		if err != nil {

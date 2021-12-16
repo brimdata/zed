@@ -39,18 +39,14 @@ func (a *Aggregator) NewFunction() agg.Function {
 	return a.pattern()
 }
 
-func (a *Aggregator) Apply(f agg.Function, rec *zed.Value) error {
-	if a.filter(rec) {
-		return nil
+func (a *Aggregator) Apply(f agg.Function, val *zed.Value, scope *Scope) {
+	if a.filter(val) {
+		return
 	}
-	zv, err := a.expr.Eval(rec)
-	if err != nil {
-		if err == zed.ErrMissing {
-			err = nil
-		}
-		return err
+	zv := a.expr.Eval(val, scope)
+	if !zed.IsMissing(zv) {
+		f.Consume(zv)
 	}
-	return f.Consume(zv)
 }
 
 func (a *Aggregator) filter(rec *zed.Value) bool {
@@ -73,13 +69,13 @@ type aggregatorExpr struct {
 	zctx *zed.Context
 }
 
-func (s *aggregatorExpr) Eval(zv *zed.Value) (zed.Value, error) {
+var _ Evaluator = (*aggregatorExpr)(nil)
+
+func (s *aggregatorExpr) Eval(zv *zed.Value, scope *Scope) zed.Value {
 	if s.fn == nil {
 		s.fn = s.agg.NewFunction()
 		s.zctx = zed.NewContext()
 	}
-	if err := s.agg.Apply(s.fn, zv); err != nil {
-		return zed.Value{}, err
-	}
+	s.agg.Apply(s.fn, zv, scope)
 	return s.fn.Result(s.zctx)
 }

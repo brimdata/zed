@@ -18,27 +18,27 @@ type mathReducer struct {
 	math     consumer
 }
 
+var _ Function = (*mathReducer)(nil)
+
 func newMathReducer(f *anymath.Function) *mathReducer {
 	return &mathReducer{function: f}
 }
 
-func (m *mathReducer) Result(*zed.Context) (zed.Value, error) {
+func (m *mathReducer) Result(*zed.Context) zed.Value {
 	if m.math == nil {
 		if m.typ == nil {
-			return zed.Value{Type: zed.TypeNull, Bytes: nil}, nil
+			return zed.Null
 		}
-		return zed.Value{Type: m.typ, Bytes: nil}, nil
+		return zed.Value{Type: m.typ}
 	}
-	return m.math.result(), nil
+	return m.math.result()
 }
 
-func (m *mathReducer) Consume(v zed.Value) error {
-	if v.Type == nil {
-		//m.FieldNotFound++
-		return nil
+func (m *mathReducer) Consume(v zed.Value) {
+	//XXX why would type be nil here?
+	if v.Type != nil {
+		m.consumeVal(v)
 	}
-	m.consumeVal(v)
-	return nil
 }
 
 func (m *mathReducer) consumeVal(val zed.Value) {
@@ -73,13 +73,12 @@ func (m *mathReducer) consumeVal(val zed.Value) {
 	}
 }
 
-func (m *mathReducer) ResultAsPartial(*zed.Context) (zed.Value, error) {
+func (m *mathReducer) ResultAsPartial(*zed.Context) zed.Value {
 	return m.Result(nil)
 }
 
-func (m *mathReducer) ConsumeAsPartial(v zed.Value) error {
+func (m *mathReducer) ConsumeAsPartial(v zed.Value) {
 	m.consumeVal(v)
-	return nil
 }
 
 type Float64 struct {

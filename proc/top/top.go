@@ -91,5 +91,5 @@ func (t *Proc) sorted() zbuf.Batch {
 	}
 	// clear records
 	t.records = nil
-	return zbuf.Array(out)
+	return zbuf.NewArray(out)
 }

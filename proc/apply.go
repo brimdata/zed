@@ -54,7 +54,7 @@ func (a *applier) Pull() (zbuf.Batch, error) {
 		}
 		batch.Unref()
 		if len(recs) > 0 {
-			return zbuf.Array(recs), nil
+			return zbuf.NewArray(recs), nil
 		}
 	}
 }

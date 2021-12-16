@@ -40,7 +40,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	// return a batch with only the needed records.
 	p.Done()
 	p.count = p.limit
-	return zbuf.Array(vals[:remaining]), nil
+	return zbuf.NewArray(vals[:remaining]), nil
 }
 
 func (p *Proc) Done() {

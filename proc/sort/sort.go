@@ -66,7 +66,7 @@ func (p *Proc) sortLoop() {
 		// Just one run so do an in-memory sort.
 		p.warnAboutUnseenFields()
 		expr.SortStable(firstRunRecs, p.compareFn)
-		array := zbuf.Array(firstRunRecs)
+		array := zbuf.NewArray(firstRunRecs)
 		p.sendResult(array, nil)
 		return
 	}

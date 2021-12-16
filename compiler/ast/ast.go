@@ -296,6 +296,11 @@ type (
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
 	}
+	Scope struct {
+		Kind   string       `json:"kind" unpack:""`
+		Locals []Assignment `json:"locals"`
+		Seq    *Sequential  `json:"seq"`
+	}
 	Yield struct {
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
@@ -494,6 +499,7 @@ func (*Shape) ProcAST()        {}
 func (*From) ProcAST()         {}
 func (*Explode) ProcAST()      {}
 func (*Over) ProcAST()         {}
+func (*Scope) ProcAST()        {}
 func (*Yield) ProcAST()        {}
 
 func (*SQLExpr) ProcAST() {}

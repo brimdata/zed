@@ -1,8 +1,6 @@
 package agg
 
 import (
-	"errors"
-
 	"github.com/axiomhq/hyperloglog"
 	"github.com/brimdata/zed"
 )
@@ -13,27 +11,28 @@ type CountDistinct struct {
 	sketch *hyperloglog.Sketch
 }
 
+var _ Function = (*CountDistinct)(nil)
+
 func NewCountDistinct() *CountDistinct {
 	return &CountDistinct{
 		sketch: hyperloglog.New(),
 	}
 }
 
-func (c *CountDistinct) Consume(v zed.Value) error {
+func (c *CountDistinct) Consume(v zed.Value) {
 	c.sketch.Insert(v.Bytes)
-	return nil
 }
 
-func (c *CountDistinct) Result(*zed.Context) (zed.Value, error) {
-	return zed.NewUint64(c.sketch.Estimate()), nil
+func (c *CountDistinct) Result(*zed.Context) zed.Value {
+	return zed.NewUint64(c.sketch.Estimate())
 }
 
-func (*CountDistinct) ConsumeAsPartial(v zed.Value) error {
+func (*CountDistinct) ConsumeAsPartial(v zed.Value) {
 	// XXX this is straightforward to do using c.sketch.Merge().  See #1892.
-	return errors.New("partials not yet implemented in countdistinct")
+	panic("countdistinct: partials not yet implemented")
 }
 
-func (*CountDistinct) ResultAsPartial(zctx *zed.Context) (zed.Value, error) {
+func (*CountDistinct) ResultAsPartial(zctx *zed.Context) zed.Value {
 	// XXX this is straightforward to do using c.sketch.Merge().  See #1892.
-	return zed.Value{}, errors.New("partials not yet implemented in countdistinct")
+	panic("countdistinct: partials not yet implemented")
 }

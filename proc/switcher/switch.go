@@ -84,7 +84,7 @@ func (s *Switcher) run() {
 		}
 		for i := range records {
 			if records[i] != nil {
-				results[i] = proc.Result{Batch: zbuf.Array(records[i])}
+				results[i] = proc.Result{Batch: zbuf.NewArray(records[i])}
 				records[i] = nil
 			}
 		}

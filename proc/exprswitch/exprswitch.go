@@ -106,7 +106,9 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		go p.parent.run()
 	})
 	if rec, ok := <-p.ch; ok {
-		return zbuf.Array{*rec}, nil
+		//XXX we should make this more efficient by pushing batches
+		// instead of values over the channel like split does.
+		return zbuf.NewArray([]zed.Value{*rec}), nil
 	}
 	return nil, p.parent.err
 }

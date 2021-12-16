@@ -73,7 +73,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			}
 			t := p.wrap(p.last)
 			p.last = nil
-			return zbuf.Array{*t}, nil
+			return zbuf.NewArray([]zed.Value{*t}), nil
 		}
 		var out []zed.Value
 		vals := batch.Values()
@@ -82,7 +82,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		}
 		batch.Unref()
 		if len(out) > 0 {
-			return zbuf.Array(out), nil
+			return zbuf.NewArray(out), nil
 		}
 	}
 }

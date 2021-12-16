@@ -87,7 +87,7 @@ func (m *Merger) Pull() (Batch, error) {
 		// way, it's safe to return min's remaining values as a batch.
 		batch := min.batch
 		if len(min.vals) < len(batch.Values()) {
-			batch = Array(min.vals)
+			batch = NewArray(min.vals)
 		}
 		if min.receive() {
 			heap.Push(m, min)

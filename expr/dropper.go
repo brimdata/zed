@@ -1,6 +1,8 @@
 package expr
 
 import (
+	"fmt"
+
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
 )
@@ -11,7 +13,7 @@ type dropper struct {
 	fieldRefs []Evaluator
 }
 
-func (d *dropper) drop(in *zed.Value) (*zed.Value, error) {
+func (d *dropper) drop(in *zed.Value) *zed.Value {
 	if d.typ == in.Type {
 		return in, nil
 	}
@@ -26,9 +28,9 @@ func (d *dropper) drop(in *zed.Value) (*zed.Value, error) {
 	}
 	zv, err := b.Encode()
 	if err != nil {
-		return nil, err
+		panic(fmt.Errorf("dropper: builder failed: %w", err))
 	}
-	return zed.NewValue(d.typ, zv), nil
+	return zed.NewValue(d.typ, zv)
 }
 
 type Dropper struct {
@@ -117,7 +119,7 @@ func (_ *Dropper) Warning() string { return "" }
 
 // Apply implements proc.Function and returns a new record comprising fields
 // that are not specified in the set of drop targets.
-func (d *Dropper) Apply(in *zed.Value) (*zed.Value, error) {
+func (d *Dropper) Apply(in *zed.Value) zed.Value {
 	id := in.Type.ID()
 	dropper, ok := d.droppers[id]
 	if !ok {

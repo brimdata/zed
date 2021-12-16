@@ -4,6 +4,8 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
+var Null = &Value{Type: TypeNull}
+
 type TypeOfNull struct{}
 
 func (t *TypeOfNull) ID() int {

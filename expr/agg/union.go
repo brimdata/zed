@@ -1,7 +1,7 @@
 package agg
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
@@ -13,26 +13,30 @@ type Union struct {
 	size int
 }
 
+var _ Function = (*Union)(nil)
+
 func newUnion() *Union {
 	return &Union{
 		val: make(map[string]struct{}),
 	}
 }
 
-func (u *Union) Consume(v zed.Value) error {
+func (u *Union) Consume(v zed.Value) {
+	//XXX isnull
 	if v.IsNil() {
-		return nil
+		return
 	}
 	if u.typ == nil {
 		u.typ = v.Type
 	} else if u.typ != v.Type {
-		//u.TypeMismatch++
-		return nil
+		//XXX we should make union type for the set-union
+		// instead of silently ignoring
+		return
 	}
-	return u.update(v.Bytes)
+	u.update(v.Bytes)
 }
 
-func (u *Union) update(b zcode.Bytes) error {
+func (u *Union) update(b zcode.Bytes) {
 	if _, ok := u.val[string(b)]; !ok {
 		u.val[string(b)] = struct{}{}
 		u.size += len(b)
@@ -43,7 +47,6 @@ func (u *Union) update(b zcode.Bytes) error {
 			//return ErrRowTooBig
 		}
 	}
-	return nil
 }
 
 func (u *Union) deleteOne() {
@@ -54,9 +57,9 @@ func (u *Union) deleteOne() {
 	}
 }
 
-func (u *Union) Result(zctx *zed.Context) (zed.Value, error) {
+func (u *Union) Result(zctx *zed.Context) zed.Value {
 	if u.typ == nil {
-		return zed.Value{Type: zed.TypeNull}, nil
+		return zed.Null
 	}
 	var b zcode.Builder
 	container := zed.IsContainerType(u.typ)
@@ -68,29 +71,26 @@ func (u *Union) Result(zctx *zed.Context) (zed.Value, error) {
 		}
 	}
 	setType := zctx.LookupTypeSet(u.typ)
-	return zed.Value{setType, zed.NormalizeSet(b.Bytes())}, nil
+	return zed.Value{setType, zed.NormalizeSet(b.Bytes())}
 }
 
-func (u *Union) ConsumeAsPartial(zv zed.Value) error {
+func (u *Union) ConsumeAsPartial(zv zed.Value) {
 	if u.typ == nil {
 		typ, ok := zv.Type.(*zed.TypeSet)
 		if !ok {
-			return errors.New("partial not a set type")
+			panic("union: partial not a set type")
 		}
 		u.typ = typ.Type
 	}
 	for it := zv.Iter(); !it.Done(); {
 		elem, _, err := it.Next()
 		if err != nil {
-			return err
+			panic(fmt.Errorf("union partial: set bytes are corrupt: %w", err))
 		}
-		if err := u.update(elem); err != nil {
-			return err
-		}
+		u.update(elem)
 	}
-	return nil
 }
 
-func (u *Union) ResultAsPartial(zctx *zed.Context) (zed.Value, error) {
+func (u *Union) ResultAsPartial(zctx *zed.Context) zed.Value {
 	return u.Result(zctx)
 }

@@ -19,19 +19,21 @@ var ErrNotContainer = errors.New("cannot apply in to a non-container")
 var ErrBadCast = errors.New("bad cast")
 
 type Evaluator interface {
-	Eval(*zed.Value) (zed.Value, error)
+	Eval(*zed.Value, *Scope) *zed.Value
 }
 
 type Not struct {
 	expr Evaluator
 }
 
+var _ Evaluator = (*Not)(nil)
+
 func NewLogicalNot(e Evaluator) *Not {
 	return &Not{e}
 }
 
-func (n *Not) Eval(rec *zed.Value) (zed.Value, error) {
-	zv, err := evalBool(n.expr, rec)
+func (n *Not) Eval(val *zed.Value, scope *Scope) *zed.Value {
+	zv, err := evalBool(n.expr, val, scope)
 	if err != nil {
 		return zv, err
 	}

@@ -417,7 +417,7 @@ func (a *Aggregator) readSpills(eof bool) (zbuf.Batch, error) {
 	if len(recs) == 0 {
 		return nil, nil
 	}
-	return zbuf.Array(recs), nil
+	return zbuf.NewArray(recs), nil
 }
 
 func (a *Aggregator) nextResultFromSpills() (*zed.Value, error) {
@@ -558,7 +558,7 @@ func (a *Aggregator) readTable(flush, partialsOut bool) (zbuf.Batch, error) {
 	if len(recs) == 0 {
 		return nil, nil
 	}
-	return zbuf.Array(recs), nil
+	return zbuf.NewArray(recs), nil
 }
 
 func (a *Aggregator) lookupRecordType(types []zed.Type) (*zed.TypeRecord, error) {

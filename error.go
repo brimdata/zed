@@ -61,6 +61,8 @@ func (t *TypeOfError) Format(zv zcode.Bytes) string {
 	return QuotedString(zv, false)
 }
 
-func IsMissing(zv Value) bool {
+//XXX we will change this to use pointer compare to missing singleton
+// when we rework errors
+func IsMissing(zv *Value) bool {
 	return zv.Type == TypeError && string(zv.Bytes) == missing
 }
