@@ -9,7 +9,7 @@
 
 Zed is capable of reading both common Zeek log formats. This document
 provides guidance for what to expect when reading logs of these formats using
-the Zed tools such as [`zq`](../cmd/zed/README.md#zq).
+the Zed tools such as `zq`.
 
 # Zeek TSV
 
