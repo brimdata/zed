@@ -21,7 +21,8 @@ const missing = "missing"
 // functions and expressions and each operator must clearly defined its
 // semantics with respect to the Missing value.  For example, "true AND MISSING"
 // is MISSING.
-var Missing = NewError(ErrMissing)
+var MissingVal = NewError(ErrMissing)
+var Missing = &MissingVal
 
 type TypeOfError struct{}
 
@@ -61,6 +62,8 @@ func (t *TypeOfError) Format(zv zcode.Bytes) string {
 	return QuotedString(zv, false)
 }
 
-func IsMissing(zv Value) bool {
+//XXX we will change this to use pointer compare to missing singleton
+// when we rework errors
+func IsMissing(zv *Value) bool {
 	return zv.Type == TypeError && string(zv.Bytes) == missing
 }

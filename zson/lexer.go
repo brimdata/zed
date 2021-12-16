@@ -30,7 +30,7 @@ const (
 	MaxSize  = 50 * 1024 * 1024
 )
 
-func NewLexer(r io.Reader) (*Lexer, error) {
+func NewLexer(r io.Reader) *Lexer {
 	primitive := regexp.MustCompile(primitiveRE)
 	primitive.Longest()
 	indentation := regexp.MustCompile(indentationRE)
@@ -40,7 +40,7 @@ func NewLexer(r io.Reader) (*Lexer, error) {
 		buffer:      make([]byte, ReadSize),
 		primitive:   primitive,
 		indentation: indentation,
-	}, nil
+	}
 }
 
 func roundUp(n int) int {

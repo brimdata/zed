@@ -2,6 +2,7 @@ package expr
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/field"
 )
 
@@ -10,7 +11,10 @@ type Unflattener struct {
 	builders    map[int]*zed.ColumnBuilder
 	recordTypes map[int]*zed.TypeRecord
 	fieldExpr   Evaluator
+	stash       result.Value
 }
+
+var _ Evaluator = (*Unflattener)(nil)
 
 // NewUnflattener returns a Unflattener that turns successive dotted
 // field names into nested records.  For example, unflattening {"a.a":
@@ -61,36 +65,26 @@ func (u *Unflattener) lookupBuilderAndType(in *zed.TypeRecord) (*zed.ColumnBuild
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
-func (u *Unflattener) Apply(in *zed.Value) (*zed.Value, error) {
-	b, typ, err := u.lookupBuilderAndType(zed.TypeRecordOf(in.Type))
+func (u *Unflattener) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	b, typ, err := u.lookupBuilderAndType(zed.TypeRecordOf(this.Type))
 	if err != nil {
-		return nil, err
+		//XXX check this ok
+		panic(err)
 	}
 	if b == nil {
-		return in, nil
+		return this
 	}
 	b.Reset()
-	for iter := in.Bytes.Iter(); !iter.Done(); {
+	for iter := this.Bytes.Iter(); !iter.Done(); {
 		zv, con, err := iter.Next()
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		b.Append(zv, con)
 	}
 	zbytes, err := b.Encode()
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return zed.NewValue(typ, zbytes), nil
-}
-
-func (c *Unflattener) Eval(rec *zed.Value) (zed.Value, error) {
-	out, err := c.Apply(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
-	if out == nil {
-		return zed.Value{}, zed.ErrMissing
-	}
-	return *out, nil
+	return u.stash.CopyVal(zed.Value{typ, zbytes})
 }

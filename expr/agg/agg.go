@@ -1,5 +1,9 @@
 package agg
 
+//XXX calls to IsNil throughtou this package should be changed...
+// I think this was put here because
+// group-by coudl call with zero vals?!
+
 import (
 	"errors"
 	"fmt"
@@ -24,10 +28,10 @@ var (
 )
 
 type Function interface {
-	Consume(zed.Value) error
-	ConsumeAsPartial(zed.Value) error
-	Result(*zed.Context) (zed.Value, error)
-	ResultAsPartial(*zed.Context) (zed.Value, error)
+	Consume(*zed.Value)
+	ConsumeAsPartial(*zed.Value)
+	Result(*zed.Context) *zed.Value
+	ResultAsPartial(*zed.Context) *zed.Value
 }
 
 func NewPattern(op string) (Pattern, error) {

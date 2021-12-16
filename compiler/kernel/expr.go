@@ -53,7 +53,7 @@ func compileExpr(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Evaluator, e
 		if err != nil {
 			return nil, err
 		}
-		return expr.NewLiteral(zv), nil
+		return expr.NewLiteral(&zv), nil
 	case *dag.Ref:
 		// If the reference refers to a named variable in scope (like "$"),
 		// then return a Var expression referring to the pointer to the value.
@@ -70,7 +70,7 @@ func compileExpr(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Evaluator, e
 		}
 		return expr.FilterEvaluator(f), nil
 	case *dag.Path:
-		return expr.NewDotExpr(field.Path(e.Name)), nil
+		return expr.NewDottedExpr(field.Path(e.Name)), nil
 	case *dag.Dot:
 		return compileDotExpr(zctx, scope, e)
 	case *dag.UnaryExpr:
@@ -149,7 +149,7 @@ func compileBinary(zctx *zed.Context, scope *Scope, e *dag.BinaryExpr) (expr.Eva
 	case "+", "-", "*", "/", "%":
 		return expr.NewArithmetic(lhs, rhs, op)
 	case "[":
-		return expr.NewIndexExpr(zctx, lhs, rhs)
+		return expr.NewIndexExpr(zctx, lhs, rhs), nil
 	default:
 		return nil, fmt.Errorf("Z kernel: invalid binary operator %s", op)
 	}
@@ -214,7 +214,7 @@ func compileDotExpr(zctx *zed.Context, scope *Scope, dot *dag.Dot) (expr.Evaluat
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewDotAccess(record, dot.RHS), nil
+	return expr.NewDotExpr(record, dot.RHS), nil
 }
 
 func compileCast(zctx *zed.Context, scope *Scope, node dag.Cast) (expr.Evaluator, error) {
@@ -257,7 +257,7 @@ func CompileAssignments(dsts field.List, srcs field.List) (field.List, []expr.Ev
 	var fields field.List
 	for k, dst := range dsts {
 		fields = append(fields, dst)
-		resolvers = append(resolvers, expr.NewDotExpr(srcs[k]))
+		resolvers = append(resolvers, expr.NewDottedExpr(srcs[k]))
 	}
 	return fields, resolvers
 }
@@ -409,7 +409,8 @@ func compileTypeValue(zctx *zed.Context, scope *Scope, t *astzed.TypeValue) (exp
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewLiteral(zed.NewTypeValue(typ)), nil
+	val := zed.NewTypeValue(typ)
+	return expr.NewLiteral(&val), nil
 }
 
 func compileRegexpMatch(zctx *zed.Context, scope *Scope, match *dag.RegexpMatch) (expr.Evaluator, error) {

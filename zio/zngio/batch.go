@@ -5,6 +5,7 @@ import (
 	"sync/atomic"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
 )
 
@@ -46,3 +47,7 @@ func (b *batch) Unref() {
 		panic("zngio: negative batch reference count")
 	}
 }
+
+//XXX this should be ok, but we should handle nil receiver in scope so push
+// will do the right thing
+func (*batch) Scope() *expr.Scope { return nil }

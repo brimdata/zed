@@ -4,28 +4,26 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/zbuf"
 )
 
-type Function interface {
-	fmt.Stringer
-	Apply(*zed.Value) (*zed.Value, error)
-	Warning() string
-}
+//XXX this now seems sort of redundant with yield since we can apply any function
+// to "this" with yield.  But this is used by cut etc...
 
 type applier struct {
-	pctx     *Context
-	parent   Interface
-	function Function
-	warned   map[string]bool
+	pctx   *Context
+	parent Interface
+	expr   expr.Applier
+	warned map[string]bool
 }
 
-func FromFunction(pctx *Context, parent Interface, f Function) *applier {
+func NewApplier(pctx *Context, parent Interface, apply expr.Applier) *applier {
 	return &applier{
-		pctx:     pctx,
-		parent:   parent,
-		function: f,
-		warned:   map[string]bool{},
+		pctx:   pctx,
+		parent: parent,
+		expr:   apply,
+		warned: map[string]bool{},
 	}
 }
 
@@ -33,35 +31,34 @@ func (a *applier) Pull() (zbuf.Batch, error) {
 	for {
 		batch, err := a.parent.Pull()
 		if EOS(batch, err) {
-			if s := a.function.Warning(); s != "" {
+			if s := a.expr.Warning(); s != "" {
 				a.maybeWarn(s)
 			}
 			return nil, err
 		}
+		scope := batch.Scope()
 		vals := batch.Values()
-		recs := make([]zed.Value, 0, len(vals))
+		out := make([]zed.Value, 0, len(vals))
 		for i := range vals {
-			out, err := a.function.Apply(&vals[i])
-			if err != nil {
-				a.maybeWarn(err.Error())
+			val := a.expr.Eval(&vals[i], scope)
+			if val == zed.Missing {
 				continue
 			}
-			if out != nil {
-				// Copy is necessary because Apply can return
-				// its argument.
-				recs = append(recs, *out.Copy())
-			}
+			// Copy is necessary because Apply can return
+			// its argument.
+			out = append(out, *val.Copy())
 		}
 		batch.Unref()
-		if len(recs) > 0 {
-			return zbuf.Array(recs), nil
+		if len(out) > 0 {
+			//XXX bug - need to propagate scope
+			return zbuf.NewArray(out), nil
 		}
 	}
 }
 
 func (a *applier) maybeWarn(s string) {
 	if !a.warned[s] {
-		a.pctx.Warnings <- fmt.Sprintf("%s: %s", a.function, s)
+		a.pctx.Warnings <- fmt.Sprintf("%s: %s", a.expr, s)
 		a.warned[s] = true
 	}
 }

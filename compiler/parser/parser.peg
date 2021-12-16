@@ -47,7 +47,7 @@
 start = __ ast:Z __ EOF { RETURN(ast) }
 
 // A Zed script can be either a single operation or a chain of operations.
-// For a single operation, we do not need to wrap operator in a SequentialProc,
+// For a single operation, we do not need to wrap operator in a Sequential,
 // but we do for everything but FilterProc because the Zed runtime is fragile
 // to this difference right now.  See issue #1809.
 Z // = !(Operator / Aggregation / "(") op:Operation &EOF { RETURN(op) }
@@ -549,6 +549,11 @@ ExplodeProc
 OverProc
   = "over"i _ exprs:Exprs {
 	  RETURN(MAP("kind":"Over", "exprs":exprs))
+    }
+
+WithProc
+  = "with"i _ locals:FlexAssigments __ "=>" __ "(" __ seq:Sequential ")" {
+	  RETURN(MAP("kind":"Scope", "locals":locals, "seq":seq))
     }
 
 YieldProc

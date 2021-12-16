@@ -9,36 +9,38 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr/coerce"
 	"github.com/brimdata/zed/expr/function"
+	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
+//XXX git rid of these?
 var ErrIncompatibleTypes = coerce.ErrIncompatibleTypes
 var ErrIndexOutOfBounds = errors.New("array index out of bounds")
 var ErrNotContainer = errors.New("cannot apply in to a non-container")
 var ErrBadCast = errors.New("bad cast")
 
 type Evaluator interface {
-	Eval(*zed.Value) (zed.Value, error)
+	Eval(*zed.Value, *Scope) *zed.Value
 }
 
 type Not struct {
 	expr Evaluator
 }
 
+var _ Evaluator = (*Not)(nil)
+
 func NewLogicalNot(e Evaluator) *Not {
 	return &Not{e}
 }
 
-func (n *Not) Eval(rec *zed.Value) (zed.Value, error) {
-	zv, err := evalBool(n.expr, rec)
-	if err != nil {
-		return zv, err
-	}
+func (n *Not) Eval(val *zed.Value, scope *Scope) *zed.Value {
+	zv := evalBool(n.expr, val, scope)
 	if zed.IsTrue(zv.Bytes) {
-		return zed.False, nil
+		return zed.False
 	}
-	return zed.True, nil
+	return zed.True
 }
 
 type And struct {
@@ -59,51 +61,36 @@ func NewLogicalOr(lhs, rhs Evaluator) *Or {
 	return &Or{lhs, rhs}
 }
 
-func evalBool(e Evaluator, rec *zed.Value) (zed.Value, error) {
-	zv, err := e.Eval(rec)
-	if err != nil {
-		return zv, err
+func evalBool(e Evaluator, rec *zed.Value, scope *Scope) *zed.Value {
+	val := e.Eval(rec, scope)
+	if zed.AliasOf(val.Type) != zed.TypeBool {
+		//XXX stash
+		v := zed.NewErrorf("not a boolean: %s", zson.MustFormatValue(*val))
+		val = &v
 	}
-	if zv.Type != zed.TypeBool {
-		err = ErrIncompatibleTypes
-	}
-	return zv, err
+	return val
 }
 
-func (a *And) Eval(rec *zed.Value) (zed.Value, error) {
-	lhs, err := evalBool(a.lhs, rec)
-	if err != nil {
-		return lhs, err
+func (a *And) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	lhs := evalBool(a.lhs, rec, scope)
+	if lhs.IsError() {
+		return lhs
 	}
 	if !zed.IsTrue(lhs.Bytes) {
-		return zed.False, nil
+		return zed.False
 	}
-	rhs, err := evalBool(a.rhs, rec)
-	if err != nil {
-		return lhs, err
-	}
-	if !zed.IsTrue(rhs.Bytes) {
-		return zed.False, nil
-	}
-	return zed.True, nil
+	return evalBool(a.rhs, rec, scope)
 }
 
-func (o *Or) Eval(rec *zed.Value) (zed.Value, error) {
-	lhs, err := evalBool(o.lhs, rec)
-	if err != nil {
-		return lhs, err
+func (o *Or) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	lhs := evalBool(o.lhs, rec, scope)
+	if lhs.IsError() {
+		return lhs
 	}
 	if zed.IsTrue(lhs.Bytes) {
-		return zed.True, nil
+		return zed.True
 	}
-	rhs, err := evalBool(o.rhs, rec)
-	if err != nil {
-		return lhs, err
-	}
-	if zed.IsTrue(rhs.Bytes) {
-		return zed.True, nil
-	}
-	return zed.False, nil
+	return evalBool(o.rhs, rec, scope)
 }
 
 type In struct {
@@ -119,14 +106,14 @@ func NewIn(elem, container Evaluator) *In {
 	}
 }
 
-func (i *In) Eval(rec *zed.Value) (zed.Value, error) {
-	elem, err := i.elem.Eval(rec)
-	if err != nil {
-		return elem, err
+func (i *In) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	elem := i.elem.Eval(rec, scope)
+	if elem.IsError() {
+		return elem
 	}
-	container, err := i.container.Eval(rec)
-	if err != nil {
-		return container, err
+	container := i.container.Eval(rec, scope)
+	if container.IsError() {
+		return container
 	}
 	switch typ := zed.AliasOf(container.Type).(type) {
 	case *zed.TypeOfNet:
@@ -138,68 +125,72 @@ func (i *In) Eval(rec *zed.Value) (zed.Value, error) {
 	case *zed.TypeMap:
 		return i.inMap(typ, elem, container)
 	default:
-		return zed.NewErrorf("'in' operator applied to non-container type"), nil
+		//XXX
+		v := zed.NewErrorf("'in' operator applied to non-container type")
+		return &v
 	}
 }
 
-func inNet(elem, net zed.Value) (zed.Value, error) {
+func inNet(elem, net *zed.Value) *zed.Value {
 	n, err := zed.DecodeNet(net.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
 	if typ := zed.AliasOf(elem.Type); typ != zed.TypeIP {
-		return zed.NewErrorf("'in' operator applied to non-container type"), nil
+		//XXX
+		v := zed.NewErrorf("'in' operator applied to non-container type")
+		return &v
 	}
 	a, err := zed.DecodeIP(elem.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
 	if n.IP.Equal(a.Mask(n.Mask)) {
-		return zed.True, nil
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }
 
-func (i *In) inContainer(typ zed.Type, elem, container zed.Value) (zed.Value, error) {
+func (i *In) inContainer(typ zed.Type, elem, container *zed.Value) *zed.Value {
 	iter := container.Bytes.Iter()
 	for {
 		if iter.Done() {
-			return zed.False, nil
+			return zed.False
 		}
 		zv, _, err := iter.Next()
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
-		_, err = i.vals.Coerce(elem, zed.Value{typ, zv})
+		_, err = i.vals.Coerce(*elem, zed.Value{typ, zv})
 		if err == nil && i.vals.Equal() {
-			return zed.True, nil
+			return zed.True
 		}
 	}
 }
 
-func (i *In) inMap(typ *zed.TypeMap, elem, container zed.Value) (zed.Value, error) {
+func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
 	keyType := zed.AliasOf(typ.KeyType)
 	valType := zed.AliasOf(typ.ValType)
 	iter := container.Bytes.Iter()
 	for !iter.Done() {
 		zv, _, err := iter.Next()
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
-		_, err = i.vals.Coerce(elem, zed.Value{keyType, zv})
+		_, err = i.vals.Coerce(*elem, zed.Value{keyType, zv})
 		if err == nil && i.vals.Equal() {
-			return zed.True, nil
+			return zed.True
 		}
 		zv, _, err = iter.Next()
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
-		_, err = i.vals.Coerce(elem, zed.Value{valType, zv})
+		_, err = i.vals.Coerce(*elem, zed.Value{valType, zv})
 		if err == nil && i.vals.Equal() {
-			return zed.True, nil
+			return zed.True
 		}
 	}
-	return zed.False, nil
+	return zed.False
 }
 
 type Equal struct {
@@ -219,27 +210,29 @@ func NewCompareEquality(lhs, rhs Evaluator, operator string) (*Equal, error) {
 	return e, nil
 }
 
-func (e *Equal) Eval(rec *zed.Value) (zed.Value, error) {
-	_, err := e.numeric.eval(rec)
+func (e *Equal) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	_, err := e.numeric.eval(this, scope)
 	if err != nil {
+		//XXX need to compare have coerce return zed error?
 		if err == coerce.ErrOverflow {
 			// If there was overflow converting one to the other,
 			// we know they can't be equal.
 			if e.equality {
-				return zed.False, nil
+				return zed.False
 			}
-			return zed.True, nil
+			return zed.True
 		}
-		return zed.Value{}, err
+		//XXX panic?
+		return zed.False
 	}
 	result := e.vals.Equal()
 	if !e.equality {
 		result = !result
 	}
 	if result {
-		return zed.True, nil
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }
 
 type RegexpMatch struct {
@@ -251,18 +244,16 @@ func NewRegexpMatch(re *regexp.Regexp, e Evaluator) *RegexpMatch {
 	return &RegexpMatch{re, e}
 }
 
-func (r *RegexpMatch) Eval(rec *zed.Value) (zed.Value, error) {
-	zv, err := r.expr.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
+func (r *RegexpMatch) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	zv := r.expr.Eval(this, scope)
 	if !zed.IsStringy(zv.Type.ID()) {
-		return zed.Value{}, zed.ErrMissing
+		//XXX change from missing to false right?
+		return zed.False
 	}
 	if r.re.Match(zv.Bytes) {
-		return zed.True, nil
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }
 
 type numeric struct {
@@ -279,32 +270,57 @@ func newNumeric(lhs, rhs Evaluator) numeric {
 	}
 }
 
-func enumify(v zed.Value) (zed.Value, error) {
+func enumify(v *zed.Value) *zed.Value {
 	// automatically convert an enum to its index value when coercing
 	if _, ok := v.Type.(*zed.TypeEnum); ok {
-		return zed.Value{zed.TypeUint64, v.Bytes}, nil
+		return &zed.Value{zed.TypeUint64, v.Bytes}
 	}
-	return v, nil
+	return v
 }
 
-func (n *numeric) eval(rec *zed.Value) (int, error) {
-	lhs, err := n.lhs.Eval(rec)
+func (n *numeric) eval(this *zed.Value, scope *Scope) (int, error) {
+	//XXX need valOf too...
+	lhs := n.lhs.Eval(this, scope)
+	lhs = enumify(lhs)
+	rhs := n.rhs.Eval(this, scope)
+	rhs = enumify(rhs)
+	return n.vals.Coerce(*lhs, *rhs)
+}
+
+func (n *numeric) floats() (float64, float64) {
+	a, err := zed.DecodeFloat(n.vals.A)
 	if err != nil {
-		return 0, err
+		panic(err)
 	}
-	lhs, err = enumify(lhs)
+	b, err := zed.DecodeFloat(n.vals.B)
 	if err != nil {
-		return 0, err
+		panic(err)
 	}
-	rhs, err := n.rhs.Eval(rec)
+	return a, b
+}
+
+func (n *numeric) ints() (int64, int64) {
+	a, err := zed.DecodeInt(n.vals.A)
 	if err != nil {
-		return 0, err
+		panic(err)
 	}
-	rhs, err = enumify(rhs)
+	b, err := zed.DecodeInt(n.vals.B)
 	if err != nil {
-		return 0, err
+		panic(err)
 	}
-	return n.vals.Coerce(lhs, rhs)
+	return a, b
+}
+
+func (n *numeric) uints() (uint64, uint64) {
+	a, err := zed.DecodeUint(n.vals.A)
+	if err != nil {
+		panic(err)
+	}
+	b, err := zed.DecodeUint(n.vals.B)
+	if err != nil {
+		panic(err)
+	}
+	return a, b
 }
 
 type Compare struct {
@@ -329,23 +345,23 @@ func NewCompareRelative(lhs, rhs Evaluator, operator string) (*Compare, error) {
 	return c, nil
 }
 
-func (c *Compare) result(result int) zed.Value {
+func (c *Compare) result(result int) *zed.Value {
 	if c.convert(result) {
 		return zed.True
 	}
 	return zed.False
 }
 
-func (c *Compare) Eval(rec *zed.Value) (zed.Value, error) {
-	lhs, err := c.lhs.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
+func (c *Compare) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	lhs := c.lhs.Eval(this, scope)
+	if lhs.IsError() {
+		return lhs
 	}
-	rhs, err := c.rhs.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
+	rhs := c.rhs.Eval(this, scope)
+	if rhs.IsError() {
+		return lhs
 	}
-	id, err := c.vals.Coerce(lhs, rhs)
+	id, err := c.vals.Coerce(*lhs, *rhs)
 	if err != nil {
 		// If coercion fails due to overflow, then we know there is a
 		// mixed signed and unsigned situation and either the unsigned
@@ -358,34 +374,32 @@ func (c *Compare) Eval(rec *zed.Value) (zed.Value, error) {
 			if zed.IsSigned(lhs.Type.ID()) {
 				result = -1
 			}
-			return c.result(result), nil
+			return c.result(result)
 		}
-		return zed.False, err
+		//XXX what about error?
+		return zed.False
 	}
 	var result int
 	if !c.vals.Equal() {
 		switch {
 		case c.vals.A == nil || c.vals.B == nil:
-			return zed.False, nil
+			return zed.False
 		case zed.IsFloat(id):
-			v1, _ := zed.DecodeFloat(c.vals.A)
-			v2, _ := zed.DecodeFloat(c.vals.B)
+			v1, v2 := c.floats()
 			if v1 < v2 {
 				result = -1
 			} else {
 				result = 1
 			}
 		case zed.IsSigned(id):
-			v1, _ := zed.DecodeInt(c.vals.A)
-			v2, _ := zed.DecodeInt(c.vals.B)
+			v1, v2 := c.ints()
 			if v1 < v2 {
 				result = -1
 			} else {
 				result = 1
 			}
 		case zed.IsNumber(id):
-			v1, _ := zed.DecodeUint(c.vals.A)
-			v2, _ := zed.DecodeUint(c.vals.B)
+			v1, v2 := c.uints()
 			if v1 < v2 {
 				result = -1
 			} else {
@@ -400,34 +414,44 @@ func (c *Compare) Eval(rec *zed.Value) (zed.Value, error) {
 				result = 1
 			}
 		default:
-			return zed.Value{}, fmt.Errorf("bad comparison type ID: %d", id)
+			//XXX
+			v := zed.NewErrorf("bad comparison type ID: %d", id)
+			return &v
 		}
 	}
 	if c.convert(result) {
-		return zed.True, nil
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }
 
 type Add struct {
-	numeric
+	operands numeric
+	result   result.Value
 }
 
 type Subtract struct {
-	numeric
+	operands numeric
+	result   result.Value
 }
 
 type Multiply struct {
-	numeric
+	operands numeric
+	result   result.Value
 }
 
 type Divide struct {
-	numeric
+	operands numeric
+	result   result.Value
 }
 
 type Modulo struct {
-	numeric
+	operands numeric
+	result   result.Value
 }
+
+// XXX put error singletons in one place
+var DivideByZero = &zed.Value{Type: zed.TypeError, Bytes: []byte("divide by zero")}
 
 // NewArithmetic compiles an expression of the form "expr1 op expr2"
 // for the arithmetic operators +, -, *, /
@@ -435,163 +459,150 @@ func NewArithmetic(lhs, rhs Evaluator, op string) (Evaluator, error) {
 	n := newNumeric(lhs, rhs)
 	switch op {
 	case "+":
-		return &Add{n}, nil
+		return &Add{operands: n}, nil
 	case "-":
-		return &Subtract{n}, nil
+		return &Subtract{operands: n}, nil
 	case "*":
-		return &Multiply{n}, nil
+		return &Multiply{operands: n}, nil
 	case "/":
-		return &Divide{n}, nil
+		return &Divide{operands: n}, nil
 	case "%":
-		return &Modulo{n}, nil
+		return &Modulo{operands: n}, nil
 	}
 	return nil, fmt.Errorf("unknown arithmetic operator: %s", op)
 }
 
-func (a *Add) Eval(rec *zed.Value) (zed.Value, error) {
-	id, err := a.eval(rec)
+func (a *Add) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	id, err := a.operands.eval(this, scope)
 	if err != nil {
-		return zed.Value{}, err
+		return a.result.Error(err)
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
 	case zed.IsFloat(id):
-		v1, _ := zed.DecodeFloat64(a.vals.A)
-		v2, _ := zed.DecodeFloat64(a.vals.B)
-		return zed.Value{typ, a.vals.Float64(v1 + v2)}, nil
+		v1, v2 := a.operands.floats()
+		return a.result.Float(typ, v1+v2)
 	case zed.IsSigned(id):
-		v1, _ := zed.DecodeInt(a.vals.A)
-		v2, _ := zed.DecodeInt(a.vals.B)
-		return zed.Value{typ, a.vals.Int(v1 + v2)}, nil
+		v1, v2 := a.operands.ints()
+		return a.result.Int(typ, v1+v2)
 	case zed.IsNumber(id):
-		v1, _ := zed.DecodeUint(a.vals.A)
-		v2, _ := zed.DecodeUint(a.vals.B)
-		return zed.Value{typ, a.vals.Uint(v1 + v2)}, nil
+		v1, v2 := a.operands.uints()
+		return a.result.Uint(typ, v1+v2)
 	case zed.IsStringy(id):
-		v1, _ := zed.DecodeString(a.vals.A)
-		v2, _ := zed.DecodeString(a.vals.B)
+		v1, _ := zed.DecodeString(a.operands.vals.A)
+		v2, _ := zed.DecodeString(a.operands.vals.B)
+		//XXX stringy going away with structure errors and no bstring
 		// XXX GC
-		return zed.Value{typ, zed.EncodeString(v1 + v2)}, nil
+		return a.result.String(v1 + v2)
 	}
-	return zed.Value{}, ErrIncompatibleTypes
+	return a.result.Errorf("bad type '+': %s", typ)
 }
 
-func (s *Subtract) Eval(rec *zed.Value) (zed.Value, error) {
-	id, err := s.eval(rec)
+func (s *Subtract) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	id, err := s.operands.eval(this, scope)
 	if err != nil {
-		return zed.Value{}, err
+		return s.result.Error(err)
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
 	case zed.IsFloat(id):
-		v1, _ := zed.DecodeFloat64(s.vals.A)
-		v2, _ := zed.DecodeFloat64(s.vals.B)
-		return zed.Value{typ, s.vals.Float64(v1 - v2)}, nil
+		v1, v2 := s.operands.floats()
+		return s.result.Float(typ, v1-v2)
 	case zed.IsSigned(id):
-		v1, _ := zed.DecodeInt(s.vals.A)
-		v2, _ := zed.DecodeInt(s.vals.B)
-		return zed.Value{typ, s.vals.Int(v1 - v2)}, nil
+		v1, v2 := s.operands.ints()
+		return s.result.Int(typ, v1-v2)
 	case zed.IsNumber(id):
-		v1, _ := zed.DecodeUint(s.vals.A)
-		v2, _ := zed.DecodeUint(s.vals.B)
-		return zed.Value{typ, s.vals.Uint(v1 - v2)}, nil
+		v1, v2 := s.operands.uints()
+		return s.result.Uint(typ, v1-v2)
 	}
-	return zed.Value{}, ErrIncompatibleTypes
+	return s.result.Errorf("bad type '-': %s", zed.LookupPrimitiveByID(id))
 }
 
-func (m *Multiply) Eval(rec *zed.Value) (zed.Value, error) {
-	id, err := m.eval(rec)
+func (m *Multiply) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	id, err := m.operands.eval(this, scope)
 	if err != nil {
-		return zed.Value{}, err
+		return m.result.Error(err)
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
 	case zed.IsFloat(id):
-		v1, _ := zed.DecodeFloat64(m.vals.A)
-		v2, _ := zed.DecodeFloat64(m.vals.B)
-		return zed.Value{typ, m.vals.Float64(v1 * v2)}, nil
+		v1, v2 := m.operands.floats()
+		return m.result.Float(typ, v1*v2)
 	case zed.IsSigned(id):
-		v1, _ := zed.DecodeInt(m.vals.A)
-		v2, _ := zed.DecodeInt(m.vals.B)
-		return zed.Value{typ, m.vals.Int(v1 * v2)}, nil
+		v1, v2 := m.operands.ints()
+		return m.result.Int(typ, v1*v2)
 	case zed.IsNumber(id):
-		v1, _ := zed.DecodeUint(m.vals.A)
-		v2, _ := zed.DecodeUint(m.vals.B)
-		return zed.Value{typ, m.vals.Uint(v1 * v2)}, nil
+		v1, v2 := m.operands.uints()
+		return m.result.Uint(typ, v1*v2)
 	}
-	return zed.Value{}, ErrIncompatibleTypes
+	return m.result.Errorf("bad type '*': %s", zed.LookupPrimitiveByID(id))
 }
 
-func (d *Divide) Eval(rec *zed.Value) (zed.Value, error) {
-	id, err := d.eval(rec)
+func (d *Divide) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	id, err := d.operands.eval(this, scope)
 	if err != nil {
-		return zed.Value{}, err
+		return d.result.Error(err)
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
 	case zed.IsFloat(id):
-		v1, _ := zed.DecodeFloat64(d.vals.A)
-		v2, _ := zed.DecodeFloat64(d.vals.B)
+		v1, v2 := d.operands.floats()
 		if v2 == 0 {
-			return zed.NewErrorf("floating point divide by 0"), nil
+			return DivideByZero
 		}
-		return zed.Value{typ, d.vals.Float64(v1 / v2)}, nil
+		return d.result.Float(typ, v1/v2)
 	case zed.IsSigned(id):
-		v1, _ := zed.DecodeInt(d.vals.A)
-		v2, _ := zed.DecodeInt(d.vals.B)
+		v1, v2 := d.operands.ints()
 		if v2 == 0 {
-			return zed.NewErrorf("signed integer divide by 0"), nil
+			return DivideByZero
 		}
-		return zed.Value{typ, d.vals.Int(v1 / v2)}, nil
+		return d.result.Int(typ, v1/v2)
 	case zed.IsNumber(id):
-		v1, _ := zed.DecodeUint(d.vals.A)
-		v2, _ := zed.DecodeUint(d.vals.B)
+		v1, v2 := d.operands.uints()
 		if v2 == 0 {
-			return zed.NewErrorf("unsigned integer divide by 0"), nil
+			return DivideByZero
 		}
-		return zed.Value{typ, d.vals.Uint(v1 / v2)}, nil
+		return d.result.Uint(typ, v1/v2)
 	}
-	return zed.Value{}, ErrIncompatibleTypes
+	return d.result.Errorf("bad type '/': %s", typ)
 }
 
-func (m *Modulo) Eval(zv *zed.Value) (zed.Value, error) {
-	id, err := m.eval(zv)
+func (m *Modulo) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	id, err := m.operands.eval(this, scope)
 	if err != nil {
-		return zed.Value{}, err
+		return m.result.Error(err)
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	if zed.IsFloat(id) || !zed.IsNumber(id) {
-		return zed.NewErrorf("operator %% not defined on type %s", typ), nil
+		return m.result.Errorf("bad type '%%': %s", zed.LookupPrimitiveByID(id))
 	}
 	if zed.IsSigned(id) {
-		x, _ := zed.DecodeInt(m.vals.A)
-		y, _ := zed.DecodeInt(m.vals.B)
+		x, y := m.operands.ints()
 		if y == 0 {
-			return zed.NewErrorf("modulo by zero"), nil
+			return DivideByZero
 		}
-		return zed.Value{typ, m.vals.Int(x % y)}, nil
+		return m.result.Int(typ, x%y)
 	}
-	x, _ := zed.DecodeUint(m.vals.A)
-	y, _ := zed.DecodeUint(m.vals.B)
+	x, y := m.operands.uints()
 	if y == 0 {
-		return zed.NewErrorf("modulo by zero"), nil
+		return DivideByZero
 	}
-	return zed.Value{typ, m.vals.Uint(x % y)}, nil
+	return m.result.Uint(typ, x%y)
 }
 
-func getNthFromContainer(container zcode.Bytes, idx uint) (zcode.Bytes, error) {
+func getNthFromContainer(container zcode.Bytes, idx uint) zcode.Bytes {
 	iter := container.Iter()
 	var i uint = 0
 	for ; !iter.Done(); i++ {
 		zv, _, err := iter.Next()
 		if err != nil {
-			return nil, err
+			panic(err)
 		}
 		if i == idx {
-			return zv, nil
+			return zv
 		}
 	}
-	return nil, zed.ErrMissing
+	return nil
 }
 
 func lookupKey(mapBytes, target zcode.Bytes) (zcode.Bytes, bool) {
@@ -620,19 +631,13 @@ type Index struct {
 	index     Evaluator
 }
 
-func NewIndexExpr(zctx *zed.Context, container, index Evaluator) (Evaluator, error) {
-	return &Index{zctx, container, index}, nil
+func NewIndexExpr(zctx *zed.Context, container, index Evaluator) Evaluator {
+	return &Index{zctx, container, index}
 }
 
-func (i *Index) Eval(rec *zed.Value) (zed.Value, error) {
-	container, err := i.container.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
-	index, err := i.index.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
+func (i *Index) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	container := i.container.Eval(rec, scope)
+	index := i.index.Eval(rec, scope)
 	switch typ := container.Type.(type) {
 	case *zed.TypeArray:
 		return indexArray(typ, container.Bytes, index)
@@ -641,55 +646,70 @@ func (i *Index) Eval(rec *zed.Value) (zed.Value, error) {
 	case *zed.TypeMap:
 		return indexMap(typ, container.Bytes, index)
 	default:
-		return zed.Value{}, zed.ErrMissing
+		return zed.Missing
 	}
 }
 
-func indexArray(typ *zed.TypeArray, array zcode.Bytes, index zed.Value) (zed.Value, error) {
+func indexArray(typ *zed.TypeArray, array zcode.Bytes, index *zed.Value) *zed.Value {
 	id := index.Type.ID()
 	if !zed.IsInteger(id) {
-		return zed.NewErrorf("array index is not an integer"), nil
+		//XXX stash
+		val := zed.NewErrorf("array index is not an integer")
+		return &val
 	}
 	var idx uint
 	if zed.IsSigned(id) {
 		v, _ := zed.DecodeInt(index.Bytes)
 		if idx < 0 {
-			return zed.Value{}, zed.ErrMissing
+			return zed.Missing
 		}
 		idx = uint(v)
 	} else {
-		v, _ := zed.DecodeUint(index.Bytes)
+		v, err := zed.DecodeUint(index.Bytes)
+		if err != nil {
+			panic(err)
+		}
 		idx = uint(v)
 	}
-	zv, err := getNthFromContainer(array, idx)
-	if err != nil {
-		return zed.Value{}, err
+	zv := getNthFromContainer(array, idx)
+	if zv == nil {
+		return zed.Missing
 	}
-	return zed.Value{typ.Type, zv}, nil
+	//XXX stash
+	val := zed.Value{typ.Type, zv}
+	return &val
 }
 
-func indexRecord(typ *zed.TypeRecord, record zcode.Bytes, index zed.Value) (zed.Value, error) {
+func indexRecord(typ *zed.TypeRecord, record zcode.Bytes, index *zed.Value) *zed.Value {
 	id := index.Type.ID()
 	if !zed.IsStringy(id) {
-		return zed.NewErrorf("record index is not a string"), nil
+		//XXX stash
+		val := zed.NewErrorf("record index is not a string")
+		return &val
 	}
 	field, _ := zed.DecodeString(index.Bytes)
-	result, err := zed.NewValue(typ, record).ValueByField(string(field))
+	val, err := zed.NewValue(typ, record).ValueByField(string(field))
 	if err != nil {
-		return zed.NewError(err), nil
+		return zed.Missing
 	}
-	return result, nil
+	return &val
 }
 
-func indexMap(typ *zed.TypeMap, mapBytes zcode.Bytes, key zed.Value) (zed.Value, error) {
+func indexMap(typ *zed.TypeMap, mapBytes zcode.Bytes, key *zed.Value) *zed.Value {
 	if key.Type != typ.KeyType {
-		//XXX should try coercing?
-		return zed.NewErrorf("map key type does not match index type"), nil
+		//XXX coerce numeric index?
+		//XXX seems like we should jut return missing here as
+		// a wrong-type key is simply not present in the map
+		//XXX stash
+		val := zed.NewErrorf("incompatible map key type")
+		return &val
 	}
 	if valBytes, ok := lookupKey(mapBytes, key.Bytes); ok {
-		return zed.Value{typ.ValType, valBytes}, nil
+		// XXX stash
+		val := zed.Value{typ.ValType, valBytes}
+		return &val
 	}
-	return zed.Value{}, zed.ErrMissing
+	return zed.Missing
 }
 
 type Conditional struct {
@@ -706,18 +726,16 @@ func NewConditional(predicate, thenExpr, elseExpr Evaluator) *Conditional {
 	}
 }
 
-func (c *Conditional) Eval(rec *zed.Value) (zed.Value, error) {
-	val, err := c.predicate.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
+func (c *Conditional) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	val := c.predicate.Eval(rec, scope)
 	if val.Type.ID() != zed.IDBool {
-		return zed.Value{}, ErrIncompatibleTypes
+		val := zed.NewErrorf("'?' operator: bool predicate required")
+		return &val
 	}
 	if zed.IsTrue(val.Bytes) {
-		return c.thenExpr.Eval(rec)
+		return c.thenExpr.Eval(rec, scope)
 	}
-	return c.elseExpr.Eval(rec)
+	return c.elseExpr.Eval(rec, scope)
 }
 
 type Call struct {
@@ -737,13 +755,10 @@ func NewCall(zctx *zed.Context, fn function.Interface, exprs []Evaluator) *Call 
 	}
 }
 
-func (c *Call) Eval(rec *zed.Value) (zed.Value, error) {
+func (c *Call) Eval(rec *zed.Value, scope *Scope) *zed.Value {
 	for k, e := range c.exprs {
-		val, err := e.Eval(rec)
-		if err != nil {
-			return zed.Value{}, err
-		}
-		c.args[k] = val
+		//XXX check error?
+		c.args[k] = *e.Eval(rec, scope)
 	}
 	return c.fn.Call(c.args)
 }
@@ -753,7 +768,7 @@ func (c *Call) Eval(rec *zed.Value) (zed.Value, error) {
 type TypeFunc struct {
 	name string
 	zctx *zed.Context
-	zv   zed.Value
+	val  zed.Value
 }
 
 func NewTypeFunc(zctx *zed.Context, name string) *TypeFunc {
@@ -763,15 +778,15 @@ func NewTypeFunc(zctx *zed.Context, name string) *TypeFunc {
 	}
 }
 
-func (t *TypeFunc) Eval(rec *zed.Value) (zed.Value, error) {
-	if t.zv.Bytes == nil {
+func (t *TypeFunc) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	if t.val.Bytes == nil {
 		typ := t.zctx.LookupTypeDef(t.name)
 		if typ == nil {
-			return zed.Missing, nil
+			return zed.Missing
 		}
-		t.zv = zed.NewTypeValue(typ)
+		t.val = zed.NewTypeValue(typ)
 	}
-	return t.zv, nil
+	return &t.val
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#has
@@ -783,20 +798,17 @@ func NewHas(exprs []Evaluator) *Has {
 	return &Has{exprs}
 }
 
-func (h *Has) Eval(rec *zed.Value) (zed.Value, error) {
+func (h *Has) Eval(rec *zed.Value, scope *Scope) *zed.Value {
 	for _, e := range h.exprs {
-		zv, err := e.Eval(rec)
-		if errors.Is(err, zed.ErrMissing) || zed.IsMissing(zv) {
-			return zed.False, nil
-		}
-		if err != nil {
-			return zed.Value{}, err
-		}
-		if zv.Type == zed.TypeError {
-			return zv, nil
+		val := e.Eval(rec, scope)
+		if val.IsError() {
+			if zed.IsMissing(val) {
+				return zed.False
+			}
+			return val
 		}
 	}
-	return zed.True, nil
+	return zed.True
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#missing
@@ -805,15 +817,16 @@ type Missing struct {
 }
 
 func NewMissing(exprs []Evaluator) *Missing {
+	//XXX not has
 	return &Missing{NewHas(exprs)}
 }
 
-func (m *Missing) Eval(rec *zed.Value) (zed.Value, error) {
-	zv, err := m.has.Eval(rec)
-	if zv.Type == zed.TypeBool {
-		zv = zed.Not(zv.Bytes)
+func (m *Missing) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	val := m.has.Eval(rec, scope)
+	if val.Type == zed.TypeBool {
+		val = zed.Not(val.Bytes)
 	}
-	return zv, err
+	return val
 }
 
 func NewCast(expr Evaluator, typ zed.Type) (Evaluator, error) {
@@ -830,25 +843,24 @@ func NewCast(expr Evaluator, typ zed.Type) (Evaluator, error) {
 
 type evalCast struct {
 	expr   Evaluator
-	caster PrimitiveCaster
+	caster Caster
 	typ    zed.Type
 }
 
-func (c *evalCast) Eval(rec *zed.Value) (zed.Value, error) {
-	zv, err := c.expr.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
-	if zv.Bytes == nil {
+func (c *evalCast) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	val := c.expr.Eval(rec, scope)
+	if val.IsNull() {
 		// Take care of null here so the casters don't have to
 		// worry about it.  Any value can be null after all.
-		return zed.Value{c.typ, nil}, nil
+		//XXX stash
+		val := zed.Value{c.typ, nil}
+		return &val
 	}
-	return c.caster(zv)
+	return c.caster(val)
 }
 
 func NewRootField(name string) Evaluator {
-	return NewDotExpr(field.New(name))
+	return NewDottedExpr(field.New(name))
 }
 
 type Assignment struct {

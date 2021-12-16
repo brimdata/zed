@@ -132,7 +132,7 @@ func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 	if err != nil {
 		return err
 	}
-	r := zbuf.Array(recs).NewReader()
+	r := zbuf.NewArray(recs).NewReader()
 	if err := zio.CopyWithContext(w.ctx, writer, r); err != nil {
 		writer.Abort()
 		return err

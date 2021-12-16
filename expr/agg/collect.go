@@ -1,10 +1,11 @@
 package agg
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
 type Collect struct {
@@ -12,19 +13,19 @@ type Collect struct {
 	size   int
 }
 
-func (c *Collect) Consume(v zed.Value) error {
-	if v.IsNil() {
-		return nil
+var _ Function = (*Collect)(nil)
+
+func (c *Collect) Consume(val *zed.Value) {
+	if !val.IsNull() {
+		c.update(val)
 	}
-	c.update(v)
-	return nil
 }
 
-func (c *Collect) update(v zed.Value) {
-	stash := make(zcode.Bytes, len(v.Bytes))
-	copy(stash, v.Bytes)
-	c.values = append(c.values, zed.Value{v.Type, stash})
-	c.size += len(v.Bytes)
+func (c *Collect) update(val *zed.Value) {
+	stash := make(zcode.Bytes, len(val.Bytes))
+	copy(stash, val.Bytes)
+	c.values = append(c.values, zed.Value{val.Type, stash})
+	c.size += len(val.Bytes)
 	for c.size > MaxValueSize {
 		// XXX See issue #1813.  For now we silently discard entries
 		// to maintain the size limit.
@@ -34,10 +35,10 @@ func (c *Collect) update(v zed.Value) {
 	}
 }
 
-func (c *Collect) Result(zctx *zed.Context) (zed.Value, error) {
+func (c *Collect) Result(zctx *zed.Context) *zed.Value {
 	if len(c.values) == 0 {
 		// no values found
-		return zed.Value{Type: zed.TypeNull}, nil
+		return zed.Null
 	}
 	m := make(map[zed.Type]int)
 	for _, zv := range c.values {
@@ -49,7 +50,7 @@ func (c *Collect) Result(zctx *zed.Context) (zed.Value, error) {
 	return c.buildUnion(zctx, m)
 }
 
-func (c *Collect) build(zctx *zed.Context) (zed.Value, error) {
+func (c *Collect) build(zctx *zed.Context) *zed.Value {
 	typ := c.values[0].Type
 	var b zcode.Builder
 	container := zed.IsContainerType(typ)
@@ -61,10 +62,10 @@ func (c *Collect) build(zctx *zed.Context) (zed.Value, error) {
 		}
 	}
 	arrayType := zctx.LookupTypeArray(typ)
-	return zed.Value{arrayType, b.Bytes()}, nil
+	return zed.NewValue(arrayType, b.Bytes())
 }
 
-func (c *Collect) buildUnion(zctx *zed.Context, selectors map[zed.Type]int) (zed.Value, error) {
+func (c *Collect) buildUnion(zctx *zed.Context, selectors map[zed.Type]int) *zed.Value {
 	// XXX When all of the types are unions we should combine them into a
 	// a merged union.  This will allow partials that compute different
 	// unions to do the right thing.  See issue #3171.
@@ -92,29 +93,30 @@ func (c *Collect) buildUnion(zctx *zed.Context, selectors map[zed.Type]int) (zed
 	}
 	unionType := zctx.LookupTypeUnion(types)
 	arrayType := zctx.LookupTypeArray(unionType)
-	return zed.Value{arrayType, b.Bytes()}, nil
+	return zed.NewValue(arrayType, b.Bytes())
 }
 
-func (c *Collect) ConsumeAsPartial(zv zed.Value) error {
+func (c *Collect) ConsumeAsPartial(val *zed.Value) {
 	//XXX These should not be passed in here. See issue #3175
-	if len(zv.Bytes) == 0 {
-		return nil
+	if len(val.Bytes) == 0 {
+		return
 	}
-	arrayType, ok := zv.Type.(*zed.TypeArray)
+	arrayType, ok := val.Type.(*zed.TypeArray)
 	if !ok {
-		return errors.New("partial is not an array type in collect aggregator: " + zv.String())
+		panic(fmt.Errorf("collect partial: partial not an array type: %s", zson.MustFormatValue(*val)))
 	}
 	typ := arrayType.Type
-	for it := zv.Iter(); !it.Done(); {
+	elem := zed.Value{Type: typ}
+	for it := val.Iter(); !it.Done(); {
 		b, _, err := it.Next()
 		if err != nil {
-			return err
+			panic(fmt.Errorf("collect partial: array bytes are corrupt: %w", err))
 		}
-		c.update(zed.Value{typ, b})
+		elem.Bytes = b
+		c.update(&elem)
 	}
-	return nil
 }
 
-func (c *Collect) ResultAsPartial(zctx *zed.Context) (zed.Value, error) {
+func (c *Collect) ResultAsPartial(zctx *zed.Context) *zed.Value {
 	return c.Result(zctx)
 }

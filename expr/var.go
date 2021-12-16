@@ -6,14 +6,16 @@ type Var struct {
 	ref *zed.Value
 }
 
+var _ Evaluator = (*Var)(nil)
+
 func NewVar(ref *zed.Value) *Var {
 	return &Var{ref}
 }
 
-func (v *Var) Eval(*zed.Value) (zed.Value, error) {
-	zv := *v.ref
-	if zv.Type == nil {
-		return zed.Value{}, zed.ErrMissing
+func (v *Var) Eval(*zed.Value, *Scope) *zed.Value {
+	val := v.ref
+	if val == nil || val.Type == nil {
+		return zed.Missing
 	}
-	return zv, nil
+	return val
 }

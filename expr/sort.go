@@ -10,8 +10,8 @@ import (
 )
 
 type CompareFn func(a *zed.Value, b *zed.Value) int
-type ValueCompareFn func(a zed.Value, b zed.Value) int
-type KeyCompareFn func(*zed.Value) int
+type ValueCompareFn func(a *zed.Value, b *zed.Value) int
+type KeyCompareFn func(*zed.Value, *Scope) int
 
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zcode.Bytes) int
@@ -33,7 +33,14 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 	return func(ra *zed.Value, rb *zed.Value) int {
 		for _, resolver := range fields {
 			// XXX return errors?
-			a, _ := resolver.Eval(ra)
+			a := resolver.Eval(ra, nil)
+			// XXX We should compute a vector of sort keys then
+			// sort the pointers and then generate the batches
+			// on demand from the sorted pointers.  And we should
+			// special case this for native machine-word keys.
+			// i.e., we sort {key,*zed.Value} then build the new
+			// batches from the sorted pointers.
+			a = a.Copy()
 			if len(a.Bytes) > 0 {
 				// a.Bytes's backing array might belonging to
 				// resolver.Eval, so copy it before calling
@@ -41,7 +48,8 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 				aBytesBuf = append(aBytesBuf[:0], a.Bytes...)
 				a.Bytes = aBytesBuf
 			}
-			b, _ := resolver.Eval(rb)
+
+			b := resolver.Eval(rb, nil)
 			v := compareValues(a, b, comparefns, &pair, nullsMax)
 			// If the events don't match, then return the sort
 			// info.  Otherwise, they match and we continue on
@@ -58,12 +66,12 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 func NewValueCompareFn(nullsMax bool) ValueCompareFn {
 	var pair coerce.Pair
 	comparefns := make(map[zed.Type]comparefn)
-	return func(a, b zed.Value) int {
+	return func(a, b *zed.Value) int {
 		return compareValues(a, b, comparefns, &pair, nullsMax)
 	}
 }
 
-func compareValues(a, b zed.Value, comparefns map[zed.Type]comparefn, pair *coerce.Pair, nullsMax bool) int {
+func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coerce.Pair, nullsMax bool) int {
 	// Handle nulls according to nullsMax
 	nullA := a.IsNull()
 	nullB := b.IsNull()
@@ -88,7 +96,8 @@ func compareValues(a, b zed.Value, comparefns map[zed.Type]comparefn, pair *coer
 	typ := a.Type
 	abytes, bbytes := a.Bytes, b.Bytes
 	if a.Type.ID() != b.Type.ID() {
-		id, err := pair.Coerce(a, b)
+		//XXX coerce take ptr?
+		id, err := pair.Coerce(*a, *b)
 		typ = zed.LookupPrimitiveByID(id)
 		if err != nil || typ == nil {
 			// If values cannot be coerced, just compare the native
@@ -124,12 +133,12 @@ func NewKeyCompareFn(key *zed.Value) (KeyCompareFn, error) {
 			break
 		}
 		keyval = append(keyval, val)
-		accessors = append(accessors, NewDotExpr(name))
+		accessors = append(accessors, NewDottedExpr(name))
 	}
-	return func(rec *zed.Value) int {
+	return func(this *zed.Value, scope *Scope) int {
 		for k, access := range accessors {
 			// XXX error
-			a, _ := access.Eval(rec)
+			a := access.Eval(this, scope)
 			if a.IsNull() {
 				// we know the key value is not null
 				return -1
@@ -175,7 +184,9 @@ func NewRecordSlice(compare CompareFn) *RecordSlice {
 }
 
 // Swap implements sort.Interface for *Record slices.
-func (r *RecordSlice) Len() int { return len(r.vals) }
+func (r *RecordSlice) Len() int {
+	return len(r.vals)
+}
 
 // Swap implements sort.Interface for *Record slices.
 func (r *RecordSlice) Swap(i, j int) { r.vals[i], r.vals[j] = r.vals[j], r.vals[i] }

@@ -7,78 +7,78 @@ import (
 	"github.com/brimdata/zed/field"
 )
 
-type RootRecord struct{}
+type This struct{}
 
-func (r *RootRecord) Eval(rec *zed.Value) (zed.Value, error) {
-	return *rec, nil
+func (*This) Eval(this *zed.Value, _ *Scope) *zed.Value {
+	return this
 }
 
 type DotExpr struct {
 	record Evaluator
 	field  string
+	stash  zed.Value
 }
 
-func NewDotAccess(record Evaluator, field string) *DotExpr {
-	return &DotExpr{record, field}
+func NewDotExpr(record Evaluator, field string) *DotExpr {
+	return &DotExpr{
+		record: record,
+		field:  field,
+	}
 }
 
-func NewDotExpr(f field.Path) Evaluator {
-	ret := Evaluator(&RootRecord{})
+func NewDottedExpr(f field.Path) Evaluator {
+	ret := Evaluator(&This{})
 	for _, name := range f {
-		ret = &DotExpr{ret, name}
+		ret = NewDotExpr(ret, name)
 	}
 	return ret
 }
 
-func valOf(zv zed.Value) (zed.Value, error) {
-	typ := zv.Type
-	bytes := zv.Bytes
+func valOf(val *zed.Value) *zed.Value {
+	typ := val.Type
+	if _, ok := typ.(*zed.TypeAlias); !ok {
+		if _, ok := typ.(*zed.TypeUnion); !ok {
+			// common fast path
+			return val
+		}
+	}
+	bytes := val.Bytes
 	for {
 		typ = zed.AliasOf(typ)
 		union, ok := typ.(*zed.TypeUnion)
 		if !ok {
-			return zed.Value{typ, bytes}, nil
+			return &zed.Value{typ, bytes}
 		}
 		var err error
 		typ, _, bytes, err = union.SplitZNG(bytes)
 		if err != nil {
-			return zed.Value{}, err
+			panic("union split: corrupt Zed bytes")
 		}
 	}
 }
 
-func accessField(zv zed.Value, field string) (zed.Value, error) {
-	zv, err := valOf(zv)
-	if err != nil {
-		return zed.Value{}, err
-	}
-	recType, ok := zv.Type.(*zed.TypeRecord)
+func (d *DotExpr) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	rec := d.record.Eval(this, scope)
+	val := valOf(rec)
+	recType, ok := val.Type.(*zed.TypeRecord)
 	if !ok {
-		return zed.Value{}, zed.ErrMissing
+		return zed.Missing
 	}
-	idx, ok := recType.ColumnOfField(field)
+	idx, ok := recType.ColumnOfField(d.field)
 	if !ok {
-		return zed.Value{}, zed.ErrMissing
+		return zed.Missing
 	}
 	typ := recType.Columns[idx].Type
-	if zv.IsNull() {
+	if val.IsNull() {
 		// The record is null.  Return null value of the field type.
-		return zed.Value{typ, nil}, nil
+		//XXX could lookup singleton
+		d.stash = zed.Value{typ, nil}
+		return &d.stash
 	}
 	//XXX see PR #1071 to improve this (though we need this for Index anyway)
-	fv, err := getNthFromContainer(zv.Bytes, uint(idx))
-	if err != nil {
-		return zed.Value{}, err
-	}
-	return zed.Value{recType.Columns[idx].Type, fv}, nil
-}
-
-func (f *DotExpr) Eval(rec *zed.Value) (zed.Value, error) {
-	lval, err := f.record.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
-	return accessField(lval, f.field)
+	field := getNthFromContainer(val.Bytes, uint(idx))
+	d.stash = zed.Value{Type: recType.Columns[idx].Type, Bytes: field}
+	return &d.stash
 }
 
 // DotExprToString returns Zed for the Evaluator assuming it's a field expr.
@@ -92,7 +92,7 @@ func DotExprToString(e Evaluator) (string, error) {
 
 func DotExprToField(e Evaluator) (field.Path, error) {
 	switch e := e.(type) {
-	case *RootRecord:
+	case *This:
 		return field.NewRoot(), nil
 	case *DotExpr:
 		lhs, err := DotExprToField(e.record)
@@ -101,7 +101,7 @@ func DotExprToField(e Evaluator) (field.Path, error) {
 		}
 		return append(lhs, e.field), nil
 	case *Literal:
-		return field.New(e.zv.String()), nil
+		return field.New(e.val.String()), nil
 	case *Index:
 		lhs, err := DotExprToField(e.container)
 		if err != nil {

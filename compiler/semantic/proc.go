@@ -561,6 +561,22 @@ func semProc(ctx context.Context, scope *Scope, p ast.Proc, adaptor proc.DataAda
 			Kind:  "Over",
 			Exprs: exprs,
 		}, nil
+	case *ast.Scope:
+		locals, err := semAssignments(scope, p.Locals)
+		if err != nil {
+			return nil, err
+		}
+		//XXX need to add locals to scope data structure and
+		// extent it to handle local frame as well as consts, etc
+		seq, err := semProc(ctx, scope, p, adaptor, head)
+		if err != nil {
+			return nil, err
+		}
+		return &dag.Scope{
+			Kind:   "Scope",
+			Locals: locals,
+			Seq:    seq,
+		}, nil
 	case *ast.Yield:
 		exprs, err := semExprs(scope, p.Exprs)
 		if err != nil {

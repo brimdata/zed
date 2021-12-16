@@ -45,7 +45,8 @@ type runner struct {
 }
 
 func (r *runner) Write(rec *zed.Value) error {
-	return r.driver.Write(r.cid, &zbuf.Array{*rec})
+	//XXX this was and is inefficient
+	return r.driver.Write(r.cid, zbuf.NewArray([]zed.Value{*rec}))
 }
 
 func (r *runner) handleCtrl(ctrl interface{}) error {

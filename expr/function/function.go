@@ -18,7 +18,7 @@ var (
 )
 
 type Interface interface {
-	Call([]zed.Value) (zed.Value, error)
+	Call([]zed.Value) *zed.Value
 }
 
 func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
@@ -83,14 +83,13 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 		argmax = 2
 		f = &Trunc{}
 	case "typeof":
-		f = &TypeOf{zctx}
+		f = &TypeOf{zctx: zctx}
 	case "typeunder":
-		f = &typeUnder{zctx}
+		f = &typeUnder{zctx: zctx}
 	case "nameof":
 		f = &NameOf{}
 	case "fields":
-		typ := zctx.LookupTypeArray(zed.TypeString)
-		f = &Fields{zctx: zctx, typ: typ}
+		f = NewFields(zctx)
 	case "is":
 		argmin = 1
 		argmax = 2
@@ -135,80 +134,80 @@ func HasBoolResult(name string) bool {
 	return false
 }
 
-func zverr(msg string, err error) (zed.Value, error) {
-	return zed.Value{}, fmt.Errorf("%s: %w", msg, err)
-}
-
-func badarg(msg string) (zed.Value, error) {
-	return zverr(msg, ErrBadArgument)
-}
-
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#len
 type LenFn struct {
-	result.Buffer
+	stash result.Value
 }
 
-func (l *LenFn) Call(args []zed.Value) (zed.Value, error) {
+func (l *LenFn) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	if zv.Bytes == nil {
-		return zed.Value{zed.TypeInt64, nil}, nil
+		return zed.NullInt64
 	}
+	var length int
 	switch typ := zed.AliasOf(args[0].Type).(type) {
 	case *zed.TypeRecord:
-		return zed.Value{zed.TypeInt64, l.Int(int64(len(typ.Columns)))}, nil
+		length = len(typ.Columns)
 	case *zed.TypeArray, *zed.TypeSet, *zed.TypeMap:
-		len, err := zv.ContainerLength()
+		var err error
+		length, err = zv.ContainerLength()
 		if err != nil {
-			return zed.Value{}, err
+			panic(fmt.Errorf("len: corrupt Zed bytes: %w", err))
 		}
-		return zed.Value{zed.TypeInt64, l.Int(int64(len))}, nil
 	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfBstring, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfError:
-		v := len(zv.Bytes)
-		return zed.Value{zed.TypeInt64, l.Int(int64(v))}, nil
+		length = len(zv.Bytes)
 	default:
-		return badarg("len")
+		err := fmt.Errorf("len: bad type: %s", zson.FormatType(typ))
+		return l.stash.Error(err)
 	}
+	return l.stash.Int64(int64(length))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#typeof
 type TypeOf struct {
-	zctx *zed.Context
+	zctx  *zed.Context
+	stash zed.Value
 }
 
-func (t *TypeOf) Call(args []zed.Value) (zed.Value, error) {
-	typ := args[0].Type
-	return t.zctx.LookupTypeValue(typ), nil
+func (t *TypeOf) Call(args []zed.Value) *zed.Value {
+	t.stash = t.zctx.LookupTypeValue(args[0].Type)
+	return &t.stash
 }
 
 type typeUnder struct {
-	zctx *zed.Context
+	zctx  *zed.Context
+	stash zed.Value
 }
 
-func (t *typeUnder) Call(args []zed.Value) (zed.Value, error) {
+func (t *typeUnder) Call(args []zed.Value) *zed.Value {
 	typ := zed.AliasOf(args[0].Type)
-	return t.zctx.LookupTypeValue(typ), nil
+	t.stash = t.zctx.LookupTypeValue(typ)
+	return &t.stash
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#nameof
-type NameOf struct{}
+type NameOf struct {
+	stash zed.Value
+}
 
-func (*NameOf) Call(args []zed.Value) (zed.Value, error) {
+func (n *NameOf) Call(args []zed.Value) *zed.Value {
 	typ := args[0].Type
 	if alias, ok := typ.(*zed.TypeAlias); ok {
 		// XXX GC
-		return zed.Value{zed.TypeString, zed.EncodeString(alias.Name)}, nil
+		n.stash = zed.Value{zed.TypeString, zed.EncodeString(alias.Name)}
+		return &n.stash
 	}
-	return zed.Missing, nil
+	return zed.Missing
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#iserr
 type IsErr struct{}
 
-func (*IsErr) Call(args []zed.Value) (zed.Value, error) {
+func (*IsErr) Call(args []zed.Value) *zed.Value {
 	if args[0].IsError() {
-		return zed.True, nil
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#is
@@ -216,7 +215,7 @@ type Is struct {
 	zctx *zed.Context
 }
 
-func (i *Is) Call(args []zed.Value) (zed.Value, error) {
+func (i *Is) Call(args []zed.Value) *zed.Value {
 	zvSubject := args[0]
 	zvTypeVal := args[1]
 	if len(args) == 3 {
@@ -231,7 +230,7 @@ func (i *Is) Call(args []zed.Value) (zed.Value, error) {
 		typ, err = i.zctx.LookupByValue(zvTypeVal.Bytes)
 	}
 	if err == nil && typ == zvSubject.Type {
-		return zed.True, nil
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }

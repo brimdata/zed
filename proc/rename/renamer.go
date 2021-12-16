@@ -6,9 +6,11 @@ package rename
 
 import (
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
-	"github.com/brimdata/zed/proc"
 )
+
+//XXX this is not a proc... should go in expr?
 
 type Function struct {
 	zctx *zed.Context
@@ -19,59 +21,53 @@ type Function struct {
 	typeMap map[int]*zed.TypeRecord
 }
 
-var _ proc.Function = (*Function)(nil)
+var _ expr.Applier = (*Function)(nil)
 
 func NewFunction(zctx *zed.Context, srcs, dsts field.List) *Function {
 	return &Function{zctx, srcs, dsts, make(map[int]*zed.TypeRecord)}
 }
 
-func (r *Function) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeRecord, error) {
+func (r *Function) dstType(typ *zed.TypeRecord, src, dst field.Path) *zed.TypeRecord {
 	c, ok := typ.ColumnOfField(src[0])
 	if !ok {
-		return typ, nil
+		return typ
 	}
 	var innerType zed.Type
 	if len(src) > 1 {
 		recType, ok := typ.Columns[c].Type.(*zed.TypeRecord)
 		if !ok {
-			return typ, nil
+			return typ
 		}
-		var err error
-		innerType, err = r.dstType(recType, src[1:], dst[1:])
-		if err != nil {
-			return nil, err
-		}
+		innerType = r.dstType(recType, src[1:], dst[1:])
 	} else {
 		innerType = typ.Columns[c].Type
 	}
 	newcols := make([]zed.Column, len(typ.Columns))
 	copy(newcols, typ.Columns)
 	newcols[c] = zed.Column{Name: dst[0], Type: innerType}
-	return r.zctx.LookupTypeRecord(newcols)
-}
-
-func (r *Function) computeType(typ *zed.TypeRecord) (*zed.TypeRecord, error) {
-	var err error
-	for k, dst := range r.dsts {
-		typ, err = r.dstType(typ, r.srcs[k], dst)
-		if err != nil {
-			return nil, err
-		}
+	typ, err := r.zctx.LookupTypeRecord(newcols)
+	if err != nil {
+		panic(err)
 	}
-	return typ, nil
+	return typ
 }
 
-func (r *Function) Apply(in *zed.Value) (*zed.Value, error) {
+func (r *Function) computeType(typ *zed.TypeRecord) *zed.TypeRecord {
+	for k, dst := range r.dsts {
+		typ = r.dstType(typ, r.srcs[k], dst)
+	}
+	return typ
+}
+
+func (r *Function) Eval(in *zed.Value, scope *expr.Scope) *zed.Value {
 	id := in.Type.ID()
-	if _, ok := r.typeMap[id]; !ok {
-		typ, err := r.computeType(zed.TypeRecordOf(in.Type))
-		if err != nil {
-			return nil, err
-		}
+	typ, ok := r.typeMap[id]
+	if !ok {
+		typ = r.computeType(zed.TypeRecordOf(in.Type))
 		r.typeMap[id] = typ
 	}
 	out := in.Copy()
-	return zed.NewValue(r.typeMap[id], out.Bytes), nil
+	return zed.NewValue(typ, out.Bytes)
 }
 
 func (_ *Function) String() string { return "rename" }

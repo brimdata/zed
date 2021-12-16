@@ -74,7 +74,7 @@ func (b *Branch) Load(ctx context.Context, r zio.Reader, author, message, meta s
 	// with other concurrent writers (except for updating the branch pointer
 	// which is handled by Branch.commit)
 	return b.commit(ctx, func(parent *branches.Config, retries int) (*commits.Object, error) {
-		return commits.NewAddsObject(parent.Commit, retries, author, message, appMeta, objects), nil
+		return commits.NewAddsObject(parent.Commit, retries, author, message, *appMeta, objects), nil
 	})
 }
 
@@ -97,15 +97,15 @@ func loadMessage(objects []data.Object) string {
 	return b.String()
 }
 
-func loadMeta(meta string) (zed.Value, error) {
+func loadMeta(meta string) (*zed.Value, error) {
 	if meta == "" {
-		return zed.Value{zed.TypeNull, nil}, nil
+		return &zed.Value{zed.TypeNull, nil}, nil
 	}
 	zv, err := zson.ParseValue(zed.NewContext(), meta)
 	if err != nil {
 		return zed.Missing, fmt.Errorf("%w %s: %v", ErrInvalidCommitMeta, zv, err)
 	}
-	return zv, nil
+	return &zv, nil
 }
 
 func (b *Branch) Delete(ctx context.Context, ids []ksuid.KSUID, author, message string) (ksuid.KSUID, error) {
@@ -393,8 +393,8 @@ func (b *Branch) Stats(ctx context.Context, snap commits.View) (info BranchStats
 		if poolSpan == nil {
 			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, b.pool.Layout.Order)
 		} else {
-			poolSpan.Extend(object.First)
-			poolSpan.Extend(object.Last)
+			poolSpan.Extend(&object.First)
+			poolSpan.Extend(&object.Last)
 		}
 	}
 	//XXX need to change API to take return key range

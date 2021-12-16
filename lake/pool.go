@@ -144,7 +144,7 @@ func (p *Pool) OpenBranchByName(ctx context.Context, name string) (*Branch, erro
 	return p.openBranch(ctx, branchRef)
 }
 
-func (p *Pool) batchifyBranches(ctx context.Context, recs zbuf.Array, m *zson.MarshalZNGContext, f expr.Filter) (zbuf.Array, error) {
+func (p *Pool) batchifyBranches(ctx context.Context, recs []zed.Value, m *zson.MarshalZNGContext, f expr.Filter) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
@@ -155,8 +155,8 @@ func (p *Pool) batchifyBranches(ctx context.Context, recs zbuf.Array, m *zson.Ma
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(rec) {
-			recs.Append(rec)
+		if f == nil || f(rec, nil) {
+			recs = append(recs, *rec)
 		}
 	}
 	return recs, nil
@@ -167,21 +167,21 @@ type BranchTip struct {
 	Commit ksuid.KSUID
 }
 
-func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr.Filter) (zbuf.Array, error) {
+func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr.Filter) ([]zed.Value, error) {
 	branches, err := p.ListBranches(ctx)
 	if err != nil {
 		return nil, err
 	}
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
-	recs := make(zbuf.Array, 0, len(branches))
+	recs := make([]zed.Value, 0, len(branches))
 	for _, branchRef := range branches {
 		rec, err := m.MarshalRecord(&BranchTip{branchRef.Name, branchRef.Commit})
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(rec) {
-			recs.Append(rec)
+		if f == nil || f(rec, nil) {
+			recs = append(recs, *rec)
 		}
 	}
 	return recs, nil
@@ -215,8 +215,8 @@ func (p *Pool) Stats(ctx context.Context, snap commits.View) (info PoolStats, er
 		if poolSpan == nil {
 			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, p.Layout.Order)
 		} else {
-			poolSpan.Extend(object.First)
-			poolSpan.Extend(object.Last)
+			poolSpan.Extend(&object.First)
+			poolSpan.Extend(&object.Last)
 		}
 	}
 	//XXX need to change API to take return key range

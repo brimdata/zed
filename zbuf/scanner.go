@@ -107,20 +107,20 @@ func (s *scanner) Read() (*zed.Value, error) {
 		if err := s.ctx.Err(); err != nil {
 			return nil, err
 		}
-		rec, err := s.reader.Read()
-		if err != nil || rec == nil {
+		this, err := s.reader.Read()
+		if err != nil || this == nil {
 			return nil, err
 		}
-		atomic.AddInt64(&s.stats.BytesRead, int64(len(rec.Bytes)))
+		atomic.AddInt64(&s.stats.BytesRead, int64(len(this.Bytes)))
 		atomic.AddInt64(&s.stats.RecordsRead, 1)
-		if s.filter != nil && !s.filter(rec) {
+		if s.filter != nil && !s.filter(this, nil) {
 			continue
 		}
-		atomic.AddInt64(&s.stats.BytesMatched, int64(len(rec.Bytes)))
+		atomic.AddInt64(&s.stats.BytesMatched, int64(len(this.Bytes)))
 		atomic.AddInt64(&s.stats.RecordsMatched, 1)
 		// Copy the underlying buffer because the next call to
 		// s.reader.Read will overwrite it.
-		return rec.Copy(), nil
+		return this.Copy(), nil
 	}
 }
 

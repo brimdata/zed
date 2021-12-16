@@ -24,6 +24,8 @@ type Cutter struct {
 	quiet        bool
 }
 
+var _ Applier = (*Cutter)(nil)
+
 // NewCutter returns a Cutter for fieldnames. If complement is true,
 // the Cutter copies fields that are not in fieldnames. If complement
 // is false, the Cutter copies any fields in fieldnames, where targets
@@ -71,55 +73,43 @@ func (c *Cutter) FoundCut() bool {
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
-func (c *Cutter) Apply(in *zed.Value) (*zed.Value, error) {
+func (c *Cutter) Eval(in *zed.Value, scope *Scope) *zed.Value {
 	types := c.typeCache
 	b := c.builder
 	b.Reset()
 	droppers := c.dropperCache[:0]
 	for k, e := range c.fieldExprs {
-		zv, err := e.Eval(in)
-		if err != nil {
-			if err == zed.ErrMissing {
-				if c.droppers != nil {
-					if c.droppers[k] == nil {
-						c.droppers[k] = NewDropper(c.zctx, c.fieldRefs[k:k+1])
-					}
-					droppers = append(droppers, c.droppers[k])
-					// ignore this record
-					b.Append(zv.Bytes, false)
-					types[k] = zed.TypeNull
-					continue
+		val := e.Eval(in, scope)
+		if val == zed.Missing {
+			if c.droppers != nil {
+				if c.droppers[k] == nil {
+					c.droppers[k] = NewDropper(c.zctx, c.fieldRefs[k:k+1])
 				}
-				err = nil
+				droppers = append(droppers, c.droppers[k])
+				// ignore this record
+				b.Append(val.Bytes, false)
+				types[k] = zed.TypeNull
 			}
-			return nil, err
+		} else {
+			b.Append(val.Bytes, val.IsContainer())
+			types[k] = val.Type
 		}
-		b.Append(zv.Bytes, zv.IsContainer())
-		types[k] = zv.Type
 	}
-	typ, err := c.lookupTypeRecord(types)
+	bytes, err := b.Encode()
 	if err != nil {
-		return nil, err
+		panic(fmt.Errorf("cutter: builder failed: %w", err))
 	}
-	zv, err := b.Encode()
-	if err != nil {
-		return nil, err
-	}
-	rec := zed.NewValue(typ, zv)
+	rec := &zed.Value{c.lookupTypeRecord(types), bytes}
 	for _, d := range droppers {
-		r, err := d.Apply(rec)
-		if err != nil {
-			return nil, err
-		}
-		rec = r
+		rec = d.Eval(rec, scope)
 	}
 	if rec != nil {
 		c.dirty = true
 	}
-	return rec, nil
+	return rec
 }
 
-func (c *Cutter) lookupTypeRecord(types []zed.Type) (*zed.TypeRecord, error) {
+func (c *Cutter) lookupTypeRecord(types []zed.Type) *zed.TypeRecord {
 	id := c.outTypes.Lookup(types)
 	typ, ok := c.recordTypes[id]
 	if !ok {
@@ -127,11 +117,11 @@ func (c *Cutter) lookupTypeRecord(types []zed.Type) (*zed.TypeRecord, error) {
 		var err error
 		typ, err = c.zctx.LookupTypeRecord(cols)
 		if err != nil {
-			return nil, err
+			panic(fmt.Errorf("cutter: record type lookup failed: %w", err))
 		}
 		c.recordTypes[id] = typ
 	}
-	return typ, nil
+	return typ
 }
 
 func fieldList(fields []Evaluator) string {
@@ -153,15 +143,4 @@ func (c *Cutter) Warning() string {
 		return ""
 	}
 	return fmt.Sprintf("no record found with columns %s", fieldList(c.fieldExprs))
-}
-
-func (c *Cutter) Eval(rec *zed.Value) (zed.Value, error) {
-	out, err := c.Apply(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
-	if out == nil {
-		return zed.Value{}, zed.ErrMissing
-	}
-	return *out, nil
 }

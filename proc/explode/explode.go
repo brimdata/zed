@@ -38,17 +38,21 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		if proc.EOS(batch, err) {
 			return nil, err
 		}
+		scope := batch.Scope()
 		vals := batch.Values()
-		recs := make([]zed.Value, 0, len(vals))
+		out := make([]zed.Value, 0, len(vals))
 		for i := range vals {
 			for _, arg := range p.args {
-				zv, err := arg.Eval(&vals[i])
-				if err != nil {
-					return nil, err
+				val := arg.Eval(&vals[i], scope)
+				if val.IsError() {
+					if val != zed.Missing {
+						out = append(out, *val.Copy())
+					}
+					continue
 				}
-				zed.Walk(zv.Type, zv.Bytes, func(typ zed.Type, body zcode.Bytes) error {
+				zed.Walk(val.Type, val.Bytes, func(typ zed.Type, body zcode.Bytes) error {
 					if typ == p.typ && body != nil {
-						recs = append(recs, *p.builder.Build(body))
+						out = append(out, *p.builder.Build(body))
 						return zed.SkipContainer
 					}
 					return nil
@@ -56,8 +60,8 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 			}
 		}
 		batch.Unref()
-		if len(recs) > 0 {
-			return zbuf.Array(recs), nil
+		if len(out) > 0 {
+			return zbuf.NewArray(out), nil
 		}
 	}
 }

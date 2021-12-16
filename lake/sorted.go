@@ -91,8 +91,8 @@ func newSortedScanner(ctx context.Context, pool *Pool, zctx *zed.Context, filter
 
 type rangeWrapper struct {
 	zbuf.Filter
-	first  zed.Value
-	last   zed.Value
+	first  *zed.Value
+	last   *zed.Value
 	layout order.Layout
 }
 
@@ -102,25 +102,25 @@ func (r *rangeWrapper) AsFilter() (expr.Filter, error) {
 		return nil, err
 	}
 	compare := extent.CompareFunc(r.layout.Order)
-	return func(rec *zed.Value) bool {
+	return func(rec *zed.Value, scope *expr.Scope) bool {
 		keyVal, err := rec.Deref(r.layout.Keys[0])
 		if err != nil {
 			// XXX match keyless records.
 			// See issue #2637.
 			return true
 		}
-		if compare(keyVal, r.first) < 0 || compare(keyVal, r.last) > 0 {
+		if compare(&keyVal, r.first) < 0 || compare(&keyVal, r.last) > 0 {
 			return false
 		}
-		return f == nil || f(rec)
+		return f == nil || f(rec, scope)
 	}, nil
 }
 
 func wrapRangeFilter(f zbuf.Filter, scan extent.Span, cmp expr.ValueCompareFn, first, last zed.Value, layout order.Layout) zbuf.Filter {
 	scanFirst := scan.First()
 	scanLast := scan.Last()
-	if cmp(scanFirst, first) <= 0 {
-		if cmp(scanLast, last) >= 0 {
+	if cmp(scanFirst, &first) <= 0 {
+		if cmp(scanLast, &last) >= 0 {
 			return f
 		}
 	}

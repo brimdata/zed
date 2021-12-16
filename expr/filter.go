@@ -11,25 +11,40 @@ import (
 	"github.com/brimdata/zed/zcode"
 )
 
-type Filter func(*zed.Value) bool
+type Filter func(*zed.Value, *Scope) bool
 
 func LogicalAnd(left, right Filter) Filter {
-	return func(p *zed.Value) bool { return left(p) && right(p) }
+	return func(val *zed.Value, scope *Scope) bool {
+		return left(val, scope) && right(val, scope)
+	}
 }
 
 func LogicalOr(left, right Filter) Filter {
-	return func(p *zed.Value) bool { return left(p) || right(p) }
+	return func(val *zed.Value, scope *Scope) bool {
+		return left(val, scope) || right(val, scope)
+	}
 }
 
 func LogicalNot(expr Filter) Filter {
-	return func(p *zed.Value) bool { return !expr(p) }
+	return func(val *zed.Value, scope *Scope) bool {
+		return !expr(val, scope)
+	}
 }
 
 func Apply(e Evaluator, pred Boolean) Filter {
-	return func(r *zed.Value) bool {
-		v, err := e.Eval(r)
-		if err != nil || v.Type == nil {
-			// field (or sub-field) doesn't exist in this record
+	return func(val *zed.Value, scope *Scope) bool {
+		v := e.Eval(val, scope)
+		if v.IsError() {
+			// There's no wy to propagate errors in a filter
+			// because the predicate never lands anywhere.
+			// It could make sense to simply propagate errors
+			// out of the filter when the predicate produces them
+			// as you could always apply a Zed operator to ignore them.
+			// e.g., ignore_err(a / b > 10) could turn divide-by-zero errors
+			// into missing.  We would need to change the type
+			// signature of Filter to deal with this.
+			// Also, we should wrap the error when we have structured
+			// errors so the user knows the error came from the filter.
 			return false
 		}
 		return pred(v)
@@ -38,21 +53,23 @@ func Apply(e Evaluator, pred Boolean) Filter {
 
 func EvalAny(eval Boolean, recursive bool) Filter {
 	if !recursive {
-		return func(r *zed.Value) bool {
-			it := r.Bytes.Iter()
-			for _, c := range r.Columns() {
+		return func(val *zed.Value, scope *Scope) bool {
+			it := val.Bytes.Iter()
+			for _, c := range val.Columns() {
 				val, _, err := it.Next()
 				if err != nil {
 					return false
 				}
-				if eval(zed.Value{c.Type, val}) {
+				//XXX put value stash in closure above...
+				// as long as there is one per thread?
+				if eval(&zed.Value{c.Type, val}) {
 					return true
 				}
 			}
 			return false
 		}
 	}
-
+	//XXX
 	var fn func(v zcode.Bytes, cols []zed.Column) bool
 	fn = func(v zcode.Bytes, cols []zed.Column) bool {
 		it := v.Iter()
@@ -64,14 +81,15 @@ func EvalAny(eval Boolean, recursive bool) Filter {
 			recType, isRecord := c.Type.(*zed.TypeRecord)
 			if isRecord && fn(val, recType.Columns) {
 				return true
-			} else if !isRecord && eval(zed.Value{c.Type, val}) {
+				//XXX &val
+			} else if !isRecord && eval(&zed.Value{c.Type, val}) {
 				return true
 			}
 		}
 		return false
 	}
-	return func(r *zed.Value) bool {
-		return fn(r.Bytes, r.Columns())
+	return func(val *zed.Value, _ *Scope) bool {
+		return fn(val.Bytes, val.Columns())
 	}
 }
 
@@ -109,13 +127,14 @@ func SearchRecordOther(searchtext string, searchval astzed.Primitive) (Filter, e
 	if err != nil {
 		return nil, err
 	}
-	return func(r *zed.Value) bool {
-		return errMatch == r.Walk(func(typ zed.Type, body zcode.Bytes) error {
+	return func(val *zed.Value, scope *Scope) bool {
+		return errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
 			if zed.IsStringy(typ.ID()) {
 				if stringSearch(byteconv.UnsafeString(body), searchtext) {
 					return errMatch
 				}
-			} else if typedCompare(zed.Value{Type: typ, Bytes: body}) {
+				//XXX &val
+			} else if typedCompare(&zed.Value{Type: typ, Bytes: body}) {
 				return errMatch
 			}
 			return nil
@@ -129,24 +148,24 @@ func SearchRecordOther(searchtext string, searchval astzed.Primitive) (Filter, e
 func SearchRecordString(term string) Filter {
 	fieldNameCheck := make(map[zed.Type]bool)
 	var nameIter stringsearch.FieldNameIter
-	return func(r *zed.Value) bool {
+	return func(val *zed.Value, _ *Scope) bool {
 		// Memoize the result of a search across the names in the
 		// record columns for each unique record type.
-		match, ok := fieldNameCheck[r.Type]
+		match, ok := fieldNameCheck[val.Type]
 		if !ok {
-			nameIter.Init(zed.TypeRecordOf(r.Type))
+			nameIter.Init(zed.TypeRecordOf(val.Type))
 			for !nameIter.Done() {
 				if stringSearch(byteconv.UnsafeString(nameIter.Next()), term) {
 					match = true
 					break
 				}
 			}
-			fieldNameCheck[r.Type] = match
+			fieldNameCheck[val.Type] = match
 		}
 		if match {
 			return true
 		}
-		return errMatch == r.Walk(func(typ zed.Type, body zcode.Bytes) error {
+		return errMatch == val.Walk(func(typ zed.Type, body zcode.Bytes) error {
 			if zed.IsStringy(typ.ID()) &&
 				stringSearch(byteconv.UnsafeString(body), term) {
 				return errMatch
@@ -158,9 +177,9 @@ func SearchRecordString(term string) Filter {
 
 type FilterEvaluator Filter
 
-func (f FilterEvaluator) Eval(rec *zed.Value) (zed.Value, error) {
-	if f(rec) {
-		return zed.True, nil
+func (f FilterEvaluator) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	if f(rec, scope) {
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }

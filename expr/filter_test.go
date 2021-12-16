@@ -60,7 +60,7 @@ func runCasesHelper(t *testing.T, record string, cases []testcase, expectBufferF
 			f, err := filterMaker.AsFilter()
 			assert.NoError(t, err, "filter: %q", c.filter)
 			if f != nil {
-				assert.Equal(t, c.expected, f(rec),
+				assert.Equal(t, c.expected, f(rec, nil),
 					"filter: %q\nrecord:\n%s", c.filter, hex.Dump(rec.Bytes))
 			}
 			bf, err := filterMaker.AsBufferFilter()

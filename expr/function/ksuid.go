@@ -1,22 +1,28 @@
 package function
 
 import (
+	"fmt"
+
 	"github.com/brimdata/zed"
 	"github.com/segmentio/ksuid"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ksuid
-type KSUIDToString struct{}
+type KSUIDToString struct {
+	stash zed.Value
+}
 
-func (*KSUIDToString) Call(args []zed.Value) (zed.Value, error) {
+func (k *KSUIDToString) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	if zv.Type.ID() != zed.IDBytes {
-		return zed.NewErrorf("not a bytes type"), nil
+		k.stash = zed.NewErrorf("not a bytes type")
+		return &k.stash
 	}
 	// XXX GC
 	id, err := ksuid.FromBytes(zv.Bytes)
 	if err != nil {
-		return zed.NewErrorf("error parsing bytes as ksuid: %s", err), nil
+		panic(fmt.Errorf("ksuid: corrupt Zed bytes: %w", err))
 	}
-	return zed.Value{zed.TypeString, zed.EncodeString(id.String())}, nil
+	k.stash = zed.Value{zed.TypeString, zed.EncodeString(id.String())}
+	return &k.stash
 }

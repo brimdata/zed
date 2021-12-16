@@ -9,12 +9,8 @@ type Parser struct {
 	lexer *Lexer
 }
 
-func NewParser(r io.Reader) (*Parser, error) {
-	l, err := NewLexer(r)
-	if err != nil {
-		return nil, err
-	}
-	return &Parser{l}, nil
+func NewParser(r io.Reader) *Parser {
+	return &Parser{NewLexer(r)}
 }
 
 func (p *Parser) errorf(msg string, args ...interface{}) error {
