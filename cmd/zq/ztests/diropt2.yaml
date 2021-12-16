@@ -1,4 +1,5 @@
-script: zq -z -D out -o foo- "*" -
+script: |
+  zq -z -split out -o foo "*" -
 
 inputs:
   - name: stdin

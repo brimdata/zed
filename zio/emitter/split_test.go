@@ -3,7 +3,6 @@ package emitter
 import (
 	"bytes"
 	"context"
-	"os"
 	"strings"
 	"testing"
 
@@ -36,7 +35,7 @@ func TestDirS3Source(t *testing.T) {
 
 	r := zson.NewReader(strings.NewReader(input), zed.NewContext())
 	require.NoError(t, err)
-	w, err := NewDirWithEngine(context.Background(), engine, uri, "", os.Stderr, anyio.WriterOpts{Format: "zson"})
+	w, err := NewSplit(context.Background(), engine, uri, "", anyio.WriterOpts{Format: "zson"})
 	require.NoError(t, err)
 	require.NoError(t, zio.Copy(w, r))
 }

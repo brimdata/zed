@@ -11,6 +11,8 @@ func Extension(format string) string {
 	switch format {
 	case "zeek":
 		return ".log"
+	case "json":
+		return ".json"
 	case "ndjson":
 		return ".ndjson"
 	case "zjson":

@@ -1,4 +1,4 @@
-script: zq -f zeek -D out "*" -
+script: zq -f zeek -split out "*" -
 
 inputs:
   - name: stdin

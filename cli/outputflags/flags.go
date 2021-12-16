@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
+	"fmt"
 	"os"
 	"regexp"
 
@@ -20,7 +21,7 @@ import (
 type Flags struct {
 	anyio.WriterOpts
 	DefaultFormat string
-	dir           string
+	split         string
 	outputFile    string
 	forceBinary   bool
 	zsonShortcut  bool
@@ -51,9 +52,8 @@ func (f *Flags) setFlags(fs *flag.FlagSet) {
 	fs.Var(&f.Zst.SkewThresh, "skewtresh", "minimum skew size (MiB) used to group zst columns")
 
 	// emitter stuff
-	fs.StringVar(&f.dir, "D", "", "directory for output data files")
+	fs.StringVar(&f.split, "split", "", "split output into one file per data type with the given path prefix")
 	fs.StringVar(&f.outputFile, "o", "", "write data to output file")
-
 }
 
 func (f *Flags) SetFlags(fs *flag.FlagSet) {
@@ -108,8 +108,12 @@ func (f *Flags) FileName() string {
 }
 
 func (f *Flags) Open(ctx context.Context, engine storage.Engine) (zio.WriteCloser, error) {
-	if f.dir != "" {
-		d, err := emitter.NewDir(ctx, engine, f.dir, f.outputFile, os.Stderr, f.WriterOpts)
+	if f.split != "" {
+		dir, err := storage.ParseURI(f.split)
+		if err != nil {
+			return nil, fmt.Errorf("-split option: %w", err)
+		}
+		d, err := emitter.NewSplit(ctx, engine, dir, f.outputFile, f.WriterOpts)
 		if err != nil {
 			return nil, err
 		}
