@@ -26,8 +26,8 @@
 The simplest possible Zed search is a match of all records. This search is
 expressed in `zq` with the wildcard `*`. The response will be a dump of all
 records. The default `zq` output to the terminal is the text-based
-[ZSON](../formats/zson.md) format, whereas the compact binary
-[ZNG](../formats/zng.md) format is used if the output is redirected or
+[ZSON](../data-model/zson.md) format, whereas the compact binary
+[ZNG](../data-model/zng.md) format is used if the output is redirected or
 piped.
 
 In the examples, we'll be explicit in how we request our output format, using
