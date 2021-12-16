@@ -7,6 +7,8 @@ import (
 
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
+	"github.com/brimdata/zed/expr/extent"
+	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/index"
 	"github.com/brimdata/zed/zson"
 	"github.com/segmentio/ksuid"
@@ -15,8 +17,8 @@ import (
 type expr func(context.Context, *Filter, ksuid.KSUID, []Rule) <-chan result
 
 type result struct {
-	err error
-	hit bool
+	err  error
+	span extent.Span
 }
 
 func compileExpr(node dag.Expr) (expr, error) {
@@ -71,9 +73,11 @@ func logicalExpr(lhs, rhs expr, op string) expr {
 func orExpr(c <-chan result) result {
 	var res result
 	for r := range c {
-		res = r
-		if res.hit || res.err != nil {
-			break
+		if r.span != nil {
+			res = appendResult(res, r)
+		}
+		if r.err != nil {
+			return r
 		}
 	}
 	return res
@@ -82,17 +86,27 @@ func orExpr(c <-chan result) result {
 func andExpr(c <-chan result) result {
 	var res result
 	for r := range c {
-		res = r
-		if !res.hit || res.err != nil {
-			break
+		if r.span == nil || r.err != nil {
+			return r
 		}
+		res = appendResult(res, r)
 	}
 	return res
 }
 
+func appendResult(a, b result) result {
+	if a.span == nil {
+		a.span = b.span
+	} else {
+		a.span.Extend(b.span.First())
+		a.span.Extend(b.span.Last())
+	}
+	return a
+}
+
 func compareExpr(kv index.KeyValue, op string) (expr, error) {
 	return func(ctx context.Context, f *Filter, oid ksuid.KSUID, rules []Rule) <-chan result {
-		rule := matchFieldRule(rules, kv)
+		kv, rule := matchFieldRule(rules, kv)
 		if rule == nil {
 			return nil
 		}
@@ -102,7 +116,7 @@ func compareExpr(kv index.KeyValue, op string) (expr, error) {
 		go func() {
 			var r result
 			if r.err = f.sem.Acquire(ctx, 1); r.err == nil {
-				r.hit, r.err = f.find(ctx, oid, rule.RuleID(), kv, op)
+				r.span, r.err = f.find(ctx, oid, rule.RuleID(), kv, op)
 			}
 			f.sem.Release(1)
 			ch <- r
@@ -112,15 +126,18 @@ func compareExpr(kv index.KeyValue, op string) (expr, error) {
 	}, nil
 }
 
-func matchFieldRule(rules []Rule, in index.KeyValue) Rule {
+func matchFieldRule(rules []Rule, in index.KeyValue) (index.KeyValue, Rule) {
 	for _, rule := range rules {
 		// XXX support indexes with multiple keys #3162
 		// and other rule types.
 		if fr, ok := rule.(*FieldRule); ok && in.Key.Equal(fr.Fields[0]) {
-			return rule
+			return index.KeyValue{
+				Key:   append(field.New("key"), in.Key...),
+				Value: in.Value,
+			}, rule
 		}
 	}
-	return nil
+	return in, nil
 }
 
 // merge is taken from https://go.dev/blog/pipelines

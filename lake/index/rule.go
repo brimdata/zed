@@ -96,15 +96,14 @@ func Equivalent(a, b Rule) bool {
 	return false
 }
 
+const fieldZed = `
+cut %s
+| put key := this, count := count() - 1
+| count := count(), seek.min := min(count), seek.max := max(count) by key
+| sort %s`
+
 func (f *FieldRule) Zed() string {
-	var fields string
-	for i, field := range f.Fields {
-		if i > 0 {
-			fields += ", "
-		}
-		fields += field.String()
-	}
-	return fmt.Sprintf("cut %s | count() by %s | sort %s", fields, fields, fields)
+	return fmt.Sprintf(fieldZed, f.Fields, f.RuleKeys())
 }
 
 func (t *TypeRule) Zed() string {
@@ -165,7 +164,11 @@ func (a *AggRule) RuleID() ksuid.KSUID {
 }
 
 func (f *FieldRule) RuleKeys() field.List {
-	return f.Fields
+	keys := make(field.List, len(f.Fields))
+	for i, path := range f.Fields {
+		keys[i] = append(field.Path{"key"}, path...)
+	}
+	return keys
 }
 
 func (t *TypeRule) RuleKeys() field.List {

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"math"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
@@ -15,6 +16,15 @@ import (
 	"github.com/brimdata/zed/pkg/storage"
 	"github.com/brimdata/zed/zio/zngio"
 )
+
+type ObjectScan struct {
+	Object
+	ScanRange seekindex.Range
+}
+
+func NewObjectScan(o Object) *ObjectScan {
+	return &ObjectScan{Object: o}
+}
 
 type Reader struct {
 	io.Reader
@@ -26,7 +36,7 @@ type Reader struct {
 // NewReader returns a Reader for this data object. If the object has a seek index
 // and if the provided span skips part of the object, the seek index will be used to
 // limit the reading window of the returned reader.
-func (o *Object) NewReader(ctx context.Context, engine storage.Engine, path *storage.URI, scanRange extent.Span, cmp expr.ValueCompareFn) (*Reader, error) {
+func (o *ObjectScan) NewReader(ctx context.Context, engine storage.Engine, path *storage.URI, scanRange extent.Span, cmp expr.ValueCompareFn) (*Reader, error) {
 	objectPath := o.RowObjectPath(path)
 	reader, err := engine.Get(ctx, objectPath)
 	if err != nil {
@@ -42,23 +52,26 @@ func (o *Object) NewReader(ctx context.Context, engine storage.Engine, path *sto
 		TotalBytes: o.RowSize,
 		ReadBytes:  o.RowSize, //XXX
 	}
-	if bytes.Equal(o.First.Bytes, span.First().Bytes) && bytes.Equal(o.Last.Bytes, span.Last().Bytes) {
-		return sr, nil
-	}
-	indexReader, err := engine.Get(ctx, o.SeekObjectPath(path))
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return sr, nil
+	rg := seekindex.Range{0, math.MaxInt64}
+	if !bytes.Equal(o.First.Bytes, span.First().Bytes) || !bytes.Equal(o.Last.Bytes, span.Last().Bytes) {
+		indexReader, err := engine.Get(ctx, o.SeekObjectPath(path))
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return sr, nil
+			}
+			return nil, err
 		}
-		return nil, err
-	}
-	defer indexReader.Close()
-	rg, err := seekindex.Lookup(zngio.NewReader(indexReader, zed.NewContext()), scanRange.First(), scanRange.Last(), cmp)
-	if err != nil {
-		if errors.Is(err, fs.ErrNotExist) {
-			return sr, nil
+		defer indexReader.Close()
+		rg, err = seekindex.Lookup(zngio.NewReader(indexReader, zed.NewContext()), scanRange.First(), scanRange.Last(), cmp)
+		if err != nil {
+			if errors.Is(err, fs.ErrNotExist) {
+				return sr, nil
+			}
+			return nil, err
 		}
-		return nil, err
+	}
+	if !o.ScanRange.IsZero() {
+		rg = rg.Crop(o.ScanRange)
 	}
 	rg = rg.TrimEnd(sr.TotalBytes)
 	sr.ReadBytes = rg.Size()
