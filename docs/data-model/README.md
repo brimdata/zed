@@ -10,7 +10,7 @@
 > semi-structured model that is used ubiquitously in development as JSON and by NOSQL
 > data stores.
 
-Referenced specifications
+The Specifications
 
 * [Zed Data Model Spec](zed.md)
 * [ZSON Spec](zson.md)
@@ -121,7 +121,7 @@ table, is it still appropriately called "structured"?
 Instead, we call this approach the hybrid tabular-/semi-structured pattern,
 or more simply, _"the hybrid pattern"_.
 
-## 2. Zed: A Super-structured Design Pattern
+## 2. Zed: A Super-structured Pattern
 
 The insight in Zed is to remove the tabular and schema concepts from
 the underlying data model altogether and replace them with a granular and
