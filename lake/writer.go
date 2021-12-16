@@ -14,7 +14,7 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-var SeekIndexStride = 64 * 1024
+var DefaultSeekStride = 64 * 1024
 
 // Writer is a zio.Writer that consumes records into memory according to
 // the pools data object threshold, sorts each resulting buffer, and writes
@@ -26,8 +26,9 @@ type Writer struct {
 	inputSorted bool
 	ctx         context.Context
 	//defs          index.Definitions
-	errgroup *errgroup.Group
-	vals     []zed.Value
+	errgroup   *errgroup.Group
+	seekStride int
+	vals       []zed.Value
 	// XXX this is a simple double buffering model so the cloud-object
 	// writer can run in parallel with the reader filling the records
 	// buffer.  This can be later extended to pass a big bytes buffer
@@ -51,15 +52,16 @@ type Writer struct {
 //XXX we should make another writer that takes sorted input and is a bit
 // more efficient.  This other writer could have different commit triggers
 // to do useful things like paritioning given the context is a rollup.
-func NewWriter(ctx context.Context, pool *Pool) (*Writer, error) {
+func NewWriter(ctx context.Context, pool *Pool, seekStride int) (*Writer, error) {
 	g, ctx := errgroup.WithContext(ctx)
 	ch := make(chan []zed.Value, 1)
 	ch <- nil
 	return &Writer{
-		pool:     pool,
-		ctx:      ctx,
-		errgroup: g,
-		buffer:   ch,
+		pool:       pool,
+		ctx:        ctx,
+		errgroup:   g,
+		seekStride: seekStride,
+		buffer:     ch,
 	}, nil
 }
 
@@ -130,7 +132,7 @@ func (w *Writer) writeObject(object *data.Object, recs []zed.Value) error {
 	if err != nil {
 		object.Last = zed.Value{zed.TypeNull, nil}
 	}
-	writer, err := object.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, key, SeekIndexStride)
+	writer, err := object.NewWriter(w.ctx, w.pool.engine, w.pool.DataPath, w.pool.Layout.Order, key, w.seekStride)
 	if err != nil {
 		return err
 	}

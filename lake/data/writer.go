@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/order"
 	"github.com/brimdata/zed/pkg/bufwriter"
 	"github.com/brimdata/zed/pkg/storage"
+	"github.com/brimdata/zed/zio"
 	"github.com/brimdata/zed/zio/zngio"
 )
 
@@ -25,10 +26,10 @@ type Writer struct {
 	lastKey          zed.Value
 	lastSOS          int64
 	order            order.Which
+	seekCloser       io.Closer
 	seekIndex        *seekindex.Writer
 	seekIndexStride  int
 	seekIndexTrigger int
-	seekWriter       *zngio.Writer
 	first            bool
 	poolKey          field.Path
 }
@@ -64,8 +65,10 @@ func (o *Object) NewWriter(ctx context.Context, engine storage.Engine, path *sto
 		opts := zngio.WriterOpts{
 			//LZ4BlockSize: zngio.DefaultLZ4BlockSize,
 		}
-		w.seekWriter = zngio.NewWriter(bufwriter.New(seekOut), opts)
-		w.seekIndex = seekindex.NewWriter(w.seekWriter)
+		w.seekCloser = zngio.NewWriter(bufwriter.New(seekOut), opts)
+		w.seekIndex = seekindex.NewWriter(w.seekCloser.(*zngio.Writer))
+	} else {
+		w.seekCloser = zio.NopCloser(nil)
 	}
 	return w, nil
 }
@@ -111,7 +114,7 @@ func (w *Writer) writeIndex(key zed.Value) error {
 // because the write error will be more informative and should be returned.
 func (w *Writer) Abort() {
 	w.rowObject.Close()
-	w.seekWriter.Close()
+	w.seekCloser.Close()
 }
 
 func (w *Writer) Close(ctx context.Context) error {
@@ -120,7 +123,7 @@ func (w *Writer) Close(ctx context.Context) error {
 		w.Abort()
 		return err
 	}
-	if err := w.seekWriter.Close(); err != nil {
+	if err := w.seekCloser.Close(); err != nil {
 		w.Abort()
 		return err
 	}

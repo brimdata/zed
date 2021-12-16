@@ -46,8 +46,8 @@ func OpenBranch(ctx context.Context, config *branches.Config, engine storage.Eng
 	}, nil
 }
 
-func (b *Branch) Load(ctx context.Context, r zio.Reader, author, message, meta string) (ksuid.KSUID, error) {
-	w, err := NewWriter(ctx, b.pool)
+func (b *Branch) Load(ctx context.Context, r zio.Reader, author, message, meta string, seekIndexStride int) (ksuid.KSUID, error) {
+	w, err := NewWriter(ctx, b.pool, seekIndexStride)
 	if err != nil {
 		return ksuid.Nil, err
 	}

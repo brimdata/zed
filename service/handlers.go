@@ -277,6 +277,13 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	if !ok {
 		return
 	}
+	seekStride, isset, ok := r.IntFromQuery("seekStride", w)
+	if !ok {
+		return
+	}
+	if !isset {
+		seekStride = lake.DefaultSeekStride
+	}
 	message, ok := r.decodeCommitMessage(w)
 	if !ok {
 		return
@@ -301,7 +308,7 @@ func handleBranchLoad(c *Core, w *ResponseWriter, r *Request) {
 	}
 	warnings := warningCollector{}
 	zr = zio.NewWarningReader(zr, &warnings)
-	kommit, err := branch.Load(r.Context(), zr, message.Author, message.Body, message.Meta)
+	kommit, err := branch.Load(r.Context(), zr, message.Author, message.Body, message.Meta, seekStride)
 	if err != nil {
 		if errors.Is(err, commits.ErrEmptyTransaction) {
 			err = zqe.ErrInvalid("no records in request")

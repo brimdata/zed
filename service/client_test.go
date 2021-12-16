@@ -89,7 +89,7 @@ func (c *testClient) TestQuery(query string) string {
 }
 
 func (c *testClient) TestLoad(poolID ksuid.KSUID, branchName string, r io.Reader) {
-	_, err := c.Connection.Load(context.Background(), poolID, branchName, r, api.CommitMessage{})
+	_, err := c.Connection.Load(context.Background(), poolID, branchName, r, api.CommitMessage{}, lake.DefaultSeekStride)
 	require.NoError(c, err)
 }
 

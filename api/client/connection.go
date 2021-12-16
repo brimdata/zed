@@ -271,8 +271,9 @@ func (c *Connection) Query(ctx context.Context, head *lakeparse.Commitish, src s
 	return res, err
 }
 
-func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r io.Reader, message api.CommitMessage) (api.CommitResponse, error) {
+func (c *Connection) Load(ctx context.Context, poolID ksuid.KSUID, branchName string, r io.Reader, message api.CommitMessage, seekIndexStride int) (api.CommitResponse, error) {
 	path := urlPath("pool", poolID.String(), "branch", branchName)
+	path += fmt.Sprintf("?seekStride=%d", seekIndexStride)
 	req := c.NewRequest(ctx, http.MethodPost, path, r)
 	if err := encodeCommitMessage(req, message); err != nil {
 		return api.CommitResponse{}, err

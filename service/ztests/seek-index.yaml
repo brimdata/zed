@@ -1,0 +1,30 @@
+script: |
+  source service.sh
+  zed create -orderby ts:asc -q asc
+  zed load -q -seekstride=2KB -use asc@main babble.zson
+  zed query -z -s "from asc range 2020-04-21T23:59:26.063Z to 2020-04-21T23:59:38.069Z"
+  echo === | tee /dev/stderr
+  zed create -orderby ts:desc -q desc
+  zed load -q -seekstride=2KB -use desc@main babble.zson
+  zed query -z -s "from desc range 2020-04-21T23:59:26.063Z to 2020-04-21T23:59:38.069Z"
+
+inputs:
+  - name: service.sh
+  - name: babble.zson
+    source: ../../testdata/babble.zson
+
+outputs:
+  - name: stdout
+    data: |
+      {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
+      {ts:2020-04-21T23:59:29.06985813Z,s:"areek-ashless",v:266}
+      {ts:2020-04-21T23:59:38.0687693Z,s:"topcoating-rhexis",v:415}
+      ===
+      {ts:2020-04-21T23:59:38.0687693Z,s:"topcoating-rhexis",v:415}
+      {ts:2020-04-21T23:59:29.06985813Z,s:"areek-ashless",v:266}
+      {ts:2020-04-21T23:59:26.06326664Z,s:"potbellied-Dedanim",v:230}
+  - name: stderr
+    data: |
+      {bytes_read:16401,bytes_matched:87,records_read:500,records_matched:3}
+      ===
+      {bytes_read:16404,bytes_matched:87,records_read:500,records_matched:3}

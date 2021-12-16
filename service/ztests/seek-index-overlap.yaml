@@ -1,0 +1,30 @@
+script: |
+  source service.sh
+  zed create -orderby ts:asc -q asc
+  zed create -orderby ts:desc -q desc
+  zed use -q asc@main
+  zq "tail 900" babble.zson | zed load -seekstride=2000B -q -
+  zq "head 250" babble.zson | zed load -seekstride=2000B -q -
+  zed query -z -s "from asc | count()"
+  echo === | tee /dev/stderr
+  zed use -q desc@main
+  zq "tail 900" babble.zson | zed load -seekstride=2000B -q -
+  zq "head 250" babble.zson | zed load -seekstride=2000B -q -
+  zed query -z -s "from desc | count()"
+
+inputs:
+  - name: service.sh
+  - name: babble.zson
+    source: ../../testdata/babble.zson
+
+outputs:
+  - name: stdout
+    data: |
+      {count:1150(uint64)}
+      ===
+      {count:1150(uint64)}
+  - name: stderr
+    data: |
+      {bytes_read:37833,bytes_matched:37833,records_read:1150,records_matched:1150}
+      ===
+      {bytes_read:37833,bytes_matched:37833,records_read:1150,records_matched:1150}

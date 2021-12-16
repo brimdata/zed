@@ -127,6 +127,19 @@ func (r *Request) JournalIDFromQuery(param string, w *ResponseWriter) (journal.I
 	return journal.ID(id), true
 }
 
+func (r *Request) IntFromQuery(param string, w *ResponseWriter) (int, bool, bool) {
+	s := r.URL.Query().Get(param)
+	if s == "" {
+		return 0, false, true
+	}
+	i, err := strconv.ParseInt(s, 10, 32)
+	if err != nil {
+		w.Error(zqe.ErrInvalid("invalid query param %q: %w", s, err))
+		return 0, true, false
+	}
+	return int(i), true, true
+}
+
 func (r *Request) BoolFromQuery(param string, w *ResponseWriter) (bool, bool) {
 	s := r.URL.Query().Get(param)
 	if s == "" {

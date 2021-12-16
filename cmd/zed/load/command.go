@@ -43,7 +43,7 @@ type Command struct {
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
 		Command:    parent.(*root.Command),
-		seekStride: units.Bytes(lake.SeekIndexStride),
+		seekStride: units.Bytes(lake.DefaultSeekStride),
 	}
 	f.Var(&c.seekStride, "seekstride", "size of seek-index unit for ZNG data, as '32KB', '1MB', etc.")
 	c.CommitFlags.SetFlags(f)
@@ -63,7 +63,6 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zed load: at least one input file must be specified (- for stdin)")
 	}
-	lake.SeekIndexStride = int(c.seekStride)
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}
@@ -89,7 +88,7 @@ func (c *Command) Run(args []string) error {
 	if err != nil {
 		return err
 	}
-	commitID, err := lake.Load(ctx, poolID, head.Branch, zio.ConcatReader(readers...), c.CommitMessage())
+	commitID, err := lake.Load(ctx, poolID, head.Branch, zio.ConcatReader(readers...), c.CommitMessage(), int(c.seekStride))
 	if err != nil {
 		return err
 	}
