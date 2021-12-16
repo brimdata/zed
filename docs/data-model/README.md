@@ -2,9 +2,9 @@
 
 > TL;DR The Zed data model defines a new and easy way to manage, store,
 > and process data utilizing an emerging concept called
-[super-structured data](#2-zed-a-super-structured).
+[super-structured data](#2-zed-the-super-structured).
 > The [data model specification](zed.md) defines the model that is realized
-> in a [family of interoperable serialization formats](#3),
+> in a [family of interoperable serialization formats](#3-the-data-model-and-formats),
 > providing a unified approach to row, columnar, and human-readable formats.
 > Zed is a superset of both the dataframe/table model of relational systems and the
 > semi-structured model that is used ubiquitously in development as JSON and by NOSQL
@@ -23,16 +23,16 @@ Referenced specifications
 Table of Contents
 
 * [1. Background](#1-background)
-  + [1.1 The Semi-structured Pattern](#11)
-  + [1.2 The Hybrid Pattern](#12)
-* [2. Zed: The Super-structured Pattern](#2-zed)
-  + [2.1 Zed and Schemas](#21)
-  + [2.2 Type Combinatorics](#22)
-  + [2.3 Analytics Performance](#23)
-  + [2.4 First-class Types](#24)
-  + [2.5 First-class Errors](#25)
-* [3. The Data Model and Formats](#3)
-* [4. Examples](#4)
+  + [1.1 The Semi-structured Pattern](#11-the-semi-structured-pattern)
+  + [1.2 The Hybrid Pattern](#12-the-hybrid-pattern)
+* [2. Zed: The Super-structured Pattern](#2-zed-the-super-structured-pattern)
+  + [2.1 Zed and Schemas](#21-zed-and-schemas)
+  + [2.2 Type Combinatorics](#22-type-combinatorics)
+  + [2.3 Analytics Performance](#23-analytics-performnce)
+  + [2.4 First-class Types](#24-first-class-types)
+  + [2.5 First-class Errors](#25-first-class-errors)
+* [3. The Data Model and Formats](#3-the-data-model-and-formats)
+* [4. Examples](#4-examples)
 
 ---
 
