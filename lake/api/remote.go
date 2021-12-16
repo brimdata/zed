@@ -47,7 +47,7 @@ func (r *RemoteSession) CommitObject(ctx context.Context, poolID ksuid.KSUID, br
 	return res.Commit, err
 }
 
-func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64, seekStride int) (ksuid.KSUID, error) {
+func (r *RemoteSession) CreatePool(ctx context.Context, name string, layout order.Layout, seekStride int, thresh int64) (ksuid.KSUID, error) {
 	res, err := r.conn.CreatePool(ctx, api.PoolPostRequest{
 		Name:       name,
 		Layout:     layout,
