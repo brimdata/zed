@@ -233,7 +233,7 @@ record types.
 ### 2.4 Complex Values
 
 Complex values are built from primitive values and/or other complex values
-and each conform to one of six complex types:  _record_, _array_, _set_,
+and conform the Zed data model's complex types:  _record_, _array_, _set_,
 _union_, _enum_, _map_, and _error_.
 
 #### 2.4.1 Record Value

@@ -40,7 +40,7 @@ To this end, ZNG embeds all type information
 in the stream itself while having a binary serialization format that
 allows "lazy parsing" of fields such that
 only the fields of interest in a stream need to be deserialized and interpreted.
-aUnlike Avro, ZNG embeds its "schemas" in the data stream as Zed types and thereby admits
+Unlike Avro, ZNG embeds its "schemas" in the data stream as Zed types and thereby admits
 an efficient multiplexing of heterogeneous data types by prepending to each
 data value a simple integer identifier to reference its type.
 
@@ -232,11 +232,11 @@ followed by the type code of the value.
 Each `<type-id>` is encoded as `uvarint`.
 
 
-#### 2.1.1.7 Type Name Typedef
+#### 2.1.1.7 Named Type Typedef
 
-A type name defines a new type ID that binds a name to a previously existing type ID.  
+A named type defines a new type ID that binds a name to a previously existing type ID.  
 
-A type name is encoded as follows:
+A named type is encoded as follows:
 ```
 ----------------------
 |0xfb|<name><type-id>|
@@ -248,8 +248,9 @@ existing type ID `<type-id>.  `<type-id> is encoded as a `uvarint` and `<name>`
 is encoded as a `uvarint` representing the length of the name in bytes,
 followed by that many bytes of UTF-8 string.
 
-It is an error to define a type name that has the same name as a primitive type.
-It is permissible to redefine a previously defined type name with a
+As indicated in the [data model](zed-data-model.md),
+it is an error to define a type name that has the same name as a primitive type,
+and it is permissible to redefine a previously defined type name with a
 type that differs from the previous definition.
 
 #### 2.1.1.8 Error Typedef
@@ -597,33 +598,33 @@ A map type value has the form:
 ```
 where `<key-type>` and `<val-type>` are recursive encodings of type values.
 
-#### 4.7 Type Name Type Value
+#### 4.7 Named Type Type Value
 
-A type name type value may appear either as a definition or a reference.
-When a type name appears in reference form, it must have been previously
+A named type type value may appear either as a definition or a reference.
+When a named type is referenced, it must have been previously
 defined in the type value in accordance with a left-to-right depth-first-search (DFS)
 traversal of the type.
 
-A a type name type value definition has the form:
+A named type definition has the form:
 ```
 ----------------------
 |0x17|<name><typeval>|
 ----------------------
 ```
-where `<name>` is encoded as in an alias typedef
+where `<name>` is encoded as in an named type typedef
 and `<typeval>` is a recursive encoding of a type value.  This creates
 a binding between the given name and the indicated type value only within the
 scope of the encoded value and does not affect the type context.
-This binding may be changed by another type alias
-definition of the same name in the same type value according to the DFS order.
+This binding may be changed by another named type definition
+of the same name in the same type value according to the DFS order.
 
-An alias type value reference has the form:
+An named type reference has the form:
 ```
 -------------
 |0x18|<name>|
 -------------
 ```
-It is an error for an alias reference to appear in a type value with a name
+It is an error for an named type reference to appear in a type value with a name
 that has not been previously defined according to the DFS order.
 
 #### 4.8 Error Type Value

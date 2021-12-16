@@ -1,6 +1,6 @@
 # ZST - ZNG stacked format
 
-ZST, pronounced "zest", is an object storage format for columnar data based on
+ZST, pronounced "zest", is a file format for columnar data based on
 [the Zed data model](zed-data-model.md).
 ZST is the "stacked" version of Zed, where the fields from a stream of
 Zed records are stacked into vectors that form columns.
@@ -10,19 +10,19 @@ bounded-length sequences of ZNG data that is stored in columnar form.
 Like [Parquet](https://github.com/apache/parquet-format),
 ZST provides an efficient columnar representation for semi-structured data,
 but unlike Parquet, ZST is not based on schemas and does not require
-a schema to be declared when writing data to an object.  Instead,
-ZST exploits the superstructured nature of Zed data: columns of data
+a schema to be declared when writing data to a file.  Instead,
+ZST exploits the super-structured nature of Zed data: columns of data
 self-organize around their type structure.
 
-## ZST Objects
+## ZST Files
 
-A ZST object encodes a bounded, ordered sequence of Zed values.
+A ZST file encodes a bounded, ordered sequence of Zed values.
 To provide for efficient access to subsets of ZST-encoded data (e.g., columns),
-the ZST object is presumed to be accessible via random access
+the ZST file is presumed to be accessible via random access
 (e.g., range requests to a cloud object store or seeks in a Unix file system)
 and ZST is therefore not intended as a streaming or communication format.
 
-A ZST object can be stored entirely as one storage object
+A ZST file can be stored entirely as one storage object
 or split across separate objects that are treated
 together as a single ZST entity.  While the ZST format provides much flexibility
 for how data is laid out, it is left to an implementation to layout data
@@ -32,8 +32,10 @@ in intelligent ways for efficient sequential read accesses of related data.
 
 The ZST data abstraction is built around a collection of _column streams_.
 
-There is one column stream for each type encountered in the input where
-each column stream is encoded according to its type.  For example,
+There is one column stream for each top-level type encountered in the input where
+each column stream is encoded according to its type.  For top-level complex types,
+the embedded elements are encoded recursively in additional column streams
+as described below.  For example,
 a record column encodes a "presence" vector encoding any null value for
 each field then encodes each non-null field recursively, whereas
 an array column encodes a "lengths" vector and encodes each
@@ -47,7 +49,7 @@ the reconstruction process is recursive (as described below).
 
 ## The Physical Layout
 
-The overall layout of a ZST object is comprised of the following sections,
+The overall layout of a ZST file is comprised of the following sections,
 in this order:
 * the data section,
 * the reassembly section,
@@ -57,13 +59,13 @@ This layout allows an implementation to buffer metadata in
 memory while writing column data in a natural order to the
 data section (based on the volume statistics of each column),
 then write the metadata into the reassembly section along with the trailer
-at the end.  This allows a ZNG stream to be converted to a ZST object
+at the end.  This allows a ZNG stream to be converted to a ZST file
 in a single pass.
 
 > That said, the layout is
 > flexible enough that an implementation may optimize the data layout with
 > additional passes or by writing the output to multiple files then then
-> merging them together (or even leaving the ZST object as separate files).
+> merging them together (or even leaving the ZST entity as separate files).
 
 ### The Data Section
 
@@ -72,7 +74,7 @@ where a segment is a seek offset and byte length relative to the
 data section.  Each segment contains a sequence of
 [primitive-type Zed values](zed-data-model.md#5-1-primitive-types),
 encoded as counted-length byte sequences where the counted-length is
-variable-length encoded as in the ZNG spec.
+variable-length encoded as in the [ZNG specification](zng.md).
 
 There is no information in the data section for how segments relate
 to one another or how they are reconstructed into columns.  They are just
@@ -140,7 +142,7 @@ analogous data structures, we simply reuse ZNG here.
 This reassembly stream encodes 2*N+1 Zed values, where N is equal to the number
 of top-level Zed types that are present in the encoded input.
 To simplify terminology, we call a top-level Zed type a "super type",
-e.g., there are N unique super types encoded in the ZST object.
+e.g., there are N unique super types encoded in the ZST file.
 
 These N super types are defined by the first N values of the reassembly stream
 and are encoded as a null value of the indicated super type.
@@ -186,7 +188,7 @@ The super column stream is encoded as a sequence of ZNG-encoded int32 primitive 
 While there are a large number entries in the super column (one for each original row),
 the cardinality of super IDs is small in practice so this column
 will compress very significantly, e.g., in the special case that all the
-values in the ZST object have the same super ID,
+values in the ZST file have the same super ID,
 the super column will compress trivially.
 
 The type of the reassembly record for the super column stream has the
@@ -204,7 +206,7 @@ Each reassembly record is a record of type `<any_column>`, as defined below,
 where each reassembly record appears in the same sequence as the original N schemas.
 Note that there is no "any" type in Zed, but rather this terminology is used
 here to refer to any of the concrete type structures that would appear
-in a given ZST object.
+in a given ZST file.
 
 In other words, the reassembly record of the super column
 combined with the N reassembly records collectively define the original sequence
@@ -324,29 +326,29 @@ compression based on segment framing).
 ### The Trailer
 
 After the reassembly section is a ZNG stream with a single record defining
-the "trailer" of the ZST object.  The trailer provides a magic field
+the "trailer" of the ZST file.  The trailer provides a magic field
 indicating the "zst" format, a version number,
 the size of the segment threshold for decomposing segments into frames,
 the size of the skew threshold for flushing all segments to storage when
 the memory footprint roughly exceeds this threshold,
-and an array of sizes in bytes of the sections of the zst object.
+and an array of sizes in bytes of the sections of the ZST file.
 
 This type of this record has the format
 ```
 {magic:string,version:int32,skew_thresh:int32,segment_thresh:int32,sections:[int64]}
 ```
 The trailer can be efficiently found by scanning backward from the end of the
-ZST object to the find a valid ZNG stream containing a single record value
+ZST file to the find a valid ZNG stream containing a single record value
 conforming to the above type.
 
 ## Decoding
 
-To decode a entire ZST object into rows, the trailer is read to find the sizes
+To decode an entire ZST file into rows, the trailer is read to find the sizes
 of the sections, then the ZNG stream of the reassembly section is read,
 typically in its entirety.
 
 Since this data structure is relatively small compared to all of the columnar
-data in the ZST object,
+data in the ZST file,
 it will typically fit comfortably in memory and it can be very fast to scan the
 entire reassembly structure for any purpose.
 
@@ -355,7 +357,7 @@ entire reassembly structure for any purpose.
 > an intelligent plan for reading the needed segments and attempt to read them
 > in mostly sequential order, which could serve as
 > an optimizing intermediary between any underlying storage API and the
-> zst decoding logic.
+> ZST decoding logic.
 
 To decode the "next" row, its schema index is read from the root reassembly
 column stream.

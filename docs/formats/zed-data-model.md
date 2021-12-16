@@ -15,7 +15,7 @@ external, often vague, rules for its interpretation.
 CSV is arguably the simplest but most frustrating format that follows the tabular-structured
 pattern.  It provides a bare bones schema consisting of the names of the columns as the
 first line of a file followed by a list of comma-separated, textual values
-that must be parsed and inferred for their type.  The lack of a universally adopted
+whose types must be inferred from the text.  The lack of a universally adopted
 specification for CSV is an all too common source of confusion and frustration.
 
 The traditional relational database, on the other hand,
@@ -86,10 +86,10 @@ or more simply, _"the hybrid pattern"_.
 
 The insight in Zed is to remove the tabular and schema concepts from
 the underlying data model altogether and replace them with a granular and
-modern type system inspired by type systems from general-purpose programming languages.
+modern type system inspired by general-purpose programming languages.
 Instead of defining a single, composite schema to
-which all values must conform, the Zed type system allows values to freely
-express each of their types in accordance with the type system.
+which all values must conform, the Zed type system allows each value to freely
+express its type in accordance with the type system.
 
 In this approach,
 Zed is neither tabular nor semi-structured.  Zed is "super-structured".
@@ -111,18 +111,18 @@ Zed also has named types, so by simply naming a particular record type
 with a simple type query for that named type.
 
 But unlike traditional relational tables, these Zed-constructed tables can have arbitrary
-structure in each column as Zed recursive types allows the field of a record
+structure in each column as Zed allows the fields of a record
 to have an arbitrary type.  This is very different compared to the hybrid pattern:
 all Zed data at all levels conforms to the same data model.  Here, both the
 tabular-structured and semi-structured patterns are representable in a single model.
 Unlike the hybrid pattern, systems based on Zed have
-no need to simultaneously support two very different data-model patterns.
+no need to simultaneously support two very different data models.
 
 In other words, Zed unifies the relational data model of SQL tables
-with the document model of JSON with a _super-structured_
+with the document model of JSON into a _super-structured_
 design pattern enabled by the Zed type system.
 An explicit, uniquely-defined type of each value precisely
-defines its entire structure, i.e., its superstructure.  There is
+defines its entire structure, i.e., its super-structure.  There is
 no need to traverse each hierarchical value --- as with JSON, BSON, or Ion ---
 to discover each value's structure.
 
@@ -131,19 +131,19 @@ of existing formats and data models, it was deliberately designed to be
 a superset of --- and thus interoperable with --- a broad range of formats
 including JSON, BSON, Ion, Avro, Parquet, CSV, JSON Schema, and XML.
 
-As an example, most systems that are based on a semi-structured data would
+As an example, most systems that are based on semi-structured data would
 say the JSON value
 ```
 {"a":[1,"foo"]}
 ```
-would be of type object and the value of key `a` would be type array.
+is of type object and the value of key `a` is type array.
 In Zed, however, this value's type is type `record` with field `a`
-of type `array` of type `union` of `int64` and `string`, or
+of type `array` of type `union` of `int64` and `string`,
 expressed succinctly in ZSON as
 ```
 {a:[(int64,string)]}
 ```
-This is superstructuredness in a nutshell.
+This is super-structuredness in a nutshell.
 
 ### 2.1 Zed and Schemas
 
@@ -156,10 +156,10 @@ for organizing and modeling data for data engineering and business intelligence.
 That said, schemas often create complexity in system designs
 where components might simply want to store and communicate data in some
 meaningful way.  For example, an ETL pipeline should not break when upstream
-structural changes cause data to no longer fit in downstream relational tables.
-Instead, the data stream should continue to operate and land
-on the target system without having to fit into a pre-defined table,
-while also preserving its super structure.
+structural changes prevent data from fitting in downstream relational tables.
+Instead, the pipeline should continue to operate and the data should continue
+to land on the target system without having to fit into a predefined table,
+while also preserving its super-structure.
 
 This is precisely what Zed enables.  A system layer above and outside
 the scope of the Zed data layer can decide how to adapt to the structural
@@ -197,10 +197,10 @@ After all, database
 tables and formats like Parquet and ORC all require schemas to organize values
 then rely upon the natural mapping of schemas to columns.
 
-Superstructure, on the other hand, provides an alternative approach to columnar structure.
+Super-structure, on the other hand, provides an alternative approach to columnar structure.
 Instead of defining a schema then fitting a sequence of values into their appropriate
 columns based on the schema, Zed values self-organize int columns based on their
-superstructure.  Here columns are created dynamically as data is analyzed
+super-structure.  Here columns are created dynamically as data is analyzed
 and each top-level type induces a specific set of columns.  When all of the
 values have the same top-level type (i.e., like a schema), then the Zed columnar
 object is just as performant as a traditional schema-based columnar format like Parquet.
@@ -224,7 +224,7 @@ Likewise, you could select a sample value of each shape like this:
   )
 ```
 The Zed language is exploring syntax so that such operations are tighter
-and more natural given the superstructure of Zed.  For example, the above
+and more natural given the super-structure of Zed.  For example, the above
 two SQL-like queries could be written as:
 ```
   count() by shape:=typeof(this)
@@ -237,7 +237,7 @@ In SQL based systems, errors typically
 result in cryptic messages or null values offering little insight as to the
 actual cause of the error.
 
-Zed however includes first-class errors.  When combined with the superstructured
+Zed however includes first-class errors.  When combined with the super-structured
 data model, error values may appear anywhere in the output and operators
 can propagate or easily wrap errors so complicated, pipelines of analytics
 operators can be debugged by analyzing the location of errors in
@@ -546,7 +546,8 @@ from the underlying type.  A named type can can refer to another named type.
 The binding between a named type and its underlying type is local in scope
 and need not be unique across a sequence of values.
 
-A type name may be any UTF-8 string.
+A type name may be any UTF-8 string excluding the names of primitive type
+or "error".
 
 For example, if "port" is a named type for `int16`, then two values of
 type "port" have the same type but a value of type port and a value of type int16
