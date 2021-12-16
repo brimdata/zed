@@ -26,6 +26,7 @@ outputs:
                   ] (=field.Path)
               ] (=field.List)
           } (=order.Layout),
+          seek_stride: 65536,
           threshold: 524288000
       }
       ===

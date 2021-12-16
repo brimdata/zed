@@ -299,7 +299,7 @@ func (r *Root) RenamePool(ctx context.Context, id ksuid.KSUID, newName string) e
 	return r.pools.Rename(ctx, id, newName)
 }
 
-func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout, thresh int64) (*Pool, error) {
+func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout, seekStride int, thresh int64) (*Pool, error) {
 	if name == "HEAD" {
 		return nil, fmt.Errorf("pool cannot be named %q", name)
 	}
@@ -309,7 +309,7 @@ func (r *Root) CreatePool(ctx context.Context, name string, layout order.Layout,
 	if thresh == 0 {
 		thresh = data.DefaultThreshold
 	}
-	config := pools.NewConfig(name, layout, thresh)
+	config := pools.NewConfig(name, layout, thresh, seekStride)
 	if err := CreatePool(ctx, config, r.engine, r.path); err != nil {
 		return nil, err
 	}

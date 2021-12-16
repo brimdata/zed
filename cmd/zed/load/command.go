@@ -11,11 +11,9 @@ import (
 	"github.com/brimdata/zed/cli/lakeflags"
 	"github.com/brimdata/zed/cli/procflags"
 	"github.com/brimdata/zed/cmd/zed/root"
-	"github.com/brimdata/zed/lake"
 	"github.com/brimdata/zed/pkg/charm"
 	"github.com/brimdata/zed/pkg/rlimit"
 	"github.com/brimdata/zed/pkg/storage"
-	"github.com/brimdata/zed/pkg/units"
 	"github.com/brimdata/zed/zio"
 )
 
@@ -32,8 +30,7 @@ The load command adds data to a pool and commits it to a branch.
 type Command struct {
 	*root.Command
 	cli.LakeFlags
-	seekStride units.Bytes
-	commit     bool
+	commit bool
 	cli.CommitFlags
 	procFlags  procflags.Flags
 	inputFlags inputflags.Flags
@@ -42,10 +39,8 @@ type Command struct {
 
 func New(parent charm.Command, f *flag.FlagSet) (charm.Command, error) {
 	c := &Command{
-		Command:    parent.(*root.Command),
-		seekStride: units.Bytes(lake.SeekIndexStride),
+		Command: parent.(*root.Command),
 	}
-	f.Var(&c.seekStride, "seekstride", "size of seek-index unit for ZNG data, as '32KB', '1MB', etc.")
 	c.CommitFlags.SetFlags(f)
 	c.LakeFlags.SetFlags(f)
 	c.inputFlags.SetFlags(f, true)
@@ -63,7 +58,6 @@ func (c *Command) Run(args []string) error {
 	if len(args) == 0 {
 		return errors.New("zed load: at least one input file must be specified (- for stdin)")
 	}
-	lake.SeekIndexStride = int(c.seekStride)
 	if _, err := rlimit.RaiseOpenFilesLimit(); err != nil {
 		return err
 	}

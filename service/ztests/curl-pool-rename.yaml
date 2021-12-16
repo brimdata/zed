@@ -19,4 +19,4 @@ inputs:
 outputs:
   - name: stdout
     regexp: |
-      \[\{"kind":"pools.Config","value":\{"id":"\w{42}","layout":\{"keys":\[\["ts"\]\],"order":"desc"\},"name":"new_test","threshold":524288000,"ts":"[0-9TZ:.\-]+"\}\}\]
+      \[\{"kind":"pools.Config","value":\{"id":"\w{42}","layout":\{"keys":\[\["ts"\]\],"order":"desc"\},"name":"new_test","seek_stride":65536,"threshold":524288000,"ts":"[0-9TZ:.\-]+"\}\}\]

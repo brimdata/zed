@@ -3,8 +3,8 @@ script: |
   zed init -q
   for o in asc desc; do
     echo // $o | tee /dev/stderr
-    zed create -q -orderby ts:$o $o
-    zed load -q -seekstride=2KB -use $o@main babble.zson null.zson
+    zed create -q -seekstride 2KB -orderby ts:$o $o
+    zed load -q -use $o@main babble.zson null.zson
     zed query -z -s "from $o range 2020-04-21T23:59:26.063Z to 2020-04-21T23:59:38.069Z"
   done
 
