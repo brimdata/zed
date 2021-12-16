@@ -12,16 +12,18 @@ import (
 // This is used at sites in the code where it is unknown whether the outcome
 // should result in a runtime exit or in continued execution with a
 // Missing value embedded in the Zed results.
-var ErrMissing = errors.New(missing)
+var ErrMissing = errors.New("missing")
 
-const missing = "missing"
+var missing = []byte("missing")
+var quiet = []byte("quiet")
 
 // Missing is value that represents the error condition that a field
 // referenced was not present.  The Missing value can be propagated through
 // functions and expressions and each operator must clearly defined its
 // semantics with respect to the Missing value.  For example, "true AND MISSING"
 // is MISSING.
-var Missing = NewError(ErrMissing)
+var Missing = &Value{TypeError, missing}
+var Quiet = &Value{TypeError, quiet}
 
 type TypeOfError struct{}
 
@@ -59,8 +61,4 @@ func (t *TypeOfError) Marshal(zv zcode.Bytes) (interface{}, error) {
 
 func (t *TypeOfError) Format(zv zcode.Bytes) string {
 	return QuotedString(zv, false)
-}
-
-func IsMissing(zv Value) bool {
-	return zv.Type == TypeError && string(zv.Bytes) == missing
 }

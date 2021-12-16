@@ -1,7 +1,0 @@
-zed: rename foo:=goo
-
-input: |
-  {foo:"foo1",goo:"goo1"}
-
-warnings: |
-  rename: duplicate field foo

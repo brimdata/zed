@@ -67,20 +67,18 @@ output: |
     }
   }
   {
-    s: 1
+    s: 1,
+    uri: "parse_uri: non-empty string arg required" (error)
   }
   {
-    s: null (string)
+    s: null (string),
+    uri: "parse_uri: non-empty string arg required" (error)
   }
   {
-    s: ":no-scheme"
+    s: ":no-scheme",
+    uri: "parse_uri: parse \":no-scheme\": missing protocol scheme (\":no-scheme\")" (error)
   }
   {
-    s: "scheme://bad-port:1234567"
+    s: "scheme://bad-port:1234567",
+    uri: "parse_uri: \"scheme://bad-port:1234567\": invalid port: 1234567" (error)
   }
-
-warnings: |
-  parse_uri: input must be string: bad argument
-  parse_uri: input must not be null: bad argument
-  parse_uri: ":no-scheme": missing protocol scheme
-  parse_uri: "scheme://bad-port:1234567": invalid port: value out of range

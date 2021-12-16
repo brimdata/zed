@@ -7,29 +7,21 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
 	"github.com/stretchr/testify/require"
 )
 
-func testSuccessful(t *testing.T, e string, record string, expect zed.Value) {
-	if record == "" {
-		record = "{}"
+func testSuccessful(t *testing.T, e string, input string, expectedVal zed.Value) {
+	if input == "" {
+		input = "{}"
 	}
-	zctx := zed.NewContext()
-	typ, _ := zctx.LookupTypeRecord([]zed.Column{{"result", expect.Type}})
-	bytes := zcode.AppendPrimitive(nil, expect.Bytes)
-	rec := zed.NewValue(typ, bytes)
-	formatter := zson.NewFormatter(0, nil)
-	val, err := formatter.Format(*rec)
-	require.NoError(t, err)
+	expected := zson.MustFormatValue(expectedVal)
 	runZTest(t, e, &ztest.ZTest{
-		Zed:    fmt.Sprintf("cut result := %s", e),
-		Input:  record,
-		Output: val + "\n",
+		Zed:    fmt.Sprintf("yield %s", e),
+		Input:  input,
+		Output: expected + "\n",
 	})
 }
 
@@ -115,24 +107,6 @@ func TestPrimitives(t *testing.T) {
 	testSuccessful(t, "x", record, zint32(10))
 	testSuccessful(t, "f", record, zfloat64(2.5))
 	testSuccessful(t, "s", record, zstring("hello"))
-}
-
-func TestLogical(t *testing.T) {
-	const record = "{t:true,f:false}"
-
-	testSuccessful(t, "t AND t", record, zbool(true))
-	testSuccessful(t, "t AND f", record, zbool(false))
-	testSuccessful(t, "f AND t", record, zbool(false))
-	testSuccessful(t, "f AND f", record, zbool(false))
-
-	testSuccessful(t, "t OR t", record, zbool(true))
-	testSuccessful(t, "t OR f", record, zbool(true))
-	testSuccessful(t, "f OR t", record, zbool(true))
-	testSuccessful(t, "f OR f", record, zbool(false))
-
-	testSuccessful(t, "!t", record, zbool(false))
-	testSuccessful(t, "!f", record, zbool(true))
-	testSuccessful(t, "!!f", record, zbool(false))
 }
 
 func TestCompareNumbers(t *testing.T) {
@@ -241,33 +215,33 @@ func TestCompareNumbers(t *testing.T) {
 		record = fmt.Sprintf(
 			`{x:%s (%s),s:"hello",bs:"world" (bstring),i:10.1.1.1,n:10.1.0.0/16} (=0)`, one, typ)
 
-		testWarning(t, "x == s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testWarning(t, "x != s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testWarning(t, "x < s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testWarning(t, "x <= s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testWarning(t, "x > s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testWarning(t, "x >= s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		testSuccessful(t, "x == s", record, ZSON("false"))
+		testSuccessful(t, "x != s", record, ZSON("false"))
+		testSuccessful(t, "x < s", record, ZSON("false"))
+		testSuccessful(t, "x <= s", record, ZSON("false"))
+		testSuccessful(t, "x > s", record, ZSON("false"))
+		testSuccessful(t, "x >= s", record, ZSON("false"))
 
-		testWarning(t, "x == bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testWarning(t, "x != bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testWarning(t, "x < bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testWarning(t, "x <= bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testWarning(t, "x > bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testWarning(t, "x >= bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
+		testSuccessful(t, "x == bs", record, ZSON("false"))
+		testSuccessful(t, "x != bs", record, ZSON("false"))
+		testSuccessful(t, "x < bs", record, ZSON("false"))
+		testSuccessful(t, "x <= bs", record, ZSON("false"))
+		testSuccessful(t, "x > bs", record, ZSON("false"))
+		testSuccessful(t, "x >= bs", record, ZSON("false"))
 
-		testWarning(t, "x == i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testWarning(t, "x != i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testWarning(t, "x < i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testWarning(t, "x <= i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testWarning(t, "x > i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testWarning(t, "x >= i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
+		testSuccessful(t, "x == i", record, ZSON("false"))
+		testSuccessful(t, "x != i", record, ZSON("false"))
+		testSuccessful(t, "x < i", record, ZSON("false"))
+		testSuccessful(t, "x <= i", record, ZSON("false"))
+		testSuccessful(t, "x > i", record, ZSON("false"))
+		testSuccessful(t, "x >= i", record, ZSON("false"))
 
-		testWarning(t, "x == n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testWarning(t, "x != n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testWarning(t, "x < n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testWarning(t, "x <= n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testWarning(t, "x > n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testWarning(t, "x >= n", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		testSuccessful(t, "x == n", record, ZSON("false"))
+		testSuccessful(t, "x != n", record, ZSON("false"))
+		testSuccessful(t, "x < n", record, ZSON("false"))
+		testSuccessful(t, "x <= n", record, ZSON("false"))
+		testSuccessful(t, "x > n", record, ZSON("false"))
+		testSuccessful(t, "x >= n", record, ZSON("false"))
 	}
 
 	// Test comparison between signed and unsigned and also
@@ -373,9 +347,10 @@ func TestCompareNonNumbers(t *testing.T) {
 				continue
 			}
 			for _, op := range allOperators {
-				exp := fmt.Sprintf("%s == %s", t1.field, t2.field)
-				desc := fmt.Sprintf("compare %s %s %s", t1.typ, op, t2.typ)
-				testWarning(t, exp, record, expr.ErrIncompatibleTypes, desc)
+				exp := fmt.Sprintf("%s %s %s", t1.field, op, t2.field)
+				// XXX we no longer have a way to
+				// propagate boolean "warnings"...
+				testSuccessful(t, exp, record, ZSON(`false`))
 			}
 		}
 	}
@@ -559,14 +534,14 @@ func TestArithmetic(t *testing.T) {
 	testSuccessful(t, `"hello" + " world"`, record, zstring("hello world"))
 
 	// Test string arithmetic other than + fails
-	testWarning(t, `"hello" - " world"`, record, expr.ErrIncompatibleTypes, "subtracting strings")
-	testWarning(t, `"hello" * " world"`, record, expr.ErrIncompatibleTypes, "multiplying strings")
-	testWarning(t, `"hello" / " world"`, record, expr.ErrIncompatibleTypes, "dividing strings")
+	testSuccessful(t, `"hello" - " world"`, record, ZSON(`"type string incompatible with '-' operator"(error)`))
+	testSuccessful(t, `"hello" * " world"`, record, ZSON(`"type string incompatible with '*' operator"(error)`))
+	testSuccessful(t, `"hello" / " world"`, record, ZSON(`"type string incompatible with '/' operator"(error)`))
 
 	// Test that addition fails on an unsupported type
-	testWarning(t, "10.1.1.1 + 1", record, expr.ErrIncompatibleTypes, "adding ip and integer")
-	testWarning(t, "10.1.1.1 + 3.14159", record, expr.ErrIncompatibleTypes, "adding ip and float")
-	testWarning(t, `10.1.1.1 + "foo"`, record, expr.ErrIncompatibleTypes, "adding ip and string")
+	testSuccessful(t, "10.1.1.1 + 1", record, ZSON(`"incompatible types"(error)`))
+	testSuccessful(t, "10.1.1.1 + 3.14159", record, ZSON(`"incompatible types"(error)`))
+	testSuccessful(t, `10.1.1.1 + "foo"`, record, ZSON(`"incompatible types"(error)`))
 }
 
 func TestArrayIndex(t *testing.T) {
@@ -593,7 +568,7 @@ func TestConditional(t *testing.T) {
 
 	testSuccessful(t, `x == 0 ? "zero" : "not zero"`, record, zstring("not zero"))
 	testSuccessful(t, `x == 1 ? "one" : "not one"`, record, zstring("one"))
-	testWarning(t, `x ? "x" : "not x"`, record, expr.ErrIncompatibleTypes, "conditional with non-boolean condition")
+	testSuccessful(t, `x ? "x" : "not x"`, record, ZSON(`"?-operator: bool predicate required"(error)`))
 
 	// Ensure that the unevaluated clause doesn't generate errors
 	// (field y doesn't exist but it shouldn't be evaluated)
@@ -604,57 +579,57 @@ func TestConditional(t *testing.T) {
 func TestCasts(t *testing.T) {
 	// Test casts to byte
 	testSuccessful(t, "uint8(10)", "", zed.Value{zed.TypeUint8, zed.EncodeUint(10)})
-	testWarning(t, "uint8(-1)", "", expr.ErrBadCast, "out of range cast to uint8")
-	testWarning(t, "uint8(300)", "", expr.ErrBadCast, "out of range cast to uint8")
-	testWarning(t, `uint8("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint8")
+	testSuccessful(t, "uint8(-1)", "", ZSON(`"cannot cast -1 to type uint8"(error)`))
+	testSuccessful(t, "uint8(300)", "", ZSON(`"cannot cast 300 to type uint8"(error)`))
+	testSuccessful(t, `uint8("foo")`, "", ZSON(`"cannot cast \"foo\" to type uint8"(error)`))
 
 	// Test casts to int16
-	testSuccessful(t, "int16(10)", "", zed.Value{zed.TypeInt16, zed.EncodeInt(10)})
-	testWarning(t, "int16(-33000)", "", expr.ErrBadCast, "out of range cast to int16")
-	testWarning(t, "int16(33000)", "", expr.ErrBadCast, "out of range cast to int16")
-	testWarning(t, `int16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int16")
+	testSuccessful(t, "int16(10)", "", ZSON(`10(int16)`))
+	testSuccessful(t, "int16(-33000)", "", ZSON(`"cannot cast -33000 to type int16"(error)`))
+	testSuccessful(t, "int16(33000)", "", ZSON(`"cannot cast 33000 to type int16"(error)`))
+	testSuccessful(t, `int16("foo")`, "", ZSON(`"cannot cast \"foo\" to type int16"(error)`))
 
 	// Test casts to uint16
 	testSuccessful(t, "uint16(10)", "", zed.Value{zed.TypeUint16, zed.EncodeUint(10)})
-	testWarning(t, "uint16(-1)", "", expr.ErrBadCast, "out of range cast to uint16")
-	testWarning(t, "uint16(66000)", "", expr.ErrBadCast, "out of range cast to uint16")
-	testWarning(t, `uint16("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint16")
+	testSuccessful(t, "uint16(-1)", "", ZSON(`"cannot cast -1 to type uint16"(error)`))
+	testSuccessful(t, "uint16(66000)", "", ZSON(`"cannot cast 66000 to type uint16"(error)`))
+	testSuccessful(t, `uint16("foo")`, "", ZSON(`"cannot cast \"foo\" to type uint16"(error)`))
 
 	// Test casts to int32
 	testSuccessful(t, "int32(10)", "", zed.Value{zed.TypeInt32, zed.EncodeInt(10)})
-	testWarning(t, "int32(-2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
-	testWarning(t, "int32(2200000000)", "", expr.ErrBadCast, "out of range cast to int32")
-	testWarning(t, `int32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to int32")
+	testSuccessful(t, "int32(-2200000000)", "", ZSON(`"cannot cast -2200000000 to type int32"(error)`))
+	testSuccessful(t, "int32(2200000000)", "", ZSON(`"cannot cast 2200000000 to type int32"(error)`))
+	testSuccessful(t, `int32("foo")`, "", ZSON(`"cannot cast \"foo\" to type int32"(error)`))
 
 	// Test casts to uint32
 	testSuccessful(t, "uint32(10)", "", zed.Value{zed.TypeUint32, zed.EncodeUint(10)})
-	testWarning(t, "uint32(-1)", "", expr.ErrBadCast, "out of range cast to uint32")
-	testWarning(t, "uint8(4300000000)", "", expr.ErrBadCast, "out of range cast to uint32")
-	testWarning(t, `uint32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint32")
+	testSuccessful(t, "uint32(-1)", "", ZSON(`"cannot cast -1 to type uint32"(error)`))
+	testSuccessful(t, "uint32(4300000000)", "", ZSON(`"cannot cast 4300000000 to type uint32"(error)`))
+	testSuccessful(t, `uint32("foo")`, "", ZSON(`"cannot cast \"foo\" to type uint32"(error)`))
 
 	// Test casts to uint64
 	testSuccessful(t, "uint64(10)", "", zuint64(10))
-	testWarning(t, "uint64(-1)", "", expr.ErrBadCast, "out of range cast to uint64")
-	testWarning(t, `uint64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to uint64")
+	testSuccessful(t, "uint64(-1)", "", ZSON(`"cannot cast -1 to type uint64"(error)`))
+	testSuccessful(t, `uint64("foo")`, "", ZSON(`"cannot cast \"foo\" to type uint64"(error)`))
 
 	// Test casts to float32
 	testSuccessful(t, "float32(10)", "", zfloat32(10))
-	testWarning(t, `float32("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to float64")
+	testSuccessful(t, `float32("foo")`, "", ZSON(`"cannot cast \"foo\" to type float32"(error)`))
 
 	// Test casts to float64
 	testSuccessful(t, "float64(10)", "", zfloat64(10))
-	testWarning(t, `float64("foo")`, "", expr.ErrBadCast, "cannot cast incompatible type to float64")
+	testSuccessful(t, `float64("foo")`, "", ZSON(`"cannot cast \"foo\" to type float64"(error)`))
 
 	// Test casts to ip
 	testSuccessful(t, `ip("1.2.3.4")`, "", zip(t, "1.2.3.4"))
-	testWarning(t, "ip(1234)", "", expr.ErrBadCast, "cast of invalid ip address fails")
-	testWarning(t, `ip("not an address")`, "", expr.ErrBadCast, "cast of invalid ip address fails")
+	testSuccessful(t, "ip(1234)", "", ZSON(`"cannot cast 1234 to type ip"(error)`))
+	testSuccessful(t, `ip("not an address")`, "", ZSON(`"cannot cast \"not an address\" to type ip"(error)`))
 
 	// Test casts to net
 	testSuccessful(t, `net("1.2.3.0/24")`, "", znet(t, "1.2.3.0/24"))
-	testWarning(t, "net(1234)", "", expr.ErrBadCast, "cast of invalid net fails")
-	testWarning(t, `net("not an address")`, "", expr.ErrBadCast, "cast of invalid net fails")
-	testWarning(t, `net("1.2.3.4")`, "", expr.ErrBadCast, "cast of invalid net fails")
+	testSuccessful(t, "net(1234)", "", ZSON(`"cannot cast 1234 to type net"(error)`))
+	testSuccessful(t, `net("not an address")`, "", ZSON(`"cannot cast \"not an address\" to type net"(error)`))
+	testSuccessful(t, `net(1.2.3.4)`, "", ZSON(`"cannot cast 1.2.3.4 to type net"(error)`))
 
 	// Test casts to time
 	ts := zed.Value{zed.TypeTime, zed.EncodeTime(nano.Ts(1589126400_000_000_000))}
@@ -672,9 +647,9 @@ func TestCasts(t *testing.T) {
 	testSuccessful(t, `float64("5.5")`, "", zfloat64(5.5))
 	testSuccessful(t, `ip("1.2.3.4")`, "", zaddr("1.2.3.4"))
 
-	testWarning(t, "ip(1)", "", expr.ErrBadCast, "ip cast non-ip arg")
-	testWarning(t, `int64("abc")`, "", expr.ErrBadCast, "int64 cast with non-parseable string")
-	testWarning(t, `float32("abc")`, "", expr.ErrBadCast, "float32 cast with non-parseable string")
-	testWarning(t, `float64("abc")`, "", expr.ErrBadCast, "float64 cast with non-parseable string")
-	testWarning(t, `ip("abc")`, "", expr.ErrBadCast, "ip cast with non-parseable string")
+	testSuccessful(t, "ip(1)", "", ZSON(`"cannot cast 1 to type ip"(error)`))
+	testSuccessful(t, `int64("abc")`, "", ZSON(`"cannot cast \"abc\" to type int64"(error)`))
+	testSuccessful(t, `float32("abc")`, "", ZSON(`"cannot cast \"abc\" to type float32"(error)`))
+	testSuccessful(t, `float64("abc")`, "", ZSON(`"cannot cast \"abc\" to type float64"(error)`))
+	testSuccessful(t, `ip("abc")`, "", ZSON(`"cannot cast \"abc\" to type ip"(error)`))
 }

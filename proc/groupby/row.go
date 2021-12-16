@@ -1,9 +1,12 @@
 package groupby
 
 import (
+	"fmt"
+
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/expr/agg"
+	"github.com/brimdata/zed/zson"
 )
 
 type valRow []agg.Function
@@ -16,24 +19,22 @@ func newValRow(aggs []*expr.Aggregator) valRow {
 	return cols
 }
 
-func (v valRow) apply(aggs []*expr.Aggregator, rec *zed.Value) error {
+func (v valRow) apply(aggs []*expr.Aggregator, this *zed.Value, ectx expr.Context) {
 	for k, a := range aggs {
-		if err := a.Apply(v[k], rec); err != nil {
-			return err
-		}
+		a.Apply(ectx, v[k], this)
 	}
-	return nil
 }
 
-func (v valRow) consumeAsPartial(rec *zed.Value, vals []expr.Evaluator) error {
+func (v valRow) consumeAsPartial(rec *zed.Value, exprs []expr.Evaluator, ectx expr.Context) {
 	for k, r := range v {
-		v, err := vals[k].Eval(rec)
-		if err != nil {
-			return err
+		val := exprs[k].Eval(ectx, rec)
+		if val.IsError() {
+			panic(fmt.Errorf("consumeAsPartial: read a Zed error: %s", zson.MustFormatValue(*val)))
 		}
-		if err := r.ConsumeAsPartial(v); err != nil {
-			return err
+		//XXX should do soemthing with errors... they could come from
+		// a worker over the network?
+		if !val.IsError() {
+			r.ConsumeAsPartial(val)
 		}
 	}
-	return nil
 }

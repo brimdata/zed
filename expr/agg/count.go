@@ -6,25 +6,27 @@ import (
 
 type Count uint64
 
-func (c *Count) Consume(v zed.Value) error {
-	if !v.IsNil() {
-		*c++
+var _ Function = (*Count)(nil)
+
+func (c *Count) Consume(*zed.Value) {
+	*c++
+}
+
+func (c Count) Result(*zed.Context) *zed.Value {
+	return zed.NewValue(zed.TypeUint64, zed.EncodeUint(uint64(c)))
+}
+
+func (c *Count) ConsumeAsPartial(partial *zed.Value) {
+	if partial.Type != zed.TypeUint64 {
+		panic("count: partial not uint64")
 	}
-	return nil
-}
-
-func (c Count) Result(*zed.Context) (zed.Value, error) {
-	return zed.NewUint64(uint64(c)), nil
-}
-
-func (c *Count) ConsumeAsPartial(p zed.Value) error {
-	u, err := zed.DecodeUint(p.Bytes)
-	if err == nil {
-		*c += Count(u)
+	u, err := zed.DecodeUint(partial.Bytes)
+	if err != nil {
+		panic(err)
 	}
-	return err
+	*c += Count(u)
 }
 
-func (c Count) ResultAsPartial(*zed.Context) (zed.Value, error) {
+func (c Count) ResultAsPartial(*zed.Context) *zed.Value {
 	return c.Result(nil)
 }

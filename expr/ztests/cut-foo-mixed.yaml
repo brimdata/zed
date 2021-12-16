@@ -12,6 +12,12 @@ input: |
   {bar:"bar3"}
 
 output: |
+  {foo:"missing"(error)}
+  {foo:"missing"(error)}
+  {foo:"missing"(error)}
   {foo:"foo1"}
   {foo:"foo2"}
   {foo:"foo3"}
+  {foo:"missing"(error)}
+  {foo:"missing"(error)}
+  {foo:"missing"(error)}

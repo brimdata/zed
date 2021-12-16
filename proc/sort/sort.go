@@ -28,6 +28,7 @@ type Proc struct {
 	resultCh           chan proc.Result
 	compareFn          expr.CompareFn
 	unseenFieldTracker *unseenFieldTracker
+	ectx               expr.Context
 }
 
 func New(pctx *proc.Context, parent proc.Interface, fields []expr.Evaluator, order order.Which, nullsFirst bool) (*Proc, error) {
@@ -66,7 +67,8 @@ func (p *Proc) sortLoop() {
 		// Just one run so do an in-memory sort.
 		p.warnAboutUnseenFields()
 		expr.SortStable(firstRunRecs, p.compareFn)
-		array := zbuf.Array(firstRunRecs)
+		//XXX bug: we need upstream ectx. See #3367
+		array := zbuf.NewArray(firstRunRecs)
 		p.sendResult(array, nil)
 		return
 	}
@@ -98,25 +100,26 @@ func (p *Proc) sendResult(b zbuf.Batch, err error) {
 
 func (p *Proc) recordsForOneRun() ([]zed.Value, bool, error) {
 	var nbytes int
-	var recs []zed.Value
+	var out []zed.Value
 	for {
 		batch, err := p.parent.Pull()
 		if err != nil {
 			return nil, false, err
 		}
 		if batch == nil {
-			return recs, true, nil
+			return out, true, nil
 		}
+		ctx := batch.Context()
 		vals := batch.Values()
 		for i := range vals {
-			rec := &vals[i]
-			p.unseenFieldTracker.update(rec)
-			nbytes += len(rec.Bytes)
+			val := &vals[i]
+			p.unseenFieldTracker.update(ctx, val)
+			nbytes += len(val.Bytes)
 			// We're keeping records owned by batch so don't call Unref.
-			recs = append(recs, *rec)
+			out = append(out, *val)
 		}
 		if nbytes >= MemMaxBytes {
-			return recs, false, nil
+			return out, false, nil
 		}
 	}
 }
@@ -159,7 +162,7 @@ func (p *Proc) setCompareFn(r *zed.Value) {
 	resolvers := p.fieldResolvers
 	if resolvers == nil {
 		fld := GuessSortKey(r)
-		resolver := expr.NewDotExpr(fld)
+		resolver := expr.NewDottedExpr(fld)
 		resolvers = []expr.Evaluator{resolver}
 	}
 	nullsMax := !p.nullsFirst

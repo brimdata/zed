@@ -10,7 +10,8 @@ input: |
   {a:|{"a":"hello"}|}
 
 output: |
-  {b1:true}
-  {b1:true}
-  {b1:false}
-  {b2:true}
+  {b1:true,b2:"missing"(error)}
+  {b1:true,b2:"missing"(error)}
+  {b1:false,b2:"missing"(error)}
+  {b1:"missing"(error),b2:"missing"(error)}
+  {b1:"missing"(error),b2:true}

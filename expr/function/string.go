@@ -5,124 +5,116 @@ import (
 	"unicode/utf8"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/zcode"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#replace
 type Replace struct{}
 
-func (*Replace) Call(args []zed.Value) (zed.Value, error) {
+func (r *Replace) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zvs := args[0]
 	zvold := args[1]
 	zvnew := args[2]
 	if !zvs.IsStringy() || !zvold.IsStringy() || !zvnew.IsStringy() {
-		return badarg("replace")
+		return newErrorf(ctx, "replace: string arg required")
 	}
 	if zvs.Bytes == nil {
-		return zvs, nil
+		return zed.Null
 	}
 	if zvold.Bytes == nil || zvnew.Bytes == nil {
-		return badarg("replace")
+		return newErrorf(ctx, "replace: an input arg is null")
 	}
 	s, err := zed.DecodeString(zvs.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
 	old, err := zed.DecodeString(zvold.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
 	new, err := zed.DecodeString(zvnew.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
-	result := strings.ReplaceAll(s, old, new)
-	return zed.Value{zed.TypeString, zed.EncodeString(result)}, nil
+	return newString(ctx, strings.ReplaceAll(s, old, new))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#run_len
-type RuneLen struct {
-	result.Buffer
-}
+type RuneLen struct{}
 
-func (s *RuneLen) Call(args []zed.Value) (zed.Value, error) {
+func (r *RuneLen) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("rune_len")
+		return newErrorf(ctx, "rune_len: string arg required")
 	}
 	if zv.Bytes == nil {
-		return zed.Value{zed.TypeInt64, s.Int(0)}, nil
+		return newInt64(ctx, 0)
 	}
 	in, err := zed.DecodeString(zv.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
-	v := utf8.RuneCountInString(in)
-	return zed.Value{zed.TypeInt64, s.Int(int64(v))}, nil
+	return newInt64(ctx, int64(utf8.RuneCountInString(in)))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_lower
 type ToLower struct{}
 
-func (*ToLower) Call(args []zed.Value) (zed.Value, error) {
+func (t *ToLower) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("to_lower")
+		return newErrorf(ctx, "to_lower: string arg required")
 	}
-	if zv.Bytes == nil {
-		return zv, nil
+	if zv.IsNull() {
+		return zed.NullString
 	}
 	s, err := zed.DecodeString(zv.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
-	// XXX GC
-	s = strings.ToLower(s)
-	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
+	return newString(ctx, strings.ToLower(s))
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_upper
 type ToUpper struct{}
 
-func (*ToUpper) Call(args []zed.Value) (zed.Value, error) {
+func (t *ToUpper) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("to_upper")
+		return newErrorf(ctx, "to_upper: string arg required")
 	}
-	if zv.Bytes == nil {
-		return zv, nil
+	if zv.IsNull() {
+		return zed.NullString
 	}
 	s, err := zed.DecodeString(zv.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
-	// XXX GC
-	s = strings.ToUpper(s)
-	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
+	return newString(ctx, strings.ToUpper(s))
 }
 
 type Trim struct{}
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#trim
-func (*Trim) Call(args []zed.Value) (zed.Value, error) {
+func (t *Trim) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("trim")
+		return newErrorf(ctx, "trim: string arg required")
 	}
-	if zv.Bytes == nil {
-		return zv, nil
+	if zv.IsNull() {
+		return zed.NullString
 	}
-	// XXX GC
-	s := strings.TrimSpace(string(zv.Bytes))
-	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
+	s, err := zed.DecodeString(zv.Bytes)
+	if err != nil {
+		panic(err)
+	}
+	return newString(ctx, strings.TrimSpace(s))
 }
 
 // // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#split
 type Split struct {
-	zctx  *zed.Context
-	typ   zed.Type
-	bytes zcode.Bytes
+	zctx *zed.Context
+	typ  zed.Type
 }
 
 func newSplit(zctx *zed.Context) *Split {
@@ -131,57 +123,55 @@ func newSplit(zctx *zed.Context) *Split {
 	}
 }
 
-func (s *Split) Call(args []zed.Value) (zed.Value, error) {
+func (s *Split) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zs := args[0]
 	zsep := args[1]
 	if !zs.IsStringy() || !zsep.IsStringy() {
-		return badarg("split")
+		return newErrorf(ctx, "split: string args required")
 	}
-	if zs.Bytes == nil || zsep.Bytes == nil {
-		return zed.Value{Type: s.typ}, nil
+	if zs.IsNull() || zsep.IsNull() {
+		return ctx.NewValue(s.typ, nil)
 	}
 	str, err := zed.DecodeString(zs.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
 	sep, err := zed.DecodeString(zsep.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
 	splits := strings.Split(str, sep)
-	b := s.bytes[:0]
+	var b zcode.Bytes
 	for _, substr := range splits {
 		b = zcode.AppendPrimitive(b, zed.EncodeString(substr))
 	}
-	s.bytes = b
-	return zed.Value{s.typ, b}, nil
+	return ctx.NewValue(s.typ, b)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#join
 type Join struct {
-	bytes   zcode.Bytes
 	builder strings.Builder
 }
 
-func (j *Join) Call(args []zed.Value) (zed.Value, error) {
+func (j *Join) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	zsplits := args[0]
 	typ, ok := zed.AliasOf(zsplits.Type).(*zed.TypeArray)
 	if !ok {
-		return zed.NewErrorf("argument to join() is not an array"), nil
+		return newErrorf(ctx, "join: array of string args required")
 	}
 	if !zed.IsStringy(typ.Type.ID()) {
-		return zed.NewErrorf("argument to join() is not a string array"), nil
+		return newErrorf(ctx, "join: array of string args required")
 	}
 	var separator string
 	if len(args) == 2 {
 		zsep := args[1]
 		if !zsep.IsStringy() {
-			return zed.NewErrorf("separator argument to join() is not a string"), nil
+			return newErrorf(ctx, "join: separator must be string")
 		}
 		var err error
 		separator, err = zed.DecodeString(zsep.Bytes)
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
 	}
 	b := j.builder
@@ -191,15 +181,15 @@ func (j *Join) Call(args []zed.Value) (zed.Value, error) {
 	for !it.Done() {
 		bytes, _, err := it.Next()
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
 		s, err := zed.DecodeString(bytes)
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
 		b.WriteString(sep)
 		b.WriteString(s)
 		sep = separator
 	}
-	return zed.Value{zed.TypeString, zed.EncodeString(b.String())}, nil
+	return newString(ctx, b.String())
 }

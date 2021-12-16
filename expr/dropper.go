@@ -11,24 +11,21 @@ type dropper struct {
 	fieldRefs []Evaluator
 }
 
-func (d *dropper) drop(in *zed.Value) (*zed.Value, error) {
+func (d *dropper) drop(ectx Context, in *zed.Value) *zed.Value {
 	if d.typ == in.Type {
-		return in, nil
+		return in
 	}
 	b := d.builder
 	b.Reset()
 	for _, e := range d.fieldRefs {
-		val, err := e.Eval(in)
-		if err != nil {
-			return nil, err
-		}
+		val := e.Eval(ectx, in)
 		b.Append(val.Bytes, val.IsContainer())
 	}
 	zv, err := b.Encode()
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	return zed.NewValue(d.typ, zv), nil
+	return zed.NewValue(d.typ, zv)
 }
 
 type Dropper struct {
@@ -46,34 +43,31 @@ func NewDropper(zctx *zed.Context, fields field.List) *Dropper {
 	}
 }
 
-func (d *Dropper) newDropper(r *zed.Value) (*dropper, error) {
+func (d *Dropper) newDropper(r *zed.Value) *dropper {
 	fields, fieldTypes, match := complementFields(d.fields, nil, zed.TypeRecordOf(r.Type))
 	if !match {
 		// r.Type contains no fields matching d.fields, so we set
 		// dropper.typ to r.Type to indicate that records of this type
 		// should not be modified.
-		return &dropper{typ: r.Type}, nil
+		return &dropper{typ: r.Type}
 	}
 	// If the set of dropped fields is equal to the all of record's
 	// fields, then there is no output for this input type.
 	// We return nil to block this input type.
 	if len(fieldTypes) == 0 {
-		return nil, nil
+		return nil
 	}
 	var fieldRefs []Evaluator
 	for _, f := range fields {
-		fieldRefs = append(fieldRefs, NewDotExpr(f))
+		fieldRefs = append(fieldRefs, NewDottedExpr(f))
 	}
 	builder, err := zed.NewColumnBuilder(d.zctx, fields)
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 	cols := builder.TypedColumns(fieldTypes)
-	typ, err := d.zctx.LookupTypeRecord(cols)
-	if err != nil {
-		return nil, err
-	}
-	return &dropper{typ, builder, fieldRefs}, nil
+	typ := d.zctx.MustLookupTypeRecord(cols)
+	return &dropper{typ, builder, fieldRefs}
 }
 
 // complementFields returns the slice of fields and associated types that make
@@ -115,21 +109,15 @@ func (_ *Dropper) String() string { return "drop" }
 
 func (_ *Dropper) Warning() string { return "" }
 
-// Apply implements proc.Function and returns a new record comprising fields
-// that are not specified in the set of drop targets.
-func (d *Dropper) Apply(in *zed.Value) (*zed.Value, error) {
+func (d *Dropper) Eval(ectx Context, in *zed.Value) *zed.Value {
 	id := in.Type.ID()
 	dropper, ok := d.droppers[id]
 	if !ok {
-		var err error
-		dropper, err = d.newDropper(in)
-		if err != nil {
-			return nil, err
-		}
+		dropper = d.newDropper(in)
 		d.droppers[id] = dropper
 	}
 	if dropper == nil {
-		return nil, nil
+		return zed.Quiet
 	}
-	return dropper.drop(in)
+	return dropper.drop(ectx, in)
 }

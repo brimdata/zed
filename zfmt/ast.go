@@ -349,10 +349,6 @@ func (c *canon) proc(p ast.Proc) {
 		c.next()
 		c.write("cut ")
 		c.assignments(p.Args)
-	case *ast.Pick:
-		c.next()
-		c.open("pick ")
-		c.assignments(p.Args)
 	case *ast.Drop:
 		c.next()
 		c.write("drop ")

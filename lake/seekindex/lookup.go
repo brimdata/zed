@@ -8,7 +8,7 @@ import (
 	"github.com/brimdata/zed/zio"
 )
 
-func Lookup(r zio.Reader, from, to zed.Value, cmp expr.ValueCompareFn) (Range, error) {
+func Lookup(r zio.Reader, from, to *zed.Value, cmp expr.ValueCompareFn) (Range, error) {
 	rg := Range{0, math.MaxInt64}
 	var rec *zed.Value
 	for {
@@ -24,7 +24,7 @@ func Lookup(r zio.Reader, from, to zed.Value, cmp expr.ValueCompareFn) (Range, e
 		if err != nil {
 			return Range{}, err
 		}
-		if cmp(key, from) > 0 {
+		if cmp(&key, from) > 0 {
 			break
 		}
 		off, err := rec.Access("offset")
@@ -35,7 +35,7 @@ func Lookup(r zio.Reader, from, to zed.Value, cmp expr.ValueCompareFn) (Range, e
 		if err != nil {
 			return Range{}, err
 		}
-		if cmp(key, from) == 0 {
+		if cmp(&key, from) == 0 {
 			break
 		}
 	}
@@ -44,7 +44,7 @@ func Lookup(r zio.Reader, from, to zed.Value, cmp expr.ValueCompareFn) (Range, e
 		if err != nil {
 			return Range{}, err
 		}
-		if cmp(key, to) > 0 {
+		if cmp(&key, to) > 0 {
 			off, err := rec.Access("offset")
 			if err != nil {
 				return Range{}, err

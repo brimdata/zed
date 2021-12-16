@@ -93,6 +93,7 @@ type scanner struct {
 	reader zio.Reader
 	filter expr.Filter
 	ctx    context.Context
+	ectx   expr.Context
 
 	progress Progress
 }
@@ -103,24 +104,27 @@ func (s *scanner) Progress() Progress {
 
 // Read implements Reader.Read.
 func (s *scanner) Read() (*zed.Value, error) {
+	if s.ectx == nil {
+		s.ectx = expr.NewContext()
+	}
 	for {
 		if err := s.ctx.Err(); err != nil {
 			return nil, err
 		}
-		rec, err := s.reader.Read()
-		if err != nil || rec == nil {
+		this, err := s.reader.Read()
+		if err != nil || this == nil {
 			return nil, err
 		}
-		atomic.AddInt64(&s.progress.BytesRead, int64(len(rec.Bytes)))
+		atomic.AddInt64(&s.progress.BytesRead, int64(len(this.Bytes)))
 		atomic.AddInt64(&s.progress.RecordsRead, 1)
-		if s.filter != nil && !s.filter(rec) {
+		if s.filter != nil && !s.filter(s.ectx, this) {
 			continue
 		}
-		atomic.AddInt64(&s.progress.BytesMatched, int64(len(rec.Bytes)))
+		atomic.AddInt64(&s.progress.BytesMatched, int64(len(this.Bytes)))
 		atomic.AddInt64(&s.progress.RecordsMatched, 1)
 		// Copy the underlying buffer because the next call to
 		// s.reader.Read will overwrite it.
-		return rec.Copy(), nil
+		return this.Copy(), nil
 	}
 }
 

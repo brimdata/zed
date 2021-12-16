@@ -175,34 +175,35 @@ func (r *Root) readLakeMagic(ctx context.Context) error {
 	return nil
 }
 
-func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Filter) (zbuf.Array, error) {
+func (r *Root) batchifyPools(ctx context.Context, zctx *zed.Context, f expr.Filter) ([]zed.Value, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	pools, err := r.ListPools(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var batch zbuf.Array
+	ectx := expr.NewContext()
+	var batch []zed.Value
 	for k := range pools {
 		rec, err := m.MarshalRecord(&pools[k])
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(rec) {
-			batch.Append(rec)
+		if f == nil || f(ectx, rec) {
+			batch = append(batch, *rec)
 		}
 	}
 	return batch, nil
 }
 
-func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.Filter) (zbuf.Array, error) {
+func (r *Root) batchifyBranches(ctx context.Context, zctx *zed.Context, f expr.Filter) ([]zed.Value, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	poolRefs, err := r.ListPools(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var batch zbuf.Array
+	var batch []zed.Value
 	for k := range poolRefs {
 		pool, err := r.openPool(ctx, &poolRefs[k])
 		if err != nil {
@@ -427,14 +428,15 @@ func (r *Root) AllIndexRules(ctx context.Context) ([]index.Rule, error) {
 	return r.indexRules.All(ctx)
 }
 
-func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr.Filter) (zbuf.Array, error) {
+func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr.Filter) ([]zed.Value, error) {
 	m := zson.NewZNGMarshalerWithContext(zctx)
 	m.Decorate(zson.StylePackage)
 	names, err := r.indexRules.Names(ctx)
 	if err != nil {
 		return nil, err
 	}
-	var batch zbuf.Array
+	var batch []zed.Value
+	ectx := expr.NewContext()
 	for _, name := range names {
 		rules, err := r.indexRules.Lookup(ctx, name)
 		if err != nil {
@@ -451,8 +453,8 @@ func (r *Root) batchifyIndexRules(ctx context.Context, zctx *zed.Context, f expr
 			if err != nil {
 				return nil, err
 			}
-			if f == nil || f(rec) {
-				batch.Append(rec)
+			if f == nil || f(ectx, rec) {
+				batch = append(batch, *rec)
 			}
 		}
 	}
@@ -479,21 +481,21 @@ func (r *Root) newLakeMetaScheduler(ctx context.Context, zctx *zed.Context, meta
 	if err != nil {
 		return nil, err
 	}
-	var batch zbuf.Array
+	var vals []zed.Value
 	switch meta {
 	case "pools":
-		batch, err = r.batchifyPools(ctx, zctx, f)
+		vals, err = r.batchifyPools(ctx, zctx, f)
 	case "branches":
-		batch, err = r.batchifyBranches(ctx, zctx, f)
+		vals, err = r.batchifyBranches(ctx, zctx, f)
 	case "index_rules":
-		batch, err = r.batchifyIndexRules(ctx, zctx, f)
+		vals, err = r.batchifyIndexRules(ctx, zctx, f)
 	default:
 		return nil, fmt.Errorf("unknown lake metadata type: %q", meta)
 	}
 	if err != nil {
 		return nil, err
 	}
-	s, err := zbuf.NewScanner(ctx, &batch, filter)
+	s, err := zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
 	if err != nil {
 		return nil, err
 	}
@@ -509,16 +511,16 @@ func (r *Root) newPoolMetaScheduler(ctx context.Context, zctx *zed.Context, pool
 	if err != nil {
 		return nil, err
 	}
-	var batch zbuf.Array
+	var vals []zed.Value
 	switch meta {
 	case "branches":
 		m := zson.NewZNGMarshalerWithContext(zctx)
 		m.Decorate(zson.StylePackage)
-		batch, err = p.batchifyBranches(ctx, batch, m, f)
+		vals, err = p.batchifyBranches(ctx, nil, m, f)
 	default:
 		return nil, fmt.Errorf("unknown pool metadata type: %q", meta)
 	}
-	s, err := zbuf.NewScanner(ctx, &batch, filter)
+	s, err := zbuf.NewScanner(ctx, zbuf.NewArray(vals), filter)
 	if err != nil {
 		return nil, err
 	}
@@ -578,7 +580,7 @@ func (r *Root) newCommitMetaScheduler(ctx context.Context, zctx *zed.Context, po
 		if err != nil {
 			return nil, err
 		}
-		tipsScanner, err := zbuf.NewScanner(ctx, &tips, filter)
+		tipsScanner, err := zbuf.NewScanner(ctx, zbuf.NewArray(tips), filter)
 		if err != nil {
 			return nil, err
 		}

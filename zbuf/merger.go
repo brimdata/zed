@@ -39,7 +39,7 @@ func NewCompareFn(layout order.Layout) expr.CompareFn {
 	nullsMax := layout.Order == order.Asc
 	exprs := make([]expr.Evaluator, len(layout.Keys))
 	for i, key := range layout.Keys {
-		exprs[i] = expr.NewDotExpr(key)
+		exprs[i] = expr.NewDottedExpr(key)
 	}
 	fn := expr.NewCompareFn(nullsMax, exprs...)
 	fn = totalOrderCompare(fn)
@@ -87,7 +87,7 @@ func (m *Merger) Pull() (Batch, error) {
 		// way, it's safe to return min's remaining values as a batch.
 		batch := min.batch
 		if len(min.vals) < len(batch.Values()) {
-			batch = Array(min.vals)
+			batch = NewArray(min.vals)
 		}
 		if min.receive() {
 			heap.Push(m, min)

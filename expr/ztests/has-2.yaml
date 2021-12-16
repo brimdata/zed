@@ -13,5 +13,5 @@ input: |
   {r:{a:1(int8),b:2(int8)}}
 
 output: |
-  {r:true,rb:false,both:false,div0:"signed integer divide by 0"(error),add1:true,s:true,array:true,arraynot:false}
+  {r:true,rb:false,both:false,div0:"divide by zero"(error),add1:true,s:true,array:true,arraynot:false}
   {r:true,rb:true,both:true,div0:false,add1:false,s:false,array:false,arraynot:false}

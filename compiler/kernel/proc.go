@@ -22,7 +22,6 @@ import (
 	"github.com/brimdata/zed/proc/merge"
 	"github.com/brimdata/zed/proc/pass"
 	"github.com/brimdata/zed/proc/put"
-	"github.com/brimdata/zed/proc/rename"
 	"github.com/brimdata/zed/proc/shape"
 	"github.com/brimdata/zed/proc/sort"
 	"github.com/brimdata/zed/proc/split"
@@ -100,22 +99,10 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 		if err != nil {
 			return nil, err
 		}
-		cutter.AllowPartialCuts()
 		if v.Quiet {
 			cutter.Quiet()
 		}
-		return proc.FromFunction(b.pctx, parent, cutter), nil
-	case *dag.Pick:
-		assignments, err := compileAssignments(v.Args, b.pctx.Zctx, b.scope)
-		if err != nil {
-			return nil, err
-		}
-		lhs, rhs := splitAssignments(assignments)
-		cutter, err := expr.NewCutter(b.pctx.Zctx, lhs, rhs)
-		if err != nil {
-			return nil, err
-		}
-		return proc.FromFunction(b.pctx, parent, &picker{cutter}), nil
+		return proc.NewApplier(b.pctx, parent, cutter), nil
 	case *dag.Drop:
 		if len(v.Args) == 0 {
 			return nil, errors.New("drop: no fields given")
@@ -129,7 +116,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 			fields = append(fields, field.Name)
 		}
 		dropper := expr.NewDropper(b.pctx.Zctx, fields)
-		return proc.FromFunction(b.pctx, parent, dropper), nil
+		return proc.NewApplier(b.pctx, parent, dropper), nil
 	case *dag.Sort:
 		fields, err := CompileExprs(b.pctx.Zctx, b.scope, v.Args)
 		if err != nil {
@@ -161,7 +148,7 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 		if err != nil {
 			return nil, fmt.Errorf("compiling filter: %w", err)
 		}
-		return proc.FromFunction(b.pctx, parent, filterFunction(f)), nil
+		return proc.NewApplier(b.pctx, parent, expr.FilterApplier(f)), nil
 	case *dag.Top:
 		fields, err := CompileExprs(b.pctx.Zctx, b.scope, v.Args)
 		if err != nil {
@@ -204,8 +191,8 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 			dsts = append(dsts, dst)
 			srcs = append(srcs, src)
 		}
-		renamer := rename.NewFunction(b.pctx.Zctx, srcs, dsts)
-		return proc.FromFunction(b.pctx, parent, renamer), nil
+		renamer := expr.NewRenamer(b.pctx.Zctx, srcs, dsts)
+		return proc.NewApplier(b.pctx, parent, renamer), nil
 	case *dag.Fuse:
 		return fuse.New(b.pctx, parent)
 	case *dag.Shape:
@@ -245,23 +232,6 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 
 	}
 }
-
-type filterFunction expr.Filter
-
-func (f filterFunction) Apply(rec *zed.Value) (*zed.Value, error) {
-	if f(rec) {
-		return rec, nil
-	}
-	return nil, nil
-}
-
-func (_ filterFunction) String() string { return "filter" }
-
-func (_ filterFunction) Warning() string { return "" }
-
-type picker struct{ *expr.Cutter }
-
-func (_ *picker) String() string { return "pick" }
 
 func compileAssignments(assignments []dag.Assignment, zctx *zed.Context, scope *Scope) ([]expr.Assignment, error) {
 	keys := make([]expr.Assignment, 0, len(assignments))
@@ -344,15 +314,14 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface)
 	s := exprswitch.New(parents[0], e)
 	var procs []proc.Interface
 	for _, c := range swtch.Cases {
-		// A nil (rather than null) zed.Value indicates the default case.
-		var zv zed.Value
+		var val *zed.Value
 		if c.Expr != nil {
-			zv, err = evalAtCompileTime(b.pctx.Zctx, b.scope, c.Expr)
+			val, err = evalAtCompileTime(b.pctx.Zctx, b.scope, c.Expr)
 			if err != nil {
 				return nil, err
 			}
 		}
-		proc, err := b.compile(c.Op, []proc.Interface{s.NewProc(zv)})
+		proc, err := b.compile(c.Op, []proc.Interface{s.NewProc(val)})
 		if err != nil {
 			return nil, err
 		}
@@ -587,8 +556,8 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 }
 
 func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (extent.Span, error) {
-	lower := zed.Value{zed.TypeNull, nil}
-	upper := zed.Value{zed.TypeNull, nil}
+	lower := &zed.Value{zed.TypeNull, nil}
+	upper := &zed.Value{zed.TypeNull, nil}
 	if exprLower != nil {
 		var err error
 		lower, err = evalAtCompileTime(b.pctx.Zctx, b.scope, exprLower)
@@ -606,7 +575,7 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 	var span extent.Span
 	if lower.Bytes != nil || upper.Bytes != nil {
 		layout := b.adaptor.Layout(b.pctx.Context, src)
-		span = extent.NewGenericFromOrder(lower, upper, layout.Order)
+		span = extent.NewGenericFromOrder(*lower, *upper, layout.Order)
 	}
 	return span, nil
 }
@@ -629,15 +598,14 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 	for _, p := range ops {
 		switch p := p.(type) {
 		case *dag.Const:
-			zv, err := evalAtCompileTime(zctx, scope, p.Expr)
+			val, err := evalAtCompileTime(zctx, scope, p.Expr)
 			if err != nil {
-				if err == zed.ErrMissing {
-					err = fmt.Errorf("cannot resolve const '%s' at compile time", p.Name)
-				}
 				return err
 			}
-			scope.Bind(p.Name, &zv)
-
+			if val.IsError() {
+				return fmt.Errorf("cannot resolve const '%s' at compile time", p.Name)
+			}
+			scope.Bind(p.Name, val)
 		case *dag.TypeProc:
 			name := p.Name
 			typ, err := zson.TranslateType(zctx, p.Type)
@@ -650,7 +618,6 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 			}
 			zv := zed.NewTypeValue(alias)
 			scope.Bind(name, &zv)
-
 		default:
 			return fmt.Errorf("kernel.LoadConsts: not a const: '%T'", p)
 		}
@@ -658,20 +625,15 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 	return nil
 }
 
-func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (zed.Value, error) {
+func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (*zed.Value, error) {
 	if in == nil {
-		return zed.Value{zed.TypeNull, nil}, nil
-	}
-	typ, err := zctx.LookupTypeRecord([]zed.Column{})
-	if err != nil {
-		return zed.Value{}, err
+		return zed.Null, nil
 	}
 	e, err := compileExpr(zctx, scope, in)
 	if err != nil {
-		return zed.Value{}, err
+		return nil, err
 	}
-	rec := zed.NewValue(typ, nil)
-	return e.Eval(rec)
+	return e.Eval(expr.NewContext(), zed.Null), nil
 }
 
 type readerScheduler struct {

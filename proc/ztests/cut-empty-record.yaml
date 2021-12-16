@@ -6,5 +6,6 @@ input: |
   {a:{},b:{}}
 
 output: |
-  {a:{}}
+  {a:"missing"(error),b:"missing"(error)}
+  {a:{},b:"missing"(error)}
   {a:{},b:{}}

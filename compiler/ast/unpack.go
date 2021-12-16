@@ -44,7 +44,6 @@ var unpacker = unpack.New(
 	TypeSplitter{},
 	Parallel{},
 	Pass{},
-	Pick{},
 	Pool{},
 	astzed.Primitive{},
 	Put{},

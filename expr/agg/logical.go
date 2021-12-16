@@ -8,37 +8,37 @@ type And struct {
 	val *bool
 }
 
-func (a *And) Consume(v zed.Value) error {
-	if v.Bytes == nil {
-		return nil
-	}
-	if v.Type != zed.TypeBool {
-		//l.TypeMismatch++
-		return nil
+var _ Function = (*And)(nil)
+
+func (a *And) Consume(val *zed.Value) {
+	if val.IsNull() || zed.AliasOf(val.Type) != zed.TypeBool {
+		return
 	}
 	if a.val == nil {
 		b := true
 		a.val = &b
 	}
-	*a.val = *a.val && zed.IsTrue(v.Bytes)
-	return nil
+	*a.val = *a.val && zed.IsTrue(val.Bytes)
 }
 
-func (a *And) Result(*zed.Context) (zed.Value, error) {
+func (a *And) Result(*zed.Context) *zed.Value {
 	if a.val == nil {
-		return zed.Value{Type: zed.TypeBool}, nil
+		return zed.NullBool
 	}
 	if *a.val {
-		return zed.True, nil
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }
 
-func (a *And) ConsumeAsPartial(v zed.Value) error {
-	return a.Consume(v)
+func (a *And) ConsumeAsPartial(val *zed.Value) {
+	if val.Type != zed.TypeBool {
+		panic("and: partial not a bool")
+	}
+	a.Consume(val)
 }
 
-func (a *And) ResultAsPartial(*zed.Context) (zed.Value, error) {
+func (a *And) ResultAsPartial(*zed.Context) *zed.Value {
 	return a.Result(nil)
 }
 
@@ -46,36 +46,36 @@ type Or struct {
 	val *bool
 }
 
-func (o *Or) Consume(v zed.Value) error {
-	if v.Bytes == nil {
-		return nil
-	}
-	if v.Type != zed.TypeBool {
-		//l.TypeMismatch++
-		return nil
+var _ Function = (*Or)(nil)
+
+func (o *Or) Consume(val *zed.Value) {
+	if val.IsNull() || zed.AliasOf(val.Type) != zed.TypeBool {
+		return
 	}
 	if o.val == nil {
 		b := false
 		o.val = &b
 	}
-	*o.val = *o.val || zed.IsTrue(v.Bytes)
-	return nil
+	*o.val = *o.val || zed.IsTrue(val.Bytes)
 }
 
-func (o *Or) Result(*zed.Context) (zed.Value, error) {
+func (o *Or) Result(*zed.Context) *zed.Value {
 	if o.val == nil {
-		return zed.Value{Type: zed.TypeBool}, nil
+		return zed.NullBool
 	}
 	if *o.val {
-		return zed.True, nil
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }
 
-func (o *Or) ConsumeAsPartial(v zed.Value) error {
-	return o.Consume(v)
+func (o *Or) ConsumeAsPartial(val *zed.Value) {
+	if val.Type != zed.TypeBool {
+		panic("or: partial not a bool")
+	}
+	o.Consume(val)
 }
 
-func (o *Or) ResultAsPartial(*zed.Context) (zed.Value, error) {
+func (o *Or) ResultAsPartial(*zed.Context) *zed.Value {
 	return o.Result(nil)
 }

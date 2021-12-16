@@ -37,7 +37,7 @@ func (p *Proc) tail() zbuf.Batch {
 	}
 	p.off = 0
 	p.count = 0
-	return zbuf.Array(out)
+	return zbuf.NewArray(out)
 
 }
 

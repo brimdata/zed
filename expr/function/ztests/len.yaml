@@ -36,36 +36,36 @@ input: |
   {a:|{1:1,2:2}|}
 
 output: |
-  {n:null(int64),a:null}
-  {n:null(int64),a:null(bytes)}
+  {n:0,a:null}
+  {n:0,a:null(bytes)}
   {n:0,a:0x}
   {n:2,a:0x0123}
-  {n:null(int64),a:null(string)}
+  {n:0,a:null(string)}
   {n:0,a:""}
   {n:6,a:"string"}
-  {n:null(int64),a:null(bstring)}
+  {n:0,a:null(bstring)}
   {n:0,a:""(bstring)}
   {n:7,a:"bstring"(bstring)}
-  {n:null(int64),a:null(ip)}
+  {n:0,a:null(ip)}
   {n:4,a:1.0.0.0}
   {n:16,a:1::}
-  {n:null(int64),a:null(net)}
+  {n:0,a:null(net)}
   {n:8,a:1.0.0.0/8}
   {n:32,a:::/8}
-  {n:null(int64),a:null(error)}
+  {n:0,a:null(error)}
   {n:0,a:""(error)}
   {n:5,a:"error"(error)}
-  {n:null(int64),a:null({})}
+  {n:0,a:null({})}
   {n:0,a:{}}
   {n:1,a:{x:1}}
   {n:2,a:{x:1,s:"hello"}}
   {n:1,a:{x:{a:1,b:2}}}
-  {n:null(int64),a:null([int64])}
+  {n:0,a:null([int64])}
   {n:0,a:[]([int64])}
   {n:2,a:[1,2]}
-  {n:null(int64),a:null(|[int64]|)}
+  {n:0,a:null(|[int64]|)}
   {n:0,a:|[]|(|[int64]|)}
   {n:2,a:|[1,2]|}
-  {n:null(int64),a:null(|{int64:int64}|)}
+  {n:0,a:null(|{int64:int64}|)}
   {n:1,a:|{1:1}|}
   {n:2,a:|{1:1,2:2}|}

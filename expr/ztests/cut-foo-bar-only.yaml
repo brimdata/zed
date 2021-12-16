@@ -5,7 +5,7 @@ input: |
   {bar:"bar2"}
   {bar:"bar3"}
 
-output: ""
-
-warnings: |
-  cut: no record found with columns foo
+output: |
+  {foo:"missing"(error)}
+  {foo:"missing"(error)}
+  {foo:"missing"(error)}

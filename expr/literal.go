@@ -2,14 +2,17 @@ package expr
 
 import "github.com/brimdata/zed"
 
+// Literal is a pointer so it can point to known Zed singletons.
 type Literal struct {
-	zv zed.Value
+	val *zed.Value
 }
 
-func NewLiteral(zv zed.Value) *Literal {
-	return &Literal{zv}
+var _ Evaluator = (*Literal)(nil)
+
+func NewLiteral(val *zed.Value) *Literal {
+	return &Literal{val: val}
 }
 
-func (l *Literal) Eval(*zed.Value) (zed.Value, error) {
-	return l.zv, nil
+func (l Literal) Eval(Context, *zed.Value) *zed.Value {
+	return l.val
 }

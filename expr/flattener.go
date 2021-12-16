@@ -71,11 +71,7 @@ func (f *Flattener) Flatten(r *zed.Value) (*zed.Value, error) {
 	flatType := f.mapper.Lookup(id)
 	if flatType == nil {
 		cols := FlattenColumns(r.Columns())
-		var err error
-		flatType, err = f.zctx.LookupTypeRecord(cols)
-		if err != nil {
-			return nil, err
-		}
+		flatType = f.zctx.MustLookupTypeRecord(cols)
 		f.mapper.EnterType(id, flatType)
 	}
 	// Since we are mapping the input context to itself we can do a

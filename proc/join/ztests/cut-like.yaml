@@ -6,7 +6,7 @@ inputs:
       from (
         file people.ndjson => sort likes;
         file fruit.ndjson => sort flavor;
-      ) | left join on likes=flavor fruit:=name,note
+      ) | left join on likes=flavor fruit:=name,note:=quiet(note)
   - name: people.ndjson
     data: |
       {"name":"morgan","age":61,"likes":"tart"}

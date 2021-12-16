@@ -24,7 +24,6 @@
 - [Records](#records)
   - [`cut`](#cut)
   - [`fields`](#fields)
-  - [`pick`](#pick)
   - [`unflatten`](#unflatten)
 - [Strings](#strings)
   - [`join`](#join)
@@ -40,6 +39,7 @@
   - [`is`](#is)
   - [`iserr`](#iserr)
   - [`nameof`](#nameof)
+  - [`quiet`](#quiet)
   - [`typeof`](#typeof)
   - [`typeunder`](#typeunder)
 - [Value Introspection](#value-introspection)
@@ -425,28 +425,6 @@ echo '{foo:{a:1,b:2,c:3}}' | zq -z 'cut foo := fields(foo)' -
 {foo:["a","b","c"]}
 ```
 
-### `pick`
-
-```
-pick(f ...<fields>) -> record
-```
-
-`pick` accepts one or more [field expressions](expressions.md) `f` and returns
-a record with only these fields. `pick` is similar to `cut` but only returns
-a value if all field expressions are matched. This is functionally equivalent
-to the [`pick` operator](operators.md#cut)
-
-#### Example:
-
-```mdtest-command
-echo '{foo:{a:1,b:2,c:3}}' | zq -z 'yield pick(foo.a,foo.c)' -
-```
-
-**Output:**
-```mdtest-output
-{foo:{a:1,c:3}}
-```
-
 ### `unflatten`
 
 ```
@@ -720,6 +698,27 @@ nameof(v <any>) -> string
 ```
 
 `nameof` returns the string type name of `v` if `v` is an aliased type.
+
+### `quiet`
+
+```
+quiet(a <any>) -> type
+```
+
+`quiet` returns `a` unless `a` is `error("missing")` in which case
+it returns `error("quiet")`.  Quiet errors are ignored by operators
+`cut`, `put`, `summarize`, and `yield`.
+
+#### Example:
+
+```mdtest-command
+echo  '{x:"missing"(error),y:"hello"}'  | zq -z 'cut x:=quiet(x), y:=quiet(y)' -
+```
+
+**Output:**
+```mdtest-output
+{y:"hello"}
+```
 
 ### `typeof`
 

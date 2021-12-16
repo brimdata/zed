@@ -17,7 +17,6 @@ The following available operators are documented in detail below:
 * [`head`](#head)
 * [`join`](#join)
 * [`over`](#over)
-* [`pick`](#pick)
 * [`put`](#put)
 * [`rename`](#rename)
 * [`sort`](#sort)
@@ -33,7 +32,7 @@ The following available operators are documented in detail below:
 
 |                           |                                                   |
 | ------------------------- | ------------------------------------------------- |
-| **Description**           | Return the data only from the specified named fields, where available. Contrast with [`pick`](#pick), which is stricter. |
+| **Description**           | Return the data only from the specified named fields, where available. |
 | **Syntax**                | `cut <field-list>`                                |
 | **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names or assignments.  |
 
@@ -60,12 +59,12 @@ zq -Z 'cut School,OpenDate' schools.zson
 
 #### Example #2:
 
-As long as some of the named fields are present, these will be returned. No
-warning is generated regarding absent fields. For instance, the following
+As long as some of the named fields are present, they are returned while absent
+fields are `error("missing")`. For instance, the following
 query is run against all three of our data sources and returns values from our
 school data that includes fields for both `School` and `Website`, values from
-our web address data that have the `Website` and `addr` fields, and nothing
-from the test score data since it has none of these fields.
+our web address data that have the `Website` and `addr` fields, and the
+missing value from the test score data since it has none of these fields.
 
 ```mdtest-command dir=testdata/edu
 zq -z 'yosemiteuhsd | cut School,Website,addr' *.zson
@@ -73,29 +72,11 @@ zq -z 'yosemiteuhsd | cut School,Website,addr' *.zson
 
 #### Output:
 ```mdtest-output
-{School:null(string),Website:"www.yosemiteuhsd.com"}
-{Website:"www.yosemiteuhsd.com",addr:104.253.209.210}
+{School:null(string),Website:"www.yosemiteuhsd.com",addr:"missing"(error)}
+{School:"missing"(error),Website:"www.yosemiteuhsd.com",addr:104.253.209.210}
 ```
-
-Contrast this with a [similar example](#example-2-3) that shows how
-[`pick`](#pick)'s stricter behavior only returns results when _all_ of the
-named fields are present.
 
 #### Example #3:
-
-If no records are found that contain any of the named fields, `cut` returns a
-warning.
-
-```mdtest-command dir=testdata/edu
-zq -z 'cut nothere,alsoabsent' testscores.zson
-```
-
-#### Output:
-```mdtest-output
-cut: no record found with columns nothere,alsoabsent
-```
-
-#### Example #4:
 
 To return only the `sname` and `dname` fields of the test scores while also
 renaming the fields:
@@ -646,7 +627,7 @@ value. For instance the sum of elements in an array can be computed with
 records and maps. This will be added shortly.
 
 \*\* `over` is currently in beta and works on a subset of the available
-operators including `filter`, `cut` and `pick`, and `summarize`.  Other operators
+operators including `cut`, `filter`, and `summarize`.  Other operators
 currently used downstream of `over` may produce undefined results.
 
 #### Example (basic):
@@ -677,92 +658,12 @@ echo '{a:[6,5,4]} {a:[3,2,1]}' | zq -z 'over a | this % 2 == 0' -
 
 ---
 
-## `pick`
-
-|                           |                                               |
-| ------------------------- | --------------------------------------------- |
-| **Description**           | Return the data from the named fields in records that contain _all_ of the specified fields. Contrast with [`cut`](#cut), which is more relaxed. |
-| **Syntax**                | `pick <field-list>`                           |
-| **Required<br>arguments** | `<field-list>`<br>One or more comma-separated field names or assignments.  |
-
-#### Example #1:
-
-To return only the name and opening date from our school records:
-
-```mdtest-command dir=testdata/edu
-zq -Z 'pick School,OpenDate' schools.zson
-```
-
-#### Output:
-```mdtest-output head
-{
-    School: "'3R' Middle",
-    OpenDate: 1995-10-30T00:00:00Z
-}
-{
-    School: "100 Black Men of the Bay Area Community",
-    OpenDate: 2012-08-06T00:00:00Z
-}
-...
-```
-
-#### Example #2:
-
-All of the named fields must be present in a record for `pick` to return a
-result for it. For instance, since only our school data has _both_ `School`
-and `Website` fields, the following query of all three example data sources
-only returns a result from the school data.
-
-```mdtest-command dir=testdata/edu
-zq -z 'yosemiteuhsd | pick School,Website' *.zson
-```
-
-#### Output:
-```mdtest-output
-{School:null(string),Website:"www.yosemiteuhsd.com"}
-```
-
-Contrast this with a [similar example](#example-2) that shows how
-[`cut`](#cut)'s relaxed behavior returns a result whenever _any_ of the named
-fields are present.
-
-#### Example #3:
-
-If no records are found that contain any of the named fields, `pick` returns a
-warning.
-
-```mdtest-command dir=testdata/edu
-zq -z 'pick nothere,alsoabsent' testscores.zson
-```
-
-#### Output:
-```mdtest-output
-pick: no record found with columns nothere,alsoabsent
-```
-
-#### Example #4:
-
-To return only the `sname` and `dname` fields of the test scores while also
-renaming the fields:
-
-```mdtest-command dir=testdata/edu
-zq -z 'pick School:=sname,District:=dname' testscores.zson
-```
-
-#### Output:
-```mdtest-output head
-{School:"21st Century Learning Institute",District:"Beaumont Unified"}
-{School:"ABC Secondary (Alternative)",District:"ABC Unified"}
-...
-```
-
----
-
 ## `put`
 
 |                           |                                                 |
 | ------------------------- | ----------------------------------------------- |
-| **Description**           | Add/update fields based on the results of an expression.<br><br>If evaluation of any expression fails, a warning is emitted and the original record is passed through unchanged.<br><br>As this operation is very common, the `put` keyword is optional. |
+| **Description**           | Add/update fields based on the results of an expression.<br><br>If evaluation of any expression fails, a missing error
+is emitted for the respective field.<br><br>As this operation is very common, the `put` keyword is optional. |
 | **Syntax**                | `[put] <field> := <expression> [, (<field> := <expression>)...]` |
 | **Required arguments**    | One or more of:<br><br>`<field> := <expression>`<br>Any valid Zed [expression](expressions.md), preceded by the assignment operator `:=` and the name of a field in which to store the result. |
 | **Optional arguments**    | None |

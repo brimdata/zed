@@ -9,5 +9,5 @@ input: |
 output: |
   {r:{x:3,y:1},a1:[2],a2:[3,1]}
   {r:{x:7,y:1},a1:[4],a2:[7,1]}
-  {a1:["hello"]}
+  {r:{x:"missing"(error),y:"missing"(error)},a1:["hello"],a2:["missing"(error),"missing"(error)]}
   {r:{x:11,y:1},a1:[6],a2:[11,1]}
