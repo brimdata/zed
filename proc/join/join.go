@@ -134,7 +134,8 @@ func (p *Proc) setJoinKey(key zed.Value) {
 }
 
 func (p *Proc) getJoinSet(leftKey zed.Value) ([]*zed.Value, error) {
-	if p.compare(leftKey, p.joinKey) == 0 {
+	if p.joinKey.Type != nil && p.compare(leftKey, p.joinKey) == 0 {
+		// If p.joinKey.Type is nil, p.joinKey hasn't been set.
 		return p.joinSet, nil
 	}
 	for {
