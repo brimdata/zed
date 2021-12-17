@@ -73,14 +73,14 @@ Control codes `0xf5` through `0xff` (in hexadecimal) are defined as follows:
 
 | Code   | Message Type                   |
 |--------|--------------------------------|
-| `0xf5` | record definition              |
-| `0xf6` | array definition               |
-| `0xf7` | set definition                 |
-| `0xf8` | map definiton                  |
-| `0xf9` | union definition               |
-| `0xfa` | enum definiton                 |
+| `0xf5` | record type definition         |
+| `0xf6` | array type definition          |
+| `0xf7` | set type definition            |
+| `0xf8` | map type definiton             |
+| `0xf9` | union type definition          |
+| `0xfa` | enum type definiton            |
 | `0xfb` | named type definition          |
-| `0xfc` | error definiton                |
+| `0xfc` | error type definiton           |
 | `0xfd` | compressed value message block |
 | `0xfe` | application-defined message    |
 | `0xff` | end-of-stream                  |
