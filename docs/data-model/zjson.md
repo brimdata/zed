@@ -2,18 +2,20 @@
 
 * [1. Introduction](#1-introduction)
 * [2. The Format](#the-formant)
-  + [2.1 Type Encoding](#type-encoding)
-    - [2.1.1 Record Type](#record-type)
-    - [2.2.2 Array Type](#array-type)
-    - [2.2.3 Set Type](#set-type)
-    - [2.2.4 Map Type](#map-type)
-    - [2.2.5 Union type](#union-type)
-    - [2.2.6 Enum Type](#enum-type)
-    - [2.2.7 Error Type](#error-type)
-    - [2.2.8 Named Type](#named-type)
-  + [Value Encoding](#value-encoding)
-* [ZJSON Object Framing](#zjson-object-framing)
-* [Example](#example)
+  + [2.1 Type Encoding](#21-type-encoding)
+    - [2.1.1 Record Type](#211-record-type)
+    - [2.1.2 Array Type](#212-array-type)
+    - [2.1.3 Set Type](#213-set-type)
+    - [2.1.4 Map Type](#214-map-type)
+    - [2.1.5 Union type](#215-union-type)
+    - [2.1.6 Enum Type](#216-enum-type)
+    - [2.1.7 Error Type](#217-error-type)
+    - [2.1.8 Named Type](#218-named-type)
+  + [2.2 Value Encoding](#22-value-encoding)
+* [3. Object Framing](#3-object-framing)
+* [4. Example](#4-example)
+
+## 1. Introduction
 
 The [Zed data model](zed.md)
 is based on richly typed records with a deterministic column order,
@@ -83,7 +85,7 @@ in general have typing beyond the basics (i.e., strings, floating point numbers,
 objects, arrays, and booleans), we decided to encode Zed data with
 its embedded type model all in a layer above regular JSON.
 
-## The Format
+## 2. The Format
 
 The format for representing Zed in JSON is called ZJSON.
 Converting ZSON/ZNG/ZST to ZJSON and back results in a complete and
@@ -106,7 +108,7 @@ represents a Zed value:
 ```
 The type and value fields are encoded as defined below.
 
-### Type Encoding
+### 3. Type Encoding
 
 The type encoding for a primitive type is simply its Zed type name(zed.md#1-primitive-types)
 e.g., "int32" or "string".
@@ -140,7 +142,7 @@ For example, the Zed type `{s:string,x:int32}` has this ZJSON format:
 }
 ```
 
-#### Record Type
+#### 3.1 Record Type
 
 A record type is a JSON object of the form
 ```
@@ -160,7 +162,7 @@ where each of the fields has the form
 and `<name>` is a string defining the column name and `<type>` is a
 recursively encoded type.
 
-#### Array Type
+#### 3.2 Array Type
 
 An array type is defined by a JSON object having the form
 ```
@@ -172,7 +174,7 @@ An array type is defined by a JSON object having the form
 ```
 where `<type>` is a recursively encoded type.
 
-#### Set Type
+#### 3.3 Set Type
 
 A set type is defined by a JSON object having the form
 ```
@@ -184,7 +186,7 @@ A set type is defined by a JSON object having the form
 ```
 where `<type>` is a recursively encoded type.
 
-#### Map Type
+#### 3.4 Map Type
 
 A map type is defined by a JSON object of the form
 ```
@@ -196,7 +198,7 @@ A map type is defined by a JSON object of the form
 }
 ```
 
-#### Union type
+#### 3.5 Union type
 
 A union type is defined by a JSON object having the form
 ```
@@ -209,7 +211,7 @@ A union type is defined by a JSON object having the form
 where the list of types comprise the types of the union and
 and each `<type>`is a recursively encoded type.
 
-#### Enum Type
+#### 3.6 Enum Type
 
 An enum type is a JSON object of the form
 ```
@@ -220,7 +222,7 @@ An enum type is a JSON object of the form
 }
 ```
 
-#### Type Type
+#### 3.7 Type Type
 
 A type type is a JSON object of the form
 ```
@@ -231,7 +233,7 @@ A type type is a JSON object of the form
 }
 ```
 
-#### Error Type
+#### 3.8 Error Type
 
 An error type is a JSON object of the form
 ```
@@ -242,7 +244,7 @@ An error type is a JSON object of the form
 }
 ```
 
-#### Named Type
+#### 3.9 Named Type
 
 A named type is encoded as a binding between a name and a Zed type
 and represents a new type so named.  A type definition type has the form
@@ -257,7 +259,7 @@ and represents a new type so named.  A type definition type has the form
 where `<id>` is a JSON string representing the newly defined type name
 and `<type>` is a recursively encoded type.
 
-### Value Encoding
+### 2.2 Value Encoding
 
 The primitive values comprising an arbitrarily complex Zed data value are encoded
 as a JSON array of strings mixed with nested JSON arrays whose structure
@@ -283,7 +285,7 @@ and an array of union of string, and float64 --- might have a value that looks l
 [ "hello, world", ["1","2","3","4"], ["1:foo", "0:10" ] ]
 ```
 
-## ZJSON Object Framing
+## 3. Object Framing
 
 A sequence of ZJSON objects may be framed in two primary ways.
 
@@ -299,7 +301,7 @@ of the [zqd REST API](../../api/api.go).
 It is up to an implementation to determine how ZJSON
 objects are framed according to its particular use case.
 
-## Example
+## 4. Example
 
 > Issue #3340
 
