@@ -272,7 +272,7 @@ e.g., the [zq](https://github.com/brimdata/zed/tree/main/cmd/zq) CLI command
 writes its ZJSON output as lines of NDJSON.
 
 The MIME type `application/x-zjson` is used by the
-of the [Zed lake service](../lake/service-api.go) to indicate
+of the [Zed lake service](../lake/service-api.md) to indicate
 ZJSON objects framed as NDJSON.
 
 ## 4. Example
