@@ -6,26 +6,27 @@ a "named type", or the "null type".
 
 ## 1. Primitive Types
 
-Primitive types include signed and unsigned integers, IEEE floating point of
-several widths, IEEE decimal, string, byte sequence, boolean, IP address, IP network,
-null, error, and a first-class type _type_.
+Primitive types include signed and unsigned integers, IEEE binary and decimal
+floating point, string, byte sequence, Boolean, IP address, IP network,
+null, and a first-class type _type_.
 
-There are 28 types of primitive values with syntax defined as follows:
+There are 30 types of primitive values with syntax defined as follows:
 
 | Name       | Definition                                      |
 |------------|-------------------------------------------------|
-| `uint8`    | unsigned, 8-bit integer  |
-| `uint16`   | unsigned, 16-bit integer |
-| `uint32`   | unsigned, 32-bit integer |
-| `uint64`   | unsigned, 64-bit integer |
-| `uint128`   | unsigned, 128-bit integer |
-| `uint256`   | unsigned, 256-bit integer |
-| `int8`     | signed, 8-bit integer    |
-| `int16`    | signed, 16-bit integer   |
-| `int32`    | signed, 32-bit integer   |
-| `int64`    | signed, 64-bit integer   |
-| `int128`    | signed, 128-bit integer   |
-| `int256`    | signed, 256-bit integer   |
+
+| `uint8`    | unsigned 8-bit integer  |
+| `uint16`   | unsigned 16-bit integer |
+| `uint32`   | unsigned 32-bit integer |
+| `uint64`   | unsigned 64-bit integer |
+| `uint128`  | unsigned 128-bit integer |
+| `uint256`  | unsigned 256-bit integer |
+| `int8`     | signed 8-bit integer    |
+| `int16`    | signed 16-bit integer   |
+| `int32`    | signed 32-bit integer   |
+| `int64`    | signed 64-bit integer   |
+| `int128`   | signed 128-bit integer   |
+| `int256`   | signed 256-bit integer   |
 | `duration` | signed 64-bit integer as nanoseconds |
 | `time`     | signed 64-bit integer as nanoseconds from epoch |
 | `float16`  | IEEE-754 binary16 |
@@ -37,7 +38,7 @@ There are 28 types of primitive values with syntax defined as follows:
 | `decimal64`  | IEEE-754 decimal64 |
 | `decimal128`  | IEEE-754 decimal128 |
 | `decimal256`  | IEEE-754 decimal256 |
-| `bool`     | the boolean value `true` or `false` |
+| `bool`     | the Boolean value `true` or `false` |
 | `bytes`    | a bounded sequence of 8-bit bytes |
 | `string`   | a UTF-8 string |
 | `ip`       | an IPv4 or IPv6 address |
@@ -78,7 +79,7 @@ The type system comprises a total order:
 
 ### 2.1 Record
 
-A record is comprised of an ordered set of zero or more named values
+A record comprises an ordered set of zero or more named values
 called "fields".  The field names must be unique in a given record
 and the order of the fields is significant, e.g., type `{a:string,b:string}`
 is a distinct from type `{b:string,a:string}`.
