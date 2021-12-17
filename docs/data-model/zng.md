@@ -11,7 +11,7 @@
       - [2.1.1.5 Union Typedef](#2115-union-typedef)
       - [2.1.1.6 Enum Typedef](#2116-enum-typedef)
       - [2.1.1.7 Error Typedef](#2117-error-typedef)
-      - [2.1.1.8 Type Typedef](#2118-type-typedef)
+      - [2.1.1.8 Named Type Typedef](#2118-named-type-typedef)
     - [2.1.2 Compressed Value Message Block](#212-compressed-value-message-block)
     - [2.1.3 Application-Defined Messages](#213-application-defined-messages)
     - [2.1.4 End-of-Stream Markers](#214-end-of-stream-markers)
