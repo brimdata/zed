@@ -7,6 +7,15 @@ import (
 	"github.com/brimdata/zed/pkg/nano"
 )
 
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#now
+type Now struct {
+	result.Buffer
+}
+
+func (n *Now) Call([]zed.Value) (zed.Value, error) {
+	return zed.Value{zed.TypeTime, n.Time(nano.Now())}, nil
+}
+
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#trunc
 type Trunc struct {
 	result.Buffer
