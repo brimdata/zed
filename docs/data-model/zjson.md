@@ -5,11 +5,12 @@
     - [Record Type](#record-type)
     - [Array Type](#array-type)
     - [Set Type](#set-type)
+    - [Map Type](#map-type)
     - [Union type](#union-type)
     - [Enum Type](#enum-type)
-    - [Type Definition](#type-definition)
-    - [Type Name](#type-name)
     - [Error Type](#error-type)
+    - [Type Definition](#type-definition)
+    - [Named Type](#namd-type)
   + [Value Encoding](#value-encoding)
 * [Framing ZJSON objects](#framing-zjson-objects)
 * [Example](#example)
@@ -91,7 +92,10 @@ accurate restoration of the original Zed data.
 The ZJSON data model follows that of the underlying Zed model by embedding
 type information in the stream: type definitions declare arbitrarily complex
 and nested data types, and values are sent referencing the type information
-recursively with small-integer type identifiers.
+recursively with small-integer type identifiers.  Also, types are interned
+using references to previously defined types so that a ZJSON decoder can
+easily construct a data structure where each unique type is stored
+exactly once.
 
 Since Zed steams are self describing and type information is embedded
 in the stream itself, the embedded types are likewise encoded in the
@@ -200,6 +204,17 @@ A Zed set type is defined by a JSON object having the form
 ```
 where `<type>` is a recursively encoded type.
 
+#### Map Type
+
+A Zed map type is defined by a JSON object of the form
+```
+{
+  "kind": "map",
+  "key_type": <type>,
+  "val_type": <type>
+}
+```
+
 #### Union type
 
 A Zed union type is defined by a JSON object having the form
@@ -212,17 +227,6 @@ A Zed union type is defined by a JSON object having the form
 where the list of types comprise the types of the union and
 and each `<type>`is a recursively encoded type.
 
-#### Map Type
-
-A Zed map type is defined by a JSON object of the form
-```
-{
-  "kind": "map",
-  "key_type": <type>,
-  "val_type": <type>
-}
-```
-
 #### Enum Type
 
 A Zed enum type is a JSON object of the form
@@ -230,6 +234,16 @@ A Zed enum type is a JSON object of the form
 {
   "kind": "enum",
   "symbols": [ <string>, <string>, ... ]
+}
+```
+
+#### Error Type
+
+A Zed error type is a JSON object of the form
+```
+{
+  "kind": "error",
+  "type": <type>
 }
 ```
 
@@ -251,9 +265,9 @@ type name.  If it is an integer string, then it is not user-visible and is used
 exclusively to correlate first-class Zed type values in a values array with
 their corresponding type.
 
-#### Type Name
+### Named Type
 
-A type reference is encoded as a reference to a previously defined type definition
+A named type reference is encoded as a reference to a previously defined type definition
 and has the form
 ```
 {
@@ -262,16 +276,6 @@ and has the form
 }
 ```
 where `<id>` is a JSON string representing a previously defined type name.
-
-#### Error Type
-
-A Zed error type is defined by a JSON object of the form
-```
-{
-  "kind": "error",
-  "type": <type>,
-}
-```
 
 ### Value Encoding
 

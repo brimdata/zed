@@ -84,7 +84,7 @@ When a sequence of JSON objects is organized into a stream
 (perhaps [separated by newlines](http://ndjson.org/))
 each value can take on any form.
 When all the values have the same form, the JSON sequence
-begins to look like a relational table but the lack of a comprehensive type system,
+begins to look like a relational table, but the lack of a comprehensive type system,
 a union type, and precise semantics for columnar layout limits this interpretation.
 
 [BSON](https://bsonspec.org/)
@@ -96,8 +96,8 @@ a complex value like an object or an array other than calling it
 type "object" or type "array", e.g., as compared to "object with field s
 of type string" or "array of number".
 
-The [JSON Schema specification](https://json-schema.org/)
-has addressed JSON's lack of schemas with an approach to augment
+[JSON Schema](https://json-schema.org/)
+addresses JSON's lack of schemas with an approach to augment
 one or more JSON values with a schema definition itself expressed in JSON.
 This creates a parallel type system for JSON, which is useful and powerful in many
 contexts, but introduces schema-management complexity when simply trying to represent
@@ -111,12 +111,13 @@ design pattern, has embraced the semi-structured design pattern
 by adding support for semi-structured table columns.
 "Just put JSON in a column."
 
-[SQL++](https://asterixdb.apache.org/docs/0.9.3/sqlpp/manual.html)
+[SQL++](https://asterixdb.apache.org/docs/0.9.7.1/sqlpp/manual.html)
 pioneered the extension of SQL to semi-structured data by
 adding support for referencing and unwinding complex, semi-structured values,
-and most modern SQL query engines have adopted variations of this model.
+and most modern SQL query engines have adopted variations of this model
+and have extended the relational model with a semi-structured column type.
 
-But, once you have put a number of columns of JSON data into a relational
+But once you have put a number of columns of JSON data into a relational
 table, is it still appropriately called "structured"?
 Instead, we call this approach the hybrid tabular-/semi-structured pattern,
 or more simply, _"the hybrid pattern"_.
@@ -133,9 +134,9 @@ express its type in accordance with the type system.
 In this approach,
 Zed is neither tabular nor semi-structured.  Zed is "super-structured".
 
-In particular, the Zed "record type" looks like a schema but when
-serializing Zed data, the model is very different.  A Zed sequence is not
-comprised of a record-type declaration followed by a sequence of
+In particular, the Zed record type looks like a schema but when
+serializing Zed data, the model is very different.  A Zed sequence does not
+comprise a record-type declaration followed by a sequence of
 homogeneously-typed record values, but instead,
 is a sequence of arbitrarily typed Zed values, which may or may not all
 be records.
@@ -168,7 +169,7 @@ to discover each value's structure.
 And because Zed derives it design from the vast landscape
 of existing formats and data models, it was deliberately designed to be
 a superset of --- and thus interoperable with --- a broad range of formats
-including JSON, BSON, Ion, Avro, Parquet, CSV, JSON Schema, and XML.
+including JSON, BSON, Ion, Avro, ORC, Parquet, CSV, JSON Schema, and XML.
 
 As an example, most systems that are based on semi-structured data would
 say the JSON value
@@ -212,7 +213,7 @@ for schema interpretation and management.
 ### 2.2 Type Combinatorics
 
 A common objection to using a type system to represent schemas is that
-random applications generating arbitrarily structured data can result in
+xdiverse applications generating arbitrarily structured data can produce
 a combinatoric explosion of types for each shape of data.
 
 In practice, this condition rarely arises.  Applications generating
@@ -224,21 +225,21 @@ though this is considered bad practice.
 
 Even so, this is all manageable in the Zed data model as types are localized
 in scope.  The number of types that must be defined in a stream of values
-is linear in size to the input.  Since data is self-describing and there is
+is linear in the input size.  Since data is self-describing and there is
 no need for a global schema registry in Zed, this hypothetical problem is moot.
 
 ### 2.3 Analytics Performance
 
-One might think that by removing schemas from the Zed data model would conflict
-with an efficient columnar format for Zed, which is critical in the
-high-performance analytics use case.
+One might think that removing schemas from the Zed data model would conflict
+with an efficient columnar format for Zed, which is critical for
+high-performance analytics.
 After all, database
 tables and formats like Parquet and ORC all require schemas to organize values
-then rely upon the natural mapping of schemas to columns.
+and then rely upon the natural mapping of schemas to columns.
 
 Super-structure, on the other hand, provides an alternative approach to columnar structure.
-Instead of defining a schema then fitting a sequence of values into their appropriate
-columns based on the schema, Zed values self-organize int columns based on their
+Instead of defining a schema and then fitting a sequence of values into their appropriate
+columns based on the schema, Zed values self-organize into columns based on their
 super-structure.  Here columns are created dynamically as data is analyzed
 and each top-level type induces a specific set of columns.  When all of the
 values have the same top-level type (i.e., like a schema), then the Zed columnar
@@ -246,13 +247,13 @@ object is just as performant as a traditional schema-based columnar format like 
 
 ### 2.4 First-class Types
 
-With a first-class types, any type can also be a value, which means that in
+With first-class types, any type can also be a value, which means that in
 a properly designed query and analytics system based on Zed, a type can appear
-anywhere that a value can appear.  In particular, types can be group-by keys.
+anywhere that a value can appear.  In particular, types can be aggregation keys.
 
 This is very powerful for data discovery and introspection.  For example,
-the count the different shapes of data, you might have a SQL-like query,
-operating on each input values called `this`, that has the form:
+to count the different shapes of data, you might have a SQL-like query,
+operating on each input value as `this`, that has the form:
 ```
   SELECT count(), typeof(this) as shape GROUP by shape, count
 ```
@@ -278,9 +279,8 @@ actual cause of the error.
 
 Zed however includes first-class errors.  When combined with the super-structured
 data model, error values may appear anywhere in the output and operators
-can propagate or easily wrap errors so complicated, pipelines of analytics
-operators can be debugged by analyzing the location of errors in
-the output results.
+can propagate or easily wrap errors so complicated analytics pipelines
+can be debugged by observing the location of errors in the output results.
 
 ## 3. The Data Model and Formats
 
@@ -300,9 +300,9 @@ values.
 * [ZST](zst.md) is a columnar version of ZNG like Parquet or ORC but also
 embodies Zed's more general model for hetereogeneous and self-describing schemas.
 * [Zed over JSON](zjson.md) defines a JSON format for encapsulating Zed data
-in JSON for easy transmission and decoding to JSON-based clients as is
-implemented by the [Zealot JavaScript library](https://github.com/brimdata/zealot)
-and the [Zed Python library](../../python).
+in JSON for easy decoding by JSON-based clients, e.g.,
+the [Zealot JavaScript library](https://github.com/brimdata/zealot)
+and the [Zed Python library](../../python/zed).
 
 Because all of the formats conform to the same Zed data model, conversions between
 a human-readable form, a row-based binary form, and a row-based columnar form can
@@ -359,9 +359,9 @@ might look like this:
 { metric: "A", ts: 2020-11-24T08:44:32.201458-08:00, value: 126 }
 { metric: "C", ts: 2020-11-24T08:44:43.547506-08:00, value: { x:10, y:101 } }
 ```
-In this case, the first records defines not just the a record type
+In this case, the first records defines not just a record type
 called `conn`, but also a second embedded record type called `socket`.
-The parenthesized decorators are used where a type is not gleaned from
+The parenthesized decorators are used where a type is not inferred from
 the value itself:
 * `socket` is a record with typed fields `addr` and `port` where `port` is an unsigned 16-bit integer, and
 * `conn` is a record with typed fields `info`, `src`, and `dst`.
@@ -374,7 +374,7 @@ the type of the array, as it is inferred from the type of the elements.
 Finally, there are four more values that show ZSON's efficacy for
 representing metrics.  Here, there are no type decorators as all of the field
 types are implied by their syntax, and hence, the top-level record type is implied.
-For instance, the `ts` field is an RFC 3339 date/time string,
+For instance, the `ts` field is an RFC 3339 date and time string,
 unambiguously the primitive type `time`.  Further,
 note that the `value` field takes on different types and even a complex record
 type on the last line.  In this case, there is a different type top-level

@@ -47,8 +47,8 @@ There are 30 types of primitive values with syntax defined as follows:
 | `null`     | the null type |
 
 > Note that `time` values correspond to 64-bit epoch nanoseconds and thus
-> not all possible RFC 3339 date/times are valid.  In addition,
-> nanosecond epoch times overflow on April 11, 2262.
+> not every valid RFC 3339 date and time string represents a valid Zed time.
+> In addition, nanosecond epoch times overflow on April 11, 2262.
 > For the world of 2262, a new epoch can be created well in advance
 > and the old time epoch and new time epoch can live side by side with
 > the old using a named type for the new epoch time aliased to the old `time`.
@@ -60,22 +60,22 @@ There are 30 types of primitive values with syntax defined as follows:
 ## 2. Complex Types
 
 Complex types are composed of primitive types and/or other complex types.
-The _classes_ of complex types include:
+The categories of complex types include:
 * _record_ - an ordered collection of zero or more named values called fields,
 * _array_ - an ordered sequence of zero or more values called elements,
 * _set_ - a set of zero or more unique values called elements,
-* _union_ - a type representing values whose type is any of a specified collection of two or more unique types,
-* _enum_ - a type representing a finite set of symbols typically representing categories,
 * _map_ - a collection of zero or more key/value pairs where the keys are of a
 uniform type called the key type and the values are of a uniform type called
-the value type, and
+the value type,
+* _union_ - a type representing values whose type is any of a specified collection of two or more unique types, and
+* _enum_ - a type representing a finite set of symbols typically representing categories,
 * _error_ - any value wrapped as an "error".
 
 The type system comprises a total order:
 * The order of primitive types corresponds to the order in the table above.
 * All primitive types are ordered before any complex types.
-* The order of complex type classes corresponds to the order above.
-* For complex types of the same class, the order is defined below.
+* The order of complex type categories corresponds to the order above.
+* For complex types of the same category, the order is defined below.
 
 ### 2.1 Record
 
@@ -133,7 +133,22 @@ A set type is uniquely defined by its single element type.
 The type order of two sets is defined as the type order of the
 two set element types.
 
-### 2.4 Union
+### 2.4 Map
+
+A map represents a list of zero or more key-value pairs, where the keys
+have a common Zed type and the values have a common Zed type.
+
+Each key across an instance of a map value must be a unique value.
+
+A map value may be empty.  
+
+A map type is uniquely defined by its key type and value type.
+
+The type order of two map types is as follows is
+* the type order of their key types,
+* or if they are the same, then the order of their key types.
+
+### 2.5 Union
 
 A union represents a value that may be any one of a specific enumeration
 of two or more unique Zed types that comprise its "union type".
@@ -151,7 +166,7 @@ The type order of two union types is as follows:
 * Two union types with same the number of types are ordered according to
 the type order of the constituent types in left to right order.
 
-### 2.5 Enum
+### 2.6 Enum
 
 An enum represents a symbol from a finite set of one or more unique symbols
 referenced by name.  An enum name may be any UTF-8 string.
@@ -164,21 +179,6 @@ The type order of two enum types is as follows:
 * The enum type with fewer symbols than other is ordered before the other.
 * Two enum types with same the number of symbols are ordered according to
 the type order of the constituent types in left to right order.
-
-### 2.6 Map
-
-A map represents a list of zero or more key-value pairs, where the keys
-have a common Zed type and the values have a common Zed type.
-
-Each key across an instance of a map value must be a unique value.
-
-A map value may be empty.  
-
-A map type is uniquely defined by its key type and value type.
-
-The type order of two map types is as follows is
-* the type order of their key types,
-* or if they are the same, then the order of their key types.
 
 ### 2.7 Error
 
@@ -208,8 +208,7 @@ from the underlying type.  A named type can can refer to another named type.
 The binding between a named type and its underlying type is local in scope
 and need not be unique across a sequence of values.
 
-A type name may be any UTF-8 string excluding the names of primitive type
-or "error".
+A type name may be any UTF-8 string excluding the names of primitive type.
 
 For example, if "port" is a named type for `int16`, then two values of
 type "port" have the same type but a value of type port and a value of type int16

@@ -7,11 +7,11 @@
       - [2.1.1.1 Record Typedef](#2111-record-typedef)
       - [2.1.1.2 Array Typedef](#2112-array-typedef)
       - [2.1.1.3 Set Typedef](#2113-set-typedef)
-      - [2.1.1.4 Union Typedef](#2114-union-typedef)
-      - [2.1.1.5 Enum Typedef](#2115-enum-typedef)
-      - [2.1.1.6 Map Typedef](#2116-map-typedef)
-      - [2.1.1.7 Type Typedef](#2117-type-typedef)
-      - [2.1.1.8 Error Typedef](#2118-error-typedef)
+      - [2.1.1.4 Map Typedef](#2114-map-typedef)
+      - [2.1.1.5 Union Typedef](#2115-union-typedef)
+      - [2.1.1.6 Enum Typedef](#2116-enum-typedef)
+      - [2.1.1.7 Error Typedef](#2117-error-typedef)
+      - [2.1.1.8 Type Typedef](#2118-type-typedef)
     - [2.1.2 Compressed Value Message Block](#212-compressed-value-message-block)
     - [2.1.3 Application-Defined Messages](#213-application-defined-messages)
     - [2.1.4 End-of-Stream Markers](#214-end-of-stream-markers)
@@ -78,10 +78,10 @@ Control codes `0xf6` through `0xff` (in hexadecimal) are defined as follows:
 | `0xf5` | record definition              |
 | `0xf6` | array definition               |
 | `0xf7` | set definition                 |
-| `0xf8` | union definition               |
-| `0xf9` | enum definiton                 |
-| `0xfa` | map definiton                  |
-| `0xfb` | type definition                |
+| `0xf8` | map definiton                  |
+| `0xf9` | union definition               |
+| `0xfa` | enum definiton                 |
+| `0xfb` | named type definition          |
 | `0xfc` | error definiton                |
 | `0xfd` | compressed value message block |
 | `0xfe` | application-defined message    |
@@ -189,13 +189,25 @@ elements of the set, encoded as a `uvarint`:
 ----------------
 ```
 
-#### 2.1.1.4 Union Typedef
+#### 2.1.1.4 Map Typedef
+
+A map type is encoded as the type code of the key
+followed by the type code of the value.
+```
+--------------------------
+|0xf8|<type-id>|<type-id>|
+--------------------------
+```
+Each `<type-id>` is encoded as `uvarint`.
+
+
+#### 2.1.1.5 Union Typedef
 
 A union typedef creates a new type ID equal to the next stream type ID
 with the following structure:
 ```
 -----------------------------------------
-|0xf8|<ntypes>|<type-id-1><type-id-2>...|
+|0xf9|<ntypes>|<type-id-1><type-id-2>...|
 -----------------------------------------
 ```
 A union type consists of an ordered set of types
@@ -207,39 +219,38 @@ The `<ntypes>` and the type IDs are all encoded as `uvarint`.
 
 `<ntypes>` cannot be 0.
 
-#### 2.1.1.5 Enum Typedef
+#### 2.1.1.6 Enum Typedef
 
 An enum type is encoded as a `uvarint` representing the number of symbols
 in the enumeration followed by the names of each symbol.
 ```
 --------------------------------
-|0xf9|<nelem>|<name1><name2>...|
+|0xfa|<nelem>|<name1><name2>...|
 --------------------------------
 ```
 `<nelem>` is encoded as `uvarint`.
 The names have the same UTF-8 format as record field names and are encoded
 as counted strings following the same convention as record field names.
 
-#### 2.1.1.6 Map Typedef
+#### 2.1.1.7 Error Typedef
 
-A map type is encoded as the type code of the key
-followed by the type code of the value.
+An error type is encoded as follows:
 ```
---------------------------
-|0xfa|<type-id>|<type-id>|
---------------------------
+----------------
+|0xfb|<type-id>|
+----------------
 ```
-Each `<type-id>` is encoded as `uvarint`.
+which defines a new error type for error values that have the underlying type
+indicated by `<type-id>`.
 
-
-#### 2.1.1.7 Named Type Typedef
+#### 2.1.1.8 Named Type Typedef
 
 A named type defines a new type ID that binds a name to a previously existing type ID.  
 
 A named type is encoded as follows:
 ```
 ----------------------
-|0xfb|<name><type-id>|
+|0xfc|<name><type-id>|
 ----------------------
 ```
 where `<name>` is an identifier representing the new type name with a new type ID
@@ -252,17 +263,6 @@ As indicated in the [data model](zed.md),
 it is an error to define a type name that has the same name as a primitive type,
 and it is permissible to redefine a previously defined type name with a
 type that differs from the previous definition.
-
-#### 2.1.1.8 Error Typedef
-
-An error type is encoded as follows:
-```
-----------------
-|0xfc|<type-id>|
-----------------
-```
-which defines a new error type for error values that have the underlying type
-indicated by `<type-id>`.
 
 ### 2.1.2 Compressed Value Message Block
 
@@ -448,9 +448,10 @@ where the values are encoded as follows:
 | `array`  | concatenation of elements               |
 | `set`    | normalized concatenation of elements    |
 | `record` | concatenation of elements               |
+| `map`    | concatenation of key and value elements |
 | `union`  | concatenation of selector and value     |
 | `enum`   | position of enum element                |
-| `map`    | concatenation of key and value elements |
+| `error`  | wrapped element                         |
 
 Since N, the byte length of any of these container values, is known,
 there is no need to encode a count of the
@@ -567,38 +568,48 @@ An set type value has the form:
 ```
 where `<typeval>` is a recursive encoding of a type value.
 
-#### 4.4 Union Type Value
+#### 4.4 Map Type Value
+
+A map type value has the form:
+```
+----------------------------
+|0x22|<key-type>|<val-type>|
+----------------------------
+```
+where `<key-type>` and `<val-type>` are recursive encodings of type values.
+
+#### 4.5 Union Type Value
 
 A union type value has the form:
 ```
 -------------------------------------
-|0x22|<ntypes>|<typeval><typeval>...|
+|0x23|<ntypes>|<typeval><typeval>...|
 -------------------------------------
 ```
 where `<ntypes>` is the number of types in the union encoded as a `uvarint`
 and each `<typeval>` is a recursive definition of a type value.
 
-#### 4.5 Enum Type Value
+#### 4.6 Enum Type Value
 
 An enum type value has the form:
 ```
 --------------------------------
-|0x23|<nelem>|<name1><name2>...|
+|0x24|<nelem>|<name1><name2>...|
 --------------------------------
 ```
 where `<nelem>` and each symbol name is encoded as in an enum typedef.
 
-#### 4.6 Map Type Value
+#### 4.7 Error Type Value
 
-A map type value has the form:
+An error type value has the form:
 ```
-----------------------------
-|0x24|<key-type>|<val-type>|
-----------------------------
+-------------
+|0x25|<type>|
+-------------
 ```
-where `<key-type>` and `<val-type>` are recursive encodings of type values.
+where `<type>` is the type value of the error.
 
-#### 4.7 Named Type Type Value
+#### 4.8 Named Type Type Value
 
 A named type type value may appear either as a definition or a reference.
 When a named type is referenced, it must have been previously
@@ -626,13 +637,3 @@ An named type reference has the form:
 ```
 It is an error for an named type reference to appear in a type value with a name
 that has not been previously defined according to the DFS order.
-
-#### 4.8 Error Type Value
-
-An error type value has the form:
-```
--------------
-|0x25|<type>|
--------------
-```
-where `<type>` is the type value of the error.
