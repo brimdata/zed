@@ -418,44 +418,50 @@ command like this:
 ```
 zst inspect -Z -trailer hello.zst
 ```
-
-which provides the output (comments added with explanations):
-
+which provides the Zed output (comments added with explanations):
 ```
+// First, the schemas are defined (just one here).
 {
-    a: null (string),                // First, the schemas are defined (just one here).
+    a: null (string),               
     b: null (string)
 }
+
+// Then, the root reassembly record.
 {
-    root: [                          // Then, the root reassembly record.
+    root: [                         
         {
             offset: 29,
             length: 2 (int32)
-        } (=0)
-    ] (=1)
-} (=2)
+        }
+    ]
+}
+
+// Next comes the column assembly records.
+// (Again, only one schema in this example, so only one such record.)
 {
-    a: {                             // Next comes the column assembly records.
-        column: [                    // (Again, only one schema in this example, so only one such record.)
+    a: {
+        column: [
             {
                 offset: 0,
-                length: 16
+                length: 16 (int32)
             }
-        ] (1),
-        presence: [] (1)
-    } (=3),
+        ],
+        presence: [] ([{offset:int64,length:int32}])
+    },
     b: {
         column: [
             {
                 offset: 16,
-                length: 13
+                length: 13 (int32)
             }
         ],
-        presence: []
-    } (3)
-} (=4)
+        presence: [] ([{offset:int64,length:int32}])
+    }
+}
+
+// Finally, the trailer as a new ZNG stream.
 {
-    magic: "zst",                    // Finally, the trailer as a new ZNG stream.
+    magic: "zst",
     version: 1 (int32),
     skew_thresh: 26214400 (int32),
     segment_thresh: 5242880 (int32),
@@ -463,9 +469,8 @@ which provides the output (comments added with explanations):
         31,
         94
     ]
-} (=5)
+}
 ```
-
 > Note finally, if there were 10MB of ZNG row data here, the reassembly section
 > would be basically the same size, with perhaps a few segmaps.  This emphasizes
 > just how small this data structure is compared to the data section.
