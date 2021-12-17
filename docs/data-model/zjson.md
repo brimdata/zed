@@ -1,7 +1,7 @@
 # Zed over JSON (ZJSON)
 
 * [1. Introduction](#1-introduction)
-* [2. The Format](#the-formant)
+* [2. The Format](#2-the-formant)
   + [2.1 Type Encoding](#21-type-encoding)
     - [2.1.1 Record Type](#211-record-type)
     - [2.1.2 Array Type](#212-array-type)
@@ -108,7 +108,7 @@ represents a Zed value:
 ```
 The type and value fields are encoded as defined below.
 
-### 3. Type Encoding
+### 2.1 Type Encoding
 
 The type encoding for a primitive type is simply its Zed type name(zed.md#1-primitive-types)
 e.g., "int32" or "string".
@@ -142,7 +142,7 @@ For example, the Zed type `{s:string,x:int32}` has this ZJSON format:
 }
 ```
 
-#### 3.1 Record Type
+#### 2.1.1 Record Type
 
 A record type is a JSON object of the form
 ```
@@ -162,7 +162,7 @@ where each of the fields has the form
 and `<name>` is a string defining the column name and `<type>` is a
 recursively encoded type.
 
-#### 3.2 Array Type
+#### 2.1.2 Array Type
 
 An array type is defined by a JSON object having the form
 ```
@@ -174,7 +174,7 @@ An array type is defined by a JSON object having the form
 ```
 where `<type>` is a recursively encoded type.
 
-#### 3.3 Set Type
+#### 2.1.3 Set Type
 
 A set type is defined by a JSON object having the form
 ```
@@ -186,7 +186,7 @@ A set type is defined by a JSON object having the form
 ```
 where `<type>` is a recursively encoded type.
 
-#### 3.4 Map Type
+#### 2.1.4 Map Type
 
 A map type is defined by a JSON object of the form
 ```
@@ -198,7 +198,7 @@ A map type is defined by a JSON object of the form
 }
 ```
 
-#### 3.5 Union type
+#### 2.1.5 Union type
 
 A union type is defined by a JSON object having the form
 ```
@@ -211,7 +211,7 @@ A union type is defined by a JSON object having the form
 where the list of types comprise the types of the union and
 and each `<type>`is a recursively encoded type.
 
-#### 3.6 Enum Type
+#### 2.1.6 Enum Type
 
 An enum type is a JSON object of the form
 ```
@@ -222,7 +222,7 @@ An enum type is a JSON object of the form
 }
 ```
 
-#### 3.7 Type Type
+#### 2.1.7 Type Type
 
 A type type is a JSON object of the form
 ```
@@ -233,7 +233,7 @@ A type type is a JSON object of the form
 }
 ```
 
-#### 3.8 Error Type
+#### 2.1.8 Error Type
 
 An error type is a JSON object of the form
 ```
@@ -244,7 +244,7 @@ An error type is a JSON object of the form
 }
 ```
 
-#### 3.9 Named Type
+#### 2.1.9 Named Type
 
 A named type is encoded as a binding between a name and a Zed type
 and represents a new type so named.  A type definition type has the form
