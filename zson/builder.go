@@ -81,6 +81,9 @@ func BuildPrimitive(b *zcode.Builder, val Primitive) error {
 		if err != nil {
 			return fmt.Errorf("invalid ISO time: %s", val.Text)
 		}
+		if nano.MaxTs.Time().Sub(t) < 0 {
+			return fmt.Errorf("time overflow: %s (max: %s)", val.Text, nano.MaxTs)
+		}
 		b.AppendPrimitive(zed.EncodeTime(nano.TimeToTs(t)))
 		return nil
 	case *zed.TypeOfFloat32:
