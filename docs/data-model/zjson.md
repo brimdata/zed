@@ -9,8 +9,7 @@
     - [Union type](#union-type)
     - [Enum Type](#enum-type)
     - [Error Type](#error-type)
-    - [Type Definition](#type-definition)
-    - [Named Type](#namd-type)
+    - [Named Type](#named-type)
   + [Value Encoding](#value-encoding)
 * [Framing ZJSON objects](#framing-zjson-objects)
 * [Example](#example)
@@ -69,8 +68,8 @@ Also, as mentioned, it is at the whim of a JSON implementation whether
 or not the order of object keys is preserved.
 
 While JSON is well suited for data exchange of generic information, it is not
-so appropriate for a structured data model like Zed.
-That said, JSON can be used as an encoding format for Zed by mapping Zed data
+so appropriate for a [super-structured data model](zed.md#2-zed-a-super-structured-pattern)
+like Zed.  That said, JSON can be used as an encoding format for Zed by mapping Zed data
 onto a JSON-based protocol.  This allows clients like web apps or
 Electron apps to receive and understand Zed and, with the help of client
 libraries like [Zealot](https://github.com/brimdata/zealot),
@@ -91,43 +90,20 @@ accurate restoration of the original Zed data.
 
 The ZJSON data model follows that of the underlying Zed model by embedding
 type information in the stream: type definitions declare arbitrarily complex
-and nested data types, and values are sent referencing the type information
-recursively with small-integer type identifiers.  Also, types are interned
-using references to previously defined types so that a ZJSON decoder can
-easily construct a data structure where each unique type is stored
-exactly once.
-
-Since Zed steams are self describing and type information is embedded
-in the stream itself, the embedded types are likewise encoded in the
-ZJSON format.
+and nested data types and values are encoded in accordance with the type.
+Types are interned using references to previously defined types
+so that a ZJSON decoder can easily construct a data structure where
+each unique type is stored exactly once.
 
 A ZJSON stream is defined as a sequence of JSON objects where each object
-represents a Zed value.  Each object includes an identifier that denotes
-its type, or _schema_.  A schema generically refers to the type of the
-Zed value that is defined by a given JSON object.
-
-Each object contains the following fields:
-* `schema` a name encoded as a JSON string indicating the type that
-applies to this value where the definition for the type appears in the
-types field or in a previous occurrence of the types field in the stream,
-* `values` a JSON array of strings and arrays encoded as defined below,
-* `types` a JSON array of types where the types contain "TypeDef" types
-establishing a binding between the names referred to by the `schema` fied.
-
-The schema name provides a mapping to a type so that future values in the stream may
-reference a type by name.  An implementation maintains a table to map schema names
-to types as it decodes values.  The names are scoped to the particular ZJSON
-data stream in which they are embedded and otherwise have no global persistence
-or meaning.
-
-Objects in a ZJSON stream have the following JSON structure:
+represents a Zed value:
 ```
 {
-  "schema": <id>,
-  "values": [ <val>, ... [ <val>, ... ] ... ]
-  "types": [ <type>, <type>, ... ]
+  "type": <type>,
+  "value": <value>
 }
 ```
+The type and value fields are encoded as defined below.
 
 ### Type Encoding
 
@@ -137,11 +113,17 @@ complex types are composed of primitive types and/or other complex types, e.g.,
 records, sets, arrays, and unions.
 
 The ZJSON type encoding for a primitive type is simply its ZSON string name,
-e.g., "int32" or "string".  Complex types are structured and their
-mapping onto JSON depends on the type.  For example,
-the Zed type `{s:string,x:int32}` has this ZJSON format:
+e.g., "int32" or "string".
+
+Complex types are encoded with small-integer identifiers.
+The first instance of a unique type defines the binding between the
+integer identifier and its definition, where the definition may recursively
+refer  to earlier complex types by their identifiers.
+
+For example, the Zed type `{s:string,x:int32}` has this ZJSON format:
 ```
 {
+  id: 123,
   "kind": "record",
   "fields": [
     {
@@ -161,13 +143,13 @@ the Zed type `{s:string,x:int32}` has this ZJSON format:
   ]
 }
 ```
-A type string may also contain a type name previously defined by a type definition.
 
 #### Record Type
 
 More formally, a Zed record type is a JSON object of the form
 ```
 {
+  id: <number>,
   "kind": "record",
   "fields": [ <field>, <field>, ... ]
 }
@@ -187,6 +169,7 @@ recursively encoded type.
 A Zed array type is defined by a JSON object having the form
 ```
 {
+  id: <number>,
   "kind": "array",
   "type": <type>
 }
@@ -198,6 +181,7 @@ where `<type>` is a recursively encoded type.
 A Zed set type is defined by a JSON object having the form
 ```
 {
+  id: <number>,
   "kind": "set",
   "type": <type>
 }
@@ -209,6 +193,7 @@ where `<type>` is a recursively encoded type.
 A Zed map type is defined by a JSON object of the form
 ```
 {
+  id: <number>,
   "kind": "map",
   "key_type": <type>,
   "val_type": <type>
@@ -220,6 +205,7 @@ A Zed map type is defined by a JSON object of the form
 A Zed union type is defined by a JSON object having the form
 ```
 {
+  id: <number>,
   "kind": "union",
   "types": [ <type>, <type>, ... ]
 }
@@ -232,8 +218,20 @@ and each `<type>`is a recursively encoded type.
 A Zed enum type is a JSON object of the form
 ```
 {
+  id: <number>,
   "kind": "enum",
   "symbols": [ <string>, <string>, ... ]
+}
+```
+
+#### Type Type
+
+A Zed type type is a JSON object of the form
+```
+{
+  id: <number>,
+  "kind": "type",
+  "type": <type>
 }
 ```
 
@@ -242,40 +240,26 @@ A Zed enum type is a JSON object of the form
 A Zed error type is a JSON object of the form
 ```
 {
+  id: <number>,
   "kind": "error",
   "type": <type>
 }
 ```
 
-#### Type Definition
+#### Named Type
 
-A type definition is encoded as a binding between a name and a Zed type
+A named type is encoded as a binding between a name and a Zed type
 and represents a new type so named.  A type definition type has the form
 ```
 {
-  "kind": "typedef",
+  id: <number>,
+  "kind": "typename",
   "name": <id>,
   "type": <type>,
 }
 ```
 where `<id>` is a JSON string representing the newly defined type name
 and `<type>` is a recursively encoded type.
-If `<id>` is a non-integer string, then it is a user-visible
-type name.  If it is an integer string, then it is not user-visible and is used  
-exclusively to correlate first-class Zed type values in a values array with
-their corresponding type.
-
-### Named Type
-
-A named type reference is encoded as a reference to a previously defined type definition
-and has the form
-```
-{
-  "kind": "typename",
-  "name": <id>,
-}
-```
-where `<id>` is a JSON string representing a previously defined type name.
 
 ### Value Encoding
 
@@ -283,7 +267,7 @@ The primitive values comprising an arbitrarily complex Zed data value are encode
 as a JSON array of strings mixed with nested JSON arrays whose structure
 conforms to the nested structure of the value's schema as follows:
 * each record, array, and set is encoded as a JSON array of its composite values,
-* a union is encoded as a string of the form `<selector>:<value>>` where `selector`
+* a union is encoded as a string of the form `<tag>:<value>` where `tag`
 is an integer string representing the positional index in the union's list of
 types that specifies the type of `<value>`, which is a JSON string or array
 as described recursively herein,
@@ -320,6 +304,8 @@ It is up to an implementation to determine how ZJSON
 objects are framed according to its particular use case.
 
 ## Example
+
+> Issue #3340
 
 Here is an example that illustrates values of a repeated type,
 nesting, records, array, and union:
