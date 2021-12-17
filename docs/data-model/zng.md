@@ -44,15 +44,13 @@ Unlike Avro, ZNG embeds its "schemas" in the data stream as Zed types and thereb
 an efficient multiplexing of heterogeneous data types by prepending to each
 data value a simple integer identifier to reference its type.
 
-ZNG requires no external schema definitions as its type system
-constructs schemas on the fly from within the stream using composable,
-dynamic type definitions.  The state comprising the dynamically constructed
-types is called the "type context".
-Given a type context, there is no need for
-a schema registry service, though ZNG can be readily adapted to systems like
-[Apache Kafka](https://kafka.apache.org/) which utilize such registries,
+Since no external schema definitions exist in ZNG, a "type context" is constructed
+on the fly by composing dynamic type definitions embedded in the ZNG format.
+ZNG can be readily adapted to systems like
+[Apache Kafka](https://kafka.apache.org/) which utilize schema registries,
 by having a connector translate the schemas implied in the
-ZNG stream into registered schemas and vice versa.
+ZNG stream into registered schemas and vice versa.  Better still, Kafka could
+be used natively with ZNG obviating the need for the schema registry.
 
 Multiple ZNG streams with different type contexts are easily merged because the
 serialization of values does not depend on the details of
