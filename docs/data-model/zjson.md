@@ -88,18 +88,11 @@ its embedded type model all in a layer above regular JSON.
 ## 2. The Format
 
 The format for representing Zed in JSON is called ZJSON.
-Converting ZSON/ZNG/ZST to ZJSON and back results in a complete and
+Converting ZSON, ZNG, or ZST to ZJSON and back results in a complete and
 accurate restoration of the original Zed data.
 
-The ZJSON data model follows that of the underlying Zed model by embedding
-type information in the stream: type definitions declare arbitrarily complex
-and nested data types and values are encoded in accordance with the type.
-Types are interned using references to previously defined types
-so that a ZJSON decoder can easily construct a data structure where
-each unique type is stored exactly once.
-
 A ZJSON stream is defined as a sequence of JSON objects where each object
-represents a Zed value:
+represents a Zed value and has the form:
 ```
 {
   "type": <type>,
@@ -110,7 +103,7 @@ The type and value fields are encoded as defined below.
 
 ### 2.1 Type Encoding
 
-The type encoding for a primitive type is simply its Zed type name(zed.md#1-primitive-types)
+The type encoding for a primitive type is simply its [Zed type name](zed.md#1-primitive-types)
 e.g., "int32" or "string".
 
 Complex types are encoded with small-integer identifiers.
@@ -222,17 +215,6 @@ An enum type is a JSON object of the form
 }
 ```
 
-#### 2.1.7 Type Type
-
-A type type is a JSON object of the form
-```
-{
-  id: <number>,
-  "kind": "type",
-  "type": <type>
-}
-```
-
 #### 2.1.8 Error Type
 
 An error type is a JSON object of the form
@@ -271,10 +253,7 @@ types that specifies the type of `<value>`, which is a JSON string or array
 as described recursively herein,
 a map is encoded as a JSON array of two-element arrays of the form
 `[ <key>, <value> ]` where `key` and `value` are recursively encoded,
-* a type value is encoded as:
-    * its primitive type name for primitive types, or
-    * its typedef name as defined in a present or previous types array  in
-      the top-level object stream,
+* a type value is encoded [as above](#2-type-encoding),
 * each primitive that is not a type value
 is encoded as a string conforming to its ZSON representation, as described in the
 [corresponding section of the ZSON specification](zson.md#33-primitive-values).
@@ -287,19 +266,14 @@ and an array of union of string, and float64 --- might have a value that looks l
 
 ## 3. Object Framing
 
-A sequence of ZJSON objects may be framed in two primary ways.
+A ZJSON file is composed of ZJSON objects formatted as
+[newline delimited JSON (NDJSON)](http://ndjson.org/).
+e.g., the [zq](https://github.com/brimdata/zed/tree/main/cmd/zq) CLI command
+writes its ZJSON output as lines of NDJSON.
 
-First, they can simply be [newline delimited JSON (NDJSON)](http://ndjson.org/), where
-each object is transmitted as a single line terminated with a newline character,
-e.g., the [zq](https://github.com/brimdata/zed/tree/main/cmd/zq) CLI command writes its
-ZJSON output as lines of NDJSON.
-
-Second, the objects may be encoded in a JSON array embedded in some other
-JSON-framed protocol, e.g., embedded in the the search results messages
-of the [zqd REST API](../../api/api.go).
-
-It is up to an implementation to determine how ZJSON
-objects are framed according to its particular use case.
+The MIME type `application/x-zjson` is used by the
+of the [Zed lake service](../lake/service-api.go) to indicate
+ZJSON objects framed as NDJSON.
 
 ## 4. Example
 
