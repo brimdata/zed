@@ -14,7 +14,6 @@ There are 30 types of primitive values with syntax defined as follows:
 
 | Name       | Definition                                      |
 |------------|-------------------------------------------------|
-
 | `uint8`    | unsigned 8-bit integer  |
 | `uint16`   | unsigned 16-bit integer |
 | `uint32`   | unsigned 32-bit integer |
