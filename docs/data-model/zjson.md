@@ -1,22 +1,23 @@
-# Zed over JSON
+# Zed over JSON (ZJSON)
 
-* [ZJSON](#zjson)
-  + [Type Encoding](#type-encoding)
-    - [Record Type](#record-type)
-    - [Array Type](#array-type)
-    - [Set Type](#set-type)
-    - [Map Type](#map-type)
-    - [Union type](#union-type)
-    - [Enum Type](#enum-type)
-    - [Error Type](#error-type)
-    - [Named Type](#named-type)
+* [1. Introduction](#1-introduction)
+* [2. The Format](#the-formant)
+  + [2.1 Type Encoding](#type-encoding)
+    - [2.1.1 Record Type](#record-type)
+    - [2.2.2 Array Type](#array-type)
+    - [2.2.3 Set Type](#set-type)
+    - [2.2.4 Map Type](#map-type)
+    - [2.2.5 Union type](#union-type)
+    - [2.2.6 Enum Type](#enum-type)
+    - [2.2.7 Error Type](#error-type)
+    - [2.2.8 Named Type](#named-type)
   + [Value Encoding](#value-encoding)
-* [Framing ZJSON objects](#framing-zjson-objects)
+* [ZJSON Object Framing](#zjson-object-framing)
 * [Example](#example)
 
 The [Zed data model](zed.md)
 is based on richly typed records with a deterministic column order,
-as is implemented by the ZSON, ZNG, and ZST formats.
+as is implemented by the [ZSON](zson.md), [ZNG](zng.md), and [ZST](zst.md) formats.
 Given the ubiquity of JSON, it is desirable to also be able to serialize
 Zed data into the JSON format.   However, encoding Zed data values
 directly as JSON values would not work without loss of information.
@@ -82,7 +83,7 @@ in general have typing beyond the basics (i.e., strings, floating point numbers,
 objects, arrays, and booleans), we decided to encode Zed data with
 its embedded type model all in a layer above regular JSON.
 
-## ZJSON
+## The Format
 
 The format for representing Zed in JSON is called ZJSON.
 Converting ZSON/ZNG/ZST to ZJSON and back results in a complete and
@@ -107,12 +108,7 @@ The type and value fields are encoded as defined below.
 
 ### Type Encoding
 
-The type format follows the terminology in the [ZSON spec](zson.md), where primitive types
-represent concrete values like strings, integers, times, and so forth, while
-complex types are composed of primitive types and/or other complex types, e.g.,
-records, sets, arrays, and unions.
-
-The ZJSON type encoding for a primitive type is simply its ZSON string name,
+The type encoding for a primitive type is simply its Zed type name(zed.md#1-primitive-types)
 e.g., "int32" or "string".
 
 Complex types are encoded with small-integer identifiers.
@@ -146,7 +142,7 @@ For example, the Zed type `{s:string,x:int32}` has this ZJSON format:
 
 #### Record Type
 
-More formally, a Zed record type is a JSON object of the form
+A record type is a JSON object of the form
 ```
 {
   id: <number>,
@@ -166,7 +162,7 @@ recursively encoded type.
 
 #### Array Type
 
-A Zed array type is defined by a JSON object having the form
+An array type is defined by a JSON object having the form
 ```
 {
   id: <number>,
@@ -178,7 +174,7 @@ where `<type>` is a recursively encoded type.
 
 #### Set Type
 
-A Zed set type is defined by a JSON object having the form
+A set type is defined by a JSON object having the form
 ```
 {
   id: <number>,
@@ -190,7 +186,7 @@ where `<type>` is a recursively encoded type.
 
 #### Map Type
 
-A Zed map type is defined by a JSON object of the form
+A map type is defined by a JSON object of the form
 ```
 {
   id: <number>,
@@ -202,7 +198,7 @@ A Zed map type is defined by a JSON object of the form
 
 #### Union type
 
-A Zed union type is defined by a JSON object having the form
+A union type is defined by a JSON object having the form
 ```
 {
   id: <number>,
@@ -215,7 +211,7 @@ and each `<type>`is a recursively encoded type.
 
 #### Enum Type
 
-A Zed enum type is a JSON object of the form
+An enum type is a JSON object of the form
 ```
 {
   id: <number>,
@@ -226,7 +222,7 @@ A Zed enum type is a JSON object of the form
 
 #### Type Type
 
-A Zed type type is a JSON object of the form
+A type type is a JSON object of the form
 ```
 {
   id: <number>,
@@ -237,7 +233,7 @@ A Zed type type is a JSON object of the form
 
 #### Error Type
 
-A Zed error type is a JSON object of the form
+An error type is a JSON object of the form
 ```
 {
   id: <number>,
@@ -287,7 +283,7 @@ and an array of union of string, and float64 --- might have a value that looks l
 [ "hello, world", ["1","2","3","4"], ["1:foo", "0:10" ] ]
 ```
 
-## Framing ZJSON objects
+## ZJSON Object Framing
 
 A sequence of ZJSON objects may be framed in two primary ways.
 

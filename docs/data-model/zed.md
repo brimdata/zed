@@ -1,5 +1,19 @@
 # The Zed Data Model Specification
 
+* [1. Primitive Types](#primitive-types)
+* [2. Complex Types](#complex-types)
+  + [2.1 Record Type](#record-type)
+  + [2.2 Array Type](#array-type)
+  + [2.3 Set Type](#set-type)
+  + [2.4 Map Type](#map-type)
+  + [2.5 Union type](#union-type)
+  + [2.6 Enum Type](#enum-type)
+  + [2.7 Error Type](#error-type)
+* [3. Named Type](#named-type)
+* [4. Null Values](#named-type)
+
+---
+
 Zed data is defined as an ordered sequence of one or more typed data values.
 Each value's type is either a "primitive type", a "complex type", the "type type",
 a "named type", or the "null type".
@@ -44,6 +58,16 @@ There are 30 types of primitive values with syntax defined as follows:
 | `net`      | an IPv4 or IPv6 address and net mask |
 | `type`     | a Zed type value |
 | `null`     | the null type |
+
+The _type_ type  provides for first-class types and even though a type value can
+represent a complex type, the value itself is a singleton.
+
+Two type values are equivalent if their underlying types are equal.  Since
+every type in the Zed type system is uniquely defined, type values are equal
+if and only if their corresponding types are uniquely equal.
+
+The _null_ type is a primitive type representing only a `null` value.
+A `null` value can have any type.
 
 > Note that `time` values correspond to 64-bit epoch nanoseconds and thus
 > not every valid RFC 3339 date and time string represents a valid Zed time.
@@ -185,20 +209,7 @@ An error represents any value designated as an error.
 
 The type order of an error is the type order of the type of its contained value.
 
-## 3. The Type Type
-
-The Zed data model includes first-class types, where a value can be of type `type`.
-
-Two type values are equivalent if their underlying types are equal.  Since
-every type in the Zed type system is uniquely defined, type values are equal
-if and only if their corresponding types are uniquely equal.
-
-## 4. The Null Type
-
-The _null_ type is a primitive type representing only a `null` value.
-A `null` value can have any type.
-
-## 5. Named Types
+## 3. Named Type
 
 A _named type_ is a named reference a specific Zed type.
 Any value can have a named type and the named type is a distinct type
@@ -225,7 +236,7 @@ The type order of two named types is the type order of their underlying types.
 > in the Zed binary serialization formats, a Zed type implementation could
 > efficiently support schema versioning using such a convention.
 
-## 6. Null Value
+## 4. Null Values
 
 All Zeds type have a null representation.  It is up to an
 implementation to decide how external data structures map into and
