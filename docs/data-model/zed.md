@@ -2,15 +2,15 @@
 
 * [1. Primitive Types](#primitive-types)
 * [2. Complex Types](#complex-types)
-  + [2.1 Record Type](#record-type)
-  + [2.2 Array Type](#array-type)
-  + [2.3 Set Type](#set-type)
-  + [2.4 Map Type](#map-type)
-  + [2.5 Union type](#union-type)
-  + [2.6 Enum Type](#enum-type)
-  + [2.7 Error Type](#error-type)
-* [3. Named Type](#named-type)
-* [4. Null Values](#named-type)
+  + [2.1 Record](#21-record)
+  + [2.2 Array](#22-array)
+  + [2.3 Set](#23-set)
+  + [2.4 Map](#24-map)
+  + [2.5 Union](#25-union)
+  + [2.6 Enum](#26-enum)
+  + [2.7 Error](#27-error)
+* [3. Named Type](#3-named-type)
+* [4. Null Values](#4-null-values)
 
 ---
 
@@ -211,14 +211,14 @@ The type order of an error is the type order of the type of its contained value.
 
 ## 3. Named Type
 
-A _named type_ is a named reference a specific Zed type.
+A _named type_ is a name for a specific Zed type.
 Any value can have a named type and the named type is a distinct type
-from the underlying type.  A named type can can refer to another named type.
+from the underlying type.  A named type can refer to another named type.
 
 The binding between a named type and its underlying type is local in scope
 and need not be unique across a sequence of values.
 
-A type name may be any UTF-8 string excluding the names of primitive type.
+A type name may be any UTF-8 string exclusive of primitive type names.
 
 For example, if "port" is a named type for `int16`, then two values of
 type "port" have the same type but a value of type port and a value of type int16
@@ -238,9 +238,9 @@ The type order of two named types is the type order of their underlying types.
 
 ## 4. Null Values
 
-All Zeds type have a null representation.  It is up to an
+All Zed types have a null representation.  It is up to an
 implementation to decide how external data structures map into and
-out of values with nulls.  Typically, a null value means either the
+out of values with nulls.  Typically, a null value is either the
 zero value or, in the case of record fields, an optional field whose
 value is not present, though these semantics are not explicitly
 defined by the Zed data model.

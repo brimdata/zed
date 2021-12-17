@@ -1,32 +1,33 @@
-# ZSON - Zed Structured Object-record Notation
+# ZSON - Zed Structured Original Notation
 
 * [1. Introduction](#1-introduction)
 * [2. The ZSON Format](#2-the-zson-format)
-  + [2.1 Identifiers](#21-identifiers)
+  + [2.1 Names](#21-names)
   + [2.2 Type Decorators](#22-type-decorators)
-    - [2.2.1 Type Definitions](#221-type-definitions)
   + [2.3 Primitive Values](#23-primitive-values)
-    - [2.3.1 String Escape Rules](#231-string-escape-rules)
+    - [2.3.1 Strings](#231-strings)
   + [2.4 Complex Values](#24-complex-values)
     - [2.4.1 Record Value](#241-record-value)
     - [2.4.2 Array Value](#242-array-value)
     - [2.4.3 Set Value](#243-set-value)
-    - [2.4.4 Union Value](#244-union-value)
-    - [2.4.5 Enum Value](#245-enum-value)
-    - [2.4.6 Map Value](#246-map-value)
-    - [2.4.7 Type Value](#247-type-value)
-    - [2.4.7 Error Value](#248-error-value)
-  + [2.5 Type Syntax](#25-type-syntax)
+    - [2.4.4 Map Value](#244-map-value)
+    - [2.4.5 Union Value](#245-union-value)
+    - [2.4.6 Enum Value](#246-enum-value)
+    - [2.4.7 Error Value](#247-error-value)
+  + [2.5 Types](#25-types)
     - [2.5.1 Record Type](#251-record-type)
     - [2.5.2 Array Type](#252-array-type)
     - [2.5.3 Set Type](#253-set-type)
-    - [2.5.4 Union Type](#254-union-type)
-    - [2.5.5 Enum Type](#255-enum-type)
-    - [2.5.6 Map Type](#256-map-type)
-    - [2.5.7 Type Type](#257-type-type)
+    - [2.5.4 Map Type](#254-map-type)
+    - [2.5.5 Union Type](#255-union-type)
+    - [2.5.6 Enum Type](#256-enum-type)
+    - [2.5.7 Named Type](#257-named-type)
     - [2.5.8 Error Type](#258-error-type)
   + [2.6 Null Value](#26-null-value)
-* [3. Grammar](#3-grammar)
+* [3. Examples](#3-examples)
+* [4. Grammar](#4-grammar)
+
+## 1. Introduction
 
 ZSON is the human-readable, text-based serialization format of
 the [Zed data model](zed.md).
@@ -36,90 +37,72 @@ Where the type of a value is not implied by its syntax, a parenthesized
 type decorator is appended to the value thus establishing a well-defined
 type for every value expressed in ZSON text.
 
-ZSON is also a superset of JSON: all JSON documents are valid ZSON values.
+ZSON is also a superset of JSON in that all JSON documents are valid ZSON values.
 
 ## 2. The ZSON Format
 
 A ZSON text is a sequence of UTF-8 characters organized either as a bounded input
-or as or an unbounded stream.  Like NDJSON, ZSON input represents a sequence of
-data objects that can be incrementally parsed and is human readable,
-though ZSON values must be individually parsed to find their boundaries
-as they are not newline delimited.
+or as or an unbounded stream.  
 
-A ZSON UTF-8 input is organized as a
-sequence of one or more values optionally separated by and interspersed
-with arbitrary and ignored whitespace.
+The input text is organized as a sequence of one or more Zed values optionally
+separated by and interspersed with whitespace.
 Single-line (`//`) and multi-line (`/* ... */`) comments are
-treated like whitespace and ignored.
+treated as whitespace and ignored.
 
 All subsequent references to characters and strings in this section refer to
 the Unicode code points that result when the stream is decoded.
 If a ZSON input includes data that is not valid UTF-8, the input is invalid.
 
-### 2.1 Identifiers
+### 2.1 Names
 
-ZSON identifiers are used in several contexts, as names of:
-* unquoted fields,
-* unquoted enum symbols, and
-* external type definitions.
+ZSON _names_ encode record fields, enum symbols, and named types.
+A name is either an _identifier_ or a [quoted string](#231-strings).
+Names are referred to as `<name>` below.
 
-Identifiers are case-sensitive and can contain Unicode letters, `$`, `_`,
+An _identifier_ is case-sensitive and can contain Unicode letters, `$`, `_`,
 and digits (0-9), but may not start with a digit.  An identifier cannot be
 `true`, `false`, or `null`.
 
 ### 2.2 Type Decorators
 
 A value may be explicitly typed by tagging it with a type decorator.
-The syntax for a decorator is a parenthesized type, as in
+The syntax for a decorator is a parenthesized type:
 ```
-<value> ( <decorator> )
+<value> ( <type> )
 ```
-where a `<decorator>` is either a type or a type definition.
+For union values, multiple decorators might be
+required to distinguish the union-member type from the possible set of
+union types when there is ambiguity, as in
+```
+123 (float64) (int64,float64)
+```
+In contrast, this union value is unambiguous:
+```
+123.0 (int64,float64)
+```
+
+The syntax of a union value decorator is
+```
+<value> ( <type> ) [ ( <type> ) ...]
+```
+where the rightmost type must be a union type if more then one decorator
+is present.
+
+A decorator may also define a [named type](#257-named-type):
+```
+<value> ( =<name> )
+```
+which declares a new type with the indicated type name using the
+implied type of the value.
 
 It is an error for the decorator to be type incompatible with its referenced value.  
 
-#### 2.2.1 Type Definitions
-
-New type names are created within a Zed value by binding a name to a type with
-an assignment decorator of the form
-```
-<value> (= <type-name> )
-```
-This creates a new type whose name is given by the type name and whose
-type is equivalent to the type of `<value>`.  This new
-type may then be referenced by other values within the same complex type.
-The name of the type definition
-must not be equal to any of the primitive type names.
-
-A type definition may also appear recursively inside a decorator as in
-```
-<type-name> = ( <type> )
-```
-where the result of this expression is the newly named type.
-With this syntax, you can create a new type and decorate a value
-as follows
-```
-<value> ( <type-name> = ( <type> ) )
-```
-e.g.,
-```
-80 (port=(uint16))
-````
-is the value 80 of type "port", where "port" is a type name bound to `uint16`.
-
-One decorator is allowed per value except for nested type-union values, which
-may include additional decorators to successively refine the union type for union values
-that live inside other union types. This allows an already-decorated value to be
-further decorated with its union type and provides a means to distinguish
-a union value's precise member type when it is otherwise ambiguous as described in
-[Section 3.4.4](#244-union-value).
-
 ### 2.3 Primitive Values
 
-The syntax for the primitive values defined by the Zed data model
-are as follows:
+The type names and format for
+[Zed primitive](zed.md#1-primitive-types) values is as follows:
 
-| Type       | Value Syntax                                                  |
+| Type       | Value Format                                                  |
 |------------|---------------------------------------------------------------|
 | `uint8`    | decimal string representation of any unsigned, 8-bit integer  |
 | `uint16`   | decimal string representation of any unsigned, 16-bit integer |
@@ -190,7 +173,7 @@ preserve indentation, the backtick-quoted string can be preceded with `=>`.
 
 Of the 30 primitive types, eleven of them represent _implied-type_ values:
 `int64`, `time`, `duration`, `float64`, `bool`, `bytes`, `string`, `ip`, `net`, `type`, and `null`.
-Values for these types are determined by the syntax of the value and
+Values for these types are determined by the format of the value and
 thus do not need decorators to clarify the underlying type, e.g.,
 ```
 123 (int64)
@@ -201,17 +184,23 @@ Values that do not have implied types must include a type decorator to clarify
 its type or appear in a context for which its type is defined (i.e., as a field
 value in a record, as an element in an array, etc).
 
-> Note that `time` values correspond to 64-bit epoch nanoseconds and thus
-> not all possible RFC 3339 date/time strings are valid.  In addition,
-> nanosecond epoch times overflow on April 11, 2262.
-> For the world of 2262, a new epoch can be created well in advance
-> and the old time epoch and new time epoch can live side by side with
-> the old using a typedef for the new epoch time aliased to the old `time`.
-> An app that requires more than 64 bits of timestamp precision can always use
-> a typedef of a `bytes` type and do its own conversions to and from the
-> corresponding bytes values.
+While a type value may represent a complex type, the value itself is a singleton
+and thus always a primitive type.  A type value is encoded as:
+* a left angle bracket `<`, followed by
+* a type as [encoded below](#25-types), followed by
+* a right angle bracket `>`.
 
-#### 2.3.1 String Escape Rules
+A `time` value corresponds to 64-bit epoch nanoseconds and thus
+not all possible RFC 3339 date/time strings are valid.  In addition,
+nanosecond epoch times overflow on April 11, 2262.
+For the world of 2262, a new epoch can be created well in advance
+and the old time epoch and new time epoch can live side by side with
+the old using a named type for the new epoch time defined as the old `time` type.
+An app that requires more than 64 bits of timestamp precision can always use
+a typedef of a `bytes` type and do its own conversions to and from the
+corresponding bytes values.
+
+#### 2.3.1 Strings
 
 Double-quoted `string` syntax is the same as that of JSON as described
 [RFC 8259](https://tools.ietf.org/html/rfc8259#section-7), specifically:
@@ -233,114 +222,58 @@ record types.
 ### 2.4 Complex Values
 
 Complex values are built from primitive values and/or other complex values
-and conform the Zed data model's complex types:  _record_, _array_, _set_,
-_union_, _enum_, _map_, and _error_.
+and conform the Zed data model's complex types:
+[record](zed.md#21-record),
+[array](zed.md#22-array),
+[set](zed.md#23-set),
+[map](zed.md#24-map),
+[union](zed.md#25-union),
+[enum](zed.md#26-enum), and
+[error](zed.md#27-error).
+
+Complex values have an implied type when their constituent values all have
+implied types.
 
 #### 2.4.1 Record Value
 
-A record value has the following syntax:
+A record value has the form:
 ```
 { <name> : <value>, <name> : <value>, ... }
 ```
-where `<name>` is either an identifier or a quoted string and `<value>` is
+where `<name>` is a [ZSON name](#21-names) and `<value>` is
 any optionally-decorated ZSON value inclusive of other records.
-There may be zero or more key/values pairs.
-
-Any value of a field may have an ambiguous type, in which case
-the record value must include a decorator, e.g., of the form
-```
-{ <name> : <value>, <name> : <value>, ... } ( <decorator> )
-```
-Similarly, a record value may omit the field names when decorated with
-a record type value:
-```
-{ <value>, <value>, ... } ( <decorator> )
-```
+Each name/value pair is called a _field_.
+There may be zero or more fields.
 
 #### 2.4.2 Array Value
 
-An array value has the following syntax:
+An array value has the form:
 ```
 [ <value>, <value>, ... ]
 ```
-A type decorator applied to an array must be an array type.
 If the elements of the array are not of uniform type, then the implied type of
-the array elements is a union of the types ordered in the sequence they are encountered.
+the array elements is a union of the types present.
 
 An array value may be empty.  An empty array value without a type decorator is
 presumed to be an empty array of type `null`.
 
 #### 2.4.3 Set Value
 
-A set value has the following syntax:
+A set value has the form:
 ```
 |[ <value>, <value>, ... ]|
 ```
 where the indicated values must be distinct.
-A type decorator applied to a set must be a set type.
+
 If the elements of the set are not of uniform type, then the implied type of
-the set elements is a union of the types ordered in the sequence they are encountered.
+the set elements is a union of the types present.
 
 A set value may be empty.  An empty set value without a type decorator is
 presumed to be an empty set of type `null`.
 
-#### 2.4.4 Union Value
-
-A union value is simply a value that conforms with a union type.
-If the value appears in a context in which the type has not been established,
-then the value must be decorated with the union type.
-
-A union type decorator is simply a list of the types that comprise the union
-and has the form
-```
-( <type> , <type> ... )
-```
-where there are at least two types in the comma separator list of types.
-
-For example,
-```
-"hello, world" (int32, string)
-```
-is the `string` value of union type comprising the sub-types `int32` and `string`
-Likewise, this is an integer value of the same union:
-```
-123 (int32, string)
-```
-Where there is ambiguity, a decorator may resolve the ambiguity as in
-```
-123 (int8) (int32, int8)
-```
-Where a union value is inside of nested union types, multiple decorators are
-needed to resolve the ambiguity, e.g.,
-```
-"hello, world" (int32, string) ((int32,string),[int32])
-```
-
-#### 2.4.5 Enum Value
-
-An enum type represents a symbol from a finite set of symbols
-referenced by name.
-
-An enum value is indicated with the sigil `%` and has the form
-```
-%<name>
-```
-where the `<name>` is defined as in the enum type.
-
-Such an enum value must appear in a context where the enum type is known, i.e.,
-with an explicit enum type decorator or within a complex type where the
-contained enum type is defined by the complex type's decorator.
-
-A sequence of enum values might look like this:
-```
-%HEADS (flip=(%{HEADS,TAILS}))
-%TAILS (flip)
-%HEADS (flip)
-```
-
 #### 2.4.6 Map Value
 
-A [Zed map value](zed.md#526-map-value) has the following ZSON syntax:
+A map value has the form:
 ```
 |{ <key> : <value>, <key> : <value>, ... }|
 ```
@@ -353,44 +286,46 @@ that follows it.
 A empty map value without a type decorator is
 presumed to be an empty map of type `|{null: null}|`.
 
-#### 2.4.7 Type Value
+#### 2.4.4 Union Value
 
-The type of a type value is `type` while its value is depicted by enclosing
-its type description in angle brackets (as defined in [Section 3.5](#25-type-syntax).  For example,
-a type value of a record with a single field called `t` of type `type` would look
-like this:
+A union value is a value that conforms to one of the types within a union type.
+If the value appears in a context in which the type is unknown or ambiguous,
+then the value must be decorated as [described above](#22-type-decorators).
+
+#### 2.4.5 Enum Value
+
+An enum type represents a symbol from a finite set of symbols
+referenced by name.
+
+An enum value is indicated with the sigil `%` and has the form
 ```
-{ t: <string> (type) }
+%<name>
 ```
-Since type values have implied types, the `type` type decorator can be omitted:
+where the `<name>` is [ZSON name](#21-names).
+
+An enum value must appear in a context where the enum type is known, i.e.,
+with an explicit enum type decorator or within a complex type where the
+contained enum type is defined by the complex type's decorator.
+
+A sequence of enum values might look like this:
 ```
-{ t: <string> }
-```
-Now supposing we created a second field called `t2` whose type is
-computed by introspecting the type of `t`.  This result is
-```
-{
-    t: <string>,
-    t2: <type>
-}
+%HEADS (flip=(%{HEADS,TAILS}))
+%TAILS (flip)
+%HEADS (flip)
 ```
 
 #### 2.4.7 Error Value
 
-An error value has the following syntax:
+An error value has the form:
 ```
 error(<value>)
 ```
 where `<value>` is any ZSON value.
 
-### 2.5 Type Syntax
+### 2.5 Types
 
-The syntax of a type mirrors the value syntax.
-
-A primitive type is the name of the primitive type, i.e., `string`,
-`uint16`, etc.
-
-The syntax of complex types parallels the syntax of complex values.
+A primitive type is simply the name of the primitive type, i.e., `string`,
+`uint16`, etc.  Complex types are defined as follows.
 
 #### 2.5.1 Record Type
 
@@ -398,13 +333,11 @@ A _record type_ has the form:
 ```
 { <name> : <type>, <name> : <type>, ... }
 ```
-where `<type>` is any type.  The order of the columns is significant,
+where `<name>` is a [ZSON name](#21-names) and
+`<type>` is any type.
+
+The order of the record fields is significant,
 e.g., type `{a:int32,b:int32}` is distinct from type `{b:int32,a:int32}`.
-In contrast to schema abstractions in other formats, ZSON has no way to mark
-a field optional as all fields are, in a sense optional: any field can be
-encoded with a null value.  If an instance of a record value omits a value
-by dropping the field altogether rather than using a null, then that record
-value corresponds to a different record type that elides the field in question.
 
 #### 2.5.2 Array Type
 
@@ -420,6 +353,15 @@ A _set type_ has the form:
 |[ <type> ]|
 ```
 
+#### 2.5.6 Map Type
+
+A _map type_ has the form:
+```
+|{ <key-type>, <value-type> }|
+```
+where `<key-type>` is the type of the keys and `<value-type>` is the
+type of the values.
+
 #### 2.5.4 Union Type
 
 A _union type_ has the form:
@@ -434,51 +376,37 @@ An _enum type_ has the form:
 ```
 %{ <name>, <name>, ... }
 ```
-where `<name>` is either an identifier or a quoted string.
-Each enum name must be unique.
+where `<name>` [ZSON name](#21-names).
+Each enum name must be unique and the order is not significant, e.g.,
+enum type `%{HEADS,TAILS}` is equal to type `%{TAILS,HEADS}`.
 
-#### 2.5.6 Map Type
+#### 2.5.7 Named Type
 
-A _map type_ has the form:
-```
-|{ <key-type>, <value-type> }|
-```
-where `<key-type>` is the type of the keys and `<value-type>` is the
-type of the values.
-
-#### 2.5.7 Type Type
-
-The "type" type represents value and its syntax is simply `type`.
-
-#### 2.5.8 Named Type
-
-Any type name created with a type definition is referred to
-simply with the same identifier used in its definition.
-
-Type values may refer to external type tames and may elide the definition
-fo the external type when the type definition for that name is known,
-e.g., if `conn` is a type name, then
-```
-[conn]
-```
-is an array of elements of type `conn`.
-
-The canonical form a type value includes the definitions of any and all referenced
-types in the value using the embedded type definition syntax:
+A named type has the form:
 ```
 <name> = ( <type> )
 ```
-where `<name>` is a type name or integer, e.g.,
-```
-conn=({ info:string, src:(socket=({ addr:ip, port:uint16 }), dst:socket })
-```
-Types in canonical form can be decoded and interpreted independently
-of a type context.
+where a new type is defined with the given name and type.
 
-A type name has the same form as an identifier except the characters
-`/` and `.` are also permitted.
+When a named type appears in complex value, the new type name may be
+referenced by any subsequent value in left-to-right depth-first order.
 
-#### 2.5.9 Error Type
+For example,
+```
+{p1:80 (port=(uint16)), p2: 8080 (port)}
+````
+is valid but
+```
+{p1:80 port, p2: 8080 (port=(uint16))}
+````
+is invalid.
+
+Named types may be redefined, in which case subsequent references
+resolve to the most recent definition according to
+* sequence order across values, or
+* left-to-right depth-first order within a complex value.
+
+#### 2.5.8 Error Type
 
 An _error type_ has the form:
 ```
@@ -490,14 +418,81 @@ where `<type>` is the type of the underlying ZSON values wrapped as an error.
 
 The null value is represented by the string `null`.
 
-Any value in ZSON can take on a null representation.  It is up to an
+A value of any type can be null.  It is up to an
 implementation to decide how external data structures map into and
-out of values with nulls.  Typically, a null value means either the
+out of null values of different types.  Typically, a null value means either the
 zero value or, in the case of record fields, an optional field whose
 value is not present, though these semantics are not explicitly
 defined by ZSON.
 
-## 3. Grammar
+## 3. Examples
+
+The simplest ZSON value is a single value, perhaps a string like this:
+```
+"hello, world"
+```
+There's no need for a type declaration here.  It's explicitly a string.
+
+A relational table might look like this:
+```
+{ city: "Berkeley", state: "CA", population: 121643 (uint32) } (=city_schema)
+{ city: "Broad Cove", state: "ME", population: 806 (uint32) } (=city_schema)
+{ city: "Baton Rouge", state: "LA", population: 221599 (uint32) } (=city_schema)
+```
+This ZSON text here depicts three record values.  It defines a type called `city_schema`
+and the inferred type of the `city_schema` has the signature:
+```
+{ city:string, state:string, population:uint32 }
+```
+When all the values in a sequence have the same record type, the sequence
+can be interpreted as a _table_, where the ZSON record values form the _rows_
+and the fields of the records form the _columns_.  In this way, these
+three records form a relational table conforming to the schema `city_schema`.
+
+In contrast, a ZSON text representing a semi-structured sequence of log lines
+might look like this:
+```
+{
+    info: "Connection Example",
+    src: { addr: 10.1.1.2, port: 80 (uint16) } (=socket),
+    dst: { addr: 10.0.1.2, port: 20130 (uint16) } (=socket)
+} (=conn)
+{
+    info: "Connection Example 2",
+    src: { addr: 10.1.1.8, port: 80 (uint16) } (=socket),
+    dst: { addr: 10.1.2.88, port: 19801 (uint16) } (=socket)
+} (=conn)
+{
+    info: "Access List Example",
+    nets: [ 10.1.1.0/24, 10.1.2.0/24 ]
+} (=access_list)
+{ metric: "A", ts: 2020-11-24T08:44:09.586441-08:00, value: 120 }
+{ metric: "B", ts: 2020-11-24T08:44:20.726057-08:00, value: 0.86 }
+{ metric: "A", ts: 2020-11-24T08:44:32.201458-08:00, value: 126 }
+{ metric: "C", ts: 2020-11-24T08:44:43.547506-08:00, value: { x:10, y:101 } }
+```
+In this case, the first records defines not just a record type
+with named type `conn`, but also a second embedded record type called `socket`.
+The parenthesized decorators are used where a type is not inferred from
+the value itself:
+* `socket` is a record with typed fields `addr` and `port` where `port` is an unsigned 16-bit integer, and
+* `conn` is a record with typed fields `info`, `src`, and `dst`.
+
+The subsequent value defines a type called `access_list`.  In this case,
+the `nets` field is an array of networks and illustrates the helpful range of
+primitive types in ZSON.  Note that the syntax here implies
+the type of the array, as it is inferred from the type of the elements.
+
+Finally, there are four more values that show ZSON's efficacy for
+representing metrics.  Here, there are no type decorators as all of the field
+types are implied by their syntax, and hence, the top-level record type is implied.
+For instance, the `ts` field is an RFC 3339 date and time string,
+unambiguously the primitive type `time`.  Further,
+note that the `value` field takes on different types and even a complex record
+type on the last line.  In this case, there is a different type top-level
+record type implied by each of the three variations of type of the `value` field.
+
+## 4. Grammar
 
 Here is a left-recursive pseudo-grammar of ZSON.  Note that not all
 acceptable inputs are semantically valid as type mismatches may arise.
@@ -511,7 +506,7 @@ the defines their type.
 
 <value> = <any> | <any> <val-typedef> | <any> <decorators>
 
-<val-typedef> = "(" "=" <type-name> ")"
+<val-typedef> = "(" "=" <name> ")"
 
 <decorators> = "(" <type> ")" | <decorators> "(" <type> ")"
 
@@ -524,9 +519,9 @@ the defines their type.
 
 <flist> = <flist> "," <field> | <field>
 
-<field> = <field-name> ":" <value> | <value>
+<field> = <name> ":" <value> | <value>
 
-<field-name> = <identifier> | <quoted-string>
+<name> = <identifier> | <quoted-string>
 
 <quoted-string> = quoted string as defined above
 
@@ -540,7 +535,7 @@ the defines their type.
 
 <union> = <value>
 
-<enum> = "%" ( <field-name> | <quoted-string> )
+<enum> = "%" ( <name> | <quoted-string> )
 
 <map> = "|{" <mlist> "}|"  |  "|{"  "}|"
 
@@ -554,7 +549,7 @@ the defines their type.
 
 <type> = <primitive-type> | <record-type> | <array-type> | <set-type> |
             <union-type> | <enum-type> | <map-type> |
-            <type-def> | <type-name> | <error-type>
+            <type-def> | <name> | <error-type>
 
 <primitive-type> = uint8 | uint16 | etc. as defined above including "type"
 
@@ -562,7 +557,7 @@ the defines their type.
 
 <tflist> = <tflist> "," <tfield> | <tfield>
 
-<tfield> = <field-name> ":" <type>
+<tfield> = <name> ":" <type>
 
 <array-type> = "[" <type> "]"  |  "[" "]"
 
@@ -578,7 +573,7 @@ the defines their type.
 
 <type-def> = <identifier> = <type-type>
 
-<type-name> = as defined above
+<name> = as defined above
 
 <error-type> = "error(" <type> ")"
 ```

@@ -1,6 +1,6 @@
 # The Zed Data Model
 
-> TL;DR The Zed data model defines a new and easy way to manage, store,
+> **TL;DR** The Zed data model defines a new and easy way to manage, store,
 > and process data utilizing an emerging concept called
 [super-structured data](#2-zed-a-super-structured-pattern).
 > The [data model specification](zed.md) defines the high-level model that is realized
@@ -8,9 +8,7 @@
 > providing a unified approach to row, columnar, and human-readable formats.
 > Zed is a superset of both the dataframe/table model of relational systems and the
 > semi-structured model that is used ubiquitously in development as JSON and by NOSQL
-> data stores.
-
-The Specifications
+> data stores.  The ZSON spec has [a few examples](zson.md#3-examples).
 
 * [Zed Data Model Spec](zed.md)
 * [ZSON Spec](zson.md)
@@ -285,7 +283,7 @@ can be debugged by observing the location of errors in the output results.
 ## 3. The Data Model and Formats
 
 The concept of super-structured data and first-class types and errors
-is solidified in the [specification of the Zed data model](zed.md),
+is solidified in the [Zed data model specification](zed.md),
 which defines the model but not the serialization formats.
 
 A set of companion documents define a family of tightly integrated
@@ -309,73 +307,3 @@ a human-readable form, a row-based binary form, and a row-based columnar form ca
 be trivially carried out with no loss of information.  This is the best of both worlds:
 the same data can be easily expressed in and converted between a human-friendly
 and easy-to-program text form alongside efficient row and columnar formats.
-
-## 4. Examples
-
-To motivate the details of the Zed data model, a few examples are provided below
-using the human-readable ZSON format to express Zed values.
-
-The simplest Zed value is a single value, perhaps a string like this:
-```
-"hello, world"
-```
-There's no need for a type declaration here.  It's explicitly a string.
-
-A relational table might look like this:
-```
-{ city: "Berkeley", state: "CA", population: 121643 (uint32) } (=city_schema)
-{ city: "Broad Cove", state: "ME", population: 806 (uint32) } (=city_schema)
-{ city: "Baton Rouge", state: "LA", population: 221599 (uint32) } (=city_schema)
-```
-This ZSON text here depicts three record values.  It defines a type called `city_schema`
-and the inferred type of the `city_schema` has the signature:
-```
-{ city:string, state:string, population:uint32 }
-```
-When all the values in a sequence have the same record type, the sequence
-can be interpreted as a _table_, where the ZSON record values form the _rows_
-and the fields of the records form the _columns_.  In this way, these
-three records form a relational table conforming to the schema `city_schema`.
-
-In contrast, a ZSON text representing a semi-structured sequence of log lines
-might look like this:
-```
-{
-    info: "Connection Example",
-    src: { addr: 10.1.1.2, port: 80 (uint16) } (=socket),
-    dst: { addr: 10.0.1.2, port: 20130 (uint16) } (=socket)
-} (=conn)
-{
-    info: "Connection Example 2",
-    src: { addr: 10.1.1.8, port: 80 (uint16) } (=socket),
-    dst: { addr: 10.1.2.88, port: 19801 (uint16) } (=socket)
-} (=conn)
-{
-    info: "Access List Example",
-    nets: [ 10.1.1.0/24, 10.1.2.0/24 ]
-} (=access_list)
-{ metric: "A", ts: 2020-11-24T08:44:09.586441-08:00, value: 120 }
-{ metric: "B", ts: 2020-11-24T08:44:20.726057-08:00, value: 0.86 }
-{ metric: "A", ts: 2020-11-24T08:44:32.201458-08:00, value: 126 }
-{ metric: "C", ts: 2020-11-24T08:44:43.547506-08:00, value: { x:10, y:101 } }
-```
-In this case, the first records defines not just a record type
-called `conn`, but also a second embedded record type called `socket`.
-The parenthesized decorators are used where a type is not inferred from
-the value itself:
-* `socket` is a record with typed fields `addr` and `port` where `port` is an unsigned 16-bit integer, and
-* `conn` is a record with typed fields `info`, `src`, and `dst`.
-
-The subsequent value defines a type called `access_list`.  In this case,
-the `nets` field is an array of networks and illustrates the helpful range of
-primitive types in ZSON.  Note that the syntax here implies
-the type of the array, as it is inferred from the type of the elements.
-
-Finally, there are four more values that show ZSON's efficacy for
-representing metrics.  Here, there are no type decorators as all of the field
-types are implied by their syntax, and hence, the top-level record type is implied.
-For instance, the `ts` field is an RFC 3339 date and time string,
-unambiguously the primitive type `time`.  Further,
-note that the `value` field takes on different types and even a complex record
-type on the last line.  In this case, there is a different type top-level
-record type implied by each of the three variations of type of the `value` field.
