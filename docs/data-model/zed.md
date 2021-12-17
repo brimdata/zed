@@ -215,6 +215,16 @@ do not have the same type.
 
 The type order of two named types is the type order of their underlying types.
 
+> While the Zed data model does not include explicit support for schema versioning,
+> named types provide a flexible mechanism to implement versioning
+> on top of the Zed serialization formats.  For example, a Zed-based system
+> could define a naming convention of the form `<type>.<version>`
+> where `<type>` is the type name of a record representing the schema
+> and `<version>` is a decimal string indicating the version of that schema.
+> Since types need only be parsed once per stream
+> in the Zed binary serialization formats, a Zed type implementation could
+> efficiently support schema versioning using such a convention.
+
 ## 6. Null Value
 
 All Zeds type have a null representation.  It is up to an
