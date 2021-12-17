@@ -64,12 +64,12 @@ or otherwise rewritten to be merged in this fashion.
 A ZNG stream comprises a sequence of interleaved control messages and value messages
 that are serialized into a stream of bytes.
 
-Each message is prefixed with a single-byte header code.  Codes `0xf6-0xff`
+Each message is prefixed with a single-byte header code.  Codes `0xf5-0xff`
 are allocated as control messages while codes `0x00-0xf5` indicate a value message.
 
 ### 2.1 Control Messages
 
-Control codes `0xf6` through `0xff` (in hexadecimal) are defined as follows:
+Control codes `0xf5` through `0xff` (in hexadecimal) are defined as follows:
 
 | Code   | Message Type                   |
 |--------|--------------------------------|
@@ -109,8 +109,8 @@ encapsulating protocols.
 
 ### 2.1.1 Typedefs
 
-Following a header byte of `0xf6-0xfb` is a "typedef".  A typedef binds
-"the next available" integer type ID to a type encoding.  As there are
+Following a header byte of `0xf5-0xfb` is a "typedef".  A typedef binds
+the smallest integer type ID not in use to a new type.  As there are
 a total of 30 primitive type IDs, the Type IDs for typedefs
 begin at the value 30 and increase by one for each typedef. These bindings
 are scoped to the stream in which the typedef occurs.
