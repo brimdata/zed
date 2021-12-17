@@ -26,8 +26,8 @@
 The simplest possible Zed search is a match of all records. This search is
 expressed in `zq` with the wildcard `*`. The response will be a dump of all
 records. The default `zq` output to the terminal is the text-based
-[ZSON](../formats/zson.md) format, whereas the compact binary
-[ZNG](../formats/zng.md) format is used if the output is redirected or
+[ZSON](../data-model/zson.md) format, whereas the compact binary
+[ZNG](../data-model/zng.md) format is used if the output is redirected or
 piped.
 
 In the examples, we'll be explicit in how we request our output format, using
@@ -400,7 +400,7 @@ This is performed with `in`.
 
 Since our sample data doesn't contain complex fields, we'll make one by
 using the [`union`](aggregate-functions.md#union) aggregate function to
-create a [`set`](https://github.com/brimdata/zed/blob/main/docs/formats/zson.md#343-set-value)-typed
+create a [`set`](../data-model/zson.md#343-set-value)-typed
 field called `Schools` that contains all unique school names per district. From
 these we'll find each set that contains a school named `Lincoln Elementary`.
 

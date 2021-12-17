@@ -727,7 +727,7 @@ nameof(v <any>) -> string
 typeof(a <any>) -> type
 ```
 
-`typeof` returns the [type](../formats/zson.md#357-type-type) of value `a`.
+`typeof` returns the [type](../data-model/zson.md#357-type-type) of value `a`.
 
 #### Example:
 
@@ -747,8 +747,8 @@ echo  '{foo:127.0.0.1}' \
 typeunder(a <any>) -> type
 ```
 
-`typeunder` returns the [type](../formats/zson.md#357-type-type) of value `a`.
-`typeunder` is similar to `typeof` except that if `a` is [named type](../formats/zson.md#357-type-type)
+`typeunder` returns the [type](../data-model/zson.md#357-type-type) of value `a`.
+`typeunder` is similar to `typeof` except that if `a` is [named type](../data-model/zson.md#357-type-type)
 the type under `a` is returned.
 
 #### Example:

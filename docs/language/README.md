@@ -32,7 +32,7 @@ An ambitious goal of the Zed project is to offer a language
 that provides an easy learning curve and a gentle slope from simple keyword search
 to log-search-style processing and ultimately to sophisticated,
 warehouse-scale queries.  The language also embraces a rich set of type operators
-based on the [Zed data model](../formats/zson.md#2-the-zson-data-model) for data shaping
+based on the [Zed data model](../data-model/zson.md#2-the-zson-data-model) for data shaping
 to provide flexible and easy ETL.
 
 The simplest Zed program is perhaps a single word search, e.g.,
