@@ -482,11 +482,11 @@ key/value pair).
 ## 3. Primitive Types
 
 For each ZNG primitive type, the following table describes:
-* The predefined ID, which need not be defined in [ZNG Typedefs](#211-typedefs)
-* How a typed `value` of length `N` is interpreted in a [ZNG Value Message](#22-value-messages)
+* its type ID, and
+* the interpretation of a length `N` [ZNG Value Message](#22-value-messages).
 
-All multi-byte sequences, which are not varints (e.g., float64, ip, etc),
-representing machine words are serialized in little-endian format.
+All fixed-size multi-byte sequences representing machine words
+are serialized in little-endian format.
 
 
 | Type         | ID |    N     |       ZNG Value Interpretation                 |
