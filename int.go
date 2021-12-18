@@ -17,10 +17,6 @@ func EncodeInt(i int64) zcode.Bytes {
 }
 
 func AppendInt(bytes zcode.Bytes, i int64) zcode.Bytes {
-	if bytes == nil {
-		// Cannot have "unset" ints
-		bytes = make(zcode.Bytes, 0, 8)
-	}
 	return zcode.AppendCountedVarint(bytes, i)
 }
 
@@ -31,10 +27,6 @@ func EncodeUint(i uint64) zcode.Bytes {
 }
 
 func AppendUint(bytes zcode.Bytes, i uint64) zcode.Bytes {
-	if bytes == nil {
-		// Cannot have "unset" ints
-		bytes = make(zcode.Bytes, 0, 8)
-	}
 	return zcode.AppendCountedUvarint(bytes, i)
 }
 

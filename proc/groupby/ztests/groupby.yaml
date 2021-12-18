@@ -1,20 +1,20 @@
 script: |
   echo === forward-sorted ===
   zq -z "count() by ts | sort this" in.zson
-  echo === forward-sorted-with-unset ===
-  zq -z "count() by ts | sort this" in-with-unset.zson
+  echo === forward-sorted-with-null ===
+  zq -z "count() by ts | sort this" in-with-null.zson
   echo === forward-sorted-every ===
   zq -z "every 1s count() | sort this" in.zson
-  echo === forward-sorted-every-unset ===
-  zq -z "every 1s count() | sort this" in-with-unset.zson
+  echo === forward-sorted-every-null ===
+  zq -z "every 1s count() | sort this" in-with-null.zson
   echo === forward-sorted-record-key ===
   zq -z "count() by foo | sort this" in-record-key.zson
   echo === forward-sorted-nested-key ===
   zq -z "count() by foo.a | sort this" in-record-key.zson
-  echo === forward-sorted-record-key-unset ===
-  zq -z "count() by foo | sort this" in-record-key-unset.zson
-  echo === forward-sorted-nested-key-unset ===
-  zq -z "count() by foo | sort this" in-record-key-unset.zson
+  echo === forward-sorted-record-key-null ===
+  zq -z "count() by foo | sort this" in-record-key-null.zson
+  echo === forward-sorted-nested-key-null ===
+  zq -z "count() by foo | sort this" in-record-key-null.zson
   echo === reverse-sorted ===
   zq -z "count() by ts | sort this" in-rev.zson
   echo === reverse-sorted-null ===
@@ -27,7 +27,7 @@ inputs:
       {ts:1970-01-01T00:00:01Z}
       {ts:1970-01-01T00:00:02Z}
       {ts:1970-01-01T00:00:03Z}
-  - name: in-with-unset.zson
+  - name: in-with-null.zson
     data: |
       {ts:1970-01-01T00:00:01Z}
       {ts:1970-01-01T00:00:01Z}
@@ -38,7 +38,7 @@ inputs:
     data: |
       {foo:{a:"aaa"}}
       {foo:{a:"baa"}}
-  - name: in-record-key-unset.zson
+  - name: in-record-key-null.zson
     data: |
       {foo:{a:"aaa"}}
       {foo:{a:"baa"}}
@@ -60,7 +60,7 @@ outputs:
       {ts:1970-01-01T00:00:02Z,count:1(uint64)}
       {ts:1970-01-01T00:00:01Z,count:2(uint64)}
       {ts:1970-01-01T00:00:03Z,count:1(uint64)}
-      === forward-sorted-with-unset ===
+      === forward-sorted-with-null ===
       {ts:null(time),count:1(uint64)}
       {ts:1970-01-01T00:00:02Z,count:1(uint64)}
       {ts:1970-01-01T00:00:01Z,count:2(uint64)}
@@ -69,7 +69,7 @@ outputs:
       {ts:1970-01-01T00:00:02Z,count:1(uint64)}
       {ts:1970-01-01T00:00:01Z,count:2(uint64)}
       {ts:1970-01-01T00:00:03Z,count:1(uint64)}
-      === forward-sorted-every-unset ===
+      === forward-sorted-every-null ===
       {ts:null(time),count:1(uint64)}
       {ts:1970-01-01T00:00:02Z,count:1(uint64)}
       {ts:1970-01-01T00:00:01Z,count:2(uint64)}
@@ -80,11 +80,11 @@ outputs:
       === forward-sorted-nested-key ===
       {foo:{a:"aaa"},count:1(uint64)}
       {foo:{a:"baa"},count:1(uint64)}
-      === forward-sorted-record-key-unset ===
+      === forward-sorted-record-key-null ===
       {foo:{a:null(string)},count:1(uint64)}
       {foo:{a:"aaa"},count:1(uint64)}
       {foo:{a:"baa"},count:1(uint64)}
-      === forward-sorted-nested-key-unset ===
+      === forward-sorted-nested-key-null ===
       {foo:{a:null(string)},count:1(uint64)}
       {foo:{a:"aaa"},count:1(uint64)}
       {foo:{a:"baa"},count:1(uint64)}

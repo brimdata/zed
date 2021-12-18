@@ -116,8 +116,7 @@ func checkEnum(typ *TypeEnum, body zcode.Bytes) error {
 }
 
 // Slice returns the encoded zcode.Bytes corresponding to the indicated
-// column or an error if a problem was encountered.  If the encoded bytes
-// result is nil without error, then that columnn is unset in this record value.
+// column or an error if a problem was encountered.
 func (r *Value) Slice(column int) (zcode.Bytes, error) {
 	var zv zcode.Bytes
 	for i, it := 0, r.Bytes.Iter(); i <= column; i++ {

@@ -2,7 +2,7 @@
 //
 // Values of primitive type are represented by an unsigned integer tag and an
 // optional byte-sequence body.  A tag of zero indicates that the value is
-// unset, and no body follows.  A nonzero tag indicates that the value is set,
+// null, and no body follows.  A nonzero tag indicates that the value is set,
 // and the value itself follows as a body of length tag-1.
 //
 // Values of union type are represented similarly, with the body

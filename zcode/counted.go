@@ -35,6 +35,12 @@ func AppendCountedUvarint(dst []byte, u64 uint64) []byte {
 		dst = append(dst, byte(u64))
 		u64 >>= 8
 	}
+	if dst == nil {
+		// Input was a zero.  Since zero was "appended" but encoded
+		// as nothing, return an empty slice so we don't turn an
+		// append zero into an append int(null).
+		dst = []byte{}
+	}
 	return dst
 }
 

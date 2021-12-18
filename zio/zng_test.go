@@ -78,13 +78,13 @@ const zson4 = `{foo:"-"(bstring)}`
 
 const zson5 = `{foo:"["(bstring),bar:"[-]"(bstring)}`
 
-// Make sure we handle unset fields and empty sets.
+// Make sure we handle null fields and empty sets.
 const zson6 = "{id:{a:null(string),s:|[]|(|[string]|)}}"
 
-// Make sure we handle unset sets.
+// Make sure we handle empty and null sets.
 const zson7 = `{a:"foo",b:|[]|(|[string]|),c:null(|[string]|)}`
 
-// recursive record with unset set and empty set
+// recursive record with null set and empty set
 const zson8 = `
 {id:{a:null(string),s:|[]|(|[string]|)}}
 {id:{a:null(string),s:null(|[string]|)}}
@@ -125,7 +125,7 @@ func TestZjson(t *testing.T) {
 	boomerangZJSON(t, zson1)
 	boomerangZJSON(t, zson2)
 	// XXX this one doesn't work right now but it's sort of ok becaue
-	// it's a little odd to have an unset string value inside of a set.
+	// it's a little odd to have an null string value inside of a set.
 	// semantically this would mean the value shouldn't be in the set,
 	// but right now this turns into an empty string, which is somewhat reasonable.
 	//boomerangZJSON(t, zson3)

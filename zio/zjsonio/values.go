@@ -161,7 +161,6 @@ func decodeRecord(b *zcode.Builder, typ *zed.TypeRecord, v interface{}) error {
 		}
 		// each column either a string value or an array of string values
 		if val == nil {
-			// this is an unset column
 			b.AppendNull()
 			continue
 		}

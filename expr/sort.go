@@ -16,16 +16,12 @@ type KeyCompareFn func(*zed.Value) int
 // Internal function that compares two values of compatible types.
 type comparefn func(a, b zcode.Bytes) int
 
-func isNull(val zed.Value) bool {
-	return val.Type == nil || val.Bytes == nil
-}
-
 // NewCompareFn creates a function that compares a pair of Records
 // based on the provided ordered list of fields.
 // The returned function uses the same return conventions as standard
 // routines such as bytes.Compare() and strings.Compare(), so it may
 // be used with packages such as heap and sort.
-// The handling of records in which a comparison field is unset or not
+// The handling of records in which a comparison field is null or not
 // present (collectively refered to as fields in which the value is "null")
 // is governed by the nullsMax parameter.  If this parameter is true,
 // a record with a null value is considered larger than a record with any
@@ -69,8 +65,8 @@ func NewValueCompareFn(nullsMax bool) ValueCompareFn {
 
 func compareValues(a, b zed.Value, comparefns map[zed.Type]comparefn, pair *coerce.Pair, nullsMax bool) int {
 	// Handle nulls according to nullsMax
-	nullA := isNull(a)
-	nullB := isNull(b)
+	nullA := a.IsNull()
+	nullB := b.IsNull()
 	if nullA && nullB {
 		return 0
 	}
@@ -122,9 +118,9 @@ func NewKeyCompareFn(key *zed.Value) (KeyCompareFn, error) {
 		if err != nil {
 			return nil, err
 		}
-		// We got an unset value, so all remaining values in the key
-		// must be unset.
-		if isNull(val) {
+		// We got a null  value, so all remaining values in the key
+		// must be null.
+		if val.IsNull() {
 			break
 		}
 		keyval = append(keyval, val)
@@ -134,7 +130,7 @@ func NewKeyCompareFn(key *zed.Value) (KeyCompareFn, error) {
 		for k, access := range accessors {
 			// XXX error
 			a, _ := access.Eval(rec)
-			if isNull(a) {
+			if a.IsNull() {
 				// we know the key value is not null
 				return -1
 			}

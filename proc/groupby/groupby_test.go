@@ -44,12 +44,12 @@ const groupMultiOut = `
 {key1:"b",key2:"z",count:1(uint64)}
 `
 
-const unsetKeyIn = `
+const nullKeyIn = `
 {key1:null(string),key2:null(string),n:3(int32)}
 {key1:null(string),key2:null(string),n:4(int32)}
 `
 
-const groupSingleOut_unsetOut = `
+const groupSingleOut_nullOut = `
 {key1:"a",count:2(uint64)}
 {key1:"b",count:1(uint64)}
 {key1:null(string),count:2(uint64)}
@@ -104,12 +104,12 @@ const nestedKeyAssignedOut = `
 {newkey:2(int32),count:1(uint64)}
 `
 
-const unsetIn = `
+const nullIn = `
 {key:"key1",val:5}
 {key:"key2",val:null(int64)}
 `
 
-const unsetOut = `
+const nullOut = `
 {key:"key1",sum:5}
 {key:"key2",sum:null(int64)}
 `
@@ -176,9 +176,9 @@ func tests() suite {
 	s.add(New("simple", in, groupSingleOut, "count() by key1 | sort key1"))
 	s.add(New("simple-assign", in, groupSingleOut, "count() by key1:=key1 | sort key1"))
 
-	// Test that unset key values work correctly
-	s.add(New("unset-keys", in+unsetKeyIn, groupSingleOut_unsetOut, "count() by key1 | sort key1"))
-	s.add(New("unset-keys-at-start", unsetKeyIn+in, groupSingleOut_unsetOut, "count() by key1 | sort key1"))
+	// Test that null key values work correctly
+	s.add(New("null-keys", in+nullKeyIn, groupSingleOut_nullOut, "count() by key1 | sort key1"))
+	s.add(New("null-keys-at-start", nullKeyIn+in, groupSingleOut_nullOut, "count() by key1 | sort key1"))
 
 	// Test grouping by multiple fields
 	s.add(New("multiple-fields", in, groupMultiOut, "count() by key1,key2 | sort key1, key2"))
@@ -198,8 +198,8 @@ func tests() suite {
 	// Check groupby key inside a record
 	s.add(New("key-in-record", nestedKeyIn, nestedKeyOut, "count() by rec.i | sort rec.i"))
 
-	// Test reducers with unset inputs
-	s.add(New("unset-inputs", unsetIn, unsetOut, "sum(val) by key | sort"))
+	// Test reducers with null inputs
+	s.add(New("null-inputs", nullIn, nullOut, "sum(val) by key | sort"))
 
 	// Test reducers with missing operands
 	s.add(New("not-present", notPresentIn, notPresentOut, "max(val) by key | sort"))
@@ -207,9 +207,9 @@ func tests() suite {
 	s.add(New("aliases", aliasIn, aliasOut, "count() by host | sort host"))
 
 	// Tests with assignments and computed keys
-	s.add(New("unset-keys-computed", in+unsetKeyIn, groupSingleOut_unsetOut, "count() by key1:=to_lower(to_upper(key1)) | sort key1"))
-	s.add(New("unset-keys-assign", in+unsetKeyIn, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"))
-	s.add(New("unset-keys-at-start-assign", unsetKeyIn+in, strings.ReplaceAll(groupSingleOut_unsetOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"))
+	s.add(New("null-keys-computed", in+nullKeyIn, groupSingleOut_nullOut, "count() by key1:=to_lower(to_upper(key1)) | sort key1"))
+	s.add(New("null-keys-assign", in+nullKeyIn, strings.ReplaceAll(groupSingleOut_nullOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"))
+	s.add(New("null-keys-at-start-assign", nullKeyIn+in, strings.ReplaceAll(groupSingleOut_nullOut, "key1", "newkey"), "count() by newkey:=key1 | sort newkey"))
 	s.add(New("multiple-fields-assign", in, strings.ReplaceAll(groupMultiOut, "key2", "newkey"), "count() by key1,newkey:=key2 | sort key1, newkey"))
 	s.add(New("key-in-record-assign", nestedKeyIn, nestedKeyAssignedOut, "count() by newkey:=rec.i | sort newkey"))
 	s.add(New("computed-key", computedKeyIn, computedKeyOut, "count() by s:=to_lower(s), ij:=i+j | sort"))

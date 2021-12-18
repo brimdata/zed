@@ -52,7 +52,7 @@ func TestFormatting(t *testing.T) {
 			},
 		},
 
-		// An unset string is represented as -
+		// An null string is represented as -
 		{
 			zed.Value{zed.TypeBstring, nil},
 			[]Expect{
@@ -231,7 +231,7 @@ func TestFormatting(t *testing.T) {
 		// Test sets
 		//
 
-		// unset set
+		// null set
 		{
 			zed.Value{bstringSetType, nil},
 			[]Expect{
@@ -291,7 +291,7 @@ func TestFormatting(t *testing.T) {
 		// Test vectors
 		//
 
-		// unset vector
+		// null vector
 		{
 			zed.Value{bstringVecType, nil},
 			[]Expect{
@@ -347,7 +347,7 @@ func TestFormatting(t *testing.T) {
 			},
 		},
 
-		// vector containing unset
+		// vector containing null
 		{
 			zed.Value{
 				bstringVecType,

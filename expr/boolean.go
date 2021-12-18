@@ -302,18 +302,18 @@ func NewRegexpBoolean(re *regexp.Regexp) Boolean {
 	}
 }
 
-func CompareUnset(op string) (Boolean, error) {
+func CompareNull(op string) (Boolean, error) {
 	switch op {
 	case "=":
 		return func(v zed.Value) bool {
-			return v.IsUnset()
+			return v.IsNull()
 		}, nil
 	case "!=":
 		return func(v zed.Value) bool {
-			return !v.IsUnset()
+			return !v.IsNull()
 		}, nil
 	default:
-		return nil, fmt.Errorf("unknown unset comparator: %s", op)
+		return nil, fmt.Errorf("unknown null comparator: %s", op)
 	}
 }
 
@@ -430,7 +430,7 @@ func Comparison(op string, primitive astzed.Primitive) (Boolean, error) {
 	}
 	switch zv.Type.(type) {
 	case *zed.TypeOfNull:
-		return CompareUnset(op)
+		return CompareNull(op)
 	case *zed.TypeOfIP:
 		v, err := zed.DecodeIP(zv.Bytes)
 		if err != nil {

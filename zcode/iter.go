@@ -15,10 +15,10 @@ func (i *Iter) Done() bool {
 
 // Next returns the body of the next value along with a boolean that is true if
 // the value is a container.  It returns an empty slice for an empty or
-// zero-length value and nil for an unset value.  The container boolean is
+// zero-length value and nil for a Zed null value.  The container boolean is
 // not meaningful if the returned Bytes slice is nil.
 func (i *Iter) Next() (Bytes, bool, error) {
-	// The tag is zero for an unset value; otherwise, it is the value's
+	// The tag is zero for a null value; otherwise, it is the value's
 	// length plus one.
 	u64, n := binary.Uvarint(*i)
 	if n <= 0 {

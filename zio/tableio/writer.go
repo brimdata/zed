@@ -62,7 +62,7 @@ func (w *Writer) Write(r *zed.Value) error {
 		var v string
 		value := r.ValueByColumn(k)
 		if col.Type == zed.TypeTime {
-			if !value.IsUnsetOrNil() {
+			if !value.IsNull() {
 				ts, err := zed.DecodeTime(value.Bytes)
 				if err != nil {
 					return err
