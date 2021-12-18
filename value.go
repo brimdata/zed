@@ -143,14 +143,8 @@ func (v Value) IsNil() bool {
 	return v.Bytes == nil && v.Type == nil
 }
 
-// IsUnset returns true iff v is an unset value.  Unset values are represented
-// with a zero-valued Value.  A zero-valued value that is not unset is represented
-// by a non-nil slice for Bytes of zero length.
-func (v Value) IsUnset() bool {
-	return v.Bytes == nil && v.Type != nil
-}
-
-func (v Value) IsUnsetOrNil() bool {
+// IsNull returns true iff v is any type of null
+func (v *Value) IsNull() bool {
 	return v.Bytes == nil
 }
 

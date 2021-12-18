@@ -43,8 +43,8 @@ func (w *Writer) Write(rec *zed.Value) error {
 		var s string
 		value := rec.ValueByColumn(k)
 		if col.Type == zed.TypeTime {
-			if value.IsUnsetOrNil() {
-				s = "-"
+			if value.IsNull() {
+				v = "-"
 			} else {
 				ts, err := zed.DecodeTime(value.Bytes)
 				if err != nil {
