@@ -42,7 +42,7 @@ ZSON is also a superset of JSON in that all JSON documents are valid ZSON values
 ## 2. The ZSON Format
 
 A ZSON text is a sequence of UTF-8 characters organized either as a bounded input
-or as or an unbounded stream.  
+or an unbounded stream.
 
 The input text is organized as a sequence of one or more Zed values optionally
 separated by and interspersed with whitespace.
@@ -182,7 +182,7 @@ is the same as `123`.
 
 Values that do not have implied types must include a type decorator to clarify
 its type or appear in a context for which its type is defined (i.e., as a field
-value in a record, as an element in an array, etc).
+value in a record, as an element in an array, etc.).
 
 While a type value may represent a complex type, the value itself is a singleton
 and thus always a primitive type.  A type value is encoded as:
@@ -190,7 +190,7 @@ and thus always a primitive type.  A type value is encoded as:
 * a type as [encoded below](#25-types), followed by
 * a right angle bracket `>`.
 
-A `time` value corresponds to 64-bit epoch nanoseconds and thus
+A `time` value corresponds to 64-bit Unix epoch nanoseconds and thus
 not all possible RFC 3339 date/time strings are valid.  In addition,
 nanosecond epoch times overflow on April 11, 2262.
 For the world of 2262, a new epoch can be created well in advance
@@ -283,7 +283,7 @@ Whitespace around keys and values is generally optional, but to
 avoid ambiguity, whitespace must separate an IPv6 key from the colon
 that follows it.
 
-A empty map value without a type decorator is
+An empty map value without a type decorator is
 presumed to be an empty map of type `|{null: null}|`.
 
 #### 2.4.4 Union Value
@@ -376,7 +376,7 @@ An _enum type_ has the form:
 ```
 %{ <name>, <name>, ... }
 ```
-where `<name>` [ZSON name](#21-names).
+where `<name>` is a [ZSON name](#21-names).
 Each enum name must be unique and the order is not significant, e.g.,
 enum type `%{HEADS,TAILS}` is equal to type `%{TAILS,HEADS}`.
 
@@ -388,7 +388,7 @@ A named type has the form:
 ```
 where a new type is defined with the given name and type.
 
-When a named type appears in complex value, the new type name may be
+When a named type appears in a complex value, the new type name may be
 referenced by any subsequent value in left-to-right depth-first order.
 
 For example,
@@ -510,7 +510,7 @@ the defines their type.
 
 <decorators> = "(" <type> ")" | <decorators> "(" <type> ")"
 
-<any> = <primitive> | <record> | <array> | <set> | <enum> | <map> | <type-val>
+<any> = <primitive> | <type-val> | <record> | <array> | <set> | <map> | <enum>
 
 <primitive> = primitive value as defined above
 
