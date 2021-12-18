@@ -1,23 +1,21 @@
-script: zq -f zeek -U in.zson
+zed: '*'
 
-inputs:
-  - name: in.zson
-    data: |
-      {_path:"",foo:"😁"(bstring)}
-      {_path:"magic",foo:"😁"(bstring)}
-      {_path:"",foo:"foo😁bar\x00\x01baz"(bstring)}
+input: |
+  {_path:"",foo:"😁"(bstring)}
+  {_path:"magic",foo:"😁"(bstring)}
+  {_path:"",foo:"foo😁bar\x00\x01baz"(bstring)}
 
-outputs:
-  - name: stdout
-    data: |
-      #separator \x09
-      #set_separator	,
-      #empty_field	(empty)
-      #unset_field	-
-      #fields	foo
-      #types	string
-      😁
-      #path	magic
-      😁
-      #path	-
-      foo😁bar\x00\x01baz
+output-flags: -f zeek
+
+output: |
+  #separator \x09
+  #set_separator	,
+  #empty_field	(empty)
+  #unset_field	-
+  #fields	foo
+  #types	string
+  😁
+  #path	magic
+  😁
+  #path	-
+  foo😁bar\x00\x01baz

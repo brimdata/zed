@@ -19,20 +19,12 @@ type Writer struct {
 	header
 	flattener *expr.Flattener
 	typ       *zed.TypeRecord
-	format    tzngio.OutFmt
 }
 
-func NewWriter(w io.WriteCloser, utf8 bool) *Writer {
-	var format tzngio.OutFmt
-	if utf8 {
-		format = tzngio.OutFormatZeek
-	} else {
-		format = tzngio.OutFormatZeekAscii
-	}
+func NewWriter(w io.WriteCloser) *Writer {
 	return &Writer{
 		writer:    w,
 		flattener: expr.NewFlattener(zed.NewContext()),
-		format:    format,
 	}
 }
 
@@ -52,7 +44,7 @@ func (w *Writer) Write(r *zed.Value) error {
 		}
 		w.typ = zed.TypeRecordOf(r.Type)
 	}
-	values, err := ZeekStrings(r, w.format)
+	values, err := ZeekStrings(r, tzngio.OutFormatZeek)
 	if err != nil {
 		return err
 	}
@@ -146,7 +138,7 @@ func ZeekStrings(r *zed.Value, fmt tzngio.OutFmt) ([]string, error) {
 			}
 			field = string(ts.AppendFloat(nil, precision))
 		} else {
-			field = tzngio.StringOf(zed.Value{col.Type, val}, fmt, false)
+			field = tzngio.StringOf(zed.Value{col.Type, val}, tzngio.OutFormatZeek, false)
 		}
 		ss = append(ss, field)
 	}

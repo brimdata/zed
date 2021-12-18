@@ -36,7 +36,6 @@ func (f *Flags) Options() anyio.WriterOpts {
 
 func (f *Flags) setFlags(fs *flag.FlagSet) {
 	// zio stuff
-	fs.BoolVar(&f.UTF8, "U", false, "display zeek strings as UTF-8")
 	fs.BoolVar(&f.color, "color", true, "enable/disable color formatting for -Z and lake text output")
 	fs.IntVar(&f.ZNG.LZ4BlockSize, "znglz4blocksize", zngio.DefaultLZ4BlockSize,
 		"LZ4 block size in bytes for ZNG compression (nonpositive to disable)")
