@@ -25,7 +25,6 @@ type WriterOpts struct {
 	UTF8   bool
 	JSON   jsonio.WriterOpts
 	Lake   lakeio.WriterOpts
-	Text   textio.WriterOpts
 	ZNG    zngio.WriterOpts
 	ZSON   zsonio.WriterOpts
 	Zst    zstio.WriterOpts
@@ -50,7 +49,7 @@ func NewWriter(w io.WriteCloser, opts WriterOpts) (zio.WriteCloser, error) {
 	case "zst":
 		return zstio.NewWriter(w, opts.Zst)
 	case "text":
-		return textio.NewWriter(w, opts.UTF8, opts.Text), nil
+		return textio.NewWriter(w, opts.UTF8), nil
 	case "table":
 		return tableio.NewWriter(w, opts.UTF8), nil
 	case "csv":
