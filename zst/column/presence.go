@@ -2,8 +2,8 @@ package column
 
 type PresenceWriter struct {
 	IntWriter
-	run   int32
-	unset bool
+	run  int32
+	null bool
 }
 
 func NewPresenceWriter(spiller *Spiller) *PresenceWriter {
@@ -13,22 +13,22 @@ func NewPresenceWriter(spiller *Spiller) *PresenceWriter {
 }
 
 func (p *PresenceWriter) TouchValue() {
-	if !p.unset {
+	if !p.null {
 		p.run++
 	} else {
 		p.Write(p.run)
 		p.run = 1
-		p.unset = false
+		p.null = false
 	}
 }
 
-func (p *PresenceWriter) TouchUnset() {
-	if p.unset {
+func (p *PresenceWriter) TouchNull() {
+	if p.null {
 		p.run++
 	} else {
 		p.Write(p.run)
 		p.run = 1
-		p.unset = true
+		p.null = true
 	}
 }
 
@@ -38,14 +38,14 @@ func (p *PresenceWriter) Finish() {
 
 type Presence struct {
 	Int
-	unset bool
-	run   int
+	null bool
+	run  int
 }
 
 func NewPresence() *Presence {
-	// We start out with unset true so it is immediately flipped to
+	// We start out with null true so it is immediately flipped to
 	// false on the first call to Read.
-	return &Presence{unset: true}
+	return &Presence{null: true}
 }
 
 func (p *Presence) IsEmpty() bool {
@@ -55,7 +55,7 @@ func (p *Presence) IsEmpty() bool {
 func (p *Presence) Read() (bool, error) {
 	run := p.run
 	for run == 0 {
-		p.unset = !p.unset
+		p.null = !p.null
 		v, err := p.Int.Read()
 		if err != nil {
 			return false, err
@@ -63,5 +63,5 @@ func (p *Presence) Read() (bool, error) {
 		run = int(v)
 	}
 	p.run = run - 1
-	return !p.unset, nil
+	return !p.null, nil
 }

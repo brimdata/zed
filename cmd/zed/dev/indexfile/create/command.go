@@ -127,9 +127,8 @@ func (c *Command) buildTable(zctx *zed.Context, reader zio.Reader) (*index.MemTa
 			continue
 		}
 		if k.Bytes == nil {
-			// The key field is unset.  Skip it.  Unless we want to
-			// index the notion of something that is unset, this is
-			// the right thing to do.
+			// The key field is null.  Skip it.  Unless we want to
+			// index nulls, this is the right thing to do.
 			continue
 		}
 		if err := table.Enter(k); err != nil {

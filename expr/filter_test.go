@@ -405,7 +405,7 @@ func TestFilters(t *testing.T) {
 		{"c.s", true},
 	})
 
-	// Test searching for a field name of an unset record
+	// Test searching for a field name of an null record
 	runCases(t, "{rec:null (0=({str:string}))}", []testcase{
 		{"rec.str", true},
 	})

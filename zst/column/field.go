@@ -19,7 +19,7 @@ type FieldWriter struct {
 func (f *FieldWriter) write(body zcode.Bytes) error {
 	if body == nil {
 		f.ucnt++
-		f.presence.TouchUnset()
+		f.presence.TouchNull()
 		return nil
 	}
 	f.vcnt++
@@ -69,7 +69,7 @@ func (f *FieldWriter) Flush(eof bool) error {
 		// will cause seek traffic.
 		f.presence.Finish()
 		if f.vcnt != 0 && f.ucnt != 0 {
-			// If this colummn is not either all values or all unsets,
+			// If this colummn is not either all values or all nulls,
 			// then flush and write out the presence vector.
 			// Otherwise, there will be no values in the presence
 			// column and an empty segmap will be encoded for it.

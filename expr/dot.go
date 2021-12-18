@@ -61,8 +61,8 @@ func accessField(zv zed.Value, field string) (zed.Value, error) {
 		return zed.Value{}, zed.ErrMissing
 	}
 	typ := recType.Columns[idx].Type
-	if zv.Bytes == nil {
-		// Value was unset.  Return unset value of the indicated type.
+	if zv.IsNull() {
+		// The record is null.  Return null value of the field type.
 		return zed.Value{typ, nil}, nil
 	}
 	//XXX see PR #1071 to improve this (though we need this for Index anyway)

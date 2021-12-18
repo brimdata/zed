@@ -252,17 +252,13 @@ original row record,
 * the `column` fields are column stream definitions for each field, and
 * the `presence` columns are int32 zng column streams comprised of a
 run-length encoding the locations of column values in their respective rows,
-when there are unset values (as described below).
+when there are null values (as described below).
 
-If there are no unset values, then the `presence` field contains an empty `<segmap>`.
-If all of the values are unset, then then `column` field is unset (and the `presence`
+If there are no null values, then the `presence` field contains an empty `<segmap>`.
+If all of the values are null, then then `column` field is null (and the `presence`
 both contain empty `<segmap>'s`).  For empty `<segmap>'s`, there is no
 corresponding data stored in the data section.  Since a `<segmap>` is a Zed
 array, an empty `<segmap>` is simply the empty array value `[]`.
-
-> Note that the only place a value can be "unset" is in the context of
-> a field of a record.  Hence, the only place presence columns are needed
-> is on the context of a record field.
 
 #### Array Column
 
@@ -313,9 +309,9 @@ primitive values.
 #### Presence Columns
 
 The presence column is logically a sequence of booleans, one for each position
-in the original column, indicating whether a value is unset or present.
+in the original column, indicating whether a value is null or present.
 The number of values in the encoded column is equal to the number of values
-present so that unset values are not encoded.
+present so that null values are not encoded.
 
 Instead the presence column is encoded as a sequence of alternating runs.
 First, the number of values present is encoded, then the number of values not present,

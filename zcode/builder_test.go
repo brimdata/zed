@@ -9,15 +9,15 @@ import (
 
 func TestBuilder(t *testing.T) {
 	empty := []byte{}
-	unset := []byte(nil)
+	null := []byte(nil)
 	v1, v2 := []byte("1"), []byte("22")
 	t.Run("AppendContainer", func(t *testing.T) {
 		b := NewBuilder()
 		b.AppendContainer(empty)
 		expected := AppendContainer(nil, empty)
 		require.Exactly(t, expected, b.Bytes())
-		b.AppendContainer(unset)
-		expected = AppendContainer(expected, unset)
+		b.AppendContainer(null)
+		expected = AppendContainer(expected, null)
 		require.Exactly(t, expected, b.Bytes())
 		b.AppendContainer(v1)
 		b.AppendContainer(v2)
@@ -30,8 +30,8 @@ func TestBuilder(t *testing.T) {
 		b.AppendPrimitive(empty)
 		expected := AppendPrimitive(nil, empty)
 		require.Exactly(t, expected, b.Bytes())
-		b.AppendPrimitive(unset)
-		expected = AppendPrimitive(expected, unset)
+		b.AppendPrimitive(null)
+		expected = AppendPrimitive(expected, null)
 		require.Exactly(t, expected, b.Bytes())
 		b.AppendPrimitive(v1)
 		b.AppendPrimitive(v2)
