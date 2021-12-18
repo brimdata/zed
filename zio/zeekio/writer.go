@@ -9,7 +9,6 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/nano"
-	"github.com/brimdata/zed/zio/tzngio"
 )
 
 var ErrDescriptorChanged = errors.New("descriptor changed")
@@ -44,7 +43,7 @@ func (w *Writer) Write(r *zed.Value) error {
 		}
 		w.typ = zed.TypeRecordOf(r.Type)
 	}
-	values, err := ZeekStrings(r, tzngio.OutFormatZeek)
+	values, err := ZeekStrings(r, OutFormatZeek)
 	if err != nil {
 		return err
 	}
@@ -116,7 +115,7 @@ func isHighPrecision(ts nano.Ts) bool {
 
 // This returns the zeek strings for this record.  XXX We need to not use this.
 // XXX change to Pretty for output writers?... except zeek?
-func ZeekStrings(r *zed.Value, fmt tzngio.OutFmt) ([]string, error) {
+func ZeekStrings(r *zed.Value, fmt OutFmt) ([]string, error) {
 	var ss []string
 	it := r.Bytes.Iter()
 	for _, col := range zed.TypeRecordOf(r.Type).Columns {
@@ -138,7 +137,7 @@ func ZeekStrings(r *zed.Value, fmt tzngio.OutFmt) ([]string, error) {
 			}
 			field = string(ts.AppendFloat(nil, precision))
 		} else {
-			field = tzngio.StringOf(zed.Value{col.Type, val}, tzngio.OutFormatZeek, false)
+			field = StringOf(zed.Value{col.Type, val}, OutFormatZeek, false)
 		}
 		ss = append(ss, field)
 	}

@@ -1,4 +1,4 @@
-package tzngio
+package zeekio
 
 import (
 	"regexp"

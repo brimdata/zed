@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio/tzngio"
 )
 
 type header struct {
@@ -23,7 +22,7 @@ type header struct {
 type Parser struct {
 	header
 	zctx       *zed.Context
-	types      *tzngio.TypeParser
+	types      *TypeParser
 	unknown    int // Count of unknown directives
 	needfields bool
 	needtypes  bool
@@ -44,7 +43,7 @@ func NewParser(r *zed.Context) *Parser {
 	return &Parser{
 		header: header{separator: " "},
 		zctx:   r,
-		types:  tzngio.NewTypeParser(r),
+		types:  NewTypeParser(r),
 	}
 }
 

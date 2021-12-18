@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio/tzngio"
 )
 
 var ErrIncompatibleZeekType = errors.New("type cannot be represented in zeek format")
@@ -30,7 +29,7 @@ func isValidInputType(typ zed.Type) bool {
 	}
 }
 
-func zeekTypeToZNG(typstr string, types *tzngio.TypeParser) (zed.Type, error) {
+func zeekTypeToZNG(typstr string, types *TypeParser) (zed.Type, error) {
 	// As zng types diverge from zeek types, we'll probably want to
 	// re-do this but lets keep it simple for now.
 	typstr = strings.ReplaceAll(typstr, "string", "bstring")

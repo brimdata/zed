@@ -1,4 +1,4 @@
-package tzngio
+package zeekio
 
 import (
 	"bytes"
@@ -103,7 +103,7 @@ func StringOf(zv zed.Value, out OutFmt, b bool) string {
 	case *zed.TypeUnion:
 		return StringOfUnion(t, zv.Bytes, out, b)
 	default:
-		return fmt.Sprintf("tzngio.StringOf(): unknown type: %T", t)
+		return fmt.Sprintf("zeekio: unknown type: %T", t)
 	}
 }
 

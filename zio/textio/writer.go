@@ -8,7 +8,7 @@ import (
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/zio/tzngio"
+	"github.com/brimdata/zed/zio/zeekio"
 )
 
 type Writer struct {
@@ -47,7 +47,7 @@ func (w *Writer) Write(rec *zed.Value) error {
 				s = ts.Time().UTC().Format(time.RFC3339Nano)
 			}
 		} else {
-			s = tzngio.FormatValue(value, tzngio.OutFormatZeek)
+			s = zeekio.FormatValue(value, zeekio.OutFormatZeek)
 		}
 		out = append(out, s)
 	}
