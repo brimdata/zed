@@ -1,6 +1,8 @@
 package function
 
 import (
+	"errors"
+	"fmt"
 	"math"
 
 	"github.com/brimdata/zed"
@@ -9,85 +11,97 @@ import (
 	"github.com/brimdata/zed/expr/result"
 )
 
+//XXX rework result.Buffer
+
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#abs.md
 type Abs struct {
-	result.Buffer
+	stash result.Value
 }
 
-func (a *Abs) Call(args []zed.Value) (zed.Value, error) {
+func (a *Abs) Call(args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
 	if zed.IsFloat(id) {
-		f, _ := zed.DecodeFloat64(v.Bytes)
+		f, err := zed.DecodeFloat64(v.Bytes)
+		if err != nil {
+			panic(fmt.Errorf("abs: corrupt Zed bytes", err))
+		}
 		f = math.Abs(f)
-		return zed.Value{zed.TypeFloat64, a.Float64(f)}, nil
+		return a.stash.Float64(f)
 	}
 	if !zed.IsInteger(id) {
-		return badarg("abs")
+		return a.stash.Error(errors.New("abs: not a number"))
 	}
 	if !zed.IsSigned(id) {
-		return v, nil
+		return a.stash.Copy(&args[0])
 	}
-	x, _ := zed.DecodeInt(v.Bytes)
+	x, err := zed.DecodeInt(v.Bytes)
+	if err != nil {
+		panic(fmt.Errorf("abs: corrupt Zed bytes", err))
+	}
 	if x < 0 {
 		x = -x
 	}
-	return zed.Value{v.Type, a.Int(x)}, nil
+	return a.stash.Int64(x)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#ceil
 type Ceil struct {
-	result.Buffer
+	stash result.Value
 }
 
-func (c *Ceil) Call(args []zed.Value) (zed.Value, error) {
+func (c *Ceil) Call(args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
-	if zed.IsFloat(id) {
-		f, _ := zed.DecodeFloat64(v.Bytes)
+	switch {
+	case zed.IsFloat(id):
+		f, err := zed.DecodeFloat64(v.Bytes)
+		if err != nil {
+			panic(fmt.Errorf("floor: corrupt Zed bytes", err))
+		}
 		f = math.Ceil(f)
-		return zed.Value{zed.TypeFloat64, c.Float64(f)}, nil
+		return c.stash.Float64(f)
+	case zed.IsInteger(id):
+		return c.stash.Copy(&args[0])
+	default:
+		return c.stash.Error(errors.New("ceil: not a number"))
 	}
-	if zed.IsInteger(id) {
-		return v, nil
-	}
-	return badarg("ceil")
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#floor
 type Floor struct {
-	result.Buffer
+	stash result.Value
 }
 
-func (f *Floor) Call(args []zed.Value) (zed.Value, error) {
+func (f *Floor) Call(args []zed.Value) *zed.Value {
 	v := args[0]
 	id := v.Type.ID()
-	if zed.IsFloat(id) {
+	switch {
+	case zed.IsFloat(id):
 		v, _ := zed.DecodeFloat64(v.Bytes)
 		v = math.Floor(v)
-		return zed.Value{zed.TypeFloat64, f.Float64(v)}, nil
+		return f.stash.Float64(v)
+	case zed.IsInteger(id):
+		return f.stash.Copy(&args[0])
+	default:
+		return f.stash.Error(errors.New("floor: not a number"))
 	}
-	if zed.IsInteger(id) {
-		return v, nil
-	}
-	return badarg("floor")
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#log
 type Log struct {
-	result.Buffer
+	stash result.Value
 }
 
-func (l *Log) Call(args []zed.Value) (zed.Value, error) {
+func (l *Log) Call(args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(args[0])
-	// XXX should have better error messages
 	if !ok {
-		return badarg("log")
+		return l.stash.Error(errors.New("log: numeric argument required"))
 	}
 	if x <= 0 {
-		return badarg("log")
+		return l.stash.Error(errors.New("log: negative argument"))
 	}
-	return zed.Value{zed.TypeFloat64, l.Float64(math.Log(x))}, nil
+	return l.stash.Float64(math.Log(x))
 }
 
 type reducer struct {
@@ -95,7 +109,7 @@ type reducer struct {
 	fn *anymath.Function
 }
 
-func (r *reducer) Call(args []zed.Value) (zed.Value, error) {
+func (r *reducer) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	typ := zv.Type
 	id := typ.ID()
@@ -143,7 +157,7 @@ type Round struct {
 	result.Buffer
 }
 
-func (r *Round) Call(args []zed.Value) (zed.Value, error) {
+func (r *Round) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
@@ -162,7 +176,7 @@ type Pow struct {
 	result.Buffer
 }
 
-func (p *Pow) Call(args []zed.Value) (zed.Value, error) {
+func (p *Pow) Call(args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
 		return badarg("pow")
@@ -183,7 +197,7 @@ type Sqrt struct {
 	result.Buffer
 }
 
-func (s *Sqrt) Call(args []zed.Value) (zed.Value, error) {
+func (s *Sqrt) Call(args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
 		return badarg("sqrt")

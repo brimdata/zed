@@ -3,72 +3,87 @@ package function
 import (
 	"encoding/base64"
 	"encoding/hex"
+	"fmt"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 )
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#from_base64
-type FromBase64 struct{}
+type FromBase64 struct {
+	stash zed.Value
+}
 
-func (*FromBase64) Call(args []zed.Value) (zed.Value, error) {
+func (f *FromBase64) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("from_base64")
+		f.stash = zed.NewErrorf("from_base64: string argument required")
+		return &f.stash
 	}
 	if zv.Bytes == nil {
-		return zed.Value{zed.TypeBytes, nil}, nil
+		return zed.NullTypeType
 	}
 	s, _ := zed.DecodeString(zv.Bytes)
 	b, err := base64.StdEncoding.DecodeString(s)
 	if err != nil {
-		return zed.NewError(err), nil
+		panic(fmt.Errorf("from_base64: corrupt Zed bytes: %w", err))
 	}
-	return zed.Value{zed.TypeBytes, zed.EncodeBytes(b)}, nil
+	f.stash = zed.Value{zed.TypeBytes, zed.EncodeBytes(b)}
+	return &f.stash
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_base64
-type ToBase64 struct{}
+type ToBase64 struct {
+	stash zed.Value
+}
 
-func (*ToBase64) Call(args []zed.Value) (zed.Value, error) {
+func (t *ToBase64) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return badarg("from_base64")
+		t.stash = zed.NewErrorf("to_base64: string argument required")
+		return &t.stash
 	}
 	if zv.Bytes == nil {
-		return zed.Value{zed.TypeString, nil}, nil
+		return zed.NullString
 	}
 	s := base64.StdEncoding.EncodeToString(zv.Bytes)
-	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
+	t.stash = zed.Value{zed.TypeString, zed.EncodeString(s)}
+	return &t.stash
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#from_hex
-type FromHex struct{}
+type FromHex struct {
+	stash zed.Value
+}
 
-func (*FromHex) Call(args []zed.Value) (zed.Value, error) {
+func (f *FromHex) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
-		return zed.NewErrorf("not a string"), nil
+		f.stash = zed.NewErrorf("to_base64: string argument required")
+		return &f.stash
 	}
 	if zv.Bytes == nil {
-		return zed.Value{zed.TypeString, nil}, nil
+		return zed.NullString
 	}
 	b, err := hex.DecodeString(string(zv.Bytes))
 	if err != nil {
-		return zed.NewError(err), nil
+		panic(fmt.Errorf("from_hex: corrupt Zed bytes: %w", err))
 	}
-	return zed.Value{zed.TypeBytes, zcode.Bytes(b)}, nil
+	f.stash = zed.Value{zed.TypeBytes, zcode.Bytes(b)}
+	return &f.stash
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_hex
-type ToHex struct{}
+type ToHex struct {
+	stash zed.Value
+}
 
-func (*ToHex) Call(args []zed.Value) (zed.Value, error) {
+func (t *ToHex) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	if zv.Bytes == nil {
-		return zed.Value{zed.TypeBytes, nil}, nil
+		return zed.NullBytes
 	}
 	s := hex.EncodeToString(zv.Bytes)
-	return zed.Value{zed.TypeString, zed.EncodeString(s)}, nil
-
+	t.stash = zed.Value{zed.TypeString, zed.EncodeString(s)}
+	return &t.stash
 }

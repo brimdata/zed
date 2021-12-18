@@ -21,7 +21,8 @@ const missing = "missing"
 // functions and expressions and each operator must clearly defined its
 // semantics with respect to the Missing value.  For example, "true AND MISSING"
 // is MISSING.
-var Missing = NewError(ErrMissing)
+var MissingVal = NewError(ErrMissing)
+var Missing = &MissingVal
 
 type TypeOfError struct{}
 

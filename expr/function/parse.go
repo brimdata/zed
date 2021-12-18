@@ -17,7 +17,7 @@ type ParseURI struct {
 	marshaler *zson.MarshalZNGContext
 }
 
-func (p *ParseURI) Call(args []zed.Value) (zed.Value, error) {
+func (p *ParseURI) Call(args []zed.Value) *zed.Value {
 	in := args[0]
 	if !in.IsStringy() {
 		return badarg("parse_uri: input must be string")
@@ -84,7 +84,7 @@ type ParseZSON struct {
 	zctx *zed.Context
 }
 
-func (p *ParseZSON) Call(args []zed.Value) (zed.Value, error) {
+func (p *ParseZSON) Call(args []zed.Value) *zed.Value {
 	in := args[0]
 	if !in.IsStringy() {
 		return badarg("parse_zson: input must be string")

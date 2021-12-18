@@ -10,11 +10,11 @@ type And struct {
 
 var _ Function = (*And)(nil)
 
-func (a *And) Consume(v zed.Value) {
-	if v.Bytes == nil {
+func (a *And) Consume(val *zed.Value) {
+	if val.IsNull() {
 		return
 	}
-	if v.Type != zed.TypeBool {
+	if val.Type != zed.TypeBool {
 		//XXX coerce?
 		return
 	}
@@ -22,12 +22,13 @@ func (a *And) Consume(v zed.Value) {
 		b := true
 		a.val = &b
 	}
-	*a.val = *a.val && zed.IsTrue(v.Bytes)
+	*a.val = *a.val && zed.IsTrue(val.Bytes)
 }
 
-func (a *And) Result(*zed.Context) zed.Value {
+func (a *And) Result(*zed.Context) *zed.Value {
 	if a.val == nil {
-		return zed.Value{Type: zed.TypeBool}
+		//XXX singleton
+		return &zed.Value{Type: zed.TypeBool}
 	}
 	if *a.val {
 		return zed.True
@@ -35,12 +36,12 @@ func (a *And) Result(*zed.Context) zed.Value {
 	return zed.False
 }
 
-func (a *And) ConsumeAsPartial(v zed.Value) {
+func (a *And) ConsumeAsPartial(val *zed.Value) {
 	//XXX check type and panic?
-	a.Consume(v)
+	a.Consume(val)
 }
 
-func (a *And) ResultAsPartial(*zed.Context) zed.Value {
+func (a *And) ResultAsPartial(*zed.Context) *zed.Value {
 	return a.Result(nil)
 }
 
@@ -50,11 +51,11 @@ type Or struct {
 
 var _ Function = (*Or)(nil)
 
-func (o *Or) Consume(v zed.Value) {
-	if v.Bytes == nil {
+func (o *Or) Consume(val *zed.Value) {
+	if val.Bytes == nil {
 		return
 	}
-	if v.Type != zed.TypeBool {
+	if val.Type != zed.TypeBool {
 		//XXX coerce?
 		return
 	}
@@ -62,12 +63,13 @@ func (o *Or) Consume(v zed.Value) {
 		b := false
 		o.val = &b
 	}
-	*o.val = *o.val || zed.IsTrue(v.Bytes)
+	*o.val = *o.val || zed.IsTrue(val.Bytes)
 }
 
-func (o *Or) Result(*zed.Context) zed.Value {
+func (o *Or) Result(*zed.Context) *zed.Value {
 	if o.val == nil {
-		return zed.Value{Type: zed.TypeBool}
+		//XXX singleton
+		return &zed.Value{Type: zed.TypeBool}
 	}
 	if *o.val {
 		return zed.True
@@ -75,10 +77,10 @@ func (o *Or) Result(*zed.Context) zed.Value {
 	return zed.False
 }
 
-func (o *Or) ConsumeAsPartial(v zed.Value) {
-	o.Consume(v)
+func (o *Or) ConsumeAsPartial(val *zed.Value) {
+	o.Consume(val)
 }
 
-func (o *Or) ResultAsPartial(*zed.Context) zed.Value {
+func (o *Or) ResultAsPartial(*zed.Context) *zed.Value {
 	return o.Result(nil)
 }

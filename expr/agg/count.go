@@ -16,7 +16,7 @@ func (c *Count) Consume(val *zed.Value) {
 
 func (c Count) Result(*zed.Context) *zed.Value {
 	//XXX should reuse zed.Value
-	return zed.NewValue(zed.NewUint64(uint64(c)))
+	return zed.NewValue(zed.TypeUint64, zed.EncodeUint(uint64(c)))
 }
 
 func (c *Count) ConsumeAsPartial(partial *zed.Value) {

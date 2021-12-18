@@ -12,7 +12,7 @@ type Now struct {
 	result.Buffer
 }
 
-func (n *Now) Call([]zed.Value) (zed.Value, error) {
+func (n *Now) Call([]zed.Value) *zed.Value {
 	return zed.Value{zed.TypeTime, n.Time(nano.Now())}, nil
 }
 
@@ -21,7 +21,7 @@ type Trunc struct {
 	result.Buffer
 }
 
-func (t *Trunc) Call(args []zed.Value) (zed.Value, error) {
+func (t *Trunc) Call(args []zed.Value) *zed.Value {
 	tsArg := args[0]
 	binArg := args[1]
 	if tsArg.Bytes == nil || binArg.Bytes == nil {

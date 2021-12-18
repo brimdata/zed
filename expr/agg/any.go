@@ -8,6 +8,10 @@ type Any zed.Value
 
 var _ Function = (*Any)(nil)
 
+func NewAny() *Any {
+	return (*Any)(zed.NewValue(zed.TypeNull, nil))
+}
+
 func (a *Any) Consume(val *zed.Value) {
 	// Copy any value from the input while favoring any-typed non-null values
 	// over null values.
@@ -20,7 +24,7 @@ func (a *Any) Result(*zed.Context) *zed.Value {
 	if a.Type == nil {
 		return zed.Null
 	}
-	return a
+	return (*zed.Value)(a)
 }
 
 func (a *Any) ConsumeAsPartial(v *zed.Value) {

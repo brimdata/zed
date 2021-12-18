@@ -12,7 +12,7 @@ import (
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#replace
 type Replace struct{}
 
-func (*Replace) Call(args []zed.Value) (zed.Value, error) {
+func (*Replace) Call(args []zed.Value) *zed.Value {
 	zvs := args[0]
 	zvold := args[1]
 	zvnew := args[2]
@@ -46,7 +46,7 @@ type RuneLen struct {
 	result.Buffer
 }
 
-func (s *RuneLen) Call(args []zed.Value) (zed.Value, error) {
+func (s *RuneLen) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("rune_len")
@@ -65,7 +65,7 @@ func (s *RuneLen) Call(args []zed.Value) (zed.Value, error) {
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_lower
 type ToLower struct{}
 
-func (*ToLower) Call(args []zed.Value) (zed.Value, error) {
+func (*ToLower) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("to_lower")
@@ -85,7 +85,7 @@ func (*ToLower) Call(args []zed.Value) (zed.Value, error) {
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#to_upper
 type ToUpper struct{}
 
-func (*ToUpper) Call(args []zed.Value) (zed.Value, error) {
+func (*ToUpper) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("to_upper")
@@ -105,7 +105,7 @@ func (*ToUpper) Call(args []zed.Value) (zed.Value, error) {
 type Trim struct{}
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#trim
-func (*Trim) Call(args []zed.Value) (zed.Value, error) {
+func (*Trim) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	if !zv.IsStringy() {
 		return badarg("trim")
@@ -131,7 +131,7 @@ func newSplit(zctx *zed.Context) *Split {
 	}
 }
 
-func (s *Split) Call(args []zed.Value) (zed.Value, error) {
+func (s *Split) Call(args []zed.Value) *zed.Value {
 	zs := args[0]
 	zsep := args[1]
 	if !zs.IsStringy() || !zsep.IsStringy() {
@@ -163,7 +163,7 @@ type Join struct {
 	builder strings.Builder
 }
 
-func (j *Join) Call(args []zed.Value) (zed.Value, error) {
+func (j *Join) Call(args []zed.Value) *zed.Value {
 	zsplits := args[0]
 	typ, ok := zed.AliasOf(zsplits.Type).(*zed.TypeArray)
 	if !ok {

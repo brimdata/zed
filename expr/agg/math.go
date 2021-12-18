@@ -4,12 +4,13 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/anymath"
 	"github.com/brimdata/zed/expr/coerce"
+	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/pkg/nano"
 )
 
 type consumer interface {
-	result() zed.Value
-	consume(zed.Value) error
+	result() *zed.Value
+	consume(*zed.Value)
 }
 
 type mathReducer struct {
@@ -24,27 +25,28 @@ func newMathReducer(f *anymath.Function) *mathReducer {
 	return &mathReducer{function: f}
 }
 
-func (m *mathReducer) Result(*zed.Context) zed.Value {
+func (m *mathReducer) Result(*zed.Context) *zed.Value {
 	if m.math == nil {
 		if m.typ == nil {
 			return zed.Null
 		}
-		return zed.Value{Type: m.typ}
+		return &zed.Value{Type: m.typ}
 	}
 	return m.math.result()
 }
 
-func (m *mathReducer) Consume(v zed.Value) {
-	//XXX why would type be nil here?
-	if v.Type != nil {
-		m.consumeVal(v)
+func (m *mathReducer) Consume(val *zed.Value) {
+	if !val.IsNull() {
+		m.consumeVal(val)
 	}
 }
 
-func (m *mathReducer) consumeVal(val zed.Value) {
+func (m *mathReducer) consumeVal(val *zed.Value) {
 	// A numerical reducer inherits the type of the first numeric
 	// value it sees and coerces all future instances of this value
 	// to this initial type.
+	//XXX this isn't right... we should be more robust and go from
+	// unsigned to signed to float
 	if m.typ == nil {
 		m.typ = val.Type
 	}
@@ -68,22 +70,20 @@ func (m *mathReducer) consumeVal(val zed.Value) {
 			return
 		}
 	}
-	if m.math.consume(val) == zed.ErrTypeMismatch {
-		//m.TypeMismatch++
-	}
 }
 
-func (m *mathReducer) ResultAsPartial(*zed.Context) zed.Value {
+func (m *mathReducer) ResultAsPartial(*zed.Context) *zed.Value {
 	return m.Result(nil)
 }
 
-func (m *mathReducer) ConsumeAsPartial(v zed.Value) {
-	m.consumeVal(v)
+func (m *mathReducer) ConsumeAsPartial(val *zed.Value) {
+	m.consumeVal(val)
 }
 
 type Float64 struct {
 	state    float64
 	function anymath.Float64
+	stash    result.Value
 }
 
 func NewFloat64(f *anymath.Function) *Float64 {
@@ -93,21 +93,20 @@ func NewFloat64(f *anymath.Function) *Float64 {
 	}
 }
 
-func (f *Float64) result() zed.Value {
-	return zed.NewFloat64(f.state)
+func (f *Float64) result() *zed.Value {
+	return f.stash.Float64(f.state)
 }
 
-func (f *Float64) consume(v zed.Value) error {
-	if v, ok := coerce.ToFloat(v); ok {
+func (f *Float64) consume(val *zed.Value) {
+	if v, ok := coerce.ToFloat(*val); ok {
 		f.state = f.function(f.state, v)
-		return nil
 	}
-	return zed.ErrTypeMismatch
 }
 
 type Int64 struct {
 	state    int64
 	function anymath.Int64
+	stash    result.Value
 }
 
 func NewInt64(f *anymath.Function) *Int64 {
@@ -117,21 +116,20 @@ func NewInt64(f *anymath.Function) *Int64 {
 	}
 }
 
-func (i *Int64) result() zed.Value {
-	return zed.Value{zed.TypeInt64, zed.EncodeInt(i.state)}
+func (i *Int64) result() *zed.Value {
+	return i.stash.Int64(i.state)
 }
 
-func (i *Int64) consume(v zed.Value) error {
-	if v, ok := coerce.ToInt(v); ok {
+func (i *Int64) consume(val *zed.Value) {
+	if v, ok := coerce.ToInt(*val); ok {
 		i.state = i.function(i.state, v)
-		return nil
 	}
-	return zed.ErrTypeMismatch
 }
 
 type Uint64 struct {
 	state    uint64
 	function anymath.Uint64
+	stash    result.Value
 }
 
 func NewUint64(f *anymath.Function) *Uint64 {
@@ -141,21 +139,20 @@ func NewUint64(f *anymath.Function) *Uint64 {
 	}
 }
 
-func (u *Uint64) result() zed.Value {
-	return zed.Value{zed.TypeUint64, zed.EncodeUint(u.state)}
+func (u *Uint64) result() *zed.Value {
+	return u.stash.Uint64(u.state)
 }
 
-func (u *Uint64) consume(v zed.Value) error {
-	if v, ok := coerce.ToUint(v); ok {
+func (u *Uint64) consume(val *zed.Value) {
+	if v, ok := coerce.ToUint(*val); ok {
 		u.state = u.function(u.state, v)
-		return nil
 	}
-	return zed.ErrTypeMismatch
 }
 
 type Duration struct {
 	state    int64
 	function anymath.Int64
+	stash    result.Value
 }
 
 func NewDuration(f *anymath.Function) *Duration {
@@ -165,21 +162,20 @@ func NewDuration(f *anymath.Function) *Duration {
 	}
 }
 
-func (d *Duration) result() zed.Value {
-	return zed.NewDuration(nano.Duration(d.state))
+func (d *Duration) result() *zed.Value {
+	return d.stash.Duration(nano.Duration(d.state))
 }
 
-func (d *Duration) consume(v zed.Value) error {
-	if v, ok := coerce.ToDuration(v); ok {
+func (d *Duration) consume(val *zed.Value) {
+	if v, ok := coerce.ToDuration(*val); ok {
 		d.state = d.function(d.state, int64(v))
-		return nil
 	}
-	return zed.ErrTypeMismatch
 }
 
 type Time struct {
 	state    nano.Ts
 	function anymath.Int64
+	stash    result.Value
 }
 
 func NewTime(f *anymath.Function) *Time {
@@ -189,14 +185,12 @@ func NewTime(f *anymath.Function) *Time {
 	}
 }
 
-func (t *Time) result() zed.Value {
-	return zed.NewTime(t.state)
+func (t *Time) result() *zed.Value {
+	return t.stash.Time(t.state)
 }
 
-func (t *Time) consume(v zed.Value) error {
-	if v, ok := coerce.ToTime(v); ok {
+func (t *Time) consume(val *zed.Value) {
+	if v, ok := coerce.ToTime(*val); ok {
 		t.state = nano.Ts(t.function(int64(t.state), int64(v)))
-		return nil
 	}
-	return zed.ErrTypeMismatch
 }

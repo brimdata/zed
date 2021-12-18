@@ -297,7 +297,7 @@ func (c *Context) LookupTypeValue(typ Type) Value {
 	typ, err := c.LookupByValue(tv)
 	if err != nil {
 		// This shouldn't happen...
-		return Missing
+		return MissingVal
 	}
 	return c.LookupTypeValue(typ)
 }

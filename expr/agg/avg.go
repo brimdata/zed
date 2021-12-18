@@ -16,21 +16,25 @@ type Avg struct {
 
 var _ Function = (*Avg)(nil)
 
-func (a *Avg) Consume(v zed.Value) {
-	if v.Bytes == nil {
+func (a *Avg) Consume(val *zed.Value) {
+	if val.IsNull() {
 		return
 	}
-	if d, ok := coerce.ToFloat(v); ok {
+	//XXX ToFloat take ptr
+	if d, ok := coerce.ToFloat(*val); ok {
 		a.sum += float64(d)
 		a.count++
 	}
 }
 
-func (a *Avg) Result(*zed.Context) zed.Value {
+func (a *Avg) Result(*zed.Context) *zed.Value {
 	if a.count > 0 {
-		return zed.NewFloat64(a.sum / float64(a.count))
+		avg := a.sum / float64(a.count)
+		return zed.NewValue(zed.TypeFloat64, zed.EncodeFloat64(avg))
 	}
-	return zed.Value{Type: zed.TypeFloat64}
+	//XXX make singleton of each primitive null
+	//XXX type context could keep singletons of complex nulls
+	return &zed.Value{Type: zed.TypeFloat64}
 }
 
 const (
@@ -38,11 +42,11 @@ const (
 	countName = "count"
 )
 
-func (a *Avg) ConsumeAsPartial(partial zed.Value) {
+func (a *Avg) ConsumeAsPartial(partial *zed.Value) {
 	//XXX this is too clunky.. need better help from Zed
 	recType := zed.TypeRecordOf(partial.Type)
 	if recType == nil {
-		panic(fmt.Errorf("avg: partial is not a record: %s", zson.MustFormatValue(partial)))
+		panic(fmt.Errorf("avg: partial is not a record: %s", zson.MustFormatValue(*partial)))
 	}
 	//XXX we should have a Value method that does the right thing
 	rec := zed.NewValue(recType, partial.Bytes)
@@ -72,7 +76,7 @@ func (a *Avg) ConsumeAsPartial(partial zed.Value) {
 	a.count += count
 }
 
-func (a *Avg) ResultAsPartial(zctx *zed.Context) zed.Value {
+func (a *Avg) ResultAsPartial(zctx *zed.Context) *zed.Value {
 	var zv zcode.Bytes
 	zv = zed.NewFloat64(a.sum).Encode(zv)
 	zv = zed.NewUint64(a.count).Encode(zv)
@@ -85,5 +89,5 @@ func (a *Avg) ResultAsPartial(zctx *zed.Context) zed.Value {
 	if err != nil {
 		return zed.Null
 	}
-	return zed.Value{Type: typ, Bytes: zv}
+	return zed.NewValue(typ, zv)
 }
