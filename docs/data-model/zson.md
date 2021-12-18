@@ -1,4 +1,4 @@
-# ZSON - Zed Structured Original Notation
+# ZSON - Zed Super-structured Open Notation
 
 * [1. Introduction](#1-introduction)
 * [2. The ZSON Format](#2-the-zson-format)
@@ -30,7 +30,7 @@
 ## 1. Introduction
 
 ZSON is the human-readable, text-based serialization format of
-the [Zed data model](zed.md).
+the super-structured [Zed data model](zed.md).
 
 ZSON builds upon the elegant simplicity of JSON with "type decorators".
 Where the type of a value is not implied by its syntax, a parenthesized
