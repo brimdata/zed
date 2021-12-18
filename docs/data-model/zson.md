@@ -510,8 +510,7 @@ the defines their type.
 
 <decorators> = "(" <type> ")" | <decorators> "(" <type> ")"
 
-<any> = <primitive> | <record> | <array> | <set> |
-            <union> | <enum> | <map> | <type-val>
+<any> = <primitive> | <record> | <array> | <set> | <enum> | <map> | <type-val>
 
 <primitive> = primitive value as defined above
 
@@ -519,7 +518,7 @@ the defines their type.
 
 <flist> = <flist> "," <field> | <field>
 
-<field> = <name> ":" <value> | <value>
+<field> = <name> ":" <value>
 
 <name> = <identifier> | <quoted-string>
 
@@ -532,8 +531,6 @@ the defines their type.
 <vlist> = <vlist> "," <value> | <value>
 
 <set> = "|[" <vlist> "]|"  |  "|["  "]|"
-
-<union> = <value>
 
 <enum> = "%" ( <name> | <quoted-string> )
 
@@ -551,7 +548,7 @@ the defines their type.
             <union-type> | <enum-type> | <map-type> |
             <type-def> | <name> | <error-type>
 
-<primitive-type> = uint8 | uint16 | etc. as defined above including "type"
+<primitive-type> = uint8 | uint16 | etc. as defined above
 
 <record-type> = "{" <tflist> "}"  |  "{" "}"
 
@@ -567,7 +564,9 @@ the defines their type.
 
 <tlist> = <tlist> "," <type> | <type>
 
-<enum-type> = "%{" <flist> "}"
+<enum-type> = "%{" <nlist> "}"
+
+<nlist> = <nlist> "," <name> | <name>
 
 <map-type> = "{" <type> "," <type> "}"
 
