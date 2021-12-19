@@ -81,14 +81,10 @@ func (p *Proc) maybeWarn(err error) {
 	}
 }
 
-func (p *Proc) eval(in *zed.Value) ([]zed.Value, error) {
+func (p *Proc) eval(in *zed.Value, scope *expr.Scope) ([]zed.Value, error) {
 	vals := p.vals
 	for k, cl := range p.clauses {
-		var err error
-		vals[k], err = cl.RHS.Eval(in)
-		if err != nil {
-			return nil, err
-		}
+		vals[k] = *cl.RHS.Eval(in, scope)
 	}
 	return vals, nil
 }
@@ -338,8 +334,8 @@ func (p *Proc) lookupRule(inType *zed.TypeRecord, vals []zed.Value) (putRule, er
 	return rule, err
 }
 
-func (p *Proc) put(in *zed.Value) (*zed.Value, error) {
-	vals, err := p.eval(in)
+func (p *Proc) put(in *zed.Value, scope *expr.Scope) (*zed.Value, error) {
+	vals, err := p.eval(in, scope)
 	if err != nil {
 		p.maybeWarn(err)
 		return in, nil
@@ -361,10 +357,11 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	if proc.EOS(batch, err) {
 		return nil, err
 	}
+	scope := batch.Scope()
 	vals := batch.Values()
 	recs := make([]zed.Value, 0, len(vals))
 	for i := range vals {
-		rec, err := p.put(&vals[i])
+		rec, err := p.put(&vals[i], scope)
 		if err != nil {
 			return nil, err
 		}

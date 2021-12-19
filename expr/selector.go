@@ -15,6 +15,8 @@ type Selector struct {
 	zv        *zed.Value
 }
 
+var _ Generator = (*Selector)(nil)
+
 func NewSelector(selectors []Evaluator) *Selector {
 	return &Selector{selectors: selectors}
 }

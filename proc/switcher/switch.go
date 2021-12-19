@@ -73,9 +73,10 @@ func (s *Switcher) run() {
 			s.sendEOS(proc.Result{batch, err})
 			continue
 		}
+		scope := batch.Scope()
 		vals := batch.Values()
 		for i := range vals {
-			if j := s.match(&vals[i]); j >= 0 {
+			if j := s.match(&vals[i], scope); j >= 0 {
 				if records[j] == nil {
 					records[j] = make([]zed.Value, 0, len(vals))
 				}
@@ -94,9 +95,9 @@ func (s *Switcher) run() {
 	s.parent.Done()
 }
 
-func (s *Switcher) match(rec *zed.Value) int {
+func (s *Switcher) match(rec *zed.Value, scope *expr.Scope) int {
 	for i, f := range s.filters {
-		if f(rec) {
+		if f(rec, scope) {
 			return i
 		}
 	}

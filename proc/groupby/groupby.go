@@ -253,12 +253,13 @@ func (p *Proc) shutdown(err error) {
 }
 
 // Consume adds a value to an aggregation.
-func (a *Aggregator) Consume(this *zed.Value, scope *expr.Scope) error {
+// XXX seems like this should return do add non-missing Zed errors to a column...
+func (a *Aggregator) Consume(this *zed.Value, scope *expr.Scope) {
 	// First check if we've seen this descriptor and whether it is blocked.
 	id := this.Type.ID()
 	if _, ok := a.block[id]; ok {
 		// descriptor blocked since it doesn't have all the group-by keys
-		return nil
+		return
 	}
 
 	// See if we've encountered this row before.
@@ -292,12 +293,12 @@ func (a *Aggregator) Consume(this *zed.Value, scope *expr.Scope) error {
 			if key == zed.Missing {
 				// block this input type
 				a.block[id] = struct{}{}
-				return nil
+				return
 			}
 			// XXX Silently ignore errors.  We should add
 			// an error column and collect up the errors to
 			// some limit.
-			return nil
+			return
 		}
 		if i == 0 && a.inputDir != 0 {
 			prim = a.updateMaxTableKey(key)
@@ -317,7 +318,8 @@ func (a *Aggregator) Consume(this *zed.Value, scope *expr.Scope) error {
 	if !ok {
 		if len(a.table) >= a.limit {
 			if err := a.spillTable(false, scope); err != nil {
-				return err
+				//XXX check that this is ok
+				panic(err)
 			}
 		}
 		row = &Row{
@@ -329,9 +331,9 @@ func (a *Aggregator) Consume(this *zed.Value, scope *expr.Scope) error {
 	}
 
 	if a.partialsIn {
-		return row.reducers.consumeAsPartial(this, a.aggRefs)
+		row.reducers.consumeAsPartial(this, a.aggRefs, scope)
 	}
-	return row.reducers.apply(a.aggs, this)
+	row.reducers.apply(a.aggs, this, scope)
 }
 
 func (a *Aggregator) spillTable(eof bool, scope *expr.Scope) error {
@@ -451,9 +453,7 @@ func (a *Aggregator) nextResultFromSpills(scope *expr.Scope) (*zed.Value, error)
 		} else if a.keysCompare(firstRec, rec) != 0 {
 			break
 		}
-		if err := row.consumeAsPartial(rec, a.aggRefs); err != nil {
-			return nil, err
-		}
+		row.consumeAsPartial(rec, a.aggRefs, scope)
 		if _, err := a.spiller.Read(); err != nil {
 			return nil, err
 		}

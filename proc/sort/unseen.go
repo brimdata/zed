@@ -23,7 +23,7 @@ func newUnseenFieldTracker(fields []expr.Evaluator) *unseenFieldTracker {
 	}
 }
 
-func (u *unseenFieldTracker) update(rec *zed.Value) {
+func (u *unseenFieldTracker) update(rec *zed.Value, scope *expr.Scope) {
 	recType := zed.TypeRecordOf(rec.Type)
 	if len(u.unseenFields) == 0 || u.seenTypes[recType] {
 		// Either have seen this type or nothing to unsee anymore.
@@ -31,8 +31,8 @@ func (u *unseenFieldTracker) update(rec *zed.Value) {
 	}
 	u.seenTypes[recType] = true
 	for field := range u.unseenFields {
-		v, _ := field.Eval(rec)
-		if !v.IsNil() {
+		val := field.Eval(rec, scope)
+		if !val.IsNil() {
 			delete(u.unseenFields, field)
 		}
 	}

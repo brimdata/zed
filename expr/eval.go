@@ -574,7 +574,7 @@ func (m *Modulo) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	if zed.IsFloat(id) || !zed.IsNumber(id) {
-		return m.result.Errorf("bad type '%': %s", zed.LookupPrimitiveByID(id))
+		return m.result.Errorf("bad type '%%': %s", zed.LookupPrimitiveByID(id))
 	}
 	if zed.IsSigned(id) {
 		x, y := m.operands.ints()

@@ -16,24 +16,19 @@ func newValRow(aggs []*expr.Aggregator) valRow {
 	return cols
 }
 
-func (v valRow) apply(aggs []*expr.Aggregator, rec *zed.Value) error {
+func (v valRow) apply(aggs []*expr.Aggregator, this *zed.Value, scope *expr.Scope) {
 	for k, a := range aggs {
-		if err := a.Apply(v[k], rec); err != nil {
-			return err
-		}
+		a.Apply(v[k], this, scope)
 	}
-	return nil
 }
 
-func (v valRow) consumeAsPartial(rec *zed.Value, vals []expr.Evaluator) error {
+func (v valRow) consumeAsPartial(rec *zed.Value, exprs []expr.Evaluator, scope *expr.Scope) {
 	for k, r := range v {
-		v, err := vals[k].Eval(rec)
-		if err != nil {
-			return err
-		}
-		if err := r.ConsumeAsPartial(v); err != nil {
-			return err
+		val := exprs[k].Eval(rec, scope)
+		//XXX should do soemthing with errors... they could come from
+		// a worker over the network?
+		if !val.IsError() {
+			r.ConsumeAsPartial(val)
 		}
 	}
-	return nil
 }

@@ -54,7 +54,7 @@ func compileExpr(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Evaluator, e
 		if err != nil {
 			return nil, err
 		}
-		return expr.NewLiteral(zv), nil
+		return expr.NewLiteral(&zv), nil
 	case *dag.Ref:
 		// If the reference refers to a named variable in scope (like "$"),
 		// then return a Var expression referring to the pointer to the value.
@@ -71,7 +71,7 @@ func compileExpr(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Evaluator, e
 		}
 		return expr.FilterEvaluator(f), nil
 	case *dag.Path:
-		return expr.NewDotExpr(field.Path(e.Name)), nil
+		return expr.NewDottedExpr(field.Path(e.Name)), nil
 	case *dag.Dot:
 		return compileDotExpr(zctx, scope, e)
 	case *dag.UnaryExpr:
@@ -154,7 +154,7 @@ func compileBinary(zctx *zed.Context, scope *Scope, e *dag.BinaryExpr) (expr.Eva
 	case "+", "-", "*", "/", "%":
 		return expr.NewArithmetic(lhs, rhs, op)
 	case "[":
-		return expr.NewIndexExpr(zctx, lhs, rhs)
+		return expr.NewIndexExpr(zctx, lhs, rhs), nil
 	default:
 		return nil, fmt.Errorf("Z kernel: invalid binary operator %s", op)
 	}
@@ -197,39 +197,41 @@ func compileSeqExpr(zctx *zed.Context, scope *Scope, seq *dag.SeqExpr) (expr.Eva
 }
 
 func compileMethod(zctx *zed.Context, scope *Scope, src expr.Generator, method dag.Method) (expr.Generator, error) {
-	switch method.Name {
-	case "map":
-		if len(method.Args) != 1 {
-			return nil, errors.New("map() method requires one argument")
-		}
-		mapMethod := expr.NewMapMethod(src)
-		scope.Enter()
-		defer scope.Exit()
-		scope.Bind("$", mapMethod.Ref())
-		mapExpr, err := compileExpr(zctx, scope, method.Args[0])
-		if err != nil {
-			return nil, err
-		}
-		mapMethod.Set(mapExpr)
-		return mapMethod, nil
-	case "filter":
-		if len(method.Args) != 1 {
-			return nil, errors.New("filter() method requires one argument")
-		}
-		filterMethod := expr.NewFilterMethod(src)
-		scope.Enter()
-		defer scope.Exit()
-		scope.Bind("$", filterMethod.Ref())
-		filterExpr, err := compileExpr(zctx, scope, method.Args[0])
-		if err != nil {
-			fmt.Println("ERR", err)
-			return nil, err
-		}
-		filterMethod.Set(filterExpr)
-		return filterMethod, nil
-	default:
-		return nil, fmt.Errorf("uknown method: %s", method.Name)
-	}
+	return nil, errors.New("select map deprecated")
+	/*
+		switch method.Name {
+		case "map":
+			if len(method.Args) != 1 {
+				return nil, errors.New("map() method requires one argument")
+			}
+			mapMethod := expr.NewMapMethod(src)
+			scope.Enter()
+			defer scope.Exit()
+			scope.Bind("$", mapMethod.Ref())
+			mapExpr, err := compileExpr(zctx, scope, method.Args[0])
+			if err != nil {
+				return nil, err
+			}
+			mapMethod.Set(mapExpr)
+			return mapMethod, nil
+		case "filter":
+			if len(method.Args) != 1 {
+				return nil, errors.New("filter() method requires one argument")
+			}
+			filterMethod := expr.NewFilterMethod(src)
+			scope.Enter()
+			defer scope.Exit()
+			scope.Bind("$", filterMethod.Ref())
+			filterExpr, err := compileExpr(zctx, scope, method.Args[0])
+			if err != nil {
+				fmt.Println("ERR", err)
+				return nil, err
+			}
+			filterMethod.Set(filterExpr)
+			return filterMethod, nil
+		default:
+			return nil, fmt.Errorf("uknown method: %s", method.Name)
+		}*/
 }
 
 func compileUnary(zctx *zed.Context, scope *Scope, unary dag.UnaryExpr) (expr.Evaluator, error) {
@@ -275,7 +277,7 @@ func compileDotExpr(zctx *zed.Context, scope *Scope, dot *dag.Dot) (expr.Evaluat
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewDotAccess(record, dot.RHS), nil
+	return expr.NewDotExpr(record, dot.RHS), nil
 }
 
 func compileCast(zctx *zed.Context, scope *Scope, node dag.Cast) (expr.Evaluator, error) {

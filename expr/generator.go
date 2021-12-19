@@ -7,7 +7,7 @@ import (
 
 type Generator interface {
 	Init(*zed.Value)
-	Next() *zed.Value
+	Next(*Scope) *zed.Value
 }
 
 /*
@@ -111,7 +111,7 @@ func (a *AggExpr) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	f := a.newAgg()
 	a.src.Init(this)
 	for {
-		val := a.src.Next()
+		val := a.src.Next(scope)
 		if val == zed.Missing {
 			continue
 		}

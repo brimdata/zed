@@ -65,7 +65,7 @@ func (p *Proc) Done() {
 func (p *Proc) consume(rec *zed.Value) {
 	if p.fields == nil {
 		fld := sort.GuessSortKey(rec)
-		accessor := expr.NewDotExpr(fld)
+		accessor := expr.NewDottedExpr(fld)
 		p.fields = []expr.Evaluator{accessor}
 	}
 	if p.records == nil {
