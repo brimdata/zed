@@ -15,6 +15,7 @@ import (
 	"github.com/brimdata/zed/zson"
 )
 
+//XXX git rid of these?
 var ErrIncompatibleTypes = coerce.ErrIncompatibleTypes
 var ErrIndexOutOfBounds = errors.New("array index out of bounds")
 var ErrNotContainer = errors.New("cannot apply in to a non-container")
@@ -286,6 +287,42 @@ func (n *numeric) eval(this *zed.Value, scope *Scope) (int, error) {
 	return n.vals.Coerce(*lhs, *rhs)
 }
 
+func (n *numeric) floats() (float64, float64) {
+	a, err := zed.DecodeFloat(n.vals.A)
+	if err != nil {
+		panic(err)
+	}
+	b, err := zed.DecodeFloat(n.vals.B)
+	if err != nil {
+		panic(err)
+	}
+	return a, b
+}
+
+func (n *numeric) ints() (int64, int64) {
+	a, err := zed.DecodeInt(n.vals.A)
+	if err != nil {
+		panic(err)
+	}
+	b, err := zed.DecodeInt(n.vals.B)
+	if err != nil {
+		panic(err)
+	}
+	return a, b
+}
+
+func (n *numeric) uints() (uint64, uint64) {
+	a, err := zed.DecodeUint(n.vals.A)
+	if err != nil {
+		panic(err)
+	}
+	b, err := zed.DecodeUint(n.vals.B)
+	if err != nil {
+		panic(err)
+	}
+	return a, b
+}
+
 type Compare struct {
 	numeric
 	convert func(int) bool
@@ -348,24 +385,21 @@ func (c *Compare) Eval(this *zed.Value, scope *Scope) *zed.Value {
 		case c.vals.A == nil || c.vals.B == nil:
 			return zed.False
 		case zed.IsFloat(id):
-			v1, _ := zed.DecodeFloat(c.vals.A)
-			v2, _ := zed.DecodeFloat(c.vals.B)
+			v1, v2 := c.floats()
 			if v1 < v2 {
 				result = -1
 			} else {
 				result = 1
 			}
 		case zed.IsSigned(id):
-			v1, _ := zed.DecodeInt(c.vals.A)
-			v2, _ := zed.DecodeInt(c.vals.B)
+			v1, v2 := c.ints()
 			if v1 < v2 {
 				result = -1
 			} else {
 				result = 1
 			}
 		case zed.IsNumber(id):
-			v1, _ := zed.DecodeUint(c.vals.A)
-			v2, _ := zed.DecodeUint(c.vals.B)
+			v1, v2 := c.uints()
 			if v1 < v2 {
 				result = -1
 			} else {
@@ -443,26 +477,25 @@ func (a *Add) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	if err != nil {
 		return a.result.Error(err)
 	}
+	typ := zed.LookupPrimitiveByID(id)
 	switch {
 	case zed.IsFloat(id):
-		v1, _ := zed.DecodeFloat64(a.operands.vals.A)
-		v2, _ := zed.DecodeFloat64(a.operands.vals.B)
-		return a.result.Float64(v1 + v2)
+		v1, v2 := a.operands.floats()
+		return a.result.Float(typ, v1+v2)
 	case zed.IsSigned(id):
-		v1, _ := zed.DecodeInt(a.operands.vals.A)
-		v2, _ := zed.DecodeInt(a.operands.vals.B)
-		return a.result.Int64(v1 + v2)
+		v1, v2 := a.operands.ints()
+		return a.result.Int(typ, v1+v2)
 	case zed.IsNumber(id):
-		v1, _ := zed.DecodeUint(a.operands.vals.A)
-		v2, _ := zed.DecodeUint(a.operands.vals.B)
-		return a.result.Uint64(v1 + v2)
+		v1, v2 := a.operands.uints()
+		return a.result.Uint(typ, v1+v2)
 	case zed.IsStringy(id):
 		v1, _ := zed.DecodeString(a.operands.vals.A)
 		v2, _ := zed.DecodeString(a.operands.vals.B)
+		//XXX stringy going away with structure errors and no bstring
 		// XXX GC
 		return a.result.String(v1 + v2)
 	}
-	return a.result.Errorf("bad type '+': %s", zed.LookupPrimitiveByID(id))
+	return a.result.Errorf("bad type '+': %s", typ)
 }
 
 func (s *Subtract) Eval(this *zed.Value, scope *Scope) *zed.Value {
@@ -473,17 +506,14 @@ func (s *Subtract) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
 	case zed.IsFloat(id):
-		v1, _ := zed.DecodeFloat64(s.operands.vals.A)
-		v2, _ := zed.DecodeFloat64(s.operands.vals.B)
-		return s.result.Float64(v1 - v2)
+		v1, v2 := s.operands.floats()
+		return s.result.Float(typ, v1-v2)
 	case zed.IsSigned(id):
-		v1, _ := zed.DecodeInt(s.operands.vals.A)
-		v2, _ := zed.DecodeInt(s.operands.vals.B)
-		return s.result.Int64(v1 - v2)
+		v1, v2 := s.operands.ints()
+		return s.result.Int(typ, v1-v2)
 	case zed.IsNumber(id):
-		v1, _ := zed.DecodeUint(s.operands.vals.A)
-		v2, _ := zed.DecodeUint(s.operands.vals.B)
-		return s.result.Uint64(v1 - v2)
+		v1, v2 := s.operands.uints()
+		return s.result.Uint(typ, v1-v2)
 	}
 	return s.result.Errorf("bad type '-': %s", zed.LookupPrimitiveByID(id))
 }
@@ -496,17 +526,14 @@ func (m *Multiply) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	typ := zed.LookupPrimitiveByID(id)
 	switch {
 	case zed.IsFloat(id):
-		v1, _ := zed.DecodeFloat64(m.operands.vals.A)
-		v2, _ := zed.DecodeFloat64(m.operands.vals.B)
-		return m.result.Float64(v1 * v2)
+		v1, v2 := m.operands.floats()
+		return m.result.Float(typ, v1*v2)
 	case zed.IsSigned(id):
-		v1, _ := zed.DecodeInt(m.operands.vals.A)
-		v2, _ := zed.DecodeInt(m.operands.vals.B)
-		return m.result.Int64(v1 * v2)
+		v1, v2 := m.operands.ints()
+		return m.result.Int(typ, v1*v2)
 	case zed.IsNumber(id):
-		v1, _ := zed.DecodeUint(m.operands.vals.A)
-		v2, _ := zed.DecodeUint(m.operands.vals.B)
-		return m.result.Uint64(v1 * v2)
+		v1, v2 := m.operands.uints()
+		return m.result.Uint(typ, v1*v2)
 	}
 	return m.result.Errorf("bad type '*': %s", zed.LookupPrimitiveByID(id))
 }
@@ -516,30 +543,28 @@ func (d *Divide) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	if err != nil {
 		return d.result.Error(err)
 	}
+	typ := zed.LookupPrimitiveByID(id)
 	switch {
 	case zed.IsFloat(id):
-		v1, _ := zed.DecodeFloat64(d.operands.vals.A)
-		v2, _ := zed.DecodeFloat64(d.operands.vals.B)
+		v1, v2 := d.operands.floats()
 		if v2 == 0 {
 			return DivideByZero
 		}
-		return d.result.Float64(v1 / v2)
+		return d.result.Float(typ, v1/v2)
 	case zed.IsSigned(id):
-		v1, _ := zed.DecodeInt(d.operands.vals.A)
-		v2, _ := zed.DecodeInt(d.operands.vals.B)
+		v1, v2 := d.operands.ints()
 		if v2 == 0 {
 			return DivideByZero
 		}
-		return d.result.Int64(v1 / v2)
+		return d.result.Int(typ, v1/v2)
 	case zed.IsNumber(id):
-		v1, _ := zed.DecodeUint(d.operands.vals.A)
-		v2, _ := zed.DecodeUint(d.operands.vals.B)
+		v1, v2 := d.operands.uints()
 		if v2 == 0 {
 			return DivideByZero
 		}
-		return d.result.Uint64(v1 / v2)
+		return d.result.Uint(typ, v1/v2)
 	}
-	return d.result.Errorf("bad type '/': %s", zed.LookupPrimitiveByID(id))
+	return d.result.Errorf("bad type '/': %s", typ)
 }
 
 func (m *Modulo) Eval(this *zed.Value, scope *Scope) *zed.Value {
@@ -552,19 +577,17 @@ func (m *Modulo) Eval(this *zed.Value, scope *Scope) *zed.Value {
 		return m.result.Errorf("bad type '%': %s", zed.LookupPrimitiveByID(id))
 	}
 	if zed.IsSigned(id) {
-		x, _ := zed.DecodeInt(m.operands.vals.A)
-		y, _ := zed.DecodeInt(m.operands.vals.B)
+		x, y := m.operands.ints()
 		if y == 0 {
 			return DivideByZero
 		}
-		return m.result.Int64(x % y)
+		return m.result.Int(typ, x%y)
 	}
-	x, _ := zed.DecodeUint(m.operands.vals.A)
-	y, _ := zed.DecodeUint(m.operands.vals.B)
+	x, y := m.operands.uints()
 	if y == 0 {
 		return DivideByZero
 	}
-	return m.result.Uint64(x % y)
+	return m.result.Uint(typ, x%y)
 }
 
 func getNthFromContainer(container zcode.Bytes, idx uint) zcode.Bytes {

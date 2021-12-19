@@ -8,25 +8,31 @@ import (
 type Value zed.Value
 
 func (v *Value) Int64(native int64) *zed.Value {
-	v.Type = zed.TypeInt64
+	return v.Int(zed.TypeInt64, native)
+}
+
+func (v *Value) Int(typ zed.Type, native int64) *zed.Value {
+	v.Type = typ
 	v.Bytes = zed.AppendInt(v.Bytes[:0], native)
 	return (*zed.Value)(v)
 }
 
 func (v *Value) Uint64(native uint64) *zed.Value {
-	v.Type = zed.TypeUint64
+	return v.Uint(zed.TypeUint64, native)
+}
+
+func (v *Value) Uint(typ zed.Type, native uint64) *zed.Value {
+	v.Type = typ
 	v.Bytes = zed.AppendUint(v.Bytes[:0], native)
 	return (*zed.Value)(v)
 }
 
-func (v *Value) Float32(native float32) *zed.Value {
-	v.Type = zed.TypeFloat32
-	v.Bytes = zed.AppendFloat32(v.Bytes[:0], native)
-	return (*zed.Value)(v)
+func (v *Value) Float64(native float64) *zed.Value {
+	return v.Float(zed.TypeFloat64, native)
 }
 
-func (v *Value) Float64(native float64) *zed.Value {
-	v.Type = zed.TypeFloat64
+func (v *Value) Float(typ zed.Type, native float64) *zed.Value {
+	v.Type = typ
 	v.Bytes = zed.AppendFloat64(v.Bytes[:0], native)
 	return (*zed.Value)(v)
 }
