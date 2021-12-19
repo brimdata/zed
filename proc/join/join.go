@@ -108,7 +108,7 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 		// Batch and lives in a pool so the downstream user can
 		// release the batch with and bypass GC.
 		for _, rightRec := range rightRecs {
-			cutRec := p.cutter.Apply(rightRec, scope)
+			cutRec := p.cutter.Eval(rightRec, scope)
 			rec, err := p.splice(leftRec, cutRec)
 			if err != nil {
 				return nil, err

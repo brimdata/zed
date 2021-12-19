@@ -24,6 +24,8 @@ type Cutter struct {
 	quiet        bool
 }
 
+var _ Applier = (*Cutter)(nil)
+
 // NewCutter returns a Cutter for fieldnames. If complement is true,
 // the Cutter copies fields that are not in fieldnames. If complement
 // is false, the Cutter copies any fields in fieldnames, where targets
@@ -71,14 +73,14 @@ func (c *Cutter) FoundCut() bool {
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
-func (c *Cutter) Apply(in *zed.Value, scope *Scope) *zed.Value {
+func (c *Cutter) Eval(in *zed.Value, scope *Scope) *zed.Value {
 	types := c.typeCache
 	b := c.builder
 	b.Reset()
 	droppers := c.dropperCache[:0]
 	for k, e := range c.fieldExprs {
 		val := e.Eval(in, scope)
-		if zed.IsMissing(val) {
+		if val == zed.Missing {
 			if c.droppers != nil {
 				if c.droppers[k] == nil {
 					c.droppers[k] = NewDropper(c.zctx, c.fieldRefs[k:k+1])
@@ -99,7 +101,7 @@ func (c *Cutter) Apply(in *zed.Value, scope *Scope) *zed.Value {
 	}
 	rec := &zed.Value{c.lookupTypeRecord(types), bytes}
 	for _, d := range droppers {
-		rec = d.Apply(rec, scope)
+		rec = d.Eval(rec, scope)
 	}
 	if rec != nil {
 		c.dirty = true
@@ -141,12 +143,4 @@ func (c *Cutter) Warning() string {
 		return ""
 	}
 	return fmt.Sprintf("no record found with columns %s", fieldList(c.fieldExprs))
-}
-
-func (c *Cutter) Eval(val *zed.Value, scope *Scope) *zed.Value {
-	out := c.Apply(val, scope)
-	if out == nil {
-		return zed.Missing
-	}
-	return out
 }

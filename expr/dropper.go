@@ -7,6 +7,12 @@ import (
 	"github.com/brimdata/zed/field"
 )
 
+type Applier interface {
+	fmt.Stringer
+	Evaluator
+	Warning() string
+}
+
 type dropper struct {
 	typ       zed.Type
 	builder   *zed.ColumnBuilder
@@ -36,6 +42,8 @@ type Dropper struct {
 	resolvers []Evaluator
 	droppers  map[int]*dropper
 }
+
+var _ Applier = (*Dropper)(nil)
 
 func NewDropper(zctx *zed.Context, fields field.List) *Dropper {
 	return &Dropper{
@@ -113,7 +121,7 @@ func (_ *Dropper) Warning() string { return "" }
 
 // Apply implements proc.Function and returns a new record comprising fields
 // that are not specified in the set of drop targets.
-func (d *Dropper) Apply(in *zed.Value, scope *Scope) *zed.Value {
+func (d *Dropper) Eval(in *zed.Value, scope *Scope) *zed.Value {
 	id := in.Type.ID()
 	dropper, ok := d.droppers[id]
 	if !ok {

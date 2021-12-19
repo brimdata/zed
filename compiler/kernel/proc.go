@@ -248,11 +248,12 @@ func (b *Builder) compileLeaf(op dag.Op, parent proc.Interface) (proc.Interface,
 
 type filterFunction expr.Filter
 
-func (f filterFunction) Apply(rec *zed.Value) (*zed.Value, error) {
-	if f(rec) {
-		return rec, nil
+func (f filterFunction) Eval(this *zed.Value, scope *expr.Scope) *zed.Value {
+	if f(this, scope) {
+		return this
 	}
-	return nil, nil
+	//XXX this seems dangerous... double check
+	return nil
 }
 
 func (_ filterFunction) String() string { return "filter" }
@@ -344,15 +345,17 @@ func (b *Builder) compileExprSwitch(swtch *dag.Switch, parents []proc.Interface)
 	s := exprswitch.New(parents[0], e)
 	var procs []proc.Interface
 	for _, c := range swtch.Cases {
+		//XXX ugh, clean this up
 		// A nil (rather than null) zed.Value indicates the default case.
-		var zv zed.Value
+		var val zed.Value
 		if c.Expr != nil {
-			zv, err = evalAtCompileTime(b.pctx.Zctx, b.scope, c.Expr)
+			v, err := evalAtCompileTime(b.pctx.Zctx, b.scope, c.Expr)
 			if err != nil {
 				return nil, err
 			}
+			val = *v
 		}
-		proc, err := b.compile(c.Op, []proc.Interface{s.NewProc(zv)})
+		proc, err := b.compile(c.Op, []proc.Interface{s.NewProc(val)})
 		if err != nil {
 			return nil, err
 		}
@@ -587,8 +590,8 @@ func (b *Builder) compileTrunk(trunk *dag.Trunk, parent proc.Interface) ([]proc.
 }
 
 func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (extent.Span, error) {
-	lower := zed.Value{zed.TypeNull, nil}
-	upper := zed.Value{zed.TypeNull, nil}
+	lower := &zed.Value{zed.TypeNull, nil}
+	upper := &zed.Value{zed.TypeNull, nil}
 	if exprLower != nil {
 		var err error
 		lower, err = evalAtCompileTime(b.pctx.Zctx, b.scope, exprLower)
@@ -606,7 +609,7 @@ func (b *Builder) compileRange(src dag.Source, exprLower, exprUpper dag.Expr) (e
 	var span extent.Span
 	if lower.Bytes != nil || upper.Bytes != nil {
 		layout := b.adaptor.Layout(b.pctx.Context, src)
-		span = extent.NewGenericFromOrder(lower, upper, layout.Order)
+		span = extent.NewGenericFromOrder(*lower, *upper, layout.Order)
 	}
 	return span, nil
 }
@@ -636,7 +639,7 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 				}
 				return err
 			}
-			scope.Bind(p.Name, &zv)
+			scope.Bind(p.Name, zv)
 
 		case *dag.TypeProc:
 			name := p.Name
@@ -658,20 +661,16 @@ func (b *Builder) LoadConsts(ops []dag.Op) error {
 	return nil
 }
 
-func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (zed.Value, error) {
+func evalAtCompileTime(zctx *zed.Context, scope *Scope, in dag.Expr) (*zed.Value, error) {
 	if in == nil {
-		return zed.Value{zed.TypeNull, nil}, nil
-	}
-	typ, err := zctx.LookupTypeRecord([]zed.Column{})
-	if err != nil {
-		return zed.Value{}, err
+		return zed.Null, nil
 	}
 	e, err := compileExpr(zctx, scope, in)
 	if err != nil {
-		return zed.Value{}, err
+		return nil, err
 	}
-	rec := zed.NewValue(typ, nil)
-	return e.Eval(rec)
+	// Pass Zed null for this and nil for compile-time scope.
+	return e.Eval(zed.Null, nil), nil
 }
 
 type readerScheduler struct {
