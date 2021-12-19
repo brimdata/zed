@@ -22,7 +22,7 @@ func (n *NetworkOf) Call(args []zed.Value) *zed.Value {
 	// XXX GC
 	ip, err := zed.DecodeIP(args[0].Bytes)
 	if err != nil {
-		panic(fmt.Errorf("network_of: corrupt Zed bytes", err))
+		panic(fmt.Errorf("network_of: corrupt Zed bytes: %w", err))
 	}
 	var mask net.IPMask
 	if len(args) == 1 {
@@ -39,7 +39,7 @@ func (n *NetworkOf) Call(args []zed.Value) *zed.Value {
 			var err error
 			cidrMask, err := zed.DecodeNet(body)
 			if err != nil {
-				panic(fmt.Errorf("network_of: corrupt Zed bytes", err))
+				panic(fmt.Errorf("network_of: corrupt Zed bytes: %w", err))
 			}
 			if !bytes.Equal(cidrMask.IP, cidrMask.Mask) {
 				n.stash = zed.NewErrorf("network_of: network arg not a cidr mask")
@@ -51,13 +51,13 @@ func (n *NetworkOf) Call(args []zed.Value) *zed.Value {
 			if zed.IsSigned(id) {
 				v, err := zed.DecodeInt(body)
 				if err != nil {
-					panic(fmt.Errorf("network_of: corrupt Zed bytes", err))
+					panic(fmt.Errorf("network_of: corrupt Zed bytes: %w", err))
 				}
 				nbits = uint(v)
 			} else {
 				v, err := zed.DecodeUint(body)
 				if err != nil {
-					panic(fmt.Errorf("network_of: corrupt Zed bytes", err))
+					panic(fmt.Errorf("network_of: corrupt Zed bytes: %w", err))
 				}
 				nbits = uint(v)
 			}

@@ -11,8 +11,6 @@ import (
 	"github.com/brimdata/zed/expr/result"
 )
 
-//XXX rework result.Buffer
-
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#abs.md
 type Abs struct {
 	stash result.Value
@@ -24,7 +22,7 @@ func (a *Abs) Call(args []zed.Value) *zed.Value {
 	if zed.IsFloat(id) {
 		f, err := zed.DecodeFloat64(v.Bytes)
 		if err != nil {
-			panic(fmt.Errorf("abs: corrupt Zed bytes", err))
+			panic(fmt.Errorf("abs: corrupt Zed bytes: %w", err))
 		}
 		f = math.Abs(f)
 		return a.stash.Float64(f)
@@ -37,7 +35,7 @@ func (a *Abs) Call(args []zed.Value) *zed.Value {
 	}
 	x, err := zed.DecodeInt(v.Bytes)
 	if err != nil {
-		panic(fmt.Errorf("abs: corrupt Zed bytes", err))
+		panic(fmt.Errorf("abs: corrupt Zed bytes: %w", err))
 	}
 	if x < 0 {
 		x = -x
@@ -57,7 +55,7 @@ func (c *Ceil) Call(args []zed.Value) *zed.Value {
 	case zed.IsFloat(id):
 		f, err := zed.DecodeFloat64(v.Bytes)
 		if err != nil {
-			panic(fmt.Errorf("floor: corrupt Zed bytes", err))
+			panic(fmt.Errorf("floor: corrupt Zed bytes: %w", err))
 		}
 		f = math.Ceil(f)
 		return c.stash.Float64(f)
@@ -105,8 +103,8 @@ func (l *Log) Call(args []zed.Value) *zed.Value {
 }
 
 type reducer struct {
-	result.Buffer
-	fn *anymath.Function
+	stash result.Value
+	fn    *anymath.Function
 }
 
 func (r *reducer) Call(args []zed.Value) *zed.Value {
@@ -114,100 +112,103 @@ func (r *reducer) Call(args []zed.Value) *zed.Value {
 	typ := zv.Type
 	id := typ.ID()
 	if zed.IsFloat(id) {
+		//XXX this is wrong like math aggregators...
+		// need to be more robust and adjust type as new types encountered
 		result, _ := zed.DecodeFloat64(zv.Bytes)
 		for _, zv := range args[1:] {
 			v, ok := coerce.ToFloat(zv)
 			if !ok {
-				return zed.Value{}, ErrBadArgument
+				return r.stash.Error(errors.New("not a number"))
 			}
 			result = r.fn.Float64(result, v)
 		}
-		return zed.Value{typ, r.Float64(result)}, nil
+		return r.stash.Float64(result)
 	}
 	if !zed.IsNumber(id) {
-		// XXX better message
-		return zed.Value{}, ErrBadArgument
+		return r.stash.Error(errors.New("not a number"))
 	}
 	if zed.IsSigned(id) {
 		result, _ := zed.DecodeInt(zv.Bytes)
 		for _, zv := range args[1:] {
+			//XXX this is really bad because we silently coerce
+			// floats to ints if we hit a float first
 			v, ok := coerce.ToInt(zv)
 			if !ok {
-				// XXX better message
-				return zed.Value{}, ErrBadArgument
+				return r.stash.Error(errors.New("not a number"))
 			}
 			result = r.fn.Int64(result, v)
 		}
-		return zed.Value{typ, r.Int(result)}, nil
+		return r.stash.Int64(result)
 	}
 	result, _ := zed.DecodeUint(zv.Bytes)
 	for _, zv := range args[1:] {
 		v, ok := coerce.ToUint(zv)
 		if !ok {
-			// XXX better message
-			return zed.Value{}, ErrBadArgument
+			//XXX this is bad
+			return r.stash.Error(errors.New("not a number"))
 		}
 		result = r.fn.Uint64(result, v)
 	}
-	return zed.Value{typ, r.Uint(result)}, nil
+	return r.stash.Uint64(result)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#round
 type Round struct {
-	result.Buffer
+	stash result.Value
 }
 
 func (r *Round) Call(args []zed.Value) *zed.Value {
 	zv := args[0]
 	id := zv.Type.ID()
 	if zed.IsFloat(id) {
-		f, _ := zed.DecodeFloat64(zv.Bytes)
-		return zed.Value{zv.Type, r.Float64(math.Round(f))}, nil
-
+		f, err := zed.DecodeFloat64(zv.Bytes)
+		if err != nil {
+			panic(fmt.Errorf("round: corrupt Zed bytes: %w", err))
+		}
+		return r.stash.Float64(math.Round(f))
 	}
 	if !zed.IsNumber(id) {
-		return badarg("round")
+		return r.stash.Error(errors.New("round: not a number"))
 	}
-	return zv, nil
+	return r.stash.Copy(&args[0])
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#pow
 type Pow struct {
-	result.Buffer
+	stash result.Value
 }
 
 func (p *Pow) Call(args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
-		return badarg("pow")
+		return p.stash.Error(errors.New("pow: not a number"))
 	}
 	y, ok := coerce.ToFloat(args[1])
 	if !ok {
-		return badarg("pow")
+		return p.stash.Error(errors.New("pow: not a number"))
 	}
 	r := math.Pow(x, y)
+	//XXX shouldn't we just let IEEE NaN through?
 	if math.IsNaN(r) {
-		return badarg("pow")
+		return p.stash.Error(errors.New("pow: NaN"))
 	}
-	return zed.Value{zed.TypeFloat64, p.Float64(r)}, nil
+	return p.stash.Float64(r)
 }
 
 // https://github.com/brimdata/zed/blob/main/docs/language/functions.md#sqrt
 type Sqrt struct {
-	result.Buffer
+	stash result.Value
 }
 
 func (s *Sqrt) Call(args []zed.Value) *zed.Value {
 	x, ok := coerce.ToFloat(args[0])
 	if !ok {
-		return badarg("sqrt")
+		return s.stash.Error(errors.New("sqrt: not a number"))
 	}
 	x = math.Sqrt(x)
+	//XXX let NaN through
 	if math.IsNaN(x) {
-		// For now we can't represent non-numeric values in a float64,
-		// we will revisit this but it has implications for file
-		// formats, the Zed language, etc.
-		return badarg("sqrt")
+		return s.stash.Error(errors.New("sqrt: not a number"))
 	}
-	return zed.Value{zed.TypeFloat64, s.Float64(x)}, nil
+	return s.stash.Float64(x)
 }

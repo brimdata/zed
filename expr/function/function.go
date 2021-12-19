@@ -149,9 +149,10 @@ func (l *LenFn) Call(args []zed.Value) *zed.Value {
 	case *zed.TypeRecord:
 		length = len(typ.Columns)
 	case *zed.TypeArray, *zed.TypeSet, *zed.TypeMap:
-		len, err := zv.ContainerLength()
+		var err error
+		length, err = zv.ContainerLength()
 		if err != nil {
-			panic(fmt.Errorf("len: corrupt Zed bytes", err))
+			panic(fmt.Errorf("len: corrupt Zed bytes: %w", err))
 		}
 	case *zed.TypeOfBytes, *zed.TypeOfString, *zed.TypeOfBstring, *zed.TypeOfIP, *zed.TypeOfNet, *zed.TypeOfError:
 		length = len(zv.Bytes)

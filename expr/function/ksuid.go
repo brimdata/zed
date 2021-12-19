@@ -21,7 +21,7 @@ func (k *KSUIDToString) Call(args []zed.Value) *zed.Value {
 	// XXX GC
 	id, err := ksuid.FromBytes(zv.Bytes)
 	if err != nil {
-		panic(fmt.Errorf("ksuid: corrupt Zed bytes", err))
+		panic(fmt.Errorf("ksuid: corrupt Zed bytes: %w", err))
 	}
 	k.stash = zed.Value{zed.TypeString, zed.EncodeString(id.String())}
 	return &k.stash

@@ -81,10 +81,7 @@ func Unmarshal(zson string, v interface{}) error {
 }
 
 func (u *UnmarshalContext) Unmarshal(zson string, v interface{}) error {
-	parser, err := NewParser(strings.NewReader(zson))
-	if err != nil {
-		return err
-	}
+	parser := NewParser(strings.NewReader(zson))
 	ast, err := parser.ParseValue()
 	if err != nil {
 		return err

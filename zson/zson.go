@@ -58,10 +58,7 @@ func SelfDescribing(typ zed.Type) bool {
 }
 
 func ParseType(zctx *zed.Context, zson string) (zed.Type, error) {
-	zp, err := NewParser(strings.NewReader(zson))
-	if err != nil {
-		return nil, err
-	}
+	zp := NewParser(strings.NewReader(zson))
 	ast, err := zp.parseType()
 	if ast == nil || noEOF(err) != nil {
 		return nil, err
@@ -70,10 +67,7 @@ func ParseType(zctx *zed.Context, zson string) (zed.Type, error) {
 }
 
 func ParseValue(zctx *zed.Context, zson string) (zed.Value, error) {
-	zp, err := NewParser(strings.NewReader(zson))
-	if err != nil {
-		return zed.Value{}, err
-	}
+	zp := NewParser(strings.NewReader(zson))
 	ast, err := zp.ParseValue()
 	if err != nil {
 		return zed.Value{}, err

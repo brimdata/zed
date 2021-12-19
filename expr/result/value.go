@@ -43,6 +43,12 @@ func (v *Value) Time(native nano.Ts) *zed.Value {
 	return (*zed.Value)(v)
 }
 
+func (v *Value) String(native string) *zed.Value {
+	v.Type = zed.TypeString
+	v.Bytes = append(v.Bytes[:0], []byte(native)...)
+	return (*zed.Value)(v)
+}
+
 func (v *Value) Error(err error) *zed.Value {
 	//XXX this clobbers the stashed byte slice
 	*v = (Value)(zed.NewError(err))
@@ -50,6 +56,12 @@ func (v *Value) Error(err error) *zed.Value {
 }
 
 func (v *Value) Copy(val *zed.Value) *zed.Value {
+	v.Type = val.Type
+	v.Bytes = append(v.Bytes[:0], val.Bytes...)
+	return (*zed.Value)(v)
+}
+
+func (v *Value) CopyVal(val zed.Value) *zed.Value {
 	v.Type = val.Type
 	v.Bytes = append(v.Bytes[:0], val.Bytes...)
 	return (*zed.Value)(v)
