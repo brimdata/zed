@@ -48,12 +48,10 @@ func LookupPrimitiveCaster(typ zed.Type) Caster {
 		return newDurationCaster()
 	case zed.TypeTime:
 		return newTimeCaster()
-	case zed.TypeString:
-		return castToString
-	case zed.TypeBstring:
-		return castToBstring
+	case zed.TypeString, zed.TypeBstring:
+		return newStringyCaster(typ)
 	case zed.TypeBytes:
-		return castToBytes
+		return newBytesCaster()
 	default:
 		return nil
 	}
@@ -231,8 +229,6 @@ func newTimeCaster() Caster {
 	}
 }
 
-//
-
 func newStringyCaster(typ zed.Type) Caster {
 	var stash result.Value
 	return func(zv *zed.Value) *zed.Value {
@@ -247,25 +243,26 @@ func newStringyCaster(typ zed.Type) Caster {
 			selector, _ := zed.DecodeUint(zv.Bytes)
 			symbol, err := enum.Symbol(int(selector))
 			if err != nil {
-				return zed.NewError(err), nil
+				return stash.Error(err)
 			}
-			return zed.Value{typ, zed.EncodeString(symbol)}, nil
+			//XXX GC
+			return stash.CopyVal(zed.Value{typ, zed.EncodeString(symbol)})
 		}
 		if zed.IsStringy(id) {
-			// If it's already stringy, then the Zeed encoding can stay
+			// If it's already stringy, then the Zed encoding can stay
 			// the same and we just update the stringy type.
-			return zed.Value{typ, zv.Bytes}, nil
+			return stash.CopyVal(zed.Value{typ, zv.Bytes})
 		}
 		// Otherwise, we'll use a canonical ZSON value for the string rep
 		// of an arbitrary value cast to a string.
-		result := zv.Type.Format(zv.Bytes)
-		return zed.Value{typ, zed.EncodeString(result)}, nil
+		result := zson.MustFormatValue(*zv)
+		return stash.CopyVal(zed.Value{typ, zed.EncodeString(result)})
 	}
 }
 
-var castToString = castToStringy(zed.TypeString)
-var castToBstring = castToStringy(zed.TypeBstring)
-
-func castToBytes(zv zed.Value) (zed.Value, error) {
-	return zed.Value{zed.TypeBytes, zed.EncodeBytes(zv.Bytes)}, nil
+func newBytesCaster() Caster {
+	var stash result.Value
+	return func(zv *zed.Value) *zed.Value {
+		return stash.CopyVal(zed.Value{zed.TypeBytes, zed.EncodeBytes(zv.Bytes)})
+	}
 }
