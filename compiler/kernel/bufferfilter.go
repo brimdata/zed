@@ -86,13 +86,6 @@ func isFieldEqualOrIn(e *dag.BinaryExpr) (*astzed.Primitive, string) {
 	return nil, ""
 }
 
-func xisDollar(e dag.Expr) bool {
-	if ref, ok := e.(*dag.Ref); ok && ref.Name == "$" {
-		return true
-	}
-	return false
-}
-
 func newBufferFilterForLiteral(l astzed.Primitive) (*expr.BufferFilter, error) {
 	switch l.Type {
 	case "bool", "byte", "int16", "uint16", "int32", "uint32", "int64", "uint64",
