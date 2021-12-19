@@ -71,7 +71,7 @@ func (c *Cutter) FoundCut() bool {
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
 // returns nil.
-func (c *Cutter) Apply(in *zed.Value, scope *Scope) zed.Value {
+func (c *Cutter) Apply(in *zed.Value, scope *Scope) *zed.Value {
 	types := c.typeCache
 	b := c.builder
 	b.Reset()
@@ -97,9 +97,9 @@ func (c *Cutter) Apply(in *zed.Value, scope *Scope) zed.Value {
 	if err != nil {
 		panic(fmt.Errorf("cutter: builder failed: %w", err))
 	}
-	rec := zed.Value{c.lookupTypeRecord(types), bytes}
+	rec := &zed.Value{c.lookupTypeRecord(types), bytes}
 	for _, d := range droppers {
-		rec = d.Apply(&rec)
+		rec = d.Apply(rec, scope)
 	}
 	if rec != nil {
 		c.dirty = true
@@ -145,11 +145,8 @@ func (c *Cutter) Warning() string {
 
 func (c *Cutter) Eval(val *zed.Value, scope *Scope) *zed.Value {
 	out := c.Apply(val, scope)
-	if err != nil {
-		return zed.Value{}, err
-	}
 	if out == nil {
-		return zed.Value{}, zed.ErrMissing
+		return zed.Missing
 	}
-	return *out, nil
+	return out
 }

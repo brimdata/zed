@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zcode"
+	"github.com/brimdata/zed/zson"
 )
 
 var ErrIncompatibleTypes = coerce.ErrIncompatibleTypes
@@ -33,14 +34,11 @@ func NewLogicalNot(e Evaluator) *Not {
 }
 
 func (n *Not) Eval(val *zed.Value, scope *Scope) *zed.Value {
-	zv, err := evalBool(n.expr, val, scope)
-	if err != nil {
-		return zv, err
-	}
+	zv := evalBool(n.expr, val, scope)
 	if zed.IsTrue(zv.Bytes) {
-		return zed.False, nil
+		return zed.False
 	}
-	return zed.True, nil
+	return zed.True
 }
 
 type And struct {
@@ -61,51 +59,36 @@ func NewLogicalOr(lhs, rhs Evaluator) *Or {
 	return &Or{lhs, rhs}
 }
 
-func evalBool(e Evaluator, rec *zed.Value) (zed.Value, error) {
-	zv, err := e.Eval(rec)
-	if err != nil {
-		return zv, err
+func evalBool(e Evaluator, rec *zed.Value, scope *Scope) *zed.Value {
+	val := e.Eval(rec, scope)
+	if zed.AliasOf(val.Type) != zed.TypeBool {
+		//XXX stash
+		v := zed.NewErrorf("not a boolean: %s", zson.MustFormatValue(*val))
+		val = &v
 	}
-	if zv.Type != zed.TypeBool {
-		err = ErrIncompatibleTypes
-	}
-	return zv, err
+	return val
 }
 
-func (a *And) Eval(rec *zed.Value) (zed.Value, error) {
-	lhs, err := evalBool(a.lhs, rec)
-	if err != nil {
-		return lhs, err
+func (a *And) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	lhs := evalBool(a.lhs, rec, scope)
+	if lhs.IsError() {
+		return lhs
 	}
 	if !zed.IsTrue(lhs.Bytes) {
-		return zed.False, nil
+		return zed.False
 	}
-	rhs, err := evalBool(a.rhs, rec)
-	if err != nil {
-		return lhs, err
-	}
-	if !zed.IsTrue(rhs.Bytes) {
-		return zed.False, nil
-	}
-	return zed.True, nil
+	return evalBool(a.rhs, rec, scope)
 }
 
-func (o *Or) Eval(rec *zed.Value) (zed.Value, error) {
-	lhs, err := evalBool(o.lhs, rec)
-	if err != nil {
-		return lhs, err
+func (o *Or) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	lhs := evalBool(o.lhs, rec, scope)
+	if lhs.IsError() {
+		return lhs
 	}
 	if zed.IsTrue(lhs.Bytes) {
-		return zed.True, nil
+		return zed.True
 	}
-	rhs, err := evalBool(o.rhs, rec)
-	if err != nil {
-		return lhs, err
-	}
-	if zed.IsTrue(rhs.Bytes) {
-		return zed.True, nil
-	}
-	return zed.False, nil
+	return evalBool(o.rhs, rec, scope)
 }
 
 type In struct {
@@ -121,14 +104,14 @@ func NewIn(elem, container Evaluator) *In {
 	}
 }
 
-func (i *In) Eval(rec *zed.Value) (zed.Value, error) {
-	elem, err := i.elem.Eval(rec)
-	if err != nil {
-		return elem, err
+func (i *In) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	elem := i.elem.Eval(rec, scope)
+	if elem.IsError() {
+		return elem
 	}
-	container, err := i.container.Eval(rec)
-	if err != nil {
-		return container, err
+	container := i.container.Eval(rec, scope)
+	if container.IsError() {
+		return container
 	}
 	switch typ := zed.AliasOf(container.Type).(type) {
 	case *zed.TypeOfNet:
@@ -140,68 +123,72 @@ func (i *In) Eval(rec *zed.Value) (zed.Value, error) {
 	case *zed.TypeMap:
 		return i.inMap(typ, elem, container)
 	default:
-		return zed.NewErrorf("'in' operator applied to non-container type"), nil
+		//XXX
+		v := zed.NewErrorf("'in' operator applied to non-container type")
+		return &v
 	}
 }
 
-func inNet(elem, net zed.Value) (zed.Value, error) {
+func inNet(elem, net *zed.Value) *zed.Value {
 	n, err := zed.DecodeNet(net.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
 	if typ := zed.AliasOf(elem.Type); typ != zed.TypeIP {
-		return zed.NewErrorf("'in' operator applied to non-container type"), nil
+		//XXX
+		v := zed.NewErrorf("'in' operator applied to non-container type")
+		return &v
 	}
 	a, err := zed.DecodeIP(elem.Bytes)
 	if err != nil {
-		return zed.Value{}, err
+		panic(err)
 	}
 	if n.IP.Equal(a.Mask(n.Mask)) {
-		return zed.True, nil
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }
 
-func (i *In) inContainer(typ zed.Type, elem, container zed.Value) (zed.Value, error) {
+func (i *In) inContainer(typ zed.Type, elem, container *zed.Value) *zed.Value {
 	iter := container.Bytes.Iter()
 	for {
 		if iter.Done() {
-			return zed.False, nil
+			return zed.False
 		}
 		zv, _, err := iter.Next()
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
-		_, err = i.vals.Coerce(elem, zed.Value{typ, zv})
+		_, err = i.vals.Coerce(*elem, zed.Value{typ, zv})
 		if err == nil && i.vals.Equal() {
-			return zed.True, nil
+			return zed.True
 		}
 	}
 }
 
-func (i *In) inMap(typ *zed.TypeMap, elem, container zed.Value) (zed.Value, error) {
+func (i *In) inMap(typ *zed.TypeMap, elem, container *zed.Value) *zed.Value {
 	keyType := zed.AliasOf(typ.KeyType)
 	valType := zed.AliasOf(typ.ValType)
 	iter := container.Bytes.Iter()
 	for !iter.Done() {
 		zv, _, err := iter.Next()
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
-		_, err = i.vals.Coerce(elem, zed.Value{keyType, zv})
+		_, err = i.vals.Coerce(*elem, zed.Value{keyType, zv})
 		if err == nil && i.vals.Equal() {
-			return zed.True, nil
+			return zed.True
 		}
 		zv, _, err = iter.Next()
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
-		_, err = i.vals.Coerce(elem, zed.Value{valType, zv})
+		_, err = i.vals.Coerce(*elem, zed.Value{valType, zv})
 		if err == nil && i.vals.Equal() {
-			return zed.True, nil
+			return zed.True
 		}
 	}
-	return zed.False, nil
+	return zed.False
 }
 
 type Equal struct {
@@ -221,27 +208,29 @@ func NewCompareEquality(lhs, rhs Evaluator, operator string) (*Equal, error) {
 	return e, nil
 }
 
-func (e *Equal) Eval(rec *zed.Value) (zed.Value, error) {
-	_, err := e.numeric.eval(rec)
+func (e *Equal) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	_, err := e.numeric.eval(this, scope)
 	if err != nil {
+		//XXX need to compare have coerce return zed error?
 		if err == coerce.ErrOverflow {
 			// If there was overflow converting one to the other,
 			// we know they can't be equal.
 			if e.equality {
-				return zed.False, nil
+				return zed.False
 			}
-			return zed.True, nil
+			return zed.True
 		}
-		return zed.Value{}, err
+		//XXX panic?
+		return zed.False
 	}
 	result := e.vals.Equal()
 	if !e.equality {
 		result = !result
 	}
 	if result {
-		return zed.True, nil
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }
 
 type RegexpMatch struct {
@@ -253,18 +242,16 @@ func NewRegexpMatch(re *regexp.Regexp, e Evaluator) *RegexpMatch {
 	return &RegexpMatch{re, e}
 }
 
-func (r *RegexpMatch) Eval(rec *zed.Value) (zed.Value, error) {
-	zv, err := r.expr.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
+func (r *RegexpMatch) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	zv := r.expr.Eval(this, scope)
 	if !zed.IsStringy(zv.Type.ID()) {
-		return zed.Value{}, zed.ErrMissing
+		//XXX change from missing to false right?
+		return zed.False
 	}
 	if r.re.Match(zv.Bytes) {
-		return zed.True, nil
+		return zed.True
 	}
-	return zed.False, nil
+	return zed.False
 }
 
 type numeric struct {
@@ -281,32 +268,20 @@ func newNumeric(lhs, rhs Evaluator) numeric {
 	}
 }
 
-func enumify(v zed.Value) (zed.Value, error) {
+func enumify(v *zed.Value) *zed.Value {
 	// automatically convert an enum to its index value when coercing
 	if _, ok := v.Type.(*zed.TypeEnum); ok {
-		return zed.Value{zed.TypeUint64, v.Bytes}, nil
+		return &zed.Value{zed.TypeUint64, v.Bytes}
 	}
-	return v, nil
+	return v
 }
 
-func (n *numeric) eval(rec *zed.Value) (int, error) {
-	lhs, err := n.lhs.Eval(rec)
-	if err != nil {
-		return 0, err
-	}
-	lhs, err = enumify(lhs)
-	if err != nil {
-		return 0, err
-	}
-	rhs, err := n.rhs.Eval(rec)
-	if err != nil {
-		return 0, err
-	}
-	rhs, err = enumify(rhs)
-	if err != nil {
-		return 0, err
-	}
-	return n.vals.Coerce(lhs, rhs)
+func (n *numeric) eval(this *zed.Value, scope *Scope) (int, error) {
+	lhs := n.lhs.Eval(this, scope)
+	lhs = enumify(lhs)
+	rhs := n.rhs.Eval(this, scope)
+	rhs = enumify(rhs)
+	return n.vals.Coerce(*lhs, *rhs)
 }
 
 type Compare struct {
@@ -331,23 +306,23 @@ func NewCompareRelative(lhs, rhs Evaluator, operator string) (*Compare, error) {
 	return c, nil
 }
 
-func (c *Compare) result(result int) zed.Value {
+func (c *Compare) result(result int) *zed.Value {
 	if c.convert(result) {
 		return zed.True
 	}
 	return zed.False
 }
 
-func (c *Compare) Eval(rec *zed.Value) (zed.Value, error) {
-	lhs, err := c.lhs.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
+func (c *Compare) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	lhs := c.lhs.Eval(this, scope)
+	if lhs.IsError() {
+		return lhs
 	}
-	rhs, err := c.rhs.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
+	rhs := c.rhs.Eval(this, scope)
+	if rhs.IsError() {
+		return lhs
 	}
-	id, err := c.vals.Coerce(lhs, rhs)
+	id, err := c.vals.Coerce(*lhs, *rhs)
 	if err != nil {
 		// If coercion fails due to overflow, then we know there is a
 		// mixed signed and unsigned situation and either the unsigned
@@ -360,15 +335,16 @@ func (c *Compare) Eval(rec *zed.Value) (zed.Value, error) {
 			if zed.IsSigned(lhs.Type.ID()) {
 				result = -1
 			}
-			return c.result(result), nil
+			return c.result(result)
 		}
-		return zed.False, err
+		//XXX what about error?
+		return zed.False
 	}
 	var result int
 	if !c.vals.Equal() {
 		switch {
 		case c.vals.A == nil || c.vals.B == nil:
-			return zed.False, nil
+			return zed.False
 		case zed.IsFloat(id):
 			v1, _ := zed.DecodeFloat(c.vals.A)
 			v2, _ := zed.DecodeFloat(c.vals.B)
@@ -402,7 +378,9 @@ func (c *Compare) Eval(rec *zed.Value) (zed.Value, error) {
 				result = 1
 			}
 		default:
-			return zed.Value{}, fmt.Errorf("bad comparison type ID: %d", id)
+			//XXX
+			v := zed.NewErrorf("bad comparison type ID: %d", id)
+			return &v
 		}
 	}
 	if c.convert(result) {
@@ -622,19 +600,13 @@ type Index struct {
 	index     Evaluator
 }
 
-func NewIndexExpr(zctx *zed.Context, container, index Evaluator) (Evaluator, error) {
-	return &Index{zctx, container, index}, nil
+func NewIndexExpr(zctx *zed.Context, container, index Evaluator) Evaluator {
+	return &Index{zctx, container, index}
 }
 
-func (i *Index) Eval(rec *zed.Value) (zed.Value, error) {
-	container, err := i.container.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
-	index, err := i.index.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
-	}
+func (i *Index) Eval(rec *zed.Value, scope *Scope) *zed.Value {
+	container := i.container.Eval(rec, scope)
+	index := i.index.Eval(rec)
 	switch typ := container.Type.(type) {
 	case *zed.TypeArray:
 		return indexArray(typ, container.Bytes, index)

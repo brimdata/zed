@@ -71,7 +71,7 @@ type aggregatorExpr struct {
 
 var _ Evaluator = (*aggregatorExpr)(nil)
 
-func (s *aggregatorExpr) Eval(zv *zed.Value, scope *Scope) zed.Value {
+func (s *aggregatorExpr) Eval(zv *zed.Value, scope *Scope) *zed.Value {
 	if s.fn == nil {
 		s.fn = s.agg.NewFunction()
 		s.zctx = zed.NewContext()
