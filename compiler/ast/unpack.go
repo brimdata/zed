@@ -57,8 +57,6 @@ var unpacker = unpack.New(
 	Rename{},
 	Root{},
 	Search{},
-	SelectExpr{},
-	SeqExpr{},
 	Sequential{},
 	astzed.Set{},
 	SetExpr{},

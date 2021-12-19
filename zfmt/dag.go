@@ -76,8 +76,6 @@ func (c *canonDAG) expr(e dag.Expr, paren bool) {
 		c.space()
 		c.write(e.Op)
 		c.expr(e.Operand, true)
-	case *dag.SelectExpr:
-		c.write("TBD:select")
 	case *dag.BinaryExpr:
 		c.binary(e)
 	case *dag.Conditional:

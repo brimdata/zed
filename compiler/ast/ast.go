@@ -58,12 +58,6 @@ type BinaryExpr struct {
 	RHS  Expr   `json:"rhs"`
 }
 
-type SelectExpr struct {
-	Kind      string `json:"kind" unpack:""`
-	Selectors []Expr `json:"selectors"`
-	Methods   []Call `json:"methods"`
-}
-
 type Conditional struct {
 	Kind string `json:"kind" unpack:""`
 	Cond Expr   `json:"cond"`
@@ -89,13 +83,6 @@ type Cast struct {
 	Kind string      `json:"kind" unpack:""`
 	Expr Expr        `json:"expr"`
 	Type astzed.Type `json:"type"`
-}
-
-type SeqExpr struct {
-	Kind      string   `json:"kind" unpack:""`
-	Name      string   `json:"name"`
-	Selectors []Expr   `json:"selectors"`
-	Methods   []Method `json:"methods"`
 }
 
 type RegexpMatch struct {
@@ -141,7 +128,6 @@ type EntryExpr struct {
 
 func (*UnaryExpr) ExprAST()   {}
 func (*BinaryExpr) ExprAST()  {}
-func (*SelectExpr) ExprAST()  {}
 func (*Conditional) ExprAST() {}
 func (*Search) ExprAST()      {}
 func (*Call) ExprAST()        {}
@@ -151,7 +137,6 @@ func (*Root) ExprAST()        {}
 
 func (*Assignment) ExprAST()   {}
 func (*Agg) ExprAST()          {}
-func (*SeqExpr) ExprAST()      {}
 func (*RegexpSearch) ExprAST() {}
 func (*RegexpMatch) ExprAST()  {}
 

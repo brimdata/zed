@@ -75,17 +75,6 @@ type (
 		Text  string           `json:"text"`
 		Value astzed.Primitive `json:"value"` //XXX search should be extended to complex types
 	}
-	SelectExpr struct {
-		Kind      string `json:"kind" unpack:""`
-		Selectors []Expr `json:"selectors"`
-		Methods   []Call `json:"methods"`
-	}
-	SeqExpr struct {
-		Kind      string   `json:"kind" unpack:""`
-		Name      string   `json:"name"`
-		Selectors []Expr   `json:"selectors"`
-		Methods   []Method `json:"methods"`
-	}
 	SetExpr struct {
 		Kind  string `json:"kind" unpack:""`
 		Exprs []Expr `json:"exprs"`
@@ -124,9 +113,7 @@ func (*RecordExpr) ExprDAG()   {}
 func (*Ref) ExprDAG()          {}
 func (*RegexpMatch) ExprDAG()  {}
 func (*RegexpSearch) ExprDAG() {}
-func (*SelectExpr) ExprDAG()   {}
 func (*Search) ExprDAG()       {}
-func (*SeqExpr) ExprDAG()      {}
 func (*SetExpr) ExprDAG()      {}
 func (*UnaryExpr) ExprDAG()    {}
 

@@ -1,9 +1,0 @@
-zed: cut u1 := union(select(r1)), u2 := union(select(r1, r2))
-
-input: |
-  {r1:{a:1(int32),b:2(int32)},r2:{a:3(int32),b:4(int32)}}
-  {r1:{a:3(int32),b:4(int32)},r2:{a:5(int32),b:6(int32)}}
-
-output: |
-  {u1:|[1(int32),2(int32)]|,u2:|[1(int32),2(int32),3(int32),4(int32)]|}
-  {u1:|[3(int32),4(int32)]|,u2:|[3(int32),4(int32),5(int32),6(int32)]|}

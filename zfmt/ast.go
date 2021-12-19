@@ -81,8 +81,6 @@ func (c *canon) expr(e ast.Expr, paren bool) {
 		c.space()
 		c.write(e.Op)
 		c.expr(e.Operand, true)
-	case *ast.SelectExpr:
-		c.write("TBD:select")
 	case *ast.BinaryExpr:
 		c.binary(e)
 	case *ast.Conditional:

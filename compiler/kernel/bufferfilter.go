@@ -16,11 +16,6 @@ import (
 // error if it cannot construct a useful filter.
 func CompileBufferFilter(e dag.Expr) (*expr.BufferFilter, error) {
 	switch e := e.(type) {
-	case *dag.SeqExpr:
-		if literal, op, ok := isCompareAny(e); ok && (op == "=" || op == "in") {
-			return newBufferFilterForLiteral(*literal)
-		}
-		return nil, nil
 	case *dag.BinaryExpr:
 		if literal, _ := isFieldEqualOrIn(e); literal != nil {
 			return newBufferFilterForLiteral(*literal)
@@ -91,38 +86,7 @@ func isFieldEqualOrIn(e *dag.BinaryExpr) (*astzed.Primitive, string) {
 	return nil, ""
 }
 
-func isCompareAny(seq *dag.SeqExpr) (*astzed.Primitive, string, bool) {
-	if seq.Name != "or" || len(seq.Methods) != 1 {
-		return nil, "", false
-	}
-	// expression must be a comparison or an in operator
-	method := seq.Methods[0]
-	if len(method.Args) != 1 || method.Name != "map" {
-		return nil, "", false
-	}
-	pred, ok := method.Args[0].(*dag.BinaryExpr)
-	if !ok {
-		return nil, "", false
-	}
-	if pred.Op == "=" {
-		if !isDollar(pred.LHS) {
-			return nil, "", false
-		}
-		if rhs, ok := pred.RHS.(*astzed.Primitive); ok && rhs.Type != "net" {
-			return rhs, pred.Op, true
-		}
-	} else if pred.Op == "in" {
-		if !isDollar(pred.RHS) {
-			return nil, "", false
-		}
-		if lhs, ok := pred.LHS.(*astzed.Primitive); ok && lhs.Type != "net" {
-			return lhs, pred.Op, true
-		}
-	}
-	return nil, "", false
-}
-
-func isDollar(e dag.Expr) bool {
+func xisDollar(e dag.Expr) bool {
 	if ref, ok := e.(*dag.Ref); ok && ref.Name == "$" {
 		return true
 	}

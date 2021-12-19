@@ -278,9 +278,6 @@ func fieldsOf(e dag.Expr) (field.List, bool) {
 		return field.List{e.Name}, true
 	case *dag.UnaryExpr:
 		return fieldsOf(e.Operand)
-	case *dag.SelectExpr:
-		// finish with issue #2756
-		return nil, false
 	case *dag.BinaryExpr:
 		lhs, ok := fieldsOf(e.LHS)
 		if !ok {
@@ -299,8 +296,6 @@ func fieldsOf(e dag.Expr) (field.List, bool) {
 		return nil, false
 	case *dag.Cast:
 		return fieldsOf(e.Expr)
-	case *dag.SeqExpr:
-		return nil, false
 	case *dag.RegexpMatch:
 		return fieldsOf(e.Expr)
 	case *dag.RecordExpr:

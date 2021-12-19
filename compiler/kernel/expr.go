@@ -8,7 +8,6 @@ import (
 	"github.com/brimdata/zed/compiler/ast/dag"
 	astzed "github.com/brimdata/zed/compiler/ast/zed"
 	"github.com/brimdata/zed/expr"
-	"github.com/brimdata/zed/expr/agg"
 	"github.com/brimdata/zed/expr/function"
 	"github.com/brimdata/zed/field"
 	"github.com/brimdata/zed/zson"
@@ -76,8 +75,6 @@ func compileExpr(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Evaluator, e
 		return compileDotExpr(zctx, scope, e)
 	case *dag.UnaryExpr:
 		return compileUnary(zctx, scope, *e)
-	case *dag.SelectExpr:
-		return nil, errors.New("Z kernel: encountered select expression")
 	case *dag.BinaryExpr:
 		return compileBinary(zctx, scope, e)
 	case *dag.Conditional:
@@ -88,8 +85,6 @@ func compileExpr(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Evaluator, e
 		return compileCast(zctx, scope, *e)
 	case *astzed.TypeValue:
 		return compileTypeValue(zctx, scope, e)
-	case *dag.SeqExpr:
-		return compileSeqExpr(zctx, scope, e)
 	case *dag.RegexpMatch:
 		return compileRegexpMatch(zctx, scope, e)
 	case *dag.RecordExpr:
@@ -174,62 +169,6 @@ func compileSlice(zctx *zed.Context, scope *Scope, container dag.Expr, slice *da
 		return nil, err
 	}
 	return expr.NewSlice(e, from, to), nil
-}
-
-func compileSeqExpr(zctx *zed.Context, scope *Scope, seq *dag.SeqExpr) (expr.Evaluator, error) {
-	selectors, err := compileExprs(zctx, scope, seq.Selectors)
-	if err != nil {
-		return nil, err
-	}
-	selector := expr.NewSelector(selectors)
-	sequence := expr.Generator(selector)
-	for _, method := range seq.Methods {
-		sequence, err = compileMethod(zctx, scope, sequence, method)
-		if err != nil {
-			return nil, err
-		}
-	}
-	pattern, err := agg.NewPattern(seq.Name)
-	if err != nil {
-		return nil, err
-	}
-	return expr.NewAggExpr(zctx, pattern, sequence), nil
-}
-
-func compileMethod(zctx *zed.Context, scope *Scope, src expr.Generator, method dag.Method) (expr.Generator, error) {
-	switch method.Name {
-	case "map":
-		if len(method.Args) != 1 {
-			return nil, errors.New("map() method requires one argument")
-		}
-		mapMethod := expr.NewMapMethod(src)
-		scope.Enter()
-		defer scope.Exit()
-		scope.Bind("$", mapMethod.Ref())
-		mapExpr, err := compileExpr(zctx, scope, method.Args[0])
-		if err != nil {
-			return nil, err
-		}
-		mapMethod.Set(mapExpr)
-		return mapMethod, nil
-	case "filter":
-		if len(method.Args) != 1 {
-			return nil, errors.New("filter() method requires one argument")
-		}
-		filterMethod := expr.NewFilterMethod(src)
-		scope.Enter()
-		defer scope.Exit()
-		scope.Bind("$", filterMethod.Ref())
-		filterExpr, err := compileExpr(zctx, scope, method.Args[0])
-		if err != nil {
-			fmt.Println("ERR", err)
-			return nil, err
-		}
-		filterMethod.Set(filterExpr)
-		return filterMethod, nil
-	default:
-		return nil, fmt.Errorf("uknown method: %s", method.Name)
-	}
 }
 
 func compileUnary(zctx *zed.Context, scope *Scope, unary dag.UnaryExpr) (expr.Evaluator, error) {
