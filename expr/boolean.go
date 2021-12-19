@@ -24,7 +24,7 @@ import (
 
 // Predicate is a function that takes a Value and returns a boolean result
 // based on the typed value.
-type Boolean func(zed.Value) bool
+type Boolean func(*zed.Value) bool
 
 var compareBool = map[string]func(bool, bool) bool{
 	"=":  func(a, b bool) bool { return a == b },
@@ -43,11 +43,11 @@ func CompareBool(op string, pattern bool) (Boolean, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown bool comparator: %s", op)
 	}
-	return func(v zed.Value) bool {
-		if v.Type.ID() != zed.IDBool {
+	return func(val *zed.Value) bool {
+		if val.Type.ID() != zed.IDBool {
 			return false
 		}
-		b, err := zed.DecodeBool(v.Bytes)
+		b, err := zed.DecodeBool(val.Bytes)
 		if err != nil {
 			return false
 		}
@@ -81,7 +81,7 @@ func CompareInt64(op string, pattern int64) (Boolean, error) {
 		return nil, fmt.Errorf("unknown int comparator: %s", op)
 	}
 	// many different Zed data types can be compared with integers
-	return func(val zed.Value) bool {
+	return func(val *zed.Value) bool {
 		zv := val.Bytes
 		switch val.Type.ID() {
 		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64:
@@ -121,7 +121,7 @@ func CompareTime(op string, pattern int64) (Boolean, error) {
 		return nil, fmt.Errorf("unknown int comparator: %s", op)
 	}
 	// many different Zed data types can be compared with integers
-	return func(val zed.Value) bool {
+	return func(val *zed.Value) bool {
 		zv := val.Bytes
 		switch val.Type.ID() {
 		case zed.IDInt8, zed.IDInt16, zed.IDInt32, zed.IDInt64:
@@ -173,11 +173,11 @@ func CompareIP(op string, pattern net.IP) (Boolean, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown addr comparator: %s", op)
 	}
-	return func(v zed.Value) bool {
-		if v.Type.ID() != zed.IDIP {
+	return func(val *zed.Value) bool {
+		if val.Type.ID() != zed.IDIP {
 			return false
 		}
-		ip, err := zed.DecodeIP(v.Bytes)
+		ip, err := zed.DecodeIP(val.Bytes)
 		if err != nil {
 			return false
 		}
@@ -194,7 +194,7 @@ func CompareFloat64(op string, pattern float64) (Boolean, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown double comparator: %s", op)
 	}
-	return func(val zed.Value) bool {
+	return func(val *zed.Value) bool {
 		zv := val.Bytes
 		switch val.Type.ID() {
 		// We allow comparison of float constant with integer-y
@@ -248,10 +248,10 @@ func CompareBstring(op string, pattern []byte) (Boolean, error) {
 		return nil, fmt.Errorf("unknown string comparator: %s", op)
 	}
 	s := string(pattern)
-	return func(v zed.Value) bool {
-		switch v.Type.ID() {
+	return func(val *zed.Value) bool {
+		switch val.Type.ID() {
 		case zed.IDBstring, zed.IDString:
-			return compare(byteconv.UnsafeString(v.Bytes), s)
+			return compare(byteconv.UnsafeString(val.Bytes), s)
 		}
 		return false
 	}, nil
@@ -271,10 +271,10 @@ func CompareBytes(op string, pattern []byte) (Boolean, error) {
 	if !ok {
 		return nil, fmt.Errorf("unknown bytes comparator: %s", op)
 	}
-	return func(v zed.Value) bool {
-		switch v.Type.ID() {
+	return func(val *zed.Value) bool {
+		switch val.Type.ID() {
 		case zed.IDBytes:
-			return compare(v.Bytes, pattern)
+			return compare(val.Bytes, pattern)
 		}
 		return false
 	}, nil
@@ -294,9 +294,9 @@ func CompileRegexp(pattern string) (*regexp.Regexp, error) {
 // NewRegexpBoolean returns a Booelan that compares values that must
 // be a stringy the given regexp.
 func NewRegexpBoolean(re *regexp.Regexp) Boolean {
-	return func(v zed.Value) bool {
-		if zed.IsStringy(v.Type.ID()) {
-			return re.Match(v.Bytes)
+	return func(val *zed.Value) bool {
+		if zed.IsStringy(val.Type.ID()) {
+			return re.Match(val.Bytes)
 		}
 		return false
 	}
@@ -305,12 +305,12 @@ func NewRegexpBoolean(re *regexp.Regexp) Boolean {
 func CompareNull(op string) (Boolean, error) {
 	switch op {
 	case "=":
-		return func(v zed.Value) bool {
-			return v.IsNull()
+		return func(val *zed.Value) bool {
+			return val.IsNull()
 		}, nil
 	case "!=":
-		return func(v zed.Value) bool {
-			return !v.IsNull()
+		return func(val *zed.Value) bool {
+			return !val.IsNull()
 		}, nil
 	default:
 		return nil, fmt.Errorf("unknown null comparator: %s", op)
@@ -367,16 +367,15 @@ func CompareSubnet(op string, pattern *net.IPNet) (Boolean, error) {
 	if !ok1 || !ok2 {
 		return nil, fmt.Errorf("unknown subnet comparator: %s", op)
 	}
-	return func(v zed.Value) bool {
-		val := v.Bytes
-		switch v.Type.ID() {
+	return func(val *zed.Value) bool {
+		switch val.Type.ID() {
 		case zed.IDIP:
-			ip, err := zed.DecodeIP(val)
+			ip, err := zed.DecodeIP(val.Bytes)
 			if err == nil {
 				return match(ip, pattern)
 			}
 		case zed.IDNet:
-			subnet, err := zed.DecodeNet(val)
+			subnet, err := zed.DecodeNet(val.Bytes)
 			if err == nil {
 				return compare(subnet, pattern)
 			}
@@ -391,19 +390,21 @@ func CompareSubnet(op string, pattern *net.IPNet) (Boolean, error) {
 // the original predicate is applied to each element.  The new precicate
 // returns true iff the predicate matched an element from the collection.
 func Contains(compare Boolean) Boolean {
-	return func(v zed.Value) bool {
+	return func(val *zed.Value) bool {
+		//XXX I think el can go in the closure scope above so
+		// one alloc per closure
 		var el zed.Value
-		el.Type = zed.InnerType(v.Type)
+		el.Type = zed.InnerType(val.Type)
 		if el.Type == nil {
 			return false
 		}
-		for it := v.Iter(); !it.Done(); {
+		for it := val.Iter(); !it.Done(); {
 			var err error
 			el.Bytes, _, err = it.Next()
 			if err != nil {
 				return false
 			}
-			if compare(el) {
+			if compare(&el) {
 				return true
 			}
 		}

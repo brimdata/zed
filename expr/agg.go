@@ -40,7 +40,7 @@ func (a *Aggregator) NewFunction() agg.Function {
 }
 
 func (a *Aggregator) Apply(f agg.Function, val *zed.Value, scope *Scope) {
-	if a.filter(val) {
+	if a.filter(val, scope) {
 		return
 	}
 	zv := a.expr.Eval(val, scope)
@@ -49,11 +49,11 @@ func (a *Aggregator) Apply(f agg.Function, val *zed.Value, scope *Scope) {
 	}
 }
 
-func (a *Aggregator) filter(rec *zed.Value) bool {
+func (a *Aggregator) filter(this *zed.Value, scope *Scope) bool {
 	if a.where == nil {
 		return false
 	}
-	return !a.where(rec)
+	return !a.where(this, scope)
 }
 
 // NewAggregatorExpr returns an Evaluator from agg. The returned Evaluator

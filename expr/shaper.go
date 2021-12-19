@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/brimdata/zed"
+	"github.com/brimdata/zed/expr/result"
 	"github.com/brimdata/zed/zcode"
 	"github.com/brimdata/zed/zson"
 )
@@ -43,27 +44,34 @@ func NewShaper(zctx *zed.Context, expr, typExpr Evaluator, tf ShaperTransform) *
 	}
 }
 
-func (s *Shaper) Eval(rec *zed.Value) (zed.Value, error) {
-	typVal, err := s.typExpr.Eval(rec)
-	if err != nil {
-		return zed.Value{}, err
+func (s *Shaper) Eval(this *zed.Value, scope *Scope) *zed.Value {
+	//XXX should have a fast path for constant types
+	typVal := s.typExpr.Eval(this, scope)
+	if typVal.IsError() {
+		return typVal
 	}
+	//XXX aliasof?
 	if typVal.Type != zed.TypeType {
-		return zed.NewErrorf("shaper function type argument is not a type"), nil
+		val := zed.NewErrorf("shaper type argument is not a type")
+		return &val
 	}
 	shapeTo, err := s.zctx.LookupByValue(typVal.Bytes)
 	if err != nil {
-		return zed.NewErrorf("shaper encountered unknown type value: %s", err), nil
+		panic(err)
 	}
 	shaper, ok := s.shapers[shapeTo]
 	if !ok {
+		//XXX we should check if this is a cast-only function and
+		// and allocate a primitive caster if warranted
 		if zed.TypeRecordOf(shapeTo) == nil {
-			return zed.NewErrorf("shaper function type argument is not a record type: %q", shapeTo), nil
+			//XXX use structured error
+			val := zed.NewErrorf("shaper function type argument is not a record type: %q", shapeTo)
+			return &val
 		}
 		shaper = NewConstShaper(s.zctx, s.expr, shapeTo, s.transforms)
 		s.shapers[shapeTo] = shaper
 	}
-	return shaper.Eval(rec)
+	return shaper.Eval(this, scope)
 }
 
 type ConstShaper struct {
@@ -73,6 +81,7 @@ type ConstShaper struct {
 	shapeTo    zed.Type
 	shapers    map[int]*shaper // map from input type ID to shaper
 	transforms ShaperTransform
+	stash      result.Value
 }
 
 // NewConstShaper returns a shaper that will shape the result of expr
@@ -87,44 +96,43 @@ func NewConstShaper(zctx *zed.Context, expr Evaluator, shapeTo zed.Type, tf Shap
 	}
 }
 
-func (s *ConstShaper) Apply(in *zed.Value) (*zed.Value, error) {
-	v, err := s.Eval(in)
-	if err != nil {
-		return nil, err
+func (s *ConstShaper) Apply(in *zed.Value, scope *Scope) *zed.Value {
+	val := s.Eval(in, scope)
+	if !zed.IsRecordType(val.Type) {
+		// XXX use structured error
+		return s.stash.Errorf("shaper returned non-record value %s", zson.MustFormatValue(*val))
 	}
-	if !zed.IsRecordType(v.Type) {
-		return nil, fmt.Errorf("shaper returned non-record value %s", zson.String(v))
-	}
-	return zed.NewValue(v.Type, v.Bytes), nil
+	return val
 }
 
-func (c *ConstShaper) Eval(in *zed.Value) (zed.Value, error) {
-	inVal, err := c.expr.Eval(in)
-	if err != nil {
-		return zed.Value{}, err
+func (c *ConstShaper) Eval(in *zed.Value, scope *Scope) *zed.Value {
+	inVal := c.expr.Eval(in, scope)
+	if inVal.IsError() {
+		return inVal
 	}
 	id := in.Type.ID()
 	s, ok := c.shapers[id]
 	if !ok {
+		var err error
 		s, err = createShaper(c.zctx, c.transforms, c.shapeTo, inVal.Type)
 		if err != nil {
-			return zed.Value{}, err
+			return c.stash.Error(err)
 		}
 		c.shapers[id] = s
 	}
 	if s.typ.ID() == id {
-		return zed.Value{s.typ, inVal.Bytes}, nil
+		return c.stash.CopyVal(zed.Value{s.typ, inVal.Bytes})
 	}
 	c.b.Reset()
 	if zerr := s.step.buildRecord(inVal.Bytes, &c.b); zerr != nil {
 		typ, err := c.zctx.LookupTypeRecord([]zed.Column{{Name: "error", Type: zerr.Type}})
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
 		c.b.AppendPrimitive(zerr.Bytes)
-		return zed.Value{typ, c.b.Bytes()}, nil
+		return c.stash.CopyVal(zed.Value{typ, c.b.Bytes()})
 	}
-	return zed.Value{s.typ, c.b.Bytes()}, nil
+	return c.stash.CopyVal(zed.Value{s.typ, c.b.Bytes()})
 }
 
 // A shaper is a per-input type ID "spec" that contains the output
@@ -414,10 +422,7 @@ func (s *step) buildRecord(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 		// reordering) would be make direct use of a
 		// zcode.Iter along with keeping track of our
 		// position.
-		bytes, err := getNthFromContainer(in, uint(step.fromIndex))
-		if err != nil {
-			panic(err)
-		}
+		bytes := getNthFromContainer(in, uint(step.fromIndex))
 		if zerr := step.build(bytes, b); zerr != nil {
 			return zerr
 		}
@@ -477,9 +482,11 @@ func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 		return nil
 	}
 	toType := zed.AliasOf(s.toType)
-	pc := LookupPrimitiveCaster(toType)
-	v, err := pc(zed.Value{s.fromType, in})
-	if err != nil {
+	// XXX this makes a new closure on each call... blah this code was net well thougt out
+	// should put this in a table
+	cast := LookupPrimitiveCaster(toType)
+	v := cast(&zed.Value{s.fromType, in})
+	if v.IsError() {
 		b.AppendNull()
 		return nil
 	}
@@ -487,7 +494,7 @@ func (s *step) castPrimitive(in zcode.Bytes, b *zcode.Builder) *zed.Value {
 		// v isn't the "to" type, so we can't safely append v.Bytes to
 		// the builder. See https://github.com/brimdata/zed/issues/2710.
 		if v.Type == zed.TypeError {
-			return &v
+			return v
 		}
 		panic(fmt.Sprintf("expr: got %T from primitive caster, expected %T", v.Type, toType))
 	}

@@ -2,7 +2,6 @@ package expr
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/field"
@@ -77,11 +76,8 @@ func (d *DotExpr) Eval(this *zed.Value, scope *Scope) *zed.Value {
 		return &d.stash
 	}
 	//XXX see PR #1071 to improve this (though we need this for Index anyway)
-	fv, err := getNthFromContainer(val.Bytes, uint(idx))
-	if err != nil {
-		panic(fmt.Errorf("record field access: corrupt Zed bytes: %w", err))
-	}
-	d.stash = zed.Value{Type: recType.Columns[idx].Type, Bytes: fv}
+	field := getNthFromContainer(val.Bytes, uint(idx))
+	d.stash = zed.Value{Type: recType.Columns[idx].Type, Bytes: field}
 	return &d.stash
 }
 

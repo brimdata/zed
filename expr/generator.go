@@ -7,9 +7,10 @@ import (
 
 type Generator interface {
 	Init(*zed.Value)
-	Next() (zed.Value, error)
+	Next() *zed.Value
 }
 
+/*
 type MapMethod struct {
 	src    Generator
 	dollar zed.Value
@@ -86,6 +87,7 @@ func (f *FilterMethod) Next() (zed.Value, error) {
 		}
 	}
 }
+*/
 
 type AggExpr struct {
 	zctx   *zed.Context
@@ -101,26 +103,22 @@ func NewAggExpr(zctx *zed.Context, pattern agg.Pattern, src Generator) *AggExpr 
 	}
 }
 
-func (a *AggExpr) Eval(rec *zed.Value) (zed.Value, error) {
+func (a *AggExpr) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	// XXX This is currently really inefficient while we prototype
 	// this machinery.  We used to have a Reset() method on aggregators
 	// and we should probably reintroduce that for use here so we
 	// don't create a new aggregator for every record. See Issue #2068.
 	f := a.newAgg()
-	a.src.Init(rec)
+	a.src.Init(this)
 	for {
-		zv, err := a.src.Next()
-		if err != nil {
-			if err == zed.ErrMissing {
-				continue
-			}
-			return zed.Value{}, err
+		val := a.src.Next()
+		if val == zed.Missing {
+			continue
 		}
-		if zv.Type == nil {
+		if val.Type == nil {
+			// end of sequence
 			return f.Result(a.zctx)
 		}
-		if err := f.Consume(zv); err != nil {
-			return zed.Value{}, err
-		}
+		f.Consume(val)
 	}
 }

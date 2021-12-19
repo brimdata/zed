@@ -623,7 +623,7 @@ func (i *Index) Eval(rec *zed.Value, scope *Scope) *zed.Value {
 	case *zed.TypeMap:
 		return indexMap(typ, container.Bytes, index)
 	default:
-		return zed.Value{}, zed.ErrMissing
+		return zed.Missing
 	}
 }
 
@@ -820,7 +820,7 @@ func NewCast(expr Evaluator, typ zed.Type) (Evaluator, error) {
 
 type evalCast struct {
 	expr   Evaluator
-	caster PrimitiveCaster
+	caster Caster
 	typ    zed.Type
 }
 
@@ -837,7 +837,7 @@ func (c *evalCast) Eval(rec *zed.Value, scope *Scope) *zed.Value {
 }
 
 func NewRootField(name string) Evaluator {
-	return NewDotExpr(field.New(name))
+	return NewDottedExpr(field.New(name))
 }
 
 type Assignment struct {

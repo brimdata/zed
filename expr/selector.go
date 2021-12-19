@@ -1,11 +1,11 @@
 package expr
 
 import (
-	"errors"
-
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/zcode"
 )
+
+//XXX this should go away no?
 
 type Selector struct {
 	selectors []Evaluator
@@ -24,33 +24,31 @@ func (s *Selector) Init(rec *zed.Value) {
 	s.cursor = s.selectors
 }
 
-func (s *Selector) Next() (zed.Value, error) {
+func (s *Selector) Next(scope *Scope) *zed.Value {
 again:
 	if s.iter != nil && !s.iter.Done() {
 		b, _, err := s.iter.Next()
 		if err != nil {
-			return zed.Value{}, err
+			panic(err)
 		}
 		if len(s.iterCols) == 0 {
-			return zed.Value{}, errors.New("selector encountered bad record value")
+			panic("selector encountered more fields than present in record")
 		}
 		typ := s.iterCols[0].Type
 		s.iterCols = s.iterCols[1:]
-		x := zed.Value{typ, b}
-		return x, nil
+		return &zed.Value{typ, b}
 	}
 	if len(s.cursor) == 0 {
-		return zed.Value{}, nil
+		// end of sequence (i.e., zed.Value.Type==nil)
+		return &zed.Value{}
 	}
-	zv, err := s.cursor[0].Eval(s.zv)
-	if err != nil {
-		return zed.Value{}, err
-	}
+	// Get the next generated value and set up the record for traversal.
+	val := s.cursor[0].Eval(s.zv, scope)
 	s.cursor = s.cursor[1:]
-	if typ, ok := zv.Type.(*zed.TypeRecord); ok {
-		s.iter = zv.Iter()
+	if typ, ok := val.Type.(*zed.TypeRecord); ok {
+		s.iter = val.Iter()
 		s.iterCols = typ.Columns
 		goto again
 	}
-	return zv, nil
+	return val
 }
