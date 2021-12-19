@@ -175,9 +175,9 @@ func formatDataObject(b *bytes.Buffer, object *data.Object, prefix string, inden
 
 func formatPartition(b *bytes.Buffer, p lake.Partition) {
 	b.WriteString("from ")
-	b.WriteString(zson.String(p.First()))
+	b.WriteString(zson.String(*p.First()))
 	b.WriteString(" to ")
-	b.WriteString(zson.String(p.Last()))
+	b.WriteString(zson.String(*p.Last()))
 	b.WriteByte('\n')
 	for _, o := range p.Objects {
 		formatDataObject(b, o, "", 2)

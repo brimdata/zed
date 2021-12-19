@@ -155,7 +155,7 @@ func (p *Pool) batchifyBranches(ctx context.Context, recs []zed.Value, m *zson.M
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(rec) {
+		if f == nil || f(rec, nil) {
 			recs = append(recs, *rec)
 		}
 	}
@@ -180,7 +180,7 @@ func (p *Pool) batchifyBranchTips(ctx context.Context, zctx *zed.Context, f expr
 		if err != nil {
 			return nil, err
 		}
-		if f == nil || f(rec) {
+		if f == nil || f(rec, nil) {
 			recs = append(recs, *rec)
 		}
 	}
@@ -215,8 +215,8 @@ func (p *Pool) Stats(ctx context.Context, snap commits.View) (info PoolStats, er
 		if poolSpan == nil {
 			poolSpan = extent.NewGenericFromOrder(object.First, object.Last, p.Layout.Order)
 		} else {
-			poolSpan.Extend(object.First)
-			poolSpan.Extend(object.Last)
+			poolSpan.Extend(&object.First)
+			poolSpan.Extend(&object.Last)
 		}
 	}
 	//XXX need to change API to take return key range
