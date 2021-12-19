@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio/tzngio"
 )
 
 type header struct {
@@ -23,7 +22,6 @@ type header struct {
 type Parser struct {
 	header
 	zctx       *zed.Context
-	types      *tzngio.TypeParser
 	unknown    int // Count of unknown directives
 	needfields bool
 	needtypes  bool
@@ -44,7 +42,6 @@ func NewParser(r *zed.Context) *Parser {
 	return &Parser{
 		header: header{separator: " "},
 		zctx:   r,
-		types:  tzngio.NewTypeParser(r),
 	}
 }
 
@@ -72,15 +69,75 @@ func (p *Parser) parseTypes(types []string) error {
 		p.needfields = true
 	}
 	for k, name := range types {
-		typ, err := zeekTypeToZNG(name, p.types)
+		typ, err := p.parseType(name)
 		if err != nil {
 			return err
+		}
+		if !isValidInputType(typ) {
+			return ErrIncompatibleZeekType
 		}
 		p.columns[k].Type = typ
 	}
 	p.needtypes = false
 	p.descriptor = nil
 	return nil
+}
+
+func isValidInputType(typ zed.Type) bool {
+	switch t := typ.(type) {
+	case *zed.TypeRecord, *zed.TypeUnion:
+		return false
+	case *zed.TypeSet:
+		return isValidInputType(t.Type)
+	case *zed.TypeArray:
+		return isValidInputType(t.Type)
+	default:
+		return true
+	}
+}
+
+func (p *Parser) parseType(in string) (zed.Type, error) {
+	in = strings.TrimSpace(in)
+	if words := strings.SplitN(in, "[", 2); len(words) == 2 && strings.HasSuffix(words[1], "]") {
+		if typ, err := p.parsePrimitiveType(strings.TrimSuffix(words[1], "]")); err == nil {
+			if words[0] == "set" {
+				return p.zctx.LookupTypeSet(typ), nil
+			}
+			if words[0] == "vector" {
+				return p.zctx.LookupTypeArray(typ), nil
+			}
+		}
+	}
+	return p.parsePrimitiveType(in)
+}
+
+func (p *Parser) parsePrimitiveType(in string) (zed.Type, error) {
+	in = strings.TrimSpace(in)
+	switch in {
+	case "addr":
+		return zed.TypeIP, nil
+	case "bool":
+		return zed.TypeBool, nil
+	case "count":
+		return zed.TypeUint64, nil
+	case "double":
+		return zed.TypeFloat64, nil
+	case "enum":
+		return p.zctx.LookupTypeAlias("zenum", zed.TypeString)
+	case "int":
+		return zed.TypeInt64, nil
+	case "interval":
+		return zed.TypeDuration, nil
+	case "port":
+		return p.zctx.LookupTypeAlias("port", zed.TypeUint16)
+	case "string":
+		return zed.TypeBstring, nil
+	case "subnet":
+		return zed.TypeNet, nil
+	case "time":
+		return zed.TypeTime, nil
+	}
+	return nil, fmt.Errorf("unknown type: %s", in)
 }
 
 func (p *Parser) ParseDirective(line []byte) error {
