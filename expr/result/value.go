@@ -55,6 +55,11 @@ func (v *Value) Error(err error) *zed.Value {
 	return (*zed.Value)(v)
 }
 
+func (v *Value) Errorf(format string, args ...interface{}) *zed.Value {
+	*v = (Value)(zed.NewErrorf(format, args...))
+	return (*zed.Value)(v)
+}
+
 func (v *Value) Copy(val *zed.Value) *zed.Value {
 	v.Type = val.Type
 	v.Bytes = append(v.Bytes[:0], val.Bytes...)
