@@ -76,7 +76,7 @@ func lookupAsc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Value
 			}
 			return prev, err
 		}
-		if cmp := fn(rec); cmp >= 0 {
+		if cmp := fn(rec, nil); cmp >= 0 {
 			if cmp == 0 && op.hasEqual() {
 				return rec, nil
 			}
@@ -104,7 +104,7 @@ func lookupDesc(reader zio.Reader, fn expr.KeyCompareFn, op Operator) (*zed.Valu
 			}
 			return prev, err
 		}
-		if cmp := fn(rec); cmp <= 0 {
+		if cmp := fn(rec, nil); cmp <= 0 {
 			if cmp == 0 && op.hasEqual() {
 				return rec, nil
 			}
@@ -195,17 +195,14 @@ func compareFn(kvs []KeyValue) expr.KeyCompareFn {
 	accessors := make([]expr.Evaluator, len(kvs))
 	values := make([]zed.Value, len(kvs))
 	for i := range kvs {
-		accessors[i] = expr.NewDotExpr(kvs[i].Key)
+		accessors[i] = expr.NewDottedExpr(kvs[i].Key)
 		values[i] = kvs[i].Value
 	}
 	fn := expr.NewValueCompareFn(false)
-	return func(rec *zed.Value) int {
+	return func(this *zed.Value, scope *expr.Scope) int {
 		for i := range kvs {
-			zv, err := accessors[i].Eval(rec)
-			if err != nil {
-				panic(err)
-			}
-			if c := fn(zv, values[i]); c != 0 {
+			val := accessors[i].Eval(this, scope)
+			if c := fn(val, &values[i]); c != 0 {
 				return c
 			}
 		}

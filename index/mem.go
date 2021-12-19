@@ -52,7 +52,7 @@ func (t *MemTable) open() {
 		}
 		resolvers := make([]expr.Evaluator, 0, len(t.keys))
 		for _, key := range t.keys {
-			resolvers = append(resolvers, expr.NewDotExpr(key))
+			resolvers = append(resolvers, expr.NewDottedExpr(key))
 		}
 		expr.SortStable(t.values, expr.NewCompareFn(false, resolvers...))
 	}
