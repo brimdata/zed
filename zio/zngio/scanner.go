@@ -232,7 +232,10 @@ func (w *worker) wantRecord(rec *zed.Value, stats *zbuf.ScannerStats) bool {
 	// negatives because it expects a buffer of ZNG value messages, and
 	// rec.Bytes is just a ZNG value.  (A ZNG value message is a header
 	// indicating a type ID followed by a value of that type.)
-	if w.filter == nil || w.filter(rec) {
+	// We pass nil to filter for the scope since a scanner cannot appear
+	// inside of a nested scope obviously and buffer filters cannot include
+	// scoped references.
+	if w.filter == nil || w.filter(rec, nil) {
 		stats.BytesMatched += int64(len(rec.Bytes))
 		stats.RecordsMatched++
 		return true

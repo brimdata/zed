@@ -55,15 +55,15 @@ func (s *ExprSwitch) run() {
 			s.err = err
 			return
 		}
+		scope := batch.Scope()
 		vals := batch.Values()
 		for i := range vals {
-			zv, err := s.evaluator.Eval(&vals[i])
-			if err != nil {
-				s.err = err
-				return
+			val := s.evaluator.Eval(&vals[i], scope)
+			if val == zed.Missing {
+				continue
 			}
 		again:
-			ch, ok := s.cases[string(zv.Bytes)]
+			ch, ok := s.cases[string(val.Bytes)]
 			if !ok {
 				ch = s.defaultCh
 			}
@@ -105,10 +105,10 @@ func (p *Proc) Pull() (zbuf.Batch, error) {
 	p.parent.once.Do(func() {
 		go p.parent.run()
 	})
-	if rec, ok := <-p.ch; ok {
+	if val, ok := <-p.ch; ok {
 		//XXX we should make this more efficient by pushing batches
 		// instead of values over the channel like split does.
-		return zbuf.NewArray([]zed.Value{*rec}), nil
+		return zbuf.NewArray([]zed.Value{*val}), nil
 	}
 	return nil, p.parent.err
 }

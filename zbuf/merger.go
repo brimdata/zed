@@ -39,7 +39,7 @@ func NewCompareFn(layout order.Layout) expr.CompareFn {
 	nullsMax := layout.Order == order.Asc
 	exprs := make([]expr.Evaluator, len(layout.Keys))
 	for i, key := range layout.Keys {
-		exprs[i] = expr.NewDotExpr(key)
+		exprs[i] = expr.NewDottedExpr(key)
 	}
 	fn := expr.NewCompareFn(nullsMax, exprs...)
 	fn = totalOrderCompare(fn)

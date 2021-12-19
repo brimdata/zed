@@ -38,7 +38,7 @@ func (o *Over) Pull() (zbuf.Batch, error) {
 		return nil, nil
 	}
 	o.eof = true
-	out, err := o.over(&o.vals[0])
+	out, err := o.over(&o.vals[0], o.batch.Scope())
 	o.vals = o.vals[1:]
 	if len(o.vals) == 0 {
 		o.batch.Unref()
@@ -51,15 +51,16 @@ func (o *Over) Pull() (zbuf.Batch, error) {
 // be propagated on an outer scope but not on the inner scope.
 func (o *Over) Done() {}
 
-func (o *Over) over(this *zed.Value) (*zbuf.Array, error) {
+func (o *Over) over(this *zed.Value, scope *expr.Scope) (*zbuf.Array, error) {
 	var vals []zed.Value
 	for _, e := range o.exprs {
-		zv, err := e.Eval(this)
-		if err != nil {
-			return nil, err
-		}
-		if vals, err = appendOver(vals, zv); err != nil {
-			return nil, err
+		val := e.Eval(this, scope)
+		// Propagate errors but skip missing values.
+		if val != zed.Missing {
+			var err error
+			if vals, err = appendOver(vals, *val); err != nil {
+				return nil, err
+			}
 		}
 	}
 	return zbuf.NewArray(vals), nil

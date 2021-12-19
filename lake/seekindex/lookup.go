@@ -24,7 +24,8 @@ func Lookup(r zio.Reader, from, to zed.Value, cmp expr.ValueCompareFn) (Range, e
 		if err != nil {
 			return Range{}, err
 		}
-		if cmp(key, from) > 0 {
+		//XXX
+		if cmp(&key, &from) > 0 {
 			break
 		}
 		off, err := rec.Access("offset")
@@ -35,7 +36,8 @@ func Lookup(r zio.Reader, from, to zed.Value, cmp expr.ValueCompareFn) (Range, e
 		if err != nil {
 			return Range{}, err
 		}
-		if cmp(key, from) == 0 {
+		//XXX
+		if cmp(&key, &from) == 0 {
 			break
 		}
 	}
@@ -44,7 +46,8 @@ func Lookup(r zio.Reader, from, to zed.Value, cmp expr.ValueCompareFn) (Range, e
 		if err != nil {
 			return Range{}, err
 		}
-		if cmp(key, to) > 0 {
+		//XXX
+		if cmp(&key, &to) > 0 {
 			off, err := rec.Access("offset")
 			if err != nil {
 				return Range{}, err
