@@ -183,11 +183,6 @@ func CompileFilter(zctx *zed.Context, scope *Scope, node dag.Expr) (expr.Filter,
 
 	case *dag.Call:
 		return compileExprPredicate(zctx, scope, v)
-	case *dag.SeqExpr:
-		if f, err := compileCompareAny(v); f != nil || err != nil {
-			return f, err
-		}
-		return compileExprPredicate(zctx, scope, v)
 
 	default:
 		return nil, fmt.Errorf("unknown filter DAG type: %T", v)
@@ -203,26 +198,4 @@ func compileExprPredicate(zctx *zed.Context, scope *Scope, e dag.Expr) (expr.Fil
 		zv, err := predicate.Eval(rec)
 		return err == nil && zv.Type == zed.TypeBool && zed.IsTrue(zv.Bytes)
 	}, nil
-}
-
-func compileCompareAny(e *dag.SeqExpr) (expr.Filter, error) {
-	literal, op, ok := isCompareAny(e)
-	if !ok {
-		return nil, nil
-	}
-	var pred expr.Boolean
-	var err error
-	if op == "in" {
-		comparison, err := expr.Comparison("=", *literal)
-		if err != nil {
-			return nil, err
-		}
-		pred = expr.Contains(comparison)
-	} else {
-		pred, err = expr.Comparison(op, *literal)
-		if err != nil {
-			return nil, err
-		}
-	}
-	return expr.EvalAny(pred, false), nil
 }

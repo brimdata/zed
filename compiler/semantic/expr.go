@@ -79,8 +79,6 @@ func semExpr(scope *Scope, e ast.Expr) (dag.Expr, error) {
 			Op:      e.Op,
 			Operand: expr,
 		}, nil
-	case *ast.SelectExpr:
-		return nil, errors.New("select expression found outside of generator context")
 	case *ast.BinaryExpr:
 		return semBinary(scope, e)
 	case *ast.Conditional:
@@ -297,9 +295,6 @@ func semCall(scope *Scope, call *ast.Call) (dag.Expr, error) {
 	if call.Where != nil {
 		return nil, fmt.Errorf("'where' clause on non-aggregation function: %s", call.Name)
 	}
-	if e, err := semSequence(scope, call); e != nil || err != nil {
-		return e, err
-	}
 	exprs, err := semExprs(scope, call.Args)
 	if err != nil {
 		return nil, fmt.Errorf("%s: bad argument: %w", call.Name, err)
@@ -309,69 +304,6 @@ func semCall(scope *Scope, call *ast.Call) (dag.Expr, error) {
 		Name: call.Name,
 		Args: exprs,
 	}, nil
-}
-
-func semSequence(scope *Scope, call *ast.Call) (*dag.SeqExpr, error) {
-	if len(call.Args) != 1 {
-		return nil, nil
-	}
-	sel, ok := call.Args[0].(*ast.SelectExpr)
-	if !ok {
-		return nil, nil
-	}
-	_, err := agg.NewPattern(call.Name)
-	if err != nil {
-		return nil, nil
-	}
-	selectors, err := semExprs(scope, sel.Selectors)
-	if err != nil {
-		return nil, nil
-	}
-	var methods []dag.Method
-	for _, call := range sel.Methods {
-		m, err := semMethod(scope, call)
-		if err != nil {
-			return nil, err
-		}
-		methods = append(methods, *m)
-	}
-	return &dag.SeqExpr{
-		Kind:      "SeqExpr",
-		Name:      call.Name,
-		Selectors: selectors,
-		Methods:   methods,
-	}, nil
-}
-
-func semMethod(scope *Scope, call ast.Call) (*dag.Method, error) {
-	switch call.Name {
-	case "map":
-		if len(call.Args) != 1 {
-			return nil, errors.New("map() method requires one argument")
-		}
-		scope.Enter()
-		defer scope.Exit()
-		e, err := semExpr(scope, call.Args[0])
-		scope.Bind("$", nil)
-		if err != nil {
-			return nil, err
-		}
-		return &dag.Method{Name: "map", Args: []dag.Expr{e}}, nil
-	case "filter":
-		if len(call.Args) != 1 {
-			return nil, errors.New("filter() method requires one argument")
-		}
-		scope.Enter()
-		defer scope.Exit()
-		scope.Bind("$", nil)
-		e, err := semExpr(scope, call.Args[0])
-		if err != nil {
-			return nil, err
-		}
-		return &dag.Method{Name: "filter", Args: []dag.Expr{e}}, nil
-	default:
-		return nil, fmt.Errorf("uknown method: %s", call.Name)
-	}
 }
 
 func semExprs(scope *Scope, in []ast.Expr) ([]dag.Expr, error) {
@@ -543,10 +475,6 @@ func maybeConvertAgg(scope *Scope, call *ast.Call) (dag.Expr, error) {
 		return nil, fmt.Errorf("%s: wrong number of arguments", call.Name)
 	}
 	if len(call.Args) == 1 {
-		if _, ok := call.Args[0].(*ast.SelectExpr); ok {
-			// Do not convert select expressions.
-			return nil, nil
-		}
 		var err error
 		e, err = semExpr(scope, call.Args[0])
 		if err != nil {
@@ -611,11 +539,5 @@ func FieldsOf(e ast.Expr) field.List {
 		return nil
 	case *ast.Assignment:
 		return append(FieldsOf(e.LHS), FieldsOf(e.RHS)...)
-	case *ast.SelectExpr:
-		var fields field.List
-		for _, selector := range e.Selectors {
-			fields = append(fields, FieldsOf(selector)...)
-		}
-		return fields
 	}
 }

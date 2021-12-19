@@ -161,33 +161,6 @@ SearchFactor
   / SearchExpr
 
 
-TBD
-  = "*" __ compareOp:EqualityToken __ v:Expr {
-      RETURN(MAP("kind": "Call", "name": "or",
-        "args": ARRAY(
-          MAP("kind": "SelectExpr",
-              "selectors": ARRAY(MAP("kind": "Root")),
-              "methods": ARRAY(
-                MAP("kind": "Call", "name": "map",
-                    "args": ARRAY(MAP("kind": "BinaryExpr", "op": "=",
-                                      "lhs": MAP("kind": "ID", "name": "$"),
-                                      "rhs": v)),
-                    "where": NULL))))))
-    }
-  / match:PatternMatch !ExprGuard { RETURN(match) }
-  / v:SearchValue _ InToken _ "*" {
-      RETURN(MAP("kind": "Call", "name": "or",
-        "args": ARRAY(
-          MAP("kind": "SelectExpr",
-              "selectors": ARRAY(MAP("kind": "Root")),
-              "methods": ARRAY(
-                MAP("kind": "Call", "name": "map",
-                    "args": ARRAY(MAP("kind": "BinaryExpr", "op": "in",
-                                      "rhs": MAP("kind": "ID", "name": "$"),
-                                      "lhs": v)),
-                    "where": NULL))))))
-    }
-
 SearchExpr
   = search:PatternSearch { RETURN(search) }
   / v:SearchValue !ExprGuard {
@@ -685,8 +658,7 @@ NotExpr
   / FuncExpr
 
 FuncExpr
-  = SelectExpr
-  / MatchExpr
+  = MatchExpr
   / first:Cast rest:(Deref)* {
       RETURN(makeBinaryExprChain(first, rest))
     }
@@ -706,21 +678,6 @@ NotFuncs
 
 MatchExpr
   = "match" __ "(" expr:SearchBoolean ")" { RETURN(expr) }
-
-SelectExpr
-  = "select" __ "(" __ args:Exprs __ ")" methods:Methods? {
-      RETURN(MAP("kind":"SelectExpr", "selectors":args, "methods": methods))
-    }
-
-// Note that this is written this way instead of using Method* above since
-// pegjs and pigeon treat these cases differently (empty slice vs null) and
-// it matters for test consistency since methods is an embedded array rather
-// than a stand-alone AST node with its own Op code.
-Methods
-  = methods:Method+ { RETURN(methods) }
-
-Method
-  = __ "." __ f:Function { RETURN(f) }
 
 Cast
   = typ:CastType __ "(" __ expr:Expr __ ")" {
