@@ -31,7 +31,7 @@ func LogicalNot(expr Filter) Filter {
 	}
 }
 
-func Apply(e Evaluator, pred Boolean, scope *Scope) Filter {
+func Apply(e Evaluator, pred Boolean) Filter {
 	return func(val *zed.Value, scope *Scope) bool {
 		v := e.Eval(val, scope)
 		if v.IsError() {

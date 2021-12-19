@@ -320,7 +320,7 @@ func CompileAssignments(dsts field.List, srcs field.List) (field.List, []expr.Ev
 	var fields field.List
 	for k, dst := range dsts {
 		fields = append(fields, dst)
-		resolvers = append(resolvers, expr.NewDotExpr(srcs[k]))
+		resolvers = append(resolvers, expr.NewDottedExpr(srcs[k]))
 	}
 	return fields, resolvers
 }
@@ -472,7 +472,8 @@ func compileTypeValue(zctx *zed.Context, scope *Scope, t *astzed.TypeValue) (exp
 	if err != nil {
 		return nil, err
 	}
-	return expr.NewLiteral(zed.NewTypeValue(typ)), nil
+	val := zed.NewTypeValue(typ)
+	return expr.NewLiteral(&val), nil
 }
 
 func compileRegexpMatch(zctx *zed.Context, scope *Scope, match *dag.RegexpMatch) (expr.Evaluator, error) {
