@@ -143,6 +143,9 @@ func NewKeyCompareFn(key *zed.Value) (KeyCompareFn, error) {
 				// we know the key value is not null
 				return -1
 			}
+			//XXX
+			a = a.Copy()
+
 			b := keyval[k]
 			// If the type of a field in the comparison record does
 			// not match the type of the key, behavior is undefined.

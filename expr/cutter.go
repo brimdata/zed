@@ -72,7 +72,7 @@ func (c *Cutter) FoundCut() bool {
 
 // Apply returns a new record comprising fields copied from in according to the
 // receiver's configuration.  If the resulting record would be empty, Apply
-// returns nil.
+// returns zed.Missing.
 func (c *Cutter) Eval(in *zed.Value, scope *Scope) *zed.Value {
 	types := c.typeCache
 	b := c.builder
@@ -105,6 +105,8 @@ func (c *Cutter) Eval(in *zed.Value, scope *Scope) *zed.Value {
 	}
 	if rec != nil {
 		c.dirty = true
+	} else {
+		rec = zed.Missing
 	}
 	return rec
 }
