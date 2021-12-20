@@ -77,22 +77,15 @@ func (c *Cutter) Eval(in *zed.Value, scope *Scope) *zed.Value {
 	droppers := c.dropperCache[:0]
 	for k, e := range c.fieldExprs {
 		val := e.Eval(in, scope)
-		if val.IsError() {
-			if c.droppers != nil {
-				if c.droppers[k] == nil {
-					c.droppers[k] = NewDropper(c.zctx, c.fieldRefs[k:k+1])
-				}
-				droppers = append(droppers, c.droppers[k])
-				// ignore this record
-				b.Append(val.Bytes, false)
-				types[k] = zed.TypeNull
-				continue
+		if val.IsQuiet() {
+			// ignore this field
+			if c.droppers[k] == nil {
+				c.droppers[k] = NewDropper(c.zctx, c.fieldRefs[k:k+1])
 			}
-			if val.IsQuiet() {
-				b.Append(val.Bytes, false)
-				types[k] = zed.TypeNull
-				continue
-			}
+			droppers = append(droppers, c.droppers[k])
+			b.Append(val.Bytes, false)
+			types[k] = zed.TypeNull
+			continue
 		}
 		b.Append(val.Bytes, val.IsContainer())
 		types[k] = val.Type
