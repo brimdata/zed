@@ -3,54 +3,11 @@ package zeekio
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/zio/tzngio"
 )
 
 var ErrIncompatibleZeekType = errors.New("type cannot be represented in zeek format")
-
-// The functions defined in this file handle mappings between legacy
-// Zeek types and equivalent ZNG types.
-// The function zeekTypeToZNG() is used when reading Zeek logs to rewrite
-// types before looking up the proper Zeek type.  zngTypeToZeek() is used
-// when writing Zeek logs, it should always be the inverse of zeekTypeToZNG().
-
-func isValidInputType(typ zed.Type) bool {
-	switch t := typ.(type) {
-	case *zed.TypeRecord, *zed.TypeUnion:
-		return false
-	case *zed.TypeSet:
-		return isValidInputType(t.Type)
-	case *zed.TypeArray:
-		return isValidInputType(t.Type)
-	default:
-		return true
-	}
-}
-
-func zeekTypeToZNG(typstr string, types *tzngio.TypeParser) (zed.Type, error) {
-	// As zng types diverge from zeek types, we'll probably want to
-	// re-do this but lets keep it simple for now.
-	typstr = strings.ReplaceAll(typstr, "string", "bstring")
-	typstr = strings.ReplaceAll(typstr, "double", "float64")
-	typstr = strings.ReplaceAll(typstr, "interval", "duration")
-	typstr = strings.ReplaceAll(typstr, "int", "int64")
-	typstr = strings.ReplaceAll(typstr, "count", "uint64")
-	typstr = strings.ReplaceAll(typstr, "addr", "ip")
-	typstr = strings.ReplaceAll(typstr, "subnet", "net")
-	typstr = strings.ReplaceAll(typstr, "enum", "zenum")
-	typstr = strings.ReplaceAll(typstr, "vector", "array")
-	typ, err := types.Parse(typstr)
-	if err != nil {
-		return nil, err
-	}
-	if !isValidInputType(typ) {
-		return nil, ErrIncompatibleZeekType
-	}
-	return typ, nil
-}
 
 func zngTypeToZeek(typ zed.Type) (string, error) {
 	switch typ := typ.(type) {

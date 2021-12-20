@@ -20,13 +20,6 @@ type Reader struct {
 }
 
 func NewReader(reader io.Reader, zctx *zed.Context) (*Reader, error) {
-	_, err := zctx.LookupTypeAlias("zenum", zed.TypeString)
-	if err != nil {
-		return nil, err
-	}
-	if _, err = zctx.LookupTypeAlias("port", zed.TypeUint16); err != nil {
-		return nil, err
-	}
 	buffer := make([]byte, ReadSize)
 	return &Reader{
 		scanner: skim.NewScanner(reader, buffer, MaxLineSize),
