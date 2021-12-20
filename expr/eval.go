@@ -497,7 +497,7 @@ func (a *Add) Eval(this *zed.Value, scope *Scope) *zed.Value {
 		// XXX GC
 		return a.result.String(v1 + v2)
 	}
-	return a.result.Errorf("bad type '+': %s", typ)
+	return a.result.Errorf("type %s incompatible with '+' operator", typ)
 }
 
 func (s *Subtract) Eval(this *zed.Value, scope *Scope) *zed.Value {
@@ -517,7 +517,7 @@ func (s *Subtract) Eval(this *zed.Value, scope *Scope) *zed.Value {
 		v1, v2 := s.operands.uints()
 		return s.result.Uint(typ, v1-v2)
 	}
-	return s.result.Errorf("bad type '-': %s", zed.LookupPrimitiveByID(id))
+	return s.result.Errorf("type %s incompatible with '-' operator", typ)
 }
 
 func (m *Multiply) Eval(this *zed.Value, scope *Scope) *zed.Value {
@@ -537,7 +537,7 @@ func (m *Multiply) Eval(this *zed.Value, scope *Scope) *zed.Value {
 		v1, v2 := m.operands.uints()
 		return m.result.Uint(typ, v1*v2)
 	}
-	return m.result.Errorf("bad type '*': %s", zed.LookupPrimitiveByID(id))
+	return m.result.Errorf("type %s incompatible with '*' operator", typ)
 }
 
 func (d *Divide) Eval(this *zed.Value, scope *Scope) *zed.Value {
@@ -566,7 +566,7 @@ func (d *Divide) Eval(this *zed.Value, scope *Scope) *zed.Value {
 		}
 		return d.result.Uint(typ, v1/v2)
 	}
-	return d.result.Errorf("bad type '/': %s", typ)
+	return d.result.Errorf("type %s incompatible with '/' operator", typ)
 }
 
 func (m *Modulo) Eval(this *zed.Value, scope *Scope) *zed.Value {
@@ -576,7 +576,7 @@ func (m *Modulo) Eval(this *zed.Value, scope *Scope) *zed.Value {
 	}
 	typ := zed.LookupPrimitiveByID(id)
 	if zed.IsFloat(id) || !zed.IsNumber(id) {
-		return m.result.Errorf("bad type '%%': %s", zed.LookupPrimitiveByID(id))
+		return m.result.Errorf("type %s incompatible with '%%' operator", typ)
 	}
 	if zed.IsSigned(id) {
 		x, y := m.operands.ints()
@@ -731,7 +731,7 @@ func NewConditional(predicate, thenExpr, elseExpr Evaluator) *Conditional {
 func (c *Conditional) Eval(rec *zed.Value, scope *Scope) *zed.Value {
 	val := c.predicate.Eval(rec, scope)
 	if val.Type.ID() != zed.IDBool {
-		val := zed.NewErrorf("'?' operator: bool predicate required")
+		val := zed.NewErrorf("?-operator: bool predicate required")
 		return &val
 	}
 	if zed.IsTrue(val.Bytes) {

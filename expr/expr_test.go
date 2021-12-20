@@ -7,7 +7,6 @@ import (
 	"testing"
 
 	"github.com/brimdata/zed"
-	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/pkg/nano"
 	"github.com/brimdata/zed/zson"
 	"github.com/brimdata/zed/ztest"
@@ -216,33 +215,35 @@ func TestCompareNumbers(t *testing.T) {
 		record = fmt.Sprintf(
 			`{x:%s (%s),s:"hello",bs:"world" (bstring),i:10.1.1.1,n:10.1.0.0/16} (=0)`, one, typ)
 
-		testWarning(t, "x == s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testWarning(t, "x != s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testWarning(t, "x < s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testWarning(t, "x <= s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testWarning(t, "x > s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
-		testWarning(t, "x >= s", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		// XXX not good ways to propagate type mistmatch, but false
+		// seem like the right thing
+		testSuccessful(t, "x == s", record, ZSON("false"))
+		testSuccessful(t, "x != s", record, ZSON("false"))
+		testSuccessful(t, "x < s", record, ZSON("false"))
+		testSuccessful(t, "x <= s", record, ZSON("false"))
+		testSuccessful(t, "x > s", record, ZSON("false"))
+		testSuccessful(t, "x >= s", record, ZSON("false"))
 
-		testWarning(t, "x == bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testWarning(t, "x != bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testWarning(t, "x < bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testWarning(t, "x <= bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testWarning(t, "x > bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
-		testWarning(t, "x >= bs", record, expr.ErrIncompatibleTypes, "comparing integer and bstring")
+		testSuccessful(t, "x == bs", record, ZSON("false"))
+		testSuccessful(t, "x != bs", record, ZSON("false"))
+		testSuccessful(t, "x < bs", record, ZSON("false"))
+		testSuccessful(t, "x <= bs", record, ZSON("false"))
+		testSuccessful(t, "x > bs", record, ZSON("false"))
+		testSuccessful(t, "x >= bs", record, ZSON("false"))
 
-		testWarning(t, "x == i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testWarning(t, "x != i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testWarning(t, "x < i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testWarning(t, "x <= i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testWarning(t, "x > i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
-		testWarning(t, "x >= i", record, expr.ErrIncompatibleTypes, "comparing integer and ip")
+		testSuccessful(t, "x == i", record, ZSON("false"))
+		testSuccessful(t, "x != i", record, ZSON("false"))
+		testSuccessful(t, "x < i", record, ZSON("false"))
+		testSuccessful(t, "x <= i", record, ZSON("false"))
+		testSuccessful(t, "x > i", record, ZSON("false"))
+		testSuccessful(t, "x >= i", record, ZSON("false"))
 
-		testWarning(t, "x == n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testWarning(t, "x != n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testWarning(t, "x < n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testWarning(t, "x <= n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testWarning(t, "x > n", record, expr.ErrIncompatibleTypes, "comparing integer and net")
-		testWarning(t, "x >= n", record, expr.ErrIncompatibleTypes, "comparing integer and string")
+		testSuccessful(t, "x == n", record, ZSON("false"))
+		testSuccessful(t, "x != n", record, ZSON("false"))
+		testSuccessful(t, "x < n", record, ZSON("false"))
+		testSuccessful(t, "x <= n", record, ZSON("false"))
+		testSuccessful(t, "x > n", record, ZSON("false"))
+		testSuccessful(t, "x >= n", record, ZSON("false"))
 	}
 
 	// Test comparison between signed and unsigned and also
@@ -348,9 +349,10 @@ func TestCompareNonNumbers(t *testing.T) {
 				continue
 			}
 			for _, op := range allOperators {
-				exp := fmt.Sprintf("%s == %s", t1.field, t2.field)
-				desc := fmt.Sprintf("compare %s %s %s", t1.typ, op, t2.typ)
-				testWarning(t, exp, record, expr.ErrIncompatibleTypes, desc)
+				exp := fmt.Sprintf("%s %s %s", t1.field, op, t2.field)
+				// XXX we no longer have a way to
+				// propagate boolean "warnings"...
+				testSuccessful(t, exp, record, ZSON(`false`))
 			}
 		}
 	}
@@ -534,14 +536,14 @@ func TestArithmetic(t *testing.T) {
 	testSuccessful(t, `"hello" + " world"`, record, zstring("hello world"))
 
 	// Test string arithmetic other than + fails
-	testWarning(t, `"hello" - " world"`, record, expr.ErrIncompatibleTypes, "subtracting strings")
-	testWarning(t, `"hello" * " world"`, record, expr.ErrIncompatibleTypes, "multiplying strings")
-	testWarning(t, `"hello" / " world"`, record, expr.ErrIncompatibleTypes, "dividing strings")
+	testSuccessful(t, `"hello" - " world"`, record, ZSON(`"type string incompatible with '-' operator"(error)`))
+	testSuccessful(t, `"hello" * " world"`, record, ZSON(`"type string incompatible with '*' operator"(error)`))
+	testSuccessful(t, `"hello" / " world"`, record, ZSON(`"type string incompatible with '/' operator"(error)`))
 
 	// Test that addition fails on an unsupported type
-	testWarning(t, "10.1.1.1 + 1", record, expr.ErrIncompatibleTypes, "adding ip and integer")
-	testWarning(t, "10.1.1.1 + 3.14159", record, expr.ErrIncompatibleTypes, "adding ip and float")
-	testWarning(t, `10.1.1.1 + "foo"`, record, expr.ErrIncompatibleTypes, "adding ip and string")
+	testSuccessful(t, "10.1.1.1 + 1", record, ZSON(`"incompatible types"(error)`))
+	testSuccessful(t, "10.1.1.1 + 3.14159", record, ZSON(`"incompatible types"(error)`))
+	testSuccessful(t, `10.1.1.1 + "foo"`, record, ZSON(`"incompatible types"(error)`))
 }
 
 func TestArrayIndex(t *testing.T) {
@@ -568,7 +570,7 @@ func TestConditional(t *testing.T) {
 
 	testSuccessful(t, `x == 0 ? "zero" : "not zero"`, record, zstring("not zero"))
 	testSuccessful(t, `x == 1 ? "one" : "not one"`, record, zstring("one"))
-	testWarning(t, `x ? "x" : "not x"`, record, expr.ErrIncompatibleTypes, "conditional with non-boolean condition")
+	testSuccessful(t, `x ? "x" : "not x"`, record, ZSON(`"?-operator: bool predicate required"(error)`))
 
 	// Ensure that the unevaluated clause doesn't generate errors
 	// (field y doesn't exist but it shouldn't be evaluated)
