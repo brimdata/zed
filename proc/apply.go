@@ -41,8 +41,10 @@ func (a *applier) Pull() (zbuf.Batch, error) {
 		out := make([]zed.Value, 0, len(vals))
 		for i := range vals {
 			val := a.expr.Eval(ctx, &vals[i])
-			if val.IsQuiet() {
-				continue
+			if val.IsError() {
+				if val.IsQuiet() || val.IsMissing() {
+					continue
+				}
 			}
 			// Copy is necessary because Apply can return
 			// its argument.

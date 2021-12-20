@@ -5,6 +5,9 @@
 package rename
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
@@ -27,18 +30,22 @@ func NewFunction(zctx *zed.Context, srcs, dsts field.List) *Function {
 	return &Function{zctx, srcs, dsts, make(map[int]*zed.TypeRecord)}
 }
 
-func (r *Function) dstType(typ *zed.TypeRecord, src, dst field.Path) *zed.TypeRecord {
+func (r *Function) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeRecord, error) {
 	c, ok := typ.ColumnOfField(src[0])
 	if !ok {
-		return typ
+		return typ, nil
 	}
 	var innerType zed.Type
 	if len(src) > 1 {
 		recType, ok := typ.Columns[c].Type.(*zed.TypeRecord)
 		if !ok {
-			return typ
+			return typ, nil
 		}
-		innerType = r.dstType(recType, src[1:], dst[1:])
+		typ, err := r.dstType(recType, src[1:], dst[1:])
+		if err != nil {
+			return nil, err
+		}
+		innerType = typ
 	} else {
 		innerType = typ.Columns[c].Type
 	}
@@ -47,27 +54,38 @@ func (r *Function) dstType(typ *zed.TypeRecord, src, dst field.Path) *zed.TypeRe
 	newcols[c] = zed.Column{Name: dst[0], Type: innerType}
 	typ, err := r.zctx.LookupTypeRecord(newcols)
 	if err != nil {
+		if errors.Is(err, zed.ErrDuplicateFields) {
+			return nil, fmt.Errorf("rename: %s", err)
+		}
 		panic(err)
 	}
-	return typ
+	return typ, nil
 }
 
-func (r *Function) computeType(typ *zed.TypeRecord) *zed.TypeRecord {
+func (r *Function) computeType(typ *zed.TypeRecord) (*zed.TypeRecord, error) {
 	for k, dst := range r.dsts {
-		typ = r.dstType(typ, r.srcs[k], dst)
+		var err error
+		typ, err = r.dstType(typ, r.srcs[k], dst)
+		if err != nil {
+			return nil, err
+		}
 	}
-	return typ
+	return typ, nil
 }
 
 func (r *Function) Eval(ctx expr.Context, this *zed.Value) *zed.Value {
 	id := this.Type.ID()
 	typ, ok := r.typeMap[id]
 	if !ok {
-		typ = r.computeType(zed.TypeRecordOf(this.Type))
+		var err error
+		typ, err = r.computeType(zed.TypeRecordOf(this.Type))
+		if err != nil {
+			return ctx.CopyValue(zed.NewError(err))
+		}
 		r.typeMap[id] = typ
 	}
 	out := this.Copy()
-	return zed.NewValue(typ, out.Bytes)
+	return ctx.NewValue(typ, out.Bytes)
 }
 
 func (_ *Function) String() string { return "rename" }

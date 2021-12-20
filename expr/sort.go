@@ -27,14 +27,17 @@ type comparefn func(a, b zcode.Bytes) int
 // a record with a null value is considered larger than a record with any
 // other value, and vice versa.
 func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
-	var aBytesBuf []byte
 	var pair coerce.Pair
 	comparefns := make(map[zed.Type]comparefn)
 	ctx := NewContext() //XXX should be smarter about this... pass it in?
 	return func(ra *zed.Value, rb *zed.Value) int {
 		for _, resolver := range fields {
-			// XXX return errors?
 			a := resolver.Eval(ctx, ra)
+			if a.IsMissing() {
+				// Treat missing values as null so nulls-first/last
+				// works for these.
+				a = zed.Null
+			}
 			// XXX We should compute a vector of sort keys then
 			// sort the pointers and then generate the batches
 			// on demand from the sorted pointers.  And we should
@@ -42,15 +45,11 @@ func NewCompareFn(nullsMax bool, fields ...Evaluator) CompareFn {
 			// i.e., we sort {key,*zed.Value} then build the new
 			// batches from the sorted pointers.
 			a = a.Copy()
-			if len(a.Bytes) > 0 {
-				// a.Bytes's backing array might belonging to
-				// resolver.Eval, so copy it before calling
-				// resolver.Eval again.
-				aBytesBuf = append(aBytesBuf[:0], a.Bytes...)
-				a.Bytes = aBytesBuf
-			}
 
 			b := resolver.Eval(ctx, rb)
+			if b.IsMissing() {
+				b = zed.Null
+			}
 			v := compareValues(a, b, comparefns, &pair, nullsMax)
 			// If the events don't match, then return the sort
 			// info.  Otherwise, they match and we continue on
@@ -97,7 +96,6 @@ func compareValues(a, b *zed.Value, comparefns map[zed.Type]comparefn, pair *coe
 	typ := a.Type
 	abytes, bbytes := a.Bytes, b.Bytes
 	if a.Type.ID() != b.Type.ID() {
-		//XXX coerce take ptr?
 		id, err := pair.Coerce(a, b)
 		typ = zed.LookupPrimitiveByID(id)
 		if err != nil || typ == nil {
