@@ -51,8 +51,7 @@ func (s *Shaper) Eval(ctx Context, this *zed.Value) *zed.Value {
 	}
 	//XXX aliasof?
 	if typVal.Type != zed.TypeType {
-		val := zed.NewErrorf("shaper type argument is not a type")
-		return &val
+		return ctx.CopyValue(zed.NewErrorf("shaper type argument is not a type: %s", zson.MustFormatValue(*typVal)))
 	}
 	shapeTo, err := s.zctx.LookupByValue(typVal.Bytes)
 	if err != nil {
@@ -64,13 +63,14 @@ func (s *Shaper) Eval(ctx Context, this *zed.Value) *zed.Value {
 		// and allocate a primitive caster if warranted
 		if zed.TypeRecordOf(shapeTo) == nil {
 			//XXX use structured error
-			val := zed.NewErrorf("shaper function type argument is not a record type: %q", shapeTo)
-			return &val
+			return ctx.CopyValue(zed.NewErrorf("shaper function type argument is not a record type: %q", shapeTo))
 		}
 		shaper = NewConstShaper(s.zctx, s.expr, shapeTo, s.transforms)
 		s.shapers[shapeTo] = shaper
 	}
-	return shaper.Eval(ctx, this)
+	v := shaper.Eval(ctx, this)
+	fmt.Printf("SHAPER RETURN", zson.MustFormatValue(*v))
+	return v
 }
 
 type ConstShaper struct {
@@ -104,8 +104,10 @@ func (s *ConstShaper) Apply(ctx Context, this *zed.Value) *zed.Value {
 }
 
 func (c *ConstShaper) Eval(ctx Context, this *zed.Value) *zed.Value {
+	fmt.Println("CONST EVAL")
 	inVal := c.expr.Eval(ctx, this)
 	if inVal.IsError() {
+		fmt.Println("CONST RET1")
 		return inVal
 	}
 	id := this.Type.ID()
@@ -114,11 +116,13 @@ func (c *ConstShaper) Eval(ctx Context, this *zed.Value) *zed.Value {
 		var err error
 		s, err = createShaper(c.zctx, c.transforms, c.shapeTo, inVal.Type)
 		if err != nil {
+			fmt.Println("CONST RET2")
 			return ctx.CopyValue(zed.NewError(err))
 		}
 		c.shapers[id] = s
 	}
 	if s.typ.ID() == id {
+		fmt.Println("CONST RET3")
 		return ctx.NewValue(s.typ, inVal.Bytes)
 	}
 	c.b.Reset()
@@ -128,8 +132,10 @@ func (c *ConstShaper) Eval(ctx Context, this *zed.Value) *zed.Value {
 			panic(err)
 		}
 		c.b.AppendPrimitive(zerr.Bytes)
+		fmt.Println("CONST RET4")
 		return ctx.NewValue(typ, c.b.Bytes())
 	}
+	fmt.Println("CONST RET5")
 	return ctx.NewValue(s.typ, c.b.Bytes())
 }
 
