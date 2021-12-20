@@ -698,6 +698,9 @@ func indexRecord(typ *zed.TypeRecord, record zcode.Bytes, index *zed.Value) *zed
 }
 
 func indexMap(typ *zed.TypeMap, mapBytes zcode.Bytes, key *zed.Value) *zed.Value {
+	if key == zed.Missing {
+		return zed.Missing
+	}
 	if key.Type != typ.KeyType {
 		//XXX coerce numeric index?
 		//XXX seems like we should jut return missing here as
