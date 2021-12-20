@@ -3,5 +3,5 @@ zed: rename foo:=goo
 input: |
   {foo:"foo1",goo:"goo1"}
 
-warnings: |
-  rename: duplicate field foo
+output: |
+  {err:"rename: duplicate fields"(error),this:{foo:"foo1",goo:"goo1"}}

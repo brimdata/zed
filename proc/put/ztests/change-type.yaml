@@ -7,5 +7,5 @@ input: |
 
 output: |
   {addr:10.0.0.1,x:10.0.0.0/8}
-  {addr:fe80::215:17ff:fe84:c13f,x:"not an IPv4"(error)}
+  {addr:fe80::215:17ff:fe84:c13f,x:"network_of: not an IPv4 address"(error)}
   {addr:10.0.0.1,x:10.0.0.0/8}

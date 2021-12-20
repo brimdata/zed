@@ -24,7 +24,7 @@ func (n *NetworkOf) Call(ctx zed.Allocator, args []zed.Value) *zed.Value {
 	if len(args) == 1 {
 		mask = ip.DefaultMask()
 		if mask == nil {
-			return newErrorf(ctx, "network_of: not an IP")
+			return newErrorf(ctx, "network_of: not an IPv4 address")
 		}
 	} else {
 		// two args

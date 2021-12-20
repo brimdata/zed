@@ -11,6 +11,7 @@ import (
 	"github.com/brimdata/zed"
 	"github.com/brimdata/zed/expr"
 	"github.com/brimdata/zed/field"
+	"github.com/brimdata/zed/zcode"
 )
 
 //XXX this is not a proc... should go in expr?
@@ -55,7 +56,7 @@ func (r *Function) dstType(typ *zed.TypeRecord, src, dst field.Path) (*zed.TypeR
 	typ, err := r.zctx.LookupTypeRecord(newcols)
 	if err != nil {
 		if errors.Is(err, zed.ErrDuplicateFields) {
-			return nil, fmt.Errorf("rename: %s", err)
+			return nil, err
 		}
 		panic(err)
 	}
@@ -80,7 +81,19 @@ func (r *Function) Eval(ctx expr.Context, this *zed.Value) *zed.Value {
 		var err error
 		typ, err = r.computeType(zed.TypeRecordOf(this.Type))
 		if err != nil {
-			return ctx.CopyValue(zed.NewError(err))
+			// XXX structured error
+			cols := []zed.Column{
+				{"err", zed.TypeError},
+				{"this", this.Type},
+			}
+			errType, zerr := r.zctx.LookupTypeRecord(cols)
+			if zerr != nil {
+				panic(zerr)
+			}
+			var b zcode.Builder
+			b.AppendPrimitive(zed.EncodeString(fmt.Sprintf("rename: %s", err)))
+			b.Append(this.Bytes, zed.IsContainerType(typ))
+			return ctx.NewValue(errType, b.Bytes())
 		}
 		r.typeMap[id] = typ
 	}

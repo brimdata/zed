@@ -36,9 +36,7 @@ func (m *mathReducer) Result(*zed.Context) *zed.Value {
 }
 
 func (m *mathReducer) Consume(val *zed.Value) {
-	if !val.IsNull() {
-		m.consumeVal(val)
-	}
+	m.consumeVal(val)
 }
 
 func (m *mathReducer) consumeVal(val *zed.Value) {
@@ -50,7 +48,7 @@ func (m *mathReducer) consumeVal(val *zed.Value) {
 	if m.typ == nil {
 		m.typ = val.Type
 	}
-	if val.Bytes == nil {
+	if val.IsNull() {
 		return
 	}
 	if m.math == nil {
@@ -66,7 +64,7 @@ func (m *mathReducer) consumeVal(val *zed.Value) {
 		case zed.IDTime:
 			m.math = NewTime(m.function)
 		default:
-			//m.TypeMismatch++
+			// Ignore types we can't handle.
 			return
 		}
 	}

@@ -97,8 +97,8 @@ func (c *Context) Lookup(id int) *TypeRecord {
 // this type context.  If you want to use columns from a different type context,
 // use TranslateTypeRecord.
 func (c *Context) LookupTypeRecord(columns []Column) (*TypeRecord, error) {
-	if name, ok := duplicateField(columns); ok {
-		return nil, fmt.Errorf("%w: %s", ErrDuplicateFields, name)
+	if _, ok := duplicateField(columns); ok {
+		return nil, ErrDuplicateFields
 	}
 	tv := EncodeTypeValue(&TypeRecord{Columns: columns})
 	c.mu.Lock()
