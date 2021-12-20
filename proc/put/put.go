@@ -82,9 +82,13 @@ func (p *Proc) maybeWarn(err error) {
 }
 
 func (p *Proc) eval(in *zed.Value, scope *expr.Scope) ([]zed.Value, error) {
-	vals := p.vals
-	for k, cl := range p.clauses {
-		vals[k] = *cl.RHS.Eval(in, scope)
+	vals := p.vals[:0]
+	for _, cl := range p.clauses {
+		val := *cl.RHS.Eval(in, scope)
+		if val.IsQuiet() {
+			continue
+		}
+		vals = append(vals, val)
 	}
 	return vals, nil
 }

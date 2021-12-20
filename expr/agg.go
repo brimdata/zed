@@ -44,7 +44,7 @@ func (a *Aggregator) Apply(f agg.Function, val *zed.Value, scope *Scope) {
 		return
 	}
 	zv := a.expr.Eval(val, scope)
-	if !zed.IsMissing(zv) {
+	if !zv.IsMissing() {
 		f.Consume(zv)
 	}
 }

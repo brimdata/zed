@@ -129,7 +129,7 @@ func (d *Dropper) Eval(in *zed.Value, scope *Scope) *zed.Value {
 		d.droppers[id] = dropper
 	}
 	if dropper == nil {
-		return nil
+		return zed.Quiet
 	}
 	return dropper.drop(in, scope)
 }

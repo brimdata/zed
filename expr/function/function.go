@@ -112,6 +112,8 @@ func New(zctx *zed.Context, name string, narg int) (Interface, bool, error) {
 		f = &ParseURI{marshaler: zson.NewZNGMarshalerWithContext(zctx)}
 	case "parse_zson":
 		f = &ParseZSON{zctx: zctx}
+	case "quiet":
+		f = &Quiet{}
 	}
 	if argmin != -1 && narg < argmin {
 		return nil, false, ErrTooFewArgs
@@ -233,4 +235,18 @@ func (i *Is) Call(args []zed.Value) *zed.Value {
 		return zed.True
 	}
 	return zed.False
+}
+
+//XXX need to add doc
+// https://github.com/brimdata/zed/blob/main/docs/language/functions.md#quiet
+type Quiet struct {
+	zctx *zed.Context
+}
+
+func (q *Quiet) Call(args []zed.Value) *zed.Value {
+	val := args[0]
+	if val.IsMissing() {
+		return zed.Quiet
+	}
+	return &val
 }

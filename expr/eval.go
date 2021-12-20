@@ -828,7 +828,7 @@ func (h *Has) Eval(rec *zed.Value, scope *Scope) *zed.Value {
 	for _, e := range h.exprs {
 		val := e.Eval(rec, scope)
 		if val.IsError() {
-			if zed.IsMissing(val) {
+			if val.IsMissing() || val.IsQuiet() {
 				return zed.False
 			}
 			return val

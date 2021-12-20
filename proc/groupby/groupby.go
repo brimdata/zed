@@ -288,7 +288,7 @@ func (a *Aggregator) Consume(this *zed.Value, scope *expr.Scope) {
 	var prim *zed.Value
 	for i, keyExpr := range a.keyExprs {
 		key := keyExpr.Eval(this, scope)
-		if key.IsError() && key != zed.Missing {
+		if key.IsError() && !key.IsMissing() {
 			// XXX Silently ignore errors.  We should add
 			// an error column and collect up the errors to
 			// some limit.

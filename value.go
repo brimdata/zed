@@ -205,10 +205,12 @@ func (v Value) IsError() bool {
 	return AliasOf(v.Type) == TypeError
 }
 
-var missingAsBytes = []byte(missing)
-
 func (v Value) IsMissing() bool {
-	return v.Type == TypeError && bytes.Equal(v.Bytes, missingAsBytes)
+	return v.Type == TypeError && bytes.Equal(v.Bytes, missing)
+}
+
+func (v Value) IsQuiet() bool {
+	return v.Type == TypeError && bytes.Equal(v.Bytes, quiet)
 }
 
 func (v Value) Equal(p Value) bool {
